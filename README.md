@@ -1,6 +1,7 @@
-# Google Research
+# Google AI Research
 
-This repository contains code released by Google Research.
+This repository contains code released by
+[Google AI Research](https://ai.google/research).
 
 ---
 
