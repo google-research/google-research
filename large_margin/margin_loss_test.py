@@ -31,15 +31,13 @@ class MarginLossTest(tf.test.TestCase, parameterized.TestCase):
   def test_import(self):
     self.assertIsNotNone(margin_loss)
 
-  @parameterized.named_parameters(
-      ("norm_1", 1),
-      ("norm_2", 2),
-      ("norm_inf", np.inf),
-  )
-  def test_loss(self, dist_norm):
-    image_shape = (28, 28, 1)
+  @parameterized.parameters(
+      (i, j, k) for i in [1, 2, np.inf] for j in [1, 5]
+      for k in ["all_top_k", "worst_top_k", "average_top_k"])
+  def test_loss(self, dist_norm, top_k, loss_type):
+    image_shape = (12, 12, 1)
     num_classes = 10
-    batch_size = 5
+    batch_size = 3
     images = tf.convert_to_tensor(
         np.random.rand(*((batch_size,) + image_shape)), dtype=tf.float32)
     labels = tf.convert_to_tensor(
@@ -50,8 +48,8 @@ class MarginLossTest(tf.test.TestCase, parameterized.TestCase):
     # Convolution layer.
     net = tf.layers.conv2d(
         images,
-        filters=3,
-        kernel_size=16,
+        filters=8,
+        kernel_size=3,
         strides=(1, 1),
         padding="same",
         activation=tf.nn.relu)
@@ -64,11 +62,11 @@ class MarginLossTest(tf.test.TestCase, parameterized.TestCase):
         logits=logits,
         one_hot_labels=tf.one_hot(labels, num_classes),
         layers_list=[endpoints["input_layer"], endpoints["conv_layer"]],
-        gamma=10,
+        gamma=10000,
         alpha_factor=4,
-        top_k=1,
-        dist_norm=dist_norm
-    )
+        top_k=top_k,
+        dist_norm=dist_norm,
+        loss_type=loss_type)
     var_list = tf.global_variables()
     init = tf.global_variables_initializer()
 

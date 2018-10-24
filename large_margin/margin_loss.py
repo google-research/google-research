@@ -57,14 +57,22 @@ def maximum_with_relu(a, b):
 
 
 def _ensure_large_margin_args(name, sentinel, one_hot_labels, logits,
-                              layers_list):
+                              layers_list, dist_norm, loss_type):
+  """Ensures arguments are correct."""
   # Make sure that all arguments were passed as named arguments.
   if sentinel is not None:
     raise ValueError(
         "Only call `%s` with "
         "named arguments (one_hot_labels=..., logits=..., ...)" % name)
-  if one_hot_labels is None or logits is None or layers_list is None:
+  if (one_hot_labels is None or logits is None or not layers_list):
     raise ValueError("logits, one_hot_labels and layers_list must be provided.")
+
+  if dist_norm not in {1, 2, np.inf}:
+    raise ValueError("dist_norm must be 1, 2, or np.inf.")
+
+  if loss_type not in {"all_top_k", "average_top_k", "worst_top_k"}:
+    raise ValueError(
+        "loss_type must be 'all_top_k', 'average_top_k', or 'worst_top_k'.")
 
 
 def large_margin(  # pylint: disable=invalid-name
@@ -72,12 +80,13 @@ def large_margin(  # pylint: disable=invalid-name
     logits=None,
     one_hot_labels=None,
     layers_list=None,
-    gamma=10,
-    alpha_factor=4,
+    gamma=10000,
+    alpha_factor=2,
     top_k=1,
     dist_norm=2,
     epsilon=1e-8,
     use_approximation=True,
+    loss_type="all_top_k",
     loss_collection=tf.GraphKeys.LOSSES):
   """Creates a large margin loss.
 
@@ -86,16 +95,22 @@ def large_margin(  # pylint: disable=invalid-name
     logits: Float `[batch_size, num_classes]` logits outputs of the network.
     one_hot_labels: `[batch_size, num_classes]` Target integer labels in `{0,
       1}`.
-    layers_list: List of network layers to enforce large margin.
-    gamma: Desired margin.
-    alpha_factor: Factor to determine the lower bound of margin. both gamma and
+    layers_list: List of network Tensors at different layers. The large margin
+      is enforced at the layers specified.
+    gamma: Desired margin, and distance to boundary above the margin will be
+      clipped.
+    alpha_factor: Factor to determine the lower bound of margin. Both gamma and
       alpha_factor determine points to include in training the margin these
       points lie with distance to boundary of [gamma * (1 - alpha), gamma]
     top_k: Number of top classes to include in the margin loss.
     dist_norm: Distance to boundary defined on norm (options: be 1, 2, np.inf).
-    epsilon: Dmall number to avoid division by 0.
+    epsilon: Small number to avoid division by 0.
     use_approximation: If true, use approximation of the margin gradient for
       less computationally expensive training.
+    loss_type: 'worst_top_k', 'average_top_k', or 'all_top_k'. If 'worst_top_k'
+      only consider the minimum distance to boundary of the top_k classes. If
+      'average_top_k' consider average distance to boundary. If 'all_top_k'
+      consider all top_k. When top_k = 1, these choices are equivalent.
     loss_collection: Collection to which the loss will be added.
 
   Returns:
@@ -106,29 +121,30 @@ def large_margin(  # pylint: disable=invalid-name
   """
 
   _ensure_large_margin_args("large_margin", _sentinel, one_hot_labels, logits,
-                            layers_list)
+                            layers_list, dist_norm, loss_type)
   logits = tf.convert_to_tensor(logits)
   one_hot_labels = tf.cast(one_hot_labels, logits.dtype)
   logits.get_shape().assert_is_compatible_with(one_hot_labels.get_shape())
   assert top_k > 0
+  assert top_k <= logits.get_shape()[1]
 
   dual_norm = {1: np.inf, 2: 2, np.inf: 1}
   norm_fn = get_norm_fn(dual_norm[dist_norm])
   with tf.name_scope("large_margin_loss"):
     class_prob = tf.nn.softmax(logits)
-    # pick the correct class probability
+    # Pick the correct class probability.
     correct_class_prob = tf.reduce_sum(
         class_prob * one_hot_labels, axis=1, keepdims=True)
 
-    # class probabilities except the correct
+    # Class probabilities except the correct.
     other_class_prob = class_prob * (1. - one_hot_labels)
     if top_k > 1:
-      # pick the top k class probabilities other than the correct.
+      # Pick the top k class probabilities other than the correct.
       top_k_class_prob, _ = tf.nn.top_k(other_class_prob, k=top_k)
     else:
       top_k_class_prob = tf.reduce_max(other_class_prob, axis=1, keepdims=True)
 
-    # difference between correct class probailities and top_k probabilities
+    # Difference between correct class probailities and top_k probabilities.
     difference_prob = correct_class_prob - top_k_class_prob
     losses_list = []
     for layer in layers_list:
@@ -148,20 +164,28 @@ def large_margin(  # pylint: disable=invalid-name
       distance_to_boundary = difference_prob / (
           difference_prob_gradnorm + epsilon)
 
-      # distances to consider between distance_upper and distance_lower bounds
+      if loss_type == "worst_top_k":
+        # Only consider worst distance to boundary.
+        distance_to_boundary = tf.reduce_min(distance_to_boundary, axis=1)
+
+      elif loss_type == "average_top_k":
+        # Only consider average distance to boundary.
+        distance_to_boundary = tf.reduce_mean(distance_to_boundary, axis=1)
+
+      # Distances to consider between distance_upper and distance_lower bounds
       distance_upper = gamma
       distance_lower = gamma * (1 - alpha_factor)
 
-      # enforce lower bound
+      # Enforce lower bound.
       loss_layer = maximum_with_relu(distance_to_boundary, distance_lower)
 
-      # enforce upper bound
-      loss_layer = maximum_with_relu(0, distance_upper - loss_layer)
+      # Enforce upper bound.
+      loss_layer = maximum_with_relu(
+          0, distance_upper - loss_layer) - distance_upper
 
-      # TODO(gamaleldin): add other loss types 'worst' etc.
       losses_list.append(tf.reduce_mean(loss_layer))
 
     loss = tf.reduce_mean(losses_list)
-    # add loss to loss_collection
+    # Add loss to loss_collection.
     tf.losses.add_loss(loss, loss_collection)
   return loss
