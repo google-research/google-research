@@ -28,6 +28,7 @@ To train a model locally:
 python -m probabilistic_vqvae.mnist_experiments
 ```
 
+
 The following commands will train specific hyperparameter and model settings:
 
 1\. Baseline VQ-VAE.

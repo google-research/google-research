@@ -122,11 +122,11 @@ flags.DEFINE_string("mnist_type",
                      and 'threshold' for binarized MNIST at 0.5 threshold.""")
 flags.DEFINE_string("data_dir",
                     default=os.path.join(os.getenv("TEST_TMPDIR", "/tmp"),
-                                         "vq_vae/data"),
+                                         "vqvae/data"),
                     help="Directory where data is stored (if using real data).")
 flags.DEFINE_string(
     "model_dir",
-    default=os.path.join(os.getenv("TEST_TMPDIR", "/tmp"), "prob_vqvae/"),
+    default=os.path.join(os.getenv("TEST_TMPDIR", "/tmp"), "vqvae/log"),
     help="Directory to put the model's fit.")
 flags.DEFINE_integer("viz_steps",
                      default=1000,
@@ -993,7 +993,7 @@ def main(argv):
         prior_loss = prior_loss * FLAGS.latent_size
       heldout_prior_loss = prior_loss
       heldout_reconstruction_loss = reconstruction_loss
-      heldout_neg_q_entropy = 0.
+      heldout_neg_q_entropy = tf.constant(0.)
     if FLAGS.bottleneck_type == "categorical":
       # To accurately evaluate heldout NLL, we need to sum over latent dimension
       # and use a single sample for the categorical (and not multinomial) prior.
