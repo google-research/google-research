@@ -1,0 +1,19 @@
+sudo: required
+dist: trusty
+language: python
+git:
+  depth: 10
+  quiet: true
+python:
+  - "3.6"
+env:
+  matrix:
+    - PROJECT="dreg_estimators"
+    - PROJECT="large_margin"
+    - PROJECT="probabilistic_vqvae"
+before_script:
+  - sudo apt-get update -qq
+  - pip install --upgrade pip
+  - pip install --upgrade virtualenv
+script:
+  - ./$PROJECT/run.sh

@@ -24,8 +24,17 @@ import numpy as np
 import scipy.io
 import tensorflow as tf
 
-MNIST_LOCATION = ""
-OMNIGLOT_LOCATION = ""
+flags = tf.flags
+
+flags.DEFINE_string("MNIST_LOCATION", "/tmp/mnist",
+                    "The directory of MNIST datasets.")
+flags.DEFINE_string("OMNIGLOT_LOCATION", "/tmp/omniglot.mat",
+                    "The directory of Omniglot datasets.")
+
+FLAGS = flags.FLAGS
+
+MNIST_LOCATION = lambda: FLAGS.MNIST_LOCATION
+OMNIGLOT_LOCATION = lambda: FLAGS.OMNIGLOT_LOCATION
 
 
 
@@ -73,7 +82,7 @@ def load_omniglot(dynamic_binarization=True, shuffle=True, shuffle_seed=123):
     omni_raw = scipy.io.loadmat(os.path.join("/tmp", "omniglot.mat"))
   else:
     # Fall back to external
-    with tf.gfile.GFile(OMNIGLOT_LOCATION, "rb") as f:
+    with tf.gfile.GFile(OMNIGLOT_LOCATION(), "rb") as f:
       omni_raw = scipy.io.loadmat(f)
 
   train_data = reshape_data(omni_raw["data"].T.astype("float32"))
@@ -105,7 +114,7 @@ def load_mnist():
         xs = np.load(f).reshape(-1, 784)
     else:
       with tf.gfile.Open(
-          os.path.join(MNIST_LOCATION, "%s.npy" % dataset), "rb") as f:
+          os.path.join(MNIST_LOCATION(), "%s.npy" % dataset), "rb") as f:
         xs = np.load(f).reshape(-1, 784)
 
     return xs.astype(np.float32)
