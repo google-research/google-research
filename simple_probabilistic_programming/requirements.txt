@@ -1,0 +1,3 @@
+scipy==1.0.0
+tensor2tensor>=1.9.0
+# tensorflow>=1.12.0 or tensorflow-gpu>=1.12.0
