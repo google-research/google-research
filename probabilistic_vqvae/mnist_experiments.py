@@ -191,13 +191,13 @@ class VectorQuantizer(object):
       distances: The Euclidean distances between for each code.
     """
     distances = tf.norm(
-        codes[:, :, tf.newaxis, Ellipsis] -
+        codes[:, :, tf.newaxis, ...] -
         tf.reshape(self.codebook, [1, 1, self.num_codes, self.code_size]),
         axis=3)
     assignments = tf.argmin(distances, 2)
     one_hot_assignments = tf.one_hot(assignments, depth=self.num_codes)
     nearest_codebook_entries = tf.reduce_sum(
-        one_hot_assignments[Ellipsis, tf.newaxis] *
+        one_hot_assignments[..., tf.newaxis] *
         tf.reshape(self.codebook, [1, 1, self.num_codes, self.code_size]),
         axis=2)
     return nearest_codebook_entries, one_hot_assignments, distances
@@ -363,7 +363,7 @@ def make_transformer_prior(num_codes, code_size):
     with tf.variable_scope("transformer_prior", reuse=tf.AUTO_REUSE):
       dense_shifted_codes = tf.reduce_sum(
           tf.reshape(embedding_layer, [1, 1, 1, num_codes, code_size]) *
-          shifted_codes[Ellipsis, tf.newaxis], axis=-2)
+          shifted_codes[..., tf.newaxis], axis=-2)
       transformed_codes = cia.transformer_decoder_layers(
           inputs=dense_shifted_codes,
           encoder_output=None,
@@ -372,7 +372,7 @@ def make_transformer_prior(num_codes, code_size):
           attention_type=cia.AttentionType.LOCAL_1D)
       logits = tf.reduce_sum(
           tf.reshape(embedding_layer, [1, 1, 1, num_codes, code_size]) *
-          transformed_codes[Ellipsis, tf.newaxis, :], axis=-1)
+          transformed_codes[..., tf.newaxis, :], axis=-1)
       prior_dist = tfd.Multinomial(total_count=1., logits=logits)
     return prior_dist
 
@@ -448,7 +448,7 @@ def categorical_bottleneck(dist,
         total_count=tf.cast(num_samples, tf.float32),
         logits=-dist)
     neg_q_entropy = entropy_dist.log_prob(summed_assignments)
-    one_hot_assignments = averaged_assignments[tf.newaxis, Ellipsis]
+    one_hot_assignments = averaged_assignments[tf.newaxis, ...]
   else:
     one_hot_assignments = tf.transpose(one_hot_assignments, [2, 0, 1, 3])
     entropy_dist = tfd.OneHotCategorical(logits=-dist, dtype=tf.float32)
@@ -459,7 +459,7 @@ def categorical_bottleneck(dist,
                          tf.reshape(tf.reduce_sum(neg_q_entropy, axis=-1),
                                     [-1]))
   # Perform straight-through.
-  class_probs = tf.nn.softmax(-dist[tf.newaxis, Ellipsis])
+  class_probs = tf.nn.softmax(-dist[tf.newaxis, ...])
   one_hot_assignments = class_probs + tf.stop_gradient(
       one_hot_assignments - class_probs)
 
@@ -523,7 +523,7 @@ def iaf_scale_from_transformer(shifted_codes,
     hparams = transformer_hparams(hidden_size=code_size)
     dense_shifted_codes = tf.reduce_sum(
         tf.reshape(embedding_layer, [1, 1, 1, num_codes, code_size]) *
-        shifted_codes[Ellipsis, tf.newaxis], axis=-2)
+        shifted_codes[..., tf.newaxis], axis=-2)
     transformed_codes = cia.transformer_decoder_layers(
         inputs=dense_shifted_codes,
         encoder_output=None,
@@ -533,7 +533,7 @@ def iaf_scale_from_transformer(shifted_codes,
         name=name)
     unconstrained_scale = tf.reduce_sum(
         tf.reshape(embedding_layer, [1, 1, 1, num_codes, code_size]) *
-        transformed_codes[Ellipsis, tf.newaxis, :], axis=-1)
+        transformed_codes[..., tf.newaxis, :], axis=-1)
     # Multiplying by scale_weight allows identity initialization.
     scale_weight = tf.get_variable(name + "scale_weight",
                                    [],
@@ -676,15 +676,15 @@ def iaf_flow(one_hot_assignments,
   with tf.name_scope(name, default_name="iaf"):
     scale = tf.nn.softplus(unconstrained_scale)
     # Add scale bias so we can initialize to identity.
-    scale = scale + tf.nn.softplus(scale_bias[tf.newaxis, tf.newaxis, Ellipsis])
-    scale = scale[Ellipsis, :-1]
+    scale = scale + tf.nn.softplus(scale_bias[tf.newaxis, tf.newaxis, ...])
+    scale = scale[..., :-1]
 
-    z = one_hot_assignments[Ellipsis, :-1]
+    z = one_hot_assignments[..., :-1]
     unnormalized_probs = tf.concat([z * scale,
-                                    one_hot_assignments[Ellipsis, -1, tf.newaxis]],
+                                    one_hot_assignments[..., -1, tf.newaxis]],
                                    axis=-1)
     normalizer = tf.reduce_sum(unnormalized_probs, axis=-1)
-    flow_output = unnormalized_probs / (normalizer[Ellipsis, tf.newaxis])
+    flow_output = unnormalized_probs / (normalizer[..., tf.newaxis])
 
     num_codes = tf.cast(one_hot_assignments.shape[-1], tf.float32)
     inverse_log_det_jacobian = (-tf.reduce_sum(tf.log(scale), axis=-1)
@@ -722,13 +722,13 @@ def add_ema_control_dependencies(vector_quantizer,
           one_hot_assignments, axis=[0, 1]), decay, zero_debias=False)
   updated_ema_means = moving_averages.assign_moving_average(
       vector_quantizer.ema_means, tf.reduce_sum(
-          codes[:, :, tf.newaxis, Ellipsis] *
-          one_hot_assignments[Ellipsis, tf.newaxis], axis=[0, 1]),
+          codes[:, :, tf.newaxis, ...] *
+          one_hot_assignments[..., tf.newaxis], axis=[0, 1]),
       decay, zero_debias=False)
 
   # Add small value to avoid dividing by zero.
   updated_ema_count += 1e-5
-  updated_ema_means /= updated_ema_count[Ellipsis, tf.newaxis]
+  updated_ema_means /= updated_ema_count[..., tf.newaxis]
   with tf.control_dependencies([commitment_loss]):
     update_means = tf.assign(vector_quantizer.codebook, updated_ema_means)
     with tf.control_dependencies([update_means]):
@@ -925,10 +925,10 @@ def main(argv):
     nearest_codebook_entries, one_hot_assignments, dist = vector_quantizer(
         codes)
     if FLAGS.bottleneck_type == "deterministic":
-      one_hot_assignments = one_hot_assignments[tf.newaxis, Ellipsis]
+      one_hot_assignments = one_hot_assignments[tf.newaxis, ...]
       neg_q_entropy = 0.
       # Perform straight-through.
-      class_probs = tf.nn.softmax(-dist[tf.newaxis, Ellipsis])
+      class_probs = tf.nn.softmax(-dist[tf.newaxis, ...])
       one_hot_assignments = class_probs + tf.stop_gradient(
           one_hot_assignments - class_probs)
     elif FLAGS.bottleneck_type == "categorical":
@@ -954,7 +954,7 @@ def main(argv):
       raise ValueError("Unknown bottleneck type.")
 
     bottleneck_output = tf.reduce_sum(
-        one_hot_assignments[Ellipsis, tf.newaxis] *
+        one_hot_assignments[..., tf.newaxis] *
         tf.reshape(
             vector_quantizer.codebook,
             [1, 1, 1, FLAGS.num_codes, FLAGS.code_size]),
@@ -965,7 +965,7 @@ def main(argv):
 
     reconstruction_loss = -tf.reduce_mean(decoder_distribution.log_prob(images))
     commitment_loss = tf.reduce_mean(
-        tf.square(codes[tf.newaxis, Ellipsis] -
+        tf.square(codes[tf.newaxis, ...] -
                   tf.stop_gradient(nearest_codebook_entries)))
     commitment_loss = add_ema_control_dependencies(
         vector_quantizer,
@@ -1008,7 +1008,7 @@ def main(argv):
            num_samples=1,
            summary=False)
       heldout_bottleneck_output = tf.reduce_sum(
-          heldout_one_hot_assignments[Ellipsis, tf.newaxis] *
+          heldout_one_hot_assignments[..., tf.newaxis] *
           tf.reshape(
               vector_quantizer.codebook,
               [1, 1, 1, FLAGS.num_codes, FLAGS.code_size]),
@@ -1048,7 +1048,7 @@ def main(argv):
           tf.reshape(heldout_neg_q_entropy, [-1, FLAGS.latent_size]), axis=1)
       heldout_neg_q_entropy = tf.reduce_mean(heldout_neg_q_entropy)
       heldout_nearest_codebook_entries = tf.reduce_sum(
-          heldout_one_hot_assignments[Ellipsis, tf.newaxis] *
+          heldout_one_hot_assignments[..., tf.newaxis] *
           tf.reshape(
               vector_quantizer.codebook,
               [1, 1, 1, FLAGS.num_codes, FLAGS.code_size]),
@@ -1104,11 +1104,11 @@ def main(argv):
           logits=logits, dtype=tf.float32).sample(1), axis=0)
 
     prior_samples = tf.reduce_sum(
-        assignments[Ellipsis, tf.newaxis] *
+        assignments[..., tf.newaxis] *
         tf.reshape(vector_quantizer.codebook,
                    [1, 1, FLAGS.num_codes, FLAGS.code_size]),
         axis=2)
-    prior_samples = prior_samples[tf.newaxis, Ellipsis]
+    prior_samples = prior_samples[tf.newaxis, ...]
     decoded_distribution_given_random_prior = decoder(prior_samples)
     random_images = decoded_distribution_given_random_prior.mean()[0]
 
