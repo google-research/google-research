@@ -3,7 +3,7 @@
 This directory contains reference code for the NIPS 2018 paper,
 "Simple, Distributed, and Accelerated Probabilistic Programming".
 
-See [`Companion.ipynb`](https://github.com/google-research/google-research/blob/master/edward2/Companion.ipynb)
+See [`Companion.ipynb`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/Companion.ipynb)
 for a Jupyter notebook which expands on the paper's code snippets and examples.
 
 ## References
