@@ -1,10 +1,13 @@
 # Simple, Distributed, and Accelerated Probabilistic Programming
 
 This directory contains reference code for the NIPS 2018 paper,
-"Simple, Distributed, and Accelerated Probabilistic Programming".
+"Simple, Distributed, and Accelerated Probabilistic Programming". It's
+organized as follows:
 
-See [`Companion.ipynb`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/Companion.ipynb)
-for a Jupyter notebook which expands on the paper's code snippets and examples.
+* [`no_u_turn_sampler/`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/no_u_turn_sampler):
+  Eager-only implementation of the No-U-Turn Sampler.
+* [`Companion.ipynb`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/Companion.ipynb):
+  Jupyter notebook which expands on the paper's code snippets and examples.
 
 ## References
 
