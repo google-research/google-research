@@ -132,16 +132,8 @@ flags.DEFINE_integer("viz_steps",
                      default=1000,
                      help="Frequency at which to save visualizations.")
 flags.DEFINE_string("master",
-                    default="local",
+                    default="",
                     help="BNS name of the TensorFlow master to use.")
-flags.DEFINE_integer("ps_tasks",
-                     default=0,
-                     help="The number of parameter servers. If the value is 0, "
-                     "then the parameters are handled locally by the worker.")
-flags.DEFINE_integer("task",
-                     default=0,
-                     help="The Task ID. This value is used when training with "
-                     "multiple workers to identify each worker.")
 
 FLAGS = flags.FLAGS
 BERNOULLI_PATH = "http://www.cs.toronto.edu/~larocheh/public/datasets/binarized_mnist/"
@@ -1183,7 +1175,7 @@ def main(argv):
     heldout_image_summary = tf.summary.merge_all(key="heldout_image")
     init = tf.global_variables_initializer()
     saver = tf.train.Saver()
-    with tf.Session() as sess:
+    with tf.Session(FLAGS.master) as sess:
       summary_writer = tf.summary.FileWriter(FLAGS.model_dir, sess.graph)
       sess.run(init)
 
