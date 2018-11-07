@@ -126,21 +126,21 @@ with tf.Session() as sess:
 
 ## 2. Manipulating Model Computation
 
-### Interceptors
+### Tracing
 
 Training and testing probabilistic models typically require more than just
 samples from the generative process. To enable flexible training and testing, we
 manipulate the model's computation using
-[`tracers`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/tracer.py).
+[tracing](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/tracer.py).
 
 A tracer is a function that acts on another function `f` and its arguments
 `*args`, `**kwargs`. It performs various computations before returning an output
 (typically `f(*args, **kwargs)`: the result of applying the function itself).
-The `ed.interception` context manager pushes interceptors onto a stack, and any
-interceptable function is intercepted by the stack. All random variable
-constructors are interceptable.
+The `ed.trace` context manager pushes tracers onto a stack, and any
+traceable function is intercepted by the stack. All random variable
+constructors are traceable.
 
-Below we intercept the logistic regression model's generative process. In
+Below we trace the logistic regression model's generative process. In
 particular, we make predictions with its learned posterior means rather than
 with its priors.
 
@@ -154,7 +154,7 @@ def set_prior_to_posterior_mean(f, *args, **kwargs):
     return posterior_intercept.distribution.mean()
   return f(*args, **kwargs)
 
-with ed.interception(set_prior_to_posterior_mean):
+with ed.trace(set_prior_to_posterior_mean):
   predictions = logistic_regression(features)
 
 training_accuracy = (
@@ -164,7 +164,7 @@ training_accuracy = (
 
 ### Program Transformations
 
-Using interceptors, one can also apply program transformations, which map
+Using tracing, one can also apply program transformations, which map
 from one representation of a model to another. This provides convenient access
 to different model properties depending on the downstream use case.
 

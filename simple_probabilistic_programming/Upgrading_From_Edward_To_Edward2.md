@@ -193,9 +193,9 @@ variational inference easier. For now, you set up variational inference manually
 and/or build your own abstractions.
 
 Below we use Edward2's
-[`interceptors`](https://github.com/tensorflow/probability/blob/master/tensorflow_probability/python/edward2/interceptor.py)
+[tracing](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/trace.py)
 in order to manipulate model computation. We define the variational
-approximation—another Edward2 program—and apply interceptors to write the
+approximation—another Edward2 program—and apply tracers to write the
 evidence lower bound (Hinton & Camp, 1993; Jordan, Ghahramani, Jaakkola, & Saul,
 1999; Waterhouse, MacKay, & Robinson, 1996).
 
@@ -211,13 +211,13 @@ def deep_exponential_family_variational():
   return qw2, qw1, qw0, qz2, qz1, qz0
 
 def make_value_setter(**model_kwargs):
-  """Creates a value-setting interceptor."""
+  """Creates a value-setting tracer."""
   def set_values(f, *args, **kwargs):
     """Sets random variable values to its aligned value."""
     name = kwargs.get("name")
     if name in model_kwargs:
       kwargs["value"] = model_kwargs[name]
-    return ed.interceptable(f)(*args, **kwargs)
+    return ed.traceable(f)(*args, **kwargs)
   return set_values
 
 # Compute expected log-likelihood. First, sample from the variational
@@ -225,8 +225,8 @@ def make_value_setter(**model_kwargs):
 qw2, qw1, qw0, qz2, qz1, qz0 = deep_exponential_family_variational()
 
 with ed.tape() as model_tape:
-  with ed.interception(make_value_setter(w2=qw2, w1=qw1, w0=qw0,
-                                         z2=qz2, z1=qz1, z0=qz0)):
+  with ed.trace(make_value_setter(w2=qw2, w1=qw1, w0=qw0,
+                                  z2=qz2, z1=qz1, z0=qz0)):
     posterior_predictive = deep_exponential_family(data_size, feature_size, units, shape)
 
 log_likelihood = posterior_predictive.distribution.log_prob(bag_of_words)
