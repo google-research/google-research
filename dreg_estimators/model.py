@@ -178,8 +178,8 @@ def iwae(p_z,
 
   Args:
     p_z: The prior. Should be a callable that optionally accepts a conditioning
-      context and returns a tf.distributions.Distribution which has the log_prob
-      and sample methods implemented. The distribution should be over a
+      context and returns a tfp.distributions.Distribution which has the
+      log_prob and sample methods implemented. The distribution should be over a
       [batch_size, latent_dim] space.
     p_x_given_z: The likelihood. Should be a callable that accepts as input a
       tensor of shape [num_samples, batch_size, latent_size + context_size] and
