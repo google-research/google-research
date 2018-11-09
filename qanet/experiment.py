@@ -151,7 +151,7 @@ def create_experiment_fn(default_config,
     try:
       merged_config = configurable.merge(default_config, tuned_config)
       tf.logging.info('Tuned default config:\n%s', merged_config)
-    except TypeError, e:
+    except TypeError as e:
       tf.logging.info(
           'Do not provide same config in both config string and vizier.'
           '  This may lead to type errors.')
