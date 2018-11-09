@@ -41,6 +41,11 @@ from qanet import squad_helper
 from qanet.util import configurable
 from qanet.util import tokenizer_util
 
+try:
+  unicode        # Python 2
+except NameError:
+  unicode = str  # Python 3
+
 _ENCODERS = dict()
 # char ids 0-255 come from utf-8 encoding bytes
 # assign 256-300 to special chars
