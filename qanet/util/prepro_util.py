@@ -22,6 +22,11 @@ import tensorflow as tf
 
 import itertools
 
+try:
+  unicode        # Python 2
+except NameError:
+  unicode = str  # Python 3
+
 # Special constants used when byte encoding
 # char ids 0-255 come from utf-8 encoding bytes
 # assign 256-300 to special chars
