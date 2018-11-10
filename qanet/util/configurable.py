@@ -24,6 +24,11 @@ import time
 
 import tensorflow as tf
 
+try:
+  unicode        # Python 2
+except NameError:
+  unicode = str  # Python 3
+
 __all__ = ['load_config', 'save_config']
 
 
