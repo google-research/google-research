@@ -121,6 +121,180 @@ class SisTest(parameterized.TestCase):
     self.assertEqual(expected_len, actual_len)
 
   @parameterized.named_parameters(
+      dict(
+          testcase_name='sis equal',
+          sis1=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, True])),
+          sis2=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, True])),
+          expected=True,
+      ),
+      dict(
+          testcase_name='sis not equal, values very slight different',
+          sis1=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, True])),
+          sis2=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.000000001]),
+              mask=np.array([False, True])),
+          expected=False,
+      ),
+      dict(
+          testcase_name='sis not equal, differ on sis',
+          sis1=sis.SISResult(
+              sis=np.array([[2]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, True])),
+          sis2=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, True])),
+          expected=False,
+      ),
+      dict(
+          testcase_name='sis not equal, differ on ordering',
+          sis1=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[1], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, True])),
+          sis2=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, True])),
+          expected=False,
+      ),
+      dict(
+          testcase_name='sis not equal, differ on values',
+          sis1=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 5.0]),
+              mask=np.array([False, True])),
+          sis2=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, True])),
+          expected=False,
+      ),
+      dict(
+          testcase_name='sis not equal, fractional difference in values',
+          sis1=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 5.0]),
+              mask=np.array([False, True])),
+          sis2=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 10.01]),
+              mask=np.array([False, True])),
+          expected=False,
+      ),
+      dict(
+          testcase_name='sis not equal, differ on mask',
+          sis1=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, False])),
+          sis2=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, True])),
+          expected=False,
+      ),
+  )
+  def test_sis_result_equality(self, sis1, sis2, expected):
+    if expected:
+      self.assertEqual(sis1, sis2)
+      self.assertEqual(sis2, sis1)
+    else:
+      self.assertNotEqual(sis1, sis2)
+      self.assertNotEqual(sis2, sis1)
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='sis equal',
+          sis1=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, True])),
+          sis2=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, True])),
+          expected=True,
+      ),
+      dict(
+          testcase_name='sis equal, values very slight different',
+          sis1=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, True])),
+          sis2=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.000000001]),
+              mask=np.array([False, True])),
+          expected=True,
+      ),
+      dict(
+          testcase_name='sis not equal, values too different',
+          sis1=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, True])),
+          sis2=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.01, 0.0]),
+              mask=np.array([False, True])),
+          expected=False,
+      ),
+      dict(
+          testcase_name='sis not equal, different masks',
+          sis1=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, True])),
+          sis2=sis.SISResult(
+              sis=np.array([[1]]),
+              ordering_over_entire_backselect=np.array([[0], [1]]),
+              values_over_entire_backselect=np.array([10.0, 0.0]),
+              mask=np.array([False, False])),
+          expected=False,
+      ),
+  )
+  def test_sis_result_approx_equality(self, sis1, sis2, expected):
+    if expected:
+      self.assertTrue(sis1.approx_equal(sis2))
+      self.assertTrue(sis2.approx_equal(sis1))
+    else:
+      self.assertFalse(sis1.approx_equal(sis2))
+      self.assertFalse(sis2.approx_equal(sis1))
+
+  @parameterized.named_parameters(
       dict(testcase_name='2-dim', shape=(4, 3)),
       dict(testcase_name='2-dim transposed', shape=(3, 4)),
       dict(testcase_name='1-dim', shape=(3,)),

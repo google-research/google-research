@@ -118,6 +118,66 @@ class SISResult(
     """Defines len of SISResult as number of elements in the SIS."""
     return self.sis.shape[0]
 
+  def __hash__(self):
+    return NotImplemented
+
+  def __eq__(self, other):
+    """Checks equality between this SISResult and another SISResult.
+
+    Check that all fields are the exactly equal (including orderings).
+
+    Args:
+      other: A SISResult instance.
+
+    Returns:
+      True if self and other are equal, and False otherwise.
+    """
+    if not isinstance(other, SISResult):
+      return False
+
+    return (np.array_equal(self.sis, other.sis) and
+            np.array_equal(self.ordering_over_entire_backselect,
+                           other.ordering_over_entire_backselect) and
+            np.array_equal(self.values_over_entire_backselect,
+                           other.values_over_entire_backselect) and
+            np.array_equal(self.mask, other.mask))
+
+  def approx_equal(self, other, rtol=1e-05, atol=1e-08):
+    """Checks that this SISResult and another SISResult are approximately equal.
+
+    SISResult.{sis, mask, ordering_over_entire_backselect} are compared exactly,
+    while SISResult.values_over_entire_backselect are compared with slight
+    tolerance (using np.allclose with provided rtol and atol). This is intended
+    to check equality allowing for small differences due to floating point
+    representations.
+
+    Args:
+      other: A SISResult instance.
+      rtol: Float, the relative tolerance parameter used when comparing
+        `values_over_entire_backselect` (see documentation for np.allclose).
+      atol: Float, the absolute tolerance parameter used when comparing
+        `values_over_entire_backselect` (see documentation for np.allclose).
+
+    Returns:
+      True if self and other are approximately equal, and False otherwise.
+    """
+    if not isinstance(other, SISResult):
+      return False
+
+    # SISResult.{sis, ordering_over_entire_backselect, mask} compared exactly.
+    # SISResult.values_over_entire_backselect compared with slight tolerance.
+    return (np.array_equal(self.sis, other.sis) and
+            np.array_equal(self.ordering_over_entire_backselect,
+                           other.ordering_over_entire_backselect) and
+            np.allclose(
+                self.values_over_entire_backselect,
+                other.values_over_entire_backselect,
+                rtol=rtol,
+                atol=atol) and np.array_equal(self.mask, other.mask))
+
+  def __ne__(self, other):
+    return not self == other
+
 
 def make_empty_boolean_mask(shape):
   """Creates empty boolean mask (no values are masked) given shape.
