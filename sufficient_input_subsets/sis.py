@@ -235,12 +235,10 @@ def _assert_sis_collection_disjoint(collection):
   all_seen_idxs = set()
   for sis_result in collection:
     sis_idxs = set((tuple(idx) for idx in sis_result.sis))
-    try:
-      assert not all_seen_idxs.intersection(sis_idxs)
-      all_seen_idxs.update(sis_idxs)
-    except AssertionError:
+    if all_seen_idxs.intersection(sis_idxs):
       raise AssertionError(
           'SIS-collection is not disjoint. Got: %s' % (str(collection)))
+    all_seen_idxs.update(sis_idxs)
 
 
 def _transform_index_array_into_indexer(idx_array):

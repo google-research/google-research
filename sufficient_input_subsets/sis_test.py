@@ -41,60 +41,22 @@ class SisTest(parameterized.TestCase):
   def test_import(self):
     self.assertIsNotNone(sis)
 
-  def _assert_backselect_stack_equal(self, expected_backselect_stack,
-                                     actual_backselect_stack):
+  def _assert_backselect_stack_equal(self, actual_backselect_stack,
+                                     expected_backselect_stack):
+    """Raises an AssertionError if two backselect stacks are not equal."""
     if not expected_backselect_stack:  # expected empty stack
-      self.assertEqual(expected_backselect_stack, actual_backselect_stack)
+      np.testing.assert_equal(actual_backselect_stack,
+                              expected_backselect_stack)
       return
 
-    expected_idxs, expected_values = zip(*expected_backselect_stack)
     actual_idxs, actual_values = zip(*actual_backselect_stack)
+    expected_idxs, expected_values = zip(*expected_backselect_stack)
 
-    try:
-      np.testing.assert_allclose(expected_idxs, actual_idxs)
-      np.testing.assert_allclose(expected_values, actual_values)
-    except AssertionError:
+    if not (np.array_equal(actual_idxs, expected_idxs) and
+            np.allclose(actual_values, expected_values)):
       raise AssertionError(
-          'Backselect stacks not equal. Expected %s, got %s.' %
-          (str(expected_backselect_stack), str(actual_backselect_stack)))
-
-  def _assert_equal_sis_result(self, expected_sis_result, actual_sis_result):
-    if expected_sis_result is None:  # no SISResult
-      self.assertEqual(expected_sis_result, actual_sis_result)
-      return
-
-    try:
-      np.testing.assert_array_equal(expected_sis_result.sis,
-                                    actual_sis_result.sis)
-      np.testing.assert_array_equal(
-          expected_sis_result.ordering_over_entire_backselect,
-          actual_sis_result.ordering_over_entire_backselect)
-      np.testing.assert_allclose(
-          expected_sis_result.values_over_entire_backselect,
-          actual_sis_result.values_over_entire_backselect)
-      np.testing.assert_array_equal(expected_sis_result.mask,
-                                    actual_sis_result.mask)
-    except AssertionError:
-      raise AssertionError('SISResults not equal. Expected %s, got %s.' %
-                           (str(expected_sis_result), str(actual_sis_result)))
-
-  def _assert_equal_sis_collection(self, expected_sis_collection,
-                                   actual_sis_collection):
-    if not expected_sis_collection:  # empty lists
-      self.assertEqual(expected_sis_collection, actual_sis_collection)
-      return
-
-    try:
-      # Must have same length
-      self.assertLen(actual_sis_collection, len(expected_sis_collection))
-      # Check that all SISResults are the same (in order)
-      for expected_sis_result, actual_sis_result in zip(expected_sis_collection,
-                                                        actual_sis_collection):
-        self._assert_equal_sis_result(expected_sis_result, actual_sis_result)
-    except AssertionError:
-      raise AssertionError(
-          'SIS collections not equal. Expected %s, got %s.' %
-          (str(expected_sis_collection), str(actual_sis_collection)))
+          'Backselect stacks not equal. Got %s, expected %s.' %
+          (str(actual_backselect_stack), str(expected_backselect_stack)))
 
   @parameterized.named_parameters(
       dict(
@@ -118,7 +80,7 @@ class SisTest(parameterized.TestCase):
   )
   def test_sisresult_len(self, sis_result, expected_len):
     actual_len = len(sis_result)
-    self.assertEqual(expected_len, actual_len)
+    self.assertEqual(actual_len, expected_len)
 
   @parameterized.named_parameters(
       dict(
@@ -302,7 +264,7 @@ class SisTest(parameterized.TestCase):
   )
   def test_make_empty_boolean_mask(self, shape):
     actual_mask = sis.make_empty_boolean_mask(shape)
-    self.assertEqual(shape, actual_mask.shape)
+    self.assertEqual(actual_mask.shape, shape)
     self.assertTrue(np.all(actual_mask))
 
   @parameterized.named_parameters(
@@ -340,7 +302,7 @@ class SisTest(parameterized.TestCase):
   def test_make_empty_boolean_mask_broadcast_over_axis(self, shape, axis,
                                                        expected_shape):
     actual_mask = sis.make_empty_boolean_mask_broadcast_over_axis(shape, axis)
-    self.assertEqual(expected_shape, actual_mask.shape)
+    self.assertEqual(actual_mask.shape, expected_shape)
     self.assertTrue(np.all(actual_mask))
 
   @parameterized.named_parameters(
@@ -408,8 +370,8 @@ class SisTest(parameterized.TestCase):
                                                        expected_tuple):
     actual_tuple = sis._transform_next_masks_index_array_into_tuple(idx_array)
     self.assertLen(actual_tuple, len(expected_tuple))
-    for expected_column, actual_column in zip(expected_tuple, actual_tuple):
-      np.testing.assert_array_equal(expected_column, actual_column)
+    for actual_column, expected_column in zip(actual_tuple, expected_tuple):
+      np.testing.assert_array_equal(actual_column, expected_column)
 
   @parameterized.named_parameters(
       dict(testcase_name='1-dim idxs, 1 idx', idx_array=np.array([1])),
@@ -495,9 +457,9 @@ class SisTest(parameterized.TestCase):
                               expected_next_masks_idxs):
     actual_next_masks, actual_next_masks_idxs = sis._produce_next_masks(
         current_mask)
-    np.testing.assert_array_equal(expected_next_masks, actual_next_masks)
-    np.testing.assert_array_equal(expected_next_masks_idxs,
-                                  actual_next_masks_idxs)
+    np.testing.assert_array_equal(actual_next_masks, expected_next_masks)
+    np.testing.assert_array_equal(actual_next_masks_idxs,
+                                  expected_next_masks_idxs)
 
   @parameterized.named_parameters(
       dict(
@@ -544,7 +506,7 @@ class SisTest(parameterized.TestCase):
                                  batch_of_masks, expected_masked_inputs):
     actual_masked_inputs = sis.produce_masked_inputs(
         input_to_mask, fully_masked_input, batch_of_masks)
-    np.testing.assert_array_equal(expected_masked_inputs, actual_masked_inputs)
+    np.testing.assert_array_equal(actual_masked_inputs, expected_masked_inputs)
 
   @parameterized.named_parameters(
       dict(
@@ -642,8 +604,8 @@ class SisTest(parameterized.TestCase):
                       expected_backselect_stack):
     actual_backselect_stack = sis._backselect(f, current_input, current_mask,
                                               fully_masked_input)
-    self._assert_backselect_stack_equal(expected_backselect_stack,
-                                        actual_backselect_stack)
+    self._assert_backselect_stack_equal(actual_backselect_stack,
+                                        expected_backselect_stack)
 
   @parameterized.named_parameters(
       dict(
@@ -700,8 +662,8 @@ class SisTest(parameterized.TestCase):
                                     expected_sis):
     actual_sis = sis._find_sis_from_backselect(backselect_stack, threshold)
     self.assertLen(actual_sis, len(expected_sis))
-    for expected_idx, actual_idx in zip(expected_sis, actual_sis):
-      np.testing.assert_array_equal(expected_idx, actual_idx)
+    for actual_idx, expected_idx in zip(actual_sis, expected_sis):
+      np.testing.assert_array_equal(actual_idx, expected_idx)
 
   @parameterized.named_parameters(
       dict(
@@ -861,7 +823,7 @@ class SisTest(parameterized.TestCase):
                     fully_masked_input, expected_sis_result):
     actual_sis_result = sis.find_sis(f, threshold, current_input, current_mask,
                                      fully_masked_input)
-    self._assert_equal_sis_result(expected_sis_result, actual_sis_result)
+    self.assertEqual(actual_sis_result, expected_sis_result)
 
   @parameterized.named_parameters(
       dict(
@@ -1143,8 +1105,7 @@ class SisTest(parameterized.TestCase):
         initial_input,
         fully_masked_input,
         initial_mask=initial_mask)
-    self._assert_equal_sis_collection(expected_sis_collection,
-                                      actual_sis_collection)
+    self.assertListEqual(actual_sis_collection, expected_sis_collection)
 
 
 if __name__ == '__main__':
