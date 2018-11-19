@@ -1,4 +1,3 @@
-===============================
 Watch Your Step: Learning Graph Embeddings Through Attention
 ===============================
 
