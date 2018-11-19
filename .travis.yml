@@ -9,6 +9,7 @@ python:
 env:
   matrix:
     - PROJECT="dreg_estimators"
+    - PROJECT="graph_embedding"
     - PROJECT="large_margin"
     - PROJECT="probabilistic_vqvae"
     - PROJECT="sufficient_input_subsets"
