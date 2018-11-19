@@ -36,27 +36,44 @@ _LINREGRESS_THETA = np.array([1, 2, 0, 1])
 _F_LINREGRESS = lambda bt: np.array([np.dot(_LINREGRESS_THETA, b) for b in bt])
 
 
+def assert_backselect_stack_equal(actual_backselect_stack,
+                                  expected_backselect_stack):
+  """Raises an AssertionError if two backselect stacks are not equal.
+
+  A backselect stack is a list containing (idx, value) tuples (see args below
+  and docstring of sis._backselect for more details). To be equal, idx elements
+  from the two stacks must be identical, while value elements can be very
+  slightly different (must satify np.allclose with default params). Backselect
+  stacks must have the same length (but can be empty).
+
+  Args:
+    actual_backselect_stack: List (can be empty) of (idx, value) tuples, where
+      idx is array_like and value is a float. Actual backselect stack to check.
+    expected_backselect_stack: List (can be empty) of (idx, value) tuples, where
+      idx is array_like and value is a float. Desired backselect stack.
+
+  Raises:
+    AssertionError if actual_backselect_stack and expected_backselect_stack
+      are not equal.
+  """
+  if not expected_backselect_stack:  # expected empty stack
+    np.testing.assert_equal(actual_backselect_stack, expected_backselect_stack)
+    return
+
+  actual_idxs, actual_values = zip(*actual_backselect_stack)
+  expected_idxs, expected_values = zip(*expected_backselect_stack)
+
+  if not (np.array_equal(actual_idxs, expected_idxs) and
+          np.allclose(actual_values, expected_values)):
+    raise AssertionError(
+        'Backselect stacks not equal. Got %s, expected %s.' %
+        (str(actual_backselect_stack), str(expected_backselect_stack)))
+
+
 class SisTest(parameterized.TestCase):
 
   def test_import(self):
     self.assertIsNotNone(sis)
-
-  def _assert_backselect_stack_equal(self, actual_backselect_stack,
-                                     expected_backselect_stack):
-    """Raises an AssertionError if two backselect stacks are not equal."""
-    if not expected_backselect_stack:  # expected empty stack
-      np.testing.assert_equal(actual_backselect_stack,
-                              expected_backselect_stack)
-      return
-
-    actual_idxs, actual_values = zip(*actual_backselect_stack)
-    expected_idxs, expected_values = zip(*expected_backselect_stack)
-
-    if not (np.array_equal(actual_idxs, expected_idxs) and
-            np.allclose(actual_values, expected_values)):
-      raise AssertionError(
-          'Backselect stacks not equal. Got %s, expected %s.' %
-          (str(actual_backselect_stack), str(expected_backselect_stack)))
 
   @parameterized.named_parameters(
       dict(
@@ -604,8 +621,8 @@ class SisTest(parameterized.TestCase):
                       expected_backselect_stack):
     actual_backselect_stack = sis._backselect(f, current_input, current_mask,
                                               fully_masked_input)
-    self._assert_backselect_stack_equal(actual_backselect_stack,
-                                        expected_backselect_stack)
+    assert_backselect_stack_equal(actual_backselect_stack,
+                                  expected_backselect_stack)
 
   @parameterized.named_parameters(
       dict(
