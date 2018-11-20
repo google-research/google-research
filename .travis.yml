@@ -9,6 +9,7 @@ python:
 env:
   matrix:
     - PROJECT="dreg_estimators"
+    - PROJECT="edward2_autoreparam"
     - PROJECT="graph_embedding"
     - PROJECT="large_margin"
     - PROJECT="probabilistic_vqvae"
