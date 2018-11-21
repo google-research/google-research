@@ -10,7 +10,7 @@ env:
   matrix:
     - PROJECT="dreg_estimators"
     - PROJECT="edward2_autoreparam"
-    - PROJECT="graph_embedding"
+    - PROJECT="graph_embedding/watch_your_step"
     - PROJECT="large_margin"
     - PROJECT="probabilistic_vqvae"
     - PROJECT="sufficient_input_subsets"
