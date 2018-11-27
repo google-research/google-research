@@ -243,8 +243,8 @@ SIS-collection:
 ```
 
 In this example, the first SIS contains the 2nd column of the input, while
-the second SIS contains columns 1 and 3. (In this case, because of how the
-initial_mask was specified, SIS operates __not__ on individual entries of the
+the second SIS contains columns 1 and 3. (In this case, because of how
+`initial_mask` was specified, SIS operates __not__ on individual entries of the
 2-D array, but instead considers __each__ column in the array as a feature.)
 We can produce the corresponding masked version of each SIS (masking all non-SIS
 elements) by:
