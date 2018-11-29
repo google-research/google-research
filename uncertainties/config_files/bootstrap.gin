@@ -1,0 +1,4 @@
+LastLayerBootstrap.worker_id = 0
+LastLayerBootstrap.batch_size = 128
+LastLayerBootstrap.num_training_iters = 100000
+LastLayerBootstrap.step_size = 0.1
