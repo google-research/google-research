@@ -1,0 +1,3 @@
+tensorboard>=1.11.0
+tensorflow-gpu>=1.11.0
+tensorflow-hub>=0.1.1
