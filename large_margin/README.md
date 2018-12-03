@@ -1,4 +1,4 @@
-# Large Margin Deep Networks For Classification NIPS 2018
+# Large Margin Deep Networks For Classification NeurIPS 2018
 https://arxiv.org/abs/1803.05598
 
 Work in progress
