@@ -33,11 +33,10 @@ from absl import flags
 from rdkit import Chem
 
 from rdkit.Chem import QED
-from tensorflow import gfile
-from mol_dqn.chemgraph.mcts import deep_q_networks
-from mol_dqn.chemgraph.mcts import molecules as molecules_mdp
-from mol_dqn.chemgraph.mcts import run_dqn
-from mol_dqn.chemgraph.tensorflow import core
+from dqn import deep_q_networks
+from dqn import molecules as molecules_mdp
+from dqn import run_dqn
+from dqn.tensorflow_core import core
 
 FLAGS = flags.FLAGS
 
@@ -76,7 +75,7 @@ class QEDRewardMolecule(molecules_mdp.Molecule):
 def main(argv):
   del argv  # unused.
   if FLAGS.hparams is not None:
-    with gfile.Open(FLAGS.hparams, 'r') as f:
+    with open(FLAGS.hparams, 'r') as f:
       hparams = deep_q_networks.get_hparams(**json.load(f))
   else:
     hparams = deep_q_networks.get_hparams()
