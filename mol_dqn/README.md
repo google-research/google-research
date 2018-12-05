@@ -6,4 +6,4 @@ Molecules via Deep Reinforcement Learning; http://arxiv.org/abs/1810.08678.
 
 Note that the scripts are in an "under construction" state and will be updated
 shortly. The main library functions, such as the MDP definition in
-`molecules.py`, are of primary interest.
+`chemgraph/mcts/molecules.py`, are of primary interest.
