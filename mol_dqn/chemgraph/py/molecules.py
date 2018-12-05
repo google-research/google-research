@@ -22,7 +22,7 @@ from __future__ import print_function
 from rdkit import Chem
 from rdkit.Chem import Descriptors
 from rdkit.Chem.Scaffolds import MurckoScaffold
-from SA_Score import sascorer
+from .SA_Score import sascorer
 
 
 def atom_valences(atom_types):
