@@ -13,11 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Optimizes QED of a molecule with DQN.
-
-This experiment tries to find the molecule with the highest QED
-starting from a given molecule.
-"""
+"""Optimize the logP of a molecule."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -26,63 +22,40 @@ from __future__ import print_function
 import functools
 import json
 import os
-
 from absl import app
 from absl import flags
-
+import networkx as nx
 from rdkit import Chem
+from rdkit.Chem import Descriptors
 
-from rdkit.Chem import QED
 from dqn import deep_q_networks
 from dqn import molecules as molecules_mdp
 from dqn import run_dqn
 from dqn.tensorflow_core import core
+from dqn.py import molecules
 
+flags.DEFINE_float('gamma', 0.999, 'discount')
 FLAGS = flags.FLAGS
 
 
-class QEDRewardMolecule(molecules_mdp.Molecule):
-  """The molecule whose reward is the QED"""
-
-  def __init__(self, discount_factor, **kwargs):
-    """Initializes the class.
-
-    Args:
-      discount_factor: Float. The discount factor. We only
-        care about the molecule at the end of modification.
-        In order to prevent a myopic decision, we discount
-        the reward at each step by a factor of
-        discount_factor ** num_steps_left,
-        this encourages exploration with emphasis on long term rewards.
-      **kwargs: The keyword arguments passed to the base class.
-    """
-    super(QEDRewardMolecule, self).__init__(**kwargs)
-    self.discount_factor = discount_factor
+class Molecule(molecules_mdp.Molecule):
 
   def _reward(self):
-    """Reward of a state.
-
-    Returns:
-      Float. QED of the current state.
-    """
     molecule = Chem.MolFromSmiles(self._state)
     if molecule is None:
       return 0.0
-    qed = QED.qed(molecule)
-    return qed * self.discount_factor ** (self.max_steps - self.num_steps_taken)
+    return molecules.penalized_logp(molecule)
 
 
 def main(argv):
-  del argv  # unused.
+  del argv
   if FLAGS.hparams is not None:
     with open(FLAGS.hparams, 'r') as f:
       hparams = deep_q_networks.get_hparams(**json.load(f))
   else:
     hparams = deep_q_networks.get_hparams()
 
-  core.write_hparams(hparams, os.path.join(FLAGS.model_dir, 'config.json'))
-  environment = QEDRewardMolecule(
-      discount_factor=hparams.discount_factor,
+  environment = Molecule(
       atom_types=set(hparams.atom_types),
       init_mol=FLAGS.start_molecule,
       allow_removal=hparams.allow_removal,
@@ -104,8 +77,10 @@ def main(argv):
   run_dqn.run_training(
       hparams=hparams,
       environment=environment,
-      dqn=dqn)
+      dqn=dqn,
+  )
 
+  core.write_hparams(hparams, os.path.join(FLAGS.model_dir, 'config.json'))
 
 
 if __name__ == '__main__':
