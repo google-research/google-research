@@ -25,7 +25,7 @@ import tensorflow as tf
 
 
 class NetworkMnist(object):
-  """Network for Mnist dataset, traning and computing the features."""
+  """Network for Mnist dataset, training and computing the features."""
 
   def __init__(self, dataset, network_params, hparams, path_model, train_model):
     """Initializes the class.

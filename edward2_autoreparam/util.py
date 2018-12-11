@@ -153,7 +153,7 @@ def mean_field_variational_inference(model, *args, **kwargs):
 
 def _marshal(*rvs):
   """Args: a list of ed.RandomVariables each with vector or scalar event shape
-  (which must be staticly known), and all having the same batch shape.
+  (which must be statically known), and all having the same batch shape.
 
   Returns: a Tensor from concatenating their values along a single vector
   dimension.

@@ -37,7 +37,7 @@ flags.DEFINE_enum("estimator", "iwae", [
 ], "Estimator type to use.")
 flags.DEFINE_float("alpha", 0.9, "Weighting for DReG(alpha)")
 flags.DEFINE_integer("batch_size", 32, "The batch size.")
-flags.DEFINE_integer("num_samples", 64, "The numer of samples to use.")
+flags.DEFINE_integer("num_samples", 64, "The number of samples to use.")
 flags.DEFINE_integer("latent_dim", 50, "The dimension of the VAE latent space.")
 flags.DEFINE_float("learning_rate", 3e-4, "The learning rate for ADAM.")
 flags.DEFINE_integer("max_steps", int(5e6), "The number of steps to train for.")

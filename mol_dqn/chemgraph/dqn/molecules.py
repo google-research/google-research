@@ -473,7 +473,7 @@ class Molecule(object):
     """Draws the molecule of the state.
 
     Args:
-      state: String, Chem.Mol, or Chem.RWMol. If string is prov ided, it is
+      state: String, Chem.Mol, or Chem.RWMol. If string is provided, it is
         considered as the SMILES string. The state to query. If None, the
         current state will be considered.
       **kwargs: The keyword arguments passed to Draw.MolToImage.

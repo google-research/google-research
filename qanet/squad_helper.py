@@ -872,6 +872,6 @@ def get_pred_ops(features,
 
 
 def safe_log(prob):
-  """Clip probabiity values before taking log."""
+  """Clip probability values before taking log."""
   clipped_prob = tf.clip_by_value(prob, VERY_SMALL_NUMBER, 1)
   return tf.log(clipped_prob)

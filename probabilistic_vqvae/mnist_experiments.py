@@ -291,13 +291,13 @@ class Decoder(tf.keras.Model):
 
 
 def transformer_hparams(hidden_size):
-  """Creates hyperpameters for autoregressive prior.
+  """Creates hyperparameters for autoregressive prior.
 
   Args:
     hidden_size: Width of attention layers and neural network output layer.
 
   Returns:
-    hparams: Hyperpameters with basic presets for a Transformer.
+    hparams: hyperparameters with basic presets for a Transformer.
   """
   hparams = transformer.transformer_tiny()
   hparams.add_hparam("shared_rel", False)
@@ -331,7 +331,7 @@ def make_transformer_prior(num_codes, code_size):
     code_size: Dimension of each code in codebook.
 
   Returns:
-    prior_fn: A callable mapping of a Tensor of discete latents of shape
+    prior_fn: A callable mapping of a Tensor of discrete latents of shape
       [num_samples, batch_size, latent_size, num_codes] to a Tensor of the same
       shape.
   """
@@ -662,7 +662,7 @@ def iaf_flow(one_hot_assignments,
 
   Returns:
     flow_output: Transformed one-hot assignments.
-    inverse_log_det_jacobian: Inverse log deteriminant of Jacobian corresponding
+    inverse_log_det_jacobian: Inverse log determinant of Jacobian corresponding
       to transformation.
   """
   with tf.name_scope(name, default_name="iaf"):
@@ -693,7 +693,7 @@ def add_ema_control_dependencies(vector_quantizer,
                                  codes,
                                  commitment_loss,
                                  decay):
-  """Adds control dependencies to the commmitment loss to update the codebook.
+  """Adds control dependencies to the commitment loss to update the codebook.
 
   Args:
     vector_quantizer: An instance of the VectorQuantizer class.

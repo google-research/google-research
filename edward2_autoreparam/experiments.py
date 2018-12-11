@@ -201,7 +201,7 @@ def run_centered_hmc(model_config,
                      num_leapfrog_steps=4,
                      num_adaptation_steps=500,
                      num_optimization_steps=2000):
-  """Runs HMC on the provided (centred) model."""
+  """Runs HMC on the provided (centered) model."""
 
   tf.reset_default_graph()
 
@@ -253,7 +253,7 @@ def run_noncentered_hmc(model_config,
                         num_leapfrog_steps=4,
                         num_adaptation_steps=500,
                         num_optimization_steps=2000):
-  """Given a (centred) model, this function transforms it to a fully non-centred
+  """Given a (centered) model, this function transforms it to a fully non-centered
   one, and runs HMC on the reparametrised model.
   """
 
@@ -276,7 +276,7 @@ def run_parametrised_hmc(model_config,
                          num_leapfrog_steps=4,
                          num_adaptation_steps=500,
                          num_optimization_steps=2000):
-  """Given a (centred) model, this function transforms it based on the provided
+  """Given a (centered) model, this function transforms it based on the provided
   interceptor, and runs HMC on the reparameterised model.
   """
 
@@ -331,8 +331,8 @@ def run_parametrised_hmc(model_config,
 def run_interleaved_hmc(model_config,
                         num_samples=2000, step_size_cp=0.1, step_size_ncp=0.1,
                         burnin=1000, num_leapfrog_steps=4):
-  """Given a (centred) model, this function transforms it to a fully
-  non-centred one, and uses both models to run interleaved HMC.
+  """Given a (centered) model, this function transforms it to a fully
+  non-centered one, and uses both models to run interleaved HMC.
   """
 
   tf.reset_default_graph()

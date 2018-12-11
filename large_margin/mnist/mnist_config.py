@@ -35,7 +35,7 @@ def get_l2_loss(l2_loss_wt):
 
 
 class ConfigDict(object):
-  """MNIST configration."""
+  """MNIST configuration."""
 
   def __init__(self):
     # Optimization parameters.

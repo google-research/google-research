@@ -33,7 +33,7 @@ For NOTMNIST, several links exist to download and preprocess the data:
 [2](https://github.com/davidflanagan/notMNIST-to-MNIST)
 [3](http://yaroslavvb.blogspot.com/2011/09/notmnist-dataset.html)
 [4](https://www.ritchieng.com/machine-learning/deep-learning/tensorflow/notmnist/).
-For simplicity, the test dataset will be avaivable.
+For simplicity, the test dataset will be available.
 
 For MNIST, use for example the
 [keras API](https://www.tensorflow.org/api_docs/python/tf/keras/datasets/mnist)

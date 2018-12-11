@@ -106,7 +106,7 @@ def split_separable_conv2d(input_tensor,
 
   Depthwise convolution, with default non-linearity,
   followed by 1x1 depthwise convolution.  This is similar to
-  slim.separable_conv2d, but differs in tha it applies batch
+  slim.separable_conv2d, but differs in that it applies batch
   normalization and non-linearity to depthwise. This  matches
   the basic building of Mobilenet Paper
   (https://arxiv.org/abs/1704.04861)
@@ -114,7 +114,7 @@ def split_separable_conv2d(input_tensor,
     input_tensor: input
     num_outputs: number of outputs
     scope: optional name of the scope. Note if provided it will use
-      scope_depthwise for deptwhise, and scope_pointwise for pointwise.
+      scope_depthwise for depthwise, and scope_pointwise for pointwise.
     normalizer_fn: which normalizer function to use for depthwise/pointwise
     stride: stride
     rate: output rate (also known as dilation rate)
@@ -203,7 +203,7 @@ def expanded_conv(input_tensor,
       bottleneck->expansion) ops will keep depth divisible by this value.
     expansion_transform: Optional function that takes expansion as a single
       input and returns output.
-    depthwise_location: where to put depthwise covnvolutions supported values
+    depthwise_location: where to put depthwise convolutions supported values
       None, 'input', 'output', 'expansion'
     depthwise_channel_multiplier: depthwise channel multiplier: each input will
       replicated (with different filters) that many times. So if input had c
@@ -327,7 +327,7 @@ def split_conv(input_tensor,
     num_outputs: number of output filters
     num_ways: num blocks to split by.
     scope: scope for all the operators.
-    divisible_by: make sure that every part is divisiable by this.
+    divisible_by: make sure that every part is divisible by this.
     **kwargs: will be passed directly into conv2d operator
 
   Returns:

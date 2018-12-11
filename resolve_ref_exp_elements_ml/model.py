@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-r"""Model to segment a region by refering expression.
+r"""Model to segment a region by referring expression.
 
-Uses the DeepLab and Kona models. Bassed on Segmentation from Natural Language
+Uses the DeepLab and Kona models. Based on Segmentation from Natural Language
 Expressions (https://arxiv.org/pdf/1603.06180.pdf)
 This code was modified from DeepLab at
 https://github.com/tensorflow/models/tree/master/research/deeplab.
@@ -465,7 +465,7 @@ def foreground_iou(labels, predictions, flags):
   predictions *= weights
 
   # Use this instead of built in mean_iou,
-  # because we want to ignnore the background label.
+  # because we want to ignore the background label.
   # This gives the IOU the same meaning as it does in our baseline
   # https://arxiv.org/pdf/1603.06180.pdf
   intersect = labels * predictions

@@ -51,7 +51,7 @@ class ConditionalBernoulli(object):
         network used to condition the distribution on the inputs.
       hidden_activation_fn: The activation function to use on the hidden layers
         of the fully connected network.
-      initializers: The variable intiializers to use for the fully connected
+      initializers: The variable initializers to use for the fully connected
         network. The network is implemented using snt.nets.MLP so it must be a
         dictionary mapping the keys 'w' and 'b' to the initializers for the
         weights and biases. Defaults to xavier for the weights and zeros for the
@@ -120,7 +120,7 @@ class ConditionalNormal(object):
         prevent standard deviations close to 0.
       hidden_activation_fn: The activation function to use on the hidden layers
         of the fully connected network.
-      initializers: The variable intitializers to use for the fully connected
+      initializers: The variable initializers to use for the fully connected
         network. The network is implemented using snt.nets.MLP so it must be a
         dictionary mapping the keys 'w' and 'b' to the initializers for the
         weights and biases. Defaults to xavier for the weights and zeros for the

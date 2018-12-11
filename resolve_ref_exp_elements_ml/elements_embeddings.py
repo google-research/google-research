@@ -509,7 +509,7 @@ def ref_elements_model(feature_map, output_size, flags):
 
   The model produces a 3d output (length, width, depth) when:
   flags.elements_proj_mode != 'tile' or flags.elements_3d_output
-  and a 1d output (embedding_size) otherwize.
+  and a 1d output (embedding_size) otherwise.
 
   Args:
     feature_map: Dict of features used by the model. See

@@ -385,7 +385,7 @@ def mobilenet(inputs,
 def global_pool(input_tensor, pool_op=tf.nn.avg_pool):
   """Applies avg pool to produce 1x1 output.
 
-  NOTE: This function is funcitonally equivalenet to reduce_mean, but it has
+  NOTE: This function is functionally equivalent to reduce_mean, but it has
   baked in average pool which has better support across hardware.
   Args:
     input_tensor: input tensor
@@ -418,7 +418,7 @@ def training_scope(is_training=True,
   Usage:
      with tf.contrib.slim.arg_scope(mobilenet.training_scope()):
        logits, endpoints = mobilenet_v2.mobilenet(input_tensor)
-     # the network created will be trainble with dropout/batch norm
+     # the network created will be trainable with dropout/batch norm
      # initialized appropriately.
   Args:
     is_training: if set to False this will ensure that all customizations are

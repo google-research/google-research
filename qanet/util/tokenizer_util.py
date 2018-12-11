@@ -58,7 +58,7 @@ def post_split_tokens(tokens):
   """Apply a small amount of extra splitting to the given tokens.
 
   This is in particular to avoid UNK tokens due to contraction, quotation, or
-  other forms of puncutation.  Avoids some common UNKs in SQuAD/TriviaQA
+  other forms of punctuation.  Avoids some common UNKs in SQuAD/TriviaQA
 
   Args:
     tokens: A list of tokens to split further

@@ -272,7 +272,7 @@ def calibration(y, p_mean, num_bins=10):
 
   Returns:
     cal: a dictionary
-      {reliability_diag: realibility diagram
+      {reliability_diag: reliability diagram
        ece: Expected Calibration Error
        mce: Maximum Calibration Error
       }
