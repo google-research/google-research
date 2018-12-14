@@ -1,0 +1,9 @@
+train_cifar100.dim_input = 192
+train_cifar100.num_classes = 100
+train_cifar100.features_cifar100_test = 'models/cifar100/model/features_ll_test.npy'
+train_cifar100.features_cifar100_train = 'models/cifar100/model/features_ll_train.npy'
+train_cifar100.features_cifar100_train_distorted = 'models/cifar100/model/features_ll_train_distorted.npy'
+train_cifar100.data_path_cifar100 = 'data/cifar100_data/cifar-100-python'
+train_cifar100.distorted = True
+train_cifar100.model_dir = 'models/cifar100/model/last_layer'
+

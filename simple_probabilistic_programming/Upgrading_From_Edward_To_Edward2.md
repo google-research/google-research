@@ -5,7 +5,7 @@ This guide outlines how to port code from the
 probabilistic programming system to
 [Edward2](https://github.com/google-research/google-research/tree/master/simple_probabilistic_programming).
 We recommend Edward users use Edward2 for specifying models and other TensorFlow
-Probability primitives for performing downstream computation.
+primitives for performing downstream computation.
 
 Edward2 is a distillation of Edward. It is a low-level language for specifying
 probabilistic models as programs and manipulating their computation.
@@ -17,25 +17,25 @@ For examples:
 
 + Probabilistic PCA
   ([Edward](https://github.com/blei-lab/edward/blob/master/notebooks/probabilistic_pca.ipynb),
-  [TensorFlow Probability](https://github.com/tensorflow/probability/blob/master/tensorflow_probability/examples/jupyter_notebooks/Probabilistic_PCA.ipynb))
+  [Edward2](https://github.com/tensorflow/probability/blob/master/tensorflow_probability/examples/jupyter_notebooks/Probabilistic_PCA.ipynb))
 + Eight schools
   ([Edward](https://github.com/blei-lab/edward/blob/master/notebooks/eight_schools.ipynb),
-  [TensorFlow Probability](https://github.com/tensorflow/probability/blob/master/tensorflow_probability/examples/jupyter_notebooks/Eight_Schools.ipynb))
+  [Edward2](https://github.com/tensorflow/probability/blob/master/tensorflow_probability/examples/jupyter_notebooks/Eight_Schools.ipynb))
 + Linear mixed effects models
   ([Edward](https://github.com/blei-lab/edward/blob/master/notebooks/linear_mixed_effects_models.ipynb),
-  [TensorFlow Probability](https://github.com/tensorflow/probability/blob/master/tensorflow_probability/examples/jupyter_notebooks/Linear_Mixed_Effects_Models.ipynb))
+  [Edward2](https://github.com/tensorflow/probability/blob/master/tensorflow_probability/examples/jupyter_notebooks/Linear_Mixed_Effects_Models.ipynb))
 + Variational Autoencoder
   ([Edward](https://github.com/blei-lab/edward/blob/master/examples/vae_convolutional.py),
-  [TensorFlow Probability](https://github.com/tensorflow/probability/tree/master/tensorflow_probability/examples/vae.py))
+  [Edward2](https://github.com/tensorflow/probability/tree/master/tensorflow_probability/examples/vae.py))
 + Deep Exponential Family
   ([Edward](https://github.com/blei-lab/edward/blob/master/examples/deep_exponential_family.py),
-  [TensorFlow Probability](https://github.com/tensorflow/probability/tree/master/tensorflow_probability/examples/deep_exponential_family.py))
+  [Edward2](https://github.com/tensorflow/probability/tree/master/tensorflow_probability/examples/deep_exponential_family.py))
 + Mixture of Gaussians
   ([Edward](https://github.com/blei-lab/edward/blob/master/notebooks/unsupervised.ipynb),
-  [TensorFlow Probability](https://github.com/tensorflow/probability/blob/master/tensorflow_probability/examples/jupyter_notebooks/Bayesian_Gaussian_Mixture_Model.ipynb))
+  [Edward2](https://github.com/tensorflow/probability/blob/master/tensorflow_probability/examples/jupyter_notebooks/Bayesian_Gaussian_Mixture_Model.ipynb))
 + Logistic regression
   ([Edward](https://github.com/blei-lab/edward/blob/master/examples/bayesian_logistic_regression.py),
-  [TensorFlow Probability](https://github.com/tensorflow/probability/tree/master/tensorflow_probability/examples/logistic_regression.py))
+  [Edward2](https://github.com/google-research/google-research/tree/master/simple_probabilitic_programming/no_u_turn_sampler/logistic_regression.py))
 
 Are you having difficulties upgrading to Edward2? Raise a
 [GitHub issue](https://github.com/google-research/google-research/issues)
@@ -265,10 +265,9 @@ inference = ed.HMC({w0: qw0, w1: qw1, w2: qw2, z0: qz0, z1: qz1, z2: qz2},
                    data={x: bag_of_words})
 ```
 
-__Edward2__. Use, e.g., the `tfp.mcmc` module. Operating with
-`tfp.mcmc` comprises two stages: set up a transition kernel which determines how
-one state propagates to the next; and apply the transition kernel over multiple
-iterations until convergence.
+__Edward2__. Use, e.g., a transition kernel which may be a Tensor-in Tensor-out
+function propagating from one state to the next. Apply that transition kernel
+over multiple iterations until convergence.
 
 Below we first rewrite the Edward2 model in terms of its target log-probability
 as a function of latent variables. Namely, it is the model's log-joint
@@ -278,6 +277,8 @@ Hamiltonian Monte Carlo transition kernel to return a collection of state
 transitions.
 
 ```python
+from simple_probabilistic_programming import no_u_turn_sampler
+
 num_samples = 10000  # number of events to approximate posterior
 qw2 = tf.nn.softplus(tf.random_normal([units[2], units[1]]))  # initial state
 qw1 = tf.nn.softplus(tf.random_normal([units[1], units[0]]))
@@ -293,15 +294,18 @@ def target_log_prob_fn(w2, w1, w0, z2, z1, z0):
   return log_joint(data_size, feature_size, units, shape,
                    w2=w2, w1=w1, w0=w0, z2=z2, z1=z1, z0=z0, x=bag_of_words)
 
-hmc_kernel = tfp.mcmc.HamiltonianMonteCarlo(
-    target_log_prob_fn=target_log_prob_fn,
-    step_size=0.01,
-    num_leapfrog_steps=5)
-states, kernels_results = tfp.mcmc.sample_chain(
-    num_results=num_samples,
-    current_state=[qw2, qw1, qw0, qz2, qz1, qz0],
-    kernel=hmc_kernel,
-    num_burnin_steps=1000)
+target_log_prob = grads_target_log_prob = None
+for _ in range(num_samples):
+  [
+      [qw2, qw1, qw0, qz2, qz1, qz0],
+      target_log_prob,
+      grads_target_log_prob,
+  ] = no_u_turn_sampler.kernel(
+      target_log_prob_fn=target_log_prob_fn,
+      current_state=[qw2, qw1, qw0, qz2, qz1, qz0],
+      step_size=[0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+      current_target_log_prob=target_log_prob,
+      current_grads_target_log_prob=grads_target_log_prob)
 ```
 
 ### The Training Loop

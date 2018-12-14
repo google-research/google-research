@@ -1,0 +1,6 @@
+LastLayerDropout.batch_size = 128
+LastLayerDropout.num_samples = 10000
+LastLayerDropout.num_training_iters = 100000
+LastLayerDropout.dropout_keep_prob = 0.8
+LastLayerDropout.step_size = 0.1
+

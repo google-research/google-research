@@ -1,0 +1,7 @@
+LastLayerBayesian.batch_size = 128
+LastLayerBayesian.num_samples = 10000
+LastLayerBayesian.thinning_interval = 100
+LastLayerBayesian.step_size = 0.1
+LastLayerBayesian.sampler = 'sgd' # 'sgd', 'sgld'
+
+

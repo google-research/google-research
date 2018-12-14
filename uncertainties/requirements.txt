@@ -1,0 +1,4 @@
+tensorflow>=1.11.0
+numpy>=1.15.2
+gin-config
+scipy>=1.0.0

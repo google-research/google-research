@@ -1,8 +1,8 @@
 # Simple, Distributed, and Accelerated Probabilistic Programming
 
 This directory contains reference code for the NIPS 2018 paper,
-"Simple, Distributed, and Accelerated Probabilistic Programming". It's
-organized as follows:
+["Simple, Distributed, and Accelerated Probabilistic Programming"](https://arxiv.org/abs/1811.02091).
+It's organized as follows:
 
 * [`*.py`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/):
   Edward2, an implementation of the idea.
@@ -230,7 +230,7 @@ example, to evaluate the model's posterior predictive on new data.
 
 > Tran, D., Hoffman, M. D., Moore, D., Suter, C., Vasudevan S., Radul A.,
 > Johnson M., and Saurous R. A. (2018).
-> Simple, Distributed, and Accelerated Probabilistic Programming.
+> [Simple, Distributed, and Accelerated Probabilistic Programming](https://arxiv.org/abs/1811.02091).
 > In _Neural Information Processing Systems_.
 
 ```none
