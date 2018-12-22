@@ -15,6 +15,7 @@ env:
     - PROJECT="probabilistic_vqvae"
     - PROJECT="sufficient_input_subsets"
     - PROJECT="attribution"
+    - PROJECT="cnn_quantization"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip
