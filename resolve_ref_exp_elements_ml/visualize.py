@@ -129,8 +129,6 @@ def _process_batch(sess, samples, semantic_predictions, labels, image_id_offset,
 
 def main(unused_argv):
   # Get dataset-dependent information.
-  dataset = model_input.dataset_descriptors[FLAGS.dataset]
-
   # Prepare for visualization.
   tf.gfile.MakeDirs(FLAGS.vis_logdir)
   save_dir = os.path.join(FLAGS.vis_logdir, _SEMANTIC_PREDICTION_SAVE_FOLDER)
@@ -145,17 +143,16 @@ def main(unused_argv):
   g = tf.Graph()
   with g.as_default():
     samples = model_input.get_input_fn(FLAGS)()
+    outputs_to_num_classes = model.get_output_to_num_classes(FLAGS)
 
     # Get model segmentation predictions.
-    output_type = 'semantic'
-
     if tuple(FLAGS.eval_scales) == (1.0,):
       tf.logging.info('Performing single-scale test.')
       predictions, probs = model.predict_labels(
           samples['image'],
           samples,
           FLAGS,
-          outputs_to_num_classes={output_type: dataset.num_classes},
+          outputs_to_num_classes=outputs_to_num_classes,
           image_pyramid=FLAGS.image_pyramid,
           merge_method=FLAGS.merge_method,
           atrous_rates=FLAGS.atrous_rates,
@@ -176,7 +173,7 @@ def main(unused_argv):
           samples['image'],
           samples,
           FLAGS,
-          outputs_to_num_classes={output_type: dataset.num_classes},
+          outputs_to_num_classes=outputs_to_num_classes,
           eval_scales=FLAGS.eval_scales,
           add_flipped_images=FLAGS.add_flipped_images,
           merge_method=FLAGS.merge_method,
@@ -192,59 +189,64 @@ def main(unused_argv):
           crop_size=[FLAGS.image_size, FLAGS.image_size],
           logits_kernel_size=FLAGS.logits_kernel_size,
           model_variant=FLAGS.model_variant)
-    predictions = tf.squeeze(tf.cast(predictions[output_type], tf.int32))
-    probs = probs[output_type]
 
-    labels = tf.squeeze(tf.cast(samples['label'], tf.int32))
-    weights = tf.cast(
-        tf.not_equal(
-            labels,
-            model_input.dataset_descriptors[FLAGS.dataset].ignore_label),
-        tf.int32)
+    if FLAGS.output_mode == 'segment':
+      predictions = tf.squeeze(
+          tf.cast(predictions[FLAGS.output_mode], tf.int32))
+      probs = probs[FLAGS.output_mode]
 
-    labels *= weights
-    predictions *= weights
+      labels = tf.squeeze(tf.cast(samples['label'], tf.int32))
+      weights = tf.cast(
+          tf.not_equal(
+              labels,
+              model_input.dataset_descriptors[FLAGS.dataset].ignore_label),
+          tf.int32)
 
-    tf.train.get_or_create_global_step()
-    saver = tf.train.Saver(slim.get_variables_to_restore())
-    sv = tf.train.Supervisor(
-        graph=g,
-        logdir=FLAGS.vis_logdir,
-        init_op=tf.global_variables_initializer(),
-        summary_op=None,
-        summary_writer=None,
-        global_step=None,
-        saver=saver)
-    num_batches = int(math.ceil(num_vis_examples / float(FLAGS.batch_size)))
-    last_checkpoint = None
+      labels *= weights
+      predictions *= weights
 
-    # Infinite loop to visualize the results when new checkpoint is created.
-    while True:
-      last_checkpoint = slim.evaluation.wait_for_new_checkpoint(
-          FLAGS.checkpoint_dir, last_checkpoint)
-      start = time.time()
-      print('Starting visualization at ' +
-            time.strftime('%Y-%m-%d-%H:%M:%S', time.gmtime()))
-      print('Visualizing with model %s', last_checkpoint)
+      tf.train.get_or_create_global_step()
+      saver = tf.train.Saver(slim.get_variables_to_restore())
+      sv = tf.train.Supervisor(
+          graph=g,
+          logdir=FLAGS.vis_logdir,
+          init_op=tf.global_variables_initializer(),
+          summary_op=None,
+          summary_writer=None,
+          global_step=None,
+          saver=saver)
+      num_batches = int(math.ceil(num_vis_examples / float(FLAGS.batch_size)))
+      last_checkpoint = None
 
-      with sv.managed_session(
-          FLAGS.master, start_standard_services=False) as sess:
-        # sv.start_queue_runners(sess)
-        sv.saver.restore(sess, last_checkpoint)
+      # Infinite loop to visualize the results when new checkpoint is created.
+      while True:
+        last_checkpoint = slim.evaluation.wait_for_new_checkpoint(
+            FLAGS.checkpoint_dir, last_checkpoint)
+        start = time.time()
+        print('Starting visualization at ' +
+              time.strftime('%Y-%m-%d-%H:%M:%S', time.gmtime()))
+        print('Visualizing with model %s', last_checkpoint)
 
-        image_id_offset = 0
-        refs = []
-        for batch in range(num_batches):
-          print('Visualizing batch', batch + 1, num_batches)
-          refs.extend(
-              _process_batch(
-                  sess=sess,
-                  samples=samples,
-                  semantic_predictions=predictions,
-                  labels=labels,
-                  image_id_offset=image_id_offset,
-                  save_dir=save_dir))
-          image_id_offset += FLAGS.batch_size
+        print('Visualizing with model ', last_checkpoint)
+
+        with sv.managed_session(
+            FLAGS.master, start_standard_services=False) as sess:
+          # sv.start_queue_runners(sess)
+          sv.saver.restore(sess, last_checkpoint)
+
+          image_id_offset = 0
+          refs = []
+          for batch in range(num_batches):
+            print('Visualizing batch', batch + 1, num_batches)
+            refs.extend(
+                _process_batch(
+                    sess=sess,
+                    samples=samples,
+                    semantic_predictions=predictions,
+                    labels=labels,
+                    image_id_offset=image_id_offset,
+                    save_dir=save_dir))
+            image_id_offset += FLAGS.batch_size
 
       print('Finished visualization at ' +
             time.strftime('%Y-%m-%d-%H:%M:%S', time.gmtime()))

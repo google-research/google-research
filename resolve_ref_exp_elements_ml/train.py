@@ -19,12 +19,16 @@ See model.py for more details and usage.
 """
 import os
 import common  # pylint: disable=unused-import
+from deeplab import preprocess_utils
 from deeplab import train_utils
 import model
 import model_input
+import six
 import tensorflow as tf
 from tensorflow.python import debug as tf_debug
 from tensorflow.python.platform import app
+
+ZERO_DIV_OFFSET = 1e-20
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -34,10 +38,10 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('train_logdir', None,
                     'Where the checkpoint and logs are stored.')
 
-flags.DEFINE_integer('save_interval_secs', 600,
+flags.DEFINE_integer('save_interval_secs', 60,
                      'How often, in seconds, we save the model to disk.')
 
-flags.DEFINE_integer('save_summary_steps', 200, '')
+flags.DEFINE_integer('save_summary_steps', 100, '')
 
 # Settings for training strategry.
 
@@ -72,11 +76,6 @@ flags.DEFINE_float('weight_decay', 0.00004,
 flags.DEFINE_integer('resize_factor', None,
                      'Resized dimensions are multiple of factor plus one.')
 
-flags.DEFINE_float(
-    'last_layer_gradient_multiplier', 1.0,
-    'The gradient multiplier for last layers, which is used to '
-    'boost the gradient of last layers if the value > 1.')
-
 flags.DEFINE_boolean('upsample_logits', True,
                      'Upsample logits during training.')
 
@@ -104,6 +103,26 @@ flags.DEFINE_bool('debug', False, 'Whether to use tf dbg.')
 
 flags.DEFINE_boolean('profile', False, '')
 
+flags.DEFINE_boolean('use_sigmoid', True,
+                     'Use the custom sigmoid cross entropy function')
+
+flags.DEFINE_float('sigmoid_recall_weight', 5,
+                   'If <1 value precision, if >1 recall')
+
+flags.DEFINE_enum(
+    'distance_metric', 'euclidean_iter',
+    ['mse', 'euclidean', 'euclidean_sqrt', 'euclidean_iter'],
+    'the cost metric for the Click Regression'
+    '"mse" for mean squared error'
+    '"euclidean" for euclidean distance'
+    '"euclidean_sqrt" for square root of euclidean distance')
+
+flags.DEFINE_bool('ratio_box_distance', False,
+                  'normalize the distance loss by the size of the box')
+
+flags.DEFINE_integer('euclidean_step', 300000,
+                     'decrease exponent of distance loss every euclidean_step')
+
 
 def logits_summary(logits):
   if model_input.dataset_descriptors[FLAGS.dataset].num_classes == 2:
@@ -120,6 +139,158 @@ def logits_summary(logits):
 def label_summary(labels):
   labels = tf.clip_by_value(labels, 0, 3) * int(255 / 3)
   tf.summary.image('label', tf.cast(labels, tf.uint8), 4)
+
+
+def add_cross_entropy_loss(labels, logits, add_loss):
+  """Adds accuracy summary. Adds the loss if add_loss is true."""
+  if add_loss:
+    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+        labels=labels, logits=logits)
+    loss = tf.reduce_mean(loss, name='selected_loss')
+    tf.losses.add_loss(loss)
+
+  pred = tf.argmax(logits, 1)
+  correct = tf.equal(pred, labels)
+  accuracy = tf.reduce_mean(tf.cast(correct, tf.float32))
+  tf.summary.scalar('selected_accuracy', accuracy)
+
+
+def add_sigmoid_cross_entropy_loss_for_each_scale(scales_to_logits,
+                                                  labels,
+                                                  ignore_label,
+                                                  loss_weight=1.0,
+                                                  upsample_logits=True,
+                                                  scope=None):
+  """Adds sigmoid cross entropy loss for logits of each scale.
+
+  Implemented based on deeplab's add_softmax_cross_entropy_loss_for_each_scale
+  in deeplab/utils/train_utils.py.
+
+  Args:
+    scales_to_logits: A map from logits names for different scales to logits.
+      The logits have shape [batch, logits_height, logits_width, num_classes].
+    labels: Groundtruth labels with shape [batch, image_height, image_width, 1].
+    ignore_label: Integer, label to ignore.
+    loss_weight: Float, loss weight.
+    upsample_logits: Boolean, upsample logits or not.
+    scope: String, the scope for the loss.
+
+  Raises:
+    ValueError: Label or logits is None.
+  """
+  if labels is None:
+    raise ValueError('No label for softmax cross entropy loss.')
+
+  for scale, logits in six.iteritems(scales_to_logits):
+    loss_scope = None
+    if scope:
+      loss_scope = '%s_%s' % (scope, scale)
+
+    if upsample_logits:
+      # Label is not downsampled, and instead we upsample logits.
+      logits = tf.image.resize_bilinear(
+          logits,
+          preprocess_utils.resolve_shape(labels, 4)[1:3],
+          align_corners=True)
+      scaled_labels = labels
+    else:
+      # Label is downsampled to the same size as logits.
+      scaled_labels = tf.image.resize_nearest_neighbor(
+          labels,
+          preprocess_utils.resolve_shape(logits, 4)[1:3],
+          align_corners=True)
+
+    logits = logits[:, :, :, 1]
+    scaled_labels = tf.to_float(scaled_labels)
+    scaled_labels = tf.squeeze(scaled_labels)
+    not_ignore_mask = tf.to_float(tf.not_equal(scaled_labels,
+                                               ignore_label)) * loss_weight
+    losses = tf.nn.weighted_cross_entropy_with_logits(
+        scaled_labels, logits, FLAGS.sigmoid_recall_weight)
+
+    # Loss added later in model_fn by tf.losses.get_total_loss()
+    tf.losses.compute_weighted_loss(
+        losses, weights=not_ignore_mask, scope=loss_scope)
+
+
+def add_distance_loss_to_center(labels, logits, groundtruth_coords):
+  """Add distance loss function for ClickRegression."""
+  weights = tf.to_int32(
+      tf.not_equal(labels,
+                   model_input.dataset_descriptors[FLAGS.dataset].ignore_label))
+  labels *= weights
+
+  # Use GT box to get center if it exists. Less computation required.
+  # Otherwise, calculate from label mask.
+  if FLAGS.use_groundtruth_box:
+    center_x = (groundtruth_coords['xmin'] + groundtruth_coords['xmax']) / 2.0
+    center_y = (groundtruth_coords['ymin'] + groundtruth_coords['ymax']) / 2.0
+    center = tf.stack([center_y, center_x], axis=1)
+  else:
+    # Make array of coordinates (each row contains three coordinates)
+    ii, jj = tf.meshgrid(
+        tf.range(FLAGS.image_size), tf.range(FLAGS.image_size), indexing='ij')
+    coords = tf.stack([tf.reshape(ii, (-1,)), tf.reshape(jj, (-1,))], axis=-1)
+    coords = tf.cast(coords, tf.int32)
+
+    # Rearrange input into one vector per volume
+    volumes_flat = tf.reshape(labels,
+                              [-1, FLAGS.image_size * FLAGS.image_size * 1, 1])
+    # Compute total mass for each volume. Add 0.00001 to prevent division by 0
+    total_mass = tf.cast(tf.reduce_sum(volumes_flat, axis=1),
+                         tf.float32) + ZERO_DIV_OFFSET
+    # Compute centre of mass
+    center = tf.cast(tf.reduce_sum(volumes_flat * coords, axis=1),
+                     tf.float32) / total_mass
+    center = center / FLAGS.image_size
+
+  # Normalize coordinates by size of image
+  logits = logits / FLAGS.image_size
+
+  # Calculate loss based on the distance metric specified
+  # Loss added later in model_fn by tf.losses.get_total_loss()
+  if FLAGS.distance_metric == 'mse':
+    tf.losses.mean_squared_error(center, logits)
+  elif FLAGS.distance_metric in [
+      'euclidean', 'euclidean_sqrt', 'euclidean_iter'
+  ]:
+    distance_to_center = tf.sqrt(
+        tf.reduce_sum(tf.square(logits - center), axis=-1) + ZERO_DIV_OFFSET)
+    if FLAGS.ratio_box_distance:
+      distance_to_box = calc_distance_to_edge(groundtruth_coords, logits)
+      box_distance_to_center = (
+          tf.to_float(distance_to_center) - distance_to_box)
+      loss = distance_to_center / (box_distance_to_center + ZERO_DIV_OFFSET)
+    else:
+      loss = distance_to_center
+
+    if FLAGS.distance_metric == 'euclidean_sqrt':
+      loss = tf.sqrt(loss)
+    if FLAGS.distance_metric == 'euclidean_iter':
+      iter_num = tf.to_float(tf.train.get_or_create_global_step())
+      step = (iter_num // FLAGS.euclidean_step) + 1.0
+      loss = tf.pow(loss, tf.to_float(1.0 / step))
+    tf.losses.compute_weighted_loss(loss)
+
+
+def calc_distance_to_edge(groundtruth_coords, logits):
+  """Calculate distance between predicted point to box of ground truth."""
+
+  # Returns 0 if predicted point is inside the groundtruth box
+  dx = tf.maximum(
+      tf.maximum(groundtruth_coords['xmin'] - logits[:, 1],
+                 logits[:, 1] - groundtruth_coords['xmax']), 0)
+  dy = tf.maximum(
+      tf.maximum(groundtruth_coords['ymin'] - logits[:, 0],
+                 logits[:, 0] - groundtruth_coords['ymax']), 0)
+
+  distance = tf.sqrt(tf.square(dx) + tf.square(dy))
+  return distance
+
+
+def add_distance_loss_to_edge(groundtruth_coords, logits):
+  distance = calc_distance_to_edge(groundtruth_coords, logits)
+  tf.losses.compute_weighted_loss(distance)
 
 
 def _build_deeplab(samples, outputs_to_num_classes, ignore_label):
@@ -171,16 +342,31 @@ def _build_deeplab(samples, outputs_to_num_classes, ignore_label):
       fine_tune_batch_norm=FLAGS.fine_tune_batch_norm)
 
   for output, num_classes in outputs_to_num_classes.iteritems():
-    logits_summary(outputs_to_scales_to_logits[output]['merged_logits'])
-    train_utils.add_softmax_cross_entropy_loss_for_each_scale(
-        outputs_to_scales_to_logits[output],
-        samples['label'],
-        num_classes,
-        ignore_label,
-        loss_weight=1.0,
-        upsample_logits=FLAGS.upsample_logits,
-        scope=output)
+    if output == 'segment':
+      logits_summary(outputs_to_scales_to_logits[output]['merged_logits'])
+      if FLAGS.use_sigmoid:
+        add_sigmoid_cross_entropy_loss_for_each_scale(
+            outputs_to_scales_to_logits[output], samples['label'], ignore_label,
+            1.0, FLAGS.upsample_logits, output)
+      else:
+        train_utils.add_softmax_cross_entropy_loss_for_each_scale(
+            outputs_to_scales_to_logits[output],
+            samples['label'],
+            num_classes,
+            ignore_label,
+            loss_weight=1.0,
+            upsample_logits=FLAGS.upsample_logits,
+            scope=output)
 
+    elif output == 'regression':
+      for _, logits in outputs_to_scales_to_logits[output].iteritems():
+        groundtruth_box = {
+            'xmin': samples[model_input.GROUNDTRUTH_XMIN_ID],
+            'xmax': samples[model_input.GROUNDTRUTH_XMAX_ID],
+            'ymin': samples[model_input.GROUNDTRUTH_YMIN_ID],
+            'ymax': samples[model_input.GROUNDTRUTH_YMAX_ID]
+        }
+        add_distance_loss_to_center(samples['label'], logits, groundtruth_box)
   return outputs_to_scales_to_logits
 
 
@@ -188,11 +374,26 @@ def model_fn(features, labels, mode, params):
   """Defines the model compatible with tf.estimator."""
   del labels, params
   if mode == tf.estimator.ModeKeys.TRAIN:
-    _build_deeplab(features, {
-        'semantic': model_input.dataset_descriptors[FLAGS.dataset].num_classes
-    }, model_input.dataset_descriptors[FLAGS.dataset].ignore_label)
+    _build_deeplab(features, model.get_output_to_num_classes(FLAGS),
+                   model_input.dataset_descriptors[FLAGS.dataset].ignore_label)
 
-    loss = tf.losses.get_total_loss()
+    #  Print out the objective loss and regularization loss independently to
+    #  track NaN loss issue
+    objective_losses = tf.losses.get_losses()
+    objective_losses = tf.Print(
+        objective_losses, [objective_losses],
+        message='Objective Losses: ',
+        summarize=100)
+    objective_loss = tf.reduce_sum(objective_losses)
+    tf.summary.scalar('objective_loss', objective_loss)
+
+    reg_losses = tf.losses.get_regularization_losses()
+    reg_losses = tf.Print(
+        reg_losses, [reg_losses], message='Reg Losses: ', summarize=100)
+    reg_loss = tf.reduce_sum(reg_losses)
+    tf.summary.scalar('regularization_loss', reg_loss)
+
+    loss = objective_loss + reg_loss
 
     learning_rate = train_utils.get_model_learning_rate(
         FLAGS.learning_policy, FLAGS.base_learning_rate,
@@ -203,13 +404,6 @@ def model_fn(features, labels, mode, params):
     tf.summary.scalar('learning_rate', learning_rate)
 
     grads_and_vars = optimizer.compute_gradients(loss)
-    last_layers = model.get_extra_layer_scopes()
-    grad_mult = train_utils.get_model_gradient_multipliers(
-        last_layers, FLAGS.last_layer_gradient_multiplier)
-    if grad_mult:
-      grads_and_vars = tf.contrib.slim.learning.multiply_gradients(
-          grads_and_vars, grad_mult)
-
     grad_updates = optimizer.apply_gradients(grads_and_vars,
                                              tf.train.get_global_step())
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
