@@ -80,7 +80,6 @@ def main(argv):
   else:
     hparams = deep_q_networks.get_hparams()
 
-  core.write_hparams(hparams, os.path.join(FLAGS.model_dir, 'config.json'))
   environment = QEDRewardMolecule(
       discount_factor=hparams.discount_factor,
       atom_types=set(hparams.atom_types),
@@ -106,6 +105,7 @@ def main(argv):
       environment=environment,
       dqn=dqn)
 
+  core.write_hparams(hparams, os.path.join(FLAGS.model_dir, 'config.json'))
 
 
 if __name__ == '__main__':

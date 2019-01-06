@@ -2,7 +2,7 @@
   "COc1cc2c(cc1OC)CC([NH3+])C2",
   "C[C@@H]1CC[C@@H](C(N)=O)CN1C(=O)c1nnn[n-]1",
   "CC[NH+]1CC[C@@H](CNCc2ccc([O-])c[nH+]2)C1",
-  "OC[C@@H](B)C(F)(F)B",
+  "OC[C@@H](Br)C(F)(F)Br",
   "CNC(=O)/C(C#N)=C(/[O-])C1=NN(c2cc(C)ccc2C)C(=O)CC1",
   "C[NH+](C)CCS[C@@H]1C[C@H](C(C)(C)C)CC[C@@H]1C#N",
   "CN(c1ncnc(N2CCN(c3cccc[nH+]3)CC2)c1[N+](=O)[O-])C1CC[NH+](C)CC1",

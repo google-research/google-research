@@ -26,19 +26,18 @@ from absl import flags
 from absl.testing import flagsaver
 
 import tensorflow as tf
-from tensorflow import gfile
-from mol_dqn.chemgraph.mcts import deep_q_networks
-from mol_dqn.chemgraph.mcts.experiments import optimize_qed
-from mol_dqn.chemgraph.tensorflow import core
+from dqn import deep_q_networks
+from dqn.tensorflow_core import core
+import multi_obj_naive
 
 
-class OptimizeQedTest(tf.test.TestCase):
+class MultiObjTest(tf.test.TestCase):
 
   def setUp(self):
-    super(OptimizeQedTest, self).setUp()
-    self.mount_point = tempfile.mkdtemp(dir=flags.FLAGS.test_tmpdir)
+    super(MultiObjTest, self).setUp()
+    self.mount_point = tempfile.mkdtemp()
     self.model_dir = os.path.join(self.mount_point, 'model_dir')
-    gfile.MakeDirs(self.model_dir)
+    os.makedirs(self.model_dir)
 
   def test_run(self):
     hparams = deep_q_networks.get_hparams(
@@ -56,8 +55,13 @@ class OptimizeQedTest(tf.test.TestCase):
     hparams_file = os.path.join(self.mount_point, 'config.json')
     core.write_hparams(hparams, hparams_file)
 
-    with flagsaver.flagsaver(model_dir=self.model_dir, hparams=hparams_file):
-      optimize_qed.main(None)
+    with flagsaver.flagsaver(
+        model_dir=self.model_dir,
+        start_molecule='c1ccccc1',
+        target_molecule='c1ccccc1',
+        similarity_weight=0.2,
+        hparams=hparams_file):
+      multi_obj_naive.main(None)
 
 
 if __name__ == '__main__':

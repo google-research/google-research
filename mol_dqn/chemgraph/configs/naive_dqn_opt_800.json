@@ -1,6 +1,6 @@
 {
   "atom_types": ["C", "O", "N"],
-  "max_steps_per_episode": 40,
+  "max_steps_per_episode": 20,
   "allow_removal": true,
   "allow_no_modification": true,
   "allow_bonds_between_rings": false,
@@ -9,7 +9,7 @@
   "learning_rate": 0.0001,
   "learning_rate_decay_steps": 10000,
   "learning_rate_decay_rate": 0.9,
-  "num_episodes": 5000,
+  "num_episodes": 40000,
   "batch_size": 128,
   "learning_frequency": 4,
   "update_frequency": 20,

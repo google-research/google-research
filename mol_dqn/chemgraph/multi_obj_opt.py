@@ -26,66 +26,45 @@ from __future__ import print_function
 import functools
 import json
 import os
-import random
 
 from absl import app
 from absl import flags
+
+
 from rdkit import Chem
 from rdkit import DataStructs
 from rdkit.Chem import AllChem
-from tensorflow import gfile
-
+from rdkit.Chem import Descriptors
+from rdkit.Chem import QED
 from dqn import deep_q_networks
 from dqn import molecules as molecules_mdp
 from dqn import run_dqn
-from dqn.py import molecules
 from dqn.tensorflow_core import core
 
-
-flags.DEFINE_float(
-    'similarity_constraint', 0.0, 'The constraint of similarity.'
-    'The similarity of the generated molecule must'
-    'greater than this constraint')
 FLAGS = flags.FLAGS
 
 
-class LogPRewardWithSimilarityConstraintMolecule(molecules_mdp.Molecule):
-  """The molecule whose reward is the penalized logP with similarity constraint.
+class MultiObjectiveRewardMolecule(molecules_mdp.Molecule):
+  """Defines the subclass of generating a molecule with a specific reward.
 
-  Each time the environment is initialized, we uniformly choose
-    a molecule from all molecules as target.
+  The reward is defined as a scalar
+    reward = weight * similarity_score + (1 - weight) *  qed_score
   """
 
-  def __init__(self, all_molecules, discount_factor, similarity_constraint,
-               **kwargs):
+  def __init__(self, target_molecule, similarity_weight, 
+               discount_factor, **kwargs):
     """Initializes the class.
 
     Args:
-      all_molecules: List of SMILES string. the molecules to select
-      discount_factor: Float. The discount factor.
-      similarity_constraint: Float. The lower bound of similarity of the
-        molecule must satisfy.
+      target_molecule: SMILES string. the target molecule against which we
+        calculate the similarity.
       **kwargs: The keyword arguments passed to the parent class.
     """
-    super(LogPRewardWithSimilarityConstraintMolecule, self).__init__(**kwargs)
-    self._all_molecules = all_molecules
+    super(MultiObjectiveRewardMolecule, self).__init__(**kwargs)
+    target_molecule = Chem.MolFromSmiles(target_molecule)
+    self._target_mol_fingerprint = self.get_fingerprint(target_molecule)
+    self._sim_weight = similarity_weight
     self._discount_factor = discount_factor
-    self._similarity_constraint = similarity_constraint
-    self._target_mol_fingerprint = None
-
-  def initialize(self):
-    """Resets the MDP to its initial state.
-
-    Each time the environment is initialized, we uniformly choose
-    a molecule from all molecules as target.
-    """
-    self._state = random.choice(self._all_molecules)
-    self._target_mol_fingerprint = self.get_fingerprint(
-        Chem.MolFromSmiles(self._state))
-    if self.record_path:
-      self._path = [self._state]
-    self._valid_actions = self.get_valid_actions(force_rebuild=True)
-    self._counter = 0
 
   def get_fingerprint(self, molecule):
     """Gets the morgan fingerprint of the target molecule.
@@ -98,49 +77,47 @@ class LogPRewardWithSimilarityConstraintMolecule(molecules_mdp.Molecule):
     """
     return AllChem.GetMorganFingerprint(molecule, radius=2)
 
-  def get_similarity(self, molecule):
+  def get_similarity(self, smiles):
     """Gets the similarity between the current molecule and the target molecule.
 
     Args:
-      molecule: String. The SMILES string for the current molecule.
+      smiles: String. The SMILES string for the current molecule.
 
     Returns:
       Float. The Tanimoto similarity.
     """
 
-    fingerprint_structure = self.get_fingerprint(molecule)
+    structure = Chem.MolFromSmiles(smiles)
+    if structure is None:
+      return 0.0
+    fingerprint_structure = self.get_fingerprint(structure)
+
     return DataStructs.TanimotoSimilarity(self._target_mol_fingerprint,
                                           fingerprint_structure)
 
   def _reward(self):
-    """Reward of a state.
+    """Calculates the reward of the current state.
 
-    If the similarity constraint is not satisfied,
-    the reward is decreased by the difference times a large constant
-    If the similarity constrain is satisfied,
-    the reward is the penalized logP of the molecule.
+    The reward is defined as a tuple of the similarity and QED value.
 
     Returns:
-      Float. The reward.
-
-    Raises:
-      ValueError: if the current state is not a valid molecule.
+      A tuple of the similarity and qed value
     """
-    molecule = Chem.MolFromSmiles(self._state)
-    if molecule is None:
-      raise ValueError('Current state %s is not a valid molecule' % self._state)
-    similarity = self.get_similarity(molecule)
-    if similarity <= self._similarity_constraint:
-      # 40 is an arbitrary number. Suppose we have a molecule that is not
-      # similar to the target at all, but has a high logP. The logP improvement
-      # can be 20, and the similarity difference can be 0.5. To discourage that
-      # molecule, similarity difference is timed by 20 / 0.5 = 40.
-      reward = molecules.penalized_logp(molecule) + 100 * (
-          similarity - self._similarity_constraint)
-    else:
-      reward = molecules.penalized_logp(molecule)
-    return reward * self._discount_factor**(self.max_steps - self._counter)
-
+    # calculate similarity.
+    # if the current molecule does not contain the scaffold of the target,
+    # similarity is zero.
+    if self._state is None:
+      return 0.0
+    mol = Chem.MolFromSmiles(self._state)
+    if mol is None:
+      return 0.0
+    similarity_score = self.get_similarity(self._state)
+    # calculate QED
+    qed_value = QED.qed(mol)
+    reward = (similarity_score * self._sim_weight + 
+              qed_value * (1 - self._sim_weight))
+    discount = self._discount_factor ** (self.max_steps - self._counter)
+    return reward * discount
 
 def main(argv):
   del argv  # unused.
@@ -150,16 +127,12 @@ def main(argv):
   else:
     hparams = deep_q_networks.get_hparams()
 
-  filename = 'all_800_mols.json'
-  with open(filename) as fp:
-    all_molecules = json.load(fp)
-
-  environment = LogPRewardWithSimilarityConstraintMolecule(
-      similarity_constraint=FLAGS.similarity_constraint,
+  environment = MultiObjectiveRewardMolecule(
+      target_molecule=FLAGS.target_molecule,
+      similarity_weight=FLAGS.similarity_weight,
       discount_factor=hparams.discount_factor,
-      all_molecules=all_molecules,
       atom_types=set(hparams.atom_types),
-      init_mol=None,
+      init_mol=FLAGS.start_molecule,
       allow_removal=hparams.allow_removal,
       allow_no_modification=hparams.allow_no_modification,
       allow_bonds_between_rings=hparams.allow_bonds_between_rings,
@@ -179,7 +152,7 @@ def main(argv):
   run_dqn.run_training(
       hparams=hparams,
       environment=environment,
-      dqn=dqn,)
+      dqn=dqn)
 
   core.write_hparams(hparams, os.path.join(FLAGS.model_dir, 'config.json'))
 
