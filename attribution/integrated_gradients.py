@@ -170,7 +170,7 @@ def AddIntegratedGradientsOps(graph,
       combined_feed_dict = input_feed_dict.copy()
       if baseline_feed_dict is None:
         baseline_feed_dict = input_feed_dict
-      for tensor, feed_value in baseline_feed_dict.iteritems():
+      for tensor, feed_value in baseline_feed_dict.items():
         if isinstance(tensor, tf.Tensor):
           combined_feed_dict[baseline_transform_info.transformed(tensor)] = (
               feed_value)

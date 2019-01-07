@@ -120,9 +120,9 @@ class AttributionTest(tf.test.TestCase):
                       [1.66, 1.33, 1.]]]]
         self.assertTupleEqual(result[0].shape, (1, 2, 3))
         self.assertTupleEqual(result[1].shape, (1, 3, 3))
-        for idx in xrange(len(expected)):
-          for row in xrange(len(expected[idx][0])):
-            for col in xrange(len(expected[idx][0][row])):
+        for idx in range(len(expected)):
+          for row in range(len(expected[idx][0])):
+            for col in range(len(expected[idx][0][row])):
               self.assertAlmostEqual(result[idx][0, row, col],
                                      expected[idx][0][row][col],
                                      delta=0.1)
