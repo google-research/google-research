@@ -24,6 +24,7 @@ import collections
 import warnings
 
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 from tensorflow_probability.python.mcmc import TransitionKernel
 
@@ -64,7 +65,7 @@ class Interleaved(TransitionKernel):
   def __init__(self, inner_kernel_cp, inner_kernel_ncp,
                to_cp=noop, to_ncp=noop, seed=None, name=None):
 
-    self._seed_stream = tf.contrib.distributions.SeedStream(
+    self._seed_stream = tfp.distributions.SeedStream(
         seed, 'interleaved_one_step')
 
     if (inner_kernel_cp.seed == inner_kernel_ncp.seed and
