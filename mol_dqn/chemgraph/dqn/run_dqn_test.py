@@ -24,7 +24,7 @@ import tempfile
 
 from absl import flags
 from absl.testing import flagsaver
-from tensorflow_core import core
+from .tensorflow_core import core
 
 import tensorflow as tf
 import deep_q_networks

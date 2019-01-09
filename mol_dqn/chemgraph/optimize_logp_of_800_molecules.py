@@ -133,8 +133,8 @@ class LogPRewardWithSimilarityConstraintMolecule(molecules_mdp.Molecule):
     if similarity <= self._similarity_constraint:
       # 40 is an arbitrary number. Suppose we have a molecule that is not
       # similar to the target at all, but has a high logP. The logP improvement
-      # can be 20, and the similarity difference can be 0.5. To discourage that
-      # molecule, similarity difference is timed by 20 / 0.5 = 40.
+      # can be 20, and the similarity difference can be 0.2. To discourage that
+      # molecule, similarity difference is timed by 20 / 0.2 = 100.
       reward = molecules.penalized_logp(molecule) + 100 * (
           similarity - self._similarity_constraint)
     else:

@@ -40,8 +40,8 @@ from rdkit.Chem import QED
 
 import tensorflow as tf
 
-from . import deep_q_networks
-from . import molecules as molecules_mdp
+import deep_q_networks
+import molecules as molecules_mdp
 from .py import molecules
 from .tensorflow_core import core
 

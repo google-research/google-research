@@ -9,6 +9,14 @@ shortly. The main library functions, such as the MDP definition in
 `chemgraph/mcts/molecules.py`, are of primary interest.
 
 Here are the commands to produce the experimental results:
+## Prepare
+
+### Install the `Contrib` module of `rdkit`
+
+```
+git clone https://github.com/rdkit/rdkit
+cp -R ./rdkit/Contrib/SA_Score ./chemgraph/dqn/py
+```
 
 ## Single Property Optimization
 
