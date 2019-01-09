@@ -1,0 +1,4 @@
+absl-py
+nltk
+numpy
+six
