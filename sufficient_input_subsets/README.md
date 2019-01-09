@@ -129,6 +129,18 @@ of scalars), `threshold` (scalar), `initial_input` (NumPy array),
 `fully_masked_input` (NumPy array), and (optionally) an `initial_mask`.
 See the docstring of `sis_collection` for details of each parameter.
 
+
+### Interactive Example on MNIST
+
+We provide an interactive Colaboratory notebook (.ipynb) applying SIS to a CNN
+trained to classify MNIST handwritten digits. See
+[tutorials/sis_mnist_tutorial.ipynb](tutorials/sis_mnist_tutorial.ipynb).
+This notebook allows for exploring how varying the threshold affects the SIS
+results and also gives an example of using SIS to understand misclassifications.
+
+
+### Usage on 1-D and 2-D inputs.
+
 Usage examples for 1-D and 2-D inputs are given below. In both cases, suppose
 the function *f(x)* computes the sum of the components of *x* and the threshold
 is 1.
