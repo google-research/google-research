@@ -18,6 +18,12 @@ git clone https://github.com/rdkit/rdkit
 cp -R ./rdkit/Contrib/SA_Score ./chemgraph/dqn/py
 ```
 
+### Choose the output directory
+
+```
+export OUTPUT_DIR="./save"
+```
+
 ## Single Property Optimization
 
 ### Optimization of QED
@@ -25,47 +31,46 @@ cp -R ./rdkit/Contrib/SA_Score ./chemgraph/dqn/py
 #### Naive DQN
 
 ```
-python optimize_qed.py --model_dir="./save/optimize_qed/7/" --hparams="./configs/naive_dqn.json"
+python optimize_qed.py --model_dir=${OUTPUT_DIR} --hparams="./configs/naive_dqn.json"
 ```
 
 #### Bootstrap DQN
 ##### Step 1
 ```
-python optimize_qed.py --model_dir="./save/optimize_qed/7/" --hparams="./configs/bootstrap_dqn_step1.json"
+python optimize_qed.py --model_dir=${OUTPUT_DIR} --hparams="./configs/bootstrap_dqn_step1.json"
 ```
 ##### Step 2
 ```
-python optimize_qed.py --model_dir="./save/optimize_qed/7/" --hparams="./configs/bootstrap_dqn_step1.json"
+python optimize_qed.py --model_dir=${OUTPUT_DIR} --hparams="./configs/bootstrap_dqn_step2.json"
 ```
 ### Optimization of logP
 
 #### Naive DQN
 
 ```
-python optimize_logp.py --model_dir="./save/optimize_qed/7/" --hparams="./configs/naive_dqn.json"
+python optimize_logp.py --model_dir=${OUTPUT_DIR} --hparams="./configs/naive_dqn.json"
 ```
 
 #### Bootstrap DQN
-##### Step 1
 ```
-python optimize_logp.py --model_dir="./save/optimize_qed/7/" --hparams="./configs/bootstrap_dqn_step1.json"
+python optimize_logp.py --model_dir=${OUTPUT_DIR} --hparams="./configs/bootstrap_dqn_step1.json"
 ```
 
 ## Constraint Optimization
 
 ### Naive DQN
 ```
-python optimize_logp_of_800_molecules.py --model_dir="./save/optimize_800_bs/1/" --hparams="./configs/naive_dqn_opt_800.json" --similarity_constraint=0.0
+python optimize_logp_of_800_molecules.py --model_dir=${OUTPUT_DIR} --hparams="./configs/naive_dqn_opt_800.json" --similarity_constraint=0.0
 ```
 ### Bootstrap DQN
 ```
-python optimize_logp_of_800_molecules.py --model_dir="./save/optimize_800_bs/1/" --hparams="./configs/bootstrap_dqn_opt_800.json" --similarity_constraint=0.0
+python optimize_logp_of_800_molecules.py --model_dir=${OUTPUT_DIR} --hparams="./configs/bootstrap_dqn_opt_800.json" --similarity_constraint=0.0
 ```
 
 ## Multi-objective Optimization
 
 ### Bootstrap DQN
 ```
-python multi_obj_naive.py --model_dir="./save/multi_obj_naive/mol${1}/sim${2}/" --hparams="./configs/multi_obj_dqn.json" --start_molecule="CCN1c2ccccc2Cc3c(O)ncnc13" --target_molecule="CCN1c2ccccc2Cc3c(O)ncnc13" --similarity_weight=0.0
+python multi_obj_naive.py --model_dir=${OUTPUT_DIR} --hparams="./configs/multi_obj_dqn.json" --start_molecule="CCN1c2ccccc2Cc3c(O)ncnc13" --target_molecule="CCN1c2ccccc2Cc3c(O)ncnc13" --similarity_weight=0.0
 ```
 
