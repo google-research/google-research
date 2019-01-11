@@ -61,7 +61,7 @@ class MultiObjTest(tf.test.TestCase):
         target_molecule='c1ccccc1',
         similarity_weight=0.2,
         hparams=hparams_file):
-      multi_obj_naive.main(None)
+      multi_obj_opt.main(None)
 
 
 if __name__ == '__main__':
