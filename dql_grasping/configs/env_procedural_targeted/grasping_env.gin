@@ -1,0 +1,27 @@
+# This environment does not test generalization, but rather pre-grasp manip
+# capability. This is actually env_procedural_targeted_more_objects
+
+# Gripper is part of the action space now.
+train/KukaGraspingProceduralEnv.block_random = 0.3
+train/KukaGraspingProceduralEnv.camera_random = 0
+train/KukaGraspingProceduralEnv.simple_observations = False
+train/KukaGraspingProceduralEnv.continuous = True
+train/KukaGraspingProceduralEnv.remove_height_hack = True
+train/KukaGraspingProceduralEnv.render_mode = "DIRECT"
+train/KukaGraspingProceduralEnv.num_objects = 5
+train/KukaGraspingProceduralEnv.target = True
+train/KukaGraspingProceduralEnv.test = False
+train/KukaGraspingProceduralEnv.target_filenames = ['684.urdf', '684.urdf', '684.urdf']
+train/KukaGraspingProceduralEnv.non_target_filenames = ['559.urdf', '629.urdf', '192.urdf', '559.urdf']
+
+test/KukaGraspingProceduralEnv.block_random = 0.3
+test/KukaGraspingProceduralEnv.camera_random = 0
+test/KukaGraspingProceduralEnv.simple_observations = False
+test/KukaGraspingProceduralEnv.continuous = True
+test/KukaGraspingProceduralEnv.remove_height_hack = True
+test/KukaGraspingProceduralEnv.render_mode = "DIRECT"
+test/KukaGraspingProceduralEnv.num_objects = 5
+test/KukaGraspingProceduralEnv.target = True
+test/KukaGraspingProceduralEnv.test = True
+test/KukaGraspingProceduralEnv.target_filenames = ['684.urdf', '684.urdf', '684.urdf']
+test/KukaGraspingProceduralEnv.non_target_filenames = ['559.urdf', '629.urdf', '192.urdf', '559.urdf']

@@ -16,6 +16,7 @@ env:
     - PROJECT="sufficient_input_subsets"
     - PROJECT="attribution"
     - PROJECT="cnn_quantization"
+    - PROJECT="dql_grasping"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip

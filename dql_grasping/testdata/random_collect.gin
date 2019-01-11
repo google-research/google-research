@@ -1,0 +1,9 @@
+# RUN ENV
+train_collect_eval.eval_env = None
+train_collect_eval.train_fn = None
+
+run_env.episode_to_transitions_fn = @episode_to_transitions_v0
+run_env.replay_writer = @TFRecordReplayWriter()
+
+train_collect_eval.policy_class = @RandomGraspingPolicyD4
+train_collect_eval.num_collect = 3
