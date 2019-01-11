@@ -4,6 +4,8 @@ This codebase implements learning algorithms and experiments from [Deep
 Reinforcement Learning for Vision-Based Robotic Grasping: A Simulated Comparison
 of Off-Policy Methods (ICRA 2018)](https://arxiv.org/abs/1802.10264).
 
+![grasping in pybullet](grasping_setup.png)
+
 If you use this codebase for your research, please cite the paper:
 
 ```
@@ -23,9 +25,6 @@ If you use this codebase for your research, please cite the paper:
 *   Bash scripts for gathering data from random policies and running synchronous
     on-policy or off-policy experiments that alternate between training and
     evaluation.
-*   Change one flag and it deploys to borg with high-priority chief replica
-    (fast time-to-result) and multi-replica trials (to measure reproducibility).
-    Experiments persisted by MLDash.
 *   Scripts to run grid search over hyperparameters.
 
 ## Getting Started

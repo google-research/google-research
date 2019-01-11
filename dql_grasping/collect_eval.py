@@ -21,7 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-import tensorflow as tf
+import tensorflow.google as tf
 import gin.tf
 
 from dql_grasping import run_env
