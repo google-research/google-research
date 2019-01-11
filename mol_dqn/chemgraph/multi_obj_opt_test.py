@@ -28,7 +28,7 @@ from absl.testing import flagsaver
 import tensorflow as tf
 from dqn import deep_q_networks
 from dqn.tensorflow_core import core
-import multi_obj_naive
+import multi_obj_opt
 
 
 class MultiObjTest(tf.test.TestCase):

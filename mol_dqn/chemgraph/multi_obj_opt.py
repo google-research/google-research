@@ -56,8 +56,10 @@ class MultiObjectiveRewardMolecule(molecules_mdp.Molecule):
     """Initializes the class.
 
     Args:
-      target_molecule: SMILES string. the target molecule against which we
+      target_molecule: SMILES string. The target molecule against which we
         calculate the similarity.
+      similarity_weight: Float. The weight applied similarity_score.
+      discount_factor: Float. The discount factor applied on reward.
       **kwargs: The keyword arguments passed to the parent class.
     """
     super(MultiObjectiveRewardMolecule, self).__init__(**kwargs)

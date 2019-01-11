@@ -71,6 +71,6 @@ python optimize_logp_of_800_molecules.py --model_dir=${OUTPUT_DIR} --hparams="./
 
 ### Bootstrap DQN
 ```
-python multi_obj_naive.py --model_dir=${OUTPUT_DIR} --hparams="./configs/multi_obj_dqn.json" --start_molecule="CCN1c2ccccc2Cc3c(O)ncnc13" --target_molecule="CCN1c2ccccc2Cc3c(O)ncnc13" --similarity_weight=0.0
+python multi_obj_opt.py --model_dir=${OUTPUT_DIR} --hparams="./configs/multi_obj_dqn.json" --start_molecule="CCN1c2ccccc2Cc3c(O)ncnc13" --target_molecule="CCN1c2ccccc2Cc3c(O)ncnc13" --similarity_weight=0.0
 ```
 
