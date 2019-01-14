@@ -30,7 +30,7 @@ import itertools
 from rdkit import Chem
 from rdkit.Chem import Draw
 
-from mol_dqn.chemgraph.py import molecules
+from .py import molecules
 
 
 class Result(

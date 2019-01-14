@@ -35,11 +35,11 @@ from rdkit import DataStructs
 from rdkit.Chem import AllChem
 from tensorflow import gfile
 
-from mol_dqn.chemgraph.mcts import deep_q_networks
-from mol_dqn.chemgraph.mcts import molecules as molecules_mdp
-from mol_dqn.chemgraph.mcts import run_dqn
-from mol_dqn.chemgraph.py import molecules
-from mol_dqn.chemgraph.tensorflow import core
+from dqn import deep_q_networks
+from dqn import molecules as molecules_mdp
+from dqn import run_dqn
+from dqn.py import molecules
+from dqn.tensorflow_core import core
 
 
 flags.DEFINE_float(
@@ -133,9 +133,9 @@ class LogPRewardWithSimilarityConstraintMolecule(molecules_mdp.Molecule):
     if similarity <= self._similarity_constraint:
       # 40 is an arbitrary number. Suppose we have a molecule that is not
       # similar to the target at all, but has a high logP. The logP improvement
-      # can be 20, and the similarity difference can be 0.5. To discourage that
-      # molecule, similarity difference is timed by 20 / 0.5 = 40.
-      reward = molecules.penalized_logp(molecule) + 40 * (
+      # can be 20, and the similarity difference can be 0.2. To discourage that
+      # molecule, similarity difference is timed by 20 / 0.2 = 100.
+      reward = molecules.penalized_logp(molecule) + 100 * (
           similarity - self._similarity_constraint)
     else:
       reward = molecules.penalized_logp(molecule)
@@ -145,13 +145,13 @@ class LogPRewardWithSimilarityConstraintMolecule(molecules_mdp.Molecule):
 def main(argv):
   del argv  # unused.
   if FLAGS.hparams is not None:
-    with gfile.Open(FLAGS.hparams, 'r') as f:
+    with open(FLAGS.hparams, 'r') as f:
       hparams = deep_q_networks.get_hparams(**json.load(f))
   else:
     hparams = deep_q_networks.get_hparams()
 
   filename = 'all_800_mols.json'
-  with gfile.Open(filename) as fp:
+  with open(filename) as fp:
     all_molecules = json.load(fp)
 
   environment = LogPRewardWithSimilarityConstraintMolecule(

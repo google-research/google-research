@@ -24,20 +24,20 @@ import tempfile
 
 from absl import flags
 from absl.testing import flagsaver
+from .tensorflow_core import core
+
 import tensorflow as tf
-from tensorflow import gfile
-from mol_dqn.chemgraph.mcts import deep_q_networks
-from mol_dqn.chemgraph.mcts import run_dqn
-from mol_dqn.chemgraph.tensorflow import core
+import deep_q_networks
+import run_dqn
 
 
 class RunDQNTest(tf.test.TestCase):
 
   def setUp(self):
     super(RunDQNTest, self).setUp()
-    self.mount_point = tempfile.mkdtemp(dir=flags.FLAGS.test_tmpdir)
+    self.mount_point = tempfile.mkdtemp()
     self.model_dir = os.path.join(self.mount_point, 'model_dir')
-    gfile.MakeDirs(self.model_dir)
+    os.mkdir(self.model_dir)
 
   def test_fancy_dqn(self):
     hparams = deep_q_networks.get_hparams(
