@@ -26,18 +26,19 @@ from absl import flags
 from absl.testing import flagsaver
 
 import tensorflow as tf
-from dqn import deep_q_networks
-import optimize_logp_of_800_molecules
-from dqn.tensorflow_core import core
+from tensorflow import gfile
+from mol_dqn.chemgraph import optimize_logp_of_800_molecules
+from mol_dqn.chemgraph.dqn import deep_q_networks
+from mol_dqn.chemgraph.dqn.tensorflow_core import core
 
 
 class OptimizeLogpOf800MoleculesTest(tf.test.TestCase):
 
   def setUp(self):
     super(OptimizeLogpOf800MoleculesTest, self).setUp()
-    self.mount_point = tempfile.mkdtemp()
+    self.mount_point = tempfile.mkdtemp(dir=flags.FLAGS.test_tmpdir)
     self.model_dir = os.path.join(self.mount_point, 'model_dir')
-    os.mkdir(self.model_dir)
+    gfile.MakeDirs(self.model_dir)
 
   def test_run(self):
     hparams = deep_q_networks.get_hparams(

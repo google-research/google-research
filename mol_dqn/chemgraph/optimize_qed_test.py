@@ -27,16 +27,16 @@ from absl.testing import flagsaver
 
 import tensorflow as tf
 from tensorflow import gfile
-from dqn import deep_q_networks
-from dqn.tensorflow_core import core
-import optimize_qed
+from mol_dqn.chemgraph import optimize_qed
+from mol_dqn.chemgraph.dqn import deep_q_networks
+from mol_dqn.chemgraph.dqn.tensorflow_core import core
 
 
 class OptimizeQedTest(tf.test.TestCase):
 
   def setUp(self):
     super(OptimizeQedTest, self).setUp()
-    self.mount_point = tempfile.mkdtemp()
+    self.mount_point = tempfile.mkdtemp(dir=flags.FLAGS.test_tmpdir)
     self.model_dir = os.path.join(self.mount_point, 'model_dir')
     gfile.MakeDirs(self.model_dir)
 

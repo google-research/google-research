@@ -24,7 +24,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-import deep_q_networks
+from mol_dqn.chemgraph.dqn import deep_q_networks
 
 
 class DeepQNetworksTest(tf.test.TestCase):

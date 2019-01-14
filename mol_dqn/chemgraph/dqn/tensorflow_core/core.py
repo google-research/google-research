@@ -21,6 +21,7 @@ from __future__ import print_function
 
 from absl import logging
 import tensorflow as tf
+from tensorflow import gfile
 
 
 def read_hparams(filename, defaults):
@@ -37,7 +38,7 @@ def read_hparams(filename, defaults):
     gfile.Error: If the file cannot be read.
     ValueError: If the JSON record cannot be parsed.
   """
-  with open(filename) as f:
+  with gfile.Open(filename) as f:
     logging.info('Reading HParams from %s', filename)
     return defaults.parse_json(f.read())
 
@@ -49,7 +50,7 @@ def write_hparams(hparams, filename):
     hparams: HParams.
     filename: String output filename.
   """
-  with open(filename, 'w') as f:
+  with gfile.Open(filename, 'w') as f:
     f.write(hparams.to_json(indent=2, sort_keys=True, separators=(',', ': ')))
 
 

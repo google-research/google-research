@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-import molecules
+from mol_dqn.chemgraph.dqn import molecules
 
 
 class MoleculesTest(tf.test.TestCase):

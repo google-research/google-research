@@ -33,16 +33,17 @@ from absl import flags
 from rdkit import Chem
 
 from rdkit.Chem import QED
-from dqn import deep_q_networks
-from dqn import molecules as molecules_mdp
-from dqn import run_dqn
-from dqn.tensorflow_core import core
+from tensorflow import gfile
+from mol_dqn.chemgraph.dqn import deep_q_networks
+from mol_dqn.chemgraph.dqn import molecules as molecules_mdp
+from mol_dqn.chemgraph.dqn import run_dqn
+from mol_dqn.chemgraph.dqn.tensorflow_core import core
 
 FLAGS = flags.FLAGS
 
 
 class QEDRewardMolecule(molecules_mdp.Molecule):
-  """The molecule whose reward is the QED"""
+  """The molecule whose reward is the QED."""
 
   def __init__(self, discount_factor, **kwargs):
     """Initializes the class.
@@ -75,7 +76,7 @@ class QEDRewardMolecule(molecules_mdp.Molecule):
 def main(argv):
   del argv  # unused.
   if FLAGS.hparams is not None:
-    with open(FLAGS.hparams, 'r') as f:
+    with gfile.Open(FLAGS.hparams, 'r') as f:
       hparams = deep_q_networks.get_hparams(**json.load(f))
   else:
     hparams = deep_q_networks.get_hparams()

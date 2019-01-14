@@ -19,11 +19,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from rdkit import Chem
 from absl.testing import parameterized
+from rdkit import Chem
 
-import molecules
 import tensorflow as tf
+from mol_dqn.chemgraph.dqn.py import molecules
 
 
 class MoleculesTest(parameterized.TestCase, tf.test.TestCase):

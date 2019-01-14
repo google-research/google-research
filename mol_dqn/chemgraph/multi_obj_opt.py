@@ -30,16 +30,14 @@ import os
 from absl import app
 from absl import flags
 
-
 from rdkit import Chem
 from rdkit import DataStructs
 from rdkit.Chem import AllChem
-from rdkit.Chem import Descriptors
 from rdkit.Chem import QED
-from dqn import deep_q_networks
-from dqn import molecules as molecules_mdp
-from dqn import run_dqn
-from dqn.tensorflow_core import core
+from mol_dqn.chemgraph.dqn import deep_q_networks
+from mol_dqn.chemgraph.dqn import molecules as molecules_mdp
+from mol_dqn.chemgraph.dqn import run_dqn
+from mol_dqn.chemgraph.dqn.tensorflow_core import core
 
 FLAGS = flags.FLAGS
 
@@ -51,8 +49,8 @@ class MultiObjectiveRewardMolecule(molecules_mdp.Molecule):
     reward = weight * similarity_score + (1 - weight) *  qed_score
   """
 
-  def __init__(self, target_molecule, similarity_weight, 
-               discount_factor, **kwargs):
+  def __init__(self, target_molecule, similarity_weight, discount_factor,
+               **kwargs):
     """Initializes the class.
 
     Args:
@@ -116,10 +114,12 @@ class MultiObjectiveRewardMolecule(molecules_mdp.Molecule):
     similarity_score = self.get_similarity(self._state)
     # calculate QED
     qed_value = QED.qed(mol)
-    reward = (similarity_score * self._sim_weight + 
-              qed_value * (1 - self._sim_weight))
-    discount = self._discount_factor ** (self.max_steps - self._counter)
+    reward = (
+        similarity_score * self._sim_weight +
+        qed_value * (1 - self._sim_weight))
+    discount = self._discount_factor**(self.max_steps - self._counter)
     return reward * discount
+
 
 def main(argv):
   del argv  # unused.
@@ -151,10 +151,7 @@ def main(argv):
       gamma=hparams.gamma,
       epsilon=1.0)
 
-  run_dqn.run_training(
-      hparams=hparams,
-      environment=environment,
-      dqn=dqn)
+  run_dqn.run_training(hparams=hparams, environment=environment, dqn=dqn)
 
   core.write_hparams(hparams, os.path.join(FLAGS.model_dir, 'config.json'))
 

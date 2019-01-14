@@ -24,15 +24,13 @@ import json
 import os
 from absl import app
 from absl import flags
-import networkx as nx
 from rdkit import Chem
-from rdkit.Chem import Descriptors
 
-from dqn import deep_q_networks
-from dqn import molecules as molecules_mdp
-from dqn import run_dqn
-from dqn.tensorflow_core import core
-from dqn.py import molecules
+from mol_dqn.chemgraph.dqn import deep_q_networks
+from mol_dqn.chemgraph.dqn import molecules as molecules_mdp
+from mol_dqn.chemgraph.dqn import run_dqn
+from mol_dqn.chemgraph.dqn.py import molecules
+from mol_dqn.chemgraph.dqn.tensorflow_core import core
 
 flags.DEFINE_float('gamma', 0.999, 'discount')
 FLAGS = flags.FLAGS

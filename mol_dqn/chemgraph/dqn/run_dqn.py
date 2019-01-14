@@ -39,11 +39,12 @@ from rdkit.Chem import Descriptors
 from rdkit.Chem import QED
 
 import tensorflow as tf
+from tensorflow import gfile
 
-import deep_q_networks
-import molecules as molecules_mdp
-from .py import molecules
-from .tensorflow_core import core
+from mol_dqn.chemgraph.dqn import deep_q_networks
+from mol_dqn.chemgraph.dqn import molecules as molecules_mdp
+from mol_dqn.chemgraph.dqn.py import molecules
+from mol_dqn.chemgraph.dqn.tensorflow_core import core
 
 flags.DEFINE_string('model_dir',
                     '/namespace/gas/primary/zzp/dqn/r=3/exp2_bs_dqn',
@@ -353,7 +354,7 @@ def run_dqn(multi_objective=False):
     multi_objective: Boolean. Whether to run the multiobjective DQN.
   """
   if FLAGS.hparams is not None:
-    with open(FLAGS.hparams, 'r') as f:
+    with gfile.Open(FLAGS.hparams, 'r') as f:
       hparams = deep_q_networks.get_hparams(**json.load(f))
   else:
     hparams = deep_q_networks.get_hparams()
