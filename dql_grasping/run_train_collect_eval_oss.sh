@@ -53,7 +53,7 @@ fi # END PATHS
 
 mkdir -p "${EXPT_DIR}"
 
-python2.7 -m dql_grasping.run_train_collect_eval \
+python -m dql_grasping.run_train_collect_eval \
 --gin_config "$GINCONFIG" \
 --root_dir "${EXPT_DIR}" \
 --logtostderr \

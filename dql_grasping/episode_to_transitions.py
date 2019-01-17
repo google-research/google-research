@@ -20,7 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import StringIO
+import io
 import numpy as np
 from PIL import Image
 from PIL import ImageFile
@@ -51,7 +51,7 @@ def jpeg_string(image, jpeg_quality=90):
   # substantially larger than the size of the image being saved.
   ImageFile.MAXBLOCK = 640 * 512 * 64
 
-  output_jpeg = StringIO.StringIO()
+  output_jpeg = io.BytesIO()
   image.save(output_jpeg, 'jpeg', quality=jpeg_quality, optimize=True)
   return output_jpeg.getvalue()
 

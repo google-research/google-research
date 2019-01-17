@@ -32,7 +32,7 @@ train_collect_eval.num_collect = 2  # Kept small for integration testing.
 "
 
 # RUN LOCAL OR LAUNCH TO BORG
-python2.7 -m dql_grasping.run_train_collect_eval \
+python -m dql_grasping.run_train_collect_eval \
 --gin_config "$GINCONFIG" \
 --run_mode "collect_eval_once" \
 --root_dir "${ROOT_DIR}" \

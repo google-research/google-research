@@ -17,7 +17,7 @@
 set -e
 set -x
 
-python -m virtualenv env
+virtualenv -p python3 env
 source env/bin/activate
 
 pip install -r dql_grasping/requirements.txt
