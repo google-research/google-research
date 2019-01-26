@@ -1,0 +1,8 @@
+numpy
+scipy
+# tensorflow or tensorflow-gpu
+xgboost
+sklearn
+keras
+matplotlib
+pandas
