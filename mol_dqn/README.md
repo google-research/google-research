@@ -4,9 +4,20 @@ This package contains libraries and scripts for reproducing the results
 described in Zhou Z, Kearnes S, Li L, Zare RN, Riley P. Optimization of
 Molecules via Deep Reinforcement Learning; http://arxiv.org/abs/1810.08678.
 
-Note that the scripts are in an "under construction" state and will be updated
-shortly. The main library functions, such as the MDP definition in
+The main library functions, such as the MDP definition in
 `chemgraph/mcts/molecules.py`, are of primary interest.
+
+Note that this implementation of the MDP has certain limitations, including (but
+not limited to):
+
+  * No support for modification of aromatic bonds. This includes bonds that are
+    perceived as aromatic during parsing of the initial state.
+  * No support for multiple atom oxidation states. For example, it is not
+    currently possible to generate CS(=O)C from an empty initial state, since
+    the default oxidation state of sulfur is 2 and the MDP actions are based on
+    the available valence without considering alternate oxidation states.
+
+See the paper for additional details.
 
 Here are the commands to produce the experimental results:
 ## Prepare
