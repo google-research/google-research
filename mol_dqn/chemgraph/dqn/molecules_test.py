@@ -212,6 +212,11 @@ class MoleculesTest(tf.test.TestCase):
         mol.get_path(),
         ['c1ccccc1', 'Cc1ccccc1', 'CCc1ccccc1', 'Cc1ccccc1', 'c1ccccc1'])
 
+  def test_more_than_three_possible_bonds(self):
+    mol = molecules.Molecule({'C', 'S'})
+    mol.initialize()
+    mol.step('C')
+
 
 if __name__ == '__main__':
   tf.test.main()

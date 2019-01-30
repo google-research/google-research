@@ -137,7 +137,7 @@ def _atom_addition(state, atom_types, atom_valences, atoms_with_free_valence):
       3: Chem.BondType.TRIPLE,
   }
   atom_addition = set()
-  for i in range(1, max(atom_valences.values())):
+  for i in bond_order:
     for atom in atoms_with_free_valence[i]:
       for element in atom_types:
         if atom_valences[element] >= i:
