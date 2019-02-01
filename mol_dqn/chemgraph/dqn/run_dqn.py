@@ -329,6 +329,8 @@ def _step(environment, dqn, memory, episode, hparams, exploration, head):
   ])
   action = valid_actions[dqn.get_action(
       observations, head=head, update_epsilon=exploration.value(episode))]
+  action_t_fingerprint = np.append(
+      deep_q_networks.get_fingerprint(action, hparams), steps_left)
   result = environment.step(action)
   steps_left = hparams.max_steps_per_episode - environment.num_steps_taken
   action_fingerprints = np.vstack([
@@ -338,8 +340,7 @@ def _step(environment, dqn, memory, episode, hparams, exploration, head):
   # we store the fingerprint of the action in obs_t so action
   # does not matter here.
   memory.add(
-      obs_t=np.append(
-          deep_q_networks.get_fingerprint(action, hparams), steps_left),
+      obs_t=action_t_fingerprint,
       action=0,
       reward=result.reward,
       obs_tp1=action_fingerprints,
