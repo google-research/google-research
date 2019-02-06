@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import glob
+import itertools
 
 from absl import logging
 
@@ -102,16 +103,14 @@ def _compute_scores(target_filenames, prediction_filenames, scorer, delimiter):
       sorted(target_filenames), sorted(prediction_filenames)):
     logging.info("Reading targets from %s.", target_filename)
     logging.info("Reading predictions from %s.", prediction_filename)
-    target_gen = _record_gen(target_filename, delimiter)
-    pred_gen = _record_gen(prediction_filename, delimiter)
-    for target_rec, prediction_rec in zip(target_gen, pred_gen):
+    targets = _record_gen(target_filename, delimiter)
+    preds = _record_gen(prediction_filename, delimiter)
+    for target_rec, prediction_rec in itertools.izip_longest(targets, preds):
+      if target_rec is None or prediction_rec is None:
+        raise ValueError("Must have equal number of lines across target and "
+                         "prediction files. Mismatch between files: %s, %s." %
+                         (target_filename, prediction_filename))
       scores.append(scorer.score(target_rec, prediction_rec))
-
-    # Check whether num_targets < num_predictions
-    if next(pred_gen, None) is not None or next(pred_gen, None) is not None:
-      raise ValueError("Must have equal number of lines across target and "
-                       "prediction files. Mismatch between files: %s, %s." %
-                       (target_filename, prediction_filename))
 
   return scores
 
