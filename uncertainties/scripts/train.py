@@ -56,8 +56,6 @@ flags.DEFINE_multi_string('gin_bindings', [],
 
 def main(unused_argv):
 
-  # Enable passing of configurable references from xmanager.
-  # Xmanager passes them as strings while gin wants them unquoted.
   FLAGS.gin_bindings = [
       x if "@" not in x else x.replace("\"", "") for x in FLAGS.gin_bindings  # pylint: disable=g-inconsistent-quotes
   ]

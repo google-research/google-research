@@ -297,7 +297,6 @@ def main(argv):
                            str(params['base_learning_rate']),
                            str(params['weight_decay']), is_squared, info_keep)
 
-  # configures train directories based upon hyperparameters set in xmanager.py.
   if FLAGS.transformation in ['modified_image', 'raw_saliency_map']:
     model_dir = os.path.join(model_dir, FLAGS.saliency_method)
 
