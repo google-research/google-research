@@ -18,3 +18,19 @@ dist/
 
 # Other
 *.DS_Store
+
+hybrid_zero_dynamics/matlab/minitaur_simple/\+Animator/AbstractAnimator\.m
+
+hybrid_zero_dynamics/matlab/minitaur_simple/\+Animator/AnimatorControls\.mlapp
+
+hybrid_zero_dynamics/matlab/minitaur_simple/\+Animator/AnimatorPointOfView\.m
+
+hybrid_zero_dynamics/matlab/minitaur_simple/\+Animator/TimeStepData\.m
+
+hybrid_zero_dynamics/matlab/minitaur_simple/gen_two_step_deg4/
+
+hybrid_zero_dynamics/matlab/minitaur_simple/sol/
+
+hybrid_zero_dynamics/matlab/minitaur_simple/optim_report\.txt
+
+hybrid_zero_dynamics/matlab/minitaur_simple/video/

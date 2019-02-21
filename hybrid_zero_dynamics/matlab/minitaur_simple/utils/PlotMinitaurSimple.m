@@ -21,15 +21,34 @@ if nargin < 4
     make_vid.filename = [];
     make_vid.pov = [0, 0];
     make_vid.cycles = 5;
-    make_vid.visibility = 'on';
+    % make_vid.visibility = 'on';
   end
 end
 
+h = figure(1000);
+% view(make_vid.pov(1),make_vid.pov(2));
+
+x_lim = [-0.5, 0.5];
+y_lim = [-0.5, 0.5];
+z_lim = [-0.5 0.5];
+
+% if gif.multiple_views
+%     main_ax = subplot(6, 4, [1 2 5 6 9 10 13 14 17 18 21 22]);
+%     sideax1 = subplot(6, 4, [3 4 7 8 11 12]);
+%     sideax2 = subplot(6, 4, [15 16 19 20 23 24]);
+%     axes(main_ax)
+% end
+
+if make_vid.flag
 %% Smoothen Animation
-fs = 100; % frequency
+fs = 75; % frequency
 [ts_log, qs_log] = even_sample(t_log, q_log, fs);
 ts_log = repmat(ts_log, [1, make_vid.cycles]);
 qs_log = repmat(qs_log, [1, make_vid.cycles]);
+
+frames = {};
+set(h,'units','normalized','outerposition',[0 0 1 1])
+end
 
 samples = length(ts_log);
 
@@ -53,12 +72,12 @@ bd = 0.13 * 2;
 ht = 0.12;
 
 % plot links
-if make_vid.visibility
-  h = figure('visible', make_vid.visibility, 'Position', [1, 0, 1920, 1200], ...
-    'MenuBar', 'none', 'ToolBar', 'none', 'resize', 'off');
-else
-  h = figure('visible', make_vid.visibility);
-end
+% if make_vid.visibility
+%   h = figure('visible', make_vid.visibility, 'Position', [1, 0, 1920, 1200], ...
+%     'MenuBar', 'none', 'ToolBar', 'none', 'resize', 'off');
+% else
+%   h = figure('visible', make_vid.visibility);
+% end
 
 %fullscreen(h);
 %axes('Units', 'pixels', 'Position', [320, 180, 1140, 810]);
@@ -70,12 +89,11 @@ zlabel('z');
 title('3D View');
 
 
-frames = [];
 for i = 1:size(qs_log, 2)
   q = real(qs_log(:, i));
 
   [terrain.Tx, terrain.Ty] = meshgrid(-0.4+q(1):0.3:0.6+q(1), ...
-    -0.5+q(2):0.3:0.5+q(2));
+                                      -0.5+q(2):0.3:0.5+q(2));
   terrain.Tz = 0 .* terrain.Tx;
 
   if tf_plotFrames
@@ -159,63 +177,68 @@ for i = 1:size(qs_log, 2)
   set(pLink_BLL_KA, 'LineWidth', 3, 'Color', BLColor);
   set(pLink_BRR_KA, 'LineWidth', 3, 'Color', BRColor);
 
-  set(text(0, 0, -0.15, ['Time:', num2str(ts_log(i))]));
-  set(text(-0.20, 0, -0.20, ['HT-TFR ', num2str(p_TFR(3)), ' HT-TFL ', ...
+  set(text(0, 0, -0.20, ['Time:', num2str(ts_log(i))]));
+  set(text(-0.20, 0, -0.25, ['HT-TFR ', num2str(p_TFR(3)), ' HT-TFL ', ...
     num2str(p_TFL(3))]));
-  set(text(-0.20, 0, -0.25, ['HT-TBR ', num2str(p_TBR(3)), ' HT-TBL ', ...
+  set(text(-0.20, 0, -0.30, ['HT-TBR ', num2str(p_TBR(3)), ' HT-TBL ', ...
     num2str(p_TBL(3))]));
 
 
   % plot frames
   if tf_plotFrames
-    plotFrame(q(1:3), q(4:6))
-    plotFrame(p_FrontLeftToe(q), r_FrontLeftToe(q));
-    plotFrame(p_FrontRightToe(q), r_FrontRightToe(q));
-    plotFrame(p_BackLeftToe(q), r_BackLeftToe(q));
-    plotFrame(p_BackRightToe(q), r_BackRightToe(q));
+    PlotFrame(q(1:3), q(4:6))
+    PlotFrame(p_FrontLeftToe(q), r_FrontLeftToe(q));
+    PlotFrame(p_FrontRightToe(q), r_FrontRightToe(q));
+    PlotFrame(p_BackLeftToe(q), r_BackLeftToe(q));
+    PlotFrame(p_BackRightToe(q), r_BackRightToe(q));
   end
   %
-  xlim([-0.75 + q(1), 0.75 + q(1)]);
-  ylim([-0.5 + q(2), 0.5 + q(2)]);
-  zlim([-0.75 + q(3), 0.75 + q(3)]);
+  xlim([x_lim(1) + q(1), x_lim(2) + q(1)]);
+  ylim([y_lim(1) + q(2), y_lim(2) + q(2)]);
+  zlim([z_lim(1) + q(3), z_lim(2) + q(3)]);
+  
   view(az(i), el(i));
-  frame = getframe(h);
-  frames = [frames, frame];
-  if make_vid.flag && contains(make_vid.filename, 'gif')
-    im = frame2im(frame);
-    [imind, cm] = rgb2ind(im, 256);
-    % Write to the GIF File
-    if i == 1
-      imwrite(imind, cm, make_vid.filename, 'gif', 'Loopcount', inf, ...
-        'ScreenSize', [1440, 810], 'DelayTime', (1 / fs));
-    else
-      imwrite(imind, cm, make_vid.filename, 'gif', 'WriteMode', 'append', ...
-        'DelayTime', (1 / fs));
-    end
+  hold off
+  
+  if make_vid.flag
+    frame = getframe(h);
+    frames{i} = frame;
+
+    pause(1/fs)
+  else
+    pause(0.05)
   end
 
-  drawnow;
-  hold off
-
-  pause(1e-4)
 end % for
 
 
-if contains(make_vid.filename, 'avi')
-  writerObj = VideoWriter(make_vid.filename);
-  writerObj.FrameRate = 24;
-  writerObj.Quality = 100; % Default 75
-  % set the seconds per image
-  % open the video writer
-  open(writerObj);
-  % write the frames to the video
-  for i = 1:length(frames)
-    % convert the image to a frame
-    frame = frames(i);
-    writeVideo(writerObj, frame);
-  end
-  % close the writer object
-  close(writerObj);
+
+if make_vid.flag
+    avi_filename = replace(make_vid.filename, 'gif', 'avi');
+    writerObj = VideoWriter(avi_filename);
+    writerObj.FrameRate = 30;
+    writerObj.Quality = 100;    % Default 75
+    % set the seconds per image
+    % open the video writer
+    open(writerObj);
+
+    % write the frames to the video
+    for i = 1:length(frames)    
+      frame = frames{i}; 
+      im = frame2im(frame); 
+      [imind,cm] = rgb2ind(im,256); 
+      % Write to the GIF File 
+      if i == 1 
+        imwrite(imind,cm,make_vid.filename,'gif', 'Loopcount',inf); 
+      else 
+        imwrite(imind,cm,make_vid.filename,'gif','WriteMode','append'); 
+      end
+    
+      writeVideo(writerObj, frame);        
+    end
+    
+    close(writerObj);
+    
 end
 
 end % function

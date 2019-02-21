@@ -118,8 +118,11 @@ model_bounds.constraints.average_steplen.lb = ...
   max(0, STEPLEN_DES-STEPLEN_MARGIN);
 model_bounds.constraints.average_steplen.ub = STEPLEN_DES + STEPLEN_MARGIN;
 model_bounds.constraints.average_steplen.x0 = STEPLEN_DES;
-model_bounds.constraints.min_swingfoot_lift.desired = 0.03;
+model_bounds.constraints.min_swingfoot_lift.desired = SWINGFOOTLIFT_DES;
 
+%% Gains
+model_bounds.gains.kp = KP*ones(netDOF,1);
+model_bounds.gains.kd = KD*ones(netDOF,1);
 
 % Trot Stance One
 

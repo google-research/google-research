@@ -17,6 +17,7 @@ gait = struct( ...
   'states', states, ...
   'inputs', inputs, ...
   'params', params);
+
 %% For Two Step Hybrid System Optimization
 figure
 subplot(2, 1, 1)
@@ -24,14 +25,16 @@ plot([linspace(0, 1, degree), linspace(1, 2, degree)], ...
   [vc1(1:4, :), vc3(1:4, :)], '-o')
 title('phase2 - hip swing bezier coefficients')
 % legend('FR','BR','BL','FL')
-legend('FL', 'BL', 'FR', 'BR')
+l1 = legend('FL', 'BL', 'FR', 'BR');
+set(l1, 'Orientation', 'Horizontal', 'Location', 'BestOutside');
 
 subplot(2, 1, 2)
 plot([linspace(0, 1, degree), linspace(1, 2, degree)], ...
   [vc1(5:8, :), vc3(5:8, :)], '-o')
 title('phase2 - knee extension bezier coefficients')
 % legend('FR','BR','BL','FL')
-legend('FL', 'BL', 'FR', 'BR')
+% l2 = legend('FL', 'BL', 'FR', 'BR');
+% set(l2, 'Orientation', 'Horizontal', 'Location', 'BestOutside');
 
 %
 
@@ -66,7 +69,7 @@ for node = 1:nodes
   swgft2_ht_ub(node) = ...
     nlp.Phase(1).ConstrTable.swing_foot2_height_TrotStance1(node).UpperBound;
   %%
-  vel_com(:, node) = CoMXVel_TrotStance1(q_log(:, node), v_log(:, node));
+  vel_com_x(:, node) = CoMXVel_TrotStance1(q_log(:, node), v_log(:, node));
 
 end
 
@@ -92,16 +95,20 @@ for node = (nodes + 1):2 * nodes
   swgft2_ht_ub(node) = ...
     nlp.Phase(3).ConstrTable.swing_foot2_height_TrotStance2(node0).UpperBound;
   %%
-  vel_com(:, node) = CoMXVel_TrotStance1(q_log(:, node), v_log(:, node));
+  vel_com_x(:, node) = CoMXVel_TrotStance1(q_log(:, node), v_log(:, node));
 end
 
 %% Plotting
 figure
+
 subplot(2, 1, 1)
 plot([1:1:2 * nodes], swgft1_ht, 'b-');
 hold on;
 plot([1:1:2 * nodes], swgft1_ht_lb, 'ro');
 plot([1:1:2 * nodes], swgft1_ht_ub, 'go');
+ylabel('swing foot height')
+title('Trot Stance 1')
+
 subplot(2, 1, 2)
 plot([1:1:2 * nodes], swgft2_ht, 'b-');
 hold on;
@@ -109,15 +116,16 @@ plot([1:1:2 * nodes], swgft2_ht_lb, 'ro');
 plot([1:1:2 * nodes], swgft2_ht_ub, 'go');
 xlabel('node number')
 ylabel('swing foot height')
+title('Trot Stance 2')
 l = legend('opt value', 'lower bound', 'upper bound');
-set(l, 'Orientation', 'Horizontal', 'Location', 'Best')
+set(l, 'Orientation', 'Horizontal', 'Location', 'BestOutside')
 
 
 figure
-plot([1:1:2 * nodes], vel_com)
+plot([1:1:2 * nodes], vel_com_x)
 xlabel('node number')
-ylabel('com velocity')
-legend('x', 'y', 'z')
+ylabel('xcom velocity')
+
 
 for i = 1:21
   q10 = q_log(:, i);
@@ -177,11 +185,18 @@ disp('Impact2_dx0');
 dx0_err2 = v_log(:, 2*nodes) - v_log(:, 1);
 dx0_err2'
 
-%% 1) Bezier Leg Symmetry
-disp('TS1 Leg Symmetry Error');
-disp(BezierLegSymmetry_TrotStance1(params{1}.atime)')
-disp('TS2 Leg Symmetry Error');
-disp(BezierLegSymmetry_TrotStance2(params{3}.atime)')
+% %% 1) Bezier Leg Symmetry
+% disp('TS1 Leg Symmetry Error');
+% disp(BezierLegSymmetry_TrotStance1(params{1}.atime)')
+% disp('TS2 Leg Symmetry Error');
+% disp(BezierLegSymmetry_TrotStance2(params{3}.atime)')
+
+%% 1) Swing Toe Symmetry
+disp('TS1 SwingToe Symmetry Error');
+disp(SwingToeSymmetry_TrotStance1(states{1}.x(:,end)))
+disp('TS2 SwingToe Symmetry Error');
+disp(SwingToeSymmetry_TrotStance2(states{3}.x(:,end)))
+
 
 %% 2) Bezier Phase Symmetry
 disp('Trot Phase Symmetry Error');
