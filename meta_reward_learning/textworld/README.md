@@ -3,7 +3,7 @@
 This repository contains code released by
 [Google AI Research](https://ai.google/research) for the instruction following
 task described in the paper
-"Learning to Generalize from Sparse and Underspecified Rewards".
+[Learning to Generalize from Sparse and Underspecified Rewards](https://arxiv.org/abs/1902.07198).
 
 Download the datasets from this [url](https://storage.googleapis.com/merl/textworld/datasets.tar.gz)
 to `$TEXTWORLD_LOCATION`.
