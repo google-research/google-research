@@ -8,6 +8,7 @@ python:
   - "3.6"
 env:
   matrix:
+    - PROJECT="meta_reward_learning/textworld"
     - PROJECT="dreg_estimators"
     - PROJECT="edward2_autoreparam"
     - PROJECT="graph_embedding/watch_your_step"

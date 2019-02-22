@@ -1,0 +1,2 @@
+tensorflow>=1.13.0rc1
+numpy>=1.15.2
