@@ -18,6 +18,7 @@ env:
     - PROJECT="attribution"
     - PROJECT="cnn_quantization"
     - PROJECT="dql_grasping"
+    - PROJECT="state_of_sparsity"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip

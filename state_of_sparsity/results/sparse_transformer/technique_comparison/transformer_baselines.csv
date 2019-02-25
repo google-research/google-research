@@ -1,0 +1,6 @@
+Tensor2Tensor HParams,MOSES BLEU,Training Steps,Batch Size,Dataset
+transformer_base,27.13,500000,2048,translate_ende_wmt32k_packed
+transformer_base,27.39,500000,2048,translate_ende_wmt32k_packed
+transformer_base,27.3,500000,2048,translate_ende_wmt32k_packed
+transformer_base,27.52,500000,2048,translate_ende_wmt32k_packed
+transformer_base,27.12,500000,2048,translate_ende_wmt32k_packed
