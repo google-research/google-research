@@ -8,7 +8,7 @@ The `layers` subdirectory contains implementations of variational dropout and l0
 
 To build a Docker image with all required dependencies, run `sudo docker build -t <image_name> .`. The base setup installs TensorFlow with GPU support and is based off Nvidia's CUDA-9.0 image with all the required libraries to run TensorFlow. To launch the container, run `sudo docker run --runtime=nvidia -v ~/:/mount/ -it <image_name>:latest`. This command additionaly makes your home directory accessbile at `/mount` inside the container.
 
-To run without GPU support, change the base docker image in the Dockerfile to the standard Ubuntu 16.04 image and swap `tensorflow-gpu` for `tensorflow` in `requirements.txt`.
+To run with GPU support, swap `tensorflow` for `tensorflow-gpu` in `requirements.txt`.
 
 ## Sparse Transformer
 
