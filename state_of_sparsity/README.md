@@ -1,6 +1,6 @@
 # The State of Sparsity in Deep Neural Networks
 
-This directory contains the code accompanying "The State of Sparsity in Deep Neural Networks". All authors contributed to this code.
+This directory contains the code accompanying the paper ["The State of Sparsity in Deep Neural Networks"](https://arxiv.org/abs/1902.09574). All authors contributed to this code.
 
 The `layers` subdirectory contains implementations of variational dropout and l0 regularization in TensorFlow. The `sparse_transformer` and `sparse_rn50` subdirectories contain code for the Transformer and ResNet-50 experiments from the aforementioned paper. The `results` subdirectory contains CSV files of the results of all hyperparameter configurations that we explored for each model, sparsity technique, and sparsity level.
 
