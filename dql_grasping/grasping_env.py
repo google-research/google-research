@@ -25,11 +25,11 @@ import os
 import random
 import time
 from absl import logging
+import gin
 import gym
 from gym import spaces
 import numpy as np
 from PIL import Image
-import gin.tf
 import pybullet
 from dql_grasping import kuka
 

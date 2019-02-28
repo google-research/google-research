@@ -19,7 +19,7 @@ Import this file into top-level python binaries, before parsing configs.
 """
 
 # pylint: disable=unused-import
-import gin.tf.external_configurables
+from gin.tf import external_configurables
 from dql_grasping import ddpg_graph
 from dql_grasping import episode_to_transitions
 from dql_grasping import grasping_env

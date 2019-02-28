@@ -23,11 +23,11 @@ from __future__ import print_function
 import collections
 import datetime
 import os
+import gin
 import numpy as np
 import PIL.Image as Image
 import six
 import tensorflow as tf
-import gin.tf
 
 
 def encode_image_array_as_png_str(image):

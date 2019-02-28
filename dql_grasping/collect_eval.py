@@ -21,8 +21,8 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import gin
 import tensorflow as tf
-import gin.tf
 
 from dql_grasping import run_env
 

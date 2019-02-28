@@ -21,12 +21,12 @@ from __future__ import division
 from __future__ import print_function
 
 import io
+import gin
 import numpy as np
 from PIL import Image
 from PIL import ImageFile
-
 import tensorflow as tf
-import gin.tf
+
 
 _bytes_feature = (
     lambda v: tf.train.Feature(bytes_list=tf.train.BytesList(value=v)))

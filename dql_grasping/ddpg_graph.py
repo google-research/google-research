@@ -20,8 +20,8 @@ from __future__ import division
 from __future__ import print_function
 
 from absl import logging
+import gin
 import tensorflow as tf
-import gin.tf
 from dql_grasping.q_graph import DQNTarget
 
 

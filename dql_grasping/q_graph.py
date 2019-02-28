@@ -21,8 +21,8 @@ from __future__ import print_function
 
 from absl import logging
 import enum
+import gin
 import tensorflow as tf
-import gin.tf
 
 
 class DQNTarget(enum.Enum):

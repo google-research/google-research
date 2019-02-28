@@ -22,12 +22,10 @@ from __future__ import print_function
 
 import abc
 import functools
-
+import gin
 from gym import spaces
 import numpy as np
 import tensorflow as tf
-
-import gin.tf
 from dql_grasping import cross_entropy
 
 
