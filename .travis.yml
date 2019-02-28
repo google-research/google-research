@@ -9,6 +9,7 @@ python:
 env:
   matrix:
     - PROJECT="meta_reward_learning/textworld"
+    - PROJECT="meta_reward_learning/semantic_parsing"
     - PROJECT="dreg_estimators"
     - PROJECT="edward2_autoreparam"
     - PROJECT="graph_embedding/watch_your_step"

@@ -1,4 +1,4 @@
-# Google AI Research
+## Learning to Generalize from Sparse and Underspecified Rewards
 
 This repository contains code released by
 [Google AI Research](https://ai.google/research) for the instruction following
@@ -25,6 +25,20 @@ python -m meta_reward_learning.textworld.experiment\
 Turn it on using `--use_gold_trajs` for the Oracle reward setup.
 To use MeRL, specify the flag `--meta_learn` along with the hyperparameter
 values specified in the paper.
+
+Citing
+------
+If you use this code in your research, please cite the following paper:
+
+> Agarwal, R., Liang, C., Schuurmans, D., & Norouzi, M. (2019).
+> Learning to Generalize from Sparse and Underspecified Rewards.
+
+    @article{agarwal2019learning,
+      title={Learning to Generalize from Sparse and Underspecified Rewards},
+      author={Agarwal, Rishabh and Liang, Chen and Schuurmans, Dale and Norouzi, Mohammad},
+      journal={arXiv preprint arXiv:1902.07198},
+      year={2019}
+    }
 
 ---
 
