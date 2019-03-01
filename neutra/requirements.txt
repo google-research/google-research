@@ -1,0 +1,9 @@
+tensorflow==1.12
+tensorflow_probability==0.5
+gin-config==0.1.2
+scipy>=1.0.0
+absl-py>=0.7.0
+simplejson>=3.16.0
+pandas>=0.24.1
+PyYAML>=3.13
+pystan>=2.18.1.0
