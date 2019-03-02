@@ -1420,9 +1420,12 @@ def sparse_transformer_base_v1():
   hparams.add_hparam("sparsity_function_exponent", 3.0)
 
   # use sparse embedding and softmax layer
-  hparams.modality = {
-      "targets": sparse_modalities.SymbolModality,
-      "inputs": sparse_modalities.SymbolModality
+  hparams.bottom = {
+      "targets": sparse_modalities.targets_bottom,
+      "inputs": sparse_modalities.bottom
+  }
+  hparams.top = {
+      "targets": sparse_modalities.top,
   }
 
   # specify to load trained masks from checkpoint
