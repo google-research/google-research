@@ -534,7 +534,7 @@ class FakeMNISTDataset(Dataset):
 
 
 def SanitizedAutoCorrelation(x, axis, *args, **kwargs):
-  res = tfd.auto_correlation(x, axis, *args, **kwargs)
+  res = tfp.stats.auto_correlation(x, axis, *args, **kwargs)
   res = tf.where(tf.is_nan(res), tf.ones_like(res), res)
   res = tf.where(tf.is_inf(res), tf.ones_like(res), res)
   return res
@@ -799,7 +799,7 @@ def Covariance(x):
 
 
 def GetPercentile(v, ps=(5, 50, 95)):
-  return [tfd.percentile(v, p) for p in ps]
+  return [tfp.stats.percentile(v, p) for p in ps]
 
 
 class NumpyEncoder(simplejson.JSONEncoder):
