@@ -4,9 +4,9 @@
 train_collect_eval.collect_env = @train/KukaGraspingProceduralEnv()
 train_collect_eval.eval_env = @train/KukaGraspingProceduralEnv()
 train_collect_eval.test_env = @test/KukaGraspingProceduralEnv()
-train_collect_eval.policy_class = @InterpolatedPolicy
-InterpolatedPolicy.explore_policy_class = @RandomGraspingPolicyD4
-InterpolatedPolicy.greedy_policy_class = @CEMActorPolicy
+train_collect_eval.policy_class = @PerStepSwitchPolicy
+PerStepSwitchPolicy.explore_policy_class = @RandomGraspingPolicyD4
+PerStepSwitchPolicy.greedy_policy_class = @CEMActorPolicy
 train_collect_eval.num_collect = 50
 train_collect_eval.num_eval = 50
 train_collect_eval.num_test = 50

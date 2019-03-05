@@ -43,11 +43,11 @@ class DummyGreedyPolicy(policies.RandomGraspingPolicyD4):
 class PoliciesTest(parameterized.TestCase, test.TestCase):
 
   @parameterized.named_parameters(('i1', 0), ('i2', .5), ('i3', 1))
-  def testInterpolated(self, explore_prob):
+  def testPerStepSwitch(self, explore_prob):
     # Check that exploration is occurring as frequently as we expect.
     np.random.seed(0)
-    policy = policies.InterpolatedPolicy(policies.RandomGraspingPolicyD4,
-                                         DummyGreedyPolicy)
+    policy = policies.PerStepSwitchPolicy(policies.RandomGraspingPolicyD4,
+                                          DummyGreedyPolicy)
     actions = []
     for _ in range(100):
       action, _ = policy.sample_action(None, explore_prob)
