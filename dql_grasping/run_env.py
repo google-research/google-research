@@ -131,12 +131,7 @@ def run_env(env,
     summary_values = [
         tf.Summary.Value(
             tag='%s/episode_reward' % tag,
-            simple_value=np.mean(episode_rewards)),
-        # TODO(konstantinos): Move this out of task-agnostic code
-        tf.Summary.Value(
-            tag='%s/input_image' % tag,
-            image=tf.Summary.Image(
-                encoded_image_string=encode_image_array_as_png_str(obs)))
+            simple_value=np.mean(episode_rewards))
     ]
     for step, q_values in episode_q_values.items():
       summary_values.append(
