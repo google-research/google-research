@@ -1,0 +1,20 @@
+# Python generated
+*.pyc
+
+# Python virtual environment
+pyenv/
+env-activate
+
+# Compiled js
+eeg_viewer/static/js/js_bin.js
+eeg_viewer/static/js/js_wrapped.js
+
+# Compiled css
+eeg_viewer/static/css
+
+# Compiled protos
+jsprotos/
+pyprotos/
+
+# Third party deps
+third_party/

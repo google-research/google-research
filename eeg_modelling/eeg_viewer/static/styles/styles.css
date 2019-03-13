@@ -1,0 +1,255 @@
+/*
+ * Copyright 2019 The Google Research Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.mdl-layout__header.mdl-layout__header--seamed {
+  border-bottom: lightgrey 1px solid;
+}
+
+.mdl-layout__header-row {
+  background-color: white;
+}
+
+.mdl-layout-title {
+  color: black;
+}
+
+#display-file-path {
+  border-left: 3px lightgrey solid;
+  margin: 24px;
+  padding-left: 24px;
+}
+
+.mdl-layout-icon {
+  margin: 4px;
+}
+
+.mdl-button.mdl-button--icon {
+  color: rgb(140, 140, 140);
+}
+
+.mdl-card.hidden {
+  display: none;
+}
+
+.mdl-card__menu.secondary {
+  right: 64px;
+}
+
+.mdl-card .sub-card {
+  border-top: lightgrey 1px solid;
+  border-bottom: lightgrey 1px solid;
+}
+
+#parent-chart-container {
+  height: calc(100vh - 96px);
+  position: fixed;
+  margin-top: 64px;
+  top: 64px;
+  width: 100%;
+}
+
+#tool-bar {
+  background-color: white;
+  height: 64px;
+  position: fixed;
+  text-align: center;
+  width: 100%;
+  z-index: 3;
+}
+
+#nav-line-chart-container {
+  float: left;
+}
+
+#tool-bar > button {
+  float: right;
+}
+
+#tool-bar > .mdl-button.mdl-button--icon {
+  margin: 16px;
+}
+
+.mdl-card.right-side-panel {
+  height: calc(100vh - 64px);
+  padding-top: 64px;
+  position: fixed;
+  right: 0;
+  top: 64px;
+  width: 300px;
+  z-index: 2;
+}
+
+.right-side-panel .mdl-card__menu {
+  margin-top: 64px;
+}
+
+.right-side-panel table {
+  width: 100%;
+}
+
+.right-side-panel .mdl-data-table__cell--non-numeric {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.right-side-panel .scrollable-table-div {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.prediction td, .prediction th {
+  display: none;
+}
+
+.prediction td.time, .prediction th.time, .prediction td.rank, .prediction th.rank {
+  display: table-cell;
+}
+
+.prediction tr.ir-true-pos {
+  background-color: rgba(83, 109, 254, 0.4);
+}
+
+#parent-chart-container > div.hidden {
+  display: none;
+}
+
+#file-menu-modal {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+#file-menu, #file-info {
+  margin: auto;
+  top: 200px;
+  width: 800px;
+}
+
+.file-menu {
+  border-bottom: 1px lightgrey solid;
+  border-top: 1px lightgrey solid;
+}
+
+.file-menu.hidden {
+  display: none;
+}
+
+.dropdown {
+  border: rgb(140, 140, 140) 1px solid;
+  border-radius: 5px;
+  height: 32px;
+  margin: 24px;
+}
+
+.dropdown > div {
+  position: absolute;
+  font-size: 16px;
+  margin-top: 8px;
+  margin-left: 8px;
+}
+
+.dropdown > label {
+  background-color: white;
+  font-size: 10px;
+  margin-left: 5px;
+  margin-top: -10px;
+  position: absolute;
+}
+
+.dropdown > i {
+  float: right;
+}
+
+.text {
+  height: 48px;
+  margin: auto;
+  margin-top: 12px;
+  width: calc(100% - 64px);
+}
+
+.text > div {
+  height: 24px;
+  font-size: 16px;
+  position: absolute;
+  width: inherit;
+}
+
+.text > label {
+  background-color: white;
+  font-size: 10px;
+  margin-top: -20px;
+  position: absolute;
+}
+
+.textfield {
+  height: 48px;
+  margin: auto;
+  padding-top: 24px;
+  padding-bottom: 24px;
+  width: calc(100% - 64px);
+}
+
+.textfield > input {
+  border: rgb(140, 140, 140) 1px solid;
+  border-radius: 5px;
+  height: 24px;
+  font-size: 16px;
+  position: absolute;
+  width: inherit;
+}
+
+.textfield > input:focus {
+  border-color: rgb(83,109,254);
+}
+
+.textfield > input:focus ~ label {
+  color: rgb(83,109,254);
+}
+
+.textfield > label {
+  background-color: white;
+  font-size: 10px;
+  margin-top: -10px;
+  margin-left: 5px;
+  position: absolute;
+}
+
+.textfield > .helper {
+  background-color: rgba(0, 0, 0, 0);
+  font-size: 10px;
+  margin-left: 5px;
+  margin-top: 32px;
+  position: absolute;
+}
+
+.switch {
+  margin: 12px;
+}
+
+#menu-button-container {
+  padding: 8px 20px;
+  text-align: center;
+}
+
+#menu-button-container button {
+  width: 100%;
+}
