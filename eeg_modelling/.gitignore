@@ -6,8 +6,7 @@ pyenv/
 env-activate
 
 # Compiled js
-eeg_viewer/static/js/js_bin.js
-eeg_viewer/static/js/js_wrapped.js
+eeg_viewer/static/js/compiled_*
 
 # Compiled css
 eeg_viewer/static/css

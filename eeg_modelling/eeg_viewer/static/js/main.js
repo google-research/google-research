@@ -80,18 +80,8 @@ window.onkeydown = /** @type {function((?Event)):?|null} */ ((keyEvent) => {
 const windowLocation = WindowLocation.getInstance();
 
 /**
- * Make a request to the server.
+ * Make a request to the server when the URL changes.
  */
-const makeDataRequest = () => windowLocation.makeDataRequest();
-window.onhashchange = makeDataRequest;
+window.onhashchange = () => windowLocation.makeDataRequest();
 
-// A request must be made after the load of both document and this script,
-// to load data given as url params
-// If this script is loaded after the document, make a request now
-// If this script is loaded before the document, wait onload to make a request
-if (document.readyState === 'complete') {
-  makeDataRequest();
-} else {
-  window.onload = makeDataRequest;
-}
-
+windowLocation.makeDataRequest();

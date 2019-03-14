@@ -33,11 +33,11 @@ function loadScript(src, callback) {
 
 const CHARTS_URL = 'https://www.gstatic.com/charts/loader.js';
 const CHARTS_VERSION = 'current';
-const WRAPPED_APP = 'static/js/js_wrapped.js';
+const COMPILED_APP = 'static/js/compiled_app.js';
 
 loadScript(CHARTS_URL, () => {
   google.charts.load(CHARTS_VERSION, {
     packages: ['corechart'],
   });
-  google.charts.setOnLoadCallback(() => loadScript(WRAPPED_APP));
+  google.charts.setOnLoadCallback(() => loadScript(COMPILED_APP));
 });

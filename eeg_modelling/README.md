@@ -20,18 +20,16 @@ Provide several tools to work with EEG data
 
 #### Download and install deps:
 
-Note: The `eeg_modelling/viewer.sh` script can only be called from `google_research/` folder
-or `eeg_modelling` folder.
+Note: The `eeg_modelling/viewer.sh` script can only be called from
+the `google_research/` folder or the `eeg_modelling/` folder.
 
 
-1.  Install python deps: `./viewer.sh install_py`
-  - This will create a virtual environment under `eeg_modelling/pyenv`,
-  and install the py dependencies there.
-
-1.  Download extra dependencies: `./viewer.sh download`
-  - This will download JS and protobuffers deps
-
-1.  Compile protos: run `./viewer.sh compile_protos`
+1. Install python deps: `./viewer.sh install_py`
+   - This will create a virtual environment under `eeg_modelling/pyenv`,
+     and install the py dependencies there.
+1. Download extra dependencies: `./viewer.sh download`
+   - This will download JS and protobuffers deps
+1. Compile protos: run `./viewer.sh compile_protos`
 
 
 ## Viewer

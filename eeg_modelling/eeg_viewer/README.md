@@ -7,8 +7,8 @@ standard consists of the element-wise subtraction of the input of two EEG leads.
 
 ## Usage
 
-Note: The `eeg_modelling/viewer.sh` script can only be called from `google_research/` folder
-or `eeg_modelling` folder.
+Note: The `eeg_modelling/viewer.sh` script can only be called from
+the `google_research/` folder or the `eeg_modelling/` folder.
 
 1.  Follow the instructions in [EEG-modelling](../README.md) to install dependencies
 1.  Build css and js: `./viewer.sh build`
@@ -18,12 +18,10 @@ or `eeg_modelling` folder.
 
 ## Developing
 
-*   Run `./viewer.sh --help` or `./viewer.sh <cmd> --help` to see
-    specific command help
+More commands:
 
-*   More commands:
-
-    -   Run tests: `./viewer.sh test`
-    -   Compile js: `./viewer.sh compile_js`
-    -   Compile css: `./viewer.sh compile_css`
-    -   Compile js, css and run: `./viewer.sh run -r`
+*   Compile js, css and run: `./viewer.sh run -r`
+*   Run tests: `./viewer.sh test`
+*   Compile js: `./viewer.sh compile_js`
+*   Compile css: `./viewer.sh compile_css`
+*   Help: `./viewer.sh --help`

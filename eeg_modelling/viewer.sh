@@ -26,9 +26,10 @@ CSS_BUNDLED_FOLDER="eeg_viewer/static/css"
 CSS_BUNDLED_FNAME="${CSS_BUNDLED_FOLDER}/css_styles-bundle.css"
 
 JS_COMPILER="third_party/closure-compiler/closure-compiler-v20190121.jar"
-JS_WRAPPED_FNAME="eeg_viewer/static/js/js_wrapped.js" # Wrapped source code
-JS_BIN_FNAME="eeg_viewer/static/js/js_bin.js" # Entry point for index.html
-JS_LICENSE_WRAPPER="eeg_viewer/jslib/license_wrapper.js"
+JS_COMPILED_APP="eeg_viewer/static/js/compiled_app.js"
+JS_COMPILED_APP_LOADER="eeg_viewer/static/js/compiled_app_loader.js"
+JS_APP_LOADER="eeg_viewer/jslib/app_loader.js"
+JS_TEMP_LICENSE_WRAPPER="eeg_viewer/jslib/license_wrapper.temp.js"
 
 PROTO_COMPILER_FOLDER="third_party/protoc"
 PROTO_COMPILER_CMD="${PROTO_COMPILER_FOLDER}/bin/protoc"
@@ -109,7 +110,7 @@ download_protobuf_lib() {
   assert_folder ${THIRD_PARTY_FOLDER}
   cd ${THIRD_PARTY_FOLDER}
 
-  # Get and unwrap library
+  # Get and unzip library
   wget https://github.com/protocolbuffers/protobuf/releases/download/v3.7.0/protobuf-js-3.7.0.zip
   unzip protobuf-js-3.7.0.zip
   mv protobuf-3.7.0 protobuf
@@ -128,7 +129,7 @@ download_protoc() {
   assert_folder protoc
   cd protoc
 
-  # Get and unwrap binaries
+  # Get and unzip binaries
   wget https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip
   unzip protoc-3.6.1-linux-x86_64.zip
 
@@ -165,7 +166,7 @@ download_closure_library() {
   assert_folder ${THIRD_PARTY_FOLDER}
   cd ${THIRD_PARTY_FOLDER}
 
-  # Get and unwrap library
+  # Get and unzip library
   wget https://github.com/google/closure-library/archive/v20190301.zip
   unzip v20190301.zip
   mv closure-library-20190301 closure-library
@@ -184,7 +185,7 @@ download_closure_compiler() {
   assert_folder closure-compiler
   cd closure-compiler
 
-  # Get and unwrap binaries
+  # Get and unzip binaries
   wget https://dl.google.com/closure-compiler/compiler-20190121.zip
   unzip compiler-20190121.zip
 
@@ -244,44 +245,43 @@ compile_css() {
 
 # Create a file to use as wrapper on JS compilation,
 # to add a license header to the compiled JS
-create_js_license_wrapper() {
-  get_license_header "//" > "${JS_LICENSE_WRAPPER}"
-  echo "%output%" >> "${JS_LICENSE_WRAPPER}"
+create_temp_js_license_wrapper() {
+  get_license_header "//" > "${JS_TEMP_LICENSE_WRAPPER}"
+  echo "%output%" >> "${JS_TEMP_LICENSE_WRAPPER}"
 }
 
 
 # Remove license wrapper for cleaning
-rm_js_license_wrapper() {
-  assert_rm "${JS_LICENSE_WRAPPER}"
+rm_temp_js_license_wrapper() {
+  assert_rm "${JS_TEMP_LICENSE_WRAPPER}"
 }
 
 
-# Compile wrapper.js
-compile_js_app_wrapper() {
+# Compile app_loader.js
+compile_js_app_loader() {
   # Remove previously compiled
-  assert_rm ${JS_BIN_FNAME}
+  assert_rm ${JS_COMPILED_APP_LOADER}
 
   # Compile
   java -jar ${JS_COMPILER} \
-      --js='eeg_viewer/jslib/wrapper.js' \
-      --output_wrapper_file=${JS_LICENSE_WRAPPER} \
-      > ${JS_BIN_FNAME}
+      --js=${JS_APP_LOADER} \
+      --output_wrapper_file=${JS_TEMP_LICENSE_WRAPPER} \
+      > ${JS_COMPILED_APP_LOADER}
 
-  echo "Compiled JS wrapper into ${JS_BIN_FNAME}"
+  echo "Compiled JS app_loader into ${JS_COMPILED_APP_LOADER}"
 }
 
 
 # Compile actual app
 compile_js_app() {
   # Remove previously compiled
-  assert_rm ${JS_WRAPPED_FNAME}
+  assert_rm ${JS_COMPILED_APP}
 
   # Compile
   java -jar ${JS_COMPILER} \
       --js='eeg_viewer/static/js/**.js' \
       --js='!eeg_viewer/static/js/**_test.js' \
-      --js='!eeg_viewer/static/js/js_wrapped.js' \
-      --js='!eeg_viewer/static/js/js_bin.js' \
+      --js='!eeg_viewer/static/js/compiled_*.js' \
       --js='jsprotos/**.js' \
       --js='third_party/protobuf/js/map.js' \
       --js='third_party/protobuf/js/message.js' \
@@ -293,23 +293,27 @@ compile_js_app() {
       --js='!third_party/closure-library/closure/goog/**_perf.js' \
       --externs='third_party/gviz/gviz-api.js' \
       --entry_point='eeg_viewer/static/js/main.js' \
-      --output_wrapper_file=${JS_LICENSE_WRAPPER} \
+      --output_wrapper_file=${JS_TEMP_LICENSE_WRAPPER} \
       --force_inject_library es6_runtime \
       -O WHITESPACE_ONLY \
-      > ${JS_WRAPPED_FNAME}
+      > ${JS_COMPILED_APP}
 
-  echo "Compiled JS app into ${JS_WRAPPED_FNAME}"
+  echo "Compiled JS app into ${JS_COMPILED_APP}"
 }
 
 
 # Compile everything JS
 compile_js() {
-  create_js_license_wrapper
+  create_temp_js_license_wrapper
 
+  # Compile app source code
   compile_js_app
-  compile_js_app_wrapper
 
-  rm_js_license_wrapper
+  # Compile app_loader, which is directly loaded in HTML.
+  # Loads Google Charts JS before loading the app.js
+  compile_js_app_loader
+
+  rm_temp_js_license_wrapper
 }
 
 
@@ -430,13 +434,13 @@ run_server() {
 assert_working_dir() {
   wd=`basename $(pwd)`
   case $wd in
-    "google_research")
+    "google_research"|"google-research")
       cd eeg_modelling
       ;;
     "eeg_modelling")
       ;;
     *)
-      echo "ERROR: This script should be called from google_research/ or eeg_modelling/ folders"
+      echo "ERROR: This script should be called from google-research/ or eeg_modelling/ folders"
       exit 1
   esac
 }
