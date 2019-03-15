@@ -124,6 +124,9 @@ def run_env(env,
       tf.logging.info('Average %d collect episodes reward: %f' %
                       (len(episode_rewards), np.mean(episode_rewards)))
 
+  tf.logging.info('Closing environment.')
+  env.close()
+
   if replay_writer:
     replay_writer.close()
 
