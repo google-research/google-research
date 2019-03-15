@@ -47,7 +47,7 @@ const Property = {
   CHUNK_SCORES: 'chunkScores',
   CHUNK_START: 'chunkStart',
   EDF_PATH: 'edfPath',
-  ERROR_MESSAGE: 'errorMessage',
+  ERROR: 'error',
   FILE_TYPE: 'fileType',
   HIGH_CUT: 'highCut',
   INDEX_CHANNEL_MAP: 'indexChannelMap',
@@ -70,7 +70,6 @@ const Property = {
   TIMESCALE: 'timeScale',
   TFEX_FILE_PATH: 'tfExFilePath',
   TFEX_SSTABLE_PATH: 'tfExSSTablePath',
-  WARNING_MESSAGE: 'warningMessage',
 };
 
 /** @const {!Array<!Property>} */
@@ -121,7 +120,7 @@ let DataTableInput;
  *   timestamp: number,
  * }}
  */
-let ErrorMessage;
+let ErrorInfo;
 
 /**
  * Possible status when loading data.
@@ -146,7 +145,7 @@ const LoadingStatus = {
  *   chunkScores: ?Array<!ChunkScoreData>,
  *   chunkStart: number,
  *   edfPath: ?string,
- *   errorMessage: ?ErrorMessage,
+ *   error: ?ErrorInfo,
  *   fileType: ?string,
  *   highCut: number,
  *   indexChannelMap: ?JspbMap<string, string>,
@@ -169,7 +168,6 @@ const LoadingStatus = {
  *   timeScale: number,
  *   tfExSSTablePath: ?string,
  *   tfExFilePath: ?string,
- *   warningMessage: ?string,
  * }}
  */
 let StoreData;
@@ -192,7 +190,7 @@ class Store {
       chunkScores: null,
       chunkStart: 0,
       edfPath: null,
-      errorMessage: null,
+      error: null,
       fileType: null,
       highCut: 70,
       indexChannelMap: null,
@@ -215,126 +213,79 @@ class Store {
       timeScale: 1,
       tfExSSTablePath: null,
       tfExFilePath: null,
-      warningMessage: null,
     };
 
     /** @public {!Array<!Listener>} */
     this.registeredListeners = [];
 
     const dispatcher = Dispatcher.getInstance();
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.ANNOTATION_SELECTION,
-        (actionData) => this.callback((actionData) =>
-          this.handleAnnotationSelection(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.GRAPH_TIME_CLICK,
-        (actionData) => this.callback((actionData) =>
-          this.handleGraphTimeClick(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.MAPLE_LOAD_CONTENT,
-        (actionData) => this.callback((actionData) =>
-          this.handleMapleLoadContent(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.MAPLE_ENABLE_ANNOTATIONS,
-        (actionData) => this.callback((actionData) =>
-          this.handleMapleEnableAnnotations(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.MAPLE_DISABLE_ANNOTATIONS,
-        (actionData) => this.callback(() =>
-          this.handleMapleDisableAnnotations(), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.MAPLE_REMOVE_ANNOTATION,
-        (actionData) => this.callback((actionData) =>
-          this.handleMapleRemoveAnnotation(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.MENU_FILE_LOAD,
-        (actionData) => this.callback((actionData) =>
-          this.handleMenuFileLoad(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.NAV_BAR_CHUNK_REQUEST,
-        (actionData) => this.callback((actionData) =>
-          this.handleNavBarRequest(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.REQUEST_RESPONSE_ERROR,
-        (actionData) => this.callback((actionData) =>
-          this.handleRequestResponseError(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.REQUEST_RESPONSE_OK,
-        (actionData) => this.callback((actionData) =>
-          this.handleRequestResponseOk(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.REQUEST_START,
-        (actionData) => this.callback(
-            (actionData) => this.handleRequestStart(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.PREDICTION_CHUNK_REQUEST,
-        (actionData) => this.callback(
-            (actionData) => this.handlePredictionChunkRequest(actionData),
-            actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.PREDICTION_MODE_SELECTION,
-        (actionData) => this.callback((actionData) =>
-          this.handlePredictionModeSelection(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.PREDICTION_LABEL_SELECTION,
-        (actionData) => this.callback((actionData) =>
-          this.handlePredictionLabelSelection(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.TOOL_BAR_GRIDLINES,
-        (actionData) => this.callback((actionData) =>
-          this.handleToolBarGridlines(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.TOOL_BAR_HIGH_CUT,
-        (actionData) => this.callback((actionData) =>
-          this.handleToolBarHighCut(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.TOOL_BAR_LOW_CUT,
-        (actionData) => this.callback((actionData) =>
-          this.handleToolBarLowCut(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.TOOL_BAR_MONTAGE,
-        (actionData) => this.callback((actionData) =>
-          this.handleToolBarMontage(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.TOOL_BAR_NEXT_CHUNK,
-        (actionData) => this.callback(() =>
-          this.handleToolBarNextChunk(), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.TOOL_BAR_NEXT_SEC,
-        (actionData) => this.callback(() =>
-          this.handleToolBarNextSec(), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.TOOL_BAR_NOTCH,
-        (actionData) => this.callback((actionData) =>
-          this.handleToolBarNotch(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.TOOL_BAR_PREV_CHUNK,
-        (actionData) => this.callback(() =>
-          this.handleToolBarPrevChunk(), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.TOOL_BAR_PREV_SEC,
-        (actionData) => this.callback(() =>
-          this.handleToolBarPrevSec(), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.TOOL_BAR_SENSITIVITY,
-        (actionData) => this.callback((actionData) =>
-          this.handleToolBarSensitivity(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.TOOL_BAR_WARNING,
-        (actionData) => this.callback((actionData) =>
-          this.handleToolBarWarning(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.TOOL_BAR_ZOOM,
-        (actionData) => this.callback((actionData) =>
-          this.handleToolBarZoom(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.WINDOW_LOCATION_PENDING_REQUEST,
-        (actionData) => this.callback((actionData) =>
-          this.handleWindowLocationPendingRequest(actionData), actionData));
-    dispatcher.registerCallback(
-        Dispatcher.ActionType.WINDOW_LOCATION_ERROR,
-        (actionData) => this.callback((actionData) =>
-          this.handleWindowLocationError(actionData), actionData));
+
+    const registerCallback = (actionType, callback) => {
+      dispatcher.registerCallback(
+        actionType,
+        actionData => this.callbackWrapper(
+          callback.bind(this),
+          actionData,
+        ),
+      );
+    };
+
+    registerCallback(Dispatcher.ActionType.ANNOTATION_SELECTION,
+                     this.handleAnnotationSelection);
+    registerCallback(Dispatcher.ActionType.ERROR,
+                     this.handleError);
+    registerCallback(Dispatcher.ActionType.GRAPH_TIME_CLICK,
+                     this.handleGraphTimeClick);
+    registerCallback(Dispatcher.ActionType.MAPLE_LOAD_CONTENT,
+                     this.handleMapleLoadContent);
+    registerCallback(Dispatcher.ActionType.MAPLE_ENABLE_ANNOTATIONS,
+                     this.handleMapleEnableAnnotations);
+    registerCallback(Dispatcher.ActionType.MAPLE_DISABLE_ANNOTATIONS,
+                     this.handleMapleDisableAnnotations);
+    registerCallback(Dispatcher.ActionType.MAPLE_REMOVE_ANNOTATION,
+                     this.handleMapleRemoveAnnotation);
+    registerCallback(Dispatcher.ActionType.MENU_FILE_LOAD,
+                     this.handleMenuFileLoad);
+    registerCallback(Dispatcher.ActionType.NAV_BAR_CHUNK_REQUEST,
+                     this.handleNavBarRequest);
+    registerCallback(Dispatcher.ActionType.REQUEST_RESPONSE_ERROR,
+                     this.handleRequestResponseError);
+    registerCallback(Dispatcher.ActionType.REQUEST_RESPONSE_OK,
+                     this.handleRequestResponseOk);
+    registerCallback(Dispatcher.ActionType.REQUEST_START,
+                     this.handleRequestStart);
+    registerCallback(Dispatcher.ActionType.PREDICTION_CHUNK_REQUEST,
+                     this.handlePredictionChunkRequest);
+    registerCallback(Dispatcher.ActionType.PREDICTION_MODE_SELECTION,
+                     this.handlePredictionModeSelection);
+    registerCallback(Dispatcher.ActionType.PREDICTION_LABEL_SELECTION,
+                     this.handlePredictionLabelSelection);
+    registerCallback(Dispatcher.ActionType.TOOL_BAR_GRIDLINES,
+                     this.handleToolBarGridlines);
+    registerCallback(Dispatcher.ActionType.TOOL_BAR_HIGH_CUT,
+                     this.handleToolBarHighCut);
+    registerCallback(Dispatcher.ActionType.TOOL_BAR_LOW_CUT,
+                     this.handleToolBarLowCut);
+    registerCallback(Dispatcher.ActionType.TOOL_BAR_MONTAGE,
+                     this.handleToolBarMontage);
+    registerCallback(Dispatcher.ActionType.TOOL_BAR_NEXT_CHUNK,
+                     this.handleToolBarNextChunk);
+    registerCallback(Dispatcher.ActionType.TOOL_BAR_NEXT_SEC,
+                     this.handleToolBarNextSec);
+    registerCallback(Dispatcher.ActionType.TOOL_BAR_NOTCH,
+                     this.handleToolBarNotch);
+    registerCallback(Dispatcher.ActionType.TOOL_BAR_PREV_CHUNK,
+                     this.handleToolBarPrevChunk);
+    registerCallback(Dispatcher.ActionType.TOOL_BAR_PREV_SEC,
+                     this.handleToolBarPrevSec);
+    registerCallback(Dispatcher.ActionType.TOOL_BAR_SENSITIVITY,
+                     this.handleToolBarSensitivity);
+    registerCallback(Dispatcher.ActionType.TOOL_BAR_ZOOM,
+                     this.handleToolBarZoom);
+    registerCallback(Dispatcher.ActionType.WARNING,
+                     this.handleError);
+    registerCallback(Dispatcher.ActionType.WINDOW_LOCATION_PENDING_REQUEST,
+                     this.handleWindowLocationPendingRequest);
 
     this.logger_ = log.getLogger('eeg_modelling.eeg_viewer.Store');
   }
@@ -373,28 +324,29 @@ class Store {
       return;
     }
 
+    const changeId = `[${Date.now() % 10000}]`;
+
     log.info(this.logger_,
-        'Emitting chunk data store change for properties...');
-    log.info(this.logger_, changedProperties.toString());
+        `${changeId} Emitting chunk data store change for properties... ${changedProperties.toString()}`);
 
     this.registeredListeners.forEach((listener) => {
       const propertyTriggers = listener.properties.filter(
           prop => changedProperties.includes(prop));
       if (propertyTriggers.length > 0) {
-        log.info(this.logger_, `...to ${listener.id} view`);
+        log.info(this.logger_, `${changeId} ... to ${listener.id} view (${propertyTriggers.toString()})`);
         listener.callback(Object.assign({}, this.storeData));
       }
     });
   }
 
   /**
-   * Update the errorMessage property.
+   * Update the error property.
    * Add a timestamp so every new message received is different from the
    * previous one, so the error listeners are called every time.
    * @param {string} message New error message
    */
   updateError(message) {
-    this.storeData.errorMessage = {
+    this.storeData.error = {
       message,
       timestamp: Date.now(),
     };
@@ -429,7 +381,7 @@ class Store {
         waveformMeta.getChannelDictMap(), JspbMap);
     this.storeData.numSecs = waveformMeta.getNumSecs();
     this.storeData.patientId = waveformMeta.getPatientId();
-    this.storeData.sstableKey = waveformMeta.getSstableKey();
+    this.storeData.sstableKey = waveformMeta.getSstableKey() || null;
     if (data.hasPredictionChunk() &&
         data.getPredictionChunk().getChunkStart() != null &&
         data.getPredictionChunk().getChunkDuration() != null) {
@@ -502,12 +454,13 @@ class Store {
   }
 
   /**
-   * Handles data from WINDOW_LOCATION_ERROR action that will modify the error
-   * message.
+   * Handles data from an ERROR action or WARNING action, that will modify
+   * the error message. Use these actions for any common error or warning
+   * (except special types, such as request response error).
    * @param {!Dispatcher.ErrorData} data The data payload from the action.
    */
-  handleWindowLocationError(data) {
-    this.updateError(data.errorMessage);
+  handleError(data) {
+    this.updateError(data.message);
   }
 
   /**
@@ -516,7 +469,7 @@ class Store {
    * @param {!Dispatcher.ErrorData} data The data payload from the action.
    */
   handleRequestResponseError(data) {
-    this.updateError(data.errorMessage);
+    this.updateError(data.message);
     const wasFirstLoad = this.storeData.loadingStatus === LoadingStatus.LOADING;
     this.storeData.loadingStatus =
         wasFirstLoad ? LoadingStatus.NO_DATA : LoadingStatus.RELOADED;
@@ -628,15 +581,6 @@ class Store {
   }
 
   /**
-   * Handles data from a TOOL_BAR_WARNING action which will modify the warning
-   * message.
-   * @param {!Dispatcher.WarningData} data The data payload from the action.
-   */
-  handleToolBarWarning(data) {
-    this.storeData.warningMessage = data.warningMessage;
-  }
-
-  /**
    * Handles data from a TOOL_BAR_ZOOM action which will modify the chunk
    * duration.
    * @param {!Dispatcher.SelectionData} data The data payload from the action.
@@ -705,15 +649,17 @@ class Store {
    * @param {!Dispatcher.TimeData} data The data payload from the action.
    */
   handleNavBarRequest(data) {
-    this.storeData.chunkStart = this.storeData.chunkDuration * Math.floor(
+    if (data.time || data.time === 0) {
+      this.storeData.chunkStart = this.storeData.chunkDuration * Math.floor(
         data.time / this.storeData.chunkDuration);
+    }
   }
 
   /**
    * Converts a ChannelDataId instance to a string format where multiple
    * channels are separated by a '-' character.
    * @param {!ChannelDataId} channelDataId ChannelDataId instance.
-   * @returns {?string} String format ChannelDataId.
+   * @return {?string} String format ChannelDataId.
    */
   convertChannelDataIdToIndexStr(channelDataId) {
     if (channelDataId.hasSingleChannel()) {
@@ -797,7 +743,7 @@ class Store {
 
   /**
    * Creates a copy of the current StoreData state.
-   * @returns {!StoreData} Copy of the current state.
+   * @return {!StoreData} Copy of the current state.
    */
   getStoreDataState() {
     return /** @type {!StoreData} */(JSON.parse(
@@ -809,7 +755,7 @@ class Store {
    * @param {!Function} handler The function to handle the event data.
    * @param {!Object} data The data accompanying the action event.
    */
-  callback(handler, data) {
+  callbackWrapper(handler, data) {
     const oldStoreData = this.getStoreDataState();
     handler(data);
     this.clipTime();
@@ -821,6 +767,7 @@ goog.addSingletonGetter(Store);
 
 exports = Store;
 exports.StoreData = StoreData;
+exports.ErrorInfo = ErrorInfo;
 exports.Property = Property;
 exports.PredictionMode = PredictionMode;
 exports.LoadingStatus = LoadingStatus;

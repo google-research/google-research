@@ -86,7 +86,7 @@ let MontageInfo;
 /**
  * Asserts that an element is an HTMLButtonElement.
  * @param {?Element} element HTML element.
- * @returns {!HTMLButtonElement} The HTML button.
+ * @return {!HTMLButtonElement} The HTML button.
  */
 function assertButton(element) {
   return assertInstanceof(element, HTMLButtonElement);
@@ -199,9 +199,9 @@ class ToolBar {
   montageSelectionCallback(montageName, montageMap) {
     if (montageMap[montageName].missingChannelList) {
       Dispatcher.getInstance().sendAction({
-        actionType: Dispatcher.ActionType.TOOL_BAR_WARNING,
+        actionType: Dispatcher.ActionType.WARNING,
         data: {
-          warningMessage:
+          message:
               ('Incomplete montage. Could not find channels ' +
                montageMap[montageName].missingChannelList),
         },
@@ -218,7 +218,7 @@ class ToolBar {
    * there were no associated indices.
    * @param {!Store.StoreData} store Store object with chunk data.
    * @param {!Array<string>} montage The list of channel names.
-   * @returns {!MontageInfo} The index info for a pre-programmed montage.
+   * @return {!MontageInfo} The index info for a pre-programmed montage.
    */
   createMontageInfo(store, montage) {
     const /** !Map<string, number> */ channelIndexMap = new Map(
@@ -345,7 +345,7 @@ class ToolBar {
   /**
    * Calculates the epoch of the current data in the file.
    * @param {!Store.StoreData} store Store object with chunk data.
-   * @returns {string} The epoch number out of total epochs.
+   * @return {string} The epoch number out of total epochs.
    */
   calculateEpoch(store) {
     // The rounding process could end up only partially reflecting the current

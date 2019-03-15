@@ -68,7 +68,7 @@ class Requests {
 
   /**
    * Creates a new XhrIO object (used for testing HTTP requests).
-   * @returns {!XhrIo} An XhrIo object.
+   * @return {!XhrIo} An XhrIo object.
    */
   getXhrIo() {
     return new XhrIo();
@@ -79,7 +79,7 @@ class Requests {
    * @param {string} url The path to send the request to.
    * @param {!DataRequest} requestContent A request protobuf.
    * @param {function(!Object): !Object} formatResponse Formats response data.
-   * @returns {!Promise} A promise returning an XhrIo response.
+   * @return {!Promise} A promise returning an XhrIo response.
    */
   createXhrIoPromise(url, requestContent, formatResponse) {
     const parseJsonResponse = function(response) {
@@ -107,7 +107,7 @@ class Requests {
   /**
    * Creates a data request Uri from the ChunkStore.
    * @param {!Store.StoreData} store Snapshot of chunk data store.
-   * @returns {!Promise} A promise that makes an Xhr request.
+   * @return {!Promise} A promise that makes an Xhr request.
    */
   createDataResponsePromise(store) {
     const url = '/waveform_data/chunk';
@@ -170,7 +170,7 @@ class Requests {
           Dispatcher.getInstance().sendAction({
             actionType: Dispatcher.ActionType.REQUEST_RESPONSE_ERROR,
             data: {
-              errorMessage: errorResponse.message || 'Unknown Request Error',
+              message: errorResponse.message || 'Unknown Request Error',
             },
           });
         });
@@ -179,7 +179,7 @@ class Requests {
   /**
    * Converts channel ID's expressed in string form to proto format.
    * @param {string} channelStr The channel ID in string format.
-   * @returns {?ChannelDataId} Converted string channel ID.
+   * @return {?ChannelDataId} Converted string channel ID.
    */
   convertIndexStrToChannelDataId(channelStr) {
     const channelIndices = channelStr.split('-')

@@ -24,33 +24,40 @@ let mockControl;
 let error;
 const _ = mockmatchers.ignoreArgument;
 
+const mockMaterialSnackbar = {
+  showSnackbar: () => {},
+};
 
 testSuite({
 
   setUp() {
     mockControl = new MockControl();
     error = Error.getInstance();
+
+    const notificationSnackbar = document.createElement('div');
+    notificationSnackbar.id = 'notification-snackbar';
+    notificationSnackbar.MaterialSnackbar = mockMaterialSnackbar;
+
+    document.body.append(notificationSnackbar);
   },
 
   testHandleError() {
-    const chunkData = {
-      errorMessage: 'Test error',
+    const storeData = {
+      error: {
+        message: 'Test error',
+        timestamp: 1,
+      },
     };
-    const mockDisplay = mockControl.createMethodMock(error, 'display');
-    mockDisplay('Test error').$once();
-    mockControl.$replayAll();
-    error.handleError(chunkData);
-    mockControl.$verifyAll();
-  },
 
-  testHandleWarning() {
-    const chunkData = {
-      warningMessage: 'Test warning',
-    };
-    const mockDisplay = mockControl.createMethodMock(error, 'display');
-    mockDisplay('Test warning').$once();
+    const mockShowSnackbar = mockControl.createMethodMock(mockMaterialSnackbar, 'showSnackbar');
+
+    const snackbarArgMatcher = new mockmatchers.ArgumentMatcher((arg) =>
+      arg.message === 'Test error' && arg.timeout >= 3000);
+
+    mockShowSnackbar(snackbarArgMatcher).$once();
+
     mockControl.$replayAll();
-    error.handleWarning(chunkData);
+    error.handleError(storeData);
     mockControl.$verifyAll();
   },
 

@@ -22,6 +22,7 @@ const log = goog.require('goog.log');
  */
 const ActionType = {
   ANNOTATION_SELECTION: 'annotationSelection',
+  ERROR: 'error',
   GRAPH_TIME_CLICK: 'graphTimeClick',
   MAPLE_DISABLE_ANNOTATIONS: 'mapleDisableAnnotations',
   MAPLE_ENABLE_ANNOTATIONS: 'mapleEnableAnnotations',
@@ -46,9 +47,8 @@ const ActionType = {
   TOOL_BAR_PREV_CHUNK: 'toolBarPrevChunk',
   TOOL_BAR_PREV_SEC: 'toolBarPrevSec',
   TOOL_BAR_SENSITIVITY: 'toolBarSensitivity',
-  TOOL_BAR_WARNING: 'toolBarWarning',
   TOOL_BAR_ZOOM: 'toolBarZoom',
-  WINDOW_LOCATION_ERROR: 'windowLocationError',
+  WARNING: 'warning',
   WINDOW_LOCATION_PENDING_REQUEST: 'windowLocationPendingRequest',
 };
 
@@ -109,17 +109,10 @@ let FragmentData;
 
 /**
  * @typedef {{
- *   errorMessage: string,
+ *   message: string,
  * }}
  */
 let ErrorData;
-
-/**
- * @typedef {{
- *   warningMessage: string,
- * }}
- */
-let WarningData;
 
 /**
  * @typedef {{
@@ -179,6 +172,5 @@ exports.TimeData = TimeData;
 exports.RoiData = RoiData;
 exports.FileParamData = FileParamData;
 exports.ErrorData = ErrorData;
-exports.WarningData = WarningData;
 exports.SelectionData = SelectionData;
 exports.RequestStartData = RequestStartData;

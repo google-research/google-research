@@ -58,9 +58,9 @@ class WindowLocation {
         const elements = assignment.split('=');
         if (elements.length < 2) {
           Dispatcher.getInstance().sendAction({
-            actionType: Dispatcher.ActionType.WINDOW_LOCATION_ERROR,
+            actionType: Dispatcher.ActionType.ERROR,
             data: {
-              errorMessage: 'Bad Fragment',
+              message: 'Bad Fragment',
             },
           });
         }

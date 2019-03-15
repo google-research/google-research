@@ -32,26 +32,24 @@ class Error {
   constructor() {
     const store = Store.getInstance();
     // This listener callback will display a toast error message.
-    store.registerListener([Store.Property.ERROR_MESSAGE],
-        'Error', (store) => this.handleError(store));
-    // This listener callback will display a toast warning message.
-    store.registerListener([Store.Property.WARNING_MESSAGE],
-        'Error', (store) => this.handleWarning(store));
-  }
-
-  handleError(store) {
-    this.display(store.errorMessage);
-  }
-
-  handleWarning(store) {
-    this.display(store.warningMessage);
+    store.registerListener([Store.Property.ERROR],
+        'Error', (store) => void this.handleError(store));
   }
 
   /**
-   * Displays an error message in a snackbar
+   * Handles a change in the ERROR property.
+   * @param {!Store.StoreData} store Snapshot of the store data.
    */
-  display(data) {
-    const text = data ? data.message : 'Unknown Error';
+  handleError(store) {
+    this.display(store.error);
+  }
+
+  /**
+   * Displays an error message in a snackbar.
+   * @param {?Store.ErrorInfo} errorInfo
+   */
+  display(errorInfo) {
+    const text = errorInfo ? errorInfo.message : 'Unknown Error';
     const notificationSnackbar = /** @type {!MaterialSnackbarElement} */ (document.querySelector('#notification-snackbar'));
     notificationSnackbar.MaterialSnackbar.showSnackbar({
       message: text,

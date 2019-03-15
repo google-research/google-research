@@ -198,8 +198,7 @@ def CreateDataResponse(request):
 
   elif request.tf_ex_file_path:
     tf_example = FetchTfExFromFile(request.tf_ex_file_path)
-    waveform_data_source = TfExDataSourceConstructor(tf_example,
-                                                     request.tf_ex_file_path)
+    waveform_data_source = TfExDataSourceConstructor(tf_example, '')
 
     if request.prediction_file_path:
       pred_outputs = FetchPredictionsFromFile(request.prediction_file_path)

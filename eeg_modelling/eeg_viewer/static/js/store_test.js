@@ -114,10 +114,10 @@ testSuite({
 
   testHandleRequestResponseError() {
     const mockData = {
-      errorMessage: 'Bad Request',
+      message: 'Bad Request',
     };
     store.handleRequestResponseError(mockData);
-    assertEquals('Bad Request', store.storeData.errorMessage.message);
+    assertEquals('Bad Request', store.storeData.error.message);
   },
 
   testHandleToolBarNextChunk() {
