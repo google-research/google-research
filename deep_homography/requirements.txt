@@ -1,0 +1,4 @@
+absl-py>=0.6.1
+numpy>=1.15.4
+opencv-python>=3.0.1
+# tf-nightly>=1.12.0 or tf-nightly_gpu>=1.12.0
