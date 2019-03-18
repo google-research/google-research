@@ -18,7 +18,19 @@ const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const dom = goog.require('goog.dom');
 const formatter = goog.require('eeg_modelling.eeg_viewer.formatter');
+const log = goog.require('goog.log');
 const {assertInstanceof} = goog.require('goog.asserts');
+
+
+/**
+ * Available file input types.
+ * @enum {string}
+ */
+const FileInputType = {
+  TF_EXAMPLE: 'tfex',
+  SSTABLE: 'sstable',
+  EDF: 'edf',
+};
 
 
 /**
@@ -90,30 +102,54 @@ class Menus {
     this.loadingSpinnerId = 'loading-spinner';
     this.reloadingSpinnerId = 'reloading-spinner';
     this.submitButtonId = 'menu-loading-button';
+
+    /** @private {!FileInputType} */
+    this.fileTypeSelected_ = FileInputType.TF_EXAMPLE;
+
+    /** @private {!Object<!FileInputType, string>} */
+    this.dropdownTextByType_ = {
+      [FileInputType.TF_EXAMPLE]: 'TF Example',
+      [FileInputType.SSTABLE]: 'TF Example from SSTable',
+      [FileInputType.EDF]: 'Edf',
+    };
+
+    this.logger_ = log.getLogger('eeg_modelling.eeg_viewer.Menus');
   }
 
   /**
-   * Select a dropdown element.
-   * @param {string} id HTML ID for the dropdown value location.
-   * @param {string} value Value to put in the element.
-   * @param {string} eventValue Value to update the store with.
+   * Selects a file type and updates the menu.
+   * @param {!FileInputType} fileType file type selected
    */
-  selectDropdown(id, value, eventValue) {
-    const element = document.querySelector(`#${id} > div`);
-    dom.setTextContent(element, value);
+  selectFileType(fileType) {
+    const dropdownNewText = this.dropdownTextByType_[fileType];
+    if (!dropdownNewText) {
+      log.error(this.logger_, `File type not recognized: ${fileType}`);
+      return;
+    }
+
+    if (fileType === this.fileTypeSelected_) {
+      return;
+    }
+
+    const dropdownElement = document.querySelector('#file-menu-dropdown > div');
+    dom.setTextContent(dropdownElement, dropdownNewText);
+
+    const menuId = `${fileType}-file-menu`;
     document.querySelectorAll('.file-menu').forEach((menu) => {
-      if (menu.id == eventValue) {
+      if (menu.id === menuId) {
         menu.classList.remove('hidden');
       } else {
         menu.classList.add('hidden');
       }
     });
+
+    this.fileTypeSelected_ = fileType;
   }
 
   /**
    * Returns the value of an HTML Input element.
    * @param {string} id The HTML id of the element.
-   * @returns {!HTMLInputElement} The input element.
+   * @return {!HTMLInputElement} The input element.
    */
   getInputElement(id) {
     return assertInstanceof(document.querySelector(`input#${id}`),
@@ -121,19 +157,46 @@ class Menus {
   }
 
   /**
-   * Collects the dashboard menu data in QueryData format.
-   * @returns {!Object} File input and feature values.
+   * Collects the file input data according to the selected file type.
+   * If there are required params missing, returns falsy.
+   * @return {?Dispatcher.FileParamData} File parameters to send a request.
    */
   getMenusData() {
-    return {
-      tfExSSTablePath: this.getInputElement('input-tfex-sstable').value,
-      predictionSSTablePath:
-          this.getInputElement('input-prediction-sstable').value,
-      sstableKey: this.getInputElement('input-key').value,
-      edfPath: this.getInputElement('input-edf').value,
-      tfExFilePath: this.getInputElement('input-tfex-path').value,
-      predictionFilePath: this.getInputElement('input-prediction-path').value,
-    };
+    let fileParams;
+    switch (this.fileTypeSelected_) {
+      case FileInputType.TF_EXAMPLE:
+        const tfExFilePath = this.getInputElement('input-tfex-path').value;
+        const predictionFilePath =
+            this.getInputElement('input-prediction-path').value;
+        fileParams = tfExFilePath && {
+          tfExFilePath,
+          predictionFilePath,
+        };
+        break;
+      case FileInputType.SSTABLE:
+        const tfExSSTablePath =
+            this.getInputElement('input-tfex-sstable').value;
+        const predictionSSTablePath =
+            this.getInputElement('input-prediction-sstable').value;
+        const sstableKey = this.getInputElement('input-key').value;
+        fileParams = tfExSSTablePath && sstableKey && {
+          tfExSSTablePath,
+          predictionSSTablePath,
+          sstableKey,
+        };
+        break;
+      case FileInputType.EDF:
+        const edfPath = this.getInputElement('input-edf').value;
+        fileParams = edfPath && {
+          edfPath,
+        };
+        break;
+      default:
+        fileParams = null;
+        break;
+    }
+
+    return /** @type {?Dispatcher.FileParamData} */ (fileParams);
   }
 
   /**
@@ -184,6 +247,14 @@ class Menus {
     this.updateInputWithStore(store, 'edfPath', 'input-edf');
     this.updateInputWithStore(store, 'tfExFilePath', 'input-tfex-path');
     this.updateInputWithStore(store, 'predictionFilePath', 'input-prediction-path');
+
+    if (store.tfExSSTablePath) {
+      this.selectFileType(FileInputType.SSTABLE);
+    } else if (store.tfExFilePath) {
+      this.selectFileType(FileInputType.TF_EXAMPLE);
+    } else if (store.edfPath) {
+      this.selectFileType(FileInputType.EDF);
+    }
   }
 
   /**
@@ -191,7 +262,7 @@ class Menus {
    * @param {!Object<string, string>} indexShorthandDict Mapping of indices to
    * their shorthand values.
    * @param {string} feature Feature in index format.
-   * @returns {string} Feature in shorthand format.
+   * @return {string} Feature in shorthand format.
    */
   getShorthandFromIndex(indexShorthandDict, feature) {
     const shorthandValues = [];
@@ -210,12 +281,26 @@ class Menus {
   }
 
   /**
-   * Loads the file with the parameters specified in the file menu.
+   * Send a loadFile action with the parameters specified in the file menu.
+   * If a required param is missing, an error is dispatched.
    */
   loadFile() {
+    const fileParams = this.getMenusData();
+    let actionType;
+    let actionData;
+    if (!fileParams) {
+      actionType = Dispatcher.ActionType.ERROR;
+      actionData = {
+        message: 'Missing required field(s)',
+      };
+    } else {
+      actionType = Dispatcher.ActionType.MENU_FILE_LOAD;
+      actionData = fileParams;
+    }
+
     Dispatcher.getInstance().sendAction({
-      actionType: Dispatcher.ActionType.MENU_FILE_LOAD,
-      data: this.getMenusData(),
+      actionType,
+      data: actionData,
     });
   }
 

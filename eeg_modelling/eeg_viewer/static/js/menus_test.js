@@ -33,7 +33,9 @@ testSuite({
       'tfExSSTablePath': 'tf example sstable',
       'predictionSSTablePath': null,
       'sstableKey': 'sstable key',
-      'edfPath': 'edf file',
+      'tfExFilePath': null,
+      'predictionFilePath': null,
+      'edfPath': null,
     };
 
     const fileMenu = document.createElement('div');
@@ -53,6 +55,14 @@ testSuite({
 
     document.body.appendChild(fileMenu);
 
+    const fileTypeDropdown = document.createElement('div');
+    fileTypeDropdown.id = 'file-menu-dropdown';
+
+    const fileTypeDropdownDiv = document.createElement('div');
+    fileTypeDropdown.appendChild(fileTypeDropdownDiv);
+
+    document.body.appendChild(fileTypeDropdown);
+
     const displayFilePath = document.createElement('div');
     displayFilePath.id = 'display-file-path';
     document.body.appendChild(displayFilePath);
@@ -70,8 +80,14 @@ testSuite({
     const key = document.querySelector('#input-key');
     assertEquals('sstable key', key.value);
 
+    const tfExFilePath = document.querySelector('#input-tfex-path');
+    assertEquals('', tfExFilePath.value);
+
+    const predictionFilePath = document.querySelector('#input-prediction-path');
+    assertEquals('', predictionFilePath.value);
+
     const edfPath = document.querySelector('#input-edf');
-    assertEquals('edf file', edfPath.value);
+    assertEquals('', edfPath.value);
   },
 
   tearDown() {

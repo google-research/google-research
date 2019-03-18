@@ -109,6 +109,10 @@ class ToolBar {
     store.registerListener(
         [Store.Property.INDEX_CHANNEL_MAP], 'ToolBar',
         (store) => this.handleIndexChannelMap(store));
+
+
+    /** @private {?string} */
+    this.openedMenuPrefix_ = null;
   }
 
   getMontages() {
@@ -129,11 +133,32 @@ class ToolBar {
   }
 
   /**
-   * Handles click toggling the side menu.
+   * @private
+   * Opens or closes a menu, by changing the button color and toggling the menu
+   * panel.
+   * @param {string} menuPrefix name of the menu to toggle.
+   * @param {boolean} open whether or not to open the menu.
    */
-  handleMenuToggle(buttonId, panelId) {
-    document.querySelector(`#${buttonId}`).classList.toggle('mdl-button--accent');
-    document.querySelector(`#${panelId}`).classList.toggle('hidden');
+  toggleMenuButtonAndPanel_(menuPrefix, open) {
+    document.getElementById(`${menuPrefix}-button`).classList.toggle('mdl-button--accent', open);
+    document.getElementById(`${menuPrefix}-panel`).classList.toggle('hidden', !open);
+  }
+
+  /**
+   * Handles click on one of the side menus.
+   */
+  toggleMenu(menuPrefix) {
+    const prevOpenedMenuPrefix = this.openedMenuPrefix_;
+
+    if (prevOpenedMenuPrefix) {
+      this.toggleMenuButtonAndPanel_(prevOpenedMenuPrefix, false);
+      this.openedMenuPrefix_ = null;
+    }
+
+    if (prevOpenedMenuPrefix !== menuPrefix) {
+      this.toggleMenuButtonAndPanel_(menuPrefix, true);
+      this.openedMenuPrefix_ = menuPrefix;
+    }
   }
 
   /**

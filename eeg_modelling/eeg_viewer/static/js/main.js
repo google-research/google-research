@@ -40,7 +40,7 @@ goog.exportSymbol(
     'menus.toggleFileInfo', goog.bind(menus.toggleFileInfo, menus));
 goog.exportSymbol('menus.toggleMenu', goog.bind(menus.handleMenuToggle, menus));
 goog.exportSymbol(
-    'menus.selectDropdown', goog.bind(menus.selectDropdown, menus));
+    'menus.selectFileType', goog.bind(menus.selectFileType, menus));
 
 NavChart.getInstance();
 
@@ -61,7 +61,7 @@ Requests.getInstance();
 /** @const {!ToolBar} */
 const toolBar = ToolBar.getInstance();
 goog.exportSymbol(
-    'toolBar.toggleMenu', goog.bind(toolBar.handleMenuToggle, toolBar));
+    'toolBar.toggleMenu', goog.bind(toolBar.toggleMenu, toolBar));
 goog.exportSymbol(
     'toolBar.selectDropdown', goog.bind(toolBar.selectDropdown, toolBar));
 goog.exportSymbol('toolBar.nextChunk', goog.bind(toolBar.nextChunk, toolBar));
