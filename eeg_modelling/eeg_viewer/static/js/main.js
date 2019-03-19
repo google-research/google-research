@@ -68,13 +68,6 @@ goog.exportSymbol('toolBar.nextChunk', goog.bind(toolBar.nextChunk, toolBar));
 goog.exportSymbol('toolBar.nextSec', goog.bind(toolBar.nextSec, toolBar));
 goog.exportSymbol('toolBar.prevChunk', goog.bind(toolBar.prevChunk, toolBar));
 goog.exportSymbol('toolBar.prevSec', goog.bind(toolBar.prevSec, toolBar));
-/**
- * Attaching handler to key event listener.
- * @param {!Object} keyEvent Keyboard event object.
- */
-window.onkeydown = /** @type {function((?Event)):?|null} */ ((keyEvent) => {
-  goog.bind(toolBar.handleKeyPress, toolBar)(keyEvent);
-});
 
 /** @const {!WindowLocation} */
 const windowLocation = WindowLocation.getInstance();

@@ -51,6 +51,7 @@ const Property = {
   FILE_TYPE: 'fileType',
   HIGH_CUT: 'highCut',
   INDEX_CHANNEL_MAP: 'indexChannelMap',
+  IS_TYPING: 'isTyping',
   LABEL: 'label',
   LOADING_STATUS: 'loadingStatus',
   LOW_CUT: 'lowCut',
@@ -149,6 +150,7 @@ const LoadingStatus = {
  *   fileType: ?string,
  *   highCut: number,
  *   indexChannelMap: ?JspbMap<string, string>,
+ *   isTyping: boolean,
  *   label: string,
  *   loadingStatus: !LoadingStatus,
  *   lowCut: number,
@@ -194,6 +196,7 @@ class Store {
       fileType: null,
       highCut: 70,
       indexChannelMap: null,
+      isTyping: true,
       label: 'SZ',
       loadingStatus: LoadingStatus.NO_DATA,
       lowCut: 1.6,
@@ -232,6 +235,8 @@ class Store {
 
     registerCallback(Dispatcher.ActionType.ANNOTATION_SELECTION,
                      this.handleAnnotationSelection);
+    registerCallback(Dispatcher.ActionType.CHANGE_TYPING_STATUS,
+                     this.handleChangeTypingStatus);
     registerCallback(Dispatcher.ActionType.ERROR,
                      this.handleError);
     registerCallback(Dispatcher.ActionType.GRAPH_TIME_CLICK,
@@ -486,6 +491,14 @@ class Store {
     this.storeData.loadingStatus = (isFirstLoad || data.fileParamDirty) ?
         LoadingStatus.LOADING :
         LoadingStatus.RELOADING;
+  }
+
+  /**
+   * Handles data from a CHANGE_TYPING_STATUS action, that will update the
+   * typing status in the store.
+   */
+  handleChangeTypingStatus(data) {
+    this.storeData.isTyping = data.isTyping;
   }
 
   /**

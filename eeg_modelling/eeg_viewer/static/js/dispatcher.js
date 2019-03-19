@@ -22,6 +22,7 @@ const log = goog.require('goog.log');
  */
 const ActionType = {
   ANNOTATION_SELECTION: 'annotationSelection',
+  CHANGE_TYPING_STATUS: 'changeTypingStatus',
   ERROR: 'error',
   GRAPH_TIME_CLICK: 'graphTimeClick',
   MAPLE_DISABLE_ANNOTATIONS: 'mapleDisableAnnotations',

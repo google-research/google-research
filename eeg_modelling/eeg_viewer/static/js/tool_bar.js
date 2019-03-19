@@ -15,6 +15,8 @@
 goog.module('eeg_modelling.eeg_viewer.ToolBar');
 
 const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
+const EventType = goog.require('goog.events.EventType');
+const Keys = goog.require('goog.events.Keys');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const dom = goog.require('goog.dom');
 const log = goog.require('goog.log');
@@ -109,27 +111,21 @@ class ToolBar {
     store.registerListener(
         [Store.Property.INDEX_CHANNEL_MAP], 'ToolBar',
         (store) => this.handleIndexChannelMap(store));
-
+    // This listener callback will subscribe a handler for the
+    // window.onkeydown event, only when the user is not typing
+    store.registerListener(
+        [Store.Property.IS_TYPING], 'ToolBar',
+        (store) => this.handleChangeTypingStatus(store));
 
     /** @private {?string} */
     this.openedMenuPrefix_ = null;
+
+    /** @private {?function(!Event):*} */
+    this.keyPressHandler_ = null;
   }
 
   getMontages() {
     return MONTAGES;
-  }
-
-  /**
-   * Allows file navigation by arrow key.
-   * @param {!KeyboardEvent} e Keyboard event.
-   */
-  handleKeyPress(e) {
-    if (e.key == 'ArrowLeft' || e.key == 'h') {
-      this.prevChunk();
-    }
-    if (e.key == 'ArrowRight' || e.key == 'l') {
-      this.nextChunk();
-    }
   }
 
   /**
@@ -158,6 +154,30 @@ class ToolBar {
     if (prevOpenedMenuPrefix !== menuPrefix) {
       this.toggleMenuButtonAndPanel_(menuPrefix, true);
       this.openedMenuPrefix_ = menuPrefix;
+    }
+  }
+
+  /**
+   * Subscribes or unsubscribes a onkeydown Event handler.
+   * @param {!Store.StoreData} store Store object.
+   */
+  handleChangeTypingStatus(store) {
+    if (this.keyPressHandler_) {
+      window.removeEventListener(EventType.KEYDOWN, this.keyPressHandler_);
+      this.keyPressHandler_ = null;
+    }
+
+    const isDataPresent = store.loadingStatus !== Store.LoadingStatus.NO_DATA;
+    if (!store.isTyping && isDataPresent) {
+      this.keyPressHandler_ = (event) => {
+        if (event.key === Keys.LEFT || event.key === 'h') {
+          this.prevChunk();
+        } else if (event.key === Keys.RIGHT || event.key === 'l') {
+          this.nextChunk();
+        }
+      };
+
+      window.addEventListener(EventType.KEYDOWN, this.keyPressHandler_);
     }
   }
 

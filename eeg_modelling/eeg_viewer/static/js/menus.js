@@ -277,7 +277,9 @@ class Menus {
    */
   handleMenuToggle() {
     const fileMenu = document.querySelector('#file-menu-modal');
-    fileMenu.classList.toggle('hidden');
+    const hidden = fileMenu.classList.toggle('hidden');
+    const isTyping = !hidden;
+    this.changeTypingStatus(isTyping);
   }
 
   /**
@@ -330,6 +332,7 @@ class Menus {
         hideSpinner(this.loadingSpinnerId);
         showElement(this.submitButtonId);
         hideElement(this.fileMenuModalId);
+        this.changeTypingStatus(false);
         break;
       case Store.LoadingStatus.RELOADING:
         showSpinner(this.reloadingSpinnerId);
@@ -338,6 +341,19 @@ class Menus {
         hideSpinner(this.reloadingSpinnerId);
         break;
     }
+  }
+
+  /**
+   * Send a CHANGE_TYPING_STATUS action.
+   * @param {boolean} isTyping New typing status.
+   */
+  changeTypingStatus(isTyping) {
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.CHANGE_TYPING_STATUS,
+      data: {
+        isTyping,
+      },
+    });
   }
 }
 
