@@ -30,6 +30,7 @@
   border-left: 3px lightgrey solid;
   margin: 24px;
   padding-left: 24px;
+  cursor: pointer;
 }
 
 .mdl-layout-icon {

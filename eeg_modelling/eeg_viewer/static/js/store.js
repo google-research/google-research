@@ -55,7 +55,6 @@ const Property = {
   LABEL: 'label',
   LOADING_STATUS: 'loadingStatus',
   LOW_CUT: 'lowCut',
-  NEW_ANNOTATION: 'newAnnotation',
   NOTCH: 'notch',
   NUM_SECS: 'numSecs',
   PATIENT_ID: 'patientId',
@@ -154,7 +153,6 @@ const LoadingStatus = {
  *   label: string,
  *   loadingStatus: !LoadingStatus,
  *   lowCut: number,
- *   newAnnotation: ?Annotation,
  *   notch: number,
  *   numSecs: ?number,
  *   patientId: ?string,
@@ -200,7 +198,6 @@ class Store {
       label: 'SZ',
       loadingStatus: LoadingStatus.NO_DATA,
       lowCut: 1.6,
-      newAnnotation: null,
       notch: 0,
       numSecs: null,
       patientId: null,
@@ -239,16 +236,6 @@ class Store {
                      this.handleChangeTypingStatus);
     registerCallback(Dispatcher.ActionType.ERROR,
                      this.handleError);
-    registerCallback(Dispatcher.ActionType.GRAPH_TIME_CLICK,
-                     this.handleGraphTimeClick);
-    registerCallback(Dispatcher.ActionType.MAPLE_LOAD_CONTENT,
-                     this.handleMapleLoadContent);
-    registerCallback(Dispatcher.ActionType.MAPLE_ENABLE_ANNOTATIONS,
-                     this.handleMapleEnableAnnotations);
-    registerCallback(Dispatcher.ActionType.MAPLE_DISABLE_ANNOTATIONS,
-                     this.handleMapleDisableAnnotations);
-    registerCallback(Dispatcher.ActionType.MAPLE_REMOVE_ANNOTATION,
-                     this.handleMapleRemoveAnnotation);
     registerCallback(Dispatcher.ActionType.MENU_FILE_LOAD,
                      this.handleMenuFileLoad);
     registerCallback(Dispatcher.ActionType.NAV_BAR_CHUNK_REQUEST,
@@ -685,61 +672,6 @@ class Store {
     } else {
       log.error(this.logger_, 'Empty ChannelDataId');
       return null;
-    }
-  }
-
-  /**
-   * Handles data from a MAPLE data request.
-   * @param {!DataResponse} data The data payload from the action.
-   */
-  handleMapleLoadContent(data) {
-    this.handleRequestResponseOk(data);
-  }
-
-  /**
-   * Handles enabling of point and click annotating from MAPLE.
-   * @param {!Dispatcher.RoiData} data The data payload from the action.
-   */
-  handleMapleEnableAnnotations(data) {
-    this.storeData.newAnnotation = /** {!Annotation} */ ({
-      startTime: null,
-      id: data.roiId,
-      labelText: data.text,
-    });
-  }
-
-  /**
-   * Handles disabling of point and click annotating from MAPLE.
-   */
-  handleMapleDisableAnnotations() {
-    this.storeData.newAnnotation = null;
-  }
-
-  /**
-   * Handles disabling of point and click annotating from MAPLE.
-   * @param {!Dispatcher.RoiData} data The data payload from the action.
-   */
-  handleMapleRemoveAnnotation(data) {
-    this.storeData.annotations.forEach((annotation, index) => {
-      if (data.roiId == annotation.id) {
-        this.storeData.annotations.splice(index, 1);
-        return;
-      }
-    });
-  }
-
-  /**
-   * Handles a click on time point on the graph.
-   * @param {!Dispatcher.TimeData} data The data payload from the action.
-   */
-  handleGraphTimeClick(data) {
-    if (this.storeData.newAnnotation) {
-      const newAnnotation = /** {!Annotation} */ ({
-        startTime: data.time,
-        labelText: this.storeData.newAnnotation.labelText,
-        id: this.storeData.newAnnotation.id,
-      });
-      this.storeData.annotations.push(newAnnotation);
     }
   }
 

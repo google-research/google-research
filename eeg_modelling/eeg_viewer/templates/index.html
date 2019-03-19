@@ -38,36 +38,60 @@
       <i class="mdl-layout-icon material-icons">pool</i>
       <div class="mdl-layout__header-row">
         <span class="mdl-layout-title">Waveforms Viewer</span>
-        <span id="display-file-path" title="Click to open the menu" onclick="menus.toggleMenu()">No data loaded</span>
+        <span id="display-file-path" onclick="menus.toggleMenu()">No data loaded</span>
         <div id="reloading-spinner" class="mdl-spinner mdl-js-spinner hidden"></div>
         <div class="mdl-layout-spacer"></div>
+        <div class="mdl-tooltip mdl-tooltip--large" for="display-file-path">
+          File menu
+        </div>
       </div>
     </header>
     <main class="mdl-layout__content">
       <div id="tool-bar" class="mdl-shadow--2dp">
         <div id="nav-line-chart-container"></div>
         <canvas id="nav-overlay" style="position:absolute"></canvas>
-        <button id="settings-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.toggleMenu('settings')" title="settings" disabled>
+        <button id="settings-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.toggleMenu('settings')" disabled>
           <i class="material-icons">settings</i>
         </button>
-        <button id="labels-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.toggleMenu('labels')" title="labels" disabled>
+        <div class="mdl-tooltip mdl-tooltip--large" for="settings-button">
+          Settings
+        </div>
+        <button id="labels-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.toggleMenu('labels')" disabled>
           <i class="material-icons">label</i>
         </button>
-        <button id="predictions-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.toggleMenu('predictions')" title="predictions" disabled>
+        <div class="mdl-tooltip mdl-tooltip--large" for="labels-button">
+          Labels
+        </div>
+        <button id="predictions-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.toggleMenu('predictions')" disabled>
           <i class="material-icons">insert_chart_outlined</i>
         </button>
-        <button id="next-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.nextChunk()" title="next chunk" disabled>
+        <div class="mdl-tooltip mdl-tooltip--large" for="predictions-button">
+          Predictions
+        </div>
+        <button id="next-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.nextChunk()" disabled>
           <i class="material-icons">last_page</i>
         </button>
-        <button id="prev-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.prevChunk()" title="prev chunk" disabled>
+        <div class="mdl-tooltip mdl-tooltip--large" for="next-button">
+          Next Chunk
+        </div>
+        <button id="prev-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.prevChunk()" disabled>
           <i class="material-icons">first_page</i>
         </button>
-        <button id="next-sec-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.nextSec()" title="next second" disabled>
+        <div class="mdl-tooltip mdl-tooltip--large" for="prev-button">
+          Prev Chunk
+        </div>
+        <button id="next-sec-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.nextSec()" disabled>
           <i class="material-icons">chevron_right</i>
         </button>
-        <button id="prev-sec-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.prevSec()" title="prev second" disabled>
+        <div class="mdl-tooltip mdl-tooltip--large" for="next-sec-button">
+          Next Second
+        </div>
+        <button id="prev-sec-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.prevSec()" disabled>
           <i class="material-icons">chevron_left</i>
         </button>
+        <div class="mdl-tooltip mdl-tooltip--large" for="prev-sec-button">
+          Prev Second
+        </div>
       </div>
       <div id="parent-chart-container">
         <div id="line-chart-container"></div>
@@ -79,9 +103,12 @@
           <h2 class="mdl-card__title-text">Settings</h2>
         </div>
         <div class="mdl-card__menu">
-          <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="toolBar.toggleMenu('settings')">
+          <button id="close-settings-panel" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="toolBar.toggleMenu('settings')">
             <i class="material-icons">close</i>
           </button>
+          <div class="mdl-tooltip mdl-tooltip--large" for="close-settings-panel">
+            Close
+          </div>
         </div>
         <div class="dropdown" id="low-cut-dropdown">
           <div></div>
@@ -165,14 +192,21 @@
           <h2 class="mdl-card__title-text">Predictions</h2>
         </div>
         <div class="mdl-card__menu secondary">
-          <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="document.querySelector('#filter-container').classList.toggle('hidden')">
+          <button id="predictions-filter-button" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"
+                  onclick="document.querySelector('#filter-container').classList.toggle('hidden')">
             <i class="material-icons">filter_list</i>
           </button>
+          <div class="mdl-tooltip mdl-tooltip--large" for="predictions-filter-button">
+            Filters
+          </div>
         </div>
         <div class="mdl-card__menu">
-          <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="toolBar.toggleMenu('predictions')">
+          <button id="close-predictions-panel" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="toolBar.toggleMenu('predictions')">
             <i class="material-icons">close</i>
           </button>
+          <div class="mdl-tooltip mdl-tooltip--large" for="close-predictions-panel">
+            Close
+          </div>
         </div>
         <div class="dropdown" id="mode-dropdown">
           <div></div>
@@ -219,9 +253,12 @@
           <h2 class="mdl-card__title-text">Labels</h2>
         </div>
         <div class="mdl-card__menu">
-          <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="toolBar.toggleMenu('labels')">
+          <button id="close-labels-panel" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="toolBar.toggleMenu('labels')">
             <i class="material-icons">close</i>
           </button>
+          <div class="mdl-tooltip mdl-tooltip--large" for="close-labels-panel">
+            Close
+          </div>
         </div>
         <div class="scrollable-table-div">
           <table class="annotation mdl-data-table mdl-js-data-table">
@@ -241,14 +278,20 @@
             <h2 class="mdl-card__title-text">File</h2>
           </div>
           <div class="mdl-card__menu secondary">
-            <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="menus.toggleFileInfo()">
+            <button id="file-info-button" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="menus.toggleFileInfo()">
               <i class="material-icons">info</i>
             </button>
+            <div class="mdl-tooltip mdl-tooltip--large" for="file-info-button">
+              File info
+            </div>
           </div>
           <div class="mdl-card__menu">
-            <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="menus.toggleMenu()">
+            <button id="close-file-menu-button" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="menus.toggleMenu()">
               <i class="material-icons">close</i>
             </button>
+            <div class="mdl-tooltip mdl-tooltip--large" for="close-file-menu-button">
+              Close
+            </div>
           </div>
           <div class="dropdown" id="file-menu-dropdown">
             <div>TF Example</div>

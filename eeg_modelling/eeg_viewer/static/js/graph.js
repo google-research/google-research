@@ -16,10 +16,8 @@ goog.module('eeg_modelling.eeg_viewer.Graph');
 
 const ChartBase = goog.require('eeg_modelling.eeg_viewer.ChartBase');
 const DataTable = goog.require('google.visualization.DataTable');
-const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const array = goog.require('goog.array');
-const gvizEvents = goog.require('google.visualization.events');
 const {assert, assertNumber, assertString} = goog.require('goog.asserts');
 
 /**
@@ -83,9 +81,6 @@ class Graph extends ChartBase {
     /** @public {!Map<string, number>} */
     this.channelTransformations = new Map([]);
 
-    /** @public {?function(!Object):void} */
-    this.clickHandler = null;
-
     const store = Store.getInstance();
     // This listener callback will initialize a graph with the annotations and
     // DataTable.
@@ -93,11 +88,6 @@ class Graph extends ChartBase {
         Store.Property.CHUNK_GRAPH_DATA, Store.Property.TIMESCALE,
         Store.Property.SENSITIVITY], 'Graph',
         (store) => this.handleChartData(store));
-    // This listener callback will enable point and click addition of
-    // annotations.
-    store.registerListener(
-        [Store.Property.NEW_ANNOTATION],
-        'Graph', (store) => this.handlePointSelectionCallback(store));
   }
 
   /**
@@ -146,7 +136,7 @@ class Graph extends ChartBase {
    * Staggers data series vertically by given series height.
    * @param {!Store.StoreData} store Store object containing request chunk data.
    * @param {!Object} data DataTable object in object literal JSON format.
-   * @returns {!DataTable} A DataTable object with values adjusted for
+   * @return {!DataTable} A DataTable object with values adjusted for
    *     sensitivity and series offset, with the display values formatted.
    */
   formatDataForRendering(store, data) {
@@ -198,8 +188,7 @@ class Graph extends ChartBase {
    */
   updateChartOptions(store) {
     const numSeries = store.chunkGraphData.cols.length;
-    this.setOption('tooltip.trigger',
-        store.newAnnotation ? 'none' : 'selection');
+    this.setOption('tooltip.trigger', 'selection');
     this.setOption('vAxis.viewWindow', {
        min: -store.seriesHeight * 2,
        max: store.seriesHeight * numSeries,
@@ -253,32 +242,6 @@ class Graph extends ChartBase {
       return;
     }
     super.handleChartData(store);
-  }
-
-  /**
-   * Updates the click handler based on whether annotation is enabled.
-   * @param {!Store.StoreData} store Store object containing request chunk data.
-   */
-  handlePointSelectionCallback(store) {
-    if (this.clickHandler) {
-      gvizEvents.removeListener(this.clickHandler);
-      this.clickHandler = null;
-    }
-    if (store.newAnnotation) {
-      this.clickHandler = (e) => {
-        const cli = /** @type {!google.visualization.ChartLayoutInterface} */
-            (this.getChart().getChartLayoutInterface());
-        const freq = assertNumber(store.samplingFreq);
-        const x = Math.round(cli.getHAxisValue(e.x) * freq) / freq;
-        Dispatcher.getInstance().sendAction({
-          actionType: Dispatcher.ActionType.GRAPH_TIME_CLICK,
-          data: {
-            time: x,
-          },
-        });
-      };
-      gvizEvents.addListener(this.getChart(), 'click', this.clickHandler);
-    }
   }
 }
 

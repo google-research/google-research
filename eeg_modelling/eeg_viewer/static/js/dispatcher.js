@@ -24,12 +24,6 @@ const ActionType = {
   ANNOTATION_SELECTION: 'annotationSelection',
   CHANGE_TYPING_STATUS: 'changeTypingStatus',
   ERROR: 'error',
-  GRAPH_TIME_CLICK: 'graphTimeClick',
-  MAPLE_DISABLE_ANNOTATIONS: 'mapleDisableAnnotations',
-  MAPLE_ENABLE_ANNOTATIONS: 'mapleEnableAnnotations',
-  MAPLE_LOAD_CONTENT: 'mapleLoadContent',
-  MAPLE_REMOVE_ANNOTATION: 'mapleRemoveAnnotation',
-  MAPLE_UPDATE: 'mapleUpdate',
   MENU_FILE_LOAD: 'menuFileLoad',
   NAV_BAR_CHUNK_REQUEST: 'navBarChunkRequest',
   PREDICTION_CHUNK_REQUEST: 'predictionChunkRequest',
@@ -67,14 +61,6 @@ let ActionEvent;
  * }}
  */
 let TimeData;
-
-/**
- * @typedef {{
- *   roiId: string,
- *   text: string,
- * }}
- */
-let RoiData;
 
 /**
  * @typedef {{
@@ -170,7 +156,6 @@ exports = Dispatcher;
 exports.ActionType = ActionType;
 exports.FragmentData = FragmentData;
 exports.TimeData = TimeData;
-exports.RoiData = RoiData;
 exports.FileParamData = FileParamData;
 exports.ErrorData = ErrorData;
 exports.SelectionData = SelectionData;
