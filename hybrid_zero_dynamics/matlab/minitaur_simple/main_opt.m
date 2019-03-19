@@ -19,32 +19,49 @@ clc;
 cur = pwd;
 addpath(genpath(cur));
 
-% add the FROST_ROOT first.
-FROST_ROOT='../../';
+%% Add Frost to path
+if ispc
+   FROST_ROOT = addpath('C:\Users\Avinash Siravuru\Box\repos\frost-dev\');
+   slash = '\';
+else
+   FROST_ROOT = addpath('/data/repos/frost-dev/');
+   slash = '/';
+end
 addpath(FROST_ROOT);
 
 % Then call the fost_addpath script.
 frost_addpath;
 
-load_path = [];
-delay_set = true;
-
 % Declare Constants
-
-STEPLEN_DES = 0.10;
+STEPLEN_DES = 0.0;
 STEPLEN_MARGIN = 0.005;
-KP = 100;
-KD = 20; % FROST Default Gains
+if STEPLEN_DES <= 0.01
+  MAX_VELCOM_X_ENDPTS = 1e-3;
+else
+  MAX_VELCOM_X_ENDPTS = Inf;
+end
+SWINGFOOTLIFT_DES = 0.07;
+
+% 
+% KP = 100;
+% KD = 20; % FROST Default Gains
+
+KP = 10*1.1;
+KD = 10*0.07; % Mintaur Gains
+
 BEZIER_DEG = 4;
 OPT_TYPE = ['two_step_deg', num2str(BEZIER_DEG)];
 
+
 OPTIMIZE = true;
-COMPILE = true;
-MAX_ITERS = 100; % maximum number of optimization iterations.
+COMPILE = false;
+MAX_ITERS = 1000; % maximum number of optimization iterations.
 
-export_path = fullfile(cur, ['gen_', OPT_TYPE, '/']);
-solution_path = fullfile(cur, 'sol/');
+export_path = fullfile(cur, ['gen_', OPT_TYPE, slash]);
+load_path = '';%[export_path,'dynamics/'];
+delay_set = true;
 
+solution_path = fullfile(cur, ['sol',slash]);
 if ~exist(solution_path, 'dir')
   mkdir(solution_path)
 end
@@ -61,7 +78,7 @@ if COMPILE && OPTIMIZE
 end
 
 %% Load Model
-minitaur = MinitaurSimple('urdf/minitaur_simple.urdf');
+minitaur = MinitaurSimple(['urdf',slash,'minitaur_simple.urdf']);
 
 if isempty(load_path)
   minitaur.configureDynamics('DelayCoriolisSet', delay_set, ...
@@ -167,9 +184,18 @@ vxcom_func2 = SymFunction(['CoMXVel_', trot_stance2.Name], v_com2(1), ...
   {trot_stance2.States.x, trot_stance2.States.dx});
 
 
-addNodeConstraint(nlp.Phase(1), vxcom_func1, {'x', 'dx'}, 'all', 0, Inf, ...
+% addNodeConstraint(nlp.Phase(1), vxcom_func1, {'x', 'dx'}, 'all', 0, Inf, ...
+%   'Nonlinear');
+% addNodeConstraint(nlp.Phase(3), vxcom_func2, {'x', 'dx'}, 'all', 0, Inf, ...
+%   'Nonlinear');
+
+addNodeConstraint(nlp.Phase(1), vxcom_func1, {'x', 'dx'}, 'except-terminal', 0, Inf, ...
   'Nonlinear');
-addNodeConstraint(nlp.Phase(3), vxcom_func2, {'x', 'dx'}, 'all', 0, Inf, ...
+addNodeConstraint(nlp.Phase(3), vxcom_func2, {'x', 'dx'}, 'except-terminal', 0, Inf, ...
+  'Nonlinear');
+addNodeConstraint(nlp.Phase(1), vxcom_func1, {'x', 'dx'}, 'terminal', 0, MAX_VELCOM_X_ENDPTS, ...
+  'Nonlinear');
+addNodeConstraint(nlp.Phase(3), vxcom_func2, {'x', 'dx'}, 'terminal', 0, MAX_VELCOM_X_ENDPTS, ...
   'Nonlinear');
 
 % Add common constraints
@@ -232,36 +258,39 @@ addConstraint(nlp.Phase(getPhaseIndex(nlp, 'TrotStance2')), ...
 nlp.update;
 
 %% Compile
-if COMPILE
-  if ~exist([export_path, 'opt/'], 'dir')
-    mkdir([export_path, 'opt/'])
+if COMPILE == true
+  if ~exist([export_path, 'opt',slash], 'dir')
+    mkdir([export_path, 'opt',slash])
   end
-  minitaur.ExportKinematics([export_path, 'kinematics/']);
-  trot_stance1.compile([export_path, 'dynamics/']);
-  trot_stance2.compile([export_path, 'dynamics/']);
-  trot_impact1.compile([export_path, 'dynamics/']);
-  trot_impact2.compile([export_path, 'dynamics/']);
-  compileConstraint(nlp, [], [], [export_path, 'opt/']);
-  compileObjective(nlp, [], [], [export_path, 'opt/']);
-  compileConstraint(nlp.Phase(1), 'CoMXVel_TrotStance1', [export_path, 'opt/']);
-  compileConstraint(nlp.Phase(3), 'CoMXVel_TrotStance2', [export_path, 'opt/']);
-  compileConstraint(nlp.Phase(1), 'BezierPhaseSymmetry', [export_path, 'opt/']);
-  compileConstraint(nlp.Phase(3), 'BezierPhaseSymmetry', [export_path, 'opt/']);
-  compileConstraint(nlp.Phase(1), 'UniformTimePerStep', [export_path, 'opt/']);
-  compileConstraint(nlp.Phase(3), 'UniformTimePerStep', [export_path, 'opt/']);
+  minitaur.ExportKinematics([export_path, 'kinematics',slash]);
+  trot_stance1.compile([export_path, 'dynamics',slash]);
+  trot_stance2.compile([export_path, 'dynamics',slash]);
+  trot_impact1.compile([export_path, 'dynamics',slash]);
+  trot_impact2.compile([export_path, 'dynamics',slash]);
+  compileConstraint(nlp, [], [], [export_path, 'opt',slash]);
+  compileObjective(nlp, [], [], [export_path, 'opt',slash]);
+  compileConstraint(nlp.Phase(1), 'CoMXVel_TrotStance1', [export_path, 'opt',slash]);
+  compileConstraint(nlp.Phase(3), 'CoMXVel_TrotStance2', [export_path, 'opt',slash]);
+  compileConstraint(nlp.Phase(1), 'BezierPhaseSymmetry', [export_path, 'opt',slash]);
+  compileConstraint(nlp.Phase(3), 'BezierPhaseSymmetry', [export_path, 'opt',slash]);
+  compileConstraint(nlp.Phase(1), 'UniformTimePerStep', [export_path, 'opt',slash]);
+  compileConstraint(nlp.Phase(3), 'UniformTimePerStep', [export_path, 'opt',slash]);
   compileConstraint(nlp.Phase(1), 'average_steplen_TrotStance1', ...
-    [export_path, 'opt/']);
+    [export_path, 'opt',slash]);
   compileConstraint(nlp.Phase(3), 'average_steplen_TrotStance2', ...
-    [export_path, 'opt/']);
+    [export_path, 'opt',slash]);
   compileConstraint(nlp.Phase(1), 'BezierLegSymmetry_TrotStance1', ...
-    [export_path, 'opt/']);
+    [export_path, 'opt',slash]);
   compileConstraint(nlp.Phase(3), 'BezierLegSymmetry_TrotStance2', ...
-    [export_path, 'opt/']);
+    [export_path, 'opt',slash]);
   compileConstraint(nlp.Phase(1), 'SwingToeSymmetry_TrotStance1', ...
-    [export_path, 'opt/']);
+    [export_path, 'opt',slash]);
   compileConstraint(nlp.Phase(3), 'SwingToeSymmetry_TrotStance2', ...
-    [export_path, 'opt/']);
-
+    [export_path, 'opt',slash]);
+  compileConstraint(nlp.Phase(1), 'pd_feedback_TrotStance1', ...
+    [export_path, 'opt',slash]);
+  compileConstraint(nlp.Phase(3), 'pd_feedback_TrotStance2', ...
+    [export_path, 'opt',slash]);
 end
 
 % Example constraint removal
@@ -276,6 +305,8 @@ end
 
 %% Create Ipopt solver
 addpath(genpath(export_path));
+SetBounds;
+nlp.updateVariableBounds(bounds);
 nlp.update;
 solver = IpoptApplication(nlp);
 solver.Options.ipopt.max_iter = MAX_ITERS;
@@ -284,9 +315,9 @@ solver.Options.ipopt.max_iter = MAX_ITERS;
 % nlp.Phase(1).ConstrTable{1,:}.Name
 % nlp.Phase(3).ConstrTable{1,:}.Name
 disp(nlp.Phase(1).ConstrTable(1, 23).average_steplen_TrotStance1.UpperBound)
-disp(nlp.Phase(1).ConstrTable(21, 23).average_steplen_TrotStance1.UpperBound)
+disp(nlp.Phase(3).ConstrTable(21, 23).average_steplen_TrotStance2.UpperBound)
 disp(nlp.Phase(1).ConstrTable(1, 23).average_steplen_TrotStance1.LowerBound)
-disp(nlp.Phase(1).ConstrTable(21, 23).average_steplen_TrotStance1.LowerBound)
+disp(nlp.Phase(3).ConstrTable(21, 23).average_steplen_TrotStance2.LowerBound)
 
 
 %% Run Optimization.
@@ -336,7 +367,7 @@ v2F = v_log(:, 42);
 %% Animation
 cycles = 3;
 anim = Animator.MinitaurSimpleAnimator(t_log, q_log);
-anim.pov = Animator.AnimatorPointOfView.Front;
+anim.pov = Animator.AnimatorPointOfView.Free;
 anim.Animate(true);
 anim.isLooping = false;
 anim.updateWorldPosition = false;
@@ -346,18 +377,23 @@ conGUI.anim = anim;
 % %
 keyboard;
 
-make_vid.cycles = 3;
-make_vid.flag = false;
+make_vid.cycles = 2;
+make_vid.flag = true;
 if make_vid.flag
   % To save gifs: 'gifs/optimalgait_Bez4_3d.gif';
-  make_vid.filename = 'avi/optimalgait_StepLen15cm.avi';
+  video_path = strrep(solution_path,['sol',slash],['video',slash]);
+  if ~exist(video_path, 'dir')
+      mkdir(video_path);
+  end
+  make_vid.filename = [video_path, ...
+                       'optimalgait_25cm_steplen_',tag,'.gif'];
 else
   make_vid.filename = '';
 end
 make_vid.visibility = 'off';
 make_vid.pov = [35, 15];
-plot_frames = true;
-plotMinitaurSimple(t_log, q_log, make_vid, plot_frames);
+plot_frames = false;
+PlotMinitaurSimple(t_log, q_log, make_vid, plot_frames);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

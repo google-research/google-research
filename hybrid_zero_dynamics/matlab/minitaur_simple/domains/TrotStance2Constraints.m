@@ -15,6 +15,7 @@
 function TrotStance2Constraints(nlp, bounds, varargin)
 
 domain = nlp.Plant;
+output = domain.VirtualConstraints.time;
 
 % relative degree 2 outputs
 domain.VirtualConstraints.time.imposeNLPConstraint(nlp, ...
@@ -131,6 +132,33 @@ swingtoe_symmetry = pFR_rel(3) - pBL_rel(3);
 swingtoe_symmetry_fn = SymFunction(['SwingToeSymmetry_', domain.Name], ...
   swingtoe_symmetry, domain.States.x);
 addNodeConstraint(nlp, swingtoe_symmetry_fn, {'x'}, 'all', 0, 0, 'NonLinear');
+
+%% PD Feedback
+    t = SymVariable('t');
+    k = SymVariable('k');
+    T  = SymVariable('t',[2,1]);
+    nNode = SymVariable('nNode');
+    tsubs = T(1) + ((k-1)./(nNode-1)).*(T(2)-T(1));
+    ya = output.ActualFuncs{1};
+    yd = output.DesiredFuncs{1};
+    dya = output.ActualFuncs{2};
+    dyd = output.DesiredFuncs{2};
+    u = domain.Inputs.Control.u;
+    kp = bounds.gains.kp';
+    kd = bounds.gains.kd';
+    expr = u + transpose(kp.*transpose(ya - yd)) + transpose(kd.*transpose(dya-dyd));
+    expr_s = subs(expr,t,tsubs);
+    x = domain.States.x;
+    dx = domain.States.dx;
+    a = {SymVariable(tomatrix(output.OutputParams(:)))};
+    a_name = output.OutputParamName;
+    p = {SymVariable(tomatrix(output.PhaseParams(:)))};
+    p_name = output.PhaseParamName;
+    fun = SymFunction(['pd_feedback_',domain.Name],expr_s,{T,x,dx,u,a{1},p{1}},{k,nNode});
+    for i=1:nlp.NumNode
+        addNodeConstraint(nlp, fun, [{'T','x','dx','u'},a_name, p_name], i, 0, 0, 'Nonlinear',{i,nlp.NumNode});
+    end
+
 
 
 end
