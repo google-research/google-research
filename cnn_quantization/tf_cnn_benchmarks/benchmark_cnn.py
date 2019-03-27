@@ -50,7 +50,6 @@ from cnn_quantization.tf_cnn_benchmarks import variable_mgr_util
 from cnn_quantization.tf_cnn_benchmarks.cnn_util import log_fn
 from cnn_quantization.tf_cnn_benchmarks.models import model_config
 from cnn_quantization.tf_cnn_benchmarks.platforms import util as platforms_util
-from tensorflow.contrib.compiler import xla
 from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python import debug as tf_debug
 from tensorflow.python.client import timeline
@@ -3631,6 +3630,6 @@ def setup(params):
 
 def maybe_compile(computation, params):
   if params and params.xla_compile:
-    return xla.compile(computation)
+    return tf.xla.experimental.compile(computation)
   else:
     return computation()
