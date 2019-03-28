@@ -90,7 +90,7 @@ def write_gin(output_dir):
   output_dict = get_gin_dict()
   # Write result to disk.
   result_path = os.path.join(output_dir, "gin_config.csv")
-  with tf.gfile.FastGFile(result_path, "w") as f:
+  with tf.gfile.GFile(result_path, "w") as f:
     writer = csv.DictWriter(f, fieldnames=output_dict.keys())
     writer.writeheader()
     writer.writerow(output_dict)
@@ -111,4 +111,3 @@ def get_gin_dict():
       _, key_2 = key.split(".", 2)
       result["%s" % key_2] = value
   return result
-
