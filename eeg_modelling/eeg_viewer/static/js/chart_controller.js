@@ -49,7 +49,7 @@ class ChartController {
   /**
    * Asserts that an event is a Google Charts mouseover event.
    * @param {?Event} e The event received.
-   * @returns {!MouseOverEvent} A Google Charts mouseover event.
+   * @return {!MouseOverEvent} A Google Charts mouseover event.
    */
   assertMouseOverEvent(e) {
     assert(e);
@@ -68,7 +68,7 @@ class ChartController {
    * @private
    */
   crosshairHandler_(e) {
-    if (!e || !this.auxChart.getDataTable()) {
+    if (!e || !this.auxChart.isVisible()) {
       return;
     }
     let mouseoverEvent = this.assertMouseOverEvent(e);
@@ -110,7 +110,9 @@ class ChartController {
    * @private
    */
   crosshairRemovalHandler_() {
-    this.auxChart.getChart().setSelection([]);
+    if (this.auxChart.isVisible()) {
+      this.auxChart.getChart().setSelection([]);
+    }
   }
 }
 

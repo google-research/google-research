@@ -18,8 +18,6 @@ const ChartBase = goog.require('eeg_modelling.eeg_viewer.ChartBase');
 const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const array = goog.require('goog.array');
-const {assertNumber} = goog.require('goog.asserts');
-
 
 /**
  * Handles displaying the full time span of a file as well as annotations and
@@ -53,10 +51,13 @@ class NavChart extends ChartBase {
     this.chartListeners = [
       {
         type: 'click',
-        handler: (e) => {
+        handler: (event) => {
+          if (!event.targetID.startsWith('point')) {
+            return;
+          }
+
           const cli = this.getChartLayoutInterface();
-          const chartArea = cli.getChartAreaBoundingBox();
-          const x = cli.getHAxisValue(e.offsetX + chartArea.left);
+          const x = cli.getHAxisValue(event.x);
           Dispatcher.getInstance().sendAction({
             actionType: Dispatcher.ActionType.NAV_BAR_CHUNK_REQUEST,
             data: {
@@ -73,7 +74,7 @@ class NavChart extends ChartBase {
     // timespan in the viewport.
     store.registerListener([Store.Property.CHUNK_START,
         Store.Property.CHUNK_DURATION, Store.Property.NUM_SECS], 'NavChart',
-        (store) => this.handleChunkNavigationAndPredictionData(store));
+        (store) => this.handleChartData(store));
   }
 
   /**
@@ -102,7 +103,7 @@ class NavChart extends ChartBase {
    * @override
    */
   getNumSecs(store) {
-    return assertNumber(store.numSecs);
+    return Number(store.numSecs);
   }
 
   /**
@@ -126,17 +127,6 @@ class NavChart extends ChartBase {
   createOverlay(store) {
     super.createOverlay(store);
     this.highlightViewport(store);
-  }
-
-  /**
-   * Update underlay with new chunk start or duration and any new prediction if
-   * the mode specifies to display prediction data.
-   * @param {!Store.StoreData} store Store object containing request chunk data.
-   */
-  handleChunkNavigationAndPredictionData(store) {
-    if (store.numSecs) {
-      this.handleChartData(store);
-    }
   }
 }
 

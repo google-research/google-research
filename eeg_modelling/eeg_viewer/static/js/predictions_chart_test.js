@@ -19,6 +19,7 @@ const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const MockControl = goog.require('goog.testing.MockControl');
 const PredictionsChart = goog.require('eeg_modelling.eeg_viewer.PredictionsChart');
 const dom = goog.require('goog.dom');
+const gvizEvents = goog.require('google.visualization.events');
 const testSuite = goog.require('goog.testing.testSuite');
 
 let mockControl;
@@ -190,8 +191,13 @@ testSuite({
 
     mockControl.$replayAll();
 
-    const chartListener = predictionsChart.chartListeners[0];
-    chartListener.handler({offsetX: 3.4});
+    predictionsChart.initChart();
+    predictionsChart.addChartEventListeners();
+    gvizEvents.trigger(predictionsChart.getChart(), 'click', {
+      targetID: 'point#1#1',
+      x: 6.4,
+      y: 0,
+    });
 
     mockControl.$verifyAll();
   },

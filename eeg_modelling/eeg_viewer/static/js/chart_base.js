@@ -195,11 +195,14 @@ class ChartBase {
     /** @type {?function(this:ChartBase):void} */
     this.resizeHandler = null;
 
-    /** @type {?function(this:ChartBase, ?Object):void} */
-    this.clickHandler = null;
-
     /** @type {!Array<!ChartListener>} */
     this.chartListeners = [];
+
+    /** @private {boolean} */
+    this.listenersRegistered_ = false;
+
+    /** @private {boolean} */
+    this.visible_ = false;
   }
 
   generateColors(num, color) {
@@ -276,7 +279,7 @@ class ChartBase {
    * Formats tick for Google Chart consumption.
    * @param {number} value The horizontal axis value of the tick.
    * @param {string} displayValue The value to display with the tick.
-   * @returns {!Tick} A tick formatted for Google Charts.
+   * @return {!Tick} A tick formatted for Google Charts.
    */
   formatTick(value, displayValue) {
     return {v: value, f: displayValue};
@@ -285,7 +288,7 @@ class ChartBase {
   /**
    * Returns the horizontal tick values in relative time.
    * @param {!Store.StoreData} store Store object containing request chunk data.
-   * @returns {!Array<number>} A list of tick values corresponding to the axis.
+   * @return {!Array<number>} A list of tick values corresponding to the axis.
    */
   getHTickValues(store) {
     return [];
@@ -294,7 +297,7 @@ class ChartBase {
   /**
    * Creates ticks for the horizontal axis that display values in absolute time.
    * @param {!Store.StoreData} store Store object containing request chunk data.
-   * @returns {!Array<!Tick>} A list of ticks.
+   * @return {!Array<!Tick>} A list of ticks.
    */
   createHTicks(store) {
     const tickValues = this.getHTickValues(store);
@@ -308,7 +311,7 @@ class ChartBase {
   /**
    * Returns the vertical tick display values.
    * @param {!Store.StoreData} store Store object containing request chunk data.
-   * @returns {!Array<string>} A list of tick display values.
+   * @return {!Array<string>} A list of tick display values.
    */
   getVTickDisplayValues(store) {
     return [];
@@ -317,7 +320,7 @@ class ChartBase {
   /**
    * Creates a ticker that generates data series labels on the y-axis.
    * @param {!Store.StoreData} store Store object containing request chunk data.
-   * @returns {!Array<!Tick>} A list of ticks.
+   * @return {!Array<!Tick>} A list of ticks.
    */
   createVTicks(store) {
     const tickDisplayValues = this.getVTickDisplayValues(store);
@@ -328,7 +331,7 @@ class ChartBase {
   /**
    * Returns the start of the underlying data relative to waveform file start.
    * @param {!Store.StoreData} store Store object containing request chunk data.
-   * @returns {number} The second offset from the start of the file.
+   * @return {number} The second offset from the start of the file.
    * @abstract
    */
   getStart(store) {}
@@ -336,7 +339,7 @@ class ChartBase {
   /**
    * Returns the number of seconds of data represented in the chart.
    * @param {!Store.StoreData} store Store object containing request chunk data.
-   * @returns {number} Number of seconds of data.
+   * @return {number} Number of seconds of data.
    * @abstract
    */
   getNumSecs(store) {}
@@ -344,7 +347,7 @@ class ChartBase {
   /**
    * Creates a DataTable to load the Line Chart with.
    * @param {!Store.StoreData} store Store object containing request chunk data.
-   * @returns {!DataTable} A DataTable with an initialized x-axis.
+   * @return {!DataTable} A DataTable with an initialized x-axis.
    */
   createDataTable(store) {
     const numSeries = store.chunkGraphData.cols.length - 1;
@@ -369,20 +372,8 @@ class ChartBase {
    */
   updateChartOptions(store) {
     const percentage = this.height[store.predictionMode];
-    if (percentage == 0) {
-      this.getContainer().classList.add('hidden');
-      if (this.overlayId) {
-        document.querySelector(`#${this.overlayId}`).classList.add('hidden');
-      }
-      return;
-    } else {
-      this.getContainer().classList.remove('hidden');
-      if (this.overlayId) {
-        document.querySelector(`#${this.overlayId}`).classList.remove('hidden');
-      }
-    }
     const parentHeight = this.getParent().clientHeight;
-    const containerHeight =  Math.ceil(
+    const containerHeight = Math.ceil(
         percentage * parentHeight) - 2 * marginHeight;
     this.setOption('height', containerHeight);
     const chartPercentage = 1 - axisLabelHeight / containerHeight;
@@ -393,13 +384,60 @@ class ChartBase {
   }
 
   /**
-   * Initializes a Line Chart.
-   * @param {!Store.StoreData} store Store object containing request chunk data.
+   * @protected
+   * Returns a boolean indicating if the chart should be displayed in the
+   * screen.
+   * @param {!Store.StoreData} store Store object.
+   * @return {boolean}
    */
-  initChart(store) {
-    this.chart = new
-        chartDep.LineChart(document.getElementById(
-            assertString(this.containerId)));
+  shouldBeVisible(store) {
+    const numSecs = this.getNumSecs(store);
+    const height = this.height[store.predictionMode];
+    return numSecs > 0 && height > 0;
+  }
+
+  /**
+   * @private
+   * Shows or hides the chart container and overlay in the screen, and set the
+   * this.visible_ property.
+   * @param {boolean} visible
+   */
+  setVisibility_(visible) {
+    this.getContainer().classList.toggle('hidden', !visible);
+    if (this.overlayId) {
+      document.getElementById(this.overlayId)
+          .classList.toggle('hidden', !visible);
+    }
+    this.visible_ = visible;
+  }
+
+  /**
+   * Returns a boolean indicating if the chart is currently drawn in the screen.
+   * @return {boolean}
+   */
+  isVisible() {
+    return this.visible_;
+  }
+
+  /**
+   * Initializes a Line Chart.
+   */
+  initChart() {
+    if (!this.chart) {
+      this.chart = new
+          chartDep.LineChart(document.getElementById(
+              assertString(this.containerId)));
+    }
+  }
+
+  /**
+   * @private
+   * Clears the chart and releases its resources.
+   */
+  clearChart_() {
+    if (this.chart) {
+      this.chart.clearChart();
+    }
   }
 
   /**
@@ -426,14 +464,14 @@ class ChartBase {
 
   /**
    * Adds event listeners through the Google Charts API.
-   * @param {!Store.StoreData} store Store object containing request chunk data.
    */
-  addChartEventListeners(store) {
-    if (this.chart) {
+  addChartEventListeners() {
+    if (this.chart && !this.listenersRegistered_) {
       this.chartListeners.forEach((chartListener) => {
         gvizEvents.addListener(this.getChart(), chartListener.type,
             chartListener.handler);
       });
+      this.listenersRegistered_ = true;
     }
   };
 
@@ -453,7 +491,6 @@ class ChartBase {
     this.updateChartOptions(store);
     this.getContainer().style.height = `${this.getOption('height')}px`;
     this.chart.draw(this.dataTable, this.chartOptions);
-    this.addChartEventListeners(store);
     if (this.resizeHandler) {
       events.unlisten(window, EventType.RESIZE, this.resizeHandler);
     }
@@ -461,28 +498,13 @@ class ChartBase {
     events.listen(window, EventType.RESIZE, this.resizeHandler);
     if (this.overlayId) {
       this.createOverlay(store);
-      // Pass click events through to the Line Chart.
-      const canvas = this.getCanvas();
-      if (this.clickHandler) {
-        events.unlisten(canvas, EventType.CLICK, this.clickHandler);
-      }
-      this.clickHandler = this.createClickHandler();
-      events.listen(canvas, EventType.CLICK, this.clickHandler);
     }
-  }
-
-  /**
-   * Creates a click handler that sends clicks through the overlay to the chart.
-   * @returns {function(?Object):void} An event handler.
-   */
-  createClickHandler() {
-    return (e) => gvizEvents.trigger(this.getChart(), 'click', e);
   }
 
   /**
    * Creates a resize handler bound to the most recent store state.
    * @param {!Store.StoreData} store Store object containing request chunk data.
-   * @returns {function():void} A drawing handler.
+   * @return {function():void} A drawing handler.
    */
   createResizeHandler(store) {
     return () => this.handleDraw(store);
@@ -494,10 +516,17 @@ class ChartBase {
    * @param {!Store.StoreData} store Store object containing request chunk data.
    */
   handleChartData(store) {
-    this.initChart(store);
+    this.clearChart_();
+    const visible = this.shouldBeVisible(store);
+    this.setVisibility_(visible);
+    if (!visible) {
+      return;
+    }
+    this.initChart();
     this.addChartActions(store);
     this.dataTable = this.createDataTable(store);
     this.handleDraw(store);
+    this.addChartEventListeners();
   }
 
   getDataTable() {
@@ -520,8 +549,9 @@ class ChartBase {
     return this.getCanvas().getContext('2d');
   }
 
-  /** Returns the Line Chart inside the Chart Wrapper.
-   * @returns {?LineChart} The Line Chart inside the wrapper.
+  /**
+   * Returns the Line Chart inside the Chart Wrapper.
+   * @return {?LineChart} The Line Chart inside the wrapper.
    */
   getChart() {
     return this.chart;
@@ -530,7 +560,7 @@ class ChartBase {
   /**
    * Returns the Chart Layout Interface that provides translation functions
    * between the DOM and the Chart.
-   * @returns {!google.visualization.ChartLayoutInterface} The chart's layout interface.
+   * @return {!google.visualization.ChartLayoutInterface} The chart's layout interface.
    */
   getChartLayoutInterface() {
     assert(this.getChart());
@@ -590,7 +620,7 @@ class ChartBase {
   /**
    * Creates an opacity [0, 1] from a number (-inf, inf).
    * @param {number} score Prediction score ranging from (-inf, inf)
-   * @returns {number} An opacity.
+   * @return {number} An opacity.
    */
   getOpacity(score) {
     const scale = 0.5;

@@ -91,10 +91,12 @@ class PredictionsChart extends ChartBase {
     this.chartListeners = [
       {
         type: 'click',
-        handler: (e) => {
+        handler: (event) => {
+          if (!event.targetID.startsWith('point')) {
+            return;
+          }
           const cli = this.getChartLayoutInterface();
-          const chartArea = cli.getChartAreaBoundingBox();
-          const x = cli.getHAxisValue(e.offsetX + chartArea.left);
+          const x = cli.getHAxisValue(event.x);
           Dispatcher.getInstance().sendAction({
             actionType: Dispatcher.ActionType.NAV_BAR_CHUNK_REQUEST,
             data: {
@@ -113,7 +115,7 @@ class PredictionsChart extends ChartBase {
         Store.Property.LABEL, Store.Property.CHUNK_SCORES,
         Store.Property.PREDICTION_MODE, Store.Property.NUM_SECS],
         'PredictionsChart',
-        (store) => this.handleChunkNavigationAndPredictionData(store));
+        (store) => this.handleChartData(store));
   }
 
   /**
@@ -171,17 +173,6 @@ class PredictionsChart extends ChartBase {
       this.modes[store.predictionMode].drawOverlay(store);
     }
     this.highlightViewport(store);
-  }
-
-  /**
-   * Update underlay with new chunk start or duration and any new prediction if
-   * the mode specifies to display prediction data.
-   * @param {!Store.StoreData} store Store object containing request chunk data.
-   */
-  handleChunkNavigationAndPredictionData(store) {
-    if (store.numSecs) {
-      this.handleChartData(store);
-    }
   }
 }
 

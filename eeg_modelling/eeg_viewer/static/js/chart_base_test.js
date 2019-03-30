@@ -43,9 +43,12 @@ testSuite({
     mockControl = new MockControl();
 
     chartBase = ChartBase.getInstance();
+
+    // Define things to resemble a subclass, which would have these overridden
     chartBase.overlayId = 'overlay';
     chartBase.containerId = 'chart-container';
     chartBase.parentId = 'parent-container';
+    chartBase.getNumSecs = (store) => Number(store.numSecs);
 
     storeData = {
       absStart: 2,
@@ -216,15 +219,10 @@ testSuite({
   },
 
   testInitChart() {
-    const mockChartConstructor = mockControl.createConstructorMock(
-        ChartBase.getChartDep(), 'LineChart');
-    mockChartConstructor(document.getElementById('chart-container')).$once();
+    chartBase.initChart();
 
-    mockControl.$replayAll();
-
-    chartBase.initChart(storeData);
-
-    mockControl.$verifyAll();
+    const lineChartInstance = (new LineChart(document.createElement('div')));
+    assertObjectEquals(chartBase.chart.prototype, lineChartInstance.prototype);
   },
 
   testHandleDraw() {
@@ -273,19 +271,8 @@ testSuite({
         'createResizeHandler');
     mockCreateResizeHandler(storeData).$returns(mockDraw);
 
-    const mockClickHandler = (storeData) => 42;
-    chartBase.clickHandler = mockClickHandler;
-    mockUnlisten(document.getElementById('overlay'), EventType.CLICK,
-        mockClickHandler).$once();
-
-    const mockClick = (e) => 42;
-    const mockCreateClickHandler = mockControl.createMethodMock(chartBase,
-        'createClickHandler');
-    mockCreateClickHandler().$returns(mockClick);
-
     const mockListen = mockControl.createMethodMock(events, 'listen');
     mockListen(window, EventType.RESIZE, mockDraw).$once();
-    mockListen(chartBase.getCanvas(), EventType.CLICK, mockClick).$once();
 
     mockControl.$replayAll();
 

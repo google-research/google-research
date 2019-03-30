@@ -49,7 +49,7 @@
     <main class="mdl-layout__content">
       <div id="tool-bar" class="mdl-shadow--2dp">
         <div id="nav-line-chart-container"></div>
-        <canvas id="nav-overlay" style="position:absolute"></canvas>
+        <canvas id="nav-overlay" class="canvas-overlay"></canvas>
         <button id="settings-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.toggleMenu('settings')" disabled>
           <i class="material-icons">settings</i>
         </button>
@@ -96,7 +96,7 @@
       <div id="parent-chart-container">
         <div id="line-chart-container"></div>
         <div id="prediction-line-chart-container"></div>
-        <canvas id="prediction-overlay" style="position:absolute"></canvas>
+        <canvas id="prediction-overlay" class="canvas-overlay"></canvas>
       </div>
       <div class="right-side-panel hidden mdl-card mdl-shadow--2dp" id="settings-panel">
         <div class="mdl-card__title">

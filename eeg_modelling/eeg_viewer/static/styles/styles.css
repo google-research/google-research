@@ -254,3 +254,8 @@
 #menu-button-container button {
   width: 100%;
 }
+
+.canvas-overlay {
+  position: absolute;
+  pointer-events: none;
+}

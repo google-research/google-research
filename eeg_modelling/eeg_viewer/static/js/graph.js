@@ -236,12 +236,12 @@ class Graph extends ChartBase {
   /**
    * @override
    */
-  handleChartData(store) {
-    if (!store.chunkGraphData) {
+  shouldBeVisible(store) {
+    const shouldBeVisible = !!store.chunkGraphData;
+    if (!shouldBeVisible) {
       this.channelTransformations = new Map([]);
-      return;
     }
-    super.handleChartData(store);
+    return shouldBeVisible;
   }
 }
 

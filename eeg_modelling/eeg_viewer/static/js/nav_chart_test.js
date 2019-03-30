@@ -19,6 +19,7 @@ const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const MockControl = goog.require('goog.testing.MockControl');
 const NavChart = goog.require('eeg_modelling.eeg_viewer.NavChart');
 const dom = goog.require('goog.dom');
+const gvizEvents = goog.require('google.visualization.events');
 const testSuite = goog.require('goog.testing.testSuite');
 
 let mockControl;
@@ -55,7 +56,10 @@ testSuite({
     navContainer.style.position = 'absolute';
     navContainer.style.top = '5px';
     navContainer.style.left = '11px';
+    const overlay = document.createElement('canvas');
+    overlay.id = navChart.overlayId;
     parentContainer.appendChild(navContainer);
+    parentContainer.appendChild(overlay);
     document.body.appendChild(parentContainer);
   },
 
@@ -115,8 +119,13 @@ testSuite({
 
     mockControl.$replayAll();
 
-    const chartListener = navChart.chartListeners[0];
-    chartListener.handler({offsetX: 3.4});
+    navChart.initChart();
+    navChart.addChartEventListeners();
+    gvizEvents.trigger(navChart.getChart(), 'click', {
+      targetID: 'point#1#1',
+      x: 6.4,
+      y: 0,
+    });
 
     mockControl.$verifyAll();
   },
