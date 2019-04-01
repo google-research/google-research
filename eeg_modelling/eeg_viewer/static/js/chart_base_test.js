@@ -311,31 +311,6 @@ testSuite({
     assertObjectEquals(fakeDatatable, chartBase.getDataTable());
   },
 
-  testHighlightViewport() {
-    const boundBox = {top: 5, left: 3, width: 42, height: 77};
-    const mockGetCli = mockControl.createMethodMock(chartBase,
-        'getChartLayoutInterface');
-    mockGetCli().$returns({
-      getChartAreaBoundingBox: () => boundBox,
-      getXLocation: (x) => x,
-    });
-
-    const mockRect = mockControl.createFunctionMock('strokeRect');
-    mockRect(1, 0, 3, 77).$once();
-    const mockGetContext = mockControl.createMethodMock(chartBase,
-        'getContext');
-    mockGetContext().$returns({
-      setLineDash: () => null,
-      strokeRect: mockRect,
-    });
-
-    mockControl.$replayAll();
-
-    chartBase.highlightViewport(storeData);
-
-    mockControl.$verifyAll();
-  },
-
   testDrawChunkScores() {
     const scoreData = new ScoreData();
     scoreData.setPredictedValue(0.42);

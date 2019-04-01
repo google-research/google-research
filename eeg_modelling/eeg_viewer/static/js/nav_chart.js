@@ -37,6 +37,11 @@ class NavChart extends ChartBase {
     /** @public {string} */
     this.overlayId = 'nav-overlay';
 
+    this.highlightViewportStyle = {
+      color: 'rgba(83, 109, 254, 0.7)',
+      fill: true,
+    };
+
     this.chartOptions.chartArea.backgroundColor = 'lightgrey';
     this.chartOptions.chartArea.height = '30%';
     this.chartOptions.colors = this.generateColors(2, '#fff');
@@ -119,14 +124,6 @@ class NavChart extends ChartBase {
       max: (this.getStart(store) + this.getNumSecs(store)),
     });
     this.setOption('hAxis.ticks', this.createHTicks(store));
-  }
-
-  /**
-   * @override
-   */
-  createOverlay(store) {
-    super.createOverlay(store);
-    this.highlightViewport(store);
   }
 }
 

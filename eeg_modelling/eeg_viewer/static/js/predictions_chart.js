@@ -45,6 +45,11 @@ class PredictionsChart extends ChartBase {
     /** @public {string} */
     this.overlayId = 'prediction-overlay';
 
+    this.highlightViewportStyle = {
+      color: 'rgba(83, 109, 254, 0.2)',
+      fill: true,
+    };
+
     /** @public {string} */
     this.containerId = 'prediction-line-chart-container';
 
@@ -167,12 +172,11 @@ class PredictionsChart extends ChartBase {
   /**
    * @override
    */
-  createOverlay(store) {
-    super.createOverlay(store);
-    if (this.modes[store.predictionMode].drawOverlay) {
-      this.modes[store.predictionMode].drawOverlay(store);
+  drawOverlay(store) {
+    const modeOptions = this.modes[store.predictionMode];
+    if (modeOptions.drawOverlay) {
+      modeOptions.drawOverlay(store);
     }
-    this.highlightViewport(store);
   }
 }
 

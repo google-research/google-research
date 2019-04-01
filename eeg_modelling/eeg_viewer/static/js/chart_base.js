@@ -99,6 +99,14 @@ let ChartListener;
  */
 let Tick;
 
+/**
+ * @typedef {{
+ *   color: string,
+ *   fill: boolean,
+ * }}
+ */
+let HighlightViewportStyle;
+
 const /** @type {{LineChart}} */ chartDep = {LineChart};
 const /** @type {number} */ marginHeight = 20;
 const /** @type {number} */ axisLabelHeight = 50;
@@ -185,6 +193,9 @@ class ChartBase {
 
     /** @type {?string} */
     this.overlayId = null;
+
+    /** @protected {?HighlightViewportStyle} */
+    this.highlightViewportStyle = null;
 
     /** @type {?string} */
     this.containerId = null;
@@ -575,11 +586,14 @@ class ChartBase {
   }
 
   /**
-   * Initializes the overlay.
+   * Creates the overlay.
+   * This method should be called only if this.overlayId is not null.
    * @param {!Store.StoreData} store Store object containing request chunk data.
    */
   createOverlay(store) {
     this.sizeAndPositionOverlay();
+    this.drawOverlay(store);
+    this.highlightViewport(store);
   }
 
   /**
@@ -597,11 +611,21 @@ class ChartBase {
   }
 
   /**
+   * @protected
+   * Draw the overlay.
+   * @param {!Store.StoreData} store Store object containing request chunk data.
+   */
+  drawOverlay(store) { }
+
+  /**
    * Highlights the time span of the chart that is in the viewport of the main
    * chart.
    * @param {!Store.StoreData} store Store object containing request chunk data.
    */
   highlightViewport(store) {
+    if (!this.highlightViewportStyle) {
+      return;
+    }
     const context = this.getContext();
     const cli = this.getChartLayoutInterface();
     const chartArea = cli.getChartAreaBoundingBox();
@@ -612,9 +636,15 @@ class ChartBase {
     const canvasViewEndX =
         Math.floor(cli.getXLocation(view[1]) - chartArea.left);
     const viewWidth = canvasViewEndX - canvasViewStartX;
-    context.strokeStyle = '#696969';
-    context.setLineDash([2, 5]);
-    context.strokeRect(canvasViewStartX, 0, viewWidth, chartArea.height);
+
+    if (this.highlightViewportStyle.fill) {
+      context.fillStyle = this.highlightViewportStyle.color;
+      context.fillRect(canvasViewStartX, 0, viewWidth, chartArea.height);
+    } else {
+      context.strokeStyle = this.highlightViewportStyle.color;
+      context.setLineDash([2, 5]);
+      context.strokeRect(canvasViewStartX, 0, viewWidth, chartArea.height);
+    }
   }
 
   /**

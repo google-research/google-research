@@ -88,6 +88,11 @@ class Graph extends ChartBase {
         Store.Property.CHUNK_GRAPH_DATA, Store.Property.TIMESCALE,
         Store.Property.SENSITIVITY], 'Graph',
         (store) => this.handleChartData(store));
+    // This listener callback will resize the graph considering if the
+    // predictions chart is in display.
+    store.registerListener(
+        [Store.Property.PREDICTION_MODE],
+        'Graph', (store) => this.handleDraw(store));
   }
 
   /**
