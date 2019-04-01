@@ -1,6 +1,6 @@
 # High Performance Monte Carlo Simulation of Ising Model on TPU Clusters
 
-This is the implementation accompanying the paper pending submission (TODO: attach the link after the paper is uploaded to Arxiv).
+This is the implementation accompanying the paper pending submission: ["High Performance Monte Carlo Simulation of Ising Model on TPU Clusters"](https://arxiv.org/abs/1903.11714).
 
 ## Example Usage
 1. Go to https://colab.research.google.com
@@ -13,4 +13,11 @@ This is the implementation accompanying the paper pending submission (TODO: atta
 
 Citing
 ------
-TODO: Add citation.
+```none
+@ARTICLE{yang2019isingtpu,
+  author = {Yang, Kun and Chen, Yi-Fan and Roumpos, Georgios and Colby, Chris and Anderson, John},
+  title = {High Performance Monte Carlo Simulation of Ising Model on TPU Clusters},
+  journal = {arXiv preprint arXiv: 1903.11714},
+  year = {2019}
+}
+
