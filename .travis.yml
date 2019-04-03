@@ -21,6 +21,7 @@ env:
     - PROJECT="dql_grasping"
     - PROJECT="state_of_sparsity"
     - PROJECT="neutra"
+    - PROJECT="robust_loss"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip
