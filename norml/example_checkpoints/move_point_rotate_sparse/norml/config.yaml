@@ -1,0 +1,64 @@
+!!python/object/apply:dotmap.DotMap
+dictitems:
+  advantage_function: returns-values
+  advantage_generator: !!python/object:norml.networks.FullyConnectedNetworkGenerator
+    activation_fn: &id001 !!python/name:tensorflow.python.ops.gen_math_ops.tanh ''
+    dim_input: 6
+    dim_output: 1
+    layer_sizes: !!python/tuple [50, 50]
+  always_full_rollouts: false
+  early_termination: null
+  first_order: false
+  fixed_tasks: false
+  inner_lr_init: 9.0
+  input_dims: 2
+  learn_advantage_function_inner: true
+  learn_inner_lr: false
+  learn_inner_lr_tensor: false
+  learn_offset: true
+  log_every: 10
+  logdir: /tmp
+  max_num_batch_env: 1000
+  max_rollout_len: 100
+  network_generator: !!python/object:norml.networks.FullyConnectedNetworkGenerator
+    activation_fn: *id001
+    dim_input: 2
+    dim_output: 2
+    layer_sizes: !!python/tuple [50, 50]
+  num_inner_rollouts: 25
+  num_outer_iterations: 1000
+  outer_lr_decay: true
+  outer_lr_init: 0.0026
+  outer_optimizer_algo: !!python/name:tensorflow.python.training.adam.AdamOptimizer ''
+  output_dims: 2
+  pol_log_std_init: -0.6
+  policy: !!python/name:norml.policies.GaussianPolicy ''
+  ppo: true
+  ppo_clip_value: 0.2
+  random_seed: 994475
+  reward_disc: 0.9
+  task_env_modifiers:
+  - _action_rotation: !!python/object/apply:numpy.core.multiarray.scalar
+    - &id002 !!python/object/apply:numpy.dtype
+      args: [f8, 0, 1]
+      state: !!python/tuple [3, <, null, null, null, -1, -1, 0]
+    - !!binary |
+      GC1EVPshCcA=
+  - _action_rotation: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id002
+    - !!binary |
+      BkCOW2gfCcA=
+  task_generator: !!python/object/apply:functools.partial
+    args: [&id003 !!python/name:norml.envs.move_point_env.MovePointEnv '']
+    state: !!python/tuple
+    - *id003
+    - !!python/tuple []
+    - end_pos: !!python/tuple [1, 0]
+      goal_reached_distance: 0.1
+      sparse_reward: true
+      start_pos: !!python/tuple [0, 0]
+      trial_length: 100
+    - null
+  tasks_batch_size: 10
+  whiten_values: false
+state: {_mutable: false}
