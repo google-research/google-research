@@ -25,96 +25,110 @@ const testSuite = goog.require('goog.testing.testSuite');
 let mockControl;
 let storeData;
 
+const mockMDLComponentHandler = {
+  upgradeElement: () => {},
+};
 
 testSuite({
 
   setUp() {
     mockControl = new MockControl();
 
-    const scoreData1SZ = new ScoreData();
-    scoreData1SZ.setPredictedValue(3);
-    scoreData1SZ.setActualValue(1);
+    window.componentHandler = mockMDLComponentHandler;
 
-    const scoreData1ED = new ScoreData();
-    scoreData1ED.setPredictedValue(87);
-    scoreData1ED.setActualValue(0);
+    const scoreDataSZ = new ScoreData();
+    scoreDataSZ.setPredictedValue(3);
+    scoreDataSZ.setActualValue(1);
+    scoreDataSZ.setPredictionProbability(0.6);
 
-    const scoreData2SZ = new ScoreData();
-    scoreData2SZ.setPredictedValue(78);
-    scoreData2SZ.setActualValue(0);
+    const scoreDataED = new ScoreData();
+    scoreDataED.setPredictedValue(87);
+    scoreDataED.setActualValue(0);
+    scoreDataED.setPredictionProbability(0.5);
 
-    const scoreData2ED = new ScoreData();
-    scoreData2ED.setPredictedValue(54);
-    scoreData2ED.setActualValue(0);
+    const scoreDataNoSZ = new ScoreData();
+    scoreDataNoSZ.setPredictedValue(-3);
+    scoreDataNoSZ.setActualValue(0);
+    scoreDataNoSZ.setPredictionProbability(0.2);
 
-    const chunkScoreData1 =  new ChunkScoreData();
+    const scoreDataNoED = new ScoreData();
+    scoreDataNoED.setPredictedValue(-7);
+    scoreDataNoED.setActualValue(0);
+    scoreDataNoED.setPredictionProbability(0.1);
+
+    const chunkScoreData1 = new ChunkScoreData();
     chunkScoreData1.setDuration(96);
-    chunkScoreData1.setStartTime(3743);
-    chunkScoreData1.getScoreDataMap().set('SZ', scoreData1SZ);
-    chunkScoreData1.getScoreDataMap().set('ED', scoreData1ED);
+    chunkScoreData1.setStartTime(3743); // '01:02:23'
+    chunkScoreData1.getScoreDataMap().set('SZ', scoreDataSZ);
+    chunkScoreData1.getScoreDataMap().set('ED', scoreDataED);
     const chunkScoreData2 = new ChunkScoreData();
     chunkScoreData2.setDuration(96);
-    chunkScoreData2.setStartTime(64);
-    chunkScoreData2.getScoreDataMap().set('SZ', scoreData2SZ);
-    chunkScoreData2.getScoreDataMap().set('ED', scoreData2ED);
+    chunkScoreData2.setStartTime(64); // '00:01:04'
+    chunkScoreData2.getScoreDataMap().set('SZ', scoreDataNoSZ);
+    chunkScoreData2.getScoreDataMap().set('ED', scoreDataNoED);
     storeData = {
       absStart: 0,
       chunkDuration: 43,
       chunkScores: [chunkScoreData1, chunkScoreData2],
       chunkStart: 50,
-      fileInputDirty: true,
       label: 'SZ',
       numSecs: 100,
       predictionMode: 'None',
-      requestStatus: 'RETURNED',
-      annotations: [{start_time: 0, label: 'Douglas Adams'}],
     };
 
     const predictionTable = document.createElement('table');
     predictionTable.classList.add('prediction');
     document.body.append(predictionTable);
+
+    const tableHeader = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    tableHeader.appendChild(headerRow);
+    predictionTable.appendChild(tableHeader);
+    const addHeader = (text) => {
+      const element = document.createElement('th');
+      element.textContent = text;
+      headerRow.appendChild(element);
+    };
+    addHeader('Start');
+    addHeader('Type');
+    addHeader('Pred');
+
     const labelSelector = document.createElement('div');
     labelSelector.id = 'label-dropdown';
     const labelValue = document.createElement('div');
     labelSelector.appendChild(labelValue);
     document.body.appendChild(labelSelector);
+
     const modeSelector = document.createElement('div');
     modeSelector.id = 'mode-dropdown';
     const modeValue = document.createElement('div');
     modeSelector.appendChild(modeValue);
     document.body.appendChild(modeSelector);
-    const predictionItem = document.createElement('li');
-    predictionItem.classList.add('prediction');
-    document.body.appendChild(predictionItem);
-    const truePos = document.createElement('button');
-    truePos.id = 'true-pos';
-    document.body.appendChild(truePos);
-    const trueNeg = document.createElement('button');
-    trueNeg.id = 'true-neg';
-    document.body.appendChild(trueNeg);
-    const modeButton = document.createElement('button');
-    modeButton.id = 'mode-button';
-    document.body.appendChild(modeButton);
+
+    const noPredictionsText = document.createElement('div');
+    noPredictionsText.id = 'no-predictions-text';
+    document.body.appendChild(noPredictionsText);
+
+    const filterButton = document.createElement('button');
+    filterButton.id = 'predictions-filter-button';
+    document.body.appendChild(filterButton);
   },
 
   testHandleChunkScores() {
     Predictions.getInstance().handleChunkScores(storeData);
 
-    assertEquals('00:01:04',
-        document.querySelector('#prediction-row-64 .time').innerHTML);
-    assertEquals('78',
-        document.querySelector('#prediction-row-64 .SZ.predicted').innerHTML);
-    assertEquals('0',
-        document.querySelector('#prediction-row-64 .SZ.actual').innerHTML);
-    assertEquals('54',
-        document.querySelector('#prediction-row-64 .ED.predicted').innerHTML);
-    assertEquals('0',
-        document.querySelector('#prediction-row-64 .ED.actual').innerHTML);
+    assertEquals(
+        '01:02:23',
+        document.querySelector('tr[prediction="pos"][label="SZ"] td')
+            .innerHTML);
+    assertEquals(
+        '00:01:04',
+        document.querySelector('tr[prediction="neg"][label="SZ"] td')
+            .innerHTML);
 
-    const firstValueRow = document.querySelector('#prediction-row-64');
-    const secondValueRow = document.querySelector('#prediction-row-3743');
-    assertTrue(firstValueRow.classList.contains('in-viewport'));
-    assertTrue(secondValueRow.classList.contains('ir-true-pos'));
+    // Ordered by time
+    assertEquals('00:01:04',
+        document.querySelector('tbody tr td').innerHTML);
   },
 
   tearDown() {

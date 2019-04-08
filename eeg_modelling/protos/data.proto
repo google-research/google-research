@@ -117,7 +117,7 @@ message PredictionChunk {
     // Dictionary of channel indices to their attribution values.
     map<string, AttributionValues> attribution_map = 1;
   }
-  // Attribution data for each channel for each prediction type.
+  // Attribution data for each label
   map<string, AttributionMap> attribution_data = 1;
   // The relative start time to the input file start.
   optional int64 chunk_start = 3;
@@ -141,6 +141,8 @@ message PredictionMetadata {
       optional float actual_value = 1;
       // Floating point score output by the model.
       optional float predicted_value = 2;
+      // Probability (between 0..1) of the prediction made
+      optional float prediction_probability = 3;
     }
     // Dictionary of prediction types to score data.
     map<string, ScoreData> score_data = 3;
