@@ -43,25 +43,12 @@ class Requests {
 
   constructor() {
     const store = Store.getInstance();
-    // This listener callback will make a new HTTP request when one of the
-    // filter setting or chunk setting params change.
+    // This listener callback will make a new HTTP request when a request
+    // property change.
     store.registerListener(
-        [
-          Store.Property.CHUNK_START, Store.Property.CHUNK_DURATION,
-          Store.Property.LOW_CUT, Store.Property.HIGH_CUT, Store.Property.NOTCH,
-          Store.Property.CHANNEL_IDS
-        ],
-        'Requests', (store) => this.handleRequestParameters(false, store));
-    // This listener callback will make a new HTTP request when one of the
-    // file params change.
-    store.registerListener(
-        [
-          Store.Property.TFEX_SSTABLE_PATH,
-          Store.Property.PREDICTION_SSTABLE_PATH, Store.Property.EDF_PATH,
-          Store.Property.SSTABLE_KEY, Store.Property.TFEX_FILE_PATH,
-          Store.Property.PREDICTION_FILE_PATH
-        ],
-        'Requests', (store) => this.handleRequestParameters(true, store));
+        Store.RequestProperties, 'Requests',
+        (store, changedProperties) =>
+            this.handleRequestParameters(store, changedProperties));
 
     this.logger_ = log.getLogger('eeg_modelling.eeg_viewer.Requests');
   }
@@ -144,11 +131,13 @@ class Requests {
 
   /**
    * Handles HTTP requests for chunk data.
-   * @param {boolean} fileParamDirty Indicates if the call was triggered
-   *     by a change in a file parameter.
    * @param {!Store.StoreData} store Snapshot of chunk data store.
+   * @param {!Array<!Store.Property>} changedProperties List of the properties
+   * that changed because of the last action.
    */
-  handleRequestParameters(fileParamDirty, store) {
+  handleRequestParameters(store, changedProperties) {
+    const fileParamDirty = Store.FileRequestProperties.some(
+        (param) => changedProperties.includes(param));
     Dispatcher.getInstance().sendAction({
       actionType: Dispatcher.ActionType.REQUEST_START,
       data: {
