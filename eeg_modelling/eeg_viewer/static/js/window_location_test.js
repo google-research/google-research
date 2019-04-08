@@ -105,7 +105,7 @@ testSuite({
          'predictionfilepath=hello/world&' +
          'channelids=0,1,1,2,3,5');
 
-    windowLocation.handleRequestParams(true, storeData);
+    windowLocation.handleRequestParams(storeData, ['tfExSSTablePath']);
     assertEquals(mockHash, location.hash);
   },
 
@@ -126,7 +126,7 @@ testSuite({
     storeData.tfExFilePath = null;
     storeData.predictionFilePath = null;
 
-    windowLocation.handleRequestParams(true, storeData);
+    windowLocation.handleRequestParams(storeData, ['tfExFilePath']);
     assertEquals(mockHash, location.hash);
   },
 

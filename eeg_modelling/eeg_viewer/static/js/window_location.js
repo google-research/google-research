@@ -17,31 +17,16 @@ goog.module('eeg_modelling.eeg_viewer.WindowLocation');
 const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 
-/** @const {!Array<!Store.Property>} */
-const LIST_PARAMS = [Store.Property.CHANNEL_IDS];
-/** @const {!Array<!Store.Property>} */
-const NUM_PARAMS = [Store.Property.CHUNK_START, Store.Property.CHUNK_DURATION,
-      Store.Property.LOW_CUT, Store.Property.HIGH_CUT, Store.Property.NOTCH];
-/** @const {!Array<!Store.Property>} */
-const FILE_PARAMS = [Store.Property.TFEX_SSTABLE_PATH,
-      Store.Property.PREDICTION_SSTABLE_PATH, Store.Property.SSTABLE_KEY,
-      Store.Property.EDF_PATH, Store.Property.TFEX_FILE_PATH,
-      Store.Property.PREDICTION_FILE_PATH];
-/** @const {!Array<!Store.Property>} */
-const ALL_PARAMS = [...NUM_PARAMS, ...FILE_PARAMS, ...LIST_PARAMS];
-
 class WindowLocation {
 
   constructor() {
     const store = Store.getInstance();
     // This listener callback will update the request parameters in the URL
-    // hash and replace the current web history state.
-    store.registerListener(NUM_PARAMS.concat(LIST_PARAMS),
-        'WindowLocation', (store) => this.handleRequestParams(false, store));
-    // This listener callback will update the request parameters in the URL hash
-    // and add a new element to web history state.
-    store.registerListener(FILE_PARAMS,
-        'WindowLocation', (store) => this.handleRequestParams(true, store));
+    // hash and update the web history state accordingly.
+    store.registerListener(
+        Store.RequestProperties, 'WindowLocation',
+        (store, changedProperties) =>
+            this.handleRequestParams(store, changedProperties));
   }
 
   /**
@@ -70,7 +55,7 @@ class WindowLocation {
     }
 
     const actionData = {};
-    ALL_PARAMS.forEach((storeParam) => {
+    Store.RequestProperties.forEach((storeParam) => {
       const param = storeParam.toLowerCase();
       const valid = (param in fragmentData &&
           (fragmentData[param] == 0 || fragmentData[param]));
@@ -94,26 +79,29 @@ class WindowLocation {
    * Converts store chunk data into a fragment string and sets the fragment.
    * Also handles browser history state based on whether the file parameters in
    * the request have changed.
-   * @param {boolean} fileInputDirty Whether or not the update was caused by a
-   * change in file parameters.
    * @param {!Store.StoreData} store Store chunk data to use to update fragment.
+   * @param {!Array<!Store.Property>} changedProperties List of the properties
+   *     that changed because of the last action.
    */
-  handleRequestParams(fileInputDirty, store) {
+  handleRequestParams(store, changedProperties) {
     if (!store.chunkGraphData) {
       return;
     }
-    const assignments = ALL_PARAMS.map((param) => {
+
+    const fileParamDirty = Store.FileRequestProperties.some(
+        (param) => changedProperties.includes(param));
+    const assignments = Store.RequestProperties.map((param) => {
       const key = param.toLowerCase();
       let value = store[param];
-      if (FILE_PARAMS.includes(param)) {
+      if (Store.FileRequestProperties.includes(param)) {
         value = value ? value : '';
-      } else if (LIST_PARAMS.includes(param)) {
+      } else if (Store.ListRequestProperties.includes(param)) {
         value = value ? value.join(',') : '';
       }
       return `${key}=${value}`;
     });
     const url = '#' + assignments.join('&');
-    if (fileInputDirty) {
+    if (fileParamDirty) {
       history.pushState({}, '', url);
     } else {
       history.replaceState({}, '', url);

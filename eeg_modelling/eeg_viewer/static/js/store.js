@@ -88,6 +88,37 @@ const responseProperties = [
   Property.SAMPLING_FREQ,
 ];
 
+/** @const {!Array<!Property>} */
+const FileRequestProperties = [
+  Property.TFEX_SSTABLE_PATH,
+  Property.PREDICTION_SSTABLE_PATH,
+  Property.SSTABLE_KEY,
+  Property.EDF_PATH,
+  Property.TFEX_FILE_PATH,
+  Property.PREDICTION_FILE_PATH,
+];
+
+/** @const {!Array<!Property>} */
+const NumberRequestProperties = [
+  Property.CHUNK_START,
+  Property.CHUNK_DURATION,
+  Property.LOW_CUT,
+  Property.HIGH_CUT,
+  Property.NOTCH,
+];
+
+/** @const {!Array<!Property>} */
+const ListRequestProperties = [
+  Property.CHANNEL_IDS,
+];
+
+/** @const {!Array<!Property>} */
+const RequestProperties = [
+  ...NumberRequestProperties,
+  ...FileRequestProperties,
+  ...ListRequestProperties,
+];
+
 /**
  * @typedef {{
  *   properties: !Array<!Property>,
@@ -326,7 +357,7 @@ class Store {
           prop => changedProperties.includes(prop));
       if (propertyTriggers.length > 0) {
         log.info(this.logger_, `${changeId} ... to ${listener.id} view (${propertyTriggers.toString()})`);
-        listener.callback(Object.assign({}, this.storeData));
+        listener.callback(Object.assign({}, this.storeData), changedProperties);
       }
     });
   }
@@ -716,3 +747,7 @@ exports.ErrorInfo = ErrorInfo;
 exports.Property = Property;
 exports.PredictionMode = PredictionMode;
 exports.LoadingStatus = LoadingStatus;
+exports.FileRequestProperties = FileRequestProperties;
+exports.NumberRequestProperties = NumberRequestProperties;
+exports.ListRequestProperties = ListRequestProperties;
+exports.RequestProperties = RequestProperties;
