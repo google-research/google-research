@@ -112,16 +112,16 @@
   overflow-y: auto;
 }
 
-.prediction td, .prediction th {
+td, .prediction th {
+  cursor: pointer;
+}
+
+th i.sorted, th i.sorted-reverse {
   display: none;
 }
 
-.prediction td.time, .prediction th.time, .prediction td.rank, .prediction th.rank {
-  display: table-cell;
-}
-
-.prediction tr.ir-true-pos {
-  background-color: rgba(83, 109, 254, 0.4);
+.goog-tablesorter-sorted i.sorted, .goog-tablesorter-sorted-reverse i.sorted-reverse {
+  display: inline;
 }
 
 #parent-chart-container > div.hidden {
@@ -242,7 +242,7 @@
   position: absolute;
 }
 
-.switch {
+.filter-box {
   margin: 12px;
 }
 
@@ -258,4 +258,15 @@
 .canvas-overlay {
   position: absolute;
   pointer-events: none;
+}
+
+#no-predictions-text {
+  text-align: center;
+  font-size: 18px;
+  font-style: italic;
+}
+
+.prediction-circle {
+  /* Overrides given by MDL table row */
+  padding: 0px !important;
 }

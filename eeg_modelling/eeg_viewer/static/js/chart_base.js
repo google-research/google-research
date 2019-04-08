@@ -672,6 +672,9 @@ class ChartBase {
     const chartArea = cli.getChartAreaBoundingBox();
     store.chunkScores.forEach((chunkScoreData) => {
       const scoreData = chunkScoreData.getScoreDataMap().get(store.label);
+      if (!scoreData) {
+        return;
+      }
       const predictedValue = scoreData.getPredictedValue();
       const opacity = this.getOpacity(predictedValue ? predictedValue : 0);
       context.fillStyle = `rgba(255,110,64,${opacity})`;
@@ -699,6 +702,9 @@ class ChartBase {
     const cli = this.getChartLayoutInterface();
     const chartArea = cli.getChartAreaBoundingBox();
     const map = store.attributionMaps.get(store.label);
+    if (!map) {
+      return;
+    }
     const height = store.channelIds.length;
     store.channelIds.forEach((channelId, rowIndex) => {
       const attrValues = map.getAttributionMapMap().get(channelId)

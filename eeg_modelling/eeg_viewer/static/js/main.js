@@ -50,8 +50,8 @@ goog.exportSymbol(
     'predictions.selectPredictionMode',
     goog.bind(predictions.handlePredictionModeSelection, predictions));
 goog.exportSymbol(
-    'predictions.filterPredictions',
-    goog.bind(predictions.filterPredictions, predictions));
+    'predictions.toggleFilter',
+    goog.bind(predictions.toggleFilter, predictions));
 goog.exportSymbol(
     'predictions.selectPredictionLabel',
     goog.bind(predictions.handlePredictionLabelSelection, predictions));

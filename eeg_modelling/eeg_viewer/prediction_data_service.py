@@ -205,6 +205,7 @@ class PredictionDataService(object):
       score_data = chunk_score_data.score_data[label.name]
       score_data.actual_value = label.actual_value.score
       score_data.predicted_value = label.predicted_value.score
+      score_data.prediction_probability = label.predicted_value.probability
 
     return chunk_score_data
 

@@ -192,7 +192,7 @@
           <h2 class="mdl-card__title-text">Predictions</h2>
         </div>
         <div class="mdl-card__menu secondary">
-          <button id="predictions-filter-button" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"
+          <button disabled id="predictions-filter-button" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"
                   onclick="document.querySelector('#filter-container').classList.toggle('hidden')">
             <i class="material-icons">filter_list</i>
           </button>
@@ -208,7 +208,7 @@
             Close
           </div>
         </div>
-        <div class="dropdown" id="mode-dropdown">
+        <div class="hidden dropdown" id="mode-dropdown">
           <div></div>
           <label>Mode</label>
           <i class="material-icons">arrow_drop_down</i>
@@ -218,7 +218,7 @@
           <li class="mdl-menu__item" onclick="predictions.selectPredictionMode('Chunk Scores')">Chunk Scores</li>
           <li class="mdl-menu__item" onclick="predictions.selectPredictionMode('Attribution Maps')">Attribution Maps</li>
         </ul>
-        <div class="dropdown" id="label-dropdown">
+        <div class="hidden dropdown" id="label-dropdown">
           <div></div>
           <label>Label</label>
           <i class="material-icons">arrow_drop_down</i>
@@ -231,21 +231,54 @@
           <div class="mdl-card__title">
             <h2 class="mdl-card__title-text">Filters</h2>
           </div>
-          <div class="switch">
-            <button id="true-pos" class="mdl-button mdl-button--accent mdl-button--icon" onclick="predictions.filterPredictions('true-pos')">
-              <i class="material-icons">toggle_on</i>
-            </button>
-            <span>True Positive</span>
+          <div class="filter-box">
+            <h4 class="mdl-card__subtitle-text">Label</h4>
+            <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect mdl-checkbox--accent" for="checkbox-label-SZ">
+              <input type="checkbox" id="checkbox-label-SZ" class="mdl-checkbox__input" onchange="predictions.toggleFilter(event, 'label', 'SZ')" checked>
+              <span class="mdl-checkbox__label">SZ</span>
+            </label>
+            <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect mdl-checkbox--accent" for="checkbox-label-ED">
+              <input type="checkbox" id="checkbox-label-ED" class="mdl-checkbox__input" onchange="predictions.toggleFilter(event, 'label', 'ED')" checked>
+              <span class="mdl-checkbox__label">ED</span>
+            </label>
           </div>
-          <div class="switch">
-            <button id="true-neg" class="mdl-button mdl-button--accent mdl-button--icon" onclick="predictions.filterPredictions('true-neg')">
-              <i class="material-icons">toggle_on</i>
-            </button>
-            <span>True Negative</span>
+          <div class="filter-box">
+            <h4 class="mdl-card__subtitle-text">Prediction</h4>
+            <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect mdl-checkbox--accent" for="checkbox-prediction-pos">
+              <input type="checkbox" id="checkbox-prediction-pos" class="mdl-checkbox__input" onchange="predictions.toggleFilter(event, 'prediction', 'pos')" checked>
+              <span class="mdl-checkbox__label">Positive</span>
+            </label>
+            <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect mdl-checkbox--accent" for="checkbox-prediction-neg">
+              <input type="checkbox" id="checkbox-prediction-neg" class="mdl-checkbox__input" onchange="predictions.toggleFilter(event, 'prediction', 'neg')">
+              <span class="mdl-checkbox__label">Negative</span>
+            </label>
           </div>
         </div>
         <div class="scrollable-table-div">
-          <table class="prediction mdl-data-table mdl-js-data-table"></table>
+          <table class="prediction hidden mdl-data-table mdl-js-data-table">
+            <thead>
+               <tr>
+                 <th class="mdl-data-table__cell--non-numeric">
+                   Start
+                   <i class="material-icons sorted">arrow_drop_up</i>
+                   <i class="material-icons sorted-reverse">arrow_drop_down</i>
+                 </th>
+                 <th class="mdl-data-table__cell--non-numeric">
+                   Type
+                   <i class="material-icons sorted">arrow_drop_up</i>
+                   <i class="material-icons sorted-reverse">arrow_drop_down</i>
+                 </th>
+                 <th class="mdl-data-table__cell--non-numeric">
+                   Pred
+                   <i class="material-icons sorted">arrow_drop_up</i>
+                   <i class="material-icons sorted-reverse">arrow_drop_down</i>
+                 </th>
+               </tr>
+             </thead>
+          </table>
+        </div>
+        <div id="no-predictions-text" class="mdl-card__supporting-text">
+          No predictions loaded
         </div>
       </div>
       <div class="right-side-panel hidden mdl-card mdl-shadow--2dp" id="labels-panel">
