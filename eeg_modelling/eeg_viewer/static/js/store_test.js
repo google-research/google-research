@@ -49,7 +49,7 @@ testSuite({
 
   testHandleResponseOk() {
     const waveformChunk = new WaveformChunk();
-    waveformChunk.setWaveformDatatable(JSON.stringify({data: 'fake graph data'}));
+    waveformChunk.setWaveformDatatable(JSON.stringify({data: 'fake data'}));
     waveformChunk.setChannelDataIdsList(['0', '1', '1', '2', '3', '5'].map((x) => {
       const singleChannel = new SingleChannel();
       singleChannel.setIndex(x);
@@ -76,17 +76,17 @@ testSuite({
     mockData.setWaveformChunk(waveformChunk);
     mockData.setWaveformMetadata(waveformMeta);
 
-    store.handleRequestResponseOk(mockData);
-    assertObjectEquals({ data: 'fake graph data' }, store.storeData.chunkGraphData);
+    const newStoreData = store.handleRequestResponseOk(mockData);
+    assertObjectEquals({ data: 'fake data' }, newStoreData.chunkGraphData);
     assertArrayEquals(
-        ['0', '1', '1', '2', '3', '5'], store.storeData.channelIds);
-    assertEquals(0, store.storeData.absStart);
-    assertEquals('note', store.storeData.annotations[0].labelText);
-    assertEquals(42.0, store.storeData.annotations[0].startTime);
-    assertEquals('EEG', store.storeData.fileType);
-    assertEquals(50, store.storeData.numSecs);
-    assertEquals('test id', store.storeData.patientId);
-    assertEquals('grievous', store.storeData.sstableKey);
+        ['0', '1', '1', '2', '3', '5'], newStoreData.channelIds);
+    assertEquals(0, newStoreData.absStart);
+    assertEquals('note', newStoreData.annotations[0].labelText);
+    assertEquals(42.0, newStoreData.annotations[0].startTime);
+    assertEquals('EEG', newStoreData.fileType);
+    assertEquals(50, newStoreData.numSecs);
+    assertEquals('test id', newStoreData.patientId);
+    assertEquals('grievous', newStoreData.sstableKey);
   },
 
   testHandleWindowLocationPendingRequest() {
@@ -101,47 +101,48 @@ testSuite({
       channelids: '0,1,1,2,3,5',
     };
 
-    store.handleWindowLocationPendingRequest(mockFragmentData);
-    assertEquals('/hello/there', store.storeData.tfExSSTablePath);
-    assertEquals('general/kenobi', store.storeData.predictionSSTablePath);
-    assertEquals('/good/bye', store.storeData.tfExFilePath);
-    assertEquals('hello/world', store.storeData.predictionFilePath);
-    assertEquals('grievous', store.storeData.sstableKey);
-    assertEquals(42, store.storeData.chunkStart);
-    assertEquals(3, store.storeData.chunkDuration);
-    assertArrayEquals(['0','1','1','2','3','5'], store.storeData.channelIds);
+    const newStoreData =
+        store.handleWindowLocationPendingRequest(mockFragmentData);
+    assertEquals('/hello/there', newStoreData.tfExSSTablePath);
+    assertEquals('general/kenobi', newStoreData.predictionSSTablePath);
+    assertEquals('/good/bye', newStoreData.tfExFilePath);
+    assertEquals('hello/world', newStoreData.predictionFilePath);
+    assertEquals('grievous', newStoreData.sstableKey);
+    assertEquals(42, newStoreData.chunkStart);
+    assertEquals(3, newStoreData.chunkDuration);
+    assertArrayEquals(['0','1','1','2','3','5'], newStoreData.channelIds);
   },
 
   testHandleRequestResponseError() {
     const mockData = {
       message: 'Bad Request',
     };
-    store.handleRequestResponseError(mockData);
-    assertEquals('Bad Request', store.storeData.error.message);
+    const newStoreData = store.handleRequestResponseError(mockData);
+    assertEquals('Bad Request', newStoreData.error.message);
   },
 
   testHandleToolBarNextChunk() {
-    store.handleToolBarNextChunk();
+    const newStoreData = store.handleToolBarNextChunk();
 
-    assertEquals(20, store.storeData.chunkStart);
+    assertEquals(20, newStoreData.chunkStart);
   },
 
   testHandleToolBarNextSec() {
-    store.handleToolBarNextSec();
+    const newStoreData = store.handleToolBarNextSec();
 
-    assertEquals(11 , store.storeData.chunkStart);
+    assertEquals(11 , newStoreData.chunkStart);
   },
 
   testHandleToolBarActionPrevChunk() {
-    store.handleToolBarPrevChunk();
+    const newStoreData = store.handleToolBarPrevChunk();
 
-    assertEquals(0, store.storeData.chunkStart);
+    assertEquals(0, newStoreData.chunkStart);
   },
 
   testHandleToolBarActionPrevSec() {
-    store.handleToolBarPrevSec();
+    const newStoreData = store.handleToolBarPrevSec();
 
-    assertEquals(9, store.storeData.chunkStart);
+    assertEquals(9, newStoreData.chunkStart);
   },
 
   testHandleToolBarZoom() {
@@ -149,8 +150,8 @@ testSuite({
       selectedValue: 42,
     };
 
-    store.handleToolBarZoom(mockData);
-    assertEquals(42, store.storeData.chunkDuration);
+    const newStoreData = store.handleToolBarZoom(mockData);
+    assertEquals(42, newStoreData.chunkDuration);
   },
 
   testHandleToolBarGridlines() {
@@ -158,8 +159,8 @@ testSuite({
       selectedValue: 0.2,
     };
 
-    store.handleToolBarGridlines(mockData);
-    assertEquals(0.2, store.storeData.timeScale);
+    const newStoreData = store.handleToolBarGridlines(mockData);
+    assertEquals(0.2, newStoreData.timeScale);
   },
 
   testHandlePredictionModeSelection() {
@@ -167,8 +168,8 @@ testSuite({
       selectedValue: 'None',
     };
 
-    store.handlePredictionModeSelection(mockData);
-    assertEquals(Store.PredictionMode.NONE, store.storeData.predictionMode);
+    const newStoreData = store.handlePredictionModeSelection(mockData);
+    assertEquals(Store.PredictionMode.NONE, newStoreData.predictionMode);
   },
 
   testHandlePredictionLabelSelection() {
@@ -176,8 +177,8 @@ testSuite({
       selectedValue: 'you were my brother',
     };
 
-    store.handlePredictionLabelSelection(mockData);
-    assertEquals('you were my brother', store.storeData.label);
+    const newStoreData = store.handlePredictionLabelSelection(mockData);
+    assertEquals('you were my brother', newStoreData.label);
   },
 
   testHandlePredictionChunkRequest() {
@@ -185,8 +186,8 @@ testSuite({
       time: 3,
     };
 
-    store.handlePredictionChunkRequest(mockData);
-    assertEquals(3, store.storeData.chunkStart);
+    const newStoreData = store.handlePredictionChunkRequest(mockData);
+    assertEquals(3, newStoreData.chunkStart);
   },
 
   testHandleAnnotationSelection() {
@@ -194,8 +195,8 @@ testSuite({
       time: 5,
     };
 
-    store.handleAnnotationSelection(mockData);
-    assertEquals(0, store.storeData.chunkStart);
+    const newStoreData = store.handleAnnotationSelection(mockData);
+    assertEquals(0, newStoreData.chunkStart);
   },
 
   testHandleMenuFileLoad() {
@@ -209,12 +210,13 @@ testSuite({
       channelIds: ['0', '1', '1', '2', '3', '5'],
     };
 
-    store.handleMenuFileLoad(mockData);
-    assertEquals('/hello/there', store.storeData.tfExSSTablePath);
-    assertNull(store.storeData.predictionSSTablePath);
-    assertEquals('grievous', store.storeData.sstableKey);
-    assertNull(store.storeData.tfExFilePath);
-    assertNull(store.storeData.predictionFilePath);
+    const newStoreData = store.handleMenuFileLoad(mockData);
+
+    assertEquals('/hello/there', newStoreData.tfExSSTablePath);
+    assertNull(newStoreData.predictionSSTablePath);
+    assertEquals('grievous', newStoreData.sstableKey);
+    assertNull(newStoreData.tfExFilePath);
+    assertNull(newStoreData.predictionFilePath);
   },
 
   tearDown() {

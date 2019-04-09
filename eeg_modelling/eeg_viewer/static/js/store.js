@@ -72,21 +72,6 @@ const Property = {
   TFEX_SSTABLE_PATH: 'tfExSSTablePath',
 };
 
-/** @const {!Array<!Property>} */
-const responseProperties = [
-  Property.ABS_START,
-  Property.ANNOTATIONS,
-  Property.ATTRIBUTION_MAPS,
-  Property.CHUNK_GRAPH_DATA,
-  Property.CHUNK_SCORES,
-  Property.FILE_TYPE,
-  Property.INDEX_CHANNEL_MAP,
-  Property.NUM_SECS,
-  Property.PATIENT_ID,
-  Property.PREDICTION_CHUNK_SIZE,
-  Property.PREDICTION_CHUNK_START,
-  Property.SAMPLING_FREQ,
-];
 
 /** @const {!Array<!Property>} */
 const FileRequestProperties = [
@@ -203,6 +188,43 @@ const LoadingStatus = {
  */
 let StoreData;
 
+/**
+ * @typedef {{
+ *   absStart: (?number|undefined),
+ *   annotations: (?Array<!Annotation>|undefined),
+ *   attributionMaps: (?JspbMap<string, !AttributionMap>|undefined),
+ *   channelIds: (?Array<string>|undefined),
+ *   chunkDuration: (number|undefined),
+ *   chunkGraphData: (?DataTableInput|undefined),
+ *   chunkScores: (?Array<!ChunkScoreData>|undefined),
+ *   chunkStart: (number|undefined),
+ *   edfPath: (?string|undefined),
+ *   error: (?ErrorInfo|undefined),
+ *   fileType: (?string|undefined),
+ *   highCut: (number|undefined),
+ *   indexChannelMap: (?JspbMap<string, string>|undefined),
+ *   isTyping: (boolean|undefined),
+ *   label: (string|undefined),
+ *   loadingStatus: (!LoadingStatus|undefined),
+ *   lowCut: (number|undefined),
+ *   notch: (number|undefined),
+ *   numSecs: (?number|undefined),
+ *   patientId: (?string|undefined),
+ *   predictionChunkSize: (?number|undefined),
+ *   predictionChunkStart: (?number|undefined),
+ *   predictionFilePath: (?string|undefined),
+ *   predictionMode: (!PredictionMode|undefined),
+ *   predictionSSTablePath: (?string|undefined),
+ *   samplingFreq: (?number|undefined),
+ *   seriesHeight: (number|undefined),
+ *   sensitivity: (number|undefined),
+ *   sstableKey: (?string|undefined),
+ *   timeScale: (number|undefined),
+ *   tfExSSTablePath: (?string|undefined),
+ *   tfExFilePath: (?string|undefined),
+ * }}
+ */
+let PartialStoreData;
 
 /**
  * Contains the state of the application in data stores.
@@ -331,14 +353,16 @@ class Store {
 
   /**
    * Emits snapshot of the Store to all registered views if it has changed.
-   * @param {!StoreData} oldStoreData Copy of the store data before callback.
+   * @param {!PartialStoreData} newStoreData Object with store data to update.
    */
-  emitChange(oldStoreData) {
+  emitChange(newStoreData) {
     const changedProperties = [];
-    for (let prop in oldStoreData) {
-      if (JSON.stringify(this.storeData[prop]) !=
-          JSON.stringify(oldStoreData[prop])) {
+    for (let prop in newStoreData) {
+      const oldValue = this.storeData[prop];
+      const newValue = newStoreData[prop];
+      if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
         changedProperties.push(prop);
+        this.storeData[prop] = newValue;
       }
     }
 
@@ -349,14 +373,19 @@ class Store {
 
     const changeId = `[${Date.now() % 10000}]`;
 
-    log.info(this.logger_,
-        `${changeId} Emitting chunk data store change for properties... ${changedProperties.toString()}`);
+    log.info(
+        this.logger_,
+        `${changeId} Emitting chunk data store change for properties... ${
+            changedProperties.toString()}`);
 
     this.registeredListeners.forEach((listener) => {
       const propertyTriggers = listener.properties.filter(
           prop => changedProperties.includes(prop));
       if (propertyTriggers.length > 0) {
-        log.info(this.logger_, `${changeId} ... to ${listener.id} view (${propertyTriggers.toString()})`);
+        log.info(
+            this.logger_,
+            `${changeId} ... to ${listener.id} view (${
+                propertyTriggers.toString()})`);
         listener.callback(Object.assign({}, this.storeData), changedProperties);
       }
     });
@@ -367,9 +396,10 @@ class Store {
    * Add a timestamp so every new message received is different from the
    * previous one, so the error listeners are called every time.
    * @param {string} message New error message
+   * @return {!ErrorInfo} New error info.
    */
-  updateError(message) {
-    this.storeData.error = {
+  newError(message) {
+    return {
       message,
       timestamp: Date.now(),
     };
@@ -378,67 +408,72 @@ class Store {
   /**
    * Handles data from a REQUEST_RESPONSE_OK action.
    * @param {!DataResponse} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleRequestResponseOk(data) {
+
+    const /** !PartialStoreData */ newStoreData = {};
+
     const waveformChunk = data.getWaveformChunk();
-    this.storeData.chunkGraphData = /** @type {?DataTableInput} */ (JSON.parse(
+    newStoreData.chunkGraphData = /** @type {!DataTableInput} */ (JSON.parse(
         assertString(waveformChunk.getWaveformDatatable())));
-    this.storeData.channelIds =
+    newStoreData.channelIds =
         waveformChunk.getChannelDataIdsList()
             .map(
                 channelDataId =>
                     this.convertChannelDataIdToIndexStr(channelDataId))
             .filter(channelStr => channelStr);
-    this.storeData.samplingFreq = waveformChunk.getSamplingFreq();
+    newStoreData.samplingFreq = waveformChunk.getSamplingFreq();
     const waveformMeta = data.getWaveformMetadata();
-    this.storeData.absStart = waveformMeta.getAbsStart();
-    this.storeData.annotations = waveformMeta.getLabelsList().map((label) => {
+    newStoreData.absStart = waveformMeta.getAbsStart();
+    newStoreData.annotations = waveformMeta.getLabelsList().map((label) => {
       return {
         labelText: label.getLabelText(),
         startTime: label.getStartTime(),
         id: null,
       };
     });
-    this.storeData.fileType = waveformMeta.getFileType();
-    this.storeData.indexChannelMap = assertInstanceof(
+    newStoreData.fileType = waveformMeta.getFileType();
+    newStoreData.indexChannelMap = assertInstanceof(
         waveformMeta.getChannelDictMap(), JspbMap);
-    this.storeData.numSecs = waveformMeta.getNumSecs();
-    this.storeData.patientId = waveformMeta.getPatientId();
-    this.storeData.sstableKey = waveformMeta.getSstableKey() || null;
+    newStoreData.numSecs = waveformMeta.getNumSecs();
+    newStoreData.patientId = waveformMeta.getPatientId();
+    newStoreData.sstableKey = waveformMeta.getSstableKey() || null;
     if (data.hasPredictionChunk() &&
         data.getPredictionChunk().getChunkStart() != null &&
         data.getPredictionChunk().getChunkDuration() != null) {
       const predictionChunk = data.getPredictionChunk();
-      this.storeData.attributionMaps = predictionChunk.getAttributionDataMap();
-      this.storeData.predictionChunkSize = assertNumber(
+      newStoreData.attributionMaps = predictionChunk.getAttributionDataMap();
+      newStoreData.predictionChunkSize = assertNumber(
           predictionChunk.getChunkDuration());
-      this.storeData.predictionChunkStart = assertNumber(
+      newStoreData.predictionChunkStart = assertNumber(
           predictionChunk.getChunkStart());
     } else {
-      this.storeData.attributionMaps = null;
-      this.storeData.predictionChunkSize = null;
-      this.storeData.predictionChunkStart = null;
+      newStoreData.attributionMaps = null;
+      newStoreData.predictionChunkSize = null;
+      newStoreData.predictionChunkStart = null;
     }
     if (data.hasPredictionMetadata()) {
       const predictionMeta = data.getPredictionMetadata();
-      this.storeData.chunkScores = predictionMeta.getChunkScoresList();
+      newStoreData.chunkScores = predictionMeta.getChunkScoresList();
     } else {
-      this.storeData.chunkScores = null;
+      newStoreData.chunkScores = null;
     }
 
     const wasFirstLoad = this.storeData.loadingStatus === LoadingStatus.LOADING;
-    this.storeData.loadingStatus =
+    newStoreData.loadingStatus =
         wasFirstLoad ? LoadingStatus.LOADED : LoadingStatus.RELOADED;
+
+    return newStoreData;
   }
 
   /**
    * Handles data from a WINDOW_LOCATION_PENDING_REQUEST action.
    * @param {!Dispatcher.FragmentData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleWindowLocationPendingRequest(data) {
-    responseProperties.forEach((prop) => {
-      this.storeData[prop] = null;
-    });
+    const /** !PartialStoreData */ newStoreData = {};
 
     /**
      * Parse a string to number.
@@ -452,28 +487,30 @@ class Store {
     const stringToArray = (str) => str ? str.split(',') : [];
 
     /**
-     * Update a key from storeData with the value from incoming data.
+     * Update a key from newStoreData with the value from incoming data.
      */
     const updateKey = (storeKey, parser = undefined) => {
       const dataKey = storeKey.toLowerCase();
       const newValue = data[dataKey];
       if (newValue && this.storeData[storeKey] != newValue) {
-        this.storeData[storeKey] = parser ? parser(newValue) : newValue;
+        newStoreData[storeKey] = parser ? parser(newValue) : newValue;
       }
     };
 
-    updateKey('tfExSSTablePath');
-    updateKey('predictionSSTablePath');
-    updateKey('sstableKey');
-    updateKey('edfPath');
-    updateKey('tfExFilePath');
-    updateKey('predictionFilePath');
-    updateKey('chunkStart', numberParser);
-    updateKey('chunkDuration', numberParser);
-    updateKey('channelIds', stringToArray);
-    updateKey('lowCut', numberParser);
-    updateKey('highCut', numberParser);
-    updateKey('notch', numberParser);
+    updateKey(Property.TFEX_SSTABLE_PATH);
+    updateKey(Property.PREDICTION_SSTABLE_PATH);
+    updateKey(Property.SSTABLE_KEY);
+    updateKey(Property.EDF_PATH);
+    updateKey(Property.TFEX_FILE_PATH);
+    updateKey(Property.PREDICTION_FILE_PATH);
+    updateKey(Property.CHUNK_START, numberParser);
+    updateKey(Property.CHUNK_DURATION, numberParser);
+    updateKey(Property.CHANNEL_IDS, stringToArray);
+    updateKey(Property.LOW_CUT, numberParser);
+    updateKey(Property.HIGH_CUT, numberParser);
+    updateKey(Property.NOTCH, numberParser);
+
+    return newStoreData;
   }
 
   /**
@@ -481,21 +518,29 @@ class Store {
    * the error message. Use these actions for any common error or warning
    * (except special types, such as request response error).
    * @param {!Dispatcher.ErrorData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleError(data) {
-    this.updateError(data.message);
+    return {
+      error: this.newError(data.message),
+    };
   }
 
   /**
    * Handles data from a REQUEST_RESPONSE_ERROR action that will modify the
    * error message and the loading status.
    * @param {!Dispatcher.ErrorData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleRequestResponseError(data) {
-    this.updateError(data.message);
+    const error = this.newError(data.message);
     const wasFirstLoad = this.storeData.loadingStatus === LoadingStatus.LOADING;
-    this.storeData.loadingStatus =
+    const loadingStatus =
         wasFirstLoad ? LoadingStatus.NO_DATA : LoadingStatus.RELOADED;
+    return {
+      error,
+      loadingStatus,
+    };
   }
 
   /**
@@ -503,186 +548,244 @@ class Store {
    * status.
    * @param {!Dispatcher.RequestStartData} data The data payload from the
    *     action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleRequestStart(data) {
     const isFirstLoad = this.storeData.loadingStatus === LoadingStatus.NO_DATA;
-    this.storeData.loadingStatus = (isFirstLoad || data.fileParamDirty) ?
+    const loadingStatus = (isFirstLoad || data.fileParamDirty) ?
         LoadingStatus.LOADING :
         LoadingStatus.RELOADING;
+    return {
+      loadingStatus,
+    };
   }
 
   /**
    * Handles data from a CHANGE_TYPING_STATUS action, that will update the
    * typing status in the store.
+   * @param {!Dispatcher.IsTypingData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleChangeTypingStatus(data) {
-    this.storeData.isTyping = data.isTyping;
+    return {
+      isTyping: data.isTyping,
+    };
   }
 
   /**
    * Handles data from a TOOL_BAR_GRIDLINES action that will modify the time
    * scale.
    * @param {!Dispatcher.SelectionData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleToolBarGridlines(data) {
     assertNumber(data.selectedValue);
-    this.storeData.timeScale = data.selectedValue;
+    return {
+      timeScale: data.selectedValue,
+    };
   }
 
   /**
    * Handles data from a TOOL_BAR_HIGH_CUT action which will modify the high cut
    * filter parameter.
    * @param {!Dispatcher.SelectionData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleToolBarHighCut(data) {
     assertNumber(data.selectedValue);
-    this.storeData.highCut = data.selectedValue;
+    return {
+      highCut: data.selectedValue,
+    };
   }
 
   /**
    * Handles data from a TOOL_BAR_LOW_CUT action which will modify the low cut
    * filter parameter.
    * @param {!Dispatcher.SelectionData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleToolBarLowCut(data) {
     assertNumber(data.selectedValue);
-    this.storeData.lowCut = data.selectedValue;
+    return {
+      lowCut: data.selectedValue,
+    };
   }
 
   /**
    * Handles data from a TOOL_BAR_MONTAGE action.
    * @param {!Dispatcher.SelectionData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleToolBarMontage(data) {
     assertArray(data.selectedValue);
-    this.storeData.channelIds = data.selectedValue;
+    return {
+      channelIds: data.selectedValue,
+    };
   }
 
   /**
    * Handles data from a TOOL_BAR_NEXT_CHUNK action which will modify the chunk
    * start.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleToolBarNextChunk() {
-    this.storeData.chunkStart = (this.storeData.chunkStart +
-        this.storeData.chunkDuration);
+    return {
+      chunkStart: this.storeData.chunkStart + this.storeData.chunkDuration,
+    };
   }
 
   /**
    * Handles data from a TOOL_BAR_NEXT_SEC action which will modify the chunk
    * start.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleToolBarNextSec() {
-    this.storeData.chunkStart = this.storeData.chunkStart + 1;
+    return {
+      chunkStart: this.storeData.chunkStart + 1,
+    };
   }
 
   /**
    * Handles data from a TOOL_BAR_NOTCH action.
    * @param {!Dispatcher.SelectionData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleToolBarNotch(data) {
     assertNumber(data.selectedValue);
-    this.storeData.notch = data.selectedValue;
+    return {
+      notch: data.selectedValue,
+    };
   }
 
   /**
    * Handles data from a TOOL_BAR_PREV_CHUNK action which will modify the chunk
    * start.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleToolBarPrevChunk() {
-    this.storeData.chunkStart = (this.storeData.chunkStart -
-        this.storeData.chunkDuration);
+    return {
+      chunkStart: this.storeData.chunkStart - this.storeData.chunkDuration,
+    };
   }
 
   /**
    * Handles data from a TOOL_BAR_PREV_SEC action which will modify the chunk
    * start.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleToolBarPrevSec() {
-    this.storeData.chunkStart = this.storeData.chunkStart - 1;
+    return {
+      chunkStart: this.storeData.chunkStart - 1,
+    };
   }
 
   /**
    * Handles data from a TOOL_BAR_SENSITIVITY action which will modify the
    * sensitivity.
    * @param {!Dispatcher.SelectionData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleToolBarSensitivity(data) {
     assertNumber(data.selectedValue);
-    this.storeData.sensitivity = data.selectedValue;
+    return {
+      sensitivity: data.selectedValue,
+    };
   }
 
   /**
    * Handles data from a TOOL_BAR_ZOOM action which will modify the chunk
    * duration.
    * @param {!Dispatcher.SelectionData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handleToolBarZoom(data) {
     assertNumber(data.selectedValue);
-    this.storeData.chunkDuration = data.selectedValue;
+    return {
+      chunkDuration: data.selectedValue,
+    };
   }
 
   /**
    * Handles data from a PREDICTION_CHUNK_REQUEST action which will modify the
    * chunk start.
    * @param {!Dispatcher.TimeData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handlePredictionChunkRequest(data) {
-    this.storeData.chunkStart = Math.round(data.time);
+    return {
+      chunkStart: Math.round(data.time),
+    };
   }
 
   /**
    * Handles data from a PREDICTION_MODE_SELECTION action which will modify the
    * prediction viewing mode.
    * @param {!Dispatcher.SelectionData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handlePredictionModeSelection(data) {
     const mode = assertString(data.selectedValue);
     assert(Object.values(PredictionMode).includes(mode));
-    this.storeData.predictionMode = /** @type {!PredictionMode} */(mode);
+    return {
+      predictionMode: /** @type {!PredictionMode} */(mode),
+    };
   }
 
   /**
    * Handles data from a PREDICTION_LABEL_SELECTION action which will modify the
    * label.
    * @param {!Dispatcher.SelectionData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
    */
   handlePredictionLabelSelection(data) {
-    this.storeData.label = assertString(data.selectedValue);
+    return {
+      label: assertString(data.selectedValue),
+    };
   }
 
   /**
    * Handles data from an ANNOTATION_SELECTION action which will update the
    * chunk start.
    * @param {!Dispatcher.TimeData} data The data payload from the action.
+   * @return {?PartialStoreData} store data with changed properties.
    */
   handleAnnotationSelection(data) {
-    this.storeData.chunkStart = Math.round(data.time -
-        this.storeData.chunkDuration / 2);
+    return {
+      chunkStart: Math.round(data.time - this.storeData.chunkDuration / 2),
+    };
   }
 
   /**
    * Handles data from a MENU_FILE_LOAD action which may update the file input
    * options.
    * @param {!Dispatcher.FileParamData} data The data payload from the action.
+   * @return {?PartialStoreData} store data with changed properties.
    */
   handleMenuFileLoad(data) {
-    this.storeData.tfExSSTablePath = data.tfExSSTablePath || null;
-    this.storeData.predictionSSTablePath = data.predictionSSTablePath || null;
-    this.storeData.sstableKey = data.sstableKey || null;
-    this.storeData.edfPath = data.edfPath || null;
-    this.storeData.tfExFilePath = data.tfExFilePath || null;
-    this.storeData.predictionFilePath = data.predictionFilePath || null;
+    return {
+      tfExSSTablePath: data.tfExSSTablePath || null,
+      predictionSSTablePath: data.predictionSSTablePath || null,
+      sstableKey: data.sstableKey || null,
+      edfPath: data.edfPath || null,
+      tfExFilePath: data.tfExFilePath || null,
+      predictionFilePath: data.predictionFilePath || null,
+    };
   }
 
   /**
    * Handles data from a NAV_BAR_CHUNK_REQUEST action which will update the
    * chunk start.
    * @param {!Dispatcher.TimeData} data The data payload from the action.
+   * @return {?PartialStoreData} store data with changed properties.
    */
   handleNavBarRequest(data) {
     if (data.time || data.time === 0) {
-      this.storeData.chunkStart = this.storeData.chunkDuration * Math.floor(
-        data.time / this.storeData.chunkDuration);
+      const chunkDuration = this.storeData.chunkDuration;
+      return {
+        chunkStart: chunkDuration * Math.floor(data.time / chunkDuration),
+      };
+    } else {
+      return null;
     }
   }
 
@@ -707,23 +810,24 @@ class Store {
   }
 
   /**
-   * Clips chunk time within [0, numSecs].
+   * Clips chunk start within [0, numSecs].
+   * @param {!PartialStoreData} newStoreData New store data.
    */
-  clipTime() {
-    if (this.storeData.numSecs) {
-      this.storeData.chunkStart = Math.min(this.storeData.chunkStart,
-          this.storeData.numSecs - this.storeData.chunkDuration);
-      this.storeData.chunkStart = Math.max(this.storeData.chunkStart, 0);
+  clipChunkStart(newStoreData) {
+    if (newStoreData.chunkStart == null) {
+      return;
     }
-  }
 
-  /**
-   * Creates a copy of the current StoreData state.
-   * @return {!StoreData} Copy of the current state.
-   */
-  getStoreDataState() {
-    return /** @type {!StoreData} */(JSON.parse(
-        JSON.stringify(this.storeData)));
+    const numSecs = newStoreData.numSecs != null ?
+        newStoreData.numSecs : this.storeData.numSecs;
+    const chunkDuration = newStoreData.chunkDuration != null ?
+        newStoreData.chunkDuration : this.storeData.chunkDuration;
+
+    if (numSecs) {
+      newStoreData.chunkStart =
+          Math.min(newStoreData.chunkStart, numSecs - chunkDuration);
+      newStoreData.chunkStart = Math.max(newStoreData.chunkStart, 0);
+    }
   }
 
   /**
@@ -732,10 +836,9 @@ class Store {
    * @param {!Object} data The data accompanying the action event.
    */
   callbackWrapper(handler, data) {
-    const oldStoreData = this.getStoreDataState();
-    handler(data);
-    this.clipTime();
-    this.emitChange(oldStoreData);
+    const newStoreData = handler(data);
+    this.clipChunkStart(newStoreData);
+    this.emitChange(newStoreData);
   }
 }
 

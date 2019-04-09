@@ -115,6 +115,13 @@ let SelectionData;
  */
 let RequestStartData;
 
+/**
+ * @typedef {{
+ *   isTyping: boolean,
+ * }}
+ */
+let IsTypingData;
+
 
 class Dispatcher {
 
@@ -160,3 +167,4 @@ exports.FileParamData = FileParamData;
 exports.ErrorData = ErrorData;
 exports.SelectionData = SelectionData;
 exports.RequestStartData = RequestStartData;
+exports.IsTypingData = IsTypingData;
