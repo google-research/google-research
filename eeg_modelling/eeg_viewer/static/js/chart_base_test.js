@@ -94,12 +94,6 @@ testSuite({
     document.body.appendChild(parentContainer);
   },
 
-  testAddAnnotations() {
-    const dataTable = new DataTable(storeData.chunkGraphData);
-    chartBase.addAnnotations(storeData, dataTable);
-    assertEquals('do not trust the mice', dataTable.getValue(1, 1));
-  },
-
   testGetRenderOffset() {
     assertEquals(14, chartBase.getRenderOffset(1, storeData));
     assertEquals(0, chartBase.getRenderOffset(2, storeData));

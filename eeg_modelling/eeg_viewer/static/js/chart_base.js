@@ -27,6 +27,27 @@ const {assert, assertInstanceof, assertNumber, assertObject, assertString} = goo
 
 /**
  * @typedef {{
+ *   annotations: (undefined|{
+ *     boxStyle: {
+ *       stroke: (string|undefined),
+ *       strokeWidth: (number|undefined),
+ *       rx: (number|undefined),
+ *       ry: (number|undefined),
+ *       gradient: {
+ *         color1: (string|undefined),
+ *         color2: (string|undefined),
+ *         x1: (string|undefined),
+ *         y1: (string|undefined),
+ *         x2: (string|undefined),
+ *         y2: (string|undefined),
+ *         useObjectBoundingBoxUnits: (boolean|undefined),
+ *       },
+ *     },
+ *     textStyle: {
+ *       fontSize: (number|undefined),
+ *       bold: (boolean|undefined),
+ *     },
+ *   }),
  *   chartArea: {
  *     backgroundColor: (string|{
  *       stroke: (string|undefined),
@@ -62,7 +83,8 @@ const {assert, assertInstanceof, assertNumber, assertObject, assertString} = goo
  *   },
  *   lineWidth: number,
  *   tooltip: {
- *     trigger: string
+ *     trigger: string,
+ *     isHtml: (boolean|undefined),
  *   },
  *   vAxis: {
  *     baselineColor: string,
@@ -165,7 +187,9 @@ class ChartBase {
         position: 'none',
       },
       lineWidth: 1,
-      tooltip: {trigger: 'none'},
+      tooltip: {
+        trigger: 'none',
+      },
       vAxis: {
         baselineColor: '#fff',
         gridlines: {
@@ -249,30 +273,6 @@ class ChartBase {
     const proximalObject = this.getOption(proximalObjectKeys.join('.'));
     assertObject(proximalObject);
     proximalObject[proximalKey] = value;
-  }
-
-  /**
-   * Formats the annotations for DataTable.
-   * @param {!Store.StoreData} store Store object containing request chunk data.
-   * @param {!DataTable} dataTable DataTable object to add the annotations to.
-   */
-  addAnnotations(store, dataTable) {
-    dataTable.insertColumn(1, 'string');
-    dataTable.setColumnProperty(1, 'role', 'annotation');
-    store.annotations.forEach((annotation, index) => {
-      const labelText = annotation.labelText;
-      const samplingFreq = assertNumber(store.samplingFreq);
-      const startTime = assertNumber(annotation.startTime);
-      // Find the closest 'x' to the actual start time of the annotation, where
-      // 'x' is a point on the x-axis.  Note that the x-axis points are
-      // 1/samplingFreq apart from each other.
-      const x = (Math.round(startTime * samplingFreq) / samplingFreq);
-      for (let r = 0; r < dataTable.getNumberOfRows(); r++) {
-        if (dataTable.getValue(r, 0) == x) {
-          dataTable.setValue(r, 1, labelText);
-        }
-      }
-    });
   }
 
   /**
@@ -487,13 +487,6 @@ class ChartBase {
   };
 
   /**
-   * Adds a chart action that be exposed through a tooltip.  These actions must
-   * be added before a chart is drawn.
-   * @param {!Store.StoreData} store Store object containing request chunk data.
-   */
-  addChartActions(store) {}
-
-  /**
    * Updates configuration options before drawing the chart, updates the resize
    * handler with the newest store state, and draws the canvas overlay.
    * @param {!Store.StoreData} store Store object containing request chunk data.
@@ -534,7 +527,6 @@ class ChartBase {
       return;
     }
     this.initChart();
-    this.addChartActions(store);
     this.dataTable = this.createDataTable(store);
     this.handleDraw(store);
     this.addChartEventListeners();
