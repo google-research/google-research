@@ -260,6 +260,19 @@ th i.sorted, th i.sorted-reverse {
   pointer-events: none;
 }
 
+.google-visualization-tooltip {
+  position: absolute;
+  background-color: white;
+  border: gray solid 1.5pt;
+  border-radius: 4pt;
+  text-align: left;
+}
+
+.google-visualization-tooltip p {
+  margin: 12px;
+  font-size: 14pt;
+}
+
 #no-predictions-text {
   text-align: center;
   font-size: 18px;

@@ -18,6 +18,7 @@ const ChartBase = goog.require('eeg_modelling.eeg_viewer.ChartBase');
 const DataTable = goog.require('google.visualization.DataTable');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const array = goog.require('goog.array');
+const formatter = goog.require('eeg_modelling.eeg_viewer.formatter');
 const {assert, assertNumber, assertString} = goog.require('goog.asserts');
 
 /**
@@ -62,6 +63,17 @@ const channelNameMatchers = {
   ],
 };
 
+/**
+ * Creates the tooltip to display on a chart point, in HTML format.
+ * @param {string} timestamp Formatted time to display.
+ * @param {string} columnName Name of the column of the point.
+ * @param {string|number} value Y value in the point, in uV.
+ * @return {string} HTML to display in tooltip.
+ */
+function createHTMLTooltip(timestamp, columnName, value) {
+  return `<p>${timestamp}</p><p>${columnName}</p><p>${
+      Number(value).toFixed(2)} ${String.fromCharCode(956)}V</p>`;
+}
 
 class Graph extends ChartBase {
 
@@ -71,6 +83,30 @@ class Graph extends ChartBase {
     this.containerId = 'line-chart-container';
 
     this.chartOptions.chartArea.backgroundColor = {};
+
+    this.chartOptions.annotations = {
+      boxStyle: {
+        stroke: 'black',
+        strokeWidth: 1,
+        rx: 5,
+        ry: 5,
+        gradient: {
+          color1: 'rgb(83, 109, 254)',
+          color2: 'rgb(83, 109, 254)',
+          x1: '0%', y1: '0%',
+          x2: '100%', y2: '100%',
+          useObjectBoundingBoxUnits: true,
+        },
+      },
+      textStyle: {
+        fontSize: 15,
+        bold: false,
+      },
+    };
+    this.chartOptions.crosshair.color = 'rgb(83, 109, 254)';
+    this.chartOptions.crosshair.selected.color = 'rgb(34, 139, 34)';
+    this.chartOptions.tooltip.isHtml = true;
+    this.chartOptions.tooltip.trigger = 'focus';
 
     this.height = {
       [Store.PredictionMode.NONE]: 1.0,
@@ -111,6 +147,20 @@ class Graph extends ChartBase {
   }
 
   /**
+   * @override
+   */
+  getStart(store) {
+    return store.chunkStart;
+  }
+
+  /**
+   * @override
+   */
+  getNumSecs(store) {
+    return store.chunkDuration;
+  }
+
+  /**
    * Derives render transformation coefficient from series ID.
    * @param {string} seriesName Name of the series of data.
    * @param {!Store.StoreData} store Store object containing request chunk data.
@@ -138,43 +188,102 @@ class Graph extends ChartBase {
   }
 
   /**
-   * Staggers data series vertically by given series height.
+   * Staggers data series vertically, considering sensitivity and series offset.
    * @param {!Store.StoreData} store Store object containing request chunk data.
-   * @param {!Object} data DataTable object in object literal JSON format.
-   * @return {!DataTable} A DataTable object with values adjusted for
-   *     sensitivity and series offset, with the display values formatted.
+   * @param {!DataTable} dataTable instance.
    */
-  formatDataForRendering(store, data) {
-    const dataTable = new DataTable(data);
+  formatDataForRendering(store, dataTable) {
     // Skips over the first column of data that becomes the axis values.
-    for (let c = 1; c < dataTable.getNumberOfColumns(); c++) {
-      const offset = this.getRenderOffset(c, store);
-      const transform = this.getRenderTransformation(dataTable.getColumnId(c),
+    for (let col = 1; col < dataTable.getNumberOfColumns(); col++) {
+      const offset = this.getRenderOffset(col, store);
+      const transform = this.getRenderTransformation(dataTable.getColumnId(col),
                                                      store);
-      for (let r = 0; r < dataTable.getNumberOfRows(); r++) {
-        if (dataTable.getValue(r, c) != null) {
-          const value = assertNumber(dataTable.getValue(r, c));
+      for (let row = 0; row < dataTable.getNumberOfRows(); row++) {
+        if (dataTable.getValue(row, col) != null) {
+          const value = Number(dataTable.getFormattedValue(row, col));
           const transformedValue = value * transform + offset;
-          dataTable.setValue(r, c, transformedValue);
-          dataTable.setFormattedValue(r, c, '' + value);
+
+          // The formatted value on each cell holds the actual voltage value.
+          // The value holds the value with the transformation applied.
+          dataTable.setValue(row, col, transformedValue);
+          dataTable.setFormattedValue(row, col, value);
         }
       }
     }
-    return dataTable;
   }
 
   /**
-   * @override
+   * Sets formatted time in the domain column to use when rendering.
+   * @param {!Store.StoreData} store Store object containing request chunk data.
+   * @param {!DataTable} dataTable instance.
    */
-  getStart(store) {
-    return store.chunkStart;
+  formatDomainForRendering(store, dataTable) {
+    for (let row = 0; row < dataTable.getNumberOfRows(); row++) {
+      const timeValue = dataTable.getValue(row, 0);
+      const formattedTime =
+          formatter.formatTime(store.absStart + timeValue, true);
+      dataTable.setFormattedValue(row, 0, formattedTime);
+    }
   }
 
   /**
-   * @override
+   * Formats the annotations for DataTable.
+   * @param {!Store.StoreData} store Store object containing request chunk data.
+   * @param {!DataTable} dataTable DataTable object to add the annotations to.
    */
-  getNumSecs(store) {
-    return store.chunkDuration;
+  addAnnotations(store, dataTable) {
+    dataTable.insertColumn(1, 'string');
+    dataTable.setColumnProperty(1, 'role', 'annotation');
+    dataTable.insertColumn(2, 'string');
+    dataTable.setColumnProperty(2, 'role', 'annotationText');
+    dataTable.setColumnProperty(2, 'html', true);
+
+    store.annotations.forEach((annotation, index) => {
+      const labelText = `<p>${annotation.labelText}</p>`;
+      const samplingFreq = assertNumber(store.samplingFreq);
+      const startTime = assertNumber(annotation.startTime);
+      // Find the closest 'x' to the actual start time of the annotation, where
+      // 'x' is a point on the x-axis.  Note that the x-axis points are
+      // 1/samplingFreq apart from each other.
+      const x = (Math.round(startTime * samplingFreq) / samplingFreq);
+      for (let row = 0; row < dataTable.getNumberOfRows(); row++) {
+        if (dataTable.getValue(row, 0) == x) {
+          dataTable.setValue(row, 1, 'Label');
+          dataTable.setValue(row, 2, labelText);
+        }
+      }
+    });
+  }
+
+  /**
+   * Adds columns in the data table with HTML tooltips for each point in the
+   * graph.
+   * @param {!Store.StoreData} store Store object containing request chunk data.
+   * @param {!DataTable} dataTable DataTable object to add the annotations to.
+   */
+  addTooltips(store, dataTable) {
+    // The first data column has index 3:
+    // Columns: [time, annotation, annotationText, data, ...]
+    const firstDataCol = 3;
+
+    const nRows = dataTable.getNumberOfRows();
+    const nCols = dataTable.getNumberOfColumns();
+
+    // TODO(pdpino): make the column insertion more efficient
+    for (let dataCol = nCols - 1; dataCol >= firstDataCol; dataCol--) {
+      const tooltipCol = dataCol + 1;
+      dataTable.insertColumn(tooltipCol, 'string');
+      dataTable.setColumnProperty(tooltipCol, 'role', 'tooltip');
+      dataTable.setColumnProperty(tooltipCol, 'html', true);
+      const channelName = dataTable.getColumnLabel(dataCol);
+
+      for (let row = 0; row < nRows; row++) {
+        const prettyTime = dataTable.getFormattedValue(row, 0);
+        const value = dataTable.getFormattedValue(row, dataCol);
+        const tooltipHtml = createHTMLTooltip(prettyTime, channelName, value);
+        dataTable.setValue(row, tooltipCol, tooltipHtml);
+      }
+    }
   }
 
   /**
@@ -183,8 +292,11 @@ class Graph extends ChartBase {
   createDataTable(store) {
     const chunkGraphData = /** @type {!Object} */ (JSON.parse(JSON.stringify(
         store.chunkGraphData)));
-    const dataTable = this.formatDataForRendering(store, chunkGraphData);
+    const dataTable = new DataTable(chunkGraphData);
+    this.formatDataForRendering(store, dataTable);
+    this.formatDomainForRendering(store, dataTable);
     this.addAnnotations(store, dataTable);
+    this.addTooltips(store, dataTable);
     return dataTable;
   }
 
@@ -193,7 +305,6 @@ class Graph extends ChartBase {
    */
   updateChartOptions(store) {
     const numSeries = store.chunkGraphData.cols.length;
-    this.setOption('tooltip.trigger', 'selection');
     this.setOption('vAxis.viewWindow', {
        min: -store.seriesHeight * 2,
        max: store.seriesHeight * numSeries,
@@ -201,41 +312,6 @@ class Graph extends ChartBase {
     this.setOption('colors',
         this.generateColors(store.chunkGraphData.cols.length, '#696969'));
     super.updateChartOptions(store);
-  }
-
-  /**
-   * Increases the sensitivity of the selected channel.
-   * @param {!Store.StoreData} store Store object containing request chunk data.
-   * @param {number} modifier An additive modifer for the channel
-   * transformations.
-   */
-  modifyChannelSensitivity(store, modifier) {
-    const channelColumn = this.getChart().getSelection()[0].column;
-    const channelId = this.getDataTable().getColumnId(channelColumn);
-    this.channelTransformations.set(channelId,
-        this.channelTransformations.get(channelId) + modifier);
-    this.handleChartData(store);
-  }
-
-  /**
-   * @override
-   */
-  addChartActions(store) {
-    const sensitivityModifier = 0.5;
-    const chart = this.getChart();
-    if (chart) {
-      chart.setAction({
-        id: 'increase',
-        text: 'Increase Sensitivity',
-        action: () => this.modifyChannelSensitivity(store, sensitivityModifier),
-      });
-      chart.setAction({
-        id: 'decrease',
-        text: 'Decrease Sensitivity',
-        action: () => this.modifyChannelSensitivity(store,
-            -sensitivityModifier),
-      });
-    }
   }
 
   /**

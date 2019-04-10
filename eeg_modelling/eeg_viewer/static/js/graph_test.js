@@ -17,7 +17,6 @@ goog.setTestOnly();
 
 const DataTable = goog.require('google.visualization.DataTable');
 const Graph = goog.require('eeg_modelling.eeg_viewer.Graph');
-const LineChart = goog.require('google.visualization.LineChart');
 const MockControl = goog.require('goog.testing.MockControl');
 const testSuite = goog.require('goog.testing.testSuite');
 
@@ -25,7 +24,6 @@ let mockControl;
 
 let graph;
 let storeData;
-let expectedFormattedData;
 let annotatedData;
 
 
@@ -71,50 +69,46 @@ testSuite({
       timeScale: 1,
     };
 
-    expectedFormattedData = {
-      cols: [
-        {id: 'axis', label: 'axis', type: 'number'},
-        {id: 'series 1', label: 'series 1', type: 'number'},
-        {id: 'series 2', label: 'series 2', type: 'number'}
-      ],
-      rows: [
-        {c: [{v: 40}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 41}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 42}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 43}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 44}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 45}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 46}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 47}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 48}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 49}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-      ],
-    };
-
     annotatedData = {
       cols: [
         {id: 'axis', label: 'axis', type: 'number'},
         {id: '', label: '', pattern: '', type: 'string',
          p: {role: 'annotation'}},
+        {id: '', label: '', pattern: '', type: 'string',
+         p: {role: 'annotationText', html: true}},
         {id: 'series 1', label: 'series 1', type: 'number'},
+        {id: '', label: '', type: 'string',
+         p: {role: 'tooltip', html: true}},
         {id: 'series 2', label: 'series 2', type: 'number'},
+        {id: '', label: '', type: 'string',
+         p: {role: 'tooltip', html: true}},
       ],
       rows: [
-        {c: [{v: 40}, {v: null}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 41}, {v: null}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
+        {c: [{v: 40}, {v: null}, {v: null}, {v: 42, f: 0}, {v: 'html tooltip'},
+             {v: 7, f: 1}, {v: 'html tooltip'},]},
+        {c: [{v: 41}, {v: null}, {v: null}, {v: 42, f: 0}, {v: 'html tooltip'},
+             {v: 7, f: 1}, {v: 'html tooltip'}]},
         {
           c: [
-            {v: 42}, {v: 'do not trust the mice'}, {v: 42, f: '0'},
-            {v: 7, f: '1'}
+            {v: 42}, {v: 'label'}, {v: 'do not trust the mice'},
+            {v: 42, f: 0}, {v: 'html tooltip'},
+            {v: 7, f: 1}, {v: 'html tooltip'},
           ]
         },
-        {c: [{v: 43}, {v: null}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 44}, {v: null}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 45}, {v: null}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 46}, {v: null}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 47}, {v: null}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 48}, {v: null}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
-        {c: [{v: 49}, {v: null}, {v: 42, f: '0'}, {v: 7, f: '1'}]},
+        {c: [{v: 43}, {v: null}, {v: null}, {v: 42, f: 0}, {v: 'html tooltip'},
+             {v: 7, f: 1}, {v: 'html tooltip'}]},
+        {c: [{v: 44}, {v: null}, {v: null}, {v: 42, f: 0}, {v: 'html tooltip'},
+             {v: 7, f: 1}, {v: 'html tooltip'}]},
+        {c: [{v: 45}, {v: null}, {v: null}, {v: 42, f: 0}, {v: 'html tooltip'},
+             {v: 7, f: 1}, {v: 'html tooltip'}]},
+        {c: [{v: 46}, {v: null}, {v: null}, {v: 42, f: 0}, {v: 'html tooltip'},
+             {v: 7, f: 1}, {v: 'html tooltip'}]},
+        {c: [{v: 47}, {v: null}, {v: null}, {v: 42, f: 0}, {v: 'html tooltip'},
+             {v: 7, f: 1}, {v: 'html tooltip'}]},
+        {c: [{v: 48}, {v: null}, {v: null}, {v: 42, f: 0}, {v: 'html tooltip'},
+             {v: 7, f: 1}, {v: 'html tooltip'}]},
+        {c: [{v: 49}, {v: null}, {v: null}, {v: 42, f: 0}, {v: 'html tooltip'},
+             {v: 7, f: 1}, {v: 'html tooltip'}]},
       ],
     };
 
@@ -165,15 +159,20 @@ testSuite({
         graph.getVTickDisplayValues(storeData));
   },
 
-  testFormatData() {
-    const formattedData =
-        graph.formatDataForRendering(storeData, storeData.chunkGraphData);
-    assertObjectEquals(new DataTable(expectedFormattedData), formattedData);
+  testAddAnnotations() {
+    const dataTable = new DataTable(storeData.chunkGraphData);
+    graph.addAnnotations(storeData, dataTable);
+    assertContains('do not trust the mice', dataTable.getValue(2, 2));
   },
 
   testCreateDataTable() {
-    const datatable = graph.createDataTable(storeData);
-    assertObjectEquals(new DataTable(annotatedData), datatable);
+    const dataTable = graph.createDataTable(storeData);
+
+    const expectedDataTable = new DataTable(annotatedData);
+    assertEquals(
+        expectedDataTable.getNumberOfRows(), dataTable.getNumberOfRows());
+    assertEquals(
+        expectedDataTable.getNumberOfColumns(), dataTable.getNumberOfColumns());
   },
 
   testUpdateChartOptions() {
@@ -181,7 +180,6 @@ testSuite({
     mockParent().$returns({clientHeight: 500});
 
     const mockSet = mockControl.createMethodMock(graph, 'setOption');
-    mockSet('tooltip.trigger', 'selection').$once();
     mockSet('vAxis.viewWindow', {min: -84, max: 126}).$once();
     mockSet('colors', ['#696969', '#696969', '#696969']).$once();
     mockSet('height', 460).$once();
@@ -201,32 +199,6 @@ testSuite({
     mockControl.$verifyAll();
   },
 
-  testModifyChannelSensitivity() {
-    const mockChart = mockControl.createStrictMock(LineChart);
-    mockChart.getSelection().$returns([{row: 42, column: 66}]);
-    const mockGetChart = mockControl.createMethodMock(graph, 'getChart');
-    mockGetChart().$returns(mockChart);
-
-    const mockDataTable = mockControl.createStrictMock(DataTable);
-    mockDataTable.getColumnId(66).$returns('test col');
-    const mockGetDataTable = mockControl.createMethodMock(graph,
-        'getDataTable');
-    mockGetDataTable().$returns(mockDataTable);
-
-    const mockHandleDraw = mockControl.createMethodMock(graph,
-        'handleChartData');
-    mockHandleDraw(storeData).$once();
-
-    mockControl.$replayAll();
-
-    graph.channelTransformations.set('test col', 0);
-    graph.modifyChannelSensitivity(storeData, 0.49);
-
-    mockControl.$verifyAll();
-
-    assert(graph.channelTransformations.has('test col'));
-    assertEquals(0.49, graph.channelTransformations.get('test col'));
-  },
 
   tearDown() {
     mockControl.$tearDown();
