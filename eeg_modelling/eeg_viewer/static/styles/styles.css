@@ -283,3 +283,8 @@ th i.sorted, th i.sorted-reverse {
   /* Overrides given by MDL table row */
   padding: 0px !important;
 }
+
+#channel-actions-container {
+  position: absolute;
+  min-height: auto;
+}

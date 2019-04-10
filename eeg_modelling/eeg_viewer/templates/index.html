@@ -97,6 +97,24 @@
         <div id="line-chart-container"></div>
         <div id="prediction-line-chart-container"></div>
         <canvas id="prediction-overlay" class="canvas-overlay"></canvas>
+        <div id="channel-actions-container" class="hidden mdl-card mdl-shadow--2dp">
+          <div class="mdl-card__title">
+            <h2 id="channel-actions-title" class="mdl-card__title-text"></h2>
+          </div>
+          <div class="mdl-card__menu">
+            <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="graph.closeSensitivityMenu()">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+          <div class="mdl-card__actions mdl-card--border">
+            <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="graph.increaseSensitivity()">
+              Increase Sensitivity
+            </button>
+            <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="graph.decreaseSensitivity()">
+              Decrease Sensitivity
+            </button>
+          </div>
+        </div>
       </div>
       <div class="right-side-panel hidden mdl-card mdl-shadow--2dp" id="settings-panel">
         <div class="mdl-card__title">

@@ -18,6 +18,7 @@ goog.setTestOnly();
 const DataTable = goog.require('google.visualization.DataTable');
 const Graph = goog.require('eeg_modelling.eeg_viewer.Graph');
 const MockControl = goog.require('goog.testing.MockControl');
+const gvizEvents = goog.require('google.visualization.events');
 const testSuite = goog.require('goog.testing.testSuite');
 
 let mockControl;
@@ -121,6 +122,15 @@ testSuite({
     chunk.id = graph.containerId;
     parentContainer.appendChild(chunk);
     document.body.appendChild(parentContainer);
+
+    const channelActionsContainer = document.createElement('div');
+    channelActionsContainer.id = 'channel-actions-container';
+
+    const channelActionsTitle = document.createElement('div');
+    channelActionsTitle.id = 'channel-actions-title';
+    channelActionsContainer.appendChild(channelActionsTitle);
+
+    document.body.appendChild(channelActionsContainer);
   },
 
   testGetRenderTransformation_Default() {
@@ -199,6 +209,23 @@ testSuite({
     mockControl.$verifyAll();
   },
 
+  testModifyChannelSensitivity() {
+    const selectedSeries = 'series 2';
+    const seriesReversedIndex = 0;
+
+    graph.channelTransformations.set(selectedSeries, 2);
+    graph.handleChartData(storeData);
+
+    gvizEvents.trigger(graph.getChart(), 'click', {
+      targetID: `vAxis#0#label#${seriesReversedIndex}`,
+      x: 6.4,
+      y: 0,
+    });
+    graph.increaseSensitivity();
+
+    assert(graph.channelTransformations.has(selectedSeries));
+    assertEquals(4, graph.channelTransformations.get(selectedSeries));
+  },
 
   tearDown() {
     mockControl.$tearDown();

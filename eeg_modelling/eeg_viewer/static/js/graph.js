@@ -117,6 +117,37 @@ class Graph extends ChartBase {
     /** @public {!Map<string, number>} */
     this.channelTransformations = new Map([]);
 
+    this.chartListeners = [
+      {
+        type: 'click',
+        handler: (event) => {
+          if (!event.targetID || !event.targetID.startsWith('vAxis')) {
+            return;
+          }
+
+          const cli = this.getChartLayoutInterface();
+          const chartArea = cli.getChartAreaBoundingBox();
+
+          const seriesIndexReversed = Number(event.targetID.split('#')[3]);
+          const columnIndex =
+              this.seriesIndexToColumnIndex_(seriesIndexReversed, true);
+          this.handleChannelNameClick(columnIndex, event.y, chartArea.left);
+        },
+      },
+    ];
+
+    /** @private {?Function} */
+    this.changeChannelSensitivity_ = null;
+
+    /** @private {?string} */
+    this.clickedChannelName_ = null;
+
+    /** @private @const {string} */
+    this.channelActionsId_ = 'channel-actions-container';
+
+    /** @private @const {string} */
+    this.channelActionsTitleId_ = 'channel-actions-title';
+
     const store = Store.getInstance();
     // This listener callback will initialize a graph with the annotations and
     // DataTable.
@@ -129,6 +160,38 @@ class Graph extends ChartBase {
     store.registerListener(
         [Store.Property.PREDICTION_MODE],
         'Graph', (store) => this.handleDraw(store));
+  }
+
+  /**
+   * Transforms the series index to the column index of a channel.
+   * The series index is the correlative order of the channels as displayed in
+   * the chart, starting at the bottom of the chart, and starting at 0.
+   * The column index is the index used directly in the data table.
+   *
+   * This function considers the following columns in the data table:
+   *   0: time
+   *   1: annotation
+   *   2: annotationText (HTML)
+   *   3: first channel
+   *   4: first channel tooltip
+   *   5: second channel
+   *   6: second channel tooltip
+   *   7: ...etc
+   * E.g., if the seriesIndex is 1, the columnIndex returned should be 5.
+   *
+   * @param {number} seriesIndex Position of the channel in the chart.
+   * @param {boolean=} reversed Indicates if the series index is reversed.
+   * @return {number} Column index as it appears in the data table.
+   * @private
+   */
+  seriesIndexToColumnIndex_(seriesIndex, reversed = false) {
+    if (reversed) {
+      const nCols = this.dataTable.getNumberOfColumns();
+      const nChannels = (nCols - 3) / 2;
+      seriesIndex = nChannels - 1 - seriesIndex;
+    }
+
+    return 3 + 2 * seriesIndex;
   }
 
   /**
@@ -315,6 +378,68 @@ class Graph extends ChartBase {
   }
 
   /**
+   * Handles a click in a channel name, which will enable the sensitivity menu.
+   * @param {number} columnIndex Column index of the channel.
+   * @param {number} yPos Position of the click in the y axis.
+   * @param {number} chartAreaLeft Left position of the chart area.
+   */
+  handleChannelNameClick(columnIndex, yPos, chartAreaLeft) {
+    const channelName = this.getDataTable().getColumnId(columnIndex);
+
+    if (channelName === this.clickedChannelName_) {
+      this.closeSensitivityMenu();
+      return;
+    }
+
+    this.clickedChannelName_ = channelName;
+
+    const channelActionsContainer =
+        document.getElementById(this.channelActionsId_);
+    const channelActionsTitle =
+        document.getElementById(this.channelActionsTitleId_);
+
+    channelActionsContainer.style.left = `${chartAreaLeft}px`;
+    channelActionsContainer.style.top = `${yPos - 20}px`;
+    channelActionsTitle.textContent = this.clickedChannelName_;
+
+    channelActionsContainer.classList.remove('hidden');
+  }
+
+  /**
+   * Closes the sensitivity menu and clears the channel click information.
+   */
+  closeSensitivityMenu() {
+    document.getElementById(this.channelActionsId_).classList.add('hidden');
+    document.getElementById(this.channelActionsTitleId_).textContent = '';
+    this.clickedChannelName_ = null;
+  }
+
+  /**
+   * Changes the sensitivity of the clicked channel.
+   * @param {number} modifier Sensitivity modifier.
+   * @private
+   */
+  changeClickedChannelSensitivity_(modifier) {
+    if (this.changeChannelSensitivity_ && this.clickedChannelName_) {
+      this.changeChannelSensitivity_(this.clickedChannelName_, modifier);
+    }
+  }
+
+  /**
+   * Increases the sensitivity of the clicked channel.
+   */
+  increaseSensitivity() {
+    this.changeClickedChannelSensitivity_(2);
+  }
+
+  /**
+   * Decreases the sensitivity of the clicked channel.
+   */
+  decreaseSensitivity() {
+    this.changeClickedChannelSensitivity_(0.5);
+  }
+
+  /**
    * @override
    */
   shouldBeVisible(store) {
@@ -324,8 +449,22 @@ class Graph extends ChartBase {
     }
     return shouldBeVisible;
   }
+
+  /**
+   * @override
+   */
+  handleChartData(store) {
+    this.changeChannelSensitivity_ = (channelName, modifier) => {
+      this.channelTransformations.set(
+          channelName, this.channelTransformations.get(channelName) * modifier);
+      this.handleChartData(store);
+    };
+
+    super.handleChartData(store);
+  }
 }
 
 goog.addSingletonGetter(Graph);
 
 exports = Graph;
+
