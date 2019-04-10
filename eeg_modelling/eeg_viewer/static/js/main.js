@@ -18,6 +18,7 @@ const Annotations = goog.require('eeg_modelling.eeg_viewer.Annotations');
 const ChartController = goog.require('eeg_modelling.eeg_viewer.ChartController');
 const Console = goog.require('goog.debug.Console');
 const Error = goog.require('eeg_modelling.eeg_viewer.Error');
+const Graph = goog.require('eeg_modelling.eeg_viewer.Graph');
 const Menus = goog.require('eeg_modelling.eeg_viewer.Menus');
 const NavChart = goog.require('eeg_modelling.eeg_viewer.NavChart');
 const Predictions = goog.require('eeg_modelling.eeg_viewer.Predictions');
@@ -32,6 +33,18 @@ console.setCapturing(true);
 Annotations.getInstance();
 ChartController.getInstance();
 Error.getInstance();
+
+/** @const {!Graph} */
+const graph = Graph.getInstance();
+goog.exportSymbol(
+    'graph.closeSensitivityMenu',
+    goog.bind(graph.closeSensitivityMenu, graph));
+goog.exportSymbol(
+    'graph.increaseSensitivity',
+    goog.bind(graph.increaseSensitivity, graph));
+goog.exportSymbol(
+    'graph.decreaseSensitivity',
+    goog.bind(graph.decreaseSensitivity, graph));
 
 /** @const {!Menus} */
 const menus = Menus.getInstance();
