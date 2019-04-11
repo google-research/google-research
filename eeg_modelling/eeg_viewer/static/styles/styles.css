@@ -273,10 +273,12 @@ th i.sorted, th i.sorted-reverse {
   font-size: 14pt;
 }
 
-#no-predictions-text {
+.empty-text {
+  padding: 15px 25px;
   text-align: center;
   font-size: 18px;
   font-style: italic;
+  color: rgba(0, 0, 0, 0.5);
 }
 
 .prediction-circle {
@@ -287,4 +289,13 @@ th i.sorted, th i.sorted-reverse {
 #channel-actions-container {
   position: absolute;
   min-height: auto;
+}
+
+#wave-event-form {
+  position: absolute;
+  z-index: 10;
+}
+
+#save-wave-event-button {
+  float: right;
 }

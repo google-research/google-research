@@ -82,6 +82,7 @@ const {assert, assertInstanceof, assertNumber, assertObject, assertString} = goo
  *     position: string,
  *   },
  *   lineWidth: number,
+ *   selectionMode: (string|undefined),
  *   tooltip: {
  *     trigger: string,
  *     isHtml: (boolean|undefined),

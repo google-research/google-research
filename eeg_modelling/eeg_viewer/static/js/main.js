@@ -24,6 +24,7 @@ const NavChart = goog.require('eeg_modelling.eeg_viewer.NavChart');
 const Predictions = goog.require('eeg_modelling.eeg_viewer.Predictions');
 const Requests = goog.require('eeg_modelling.eeg_viewer.Requests');
 const ToolBar = goog.require('eeg_modelling.eeg_viewer.ToolBar');
+const WaveEvents = goog.require('eeg_modelling.eeg_viewer.WaveEvents');
 const WindowLocation = goog.require('eeg_modelling.eeg_viewer.WindowLocation');
 
 /** @const {!Console} */
@@ -45,6 +46,15 @@ goog.exportSymbol(
 goog.exportSymbol(
     'graph.decreaseSensitivity',
     goog.bind(graph.decreaseSensitivity, graph));
+goog.exportSymbol(
+    'graph.selectWaveEventType',
+    goog.bind(graph.selectWaveEventType, graph));
+goog.exportSymbol(
+    'graph.closeWaveEventForm',
+    goog.bind(graph.closeWaveEventForm, graph));
+goog.exportSymbol(
+    'graph.saveWaveEvent',
+    goog.bind(graph.saveWaveEvent, graph));
 
 /** @const {!Menus} */
 const menus = Menus.getInstance();
@@ -84,6 +94,8 @@ goog.exportSymbol('toolBar.prevSec', goog.bind(toolBar.prevSec, toolBar));
 
 /** @const {!WindowLocation} */
 const windowLocation = WindowLocation.getInstance();
+
+WaveEvents.getInstance();
 
 /**
  * Make a request to the server when the URL changes.
