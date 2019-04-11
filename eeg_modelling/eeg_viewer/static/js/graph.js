@@ -16,6 +16,7 @@ goog.module('eeg_modelling.eeg_viewer.Graph');
 
 const ChartBase = goog.require('eeg_modelling.eeg_viewer.ChartBase');
 const DataTable = goog.require('google.visualization.DataTable');
+const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const array = goog.require('goog.array');
 const formatter = goog.require('eeg_modelling.eeg_viewer.formatter');
@@ -28,6 +29,15 @@ const {assert, assertNumber, assertString} = goog.require('goog.asserts');
  * }}
  */
 let NameMatcher;
+
+/**
+ * @typedef {{
+ *   timeValue: number,
+ *   xPos: number,
+ *   yPos: number,
+ * }}
+ */
+let DataPointClick;
 
 /**
  * Regular expressions to categorize channel types within each file type.  They
@@ -63,6 +73,12 @@ const channelNameMatchers = {
   ],
 };
 
+/** @const {number} default width of the wave event form. */
+const waveEventFormWidth = 330;
+
+/** @const {number} default height of the wave event form. */
+const waveEventFormHeight = 391;
+
 /**
  * Creates the tooltip to display on a chart point, in HTML format.
  * @param {string} timestamp Formatted time to display.
@@ -83,7 +99,7 @@ class Graph extends ChartBase {
     this.containerId = 'line-chart-container';
 
     this.chartOptions.chartArea.backgroundColor = {};
-
+    this.chartOptions.selectionMode = 'multiple';
     this.chartOptions.annotations = {
       boxStyle: {
         stroke: 'black',
@@ -121,20 +137,34 @@ class Graph extends ChartBase {
       {
         type: 'click',
         handler: (event) => {
-          if (!event.targetID || !event.targetID.startsWith('vAxis')) {
+          if (!event.targetID) {
             return;
           }
 
           const cli = this.getChartLayoutInterface();
           const chartArea = cli.getChartAreaBoundingBox();
 
-          const seriesIndexReversed = Number(event.targetID.split('#')[3]);
-          const columnIndex =
-              this.seriesIndexToColumnIndex_(seriesIndexReversed, true);
-          this.handleChannelNameClick(columnIndex, event.y, chartArea.left);
+          const timeValue = cli.getHAxisValue(event.x);
+
+          if (event.targetID.startsWith('point')) {
+            const row = Number(event.targetID.split('#')[2]);
+            this.handlePointClick(
+                row, timeValue, event.x, event.y, chartArea.left);
+          } else if (event.targetID.startsWith('vAxis')) {
+            const seriesIndexReversed = Number(event.targetID.split('#')[3]);
+            const columnIndex =
+                this.seriesIndexToColumnIndex_(seriesIndexReversed, true);
+            this.handleChannelNameClick(columnIndex, event.y, chartArea.left);
+          }
         },
       },
     ];
+
+    /** @private {?DataPointClick} */
+    this.firstClick_ = null;
+
+    /** @private {?DataPointClick} */
+    this.secondClick_ = null;
 
     /** @private {?Function} */
     this.changeChannelSensitivity_ = null;
@@ -147,6 +177,15 @@ class Graph extends ChartBase {
 
     /** @private @const {string} */
     this.channelActionsTitleId_ = 'channel-actions-title';
+
+    /** @private @const {string} */
+    this.waveEventFormId_ = 'wave-event-form';
+
+    /** @private @const {string} */
+    this.waveEventStartTimeId_ = 'wave-event-start-time';
+
+    /** @private @const {string} */
+    this.waveEventEndTimeId_ = 'wave-event-end-time';
 
     const store = Store.getInstance();
     // This listener callback will initialize a graph with the annotations and
@@ -192,6 +231,155 @@ class Graph extends ChartBase {
     }
 
     return 3 + 2 * seriesIndex;
+  }
+
+  /**
+   * Returns a cast HTML Input element.
+   * @param {string} id The HTML id of the element.
+   * @return {!HTMLInputElement} The input element.
+   * @private
+   */
+  getInputElement_(id) {
+    return /** @type {!HTMLInputElement} */ (document.getElementById(id));
+  }
+
+  /**
+   * Sets the wave events form position considering where was the click.
+   * Tries to position the form directly left to the click.
+   * If not possible, tries below the click.
+   * If not possible, move it above the click.
+   * @param {!HTMLElement} waveEventForm Container element of the form.
+   * @param {number} xPos left position of the click, relative to the viewport.
+   * @param {number} yPos top position of the click, relative to the viewport.
+   * @param {number} chartAreaLeft Left coordinate of the chart area.
+   * @private
+   */
+  setWaveEventFormPosition_(waveEventForm, xPos, yPos, chartAreaLeft) {
+    // If the form is hidden the offsetHeight and offsetWidth are 0, so the
+    // default values are needed to calculate the position.
+    const formWidth = waveEventForm.offsetWidth || waveEventFormWidth;
+    const formHeight = waveEventForm.offsetHeight || waveEventFormHeight;
+    let left = xPos - formWidth - 20;
+    let top = yPos;
+    let movedLeft = false;
+    if (left < chartAreaLeft) {
+      left = xPos + 10;
+      top = yPos + 80;
+      movedLeft = true;
+    }
+
+    const verticalLimit = window.innerHeight - formHeight - 100;
+    if (top > verticalLimit) {
+      const verticalMovement = movedLeft ? 200 : 20;
+      top = yPos - formHeight - verticalMovement;
+    }
+
+    waveEventForm.style.left = `${left}px`;
+    waveEventForm.style.top = `${top}px`;
+  }
+
+  /**
+   * Handles a click in a point value, which enables the New Wave Event form.
+   * @param {number} row Row of the click in the dataTable.
+   * @param {number} timeValue time of the click, relative.
+   * @param {number} xPos left position of the click, relative to the viewport.
+   * @param {number} yPos top position of the click, relative to the viewport.
+   * @param {number} chartAreaLeft Left coordinate of the chart area.
+   */
+  handlePointClick(row, timeValue, xPos, yPos, chartAreaLeft) {
+    const waveEventForm = /** @type {!HTMLElement} */ (
+        document.getElementById(this.waveEventFormId_));
+    const startTimeInput = this.getInputElement_(this.waveEventStartTimeId_);
+    const endTimeInput = this.getInputElement_(this.waveEventEndTimeId_);
+
+    const prettyTime = this.dataTable.getFormattedValue(row, 0);
+
+    if (this.firstClick_ &&
+        (this.secondClick_ || timeValue < this.firstClick_.timeValue)) {
+      this.firstClick_ = null;
+      this.secondClick_ = null;
+      this.getChart().setSelection(null);
+    }
+
+    if (!this.firstClick_) {
+      startTimeInput.value = prettyTime;
+      endTimeInput.value = '';
+
+      this.setWaveEventFormPosition_(waveEventForm, xPos, yPos, chartAreaLeft);
+
+      this.firstClick_ = {
+        timeValue,
+        xPos,
+        yPos,
+      };
+    } else {
+      endTimeInput.value = prettyTime;
+
+      this.secondClick_ = {
+        timeValue,
+        xPos,
+        yPos,
+      };
+    }
+
+    waveEventForm.classList.remove('hidden');
+  }
+
+  /**
+   * Selects a wave event type in the form, by setting the dropdown text in the
+   * UI.
+   * @param {string} type Type selected.
+   */
+  selectWaveEventType(type) {
+    const dropdown = document.getElementById('wave-event-type-dropdown-text');
+    dropdown.textContent = type;
+  }
+
+  /**
+   * Closes the wave event form, clears the clicks previously made and clears
+   * the chart selection.
+   */
+  closeWaveEventForm() {
+    const waveEventForm = document.getElementById(this.waveEventFormId_);
+    const startTimeInput = this.getInputElement_(this.waveEventStartTimeId_);
+    const endTimeInput = this.getInputElement_(this.waveEventEndTimeId_);
+
+    startTimeInput.value = '';
+    endTimeInput.value = '';
+    this.getChart().setSelection(null);
+
+    this.firstClick_ = null;
+    this.secondClick_ = null;
+
+    waveEventForm.classList.add('hidden');
+  }
+
+  /**
+   * Saves the wave event determined by the clicks made before.
+   */
+  saveWaveEvent() {
+    if (!this.firstClick_) {
+      return;
+    }
+    const startTime = this.firstClick_.timeValue;
+    const endTime = this.secondClick_ ? this.secondClick_.timeValue : startTime;
+
+    if (endTime < startTime) {
+      return;
+    }
+
+    const labelText =
+        document.getElementById('wave-event-type-dropdown-text').innerHTML;
+
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.ADD_WAVE_EVENT,
+      data: {
+        labelText,
+        startTime,
+        duration: endTime - startTime,
+      },
+    });
+    this.closeWaveEventForm();
   }
 
   /**

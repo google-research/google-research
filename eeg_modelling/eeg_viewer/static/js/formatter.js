@@ -18,7 +18,7 @@ goog.module('eeg_modelling.eeg_viewer.formatter');
  * Formats seconds in HH:MM:SS format.
  * @param {number} sec Seconds since epoch.
  * @param {boolean=} show_ms Whether to display ms.
- * @returns {string} HH:MM:SS format time.
+ * @return {string} HH:MM:SS format time.
  */
 function formatTime(sec, show_ms = false) {
   const d = new Date(Math.floor(sec * 1000));
@@ -35,14 +35,28 @@ function formatTime(sec, show_ms = false) {
 /**
  * Formats seconds in date string plus HH:MM:SS format.
  * @param {number} sec Seconds since epoch.
- * @returns {string} Date string and HH:MM:SS time.
+ * @return {string} Date string and HH:MM:SS time.
  */
 function formatDateAndTime(sec) {
   const d = new Date(Math.floor(sec * 1000));
   return d.toUTCString();
 }
 
+/**
+ * Formats an amount of seconds.
+ * @param {number} sec duration in seconds.
+ * @return {string} Duration in seconds or milliseconds, depending on the size.
+ */
+function formatDuration(sec) {
+  if (sec <= 0.1) {
+    const milliseconds = Math.floor(sec * 1000);
+    return `${milliseconds} ms`;
+  }
+  return `${sec.toFixed(1)} s`;
+}
+
 exports = {
   formatTime,
   formatDateAndTime,
+  formatDuration,
 };

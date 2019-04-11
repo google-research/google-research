@@ -21,6 +21,7 @@ const log = goog.require('goog.log');
  * @enum {string}
  */
 const ActionType = {
+  ADD_WAVE_EVENT: 'addWaveEvent',
   ANNOTATION_SELECTION: 'annotationSelection',
   CHANGE_TYPING_STATUS: 'changeTypingStatus',
   ERROR: 'error',

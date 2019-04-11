@@ -70,6 +70,7 @@ const Property = {
   TIMESCALE: 'timeScale',
   TFEX_FILE_PATH: 'tfExFilePath',
   TFEX_SSTABLE_PATH: 'tfExSSTablePath',
+  WAVE_EVENTS: 'waveEvents',
 };
 
 
@@ -115,9 +116,10 @@ let Listener;
 
 /**
  * @typedef {{
- *   labelText: ?string,
- *   startTime: ?number,
- *   id: ?string,
+ *   id: (number|undefined),
+ *   labelText: string,
+ *   startTime: number,
+ *   duration: number,
  * }}
  */
 let Annotation;
@@ -184,6 +186,7 @@ const LoadingStatus = {
  *   timeScale: number,
  *   tfExSSTablePath: ?string,
  *   tfExFilePath: ?string,
+ *   waveEvents: !Array<!Annotation>,
  * }}
  */
 let StoreData;
@@ -222,6 +225,7 @@ let StoreData;
  *   timeScale: (number|undefined),
  *   tfExSSTablePath: (?string|undefined),
  *   tfExFilePath: (?string|undefined),
+ *   waveEvents: (!Array<!Annotation>|undefined),
  * }}
  */
 let PartialStoreData;
@@ -266,6 +270,7 @@ class Store {
       timeScale: 1,
       tfExSSTablePath: null,
       tfExFilePath: null,
+      waveEvents: [],
     };
 
     /** @public {!Array<!Listener>} */
@@ -283,6 +288,8 @@ class Store {
       );
     };
 
+    registerCallback(Dispatcher.ActionType.ADD_WAVE_EVENT,
+                     this.handleAddWaveEvent);
     registerCallback(Dispatcher.ActionType.ANNOTATION_SELECTION,
                      this.handleAnnotationSelection);
     registerCallback(Dispatcher.ActionType.CHANGE_TYPING_STATUS,
@@ -406,6 +413,37 @@ class Store {
   }
 
   /**
+   * Adds a wave event to the waveEvents property of the store.
+   * Sets the id of the wave event, and returns a copy of the array (does not
+   * modify in place).
+   * @param {!Annotation} waveEvent New wave event to add.
+   * @return {!Array<!Annotation>} Copy of the array with the new item added.
+   * @private
+   */
+  addWaveEvent_(waveEvent) {
+    const length = this.storeData.waveEvents.length;
+    const lastId = length > 0 ? this.storeData.waveEvents[length - 1].id : 0;
+    return [
+      ...this.storeData.waveEvents,
+      Object.assign({}, waveEvent, {
+        id: lastId + 1,
+      }),
+    ];
+  }
+
+  /**
+   * Handles data from an ADD_WAVE_EVENT action, which will add a new wave
+   * event to the list.
+   * @param {!Annotation} waveEvent The new wave event.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleAddWaveEvent(waveEvent) {
+    return {
+      waveEvents: this.addWaveEvent_(waveEvent),
+    };
+  }
+
+  /**
    * Handles data from a REQUEST_RESPONSE_OK action.
    * @param {!DataResponse} data The data payload from the action.
    * @return {!PartialStoreData} store data with changed properties.
@@ -430,7 +468,7 @@ class Store {
       return {
         labelText: label.getLabelText(),
         startTime: label.getStartTime(),
-        id: null,
+        duration: 0,
       };
     });
     newStoreData.fileType = waveformMeta.getFileType();

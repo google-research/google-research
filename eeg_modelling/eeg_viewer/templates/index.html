@@ -62,6 +62,12 @@
         <div class="mdl-tooltip mdl-tooltip--large" for="predictions-button">
           Predictions
         </div>
+        <button id="wave-events-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.toggleMenu('wave-events')" disabled>
+          <i class="material-icons">list</i>
+        </button>
+        <div class="mdl-tooltip mdl-tooltip--large" for="wave-events-button">
+          Events
+        </div>
         <button id="next-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.nextChunk()" disabled>
           <i class="material-icons">last_page</i>
         </button>
@@ -91,6 +97,38 @@
         <div id="line-chart-container"></div>
         <div id="prediction-line-chart-container"></div>
         <canvas id="prediction-overlay" class="canvas-overlay"></canvas>
+        <div id="wave-event-form" class="hidden mdl-card mdl-shadow--2dp">
+          <div class="mdl-card__title">
+            <h2 class="mdl-card__title-text">New Event</h2>
+          </div>
+          <div class="mdl-card__menu">
+            <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="graph.closeWaveEventForm()">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+          <div class="dropdown" id="wave-event-type-dropdown">
+            <div id="wave-event-type-dropdown-text">SZ</div>
+            <label>Type</label>
+            <i class="material-icons">arrow_drop_down</i>
+          </div>
+          <ul for="wave-event-type-dropdown" class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect">
+            <li class="mdl-menu__item" onclick="graph.selectWaveEventType('SZ')">SZ</li>
+            <li class="mdl-menu__item" onclick="graph.selectWaveEventType('ED')">ED</li>
+          </ul>
+          <div class="textfield">
+            <input class="mdl-textfield__input" type="text" id="wave-event-start-time">
+            <label>Start Time</label>
+          </div>
+          <div class="textfield">
+            <input class="mdl-textfield__input" type="text" id="wave-event-end-time">
+            <label>End Time</label>
+          </div>
+          <div class="mdl-card__actions mdl-card--border">
+            <button id="save-wave-event-button" class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="graph.saveWaveEvent()">
+              Save
+            </button>
+          </div>
+        </div>
         <div id="channel-actions-container" class="hidden mdl-card mdl-shadow--2dp">
           <div class="mdl-card__title">
             <h2 id="channel-actions-title" class="mdl-card__title-text"></h2>
@@ -289,7 +327,7 @@
              </thead>
           </table>
         </div>
-        <div id="no-predictions-text" class="mdl-card__supporting-text">
+        <div id="no-predictions-text" class="empty-text">
           No predictions loaded
         </div>
       </div>
@@ -314,6 +352,30 @@
              </tr>
            </thead>
            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="right-side-panel hidden mdl-card mdl-shadow--2dp" id="wave-events-panel">
+        <div class="mdl-card__title">
+          <h2 class="mdl-card__title-text">Events</h2>
+        </div>
+        <div class="mdl-card__menu">
+          <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="toolBar.toggleMenu('wave-events')">
+            <i class="material-icons">close</i>
+          </button>
+        </div>
+        <div id="no-events-text" class="empty-text">
+          Click the chart to add events
+        </div>
+        <div class="scrollable-table-div">
+          <table id="wave-events-table" class="hidden mdl-data-table mdl-js-data-table">
+           <thead>
+             <tr>
+               <th class="mdl-data-table__cell--non-numeric">Type</th>
+               <th class="mdl-data-table__cell--non-numeric">Start time</th>
+               <th class="mdl-data-table__cell--non-numeric">Duration</th>
+             </tr>
+           </thead>
           </table>
         </div>
       </div>
