@@ -1,0 +1,44 @@
+<sdf version='1.6'>
+	<world name='default'>
+	<gravity>0 0 -9.8</gravity>
+		<model name='floor_obj'>
+			<static>1</static>
+			<pose frame=''>0 0 0 0 0 0</pose>
+			<link name='floor'>
+			<inertial>
+			<mass>0</mass>
+			<inertia>
+			<ixx>0.166667</ixx>
+			<ixy>0</ixy>
+			<ixz>0</ixz>
+			<iyy>0.166667</iyy>
+			<iyz>0</iyz>
+			<izz>0.166667</izz>
+			</inertia>
+			</inertial>
+			<collision name='collision_1'>
+			<geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+			  </collision>
+			<visual name='visual'>
+				<geometry>
+				<mesh>
+					<scale>1 1 1</scale>
+					<uri>plane100.obj</uri>
+				</mesh>
+				</geometry>
+			<material>
+				<ambient>1 1 1 1</ambient>
+				<diffuse>1 1 1 1</diffuse>
+				<specular>.5 .5 .5 1</specular>
+				<emissive>0 0 0 0</emissive>
+			 </material>
+			 </visual>
+			 </link>
+			</model>
+	</world>
+</sdf>

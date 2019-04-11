@@ -1,0 +1,17 @@
+name: minitaur
+dependencies:
+- python=3.6
+- cython
+- ipython
+- spyder
+- numpy=1.11.3
+- scipy=1.0.1
+- matplotlib=2.0.2
+- tensorflow-gpu
+- pip:
+  - gym
+  - pybullet
+  - hyperopt
+  - ipdb
+
+

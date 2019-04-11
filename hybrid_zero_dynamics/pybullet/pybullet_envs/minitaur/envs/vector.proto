@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package robotics.messages;
+
+// A four-dimensional double precision vector.
+message Vector4d {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  double w = 4;
+}
+
+// A four-dimensional single precision vector.
+message Vector4f {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+  float w = 4;
+}
+
+// A three-dimensional double precision vector.
+message Vector3d {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+}
+
+// A three-dimensional single precision vector.
+message Vector3f {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+}
+
+// A two-dimensional double precision vector.
+message Vector2d {
+  double x = 1;
+  double y = 2;
+}
+
+// A two-dimensional single precision vector.
+message Vector2f {
+  float x = 1;
+  float y = 2;
+}
+
+// Double precision vector of arbitrary size.
+message Vectord {
+  repeated double data = 1 [packed = true];
+}
+
+// Single precision vector of arbitrary size.
+message Vectorf {
+  repeated float data = 1 [packed = true];
+}
+

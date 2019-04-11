@@ -34,3 +34,5 @@ hybrid_zero_dynamics/matlab/minitaur_simple/sol/
 hybrid_zero_dynamics/matlab/minitaur_simple/optim_report\.txt
 
 hybrid_zero_dynamics/matlab/minitaur_simple/video/
+
+hybrid_zero_dynamics/pybullet/pybullet_envs/minitaur/envs/vircons_data/

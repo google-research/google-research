@@ -1,0 +1,980 @@
+<?xml version="1.0"?>
+<robot name="quadruped">
+	
+	<link name="base_chassis_link">
+		<visual>
+			<geometry>
+				<box size=".3 .13 .087"/>
+			</geometry>
+			<material name="black">
+				<color rgba=".3 .3 .3 1"/>
+			</material>
+		</visual>
+		
+		<collision>
+			<geometry>
+				<box size=".3 .13 .087"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<origin rpy="0 0 0" xyz=".05 0 0"/>
+			<mass value="3.353"/>
+			<inertia ixx=".006837" ixy=".0" ixz=".0" iyy=".027262" iyz=".0" izz=".029870"/>
+		</inertial>
+	</link>
+	
+	
+	<link name="chassis_right">
+		
+		<visual>
+			<origin rpy="0 0 0" xyz=".2375 .054 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+			<material name="blue">
+				<color rgba="0 0 1 1"/>
+			</material>
+		</visual>
+		
+		<visual>
+			<origin rpy="0 0 0" xyz="-.2375 .054 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+			<material name="yellow">
+				<color rgba="1 1 0 1"/>
+			</material>
+		</visual>
+		
+		<collision>
+			<origin rpy="0 0 0" xyz=".2375 .054 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+		</collision>
+		<collision>
+			<origin rpy="0 0 0" xyz="-.2375 .054 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value="0.322"/>
+			<inertia ixx=".004147" ixy=".0" ixz=".0" iyy=".040913" iyz=".0" izz=".041840"/>
+		</inertial>
+	</link>
+	<joint name="chassis_right_center" type="fixed">
+		<axis xyz="0 0 1"/>
+		<parent link="base_chassis_link"/>
+		<child link="chassis_right"/>
+		<origin rpy="0 0 0" xyz="0 -.1265 -.0185"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="chassis_left">
+		<visual>
+			<origin rpy="0 0 0" xyz=".2375 -.054 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+			<material name="green">
+				<color rgba="0 1 0 1"/>
+			</material>
+		</visual>
+		
+		<visual>
+			<origin rpy="0 0 0" xyz="-.2375 -.054 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+			<material name="green"/>
+		</visual>
+		
+		<collision>
+			<origin rpy="0 0 0" xyz=".2375 -.054 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+		</collision>
+	
+		<collision>
+			<origin rpy="0 0 0" xyz="-.2375 -.054 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+		</collision>
+		
+		<inertial>
+			<mass value="0.322"/>
+			<inertia ixx=".004147" ixy=".0" ixz=".0" iyy=".040913" iyz=".0" izz=".041840"/>
+		</inertial>
+	</link>
+	<joint name="chassis_left_center" type="fixed">
+		<axis xyz="0 0 1"/>
+		<parent link="base_chassis_link"/>
+		<child link="chassis_left"/>
+		<origin rpy="0 0 0" xyz="0 .1265 -.0185"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="motor_front_rightR_bracket_link">
+	<visual>
+			<origin rpy="0 0 0" xyz="0 -0.02 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+			<material name="red">
+				<color rgba="1 0 0 1"/>
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 -0.02 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+		</collision>
+		
+		<inertial>
+			<origin rpy="0 0 0" xyz="0 -0.03 0"/>
+			<mass value=".16"/>
+			<inertia ixx=".00011397" ixy=".0" ixz=".0" iyy=".00011397" iyz=".0" izz=".00021765"/>
+		</inertial>
+	</link>
+	<joint name="motor_front_rightR_bracket_joint" type="prismatic">
+	  <axis xyz="0 0 1"/>
+		<parent link="base_chassis_link"/>
+		<child link="motor_front_rightR_bracket_link"/>
+		<origin rpy="0 0 0" xyz=".2375 -0.154 -.0185"/>
+		<limit effort="100" lower="-0.02" upper="0.02" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="motor_front_rightR_link">
+		<visual>
+			<geometry>
+				<mesh filename="tmotor3.obj" scale="1 1 1"/>
+			</geometry>
+			<material name="white">
+				<color rgba="1 1 1 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<cylinder length=".021" radius=".0425"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".241"/>
+			<inertia ixx=".00011397" ixy=".0" ixz=".0" iyy=".00011397" iyz=".0" izz=".00021765"/>
+		</inertial>
+	</link>
+	<joint name="motor_front_rightR_joint" type="continuous">
+		<axis xyz="0 0 1"/>
+		<parent link="motor_front_rightR_bracket_link"/>
+		<child link="motor_front_rightR_link"/>
+		<origin rpy="1.57075 0 0" xyz="0 0 0"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="motor_front_rightL_link">
+	
+		<visual>
+			<geometry>
+				<mesh filename="tmotor3.obj" scale="1 1 1"/>
+			</geometry>
+			<material name="white">
+				<color rgba="1 1 1 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<cylinder length=".021" radius=".0425"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".241"/>
+			<inertia ixx=".00011397" ixy=".0" ixz=".0" iyy=".00011397" iyz=".0" izz=".00021765"/>
+		</inertial>
+	</link>
+	<joint name="motor_front_rightL_joint" type="continuous">
+		<axis xyz="0 0 1"/>
+		<parent link="chassis_right"/>
+		<child link="motor_front_rightL_link"/>
+		<origin rpy="1.57075 0 3.141592" xyz=".2375 .0275 0"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	
+	<link name="motor_front_leftL_bracket_link">
+	<visual>
+			<origin rpy="0 0 0" xyz="0 0.02 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+			<material name="red">
+				<color rgba="1 0 0 1"/>
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0.02 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+		</collision>
+		
+		<inertial>
+			<origin rpy="0 0 0" xyz="0 0.02 0"/>
+			<mass value=".16"/>
+			<inertia ixx=".00011397" ixy=".0" ixz=".0" iyy=".00011397" iyz=".0" izz=".00021765"/>
+		</inertial>
+	</link>
+	<joint name="motor_front_leftL_bracket_joint" type="prismatic">
+	  <axis xyz="0 0 1"/>
+		<parent link="base_chassis_link"/>
+		<child link="motor_front_leftL_bracket_link"/>
+		<origin rpy="0 0 0" xyz=".2375 0.154 -.0185"/>
+		<limit effort="100" lower="-0.02" upper="0.02" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	
+	<link name="motor_front_leftL_link">
+		<visual>
+			<geometry>
+				<mesh filename="tmotor3.obj" scale="1 1 1"/>
+			</geometry>
+			<material name="white">
+				<color rgba="1 1 1 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<cylinder length=".021" radius=".0425"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".241"/>
+			<inertia ixx=".00011397" ixy=".0" ixz=".0" iyy=".00011397" iyz=".0" izz=".00021765"/>
+		</inertial>
+	</link>
+	<joint name="motor_front_leftL_joint" type="continuous">
+		<axis xyz="0 0 1"/>
+		<parent link="motor_front_leftL_bracket_link"/>
+		<child link="motor_front_leftL_link"/>
+		<origin rpy="1.57075 0 3.141592" xyz="0 0 0"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="motor_front_leftR_link">
+		<visual>
+			<geometry>
+				<mesh filename="tmotor3.obj" scale="1 1 1"/>
+			</geometry>
+			<material name="white">
+				<color rgba="1 1 1 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<cylinder length=".021" radius=".0425"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".241"/>
+			<inertia ixx=".00011397" ixy=".0" ixz=".0" iyy=".00011397" iyz=".0" izz=".00021765"/>
+		</inertial>
+	</link>
+	<joint name="motor_front_leftR_joint" type="continuous">
+		<axis xyz="0 0 1"/>
+		<parent link="chassis_left"/>
+		<child link="motor_front_leftR_link"/>
+		<origin rpy="1.57075 0 0" xyz=".2375 -.0275 0"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	
+	<link name="motor_back_rightR_bracket_link">
+	<visual>
+			<origin rpy="0 0 0" xyz="0 -0.02 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+			<material name="red">
+				<color rgba="1 0 0 1"/>
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 -0.02 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+		</collision>
+		
+		<inertial>
+			<origin rpy="0 0 0" xyz="0 -0.03 0"/>
+			<mass value=".16"/>
+			<inertia ixx=".00011397" ixy=".0" ixz=".0" iyy=".00011397" iyz=".0" izz=".00021765"/>
+		</inertial>
+	</link>
+	<joint name="motor_back_rightR_bracket_joint" type="prismatic">
+	  <axis xyz="0 0 1"/>
+		<parent link="base_chassis_link"/>
+		<child link="motor_back_rightR_bracket_link"/>
+		<origin rpy="0 0 0" xyz="-.2375 -0.154 -.0185"/>
+		<limit effort="100" lower="-0.02" upper="0.02" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	
+	<link name="motor_back_rightR_link">
+		<visual>
+			<geometry>
+				<mesh filename="tmotor3.obj" scale="1 1 1"/>
+			</geometry>
+			<material name="white1">
+				<color rgba="1 0 0 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<cylinder length=".021" radius=".0425"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".241"/>
+			<inertia ixx=".00011397" ixy=".0" ixz=".0" iyy=".00011397" iyz=".0" izz=".00021765"/>
+		</inertial>
+	</link>
+	<joint name="motor_back_rightR_joint" type="continuous">
+		<axis xyz="0 0 1"/>
+		<parent link="motor_back_rightR_bracket_link"/>
+		<child link="motor_back_rightR_link"/>
+		<origin rpy="1.57075 0 0" xyz="0 0 0"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="motor_back_rightL_link">
+		<visual>
+			<geometry>
+				<mesh filename="tmotor3.obj" scale="1 1 1"/>
+			</geometry>
+			<material name="white">
+				<color rgba="1 1 1 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<cylinder length=".021" radius=".0425"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".241"/>
+			<inertia ixx=".00011397" ixy=".0" ixz=".0" iyy=".00011397" iyz=".0" izz=".00021765"/>
+		</inertial>
+	</link>
+	<joint name="motor_back_rightL_joint" type="continuous">
+		<axis xyz="0 0 1"/>
+		<parent link="chassis_right"/>
+		<child link="motor_back_rightL_link"/>
+		<origin rpy="1.57075 0 3.141592" xyz="-.2375 .0275 0"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	
+	<link name="motor_back_leftL_bracket_link">
+	<visual>
+			<origin rpy="0 0 0" xyz="0 0.02 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+			<material name="red">
+				<color rgba="1 0 0 1"/>
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0.02 0"/>
+			<geometry>
+				<box size=".068 .032 .050"/>
+			</geometry>
+		</collision>
+		
+		<inertial>
+			<origin rpy="0 0 0" xyz="0 0.02 0"/>
+			<mass value=".16"/>
+			<inertia ixx=".00011397" ixy=".0" ixz=".0" iyy=".00011397" iyz=".0" izz=".00021765"/>
+		</inertial>
+	</link>
+	<joint name="motor_back_leftL_bracket_joint" type="prismatic">
+	  <axis xyz="0 0 1"/>
+		<parent link="base_chassis_link"/>
+		<child link="motor_back_leftL_bracket_link"/>
+		<origin rpy="0 0 0" xyz="-.2375 0.154 -.0185"/>
+		<limit effort="100" lower="-0.02" upper="0.02" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	
+	
+	<link name="motor_back_leftL_link">
+		<visual>
+			<geometry>
+				<mesh filename="tmotor3.obj" scale="1 1 1"/>
+			</geometry>
+			<material name="white">
+				<color rgba="1 1 1 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<cylinder length=".021" radius=".0425"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".241"/>
+			<inertia ixx=".00011397" ixy=".0" ixz=".0" iyy=".00011397" iyz=".0" izz=".00021765"/>
+		</inertial>
+	</link>
+	<joint name="motor_back_leftL_joint" type="continuous">
+		<axis xyz="0 0 1"/>
+		<parent link="motor_back_leftL_bracket_link"/>
+		<child link="motor_back_leftL_link"/>
+		<origin rpy="1.57075 0 3.141592" xyz="0 0 0"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="motor_back_leftR_link">
+		<visual>
+			<geometry>
+				<mesh filename="tmotor3.obj" scale="1 1 1"/>
+			</geometry>
+			<material name="white">
+				<color rgba="1 1 1 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<cylinder length=".021" radius=".0425"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".241"/>
+			<inertia ixx=".00011397" ixy=".0" ixz=".0" iyy=".00011397" iyz=".0" izz=".00021765"/>
+		</inertial>
+	</link>
+	<joint name="motor_back_leftR_joint" type="continuous">
+		<axis xyz="0 0 1"/>
+		<parent link="chassis_left"/>
+		<child link="motor_back_leftR_link"/>
+		<origin rpy="1.57075 0 0" xyz="-.2375 -.0275 0"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="upper_leg_front_rightR_link">
+		<visual>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".034"/>
+			<inertia ixx=".000038770" ixy=".0" ixz=".0" iyy=".000042198" iyz=".0" izz=".0000036030"/>
+		</inertial>
+	</link>
+	<joint name="hip_front_rightR_joint" type="fixed">
+		<axis xyz="0 0 1"/>
+		<parent link="motor_front_rightR_link"/>
+		<child link="upper_leg_front_rightR_link"/>
+		<origin rpy="-1.57075 0 0" xyz="0 .045 -.0145"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="lower_leg_front_rightR_link">
+		<contact>
+			<friction_anchor/>
+			<stiffness value="3000.0"/>
+			<damping value="100.0"/>
+			<spinning_friction value=".05"/>
+			<lateral_friction value="1"/>
+		</contact>
+		<visual>
+			<origin rpy="0 0 0" xyz="0 0 .120"/>
+			<geometry>
+				<box size=".017 .009 .240"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 .120"/>
+			<geometry>
+				<box size=".017 .009 .240"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<origin rpy="0 0 0" xyz="0 0 .120"/>
+			<mass value=".086"/>
+			<inertia ixx=".00032459" ixy=".0" ixz=".0" iyy=".00032637" iyz=".0" izz=".000002178"/>
+		</inertial>
+	</link>
+	<joint name="knee_front_rightR_joint" type="continuous">
+		<axis xyz="0 1 0"/>
+		<parent link="upper_leg_front_rightR_link"/>
+		<child link="lower_leg_front_rightR_link"/>
+		<origin rpy="0 0 0" xyz="0 .0085 .056"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="upper_leg_front_rightL_link">
+		<visual>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".034"/>
+			<inertia ixx=".000038770" ixy=".0" ixz=".0" iyy=".000042198" iyz=".0" izz=".0000036030"/>
+		</inertial>
+	</link>
+	<joint name="hip_front_rightL_joint" type="fixed">
+		<axis xyz="0 0 1"/>
+		<parent link="motor_front_rightL_link"/>
+		<child link="upper_leg_front_rightL_link"/>
+		<origin rpy="-1.57075 0 0" xyz="0 .045 -.0145"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="lower_leg_front_rightL_link">
+		<contact>
+			<friction_anchor/>
+			<stiffness value="3000.0"/>
+			<damping value="100.0"/>
+			<spinning_friction value=".05"/>
+			<lateral_friction value="1"/>
+		</contact>
+		<visual>
+			<origin rpy="0 0 0" xyz="0 0 .108"/>
+			<geometry>
+				<box size=".017 .009 .216"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 .108"/>
+			<geometry>
+				<box size=".017 .009 .216"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<origin rpy="0 0 0" xyz="0 0 .1"/>
+			<mass value=".072"/>
+			<inertia ixx=".00023166" ixy=".0" ixz=".0" iyy=".00023325" iyz=".0" izz=".00000198"/>
+		</inertial>
+	</link>
+	<joint name="knee_front_rightL_joint" type="continuous">
+		<axis xyz="0 1 0"/>
+		<parent link="upper_leg_front_rightL_link"/>
+		<child link="lower_leg_front_rightL_link"/>
+		<origin rpy="0 0 0" xyz="0 .0085 .056"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="upper_leg_front_leftR_link">
+		<visual>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".034"/>
+			<inertia ixx=".000038770" ixy=".0" ixz=".0" iyy=".000042198" iyz=".0" izz=".0000036030"/>
+		</inertial>
+	</link>
+	<joint name="hip_front_leftR_joint" type="fixed">
+		<axis xyz="0 0 1"/>
+		<parent link="motor_front_leftR_link"/>
+		<child link="upper_leg_front_leftR_link"/>
+		<origin rpy="-1.57075 0 0" xyz="0 .045 -.0145"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="lower_leg_front_leftR_link">
+		<contact>
+			<friction_anchor/>
+			<stiffness value="3000.0"/>
+			<damping value="100.0"/>
+			<spinning_friction value=".05"/>
+			<lateral_friction value="1"/>
+		</contact>
+		<visual>
+			<origin rpy="0 0 0" xyz="0 0 .108"/>
+			<geometry>
+				<box size=".017 .009 .216"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 .108"/>
+			<geometry>
+				<box size=".017 .009 .216"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<origin rpy="0 0 0" xyz="0 0 .1"/>
+			<mass value=".072"/>
+			<inertia ixx=".00023166" ixy=".0" ixz=".0" iyy=".00023325" iyz=".0" izz=".00000198"/>
+		</inertial>
+	</link>
+	<joint name="knee_front_leftR_joint" type="continuous">
+		<axis xyz="0 1 0"/>
+		<parent link="upper_leg_front_leftR_link"/>
+		<child link="lower_leg_front_leftR_link"/>
+		<origin rpy="0 0 0" xyz="0 .0085 .056"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="upper_leg_front_leftL_link">
+		<visual>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".034"/>
+			<inertia ixx=".000038770" ixy=".0" ixz=".0" iyy=".000042198" iyz=".0" izz=".0000036030"/>
+		</inertial>
+	</link>
+	<joint name="hip_front_leftL_joint" type="fixed">
+		<axis xyz="0 0 1"/>
+		<parent link="motor_front_leftL_link"/>
+		<child link="upper_leg_front_leftL_link"/>
+		<origin rpy="-1.57075 0 0" xyz="0 .045 -.0145"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="lower_leg_front_leftL_link">
+		<contact>
+			<friction_anchor/>
+			<stiffness value="3000.0"/>
+			<damping value="100.0"/>
+			<spinning_friction value=".05"/>
+			<lateral_friction value="1"/>
+		</contact>
+		<visual>
+			<origin rpy="0 0 0" xyz="0 0 .120"/>
+			<geometry>
+				<box size=".017 .009 .240"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 .120"/>
+			<geometry>
+				<box size=".017 .009 .240"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<origin rpy="0 0 0" xyz="0 0 .120"/>
+			<mass value=".086"/>
+			<inertia ixx=".00032459" ixy=".0" ixz=".0" iyy=".00032637" iyz=".0" izz=".000002178"/>
+		</inertial>
+	</link>
+	<joint name="knee_front_leftL_joint" type="continuous">
+		<axis xyz="0 1 0"/>
+		<parent link="upper_leg_front_leftL_link"/>
+		<child link="lower_leg_front_leftL_link"/>
+		<origin rpy="0 0 0" xyz="0 .0085 .056"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="upper_leg_back_rightR_link">
+		<visual>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".034"/>
+			<inertia ixx=".000038770" ixy=".0" ixz=".0" iyy=".000042198" iyz=".0" izz=".0000036030"/>
+		</inertial>
+	</link>
+	<joint name="hip_back_rightR_joint" type="fixed">
+		<axis xyz="0 0 1"/>
+		<parent link="motor_back_rightR_link"/>
+		<child link="upper_leg_back_rightR_link"/>
+		<origin rpy="-1.57075 0 0" xyz="0 .045 -.0145"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="lower_leg_back_rightR_link">
+		<contact>
+			<friction_anchor/>
+			<stiffness value="3000.0"/>
+			<damping value="100.0"/>
+			<spinning_friction value=".05"/>
+			<lateral_friction value="1"/>
+		</contact>
+		<visual>
+			<origin rpy="0 0 0" xyz="0 0 .120"/>
+			<geometry>
+				<box size=".017 .009 .240"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 .120"/>
+			<geometry>
+				<box size=".017 .009 .240"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<origin rpy="0 0 0" xyz="0 0 .120"/>
+			<mass value=".086"/>
+			<inertia ixx=".00032459" ixy=".0" ixz=".0" iyy=".00032637" iyz=".0" izz=".000002178"/>
+		</inertial>
+	</link>
+	<joint name="knee_back_rightR_joint" type="continuous">
+		<axis xyz="0 1 0"/>
+		<parent link="upper_leg_back_rightR_link"/>
+		<child link="lower_leg_back_rightR_link"/>
+		<origin rpy="0 0 0" xyz="0 .0085 .056"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="upper_leg_back_rightL_link">
+		<visual>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".034"/>
+			<inertia ixx=".000038770" ixy=".0" ixz=".0" iyy=".000042198" iyz=".0" izz=".0000036030"/>
+		</inertial>
+	</link>
+	<joint name="hip_back_rightL_joint" type="fixed">
+		<axis xyz="0 0 1"/>
+		<parent link="motor_back_rightL_link"/>
+		<child link="upper_leg_back_rightL_link"/>
+		<origin rpy="-1.57075 0 0" xyz="0 .045 -.0145"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="lower_leg_back_rightL_link">
+		<contact>
+			<friction_anchor/>
+			<stiffness value="3000.0"/>
+			<damping value="100.0"/>
+			<spinning_friction value=".05"/>
+			<lateral_friction value="1"/>
+		</contact>
+		<visual>
+			<origin rpy="0 0 0" xyz="0 0 .108"/>
+			<geometry>
+				<box size=".017 .009 .216"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 .108"/>
+			<geometry>
+				<box size=".017 .009 .216"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<origin rpy="0 0 0" xyz="0 0 .1"/>
+			<mass value=".072"/>
+			<inertia ixx=".00023166" ixy=".0" ixz=".0" iyy=".00023325" iyz=".0" izz=".00000198"/>
+		</inertial>
+	</link>
+	<joint name="knee_back_rightL_joint" type="continuous">
+		<axis xyz="0 1 0"/>
+		<parent link="upper_leg_back_rightL_link"/>
+		<child link="lower_leg_back_rightL_link"/>
+		<origin rpy="0 0 0" xyz="0 .0085 .056"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="upper_leg_back_leftR_link">
+		<visual>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".034"/>
+			<inertia ixx=".000038770" ixy=".0" ixz=".0" iyy=".000042198" iyz=".0" izz=".0000036030"/>
+		</inertial>
+	</link>
+	<joint name="hip_back_leftR_joint" type="fixed">
+		<axis xyz="0 0 1"/>
+		<parent link="motor_back_leftR_link"/>
+		<child link="upper_leg_back_leftR_link"/>
+		<origin rpy="-1.57075 0 0" xyz="0 .045 -.0145"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="lower_leg_back_leftR_link">
+		<contact>
+			<friction_anchor/>
+			<stiffness value="3000.0"/>
+			<damping value="100.0"/>
+			<spinning_friction value=".05"/>
+			<lateral_friction value="1"/>
+		</contact>
+		<visual>
+			<origin rpy="0 0 0" xyz="0 0 .108"/>
+			<geometry>
+				<box size=".017 .009 .216"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 .108"/>
+			<geometry>
+				<box size=".017 .009 .216"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<origin rpy="0 0 0" xyz="0 0 .1"/>
+			<mass value=".072"/>
+			<inertia ixx=".00023166" ixy=".0" ixz=".0" iyy=".00023325" iyz=".0" izz=".00000198"/>
+		</inertial>
+	</link>
+	<joint name="knee_back_leftR_joint" type="continuous">
+		<axis xyz="0 1 0"/>
+		<parent link="upper_leg_back_leftR_link"/>
+		<child link="lower_leg_back_leftR_link"/>
+		<origin rpy="0 0 0" xyz="0 .0085 .056"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="upper_leg_back_leftL_link">
+		<visual>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<geometry>
+				<box size=".039 .008 .129"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value=".034"/>
+			<inertia ixx=".000038770" ixy=".0" ixz=".0" iyy=".000042198" iyz=".0" izz=".0000036030"/>
+		</inertial>
+	</link>
+	<joint name="hip_back_leftL_joint" type="fixed">
+		<axis xyz="0 0 1"/>
+		<parent link="motor_back_leftL_link"/>
+		<child link="upper_leg_back_leftL_link"/>
+		<origin rpy="-1.57075 0 0" xyz="0 .045 -.0145"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+	<link name="lower_leg_back_leftL_link">
+		<contact>
+			<friction_anchor/>
+			<stiffness value="3000.0"/>
+			<damping value="100.0"/>
+			<spinning_friction value=".05"/>
+			<lateral_friction value="1"/>
+		</contact>
+		<visual>
+			<origin rpy="0 0 0" xyz="0 0 .120"/>
+			<geometry>
+				<box size=".017 .009 .240"/>
+			</geometry>
+			<material name="grey">
+				<color rgba=".65 .65 .75 1"/>
+			</material>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 .120"/>
+			<geometry>
+				<box size=".017 .009 .240"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<origin rpy="0 0 0" xyz="0 0 .120"/>
+			<mass value=".086"/>
+			<inertia ixx=".00032459" ixy=".0" ixz=".0" iyy=".00032637" iyz=".0" izz=".000002178"/>
+		</inertial>
+	</link>
+	<joint name="knee_back_leftL_joint" type="continuous">
+		<axis xyz="0 1 0"/>
+		<parent link="upper_leg_back_leftL_link"/>
+		<child link="lower_leg_back_leftL_link"/>
+		<origin rpy="0 0 0" xyz="0 .0085 .056"/>
+		<limit effort="100" velocity="100"/>
+		<joint_properties damping=".0" friction=".0"/>
+	</joint>
+</robot>
