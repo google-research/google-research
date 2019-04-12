@@ -19,6 +19,7 @@ const DataTable = goog.require('google.visualization.DataTable');
 const Graph = goog.require('eeg_modelling.eeg_viewer.Graph');
 const MockControl = goog.require('goog.testing.MockControl');
 const gvizEvents = goog.require('google.visualization.events');
+const singleton = goog.require('goog.testing.singleton');
 const testSuite = goog.require('goog.testing.testSuite');
 
 let mockControl;
@@ -33,7 +34,8 @@ testSuite({
   setUp() {
     mockControl = new MockControl();
 
-    graph = new Graph();
+    singleton.reset();
+    graph = Graph.getInstance();
 
     storeData = {
       absStart: 2,
@@ -214,7 +216,7 @@ testSuite({
     const seriesReversedIndex = 0;
 
     graph.channelTransformations.set(selectedSeries, 2);
-    graph.handleChartData(storeData);
+    graph.handleChartData(storeData, ['chunkGraphData']);
 
     gvizEvents.trigger(graph.getChart(), 'click', {
       targetID: `vAxis#0#label#${seriesReversedIndex}`,

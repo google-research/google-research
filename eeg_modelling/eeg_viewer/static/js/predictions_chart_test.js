@@ -15,11 +15,17 @@
 goog.module('eeg_modelling.eeg_viewer.PredictionsChart.tests');
 goog.setTestOnly();
 
+const AttributionMap = goog.require('proto.eeg_modelling.protos.PredictionChunk.AttributionMap');
+const AttributionValues = goog.require('proto.eeg_modelling.protos.PredictionChunk.AttributionMap.AttributionValues');
+const ChunkScoreData = goog.require('proto.eeg_modelling.protos.PredictionMetadata.ChunkScoreData');
 const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const MockControl = goog.require('goog.testing.MockControl');
+const PredictionChunk = goog.require('proto.eeg_modelling.protos.PredictionChunk');
 const PredictionsChart = goog.require('eeg_modelling.eeg_viewer.PredictionsChart');
+const ScoreData = goog.require('proto.eeg_modelling.protos.PredictionMetadata.ChunkScoreData.ScoreData');
 const dom = goog.require('goog.dom');
 const gvizEvents = goog.require('google.visualization.events');
+const singleton = goog.require('goog.testing.singleton');
 const testSuite = goog.require('goog.testing.testSuite');
 
 let mockControl;
@@ -35,6 +41,7 @@ testSuite({
   setUp() {
     mockControl = new MockControl();
 
+    singleton.reset();
     predictionsChart = PredictionsChart.getInstance();
 
     storeData = {
@@ -123,49 +130,31 @@ testSuite({
     mockControl.$verifyAll();
   },
 
-  testCreateOverlay_NoOverlay() {
-    predictionsChart.modes['test'] = {
-      getNumSecs: (store) => store.numSecs,
-      getStart: () => 0,
-      drawOverlay: null,
-    };
+  testHandleChartData_NoOverlay() {
+    storeData.predictionMode = 'None';
 
-    const mockSizeAndPosition = mockControl.createMethodMock(predictionsChart,
-        'sizeAndPositionOverlay');
-    mockSizeAndPosition().$once();
-    const mockHighlight = mockControl.createMethodMock(predictionsChart,
-        'highlightViewport');
-    mockHighlight(storeData).$once();
+    const mockDrawOverlay = mockControl.createMethodMock(predictionsChart,
+        'drawOverlay');
+    mockDrawOverlay(storeData).$times(0);
 
     mockControl.$replayAll();
 
-    predictionsChart.createOverlay(storeData);
+    predictionsChart.handleChartData(storeData, ['predictionMode']);
 
     mockControl.$verifyAll();
   },
 
-  testCreateOverlay_Overlay() {
+  testHandleChartData_ChunkScoresOverlay() {
     storeData.chunkScores = [{'fake chunk': {'real': 1, 'predicted': 0.34}}];
-    storeData.showPredictions = true;
-    const mockSizeAndPosition = mockControl.createMethodMock(predictionsChart,
-        'sizeAndPositionOverlay');
-    mockSizeAndPosition().$once();
-    const mockDraw = mockControl.createMethodMock(predictionsChart,
-        'drawChunkScores');
-    mockDraw(storeData).$once();
-    const mockHighlight = mockControl.createMethodMock(predictionsChart,
-        'highlightViewport');
-    mockHighlight(storeData).$once();
+    storeData.predictionMode = 'Chunk Scores';
 
-    predictionsChart.modes['test'] = {
-      getNumSecs: (store) => store.numSecs,
-      getStart: () => 0,
-      drawOverlay: goog.bind(mockDraw, predictionsChart),
-    };
+    const mockDrawOverlay = mockControl.createMethodMock(predictionsChart,
+        'drawOverlay');
+    mockDrawOverlay(storeData).$once();
 
     mockControl.$replayAll();
 
-    predictionsChart.createOverlay(storeData);
+    predictionsChart.handleChartData(storeData, ['predictionMode']);
 
     mockControl.$verifyAll();
   },
@@ -200,6 +189,87 @@ testSuite({
     });
 
     mockControl.$verifyAll();
+  },
+
+  testDrawChunkScores() {
+    const scoreData = new ScoreData();
+    scoreData.setPredictedValue(0.42);
+
+    const chunkScoreData = new ChunkScoreData();
+    chunkScoreData.setDuration(1);
+    chunkScoreData.setStartTime(1);
+    chunkScoreData.getScoreDataMap().set('test label', scoreData);
+    storeData.chunkScores = [chunkScoreData];
+    storeData.label = 'test label';
+
+    const overlayElements = predictionsChart.drawChunkScores(storeData);
+
+    assertEquals(1, overlayElements.length);
+    assertEquals(1, overlayElements[0].startX);
+    assertEquals(2, overlayElements[0].endX);
+  },
+
+  testDrawAttributionMap() {
+    const attributionValuesCh1 = new AttributionValues();
+    attributionValuesCh1.setAttributionList([0, 0.2]);
+    const attributionValuesCh2 = new AttributionValues();
+    attributionValuesCh2.setAttributionList([0.3, 0.7]);
+
+    const attributionMap = new AttributionMap();
+    attributionMap.getAttributionMapMap().set('CHAN1', attributionValuesCh1);
+    attributionMap.getAttributionMapMap().set('CHAN2', attributionValuesCh2);
+    const predChunk = new PredictionChunk();
+    predChunk.getAttributionDataMap().set('test label', attributionMap);
+    storeData.attributionMaps = predChunk.getAttributionDataMap();
+    storeData.label = 'test label';
+    storeData.channelIds = ['CHAN1', 'CHAN2'];
+    storeData.predictionChunkStart = 1;
+    storeData.predictionChunkSize = 3;
+
+    const boundBox = {top: 5, left: 3, width: 42, height: 76};
+
+    const minimumExpected = [
+      {
+        startX: 1,
+        endX: 2.5,
+        top: 0,
+        height: 38,
+        minWidth: 0,
+      },
+      {
+        startX: 2.5,
+        endX: 4,
+        top: 0,
+        height: 38,
+        minWidth: 0,
+      },
+      {
+        startX: 1,
+        endX: 2.5,
+        top: 38,
+        height: 38,
+        minWidth: 0,
+      },
+      {
+        startX: 2.5,
+        endX: 4,
+        top: 38,
+        height: 38,
+        minWidth: 0,
+      },
+    ];
+
+    const overlayElements =
+        predictionsChart.drawAttributionMap(storeData, boundBox);
+
+    assertEquals(minimumExpected.length, overlayElements.length);
+    minimumExpected.forEach((element, index) => {
+      Object.keys(element).forEach((key) => {
+        const expected = element[key];
+        const actual = overlayElements[index][key];
+        assertEquals(`Failed: element[${index}].${key}`, expected, actual);
+      });
+    });
   },
 
   tearDown() {

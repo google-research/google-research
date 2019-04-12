@@ -15,18 +15,13 @@
 goog.module('eeg_modelling.eeg_viewer.ChartBase.tests');
 goog.setTestOnly();
 
-const AttributionMap = goog.require('proto.eeg_modelling.protos.PredictionChunk.AttributionMap');
-const AttributionValues = goog.require('proto.eeg_modelling.protos.PredictionChunk.AttributionMap.AttributionValues');
 const ChartBase = goog.require('eeg_modelling.eeg_viewer.ChartBase');
-const ChunkScoreData = goog.require('proto.eeg_modelling.protos.PredictionMetadata.ChunkScoreData');
 const DataTable = goog.require('google.visualization.DataTable');
-const EventType = goog.require('goog.events.EventType');
 const LineChart = goog.require('google.visualization.LineChart');
 const MockControl = goog.require('goog.testing.MockControl');
-const PredictionChunk = goog.require('proto.eeg_modelling.protos.PredictionChunk');
-const ScoreData = goog.require('proto.eeg_modelling.protos.PredictionMetadata.ChunkScoreData.ScoreData');
 const dom = goog.require('goog.dom');
-const events = goog.require('goog.events');
+const mockmatchers = goog.require('goog.testing.mockmatchers');
+const singleton = goog.require('goog.testing.singleton');
 const testSuite = goog.require('goog.testing.testSuite');
 
 let mockControl;
@@ -42,6 +37,7 @@ testSuite({
   setUp() {
     mockControl = new MockControl();
 
+    singleton.reset();
     chartBase = ChartBase.getInstance();
 
     // Define things to resemble a subclass, which would have these overridden
@@ -215,11 +211,11 @@ testSuite({
   testInitChart() {
     chartBase.initChart();
 
-    const lineChartInstance = (new LineChart(document.createElement('div')));
+    const lineChartInstance = new LineChart(document.createElement('div'));
     assertObjectEquals(chartBase.chart.prototype, lineChartInstance.prototype);
   },
 
-  testHandleDraw() {
+  testDrawContent() {
     chartBase.dataTable = new DataTable({
       cols: [
         {id: '', pattern: '', label: 'seconds', type: 'number'},
@@ -247,30 +243,21 @@ testSuite({
     const mockGet = mockControl.createMethodMock(chartBase, 'getOption');
     mockGet('height').$returns(42);
 
+    const HTMLElementMatcher = new mockmatchers.ArgumentMatcher((element) => {
+      const emptyElement = document.createElement('div');
+      return emptyElement.prototype === element.prototype;
+    });
     const mockChart = mockControl.createStrictMock(LineChart);
+    const lineChartConstructor =
+        mockControl.createConstructorMock(ChartBase.getChartDep(), 'LineChart');
+
+    lineChartConstructor(HTMLElementMatcher).$returns(mockChart);
     mockChart.draw(chartBase.dataTable, chartBase.chartOptions).$once();
-    chartBase.chart = mockChart;
-
-    const mockOverlay = mockControl.createMethodMock(chartBase,
-        'createOverlay');
-    mockOverlay(storeData).$once();
-
-    const mockResize = (storeData) => 42;
-    chartBase.resizeHandler = mockResize;
-    const mockUnlisten = mockControl.createMethodMock(events, 'unlisten');
-    mockUnlisten(window, EventType.RESIZE, mockResize).$once();
-
-    const mockDraw = () => 42;
-    const mockCreateResizeHandler = mockControl.createMethodMock(chartBase,
-        'createResizeHandler');
-    mockCreateResizeHandler(storeData).$returns(mockDraw);
-
-    const mockListen = mockControl.createMethodMock(events, 'listen');
-    mockListen(window, EventType.RESIZE, mockDraw).$once();
 
     mockControl.$replayAll();
 
-    chartBase.handleDraw(storeData);
+    chartBase.initChart();
+    chartBase.drawContent(storeData);
 
     mockControl.$verifyAll();
 
@@ -292,108 +279,21 @@ testSuite({
         'createDataTable');
     mockCreateDatatable(storeData).$returns(fakeDatatable);
 
-    const mockHandleDraw = mockControl.createMethodMock(chartBase,
-        'handleDraw');
-    mockHandleDraw(storeData).$once();
+    const mockDrawContent = mockControl.createMethodMock(chartBase,
+        'drawContent');
+    mockDrawContent(storeData).$once();
+
+    const mockDrawOverlay = mockControl.createMethodMock(chartBase,
+        'drawOverlay');
+    mockDrawOverlay(storeData).$once();
 
     mockControl.$replayAll();
 
-    chartBase.handleChartData(storeData);
+    chartBase.handleChartData(storeData, ['chunkGraphData']);
 
     mockControl.$verifyAll();
 
     assertObjectEquals(fakeDatatable, chartBase.getDataTable());
-  },
-
-  testDrawChunkScores() {
-    const scoreData = new ScoreData();
-    scoreData.setPredictedValue(0.42);
-
-    const chunkScoreData = new ChunkScoreData();
-    chunkScoreData.setDuration(1);
-    chunkScoreData.setStartTime(1);
-    chunkScoreData.getScoreDataMap().set('test label', scoreData);
-    storeData.chunkScores = [chunkScoreData];
-    storeData.label = 'test label';
-
-    const boundBox = {top: 5, left: 3, width: 42, height: 77};
-    const mockGetCli = mockControl.createMethodMock(chartBase,
-        'getChartLayoutInterface');
-    mockGetCli().$returns({
-      getChartAreaBoundingBox: () => boundBox,
-      getXLocation: (x) => x,
-    });
-
-    const mockCanvas = mockControl.createMethodMock(chartBase, 'getCanvas');
-    mockCanvas().$returns({
-      width: 3,
-      height: 42,
-    });
-
-    const mockFill = mockControl.createFunctionMock('fillRect');
-    mockFill(-2, 0, 1, 77).$once();
-    const mockClear = mockControl.createFunctionMock('clearRect');
-    mockClear(0, 0, 3, 42).$once();
-    const mockGetContext = mockControl.createMethodMock(chartBase,
-        'getContext');
-    mockGetContext().$returns({
-      fillRect: mockFill,
-      clearRect: mockClear,
-    });
-    mockControl.$replayAll();
-
-    chartBase.drawChunkScores(storeData);
-
-    mockControl.$verifyAll();
-  },
-
-  testDrawAttributionMap() {
-    const attributionValuesCh1 = new AttributionValues();
-    attributionValuesCh1.setAttributionList([0, 0.2]);
-    const attributionValuesCh2 = new AttributionValues();
-    attributionValuesCh2.setAttributionList([0.3, 0.7]);
-
-    const attributionMap = new AttributionMap();
-    attributionMap.getAttributionMapMap().set('CHAN1', attributionValuesCh1);
-    attributionMap.getAttributionMapMap().set('CHAN2', attributionValuesCh2);
-    const predChunk = new PredictionChunk();
-    predChunk.getAttributionDataMap().set('test label', attributionMap);
-    storeData.attributionMaps = predChunk.getAttributionDataMap();
-    storeData.label = 'test label';
-    storeData.channelIds = ['CHAN1', 'CHAN2'];
-
-    const boundBox = {top: 5, left: 3, width: 42, height: 76};
-    const mockGetCli = mockControl.createMethodMock(chartBase,
-        'getChartLayoutInterface');
-    mockGetCli().$returns({
-      getChartAreaBoundingBox: () => boundBox,
-      getXLocation: (x) => x,
-    });
-
-    const mockCanvas = mockControl.createMethodMock(chartBase, 'getCanvas');
-    mockCanvas().$returns({
-      width: 3,
-      height: 42,
-    });
-
-    const mockFill = mockControl.createFunctionMock('fillRect');
-    mockFill(1, 0, 1.5, 38).$once();
-    mockFill(2.5, 0, 1.5, 38).$once();
-    mockFill(1, 38, 1.5, 38).$once();
-    mockFill(2.5, 38, 1.5, 38).$once();
-    const mockClear = mockControl.createFunctionMock('clearRect');
-    mockClear(0, 0, 3, 42).$once();
-    const mockGetContext = mockControl.createMethodMock(chartBase,
-        'getContext');
-    mockGetContext().$returns({
-      fillRect: mockFill,
-      clearRect: mockClear,
-    });
-    mockControl.$replayAll();
-
-    chartBase.drawAttributionMap(storeData);
-
-    mockControl.$verifyAll();
   },
 
   tearDown() {

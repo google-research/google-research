@@ -21,6 +21,7 @@ const NavChart = goog.require('eeg_modelling.eeg_viewer.NavChart');
 const dom = goog.require('goog.dom');
 const gvizEvents = goog.require('google.visualization.events');
 const mockmatchers = goog.require('goog.testing.mockmatchers');
+const singleton = goog.require('goog.testing.singleton');
 const testSuite = goog.require('goog.testing.testSuite');
 
 let mockControl;
@@ -35,6 +36,7 @@ testSuite({
   setUp() {
     mockControl = new MockControl();
 
+    singleton.reset();
     navChart = NavChart.getInstance();
 
     storeData = {
@@ -104,17 +106,20 @@ testSuite({
         (num) => goog.isNumber(num) && num >= 0);
 
     const mockRect = mockControl.createFunctionMock('fillRect');
+    const mockClearRect = mockControl.createFunctionMock('clearRect');
     const mockGetContext = mockControl.createMethodMock(navChart,
         'getContext');
     mockGetContext().$returns({
       setLineDash: () => null,
       fillRect: mockRect,
+      clearRect: mockClearRect,
     });
+    mockClearRect(numMatcher, numMatcher, numMatcher, numMatcher).$once();
     mockRect(numMatcher, numMatcher, numMatcher, numMatcher).$once();
 
     mockControl.$replayAll();
 
-    navChart.handleChartData(storeData);
+    navChart.handleChartData(storeData, ['numSecs', 'chunkStart']);
 
     mockControl.$verifyAll();
   },
