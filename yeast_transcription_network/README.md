@@ -1,7 +1,7 @@
 # Processing of microarray data for transcription networks in yeast
 
-This python notebook is a companion to [Expansive perturbation profiling reveals
-a causal expression network][paper].
+This python notebook is a companion to [Time-resolved genome-scale profiling
+reveals a causal expression network][paper].
 
 
 ## Downloading the data
