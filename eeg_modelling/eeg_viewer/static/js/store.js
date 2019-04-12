@@ -449,7 +449,6 @@ class Store {
    * @return {!PartialStoreData} store data with changed properties.
    */
   handleRequestResponseOk(data) {
-
     const /** !PartialStoreData */ newStoreData = {};
 
     const waveformChunk = data.getWaveformChunk();
@@ -817,14 +816,12 @@ class Store {
    * @return {?PartialStoreData} store data with changed properties.
    */
   handleNavBarRequest(data) {
-    if (data.time || data.time === 0) {
-      const chunkDuration = this.storeData.chunkDuration;
-      return {
-        chunkStart: chunkDuration * Math.floor(data.time / chunkDuration),
-      };
-    } else {
+    if (!goog.isNumber(data.time)) {
       return null;
     }
+    return {
+      chunkStart: Math.round(data.time - this.storeData.chunkDuration / 2),
+    };
   }
 
   /**
