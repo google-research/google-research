@@ -166,9 +166,6 @@ class Graph extends ChartBase {
     /** @private {?DataPointClick} */
     this.secondClick_ = null;
 
-    /** @private {?Function} */
-    this.changeChannelSensitivity_ = null;
-
     /** @private {?string} */
     this.clickedChannelName_ = null;
 
@@ -188,17 +185,19 @@ class Graph extends ChartBase {
     this.waveEventEndTimeId_ = 'wave-event-end-time';
 
     const store = Store.getInstance();
-    // This listener callback will initialize a graph with the annotations and
-    // DataTable.
-    store.registerListener([Store.Property.ANNOTATIONS,
-        Store.Property.CHUNK_GRAPH_DATA, Store.Property.TIMESCALE,
-        Store.Property.SENSITIVITY], 'Graph',
-        (store) => this.handleChartData(store));
-    // This listener callback will resize the graph considering if the
-    // predictions chart is in display.
+    // This listener callback will update the chart with the new store data,
+    // redrawing only what needs to be redrawn.
     store.registerListener(
-        [Store.Property.PREDICTION_MODE],
-        'Graph', (store) => this.handleDraw(store));
+        [
+          Store.Property.ANNOTATIONS,
+          Store.Property.CHUNK_GRAPH_DATA,
+          Store.Property.TIMESCALE,
+          Store.Property.SENSITIVITY,
+          Store.Property.PREDICTION_MODE,
+        ],
+        'Graph',
+        (store, changedProperties) =>
+            this.handleChartData(store, changedProperties));
   }
 
   /**
@@ -607,24 +606,33 @@ class Graph extends ChartBase {
    * @param {number} modifier Sensitivity modifier.
    * @private
    */
-  changeClickedChannelSensitivity_(modifier) {
-    if (this.changeChannelSensitivity_ && this.clickedChannelName_) {
-      this.changeChannelSensitivity_(this.clickedChannelName_, modifier);
+  changeChannelSensitivity_(modifier) {
+    const channelName = this.clickedChannelName_;
+    if (!channelName || !this.updateDataAndRedrawHandler) {
+      return;
     }
+
+    const currentTransform = this.channelTransformations.get(channelName);
+    this.channelTransformations.set(channelName, currentTransform * modifier);
+
+    // TODO(pdpino): update just the selected column in the dataTable,
+    // and then call this.redrawHandler() instead (for better performance).
+    // If this handler is no longer used after that, delete it.
+    this.updateDataAndRedrawHandler();
   }
 
   /**
    * Increases the sensitivity of the clicked channel.
    */
   increaseSensitivity() {
-    this.changeClickedChannelSensitivity_(2);
+    this.changeChannelSensitivity_(2);
   }
 
   /**
    * Decreases the sensitivity of the clicked channel.
    */
   decreaseSensitivity() {
-    this.changeClickedChannelSensitivity_(0.5);
+    this.changeChannelSensitivity_(0.5);
   }
 
   /**
@@ -641,14 +649,29 @@ class Graph extends ChartBase {
   /**
    * @override
    */
-  handleChartData(store) {
-    this.changeChannelSensitivity_ = (channelName, modifier) => {
-      this.channelTransformations.set(
-          channelName, this.channelTransformations.get(channelName) * modifier);
-      this.handleChartData(store);
-    };
+  shouldUpdateData(store, changedProperties) {
+    return ChartBase.changedPropertiesIncludeAny(changedProperties, [
+      Store.Property.ANNOTATIONS,
+      Store.Property.CHUNK_GRAPH_DATA,
+      Store.Property.SENSITIVITY,
+    ]);
+  }
 
-    super.handleChartData(store);
+  /**
+   * @override
+   */
+  shouldRedrawContent(store, changedProperties) {
+    return ChartBase.changedPropertiesIncludeAny(changedProperties, [
+      Store.Property.TIMESCALE,
+      Store.Property.PREDICTION_MODE,
+    ]);
+  }
+
+  /**
+   * @override
+   */
+  shouldRedrawOverlay(store, changedProperties) {
+    return false;
   }
 }
 

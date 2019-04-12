@@ -77,9 +77,14 @@ class NavChart extends ChartBase {
     // This listener callback will update the underlay of the graph which draws
     // a heatmap with the prediction data specified by the mode and shades the
     // timespan in the viewport.
-    store.registerListener([Store.Property.CHUNK_START,
-        Store.Property.CHUNK_DURATION, Store.Property.NUM_SECS], 'NavChart',
-        (store) => this.handleChartData(store));
+    store.registerListener(
+        [
+          Store.Property.CHUNK_START, Store.Property.CHUNK_DURATION,
+          Store.Property.NUM_SECS,
+        ],
+        'NavChart',
+        (store, changedProperties) =>
+            this.handleChartData(store, changedProperties));
   }
 
   /**
@@ -124,6 +129,32 @@ class NavChart extends ChartBase {
       max: (this.getStart(store) + this.getNumSecs(store)),
     });
     this.setOption('hAxis.ticks', this.createHTicks(store));
+  }
+
+  /**
+   * @override
+   */
+  shouldUpdateData(store, changedProperties) {
+    return ChartBase.changedPropertiesIncludeAny(changedProperties, [
+      Store.Property.NUM_SECS,
+    ]);
+  }
+
+  /**
+   * @override
+   */
+  shouldRedrawContent(store, changedProperties) {
+    return false;
+  }
+
+  /**
+   * @override
+   */
+  shouldRedrawOverlay(store, changedProperties) {
+    return ChartBase.changedPropertiesIncludeAny(changedProperties, [
+      Store.Property.CHUNK_START,
+      Store.Property.CHUNK_DURATION,
+    ]);
   }
 }
 

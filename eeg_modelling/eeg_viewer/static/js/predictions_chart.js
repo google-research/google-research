@@ -23,10 +23,12 @@ const array = goog.require('goog.array');
  * @typedef {{
  *   getStart: function(!Store.StoreData):number,
  *   getNumSecs: function(!Store.StoreData):number,
- *   drawOverlay: ?function(!Store.StoreData):void,
+ *   getElementsToDraw: !ChartBase.GetElementsToDraw,
  *   getVTickDisplayValues: ?function(!Store.StoreData):!Array<string>,
  *   getVAxisMin: function(!Store.StoreData):number,
  *   getVAxisMax: function(!Store.StoreData):number,
+ *   updateDataProperties: !Array<!Store.Property>,
+ *   updateOverlayProperties: !Array<!Store.Property>,
  * }}
  */
 let Mode;
@@ -61,28 +63,38 @@ class PredictionsChart extends ChartBase {
       [Store.PredictionMode.NONE]: {
         getStart: (store) => 0,
         getNumSecs: (store) => store.numSecs,
-        drawOverlay: null,
+        getElementsToDraw: (store) => [],
         getVTickDisplayValues: () => [],
         getVAxisMin: (store) => -0.5,
         getVAxisMax: (store) => 0.5,
+        updateDataProperties: [],
+        updateOverlayProperties: [],
       },
       [Store.PredictionMode.CHUNK_SCORES]: {
         getStart: (store) => 0,
         getNumSecs: (store) => store.numSecs,
-        drawOverlay: (store) => this.drawChunkScores(store),
+        getElementsToDraw: (store) => this.drawChunkScores(store),
         getVTickDisplayValues: () => [],
         getVAxisMin: (store) => -0.5,
         getVAxisMax: (store) => 0.5,
+        updateDataProperties: [Store.Property.NUM_SECS],
+        updateOverlayProperties: [Store.Property.CHUNK_SCORES],
       },
       [Store.PredictionMode.ATTRIBUTION_MAPS]: {
         getStart: (store) => store.predictionChunkStart,
         getNumSecs: (store) => store.predictionChunkSize,
-        drawOverlay: (store) => this.drawAttributionMap(store),
-        getVTickDisplayValues: (store) => store.chunkGraphData.cols.slice(1)
-            .map((x) => x.id),
+        getElementsToDraw: (store, chartArea) =>
+            this.drawAttributionMap(store, chartArea),
+        getVTickDisplayValues: (store) =>
+            store.chunkGraphData.cols.slice(1).map((x) => x.id),
         getVAxisMin: (store) => -store.seriesHeight / 2,
-        getVAxisMax: (store) => store.seriesHeight * (
-            store.chunkGraphData.cols.length - 1.5),
+        getVAxisMax: (store) =>
+            store.seriesHeight * (store.chunkGraphData.cols.length - 1.5),
+        updateDataProperties: [
+          Store.Property.PREDICTION_CHUNK_START,
+          Store.Property.PREDICTION_CHUNK_SIZE,
+        ],
+        updateOverlayProperties: [Store.Property.ATTRIBUTION_MAPS],
       },
     };
 
@@ -112,15 +124,27 @@ class PredictionsChart extends ChartBase {
       },
     ];
 
+    this.overlayLayers = [{
+      name: 'predictions',
+      getElementsToDraw: (store, chartArea) => {
+        const modeOptions = this.modes[store.predictionMode];
+        return modeOptions.getElementsToDraw(store, chartArea);
+      },
+    }];
+
     const store = Store.getInstance();
     // This listener callback will update the underlay of the graph which draws
     // a heatmap with the prediction data specified by the mode and shades the
     // timespan in the viewport.
-    store.registerListener([Store.Property.ATTRIBUTION_MAPS,
-        Store.Property.LABEL, Store.Property.CHUNK_SCORES,
-        Store.Property.PREDICTION_MODE, Store.Property.NUM_SECS],
+    store.registerListener(
+        [
+          Store.Property.ATTRIBUTION_MAPS, Store.Property.LABEL,
+          Store.Property.CHUNK_SCORES, Store.Property.PREDICTION_MODE,
+          Store.Property.NUM_SECS,
+        ],
         'PredictionsChart',
-        (store) => this.handleChartData(store));
+        (store, changedProperties) =>
+            this.handleChartData(store, changedProperties));
   }
 
   /**
@@ -170,13 +194,100 @@ class PredictionsChart extends ChartBase {
   }
 
   /**
+   * Returns the attribution maps to draw in the predictions chart canvas.
+   * @param {!Store.StoreData} store Store data.
+   * @param {!ChartBase.ChartArea} chartArea Chart area dimensions.
+   * @return {!Array<!ChartBase.OverlayElement>} Elements to draw in the canvas.
+   */
+  drawAttributionMap(store, chartArea) {
+    if (!store.attributionMaps) {
+      return [];
+    }
+    const map = store.attributionMaps.get(store.label);
+    if (!map) {
+      return [];
+    }
+    const nChannels = store.channelIds.length;
+    const predictionChunkStart = Number(store.predictionChunkStart);
+    const predictionChunkSize = Number(store.predictionChunkSize);
+    const elements = [];
+    store.channelIds.forEach((channelId, rowIndex) => {
+      const attrValues = map.getAttributionMapMap().get(channelId)
+          .getAttributionList();
+      const width = predictionChunkSize / attrValues.length;
+      const top = (chartArea.height * rowIndex / nChannels);
+      const elementHeight = chartArea.height / nChannels;
+      attrValues.forEach((opacity, colIndex) => {
+        const startX = predictionChunkStart + colIndex * width;
+        elements.push({
+          fill: true,
+          color: `rgba(255,110,64,${opacity})`,
+          top,
+          startX,
+          endX: startX + width,
+          height: elementHeight,
+          minWidth: 0,
+        });
+      });
+    });
+    return elements;
+  }
+
+  /**
+   * Returns the chunk scores to draw in the predictions chart canvas.
+   * @param {!Store.StoreData} store Store data.
+   * @return {!Array<!ChartBase.OverlayElement>} Elements to draw in the canvas.
+   */
+  drawChunkScores(store) {
+    if (!store.chunkScores) {
+      return [];
+    }
+    return store.chunkScores.reduce((drawElements, chunkScoreData) => {
+      const scoreData = chunkScoreData.getScoreDataMap().get(store.label);
+      if (!scoreData) {
+        return drawElements;
+      }
+      const predictedValue = scoreData.getPredictedValue();
+      const opacity = this.getOpacity(predictedValue ? predictedValue : 0);
+      const chunkStartTime = Number(chunkScoreData.getStartTime());
+      const chunkScoreDuration = Number(chunkScoreData.getDuration());
+      drawElements.push({
+        fill: true,
+        color: `rgba(255,110,64,${opacity})`,
+        startX: chunkStartTime,
+        endX: chunkStartTime + chunkScoreDuration,
+      });
+      return drawElements;
+    }, []);
+  }
+
+  /**
    * @override
    */
-  drawOverlay(store) {
-    const modeOptions = this.modes[store.predictionMode];
-    if (modeOptions.drawOverlay) {
-      modeOptions.drawOverlay(store);
-    }
+  shouldUpdateData(store, changedProperties) {
+    return ChartBase.changedPropertiesIncludeAny(
+        changedProperties,
+        this.modes[store.predictionMode].updateDataProperties,
+    );
+  }
+
+  /**
+   * @override
+   */
+  shouldRedrawContent(store, changedProperties) {
+    return ChartBase.changedPropertiesIncludeAny(changedProperties, [
+      Store.Property.PREDICTION_MODE,
+    ]);
+  }
+
+  /**
+   * @override
+   */
+  shouldRedrawOverlay(store, changedProperties) {
+    return ChartBase.changedPropertiesIncludeAny(changedProperties, [
+      Store.Property.LABEL,
+      ...this.modes[store.predictionMode].updateOverlayProperties,
+    ]);
   }
 }
 
