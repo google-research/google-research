@@ -15,9 +15,11 @@
 goog.module('eeg_modelling.eeg_viewer.NavChart');
 
 const ChartBase = goog.require('eeg_modelling.eeg_viewer.ChartBase');
+const DataTable = goog.require('google.visualization.DataTable');
 const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const array = goog.require('goog.array');
+const formatter = goog.require('eeg_modelling.eeg_viewer.formatter');
 
 /**
  * Handles displaying the full time span of a file as well as annotations and
@@ -44,7 +46,10 @@ class NavChart extends ChartBase {
 
     this.chartOptions.chartArea.backgroundColor = 'lightgrey';
     this.chartOptions.chartArea.height = '30%';
-    this.chartOptions.colors = this.generateColors(2, '#fff');
+    this.chartOptions.crosshair.color = 'transparent';
+    this.chartOptions.crosshair.selected.color = 'transparent';
+    this.chartOptions.crosshair.trigger = 'focus';
+    this.chartOptions.colors = ['transparent'];
     this.chartOptions.height = 64;
     this.chartOptions.hAxis.baselineColor = 'white';
     this.chartOptions.hAxis.gridlines.color = 'white';
@@ -52,6 +57,8 @@ class NavChart extends ChartBase {
       min: 0,
       max: 1,
     };
+    this.chartOptions.tooltip.isHtml = true;
+    this.chartOptions.tooltip.trigger = 'focus';
 
     this.chartListeners = [
       {
@@ -114,6 +121,30 @@ class NavChart extends ChartBase {
    */
   getNumSecs(store) {
     return Number(store.numSecs);
+  }
+
+  /**
+   * @override
+   */
+  createDataTable(store) {
+    const dataTable = new DataTable();
+    dataTable.addColumn('number', 'seconds');
+    dataTable.addColumn('number', 'placeholder');
+    dataTable.addColumn({
+      type: 'string',
+      role: 'tooltip',
+      p: {
+        html: true,
+      },
+    });
+    const numSecs = this.getNumSecs(store);
+    const rowData = array.range(0, numSecs + 1).map((seconds) => {
+      const prettyTime = formatter.formatTime(store.absStart + seconds);
+      return [seconds, 0.5, `<p>${prettyTime}</p>`];
+    });
+
+    dataTable.addRows(rowData);
+    return dataTable;
   }
 
   /**
