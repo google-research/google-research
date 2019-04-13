@@ -266,6 +266,7 @@ th i.sorted, th i.sorted-reverse {
   border: gray solid 1.5pt;
   border-radius: 4pt;
   text-align: left;
+  z-index: 9;
 }
 
 .google-visualization-tooltip p {
