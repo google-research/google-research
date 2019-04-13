@@ -80,6 +80,13 @@ class NavChart extends ChartBase {
       },
     ];
 
+    this.overlayLayers = [
+      {
+        name: 'waveEvents',
+        getElementsToDraw: (store) => this.drawWaveEvents(store),
+      },
+    ];
+
     const store = Store.getInstance();
     // This listener callback will update the underlay of the graph which draws
     // a heatmap with the prediction data specified by the mode and shades the
@@ -87,7 +94,7 @@ class NavChart extends ChartBase {
     store.registerListener(
         [
           Store.Property.CHUNK_START, Store.Property.CHUNK_DURATION,
-          Store.Property.NUM_SECS,
+          Store.Property.NUM_SECS, Store.Property.WAVE_EVENTS,
         ],
         'NavChart',
         (store, changedProperties) =>
@@ -163,6 +170,21 @@ class NavChart extends ChartBase {
   }
 
   /**
+   * Returns an array of elements that represent the wave events to draw in
+   * the nav chart canvas.
+   * @param {!Store.StoreData} store Store data.
+   * @return {!Array<!ChartBase.OverlayElement>} Elements to draw in the canvas.
+   */
+  drawWaveEvents(store) {
+    return store.waveEvents.map((waveEvent) => ({
+      fill: true,
+      color: 'rgb(34, 139, 34)', // green
+      startX: waveEvent.startTime,
+      endX: waveEvent.startTime + waveEvent.duration,
+    }));
+  }
+
+  /**
    * @override
    */
   shouldUpdateData(store, changedProperties) {
@@ -185,6 +207,7 @@ class NavChart extends ChartBase {
     return ChartBase.changedPropertiesIncludeAny(changedProperties, [
       Store.Property.CHUNK_START,
       Store.Property.CHUNK_DURATION,
+      Store.Property.WAVE_EVENTS,
     ]);
   }
 }

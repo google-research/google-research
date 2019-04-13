@@ -50,6 +50,7 @@ testSuite({
       predictionMode: 'None',
       samplingFreq: 1,
       seriesHeight: 42,
+      waveEvents: [],
     };
 
     const parentContainer = document.createElement('div');

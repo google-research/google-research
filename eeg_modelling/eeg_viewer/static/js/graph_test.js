@@ -70,6 +70,7 @@ testSuite({
       seriesHeight: 42,
       sensitivity: 1,
       timeScale: 1,
+      waveEvents: [],
     };
 
     annotatedData = {
@@ -120,9 +121,15 @@ testSuite({
 
     const parentContainer = document.createElement('div');
     parentContainer.id = graph.parentId;
+
+    const overlay = document.createElement('canvas');
+    overlay.id = graph.overlayId;
+    parentContainer.appendChild(overlay);
+
     const chunk = document.createElement('div');
     chunk.id = graph.containerId;
     parentContainer.appendChild(chunk);
+
     document.body.appendChild(parentContainer);
 
     const channelActionsContainer = document.createElement('div');

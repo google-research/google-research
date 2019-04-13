@@ -98,6 +98,8 @@ class Graph extends ChartBase {
 
     this.containerId = 'line-chart-container';
 
+    this.overlayId = 'labels-overlay';
+
     this.chartOptions.chartArea.backgroundColor = {};
     this.chartOptions.selectionMode = 'multiple';
     this.chartOptions.annotations = {
@@ -169,6 +171,13 @@ class Graph extends ChartBase {
     /** @private {?string} */
     this.clickedChannelName_ = null;
 
+    this.overlayLayers = [
+      {
+        name: 'waveEvents',
+        getElementsToDraw: (store) => this.drawWaveEvents(store),
+      },
+    ];
+
     /** @private @const {string} */
     this.channelActionsId_ = 'channel-actions-container';
 
@@ -194,6 +203,7 @@ class Graph extends ChartBase {
           Store.Property.TIMESCALE,
           Store.Property.SENSITIVITY,
           Store.Property.PREDICTION_MODE,
+          Store.Property.WAVE_EVENTS,
         ],
         'Graph',
         (store, changedProperties) =>
@@ -636,6 +646,34 @@ class Graph extends ChartBase {
   }
 
   /**
+   * Returns an array of elements that represent the wave events to draw in
+   * the graph canvas.
+   * @param {!Store.StoreData} store Store data.
+   * @return {!Array<!ChartBase.OverlayElement>} Elements to draw in the canvas.
+   */
+  drawWaveEvents(store) {
+    const chunkStart = store.chunkStart;
+    const chunkEnd = store.chunkStart + store.chunkDuration;
+
+    return store.waveEvents.reduce((drawElements, waveEvent) => {
+      const startTime = waveEvent.startTime;
+      const endTime = startTime + waveEvent.duration;
+
+      if (startTime < chunkEnd && chunkStart < endTime) {
+        drawElements.push({
+          fill: true,
+          color: 'rgba(144, 238, 144, 0.4)', // green
+          startX: Math.max(startTime, chunkStart),
+          endX: Math.min(endTime, chunkEnd),
+          top: 0,
+        });
+      }
+
+      return drawElements;
+    }, []);
+  }
+
+  /**
    * @override
    */
   shouldBeVisible(store) {
@@ -671,7 +709,9 @@ class Graph extends ChartBase {
    * @override
    */
   shouldRedrawOverlay(store, changedProperties) {
-    return false;
+    return ChartBase.changedPropertiesIncludeAny(changedProperties, [
+      Store.Property.WAVE_EVENTS,
+    ]);
   }
 }
 
