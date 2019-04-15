@@ -21,6 +21,7 @@
 
 goog.module('eeg_modelling.eeg_viewer.WaveEvents');
 
+const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const dom = goog.require('goog.dom');
 const formatter = goog.require('eeg_modelling.eeg_viewer.formatter');
@@ -38,6 +39,12 @@ class WaveEvents {
     this.tableId_ = 'wave-events-table';
     /** @private {string} */
     this.emptyTextId_ = 'no-events-text';
+
+    /** @private @const {string} */
+    this.actionMenuContainer_ = 'event-actions-container';
+
+    /** @private {?Store.Annotation} */
+    this.clickedWaveEvent_ = null;
   }
 
   /**
@@ -61,7 +68,7 @@ class WaveEvents {
     document.getElementById(this.tableId_).appendChild(tableBody);
 
     store.waveEvents.forEach((waveEvent) => {
-      const row = document.createElement('tr');
+      const row = /** @type {!HTMLElement} */ (document.createElement('tr'));
       const addTextElementToRow = (text) => {
         const element = document.createElement('td');
         element.classList.add('mdl-data-table__cell--non-numeric');
@@ -75,8 +82,71 @@ class WaveEvents {
       addTextElementToRow(formatter.formatTime(absStartTime, true));
       addTextElementToRow(formatter.formatDuration(waveEvent.duration));
 
+      row.onclick = (event) => {
+        const top = event.y - event.offsetY + row.offsetHeight;
+        this.handleWaveEventClick(waveEvent, top);
+      };
+
       tableBody.appendChild(row);
     });
+  }
+
+  /**
+   * Handles a click in a wave event in the list, which will open the actions
+   * menu.
+   * @param {!Store.Annotation} waveEvent Wave event clicked.
+   * @param {number} top Top coordinate to position the wave event actions card.
+   */
+  handleWaveEventClick(waveEvent, top) {
+    if (this.clickedWaveEvent_ && this.clickedWaveEvent_.id === waveEvent.id) {
+      this.closeWaveEventMenu();
+      return;
+    }
+
+    this.clickedWaveEvent_ = waveEvent;
+
+    const menuContainer = document.getElementById(this.actionMenuContainer_);
+    menuContainer.style.top = `${top}px`;
+    menuContainer.classList.remove('hidden');
+  }
+
+  /**
+   * Navigates to the previously clicked Wave Event,
+   * and closes the wave event actions menu.
+   */
+  navigateToWaveEvent() {
+    const { startTime, duration } = this.clickedWaveEvent_;
+    this.closeWaveEventMenu();
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.NAVIGATE_TO_SPAN,
+      data: {
+        startTime,
+        duration,
+      },
+    });
+  }
+
+  /**
+   * Deletes the previously clicked wave event, and closes the wave event
+   * actions menu.
+   */
+  deleteWaveEvent() {
+    const waveEventId = this.clickedWaveEvent_.id;
+    this.closeWaveEventMenu();
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.DELETE_WAVE_EVENT,
+      data: {
+        id: waveEventId,
+      },
+    });
+  }
+
+  /**
+   * Closes the wave event actions menu and clears the selection.
+   */
+  closeWaveEventMenu() {
+    utils.hideElement(this.actionMenuContainer_);
+    this.clickedWaveEvent_ = null;
   }
 }
 
