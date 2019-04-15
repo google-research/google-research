@@ -24,7 +24,7 @@ from __future__ import print_function
 import sys
 import traceback
 
-from absl import app
+from absl import app as absl_app
 from absl import flags
 from absl import logging
 
@@ -58,7 +58,9 @@ flags.DEFINE_string('file_type',
 
 flask_app = flask.Flask(__name__)
 
-_MAX_SAMPLES = 2500
+# Maximum amount of EEG samples returned to the client
+# This prevents overloading the response if the time window requested is too big
+_MAX_SAMPLES_CLIENT = 2500
 
 
 def TfExDataSourceConstructor(*args):
@@ -107,6 +109,67 @@ def FetchPredictionsFromFile(filepath):
   return pred_outputs
 
 
+def FetchEdfDataSource(unused_edf_path):
+  raise NotImplementedError('Load EDF')
+
+
+def FetchTfExFromSSTable(unused_sstable, unused_key):
+  raise NotImplementedError('Load TF Example from SSTable')
+
+
+def FetchPredictionsFromSSTable(unused_sstable, unused_key):
+  raise NotImplementedError('Load predictions from SSTable')
+
+
+def GetWaveformDataSource(file_params):
+  """Get the waveform DataSource instance from file parameters.
+
+  Args:
+    file_params: Request holding the file parameters.
+  Returns:
+    DataSource instance.
+  Raises:
+    IOError: No tf path provided
+  """
+  if file_params.tf_ex_sstable_path:
+    tf_example, sstable_key = FetchTfExFromSSTable(
+        file_params.tf_ex_sstable_path, file_params.sstable_key)
+    waveform_data_source = TfExDataSourceConstructor(
+        tf_example, sstable_key)
+
+  elif file_params.edf_path:
+    waveform_data_source = FetchEdfDataSource(file_params.edf_path)
+
+  elif file_params.tf_ex_file_path:
+    tf_example = FetchTfExFromFile(file_params.tf_ex_file_path)
+    waveform_data_source = TfExDataSourceConstructor(tf_example, '')
+
+  else:
+    raise IOError('No path provided')
+
+  return waveform_data_source
+
+
+def GetPredictionsOutputs(file_params):
+  """Get the PredictionOutputs instance from file parameters.
+
+  Args:
+    file_params: Request holding the file parameters.
+  Returns:
+    PredictionOutputs instance.
+  """
+  pred_outputs = None
+
+  if file_params.tf_ex_sstable_path and file_params.prediction_sstable_path:
+    pred_outputs = FetchPredictionsFromSSTable(
+        file_params.prediction_sstable_path, file_params.sstable_key)
+
+  elif file_params.tf_ex_file_path and file_params.prediction_file_path:
+    pred_outputs = FetchPredictionsFromFile(file_params.prediction_file_path)
+
+  return pred_outputs
+
+
 def MakeErrorHandler(get_message):
   """Decorator for Error handler functions.
 
@@ -126,99 +189,125 @@ def MakeErrorHandler(get_message):
   return ErrorHandler
 
 
-@flask_app.errorhandler(ValueError)
 @MakeErrorHandler
 def ValueErrorMessage(detail):
   return 'Wrong value provided: %s' % detail
 
 
-@flask_app.errorhandler(KeyError)
 @MakeErrorHandler
 def KeyErrorMessage(unused_detail):
   return 'Key not found'
 
 
-@flask_app.errorhandler(NotImplementedError)
 @MakeErrorHandler
 def NotImplementedErrorMessage(detail):
   return '%s not implemented yet' % detail
 
 
-@flask_app.errorhandler(IOError)
 @MakeErrorHandler
 def IOErrorMessage(unused_detail):
   return 'Path not found'
 
 
-@flask_app.route('/', methods=['GET'])
+def RegisterErrorHandlers(app):
+  """Registers the error handlers in the flask app.
+
+  Args:
+    app: Flask application to register the handlers.
+  """
+  app.register_error_handler(ValueError, ValueErrorMessage)
+  app.register_error_handler(KeyError, KeyErrorMessage)
+  app.register_error_handler(NotImplementedError, NotImplementedErrorMessage)
+  app.register_error_handler(IOError, IOErrorMessage)
+
+
 def IndexPage():
   """Serves home page of the Waveforms Viewer."""
   return flask.render_template('index.html', file_type=FLAGS.file_type)
 
 
-@flask_app.route('/waveform_data/chunk', methods=['POST'])
-def RequestData():
-  """Returns a data response from a DataRequest.
+def MakeProtoRequestHandler(request_proto):
+  """Decorator to create a request handler for a specific type of request.
 
-  Contains a slice of waveform data and accompanying metadata and optionally
-  associated prediction data.
+  Args:
+    request_proto: Constructor of the request proto type.
   Returns:
-    A Flask response containing a serialized DataResponse.
+    Decorator to create a request handler.
   """
-  flask.request.environ['CONTENT_TYPE'] = 'application/x-protobuf'
-  data_request = flask.request.parse_protobuf(data_pb2.DataRequest)
+  def RequestHandler(create_data_response):
+    """Actual decorator to create a request handler.
 
-  data_response = CreateDataResponse(data_request)
+    Args:
+      create_data_response: function that receives a proto request and
+        returns a proto response and optional extra headers.
+    Returns:
+      Decorated function that can handle a request.
+    """
+    def Handler():
+      """Handler of the request."""
+      flask.request.environ['CONTENT_TYPE'] = 'application/x-protobuf'
+      data_request = flask.request.parse_protobuf(request_proto)
 
-  response = flask.make_response(data_response.SerializeToString())
+      data_response, extra_headers = create_data_response(data_request)
 
-  return response
+      response = flask.make_response(data_response.SerializeToString())
+
+      if extra_headers:
+        for header in extra_headers:
+          response.headers[header] = extra_headers[header]
+
+      return response
+    return Handler
+  return RequestHandler
 
 
+@MakeProtoRequestHandler(data_pb2.DataRequest)
 def CreateDataResponse(request):
   """Creates a DataResponse from a DataRequest.
 
   Args:
     request: A DataRequest instance received from client.
   Returns:
-    A DataResponse instance.
-  Raises:
-    NotImplementedError: Try to load from SSTable or EDF
-    IOError: No tf path provided
+    A DataResponse instance and extra headers.
   """
+  waveform_data_source = GetWaveformDataSource(request)
+  pred_outputs = GetPredictionsOutputs(request)
+
   data_response = data_pb2.DataResponse()
-
-  pred_outputs = None
-
-  if request.tf_ex_sstable_path:
-    raise NotImplementedError('Loading SSTables')
-
-  elif request.edf_path:
-    raise NotImplementedError('Loading EDF')
-
-  elif request.tf_ex_file_path:
-    tf_example = FetchTfExFromFile(request.tf_ex_file_path)
-    waveform_data_source = TfExDataSourceConstructor(tf_example, '')
-
-    if request.prediction_file_path:
-      pred_outputs = FetchPredictionsFromFile(request.prediction_file_path)
-
-  else:
-    raise IOError('No path provided')
-
   data_response.waveform_metadata.CopyFrom(waveform_data_service.GetMetadata(
-      waveform_data_source, _MAX_SAMPLES))
+      waveform_data_source, _MAX_SAMPLES_CLIENT))
   data_response.waveform_chunk.CopyFrom(waveform_data_service.GetChunk(
-      waveform_data_source, request, _MAX_SAMPLES))
+      waveform_data_source, request, _MAX_SAMPLES_CLIENT))
 
   if pred_outputs:
     waveforms_pred = prediction_data_service.PredictionDataService(
-        pred_outputs, waveform_data_source, _MAX_SAMPLES)
+        pred_outputs, waveform_data_source, _MAX_SAMPLES_CLIENT)
 
     data_response.prediction_metadata.CopyFrom(waveforms_pred.GetMetadata())
     data_response.prediction_chunk.CopyFrom(waveforms_pred.GetChunk(request))
 
-  return data_response
+  # When only an SSTable file pattern is provided, the cache will return the TF
+  # Example under the first iterated key.  Since the order of the keys is not
+  # guaranteed, this response will not be cached as it is not idempotent.
+  extra_headers = dict()
+  no_cache = request.tf_ex_sstable_path and not request.sstable_key
+  extra_headers['Cache-Control'] = 'no-cache' if no_cache else 'public'
+
+  return data_response, extra_headers
+
+
+def RegisterRoutes(app):
+  """Registers routes in the flask app.
+
+  Args:
+    app: Flask app to register the routes to.
+  """
+  app.add_url_rule('/', 'index', IndexPage, methods=['GET'])
+  app.add_url_rule(
+      '/waveform_data/chunk',
+      'chunk_data',
+      CreateDataResponse,
+      methods=['POST'])
 
 
 class Request(werkzeug_wrappers.ProtobufRequestMixin, flask_wrappers.Request):
@@ -228,10 +317,13 @@ class Request(werkzeug_wrappers.ProtobufRequestMixin, flask_wrappers.Request):
 def main(unused_argv):
   flask_app.request_class = Request
 
+  RegisterErrorHandlers(flask_app)
+  RegisterRoutes(flask_app)
+
   print('Serving in port ' + str(FLAGS.flask_port))
   server = WSGIServer(('', FLAGS.flask_port), flask_app)
   server.serve_forever()
 
 
 if __name__ == '__main__':
-  app.run(main)
+  absl_app.run(main)

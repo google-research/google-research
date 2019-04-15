@@ -81,6 +81,9 @@ class ServerTest(absltest.TestCase):
     server.flask_app.testing = True
     server.flask_app.request_class = server.Request
 
+    server.RegisterErrorHandlers(server.flask_app)
+    server.RegisterRoutes(server.flask_app)
+
   @mock.patch.object(flask, 'render_template')
   def testIndexPage(self, mock_render):
     server.IndexPage()
