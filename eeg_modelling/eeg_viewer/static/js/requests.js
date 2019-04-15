@@ -43,8 +43,8 @@ class Requests {
 
   constructor() {
     const store = Store.getInstance();
-    // This listener callback will make a new HTTP request when a request
-    // property change.
+    // This listener callback will make a new HTTP request when a data request
+    // property changes.
     store.registerListener(
         Store.RequestProperties, 'Requests',
         (store, changedProperties) =>
@@ -62,7 +62,7 @@ class Requests {
   }
 
   /**
-   * Creates a request for a chunk of waveform data.
+   * Creates a request with XhrIo and wraps it in a promise.
    * @param {string} url The path to send the request to.
    * @param {!DataRequest} requestContent A request protobuf.
    * @param {function(!Object): !Object} formatResponse Formats response data.
@@ -92,85 +92,44 @@ class Requests {
   }
 
   /**
-   * Creates a data request Uri from the ChunkStore.
-   * @param {!Store.StoreData} store Snapshot of chunk data store.
-   * @return {!Promise} A promise that makes an Xhr request.
+   * Sends a request and dispatches an action once the request ends.
+   * @param {string} url The path to send the request to.
+   * @param {!DataRequest} requestContent A request protobuf.
+   * @param {function(!Object): !Object} formatResponse Formats response data.
+   * @param {!Dispatcher.ActionType} actionOk Action to dispatch if the
+   *     request succeeds.
+   * @param {!Dispatcher.ActionType} actionError Action to dispatch if the
+   *     request fails.
    */
-  createDataResponsePromise(store) {
-    const url = '/waveform_data/chunk';
-
-    let channelDataIds = [];
-    if (store.channelIds) {
-      channelDataIds =
-          store.channelIds
-              .map((channelId) =>
-                  this.convertIndexStrToChannelDataId(channelId))
-              .filter(channelDataId => channelDataId);
-    }
-
-    const requestContent = new DataRequest();
-    requestContent.setTfExSstablePath(store.tfExSSTablePath);
-    requestContent.setSstableKey(store.sstableKey);
-    requestContent.setPredictionSstablePath(store.predictionSSTablePath);
-    requestContent.setEdfPath(store.edfPath);
-    requestContent.setTfExFilePath(store.tfExFilePath);
-    requestContent.setPredictionFilePath(store.predictionFilePath);
-    requestContent.setChunkDurationSecs(store.chunkDuration);
-    requestContent.setChunkStart(store.chunkStart);
-    requestContent.setChannelDataIdsList(channelDataIds);
-    requestContent.setLowCut(store.lowCut);
-    requestContent.setHighCut(store.highCut);
-    requestContent.setNotch(store.notch);
-
-    const formatResponse = (response) => {
-      return DataResponse.deserializeBinary(response);
-    };
-
-    return this.createXhrIoPromise(url, requestContent, formatResponse);
-  }
-
-  /**
-   * Handles HTTP requests for chunk data.
-   * @param {!Store.StoreData} store Snapshot of chunk data store.
-   * @param {!Array<!Store.Property>} changedProperties List of the properties
-   * that changed because of the last action.
-   */
-  handleRequestParameters(store, changedProperties) {
-    const fileParamDirty = Store.FileRequestProperties.some(
-        (param) => changedProperties.includes(param));
-    Dispatcher.getInstance().sendAction({
-      actionType: Dispatcher.ActionType.REQUEST_START,
-      data: {
-        fileParamDirty,
-      },
-    });
-    this.createDataResponsePromise(store)
-        .then((value) => {
-          Dispatcher.getInstance().sendAction({
-            actionType: Dispatcher.ActionType.REQUEST_RESPONSE_OK,
-            data: value,
-          });
-        })
-        .catch((error) => {
-          const errorResponse = /** @type {!ErrorResponse} */ (error);
-          log.error(
-              this.logger_,
-              errorResponse.message + ', ' + errorResponse.detail);
-          Dispatcher.getInstance().sendAction({
-            actionType: Dispatcher.ActionType.REQUEST_RESPONSE_ERROR,
-            data: {
-              message: errorResponse.message || 'Unknown Request Error',
-            },
-          });
+  sendRequest(url, requestContent, formatResponse, actionOk, actionError) {
+    this.createXhrIoPromise(url, requestContent, formatResponse)
+      .then((data) => {
+        Dispatcher.getInstance().sendAction({
+          actionType: actionOk,
+          data,
         });
+      })
+      .catch((error) => {
+        const errorResponse = /** @type {!ErrorResponse} */ (error);
+        log.error(
+            this.logger_,
+            errorResponse.message + ', ' + errorResponse.detail);
+        Dispatcher.getInstance().sendAction({
+          actionType: actionError,
+          data: {
+            message: errorResponse.message || 'Unknown Request Error',
+          },
+        });
+      });
   }
 
   /**
    * Converts channel ID's expressed in string form to proto format.
    * @param {string} channelStr The channel ID in string format.
    * @return {?ChannelDataId} Converted string channel ID.
+   * @private
    */
-  convertIndexStrToChannelDataId(channelStr) {
+  convertIndexStrToChannelDataId_(channelStr) {
     const channelIndices = channelStr.split('-')
         .map(x => closureString.parseInt(x))
         .filter(x => !isNaN(x));
@@ -192,6 +151,90 @@ class Requests {
       return null;
     }
     return channelDataId;
+  }
+
+  /**
+   * Sets the channelDataIds param from a list into a request protobuf.
+   * @param {!DataRequest} requestContent Proto instance to set the params to.
+   * @param {?Array<string>} channelIds Array of channel ids.
+   * @private
+   */
+  setChannelDataIdsParam_(requestContent, channelIds) {
+    let channelDataIds = [];
+    if (channelIds) {
+      channelDataIds =
+          channelIds
+              .map(
+                  (channelId) =>
+                      this.convertIndexStrToChannelDataId_(channelId))
+              .filter(channelDataId => channelDataId);
+    }
+
+    requestContent.setChannelDataIdsList(channelDataIds);
+  }
+
+  /**
+   * Sets the file parameters from the store into a request protobuf.
+   * @param {!DataRequest} requestContent Proto instance to set the params to.
+   * @param {!Store.StoreData} store Data from the store.
+   * @private
+   */
+  setFileParams_(requestContent, store) {
+    requestContent.setTfExSstablePath(store.tfExSSTablePath);
+    requestContent.setSstableKey(store.sstableKey);
+    requestContent.setPredictionSstablePath(store.predictionSSTablePath);
+    requestContent.setEdfPath(store.edfPath);
+    requestContent.setTfExFilePath(store.tfExFilePath);
+    requestContent.setPredictionFilePath(store.predictionFilePath);
+  }
+
+  /**
+   * Sets the filter parameters from the store into a request protobuf
+   * @param {!DataRequest} requestContent Proto instance to set the params to.
+   * @param {!Store.StoreData} store Data from the store.
+   * @private
+   */
+  setFilterParams_(requestContent, store) {
+    requestContent.setLowCut(store.lowCut);
+    requestContent.setHighCut(store.highCut);
+    requestContent.setNotch(store.notch);
+  }
+
+  /**
+   * Handles HTTP requests for chunk data.
+   * @param {!Store.StoreData} store Snapshot of chunk data store.
+   * @param {!Array<!Store.Property>} changedProperties List of the properties
+   *     that changed because of the last action.
+   */
+  handleRequestParameters(store, changedProperties) {
+    const fileParamDirty = Store.FileRequestProperties.some(
+        (param) => changedProperties.includes(param));
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.REQUEST_START,
+      data: {
+        fileParamDirty,
+      },
+    });
+    const url = '/waveform_data/chunk';
+    const requestContent = new DataRequest();
+    this.setFileParams_(requestContent, store);
+    this.setFilterParams_(requestContent, store);
+    this.setChannelDataIdsParam_(requestContent, store.channelIds);
+
+    requestContent.setChunkDurationSecs(store.chunkDuration);
+    requestContent.setChunkStart(store.chunkStart);
+
+    const formatResponse = (response) => {
+      return DataResponse.deserializeBinary(response);
+    };
+
+    this.sendRequest(
+      url,
+      requestContent,
+      formatResponse,
+      Dispatcher.ActionType.REQUEST_RESPONSE_OK,
+      Dispatcher.ActionType.REQUEST_RESPONSE_ERROR,
+    );
   }
 }
 

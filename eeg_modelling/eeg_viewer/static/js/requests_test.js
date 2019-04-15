@@ -18,10 +18,14 @@ goog.setTestOnly();
 const BipolarChannel = goog.require('proto.eeg_modelling.protos.ChannelDataId.BipolarChannel');
 const ChannelDataId = goog.require('proto.eeg_modelling.protos.ChannelDataId');
 const DataResponse = goog.require('proto.eeg_modelling.protos.DataResponse');
+const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const MockControl = goog.require('goog.testing.MockControl');
 const Requests = goog.require('eeg_modelling.eeg_viewer.Requests');
 const TestingXhrIo = goog.require('goog.testing.net.XhrIo');
 const WaveformChunk = goog.require('proto.eeg_modelling.protos.WaveformChunk');
+const array = goog.require('goog.array');
+const mockmatchers = goog.require('goog.testing.mockmatchers');
+const singleton = goog.require('goog.testing.singleton');
 const testSuite = goog.require('goog.testing.testSuite');
 
 let mockControl;
@@ -33,7 +37,10 @@ testSuite({
 
   setUp() {
     mockControl = new MockControl();
+
+    singleton.reset();
     requests = Requests.getInstance();
+
     // Initialize mocks for XhrIo requests.
     mockXhrIo = new TestingXhrIo();
     const mockGetXhrIo = mockControl.createMethodMock(requests, 'getXhrIo');
@@ -63,32 +70,51 @@ testSuite({
     channelDataId.setBipolarChannel(bipolarChannel);
 
     const waveformChunk = new WaveformChunk();
-    waveformChunk.setWaveformDatatable('waveform data');
+    waveformChunk.setWaveformDatatable('{ "test": "datatable" }');
     waveformChunk.setChannelDataIdsList([channelDataId]);
 
     const response = new DataResponse();
     response.setWaveformChunk(waveformChunk);
 
+    const responseMatcher = new mockmatchers.ArgumentMatcher((arg) => {
+      const actionTypeEqual =
+          arg.actionType === Dispatcher.ActionType.REQUEST_RESPONSE_OK;
+      const waveformChunk = arg.data.getWaveformChunk();
+
+      const dataTableEqual =
+          '{ "test": "datatable" }' === waveformChunk.getWaveformDatatable();
+      const channelIdsEqual = array.equals(
+          ['0-1'], waveformChunk.getChannelDataIdsList().map((x) => {
+            if (x.hasBipolarChannel()) {
+              return (
+                  x.getBipolarChannel().getIndex() + '-' +
+                  x.getBipolarChannel().getReferentialIndex());
+            } else {
+              return String(x.getSingleChannel().getIndex());
+            }
+          }));
+      return actionTypeEqual && dataTableEqual && channelIdsEqual;
+    });
+
+    const mockDispatcher = mockControl.createStrictMock(Dispatcher);
+    mockDispatcher.sendAction({
+      actionType: Dispatcher.ActionType.REQUEST_START,
+      data: {
+        fileParamDirty: true,
+      },
+    }).$once();
+    mockDispatcher.sendAction(responseMatcher).$once();
+    const mockGetInstance = mockControl.createMethodMock(Dispatcher,
+        'getInstance');
+    mockGetInstance().$times(2).$returns(mockDispatcher);
 
     mockControl.$replayAll();
 
-    const promise = requests.createDataResponsePromise(chunkData);
+    const promise = requests.handleRequestParameters(chunkData, ['tfExSSTablePath']);
     mockXhrIo.simulateResponse(200, response.serializeBinary());
-    const promiseResponse = await promise;
-    const responseData = promiseResponse.getWaveformChunk();
+    await promise;
 
     mockControl.$verifyAll();
-
-    assertEquals('waveform data', responseData.getWaveformDatatable());
-    assertArrayEquals(['0-1'], responseData.getChannelDataIdsList().map((x) => {
-      if (x.hasBipolarChannel()) {
-        return (
-            x.getBipolarChannel().getIndex() + '-' +
-            x.getBipolarChannel().getReferentialIndex());
-      } else {
-        return String(x.getSingleChannel().getIndex());
-      }
-    }));
   },
 
   tearDown() {
