@@ -1,0 +1,4 @@
+absl-py>=0.6.1
+numpy>=1.13.3
+scipy>=1.0.0
+tensorflow>=1.13.1
