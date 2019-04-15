@@ -95,7 +95,18 @@ goog.exportSymbol('toolBar.prevSec', goog.bind(toolBar.prevSec, toolBar));
 /** @const {!WindowLocation} */
 const windowLocation = WindowLocation.getInstance();
 
-WaveEvents.getInstance();
+/** @const {!WaveEvents} */
+const waveEvents = WaveEvents.getInstance();
+goog.exportSymbol(
+    'waveEvents.closeWaveEventMenu',
+    goog.bind(waveEvents.closeWaveEventMenu, waveEvents));
+goog.exportSymbol(
+    'waveEvents.deleteWaveEvent',
+    goog.bind(waveEvents.deleteWaveEvent, waveEvents));
+goog.exportSymbol(
+    'waveEvents.navigateToWaveEvent',
+    goog.bind(waveEvents.navigateToWaveEvent, waveEvents));
+
 
 /**
  * Make a request to the server when the URL changes.

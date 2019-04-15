@@ -24,9 +24,11 @@ const ActionType = {
   ADD_WAVE_EVENT: 'addWaveEvent',
   ANNOTATION_SELECTION: 'annotationSelection',
   CHANGE_TYPING_STATUS: 'changeTypingStatus',
+  DELETE_WAVE_EVENT: 'deleteWaveEvent',
   ERROR: 'error',
   MENU_FILE_LOAD: 'menuFileLoad',
   NAV_BAR_CHUNK_REQUEST: 'navBarChunkRequest',
+  NAVIGATE_TO_SPAN: 'navigateToSpan',
   PREDICTION_CHUNK_REQUEST: 'predictionChunkRequest',
   PREDICTION_MODE_SELECTION: 'predictionModeSelection',
   PREDICTION_LABEL_SELECTION: 'predictionLabelSelection',
@@ -62,6 +64,14 @@ let ActionEvent;
  * }}
  */
 let TimeData;
+
+/**
+ * @typedef {{
+ *   startTime: number,
+ *   duration: number,
+ * }}
+ */
+let TimeSpanData;
 
 /**
  * @typedef {{
@@ -123,6 +133,13 @@ let RequestStartData;
  */
 let IsTypingData;
 
+/**
+ * @typedef {{
+ *   id: number,
+ * }}
+ */
+let IdData;
+
 
 class Dispatcher {
 
@@ -164,8 +181,10 @@ exports = Dispatcher;
 exports.ActionType = ActionType;
 exports.FragmentData = FragmentData;
 exports.TimeData = TimeData;
+exports.TimeSpanData = TimeSpanData;
 exports.FileParamData = FileParamData;
 exports.ErrorData = ErrorData;
 exports.SelectionData = SelectionData;
 exports.RequestStartData = RequestStartData;
 exports.IsTypingData = IsTypingData;
+exports.IdData = IdData;

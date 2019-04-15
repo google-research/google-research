@@ -294,10 +294,14 @@ class Store {
                      this.handleAnnotationSelection);
     registerCallback(Dispatcher.ActionType.CHANGE_TYPING_STATUS,
                      this.handleChangeTypingStatus);
+    registerCallback(Dispatcher.ActionType.DELETE_WAVE_EVENT,
+                     this.handleDeleteWaveEvent);
     registerCallback(Dispatcher.ActionType.ERROR,
                      this.handleError);
     registerCallback(Dispatcher.ActionType.MENU_FILE_LOAD,
                      this.handleMenuFileLoad);
+    registerCallback(Dispatcher.ActionType.NAVIGATE_TO_SPAN,
+                     this.handleNavigateToSpan);
     registerCallback(Dispatcher.ActionType.NAV_BAR_CHUNK_REQUEST,
                      this.handleNavBarRequest);
     registerCallback(Dispatcher.ActionType.REQUEST_RESPONSE_ERROR,
@@ -440,6 +444,17 @@ class Store {
   handleAddWaveEvent(waveEvent) {
     return {
       waveEvents: this.addWaveEvent_(waveEvent),
+    };
+  }
+
+  /**
+   * Handles data from an DELETE_WAVE_EVENT action, which will delete an event.
+   * @param {!Dispatcher.IdData} data The wave event to delete.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleDeleteWaveEvent(data) {
+    return {
+      waveEvents: this.storeData.waveEvents.filter(wave => wave.id !== data.id),
     };
   }
 
@@ -825,6 +840,20 @@ class Store {
   }
 
   /**
+   * Handles data from a NAVIGATE_TO_SPAN action which will update the
+   * chunk start trying to leave the span of interest in the middle of the view.
+   * @param {!Dispatcher.TimeSpanData} data The data payload from the action.
+   * @return {?PartialStoreData} store data with changed properties.
+   */
+  handleNavigateToSpan(data) {
+    const spanCenter = data.startTime + data.duration / 2;
+    const chunkStart = spanCenter - this.storeData.chunkDuration / 2;
+    return {
+      chunkStart: Math.round(chunkStart),
+    };
+  }
+
+  /**
    * Converts a ChannelDataId instance to a string format where multiple
    * channels are separated by a '-' character.
    * @param {!ChannelDataId} channelDataId ChannelDataId instance.
@@ -881,6 +910,7 @@ goog.addSingletonGetter(Store);
 
 exports = Store;
 exports.StoreData = StoreData;
+exports.Annotation = Annotation;
 exports.ErrorInfo = ErrorInfo;
 exports.Property = Property;
 exports.PredictionMode = PredictionMode;

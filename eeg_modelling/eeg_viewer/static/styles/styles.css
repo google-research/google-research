@@ -300,3 +300,19 @@ th i.sorted, th i.sorted-reverse {
 #save-wave-event-button {
   float: right;
 }
+
+.event-actions-container {
+  position: fixed;
+  min-height: auto;
+  width: 280px;
+  right: 0px;
+  background-color: white;
+}
+
+.event-actions-container .mdl-card__menu {
+  margin-top: 0;
+}
+
+.mdl-button.block {
+  display: block;
+}
