@@ -64,6 +64,25 @@ class DataSource(object):
     """Get global start time of the file."""
     pass
 
+  def GetSamplingFrequency(self, channel_indices):
+    """Returns the sampling frequency for a group of channels.
+
+    Args:
+      channel_indices: List of channels indices to get the sampling freq from.
+    Returns:
+      Sampling frequency for all the channels (must be the same).
+    Raises:
+      ValueError: if the channels don't have the same frequency.
+    """
+    freqs = list(set(
+        self.GetChannelSamplingFrequency(index)
+        for index in channel_indices
+    ))
+    if len(freqs) != 1:
+      raise ValueError('The requested channels do not have the same frequency')
+
+    return freqs[0]
+
   @abc.abstractmethod
   def GetChannelSamplingFrequency(self, index):
     """Get the frequency of the data with the given index."""
@@ -159,11 +178,8 @@ class TfExampleDataSource(DataSource):
     return 1
 
   def GetChannelData(self, index_list, start, duration):
-    freqs = list(set(self.GetChannelSamplingFrequency(index)
-                     for index in index_list))
-    if len(freqs) != 1:
-      raise ValueError('Channels requested have multiple frequencies')
-    freq = freqs[0]
+    freq = self.GetSamplingFrequency(index_list)
+
     chunk_start_index, chunk_end_index = utils.GetSampleRange(freq, duration,
                                                               start)
     channel_dict = {}

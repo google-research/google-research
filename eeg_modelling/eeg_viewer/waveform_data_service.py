@@ -46,21 +46,23 @@ _ECG_12_LEAD = [('I',), ('II',), ('III',), ('AVR',), ('AVL',), ('AVF',),
                 ('V1',), ('V2',), ('V3',), ('V4',), ('V5',), ('V6',)]
 
 
-def _FilterData(row_data, index, data_source, request):
+def _FilterData(row_data, index, data_source, low_cut, high_cut, notch):
   """Runs full segment data through low and high pass filters.
 
   Args:
     row_data: Full segment data for a single channel.
     index: The index for a single channel.
     data_source: The DataSource for the waveform data.
-    request: A WaveformChunkRequest proto instance.
+    low_cut: lower frequency to apply a band-pass filter.
+    high_cut: higher frequency to apply a band-pass filter.
+    notch: frequency to apply a notch filter.
   Returns:
     Filtered input row data.
   """
   nyquist_freq = data_source.GetChannelSamplingFrequency(index) / 2
-  low_val = request.low_cut / nyquist_freq
-  high_val = request.high_cut / nyquist_freq
-  notch_val = request.notch / nyquist_freq
+  low_val = low_cut / nyquist_freq
+  high_val = high_cut / nyquist_freq
+  notch_val = notch / nyquist_freq
   pad_len = int(nyquist_freq) if int(nyquist_freq) else 1
   padded_data = np.pad(row_data, (pad_len, pad_len), 'symmetric')
   if low_val > 0 and low_val < 1:
@@ -91,13 +93,28 @@ def _GetChannelIndicesInChannelDataIdList(id_list):
   return list(set(channel_indices))
 
 
-def _CreateChannelData(data_source, request, max_samples):
+def _CreateChannelData(data_source,
+                       channel_data_ids,
+                       low_cut,
+                       high_cut,
+                       notch,
+                       start=0,
+                       duration=None,
+                       max_samples=None):
   """Returns a list of channel names and a dictionary of their values.
 
   Args:
     data_source: The DataSource for the waveform data.
-    request: A DataRequest proto instance.
+    channel_data_ids: ChannelDataIds list.
+    low_cut: lower frequency to apply a band-pass filter.
+    high_cut: higher frequency to apply a band-pass filter.
+    notch: frequency to apply a notch filter.
+    start: start time to crop the data, relative to the start of the file (in
+      seconds). Defaults to the start of the file.
+    duration: duration to crop from the data, in seconds. If None, will get the
+      whole file data.
     max_samples: The maximum number of samples in one channel response.
+      If None, there is no maximum limit.
   Returns:
     A dictionary of channel names mapped to the requested time slice of their
     data and an ordered list of the channel names.
@@ -105,32 +122,46 @@ def _CreateChannelData(data_source, request, max_samples):
     ValueError: Too many feature keys provided (only handles raw features or
     subtraction of two features).
   """
-  channel_indices = _GetChannelIndicesInChannelDataIdList(
-      request.channel_data_ids)
-  single_channel_data = data_source.GetChannelData(
-      channel_indices, request.chunk_start, request.chunk_duration_secs)
+  if duration is None:
+    duration = data_source.GetLength()
 
-  subsampling = utils.GetSubsamplingRate(
+  channel_indices = _GetChannelIndicesInChannelDataIdList(channel_data_ids)
+  single_channel_data = data_source.GetChannelData(
+      channel_indices, start, duration)
+
+  subsampling = 1 if max_samples is None else utils.GetSubsamplingRate(
       len(single_channel_data.values()[0]), max_samples)
+
+  def _GetFilteredData(index):
+    """Wrapper to call _FilterData function.
+
+    Args:
+      index: the index for the selected channel.
+    Returns:
+      Filtered data for the selected channel.
+    """
+    return _FilterData(single_channel_data[str(index)],
+                       index,
+                       data_source,
+                       low_cut,
+                       high_cut,
+                       notch)
 
   req_channel_data = {}
   channel_names = []
-  for channel_data_id in request.channel_data_ids:
+  for channel_data_id in channel_data_ids:
     if channel_data_id.HasField('bipolar_channel'):
       primary_index = channel_data_id.bipolar_channel.index
-      primary_data = _FilterData(single_channel_data[str(primary_index)],
-                                 primary_index, data_source, request)
+      primary_data = _GetFilteredData(primary_index)
       ref_index = channel_data_id.bipolar_channel.referential_index
-      ref_data = _FilterData(single_channel_data[str(ref_index)], ref_index,
-                             data_source, request)
+      ref_data = _GetFilteredData(ref_index)
       channel_data = [reference - primary for (primary, reference) in
                       zip(primary_data, ref_data)]
       channel_name = '-'.join(data_source.GetChannelName(index)
                               for index in [primary_index, ref_index])
     elif channel_data_id.HasField('single_channel'):
       index = channel_data_id.single_channel.index
-      channel_data = _FilterData(single_channel_data[str(index)], index,
-                                 data_source, request)
+      channel_data = _GetFilteredData(index)
       channel_name = data_source.GetChannelName(index)
     else:
       raise ValueError('Unfamiliary channel type %s' % channel_data_id)
@@ -157,6 +188,19 @@ def _AddDataTableSeries(channel_data, output_data):
   return output_data
 
 
+def GetSamplingFrequency(data_source, channel_data_ids):
+  """Returns the sampling frequency for a group of channels.
+
+  Args:
+    data_source: DataSource instance.
+    channel_data_ids: Channels to get the sampling freq from.
+  Returns:
+    Sampling frequency for all the channels (must be the same).
+  """
+  channel_indices = _GetChannelIndicesInChannelDataIdList(channel_data_ids)
+  return data_source.GetSamplingFrequency(channel_indices)
+
+
 def _CreateChunkDataTableJSon(data_source, request, max_samples):
   """Creates a DataTable in JSON format which contains the data specified.
 
@@ -172,15 +216,7 @@ def _CreateChunkDataTableJSon(data_source, request, max_samples):
     ValueError: The requested channels have multiple frequency types.
   """
 
-  channel_indices = _GetChannelIndicesInChannelDataIdList(
-      request.channel_data_ids)
-  req_channel_freqs = list(set(
-      data_source.GetChannelSamplingFrequency(index)
-      for index in channel_indices
-  ))
-  if len(req_channel_freqs) != 1:
-    ValueError('The requested channels do not have the same frequency')
-  sample_freq = req_channel_freqs[0]
+  sample_freq = GetSamplingFrequency(data_source, request.channel_data_ids)
 
   # Initialize Dygraph data with a time axis of sampling frequency.
   output_data, _ = utils.InitDataTableInputsWithTimeAxis(
@@ -188,8 +224,15 @@ def _CreateChunkDataTableJSon(data_source, request, max_samples):
       max_samples)
   columns_order = ['seconds']
 
-  channel_data, channel_names = _CreateChannelData(data_source, request,
-                                                   max_samples)
+  channel_data, channel_names = _CreateChannelData(
+      data_source,
+      request.channel_data_ids,
+      request.low_cut,
+      request.high_cut,
+      request.notch,
+      start=request.chunk_start,
+      duration=request.chunk_duration_secs,
+      max_samples=max_samples)
   output_data = _AddDataTableSeries(channel_data, output_data)
   columns_order.extend(channel_names)
 
@@ -309,3 +352,29 @@ def GetChunk(data_source, request, max_samples):
   response.sampling_freq = sampling_freq
   response.channel_data_ids.extend(request.channel_data_ids)
   return response
+
+
+def GetChunkDataAsNumpy(data_source,
+                        channel_data_ids,
+                        low_cut,
+                        high_cut,
+                        notch):
+  """Extract data from a data source as a numpy array.
+
+  Args:
+    data_source: A DataSource instance.
+    channel_data_ids: ChannelDataIds list.
+    low_cut: lower frequency to apply a band-pass filter.
+    high_cut: higher frequency to apply a band-pass filter.
+    notch: frequency to apply a notch filter.
+  Returns:
+    Numpy array of shape (n_channels, n_data) with the waveform data.
+  """
+  channel_data, channel_names = _CreateChannelData(data_source,
+                                                   channel_data_ids, low_cut,
+                                                   high_cut, notch)
+
+  data = [channel_data[channel_name] for channel_name in channel_names]
+  data = np.array(data, dtype=np.float32)
+
+  return data
