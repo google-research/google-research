@@ -23,6 +23,7 @@ env:
     - PROJECT="neutra"
     - PROJECT="robust_loss"
     - PROJECT="norml"
+    - PROJECT="solver1d"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip
