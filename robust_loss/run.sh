@@ -20,7 +20,9 @@ virtualenv -p python3 .
 source ./bin/activate
 
 pip install tensorflow
+pip install tensorflow-probability
 pip install -r robust_loss/requirements.txt
+pip install Pillow
 python -m robust_loss.adaptive_test
 python -m robust_loss.cubic_spline_test
 python -m robust_loss.distribution_test
