@@ -176,6 +176,10 @@ class Graph extends ChartBase {
         name: 'waveEvents',
         getElementsToDraw: (store) => this.drawWaveEvents(store),
       },
+      {
+        name: 'similarPatterns',
+        getElementsToDraw: (store) => this.drawSimilarPatterns(store),
+      },
     ];
 
     /** @private @const {string} */
@@ -204,6 +208,7 @@ class Graph extends ChartBase {
           Store.Property.SENSITIVITY,
           Store.Property.PREDICTION_MODE,
           Store.Property.WAVE_EVENTS,
+          Store.Property.SIMILAR_PATTERN_RESULT,
         ],
         'Graph',
         (store, changedProperties) =>
@@ -674,6 +679,39 @@ class Graph extends ChartBase {
   }
 
   /**
+   * Returns an array of elements that represent the similar patterns to draw in
+   * the graph canvas.
+   * @param {!Store.StoreData} store Store data.
+   * @return {!Array<!ChartBase.OverlayElement>} Elements to draw in the canvas.
+   */
+  drawSimilarPatterns(store) {
+    if (!store.similarPatternResult) {
+      return [];
+    }
+
+    const chunkStart = store.chunkStart;
+    const chunkEnd = store.chunkStart + store.chunkDuration;
+
+    return store.similarPatternResult.reduce((drawElements, similarPattern) => {
+      const duration = similarPattern.duration;
+      let startTime = similarPattern.startTime;
+      let endTime = startTime + duration;
+
+      if (startTime < chunkEnd && chunkStart < endTime) {
+        drawElements.push({
+          fill: true,
+          color: 'rgba(255, 140, 0, 0.4)', // orange
+          startX: Math.max(startTime, chunkStart),
+          endX: Math.min(endTime, chunkEnd),
+          top: 0,
+        });
+      }
+
+      return drawElements;
+    }, []);
+  }
+
+  /**
    * @override
    */
   shouldBeVisible(store) {
@@ -711,6 +749,7 @@ class Graph extends ChartBase {
   shouldRedrawOverlay(store, changedProperties) {
     return ChartBase.changedPropertiesIncludeAny(changedProperties, [
       Store.Property.WAVE_EVENTS,
+      Store.Property.SIMILAR_PATTERN_RESULT,
     ]);
   }
 }
