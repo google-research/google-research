@@ -416,6 +416,24 @@
             </button>
           </div>
         </div>
+        <div id="pattern-actions-container" class="event-actions-container hidden mdl-shadow--2dp">
+          <div class="mdl-card__menu">
+            <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.closeSimilarPatternMenu()">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+          <div class="mdl-card__actions mdl-card--border">
+            <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.navigateToPattern()">
+              Navigate to
+            </button>
+            <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.acceptSimilarPattern()">
+              Accept
+            </button>
+            <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.rejectSimilarPattern()">
+              Reject
+            </button>
+          </div>
+        </div>
       </div>
       <div id="file-menu-modal">
         <div id="file-menu" class="mdl-card mdl-shadow--2dp">
