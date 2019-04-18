@@ -85,6 +85,10 @@ class NavChart extends ChartBase {
         name: 'waveEvents',
         getElementsToDraw: (store) => this.drawWaveEvents(store),
       },
+      {
+        name: 'similarPatterns',
+        getElementsToDraw: (store) => this.drawSimilarPatterns(store),
+      },
     ];
 
     const store = Store.getInstance();
@@ -95,6 +99,7 @@ class NavChart extends ChartBase {
         [
           Store.Property.CHUNK_START, Store.Property.CHUNK_DURATION,
           Store.Property.NUM_SECS, Store.Property.WAVE_EVENTS,
+          Store.Property.SIMILAR_PATTERN_RESULT,
         ],
         'NavChart',
         (store, changedProperties) =>
@@ -185,6 +190,24 @@ class NavChart extends ChartBase {
   }
 
   /**
+   * Returns an array of elements that represent the similar patterns to draw in
+   * the nav chart canvas.
+   * @param {!Store.StoreData} store Store data.
+   * @return {!Array<!ChartBase.OverlayElement>} Elements to draw in the canvas.
+   */
+  drawSimilarPatterns(store) {
+    if (!store.similarPatternResult) {
+      return [];
+    }
+    return store.similarPatternResult.map((similarPattern) => ({
+      fill: true,
+      color: 'rgb(255, 140, 0)', // orange
+      startX: similarPattern.startTime,
+      endX: similarPattern.startTime + similarPattern.duration,
+    }));
+  }
+
+  /**
    * @override
    */
   shouldUpdateData(store, changedProperties) {
@@ -208,6 +231,7 @@ class NavChart extends ChartBase {
       Store.Property.CHUNK_START,
       Store.Property.CHUNK_DURATION,
       Store.Property.WAVE_EVENTS,
+      Store.Property.SIMILAR_PATTERN_RESULT,
     ]);
   }
 }
