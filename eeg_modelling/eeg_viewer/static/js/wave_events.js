@@ -60,8 +60,14 @@ class WaveEvents {
     /** @private @const {string} */
     this.actionMenuContainer_ = 'event-actions-container';
 
+    /** @private @const {string} */
+    this.similarPatternActions_ = 'pattern-actions-container';
+
     /** @private {?Store.Annotation} */
     this.clickedWaveEvent_ = null;
+
+    /** @private {?Store.SimilarPattern} */
+    this.clickedSimilarPattern_ = null;
   }
 
   /**
@@ -215,7 +221,7 @@ class WaveEvents {
     document.getElementById(this.similarTableId_).appendChild(tableBody);
 
     store.similarPatternResult.forEach((similarPattern) => {
-      const row = document.createElement('tr');
+      const row = /** @type {!HTMLElement} */ (document.createElement('tr'));
       const addTextElementToRow = (text) => {
         const element = document.createElement('td');
         element.classList.add('mdl-data-table__cell--non-numeric');
@@ -228,9 +234,83 @@ class WaveEvents {
 
       addTextElementToRow(similarPattern.score.toFixed(2));
 
+      row.onclick = (event) => {
+        const top = event.y - event.offsetY + row.offsetHeight;
+        this.handleSimilarPatternClick(similarPattern, top);
+      };
+
       tableBody.appendChild(row);
     });
   }
+
+  /**
+   * Handles a click in a similar pattern, which will display the similar
+   * pattern actions menu.
+   * @param {!Store.SimilarPattern} similarPattern Similar pattern clicked.
+   * @param {number} top Top coordinate to position the menu.
+   */
+  handleSimilarPatternClick(similarPattern, top) {
+    if (this.clickedSimilarPattern_ &&
+        this.clickedSimilarPattern_.startTime === similarPattern.startTime) {
+      this.closeSimilarPatternMenu();
+      return;
+    }
+
+    this.clickedSimilarPattern_ = similarPattern;
+
+    const menuContainer = document.getElementById(this.similarPatternActions_);
+    menuContainer.style.top = `${top}px`;
+    menuContainer.classList.remove('hidden');
+  }
+
+  /**
+   * Navigates to the previously selected similar pattern, and closes the
+   * similar pattern actions menu.
+   */
+  navigateToPattern() {
+    const { startTime, duration } = this.clickedSimilarPattern_;
+    this.closeSimilarPatternMenu();
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.NAVIGATE_TO_SPAN,
+      data: {
+        startTime,
+        duration,
+      },
+    });
+  }
+
+  /**
+   * Accepts a similar pattern, and closes the similar pattern actions menu.
+   */
+  acceptSimilarPattern() {
+    const selectedPattern = Object.assign({}, this.clickedSimilarPattern_);
+    this.closeSimilarPatternMenu();
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.SIMILAR_PATTERN_ACCEPT,
+      data: selectedPattern,
+    });
+  }
+
+  /**
+   * Rejects a similar pattern, and closes the similar pattern actions menu.
+   */
+  rejectSimilarPattern() {
+    const selectedPattern = Object.assign({}, this.clickedSimilarPattern_);
+    this.closeSimilarPatternMenu();
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.SIMILAR_PATTERN_REJECT,
+      data: selectedPattern,
+    });
+  }
+
+  /**
+   * Closes the similar pattern actions menu, and clears the selection.
+   */
+  closeSimilarPatternMenu() {
+    utils.hideElement(this.similarPatternActions_);
+    this.clickedSimilarPattern_ = null;
+  }
+
 }
 
 goog.addSingletonGetter(WaveEvents);

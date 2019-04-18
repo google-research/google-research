@@ -109,6 +109,19 @@ goog.exportSymbol(
 goog.exportSymbol(
     'waveEvents.searchSimilarPatterns',
     goog.bind(waveEvents.searchSimilarPatterns, waveEvents));
+goog.exportSymbol(
+    'waveEvents.acceptSimilarPattern',
+    goog.bind(waveEvents.acceptSimilarPattern, waveEvents));
+goog.exportSymbol(
+    'waveEvents.closeSimilarPatternMenu',
+    goog.bind(waveEvents.closeSimilarPatternMenu, waveEvents));
+goog.exportSymbol(
+    'waveEvents.navigateToPattern',
+    goog.bind(waveEvents.navigateToPattern, waveEvents));
+goog.exportSymbol(
+    'waveEvents.rejectSimilarPattern',
+    goog.bind(waveEvents.rejectSimilarPattern, waveEvents));
+
 
 /**
  * Make a request to the server when the URL changes.

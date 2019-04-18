@@ -344,6 +344,10 @@ class Store {
                      this.handleSimilarPatternsResponseOk);
     registerCallback(Dispatcher.ActionType.SEARCH_SIMILAR_RESPONSE_ERROR,
                      this.handleSimilarPatternsResponseError);
+    registerCallback(Dispatcher.ActionType.SIMILAR_PATTERN_ACCEPT,
+                     this.handleSimilarPatternAccept);
+    registerCallback(Dispatcher.ActionType.SIMILAR_PATTERN_REJECT,
+                     this.handleSimilarPatternReject);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_GRIDLINES,
                      this.handleToolBarGridlines);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_HIGH_CUT,
@@ -693,6 +697,52 @@ class Store {
   }
 
   /**
+   * Removes a similar pattern from the similarPatternResult property.
+   * Returns a copy of the array, does not modify in place.
+   * @param {!SimilarPattern} removePattern Similar pattern to remove.
+   * @return {!Array<!SimilarPattern>} Copy of the similarPatternResult, with
+   *     the pattern removed.
+   * @private
+   */
+  removeSimilarPattern_(removePattern) {
+    return this.storeData.similarPatternResult.filter(
+        (pattern) => pattern.startTime !== removePattern.startTime);
+  }
+
+  /**
+   * Handles data from a SIMILAR_PATTERN_ACCEPT action, which will move the
+   * accepted pattern to the wave events list, and remove it from the similar
+   * patterns list.
+   * @param {!SimilarPattern} data The similar pattern to accept.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleSimilarPatternAccept(data) {
+    const targetPattern = this.storeData.similarPatternTarget;
+    const similarPatternResult = this.removeSimilarPattern_(data);
+    const waveEvents = this.addWaveEvent_({
+      labelText: targetPattern.labelText,
+      startTime: data.startTime,
+      duration: data.duration,
+    });
+    return {
+      waveEvents,
+      similarPatternResult,
+    };
+  }
+
+  /**
+   * Handles data from a SIMILAR_PATTERN_REJECT action, which will remove the
+   * similar pattern from the list.
+   * @param {!SimilarPattern} data The similar pattern to reject.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleSimilarPatternReject(data) {
+    return {
+      similarPatternResult: this.removeSimilarPattern_(data),
+    };
+  }
+
+  /**
    * Handles data from a TOOL_BAR_GRIDLINES action that will modify the time
    * scale.
    * @param {!Dispatcher.SelectionData} data The data payload from the action.
@@ -979,6 +1029,7 @@ goog.addSingletonGetter(Store);
 exports = Store;
 exports.StoreData = StoreData;
 exports.Annotation = Annotation;
+exports.SimilarPattern = SimilarPattern;
 exports.ErrorInfo = ErrorInfo;
 exports.Property = Property;
 exports.PredictionMode = PredictionMode;
