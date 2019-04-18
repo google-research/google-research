@@ -20,6 +20,7 @@ const ChunkScoreData = goog.require('proto.eeg_modelling.protos.PredictionMetada
 const DataResponse = goog.require('proto.eeg_modelling.protos.DataResponse');
 const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const JspbMap = goog.require('jspb.Map');
+const SimilarPatternsResponse = goog.require('proto.eeg_modelling.protos.SimilarPatternsResponse');
 const log = goog.require('goog.log');
 const {assert, assertArray, assertInstanceof, assertNumber, assertString} = goog.require('goog.asserts');
 
@@ -66,6 +67,9 @@ const Property = {
   SAMPLING_FREQ: 'samplingFreq',
   SERIES_HEIGHT: 'seriesHeight',
   SENSITIVITY: 'sensitivity',
+  SIMILAR_PATTERN_ERROR: 'similarPatternError',
+  SIMILAR_PATTERN_RESULT: 'similarPatternResult',
+  SIMILAR_PATTERN_TARGET: 'similarPatternTarget',
   SSTABLE_KEY: 'sstableKey',
   TIMESCALE: 'timeScale',
   TFEX_FILE_PATH: 'tfExFilePath',
@@ -141,6 +145,15 @@ let DataTableInput;
 let ErrorInfo;
 
 /**
+ * @typedef {{
+ *   score: number,
+ *   startTime: number,
+ *   duration: number,
+ * }}
+ */
+let SimilarPattern;
+
+/**
  * Possible status when loading data.
  * @enum {number}
  */
@@ -180,6 +193,9 @@ const LoadingStatus = {
  *   predictionMode: !PredictionMode,
  *   predictionSSTablePath: ?string,
  *   samplingFreq: ?number,
+ *   similarPatternError: ?ErrorInfo,
+ *   similarPatternResult: ?Array<!SimilarPattern>,
+ *   similarPatternTarget: ?Annotation,
  *   seriesHeight: number,
  *   sensitivity: number,
  *   sstableKey: ?string,
@@ -219,6 +235,9 @@ let StoreData;
  *   predictionMode: (!PredictionMode|undefined),
  *   predictionSSTablePath: (?string|undefined),
  *   samplingFreq: (?number|undefined),
+ *   similarPatternError: (?ErrorInfo|undefined),
+ *   similarPatternResult: (?Array<!SimilarPattern>|undefined),
+ *   similarPatternTarget: (?Annotation|undefined),
  *   seriesHeight: (number|undefined),
  *   sensitivity: (number|undefined),
  *   sstableKey: (?string|undefined),
@@ -264,6 +283,9 @@ class Store {
       predictionMode: PredictionMode.NONE,
       predictionSSTablePath: null,
       samplingFreq: null,
+      similarPatternError: null,
+      similarPatternResult: null,
+      similarPatternTarget: null,
       seriesHeight: 100,
       sensitivity: 5,
       sstableKey: null,
@@ -316,6 +338,12 @@ class Store {
                      this.handlePredictionModeSelection);
     registerCallback(Dispatcher.ActionType.PREDICTION_LABEL_SELECTION,
                      this.handlePredictionLabelSelection);
+    registerCallback(Dispatcher.ActionType.SEARCH_SIMILAR_REQUEST,
+                     this.handleSimilarPatternsRequest);
+    registerCallback(Dispatcher.ActionType.SEARCH_SIMILAR_RESPONSE_OK,
+                     this.handleSimilarPatternsResponseOk);
+    registerCallback(Dispatcher.ActionType.SEARCH_SIMILAR_RESPONSE_ERROR,
+                     this.handleSimilarPatternsResponseError);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_GRIDLINES,
                      this.handleToolBarGridlines);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_HIGH_CUT,
@@ -621,6 +649,46 @@ class Store {
   handleChangeTypingStatus(data) {
     return {
       isTyping: data.isTyping,
+    };
+  }
+
+  /**
+   * Handles data from a SEARCH_SIMILAR_REQUEST action, which will save the
+   * similar pattern target and trigger a request.
+   * @param {!Annotation} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleSimilarPatternsRequest(data) {
+    return {
+      similarPatternTarget: data,
+    };
+  }
+
+  /**
+   * Handles data from a SEARCH_SIMILAR_RESPONSE_OK action, which will save
+   * the similar patterns found.
+   * @param {!SimilarPatternsResponse} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleSimilarPatternsResponseOk(data) {
+    return {
+      similarPatternError: null,
+      similarPatternResult: data.getSimilarPatternsList().map(
+          (similarPattern) =>
+              /** @type {!SimilarPattern} */ (similarPattern.toObject())),
+    };
+  }
+
+  /**
+   * Handles data from a SEARCH_SIMILAR_RESPONSE_ERROR action, which will update
+   * the error and result of the request.
+   * @param {!Dispatcher.ErrorData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleSimilarPatternsResponseError(data) {
+    return {
+      similarPatternError: this.newError(data.message),
+      similarPatternResult: null,
     };
   }
 

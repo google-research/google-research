@@ -328,7 +328,7 @@
              </thead>
           </table>
         </div>
-        <div id="no-predictions-text" class="empty-text">
+        <div id="no-predictions-text" class="panel-info">
           No predictions loaded
         </div>
       </div>
@@ -365,7 +365,7 @@
             <i class="material-icons">close</i>
           </button>
         </div>
-        <div id="no-events-text" class="empty-text">
+        <div id="no-events-text" class="panel-info">
           Click the chart to add events
         </div>
         <div class="scrollable-table-div">
@@ -379,6 +379,25 @@
            </thead>
           </table>
         </div>
+        <div id="similar-patterns-container" class="hidden">
+          <div class="mdl-card__title">
+            <h3 class="mdl-card__title-text">Similar Patterns</h3>
+          </div>
+          <div id="similar-patterns-spinner" class="mdl-spinner mdl-js-spinner hidden"></div>
+          <div class="scrollable-table-div">
+            <table id="similar-patterns-table" class="mdl-data-table mdl-js-data-table">
+             <thead>
+               <tr>
+                 <th class="mdl-data-table__cell--non-numeric">Start time</th>
+                 <th class="mdl-data-table__cell--non-numeric">Score</th>
+               </tr>
+             </thead>
+            </table>
+          </div>
+          <div id="similarity-error" class="hidden panel-info">
+            Error
+          </div>
+        </div>
         <div id="event-actions-container" class="event-actions-container hidden mdl-shadow--2dp">
           <div class="mdl-card__menu">
             <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.closeWaveEventMenu()">
@@ -388,6 +407,9 @@
           <div class="mdl-card__actions mdl-card--border">
             <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.navigateToWaveEvent()">
               Navigate to
+            </button>
+            <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.searchSimilarPatterns()">
+              Search similar patterns
             </button>
             <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.deleteWaveEvent()">
               Delete

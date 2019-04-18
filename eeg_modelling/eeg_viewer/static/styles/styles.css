@@ -274,12 +274,23 @@ th i.sorted, th i.sorted-reverse {
   font-size: 14pt;
 }
 
-.empty-text {
+.panel-info {
   padding: 15px 25px;
   text-align: center;
   font-size: 18px;
   font-style: italic;
   color: rgba(0, 0, 0, 0.5);
+}
+
+#similar-patterns-spinner {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 10px;
+}
+
+#similarity-error {
+  color: red;
 }
 
 .prediction-circle {

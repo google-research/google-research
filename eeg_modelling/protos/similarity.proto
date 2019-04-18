@@ -1,0 +1,77 @@
+// Copyright 2019 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package eeg_modelling.protos;
+
+import "data.proto";
+
+// Represent the part of a wave that is similar to another, with a given
+// similarity score
+message SimilarPattern {
+  // Similarity score between 0..1
+  optional float score = 1;
+  // Relative start in seconds
+  optional float start_time = 2;
+  // Duration in seconds
+  optional float duration = 3;
+}
+
+// Response to a similarity request.
+message SimilarPatternsResponse {
+  repeated SimilarPattern similar_patterns = 1;
+}
+
+
+// Holds parameters to load a file in the server
+message FileParams {
+  // Path to SSTable containing TF Examples.
+  optional string tf_ex_sstable_path = 1;
+  // Key for the TF Example in the SSTable.
+  optional string sstable_key = 2;
+  // Path to SSTable containing PredictionOutputs.
+  optional string prediction_sstable_path = 3;
+  // Path to Edf.
+  optional string edf_path = 4;
+  // Path to a local file containing a TF example protobuf
+  optional string tf_ex_file_path = 5;
+  // Path to a local file containing a PredictionsOutput protobuf
+  optional string prediction_file_path = 6;
+}
+
+// Holds parameters to filter EEG data
+message FilterParams {
+  // Value to use as low cut for high pass filter.
+  optional float low_cut = 1;
+  // Value to use as high cut for low pass filter.
+  optional float high_cut = 2;
+  // Value to use for the notch filter.
+  optional float notch = 3;
+}
+
+
+// Request to get wave patterns similar to another one.
+message SimilarPatternsRequest {
+  // File parameters to load the data
+  optional FileParams file_params = 1;
+  // Parameters to filter the signals
+  optional FilterParams filter_params = 2;
+  // List of channel indices selected in the pattern.
+  repeated ChannelDataId channel_data_ids = 3;
+  // Start time of the target pattern, relative to start
+  optional float start_time = 4;
+  // Duration of the target pattern, in seconds
+  optional float duration = 5;
+}

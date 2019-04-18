@@ -106,7 +106,9 @@ goog.exportSymbol(
 goog.exportSymbol(
     'waveEvents.navigateToWaveEvent',
     goog.bind(waveEvents.navigateToWaveEvent, waveEvents));
-
+goog.exportSymbol(
+    'waveEvents.searchSimilarPatterns',
+    goog.bind(waveEvents.searchSimilarPatterns, waveEvents));
 
 /**
  * Make a request to the server when the URL changes.
