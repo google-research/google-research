@@ -20,7 +20,11 @@ const DataRequest = goog.require('proto.eeg_modelling.protos.DataRequest');
 const DataResponse = goog.require('proto.eeg_modelling.protos.DataResponse');
 const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const EventType = goog.require('goog.net.EventType');
+const FileParams = goog.require('proto.eeg_modelling.protos.FileParams');
+const FilterParams = goog.require('proto.eeg_modelling.protos.FilterParams');
 const ResponseType = goog.require('goog.net.XhrIo.ResponseType');
+const SimilarPatternsRequest = goog.require('proto.eeg_modelling.protos.SimilarPatternsRequest');
+const SimilarPatternsResponse = goog.require('proto.eeg_modelling.protos.SimilarPatternsResponse');
 const SingleChannel = goog.require('proto.eeg_modelling.protos.ChannelDataId.SingleChannel');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const XhrIo = goog.require('goog.net.XhrIo');
@@ -38,6 +42,11 @@ const log = goog.require('goog.log');
  */
 let ErrorResponse;
 
+/**
+ * @typedef {!DataRequest|!SimilarPatternsRequest}
+ */
+let ProtoRequest;
+
 
 class Requests {
 
@@ -49,6 +58,11 @@ class Requests {
         Store.RequestProperties, 'Requests',
         (store, changedProperties) =>
             this.handleRequestParameters(store, changedProperties));
+    // This listener callback will make a new HTTP request to search similar
+    // patterns.
+    store.registerListener(
+        [Store.Property.SIMILAR_PATTERN_TARGET], 'Requests',
+        (store) => this.handleSearchSimilarPattern(store));
 
     this.logger_ = log.getLogger('eeg_modelling.eeg_viewer.Requests');
   }
@@ -64,7 +78,7 @@ class Requests {
   /**
    * Creates a request with XhrIo and wraps it in a promise.
    * @param {string} url The path to send the request to.
-   * @param {!DataRequest} requestContent A request protobuf.
+   * @param {!ProtoRequest} requestContent Proto instance
    * @param {function(!Object): !Object} formatResponse Formats response data.
    * @return {!Promise} A promise returning an XhrIo response.
    */
@@ -94,7 +108,7 @@ class Requests {
   /**
    * Sends a request and dispatches an action once the request ends.
    * @param {string} url The path to send the request to.
-   * @param {!DataRequest} requestContent A request protobuf.
+   * @param {!ProtoRequest} requestContent Proto request instance.
    * @param {function(!Object): !Object} formatResponse Formats response data.
    * @param {!Dispatcher.ActionType} actionOk Action to dispatch if the
    *     request succeeds.
@@ -155,7 +169,7 @@ class Requests {
 
   /**
    * Sets the channelDataIds param from a list into a request protobuf.
-   * @param {!DataRequest} requestContent Proto instance to set the params to.
+   * @param {!ProtoRequest} requestContent Proto request to set the param to.
    * @param {?Array<string>} channelIds Array of channel ids.
    * @private
    */
@@ -175,7 +189,8 @@ class Requests {
 
   /**
    * Sets the file parameters from the store into a request protobuf.
-   * @param {!DataRequest} requestContent Proto instance to set the params to.
+   * @param {!DataRequest|!FileParams} requestContent Proto instance to set the
+   *     params to.
    * @param {!Store.StoreData} store Data from the store.
    * @private
    */
@@ -190,7 +205,8 @@ class Requests {
 
   /**
    * Sets the filter parameters from the store into a request protobuf
-   * @param {!DataRequest} requestContent Proto instance to set the params to.
+   * @param {!DataRequest|!FilterParams} requestContent Proto instance to set
+   *     the params to.
    * @param {!Store.StoreData} store Data from the store.
    * @private
    */
@@ -234,6 +250,52 @@ class Requests {
       formatResponse,
       Dispatcher.ActionType.REQUEST_RESPONSE_OK,
       Dispatcher.ActionType.REQUEST_RESPONSE_ERROR,
+    );
+  }
+
+  /**
+   * Creates a SimilarPatternsRequest proto from the data saved in the store.
+   * @param {!Store.StoreData} store Snapshot of chunk data store.
+   * @return {!SimilarPatternsRequest} A SimilarPatternsRequest proto object.
+   * @private
+   */
+  createSimilarPatternsRequest_(store) {
+    const fileParams = new FileParams();
+    const filterParams = new FilterParams();
+    this.setFileParams_(fileParams, store);
+    this.setFilterParams_(filterParams, store);
+
+    const requestContent = new SimilarPatternsRequest();
+    requestContent.setFileParams(fileParams);
+    requestContent.setFilterParams(filterParams);
+    requestContent.setStartTime(store.similarPatternTarget.startTime);
+    requestContent.setDuration(store.similarPatternTarget.duration);
+
+    this.setChannelDataIdsParam_(requestContent, store.channelIds);
+
+    return requestContent;
+  }
+
+  /**
+   * Sends a request to search for a similar pattern.
+   * @param {!Store.StoreData} store Data from the store.
+   */
+  handleSearchSimilarPattern(store) {
+    if (!store.similarPatternTarget) {
+      return;
+    }
+    const url = '/similarity';
+    const requestContent = this.createSimilarPatternsRequest_(store);
+    const formatResponse = (response) => {
+      return SimilarPatternsResponse.deserializeBinary(response);
+    };
+
+    this.sendRequest(
+      url,
+      requestContent,
+      formatResponse,
+      Dispatcher.ActionType.SEARCH_SIMILAR_RESPONSE_OK,
+      Dispatcher.ActionType.SEARCH_SIMILAR_RESPONSE_ERROR,
     );
   }
 }

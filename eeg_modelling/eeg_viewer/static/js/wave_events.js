@@ -34,11 +34,28 @@ class WaveEvents {
     // This listener callback will display the events list.
     store.registerListener([Store.Property.WAVE_EVENTS], 'WaveEvents',
         (store) => this.handleWaveEvents(store));
+    // This listener will show the similarity response in the UI (either success
+    // or error).
+    store.registerListener(
+        [
+          Store.Property.SIMILAR_PATTERN_RESULT,
+          Store.Property.SIMILAR_PATTERN_ERROR,
+        ],
+        'WaveEvents', (store) => this.handleSearchSimilarResponse(store));
 
     /** @private {string} */
     this.tableId_ = 'wave-events-table';
     /** @private {string} */
     this.emptyTextId_ = 'no-events-text';
+
+    /** @private @const {string} */
+    this.similarContainerId_ = 'similar-patterns-container';
+    /** @private @const {string} */
+    this.similarTableId_ = 'similar-patterns-table';
+    /** @private @const {string} */
+    this.loadingSpinnerId_ = 'similar-patterns-spinner';
+    /** @private @const {string} */
+    this.errorTextId_ = 'similarity-error';
 
     /** @private @const {string} */
     this.actionMenuContainer_ = 'event-actions-container';
@@ -127,6 +144,24 @@ class WaveEvents {
   }
 
   /**
+   * Searches similar patterns to the previously clicked wave event,
+   * and closes the wave event actions menu.
+   */
+  searchSimilarPatterns() {
+    const selectedWave = Object.assign({}, this.clickedWaveEvent_);
+    this.closeWaveEventMenu();
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.SEARCH_SIMILAR_REQUEST,
+      data: selectedWave,
+    });
+
+    utils.showElement(this.similarContainerId_);
+    utils.hideElement(this.similarTableId_);
+    utils.hideElement(this.errorTextId_);
+    utils.showSpinner(this.loadingSpinnerId_);
+  }
+
+  /**
    * Deletes the previously clicked wave event, and closes the wave event
    * actions menu.
    */
@@ -147,6 +182,54 @@ class WaveEvents {
   closeWaveEventMenu() {
     utils.hideElement(this.actionMenuContainer_);
     this.clickedWaveEvent_ = null;
+  }
+
+  /**
+   * Handles a response to the Similar Patterns request, and displays the result
+   * in the panel.
+   * @param {!Store.StoreData} store Data from the store.
+   */
+  handleSearchSimilarResponse(store) {
+    utils.hideSpinner(this.loadingSpinnerId_);
+    if (store.similarPatternError) {
+      utils.showElement(this.errorTextId_);
+
+      const { message } = store.similarPatternError;
+      document.getElementById(this.errorTextId_).textContent = message;
+      return;
+    }
+    utils.showElement(this.similarTableId_);
+    this.createSimilarPatternTable(store);
+  }
+
+  /**
+   * Creates and populates a table with the similar patterns found.
+   * @param {!Store.StoreData} store Data from the store.
+   */
+  createSimilarPatternTable(store) {
+    let tableBody = document.querySelector(`#${this.similarTableId_} tbody`);
+    if (tableBody) {
+      tableBody.remove();
+    }
+    tableBody = document.createElement('tbody');
+    document.getElementById(this.similarTableId_).appendChild(tableBody);
+
+    store.similarPatternResult.forEach((similarPattern) => {
+      const row = document.createElement('tr');
+      const addTextElementToRow = (text) => {
+        const element = document.createElement('td');
+        element.classList.add('mdl-data-table__cell--non-numeric');
+        dom.setTextContent(element, text);
+        row.appendChild(element);
+      };
+
+      const absStartTime = store.absStart + similarPattern.startTime;
+      addTextElementToRow(formatter.formatTime(absStartTime, true));
+
+      addTextElementToRow(similarPattern.score.toFixed(2));
+
+      tableBody.appendChild(row);
+    });
   }
 }
 

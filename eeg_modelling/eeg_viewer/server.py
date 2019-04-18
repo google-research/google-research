@@ -36,9 +36,12 @@ from werkzeug.contrib import wrappers as werkzeug_wrappers
 
 from eeg_modelling.eeg_viewer import data_source
 from eeg_modelling.eeg_viewer import prediction_data_service
+from eeg_modelling.eeg_viewer import similarity
 from eeg_modelling.eeg_viewer import waveform_data_service
 from eeg_modelling.pyprotos import data_pb2
 from eeg_modelling.pyprotos import prediction_output_pb2
+from eeg_modelling.pyprotos import similarity_pb2
+
 
 FLAGS = flags.FLAGS
 
@@ -296,6 +299,43 @@ def CreateDataResponse(request):
   return data_response, extra_headers
 
 
+@MakeProtoRequestHandler(similarity_pb2.SimilarPatternsRequest)
+def SearchSimilarPatterns(similar_patterns_request):
+  """Searches through a file for similar patterns.
+
+  Args:
+    similar_patterns_request: SimilarPatternsRequest instance defining the
+      search to perform.
+  Returns:
+    SimilarPatternsResponse instance with the found similar patterns, and no
+      extra headers.
+  Raises:
+    ValueError: No channel selected.
+  """
+  requested_channels = similar_patterns_request.channel_data_ids
+
+  if not requested_channels:
+    raise ValueError('Must select at least one channel')
+
+  file_params = similar_patterns_request.file_params
+  waveform_data_source = GetWaveformDataSource(file_params)
+
+  filter_params = similar_patterns_request.filter_params
+
+  data = waveform_data_service.GetChunkDataAsNumpy(
+      waveform_data_source, requested_channels,
+      filter_params.low_cut, filter_params.high_cut, filter_params.notch)
+
+  sampling_freq = waveform_data_service.GetSamplingFrequency(
+      waveform_data_source, requested_channels)
+
+  similar_patterns_response = similarity.CreateSimilarPatternsResponse(
+      data, similar_patterns_request.start_time,
+      similar_patterns_request.duration, sampling_freq)
+
+  return similar_patterns_response, {}
+
+
 def RegisterRoutes(app):
   """Registers routes in the flask app.
 
@@ -307,6 +347,11 @@ def RegisterRoutes(app):
       '/waveform_data/chunk',
       'chunk_data',
       CreateDataResponse,
+      methods=['POST'])
+  app.add_url_rule(
+      '/similarity',
+      'similarity',
+      SearchSimilarPatterns,
       methods=['POST'])
 
 
