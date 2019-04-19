@@ -164,7 +164,7 @@ class WaveEvents {
     utils.showElement(this.similarContainerId_);
     utils.hideElement(this.similarTableId_);
     utils.hideElement(this.errorTextId_);
-    utils.showSpinner(this.loadingSpinnerId_);
+    utils.showMDLSpinner(this.loadingSpinnerId_);
   }
 
   /**
@@ -196,7 +196,7 @@ class WaveEvents {
    * @param {!Store.StoreData} store Data from the store.
    */
   handleSearchSimilarResponse(store) {
-    utils.hideSpinner(this.loadingSpinnerId_);
+    utils.hideMDLSpinner(this.loadingSpinnerId_);
     if (store.similarPatternError) {
       utils.showElement(this.errorTextId_);
 

@@ -19,6 +19,7 @@ const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const dom = goog.require('goog.dom');
 const formatter = goog.require('eeg_modelling.eeg_viewer.formatter');
 const log = goog.require('goog.log');
+const utils = goog.require('eeg_modelling.eeg_viewer.utils');
 const {assertInstanceof} = goog.require('goog.asserts');
 
 
@@ -31,50 +32,6 @@ const FileInputType = {
   SSTABLE: 'sstable',
   EDF: 'edf',
 };
-
-
-/**
- * Hides or shows an HTML element.
- * @param {string} elementId HTML Id of the element.
- * @param {boolean} hide Whether to hide or show the element.
- */
-const toggleElement = (elementId, hide) => {
-  const element = document.querySelector(`#${elementId}`);
-  element.classList.toggle('hidden', hide);
-};
-
-/**
- * Hides an HTML element.
- */
-const hideElement = (elementId) => toggleElement(elementId, true);
-
-/**
- * Shows an HTML element.
- */
-const showElement = (elementId) => toggleElement(elementId, false);
-
-
-/**
- * Hides or show a Material Design Lite spinner.
- * @param {string} elementId HTML Id of the spinner.
- * @param {boolean} hide Whether to hide or show the spinner.
- */
-const toggleSpinner = (elementId, hide) => {
-  const element = document.querySelector(`#${elementId}`);
-  element.classList.toggle('hidden', hide);
-  element.classList.toggle('is-active', !hide);
-};
-
-/**
- * Shows a spinner.
- */
-const showSpinner = (elementId) => toggleSpinner(elementId, false);
-
-/**
- * Hides a spinner.
- */
-const hideSpinner = (elementId) => toggleSpinner(elementId, true);
-
 
 class Menus {
 
@@ -315,13 +272,13 @@ class Menus {
   handleLoadingStatus(store) {
     switch (store.loadingStatus) {
       case Store.LoadingStatus.NO_DATA:
-        hideSpinner(this.loadingSpinnerId);
-        showElement(this.submitButtonId);
-        showElement(this.fileMenuModalId);
+        utils.hideMDLSpinner(this.loadingSpinnerId);
+        utils.showElement(this.submitButtonId);
+        utils.showElement(this.fileMenuModalId);
         break;
       case Store.LoadingStatus.LOADING:
-        showSpinner(this.loadingSpinnerId);
-        hideElement(this.submitButtonId);
+        utils.showMDLSpinner(this.loadingSpinnerId);
+        utils.hideElement(this.submitButtonId);
         break;
       case Store.LoadingStatus.LOADED:
         const displayFilePath =
@@ -329,16 +286,16 @@ class Menus {
         dom.setTextContent(
             document.querySelector('#display-file-path'), displayFilePath);
 
-        hideSpinner(this.loadingSpinnerId);
-        showElement(this.submitButtonId);
-        hideElement(this.fileMenuModalId);
+        utils.hideMDLSpinner(this.loadingSpinnerId);
+        utils.showElement(this.submitButtonId);
+        utils.hideElement(this.fileMenuModalId);
         this.changeTypingStatus(false);
         break;
       case Store.LoadingStatus.RELOADING:
-        showSpinner(this.reloadingSpinnerId);
+        utils.showMDLSpinner(this.reloadingSpinnerId);
         break;
       case Store.LoadingStatus.RELOADED:
-        hideSpinner(this.reloadingSpinnerId);
+        utils.hideMDLSpinner(this.reloadingSpinnerId);
         break;
     }
   }
