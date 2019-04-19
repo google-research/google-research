@@ -20,70 +20,8 @@ const Keys = goog.require('goog.events.Keys');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const dom = goog.require('goog.dom');
 const log = goog.require('goog.log');
+const montages = goog.require('eeg_modelling.eeg_viewer.montages');
 const {assertInstanceof, assertNumber} = goog.require('goog.asserts');
-
-// Montages are a standard format for clinicians to view EEG signals in.
-// Each list element is a standard (A-B), and each standard consists of the
-// difference between the signals from two leads (A, B) placed on the scalp.
-// Some leads are referred to by multiple codes (C|D), but only one will exist
-// in one file.
-//
-// See this website for more info about EEG montages.
-// http://eegatlas-online.com/index.php/en/montages
-const MONTAGES = {};
-MONTAGES['longitudinal bipolar'] = [
-    'FP1-F3', 'F3-C3', 'C3-P3', 'P3-O1',
-    'FP2-F4', 'F4-C4', 'C4-P4', 'P4-O2',
-    'FP1-F7', 'F7-T3|T7', 'T3|T7-T5|P7', 'T5|P7-O1',
-    'FP2-F8', 'F8-T4|T8', 'T4|T8-T|T8', 'T6|P8-O2',
-    'FZ-CZ', 'CZ-PZ',
-    'EKG1-EKG2'
-];
-MONTAGES['transverse bipolar'] = [
-    'F7-FP1', 'FP1-FP2', 'FP2-F8',
-    'F7-F3', 'F3-FZ', 'FZ-F4', 'F4-F8',
-    'A1-T3|T7', 'T3|T7-C3', 'C3-CZ', 'CZ-C4', 'C4-T4|T8', 'T4|T8-A2',
-    'T5|P7-P3', 'P3-PZ', 'PZ-P4', 'P4-T6|P8',
-    'T5|P7-O1', 'O1-O2', 'O2-T6|P8',
-    'EKG1-EKG2'
-];
-MONTAGES['referential'] = [
-    'FP1-CZ', 'F3-CZ', 'C3-CZ', 'P3-CZ', 'O1-CZ',
-    'FP2-CZ', 'F4-CZ', 'C4-CZ', 'P4-CZ', 'O2-CZ',
-    'F7-CZ', 'T3|T7-CZ', 'T5|P7-CZ',
-    'F8-CZ', 'T4|T8-CZ', 'T6|P8-CZ',
-    'FZ-CZ', 'PZ-CZ',
-    'A1-CZ', 'A2-CZ',
-    'EKG1-EKG2'
-];
-MONTAGES['circumferential'] = [
-    'O1-T5|P7', 'T5|P7-T3|T7', 'T3|T7-F7', 'F7-FP1', 'FP1-FP2', 'FP2-F8',
-    'F8-T4|T8', 'T4|T8-T6|P8', 'T6|P8-O2',
-    'FP1-F7', 'F7-A1',
-    'FP1-F3', 'F3-C3', 'C3-P3', 'P3-O1',
-    'FZ-CZ', 'CZ-PZ',
-    'FP2-F4', 'F4-C4', 'C4-P4', 'P4-O2',
-    'FP2-F8', 'F8-A2',
-    'EKG1-EKG2'
-];
-MONTAGES['reverse circumferential'] = [
-    'FP1-F7', 'F7-T3|T7', 'T3|T7-T5|P7', 'T5|P7-O1', 'O1-O2', 'O2-T6|P8',
-    'T6|P8-T4|T8', 'T4|T8-F8', 'F8-FP2',
-    'FP1-F7', 'F7-A1',
-    'FP1-F3', 'F3-C3', 'C3-P3', 'P3-O1',
-    'FZ-CZ', 'CZ-PZ',
-    'FP2-F4', 'F4-C4', 'C4-P4', 'P4-O2',
-    'FP2-F8', 'F8-A2',
-    'EKG1-EKG2'
-];
-
-/**
- * @typedef {{
- *   indexStrList: !Array<string>,
- *   missingChannelList: ?Array<string>,
- * }}
- */
-let MontageInfo;
 
 /**
  * Asserts that an element is an HTMLButtonElement.
@@ -122,10 +60,6 @@ class ToolBar {
 
     /** @private {?function(!Event):*} */
     this.keyPressHandler_ = null;
-  }
-
-  getMontages() {
-    return MONTAGES;
   }
 
   /**
@@ -238,8 +172,8 @@ class ToolBar {
    * displaying a warning if the montage requested is incomplete and setting the
    * dropdown value (like the other dropdowns function).
    * @param {string} montageName The name of the montage.
-   * @param {!Object<string, !MontageInfo>} montageMap The map of montage names
-   * to their corresponding channel index information.
+   * @param {!Object<string, !montages.MontageInfo>} montageMap The map of
+   *     montage names to their corresponding channel index information.
    */
   montageSelectionCallback(montageName, montageMap) {
     if (montageMap[montageName].missingChannelList) {
@@ -257,63 +191,6 @@ class ToolBar {
   }
 
   /**
-   * Creates the index-centric info for each pre-programmed montage.  This
-   * includes a list of available index strings for the montage that will be
-   * used in a data request and an optional list of channel names for which
-   * there were no associated indices.
-   * @param {!Store.StoreData} store Store object with chunk data.
-   * @param {!Array<string>} montage The list of channel names.
-   * @return {!MontageInfo} The index info for a pre-programmed montage.
-   */
-  createMontageInfo(store, montage) {
-    const /** !Map<string, number> */ channelIndexMap = new Map(
-        store.indexChannelMap.getEntryList().map(x => [x[1], x[0]]));
-
-    const missingChannelList = [];
-
-    // Given a singular channel string that may have multiple pseudonyns like A
-    // or B, 'A|B', return the index associated with either A or B if one exists
-    // or return null.
-    const getChannelIndexFromNameOptions = (nameWithOptions) => {
-      const validNames = nameWithOptions.split('|')
-          .filter(name => channelIndexMap.has(name));
-      const validIndices = validNames.map(
-          (name) => channelIndexMap.get(name));
-      if (validIndices.length > 0) {
-        return validIndices[0];
-      } else {
-        missingChannelList.push(nameWithOptions);
-        return null;
-      }
-    };
-
-    // Given a channel that may be bipolar (consist of the difference between
-    // two singular channels) A-B|C, return the index string that results from
-    // joining the results of getting the index of each set of channel options
-    // (A, B|C) if all results are non-null, otherwise return null.
-    const getBipolarChannelIndexString = (bipolarName) => {
-      const singularChannels = bipolarName.split('-');
-      const indices = singularChannels
-          .map((channelName) => getChannelIndexFromNameOptions(channelName))
-          .filter(index => index != null);
-      if (indices.length == singularChannels.length) {
-        return indices.join('-');
-      } else {
-        return null;
-      }
-    };
-
-    const indexStrList = montage
-        .map((channelStr) => getBipolarChannelIndexString(channelStr))
-        .filter(channel => channel != null);
-
-    return {
-      indexStrList: indexStrList,
-      missingChannelList: missingChannelList,
-    };
-  }
-
-  /**
    * Initializes the montage drop down menu with the index values for the
    * corresponding lead standards to use for an API request.
    * @param {!Store.StoreData} store Store object with chunk data.
@@ -324,8 +201,9 @@ class ToolBar {
     }
 
     const montageMap = {};
-    Object.entries(this.getMontages()).forEach(([montageName, montage]) => {
-      montageMap[montageName] = this.createMontageInfo(store, montage);
+    Object.entries(montages.getMontages()).forEach(([montageName, montage]) => {
+      montageMap[montageName] = montages.createMontageInfo(
+          store.indexChannelMap, /** @type {!Array<string>} */ (montage));
     });
 
     const dropdownOptions = document.querySelectorAll(
