@@ -24,6 +24,7 @@ const ActionType = {
   ADD_WAVE_EVENT: 'addWaveEvent',
   ANNOTATION_SELECTION: 'annotationSelection',
   CHANGE_TYPING_STATUS: 'changeTypingStatus',
+  CLICK_GRAPH: 'clickGraph',
   DELETE_WAVE_EVENT: 'deleteWaveEvent',
   ERROR: 'error',
   MENU_FILE_LOAD: 'menuFileLoad',
