@@ -50,6 +50,7 @@ const Property = {
   EDF_PATH: 'edfPath',
   ERROR: 'error',
   FILE_TYPE: 'fileType',
+  GRAPH_POINT_CLICK: 'graphPointClick',
   HIGH_CUT: 'highCut',
   INDEX_CHANNEL_MAP: 'indexChannelMap',
   IS_TYPING: 'isTyping',
@@ -146,6 +147,16 @@ let ErrorInfo;
 
 /**
  * @typedef {{
+ *   timeValue: number,
+ *   channelName: string,
+ *   xPos: number,
+ *   yPos: number,
+ * }}
+ */
+let GraphDataPoint;
+
+/**
+ * @typedef {{
  *   score: number,
  *   startTime: number,
  *   duration: number,
@@ -178,6 +189,7 @@ const LoadingStatus = {
  *   edfPath: ?string,
  *   error: ?ErrorInfo,
  *   fileType: ?string,
+ *   graphPointClick: ?GraphDataPoint,
  *   highCut: number,
  *   indexChannelMap: ?JspbMap<string, string>,
  *   isTyping: boolean,
@@ -220,6 +232,7 @@ let StoreData;
  *   edfPath: (?string|undefined),
  *   error: (?ErrorInfo|undefined),
  *   fileType: (?string|undefined),
+ *   graphPointClick: (?GraphDataPoint|undefined),
  *   highCut: (number|undefined),
  *   indexChannelMap: (?JspbMap<string, string>|undefined),
  *   isTyping: (boolean|undefined),
@@ -268,6 +281,7 @@ class Store {
       edfPath: null,
       error: null,
       fileType: null,
+      graphPointClick: null,
       highCut: 70,
       indexChannelMap: null,
       isTyping: true,
@@ -316,6 +330,8 @@ class Store {
                      this.handleAnnotationSelection);
     registerCallback(Dispatcher.ActionType.CHANGE_TYPING_STATUS,
                      this.handleChangeTypingStatus);
+    registerCallback(Dispatcher.ActionType.CLICK_GRAPH,
+                     this.handleClickGraph);
     registerCallback(Dispatcher.ActionType.DELETE_WAVE_EVENT,
                      this.handleDeleteWaveEvent);
     registerCallback(Dispatcher.ActionType.ERROR,
@@ -487,6 +503,17 @@ class Store {
   handleDeleteWaveEvent(data) {
     return {
       waveEvents: this.storeData.waveEvents.filter(wave => wave.id !== data.id),
+    };
+  }
+
+  /**
+   * Handles data from an CLICK_GRAPH action, which will save the click data.
+   * @param {!GraphDataPoint} data The click information.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleClickGraph(data) {
+    return {
+      graphPointClick: data,
     };
   }
 

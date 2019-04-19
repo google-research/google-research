@@ -308,7 +308,7 @@ th i.sorted, th i.sorted-reverse {
   z-index: 10;
 }
 
-#save-wave-event-button {
+#wave-event-form .mdl-card__actions button {
   float: right;
 }
 

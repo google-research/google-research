@@ -24,6 +24,7 @@ const NavChart = goog.require('eeg_modelling.eeg_viewer.NavChart');
 const Predictions = goog.require('eeg_modelling.eeg_viewer.Predictions');
 const Requests = goog.require('eeg_modelling.eeg_viewer.Requests');
 const ToolBar = goog.require('eeg_modelling.eeg_viewer.ToolBar');
+const WaveEventForm = goog.require('eeg_modelling.eeg_viewer.WaveEventForm');
 const WaveEvents = goog.require('eeg_modelling.eeg_viewer.WaveEvents');
 const WindowLocation = goog.require('eeg_modelling.eeg_viewer.WindowLocation');
 
@@ -46,15 +47,6 @@ goog.exportSymbol(
 goog.exportSymbol(
     'graph.decreaseSensitivity',
     goog.bind(graph.decreaseSensitivity, graph));
-goog.exportSymbol(
-    'graph.selectWaveEventType',
-    goog.bind(graph.selectWaveEventType, graph));
-goog.exportSymbol(
-    'graph.closeWaveEventForm',
-    goog.bind(graph.closeWaveEventForm, graph));
-goog.exportSymbol(
-    'graph.saveWaveEvent',
-    goog.bind(graph.saveWaveEvent, graph));
 
 /** @const {!Menus} */
 const menus = Menus.getInstance();
@@ -94,6 +86,18 @@ goog.exportSymbol('toolBar.prevSec', goog.bind(toolBar.prevSec, toolBar));
 
 /** @const {!WindowLocation} */
 const windowLocation = WindowLocation.getInstance();
+
+/** @const {!WaveEventForm} */
+const waveEventForm = WaveEventForm.getInstance();
+goog.exportSymbol(
+    'waveEventForm.selectType',
+    goog.bind(waveEventForm.selectType, waveEventForm));
+goog.exportSymbol(
+    'waveEventForm.close',
+    goog.bind(waveEventForm.close, waveEventForm));
+goog.exportSymbol(
+    'waveEventForm.save',
+    goog.bind(waveEventForm.save, waveEventForm));
 
 /** @const {!WaveEvents} */
 const waveEvents = WaveEvents.getInstance();

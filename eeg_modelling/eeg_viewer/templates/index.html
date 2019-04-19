@@ -103,7 +103,7 @@
             <h2 class="mdl-card__title-text">New Event</h2>
           </div>
           <div class="mdl-card__menu">
-            <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="graph.closeWaveEventForm()">
+            <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="waveEventForm.close()">
               <i class="material-icons">close</i>
             </button>
           </div>
@@ -113,8 +113,8 @@
             <i class="material-icons">arrow_drop_down</i>
           </div>
           <ul for="wave-event-type-dropdown" class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect">
-            <li class="mdl-menu__item" onclick="graph.selectWaveEventType('SZ')">SZ</li>
-            <li class="mdl-menu__item" onclick="graph.selectWaveEventType('ED')">ED</li>
+            <li class="mdl-menu__item" onclick="waveEventForm.selectType('SZ')">SZ</li>
+            <li class="mdl-menu__item" onclick="waveEventForm.selectType('ED')">ED</li>
           </ul>
           <div class="textfield">
             <input class="mdl-textfield__input" type="text" id="wave-event-start-time">
@@ -125,8 +125,11 @@
             <label>End Time</label>
           </div>
           <div class="mdl-card__actions mdl-card--border">
-            <button id="save-wave-event-button" class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="graph.saveWaveEvent()">
+            <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEventForm.save()">
               Save
+            </button>
+            <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEventForm.close()">
+              Cancel
             </button>
           </div>
         </div>
