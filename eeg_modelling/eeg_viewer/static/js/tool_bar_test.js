@@ -19,6 +19,7 @@ const MockControl = goog.require('goog.testing.MockControl');
 const ToolBar = goog.require('eeg_modelling.eeg_viewer.ToolBar');
 const WaveformMetadata = goog.require('proto.eeg_modelling.protos.WaveformMetadata');
 const dom = goog.require('goog.dom');
+const montages = goog.require('eeg_modelling.eeg_viewer.montages');
 const testSuite = goog.require('goog.testing.testSuite');
 
 let mockControl;
@@ -67,7 +68,7 @@ testSuite({
       indexChannelMap: metadata.getChannelDictMap(),
     };
 
-    const mockMontages = mockControl.createMethodMock(toolBar, 'getMontages');
+    const mockMontages = mockControl.createMethodMock(montages, 'getMontages');
     mockMontages().$returns({'test-montage': ['A-B', 'B|C-D']});
     const mockSelect = mockControl.createMethodMock(toolBar, 'selectDropdown');
     mockSelect('montage-dropdown', null, null).$once();
