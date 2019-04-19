@@ -15,29 +15,12 @@
 goog.module('eeg_modelling.eeg_viewer.Predictions');
 
 const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
-const JspbMap = goog.require('jspb.Map');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const TableSorter = goog.require('goog.ui.TableSorter');
 const dom = goog.require('goog.dom');
 const formatter = goog.require('eeg_modelling.eeg_viewer.formatter');
+const utils = goog.require('eeg_modelling.eeg_viewer.utils');
 
-
-// TODO(pdpino): move these functions to an utils.js file
-/**
- * @typedef {{
- *   componentHandler: {
- *     upgradeElement: function(!Element):void,
- *   },
- * }}
- */
-let MDLEnhancedWindow;
-
-/**
- * @typedef {{
- *   checked: boolean,
- * }}
- */
-let HTMLCheckboxElement;
 
 /**
  * @typedef {{
@@ -46,22 +29,6 @@ let HTMLCheckboxElement;
  * }}
  */
 let CartesianPoint;
-
-/**
- * Return the keys of a proto map.
- * @param {!JspbMap} protoMap map to extract the keys from.
- * @return {!Array<string>} Array with Map keys
- */
-function getProtoMapKeys(protoMap) {
-  const keys = [];
-  const keyIter = protoMap.keys();
-  let key = keyIter.next();
-  while (!key.done) {
-    keys.push(key.value);
-    key = keyIter.next();
-  }
-  return keys;
-}
 
 /**
  * Transforms polar to cartesian coordinates.
@@ -153,26 +120,6 @@ function createSVGRing(
   return svg;
 }
 
-/**
- * Add a MDL tooltip element to display on hover of a target element.
- * @param {!Element} parentElement HTML element to add the tooltip element.
- * Must be inserted in the DOM before calling this function
- * (for the upgradeElement function to work).
- * @param {string} targetId HTML id of the element targeted by the tooltip.
- * @param {string} tooltipText Text to display on the tooltip.
- */
-function addTooltipElement(parentElement, targetId, tooltipText) {
-  const tooltip = document.createElement('div');
-  tooltip.setAttribute('for', targetId);
-  tooltip.className = 'mdl-tooltip mdl-tooltip--large';
-  dom.setTextContent(tooltip, tooltipText);
-
-  parentElement.appendChild(tooltip);
-
-  const mdlCastWindow = /** @type {!MDLEnhancedWindow} */ (window);
-  mdlCastWindow.componentHandler.upgradeElement(tooltip);
-}
-
 
 class Predictions {
 
@@ -222,7 +169,7 @@ class Predictions {
    * @param {string} filterValue
    */
   toggleFilter(event, parameter, filterValue) {
-    const target = /** @type {!HTMLCheckboxElement} */ (event.target);
+    const target = /** @type {!HTMLInputElement} */ (event.target);
     this.activeFilters_[parameter][filterValue] = target.checked;
     this.filterPredictions();
   }
@@ -349,7 +296,7 @@ class Predictions {
 
         const scoreDataMap = chunkScoreData.getScoreDataMap();
 
-        getProtoMapKeys(scoreDataMap).forEach((labelName) => {
+        utils.getProtoMapKeys(scoreDataMap).forEach((labelName) => {
           const labelData = scoreDataMap.get(labelName);
           const predictedValue = labelData.getPredictedValue();
           const predictionProba = labelData.getPredictionProbability() || 0;
@@ -395,7 +342,7 @@ class Predictions {
             circleElement.appendChild(svgCircle);
 
             const confidence = Math.floor(probability * 100);
-            addTooltipElement(
+            utils.addMDLTooltip(
                 circleElement, svgCircle.id, `${confidence}% confidence`);
           };
 
