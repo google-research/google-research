@@ -83,12 +83,13 @@ class WaveEvents {
 
     utils.showElement(this.tableId_);
     utils.hideElement(this.emptyTextId_);
+    const table = document.getElementById(this.tableId_);
     let tableBody = document.querySelector(`#${this.tableId_} tbody`);
     if (tableBody) {
       tableBody.remove();
     }
     tableBody = document.createElement('tbody');
-    document.getElementById(this.tableId_).appendChild(tableBody);
+    table.appendChild(tableBody);
 
     store.waveEvents.forEach((waveEvent, index) => {
       const row = /** @type {!HTMLElement} */ (document.createElement('tr'));
@@ -118,6 +119,9 @@ class WaveEvents {
         this.handleWaveEventClick(waveEvent, top);
       };
     });
+
+    const scrollableTable = table.parentElement;
+    scrollableTable.scrollTop = scrollableTable.scrollHeight;
   }
 
   /**
