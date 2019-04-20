@@ -125,6 +125,7 @@ let Listener;
  *   labelText: string,
  *   startTime: number,
  *   duration: number,
+ *   channelList: !Array<string>,
  * }}
  */
 let Annotation;
@@ -160,6 +161,7 @@ let GraphDataPoint;
  *   score: number,
  *   startTime: number,
  *   duration: number,
+ *   channelList: !Array<string>,
  * }}
  */
 let SimilarPattern;
@@ -542,6 +544,7 @@ class Store {
         labelText: label.getLabelText(),
         startTime: label.getStartTime(),
         duration: 0,
+        channelList: [],
       };
     });
     newStoreData.fileType = waveformMeta.getFileType();
@@ -702,11 +705,18 @@ class Store {
    * @return {!PartialStoreData} store data with changed properties.
    */
   handleSimilarPatternsResponseOk(data) {
+    const targetPattern = this.storeData.similarPatternTarget;
+    const similarPatternResult = data.getSimilarPatternsList().map(
+        (similarPattern) => /** @type {!SimilarPattern} */ (Object.assign(
+            {},
+            similarPattern.toObject(),
+            {
+              channelList: [...targetPattern.channelList],
+            },
+            )));
     return {
       similarPatternError: null,
-      similarPatternResult: data.getSimilarPatternsList().map(
-          (similarPattern) =>
-              /** @type {!SimilarPattern} */ (similarPattern.toObject())),
+      similarPatternResult,
     };
   }
 
@@ -750,6 +760,7 @@ class Store {
       labelText: targetPattern.labelText,
       startTime: data.startTime,
       duration: data.duration,
+      channelList: data.channelList,
     });
     return {
       waveEvents,

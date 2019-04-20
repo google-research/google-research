@@ -124,6 +124,15 @@
             <input class="mdl-textfield__input" type="text" id="wave-event-end-time">
             <label>End Time</label>
           </div>
+          <div id="wave-event-channels" class="mdl-card">
+            <h4 class="mdl-card__subtitle-text">Select channels</h4>
+            <div class="mdl-card__menu">
+              <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="all-checkbox">
+                <input type="checkbox" id="all-checkbox" class="mdl-checkbox__input" onchange="waveEventForm.toggleAllChannels(event)">
+                <span class="mdl-checkbox__label">All</span>
+              </label>
+            </div>
+          </div>
           <div class="mdl-card__actions mdl-card--border">
             <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEventForm.save()">
               Save

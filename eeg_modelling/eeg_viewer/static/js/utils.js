@@ -131,6 +131,39 @@ function addMDLTooltip(parentElement, targetId, tooltipText) {
   upgradeMDLElement(tooltip);
 }
 
+/**
+ * Add a MDL checkbox element to another HTML element.
+ * @param {!Element} parentElement HTML element to add the checkbox element.
+ *     Must be inserted in the DOM before calling this function.
+ * @param {string} checkboxId HTML id to use in the checkbox.
+ * @param {string} text Text to display in the checkbox.
+ * @param {function(boolean):void} onChange Callback to trigger when the
+ *     checkbox changes.
+ */
+function addMDLCheckbox(parentElement, checkboxId, text, onChange) {
+  const labelElement = document.createElement('label');
+  labelElement.className = 'mdl-checkbox mdl-js-checkbox';
+  labelElement.setAttribute('for', checkboxId);
+
+  const inputElement =
+      /** @type {!HTMLInputElement} */ (document.createElement('input'));
+  inputElement.id = checkboxId;
+  inputElement.setAttribute('type', 'checkbox');
+  inputElement.className = 'mdl-checkbox__input';
+
+  inputElement.onchange = () => onChange(inputElement.checked);
+
+  const spanElement = document.createElement('span');
+  spanElement.className = 'mdl-checkbox__label';
+  spanElement.textContent = text;
+
+  labelElement.appendChild(/** @type {?Node} */ (inputElement));
+  labelElement.appendChild(spanElement);
+  parentElement.appendChild(labelElement);
+
+  upgradeMDLElement(labelElement);
+}
+
 
 /**
  * Check or uncheck a MDL checkbox element.
@@ -151,7 +184,7 @@ function toggleMDLCheckbox(labelElement, checked) {
 /**
  * Return the keys of a proto map.
  * @param {!JspbMap} protoMap map to extract the keys from.
- * @return {!Array<string>} Array with Map keys
+ * @return {!Array<string>} Array with Map keys.
  */
 function getProtoMapKeys(protoMap) {
   const keys = [];
@@ -174,6 +207,7 @@ exports = {
   hideMDLSpinner,
   upgradeMDLElement,
   addMDLTooltip,
+  addMDLCheckbox,
   toggleMDLCheckbox,
   getProtoMapKeys,
 };

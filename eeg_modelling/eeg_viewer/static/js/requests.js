@@ -31,6 +31,7 @@ const XhrIo = goog.require('goog.net.XhrIo');
 const closureString = goog.require('goog.string');
 const events = goog.require('goog.events');
 const log = goog.require('goog.log');
+const montages = goog.require('eeg_modelling.eeg_viewer.montages');
 
 
 /**
@@ -271,7 +272,9 @@ class Requests {
     requestContent.setStartTime(store.similarPatternTarget.startTime);
     requestContent.setDuration(store.similarPatternTarget.duration);
 
-    this.setChannelDataIdsParam_(requestContent, store.channelIds);
+    const montageInfo = montages.createMontageInfo(
+        store.indexChannelMap, store.similarPatternTarget.channelList);
+    this.setChannelDataIdsParam_(requestContent, montageInfo.indexStrList);
 
     return requestContent;
   }

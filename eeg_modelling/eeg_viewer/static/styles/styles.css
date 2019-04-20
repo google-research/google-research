@@ -312,6 +312,16 @@ th i.sorted, th i.sorted-reverse {
   float: right;
 }
 
+#wave-event-form .textfield {
+  padding-top: 10px;
+  padding-bottom: 0px;
+}
+
+#wave-event-form .dropdown {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
 .event-actions-container {
   position: fixed;
   min-height: auto;
@@ -326,4 +336,21 @@ th i.sorted, th i.sorted-reverse {
 
 .mdl-button.block {
   display: block;
+}
+
+#wave-event-channels {
+  max-height: 20vh;
+  overflow-y: auto;
+  padding: 0px 30px 10px;
+}
+
+#wave-event-channels div {
+  -webkit-column-count: 3;
+  -moz-column-count: 3;
+  column-count: 3;
+}
+
+#wave-event-channels .mdl-card__menu {
+  top: 7px;
+  width: 50px;
 }

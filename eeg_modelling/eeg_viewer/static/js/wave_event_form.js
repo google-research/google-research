@@ -21,12 +21,14 @@ goog.module('eeg_modelling.eeg_viewer.WaveEventForm');
 const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const formatter = goog.require('eeg_modelling.eeg_viewer.formatter');
+const montages = goog.require('eeg_modelling.eeg_viewer.montages');
+const utils = goog.require('eeg_modelling.eeg_viewer.utils');
 
 /** @const {number} default width of the form. */
 const defaultFormWidth = 330;
 
 /** @const {number} default height of the form. */
-const defaultFormHeight = 391;
+const defaultFormHeight = 487;
 
 class WaveEventForm {
 
@@ -37,11 +39,18 @@ class WaveEventForm {
     this.startTimeId_ = 'wave-event-start-time';
     /** @private @const {string} */
     this.endTimeId_ = 'wave-event-end-time';
+    /** @private @const {string} */
+    this.checkboxesContainerId_ = 'wave-event-channels-checkboxes';
 
     /** @private {?number} */
     this.startTime_ = null;
     /** @private {?number} */
     this.endTime_ = null;
+
+    /** @private {!Set<string>} set of channel names selected */
+    this.selectedChannels_ = new Set();
+    /** @private {!Array<string>} Array of all the channel names */
+    this.allChannels_ = [];
 
     const store = Store.getInstance();
     // This handler will register the click in the chart and update the
@@ -52,7 +61,10 @@ class WaveEventForm {
         ],
         'WaveEventForm',
         (store) => this.handleGraphPointClick(store));
-
+    // This handler will create the checkboxes in the form.
+    store.registerListener(
+        [Store.Property.INDEX_CHANNEL_MAP, Store.Property.CHANNEL_IDS],
+        'WaveEventForm', (store) => this.handleChannelNames(store));
   }
 
   /**
@@ -104,7 +116,7 @@ class WaveEventForm {
    * @param {!Store.StoreData} store Store data.
    */
   handleGraphPointClick(store) {
-    const { timeValue, xPos, yPos } = store.graphPointClick;
+    const { timeValue, channelName, xPos, yPos } = store.graphPointClick;
 
     const waveEventForm = /** @type {!HTMLElement} */ (
         document.getElementById(this.formId_));
@@ -116,6 +128,19 @@ class WaveEventForm {
     const isFirstClick = this.startTime_ == null;
     const isSecondClick = !isFirstClick && this.endTime_ == null;
 
+    const channelLabelElement = /** @type {!Element} */ (document.querySelector(
+        `label[for="${this.getChannelCheckboxId_(channelName)}"]`));
+
+    const markChannelSelected = () => {
+      this.selectedChannels_.add(channelName);
+      utils.toggleMDLCheckbox(channelLabelElement, true);
+    };
+
+    const markChannelUnselected = () => {
+      this.selectedChannels_.delete(channelName);
+      utils.toggleMDLCheckbox(channelLabelElement, false);
+    };
+
     if (isFirstClick) {
       startTimeInput.value = prettyTime;
       endTimeInput.value = '';
@@ -124,11 +149,19 @@ class WaveEventForm {
       waveEventForm.classList.remove('hidden');
 
       this.startTime_ = timeValue;
+      markChannelSelected();
     } else if (
         isSecondClick && timeValue > /** @type {number} */ (this.startTime_)) {
       endTimeInput.value = prettyTime;
 
       this.endTime_ = timeValue;
+      markChannelSelected();
+    } else {
+      if (this.selectedChannels_.has(channelName)) {
+        markChannelUnselected();
+      } else {
+        markChannelSelected();
+      }
     }
   }
 
@@ -153,8 +186,12 @@ class WaveEventForm {
     startTimeInput.value = '';
     endTimeInput.value = '';
 
+    this.toggleAllChannelCheckboxes_(false);
+
     this.startTime_ = null;
     this.endTime_ = null;
+
+    this.selectedChannels_.clear();
 
     waveEventForm.classList.add('hidden');
   }
@@ -182,9 +219,86 @@ class WaveEventForm {
         labelText,
         startTime,
         duration: endTime - startTime,
+        channelList: Array.from(this.selectedChannels_),
       },
     });
     this.close();
+  }
+
+  /**
+   * Returns a HTML id to use in the checkbox for a given channel.
+   * @param {string} channelName Channel to get the id.
+   * @return {string} HTML checkbox id.
+   * @private
+   */
+  getChannelCheckboxId_(channelName) {
+    return `wave-event-channel-${channelName}`;
+  }
+
+  /**
+   * Check or uncheck every checkbox inside the form.
+   * @param {boolean} checked Indicates if it should check or uncheck.
+   * @private
+   */
+  toggleAllChannelCheckboxes_(checked) {
+    document.querySelectorAll('#wave-event-channels label').forEach((label) => {
+      utils.toggleMDLCheckbox(label, checked);
+    });
+  }
+
+  /**
+   * Handles a click in the "All" checkbox.
+   * @param {!Event} event Event triggered by the checkbox.
+   */
+  toggleAllChannels(event) {
+    const target = /** @type {!HTMLInputElement} */ (event.target);
+    if (target.checked) {
+      this.allChannels_.forEach((channelName) => {
+        this.selectedChannels_.add(channelName);
+      });
+    } else {
+      this.selectedChannels_.clear();
+    }
+    this.toggleAllChannelCheckboxes_(target.checked);
+  }
+
+  /**
+   * Handles a change in the channel configuration, which updates the checkboxes
+   * in the form and makes a copy of the channel names to use later.
+   * @param {!Store.StoreData} store Store data.
+   */
+  handleChannelNames(store) {
+    if (!store.channelIds || !store.indexChannelMap) {
+      return;
+    }
+
+    this.allChannels_ =
+        montages.channelIndexesToNames(store.channelIds, store.indexChannelMap);
+
+    const waveEventChannels = document.getElementById('wave-event-channels');
+
+    let checkboxesContainer = /** @type {!Element} */ (
+        document.getElementById(this.checkboxesContainerId_));
+    if (checkboxesContainer) {
+      checkboxesContainer.remove();
+    }
+
+    checkboxesContainer = document.createElement('div');
+    checkboxesContainer.id = this.checkboxesContainerId_;
+    waveEventChannels.appendChild(checkboxesContainer);
+
+    this.allChannels_.forEach((channelName) => {
+      const checkboxId = this.getChannelCheckboxId_(channelName);
+
+      utils.addMDLCheckbox(
+          checkboxesContainer, checkboxId, channelName, (checked) => {
+            if (checked) {
+              this.selectedChannels_.add(channelName);
+            } else {
+              this.selectedChannels_.delete(channelName);
+            }
+          });
+    });
   }
 }
 
