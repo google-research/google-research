@@ -163,6 +163,7 @@ class WaveEventForm {
         markChannelSelected();
       }
     }
+    this.emitDraftChange();
   }
 
   /**
@@ -173,12 +174,13 @@ class WaveEventForm {
   selectType(type) {
     const dropdown = document.getElementById('wave-event-type-dropdown-text');
     dropdown.textContent = type;
+    this.emitDraftChange();
   }
 
   /**
    * Closes the wave event form and clears the clicks previously made.
    */
-  close() {
+  close(clearDraft = true) {
     const waveEventForm = document.getElementById(this.formId_);
     const startTimeInput = this.getInputElement_(this.startTimeId_);
     const endTimeInput = this.getInputElement_(this.endTimeId_);
@@ -194,35 +196,77 @@ class WaveEventForm {
     this.selectedChannels_.clear();
 
     waveEventForm.classList.add('hidden');
+
+    if (clearDraft) {
+      Dispatcher.getInstance().sendAction({
+        actionType: Dispatcher.ActionType.UPDATE_WAVE_EVENT_DRAFT,
+        data: null,
+      });
+    }
+  }
+
+  /**
+   * Returns the WaveEvent draft by accessing the elements in the view.
+   * If the draft is not valid (i.e no startTime defined or any inconsistency),
+   * returns null.
+   * @return {?Store.Annotation} Wave event being created by the user.
+   */
+  getDraft() {
+    if (this.startTime_ == null) {
+      return null;
+    }
+    const startTime = this.startTime_;
+    const endTime = this.endTime_ == null ? startTime : this.endTime_;
+
+    if (endTime < startTime) {
+      return null;
+    }
+
+    const labelText =
+        document.getElementById('wave-event-type-dropdown-text').innerHTML;
+
+    return {
+      labelText,
+      startTime,
+      duration: endTime - startTime,
+      channelList: Array.from(this.selectedChannels_),
+    };
+  }
+
+  /**
+   * Emits a change in the WaveEvent being created, by dispatching an action
+   * that will update it in the store.
+   * Call this method after any change coming from the UI.
+   *
+   * Note that both the store and this object keep a copy of the waveEventDraft.
+   * The information kept here is considered the source of truth.
+   */
+  emitDraftChange() {
+    const waveEventDraft = this.getDraft();
+    if (!waveEventDraft) {
+      return;
+    }
+
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.UPDATE_WAVE_EVENT_DRAFT,
+      data: waveEventDraft,
+    });
   }
 
   /**
    * Saves the wave event determined by the clicks made before.
    */
   save() {
-    if (this.startTime_ == null) {
+    const waveEventDraft = this.getDraft();
+    if (!waveEventDraft) {
       return;
     }
-    const startTime = this.startTime_;
-    const endTime = this.endTime_ == null ? startTime : this.endTime_;
-
-    if (endTime < startTime) {
-      return;
-    }
-
-    const labelText =
-        document.getElementById('wave-event-type-dropdown-text').innerHTML;
 
     Dispatcher.getInstance().sendAction({
       actionType: Dispatcher.ActionType.ADD_WAVE_EVENT,
-      data: {
-        labelText,
-        startTime,
-        duration: endTime - startTime,
-        channelList: Array.from(this.selectedChannels_),
-      },
+      data: waveEventDraft,
     });
-    this.close();
+    this.close(false);
   }
 
   /**
@@ -260,6 +304,7 @@ class WaveEventForm {
       this.selectedChannels_.clear();
     }
     this.toggleAllChannelCheckboxes_(target.checked);
+    this.emitDraftChange();
   }
 
   /**
@@ -297,6 +342,7 @@ class WaveEventForm {
             } else {
               this.selectedChannels_.delete(channelName);
             }
+            this.emitDraftChange();
           });
     });
   }

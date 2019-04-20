@@ -76,6 +76,7 @@ const Property = {
   TFEX_FILE_PATH: 'tfExFilePath',
   TFEX_SSTABLE_PATH: 'tfExSSTablePath',
   WAVE_EVENTS: 'waveEvents',
+  WAVE_EVENT_DRAFT: 'waveEventDraft',
 };
 
 
@@ -217,6 +218,7 @@ const LoadingStatus = {
  *   tfExSSTablePath: ?string,
  *   tfExFilePath: ?string,
  *   waveEvents: !Array<!Annotation>,
+ *   waveEventDraft: ?Annotation,
  * }}
  */
 let StoreData;
@@ -260,6 +262,7 @@ let StoreData;
  *   tfExSSTablePath: (?string|undefined),
  *   tfExFilePath: (?string|undefined),
  *   waveEvents: (!Array<!Annotation>|undefined),
+ *   waveEventDraft: (?Annotation|undefined),
  * }}
  */
 let PartialStoreData;
@@ -309,6 +312,7 @@ class Store {
       tfExSSTablePath: null,
       tfExFilePath: null,
       waveEvents: [],
+      waveEventDraft: null,
     };
 
     /** @public {!Array<!Listener>} */
@@ -388,6 +392,8 @@ class Store {
                      this.handleToolBarSensitivity);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_ZOOM,
                      this.handleToolBarZoom);
+    registerCallback(Dispatcher.ActionType.UPDATE_WAVE_EVENT_DRAFT,
+                     this.handleUpdateWaveEventDraft);
     registerCallback(Dispatcher.ActionType.WARNING,
                      this.handleError);
     registerCallback(Dispatcher.ActionType.WINDOW_LOCATION_PENDING_REQUEST,
@@ -494,6 +500,19 @@ class Store {
   handleAddWaveEvent(waveEvent) {
     return {
       waveEvents: this.addWaveEvent_(waveEvent),
+      waveEventDraft: null,
+    };
+  }
+
+  /**
+   * Handles data from an UPDATE_WAVE_EVENT_DRAFT action.
+   * @param {?Annotation} waveEventDraft The draft wave event.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleUpdateWaveEventDraft(waveEventDraft) {
+    return {
+      waveEventDraft: waveEventDraft &&
+          /** @type {!Annotation} */ (Object.assign({}, waveEventDraft)),
     };
   }
 
@@ -1034,7 +1053,7 @@ class Store {
    * @param {!PartialStoreData} newStoreData New store data.
    */
   clipChunkStart(newStoreData) {
-    if (newStoreData.chunkStart == null) {
+    if (!newStoreData || newStoreData.chunkStart == null) {
       return;
     }
 

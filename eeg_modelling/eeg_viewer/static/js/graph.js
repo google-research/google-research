@@ -189,6 +189,11 @@ class Graph extends ChartBase {
         getElementsToDraw: (store, chartArea) =>
             this.drawSimilarPatterns(store, chartArea),
       },
+      {
+        name: 'waveEventDraft',
+        getElementsToDraw: (store, chartArea) =>
+            this.drawWaveEventDraft(store, chartArea),
+      },
     ];
 
     /** @private @const {string} */
@@ -209,6 +214,7 @@ class Graph extends ChartBase {
           Store.Property.PREDICTION_MODE,
           Store.Property.WAVE_EVENTS,
           Store.Property.SIMILAR_PATTERN_RESULT,
+          Store.Property.WAVE_EVENT_DRAFT,
         ],
         'Graph',
         (store, changedProperties) =>
@@ -568,6 +574,24 @@ class Graph extends ChartBase {
   }
 
   /**
+   * Returns elements to draw the wave event being created (draft).
+   * @param {!Store.StoreData} store Store data.
+   * @param {!ChartBase.ChartArea} chartArea Chart area information.
+   * @return {!Array<!ChartBase.OverlayElement>} Elements to draw in the canvas.
+   */
+  drawWaveEventDraft(store, chartArea) {
+    if (!store.waveEventDraft) {
+      // When the draft is saved it becomes null, and the chart selection
+      // should be resetted
+      this.getChart().setSelection(null);
+      return [];
+    }
+
+    const red = 'rgba(255, 70, 71, 0.3)';
+    return this.drawPatterns(store, chartArea, [store.waveEventDraft], red);
+  }
+
+  /**
    * Returns overlay elements to draw a list of patterns (wave events or similar
    * patterns).
    * @param {!Store.StoreData} store Store data.
@@ -681,6 +705,7 @@ class Graph extends ChartBase {
     return ChartBase.changedPropertiesIncludeAny(changedProperties, [
       Store.Property.WAVE_EVENTS,
       Store.Property.SIMILAR_PATTERN_RESULT,
+      Store.Property.WAVE_EVENT_DRAFT,
     ]);
   }
 }
