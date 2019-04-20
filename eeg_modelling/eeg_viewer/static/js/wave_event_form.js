@@ -30,6 +30,17 @@ const defaultFormWidth = 330;
 /** @const {number} default height of the form. */
 const defaultFormHeight = 487;
 
+/**
+ * Possible inputs in the form.
+ * This enum is used to define what the form is expecting in the next click.
+ * @enum {string}
+ */
+const InputType = {
+  START_TIME: 'startTime',
+  END_TIME: 'endTime',
+  CHANNEL: 'channel',
+};
+
 class WaveEventForm {
 
   constructor() {
@@ -40,12 +51,16 @@ class WaveEventForm {
     /** @private @const {string} */
     this.endTimeId_ = 'wave-event-end-time';
     /** @private @const {string} */
+    this.channelsContainerId_ = 'wave-event-channels';
+    /** @private @const {string} */
     this.checkboxesContainerId_ = 'wave-event-channels-checkboxes';
 
     /** @private {?number} */
     this.startTime_ = null;
     /** @private {?number} */
     this.endTime_ = null;
+    /** @private {!InputType} */
+    this.waitingFor_ = InputType.START_TIME;
 
     /** @private {!Set<string>} set of channel names selected */
     this.selectedChannels_ = new Set();
@@ -94,17 +109,18 @@ class WaveEventForm {
     const formHeight = waveEventForm.offsetHeight || defaultFormHeight;
     let left = xPos - formWidth - 20;
     let top = yPos;
-    let movedLeft = false;
+    let movedLeft = true;
     if (left < 0) {
       left = xPos + 10;
       top = yPos + 80;
-      movedLeft = true;
+      movedLeft = false;
     }
 
     const verticalLimit = window.innerHeight - formHeight - 100;
     if (top > verticalLimit) {
-      const verticalMovement = movedLeft ? 200 : 20;
+      const verticalMovement = movedLeft ? 20 : 200;
       top = yPos - formHeight - verticalMovement;
+      top = Math.max(0, top);
     }
 
     waveEventForm.style.left = `${left}px`;
@@ -125,8 +141,10 @@ class WaveEventForm {
 
     const prettyTime = formatter.formatTime(store.absStart + timeValue, true);
 
-    const isFirstClick = this.startTime_ == null;
-    const isSecondClick = !isFirstClick && this.endTime_ == null;
+    if (this.waitingFor_ === InputType.END_TIME &&
+        this.startTime_ != null && timeValue < this.startTime_) {
+      this.waitingFor_ = InputType.START_TIME;
+    }
 
     const channelLabelElement = /** @type {!Element} */ (document.querySelector(
         `label[for="${this.getChannelCheckboxId_(channelName)}"]`));
@@ -141,22 +159,29 @@ class WaveEventForm {
       utils.toggleMDLCheckbox(channelLabelElement, false);
     };
 
-    if (isFirstClick) {
+    if (this.waitingFor_ === InputType.START_TIME) {
       startTimeInput.value = prettyTime;
-      endTimeInput.value = '';
+
+      if (this.endTime_ != null && this.endTime_ < timeValue) {
+        endTimeInput.value = '';
+        this.endTime_ = null;
+      }
 
       this.setWaveEventFormPosition_(waveEventForm, xPos, yPos);
       waveEventForm.classList.remove('hidden');
 
       this.startTime_ = timeValue;
       markChannelSelected();
-    } else if (
-        isSecondClick && timeValue > /** @type {number} */ (this.startTime_)) {
+
+      this.waitFor_(InputType.END_TIME);
+    } else if (this.waitingFor_ === InputType.END_TIME) {
       endTimeInput.value = prettyTime;
 
       this.endTime_ = timeValue;
       markChannelSelected();
-    } else {
+
+      this.waitFor_(InputType.CHANNEL);
+    } else if (this.waitingFor_ === InputType.CHANNEL) {
       if (this.selectedChannels_.has(channelName)) {
         markChannelUnselected();
       } else {
@@ -192,6 +217,7 @@ class WaveEventForm {
 
     this.startTime_ = null;
     this.endTime_ = null;
+    this.waitingFor_ = InputType.START_TIME;
 
     this.selectedChannels_.clear();
 
@@ -285,9 +311,10 @@ class WaveEventForm {
    * @private
    */
   toggleAllChannelCheckboxes_(checked) {
-    document.querySelectorAll('#wave-event-channels label').forEach((label) => {
-      utils.toggleMDLCheckbox(label, checked);
-    });
+    document.querySelectorAll(`#${this.channelsContainerId_} label`)
+        .forEach((label) => {
+          utils.toggleMDLCheckbox(label, checked);
+        });
   }
 
   /**
@@ -320,7 +347,8 @@ class WaveEventForm {
     this.allChannels_ =
         montages.channelIndexesToNames(store.channelIds, store.indexChannelMap);
 
-    const waveEventChannels = document.getElementById('wave-event-channels');
+    const channelsContainer =
+        document.getElementById(this.channelsContainerId_);
 
     let checkboxesContainer = /** @type {!Element} */ (
         document.getElementById(this.checkboxesContainerId_));
@@ -330,7 +358,10 @@ class WaveEventForm {
 
     checkboxesContainer = document.createElement('div');
     checkboxesContainer.id = this.checkboxesContainerId_;
-    waveEventChannels.appendChild(checkboxesContainer);
+    checkboxesContainer.onclick = () => {
+      this.waitFor_(InputType.CHANNEL);
+    };
+    channelsContainer.appendChild(checkboxesContainer);
 
     this.allChannels_.forEach((channelName) => {
       const checkboxId = this.getChannelCheckboxId_(channelName);
@@ -345,6 +376,52 @@ class WaveEventForm {
             this.emitDraftChange();
           });
     });
+  }
+
+  /**
+   * Sets the visual focus in the selected input, and sets the waitingFor_
+   * field, which will make the form wait for that type of input.
+   * The focus state is not set using HTML focus(), but a different class named
+   * force-focus. This is to allow the user clicking anywhere else in the UI,
+   * without losing focus from the input selected here.
+   * @param {!InputType} inputType Type to select.
+   * @private
+   */
+  waitFor_(inputType) {
+    const startTimeInput = this.getInputElement_(this.startTimeId_);
+    const endTimeInput = this.getInputElement_(this.endTimeId_);
+    const channelsContainer =
+        document.getElementById(this.channelsContainerId_);
+
+    switch(inputType) {
+      case InputType.START_TIME:
+        startTimeInput.classList.add('force-focus');
+        endTimeInput.classList.remove('force-focus');
+        channelsContainer.classList.remove('force-focus');
+        break;
+      case InputType.END_TIME:
+        startTimeInput.classList.remove('force-focus');
+        endTimeInput.classList.add('force-focus');
+        channelsContainer.classList.remove('force-focus');
+        break;
+      case InputType.CHANNEL:
+        startTimeInput.classList.remove('force-focus');
+        endTimeInput.classList.remove('force-focus');
+        channelsContainer.classList.add('force-focus');
+        break;
+      default:
+        return;
+    }
+    this.waitingFor_ = inputType;
+  }
+
+  /**
+   * Handles a click in an input, which will make the form wait for a click in
+   * that input.
+   * @param {!InputType} inputType Type to select.
+   */
+  clickInput(inputType) {
+    this.waitFor_(inputType);
   }
 }
 

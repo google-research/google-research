@@ -116,16 +116,16 @@
             <li class="mdl-menu__item" onclick="waveEventForm.selectType('SZ')">SZ</li>
             <li class="mdl-menu__item" onclick="waveEventForm.selectType('ED')">ED</li>
           </ul>
-          <div class="textfield">
-            <input class="mdl-textfield__input" type="text" id="wave-event-start-time">
-            <label>Start Time</label>
+          <div class="textfield clickable" onclick="waveEventForm.clickInput('startTime')">
+            <input class="mdl-textfield__input clickable" type="text" id="wave-event-start-time" readonly>
+            <label class="clickable">Start Time</label>
           </div>
-          <div class="textfield">
-            <input class="mdl-textfield__input" type="text" id="wave-event-end-time">
-            <label>End Time</label>
+          <div class="textfield clickable" onclick="waveEventForm.clickInput('endTime')">
+            <input class="mdl-textfield__input clickable" type="text" id="wave-event-end-time" readonly>
+            <label class="clickable">End Time</label>
           </div>
           <div id="wave-event-channels" class="mdl-card">
-            <h4 class="mdl-card__subtitle-text">Select channels</h4>
+            <h4 class="mdl-card__subtitle-text clickable" onclick="waveEventForm.clickInput('channel')">Select channels</h4>
             <div class="mdl-card__menu">
               <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="all-checkbox">
                 <input type="checkbox" id="all-checkbox" class="mdl-checkbox__input" onchange="waveEventForm.toggleAllChannels(event)">
@@ -373,9 +373,12 @@
           <h2 class="mdl-card__title-text">Events</h2>
         </div>
         <div class="mdl-card__menu">
-          <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="toolBar.toggleMenu('wave-events')">
+          <button id="close-wave-events-panel" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="toolBar.toggleMenu('wave-events')">
             <i class="material-icons">close</i>
           </button>
+          <div class="mdl-tooltip mdl-tooltip--large" for="close-wave-events-panel">
+            Close
+          </div>
         </div>
         <div id="no-events-text" class="panel-info">
           Click the chart to add events

@@ -110,6 +110,7 @@
 .right-side-panel .scrollable-table-div {
   max-height: 70vh;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 td, .prediction th {
@@ -218,11 +219,13 @@ th i.sorted, th i.sorted-reverse {
   width: inherit;
 }
 
-.textfield > input:focus {
+.textfield > input:focus,
+.textfield > input.force-focus {
   border-color: rgb(83,109,254);
 }
 
-.textfield > input:focus ~ label {
+.textfield > input:focus ~ label,
+.textfield > input.force-focus ~ label {
   color: rgb(83,109,254);
 }
 
@@ -303,6 +306,14 @@ th i.sorted, th i.sorted-reverse {
   min-height: auto;
 }
 
+#wave-events-panel .scrollable-table-div {
+  min-height: 15vh;
+}
+
+#wave-events-panel td {
+  padding-right: 18px;
+}
+
 #wave-event-form {
   position: absolute;
   z-index: 10;
@@ -315,6 +326,10 @@ th i.sorted, th i.sorted-reverse {
 #wave-event-form .textfield {
   padding-top: 10px;
   padding-bottom: 0px;
+}
+
+#wave-event-form .textfield input.force-focus {
+  border-width: 2px;
 }
 
 #wave-event-form .dropdown {
@@ -353,4 +368,30 @@ th i.sorted, th i.sorted-reverse {
 #wave-event-channels .mdl-card__menu {
   top: 7px;
   width: 50px;
+}
+
+#wave-event-channels h4 {
+  font-size: 17px;
+}
+
+#wave-event-channels.force-focus h4 {
+  color: rgb(83, 109, 254);
+}
+
+#wave-event-channels-checkboxes {
+  border: rgb(140, 140, 140) 2px solid;
+  border-radius: 5px;
+  padding: 5px 10px;
+}
+
+#wave-event-channels-checkboxes .mdl-checkbox__label {
+  font-size: 12px;
+}
+
+.force-focus #wave-event-channels-checkboxes {
+  border-color: rgb(83, 109, 254);
+}
+
+.clickable {
+  cursor: pointer;
 }

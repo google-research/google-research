@@ -101,6 +101,9 @@ goog.exportSymbol(
 goog.exportSymbol(
     'waveEventForm.toggleAllChannels',
     goog.bind(waveEventForm.toggleAllChannels, waveEventForm));
+goog.exportSymbol(
+    'waveEventForm.clickInput',
+    goog.bind(waveEventForm.clickInput, waveEventForm));
 
 /** @const {!WaveEvents} */
 const waveEvents = WaveEvents.getInstance();
