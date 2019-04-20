@@ -208,24 +208,24 @@ class PredictionsChart extends ChartBase {
       return [];
     }
     const nChannels = store.channelIds.length;
+    const channelHeight = chartArea.height / nChannels;
     const predictionChunkStart = Number(store.predictionChunkStart);
     const predictionChunkSize = Number(store.predictionChunkSize);
     const elements = [];
-    store.channelIds.forEach((channelId, rowIndex) => {
+    store.channelIds.forEach((channelId, seriesIndex) => {
       const attrValues = map.getAttributionMapMap().get(channelId)
           .getAttributionList();
       const width = predictionChunkSize / attrValues.length;
-      const top = (chartArea.height * rowIndex / nChannels);
-      const elementHeight = chartArea.height / nChannels;
-      attrValues.forEach((opacity, colIndex) => {
-        const startX = predictionChunkStart + colIndex * width;
+      const top = seriesIndex * channelHeight;
+      attrValues.forEach((opacity, rowIndex) => {
+        const startX = predictionChunkStart + rowIndex * width;
         elements.push({
           fill: true,
           color: `rgba(255,110,64,${opacity})`,
           top,
           startX,
           endX: startX + width,
-          height: elementHeight,
+          height: channelHeight,
           minWidth: 0,
         });
       });

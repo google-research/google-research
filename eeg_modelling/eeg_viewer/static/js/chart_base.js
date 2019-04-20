@@ -779,7 +779,7 @@ class ChartBase {
         context.fillRect(startX, drawConfig.top, width, drawConfig.height);
       } else {
         context.strokeStyle = drawConfig.color;
-        context.setLineDash([2, 5]);
+        context.lineWidth = 8;
         context.strokeRect(startX, drawConfig.top, width, drawConfig.height);
       }
     };

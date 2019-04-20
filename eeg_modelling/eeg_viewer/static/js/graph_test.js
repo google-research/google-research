@@ -62,6 +62,7 @@ testSuite({
         {startTime: 0, labelText: 'should not be added'},
         {startTime: 42, labelText: 'do not trust the mice'},
       ],
+      channelIds: [],
       chunkStart: 40,
       chunkDuration: 10,
       fileType: 'EEG',
