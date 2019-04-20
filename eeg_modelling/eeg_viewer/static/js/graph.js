@@ -20,6 +20,7 @@ const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const array = goog.require('goog.array');
 const formatter = goog.require('eeg_modelling.eeg_viewer.formatter');
+const montages = goog.require('eeg_modelling.eeg_viewer.montages');
 const {assert, assertNumber, assertString} = goog.require('goog.asserts');
 
 /**
@@ -29,6 +30,11 @@ const {assert, assertNumber, assertString} = goog.require('goog.asserts');
  * }}
  */
 let NameMatcher;
+
+/**
+ * @typedef {!Store.Annotation|!Store.SimilarPattern}
+ */
+let Pattern;
 
 /**
  * Regular expressions to categorize channel types within each file type.  They
@@ -116,6 +122,16 @@ class Graph extends ChartBase {
       [Store.PredictionMode.ATTRIBUTION_MAPS]: 0.6,
     };
 
+    /**
+     * Padding bottom of the chart, measured in amount of channels (i.e.
+     * padding = 2 is the space equivalent to the height of two channels).
+     * @private @const {number}
+     */
+    this.bottomPadding_ = 2;
+
+    /** @private @const {number} Padding top of the chart, same as before. */
+    this.topPadding_ = 1;
+
     /** @public {!Map<string, number>} */
     this.channelTransformations = new Map([]);
 
@@ -156,17 +172,22 @@ class Graph extends ChartBase {
       },
     ];
 
+    /** @private {!Object<string,number>} Map of channel name to series index */
+    this.channelSeriesIndexMap_ = {};
+
     /** @private {?string} */
     this.clickedChannelName_ = null;
 
     this.overlayLayers = [
       {
         name: 'waveEvents',
-        getElementsToDraw: (store) => this.drawWaveEvents(store),
+        getElementsToDraw: (store, chartArea) =>
+            this.drawWaveEvents(store, chartArea),
       },
       {
         name: 'similarPatterns',
-        getElementsToDraw: (store) => this.drawSimilarPatterns(store),
+        getElementsToDraw: (store, chartArea) =>
+            this.drawSimilarPatterns(store, chartArea),
       },
     ];
 
@@ -192,6 +213,11 @@ class Graph extends ChartBase {
         'Graph',
         (store, changedProperties) =>
             this.handleChartData(store, changedProperties));
+
+    // This listener callback will generate and save the channelIndexes map.
+    store.registerListener(
+        [Store.Property.INDEX_CHANNEL_MAP, Store.Property.CHANNEL_IDS], 'Graph',
+        (store) => this.handleChannelNames(store));
   }
 
   /**
@@ -224,6 +250,38 @@ class Graph extends ChartBase {
     }
 
     return 3 + 2 * seriesIndex;
+  }
+
+  /**
+   * Transform channel name to series index.
+   * @param {string} channelName Name of the channel.
+   * @return {number} Series index of the channel in the chart. If the channel
+   *     is not found, returns -1.
+   * @private
+   */
+  channelNameToSeriesIndex_(channelName) {
+    const seriesIndex = this.channelSeriesIndexMap_[channelName];
+    if (seriesIndex != null) {
+      return seriesIndex;
+    }
+    return -1;
+  }
+
+  /**
+   * Saves a map from channel name to series index.
+   * @param {!Store.StoreData} store Store data.
+   */
+  handleChannelNames(store) {
+    if (!store.channelIds || !store.indexChannelMap) {
+      return;
+    }
+
+    this.channelSeriesIndexMap_ = {};
+    const channelNames =
+        montages.channelIndexesToNames(store.channelIds, store.indexChannelMap);
+    channelNames.forEach((channelName, index) => {
+      this.channelSeriesIndexMap_[channelName] = index;
+    });
   }
 
   /**
@@ -399,10 +457,10 @@ class Graph extends ChartBase {
    * @override
    */
   updateChartOptions(store) {
-    const numSeries = store.chunkGraphData.cols.length;
+    const numSeries = store.chunkGraphData.cols.length - 1;
     this.setOption('vAxis.viewWindow', {
-       min: -store.seriesHeight * 2,
-       max: store.seriesHeight * numSeries,
+       min: -store.seriesHeight * this.bottomPadding_,
+       max: store.seriesHeight * (numSeries + this.topPadding_),
     });
     this.setOption('colors',
         this.generateColors(store.chunkGraphData.cols.length, '#696969'));
@@ -484,61 +542,104 @@ class Graph extends ChartBase {
    * Returns an array of elements that represent the wave events to draw in
    * the graph canvas.
    * @param {!Store.StoreData} store Store data.
+   * @param {!ChartBase.ChartArea} chartArea Chart area information.
    * @return {!Array<!ChartBase.OverlayElement>} Elements to draw in the canvas.
    */
-  drawWaveEvents(store) {
-    const chunkStart = store.chunkStart;
-    const chunkEnd = store.chunkStart + store.chunkDuration;
-
-    return store.waveEvents.reduce((drawElements, waveEvent) => {
-      const startTime = waveEvent.startTime;
-      const endTime = startTime + waveEvent.duration;
-
-      if (startTime < chunkEnd && chunkStart < endTime) {
-        drawElements.push({
-          fill: true,
-          color: 'rgba(144, 238, 144, 0.4)', // green
-          startX: Math.max(startTime, chunkStart),
-          endX: Math.min(endTime, chunkEnd),
-          top: 0,
-        });
-      }
-
-      return drawElements;
-    }, []);
+  drawWaveEvents(store, chartArea) {
+    const green = 'rgba(144, 238, 144, 0.4)';
+    return this.drawPatterns(store, chartArea, store.waveEvents, green);
   }
 
   /**
    * Returns an array of elements that represent the similar patterns to draw in
    * the graph canvas.
    * @param {!Store.StoreData} store Store data.
+   * @param {!ChartBase.ChartArea} chartArea Chart area information.
    * @return {!Array<!ChartBase.OverlayElement>} Elements to draw in the canvas.
    */
-  drawSimilarPatterns(store) {
+  drawSimilarPatterns(store, chartArea) {
     if (!store.similarPatternResult) {
       return [];
     }
 
+    const orange = 'rgba(255, 140, 0, 0.4)';
+    const similarPatterns = store.similarPatternResult;
+    return this.drawPatterns(store, chartArea, similarPatterns, orange);
+  }
+
+  /**
+   * Returns overlay elements to draw a list of patterns (wave events or similar
+   * patterns).
+   * @param {!Store.StoreData} store Store data.
+   * @param {!ChartBase.ChartArea} chartArea Chart area information.
+   * @param {!Array<!Pattern>} patternList Patterns to draw.
+   * @param {string} color Color to use in the elements.
+   * @return {!Array<!ChartBase.OverlayElement>} Elements description to draw
+   * in the canvas.
+   */
+  drawPatterns(store, chartArea, patternList, color) {
     const chunkStart = store.chunkStart;
     const chunkEnd = store.chunkStart + store.chunkDuration;
 
-    return store.similarPatternResult.reduce((drawElements, similarPattern) => {
-      const duration = similarPattern.duration;
-      let startTime = similarPattern.startTime;
-      let endTime = startTime + duration;
+    const drawElements = [];
 
-      if (startTime < chunkEnd && chunkStart < endTime) {
-        drawElements.push({
-          fill: true,
-          color: 'rgba(255, 140, 0, 0.4)', // orange
-          startX: Math.max(startTime, chunkStart),
-          endX: Math.min(endTime, chunkEnd),
-          top: 0,
-        });
+    const nChannels = store.channelIds.length;
+    const padding = this.bottomPadding_ + this.topPadding_;
+    const channelHeight = chartArea.height / (nChannels + padding);
+    const offsetHeight = channelHeight * (this.topPadding_ + 0.5);
+
+
+    patternList.forEach((pattern) => {
+      let startTime = pattern.startTime;
+      let endTime = startTime + pattern.duration;
+
+      if (endTime < chunkStart || chunkEnd < startTime) {
+        return;
       }
 
-      return drawElements;
-    }, []);
+      const startX = Math.max(startTime, chunkStart);
+      const endX = Math.min(endTime, chunkEnd);
+
+      let minSeriesIndex = Infinity;
+      let maxSeriesIndex = -1;
+      let channelCounter = 0;
+
+      pattern.channelList.forEach((channelName) => {
+        const seriesIndex = this.channelNameToSeriesIndex_(channelName);
+        if (seriesIndex === -1) {
+          return;
+        }
+
+        channelCounter += 1;
+        drawElements.push({
+          fill: true,
+          color,
+          startX,
+          endX,
+          top: channelHeight * seriesIndex + offsetHeight,
+          height: channelHeight,
+        });
+
+        minSeriesIndex = Math.min(minSeriesIndex, seriesIndex);
+        maxSeriesIndex = Math.max(maxSeriesIndex, seriesIndex);
+      });
+
+      if (channelCounter === 0) {
+        maxSeriesIndex = store.chunkGraphData.cols.length - 1;
+        minSeriesIndex = 0;
+      }
+
+      drawElements.push({
+        fill: false,
+        color,
+        startX,
+        endX,
+        top: channelHeight * minSeriesIndex + offsetHeight,
+        height: channelHeight * (maxSeriesIndex - minSeriesIndex + 1),
+      });
+    });
+
+    return drawElements;
   }
 
   /**
