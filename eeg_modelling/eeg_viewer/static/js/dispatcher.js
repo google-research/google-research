@@ -52,6 +52,7 @@ const ActionType = {
   TOOL_BAR_PREV_SEC: 'toolBarPrevSec',
   TOOL_BAR_SENSITIVITY: 'toolBarSensitivity',
   TOOL_BAR_ZOOM: 'toolBarZoom',
+  UPDATE_WAVE_EVENT_DRAFT: 'updateWaveEventDraft',
   WARNING: 'warning',
   WINDOW_LOCATION_PENDING_REQUEST: 'windowLocationPendingRequest',
 };
