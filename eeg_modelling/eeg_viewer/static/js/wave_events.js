@@ -90,8 +90,11 @@ class WaveEvents {
     tableBody = document.createElement('tbody');
     document.getElementById(this.tableId_).appendChild(tableBody);
 
-    store.waveEvents.forEach((waveEvent) => {
+    store.waveEvents.forEach((waveEvent, index) => {
       const row = /** @type {!HTMLElement} */ (document.createElement('tr'));
+      row.id = `wave-event-row-${index}`;
+      tableBody.appendChild(row);
+
       const addTextElementToRow = (text) => {
         const element = document.createElement('td');
         element.classList.add('mdl-data-table__cell--non-numeric');
@@ -105,12 +108,15 @@ class WaveEvents {
       addTextElementToRow(formatter.formatTime(absStartTime, true));
       addTextElementToRow(formatter.formatDuration(waveEvent.duration));
 
+      const channelTooltip = waveEvent.channelList.length > 0 ?
+          waveEvent.channelList.join('<br>') :
+          'No channels';
+      utils.addMDLTooltip(row, row.id, channelTooltip);
+
       row.onclick = (event) => {
         const top = event.y - event.offsetY + row.offsetHeight;
         this.handleWaveEventClick(waveEvent, top);
       };
-
-      tableBody.appendChild(row);
     });
   }
 
