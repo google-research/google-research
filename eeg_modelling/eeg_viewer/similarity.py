@@ -26,21 +26,29 @@ from eeg_modelling.pyprotos import similarity_pb2
 import cv2
 
 
-def _FilterOverlappedResults(sims, target_start_index, target_duration_index):
-  """Filters out the similar patterns overlapped with the target pattern.
+def _FilterOverlappedResults(sims, seen_events, sampling_freq):
+  """Filters out the similar patterns overlapped with the previous events.
 
   Args:
-    sims: Array of similarity scores.
-    target_start_index: The start index of the target pattern.
-    target_duration_index: The duration of the target pattern (measured in
-      amount of array elements, not in seconds).
+    sims: Array of enumerated similarity scores.
+    seen_events: Array of TimeSpan protos.
+    sampling_freq: Sampling frequency of the data.
   Returns:
     Array of similarity scores without the ones that overlap with the target.
   """
-  filter_start = max(target_start_index - target_duration_index + 1, 0)
-  filter_end = min(target_start_index + target_duration_index, len(sims))
+  mask_array = {index: True for index, sim in sims}
 
-  return sims[:filter_start] + sims[filter_end:]
+  for seen_event in seen_events:
+    start_index = int(seen_event.start_time * sampling_freq)
+    duration_index = int(seen_event.duration * sampling_freq)
+
+    filter_start = max(start_index - duration_index + 1, 0)
+    filter_end = min(start_index + duration_index, len(mask_array))
+
+    for index in range(filter_start, filter_end):
+      mask_array[index] = False
+
+  return [(index, sim) for index, sim in sims if mask_array[index]]
 
 
 def _GetTopNonOverlappingResults(sims, top_n, duration_index):
@@ -77,6 +85,7 @@ def _GetTopNonOverlappingResults(sims, top_n, duration_index):
 def SearchSimilarPatterns(full_data,
                           window_start,
                           window_duration,
+                          seen_events,
                           sampling_freq=200,
                           top_n=5):
   """Searches similar patterns for a target window in a 2d array.
@@ -86,6 +95,7 @@ def SearchSimilarPatterns(full_data,
       Must have shape (n_channels, n_data_points).
     window_start: the start of the window in seconds.
     window_duration: the duration of the window in seconds.
+    seen_events: array of TimeSpan marking events already seen.
     sampling_freq: sampling frequency used in the data.
     top_n: Amount of similar results to return.
   Returns:
@@ -108,8 +118,7 @@ def SearchSimilarPatterns(full_data,
   sims = cv2.matchTemplate(full_data, window_data, cv2.TM_CCORR_NORMED)[0]
 
   sims = list(enumerate(sims))
-  sims = _FilterOverlappedResults(sims, window_start_index,
-                                  window_duration_index)
+  sims = _FilterOverlappedResults(sims, seen_events, sampling_freq)
   sims = sorted(sims, key=lambda x: x[1], reverse=True)
   sims = _GetTopNonOverlappingResults(sims, top_n, window_duration_index)
 
@@ -126,13 +135,16 @@ def SearchSimilarPatterns(full_data,
   return sim_patterns
 
 
-def CreateSimilarPatternsResponse(array, start_time, duration, sampling_freq):
+def CreateSimilarPatternsResponse(array, start_time, duration, seen_events,
+                                  sampling_freq):
   """Searches similar patterns in an array of data.
 
   Args:
     array: Numpy array with shape (n_channels, n_data).
     start_time: seconds to start the window.
     duration: duration of the window.
+    seen_events: Array of TimeSpan protos, representing previously seen events.
+      The algorithm will avoid results that are already seen.
     sampling_freq: Sampling frequency used in the data, in hz.
   Returns:
     SimilarPatternsResponse with the results found.
@@ -144,6 +156,7 @@ def CreateSimilarPatternsResponse(array, start_time, duration, sampling_freq):
       array,
       start_time,
       duration,
+      seen_events,
       sampling_freq=sampling_freq)
   response.similar_patterns.extend(similar_patterns)
 

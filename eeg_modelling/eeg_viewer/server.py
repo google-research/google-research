@@ -329,9 +329,11 @@ def SearchSimilarPatterns(similar_patterns_request):
   sampling_freq = waveform_data_service.GetSamplingFrequency(
       waveform_data_source, requested_channels)
 
+  seen_events = similar_patterns_request.seen_events
+
   similar_patterns_response = similarity.CreateSimilarPatternsResponse(
       data, similar_patterns_request.start_time,
-      similar_patterns_request.duration, sampling_freq)
+      similar_patterns_request.duration, seen_events, sampling_freq)
 
   return similar_patterns_response, {}
 
