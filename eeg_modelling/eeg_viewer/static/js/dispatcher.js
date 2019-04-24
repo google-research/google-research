@@ -40,6 +40,7 @@ const ActionType = {
   SEARCH_SIMILAR_RESPONSE_OK: 'searchSimilarResponseOk',
   SEARCH_SIMILAR_RESPONSE_ERROR: 'searchSimilarResponseError',
   SIMILAR_PATTERN_ACCEPT: 'similarPatternAccept',
+  SIMILAR_PATTERN_EDIT: 'similarPatternEdit',
   SIMILAR_PATTERN_REJECT: 'similarPatternReject',
   TOOL_BAR_GRIDLINES: 'toolBarGridlines',
   TOOL_BAR_HIGH_CUT: 'toolBarHighCut',

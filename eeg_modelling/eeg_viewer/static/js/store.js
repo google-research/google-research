@@ -68,6 +68,7 @@ const Property = {
   SAMPLING_FREQ: 'samplingFreq',
   SERIES_HEIGHT: 'seriesHeight',
   SENSITIVITY: 'sensitivity',
+  SIMILAR_PATTERN_EDIT: 'similarPatternEdit',
   SIMILAR_PATTERN_ERROR: 'similarPatternError',
   SIMILAR_PATTERN_RESULT: 'similarPatternResult',
   SIMILAR_PATTERN_TARGET: 'similarPatternTarget',
@@ -208,6 +209,7 @@ const LoadingStatus = {
  *   predictionMode: !PredictionMode,
  *   predictionSSTablePath: ?string,
  *   samplingFreq: ?number,
+ *   similarPatternEdit: ?Annotation,
  *   similarPatternError: ?ErrorInfo,
  *   similarPatternResult: ?Array<!SimilarPattern>,
  *   similarPatternTarget: ?Annotation,
@@ -252,6 +254,7 @@ let StoreData;
  *   predictionMode: (!PredictionMode|undefined),
  *   predictionSSTablePath: (?string|undefined),
  *   samplingFreq: (?number|undefined),
+ *   similarPatternEdit: (?Annotation|undefined),
  *   similarPatternError: (?ErrorInfo|undefined),
  *   similarPatternResult: (?Array<!SimilarPattern>|undefined),
  *   similarPatternTarget: (?Annotation|undefined),
@@ -302,6 +305,7 @@ class Store {
       predictionMode: PredictionMode.NONE,
       predictionSSTablePath: null,
       samplingFreq: null,
+      similarPatternEdit: null,
       similarPatternError: null,
       similarPatternResult: null,
       similarPatternTarget: null,
@@ -368,6 +372,8 @@ class Store {
                      this.handleSimilarPatternsResponseError);
     registerCallback(Dispatcher.ActionType.SIMILAR_PATTERN_ACCEPT,
                      this.handleSimilarPatternAccept);
+    registerCallback(Dispatcher.ActionType.SIMILAR_PATTERN_EDIT,
+                     this.handleSimilarPatternEdit);
     registerCallback(Dispatcher.ActionType.SIMILAR_PATTERN_REJECT,
                      this.handleSimilarPatternReject);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_GRIDLINES,
@@ -782,6 +788,24 @@ class Store {
     return {
       waveEvents,
       similarPatternResult,
+    };
+  }
+
+  /**
+   * Handles data from a SIMILAR_PATTERN_EDIT action, which will save the
+   * pattern and remove it from the similar patterns list.
+   * @param {!SimilarPattern} data The similar pattern to edit.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleSimilarPatternEdit(data) {
+    return {
+      similarPatternEdit: {
+        labelText: this.storeData.similarPatternTarget.labelText,
+        startTime: data.startTime,
+        duration: data.duration,
+        channelList: data.channelList,
+      },
+      similarPatternResult: this.removeSimilarPattern_(data),
     };
   }
 

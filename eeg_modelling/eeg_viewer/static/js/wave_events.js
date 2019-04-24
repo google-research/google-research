@@ -356,27 +356,40 @@ class WaveEvents {
   }
 
   /**
-   * Accepts a similar pattern, and closes the similar pattern actions menu.
+   * Confirms a similar pattern for accepting, rejecting or editing; and closes
+   * the similar pattern menu.
+   * @param {!Dispatcher.ActionType} actionType Action to perform on the similar
+   *     pattern, either accept, reject or edit.
+   * @private
    */
-  acceptSimilarPattern() {
+  confirmSimilarPattern_(actionType) {
     const selectedPattern = Object.assign({}, this.clickedSimilarPattern_);
     this.closeSimilarPatternMenu();
     Dispatcher.getInstance().sendAction({
-      actionType: Dispatcher.ActionType.SIMILAR_PATTERN_ACCEPT,
+      actionType,
       data: selectedPattern,
     });
   }
 
   /**
-   * Rejects a similar pattern, and closes the similar pattern actions menu.
+   * Accepts a similar pattern.
+   */
+  acceptSimilarPattern() {
+    this.confirmSimilarPattern_(Dispatcher.ActionType.SIMILAR_PATTERN_ACCEPT);
+  }
+
+  /**
+   * Set a similar pattern for edition.
+   */
+  editSimilarPattern() {
+    this.confirmSimilarPattern_(Dispatcher.ActionType.SIMILAR_PATTERN_EDIT);
+  }
+
+  /**
+   * Rejects a similar pattern.
    */
   rejectSimilarPattern() {
-    const selectedPattern = Object.assign({}, this.clickedSimilarPattern_);
-    this.closeSimilarPatternMenu();
-    Dispatcher.getInstance().sendAction({
-      actionType: Dispatcher.ActionType.SIMILAR_PATTERN_REJECT,
-      data: selectedPattern,
-    });
+    this.confirmSimilarPattern_(Dispatcher.ActionType.SIMILAR_PATTERN_REJECT);
   }
 
   /**
