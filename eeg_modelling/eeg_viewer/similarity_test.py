@@ -31,6 +31,27 @@ total_seconds = 20
 n_samples = total_seconds * sampling_freq
 
 
+def overlaps(pattern_a, pattern_b):
+  """Returns a boolean indicating if two patterns are overlapped.
+
+  Args:
+    pattern_a: SimilarPattern or TimeSpan.
+    pattern_b: SimilarPattern or TimeSpan.
+  Returns:
+    boolean indicating if the patterns are overlapped.
+  """
+  start_a = pattern_a.start_time
+  start_b = pattern_b.start_time
+
+  end_a = pattern_a.start_time + pattern_a.duration
+  end_b = pattern_b.start_time + pattern_b.duration
+
+  a_falls_in_b = start_b < end_a and end_a < end_b
+  b_falls_in_a = start_a < end_b and end_b < end_a
+
+  return a_falls_in_b or b_falls_in_a
+
+
 class SimilarityTest(absltest.TestCase):
 
   def setUp(self):
@@ -42,6 +63,7 @@ class SimilarityTest(absltest.TestCase):
     response = similarity.CreateSimilarPatternsResponse(self.base_data,
                                                         1,
                                                         2,
+                                                        [],
                                                         sampling_freq)
 
     self.assertIsInstance(response, similarity_pb2.SimilarPatternsResponse)
@@ -68,6 +90,7 @@ class SimilarityTest(absltest.TestCase):
     patterns_found = similarity.SearchSimilarPatterns(self.base_data,
                                                       template_start_time,
                                                       template_duration,
+                                                      [],
                                                       sampling_freq,
                                                       top_n=3)
     self.assertLen(patterns_found, 3)
@@ -77,6 +100,28 @@ class SimilarityTest(absltest.TestCase):
     target_similar_pattern.start_time = target_start_time
     target_similar_pattern.duration = template_duration
     self.assertIn(target_similar_pattern, patterns_found)
+
+  def testSearchSimilarPatterns_ignoreSeen(self):
+    template_start_time = 1
+    template_duration = 1
+
+    seen_event = similarity_pb2.TimeSpan()
+    seen_event.start_time = 10
+    seen_event.duration = 2.5
+
+    patterns_found = similarity.SearchSimilarPatterns(self.base_data,
+                                                      template_start_time,
+                                                      template_duration,
+                                                      [seen_event],
+                                                      sampling_freq,
+                                                      top_n=10)
+
+    for pattern in patterns_found:
+      end_time = pattern.start_time + pattern.duration
+      message = 'Overlaps with event between %s-%s' % (pattern.start_time,
+                                                       end_time)
+      self.assertFalse(overlaps(seen_event, pattern), message)
+
 
 if __name__ == '__main__':
   absltest.main()

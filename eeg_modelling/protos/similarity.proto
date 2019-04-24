@@ -34,6 +34,13 @@ message SimilarPatternsResponse {
   repeated SimilarPattern similar_patterns = 1;
 }
 
+// Represents a timespan in a file
+message TimeSpan {
+  // Relative start in seconds
+  optional float start_time = 1;
+  // Duration in seconds
+  optional float duration = 2;
+}
 
 // Holds parameters to load a file in the server
 message FileParams {
@@ -74,4 +81,6 @@ message SimilarPatternsRequest {
   optional float start_time = 4;
   // Duration of the target pattern, in seconds
   optional float duration = 5;
+  // Previously seen events
+  repeated TimeSpan seen_events = 6;
 }

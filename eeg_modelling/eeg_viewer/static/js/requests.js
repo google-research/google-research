@@ -27,6 +27,7 @@ const SimilarPatternsRequest = goog.require('proto.eeg_modelling.protos.SimilarP
 const SimilarPatternsResponse = goog.require('proto.eeg_modelling.protos.SimilarPatternsResponse');
 const SingleChannel = goog.require('proto.eeg_modelling.protos.ChannelDataId.SingleChannel');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
+const TimeSpan = goog.require('proto.eeg_modelling.protos.TimeSpan');
 const XhrIo = goog.require('goog.net.XhrIo');
 const closureString = goog.require('goog.string');
 const events = goog.require('goog.events');
@@ -275,6 +276,18 @@ class Requests {
     const montageInfo = montages.createMontageInfo(
         store.indexChannelMap, store.similarPatternTarget.channelList);
     this.setChannelDataIdsParam_(requestContent, montageInfo.indexStrList);
+
+    const seenEvents = [
+      ...store.waveEvents,
+      ...(store.similarPatternResult || []),
+    ];
+
+    requestContent.setSeenEventsList(seenEvents.map((seenEvent) => {
+      const waveEventProto = new TimeSpan();
+      waveEventProto.setStartTime(seenEvent.startTime);
+      waveEventProto.setDuration(seenEvent.duration);
+      return waveEventProto;
+    }));
 
     return requestContent;
   }
