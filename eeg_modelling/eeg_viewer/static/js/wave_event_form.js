@@ -82,6 +82,18 @@ class WaveEventForm {
         'WaveEventForm', (store) => this.handleChannelNames(store));
   }
 
+
+  /**
+   * Sets the duration in the form UI.
+   * @private
+   */
+  setDurationUI_() {
+    const startTime = this.startTime_ == null ? 0 : this.startTime_;
+    const endTime = this.endTime_ == null ? startTime : this.endTime_;
+    const duration = formatter.formatDuration(endTime - startTime);
+    this.getInputElement_('wave-event-duration').value = duration;
+  }
+
   /**
    * Returns a cast HTML Input element.
    * @param {string} id The HTML id of the element.
@@ -173,12 +185,15 @@ class WaveEventForm {
       this.startTime_ = timeValue;
       markChannelSelected();
 
+      this.setDurationUI_();
+
       this.waitFor_(InputType.END_TIME);
     } else if (this.waitingFor_ === InputType.END_TIME) {
       endTimeInput.value = prettyTime;
 
       this.endTime_ = timeValue;
-      markChannelSelected();
+
+      this.setDurationUI_();
 
       this.waitFor_(InputType.CHANNEL);
     } else if (this.waitingFor_ === InputType.CHANNEL) {

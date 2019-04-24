@@ -25,6 +25,7 @@ const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const dom = goog.require('goog.dom');
 const formatter = goog.require('eeg_modelling.eeg_viewer.formatter');
+const log = goog.require('goog.log');
 const utils = goog.require('eeg_modelling.eeg_viewer.utils');
 
 class WaveEvents {
@@ -42,6 +43,12 @@ class WaveEvents {
           Store.Property.SIMILAR_PATTERN_ERROR,
         ],
         'WaveEvents', (store) => this.handleSearchSimilarResponse(store));
+    // This listener will highlight the target on the wave events table.
+    store.registerListener(
+        [Store.Property.SIMILAR_PATTERN_TARGET],
+        'WaveEvents', (store) => this.handleSimilarityTarget(store));
+
+    this.logger_ = log.getLogger('eeg_modelling.eeg_viewer.WaveEvents');
 
     /** @private {string} */
     this.tableId_ = 'wave-events-table';
@@ -68,6 +75,56 @@ class WaveEvents {
 
     /** @private {?Store.SimilarPattern} */
     this.clickedSimilarPattern_ = null;
+
+    /** @private {?number} */
+    this.selectedWaveEventId_ = null;
+  }
+
+  /**
+   * Gets the Y coordinate of the end of an element that fired an event.
+   * i.e The top + height coordinate of the element.
+   * @param {!Event} event Event fired by the element.
+   * @return {number} Y coordinate of the end of the element.
+   * @private
+   */
+  getPositionBelow_(event) {
+    const target = /** @type {!HTMLElement} */ (event.target);
+    return event.y - event.offsetY + target.offsetHeight;
+  }
+
+
+  /**
+   * Returns the id of a wave events table row, given a wave event id.
+   * @param {number} waveEventId Id of the wave event to select from the table.
+   * @return {string} HTML id of the row.
+   * @private
+   */
+  getRowId_(waveEventId) {
+    return `wave-event-row-${waveEventId}`;
+  }
+
+  /**
+   * Highlights the similarity target on the wave events list.
+   * @param {!Store.StoreData} store store data.
+   */
+  handleSimilarityTarget(store) {
+    if (this.selectedWaveEventId_) {
+      const prevSelected =
+          document.getElementById(this.getRowId_(this.selectedWaveEventId_));
+      if (prevSelected) {
+        prevSelected.classList.remove('selected-wave-event');
+      }
+    }
+
+    if (!store.similarPatternTarget || store.similarPatternTarget.id == null) {
+      return;
+    }
+
+    this.selectedWaveEventId_ =
+        /** @type {number} */ (store.similarPatternTarget.id);
+    const row =
+        document.getElementById(this.getRowId_(this.selectedWaveEventId_));
+    row.classList.add('selected-wave-event');
   }
 
   /**
@@ -92,8 +149,16 @@ class WaveEvents {
     table.appendChild(tableBody);
 
     store.waveEvents.forEach((waveEvent, index) => {
-      const row = /** @type {!HTMLElement} */ (document.createElement('tr'));
-      row.id = `wave-event-row-${index}`;
+      if (waveEvent.id == null) {
+        log.error(this.logger_, `Event with no id: index ${index}`);
+        return;
+      }
+
+      const row = document.createElement('tr');
+      row.id = this.getRowId_(/** @type {number} */ (waveEvent.id));
+      if (waveEvent.id === this.selectedWaveEventId_) {
+        row.classList.add('selected-wave-event');
+      }
       tableBody.appendChild(row);
 
       const addTextElementToRow = (text) => {
@@ -115,8 +180,7 @@ class WaveEvents {
       utils.addMDLTooltip(row, row.id, channelTooltip);
 
       row.onclick = (event) => {
-        const top = event.y - event.offsetY + row.offsetHeight;
-        this.handleWaveEventClick(waveEvent, top);
+        this.handleWaveEventClick(event, waveEvent);
       };
     });
 
@@ -127,10 +191,10 @@ class WaveEvents {
   /**
    * Handles a click in a wave event in the list, which will open the actions
    * menu.
+   * @param {!Event} event Click event.
    * @param {!Store.Annotation} waveEvent Wave event clicked.
-   * @param {number} top Top coordinate to position the wave event actions card.
    */
-  handleWaveEventClick(waveEvent, top) {
+  handleWaveEventClick(event, waveEvent) {
     if (this.clickedWaveEvent_ && this.clickedWaveEvent_.id === waveEvent.id) {
       this.closeWaveEventMenu();
       return;
@@ -138,6 +202,7 @@ class WaveEvents {
 
     this.clickedWaveEvent_ = waveEvent;
 
+    const top = this.getPositionBelow_(event);
     const menuContainer = document.getElementById(this.actionMenuContainer_);
     menuContainer.style.top = `${top}px`;
     menuContainer.classList.remove('hidden');
@@ -171,8 +236,6 @@ class WaveEvents {
       data: selectedWave,
     });
 
-    utils.showElement(this.similarContainerId_);
-    utils.hideElement(this.similarTableId_);
     utils.hideElement(this.errorTextId_);
     utils.showMDLSpinner(this.loadingSpinnerId_);
   }
@@ -230,8 +293,13 @@ class WaveEvents {
     tableBody = document.createElement('tbody');
     document.getElementById(this.similarTableId_).appendChild(tableBody);
 
+    if (!store.similarPatternResult ||
+        store.similarPatternResult.length === 0) {
+      return;
+    }
+
     store.similarPatternResult.forEach((similarPattern) => {
-      const row = /** @type {!HTMLElement} */ (document.createElement('tr'));
+      const row = document.createElement('tr');
       const addTextElementToRow = (text) => {
         const element = document.createElement('td');
         element.classList.add('mdl-data-table__cell--non-numeric');
@@ -245,8 +313,7 @@ class WaveEvents {
       addTextElementToRow(similarPattern.score.toFixed(2));
 
       row.onclick = (event) => {
-        const top = event.y - event.offsetY + row.offsetHeight;
-        this.handleSimilarPatternClick(similarPattern, top);
+        this.handleSimilarPatternClick(event, similarPattern);
       };
 
       tableBody.appendChild(row);
@@ -256,10 +323,10 @@ class WaveEvents {
   /**
    * Handles a click in a similar pattern, which will display the similar
    * pattern actions menu.
+   * @param {!Event} event Click event.
    * @param {!Store.SimilarPattern} similarPattern Similar pattern clicked.
-   * @param {number} top Top coordinate to position the menu.
    */
-  handleSimilarPatternClick(similarPattern, top) {
+  handleSimilarPatternClick(event, similarPattern) {
     if (this.clickedSimilarPattern_ &&
         this.clickedSimilarPattern_.startTime === similarPattern.startTime) {
       this.closeSimilarPatternMenu();
@@ -268,18 +335,17 @@ class WaveEvents {
 
     this.clickedSimilarPattern_ = similarPattern;
 
+    const top = this.getPositionBelow_(event);
     const menuContainer = document.getElementById(this.similarPatternActions_);
     menuContainer.style.top = `${top}px`;
     menuContainer.classList.remove('hidden');
   }
 
   /**
-   * Navigates to the previously selected similar pattern, and closes the
-   * similar pattern actions menu.
+   * Navigates to the previously selected similar pattern.
    */
   navigateToPattern() {
     const { startTime, duration } = this.clickedSimilarPattern_;
-    this.closeSimilarPatternMenu();
     Dispatcher.getInstance().sendAction({
       actionType: Dispatcher.ActionType.NAVIGATE_TO_SPAN,
       data: {

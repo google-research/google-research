@@ -117,13 +117,19 @@
               <li class="mdl-menu__item" onclick="waveEventForm.selectType('SZ')">SZ</li>
               <li class="mdl-menu__item" onclick="waveEventForm.selectType('ED')">ED</li>
             </ul>
-            <div class="textfield clickable" onclick="waveEventForm.clickInput('startTime')">
-              <input class="mdl-textfield__input clickable" type="text" id="wave-event-start-time" readonly>
-              <label class="clickable">Start Time</label>
-            </div>
-            <div class="textfield clickable" onclick="waveEventForm.clickInput('endTime')">
-              <input class="mdl-textfield__input clickable" type="text" id="wave-event-end-time" readonly>
-              <label class="clickable">End Time</label>
+            <div class="column-container">
+              <div class="textfield clickable" onclick="waveEventForm.clickInput('startTime')">
+                <input class="mdl-textfield__input clickable" type="text" id="wave-event-start-time" readonly>
+                <label class="clickable">Start Time</label>
+              </div>
+              <div class="textfield clickable" onclick="waveEventForm.clickInput('endTime')">
+                <input class="mdl-textfield__input clickable" type="text" id="wave-event-end-time" readonly>
+                <label class="clickable">End Time</label>
+              </div>
+              <div class="textfield">
+                <input class="mdl-textfield__input" type="text" id="wave-event-duration" readonly value="0 s">
+                <label>Duration</label>
+              </div>
             </div>
             <div id="wave-event-channels" class="mdl-card">
               <h4 class="mdl-card__subtitle-text clickable" onclick="waveEventForm.clickInput('channel')">Select channels</h4>
@@ -395,11 +401,10 @@
              </thead>
             </table>
           </div>
-          <div id="similar-patterns-container" class="hidden">
+          <div id="similar-patterns-container">
             <div class="mdl-card__title">
-              <h3 class="mdl-card__title-text">Similar Patterns</h3>
+              <h3 class="mdl-card__title-text">Similar</h3>
             </div>
-            <div id="similar-patterns-spinner" class="mdl-spinner mdl-js-spinner hidden"></div>
             <div class="scrollable-table-div">
               <table id="similar-patterns-table" class="mdl-data-table mdl-js-data-table">
                <thead>
@@ -410,6 +415,7 @@
                </thead>
               </table>
             </div>
+            <div id="similar-patterns-spinner" class="mdl-spinner mdl-js-spinner hidden"></div>
             <div id="similarity-error" class="hidden panel-info">
               Error
             </div>
