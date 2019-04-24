@@ -6,9 +6,9 @@ reveals a causal expression network][paper].
 
 ## Downloading the data
 
-There are four data files the go along with the [paper][paper]:
+There are four data files that go along with the [paper][paper]:
 
-`yeast_raw_data_table_20180826.tsv`: "Raw" microarray data..
+`yeast_raw_data_table_20180826.tsv`: "Raw" microarray data.
 
 `yeast_data_table_20180826.tsv`: "Processed" microarray data.
 
@@ -16,6 +16,15 @@ There are four data files the go along with the [paper][paper]:
 
 `insample_coefs_20180826.csv`: Prediction model retrained with validation
 experiments.
+
+## Datasets described in the published paper
+
+`raw`: column `r_g_ratio` in `yeast_raw_data_table_20180826.tsv`.
+
+`cleaned`: column `log2_cleaned_ratio` in `yeast_data_table_20180826.tsv`.
+
+`thresholded`: column `log2_cleaned_ratio_zth2dfilt` in `yeast_data_table_20180826.tsv`.
+
 
 ## Running the notebook
 
@@ -33,10 +42,10 @@ Once the data is downloaded locally, edit the notebook to reflect the location:
 
 ## Modeling
 
-The **Linear modeling** section shows how to construct design matrices for linear
-modeling from the processed data.  A simple example using `sklearn` is provided.
-Note that in the [paper] we used one of the many incompatible wrappers to the
-Fortran `glmnet`.
+The **Linear modeling** section shows how to construct design matrices for
+linear modeling from the processed data.  A simple example using `sklearn` is
+provided.  Note that in the [paper] we used one of the many incompatible
+wrappers to the Fortran `glmnet`.
 
 The **Prediction model** section shows how to use the model coefficients to
 construct the predicted datasets.  This code also separates the full predictions
