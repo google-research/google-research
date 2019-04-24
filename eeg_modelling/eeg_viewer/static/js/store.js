@@ -380,16 +380,14 @@ class Store {
                      this.handleToolBarMontage);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_NEXT_CHUNK,
                      this.handleToolBarNextChunk);
-    registerCallback(Dispatcher.ActionType.TOOL_BAR_NEXT_SEC,
-                     this.handleToolBarNextSec);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_NOTCH,
                      this.handleToolBarNotch);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_PREV_CHUNK,
                      this.handleToolBarPrevChunk);
-    registerCallback(Dispatcher.ActionType.TOOL_BAR_PREV_SEC,
-                     this.handleToolBarPrevSec);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_SENSITIVITY,
                      this.handleToolBarSensitivity);
+    registerCallback(Dispatcher.ActionType.TOOL_BAR_SHIFT_SECS,
+                     this.handleToolBarShiftSecs);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_ZOOM,
                      this.handleToolBarZoom);
     registerCallback(Dispatcher.ActionType.UPDATE_WAVE_EVENT_DRAFT,
@@ -862,13 +860,14 @@ class Store {
   }
 
   /**
-   * Handles data from a TOOL_BAR_NEXT_SEC action which will modify the chunk
-   * start.
+   * Handles data from a TOOL_BAR_SHIFT_SECS action which will move the chunk
+   * start an amount of seconds, either forward or backwards.
+   * @param {!Dispatcher.TimeData} data The data payload from the action.
    * @return {!PartialStoreData} store data with changed properties.
    */
-  handleToolBarNextSec() {
+  handleToolBarShiftSecs(data) {
     return {
-      chunkStart: this.storeData.chunkStart + 1,
+      chunkStart: this.storeData.chunkStart + data.time,
     };
   }
 
@@ -892,17 +891,6 @@ class Store {
   handleToolBarPrevChunk() {
     return {
       chunkStart: this.storeData.chunkStart - this.storeData.chunkDuration,
-    };
-  }
-
-  /**
-   * Handles data from a TOOL_BAR_PREV_SEC action which will modify the chunk
-   * start.
-   * @return {!PartialStoreData} store data with changed properties.
-   */
-  handleToolBarPrevSec() {
-    return {
-      chunkStart: this.storeData.chunkStart - 1,
     };
   }
 
@@ -1016,13 +1004,22 @@ class Store {
 
   /**
    * Handles data from a NAVIGATE_TO_SPAN action which will update the
-   * chunk start trying to leave the span of interest in the middle of the view.
+   * chunk start.
+   * If the span is shorter than chunkDuration, it will try to leave the span
+   * in the middle of the viewport.
+   * If not, it will try to leave the start of the span in the middle of the
+   * viewport.
    * @param {!Dispatcher.TimeSpanData} data The data payload from the action.
    * @return {?PartialStoreData} store data with changed properties.
    */
   handleNavigateToSpan(data) {
-    const spanCenter = data.startTime + data.duration / 2;
-    const chunkStart = spanCenter - this.storeData.chunkDuration / 2;
+    let viewportCenter;
+    if (data.duration < this.storeData.chunkDuration) {
+      viewportCenter = data.startTime + data.duration / 2;
+    } else {
+      viewportCenter = data.startTime;
+    }
+    const chunkStart = viewportCenter - this.storeData.chunkDuration / 2;
     return {
       chunkStart: Math.round(chunkStart),
     };

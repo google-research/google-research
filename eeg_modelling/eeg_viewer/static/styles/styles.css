@@ -314,6 +314,10 @@ th i.sorted, th i.sorted-reverse {
   padding-right: 18px;
 }
 
+tr.selected-wave-event {
+  background-color: lightblue;
+}
+
 #wave-event-form {
   position: absolute;
   z-index: 10;
@@ -323,9 +327,20 @@ th i.sorted, th i.sorted-reverse {
   float: right;
 }
 
+.column-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
 #wave-event-form .textfield {
   padding-top: 10px;
   padding-bottom: 0px;
+  width: 34%;
+}
+
+#wave-event-form .textfield input {
+  padding-left: 5px;
 }
 
 #wave-event-form .textfield input.force-focus {

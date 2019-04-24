@@ -35,6 +35,7 @@ testSuite({
     mockControl = new MockControl();
     store.storeData.chunkStart = 10;
     store.storeData.chunkDuration = 10;
+    store.storeData.numSecs = 60;
     store.storeData.tfExSSTablePath = null;
     store.storeData.edfPath = null;
     store.storeData.predictionSSTablePath = null;
@@ -42,8 +43,6 @@ testSuite({
     store.storeData.predictionFilePath = null;
     store.storeData.sstableKey = null;
     store.storeData.channelIds = null;
-    store.storeData.fileInputDirty = false;
-    store.storeData.queryDataDirty = false;
     store.storeData.seriesHeight = 100;
   },
 
@@ -127,10 +126,10 @@ testSuite({
     assertEquals(20, newStoreData.chunkStart);
   },
 
-  testHandleToolBarNextSec() {
-    const newStoreData = store.handleToolBarNextSec();
+  testHandleToolBarShiftSecs() {
+    const newStoreData = store.handleToolBarShiftSecs({ time: 1 });
 
-    assertEquals(11 , newStoreData.chunkStart);
+    assertEquals(11, newStoreData.chunkStart);
   },
 
   testHandleToolBarActionPrevChunk() {
@@ -139,10 +138,11 @@ testSuite({
     assertEquals(0, newStoreData.chunkStart);
   },
 
-  testHandleToolBarActionPrevSec() {
-    const newStoreData = store.handleToolBarPrevSec();
+  testClipChunkStart() {
+    const newStoreData = store.handleToolBarShiftSecs({ time: -20 });
+    store.clipChunkStart(newStoreData);
 
-    assertEquals(9, newStoreData.chunkStart);
+    assertEquals(0, newStoreData.chunkStart);
   },
 
   testHandleToolBarZoom() {

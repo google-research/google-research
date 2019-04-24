@@ -108,6 +108,10 @@ class ToolBar {
           this.prevChunk();
         } else if (event.key === Keys.RIGHT || event.key === 'l') {
           this.nextChunk();
+        } else if (event.key === 'a') {
+          this.shiftSecs_(-5);
+        } else if (event.key === 'd') {
+          this.shiftSecs_(5);
         }
       };
 
@@ -290,13 +294,24 @@ class ToolBar {
   }
 
   /**
+   * Sends an action to shift the chunk start an amount of seconds.
+   * @param {number} seconds Amount of seconds to move.
+   * @private
+   */
+  shiftSecs_(seconds) {
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.TOOL_BAR_SHIFT_SECS,
+      data: {
+        time: seconds,
+      },
+    });
+  }
+
+  /**
    * Requests chunk starting 1 second later.
    */
   nextSec() {
-    Dispatcher.getInstance().sendAction({
-      actionType: Dispatcher.ActionType.TOOL_BAR_NEXT_SEC,
-      data: {},
-    });
+    this.shiftSecs_(1);
   }
 
   /**
@@ -313,10 +328,7 @@ class ToolBar {
    * Requests chunk starting 1 second earlier.
    */
   prevSec() {
-    Dispatcher.getInstance().sendAction({
-      actionType: Dispatcher.ActionType.TOOL_BAR_PREV_SEC,
-      data: {},
-    });
+    this.shiftSecs_(-1);
   }
 }
 
