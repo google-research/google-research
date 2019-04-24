@@ -123,6 +123,9 @@ goog.exportSymbol(
     'waveEvents.acceptSimilarPattern',
     goog.bind(waveEvents.acceptSimilarPattern, waveEvents));
 goog.exportSymbol(
+    'waveEvents.editSimilarPattern',
+    goog.bind(waveEvents.editSimilarPattern, waveEvents));
+goog.exportSymbol(
     'waveEvents.closeSimilarPatternMenu',
     goog.bind(waveEvents.closeSimilarPatternMenu, waveEvents));
 goog.exportSymbol(

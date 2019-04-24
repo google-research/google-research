@@ -54,6 +54,8 @@ class WaveEventForm {
     this.channelsContainerId_ = 'wave-event-channels';
     /** @private @const {string} */
     this.checkboxesContainerId_ = 'wave-event-channels-checkboxes';
+    /** @private @const {string} */
+    this.labelDropdownId_ = 'wave-event-type-dropdown-text';
 
     /** @private {?number} */
     this.startTime_ = null;
@@ -80,6 +82,12 @@ class WaveEventForm {
     store.registerListener(
         [Store.Property.INDEX_CHANNEL_MAP, Store.Property.CHANNEL_IDS],
         'WaveEventForm', (store) => this.handleChannelNames(store));
+
+    // This handler will receive a similar pattern to edit and will save it as
+    // wave event draft.
+    store.registerListener(
+        [Store.Property.SIMILAR_PATTERN_EDIT], 'WaveEventForm',
+        (store) => this.handleSimilarPatternEdit(store));
   }
 
 
@@ -102,6 +110,17 @@ class WaveEventForm {
    */
   getInputElement_(id) {
     return /** @type {!HTMLInputElement} */ (document.getElementById(id));
+  }
+
+  /**
+   * Returns the checkbox for a given channel.
+   * @param {string} channelName Channel to select checkbox.
+   * @return {!Element} HTML label element containing the checkbox.
+   * @private
+   */
+  getChannelCheckbox_(channelName) {
+    return /** @type {!Element} */ (document.querySelector(
+        `label[for="${this.getChannelCheckboxId_(channelName)}"]`));
   }
 
   /**
@@ -158,17 +177,16 @@ class WaveEventForm {
       this.waitingFor_ = InputType.START_TIME;
     }
 
-    const channelLabelElement = /** @type {!Element} */ (document.querySelector(
-        `label[for="${this.getChannelCheckboxId_(channelName)}"]`));
+    const channelCheckbox = this.getChannelCheckbox_(channelName);
 
     const markChannelSelected = () => {
       this.selectedChannels_.add(channelName);
-      utils.toggleMDLCheckbox(channelLabelElement, true);
+      utils.toggleMDLCheckbox(channelCheckbox, true);
     };
 
     const markChannelUnselected = () => {
       this.selectedChannels_.delete(channelName);
-      utils.toggleMDLCheckbox(channelLabelElement, false);
+      utils.toggleMDLCheckbox(channelCheckbox, false);
     };
 
     if (this.waitingFor_ === InputType.START_TIME) {
@@ -212,8 +230,7 @@ class WaveEventForm {
    * @param {string} type Type selected.
    */
   selectType(type) {
-    const dropdown = document.getElementById('wave-event-type-dropdown-text');
-    dropdown.textContent = type;
+    document.getElementById(this.labelDropdownId_).textContent = type;
     this.emitDraftChange();
   }
 
@@ -263,8 +280,7 @@ class WaveEventForm {
       return null;
     }
 
-    const labelText =
-        document.getElementById('wave-event-type-dropdown-text').innerHTML;
+    const labelText = document.getElementById(this.labelDropdownId_).innerHTML;
 
     return {
       labelText,
@@ -437,6 +453,71 @@ class WaveEventForm {
    */
   clickInput(inputType) {
     this.waitFor_(inputType);
+  }
+
+  /**
+   * Updates the internal state and the UI with the similar pattern set to edit.
+   * @param {!Store.StoreData} store Data from the store.
+   */
+  handleSimilarPatternEdit(store) {
+    // TODO(pdpino): refactor: make the store the source of truth of the draft
+    // The draft state is repeated in this object and in the storeData;
+    // and this object is the source of truth.
+    // Given that, the auxiliary store property similarPatternEdit is used to
+    // edit the draft from another view.
+    // The flux is: another view dispatches the action similarPatternEdit,
+    // the property similarPatternEdit is updated in the store and received
+    // here, the internal state is updated, and then a draft change
+    // is emitted, which will update the store's draft.
+    // Ideally, the store would be the source of truth of the draft, so it can
+    // be modified from any view (with actions) and updated everywhere, without
+    // the need of this auxiliary property.
+
+
+    if (!store.similarPatternEdit) {
+      return;
+    }
+
+    const {labelText, startTime, duration, channelList} =
+        store.similarPatternEdit;
+
+    this.startTime_ = startTime;
+    this.endTime_ = startTime + duration;
+    this.waitFor_(InputType.END_TIME);
+    this.selectedChannels_ = new Set(channelList);
+
+
+    document.getElementById(this.labelDropdownId_).textContent = labelText;
+
+    const formatTime = (timeValue) =>
+        formatter.formatTime(store.absStart + timeValue, true);
+
+    this.getInputElement_(this.startTimeId_).value =
+        formatTime(this.startTime_);
+    this.getInputElement_(this.endTimeId_).value = formatTime(this.endTime_);
+
+    this.setDurationUI_();
+
+    let amountChannelsSelected = 0;
+    this.allChannels_.forEach((channelName) => {
+      const channelCheckbox = this.getChannelCheckbox_(channelName);
+      const isSelected = this.selectedChannels_.has(channelName);
+      utils.toggleMDLCheckbox(channelCheckbox, isSelected);
+      amountChannelsSelected += isSelected;
+    });
+
+    const allCheckbox = /** @type {!Element} */ (
+        document.querySelector(`#${this.channelsContainerId_} label`));
+    utils.toggleMDLCheckbox(
+        allCheckbox, amountChannelsSelected >= this.allChannels_.length);
+
+
+    const waveEventForm = /** @type {!HTMLElement} */ (
+        document.getElementById(this.formId_));
+    this.setWaveEventFormPosition_(waveEventForm, 150, 50);
+    waveEventForm.classList.remove('hidden');
+
+    this.emitDraftChange();
   }
 }
 
