@@ -330,10 +330,11 @@ def SearchSimilarPatterns(similar_patterns_request):
       waveform_data_source, requested_channels)
 
   seen_events = similar_patterns_request.seen_events
+  settings = similar_patterns_request.settings
 
   similar_patterns_response = similarity.CreateSimilarPatternsResponse(
       data, similar_patterns_request.start_time,
-      similar_patterns_request.duration, seen_events, sampling_freq)
+      similar_patterns_request.duration, seen_events, sampling_freq, settings)
 
   return similar_patterns_response, {}
 
