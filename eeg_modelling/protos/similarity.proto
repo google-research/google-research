@@ -68,19 +68,30 @@ message FilterParams {
   optional float notch = 3;
 }
 
+// Describes settings to perform the similarity search
+message SimilaritySettings {
+  // Get the top_n results.
+  optional int64 top_n = 1;
+  // Indicates if should merge close results.
+  optional bool merge_close_results = 2;
+  // Seconds to use as threshold when deciding on a merge.
+  optional float merge_threshold = 3;
+}
 
 // Request to get wave patterns similar to another one.
 message SimilarPatternsRequest {
-  // File parameters to load the data
+  // File parameters to load the data.
   optional FileParams file_params = 1;
-  // Parameters to filter the signals
+  // Parameters to filter the signals.
   optional FilterParams filter_params = 2;
   // List of channel indices selected in the pattern.
   repeated ChannelDataId channel_data_ids = 3;
-  // Start time of the target pattern, relative to start
+  // Start time of the target pattern, relative to start.
   optional float start_time = 4;
-  // Duration of the target pattern, in seconds
+  // Duration of the target pattern, in seconds.
   optional float duration = 5;
-  // Previously seen events
+  // Previously seen events.
   repeated TimeSpan seen_events = 6;
+  // Settings to perform the similarity search.
+  optional SimilaritySettings settings = 7;
 }

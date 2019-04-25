@@ -52,6 +52,27 @@ def overlaps(pattern_a, pattern_b):
   return a_falls_in_b or b_falls_in_a
 
 
+def set_slice_value(base_array, new_value_array, start_seconds, samp_freq):
+  """Sets a slice of a numpy array with a new_value_array.
+
+  Helper function used in the tests. It modifies the base_array in place.
+
+  Args:
+    base_array: numpy array of shape (n_channels, n_samples).
+    new_value_array: numpy array of shape (n_channels, m_samples),
+      where m_samples <= n_samples.
+    start_seconds: starting seconds to set the new_value_array into the
+      base_array.
+    samp_freq: sampling frequency used in the data.
+  """
+
+  _, m_samples = new_value_array.shape
+
+  start_index = int(start_seconds * samp_freq)
+  end_index = start_index + m_samples
+  base_array[:, start_index:end_index] = new_value_array
+
+
 class SimilarityTest(absltest.TestCase):
 
   def setUp(self):
@@ -60,32 +81,30 @@ class SimilarityTest(absltest.TestCase):
     self.base_data = np.zeros((n_leads, n_samples), dtype=np.float32)
 
   def testCreateResponse(self):
+    settings = similarity_pb2.SimilaritySettings()
+    settings.top_n = 7
+    settings.merge_close_results = False
+
     response = similarity.CreateSimilarPatternsResponse(self.base_data,
                                                         1,
                                                         2,
                                                         [],
-                                                        sampling_freq)
+                                                        sampling_freq,
+                                                        settings)
 
     self.assertIsInstance(response, similarity_pb2.SimilarPatternsResponse)
-    self.assertLen(response.similar_patterns, 5)
+    self.assertLen(response.similar_patterns, 7)
 
   def testSearchSimilarPatterns(self):
     template_start_time = 1
     template_duration = 2
-    template_end_time = template_start_time + template_duration
-
     template = np.ones((n_leads, template_duration * sampling_freq))
 
-    template_start_index = template_start_time * sampling_freq
-    template_end_index = template_end_time * sampling_freq
-    self.base_data[:, template_start_index:template_end_index] = template
+    set_slice_value(self.base_data, template, template_start_time,
+                    sampling_freq)
 
     target_start_time = 5
-    target_end_time = target_start_time + template_duration
-
-    target_start_index = target_start_time * sampling_freq
-    target_end_index = target_end_time * sampling_freq
-    self.base_data[:, target_start_index:target_end_index] = template
+    set_slice_value(self.base_data, template, target_start_time, sampling_freq)
 
     patterns_found = similarity.SearchSimilarPatterns(self.base_data,
                                                       template_start_time,
@@ -121,6 +140,44 @@ class SimilarityTest(absltest.TestCase):
       message = 'Overlaps with event between %s-%s' % (pattern.start_time,
                                                        end_time)
       self.assertFalse(overlaps(seen_event, pattern), message)
+
+  def testSearchSimilarPatterns_merge(self):
+    template_start_time = 1
+    template_duration = 2
+    template = np.ones((n_leads, template_duration * sampling_freq))
+
+    template_span = similarity_pb2.TimeSpan()
+    template_span.start_time = template_start_time
+    template_span.duration = template_duration
+    seen_events = [template_span]
+
+    set_slice_value(self.base_data, template, template_start_time,
+                    sampling_freq)
+
+    target_1_start_time = 5
+    set_slice_value(self.base_data, template, target_1_start_time,
+                    sampling_freq)
+
+    target_2_start_time = 8.5
+    set_slice_value(self.base_data, template, target_2_start_time,
+                    sampling_freq)
+
+    patterns_found = similarity.SearchSimilarPatterns(self.base_data,
+                                                      template_start_time,
+                                                      template_duration,
+                                                      seen_events,
+                                                      sampling_freq,
+                                                      top_n=2,
+                                                      merge_close_results=True,
+                                                      merge_threshold=2)
+
+    target_2_end_time = target_2_start_time + template_duration
+    merged_duration = target_2_end_time - target_1_start_time
+
+    merged_targets_span = similarity_pb2.TimeSpan()
+    merged_targets_span.start_time = target_1_start_time
+    merged_targets_span.duration = merged_duration
+    self.assertTrue(overlaps(merged_targets_span, patterns_found[0]))
 
 
 if __name__ == '__main__':
