@@ -180,6 +180,14 @@ class WaveEventForm {
     };
 
     if (this.waitingFor_ === InputType.START_TIME) {
+      // In this state, the click received sets the start time in the form:
+      // - If the start time is after the end time, empty the end time and keep
+      //   only the start time.
+      // - Updates the start time and duration shown in the form.
+      // - If the form was hidden, positions it, unhide it and mark the channel
+      //   clicked as selected.
+      // Then, the next click should represent the end time.
+
       startTimeInput.value = prettyTime;
 
       if (this.endTime_ != null && this.endTime_ < timeValue) {
@@ -187,16 +195,22 @@ class WaveEventForm {
         this.endTime_ = null;
       }
 
-      this.setWaveEventFormPosition_(waveEventForm, xPos, yPos);
-      waveEventForm.classList.remove('hidden');
-
       this.startTime_ = timeValue;
-      markChannelSelected();
 
       this.setDurationUI_();
 
+      const isFirstClick = waveEventForm.classList.contains('hidden');
+      if (isFirstClick) {
+        this.setWaveEventFormPosition_(waveEventForm, xPos, yPos);
+        markChannelSelected();
+        waveEventForm.classList.remove('hidden');
+      }
+
       this.waitFor_(InputType.END_TIME);
     } else if (this.waitingFor_ === InputType.END_TIME) {
+      // In this state, the click received sets the end time in the form:
+      // - Updates the end time and duration shown in the form.
+      // Then, the next click should be for picking channels.
       endTimeInput.value = prettyTime;
 
       this.endTime_ = timeValue;
@@ -205,6 +219,10 @@ class WaveEventForm {
 
       this.waitFor_(InputType.CHANNEL);
     } else if (this.waitingFor_ === InputType.CHANNEL) {
+      // In this state, the click received toggles the selection of channels.
+      // The UI stays in this state indefinitely, unless the user clicks an
+      // input in the form to set the start or end time.
+
       if (this.selectedChannels_.has(channelName)) {
         markChannelUnselected();
       } else {
@@ -508,6 +526,26 @@ class WaveEventForm {
     waveEventForm.classList.remove('hidden');
 
     this.emitDraftChange();
+  }
+
+  /**
+   * Starts the drag of the form by setting the dataTransfer data with the
+   * click information.
+   * @param {!DragEvent} event The drag event.
+   */
+  drag(event) {
+    const target = /** @type {!Element} */ (event.target);
+    if (target.id !== this.formId_) {
+      return;
+    }
+
+    /** @const {!utils.DragOptions} */
+    const dragOptions = {
+      elementId: target.id,
+      elementOffsetX: event.offsetX,
+      elementOffsetY: event.offsetY,
+    };
+    event.dataTransfer.setData('text', JSON.stringify(dragOptions));
   }
 }
 

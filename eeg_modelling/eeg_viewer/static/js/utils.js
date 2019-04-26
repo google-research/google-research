@@ -46,6 +46,15 @@ let MDLEnhancedWindow;
  */
 let MaterialCheckboxElement;
 
+/**
+ * @typedef {{
+ *   elementId: string,
+ *   elementOffsetX: number,
+ *   elementOffsetY: number,
+ * }}
+ */
+let DragOptions;
+
 
 /**
  * Returns a cast HTML Input element.
@@ -208,6 +217,7 @@ function getProtoMapKeys(protoMap) {
 
 
 exports = {
+  DragOptions,
   getInputElement,
   toggleElement,
   hideElement,

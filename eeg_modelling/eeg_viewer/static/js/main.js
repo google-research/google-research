@@ -47,6 +47,12 @@ goog.exportSymbol(
 goog.exportSymbol(
     'graph.decreaseSensitivity',
     goog.bind(graph.decreaseSensitivity, graph));
+goog.exportSymbol(
+    'graph.allowDrop',
+    goog.bind(graph.allowDrop, graph));
+goog.exportSymbol(
+    'graph.drop',
+    goog.bind(graph.drop, graph));
 
 /** @const {!Menus} */
 const menus = Menus.getInstance();
@@ -104,6 +110,9 @@ goog.exportSymbol(
 goog.exportSymbol(
     'waveEventForm.clickInput',
     goog.bind(waveEventForm.clickInput, waveEventForm));
+goog.exportSymbol(
+    'waveEventForm.drag',
+    goog.bind(waveEventForm.drag, waveEventForm));
 
 /** @const {!WaveEvents} */
 const waveEvents = WaveEvents.getInstance();
