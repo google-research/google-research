@@ -395,7 +395,7 @@
              <thead>
                <tr>
                  <th class="mdl-data-table__cell--non-numeric">Type</th>
-                 <th class="mdl-data-table__cell--non-numeric">Start time</th>
+                 <th class="mdl-data-table__cell--non-numeric">Start</th>
                  <th class="mdl-data-table__cell--non-numeric">Duration</th>
                </tr>
              </thead>
@@ -405,12 +405,38 @@
             <div class="mdl-card__title">
               <h3 class="mdl-card__title-text">Similar</h3>
             </div>
+            <div class="top-right-button">
+              <button id="toggle-similarity-settings" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"
+                      onclick="waveEvents.toggleSimilaritySettings()">
+                <i class="material-icons">tune</i>
+              </button>
+              <div class="mdl-tooltip mdl-tooltip--large" for="toggle-similarity-settings">
+                Parameters
+              </div>
+            </div>
+            <div class="top-right-button">
+              <button id="reject-all-similar-patterns" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.rejectAll()">
+                <i class="material-icons">delete</i>
+              </button>
+              <div class="mdl-tooltip mdl-tooltip--large" for="reject-all-similar-patterns">
+                Reject all
+              </div>
+            </div>
+            <div class="top-right-button">
+              <button id="search-more-similar" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.searchMore()">
+                <i class="material-icons">search</i>
+              </button>
+              <div class="mdl-tooltip mdl-tooltip--large" for="search-more-similar">
+                Find more
+              </div>
+            </div>
             <div class="scrollable-table-div">
               <table id="similar-patterns-table" class="mdl-data-table mdl-js-data-table">
                <thead>
                  <tr>
-                   <th class="mdl-data-table__cell--non-numeric">Start time</th>
-                   <th class="mdl-data-table__cell--non-numeric">Score</th>
+                   <th class="mdl-data-table__cell--non-numeric">Similarity</th>
+                   <th class="mdl-data-table__cell--non-numeric">Start</th>
+                   <th class="mdl-data-table__cell--non-numeric">Duration</th>
                  </tr>
                </thead>
               </table>
@@ -428,10 +454,10 @@
             </div>
             <div class="mdl-card__actions mdl-card--border">
               <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.navigateToWaveEvent()">
-                Navigate to
+                Navigate
               </button>
               <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.searchSimilarPatterns()">
-                Search similar patterns
+                Find similar
               </button>
               <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.deleteWaveEvent()">
                 Delete
@@ -446,7 +472,7 @@
             </div>
             <div class="mdl-card__actions mdl-card--border">
               <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.navigateToPattern()">
-                Navigate to
+                Navigate
               </button>
               <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.acceptSimilarPattern()">
                 Accept
@@ -460,7 +486,7 @@
             </div>
           </div>
         </div>
-        <div id="file-menu-modal">
+        <div id="file-menu-modal" class="modal">
           <div id="file-menu" class="mdl-card mdl-shadow--2dp">
             <div class="mdl-card__title">
               <h2 class="mdl-card__title-text">File</h2>
@@ -542,6 +568,38 @@
                 Load
               </button>
               <div id="loading-spinner" class="mdl-spinner mdl-js-spinner hidden"></div>
+            </div>
+          </div>
+        </div>
+        <div id="similarity-settings-modal" class="modal hidden">
+          <div class="mdl-card mdl-shadow--2dp">
+            <div class="mdl-card__title">
+              <h2 class="mdl-card__title-text">Similarity parameters</h2>
+            </div>
+            <div class="mdl-card__menu">
+              <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.toggleSimilaritySettings()">
+                <i class="material-icons">close</i>
+              </button>
+            </div>
+            <div class="textfield">
+              <input class="mdl-textfield__input" type="number" id="similarity-top-n" value="1">
+              <label>Amount of results</label>
+            </div>
+            <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="similarity-merge">
+              <input type="checkbox" id="similarity-merge" class="mdl-checkbox__input">
+              <span class="mdl-checkbox__label">Merge results</span>
+            </label>
+            <div class="textfield">
+              <input class="mdl-textfield__input" type="number" id="similarity-merge-threshold" value="1">
+              <label>Merge threshold</label>
+            </div>
+            <div class="mdl-card__actions mdl-card--border">
+              <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.saveSimilaritySettings()">
+                Save
+              </button>
+              <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.toggleSimilaritySettings()">
+                Cancel
+              </button>
             </div>
           </div>
         </div>

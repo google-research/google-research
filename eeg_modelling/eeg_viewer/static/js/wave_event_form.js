@@ -99,17 +99,7 @@ class WaveEventForm {
     const startTime = this.startTime_ == null ? 0 : this.startTime_;
     const endTime = this.endTime_ == null ? startTime : this.endTime_;
     const duration = formatter.formatDuration(endTime - startTime);
-    this.getInputElement_('wave-event-duration').value = duration;
-  }
-
-  /**
-   * Returns a cast HTML Input element.
-   * @param {string} id The HTML id of the element.
-   * @return {!HTMLInputElement} The input element.
-   * @private
-   */
-  getInputElement_(id) {
-    return /** @type {!HTMLInputElement} */ (document.getElementById(id));
+    utils.getInputElement('wave-event-duration').value = duration;
   }
 
   /**
@@ -167,8 +157,8 @@ class WaveEventForm {
 
     const waveEventForm = /** @type {!HTMLElement} */ (
         document.getElementById(this.formId_));
-    const startTimeInput = this.getInputElement_(this.startTimeId_);
-    const endTimeInput = this.getInputElement_(this.endTimeId_);
+    const startTimeInput = utils.getInputElement(this.startTimeId_);
+    const endTimeInput = utils.getInputElement(this.endTimeId_);
 
     const prettyTime = formatter.formatTime(store.absStart + timeValue, true);
 
@@ -239,8 +229,8 @@ class WaveEventForm {
    */
   close(clearDraft = true) {
     const waveEventForm = document.getElementById(this.formId_);
-    const startTimeInput = this.getInputElement_(this.startTimeId_);
-    const endTimeInput = this.getInputElement_(this.endTimeId_);
+    const startTimeInput = utils.getInputElement(this.startTimeId_);
+    const endTimeInput = utils.getInputElement(this.endTimeId_);
 
     startTimeInput.value = '';
     endTimeInput.value = '';
@@ -419,8 +409,8 @@ class WaveEventForm {
    * @private
    */
   waitFor_(inputType) {
-    const startTimeInput = this.getInputElement_(this.startTimeId_);
-    const endTimeInput = this.getInputElement_(this.endTimeId_);
+    const startTimeInput = utils.getInputElement(this.startTimeId_);
+    const endTimeInput = utils.getInputElement(this.endTimeId_);
     const channelsContainer =
         document.getElementById(this.channelsContainerId_);
 
@@ -492,9 +482,9 @@ class WaveEventForm {
     const formatTime = (timeValue) =>
         formatter.formatTime(store.absStart + timeValue, true);
 
-    this.getInputElement_(this.startTimeId_).value =
+    utils.getInputElement(this.startTimeId_).value =
         formatTime(this.startTime_);
-    this.getInputElement_(this.endTimeId_).value = formatTime(this.endTime_);
+    utils.getInputElement(this.endTimeId_).value = formatTime(this.endTime_);
 
     this.setDurationUI_();
 
