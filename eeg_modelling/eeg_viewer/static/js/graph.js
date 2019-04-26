@@ -21,6 +21,7 @@ const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const array = goog.require('goog.array');
 const formatter = goog.require('eeg_modelling.eeg_viewer.formatter');
 const montages = goog.require('eeg_modelling.eeg_viewer.montages');
+const utils = goog.require('eeg_modelling.eeg_viewer.utils');
 const {assert, assertNumber, assertString} = goog.require('goog.asserts');
 
 /**
@@ -707,6 +708,33 @@ class Graph extends ChartBase {
       Store.Property.SIMILAR_PATTERN_RESULT,
       Store.Property.WAVE_EVENT_DRAFT,
     ]);
+  }
+
+  /**
+   * Allows dropping an element in the parent container.
+   * @param {!Event} event Drop event.
+   */
+  allowDrop(event) {
+    event.preventDefault();
+  }
+
+  /**
+   * Finishes the drop of an element in the chart, by setting the position of
+   * the dragged element where the click ended.
+   * @param {!DragEvent} event Drop event.
+   */
+  drop(event) {
+    const dragOptions = /** @type {!utils.DragOptions} */ (
+        JSON.parse(event.dataTransfer.getData('text')));
+    const parentPosition = this.getParent().getBoundingClientRect();
+
+    const dragElement = /** @type {!HTMLElement} */ (
+        document.getElementById(dragOptions.elementId));
+
+    const left = event.pageX - parentPosition.x - dragOptions.elementOffsetX;
+    const top = event.pageY - parentPosition.y - dragOptions.elementOffsetY;
+    dragElement.style.left = `${left}px`;
+    dragElement.style.top = `${top}px`;
   }
 }
 

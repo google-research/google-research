@@ -30,7 +30,7 @@
   <body>
     <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
       <header class="mdl-layout__header mdl-layout__header--seamed">
-        <i class="mdl-layout-icon material-icons">pool</i>
+        <i class="mdl-layout-icon material-icons">waves</i>
         <div class="mdl-layout__header-row">
           <span class="mdl-layout-title">Waveforms Viewer</span>
           <span id="display-file-path" onclick="menus.toggleMenu()">No data loaded</span>
@@ -94,12 +94,12 @@
             Prev Second
           </div>
         </div>
-        <div id="parent-chart-container">
+        <div id="parent-chart-container" ondrop="graph.drop(event)" ondragover="graph.allowDrop(event)">
           <div id="line-chart-container"></div>
           <div id="prediction-line-chart-container"></div>
           <canvas id="prediction-overlay" class="canvas-overlay"></canvas>
           <canvas id="labels-overlay" class="canvas-overlay"></canvas>
-          <div id="wave-event-form" class="hidden mdl-card mdl-shadow--2dp">
+          <div id="wave-event-form" class="hidden mdl-card mdl-shadow--2dp" draggable="true" ondragstart="waveEventForm.drag(event)">
             <div class="mdl-card__title">
               <h2 class="mdl-card__title-text">New Event</h2>
             </div>
