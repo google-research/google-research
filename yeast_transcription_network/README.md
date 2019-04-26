@@ -3,6 +3,7 @@
 This python notebook is a companion to [Time-resolved genome-scale profiling
 reveals a causal expression network][paper].
 
+More details are available on the Calico [website][website].
 
 ## Downloading the data
 
@@ -16,6 +17,9 @@ There are four data files that go along with the [paper][paper]:
 
 `insample_coefs_20180826.csv`: Prediction model retrained with validation
 experiments.
+
+These files are available for [download][download] at the Calico
+[website][website].
 
 ## Datasets described in the published paper
 
@@ -52,3 +56,5 @@ construct the predicted datasets.  This code also separates the full predictions
 into their component parts due to each individual coefficient.
 
 [paper]: https://www.biorxiv.org/
+[website]: https://pin.research.calicolabs.com/
+[download]: https://storage.googleapis.com/calico-website-pin-public-bucket/datasets/yeast_transcription_network_data.zip
