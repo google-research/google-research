@@ -214,7 +214,7 @@ class Graph extends ChartBase {
           Store.Property.SENSITIVITY,
           Store.Property.PREDICTION_MODE,
           Store.Property.WAVE_EVENTS,
-          Store.Property.SIMILAR_PATTERN_RESULT,
+          Store.Property.SIMILAR_PATTERNS_UNSEEN,
           Store.Property.WAVE_EVENT_DRAFT,
         ],
         'Graph',
@@ -565,12 +565,12 @@ class Graph extends ChartBase {
    * @return {!Array<!ChartBase.OverlayElement>} Elements to draw in the canvas.
    */
   drawSimilarPatterns(store, chartArea) {
-    if (!store.similarPatternResult) {
+    if (!store.similarPatternsUnseen) {
       return [];
     }
 
     const orange = 'rgba(255, 140, 0, 0.4)';
-    const similarPatterns = store.similarPatternResult;
+    const similarPatterns = store.similarPatternsUnseen;
     return this.drawPatterns(store, chartArea, similarPatterns, orange);
   }
 
@@ -705,7 +705,7 @@ class Graph extends ChartBase {
   shouldRedrawOverlay(store, changedProperties) {
     return ChartBase.changedPropertiesIncludeAny(changedProperties, [
       Store.Property.WAVE_EVENTS,
-      Store.Property.SIMILAR_PATTERN_RESULT,
+      Store.Property.SIMILAR_PATTERNS_UNSEEN,
       Store.Property.WAVE_EVENT_DRAFT,
     ]);
   }

@@ -390,7 +390,7 @@
           <div id="no-events-text" class="panel-info">
             Click the chart to add events
           </div>
-          <div class="scrollable-table-div">
+          <div id="wave-events-table-container" class="scrollable-table-div">
             <table id="wave-events-table" class="hidden mdl-data-table mdl-js-data-table">
              <thead>
                <tr>
@@ -423,14 +423,33 @@
               </div>
             </div>
             <div class="top-right-button">
-              <button id="search-more-similar" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.searchMore()">
-                <i class="material-icons">search</i>
+              <button id="toggle-similarity-metrics" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"
+                      onclick="document.getElementById('similarity-metrics').classList.toggle('hidden')">
+                <i class="material-icons">assessment</i>
               </button>
-              <div class="mdl-tooltip mdl-tooltip--large" for="search-more-similar">
-                Find more
+              <div class="mdl-tooltip mdl-tooltip--large" for="toggle-similarity-metrics">
+                Metrics
               </div>
             </div>
-            <div class="scrollable-table-div">
+            <div id="similarity-metrics" class="sub-card hidden">
+              <div>
+                Total attempts:
+                <span id="metrics-attempts">0</span>
+              </div>
+              <div>
+                Accepted:
+                <span id="metrics-accepted">0</span>
+              </div>
+              <div>
+                Rejected:
+                <span id="metrics-rejected">0</span>
+              </div>
+              <div>
+                Precision @<span class="at-k">0</span>:
+                <span id="metrics-precision">0</span>
+              </div>
+            </div>
+            <div id="similar-patterns-table-container" class="scrollable-table-div">
               <table id="similar-patterns-table" class="mdl-data-table mdl-js-data-table">
                <thead>
                  <tr>
@@ -441,6 +460,10 @@
                </thead>
               </table>
             </div>
+            <button id="similar-patterns-search-more" class="hidden block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect"
+                    onclick="waveEvents.searchMore()">
+              Find more
+            </button>
             <div id="similar-patterns-spinner" class="mdl-spinner mdl-js-spinner hidden"></div>
             <div id="similarity-error" class="hidden panel-info">
               Error

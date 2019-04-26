@@ -39,14 +39,18 @@ class WaveEvents {
     // or error).
     store.registerListener(
         [
-          Store.Property.SIMILAR_PATTERN_RESULT,
+          Store.Property.SIMILAR_PATTERNS_UNSEEN,
           Store.Property.SIMILAR_PATTERN_ERROR,
         ],
         'WaveEvents', (store) => this.handleSearchSimilarResponse(store));
     // This listener will highlight the target on the wave events table.
     store.registerListener(
-        [Store.Property.SIMILAR_PATTERN_TARGET],
+        [Store.Property.SIMILAR_PATTERN_TEMPLATE],
         'WaveEvents', (store) => this.handleSimilarityTarget(store));
+    // This listener will update the metrics displayed in the UI.
+    store.registerListener(
+        [Store.Property.SIMILAR_PATTERNS_SEEN],
+        'WaveEvents', (store) => this.handleSimilarityMetrics(store));
 
     this.logger_ = log.getLogger('eeg_modelling.eeg_viewer.WaveEvents');
 
@@ -63,6 +67,8 @@ class WaveEvents {
     this.loadingSpinnerId_ = 'similar-patterns-spinner';
     /** @private @const {string} */
     this.errorTextId_ = 'similarity-error';
+    /** @private @const {string} */
+    this.searchMoreButtonId_ = 'similar-patterns-search-more';
 
     /** @private @const {string} */
     this.actionMenuContainer_ = 'event-actions-container';
@@ -116,15 +122,52 @@ class WaveEvents {
       }
     }
 
-    if (!store.similarPatternTarget || store.similarPatternTarget.id == null) {
+    if (!store.similarPatternTemplate ||
+        store.similarPatternTemplate.id == null) {
       return;
     }
 
     this.selectedWaveEventId_ =
-        /** @type {number} */ (store.similarPatternTarget.id);
+        /** @type {number} */ (store.similarPatternTemplate.id);
     const row =
         document.getElementById(this.getRowId_(this.selectedWaveEventId_));
     row.classList.add('selected-wave-event');
+  }
+
+  /**
+   * Updates the metrics UI with the amount of accepted similar patterns.
+   * @param {!Store.StoreData} store Data from the store.
+   */
+  handleSimilarityMetrics(store) {
+    let acceptedAmount = 0;
+    let rejectedAmount = 0;
+    const attemptsAmount = store.similarPatternsSeen.length;
+    store.similarPatternsSeen.forEach((similarPattern) => {
+      switch (similarPattern.status) {
+        case Store.SimilarPatternStatus.ACCEPTED:
+          acceptedAmount += 1;
+          break;
+        case Store.SimilarPatternStatus.REJECTED:
+          rejectedAmount += 1;
+          break;
+        default:
+          break;
+      }
+    });
+
+    document.getElementById('metrics-attempts').textContent = attemptsAmount;
+    document.getElementById('metrics-accepted').textContent = acceptedAmount;
+    document.getElementById('metrics-rejected').textContent = rejectedAmount;
+
+    const precision =
+        attemptsAmount === 0 ? 0 : acceptedAmount / attemptsAmount;
+
+    document.getElementById('metrics-precision').textContent =
+        precision.toFixed(2);
+
+    document.querySelectorAll('.at-k').forEach((span) => {
+      span.textContent = attemptsAmount;
+    });
   }
 
   /**
@@ -237,6 +280,7 @@ class WaveEvents {
     });
 
     utils.hideElement(this.errorTextId_);
+    utils.hideElement(this.searchMoreButtonId_);
     utils.showMDLSpinner(this.loadingSpinnerId_);
   }
 
@@ -278,6 +322,7 @@ class WaveEvents {
       return;
     }
     utils.showElement(this.similarTableId_);
+    utils.showElement(this.searchMoreButtonId_);
     this.createSimilarPatternTable(store);
   }
 
@@ -293,12 +338,12 @@ class WaveEvents {
     tableBody = document.createElement('tbody');
     document.getElementById(this.similarTableId_).appendChild(tableBody);
 
-    if (!store.similarPatternResult ||
-        store.similarPatternResult.length === 0) {
+    if (!store.similarPatternsUnseen ||
+        store.similarPatternsUnseen.length === 0) {
       return;
     }
 
-    store.similarPatternResult.forEach((similarPattern) => {
+    store.similarPatternsUnseen.forEach((similarPattern) => {
       const row = document.createElement('tr');
       const addTextElementToRow = (text) => {
         const element = document.createElement('td');
@@ -418,6 +463,7 @@ class WaveEvents {
    */
   searchMore() {
     utils.hideElement(this.errorTextId_);
+    utils.hideElement(this.searchMoreButtonId_);
     utils.showMDLSpinner(this.loadingSpinnerId_);
     Dispatcher.getInstance().sendAction({
       actionType: Dispatcher.ActionType.SEARCH_SIMILAR_REQUEST_MORE,
