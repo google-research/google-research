@@ -47,6 +47,7 @@ const Property = {
   CHUNK_GRAPH_DATA: 'chunkGraphData',
   CHUNK_SCORES: 'chunkScores',
   CHUNK_START: 'chunkStart',
+  DOWNLOAD_DATA: 'downloadData',
   EDF_PATH: 'edfPath',
   ERROR: 'error',
   FILE_TYPE: 'fileType',
@@ -146,6 +147,15 @@ let DataTableInput;
 
 /**
  * @typedef {{
+ *   properties: !Array<!Property>,
+ *   name: string,
+ *   timestamp: (string|undefined),
+ * }}
+ */
+let DownloadData;
+
+/**
+ * @typedef {{
  *   message: string,
  *   timestamp: number,
  * }}
@@ -224,6 +234,7 @@ const LoadingStatus = {
  *   chunkGraphData: ?DataTableInput,
  *   chunkScores: ?Array<!ChunkScoreData>,
  *   chunkStart: number,
+ *   downloadData: ?DownloadData,
  *   edfPath: ?string,
  *   error: ?ErrorInfo,
  *   fileType: ?string,
@@ -273,6 +284,7 @@ let StoreData;
  *   chunkGraphData: (?DataTableInput|undefined),
  *   chunkScores: (?Array<!ChunkScoreData>|undefined),
  *   chunkStart: (number|undefined),
+ *   downloadData: (?DownloadData|undefined),
  *   edfPath: (?string|undefined),
  *   error: (?ErrorInfo|undefined),
  *   fileType: (?string|undefined),
@@ -328,6 +340,7 @@ class Store {
       chunkGraphData: null,
       chunkScores: null,
       chunkStart: 0,
+      downloadData: null,
       edfPath: null,
       error: null,
       fileType: null,
@@ -394,6 +407,8 @@ class Store {
                      this.handleClickGraph);
     registerCallback(Dispatcher.ActionType.DELETE_WAVE_EVENT,
                      this.handleDeleteWaveEvent);
+    registerCallback(Dispatcher.ActionType.DOWNLOAD_DATA,
+                     this.handleDownloadData);
     registerCallback(Dispatcher.ActionType.ERROR,
                      this.handleError);
     registerCallback(Dispatcher.ActionType.MENU_FILE_LOAD,
@@ -662,6 +677,19 @@ class Store {
   handleClickGraph(data) {
     return {
       graphPointClick: data,
+    };
+  }
+
+  /**
+   * Handles data from a DOWNLOAD_DATA action.
+   * @param {!DownloadData} data The data to download.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleDownloadData(data) {
+    return {
+      downloadData: /** @type {!DownloadData} */ (Object.assign({}, data, {
+        timestamp: (new Date()).toUTCString(),
+      })),
     };
   }
 
@@ -1331,9 +1359,11 @@ goog.addSingletonGetter(Store);
 
 exports = Store;
 exports.StoreData = StoreData;
+exports.PartialStoreData = PartialStoreData;
 exports.Annotation = Annotation;
 exports.SimilarPattern = SimilarPattern;
 exports.SimilarPatternStatus = SimilarPatternStatus;
+exports.SimilarityTrial = SimilarityTrial;
 exports.ErrorInfo = ErrorInfo;
 exports.Property = Property;
 exports.PredictionMode = PredictionMode;

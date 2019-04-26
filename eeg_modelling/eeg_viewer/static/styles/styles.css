@@ -440,6 +440,10 @@ tr.selected-wave-event {
   margin: 12px;
 }
 
+#similar-patterns-container {
+  min-height: 40vh;
+}
+
 #similar-patterns-container .mdl-card__title {
   display: inline-block;
 }

@@ -379,6 +379,15 @@
           <div class="mdl-card__title">
             <h2 class="mdl-card__title-text">Events</h2>
           </div>
+          <div class="mdl-card__menu secondary">
+            <button id="download-events-button" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"
+                    onclick="waveEvents.downloadEvents()">
+              <i class="material-icons">save_alt</i>
+            </button>
+            <div class="mdl-tooltip mdl-tooltip--large" for="download-events-button">
+              Download
+            </div>
+          </div>
           <div class="mdl-card__menu">
             <button id="close-wave-events-panel" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="toolBar.toggleMenu('wave-events')">
               <i class="material-icons">close</i>

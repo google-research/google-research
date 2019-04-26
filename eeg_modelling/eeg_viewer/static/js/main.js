@@ -17,6 +17,7 @@ goog.module('eeg_modelling.eeg_viewer.views');
 const Annotations = goog.require('eeg_modelling.eeg_viewer.Annotations');
 const ChartController = goog.require('eeg_modelling.eeg_viewer.ChartController');
 const Console = goog.require('goog.debug.Console');
+const Downloader = goog.require('eeg_modelling.eeg_viewer.Downloader');
 const Error = goog.require('eeg_modelling.eeg_viewer.Error');
 const Graph = goog.require('eeg_modelling.eeg_viewer.Graph');
 const Menus = goog.require('eeg_modelling.eeg_viewer.Menus');
@@ -34,6 +35,7 @@ console.setCapturing(true);
 
 Annotations.getInstance();
 ChartController.getInstance();
+Downloader.getInstance();
 Error.getInstance();
 
 /** @const {!Graph} */
@@ -143,6 +145,9 @@ goog.exportSymbol(
 goog.exportSymbol(
     'waveEvents.rejectSimilarPattern',
     goog.bind(waveEvents.rejectSimilarPattern, waveEvents));
+goog.exportSymbol(
+    'waveEvents.downloadEvents',
+    goog.bind(waveEvents.downloadEvents, waveEvents));
 goog.exportSymbol(
     'waveEvents.searchMore',
     goog.bind(waveEvents.searchMore, waveEvents));

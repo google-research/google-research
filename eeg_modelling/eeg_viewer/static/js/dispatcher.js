@@ -26,6 +26,7 @@ const ActionType = {
   CHANGE_TYPING_STATUS: 'changeTypingStatus',
   CLICK_GRAPH: 'clickGraph',
   DELETE_WAVE_EVENT: 'deleteWaveEvent',
+  DOWNLOAD_DATA: 'downloadData',
   ERROR: 'error',
   MENU_FILE_LOAD: 'menuFileLoad',
   NAV_BAR_CHUNK_REQUEST: 'navBarChunkRequest',
