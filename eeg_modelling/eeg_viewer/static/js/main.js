@@ -25,6 +25,7 @@ const NavChart = goog.require('eeg_modelling.eeg_viewer.NavChart');
 const Predictions = goog.require('eeg_modelling.eeg_viewer.Predictions');
 const Requests = goog.require('eeg_modelling.eeg_viewer.Requests');
 const ToolBar = goog.require('eeg_modelling.eeg_viewer.ToolBar');
+const Uploader = goog.require('eeg_modelling.eeg_viewer.Uploader');
 const WaveEventForm = goog.require('eeg_modelling.eeg_viewer.WaveEventForm');
 const WaveEvents = goog.require('eeg_modelling.eeg_viewer.WaveEvents');
 const WindowLocation = goog.require('eeg_modelling.eeg_viewer.WindowLocation');
@@ -91,6 +92,18 @@ goog.exportSymbol('toolBar.nextChunk', goog.bind(toolBar.nextChunk, toolBar));
 goog.exportSymbol('toolBar.nextSec', goog.bind(toolBar.nextSec, toolBar));
 goog.exportSymbol('toolBar.prevChunk', goog.bind(toolBar.prevChunk, toolBar));
 goog.exportSymbol('toolBar.prevSec', goog.bind(toolBar.prevSec, toolBar));
+
+/** @const {!Uploader} */
+const uploader = Uploader.getInstance();
+goog.exportSymbol(
+    'uploader.closeMenu', goog.bind(uploader.closeMenu, uploader));
+goog.exportSymbol(
+    'uploader.openMenu', goog.bind(uploader.openMenu, uploader));
+goog.exportSymbol(
+    'uploader.handleFileChange',
+    goog.bind(uploader.handleFileChange, uploader));
+goog.exportSymbol(
+    'uploader.upload', goog.bind(uploader.upload, uploader));
 
 /** @const {!WindowLocation} */
 const windowLocation = WindowLocation.getInstance();

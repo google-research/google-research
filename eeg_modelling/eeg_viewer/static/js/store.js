@@ -411,6 +411,8 @@ class Store {
                      this.handleDownloadData);
     registerCallback(Dispatcher.ActionType.ERROR,
                      this.handleError);
+    registerCallback(Dispatcher.ActionType.IMPORT_STORE,
+                     this.handleImportStore);
     registerCallback(Dispatcher.ActionType.MENU_FILE_LOAD,
                      this.handleMenuFileLoad);
     registerCallback(Dispatcher.ActionType.NAVIGATE_TO_SPAN,
@@ -691,6 +693,25 @@ class Store {
         timestamp: (new Date()).toUTCString(),
       })),
     };
+  }
+
+  /**
+   * Handles data from a IMPORT_STORE action.
+   * @param {!Object} data The data to import to the store.
+   *     Notice that any object can be passed, but this method will only
+   *     consider existing properties.
+   *     Also, the type of each property is not checked, so the store could be
+   *     broken after importing. It's up to the user to import a correct file.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleImportStore(data) {
+    const /** !PartialStoreData */ newStoreData = {};
+    Object.values(Property).forEach((propertyName) => {
+      if (propertyName in data) {
+        newStoreData[propertyName] = data[propertyName];
+      }
+    });
+    return newStoreData;
   }
 
   /**

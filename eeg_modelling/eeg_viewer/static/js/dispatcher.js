@@ -28,6 +28,7 @@ const ActionType = {
   DELETE_WAVE_EVENT: 'deleteWaveEvent',
   DOWNLOAD_DATA: 'downloadData',
   ERROR: 'error',
+  IMPORT_STORE: 'importStore',
   MENU_FILE_LOAD: 'menuFileLoad',
   NAV_BAR_CHUNK_REQUEST: 'navBarChunkRequest',
   NAVIGATE_TO_SPAN: 'navigateToSpan',

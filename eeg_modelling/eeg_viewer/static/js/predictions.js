@@ -143,7 +143,7 @@ class Predictions {
     // set with a verified value (i.e. a number that predicts well),
     // and possibly there will be support to change it from the UI.
     /** @private {number} threshold to classify as positive or negative */
-    this.threshold_ = 0.5;
+    this.threshold_ = 0;
 
     /** @private {!Object} Currently active filters */
     this.activeFilters_ = {

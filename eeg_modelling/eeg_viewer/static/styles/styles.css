@@ -49,6 +49,10 @@
   right: 64px;
 }
 
+.mdl-card__menu.tertiary {
+  right: 112px;
+}
+
 .mdl-card .sub-card {
   border-top: lightgrey 1px solid;
   border-bottom: lightgrey 1px solid;
@@ -139,14 +143,17 @@ th i.sorted, th i.sorted-reverse {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-#similarity-settings-modal > div {
+.modal .mdl-card {
   margin: auto;
   top: 200px;
-  width: 400px;
 }
 
-#similarity-settings-modal .mdl-card__actions button {
+.form-actions button {
   float: right;
+}
+
+#similarity-settings-modal > div {
+  width: 400px;
 }
 
 #similarity-settings-modal label {
@@ -154,8 +161,6 @@ th i.sorted, th i.sorted-reverse {
 }
 
 #file-menu, #file-info {
-  margin: auto;
-  top: 200px;
   width: 800px;
 }
 
@@ -344,10 +349,6 @@ tr.selected-wave-event {
 #wave-event-form {
   position: absolute;
   z-index: 10;
-}
-
-#wave-event-form .mdl-card__actions button {
-  float: right;
 }
 
 .column-container {
