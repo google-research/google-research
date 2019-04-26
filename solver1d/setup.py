@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,19 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-set -e
-set -x
+"""Install solver1d."""
+import os
+import setuptools
 
-virtualenv -p python3 .
-source ./bin/activate
 
-pip install -e solver1d
-python -m solver1d.scripts.solve_poschl_teller_potential \
---solver=EigenSolver \
---lam=0.5 \
---scaling=1 \
---grid_lower=-20 \
---grid_upper=20 \
---num_grids=1001 \
---num_electrons=1
+# Read in requirements
+with open(os.path.join(os.path.dirname(__file__), 'requirements.txt')) as f:
+  requirements = [r.strip() for r in f]
+
+setuptools.setup(
+    name='solver1d',
+    version='0.0.0',
+    license='Apache 2.0',
+    author='Google LLC',
+    author_email='noreply@google.com',
+    install_requires=requirements,
+    url='https://github.com/google-research/google-research/'
+    'tree/master/solver1d',
+    packages=setuptools.find_packages(),
+    python_requires='>=2.7')
