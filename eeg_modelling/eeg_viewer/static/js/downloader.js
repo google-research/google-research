@@ -179,3 +179,4 @@ class Downloader {
 goog.addSingletonGetter(Downloader);
 
 exports = Downloader;
+exports.DownloadObject = DownloadObject;

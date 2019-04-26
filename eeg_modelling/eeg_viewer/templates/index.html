@@ -73,13 +73,13 @@
             <i class="material-icons">last_page</i>
           </button>
           <div class="mdl-tooltip mdl-tooltip--large" for="next-button">
-            Next Chunk
+            Next Page
           </div>
           <button id="prev-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.prevChunk()" disabled>
             <i class="material-icons">first_page</i>
           </button>
           <div class="mdl-tooltip mdl-tooltip--large" for="prev-button">
-            Prev Chunk
+            Prev Page
           </div>
           <button id="next-sec-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.nextSec()" disabled>
             <i class="material-icons">chevron_right</i>
@@ -127,7 +127,7 @@
                 <label class="clickable">End Time</label>
               </div>
               <div class="textfield">
-                <input class="mdl-textfield__input" type="text" id="wave-event-duration" readonly value="0 s">
+                <input class="mdl-textfield__input" type="text" id="wave-event-duration" disabled value="0 s">
                 <label>Duration</label>
               </div>
             </div>
@@ -140,7 +140,7 @@
                 </label>
               </div>
             </div>
-            <div class="mdl-card__actions mdl-card--border">
+            <div class="form-actions mdl-card__actions mdl-card--border">
               <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEventForm.save()">
                 Save
               </button>
@@ -378,6 +378,15 @@
         <div class="right-side-panel hidden mdl-card mdl-shadow--2dp" id="wave-events-panel">
           <div class="mdl-card__title">
             <h2 class="mdl-card__title-text">Events</h2>
+          </div>
+          <div class="mdl-card__menu tertiary">
+            <button id="upload-events-button" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"
+                    onclick="uploader.openMenu()">
+              <i class="material-icons">attach_file</i>
+            </button>
+            <div class="mdl-tooltip mdl-tooltip--large" for="upload-events-button">
+              Upload
+            </div>
           </div>
           <div class="mdl-card__menu secondary">
             <button id="download-events-button" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"
@@ -625,11 +634,39 @@
               <input class="mdl-textfield__input" type="number" id="similarity-merge-threshold" value="1">
               <label>Merge threshold</label>
             </div>
-            <div class="mdl-card__actions mdl-card--border">
+            <div class="form-actions mdl-card__actions mdl-card--border">
               <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.saveSimilaritySettings()">
                 Save
               </button>
               <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.toggleSimilaritySettings()">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="uploader-modal" class="hidden modal">
+          <div class="mdl-card mdl-shadow--2dp">
+            <div class="mdl-card__title">
+              <h2 class="mdl-card__title-text">Upload events</h2>
+            </div>
+            <div class="mdl-card__menu">
+              <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="uploader.closeMenu()">
+                <i class="material-icons">close</i>
+              </button>
+            </div>
+            <div class="textfield">
+              <input class="clickable mdl-textfield__input" type="text" id="uploader-text-display" readonly value="No file chosen"
+                     onclick="document.getElementById('uploader-file-input').click()">
+              <label for="uploader-file-input">
+                <input class="hidden mdl-textfield__input" type="file" id="uploader-file-input" onchange="uploader.handleFileChange()">
+                Select file
+              </label>
+            </div>
+            <div class="form-actions mdl-card__actions mdl-card--border">
+              <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="uploader.upload()">
+                Upload
+              </button>
+              <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="uploader.closeMenu()">
                 Cancel
               </button>
             </div>

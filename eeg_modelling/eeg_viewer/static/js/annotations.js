@@ -39,13 +39,13 @@ class Annotations {
    * @param {!Store.StoreData} store Store object with chunk data.
    */
   handleChunkNavigation(store) {
-    const chunk_start = store.absStart + store.chunkStart;
-    const chunk_end = chunk_start + store.chunkDuration;
+    const chunkStart = store.absStart + store.chunkStart;
+    const chunkEnd = chunkStart + store.chunkDuration;
     const annotationRows = document.querySelectorAll(
         'table.annotation tbody tr');
     annotationRows.forEach((row) => {
-      const annotation_time = Number(row.getAttribute('data-start'));
-      if (annotation_time < chunk_end && annotation_time >= chunk_start) {
+      const annotationTime = Number(row.getAttribute('data-start'));
+      if (annotationTime < chunkEnd && annotationTime >= chunkStart) {
         row.classList.add('in-viewport');
       } else {
         row.classList.remove('in-viewport');
@@ -59,7 +59,7 @@ class Annotations {
    */
   handleAnnotations(store) {
     const annotationTable = document.querySelector('table.annotation tbody');
-    annotationTable.innerHTML = '';
+    annotationTable.textContent = '';
     store.annotations.forEach((annotation) => {
       if (annotation.startTime != null
           && annotation.labelText != null) {
