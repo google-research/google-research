@@ -307,10 +307,11 @@ class WaveEvents {
         row.appendChild(element);
       };
 
+      addTextElementToRow(similarPattern.score.toFixed(2));
+
       const absStartTime = store.absStart + similarPattern.startTime;
       addTextElementToRow(formatter.formatTime(absStartTime, true));
-
-      addTextElementToRow(similarPattern.score.toFixed(2));
+      addTextElementToRow(formatter.formatDuration(similarPattern.duration));
 
       row.onclick = (event) => {
         this.handleSimilarPatternClick(event, similarPattern);
@@ -400,6 +401,63 @@ class WaveEvents {
     this.clickedSimilarPattern_ = null;
   }
 
+  /**
+   * Sends an action to reject all the similar patterns found, and closes the
+   * similar pattern menu in case it was open.
+   */
+  rejectAll() {
+    this.closeSimilarPatternMenu();
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.SIMILAR_PATTERN_REJECT_ALL,
+      data: {},
+    });
+  }
+
+  /**
+   * Searches more similar patterns.
+   */
+  searchMore() {
+    utils.hideElement(this.errorTextId_);
+    utils.showMDLSpinner(this.loadingSpinnerId_);
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.SEARCH_SIMILAR_REQUEST_MORE,
+      data: {},
+    });
+  }
+
+  /**
+   * Toggles the similarity settings modal.
+   */
+  toggleSimilaritySettings() {
+    const hidden = document.getElementById('similarity-settings-modal')
+                       .classList.toggle('hidden');
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.CHANGE_TYPING_STATUS,
+      data: {
+        isTyping: !hidden,
+      },
+    });
+  }
+
+  /**
+   * Save the similarity settings selected in the UI.
+   */
+  saveSimilaritySettings() {
+    const topN = Number(utils.getInputElement('similarity-top-n').value);
+    const mergeCloseResults = utils.getInputElement('similarity-merge').checked;
+    const mergeThreshold =
+        Number(utils.getInputElement('similarity-merge-threshold').value);
+
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.SEARCH_SIMILAR_UPDATE_SETTINGS,
+      data: {
+        topN,
+        mergeCloseResults,
+        mergeThreshold,
+      },
+    });
+    this.toggleSimilaritySettings();
+  }
 }
 
 goog.addSingletonGetter(WaveEvents);

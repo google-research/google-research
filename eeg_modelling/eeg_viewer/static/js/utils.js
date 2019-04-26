@@ -48,6 +48,15 @@ let MaterialCheckboxElement;
 
 
 /**
+ * Returns a cast HTML Input element.
+ * @param {string} id The HTML id of the element.
+ * @return {!HTMLInputElement} The input element.
+ */
+function getInputElement(id) {
+  return /** @type {!HTMLInputElement} */ (document.getElementById(id));
+}
+
+/**
  * Hides or shows an HTML element.
  * @param {string} elementId HTML Id of the element.
  * @param {boolean} hide Whether to hide or show the element.
@@ -199,6 +208,7 @@ function getProtoMapKeys(protoMap) {
 
 
 exports = {
+  getInputElement,
   toggleElement,
   hideElement,
   showElement,

@@ -129,7 +129,7 @@ th i.sorted, th i.sorted-reverse {
   display: none;
 }
 
-#file-menu-modal {
+.modal {
   display: block;
   position: fixed;
   top: 0;
@@ -138,6 +138,20 @@ th i.sorted, th i.sorted-reverse {
   height: 100%;
   z-index: 100;
   background-color: rgba(0, 0, 0, 0.05);
+}
+
+#similarity-settings-modal > div {
+  margin: auto;
+  top: 200px;
+  width: 400px;
+}
+
+#similarity-settings-modal .mdl-card__actions button {
+  float: right;
+}
+
+#similarity-settings-modal label {
+  margin-left: 30px;
 }
 
 #file-menu, #file-info {
@@ -310,8 +324,13 @@ th i.sorted, th i.sorted-reverse {
   min-height: 15vh;
 }
 
+#wave-events-panel th:first-of-type,
+#wave-events-panel td:first-of-type {
+  padding-left: 18px;
+}
+
 #wave-events-panel td {
-  padding-right: 18px;
+  padding-right: 12px;
 }
 
 tr.selected-wave-event {
@@ -410,3 +429,14 @@ tr.selected-wave-event {
 .clickable {
   cursor: pointer;
 }
+
+.top-right-button {
+  display: inline-block;
+  float: right;
+  margin: 12px;
+}
+
+#similar-patterns-container .mdl-card__title {
+  display: inline-block;
+}
+

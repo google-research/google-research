@@ -25,6 +25,7 @@ const FilterParams = goog.require('proto.eeg_modelling.protos.FilterParams');
 const ResponseType = goog.require('goog.net.XhrIo.ResponseType');
 const SimilarPatternsRequest = goog.require('proto.eeg_modelling.protos.SimilarPatternsRequest');
 const SimilarPatternsResponse = goog.require('proto.eeg_modelling.protos.SimilarPatternsResponse');
+const SimilaritySettings = goog.require('proto.eeg_modelling.protos.SimilaritySettings');
 const SingleChannel = goog.require('proto.eeg_modelling.protos.ChannelDataId.SingleChannel');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const TimeSpan = goog.require('proto.eeg_modelling.protos.TimeSpan');
@@ -63,8 +64,11 @@ class Requests {
     // This listener callback will make a new HTTP request to search similar
     // patterns.
     store.registerListener(
-        [Store.Property.SIMILAR_PATTERN_TARGET], 'Requests',
-        (store) => this.handleSearchSimilarPattern(store));
+        [
+          Store.Property.SIMILAR_PATTERN_TARGET,
+          Store.Property.SIMILAR_PATTERN_RESULT_RANK,
+        ],
+        'Requests', (store) => this.handleSearchSimilarPattern(store));
 
     this.logger_ = log.getLogger('eeg_modelling.eeg_viewer.Requests');
   }
@@ -288,6 +292,15 @@ class Requests {
       waveEventProto.setDuration(seenEvent.duration);
       return waveEventProto;
     }));
+
+    const similaritySettings = new SimilaritySettings();
+    similaritySettings.setTopN(store.similarPatternSettings.topN);
+    similaritySettings.setMergeCloseResults(
+        store.similarPatternSettings.mergeCloseResults);
+    similaritySettings.setMergeThreshold(
+        store.similarPatternSettings.mergeThreshold);
+
+    requestContent.setSettings(similaritySettings);
 
     return requestContent;
   }

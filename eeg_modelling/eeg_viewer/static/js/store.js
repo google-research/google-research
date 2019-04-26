@@ -71,7 +71,9 @@ const Property = {
   SIMILAR_PATTERN_EDIT: 'similarPatternEdit',
   SIMILAR_PATTERN_ERROR: 'similarPatternError',
   SIMILAR_PATTERN_RESULT: 'similarPatternResult',
+  SIMILAR_PATTERN_RESULT_RANK: 'similarPatternResultRank',
   SIMILAR_PATTERN_TARGET: 'similarPatternTarget',
+  SIMILAR_PATTERN_SETTINGS: 'similarPatternSettings',
   SSTABLE_KEY: 'sstableKey',
   TIMESCALE: 'timeScale',
   TFEX_FILE_PATH: 'tfExFilePath',
@@ -169,6 +171,15 @@ let GraphDataPoint;
 let SimilarPattern;
 
 /**
+ * @typedef {{
+ *   topN: number,
+ *   mergeCloseResults: boolean,
+ *   mergeThreshold: number,
+ * }}
+ */
+let SimilaritySettings;
+
+/**
  * Possible status when loading data.
  * @enum {number}
  */
@@ -212,7 +223,9 @@ const LoadingStatus = {
  *   similarPatternEdit: ?Annotation,
  *   similarPatternError: ?ErrorInfo,
  *   similarPatternResult: ?Array<!SimilarPattern>,
+ *   similarPatternResultRank: number,
  *   similarPatternTarget: ?Annotation,
+ *   similarPatternSettings: !SimilaritySettings,
  *   seriesHeight: number,
  *   sensitivity: number,
  *   sstableKey: ?string,
@@ -257,7 +270,9 @@ let StoreData;
  *   similarPatternEdit: (?Annotation|undefined),
  *   similarPatternError: (?ErrorInfo|undefined),
  *   similarPatternResult: (?Array<!SimilarPattern>|undefined),
+ *   similarPatternResultRank: (number|undefined),
  *   similarPatternTarget: (?Annotation|undefined),
+ *   similarPatternSettings: (!SimilaritySettings|undefined),
  *   seriesHeight: (number|undefined),
  *   sensitivity: (number|undefined),
  *   sstableKey: (?string|undefined),
@@ -308,7 +323,13 @@ class Store {
       similarPatternEdit: null,
       similarPatternError: null,
       similarPatternResult: null,
+      similarPatternResultRank: 0,
       similarPatternTarget: null,
+      similarPatternSettings: {
+        topN: 1,
+        mergeCloseResults: false,
+        mergeThreshold: 1,
+      },
       seriesHeight: 100,
       sensitivity: 5,
       sstableKey: null,
@@ -364,8 +385,12 @@ class Store {
                      this.handlePredictionModeSelection);
     registerCallback(Dispatcher.ActionType.PREDICTION_LABEL_SELECTION,
                      this.handlePredictionLabelSelection);
+    registerCallback(Dispatcher.ActionType.SEARCH_SIMILAR_UPDATE_SETTINGS,
+                     this.handleSearchSimilarSettings);
     registerCallback(Dispatcher.ActionType.SEARCH_SIMILAR_REQUEST,
                      this.handleSimilarPatternsRequest);
+    registerCallback(Dispatcher.ActionType.SEARCH_SIMILAR_REQUEST_MORE,
+                     this.handleSimilarPatternsRequestMore);
     registerCallback(Dispatcher.ActionType.SEARCH_SIMILAR_RESPONSE_OK,
                      this.handleSimilarPatternsResponseOk);
     registerCallback(Dispatcher.ActionType.SEARCH_SIMILAR_RESPONSE_ERROR,
@@ -376,6 +401,8 @@ class Store {
                      this.handleSimilarPatternEdit);
     registerCallback(Dispatcher.ActionType.SIMILAR_PATTERN_REJECT,
                      this.handleSimilarPatternReject);
+    registerCallback(Dispatcher.ActionType.SIMILAR_PATTERN_REJECT_ALL,
+                     this.handleSimilarPatternRejectAll);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_GRIDLINES,
                      this.handleToolBarGridlines);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_HIGH_CUT,
@@ -716,8 +743,47 @@ class Store {
    * @return {!PartialStoreData} store data with changed properties.
    */
   handleSimilarPatternsRequest(data) {
+    let similarPatternResultRank = 0;
+    if (this.storeData.similarPatternTarget &&
+        this.storeData.similarPatternTarget.id === data.id) {
+      const amountRequested = this.storeData.similarPatternSettings.topN;
+      similarPatternResultRank =
+          this.storeData.similarPatternResultRank + amountRequested;
+    }
     return {
       similarPatternTarget: data,
+      similarPatternResult: [],
+      similarPatternResultRank,
+    };
+  }
+
+  /**
+   * Handles data from a SEARCH_SIMILAR_REQUEST_MORE action, which will increase
+   * the similarPatternResultRank property to trigger a new request.
+   * @return {?PartialStoreData} store data with changed properties.
+   */
+  handleSimilarPatternsRequestMore() {
+    if (!this.storeData.similarPatternTarget) {
+      return null;
+    }
+    const amountRequested = this.storeData.similarPatternSettings.topN;
+    return {
+      similarPatternResultRank:
+          this.storeData.similarPatternResultRank + amountRequested,
+    };
+  }
+
+  /**
+   * Handles data from a SEARCH_SIMILAR_UPDATE_SETTINGS action, which will
+   * update the similarity settings saved in the store.
+   * @param {!SimilaritySettings} data The payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleSearchSimilarSettings(data) {
+    const oldSettings = this.storeData.similarPatternSettings;
+    return {
+      similarPatternSettings: /** @type {!SimilaritySettings} */ (
+          Object.assign({}, oldSettings, data)),
     };
   }
 
@@ -729,7 +795,8 @@ class Store {
    */
   handleSimilarPatternsResponseOk(data) {
     const targetPattern = this.storeData.similarPatternTarget;
-    const similarPatternResult = data.getSimilarPatternsList().map(
+    const oldResults = this.storeData.similarPatternResult || [];
+    const newResults = data.getSimilarPatternsList().map(
         (similarPattern) => /** @type {!SimilarPattern} */ (Object.assign(
             {},
             similarPattern.toObject(),
@@ -739,7 +806,7 @@ class Store {
             )));
     return {
       similarPatternError: null,
-      similarPatternResult,
+      similarPatternResult: [...oldResults, ...newResults],
     };
   }
 
@@ -818,6 +885,17 @@ class Store {
   handleSimilarPatternReject(data) {
     return {
       similarPatternResult: this.removeSimilarPattern_(data),
+    };
+  }
+
+  /**
+   * Handles data from a SIMILAR_PATTERN_REJECT_ALL action, which will remove
+   * all the similar patterns from the results.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleSimilarPatternRejectAll() {
+    return {
+      similarPatternResult: null,
     };
   }
 
