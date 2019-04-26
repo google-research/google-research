@@ -108,7 +108,6 @@
 }
 
 .right-side-panel .scrollable-table-div {
-  max-height: 70vh;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -299,7 +298,8 @@ th i.sorted, th i.sorted-reverse {
   color: rgba(0, 0, 0, 0.5);
 }
 
-#similar-patterns-spinner {
+#similar-patterns-spinner,
+#similar-patterns-search-more {
   display: block;
   margin-left: auto;
   margin-right: auto;
@@ -320,8 +320,12 @@ th i.sorted, th i.sorted-reverse {
   min-height: auto;
 }
 
-#wave-events-panel .scrollable-table-div {
+#wave-events-table-container {
   min-height: 15vh;
+}
+
+#similar-patterns-table-container {
+  max-height: 55vh;
 }
 
 #wave-events-panel th:first-of-type,
@@ -440,3 +444,11 @@ tr.selected-wave-event {
   display: inline-block;
 }
 
+#similarity-metrics {
+  padding: 10px;
+  font-family: "Roboto","Helvetica","Arial",sans-serif;
+}
+
+#similarity-metrics div {
+  margin: 6px;
+}

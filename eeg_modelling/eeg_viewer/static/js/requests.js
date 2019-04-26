@@ -65,7 +65,7 @@ class Requests {
     // patterns.
     store.registerListener(
         [
-          Store.Property.SIMILAR_PATTERN_TARGET,
+          Store.Property.SIMILAR_PATTERN_TEMPLATE,
           Store.Property.SIMILAR_PATTERN_RESULT_RANK,
         ],
         'Requests', (store) => this.handleSearchSimilarPattern(store));
@@ -97,16 +97,23 @@ class Requests {
     xhrIo.setResponseType(ResponseType.ARRAY_BUFFER);
     return new Promise((resolve, reject) => {
       events.listen(xhrIo, EventType.COMPLETE, function(e) {
-        if (e.target.getStatus() != 200) {
-          const response = (e.target.getResponseHeader('Content-Type') === 'application/json')
-              ? parseJsonResponse(e.target.getResponse())
-              : {};
-          reject(response);
-        } else {
+        const status = e.target.getStatus();
+        if (status === 502) {
+          reject({
+            message: 'Server unavailable',
+          });
+        } else if (status === 200) {
           resolve(formatResponse(e.target.getResponse()));
+        } else {
+          const response = (e.target.getResponseHeader('Content-Type') ===
+                            'application/json') ?
+              parseJsonResponse(e.target.getResponse()) :
+              {};
+          reject(response);
         }
       });
-      log.info(this.logger_, `POST request to ${url}, params: ${requestContent}`);
+      log.info(
+          this.logger_, `POST request to ${url}, params: ${requestContent}`);
       xhrIo.send(url, 'POST', requestContent.serializeBinary());
     });
   }
@@ -274,16 +281,17 @@ class Requests {
     const requestContent = new SimilarPatternsRequest();
     requestContent.setFileParams(fileParams);
     requestContent.setFilterParams(filterParams);
-    requestContent.setStartTime(store.similarPatternTarget.startTime);
-    requestContent.setDuration(store.similarPatternTarget.duration);
+    requestContent.setStartTime(store.similarPatternTemplate.startTime);
+    requestContent.setDuration(store.similarPatternTemplate.duration);
 
     const montageInfo = montages.createMontageInfo(
-        store.indexChannelMap, store.similarPatternTarget.channelList);
+        store.indexChannelMap, store.similarPatternTemplate.channelList);
     this.setChannelDataIdsParam_(requestContent, montageInfo.indexStrList);
 
     const seenEvents = [
       ...store.waveEvents,
-      ...(store.similarPatternResult || []),
+      ...store.similarPatternsUnseen,
+      ...store.similarPatternsSeen,
     ];
 
     requestContent.setSeenEventsList(seenEvents.map((seenEvent) => {
@@ -310,7 +318,7 @@ class Requests {
    * @param {!Store.StoreData} store Data from the store.
    */
   handleSearchSimilarPattern(store) {
-    if (!store.similarPatternTarget) {
+    if (!store.similarPatternTemplate) {
       return;
     }
     const url = '/similarity';

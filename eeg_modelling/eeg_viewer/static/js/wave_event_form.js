@@ -486,8 +486,8 @@ class WaveEventForm {
       return;
     }
 
-    const {labelText, startTime, duration, channelList} =
-        store.similarPatternEdit;
+    const {startTime, duration, channelList} = store.similarPatternEdit;
+    const {labelText} = store.similarPatternTemplate;
 
     this.startTime_ = startTime;
     this.endTime_ = startTime + duration;

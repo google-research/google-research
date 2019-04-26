@@ -70,10 +70,12 @@ const Property = {
   SENSITIVITY: 'sensitivity',
   SIMILAR_PATTERN_EDIT: 'similarPatternEdit',
   SIMILAR_PATTERN_ERROR: 'similarPatternError',
-  SIMILAR_PATTERN_RESULT: 'similarPatternResult',
+  SIMILAR_PATTERN_PAST_TRIALS: 'similarPatternPastTrials',
   SIMILAR_PATTERN_RESULT_RANK: 'similarPatternResultRank',
-  SIMILAR_PATTERN_TARGET: 'similarPatternTarget',
   SIMILAR_PATTERN_SETTINGS: 'similarPatternSettings',
+  SIMILAR_PATTERN_TEMPLATE: 'similarPatternTemplate',
+  SIMILAR_PATTERNS_SEEN: 'similarPatternsSeen',
+  SIMILAR_PATTERNS_UNSEEN: 'similarPatternsUnseen',
   SSTABLE_KEY: 'sstableKey',
   TIMESCALE: 'timeScale',
   TFEX_FILE_PATH: 'tfExFilePath',
@@ -161,11 +163,23 @@ let ErrorInfo;
 let GraphDataPoint;
 
 /**
+ * Status for a received similar pattern.
+ * @enum {string}
+ */
+const SimilarPatternStatus = {
+  UNSEEN: 'unseen',
+  ACCEPTED: 'accepted',
+  EDITING: 'editing',
+  REJECTED: 'rejected',
+};
+
+/**
  * @typedef {{
  *   score: number,
  *   startTime: number,
  *   duration: number,
  *   channelList: !Array<string>,
+ *   status: !SimilarPatternStatus,
  * }}
  */
 let SimilarPattern;
@@ -178,6 +192,15 @@ let SimilarPattern;
  * }}
  */
 let SimilaritySettings;
+
+/**
+ * @typedef {{
+ *   template: !Annotation,
+ *   unseen: !Array<!SimilarPattern>,
+ *   seen: !Array<!SimilarPattern>,
+ * }}
+ */
+let SimilarityTrial;
 
 /**
  * Possible status when loading data.
@@ -220,12 +243,14 @@ const LoadingStatus = {
  *   predictionMode: !PredictionMode,
  *   predictionSSTablePath: ?string,
  *   samplingFreq: ?number,
- *   similarPatternEdit: ?Annotation,
  *   similarPatternError: ?ErrorInfo,
- *   similarPatternResult: ?Array<!SimilarPattern>,
+ *   similarPatternPastTrials: !Array<!SimilarityTrial>,
  *   similarPatternResultRank: number,
- *   similarPatternTarget: ?Annotation,
  *   similarPatternSettings: !SimilaritySettings,
+ *   similarPatternTemplate: ?Annotation,
+ *   similarPatternEdit: ?SimilarPattern,
+ *   similarPatternsUnseen: !Array<!SimilarPattern>,
+ *   similarPatternsSeen: !Array<!SimilarPattern>,
  *   seriesHeight: number,
  *   sensitivity: number,
  *   sstableKey: ?string,
@@ -267,12 +292,14 @@ let StoreData;
  *   predictionMode: (!PredictionMode|undefined),
  *   predictionSSTablePath: (?string|undefined),
  *   samplingFreq: (?number|undefined),
- *   similarPatternEdit: (?Annotation|undefined),
  *   similarPatternError: (?ErrorInfo|undefined),
- *   similarPatternResult: (?Array<!SimilarPattern>|undefined),
+ *   similarPatternPastTrials: (!Array<!SimilarityTrial>|undefined),
  *   similarPatternResultRank: (number|undefined),
- *   similarPatternTarget: (?Annotation|undefined),
  *   similarPatternSettings: (!SimilaritySettings|undefined),
+ *   similarPatternTemplate: (?Annotation|undefined),
+ *   similarPatternEdit: (?SimilarPattern|undefined),
+ *   similarPatternsUnseen: (!Array<!SimilarPattern>|undefined),
+ *   similarPatternsSeen: (!Array<!SimilarPattern>|undefined),
  *   seriesHeight: (number|undefined),
  *   sensitivity: (number|undefined),
  *   sstableKey: (?string|undefined),
@@ -320,11 +347,13 @@ class Store {
       predictionMode: PredictionMode.NONE,
       predictionSSTablePath: null,
       samplingFreq: null,
-      similarPatternEdit: null,
       similarPatternError: null,
-      similarPatternResult: null,
+      similarPatternPastTrials: [],
       similarPatternResultRank: 0,
-      similarPatternTarget: null,
+      similarPatternTemplate: null,
+      similarPatternEdit: null,
+      similarPatternsUnseen: [],
+      similarPatternsSeen: [],
       similarPatternSettings: {
         topN: 1,
         mergeCloseResults: false,
@@ -523,16 +552,76 @@ class Store {
   }
 
   /**
+   * Returns a copy of a similar pattern with the status changed.
+   * @param {!SimilarPattern} similarPattern Similar pattern to copy.
+   * @param {!SimilarPatternStatus} status New status to set.
+   * @return {!SimilarPattern}
+   * @private
+   */
+  createSimilarPatternWithStatus_(similarPattern, status) {
+    return /** @type {!SimilarPattern} */ (Object.assign({}, similarPattern, {
+      status,
+    }));
+  }
+
+  /**
+   * Adds an accepted pattern to the similarPatternsSeen array.
+   * Returns a copy of the array, does not add in place.
+   * @param {!SimilarPattern} similarPattern Similar pattern to add as accepted.
+   * @return {!Array<!SimilarPattern>} Copy of the similarPatternsSeen array
+   *     with the accepted similar pattern added.
+   * @private
+   */
+  addAcceptedPattern_(similarPattern) {
+    const acceptedPattern = this.createSimilarPatternWithStatus_(
+        similarPattern, SimilarPatternStatus.ACCEPTED);
+    return [
+      ...this.storeData.similarPatternsSeen,
+      acceptedPattern,
+    ];
+  }
+
+  /**
+   * Adds an rejected pattern to the similarPatternsSeen array.
+   * Returns a copy of the array, does not add in place.
+   * @param {!SimilarPattern} similarPattern Similar pattern to add as rejected.
+   * @return {!Array<!SimilarPattern>} Copy of the similarPatternsSeen array
+   *     with the rejected similar pattern added.
+   * @private
+   */
+  addRejectedPattern_(similarPattern) {
+    const rejectedPattern = this.createSimilarPatternWithStatus_(
+        similarPattern, SimilarPatternStatus.REJECTED);
+    return [
+      ...this.storeData.similarPatternsSeen,
+      rejectedPattern,
+    ];
+  }
+
+  /**
    * Handles data from an ADD_WAVE_EVENT action, which will add a new wave
    * event to the list.
+   * If the event was a similar pattern marked for edit, it clears the pattern
+   * to edit and save it as accepted.
    * @param {!Annotation} waveEvent The new wave event.
    * @return {!PartialStoreData} store data with changed properties.
    */
   handleAddWaveEvent(waveEvent) {
-    return {
+    const /** !PartialStoreData */ newStoreData = {
       waveEvents: this.addWaveEvent_(waveEvent),
       waveEventDraft: null,
     };
+    if (this.storeData.similarPatternEdit) {
+      const originalPattern = this.storeData.similarPatternEdit;
+      newStoreData.similarPatternsSeen = this.addAcceptedPattern_(
+          /** @type {!SimilarPattern} */ (Object.assign({}, originalPattern, {
+            startTime: waveEvent.startTime,
+            duration: waveEvent.duration,
+            channelList: [...waveEvent.channelList],
+          })));
+      newStoreData.similarPatternEdit = null;
+    }
+    return newStoreData;
   }
 
   /**
@@ -541,10 +630,17 @@ class Store {
    * @return {!PartialStoreData} store data with changed properties.
    */
   handleUpdateWaveEventDraft(waveEventDraft) {
-    return {
-      waveEventDraft: waveEventDraft &&
-          /** @type {!Annotation} */ (Object.assign({}, waveEventDraft)),
-    };
+    const /** !PartialStoreData */ newStoreData = {};
+
+    if (waveEventDraft) {
+      newStoreData.waveEventDraft =
+          /** @type {!Annotation} */ (Object.assign({}, waveEventDraft));
+    } else {
+      newStoreData.waveEventDraft = null;
+      newStoreData.similarPatternEdit = null;
+    }
+
+    return newStoreData;
   }
 
   /**
@@ -737,39 +833,81 @@ class Store {
   }
 
   /**
+   * Returns a SimilarityTrial definition, given by the data saved in the store.
+   * @return {!SimilarityTrial} The trial defined by the data in the store.
+   * @private
+   */
+  saveFinishedTrial_() {
+    return {
+      template: /** @type {!Annotation} */ (
+          this.storeData.similarPatternTemplate),
+      seen: this.storeData.similarPatternsSeen,
+      unseen: this.storeData.similarPatternsUnseen,
+    };
+  }
+
+  /**
    * Handles data from a SEARCH_SIMILAR_REQUEST action, which will save the
    * similar pattern target and trigger a request.
    * @param {!Annotation} data The data payload from the action.
    * @return {!PartialStoreData} store data with changed properties.
    */
   handleSimilarPatternsRequest(data) {
-    let similarPatternResultRank = 0;
-    if (this.storeData.similarPatternTarget &&
-        this.storeData.similarPatternTarget.id === data.id) {
-      const amountRequested = this.storeData.similarPatternSettings.topN;
-      similarPatternResultRank =
-          this.storeData.similarPatternResultRank + amountRequested;
-    }
-    return {
-      similarPatternTarget: data,
-      similarPatternResult: [],
-      similarPatternResultRank,
+    const /** !PartialStoreData */ newStoreData = {
+      similarPatternTemplate: data,
+      similarPatternEdit: null,
+      similarPatternsSeen: [],
+      similarPatternsUnseen: [],
     };
+
+    const prevTemplate = this.storeData.similarPatternTemplate;
+    if (prevTemplate && prevTemplate.id === data.id) {
+      newStoreData.similarPatternResultRank = this.increaseSimilarityRank_();
+    } else {
+      newStoreData.similarPatternResultRank = 0;
+    }
+
+    if (prevTemplate && prevTemplate.id !== data.id) {
+      newStoreData.similarPatternPastTrials = [
+        ...this.storeData.similarPatternPastTrials,
+        this.saveFinishedTrial_(),
+      ];
+    }
+
+    return newStoreData;
+  }
+
+  /**
+   * Returns the similarPatternResultRank incremented with the amount of
+   * results that are requested to the server.
+   * @return {number} New similarPatternResultRank value
+   * @private
+   */
+  increaseSimilarityRank_() {
+    const amountRequested = this.storeData.similarPatternSettings.topN;
+    return this.storeData.similarPatternResultRank + amountRequested;
   }
 
   /**
    * Handles data from a SEARCH_SIMILAR_REQUEST_MORE action, which will increase
    * the similarPatternResultRank property to trigger a new request.
+   * The similarPatternResultRank property indicates the ranking of the
+   * similarity results. For example:
+   * - if the property is 0, the results received have rankings 1, 2, 3, ...
+   * - if the property is 2, the results received have rankings 3, 4, 5, ...
+   *
+   * If the user wants more results, this property is updated, the requests
+   * view receives the change and sends a new request. Note that the
+   * similarPatternTemplate property does not change, so the resultRank change
+   * is needed to trigger the request.
    * @return {?PartialStoreData} store data with changed properties.
    */
   handleSimilarPatternsRequestMore() {
-    if (!this.storeData.similarPatternTarget) {
+    if (!this.storeData.similarPatternTemplate) {
       return null;
     }
-    const amountRequested = this.storeData.similarPatternSettings.topN;
     return {
-      similarPatternResultRank:
-          this.storeData.similarPatternResultRank + amountRequested,
+      similarPatternResultRank: this.increaseSimilarityRank_(),
     };
   }
 
@@ -794,85 +932,84 @@ class Store {
    * @return {!PartialStoreData} store data with changed properties.
    */
   handleSimilarPatternsResponseOk(data) {
-    const targetPattern = this.storeData.similarPatternTarget;
-    const oldResults = this.storeData.similarPatternResult || [];
-    const newResults = data.getSimilarPatternsList().map(
+    const templatePattern = this.storeData.similarPatternTemplate;
+    const newUnseen = data.getSimilarPatternsList().map(
         (similarPattern) => /** @type {!SimilarPattern} */ (Object.assign(
             {},
             similarPattern.toObject(),
             {
-              channelList: [...targetPattern.channelList],
+              status: SimilarPatternStatus.UNSEEN,
+              channelList: [...templatePattern.channelList],
             },
             )));
     return {
       similarPatternError: null,
-      similarPatternResult: [...oldResults, ...newResults],
+      similarPatternsUnseen: [
+        ...this.storeData.similarPatternsUnseen,
+        ...newUnseen,
+      ],
     };
   }
 
   /**
    * Handles data from a SEARCH_SIMILAR_RESPONSE_ERROR action, which will update
-   * the error and result of the request.
+   * the error.
    * @param {!Dispatcher.ErrorData} data The data payload from the action.
    * @return {!PartialStoreData} store data with changed properties.
    */
   handleSimilarPatternsResponseError(data) {
     return {
       similarPatternError: this.newError(data.message),
-      similarPatternResult: null,
     };
   }
 
   /**
-   * Removes a similar pattern from the similarPatternResult property.
+   * Removes a similar pattern from the similarPatternsUnseen array.
    * Returns a copy of the array, does not modify in place.
+   * Note that it does not mark the pattern as seen.
    * @param {!SimilarPattern} removePattern Similar pattern to remove.
-   * @return {!Array<!SimilarPattern>} Copy of the similarPatternResult, with
+   * @return {!Array<!SimilarPattern>} Copy of the similarPatternsUnseen, with
    *     the pattern removed.
    * @private
    */
-  removeSimilarPattern_(removePattern) {
-    return this.storeData.similarPatternResult.filter(
+  removeSimilarPatternFromUnseen_(removePattern) {
+    return this.storeData.similarPatternsUnseen.filter(
         (pattern) => pattern.startTime !== removePattern.startTime);
   }
 
   /**
-   * Handles data from a SIMILAR_PATTERN_ACCEPT action, which will move the
-   * accepted pattern to the wave events list, and remove it from the similar
-   * patterns list.
+   * Handles data from a SIMILAR_PATTERN_ACCEPT action, which will copy the
+   * accepted pattern to the wave events list, and move it from the unseen to
+   * the seen list.
    * @param {!SimilarPattern} data The similar pattern to accept.
    * @return {!PartialStoreData} store data with changed properties.
    */
   handleSimilarPatternAccept(data) {
-    const targetPattern = this.storeData.similarPatternTarget;
-    const similarPatternResult = this.removeSimilarPattern_(data);
+    const templatePattern = this.storeData.similarPatternTemplate;
     const waveEvents = this.addWaveEvent_({
-      labelText: targetPattern.labelText,
+      labelText: templatePattern.labelText,
       startTime: data.startTime,
       duration: data.duration,
       channelList: data.channelList,
     });
     return {
       waveEvents,
-      similarPatternResult,
+      similarPatternsUnseen: this.removeSimilarPatternFromUnseen_(data),
+      similarPatternsSeen: this.addAcceptedPattern_(data),
     };
   }
 
   /**
    * Handles data from a SIMILAR_PATTERN_EDIT action, which will save the
-   * pattern and remove it from the similar patterns list.
+   * pattern and remove it from the unseen list.
    * @param {!SimilarPattern} data The similar pattern to edit.
    * @return {!PartialStoreData} store data with changed properties.
    */
   handleSimilarPatternEdit(data) {
     return {
-      similarPatternEdit: {
-        labelText: this.storeData.similarPatternTarget.labelText,
-        startTime: data.startTime,
-        duration: data.duration,
-        channelList: data.channelList,
-      },
-      similarPatternResult: this.removeSimilarPattern_(data),
+      similarPatternEdit: this.createSimilarPatternWithStatus_(
+          data, SimilarPatternStatus.EDITING),
+      similarPatternsUnseen: this.removeSimilarPatternFromUnseen_(data),
     };
   }
 
@@ -884,18 +1021,28 @@ class Store {
    */
   handleSimilarPatternReject(data) {
     return {
-      similarPatternResult: this.removeSimilarPattern_(data),
+      similarPatternsUnseen: this.removeSimilarPatternFromUnseen_(data),
+      similarPatternsSeen: this.addRejectedPattern_(data),
     };
   }
 
   /**
    * Handles data from a SIMILAR_PATTERN_REJECT_ALL action, which will remove
-   * all the similar patterns from the results.
+   * all the similar patterns from the results and will save them as rejected.
    * @return {!PartialStoreData} store data with changed properties.
    */
   handleSimilarPatternRejectAll() {
+    const rejectedPatterns =
+        this.storeData.similarPatternsUnseen.map((similarPattern) => {
+          return this.createSimilarPatternWithStatus_(
+              similarPattern, SimilarPatternStatus.REJECTED);
+        });
     return {
-      similarPatternResult: null,
+      similarPatternsUnseen: [],
+      similarPatternsSeen: [
+        ...this.storeData.similarPatternsSeen,
+        ...rejectedPatterns,
+      ],
     };
   }
 
@@ -1186,6 +1333,7 @@ exports = Store;
 exports.StoreData = StoreData;
 exports.Annotation = Annotation;
 exports.SimilarPattern = SimilarPattern;
+exports.SimilarPatternStatus = SimilarPatternStatus;
 exports.ErrorInfo = ErrorInfo;
 exports.Property = Property;
 exports.PredictionMode = PredictionMode;

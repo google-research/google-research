@@ -103,7 +103,7 @@ class NavChart extends ChartBase {
         [
           Store.Property.CHUNK_START, Store.Property.CHUNK_DURATION,
           Store.Property.NUM_SECS, Store.Property.WAVE_EVENTS,
-          Store.Property.SIMILAR_PATTERN_RESULT,
+          Store.Property.SIMILAR_PATTERNS_UNSEEN,
           Store.Property.WAVE_EVENT_DRAFT,
         ],
         'NavChart',
@@ -201,10 +201,10 @@ class NavChart extends ChartBase {
    * @return {!Array<!ChartBase.OverlayElement>} Elements to draw in the canvas.
    */
   drawSimilarPatterns(store) {
-    if (!store.similarPatternResult) {
+    if (!store.similarPatternsUnseen) {
       return [];
     }
-    return store.similarPatternResult.map((similarPattern) => ({
+    return store.similarPatternsUnseen.map((similarPattern) => ({
       fill: true,
       color: 'rgb(255, 140, 0)', // orange
       startX: similarPattern.startTime,
@@ -254,7 +254,7 @@ class NavChart extends ChartBase {
       Store.Property.CHUNK_START,
       Store.Property.CHUNK_DURATION,
       Store.Property.WAVE_EVENTS,
-      Store.Property.SIMILAR_PATTERN_RESULT,
+      Store.Property.SIMILAR_PATTERNS_UNSEEN,
       Store.Property.WAVE_EVENT_DRAFT,
     ]);
   }
