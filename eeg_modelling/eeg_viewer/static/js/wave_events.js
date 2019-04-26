@@ -28,6 +28,10 @@ const formatter = goog.require('eeg_modelling.eeg_viewer.formatter');
 const log = goog.require('goog.log');
 const utils = goog.require('eeg_modelling.eeg_viewer.utils');
 
+
+/** @const {number} default height of the similar patterns action menu. */
+const defaultSimilarPatternsActionHeight = 167;
+
 class WaveEvents {
 
   constructor() {
@@ -98,6 +102,15 @@ class WaveEvents {
     return event.y - event.offsetY + target.offsetHeight;
   }
 
+  /**
+   * Gets the top coordinate of an element that fired an event.
+   * @param {!Event} event Event fired by the element.
+   * @return {number} Y coordinate of the end of the element.
+   * @private
+   */
+  getPositionAbove_(event) {
+    return event.y - event.offsetY;
+  }
 
   /**
    * Returns the id of a wave events table row, given a wave event id.
@@ -381,8 +394,17 @@ class WaveEvents {
 
     this.clickedSimilarPattern_ = similarPattern;
 
-    const top = this.getPositionBelow_(event);
-    const menuContainer = document.getElementById(this.similarPatternActions_);
+    let top = this.getPositionBelow_(event);
+
+    const menuContainer = /** @type {!HTMLElement} */ (
+        document.getElementById(this.similarPatternActions_));
+    const menuHeight =
+        menuContainer.offsetHeight || defaultSimilarPatternsActionHeight;
+
+    if (top + menuHeight > window.innerHeight) {
+      top = this.getPositionAbove_(event) - menuHeight;
+    }
+
     menuContainer.style.top = `${top}px`;
     menuContainer.classList.remove('hidden');
   }
@@ -503,6 +525,25 @@ class WaveEvents {
       },
     });
     this.toggleSimilaritySettings();
+  }
+
+  /**
+   * Downloads all events.
+   */
+  downloadEvents() {
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.DOWNLOAD_DATA,
+      data: {
+        properties: [
+          Store.Property.SIMILAR_PATTERN_PAST_TRIALS,
+          Store.Property.SIMILAR_PATTERN_TEMPLATE,
+          Store.Property.SIMILAR_PATTERNS_SEEN,
+          Store.Property.SIMILAR_PATTERNS_UNSEEN,
+          Store.Property.WAVE_EVENTS,
+        ],
+        name: 'events',
+      },
+    });
   }
 }
 

@@ -282,6 +282,7 @@ compile_js_app() {
       --js='eeg_viewer/static/js/**.js' \
       --js='!eeg_viewer/static/js/**_test.js' \
       --js='!eeg_viewer/static/js/compiled_*.js' \
+      --js='eeg_viewer/jslib/download_helper.js' \
       --js='jsprotos/**.js' \
       --js='third_party/protobuf/js/map.js' \
       --js='third_party/protobuf/js/message.js' \
