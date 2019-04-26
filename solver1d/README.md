@@ -36,7 +36,7 @@ It holds M=ceil(\lambda) levels, where \lambda is a positive float.
 For example, \lambda=0.5 holds 1 electron. The exact eigen energy is -0.125.
 
 ```bash
-python -m solver1d.solve_poschl_teller_potential \
+python -m solver1d.scripts.solve_poschl_teller_potential \
 --solver=EigenSolver \
 --lam=0.5 \
 --scaling=1 \
@@ -44,4 +44,13 @@ python -m solver1d.solve_poschl_teller_potential \
 --grid_upper=20 \
 --num_grids=1001 \
 --num_electrons=1
+```
+
+## Installation
+
+Clone this repository and install in-place:
+
+```bash
+git clone https://github.com/google-research/google-research.git
+pip install -e google-research/solver1d
 ```
