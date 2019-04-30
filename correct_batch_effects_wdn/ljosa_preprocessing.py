@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Pre-processing step for Ljosa embeddings.
 
 The goal is to replicate the work done in the Ljosa paper

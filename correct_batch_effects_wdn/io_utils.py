@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """IO related utilities."""
 
 from __future__ import absolute_import
@@ -45,7 +46,7 @@ def write_dataframe_to_hdf5(df, path, complib='zlib', complevel=5, key='data'):
     store[key] = df
     # pylint: disable=protected-access
     buf = store._handle.get_file_image()
-    with gfile.GFile(path, 'w') as f:
+    with gfile.GFile(path, 'wb') as f:
       f.write(buf)
 
 
@@ -59,7 +60,7 @@ def read_dataframe_from_hdf5(path, key='data'):
   Returns:
     pandas.DataFrame loaded from the HDF5 file.
   """
-  with gfile.GFile(path, 'r') as f:
+  with gfile.GFile(path, 'rb') as f:
     with pandas.HDFStore(
         'in_memory',
         mode='r',
