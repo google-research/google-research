@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """This is a ResNet-50 model.
 
 """
@@ -22,6 +23,7 @@ from __future__ import division
 from __future__ import print_function
 
 from absl import flags
+from six.moves import range
 import tensorflow as tf
 
 FLAGS = flags.FLAGS
