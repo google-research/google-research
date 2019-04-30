@@ -355,7 +355,7 @@ class ForgettingNuisanceTest(tf.test.TestCase):
           [network._features, network._x_vals], feed_dict=feed_dict)
 
       ## make sure each input used in every batch came from the actual inputs
-      for key, vals in x_vals.iteritems():
+      for key, vals in x_vals.items():
         for row in vals:  # iterate over every element
           ## identify distance from closest element in inputs
           differences = [la.norm(np.array(row) - np.array(candidates))
