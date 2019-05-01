@@ -984,12 +984,46 @@ def plot_multi_obj_opt_multi_plot(smiles, target_mol, idx=0):
   # plt.show()
 
 
+def plot_target_sas():
+  df = pd.read_csv('target_sas_results.csv')
+  plt.figure(figsize=(5, 5))
+  df25 = df[df['target_sas'] == 2.5]
+  x25 = df25['original_sas']
+  y25 = df25['sas']
+  plt.scatter(x25, y25, label='target_sas=2.5')
+  plt.axhline(y=2.5, ls='dashed', color='grey')
+  
+  df48 = df[df['target_sas'] == 4.8]
+  x48 = df48['original_sas']
+  y48 = df48['sas']
+  plt.scatter(x48, y48, label='target_sas=4.8')
+  plt.axhline(y=4.8, ls='dashed', color='grey')
+
+  ax = plt.gca()
+  ax.set_aspect('equal')
+  plt.xlim(0.5, 5.5)
+  plt.ylim(0.5, 5.5)
+  plt.xticks([1, 2, 3, 4, 5])
+  print('Target SAS 2.5')
+  print(f'Mean: {np.mean(y25)}, Std: {np.std(y25)}')
+  print('Target SAS 4.8')
+  print(f'Mean: {np.mean(y48)}, Std: {np.std(y48)}')
+  
+  plt.subplots_adjust(left=0.13, bottom=0.14, right=0.96, top=0.92, wspace=0.12)
+  plt.legend()
+  plt.xlabel('SA score of the original molecules')
+  plt.ylabel('SA score of the generated molecules')
+  plt.savefig('target_sas.pdf')
+  plt.show()
+  
+
+plot_target_sas()
 # multi_obj_gen_stat()
 # plot_opt_path_20()
 # plot_qvals_with_change_20()
 # plot_multi_obj_gen_drug20()
 # plot_qed_relative_improvements()
-plot_qed_improvements()
+# plot_qed_improvements()
 # plot_drug20_smiles()
 # plot_max_qed_mols_2()
 # plot_max_logp_mols_2()
