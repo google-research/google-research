@@ -24,6 +24,7 @@ env:
     - PROJECT="robust_loss"
     - PROJECT="norml"
     - PROJECT="solver1d"
+    - PROJECT="learnreg"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip
