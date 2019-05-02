@@ -556,11 +556,13 @@ def GetTargetSpec(
     elif regression_type == "horseshoe":
       log_prob_fn = horseshoe_log_prob_fn
       num_dims = num_features * 3 + 2
-      bijector = utils.Blockwise([tfb.Identity(), tfb.Exp()], [num_features, num_features * 2 + 2])
+      bijector = tfb.Blockwise([tfb.Identity(), tfb.Exp()],
+                               [num_features, num_features * 2 + 2])
     elif regression_type == "gamma_scales2":
       log_prob_fn = gamma_scales2_log_prob_fn
       num_dims = num_features * 2 + 1
-      bijector = utils.Blockwise([tfb.Identity(), tfb.Exp()], [num_features, num_features + 1])
+      bijector = tfb.Blockwise([tfb.Identity(), tfb.Exp()],
+                               [num_features, num_features + 1])
 
 
     target = utils.LogProbDist(num_dims=num_dims, log_prob_fn=log_prob_fn)
@@ -842,7 +844,7 @@ class NeuTraExperiment(object):
     self.test_num_steps = tf.placeholder_with_default(1000, [],
                                                       "test_num_steps")
     self.test_num_leapfrog_steps = tf.placeholder_with_default(
-        tf.to_int64(2), [], "test_num_leapfrog_steps")
+        tf.to_int32(2), [], "test_num_leapfrog_steps")
     self.test_step_size = tf.placeholder_with_default(0.1, [], "test_step_size")
 
     # Test
@@ -1061,9 +1063,9 @@ class NeuTraExperiment(object):
       if obj_type == 'bias':
         return np.log(bias_sq) - ess_per_grad
       elif obj_type == 'rhat':
-       # If it's above 1.4 or so, ess plays no role.
-       ess_factor = np.exp(-(np.maximum(rhat - 1, 0))**2 / (2 * 0.1**2))
-       return rhat - ess_per_grad * ess_factor
+        # If it's above 1.4 or so, ess plays no role.
+        ess_factor = np.exp(-(np.maximum(rhat - 1, 0))**2 / (2 * 0.1**2))
+        return rhat - ess_per_grad * ess_factor
 
     def unconstrain(num_leapfrog_steps, step_size):
       return float(num_leapfrog_steps), np.log(step_size)
