@@ -162,31 +162,20 @@ class GeneratedRandomVariablesTest(parameterized.TestCase, tf.test.TestCase):
     ed.Bernoulli(probs=0.5, value=tf.placeholder(tf.int32))
 
   @tfe.run_test_in_graph_and_eager_modes
-  def testAsRandomVariable(self):
-    # A wrapped Normal distribution should behave identically to
-    # the builtin Normal RV.
+  def testMakeRandomVariable(self):
+    """Tests that manual wrapping is the same as the built-in solution."""
+    custom_normal = ed.make_random_variable(tfd.Normal)
+
     def model_builtin():
       return ed.Normal(1., 0.1, name="x")
 
     def model_wrapped():
-      return ed.as_random_variable(tfd.Normal(1., 0.1, name="x"))
+      return custom_normal(1., 0.1, name="x")
 
-    # Check that both models are interceptable and yield
-    # identical log probs.
     log_joint_builtin = ed.make_log_joint_fn(model_builtin)
     log_joint_wrapped = ed.make_log_joint_fn(model_wrapped)
     self.assertEqual(self.evaluate(log_joint_builtin(x=7.)),
                      self.evaluate(log_joint_wrapped(x=7.)))
-
-    # Check that our attempt to back out the variable name from the
-    # Distribution name is robust to name scoping.
-    with tf.name_scope("nested_scope"):
-      dist = tfd.Normal(1., 0.1, name="x")
-      def model_scoped():
-        return ed.as_random_variable(dist)
-      log_joint_scoped = ed.make_log_joint_fn(model_scoped)
-      self.assertEqual(self.evaluate(log_joint_builtin(x=7.)),
-                       self.evaluate(log_joint_scoped(x=7.)))
 
 if __name__ == "__main__":
   tf.test.main()

@@ -24,26 +24,10 @@ import tensorflow as tf
 
 from tensorflow.python.client import session as tf_session
 from tensorflow.python.framework import ops
-from tensorflow.python.framework import tensor_util
 
 __all__ = [
     "RandomVariable",
 ]
-
-
-def _operator(attr):
-  """Defers an operator overload to `attr`.
-
-  Args:
-    attr: Operator attribute to use.
-
-  Returns:
-    Function calling operator attribute.
-  """
-  @functools.wraps(attr)
-  def func(a, *args):
-    return attr(a.value, *args)
-  return func
 
 
 class RandomVariable(object):
@@ -135,7 +119,7 @@ class RandomVariable(object):
   def sample_shape(self):
     """Sample shape of random variable as a `TensorShape`."""
     if isinstance(self._sample_shape, tf.Tensor):
-      return tf.TensorShape(tensor_util.constant_value(self._sample_shape))
+      return tf.TensorShape(tf.contrib.util.constant_value(self._sample_shape))
     return tf.TensorShape(self._sample_shape)
 
   def sample_shape_tensor(self, name="sample_shape_tensor"):
@@ -147,7 +131,7 @@ class RandomVariable(object):
     Returns:
       sample_shape: `Tensor`.
     """
-    with tf.name_scope(name):
+    with tf.compat.v1.name_scope(name):
       if isinstance(self._sample_shape, tf.Tensor):
         return self._sample_shape
       return tf.convert_to_tensor(self.sample_shape.as_list(), dtype=tf.int32)
@@ -187,43 +171,6 @@ class RandomVariable(object):
     if hasattr(self.value, "numpy"):
       string += " numpy=%s" % _numpy_text(self.value, is_repr=True)
     return "<%s>" % string
-
-  # Overload operators following tf.Tensor.
-  __add__ = _operator(tf.Tensor.__add__)
-  __radd__ = _operator(tf.Tensor.__radd__)
-  __sub__ = _operator(tf.Tensor.__sub__)
-  __rsub__ = _operator(tf.Tensor.__rsub__)
-  __mul__ = _operator(tf.Tensor.__mul__)
-  __rmul__ = _operator(tf.Tensor.__rmul__)
-  __div__ = _operator(tf.Tensor.__div__)
-  __rdiv__ = _operator(tf.Tensor.__rdiv__)
-  __truediv__ = _operator(tf.Tensor.__truediv__)
-  __rtruediv__ = _operator(tf.Tensor.__rtruediv__)
-  __floordiv__ = _operator(tf.Tensor.__floordiv__)
-  __rfloordiv__ = _operator(tf.Tensor.__rfloordiv__)
-  __mod__ = _operator(tf.Tensor.__mod__)
-  __rmod__ = _operator(tf.Tensor.__rmod__)
-  __lt__ = _operator(tf.Tensor.__lt__)
-  __le__ = _operator(tf.Tensor.__le__)
-  __gt__ = _operator(tf.Tensor.__gt__)
-  __ge__ = _operator(tf.Tensor.__ge__)
-  __and__ = _operator(tf.Tensor.__and__)
-  __rand__ = _operator(tf.Tensor.__rand__)
-  __or__ = _operator(tf.Tensor.__or__)
-  __ror__ = _operator(tf.Tensor.__ror__)
-  __xor__ = _operator(tf.Tensor.__xor__)
-  __rxor__ = _operator(tf.Tensor.__rxor__)
-  __getitem__ = _operator(tf.Tensor.__getitem__)
-  __pow__ = _operator(tf.Tensor.__pow__)
-  __rpow__ = _operator(tf.Tensor.__rpow__)
-  __invert__ = _operator(tf.Tensor.__invert__)
-  __neg__ = _operator(tf.Tensor.__neg__)
-  __abs__ = _operator(tf.Tensor.__abs__)
-  __matmul__ = _operator(tf.Tensor.__matmul__)
-  __rmatmul__ = _operator(tf.Tensor.__rmatmul__)
-  __iter__ = _operator(tf.Tensor.__iter__)
-  __bool__ = _operator(tf.Tensor.__bool__)
-  __nonzero__ = _operator(tf.Tensor.__nonzero__)
 
   def __hash__(self):
     return id(self)
@@ -296,6 +243,22 @@ def _numpy_text(tensor, is_repr=False):
   return text
 
 
+def _overload_operator(cls, op):
+  """Defer an operator overload to `tf.Tensor`.
+
+  We pull the operator out of tf.Tensor dynamically to avoid ordering issues.
+
+  Args:
+    cls: Class to overload operator.
+    op: Python string representing the operator name.
+  """
+  @functools.wraps(getattr(tf.Tensor, op))
+  def _run_op(a, *args):
+    return getattr(tf.Tensor, op)(a.value, *args)
+
+  setattr(cls, op, _run_op)
+
+
 def _session_run_conversion_fetch_function(tensor):
   return ([tensor.value], lambda val: val[0])
 
@@ -316,6 +279,11 @@ def _tensor_conversion_function(v, dtype=None, name=None, as_ref=False):
         "of type '%s'" % (dtype.name, v.dtype.name))
   return v.value
 
+
+for operator in tf.Tensor.OVERLOADABLE_OPERATORS.union({"__iter__",
+                                                        "__bool__",
+                                                        "__nonzero__"}):
+  _overload_operator(RandomVariable, operator)
 
 tf_session.register_session_run_conversion_functions(  # enable sess.run, eval
     RandomVariable,
