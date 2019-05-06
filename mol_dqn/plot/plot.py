@@ -992,7 +992,7 @@ def plot_target_sas():
   y25 = df25['sas']
   plt.scatter(x25, y25, label='target_sas=2.5')
   plt.axhline(y=2.5, ls='dashed', color='grey')
-  
+
   df48 = df[df['target_sas'] == 4.8]
   x48 = df48['original_sas']
   y48 = df48['sas']
@@ -1008,14 +1008,14 @@ def plot_target_sas():
   print(f'Mean: {np.mean(y25)}, Std: {np.std(y25)}')
   print('Target SAS 4.8')
   print(f'Mean: {np.mean(y48)}, Std: {np.std(y48)}')
-  
+
   plt.subplots_adjust(left=0.13, bottom=0.14, right=0.96, top=0.92, wspace=0.12)
   plt.legend()
   plt.xlabel('SA score of the original molecules')
   plt.ylabel('SA score of the generated molecules')
   plt.savefig('target_sas.pdf')
   plt.show()
-  
+
 
 plot_target_sas()
 # multi_obj_gen_stat()
