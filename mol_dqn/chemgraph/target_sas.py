@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,18 +24,16 @@ import json
 import os
 from absl import app
 from absl import flags
-import networkx as nx
 from rdkit import Chem
-from rdkit.Chem import Descriptors
+from rdkit.Contrib.SA_Score import sascorer
 
-from dqn import deep_q_networks
-from dqn import molecules as molecules_mdp
-from dqn import run_dqn
-from dqn.tensorflow_core import core
-from dqn.py.SA_Score import sascorer
+from mol_dqn.chemgraph.dqn import deep_q_networks
+from mol_dqn.chemgraph.dqn import molecules as molecules_mdp
+from mol_dqn.chemgraph.dqn import run_dqn
+from mol_dqn.chemgraph.dqn.tensorflow_core import core
 
-
-flags.DEFINE_float('target_sas', 2.5, 'The target synthetic accessibility value')
+flags.DEFINE_float('target_sas', 2.5,
+                   'The target synthetic accessibility value')
 flags.DEFINE_string('loss_type', 'l2', 'The loss type')
 FLAGS = flags.FLAGS
 
@@ -47,12 +45,11 @@ class TargetSASMolecule(molecules_mdp.Molecule):
     """Initializes the class.
 
     Args:
-      discount_factor: Float. The discount factor. We only
-        care about the molecule at the end of modification.
-        In order to prevent a myopic decision, we discount
-        the reward at each step by a factor of
-        discount_factor ** num_steps_left,
-        this encourages exploration with emphasis on long term rewards.
+      discount_factor: Float. The discount factor. We only care about the
+        molecule at the end of modification. In order to prevent a myopic
+        decision, we discount the reward at each step by a factor of
+        discount_factor ** num_steps_left, this encourages exploration with
+        emphasis on long term rewards.
       target_sas: Float. Target synthetic accessibility value.
       loss_type: String. 'l2' for l2 loss, 'l1' for l1 loss.
       **kwargs: The keyword arguments passed to the base class.
@@ -63,17 +60,18 @@ class TargetSASMolecule(molecules_mdp.Molecule):
     if loss_type == 'l1':
       self.loss_fn = abs
     elif loss_type == 'l2':
-      self.loss_fn = lambda x: x ** 2
+      self.loss_fn = lambda x: x**2
     else:
       raise ValueError('loss_type must by "l1" or "l2"')
 
   def _reward(self):
     molecule = Chem.MolFromSmiles(self._state)
     if molecule is None:
-      return - self.loss_fn(self.target_sas)
+      return -self.loss_fn(self.target_sas)
     sas = sascorer.calculateScore(molecule)
-    return - self.loss_fn(sas - self.target_sas) * (
-      self.discount_factor ** (self.max_steps - self.num_steps_taken))
+    return -self.loss_fn(sas - self.target_sas) * (
+        self.discount_factor**(self.max_steps - self.num_steps_taken))
+
 
 def main(argv):
   del argv
@@ -84,9 +82,9 @@ def main(argv):
     hparams = deep_q_networks.get_hparams()
 
   environment = TargetSASMolecule(
-      discount_factor = hparams.discount_factor,
-      target_sas = FLAGS.target_sas,
-      loss_type = FLAGS.loss_type,
+      discount_factor=hparams.discount_factor,
+      target_sas=FLAGS.target_sas,
+      loss_type=FLAGS.loss_type,
       atom_types=set(hparams.atom_types),
       init_mol=FLAGS.start_molecule,
       allow_removal=hparams.allow_removal,
