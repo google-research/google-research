@@ -20,6 +20,20 @@ training, latent variable inference, and predictions.
 Are you upgrading from Edward? Check out the guide
 [`Upgrading_from_Edward_to_Edward2.md`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/Upgrading_From_Edward_To_Edward2.md).
 
+## Installation
+
+To install the latest stable version, run
+
+```sh
+pip install edward2
+```
+
+Installing `edward2` does not automatically install or update
+TensorFlow. We recommend installing it via `pip install tensorflow` or `pip
+install tensorflow-gpu`. See TensorFlow’s
+[installation instructions for details](https://www.tensorflow.org/install/).
+You may need to use TensorFlow's nightly package (`tf-nightly`).
+
 ## 1. Models as Probabilistic Programs
 
 ### Random Variables
@@ -34,7 +48,7 @@ such as `log_prob` and `sample`.
 Random variables are formed like TensorFlow Distributions.
 
 ```python
-import simple_probabilistic_programming as ed
+import edward2 as ed
 
 normal_rv = ed.Normal(loc=0., scale=1.)
 ## <ed.RandomVariable 'Normal/' shape=() dtype=float32>
