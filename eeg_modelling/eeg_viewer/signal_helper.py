@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Contains helper functions for signal sampling."""
 
 import numpy as np
@@ -37,4 +38,3 @@ def threshold_attribution(signal, q=0.999):
   quantile = find_quantile(s, q)
   ratio = np.abs(signal / quantile)
   return signal / np.maximum(1.0, ratio)
-

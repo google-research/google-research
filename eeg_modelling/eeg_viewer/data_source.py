@@ -158,7 +158,7 @@ class TfExampleDataSource(DataSource):
     super(TfExampleDataSource, self).__init__(file_type, str(key))
 
   def GetChannelList(self):
-    return self._feature.keys()
+    return list(self._feature.keys())
 
   def GetLength(self):
     num_samples = self._feature[self._NUM_SAMPLES_KEY].int64_list.value[0]

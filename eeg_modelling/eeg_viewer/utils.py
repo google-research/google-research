@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Utility functions for parsing model input and output protos."""
 
 from __future__ import absolute_import
@@ -24,6 +25,7 @@ import math
 from absl import logging
 
 import gviz_api
+from six.moves import range
 
 
 def TimestampPb2ToSeconds(timestamp):
@@ -59,8 +61,9 @@ def InitDataTableInputsWithTimeAxis(freq, chunk_duration_sec, chunk_start,
   """
   start, end = GetSampleRange(freq, chunk_duration_sec, chunk_start)
   subsampling = GetSubsamplingRate(end - start, max_samples)
-  output_data = [{'seconds': float(i)/freq}
-                 for i in xrange(start, end, subsampling)]
+  output_data = [{
+      'seconds': float(i) / freq
+  } for i in range(start, end, subsampling)]
   return (output_data, freq / subsampling)
 
 
