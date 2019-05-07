@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import json
 
 from absl.testing import absltest
@@ -20,6 +25,7 @@ import flask
 import mock
 import numpy as np
 
+from six.moves import range
 import tensorflow as tf
 from google.protobuf import timestamp_pb2
 
@@ -65,7 +71,7 @@ label = pred_output.label.add()
 label.name = 'test label'
 label.predicted_value.score = 3
 label.actual_value.score = 1
-label.attribution_map.attribution.extend(range(1, 9))
+label.attribution_map.attribution.extend(list(range(1, 9)))
 label.attribution_map.width = 4
 label.attribution_map.height = 2
 label.attribution_map.feature_names.extend([

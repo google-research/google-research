@@ -13,9 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from absl.testing import absltest
 import mock
 import numpy as np
+from six.moves import range
 import tensorflow as tf
 
 from google.protobuf import timestamp_pb2
@@ -46,7 +52,7 @@ class PredictionDataServiceTest(absltest.TestCase):
     time.seconds = 10
     time.nanos = 800000000
     feature['start_time'].bytes_list.value.append(time.SerializeToString())
-    feature['segment/patient_id'].bytes_list.value.append('test patient')
+    feature['segment/patient_id'].bytes_list.value.append(b'test patient')
     waveform_data_source = data_source.TfExampleEegDataSource(tf_ex, 'test key')
     pred_outputs = prediction_output_pb2.PredictionOutputs()
     pred_output = pred_outputs.prediction_output.add()

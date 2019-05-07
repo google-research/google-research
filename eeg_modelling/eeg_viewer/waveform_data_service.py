@@ -130,7 +130,7 @@ def _CreateChannelData(data_source,
       channel_indices, start, duration)
 
   subsampling = 1 if max_samples is None else utils.GetSubsamplingRate(
-      len(single_channel_data.values()[0]), max_samples)
+      len(list(single_channel_data.values())[0]), max_samples)
 
   def _GetFilteredData(index):
     """Wrapper to call _FilterData function.
@@ -182,7 +182,7 @@ def _AddDataTableSeries(channel_data, output_data):
     The edited output_data dictionary where the first index represents the
     time axis value and the second the series value.
   """
-  for i in range(len(channel_data.values()[0])):
+  for i in range(len(list(channel_data.values())[0])):
     output_data[i].update({channel_name: data[i]
                            for channel_name, data in channel_data.items()})
   return output_data
