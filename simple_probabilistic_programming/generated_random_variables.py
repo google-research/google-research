@@ -34,7 +34,9 @@ def make_random_variable(distribution_cls):
   @functools.wraps(distribution_cls, assigned=("__module__", "__name__"))
   @docstring_util.expand_docstring(
       cls=distribution_cls.__name__,
-      doc=inspect.cleandoc(distribution_cls.__init__.__doc__))
+      doc=inspect.cleandoc(
+          distribution_cls.__init__.__doc__ if
+          distribution_cls.__init__.__doc__ is not None else ""))
   def func(*args, **kwargs):
     # pylint: disable=g-doc-args
     """Create a random variable for ${cls}.
