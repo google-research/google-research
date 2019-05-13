@@ -25,6 +25,7 @@ env:
     - PROJECT="norml"
     - PROJECT="solver1d"
     - PROJECT="learnreg"
+    - PROJECT="moew"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip
