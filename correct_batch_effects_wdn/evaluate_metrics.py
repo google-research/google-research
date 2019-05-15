@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Evaluate several metrics for Wasserstein transformation."""
 
 from __future__ import absolute_import
@@ -23,10 +24,10 @@ import collections
 
 from absl import app
 from absl import flags
-
 import numpy as np
 import pandas as pd
 from scipy.spatial import distance
+from six.moves import range
 import six.moves.cPickle as pickle
 from sklearn import ensemble
 from sklearn import metrics
@@ -380,7 +381,7 @@ def cross_val_train(emb_df_clean, contents, steps, list_of_comp_set, n_comp,
       dist_at_time[time_step_max] = dist
 
     # k-NN up to k=4
-    for k in xrange(1, 5):
+    for k in range(1, 5):
       update_stats_new_compound(comp_set, dist, k,
                                 evaluate.not_same_compound_filter,
                                 correct_nsc, mismatch_nsc,
@@ -763,7 +764,7 @@ def main(argv):
   save_dict = {}
 
   ## Get steps over training
-  steps = contents.keys()
+  steps = list(contents.keys())
   steps.remove("params")
   steps = np.sort(steps)
 
@@ -782,7 +783,7 @@ def main(argv):
 
   ## Set up data structure for leave-one-out cross validation
   list_of_comp_set = []
-  for i in xrange(n_comp):
+  for i in range(n_comp):
     comp_set = {}
     comp_set["b"] = comp_list[i]
     comp_set["a"] = list(set(comp_list).difference([comp_list[i]]))
