@@ -1,0 +1,5 @@
+tensorflow>=1.11.0
+dm-sonnet>=1.23
+scipy>=1.1.0
+absl-py>=0.5.0
+numpy>=1.13.3
