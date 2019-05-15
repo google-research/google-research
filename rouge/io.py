@@ -20,9 +20,9 @@ from __future__ import division
 from __future__ import print_function
 
 import glob
-import itertools
 
 from absl import logging
+from six.moves import zip_longest
 
 
 def compute_scores_and_write_to_csv(target_filepattern,
@@ -105,7 +105,7 @@ def _compute_scores(target_filenames, prediction_filenames, scorer, delimiter):
     logging.info("Reading predictions from %s.", prediction_filename)
     targets = _record_gen(target_filename, delimiter)
     preds = _record_gen(prediction_filename, delimiter)
-    for target_rec, prediction_rec in itertools.izip_longest(targets, preds):
+    for target_rec, prediction_rec in zip_longest(targets, preds):
       if target_rec is None or prediction_rec is None:
         raise ValueError("Must have equal number of lines across target and "
                          "prediction files. Mismatch between files: %s, %s." %
