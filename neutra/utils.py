@@ -828,8 +828,10 @@ def SaveNumpy(arr, path):
 @gin.configurable("covertype")
 def LoadCovertype(path):
   with tf.gfile.Open(path, "rb") as f:
+    # pytype: disable=wrong-arg-types
     data = np.genfromtxt(
         gzip.GzipFile(fileobj=f), delimiter=",")
+    # pytype: enable=wrong-arg-types
 
   x = data[:, :-1]
   y = data[:, -1].astype(np.int32)
