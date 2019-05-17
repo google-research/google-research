@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Optimizes QED of a molecule with DQN.
 
 This experiment tries to find the molecule with the highest QED
