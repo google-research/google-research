@@ -13,12 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Utility functions for deep homography estimation."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from six.moves import range
 import tensorflow as tf
 
 
@@ -194,7 +196,7 @@ def augment_seqs_ava(raw_frames, num_frame, max_shift, batch_size=2,
   inv_mat_scale = tf.matrix_inverse(mat_scale)
   hmg_list = []
   frame_list = []
-  for i in xrange(num_frame):
+  for i in range(num_frame):
     src_points = tf.reshape(ref_window, [4, 2])
     dst_points = tf.reshape(rand_shift[i] + ref_window + new_max_shift, [4, 2])
     hmg = calc_homography_from_points(src_points, dst_points)
@@ -219,7 +221,7 @@ def augment_seqs_ava(raw_frames, num_frame, max_shift, batch_size=2,
       (train_height, train_width, num_frame * num_channel))
 
   label_list = []
-  for i in xrange(num_frame - 1):
+  for i in range(num_frame - 1):
     hmg_combine = tf.matmul(tf.matrix_inverse(hmg_list[i + 1]), hmg_list[i])
     hmg_final = tf.matmul(inv_mat_scale, tf.matmul(hmg_combine, mat_scale))
     label = homography_to_shifts(hmg_final, train_width, train_height)
@@ -467,7 +469,7 @@ def homography_warp_per_batch(batch_images, batch_shifts):
   dwidth = tf.to_float(tf.shape(batch_images)[2])
   warped_image_list = []
   transform_list = []
-  for i in xrange(0, batch_size):
+  for i in range(0, batch_size):
     warped_image, transform = homography_warp_per_image(
         batch_images[i], dwidth, dheight, batch_shifts[i])
     warped_image_list.append(warped_image)
@@ -527,7 +529,7 @@ def homography_scale_warp_per_batch(batch_images, ref_width, ref_height,
   width = tf.shape(batch_images)[2]
   warped_list = []
   hmg_list = []
-  for i in xrange(0, batch_size):
+  for i in range(0, batch_size):
     warped, hmg = homography_scale_warp_per_image(
         batch_images[i], width, height, ref_width, ref_height, batch_shifts[i])
     warped_list.append(warped)
@@ -550,7 +552,7 @@ def calc_homography_from_points(src_points, dst_points, is_matrix=True):
   """
   mat_elements = []
   r_vec_elements = []
-  for i in xrange(0, 4):
+  for i in range(0, 4):
     rx = tf.to_float(tf.stack([src_points[i, 0], src_points[i, 1], 1, 0, 0, 0,
                                -dst_points[i, 0] * src_points[i, 0],
                                -dst_points[i, 0] * src_points[i, 1]]))
@@ -643,7 +645,7 @@ def homography_shift_mult_batch(batch_shift1, w1, h1, batch_shift2,
   """
   batch_size = batch_shift1.get_shape().as_list()[0]
   corner_shifts_list = []
-  for i in xrange(0, batch_size):
+  for i in range(0, batch_size):
     corner_shifts = homography_shift_mult(batch_shift1[i], w1, h1,
                                           batch_shift2[i], w2, h2, w, h)
     corner_shifts_list.append(corner_shifts)
@@ -724,7 +726,7 @@ def calc_homography_distortion(width, height, corner_shift):
                                   , 0]))
   new_corners = tf.reshape(corners + corner_shift, [4, 2])
   angles = []
-  for i in xrange(0, 4):
+  for i in range(0, 4):
     a = new_corners[(i + 1) % 4] - new_corners[i]
     b = new_corners[(i + 3) % 4] - new_corners[i]
     angle = tf.tensordot(a, b, 1) / (tf.norm(a) * tf.norm(b))

@@ -13,10 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tensorflow code for training and evaluating deep homography models."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 from absl import app
 from absl import flags
+import six
+from six.moves import range
 import tensorflow as tf
 from deep_homography import hmg_util
 from deep_homography import models
@@ -175,14 +181,14 @@ def run_train(scope):
           scope=scope)
 
       if FLAGS.loss == 'hier_l2':
-        for level in xrange(FLAGS.num_level):
+        for level in range(FLAGS.num_level):
           delta_level = FLAGS.num_level - level -1
           scale = 2 ** delta_level
           l2 = tf.losses.mean_squared_error(batch_labels / scale,
                                             batch_hmg_prediction[level])
           slim.summaries.add_scalar_summary(l2, 'l2%d' % delta_level, 'losses')
       elif FLAGS.loss == 'hier_ld':
-        for level in xrange(FLAGS.num_level):
+        for level in range(FLAGS.num_level):
           delta_level = FLAGS.num_level - level -1
           scale = 2 ** delta_level
           diff = tf.reshape(batch_labels / scale - batch_hmg_prediction[level],
@@ -249,7 +255,7 @@ def run_eval(scope):
 
   loss_dict = {}
   if 'hier' in FLAGS.network_id or 'mask' in FLAGS.network_id:
-    for level in xrange(0, FLAGS.num_level):
+    for level in range(0, FLAGS.num_level):
       delta_level = FLAGS.num_level - level -1
       scale = 2 ** delta_level
       if FLAGS.loss == 'hier_ld':
@@ -266,7 +272,7 @@ def run_eval(scope):
 
   names_to_values, names_to_updates = slim.metrics.aggregate_metric_map(
       loss_dict)
-  for name, value in names_to_values.iteritems():
+  for name, value in six.iteritems(names_to_values):
     slim.summaries.add_scalar_summary(value, name, 'losses', print_summary=True)
 
   slim.evaluation.evaluation_loop(
@@ -274,7 +280,7 @@ def run_eval(scope):
       eval_interval_secs=60,
       checkpoint_dir=FLAGS.train_dir,
       logdir=FLAGS.eval_dir,
-      eval_op=names_to_updates.values(),
+      eval_op=list(names_to_updates.values()),
       num_evals=FLAGS.num_eval_steps,
   )
 
