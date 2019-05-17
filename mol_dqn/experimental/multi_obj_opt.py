@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Maximizes the QED of the molecule while keep similarity.
 
 Multi-Objective optimization using multiple Q functions.
@@ -44,6 +45,7 @@ from rdkit.Chem import AllChem
 from rdkit.Chem import Descriptors
 from rdkit.Chem import QED
 
+from six.moves import range
 import tensorflow as tf
 
 from tensorflow import gfile
@@ -365,7 +367,7 @@ def run_dqn(multi_objective=False):
   logging.info(
       'HParams:\n%s', '\n'.join([
           '\t%s: %s' % (key, value)
-          for key, value in sorted(hparams.values().iteritems())
+          for key, value in sorted(hparams.values().items())
       ]))
 
   # TODO(zzp): merge single objective DQN to multi objective DQN.

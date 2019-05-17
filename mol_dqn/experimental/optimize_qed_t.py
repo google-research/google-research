@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Optimize QED with number of steps left as a feature."""
 
 from __future__ import absolute_import
@@ -31,6 +32,7 @@ from baselines.deepq import replay_buffer
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import QED
+from six.moves import range
 import tensorflow as tf
 from tensorflow import gfile
 from mol_dqn.chemgraph.mcts import deep_q_networks

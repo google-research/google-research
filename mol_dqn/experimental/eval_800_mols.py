@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Run evaluation on 800 molecules.
 
 Run pretrained model on all 800 molecules and record the optimization path.
@@ -35,6 +36,7 @@ from rdkit import DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem import Descriptors
 from rdkit.Contrib import SA_Score
+from six.moves import range
 import tensorflow as tf
 from tensorflow import gfile
 from mol_dqn.chemgraph.mcts import deep_q_networks

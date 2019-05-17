@@ -13,12 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for research.biology.chemgraph.mcts.molecules."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from six.moves import range
 import tensorflow as tf
 
 from mol_dqn.chemgraph.dqn import molecules

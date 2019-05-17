@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Defines the Markov decision process of generating a molecule.
 
 The problem of molecule generation as a Markov decision process, the
@@ -29,6 +30,8 @@ import itertools
 
 from rdkit import Chem
 from rdkit.Chem import Draw
+from six.moves import range
+from six.moves import zip
 
 from mol_dqn.chemgraph.dqn.py import molecules
 
@@ -72,17 +75,17 @@ def get_valid_actions(state, atom_types, allow_removal, allow_no_modification,
   mol = Chem.MolFromSmiles(state)
   if mol is None:
     raise ValueError('Received invalid state: %s' % state)
-  atom_valences = dict(
-      zip(sorted(atom_types), molecules.atom_valences(sorted(atom_types))))
-  atoms_with_free_valence = {
-      i: [
-          atom.GetIdx()
-          for atom in mol.GetAtoms()
-          # Only atoms that allow us to replace at least one H with a new bond
-          # are enumerated here.
-          if atom.GetNumImplicitHs() >= i
-      ] for i in range(1, max(atom_valences.values()))
+  atom_valences = {
+      atom_type: molecules.atom_valences([atom_type])[0]
+      for atom_type in atom_types
   }
+  atoms_with_free_valence = {}
+  for i in range(1, max(atom_valences.values())):
+    # Only atoms that allow us to replace at least one H with a new bond are
+    # enumerated here.
+    atoms_with_free_valence[i] = [
+        atom.GetIdx() for atom in mol.GetAtoms() if atom.GetNumImplicitHs() >= i
+    ]
   valid_actions = set()
   valid_actions.update(
       _atom_addition(
@@ -357,7 +360,7 @@ class Molecule(object):
     self._max_bonds = 4
     atom_types = list(self.atom_types)
     self._max_new_bonds = dict(
-        zip(atom_types, molecules.atom_valences(atom_types)))
+        list(zip(atom_types, molecules.atom_valences(atom_types))))
 
   @property
   def state(self):

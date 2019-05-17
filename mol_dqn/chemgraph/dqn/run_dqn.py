@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Executor for deep Q network models."""
 
 from __future__ import absolute_import
@@ -38,6 +39,7 @@ from rdkit.Chem import AllChem
 from rdkit.Chem import Descriptors
 from rdkit.Chem import QED
 
+from six.moves import range
 import tensorflow as tf
 from tensorflow import gfile
 

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Optimize 800 molecules."""
 
 from __future__ import absolute_import
@@ -35,6 +36,7 @@ from rdkit import DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem import Descriptors
 from rdkit.Contrib import SA_Score
+from six.moves import range
 import tensorflow as tf
 from tensorflow import gfile
 from mol_dqn.chemgraph.mcts import deep_q_networks
