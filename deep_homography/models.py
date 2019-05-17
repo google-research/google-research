@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Homography estimation neural network models."""
 
 from __future__ import absolute_import
@@ -21,6 +22,7 @@ from __future__ import print_function
 
 import math
 
+from six.moves import range
 import tensorflow as tf
 from tensorflow.contrib.slim.nets import vgg
 
@@ -105,7 +107,7 @@ def hier_homography_fmask_estimator(color_inputs, num_param=8, num_layer=7,
   hmgs_list = []
   warped_list = []
   with tf.variable_scope(scope, [inputs], reuse=reuse):
-    for level_index in xrange(num_level):
+    for level_index in range(num_level):
       scale = 2 ** (num_level - 1 - level_index)
       h = tf.to_float(tf.floordiv(h_input, scale))
       w = tf.to_float(tf.floordiv(w_input, scale))
@@ -171,7 +173,7 @@ def hier_homography_estimator(inputs, num_param=8, num_layer=7, num_level=3,
   hmgs_list = []
   warped_list = []
   with tf.variable_scope(scope, [inputs], reuse=reuse):
-    for level_index in xrange(num_level):
+    for level_index in range(num_level):
       scale = 2 ** (num_level - 1 - level_index)
       h = tf.to_float(tf.floordiv(h_input, scale))
       w = tf.to_float(tf.floordiv(w_input, scale))
@@ -234,7 +236,7 @@ def hier_base_layers(images, num_layer, level, is_training=True,
         mfeature = slim.conv2d(mfeature, 32, [3, 3], scope='conv1_1')
         mfeature = slim.max_pool2d(mfeature, [2, 2], padding='SAME',
                                    scope='pool1')
-        for layer_index in xrange(1, num_layer):
+        for layer_index in range(1, num_layer):
           scale = 2 ** math.floor((layer_index + 1) / 2)
           num_channel = scale * 32
           mfeature = slim.conv2d(mfeature, num_channel, [3, 3],

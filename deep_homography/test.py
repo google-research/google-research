@@ -13,9 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Functions to test neural networks on real-world images.
 
 """
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 from absl import app
 from absl import flags
@@ -23,6 +28,7 @@ from absl import flags
 import cv2
 import numpy as np
 
+from six.moves import range
 import tensorflow as tf
 from deep_homography import hmg_util
 from deep_homography import models
