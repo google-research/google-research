@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
+# pylint: disable=invalid-name,g-bad-import-order,missing-docstring
 """Binary to run a neutra experiment."""
 
 from __future__ import absolute_import
@@ -23,18 +25,18 @@ import functools
 import os
 import timeit
 import traceback
-import time
-
-import simplejson
-import tensorflow as tf
-import numpy as np
-import gin
-
-from neutra import utils
-from neutra import neutra
 
 from absl import app
 from absl import flags
+import gin
+import numpy as np
+import simplejson
+from six.moves import range
+from six.moves import zip
+import tensorflow as tf
+
+from neutra import neutra
+from neutra import utils
 
 flags.DEFINE_string("neutra_log_dir", "/tmp/neutra",
                     "Output directory for experiment artifacts.")
@@ -116,7 +118,7 @@ def Eval(exp, sess, batch_size=256, total_batch=4096):
 
   avg_type = [classify("".join(str(p) for p in path)) for path in tf.contrib.framework.nest.yield_flat_paths(results[0])]
   flat_results = [tf.contrib.framework.nest.flatten(r) for r in results]
-  trans_results = zip(*flat_results)
+  trans_results = list(zip(*flat_results))
   trans_mean_results = [avg(r) for avg, r in zip(avg_type, trans_results)]
   neutra_stats, p_accept = tf.contrib.framework.nest.pack_sequence_as(
       results[0], trans_mean_results)

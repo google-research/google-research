@@ -13,10 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
+# pylint: disable=invalid-name,g-bad-import-order,missing-docstring
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_function
 
+from __future__ import print_function
 
 import collections
 import functools
@@ -24,14 +26,14 @@ import os
 
 from absl import app
 from absl import flags
-
+from concurrent import futures
+import gin
+import numpy as np
+from six.moves import range
+from six.moves import zip
 import tensorflow as tf
 import tensorflow_probability as tfp
 from typing import Any, Dict, List, Optional, Tuple
-import numpy as np
-import gin
-
-from concurrent import futures
 
 from neutra import utils
 
@@ -296,8 +298,8 @@ def ConvHierPriorPost(images=None,
 
   ret_z = []
   ret_log_pz = []
-  for i in reversed(range(depth)):
-    for j in reversed(range(num_blocks)):
+  for i in reversed(list(range(depth))):
+    for j in reversed(list(range(num_blocks))):
       downsample = i > 0 and j == 0
 
       h = tf.nn.elu(x)
@@ -1975,7 +1977,7 @@ def main(argv):
     if FLAGS.ais_replicas:
       replicas = FLAGS.ais_replicas
     else:
-      replicas = range(FLAGS.ais_num_replicas)
+      replicas = list(range(FLAGS.ais_num_replicas))
     for i in replicas:
       train_dir = FLAGS.train_dir.format(i)
       eval_dir = FLAGS.eval_dir.format(i)
@@ -1995,7 +1997,7 @@ def main(argv):
     if FLAGS.ais_replicas:
       replicas = FLAGS.ais_replicas
     else:
-      replicas = range(FLAGS.ais_num_replicas)
+      replicas = list(range(FLAGS.ais_num_replicas))
     for i in replicas:
       tf.reset_default_graph()
       train_dir = FLAGS.train_dir.format(i)
@@ -2024,7 +2026,7 @@ if __name__ == "__main__":
   flags.DEFINE_string("cifar10_data_dir", "", "")
   flags.DEFINE_string("data_type", "mnist", "")
   flags.DEFINE_enum("mode", "train", ["train", "eval", "ais_eval", "ais_eval2"], "")
-  flags.DEFINE_enum("model", "vae", MODEL_TO_CLASS.keys(), "")
+  flags.DEFINE_enum("model", "vae", list(MODEL_TO_CLASS.keys()), "")
   flags.DEFINE_string("train_dir", "/tmp/vae/train", "")
   flags.DEFINE_string("eval_dir", "/tmp/vae/eval", "")
   flags.DEFINE_string("master", "", "")

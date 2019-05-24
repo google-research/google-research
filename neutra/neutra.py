@@ -13,25 +13,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
+# pylint: disable=invalid-name,g-bad-import-order,missing-docstring
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import print_function
 
-
 import collections
-import time
-import sys
 import copy
+import time
 
+import gin
 import numpy as np
+import scipy.optimize as sp_opt
 import simplejson
+from six.moves import range
+from six.moves import zip
 import tensorflow as tf
 import tensorflow_probability as tfp
 from typing import Tuple
-import gin
-import scipy.optimize as sp_opt
 
 from neutra import utils
+
 
 tfd = tfp.distributions
 tfb = tfp.bijectors
@@ -938,7 +942,7 @@ class NeuTraExperiment(object):
     self.loss = tf.check_numerics(loss, "Loss has NaNs")
 
     self.global_step = tf.train.get_or_create_global_step()
-    steps, factors = zip(*learning_rate_schedule)
+    steps, factors = list(zip(*learning_rate_schedule))
     learning_rate = base_learning_rate * tf.train.piecewise_constant(
         self.global_step, steps, [1.0] + list(factors))
 
@@ -992,7 +996,7 @@ class NeuTraExperiment(object):
     summarize()
 
     flat_q_errs = [tf.contrib.framework.nest.flatten(s) for s in q_errs]
-    trans_q_errs = zip(*flat_q_errs)
+    trans_q_errs = list(zip(*flat_q_errs))
     concat_q_errs = [np.stack(q, 0) for q in trans_q_errs]
     q_stats = tf.contrib.framework.nest.pack_sequence_as(
         q_errs[0], concat_q_errs)
