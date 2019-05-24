@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
+# pylint: disable=invalid-name,g-bad-import-order
 """NeuTra VAE tests."""
 
 from __future__ import absolute_import
@@ -20,15 +22,16 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-import tempfile
 import shutil
+import tempfile
+
+import gin
+import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-import numpy as np
-import gin
 
-from neutra import vae
 from neutra import utils
+from neutra import vae
 
 tfb = tfp.bijectors
 

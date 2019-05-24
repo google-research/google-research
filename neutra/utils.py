@@ -13,34 +13,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
+# pylint: disable=invalid-name,g-bad-import-order,missing-docstring
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import print_function
 
-
 import collections
-import functools
-import os
 import csv
+import functools
+import gzip
+import os
 
 from absl import flags
 from absl import logging
-
+import gin
+import numpy as np
+import pandas as pd
 import simplejson
+from six.moves import range
+from six.moves import zip
 import tensorflow as tf
 import tensorflow_probability as tfp
 import typing
+from typing import Any, Dict, List, Optional, Tuple
 import yaml
-import pandas as pd
-import numpy as np
-import gzip
-import gin
 
 tfd = tf.contrib.distributions
 tfb = tfp.bijectors
 
-
-from typing import Any, Dict, List, Optional, Tuple
 
 LOGGING_OUTPUTS = "logging"
 
@@ -51,7 +53,7 @@ def ProcessGradients(grads_and_vars,
                      sanitize_gradients=False,
                      normalize_gradients=False):
   tf.logging.info("Prcessing gradients")
-  grads, vars_ = zip(*grads_and_vars)
+  grads, vars_ = list(zip(*grads_and_vars))
   if sanitize_gradients:
     new_grads = []
     for g in grads:
@@ -68,7 +70,7 @@ def ProcessGradients(grads_and_vars,
     grads = new_grads
   if global_gradient_clip > 0:
     grads, grad_norm = tf.clip_by_global_norm(grads, global_gradient_clip)
-    grads_and_vars = zip(grads, vars_)
+    grads_and_vars = list(zip(grads, vars_))
   else:
     grad_norm = tf.global_norm(grads)
   tf.summary.scalar("global_grad_norm", grad_norm)
