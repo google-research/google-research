@@ -317,10 +317,10 @@ class EigenSolver(SolverBase):
       mat: Kinetic matrix.
         (num_grids, num_grids)
     """
-    mat = np.eye(self.num_grids)
-    idx = np.arange(self.num_grids)
-    mat[idx[:-1], idx[:-1] + 1] = -0.5
-    mat[idx[1:], idx[1:] - 1] = -0.5
+    mat = (
+        np.eye(self.num_grids)
+        + np.diag(np.full(self.num_grids - 1, -0.5), k=1)
+        + np.diag(np.full(self.num_grids - 1, -0.5), k=-1))
     return mat / (self.dx * self.dx)
 
   def get_potential_matrix(self):
