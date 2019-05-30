@@ -1,7 +1,0 @@
-absl-py>=0.5.0
-matplotlib>=1.5.2
-scipy==1.0.0
-sklearn>=0.19.1
-tensor2tensor>=1.9.0
-# tensorflow>=1.12.0 or tensorflow-gpu>=1.12.0
-# tensorflow-probability>=0.4.0 or tensorflow-probability-gpu>=0.4.0

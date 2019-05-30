@@ -38,6 +38,8 @@ from simple_probabilistic_programming.trace import get_next_tracer
 from simple_probabilistic_programming.trace import tape
 from simple_probabilistic_programming.trace import trace
 from simple_probabilistic_programming.trace import traceable
+from simple_probabilistic_programming.version import __version__
+from simple_probabilistic_programming.version import VERSION
 
 from tensorflow.python.util.all_util import remove_undocumented
 
@@ -50,6 +52,8 @@ _allowed_symbols = [
     "tape",
     "trace",
     "traceable",
+    "__version__",
+    "VERSION",
 ]
 for name in dir(generated_random_variables):
   if name in sorted(dir(distributions)):
