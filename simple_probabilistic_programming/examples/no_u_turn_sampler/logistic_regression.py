@@ -32,7 +32,7 @@ import numpy as np
 import tensorflow as tf
 
 from tensorflow_probability import edward2 as ed
-from simple_probabilistic_programming import no_u_turn_sampler
+from simple_probabilistic_programming.examples import no_u_turn_sampler
 
 tfe = tf.contrib.eager
 
