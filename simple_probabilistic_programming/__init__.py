@@ -35,9 +35,10 @@ from simple_probabilistic_programming.generated_random_variables import make_ran
 from simple_probabilistic_programming.program_transformations import make_log_joint_fn
 from simple_probabilistic_programming.random_variable import RandomVariable
 from simple_probabilistic_programming.trace import get_next_tracer
-from simple_probabilistic_programming.trace import tape
 from simple_probabilistic_programming.trace import trace
 from simple_probabilistic_programming.trace import traceable
+from simple_probabilistic_programming.tracers import condition
+from simple_probabilistic_programming.tracers import tape
 from simple_probabilistic_programming.version import __version__
 from simple_probabilistic_programming.version import VERSION
 
@@ -46,6 +47,7 @@ from tensorflow.python.util.all_util import remove_undocumented
 
 _allowed_symbols = [
     "RandomVariable",
+    "condition",
     "get_next_tracer",
     "make_log_joint_fn",
     "make_random_variable",
