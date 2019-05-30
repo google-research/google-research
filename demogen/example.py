@@ -32,7 +32,7 @@ def load_and_run(model_config, root_dir):
       a model.
     root_dir: Directory containing the dataset
   """
-  model_path = model_config.get_model_dir_name(root_dir)
+  model_path = model_config.get_checkpoint_path(root_dir)
   model_fn = model_config.get_model_fn()
   with tf.Session() as sess:
     input_fn = data_util.get_input(

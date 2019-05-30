@@ -123,7 +123,7 @@ class ModelConfig(object):
     self.num_class = 10 if dataset == 'cifar10' else 100
     self.data_format = 'HWC' if model_type == 'nin' else 'CHW'
 
-  def get_model_dir_name(self, root_dir):
+  def get_model_dir_name(self, root_dir=None):
     """Get the name of the trained model's directory.
 
     Generates the name of the directory that contain a trained model
@@ -140,6 +140,10 @@ class ModelConfig(object):
     Raises:
       ValueError: The model type is not in the dataset
     """
+    if not root_dir:
+      assert self.root_dir
+      root_dir = self.root_dir
+
     if self.model_type == 'nin':
       data_dir = 'NIN_'
       data_dir += self.dataset
@@ -171,7 +175,10 @@ class ModelConfig(object):
       model_dir = os.path.join(model_parent_dir, '_'.join(model_path))
     else:
       raise ValueError('model type {} is not available'.format(self.model_type))
-    return os.path.join(model_dir, CKPT_NAME)
+    return model_dir
+
+  def get_checkpoint_path(self, root_dir=None):
+    return os.path.join(self.get_model_dir_name(root_dir), CKPT_NAME)
 
   def get_model_fn(self):
     """Get a model function of the model specified by a model configuration.
