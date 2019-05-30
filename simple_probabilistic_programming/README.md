@@ -4,12 +4,12 @@ This directory contains reference code for the NIPS 2018 paper,
 ["Simple, Distributed, and Accelerated Probabilistic Programming"](https://arxiv.org/abs/1811.02091).
 It's organized as follows:
 
+* [`examples/`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/examples):
+  Examples, including an implementation of the No-U-Turn Sampler.
+* [`notebooks/`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/notebooks):
+  Jupyter notebooks, including a companion notebook for the paper's examples.
 * [`*.py`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/):
   Edward2, an implementation of the idea.
-* [`Companion.ipynb`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/Companion.ipynb):
-  Jupyter notebook which expands on the paper's code snippets and examples.
-* [`no_u_turn_sampler/`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/no_u_turn_sampler):
-  Example implementation of the No-U-Turn Sampler.
 
 The implementation, Edward2, is a probabilistic programming language in
 TensorFlow and Python. It
@@ -197,7 +197,7 @@ takes just `coeffs` and `intercept` as arguments and pins the input `features`
 and output rv `outcomes` to its known values.
 
 ```python
-from simple_probabilistic_programming import no_u_turn_sampler
+from simple_probabilistic_programming.examples import no_u_turn_sampler
 
 tf.enable_eager_execution()
 

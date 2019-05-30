@@ -19,7 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from simple_probabilistic_programming.no_u_turn_sampler.nuts import kernel
+from simple_probabilistic_programming.examples.no_u_turn_sampler.nuts import kernel
 
 from tensorflow.python.util.all_util import remove_undocumented
 

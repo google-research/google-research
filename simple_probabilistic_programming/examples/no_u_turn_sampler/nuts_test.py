@@ -34,7 +34,7 @@ import scipy.stats
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from simple_probabilistic_programming import no_u_turn_sampler
+from simple_probabilistic_programming.examples import no_u_turn_sampler
 
 tfb = tfp.bijectors
 tfd = tfp.distributions
