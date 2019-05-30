@@ -39,8 +39,12 @@ setup(
         'six',
     ],
     extras_require={
-        'tensorflow': ['tensorflow>=1.9.0'],
-        'tensorflow_gpu': ['tensorflow-gpu>=1.9.0'],
+        'tensorflow': ['tensorflow>=1.9.0',
+                       'tensorflow-probability>=0.4.0'],
+        'tensorflow_gpu': ['tensorflow-gpu>=1.9.0',
+                           'tensorflow-probability-gpu>=0.4.0'],
+        'numpy': ['numpy>=1.7',
+                  'scipy>=1.0.0'],
         'tests': [
             'absl-py',
             'pytest',
