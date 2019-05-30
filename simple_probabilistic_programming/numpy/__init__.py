@@ -13,24 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Edward2 probabilistic programming language.
-
-For user guides, see:
-
-+ [Overview](
-   https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/README.md)
-+ [Upgrading from Edward to Edward2](
-   https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/Upgrading_From_Edward_To_Edward2.md)
-
-"""
+"""Edward2 probabilistic programming language with NumPy backend."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from simple_probabilistic_programming import numpy
-from simple_probabilistic_programming.program_transformations import make_log_joint_fn
-from simple_probabilistic_programming.random_variable import RandomVariable
+from simple_probabilistic_programming.numpy.program_transformations import make_log_joint_fn
 from simple_probabilistic_programming.trace import get_next_tracer
 from simple_probabilistic_programming.trace import trace
 from simple_probabilistic_programming.trace import traceable
@@ -43,28 +32,24 @@ from tensorflow.python.util.all_util import remove_undocumented  # pylint: disab
 
 
 _allowed_symbols = [
-    "RandomVariable",
     "condition",
     "get_next_tracer",
     "make_log_joint_fn",
-    "make_random_variable",
-    "numpy",
     "tape",
     "trace",
     "traceable",
     "__version__",
     "VERSION",
 ]
-# Make the TensorFlow backend be optional without mandatory dependencies.
+# Make the NumPy backend be optional without mandatory dependencies.
 try:
   # pylint: disable=g-import-not-at-top
-  from tensorflow_probability import distributions
-  from simple_probabilistic_programming import generated_random_variables
-  from simple_probabilistic_programming.generated_random_variables import *  # pylint: disable=wildcard-import
-  from simple_probabilistic_programming.generated_random_variables import make_random_variable
+  from scipy import stats
+  from simple_probabilistic_programming.numpy import generated_random_variables
+  from simple_probabilistic_programming.numpy.generated_random_variables import *  # pylint: disable=wildcard-import
   # pylint: enable=g-import-not-at-top
   for name in dir(generated_random_variables):
-    if name in sorted(dir(distributions)):
+    if name in sorted(dir(stats)):
       _allowed_symbols.append(name)
 except ImportError:
   pass

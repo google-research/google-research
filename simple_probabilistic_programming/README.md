@@ -28,11 +28,13 @@ To install the latest stable version, run
 pip install edward2
 ```
 
-Installing `edward2` does not automatically install or update
-TensorFlow. We recommend installing it via `pip install tensorflow` or `pip
-install tensorflow-gpu`. See TensorFlow’s
+Edward2 supports two backends: TensorFlow (the default) and NumPy. Installing
+`edward2` does not automatically install or update TensorFlow or NumPy. We
+recommend installing TensorFlow via `pip install edward2[tensorflow]` or
+`pip install edward2[tensorflow_gpu]`. See TensorFlow’s
 [installation instructions for details](https://www.tensorflow.org/install/).
-You may need to use TensorFlow's nightly package (`tf-nightly`).
+You may need to use TensorFlow's nightly package (`tf-nightly`). Alternatively,
+install NumPy via `pip install edward2[numpy]`.
 
 ## 1. Models as Probabilistic Programs
 
@@ -239,6 +241,26 @@ for _ in range(1000):
 The returned `coeffs_samples` and `intercept_samples` contain 1,000 posterior
 samples for `coeffs` and `intercept` respectively. They may be used, for
 example, to evaluate the model's posterior predictive on new data.
+
+## Using the NumPy backend
+
+Using alternative backends is as simple as the following:
+
+```python
+import edward2.numpy as ed
+```
+
+In the NumPy backend, Edward2 wraps SciPy distributions. For example, here's
+linear regression.
+
+```python
+def linear_regression(features, prior_precision):
+  beta = ph.norm.rvs(loc=0.,
+                     scale=1. / np.sqrt(prior_precision),
+                     size=features.shape[1])
+  y = ph.norm.rvs(loc=np.dot(features, beta), scale=1., size=1)
+  return y
+```
 
 ## References
 
