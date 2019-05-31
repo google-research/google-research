@@ -1,7 +1,7 @@
 ## Learning to Generalize from Sparse and Underspecified Rewards
 
-This directory is under construction and contains a preliminary release of code for
-Meta Reward Learning (*MeRL*) used for semantic parsing experiments in our paper
+This directory contains a preliminary release of code for
+Meta Reward Learning (*MeRL*) used for semantic parsing experiments in our ICML'19 paper
 [Learning to Generalize from Sparse and Underspecified Rewards](https://arxiv.org/abs/1902.07198).
 It is based on the open source
 implementation of Memory Augmented Program Synthesis ([*MAPO*](https://github.com/crazydonkey200/neural-symbolic-machines)).
@@ -27,14 +27,22 @@ Citing
 ------
 If you use this code in your research, please cite the following paper:
 
-> Agarwal, R., Liang, C., Schuurmans, D., & Norouzi, M. (2019).
+> Agarwal, R., Liang, C., Schuurmans, D. & Norouzi, M.. (2019).
 > Learning to Generalize from Sparse and Underspecified Rewards.
+> Proceedings of the 36th International Conference on Machine Learning,
+> in PMLR 97:130-140
 
-    @article{agarwal2019learning,
-      title={Learning to Generalize from Sparse and Underspecified Rewards},
-      author={Agarwal, Rishabh and Liang, Chen and Schuurmans, Dale and Norouzi, Mohammad},
-      journal={arXiv preprint arXiv:1902.07198},
-      year={2019}
+    @InProceedings{pmlr-v97-agarwal19e,
+      title = {Learning to Generalize from Sparse and Underspecified Rewards},
+      author = {Agarwal, Rishabh and Liang, Chen and Schuurmans, Dale and Norouzi, Mohammad},
+      booktitle = {Proceedings of the 36th International Conference on Machine Learning},
+      pages = {130--140},
+      year={2019},
+      editor = {Chaudhuri, Kamalika and Salakhutdinov, Ruslan},
+      volume = {97},
+      series = {Proceedings of Machine Learning Research},
+      publisher = {PMLR},
+      url = {http://proceedings.mlr.press/v97/agarwal19e.html},
     }
 
 ---
