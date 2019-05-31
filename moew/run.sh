@@ -20,7 +20,7 @@ virtualenv -p python3 .
 source ./bin/activate
 
 pip3 install -r moew/requirements.txt
-python3 -m moew/mnist \
+python3 -m moew.mnist \
   --num_alpha_batches 2 \
   --num_parallel_alphas 2 \
   --classifier_hidden_nodes 5
