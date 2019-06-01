@@ -26,6 +26,7 @@ env:
     - PROJECT="solver1d"
     - PROJECT="learnreg"
     - PROJECT="moew"
+    - PROJECT="m_theory"
     - PROJECT="wiki_split_bleu_eval"
 before_script:
   - sudo apt-get update -qq
