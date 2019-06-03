@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 r"""Training script for implementing ROAR benchmark.
 
 This script trains a ResNet 50 model on either:

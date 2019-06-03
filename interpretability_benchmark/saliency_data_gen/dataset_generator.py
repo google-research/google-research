@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 r"""This script allows generation of tfrecords.
 
 To run this script:
@@ -29,6 +30,7 @@ from absl import app
 from absl import flags
 import numpy as np
 from scipy import ndimage
+from six.moves import range
 import tensorflow as tf  # tf
 from interpretability_benchmark.saliency_data_gen.data_helper import DataIterator
 from interpretability_benchmark.saliency_data_gen.data_helper import image_to_tfexample
@@ -169,7 +171,7 @@ def generate_dataset(data_directory, dataset_name, num_shards, output_directory,
       saliency_method=saliency_method)
 
   counter = 0
-  for i in xrange(num_shards):
+  for i in range(num_shards):
     filename = filenames[i]
     data_path = data_directory + filename
     output_file = os.path.join(output_directory, filename)
