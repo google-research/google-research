@@ -9,11 +9,13 @@ It's organized as follows:
 * [`notebooks/`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/notebooks):
   Jupyter notebooks, including a companion notebook for the paper's examples.
 * [`*.py`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/):
-  Edward2, an implementation of the idea.
+  Edward2, in its core implementation. It features two backends:
+  [`numpy/`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/numpy)
+  and
+  [`tensorflow/`](https://github.com/google-research/google-research/blob/master/simple_probabilistic_programming/tensorflow).
 
-The implementation, Edward2, is a probabilistic programming language in
-TensorFlow and Python. It
-extends the TensorFlow ecosystem so that one can declare models as
+The implementation, Edward2, is a probabilistic programming language in Python.
+It extends the NumPy or TensorFlow ecosystem so that one can declare models as
 probabilistic programs and manipulate a model's computation for flexible
 training, latent variable inference, and predictions.
 
@@ -28,7 +30,8 @@ To install the latest stable version, run
 pip install edward2
 ```
 
-Edward2 supports two backends: TensorFlow (the default) and NumPy. Installing
+Edward2 supports two backends: TensorFlow (the default) and
+NumPy ([see below to activate](#using-the-numpy-backend)). Installing
 `edward2` does not automatically install or update TensorFlow or NumPy. We
 recommend installing TensorFlow via `pip install edward2[tensorflow]` or
 `pip install edward2[tensorflow_gpu]`. See TensorFlow’s
@@ -255,10 +258,10 @@ linear regression.
 
 ```python
 def linear_regression(features, prior_precision):
-  beta = ph.norm.rvs(loc=0.,
+  beta = ed.norm.rvs(loc=0.,
                      scale=1. / np.sqrt(prior_precision),
                      size=features.shape[1])
-  y = ph.norm.rvs(loc=np.dot(features, beta), scale=1., size=1)
+  y = ed.norm.rvs(loc=np.dot(features, beta), scale=1., size=1)
   return y
 ```
 
