@@ -155,7 +155,7 @@ def kronig_penney(grids, a, b, v0):
   return np.asarray(vp)
 
 
-def exp_hydrogenic(grids, A, k, a, Z=1):
+def exp_hydrogenic(grids, coeff, kap, alpha):
   """Exponential potential for 1D Hydrogenic atom.
 
   A 1D potential which can be used to mimic corresponding 3D
@@ -171,15 +171,15 @@ def exp_hydrogenic(grids, A, k, a, Z=1):
     grids: numpy array of grid points for evaluating 1d potential.
       (num_grids,)
     Z: the “charge” felt by an electron from the nucleus.
-    A: fitting parameter.
-    k: fitting parameter.
-    a: fitting parameter used to soften the cusp at the origin.
+    coeff: fitting parameter.
+    kap: fitting parameter.
+    alpha: fitting parameter used to soften the cusp at the origin.
 
   Returns:
     vp: Potential on grid.
       (num_grid,)
   """
-  vp = -Z * A * np.exp(-k * (grids ** 2 + a ** 2) ** .5)
+  vp = coeff * np.exp(-kap * (grids ** 2 + alpha ** 2) ** .5)
   return vp
 
 
@@ -292,7 +292,8 @@ class SolverBase(object):
   Subclasses should define solve_ground_state method.
   """
 
-  def __init__(self, grids, potential_fn, num_electrons=1, kpt=None, endpt=False):
+  def __init__(self, grids, potential_fn, num_electrons=1, k_point=None,
+               end_points=False):
     """Initialize the solver with potential function and grid.
 
     Args:
@@ -301,15 +302,16 @@ class SolverBase(object):
       potential_fn: potential function taking grids as argument.
       num_electrons: Integer, the number of electrons in the system. Must be
           greater or equal to 1.
-      kpt: the k-point in reciprocal space used to evaluate Schrodinger Equation
+      k_point: the k-point in reciprocal space used to evaluate Schrodinger Equation
           for the case of a periodic potential. K should be chosen to be within
           the first Brillouin zone.
-      endpt: if true, forward/backward finite difference methods will be used
+      end_points: if true, forward/backward finite difference methods will be used
           near the boundaries to ensure the wavefunction is zero at boundaries.
           This should only be used when the grid interval is purposefully small.
-          If false, all ghost points outside of the grid are set to zero. This should
-          be used whenever the grid interval is sufficiently large. Setting to false
-          also results in a faster computational time due to matrix symmetry.
+          If false, all ghost points outside of the grid are set to zero. This
+          should be used whenever the grid interval is sufficiently large.
+          Setting to false also results in a faster computational time due to
+          matrix symmetry.
 
     Raises:
       ValueError: If num_electrons is less than 1; or num_electrons is not
@@ -317,14 +319,14 @@ class SolverBase(object):
     """
     # 1d grids.
     self.grids = grids
-    self.k = kpt
-    self.endpt = endpt
+    self.k = k_point
+    self.end_points = end_points
     self.dx = get_dx(grids)
     self.num_grids = len(grids)
     # Potential on grid.
     self.vp = potential_fn(grids)
-    if self.k != None and self.endpt:
-      raise ValueError('Cannot specify endpt with a periodic potential.')
+    if self.k != None and self.end_points:
+      raise ValueError('Cannot specify end_points with a periodic potential.')
     if not isinstance(num_electrons, int):
       raise ValueError('num_electrons is not an integer.')
     elif num_electrons < 1:
@@ -355,7 +357,8 @@ class EigenSolver(SolverBase):
   """Represents the Hamiltonian as a matrix and diagonalizes it directly.
   """
 
-  def __init__(self, grids, potential_fn, num_electrons=1, kpt=None, endpt=False):
+  def __init__(self, grids, potential_fn, num_electrons=1, k_point=None,
+               end_points=False):
     """Initialize the solver with potential function and grid.
 
     Args:
@@ -364,7 +367,9 @@ class EigenSolver(SolverBase):
       potential_fn: potential function taking grids as argument.
       num_electrons: Integer, the number of electrons in the system.
     """
-    super(EigenSolver, self).__init__(grids, potential_fn, num_electrons, kpt, endpt)
+    super(EigenSolver, self).__init__(grids, potential_fn, num_electrons,
+                                      k_point,
+                                      end_points)
     self._set_matrices()
 
   def _set_matrices(self):
@@ -400,7 +405,7 @@ class EigenSolver(SolverBase):
       mat[idx[:-j], idx[:-j] + j] = A_n
 
     # end-point forward/backward difference formulas
-    if (self.endpt):
+    if (self.end_points):
       A_end = [15 / 4, -77 / 6, 107 / 6, -13., 61 / 12, -5 / 6]
       for i, A_n in enumerate(A_end):
         mat[0, i] = A_n
@@ -496,7 +501,7 @@ class EigenSolver(SolverBase):
     Returns:
       self
     """
-    if (self.endpt):
+    if (self.end_points):
       eigenvalues, eigenvectors = np.linalg.eig(self._h)
       idx = eigenvalues.argsort()
       eigenvalues = eigenvalues[idx]
@@ -515,7 +520,7 @@ class SparseEigenSolver(EigenSolver):
                grids,
                potential_fn,
                num_electrons=1,
-               additional_levels=5, kpt=None, endpt=False):
+               additional_levels=5, k_point=None, end_points=False):
     """Initialize the solver with potential function and grid.
 
     Args:
@@ -530,7 +535,8 @@ class SparseEigenSolver(EigenSolver):
     Raises:
       ValueError: If additional_levels is negative.
     """
-    super(SparseEigenSolver, self).__init__(grids, potential_fn, num_electrons, kpt, endpt)
+    super(SparseEigenSolver, self).__init__(grids, potential_fn, num_electrons,
+                                            k_point, end_points)
     if additional_levels < 0:
       raise ValueError('additional_levels is expected to be non-negative, but '
                        'got %d.' % additional_levels)
@@ -549,24 +555,24 @@ class SparseEigenSolver(EigenSolver):
       mat: Kinetic matrix.
         (num_grids, num_grids)
     """
-    # n-point formula
-    A = [-5 / 2, 4 / 3, -1 / 12]
-    mat = A[0] * sparse.eye(self.num_grids, format="lil")
-    for i, A_n in enumerate(A[1:]):
+    # 5-point formula
+    finite_diff_coeffs = [-5 / 2, 4 / 3, -1 / 12]
+    mat = finite_diff_coeffs[0] * sparse.eye(self.num_grids, format="lil")
+    for i, coeff in enumerate(finite_diff_coeffs[1:]):
       j = i + 1
-      elements = A_n * np.ones(self.num_grids - j)
+      elements = coeff * np.ones(self.num_grids - j)
       mat += sparse.diags(elements, offsets=j, format="lil")
       mat += sparse.diags(elements, offsets=-j, format="lil")
 
     # end-point forward/backward difference formulas
-    if (self.endpt):
-      A_end = [15 / 4, -77 / 6, 107 / 6, -13., 61 / 12, -5 / 6]
-      for i, A_n in enumerate(A_end):
-        mat[0, i] = A_n
-        mat[1, i + 1] = A_n
+    if (self.end_points):
+      forward_diff_coeffs = [15 / 4, -77 / 6, 107 / 6, -13., 61 / 12, -5 / 6]
+      for i, coeff in enumerate(forward_diff_coeffs):
+        mat[0, i] = coeff
+        mat[1, i + 1] = coeff
 
-        mat[-2, -2 - i] = A_n
-        mat[-1, -1 - i] = A_n
+        mat[-2, -2 - i] = coeff
+        mat[-1, -1 - i] = coeff
 
       mat[0, 0] = 0
       mat[1, 0] = 0
@@ -618,7 +624,7 @@ class SparseEigenSolver(EigenSolver):
     # eigsh will solve 5 more eigenstates than self.num_electrons to reduce the
     # numerical error for the last few eigenstates.
 
-    if (self.endpt):
+    if (self.end_points):
       eigenvalues, eigenvectors = linalg.eigs(
         self._h, k=self.num_electrons + self._additional_levels, which='SM')
       idx = eigenvalues.argsort()
