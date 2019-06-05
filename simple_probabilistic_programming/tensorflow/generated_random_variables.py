@@ -23,7 +23,7 @@ import functools
 import inspect
 
 from tensorflow_probability import distributions
-from tensorflow_probability.python.util import docstring as docstring_util
+from tensorflow_probability.python.internal import docstring_util
 from simple_probabilistic_programming.tensorflow.random_variable import RandomVariable
 from simple_probabilistic_programming.trace import traceable
 
