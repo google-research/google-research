@@ -1,0 +1,123 @@
+// Copyright 2019 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package eeg_modelling;
+
+import "google/protobuf/timestamp.proto";
+
+enum DataType {
+  DATATYPE_UNKNOWN = 0;
+  DATATYPE_EEG = 1;
+  DATATYPE_CTG = 2;
+  DATATYPE_ECG = 3;
+}
+
+// This message contains files that store the waveforms for the session.
+message Session {
+  // Identifier for this session.
+  optional string session_id = 1;
+  // Identifier for the patient.
+  optional string patient_id = 2;
+  // Filenames for waveforms belonging to this session.
+  repeated string filenames = 3;
+}
+
+// This message contains one segment of waveform data and its corresponding
+// metadata. This proto is designed for input data in .edf format.
+message Segment {
+  // Mapping back to original file path.
+  optional string filename = 1;
+  // Identifier for the session where this segments belongs. This is only unique
+  // within a patient.
+  optional string session_id = 2;
+  // Version of this data format.
+  optional int32 version = 3;
+  // Number of different channels in this segment file.
+  optional int32 num_signals = 4;
+  // Unique identifier for the patient.
+  optional string patient_id = 5;
+  // Identification for this recording.
+  optional string recording_id = 6;
+  // Number of data records in this segment.
+  optional int64 num_data_records = 7;
+  // Duration of each data record in seconds.
+  optional double data_record_duration_sec = 8;
+  // DEPRECATED in favor of start_time.
+  // Identifier for the segment. This is only unique within a session.
+  optional string segment_start_date = 9;
+  // DEPRECATED in favor of start_time.
+  optional string segment_start_time = 10;
+  // Samples for each channel.
+  message Channel {
+    // Identifier for this channel or label as in the edf spec.
+    // In this case of EEGs, this will be the lead.
+    optional string name = 1;
+    // Transducer type.
+    optional string transducer = 2;
+    // Units for the signal, e.g uV.
+    optional string physical_dimension = 3;
+    // Max and Min. values for the signal.
+    optional float physical_max = 4;
+    optional float physical_min = 5;
+    optional int32 digital_max = 6;
+    optional int32 digital_min = 7;
+    // Bitvalue and offset are computed from the physical and digital ranges.
+    optional double bitvalue = 8;
+    optional double offset = 9;
+    // Prefiltering applied to this signal, e.g HP:0.1Hz LP:75Hz.
+    optional string prefilter = 10;
+    // Number of samples in each data record.
+    optional int64 num_samples_in_data_record = 11;
+    // Number of samples in this segment file. This is the expected number and
+    // should match the size of the samples field unless there is
+    // inconsistency in the underlying data.
+    optional int64 num_samples = 12;
+    // Sampling rate in Hz.
+    optional float sampling_frequency_hz = 13;
+    // Data samples for this channel.
+    repeated float samples = 14;
+    // Indicates if the number of samples parsed from the original file is
+    // consistent with the expected num_samples as indicated by metadata.
+    optional bool num_samples_consistent = 15 [default = true];
+  }
+  // Data samples for this segment. This includes data for all channels.
+  repeated Channel channel = 11;
+  // Metadata about the patient to which this segment belongs.
+  optional PatientInfo patient_info = 12;
+  // Type of data primarily held in this segment. This is used to determine the
+  // group name later on when converting to tf.Examples.
+  optional DataType data_type = 13;
+  // Start time of the segment data.
+  optional google.protobuf.Timestamp start_time = 14;
+  // Unique id for the segment.  Used to map to annotations, etc.
+  optional string segment_id = 15;
+}
+
+// This message contains information associated with this patient.
+message PatientInfo {
+  // Unique identifier for the patient.
+  optional string patient_id = 1;
+  // Age of the patient.
+  optional float age = 2;
+
+  enum Gender {
+    UNSPECIFIED = 0;
+    MALE = 1;
+    FEMALE = 2;
+  }
+  // Gender of the patient.
+  optional Gender gender = 3;
+}
