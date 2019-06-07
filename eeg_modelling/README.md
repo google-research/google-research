@@ -7,10 +7,6 @@ Provide several tools to work with EEG data
 
   Display EEG data in a web interface
 
-* More to come...
-  - Example ML models demonstrating seizure detection
-  - EDF format tools
-
 
 ## Setup
 #### Pre requisites:
@@ -40,3 +36,7 @@ To run the viewer locally:
 
 1.  Run `./viewer.sh run -r`, and go to [http://localhost:5000](http://localhost:5000).
     For more options, see the [EEG Viewer readme](eeg_viewer/README.md)
+
+* [EDF Library](edf/README.md)
+This folder contains libraries to convert EEG from EDF format to
+tensorflow.Example proto format. Instructions in edf/README.md.
