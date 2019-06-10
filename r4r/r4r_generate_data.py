@@ -22,6 +22,7 @@ Link to the original R2R:
 from __future__ import print_function
 
 import argparse
+import collections
 import json
 import os
 
@@ -35,7 +36,9 @@ def main(args):
   Args:
     args: argparse containing paths to input and output files.
   """
-  print('Generating R4R data with a {} meter cutoff.'.format(args.cutoff))
+  print('******Generating R4R Data********')
+  print('  Distance threshold: {} meters'.format(args.distance_threshold))
+  print('  Heading threshold:  {} radians'.format(args.heading_threshold))
 
   def _connections_file_path(scan):
     return os.path.join(
@@ -47,6 +50,7 @@ def main(args):
 
   inputs = json.load(open(args.input_file_path))
   outputs = list()
+  filtered = collections.Counter()
 
   # Group by scan to save memory.
   scans = dict()
@@ -91,7 +95,20 @@ def main(args):
         first_target = first['path'][-1]
         second_source = second['path'][0]
 
-        if shortest_distance[first_target][second_source] < args.cutoff:
+        # Compute the end-start distance (meters).
+        distance = shortest_distance[first_target][second_source]
+
+        # Compute the absolute end-start heading difference (radians).
+        x, y, _ = pos[first['path'][-1]] - pos[first['path'][-2]]
+        heading = abs(second['heading'] - np.arctan2(y, x) % (2 * np.pi))
+
+        if (args.distance_threshold is not None
+            and distance > args.distance_threshold):
+          filtered['distance'] += 1
+        elif (args.heading_threshold is not None
+              and heading > args.heading_threshold):
+          filtered['heading'] += 1
+        else:
           value = dict()
           value['path'] = (
               first['path'][:-1]
@@ -123,17 +140,21 @@ def main(args):
     json.dump(outputs, f, indent=2, sort_keys=True, separators=(',', ': '))
 
   # Dataset summary metrics.
+  tot_instructions = np.sum([len(x['instructions']) for x in outputs])
   avg_distance = np.mean([x['distance'] for x in outputs])
   avg_path_len = np.mean([len(x['path']) for x in outputs])
   avg_sp_distance = np.mean([x['shortest_path_distance'] for x in outputs])
   avg_sp_path_len = np.mean([len(x['shortest_path']) for x in outputs])
 
   print('******Final Results********')
-  print('  Total paths generated: {}'.format(len(outputs)))
-  print('  Average path distance (meters): {}'.format(avg_distance))
-  print('  Average shortest path distance: {}'.format(avg_sp_distance))
-  print('  Average path length (steps): {}'.format(avg_path_len))
-  print('  Average shortest path length: {}'.format(avg_sp_path_len))
+  print('  Total instructions generated:    {}'.format(tot_instructions))
+  print('  Average path distance (meters):  {}'.format(avg_distance))
+  print('  Average shortest path distance:  {}'.format(avg_sp_distance))
+  print('  Average path length (steps):     {}'.format(avg_path_len))
+  print('  Average shortest path length:    {}'.format(avg_sp_path_len))
+  print('  Total paths generated:           {}'.format(len(outputs)))
+  print('  Total distance filtered paths:   {}'.format(filtered['distance']))
+  print('  Total heading filtered paths:    {}'.format(filtered['heading']))
 
 
 if __name__ == '__main__':
@@ -145,7 +166,7 @@ if __name__ == '__main__':
       help='Path to the Matterport simulator scan data.')
   parser.add_argument(
       '--connections_dir',
-      dest='scans_dir',
+      dest='connections_dir',
       required=True,
       help='Path to the Matterport simulator connection data.')
   parser.add_argument(
@@ -159,10 +180,19 @@ if __name__ == '__main__':
       required=True,
       help='Path to write the R4R output data.')
   parser.add_argument(
-      '--cutoff',
-      dest='cutoff',
+      '--distance_threshold',
+      dest='distance_threshold',
+      required=False,
       nargs='?',
       const=3.0,
       type=float,
-      help='Maximum end-start distance for joining a pair of R2R paths.')
+      help='Maximum end-start distance (meters) to join R2R paths.')
+  parser.add_argument(
+      '--heading_threshold',
+      dest='heading_threshold',
+      required=False,
+      nargs='?',
+      const=None,
+      type=float,
+      help='Maximum end-start heading difference (radians) to join R2R paths.')
   main(parser.parse_args())

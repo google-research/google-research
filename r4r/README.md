@@ -34,7 +34,7 @@ python r4r_generate_data.py \
   --output_file_path="path/to/R4R_train.json" \
   --connections_dir="path/to/connections" \
   --scans_dir="path/to/data/v1/scans" \
-  --cutoff="3.0"
+  --distance_threshold="3.0"
 ```
 
 Command line arguments for `r4r_generate_data.py`:
@@ -48,36 +48,54 @@ Command line arguments for `r4r_generate_data.py`:
     [here](https://github.com/peteanderson80/Matterport3DSimulator/tree/master/connectivity).
 *   `--scans_dir`: Path to the Matterport simulator directory, which can be
     downloaded [here](https://niessner.github.io/Matterport/).
-*   `--cutoff`: The maximum shortest-path distance between the final node of
-    first path and the first node of the second path for the two paths to be
-    joined. Conventionaly this is 3.0 meters
+*   `--distance_threshold`: The maximum shortest-path distance between the final
+    node of first path and the first node of the second path for the two paths
+    to be joined. Conventionaly this is 3.0 meters
     ([Anderson et al., 2018](https://arxiv.org/abs/1711.07280)).
+*   `--heading_threshold`: The maximum absolute heading angle difference in
+    radians between the final connection of first path and the initial heading
+    of the second path for the two paths to be joined. Conventionaly this check
+    is disabled.
 
 Running this script on the standard R2R training and validation data with a
-cutoff of 3.0 meters, the default used to create the R4R dataset in our paper,
-results in the following summary statistics:
+distance threshold of 3.0 meters and no heading threshold:
 
 ```
 ### R2R_train.json
 
-******Final Results******** Total paths generated: 25930 Total instructions
-generated: 233613 Average path distance (meters): 20.5901583255 Average shortest
-path distance: 10.5022469844 Average path length (steps): 12.0681064404 Average
-shortest path length: 6.4874662553
+******Final Results********
+  Total instructions generated:    233613
+  Average path distance (meters):  20.5901583255
+  Average shortest path distance:  10.5022469844
+  Average path length (steps):     12.0681064404
+  Average shortest path length:    6.4874662553
+  Total paths generated:           25930
+  Total distance filtered paths:   381581
+  Total heading filtered paths:    0
 
 ### R2R_val_seen.json
 
-******Final Results******** Total paths generated: 115 Total instructions
-generated: 1035 Average path distance (meters): 20.3605171182 Average shortest
-path distance: 11.1137253455 Average path length (steps): 12.2173913043 Average
-shortest path length: 7.0
+******Final Results********
+  Total instructions generated:    1035
+  Average path distance (meters):  20.3605171182
+  Average shortest path distance:  11.1137253455
+  Average path length (steps):     12.2173913043
+  Average shortest path length:    7.0
+  Total paths generated:           115
+  Total distance filtered paths:   2269
+  Total heading filtered paths:    0
 
 ### R2R_val_unseen.json
 
-******Final Results******** Total paths generated: 5018 Total instructions
-generated: 45162 Average path distance (meters): 20.222094624 Average shortest
-path distance: 10.057187751 Average path length (steps): 12.147070546 Average
-shortest path length: 6.40294938222
+******Final Results********
+  Total instructions generated:    45162
+  Average path distance (meters):  20.222094624
+  Average shortest path distance:  10.057187751
+  Average path length (steps):     12.147070546
+  Average shortest path length:    6.40294938222
+  Total paths generated:           5018
+  Total distance filtered paths:   63401
+  Total heading filtered paths:    0
 ```
 
 Note: this script requires NetworkX and was tested on version 2.3.
