@@ -33,7 +33,6 @@ python r4r_generate_data.py \
   --input_file_path="path/to/R2R_train.json" \
   --output_file_path="path/to/R4R_train.json" \
   --connections_dir="path/to/connections" \
-  --scans_dir="path/to/data/v1/scans" \
   --distance_threshold="3.0"
 ```
 
@@ -46,8 +45,6 @@ Command line arguments for `r4r_generate_data.py`:
 *   `--connections_dir`: Path to a directory containing graph connectivity
     files, which can be downloaded
     [here](https://github.com/peteanderson80/Matterport3DSimulator/tree/master/connectivity).
-*   `--scans_dir`: Path to the Matterport simulator directory, which can be
-    downloaded [here](https://niessner.github.io/Matterport/).
 *   `--distance_threshold`: The maximum shortest-path distance between the final
     node of first path and the first node of the second path for the two paths
     to be joined. Conventionaly this is 3.0 meters
