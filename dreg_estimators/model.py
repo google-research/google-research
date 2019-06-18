@@ -236,7 +236,7 @@ def iwae(p_z,
   if FLAGS.image_summary:
     best_index = tf.to_int32(tf.argmax(normalized_weights, axis=0))
     indices = tf.stack((best_index, tf.range(0, batch_size)), axis=-1)
-    best_images = tf.nn.sigmoid(tf.gather_nd(likelihood.logits, indices))
+    best_images = tf.gather_nd(likelihood.probs_parameter(), indices)
 
     if FLAGS.dataset == "struct_mnist":
       tf.summary.image("bottom_half",

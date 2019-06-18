@@ -1084,7 +1084,7 @@ def main(argv):
       assignments = tf.zeros([10, 1, FLAGS.num_codes])
       # Decode autoregressively.
       for d in range(FLAGS.latent_size):
-        logits = prior_fn(assignments).logits
+        logits = prior_fn(assignments).logits_parameter()
         latent_dim_logit = logits[0, :, tf.newaxis, d, :]
         sample = tfd.OneHotCategorical(
             logits=latent_dim_logit, dtype=tf.float32).sample()
