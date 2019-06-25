@@ -172,6 +172,15 @@ class RandomVariable(object):
       string += " numpy=%s" % _numpy_text(self.value, is_repr=True)
     return "<%s>" % string
 
+  def __getitem__(self, slices):
+    if self.sample_shape.as_list():
+      # Return an indexed Tensor instead of RandomVariable if sample_shape is
+      # non-scalar. Sample shapes can complicate how to index the distribution.
+      return self.value.__getitem__(slices)
+    distribution = self.distribution.__getitem__(slices)
+    value = self.value.__getitem__(slices)
+    return RandomVariable(distribution, value=value)
+
   def __hash__(self):
     return id(self)
 
@@ -280,9 +289,8 @@ def _tensor_conversion_function(v, dtype=None, name=None, as_ref=False):
   return v.value
 
 
-for operator in tf.Tensor.OVERLOADABLE_OPERATORS.union({"__iter__",
-                                                        "__bool__",
-                                                        "__nonzero__"}):
+for operator in tf.Tensor.OVERLOADABLE_OPERATORS.difference(
+    {"__getitem__"}).union({"__iter__", "__bool__", "__nonzero__"}):
   _overload_operator(RandomVariable, operator)
 
 tf_session.register_session_run_conversion_functions(  # enable sess.run, eval
