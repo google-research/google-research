@@ -57,6 +57,7 @@ def get_input(
     """Perform per image standardization on a single image."""
     image = example['inputs']
     image.set_shape([32, 32, 3])
+    image = tf.cast(image, tf.float32)
     example['inputs'] = tf.image.per_image_standardization(image)
     return example
 
@@ -68,6 +69,7 @@ def get_input(
       if not augmented: dataset = dataset.map(map_func=standardization)
     else:
       dataset = prob.dataset(mode)
+      dataset = dataset.map(map_func=standardization)
 
     dataset = dataset.batch(batch_size)
     dataset = dataset.repeat(repeat_num)
