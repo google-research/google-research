@@ -202,8 +202,7 @@ def vocab_lookup(item, vocab, unknown):
     result: same structure as item, with the integer or
       string replaced by the corresponding lookup in the Vocab.
   """
-  if (isinstance(item, str) or isinstance(item, int) or
-      isinstance(item, unicode)):
+  if isinstance(item, (int, six.string_types)):
     result = vocab.get(item, unknown)
   elif is_sequence(item) or isinstance(item, np.ndarray):
     result = [vocab_lookup(x, vocab, unknown) for x in item]
