@@ -210,7 +210,7 @@ class RNNSeqModel(SeqModel):
       # val_targets, val_weights and val_context
       val_feed_dict['val_batch_size'] = len(val_feed_dict['val_inputs'])
 
-    for _ in xrange(n_epochs):
+    for _ in six.moves.xrange(n_epochs):
       t1 = time.time()
       fetch_list = [self._loss, self._count, self._policy_ent]
       if update:
