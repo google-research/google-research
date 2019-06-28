@@ -17,6 +17,7 @@
 import re
 from babel import numbers
 import numpy as np
+from six.moves import string_types, text_type
 from meta_reward_learning.semantic_parsing.table.wtq \
 import evaluator
 
@@ -92,7 +93,7 @@ def wikisql_normalize(val):
   """Normalize the val for wikisql experiments."""
   if (isinstance(val, float) or isinstance(val, int)):
     return val
-  elif isinstance(val, str) or isinstance(val, unicode):
+  elif isinstance(val, string_types):
     try:
       val = numbers.parse_decimal(val, locale='en_US')
     except numbers.NumberFormatError:
@@ -124,7 +125,7 @@ def wikisql_score(prediction, answer):
 # WikiTableQuestions evaluation function.
 def wtq_score(prediction, answer):
   processed_answer = evaluator.target_values_map(*answer)
-  correct = evaluator.check_prediction([unicode(p) for p in prediction],
+  correct = evaluator.check_prediction([text_type(p) for p in prediction],
                                        processed_answer)
   if correct:
     return 1.0
