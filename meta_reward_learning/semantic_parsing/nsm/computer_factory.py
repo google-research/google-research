@@ -22,6 +22,7 @@ import os
 import pprint
 import re
 import sys
+import six
 from meta_reward_learning.semantic_parsing.nsm import data_utils
 
 END_TK = data_utils.END_TK  # End of program token
@@ -295,7 +296,7 @@ class LispInterpreter(object):
       self.assisted = assisted
       while True:
         try:
-          tokens = self.tokenize(raw_input(prompt))
+          tokens = self.tokenize(six.moves.input(prompt))
           for tk in tokens:
             result = self.read_token(tk)
           print(result['value'])
@@ -410,7 +411,7 @@ class Namespace(collections.OrderedDict):
 
 
 def is_symbol(x):
-  return isinstance(x, str) or isinstance(x, unicode)
+  return isinstance(x, six.string_types)
 
 
 # pylint: disable=redefined-builtin
