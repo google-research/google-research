@@ -87,25 +87,25 @@ def normalize(x):
       c for c in unicodedata.normalize('NFKD', x)
       if unicodedata.category(c) != 'Mn')
   # Normalize quotes and dashes
-  x = re.sub(ur'[‘’´`]', "'", x)
-  x = re.sub(ur'[“”]', '"', x)
-  x = re.sub(ur'[‐‑‒–—−]', '-', x)
+  x = re.sub(u'[‘’´`]', "'", x)
+  x = re.sub(u'[“”]', '"', x)
+  x = re.sub(u'[‐‑‒–—−]', '-', x)
   while True:
     old_x = x
     # Remove citations
-    x = re.sub(ur'((?<!^)\[[^\]]*\]|\[\d+\]|[•♦†‡*#+])*$', '',
+    x = re.sub(u'((?<!^)\[[^\]]*\]|\[\d+\]|[•♦†‡*#+])*$', '',
                x.strip())
     # Remove details in parenthesis
-    x = re.sub(ur'(?<!^)( \([^)]*\))*$', '', x.strip())
+    x = re.sub(u'(?<!^)( \([^)]*\))*$', '', x.strip())
     # Remove outermost quotation mark
-    x = re.sub(ur'^"([^"]*)"$', r'\1', x.strip())
+    x = re.sub(u'^"([^"]*)"$', r'\1', x.strip())
     if x == old_x:
       break
   # Remove final '.'
   if x and x[-1] == '.':
     x = x[:-1]
   # Collapse whitespaces and convert to lower case
-  x = re.sub(ur'\s+', ' ', x, flags=re.U).lower().strip()
+  x = re.sub(u'\s+', ' ', x, flags=re.U).lower().strip()
   return x
 
 
