@@ -16,8 +16,8 @@
 set -e
 set -x
 
-virtualenv -p python2.7 "$HOME/merl_env"
-source "$HOME/merl_env/bin/activate"
+# virtualenv -p python2.7 "$HOME/merl_env"
+# source "$HOME/merl_env/bin/activate"
 
 DATA_LOCATION="$HOME/projects/data/"
 mkdir -p $DATA_LOCATION
