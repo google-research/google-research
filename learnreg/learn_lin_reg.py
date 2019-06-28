@@ -28,7 +28,7 @@ import itertools
 from scipy import optimize
 import six
 from six.moves import xrange
-from typing import Iterable, List, Mapping, Sequence, Text, Tuple
+from typing import Iterable, List, Mapping, Optional, Sequence, Text, Tuple
 
 
 # Types used in annotations.
