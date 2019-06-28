@@ -23,6 +23,7 @@ import pprint
 
 from bloom_filter import BloomFilter
 import numpy as np
+from six import string_types, text_type
 import tensorflow as tf
 from meta_reward_learning.semantic_parsing.nsm import computer_factory
 from meta_reward_learning.semantic_parsing.nsm import data_utils
@@ -40,7 +41,7 @@ def create_features(env, program_tks, max_n_exp):
   ns = env.interpreter.namespace
   # Variables already present in the namespace i.e. entities and column names
   ns_vars = [tk for tk in variables if tk in ns]
-  str_vals = [unicode(ns[tk]['value']) for tk in ns_vars]
+  str_vals = [text_type(ns[tk]['value']) for tk in ns_vars]
   vars_to_val = dict(zip(ns_vars, str_vals))
 
   # Tokens which represent entities
@@ -133,7 +134,7 @@ def value_to_index(entities):
   """
   val_to_ent = {}
   for index, e in enumerate(entities):
-    val = unicode(e['value'])
+    val = text_type(e['value'])
     if val in val_to_ent:
       val_to_ent[val].append(index)
     else:
@@ -250,7 +251,7 @@ class QAProgrammingEnv(Environment):
       self.id_feature_dict[id] = [0]
       if name in self.interpreter.namespace:
         val = self.interpreter.namespace[name]['value']
-        if ((isinstance(val, str) or isinstance(val, unicode)) and
+        if ((isinstance(val, string_types) and
             val in prop_features):
           self.id_feature_dict[id] = prop_features[val]
 
