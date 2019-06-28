@@ -22,6 +22,7 @@ import os
 import time
 
 import numpy as np
+from six.moves import xrange
 import tensorflow as tf
 
 from meta_reward_learning.semantic_parsing.nsm import data_utils
