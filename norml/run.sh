@@ -22,7 +22,7 @@ source ./bin/activate
 
 # https://github.com/openai/mujoco-py#ubuntu-installtion-troubleshooting
 sudo apt install libosmesa6-dev libgl1-mesa-glx libglfw3
-# sudo ln -s /usr/lib/x86_64-linux-gnu/libGL.so.1 /usr/lib/x86_64-linux-gnu/libGL.so
+sudo ln -s /usr/lib/x86_64-linux-gnu/libGL.so.1 /usr/lib/x86_64-linux-gnu/libGL.so
 
 pip install -r norml/requirements.txt
 pip install mujoco-py>=2.0.2.0
