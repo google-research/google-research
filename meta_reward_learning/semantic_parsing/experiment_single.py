@@ -27,6 +27,7 @@ from absl import app
 from absl import flags
 
 import numpy as np
+from six.moves import xrange
 import tensorflow as tf
 from tensorflow import gfile
 
