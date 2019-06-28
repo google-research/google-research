@@ -21,6 +21,7 @@ from __future__ import print_function
 
 from absl import app
 from absl import flags
+from six.moves import xrange
 import tensorflow as tf
 
 from large_margin import margin_loss
