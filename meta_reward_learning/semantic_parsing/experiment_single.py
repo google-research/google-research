@@ -27,7 +27,7 @@ from absl import app
 from absl import flags
 
 import numpy as np
-from six.moves import xrange
+import six
 import tensorflow as tf
 from tensorflow import gfile
 
@@ -211,7 +211,7 @@ def unpack_program(program_str, env):
   processed_program = []
   for tk in program_str.split():
     if tk[:1] == 'v' and tk in ns:
-      processed_program.append(unicode(ns[tk]['value']))
+      processed_program.append(six.text_type(ns[tk]['value']))
     else:
       processed_program.append(tk)
   return ' '.join(processed_program)
@@ -477,7 +477,7 @@ def init_experiment(fns,
     if FLAGS.use_pretrained_embeddings:
       tf.logging.info('Using pretrained embeddings!')
       pretrained_embeddings = []
-      for i in xrange(len(en_vocab.special_tks), en_vocab.size):
+      for i in six.moves.xrange(len(en_vocab.special_tks), en_vocab.size):
         pretrained_embeddings.append(
             utils.average_token_embedding(
                 utils.find_tk_in_model(
@@ -592,7 +592,7 @@ def fns_meta_learn():
   else:
     fns_val = [
         get_train_shard_path(i)
-        for i in xrange(FLAGS.shard_end - FLAGS.num_val_shards, FLAGS.shard_end)
+        for i in six.moves.xrange(FLAGS.shard_end - FLAGS.num_val_shards, FLAGS.shard_end)
     ]
   return fns_val
 
@@ -661,8 +661,8 @@ def run_experiment():
     print('Start learner.')
     fns = [
         get_train_shard_path(i)
-        for i in xrange(FLAGS.shard_start, FLAGS.shard_end -
-                        FLAGS.num_val_shards)
+        for i in six.moves.xrange(FLAGS.shard_start, FLAGS.shard_end -
+                                  FLAGS.num_val_shards)
     ]
     fns_val = fns_meta_learn() if FLAGS.meta_learn else None
     learner = Learner('Learner', fns, fns_val=fns_val)
@@ -857,7 +857,7 @@ class SampleGenerator():
               i, j, len(batch_envs)))
           t3 = time.time()
           n_explore = 0
-          for _ in xrange(FLAGS.n_explore_samples):
+          for _ in six.moves.xrange(FLAGS.n_explore_samples):
             # Sampling (might be greedy) from the current policy
             # at a temparture of 1.
             explore_samples = agent.generate_samples(
@@ -879,7 +879,7 @@ class SampleGenerator():
                 if not replay_buffer.has_found_solution(env.name)
             ]
             if hard_envs:
-              for _ in xrange(FLAGS.n_extra_explore_for_hard):
+              for _ in six.moves.xrange(FLAGS.n_extra_explore_for_hard):
                 explore_samples = agent.generate_samples(
                     hard_envs,
                     n_samples=1,
@@ -1322,7 +1322,7 @@ class Learner(object):
         if FLAGS.use_trainer_prob:
           train_samples = agent.update_replay_prob(
               train_samples, min_replay_weight=FLAGS.min_replay_weight)
-        for _ in xrange(FLAGS.n_opt_step):
+        for _ in six.moves.xrange(FLAGS.n_opt_step):
           agent.train(
               train_samples,
               val_samples=val_samples,
