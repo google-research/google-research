@@ -27,7 +27,7 @@ from absl import flags
 import numpy as np
 import six
 from six.moves import xrange
-from typing import Dict, List
+from typing import Dict, Iterable, List, Tuple
 
 from learnreg import tuning_algorithms
 
