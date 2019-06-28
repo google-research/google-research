@@ -24,7 +24,7 @@ from __future__ import print_function
 
 import random
 import six
-from typing import Generator, Iterable, List, Mapping, Sequence, Text, Tuple
+from typing import Callable, Generator, Iterable, Iterator, List, Mapping, Sequence, Text, Tuple
 
 from learnreg import learn_lin_reg
 
@@ -39,14 +39,14 @@ class TuningAlgorithm(object):
   """Base class for algorithms for tuning regularization hyperparameters."""
 
   def get_initial_hparam_dicts(self):
-    # type: (...) -> Iterable[ParameterMapping]:
+    # type: (...) -> Iterable[ParameterMapping]
     raise NotImplementedError()
 
   def update(
       self,
       pairs  # type: List[Tuple[ParameterMapping, DataPoint]]
   ):
-    # type: (...) -> Iterable[ParameterMapping]:
+    # type: (...) -> Iterable[ParameterMapping]
     raise NotImplementedError()
 
   def run(self,
