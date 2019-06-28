@@ -17,7 +17,7 @@
 import re
 from babel import numbers
 import numpy as np
-from six.moves import string_types, text_type
+from six import string_types, text_type
 from meta_reward_learning.semantic_parsing.table.wtq \
 import evaluator
 
