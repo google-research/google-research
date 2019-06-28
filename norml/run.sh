@@ -20,6 +20,10 @@ set -x
 virtualenv -p python3 .
 source ./bin/activate
 
+# https://github.com/openai/mujoco-py#ubuntu-installtion-troubleshooting
+sudo apt install libosmesa6-dev libgl1-mesa-glx libglfw3
+# sudo ln -s /usr/lib/x86_64-linux-gnu/libGL.so.1 /usr/lib/x86_64-linux-gnu/libGL.so
+
 pip install -r norml/requirements.txt
-pip install mujoco-py>=2.0.2.0
+
 python -m norml.eval_maml --model_dir example_checkpoints/move_point_rotate_sparse/norml/all_weights.ckpt-991 --output_dir /usr/local/google/home/yxyang/temp --render=False --num_finetune_steps 1 --test_task_index 0 --eval_finetune=True
