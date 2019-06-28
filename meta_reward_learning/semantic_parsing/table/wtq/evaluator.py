@@ -60,6 +60,7 @@ A target item T matches a predicted item P if one of the following is true:
 3. T can be interpreted as a date T_D, P is a date, and P = T_D
    (exact match on all fields; e.g., xx-01-12 and 1990-01-12 do not match)
 """
+from __future__ import print_function
 __version__ = '1.0.2'
 
 from abc import ABCMeta
@@ -72,15 +73,20 @@ import os
 import re
 import sys
 import unicodedata
-from six import string_types
+from six import string_types, text_type
 from tensorflow import gfile
+
+try:
+  long
+except NameError:
+  long = int
 
 ################ String Normalization ################
 
 
 def normalize(x):
   """String Normalization."""
-  if not isinstance(x, unicode):
+  if not isinstance(x, text_type):
     x = x.decode('utf8', errors='ignore')
   # Remove diacritics
   x = ''.join(
@@ -167,7 +173,7 @@ class NumberValue(Value):
     else:
       self._amount = float(amount)
     if not original_string:
-      self._normalized = unicode(self._amount)
+      self._normalized = text_type(self._amount)
     else:
       self._normalized = normalize(original_string)
     self._hash = hash(self._amount)
@@ -402,7 +408,7 @@ def main():
   target_values_map = {}
   for filename in os.listdir(args.tagged_dataset_path):
     filename = os.path.join(args.tagged_dataset_path, filename)
-    print >> sys.stderr, 'Reading dataset from', filename
+    print('Reading dataset from', filename, file=sys.stderr)
     with codecs.getreader('utf-8')(gfile.GFile(filename, 'r')) as fin:
       header = fin.readline().rstrip('\n').split('\t')
       for line in fin:
@@ -412,29 +418,29 @@ def main():
         canon_strings = tsv_unescape_list(stuff['targetCanon'])
         target_values_map[ex_id] = to_value_list(original_strings,
                                                  canon_strings)
-  print >> sys.stderr, 'Read', len(target_values_map), 'examples'
+  print('Read', len(target_values_map), 'examples', file=sys.stderr)
 
-  print >> sys.stderr, 'Reading predictions from', args.prediction_path
+  print('Reading predictions from', args.prediction_path, file=sys.stderr)
   num_examples, num_correct = 0, 0
   with codecs.getreader('utf-8')(gfile.GFile(args.prediction_path, 'r')) as fin:
     for line in fin:
       line = line.rstrip('\n').split('\t')
       ex_id = line[0]
       if ex_id not in target_values_map:
-        print 'WARNING: Example ID "%s" not found' % ex_id
+        print('WARNING: Example ID "%s" not found' % ex_id)
       else:
         target_values = target_values_map[ex_id]
         predicted_values = to_value_list(line[1:])
         correct = check_denotation(target_values, predicted_values)
-        print u'%s\t%s\t%s\t%s' % (ex_id, correct, target_values,
-                                   predicted_values)
+        print(u'%s\t%s\t%s\t%s' % (ex_id, correct, target_values,
+                                   predicted_values))
         num_examples += 1
         if correct:
           num_correct += 1
-  print >> sys.stderr, 'Examples:', num_examples
-  print >> sys.stderr, 'Correct:', num_correct
-  print >> sys.stderr, 'Accuracy:', round(
-      (num_correct + 1e-9) / (num_examples + 1e-9), 4)
+  print('Examples:', num_examples, file=sys.stderr)
+  print('Correct:', num_correct, file=sys.stderr)
+  print('Accuracy:', round(
+      (num_correct + 1e-9) / (num_examples + 1e-9), 4), file=sys.stderr)
 
 
 # Added utility functions for computing preprocessing answers and computing
