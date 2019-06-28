@@ -21,8 +21,9 @@ from __future__ import print_function
 
 import ast  # For ast.literal_eval() only.
 import glob
+import mpmath
+import numpy
 import os
-import mppath
 import pdb  # To simplify interactive debugging only.
 import pprint
 import time
@@ -36,9 +37,6 @@ from dim4.so8_supergravity_extrema.code import distillation
 from dim4.so8_supergravity_extrema.code import scalar_sector_mpmath
 from dim4.so8_supergravity_extrema.code import scalar_sector_tensorflow
 from dim4.so8_supergravity_extrema.code import symmetries
-
-import mpmath
-import numpy
 
 
 def scan_for_solutions(seed, scale, num_iterations, output_basename):
