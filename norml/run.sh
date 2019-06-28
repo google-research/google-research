@@ -20,5 +20,6 @@ set -x
 virtualenv -p python3 .
 source ./bin/activate
 
-pip install numpy -r norml/requirements.txt
+pip install numpy>=1.16.2
+pip install -r norml/requirements.txt
 python -m norml.eval_maml --model_dir example_checkpoints/move_point_rotate_sparse/norml/all_weights.ckpt-991 --output_dir /usr/local/google/home/yxyang/temp --render=False --num_finetune_steps 1 --test_task_index 0 --eval_finetune=True
