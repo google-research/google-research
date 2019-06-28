@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# -*- coding: utf-8 -*-
+from __future__ import print_function
+
 """Copy and extended from WikiTableQuestions dataset release."""
 u"""Official Evaluator for WikiTableQuestions Dataset
 
@@ -60,7 +61,6 @@ A target item T matches a predicted item P if one of the following is true:
 3. T can be interpreted as a date T_D, P is a date, and P = T_D
    (exact match on all fields; e.g., xx-01-12 and 1990-01-12 do not match)
 """
-from __future__ import print_function
 __version__ = '1.0.2'
 
 from abc import ABCMeta
