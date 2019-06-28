@@ -251,8 +251,7 @@ class QAProgrammingEnv(Environment):
       self.id_feature_dict[id] = [0]
       if name in self.interpreter.namespace:
         val = self.interpreter.namespace[name]['value']
-        if ((isinstance(val, string_types) and
-            val in prop_features):
+        if isinstance(val, string_types) and val in prop_features:
           self.id_feature_dict[id] = prop_features[val]
 
     # Create features to make calculation of score function easy
