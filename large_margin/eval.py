@@ -23,6 +23,7 @@ import time
 from absl import app
 from absl import flags
 import numpy as np
+from six.moves import xrange
 import tensorflow as tf
 
 from large_margin import margin_loss
