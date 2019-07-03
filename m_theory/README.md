@@ -16,7 +16,7 @@ domain that can/should be studied numerically.
 
 # Structure
 
-  * 4d/so8_supergravity_extrema/
+  * dim4/so8_supergravity_extrema/
     Code for the scalar potential of the de Wit - Nicolai model,
     SO(8)-gauged N=8 Supergravity in 3+1-dimensional spacetime.
 
@@ -26,6 +26,13 @@ domain that can/should be studied numerically.
     Demo: This will install and run a small demo search for a few solutions,
     plus analysis of one of those obtained. Output (providing location data and
     particle properties) will be in the directory "EXAMPLE_SOLUTIONS".
+
+  * dim5/cgr/cgr_theory/
+    Code for analyzing the potentials of the models constructed in
+    arXiv:1906.08900 by compactifying maximal D=7 supergravity to D=5.
+
+    Run via: python -i -m dim5.cgr.cgr_theory {problem_name}
+    with {problem_name} one of: dim7, cgr-S2, cgr-R2, cgr-H2.
 
 
 ```shell
