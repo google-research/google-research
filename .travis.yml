@@ -30,6 +30,7 @@ env:
     - PROJECT="m_theory"
     - PROJECT="wiki_split_bleu_eval"
     - PROJECT="genomics_ood"
+    - PROJECT="towards_gan_benchmarks"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip
