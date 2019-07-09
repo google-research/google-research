@@ -31,6 +31,7 @@ env:
     - PROJECT="wiki_split_bleu_eval"
     - PROJECT="genomics_ood"
     - PROJECT="towards_gan_benchmarks"
+    - PROJECT="bam"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip
