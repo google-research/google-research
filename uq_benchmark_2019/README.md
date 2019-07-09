@@ -7,7 +7,7 @@ which benchmarks a handful of methods for training models with robust uncertaint
 
 To facilitate follow-up work, we also make available all of our trained
 models alongw ith their predictions on each dataset at the GCS bucket:
-`gs://uq_benchmark_2019/`.
+[`uq-benchmark-2019`](https://console.cloud.google.com/storage/browser/uq-benchmark-2019).
 
 The study compared the following methods and datasets:
 
