@@ -32,6 +32,7 @@ env:
     - PROJECT="genomics_ood"
     - PROJECT="towards_gan_benchmarks"
     - PROJECT="bam"
+    - PROJECT="explaining_risk_increase"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip
