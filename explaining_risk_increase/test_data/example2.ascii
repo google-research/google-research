@@ -1,0 +1,118 @@
+# proto-file: third_party/tensorflow/core/example/example.proto
+# proto-message: SequenceExample
+context {
+  feature: {
+    key  : "Patient.gender"
+    value: {
+      bytes_list: {
+        value: [ "male" ]
+      }
+    }
+  }
+  feature: {
+    key  : "label.in_hospital_death.class"
+    value: {
+      bytes_list: {
+      }
+    }
+  }
+  feature: {
+    key  : "Patient.birthDate"
+    value: {
+      int64_list: {
+        value: [ -1167580800 ]
+      }
+    }
+  }
+  feature: {
+    key  : "timestamp"
+    value: {
+      int64_list: {
+        value: [ 1528917657 ]
+      }
+    }
+  }
+  feature: {
+    key  : "sequenceLength"
+    value: {
+      int64_list: {
+        value: [ 3 ]
+      }
+    }
+  }
+}
+feature_lists {
+  feature_list {
+    key: "Observation.code"
+    value {
+      feature {
+        bytes_list {
+          value: "loinc:1"
+        }
+      }
+      feature {
+        bytes_list { }
+      }
+      feature {
+        bytes_list {
+          value: "loinc:4"
+        }
+      }
+    }
+  }
+  feature_list {
+    key: "Observation.code.harmonized:valueset-observation-name"
+    value {
+      feature {
+        bytes_list {
+          value: "pulse"
+        }
+      }
+      feature {
+        bytes_list { }
+      }
+      feature {
+        bytes_list { }
+      }
+    }
+  }
+  feature_list {
+    key: "Observation.value.quantity.value"
+    value {
+      feature {
+        float_list {
+          value: 1.0
+        }
+      }
+      feature {
+        float_list {
+        }
+      }
+      feature {
+        float_list {
+          value: 2.0
+        }
+      }
+    }
+  }
+  feature_list {
+    key: "eventId"
+    value {
+      feature {
+        int64_list {
+          value: 1528917645
+        }
+      }
+      feature {
+        int64_list {
+          value: 1528917646
+        }
+      }
+      feature {
+        int64_list {
+          value: 1528917647
+        }
+      }
+    }
+  }
+}
