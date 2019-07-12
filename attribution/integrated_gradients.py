@@ -170,18 +170,22 @@ def AddIntegratedGradientsOps(graph,
       combined_feed_dict = input_feed_dict.copy()
       if baseline_feed_dict is None:
         baseline_feed_dict = input_feed_dict
-      for tensor, feed_value in baseline_feed_dict.items():
-        if isinstance(tensor, tf.Tensor):
+      for key, feed_value in baseline_feed_dict.items():
+        if isinstance(key, tf.Tensor):
+          combined_feed_dict[baseline_transform_info.transformed(key)] = (
+              feed_value)
+        elif isinstance(key, unicode):
+          tensor = graph.get_tensor_by_name(key.decode())
           combined_feed_dict[baseline_transform_info.transformed(tensor)] = (
               feed_value)
-        elif isinstance(tensor, tf.SparseTensor):
+        elif isinstance(key, tf.SparseTensor):
           sparse_transformed_tensor = tf.SparseTensor(
-              baseline_transform_info.transformed(tensor.indices),
-              baseline_transform_info.transformed(tensor.values),
-              baseline_transform_info.transformed(tensor.dense_shape))
+              baseline_transform_info.transformed(key.indices),
+              baseline_transform_info.transformed(key.values),
+              baseline_transform_info.transformed(key.dense_shape))
           combined_feed_dict[sparse_transformed_tensor] = feed_value
         else:
-          raise ValueError('Invalid Entry %s in Feed Dict.' % tensor)
+          raise ValueError('Invalid key type %s in Feed Dict.' % type(key))
       return combined_feed_dict
 
     attribution_hooks['create_combined_feed_dict'] = CreateCombinedFeedDict
