@@ -58,7 +58,7 @@ def pool2d_layer(inputs, pool_type, pool_size=2, pool_stride=2):
 
 
 class MNISTNetwork(object):
-  """MNIST model. """
+  """MNIST model."""
 
   def __init__(self, config):
     self.num_classes = config.num_classes

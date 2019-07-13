@@ -33,8 +33,8 @@ class MarginLossTest(tf.test.TestCase, parameterized.TestCase):
 
   @parameterized.parameters(
       (i, j, k) for i in [1, 2, np.inf] for j in [1, 5]
-      for k in ["all_top_k", "worst_top_k", "average_top_k"])
-  def test_loss(self, dist_norm, top_k, loss_type):
+      for k in [True, False])
+  def test_loss(self, dist_norm, top_k, worst_case_loss):
     image_shape = (12, 12, 1)
     num_classes = 10
     batch_size = 3
@@ -66,7 +66,7 @@ class MarginLossTest(tf.test.TestCase, parameterized.TestCase):
         alpha_factor=4,
         top_k=top_k,
         dist_norm=dist_norm,
-        loss_type=loss_type)
+        worst_case_loss=worst_case_loss)
     var_list = tf.global_variables()
     init = tf.global_variables_initializer()
 
