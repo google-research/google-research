@@ -17,9 +17,9 @@ If you use this code, please cite our paper:
 
 The code is implemented in Tensorflow and the required packages are listed in `requirements.txt`.
 
-## Evaluation on Darnstadt Noise Dataset
+## Evaluation on Darmstadt Noise Dataset
 
-In our paper, we evaluate on the [Darnstadt Noise Dataset](https://noise.visinf.tu-darmstadt.de/). Here are our [Darmstadt results](http://timothybrooks.com/tech/unprocessing/darmstadt-supp/). We highly recommend this dataset for measuring denoise performance on real photographs, as the dataset contains real noisy images, which after denoising and upon submission to the Darmstadt website will be compared against real clean ground truth. Here are instructions to [download this dataset](https://noise.visinf.tu-darmstadt.de/downloads). You'll also need to download [our trained models](https://drive.google.com/file/d/1MTFr-uaIKv5aWe7nXlhTaHBestLUiDLZ/view?usp=sharing) and unzip them into ./models/. Once downloaded, replace the provided `dnd_denoise.py` file with the version in this repository and follow the instructions below to run an unprocessing denoiser on this data.
+In our paper, we evaluate on the [Darmstadt Noise Dataset](https://noise.visinf.tu-darmstadt.de/). Here are our [Darmstadt results](http://timothybrooks.com/tech/unprocessing/darmstadt-supp/). We highly recommend this dataset for measuring denoise performance on real photographs, as the dataset contains real noisy images, which after denoising and upon submission to the Darmstadt website will be compared against real clean ground truth. Here are instructions to [download this dataset](https://noise.visinf.tu-darmstadt.de/downloads). You'll also need to download [our trained models](https://drive.google.com/file/d/1MTFr-uaIKv5aWe7nXlhTaHBestLUiDLZ/view?usp=sharing) and unzip them into ./models/. Once downloaded, replace the provided `dnd_denoise.py` file with the version in this repository and follow the instructions below to run an unprocessing denoiser on this data.
 
 ```
 $ python dnd_denoise.py \
@@ -43,7 +43,7 @@ $ python train.py \
 
 ## Training for Different Cameras
 
-Our models are trained to work best on the Darnstadt Noise Dataset, which contains 4 cameras of various types, and low to moderate amounts of noise. They generalize well to other images, such as those from the HDR+ Burst Photography Dataset. However, if you would like to train a denoiser to work best on images from different cameras, you may wish to modify `random_ccm()`, `random_gains()` and `random_noise_levels()` in `py/unprocess.py` to best match the distribution of image metadata from your cameras. See our paper for details of how we modeled such metadata for Darmstadt. If your cameras have a special Bayer pattern outside of those supported, you will also need to modify `mosaic()` and `demosaic()` to match.
+Our models are trained to work best on the Darmstadt Noise Dataset, which contains 4 cameras of various types, and low to moderate amounts of noise. They generalize well to other images, such as those from the HDR+ Burst Photography Dataset. However, if you would like to train a denoiser to work best on images from different cameras, you may wish to modify `random_ccm()`, `random_gains()` and `random_noise_levels()` in `py/unprocess.py` to best match the distribution of image metadata from your cameras. See our paper for details of how we modeled such metadata for Darmstadt. If your cameras have a special Bayer pattern outside of those supported, you will also need to modify `mosaic()` and `demosaic()` to match.
 
 ## Evaluation on Different Real Data
 
