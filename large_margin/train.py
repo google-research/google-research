@@ -21,6 +21,7 @@ from __future__ import print_function
 
 from absl import app
 from absl import flags
+import numpy as np
 import tensorflow as tf
 
 from large_margin import margin_loss
@@ -37,8 +38,11 @@ flags.DEFINE_integer("ps_tasks", 0,
 flags.DEFINE_integer("num_replicas", 0, "Number of workers in the job.")
 flags.DEFINE_string("checkpoint_dir", "/tmp/large_margin/train/",
                     "Results directory.")
-flags.DEFINE_float("momentum", 0.9,
+flags.DEFINE_float("momentum", 0.0,
                    "Momentum value if used momentum optimizer.")
+flags.DEFINE_integer("decay_steps", 2000,
+                     "Number of steps to decay learning rate")
+flags.DEFINE_float("decay_rate", 0.96, "Rate of decay")
 flags.DEFINE_integer("batch_size", 256, "Training batch size.")
 flags.DEFINE_integer("log_every_steps", 50,
                      "Saving logging frequency in optimization steps.")
@@ -103,7 +107,11 @@ def train():
             alpha_factor=alpha,
             top_k=top_k,
             dist_norm=dist_norm,
-            epsilon=1e-6)
+            epsilon=1e-6,
+            layers_weights=[
+                np.prod(layer.get_shape().as_list()[1:])
+                for layer in layers_list] if np.isinf(dist_norm) else None
+            )
 
         l2_loss = 0.
         for v in tf.trainable_variables():
@@ -133,12 +141,14 @@ def train():
         else:
           num_batches_per_epoch = num_examples // FLAGS.batch_size
         max_iters = num_batches_per_epoch * FLAGS.num_epochs
-        lr = tf.train.cosine_decay(
-            init_lr,
-            global_step,
-            decay_steps=max_iters,
-            alpha=0.0,
-            name="lr_schedule")
+
+        lr = tf.train.exponential_decay(init_lr,
+                                        global_step,
+                                        FLAGS.decay_steps,
+                                        FLAGS.decay_rate,
+                                        staircase=True,
+                                        name="lr_schedule")
+
         tf.summary.scalar("learning_rate", lr)
 
         var_list = tf.trainable_variables()
@@ -147,8 +157,9 @@ def train():
             "grad_norm",
             tf.reduce_mean([tf.norm(grad_var) for grad_var in grad_vars]))
         grad_vars, _ = tf.clip_by_global_norm(grad_vars, 5.0)
-        opt = tf.train.MomentumOptimizer(
-            lr, momentum=FLAGS.momentum, use_nesterov=True)
+
+        opt = tf.train.RMSPropOptimizer(lr, momentum=FLAGS.momentum,
+                                        epsilon=1e-2)
         if FLAGS.num_replicas > 1:
           opt = tf.train.SyncReplicasOptimizer(
               opt,
