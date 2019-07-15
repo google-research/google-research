@@ -14,8 +14,23 @@
 
 #!/bin/bash
 
+# To run:
+# 1. Create a virtual environment:
+#   virtualenv myenv && ./myenv/bin/activate
+# 2. Install dependencies:
+#   pip install -r uq_benchmark_2019/requirements.txt
+# 3. Run tests:
+#   python -m uq_benchmark_2019/run.sh
+
 set -e  # exit on error
+
+if [ ! -d robustness_dhtd ]
+then
+  git clone https://github.com/hendrycks/robustness.git robustness_dhtd
+fi
 
 python -m uq_benchmark_2019.array_utils_test
 python -m uq_benchmark_2019.uq_utils_test
 python -m uq_benchmark_2019.mnist.experiment_test
+python -m uq_benchmark_2019.cifar.data_lib_test
+python -m uq_benchmark_2019.cifar.end_to_end_test
