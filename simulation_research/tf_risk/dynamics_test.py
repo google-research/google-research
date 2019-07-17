@@ -1082,8 +1082,12 @@ class DynamicsTest(tf.test.TestCase):
   def test_random_normal(self, mock_stateless_random_normal):
     _ = dynamics.random_normal(shape=[3, 1], i=41 / 5, key=9)
     _, call_args = mock_stateless_random_normal.call_args
-    tf.assert_equal(tf.stack([9, 8]), call_args['seed']).mark_used()
-    tf.assert_equal([3, 1], call_args['shape']).mark_used()
+    assert_ops = [
+        tf.assert_equal(tf.stack([9, 8]), call_args['seed']),
+        tf.assert_equal([3, 1], call_args['shape'])
+    ]
+    with self.session() as sess:
+      sess.run(assert_ops)
 
 
 if __name__ == '__main__':
