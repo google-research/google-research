@@ -74,7 +74,7 @@ each second to label each image.
 * Dowload ImageNet pre-trained ResNetV2-50 to /tmp/. If you want to download the
   checkpoint to some other location change
   CONFIG.MODEL.RESNET_PRETRAINED_WEIGHTS in config.py.
-`wget -P /tmp/ https://github.com/fchollet/deep-learning-models/releases/download/v0.2/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5`
+`wget -P /tmp/ https://github.com/keras-team/keras-applications/releases/download/resnet/resnet50v2_weights_tf_dim_ordering_tf_kernels_notop.h5
 
 * Set directory of the library.
 `root_dir=<PATH TO THIS LIBRARY ON YOUR MACHINE>
