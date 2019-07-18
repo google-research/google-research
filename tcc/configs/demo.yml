@@ -61,7 +61,7 @@ EVAL:
   - event_completion
   - few_shot_classification
   VAL_ITERS: 20
-IMAGE_SIZE: 224
+IMAGE_SIZE: 112
 LOGDIR: /tmp/alignment_logs
 LOGGING:
   REPORT_INTERVAL: 100
@@ -140,6 +140,6 @@ TCN:
 TRAIN:
   BATCH_SIZE: 2
   MAX_ITERS: 10
-  NUM_FRAMES: 10
+  NUM_FRAMES: 5
   VISUALIZE_INTERVAL: 200
 TRAINING_ALGO: alignment

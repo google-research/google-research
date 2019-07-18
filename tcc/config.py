@@ -109,10 +109,8 @@ CONFIG.MODEL.EMBEDDER_TYPE = 'conv'
 CONFIG.MODEL.BASE_MODEL = edict()
 # Resnet50, VGGM
 CONFIG.MODEL.BASE_MODEL.NETWORK = 'Resnet50_pretrained'
-# mixed9, conv4_block3_out, conv4, Conv_1 (corresponding to each network above)
-# Conv_1 is the name used by MobileNetV2 for the last conv layer that is
-# also the first conv layer after the bottleneck layers.
-CONFIG.MODEL.BASE_MODEL.LAYER = 'add_9'  # 'conv4_block3_out'
+# conv4_block3_out, conv4 (respective layers in networks)
+CONFIG.MODEL.BASE_MODEL.LAYER = 'conv4_block3_out'
 
 # Select which layers to train.
 # train_base defines how we want proceed with fine-tuning the base model.
@@ -123,7 +121,7 @@ CONFIG.MODEL.TRAIN_BASE = 'only_bn'
 CONFIG.MODEL.TRAIN_EMBEDDING = True
 
 # pylint: disable=line-too-long
-CONFIG.MODEL.RESNET_PRETRAINED_WEIGHTS = '/tmp/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5'
+CONFIG.MODEL.RESNET_PRETRAINED_WEIGHTS = '/tmp/resnet50v2_weights_tf_dim_ordering_tf_kernels_notop.h5'
 # pylint: enable=line-too-long
 
 # VGG_M-esque model

@@ -21,6 +21,8 @@ from __future__ import print_function
 
 from absl import flags
 
+from keras_applications import resnet_v2
+
 import tensorflow.compat.v2 as tf
 
 from tensorflow.keras import regularizers
@@ -117,8 +119,13 @@ class BaseModel(tf.keras.Model):
     local_ckpt = get_pretrained_ckpt(network)
 
     if network in ['Resnet50', 'Resnet50_pretrained']:
-      base_model = tf.keras.applications.ResNet50(
-          include_top=False, weights=local_ckpt, pooling='max')
+      base_model = resnet_v2.ResNet50V2(include_top=False,
+                                        weights=local_ckpt,
+                                        pooling='max',
+                                        backend=tf.keras.backend,
+                                        layers=tf.keras.layers,
+                                        models=tf.keras.models,
+                                        utils=tf.keras.utils)
 
     elif CONFIG.model.base_model.network == 'VGGM':
       base_model = vggm_net(CONFIG.IMAGE_SIZE)
