@@ -28,10 +28,11 @@ from absl import app
 from absl import flags
 from absl import logging
 
-from dataset_utils import label_timestamps
-from dataset_utils import merge_annotations
-from dataset_utils import write_seqs_to_tfrecords
 import scipy.io as sio
+
+from tcc.dataset_preparation.dataset_utils import label_timestamps
+from tcc.dataset_preparation.dataset_utils import merge_annotations
+from tcc.dataset_preparation.dataset_utils import write_seqs_to_tfrecords
 
 import cv2
 

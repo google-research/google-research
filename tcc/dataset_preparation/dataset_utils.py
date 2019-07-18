@@ -25,7 +25,7 @@ import json
 import math
 import os
 
-
+from absl import logging
 import numpy as np
 from PIL import Image
 from PIL import ImageFile
@@ -81,7 +81,7 @@ def get_example(name, seq, seq_label=None, label_string=None,
                            'len': int64_feature([seq_len])}
 
   if seq_label is not None:
-    tf.logging.info('Label for %s: %s', name, str(seq_label))
+    logging.info('Label for %s: %s', name, str(seq_label))
     context_features_dict['label'] = int64_feature([seq_label])
 
   if label_string:
@@ -104,7 +104,7 @@ def get_example(name, seq, seq_label=None, label_string=None,
 def write_seqs_to_tfrecords(record_name, name_to_seqs, label,
                             frame_labels_string):
   """Write frames to a TFRecord file."""
-  writer = tf.python_io.TFRecordWriter(record_name)
+  writer = tf.io.TFRecordWriter(record_name)
   for name in name_to_seqs:
     ex = get_example(name, name_to_seqs[name],
                      seq_label=label,
@@ -122,7 +122,7 @@ def image_to_jpegstring(image, jpeg_quality=95):
   # substantially larger than the size of the image being saved.
   ImageFile.MAXBLOCK = 640 * 512 * 64
 
-  output_jpeg = io.StringIO()
+  output_jpeg = io.BytesIO()
   image.save(output_jpeg, 'jpeg', quality=jpeg_quality, optimize=True)
   return output_jpeg.getvalue()
 
@@ -150,7 +150,7 @@ def video_to_frames(video_filename, rotate, fps=0, resize=False,
   Raises:
     ValueError: if fps is greater than the rate of video.
   """
-  tf.logging.info('Loading %s', video_filename)
+  logging.info('Loading %s', video_filename)
   cap = cv2.VideoCapture(video_filename)
 
   if fps == 0:
@@ -239,7 +239,7 @@ def label_timestamps(timestamps, annotations):
         break
     # If timestamp was not assigned log a warning.
     if assigned == 0:
-      tf.logging.warning('Not able to insert: %s', ts)
+      logging.warning('Not able to insert: %s', ts)
 
   return labels
 
@@ -269,9 +269,9 @@ def create_tfrecords(name, output_dir, input_dir, label_file, input_pattern,
   Raises:
     ValueError: If invalid args are passed.
   """
-  if not gfile.Exists(output_dir):
-    tf.logging.info('Creating output directory: %s', output_dir)
-    gfile.MakeDirs(output_dir)
+  if not gfile.exists(output_dir):
+    logging.info('Creating output directory: %s', output_dir)
+    gfile.makedirs(output_dir)
 
   if label_file is not None:
     with open(os.path.join(label_file)) as labels_file:
@@ -279,13 +279,13 @@ def create_tfrecords(name, output_dir, input_dir, label_file, input_pattern,
 
   if not isinstance(input_pattern, list):
     file_pattern = os.path.join(input_dir, input_pattern)
-    filenames = [os.path.basename(x) for x in gfile.Glob(file_pattern)]
+    filenames = [os.path.basename(x) for x in gfile.glob(file_pattern)]
   else:
     filenames = []
     for file_pattern in input_pattern:
       file_pattern = os.path.join(input_dir, file_pattern)
-      filenames += [os.path.basename(x) for x in gfile.Glob(file_pattern)]
-  tf.logging.info('Found %s files', len(filenames))
+      filenames += [os.path.basename(x) for x in gfile.glob(file_pattern)]
+  logging.info('Found %s files', len(filenames))
 
   names_to_seqs = {}
   num_shards = int(math.ceil(len(filenames)/files_per_shard))
