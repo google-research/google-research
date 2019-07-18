@@ -1,0 +1,11 @@
+absl-py>=0.7.0
+dtw>=1.3.3
+easydict>=1.9.0
+matplotlib>=1.5.2
+numpy>=1.16.1
+opencv-python>=4.1.0.25
+scipy>=1.2.1
+six>=1.12.0
+tensorboard>=1.14
+tensorflow-gpu>=2.0.0b1
+PyYAML>=3.12
