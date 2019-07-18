@@ -721,7 +721,7 @@ def DenseRecognition(images, encoder, z=None, sigma_activation="exp"
   if z is None:
     z = [dist.sample()]
   tf.logging.info("bijector z shape: %s", z[0].shape)
-  return z, [dist.log_prob(z[0])], [bijector]
+  return z, [dist.log_prob(z[0])], [bijector]  # pytype: disable=bad-return-type
 
 
 @gin.configurable("dense_recognition_affine")
@@ -744,7 +744,7 @@ def DenseRecognitionAffine(images, encoder, z=None,
 
   if z is None:
     z = [dist.sample()]
-  return z, [dist.log_prob(z[0])], [bijector]
+  return z, [dist.log_prob(z[0])], [bijector]  # pytype: disable=bad-return-type
 
 
 @gin.configurable("dense_recognition_affine_lr")
@@ -769,7 +769,7 @@ def DenseRecognitionAffineLR(images, encoder, z=None,
 
   if z is None:
     z = [dist.sample()]
-  return z, [dist.log_prob(z[0])], [bijector]
+  return z, [dist.log_prob(z[0])], [bijector]  # pytype: disable=bad-return-type
 
 
 @gin.configurable("dense_recognition_rnvp")
@@ -841,7 +841,7 @@ def DenseRecognitionRNVP(
   if z is None:
     z = [dist.sample()]
 
-  return z, [dist.log_prob(z[0])], [bijector]
+  return z, [dist.log_prob(z[0])], [bijector]  # pytype: disable=bad-return-type
 
 
 @gin.configurable("dense_recognition_iaf")
@@ -915,7 +915,7 @@ def DenseRecognitionIAF(
   if z is None:
     z = [dist.sample()]
 
-  return z, [dist.log_prob(z[0])], [bijector]
+  return z, [dist.log_prob(z[0])], [bijector]  # pytype: disable=bad-return-type
 
 
 class FlipImageBijector(tfb.Bijector):
@@ -1025,7 +1025,7 @@ def ConvIAF(
 
   if z is None:
     z = [dist.sample()]
-  return z, [dist.log_prob(z[0])], [bijector]
+  return z, [dist.log_prob(z[0])], [bijector]  # pytype: disable=bad-return-type
 
 
 @gin.configurable("conv_shift_scale")
@@ -1063,7 +1063,7 @@ def ConvShiftScale(
 
   if z is None:
     z = [dist.sample()]
-  return z, [dist.log_prob(z[0])], [bijector]
+  return z, [dist.log_prob(z[0])], [bijector]  # pytype: disable=bad-return-type
 
 
 @utils.MakeTFTemplate
@@ -1076,7 +1076,7 @@ def SimplePrior(z=None, batch=None,
   if z is None:
     z = [mvn.sample(batch)]
 
-  return z, [mvn.log_prob(z[0])]
+  return z, [mvn.log_prob(z[0])]  # pytype: disable=bad-return-type
 
 
 @utils.MakeTFTemplate
@@ -1088,7 +1088,7 @@ def Simple3DPrior(z=None, batch=None,
   if z is None:
     z = [mvn.sample(batch)]
 
-  return z, [mvn.log_prob(z[0])]
+  return z, [mvn.log_prob(z[0])]  # pytype: disable=bad-return-type
 
 @utils.MakeTFTemplate
 def DenseMNISTNoise(x=None, z=None, decoder=None, return_means=True):
