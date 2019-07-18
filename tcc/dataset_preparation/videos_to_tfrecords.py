@@ -22,7 +22,7 @@ from __future__ import print_function
 from absl import app
 from absl import flags
 
-from dataset_utils import create_tfrecords
+from tcc.dataset_preparation.dataset_utils import create_tfrecords
 
 flags.DEFINE_string('input_dir', None, 'Path to videos.')
 flags.DEFINE_string('name', None, 'Name of the dataset being created. This will'
