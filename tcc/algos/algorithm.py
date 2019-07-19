@@ -169,6 +169,6 @@ class Algorithm(tf.keras.Model):
       tf.summary.scalar('grad_norm', grad_norm, step=global_step)
       for k in self.model:
         for var_ in self.model[k].variables:
-          tf.summary.histogram(var_.name, var_)
+          tf.summary.histogram(var_.name, var_, step=global_step)
 
     return loss
