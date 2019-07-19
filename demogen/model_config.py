@@ -131,8 +131,8 @@ class ModelConfig(object):
     if not self.root_dir:
       raise ValueError('This model config does not have a root directory.')
     stats_path = os.path.join(self.get_model_dir_name(), stats_file_name)
-    with tf.io.gfile.Gfile(stats_path, 'r') as f:
-      return json.loads(f)[stats_name]
+    with tf.io.gfile.GFile(stats_path, 'r') as f:
+      return json.load(f)[stats_name]
 
   def training_stats(self, stats_name='Accuracy'):
     """Get the specified training statistics of the model.

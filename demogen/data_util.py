@@ -25,7 +25,6 @@ def get_input(
     data='cifar10',
     mode=tf.estimator.ModeKeys.TRAIN,
     repeat_num=None,
-    class_num=100,
     data_format='HWC'):
   """Returns a input function for the estimator framework.
 
@@ -37,13 +36,13 @@ def get_input(
     mode:       indicates whether the input is for training or testing,
                   needs to be a member of tf.estimator.ModeKeys
     repeat_num: how many times the dataset is repeated
-    class_num:  number of classes
     data_format: order of the data's axis
 
   Returns:
     an input function
   """
   assert data == 'cifar10' or data == 'cifar100'
+  class_num = 10 if data == 'cifar10' else 100
   data = 'image_' + data
 
   if mode != tf.estimator.ModeKeys.TRAIN:
@@ -53,7 +52,7 @@ def get_input(
   if data == 'image_cifar10' and not augmented:
     problem_name = 'image_cifar10_plain'
 
-  def standardization(example):
+  def preprocess(example):
     """Perform per image standardization on a single image."""
     image = example['inputs']
     image.set_shape([32, 32, 3])
@@ -66,10 +65,10 @@ def get_input(
     prob = problems.problem(problem_name)
     if data == 'image_cifar100':
       dataset = prob.dataset(mode, preprocess=augmented)
-      if not augmented: dataset = dataset.map(map_func=standardization)
+      if not augmented: dataset = dataset.map(map_func=preprocess)
     else:
-      dataset = prob.dataset(mode)
-      dataset = dataset.map(map_func=standardization)
+      dataset = prob.dataset(mode, preprocess=False)
+      dataset = dataset.map(map_func=preprocess)
 
     dataset = dataset.batch(batch_size)
     dataset = dataset.repeat(repeat_num)
