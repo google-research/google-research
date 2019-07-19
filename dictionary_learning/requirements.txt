@@ -1,0 +1,3 @@
+numpy>=1.13.3
+sklearn>=0.20.0
+scipy>=1.0.0
