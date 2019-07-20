@@ -40,7 +40,7 @@ def _declare_flags():
                     'Name of modeling method.')
   flags.DEFINE_string('output_dir', None, 'Output directory.')
   flags.DEFINE_integer('test_level', 0, 'Testing level.')
-  flags.DEFINE_integer('task', 0, 'Borg task number.')
+  flags.DEFINE_integer('task', 0, 'Task number.')
 
 
 def run(method, output_dir, fake_data=False, fake_training=False):

@@ -38,7 +38,7 @@ flags.DEFINE_string('output_dir', None, 'Output directory.')
 
 flags.DEFINE_integer('test_level', 0,
                      '(0) no testing, (1) quick training (2) fake data.')
-flags.DEFINE_integer('task', 0, 'Borg task number.')
+flags.DEFINE_integer('task', 0, 'Task number.')
 
 
 def main(argv):
