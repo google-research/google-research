@@ -5,6 +5,7 @@ numpy==1.16.4
 scipy==1.3.0
 six==1.12.0
 sklearn
+pyyaml>=5.1
 tf-nightly-gpu
 tfds-nightly
 tfp-nightly
