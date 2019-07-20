@@ -47,7 +47,7 @@ def _declare_flags():
                        'Maximum number of examples to process per dataset.')
 
   flags.DEFINE_string('dataset_name', None, 'Configured dataset name.')
-  flags.DEFINE_integer('task', 0, 'Borg task number.')
+  flags.DEFINE_integer('task', 0, 'Task number.')
 
 
 def run(dataset_name, model_dir,

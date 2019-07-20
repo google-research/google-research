@@ -45,3 +45,5 @@ Labels have shape `[5, N]` where `N` is the number of samples in the dataset, an
 #### CRITEO
 `criteo_model_predictions.hdf5` is organized identically to MNIST and CIFAR except the shape of the probabilities array is `[5, N]` since Criteo is not a multiclass problem.
 
+#### IMAGENET
+`imagenet_predictions.hdf5` is organized identically to the other datasets, except the probabilities array has shape `[N, 1000]` and the labels are a vector of length `N`. For the ensemble, dropout, and SVI methods, probabilties represent the means over ensemble members/samples. Probabilities less than `1e-6` have been rounded to 0 to increase gzip compressibilty.
