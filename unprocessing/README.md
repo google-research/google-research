@@ -22,7 +22,7 @@ The code is implemented in Tensorflow and the required packages are listed in `r
 In our paper, we evaluate on the [Darmstadt Noise Dataset](https://noise.visinf.tu-darmstadt.de/). Here are our [Darmstadt results](http://timothybrooks.com/tech/unprocessing/darmstadt-supp/). We highly recommend this dataset for measuring denoise performance on real photographs, as the dataset contains real noisy images, which after denoising and upon submission to the Darmstadt website will be compared against real clean ground truth. Here are instructions to [download this dataset](https://noise.visinf.tu-darmstadt.de/downloads). You'll also need to download [our trained models](https://drive.google.com/file/d/1MTFr-uaIKv5aWe7nXlhTaHBestLUiDLZ/view?usp=sharing) and unzip them into ./models/. Once downloaded, replace the provided `dnd_denoise.py` file with the version in this repository and follow the instructions below to run an unprocessing denoiser on this data.
 
 ```
-$ python dnd_denoise.py \
+/google-research$ python -m unprocessing.dnd_denoise \
     --model_ckpt=/path/to/models/unprocessing_srgb_loss/model.ckpt-3516383 \
     --data_dir=/path/to/darmstadt/data \
     --output_dir=/path/to/darmstadt/ouputs
@@ -35,7 +35,7 @@ Then follow instructions in the Darmstadt README file, including running `bundle
 In our paper, we train on source images from [MIRFlickr](https://press.liacs.nl/mirflickr/). We used the full MIRFLICKR-1M dataset, which includes 1 million source images, although the smaller MIRFLICKR-25000, which contains 25 thousand source images, can be used as well and is easier to download and store. Both versions are freely avaiable&mdash;here are instructions to [download this dataset](http://press.liacs.nl/mirflickr/mirdownload.html). Once downloaded, break images into `mirflickr/train` and `mirflickr/test` subdirectories. Then run the command below to train on MIRFlickr. Note that you may wish to downsample the source images prior to training to help remove JPEG compression artifacts, which we found slightly helpful in our paper.
 
 ```
-$ python train.py \
+/google-research$ python -m unprocessing.train \
     --model_dir=/path/to/models/unprocessing_mirflickr \
     --train_pattern=/path/to/mirflickr/train \
     --test_pattern=/path/to/mirflickr/test
