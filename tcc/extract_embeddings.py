@@ -33,7 +33,7 @@ from tcc.utils import get_lr_opt_global_step
 from tcc.utils import restore_ckpt
 from tcc.utils import setup_eval_dir
 
-gfile = tf.gfile
+gfile = tf.io.gfile
 layers = tf.keras.layers
 
 flags.DEFINE_boolean('defun', True, 'Defun everything!')
@@ -94,7 +94,7 @@ def evaluate():
       keep_data=FLAGS.keep_data,
       keep_labels=FLAGS.keep_labels,
       max_embs=max_embs)
-  np.save(gfile.Open(FLAGS.save_path, 'w'), embeddings)
+  np.save(gfile.GFile(FLAGS.save_path, 'w'), embeddings)
 
 
 def main(_):
