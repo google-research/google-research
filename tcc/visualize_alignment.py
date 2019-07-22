@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow.compat.v2 as tf
 
-gfile = tf.gfile
+gfile = tf.io.gfile
 
 flags.DEFINE_string('video_path', '/tmp/aligned.mp4', 'Path to aligned video.')
 flags.DEFINE_string('embs_path', '/tmp/embeddings.npy', 'Path to '
@@ -187,14 +187,14 @@ def create_dynamic_video(embs, frames, video_path, use_dtw, query, switch_video,
 
 def visualize():
   """Visualize alignment."""
-  all_files = sorted(gfile.Glob(FLAGS.embs_path))
+  all_files = sorted(gfile.glob(FLAGS.embs_path))
   logging.info('Found files: %s', all_files)
 
   # Load embeddings and frames.
   embs = []
   frames = []
   for i in xrange(len(all_files)):
-    query_dict = np.load(gfile.Open(all_files[i])).item()
+    query_dict = np.load(gfile.GFile(all_files[i])).item()
 
     for j in xrange(len(query_dict['embs'])):
       embs.append(query_dict['embs'][j])
