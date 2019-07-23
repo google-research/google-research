@@ -40,9 +40,9 @@ def _get_kendalls_tau(embs_list, stride, global_step, split):
   num_seqs = len(embs_list)
   taus = np.zeros((num_seqs * (num_seqs - 1)))
   idx = 0
-  for i in xrange(num_seqs):
+  for i in range(num_seqs):
     query_feats = embs_list[i][::stride]
-    for j in xrange(num_seqs):
+    for j in range(num_seqs):
       if i == j:
         continue
       candidate_feats = embs_list[j][::stride]
@@ -51,7 +51,7 @@ def _get_kendalls_tau(embs_list, stride, global_step, split):
       if FLAGS.visualize:
         if i == 0 and j == 1:
           sim_matrix = []
-          for k in xrange(len(query_feats)):
+          for k in range(len(query_feats)):
             sim_matrix.append(softmax(-dists[k]))
           sim_matrix = np.array(sim_matrix, dtype=np.float32)
           # Convert to format expected by tf.summary .

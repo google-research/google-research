@@ -48,19 +48,20 @@ EVAL:
   BATCH_SIZE: 2
   CLASSIFICATION_FRACTIONS:
   - 0.1
-  - 0.5
-  - 1.0
+  FEW_SHOT_NUM_LABELED:
+  - 1
+  FEW_SHOT_NUM_EPISODES: 50
   FRAMES_PER_BATCH: 25
   KENDALLS_TAU_DISTANCE: sqeuclidean
   KENDALLS_TAU_STRIDE: 5
-  NUM_FRAMES: 20
+  NUM_FRAMES: 5
   TASKS:
   - algo_loss
   - classification
   - kendalls_tau
   - event_completion
   - few_shot_classification
-  VAL_ITERS: 20
+  VAL_ITERS: 10
 IMAGE_SIZE: 112
 LOGDIR: /tmp/alignment_logs
 LOGGING:

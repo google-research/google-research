@@ -70,14 +70,14 @@ def visualize_nearest_neighbours(model, data, global_step, batch_size,
   im_list = [image_list[0][num_frames_per_step-1::num_frames_per_step]]
   sim_matrix = np.zeros((batch_size-1, num_steps, num_steps), dtype=np.float32)
 
-  for i in xrange(1, batch_size):
+  for i in range(1, batch_size):
     candidate_feats = emb_feats[i]
 
     img_list = tf.unstack(image_list[i], num=num_steps * num_frames_per_step,
                           axis=0)[num_frames_per_step-1::num_frames_per_step]
     nn_img_list = []
 
-    for j in xrange(num_steps):
+    for j in range(num_steps):
       curr_query_feats = tf.tile(query_feats[j:j+1], [num_steps, 1])
       mean_squared_distance = tf.reduce_mean(
           tf.squared_difference(curr_query_feats, candidate_feats), axis=1)
@@ -90,7 +90,8 @@ def visualize_nearest_neighbours(model, data, global_step, batch_size,
   def vstack(im):
     return  tf.concat(tf.unstack(im, num=num_steps), axis=1)
 
-  summary_im = tf.expand_dims(tf.concat(map(vstack, im_list), axis=0), axis=0)
+  summary_im = tf.expand_dims(tf.concat([vstack(im) for im in im_list],
+                                        axis=0), axis=0)
   tf.summary.image('%s/nn' % split, summary_im, step=global_step)
   # Convert sim_matrix to float32 as summary_image doesn't take float64
   sim_matrix = sim_matrix.astype(np.float32)
@@ -173,7 +174,7 @@ def get_lr_fn(optimizer_config):
 
     f = lr_params.MANUAL_LR_DECAY_RATE
     learning_rate_sequence = [(lr_params.INITIAL_LR) * f**p
-                              for p in xrange(len(lr_step_boundaries) + 1)]
+                              for p in range(len(lr_step_boundaries) + 1)]
     lr_fn = lambda lr, global_step: manual_stepping(
         global_step, lr_step_boundaries, learning_rate_sequence)
   elif lr_params.DECAY_TYPE == 'fixed':
@@ -275,7 +276,7 @@ def setup_eval_dir(logdir, config_timeout_seconds=1):
 
   while True:
     with tf.io.gfile.GFile(config_path, 'r') as config_file:
-      config_dict = yaml.load(config_file)
+      config_dict = yaml.safe_load(config_file)
     if config_dict is None:
       time.sleep(config_timeout_seconds)
     else:
@@ -311,8 +312,8 @@ def get_context_steps(step):
 
 
 def get_indices(curr_idx, num_steps, seq_len):
-  single_steps = np.concatenate(map(get_context_steps,
-                                    np.arange(curr_idx, curr_idx + num_steps)))
+  steps = range(curr_idx, curr_idx + num_steps)
+  single_steps = np.concatenate([get_context_steps(step) for step in steps])
   single_steps = np.maximum(0, single_steps)
   single_steps = np.minimum(seq_len, single_steps)
   return single_steps
@@ -372,7 +373,7 @@ def get_embeddings_dataset(model, iterator, frames_per_batch,
       data, chosen_steps, seq_len = get_data(iterator)
       seq_len = seq_len.numpy()[0]
       num_batches = int(math.ceil(float(seq_len)/frames_per_batch))
-      for i in xrange(num_batches):
+      for i in range(num_batches):
         if  (i + 1) * frames_per_batch > seq_len:
           num_steps = seq_len - i * frames_per_batch
         else:

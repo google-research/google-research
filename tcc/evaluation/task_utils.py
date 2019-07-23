@@ -30,7 +30,7 @@ def regression_labels_for_class(labels, class_idx):
 
 def get_regression_labels(class_labels, num_classes):
   regression_labels = []
-  for i in xrange(num_classes - 1):
+  for i in range(num_classes - 1):
     regression_labels.append(regression_labels_for_class(class_labels, i))
   return np.stack(regression_labels, axis=1)
 

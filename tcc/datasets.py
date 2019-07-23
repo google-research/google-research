@@ -370,7 +370,7 @@ def create_dataset(split, mode, batch_size=None, return_iterator=True):
     dataset = dataset.prefetch(1)
 
     if return_iterator:
-      return tf.compat.v1.data.make_one_shot_iterator(dataset)
+      return iter(dataset)
     else:
       return dataset
 
@@ -424,4 +424,4 @@ def create_one_epoch_dataset(dataset, split, mode, path_to_tfrecords):
     # Prefetch batches
     dataset = dataset.prefetch(1)
 
-  return tf.compat.v1.data.make_one_shot_iterator(dataset)
+  return iter(dataset)
