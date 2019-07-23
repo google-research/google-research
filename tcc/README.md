@@ -89,10 +89,12 @@ each second to label each image.
 `$tensorboard --logdir=/tmp/alignment_logs`
 
 * Extract per-frame embeddings.
-`python $root_dir/extract_embeddings --alsologtostderr`
+`python $root_dir/extract_embeddings --alsologtostderr --dataset <DATASET> \
+--split <SPLIT> --logdir <LOGDIR>`
 
 * Visualize nearest neighbor alignments.
-`python $root_dir/visualize_alignment --alsologtostderr`
+`python $root_dir/visualize_alignment --alsologtostderr  \
+--video_path /tmp/aligned.mp4  --embs_path /tmp/embeddings.npy`
 
 ## Using alignment loss on your own embeddings
 If you have your own dataset of sequences, embedder (neural network), and
@@ -125,10 +127,11 @@ finds it difficult to count.
 If you found our paper/code useful in your research, please consider citing
 our paper:
 
-`@InProceedings{Dwibedi_2019_CVPR,
+```@InProceedings{Dwibedi_2019_CVPR,
 author = {Dwibedi, Debidatta and Aytar, Yusuf and Tompson, Jonathan and Sermanet, Pierre and Zisserman, Andrew},
 title = {Temporal Cycle-Consistency Learning},
 booktitle = {The IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
 month = {June},
-year = {2019}
-}`
+year = {2019},
+}
+```

@@ -29,6 +29,7 @@ import numpy as np
 import scipy.stats as st
 import tensorflow.compat.v2 as tf
 
+from tcc.config import CONFIG
 from tcc.evaluation.classification import fit_linear_models
 from tcc.evaluation.task import Task
 
@@ -43,9 +44,8 @@ class FewShotClassification(Task):
 
   def evaluate_embeddings(self, algo, global_step, datasets):
     """Labeled evaluation."""
-    # TODO(debidatta): Move these hard coded params to config after expts.
-    num_labeled_list = range(1, 11)
-    num_episodes = 50
+    num_labeled_list = [int(x) for x in CONFIG.EVAL.FEW_SHOT_NUM_LABELED]
+    num_episodes = int(CONFIG.EVAL.FEW_SHOT_NUM_EPISODES)
 
     # Set random seed to ensure same samples are generated for each evaluation.
     np.random.seed(seed=42)
@@ -62,9 +62,6 @@ class FewShotClassification(Task):
     report_val_accs = []
     train_dataset = datasets['train_dataset']
     num_samples = len(train_dataset['embs'])
-
-    # Also add half of the train dataset.
-    num_labeled_list += [int(0.5 * num_samples)]
 
     # Create episode list.
     episodes_list = []

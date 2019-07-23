@@ -97,6 +97,9 @@ CONFIG.EVAL.FRAMES_PER_BATCH = 25
 CONFIG.EVAL.KENDALLS_TAU_STRIDE = 5  # 2 for Pouring, 5 for PennAction
 CONFIG.EVAL.KENDALLS_TAU_DISTANCE = 'sqeuclidean'  # cosine, sqeuclidean
 CONFIG.EVAL.CLASSIFICATION_FRACTIONS = [0.1, 0.5, 1.0]
+# If number this is considered to
+CONFIG.EVAL.FEW_SHOT_NUM_LABELED = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+CONFIG.EVAL.FEW_SHOT_NUM_EPISODES = 50
 
 # ******************************************************************************
 # Model params

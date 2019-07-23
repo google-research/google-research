@@ -46,6 +46,9 @@ flags.DEFINE_string('logdir', '/tmp/alignment_logs', 'Path to logs.')
 flags.DEFINE_boolean('defun', True, 'Defun everything!')
 flags.DEFINE_boolean('visualize', False, 'Visualize images. Switched off by '
                      'for default to speed traininig up and take less memory.')
+flags.DEFINE_integer(
+    'max_embs', 0, 'Max number of videos to embed. 0 or less '
+    'means embed all videos in dataset.')
 FLAGS = flags.FLAGS
 
 evaluated_last_ckpt = False
@@ -67,10 +70,11 @@ def evaluate_once(algo, iterator_tasks, embedding_tasks, iterators,
   if iterator_tasks:
     with summary_writer.as_default():
       with tf.summary.record_if(True):
-        for task_name, task in iterator_tasks.iteritems():
+        for task_name, task in iterator_tasks.items():
           metrics[task_name] = task.evaluate(algo, global_step,
                                              iterators=iterators)
 
+  max_embs = None if FLAGS.max_embs <= 0 else FLAGS.max_embs
   if embedding_tasks:
     frames_per_batch = CONFIG.EVAL.FRAMES_PER_BATCH
     for dataset_name in CONFIG.DATASETS:
@@ -81,7 +85,8 @@ def evaluate_once(algo, iterator_tasks, embedding_tasks, iterators,
           mode='eval',
           path_to_tfrecords=CONFIG.PATH_TO_TFRECORDS)
       dataset['train_dataset'] = get_embeddings_dataset(
-          algo.model, train_iterator, frames_per_batch=frames_per_batch)
+          algo.model, train_iterator, frames_per_batch=frames_per_batch,
+          max_embs=max_embs)
 
       val_iterator = create_one_epoch_dataset(
           dataset_name,
@@ -89,11 +94,12 @@ def evaluate_once(algo, iterator_tasks, embedding_tasks, iterators,
           mode='eval',
           path_to_tfrecords=CONFIG.PATH_TO_TFRECORDS)
       dataset['val_dataset'] = get_embeddings_dataset(
-          algo.model, val_iterator, frames_per_batch=frames_per_batch)
+          algo.model, val_iterator, frames_per_batch=frames_per_batch,
+          max_embs=max_embs)
 
       with summary_writer.as_default():
         with tf.summary.record_if(True):
-          for task_name, task in embedding_tasks.iteritems():
+          for task_name, task in embedding_tasks.items():
             if task_name not in metrics:
               metrics[task_name] = {}
             metrics[task_name][dataset_name] = task.evaluate(

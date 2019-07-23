@@ -37,7 +37,6 @@ gfile = tf.io.gfile
 layers = tf.keras.layers
 
 flags.DEFINE_boolean('defun', True, 'Defun everything!')
-flags.DEFINE_float('gpu_fraction', 1.0, 'Fraction of GPU to use.')
 flags.DEFINE_string('save_path', '/tmp/embeddings.npy',
                     'where to store embeddings')
 flags.DEFINE_string('dataset', None, 'dataset')
@@ -99,8 +98,6 @@ def evaluate():
 
 def main(_):
   # Executing eagerly.
-  gpu_opt = tf.GPUOptions(per_process_gpu_memory_fraction=FLAGS.gpu_fraction)
-  tf.enable_eager_execution(config=tf.ConfigProto(gpu_options=gpu_opt))
   tf.keras.backend.set_learning_phase(0)
   evaluate()
 

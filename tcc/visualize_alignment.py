@@ -26,7 +26,9 @@ from absl import flags
 from absl import logging
 
 from dtw import dtw
-from matplotlib.animation import FuncAnimation
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib.animation import FuncAnimation  # pylint: disable=g-import-not-at-top
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow.compat.v2 as tf
@@ -70,14 +72,14 @@ def unnorm(query_frame):
 
 
 def align(candidate_feats, query_feats, use_dtw):
-  """Alignm videos based on nearest neighbor in embedding space."""
+  """Align videos based on nearest neighbor in embedding space."""
   if use_dtw:
     _, _, _, path = dtw(candidate_feats, query_feats, dist=dist_fn)
     _, uix = np.unique(path[0], return_index=True)
     nns = path[1][uix]
   else:
     nns = []
-    for i in xrange(len(candidate_feats)):
+    for i in range(len(candidate_feats)):
       nn_frame_id, _ = get_nn(query_feats, candidate_feats[i])
       nns.append(nn_frame_id)
   return nns
@@ -114,14 +116,14 @@ def create_video(embs, frames, video_path, use_dtw, query, candidate, interval):
         figsize=(5 * ncols, 5 * ncols),
         tight_layout=True)
     nns = []
-    for candidate in xrange(len(embs)):
+    for candidate in range(len(embs)):
       nns.append(align(embs[query], embs[candidate], use_dtw))
     ims = []
 
     def init():
       k = 0
-      for k in xrange(ncols):
-        for j in xrange(ncols):
+      for k in range(ncols):
+        for j in range(ncols):
           ims.append(ax[j][k].imshow(
               unnorm(frames[k * ncols + j][nns[k * ncols + j][0]])))
           ax[j][k].grid(False)
@@ -133,8 +135,8 @@ def create_video(embs, frames, video_path, use_dtw, query, candidate, interval):
 
     def update(i):
       logging.info('%s/%s', i, len(embs[query]))
-      for k in xrange(ncols):
-        for j in xrange(ncols):
+      for k in range(ncols):
+        for j in range(ncols):
           ims[k * ncols + j].set_data(
               unnorm(frames[k * ncols + j][nns[k * ncols + j][i]]))
       plt.tight_layout()
@@ -155,7 +157,7 @@ def create_dynamic_video(embs, frames, video_path, use_dtw, query, switch_video,
   fig, ax = plt.subplots(ncols=2, figsize=(10, 10), tight_layout=True)
 
   nns = []
-  for candidate in xrange(len(embs)):
+  for candidate in range(len(embs)):
     nns.append(align(embs[query], embs[candidate], use_dtw))
 
   def update(i):
@@ -193,10 +195,11 @@ def visualize():
   # Load embeddings and frames.
   embs = []
   frames = []
-  for i in xrange(len(all_files)):
-    query_dict = np.load(gfile.GFile(all_files[i])).item()
+  for i in range(len(all_files)):
+    file_obj = gfile.GFile(all_files[i], 'rb')
+    query_dict = np.load(file_obj, allow_pickle=True).item()
 
-    for j in xrange(len(query_dict['embs'])):
+    for j in range(len(query_dict['embs'])):
       embs.append(query_dict['embs'][j])
       frames.append(query_dict['frames'][j])
 

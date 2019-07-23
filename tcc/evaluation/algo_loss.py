@@ -42,7 +42,7 @@ class AlgoLoss(Task):
     iterator = iterators['%s_iterator' % split]
 
     avg_loss = 0.0
-    for _ in xrange(CONFIG.EVAL.VAL_ITERS):
+    for _ in range(CONFIG.EVAL.VAL_ITERS):
       data, steps, seq_lens = get_data(iterator)
       embs = algo.call(data, steps, seq_lens, training=False)
       avg_loss += algo.compute_loss(embs, steps, seq_lens, global_step,

@@ -66,9 +66,9 @@ class VectorRegression(sklearn.base.BaseEstimator):
 def get_error(predictions, labels, seq_lens, global_step, num_classes, prefix):
   """Get error based on predictions."""
   errs = []
-  for i in xrange(num_classes - 1):
+  for i in range(num_classes - 1):
     abs_err = 0
-    for j in xrange(len(predictions)):
+    for j in range(len(predictions)):
       # Choose last seq_len steps as our preprocessing pads sequences in
       # front with zeros.
       unnorm_preds = unnormalize(predictions[j][:, i])
