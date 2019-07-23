@@ -98,6 +98,7 @@ def main(_):
   train_spec, eval_spec = estimator.create_train_and_eval_specs(
       train_dataset_fn, eval_dataset_fn)
 
+  tf.logging.set_verbosity(tf.logging.INFO)
   tf.estimator.train_and_evaluate(tf_estimator, train_spec, eval_spec)
 
 
