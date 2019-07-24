@@ -80,7 +80,7 @@ def visualize_nearest_neighbours(model, data, global_step, batch_size,
     for j in range(num_steps):
       curr_query_feats = tf.tile(query_feats[j:j+1], [num_steps, 1])
       mean_squared_distance = tf.reduce_mean(
-          tf.squared_difference(curr_query_feats, candidate_feats), axis=1)
+          tf.math.squared_difference(curr_query_feats, candidate_feats), axis=1)
       sim_matrix[i-1, j] = softmax(-1.0 * mean_squared_distance)
       nn_img_list.append(img_list[tf.argmin(mean_squared_distance)])
 
