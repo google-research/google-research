@@ -62,8 +62,8 @@ class AlgoLoss(Task):
           algo.model,
           data,
           global_step,
-          CONFIG.EVAL.batch_size,
-          CONFIG.EVAL.num_frames,
+          CONFIG.EVAL.BATCH_SIZE,
+          CONFIG.EVAL.NUM_FRAMES,
           CONFIG.DATA.NUM_STEPS,
           split=split)
 
