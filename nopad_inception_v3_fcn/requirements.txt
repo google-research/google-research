@@ -1,0 +1,2 @@
+absl-py>=0.7.1
+tensorflow>=1.13.1
