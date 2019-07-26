@@ -35,6 +35,7 @@ env:
     - PROJECT="wiki_split_bleu_eval"
     - PROJECT="explaining_risk_increase"
     - PROJECT="tcc"
+    - PROJECT="psycholab"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip
