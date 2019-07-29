@@ -104,7 +104,6 @@ def build_dataset(config, is_training=False, fake_data=False):
     return image_data_utils.make_fake_data(CIFAR_SHAPE)
 
   logging.info('Building dataset for config:\n%s', attr.asdict(config))
-  # TODO(yovadia): Split off a validation set from the training set.
   if config.corruption_type and config.corruption_static:
     return image_data_utils.make_static_dataset(config, _get_static_cifar_c)
 
