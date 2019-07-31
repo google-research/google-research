@@ -12,6 +12,7 @@ env:
     - PROJECT="bam"
     - PROJECT="bitempered_loss"
     - PROJECT="cnn_quantization"
+    - PROJECT="depth_from_video_in_the_wild"
     - PROJECT="dql_grasping"
     - PROJECT="dreg_estimators"
     - PROJECT="edward2_autoreparam"
