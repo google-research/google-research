@@ -149,6 +149,7 @@ class Environment(object):
   def step(self, action=None):
     """Steps the environment."""
     time_step = self._sim_env.step(action)
+    self._sim_env.physics.data.qvel[:] = 0
     return time_step
 
   def get_observation(self):
