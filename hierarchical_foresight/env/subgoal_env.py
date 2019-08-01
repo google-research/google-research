@@ -86,7 +86,7 @@ class SubGoalEnv(object):
       tdmsaver.restore(self.tdmsess, tdmdir + 'model-0')
       print('LOADED TDM!')
 
-    # LOADING SV2P
+    # LOADING SV2P (Modify this to your path and problem)
     homedir = '/usr/local/google/home/nairsuraj'
     FLAGS.data_dir = homedir + '/data/maze3/'
     FLAGS.output_dir = homedir + '/models/rs=6.3/maze3/checkpoint'
@@ -233,7 +233,9 @@ class SubGoalEnv(object):
 
     while np.max(sd1) > .001:
       if t == 0:
-        acts1 = np.random.uniform(-1, 1, (sample_size, self.num_acts *  hz))
+        acts1x = np.random.uniform(0, 3, (sample_size, hz, 1))
+        acts1y = np.random.uniform(-3, 3, (sample_size, hz, 1))
+        acts1 = np.concatenate([acts1x, acts1y], 2)
       else:
         acts1 = np.random.normal(mu1, sd1, (sample_size, self.num_acts *  hz))
       acts1 = acts1.reshape((sample_size, hz, self.num_acts))
@@ -264,7 +266,7 @@ class SubGoalEnv(object):
             np.repeat(np.expand_dims(im2, 0), horizon, 0), 0), sample_size, 0)
         losses = (goalim - forward_predictions[:, :, :, :, :, 0])**2
         losses = losses.mean(axis=(2, 3, 4))
-      losses = losses.mean(1)
+      losses = losses[:, -1]
 
       for q in range(sample_size):
         head = self.savedir + str(self.eps) + '/' + str(self.planstep) + '/'
