@@ -96,7 +96,7 @@ via psycholab, as described in *Foolproof Cooperative Learning*
 
 ```
 # From google-research/
-python -m psycholab.example.prisoners_dilemma
+python -m psycholab.examples.prisoners_dilemma
 ```
 
 for the grid prisoners dilemma introduced in *A Polynomial-time Nash 
