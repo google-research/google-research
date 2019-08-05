@@ -12,9 +12,10 @@ download and install metis: http://glaros.dtc.umn.edu/gkhome/metis/metis/downloa
 
 ```
 1) Download metis-5.1.0.tar.gz from http://glaros.dtc.umn.edu/gkhome/metis/metis/download
-2) make config shared=1 prefix=~/.local/
-3) make install
-4) export METIS_DLL=~/.local/lib/libmetis.so
+2) cd to the metis folder
+3) make config shared=1 prefix=~/.local/
+4) make install
+5) export METIS_DLL=~/.local/lib/libmetis.so
 ```
 
 * install requirements.txt
@@ -22,6 +23,8 @@ download and install metis: http://glaros.dtc.umn.edu/gkhome/metis/metis/downloa
 ```
  pip install -r requirements.txt
 ```
+
+NOTE that we are using tensorflow 1.14.0 version here. For prerequirement for installing tensorflow 1.14.0, please check https://www.tensorflow.org/install/source#tested_build_configurations. We recommend to use gcloud instance.
 
 quick test whether you install metis correctly:
 
@@ -42,9 +45,9 @@ quick test whether you install metis correctly:
 
 * put data under the './data' path.
 
-* For ppi data (need change the data_prefix path in .sh to point to the data):
-
 For example the ppi data folder should look like: data/ppi/ppi-{G.json, feats.npy, class_map.json, id_map.json}
+
+* For ppi data (need change the data_prefix path in .sh to point to the data):
 
 ```
 ./run_ppi.sh
@@ -52,7 +55,10 @@ For example the ppi data folder should look like: data/ppi/ppi-{G.json, feats.np
 
 If testing on V100 on google cloud machine, per epoch training time will be around ~1 second.
 
+```
 The test F1 score will be around 0.9935 depending on different initialization.
+
+```
 
 * For reddit data (need change the data_prefix path in .sh to point to the data):
 
