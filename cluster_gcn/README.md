@@ -24,8 +24,6 @@ download and install metis: http://glaros.dtc.umn.edu/gkhome/metis/metis/downloa
  pip install -r requirements.txt
 ```
 
-NOTE that we are using tensorflow 1.14.0 version here. For prerequirement for installing tensorflow 1.14.0, please check https://www.tensorflow.org/install/source#tested_build_configurations. We recommend to use gcloud instance.
-
 quick test whether you install metis correctly:
 
 ```
