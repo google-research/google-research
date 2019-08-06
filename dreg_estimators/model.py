@@ -93,6 +93,9 @@ class ConditionalBernoulli(object):
       p = tf.stop_gradient(p)
     return tfd.Bernoulli(logits=p)
 
+  def get_variables(self):
+    return self.fcnet.get_variables()
+
 
 class ConditionalNormal(object):
   """A Normal distribution conditioned on Tensor inputs via a fc network."""
@@ -164,6 +167,9 @@ class ConditionalNormal(object):
       mu = tf.stop_gradient(mu)
       sigma = tf.stop_gradient(sigma)
     return tfd.Normal(loc=mu, scale=sigma)
+
+  def get_variables(self):
+    return self.fcnet.get_variables()
 
 
 def iwae(p_z,
