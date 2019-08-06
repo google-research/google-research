@@ -14,4 +14,4 @@
 
 #!/bin/bash
 
-python train.py --dataset reddit --data_prefix ./data/ --nomultilabel --num_layers 4 --num_clusters 1500 --bsize 20 --hidden1 512 --dropout 0.2 --weight_decay 0  --early_stopping 200 --num_clusters_val 20 --num_clusters_test 1 --epochs 130 --save_name redditmodel --learning_rate 0.005 --diag_lambda 0.0001 --novalidation
+python train.py --dataset reddit --data_prefix ./data/ --nomultilabel --num_layers 4 --num_clusters 1500 --bsize 20 --hidden1 512 --dropout 0.2 --weight_decay 0  --early_stopping 200 --num_clusters_val 20 --num_clusters_test 1 --epochs 130 --save_name ./redditmodel --learning_rate 0.005 --diag_lambda 0.0001 --novalidation

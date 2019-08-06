@@ -22,6 +22,7 @@ import partition_utils
 import tensorflow as tf
 import utils
 
+tf.logging.set_verbosity(tf.logging.INFO)
 # Set random seed
 seed = 1
 np.random.seed(seed)
@@ -29,7 +30,7 @@ np.random.seed(seed)
 # Settings
 flags = tf.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_string('save_name', 'mymodel.ckpt', 'Path for saving model')
+flags.DEFINE_string('save_name', './mymodel.ckpt', 'Path for saving model')
 flags.DEFINE_string('dataset', 'ppi', 'Dataset string.')
 flags.DEFINE_string('data_prefix', 'data/', 'Datapath prefix.')
 flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate.')
