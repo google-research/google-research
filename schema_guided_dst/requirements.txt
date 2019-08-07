@@ -1,0 +1,3 @@
+fuzzywuzzy>=0.17.0
+numpy>=1.16.1
+tensorflow>=1.13.0rc0
