@@ -1,0 +1,85 @@
+{
+  "utterance": "I want to have a meal in Palo Alto at this restuarant called Bird Dog. Can you also get me their contact number?",
+  "frame_ref": {
+    "state": {
+      "requested_slots": ["phone_number"],
+      "active_intent": "ReserveRestaurant",
+      "slot_values": {
+        "city": [
+          "Palo Alto"
+        ],
+        "price_range": [
+          "moderate"
+        ],
+        "restaurant_name": [
+          "Bird Dog"
+        ],
+        "cuisine": [
+          "American"
+        ]
+      }
+    },
+    "slots": [
+      {
+        "start": 25,
+        "exclusive_end": 34,
+        "slot": "city"
+      },
+      {
+        "start": 61,
+        "exclusive_end": 69,
+        "slot": "restaurant_name"
+      }
+    ],
+    "service": "Restaurants_1"
+  },
+  "frame_hyp": {
+    "state": {
+      "requested_slots": ["phone_number", "street_address"],
+      "active_intent": "SearchRestaurant",
+      "slot_values": {
+        "city": [
+          "Palo Alto"
+        ],
+        "restaurant_name": [
+          "Bird"
+        ],
+        "cuisine": [
+          "American"
+        ]
+      }
+    },
+    "slots": [
+      {
+        "start": 25,
+        "exclusive_end": 34,
+        "slot": "city"
+      },
+      {
+        "start": 61,
+        "exclusive_end": 65,
+        "slot": "restaurant_name"
+      }
+    ],
+    "service": "Restaurants_1"
+  },
+  "metrics_hyp": {
+    "active_intent_accuracy": 0.0,
+    "slot_tagging_f1": {
+      "precision": 0.5,
+      "recall": 0.5,
+      "f1": 0.5
+    },
+    "requested_slots_f1": {
+      "precision": 0.5,
+      "recall": 1.0,
+      "f1": 0.6666667
+    },
+    "joint_goal_accuracy": 0.0,
+    "joint_cat_accuracy": 0.0,
+    "joint_noncat_accuracy": 0.67,
+    "average_goal_accuracy": 0.6675,
+    "average_cat_accuracy": 0.0,
+    "average_noncat_accuracy": 0.89
+  }
+}
