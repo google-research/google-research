@@ -16,7 +16,9 @@ env:
     - PROJECT="dql_grasping"
     - PROJECT="dreg_estimators"
     - PROJECT="edward2_autoreparam"
+    - PROJECT="explaining_risk_increase"
     - PROJECT="extrapolation"
+    - PROJECT="fat"
     - PROJECT="genomics_ood"
     - PROJECT="graph_embedding/watch_your_step"
     - PROJECT="large_margin"
@@ -28,15 +30,14 @@ env:
     - PROJECT="neutra"
     - PROJECT="norml"
     - PROJECT="probabilistic_vqvae"
+    - PROJECT="psycholab"
     - PROJECT="robust_loss"
     - PROJECT="solver1d"
     - PROJECT="state_of_sparsity"
     - PROJECT="sufficient_input_subsets"
+    - PROJECT="tcc"
     - PROJECT="towards_gan_benchmarks"
     - PROJECT="wiki_split_bleu_eval"
-    - PROJECT="explaining_risk_increase"
-    - PROJECT="tcc"
-    - PROJECT="psycholab"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip
