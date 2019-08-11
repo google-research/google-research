@@ -311,7 +311,7 @@ def gbm_euler_step_running_max(
 
   running_max = tf.maximum(running_max, next_states)
 
-  return (next_states, running_max)
+  return (next_states, running_max)  # pytype: disable=bad-return-type
 
 
 def gbm_euler_step_running_sum(
@@ -355,7 +355,7 @@ def gbm_euler_step_running_sum(
 
   running_sums = running_sums + states
 
-  return (states, running_sums)
+  return (states, running_sums)  # pytype: disable=bad-return-type
 
 
 ################################################################################

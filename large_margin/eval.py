@@ -109,12 +109,16 @@ def evaluate():
           batch_size=FLAGS.batch_size,
           is_training=False)
       model = mnist_model.MNISTNetwork(config)
-
+      layers_names = [
+          "conv_layer%d" % i
+          for i in xrange(len(config.filter_sizes_conv_layers))
+      ]
     images, labels, num_examples, num_classes = (dataset.images, dataset.labels,
                                                  dataset.num_examples,
                                                  dataset.num_classes)
 
-    logits, _ = model(images, is_training=False)
+    logits, endpoints = model(images, is_training=False)
+    layers_list = [images] + [endpoints[name] for name in layers_names]
 
     top1_op = tf.nn.in_top_k(logits, labels, 1)
 
@@ -142,11 +146,16 @@ def evaluate():
       margin = margin_loss.large_margin(
           logits=logits,
           one_hot_labels=tf.one_hot(labels, num_classes),
-          layers_list=[images],
+          layers_list=layers_list,
           gamma=gamma,
           alpha_factor=alpha,
           top_k=top_k,
-          dist_norm=dist_norm)
+          dist_norm=dist_norm,
+          epsilon=1e-6,
+          layers_weights=[
+              np.prod(layer.get_shape().as_list()[1:])
+              for layer in layers_list] if np.isinf(dist_norm) else None
+          )
       l2_loss = 0.
       for v in tf.trainable_variables():
         tf.logging.info(v)

@@ -118,7 +118,7 @@ def multistep_runner_unrolled_tf(return_trajectories = False
       return trajectories
     return trajectories[-1]
 
-  return run
+  return run  # pytype: disable=bad-return-type
 
 
 def multistep_runner_tf_while(maximum_iterations = None,
@@ -152,7 +152,7 @@ def multistep_runner_tf_while(maximum_iterations = None,
         back_prop=back_prop)
     return end_states
 
-  return run
+  return run  # pytype: disable=bad-return-type
 
 
 def non_callable_price_mc(
@@ -196,7 +196,7 @@ def non_callable_price_mc(
 
   mean_outcome = tf.reduce_mean(outcomes)
   mean_sq_outcome = tf.reduce_mean(outcomes**2)
-  return mean_outcome, mean_sq_outcome, outcomes
+  return mean_outcome, mean_sq_outcome, outcomes  # pytype: disable=bad-return-type
 
 
 def sensitivity_autodiff(price, diff_target):

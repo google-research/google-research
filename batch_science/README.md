@@ -1,4 +1,4 @@
-# Batch Science: Measuring the Effects of Data Parallelism on Neural Network Training
+# Measuring the Effects of Data Parallelism on Neural Network Training
 
 This directory contains the publicly available material for the paper:
 

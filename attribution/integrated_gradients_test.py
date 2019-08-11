@@ -36,7 +36,7 @@ class AttributionTest(tf.test.TestCase):
           name='var2', initializer=[[4., 5.], [6., 7.], [4., 3.]])
       matmul = tf.einsum('ijk,kl->ijl', var1_times_x, var2)
       output_tensor = tf.reduce_sum(matmul, [1, 2], name='out')
-      input_feed_dict = {input_tensor: [[[2., 3., 4.], [5., 6., 7.]]]}
+      input_feed_dict = {input_tensor.name: [[[2., 3., 4.], [5., 6., 7.]]]}
       num_evals = tf.placeholder_with_default(
           tf.constant(20, name='num_evals'), shape=())
       attribution_hooks = integrated_gradients.AddIntegratedGradientsOps(

@@ -46,7 +46,7 @@ class CLS(object):
     """Initializes a CLS object.
 
     Args:
-      graph: networkx graph for the house.
+      graph: networkx graph for the environment.
       weight: networkx edge weight key (str).
       threshold: distance threshold $d_{th}$ (float).
     """

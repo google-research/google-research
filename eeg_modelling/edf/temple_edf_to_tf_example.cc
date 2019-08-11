@@ -71,9 +71,8 @@ int main(int argc, const char* argv[]) {
     return 0;
   }
 
-  string edf_path = args.GetString("edf_path").to_string();
-  string annotation_path = args.GetString(
-      "edf_annotation_path").to_string();
+  string edf_path = std::string(args.GetString("edf_path"));
+  string annotation_path = std::string(args.GetString("edf_annotation_path"));
 
   auto segment_or = eeg_modelling::ParseEdfToSegmentProto(
       "", edf_path, "");
@@ -93,7 +92,7 @@ int main(int argc, const char* argv[]) {
   example = std::move(example_or).ValueOrDie();
 
   std::unique_ptr<tensorflow::WritableFile> file;
-  string output_path = args.GetString("output_path").to_string();
+  string output_path = std::string(args.GetString("output_path"));
   TF_CHECK_OK(tensorflow::Env::Default()->NewWritableFile(output_path, &file));
   tensorflow::io::RecordWriter record_writer(file.get());
   TF_CHECK_OK(record_writer.WriteRecord(example.SerializeAsString()));

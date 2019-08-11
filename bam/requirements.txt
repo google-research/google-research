@@ -1,0 +1,4 @@
+# tensorflow>=1.11.3
+numpy>=1.16.4
+scipy>=1.2.0
+sklearn>=0.0.0
