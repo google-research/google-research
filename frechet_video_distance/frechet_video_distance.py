@@ -26,6 +26,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import tensorflow_gan as tfgan
 import tensorflow_hub as hub
 
 
@@ -136,5 +137,5 @@ def calculate_fvd(real_activations,
   Returns:
     A scalar that contains the requested FVD.
   """
-  return tf.contrib.gan.eval.frechet_classifier_distance_from_activations(
+  return tfgan.eval.frechet_classifier_distance_from_activations(
       real_activations, generated_activations)
