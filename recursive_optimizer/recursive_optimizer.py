@@ -159,6 +159,16 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
     self._set_hyper(ETA, eta)
     self._set_hyper(BETTING_DOMAIN, betting_domain)
 
+  # Propagates use_locking from constructor to
+  # https://www.tensorflow.org/api_docs/python/tf/assign
+  def _assign(self, ref, value):
+    return tf.assign(ref, value, use_locking=self._use_locking)
+
+  # Propagates use_locking from constructor to
+  # https://www.tensorflow.org/api_docs/python/tf/assign_add
+  def _assign_add(self, ref, value):
+    return tf.assign_add(ref, value, use_locking=self._use_locking)
+
   def _create_slot_with_value(self, state, var, value, name, dtype=None):
     if dtype is None:
       dtype = var.dtype.base_dtype
@@ -169,7 +179,6 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
     state.create_non_slot(
         initial_value=tf.constant(value, dtype=dtype),
         name=name)
-
 
   def _create_vars(self, var_list, state):
     for var in var_list:
@@ -266,7 +275,7 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
                                     inner_maximum_gradient)
 
     with tf.control_dependencies([clipped_grad]):
-      inner_maximum_gradient_updated = tf.assign(
+      inner_maximum_gradient_updated = self._assign(
           inner_maximum_gradient,
           tf.maximum(inner_maximum_gradient, tf.abs(grad)))
       update_ops.append(inner_maximum_gradient_updated)
@@ -282,14 +291,14 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
             0.0), clipped_grad, tf.zeros(tf.shape(clipped_grad)))
 
     reward_delta = -betting_fraction * truncated_grad
-    reward_updated = tf.assign_add(reward, reward_delta)
+    reward_updated = self._assign_add(reward, reward_delta)
     update_ops.append(reward_updated)
 
-    sum_grad_squared_updated = tf.assign_add(sum_grad_squared,
-                                             tf.square(truncated_grad))
+    sum_grad_squared_updated = self._assign_add(sum_grad_squared,
+                                                tf.square(truncated_grad))
     update_ops.append(sum_grad_squared_updated)
 
-    sum_grad_updated = tf.assign_add(sum_grad, truncated_grad)
+    sum_grad_updated = self._assign_add(sum_grad, truncated_grad)
     update_ops.append(sum_grad_updated)
 
     # The second term in this maximum, inner_maximum_gradient_updated / self.eta
@@ -311,7 +320,8 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
     new_betting_fraction = inner_betting_fraction * (
         reward_updated + epsilon_scaling * self.epsilon_v)
 
-    betting_fraction_updated = tf.assign(betting_fraction, new_betting_fraction)
+    betting_fraction_updated = self._assign(betting_fraction,
+                                            new_betting_fraction)
     update_ops.append(betting_fraction_updated)
 
     clipped_betting_fraction = tf.clip_by_value(betting_fraction_updated,
@@ -360,7 +370,7 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
     sum_grad_squared = state.get_slot(var, INNER_SUM_GRAD_SQUARED)
     inner_maximum_gradient = state.get_slot(var, INNER_MAXIMUM_GRADIENT)
 
-    inner_maximum_gradient_updated = tf.assign(
+    inner_maximum_gradient_updated = self._assign(
         inner_maximum_gradient, tf.maximum(inner_maximum_gradient,
                                            tf.abs(grad)))
     update_ops.append(inner_maximum_gradient_updated)
@@ -376,7 +386,7 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
         tf.zeros(tf.shape(grad)))
 
     wealth_delta = -betting_fraction * truncated_grad
-    wealth_updated = tf.assign_add(wealth, wealth_delta)
+    wealth_updated = self._assign_add(wealth, wealth_delta)
     update_ops.append(wealth_updated)
 
     # This is the gradient with respect to the betting fraction v
@@ -393,8 +403,8 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
       v_grad = truncated_grad / (
           (1.0 - inner_betting_fraction * truncated_grad))
 
-    sum_grad_squared_updated = tf.assign_add(sum_grad_squared,
-                                             tf.square(v_grad))
+    sum_grad_squared_updated = self._assign_add(sum_grad_squared,
+                                                tf.square(v_grad))
     update_ops.append(sum_grad_squared_updated)
 
     new_inner_betting_fraction = inner_betting_fraction - eta * v_grad / (
@@ -402,8 +412,8 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
     new_inner_betting_fraction = tf.clip_by_value(new_inner_betting_fraction,
                                                   -betting_domain,
                                                   betting_domain)
-    inner_betting_fraction_updated = tf.assign(inner_betting_fraction,
-                                               new_inner_betting_fraction)
+    inner_betting_fraction_updated = self._assign(inner_betting_fraction,
+                                                  new_inner_betting_fraction)
     update_ops.append(inner_betting_fraction_updated)
 
     if self.output_summaries:
@@ -420,7 +430,7 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
       tf.summary.scalar(self._name + "/inner_maximum_gradient/" + var.name,
                         inner_maximum_gradient_summary)
 
-    betting_fraction_updated = tf.assign(
+    betting_fraction_updated = self._assign(
         betting_fraction, inner_betting_fraction_updated * wealth_updated)
     update_ops.append(betting_fraction_updated)
 
@@ -442,7 +452,7 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
         self.betting_fraction_dot_product_deltas.values())
     grad_norm = sum(self.grad_norms.values())
 
-    maximum_gradient_updated = tf.assign(
+    maximum_gradient_updated = self._assign(
         maximum_gradient, tf.maximum(maximum_gradient, grad_norm))
     update_ops.append(maximum_gradient_updated)
 
@@ -454,7 +464,7 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
     betting_fraction_dot_product = betting_fraction_dot_product * gradient_scaling
     wealth_increment = wealth_increment * gradient_scaling
 
-    outer_wealth_updated = tf.assign_add(outer_wealth, wealth_increment)
+    outer_wealth_updated = self._assign_add(outer_wealth, wealth_increment)
     update_ops.append(outer_wealth_updated)
 
     inner_grad_scaling = (1.0 - betting_domain) / (1.0 -
@@ -469,7 +479,8 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
     if self.add_average:
       grad_norm_squared = tf.square(grad_norm)
       sum_grad_norm_squared = state.get_non_slot(SUM_GRAD_NORM_SQUARED)
-      sum_grad_norm_squared_updated = tf.assign_add(sum_grad_norm_squared, grad_norm_squared)
+      sum_grad_norm_squared_updated = self._assign_add(sum_grad_norm_squared,
+                                                       grad_norm_squared)
 
     for var in self.grads:
 
@@ -501,16 +512,16 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
       if self.add_average:
         average_offset = state.get_slot(var, AVERAGE_OFFSET)
         previous_sum_grad_norm_squared = sum_grad_norm_squared - grad_norm_squared
-        average_offset_updated = tf.assign_add(
+        average_offset_updated = self._assign_add(
             average_offset,
             (previous_sum_grad_norm_squared *
              (next_offset - average_offset)) / (sum_grad_norm_squared_updated))
         update_ops.append(average_offset_updated)
 
-        var_updated = tf.assign(
+        var_updated = self._assign(
             var, next_offset + average_offset_updated + initial_value)
       else:
-        var_updated = tf.assign(var, next_offset + initial_value)
+        var_updated = self._assign(var, next_offset + initial_value)
       update_ops.append(var_updated)
 
     return tf.group(*update_ops)
