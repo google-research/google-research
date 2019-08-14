@@ -1292,7 +1292,7 @@ class Store {
    * @return {?PartialStoreData} store data with changed properties.
    */
   handleNavBarRequest(data) {
-    if (!goog.isNumber(data.time)) {
+    if (typeof data.time !== 'number') {
       return null;
     }
     return {

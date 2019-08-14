@@ -104,7 +104,7 @@ testSuite({
 
   testHandleChartData_highlightsViewport() {
     const numMatcher = new mockmatchers.ArgumentMatcher(
-        (num) => goog.isNumber(num) && num >= 0);
+        (num) => typeof num === 'number' && num >= 0);
 
     const mockRect = mockControl.createFunctionMock('fillRect');
     const mockClearRect = mockControl.createFunctionMock('clearRect');

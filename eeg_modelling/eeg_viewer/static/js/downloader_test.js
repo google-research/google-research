@@ -82,12 +82,13 @@ testSuite({
     });
 
     const filenameMatcher = new mockmatchers.ArgumentMatcher((filename) => {
-      return goog.isString(filename) && filename.includes(downloadData.name) &&
+      return typeof filename === 'string' &&
+          filename.includes(downloadData.name) &&
           filename.includes(storeData.sstableKey) && filename.endsWith('.json');
     });
 
     const jsonTypeMatcher = new mockmatchers.ArgumentMatcher((contentType) => {
-      return goog.isString(contentType) && contentType.includes('json');
+      return typeof contentType === 'string' && contentType.includes('json');
     });
 
     const downloadMock =
