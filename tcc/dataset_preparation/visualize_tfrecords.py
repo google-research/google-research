@@ -20,12 +20,12 @@ from __future__ import division
 from __future__ import print_function
 
 import glob
+import os
 
 from absl import app
 from absl import flags
+from absl import logging
 
-import matplotlib
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt  # pylint: disable=g-import-not-at-top
 
 import tensorflow.compat.v2 as tf
@@ -52,20 +52,20 @@ def decode(serialized_example):
   """
 
   context_features = {
-      'label': tf.FixedLenFeature([], dtype=tf.int64),
-      'len': tf.FixedLenFeature([], dtype=tf.int64)
+      'label': tf.io.FixedLenFeature([], dtype=tf.int64),
+      'len': tf.io.FixedLenFeature([], dtype=tf.int64)
   }
   sequence_features = {
-      'video': tf.FixedLenSequenceFeature([], dtype=tf.string)
+      'video': tf.io.FixedLenSequenceFeature([], dtype=tf.string)
   }
 
-  # Extract features from serialized data
-  context_data, sequence_data = tf.parse_single_sequence_example(
+  # Extract features from serialized data.
+  context_data, sequence_data = tf.io.parse_single_sequence_example(
       serialized=serialized_example,
       context_features=context_features,
       sequence_features=sequence_features)
 
-  # Decode the encoded JPG images
+  # Decode the encoded JPG images.
   frames = tf.map_fn(tf.image.decode_jpeg, sequence_data['video'],
                      dtype=tf.uint8, parallel_iterations=12)
   label = context_data['label']
@@ -84,31 +84,30 @@ def visualize_tfrecords(path_to_tfrecord, num_vids, num_skip_frames):
   """
   tfrecord_files = glob.glob(path_to_tfrecord)
   tfrecord_files.sort()
-  sess = tf.Session()
-  init_op = tf.group(tf.global_variables_initializer(),
-                     tf.local_variables_initializer())
-
   dataset = tf.data.TFRecordDataset(tfrecord_files)
   dataset = dataset.map(decode)
   dataset = dataset.batch(1)
 
-  iterator = dataset.make_one_shot_iterator()
-  next_batch = iterator.get_next()
-
-  sess.run(init_op)
-
-  for _ in xrange(num_vids):
-
-    # Fetch a new batch from the dataset
-    batch_videos, batch_names = sess.run(next_batch)
-    tf.logging.info('Class label = %d', batch_names[0])
+  ctr = 0
+  for batch_videos, batch_labels in dataset:
+    batch_videos = batch_videos.numpy()
+    batch_labels = batch_labels.numpy()
+    logging.info('Class label for %s = %d',
+                 tfrecord_files[ctr],
+                 batch_labels[0])
+    plt.show()
+    plt.title(os.path.splitext(os.path.basename(tfrecord_files[ctr]))[0])
     for frame_idx in xrange(0, len(batch_videos[0]), num_skip_frames):
       plt.imshow(batch_videos[0, frame_idx])
       plt.pause(0.1)
-      plt.clf()
+    plt.close()
+    ctr += 1
+    if ctr == num_vids:
+      break
 
 
 def main(_):
+  tf.enable_v2_behavior()
   visualize_tfrecords(FLAGS.path_to_tfrecord, FLAGS.num_vids,
                       FLAGS.num_skip_frames)
 
