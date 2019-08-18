@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """Script for random exploration."""
+from __future__ import print_function
 import json
 import multiprocessing
 import os
@@ -32,6 +33,7 @@ from meta_reward_learning.semantic_parsing.nsm \
 import executor_factory
 from meta_reward_learning.semantic_parsing.table \
 import utils
+from six.moves import xrange
 
 # FLAGS
 FLAGS = tf.app.flags.FLAGS
@@ -119,7 +121,7 @@ def run_random_exploration(shard_id):
   if FLAGS.trigger_word_file:
     with gfile.Open(FLAGS.trigger_word_file, 'r') as f:
       trigger_dict = json.load(f)
-      print 'use trigger words in {}'.format(FLAGS.trigger_word_file)
+      print('use trigger words in {}'.format(FLAGS.trigger_word_file))
   else:
     trigger_dict = None
 
@@ -250,7 +252,7 @@ def collect_programs():
   saved_program_path = os.path.join(get_experiment_dir(), 'saved_programs.json')
   with gfile.Open(saved_program_path, 'w') as f:
     json.dump(saved_programs, f)
-  print 'saved programs are aggregated in {}'.format(saved_program_path)
+  print('saved programs are aggregated in {}'.format(saved_program_path))
 
 
 def main(unused_argv):
