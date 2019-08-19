@@ -34,9 +34,9 @@ from tensorflow_probability import bijectors as tfb
 from tensorflow_probability import distributions as tfd
 from tensorflow_probability import edward2 as ed
 
-from tensorflow_probability.python.edward2.generated_random_variables import Normal
-from tensorflow_probability.python.edward2.interceptor import tape
-from tensorflow_probability.python.edward2.program_transformations import make_log_joint_fn
+from tensorflow_probability.python.experimental.edward2.generated_random_variables import Normal
+from tensorflow_probability.python.experimental.edward2.interceptor import tape
+from tensorflow_probability.python.experimental.edward2.program_transformations import make_log_joint_fn
 
 from edward2_autoreparam.tfp import program_transformations
 
