@@ -53,8 +53,9 @@ def get_nine_gaussians(batch_size, scale=0.1, spacing=1.0):
   return batch
 
 
-def get_mnist(split="train", data_dir=MNIST_PATH):
+def get_mnist(split="train", data_dir=MNIST_PATH, shuffle_files=None):
   """Get MNIST dataset."""
+  del shuffle_files  # Ignored
   path = os.path.join(ROOT_PATH(), data_dir, split + ".npy")
   with tf.io.gfile.GFile(path, "rb") as f:
     np_ims = np.load(f)
@@ -70,18 +71,19 @@ def get_mnist(split="train", data_dir=MNIST_PATH):
   return dataset, mean
 
 
-def get_static_mnist(split="train"):
-  return get_mnist(split, data_dir=STATIC_BINARIZED_MNIST_PATH)
+def get_static_mnist(split="train", shuffle_files=None):
+  return get_mnist(split, data_dir=STATIC_BINARIZED_MNIST_PATH,
+                   shuffle_files=shuffle_files)
 
 
-def get_celeba(split="train"):
+def get_celeba(split="train", shuffle_files=False):
   """Get CelebA dataset."""
   split_map = {
       "train": "train",
       "valid": "validation",
       "test": "test",
   }
-  datasets = tfds.load("celeb_a")
+  datasets = tfds.load("celeb_a", shuffle_files=shuffle_files)
 
   mean_path = os.path.join(ROOT_PATH(), CELEBA_PATH, "train_mean.npy")
   with tf.io.gfile.GFile(mean_path, "rb") as f:
@@ -102,7 +104,7 @@ def get_celeba(split="train"):
   return data, train_mean
 
 
-def get_fashion_mnist(split="train"):
+def get_fashion_mnist(split="train", shuffle_files=False):
   """Get FashionMNIST dataset."""
   split_map = {
       "train": "train",
@@ -111,7 +113,9 @@ def get_fashion_mnist(split="train"):
   }
   dataset = (
       tfds.load(name="fashion_mnist",
-                split=split_map[split]).map(lambda x: tf.to_float(x["image"])))
+                split=split_map[split],
+                shuffle_files=shuffle_files,
+               ).map(lambda x: tf.to_float(x["image"])))
 
   train_mean_path = os.path.join(ROOT_PATH(), FASHION_MNIST_PATH,
                                  "train_mean.npy")
@@ -222,7 +226,7 @@ def get_dataset(dataset,
   }
 
   dataset_fn, dataset_kwargs = dataset_map[dataset]
-  raw_dataset, mean = dataset_fn(split)
+  raw_dataset, mean = dataset_fn(split, shuffle_files=shuffle)
   data_batch, mean, itr = dataset_and_mean_to_batch(
       raw_dataset,
       mean,
