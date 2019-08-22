@@ -54,8 +54,8 @@ this of course means multiple epochs).
 
 |Trained on |Intirinsics|Abs Rel on Cityscapes       |Abs Rel on KITTI|Checkpoint|
 |:----------|:---------:|:------:|:-------:|:-------:|
-|Cityscapes|Learned| 0.1279|0.1729| [download](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fcheckpoints%2Fcityscapes_learned_intrinsics%2Fmodel-1005472.data-00000-of-00001?generation=1566417717263925&alt=media)|
-|KITTI|Learned| 0.1679|0.1262| [download](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fcheckpoints%2Fkitti_learned_intrinsics%2Fmodel-248900.data-00000-of-00001?generation=1566418746216944&alt=media)|
-|Cityscapes + KITTI | Learned | 0.1196 | 0.1231 | [download](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fcheckpoints%2Fcityscapes_kitti_learned_intrinsics%2Fmodel-1000977.data-00000-of-00001?generation=1566419411136948&alt=media)
+|Cityscapes|Learned| 0.1279|0.1729| [download](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fcheckpoints%2Fcityscapes_learned_intrinsics.zip?generation=1566493765410932&alt=media)|
+|KITTI|Learned| 0.1679|0.1262| [download](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fcheckpoints%2Fkitti_learned_intrinsics.zip?generation=1566493768934649&alt=media)|
+|Cityscapes + KITTI | Learned | 0.1196 | 0.1231 | [download](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fcheckpoints%2Fcityscapes_kitti_learned_intrinsics.zip?generation=1566493762028542&alt=media)
 
 </center>
