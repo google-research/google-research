@@ -59,3 +59,16 @@ this of course means multiple epochs).
 |Cityscapes + KITTI | Learned | 0.1196 | 0.1231 | [download](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fcheckpoints%2Fcityscapes_kitti_learned_intrinsics.zip?generation=1566493762028542&alt=media)
 
 </center>
+
+## YouTube8M IDs of the videos used in the paper
+`1ofm 2Ffk 2Gc7 2hdG 4Kdy 4gbW 70eK 77cq 7We1 8Eff 8W2O 8bfg 9q4L A8cd AHdn Ai8q
+B8fJ BfeT C23C C4be CP6A EOdA Gu4d IdeB Ixfs Kndm L1fF M28T M92S NSbx NSfl NT57
+Q33E Qu62 U4eP UCeG VRdE W0ch WU6A WWdu WY2M XUeS YLcc YkfI ZacY aW8r bRbL d79L
+d9bU eEei ePaw iOdz iXev j42G j97W k7fi kxe2 lIbd lWeZ mw3B nLd8 olfE qQ8k qS6J
+sFb2 si9H uofG yPeZ zger`
+
+The YouTube8M [website](https://research.google.com/youtube8m/) provides the
+instructions for mapping them you YouTube IDs. Two consecutive frames were
+sampled off of each video every second.
+
+
