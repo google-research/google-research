@@ -371,7 +371,7 @@ class Model(object):
         input_image = (input_image - reader.IMAGENET_MEAN) / reader.IMAGENET_SD
 
       def _normalizer_fn(x, is_train, name='bn'):
-        return randomized_layer_normalization.py.normalize(
+        return randomized_layer_normalization.normalize(
             x, is_train, name, None)
 
       self.est_depth1 = depth_prediction_net.depth_prediction_resnet18unet(
