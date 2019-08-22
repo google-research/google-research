@@ -60,8 +60,7 @@ def encoder_resnet(target_image, weight_reg, is_training, normalizer_fn=None):
   # conv2_x
   x = s_residual_block(
       x, is_training, name='conv2_1', normalizer_fn=normalizer_fn)
-  econv2 = s_residual_block(
-      x, is_training, name='conv2_2', normalizer_fn=normalizer_fn)
+  econv2 = s_residual_block(x, is_training, name='conv2_2')
 
   # conv3_x
   x = s_residual_block_first(
@@ -71,8 +70,7 @@ def encoder_resnet(target_image, weight_reg, is_training, normalizer_fn=None):
       stride,
       name='conv3_1',
       normalizer_fn=normalizer_fn)
-  econv3 = s_residual_block(
-      x, is_training, name='conv3_2', normalizer_fn=normalizer_fn)
+  econv3 = s_residual_block(x, is_training, name='conv3_2')
 
   # conv4_x
   x = s_residual_block_first(
@@ -82,8 +80,7 @@ def encoder_resnet(target_image, weight_reg, is_training, normalizer_fn=None):
       stride,
       name='conv4_1',
       normalizer_fn=normalizer_fn)
-  econv4 = s_residual_block(
-      x, is_training, name='conv4_2', normalizer_fn=normalizer_fn)
+  econv4 = s_residual_block(x, is_training, name='conv4_2')
 
   # conv5_x
   x = s_residual_block_first(

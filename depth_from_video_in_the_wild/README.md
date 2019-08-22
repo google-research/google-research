@@ -40,3 +40,22 @@ python -m depth_from_video_in_the_wild.train \
 To use the given intrinsics instead of learning them, add
 `--nolearn_intrinsics` to the coomand.
 
+## Pretrained checkpoints and respective metrics
+The table below provides checkpoints trained on Cityscapes, KITTI and their
+mixture, with the respective Absolute Relative depth error metrics. The metrics
+slightly differ from the results in Table A3 in the paper because for the latter
+we averaged the metrics over multiple checkpoints, whereas in the table below
+the metrics relate to a specific checkpoint. All checkpoints were harvested
+after training on nearly 4M images (since the datasets are much smaller than 4M,
+this of course means multiple epochs).
+
+
+<center>
+
+|Trained on |Intirinsics|Abs Rel on Cityscapes       |Abs Rel on KITTI|Checkpoint|
+|:----------|:---------:|:------:|:-------:|:-------:|
+|Cityscapes|Learned| 0.1279|0.1729| [download](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fcheckpoints%2Fcityscapes_learned_intrinsics%2Fmodel-1005472.data-00000-of-00001?generation=1566417717263925&alt=media)|
+|KITTI|Learned| 0.1679|0.1262| [download](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fcheckpoints%2Fkitti_learned_intrinsics%2Fmodel-248900.data-00000-of-00001?generation=1566418746216944&alt=media)|
+|Cityscapes + KITTI | Learned | 0.1196 | 0.1231 | [download](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fcheckpoints%2Fcityscapes_kitti_learned_intrinsics%2Fmodel-1000977.data-00000-of-00001?generation=1566419411136948&alt=media)
+
+</center>
