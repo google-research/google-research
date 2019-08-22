@@ -16,6 +16,7 @@ env:
     - PROJECT="dql_grasping"
     - PROJECT="dreg_estimators"
     - PROJECT="edward2_autoreparam"
+    - PROJECT="evanet"
     - PROJECT="explaining_risk_increase"
     - PROJECT="extrapolation"
     - PROJECT="fat"
