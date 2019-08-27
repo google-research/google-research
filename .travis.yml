@@ -4,6 +4,7 @@ git:
   quiet: true
 matrix:
   include:
+    - env: PROJECT="tcc"  # Run tcc first because it is long running
     - env: PROJECT="attribution"
     - env: PROJECT="bam"
     - env: PROJECT="bitempered_loss"
@@ -32,7 +33,6 @@ matrix:
     - env: PROJECT="solver1d"
     - env: PROJECT="state_of_sparsity"
     - env: PROJECT="sufficient_input_subsets"
-    - env: PROJECT="tcc"
     - env: PROJECT="towards_gan_benchmarks"
     - env: PROJECT="wiki_split_bleu_eval"
   allow_failures:  # TODO: Fix each project's tests and remove from this list
@@ -40,15 +40,13 @@ matrix:
     - env: PROJECT="bam"
     - env: PROJECT="bitempered_loss"
     - env: PROJECT="depth_from_video_in_the_wild"
+    - env: PROJECT="edward2_autoreparam"
     - env: PROJECT="fat"
     - env: PROJECT="genomics_ood"
     - env: PROJECT="m_theory"
     - env: PROJECT="norml"
-    - env: PROJECT="probabilistic_vqvae"
     - env: PROJECT="psycholab"
     - env: PROJECT="tcc"
-    - env: PROJECT="towards_gan_benchmarks"
-    - env: PROJECT="wiki_split_bleu_eval"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip
