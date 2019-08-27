@@ -12,6 +12,7 @@ matrix:
     - env: PROJECT="dql_grasping"
     - env: PROJECT="dreg_estimators"
     - env: PROJECT="edward2_autoreparam"
+    - env: PROJECT="evanet"
     - env: PROJECT="explaining_risk_increase"
     - env: PROJECT="extrapolation"
     - env: PROJECT="fat"
@@ -46,6 +47,8 @@ matrix:
     - env: PROJECT="probabilistic_vqvae"
     - env: PROJECT="psycholab"
     - env: PROJECT="tcc"
+    - env: PROJECT="towards_gan_benchmarks"
+    - env: PROJECT="wiki_split_bleu_eval"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip

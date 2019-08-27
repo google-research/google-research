@@ -71,16 +71,16 @@ def unnorm(query_frame):
   return query_frame
 
 
-def align(candidate_feats, query_feats, use_dtw):
-  """Align videos based on nearest neighbor in embedding space."""
+def align(query_feats, candidate_feats, use_dtw):
+  """Align videos based on nearest neighbor or dynamic time warping."""
   if use_dtw:
-    _, _, _, path = dtw(candidate_feats, query_feats, dist=dist_fn)
+    _, _, _, path = dtw(query_feats, candidate_feats, dist=dist_fn)
     _, uix = np.unique(path[0], return_index=True)
     nns = path[1][uix]
   else:
     nns = []
-    for i in range(len(candidate_feats)):
-      nn_frame_id, _ = get_nn(query_feats, candidate_feats[i])
+    for i in range(len(query_feats)):
+      nn_frame_id, _ = get_nn(candidate_feats, query_feats[i])
       nns.append(nn_frame_id)
   return nns
 

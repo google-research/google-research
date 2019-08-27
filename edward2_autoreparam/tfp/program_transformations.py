@@ -27,9 +27,9 @@ import six
 import tensorflow as tf
 
 from tensorflow_probability import bijectors as tfb
-from tensorflow_probability.python.edward2.generated_random_variables import Normal
-from tensorflow_probability.python.edward2.interceptor import interceptable
-from tensorflow_probability.python.edward2.interceptor import interception
+from tensorflow_probability.python.experimental.edward2.generated_random_variables import Normal
+from tensorflow_probability.python.experimental.edward2.interceptor import interceptable
+from tensorflow_probability.python.experimental.edward2.interceptor import interception
 
 __all__ = [
     'make_log_joint_fn', 'make_variational_model', 'make_value_setter', 'ncp',

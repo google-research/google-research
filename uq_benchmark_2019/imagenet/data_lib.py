@@ -47,10 +47,11 @@ APPROX_IMAGENET_TRAINING_IMAGES = 1280000  # Approximate number of images.
 IMAGENET_VALIDATION_IMAGES = 50000  # Number of images.
 
 
-def _download_alt_dataset(config):
+def _download_alt_dataset(config, shuffle_files):
   dataset_builder = tfds.builder(config.alt_dataset_name)
   dataset_builder.download_and_prepare()
-  return dataset_builder.as_dataset(split=config.split)
+  return dataset_builder.as_dataset(split=config.split,
+                                    shuffle_files=shuffle_files)
 
 
 def build_dataset(
@@ -72,7 +73,7 @@ def build_dataset(
     return image_data_utils.make_fake_data(IMAGENET_SHAPE).batch(batch_size)
 
   if config.alt_dataset_name:
-    dataset = _download_alt_dataset(config)
+    dataset = _download_alt_dataset(config, shuffle_files=is_training)
 
     def prep_fn(image_input):
       image = tf.image.convert_image_dtype(image_input['image'], tf.float32)
