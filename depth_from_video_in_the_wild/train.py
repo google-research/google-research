@@ -39,7 +39,7 @@ flags.DEFINE_string('data_dir', None, 'Preprocessed data.')
 
 flags.DEFINE_string('file_extension', 'png', 'Image data file extension.')
 
-flags.DEFINE_float('learning_rate', 0.0002, 'Adam learning rate.')
+flags.DEFINE_float('learning_rate', 1e-4, 'Adam learning rate.')
 
 flags.DEFINE_float('reconstr_weight', 0.85, 'Frame reconstruction loss weight.')
 
@@ -91,6 +91,9 @@ flags.DEFINE_boolean('learn_intrinsics', True, 'Whether to learn camera '
 
 flags.DEFINE_boolean('boxify', True, 'Whether to convert segmentation masks to '
                      'bounding boxes.')
+
+flags.DEFINE_string('imagenet_ckpt', None, 'Path to an imagenet checkpoint to '
+                    'intialize from.')
 
 
 FLAGS = flags.FLAGS
@@ -163,6 +166,9 @@ def _train(train_model, checkpoint_dir, train_steps, summary_freq):
     logging.info('Last checkpoint found: %s', checkpoint)
     if checkpoint:
       saver.restore(sess, checkpoint)
+    elif FLAGS.imagenet_ckpt:
+      logging.info('Restoring pretrained weights from %s', FLAGS.imagenet_ckpt)
+      train_model.imagenet_init_restorer.restore(sess, FLAGS.imagenet_ckpt)
 
     logging.info('Training...')
     start_time = time.time()

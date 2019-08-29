@@ -42,6 +42,7 @@ slim = tf.contrib.slim
 SEQ_LENGTH = 3
 LAYER_NORM_NOISE_RAMPUP_STEPS = 10000
 MIN_OBJECT_AREA = 20
+DEPTH_SCOPE = 'depth_prediction'
 
 
 class Model(object):
@@ -57,7 +58,7 @@ class Model(object):
                data_dir=None,
                file_extension='png',
                is_training=True,
-               learning_rate=0.0002,
+               learning_rate=1e-4,
                beta1=0.9,
                reconstr_weight=0.85,
                smooth_weight=1e-2,
@@ -108,8 +109,18 @@ class Model(object):
     self.exports[name] = tensor
 
   def _build_train_graph(self):
+    """Build a training graph and savers."""
     self._build_loss()
     self.saver = tf.train.Saver()
+    # Create a saver for initializing resnet18 weights from imagenet.
+    vars_to_restore = [
+        v for v in tf.trainable_variables()
+        if v.op.name.startswith(DEPTH_SCOPE + '/conv')
+    ]
+    vars_to_restore = {
+        v.op.name[len(DEPTH_SCOPE) + 1:]: v for v in vars_to_restore
+    }
+    self.imagenet_init_restorer = tf.train.Saver(vars_to_restore)
     self._build_train_op()
     self._build_summaries()
 
@@ -171,7 +182,7 @@ class Model(object):
     self.seg_stack = tf.to_float(tf.stack(object_masks, axis=0))
     tf.summary.image('Masks', self.seg_stack)
 
-    with tf.variable_scope('depth_prediction'):
+    with tf.variable_scope(DEPTH_SCOPE):
       # Organized by ...[i][scale].  Note that the order is flipped in
       # variables in build_loss() below.
       self.disp = {}
@@ -363,7 +374,7 @@ class Model(object):
 
   def _build_depth_test_graph(self):
     """Builds depth model reading from placeholders."""
-    with tf.variable_scope('depth_prediction', reuse=tf.AUTO_REUSE):
+    with tf.variable_scope(DEPTH_SCOPE, reuse=tf.AUTO_REUSE):
       input_image = tf.placeholder(
           tf.float32, [self.batch_size, self.img_height, self.img_width, 3],
           name='raw_input')
