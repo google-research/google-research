@@ -33,6 +33,7 @@ env:
     - PROJECT="probabilistic_vqvae"
     - PROJECT="psycholab"
     - PROJECT="robust_loss"
+    - PROJECT="soft_sort"
     - PROJECT="solver1d"
     - PROJECT="state_of_sparsity"
     - PROJECT="sufficient_input_subsets"
