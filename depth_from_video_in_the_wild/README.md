@@ -19,6 +19,7 @@ Sample command line:
 python -m depth_from_video_in_the_wild.train \
    --checkpoint_dir=$MY_CHECKPOINT_DIR \
    --data_dir=$MY_DATA_DIR
+   --imagenet_ckpt=$MY_IMAGENET_CHECKPOINT
 ```
 
 `MY_CHECKPOINT_DIR` is where the trained model checkpoints are to be saved.
@@ -27,6 +28,11 @@ python -m depth_from_video_in_the_wild.train \
 The `data_example` folder contains a single training example expressed in this
 format.
 
+`MY_IMAGENET_CHECKPOINT` is a path to a pretreained ImageNet checkpoint to
+intialize the encoder of the depth prediction model.
+
+On Cityscapes we used the default batch size (4), for KITTI we used a batch
+size of 16 (add `--batch_size=16` to the training command).
 
 A command line for running a single training step on the single example in
 `data_example` (for testing):
