@@ -10,7 +10,7 @@ Here we construct a new adaptive optimization method that retains most of the be
 
 Another practical aspect worthy of note is that our method does not require an external hand engineered learning rate decay schedule but instead relies on the per parameter adaptivity that is natural to its update rule which makes it easier to tune. We provide details in the supplementary section of the paper.
 
-## Advice on using SM3 on your model.
+## Advice on using SM3 on your model
 
 ### Learning rate warm-up:
 

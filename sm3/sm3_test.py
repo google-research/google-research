@@ -43,7 +43,7 @@ class SM3Test(tf.test.TestCase):
       step = opt.apply_gradients([(grad, var)])
       tf.global_variables_initializer().run()
 
-      # Check that variable and momentum are as exp_ before starting
+      # Check that variable and momentum are as expected before starting
       # training.
       var_np = sess.run(var)
       gbar_np = sess.run(opt.get_slot(var, 'momentum'))
@@ -62,7 +62,7 @@ class SM3Test(tf.test.TestCase):
         exp_gbar_np = (
             self._momentum * gbar_np + (1 - self._momentum) * exp_p_grad)
         exp_var = var_np - self._learning_rate * exp_gbar_np
-        # Check that variable and momentum are as exp_ after one step of
+        # Check that variable and momentum are as expected after one step of
         # training.
         var_np = sess.run(var)
         gbar_np = sess.run(opt.get_slot(var, 'momentum'))
@@ -83,7 +83,7 @@ class SM3Test(tf.test.TestCase):
       step = opt.apply_gradients([(grad, var)])
       tf.global_variables_initializer().run()
 
-      # Check that variable and momentum are as exp_ before starting
+      # Check that variable and momentum are as expected before starting
       # training.
       var_np = sess.run(var)
       gbar_np = sess.run(opt.get_slot(var, 'momentum'))
@@ -102,7 +102,7 @@ class SM3Test(tf.test.TestCase):
         exp_gbar_np = (
             self._momentum * gbar_np + (1 - self._momentum) * exp_p_grad)
         exp_var = var_np - self._learning_rate * exp_gbar_np
-        # Check that variable and momentum are as exp_ after one step of
+        # Check that variable and momentum are as expected after one step of
         # training.
         var_np = sess.run(var)
         gbar_np = sess.run(opt.get_slot(var, 'momentum'))
@@ -123,7 +123,7 @@ class SM3Test(tf.test.TestCase):
       step = opt.apply_gradients([(grad, var)])
       tf.global_variables_initializer().run()
 
-      # Check that variable and momentum are as exp_ before starting
+      # Check that variable and momentum are as expected before starting
       # training.
       var_np = sess.run(var)
       gbar_np = sess.run(opt.get_slot(var, 'momentum'))
@@ -148,7 +148,7 @@ class SM3Test(tf.test.TestCase):
         exp_gbar_np = (
             self._momentum * gbar_np + (1 - self._momentum) * exp_p_grad)
         exp_var = var_np - self._learning_rate * exp_gbar_np
-        # Check that variable and momentum are as exp_ after one step of
+        # Check that variable and momentum are as expected after one step of
         # training.
         var_np = sess.run(var)
         gbar_np = sess.run(opt.get_slot(var, 'momentum'))
@@ -168,7 +168,7 @@ class SM3Test(tf.test.TestCase):
       step = opt.apply_gradients([(grad, var)])
       tf.global_variables_initializer().run()
 
-      # Check that variable and momentum are as exp_ before starting
+      # Check that variable and momentum are as expected before starting
       # training.
       var_np = sess.run(var)
       gbar_np = sess.run(opt.get_slot(var, 'momentum'))
