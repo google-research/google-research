@@ -14,7 +14,9 @@ Another practical aspect worthy of note is that our method does not require an e
 
 ### Learning rate warm-up:
 
+```python
 learning_rate = lr_constant * tf.minimum(1.0, (warm_up_step / global_step) ** p)
+```
 
 * p = 1, linear ramp up of learning rate.
 * p = 2, quadratic ramp up of learning rate [preferred].
@@ -29,20 +31,14 @@ Having said that if users want to add exponential moving averages instead of ari
 
 For rank > 1:
 
-from:
+|            from                     |                  to                 |
+|-------------------------------------|-------------------------------------|
+|  current_accumulator += grad * grad |  current_accumulator = beta * current_accumulator + (1-beta) * grad * grad |
 
-      current_accumulator += grad * grad
-
-to:
-
-      current_accumulator = beta * current_accumulator + (1-beta) * grad * grad
 
 For rank <= 1:
 
-from:
 
-      current_accumulator = tf.assign_add(accumulator, grad * grad)
-
-to:
-
-      current_accumulator = tf.assign(accumulator, beta * accumulator + (1-beta) * (grad * grad))
+|            from                     |                  to                 |
+|-------------------------------------|-------------------------------------|
+|  current_accumulator = tf.assign_add(accumulator, grad * grad) |   current_accumulator = tf.assign(accumulator, beta * accumulator + (1-beta) * (grad * grad)) |

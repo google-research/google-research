@@ -72,16 +72,22 @@ class SM3Optimizer(tf.train.Optimizer):
     # For eg: i = 1 returns [1, N, 1].
     return [1] * i + [shape[i]] + [1] * (rank - i - 1)
 
-  def _compute_updated_accumulators(self, accumulators, rank):
+  def _compute_updated_accumulators(self, accumulators, shape):
+    rank = len(shape)
+    reshaped_accumulators = [
+        tf.reshape(accumulators[i], self._get_expanded_shape(shape, i))
+        for i in range(rank)
+    ]
     # Computes the accumulator before adding the current gradient.
     # A[i, j, k] = min(A1[i], A2[j], A3[j])
-    current_accumulator = accumulators[0]
+    current_accumulator = reshaped_accumulators[0]
     for i in range(1, rank):
       # Compute the minimum accumulator value which is a tighter bound to the
       # gradient sum squares.
       #
       # Note: Here we are broadcasting to compute the minimum.
-      current_accumulator = tf.minimum(current_accumulator, accumulators[i])
+      current_accumulator = tf.minimum(current_accumulator,
+                                       reshaped_accumulators[i])
     return current_accumulator
 
   def _apply_dense(self, grad, var):
@@ -127,12 +133,8 @@ class SM3Optimizer(tf.train.Optimizer):
       accumulator_list = [
           self.get_slot(var, "accumulator_" + str(i)) for i in range(var_rank)
       ]
-      reshaped_accumulators = [
-          tf.reshape(accumulator_list[i], self._get_expanded_shape(shape, i))
-          for i in range(var_rank)
-      ]
       current_accumulator = self._compute_updated_accumulators(
-          reshaped_accumulators, var_rank)
+          accumulator_list, shape)
       current_accumulator += grad * grad
     else:
       accumulator = self.get_slot(var, "accumulator")
@@ -142,7 +144,7 @@ class SM3Optimizer(tf.train.Optimizer):
         tf.greater(current_accumulator, 0), tf.rsqrt(current_accumulator),
         tf.zeros_like(current_accumulator))
     scaled_g = (1.0 - self._momentum_tensor) * (grad * accumulator_inv_sqrt)
-    all_updates = []
+    accumulator_update_ops = []
 
     with tf.control_dependencies([scaled_g]):
       if var_rank > 1:
@@ -153,10 +155,9 @@ class SM3Optimizer(tf.train.Optimizer):
         for i, accumulator in enumerate(accumulator_list):
           axes = list(range(i)) + list(range(i + 1, var_rank))
           dim_accumulator = tf.reduce_max(current_accumulator, axis=axes)
-          updates = tf.assign(accumulator, dim_accumulator)
-          all_updates.append(updates)
+          accumulator_update_ops.append(tf.assign(accumulator, dim_accumulator))
 
-    with tf.control_dependencies(all_updates):
+    with tf.control_dependencies(accumulator_update_ops):
       if self._momentum > 0:
         gbar = self.get_slot(var, "momentum")
         update = tf.assign_add(gbar,
