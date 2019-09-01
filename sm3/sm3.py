@@ -65,30 +65,29 @@ class SM3Optimizer(tf.train.Optimizer):
     momentum = self._call_if_callable(self._momentum)
     self._momentum_tensor = tf.convert_to_tensor(momentum, name="momentum")
 
-  def _get_expanded_shape(self, shape, i):
+  def _shape_for_broadcasting(self, shape, i):
     # Reshape the accumulator to make it ready for broadcasting.
     rank = len(shape)
     # Replaces a `shape` of [M, N, K] with 1 in all dimensions except for i.
     # For eg: i = 1 returns [1, N, 1].
     return [1] * i + [shape[i]] + [1] * (rank - i - 1)
 
-  def _compute_updated_accumulators(self, accumulators, shape):
+  def _compute_past_accumulator(self, accumulators, shape):
     rank = len(shape)
-    reshaped_accumulators = [
-        tf.reshape(accumulators[i], self._get_expanded_shape(shape, i))
+    accumulators_for_broadcasting = [
+        tf.reshape(accumulators[i], self._shape_for_broadcasting(shape, i))
         for i in range(rank)
     ]
     # Computes the accumulator before adding the current gradient.
     # A[i, j, k] = min(A1[i], A2[j], A3[j])
-    current_accumulator = reshaped_accumulators[0]
+    result = accumulators_for_broadcasting[0]
     for i in range(1, rank):
       # Compute the minimum accumulator value which is a tighter bound to the
       # gradient sum squares.
       #
       # Note: Here we are broadcasting to compute the minimum.
-      current_accumulator = tf.minimum(current_accumulator,
-                                       reshaped_accumulators[i])
-    return current_accumulator
+      result = tf.minimum(result, accumulators_for_broadcasting[i])
+    return result
 
   def _apply_dense(self, grad, var):
     # SM3 upper bounds the gradient square sums:
@@ -133,16 +132,15 @@ class SM3Optimizer(tf.train.Optimizer):
       accumulator_list = [
           self.get_slot(var, "accumulator_" + str(i)) for i in range(var_rank)
       ]
-      current_accumulator = self._compute_updated_accumulators(
-          accumulator_list, shape)
-      current_accumulator += grad * grad
+      accumulator = self._compute_past_accumulator(accumulator_list, shape)
+      accumulator += grad * grad
     else:
-      accumulator = self.get_slot(var, "accumulator")
-      current_accumulator = tf.assign_add(accumulator, grad * grad)
+      accumulator_var = self.get_slot(var, "accumulator")
+      accumulator = tf.assign_add(accumulator_var, grad * grad)
 
     accumulator_inv_sqrt = tf.where(
-        tf.greater(current_accumulator, 0), tf.rsqrt(current_accumulator),
-        tf.zeros_like(current_accumulator))
+        tf.greater(accumulator, 0), tf.rsqrt(accumulator),
+        tf.zeros_like(accumulator))
     scaled_g = (1.0 - self._momentum_tensor) * (grad * accumulator_inv_sqrt)
     accumulator_update_ops = []
 
@@ -152,10 +150,11 @@ class SM3Optimizer(tf.train.Optimizer):
         #  A1[i] = max_{j, k} A[i, j, k]
         #  A2[j] = max_{i, k} A[i, j, k]
         #  A3[k] = max_{i, j} A[i, j, k]
-        for i, accumulator in enumerate(accumulator_list):
+        for i, accumulator_i in enumerate(accumulator_list):
           axes = list(range(i)) + list(range(i + 1, var_rank))
-          dim_accumulator = tf.reduce_max(current_accumulator, axis=axes)
-          accumulator_update_ops.append(tf.assign(accumulator, dim_accumulator))
+          new_accumulator_i = tf.reduce_max(accumulator, axis=axes)
+          accumulator_update_ops.append(
+              tf.assign(accumulator_i, new_accumulator_i))
 
     with tf.control_dependencies(accumulator_update_ops):
       if self._momentum > 0:
@@ -184,28 +183,28 @@ class SM3Optimizer(tf.train.Optimizer):
     # Note that: We do not run this code paths for our experiments in our paper
     # as on TPU all the sparse gradients are densified.
     if var_rank > 1:
-      accumulator = self.get_slot(var, "accumulator_" + str(0))
-      current_accumulator = tf.gather(accumulator, grad_indices)
-      expanded_shape = tf.concat([[tf.shape(current_accumulator)[0]], [1] *
-                                  (var_rank - 1)], 0)
-      current_accumulator = tf.reshape(current_accumulator, expanded_shape)
-      current_accumulator += grad_values * grad_values
+      accumulator_var = self.get_slot(var, "accumulator_" + str(0))
+      accumulator = tf.gather(accumulator_var, grad_indices)
+      shape_for_broadcasting = tf.concat([[tf.shape(accumulator)[0]], [1] *
+                                          (var_rank - 1)], 0)
+      accumulator = tf.reshape(accumulator, shape_for_broadcasting)
+      accumulator += grad_values * grad_values
     else:
-      accumulator = self.get_slot(var, "accumulator")
-      current_accumulator = tf.scatter_add(accumulator, grad_indices,
-                                           grad_values * grad_values)
+      accumulator_var = self.get_slot(var, "accumulator")
+      accumulator = tf.scatter_add(accumulator_var, grad_indices,
+                                   grad_values * grad_values)
 
     accumulator_inv_sqrt = tf.where(
-        tf.greater(current_accumulator, 0), tf.rsqrt(current_accumulator),
-        tf.zeros_like(current_accumulator))
+        tf.greater(accumulator, 0), tf.rsqrt(accumulator),
+        tf.zeros_like(accumulator))
     scaled_g = (grad_values * accumulator_inv_sqrt)
     updates = []
     with tf.control_dependencies([scaled_g]):
       if var_rank > 1:
         axes = list(range(1, var_rank))
-        dim_accumulator = tf.reduce_max(current_accumulator, axis=axes)
+        new_accumulator = tf.reduce_max(accumulator, axis=axes)
         updates = [
-            tf.scatter_update(accumulator, grad_indices, dim_accumulator)
+            tf.scatter_update(accumulator_var, grad_indices, new_accumulator)
         ]
     with tf.control_dependencies(updates):
       return tf.scatter_sub(var, grad_indices,
