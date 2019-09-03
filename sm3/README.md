@@ -53,4 +53,4 @@ For rank <= 1:
 ### Polyak averaging of parameters: 
 It's useful to run [polyak averaging](https://www.tensorflow.org/api_docs/python/tf/train/ExponentialMovingAverage) of the parameters. These parameters are then used in inference / serving. Using the averaged parameters instead of the last iterate typically improves the overall performance of the model.
 
-An **alternative** to polyak averaging which does not make use of extra memory is to decay the learning rate from the constant to zero for the last 10% of the steps of your entiring training run, we term the phase a **cool-down** phase of the model. As training makes smaller and smaller steps the final iterate can be thought of as an average iterate.
+An **alternative** to polyak averaging which does not make use of extra memory is to decay the learning rate from the constant to zero for the last 10% of the steps of your entire training run, we term the phase a **cool-down** phase of the model. As training makes smaller and smaller steps the final iterate can be thought of as an average iterate.
