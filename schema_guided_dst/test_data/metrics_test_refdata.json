@@ -1,5 +1,5 @@
 {
-  "utterance": "I want to have a meal in Palo Alto at this restuarant called Bird Dog. Can you also get me their contact number?",
+  "utterance": "I want to have a meal in Palo Alto at this restaurant called Bird Dog. Can you also get me their contact number?",
   "frame_ref": {
     "state": {
       "requested_slots": ["phone_number"],

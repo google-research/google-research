@@ -26,7 +26,9 @@ from __future__ import print_function
 
 import json
 import os
-import unittest
+
+from absl.testing import absltest
+
 from schema_guided_dst import metrics
 
 ACCURACY_METRICS = [
@@ -40,7 +42,7 @@ ACCURACY_METRICS = [
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-class MetricsTest(unittest.TestCase):
+class MetricsTest(absltest.TestCase):
 
   def setUp(self):
     super(MetricsTest, self).setUp()
@@ -123,4 +125,4 @@ class MetricsTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-  unittest.main()
+  absltest.main()

@@ -74,7 +74,11 @@ def get_in_domain_services(schema_path_1, schema_path_2):
 def get_dataset_as_dict(file_path_patterns):
   """Read the DSTC8 json dialog data as dictionary with dialog ID as keys."""
   dataset_dict = {}
-  for fp in sorted(tf.gfile.Glob(file_path_patterns)):
+  if isinstance(file_path_patterns, list):
+    list_fp = file_path_patterns
+  else:
+    list_fp = sorted(tf.gfile.Glob(file_path_patterns))
+  for fp in list_fp:
     if PER_FRAME_OUTPUT_FILENAME in fp:
       continue
     tf.logging.info("Loading file: %s", fp)
