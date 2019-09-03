@@ -1,0 +1,110 @@
+[
+  {
+    "service_name": "Homes_1",
+    "description": "A widely used service for finding apartments and scheduling visits",
+    "slots": [
+      {
+        "name": "area",
+        "description": "City where the apartment is located",
+        "is_categorical": false,
+        "possible_values": []
+      },
+      {
+        "name": "address",
+        "description": "Address of the apartment",
+        "is_categorical": false,
+        "possible_values": []
+      },
+      {
+        "name": "property_name",
+        "description": "Name of the apartment",
+        "is_categorical": false,
+        "possible_values": []
+      },
+      {
+        "name": "phone_number",
+        "description": "Phone number of the apartment",
+        "is_categorical": false,
+        "possible_values": []
+      },
+      {
+        "name": "furnished",
+        "description": "Boolean flag indicating if the property is furnished",
+        "is_categorical": true,
+        "possible_values": [
+          "True",
+          "False"
+        ]
+      },
+      {
+        "name": "pets_allowed",
+        "description": "Boolean flag indicating if pets are allowed",
+        "is_categorical": true,
+        "possible_values": [
+          "True",
+          "False"
+        ]
+      },
+      {
+        "name": "rent",
+        "description": "Rent per month of the apartment",
+        "is_categorical": false,
+        "possible_values": []
+      },
+      {
+        "name": "visit_date",
+        "description": "Date for the visit to the apartment",
+        "is_categorical": false,
+        "possible_values": []
+      },
+      {
+        "name": "number_of_beds",
+        "description": "Number of bed rooms",
+        "is_categorical": true,
+        "possible_values": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ]
+      },
+      {
+        "name": "number_of_baths",
+        "description": "Number of baths in the apartment",
+        "is_categorical": true,
+        "possible_values": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ]
+      }
+    ],
+    "intents": [
+      {
+        "name": "FindApartment",
+        "description": "Find an apartment in a city for a given number of bedrooms",
+        "is_transactional": false,
+        "required_slots": [
+          "area",
+          "number_of_beds"
+        ],
+        "optional_slots": {
+          "number_of_baths": "dontcare",
+          "furnished": "dontcare",
+          "pets_allowed": "dontcare"
+        }
+      },
+      {
+        "name": "ScheduleVisit",
+        "description": "Schedule a visit for a given property on a particular date",
+        "is_transactional": true,
+        "required_slots": [
+          "property_name",
+          "visit_date"
+        ],
+        "optional_slots": {}
+      }
+    ]
+  }
+ ]

@@ -1,0 +1,302 @@
+[
+  {
+    "turns": [
+      {
+        "frames": [
+          {
+            "state": {
+              "active_intent": "FindApartment",
+              "slot_values": {},
+              "requested_slots": []
+            },
+            "slots": [],
+            "service": "Homes_1"
+          }
+        ],
+        "utterance": "I'm looking for apartments.",
+        "speaker": "USER"
+      },
+      {
+        "frames": [
+          {
+            "slots": [],
+            "actions": [
+              {
+                "slot": "area",
+                "act": "REQUEST",
+                "values": []
+              }
+            ],
+            "service": "Homes_1"
+          }
+        ],
+        "utterance": "Which area are you looking in?",
+        "speaker": "SYSTEM"
+      },
+      {
+        "frames": [
+          {
+            "state": {
+              "active_intent": "FindApartment",
+              "slot_values": {
+                "area": [
+                  "San Jose"
+                ]
+              },
+              "requested_slots": []
+            },
+            "slots": [
+              {
+                "exclusive_end": 31,
+                "slot": "area",
+                "start": 23
+              }
+            ],
+            "service": "Homes_1"
+          }
+        ],
+        "utterance": "I want an apartment in San Jose.",
+        "speaker": "USER"
+      },
+      {
+        "frames": [
+          {
+            "slots": [],
+            "actions": [
+              {
+                "slot": "number_of_beds",
+                "act": "REQUEST",
+                "values": []
+              }
+            ],
+            "service": "Homes_1"
+          }
+        ],
+        "utterance": "How many bedrooms do you want?",
+        "speaker": "SYSTEM"
+      },
+      {
+        "frames": [
+          {
+            "state": {
+              "active_intent": "FindApartment",
+              "slot_values": {
+                "number_of_beds": [
+                  "2"
+                ],
+                "area": [
+                  "San Jose"
+                ]
+              },
+              "requested_slots": []
+            },
+            "slots": [],
+            "service": "Homes_1"
+          }
+        ],
+        "utterance": "2 bedrooms, please.",
+        "speaker": "USER"
+      },
+      {
+        "frames": [
+          {
+            "slots": [
+              {
+                "exclusive_end": 37,
+                "slot": "property_name",
+                "start": 31
+              },
+              {
+                "exclusive_end": 67,
+                "slot": "address",
+                "start": 41
+              },
+              {
+                "exclusive_end": 116,
+                "slot": "rent",
+                "start": 110
+              }
+            ],
+            "actions": [
+              {
+                "slot": "property_name",
+                "act": "OFFER",
+                "values": [
+                  "Aegena"
+                ]
+              },
+              {
+                "slot": "address",
+                "act": "OFFER",
+                "values": [
+                  "1290 San Tomas Aquino Road"
+                ]
+              },
+              {
+                "slot": "number_of_beds",
+                "act": "OFFER",
+                "values": [
+                  "2"
+                ]
+              },
+              {
+                "slot": "number_of_baths",
+                "act": "OFFER",
+                "values": [
+                  "1"
+                ]
+              },
+              {
+                "slot": "rent",
+                "act": "OFFER",
+                "values": [
+                  "$2,650"
+                ]
+              }
+            ],
+            "service": "Homes_1"
+          }
+        ],
+        "utterance": "There's a nice property called Aegena at 1290 San Tomas Aquino Road. It has 2 bedrooms, 1 bath, and rents for $2,650 a month.",
+        "speaker": "SYSTEM"
+      },
+      {
+        "frames": [
+          {
+            "state": {
+              "active_intent": "FindApartment",
+              "slot_values": {
+                "number_of_beds": [
+                  "3"
+                ],
+                "area": [
+                  "Livermore"
+                ]
+              },
+              "requested_slots": []
+            },
+            "slots": [
+              {
+                "exclusive_end": 54,
+                "slot": "area",
+                "start": 45
+              }
+            ],
+            "service": "Homes_1"
+          }
+        ],
+        "utterance": "Can you find me a three bedroom apartment in Livermore?",
+        "speaker": "USER"
+      },
+      {
+        "frames": [
+          {
+            "slots": [
+              {
+                "exclusive_end": 38,
+                "slot": "property_name",
+                "start": 8
+              },
+              {
+                "exclusive_end": 60,
+                "slot": "address",
+                "start": 42
+              },
+              {
+                "exclusive_end": 110,
+                "slot": "rent",
+                "start": 104
+              }
+            ],
+            "actions": [
+              {
+                "slot": "property_name",
+                "act": "OFFER",
+                "values": [
+                  "Acacia Capital Cor-Ironwood Ap"
+                ]
+              },
+              {
+                "slot": "address",
+                "act": "OFFER",
+                "values": [
+                  "5643 Charlotte Way"
+                ]
+              },
+              {
+                "slot": "number_of_beds",
+                "act": "OFFER",
+                "values": [
+                  "3"
+                ]
+              },
+              {
+                "slot": "number_of_baths",
+                "act": "OFFER",
+                "values": [
+                  "3"
+                ]
+              },
+              {
+                "slot": "rent",
+                "act": "OFFER",
+                "values": [
+                  "$4,050"
+                ]
+              }
+            ],
+            "service": "Homes_1"
+          }
+        ],
+        "utterance": "There's Acacia Capital Cor-Ironwood Ap at 5643 Charlotte Way. It has 3 bedrooms, 3 baths, and rents for $4,050 a month.",
+        "speaker": "SYSTEM"
+      },
+      {
+        "frames": [
+          {
+            "state": {
+              "active_intent": "FindApartment",
+              "slot_values": {
+                "property_name": [
+                  "Acacia Capital Cor-Ironwood Ap"
+                ],
+                "number_of_beds": [
+                  "3"
+                ],
+                "area": [
+                  "Livermore"
+                ]
+              },
+              "requested_slots": []
+            },
+            "slots": [],
+            "service": "Homes_1"
+          }
+        ],
+        "utterance": "That one sounds good. Thanks, that's all I need.",
+        "speaker": "USER"
+      },
+      {
+        "frames": [
+          {
+            "slots": [],
+            "actions": [
+              {
+                "slot": "",
+                "act": "GOODBYE",
+                "values": []
+              }
+            ],
+            "service": "Homes_1"
+          }
+        ],
+        "utterance": "Have a nice day.",
+        "speaker": "SYSTEM"
+      }
+    ],
+    "services": [
+      "Homes_1"
+    ],
+    "dialogue_id": "4_00000"
+  }
+]
