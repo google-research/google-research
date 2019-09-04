@@ -101,13 +101,13 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
         tf.sort(x, direction=direction), values, tolerance, tolerance)
 
   @parameterized.named_parameters(
-      ('axis', 0, 'direction', 'ASCENDING'),
-      ('axis', 1, 'direction', 'ASCENDING'),
-      ('axis', 2, 'direction', 'ASCENDING'),
-      ('axis', 0, 'direction', 'DESCENDING'),
-      ('axis', 1, 'direction', 'DESCENDING'),
-      ('axis', 2, 'direction', 'DESCENDING'))
-  def softranks(self, axis, direction):
+      ('ascending_0', 0, 'ASCENDING'),
+      ('ascending_1', 1, 'ASCENDING'),
+      ('ascending_2', 2, 'ASCENDING'),
+      ('descending_0', 0, 'DESCENDING'),
+      ('descending_1', 1, 'DESCENDING'),
+      ('descending_2', 2, 'DESCENDING'))
+  def test_softranks(self, axis, direction):
     """Test ops.softranks for a given shape, axis and direction."""
     shape = tf.TensorShape((3, 8, 6))
     n = shape[axis]
@@ -135,6 +135,27 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
           epsilon=eps, sinkhorn_threshold=sinkhorn_threshold)
       targets = target + 1 if not zero_based else target
       self.assertAllClose(ranks, targets, tolerance, tolerance)
+
+  @parameterized.parameters([0.1, 0.2, 0.5])
+  def test_softquantile(self, quantile):
+    # Builds the input vector so that the desired quantile always corresponds to
+    # an exact integer index.
+    num_points_before_quantile = 10
+    step = quantile / num_points_before_quantile
+    num_points = int(1.0 / step + 1.0)
+    quantile_width = step
+
+    axis = 1
+    x = tf.random.uniform((3, num_points, 4), dtype=tf.float32)
+    soft_q = ops.softquantile(
+        x, quantile, quantile_width, axis=axis, epsilon=1e-2)
+
+    # Compare to getting the exact quantile.
+    hard_q = tf.gather(
+        tf.sort(x, direction='ASCENDING', axis=axis),
+        int(quantile * num_points), axis=1)
+
+    self.assertAllClose(soft_q, hard_q, 0.05, 0.05)
 
 
 if __name__ == '__main__':

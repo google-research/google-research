@@ -90,11 +90,16 @@ def softsort(x, direction='ASCENDING', axis=-1, **kwargs):
   z = _preprocess(x, axis)
   descending = (direction == 'DESCENDING')
   sorter = soft_quantilizer.SoftQuantilizer(z, descending=descending, **kwargs)
-  return _postprocess(sorter.softsort, x.shape, axis)
+
+  # In case we are applying some quantization while sorting, the number of
+  # outputs should be the number of targets.
+  shape = x.shape.as_list()
+  shape[axis] = sorter.target_weights.shape[1]
+  return _postprocess(sorter.softsort, tf.TensorShape(shape), axis)
 
 
 @tf.function
-def softranks(x, direction='ASCENDING', axis=-1, zero_based=False, **kwargs):
+def softranks(x, direction='ASCENDING', axis=-1, zero_based=True, **kwargs):
   """A differentiable argsort-like operator that returns directly the ranks.
 
   Note that it behaves as the 'inverse' of the argsort operator since it returns
@@ -122,3 +127,41 @@ def softranks(x, direction='ASCENDING', axis=-1, zero_based=False, **kwargs):
     ranks -= tf.cast(1.0, dtype=x.dtype)
 
   return _postprocess(ranks, x.shape, axis)
+
+
+@tf.function
+def softquantile(x, quantile=0.5, quantile_width=None, axis=-1, **kwargs):
+  """Computes a (single) soft quantile via optimal transport.
+
+  This operator takes advantage of the fact that an exhaustive softsort is not
+  required to recover a single quantile. Instead, one can transport all
+  input values in x onto only 3 weighted values. Weights (stored in b) are
+  adjusted so that those values in x that are transported to the middle value in
+  the target vector y correspond to those concentrating around the
+  quantile of interest.
+
+  Args:
+   x: Tensor<float> of any shape.
+   quantile: (float) the quantile to be returned. 0.5 for the median.
+   quantile_width: (float) mass given to the bucket supposed to attract points
+    whose value concentrate around the desired quantile value. Bigger width
+    means that we allow the soft quantile to be a mixture of
+    more points further away from the quantile. If None, the width is set at 1/n
+    where n is the number of values considered (the size along the 'axis').
+   axis: (int) the axis along which to compute the quantile.
+   **kwargs: see SoftQuantilizer for possible extra parameters.
+
+  Returns:
+    A Tensor<float> similar to the input tensor, but the axis dimension is
+    replaced by a single value: the soft quantile along that axis,
+  """
+  if quantile_width is None:
+    quantile_width = 1.0 / tf.cast(tf.shape(x)[axis], dtype=x.dtype)
+  weights = [
+      (1.0 - quantile_width) * quantile,
+      quantile_width,
+      (1.0 - quantile_width) * (1.0 - quantile)
+  ]
+  quantiles = softsort(
+      x, direction='ASCENDING', axis=axis, target_weights=weights, **kwargs)
+  return tf.gather(quantiles, 1, axis=axis)
