@@ -229,5 +229,3 @@ class SoftQuantilizer(object):
       m = tf.cast(self._num_targets, dtype=self.dtype)
       target_weights = tf.ones(tf.shape(self.y), dtype=self.dtype) / m
     self.target_weights = self._cast_may_repeat(target_weights)
-    if self._descending:
-      self.target_weights = tf.reverse(self.target_weights, (1,))
