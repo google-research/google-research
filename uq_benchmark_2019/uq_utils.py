@@ -32,7 +32,7 @@ tfd = tfp.distributions
 
 
 def tfp_layer_with_scaled_kl(layer_builder, num_train_examples):
-  def scaled_kl_fn(p, q, _):
+  def scaled_kl_fn(q, p, _):
     return tfd.kl_divergence(q, p) / num_train_examples
 
   return functools.partial(layer_builder, kernel_divergence_fn=scaled_kl_fn)
