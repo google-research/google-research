@@ -158,7 +158,6 @@ cc_binary(
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/strings",
         "@org_lullaby//lullaby/util:arg_parser",
-        "@org_lullaby//lullaby/util:string_view",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
