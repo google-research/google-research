@@ -16,10 +16,14 @@ If you find this code or data useful, please use the following citation:
 
 ```
 @article{shallue2018measuring,
-  title={Measuring the effects of data parallelism on neural network training},
-  author={Shallue, Christopher J and Lee, Jaehoon and Antognini, Joe and Sohl-Dickstein, Jascha and Frostig, Roy and Dahl, George E},
-  journal={arXiv preprint arXiv:1811.03600},
-  year={2018}
+  author  = {Christopher J. Shallue and Jaehoon Lee and Joseph Antognini and Jascha Sohl-Dickstein and Roy Frostig and George E. Dahl},
+  title   = {Measuring the Effects of Data Parallelism on Neural Network Training},
+  journal = {Journal of Machine Learning Research},
+  year    = {2019},
+  volume  = {20},
+  number  = {112},
+  pages   = {1-49},
+  url     = {http://jmlr.org/papers/v20/18-789.html}
 }
 ```
 
