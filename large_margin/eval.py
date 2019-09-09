@@ -63,7 +63,7 @@ def _eval_once(session_creator, ops_dict, summary_writer, merged_summary,
   list_ops = []
   list_phs = []
   list_keys = []
-  for key, value in ops_dict.iteritems():
+  for key, value in ops_dict.items():
     if value[0] is not None and value[1] is not None:
       list_keys.append(key)
       list_ops.append(value[1])
@@ -73,7 +73,7 @@ def _eval_once(session_creator, ops_dict, summary_writer, merged_summary,
     list_results = []
     count = 0.
     total_correct = 0
-    for _ in xrange(num_batches):
+    for _ in range(num_batches):
       res, top1 = sess.run((list_ops, ops_dict["top1"][1]))
       number_correct = np.sum(top1)
       total_correct += number_correct
@@ -110,7 +110,7 @@ def evaluate():
       model = mnist_model.MNISTNetwork(config)
       layers_names = [
           "conv_layer%d" % i
-          for i in xrange(len(config.filter_sizes_conv_layers))
+          for i in range(len(config.filter_sizes_conv_layers))
       ]
     images, labels, num_examples, num_classes = (dataset.images, dataset.labels,
                                                  dataset.num_examples,
