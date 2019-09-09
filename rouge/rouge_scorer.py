@@ -38,7 +38,6 @@ import collections
 import re
 
 from nltk.stem import porter
-import numpy as np
 import six
 from six.moves import xrange  # pylint: disable=redefined-builtin
 from rouge import scoring
@@ -92,6 +91,20 @@ class RougeScorer(scoring.BaseScorer):
       if rouge_type == "rougeL":
         # Rouge from longest common subsequences.
         scores = _score_lcs(target_tokens, prediction_tokens)
+      elif rouge_type == "rougeLsum":
+        # Note: Does not support multi-line text.
+        def get_sents(text):
+          # Assume sentences are separated by newline.
+          sents = text.split("\n")
+          sents = [x for x in sents if len(x)]
+          return sents
+
+        target_tokens_list = [
+            tokenize.tokenize(s, self._stemmer) for s in get_sents(target)]
+        prediction_tokens_list = [
+            tokenize.tokenize(s, self._stemmer) for s in get_sents(prediction)]
+        scores = _summary_level_lcs(target_tokens_list,
+                                    prediction_tokens_list)
       elif re.match(r"rouge[0-9]$", rouge_type):
         # Rouge from n-grams.
         n = int(rouge_type[5:])
@@ -137,22 +150,113 @@ def _score_lcs(target_tokens, prediction_tokens):
     return scoring.Score(precision=0, recall=0, fmeasure=0)
 
   # Compute length of LCS from the bottom up in a table (DP appproach).
-  cols = len(prediction_tokens) + 1
-  rows = len(target_tokens) + 1
-  lcs_table = np.zeros((rows, cols))
-  for i in xrange(1, rows):
-    for j in xrange(1, cols):
-      if target_tokens[i - 1] == prediction_tokens[j - 1]:
-        lcs_table[i, j] = lcs_table[i - 1, j - 1] + 1
-      else:
-        lcs_table[i, j] = max(lcs_table[i - 1, j], lcs_table[i, j - 1])
-  lcs_length = lcs_table[-1, -1]
+  lcs_table = _lcs_table(target_tokens, prediction_tokens)
+  lcs_length = lcs_table[-1][-1]
 
   precision = lcs_length / len(prediction_tokens)
   recall = lcs_length / len(target_tokens)
   fmeasure = scoring.fmeasure(precision, recall)
 
   return scoring.Score(precision=precision, recall=recall, fmeasure=fmeasure)
+
+
+def _lcs_table(ref, can):
+  """Create 2-d LCS score table."""
+  rows = len(ref)
+  cols = len(can)
+  lcs_table = [[0] * (cols + 1) for _ in xrange(rows + 1)]
+  for i in xrange(1, rows + 1):
+    for j in xrange(1, cols + 1):
+      if ref[i - 1] == can[j - 1]:
+        lcs_table[i][j] = lcs_table[i - 1][j - 1] + 1
+      else:
+        lcs_table[i][j] = max(lcs_table[i - 1][j], lcs_table[i][j - 1])
+  return lcs_table
+
+
+# Here we arbitrarily choose one LCS when there are ties.
+def _fast_backtrack(t, ref, can, i, j):
+  """Returns list representing one of the LCS."""
+  if i == 0 or j == 0:
+    return []
+  if ref[i - 1] == can[j - 1]:
+    # We want indices into ref rather than the values.
+    return _fast_backtrack(t, ref, can, i - 1, j - 1) + [i - 1]
+  if t[i][j - 1] > t[i - 1][j]:
+    return _fast_backtrack(t, ref, can, i, j - 1)
+  else:
+    return _fast_backtrack(t, ref, can, i - 1, j)
+
+
+def _summary_level_lcs(ref_sent, can_sent):
+  """ROUGE: Summary-level LCS, section 3.2 in ROUGE paper.
+
+  Args:
+    ref_sent: list of tokenized reference sentences
+    can_sent: list of tokenized candidate sentences
+
+  Returns:
+    summary level ROUGE score
+  """
+  if not ref_sent or not can_sent:
+    return scoring.Score(precision=0, recall=0, fmeasure=0)
+  numerator = 0
+  num_r = len(ref_sent)
+  num_c = len(can_sent)
+
+  # get token counts to prevent double counting
+  token_cnts_r = collections.Counter()
+  token_cnts_c = collections.Counter()
+  for s in ref_sent:
+    # s is a list of tokens
+    token_cnts_r.update(s)
+  for s in can_sent:
+    token_cnts_c.update(s)
+
+  hits = 0
+  for r in ref_sent:
+    lcs = _union_lcs(r, can_sent)
+    # Prevent double-counting:
+    # The paper describes just computing hits += len(_union_lcs()),
+    # but the implementation prevents double counting. We also
+    # implement this as in version 1.5.5.
+    for t in lcs:
+      if token_cnts_c[t] > 0 and token_cnts_r[t] > 0:
+        hits += 1
+        token_cnts_c[t] -= 1
+        token_cnts_r[t] -= 1
+
+  m = sum(map(len, ref_sent))
+  n = sum(map(len, can_sent))
+  recall = hits / m
+  precision = hits / n
+  fmeasure = scoring.fmeasure(precision, recall)
+  return scoring.Score(precision=precision, recall=recall, fmeasure=fmeasure)
+
+
+def _union_lcs(ref, c_list):
+  """Find union LCS between a ref sentence and list of candidate sentences.
+
+  Args:
+    ref: list of tokens
+    c_list: list of list of indices for LCS into reference summary
+
+  Returns:
+    List of tokens in ref representing union LCS.
+  """
+  lcs_list = [lcs_ind(ref, c) for c in c_list]
+  return [ref[i] for i in _find_union(lcs_list)]
+
+
+def _find_union(lcs_list):
+  """Finds union LCS given a list of LCS."""
+  return sorted(list(set().union(*lcs_list)))
+
+
+def lcs_ind(ref, can):
+  """Returns one of the longest lcs."""
+  t = _lcs_table(ref, can)
+  return _fast_backtrack(t, ref, can, len(ref), len(can))
 
 
 def _score_ngrams(target_ngrams, prediction_ngrams):

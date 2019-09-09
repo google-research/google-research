@@ -23,6 +23,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+
 from absl.testing import absltest
 import numpy as np
 from rouge import rouge_scorer
@@ -128,7 +130,7 @@ class BootstrapAggregatorTest(absltest.TestCase):
                                  result["rouge1"])
 
   def testConfidenceIntervalsAgainstRouge155WithStemming(self):
-    scorer = rouge_scorer.RougeScorer(["rouge1"], use_stemmer=True)
+    scorer = rouge_scorer.RougeScorer(["rouge1", "rougeL"], use_stemmer=True)
     aggregator = scoring.BootstrapAggregator()
     for target, prediction in zip(self.targets, self.predictions):
       aggregator.add_scores(scorer.score(target, prediction))
@@ -138,6 +140,41 @@ class BootstrapAggregatorTest(absltest.TestCase):
                                  (0.32563, 0.33580, 0.34548),
                                  (0.39380, 0.40524, 0.41661),
                                  result["rouge1"])
+    self.assertSimilarAggregates((0.50759, 0.52104, 0.53382),  # P
+                                 (0.32418, 0.33377, 0.34362), # R
+                                 (0.39157, 0.40275, 0.41383), # F
+                                 result["rougeL"])
+
+  def testConfidenceIntervalsAgainstRouge155WithStemmingMultiLine(self):
+    scorer = rouge_scorer.RougeScorer(
+        ["rouge1", "rouge2", "rougeLsum"], use_stemmer=True)
+    aggregator = scoring.BootstrapAggregator()
+    t_files = [os.path.join(test_util.PYROUGE_DIR, 'target_multi.%d.txt' % i) for i in range(0, 250)]
+    p_files = [os.path.join(test_util.PYROUGE_DIR, 'prediction_multi.%d.txt' % i) for i in range(0, 250)]
+
+    targets = [test_util.get_text(x) for x in t_files]
+    predictions = [test_util.get_text(x) for x in p_files]
+    assert len(targets) == len(predictions)
+    assert len(targets) == 250
+    for target, prediction in zip(targets, predictions):
+      aggregator.add_scores(scorer.score(target, prediction))
+    result = aggregator.aggregate()
+
+    # DIR = testdata/pyrouge_evaluate_plain_text_files
+    #  pyrouge_evaluate_plain_text_files -s $DIR -sfp "prediction_multi.(.*).txt"
+    #    -m $DIR -mfp target_multi.#ID#.txt
+    self.assertSimilarAggregates((0.58963, 0.59877, 0.60822),    # P
+                                 (0.37327, 0.38091, 0.38914),    # R
+                                 (0.45607, 0.46411, 0.47244),    # F
+                                 result["rouge1"])
+    self.assertSimilarAggregates((0.35429, 0.36516, 0.37665),    # P
+                                 (0.22341, 0.23109, 0.23916),    # R
+                                 (0.27312, 0.28209, 0.29133),    # F
+                                 result["rouge2"])
+    self.assertSimilarAggregates((0.58604, 0.59491, 0.60444),    # P
+                                 (0.37084, 0.37846, 0.38671),    # R
+                                 (0.45305, 0.46113, 0.46946),    # F
+                                 result["rougeLsum"])
 
 
 if __name__ == "__main__":
