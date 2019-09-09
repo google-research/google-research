@@ -32,3 +32,10 @@ LARGE_TARGETS_FILE = os.path.join(_TESTDATA_PREFIX, "target_large.txt")
 LARGE_PREDICTIONS_FILE = os.path.join(_TESTDATA_PREFIX, "prediction_large.txt")
 
 DELIMITED_FILE = os.path.join(_TESTDATA_PREFIX, "delimited.txt")
+
+PYROUGE_DIR = os.path.join(_TESTDATA_PREFIX, "pyrouge_files")
+
+
+def get_text(fname):
+  with open(fname) as f:
+    return f.read()
