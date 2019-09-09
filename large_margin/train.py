@@ -74,7 +74,7 @@ def train():
         model = mnist_model.MNISTNetwork(config)
         layers_names = [
             "conv_layer%d" % i
-            for i in xrange(len(config.filter_sizes_conv_layers))
+            for i in range(len(config.filter_sizes_conv_layers))
         ]
 
       images, labels, num_examples, num_classes = (dataset.images,
