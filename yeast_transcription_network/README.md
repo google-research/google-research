@@ -56,5 +56,5 @@ construct the predicted datasets.  This code also separates the full predictions
 into their component parts due to each individual coefficient.
 
 [paper]: https://www.biorxiv.org/content/10.1101/619577v2
-[website]: https://candid.research.calicolabs.com/
+[website]: https://idea.research.calicolabs.com/
 [download]: https://storage.googleapis.com/calico-website-pin-public-bucket/datasets/yeast_transcription_network_data.zip
