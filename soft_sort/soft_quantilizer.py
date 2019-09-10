@@ -33,11 +33,12 @@ from __future__ import division
 from __future__ import print_function
 
 import math
-
+import gin
 import tensorflow.compat.v2 as tf
 from soft_sort import sinkhorn
 
 
+@gin.configurable
 def group_rescale(x, scale=1.0, min_std=1e-10, is_logistic=True):
   """Applies a sigmoid map on standardized centered inputs.
 
@@ -72,6 +73,7 @@ def group_rescale(x, scale=1.0, min_std=1e-10, is_logistic=True):
   return squashing_fn((x - mean[:, tf.newaxis]) / s[:, tf.newaxis])
 
 
+@gin.configurable
 class SoftQuantilizer(object):
   """Computes soft-ranks, soft-sorts and soft-quantile normalizations.
 

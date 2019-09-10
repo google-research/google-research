@@ -69,7 +69,6 @@ def _postprocess(x, shape, axis):
   return tf.transpose(z, dims) if dims[axis] != dims[-1] else z
 
 
-@tf.function
 def softsort(x, direction='ASCENDING', axis=-1, **kwargs):
   """Applies the softsort operator on input tensor x.
 
@@ -98,7 +97,6 @@ def softsort(x, direction='ASCENDING', axis=-1, **kwargs):
   return _postprocess(sorter.softsort, tf.TensorShape(shape), axis)
 
 
-@tf.function
 def softranks(x, direction='ASCENDING', axis=-1, zero_based=True, **kwargs):
   """A differentiable argsort-like operator that returns directly the ranks.
 
@@ -129,7 +127,6 @@ def softranks(x, direction='ASCENDING', axis=-1, zero_based=True, **kwargs):
   return _postprocess(ranks, x.shape, axis)
 
 
-@tf.function
 def softquantile(x, quantile=0.5, quantile_width=None, axis=-1, **kwargs):
   """Computes a (single) soft quantile via optimal transport.
 
