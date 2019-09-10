@@ -38,7 +38,6 @@ def build_distances(x, y):
   return tf.math.abs(xn - ym)
 
 
-@tf.function
 def sinkhorn(
     x, y, a, b, eps, p, threshold, inner_num_iter=20, max_iterations=1000):
   """The Sinkhorn algorithm in 1D.
@@ -95,7 +94,6 @@ def sinkhorn(
   return transport, err, num_iter
 
 
-@tf.function
 def log_sinkhorn(
     x, y, a, b, eps, p, threshold, inner_num_iter=20, max_iterations=1000):
   """The stabilized Sinkhorn algorithm in log space.
