@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Interleaving Transition Kernel."""
 # pylint: disable=missing-docstring
 
@@ -23,6 +24,7 @@ from __future__ import print_function
 import collections
 import warnings
 
+from six.moves import range
 import tensorflow as tf
 import tensorflow_probability as tfp
 
