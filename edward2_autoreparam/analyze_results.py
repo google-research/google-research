@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Generate text results from pickled results."""
 # pylint: disable=missing-docstring,broad-except
 

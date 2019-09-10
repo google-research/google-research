@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for edward2_autoreparam.models."""
 
 from __future__ import absolute_import
@@ -33,7 +34,7 @@ class ModelsTest(tf.test.TestCase):
       model(*model_args)
 
     model_tape_ = self.evaluate(model_tape)
-    example_params = model_tape_.values()[:-1]
+    example_params = list(model_tape_.values())[:-1]
 
     # Test that `make_to_cp`, when given the centered parameterization as the
     # source, generates the identity fn.
