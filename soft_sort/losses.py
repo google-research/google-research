@@ -120,22 +120,48 @@ class TrimmedRegressionLoss(tf.losses.Loss):
 
 @gin.configurable
 class SoftTrimmedRegressionLoss(tf.losses.Loss):
-  """A loss for least quantile regression based on soft sort operators."""
+  """A loss for least quantile regression based on soft sort operators.
+
+  In trimmed regression, we want to minimize the (usually quadratic) error
+  between the prediction and the true value, discarding both the best errors and
+  the worst ones and focusing on the median-ish ones, more precisely the ones
+  between two given quantiles.
+
+  In terms of soft sorting operator, this is obtained by transporting the
+  predictions errors onto 3 sorted targets with weights based on those quantile
+  values.
+  """
 
   def __init__(self, start_quantile, end_quantile, power=1.0, **kwargs):
+    if end_quantile < start_quantile:
+      raise ValueError(
+          'Start quantile {:.3f} should be lower than end {:.3f}'.format(
+              start_quantile, end_quantile))
+
     self._start_quantile = start_quantile
     self._end_quantile = end_quantile
     self._power = power
     self._kwargs = kwargs
     super(SoftTrimmedRegressionLoss, self).__init__(name='soft_trimmed')
 
-  def call(self, y_true, y_pred):
-    error = tf.pow(tf.abs(tf.squeeze(y_pred) - y_true), self._power)
+  def _get_target_weights_and_indices(self):
+    target_index = 1
     target_weights = [
         self._start_quantile,
         self._end_quantile - self._start_quantile,
         1.0 - self._end_quantile
     ]
+    # Removes the zero weights to avoid degenerated cases.
+    while target_weights.count(0.0):
+      idx = target_weights.index(0.0)
+      target_weights.pop(idx)
+      target_index -= (idx < target_index)
+
+    return target_weights, target_index
+
+  def call(self, y_true, y_pred):
+    error = tf.pow(tf.abs(tf.squeeze(y_pred) - y_true), self._power)
+    target_weights, target_index = self._get_target_weights_and_indices()
     quantiles = ops.softsort(
         error, axis=0, target_weights=target_weights, **self._kwargs)
-    return quantiles[1]
+    return tf.gather(quantiles, target_index, axis=0)
