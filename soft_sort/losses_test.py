@@ -123,6 +123,36 @@ class RegressionLossesTest(parameterized.TestCase, tf.test.TestCase):
     expected_loss = tf.math.reduce_mean(selected)
     self.assertAllClose(loss, expected_loss, 0.1, 0.1)
 
+  def test_soft_trimmed_degenerated(self):
+    """Tests several possible degenerated cases."""
+    with self.assertRaises(ValueError):
+      losses.SoftTrimmedRegressionLoss(start_quantile=0.6, end_quantile=0.1)
+
+    loss_fn = losses.SoftTrimmedRegressionLoss(
+        start_quantile=0.1, end_quantile=0.3)
+    weights, index = loss_fn._get_target_weights_and_indices()
+    self.assertLen(weights, 3)
+    self.assertEqual(index, 1)
+
+    loss_fn = losses.SoftTrimmedRegressionLoss(
+        start_quantile=0.0, end_quantile=0.2)
+    weights, index = loss_fn._get_target_weights_and_indices()
+    self.assertLen(weights, 2)
+    self.assertEqual(index, 0)
+
+    loss_fn = losses.SoftTrimmedRegressionLoss(
+        start_quantile=0.4, end_quantile=1.0)
+    weights, index = loss_fn._get_target_weights_and_indices()
+    self.assertLen(weights, 2)
+    self.assertEqual(index, 1)
+
+    loss_fn = losses.SoftTrimmedRegressionLoss(
+        start_quantile=0.0, end_quantile=1.0)
+    weights, index = loss_fn._get_target_weights_and_indices()
+    self.assertLen(weights, 1)
+    self.assertEqual(index, 0)
+
+
 if __name__ == '__main__':
   tf.enable_v2_behavior()
   tf.test.main()
