@@ -101,6 +101,7 @@ class RBFKernelFn(tf.keras.layers.Layer):
                initial_linear_bias,
                initial_linear_slope,
                add_linear=False,
+               name='vgp_kernel',
                **kwargs):
     super(RBFKernelFn, self).__init__(**kwargs)
     self._per_class_kernel = per_class_kernel
@@ -108,7 +109,7 @@ class RBFKernelFn(tf.keras.layers.Layer):
     self._initial_linear_slope = initial_linear_slope
     self._add_linear = add_linear
 
-    with tf.compat.v1.variable_scope('kernel'):
+    with tf.compat.v1.variable_scope(name):
       if self._per_class_kernel and num_classes > 1:
         amplitude_shape = (num_classes,)
         length_scale_shape = (num_classes, 1, 1, feature_size)
@@ -220,6 +221,7 @@ class MaternKernelFn(tf.keras.layers.Layer):
                initial_linear_bias,
                initial_linear_slope,
                add_linear=False,
+               name='vgp_kernel',
                **kwargs):
     super(MaternKernelFn, self).__init__(**kwargs)
     self._per_class_kernel = per_class_kernel
@@ -233,7 +235,7 @@ class MaternKernelFn(tf.keras.layers.Layer):
 
     self._degree = degree
 
-    with tf.compat.v1.variable_scope('kernel'):
+    with tf.compat.v1.variable_scope(name):
       if self._per_class_kernel and num_classes > 1:
         amplitude_shape = (num_classes,)
         length_scale_shape = (num_classes, 1, 1, feature_size)
@@ -293,13 +295,14 @@ class LinearKernelFn(tf.keras.layers.Layer):
                per_class_kernel,
                initial_linear_bias,
                initial_linear_slope,
+               name='vgp_kernel',
                **kwargs):
     super(LinearKernelFn, self).__init__(**kwargs)
     self._per_class_kernel = per_class_kernel
     self._initial_linear_bias = initial_linear_bias
     self._initial_linear_slope = initial_linear_slope
 
-    with tf.compat.v1.variable_scope('kernel'):
+    with tf.compat.v1.variable_scope(name):
       if self._per_class_kernel and num_classes > 1:
         shape = (num_classes,)
       else:
