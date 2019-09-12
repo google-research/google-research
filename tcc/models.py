@@ -144,7 +144,12 @@ class BaseModel(tf.keras.Model):
     batch_size, num_steps, h, w, c = inputs.shape
     images = tf.reshape(inputs, [batch_size * num_steps, h, w, c])
 
-    x = self.base_model(images, training=CONFIG.MODEL.TRAIN_BASE != 'frozen')
+    # If base model is frozen, then training is set to False irrespective of
+    # learning_phase. If base model is not frozen, then training is same as
+    # learning_phase.
+    training = (tf.keras.backend.learning_phase() and
+                CONFIG.MODEL.TRAIN_BASE != 'frozen')
+    x = self.base_model(images, training=training)
 
     _, h, w, c = x.shape
     x = tf.reshape(x, [batch_size, num_steps, h, w, c])
