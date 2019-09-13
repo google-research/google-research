@@ -18,7 +18,7 @@ Sample command line:
 ```bash
 python -m depth_from_video_in_the_wild.train \
    --checkpoint_dir=$MY_CHECKPOINT_DIR \
-   --data_dir=$MY_DATA_DIR
+   --data_dir=$MY_DATA_DIR \
    --imagenet_ckpt=$MY_IMAGENET_CHECKPOINT
 ```
 
@@ -46,7 +46,7 @@ python -m depth_from_video_in_the_wild.train \
 To use the given intrinsics instead of learning them, add
 `--nolearn_intrinsics` to the coomand.
 
-## Pretrained checkpoints and respective metrics
+## Pretrained checkpoints and respective depth metrics
 The table below provides checkpoints trained on Cityscapes, KITTI and their
 mixture, with the respective Absolute Relative depth error metrics. The metrics
 slightly differ from the results in Table A3 in the paper because for the latter
@@ -54,7 +54,6 @@ we averaged the metrics over multiple checkpoints, whereas in the table below
 the metrics relate to a specific checkpoint. All checkpoints were harvested
 after training on nearly 4M images (since the datasets are much smaller than 4M,
 this of course means multiple epochs).
-
 
 <center>
 
@@ -65,6 +64,36 @@ this of course means multiple epochs).
 |Cityscapes + KITTI | Learned | 0.1196 | 0.1231 | [download](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fcheckpoints%2Fcityscapes_kitti_learned_intrinsics.zip?generation=1566493762028542&alt=media)
 
 </center>
+
+## Pretrained checkpoints and respective odometry results
+The command for generating a trajectory from a checkpoint given an odometry test
+set is:
+
+```bash
+python -m depth_from_video_in_the_wild.trajectory_inference \
+  --checkpoint_path=$YOUR_CHECKPOINT_PATH \
+  --odometry_test_set_dir=$DIRECTORY_WHERE_YOU_STORE_THE_ODOMETRY_TEST_SET \
+  --output_dir=$DIRECTORY_WHERE_THE_TRAJECTORIES_WILL_BE_SAVED \
+  --alsologtostderr
+```
+
+We observed that odometry generally took longer to converge. The table below
+lists the checkpoints used to evaluate odometry on in the paper. All checkpoints
+were trained on KITTI. The training batch size was 16, and the learning rate and
+number of training steps is given in the table.
+
+<center>
+
+|Intirinsics|Learning rate|Training steps|Checkpoint|Seq. 09|Seq. 10|
+|:---------|:------:|:-------:|:-------:|:---:|:---:|
+|Given| 3e-5|480377| [download](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fcheckpoints%2Fcityscapes_learned_intrinsics.zip?generation=1566493765410932&alt=media)|[trajectory](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fodometry%2Fgiven_intrinsics_trajectory_odo09.txt?generation=1568247377779913&alt=media) | [trajectory](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fodometry%2Flearned_intrinsics_trajectory_odo10.txt?generation=1568247378745091&alt=media)
+|Learned| 1e-4|413174| [download](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fcheckpoints%2Fkitti_odometry_learned_intrinsics.zip?generation=1568245497722898&alt=media)| [trajectory](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fodometry%2Flearned_intrinsics_trajectory_odo09.txt?generation=1568247378516045&alt=media) | [trajectory](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fodometry%2Flearned_intrinsics_trajectory_odo10.txt?generation=1568247378745091&alt=media)
+| Learned & corrected |  --- same ---| --- as --- | ---- above --- |[trajectory](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fodometry%2Fcorrected_intrinsics_trajectory_odo09.txt?generation=1568247377030930&alt=media) |[trajectory](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Fodometry%2Fcorrected_intrinsics_trajectory_odo10.txt?generation=1568247377401528&alt=media)|
+</center>
+
+The code for generating "Learned & corrected" is not yet publically available.
+
+
 
 ## YouTube8M IDs of the videos used in the paper
 `1ofm 2Ffk 2Gc7 2hdG 4Kdy 4gbW 70eK 77cq 7We1 8Eff 8W2O 8bfg 9q4L A8cd AHdn Ai8q
