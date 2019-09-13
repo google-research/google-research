@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Library for reading/writing input and score files."""
 
 from __future__ import absolute_import
@@ -20,9 +21,12 @@ from __future__ import division
 from __future__ import print_function
 
 import glob
-import itertools
 
 from absl import logging
+import six
+from six.moves import zip
+from six.moves import zip_longest
+
 
 
 def compute_scores_and_write_to_csv(target_filepattern,
@@ -66,7 +70,7 @@ def _open(filepattern, mode="r"):
 def _record_gen(filename, delimiter):
   """Opens file and yields records separated by delimiter."""
   with _open(filename) as f:
-    records = f.read().split(delimiter)
+    records = f.read().split(six.ensure_str(delimiter))
   if records[-1]:
     # Need a final delimiter at end of file to be able to detect an empty last
     # record.
@@ -105,7 +109,7 @@ def _compute_scores(target_filenames, prediction_filenames, scorer, delimiter):
     logging.info("Reading predictions from %s.", prediction_filename)
     targets = _record_gen(target_filename, delimiter)
     preds = _record_gen(prediction_filename, delimiter)
-    for target_rec, prediction_rec in itertools.izip_longest(targets, preds):
+    for target_rec, prediction_rec in zip_longest(targets, preds):
       if target_rec is None or prediction_rec is None:
         raise ValueError("Must have equal number of lines across target and "
                          "prediction files. Mismatch between files: %s, %s." %

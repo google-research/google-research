@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """A library for tokenizing text."""
 
 from __future__ import absolute_import
@@ -20,6 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import re
+import six
 
 
 def tokenize(text, stemmer):
@@ -39,7 +41,7 @@ def tokenize(text, stemmer):
   # Convert everything to lowercase.
   text = text.lower()
   # Replace any non-alpha-numeric characters with spaces.
-  text = re.sub(r"[^a-z0-9]+", " ", text)
+  text = re.sub(r"[^a-z0-9]+", " ", six.ensure_str(text))
 
   tokens = re.split(r"\s+", text)
   if stemmer:
@@ -47,6 +49,6 @@ def tokenize(text, stemmer):
     tokens = [stemmer.stem(x) if len(x) > 3 else x for x in tokens]
 
   # One final check to drop any empty or invalid tokens.
-  tokens = [x for x in tokens if re.match(r"^[a-z0-9]+$", x)]
+  tokens = [x for x in tokens if re.match(r"^[a-z0-9]+$", six.ensure_str(x))]
 
   return tokens

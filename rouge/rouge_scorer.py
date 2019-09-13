@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Computes rouge scores between two text blobs.
 
 Implementation replicates the functionality in the original ROUGE package. See:
@@ -39,7 +40,8 @@ import re
 
 from nltk.stem import porter
 import six
-from six.moves import xrange  # pylint: disable=redefined-builtin
+from six.moves import map
+from six.moves import range
 from rouge import scoring
 from rouge import tokenize
 
@@ -95,7 +97,7 @@ class RougeScorer(scoring.BaseScorer):
         # Note: Does not support multi-line text.
         def get_sents(text):
           # Assume sentences are separated by newline.
-          sents = text.split("\n")
+          sents = six.ensure_str(text).split("\n")
           sents = [x for x in sents if len(x)]
           return sents
 
@@ -105,7 +107,7 @@ class RougeScorer(scoring.BaseScorer):
             tokenize.tokenize(s, self._stemmer) for s in get_sents(prediction)]
         scores = _summary_level_lcs(target_tokens_list,
                                     prediction_tokens_list)
-      elif re.match(r"rouge[0-9]$", rouge_type):
+      elif re.match(r"rouge[0-9]$", six.ensure_str(rouge_type)):
         # Rouge from n-grams.
         n = int(rouge_type[5:])
         if n <= 0:
@@ -131,7 +133,7 @@ def _create_ngrams(tokens, n):
   """
 
   ngrams = collections.Counter()
-  for ngram in (tuple(tokens[i:i + n]) for i in xrange(len(tokens) - n + 1)):
+  for ngram in (tuple(tokens[i:i + n]) for i in range(len(tokens) - n + 1)):
     ngrams[ngram] += 1
   return ngrams
 
@@ -164,9 +166,9 @@ def _lcs_table(ref, can):
   """Create 2-d LCS score table."""
   rows = len(ref)
   cols = len(can)
-  lcs_table = [[0] * (cols + 1) for _ in xrange(rows + 1)]
-  for i in xrange(1, rows + 1):
-    for j in xrange(1, cols + 1):
+  lcs_table = [[0] * (cols + 1) for _ in range(rows + 1)]
+  for i in range(1, rows + 1):
+    for j in range(1, cols + 1):
       if ref[i - 1] == can[j - 1]:
         lcs_table[i][j] = lcs_table[i - 1][j - 1] + 1
       else:

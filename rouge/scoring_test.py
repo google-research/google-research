@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for rouge scoring and aggregation.
 
 Checks for both correctness, and for consistency with values from the perl ROUGE
@@ -27,6 +28,8 @@ import os
 
 from absl.testing import absltest
 import numpy as np
+from six.moves import range
+from six.moves import zip
 from rouge import rouge_scorer
 from rouge import scoring
 from rouge import test_util
@@ -115,7 +118,7 @@ class BootstrapAggregatorTest(absltest.TestCase):
       aggregator.add_scores(scorer.score(target, prediction))
     result = aggregator.aggregate()
 
-    self.assertSameElements(result.keys(), ["rouge1", "rougeL"])
+    self.assertSameElements(list(result.keys()), ["rouge1", "rougeL"])
 
   def testConfidenceIntervalsAgainstRouge155(self):
     scorer = rouge_scorer.RougeScorer(["rouge1"], use_stemmer=False)

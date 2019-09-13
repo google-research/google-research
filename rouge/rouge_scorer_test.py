@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for rouge scorer.
 
 Tests for both correctness and for consistency with the official ROUGE-1.5.5
@@ -52,7 +53,7 @@ class RougeScorerTest(parameterized.TestCase):
   def testValidRougeTypes(self, rouge_type):
     scorer = rouge_scorer.RougeScorer([rouge_type])
     result = scorer.score("testing one two", "testing")
-    self.assertSameElements(result.keys(), [rouge_type])
+    self.assertSameElements(list(result.keys()), [rouge_type])
 
   def testRouge1(self):
     scorer = rouge_scorer.RougeScorer(["rouge1"])
@@ -93,7 +94,7 @@ class RougeScorerTest(parameterized.TestCase):
   def testMultipleRougeTypes(self):
     scorer = rouge_scorer.RougeScorer(["rouge1", "rougeL"])
     result = scorer.score("testing one two", "testing one")
-    self.assertSameElements(result.keys(), ["rouge1", "rougeL"])
+    self.assertSameElements(list(result.keys()), ["rouge1", "rougeL"])
     self.assertAlmostEqual(1, result["rouge1"].precision)
     self.assertAlmostEqual(2 / 3, result["rouge1"].recall)
     self.assertAlmostEqual(4 / 5, result["rouge1"].fmeasure)
@@ -219,7 +220,7 @@ class RougeScorerTest(parameterized.TestCase):
     score = rouge_scorer._summary_level_lcs(refs, cans)
     self.assertEqual(0.8, score.recall)   # 4 / 5
     self.assertEqual(0.4, score.precision)   # 4 / 10
-     # 0.4*0.8 / (0.4 + 0.8)
+    # 0.4*0.8 / (0.4 + 0.8)
     self.assertAlmostEqual(0.5333, score.fmeasure, places=3)
 
   def testRougeLsum(self):
