@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Library for scoring and evaluation of text samples.
 
 Aggregation functions use bootstrap resampling to compute confidence intervals
@@ -28,7 +29,7 @@ import collections
 
 import numpy as np
 import six
-from six.moves import xrange  # pylint: disable=redefined-builtin
+from six.moves import range
 
 
 class Score(
@@ -124,7 +125,7 @@ class BootstrapAggregator(object):
       percentiles = self._bootstrap_resample(score_matrix)
       # Extract the three intervals (low, mid, high).
       intervals = tuple(
-          (scores[0].__class__(*percentiles[j, :]) for j in xrange(3)))
+          (scores[0].__class__(*percentiles[j, :]) for j in range(3)))
       result[score_type] = AggregateScore(
           low=intervals[0], mid=intervals[1], high=intervals[2])
     return result
@@ -145,7 +146,7 @@ class BootstrapAggregator(object):
 
     # Matrix of (bootstrap sample, measure).
     sample_mean = np.zeros((self._n_samples, matrix.shape[1]))
-    for i in xrange(self._n_samples):
+    for i in range(self._n_samples):
       sample_idx = np.random.choice(
           np.arange(matrix.shape[0]), size=matrix.shape[0])
       sample = matrix[sample_idx, :]
