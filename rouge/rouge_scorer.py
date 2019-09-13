@@ -202,9 +202,11 @@ def _summary_level_lcs(ref_sent, can_sent):
   """
   if not ref_sent or not can_sent:
     return scoring.Score(precision=0, recall=0, fmeasure=0)
-  numerator = 0
-  num_r = len(ref_sent)
-  num_c = len(can_sent)
+
+  m = sum(map(len, ref_sent))
+  n = sum(map(len, can_sent))
+  if not n or not m:
+    return scoring.Score(precision=0, recall=0, fmeasure=0)
 
   # get token counts to prevent double counting
   token_cnts_r = collections.Counter()
@@ -228,8 +230,6 @@ def _summary_level_lcs(ref_sent, can_sent):
         token_cnts_c[t] -= 1
         token_cnts_r[t] -= 1
 
-  m = sum(map(len, ref_sent))
-  n = sum(map(len, can_sent))
   recall = hits / m
   precision = hits / n
   fmeasure = scoring.fmeasure(precision, recall)

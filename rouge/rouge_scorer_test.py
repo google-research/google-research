@@ -223,12 +223,33 @@ class RougeScorerTest(parameterized.TestCase):
     # 0.4*0.8 / (0.4 + 0.8)
     self.assertAlmostEqual(0.5333, score.fmeasure, places=3)
 
+    # Tokenizer may drop all tokens, resulting in empty candidate list.
+    score = rouge_scorer._summary_level_lcs([["reference"]], [[]])
+    self.assertEqual(0.0, score.recall)
+
   def testRougeLsum(self):
     scorer = rouge_scorer.RougeScorer(["rougeLsum"])
     result = scorer.score("w1 w2 w3 w4 w5", "w1 w2 w6 w7 w8\nw1 w3 w8 w9 w5")
     self.assertAlmostEqual(0.8, result["rougeLsum"].recall)
     self.assertAlmostEqual(0.4, result["rougeLsum"].precision)
     self.assertAlmostEqual(0.5333, result["rougeLsum"].fmeasure, places=3)
+
+    # Empty case
+    result = scorer.score("w1 w2 w3 w4 w5", "")
+    self.assertAlmostEqual(0.0, result["rougeLsum"].fmeasure, places=3)
+    self.assertAlmostEqual(0.0, result["rougeLsum"].recall, places=3)
+    self.assertAlmostEqual(0.0, result["rougeLsum"].precision, places=3)
+
+    result = scorer.score("", "w1")
+    self.assertAlmostEqual(0.0, result["rougeLsum"].fmeasure, places=3)
+    self.assertAlmostEqual(0.0, result["rougeLsum"].recall, places=3)
+    self.assertAlmostEqual(0.0, result["rougeLsum"].precision, places=3)
+
+    # Case in which summary is all non-word characters.
+    result = scorer.score("w1 w2 w3 w4 w5", "/")
+    self.assertAlmostEqual(0.0, result["rougeLsum"].fmeasure, places=3)
+    self.assertAlmostEqual(0.0, result["rougeLsum"].recall, places=3)
+    self.assertAlmostEqual(0.0, result["rougeLsum"].precision, places=3)
 
 
 if __name__ == "__main__":
