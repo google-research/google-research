@@ -453,7 +453,7 @@ def model_fn(features, labels, mode, params, config):
   # eval set, apparently.
   eval_metric_ops["img_summary_input"] = (img_summary_input, tf.no_op())
   eval_metric_ops["img_summary_recon"] = (img_summary_recon, tf.no_op())
-  eval_metric_ops = {str(k): v for k, v in eval_metric_ops.iteritems()}
+  eval_metric_ops = {str(k): v for k, v in eval_metric_ops.items()}
 
   return tf.estimator.EstimatorSpec(
       mode=mode,
