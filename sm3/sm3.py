@@ -138,9 +138,7 @@ class SM3Optimizer(tf.train.Optimizer):
       accumulator_var = self.get_slot(var, "accumulator")
       accumulator = tf.assign_add(accumulator_var, grad * grad)
 
-    accumulator_inv_sqrt = tf.where(
-        tf.greater(accumulator, 0), tf.rsqrt(accumulator),
-        tf.zeros_like(accumulator))
+    accumulator_inv_sqrt = tf.rsqrt(accumulator + 1e-30)
     scaled_g = (1.0 - self._momentum_tensor) * (grad * accumulator_inv_sqrt)
     accumulator_update_ops = []
 
@@ -194,9 +192,7 @@ class SM3Optimizer(tf.train.Optimizer):
       accumulator = tf.scatter_add(accumulator_var, grad_indices,
                                    grad_values * grad_values)
 
-    accumulator_inv_sqrt = tf.where(
-        tf.greater(accumulator, 0), tf.rsqrt(accumulator),
-        tf.zeros_like(accumulator))
+    accumulator_inv_sqrt = tf.rsqrt(accumulator + 1e-30)
     scaled_g = (grad_values * accumulator_inv_sqrt)
     updates = []
     with tf.control_dependencies([scaled_g]):
