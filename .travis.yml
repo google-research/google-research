@@ -38,6 +38,7 @@ env:
     - PROJECT="solver1d"
     - PROJECT="state_of_sparsity"
     - PROJECT="sufficient_input_subsets"
+    - PROJECT="tabnet"
     - PROJECT="tcc"
     - PROJECT="towards_gan_benchmarks"
     - PROJECT="wiki_split_bleu_eval"
