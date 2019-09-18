@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Implementation of Last Layer Bayes."""
 
 from __future__ import absolute_import
@@ -21,8 +22,11 @@ from __future__ import print_function
 
 import os
 import time
+
 import numpy as np
+import six
 import tensorflow as tf
+
 import gin.tf
 
 MAX_BYTES_MEM = 10**8
@@ -195,7 +199,8 @@ class LastLayerBayesian(object):
     # sampling
     init_t = time.time()
     print('-----------------------------------------------------')
-    print('Starting sampling of the Bayesian Neural Network by ' + self.sampler)
+    print('Starting sampling of the Bayesian Neural Network by ' +
+          six.ensure_str(self.sampler))
     for i in np.arange(0, num_iters):
       batch_x, batch_y = self.next_batch()
       feed_dict = {self.x: batch_x, self.y: batch_y}

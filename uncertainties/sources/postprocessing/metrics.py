@@ -13,16 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Metrics for classification."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import cPickle as pickle
+
 import os
+
 import numpy as np
 import scipy.stats as spstats
+import six.moves.cPickle as pickle
 import tensorflow as tf
+
 import uncertainties.sources.utils.util as util
 
 
@@ -319,9 +323,3 @@ def calibration(y, p_mean, num_bins=10):
          'ece': ece,
          'mce': mce}
   return cal
-
-
-
-
-
-
