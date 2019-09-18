@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Minimal Reference implementation for the Frechet Video Distance (FVD).
 
 FVD is a metric for the quality of video generation models. It is inspired by
@@ -25,6 +26,8 @@ from __future__ import division
 
 from __future__ import print_function
 
+
+import six
 import tensorflow as tf
 import tensorflow_gan as tfgan
 import tensorflow_hub as hub
@@ -85,7 +88,8 @@ def create_id3_embedding(videos):
 
   # Making sure that we import the graph separately for
   # each different input video tensor.
-  module_name = "fvd_kinetics-400_id3_module_" + videos.name.replace(":", "_")
+  module_name = "fvd_kinetics-400_id3_module_" + six.ensure_str(
+      videos.name).replace(":", "_")
 
   assert_ops = [
       tf.Assert(
