@@ -21,7 +21,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import sys
 import traceback
 
 from absl import app as absl_app
@@ -182,7 +181,7 @@ def MakeErrorHandler(get_message):
     ErrorHandler function
   """
   def ErrorHandler(e):
-    tb = traceback.format_exc(sys.exc_info()[2])
+    tb = traceback.format_exc()
     detail = str(e)
     response = flask.jsonify(message=get_message(detail),
                              detail=detail,
