@@ -15,10 +15,88 @@
 -->
 
 <!doctype html>
+
 <html>
+
   <body>
-    <script src="dependencies.min.js"></script>
-    <script src="pangea.js"></script>
-    <script> main(); </script>
+
+    <script src='node_modules/d3/dist/d3.js'></script>
+    <script src='node_modules/three/build/three.js'></script>
+    <script src="node_modules/three/examples/js/controls/OrbitControls.js"></script>
+    <script src='node_modules/@tweenjs/tween.js/src/Tween.js'></script>
+
+    <script src='pangea.js'></script>
+    <script src='utils.js'></script>
+
+    <script>
+
+      (function() {
+
+        var kwargs = new URL(window.location.href).searchParams;
+        var scan = kwargs.get('scan') || '17DRP5sb8fy';
+        var pano = kwargs.get('pano');
+
+        var mp = new Matterport('testdata/');
+
+        mp.graph(scan).then(function(graph) {
+
+          if (pano == undefined) {
+
+            var nodes = Object.keys(graph);
+            var i = Math.floor(Math.random() * nodes.length);
+            pano = nodes[i];
+
+          }
+
+          var obj = new THREE.Mesh(
+
+            new THREE.CylinderBufferGeometry(0.2, 0.2, 1e-5, 100),
+            new THREE.MeshStandardMaterial({
+
+              color: 0xFFFFFF, transparent: true, opacity: 0.5,
+
+            }),
+
+          );
+
+          function texture(pano) {
+
+            return mp.texture(scan, pano);
+
+          }
+
+          var env = new PANGEA.Environment(obj, graph, texture);
+          env.scene.add(new THREE.AmbientLight());
+          env.initialize(pano);
+          env.up.copy(mp.up);
+          animate();
+
+          document.body.appendChild(env.canvas);
+          document.body.style.margin = 0;
+
+          window.onresize = resize;
+          resize();
+
+          function animate() {
+
+            env.render();
+            requestAnimationFrame(animate);
+
+          }
+
+          function resize() {
+
+            env.renderer.setSize(window.innerWidth, window.innerHeight);
+            env.camera.aspect = window.innerWidth / window.innerHeight;
+
+          }
+
+        });
+
+      })();
+
+    </script>
+
   </body>
+
 </html>

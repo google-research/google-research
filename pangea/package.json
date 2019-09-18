@@ -2,7 +2,6 @@
   "dependencies": {
     "@tweenjs/tween.js": "17.4.0",
     "d3": "5.11.0",
-    "three": "0.107.0",
-    "three-orbitcontrols": "2.102.2"
+    "three": "0.107.0"
   }
 }
