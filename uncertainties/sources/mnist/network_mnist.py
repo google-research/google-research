@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Simple feedforward neural network for Mnist."""
 
 from __future__ import absolute_import
@@ -21,6 +22,7 @@ from __future__ import print_function
 
 import time
 import numpy as np
+from six.moves import range
 import tensorflow as tf
 
 
