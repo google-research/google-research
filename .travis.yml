@@ -32,6 +32,7 @@ env:
     - PROJECT="norml"
     - PROJECT="probabilistic_vqvae"
     - PROJECT="psycholab"
+    - PROJECT="rllim"
     - PROJECT="robust_loss"
     - PROJECT="sm3"
     - PROJECT="soft_sort"
