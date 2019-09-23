@@ -1,0 +1,2 @@
+numpy>=1.16.4
+tensorflow>=1.11.0
