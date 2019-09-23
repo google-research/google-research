@@ -22,6 +22,7 @@ env:
     - PROJECT="fat"
     - PROJECT="genomics_ood"
     - PROJECT="graph_embedding/watch_your_step"
+    - PROJECT="igt_optimizer"
     - PROJECT="large_margin"
     - PROJECT="learnreg"
     - PROJECT="m_theory"
