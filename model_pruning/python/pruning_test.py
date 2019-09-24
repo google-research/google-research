@@ -303,7 +303,7 @@ class PruningTest(tf.test.TestCase):
     tf.logging.info(pruning_hparams)
 
     w = tf.Variable(tf.linspace(1.0, 10.0, 10), name="weights")
-    _ = pruning.apply_mask(w)
+    _ = pruning.apply_mask(w, prune_option="first_order_gradient")
 
     p = pruning.Pruning(pruning_hparams)
     old_weight_update_op = p.old_weight_update_op()
@@ -338,7 +338,7 @@ class PruningTest(tf.test.TestCase):
     tf.logging.info(pruning_hparams)
 
     w = tf.Variable(tf.linspace(1.0, 10.0, 10), name="weights")
-    _ = pruning.apply_mask(w)
+    _ = pruning.apply_mask(w, prune_option="second_order_gradient")
 
     p = pruning.Pruning(pruning_hparams)
     old_weight_update_op = p.old_weight_update_op()
