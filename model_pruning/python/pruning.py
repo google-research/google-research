@@ -79,6 +79,7 @@ import re
 import tensorflow as tf
 
 from model_pruning.python import pruning_utils
+from tensorflow.python.ops import variables  # pylint: disable=g-direct-tensorflow-import
 
 MASK_COLLECTION = 'masks'
 THRESHOLD_COLLECTION = 'thresholds'
@@ -92,12 +93,16 @@ OLD_WEIGHT_COLLECTION = 'old_weights'
 OLD_OLD_WEIGHT_COLLECTION = 'old_old_weights'
 
 
-def apply_mask(x, scope=''):
+def apply_mask(x, scope='', prune_option='weight'):
   """Apply mask to a given weight tensor.
 
   Args:
     x: Input weight tensor
     scope: The current variable scope. Defaults to "".
+    prune_option: pruning option. Defaults to 'weight'. option =
+      'first_order_gradient' means using |weight| * |first order gradient| for
+      pruning. option = 'second_order_gradient' means using |weight| * |second
+      order gradient| for pruning.
 
   Returns:
     Tensor representing masked_weights
@@ -109,10 +114,11 @@ def apply_mask(x, scope=''):
   # for the quantization library to add quant ops.
   masked_weights = tf.multiply(mask, x, MASKED_WEIGHT_NAME)
 
-  # absolute value of gradients for gradient based pruning
-  gradient = pruning_utils.weight_gradient_variable(x, scope)
-  old_weight = pruning_utils.old_weight_variable(x, scope)
-  old_old_weight = pruning_utils.old_old_weight_variable(x, scope)
+  if prune_option in ('first_order_gradient', 'second_order_gradient'):
+    # absolute value of gradients for gradient based pruning
+    gradient = pruning_utils.weight_gradient_variable(x, scope)
+    old_weight = pruning_utils.old_weight_variable(x, scope)
+    old_old_weight = pruning_utils.old_old_weight_variable(x, scope)
 
   # Make sure the mask for a given variable are not added multiple times to the
   # collection. This is particularly important when applying mask to RNN's
@@ -122,9 +128,10 @@ def apply_mask(x, scope=''):
     tf.add_to_collection(MASK_COLLECTION, mask)
     tf.add_to_collection(MASKED_WEIGHT_COLLECTION, masked_weights)
     tf.add_to_collection(WEIGHT_COLLECTION, x)
-    tf.add_to_collection(WEIGHT_GRADIENT_COLLECTION, gradient)
-    tf.add_to_collection(OLD_WEIGHT_COLLECTION, old_weight)
-    tf.add_to_collection(OLD_OLD_WEIGHT_COLLECTION, old_old_weight)
+    if prune_option in ('first_order_gradient', 'second_order_gradient'):
+      tf.add_to_collection(WEIGHT_GRADIENT_COLLECTION, gradient)
+      tf.add_to_collection(OLD_WEIGHT_COLLECTION, old_weight)
+      tf.add_to_collection(OLD_OLD_WEIGHT_COLLECTION, old_old_weight)
   return masked_weights
 
 
@@ -230,7 +237,6 @@ def get_pruning_hparams():
       gradient| for pruning.
         second order gradient is approximated by |weight + old_old_weight -
         2*old_weight|.
-      option >= 3 reserved for future use
 
     We use the following sparsity function:
 
@@ -355,9 +361,8 @@ class Pruning(object):
     if not 0.0 <= spec.target_sparsity < 1.0:
       raise ValueError('target_sparsity must be in range [0,1)')
 
-    if not (spec.prune_option == 'weight' or
-            spec.prune_option == 'first_order_gradient' or
-            spec.prune_option == 'second_order_gradient'):
+    if spec.prune_option not in ('weight', 'first_order_gradient',
+                                 'second_order_gradient'):
       raise ValueError('prune option specified is not supported')
 
   def _setup_global_step(self, global_step):
@@ -513,8 +518,8 @@ class Pruning(object):
       tf.logging.info('Applying option %s pruning', self._spec.prune_option)
       if self._spec.prune_option == 'weight':
         abs_weights = tf.abs(weights)
-      elif (self._spec.prune_option == 'first_order_gradient' or
-            self._spec.prune_option == 'second_order_gradient'):
+      elif self._spec.prune_option in ('first_order_gradient',
+                                       'second_order_gradient'):
         if gradients is None:
           raise ValueError('gradient tensor cannot be None.')
         # gradient variable stores absolute value already
@@ -569,8 +574,8 @@ class Pruning(object):
     if squeezed_weights.get_shape().ndims != 2 or block_dims == [1, 1]:
       return self._update_mask(weights, threshold, gradients)
 
-    if (self._spec.prune_option == 'first_order_gradient' or
-        self._spec.prune_option == 'second_order_gradient'):
+    if self._spec.prune_option in ('first_order_gradient',
+                                   'second_order_gradient'):
       raise ValueError(
           'Gradient based pruning implementation for block sparsity is not supported.'
       )
@@ -695,7 +700,7 @@ class Pruning(object):
       if weight.shape.as_list() != old_old_weight.shape.as_list():
         raise ValueError('weight tensor has different shape from old_weight')
 
-      is_partitioned = not isinstance(weight, tf.Variable)
+      is_partitioned = isinstance(weight, variables.PartitionedVariable)
       if is_partitioned:
         weight = weight.as_tensor()
         old_weight = old_weight.as_tensor()
@@ -733,16 +738,16 @@ class Pruning(object):
           'Number of masks %s and number of thresholds %s mismatch' %
           (len(masks), len(thresholds)))
 
-    if len(masks) != len(gradients):
-      raise ValueError(
-          'Number of masks %s and number of gradients %s mismatch' %
-          (len(masks), len(gradients)))
-
     for index, mask in enumerate(masks):
       threshold = thresholds[index]
       weight = weights[index]
-      gradient = gradients[index]
-      is_partitioned = not isinstance(weight, tf.Variable)
+      if self._spec.prune_option in ('first_order_gradient',
+                                     'second_order_gradient'):
+        gradient = gradients[index]
+      else:
+        gradient = None
+
+      is_partitioned = isinstance(weight, variables.PartitionedVariable)
       if is_partitioned:
         weight = weight.as_tensor()
 
@@ -757,8 +762,8 @@ class Pruning(object):
 
   def old_weight_update_op(self):
     with tf.name_scope(self._spec.name):
-      if (self._spec.prune_option != 'first_order_gradient' and
-          self._spec.prune_option != 'second_order_gradient'):
+      if self._spec.prune_option not in ('first_order_gradient',
+                                         'second_order_gradient'):
         return tf.no_op('gradient_update_no_op')
       if not self._assign_old_weight_ops:
         self._get_assign_old_weight_ops()
@@ -778,8 +783,8 @@ class Pruning(object):
 
   def gradient_update_op(self):
     with tf.name_scope(self._spec.name):
-      if (self._spec.prune_option != 'first_order_gradient' and
-          self._spec.prune_option != 'second_order_gradient'):
+      if self._spec.prune_option not in ('first_order_gradient',
+                                         'second_order_gradient'):
         return tf.no_op('gradient_update_no_op')
       if not self._assign_gradient_ops:
         self._get_assign_gradient_ops()

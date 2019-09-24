@@ -60,6 +60,7 @@ def _get_node_names(tensor_names):
 class StripPruningVarsTest(tf.test.TestCase):
 
   def setUp(self):
+    super(StripPruningVarsTest, self).setUp()
     param_list = [
         "pruning_frequency=1", "begin_pruning_step=1", "end_pruning_step=10",
         "nbins=2048", "threshold_decay=0.0", "prune_option=first_order_gradient"
@@ -97,7 +98,8 @@ class StripPruningVarsTest(tf.test.TestCase):
               name="weights")
           top_layer = tf.nn.conv2d(
               top_layer,
-              pruning.apply_mask(kernel, scope), [1, 1, 1, 1],
+              pruning.apply_mask(kernel, scope, "first_order_gradient"),
+              [1, 1, 1, 1],
               padding="SAME")
 
           prev_depth = cur_depth
@@ -126,7 +128,7 @@ class StripPruningVarsTest(tf.test.TestCase):
               tf.truncated_normal([cur_depth], dtype=tf.float32), name="biases")
           top_layer = tf.nn.relu_layer(
               top_layer,
-              pruning.apply_mask(kernel, scope),
+              pruning.apply_mask(kernel, scope, "first_order_gradient"),
               bias,
               name=scope.name)
 
