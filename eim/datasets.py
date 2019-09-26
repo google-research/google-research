@@ -83,7 +83,7 @@ def get_celeba(split="train", shuffle_files=False):
       "valid": "validation",
       "test": "test",
   }
-  datasets = tfds.load("celeb_a", shuffle_files=shuffle_files)
+  datasets = tfds.load("celeb_a:2.*.*", shuffle_files=shuffle_files)
 
   mean_path = os.path.join(ROOT_PATH(), CELEBA_PATH, "train_mean.npy")
   with tf.io.gfile.GFile(mean_path, "rb") as f:
