@@ -98,7 +98,7 @@ class SoftLeastQuantileRegressionLoss(tf.losses.Loss):
 
   def call(self, y_true, y_pred):
     error = tf.pow(tf.abs(tf.squeeze(y_pred) - y_true), self._power)
-    return ops.softquantile(error, self._quantile, axis=0, **self._kwargs)
+    return ops.softquantiles(error, self._quantile, axis=0, **self._kwargs)
 
 
 @gin.configurable
@@ -130,6 +130,9 @@ class SoftTrimmedRegressionLoss(tf.losses.Loss):
   In terms of soft sorting operator, this is obtained by transporting the
   predictions errors onto 3 sorted targets with weights based on those quantile
   values.
+
+  To do this, we use the softquantiles operator with the proper target quantile
+  and target quantile width.
   """
 
   def __init__(self, start_quantile, end_quantile, power=1.0, **kwargs):
@@ -144,24 +147,9 @@ class SoftTrimmedRegressionLoss(tf.losses.Loss):
     self._kwargs = kwargs
     super(SoftTrimmedRegressionLoss, self).__init__(name='soft_trimmed')
 
-  def _get_target_weights_and_indices(self):
-    target_index = 1
-    target_weights = [
-        self._start_quantile,
-        self._end_quantile - self._start_quantile,
-        1.0 - self._end_quantile
-    ]
-    # Removes the zero weights to avoid degenerated cases.
-    while target_weights.count(0.0):
-      idx = target_weights.index(0.0)
-      target_weights.pop(idx)
-      target_index -= (idx < target_index)
-
-    return target_weights, target_index
-
   def call(self, y_true, y_pred):
     error = tf.pow(tf.abs(tf.squeeze(y_pred) - y_true), self._power)
-    target_weights, target_index = self._get_target_weights_and_indices()
-    quantiles = ops.softsort(
-        error, axis=0, target_weights=target_weights, **self._kwargs)
-    return tf.gather(quantiles, target_index, axis=0)
+    width = self._end_quantile - self._start_quantile
+    quantile = 0.5 * (self._end_quantile + self._start_quantile)
+    return ops.softquantiles(
+        error, quantile, quantile_width=width, axis=0, **self._kwargs)
