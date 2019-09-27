@@ -734,9 +734,8 @@ def DenseRecognitionAffine(images, encoder, z=None,
   mu = encoding[:, :z_dims]
   tril_raw = tfd.fill_triangular(encoding[:, z_dims:])
   sigma = tf.nn.softplus(tf.matrix_diag_part(tril_raw))
-  tril = (1.0 - tf.matrix_diag(tf.ones_like(sigma))) * tril_raw
-  bijector = tfb.Affine(shift=mu, scale_diag=sigma,
-                        scale_tril=tril)
+  tril = tf.linalg.set_diag(tril_raw, sigma)
+  bijector = tfb.Affine(shift=mu, scale_tril=tril)
 
   mvn = tfd.MultivariateNormalDiag(
       loc=tf.zeros_like(mu), scale_diag=tf.ones_like(sigma))
