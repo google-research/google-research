@@ -147,15 +147,36 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
 
     axis = 1
     x = tf.random.uniform((3, num_points, 4), dtype=tf.float32)
-    soft_q = ops.softquantile(
-        x, quantile, quantile_width, axis=axis, epsilon=1e-2)
+    soft_q = ops.softquantiles(
+        x, quantile, quantile_width, axis=axis, epsilon=1e-3)
 
     # Compare to getting the exact quantile.
     hard_q = tf.gather(
         tf.sort(x, direction='ASCENDING', axis=axis),
         int(quantile * num_points), axis=1)
 
-    self.assertAllClose(soft_q, hard_q, 0.05, 0.05)
+    self.assertAllClose(soft_q, hard_q, 0.2, 0.2)
+
+  def test_softquantiles(self):
+    num_points = 19
+    sorted_values = tf.range(0, num_points, dtype=tf.float32)
+    x = tf.random.shuffle(sorted_values)
+
+    target_quantiles = [0.25, 0.50, 0.75]
+    target_indices = [4, 9, 14]
+    soft_q = ops.softquantiles(x, target_quantiles, epsilon=1e-3)
+    hard_q = tf.gather(sorted_values, target_indices)
+
+    self.assertAllClose(soft_q, hard_q, 0.2, 0.2)
+
+  @parameterized.named_parameters(
+      ('small_gap', 0.5, 0.6, 0.4),
+      ('small_first_gap', 0.09, 0.6, 0.2),
+      ('wrong_order', 0.7, 0.3, 0.2))
+  def test_softquantile_errors(self, q1, q2, width):
+    x = tf.random.uniform((3, 10))
+    with self.assertRaises(tf.errors.InvalidArgumentError):
+      ops.softquantiles(x, [q1, q2], quantile_width=width, axis=-1)
 
 
 if __name__ == '__main__':

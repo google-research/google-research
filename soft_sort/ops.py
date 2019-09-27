@@ -127,19 +127,23 @@ def softranks(x, direction='ASCENDING', axis=-1, zero_based=True, **kwargs):
   return _postprocess(ranks, x.shape, axis)
 
 
-def softquantile(x, quantile=0.5, quantile_width=None, axis=-1, **kwargs):
+def softquantiles(x, quantiles, quantile_width=None, axis=-1, **kwargs):
   """Computes a (single) soft quantile via optimal transport.
 
   This operator takes advantage of the fact that an exhaustive softsort is not
   required to recover a single quantile. Instead, one can transport all
-  input values in x onto only 3 weighted values. Weights (stored in b) are
-  adjusted so that those values in x that are transported to the middle value in
-  the target vector y correspond to those concentrating around the
-  quantile of interest.
+  input values in x onto only 3 weighted values. Target weights are adjusted so
+  that those values in x that are transported to the middle value in the target
+  vector y correspond to those concentrating around the quantile of interest.
+
+  This idea generalizes to more quantiles, interleaving small weights on the
+  quantile indices and bigger weights in between, corresponding to the gap from
+  one desired quantile to the next one.
 
   Args:
    x: Tensor<float> of any shape.
-   quantile: (float) the quantile to be returned. 0.5 for the median.
+   quantiles: list<float> the quantiles to be returned. It can also be a single
+    float.
    quantile_width: (float) mass given to the bucket supposed to attract points
     whose value concentrate around the desired quantile value. Bigger width
     means that we allow the soft quantile to be a mixture of
@@ -150,15 +154,70 @@ def softquantile(x, quantile=0.5, quantile_width=None, axis=-1, **kwargs):
 
   Returns:
     A Tensor<float> similar to the input tensor, but the axis dimension is
-    replaced by a single value: the soft quantile along that axis,
+    replaced by the number of quantiles specified in the quantiles list.
+    Hence, if only a quantile is requested (quantiles is a float) only one value
+    in that axis is returned. When several quantiles are requested, the tensor
+    will have that many values in that axis.
+
+  Raises:
+    tf.errors.InvalidArgumentError when the quantiles and quantile width are not
+    correct, namely quantiles are either not in sorted order or the
+    quantile_width is too large.
+
   """
+  if isinstance(quantiles, float):
+    quantiles = [quantiles]
+  quantiles = tf.constant(quantiles, tf.float32)
+
+  # Preprocesses submitted quantiles to check that they satisfy elementary
+  # constraints.
+  valid_quantiles = tf.boolean_mask(
+      quantiles, tf.logical_and(quantiles > 0.0, quantiles < 1.0))
+  num_quantiles = tf.shape(valid_quantiles)[0]
+
+  # Includes values on both ends of [0,1].
+  extended_quantiles = tf.concat([[0.0], valid_quantiles, [1.0]], axis=0)
+
+  # Builds filler_weights in between the target quantiles.
+  filler_weights = extended_quantiles[1:] - extended_quantiles[:-1]
   if quantile_width is None:
-    quantile_width = 1.0 / tf.cast(tf.shape(x)[axis], dtype=x.dtype)
-  weights = [
-      (1.0 - quantile_width) * quantile,
-      quantile_width,
-      (1.0 - quantile_width) * (1.0 - quantile)
-  ]
-  quantiles = softsort(
-      x, direction='ASCENDING', axis=axis, target_weights=weights, **kwargs)
-  return tf.gather(quantiles, 1, axis=axis)
+    quantile_width = tf.reduce_min(
+        tf.concat(
+            [filler_weights, [1.0 / tf.cast(tf.shape(x)[axis], dtype=x.dtype)]],
+            axis=0))
+
+  # Takes into account quantile_width in the definition of weights
+  shift = -tf.ones(tf.shape(filler_weights), dtype=x.dtype)
+  shift = shift + 0.5 * (
+      tf.one_hot(0, num_quantiles + 1) +
+      tf.one_hot(num_quantiles, num_quantiles + 1))
+  filler_weights = filler_weights + quantile_width * shift
+
+  assert_op = tf.Assert(tf.reduce_all(filler_weights >= 0.0), [filler_weights])
+  with tf.control_dependencies([assert_op]):
+    # Adds one more value to have tensors of the same shape to interleave them.
+    quantile_weights = tf.ones(num_quantiles + 1) * quantile_width
+
+    # Interleaves the filler_weights with the quantile weights.
+    weights = tf.reshape(
+        tf.stack([filler_weights, quantile_weights], axis=1), (-1,))[:-1]
+
+    # Sends only the positive weights to the softsort operator.
+    positive_weights = tf.boolean_mask(weights, weights > 0.0)
+    result = softsort(
+        x,
+        direction='ASCENDING', axis=axis, target_weights=positive_weights,
+        **kwargs)
+
+    # Recovers the indices corresponding to the desired quantiles.
+    odds = tf.math.floormod(tf.range(weights.shape[0], dtype=tf.float32), 2)
+    positives = tf.cast(weights > 0.0, tf.float32)
+    indices = tf.cast(tf.math.cumsum(positives) * odds, dtype=tf.int32)
+    indices = tf.boolean_mask(indices, indices > 0) - 1
+    result = tf.gather(result, indices, axis=axis)
+
+    # In the specific case where we want a single quantile, squeezes the
+    # quantile dimension.
+    return tf.cond(tf.equal(tf.shape(result)[axis], 1),
+                   lambda: tf.squeeze(result, axis=axis),
+                   lambda: result)

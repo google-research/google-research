@@ -221,7 +221,7 @@ class SoftQuantilizer(object):
     # Then we set the target vector itself. It must be sorted.
     if y is None:
       m = tf.cast(self._num_targets, dtype=self.dtype)
-      y = tf.range(0, self._num_targets, dtype=self.dtype) / (m - 1)
+      y = tf.range(0, m, dtype=self.dtype) / tf.math.maximum(1.0, m - 1.0)
     self.y = self._cast_may_repeat(y)
     if self._descending:
       self.y = tf.reverse(self.y, (1,))
