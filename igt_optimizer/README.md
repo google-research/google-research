@@ -11,6 +11,11 @@ containing the shifted parameters. The true parameters are instead contained in
 associated slots. This is an important distinction, especially when considering
 whether the learning curves are for the true or the shifted paramemeters.
 
+## Code overview
+The experimental framework is centered on a fork of the
+[Cloud TPU resnet code](https://github.com/tensorflow/tpu/tree/master/models/official/resnet)
+from May 2019.
+
 ## Citation
 If you use this code for your publication, please cite the original paper:
 ```
