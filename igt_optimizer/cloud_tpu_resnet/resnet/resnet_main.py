@@ -34,6 +34,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import re
 import time
 
 from absl import app
@@ -42,6 +43,7 @@ import absl.logging as _logging  # pylint: disable=unused-import
 import numpy as np
 import tensorflow as tf
 
+from igt_optimizer import exp_igt_optimizer
 from igt_optimizer.cloud_tpu_resnet.hyperparameters import common_hparams_flags
 from igt_optimizer.cloud_tpu_resnet.hyperparameters import common_tpu_flags
 from igt_optimizer.cloud_tpu_resnet.hyperparameters import hyperparameters
@@ -54,8 +56,11 @@ from tensorflow.contrib.compiler import xla
 # copybara:strip_end
 from tensorflow.contrib.tpu.python.tpu import async_checkpoint
 from tensorflow.contrib.training.python.training import evaluation
+# pylint:disable=g-direct-tensorflow-import
 from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python.estimator import estimator
+from tensorflow.python.lib.io import file_io
+# pylint:enable=g-direct-tensorflow-import
 
 common_tpu_flags.define_common_tpu_flags()
 common_hparams_flags.define_common_hparams_flags()
@@ -159,7 +164,13 @@ flags.DEFINE_integer(
 flags.DEFINE_string(
     'mode',
     default='train_and_eval',
-    help='One of {"train_and_eval", "train", "eval"}.')
+    help='One of {"train_and_eval", "train", "eval", "eval_igt"}.')
+
+flags.DEFINE_string(
+    'igt_eval_mode', default='shift', help='One of {"shift", "true"}.')
+
+flags.DEFINE_string(
+    'igt_eval_set', default='train', help='One of {"train", "eval"}.')
 
 flags.DEFINE_integer(
     'steps_per_eval',
@@ -213,10 +224,34 @@ flags.DEFINE_bool(
     help=('Whether to export additional metagraph with "serve, tpu" tags'
           ' in addition to "serve" only metagraph.'))
 
+flags.DEFINE_enum(
+    'optimizer',
+    default='momentum',
+    enum_values=['momentum', 'adam', 'eigt'],
+    help=('The optimizer to use.'))
+
+flags.DEFINE_enum(
+    'igt_optimizer',
+    default='gd',
+    enum_values=['gd', 'mom', 'adam'],
+    help=('The optimizer to use to apply the IGT update.'))
+
+flags.DEFINE_float(
+    'tail_fraction',
+    default=2.,
+    help=('Fraction of the data to use (e.g. 2. for t/2.).'))
+
 flags.DEFINE_float(
     'base_learning_rate',
     default=None,
     help=('Base learning rate when train batch size is 256.'))
+
+flags.DEFINE_float('lr_decay', default=0.1, help='The learning rate decay.')
+
+flags.DEFINE_float(
+    'lr_decay_step_fraction',
+    default=0.9,
+    help='The fraction of steps at which full decay is reached.')
 
 flags.DEFINE_float(
     'momentum',
@@ -265,6 +300,24 @@ MEAN_RGB = [0.485 * 255, 0.456 * 255, 0.406 * 255]
 STDDEV_RGB = [0.229 * 255, 0.224 * 255, 0.225 * 255]
 
 
+def get_model_dir(params):
+  """Returns the model directory as a function of the params dict."""
+  suffix = 'opt={}'.format(FLAGS.optimizer)
+  if FLAGS.optimizer == 'momentum':
+    suffix += '_mom={}'.format(params['momentum'])
+  if FLAGS.optimizer == 'eigt':
+    suffix += '_{}'.format(FLAGS.igt_optimizer)
+    suffix += '_tail={}'.format(FLAGS.tail_fraction)
+
+  suffix += '-lr={}'.format(params['base_learning_rate'])
+  suffix += '-decay={}-decaystep={}'.format(FLAGS.lr_decay,
+                                            FLAGS.lr_decay_step_fraction)
+
+  model_dir = os.path.join(FLAGS.model_dir, suffix)
+  print('model_dir: {}'.format(model_dir))
+  return model_dir
+
+
 def get_lr_schedule(train_steps, num_train_images, train_batch_size):
   """learning rate schedule."""
   steps_per_epoch = np.floor(num_train_images / train_batch_size)
@@ -307,6 +360,21 @@ def learning_rate_schedule(params, current_epoch):
     decay_rate = tf.where(current_epoch < start_epoch, decay_rate,
                           scaled_lr * mult)
   return decay_rate
+
+
+def linear_learning_rate_schedule(params, global_step):
+  tf.logging.info(
+      'Using a linear LR schedule. step fraction {} decay {}'.format(
+          FLAGS.lr_decay_step_fraction, FLAGS.lr_decay))
+  initial_lr = params['base_learning_rate'] * (
+      params['train_batch_size'] / 256.0)
+  fully_decayed_step = params['train_steps'] * FLAGS.lr_decay_step_fraction
+
+  return tf.train.polynomial_decay(
+      learning_rate=initial_lr,
+      global_step=global_step,
+      decay_steps=fully_decayed_step,
+      end_learning_rate=initial_lr * FLAGS.lr_decay)
 
 
 def resnet_model_fn(features, labels, mode, params):
@@ -426,12 +494,34 @@ def resnet_model_fn(features, labels, mode, params):
     if params['enable_lars']:
       learning_rate = 0.0
       optimizer = lars_util.init_lars_optimizer(current_epoch, params)
+      raise ValueError('LARS unexpected in the context of IGT experiments.')
     else:
-      learning_rate = learning_rate_schedule(params, current_epoch)
-      optimizer = tf.train.MomentumOptimizer(
-          learning_rate=learning_rate,
-          momentum=params['momentum'],
-          use_nesterov=True)
+      learning_rate = linear_learning_rate_schedule(params, global_step)
+
+      if FLAGS.optimizer == 'momentum':
+        tf.logging.info('Using MomentumOptimizer ({}).'.format(
+            params['momentum']))
+        optimizer = tf.train.MomentumOptimizer(
+            learning_rate=learning_rate,
+            momentum=params['momentum'],
+            use_nesterov=False)
+
+      elif FLAGS.optimizer == 'adam':
+        tf.logging.info('Using AdamOptimizer')
+        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+
+      elif FLAGS.optimizer == 'eigt':
+        tf.logging.info('Using ExpIgtOptimizer {} tail: {}'.format(
+            FLAGS.igt_optimizer, FLAGS.tail_fraction))
+        optimizer = exp_igt_optimizer.ExpIgtOptimizer(
+            learning_rate,
+            tail_fraction=FLAGS.tail_fraction,
+            optimizer=FLAGS.igt_optimizer)
+
+      else:
+        raise ValueError('{} is not a supported optimizer'.format(
+            FLAGS.optimizer))
+
     if params['use_tpu']:
       # When using TPU, wrap the optimizer with CrossShardOptimizer which
       # handles synchronization details between different TPU cores. To the
@@ -475,7 +565,7 @@ def resnet_model_fn(features, labels, mode, params):
         # number of iterations will make the summary writer only flush the data
         # to storage once per loop.
         with summary.create_file_writer(
-            FLAGS.model_dir,
+            get_model_dir(params),
             max_queue=params['iterations_per_loop']).as_default():
           with summary.always_record_summaries():
             summary.scalar('loss', loss[0], step=gs)
@@ -500,6 +590,7 @@ def resnet_model_fn(features, labels, mode, params):
     train_op = None
 
   eval_metrics = None
+  scaffold_fn = None
   if mode == tf.estimator.ModeKeys.EVAL:
 
     def metric_fn(labels, logits):
@@ -535,12 +626,32 @@ def resnet_model_fn(features, labels, mode, params):
 
     eval_metrics = (metric_fn, [labels, logits])
 
+    if FLAGS.mode == 'eval_igt' and FLAGS.igt_eval_mode == 'true':
+      tf.logging.info('Using true param loading saver.')
+
+      def scaffold_fn_true_params():
+        """Returns a scaffold that loads the true values into vars."""
+        var_mapping = {}
+        trainable_vars = set(tf.trainable_variables())
+        for var in tf.global_variables():
+          if var in trainable_vars:
+            var_mapping[var.op.name + '/true_param'] = var
+          else:
+            var_mapping[var.op.name] = var
+
+        tf.logging.info('Mapping: {}'.format(var_mapping))
+        saver = tf.train.Saver(var_list=var_mapping, sharded=True)
+        return tf.train.Scaffold(saver=saver)
+
+      scaffold_fn = scaffold_fn_true_params
+
   return tf.contrib.tpu.TPUEstimatorSpec(
       mode=mode,
       loss=loss,
       train_op=train_op,
       host_call=host_call,
-      eval_metrics=eval_metrics)
+      eval_metrics=eval_metrics,
+      scaffold_fn=scaffold_fn)
 
 
 def _verify_non_empty_string(value, field_name):
@@ -605,11 +716,12 @@ def main(unused_argv):
   if params['use_async_checkpointing']:
     save_checkpoints_steps = None
   else:
-    save_checkpoints_steps = max(5000, params['iterations_per_loop'])
+    save_checkpoints_steps = max(2500, params['iterations_per_loop'])
   config = tf.contrib.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
-      model_dir=FLAGS.model_dir,
+      model_dir=get_model_dir(params),
       save_checkpoints_steps=save_checkpoints_steps,
+      keep_checkpoint_max=None,  # Keep all checkpoints.
       log_step_count_steps=FLAGS.log_step_count_steps,
       session_config=tf.ConfigProto(
           graph_options=tf.GraphOptions(
@@ -689,7 +801,7 @@ def main(unused_argv):
 
     # Run evaluation when there's a new checkpoint
     for ckpt in evaluation.checkpoints_iterator(
-        FLAGS.model_dir, timeout=FLAGS.eval_timeout):
+        get_model_dir(params), timeout=FLAGS.eval_timeout):
       tf.logging.info('Starting to evaluate.')
       try:
         start_timestamp = time.time()  # This time will include compilation time
@@ -716,8 +828,68 @@ def main(unused_argv):
         tf.logging.info('Checkpoint %s no longer exists, skipping checkpoint',
                         ckpt)
 
+  elif FLAGS.mode == 'eval_igt':
+    # IGT evaluation mode. Evaluate metrics for the desired parameters
+    # (true or shifted) on the desired dataset (train or eval). Note that
+    # train is still with data augmentation.
+
+    # Get checkpoint file names.
+    index_files = tf.gfile.Glob(
+        os.path.join(get_model_dir(params), 'model.ckpt-*.index'))
+    checkpoints = [fn[:-len('.index')] for fn in index_files]
+    # Need to sort them to get proper tensorboard plotting (increasing event
+    # timestamps correspond to increasing steps).
+    checkpoint_steps = []
+    for ckpt in checkpoints:
+      tf.logging.info(ckpt)
+      step_match = re.match(r'.*model.ckpt-([0-9]*)', ckpt)
+      checkpoint_steps.append(int(step_match.group(1)))
+    checkpoints = [
+        ckpt for _, ckpt in sorted(zip(checkpoint_steps, checkpoints))
+    ]
+    tf.logging.info('There are {} checkpoints'.format(len(checkpoints)))
+    tf.logging.info(', '.join(checkpoints))
+
+    # Keep track of the last processed checkpoint (fault tolerance).
+    analysis_state_path = os.path.join(
+        get_model_dir(params),
+        'analysis_state_' + FLAGS.igt_eval_set + '_' + FLAGS.igt_eval_mode)
+    next_analysis_index = 0
+    if tf.gfile.Exists(analysis_state_path):
+      with tf.gfile.Open(analysis_state_path) as fd:
+        next_analysis_index = int(fd.read())
+
+    # Process each checkpoint.
+    while next_analysis_index < len(checkpoints):
+      tf.logging.info('Next analysis index: {}'.format(next_analysis_index))
+      ckpt_path = checkpoints[next_analysis_index]
+      tf.logging.info('Starting to evaluate: {}.'.format(ckpt_path))
+      start_timestamp = time.time()  # This time will include compilation time
+
+      if FLAGS.igt_eval_set == 'train':
+        the_input_fn = imagenet_train.input_fn
+        the_steps = steps_per_epoch
+      elif FLAGS.igt_eval_set == 'eval':
+        the_input_fn = imagenet_eval.input_fn
+        the_steps = eval_steps
+      else:
+        raise ValueError('Unsupported igt_eval_set')
+
+      eval_results = resnet_classifier.evaluate(
+          input_fn=the_input_fn,
+          steps=the_steps,
+          checkpoint_path=ckpt_path,
+          name=FLAGS.igt_eval_set + '_' + FLAGS.igt_eval_mode)
+      elapsed_time = int(time.time() - start_timestamp)
+      tf.logging.info('Eval results: %s. Elapsed seconds: %d', eval_results,
+                      elapsed_time)
+
+      next_analysis_index += 1
+      file_io.atomic_write_string_to_file(analysis_state_path,
+                                          str(next_analysis_index))
+
   else:  # FLAGS.mode == 'train' or FLAGS.mode == 'train_and_eval'
-    current_step = estimator._load_global_step_from_checkpoint_dir(FLAGS.model_dir)  # pylint: disable=protected-access,line-too-long
+    current_step = estimator._load_global_step_from_checkpoint_dir(get_model_dir(params))  # pylint:disable=protected-access,g-line-too-long
     steps_per_epoch = params['num_train_images'] // params['train_batch_size']
     tf.logging.info(
         'Training for %d steps (%.2f epochs in total). Current'
@@ -731,8 +903,8 @@ def main(unused_argv):
       if params['use_async_checkpointing']:
         hooks.append(
             async_checkpoint.AsyncCheckpointSaverHook(
-                checkpoint_dir=FLAGS.model_dir,
-                save_steps=max(5000, params['iterations_per_loop'])))
+                checkpoint_dir=get_model_dir(params),
+                save_steps=max(2500, params['iterations_per_loop'])))
       resnet_classifier.train(
           input_fn=imagenet_train.input_fn,
           max_steps=params['train_steps'],
