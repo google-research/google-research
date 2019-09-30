@@ -16,6 +16,19 @@ The experimental framework is centered on a fork of the
 [Cloud TPU resnet code](https://github.com/tensorflow/tpu/tree/master/models/official/resnet)
 from May 2019.
 
+`resnet_main.py` is the main executable. Important flags are:
+
+* `mode`, which offers a special `eval_igt` mode for evaluating an IGT model at
+the true parameters (vs shifted ones). This value should be used in conjunction
+with the `igt_eval_mode` and `igt_eval_set` flags.
+* `optimizer`, for setting the optimizer
+* `igt_optimizer`, for setting the optimizer to use in conjunction with IGT
+* `tail_fraction`, for setting IGT's any time average data window
+* `lr_decay` and `lr_decay_step_fraction`
+
+`dump_metrics_to_csv.py` is used to convert the learning curves from their
+TensorFlow summary format to an easier to consume csv format.
+
 ## Citation
 If you use this code for your publication, please cite the original paper:
 ```
