@@ -177,7 +177,7 @@ def write_records(records, out_filename):
 
 
 def get_story(s):
-  return ' '.join(
+  return b' '.join(
       [f.bytes_list.value[0]
        for f in s.feature_lists.feature_list['untokenized_sentences'].feature])
 
