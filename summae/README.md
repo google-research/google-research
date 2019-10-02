@@ -12,18 +12,27 @@ of a `virtualenv`.
 
 ## Generate rocstories data.
 Request (free) and download raw data for [ROCStories corpora](http://cs.rochester.edu/nlp/rocstories/)
-into a directory pointed to by the environment variable, and run the
-data processing script:
-```
-export ROCSTORIES_RAW=absoluatepath/raw_rocstories
-# Download raw rocstories data to $ROCSTORIES_RAW
+into a directory pointed to by the environment variable `ROCSTORIES_RAW`.
+This directory should contain the following files:
+
+* "ROCStories_winter2017 - ROCStories_winter2017.csv"
+* "ROCStories__spring2016 - ROCStories_spring2016.csv"
+
+Then run the data processing script:
+
+```bash
+export ROCSTORIES_RAW=absolutepathto/raw_rocstories
 export ROCSTORIES_DATA=absolutepathto/processed_rocstoriesdata
-# For example, inside google_research/google_research directory:
+```
+
+Inside google_research/google_research directory:
+
+```bash
 bash summae/generate_data.sh $ROCSTORIES_RAW summae/testdata $ROCSTORIES_DATA
 ```
 
 ### Verify data
-```
+```bash
 python -m summae.verify_data --data_dir=$ROCSTORIES_DATA
 ```
 
@@ -36,12 +45,12 @@ bash summae/run_locally.sh train /tmp/testmodel
 
 ### Decode latest model checkpoint
 ```
-bash run_locally.sh decode /tmp/testmodel 0
+bash summae/run_locally.sh decode /tmp/testmodel 0
 ```
 
 ### Run decode of best model
 ```
 mkdir /tmp/best
 cp -r summae/testdata/best /tmp/best
-bash run_locally.sh decode /tmp/best 358000
+bash summae/run_locally.sh decode /tmp/best 358000
 ```
