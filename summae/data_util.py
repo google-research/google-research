@@ -71,13 +71,13 @@ def sents2seqex(sentences_list, tokenizer,
     untokenized_sentences = tf.train.FeatureList(
         feature=[tf_bytes_feature(s) for s in sentences_list])
     return tf.train.SequenceExample(
-        feature_lists=tf.FeatureLists(
+        feature_lists=tf.train.FeatureLists(
             feature_list={'sentences': sentences,
                           'untokenized_sentences': untokenized_sentences}),
         context=context_features)
   else:
     return tf.train.SequenceExample(
-        feature_lists=tf.FeatureLists(
+        feature_lists=tf.train.FeatureLists(
             feature_list={'sentences': sentences},
             context=context_features))
 

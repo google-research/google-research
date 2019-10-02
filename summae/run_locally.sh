@@ -59,7 +59,7 @@ function decode() {
   $BIN --data_dir=${ROCSTORIES_DATA} --logtostderr \
     --params_file=${HYPERS} --batch_size=100 --model_dir=$MODEL_DIR \
     --vocab_file=$VOCAB_FILE --task=rocstories --mode=decode \
-    --eval_subset=valid_gt,test_gt --eval_checkpoints=$CHECKPOINT
+    --decode_reconstructions --eval_subset=valid_gt,test_gt --eval_checkpoints=$CHECKPOINT
 }
 
 
