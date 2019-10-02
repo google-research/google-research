@@ -21,6 +21,7 @@ from __future__ import print_function
 
 from enum import Enum
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 
 class Mask(Enum):
@@ -113,7 +114,7 @@ class StochasticActor(tf.keras.Model):
     return mu_var + [sig_var]
 
   def dist(self, mu, sig):
-    return tf.contrib.distributions.MultivariateNormalDiag(
+    return tfp.distributions.MultivariateNormalDiag(
         loc=mu,
         scale_diag=sig)
 

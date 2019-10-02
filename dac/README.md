@@ -11,7 +11,7 @@ Install Dependencies
 We use Python 3.5.4rc1. You may also need to install a number of dependencies.
 
     pip3 install gym
-    pip3 install --upgrade tensorflow
+    pip3 install --upgrade tensorflow tensorflow_probability
     pip3 install absl-py
 
 You will also need to install Mujoco and use a valid license. Follow the install
