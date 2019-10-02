@@ -51,6 +51,8 @@ bash summae/run_locally.sh decode /tmp/testmodel 0
 ### Run decode of best model
 ```
 mkdir /tmp/best
-cp -r summae/testdata/best /tmp/best
+cp -r summae/testdata/best /tmp/
 bash summae/run_locally.sh decode /tmp/best 358000
 ```
+
+Decodes output is saved to `/tmp/best/decodes/`.
