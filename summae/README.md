@@ -1,9 +1,11 @@
+Disclaimer: This is not an official Google product.
+
 ## Overview
 
 This directory contains code for generating the data and model described in
-"SummAE: Zero-Shot Abstractive Text Summarization using Length-Agnostic Auto-Encoders"
+["SummAE: Zero-Shot Abstractive Text Summarization using Length-Agnostic Auto-Encoders"](http://arxiv.org/abs/1910.00998).
 
-Disclaimer: This is not an official Google product.
+For questions or issues, contact peterjliu@google.com.
 
 ## Install dependencies (`run.sh`)
 This package depends on Tensorflow and google_research/rouge. See
@@ -13,8 +15,7 @@ of a `virtualenv`.
 ## Generate rocstories data.
 Request (free) and download raw data for [ROCStories corpora](http://cs.rochester.edu/nlp/rocstories/)
 into a directory pointed to by the environment variable `ROCSTORIES_RAW`.
-This directory should contain the following files:
-
+This directory should contain the following files: 
 * "ROCStories_winter2017 - ROCStories_winter2017.csv"
 * "ROCStories__spring2016 - ROCStories_spring2016.csv"
 
@@ -56,3 +57,17 @@ bash summae/run_locally.sh decode /tmp/best 358000
 ```
 
 Decodes output is saved to `/tmp/best/decodes/`.
+
+## Citation
+If you use this code in research please cite:
+```
+@article{liu2019summae,
+  title={SummAE: Zero-Shot Abstractive Text Summarization using Length-Agnostic
+  Auto-Encoders},
+  author={Peter J. Liu and Yu-An Chung and Jie Ren},
+  journal={arXiv preprint arXiv:1910.00998},
+  url={http://arxiv.org/abs/1910.00998},
+  year={2019}
+}
+```
+##
