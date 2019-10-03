@@ -25,6 +25,8 @@ import contextlib
 import numpy as np
 
 import tensorflow as tf
+import tensorflow_probability as tfp
+
 from cnn_quantization.tf_cnn_benchmarks import mlperf
 from tensorflow.contrib.quantize.python import common
 from tensorflow.python.layers import convolutional as conv_layers
@@ -348,22 +350,22 @@ class ConvNetBuilder(object):
 
       if per_channel:
         if input_dim >= 2:
-          batch_min = tf.contrib.distributions.percentile(
+          batch_min = tfp.stats.percentile(
               inputs, q=quantile, axis=reduce_dims, name='BatchMin')
         else:
           batch_min = inputs
       else:
-        batch_min = tf.contrib.distributions.percentile(
+        batch_min = tfp.stats.percentile(
             inputs, q=quantile, name='BatchMin')
 
       if per_channel:
         if input_dim >= 2:
-          batch_max = tf.contrib.distributions.percentile(
+          batch_max = tfp.stats.percentile(
               inputs, q=100 - quantile, axis=reduce_dims, name='BatchMax')
         else:
           batch_max = inputs
       else:
-        batch_max = tf.contrib.distributions.percentile(
+        batch_max = tfp.stats.percentile(
             inputs, q=100 - quantile, name='BatchMax')
 
       if narrow_range:
