@@ -64,7 +64,7 @@ If you use this code in research please cite:
 @article{liu2019summae,
   title={SummAE: Zero-Shot Abstractive Text Summarization using Length-Agnostic
   Auto-Encoders},
-  author={Peter J. Liu and Yu-An Chung and Jie Ren},
+  author={Liu,  Peter J. and Chung, Yu-An and Ren, Jie},
   journal={arXiv preprint arXiv:1910.00998},
   url={http://arxiv.org/abs/1910.00998},
   year={2019}
