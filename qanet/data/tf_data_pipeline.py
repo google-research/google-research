@@ -926,9 +926,8 @@ def get_input_fn(split='dev',
     ds = ds.map(filter_fields, num_parallel_calls=16)
 
     if is_training:
-      ds = ds.apply(
-          tf.contrib.data.padded_batch_and_drop_remainder(
-              batch_size, padded_shapes=shapes))
+      ds = ds.padded_batch(
+          batch_size, padded_shapes=shapes, drop_remainder=True)
     else:
       # Never want to ignore values at eval time
       ds = ds.padded_batch(batch_size, padded_shapes=shapes)
