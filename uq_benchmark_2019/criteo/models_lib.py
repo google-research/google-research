@@ -50,7 +50,8 @@ class ModelOptions(object):
   # TODO(yovadia): Maybe add l2_regularization.
 
 
-def _make_input_layers():
+def make_input_layers():
+  """Defines an input layer for Keras model with int32 and string dtypes."""
   out = {}
   for idx in range(1, data_lib.NUM_TOTAL_FEATURES+1):
     dtype = tf.int32 if idx <= data_lib.NUM_INT_FEATURES else tf.string
@@ -59,7 +60,7 @@ def _make_input_layers():
   return out
 
 
-def _make_feature_columns(opts):
+def make_feature_columns(opts):
   """Build feature_columns for converting features to a dense vector."""
   tffc = tf.feature_column
   out_cat = []
@@ -104,8 +105,8 @@ def build_model(opts, as_components=False):
                                            data_lib.NUM_TRAIN_EXAMPLES)
   _, dense_layer, dense_last, dropout_fn, dropout_fn_last = layers_tup
 
-  fcs_int, fcs_cat = _make_feature_columns(opts)
-  input_layer = _make_input_layers()
+  fcs_int, fcs_cat = make_feature_columns(opts)
+  input_layer = make_input_layers()
   features = input_layer
   dense_int = keras.layers.DenseFeatures(fcs_int)(features)
   dense_cat = keras.layers.DenseFeatures(fcs_cat)(features)
