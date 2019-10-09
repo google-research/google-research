@@ -355,7 +355,7 @@ def create_dataset(split, mode, batch_size=None, return_iterator=True):
     dataset = tf.data.experimental.sample_from_datasets(datasets,
                                                         len(datasets) * [1.0])
 
-    dataset = dataset.apply(tf.data.experimental.unbatch())
+    dataset = dataset.unbatch()
 
     dataset = dataset.map(decode,
                           num_parallel_calls=FLAGS.num_parallel_calls)
