@@ -79,7 +79,7 @@ def _CreateLSTMPruneVariables(lstm_obj, input_depth, h_depth):
   return mask, threshold, old_weight, old_old_weight, gradient
 
 
-class MaskedBasicLSTMCell(tf.nn.rnn_cell.BasicLSTMCell):
+class MaskedBasicLSTMCell(tf.compat.v1.nn.rnn_cell.BasicLSTMCell):
   """Basic LSTM recurrent network cell with pruning.
 
   Overrides the call method of tensorflow BasicLSTMCell and injects the weight
@@ -198,13 +198,13 @@ class MaskedBasicLSTMCell(tf.nn.rnn_cell.BasicLSTMCell):
     new_h = multiply(self._activation(new_c), sigmoid(o))
 
     if self._state_is_tuple:
-      new_state = tf.nn.rnn_cell.LSTMStateTuple(new_c, new_h)
+      new_state = tf.compat.v1.nn.rnn_cell.LSTMStateTuple(new_c, new_h)
     else:
       new_state = tf.concat([new_c, new_h], 1)
     return new_h, new_state
 
 
-class MaskedLSTMCell(tf.nn.rnn_cell.LSTMCell):
+class MaskedLSTMCell(tf.compat.v1.nn.rnn_cell.LSTMCell):
   """LSTMCell with pruning.
 
   Overrides the call method of tensorflow LSTMCell and injects the weight masks.
@@ -369,6 +369,6 @@ class MaskedLSTMCell(tf.nn.rnn_cell.LSTMCell):
         # pylint: enable=invalid-unary-operand-type
 
     new_state = (
-        tf.nn.rnn_cell.LSTMStateTuple(c, m)
+        tf.compat.v1.nn.rnn_cell.LSTMStateTuple(c, m)
         if self._state_is_tuple else tf.concat([c, m], 1))
     return m, new_state
