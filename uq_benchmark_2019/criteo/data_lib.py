@@ -72,12 +72,37 @@ class DataConfig(object):
                       fake_data=fake_data)
 
 
-def _get_data_glob(split, fake_data):
+def _get_data_glob(split, fake_data, glob_dir=None):
+  """Helper function to parse either flags or argument for glob_path.
+
+  Args:
+    split (str): One of 'train', 'test', or 'valid'.
+    fake_data (bool): Whether to use the dummy dataset.
+    glob_dir (str): Alternate glob_path that is used instead of the implicitly
+      defined flags. If `None`, then the `criteo_train_glob`, `criteo_test_glob`
+      or the `criteo_valid_glob` flag values are used instead.
+
+  Raises:
+    A ValueError if neither `glob_dir` or any of `criteo_train_glob`,
+    `criteo_test_glob`, or `criteo_valid_glob` flag values are defined.
+
+  Returns:
+    glob_path (str): String containing glob pattern for the specified split.
+  """
   if fake_data:
     return flags.FLAGS.criteo_dummy_path_for_test
-  return {'train': flags.FLAGS.criteo_train_glob,
-          'test': flags.FLAGS.criteo_test_glob,
-          'valid': flags.FLAGS.criteo_valid_glob}[split]
+
+  if glob_dir is None:
+    glob_path = {'train': flags.FLAGS.criteo_train_glob,
+                 'test': flags.FLAGS.criteo_test_glob,
+                 'valid': flags.FLAGS.criteo_valid_glob}[split]
+    if glob_path is None:
+      raise ValueError('One of glob_dir or FLAGS.criteo_split_glob',
+                       'needs to be specified')
+    else:
+      return glob_path
+  else:
+    return glob_dir
 
 
 def feature_name(idx):
@@ -125,10 +150,11 @@ def apply_randomization(features, label, randomize_prob):
   return features, label
 
 
-def build_dataset(config, batch_size, is_training=False, fake_training=False,
-                  repeat=True):
+def build_dataset(config, batch_size, glob_dir=None, is_training=False,
+                  fake_training=False, repeat=True):
   """Builds a tf.data.Dataset."""
-  glob_path = _get_data_glob(config.split, config.fake_data)
+  glob_path = _get_data_glob(config.split, config.fake_data,
+                             glob_dir=glob_dir)
   logging.info('Building dataset from glob_path=%s', glob_path)
   cycle_len = 10 if is_training and not fake_training else 1
   out = (tf.data.Dataset.list_files(glob_path, shuffle=is_training)
