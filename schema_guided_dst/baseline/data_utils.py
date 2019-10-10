@@ -39,7 +39,7 @@ MAX_NUM_CAT_SLOT = 6
 # Maximum allowed number of non-categorical trackable slots for a service.
 MAX_NUM_NONCAT_SLOT = 12
 # Maximum allowed number of values per categorical trackable slot.
-MAX_NUM_VALUE_PER_CAT_SLOT = 10
+MAX_NUM_VALUE_PER_CAT_SLOT = 11
 # Maximum allowed number of intents for a service.
 MAX_NUM_INTENT = 4
 STR_DONTCARE = "dontcare"
@@ -56,17 +56,17 @@ FILE_RANGES = {
     "dstc8_single_domain": {
         "train": range(1, 44),
         "dev": range(1, 8),
-        "test": range(1, 8)
+        "test": range(1, 12)
     },
     "dstc8_multi_domain": {
         "train": range(44, 128),
         "dev": range(8, 21),
-        "test": range(8, 21)
+        "test": range(12, 35)
     },
     "dstc8_all": {
         "train": range(1, 128),
         "dev": range(1, 21),
-        "test": range(1, 21)
+        "test": range(1, 35)
     }
 }
 
