@@ -40,7 +40,7 @@ import typing
 from typing import Any, Dict, List, Optional, Tuple
 import yaml
 
-tfd = tf.contrib.distributions
+tfd = tfp.distributions
 tfb = tfp.bijectors
 
 
