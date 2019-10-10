@@ -33,6 +33,7 @@ env:
     - PROJECT="neutra"
     - PROJECT="norml"
     - PROJECT="probabilistic_vqvae"
+    - PROJECT="property_linking"
     - PROJECT="psycholab"
     - PROJECT="rllim"
     - PROJECT="robust_loss"
