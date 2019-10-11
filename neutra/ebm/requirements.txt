@@ -1,0 +1,6 @@
+tf-nightly-2.0-preview
+tfp-nightly
+scipy>=1.0.0
+absl-py>=0.7.0
+matplotlib
+Pillow
