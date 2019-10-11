@@ -38,6 +38,7 @@ from schema_guided_dst.baseline.bert import modeling
 from schema_guided_dst.baseline.bert import optimization
 from schema_guided_dst.baseline.bert import tokenization
 
+
 flags = tf.flags
 FLAGS = flags.FLAGS
 
@@ -58,7 +59,6 @@ flags.DEFINE_integer(
 
 flags.DEFINE_float("dropout_rate", 0.1,
                    "Dropout rate for BERT representations.")
-
 
 # Hyperparameters and optimization related flags.
 flags.DEFINE_integer("train_batch_size", 32, "Total batch size for training.")
@@ -112,9 +112,8 @@ flags.DEFINE_bool(
     "since it is much faster.")
 
 # Input and output paths and other flags.
-flags.DEFINE_enum(
-    "task_name", None, data_utils.FILE_RANGES.keys(),
-    "The name of the task to train.")
+flags.DEFINE_enum("task_name", None, data_utils.FILE_RANGES.keys(),
+                  "The name of the task to train.")
 
 flags.DEFINE_string(
     "dstc8_data_dir", None,
@@ -153,8 +152,9 @@ flags.DEFINE_bool(
     "overwrite_schema_emb_file", False,
     "Whether to generate a new schema_emb file saving the schemas' embeddings.")
 
-flags.DEFINE_bool("log_data_warnings", False,
-                  "If True, warnings created using data processing are logged.")
+flags.DEFINE_bool(
+    "log_data_warnings", False,
+    "If True, warnings created using data processing are logged.")
 
 
 # Modified from run_classifier.file_based_input_fn_builder
@@ -760,8 +760,8 @@ def main(_):
       log_data_warnings=FLAGS.log_data_warnings)
 
   # Generate the dialogue examples if needed or specified.
-  dial_file_name = "{}_{}_examples.tf_record".format(
-      task_name, FLAGS.dataset_split)
+  dial_file_name = "{}_{}_examples.tf_record".format(task_name,
+                                                     FLAGS.dataset_split)
   dial_file = os.path.join(FLAGS.dialogues_example_dir, dial_file_name)
   if not tf.io.gfile.exists(dial_file) or FLAGS.overwrite_dial_file:
     tf.compat.v1.logging.info("Start generating the dialogue examples.")
@@ -888,8 +888,10 @@ def main(_):
                                        "model.ckpt-%s" % ckpt_num))
 
       # Write predictions to file in DSTC8 format.
-      prediction_dir = os.path.join(FLAGS.output_dir,
-                                    "pred_res_{}".format(int(ckpt_num)))
+      dataset_mark = os.path.basename(FLAGS.dstc8_data_dir)
+      prediction_dir = os.path.join(
+          FLAGS.output_dir, "pred_res_{}_{}_{}_{}".format(
+              int(ckpt_num), FLAGS.dataset_split, task_name, dataset_mark))
       if not tf.io.gfile.exists(prediction_dir):
         tf.io.gfile.makedirs(prediction_dir)
       pred_utils.write_predictions_to_file(predictions, input_json_files,
