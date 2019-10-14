@@ -305,7 +305,7 @@ def get_cnn_feats(cnn, data, training, num_steps=None):
 
 def get_context_steps(step):
   num_steps = CONFIG.DATA.NUM_STEPS
-  stride = CONFIG.DATA.STRIDE
+  stride = CONFIG.DATA.FRAME_STRIDE
   # We don't want to see the future.
   steps = np.arange(step - (num_steps - 1) * stride, step + stride, stride)
   return steps
