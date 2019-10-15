@@ -931,7 +931,8 @@ def get_input_fn(split='dev',
     else:
       # Never want to ignore values at eval time
       ds = ds.padded_batch(batch_size, padded_shapes=shapes)
-    ds = ds.prefetch(tf.contrib.data.AUTOTUNE)  # Buffer a few batches ahead
+    ds = ds.prefetch(
+        tf.data.experimental.AUTOTUNE)  # Buffer a few batches ahead
     if do_embedding:
       iterator = ds.make_initializable_iterator()
       # Must be initialized when the graph is initialized and before the
