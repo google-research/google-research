@@ -316,7 +316,8 @@ class Dstc8DataProcessor(object):
     dst_set = load_dialogues(dialog_paths)
     for dialog in dst_set:
       for turn in dialog["turns"]:
-        example_count += len(turn["frames"])
+        if turn["speaker"] == "USER":
+          example_count += len(turn["frames"])
     return example_count
 
 
