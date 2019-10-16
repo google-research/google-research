@@ -13,15 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utility functions.
-"""
+"""Utility functions."""
 
-# Necessary packages and function call
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import numpy as np
 
 
-def label_corruption(y_train, noise_rate):
-  """Label corruptions on training labels.
+def corrupt_label(y_train, noise_rate):
+  """Corrupts training labels.
 
   Args:
     y_train: training labels
@@ -29,20 +31,16 @@ def label_corruption(y_train, noise_rate):
 
   Returns:
     corrupted_y_train: corrupted training labels
-    orig_idx: not corrupted index
     noise_idx: corrupted index
   """
 
-  # Possible Y
   y_set = list(set(y_train))
 
-  # Set orig_idx, noise_idx
+  # Sets noise_idx
   temp_idx = np.random.permutation(len(y_train))
-
   noise_idx = temp_idx[:int(len(y_train) * noise_rate)]
-  orig_idx = temp_idx[int(len(y_train) * noise_rate):]
 
-  # Corrupt label
+  # Corrupts label
   corrupted_y_train = y_train.copy()
 
   for itt in noise_idx:
@@ -51,4 +49,4 @@ def label_corruption(y_train, noise_rate):
     rand_idx = np.random.randint(len(y_set) - 1)
     corrupted_y_train[itt] = temp_y_set[rand_idx]
 
-  return corrupted_y_train, orig_idx, noise_idx
+  return corrupted_y_train, noise_idx

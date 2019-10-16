@@ -19,6 +19,11 @@ set -x
 virtualenv -p python3 .
 source ./bin/activate
 
+chmod +x data_files
+chmod +x tmp
+
 pip install tensorflow
 pip install -r requirements.txt
-python -m experiment_main
+python -m main_data_valuation
+python -m main_corrupted_sample_discovery
+python -m main_domain_adaptation
