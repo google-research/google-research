@@ -24,18 +24,21 @@ from eim.models import base
 tfd = tfp.distributions
 
 
-class SimpleLARS(object):
+class LARS(object):
   """Learned Accept/Reject Sampling model."""
 
   def __init__(self,
                K,
+               T,
                data_dim,
                accept_fn_layers,
                proposal=None,
                data_mean=None,
                ema_decay=0.99,
-               dtype=tf.float32):
+               dtype=tf.float32,
+               is_eval=False):
     self.k = K
+    self.T = T  # pylint: disable=invalid-name
     self.data_dim = data_dim
     self.ema_decay = ema_decay
     self.dtype = dtype
@@ -49,72 +52,108 @@ class SimpleLARS(object):
         final_activation=tf.math.log_sigmoid,
         name="a")
     if proposal is None:
-      self.proposal = tfd.MultivariateNormalDiag(
-          loc=tf.zeros([data_dim], dtype=dtype),
-          scale_diag=tf.ones([data_dim], dtype=dtype))
+      self.proposal = base.get_independent_normal(data_dim)
     else:
       self.proposal = proposal
+    self.is_eval = is_eval
+    if is_eval:
+      self.Z_estimate = tf.placeholder(tf.float32, shape=[])  # pylint: disable=invalid-name
 
-  def log_prob(self, data):
+    with tf.variable_scope("LARS_Z_ema", reuse=tf.AUTO_REUSE):
+      self.Z_ema = tf.get_variable(  # pylint: disable=invalid-name
+          name="LARS_Z_ema",
+          shape=[],
+          dtype=dtype,
+          initializer=tf.constant_initializer(0.5),
+          trainable=False)
+
+  def log_prob(self, data, log_q_data=None, num_samples=1):
     """Compute log likelihood estimate."""
-    batch_size = tf.shape(data)[0]
     # Compute log a(z), log pi(z), and log q(z)
-    log_a_z_r = tf.reshape(self.accept_fn(data - self.data_mean),
-                           [batch_size])  # [batch_size]
-    log_pi_z_r = self.proposal.log_prob(data)  # [batch_size]
+    log_a_z_r = tf.squeeze(self.accept_fn(data - self.data_mean),
+                           axis=-1)  # [batch_size]
+    # [batch_size]
+    try:
+      # Try giving the proposal lower bound num_samples if it can use it.
+      log_pi_z_r = self.proposal.log_prob(data, num_samples=num_samples)
+    except TypeError:
+      log_pi_z_r = self.proposal.log_prob(data)
 
     tf.summary.histogram("log_energy_data", log_a_z_r)
+    if not self.is_eval:
+      # Sample zs from proposal to estimate Z
+      z_s = self.proposal.sample(self.k)  # [K, data_dim]
+      # Compute log a(z) for zs sampled from proposal
+      log_a_z_s = tf.squeeze(self.accept_fn(z_s - self.data_mean),
+                             axis=-1)  # [K]
+      tf.summary.histogram("log_energy_proposal", log_a_z_s)
 
-    # Sample zs from proposal to estimate Z
-    z_s = self.proposal.sample(self.k)  # [K, data_dim]
-    # Compute log a(z) for zs sampled from proposal
-    log_a_z_s = tf.reshape(self.accept_fn(z_s - self.data_mean),
-                           [self.k])  # [K]
-    # pylint: disable=invalid-name
-    log_ZS = tf.reduce_logsumexp(log_a_z_s)  # []
-    log_Z_curr_avg = log_ZS - tf.log(tf.to_float(self.k))
+      # pylint: disable=invalid-name
+      log_ZS = tf.reduce_logsumexp(log_a_z_s)  # []
+      log_Z_curr_avg = log_ZS - tf.log(tf.to_float(self.k))
 
-    tf.summary.histogram("log_energy_proposal", log_a_z_s)
+      if log_q_data is not None:
+        # This may only be valid when log pi is exact (i.e., not a lower bound).
+        Z_curr_avg = (1. / (self.k + 1.)) * (
+            tf.exp(log_ZS) +
+            tf.exp(log_a_z_r + tf.stop_gradient(log_pi_z_r - log_q_data)))
+      else:
+        Z_curr_avg = tf.exp(log_Z_curr_avg)
 
-    # Set up EMA of Z
-    Z_ema = tf.train.ExponentialMovingAverage(decay=self.ema_decay)
-    log_Z_curr_avg_sg = tf.stop_gradient(log_Z_curr_avg)
-    Z_curr_avg_sg = tf.exp(log_Z_curr_avg_sg)
-    maintain_Z_ema_op = Z_ema.apply([Z_curr_avg_sg])
+      self.Z_smooth = (
+          self.ema_decay * self.Z_ema + (1 - self.ema_decay) * Z_curr_avg)
 
-    # In forward pass, log Z is log of the smoothed ema version of Z
-    # In backward pass it is the current estimate of log Z, log_Z_curr_avg
-    log_Z = log_Z_curr_avg  + tf.stop_gradient(
-        tf.log(Z_ema.average(Z_curr_avg_sg)) - log_Z_curr_avg)
+      # In forward pass, log Z is log of the smoothed ema version of Z
+      # In backward pass it is the current estimate of log Z, log_Z_curr_avg
+      Z = Z_curr_avg + tf.stop_gradient(self.Z_smooth - Z_curr_avg)
+      tf.summary.scalar("Z", tf.reduce_mean(Z))
+    else:
+      Z = self.Z_estimate  # pylint: disable=invalid-name
+
     # pylint: enable=invalid-name
+    alpha = tf.pow(1. - Z, self.T - 1)
+    log_prob = log_pi_z_r + tf.log(tf.exp(log_a_z_r) * (1. - alpha) / Z + alpha)
+    return log_prob
 
-    log_p = log_pi_z_r + log_a_z_r - log_Z[tf.newaxis]  # [batch_size]
+  def post_train_op(self):
+    # Set up EMA of Z (EMA is updated after gradient step).
+    return tf.assign(self.Z_ema, tf.reduce_mean(self.Z_smooth))
 
-    tf.summary.scalar("Z_ema", Z_ema.average(Z_curr_avg_sg))
+  def compute_Z(self, num_samples):  # pylint: disable=invalid-name
+    r"""Returns log(\sum_i a(z_i) / num_samples)."""
+    z_s = self.proposal.sample(num_samples)  # [num_samples, data_dim]
+    # Compute log a(z) for zs sampled from proposal
+    log_a_z_s = tf.squeeze(self.accept_fn(z_s - self.data_mean),
+                           axis=-1)  # [num_samples]
+    log_Z = tf.reduce_logsumexp(log_a_z_s) - tf.log(  # pylint: disable=invalid-name
+        tf.to_float(num_samples))  # []
+    return log_Z
 
-    return log_p, maintain_Z_ema_op
-
-  def sample(self, sample_shape=(1,)):
+  def sample(self, num_samples=1):
     """Sample from the model."""
-    sample_shape = list(sample_shape)
-    def while_body(z, accept):
+
+    def while_body(t, z, accept):
       """Truncated rejection sampling."""
-      new_z = self.proposal.sample(sample_shape)
-      accept_prob = tf.reshape(
-          tf.exp(self.accept_fn(new_z - self.data_mean)), sample_shape)
+      new_z = self.proposal.sample(num_samples)
+      accept_prob = tf.squeeze(tf.exp(self.accept_fn(new_z - self.data_mean)),
+                               axis=-1)
       new_accept = tf.math.less_equal(
-          tf.random_uniform(shape=sample_shape, minval=0., maxval=1.),
+          tf.random_uniform(shape=[num_samples], minval=0., maxval=1.),
           accept_prob)
+      force_accept = tf.math.greater_equal(
+          tf.to_float(t),
+          tf.to_float(self.T) - 1.)
+      new_accept = tf.math.logical_or(new_accept, force_accept)
       accepted = tf.logical_or(accept, new_accept)
       swap = tf.math.logical_and(tf.math.logical_not(accept), new_accept)
       z = tf.where(swap, new_z, z)
-      return z, accepted
+      return t + 1, z, accepted
 
-    def while_cond(_, accept):
+    def while_cond(unused_t, unused_z, accept):
       return tf.reduce_any(tf.logical_not(accept))
 
-    shape = sample_shape + [self.data_dim]
+    shape = [num_samples] + self.data_dim
     z0 = tf.zeros(shape, dtype=self.dtype)
-    accept0 = tf.constant(False, shape=sample_shape)
-    zs, _ = tf.while_loop(while_cond, while_body, loop_vars=(z0, accept0))
+    accept0 = tf.constant(False, shape=[num_samples])
+    _, zs, _ = tf.while_loop(while_cond, while_body, loop_vars=(0, z0, accept0))
     return zs

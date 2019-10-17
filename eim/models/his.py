@@ -56,7 +56,7 @@ class HIS(object):
         self.raw_alphas.append(tf.get_variable(
             name="raw_alpha_%d" % t,
             shape=[],
-            dtype=tf.float32,
+            dtype=dtype,
             initializer=tf.constant_initializer(init_alpha),
             trainable=learn_temps))
       self.log_alphas = [
@@ -66,7 +66,7 @@ class HIS(object):
       init_step_size = np.log(np.exp(init_step_size) - 1.)
       self.raw_step_size = tf.get_variable(
           name="raw_step_size",
-          shape=[data_dim],
+          shape=data_dim,
           dtype=tf.float32,
           initializer=tf.constant_initializer(init_step_size),
           trainable=learn_stepsize)
@@ -79,14 +79,10 @@ class HIS(object):
       ]
 
     if proposal is None:
-      self.proposal = tfd.MultivariateNormalDiag(
-          loc=tf.zeros([data_dim], dtype=dtype),
-          scale_diag=tf.ones([data_dim], dtype=dtype))
+      self.proposal = base.get_independent_normal(data_dim)
     else:
       self.proposal = proposal
-    self.momentum_proposal = tfd.MultivariateNormalDiag(
-        loc=tf.zeros([data_dim], dtype=dtype),
-        scale_diag=tf.ones([data_dim], dtype=dtype))
+    self.momentum_proposal = base.get_independent_normal(data_dim)
 
   def hamiltonian_potential(self, x):
     return tf.squeeze(self.energy_fn(x), axis=-1)
@@ -116,37 +112,31 @@ class HIS(object):
     x, momentum = self._hamiltonian_dynamics(x, -momentum, alphas)
     return x, -momentum
 
-  def log_prob(self, data, num_samples=1):
-    batch_shape = tf.shape(data)[0:-1]
-    reshaped_data = tf.reshape(
-        data, [tf.math.reduce_prod(batch_shape), self.data_dim])
-    log_prob = self._log_prob(reshaped_data, num_samples=num_samples)
-    log_prob = tf.reshape(log_prob, batch_shape)
-    return log_prob
-
-  def _log_prob(self, x_final, num_samples=1):
-    """Compute log probability.
+  def log_prob(self, x_final, num_samples=1):
+    """Compute log probability lower bound on x_final.
 
     Args:
-      x_final: [batch_size, data_dims] tensor.
+      x_final: [batch_size] + data_dim tensor.
       num_samples: Optional number of samples to compute bounds.
     Returns:
       log probability lower bound.
     """
-    q = self.q(x_final)
-    rho_final = q.sample([num_samples])  # [num_samples, batch_size, data_dim]
-    x_final = tf.tile(x_final[tf.newaxis, :, :], [num_samples, 1, 1])
+    tiled_x_final = tf.tile(x_final, [num_samples] + [1] * len(self.data_dim))
+    q = self.q(tiled_x_final)
+    rho_final = q.sample()  # [num_samples * batch_size, data_dim]
 
-    x_0, rho_0 = self._reverse_hamiltonian_dynamics(x_final, rho_final)
+    x_0, rho_0 = self._reverse_hamiltonian_dynamics(tiled_x_final, rho_final)
     elbo = (
         self.proposal.log_prob(x_0) + self.momentum_proposal.log_prob(rho_0) -
         q.log_prob(rho_final))
-    return tf.reduce_logsumexp(elbo, axis=0) - tf.log(tf.to_float(num_samples))
+    iwae = (tf.reduce_logsumexp(tf.reshape(elbo, [num_samples, -1]), axis=0)
+            - tf.log(tf.to_float(num_samples)))
+    return iwae
 
-  def sample(self, sample_shape=(1)):
+  def sample(self, num_samples=1):
     """Draw a sample from the model."""
-    x_0 = self.proposal.sample(sample_shape=sample_shape)
-    rho_0 = self.momentum_proposal.sample(sample_shape=sample_shape)
+    x_0 = self.proposal.sample(num_samples)
+    rho_0 = self.momentum_proposal.sample(num_samples)
     x_final, _ = self._hamiltonian_dynamics(x_0, rho_0)
 
     # Compute summaries

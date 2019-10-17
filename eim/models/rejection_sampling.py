@@ -16,16 +16,17 @@
 """Truncated Rejection Sampling distribution."""
 
 from __future__ import absolute_import
+import functools
 import tensorflow as tf
 import tensorflow_probability as tfp
-
+from eim.models import base
 tfd = tfp.distributions
 
 
-class RejectionSampling(object):
+class AbstractRejectionSampling(base.ProbabilisticModel):
   """Truncated Rejection Sampling distribution."""
 
-  def __init__(self,
+  def __init__(self,  # pylint: disable=invalid-name
                T,
                data_dim,
                logit_accept_fn,
@@ -49,9 +50,7 @@ class RejectionSampling(object):
     self.data_dim = data_dim
     self.logit_accept_fn = logit_accept_fn
     if proposal is None:
-      self.proposal = tfd.MultivariateNormalDiag(
-          loc=tf.zeros(data_dim, dtype=dtype),
-          scale_diag=tf.ones(data_dim, dtype=dtype))
+      self.proposal = base.get_independent_normal(data_dim)
     else:
       self.proposal = proposal
     self.name = name
@@ -68,15 +67,6 @@ class RejectionSampling(object):
 
   def trainable_variables(self):
     return [self.logit_Z] + self.logit_accept_fn.trainable_variables
-
-  def log_prob(self, data, num_samples=1):
-    """Reshape data so that it is [batch_size] + data_dim."""
-    batch_shape = tf.shape(data)[:-len(self.data_dim)]
-    reshaped_data = tf.reshape(data, [tf.math.reduce_prod(batch_shape)] +
-                               self.data_dim)
-    log_prob = self._log_prob(reshaped_data, num_samples=num_samples)
-    log_prob = tf.reshape(log_prob, batch_shape)
-    return log_prob
 
   def _log_prob(self, data, num_samples=1):
     """Assumes data is [batch_size] + data_dim."""
@@ -126,34 +116,29 @@ class RejectionSampling(object):
 
     return elbo
 
-  def sample(self, sample_shape=(1,)):
+  def sample(self, num_samples=1):
     """Sample from the rejection sampling distribution.
 
     For ease of implementation, draw the maximum number of proposal samples.
 
     Args:
-      sample_shape: Shape of samples to draw.
+      num_samples: integer, number of samples to draw.
 
     Returns:
-      samples: Tensor of samples from the distribution, sample_shape + data_dim
+      samples: Tensor of samples from the distribution, [num_samples] + data_dim
     """
-    sample_shape = list(sample_shape)
-    shape = sample_shape + [self.T]
-    proposal_samples = self.proposal.sample(
-        shape)  # sample_shape + [T] + data_dim
+    flat_proposal_samples = self.proposal.sample(num_samples * self.T)
+    proposal_samples = tf.reshape(flat_proposal_samples,
+                                  [num_samples, self.T] + self.data_dim)
+    flat_logit_accept = self.logit_accept_fn(flat_proposal_samples)
+    logit_accept = tf.reshape(flat_logit_accept, [num_samples, self.T])
+    accept_samples = tfd.Bernoulli(logits=logit_accept[:, :-1]).sample()
 
-    # Work in the batched space
-    batched_proposal_samples = tf.reshape(proposal_samples[:, :-1],
-                                          [-1] + self.data_dim)
-    logit_accept = self.logit_accept_fn(batched_proposal_samples)
-    accept_samples = tfd.Bernoulli(logits=logit_accept).sample()
-
-    # Reshape and add accept to last sample to ensure truncation
+    # Add forced accept to last sample to ensure truncation
     accept_samples = tf.concat([
-        tf.reshape(accept_samples, sample_shape + [self.T - 1]),
-        tf.ones(sample_shape + [1], dtype=accept_samples.dtype)
-    ],
-                               axis=-1)
+        accept_samples,
+        tf.ones([num_samples, 1], dtype=accept_samples.dtype)
+    ], axis=-1)
 
     # For each of sample_shape, find the first nonzero accept
     def get_first_nonzero_index(t):
@@ -163,4 +148,30 @@ class RejectionSampling(object):
 
     accept_indices = get_first_nonzero_index(accept_samples)  # sample_shape
     samples = tf.batch_gather(proposal_samples, accept_indices)
-    return tf.squeeze(samples, axis=len(sample_shape))
+    return tf.squeeze(samples, axis=1)  # Squeeze the selected dim
+
+
+class RejectionSampling(AbstractRejectionSampling):
+  """Truncated Rejection Sampling distribution."""
+
+  def __init__(self,  # pylint: disable=invalid-name
+               T,
+               data_dim,
+               energy_hidden_sizes,
+               proposal=None,
+               data_mean=None,
+               dtype=tf.float32,
+               name="rejection_sampling"):
+    if data_mean is None:
+      data_mean = tf.zeros((), dtype=dtype)
+    logit_accept_fn = functools.partial(
+        base.mlp,
+        layer_sizes=energy_hidden_sizes + [1],
+        final_activation=None,
+        name="rejection_sampling/energy_fn_mlp")
+    super(RejectionSampling, self).__init__(
+        T=T,
+        data_dim=data_dim,
+        proposal=proposal,
+        logit_accept_fn=logit_accept_fn,
+        dtype=dtype)

@@ -17,6 +17,7 @@
 from __future__ import absolute_import
 from . import base
 from . import his
+from . import lars
 from . import nis
 from . import rejection_sampling
 from . import vae

@@ -18,6 +18,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import os
+from absl import app
+from absl import flags
 from matplotlib import cm
 import numpy as np
 import tensorflow as tf
@@ -32,56 +34,51 @@ import eim.small_problems_dists as dists
 
 tfd = tfp.distributions
 
-tf.logging.set_verbosity(tf.logging.INFO)
-tf.app.flags.DEFINE_enum("algo", "lars",
-                         ["lars", "nis", "his", "rejection_sampling"],
-                         "The algorithm to run.")
-tf.app.flags.DEFINE_boolean(
-    "lars_allow_eval_target", False,
-    "Whether LARS is allowed to evaluate the target density.")
-tf.app.flags.DEFINE_enum("target", dists.NINE_GAUSSIANS_DIST,
-                         dists.TARGET_DISTS, "Distribution to draw data from.")
-tf.app.flags.DEFINE_float(
+tf.get_logger().setLevel("INFO")
+flags.DEFINE_enum("algo", "lars", ["lars", "nis", "his", "rejection_sampling"],
+                  "The algorithm to run.")
+flags.DEFINE_boolean("lars_allow_eval_target", False,
+                     "Whether LARS is allowed to evaluate the target density.")
+flags.DEFINE_enum("target", dists.NINE_GAUSSIANS_DIST, dists.TARGET_DISTS,
+                  "Distribution to draw data from.")
+flags.DEFINE_float(
     "nine_gaussians_variance", 0.01,
     "Variance for the mixture components in the nine gaussians.")
-tf.app.flags.DEFINE_string(
+flags.DEFINE_string(
     "energy_fn_sizes", "20,20",
     "List of hidden layer sizes for energy function as as comma "
     "separated list.")
-tf.app.flags.DEFINE_integer(
-    "his_t", 5, "Number of steps for hamiltonian importance sampling.")
-tf.app.flags.DEFINE_float("his_stepsize", 1e-2,
-                          "Stepsize for hamiltonian importance sampling.")
-tf.app.flags.DEFINE_float("his_alpha", 0.995,
-                          "Alpha for hamiltonian importance sampling.")
-tf.app.flags.DEFINE_boolean("his_learn_stepsize", False,
-                            "Allow HIS to learn the stepsize")
-tf.app.flags.DEFINE_boolean("his_learn_alpha", False,
-                            "Allow HIS to learn alpha.")
-tf.app.flags.DEFINE_float("learning_rate", 3e-4,
-                          "The learning rate to use for ADAM or SGD.")
-tf.app.flags.DEFINE_integer("batch_size", 128,
-                            "The number of examples per batch.")
-tf.app.flags.DEFINE_integer("density_num_bins", 100,
-                            "Number of points per axis when plotting density.")
-tf.app.flags.DEFINE_integer("density_num_samples", 100000,
-                            "Number of samples to use when plotting density.")
-tf.app.flags.DEFINE_integer("eval_batch_size", 1000,
-                            "The number of examples per eval batch.")
-tf.app.flags.DEFINE_integer("K", 1024,
-                            "The number of samples for NIS and LARS.")
-tf.app.flags.DEFINE_string("logdir", "/tmp/lars",
-                           "Directory for summaries and checkpoints.")
-tf.app.flags.DEFINE_integer("max_steps", int(1e6),
-                            "The number of steps to run training for.")
-tf.app.flags.DEFINE_integer("summarize_every", int(1e3),
-                            "The number of steps between each evaluation.")
-tf.app.flags.DEFINE_integer(
+flags.DEFINE_integer("his_t", 5,
+                     "Number of steps for hamiltonian importance sampling.")
+flags.DEFINE_float("his_stepsize", 1e-2,
+                   "Stepsize for hamiltonian importance sampling.")
+flags.DEFINE_float("his_alpha", 0.995,
+                   "Alpha for hamiltonian importance sampling.")
+flags.DEFINE_boolean("his_learn_stepsize", False,
+                     "Allow HIS to learn the stepsize")
+flags.DEFINE_boolean("his_learn_alpha", False, "Allow HIS to learn alpha.")
+flags.DEFINE_float("learning_rate", 3e-4,
+                   "The learning rate to use for ADAM or SGD.")
+flags.DEFINE_integer("batch_size", 128, "The number of examples per batch.")
+flags.DEFINE_integer("density_num_bins", 100,
+                     "Number of points per axis when plotting density.")
+flags.DEFINE_integer("density_num_samples", 100000,
+                     "Number of samples to use when plotting density.")
+flags.DEFINE_integer("eval_batch_size", 1000,
+                     "The number of examples per eval batch.")
+flags.DEFINE_integer("K", 1024, "The number of samples for NIS and LARS.")
+flags.DEFINE_string("logdir", "/tmp/lars",
+                    "Directory for summaries and checkpoints.")
+flags.DEFINE_integer("max_steps", int(1e6),
+                     "The number of steps to run training for.")
+flags.DEFINE_integer("summarize_every", int(1e3),
+                     "The number of steps between each evaluation.")
+flags.DEFINE_integer(
     "run", 0,
     ("A number to distinguish which run this is. This allows us to run ",
      "multiple trials with the same params."))
 
-FLAGS = tf.app.flags.FLAGS
+FLAGS = flags.FLAGS
 
 
 def exp_name():
@@ -116,7 +113,10 @@ def density_image_summary(log_density, num_points, title):
   X, Y = tf.meshgrid(x, x, indexing="ij")
   XY = tf.stack([X, Y], axis=-1)
 
-  log_z = log_density(XY)
+  # log_density only takes a single batch dimension.
+  log_z = tf.reshape(
+      log_density(tf.reshape(XY, [num_points * num_points, -1])),
+      [num_points, num_points, -1])
   log_Z = reduce_logavgexp(log_z)
   log_z_centered = log_z - log_Z
   z = tf.exp(log_z_centered)
@@ -168,26 +168,27 @@ def make_lars_graph(target_dist,  # pylint: disable=invalid-name
                     mlp_layers,
                     dtype=tf.float32):
   """Construct the training graph for LARS."""
-  model = lars.SimpleLARS(
-      K=K, data_dim=2, accept_fn_layers=mlp_layers, dtype=dtype)
+  model = lars.LARS(
+      K=K, T=K, data_dim=[2], accept_fn_layers=mlp_layers, dtype=dtype)
 
   train_data = target_dist.sample(batch_size)
-  log_p, ema_op = model.log_prob(train_data)
+  log_p = model.log_prob(train_data)
   test_data = target_dist.sample(eval_batch_size)
-  eval_log_p, eval_ema_op = model.log_prob(test_data)
+  eval_log_p = model.log_prob(test_data)
 
   global_step = tf.train.get_or_create_global_step()
   opt = tf.train.AdamOptimizer(lr)
   grads = opt.compute_gradients(-tf.reduce_mean(log_p))
-  with tf.control_dependencies([ema_op, eval_ema_op]):
-    apply_grads_op = opt.apply_gradients(grads, global_step=global_step)
+  apply_grads_op = opt.apply_gradients(grads, global_step=global_step)
+  with tf.control_dependencies([apply_grads_op]):
+    train_op = model.post_train_op()
 
   density_image_summary(
       lambda x: tf.squeeze(model.accept_fn(x)) + model.proposal.log_prob(x),
       FLAGS.density_num_bins, "energy/lars")
   tf.summary.scalar("elbo", tf.reduce_mean(log_p))
   tf.summary.scalar("eval_elbo", tf.reduce_mean(eval_log_p))
-  return -tf.reduce_mean(log_p), apply_grads_op, global_step
+  return -tf.reduce_mean(log_p), train_op, global_step
 
 
 def make_train_graph(target_dist,
@@ -260,7 +261,7 @@ def main(unused_argv):
       if FLAGS.algo == "nis":
         print("Running NIS")
         model = nis.NIS(
-            K=FLAGS.K, data_dim=2, energy_hidden_sizes=energy_fn_layers)
+            K=FLAGS.K, data_dim=[2], energy_hidden_sizes=energy_fn_layers)
         density_image_summary(
             lambda x:  # pylint: disable=g-long-lambda
             (tf.squeeze(model.energy_fn(x)) + model.proposal.log_prob(x)),
@@ -281,7 +282,7 @@ def main(unused_argv):
         print("Running HIS")
         model = his.FullyConnectedHIS(
             T=FLAGS.his_t,
-            data_dim=2,
+            data_dim=[2],
             energy_hidden_sizes=energy_fn_layers,
             q_hidden_sizes=energy_fn_layers,
             init_step_size=FLAGS.his_stepsize,
@@ -318,4 +319,4 @@ def main(unused_argv):
 
 
 if __name__ == "__main__":
-  tf.app.run(main)
+  app.run(main)

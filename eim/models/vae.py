@@ -27,8 +27,11 @@ tfkl = tf.keras.layers
 tfpl = tfp.layers
 tfd = tfp.distributions
 
+deconv = functools.partial(tf.keras.layers.Conv2DTranspose, padding="SAME")
+conv = functools.partial(tf.keras.layers.Conv2D, padding="SAME")
 
-class VAE(object):
+
+class VAE(base.ProbabilisticModel):
   """Variational autoencoder with continuous latent space."""
 
   def __init__(self,
@@ -36,7 +39,7 @@ class VAE(object):
                data_dim,
                decoder,
                q,
-               prior=None,
+               proposal=None,
                data_mean=None,
                kl_weight=1.,
                dtype=tf.float32):
@@ -51,7 +54,7 @@ class VAE(object):
       q: A callable that accepts a batch of data samples and returns a
         distribution over the latent space of the VAE. The distribution should
         support sample() and log_prob().
-      prior: A distribution over the latent space of the VAE. The object must
+      proposal: A distribution over the latent space of the VAE. The object must
         support sample() and log_prob(). If not provided, defaults to Gaussian.
       data_mean: Mean of the data used to center the input.
       kl_weight: Weighting on the KL regularizer.
@@ -67,50 +70,43 @@ class VAE(object):
     self.kl_weight = kl_weight
 
     self.dtype = dtype
-    if prior is None:
-      self.prior = tfd.MultivariateNormalDiag(
-          loc=tf.zeros([latent_dim], dtype=dtype),
-          scale_diag=tf.ones([latent_dim], dtype=dtype))
+    if proposal is None:
+      self.proposal = base.get_independent_normal([latent_dim])
     else:
-      self.prior = prior
-
-  def log_prob(self, data, num_samples=1):
-    batch_shape = tf.shape(data)[0:-1]
-    reshaped_data = tf.reshape(
-        data, [tf.math.reduce_prod(batch_shape), self.data_dim])
-    log_prob = self._log_prob(reshaped_data, num_samples=num_samples)
-    log_prob = tf.reshape(log_prob, batch_shape)
-    return log_prob
+      self.proposal = proposal
 
   def _log_prob(self, data, num_samples=1):
     """Compute a lower bound on the log likelihood."""
     mean_centered_data = data - self.data_mean
+    # Tile by num_samples on the batch dimension.
+    tiled_mean_centered_data = tf.tile(mean_centered_data,
+                                       [num_samples] + [1] * len(self.data_dim))
+    tiled_data = tf.tile(data,
+                         [num_samples] + [1] * len(self.data_dim))
 
     # Construct approximate posterior and sample z.
-    q_z = self.q(mean_centered_data)
-    z = q_z.sample(sample_shape=[num_samples
-                                ])  # [num_samples, batch_size, data_dim]
-    log_q_z = q_z.log_prob(z)  # [num_samples, batch_size]
+    q_z = self.q(tiled_mean_centered_data)
+    z = q_z.sample()  # [num_samples * batch_size, data_dim]
+    log_q_z = q_z.log_prob(z)  # [num_samples * batch_size]
 
-    # compute the prior prob of z, #[num_samples, batch_size]
-    #    # Try giving the proposal lower bound extra compute if it can use it.
-    #    try:
-    #      log_p_z = self.prior.log_prob(z, num_samples=num_samples)
-    #    except TypeError:
-    log_p_z = self.prior.log_prob(z)
+    # compute the proposal prob of z, #[num_samples * batch_size]
+    try:
+      log_p_z = self.proposal.log_prob(z, log_q_data=log_q_z)
+    except TypeError:
+      log_p_z = self.proposal.log_prob(z)
 
     # Compute the model logprob of the data
     p_x_given_z = self.decoder(z)
-    log_p_x_given_z = p_x_given_z.log_prob(data)  # [num_samples, batch_size]
+    # [num_samples * batch_size]
+    log_p_x_given_z = p_x_given_z.log_prob(tiled_data)
 
-    elbo = (
-        tf.reduce_logsumexp(
-            log_p_x_given_z + self.kl_weight * (log_p_z - log_q_z), axis=0) -
-        tf.log(tf.to_float(num_samples)))
-    return elbo
+    elbo = log_p_x_given_z + self.kl_weight * (log_p_z - log_q_z)
+    iwae = (tf.reduce_logsumexp(tf.reshape(elbo, [num_samples, -1]), axis=0)
+            - tf.log(tf.to_float(num_samples)))
+    return iwae
 
-  def sample(self, sample_shape=(1)):
-    z = self.prior.sample(sample_shape)
+  def sample(self, num_samples=1):
+    z = self.proposal.sample(num_samples)
     p_x_given_z = self.decoder(z)
     return tf.cast(p_x_given_z.sample(), self.dtype)
 
@@ -123,7 +119,7 @@ class GaussianVAE(VAE):
                data_dim,
                decoder_hidden_sizes,
                q_hidden_sizes,
-               prior=None,
+               proposal=None,
                data_mean=None,
                decoder_nn_scale=True,
                scale_min=1e-5,
@@ -142,7 +138,7 @@ class GaussianVAE(VAE):
         name="%s/decoder" % name)
     q = functools.partial(
         base.conditional_normal,
-        data_dim=latent_dim,
+        data_dim=[latent_dim],
         hidden_sizes=q_hidden_sizes,
         scale_min=scale_min,
         name="%s/q" % name)
@@ -153,118 +149,9 @@ class GaussianVAE(VAE):
         decoder=decoder_fn,
         q=q,
         data_mean=data_mean,
-        prior=prior,
+        proposal=proposal,
         kl_weight=kl_weight,
         dtype=dtype)
-
-
-class ConvGaussianVAE(VAE):
-  """ConvVAE with Gaussian generative distribution."""
-
-  def __init__(self,
-               latent_dim,
-               data_dim,
-               base_depth,
-               activation=tf.nn.leaky_relu,
-               prior=None,
-               data_mean=None,
-               scale_min=1e-5,
-               dtype=tf.float32,
-               kl_weight=1.,
-               scale_init=1.,
-               name="gaussian_vae"):
-    """Creates the ConvGaussianVAE.
-
-    Args:
-      latent_dim: The size of the latent variable of the VAE.
-      data_dim: The size of the input data.
-      base_depth: Base depth for conv layers.
-      activation: Activation function in hidden layers.
-      prior: A distribution over the latent space of the VAE. The object must
-        support sample() and log_prob(). If not provided, defaults to Gaussian.
-      data_mean: Mean of the data used to center the input.
-      scale_min: Min on the scale of the Gaussian.
-      dtype: Type of the tensors.
-      kl_weight: Weighting on the KL regularizer.
-      scale_init: Initial value for the scale of the Gaussian.
-      name: Name to use for ops.
-    """
-    if data_mean is None:
-      data_mean = 0.
-    deconv = functools.partial(
-        tf.keras.layers.Conv2DTranspose, padding="SAME", activation=activation)
-    conv = functools.partial(
-        tf.keras.layers.Conv2D, padding="SAME", activation=activation)
-    with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-      raw_scale_init = np.log(np.exp(scale_init) - 1 + scale_min)
-      raw_scale = tf.get_variable(
-          name="raw_sigma",
-          shape=data_dim,
-          dtype=tf.float32,
-          initializer=tf.constant_initializer(raw_scale_init),
-          trainable=True)
-    decoder_scale = tf.math.maximum(scale_min, tf.math.softplus(raw_scale))
-    tf.summary.histogram("decoder_scale", decoder_scale)
-
-    decoder_fn = tf.keras.Sequential([
-        tfkl.Lambda(lambda x: x[:, None, None, :]),
-        deconv(4 * base_depth, 5, 2),
-        deconv(4 * base_depth, 5, 2),
-        deconv(2 * base_depth, 5, 2),
-        deconv(2 * base_depth, 5, 2),
-        deconv(base_depth, 5, 2),
-        deconv(base_depth, 5, 2),
-        conv(data_dim[-1], 5, activation=None),
-        tfpl.DistributionLambda(lambda t: tfd.Independent(  # pylint: disable=g-long-lambda
-            tfd.Normal(loc=t, scale=decoder_scale[None]))),
-    ])
-    encoding_layer = tfpl.IndependentNormal
-    encoder_fn = tf.keras.Sequential([
-        conv(base_depth, 5, 2),
-        conv(base_depth, 5, 2),
-        conv(2 * base_depth, 5, 2),
-        conv(2 * base_depth, 5, 2),
-        conv(4 * base_depth, 5, 2),
-        conv(4 * latent_dim, 5, 2),
-        tfkl.Flatten(),
-        tfkl.Dense(encoding_layer.params_size(latent_dim), activation=None),
-        encoding_layer(latent_dim),
-    ])
-
-    super(ConvGaussianVAE, self).__init__(
-        latent_dim=latent_dim,
-        data_dim=data_dim,
-        decoder=decoder_fn,
-        q=encoder_fn,
-        data_mean=data_mean,
-        prior=prior,
-        kl_weight=kl_weight,
-        dtype=dtype)
-
-  def log_prob(self, data, num_samples=1):
-    return self._log_prob(data, num_samples=num_samples)
-
-  def _log_prob(self, data, num_samples=1):
-    mean_centered_data = data - self.data_mean
-
-    # Construct approximate posterior and sample z.
-    q_z = self.q(mean_centered_data)
-    z = q_z.sample()
-    log_q_z = q_z.log_prob(z)  # [num_samples, batch_size]
-
-    # compute the prior prob of z, #[num_samples, batch_size]
-    # Try giving the proposal lower bound extra compute if it can use it.
-    #    try:
-    #      log_p_z = self.prior.log_prob(z, num_samples=num_samples)
-    #    except TypeError:
-    log_p_z = self.prior.log_prob(z)
-
-    # Compute the model logprob of the data
-    p_x_given_z = self.decoder(z)
-    log_p_x_given_z = p_x_given_z.log_prob(data)  # [num_samples, batch_size]
-
-    elbo = log_p_x_given_z + self.kl_weight * (log_p_z - log_q_z)
-    return elbo
 
 
 class BernoulliVAE(VAE):
@@ -275,7 +162,7 @@ class BernoulliVAE(VAE):
                data_dim,
                decoder_hidden_sizes,
                q_hidden_sizes,
-               prior=None,
+               proposal=None,
                data_mean=None,
                scale_min=1e-5,
                kl_weight=1.,
@@ -295,7 +182,7 @@ class BernoulliVAE(VAE):
         name="%s/decoder" % name)
     q = functools.partial(
         base.conditional_normal,
-        data_dim=latent_dim,
+        data_dim=[latent_dim],
         hidden_sizes=q_hidden_sizes,
         scale_min=scale_min,
         name="%s/q" % name)
@@ -306,62 +193,122 @@ class BernoulliVAE(VAE):
         decoder=decoder_fn,
         q=q,
         data_mean=data_mean,
-        prior=prior,
+        proposal=proposal,
         kl_weight=kl_weight,
-        dtype=dtype,
-        name=name)
+        dtype=dtype)
 
 
-class ConvBernoulliVAE(VAE):
-  """VAE with Bernoulli generative distribution."""
+class HVAE(object):
+  """2 stochastic layer VAE."""
 
-  def __init__(self,  # pylint: disable=super-init-not-called
+  def __init__(self,
                latent_dim,
                data_dim,
-               prior=None,
+               proposal=None,
                data_mean=None,
-               scale_min=1e-5,
                kl_weight=1.,
                dtype=tf.float32):
-    """Create ConvBernoulliVAE."""
+    """Create HVAE."""
+    self.latent_dim = latent_dim
     self.data_dim = data_dim
     if data_mean is not None:
       self.data_mean = data_mean
     else:
       self.data_mean = 0.
-
     self.kl_weight = kl_weight
-
     self.dtype = dtype
-    if prior is None:
-      self.prior = tfd.MultivariateNormalDiag(
-          loc=tf.zeros([latent_dim], dtype=dtype),
-          scale_diag=tf.ones([latent_dim], dtype=dtype))
+    if proposal is None:
+      self.proposal = base.get_independent_normal([latent_dim])
     else:
-      self.prior = prior
+      self.proposal = proposal
+    self._build()
 
-    deconv = functools.partial(tf.keras.layers.Conv2DTranspose, padding="SAME")
-    conv = functools.partial(tf.keras.layers.Conv2D, padding="SAME")
+  def _build(self):
+    pass
 
+  def log_prob(self, data, num_samples=1):
+    """Computes log probability lower bound."""
+    tiled_data = tf.tile(data[None],
+                         [num_samples, 1] + [1] * len(self.data_dim))
+    tiled_data_flat = tf.reshape(tiled_data, [-1] + self.data_dim)
+
+    # Construct approximate posterior and sample z.
+    q_z2_given_x = self.q_z2_given_x(data)
+    z2 = q_z2_given_x.sample(sample_shape=[num_samples])  # [S, B, ...]
+    z2_flat = tf.reshape(z2, [-1, self.latent_dim])  # [S*B, ...]
+    q_z1_given_x_z2 = self.q_z1_given_x_z2(tiled_data_flat, z2_flat)
+    z1 = q_z1_given_x_z2.sample()
+
+    log_q = self.kl_weight * (
+        tf.reshape(q_z2_given_x.log_prob(z2), [-1]) +
+        q_z1_given_x_z2.log_prob(z1))
+    log_p = (
+        self.kl_weight *
+        (self.proposal.log_prob(z2_flat) + self.p_z1_z2(z2_flat).log_prob(z1)) +
+        self.p_x_given_z1_z2(z1, z2_flat).log_prob(tiled_data_flat))
+
+    elbo = tf.reduce_logsumexp(tf.reshape(log_p - log_q, [num_samples, -1]),
+                               axis=0) - tf.log(tf.to_float(num_samples))
+    return elbo
+
+  def sample(self, num_samples=1):
+    z2 = self.proposal.sample(num_samples)
+    z1 = self.p_z1_z2(z2).sample()
+    p_x = self.p_x_given_z1_z2(z1, z2)
+    return tf.cast(p_x.sample(), self.dtype)
+
+
+class ConvBernoulliVAE(HVAE):
+  """VAE with Bernoulli generative distribution."""
+
+  def __init__(self,
+               latent_dim,
+               data_dim,
+               proposal=None,
+               data_mean=None,
+               scale_min=1e-5,
+               kl_weight=1.,
+               dtype=tf.float32):
+    """Create ConvBernoulliVAE."""
+    self.scale_min = scale_min
+    super(ConvBernoulliVAE, self).__init__(latent_dim,
+                                           data_dim,
+                                           proposal,
+                                           data_mean,
+                                           kl_weight,
+                                           dtype)
+
+  def _get_observation_layer(self):
+    bias_init = -tf.log(1. /
+                        tf.clip_by_value(self.data_mean, 0.0001, 0.9999) - 1)
+    return [tfkl.Lambda(lambda t: t + bias_init),
+            tfkl.Flatten(),
+            tfpl.IndependentBernoulli(self.data_dim)]
+
+  def _build(self):
+    """Creates the distributions for the VAE."""
     def normal_layer_fn(t):
       mu, raw_scale = tf.split(t, 2, axis=-1)
       return tfd.Independent(
           tfd.Normal(
               loc=mu,
-              scale=tf.math.maximum(scale_min, tf.math.softplus(raw_scale))))
+              scale=tf.math.maximum(self.scale_min,
+                                    tf.math.softplus(raw_scale))))
 
     # q(z2|x)
     self.q_z2_given_x = tf.keras.Sequential([
+        tfkl.Lambda(lambda t: t - self.data_mean),
         conv(32, 4, 2, activation="relu"),
         conv(32, 4, 2, activation="relu"),
-        conv(32, 4, 3, activation="relu"),
+        conv(32, 4, 2, activation="relu"),
         tfkl.Flatten(),
-        tfkl.Dense(latent_dim * 2, activation=None),
+        tfkl.Dense(self.latent_dim * 2, activation=None),
         tfpl.DistributionLambda(normal_layer_fn),
     ])
 
     # q(z1|x,z2)
     q_z1_x_fn = tf.keras.Sequential([
+        tfkl.Lambda(lambda t: t - self.data_mean),
         conv(32, 4, 2, activation="relu"),
         conv(32, 4, 2, activation="relu"),
         conv(32, 4, 2, activation="relu"),
@@ -372,7 +319,7 @@ class ConvBernoulliVAE(VAE):
 
     q_z1_fn = tf.keras.Sequential([
         tfkl.Dense(300, activation="tanh"),
-        tfkl.Dense(latent_dim * 2, activation=None),
+        tfkl.Dense(self.latent_dim * 2, activation=None),
         tfpl.DistributionLambda(normal_layer_fn),
     ])
 
@@ -380,15 +327,14 @@ class ConvBernoulliVAE(VAE):
       x_out = q_z1_x_fn(x)
       z2_out = q_z1_z2_fn(z2)
       concat = tfkl.concatenate([x_out, z2_out])
-      return tf.split(q_z1_fn(concat), 2, axis=1)
-
+      return q_z1_fn(concat)
     self.q_z1_given_x_z2 = q_z1_given_x_z2
 
     # p(z_1|z_2)
-    self.p_z1_z2_fn = tf.keras.Sequential([
+    self.p_z1_z2 = tf.keras.Sequential([
         tfkl.Dense(300, activation="tanh"),
         tfkl.Dense(300, activation="tanh"),
-        tfkl.Dense(latent_dim * 2, activation=None),
+        tfkl.Dense(self.latent_dim * 2, activation=None),
         tfpl.DistributionLambda(normal_layer_fn),
     ])
 
@@ -396,17 +342,17 @@ class ConvBernoulliVAE(VAE):
     p_x_z1 = tfkl.Dense(300, activation="tanh")
     p_x_z2 = tfkl.Dense(300, activation="tanh")
 
-    # In the LARS paper they say that RELU follows all conv layers, but I left
-    # it off here.
     p_x_z1_z2_fn = tf.keras.Sequential([
         tfkl.Dense(512, activation="tanh"),
         tfkl.Reshape((4, 4, 32)),
         deconv(32, 4, 2, activation="relu"),
+        # Remove the extra row/column [7 x 7 x 32] after
+        tfkl.Lambda(lambda t: t[:, :-1, :-1, :]),
         deconv(32, 4, 2, activation="relu"),
-        deconv(1, 4, 2, activation=None),
-        tfkl.Lambda(lambda t: t[:, 2:30, 2:30, :]),
-        tfpl.IndependentBernoulli(self.data_dim),
-    ])
+        # In the LARS paper they say that RELU follows all conv layers, but I
+        # left it off here.
+        deconv(1, 4, 2, activation=None),] +
+                                       self._get_observation_layer())
 
     def p_x_given_z1_z2(z1, z2):
       z1_out = p_x_z1(z1)
@@ -419,31 +365,46 @@ class ConvBernoulliVAE(VAE):
     self.p_x_given_z1_z2 = p_x_given_z1_z2
 
 
-#    # testing
-#    # testing
-#    x = tf.random_uniform([1,28,28,1])
-#    y_mu, y_sigma = tf.split(q_z2_given_x(x), 2, axis=1)
-#    x = tf.random_uniform([1,28,28,1])
-#    z2 = tf.random_uniform([1,latent_dim])
-#    y_mu, y_sigma = q_z1_given_x_z2(x,z2)
-#    # testing
-#    z1 = tf.random_uniform([1,latent_dim])
-#    z2 = tf.random_uniform([1,latent_dim])
-#    y_mu, y_sigma = p_x_given_z1_z2(z1,z2)
+class ConvGaussianVAE(ConvBernoulliVAE):
+  """VAE with Gaussian generative distribution."""
 
-  def log_prob(self, data, num_samples=1):
-    mean_centered_data = data - self.data_mean
+  def __init__(self,
+               latent_dim,
+               data_dim,
+               proposal=None,
+               data_mean=None,
+               scale_min=1e-5,
+               scale_init=1.,
+               kl_weight=1.,
+               dtype=tf.float32,
+               name="ConvGaussianVAE"):
+    """Create ConvGaussianVAE."""
+    self.scale_init = scale_init
+    self.name = name
+    super(ConvGaussianVAE, self).__init__(latent_dim,
+                                          data_dim,
+                                          proposal,
+                                          data_mean,
+                                          scale_min,
+                                          kl_weight,
+                                          dtype)
 
-    # Construct approximate posterior and sample z.
-    q_z2_given_x = self.q_z2_given_x(mean_centered_data)
-    z2 = q_z2_given_x.sample()
-    q_z1_given_x_z2 = self.q_z1_given_x_z2(mean_centered_data, z2)
-    z1 = q_z1_given_x_z2.sample()
+  def _get_observation_layer(self):
+    return [tfpl.DistributionLambda(lambda t: tfd.Independent(  # pylint: disable=g-long-lambda
+        tfd.Normal(loc=t, scale=self.decoder_scale[None])))]
 
-    log_q = q_z2_given_x.log_prob(z2) + q_z1_given_x_z2.log_prob(z1)
-    log_p = (
-        self.prior.log_prob(z2) + self.p_z1_z2_fn.log_prob(z1) +
-        self.p_x_given_z1_z2.log_prob(data))
+  def _build(self):
+    with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
+      raw_scale_init = np.log(np.exp(self.scale_init) - 1 + self.scale_min)
+      raw_scale = tf.get_variable(
+          name="raw_sigma",
+          shape=self.data_dim,
+          dtype=tf.float32,
+          initializer=tf.constant_initializer(raw_scale_init),
+          trainable=True)
+    self.decoder_scale = tf.math.maximum(self.scale_min,
+                                         tf.math.softplus(raw_scale))
 
-    elbo = log_p - log_q
-    return elbo
+    super(ConvGaussianVAE, self)._build()
+
+
