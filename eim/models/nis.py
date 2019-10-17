@@ -21,28 +21,32 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from eim.models import base
 
+tfk = tf.keras
+tfkl = tf.keras.layers
+tfpl = tfp.layers
 tfd = tfp.distributions
 
+deconv = functools.partial(tf.keras.layers.Conv2DTranspose, padding="SAME")
+conv = functools.partial(tf.keras.layers.Conv2D, padding="SAME")
 
-class NIS(object):
+
+class AbstractNIS(base.ProbabilisticModel):
   """Self-normalized Importance Sampling distribution."""
 
-  def __init__(self,
+  def __init__(self,  # pylint: disable=invalid-name
                K,
                data_dim,
-               energy_hidden_sizes,
+               energy_fn,
                proposal=None,
                data_mean=None,
                reparameterize_proposal_samples=True,
-               dtype=tf.float32,
-               name="nis"):
+               dtype=tf.float32):
     """Creates a NIS model.
 
     Args:
       K: The number of proposal samples to take.
       data_dim: The dimension of the data.
-      energy_hidden_sizes: The sizes of the hidden layers for the MLP that
-        parameterizes the energy function.
+      energy_fn: Energy function.
       proposal: A distribution over the data space of this model. Must support
         sample() and log_prob() although log_prob only needs to return a lower
         bound on the true log probability. If not supplied, then defaults to
@@ -51,50 +55,36 @@ class NIS(object):
       reparameterize_proposal_samples: Whether to allow gradients to pass
         through the proposal samples.
       dtype: Type of the tensors.
-      name: Name to use for ops.
     """
-    self.data_dim = data_dim
+    self.K = K   # pylint: disable=invalid-name
+    self.data_dim = data_dim  # self.data_dim is always a list
     self.reparameterize_proposal_samples = reparameterize_proposal_samples
     if data_mean is not None:
       self.data_mean = data_mean
     else:
       self.data_mean = tf.zeros((), dtype=dtype)
-    self.K = K   # pylint: disable=invalid-name
-    self._energy_fn = functools.partial(
-        base.mlp,
-        layer_sizes=energy_hidden_sizes + [1],
-        final_activation=None,
-        name="%s/energy_fn_mlp" % name)
-    self.energy_fn = lambda x: self._energy_fn(x - self.data_mean)
-
+    self.energy_fn = energy_fn
     if proposal is None:
-      self.proposal = tfd.MultivariateNormalDiag(
-          loc=tf.zeros([data_dim], dtype=dtype),
-          scale_diag=tf.ones([data_dim], dtype=dtype))
+      self.proposal = base.get_independent_normal(self.data_dim)
     else:
       self.proposal = proposal
 
-  def log_prob(self, data, num_samples=1):
-    batch_shape = tf.shape(data)[0:-1]
-    reshaped_data = tf.reshape(
-        data, [tf.math.reduce_prod(batch_shape), self.data_dim])
-    log_prob = self._log_prob(reshaped_data, num_samples=num_samples)
-    log_prob = tf.reshape(log_prob, batch_shape)
-    return log_prob
-
   def _log_prob(self, data, num_samples=1):
     """Compute a lower bound on the log likelihood."""
+    # Due to memory issues, we need to use num_samples=1 here
+    num_samples, proposal_num_samples = 1, num_samples
     batch_size = tf.shape(data)[0]
     # Sample from the proposal and compute the weighs of the "unseen" samples.
     # We share these across the batch dimension.
     # [num_samples, K, data_size]
-    proposal_samples = self.proposal.sample([num_samples, self.K - 1])
+    proposal_samples = self.proposal.sample(num_samples * (self.K - 1))
     if not self.reparameterize_proposal_samples:
       proposal_samples = tf.stop_gradient(proposal_samples)
 
     # [num_samples, K]
     log_energy_proposal = tf.reshape(
-        self.energy_fn(proposal_samples), [num_samples, self.K - 1])
+        self.energy_fn(tf.reshape(proposal_samples, [-1] + self.data_dim)),
+        [num_samples, self.K - 1])
     tf.summary.histogram("log_energy_proposal", log_energy_proposal)
     tf.summary.scalar("min_log_energy_proposal",
                       tf.reduce_min(log_energy_proposal))
@@ -131,21 +121,106 @@ class NIS(object):
 
     try:
       # Try giving the proposal lower bound num_samples if it can use it.
-      proposal_lp = self.proposal.log_prob(data, num_samples=num_samples)
+      proposal_lp = self.proposal.log_prob(data,
+                                           num_samples=proposal_num_samples)
     except TypeError:
       proposal_lp = self.proposal.log_prob(data)
     lower_bound = proposal_lp + log_energy_data - Z_hat
     return lower_bound
 
-  def sample(self, sample_shape=(1)):
+  def sample(self, num_samples=1):
     """Sample from the model."""
-    shape = sample_shape + [self.K]
-    # [sample_shape, K, data_dim]
-    proposal_samples = self.proposal.sample(shape)
-    log_energy = tf.reshape(self.energy_fn(proposal_samples),
-                            shape)  # [sample_shape, K]
-    indexes = tfd.Categorical(logits=log_energy).sample()  # [sample_shape]
-    # [sample_shape, data_dim]
+    flat_proposal_samples = self.proposal.sample(num_samples * self.K)
+    proposal_samples = tf.reshape(flat_proposal_samples,
+                                  [num_samples, self.K] + self.data_dim)
+    log_energy = tf.reshape(
+        tf.squeeze(self.energy_fn(flat_proposal_samples), axis=-1),
+        [num_samples, self.K])
+    indexes = tfd.Categorical(logits=log_energy).sample()  # [num_samples]
     samples = tf.batch_gather(proposal_samples,
                               tf.expand_dims(indexes, axis=-1))
-    return tf.squeeze(samples)
+    return tf.squeeze(samples, axis=1)  # Squeeze the selected dim
+
+
+class NIS(AbstractNIS):
+  """Self-normalized Importance Sampling distribution."""
+
+  def __init__(self,
+               K,
+               data_dim,
+               energy_hidden_sizes,
+               proposal=None,
+               data_mean=None,
+               reparameterize_proposal_samples=True,
+               dtype=tf.float32,
+               name="nis"):
+    """Creates a NIS model.
+
+    Args:
+      K: The number of proposal samples to take.
+      data_dim: The dimension of the data.
+      energy_hidden_sizes: The sizes of the hidden layers for the MLP that
+        parameterizes the energy function.
+      proposal: A distribution over the data space of this model. Must support
+        sample() and log_prob() although log_prob only needs to return a lower
+        bound on the true log probability. If not supplied, then defaults to
+        Gaussian.
+      data_mean: Mean of the data used to center the input.
+      reparameterize_proposal_samples: Whether to allow gradients to pass
+        through the proposal samples.
+      dtype: Type of the tensors.
+      name: Name to use for ops.
+    """
+    if data_mean is None:
+      data_mean = tf.zeros((), dtype=dtype)
+    energy_fn_helper = functools.partial(
+        base.mlp,
+        layer_sizes=energy_hidden_sizes + [1],
+        final_activation=None,
+        name="%s/energy_fn_mlp" % name)
+    def energy_fn(x):
+#      import ipdb
+#      ipdb.set_trace()
+      return energy_fn_helper(x - data_mean)
+    super(NIS, self).__init__(K, data_dim, energy_fn, proposal, data_mean,
+                              reparameterize_proposal_samples, dtype)
+
+
+class ConvNIS(AbstractNIS):
+  """Self-normalized Importance Sampling distribution with convs."""
+
+  def __init__(self,
+               K,
+               data_dim,
+               proposal=None,
+               data_mean=None,
+               reparameterize_proposal_samples=True,
+               dtype=tf.float32,
+               name="nis"):
+    """Creates a NIS model.
+
+    Args:
+      K: The number of proposal samples to take.
+      data_dim: The dimension of the data.
+      proposal: A distribution over the data space of this model. Must support
+        sample() and log_prob() although log_prob only needs to return a lower
+        bound on the true log probability. If not supplied, then defaults to
+        Gaussian.
+      data_mean: Mean of the data used to center the input.
+      reparameterize_proposal_samples: Whether to allow gradients to pass
+        through the proposal samples.
+      dtype: Type of the tensors.
+      name: Name to use for ops.
+    """
+    if data_mean is None:
+      data_mean = tf.zeros((), dtype=dtype)
+    energy_fn = tf.keras.Sequential([
+        tfkl.Lambda(lambda t: t - data_mean),
+        conv(32, 4, 2, activation="relu"),
+        conv(32, 4, 2, activation="relu"),
+        conv(32, 4, 2, activation="relu"),
+        tfkl.Flatten(),
+        tfkl.Dense(1, activation=None),
+    ])
+    super(ConvNIS, self).__init__(K, data_dim, energy_fn, proposal, data_mean,
+                                  reparameterize_proposal_samples, dtype)

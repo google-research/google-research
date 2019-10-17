@@ -105,8 +105,9 @@ def mlp(inputs,
         hidden_activation=tf.math.tanh,
         final_activation=tf.math.log_sigmoid,
         name=None):
-  """Creates a simple multi-layer perceptron."""
+  """Creates a simple fully connected multi-layer perceptron."""
   with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+    inputs = tf.layers.flatten(inputs)
     for i, s in enumerate(layer_sizes[:-1]):
       inputs = tf.layers.dense(
           inputs,
@@ -134,10 +135,11 @@ def conditional_normal(inputs,
                        nn_scale=True,
                        name=None):
   """Create a conditional Normal distribution."""
+  flat_data_dim = np.prod(data_dim)
   if nn_scale:
     raw_params = mlp(
         inputs,
-        hidden_sizes + [2 * data_dim],
+        hidden_sizes + [2 * flat_data_dim],
         hidden_activation=hidden_activation,
         final_activation=None,
         name=name)
@@ -145,7 +147,7 @@ def conditional_normal(inputs,
   else:
     loc = mlp(
         inputs,
-        hidden_sizes + [data_dim],
+        hidden_sizes + [flat_data_dim],
         hidden_activation=hidden_activation,
         final_activation=None,
         name=name + "_loc")
@@ -153,23 +155,27 @@ def conditional_normal(inputs,
       raw_scale_init = np.log(np.exp(scale_init) - 1 + scale_min)
       raw_scale = tf.get_variable(
           name="raw_sigma",
-          shape=[data_dim],
+          shape=[flat_data_dim],
           dtype=tf.float32,
           initializer=tf.constant_initializer(raw_scale_init),
           trainable=True)
   scale = tf.math.maximum(scale_min, tf.math.softplus(raw_scale))
-  with tf.name_scope(name):
-    tf.summary.histogram("scale", scale, family="scales")
-    tf.summary.scalar("min_scale", tf.reduce_min(scale), family="scales")
+  # Reshape back to the proper data_dim
+  loc = tf.reshape(loc, [-1] + data_dim)
+  scale = tf.reshape(scale, [-1] + data_dim)
+  # with tf.name_scope(name):
+  #   tf.summary.histogram("scale", scale, family="scales")
+  #   tf.summary.scalar("min_scale", tf.reduce_min(scale), family="scales")
   if truncate:
     if bias_init is not None:
       loc = loc + bias_init
     loc = tf.math.sigmoid(loc)
     return tfd.Independent(
         tfd.TruncatedNormal(loc=loc, scale=scale, low=0., high=1.),
-        reinterpreted_batch_ndims=1)
+        reinterpreted_batch_ndims=len(data_dim))
   else:
-    return tfd.MultivariateNormalDiag(loc=loc, scale_diag=scale)
+    return tfd.Independent(tfd.Normal(loc=loc, scale=scale),
+                           reinterpreted_batch_ndims=len(data_dim))
 
 
 def conditional_bernoulli(inputs,
@@ -182,12 +188,15 @@ def conditional_bernoulli(inputs,
                           temperature=None,
                           name=None):
   """Create a conditional Bernoulli distribution."""
+  flat_data_dim = np.prod(data_dim)
   bern_logits = mlp(
       inputs,
-      hidden_sizes + [data_dim],
+      hidden_sizes + [flat_data_dim],
       hidden_activation=hidden_activation,
       final_activation=None,
       name=name)
+  bern_logits = tf.reshape(bern_logits, [-1] + data_dim)
+
   if bias_init is not None:
     bern_logits = bern_logits - tf.log(
         1. / tf.clip_by_value(bias_init, 0.0001, 0.9999) - 1)
@@ -197,7 +206,7 @@ def conditional_bernoulli(inputs,
     base_dist = GSTBernoulli(temperature, logits=bern_logits, dtype=dtype)
   else:
     base_dist = tfd.Bernoulli(logits=bern_logits, dtype=dtype)
-  return tfd.Independent(base_dist, reinterpreted_batch_ndims=1)
+  return tfd.Independent(base_dist)
 
 
 class SquashedDistribution(object):
@@ -211,14 +220,47 @@ class SquashedDistribution(object):
 
   def log_prob(self, data, num_samples=1):
     unsquashed_data = (self.squash.inverse(data) - self.unsquashed_data_mean)
-    log_prob = (
-        self.distribution.log_prob(unsquashed_data, num_samples=num_samples) +
-        self.squash.inverse_log_det_jacobian(
-            data, event_ndims=tf.rank(data) - 1))
+    log_prob = self.distribution.log_prob(unsquashed_data,
+                                          num_samples=num_samples)
+    log_prob = (log_prob + self.squash.inverse_log_det_jacobian(
+        data, event_ndims=tf.rank(data) - 1))
+
     return log_prob
 
-  def sample(self, sample_shape=(1)):
-    samples = self.distribution.sample(sample_shape)
+  def sample(self, num_samples=1):
+    samples = self.distribution.sample(num_samples)
     samples += self.unsquashed_data_mean
     samples = self.squash.forward(samples)
     return samples
+
+
+class ProbabilisticModel(object):
+  """Abstract class for probablistic models to inherit."""
+
+  def log_prob(self, data, num_samples=1):
+    """Reshape data so that it is [batch_size] + data_dim."""
+    batch_shape = tf.shape(data)[:-len(self.data_dim)]
+    reshaped_data = tf.reshape(data, [tf.math.reduce_prod(batch_shape)] +
+                               self.data_dim)
+    log_prob = self._log_prob(reshaped_data, num_samples=num_samples)
+    log_prob = tf.reshape(log_prob, batch_shape)
+    return log_prob
+
+  def _log_prob(self, data, num_samples=1):
+    pass
+
+
+def get_independent_normal(data_dim):
+  """Returns an independent normal with event size the size of data_dim.
+
+  Args:
+    data_dim: List of data dimensions.
+
+  Returns:
+    Independent normal distribution.
+  """
+  return tfd.Independent(
+      tfd.Normal(
+          loc=tf.zeros(data_dim, dtype=tf.float32),
+          scale=tf.ones(data_dim, dtype=tf.float32)),
+      reinterpreted_batch_ndims=len(data_dim))

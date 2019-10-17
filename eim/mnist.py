@@ -17,20 +17,24 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import functools
 import os
 import time
 from absl import app
 from absl import flags
+import numpy as np
+import scipy
+import scipy.special
 from six.moves import range
 from six.moves import zip
 import tensorflow as tf
 import tensorflow_probability as tfp
 
 
+
 import eim.datasets as datasets
 from eim.models import base
 from eim.models import his
+from eim.models import lars
 from eim.models import nis
 from eim.models import rejection_sampling
 from eim.models import vae
@@ -39,17 +43,21 @@ tfd = tfp.distributions
 
 flags.DEFINE_enum("mode", "train", ["train", "eval"], "Mode to run.")
 flags.DEFINE_enum("dataset", "raw_mnist", [
-    "raw_mnist", "jittered_mnist", "dynamic_mnist", "static_mnist",
-    "jittered_celeba", "fashion_mnist", "flat_fashion_mnist",
-    "jittered_flat_fashion_mnist", "jittered_flat_celeba"
+    "raw_mnist",
+    "jittered_mnist",
+    "dynamic_mnist",
+    "static_mnist",
+    "jittered_celeba",
+    "fashion_mnist",
+    "jittered_fashion_mnist",
 ], "Dataset to use.")
 flags.DEFINE_enum("proposal", "bernoulli_vae", [
     "bernoulli_vae", "gaussian_vae", "gaussian", "nis", "his",
-    "rejection_sampling"
+    "rejection_sampling", "lars", "conv_bernoulli_vae", "conv_gaussian_vae"
 ], "Proposal type to use.")
 flags.DEFINE_enum("model", "bernoulli_vae", [
     "bernoulli_vae", "gaussian_vae", "nis", "his", "hisvae",
-    "conv_gaussian_vae", "conv_bernoulli_vae"
+    "conv_gaussian_vae", "conv_bernoulli_vae", "lars", "conv_nis", "identity",
 ], "Model type to use.")
 flags.DEFINE_string(
     "decoder_hidden_sizes", "300,300",
@@ -60,10 +68,10 @@ flags.DEFINE_string(
     "energy_hidden_sizes", "100,100",
     "Comma-delimited list denoting the hidden sizes of the energy function.")
 flags.DEFINE_boolean("reparameterize_proposal", True,
-                     "If true, reparameterize the samples of the prior.")
+                     "If true, reparameterize the samples of the proposal.")
 flags.DEFINE_boolean(
     "squash", False,
-    "If true, squash the output of the normal prior to be between 0 and 1.")
+    "If true, squash the output of the normal proposal to be between 0 and 1.")
 flags.DEFINE_float(
     "gst_temperature", 0.7,
     "Default temperature for the Gumbel straight-through relaxation.")
@@ -75,6 +83,13 @@ flags.DEFINE_boolean("learn_his_temps", True,
                      "If true, the annealing schedule of HIS is learnable.")
 flags.DEFINE_boolean("learn_his_stepsize", True,
                      "If true, the step size of HIS is learnable.")
+flags.DEFINE_float("lars_T", 100,
+                   "Number of rejection sampling steps for LARS.")
+flags.DEFINE_integer("lars_Z_num_eval_samples", 10**10,
+                     "Number of samples to evaluate Z at test time.")
+flags.DEFINE_integer("lars_Z_batch_size", 10**5,
+                     "Number of samples per batch to evaluate Z at test time.")
+
 flags.DEFINE_float("his_init_alpha", 0.9995, "Initial alpha for HIS.")
 flags.DEFINE_float("his_init_stepsize", 0.1, "Initial stepsize for HIS.")
 flags.DEFINE_integer(
@@ -83,7 +98,7 @@ flags.DEFINE_integer(
 flags.DEFINE_integer("latent_dim", 50,
                      "Dimension of the latent space of the VAE.")
 flags.DEFINE_integer("base_depth", 32, "Base depth for convs.")
-flags.DEFINE_integer("K", 128, "Number of samples for NIS model.")
+flags.DEFINE_integer("K", 128, "Number of samples for NIS and LARS models.")
 flags.DEFINE_string(
     "num_iwae_samples", "1",
     "Number of samples used for IWAE bound during eval."
@@ -160,12 +175,8 @@ def make_log_hooks(global_step, elbo):
 
 
 def sample_summary(model, data_dim):
-  if data_dim == 784:
-    data_dim = [28, 28, 1]
-  elif data_dim == 12288:
-    data_dim = [64, 64, 3]
-  ims = tf.reshape(
-      model.sample(sample_shape=[FLAGS.num_summary_ims]),
+  ims = tf.reshape(  # This reshape should be unnecessary.
+      model.sample(FLAGS.num_summary_ims),
       [FLAGS.num_summary_ims] + data_dim)
   tf.summary.image(
       "samples",
@@ -196,13 +207,13 @@ def make_model(proposal_type, model_type, data_dim, mean, global_step):
   energy_hidden_sizes = [
       int(x.strip()) for x in FLAGS.energy_hidden_sizes.split(",")
   ]
-  if model_type in ["nis", "his"]:
+  if model_type in ["nis", "his", "lars", "conv_nis", "identity"]:
     proposal_data_dim = data_dim
   elif model_type in [
       "bernoulli_vae", "gaussian_vae", "hisvae", "conv_gaussian_vae",
       "conv_bernoulli_vae"
   ]:
-    proposal_data_dim = FLAGS.latent_dim
+    proposal_data_dim = [FLAGS.latent_dim]
 
   if proposal_type == "bernoulli_vae":
     proposal = vae.BernoulliVAE(
@@ -216,11 +227,18 @@ def make_model(proposal_type, model_type, data_dim, mean, global_step):
         reparameterize_sample=FLAGS.reparameterize_proposal,
         temperature=FLAGS.gst_temperature,
         dtype=tf.float32)
+  if proposal_type == "conv_bernoulli_vae":
+    proposal = vae.ConvBernoulliVAE(
+        latent_dim=FLAGS.latent_dim,
+        data_dim=data_dim,
+        data_mean=mean,
+        scale_min=FLAGS.scale_min,
+        kl_weight=kl_weight,
+        dtype=tf.float32)
   elif proposal_type == "gaussian_vae":
     proposal = vae.GaussianVAE(
         latent_dim=FLAGS.latent_dim,
         data_dim=proposal_data_dim,
-        # data_mean=mean,
         decoder_hidden_sizes=decoder_hidden_sizes,
         decoder_nn_scale=FLAGS.vae_decoder_nn_scale,
         q_hidden_sizes=q_hidden_sizes,
@@ -234,20 +252,13 @@ def make_model(proposal_type, model_type, data_dim, mean, global_step):
         energy_hidden_sizes=energy_hidden_sizes,
         dtype=tf.float32)
   elif proposal_type == "rejection_sampling":
-    logit_accept_fn = functools.partial(
-        base.mlp,
-        layer_sizes=energy_hidden_sizes + [1],
-        final_activation=None,
-        name="rejection_sampling/energy_fn_mlp")
     proposal = rejection_sampling.RejectionSampling(
         T=FLAGS.K,
-        data_dim=[proposal_data_dim],
-        logit_accept_fn=logit_accept_fn,
+        data_dim=proposal_data_dim,
+        energy_hidden_sizes=energy_hidden_sizes,
         dtype=tf.float32)
   elif proposal_type == "gaussian":
-    proposal = tfd.MultivariateNormalDiag(
-        loc=tf.zeros([proposal_data_dim], dtype=tf.float32),
-        scale_diag=tf.ones([proposal_data_dim], dtype=tf.float32))
+    proposal = base.get_independent_normal(proposal_data_dim)
   elif proposal_type == "his":
     proposal = his.FullyConnectedHIS(
         T=FLAGS.his_T,
@@ -259,6 +270,17 @@ def make_model(proposal_type, model_type, data_dim, mean, global_step):
         init_alpha=FLAGS.his_init_alpha,
         init_step_size=FLAGS.his_init_stepsize,
         dtype=tf.float32)
+  elif proposal_type == "lars":
+    proposal = lars.LARS(
+        K=FLAGS.K,
+        T=FLAGS.lars_T,
+        data_dim=proposal_data_dim,
+        accept_fn_layers=energy_hidden_sizes,
+        proposal=None,
+        data_mean=None,
+        ema_decay=0.99,
+        is_eval=FLAGS.mode == "eval",
+        dtype=tf.float32)
 
   if model_type == "bernoulli_vae":
     model = vae.BernoulliVAE(
@@ -268,7 +290,7 @@ def make_model(proposal_type, model_type, data_dim, mean, global_step):
         decoder_hidden_sizes=decoder_hidden_sizes,
         q_hidden_sizes=q_hidden_sizes,
         scale_min=FLAGS.scale_min,
-        prior=proposal,
+        proposal=proposal,
         kl_weight=kl_weight,
         reparameterize_sample=False,
         dtype=tf.float32)
@@ -281,7 +303,7 @@ def make_model(proposal_type, model_type, data_dim, mean, global_step):
         decoder_nn_scale=FLAGS.vae_decoder_nn_scale,
         q_hidden_sizes=q_hidden_sizes,
         scale_min=FLAGS.scale_min,
-        prior=proposal,
+        proposal=proposal,
         kl_weight=kl_weight,
         dtype=tf.float32)
   elif model_type == "conv_gaussian_vae":
@@ -289,9 +311,8 @@ def make_model(proposal_type, model_type, data_dim, mean, global_step):
         latent_dim=FLAGS.latent_dim,
         data_dim=data_dim,
         data_mean=None if FLAGS.squash else mean,
-        base_depth=FLAGS.base_depth,
         scale_min=FLAGS.scale_min,
-        prior=proposal,
+        proposal=proposal,
         kl_weight=kl_weight,
         dtype=tf.float32)
   elif model_type == "conv_bernoulli_vae":
@@ -300,7 +321,7 @@ def make_model(proposal_type, model_type, data_dim, mean, global_step):
         data_dim=data_dim,
         data_mean=None if FLAGS.squash else mean,
         scale_min=FLAGS.scale_min,
-        prior=proposal,
+        proposal=proposal,
         kl_weight=kl_weight,
         dtype=tf.float32)
   elif model_type == "nis":
@@ -309,6 +330,14 @@ def make_model(proposal_type, model_type, data_dim, mean, global_step):
         data_dim=data_dim,
         data_mean=None if FLAGS.squash else mean,
         energy_hidden_sizes=energy_hidden_sizes,
+        proposal=proposal,
+        reparameterize_proposal_samples=FLAGS.reparameterize_proposal,
+        dtype=tf.float32)
+  elif model_type == "conv_nis":
+    model = nis.ConvNIS(
+        K=FLAGS.K,
+        data_dim=data_dim,
+        data_mean=None if FLAGS.squash else mean,
         proposal=proposal,
         reparameterize_proposal_samples=FLAGS.reparameterize_proposal,
         dtype=tf.float32)
@@ -325,7 +354,19 @@ def make_model(proposal_type, model_type, data_dim, mean, global_step):
         init_alpha=FLAGS.his_init_alpha,
         init_step_size=FLAGS.his_init_stepsize,
         dtype=tf.float32)
-
+  elif model_type == "lars":
+    model = lars.LARS(
+        K=FLAGS.K,
+        T=FLAGS.lars_T,
+        data_dim=data_dim,
+        accept_fn_layers=energy_hidden_sizes,
+        proposal=proposal,
+        data_mean=None if FLAGS.squash else mean,
+        ema_decay=0.99,
+        is_eval=FLAGS.mode == "eval",
+        dtype=tf.float32)
+  elif model_type == "identity":
+    model = proposal
 
 #  elif model_type == "hisvae":
 #    model = his.HISVAE(
@@ -364,8 +405,6 @@ def run_train():
         repeat=True,
         shuffle=True)
     data_dim = data_batch.get_shape().as_list()[1:]
-    if len(data_dim) == 1:
-      data_dim = data_dim[0]
     model = make_model(FLAGS.proposal, FLAGS.model, data_dim, mean, global_step)
     elbo = model.log_prob(data_batch)
     sample_summary(model, data_dim)
@@ -381,14 +420,16 @@ def run_train():
     tf.summary.scalar("learning_rate", lr)
     opt = tf.train.AdamOptimizer(learning_rate=lr)
     grads = opt.compute_gradients(-elbo_avg)
-    train_op = opt.apply_gradients(grads, global_step=global_step)
-
+    opt_op = opt.apply_gradients(grads, global_step=global_step)
+    # Some models require updates after the training step
+    if hasattr(model, "post_train_op"):
+      with tf.control_dependencies([opt_op]):
+        train_op = model.post_train_op()
+    else:
+      train_op = opt_op
     log_hooks = make_log_hooks(global_step, elbo_avg)
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
     with tf.train.MonitoredTrainingSession(
         master="",
-        config=config,
         is_chief=True,
         hooks=log_hooks,
         checkpoint_dir=os.path.join(FLAGS.logdir, exp_name()),
@@ -400,13 +441,21 @@ def run_train():
         _, cur_step = sess.run([train_op, global_step])
 
 
-def average_elbo_over_dataset(bound, batch_size, sess):
+def average_elbo_over_dataset(bound,  # pylint: disable=invalid-name
+                              batch_size,
+                              sess,
+                              Z_estimate=None,
+                              Z_estimate_ph=None):
   """Computes average ELBO over the dataset."""
   total_ll = 0.0
   total_n_elems = 0.0
   while True:
     try:
-      outs = sess.run([bound, batch_size])
+      if Z_estimate is not None:
+        outs = sess.run([bound, batch_size],
+                        feed_dict={Z_estimate_ph: Z_estimate})
+      else:
+        outs = sess.run([bound, batch_size])
     except tf.errors.OutOfRangeError:
       break
     total_ll += outs[0]
@@ -449,6 +498,41 @@ def wait_for_checkpoint(saver, sess, logdir):
     time.sleep(30)
 
 
+# pylint: disable=invalid-name
+def make_lars_Z_ops(model):
+  """Compute opts that estimate Z for eval."""
+  assert FLAGS.lars_Z_num_eval_samples % FLAGS.lars_Z_batch_size == 0
+  if FLAGS.proposal == "lars":
+    Z_batch_op = model.proposal.compute_Z(FLAGS.lars_Z_batch_size)
+    Z_ph = model.proposal.Z_estimate
+  elif FLAGS.model == "lars":
+    if FLAGS.squash:
+      Z_batch_op = model.distribution.compute_Z(FLAGS.lars_Z_batch_size)
+      Z_ph = model.distribution.Z_estimate
+    else:
+      Z_batch_op = model.compute_Z(FLAGS.lars_Z_batch_size)
+      Z_ph = model.Z_estimate
+  return Z_batch_op, Z_ph
+
+
+def estimate_Z_lars(Z_batch_op, sess):
+  """Batched estimate of Z for eval for LARS."""
+  num_batches = int(FLAGS.lars_Z_num_eval_samples / FLAGS.lars_Z_batch_size)
+  tf.logging.info("Evaluating Z with %d samples" %
+                  FLAGS.lars_Z_num_eval_samples)
+  log_Zs = np.empty([num_batches], dtype=np.float64)
+  for i in range(num_batches):
+    log_Zs[i] = sess.run(Z_batch_op)
+    tf.logging.info("Batch %d/%d complete" % (i + 1, num_batches))
+
+  log_Zs -= np.log(num_batches)
+  log_Z_estimate = scipy.special.logsumexp(log_Zs)
+  Z_estimate = np.exp(log_Z_estimate)
+  tf.logging.info("Z estimate: %0.4f" % Z_estimate)
+  return Z_estimate
+# pylint: enable=invalid-name
+
+
 def run_eval():
   """Runs the eval loop."""
   print_flags()
@@ -483,6 +567,8 @@ def run_eval():
     batch_sizes = []
     elbos = []
     model = None
+    lars_Z_op = None  # pylint: disable=invalid-name
+    lars_Z_ph = None  # pylint: disable=invalid-name
     for split, num_samples in zip(splits, num_iwae_samples):
       data_batch, mean, itr = datasets.get_dataset(
           FLAGS.dataset,
@@ -495,12 +581,12 @@ def run_eval():
       batch_sizes.append(tf.shape(data_batch)[0])
       if model is None:
         data_dim = data_batch.get_shape().as_list()[1:]
-        if len(data_dim) == 1:
-          data_dim = data_dim[0]
         model = make_model(FLAGS.proposal, FLAGS.model, data_dim, mean,
                            global_step)
       elbos.append(
           tf.reduce_sum(model.log_prob(data_batch, num_samples=num_samples)))
+      if FLAGS.model == "lars" or FLAGS.proposal == "lars":
+        lars_Z_op, lars_Z_ph = make_lars_Z_ops(model)  # pylint: disable=invalid-name
 
     saver = tf.train.Saver()
     prev_evaluated_step = -1
@@ -516,9 +602,19 @@ def run_eval():
                           step)
           time.sleep(30)
           continue
+
+        Z_estimate = (estimate_Z_lars(lars_Z_op, sess)  # pylint: disable=invalid-name
+                      if FLAGS.model == "lars" or FLAGS.proposal == "lars"
+                      else None)
+
         for i in range(len(splits)):
           sess.run(itrs[i].initializer)
-          avg_elbo = average_elbo_over_dataset(elbos[i], batch_sizes[i], sess)
+          avg_elbo = average_elbo_over_dataset(
+              elbos[i],
+              batch_sizes[i],
+              sess,
+              Z_estimate=Z_estimate,
+              Z_estimate_ph=lars_Z_ph)
           value = tf.Summary.Value(
               tag="%s_%s" % (splits[i], bound_names[i]), simple_value=avg_elbo)
           summary = tf.Summary(value=[value])
