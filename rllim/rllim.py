@@ -13,245 +13,355 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Reinforcement Learning based Locally Interpretable Models (RL-LIM).
-"""
+"""Reinforcement Learning based Locally Interpretable Modeling (RL-LIM)."""
 
-# Necessary functions and packages call
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-
-from sklearn.linear_model import Ridge
-
 import tensorflow as tf
+import tqdm
 
-from tqdm import tqdm
 
+class Rllim(object):
+  """Reinforcement Learning based Locally Interpretable Modeling (RL-LIM) class.
 
-def rllim(x_train, y_train, x_valid, y_valid, x_test, parameters, hyperparam):
-  """RL-LIM Architecture.
-
-  Args:
-    x_train: training feature
-    y_train: training labels
-    x_valid: validation features
-    y_valid: validation labels
-    x_test: testing features
-    parameters: network parameters such as hidden_dim, iterations,
-      activation_fn, layer_number
-    hyperparam: hyperparameter lambda
-
-  Returns:
-    final_data_value: Estimated values of the samples
+    Attributes:
+      x_train: training feature
+      y_train: training labels
+      x_probe: probe features
+      y_probe: probe labels
+      parameters: network parameters such as hidden_dim, iterations,
+                  activation_fn, num_layers
+      interp_model: interpretable model (object)
+      baseline_model: interpretable baseline model (object)
+      checkpoint_file_name: file name for saving and loading trained model
+      hidden_dim: hidden state dimensions
+      outer_iterations: number of RL iterations
+      act_fn: activation function
+      num_layers: number of layers
+      batch_size: number of samples in each batch for training interpretable
+                  model
+      batch_size_inner: number of samples in each batch for RL training
+      hyper_lambda: main hyper-parameter of RL-LIM (lambda)
   """
-  # Reset the graph
-  tf.reset_default_graph()
 
-  # Network parameters
-  hidden_dim = parameters['hidden_dim']
-  outer_iterations = parameters['iterations']
-  act_fn = tf.nn.tanh
-  layer_number = parameters['layer_number']
-  batch_size = parameters['batch_size']
-  batch_size_small = parameters['batch_size_small']
+  def __init__(self, x_train, y_train, x_probe, y_probe, parameters,
+               interp_model, baseline_model, checkpoint_file_name):
+    """Initiallizes RL-LIM."""
 
-  # Basic parameters
-  data_dim = len(x_train[0, :])
+    # Resets the graph
+    tf.reset_default_graph()
 
-  # Training inputs
-  x_input = tf.placeholder(tf.float32, [None, data_dim], name='x_input')
+    # Initializes train and probe sets
+    self.x_train = x_train
+    self.y_train = y_train
+    self.x_probe = x_probe
+    self.y_probe = y_probe
 
-  # Target input
-  xt_input = tf.placeholder(tf.float32, [None, data_dim], name='xt_input')
+    # Checkpoint file name
+    self.checkpoint_file_name = checkpoint_file_name
 
-  # Selection vector
-  s_input = tf.placeholder(tf.float32, [None, batch_size_small], name='s_input')
+    # Network parameters
+    self.hidden_dim = parameters['hidden_dim']
+    self.outer_iterations = parameters['iterations']
+    self.act_fn = tf.nn.tanh
+    self.num_layers = parameters['num_layers']
+    self.batch_size = parameters['batch_size']
+    self.batch_size_inner = parameters['batch_size_inner']
+    self.hyper_lambda = parameters['lambda']
 
-  # Rewards (Reinforcement signal)
-  reward_input = tf.placeholder(tf.float32, [batch_size_small, 1],
-                                name='reward_input')
+    # Basic parameters
+    self.data_dim = len(x_train[0, :])
 
-  # Data value evaluator
-  def data_value_evaluator(x, xt):
-    """Returns data value estimations.
+    # Placeholders
+    # Training inputs
+    self.x_input = tf.placeholder(tf.float32, [None, self.data_dim])
+
+    # Target input
+    self.xt_input = tf.placeholder(tf.float32, [None, self.data_dim])
+
+    # Selection vector
+    self.s_input = tf.placeholder(tf.float32, [None, self.batch_size_inner])
+
+    # Rewards (Reinforcement signal)
+    self.reward_input = tf.placeholder(tf.float32, [self.batch_size_inner, 1])
+
+    # Interpretable models
+    self.baseline_model = baseline_model
+    self.interp_model = interp_model
+
+  def inst_weight_evaluator(self, x, xt):
+    """Returns instance-wise weight estimations.
 
     Args:
-      x: input features
-      xt: target prediction
+      x: training features
+      xt: target features
 
     Returns:
-      dve: data value estimations
+      inst_weight: instance-wise weights
     """
     with tf.variable_scope('data_value_estimator', reuse=tf.AUTO_REUSE):
 
-      xt_ext = tf.tile(tf.reshape(xt, [1, data_dim]), [tf.size(x[:, 0]), 1])
+      # Reshapes xt to have the same dimension with x
+      xt_ext = tf.tile(tf.reshape(xt, [1, self.data_dim]),
+                       [tf.size(x[:, 0]), 1])
+      # Defines input
       inputs = tf.concat((x * xt_ext, x-xt_ext, x, xt_ext), axis=1)
 
       # Stacks multi-layered perceptron
       inter_layer = tf.contrib.layers.fully_connected(
-          inputs, hidden_dim, activation_fn=act_fn)
-      for _ in range(layer_number-2):
+          inputs, self.hidden_dim, activation_fn=self.act_fn)
+      for _ in range(self.num_layers-2):
         inter_layer = tf.contrib.layers.fully_connected(
-            inter_layer, hidden_dim, activation_fn=act_fn)
+            inter_layer, self.hidden_dim, activation_fn=self.act_fn)
 
-      dve = tf.contrib.layers.fully_connected(
+      inst_weight = tf.contrib.layers.fully_connected(
           inter_layer, 1, activation_fn=tf.nn.sigmoid)
 
-    return dve
+    return inst_weight
 
-  # Generates selected probabilities
-  est_data_value = data_value_evaluator(x_input, xt_input)
+  def rllim_train(self):
+    """Training instance-wise weight estimator."""
 
-  est_data_value_set = [data_value_evaluator(x_input, xt_input[i, :]) \
-                        for i in range(batch_size_small)]
+    # Generates selected probabilities
+    est_data_value = self.inst_weight_evaluator(self.x_input, self.xt_input)
 
-  # Loss for the REINFORCE algorithm
-  # 1. Without lambda penalty
-  for ktt in range(batch_size_small):
-    prob = tf.reduce_mean(s_input[:, ktt] * \
-                          tf.log(est_data_value_set[ktt] + 1e-8) + \
-                        (1-s_input[:, ktt]) * \
-                          tf.log(1 - est_data_value_set[ktt] + 1e-8))
-    if ktt == 0:
-      dve_loss_curr = (-reward_input[ktt] * prob)
-    else:
-      dve_loss_curr = dve_loss_curr + (-reward_input[ktt] * prob)
+    # Generates a set of selected probabilities
+    est_data_value_set = \
+    [self.inst_weight_evaluator(self.x_input, self.xt_input[i, :]) \
+     for i in range(self.batch_size_inner)]
 
-  dve_loss = dve_loss_curr / batch_size_small
+    # Loss for the REINFORCE algorithm
+    epsilon = 1e-8  # add to log to avoid overflow
+    # 1. Without lambda penalty
+    for ktt in range(self.batch_size_inner):
+      prob = tf.reduce_mean(self.s_input[:, ktt] * \
+                            tf.log(est_data_value_set[ktt] + epsilon) + \
+                          (1-self.s_input[:, ktt]) * \
+                            tf.log(1 - est_data_value_set[ktt] + epsilon))
+      if ktt == 0:
+        dve_loss_curr = (-self.reward_input[ktt] * prob)
+      else:
+        dve_loss_curr = dve_loss_curr + (-self.reward_input[ktt] * prob)
 
-  # 2. With lambda penalty
-  for ktt in range(batch_size_small):
-    prob_hat = tf.reduce_mean(s_input[:, ktt] * \
-                              tf.log(est_data_value_set[ktt] + 1e-8) + \
-                        (1-s_input[:, ktt]) * \
-                              tf.log(1 - est_data_value_set[ktt] + 1e-8))
-    if ktt == 0:
-      dve_loss_curr_hat = (-reward_input[ktt] * prob_hat) - \
-          hyperparam * tf.reduce_mean(est_data_value_set[ktt]) * prob_hat + \
-          + 1e3 * tf.maximum(0.01 - tf.reduce_mean(est_data_value_set[ktt]), 0)
-    else:
-      dve_loss_curr_hat = dve_loss_curr_hat + (-reward_input[ktt] * prob_hat) \
-          - hyperparam * tf.reduce_mean(est_data_value_set[ktt]) * prob_hat + \
-          + 1e3 * tf.maximum(0.01 - tf.reduce_mean(est_data_value_set[ktt]), 0)
+    dve_loss = dve_loss_curr / self.batch_size_inner
 
-  dve_loss_hat = dve_loss_curr_hat / batch_size_small
+    # 2. With lambda penalty
+    eta = 1e3  # multiplier to the regularizer
+    thresh = 0.01  # threshold for the minimum selection
 
-  # Gets variables
-  dve_vars = [v for v in tf.trainable_variables() \
-              if v.name.startswith('data_value_estimator')]
+    for ktt in range(self.batch_size_inner):
+      prob_hat = tf.reduce_mean(self.s_input[:, ktt] * \
+                                tf.log(est_data_value_set[ktt] + epsilon) + \
+                          (1-self.s_input[:, ktt]) * \
+                                tf.log(1 - est_data_value_set[ktt] + epsilon))
+      if ktt == 0:
+        dve_loss_curr_hat = (-self.reward_input[ktt] * prob_hat) - \
+        self.hyper_lambda * tf.reduce_mean(est_data_value_set[ktt]) * \
+        prob_hat + \
+        eta * tf.maximum(thresh - tf.reduce_mean(est_data_value_set[ktt]), 0)
+      else:
+        dve_loss_curr_hat = dve_loss_curr_hat + \
+        (-self.reward_input[ktt] * prob_hat) - \
+        self.hyper_lambda * tf.reduce_mean(est_data_value_set[ktt]) \
+        * prob_hat + \
+        eta * tf.maximum(thresh - tf.reduce_mean(est_data_value_set[ktt]), 0)
 
-  # Optimization step
-  dve_solver = tf.train.AdamOptimizer(0.0001).minimize(
-      dve_loss, var_list=dve_vars)
+    dve_loss_hat = dve_loss_curr_hat / self.batch_size_inner
 
-  dve_solver_hat = tf.train.AdamOptimizer(0.0001).minimize(
-      dve_loss_hat, var_list=dve_vars)
+    # Variables
+    dve_vars = [v for v in tf.trainable_variables() \
+                if v.name.startswith('data_value_estimator')]
 
-  # Directly trains on the training set
-  ori_model = Ridge(alpha=1, fit_intercept=True)
-  ori_model.fit(x_train, y_train)
+    # Optimization step
+    dve_solver = tf.train.AdamOptimizer(0.0001).minimize(
+        dve_loss, var_list=dve_vars)
 
-  # Main session
-  sess = tf.Session()
-  sess.run(tf.global_variables_initializer())
+    dve_solver_hat = tf.train.AdamOptimizer(0.0001).minimize(
+        dve_loss_hat, var_list=dve_vars)
 
-  for itt in tqdm(range(outer_iterations)):
+    # Main session
+    sess = tf.Session()
+    sess.run(tf.global_variables_initializer())
 
-    # Batch selection
-    batch_idx = np.random.permutation(len(x_train[:, 0]))[:batch_size]
+    # Saves model at the end
+    saver = tf.train.Saver()
 
-    x_batch = x_train[batch_idx, :]
-    y_batch = y_train[batch_idx]
+    # Outer iterations
+    for itt in tqdm.tqdm(range(self.outer_iterations)):
 
-    val_batch_idx = np.random.permutation(len(x_valid[:, 0]))[:batch_size_small]
+      # Batch selection
+      batch_idx = \
+      np.random.permutation(len(self.x_train[:, 0]))[:self.batch_size]
 
-    # Initialization
-    reward_curr = np.zeros([batch_size_small, 1])
-    sel_prob_curr = np.zeros([batch_size, batch_size_small])
+      x_batch = self.x_train[batch_idx, :]
+      y_batch = self.y_train[batch_idx]
 
-    xt_batch = x_valid[val_batch_idx, :]
-    yt_batch = y_valid[val_batch_idx]
+      val_batch_idx = \
+      np.random.permutation(len(self.x_probe[:, 0]))[:self.batch_size_inner]
 
-    for ktt in range(batch_size_small):
+      xt_batch = self.x_probe[val_batch_idx, :]
+      yt_batch = self.y_probe[val_batch_idx]
 
-      # Generates selection probability
-      est_dv_curr = sess.run(
-          est_data_value,
-          feed_dict={
-              x_input: x_batch,
-              xt_input: np.reshape(xt_batch[ktt, :], [1, data_dim])
-          })
+      # Initialization
+      reward_curr = np.zeros([self.batch_size_inner, 1])
+      sel_prob_curr = np.zeros([self.batch_size, self.batch_size_inner])
 
-      # Samples based on the selection probability
-      sel_prob_curr[:, ktt] = np.random.binomial(1, est_dv_curr,
-                                                 est_dv_curr.shape)[:, 0]
+      # Inner iterations
+      for ktt in range(self.batch_size_inner):
 
-      # Exception (When selection probability is 0)
-      if np.sum(sel_prob_curr[:, ktt]) == 0:
-        est_dv_curr = 0.5 * np.ones(np.shape(est_dv_curr))
+        # Generates selection probability
+        est_dv_curr = sess.run(
+            est_data_value,
+            feed_dict={
+                self.x_input: x_batch,
+                self.xt_input: np.reshape(xt_batch[ktt, :], [1, self.data_dim])
+            })
+
+        # Samples based on the selection probability
         sel_prob_curr[:, ktt] = np.random.binomial(1, est_dv_curr,
                                                    est_dv_curr.shape)[:, 0]
 
-      # Instance-wise locally interpretable model training
-      new_model = Ridge(alpha=1, fit_intercept=True)
-      new_model.fit(x_batch, y_batch, sel_prob_curr[:, ktt])
+        # Exception (When selection probability is 0)
+        if np.sum(sel_prob_curr[:, ktt]) == 0:
+          est_dv_curr = 0.5 * np.ones(np.shape(est_dv_curr))
+          sel_prob_curr[:, ktt] = np.random.binomial(1, est_dv_curr,
+                                                     est_dv_curr.shape)[:, 0]
 
-      yt_batch_hat_new = new_model.predict(np.reshape(xt_batch[ktt, :],
-                                                      [1, data_dim]))
-      new_mse = np.abs(yt_batch_hat_new - yt_batch[ktt])
+        # Trains instance-wise locally interpretable model
+        self.interp_model.fit(x_batch, y_batch, sel_prob_curr[:, ktt])
 
-      yt_batch_hat_ori = ori_model.predict(np.reshape(xt_batch[ktt, :],
-                                                      [1, data_dim]))
-      ori_mse = np.abs(yt_batch_hat_ori - yt_batch[ktt])
+        # Interpretable predictions
+        yt_batch_hat_new = \
+        self.interp_model.predict(np.reshape(xt_batch[ktt, :],
+                                             [1, self.data_dim]))
 
-      # Reward computation
-      reward_curr[ktt] = new_mse - ori_mse
+        # Fidelity of interpretable model
+        new_mse = np.abs(yt_batch_hat_new - yt_batch[ktt])
 
-    # Trains the generator
-    # Without lambda penalty
-    if itt < 500:
-      _ = sess.run(
-          dve_solver,
-          feed_dict={
-              x_input: x_batch,
-              xt_input: xt_batch,
-              s_input: sel_prob_curr,
-              reward_input: reward_curr
-          })
-    # With lambda penalty
-    else:
-      _ = sess.run(
-          dve_solver_hat,
-          feed_dict={
-              x_input: x_batch,
-              xt_input: xt_batch,
-              s_input: sel_prob_curr,
-              reward_input: reward_curr
-          })
+        # Interpretable baseline prediction
+        yt_batch_hat_ori = \
+        self.baseline_model.predict(np.reshape(xt_batch[ktt, :],
+                                               [1, self.data_dim]))
 
-  # Final data value computations for the entire training sampls
-  final_coef = np.zeros([len(x_test[:, 0]), len(x_test[0, :])+1])
-  final_pred = np.zeros([len(x_test[:, 0]),])
+        # Fidelity of interpretable baseline model
+        ori_mse = np.abs(yt_batch_hat_ori - yt_batch[ktt])
 
-  # For each testing sample
-  for jtt in range(len(x_test[:, 0])):
-    final_data_value = sess.run(
+        # Computes reward
+        reward_curr[ktt] = new_mse - ori_mse
+
+      # Trains the generator
+      # Without lambda penalty
+      if itt < 500:
+        _ = sess.run(
+            dve_solver,
+            feed_dict={
+                self.x_input: x_batch,
+                self.xt_input: xt_batch,
+                self.s_input: sel_prob_curr,
+                self.reward_input: reward_curr
+            })
+
+      # With lambda penalty
+      else:
+        _ = sess.run(
+            dve_solver_hat,
+            feed_dict={
+                self.x_input: x_batch,
+                self.xt_input: xt_batch,
+                self.s_input: sel_prob_curr,
+                self.reward_input: reward_curr
+            })
+
+    # Saves model
+    saver.save(sess, self.checkpoint_file_name)
+
+  def instancewise_weight_estimator(self, x_train, y_train, x_test):
+    """Computes instance-wise weights for a given test input.
+
+    Args:
+      x_train: training features
+      y_train: training labels
+      x_test: testing features
+
+    Returns:
+      instancewise_weights: estimated instance-wise weights
+    """
+    # Calls inst_weight_evaluator function
+    est_data_value = self.inst_weight_evaluator(self.x_input, self.xt_input)
+
+    # Restores the saved model
+    saver = tf.train.Saver()
+
+    sess = tf.Session()
+    saver.restore(sess, self.checkpoint_file_name)
+
+    # For individual testing sample
+    x_test = np.reshape(x_test, [1, self.data_dim])
+
+    # Computes instance-wise weight for a given test input
+    instancewise_weights = sess.run(
         est_data_value,
         feed_dict={
-            x_input: x_train,
-            xt_input: np.reshape(x_test[jtt, :], [1, data_dim])
-        })[:, 0]
+            self.x_input: x_train,
+            self.xt_input: x_test
+            })[:, 0]
 
-    # Fits locally interpretable model
-    new_model = Ridge(alpha=1, fit_intercept=True)
-    new_model.fit(x_train, y_train, final_data_value)
+    return instancewise_weights[:len(y_train)]
 
-    final_coef[jtt, 0] = new_model.intercept_
-    final_coef[jtt, 1:] = new_model.coef_
-    final_pred[jtt] = new_model.predict(np.reshape(x_test[jtt, :],
-                                                   [1, len(x_test[0, :])]))
+  def rllim_interpreter(self, x_train, y_train, x_test, interp_model):
+    """Returns interpretable predictions and instance-wise explanations.
 
-  sess.close()
+    Args:
+      x_train: training features
+      y_train: training labels
+      x_test: testing features
+      interp_model: locally interpretable model (object)
 
-  # Returns data values for training samples
-  return final_pred, final_coef
+    Returns:
+      final_pred: interpretable predictions
+      final_coef: instance-wise explanations
+    """
+
+    # Calls instance-wise weight estimator
+    est_data_value = self.inst_weight_evaluator(self.x_input, self.xt_input)
+
+    # Restores the saved model
+    saver = tf.train.Saver()
+
+    sess = tf.Session()
+    saver.restore(sess, self.checkpoint_file_name)
+
+    # If the number of testing sample is 1
+    if len(x_test.shape) == 1:
+      x_test = np.reshape(x_test, [1, len(x_test)])
+
+    # Initializes output
+    final_coef = np.zeros([len(x_test[:, 0]), len(x_test[0, :])+1])
+    final_pred = np.zeros([len(x_test[:, 0]),])
+
+    # For each testing sample
+    for jtt in tqdm.tqdm(range(len(x_test[:, 0]))):
+      instancewise_weights = sess.run(
+          est_data_value,
+          feed_dict={
+              self.x_input: x_train,
+              self.xt_input: np.reshape(x_test[jtt, :], [1, self.data_dim])
+          })[:, 0]
+
+      # Fits locally interpretable model
+      if np.sum(instancewise_weights > 0):
+        interp_model.fit(x_train, y_train, instancewise_weights)
+
+        # Instance-wise explanations
+        final_coef[jtt, 0] = interp_model.intercept_
+        final_coef[jtt, 1:] = interp_model.coef_
+
+        # Instance-wise prediction
+        final_pred[jtt] = \
+            interp_model.predict(np.reshape(x_test[jtt, :],
+                                            [1, len(x_test[0, :])]))
+
+    return final_pred, final_coef

@@ -1,6 +1,8 @@
-tensorflow>=1.12.0
 absl-py>=0.5.0
-numpy>=1.15.1
-argparse>=1.1
-sklearn>=0.20.3
+lightgbm>=2.2.3
+matplotlib>=3.0.3
+numpy>=1.16.2
+pandas>=0.24.2
+scikit-learn>=0.20.3
+tensorflow>=1.13.1
 tqdm>=4.31.1
