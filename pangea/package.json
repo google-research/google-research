@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "@tweenjs/tween.js": "17.4.0",
-    "d3": "5.11.0",
-    "three": "0.107.0"
+    "@tweenjs/tween.js": "^18.3.1",
+    "d3": "^5.12.0",
+    "three": "^0.109.0"
   }
 }

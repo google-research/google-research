@@ -14,89 +14,79 @@
    limitations under the License.
 -->
 
-<!doctype html>
-
-<html>
-
-  <body>
-
-    <script src='node_modules/d3/dist/d3.js'></script>
-    <script src='node_modules/three/build/three.js'></script>
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="main.css">
+    <script src="node_modules/d3/dist/d3.js"></script>
+    <script src="node_modules/three/build/three.js"></script>
     <script src="node_modules/three/examples/js/controls/OrbitControls.js"></script>
-    <script src='node_modules/@tweenjs/tween.js/src/Tween.js'></script>
-
-    <script src='pangea.js'></script>
-    <script src='utils.js'></script>
-
+    <script src="node_modules/@tweenjs/tween.js/dist/tween.umd.js"></script>
+    <script src="src/environment.js"></script>
+    <script src="src/graph.js"></script>
+    <script src="src/matterport.js"></script>
+    <script src="src/api.js"></script>
     <script>
 
-      (function() {
+        /**
+         * URL parameters for the plugin.
+         * @param { string } scan - A building in the simulator.
+         * @param { string } path - A comma-separated list of nodes.
+         * @param { string } directory - Local directory or Google cloud storage
+         * (GCS) bucket to store static data. The code below adopts a flat
+         * directory structure. All files live in the root. See this doc for
+         * file naming conventions:
+         * https://github.com/niessner/Matterport/blob/master/data_organization.md
+         */
+        var params = new URL( window.location.href ).searchParams;
+        var scan = params.get( 'scan' ) || 'XcA2TqTSSAj';
+        var path = params.get( 'path' ) || [
 
-        var kwargs = new URL(window.location.href).searchParams;
-        var scan = kwargs.get('scan') || '17DRP5sb8fy';
-        var pano = kwargs.get('pano');
+            'fdfeed5766974ae2bcd56e05a7de3117','00e1ca9383af4c7ba86241fdeeb73819',
+            'dc24c0e57e874e40a3ece84d23c012e2','8e9f6d822fb04edd9c2217d223af3f9d',
+            '1ec7b02628964cedb052c29579e6d404','e1823aaa30044d89a3251b46974f410d',
 
-        var mp = new Matterport('testdata/');
+        ].join( ',' );
+        var directory = 'https://my-awesome-bucket.storage.googleapis.com/';
+        {
 
-        mp.graph(scan).then(function(graph) {
+        // Redefine the default class arguments function.
+        API.prototype.getInitArgs = () => {
 
-          if (pano == undefined) {
+            return {
 
-            var nodes = Object.keys(graph);
-            var i = Math.floor(Math.random() * nodes.length);
-            pano = nodes[i];
+                id: undefined,
+                attributes: [
 
-          }
+                    { key: 'scan', value: scan },
+                    { key: 'path', value: path }
+                    { key: 'directory', value: directory },
 
-          var obj = new THREE.Mesh(
+                ]
 
-            new THREE.CylinderBufferGeometry(0.2, 0.2, 1e-5, 100),
-            new THREE.MeshStandardMaterial({
+            }
 
-              color: 0xFFFFFF, transparent: true, opacity: 0.5,
-
-            }),
-
-          );
-
-          function texture(pano) {
-
-            return mp.texture(scan, pano);
-
-          }
-
-          var env = new PANGEA.Environment(obj, graph, texture);
-          env.scene.add(new THREE.AmbientLight());
-          env.initialize(pano);
-          env.up.copy(mp.up);
-          animate();
-
-          document.body.appendChild(env.canvas);
-          document.body.style.margin = 0;
-
-          window.onresize = resize;
-          resize();
-
-          function animate() {
-
-            env.render();
-            requestAnimationFrame(animate);
-
-          }
-
-          function resize() {
-
-            env.renderer.setSize(window.innerWidth, window.innerHeight);
-            env.camera.aspect = window.innerWidth / window.innerHeight;
-
-          }
-
-        });
-
-      })();
+        };
 
     </script>
-
-  </body>
-
-</html>
+    <script src="src/guide.js"></script>
+</head>
+<body>
+    <button id="blocker-button">Instructions</button>
+    <textarea id="input"></textarea>
+    <div id="blocker">
+        <div id="instructions">
+            <span style="font-size:36px">Click to play</span>
+            <br /><br />Move: CTRL + CLICK
+            <br/> Look: DRAG
+            <br /> Submit: CTRL + ENTER
+            <br /><br /><br /><span style="font-size:12px">
+            Objective: Follow and describe the path of crystals graded from yellow to green<br />
+            such that an agent who has never seen this environment could retrace your steps<br />
+            without the path of crystals. Note that the initial direction you are facing is<br />
+            random, so don't asume the agent will be facing the same direction as you are.
+            <br /><br />Good luck!
+            </span>
+        </div>
+    </div>
+</body>
