@@ -9,15 +9,12 @@ We hope that this code will be a useful starting point for future research in th
 
 Requirements:
 * TensorFlow (see tensorflow.org for how to install)
-* MNIST dataset
-
-First download the static and dynamic MNIST. For Fashion MNIST and CelebA, we use TF Datasets, however, we also need to precompute the mean of the training features. Store these files in a data directory.
 
 ```
 # From the deepest google-research/ run:
 python -m eim.small_problems --target=checkerboard --algo=his 
 python -m eim.mnist --dataset=static_mnist --proposal=rejection_sampling \
-  --model=bernoulli_vae --ROOT_PATH=<data directory>
+  --model=bernoulli_vae --data_dir=<data directory to cache datasets>
 ```
 The first command runs the small problems. Check small_problems.py to see a list of target distributions and algo choices. The second command runs the larger problems. Check mnist.py to see a list of datasets, proposals, and model choices.
 
