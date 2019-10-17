@@ -212,7 +212,7 @@ class ImageNetTFExampleInput(object):
     dataset = dataset.map(functools.partial(self.set_shapes, batch_size))
 
     # Prefetch overlaps in-feed with training
-    dataset = dataset.prefetch(tf.contrib.data.AUTOTUNE)
+    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
     # copybara:strip_begin
     control_flow_util.ENABLE_CONTROL_FLOW_V2 = cond_v2_pre_value
     # copybara:strip_end

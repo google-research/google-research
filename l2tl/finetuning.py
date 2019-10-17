@@ -282,7 +282,7 @@ def main(unused_argv):
     finetune_data = finetune_dataset.input_fn(params)
     dataset = tf.data.Dataset.zip((finetune_data,))
     dataset = dataset.map(_merge_datasets)
-    dataset = dataset.prefetch(buffer_size=tf.contrib.data.AUTOTUNE)
+    dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
     return dataset
 
   # pylint: disable=protected-access
