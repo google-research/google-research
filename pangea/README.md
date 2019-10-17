@@ -1,23 +1,22 @@
 ### Pangea
 
-Pangea is a platform for annotating grounded environmental actions in panoramic environments.
+Pangea is a lightweight plugin for annotating grounded environmental actions in
+panoramic environments.
 
 #### Documentation
 
-Pangea example for the Matterport3D simulator.
-
-Download dependencies using the node package manager (npm), downloaded [here](https://nodejs.org/en/).
+Download dependencies using the Node Package Manager.
 
 ```
 npm install
 ```
 
-Configure the following directories.
+Modify the line `var directory =
+'http://my-awesome-bucket.storage.googleapis.com/';` in `index.html` to point to
+either a local directory or a Google Cloud Storage bucket hosting the
+Matterport3D dataset.
 
-* `testdata/connectivity/` contains the navigation graph, downloaded [here](https://github.com/peteanderson80/Matterport3DSimulator/tree/master/connectivity).
-* `testdata/scans/` contains the background textures, downloaded [here](https://niessner.github.io/Matterport/).
-
-Finally, start an local http server.
+Finally, start a local server.
 
 ```
 python -m SimpleHTTPServer
