@@ -1,0 +1,4 @@
+tensorflow>=1.15.0
+tf-agents-nightly
+pybullet>=2.5.6
+pycolab

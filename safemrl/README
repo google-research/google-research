@@ -1,0 +1,24 @@
+# Learning to be Safe
+
+This repository contains code (in-development) for safety-constrained
+[Soft Actor-Critic](https://github.com/rail-berkeley/softlearning), using
+the [TF-Agents](https://github.com/tensorflow/agents) library.
+
+## Setup
+
+First, install all dependencies by
+
+pip install -r safemrl/requirements.txt
+
+
+## Usage
+
+```
+# Running Safe SAC example on Drunk Spider navigation environment
+python -m safemrl.train --gin_file=sac_agent_drunk.gin
+```
+
+```
+# Running Safe SAC example on Minitaur environment
+python -m safemrl.train --gin_file=sac_minitaur.gin
+```
