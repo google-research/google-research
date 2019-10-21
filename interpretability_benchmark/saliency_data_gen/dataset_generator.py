@@ -13,17 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as: python3
 r"""This script allows generation of tfrecords.
 
-To run this script:
 
-python -m saliency_data_gen.data_input_test
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import os
 from absl import app
@@ -31,17 +25,19 @@ from absl import flags
 import numpy as np
 from scipy import ndimage
 from six.moves import range
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf
 from interpretability_benchmark.saliency_data_gen.data_helper import DataIterator
 from interpretability_benchmark.saliency_data_gen.data_helper import image_to_tfexample
 from interpretability_benchmark.saliency_data_gen.data_helper import SALIENCY_BASELINE
 from interpretability_benchmark.saliency_data_gen.saliency_helper import generate_saliency_image
 from interpretability_benchmark.saliency_data_gen.saliency_helper import get_saliency_image
 from interpretability_benchmark.utils import resnet_model
+tf.disable_v2_behavior()
 
 flags.DEFINE_string('master', '', 'Name of the TensorFlow master to use.')
 
-flags.DEFINE_string('output_dir', '', 'output directory for tfrecords')
+flags.DEFINE_string('output_dir', '/tmp/saliency/',
+                    'output directory for tfrecords')
 
 flags.DEFINE_string('data_path', '', 'Pathway to the input tfrecord dataset.')
 
@@ -52,7 +48,7 @@ flags.DEFINE_enum(
     'Specifies whether to create saliency maps for'
     'training or test set.')
 
-flags.DEFINE_enum('dataset_name', 'birdsnap',
+flags.DEFINE_enum('dataset_name', 'imagenet',
                   ('food_101', 'imagenet', 'birdsnap'),
                   'What dataset is the model trained on.')
 
@@ -60,8 +56,8 @@ flags.DEFINE_enum('saliency_method', 'SH_SG',
                   ('SH_SG', 'IG_SG', 'GB_SG', 'SH_SG_2', 'IG_SG_2', 'GB_SG_2',
                    'GB', 'IG', 'SH', 'SOBEL'),
                   'saliency method dataset to produce.')
-
-
+flags.DEFINE_bool('test_small_sample', True,
+                  'Boolean for whether to test internally.')
 FLAGS = flags.FLAGS
 
 MEAN_RGB = [0.485 * 255, 0.456 * 255, 0.406 * 255]
@@ -86,7 +82,10 @@ class ProcessSaliencyMaps(object):
     """produces a saliency map."""
 
     self._dataset = DataIterator(
-        data_path, self._dataset_name, preprocessing=False)
+        data_path,
+        self._dataset_name,
+        preprocessing=False,
+        test_small_sample=FLAGS.test_small_sample)
 
     self._graph = tf.Graph()
     with self._graph.as_default():
@@ -124,7 +123,7 @@ class ProcessSaliencyMaps(object):
 
       baseline = SALIENCY_BASELINE['resnet_50']
 
-      self._coord = tf.Coordinator()
+      self._coord = tf.train.Coordinator()
       threads = tf.train.start_queue_runners(sess=self._sess, coord=self._coord)
 
       example_count = 0
@@ -150,6 +149,10 @@ class ProcessSaliencyMaps(object):
               raw_image=raw_img_out[0], maps=saliency_map, label=label_out)
           writer.write(example.SerializeToString())
           example_count += 1
+
+          if FLAGS.test_small_sample:
+            if example_count == 2:
+              break
 
       except tf.errors.OutOfRangeError:
         print('Finished number of images:', example_count)
@@ -186,20 +189,22 @@ def generate_dataset(data_directory, dataset_name, num_shards, output_directory,
 def main(argv):
   del argv  # Unused.
 
-  output_dir = ('%s/%s/%s/%s' % (FLAGS.output_dir, FLAGS.dataset_name,
-                                 'resnet_50', FLAGS.saliency_method))
-
-  filenames = tf.gfile.ListDirectory(FLAGS.data_path)
-
-  num_shards = len(filenames)
-
+  if FLAGS.test_small_sample:
+    filenames = ['test_small_sample']
+    num_shards = 1
+    output_dir = FLAGS.output_dir
+  else:
+    output_dir = ('%s/%s/%s/%s' % (FLAGS.output_dir, FLAGS.dataset_name,
+                                   'resnet_50', FLAGS.saliency_method))
+    filenames = tf.gfile.ListDirectory(FLAGS.data_path)
+    num_shards = len(filenames)
 
   generate_dataset(
       data_directory=FLAGS.data_path,
       output_directory=output_dir,
       num_shards=num_shards,
       dataset_name=FLAGS.dataset_name,
-      ckpt_directory=FLAGS.ckpt_path,
+      ckpt_directory=FLAGS.ckpt_directory,
       num_label_classes=N_CLASSES[FLAGS.dataset_name],
       filenames=filenames,
       saliency_method=FLAGS.saliency_method)

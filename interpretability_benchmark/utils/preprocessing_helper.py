@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as: python3
 r"""Preprocessing helper functions for resnet wide.
 
 Code based upon resnet cloud pre-processing (tensorflow/tpu/blob/master/
@@ -24,7 +24,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 IMAGE_SIZE = 224
 CROP_PADDING = 32
