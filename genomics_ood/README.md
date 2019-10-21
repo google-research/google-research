@@ -44,7 +44,7 @@ python -m genomics_ood.classifier \
 
 ## Real Bacteria Dataset
 
-The real bacteria dataset with 10 in-distribtution classes, 60 validation out-of-distribution (OOD) classes, and 60 test OOD classes can be downloaded at [Google Drive](https://drive.google.com/open?id=1Ht9xmzyYPbDouUTl_KQdLTJQYX2CuclR)
+The real bacteria dataset with 10 in-distribtution classes, 60 validation out-of-distribution (OOD) classes, and 60 test OOD classes can be downloaded at [Google Drive](https://drive.google.com/corp/drive/folders/1Ht9xmzyYPbDouUTl_KQdLTJQYX2CuclR)
 
 To run models on the real dataset, one needs to set DATA_DIR=/<path to the real data directory>/ and specify the OUT_DIR.
 
