@@ -27,9 +27,9 @@ estimators.
 
 ### Download Dataset
 
-In our paper, we evaluate the accuracy of model explanations for image classification on ImageNet, Birdsnap and Food101 datasets.
+In our paper, we evaluate the accuracy of model explanations for image classification on [ImageNet](http://www.image-net.org/), [Birdsnap](http://thomasberg.org/) and [Food101](https://www.vision.ee.ethz.ch/datasets_extra/food-101/) datasets.
 
-These are publicaly available datasets. To replicate our results, first download the dataset you plan to evaluate the interpretability method performance on and store the dataset as a set tfrecords.
+These are publicaly available datasets. To replicate our results, first download the dataset you plan to evaluate the interpretability method performance on and store the dataset as a set tfrecords. This [script](https://github.com/tensorflow/models/blob/master/research/inception/inception/data/build_image_data.py) is one possible example of how to do this conversion from raw images to tfrecords.
 
 ### Generate Feature Importance Estimates for each dataset
 
@@ -41,7 +41,7 @@ The script produces a new set of tfrecords (the data input for ```interpretabili
 
 ### Train model on modified dataset
 
-```interpretability_benchmark/train_resnet.py``` trains a resnet_50 on the modified tfrecords dataset.
+```interpretability_benchmark/train_resnet.py``` trains a resnet_50 on the modified tfrecords dataset produced by ```saliency_data_gen/dataset_generator.py```.
 
 ## Citation
 If you are using ROAR code you may cite:
@@ -56,6 +56,8 @@ If you are using ROAR code you may cite:
   url       = {http://arxiv.org/abs/1806.10758},
 }
 ```
+
+For any questions about this code please file an github [issue](https://github.com/google-research/google-research/issues) and tag github handles sarahooker, doomie. We welcome pull requests which add additional interpretability methods to be benchmarked or improvements to the code.
 
 
 

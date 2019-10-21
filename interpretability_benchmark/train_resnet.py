@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as: python3
 r"""Training script for implementing ROAR benchmark.
 
 This script trains a ResNet 50 model on either:
@@ -28,21 +28,12 @@ FLAGS.saliency_method to specify the method to estimate which pixels are
 important and FLAGS.threshold to indicate the fraction of the image that
 will be replaced.
 
-To run this script:
-
-python -m interpretability_benchmark.data_input_test
-
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 from absl import app
 from absl import flags
-from absl import logging
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf
+import tensorflow.compat.v2 as tf2
 
 from interpretability_benchmark import data_input
 from interpretability_benchmark.utils import resnet_model
@@ -53,8 +44,6 @@ flags.DEFINE_integer(
     'Controls how often checkpoints are generated. More steps per '
     'checkpoint = higher utilization of TPU and generally higher '
     'steps/sec')
-flags.DEFINE_string('data_format', 'channels_last',
-                    'A flag to override the data format used in the model.')
 flags.DEFINE_integer('steps_per_eval', 1251,
                      'Controls how often evaluation is performed.')
 flags.DEFINE_integer('num_cores', 8, 'Number of cores.')
@@ -99,6 +88,9 @@ flags.DEFINE_float(
     'Fraction of all input features that are modified according'
     'to the estimator.')
 
+# set this flag to true to do a test run of this code with synthetic data
+flags.DEFINE_bool('test_small_sample', False,
+                  'Boolean for whether to test internally.')
 
 FLAGS = flags.FLAGS
 
@@ -157,23 +149,15 @@ birdsnap_params = {
     'stddev_rgb': [0.229, 0.226, 0.267]
 }
 
-MOMENTUM = 0.9
-# Learning rate schedule
-LR_SCHEDULE = [  # (multiplier, epoch to start) tuples
-    (1.0, 5), (0.1, 30), (0.01, 60), (0.001, 80)
-]
 
-MEAN_RGB = [0.4855, 0.456, 0.406]
-STDDEV_RGB = [0.229, 0.224, 0.225]
-
-
-def compute_lr(current_epoch, initial_learning_rate, train_batch_size):
+def compute_lr(current_epoch, initial_learning_rate, train_batch_size,
+               lr_schedule):
   """Computes learning rate schedule."""
   scaled_lr = initial_learning_rate * (train_batch_size / 256.0)
 
   decay_rate = (
-      scaled_lr * LR_SCHEDULE[0][0] * current_epoch / LR_SCHEDULE[0][1])
-  for mult, start_epoch in LR_SCHEDULE:
+      scaled_lr * lr_schedule[0][0] * current_epoch / lr_schedule[0][1])
+  for mult, start_epoch in lr_schedule:
     decay_rate = tf.where(current_epoch < start_epoch, decay_rate,
                           scaled_lr * mult)
   return decay_rate
@@ -195,8 +179,10 @@ def resnet_model_fn(features, labels, mode, params):
   if isinstance(features, dict):
     features = features['feature']
 
-  features -= tf.constant(MEAN_RGB, shape=[1, 1, 3], dtype=features.dtype)
-  features /= tf.constant(STDDEV_RGB, shape=[1, 1, 3], dtype=features.dtype)
+  mean_rgb = params['mean_rgb']
+  stddev_rgb = params['stddev_rgb']
+  features -= tf.constant(mean_rgb, shape=[1, 1, 3], dtype=features.dtype)
+  features /= tf.constant(stddev_rgb, shape=[1, 1, 3], dtype=features.dtype)
 
   train_batch_size = params['train_batch_size']
 
@@ -205,8 +191,7 @@ def resnet_model_fn(features, labels, mode, params):
   num_label_classes = params['num_label_classes']
 
   network = resnet_model.resnet_50(
-      num_classes=num_label_classes,
-      data_format=FLAGS.data_format)
+      num_classes=num_label_classes, data_format=params['data_format'])
 
   logits = network(
       inputs=features, is_training=(mode == tf.estimator.ModeKeys.TRAIN))
@@ -231,28 +216,26 @@ def resnet_model_fn(features, labels, mode, params):
     steps_per_epoch = params['num_train_images'] / train_batch_size
     current_epoch = (tf.cast(global_step, tf.float32) / steps_per_epoch)
     learning_rate = compute_lr(current_epoch, initial_learning_rate,
-                               train_batch_size)
+                               train_batch_size, params['lr_schedule'])
     optimizer = tf.train.MomentumOptimizer(
-        learning_rate=learning_rate, momentum=MOMENTUM, use_nesterov=True)
+        learning_rate=learning_rate,
+        momentum=params['momentum'],
+        use_nesterov=True)
 
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops), tf.name_scope('train'):
       train_op = optimizer.minimize(loss, global_step)
 
-    summary_writer = tf.contrib.summary.create_file_writer(output_dir)
+    with tf2.summary.create_file_writer(output_dir).as_default():
+      with tf2.summary.record_if(True):
+        tf2.summary.scalar('loss', loss, step=global_step)
+        tf2.summary.scalar('learning_rate', learning_rate, step=global_step)
+        tf2.summary.scalar('current_epoch', current_epoch, step=global_step)
+        tf2.summary.scalar('steps_per_epoch', steps_per_epoch, step=global_step)
+        tf2.summary.scalar('weight_decay', weight_decay, step=global_step)
 
-    with summary_writer.as_default():
-      with tf.contrib.summary.always_record_summaries():
-        tf.contrib.summary.scalar('loss', loss, step=global_step)
-        tf.contrib.summary.scalar(
-            'learning_rate', learning_rate, step=global_step)
-        tf.contrib.summary.scalar(
-            'current_epoch', current_epoch, step=global_step)
-        tf.contrib.summary.scalar(
-            'steps_per_epoch', steps_per_epoch, step=global_step)
-        tf.contrib.summary.scalar(
-            'weight_decay', weight_decay, step=global_step)
-        tf.contrib.summary.all_summary_ops()
+      tf.summary.all_v2_summary_ops()
+
   else:
     train_op = None
 
@@ -293,25 +276,47 @@ def main(argv):
   else:
     raise ValueError('Dataset type is not known %s' % (FLAGS.dataset))
 
-  model_dir = os.path.join(FLAGS.output_dir, FLAGS.dataset_name,
-                           FLAGS.transformation, str(FLAGS.threshold),
-                           str(params['base_learning_rate']),
-                           str(params['weight_decay']), is_squared, info_keep)
+  if FLAGS.test_small_sample:
+    model_dir = '/tmp/lalala/'
+  else:
+    model_dir = os.path.join(FLAGS.output_dir, FLAGS.dataset_name,
+                             FLAGS.transformation, str(FLAGS.threshold),
+                             str(params['base_learning_rate']),
+                             str(params['weight_decay']), is_squared, info_keep)
 
-  if FLAGS.transformation in ['modified_image', 'raw_saliency_map']:
-    model_dir = os.path.join(model_dir, FLAGS.saliency_method)
+    if FLAGS.transformation in ['modified_image', 'raw_saliency_map']:
+      model_dir = os.path.join(model_dir, FLAGS.saliency_method)
 
   if FLAGS.mode == 'eval':
     split = 'validation'
   else:
     split = 'training'
 
+  mean_stats = [0.485, 0.456, 0.406]
+  std_stats = [0.229, 0.224, 0.225]
+  update_params = {
+      'mean_rgb': mean_stats,
+      'stddev_rgb': std_stats,
+      'lr_schedule': [  # (multiplier, epoch to start) tuples
+          (1.0, 5), (0.1, 30), (0.01, 60), (0.001, 80)
+      ],
+      'momentum': 0.9,
+      'data_format': 'channels_last'
+  }
+  params.update(update_params)
   sal_method = saliency_dict[FLAGS.saliency_method]
+  if FLAGS.test_small_sample:
+    update_params = {
+        'train_batch_size': 2,
+        'eval_batch_size': 2,
+        'num_train_steps': 10,
+        'num_images': 2
+    }
+    params.update(update_params)
+
   data_directory = os.path.join(FLAGS.base_dir, FLAGS.dataset_name,
                                 '2018-12-10', 'resnet_50', sal_method,
                                 split + '*')
-  mean_stats = [0.485, 0.456, 0.406],
-  std_stats = [0.229, 0.224, 0.225],
 
   dataset_ = data_input.DataIterator(
       mode=FLAGS.mode,
@@ -323,6 +328,7 @@ def main(argv):
       use_squared_value=FLAGS.squared_value,
       mean_stats=mean_stats,
       std_stats=std_stats,
+      test_small_sample=FLAGS.test_small_sample,
       num_cores=FLAGS.num_cores)
 
   params['output_dir'] = model_dir
@@ -332,9 +338,8 @@ def main(argv):
     params['batch_size'] = params['eval_batch_size']
 
   num_train_steps = params['num_train_steps']
-
-
   eval_steps = params['num_eval_images'] // params['batch_size']
+
   run_config = tf.estimator.RunConfig(
       model_dir=model_dir, save_checkpoints_steps=FLAGS.steps_per_checkpoint)
 
@@ -346,7 +351,7 @@ def main(argv):
 
   if FLAGS.mode == 'eval':
     # Run evaluation when there's a new checkpoint
-    for ckpt in tf.contrib.training.checkpoints_iterator(model_dir):
+    for ckpt in tf2.training.checkpoints_iterator(model_dir):
       tf.logging.info('Starting to evaluate.')
       try:
         classifier.evaluate(
@@ -357,13 +362,13 @@ def main(argv):
           break
 
       except tf.errors.NotFoundError:
-        logging.info('Checkpoint was not found, skipping checkpoint.')
+        tf.logging.info('Checkpoint was not found, skipping checkpoint.')
 
   else:
     if FLAGS.mode == 'train':
-      print('start training...')
+      tf.logging.info('start training...')
       classifier.train(input_fn=dataset_.input_fn, max_steps=num_train_steps)
-      print('finished training.')
+      tf.logging.info('finished training.')
 
 
 if __name__ == '__main__':
