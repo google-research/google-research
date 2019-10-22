@@ -56,6 +56,7 @@ HPS_DICT = dict(
     svi=_HPS_SVI,
     ll_dropout=_HPS_LL_DROPOUT,
     ll_svi=_HPS_LL_SVI,
+    wide_dropout=_HPS_DROPOUT,
 )
 
 
@@ -68,6 +69,7 @@ def model_opts_from_hparams(hps, method, fake_training=False):
       # Modeling params
       method=method,
       resnet_depth=20,
+      num_resnet_filters=32 if method == 'wide_dropout' else 16,
       # Data params.
       image_shape=data_lib.CIFAR_SHAPE,
       num_classes=data_lib.CIFAR_NUM_CLASSES,
