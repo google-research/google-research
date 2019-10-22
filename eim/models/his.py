@@ -38,6 +38,7 @@ class HIS(object):
                energy_fn,
                q_fn,
                proposal=None,
+               proposal_variance=1.0,
                init_alpha=1.,
                init_step_size=0.01,
                learn_temps=False,
@@ -79,7 +80,7 @@ class HIS(object):
       ]
 
     if proposal is None:
-      self.proposal = base.get_independent_normal(data_dim)
+      self.proposal = base.get_independent_normal(data_dim, variance=proposal_variance)
     else:
       self.proposal = proposal
     self.momentum_proposal = base.get_independent_normal(data_dim)
@@ -158,6 +159,7 @@ class FullyConnectedHIS(HIS):
                q_hidden_sizes,
                data_mean=None,
                proposal=None,
+               proposal_variance=1.0,
                init_alpha=1.,
                init_step_size=0.01,
                learn_temps=False,
@@ -183,7 +185,7 @@ class FullyConnectedHIS(HIS):
         truncate=False,
         name="%s/q" % name)
     super(FullyConnectedHIS,
-          self).__init__(T, data_dim, energy_fn, q_fn, proposal, init_alpha,
+          self).__init__(T, data_dim, energy_fn, q_fn, proposal, proposal_variance, init_alpha,
                          init_step_size, learn_temps, learn_stepsize, dtype,
                          name)
 

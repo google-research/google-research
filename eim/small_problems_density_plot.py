@@ -41,6 +41,7 @@ tf.app.flags.DEFINE_string(
     "energy_fn_sizes", "20,20",
     "List of hidden layer sizes for energy function as as comma "
     "separated list.")
+tf.app.flags.DEFINE_float("proposal_variance", 1.0, "Variance for proposal distribution")
 tf.app.flags.DEFINE_integer(
     "his_t", 5, "Number of steps for hamiltonian importance sampling.")
 tf.app.flags.DEFINE_float("his_stepsize", 1e-2,
@@ -70,10 +71,7 @@ def make_sample_density_summary(session,
                                 num_samples=1000000,
                                 num_bins=100):
   """Plot approximate density based on samples."""
-  if FLAGS.target == dists.NINE_GAUSSIANS_DIST or FLAGS.target == dists.TWO_RINGS_DIST:
-    bounds = (-2, 2)
-  elif FLAGS.target == dists.CHECKERBOARD_DIST:
-    bounds = (0, 1)
+  bounds = (-2, 2)
   num_batches = int(math.ceil(num_samples / float(max_samples_per_batch)))
   hist = None
   for i in range(num_batches):
@@ -104,10 +102,7 @@ def reduce_logavgexp(input_tensor, axis=None, keepdims=None, name=None):
 
 def make_density_summary(log_density_fn, num_bins=100):
   """Plot density."""
-  if FLAGS.target == dists.NINE_GAUSSIANS_DIST or FLAGS.target == dists.TWO_RINGS_DIST:
-    bounds = (-2, 2)
-  elif FLAGS.target == dists.CHECKERBOARD_DIST:
-    bounds = (0, 1)
+  bounds = (-2, 2)
 
   x = tf.range(
       bounds[0], bounds[1], delta=(bounds[1] - bounds[0]) / float(num_bins))
@@ -140,7 +135,8 @@ def main(unused_argv):
     elif FLAGS.algo == "lars":
       tf.logging.info("Running LARS")
       model = lars.SimpleLARS(
-          K=FLAGS.K, data_dim=2, accept_fn_layers=energy_fn_layers)
+          K=FLAGS.K, data_dim=[2], accept_fn_layers=energy_fn_layers,
+          proposal_variance=FLAGS.proposal_variance)
       plot = make_density_summary(
           lambda x: tf.squeeze(model.accept_fn(x)) + model.proposal.log_prob(x),
           num_bins=FLAGS.num_bins)
@@ -154,13 +150,15 @@ def main(unused_argv):
       if FLAGS.algo == "nis":
         tf.logging.info("Running NIS")
         model = nis.NIS(
-            K=FLAGS.K, data_dim=2, energy_hidden_sizes=energy_fn_layers)
+            K=FLAGS.K, data_dim=[2], energy_hidden_sizes=energy_fn_layers,
+            proposal_variance=FLAGS.proposal_variance)
       elif FLAGS.algo == "his":
         tf.logging.info("Running HIS")
         model = his.FullyConnectedHIS(
             T=FLAGS.his_t,
-            data_dim=2,
+            data_dim=[2],
             energy_hidden_sizes=energy_fn_layers,
+            proposal_variance=FLAGS.proposal_variance,
             q_hidden_sizes=energy_fn_layers,
             init_step_size=FLAGS.his_stepsize,
             learn_stepsize=FLAGS.his_learn_stepsize,
@@ -172,8 +170,9 @@ def main(unused_argv):
             for layer_size in energy_fn_layers
         ] + [tf.keras.layers.Dense(1, activation=None)])
         model = rejection_sampling.RejectionSampling(
-            T=FLAGS.K, data_dim=[2], logit_accept_fn=logit_accept_fn)
-      samples = model.sample([FLAGS.batch_size])
+            T=FLAGS.K, data_dim=[2], logit_accept_fn=logit_accept_fn,
+            proposal_variance=FLAGS.proposal_variance)
+      samples = model.sample(FLAGS.batch_size)
       with tf.train.SingularMonitoredSession(
           checkpoint_dir=FLAGS.logdir) as sess:
         make_sample_density_summary(

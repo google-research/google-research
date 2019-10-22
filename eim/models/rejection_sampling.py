@@ -31,6 +31,7 @@ class AbstractRejectionSampling(base.ProbabilisticModel):
                data_dim,
                logit_accept_fn,
                proposal=None,
+               proposal_variance=1.0,
                dtype=tf.float32,
                name="rejection_sampling"):
     """Creates a Rejection Sampling model.
@@ -50,7 +51,7 @@ class AbstractRejectionSampling(base.ProbabilisticModel):
     self.data_dim = data_dim
     self.logit_accept_fn = logit_accept_fn
     if proposal is None:
-      self.proposal = base.get_independent_normal(data_dim)
+      self.proposal = base.get_independent_normal(data_dim, variance=proposal_variance)
     else:
       self.proposal = proposal
     self.name = name
@@ -159,6 +160,7 @@ class RejectionSampling(AbstractRejectionSampling):
                data_dim,
                energy_hidden_sizes,
                proposal=None,
+               proposal_variance=1.0,
                data_mean=None,
                dtype=tf.float32,
                name="rejection_sampling"):
@@ -173,5 +175,6 @@ class RejectionSampling(AbstractRejectionSampling):
         T=T,
         data_dim=data_dim,
         proposal=proposal,
+        proposal_variance=proposal_variance,
         logit_accept_fn=logit_accept_fn,
         dtype=dtype)
