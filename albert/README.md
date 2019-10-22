@@ -48,10 +48,11 @@ setup:
 Pre-trained Models
 ==================
 TF-Hub modules are available:
-- [https://tfhub.dev/google/albert_base/1](albert_base).
-- [https://tfhub.dev/google/albert_large/1](albert_large)
-- [https://tfhub.dev/google/albert_xlarge/1](albert_xlarge)
-- [https://tfhub.dev/google/albert_xxlarge/1](albert_xxlarge)
+
+- https://tfhub.dev/google/albert_base/1
+- https://tfhub.dev/google/albert_large/1
+- https://tfhub.dev/google/albert_xlarge/1
+- https://tfhub.dev/google/albert_xxlarge/1
 
 Example usage of the TF-Hub module:
 
