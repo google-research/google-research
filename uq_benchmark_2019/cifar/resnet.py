@@ -115,12 +115,12 @@ def build_resnet_v1(input_layer, depth,
                     always_on_dropout_rate,
                     examples_per_epoch,
                     eb_prior_fn=None,
-                    no_first_layer_dropout=False):
+                    no_first_layer_dropout=False,
+                    num_filters=16):
   """ResNet Version 1 Model builder [a]."""
   if (depth - 2) % 6 != 0:
     raise ValueError('depth should be 6n+2 (eg 20, 32, 44 in [a])')
   # Start model definition.
-  num_filters = 16
   num_res_blocks = int((depth - 2) / 6)
 
   activation = 'selu' if variational else 'relu'
@@ -136,6 +136,7 @@ def build_resnet_v1(input_layer, depth,
   logging.info('Starting ResNet build.')
   x = resnet_layer(
       inputs=input_layer,
+      num_filters=num_filters,
       always_on_dropout_rate=(None if no_first_layer_dropout
                               else always_on_dropout_rate))
   # Instantiate the stack of residual units
