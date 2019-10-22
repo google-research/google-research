@@ -32,7 +32,7 @@ keras = tf.keras
 tfd = tfp.distributions
 
 METHODS = ['vanilla', 'll_dropout', 'll_svi', 'dropout', 'svi',
-           'dropout_nofirst']
+           'dropout_nofirst', 'wide_dropout']
 _VALIDATION_STEPS = 100
 
 
@@ -42,6 +42,7 @@ class ModelOptions(object):
   # Modeling options
   method = attr.ib()
   resnet_depth = attr.ib()
+  num_resnet_filters = attr.ib()
   # Data options
   image_shape = attr.ib()
   num_classes = attr.ib()
@@ -72,8 +73,9 @@ def load_model(model_dir):
 
 def build_model(opts):
   """Builds a ResNet keras.models.Model."""
-  is_dropout_last = opts.method in ('ll_dropout', 'dropout', 'dropout_nofirst')
-  is_dropout_all = opts.method in ('dropout', 'dropout_nofirst')
+  is_dropout_last = opts.method in (
+      'll_dropout', 'dropout', 'dropout_nofirst', 'wide_dropout')
+  is_dropout_all = opts.method in ('dropout', 'dropout_nofirst', 'wide_dropout')
   all_dropout_rate = opts.dropout_rate if is_dropout_all else None
   last_dropout_rate = opts.dropout_rate if is_dropout_last else None
 
@@ -88,7 +90,8 @@ def build_model(opts):
       eb_prior_fn=eb_prior_fn,
       always_on_dropout_rate=all_dropout_rate,
       no_first_layer_dropout=opts.method == 'dropout_nofirst',
-      examples_per_epoch=opts.examples_per_epoch)
+      examples_per_epoch=opts.examples_per_epoch,
+      num_filters=opts.num_resnet_filters)
   if opts.method == 'vanilla':
     keras_out = keras.layers.Dense(
         opts.num_classes, kernel_initializer='he_normal')(net)

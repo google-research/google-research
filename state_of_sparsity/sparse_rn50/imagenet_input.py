@@ -173,7 +173,7 @@ class ImageNetTFExampleInput(object):
     # batch size. As long as this validation is done with consistent batch size,
     # exactly the same images will be used.
     dataset = dataset.apply(
-        tf.contrib.data.map_and_batch(
+        tf.data.experimental.map_and_batch(
             self.dataset_parser, batch_size=batch_size,
             num_parallel_batches=self.num_parallel_calls, drop_remainder=True))
 

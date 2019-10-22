@@ -148,10 +148,10 @@ def _get_static_cifar_c(corruption_type, corruption_level):
       FLAGS.cifar_c_dir, '{}.npy'.format(corruption_type))
   cifar_c_labels = os.path.join(FLAGS.cifar_c_dir, 'labels.npy')
 
-  with gfile.Open(cifar_c_images) as f:
+  with gfile.GFile(cifar_c_images, 'rb') as f:
     im = np.load(f)
 
-  with gfile.Open(cifar_c_labels) as f:
+  with gfile.GFile(cifar_c_labels, 'rb') as f:
     lab = np.load(f)
 
   return tf.data.Dataset.from_tensor_slices(

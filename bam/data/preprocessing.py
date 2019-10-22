@@ -169,7 +169,7 @@ class Preprocessor(object):
         d = d.repeat()
         d = d.shuffle(buffer_size=100)
       return d.apply(
-          tf.contrib.data.map_and_batch(
+          tf.data.experimental.map_and_batch(
               self._decode_tfrecord,
               batch_size=params["batch_size"],
               drop_remainder=True))
