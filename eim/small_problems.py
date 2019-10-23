@@ -266,12 +266,8 @@ def main(unused_argv):
             FLAGS.density_num_bins, "energy/nis")
       elif FLAGS.algo == "rejection_sampling":
         print("Running Rejection Sampling")
-        logit_accept_fn = tf.keras.Sequential([
-            tf.keras.layers.Dense(layer_size, activation="tanh")
-            for layer_size in energy_fn_layers
-        ] + [tf.keras.layers.Dense(1, activation=None)])
         model = rejection_sampling.RejectionSampling(
-            T=FLAGS.K, data_dim=[2], logit_accept_fn=logit_accept_fn,
+            T=FLAGS.K, data_dim=[2], energy_hidden_sizes=energy_fn_layers,
             proposal_variance=FLAGS.proposal_variance)
         density_image_summary(
             lambda x: tf.squeeze(  # pylint: disable=g-long-lambda
