@@ -134,8 +134,8 @@ def main(unused_argv):
           np.save(out, plot)
     elif FLAGS.algo == "lars":
       tf.logging.info("Running LARS")
-      model = lars.SimpleLARS(
-          K=FLAGS.K, data_dim=[2], accept_fn_layers=energy_fn_layers,
+      model = lars.LARS(
+          K=FLAGS.K, T=FLAGS.K, data_dim=[2], accept_fn_layers=energy_fn_layers,
           proposal_variance=FLAGS.proposal_variance)
       plot = make_density_summary(
           lambda x: tf.squeeze(model.accept_fn(x)) + model.proposal.log_prob(x),
@@ -165,12 +165,8 @@ def main(unused_argv):
             init_alpha=FLAGS.his_alpha,
             learn_temps=FLAGS.his_learn_alpha)
       elif FLAGS.algo == "rejection_sampling":
-        logit_accept_fn = tf.keras.Sequential([
-            tf.keras.layers.Dense(layer_size, activation="tanh")
-            for layer_size in energy_fn_layers
-        ] + [tf.keras.layers.Dense(1, activation=None)])
         model = rejection_sampling.RejectionSampling(
-            T=FLAGS.K, data_dim=[2], logit_accept_fn=logit_accept_fn,
+            T=FLAGS.K, data_dim=[2], energy_hidden_sizes=energy_fn_layers,
             proposal_variance=FLAGS.proposal_variance)
       samples = model.sample(FLAGS.batch_size)
       with tf.train.SingularMonitoredSession(
