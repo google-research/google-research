@@ -162,7 +162,3 @@ directory. For each environment, there is a SAC-trained policy used to collect
 the data, named `agent_partial_target*`. To generate the data used in the paper,
 simply use the run_collect_data.sh script with the appropriate DATA_NAME in
 pure, eps1, eps3, gaussian1, gaussian3.
-
-For each of these collection schemes, there are pretrained behavior-cloned
-policies based on this data. These are available in the trained_policies
-subdirectories.
