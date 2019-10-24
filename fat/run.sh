@@ -20,5 +20,5 @@ virtualenv -p python3 .
 source ./bin/activate
 
 pip install tensorflow
-pip install -r fat_bert_nq/requirements.txt
+pip install -r fat/fat_bert_nq/requirements.txt
 python3 -m fat.fat_bert_nq.run_nq_test

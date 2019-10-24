@@ -150,7 +150,7 @@ class AdaptiveTest(parameterized.TestCase, tf.test.TestCase):
         true_alpha_init = (alpha_lo + alpha_hi) / 2.
       scale_init = float_dtype(np.random.uniform() + 0.5)
       scale_lo = float_dtype(np.random.uniform() * 0.1)
-      with tf.variable_scope('trial_' + str(i)):
+      with tf.compat.v1.variable_scope('trial_' + str(i)):
         _, alpha, scale = adaptive.lossfun(
             tf.constant(np.zeros((10, 10), float_dtype)),
             alpha_lo=alpha_lo,
@@ -179,7 +179,7 @@ class AdaptiveTest(parameterized.TestCase, tf.test.TestCase):
       mu = tf.Variable(
           tf.zeros(tf.shape(samples)[1], float_dtype), name='DummyMu')
       x = samples - mu[tf.newaxis, :]
-      with tf.variable_scope('trial_' + str(i)):
+      with tf.compat.v1.variable_scope('trial_' + str(i)):
         loss, alpha, scale = adaptive.lossfun(
             x,
             alpha_lo=alpha_lo,

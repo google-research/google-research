@@ -1,4 +1,4 @@
 absl-py>=0.7.0
 numpy>=1.15.2
 scipy>=1.2.0
-tensorflow>=1.10.0
+tensorflow>=1.10.0,<2.0.0

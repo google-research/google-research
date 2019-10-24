@@ -289,7 +289,7 @@ def AddBOWIntegratedGradientsOps(graph,
     assert len(embedding_lookup.get_shape()) == 3
     assert len(embedding.get_shape()) == 2
   with graph.as_default():
-    num_evals = tf.placeholder_with_default(
+    num_evals = tf.compat.v1.placeholder_with_default(
         tf.constant(50, name='num_evals'), shape=())
     attribution_dims_map = {embedding: [1] for embedding in embedding_list}
     attribution_hooks = AddIntegratedGradientsOps(
