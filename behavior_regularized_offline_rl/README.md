@@ -19,6 +19,7 @@ If you use this codebase for your research, please cite the paper:
 *   Obtain partially trained policies by training online.
 *   Customizable data collection.
 *   Customizable offline algorithmic components: different divergence for regularization, value penalty of policy regularization, Q-ensemble.
+*   Pretrained behavior and cloned policies used in the paper.
 
 
 ## Getting Started
@@ -152,3 +153,16 @@ You may also specify --root_dir to replace '$HOME/tmp/offlinerl/learn' with othe
 You can view training curves by launching a tensorboard on `$HOME/tmp/offlinerl/learn/{ENV_NAME}/{DATA_NAME}/n{N_TRAIN}/{AGENT_NAME}/{SUB_DIR}/{SEED}` or any parent directory.
 
 For brac_primal and brac_dual, two policies are evaluated (can be seen in tensorboard): 'main' for simply taking the output from the policy network. 'max_q' for sampling multiple actions and take the max according to the learned q function.
+
+
+## Generating Benchmark Data
+
+This repository includes a number of saved policies in the trained_policies
+directory. For each environment, there is a SAC-trained policy used to collect
+the data, named `agent_partial_target*`. To generate the data used in the paper,
+simply use the run_collect_data.sh script with the appropriate DATA_NAME in
+pure, eps1, eps3, gaussian1, gaussian3.
+
+For each of these collection schemes, there are pretrained behavior-cloned
+policies based on this data. These are available in the trained_policies
+subdirectories.
