@@ -58,7 +58,7 @@ def _construct_scale(x, scale_lo, scale_init, float_dtype):
   else:
     # Otherwise we construct a "latent" scale variable and define `scale`
     # As an affine function of a softplus on that latent variable.
-    latent_scale = tf.get_variable(
+    latent_scale = tf.compat.v1.get_variable(
         'LatentScale', initializer=tf.zeros((1, x.shape[1]), float_dtype))
     scale = util.affine_softplus(latent_scale, lo=scale_lo, ref=scale_init)
   return scale
@@ -176,7 +176,7 @@ def lossfun(x,
         alpha_init = (alpha_lo + alpha_hi) / 2.
       latent_alpha_init = util.inv_affine_sigmoid(
           alpha_init, lo=alpha_lo, hi=alpha_hi)
-      latent_alpha = tf.get_variable(
+      latent_alpha = tf.compat.v1.get_variable(
           'LatentAlpha',
           initializer=tf.fill((1, x.shape[1]),
                               tf.cast(latent_alpha_init, dtype=float_dtype)))
@@ -233,7 +233,7 @@ def lossfun_students(x, scale_lo=1e-5, scale_init=1.):
   float_dtype = x.dtype
   assert_ops = [tf.Assert(tf.equal(tf.rank(x), 2), [tf.rank(x)])]
   with tf.control_dependencies(assert_ops):
-    log_df = tf.get_variable(
+    log_df = tf.compat.v1.get_variable(
         name='LogDf', initializer=tf.zeros((1, x.shape[1]), float_dtype))
     scale = _construct_scale(x, scale_lo, scale_init, float_dtype)
     loss = util.students_t_nll(x, tf.math.exp(log_df), scale)
