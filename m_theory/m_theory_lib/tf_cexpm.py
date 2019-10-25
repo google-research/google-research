@@ -100,7 +100,7 @@ def _get_num_squarings(t_m):
           if len(shape) == 3
           else tf.einsum('ab,ab->', t_m, t_m))  # Real t_m.
   return tf.maximum(
-      _c64(0.0), tf.ceil(tf.log(t_l2) / numpy.log(2)))
+      _c64(0.0), tf.math.ceil(tf.math.log(t_l2) / numpy.log(2)))
 
 
 def _get_squaring_cascade(t_num_squarings, t_m, prod=operator.mul,
@@ -123,8 +123,7 @@ def _get_squaring_cascade(t_num_squarings, t_m, prod=operator.mul,
 def cexpm(t_m_complex, max_squarings=20, taylor_n_max=20, complex_arg=True):
   """Drop-in replacement for tf.linalg.expm(), optionally for complex arg."""
   if complex_arg:
-    t_m = tf.stack([tf.real(t_m_complex),
-                    tf.imag(t_m_complex)])
+    t_m = tf.stack([tf.math.real(t_m_complex), tf.math.imag(t_m_complex)])
   else:
     t_m = t_m_complex
   fn_product = _complex_matmul if complex_arg else tf.matmul

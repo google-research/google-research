@@ -20,11 +20,13 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
-import numpy
-import tensorflow as tf
 
 # TensorFlow based matrix exponentiation that supports higher derivatives.
-from dim4.so8_supergravity_extrema.code import tf_cexpm
+# Will not be needed for TensorFlow1.15+.
+from m_theory_lib import tf_cexpm
+
+import numpy
+import tensorflow as tf
 
 
 Problem = collections.namedtuple(
@@ -62,7 +64,7 @@ def dim7_potential(scalars):
   basis = tf.constant(get_symmetric_traceless_basis(5), dtype=tf.float64)
   g = tf.einsum('aAB,a->AB', basis, scalars)
   T = tf_cexpm.cexpm(g, complex_arg=False)
-  trT = tf.trace(T)
+  trT = tf.linalg.trace(T)
   return tf.einsum('ij,ij->', T, T) - 0.5 * trT * trT
 
 

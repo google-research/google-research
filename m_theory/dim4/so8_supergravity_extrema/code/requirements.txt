@@ -1,5 +1,0 @@
-mpmath>=1.0.0
-numpy>=1.16.2
-opt_einsum>=2.3.2
-scipy>=0.19.1
-tensorflow>=1.9.0
