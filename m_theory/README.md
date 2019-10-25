@@ -48,9 +48,7 @@ pip3 install -r m_theory_lib/requirements.txt
     plus analysis of one of those obtained. Output (providing location data and
     particle properties) will be in the directory `EXAMPLE_SOLUTIONS`.
 
-    ```shell
-python3 -m dim4.so8_supergravity_extrema.code.extrema
-```
+    `python3 -m dim4.so8_supergravity_extrema.code.extrema`
 
 
   * `wrapped_branes/`
@@ -61,9 +59,6 @@ python3 -m dim4.so8_supergravity_extrema.code.extrema
     by wrapping M5-branes.
 
     Run via:
-
-    ```shell
-python3 -i -m wrapped_branes.wrapped_branes {problem_name}
-```
+    `python3 -i -m wrapped_branes.wrapped_branes {problem_name}`
     with `{problem_name}` one of: `dim7`, `cgr-S2`, `cgr-R2`, `cgr-H2`,
     `dgkv-S3`, `dgkv-R3`, `dgkv-H3`.
