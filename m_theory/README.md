@@ -63,6 +63,7 @@ python3 -m dim4.so8_supergravity_extrema.code.extrema
     Run via:
 
     ```shell
-python3 -i -m wrapped_branes.wrapped_branes {problem_name}```
+python3 -i -m wrapped_branes.wrapped_branes {problem_name}
+```
     with `{problem_name}` one of: `dim7`, `cgr-S2`, `cgr-R2`, `cgr-H2`,
     `dgkv-S3`, `dgkv-R3`, `dgkv-H3`.
