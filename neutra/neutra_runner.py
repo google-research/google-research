@@ -38,6 +38,8 @@ import tensorflow as tf
 from neutra import neutra
 from neutra import utils
 
+nest = tf.contrib.framework.nest
+
 flags.DEFINE_string("neutra_log_dir", "/tmp/neutra",
                     "Output directory for experiment artifacts.")
 flags.DEFINE_enum(
@@ -116,12 +118,14 @@ def Eval(exp, sess, batch_size=256, total_batch=4096):
     else:
       return lambda x: np.mean(x, 0)
 
-  avg_type = [classify("".join(str(p) for p in path)) for path in tf.contrib.framework.nest.yield_flat_paths(results[0])]
-  flat_results = [tf.contrib.framework.nest.flatten(r) for r in results]
+  avg_type = [
+      classify("".join(map(str, path)))
+      for path, _ in nest.flatten_with_tuple_paths(results[0])
+  ]
+  flat_results = [nest.flatten(r) for r in results]
   trans_results = list(zip(*flat_results))
   trans_mean_results = [avg(r) for avg, r in zip(avg_type, trans_results)]
-  neutra_stats, p_accept = tf.contrib.framework.nest.pack_sequence_as(
-      results[0], trans_mean_results)
+  neutra_stats, p_accept = nest.pack_sequence_as(results[0], trans_mean_results)
 
   utils.SaveJSON(neutra_stats, os.path.join(log_dir, "neutra_stats" + FLAGS.eval_suffix))
   utils.SaveJSON(p_accept, os.path.join(log_dir, "p_accept" + FLAGS.eval_suffix))
