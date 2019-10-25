@@ -53,14 +53,16 @@ python3 -m dim4.so8_supergravity_extrema.code.extrema
 ```
 
 
-  * `dim5/cgr/cgr_theory/`
+  * `wrapped_branes/`
 
 
     Code for analyzing the potentials of the models constructed in
-    arXiv:1906.08900 by compactifying maximal D=7 supergravity to D=5.
+    https://arxiv.org/abs/1906.08900 and https://arxiv.org/abs/1009.3805
+    by wrapping M5-branes.
 
     Run via:
 
     ```shell
-python3 -i -m dim5.cgr.cgr_theory {problem_name}```
-    with `{problem_name}` one of: `dim7`, `cgr-S2`, `cgr-R2`, `cgr-H2`.
+python3 -i -m wrapped_branes.wrapped_branes {problem_name}```
+    with `{problem_name}` one of: `dim7`, `cgr-S2`, `cgr-R2`, `cgr-H2`,
+    `dgkv-S3`, `dgkv-R3`, `dgkv-H3`.
