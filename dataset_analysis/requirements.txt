@@ -1,3 +1,5 @@
+"tensorflow>=1.11.0,<2.00.0" # BERT code doesn't work for tensorflow 2.0
+# "tensorflow-gpu>=1.11.0,<2.00.0" # for gpu
 absl-py>=0.8.1
 altair>=3.2.0
 attrs>=19.3.0
