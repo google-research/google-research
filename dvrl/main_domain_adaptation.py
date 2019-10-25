@@ -24,9 +24,7 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-
 import lightgbm
-
 import numpy as np
 import tensorflow as tf
 
@@ -128,8 +126,6 @@ def main(args):
   print('DVRL learning performance: ' + str(np.round(dvrl_perf, 4)))
   print('Baseline performance: ' + str(np.round(base_perf, 4)))
 
-  return
-
 
 if __name__ == '__main__':
 
@@ -138,6 +134,7 @@ if __name__ == '__main__':
 
   parser.add_argument(
       '--normalization',
+      choices=['minmax', 'standard'],
       help='data normalization method',
       default='minmax',
       type=str)
