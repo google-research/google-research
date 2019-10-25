@@ -21,12 +21,13 @@ using "Data Valuation using Reinforcement Learning (DVRL)"
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import argparse
 
+import argparse
 import lightgbm
 import numpy as np
 from sklearn import linear_model
 import tensorflow as tf
+
 from dvrl import data_loading
 from dvrl import dvrl
 from dvrl import dvrl_metrics
@@ -125,17 +126,12 @@ def main(args):
                                    'accuracy', plot=True)
 
   # 3. Corrupted sample discovery
-  # If noise_idx variable exist (explicit incides for noisy sample)
-  # and noise_rate is positive value.
-
-  if ('noise_idx' in locals()) & (noise_rate > 0):
-
+  # If noise_rate is positive value.
+  if noise_rate > 0:
     # Evaluates corrupted_sample_discovery
     # and plot corrupted sample discovery results
     _ = dvrl_metrics.discover_corrupted_sample(dve_out,
                                                noise_idx, noise_rate, plot=True)
-
-  return
 
 
 if __name__ == '__main__':
@@ -145,11 +141,13 @@ if __name__ == '__main__':
 
   parser.add_argument(
       '--data_name',
+      choices=['adult', 'blog'],
       help='data name (adult or blog)',
       default='adult',
       type=str)
   parser.add_argument(
       '--normalization',
+      choices=['minmax', 'standard'],
       help='data normalization method',
       default='minmax',
       type=str)

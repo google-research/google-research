@@ -22,13 +22,18 @@ from __future__ import print_function
 import io
 import os
 
-import urllib
 import zipfile
+
+from keras import backend
+from keras import datasets
 
 import numpy as np
 import pandas as pd
 
+from six.moves import urllib
 from sklearn import preprocessing
+import tensorflow as tf
+
 from dvrl import dvrl_utils
 
 
@@ -109,6 +114,7 @@ def load_tabular_data(data_name, dict_no, noise_rate):
     data_train = pd.read_csv(zip_file.open(train_file_name), header=None)
 
     # Loads test dataset
+    data_test = []
     for i in range(29):
       if i < 9:
         file_name = 'blogData_test-2012.02.0'+ str(i+1) + '.00_00.csv'
@@ -348,3 +354,176 @@ def preprocess_data(normalization,
   x_test = df[range(train_no+valid_no, train_no+valid_no+test_no), :]
 
   return x_train, y_train, x_valid, y_valid, x_test, y_test, col_names
+
+
+def load_image_data(data_name, dict_no, noise_rate):
+  """Loads image datasets.
+
+  This module loads CIFAR10 and CIFAR100 datasets and
+  saves train.npz, valid.npz and test.npz files under data_files directory.
+
+  If noise_rate > 0.0, adds noise on the datasets.
+
+  Args:
+    data_name: 'cifar10' or 'cifar100'
+    dict_no: Training and validation set numbers
+    noise_rate: Label corruption ratio
+
+  Returns:
+    noise_idx: Indices of noisy samples
+  """
+
+  # Loads datasets
+  if data_name == 'cifar10':
+    (x_train, y_train), (x_test, y_test) = datasets.cifar10.load_data()
+  elif data_name == 'cifar100':
+    (x_train, y_train), (x_test, y_test) = datasets.cifar100.load_data()
+
+  # Splits train, valid and test sets
+  train_idx = np.random.permutation(len(x_train))
+
+  valid_idx = train_idx[:dict_no['valid']]
+  train_idx = train_idx[dict_no['valid']:(dict_no['train']+dict_no['valid'])]
+
+  test_idx = np.random.permutation(len(x_test))[:dict_no['test']]
+
+  x_valid = x_train[valid_idx]
+  x_train = x_train[train_idx]
+  x_test = x_test[test_idx]
+
+  y_valid = y_train[valid_idx].flatten()
+  y_train = y_train[train_idx].flatten()
+  y_test = y_test[test_idx].flatten()
+
+  # Adds noise on labels
+  y_train, noise_idx = dvrl_utils.corrupt_label(y_train, noise_rate)
+
+  # Saves data
+  if not os.path.exists('data_files'):
+    os.makedirs('data_files')
+
+  np.savez_compressed('./data_files/train.npz',
+                      x_train=x_train, y_train=y_train)
+  np.savez_compressed('./data_files/valid.npz',
+                      x_valid=x_valid, y_valid=y_valid)
+  np.savez_compressed('./data_files/test.npz',
+                      x_test=x_test, y_test=y_test)
+
+  return noise_idx
+
+
+def load_image_data_from_file(train_file_name, valid_file_name, test_file_name):
+  """Loads image datasets from npz files and divides features and labels.
+
+  Args:
+    train_file_name: file name of training set
+    valid_file_name: file name of validation set
+    test_file_name: file name of testing set
+
+  Returns:
+    x_train: training features
+    y_train: training labels
+    x_valid: validation features
+    y_valid: validation labels
+    x_test: testing features
+    y_test: testing labels
+  """
+
+  # Loads images datasets
+  train = np.load('./data_files/'+train_file_name)
+  valid = np.load('./data_files/'+valid_file_name)
+  test = np.load('./data_files/'+test_file_name)
+
+  # Divides features and labels
+  x_train = train['x_train']
+  y_train = train['y_train']
+
+  x_valid = valid['x_valid']
+  y_valid = valid['y_valid']
+
+  x_test = test['x_test']
+  y_test = test['y_test']
+
+  return x_train, y_train, x_valid, y_valid, x_test, y_test
+
+
+def encode_image(features, encoder_model, input_shape, preprocess_function,
+                 batch_size=16):
+  """Encodes images using pre-trained encoder model.
+
+  We apply encoding step with a pre-trained model and save the encoded
+  representation to input them
+  directly to DVRL, for computational efficiency.
+
+  Args:
+    features: Input image
+    encoder_model: Model for encoding images (e.g., InceptionV3)
+    input_shape: Input shape of the encoder model
+    preprocess_function: Preprocessing function from features to input_shape of
+                         encoder_model
+    batch_size: Number of mini-batches for encoding images
+
+  Returns:
+    encoded_features: Encoded images
+  """
+
+  # Number of samples
+  n_features = len(features)
+
+  # Placeholder for batch of images
+  batch_of_images_placeholder = tf.placeholder('uint8',
+                                               (None, features.shape[1],
+                                                features.shape[2],
+                                                features.shape[3]))
+
+  tf_resize_op = tf.image.resize_images(batch_of_images_placeholder,
+                                        input_shape, method=0)
+
+  # Data extraction function
+  def data_generator(sess, data):
+    """Generates preprocessed data.
+
+    Args:
+      sess: Session
+      data: Image data
+
+    Returns:
+      generator: Generator function
+    """
+
+    def generator():
+      """Subfunction of data generator in the session.
+
+      Yields:
+        batch_of_image_preprocessed: preprocessed data
+      """
+      start = 0
+      end = start + batch_size
+      n = data.shape[0]
+      while True:
+        batch_of_images_resized = sess.run(tf_resize_op,
+                                           {batch_of_images_placeholder:
+                                                data[start:end]})
+        batch_of_images__preprocessed = \
+        preprocess_function(batch_of_images_resized)
+        start = start + batch_size
+        end = end + batch_size
+        if start >= n:
+          start = 0
+          end = batch_size
+        yield batch_of_images__preprocessed
+    return generator
+
+  with tf.Session() as sess:
+
+    backend.set_session(sess)
+    model = encoder_model()
+    data_gen = data_generator(sess, features)
+    ftrs_training = model.predict_generator(data_gen(),
+                                            n_features/batch_size,
+                                            verbose=1)
+
+  encoded_features = \
+  np.array([ftrs_training[i].flatten() for i in range(n_features)])
+
+  return encoded_features

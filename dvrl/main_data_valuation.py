@@ -25,7 +25,6 @@ import argparse
 
 import keras
 import lightgbm
-
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -148,8 +147,6 @@ def main(args):
                                    x_valid, y_valid, x_test, y_test,
                                    'accuracy', plot=True)
 
-  return
-
 
 if __name__ == '__main__':
 
@@ -158,11 +155,13 @@ if __name__ == '__main__':
 
   parser.add_argument(
       '--data_name',
+      choices=['adult', 'blog'],
       help='data name (adult or blog)',
       default='adult',
       type=str)
   parser.add_argument(
       '--normalization',
+      choices=['minmax', 'standard'],
       help='data normalization method',
       default='minmax',
       type=str)
