@@ -44,6 +44,7 @@ env:
     - PROJECT="soft_sort"
     - PROJECT="solver1d"
     - PROJECT="state_of_sparsity"
+    - PROJECT="stochastic_to_deterministic"
     - PROJECT="sufficient_input_subsets"
     - PROJECT="tabnet"
     - PROJECT="tcc"
