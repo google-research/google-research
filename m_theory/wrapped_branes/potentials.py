@@ -13,46 +13,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Scalar potential definitions from arXiv:1906.08900"""
+"""Scalar potential definitions for wrapped-branes models.
+
+This includes definitions from:
+
+  - https://arxiv.org/abs/1906.08900  ("cgr")
+  - https://arxiv.org/abs/1009.3805   ("dgkv")
+
+"""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 import collections
+import dataclasses
+import numpy
+import tensorflow as tf
 
 # TensorFlow based matrix exponentiation that supports higher derivatives.
 # Will not be needed for TensorFlow1.15+.
 from m_theory_lib import tf_cexpm
-
-import numpy
-import tensorflow as tf
+from m_theory_lib import util
 
 
-Problem = collections.namedtuple(
-    'Problem',
-    ['num_scalars',  # The number of scalars.
-     'tf_potential',  # TensorFlow function computing the potential.
-     'tf_potential_kwargs'  # Extra keyword args for tf_potential.
-    ])
-
-
-def get_symmetric_traceless_basis(n):
-  """Computes a basis for symmetric-traceless matrices."""
-  num_matrices = n * (n + 1) // 2 - 1
-  # Basis for symmetric-traceless 5x5 matrices.
-  b = numpy.zeros([num_matrices, n, n])
-  # First (n-1) matrices are diag(1, -1, 0, ...), diag(0, 1, -1, 0, ...).
-  # These are not orthogonal to one another.
-  for k in range(n - 1):
-    b[k, k, k] = 1
-    b[k, k + 1, k + 1] = -1
-  i = n - 1
-  for j in range(n):
-    for k in range(j + 1, n):
-      b[i, j, k] = b[i, k, j] = 1
-      i += 1
-  return b
+@dataclasses.dataclass(frozen=True)
+class Problem(object):
+  num_scalars: float  # The number of scalars.
+  tf_potential: callable  # TensorFlow function computing the potential.
+  tf_potential_kwargs: dict  # Extra keyword args for tf_potential.
 
 
 ### The Scalar Potentials ###
@@ -61,7 +50,7 @@ def get_symmetric_traceless_basis(n):
 def dim7_potential(scalars):
   """Implements the D=7 supergravity potential, (2.3) in arXiv:1906.08900."""
   # This can be regarded as a warm-up exercise.
-  basis = tf.constant(get_symmetric_traceless_basis(5), dtype=tf.float64)
+  basis = tf.constant(util.get_symmetric_traceless_basis(5), dtype=tf.float64)
   g = tf.einsum('aAB,a->AB', basis, scalars)
   T = tf_cexpm.cexpm(g, complex_arg=False)
   trT = tf.linalg.trace(T)
@@ -70,7 +59,7 @@ def dim7_potential(scalars):
 
 def cgr_potential(scalars, compactify_on='S2'):
   """Implements the potential (3.20) of arXiv:1906.08900."""
-  basis5 = tf.constant(get_symmetric_traceless_basis(3), dtype=tf.float64)
+  basis5 = tf.constant(util.get_symmetric_traceless_basis(3), dtype=tf.float64)
   L = tf.constant(dict(S2=1, R2=0, H2=-1)[compactify_on], dtype=tf.float64)
   # Psi_a_alpha, a in (0,1), alpha in (0,1,2).
   psi = tf.reshape(scalars[:6], [2, 3])
@@ -115,6 +104,41 @@ def cgr_potential(scalars, compactify_on='S2'):
       2 * s * (e3 * (L + psi2) + e * trT))
 
 
+
+def dgkv_potential(scalars, compactify_on='S3'):
+  """Implements the potential (3.8) of arXiv:1009.3805."""
+  basis2 = tf.constant(util.get_symmetric_traceless_basis(2), dtype=tf.float64)
+  L = tf.constant(dict(S3=1, R3=0, H3=-1)[compactify_on], dtype=tf.float64)
+  s_phi, s_lambda, s_beta = scalars[0], scalars[1], scalars[2]
+  tau22 = tf.einsum('aAB,a->AB', basis2, scalars[3:5])
+  T = tf_cexpm.cexpm(tau22, complex_arg=False)
+  Tinv = tf_cexpm.cexpm(-tau22, complex_arg=False)
+  theta = scalars[5:7]
+  chi = scalars[7:9]
+  #
+  tr = tf.linalg.trace
+  esum = tf.einsum
+  sq = tf.math.square
+  exp = tf.exp
+  trT = tr(T)
+  th_Tinv_th = esum('a,ab,b->', theta, Tinv, theta)
+  return (
+      3 * L * exp(-10 * s_phi)
+      -3/8 * exp(8 * s_lambda - 14 * s_phi) * sq(
+          L - 2 * s_beta**2 - 2 * tf.einsum('a,a->', theta, theta))
+      +0.5 * exp(-6 * s_phi) * (
+          3 * exp(-8 * s_lambda)
+          + exp(12 * s_lambda) * (sq(trT)
+                                  - 2 * esum('ab,ab->', T, T))
+          + 6 * exp(2 * s_lambda) * trT)
+      -1.5 * exp(-10 * s_phi) * (
+          exp(10 * s_lambda) * esum('a,ab,b->', theta, T, theta)
+          - 2 * esum('a,a->', theta, theta)
+          + exp(-10 * s_lambda) * th_Tinv_th)
+      -6 * exp(-2 * s_lambda -14 * s_phi) * sq(s_beta) * th_Tinv_th
+      -0.5 * exp(6 * s_lambda - 18 * s_phi) * esum('a,ab,b->', chi, T, chi))
+
+
 ### Problem definitions ###
 
 
@@ -125,6 +149,7 @@ PROBLEMS = {
     'dim7': Problem(num_scalars=14,
                     tf_potential=dim7_potential,
                     tf_potential_kwargs={}),  # No extra args.
+    ###
     'cgr-S2': Problem(num_scalars=13,
                       tf_potential=cgr_potential,
                       tf_potential_kwargs=dict(compactify_on='S2')),
@@ -134,4 +159,14 @@ PROBLEMS = {
     'cgr-H2': Problem(num_scalars=13,
                       tf_potential=cgr_potential,
                       tf_potential_kwargs=dict(compactify_on='H2')),
+    ###
+    'dgkv-S3': Problem(num_scalars=9,
+                       tf_potential=dgkv_potential,
+                       tf_potential_kwargs=dict(compactify_on='S3')),
+    'dgkv-R3': Problem(num_scalars=9,
+                       tf_potential=dgkv_potential,
+                       tf_potential_kwargs=dict(compactify_on='R3')),
+    'dgkv-H3': Problem(num_scalars=9,
+                       tf_potential=dgkv_potential,
+                       tf_potential_kwargs=dict(compactify_on='H3')),
 }

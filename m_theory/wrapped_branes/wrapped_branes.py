@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Analyzing the potential of the CGR paper arXiv:1906.08900.
+"""Analyzing the potentials of wrapped-branes models.
 
 This is mostly a pedagogical example.
 TensorFlow-based analysis really shines if the number of true scalars
@@ -23,8 +23,9 @@ The scaffolding included here makes the code quite easy to adopt to
 other reasonably straightforward cases. One only needs to introduce a
 function that computes the scalar potential like dim7_potential()
 below (remembering that one is operating on TensorFlow objects rather
-than numerical quantities), and then call scan({{number_of_scalars}},
-{{potential_function}}).
+than numerical quantities), and then call:
+
+  scan({{number_of_scalars}}, {{potential_function}}).
 
 """
 
@@ -33,18 +34,20 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+import dataclasses
 import numpy
 import scipy.optimize
 import sys
 import tensorflow as tf
 
 # The actual problem definitions.
-from dim5.cgr import potentials
+from wrapped_branes import potentials
 
-
-# Lightweight 'Numerical Solution' data structure.
-Solution = collections.namedtuple('Solution',
-                                  ['potential', 'stationarity', 'scalars'])
+@dataclasses.dataclass(frozen=True)
+class Solution(object):
+  potential: float
+  stationarity: float
+  scalars: numpy.ndarray
 
 
 def call_with_evaluator(
@@ -54,9 +57,10 @@ def call_with_evaluator(
     punish_scalars_beyond=2.0,
     problem_args=(), problem_kwargs={},
     f_args=(), f_kwargs={}):
-  """Calls `f` with potential-stationarity-gradient-evaluator in tf context.
+  """Calls `f` with potential-stationarity-gradient-evaluator in TF context.
 
-  Sets up the TensorFlow graph that implements (3.20) of arXiv:1906.08900.
+  Sets up the TensorFlow graph that implements a wrapped-branes potential,
+  such as (3.20) of arXiv:1906.08900.
 
   Args:
     num_scalars: The number of scalars.
@@ -79,14 +83,13 @@ def call_with_evaluator(
   graph = tf.Graph()
   with graph.as_default():
     t_input = tf.Variable(numpy.zeros(num_scalars), dtype=tf.float64)
-    t_potential = problem(
-        t_input, *problem_args, **problem_kwargs)
+    t_potential = problem(t_input, *problem_args, **problem_kwargs)
     t_grad_potential = tf.gradients(t_potential, [t_input])[0]
-    t_stationarity = tf.reduce_sum(t_grad_potential * t_grad_potential)
+    t_stationarity = tf.reduce_sum(tf.square(t_grad_potential))
     # Punish large scalars.
     # This drives the search away from 'unphysical' regions.
     t_eff_stationarity = t_stationarity + tf.reduce_sum(
-        tf.sinh(  # Make stationarity-violation grow rapidly for far-out scalars
+        tf.sinh(  # Make stationarity-violation grow rapidly for far-out scalars.
             tf.nn.relu(tf.abs(t_input) - punish_scalars_beyond)))
     t_grad_stationarity = tf.gradients(t_eff_stationarity, [t_input])[0]
     with tf.compat.v1.Session() as session:
@@ -101,9 +104,10 @@ def call_with_evaluator(
 def scan(
     num_scalars,
     problem,
-    num_solutions=10,  # We normally would want to run many more scan trials.
+    num_solutions=40,  # We normally would want to run many more scan trials.
     seed=1,
     scale=0.15,
+    stationarity_threshold=1e-4,
     debug=True,
     *problem_extra_args,
     **problem_extra_kwargs):
@@ -115,7 +119,9 @@ def scan(
       such as `call_with_cgr_psg_evaluator`.
     num_solutions: Number of critical points to collect before returning.
     seed: Random number generator seed for generating starting points.
-    scale: Scale for normal-distributed search starting points.
+    scale: Scale for normal-distributed search starting point coordinates.
+    stationarity_threshold: Upper bound on permissible post-optimization
+      stationarity for a solution to be considered good.
     debug: Whether to print newly found solutions right when they
      are discovered.
     problem_extra_args: Extra positional arguments for the problem-function.
@@ -126,7 +132,7 @@ def scan(
   """
   # Use a seeded random number generator for better reproducibility
   # (but note that scipy's optimizers may themselves use independent
-  # random state).
+  # and not-easily-controllable random state).
   rng = numpy.random.RandomState(seed=seed)
   def get_x0():
     return rng.normal(scale=scale, size=num_scalars)
@@ -157,9 +163,10 @@ def scan(
 
 
 if __name__ == '__main__':
+  # Set numpy's default array-formatting width to 160 characters.
   numpy.set_printoptions(linewidth=160)
   if len(sys.argv) != 2 or sys.argv[-1] not in potentials.PROBLEMS:
-    sys.exit('Usage: python3 -i -m dim5.cgr.cgr_theory {problem_name}.\n'
+    sys.exit('\n\nUsage: python3 -i -m dim5.cgr.cgr_theory {problem_name}.\n'
              'Known problem names are: %s' % ', '.join(
                  sorted(potentials.PROBLEMS)))
   problem = potentials.PROBLEMS[sys.argv[-1]]
