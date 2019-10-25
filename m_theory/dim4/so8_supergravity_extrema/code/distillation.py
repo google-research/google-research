@@ -40,8 +40,7 @@ from dim4.so8_supergravity_extrema.code import scalar_sector
 from dim4.so8_supergravity_extrema.code import scalar_sector_mpmath
 from dim4.so8_supergravity_extrema.code import scalar_sector_tensorflow
 from dim4.so8_supergravity_extrema.code import symmetries
-from dim4.so8_supergravity_extrema.code import tf_cexpm
-
+from m_theory_lib import tf_cexpm
 
 # A 'model' of a critical point is a coordinate description that has been
 # rotated in such a way that many entries can be set to zero.
@@ -232,7 +231,7 @@ def _reduce_second_m35(m35s, m35c, is_diagonal_35s, seed=0):
     t_loss = (tf.norm(t_m35_rotated, ord=1) -
               tf.norm(tf.linalg.diag_part(t_m35_rotated), ord=1))
     optimizer = tf.contrib.opt.ScipyOptimizerInterface(t_loss)
-    with tf.Session() as sess:
+    with tf.compat.v1.Session() as sess:
       sess.run([tf.global_variables_initializer()])
       optimizer.minimize(sess)
       # We are only interested in the diagonalized matrix.
@@ -571,7 +570,7 @@ def refine_model_gradient_descent(low_dimensional_model,
     #
     t_stationarity = sinfo.stationarity
     t_grad = tf.gradients(t_stationarity, t_v70)[0]
-    with tf.Session() as sess:
+    with tf.compat.v1.Session() as sess:
       sess.run([tf.global_variables_initializer()])
       n_pot0 = sess.run(t_potential, feed_dict={t_v70: v70})
       def still_good(potential):
@@ -936,7 +935,7 @@ def call_with_scalar_mass_matrix_evaluator(f, *args):
         # Factor -3/8 (rather than -3/4) is due to normalization of
         # our orthonormal basis.
         (-3.0 / 8) / t_potential)
-    with tf.Session() as sess:
+    with tf.compat.v1.Session() as sess:
       sess.run([tf.global_variables_initializer()])
       def evaluator(v70):
         sess.run([op_assign_input], feed_dict={t_input: v70})

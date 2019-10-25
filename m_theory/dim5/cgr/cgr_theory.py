@@ -47,8 +47,6 @@ Solution = collections.namedtuple('Solution',
                                   ['potential', 'stationarity', 'scalars'])
 
 
-
-
 def call_with_evaluator(
     num_scalars,
     problem,
@@ -91,8 +89,8 @@ def call_with_evaluator(
         tf.sinh(  # Make stationarity-violation grow rapidly for far-out scalars
             tf.nn.relu(tf.abs(t_input) - punish_scalars_beyond)))
     t_grad_stationarity = tf.gradients(t_eff_stationarity, [t_input])[0]
-    with tf.Session() as session:
-      session.run([tf.global_variables_initializer()])
+    with tf.compat.v1.Session() as session:
+      session.run([tf.compat.v1.global_variables_initializer()])
       def evaluator(scalars):
         return session.run(
             (t_potential, t_stationarity, t_grad_stationarity),
@@ -161,7 +159,7 @@ def scan(
 if __name__ == '__main__':
   numpy.set_printoptions(linewidth=160)
   if len(sys.argv) != 2 or sys.argv[-1] not in potentials.PROBLEMS:
-    sys.exit('Usage: python -i -m dim5.cgr.cgr_theory {problem_name}.\n'
+    sys.exit('Usage: python3 -i -m dim5.cgr.cgr_theory {problem_name}.\n'
              'Known problem names are: %s' % ', '.join(
                  sorted(potentials.PROBLEMS)))
   problem = potentials.PROBLEMS[sys.argv[-1]]
