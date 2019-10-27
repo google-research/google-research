@@ -14,31 +14,51 @@ otherwise), Google's TensorFlow Machine Learning technology is sufficiently
 generic to be a very useful tool to address some research questions in this
 domain that can/should be studied numerically.
 
-# Structure
+# Downloading and Installation
 
-  * dim4/so8_supergravity_extrema/
-    Code for the scalar potential of the de Wit - Nicolai model,
-    SO(8)-gauged N=8 Supergravity in 3+1-dimensional spacetime.
+A simple (albeit somewhat strange) way to download only this part of the
+google-research github repository is:
 
-    Preprint: "SO(8) Supergravity and the Magic of Machine Learning"
-    (https://bit.ly/2EMz81M)
+```shell
+svn export https://github.com/google-research/google-research/trunk/m_theory
+```
 
-    Demo: This will install and run a small demo search for a few solutions,
-    plus analysis of one of those obtained. Output (providing location data and
-    particle properties) will be in the directory "EXAMPLE_SOLUTIONS".
 
-  * dim5/cgr/cgr_theory/
-    Code for analyzing the potentials of the models constructed in
-    arXiv:1906.08900 by compactifying maximal D=7 supergravity to D=5.
-
-    Run via: python -i -m dim5.cgr.cgr_theory {problem_name}
-    with {problem_name} one of: dim7, cgr-S2, cgr-R2, cgr-H2.
-
+Then, the Python environment can be set up as follows:
 
 ```shell
 virtualenv -p python3 env
 source env/bin/activate
 
-pip install -r dim4/so8_supergravity_extrema/code/requirements.txt
-python -m dim4.so8_supergravity_extrema.code.extrema
+pip3 install -r m_theory_lib/requirements.txt
 ```
+
+
+# Structure
+
+  * `dim4/so8_supergravity_extrema/`
+
+    Code for the scalar potential of the de Wit - Nicolai model,
+    SO(8)-gauged N=8 Supergravity in 3+1-dimensional spacetime.
+
+    Article: "SO(8) Supergravity and the Magic of Machine Learning"
+    (https://arxiv.org/abs/1906.00207).
+
+    Demo: This will run a small demo search for a few solutions,
+    plus analysis of one of those obtained. Output (providing location data and
+    particle properties) will be in the directory `EXAMPLE_SOLUTIONS`.
+
+    `python3 -m dim4.so8_supergravity_extrema.code.extrema`
+
+
+  * `wrapped_branes/`
+
+
+    Code for analyzing the potentials of the models constructed in
+    https://arxiv.org/abs/1906.08900 and https://arxiv.org/abs/1009.3805
+    by wrapping M5-branes.
+
+    Run via:
+    `python3 -i -m wrapped_branes.wrapped_branes {problem_name}`
+    with `{problem_name}` one of: `dim7`, `cgr-S2`, `cgr-R2`, `cgr-H2`,
+    `dgkv-S3`, `dgkv-R3`, `dgkv-H3`.

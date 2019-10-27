@@ -145,7 +145,7 @@ def pad_reflecting(x, padding_below, padding_above, axis):
   i = tf.range(-padding_below, n + padding_above, dtype=tf.int32)
   # `j` contains the indices of the input tensor corresponding to the output
   # padded tensor.
-  i_mod = tf.mod(i, tf.maximum(1, 2 * (n - 1)))
+  i_mod = tf.math.mod(i, tf.maximum(1, 2 * (n - 1)))
   j = tf.minimum(2 * (n - 1) - i_mod, i_mod)
   return tf.gather(x, j, axis=axis)
 

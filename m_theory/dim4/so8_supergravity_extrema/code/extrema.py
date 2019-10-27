@@ -26,11 +26,6 @@ import pdb  # To simplify interactive debugging only.
 import pprint
 import time
 
-# Setting up `mpmath` global default precision at initialization time.
-# Uses value from the environment variable `MPMATH_DPS`, or 100 if unset.
-mpmath.mp.dps = int(os.getenv('MPMATH_DPS', '100'))
-
-
 from dim4.so8_supergravity_extrema.code import distillation
 from dim4.so8_supergravity_extrema.code import scalar_sector_mpmath
 from dim4.so8_supergravity_extrema.code import scalar_sector_tensorflow
@@ -38,6 +33,10 @@ from dim4.so8_supergravity_extrema.code import symmetries
 
 import mpmath
 import numpy
+
+# Setting up `mpmath` global default precision at initialization time.
+# Uses value from the environment variable `MPMATH_DPS`, or 100 if unset.
+mpmath.mp.dps = int(os.getenv('MPMATH_DPS', '100'))
 
 
 def scan_for_solutions(seed, scale, num_iterations, output_basename):

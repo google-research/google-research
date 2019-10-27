@@ -41,10 +41,10 @@ def corrupt_label(y_train, noise_rate):
   noise_idx = temp_idx[:int(len(y_train) * noise_rate)]
 
   # Corrupts label
-  corrupted_y_train = y_train.copy()
+  corrupted_y_train = y_train[:]
 
   for itt in noise_idx:
-    temp_y_set = y_set.copy()
+    temp_y_set = y_set[:]
     del temp_y_set[y_train[itt]]
     rand_idx = np.random.randint(len(y_set) - 1)
     corrupted_y_train[itt] = temp_y_set[rand_idx]

@@ -88,7 +88,7 @@ def large_margin(  # pylint: disable=invalid-name
     use_approximation=True,
     worst_case_loss=True,
     layers_weights=None,
-    loss_collection=tf.GraphKeys.LOSSES):
+    loss_collection=tf.compat.v1.GraphKeys.LOSSES):
   """Creates a large margin loss.
 
   Args:
