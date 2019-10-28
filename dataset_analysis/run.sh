@@ -13,8 +13,10 @@
 # limitations under the License.
 
 #!/bin/bash
-# Finetune & predict the targets using BERT.
-# Save output into easily readable csv format.#
+
+virtualenv -p python3 .
+source ./bin/activate
+pip install -r dataset_analysis/requirements.txt
 
 echo "Performing training & evaluation..."
 python -m dataset_analysis.bert_classifier \
