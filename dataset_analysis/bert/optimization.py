@@ -26,7 +26,7 @@ import re
 import tensorflow as tf
 
 
-def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, freeze_layers):
+def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, freeze_layer_fn=None):
   """Creates an optimizer training op."""
   global_step = tf.train.get_or_create_global_step()
 
@@ -72,8 +72,8 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu, 
     optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
 
   tvars = tf.trainable_variables()
-  if freeze_layers:
-    tvars = [v for v in tvars if 'bert' not in v.name]  ## freeze all layers of bert
+  if freeze_layer_fn:
+    tvars = [v for v in tvars if not freeze_layer_fn(v.name)]  # freeze layers based on function
 
   tf.logging.info("**** Trainable Variables ****")
   for var in tvars:

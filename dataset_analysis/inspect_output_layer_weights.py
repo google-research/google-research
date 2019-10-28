@@ -23,6 +23,7 @@ from absl import app
 from absl import flags
 import numpy as np
 import tensorflow as tf
+import os
 
 FLAGS = flags.FLAGS
 
@@ -31,13 +32,22 @@ flags.DEFINE_string(
     None,
     "Model checkpoint directory.")
 
+flags.DEFINE_string(
+    "tensor_names",
+    "output_weights,new_output_weights",
+    "Comma separated list of tensor names to save.")
+
+
+def save_tensor(reader, name):
+    tensor = reader.get_tensor(name)
+    np.save(os.path.join(FLAGS.checkpoint_dir, name + ".npy"), tensor)
+
 
 def main(_):
   checkpoint = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
   reader = tf.train.NewCheckpointReader(checkpoint)
-  tensor = reader.get_tensor("output_weights")
-  print(type(tensor))
-  np.save(FLAGS.checkpoint_dir + "output_weights.npy", tensor)
+  for name in FLAGS.tensor_names.split(","):
+    save_tensor(reader, name)
 
 
 if __name__ == "__main__":
