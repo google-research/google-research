@@ -395,7 +395,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
         input_mask=input_mask,
         token_type_ids=segment_ids)
 
-    # In the demo, we are doing a simple classification task on the entire
+    # In the dtarget, we are doing a simple classification task on the entire
     # segment.
     #
     # If you want to use the token-level output, use model.get_sequence_output()
@@ -484,7 +484,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                      num_train_steps, num_warmup_steps, multilabel, sent_rels,
                      sentiment, entailment_rels, entailment, corr_rels,
-                     correlation, idx2emo, sentiment_groups, intensity_groups):
+                     correlation, idx2target, sentiment_groups, intensity_groups):
     """Returns `model_fn` closure for Estimator."""
 
     def model_fn(features, labels, mode, params):  # pylint: disable=unused-argument
@@ -620,13 +620,13 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                 for j, logits in enumerate(logits_split):
                     current_auc, update_op_auc = tf.metrics.auc(label_ids_split[j],
                                                                 logits)
-                    eval_dict[idx2emo[j] + "_auc"] = (current_auc, update_op_auc)
+                    eval_dict[idx2target[j] + "_auc"] = (current_auc, update_op_auc)
                     current_acc, update_op_acc = tf.metrics.accuracy(
                         label_ids_split[j], pred_ind_split[j])
-                    eval_dict[idx2emo[j] + "_accuracy"] = (current_acc, update_op_acc)
-                    eval_dict[idx2emo[j] + "_precision"] = tf.metrics.precision(
+                    eval_dict[idx2target[j] + "_accuracy"] = (current_acc, update_op_acc)
+                    eval_dict[idx2target[j] + "_precision"] = tf.metrics.precision(
                         label_ids_split[j], pred_ind_split[j])
-                    eval_dict[idx2emo[j] + "_recall"] = tf.metrics.recall(
+                    eval_dict[idx2target[j] + "_recall"] = tf.metrics.recall(
                         label_ids_split[j], pred_ind_split[j])
                     auc_vals.append(current_auc)
                     accuracies.append(current_auc)
@@ -675,20 +675,20 @@ def get_sent_rels(targets):
     with open(FLAGS.sentiment_file) as f:
         sent_dict = json.loads(f.read())
 
-    emo2sentiment = {}
+    target2sentiment = {}
     for k, v in sent_dict.items():
         for e in v:
-            assert e not in emo2sentiment  # no target should be in two categories
-            emo2sentiment[e] = k
+            assert e not in target2sentiment  # no target should be in two categories
+            target2sentiment[e] = k
     rels = []
     for e1 in targets:
         e1_rels = []
         for e2 in targets:
-            if e1 not in emo2sentiment or e2 not in emo2sentiment:
+            if e1 not in target2sentiment or e2 not in target2sentiment:
                 e1_rels.append(0)
-            elif emo2sentiment[e1] != emo2sentiment[e2]:
+            elif target2sentiment[e1] != target2sentiment[e2]:
                 e1_rels.append(-1)
-            elif emo2sentiment[e1] == emo2sentiment[e2]:
+            elif target2sentiment[e1] == target2sentiment[e2]:
                 e1_rels.append(1)
         rels.append(e1_rels)
     return rels
@@ -768,7 +768,7 @@ def main(_):
         all_targets = f.read().splitlines()
         if FLAGS.add_neutral:
             all_targets = all_targets + ["neutral"]
-        idx2emo = {i: e for i, e in enumerate(all_targets)}
+        idx2target = {i: e for i, e in enumerate(all_targets)}
     num_labels = len(all_targets)
     print("%d labels" % num_labels)
     print("Multilabel: %r" % FLAGS.multilabel)
@@ -777,7 +777,7 @@ def main(_):
     entailment = FLAGS.entailment
     correlation = FLAGS.correlation
 
-    # Create emotion distance matrix
+    # Create target distance matrix
     # If the regularization parameter is set to 0, don't load matrix.
     print("Getting distance matrix...")
     empty_rels = [[0] * num_labels] * num_labels
@@ -874,7 +874,7 @@ def main(_):
         entailment=entailment,
         corr_rels=corr_rels,
         correlation=correlation,
-        idx2emo=idx2emo,
+        idx2target=idx2target,
         sentiment_groups=sent_groups,
         intensity_groups=intensity_groups)
 
@@ -993,12 +993,12 @@ def main(_):
                         str(class_probability)
                         for class_probability in probabilities) + "\n"
                     sorted_idx = np.argsort(-probabilities)
-                    top_3_emo = [idx2emo[idx] for idx in sorted_idx[:3]]
+                    top_3_target = [idx2target[idx] for idx in sorted_idx[:3]]
                     top_3_prob = [probabilities[idx] for idx in sorted_idx[:3]]
                     pred_line = []
-                    for emo, prob in zip(top_3_emo, top_3_prob):
+                    for target, prob in zip(top_3_target, top_3_prob):
                         if prob >= FLAGS.pred_cutoff:
-                            pred_line.extend([emo, "%.4f" % prob])
+                            pred_line.extend([target, "%.4f" % prob])
                         else:
                             pred_line.extend(["", ""])
                     writer.write(output_line)

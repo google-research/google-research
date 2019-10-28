@@ -368,7 +368,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
         input_mask=input_mask,
         token_type_ids=segment_ids)
 
-    # In the demo, we are doing a simple classification task on the entire
+    # In the dtarget, we are doing a simple classification task on the entire
     # segment.
     #
     # If you want to use the token-level output, use model.get_sequence_output()
@@ -422,7 +422,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 
 
 def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
-                     num_train_steps, num_warmup_steps, multilabel, idx2emo):
+                     num_train_steps, num_warmup_steps, multilabel, idx2target):
     """Returns `model_fn` closure for Estimator."""
 
     def model_fn(features, labels, mode, params):  # pylint: disable=unused-argument
@@ -533,13 +533,13 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                 for j, logits in enumerate(logits_split):
                     current_auc, update_op_auc = tf.metrics.auc(label_ids_split[j],
                                                                 logits)
-                    eval_dict[idx2emo[j] + "_auc"] = (current_auc, update_op_auc)
+                    eval_dict[idx2target[j] + "_auc"] = (current_auc, update_op_auc)
                     current_acc, update_op_acc = tf.metrics.accuracy(
                         label_ids_split[j], pred_ind_split[j])
-                    eval_dict[idx2emo[j] + "_accuracy"] = (current_acc, update_op_acc)
-                    eval_dict[idx2emo[j] + "_precision"] = tf.metrics.precision(
+                    eval_dict[idx2target[j] + "_accuracy"] = (current_acc, update_op_acc)
+                    eval_dict[idx2target[j] + "_precision"] = tf.metrics.precision(
                         label_ids_split[j], pred_ind_split[j])
-                    eval_dict[idx2emo[j] + "_recall"] = tf.metrics.recall(
+                    eval_dict[idx2target[j] + "_recall"] = tf.metrics.recall(
                         label_ids_split[j], pred_ind_split[j])
                     auc_vals.append(current_auc)
                     accuracies.append(current_auc)
@@ -581,7 +581,7 @@ def main(_):
     with open(FLAGS.target_file, "r") as f:
         all_targets = f.read().splitlines()
         all_targets = all_targets + ["neutral"]
-        idx2emo = {i: e for i, e in enumerate(all_targets)}
+        idx2target = {i: e for i, e in enumerate(all_targets)}
     num_labels = len(all_targets)
     print("%d labels" % num_labels)
     print("Multilabel: %r" % FLAGS.multilabel)
@@ -653,7 +653,7 @@ def main(_):
         num_train_steps=num_train_steps,
         num_warmup_steps=num_warmup_steps,
         multilabel=FLAGS.multilabel,
-        idx2emo=idx2emo)
+        idx2target=idx2target)
 
     estimator = tf.estimator.Estimator(
         model_fn=model_fn,
@@ -770,12 +770,12 @@ def main(_):
                         str(class_probability)
                         for class_probability in probabilities) + "\n"
                     sorted_idx = np.argsort(-probabilities)
-                    top_3_emo = [idx2emo[idx] for idx in sorted_idx[:3]]
+                    top_3_target = [idx2target[idx] for idx in sorted_idx[:3]]
                     top_3_prob = [probabilities[idx] for idx in sorted_idx[:3]]
                     pred_line = []
-                    for emo, prob in zip(top_3_emo, top_3_prob):
+                    for target, prob in zip(top_3_target, top_3_prob):
                         if prob >= FLAGS.pred_cutoff:
-                            pred_line.extend([emo, "%.4f" % prob])
+                            pred_line.extend([target, "%.4f" % prob])
                         else:
                             pred_line.extend(["", ""])
                     writer.write(output_line)
