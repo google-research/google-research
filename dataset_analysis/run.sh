@@ -13,6 +13,8 @@
 # limitations under the License.
 
 #!/bin/bash
+set -e
+set -x
 
 virtualenv -p python3 .
 source ./bin/activate
