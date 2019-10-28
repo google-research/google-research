@@ -16,7 +16,6 @@ more-itertools>=7.2.0
 numpy>=1.17.2
 pandas>=0.25.1
 patsy>=0.5.1
-pkg-resources>=0.0.0
 praw>=6.4.0
 pyparsing>=2.4.2
 pyrsistent>=0.15.4
