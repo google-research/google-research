@@ -17,6 +17,7 @@
 virtualenv -p python3 .
 source ./bin/activate
 pip install numpy
+pip install six
 pip install -r dataset_analysis/requirements.txt
 
 echo "Performing training & evaluation..."
