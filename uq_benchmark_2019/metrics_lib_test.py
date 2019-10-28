@@ -181,7 +181,7 @@ class MetricsLibTest(tf.test.TestCase, parameterized.TestCase):
     logits = tf.random.uniform(batch_shape + (num_samples, num_classes))
     dist = tfp.distributions.Categorical(logits=logits)
     labels = dist.sample().numpy()
-    probs = dist.probs.numpy()
+    probs = dist.probs_parameter().numpy()
 
     scores = metrics_lib.brier_scores(labels, probs=probs)
     # Check that computing from logits returns the same result.
@@ -207,7 +207,7 @@ class MetricsLibTest(tf.test.TestCase, parameterized.TestCase):
     logits = tf.random.uniform(batch_shape + (num_samples, num_classes))
     dist = tfp.distributions.Categorical(logits=logits)
     labels = dist.sample().numpy()
-    probs = dist.probs.numpy()
+    probs = dist.probs_parameter().numpy()
 
     all_decomps = metrics_lib.brier_decompositions(labels, probs)
     self.assertEqual(all_decomps.shape, batch_shape + (3,))
