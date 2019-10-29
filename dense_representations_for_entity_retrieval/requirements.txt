@@ -1,0 +1,4 @@
+absl_py>=0.8.1
+bz2file>=0.98
+mwparserfromhell>=0.5.4
+pandas>=0.5.4
