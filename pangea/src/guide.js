@@ -87,6 +87,7 @@
         environment.setRendererSize(window.innerWidth, window.innerHeight);
       });
 
+      var initialized = false;  // If environment textures are loaded.
       // Add a envlogger for the environment.
       var envlogger = {times: [], states: []};
       envlogger.times.push(performance.now());
@@ -137,7 +138,6 @@
       var instructions = document.getElementById('instructions');
       var blockerButton = document.getElementById('blocker-button');
 
-      var initialized = false;  // If environment textures are loaded.
       instructions.addEventListener('click', () => {
         if (initialized) {
           instructions.style.display = 'none';
@@ -164,7 +164,13 @@
 
         if (e.ctrlKey && e.keyCode === 13) {  // Control + enter.
 
-          api.submitAnswer({azimuth, keylogger, envlogger});
+          if (input.value.split(' ').length < 8) {
+            window.alert('ERROR: instructions must be 8+ words.');
+          } else if (environment._point.node != path[path.length - 1]) {
+            window.alert('ERROR: can only submit from final node.');
+          } else {
+            api.submitAnswer({azimuth, keylogger, envlogger});
+          }
         }
       });
 
