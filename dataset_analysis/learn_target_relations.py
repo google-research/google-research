@@ -140,6 +140,8 @@ flags.DEFINE_integer("iterations_per_loop", 1000,
 flags.DEFINE_integer("eval_steps", None,
                      "How many steps to take to go over the eval set.")
 
+flags.DEFINE_bool("add_neutral", True,
+                     "Whether to append `neutral` to the emotion categories.")
 
 class InputExample(object):
     """A single training/test example for simple sequence classification."""
@@ -580,7 +582,8 @@ def main(_):
     # Load target categories
     with open(FLAGS.target_file, "r") as f:
         all_targets = f.read().splitlines()
-        all_targets = all_targets + ["neutral"]
+        if FLAGS.add_neutral:
+            all_targets = all_targets + ["neutral"]
         idx2target = {i: e for i, e in enumerate(all_targets)}
     num_labels = len(all_targets)
     print("%d labels" % num_labels)

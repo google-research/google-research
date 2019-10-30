@@ -552,7 +552,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                 accuracy = tf.metrics.accuracy(
                     labels=true_labels, predictions=predictions)
                 loss = tf.metrics.mean(values=per_example_loss)
-                eval_dict["eval_accuracy"] = accuracy,
+                eval_dict["eval_accuracy"] = accuracy
                 eval_dict["eval_loss"] = loss
 
             def get_f1(precision, recall):
