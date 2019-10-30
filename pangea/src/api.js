@@ -18,7 +18,7 @@
 
 var API;
 
-if (typeof API == undefined) {
+if (typeof API == 'undefined') {
   /**
    * Mock crowd annotation API (e.g., Amazon Mechanical Turk).
    */
