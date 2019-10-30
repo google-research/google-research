@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Utilities for improving explainability of neural networks."""
 
 from __future__ import absolute_import
@@ -21,6 +22,7 @@ from __future__ import print_function
 
 import sys
 
+import six
 import tensorflow as tf
 
 
@@ -174,8 +176,11 @@ def AddIntegratedGradientsOps(graph,
         if isinstance(key, tf.Tensor):
           combined_feed_dict[baseline_transform_info.transformed(key)] = (
               feed_value)
-        elif isinstance(key, unicode):
-          tensor = graph.get_tensor_by_name(key.decode())
+        elif isinstance(key, six.text_type):
+          if six.PY2:
+            tensor = graph.get_tensor_by_name(key.decode())
+          else:
+            tensor = graph.get_tensor_by_name(key)
           combined_feed_dict[baseline_transform_info.transformed(tensor)] = (
               feed_value)
         elif isinstance(key, tf.SparseTensor):
