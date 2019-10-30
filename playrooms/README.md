@@ -1,15 +1,19 @@
 # Playrooms
 A suite of simulated rooms that can be used for 'play' training and evaluation.
 
-Example use of Playrooms in the following paper:
-https://learning-from-play.github.io/ (1)
-![Example of play data](https://learning-from-play.github.io/assets/mp4/play_data.mp4.gif)
+## Example Use
+[Playroom](https://github.com/google-research/google-research/tree/master/playrooms/rooms/playroom) is used in the paper [learning-from-play.github.io](https://learning-from-play.github.io/) paper (1), example play data:
+
+![Example of play data](https://learning-from-play.github.io/assets/mp4/play_data_14mb.gif)
 
 ## Content
-This repository currently includes the original playroom used in (1).
-It looks like this (does not contain a robot arm yet, but coming soon):
-![playroom](rooms/playroom/playroom.png)
-![playroom-entire](rooms/playroom/playroom_entire.png)
+This repository currently includes the original playroom used in (1).  
+It looks like this:  
+(does not contain a robot arm yet, but coming soon)
+
+![playroom](https://github.com/google-research/google-research/raw/master/playrooms/rooms/playroom/playroom.png){width="320"}
+![playroom-entire](https://github.com/google-research/google-research/raw/master/playrooms/rooms/playroom/playroom_entire.png){width="320"}
+
 
 ## Usage
 The 3D assets distributed here can be imported in MuJoCo.
