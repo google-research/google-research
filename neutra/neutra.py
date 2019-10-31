@@ -91,7 +91,7 @@ def MakeRNVPBijectorFn(num_dims,
   if learn_scale:
     scale = tf.nn.softplus(
         tf.get_variable(
-            "isp_global_scale", initializer=tfd.softplus_inverse(scale)))
+            "isp_global_scale", initializer=tfp.math.softplus_inverse(scale)))
   bijectors.append(tfb.Affine(scale_identity_multiplier=scale))
 
   bijector = tfb.Chain(bijectors)
@@ -139,7 +139,7 @@ def MakeIAFBijectorFn(
   if learn_scale:
     scale = tf.nn.softplus(
         tf.get_variable(
-            "isp_global_scale", initializer=tfd.softplus_inverse(scale)))
+            "isp_global_scale", initializer=tfp.math.softplus_inverse(scale)))
   bijectors.append(tfb.Affine(scale_identity_multiplier=scale))
 
   bijector = tfb.Chain(bijectors)
