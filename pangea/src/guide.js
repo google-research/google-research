@@ -169,7 +169,7 @@
           } else if (environment._point.node != path[path.length - 1]) {
             window.alert('ERROR: can only submit from final node.');
           } else {
-            api.submitAnswer({azimuth, keylogger, envlogger});
+            api.submitAnswer({azimuth, keylogger, envlogger, question: tmp});
           }
         }
       });
