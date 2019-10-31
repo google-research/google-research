@@ -67,7 +67,7 @@ class Interleaved(TransitionKernel):
   def __init__(self, inner_kernel_cp, inner_kernel_ncp,
                to_cp=noop, to_ncp=noop, seed=None, name=None):
 
-    self._seed_stream = tfp.distributions.SeedStream(
+    self._seed_stream = tfp.util.SeedStream(
         seed, 'interleaved_one_step')
 
     if (inner_kernel_cp.seed == inner_kernel_ncp.seed and
