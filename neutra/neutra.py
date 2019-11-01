@@ -46,7 +46,7 @@ def MakeAffineBijectorFn(num_dims, train=False, use_tril=False):
   mu = tf.get_variable("mean", initializer=tf.zeros([num_dims]))
   if use_tril:
     tril_flat = tf.get_variable("tril_flat", [num_dims * (num_dims + 1) // 2])
-    tril_raw = tfd.fill_triangular(tril_flat)
+    tril_raw = tfp.math.fill_triangular(tril_flat)
     sigma = tf.nn.softplus(tf.matrix_diag_part(tril_raw))
     tril = tf.linalg.set_diag(tril_raw, sigma)
     return tfb.Affine(shift=mu, scale_tril=tril)
