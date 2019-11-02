@@ -27,7 +27,7 @@ from absl import flags
 import h5py
 from replay_buffer import ReplayBuffer
 import tensorflow as tf
-from tensorflow.contrib.eager.python import tfe
+from tensorflow.contrib.eager.python import tfe as contrib_eager_python_tfe
 
 FLAGS = flags.FLAGS
 
@@ -74,8 +74,9 @@ def main(_):
             [trajectories['r_B_T'][i][j]],
             [mask], j == trajectories['len_B'][i] - 1)
 
-    replay_buffer_var = tfe.Variable('', name='expert_replay_buffer')
-    saver = tfe.Saver([replay_buffer_var])
+    replay_buffer_var = contrib_eager_python_tfe.Variable(
+        '', name='expert_replay_buffer')
+    saver = contrib_eager_python_tfe.Saver([replay_buffer_var])
     odir = os.path.join(FLAGS.dst_data_dir, env)
     print('Saving results to checkpoint in directory: %s' % odir)
     tf.gfile.MakeDirs(odir)

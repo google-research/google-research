@@ -27,8 +27,10 @@ from common import Actor
 import gym
 import lfd_envs
 import tensorflow as tf
-from tensorflow.contrib.eager.python import tfe
 from utils import do_rollout
+from tensorflow.contrib import summary as contrib_summary
+from tensorflow.contrib import training as contrib_training
+from tensorflow.contrib.eager.python import tfe as contrib_eager_python_tfe
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string('env', 'Hopper-v1',
@@ -69,7 +71,7 @@ def wait_for_next_checkpoint(log_dir,
 
   while True:
     logging.info('Waiting for next policy checkpoint...')
-    next_checkpoint = tf.contrib.training.wait_for_new_checkpoint(
+    next_checkpoint = contrib_training.wait_for_new_checkpoint(
         log_dir,
         last_checkpoint,
         seconds_to_sleep=seconds_to_sleep,
@@ -88,13 +90,13 @@ def wait_for_next_checkpoint(log_dir,
 
 def main(_):
   """Run td3/ddpg evaluation."""
-  tfe.enable_eager_execution()
+  contrib_eager_python_tfe.enable_eager_execution()
 
   if FLAGS.use_gpu:
     tf.device('/device:GPU:0').__enter__()
 
   tf.gfile.MakeDirs(FLAGS.log_dir)
-  summary_writer = tf.contrib.summary.create_file_writer(
+  summary_writer = contrib_summary.create_file_writer(
       FLAGS.log_dir, flush_millis=10000)
 
   env = gym.make(FLAGS.env)
@@ -110,8 +112,8 @@ def main(_):
   random_reward, _ = do_rollout(
       env, actor, None, num_trajectories=10, sample_random=True)
 
-  reward_scale = tfe.Variable(1, name='reward_scale')
-  saver = tfe.Saver(actor.variables + [reward_scale])
+  reward_scale = contrib_eager_python_tfe.Variable(1, name='reward_scale')
+  saver = contrib_eager_python_tfe.Saver(actor.variables + [reward_scale])
 
   last_checkpoint = tf.train.latest_checkpoint(FLAGS.load_dir)
   with summary_writer.as_default():
@@ -133,14 +135,14 @@ def main(_):
       print('Evaluation: average episode length {}, average episode reward {}'.
             format(average_length, average_reward))
 
-      with tf.contrib.summary.always_record_summaries():
+      with contrib_summary.always_record_summaries():
         if reward_scale.numpy() != 1.0:
-          tf.contrib.summary.scalar(
+          contrib_summary.scalar(
               'reward/scaled', (average_reward - random_reward) /
               (reward_scale.numpy() - random_reward),
               step=total_numsteps)
-        tf.contrib.summary.scalar('reward', average_reward, step=total_numsteps)
-        tf.contrib.summary.scalar('length', average_length, step=total_numsteps)
+        contrib_summary.scalar('reward', average_reward, step=total_numsteps)
+        contrib_summary.scalar('length', average_length, step=total_numsteps)
 
 
 if __name__ == '__main__':

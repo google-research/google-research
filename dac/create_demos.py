@@ -37,8 +37,8 @@ import gym
 import numpy as np
 from replay_buffer import ReplayBuffer
 import tensorflow as tf
-from tensorflow.contrib.eager.python import tfe
 from utils import do_rollout
+from tensorflow.contrib.eager.python import tfe as contrib_eager_python_tfe
 # pylint: enable=g-import-not-at-top,g-bad-import-order
 
 
@@ -65,7 +65,7 @@ flags.DEFINE_integer('task_id', 0, 'Id of the current TF task.')
 
 def main(_):
   """Run td3/ddpg training."""
-  tfe.enable_eager_execution()
+  contrib_eager_python_tfe.enable_eager_execution()
 
   if FLAGS.use_gpu:
     tf.device('/device:GPU:0').__enter__()
@@ -83,14 +83,15 @@ def main(_):
   obs_shape = env.observation_space.shape
   act_shape = env.action_space.shape
 
-  expert_replay_buffer_var = tfe.Variable('', name='expert_replay_buffer')
+  expert_replay_buffer_var = contrib_eager_python_tfe.Variable(
+      '', name='expert_replay_buffer')
 
-  saver = tfe.Saver([expert_replay_buffer_var])
+  saver = contrib_eager_python_tfe.Saver([expert_replay_buffer_var])
   tf.gfile.MakeDirs(FLAGS.save_dir)
 
   with tf.variable_scope('actor'):
     actor = Actor(obs_shape[0], act_shape[0])
-  expert_saver = tfe.Saver(actor.variables)
+  expert_saver = contrib_eager_python_tfe.Saver(actor.variables)
 
   best_checkpoint = None
   best_reward = float('-inf')

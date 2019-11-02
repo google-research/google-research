@@ -39,8 +39,9 @@ import numpy as np
 from replay_buffer import ReplayBuffer
 from replay_buffer import TimeStep
 import tensorflow as tf
-from tensorflow.contrib.eager.python import tfe
 from utils import do_rollout
+from tensorflow.contrib import summary as contrib_summary
+from tensorflow.contrib.eager.python import tfe as contrib_eager_python_tfe
 # pylint: enable=g-import-not-at-top,g-bad-import-order
 
 FLAGS = flags.FLAGS
@@ -70,13 +71,13 @@ flags.DEFINE_integer('task_id', 0, 'Id of the current TF task.')
 
 def main(_):
   """Run td3/ddpg training."""
-  tfe.enable_eager_execution()
+  contrib_eager_python_tfe.enable_eager_execution()
 
   if FLAGS.use_gpu:
     tf.device('/device:GPU:0').__enter__()
 
   tf.gfile.MakeDirs(FLAGS.log_dir)
-  summary_writer = tf.contrib.summary.create_file_writer(
+  summary_writer = contrib_summary.create_file_writer(
       FLAGS.log_dir, flush_millis=10000)
 
   tf.set_random_seed(FLAGS.seed)
@@ -109,18 +110,23 @@ def main(_):
         policy_update_freq=1,
         actor_lr=1e-4)
 
-  replay_buffer_var = tfe.Variable('', name='replay_buffer')
-  gym_random_state_var = tfe.Variable('', name='gym_random_state')
-  np_random_state_var = tfe.Variable('', name='np_random_state')
-  py_random_state_var = tfe.Variable('', name='py_random_state')
+  replay_buffer_var = contrib_eager_python_tfe.Variable(
+      '', name='replay_buffer')
+  gym_random_state_var = contrib_eager_python_tfe.Variable(
+      '', name='gym_random_state')
+  np_random_state_var = contrib_eager_python_tfe.Variable(
+      '', name='np_random_state')
+  py_random_state_var = contrib_eager_python_tfe.Variable(
+      '', name='py_random_state')
 
-  saver = tfe.Saver(
+  saver = contrib_eager_python_tfe.Saver(
       model.variables + [replay_buffer_var] +
       [gym_random_state_var, np_random_state_var, py_random_state_var])
   tf.gfile.MakeDirs(FLAGS.save_dir)
 
-  reward_scale = tfe.Variable(1, name='reward_scale')
-  eval_saver = tfe.Saver(model.actor.variables + [reward_scale])
+  reward_scale = contrib_eager_python_tfe.Variable(1, name='reward_scale')
+  eval_saver = contrib_eager_python_tfe.Saver(model.actor.variables +
+                                              [reward_scale])
   tf.gfile.MakeDirs(FLAGS.eval_save_dir)
 
   last_checkpoint = tf.train.latest_checkpoint(FLAGS.save_dir)
@@ -157,10 +163,9 @@ def main(_):
       print('Training: total timesteps {}, episode reward {}'.format(
           total_numsteps, rollout_reward))
 
-      with tf.contrib.summary.always_record_summaries():
-        tf.contrib.summary.scalar('reward', rollout_reward, step=total_numsteps)
-        tf.contrib.summary.scalar(
-            'length', rollout_timesteps, step=total_numsteps)
+      with contrib_summary.always_record_summaries():
+        contrib_summary.scalar('reward', rollout_reward, step=total_numsteps)
+        contrib_summary.scalar('length', rollout_timesteps, step=total_numsteps)
 
       if len(replay_buffer) >= FLAGS.min_samples_to_start:
         for _ in range(rollout_timesteps):
