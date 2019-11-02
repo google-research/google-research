@@ -29,6 +29,7 @@ import tensorflow as tf
 
 from albert import modeling
 from albert import run_pretraining
+from tensorflow.contrib import cluster_resolver as contrib_cluster_resolver
 
 
 flags = tf.flags
@@ -111,7 +112,7 @@ def main(_):
 
   tpu_cluster_resolver = None
   if FLAGS.use_tpu and FLAGS.tpu_name:
-    tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
+    tpu_cluster_resolver = contrib_cluster_resolver.TPUClusterResolver(
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
   is_per_host = tf.estimator.tpu.InputPipelineConfig.PER_HOST_V2
