@@ -152,7 +152,8 @@ def module_fn(is_training):
       name="tokenization_info",
       inputs={},
       outputs=dict(
-          vocab_file=vocab_model,
+          vocab_file=vocab_file,
+          vocab_model=vocab_model,
           do_lower_case=tf.constant(FLAGS.do_lower_case)))
 
 
