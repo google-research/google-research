@@ -5,7 +5,7 @@ This directory contains a Colab recreating the plots for:
 Kudugunta, S.R., Bapna, A., Caswell, I., Arivazhagan, N., & Firat, O. (2019). [Investigating Multilingual NMT Representations at Scale](https://arxiv.org/abs/1909.02197). ArXiv, abs/1909.02197.
 
 
-To launch the colab, [click here](https://colab.google.com/github/google-research/google-research/blob/master//investigating-nmt/Investigating_MNMT.ipynb)
+To launch the colab, [click here](https://colab.research.google.com/github/google-research/google-research/blob/master/investigating_m4/Investigating_M4.ipynb)
 
 
 ## Data
