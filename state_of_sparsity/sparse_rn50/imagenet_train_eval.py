@@ -33,6 +33,8 @@ import tensorflow as tf
 from state_of_sparsity.sparse_rn50 import imagenet_input
 from state_of_sparsity.sparse_rn50 import resnet_model
 from state_of_sparsity.sparse_rn50 import utils
+from tensorflow.contrib import estimator as contrib_estimator
+from tensorflow.contrib import tpu as contrib_tpu
 from tensorflow.contrib.model_pruning.python import pruning
 from tensorflow.contrib.tpu.python.tpu import tpu_config
 from tensorflow.contrib.tpu.python.tpu import tpu_estimator
@@ -249,7 +251,7 @@ def train_function(pruning_method, loss, output_dir, use_tpu):
 
   if use_tpu:
     # use CrossShardOptimizer when using TPU.
-    optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
+    optimizer = contrib_tpu.CrossShardOptimizer(optimizer)
 
   # UPDATE_OPS needs to be added as a dependency due to batch norm
   update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -389,7 +391,7 @@ def resnet_model_fn_w_pruning(features, labels, mode, params):
         inputs=features, is_training=(mode == tf.estimator.ModeKeys.TRAIN))
 
   if FLAGS.precision == 'bfloat16':
-    with tf.contrib.tpu.bfloat16_scope():
+    with contrib_tpu.bfloat16_scope():
       logits = build_network()
     logits = tf.cast(logits, tf.float32)
   elif FLAGS.precision == 'float32':
@@ -553,7 +555,7 @@ def resnet_model_fn_w_pruning(features, labels, mode, params):
   else:
     scaffold_fn = None
 
-  return tf.contrib.tpu.TPUEstimatorSpec(
+  return contrib_tpu.TPUEstimatorSpec(
       mode=mode,
       loss=loss,
       train_op=train_op,
@@ -571,10 +573,11 @@ class ExportModelHook(tf.train.SessionRunHook):
     self.export_dir = export_dir
     self.last_export = 0
     self.supervised_input_receiver_fn = (
-        tf.contrib.estimator.build_raw_supervised_input_receiver_fn({
-            'feature':
-                tf.placeholder(dtype=tf.float32, shape=[None, 224, 224, 3])
-        }, tf.placeholder(dtype=tf.int32, shape=[None])))
+        contrib_estimator.build_raw_supervised_input_receiver_fn(
+            {
+                'feature':
+                    tf.placeholder(dtype=tf.float32, shape=[None, 224, 224, 3])
+            }, tf.placeholder(dtype=tf.int32, shape=[None])))
 
   def begin(self):
     self.global_step = tf.train.get_or_create_global_step()
@@ -588,9 +591,8 @@ class ExportModelHook(tf.train.SessionRunHook):
           'Export model for prediction (step={}) ...'.format(global_step))
 
       self.last_export = global_step
-      tf.contrib.estimator.export_all_saved_models(
-          self.classifier,
-          os.path.join(self.export_dir, str(global_step)), {
+      contrib_estimator.export_all_saved_models(
+          self.classifier, os.path.join(self.export_dir, str(global_step)), {
               tf.estimator.ModeKeys.EVAL:
                   self.supervised_input_receiver_fn,
               tf.estimator.ModeKeys.PREDICT:
