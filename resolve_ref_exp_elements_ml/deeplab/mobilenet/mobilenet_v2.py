@@ -31,8 +31,9 @@ import tensorflow as tf
 
 import deeplab.mobilenet.conv_blocks as ops
 import deeplab.mobilenet.mobilenet as lib
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 op = lib.op
 
 expand_input = ops.expand_input_by_factor
