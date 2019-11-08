@@ -20,6 +20,8 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.contrib import checkpoint as contrib_checkpoint
+from tensorflow.contrib.eager.python import tfe as contrib_eager
 
 
 def create_checkpoint_manager(agent,
@@ -35,7 +37,7 @@ def create_checkpoint_manager(agent,
     objects_to_save.update(
         score_optimizer=agent.score_optimizer, score_fn=agent.score_fn)
   checkpoint = tf.train.Checkpoint(**objects_to_save)
-  manager = tf.contrib.checkpoint.CheckpointManager(
+  manager = contrib_checkpoint.CheckpointManager(
       checkpoint, directory=ckpt_dir, max_to_keep=2)
   if restore:
     if manager.latest_checkpoint is not None:
@@ -87,7 +89,7 @@ class Encoder(tf.keras.Model):
         input_dim=vocab_size + 1, output_dim=embedding_dim, mask_zero=True)
     self.gru = gru(self.enc_units, return_state=False, use_cudnn=False)
 
-  @tf.contrib.eager.defun
+  @contrib_eager.defun
   def call(self, x, initial_state=None):
     x = self.embedding(x)
     output = self.gru(x, initial_state=initial_state)
@@ -115,9 +117,9 @@ class Decoder(tf.keras.Model):
     self.w2 = tf.keras.layers.Dense(self.dec_units)
     self.w3 = tf.keras.layers.Dense(1)
 
-  @tf.contrib.eager.defun(input_signature=[
-      tf.contrib.eager.TensorSpec(shape=[None, 16], dtype=tf.float32),
-      tf.contrib.eager.TensorSpec(shape=[None, None, 16], dtype=tf.float32),
+  @contrib_eager.defun(input_signature=[
+      contrib_eager.TensorSpec(shape=[None, 16], dtype=tf.float32),
+      contrib_eager.TensorSpec(shape=[None, None, 16], dtype=tf.float32),
   ])
   def _call(self, hidden, enc_output):
     # enc_output shape == (batch_size, max_length, hidden_size)
@@ -216,7 +218,7 @@ class SimpleLinearNN(tf.keras.Model):
     self.dense = tf.keras.layers.Dense(
         1, use_bias=True, bias_initializer=tf.initializers.ones())
 
-  @tf.contrib.eager.defun
+  @contrib_eager.defun
   def call(self, inputs):
     out = tf.squeeze(self.dense(inputs), axis=-1)
     return out
@@ -270,8 +272,8 @@ class LinearNN(tf.keras.Model):
     super(LinearNN, self).__init__()
     self._linear = Linear(**kwargs)
 
-  @tf.contrib.eager.defun(input_signature=[
-      tf.contrib.eager.TensorSpec(shape=[None, 16 * 17], dtype=tf.float32)
+  @contrib_eager.defun(input_signature=[
+      contrib_eager.TensorSpec(shape=[None, 16 * 17], dtype=tf.float32)
   ])
   def call(self, inputs):
     return self._linear(inputs)

@@ -31,6 +31,7 @@ from meta_reward_learning.textworld.lib.agent import RLAgent
 from meta_reward_learning.textworld.lib.model import create_checkpoint_manager
 from meta_reward_learning.textworld.lib.replay_buffer import BufferScorer
 from meta_reward_learning.textworld.lib.replay_buffer import SampleGenerator
+from tensorflow.contrib import summary as contrib_summary
 
 FLAGS = flags.FLAGS
 flags.adopt_module_key_flags(common_flags)
@@ -96,19 +97,19 @@ def train(agent, replay_buffer, dev_data, objective='mapo'):
   best_ckpt_manager = create_checkpoint_manager(
       agent, best_ckpt_dir, restore=False, include_optimizer=False)
   # Log summaries for the accuracy results
-  summary_writer = tf.contrib.summary.create_file_writer(
+  summary_writer = contrib_summary.create_file_writer(
       osp.join(FLAGS.train_dir, 'tb_log'), flush_millis=5000)
   max_val_acc = helpers.eval_agent(agent, dev_env_dict)
 
   with summary_writer.as_default(), \
-    tf.contrib.summary.always_record_summaries():
+    contrib_summary.always_record_summaries():
     while agent.global_step.numpy() < FLAGS.num_steps:
       if sgd_steps % FLAGS.save_every_n == 0:
         ckpt_manager.save()
         train_acc = helpers.eval_agent(agent, train_env_dict)
         val_acc = helpers.eval_agent(agent, dev_env_dict)
-        tf.contrib.summary.scalar('train_acc', train_acc)
-        tf.contrib.summary.scalar('validation_acc', val_acc)
+        contrib_summary.scalar('train_acc', train_acc)
+        contrib_summary.scalar('validation_acc', val_acc)
         if val_acc > max_val_acc:
           max_val_acc = val_acc
           tf.logging.info('Best validation accuracy {}'.format(max_val_acc))

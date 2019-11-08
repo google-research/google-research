@@ -24,6 +24,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.contrib import resampler as contrib_resampler
 
 
 def apply_line_prediction(inputs,
@@ -68,7 +69,7 @@ def apply_line_prediction(inputs,
         with tf.name_scope(None, 'warp', values=[frame, flow]):
           warps = identity_warp + flow[:, :, :, tf.newaxis, :] * warp_steps
           warps = tf.clip_by_value(warps, 0.0, max_warps)
-          warped = tf.contrib.resampler.resampler(frame, warps)
+          warped = contrib_resampler.resampler(frame, warps)
           warped = tf.concat([frame[:, :, :, tf.newaxis, :], warped], axis=3)
 
         with tf.name_scope(None, 'apply_alpha', values=[frame, flow]):

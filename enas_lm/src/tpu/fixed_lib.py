@@ -23,6 +23,7 @@ import numpy as np
 import tensorflow as tf
 
 from enas_lm.src.tpu import utils
+from tensorflow.contrib import tpu as contrib_tpu
 
 
 flags = tf.app.flags
@@ -454,7 +455,7 @@ def model_fn(features, labels, mode, params):
 
     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
     if params.use_tpu:
-      optimizer = tf.contrib.tpu.CrossShardOptimizer(
+      optimizer = contrib_tpu.CrossShardOptimizer(
           opt=optimizer, reduction=tf.losses.Reduction.MEAN)
     with tf.control_dependencies(update_average_ops):
       train_op = optimizer.apply_gradients(zip(clipped_grads, tf_vars),
@@ -468,11 +469,8 @@ def model_fn(features, labels, mode, params):
         ('moving_average_mu', moving_average_mu),
     ]
     host_call = utils.build_host_call_fn(params, names_and_tensors)
-    return tf.contrib.tpu.TPUEstimatorSpec(
-        mode=mode,
-        loss=total_loss,
-        train_op=train_op,
-        host_call=host_call)
+    return contrib_tpu.TPUEstimatorSpec(
+        mode=mode, loss=total_loss, train_op=train_op, host_call=host_call)
   else:
     def _metric_fn(cross_entropy_loss):
       """Computes metrics for EstimatorSpec."""
@@ -482,7 +480,7 @@ def model_fn(features, labels, mode, params):
       }
       return metrics
 
-    return tf.contrib.tpu.TPUEstimatorSpec(
+    return contrib_tpu.TPUEstimatorSpec(
         mode=tf.estimator.ModeKeys.EVAL,
         loss=total_loss,
         eval_metrics=(_metric_fn, [cross_entropy_loss]))
