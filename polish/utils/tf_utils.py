@@ -23,7 +23,9 @@ from absl import logging
 import gin
 import numpy as np
 import tensorflow as tf
-slim = tf.contrib.slim
+from tensorflow.contrib import predictor as contrib_predictor
+from tensorflow.contrib import slim as contrib_slim
+slim = contrib_slim
 FLAGS = flags.FLAGS
 
 # Set logging verbosity
@@ -216,8 +218,11 @@ def create_predictor(estimator, serving_input_func):
   Args:
     estimator: TF estimator.
     serving_input_func: placeholder for input to model.
+
+  Returns:
+    Estimator for prediction
   """
-  return tf.contrib.predictor.from_estimator(estimator, serving_input_func)
+  return contrib_predictor.from_estimator(estimator, serving_input_func)
 
 
 @gin.configurable

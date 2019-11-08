@@ -33,6 +33,7 @@ import tensorflow as tf
 from dim4.so8_supergravity_extrema.code import algebra
 from dim4.so8_supergravity_extrema.code import scalar_sector
 from m_theory_lib import tf_cexpm
+from tensorflow.contrib import opt as contrib_opt
 
 
 # Must be wrapped up in a function, since we can only call this with
@@ -72,7 +73,7 @@ def get_scanner(output_path,
     t_potential = sinfo.potential
     #
     t_stationarity = sinfo.stationarity
-    op_opt = tf.contrib.opt.ScipyOptimizerInterface(
+    op_opt = contrib_opt.ScipyOptimizerInterface(
         tf.asinh(t_stationarity), options={'maxiter': maxiter})
     #
     def scanner(seed, scale=0.1, num_iterations=1):
