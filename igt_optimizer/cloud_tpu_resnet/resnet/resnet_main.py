@@ -50,6 +50,7 @@ from igt_optimizer.cloud_tpu_resnet.hyperparameters import hyperparameters
 from igt_optimizer.cloud_tpu_resnet.resnet import imagenet_input
 from igt_optimizer.cloud_tpu_resnet.resnet import lars_util
 from igt_optimizer.cloud_tpu_resnet.resnet import resnet_model
+from tensorflow.contrib import cluster_resolver as contrib_cluster_resolver
 from tensorflow.contrib import summary
 # copybara:strip_begin
 from tensorflow.contrib.compiler import xla
@@ -447,7 +448,7 @@ def resnet_model_fn(features, labels, mode, params):
         inputs=features, is_training=(mode == tf.estimator.ModeKeys.TRAIN))
 
   if params['precision'] == 'bfloat16':
-    with tf.contrib.tpu.bfloat16_scope():
+    with contrib_tpu.bfloat16_scope():
       logits = build_network()
     logits = tf.cast(logits, tf.float32)
   elif params['precision'] == 'float32':
@@ -526,7 +527,7 @@ def resnet_model_fn(features, labels, mode, params):
       # When using TPU, wrap the optimizer with CrossShardOptimizer which
       # handles synchronization details between different TPU cores. To the
       # user, this should look like regular synchronous training.
-      optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
+      optimizer = contrib_tpu.CrossShardOptimizer(optimizer)
 
     # Batch normalization requires UPDATE_OPS to be added as a dependency to
     # the train operation.
@@ -645,7 +646,7 @@ def resnet_model_fn(features, labels, mode, params):
 
       scaffold_fn = scaffold_fn_true_params
 
-  return tf.contrib.tpu.TPUEstimatorSpec(
+  return contrib_tpu.TPUEstimatorSpec(
       mode=mode,
       loss=loss,
       train_op=train_op,
@@ -708,7 +709,7 @@ def main(unused_argv):
   params = hyperparameters.get_hyperparameters(FLAGS.default_hparams_file,
                                                FLAGS.hparams_file, FLAGS,
                                                FLAGS.hparams)
-  tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
+  tpu_cluster_resolver = contrib_cluster_resolver.TPUClusterResolver(
       FLAGS.tpu if (FLAGS.tpu or params['use_tpu']) else '',
       zone=FLAGS.tpu_zone,
       project=FLAGS.gcp_project)
@@ -717,7 +718,7 @@ def main(unused_argv):
     save_checkpoints_steps = None
   else:
     save_checkpoints_steps = max(2500, params['iterations_per_loop'])
-  config = tf.contrib.tpu.RunConfig(
+  config = contrib_tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       model_dir=get_model_dir(params),
       save_checkpoints_steps=save_checkpoints_steps,
@@ -727,16 +728,16 @@ def main(unused_argv):
           graph_options=tf.GraphOptions(
               rewrite_options=rewriter_config_pb2.RewriterConfig(
                   disable_meta_optimizer=True))),
-      tpu_config=tf.contrib.tpu.TPUConfig(
+      tpu_config=contrib_tpu.TPUConfig(
           iterations_per_loop=params['iterations_per_loop'],
           num_shards=params['num_cores'],
           # copybara:strip_begin
           tpu_job_name=FLAGS.tpu_job_name,
           # copybara:strip_end
-          per_host_input_for_training=tf.contrib.tpu.InputPipelineConfig
+          per_host_input_for_training=contrib_tpu.InputPipelineConfig
           .PER_HOST_V2))  # pylint: disable=line-too-long
 
-  resnet_classifier = tf.contrib.tpu.TPUEstimator(
+  resnet_classifier = contrib_tpu.TPUEstimator(
       use_tpu=params['use_tpu'],
       model_fn=resnet_model_fn,
       config=config,
@@ -747,7 +748,7 @@ def main(unused_argv):
 
   # copybara:strip_begin
   if FLAGS.xla_compile:
-    resnet_classifier = tf.contrib.tpu.TPUEstimator(
+    resnet_classifier = contrib_tpu.TPUEstimator(
         use_tpu=params['use_tpu'],
         model_fn=xla.estimator_model_fn(resnet_model_fn),
         config=config,

@@ -151,7 +151,7 @@ def main(unused_args):
     gfile.DeleteRecursively(output_dir)
     gfile.MakeDirs(output_dir)
 
-  params = tf.contrib.training.HParams(
+  params = contrib_training.HParams(
       data_path=FLAGS.data_path,
       log_every=FLAGS.log_every,
       output_dir=output_dir,
@@ -186,4 +186,3 @@ def main(unused_args):
 
 if __name__ == '__main__':
   tf.app.run()
-
