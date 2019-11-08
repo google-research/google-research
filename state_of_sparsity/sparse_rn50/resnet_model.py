@@ -29,6 +29,7 @@ from absl import flags
 import tensorflow as tf
 from state_of_sparsity.sparse_rn50.pruning_layers import sparse_conv2d
 from state_of_sparsity.sparse_rn50.pruning_layers import sparse_fully_connected
+from tensorflow.contrib import layers as contrib_layers
 from tensorflow.python.ops import init_ops  # pylint: disable=g-direct-tensorflow-import
 
 FLAGS = flags.FLAGS
@@ -246,7 +247,7 @@ def conv2d_fixed_padding(inputs,
   # Initialize log-alpha s.t. the dropout rate is 10%
   log_alpha_initializer = tf.random_normal_initializer(
       mean=2.197, stddev=0.01, dtype=tf.float32)
-  kernel_regularizer = tf.contrib.layers.l2_regularizer(weight_decay)
+  kernel_regularizer = contrib_layers.l2_regularizer(weight_decay)
   return sparse_conv2d(
       x=inputs,
       units=filters,
@@ -742,7 +743,7 @@ def resnet_v1_generator(block_fn,
       # Initialize log-alpha s.t. the dropout rate is 10%
       log_alpha_initializer = tf.random_normal_initializer(
           mean=2.197, stddev=0.01, dtype=tf.float32)
-      kernel_regularizer = tf.contrib.layers.l2_regularizer(weight_decay)
+      kernel_regularizer = contrib_layers.l2_regularizer(weight_decay)
       inputs = sparse_fully_connected(
           x=inputs,
           units=num_classes,
