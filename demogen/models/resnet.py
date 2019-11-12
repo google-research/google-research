@@ -22,6 +22,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.contrib import layers as contrib_layers
 
 
 _BATCH_NORM_DECAY = 0.997
@@ -434,7 +435,7 @@ class ResNet(object):
       if is_training:
         var_list = [v for v in tf.trainable_variables(self._scope) if
                     self._loss_filter_fn(v.name)]
-        reg = tf.contrib.layers.l2_regularizer(scale=self.weight_decay)
+        reg = contrib_layers.l2_regularizer(scale=self.weight_decay)
         l2_loss_list = list(map(reg, var_list))
         l2_loss = tf.add_n(l2_loss_list)
         tf.add_to_collection(tf.GraphKeys.REGULARIZATION_LOSSES, l2_loss)
