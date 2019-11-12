@@ -28,6 +28,7 @@ from polish.ppo import ppo_loss
 from polish.utils import distributions
 from polish.utils import host_call_fn
 from polish.utils import tf_layers
+from tensorflow.contrib import tpu as contrib_tpu
 
 logging.set_verbosity(logging.INFO)
 
@@ -299,8 +300,7 @@ class PpoModelFn(object):
       # compute gradients perform averaging of the loss
       adam_optimizer = tf.tpu.CrossShardOptimizer(adam_optimizer)
 
-      tpu_sum_loss = tf.contrib.tpu.cross_replica_sum(loss /
-                                                      self._tpu_num_shards)
+      tpu_sum_loss = contrib_tpu.cross_replica_sum(loss / self._tpu_num_shards)
 
       grads_and_vars = adam_optimizer.compute_gradients(tpu_sum_loss,
                                                         self.total_params)
@@ -313,7 +313,7 @@ class PpoModelFn(object):
           sum_vars.append(var)
         else:
           sum_grads.append(
-              tf.contrib.tpu.cross_replica_sum(grad) / self._tpu_num_shards)
+              contrib_tpu.cross_replica_sum(grad) / self._tpu_num_shards)
           sum_vars.append(var)
       # calculate sum of grads
       norm_grads, _ = tf.clip_by_global_norm(sum_grads, 0.5)

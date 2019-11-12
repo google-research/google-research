@@ -22,6 +22,7 @@ for smooth linear and multiplicative functions.
 
 import numpy as np
 import tensorflow as tf  # tf
+from tensorflow.contrib import layers as contrib_layers
 
 SEED = 49 + 32 + 67 + 111 + 114 + 32 + 49 + 51 + 58 + 52 + 45 + 56
 DEFAULT_NUM_SAMPLE = 5000
@@ -131,7 +132,7 @@ class LinearSimulation(Simulation):
         'idx_{}.coef_{:.3f}'.format(i, self._coefficients[i])
         for i in range(self._num_feature)
     ]
-    return [tf.contrib.layers.real_valued_column(fc) for fc in feature_columns]
+    return [contrib_layers.real_valued_column(fc) for fc in feature_columns]
 
   def oracle_predict(self, x):
     """Predicts targets of given data with the perfect oracle.
@@ -252,7 +253,7 @@ class SparsitySimulation(LinearSimulation):
         'uninf.idx_{}.coef_{:.3f}'.format(i, self._coefficients[i])
         for i in range(self._num_inf_feature, self._num_feature)
     ]
-    return [tf.contrib.layers.real_valued_column(fc) for fc in inf + uninf]
+    return [contrib_layers.real_valued_column(fc) for fc in inf + uninf]
 
 
 class CardinalitySimulation(SparsitySimulation):
@@ -413,7 +414,7 @@ class MultiplicativeSimulation(Simulation):
               self._group_coefficients_by_order[order][group_idx]))
           count += 1
         group += 1
-    return [tf.contrib.layers.real_valued_column(fc) for fc in out]
+    return [contrib_layers.real_valued_column(fc) for fc in out]
 
   def oracle_predict(self, x):
     """Predicts targets of given data with the perfect oracle.
@@ -538,7 +539,7 @@ class XORSimulation(Simulation):
         'xorpair_{}.idx_{}'.format(i - self._num_pair, i)
         for i in range(self._num_pair, num_feature)
     ]
-    return [tf.contrib.layers.real_valued_column(fc) for fc in x1_col + x2_col]
+    return [contrib_layers.real_valued_column(fc) for fc in x1_col + x2_col]
 
   def oracle_predict(self, x):
     """Predicts targets of given data with the perfect oracle.
