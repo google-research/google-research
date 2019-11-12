@@ -23,6 +23,7 @@ from __future__ import print_function
 import tensorflow as tf
 
 from attribution import integrated_gradients
+from tensorflow.contrib import layers as contrib_layers
 
 
 class AttributionTest(tf.test.TestCase):
@@ -68,7 +69,7 @@ class AttributionTest(tf.test.TestCase):
       sparse_ids = tf.SparseTensor(
           [[0, 0], [0, 1], [0, 2]], [2, 0, 2], [batch_size, 3])
       # pyformat: enable
-      sparse_embedding = tf.contrib.layers.safe_embedding_lookup_sparse(
+      sparse_embedding = contrib_layers.safe_embedding_lookup_sparse(
           embedding_weights,
           sparse_ids,
           combiner='sum',

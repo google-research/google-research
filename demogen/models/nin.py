@@ -23,6 +23,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.contrib import layers as contrib_layers
 
 
 def _nin_block(
@@ -144,7 +145,7 @@ class Nin(object):
 
       reg = None
       if self.decay_fac > 0.:
-        reg = tf.contrib.layers.l2_regularizer(scale=self.decay_fac)
+        reg = contrib_layers.l2_regularizer(scale=self.decay_fac)
 
       all_preactivations = []
       activation = inputs
