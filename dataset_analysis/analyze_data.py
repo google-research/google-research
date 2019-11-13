@@ -237,8 +237,8 @@ def main(_):
       data=df, x="count", hue="type", palette=["skyblue", "navy"])
   plt.xlim(-.5, 7.5)
   plt.legend(loc="center right", fontsize="x-large")
-  plt.ylabel("Number of Examples")
-  plt.xlabel("Number of Labels")
+  plt.ylabel("Number of Examples", fontsize=14)
+  plt.xlabel("Number of Labels", fontsize=14)
   plt.draw()
   labels = [item.get_text() for item in ax.get_yticklabels()]
   ax.set_yticklabels(["%dk" % (int(int(label) / 1000)) for label in labels])
