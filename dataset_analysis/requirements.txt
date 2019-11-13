@@ -1,3 +1,5 @@
+tensorflow>=1.11.0,<2.00.0  # BERT code doesn't work for tensorflow 2.0
+# tensorflow-gpu>=1.11.0,<2.00.0  # for gpu
 absl-py>=0.8.1
 altair>=3.2.0
 attrs>=19.3.0
@@ -14,7 +16,6 @@ more-itertools>=7.2.0
 numpy>=1.17.2
 pandas>=0.25.1
 patsy>=0.5.1
-pkg-resources>=0.0.0
 praw>=6.4.0
 pyparsing>=2.4.2
 pyrsistent>=0.15.4

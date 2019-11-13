@@ -27,7 +27,12 @@ import tensorflow as tf
 from tensorflow.contrib import tpu as contrib_tpu
 
 
-def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):
+def create_optimizer(loss,
+                     init_lr,
+                     num_train_steps,
+                     num_warmup_steps,
+                     use_tpu,
+                     freeze_layer_fn=None):
   """Creates an optimizer training op."""
   global_step = tf.train.get_or_create_global_step()
 
@@ -55,8 +60,8 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):
     warmup_learning_rate = init_lr * warmup_percent_done
 
     is_warmup = tf.cast(global_steps_int < warmup_steps_int, tf.float32)
-    learning_rate = (
-        (1.0 - is_warmup) * learning_rate + is_warmup * warmup_learning_rate)
+    learning_rate = ((1.0 - is_warmup) * learning_rate +
+                     is_warmup * warmup_learning_rate)
 
   # It is recommended that you use this optimizer for fine tuning, since this
   # is how the model was trained (note that the Adam m/v variables are NOT
@@ -73,6 +78,14 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):
     optimizer = contrib_tpu.CrossShardOptimizer(optimizer)
 
   tvars = tf.trainable_variables()
+  if freeze_layer_fn:
+    tvars = [v for v in tvars if not freeze_layer_fn(v.name)
+            ]  # freeze layers based on function
+
+  tf.logging.info("**** Trainable Variables ****")
+  for var in tvars:
+    tf.logging.info("  name = %s, shape = %s", var.name, var.shape)
+
   grads = tf.gradients(loss, tvars)
 
   # This is how the model was pre-trained.
@@ -136,8 +149,8 @@ class AdamWeightDecayOptimizer(tf.train.Optimizer):
       next_m = (
           tf.multiply(self.beta_1, m) + tf.multiply(1.0 - self.beta_1, grad))
       next_v = (
-          tf.multiply(self.beta_2, v) + tf.multiply(1.0 - self.beta_2,
-                                                    tf.square(grad)))
+          tf.multiply(self.beta_2, v) +
+          tf.multiply(1.0 - self.beta_2, tf.square(grad)))
 
       update = next_m / (tf.sqrt(next_v) + self.epsilon)
 
