@@ -38,6 +38,7 @@ class AbstractNIS(base.ProbabilisticModel):
                data_dim,
                energy_fn,
                proposal=None,
+               proposal_variance=1.0,
                data_mean=None,
                reparameterize_proposal_samples=True,
                dtype=tf.float32):
@@ -65,7 +66,7 @@ class AbstractNIS(base.ProbabilisticModel):
       self.data_mean = tf.zeros((), dtype=dtype)
     self.energy_fn = energy_fn
     if proposal is None:
-      self.proposal = base.get_independent_normal(self.data_dim)
+      self.proposal = base.get_independent_normal(self.data_dim, variance=proposal_variance)
     else:
       self.proposal = proposal
 
@@ -150,6 +151,7 @@ class NIS(AbstractNIS):
                data_dim,
                energy_hidden_sizes,
                proposal=None,
+               proposal_variance=1.0,
                data_mean=None,
                reparameterize_proposal_samples=True,
                dtype=tf.float32,
@@ -182,7 +184,7 @@ class NIS(AbstractNIS):
 #      import ipdb
 #      ipdb.set_trace()
       return energy_fn_helper(x - data_mean)
-    super(NIS, self).__init__(K, data_dim, energy_fn, proposal, data_mean,
+    super(NIS, self).__init__(K, data_dim, energy_fn, proposal, proposal_variance, data_mean,
                               reparameterize_proposal_samples, dtype)
 
 
@@ -193,6 +195,7 @@ class ConvNIS(AbstractNIS):
                K,
                data_dim,
                proposal=None,
+               proposal_variance=1.0,
                data_mean=None,
                reparameterize_proposal_samples=True,
                dtype=tf.float32,
@@ -222,5 +225,5 @@ class ConvNIS(AbstractNIS):
         tfkl.Flatten(),
         tfkl.Dense(1, activation=None),
     ])
-    super(ConvNIS, self).__init__(K, data_dim, energy_fn, proposal, data_mean,
+    super(ConvNIS, self).__init__(K, data_dim, energy_fn, proposal, proposal_variance, data_mean,
                                   reparameterize_proposal_samples, dtype)

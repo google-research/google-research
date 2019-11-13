@@ -42,6 +42,8 @@ flags.DEFINE_boolean("lars_allow_eval_target", False,
 flags.DEFINE_enum("target", dists.NINE_GAUSSIANS_DIST, dists.TARGET_DISTS,
                   "Distribution to draw data from.")
 flags.DEFINE_float(
+    "proposal_variance", 1.0, "Variance for the proposal")
+flags.DEFINE_float(
     "nine_gaussians_variance", 0.01,
     "Variance for the mixture components in the nine gaussians.")
 flags.DEFINE_string(
@@ -82,11 +84,12 @@ FLAGS = flags.FLAGS
 
 
 def exp_name():
-  return "target-%s.algo-%s.K-%d.run-%d" % (
+  return "target-%s.algo-%s.K-%d.run-%d-provar-%0.2f" % (
       FLAGS.target,
       FLAGS.algo,
       FLAGS.K,
       FLAGS.run,
+      FLAGS.proposal_variance
   )
 
 
@@ -101,11 +104,7 @@ def density_image_summary(log_density, num_points, title):
     num_points: Number of points in the grid.
     title: Title of the summary.
   """
-  if (FLAGS.target == dists.NINE_GAUSSIANS_DIST or
-      FLAGS.target == dists.TWO_RINGS_DIST):
-    bounds = (-2, 2)
-  elif FLAGS.target == dists.CHECKERBOARD_DIST:
-    bounds = (0, 1)
+  bounds = (-2, 2)
 
   x = tf.range(
       bounds[0], bounds[1], delta=(bounds[1] - bounds[0]) / float(num_points))
@@ -135,10 +134,7 @@ def density_image_summary(log_density, num_points, title):
 
 def sample_image_summary(model, title, num_samples=100000, num_bins=50):
   """Creates a summary plot approximating the density with samples."""
-  if FLAGS.target == dists.NINE_GAUSSIANS_DIST or FLAGS.target == dists.TWO_RINGS_DIST:
-    bounds = (-2, 2)
-  elif FLAGS.target == dists.CHECKERBOARD_DIST:
-    bounds = (0, 1)
+  bounds = (-2, 2)
   data = model.sample([num_samples])
 
   def _hist2d(x, y):
@@ -169,7 +165,8 @@ def make_lars_graph(target_dist,  # pylint: disable=invalid-name
                     dtype=tf.float32):
   """Construct the training graph for LARS."""
   model = lars.LARS(
-      K=K, T=K, data_dim=[2], accept_fn_layers=mlp_layers, dtype=dtype)
+      K=K, T=K, data_dim=[2], accept_fn_layers=mlp_layers,
+      proposal_variance=FLAGS.proposal_variance, dtype=dtype)
 
   train_data = target_dist.sample(batch_size)
   log_p = model.log_prob(train_data)
@@ -261,19 +258,17 @@ def main(unused_argv):
       if FLAGS.algo == "nis":
         print("Running NIS")
         model = nis.NIS(
-            K=FLAGS.K, data_dim=[2], energy_hidden_sizes=energy_fn_layers)
+            K=FLAGS.K, data_dim=[2], energy_hidden_sizes=energy_fn_layers,
+            proposal_variance=FLAGS.proposal_variance)
         density_image_summary(
             lambda x:  # pylint: disable=g-long-lambda
             (tf.squeeze(model.energy_fn(x)) + model.proposal.log_prob(x)),
             FLAGS.density_num_bins, "energy/nis")
       elif FLAGS.algo == "rejection_sampling":
         print("Running Rejection Sampling")
-        logit_accept_fn = tf.keras.Sequential([
-            tf.keras.layers.Dense(layer_size, activation="tanh")
-            for layer_size in energy_fn_layers
-        ] + [tf.keras.layers.Dense(1, activation=None)])
         model = rejection_sampling.RejectionSampling(
-            T=FLAGS.K, data_dim=[2], logit_accept_fn=logit_accept_fn)
+            T=FLAGS.K, data_dim=[2], energy_hidden_sizes=energy_fn_layers,
+            proposal_variance=FLAGS.proposal_variance)
         density_image_summary(
             lambda x: tf.squeeze(  # pylint: disable=g-long-lambda
                 tf.log_sigmoid(model.logit_accept_fn(x)), axis=-1) + model.
@@ -288,7 +283,8 @@ def main(unused_argv):
             init_step_size=FLAGS.his_stepsize,
             learn_stepsize=FLAGS.his_learn_stepsize,
             init_alpha=FLAGS.his_alpha,
-            learn_temps=FLAGS.his_learn_alpha)
+            learn_temps=FLAGS.his_learn_alpha, 
+            proposal_variance=FLAGS.proposal_variance)
         density_image_summary(lambda x: -model.hamiltonian_potential(x),
                               FLAGS.density_num_bins, "energy/his")
         sample_image_summary(

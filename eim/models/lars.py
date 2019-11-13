@@ -33,6 +33,7 @@ class LARS(object):
                data_dim,
                accept_fn_layers,
                proposal=None,
+               proposal_variance=1.0,
                data_mean=None,
                ema_decay=0.99,
                dtype=tf.float32,
@@ -52,7 +53,7 @@ class LARS(object):
         final_activation=tf.math.log_sigmoid,
         name="a")
     if proposal is None:
-      self.proposal = base.get_independent_normal(data_dim)
+      self.proposal = base.get_independent_normal(data_dim, variance=proposal_variance)
     else:
       self.proposal = proposal
     self.is_eval = is_eval
