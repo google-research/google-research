@@ -13,16 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Script based on the BERT finetuning runner, modified for performing target prediction.
+"""Script for target prediction based on the BERT finetuning runner.
 
 Main changes:
 - Updated DataProcessor
 - Included multilabel classification
 - Included various evaluation metrics
 - Included evaluation as part of training
-- Included sentiment-based regularization (manually defined)
-- Included entailment-based regularization (manually defined)
-- Included correlation-based regularization (based on training data)
 """
 
 from __future__ import absolute_import
@@ -47,6 +44,9 @@ FLAGS = flags.FLAGS
 ## Required parameters
 flags.DEFINE_string("target_file", "data/targets.txt",
                     "File containing a list of targets.")
+
+flags.DEFINE_integer("original_target_size", 29,
+                     "Number of target labels in our dataset.")
 
 flags.DEFINE_string(
     "data_dir", "data/model_input",
@@ -130,15 +130,6 @@ flags.DEFINE_string(
     "eval_thresholds", "0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95,0.99",
     "Thresholds for evaluating precision, recall and F-1 scores.")
 
-flags.DEFINE_float("sentiment", 1e-3,
-                   "Regularization parameter for sentiment relations.")
-
-flags.DEFINE_float("entailment", 1e-3,
-                   "Regularization parameter for entailment relations.")
-
-flags.DEFINE_float("correlation", 1,
-                   "Regularization parameter for target correlations.")
-
 flags.DEFINE_integer("save_checkpoints_steps", 500,
                      "How often to save the model checkpoint.")
 
@@ -151,24 +142,8 @@ flags.DEFINE_integer("iterations_per_loop", 1000,
 flags.DEFINE_integer("eval_steps", None,
                      "How many steps to take to go over the eval set.")
 
-flags.DEFINE_string("sentiment_file", "sentiment_dict.json",
-                    "Dictionary of sentiment categories.")
-
-flags.DEFINE_string("entailment_file", "entailment_dict.json",
-                    "Dictionary of entailments.")
-
-flags.DEFINE_string("target_correlations", "data/model_input/correlations.tsv",
-                    "Dataframe containing target correlation values.")
-
-flags.DEFINE_bool(
-    "transfer_learning", False,
-    "Whether to perform transfer learning (i.e. replace output layer).")
-
-flags.DEFINE_bool("freeze_layers", False, "Whether to freeze BERT layers.")
-
-flags.DEFINE_bool(
-    "add_neutral", True,
-    "Whether to add a neutral label in addition to the other labels.")
+flags.DEFINE_bool("add_neutral", True,
+                  "Whether to append `neutral` to the emotion categories.")
 
 
 class InputExample(object):
@@ -390,8 +365,7 @@ def file_based_input_fn_builder(input_file, seq_length, is_training,
 
 
 def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
-                 labels, num_labels, multilabel, sent_rels, sentiment,
-                 entailment_rels, entailment, corr_rels, correlation):
+                 labels, num_labels, multilabel):
   """Creates a classification model."""
   model = modeling.BertModel(
       config=bert_config,
@@ -407,11 +381,19 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
   hidden_size = output_layer.shape[-1].value
 
   output_weights = tf.get_variable(
-      "output_weights", [num_labels, hidden_size],
+      "output_weights", [FLAGS.original_target_size, hidden_size],
       initializer=tf.truncated_normal_initializer(stddev=0.02))
 
   output_bias = tf.get_variable(
-      "output_bias", [num_labels], initializer=tf.zeros_initializer())
+      "output_bias", [FLAGS.original_target_size],
+      initializer=tf.zeros_initializer())
+
+  new_output_weights = tf.get_variable(
+      "new_output_weights", [num_labels, FLAGS.original_target_size],
+      initializer=tf.truncated_normal_initializer(stddev=0.02))
+
+  new_output_bias = tf.get_variable(
+      "new_output_bias", [num_labels], initializer=tf.zeros_initializer())
 
   with tf.variable_scope("loss"):
     if is_training:
@@ -420,6 +402,8 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 
     logits = tf.matmul(output_layer, output_weights, transpose_b=True)
     logits = tf.nn.bias_add(logits, output_bias)
+    logits = tf.matmul(logits, new_output_weights, transpose_b=True)
+    logits = tf.nn.bias_add(logits, new_output_bias)
 
     # Labels both for single and multilabel classification
     labels = tf.cast(labels, tf.float32)
@@ -436,58 +420,13 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
           labels=labels, logits=logits)
     loss = tf.reduce_mean(per_example_loss)
 
-    # Add regularization based on label relations prior
-    probs_exp = tf.expand_dims(probabilities, 1)
-    m = tf.tile(probs_exp, [1, num_labels, 1])
-    probs_exp_t = tf.transpose(probs_exp, perm=[0, 2, 1])
-
-    # Subtract each prediction from all others:
-    # Example (with batch size=1):
-    #     tiled predictions: [0.1] [0.1] [0.1]
-    #                        [0.2] [0.2] [0.2]
-    #                        [0.3] [0.3] [0.3]
-    #     subtract [0.1, 0.2, 0.3] row-wise
-    #     result:   [0.0] [-.1] [-.2] --> row represents difference between
-    #                                     target 1 and all other targets
-    #               [0.1] [0.0] [-.1]
-    #               [0.2] [0.1] [0.0]
-    dists = tf.square(tf.subtract(m, probs_exp_t))  # square distances
-    dists = tf.transpose(dists, perm=[0, 2, 1])
-
-    # Sentiment-based regularization
-    sent_reg = tf.multiply(
-        tf.constant(sentiment),
-        tf.reduce_mean(
-            tf.multiply(dists, tf.constant(sent_rels, dtype=tf.float32))))
-    tf.summary.scalar("sentiment_regularization", sent_reg)
-    loss += sent_reg
-
-    # Entailment-based regularization
-    ent_reg = tf.multiply(
-        tf.constant(entailment),
-        tf.reduce_mean(
-            tf.multiply(dists, tf.constant(entailment_rels, dtype=tf.float32))))
-    tf.summary.scalar("entailment_regularization", ent_reg)
-    loss += ent_reg
-
-    # Correlation-based regularization
-    corr_reg = tf.multiply(
-        tf.constant(correlation),
-        tf.reduce_mean(
-            tf.multiply(dists, tf.constant(corr_rels, dtype=tf.float32))))
-    tf.summary.scalar("correlation_regularization", corr_reg)
-    loss += corr_reg
-
     tf.summary.scalar("loss", loss)
 
     return (loss, per_example_loss, logits, probabilities)
 
 
 def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
-                     num_train_steps, num_warmup_steps, multilabel, sent_rels,
-                     sentiment, entailment_rels, entailment, corr_rels,
-                     correlation, idx2target, sentiment_groups,
-                     intensity_groups):
+                     num_train_steps, num_warmup_steps, multilabel, idx2target):
   """Returns `model_fn` closure for Estimator."""
 
   def model_fn(features, labels, mode, params):  # pylint: disable=unused-argument
@@ -504,10 +443,10 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
 
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
-    (total_loss, per_example_loss, logits, probabilities) = create_model(
-        bert_config, is_training, input_ids, input_mask, segment_ids, label_ids,
-        num_labels, multilabel, sent_rels, sentiment, entailment_rels,
-        entailment, corr_rels, correlation)
+    (total_loss, per_example_loss, logits,
+     probabilities) = create_model(bert_config, is_training, input_ids,
+                                   input_mask, segment_ids, label_ids,
+                                   num_labels, multilabel)
 
     tvars = tf.trainable_variables()
     initialized_variable_names = {}
@@ -515,7 +454,8 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
     if init_checkpoint:
       (assignment_map, initialized_variable_names
       ) = modeling.get_assignment_map_from_checkpoint(tvars, init_checkpoint,
-                                                      FLAGS.transfer_learning)
+                                                      False)
+      print(assignment_map)
       tf.train.init_from_checkpoint(init_checkpoint, assignment_map)
 
     tf.logging.info("**** Initialized Variables ****")
@@ -529,8 +469,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
     output_spec = None
     if mode == tf.estimator.ModeKeys.TRAIN:
 
-      freeze_layer_fn = (None
-                         if not FLAGS.freeze_layers else lambda x: "bert" in x)
+      freeze_layer_fn = lambda x: "new_output" not in x
       train_op = optimization.create_optimizer(
           total_loss,
           learning_rate,
@@ -556,7 +495,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
         accuracy = tf.metrics.accuracy(
             labels=true_labels, predictions=predictions)
         loss = tf.metrics.mean(values=per_example_loss)
-        eval_dict["eval_accuracy"] = accuracy
+        eval_dict["eval_accuracy"] = accuracy,
         eval_dict["eval_loss"] = loss
 
       def get_f1(precision, recall):
@@ -577,31 +516,6 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
           eval_dict["recall_at_threshold_%.2f" % v] = (rec_t[i], rec_t_op)
           eval_dict["F1_at_threshold_%.2f" % v] = get_f1((prec_t[i], prec_t_op),
                                                          (rec_t[i], rec_t_op))
-
-      def get_relation_based_scores(y_true, y_pred, relations, name):
-        """Measure performance based on label relations."""
-
-        def expand_labels(labels):
-          """Expand the set of labels based on label relations."""
-
-          def check_relations(rels):
-            """Check whether a relation applies to a particular label set."""
-            is_in_category = tf.reduce_any((labels + rels) > 1)
-            return tf.cond(is_in_category, lambda: labels + rels,
-                           lambda: labels)
-
-          new_labels = tf.reduce_sum(
-              tf.map_fn(check_relations, relations), axis=0)
-          return tf.cast(new_labels >= 1, tf.int64)
-
-        pred = tf.map_fn(expand_labels, y_pred)
-        true = tf.map_fn(expand_labels, y_true)
-        precision = tf.metrics.precision(true, pred)
-        recall = tf.metrics.recall(true, pred)
-        eval_dict[name + "_precision"] = precision
-        eval_dict[name + "_recall"] = recall
-        eval_dict[name + "_f1"] = get_f1(precision, recall)
-        eval_dict[name + "_accuracy"] = tf.metrics.accuracy(true, pred)
 
       def metric_fn_multi(per_example_loss, label_ids, probabilities):
         """Compute class-level accuracies for the multi-label case."""
@@ -643,16 +557,6 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
         eval_dict["accuracy_weighted"] = tf.metrics.mean(
             values=accuracies, weights=weights)
 
-        # Calculate sentiment-based performance
-        get_relation_based_scores(label_ids, pred_ind,
-                                  tf.constant(sentiment_groups, dtype=tf.int64),
-                                  "sentiment")
-
-        # Calculate target-intensity based performance
-        get_relation_based_scores(label_ids, pred_ind,
-                                  tf.constant(intensity_groups, dtype=tf.int64),
-                                  "target_intensity")
-
       if multilabel:
         metric_fn_multi(per_example_loss, label_ids, probabilities)
       else:
@@ -674,96 +578,6 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
   return model_fn
 
 
-def get_sent_rels(targets):
-  """Get target distance matrix for sentiment regularization."""
-  with open(FLAGS.sentiment_file) as f:
-    sent_dict = json.loads(f.read())
-
-  target2sentiment = {}
-  for k, v in sent_dict.items():
-    for e in v:
-      assert e not in target2sentiment  # no target should be in two categories
-      target2sentiment[e] = k
-  rels = []
-  for e1 in targets:
-    e1_rels = []
-    for e2 in targets:
-      if e1 not in target2sentiment or e2 not in target2sentiment:
-        e1_rels.append(0)
-      elif target2sentiment[e1] != target2sentiment[e2]:
-        e1_rels.append(-1)
-      elif target2sentiment[e1] == target2sentiment[e2]:
-        e1_rels.append(1)
-    rels.append(e1_rels)
-  return rels
-
-
-def get_entailment_rels(targets):
-  """Entailment relations between targets."""
-  with open(FLAGS.entailment_file) as f:
-    entailments = json.loads(f.read())
-  rels = []
-  for e1 in targets:
-    e1_rels = []
-    for e2 in targets:
-      if e1 in entailments and e2 in entailments[e1]:
-        e1_rels.append(1)
-      else:
-        e1_rels.append(0)
-    rels.append(e1_rels)
-  return rels
-
-
-def get_correlations(targets):
-  """Get correlations between targets based training data."""
-  corrs = pd.read_csv(FLAGS.target_correlations, index_col=0, sep="\t")
-  rels = []
-  for e1 in targets:
-    if e1 == "neutral":
-      rels.append([0] * len(targets))
-    else:
-      e1_rels = []
-      for e2 in targets:
-        if e2 == "neutral":
-          e1_rels.append(0)
-        else:
-          e1_rels.append(corrs.loc[e1, e2])
-      rels.append(e1_rels)
-  return rels
-
-
-def get_intensity_groups(targets):
-  """Get target-intensity groups for evaluating intensity-based performance."""
-  with open(FLAGS.entailment_file) as f:
-    entailments = json.loads(f.read())
-  rels = []
-  for k, v in entailments.items():
-    grouped_labels = []
-    for e in targets:
-      if e == k or e in v:
-        grouped_labels.append(1)
-      else:
-        grouped_labels.append(0)
-    rels.append(grouped_labels)
-  return rels
-
-
-def get_sentiment_groups(targets):
-  """Get sentiment groups for evaluating sentiment-based performance."""
-  with open(FLAGS.sentiment_file) as f:
-    sent_dict = json.loads(f.read())
-  rels = []
-  for _, v in sent_dict.items():
-    grouped_labels = []
-    for e in targets:
-      if e in v:
-        grouped_labels.append(1)
-      else:
-        grouped_labels.append(0)
-    rels.append(grouped_labels)
-  return rels
-
-
 def main(_):
   os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
 
@@ -776,32 +590,6 @@ def main(_):
   num_labels = len(all_targets)
   print("%d labels" % num_labels)
   print("Multilabel: %r" % FLAGS.multilabel)
-
-  sentiment = FLAGS.sentiment
-  entailment = FLAGS.entailment
-  correlation = FLAGS.correlation
-
-  # Create target distance matrix
-  # If the regularization parameter is set to 0, don't load matrix.
-  print("Getting distance matrix...")
-  empty_rels = [[0] * num_labels] * num_labels
-  if sentiment == 0:
-    sent_rels = empty_rels
-  else:
-    sent_rels = get_sent_rels(all_targets)
-  sent_groups = get_sentiment_groups(all_targets)
-  print(sent_rels)
-  if entailment == 0:
-    entailment_rels = empty_rels
-  else:
-    entailment_rels = get_entailment_rels(all_targets)
-  intensity_groups = get_intensity_groups(all_targets)
-  print(entailment_rels)
-  if correlation == 0:
-    corr_rels = empty_rels
-  else:
-    corr_rels = get_correlations(all_targets)
-  print(corr_rels)
 
   tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -849,9 +637,6 @@ def main(_):
         "learning_rate": FLAGS.learning_rate,
         "num_train_epochs": FLAGS.num_train_epochs,
         "warmup_proportion": FLAGS.warmup_proportion,
-        "sentiment": FLAGS.sentiment,
-        "entailment": FLAGS.entailment,
-        "correlations": FLAGS.correlation,
         "batch_size": FLAGS.train_batch_size,
         "num_train_examples": len(train_examples),
         "num_eval_examples": num_eval_examples,
@@ -872,15 +657,7 @@ def main(_):
       num_train_steps=num_train_steps,
       num_warmup_steps=num_warmup_steps,
       multilabel=FLAGS.multilabel,
-      sent_rels=sent_rels,
-      sentiment=sentiment,
-      entailment_rels=entailment_rels,
-      entailment=entailment,
-      corr_rels=corr_rels,
-      correlation=correlation,
-      idx2target=idx2target,
-      sentiment_groups=sent_groups,
-      intensity_groups=intensity_groups)
+      idx2target=idx2target)
 
   estimator = tf.estimator.Estimator(
       model_fn=model_fn,

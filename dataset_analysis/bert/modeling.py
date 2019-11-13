@@ -113,19 +113,15 @@ class BertModel(object):
   """BERT model ("Bidirectional Encoder Representations from Transformers").
 
   Example usage:
-
   ```python
   # Already been converted into WordPiece token ids
   input_ids = tf.constant([[31, 51, 99], [15, 5, 0]])
   input_mask = tf.constant([[1, 1, 1], [1, 1, 0]])
   token_type_ids = tf.constant([[0, 0, 1], [0, 2, 0]])
-
   config = modeling.BertConfig(vocab_size=32000, hidden_size=512,
     num_hidden_layers=8, num_attention_heads=6, intermediate_size=1024)
-
   model = modeling.BertModel(config=config, is_training=True,
     input_ids=input_ids, input_mask=input_mask, token_type_ids=token_type_ids)
-
   label_embeddings = tf.get_variable(...)
   pooled_output = model.get_pooled_output()
   logits = tf.matmul(pooled_output, label_embeddings)
@@ -256,7 +252,6 @@ class BertModel(object):
 
     This is BEFORE positional embeddings and token type embeddings have been
     added.
-
     Returns:
       float Tensor of shape [batch_size, seq_length, hidden_size] corresponding
       to the output of the word(piece) embedding layer.
@@ -304,7 +299,6 @@ def get_activation(activation_string):
     A Python function corresponding to the activation function. If
     `activation_string` is None, empty, or "linear", this will return None.
     If `activation_string` is not a string, it will return `activation_string`.
-
   Raises:
     ValueError: The `activation_string` does not correspond to a known
       activation.
@@ -331,7 +325,8 @@ def get_activation(activation_string):
     raise ValueError("Unsupported activation: %s" % act)
 
 
-def get_assignment_map_from_checkpoint(tvars, init_checkpoint):
+def get_assignment_map_from_checkpoint(tvars, init_checkpoint,
+                                       transfer_learning):
   """Compute the union of the current variables and checkpoint variables."""
   assignment_map = {}
   initialized_variable_names = {}
@@ -350,6 +345,9 @@ def get_assignment_map_from_checkpoint(tvars, init_checkpoint):
   for x in init_vars:
     (name, var) = (x[0], x[1])
     if name not in name_to_variable:
+      continue
+    if transfer_learning and (("output_weights" in name) or
+                              ("output_bias" in name)):
       continue
     assignment_map[name] = name
     initialized_variable_names[name] = 1
@@ -372,7 +370,7 @@ def dropout(input_tensor, dropout_prob):
   if dropout_prob is None or dropout_prob == 0.0:
     return input_tensor
 
-  output = tf.nn.dropout(input_tensor, rate=dropout_prob)
+  output = tf.nn.dropout(input_tensor, keep_prob=(1 - dropout_prob))
   return output
 
 
@@ -475,7 +473,6 @@ def embedding_postprocessor(input_tensor,
 
   Returns:
     float tensor with same shape as `input_tensor`.
-
   Raises:
     ValueError: One of the tensor shapes or input values is invalid.
   """
@@ -704,17 +701,14 @@ def attention_layer(from_tensor,
   is all you Need". If `from_tensor` and `to_tensor` are the same, then
   this is self-attention. Each timestep in `from_tensor` attends to the
   corresponding sequence in `to_tensor`, and returns a fixed-with vector.
-
   This function first projects `from_tensor` into a "query" tensor and
   `to_tensor` into "key" and "value" tensors. These are (effectively) a list
   of tensors of length `num_attention_heads`, where each tensor is of shape
   [batch_size, seq_length, size_per_head].
-
   Then, the query and key tensors are dot-producted and scaled. These are
   softmaxed to obtain attention probabilities. The value tensors are then
   interpolated by these probabilities, then concatenated back to a single
   tensor and returned.
-
   In practice, the multi-headed attention are done with tf.einsum as follows:
     Input_tensor: [BFD]
     Wq, Wk, Wv: [DNH]
@@ -726,7 +720,6 @@ def attention_layer(from_tensor,
     context_layer:[BFNH] = einsum('BNFT,BTNH->BFNH', attention_probs, V)
     Wout:[DNH]
     Output:[BFD] = einsum('BFNH,DNH>BFD', context_layer, Wout)
-
   Args:
     from_tensor: float Tensor of shape [batch_size, from_seq_length,
       from_width].
@@ -753,7 +746,6 @@ def attention_layer(from_tensor,
   Returns:
     float Tensor of shape [batch_size, from_seq_length, num_attention_heads,
       size_per_head].
-
   Raises:
     ValueError: Any of the arguments or tensor shapes are invalid.
   """
@@ -844,13 +836,10 @@ def transformer_model(input_tensor,
   """Multi-headed, multi-layer Transformer from "Attention is All You Need".
 
   This is almost an exact implementation of the original Transformer encoder.
-
   See the original paper:
   https://arxiv.org/abs/1706.03762
-
   Also see:
   https://github.com/tensorflow/tensor2tensor/blob/master/tensor2tensor/models/transformer.py
-
   Args:
     input_tensor: float Tensor of shape [batch_size, seq_length, hidden_size].
     attention_mask: (optional) int32 Tensor of shape [batch_size, seq_length,
@@ -874,7 +863,6 @@ def transformer_model(input_tensor,
   Returns:
     float Tensor of shape [batch_size, seq_length, hidden_size], the final
     hidden layer of the Transformer.
-
   Raises:
     ValueError: A Tensor shape or parameter is invalid.
   """
