@@ -13,13 +13,8 @@ This work was done during Adam's internship at Google Brain in Toronto.
 ## About the project
 If you look at natural images containing objects, you will quickly see that the same object can be captured from various viewpoints. Capsule Networks are specifically designed to be robust to viewpoint changes, which makes learning more data-efficient and allows better generalization to unseen viewpoints. This project introduces a novel unsupervised version of Capsule Networks called Stacked Capsule Autoencoders (SCAE). Unlike in the original Capsules, SCAE is a generative model with an affine-aware decoder. This forces the encoder to learn image representation that is equivariant to viewpoint changes, and which leads to state-of-the-art unsupervised classification performance on MNIST and SVHN. For a more detailed description please have a look [at the paper](https://arxiv.org/abs/1906.06818) or at [Adam's blog](http://akosiorek.github.io/ml/2019/06/23/stacked_capsule_autoencoders.html).
 
- <figure id='tsne_caps_probs_mnist'>
-   <img style="display: box; margin: auto" src="https://github.com/google-research/google-research/tree/master/stacked_capsule_autoencoders/.resources/tsne.png" alt="TSNE embeddings of object-capsule presence probabilities on MNIST digits."/>
-   <figcaption align='center'>
-   <b>Fig 1:</b> TSNE embeddings of object-capsule presence probabilities on MNIST digits.
-   </figcaption>
- </figure>
-
+![TSNE embeddings of object-capsule presence probabilities on MNIST digits.](https://github.com/google-research/google-research/tree/master/stacked_capsule_autoencoders/.resources/tsne.png){: style="display: box; margin: auto"}
+*Fig 1:* TSNE embeddings of object-capsule presence probabilities on MNIST digits.
 
 ## Dependencies
 If you execute `setup_virtualenv.sh`, it will create a virtual environment and install all required dependencies. Alternatively, you can install all the dependencies using `pip install -r requirements.txt`. You can also manually install [Tensorflow v1.15](https://www.tensorflow.org/install) and the following dependencies:
