@@ -15,78 +15,155 @@
 -->
 
 <!DOCTYPE html>
-<head>
-    <meta charset="utf-8">
-    <link rel="stylesheet" href="main.css">
-    <script src="node_modules/d3/dist/d3.js"></script>
-    <script src="node_modules/three/build/three.js"></script>
-    <script src="node_modules/three/examples/js/controls/OrbitControls.js"></script>
-    <script src="node_modules/@tweenjs/tween.js/dist/tween.umd.js"></script>
-    <script src="src/environment.js"></script>
-    <script src="src/graph.js"></script>
-    <script src="src/matterport3d.js"></script>
-    <script src="src/api.js"></script>
-    <script>
+<meta charset="utf-8">
 
-        /**
-         * URL parameters for the plugin.
-         * @param { string } scan - A building in the simulator.
-         * @param { string } path - A comma-separated list of nodes.
-         * @param { string } directory - Local directory or Google cloud storage
-         * (GCS) bucket to store static data. The code below adopts a flat
-         * directory structure. All files live in the root. See this doc for
-         * file naming conventions:
-         * https://github.com/niessner/Matterport/blob/master/data_organization.md
-         */
-        var params = new URL( window.location.href ).searchParams;
-        var scan = params.get( 'scan' ) || 'XcA2TqTSSAj';
-        var path = params.get( 'path' ) || [
+<link rel="stylesheet" href="//gstatic.com/external_hosted/twitter_bootstrap_css/v4/bootstrap.css">
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+<script src="//gstatic.com/external_hosted/twitter_bootstrap/v4/js/bootstrap.min.js"></script>
 
-            'fdfeed5766974ae2bcd56e05a7de3117','00e1ca9383af4c7ba86241fdeeb73819',
-            'dc24c0e57e874e40a3ece84d23c012e2','8e9f6d822fb04edd9c2217d223af3f9d',
-            '1ec7b02628964cedb052c29579e6d404','e1823aaa30044d89a3251b46974f410d',
+<script src="//ajax.googleapis.com/ajax/libs/d3js/5.12.0/d3.min.js"></script>
+<script src="//gstatic.com/external_hosted/threejs-r104/three.js"></script>
+<script src="//gstatic.com/external_hosted/threejs-r104/examples/js/controls/OrbitControls.js"></script>
+<script src="//gstatic.com/external_hosted/threejs-r104/examples/js/libs/tween.min.js"></script>
 
-        ].join( ',' );
-        var directory = 'https://my-awesome-bucket.storage.googleapis.com/';
-        {
+<script src="index.js"></script>
 
-        // Redefine the default class arguments function.
-        API.prototype.getInitArgs = () => {
+<script>
+  document.addEventListener('DOMContentLoaded', async function() {
+    var directory = '//matterport-r2r.storage.googleapis.com/';
+    var scan = 'XcA2TqTSSAj'
+    var pano = 'fdfeed5766974ae2bcd56e05a7de3117';
 
-            return {
+    var loader = new THREE.CubeTextureLoader();
+    loader.setPath(directory);
 
-                id: undefined,
-                attributes: [
+    var graph = new Graph();
+    var data = await d3.json(directory + scan + '_connectivity.json')
 
-                    { key: 'scan', value: scan },
-                    { key: 'path', value: path },
-                    { key: 'directory', value: directory },
+    data.map(function(datum) {
+      if (!datum['included']) return;
 
-                ]
+      var source = datum['image_id'];
+      var height = datum['height'];
 
-            }
+      var url = [
+        source + '_skybox2_sami.jpg',
+        source + '_skybox4_sami.jpg',
+        source + '_skybox0_sami.jpg',
+        source + '_skybox5_sami.jpg',
+        source + '_skybox1_sami.jpg',
+        source + '_skybox3_sami.jpg',
+      ];
 
-        };
+      var matrix = new THREE.Matrix4();
+      matrix.fromArray(datum['pose']);
+      matrix.transpose();
+      matrix.scale(new THREE.Vector3(1, -1, -1));
 
-    </script>
-    <script src="src/guide.js"></script>
-</head>
+      var inverse = new THREE.Matrix4();
+      inverse.getInverse(matrix);
+
+      graph.addNode(source, {matrix, inverse, url, height});
+      datum['visible'].map(function(adjacent, i) {
+        if (!(adjacent && data[i]['included'])) return;
+        var target = data[i]['image_id'];
+        graph.addEdge(source, target);
+      });
+    });
+
+    var environment = new Environment(graph, loader);
+    var objects = [];
+
+    function equals(left, right) {
+      return JSON.stringify(left) == JSON.stringify(right);
+    }
+    var logger = new Logger(equals, 100);
+
+    var canvas = document.getElementById('canvas');
+    var renderer = new THREE.WebGLRenderer({canvas});
+
+    var controls = new THREE.OrbitControls(environment.camera, renderer.domElement);
+    var mouse = new THREE.Vector2();
+    var neighbor = null;
+
+    var ambientLight = new THREE.AmbientLight(0x777777);
+    environment.scene.add(ambientLight);
+
+    var directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    environment.scene.add(directionalLight);
+
+    var geometry = new THREE.Geometry();
+    geometry.vertices.push(new THREE.Vector3());
+    var material = new THREE.PointsMaterial({color: 0xff0000, size: 10, sizeAttenuation: false});
+    var cursor = new THREE.Points(geometry, material);
+    environment.scene.add(cursor);
+    objects.push(cursor);
+
+    renderer.domElement.addEventListener('mousemove', function(event) {
+      var rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / renderer.domElement.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / renderer.domElement.height) * 2 + 1;
+    });
+
+    renderer.domElement.addEventListener('dblclick', function() {
+      function disableControls() {
+        controls.enabled = false;
+      }
+      function enableControls() {
+        controls.enabled = true;
+      }
+      if (neighbor) {
+        environment.tween(neighbor, objects, disableControls, enableControls).start();
+      }
+    });
+
+    window.addEventListener('resize', function() {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      environment.camera.aspect = window.innerWidth / window.innerHeight;
+      environment.camera.updateProjectionMatrix();
+    });
+
+    function animate(time) {
+      requestAnimationFrame(animate);
+      renderer.render(environment.scene, environment.camera);
+
+      logger.log(environment.snapshot());
+
+      var raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, environment.camera);
+
+      var minDistanceToNeighbor = Infinity;
+      var neighbors = graph.neighbors(environment.node);
+
+      neighbors.map(function(node) {
+        var position = new THREE.Vector3();
+        position.setFromMatrixPosition(graph.nodes[node].matrix);
+        position.applyMatrix4(graph.nodes[environment.node].inverse);
+        position.y -= graph.nodes[node].height;
+
+        var distance = raycaster.ray.distanceToPoint(position);
+        if (distance < minDistanceToNeighbor) {
+          cursor.position.copy(position);
+          neighbor = node;
+          minDistanceToNeighbor = distance;
+        }
+      });
+
+      controls.target.copy(environment.camera.position);
+      var direction = new THREE.Vector3();
+      environment.camera.getWorldDirection(direction);
+      direction.multiplyScalar(1e-3);
+      controls.target.add(direction);
+      controls.update();
+
+      TWEEN.update();
+    }
+
+    environment.set(pano, objects);
+    window.dispatchEvent(new Event('resize'));
+    requestAnimationFrame(animate);
+  });
+</script>
 <body>
-    <button id="blocker-button">Instructions</button>
-    <textarea id="input"></textarea>
-    <div id="blocker">
-        <div id="instructions">
-            <span style="font-size:36px">Click to play</span>
-            <br /><br />Move: CTRL + CLICK
-            <br/> Look: DRAG
-            <br /> Submit: CTRL + ENTER
-            <br /><br /><br /><span style="font-size:12px">
-            Objective: Follow and describe the path of crystals graded from yellow to green<br />
-            such that an agent who has never seen this environment could retrace your steps<br />
-            without the path of crystals. Note that the initial direction you are facing is<br />
-            random, so don't asume the agent will be facing the same direction as you are.
-            <br /><br />Good luck!
-            </span>
-        </div>
-    </div>
+  <canvas id="canvas" style="position:absolute"></canvas>
 </body>
