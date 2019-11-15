@@ -26,9 +26,6 @@ itself based on implementation from Tensor2Tensor:
 
 import numpy as np
 import tensorflow as tf
-# pylint: disable=g-direct-tensorflow-import
-from tensorflow.python.util import nest
-# pylint: enable=g-direct-tensorflow-import
 
 
 def inf(dtype):
@@ -104,7 +101,7 @@ class SequenceBeamSearch(object):
         interface to the Transformer model. The passed in arguments are:
           ids -> A tensor with shape [batch_size * beam_size, index].
           index -> A scalar.
-          cache -> A nested dictionary of tensors [batch_size * beam_size, ...].
+          cache -> A nest dictionary of tensors [batch_size * beam_size, ...].
         The function must return a tuple of logits and the updated cache:
           logits -> A tensor with shape [batch * beam_size, vocab_size].
           updated cache -> A nested dictionary with the same structure as the
@@ -169,7 +166,7 @@ class SequenceBeamSearch(object):
         state and shape invariant dictionaries with keys from _StateKeys
     """
     for key, value in initial_cache.items():
-      for inner_value in nest.flatten(value):
+      for inner_value in tf.nest.flatten(value):
         if inner_value.dtype != self.dtype:
           raise TypeError(
               "initial_cache element for key '%s' has dtype %s that does not "
@@ -193,7 +190,7 @@ class SequenceBeamSearch(object):
 
     # Expand all values stored in the dictionary to the beam size, so that each
     # beam has a separate cache.
-    alive_cache = nest.map_structure(
+    alive_cache = tf.nest.map_structure(
         lambda t: _expand_to_beam_size(t, self.beam_size), initial_cache)
 
     # Initialize tensor storing finished sequences with filler values.
@@ -233,7 +230,7 @@ class SequenceBeamSearch(object):
           _StateKeys.ALIVE_LOG_PROBS:
               tf.TensorShape([self.batch_size, self.beam_size]),
           _StateKeys.ALIVE_CACHE:
-              nest.map_structure(_get_shape, alive_cache),
+              tf.nest.map_structure(_get_shape, alive_cache),
           _StateKeys.FINISHED_SEQ:
               tf.TensorShape(
                   [self.batch_size, self.beam_size,
@@ -252,7 +249,7 @@ class SequenceBeamSearch(object):
           _StateKeys.ALIVE_LOG_PROBS:
               tf.TensorShape([None, self.beam_size]),
           _StateKeys.ALIVE_CACHE:
-              nest.map_structure(_get_shape_keep_last_dim, alive_cache),
+              tf.nest.map_structure(_get_shape_keep_last_dim, alive_cache),
           _StateKeys.FINISHED_SEQ:
               tf.TensorShape([None, self.beam_size, None]),
           _StateKeys.FINISHED_SCORES:
@@ -375,13 +372,13 @@ class SequenceBeamSearch(object):
           [self.batch_size * self.beam_size, -1])
     else:
       flat_ids = _flatten_beam_dim(alive_seq)  # [batch_size * beam_size]
-    flat_cache = nest.map_structure(_flatten_beam_dim, alive_cache)
+    flat_cache = tf.nest.map_structure(_flatten_beam_dim, alive_cache)
 
     flat_logits, flat_cache = self.symbols_to_logits_fn(flat_ids, i, flat_cache)
 
     # Unflatten logits to shape [batch_size, beam_size, vocab_size]
     logits = _unflatten_beam_dim(flat_logits, self.batch_size, self.beam_size)
-    new_cache = nest.map_structure(
+    new_cache = tf.nest.map_structure(
         lambda t: _unflatten_beam_dim(t, self.batch_size, self.beam_size),
         flat_cache)
 
@@ -665,7 +662,7 @@ def _gather_beams(nested, beam_indices, batch_size, new_beam_size):
   # the (i, j) gathering coordinates.
   coordinates = tf.stack([batch_pos, beam_indices], axis=2)
 
-  return nest.map_structure(
+  return tf.nest.map_structure(
       lambda state: tf.gather_nd(state, coordinates), nested)
 
 
