@@ -125,3 +125,31 @@ def penalized_logp(molecule):
   largest_ring_size = get_largest_ring_size(molecule)
   cycle_score = max(largest_ring_size - 6, 0)
   return log_p - sas_score - cycle_score
+
+def penalized_logp_normalized(molecule):
+  """Calculates the normalized penalized logP of a molecule.
+
+  Args:
+    molecule: Chem.Mol. A molecule.
+
+  Returns:
+    Float. The normalized penalized logP value.
+
+  """
+  logP_mean = 2.4570953396190123
+  logP_std = 1.434324401111988
+  SA_mean = 3.0525811293166134
+  SA_std = 0.8335207024513095
+  cycle_mean = 0.0485696876403053
+  cycle_std = 0.2860212110245455
+
+  log_p = Descriptors.MolLogP(molecule)
+  sas_score = sascorer.calculateScore(molecule)
+  largest_ring_size = get_largest_ring_size(molecule)
+  cycle_score = max(largest_ring_size - 6, 0)
+
+  normalized_log_p = (log_p - logP_mean) / logP_std
+  normalized_SA = (sas_score - SA_mean) / SA_std
+  normalized_cycle = (cycle_score - cycle_mean) / cycle_std
+
+  return normalized_log_p - normalized_SA - normalized_cycle
