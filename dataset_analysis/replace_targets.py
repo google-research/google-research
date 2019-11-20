@@ -49,9 +49,10 @@ def main(_):
     with open(FLAGS.mapping_dict) as f:
         mapping_dict = json.loads(f.read())
 
-    new_targets = sorted(list(mapping_dict.keys()) + ["neutral"])
+    new_targets = list(mapping_dict.keys())
 
     # Find those targets that are not in the mapping dictionary
+    not_found = []
     for t in targets:
         found = False
         for k, v in mapping_dict.items():
@@ -60,8 +61,10 @@ def main(_):
                 break
         if not found:
             print("%s is not found" % t)
+            not_found.append(t)
 
     print("New targets:")
+    new_targets = sorted(new_targets + not_found)
     print(new_targets)
     target2idx = {t: i for i, t in enumerate(new_targets)}
 
