@@ -3,5 +3,5 @@ numpy>=1.13.3
 tensorflow>=1.11.0,<2.0.0
 gin-config
 pybullet
-Pillow==5.3.0
+Pillow==6.2.0
 gym==0.10.9
