@@ -1,0 +1,12 @@
+GridWorld.gamma = 0.99
+GridWorld.batch_size = 64
+GridWorld.representation_dimension = 16
+GridWorld.num_iterations = 50000
+GridWorld.starting_learning_rate = 0.01
+GridWorld.use_decayed_learning_rate = False
+GridWorld.learning_rate_decay = 0.9
+GridWorld.epsilon = 1e-8
+GridWorld.staircase = False
+GridWorld.add_noise = False
+GridWorld.bisim_horizon_discount = 0.9
+GridWorld.debug = True
