@@ -9,7 +9,7 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # Hence we do not include an archive.
 local_repository(
     name = "org_lullaby",
-    path = "../lullaby",
+    path = "./lullaby",
 )
 
 

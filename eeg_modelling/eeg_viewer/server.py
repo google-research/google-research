@@ -27,6 +27,8 @@ from absl import app as absl_app
 from absl import flags
 from absl import logging
 
+from google.protobuf.message import DecodeError
+
 import flask
 from flask import wrappers as flask_wrappers
 from gevent.pywsgi import WSGIServer
@@ -211,6 +213,11 @@ def IOErrorMessage(unused_detail):
   return 'Path not found'
 
 
+@MakeErrorHandler
+def DecodeErrorMessage(unused_detail):
+  return 'Couldn\'t read protobuf file'
+
+
 def RegisterErrorHandlers(app):
   """Registers the error handlers in the flask app.
 
@@ -221,6 +228,7 @@ def RegisterErrorHandlers(app):
   app.register_error_handler(KeyError, KeyErrorMessage)
   app.register_error_handler(NotImplementedError, NotImplementedErrorMessage)
   app.register_error_handler(IOError, IOErrorMessage)
+  app.register_error_handler(DecodeError, DecodeErrorMessage)
 
 
 def IndexPage():
