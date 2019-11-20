@@ -1,8 +1,9 @@
 # Python generated
 *.pyc
+__pycache__
 
 # Python virtual environment
-pyenv/
+pyenv*
 env-activate
 
 # Compiled js
@@ -17,3 +18,7 @@ pyprotos/
 
 # Third party deps
 third_party/
+
+# Bazel
+bazel-*
+lullaby/

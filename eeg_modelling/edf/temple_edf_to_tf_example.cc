@@ -1,5 +1,7 @@
 // Utility to convert a Temple EEG file in EDF format to TFRecord format.
 
+#include <fstream>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
@@ -91,11 +93,12 @@ int main(int argc, const char* argv[]) {
   auto example_or = GenerateExampleForSegment(segment, annotations);
   example = std::move(example_or).ValueOrDie();
 
-  std::unique_ptr<tensorflow::WritableFile> file;
   string output_path = std::string(args.GetString("output_path"));
-  TF_CHECK_OK(tensorflow::Env::Default()->NewWritableFile(output_path, &file));
-  tensorflow::io::RecordWriter record_writer(file.get());
-  TF_CHECK_OK(record_writer.WriteRecord(example.SerializeAsString()));
+  std::fstream output(output_path, std::ios::out | std::ios::trunc | std::ios::binary);
+  if (!example.SerializeToOstream(&output)) {
+    ABSL_RAW_LOG(ERROR, "Failed to write to file: %s", output_path.c_str());
+    return -1;
+  }
 
   return 0;
 }

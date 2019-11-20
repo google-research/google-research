@@ -279,9 +279,10 @@ Status IsSegmentValid(const Segment& segment) {
       sampling_rate = channel.sampling_frequency_hz();
       found_sampling_rate = true;
     } else if (channel.sampling_frequency_hz() != sampling_rate) {
-      return InvalidArgumentError(absl::StrCat(
-          "Multiple frequency values detected for channels in segment file: ",
-          segment.filename()));
+      ABSL_RAW_LOG(INFO,
+          "Skipping channel with different frequency: %s, Filename: %s",
+          channel.name().c_str(), segment.filename().c_str());
+      continue;
     }
     if (channel_names.find(channel.name()) != channel_names.end()) {
       return InvalidArgumentError(absl::StrCat(
