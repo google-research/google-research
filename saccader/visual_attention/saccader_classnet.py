@@ -29,11 +29,12 @@ import tensorflow as tf
 
 from saccader import utils
 from saccader.visual_attention import saccader
+from tensorflow.contrib import slim as contrib_slim
 from tensorflow_models.slim.nets import nets_factory
 from tensorflow_models.slim.nets.nasnet import nasnet
 
 
-slim = tf.contrib.slim
+slim = contrib_slim
 Saccader = saccader.Saccader
 
 

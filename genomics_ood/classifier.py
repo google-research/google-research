@@ -27,6 +27,8 @@ from sklearn.metrics import roc_auc_score
 import tensorflow as tf  # tf
 import yaml
 from genomics_ood import utils
+from tensorflow.contrib import layers as contrib_layers
+from tensorflow.contrib import training as contrib_training
 
 # parameters
 FLAGS = flags.FLAGS
@@ -224,7 +226,7 @@ class SeqPredModel(object):
         kernel_size=self._params.len_motifs,
         padding='valid',
         activation=tf.nn.relu,
-        kernel_initializer=tf.contrib.layers.xavier_initializer())
+        kernel_initializer=contrib_layers.xavier_initializer())
     out = tf.reduce_max(out, axis=[1])
     out = tf.nn.dropout(out, keep_prob=1 - self._params.dropout_rate)
     out = tf.layers.dense(
@@ -232,7 +234,7 @@ class SeqPredModel(object):
         units=self._params.hidden_dense_size,
         activation=tf.nn.relu,
         name='dense',
-        kernel_initializer=tf.contrib.layers.xavier_initializer())
+        kernel_initializer=contrib_layers.xavier_initializer())
     out = tf.nn.dropout(out, keep_prob=1 - self._params.dropout_rate)
     self.out = out
 
@@ -242,7 +244,7 @@ class SeqPredModel(object):
         self._params.n_class,
         activation=None,
         name='logits',
-        kernel_initializer=tf.contrib.layers.xavier_initializer())
+        kernel_initializer=contrib_layers.xavier_initializer())
     self.logits = self.logits_dense_fn(self.out)
     tf.logging.info('shape of logits=%s', self.logits.shape)
     tf.logging.info('self.logits.shape=%s', self.logits.shape)
@@ -504,7 +506,7 @@ def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
   random.seed(FLAGS.random_seed)
 
-  params = tf.contrib.training.HParams(
+  params = contrib_training.HParams(
       embedding=FLAGS.embedding,
       num_steps=FLAGS.num_steps,
       val_freq=FLAGS.val_freq,

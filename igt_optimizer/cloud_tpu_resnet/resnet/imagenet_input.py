@@ -41,6 +41,8 @@ import os
 from absl import flags
 import tensorflow as tf
 from igt_optimizer.cloud_tpu_resnet.resnet import resnet_preprocessing
+from tensorflow.contrib import cloud as contrib_cloud
+from tensorflow.contrib import data as contrib_data
 from tensorflow.python.ops import control_flow_util
 
 flags.DEFINE_boolean(
@@ -332,12 +334,12 @@ class ImageNetInput(ImageNetTFExampleInput):
 
     # Read the data from disk in parallel
     dataset = dataset.apply(
-        tf.contrib.data.parallel_interleave(
+        contrib_data.parallel_interleave(
             fetch_dataset, cycle_length=64, sloppy=True))
 
     if self.cache:
       dataset = dataset.cache().apply(
-          tf.contrib.data.shuffle_and_repeat(1024 * 16))
+          contrib_data.shuffle_and_repeat(1024 * 16))
     else:
       dataset = dataset.shuffle(1024)
     return dataset
@@ -375,7 +377,7 @@ class ImageNetBigtableInput(ImageNetTFExampleInput):
   def make_source_dataset(self, index, num_hosts):
     """See base class."""
     data = self.selection
-    client = tf.contrib.cloud.BigtableClient(data.project, data.instance)
+    client = contrib_cloud.BigtableClient(data.project, data.instance)
     table = client.table(data.table)
     ds = table.parallel_scan_prefix(
         data.prefix, columns=[(data.column_family, data.column_qualifier)])

@@ -29,6 +29,7 @@ import tensorflow as tf
 from cnn_quantization.tf_cnn_benchmarks import allreduce
 from cnn_quantization.tf_cnn_benchmarks import batch_allreduce
 from cnn_quantization.tf_cnn_benchmarks import variable_mgr_util
+from tensorflow.contrib import training as contrib_training
 
 
 class VariableMgr(object):
@@ -670,8 +671,8 @@ class VariableMgrDistributedFetchFromPS(VariableMgr):
     return agg_grads
 
   def get_devices(self):
-    ps_strategy = tf.contrib.training.GreedyLoadBalancingStrategy(
-        self.benchmark_cnn.num_ps, tf.contrib.training.byte_size_load_fn)
+    ps_strategy = contrib_training.GreedyLoadBalancingStrategy(
+        self.benchmark_cnn.num_ps, contrib_training.byte_size_load_fn)
     return [
         tf.train.replica_device_setter(
             worker_device=d,

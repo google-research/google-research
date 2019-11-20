@@ -25,9 +25,9 @@ import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
 
 from nopad_inception_v3_fcn import model
+from tensorflow.contrib import slim as contrib_slim
 
-
-slim = tf.contrib.slim
+slim = contrib_slim
 
 tf.app.flags.DEFINE_integer(
     'batch_size', 16, 'The number of samples in each batch.')

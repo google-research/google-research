@@ -1,6 +1,36 @@
 ALBERT
 ======
 
+***************New October 31, 2019 ***************
+
+Version 2 of ALBERT models is relased. TF-Hub modules are available:
+
+- https://tfhub.dev/google/albert_base/2
+- https://tfhub.dev/google/albert_large/2
+- https://tfhub.dev/google/albert_xlarge/2
+- https://tfhub.dev/google/albert_xxlarge/2
+
+In this version, we apply 'no dropout', 'additional training data' and 'long training time' strategies to all models. We train ALBERT-base for 10M steps and other models for 3M steps.
+
+The result comparsion to the v1 models are as followings:
+
+|                | Average  | SQuAD1.1 | SQuAD2.0 | MNLI     | SST-2    | RACE     |
+|----------------|----------|----------|----------|----------|----------|----------|
+|V2              |
+|ALBERT-base     |82.3      |90.2/83.2 |82.1/79.3 |84.6      |92.9      |66.8      |
+|ALBERT-large    |85.7      |91.8/85.2 |84.9/81.8 |86.5      |94.9      |75.2      |
+|ALBERT-xlarge   |87.9      |92.9/86.4 |87.9/84.1 |87.9      |95.4      |80.7      |
+|ALBERT-xxlarge  |90.9      |94.6/89.1 |89.8/86.9 |90.6      |96.8      |86.8      |
+|V1              |
+|ALBERT-base     |80.1      |89.3/82.3 | 80.0/77.1|81.6      |90.3      | 64.0     |
+|ALBERT-large    |82.4      |90.6/83.9 | 82.3/79.4|83.5      |91.7      | 68.5     |
+|ALBERT-xlarge   |85.5      |92.5/86.1 | 86.1/83.1|86.4      |92.4      | 74.8     |
+|ALBERT-xxlarge  |91.0      |94.8/89.3 | 90.2/87.4|90.8      |96.9      | 86.5     |
+
+The comparison shows that for ALBERT-base, ALBERT-large, and ALBERT-xlarge, v2 is much better than v1, indicating the importance of applying the above three strategies. On average, ALBERT-xxlarge is slightly worse than the v1, because of the following two reasons: 1) Training additional 1.5 M steps (the only difference between these two models are training for 1.5M steps and 3M steps) did not lead to significant performance improvement. 2) For v1, we did a little bit hyperparameter search among the parameters sets given by BERT, Roberta, and XLnet. For v2, we simply adopt the parameters from v1 except for RACE, where we use a learning rate of 1e-5 and 0 [ALBERT DR](https://arxiv.org/pdf/1909.11942.pdf) (droput rate for ALBERT in finetuning). The original (v1) RACE hyperpamter will cause model divergence for v2 models. Given that the downstream tasks are sensitive to the fine-tuning hyperparameters, we should be careful about so called slight improvements.
+
+
+
 ALBERT is "A Lite" version of BERT, a popular unsupervised language
 representation learning algorithm. ALBERT uses parameter-reduction techniques
 that allow for large-scale configurations, overcome previous memory limitations,

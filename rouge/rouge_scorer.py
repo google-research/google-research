@@ -176,18 +176,21 @@ def _lcs_table(ref, can):
   return lcs_table
 
 
-# Here we arbitrarily choose one LCS when there are ties.
-def _fast_backtrack(t, ref, can, i, j):
-  """Returns list representing one of the LCS."""
-  if i == 0 or j == 0:
-    return []
-  if ref[i - 1] == can[j - 1]:
-    # We want indices into ref rather than the values.
-    return _fast_backtrack(t, ref, can, i - 1, j - 1) + [i - 1]
-  if t[i][j - 1] > t[i - 1][j]:
-    return _fast_backtrack(t, ref, can, i, j - 1)
-  else:
-    return _fast_backtrack(t, ref, can, i - 1, j)
+def _backtrack_norec(t, ref, can):
+  """Read out LCS."""
+  i = len(ref)
+  j = len(can)
+  lcs = []
+  while i > 0 and j > 0:
+    if ref[i - 1] == can[j - 1]:
+      lcs.insert(0, i-1)
+      i -= 1
+      j -= 1
+    elif t[i][j - 1] > t[i - 1][j]:
+      j -= 1
+    else:
+      i -= 1
+  return lcs
 
 
 def _summary_level_lcs(ref_sent, can_sent):
@@ -258,7 +261,7 @@ def _find_union(lcs_list):
 def lcs_ind(ref, can):
   """Returns one of the longest lcs."""
   t = _lcs_table(ref, can)
-  return _fast_backtrack(t, ref, can, len(ref), len(can))
+  return _backtrack_norec(t, ref, can)
 
 
 def _score_ngrams(target_ngrams, prediction_ngrams):

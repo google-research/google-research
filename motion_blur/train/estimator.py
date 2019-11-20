@@ -24,6 +24,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.contrib import layers as contrib_layers
 
 
 def psnr(labels, predictions):
@@ -86,7 +87,7 @@ def create_model_fn(inference_fn, hparams):
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       optimizer = tf.train.AdamOptimizer(learning_rate=hparams.learning_rate)
-      train_op = tf.contrib.layers.optimize_loss(
+      train_op = contrib_layers.optimize_loss(
           loss=loss,
           global_step=tf.train.get_global_step(),
           learning_rate=None,

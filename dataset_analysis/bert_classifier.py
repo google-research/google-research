@@ -94,7 +94,8 @@ flags.DEFINE_bool("do_train", True,
 
 flags.DEFINE_bool(
     "calculate_metrics", True,
-    "Whether to calculate performance metrics on the test set (FLAGS.test_fname must have labels)."
+    "Whether to calculate performance metrics on the test set "
+    "(FLAGS.test_fname must have labels)."
 )
 
 flags.DEFINE_bool(
@@ -121,7 +122,8 @@ flags.DEFINE_float("pred_cutoff", 0.05,
 
 flags.DEFINE_float(
     "eval_prob_threshold", 0.1,
-    "Cutoff probability determine which labels are 1 vs 0, when calculating certain evaluation metrics."
+    "Cutoff probability determine which labels are 1 vs 0, when calculating "
+    "certain evaluation metrics."
 )
 flags.DEFINE_string(
     "eval_thresholds", "0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95,0.99",

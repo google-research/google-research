@@ -22,6 +22,7 @@ from __future__ import print_function
 
 from six.moves import range
 import tensorflow as tf
+from tensorflow.contrib import image as contrib_image
 
 
 def get_two_dummy_frames():
@@ -202,8 +203,8 @@ def augment_seqs_ava(raw_frames, num_frame, max_shift, batch_size=2,
     hmg = calc_homography_from_points(src_points, dst_points)
     hmg_list.append(hmg)
     transform = tf.reshape(hmg, [9]) / hmg[2, 2]
-    warped = tf.contrib.image.transform(output_frames[i],
-                                        transform[:8], 'bilinear')
+    warped = contrib_image.transform(output_frames[i], transform[:8],
+                                     'bilinear')
     crop_window = tf.expand_dims(tf.stack(
         [0, 0, (crop_height - 1) / (frame_height - 1),
          (crop_width - 1) / (frame_width - 1)]), 0)
@@ -365,7 +366,7 @@ def subpixel_crop(image, y, x, height, width):
     as image
   """
   transformation = tf.cast(tf.stack([1, 0, x, 0, 1, y, 0, 0]), tf.float32)
-  translated = tf.contrib.image.transform(image, transformation, 'bilinear')
+  translated = contrib_image.transform(image, transformation, 'bilinear')
   cropped = tf.image.crop_to_bounding_box(translated, 0, 0, height, width)
   return cropped
 
@@ -410,7 +411,7 @@ def subpixel_homography(image, height, width, dy1, dx1, dy2, dx2, dy3, dx3, dy4,
                          tf.float32), [8, 1])
   inv_mat = tf.matrix_inverse(mat)
   transformation = tf.reshape(tf.matmul(inv_mat, b), [8])
-  warped = tf.contrib.image.transform(image, transformation, 'bilinear')
+  warped = contrib_image.transform(image, transformation, 'bilinear')
   cropped = tf.image.crop_to_bounding_box(warped, 0, 0, height, width)
   return cropped
 
@@ -445,7 +446,7 @@ def homography_warp_per_image(image, width, height, corner_shifts):
   """
   transform = shifts_to_homography(width, height, corner_shifts,
                                    is_forward=False, is_matrix=False)
-  warped = tf.contrib.image.transform(image, transform, 'bilinear')
+  warped = contrib_image.transform(image, transform, 'bilinear')
   return warped, transform
 
 
@@ -503,7 +504,7 @@ def homography_scale_warp_per_image(image, width, height, ref_width, ref_height,
   sy = tf.to_float(ref_height) / tf.to_float(height)
   vec_scale = tf.stack([1, sy / sx, 1 / sx, sx / sy, 1, 1 / sy, sx, sy])
   transform = tf.multiply(hmg_base, vec_scale)
-  warped = tf.contrib.image.transform(image, transform, 'bilinear')
+  warped = contrib_image.transform(image, transform, 'bilinear')
   return warped, transform
 
 

@@ -56,7 +56,7 @@ flags.DEFINE_bool(
     "models and False for cased models.")
 
 flags.DEFINE_bool(
-    "do_whole_word_mask", False,
+    "do_whole_word_mask", True,
     "Whether to use whole word masking rather than per-WordPiece masking.")
 
 flags.DEFINE_bool(
@@ -68,14 +68,14 @@ flags.DEFINE_bool(
     "Whether to set higher probabilities for sampling shorter ngrams.")
 
 flags.DEFINE_bool(
-    "random_next_sentence", True,
+    "random_next_sentence", False,
     "Whether to use the sentence that's right before the current sentence "
     "as the negative sample for next sentence prection, rather than using "
     "sentences from other random documents.")
 
-flags.DEFINE_integer("max_seq_length", 128, "Maximum sequence length.")
+flags.DEFINE_integer("max_seq_length", 512, "Maximum sequence length.")
 
-flags.DEFINE_integer("ngram", 1, "Maximum number of ngrams to mask.")
+flags.DEFINE_integer("ngram", 3, "Maximum number of ngrams to mask.")
 
 flags.DEFINE_integer("max_predictions_per_seq", 20,
                      "Maximum number of masked LM predictions per sequence.")
@@ -83,7 +83,7 @@ flags.DEFINE_integer("max_predictions_per_seq", 20,
 flags.DEFINE_integer("random_seed", 12345, "Random seed for data generation.")
 
 flags.DEFINE_integer(
-    "dupe_factor", 10,
+    "dupe_factor", 40,
     "Number of times to duplicate the input data (with different masks).")
 
 flags.DEFINE_float("masked_lm_prob", 0.15, "Masked LM probability.")

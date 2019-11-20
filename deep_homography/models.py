@@ -24,11 +24,12 @@ import math
 
 from six.moves import range
 import tensorflow as tf
-from tensorflow.contrib.slim.nets import vgg
 
 from deep_homography import hmg_util
+from tensorflow.contrib import slim as contrib_slim
+from tensorflow.contrib.slim.nets import vgg as contrib_slim_nets_vgg
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 VGG_MEANS = [123.68, 116.779, 103.939]
 
@@ -94,11 +95,17 @@ def hier_homography_fmask_estimator(color_inputs, num_param=8, num_layer=7,
   with slim.arg_scope([slim.conv2d, slim.max_pool2d], padding='SAME'):
     with slim.arg_scope([slim.conv2d, slim.fully_connected], trainable=False):
       with slim.arg_scope([slim.conv2d], normalizer_fn=None):
-        with slim.arg_scope(vgg.vgg_arg_scope()):
-          sfeature, _ = vgg.vgg_16(
-              vgg_inputs, 1000, predictions_fn=slim.softmax, global_pool=False,
-              is_training=False, reuse=reuse, spatial_squeeze=True,
-              final_endpoint='pool5', scope='vgg_16')
+        with slim.arg_scope(contrib_slim_nets_vgg.vgg_arg_scope()):
+          sfeature, _ = contrib_slim_nets_vgg.vgg_16(
+              vgg_inputs,
+              1000,
+              predictions_fn=slim.softmax,
+              global_pool=False,
+              is_training=False,
+              reuse=reuse,
+              spatial_squeeze=True,
+              final_endpoint='pool5',
+              scope='vgg_16')
 
   gray_image1 = tf.image.rgb_to_grayscale(color_inputs[Ellipsis, 0 : 3])
   gray_image2 = tf.image.rgb_to_grayscale(color_inputs[Ellipsis, 3 : 6])

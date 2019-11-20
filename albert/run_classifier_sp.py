@@ -31,6 +31,9 @@ import tensorflow as tf
 from albert import modeling
 from albert import optimization
 from albert import tokenization
+from tensorflow.contrib import cluster_resolver as contrib_cluster_resolver
+from tensorflow.contrib import data as contrib_data
+from tensorflow.contrib import tpu as contrib_tpu
 
 flags = tf.flags
 
@@ -75,7 +78,7 @@ flags.DEFINE_bool(
     "models and False for cased models.")
 
 flags.DEFINE_integer(
-    "max_seq_length", 128,
+    "max_seq_length", 512,
     "The maximum total input sequence length after WordPiece tokenization. "
     "Sequences longer than this will be truncated, and sequences shorter "
     "than this will be padded.")
@@ -106,6 +109,9 @@ flags.DEFINE_float(
 
 flags.DEFINE_integer("save_checkpoints_steps", 1000,
                      "How often to save the model checkpoint.")
+
+flags.DEFINE_integer("keep_checkpoint_max", 5,
+                     "How many checkpoints to keep.")
 
 flags.DEFINE_integer("iterations_per_loop", 1000,
                      "How many steps to make in each estimator call.")
@@ -562,7 +568,7 @@ def file_based_input_fn_builder(input_file, seq_length, is_training,
       d = d.shuffle(buffer_size=100)
 
     d = d.apply(
-        tf.contrib.data.map_and_batch(
+        contrib_data.map_and_batch(
             lambda record: _decode_record(record, name_to_features),
             batch_size=batch_size,
             drop_remainder=drop_remainder))
@@ -698,7 +704,7 @@ def model_fn_builder(albert_config, num_labels, init_checkpoint, learning_rate,
       train_op = optimization.create_optimizer(
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
 
-      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+      output_spec = contrib_tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           train_op=train_op,
@@ -717,16 +723,18 @@ def model_fn_builder(albert_config, num_labels, init_checkpoint, learning_rate,
       eval_metrics = (metric_fn,
                       [per_example_loss, label_ids,
                        predictions, is_real_example])
-      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+      output_spec = contrib_tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           eval_metrics=eval_metrics,
           scaffold_fn=scaffold_fn)
     else:
-      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+      output_spec = contrib_tpu.TPUEstimatorSpec(
           mode=mode,
-          predictions={"probabilities": probabilities,
-                       "predictions": predictions},
+          predictions={
+              "probabilities": probabilities,
+              "predictions": predictions
+          },
           scaffold_fn=scaffold_fn)
     return output_spec
 
@@ -847,16 +855,17 @@ def main(_):
 
   tpu_cluster_resolver = None
   if FLAGS.use_tpu and FLAGS.tpu_name:
-    tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
+    tpu_cluster_resolver = contrib_cluster_resolver.TPUClusterResolver(
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
-  is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
-  run_config = tf.contrib.tpu.RunConfig(
+  is_per_host = contrib_tpu.InputPipelineConfig.PER_HOST_V2
+  run_config = contrib_tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
       save_checkpoints_steps=FLAGS.save_checkpoints_steps,
-      tpu_config=tf.contrib.tpu.TPUConfig(
+      keep_checkpoint_max=FLAGS.keep_checkpoint_max,
+      tpu_config=contrib_tpu.TPUConfig(
           iterations_per_loop=FLAGS.iterations_per_loop,
           num_shards=FLAGS.num_tpu_cores,
           per_host_input_for_training=is_per_host))
@@ -882,7 +891,7 @@ def main(_):
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
-  estimator = tf.contrib.tpu.TPUEstimator(
+  estimator = contrib_tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=model_fn,
       config=run_config,
