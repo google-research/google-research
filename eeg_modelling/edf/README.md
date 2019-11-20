@@ -12,11 +12,9 @@ most recent one as of June 2019 according to www.tensorflow.org/install/source
 
 - Lullaby
 This library is used to parse command-line arguments but it does not have a
-release, hence could not be included in the WORKSPACE.
-As a workaround until lullaby has an official release, clone it into the
+release, hence could not be included in the WORKSPACE. As a workaround until lullaby has an official release, clone it into the
 eeg_modelling folder (where the file WORKSPACE exists):
 `git clone https://github.com/google/lullaby.git`.
-
 
 ## Usage
 
@@ -25,3 +23,4 @@ eeg_modelling folder (where the file WORKSPACE exists):
 - `bazel run edf:temple_edf_to_tf_example -- --edf_path <edf_path> --output_path <output_path>`,
 where `<edf_path>` is the original EDF filepath, and `<output_path>` is the
 desired path for the output file.
+

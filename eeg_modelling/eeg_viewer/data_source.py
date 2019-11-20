@@ -78,9 +78,7 @@ class DataSource(object):
         self.GetChannelSamplingFrequency(index)
         for index in channel_indices
     ))
-    if len(freqs) == 0:
-      raise ValueError('No channels matched')
-    if len(freqs) > 1:
+    if len(freqs) != 1:
       raise ValueError('The requested channels do not have the same frequency')
 
     return freqs[0]
@@ -213,18 +211,26 @@ class TfExampleEegDataSource(TfExampleDataSource):
   """Data source that extracts EEG data from a TF Example."""
 
   _CHANNEL_MATCHERS = [
-      ([
-          # EEG channel pattern
-          re.compile(r'eeg_channel/(?:EEG )?(\w+)(-\w+)*/samples'),
-      ], 'eeg_channel/sampling_frequency_hz'),
-      ([
-          # EEG channel pattern for training data
-          re.compile(r'eeg_channel/(?:EEG )?(\w+)(-\w+)*/resampled_samples'),
-      ], 'eeg_channel/resampled_sampling_frequency_hz'),
-      ([
-          # 'seizure bin' used at the shorthand for this key.
-          re.compile(r'(seizure_bin)ary_per_sec'),  # Derived feature pattern.
-      ], None),
+      (
+          [
+              # EEG channel pattern
+              re.compile(r'eeg_channel/(?:EEG )?(\w+)(-\w+)*/samples'),
+          ],
+          'eeg_channel/sampling_frequency_hz'),
+      (
+          [
+              # EEG channel pattern for training data
+              re.compile(r'eeg_channel/(?:EEG )?(\w+)(-\w+)*/resampled_samples'
+                        ),
+          ],
+          'eeg_channel/resampled_sampling_frequency_hz'),
+      (
+          [
+              # 'seizure bin' used at the shorthand for this key.
+              re.compile(r'(seizure_bin)ary_per_sec'
+                        ),  # Derived feature pattern.
+          ],
+          None),
   ]
 
   def __init__(self, tf_example, key):

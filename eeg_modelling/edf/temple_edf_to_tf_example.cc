@@ -94,11 +94,11 @@ int main(int argc, const char* argv[]) {
   example = std::move(example_or).ValueOrDie();
 
   string output_path = std::string(args.GetString("output_path"));
-  std::fstream output(output_path, std::ios::out | std::ios::trunc | std::ios::binary);
+  std::fstream output(output_path, std::ios::out | std::ios::trunc |
+                      std::ios::binary);
   if (!example.SerializeToOstream(&output)) {
     ABSL_RAW_LOG(ERROR, "Failed to write to file: %s", output_path.c_str());
     return -1;
   }
-
   return 0;
 }
