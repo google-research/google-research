@@ -56,6 +56,7 @@ def main(_):
         found = False
         for k, v in mapping_dict.items():
             if t in v:
+                found = True
                 break
         if not found:
             print("%s is not found" % t)
@@ -64,7 +65,7 @@ def main(_):
     print(new_targets)
     target2idx = {t: i for i, t in enumerate(new_targets)}
 
-    data["labels"] = data["labels"].apply(replace_labels, argv=(idx2target, mapping_dict, target2idx))
+    data["labels"] = data["labels"].apply(replace_labels, args=(idx2target, mapping_dict, target2idx))
 
     with open(FLAGS.output_target_file, "w") as f:
         f.write("\n".join(new_targets))
