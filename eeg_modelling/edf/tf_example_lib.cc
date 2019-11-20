@@ -279,8 +279,8 @@ Status IsSegmentValid(const Segment& segment) {
       sampling_rate = channel.sampling_frequency_hz();
       found_sampling_rate = true;
     } else if (channel.sampling_frequency_hz() != sampling_rate) {
-      ABSL_RAW_LOG(INFO,
-          "Skipping channel with different frequency: %s, Filename: %s",
+      ABSL_RAW_LOG(
+          INFO, "Skipping channel with different frequency: %s, Filename: %s",
           channel.name().c_str(), segment.filename().c_str());
       continue;
     }

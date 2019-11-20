@@ -27,13 +27,12 @@ from absl import app as absl_app
 from absl import flags
 from absl import logging
 
-from google.protobuf.message import DecodeError
-
 import flask
 from flask import wrappers as flask_wrappers
 from gevent.pywsgi import WSGIServer
 import tensorflow as tf
 from werkzeug.contrib import wrappers as werkzeug_wrappers
+from google.protobuf.message import DecodeError
 
 from eeg_modelling.eeg_viewer import data_source
 from eeg_modelling.eeg_viewer import prediction_data_service
