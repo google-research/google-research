@@ -1,0 +1,35 @@
+import dopamine.agents.rainbow.rainbow_agent
+import dopamine.discrete_domains.atari_lib
+import dopamine.discrete_domains.run_experiment
+import dopamine.replay_memory.prioritized_replay_buffer
+import gin.tf.external_configurables
+
+RainbowAgent.num_atoms = 51
+RainbowAgent.vmax = 10.
+RainbowAgent.gamma = 0.99
+RainbowAgent.update_horizon = 1
+RainbowAgent.min_replay_history = 10000
+RainbowAgent.update_period = 4
+RainbowAgent.target_update_period = 500
+RainbowAgent.replay_scheme = 'uniform'
+RainbowAgent.tf_device = '/gpu:0'  # use '/cpu:*' for non-GPU version
+
+atari_lib.create_atari_environment.game_name = 'Pong'
+# Don't use sticky actions for determinism.
+atari_lib.create_atari_environment.sticky_actions = False
+bisimulation_aaai2020.dopamine.run_experiment.create_agent.agent_name = 'rainbow'
+Runner.num_iterations = 5  # Just enough to learn metric.
+Runner.training_steps = 250000
+Runner.evaluation_steps = 125000
+Runner.max_steps_per_episode = 27000
+
+WrappedPrioritizedReplayBuffer.replay_capacity = 1000000
+WrappedPrioritizedReplayBuffer.batch_size = 128
+
+# For learning the bisimulation metric.
+BisimulationRainbowAgent.bisim_horizon_discount = 0.99
+tf.train.AdamOptimizer.learning_rate = 0.000075
+tf.train.AdamOptimizer.epsilon = 0.00015
+rainbow_agent.atari_network.representation_layer = 5
+rainbow_agent.bisimulation_network.hidden_dimension = 16
+rainbow_agent.bisimulation_network.num_layers = 2
