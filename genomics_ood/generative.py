@@ -26,8 +26,6 @@ import numpy as np
 from sklearn.metrics import roc_auc_score
 import tensorflow as tf  # tf
 from genomics_ood import utils
-from tensorflow.contrib import rnn as contrib_rnn
-from tensorflow.contrib import training as contrib_training
 
 # parameters
 FLAGS = flags.FLAGS
@@ -225,7 +223,7 @@ class SeqModel(object):
     self.y_emb = tf.one_hot(self.y, depth=self._params.emb_size)
     tf.logging.info('y.shape=%s', self.y.shape)
 
-    lstm_fw_cell_g = contrib_rnn.LayerNormBasicLSTMCell(
+    lstm_fw_cell_g = tf.contrib.rnn.LayerNormBasicLSTMCell(
         self._params.hidden_lstm_size,
         layer_norm=self._params.norm_lstm,
         dropout_keep_prob=1 - self.dropout_rate)
@@ -408,7 +406,7 @@ def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
   random.seed(FLAGS.random_seed)
 
-  params = contrib_training.HParams(
+  params = tf.contrib.training.HParams(
       num_steps=FLAGS.num_steps,
       val_freq=FLAGS.val_freq,
       seq_len=FLAGS.seq_len,

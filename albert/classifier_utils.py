@@ -29,9 +29,6 @@ import tensorflow as tf
 from albert import modeling
 from albert import optimization
 from albert import tokenization
-from tensorflow.contrib import data as contrib_data
-from tensorflow.contrib import metrics as contrib_metrics
-from tensorflow.contrib import tpu as contrib_tpu
 
 
 class InputExample(object):
@@ -742,7 +739,7 @@ def file_based_input_fn_builder(input_file, seq_length, is_training,
       d = d.shuffle(buffer_size=100)
 
     d = d.apply(
-        contrib_data.map_and_batch(
+        tf.contrib.data.map_and_batch(
             lambda record: _decode_record(record, name_to_features),
             batch_size=batch_size,
             drop_remainder=drop_remainder))
@@ -879,7 +876,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
       train_op = optimization.create_optimizer(
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
 
-      output_spec = contrib_tpu.TPUEstimatorSpec(
+      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           train_op=train_op,
@@ -901,11 +898,11 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
         def metric_fn(per_example_loss, label_ids, logits, is_real_example):
           """Compute Pearson correlations for STS-B."""
           # Display labels and predictions
-          concat1 = contrib_metrics.streaming_concat(logits)
-          concat2 = contrib_metrics.streaming_concat(label_ids)
+          concat1 = tf.contrib.metrics.streaming_concat(logits)
+          concat2 = tf.contrib.metrics.streaming_concat(label_ids)
 
           # Compute Pearson correlation
-          pearson = contrib_metrics.streaming_pearson_correlation(
+          pearson = tf.contrib.metrics.streaming_pearson_correlation(
               logits, label_ids, weights=is_real_example)
 
           # Compute MSE
@@ -952,18 +949,16 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
 
       eval_metrics = (metric_fn,
                       [per_example_loss, label_ids, logits, is_real_example])
-      output_spec = contrib_tpu.TPUEstimatorSpec(
+      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           eval_metrics=eval_metrics,
           scaffold_fn=scaffold_fn)
     else:
-      output_spec = contrib_tpu.TPUEstimatorSpec(
+      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
-          predictions={
-              "probabilities": probabilities,
-              "predictions": predictions
-          },
+          predictions={"probabilities": probabilities,
+                       "predictions": predictions},
           scaffold_fn=scaffold_fn)
     return output_spec
 

@@ -24,9 +24,8 @@ from common import Actor
 from common import CriticDDPG
 import numpy as np
 import tensorflow as tf
+from tensorflow.contrib.eager.python import tfe
 from utils import soft_update
-from tensorflow.contrib import summary as contrib_summary
-from tensorflow.contrib.eager.python import tfe as contrib_eager_python_tfe
 
 
 class CriticTD3(tf.keras.Model):
@@ -108,9 +107,8 @@ class DDPG(object):
         self.actor_target = Actor(input_dim, action_dim)
 
       self.initial_actor_lr = actor_lr
-      self.actor_lr = contrib_eager_python_tfe.Variable(actor_lr, name='lr')
-      self.actor_step = contrib_eager_python_tfe.Variable(
-          0, dtype=tf.int64, name='step')
+      self.actor_lr = tfe.Variable(actor_lr, name='lr')
+      self.actor_step = tfe.Variable(0, dtype=tf.int64, name='step')
       self.actor_optimizer = tf.train.AdamOptimizer(learning_rate=self.actor_lr)
       self.actor_optimizer._create_slots(self.actor.variables)  # pylint: disable=protected-access
 
@@ -126,8 +124,7 @@ class DDPG(object):
         with tf.variable_scope('target'):
           self.critic_target = CriticDDPG(input_dim + action_dim)
 
-      self.critic_step = contrib_eager_python_tfe.Variable(
-          0, dtype=tf.int64, name='step')
+      self.critic_step = tfe.Variable(0, dtype=tf.int64, name='step')
       self.critic_optimizer = tf.train.AdamOptimizer(learning_rate=critic_lr)
       self.critic_optimizer._create_slots(self.critic.variables)  # pylint: disable=protected-access
 
@@ -162,9 +159,10 @@ class DDPG(object):
     self.critic_optimizer.apply_gradients(
         zip(grads, self.critic.variables), global_step=self.critic_step)
 
-    with contrib_summary.record_summaries_every_n_global_steps(
+    with tf.contrib.summary.record_summaries_every_n_global_steps(
         100, self.critic_step):
-      contrib_summary.scalar('critic/loss', critic_loss, step=self.critic_step)
+      tf.contrib.summary.scalar(
+          'critic/loss', critic_loss, step=self.critic_step)
 
   def _update_critic_td3(self, obs, action, next_obs, reward, mask):
     """Updates parameters of td3 critic given samples from the batch.
@@ -180,7 +178,7 @@ class DDPG(object):
     # the state of the random number generator used by TensorFlow.
     target_action_noise = np.random.normal(
         size=action.get_shape(), scale=self.policy_noise).astype('float32')
-    target_action_noise = contrib_eager_python_tfe.Variable(target_action_noise)
+    target_action_noise = tfe.Variable(target_action_noise)
 
     target_action_noise = tf.clip_by_value(
         target_action_noise, -self.policy_noise_clip, self.policy_noise_clip)
@@ -215,18 +213,19 @@ class DDPG(object):
         zip(grads, self.critic.variables), global_step=self.critic_step)
 
     if self.use_absorbing_state:
-      with contrib_summary.record_summaries_every_n_global_steps(
+      with tf.contrib.summary.record_summaries_every_n_global_steps(
           100, self.critic_step):
         a_mask = tf.maximum(0, -mask)
         if tf.reduce_sum(a_mask).numpy() > 0:
-          contrib_summary.scalar(
+          tf.contrib.summary.scalar(
               'critic/absorbing_reward',
               tf.reduce_sum(reward * a_mask) / tf.reduce_sum(a_mask),
               step=self.critic_step)
 
-    with contrib_summary.record_summaries_every_n_global_steps(
+    with tf.contrib.summary.record_summaries_every_n_global_steps(
         100, self.critic_step):
-      contrib_summary.scalar('critic/loss', critic_loss, step=self.critic_step)
+      tf.contrib.summary.scalar(
+          'critic/loss', critic_loss, step=self.critic_step)
 
   def _update_actor(self, obs, mask):
     """Updates parameters of critic given samples from the batch.
@@ -256,9 +255,9 @@ class DDPG(object):
     self.actor_optimizer.apply_gradients(
         zip(grads, self.actor.variables), global_step=self.actor_step)
 
-    with contrib_summary.record_summaries_every_n_global_steps(
+    with tf.contrib.summary.record_summaries_every_n_global_steps(
         100, self.actor_step):
-      contrib_summary.scalar('actor/loss', actor_loss, step=self.actor_step)
+      tf.contrib.summary.scalar('actor/loss', actor_loss, step=self.actor_step)
 
   def update(self, batch, update_actor=True):
     """Updates parameters of TD3 actor and critic given samples from the batch.
@@ -267,20 +266,15 @@ class DDPG(object):
        batch: A list of timesteps from environment.
        update_actor: a boolean variable, whether to perform a policy update.
     """
-    obs = contrib_eager_python_tfe.Variable(
-        np.stack(batch.obs).astype('float32'))
-    action = contrib_eager_python_tfe.Variable(
-        np.stack(batch.action).astype('float32'))
-    next_obs = contrib_eager_python_tfe.Variable(
-        np.stack(batch.next_obs).astype('float32'))
-    mask = contrib_eager_python_tfe.Variable(
-        np.stack(batch.mask).astype('float32'))
+    obs = tfe.Variable(np.stack(batch.obs).astype('float32'))
+    action = tfe.Variable(np.stack(batch.action).astype('float32'))
+    next_obs = tfe.Variable(np.stack(batch.next_obs).astype('float32'))
+    mask = tfe.Variable(np.stack(batch.mask).astype('float32'))
 
     if self.get_reward is not None:
       reward = self.get_reward(obs, action, next_obs)
     else:
-      reward = contrib_eager_python_tfe.Variable(
-          np.stack(batch.reward).astype('float32'))
+      reward = tfe.Variable(np.stack(batch.reward).astype('float32'))
 
     if self.use_td3:
       self._update_critic_td3(obs, action, next_obs, reward, mask)

@@ -26,9 +26,8 @@ from six.moves import range
 import tensorflow as tf
 from deep_homography import hmg_util
 from deep_homography import models
-from tensorflow.contrib import slim as contrib_slim
 
-slim = contrib_slim
+slim = tf.contrib.slim
 
 flags.DEFINE_string('master', 'local', 'Master of the training')
 flags.DEFINE_integer('ps_tasks', 0, 'Number of paramater servers')

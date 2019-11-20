@@ -29,7 +29,6 @@ import tensorflow as tf
 
 from enas_lm.src import fixed_lib
 from enas_lm.src import utils
-from tensorflow.contrib import training as contrib_training
 
 
 flags = tf.app.flags
@@ -169,7 +168,7 @@ def main(unused_args):
   print('Logging to {}'.format(log_file))
   sys.stdout = utils.Logger(log_file)
 
-  params = contrib_training.HParams(
+  params = tf.contrib.training.HParams(
       data_path=FLAGS.data_path,
       log_every=FLAGS.log_every,
       output_dir=output_dir,
@@ -179,3 +178,4 @@ def main(unused_args):
 
 if __name__ == '__main__':
   tf.app.run()
+

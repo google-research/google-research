@@ -19,8 +19,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
-
 from absl import app
 from absl import flags
 import numpy as np
@@ -29,15 +27,10 @@ import os
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("checkpoint_dir", None, "Model checkpoint directory.")
-
-flags.DEFINE_string("tensor_names", "output_weights,new_output_weights",
-                    "Comma separated list of tensor names to save.")
-
-
-def save_tensor(reader, name):
-  tensor = reader.get_tensor(name)
-  np.save(os.path.join(FLAGS.checkpoint_dir, name + ".npy"), tensor)
+flags.DEFINE_string(
+    "checkpoint_dir",
+    None,
+    "Model checkpoint directory.")
 
 flags.DEFINE_string(
     "tensor_names",

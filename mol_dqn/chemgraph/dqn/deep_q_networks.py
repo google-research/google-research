@@ -31,8 +31,6 @@ from rdkit.Chem import AllChem
 from six.moves import range
 from six.moves import zip
 import tensorflow as tf
-from tensorflow.contrib import layers as contrib_layers
-from tensorflow.contrib import training as contrib_training
 
 
 class DeepQNetwork(object):
@@ -296,7 +294,7 @@ class DeepQNetwork(object):
     """
     with tf.variable_scope(self.scope, reuse=self.reuse):
 
-      self.optimization_op = contrib_layers.optimize_loss(
+      self.optimization_op = tf.contrib.layers.optimize_loss(
           loss=self.weighted_error,
           global_step=tf.train.get_or_create_global_step(),
           learning_rate=self.learning_rate,
@@ -690,7 +688,7 @@ def get_hparams(**kwargs):
   Returns:
     A HParams object containing all the hyperparameters.
   """
-  hparams = contrib_training.HParams(
+  hparams = tf.contrib.training.HParams(
       atom_types=['C', 'O', 'N'],
       max_steps_per_episode=40,
       allow_removal=True,

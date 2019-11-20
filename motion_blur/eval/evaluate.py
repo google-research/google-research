@@ -30,10 +30,9 @@ from cvx2 import latest as cv2
 import numpy as np
 import skimage.measure
 import tensorflow as tf
-from tensorflow.contrib import resampler as contrib_resampler
 
 # Contrib is lazily loaded so this reference is needed to use the resampler op.
-_RESAMPLER = contrib_resampler
+_RESAMPLER = tf.contrib.resampler
 
 FLAGS = flags.FLAGS
 

@@ -3,7 +3,6 @@
 This directory contains a preliminary release of code for
 Meta Reward Learning (*MeRL*) used for semantic parsing experiments in our ICML'19 paper
 [Learning to Generalize from Sparse and Underspecified Rewards](https://arxiv.org/abs/1902.07198).
-Refer to [bit.ly/merl2019](https://thesparta.github.io/merl/) for more information.
 It is based on the open source
 implementation of Memory Augmented Program Synthesis ([*MAPO*](https://github.com/crazydonkey200/neural-symbolic-machines)).
 

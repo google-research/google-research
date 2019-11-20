@@ -32,9 +32,8 @@ from six.moves import range
 import tensorflow as tf
 from deep_homography import hmg_util
 from deep_homography import models
-from tensorflow.contrib import slim as contrib_slim
 
-slim = contrib_slim
+slim = tf.contrib.slim
 logging = tf.logging
 
 flags.DEFINE_string('image1', None, 'filename of the first input image')

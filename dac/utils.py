@@ -21,7 +21,7 @@ from __future__ import print_function
 
 from common import Mask
 import numpy as np
-from tensorflow.contrib.eager.python import tfe as contrib_eager_python_tfe
+from tensorflow.contrib.eager.python import tfe
 
 
 def soft_update(vars_, target_vars, tau=1.0):
@@ -69,7 +69,7 @@ def do_rollout(env,
           len(replay_buffer) < rand_actions) or sample_random:
         action = env.action_space.sample()
       else:
-        tfe_obs = contrib_eager_python_tfe.Variable([obs.astype('float32')])
+        tfe_obs = tfe.Variable([obs.astype('float32')])
         action = actor(tfe_obs).numpy()[0]
         if noise_scale > 0:
           action += np.random.normal(size=action.shape) * noise_scale

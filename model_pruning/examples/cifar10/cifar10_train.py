@@ -49,7 +49,6 @@ import tensorflow as tf
 
 from model_pruning.examples.cifar10 import cifar10_pruning as cifar10
 from model_pruning.python import pruning
-from tensorflow.contrib import framework as contrib_framework
 
 FLAGS = None
 
@@ -57,7 +56,7 @@ FLAGS = None
 def train():
   """Train CIFAR-10 for a number of steps."""
   with tf.Graph().as_default():
-    global_step = contrib_framework.get_or_create_global_step()
+    global_step = tf.contrib.framework.get_or_create_global_step()
 
     # Get images and labels for CIFAR-10.
     images, labels = cifar10.distorted_inputs()

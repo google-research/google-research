@@ -19,9 +19,8 @@
 import functools
 import tensorflow as tf
 from mobilenet import mobilenet_v2
-from tensorflow.contrib import slim as contrib_slim
 
-slim = contrib_slim
+slim = tf.contrib.slim
 
 # Default end point for MobileNetv2.
 _MOBILENET_V2_FINAL_ENDPOINT = 'layer_18'

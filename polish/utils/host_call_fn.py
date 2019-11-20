@@ -19,7 +19,6 @@ from __future__ import division
 from __future__ import print_function
 import gin
 import tensorflow as tf
-from tensorflow.contrib import summary as contrib_summary
 
 
 @gin.configurable
@@ -58,13 +57,13 @@ def build_host_call_fn_every_n_global_steps(
   def host_call_fn(global_step, *tensors):
     """Training host call."""
     global_step = global_step[0]
-    with contrib_summary.create_file_writer(summary_dir +
-                                            '/metrics').as_default():
-      with contrib_summary.record_summaries_every_n_global_steps(
+    with tf.contrib.summary.create_file_writer(
+        summary_dir + '/metrics').as_default():
+      with tf.contrib.summary.record_summaries_every_n_global_steps(
           n=n, global_step=global_step):
         for i, tensor in enumerate(tensors):
-          contrib_summary.scalar(names[i], tensor[0], step=global_step)
-        return contrib_summary.all_summary_ops()
+          tf.contrib.summary.scalar(names[i], tensor[0], step=global_step)
+        return tf.contrib.summary.all_summary_ops()
 
   global_step = tf.reshape(tf.train.get_or_create_global_step(), [1])
   tensors = [
@@ -99,12 +98,12 @@ def build_host_call_fn(
   def host_call_fn(global_step, *tensors):
     """Training host call."""
     global_step = global_step[0]
-    with contrib_summary.create_file_writer(summary_dir +
-                                            '/metrics').as_default():
-      with contrib_summary.always_record_summaries():
+    with tf.contrib.summary.create_file_writer(
+        summary_dir + '/metrics').as_default():
+      with tf.contrib.summary.always_record_summaries():
         for i, tensor in enumerate(tensors):
-          contrib_summary.scalar(names[i], tensor[0], step=global_step)
-        return contrib_summary.all_summary_ops()
+          tf.contrib.summary.scalar(names[i], tensor[0], step=global_step)
+        return tf.contrib.summary.all_summary_ops()
 
   global_step = tf.reshape(tf.train.get_or_create_global_step(), [1])
   tensors = [
