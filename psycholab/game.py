@@ -16,9 +16,11 @@
 """Creates grid social games from ASCII art diagrams."""
 
 from __future__ import print_function
-import collections
-import numpy as np
 
+import collections
+
+from gym import spaces
+import numpy as np
 
 # Careful with convention 'up' is displayed as -1 on the grid plot.
 MOVING_ACTIONS = {
@@ -168,10 +170,12 @@ class Game(object):
 
     num_items: number of items.
 
-    num_actions: number of actions.
+    num_actions: number of actions for each player.
 
     num_states: number of states (upper bound of the number
                 of combinations of players positions).
+
+    action_space: gym-like action space (a MultiDiscrete space).
   """
 
   def __init__(self, ascii_art, items, players, tabular=False, max_steps=100):
@@ -332,6 +336,10 @@ class Game(object):
     return len(self.actions)
 
   @property
+  def action_space(self):
+    return spaces.MultiDiscrete([self.num_actions] * self.num_players)
+
+  @property
   def num_states(self):
     # num_states is an upper bound of the number of possible
     # tuples containing each player's position.
@@ -347,7 +355,8 @@ class Game(object):
     """Applies a gym-based environement step.
 
     Args:
-      actions: list of integers containing the actions of each agent
+      actions: list of integers (or numpy array)
+      containing the actions of each agent.
 
     Returns:
       observations: image or list of integers, depending on the game setting.
@@ -483,7 +492,8 @@ class Game(object):
     only one -- randomly chosen -- does the move.
 
     Args:
-      actions: list of integers containing the actions of each agent.
+      actions: list of integers (or numpy array)
+      containing the actions of each agent
 
     Returns:
       actions: corrected list of actions.

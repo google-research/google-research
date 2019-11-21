@@ -17,6 +17,7 @@
 
 
 import unittest
+import numpy as np
 from psycholab import game
 
 
@@ -56,6 +57,12 @@ class TestGame(unittest.TestCase):
     env.add_terminaison('A_collects_a')
     env.add_terminaison('B_collects_b')
 
+    _ = env.reset()
+
+    # test gym action space
+    _, _, _, _ = env.step(env.action_space.sample())
+    actions = np.array([1, 0])
+    _, _, _, infos = env.step(actions)
     _ = env.reset()
 
     # A goes in wall
