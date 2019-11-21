@@ -37,6 +37,7 @@ env:
     - PROJECT="moew"
     - PROJECT="neutra"
     - PROJECT="norml"
+    - PROJECT="pairwise_fairness"
     - PROJECT="probabilistic_vqvae"
     - PROJECT="property_linking"
     - PROJECT="psycholab"
