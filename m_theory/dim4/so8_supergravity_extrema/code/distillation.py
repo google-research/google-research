@@ -41,7 +41,6 @@ from dim4.so8_supergravity_extrema.code import scalar_sector_mpmath
 from dim4.so8_supergravity_extrema.code import scalar_sector_tensorflow
 from dim4.so8_supergravity_extrema.code import symmetries
 from m_theory_lib import tf_cexpm
-from tensorflow.contrib import opt as contrib_opt
 
 # A 'model' of a critical point is a coordinate description that has been
 # rotated in such a way that many entries can be set to zero.
@@ -231,7 +230,7 @@ def _reduce_second_m35(m35s, m35c, is_diagonal_35s, seed=0):
     # rotation.
     t_loss = (tf.norm(t_m35_rotated, ord=1) -
               tf.norm(tf.linalg.diag_part(t_m35_rotated), ord=1))
-    optimizer = contrib_opt.ScipyOptimizerInterface(t_loss)
+    optimizer = tf.contrib.opt.ScipyOptimizerInterface(t_loss)
     with tf.compat.v1.Session() as sess:
       sess.run([tf.global_variables_initializer()])
       optimizer.minimize(sess)

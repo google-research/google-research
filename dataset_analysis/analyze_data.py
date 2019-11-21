@@ -33,6 +33,7 @@ from scipy.cluster.hierarchy import dendrogram
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import pdist
 import seaborn as sns
+import os
 
 FLAGS = flags.FLAGS
 
@@ -64,6 +65,7 @@ def main(_):
   data = pd.read_csv(FLAGS.data, encoding="utf-8")
   print("%d Examples" % (len(set(data["id"]))))
   print("%d Annotations" % len(data))
+  os.makedirs(FLAGS.plot_dir, exist_ok=True)
 
   with open(FLAGS.target_file, "r") as f:
     all_targets = f.read().splitlines()

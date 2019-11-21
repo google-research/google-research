@@ -22,7 +22,6 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 import tqdm
-from tensorflow.contrib import layers as contrib_layers
 
 
 class Rllim(object):
@@ -112,13 +111,13 @@ class Rllim(object):
       inputs = tf.concat((x * xt_ext, x-xt_ext, x, xt_ext), axis=1)
 
       # Stacks multi-layered perceptron
-      inter_layer = contrib_layers.fully_connected(
+      inter_layer = tf.contrib.layers.fully_connected(
           inputs, self.hidden_dim, activation_fn=self.act_fn)
       for _ in range(self.num_layers-2):
-        inter_layer = contrib_layers.fully_connected(
+        inter_layer = tf.contrib.layers.fully_connected(
             inter_layer, self.hidden_dim, activation_fn=self.act_fn)
 
-      inst_weight = contrib_layers.fully_connected(
+      inst_weight = tf.contrib.layers.fully_connected(
           inter_layer, 1, activation_fn=tf.nn.sigmoid)
 
     return inst_weight

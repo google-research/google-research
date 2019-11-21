@@ -27,7 +27,6 @@ from six.moves import zip
 import tensorflow as tf
 
 from albert import lamb_optimizer
-from tensorflow.contrib import tpu as contrib_tpu
 
 
 def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu,
@@ -96,7 +95,7 @@ def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu,
     raise ValueError("Not supported optimizer: ", optimizer)
 
   if use_tpu:
-    optimizer = contrib_tpu.CrossShardOptimizer(optimizer)
+    optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
 
   tvars = tf.trainable_variables()
   grads = tf.gradients(loss, tvars)

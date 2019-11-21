@@ -20,12 +20,13 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
+
+from tensorflow.contrib.slim import initializers
 
 from evanet import inception_cell_spec_pb2 as search_proto
 
 from evanet import tgm_layer
-from tensorflow.contrib import slim as contrib_slim
-from tensorflow.contrib.slim import initializers as contrib_slim_initializers
 
 BATCH_NORM_DECAY = 0.9
 BATCH_NORM_EPSILON = 1e-5
@@ -63,7 +64,7 @@ def batch_norm_relu(inputs,
       'moving_variance': ['moving_vars'],
   }
 
-  inputs = contrib_slim.batch_norm(
+  inputs = slim.batch_norm(
       inputs=inputs,
       decay=BATCH_NORM_DECAY,
       epsilon=BATCH_NORM_EPSILON,
@@ -90,9 +91,9 @@ def conv3d(inputs,
 
   del data_format
   del dilation
-  init = contrib_slim_initializers.variance_scaling_initializer
+  init = initializers.variance_scaling_initializer
 
-  return contrib_slim.conv3d(
+  return slim.conv3d(
       inputs,
       filters,
       kernel_size=kernel_size,
@@ -122,8 +123,8 @@ def conv21d(inputs,
   if isinstance(strides, int):
     strides = [strides, strides, strides]
 
-  init = contrib_slim_initializers.variance_scaling_initializer
-  inputs = contrib_slim.conv3d(
+  init = initializers.variance_scaling_initializer
+  inputs = slim.conv3d(
       inputs,
       filters // 2,
       kernel_size=[kernel_size[0], 1, 1],
@@ -136,7 +137,7 @@ def conv21d(inputs,
       weights_initializer=init(factor=2.0, mode='FAN_IN', uniform=False))
   inputs = batch_norm_relu(inputs, is_training, relu=True)
 
-  inputs = contrib_slim.conv3d(
+  inputs = slim.conv3d(
       inputs,
       filters,
       kernel_size=[1, kernel_size[1], kernel_size[2]],
@@ -162,7 +163,7 @@ def tgm_conv3d(inputs,
 
   del data_format
   del dilation
-  init = contrib_slim_initializers.variance_scaling_initializer
+  init = initializers.variance_scaling_initializer
   return tgm_layer.tgm_3d_conv(
       inputs,
       filters,
@@ -275,7 +276,7 @@ class ModelDNA(object):
             branch = batch_norm_relu(
                 branch, is_training, relu=False, data_format=data_format)
           elif layer.layer_type == search_proto.Layer.MAXPOOLCONV:
-            branch = contrib_slim.max_pool3d(
+            branch = slim.max_pool3d(
                 net, [layer.time, 3, 3],
                 scope='MaxPool_0a_3x3',
                 stride=1,
@@ -353,11 +354,10 @@ class ModelDNA(object):
       endpoints[endpoint] = net
       return only_endpoints and final_endpoint == endpoint
 
-    with contrib_slim.arg_scope([contrib_slim.conv2d], padding='SAME'):
+    with slim.arg_scope([slim.conv2d], padding='SAME'):
       with tf.variable_scope('VidIncRes', 'VidIncRes', [video]):
-        with contrib_slim.arg_scope(
-            [contrib_slim.batch_norm, contrib_slim.dropout],
-            is_training=is_training):
+        with slim.arg_scope([slim.batch_norm, slim.dropout],
+                            is_training=is_training):
           net = video
 
           conv_op = self.get_layer_type(self.spec.convop1)
@@ -372,7 +372,7 @@ class ModelDNA(object):
           if add_and_check_endpoint(net, 'Conv2d_1a_7x7'):
             return endpoints
 
-          net = contrib_slim.max_pool3d(
+          net = slim.max_pool3d(
               net, [self.spec.max_pool1_time, 3, 3],
               stride=[2, 2, 2],
               scope='maxpool1',
@@ -389,7 +389,7 @@ class ModelDNA(object):
               block=self.spec.blocks[0])
           if add_and_check_endpoint(net, 'res_block_2'):
             return endpoints
-          net = contrib_slim.max_pool3d(
+          net = slim.max_pool3d(
               net, [self.spec.max_pool1_time, 2, 2],
               stride=[1, 2, 2],
               scope='maxpool2',
@@ -406,7 +406,7 @@ class ModelDNA(object):
               block=self.spec.blocks[1])
           if add_and_check_endpoint(net, 'res_block_3'):
             return endpoints
-          net = contrib_slim.max_pool3d(
+          net = slim.max_pool3d(
               net, [self.spec.max_pool3_time, 2, 2],
               stride=[1, 2, 2],
               scope='maxpool3',
@@ -423,7 +423,7 @@ class ModelDNA(object):
               block=self.spec.blocks[2])
           if add_and_check_endpoint(net, 'res_block_4'):
             return endpoints
-          net = contrib_slim.max_pool3d(
+          net = slim.max_pool3d(
               net, [self.spec.max_pool4_time, 2, 2],
               stride=[1, 2, 2],
               scope='maxpool4',
@@ -450,22 +450,21 @@ class ModelDNA(object):
             pool_size = (min(
                 shape[1] if data_format == 'channels_last' else shape[2], 2), s,
                          s)
-            net = contrib_slim.avg_pool3d(
+            net = slim.avg_pool3d(
                 inputs=net, kernel_size=pool_size, stride=1, padding='VALID')
-            net = contrib_slim.dropout(
+            net = slim.dropout(
                 net,
                 self.dropout_keep_prob,
                 scope='Dropout_0b',
                 is_training=is_training)
-            net = contrib_slim.conv3d(
+            net = slim.conv3d(
                 net,
                 self.num_classes,
                 kernel_size=1,
                 stride=1,
                 activation_fn=None,
                 normalizer_fn=None,
-                weights_initializer=contrib_slim_initializers
-                .variance_scaling_initializer(
+                weights_initializer=initializers.variance_scaling_initializer(
                     factor=2.0, mode='FAN_IN', uniform=False))
             # spatial-temporal pooling
             logits = tf.reduce_mean(
@@ -475,7 +474,7 @@ class ModelDNA(object):
             if add_and_check_endpoint(logits, 'Logits'):
               return endpoints
 
-    pred = tf.argmax(contrib_slim.softmax(logits), axis=1)
+    pred = tf.argmax(slim.softmax(logits), axis=1)
     if add_and_check_endpoint(pred, 'Predictions'):
       return endpoints
 

@@ -101,7 +101,7 @@ def two_rings_dist(scale=0.1):
 
 def checkerboard_dist(num_splits=4):
   """Returns a checkerboard distribution."""
-  bounds = np.linspace(-2., 2., num=(num_splits + 1), endpoint=True)
+  bounds = np.linspace(0., 1., num=(num_splits + 1), endpoint=True)
   uniforms = []
   for i in range(num_splits):
     for j in range(num_splits):

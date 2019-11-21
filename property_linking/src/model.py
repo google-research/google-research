@@ -23,8 +23,6 @@ import tensorflow as tf
 from tensorflow.keras import layers
 
 from property_linking.src import util
-from tensorflow.contrib import layers as contrib_layers
-from tensorflow.contrib import rnn as contrib_rnn
 
 # Uses these global flags:
 #   max_query_length
@@ -192,7 +190,7 @@ class Model(object):
       # Build relation decoder
       with tf.variable_scope("relation_decoder"):
         rel_dec_rnn_layers = [
-            contrib_rnn.LSTMBlockCell(layer_size, name=("attr_lstm_%d" % i))
+            tf.contrib.rnn.LSTMBlockCell(layer_size, name=("attr_lstm_%d" % i))
             for (i, layer_size) in enumerate([layer_size] * num_layers)
         ]
         relation_decoder_cell = tf.nn.rnn_cell.MultiRNNCell(rel_dec_rnn_layers)
@@ -247,7 +245,7 @@ class Model(object):
         total_logits = similarity_logits
       elif logits_strategy == "mixed":
         total_logits = prior_logits + similarity_logits
-      total_dist = contrib_layers.softmax(total_logits)
+      total_dist = tf.contrib.layers.softmax(total_logits)
       values_pred = nqc.as_nql(total_dist, "val_g")
       with tf.variable_scope("start_follow_{}".format(i)):
         start_pred = nqc.all("v_t").follow(values_pred)  # find starting nodes

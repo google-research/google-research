@@ -556,7 +556,7 @@ def iaf_scale_from_matmul(shifted_codes, name=None):
                                    dtype=tf.float32,
                                    initializer=tf.zeros_initializer())
     scale_bijector = tfb.Affine(
-        scale_tril=tfp.math.fill_triangular(scale_matrix))
+        scale_tril=tfd.fill_triangular(scale_matrix))
     unconstrained_scale = scale_bijector.forward(
         tf.transpose(shifted_codes, [0, 1, 3, 2]))
     # Transpose the bijector output since it performs a batch matmul.

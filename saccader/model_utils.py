@@ -21,7 +21,6 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib import layers as contrib_layers
 
 MOMENTUM = 0.9
 EPS = 1e-5
@@ -211,7 +210,7 @@ def normalize_layer(net, normalization_type=None, is_training=False):
           net, momentum=MOMENTUM, epsilon=EPS, training=is_training)
     elif normalization_type == "layer":
       # Layer normalization
-      net = contrib_layers.layer_norm(net)
+      net = tf.contrib.layers.layer_norm(net)
     else:
       raise ValueError(
           "normalization_type can be either None, 'batch', or 'layer'")

@@ -26,13 +26,12 @@ from __future__ import print_function
 import tensorflow as tf
 
 from mol_dqn.chemgraph.dqn import deep_q_networks
-from tensorflow.contrib import training as contrib_training
 
 
 class DeepQNetworksTest(tf.test.TestCase):
 
   def test_multi_layer_model(self):
-    hparams = contrib_training.HParams(
+    hparams = tf.contrib.training.HParams(
         dense_layers=[16, 8],
         activation='relu',
         num_bootstrap_heads=0,

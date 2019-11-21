@@ -33,8 +33,10 @@ flags.DEFINE_string(
     "The config json file corresponding to the pre-trained ALBERT model. "
     "This specifies the model architecture.")
 
+flags.DEFINE_string("vocab_path", None, "The vocab file ALBERT model use")
+
 flags.DEFINE_string(
-    "checkpoint_name", "model.ckpt-best",
+    "checkpoint_name", "model.ckpt-125000",
     "Name of the checkpoint under albert_directory to be exported.")
 
 flags.DEFINE_bool(
@@ -97,9 +99,8 @@ def module_fn(is_training):
   segment_ids = tf.placeholder(tf.int32, [None, None], "segment_ids")
   mlm_positions = tf.placeholder(tf.int32, [None, None], "mlm_positions")
 
-  albert_config_path = os.path.join(
-      FLAGS.albert_directory, "albert_config.json")
-  albert_config = modeling.AlbertConfig.from_json_file(albert_config_path)
+  albert_config = modeling.AlbertConfig.from_json_file(
+      os.path.join(FLAGS.albert_directory, "albert_config.json"))
   model = modeling.AlbertModel(
       config=albert_config,
       is_training=is_training,
@@ -110,22 +111,12 @@ def module_fn(is_training):
 
   mlm_logits = get_mlm_logits(model, albert_config, mlm_positions)
 
-  vocab_model_path = os.path.join(FLAGS.albert_directory, "30k-clean.model")
-  vocab_file_path = os.path.join(FLAGS.albert_directory, "30k-clean.vocab")
-
-  config_file = tf.constant(
-      value=albert_config_path, dtype=tf.string, name="config_file")
-  vocab_model = tf.constant(
-      value=vocab_model_path, dtype=tf.string, name="vocab_model")
-  # This is only for visualization purpose.
+  assert tf.gfile.Exists(FLAGS.vocab_path)
   vocab_file = tf.constant(
-      value=vocab_file_path, dtype=tf.string, name="vocab_file")
+      value=FLAGS.vocab_path, dtype=tf.string, name="vocab_file")
 
-  # By adding `config_file, vocab_model and vocab_file`
-  # to the ASSET_FILEPATHS collection, TF-Hub will
+  # By adding `vocab_file` to the ASSET_FILEPATHS collection, TF-Hub will
   # rewrite this tensor so that this asset is portable.
-  tf.add_to_collection(tf.GraphKeys.ASSET_FILEPATHS, config_file)
-  tf.add_to_collection(tf.GraphKeys.ASSET_FILEPATHS, vocab_model)
   tf.add_to_collection(tf.GraphKeys.ASSET_FILEPATHS, vocab_file)
 
   hub.add_signature(
@@ -152,7 +143,7 @@ def module_fn(is_training):
       name="tokenization_info",
       inputs={},
       outputs=dict(
-          vocab_file=vocab_model,
+          vocab_file=vocab_file,
           do_lower_case=tf.constant(FLAGS.do_lower_case)))
 
 

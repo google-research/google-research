@@ -47,6 +47,7 @@ from scipy.stats import wilcoxon
 import seaborn as sns
 from sklearn.manifold import TSNE
 from statsmodels.stats.multitest import multipletests
+import os
 
 sns.set_style("whitegrid")
 plt.rcParams["xtick.major.size"] = 0
@@ -205,8 +206,8 @@ def PlotCovar(v):
   num_components = 28
   fig = plt.figure()
   plt.plot(np.arange(num_components), var_explained, marker="o")
-  plt.ylabel("Percentage of Covariance Explained")
-  plt.xlabel("Component")
+  plt.ylabel("Percentage of Covariance Explained", fontsize="x-large")
+  plt.xlabel("Component", fontsize="x-large")
   plt.xlim(-1, num_components)
   fig.savefig(
       FLAGS.plot_dir + "/covar_explained.pdf",
@@ -220,6 +221,7 @@ def main(_):
   data = pd.read_csv(FLAGS.data, encoding="utf-8")
   print("%d Examples" % (len(set(data["id"]))))
   print("%d Annotations" % len(data))
+  os.makedirs(FLAGS.plot_dir, exist_ok=True)
 
   with open(FLAGS.target_file, "r") as f:
     all_targets = f.read().splitlines()
@@ -464,12 +466,12 @@ def main(_):
       "x": x,
       "y": y,
       "color": hex_vals,
-      "target(s)": top_categories,
+      "label(s)": top_categories,
       "text": texts
   })
 
-  df = df[df["target(s)"] != "other"]
-  df["top_target"] = df["target(s)"].str.split(",").str[0]
+  df = df[df["label(s)"] != "other"]
+  df["top_label"] = df["label(s)"].str.split(",").str[0]
 
   # Two selections:
   # - a brush that is active on the top panel
@@ -483,13 +485,13 @@ def main(_):
           x="x:Q",
           y="y:Q",
           color=alt.Color("color", scale=None),
-          tooltip=["target(s)", "text"]).properties(
+          tooltip=["label(s)", "text"]).properties(
               width=700, height=600).add_selection(brush)
 
   # Bottom panel is a bar chart
   bars = alt.Chart(sample).mark_bar().encode(
       x="count()",
-      y="top_target:N",
+      y="top_label:N",
       color=alt.condition(click, alt.Color("color:N", scale=None),
                           alt.value("lightgray")),
   ).transform_filter(brush.ref()).properties(

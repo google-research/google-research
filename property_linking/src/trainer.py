@@ -22,7 +22,6 @@ import time
 import numpy as np
 import tensorflow as tf
 from property_linking.src import util
-from tensorflow.contrib import memory_stats as contrib_memory_stats
 
 # Uses these global flags:
 #  learning_rate
@@ -104,12 +103,11 @@ class Trainer(object):
     memory_footprints = []
     for gpu in gpus:
       with tf.device(gpu.name):
-        memory_footprint = tf.Print(
-            tf.constant(0), [
-                contrib_memory_stats.BytesLimit() / gpu_mb,
-                contrib_memory_stats.MaxBytesInUse() / gpu_mb
-            ],
-            message=gpu.name)
+        memory_footprint = tf.Print(tf.constant(0), [
+            tf.contrib.memory_stats.BytesLimit() / gpu_mb,
+            tf.contrib.memory_stats.MaxBytesInUse() / gpu_mb
+        ],
+                                    message=gpu.name)
       memory_footprints.append(memory_footprint)
 
     epochs = FLAGS.num_epochs

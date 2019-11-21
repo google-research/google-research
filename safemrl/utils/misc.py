@@ -31,7 +31,6 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 
 from tf_agents.utils import common
-from tensorflow.contrib import summary as contrib_summary
 
 
 def load_rb_ckpt(ckpt_dir, replay_buffer, ckpt_step=None):
@@ -95,7 +94,7 @@ def create_default_writer_and_save_dir(root_dir):
   save_dir = osp.join(base_dir, tag, 'train')
   tf.io.gfile.makedirs(tb_logdir)
   tf.io.gfile.makedirs(save_dir)
-  writer = contrib_summary.create_file_writer(tb_logdir)
+  writer = tf.contrib.summary.create_file_writer(tb_logdir)
   writer.set_as_default()
   return writer, save_dir
 

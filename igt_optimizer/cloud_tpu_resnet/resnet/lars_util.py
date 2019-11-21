@@ -35,7 +35,6 @@ from __future__ import print_function
 
 from absl import flags
 import tensorflow as tf
-from tensorflow.contrib import opt as contrib_opt
 
 FLAGS = flags.FLAGS
 
@@ -90,7 +89,7 @@ def init_lars_optimizer(current_epoch, params):
   """Initialize the LARS Optimizer."""
 
   learning_rate = poly_rate_schedule(current_epoch, params)
-  optimizer = contrib_opt.LARSOptimizer(
+  optimizer = tf.contrib.opt.LARSOptimizer(
       learning_rate,
       momentum=params['momentum'],
       weight_decay=params['weight_decay'],

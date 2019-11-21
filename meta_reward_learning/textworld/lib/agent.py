@@ -27,8 +27,6 @@ from meta_reward_learning.textworld.lib.helpers import create_joint_features
 from meta_reward_learning.textworld.lib.helpers import pad_sequences
 from meta_reward_learning.textworld.lib.replay_buffer import Sample
 from meta_reward_learning.textworld.lib.replay_buffer import Traj
-from tensorflow.contrib import optimizer_v2 as contrib_optimizer_v2
-from tensorflow.contrib import summary as contrib_summary
 from tensorflow.contrib.layers.python.layers import optimizers as optimizers_lib
 
 
@@ -165,7 +163,7 @@ class RLAgent(Agent):
     self._objective = objective
     self._entropy_reg_coeff = entropy_reg_coeff  # Entropy regularization
     self.global_step = tf.train.get_or_create_global_step()
-    self.optimizer = contrib_optimizer_v2.AdamOptimizer(
+    self.optimizer = tf.contrib.optimizer_v2.AdamOptimizer(
         learning_rate=learning_rate)
     # This is need so that the product with IndexedSlices object is defined
     self.learning_rate = tf.constant(learning_rate)
@@ -339,7 +337,7 @@ class RLAgent(Agent):
           **kwargs)
       loss = tf.reduce_mean(policy_loss + value_loss)
     if self.log_summaries and (self._counter % self.log_every == 0):
-      contrib_summary.scalar('{}_loss'.format(loss_str), loss)
+      tf.contrib.summary.scalar('{}_loss'.format(loss_str), loss)
     return tape.gradient(loss, self.trainable_variables)
 
   def create_batch(self, samples, contexts=None):
@@ -398,7 +396,7 @@ class MetaRLAgent(RLAgent):
     else:
       raise NotImplementedError
     self._init_score_fn()
-    self.score_optimizer = contrib_optimizer_v2.AdamOptimizer(
+    self.score_optimizer = tf.contrib.optimizer_v2.AdamOptimizer(
         learning_rate=meta_lr)
     self._meta_train = True
     # Adaptive gradient clipping
@@ -463,9 +461,9 @@ class MetaRLAgent(RLAgent):
     if self.log_summaries:
       grads = list(zip(*grads_and_vars)[0])
       score_grads = list(zip(*score_grads_and_vars)[0])
-      contrib_summary.scalar('global_norm/train_grad', tf.global_norm(grads))
-      contrib_summary.scalar('global_norm/meta_grad',
-                             tf.global_norm(score_grads))
+      tf.contrib.summary.scalar('global_norm/train_grad', tf.global_norm(grads))
+      tf.contrib.summary.scalar('global_norm/meta_grad',
+                                tf.global_norm(score_grads))
     if self._debug and (self._counter % self.log_every == 0):
       tf.print(
           'Epoch {} scores='.format(self._counter),

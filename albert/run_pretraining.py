@@ -28,9 +28,6 @@ import tensorflow as tf
 
 from albert import modeling
 from albert import optimization
-from tensorflow.contrib import cluster_resolver as contrib_cluster_resolver
-from tensorflow.contrib import data as contrib_data
-from tensorflow.contrib import tpu as contrib_tpu
 
 flags = tf.flags
 
@@ -59,7 +56,7 @@ flags.DEFINE_string(
     "Initial checkpoint (usually from a pre-trained ALBERT model).")
 
 flags.DEFINE_integer(
-    "max_seq_length", 512,
+    "max_seq_length", 128,
     "The maximum total input sequence length after WordPiece tokenization. "
     "Sequences longer than this will be truncated, and sequences shorter "
     "than this will be padded. Must match data generation.")
@@ -69,32 +66,29 @@ flags.DEFINE_integer(
     "Maximum number of masked LM predictions per sequence. "
     "Must match data generation.")
 
-flags.DEFINE_bool("do_train", True, "Whether to run training.")
+flags.DEFINE_bool("do_train", False, "Whether to run training.")
 
 flags.DEFINE_bool("do_eval", False, "Whether to run eval on the dev set.")
 
-flags.DEFINE_integer("train_batch_size", 4096, "Total batch size for training.")
+flags.DEFINE_integer("train_batch_size", 32, "Total batch size for training.")
 
-flags.DEFINE_integer("eval_batch_size", 64, "Total batch size for eval.")
+flags.DEFINE_integer("eval_batch_size", 8, "Total batch size for eval.")
 
 flags.DEFINE_enum("optimizer", "lamb", ["adamw", "lamb"],
                   "The optimizer for training.")
 
-flags.DEFINE_float("learning_rate", 0.00176, "The initial learning rate.")
+flags.DEFINE_float("learning_rate", 5e-5, "The initial learning rate.")
 
 flags.DEFINE_float("poly_power", 1.0, "The power of poly decay.")
 
-flags.DEFINE_integer("num_train_steps", 125000, "Number of training steps.")
+flags.DEFINE_integer("num_train_steps", 100000, "Number of training steps.")
 
-flags.DEFINE_integer("num_warmup_steps", 3125, "Number of warmup steps.")
+flags.DEFINE_integer("num_warmup_steps", 10000, "Number of warmup steps.")
 
 flags.DEFINE_integer("start_warmup_step", 0, "The starting step of warmup.")
 
-flags.DEFINE_integer("save_checkpoints_steps", 5000,
+flags.DEFINE_integer("save_checkpoints_steps", 1000,
                      "How often to save the model checkpoint.")
-
-flags.DEFINE_integer("keep_checkpoint_max", 5,
-                     "How many checkpoints to keep.")
 
 flags.DEFINE_integer("iterations_per_loop", 1000,
                      "How many steps to make in each estimator call.")
@@ -229,7 +223,7 @@ def model_fn_builder(albert_config, init_checkpoint, learning_rate,
           total_loss, learning_rate, num_train_steps, num_warmup_steps,
           use_tpu, optimizer, poly_power, start_warmup_step)
 
-      output_spec = contrib_tpu.TPUEstimatorSpec(
+      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           train_op=train_op,
@@ -286,7 +280,7 @@ def model_fn_builder(albert_config, init_checkpoint, learning_rate,
 
       eval_metrics = (metric_fn, metric_values)
 
-      output_spec = contrib_tpu.TPUEstimatorSpec(
+      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           eval_metrics=eval_metrics,
@@ -432,7 +426,7 @@ def input_fn_builder(input_files,
       # `sloppy` mode means that the interleaving is not exact. This adds
       # even more randomness to the training pipeline.
       d = d.apply(
-          contrib_data.parallel_interleave(
+          tf.contrib.data.parallel_interleave(
               tf.data.TFRecordDataset,
               sloppy=is_training,
               cycle_length=cycle_length))
@@ -494,17 +488,16 @@ def main(_):
 
   tpu_cluster_resolver = None
   if FLAGS.use_tpu and FLAGS.tpu_name:
-    tpu_cluster_resolver = contrib_cluster_resolver.TPUClusterResolver(
+    tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
-  is_per_host = contrib_tpu.InputPipelineConfig.PER_HOST_V2
-  run_config = contrib_tpu.RunConfig(
+  is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
+  run_config = tf.contrib.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
       save_checkpoints_steps=FLAGS.save_checkpoints_steps,
-      keep_checkpoint_max=FLAGS.keep_checkpoint_max,
-      tpu_config=contrib_tpu.TPUConfig(
+      tpu_config=tf.contrib.tpu.TPUConfig(
           iterations_per_loop=FLAGS.iterations_per_loop,
           num_shards=FLAGS.num_tpu_cores,
           per_host_input_for_training=is_per_host))
@@ -523,7 +516,7 @@ def main(_):
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
-  estimator = contrib_tpu.TPUEstimator(
+  estimator = tf.contrib.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=model_fn,
       config=run_config,

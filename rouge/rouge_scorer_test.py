@@ -176,7 +176,7 @@ class RougeScorerTest(parameterized.TestCase):
     t = rouge_scorer._lcs_table(ref, c1)
     self.assertEqual(3, t[len(ref)][len(c1)])
     def _read_lcs(t, ref, can):
-      return rouge_scorer._backtrack_norec(t, ref, can)
+      return rouge_scorer._fast_backtrack(t, ref, can, len(ref), len(can))
     # Indices
     self.assertEqual([1, 2, 3],
                      _read_lcs(t, ref, c1))
@@ -250,15 +250,6 @@ class RougeScorerTest(parameterized.TestCase):
     self.assertAlmostEqual(0.0, result["rougeLsum"].fmeasure, places=3)
     self.assertAlmostEqual(0.0, result["rougeLsum"].recall, places=3)
     self.assertAlmostEqual(0.0, result["rougeLsum"].precision, places=3)
-
-  def testRougeLsumLarge(self):
-    with open(test_util.LARGE_PREDICTIONS_FILE) as f:
-      prediction = f.read()
-    with open(test_util.LARGE_TARGETS_FILE) as f:
-      target = f.read()
-    scorer = rouge_scorer.RougeScorer(["rougeLsum"])
-    result = scorer.score(target, prediction)
-    self.assertAlmostEqual(0.533, result["rougeLsum"].fmeasure, places=3)
 
 
 if __name__ == "__main__":

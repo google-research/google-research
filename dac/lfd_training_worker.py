@@ -41,9 +41,8 @@ import numpy as np
 from replay_buffer import ReplayBuffer
 from replay_buffer import TimeStep
 import tensorflow as tf
+from tensorflow.contrib.eager.python import tfe
 from utils import do_rollout
-from tensorflow.contrib import summary as contrib_summary
-from tensorflow.contrib.eager.python import tfe as contrib_eager_python_tfe
 # pylint: enable=g-import-not-at-top,g-bad-import-order
 
 
@@ -91,13 +90,13 @@ flags.DEFINE_integer('task_id', 0, 'Id of the current TF task.')
 
 def main(_):
   """Run td3/ddpg training."""
-  contrib_eager_python_tfe.enable_eager_execution()
+  tfe.enable_eager_execution()
 
   if FLAGS.use_gpu:
     tf.device('/device:GPU:0').__enter__()
 
   tf.gfile.MakeDirs(FLAGS.log_dir)
-  summary_writer = contrib_summary.create_file_writer(
+  summary_writer = tf.contrib.summary.create_file_writer(
       FLAGS.log_dir, flush_millis=10000)
 
   tf.set_random_seed(FLAGS.seed)
@@ -145,37 +144,31 @@ def main(_):
   random_reward, _ = do_rollout(
       env, model.actor, None, num_trajectories=10, sample_random=True)
 
-  replay_buffer_var = contrib_eager_python_tfe.Variable(
-      '', name='replay_buffer')
-  expert_replay_buffer_var = contrib_eager_python_tfe.Variable(
-      '', name='expert_replay_buffer')
+  replay_buffer_var = tfe.Variable('', name='replay_buffer')
+  expert_replay_buffer_var = tfe.Variable('', name='expert_replay_buffer')
 
   # Save and restore random states of gym/numpy/python.
   # If the job is preempted, it guarantees that it won't affect the results.
   # And the results will be deterministic (on CPU) and reproducible.
-  gym_random_state_var = contrib_eager_python_tfe.Variable(
-      '', name='gym_random_state')
-  np_random_state_var = contrib_eager_python_tfe.Variable(
-      '', name='np_random_state')
-  py_random_state_var = contrib_eager_python_tfe.Variable(
-      '', name='py_random_state')
+  gym_random_state_var = tfe.Variable('', name='gym_random_state')
+  np_random_state_var = tfe.Variable('', name='np_random_state')
+  py_random_state_var = tfe.Variable('', name='py_random_state')
 
-  reward_scale = contrib_eager_python_tfe.Variable(1, name='reward_scale')
+  reward_scale = tfe.Variable(1, name='reward_scale')
 
-  saver = contrib_eager_python_tfe.Saver(
+  saver = tfe.Saver(
       model.variables + lfd.variables +
       [replay_buffer_var, expert_replay_buffer_var, reward_scale] +
       [gym_random_state_var, np_random_state_var, py_random_state_var])
 
   tf.gfile.MakeDirs(FLAGS.save_dir)
 
-  eval_saver = contrib_eager_python_tfe.Saver(model.actor.variables +
-                                              [reward_scale])
+  eval_saver = tfe.Saver(model.actor.variables + [reward_scale])
   tf.gfile.MakeDirs(FLAGS.eval_save_dir)
 
   last_checkpoint = tf.train.latest_checkpoint(FLAGS.save_dir)
   if last_checkpoint is None:
-    expert_saver = contrib_eager_python_tfe.Saver([expert_replay_buffer_var])
+    expert_saver = tfe.Saver([expert_replay_buffer_var])
     last_checkpoint = os.path.join(FLAGS.expert_dir, 'expert_replay_buffer')
     expert_saver.restore(last_checkpoint)
     expert_replay_buffer = pickle.loads(expert_replay_buffer_var.numpy())
@@ -235,13 +228,14 @@ def main(_):
       print('Training: total timesteps {}, episode reward {}'.format(
           total_numsteps, rollout_reward))
 
-      with contrib_summary.always_record_summaries():
-        contrib_summary.scalar(
+      with tf.contrib.summary.always_record_summaries():
+        tf.contrib.summary.scalar(
             'reward/scaled', (rollout_reward - random_reward) /
             (reward_scale.numpy() - random_reward),
             step=total_numsteps)
-        contrib_summary.scalar('reward', rollout_reward, step=total_numsteps)
-        contrib_summary.scalar('length', rollout_timesteps, step=total_numsteps)
+        tf.contrib.summary.scalar('reward', rollout_reward, step=total_numsteps)
+        tf.contrib.summary.scalar(
+            'length', rollout_timesteps, step=total_numsteps)
 
       if len(replay_buffer) >= FLAGS.min_samples_to_start:
         for _ in range(rollout_timesteps):

@@ -21,8 +21,6 @@ from __future__ import print_function
 
 import re
 import tensorflow as tf
-from tensorflow.contrib import summary as contrib_summary
-from tensorflow.contrib import tpu as contrib_tpu
 
 gfile = tf.gfile
 
@@ -55,14 +53,11 @@ def strip_var_name(var_name):
 def create_estimator(params, model_dir, model_fn):
   """Create a `TPUEstimator`."""
 
-  tpu_config = contrib_tpu.TPUConfig(
+  tpu_config = tf.contrib.tpu.TPUConfig(
       iterations_per_loop=params.save_every,
       num_cores_per_replica=2,
-      per_host_input_for_training=contrib_tpu.InputPipelineConfig.PER_HOST_V2,  # pylint: disable=line-too-long
-      input_partition_dims=[{
-          'x': [1, 2],
-          'y': [1, 2]
-      }, None],
+      per_host_input_for_training=tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2,  # pylint: disable=line-too-long
+      input_partition_dims=[{'x': [1, 2], 'y': [1, 2]}, None],
       tpu_job_name=params.tpu_job_name,
   )
 
@@ -71,7 +66,7 @@ def create_estimator(params, model_dir, model_fn):
       allow_soft_placement=True,
       isolate_session_state=True)
 
-  run_config = contrib_tpu.RunConfig(
+  run_config = tf.contrib.tpu.RunConfig(
       tpu_config=tpu_config,
       master=params.master,
       session_config=session_config,
@@ -79,7 +74,7 @@ def create_estimator(params, model_dir, model_fn):
       keep_checkpoint_max=5,
       save_checkpoints_steps=params.save_every)
 
-  estimator = contrib_tpu.TPUEstimator(
+  estimator = tf.contrib.tpu.TPUEstimator(
       model_fn=model_fn,
       model_dir=model_dir,
       train_batch_size=params.train_batch_size,
@@ -109,13 +104,13 @@ def build_host_call_fn(params, names_and_tensors):
   def host_call_fn(global_step, *tensors):
     """Training host call."""
     global_step = global_step[0]
-    with contrib_summary.create_file_writer(params.output_dir).as_default():
-      with contrib_summary.record_summaries_every_n_global_steps(
+    with tf.contrib.summary.create_file_writer(params.output_dir).as_default():
+      with tf.contrib.summary.record_summaries_every_n_global_steps(
           n=params.log_every, global_step=global_step):
         for i, tensor in enumerate(tensors):
           if 'images' not in names[i]:
-            contrib_summary.scalar(names[i], tensor[0], step=global_step)
-        return contrib_summary.all_summary_ops()
+            tf.contrib.summary.scalar(names[i], tensor[0], step=global_step)
+        return tf.contrib.summary.all_summary_ops()
 
   global_step = tf.reshape(tf.train.get_or_create_global_step(), [1])
   tensors = [tf.expand_dims(tf.cast(t, dtype=tf.float32), axis=0)

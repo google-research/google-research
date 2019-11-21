@@ -21,9 +21,8 @@ allows the network to be trained and inference run with different patch size
 (Fully Convolutional Network, FCN mode) while having the same inference results.
 """
 import tensorflow as tf
-from tensorflow.contrib import slim as contrib_slim
 
-slim = contrib_slim
+slim = tf.contrib.slim
 
 
 def _trim_border_px(inputs, n):

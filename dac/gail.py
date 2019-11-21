@@ -21,9 +21,8 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib import summary as contrib_summary
-from tensorflow.contrib.eager.python import tfe as contrib_eager_python_tfe
-from tensorflow.contrib.gan.python.losses.python import losses_impl as contrib_gan_python_losses_python_losses_impl
+from tensorflow.contrib.eager.python import tfe
+from tensorflow.contrib.gan.python.losses.python import losses_impl as tfgan_losses
 
 
 class Discriminator(tf.keras.Model):
@@ -82,8 +81,7 @@ class GAIL(object):
     self.gail_loss = gail_loss
 
     with tf.variable_scope('discriminator'):
-      self.disc_step = contrib_eager_python_tfe.Variable(
-          0, dtype=tf.int64, name='step')
+      self.disc_step = tfe.Variable(0, dtype=tf.int64, name='step')
       self.discriminator = Discriminator(input_dim)
       self.discriminator_optimizer = tf.train.AdamOptimizer()
       self.discriminator_optimizer._create_slots(self.discriminator.variables)  # pylint: disable=protected-access
@@ -95,22 +93,18 @@ class GAIL(object):
        batch: A batch from training policy.
        expert_batch: A batch from the expert.
     """
-    obs = contrib_eager_python_tfe.Variable(
-        np.stack(batch.obs).astype('float32'))
-    expert_obs = contrib_eager_python_tfe.Variable(
-        np.stack(expert_batch.obs).astype('float32'))
+    obs = tfe.Variable(np.stack(batch.obs).astype('float32'))
+    expert_obs = tfe.Variable(np.stack(expert_batch.obs).astype('float32'))
 
-    expert_mask = contrib_eager_python_tfe.Variable(
-        np.stack(expert_batch.mask).astype('float32'))
+    expert_mask = tfe.Variable(np.stack(expert_batch.mask).astype('float32'))
 
     # Since expert trajectories were resampled but no absorbing state,
     # statistics of the states changes, we need to adjust weights accordingly.
     expert_mask = tf.maximum(0, -expert_mask)
     expert_weight = expert_mask / self.subsampling_rate + (1 - expert_mask)
 
-    action = contrib_eager_python_tfe.Variable(
-        np.stack(batch.action).astype('float32'))
-    expert_action = contrib_eager_python_tfe.Variable(
+    action = tfe.Variable(np.stack(batch.action).astype('float32'))
+    expert_action = tfe.Variable(
         np.stack(expert_batch.action).astype('float32'))
 
     inputs = tf.concat([obs, action], -1)
@@ -119,25 +113,25 @@ class GAIL(object):
     # Avoid using tensorflow random functions since it's impossible to get
     # the state of the random number generator used by TensorFlow.
     alpha = np.random.uniform(size=(inputs.get_shape()[0], 1))
-    alpha = contrib_eager_python_tfe.Variable(alpha.astype('float32'))
+    alpha = tfe.Variable(alpha.astype('float32'))
     inter = alpha * inputs + (1 - alpha) * expert_inputs
 
     with tf.GradientTape() as tape:
       output = self.discriminator(inputs)
       expert_output = self.discriminator(expert_inputs)
 
-      with contrib_summary.record_summaries_every_n_global_steps(
+      with tf.contrib.summary.record_summaries_every_n_global_steps(
           100, self.disc_step):
-        gan_loss = contrib_gan_python_losses_python_losses_impl.modified_discriminator_loss(
+        gan_loss = tfgan_losses.modified_discriminator_loss(
             expert_output,
             output,
             label_smoothing=0.0,
             real_weights=expert_weight)
-        contrib_summary.scalar(
+        tf.contrib.summary.scalar(
             'discriminator/expert_output',
             tf.reduce_mean(expert_output),
             step=self.disc_step)
-        contrib_summary.scalar(
+        tf.contrib.summary.scalar(
             'discriminator/policy_output',
             tf.reduce_mean(output),
             step=self.disc_step)
@@ -151,14 +145,14 @@ class GAIL(object):
 
       loss = gan_loss + self.lambd * grad_penalty
 
-    with contrib_summary.record_summaries_every_n_global_steps(
+    with tf.contrib.summary.record_summaries_every_n_global_steps(
         100, self.disc_step):
-      contrib_summary.scalar(
+      tf.contrib.summary.scalar(
           'discriminator/grad_penalty', grad_penalty, step=self.disc_step)
 
-    with contrib_summary.record_summaries_every_n_global_steps(
+    with tf.contrib.summary.record_summaries_every_n_global_steps(
         100, self.disc_step):
-      contrib_summary.scalar(
+      tf.contrib.summary.scalar(
           'discriminator/loss', gan_loss, step=self.disc_step)
 
     grads = tape.gradient(loss, self.discriminator.variables)
