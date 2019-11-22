@@ -113,6 +113,10 @@ python -m bisimulation_aaai2020.dopamine.evaluate \
   --metric_checkpoint=/tmp/dopamine/trained_metrics/${GAME}/checkpoints/tf_ckpt-4
 ```
 
+You can see a high-level explanatory video [here](https://youtu.be/zqjJp9FyOK0),
+which includes the bisimulation metric approximants for a trained Rainbow agent
+playing SpaceInvaders, Pong, and Asterix.
+
 If you would like to cite the paper/code, please use the following BibTeX entry:
 
 ```
