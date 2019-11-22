@@ -2,7 +2,8 @@
 
 This package includes the code used to run the experiments in the paper
 "Scalable methods for computing state similarity in deterministic Markov Decision Processes".
-TODO(psc): Add ArXiv link when ready.
+
+http://arxiv.org/abs/1911.09291
 
 All of the commands below are run from the parent `google_research` directory.
 
@@ -111,3 +112,15 @@ python -m bisimulation_aaai2020.dopamine.evaluate \
   --gin_bindings="atari_lib.create_atari_environment.game_name='${GAME}'" \
   --metric_checkpoint=/tmp/dopamine/trained_metrics/${GAME}/checkpoints/tf_ckpt-4
 ```
+
+If you would like to cite the paper/code, please use the following BibTeX entry:
+
+```
+@inproceedings{castro20dopamine,
+  author    = {Pablo Samuel Castro},
+  title     = {Scalable methods for computing state similarity in deterministic {M}arkov {D}ecision {P}rocesses},
+  year      = {2020},
+  booktitle = {Proceedings of the Thirty-Fourth AAAI Conference on Artificial Intelligence (AAAI-20)},
+}
+```
+
