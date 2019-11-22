@@ -120,7 +120,7 @@ playing SpaceInvaders, Pong, and Asterix.
 If you would like to cite the paper/code, please use the following BibTeX entry:
 
 ```
-@inproceedings{castro20dopamine,
+@inproceedings{castro20bisimulation,
   author    = {Pablo Samuel Castro},
   title     = {Scalable methods for computing state similarity in deterministic {M}arkov {D}ecision {P}rocesses},
   year      = {2020},
