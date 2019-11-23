@@ -21,7 +21,7 @@ sudo apt install python-tk
 pip install -r bisimulation_aaai2020/requirements.txt
 ```
 
-## GridWorld (Section 7.1)
+## GridWorld
 
 The code provided is a more general than what is necessary in the paper (it
 supports arbitrary grid shapes and programatically constructed square grids).
@@ -41,7 +41,7 @@ python -m bisimulation_aaai2020.grid_world.compute_metric \
   --nosample_distance_pairs
 ```
 
-## Atari 2600 (Section 7.2)
+## Atari 2600
 
 The code provided allows you to load a trained Dopamine Rainbow agent and train
 an on-policy bisimulation metric approximant on the state representations.
