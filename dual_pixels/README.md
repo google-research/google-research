@@ -18,7 +18,7 @@ Coming soon!
 
 ## Android App to Capture Dual-pixel Data
 
-The app has been tested on the Google Pixel 3 and Pixel 4.
+The app has been tested on the Google Pixel 3, Pixel 3 XL, Pixel 4 and Pixel 4 XL.
 
 ### Installation instructions:
 
