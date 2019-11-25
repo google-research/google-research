@@ -574,8 +574,9 @@ class Pruning(object):
     if squeezed_weights.get_shape().ndims != 2 or block_dims == [1, 1]:
       return self._update_mask(weights, threshold, gradients)
 
-    if self._spec.prune_option in ('first_order_gradient',
-                                   'second_order_gradient'):
+    if (self._spec.prune_option in ('first_order_gradient',
+                                    'second_order_gradient') and
+        gradients is None):
       raise ValueError(
           'Gradient based pruning implementation for block sparsity is not supported.'
       )
@@ -590,6 +591,8 @@ class Pruning(object):
 
     with tf.name_scope(weights.op.name + '_pruning_ops'):
       abs_weights = tf.abs(squeezed_weights)
+      if gradients is not None:
+        abs_gradients = tf.abs(tf.squeeze(gradients))
 
       pool_window = block_dims
       pool_fn = pruning_utils.factorized_pool
@@ -600,6 +603,11 @@ class Pruning(object):
             abs_weights,
             [1, abs_weights.get_shape()[0],
              abs_weights.get_shape()[1], 1])
+        if gradients is not None:
+          # Reshape gradients to be a rank 4 tensor of shape [1, .., .., 1].
+          abs_gradients = tf.reshape(
+              abs_gradients,
+              [1, gradients.get_shape()[0], gradients.get_shape()[1], 1])
         squeeze_axis = [0, 3]
 
       pooled_weights = pool_fn(
@@ -610,11 +618,26 @@ class Pruning(object):
           padding='SAME',
           name=weights.op.name + '_pooled')
 
+      if gradients is not None:
+        pooled_gradients = pool_fn(
+            abs_gradients,
+            window_shape=pool_window,
+            pooling_type=self._block_pooling_function,
+            strides=pool_window,
+            padding='SAME',
+            name=gradients.op.name + '_pooled')
+      else:
+        pooled_gradients = None
+
       if pooled_weights.get_shape().ndims != 2:
         pooled_weights = tf.squeeze(pooled_weights, axis=squeeze_axis)
 
+      if gradients is not None and pooled_gradients.get_shape().ndims != 2:
+        pooled_gradients = tf.squeeze(pooled_gradients, axis=squeeze_axis)
+
       smoothed_threshold, new_mask = self._update_mask(pooled_weights,
-                                                       threshold, gradients)
+                                                       threshold,
+                                                       pooled_gradients)
 
       updated_mask = pruning_utils.expand_tensor(new_mask, block_dims)
       sliced_mask = tf.slice(
