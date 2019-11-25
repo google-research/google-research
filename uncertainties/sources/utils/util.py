@@ -26,11 +26,10 @@ import csv
 import os
 
 from absl import flags
+import gin.tf
 import numpy as np
 import six
 import tensorflow as tf
-
-import gin.tf
 
 FLAGS = flags.FLAGS
 

@@ -46,11 +46,10 @@ import pickle
 import sys
 import time
 
+import gin.tf
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import slim
-
-import gin.tf
 
 
 @gin.configurable
