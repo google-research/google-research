@@ -24,12 +24,12 @@ import os
 
 from absl import app
 from absl import flags
+import gin.tf
 import numpy as np
 import six
 import tensorflow as tf
 
 
-import gin.tf
 import uncertainties.sources.cifar.cifar_input_python as cifar_input
 import uncertainties.sources.mnist.mnist_input as mnist_input
 import uncertainties.sources.models.bootstrap as bootstrap

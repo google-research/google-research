@@ -23,11 +23,11 @@ from __future__ import print_function
 import os
 import time
 
+import gin.tf
 import numpy as np
 import six
 import tensorflow as tf
 
-import gin.tf
 
 MAX_BYTES_MEM = 10**8
 

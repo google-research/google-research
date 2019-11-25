@@ -34,9 +34,9 @@ import os
 
 from absl import app
 from absl import flags
+import gin.tf
 
 from bisimulation_aaai2020.grid_world import grid_world
-import gin.tf
 
 flags.DEFINE_string('grid_file', None,
                     'Path to file defining grid world MDP.')

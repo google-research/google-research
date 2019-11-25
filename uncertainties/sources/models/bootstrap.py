@@ -21,9 +21,9 @@ from __future__ import print_function
 
 import os
 import time
+import gin.tf
 import numpy as np
 import tensorflow as tf
-import gin.tf
 
 
 def _variable_summaries(var):
