@@ -22,5 +22,3 @@ pip install numpy
 pip install six
 pip install "tensorflow>=1.11.0,<2.00.0"
 pip install -r dataset_analysis/requirements.txt
-
-

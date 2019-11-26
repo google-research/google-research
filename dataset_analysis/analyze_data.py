@@ -24,6 +24,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import json
+import os
 from absl import app
 from absl import flags
 import matplotlib.pyplot as plt
@@ -64,6 +65,7 @@ def main(_):
   data = pd.read_csv(FLAGS.data, encoding="utf-8")
   print("%d Examples" % (len(set(data["id"]))))
   print("%d Annotations" % len(data))
+  os.makedirs(FLAGS.plot_dir, exist_ok=True)
 
   with open(FLAGS.target_file, "r") as f:
     all_targets = f.read().splitlines()
@@ -237,8 +239,8 @@ def main(_):
       data=df, x="count", hue="type", palette=["skyblue", "navy"])
   plt.xlim(-.5, 7.5)
   plt.legend(loc="center right", fontsize="x-large")
-  plt.ylabel("Number of Examples")
-  plt.xlabel("Number of Labels")
+  plt.ylabel("Number of Examples", fontsize="x-large")
+  plt.xlabel("Number of Labels", fontsize="x-large")
   plt.draw()
   labels = [item.get_text() for item in ax.get_yticklabels()]
   ax.set_yticklabels(["%dk" % (int(int(label) / 1000)) for label in labels])
@@ -252,8 +254,8 @@ def main(_):
 
   print("Proportion of agreement per label:")
   print(
-      filtered_2[all_targets_neutral].sum(axis=0).sort_values(ascending=False)
-      / len(data))
+      filtered_2[all_targets_neutral].sum(axis=0).sort_values(ascending=False) /
+      len(data))
 
 
 if __name__ == "__main__":
