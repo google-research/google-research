@@ -13,6 +13,7 @@ env:
     - PROJECT="bam"
     - PROJECT="bisimulation_aaai2020"
     - PROJECT="bitempered_loss"
+    - PROJECT="cfq"
     - PROJECT="cnn_quantization"
     - PROJECT="dataset_analysis"
     - PROJECT="dense_representations_for_entity_retrieval"
