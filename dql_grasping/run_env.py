@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Library function for stepping/evaluating a policy in a Gym environment.
 """
 
@@ -27,6 +28,7 @@ import gin
 import numpy as np
 import PIL.Image as Image
 import six
+from six.moves import range
 import tensorflow as tf
 
 

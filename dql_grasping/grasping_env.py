@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Simplified grasping environment using PyBullet.
 """
 
@@ -24,12 +25,15 @@ import glob
 import os
 import random
 import time
+
 from absl import logging
 import gin
 import gym
 from gym import spaces
 import numpy as np
 from PIL import Image
+from six.moves import range
+
 import pybullet
 from dql_grasping import kuka
 
@@ -441,4 +445,3 @@ class KukaGraspingProceduralEnv(gym.Env):
       selected_objects_filenames += [found_object_directories[object_index]]
     logging.info('selected_objects_filenames %s', selected_objects_filenames)
     return selected_objects_filenames
-

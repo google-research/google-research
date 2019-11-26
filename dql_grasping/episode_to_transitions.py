@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Functions that map episode data to transitions for RL.
 """
 
@@ -25,6 +26,8 @@ import gin
 import numpy as np
 from PIL import Image
 from PIL import ImageFile
+from six.moves import range
+from six.moves import zip
 import tensorflow as tf
 
 
@@ -124,8 +127,8 @@ def episode_to_sequence_v0(episode_data, continuous=True, episode_length=16):
   padding = episode_length - input_length
   episode_data += episode_data[-1:] * padding
 
-  (all_obs_t, all_action, all_reward, all_obs_tp1,
-   all_done, all_debug) = zip(*episode_data)
+  (all_obs_t, all_action, all_reward, all_obs_tp1, all_done,
+   all_debug) = list(zip(*episode_data))
   del all_debug  # unused
 
   feature = {}
@@ -143,7 +146,7 @@ def episode_to_sequence_v0(episode_data, continuous=True, episode_length=16):
 
   feature['R'] = _float_feature(all_reward)
   feature['done'] = _int64_feature([int(done) for done in all_done])
-  feature['t'] = _int64_feature(range(episode_length))
+  feature['t'] = _int64_feature(list(range(episode_length)))
 
   return [tf.train.Example(features=tf.train.Features(feature=feature))]
 
@@ -167,7 +170,7 @@ def episode_to_transitions_etrace(episode_data,
   """
   assert lmbda > 0 and lmbda < 1
   episode_data = [list(transition) for transition in episode_data]
-  for t in reversed(range(len(episode_data)-1)):
+  for t in reversed(list(range(len(episode_data) - 1))):
     next_reward = episode_data[t+1][2]
     episode_data[t][2] += lmbda * next_reward
     episode_data[t+1][2] -= lmbda * next_reward
@@ -213,7 +216,7 @@ def episode_to_transitions_supervised(episode_data,
   cumulative_reward = np.sum([transition[2] for transition in episode_data])
   # Construct synthetic actions for all transitions leading up to the final
   # transition.
-  for t in reversed(range(len(episode_data)-1)):
+  for t in reversed(list(range(len(episode_data) - 1))):
     episode_data[t][1] += cumulative_action
     episode_data[t][2] = cumulative_reward
     # Mark all transitions as terminal.

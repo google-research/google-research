@@ -13,16 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 # fork of //third_party/bullet/examples/pybullet/gym/envs/bullet/kuka.py with
 # fast reset capability.
 # pylint: skip-file
 
-import pybullet
-from absl import logging
-import numpy as np
-import os
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import copy
 import math
+import os
+
+from absl import logging
+import numpy as np
+from six.moves import range
+
+import pybullet
+
 
 class Kuka:
 

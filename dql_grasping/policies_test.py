@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Unit tests for checking policy correctness.
 """
 
@@ -23,11 +24,12 @@ from __future__ import print_function
 from absl import flags
 from absl.testing import parameterized
 import numpy as np
+from six.moves import range
+import tensorflow as tf
 
 from dql_grasping import grasping_env
 from dql_grasping import policies
 from dql_grasping import tf_critics
-from tensorflow.python.platform import test
 
 FLAGS = flags.FLAGS
 
@@ -40,7 +42,7 @@ class DummyGreedyPolicy(policies.RandomGraspingPolicyD4):
     return [3, 3, 3, 3], None
 
 
-class PoliciesTest(parameterized.TestCase, test.TestCase):
+class PoliciesTest(parameterized.TestCase, tf.test.TestCase):
 
   @parameterized.named_parameters(('i1', 0), ('i2', .5), ('i3', 1))
   def testPerStepSwitch(self, explore_prob):
@@ -95,4 +97,4 @@ class PoliciesTest(parameterized.TestCase, test.TestCase):
 
 
 if __name__ == '__main__':
-  test.main()
+  tf.test.main()

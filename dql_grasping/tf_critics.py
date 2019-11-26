@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Critic function approximators in TensorFlow.
 """
 
@@ -22,6 +23,7 @@ from __future__ import print_function
 
 from absl import logging
 import gin
+from six.moves import range
 import tensorflow as tf
 from dql_grasping import tf_modules
 
