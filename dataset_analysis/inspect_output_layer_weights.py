@@ -25,6 +25,7 @@ from absl import app
 from absl import flags
 import numpy as np
 import tensorflow as tf
+import os
 
 FLAGS = flags.FLAGS
 
@@ -37,6 +38,16 @@ flags.DEFINE_string("tensor_names", "output_weights,new_output_weights",
 def save_tensor(reader, name):
   tensor = reader.get_tensor(name)
   np.save(os.path.join(FLAGS.checkpoint_dir, name + ".npy"), tensor)
+
+flags.DEFINE_string(
+    "tensor_names",
+    "output_weights,new_output_weights",
+    "Comma separated list of tensor names to save.")
+
+
+def save_tensor(reader, name):
+    tensor = reader.get_tensor(name)
+    np.save(os.path.join(FLAGS.checkpoint_dir, name + ".npy"), tensor)
 
 
 def main(_):

@@ -52,6 +52,13 @@ punctuation = "".join(punct_chars)
 replace = re.compile("[%s]" % re.escape(punctuation))
 
 
+def CheckAgreement(ex, min_agreement, all_targets, max_agreement=100):
+  """Return the labels that at least min_agreement raters agree on."""
+  sum_ratings = ex[all_targets].sum(axis=0)
+  agreement = ((sum_ratings >= min_agreement) & (sum_ratings <= max_agreement))
+  return ",".join(sum_ratings.index[agreement].tolist())
+
+
 def CleanText(text):
   """Clean text."""
   if isinstance(text, float):
@@ -128,10 +135,9 @@ def main(_):
 
   print("Processing data...")
   data["text"] = data["text"].apply(CleanText)
-  all_words = []
-  for t in data["text"]:
-    all_words.extend(t)
-  all_words = set(all_words)
+  agree_dict = data.groupby("id").apply(CheckAgreement, 2,
+                                          all_targets).to_dict()
+  data["agreement"] = data["id"].map(agree_dict)
 
   data = data[~data["agreement"].isnull()]
   dicts = []

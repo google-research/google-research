@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Script for target prediction based on the BERT finetuning runner.
-
+"""Script based on the BERT finetuning runner, modified for performing target prediction.
 Main changes:
 - Updated DataProcessor
 - Included multilabel classification
@@ -46,7 +45,7 @@ flags.DEFINE_string("target_file", "data/targets.txt",
                     "File containing a list of targets.")
 
 flags.DEFINE_integer("original_target_size", 29,
-                     "Number of target labels in our dataset.")
+                    "Number of target labels in our dataset.")
 
 flags.DEFINE_string(
     "data_dir", "data/model_input",
@@ -95,8 +94,7 @@ flags.DEFINE_bool("do_train", True,
 
 flags.DEFINE_bool(
     "calculate_metrics", True,
-    "Whether to calculate performance metrics on the test set "
-    "(FLAGS.test_fname must have labels)."
+    "Whether to calculate performance metrics on the test set (FLAGS.test_fname must have labels)."
 )
 
 flags.DEFINE_bool(
@@ -123,9 +121,9 @@ flags.DEFINE_float("pred_cutoff", 0.05,
 
 flags.DEFINE_float(
     "eval_prob_threshold", 0.1,
-    "Cutoff probability determine which labels are 1 vs 0, when calculating "
-    "certain evaluation metrics."
+    "Cutoff probability determine which labels are 1 vs 0, when calculating certain evaluation metrics."
 )
+
 flags.DEFINE_string(
     "eval_thresholds", "0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95,0.99",
     "Thresholds for evaluating precision, recall and F-1 scores.")
@@ -143,7 +141,7 @@ flags.DEFINE_integer("eval_steps", None,
                      "How many steps to take to go over the eval set.")
 
 flags.DEFINE_bool("add_neutral", True,
-                  "Whether to append `neutral` to the emotion categories.")
+                     "Whether to append `neutral` to the emotion categories.")
 
 
 class InputExample(object):
@@ -299,130 +297,132 @@ def convert_single_example(ex_index, example, max_seq_length, tokenizer):
 
 def file_based_convert_examples_to_features(examples, max_seq_length, tokenizer,
                                             output_file):
-  """Convert a set of `InputExample`s to a TFRecord file."""
+    """Convert a set of `InputExample`s to a TFRecord file."""
 
-  writer = tf.python_io.TFRecordWriter(output_file)
+    writer = tf.python_io.TFRecordWriter(output_file)
 
-  for (ex_index, example) in enumerate(examples):
-    if ex_index % 10000 == 0:
-      tf.logging.info("Writing example %d of %d" % (ex_index, len(examples)))
+    for (ex_index, example) in enumerate(examples):
+        if ex_index % 10000 == 0:
+            tf.logging.info("Writing example %d of %d" % (ex_index, len(examples)))
 
-    feature = convert_single_example(ex_index, example, max_seq_length,
-                                     tokenizer)
+        feature = convert_single_example(ex_index, example, max_seq_length,
+                                         tokenizer)
 
-    def create_int_feature(values):
-      f = tf.train.Feature(int64_list=tf.train.Int64List(value=list(values)))
-      return f
+        def create_int_feature(values):
+            f = tf.train.Feature(int64_list=tf.train.Int64List(value=list(values)))
+            return f
 
-    features = collections.OrderedDict()
-    features["input_ids"] = create_int_feature(feature.input_ids)
-    features["input_mask"] = create_int_feature(feature.input_mask)
-    features["segment_ids"] = create_int_feature(feature.segment_ids)
-    features["label_ids"] = create_int_feature(feature.label_ids)
+        features = collections.OrderedDict()
+        features["input_ids"] = create_int_feature(feature.input_ids)
+        features["input_mask"] = create_int_feature(feature.input_mask)
+        features["segment_ids"] = create_int_feature(feature.segment_ids)
+        features["label_ids"] = create_int_feature(feature.label_ids)
 
-    tf_example = tf.train.Example(features=tf.train.Features(feature=features))
-    writer.write(tf_example.SerializeToString())
-  writer.close()
+        tf_example = tf.train.Example(features=tf.train.Features(feature=features))
+        writer.write(tf_example.SerializeToString())
+    writer.close()
 
 
 def file_based_input_fn_builder(input_file, seq_length, is_training,
                                 drop_remainder, num_labels):
-  """Creates an `input_fn` closure to be passed to TPUEstimator."""
+    """Creates an `input_fn` closure to be passed to TPUEstimator."""
 
-  name_to_features = {
-      "input_ids": tf.FixedLenFeature([seq_length], tf.int64),
-      "input_mask": tf.FixedLenFeature([seq_length], tf.int64),
-      "segment_ids": tf.FixedLenFeature([seq_length], tf.int64),
-      "label_ids": tf.FixedLenFeature([num_labels], tf.int64),
-  }
+    name_to_features = {
+        "input_ids": tf.FixedLenFeature([seq_length], tf.int64),
+        "input_mask": tf.FixedLenFeature([seq_length], tf.int64),
+        "segment_ids": tf.FixedLenFeature([seq_length], tf.int64),
+        "label_ids": tf.FixedLenFeature([num_labels], tf.int64),
+    }
 
-  def _decode_record(record, name_to_features):
-    """Decodes a record to a TensorFlow example."""
-    example = tf.parse_single_example(record, name_to_features)
+    def _decode_record(record, name_to_features):
+        """Decodes a record to a TensorFlow example."""
+        example = tf.parse_single_example(record, name_to_features)
 
-    return example
+        return example
 
-  def input_fn(params):
-    """The actual input function."""
-    batch_size = params["batch_size"]
+    def input_fn(params):
+        """The actual input function."""
+        batch_size = params["batch_size"]
 
-    # For training, we want a lot of parallel reading and shuffling.
-    # For eval, we want no shuffling and parallel reading doesn't matter.
-    d = tf.data.TFRecordDataset(input_file)
-    if is_training:
-      d = d.repeat()
-      d = d.shuffle(buffer_size=100)
+        # For training, we want a lot of parallel reading and shuffling.
+        # For eval, we want no shuffling and parallel reading doesn't matter.
+        d = tf.data.TFRecordDataset(input_file)
+        if is_training:
+            d = d.repeat()
+            d = d.shuffle(buffer_size=100)
 
-    d = d.apply(
-        tf.contrib.data.map_and_batch(
-            lambda record: _decode_record(record, name_to_features),
-            batch_size=batch_size,
-            drop_remainder=drop_remainder))
+        d = d.apply(
+            tf.contrib.data.map_and_batch(
+                lambda record: _decode_record(record, name_to_features),
+                batch_size=batch_size,
+                drop_remainder=drop_remainder))
 
-    return d
+        return d
 
-  return input_fn
+    return input_fn
 
 
 def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
                  labels, num_labels, multilabel):
-  """Creates a classification model."""
-  model = modeling.BertModel(
-      config=bert_config,
-      is_training=is_training,
-      input_ids=input_ids,
-      input_mask=input_mask,
-      token_type_ids=segment_ids)
+    """Creates a classification model."""
+    model = modeling.BertModel(
+        config=bert_config,
+        is_training=is_training,
+        input_ids=input_ids,
+        input_mask=input_mask,
+        token_type_ids=segment_ids)
 
-  # Here, we are doing a classification task on the entire segment. For
-  # token-level output, use model.get_sequece_output() instead.
-  output_layer = model.get_pooled_output()
+    # In the dtarget, we are doing a simple classification task on the entire
+    # segment.
+    #
+    # If you want to use the token-level output, use model.get_sequence_output()
+    # instead.
+    output_layer = model.get_pooled_output()
 
-  hidden_size = output_layer.shape[-1].value
+    hidden_size = output_layer.shape[-1].value
 
-  output_weights = tf.get_variable(
-      "output_weights", [FLAGS.original_target_size, hidden_size],
-      initializer=tf.truncated_normal_initializer(stddev=0.02))
+    output_weights = tf.get_variable(
+        "output_weights", [FLAGS.original_target_size, hidden_size],
+        initializer=tf.truncated_normal_initializer(stddev=0.02))
 
-  output_bias = tf.get_variable(
-      "output_bias", [FLAGS.original_target_size],
-      initializer=tf.zeros_initializer())
+    output_bias = tf.get_variable(
+        "output_bias", [FLAGS.original_target_size], initializer=tf.zeros_initializer())
 
-  new_output_weights = tf.get_variable(
-      "new_output_weights", [num_labels, FLAGS.original_target_size],
-      initializer=tf.truncated_normal_initializer(stddev=0.02))
+    new_output_weights = tf.get_variable(
+        "new_output_weights", [num_labels, FLAGS.original_target_size],
+        initializer=tf.truncated_normal_initializer(stddev=0.02))
 
-  new_output_bias = tf.get_variable(
-      "new_output_bias", [num_labels], initializer=tf.zeros_initializer())
+    new_output_bias = tf.get_variable(
+        "new_output_bias", [num_labels], initializer=tf.zeros_initializer())
 
-  with tf.variable_scope("loss"):
-    if is_training:
-      # I.e., 0.1 dropout
-      output_layer = tf.nn.dropout(output_layer, keep_prob=0.9)
+    with tf.variable_scope("loss"):
+        if is_training:
+            # I.e., 0.1 dropout
+            output_layer = tf.nn.dropout(output_layer, keep_prob=0.9)
 
-    logits = tf.matmul(output_layer, output_weights, transpose_b=True)
-    logits = tf.nn.bias_add(logits, output_bias)
-    logits = tf.matmul(logits, new_output_weights, transpose_b=True)
-    logits = tf.nn.bias_add(logits, new_output_bias)
+        logits = tf.matmul(output_layer, output_weights, transpose_b=True)
+        logits = tf.nn.bias_add(logits, output_bias)
+        logits = tf.matmul(logits, new_output_weights, transpose_b=True)
+        logits = tf.nn.bias_add(logits, new_output_bias)
 
-    # Labels both for single and multilabel classification
-    labels = tf.cast(labels, tf.float32)
+        # Labels both for single and multilabel classification
+        labels = tf.cast(labels, tf.float32)
 
-    if multilabel:
-      probabilities = tf.nn.sigmoid(logits)
-      tf.logging.info("num_labels:{};logits:{};labels:{}".format(
-          num_labels, logits, labels))
-      per_example_loss = tf.nn.sigmoid_cross_entropy_with_logits(
-          labels=labels, logits=logits)
-    else:
-      probabilities = tf.nn.softmax(logits, axis=-1)
-      per_example_loss = tf.nn.softmax_cross_entropy_with_logits(
-          labels=labels, logits=logits)
-    loss = tf.reduce_mean(per_example_loss)
+        if multilabel:
+            probabilities = tf.nn.sigmoid(logits)
+            tf.logging.info("num_labels:{};logits:{};labels:{}".format(
+                num_labels, logits, labels))
+            per_example_loss = tf.nn.sigmoid_cross_entropy_with_logits(
+                labels=labels, logits=logits)
+        else:
+            probabilities = tf.nn.softmax(logits, axis=-1)
+            per_example_loss = tf.nn.softmax_cross_entropy_with_logits(
+                labels=labels, logits=logits)
+        loss = tf.reduce_mean(per_example_loss)
 
-    tf.summary.scalar("loss", loss)
+        tf.summary.scalar("loss", loss)
 
-    return (loss, per_example_loss, logits, probabilities)
+        return (loss, per_example_loss, logits, probabilities)
 
 
 def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
