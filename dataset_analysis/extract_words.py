@@ -38,10 +38,8 @@ flags.DEFINE_string("data", None, "Input data.")
 flags.DEFINE_string("output", "tables/target_words.csv",
                     "Output csv file for the target words.")
 
-flags.DEFINE_string(
-    "target_file",
-    "data/targets.txt",
-    "File containing list of targets.")
+flags.DEFINE_string("target_file", "data/targets.txt",
+                    "File containing list of targets.")
 
 punct_chars = list((set(string.punctuation) | {
     "’", "‘", "–", "—", "~", "|", "“", "”", "…", "'", "`", "_",
@@ -50,6 +48,13 @@ punct_chars = list((set(string.punctuation) | {
 punct_chars.sort()
 punctuation = "".join(punct_chars)
 replace = re.compile("[%s]" % re.escape(punctuation))
+
+
+def CheckAgreement(ex, min_agreement, all_targets, max_agreement=100):
+  """Return the labels that at least min_agreement raters agree on."""
+  sum_ratings = ex[all_targets].sum(axis=0)
+  agreement = ((sum_ratings >= min_agreement) & (sum_ratings <= max_agreement))
+  return ",".join(sum_ratings.index[agreement].tolist())
 
 
 def CleanText(text):
@@ -73,13 +78,16 @@ def CleanText(text):
 
 
 def LogOdds(counts1, counts2, prior, zscore=True):
-  """Calculates log odds ratio. Source: Dan Jurafsky.
+  """Calculates log odds ratio.
+
+  Source: Dan Jurafsky.
 
   Args:
     counts1: dict of word counts for group 1
     counts2: dict of word counts for group 2
     prior: dict of prior word counts
     zscore: whether to z-score the log odds ratio
+
   Returns:
     delta: dict of delta values for each word.
   """
@@ -128,10 +136,9 @@ def main(_):
 
   print("Processing data...")
   data["text"] = data["text"].apply(CleanText)
-  all_words = []
-  for t in data["text"]:
-    all_words.extend(t)
-  all_words = set(all_words)
+  agree_dict = data.groupby("id").apply(CheckAgreement, 2,
+                                        all_targets).to_dict()
+  data["agreement"] = data["id"].map(agree_dict)
 
   data = data[~data["agreement"].isnull()]
   dicts = []
