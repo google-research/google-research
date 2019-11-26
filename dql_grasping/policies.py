@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Policies for interacting with environments.
 """
 
@@ -25,17 +26,17 @@ import functools
 import gin
 from gym import spaces
 import numpy as np
+import six
 import tensorflow as tf
 from dql_grasping import cross_entropy
 
 
-class Policy(object):
+class Policy(six.with_metaclass(abc.ABCMeta, object)):
   """Base policy abstraction.
 
   Subclasses should implement `reset` and `sample_action` methods to ensure
   compatibility with the train_collect_eval function.
   """
-  __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
   def reset(self):
@@ -92,6 +93,7 @@ class TFDQNPolicy(Policy):
       use_gpu: Boolean of whether to use GPU at inference time.
       checkpoint: If provided, restores Q function/weights from this filepath.
     """
+    super(TFDQNPolicy, self).__init__()
     self.q_func = q_func
     self._state_shape = state_shape
     self.build_tf_graph()
@@ -141,6 +143,7 @@ class RandomGraspingPolicyD4(Policy):
   """Random policy for continuous grasping environment with action_space=4."""
 
   def __init__(self, height_hack_prob=0.9):
+    super(RandomGraspingPolicyD4, self).__init__()
     self._height_hack_prob = height_hack_prob
     self._action_space = spaces.Box(low=-1, high=1, shape=(4,))
 
@@ -170,6 +173,7 @@ class PerStepSwitchPolicy(Policy):
   """
 
   def __init__(self, explore_policy_class, greedy_policy_class):
+    super(PerStepSwitchPolicy, self).__init__()
     self._explore_policy = explore_policy_class()
     self._greedy_policy = greedy_policy_class()
 
