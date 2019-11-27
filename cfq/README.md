@@ -1,7 +1,7 @@
-# Complex Freebase Questions (CFQ) Tools
+# Compositional Freebase Questions (CFQ) Tools
 
 This repository contains code for training and evaluating ML architectures on
-the Complex Freebase Questions (CFQ) dataset.
+the Compositional Freebase Questions (CFQ) dataset.
 
 ## Requirements
 
