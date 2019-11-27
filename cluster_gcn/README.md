@@ -65,6 +65,9 @@ The test F1 score will be around 0.9935 depending on different initialization.
 ```
 ./run_reddit.sh
 ```
+
+In the experiment section of the paper, we show how to generate Amazon2M dataset. There is an external implementation for generating Amazon2M data following the same procedure in the paper ([code and data](http://web.cs.ucla.edu/~chohsieh/data/Amazon2M.tar.gz)).
+
 Below shows a table of state-of-the-art performance from recent papers.
 
 |               | PPI         | Reddit    |
