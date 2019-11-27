@@ -769,11 +769,11 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
       tokens_b.pop()
 
 
-def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
+def create_model(albert_config, is_training, input_ids, input_mask, segment_ids,
                  labels, num_labels, use_one_hot_embeddings, task_name):
   """Creates a classification model."""
   model = modeling.AlbertModel(
-      config=bert_config,
+      config=albert_config,
       is_training=is_training,
       input_ids=input_ids,
       input_mask=input_mask,
@@ -820,9 +820,9 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
     return (loss, per_example_loss, probabilities, logits, predictions)
 
 
-def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
+def model_fn_builder(albert_config, num_labels, init_checkpoint, learning_rate,
                      num_train_steps, num_warmup_steps, use_tpu,
-                     use_one_hot_embeddings, task_name):
+                     use_one_hot_embeddings, task_name, optimizer="adamw"):
   """Returns `model_fn` closure for TPUEstimator."""
 
   def model_fn(features, labels, mode, params):  # pylint: disable=unused-argument
@@ -845,7 +845,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
     (total_loss, per_example_loss, probabilities, logits, predictions) = \
-        create_model(bert_config, is_training, input_ids, input_mask,
+        create_model(albert_config, is_training, input_ids, input_mask,
                      segment_ids, label_ids, num_labels,
                      use_one_hot_embeddings, task_name)
 
@@ -877,7 +877,8 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
     if mode == tf.estimator.ModeKeys.TRAIN:
 
       train_op = optimization.create_optimizer(
-          total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
+          total_loss, learning_rate, num_train_steps, num_warmup_steps,
+          use_tpu, optimizer)
 
       output_spec = contrib_tpu.TPUEstimatorSpec(
           mode=mode,
@@ -968,3 +969,76 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
     return output_spec
 
   return model_fn
+
+
+# This function is not used by this file but is still used by the Colab and
+# people who depend on it.
+def input_fn_builder(features, seq_length, is_training, drop_remainder):
+  """Creates an `input_fn` closure to be passed to TPUEstimator."""
+
+  all_input_ids = []
+  all_input_mask = []
+  all_segment_ids = []
+  all_label_ids = []
+
+  for feature in features:
+    all_input_ids.append(feature.input_ids)
+    all_input_mask.append(feature.input_mask)
+    all_segment_ids.append(feature.segment_ids)
+    all_label_ids.append(feature.label_id)
+
+  def input_fn(params):
+    """The actual input function."""
+    batch_size = params["batch_size"]
+
+    num_examples = len(features)
+
+    # This is for demo purposes and does NOT scale to large data sets. We do
+    # not use Dataset.from_generator() because that uses tf.py_func which is
+    # not TPU compatible. The right way to load data is with TFRecordReader.
+    d = tf.data.Dataset.from_tensor_slices({
+        "input_ids":
+            tf.constant(
+                all_input_ids, shape=[num_examples, seq_length],
+                dtype=tf.int32),
+        "input_mask":
+            tf.constant(
+                all_input_mask,
+                shape=[num_examples, seq_length],
+                dtype=tf.int32),
+        "segment_ids":
+            tf.constant(
+                all_segment_ids,
+                shape=[num_examples, seq_length],
+                dtype=tf.int32),
+        "label_ids":
+            tf.constant(all_label_ids, shape=[num_examples], dtype=tf.int32),
+    })
+
+    if is_training:
+      d = d.repeat()
+      d = d.shuffle(buffer_size=100)
+
+    d = d.batch(batch_size=batch_size, drop_remainder=drop_remainder)
+    return d
+
+  return input_fn
+
+
+# This function is not used by this file but is still used by the Colab and
+# people who depend on it.
+def convert_examples_to_features(examples, label_list, max_seq_length,
+                                 tokenizer, task_name):
+  """Convert a set of `InputExample`s to a list of `InputFeatures`."""
+
+  features = []
+  for (ex_index, example) in enumerate(examples):
+    if ex_index % 10000 == 0:
+      tf.logging.info("Writing example %d of %d" % (ex_index, len(examples)))
+
+    feature = convert_single_example(ex_index, example, label_list,
+                                     max_seq_length, tokenizer, task_name)
+
+    features.append(feature)
+  return features
+

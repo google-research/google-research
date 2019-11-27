@@ -552,6 +552,8 @@ def main(_):
         max_seq_length=FLAGS.max_seq_length,
         max_predictions_per_seq=FLAGS.max_predictions_per_seq,
         is_training=False)
+    best_perf = 0
+    key_name = "masked_lm_accuracy"
     while global_step < FLAGS.num_train_steps:
       if estimator.latest_checkpoint() is None:
         tf.logging.info("No checkpoint found yet. Sleeping.")
@@ -561,9 +563,20 @@ def main(_):
             input_fn=eval_input_fn, steps=FLAGS.max_eval_steps)
         global_step = result["global_step"]
         tf.logging.info("***** Eval results *****")
+        checkpoint_path = estimator.latest_checkpoint()
         for key in sorted(result.keys()):
           tf.logging.info("  %s = %s", key, str(result[key]))
           writer.write("%s = %s\n" % (key, str(result[key])))
+          if result[key_name] > best_perf:
+            best_perf = result[key_name]
+            for ext in ["meta", "data-00000-of-00001", "index"]:
+              src_ckpt = checkpoint_path + ".{}".format(ext)
+              tgt_ckpt = checkpoint_path.rsplit(
+                  "-", 1)[0] + "-best.{}".format(ext)
+              tf.logging.info("saving {} to {}".format(src_ckpt, tgt_ckpt))
+              tf.gfile.Copy(src_ckpt, tgt_ckpt, overwrite=True)
+              writer.write("saved {} to {}\n".format(src_ckpt, tgt_ckpt))
+
 
 if __name__ == "__main__":
   flags.mark_flag_as_required("input_file")

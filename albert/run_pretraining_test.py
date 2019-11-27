@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Lint as: python2, python3
-"""Run masked LM/next sentence masked_lm pre-training for ALBERT."""
+"""Run a small test for ALBERT pretraining."""
 
 from __future__ import absolute_import
 from __future__ import division
