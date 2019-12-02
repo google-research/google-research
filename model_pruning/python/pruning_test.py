@@ -409,6 +409,33 @@ class PruningTest(tf.test.TestCase):
       mask_val = new_mask.eval()
       self.assertAllEqual(mask_val, expected_mask)
 
+  def testWeightSparsityTiebreaker(self):
+    param_list = [
+        "begin_pruning_step=1", "pruning_frequency=1", "end_pruning_step=100",
+        "target_sparsity=0.5",
+        "threshold_decay=0.0"
+    ]
+    test_spec = ",".join(param_list)
+    pruning_hparams = pruning.get_pruning_hparams().parse(test_spec)
+
+    with tf.variable_scope("layer1"):
+      w1 = tf.Variable(np.ones([100], dtype=np.float32),
+                       name="weights")
+      _ = pruning.apply_mask(w1)
+
+    p = pruning.Pruning(pruning_hparams)
+    mask_update_op = p.conditional_mask_update_op()
+    increment_global_step = tf.assign_add(self.global_step, 1)
+
+    with self.cached_session() as session:
+      tf.global_variables_initializer().run()
+      for _ in range(110):
+        session.run(mask_update_op)
+        session.run(increment_global_step)
+
+      self.assertAllClose(
+          session.run(pruning.get_weight_sparsity()), [0.5])
+
 
 if __name__ == "__main__":
   tf.test.main()
