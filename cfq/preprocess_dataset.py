@@ -49,7 +49,7 @@ flags.register_validator('split_path', os.path.exists, 'Split not found.')
 Dataset = Dict[Text, List[Tuple[Text, Text]]]
 
 
-def load_json(path: Text) -> Any:
+def load_json(path):
   logging.info(f'Reading json from {path} into memory...')
   with open(path, 'r', encoding='utf-8') as f:
     data = json.load(f)
@@ -57,7 +57,7 @@ def load_json(path: Text) -> Any:
   return data
 
 
-def tokenize_punctuation(text: Text) -> Text:
+def tokenize_punctuation(text):
   text = map(lambda c: f' {c} ' if c in string.punctuation else c, text)
   return ' '.join(''.join(text).split())
 
@@ -80,7 +80,7 @@ def preprocess_sparql(query):
   return ' '.join(tokens).replace('\\n', ' ')
 
 
-def get_encode_decode_pair(sample: Dict[Any, Any]) -> Tuple[Text, Text]:
+def get_encode_decode_pair(sample):
   # Apply some simple preprocessing on the tokenizaton, which improves the
   # performance of the models significantly.
   encode_text = tokenize_punctuation(sample['questionPatternModEntities'])
@@ -88,7 +88,7 @@ def get_encode_decode_pair(sample: Dict[Any, Any]) -> Tuple[Text, Text]:
   return (encode_text, decode_text)
 
 
-def get_dataset(samples: List[Any], split: Dict[Text, List[int]]) -> Dataset:
+def get_dataset(samples, split):
   """Creates a dataset by taking @split from @samples."""
   logging.info('Retrieving splits...')
   split_names = ['train', 'dev', 'test']
@@ -108,7 +108,7 @@ def get_dataset(samples: List[Any], split: Dict[Text, List[int]]) -> Dataset:
   return dataset
 
 
-def write_dataset(dataset: Dataset, save_path: Text) -> None:
+def write_dataset(dataset, save_path):
   """Saves the given dataset into the given location."""
   if not dataset:
     logging.info('No dataset to write.')
@@ -129,7 +129,7 @@ def write_dataset(dataset: Dataset, save_path: Text) -> None:
   logging.info(f'Dataset written to {save_path}')
 
 
-def write_token_vocab(words: collections.Counter, save_path: Text) -> None:
+def write_token_vocab(words, save_path):
   """"Writes token vocabulary from @words to @save_path."""
   # Sort tokens by frequency and then lexically to break ties.
   words_with_counts = words.most_common()
@@ -145,13 +145,13 @@ def write_token_vocab(words: collections.Counter, save_path: Text) -> None:
                'distinct tokens).')
 
 
-def get_lines(path: Text, filename: Text) -> List[Text]:
+def get_lines(path, filename):
   with open(os.path.join(path, 'train', filename), 'r') as f:
     lines = [l.strip() for l in f.readlines() if l.strip()]
   return lines
 
 
-def get_token_vocab(path: Text) -> collections.Counter:
+def get_token_vocab(path):
   words = collections.Counter()
   lines = get_lines(path, 'train_encode.txt')
   lines.extend(get_lines(path, 'train_decode.txt'))
