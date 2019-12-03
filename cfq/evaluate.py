@@ -57,7 +57,7 @@ class AccuracyResult(object):
   mismatches: List[Tuple[Text, Text, Text]]
 
 
-def write_accuracy_result(result: Optional[AccuracyResult]) -> None:
+def write_accuracy_result(result):
   """Writes the accuracy results to a text file."""
   if not result:
     return
@@ -77,7 +77,7 @@ def write_accuracy_result(result: Optional[AccuracyResult]) -> None:
   print(summary)
 
 
-def get_accuracy_result() -> Optional[AccuracyResult]:
+def get_accuracy_result():
   """Collect accuracy results from input files."""
   questions = open(FLAGS.questions_path).readlines()
   golden_answers = open(FLAGS.golden_answers_path).readlines()
