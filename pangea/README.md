@@ -2,20 +2,6 @@
 
 Pangea is an web simulator for panoramic navigation.
 
-## Example
-
-An example for the Matterport3D dataset is provided in `index.html`.
-
-Download the [panoramas](https://niessner.github.io/Matterport/) and
-[graphs](https://github.com/peteanderson80/Matterport3DSimulator/tree/master/connectivity)
-and put them in a `directory` structured in the following way.
-
-*   `{directory}/{scan}_connectivity.json` - where `scan` identifies a graph.
-*   `{directory}/{pano}_skybox{i}_sami.` - where `pano` identifies a node and
-    `i` is a skybox side.
-
-Start a server by calling `python -m SimpleHTTPServer`.
-
 ## Documentation
 
 Pangea's core functionality is contained within `index.js`.
