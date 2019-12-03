@@ -195,7 +195,9 @@ def get_metrics(dataset_ref, dataset_hyp, service_schemas, in_domain_services):
         # Add the frame-level metric result back to dialogues.
         frame_hyp["metrics"] = frame_metric
 
-        domain_keys = [ALL_SERVICES, frame_hyp["service"]]
+        # Get the domain name of the service.
+        domain_name = frame_hyp["service"].split("_")[0]
+        domain_keys = [ALL_SERVICES, frame_hyp["service"], domain_name]
         if frame_hyp["service"] in in_domain_services:
           domain_keys.append(SEEN_SERVICES)
         else:
