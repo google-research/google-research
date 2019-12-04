@@ -25,6 +25,7 @@ import functools
 from absl import flags
 from inputs import resnet_preprocessing
 import tensorflow as tf
+from tensorflow.contrib import data as contrib_data
 
 FLAGS = flags.FLAGS
 
@@ -310,16 +311,16 @@ class ImageNetInput(ImageNetTFExampleInput):
     # Read the data from disk in parallel
     if self.is_training:
       dataset = dataset.apply(
-          tf.contrib.data.parallel_interleave(
+          contrib_data.parallel_interleave(
               fetch_dataset, cycle_length=cycle_length, sloppy=True))
     else:
       dataset = dataset.apply(
-          tf.contrib.data.parallel_interleave(
+          contrib_data.parallel_interleave(
               fetch_dataset, cycle_length=1, sloppy=False))
 
     if self.cache:
       dataset = dataset.cache().apply(
-          tf.contrib.data.shuffle_and_repeat(shuffle_size))
+          contrib_data.shuffle_and_repeat(shuffle_size))
     else:
       if self.is_training:
         dataset = dataset.shuffle(shuffle_size)

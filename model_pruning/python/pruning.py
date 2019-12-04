@@ -79,6 +79,7 @@ import re
 import tensorflow as tf
 
 from model_pruning.python import pruning_utils
+from tensorflow.contrib import training as contrib_training
 from tensorflow.python.ops import variables  # pylint: disable=g-direct-tensorflow-import
 
 MASK_COLLECTION = 'masks'
@@ -251,7 +252,7 @@ def get_pruning_hparams():
     tf.HParams object initialized to default values
 
   """
-  return tf.contrib.training.HParams(
+  return contrib_training.HParams(
       name='model_pruning',
       begin_pruning_step=0,
       end_pruning_step=-1,

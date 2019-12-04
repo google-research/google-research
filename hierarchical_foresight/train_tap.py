@@ -27,6 +27,7 @@ from .models.tap import TAP
 import tensorflow as tf
 from .utils import sample_batch_tap
 from .utils import save_im
+from tensorflow.contrib import checkpoint as contrib_checkpoint
 tf.enable_eager_execution()
 
 
@@ -67,8 +68,8 @@ def main(argv):
   end = tf.convert_to_tensor(batch[:, 1])
   it(batchsize, start, end)
   global_step = tf.train.get_or_create_global_step()
-  ckpt = tf.train.Checkpoint(optimizer=optim,
-                             variables=tf.contrib.checkpoint.List(it.variables))
+  ckpt = tf.train.Checkpoint(
+      optimizer=optim, variables=contrib_checkpoint.List(it.variables))
 
   for i in range(FLAGS.trainsteps):
     def loss_fn():

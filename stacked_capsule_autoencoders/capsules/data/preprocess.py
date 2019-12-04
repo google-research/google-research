@@ -26,6 +26,8 @@ import sonnet as snt
 import tensorflow as tf
 
 from stacked_capsule_autoencoders.capsules.tensor_ops import ensure_length
+from tensorflow.contrib import distributions as contrib_distributions
+from tensorflow.contrib import resampler as contrib_resampler
 
 
 def pad_and_shift(img, output_size, shift=None, pad_kwargs=None):
