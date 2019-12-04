@@ -139,7 +139,9 @@ def _parse_fn(serialized):
 
 def apply_randomization(features, label, randomize_prob):
   """Randomize each categorical feature with some probability."""
-  rnd_tok = lambda: tf.as_string(tf.random.uniform([], 0, 99999999, tf.int32))
+  def rnd_tok():
+    return tf.as_string(
+        tf.random.uniform(tf.shape(features[key]), 0, 99999999, tf.int32))
 
   for idx in CAT_FEATURE_INDICES:
     key = feature_name(idx)
