@@ -30,6 +30,7 @@ from stacked_capsule_autoencoders.capsules import math_ops
 from stacked_capsule_autoencoders.capsules import neural
 from stacked_capsule_autoencoders.capsules import prob
 from stacked_capsule_autoencoders.capsules.tensor_ops import make_brodcastable
+from tensorflow.contrib import resampler as contrib_resampler
 
 tfd = tfp.distributions
 
@@ -241,7 +242,7 @@ class TemplateBasedImageDecoder(snt.AbstractModule):
     warper = warper.inverse()
 
     grid_coords = snt.BatchApply(warper)(pose)
-    resampler = snt.BatchApply(tf.contrib.resampler.resampler)
+    resampler = snt.BatchApply(contrib_resampler.resampler)
     transformed_templates = resampler(templates, grid_coords)
 
     if bg_image is not None:

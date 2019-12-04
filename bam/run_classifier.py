@@ -32,6 +32,8 @@ from bam.data import task_weighting
 from bam.helpers import training_utils
 from bam.helpers import utils
 from bam.task_specific import task_builder
+from tensorflow.contrib import cluster_resolver as contrib_cluster_resolver
+from tensorflow.contrib import tpu as contrib_tpu
 
 
 class MultitaskModel(object):
@@ -104,17 +106,19 @@ def model_fn_builder(config, tasks, task_weights, num_train_steps):
     if mode == tf.estimator.ModeKeys.TRAIN:
       train_op = optimization.create_optimizer(
           config, model.loss, num_train_steps)
-      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+      output_spec = contrib_tpu.TPUEstimatorSpec(
           mode=mode,
           loss=model.loss,
           train_op=train_op,
           scaffold_fn=scaffold_fn,
-          training_hooks=[training_utils.ETAHook(
-              config, {} if config.use_tpu else dict(loss=model.loss),
-              num_train_steps)])
+          training_hooks=[
+              training_utils.ETAHook(
+                  config, {} if config.use_tpu else dict(loss=model.loss),
+                  num_train_steps)
+          ])
     else:
       assert mode == tf.estimator.ModeKeys.PREDICT
-      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+      output_spec = contrib_tpu.TPUEstimatorSpec(
           mode=mode,
           predictions=utils.flatten_dict(model.outputs),
           scaffold_fn=scaffold_fn)
@@ -133,17 +137,17 @@ class ModelRunner(object):
     self._tasks = tasks
     self._preprocessor = preprocessing.Preprocessor(config, self._tasks)
 
-    is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
+    is_per_host = contrib_tpu.InputPipelineConfig.PER_HOST_V2
     tpu_cluster_resolver = None
     if config.use_tpu and config.tpu_name:
-      tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
+      tpu_cluster_resolver = contrib_cluster_resolver.TPUClusterResolver(
           config.tpu_name, zone=config.tpu_zone, project=config.gcp_project)
-    run_config = tf.contrib.tpu.RunConfig(
+    run_config = contrib_tpu.RunConfig(
         cluster=tpu_cluster_resolver,
         model_dir=config.checkpoints_dir,
         save_checkpoints_steps=config.save_checkpoints_steps,
         save_checkpoints_secs=None,
-        tpu_config=tf.contrib.tpu.TPUConfig(
+        tpu_config=contrib_tpu.TPUConfig(
             iterations_per_loop=config.iterations_per_loop,
             num_shards=config.num_tpu_cores,
             per_host_input_for_training=is_per_host))
@@ -158,7 +162,7 @@ class ModelRunner(object):
         task_weights=task_weights,
         num_train_steps=self.train_steps)
 
-    self._estimator = tf.contrib.tpu.TPUEstimator(
+    self._estimator = contrib_tpu.TPUEstimator(
         use_tpu=config.use_tpu,
         model_fn=model_fn,
         config=run_config,

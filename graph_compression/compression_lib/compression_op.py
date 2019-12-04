@@ -47,6 +47,7 @@ from absl import logging
 from compression_lib import compression_op_utils as comp_op_utils
 import numpy as np
 import tensorflow as tf
+from tensorflow.contrib import training as contrib_training
 
 
 class MatrixCompressorInferface(object):
@@ -126,7 +127,7 @@ class LowRankDecompMatrixCompressor(MatrixCompressorInferface):
     Returns:
       tf.HParams object initialized to default values.
     """
-    return tf.contrib.training.HParams(
+    return contrib_training.HParams(
         name='model_compression',
         rank=100,
         num_rows=10,
@@ -311,7 +312,7 @@ class CompressionOp(CompressionOpInterface):
       tf.HParams object initialized to default values.
 
     """
-    return tf.contrib.training.HParams(
+    return contrib_training.HParams(
         name='model_compression',
         alpha_decrement_value=0.01,
         begin_compression_step=0,

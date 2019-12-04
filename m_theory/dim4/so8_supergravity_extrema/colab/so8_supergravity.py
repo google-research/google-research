@@ -40,6 +40,7 @@ from __future__ import print_function
 import itertools
 import numpy
 import tensorflow as tf
+from tensorflow.contrib import opt as contrib_opt
 
 
 ### Lie Algebra definitions for Spin(8), SU(8), E7.
@@ -106,8 +107,8 @@ class Spin8(object):
         "700+ 711+ 722+ 733+ 744+ 755+ 766+ 777+")
     ret = numpy.zeros([8, 8, 8])
     for ijkc in entries.split():
-     ijk = tuple(map(int, ijkc[:-1]))
-     ret[ijk] = +1 if ijkc[-1] == '+' else -1
+      ijk = tuple(map(int, ijkc[:-1]))
+      ret[ijk] = +1 if ijkc[-1] == '+' else -1
     return ret
 
 
@@ -330,8 +331,8 @@ def call_with_critical_point_scanner(f, *args):
     d = tf_so8_sugra_potential(t_v70)
     t_potential = d['potential']
     t_stationarity = tf_so8_sugra_stationarity(d['a1'], d['a2'])
-    opt = tf.contrib.opt.ScipyOptimizerInterface(tf.asinh(t_stationarity),
-                                                 options=dict(maxiter=500))
+    opt = contrib_opt.ScipyOptimizerInterface(
+        tf.asinh(t_stationarity), options=dict(maxiter=500))
     with tf.Session() as sess:
       sess.run([tf.global_variables_initializer()])
       def scanner(seed, scale):

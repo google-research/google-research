@@ -56,7 +56,7 @@ from absl import logging
 import numpy
 from sklearn import metrics
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
+from tensorflow.contrib import slim as contrib_slim
 
 flags.DEFINE_integer('max_number_of_steps', 100,
                      'The maximum number of gradient steps.')
@@ -370,7 +370,7 @@ def main(argv=()):
   optimizer = tf.train.GradientDescentOptimizer(FLAGS.learning_rate)
   # Set up training.
   grad_mults = CreateGradMultipliers(loss)
-  train_op = slim.learning.create_train_op(
+  train_op = contrib_slim.learning.create_train_op(
       loss, optimizer, gradient_multipliers=grad_mults)
 
   if IsDirected():
