@@ -36,6 +36,7 @@ env:
     - PROJECT="meta_reward_learning/semantic_parsing"
     - PROJECT="meta_reward_learning/textworld"
     - PROJECT="moew"
+    - PROJECT="moment_advice"
     - PROJECT="neutra"
     - PROJECT="norml"
     - PROJECT="pairwise_fairness"
