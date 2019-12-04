@@ -26,6 +26,7 @@ from sklearn import metrics
 import tensorflow as tf
 import tqdm
 from dvrl import dvrl_metrics
+from tensorflow.contrib import layers as contrib_layers
 
 
 class Dvrl(object):
@@ -191,19 +192,19 @@ class Dvrl(object):
       inputs = tf.concat((self.x_input, self.y_input), axis=1)
 
       # Stacks multi-layered perceptron
-      inter_layer = tf.contrib.layers.fully_connected(
+      inter_layer = contrib_layers.fully_connected(
           inputs, self.hidden_dim, activation_fn=self.act_fn)
       for _ in range(int(self.layer_number - 3)):
-        inter_layer = tf.contrib.layers.fully_connected(
+        inter_layer = contrib_layers.fully_connected(
             inter_layer, self.hidden_dim, activation_fn=self.act_fn)
-      inter_layer = tf.contrib.layers.fully_connected(
+      inter_layer = contrib_layers.fully_connected(
           inter_layer, self.comb_dim, activation_fn=self.act_fn)
 
       # Combines with y_hat
       comb_layer = tf.concat((inter_layer, self.y_hat_input), axis=1)
-      comb_layer = tf.contrib.layers.fully_connected(
+      comb_layer = contrib_layers.fully_connected(
           comb_layer, self.comb_dim, activation_fn=self.act_fn)
-      dve = tf.contrib.layers.fully_connected(
+      dve = contrib_layers.fully_connected(
           comb_layer, 1, activation_fn=tf.nn.sigmoid)
 
     return dve

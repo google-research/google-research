@@ -26,7 +26,8 @@ from dopamine.agents.rainbow import rainbow_agent
 import gin
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib import slim
+from tensorflow.contrib import layers as contrib_layers
+from tensorflow.contrib import slim as contrib_slim
 
 
 @gin.configurable
@@ -47,7 +48,7 @@ def atari_network(num_actions, num_atoms, support, network_type, state,
   Returns:
     net: _network_type object containing the tensors output by the network.
   """
-  weights_initializer = slim.variance_scaling_initializer(
+  weights_initializer = contrib_slim.variance_scaling_initializer(
       factor=1.0 / np.sqrt(3.0), mode='FAN_IN', uniform=True)
 
   curr_layer = 1
@@ -55,32 +56,41 @@ def atari_network(num_actions, num_atoms, support, network_type, state,
   net = tf.div(net, 255.)
   representation = None
   if representation_layer <= curr_layer:
-    representation = slim.flatten(net)
-  net = slim.conv2d(
-      net, 32, [8, 8], stride=4, weights_initializer=weights_initializer,
+    representation = contrib_slim.flatten(net)
+  net = contrib_slim.conv2d(
+      net,
+      32, [8, 8],
+      stride=4,
+      weights_initializer=weights_initializer,
       trainable=False)
   curr_layer += 1
   if representation is None and representation_layer <= curr_layer:
-    representation = slim.flatten(net)
-  net = slim.conv2d(
-      net, 64, [4, 4], stride=2, weights_initializer=weights_initializer,
+    representation = contrib_slim.flatten(net)
+  net = contrib_slim.conv2d(
+      net,
+      64, [4, 4],
+      stride=2,
+      weights_initializer=weights_initializer,
       trainable=False)
   curr_layer += 1
   if representation is None and representation_layer <= curr_layer:
-    representation = slim.flatten(net)
-  net = slim.conv2d(
-      net, 64, [3, 3], stride=1, weights_initializer=weights_initializer,
+    representation = contrib_slim.flatten(net)
+  net = contrib_slim.conv2d(
+      net,
+      64, [3, 3],
+      stride=1,
+      weights_initializer=weights_initializer,
       trainable=False)
-  net = slim.flatten(net)
+  net = contrib_slim.flatten(net)
   curr_layer += 1
   if representation is None and representation_layer <= curr_layer:
     representation = net
-  net = slim.fully_connected(
+  net = contrib_slim.fully_connected(
       net, 512, weights_initializer=weights_initializer, trainable=False)
   curr_layer += 1
   if representation is None:
     representation = net
-  net = slim.fully_connected(
+  net = contrib_slim.fully_connected(
       net,
       num_actions * num_atoms,
       activation_fn=None,
@@ -88,7 +98,7 @@ def atari_network(num_actions, num_atoms, support, network_type, state,
       trainable=False)
 
   logits = tf.reshape(net, [-1, num_actions, num_atoms])
-  probabilities = tf.contrib.layers.softmax(logits)
+  probabilities = contrib_layers.softmax(logits)
   q_values = tf.reduce_sum(support * probabilities, axis=2)
   return network_type(q_values, logits, probabilities, representation)
 
@@ -108,10 +118,11 @@ def bisimulation_network(states, hidden_dimension=512, num_layers=1,
     Network to approximate bisimulation metric.
   """
   net = tf.cast(states, tf.float32)
-  net = slim.flatten(net)
+  net = contrib_slim.flatten(net)
   for _ in range(num_layers):
-    net = slim.fully_connected(net, hidden_dimension, trainable=trainable)
-  return slim.fully_connected(net, 1, trainable=trainable)
+    net = contrib_slim.fully_connected(
+        net, hidden_dimension, trainable=trainable)
+  return contrib_slim.fully_connected(net, 1, trainable=trainable)
 
 
 SequentialDistances = (
@@ -170,7 +181,8 @@ class BisimulationRainbowAgent(rainbow_agent.RainbowAgent):
     # Only include non trainable variables which are also present in the
     # checkpoint to restore
     include_vars = list(global_vars.intersection(set(ckpt_vars)))
-    variables_to_restore = slim.get_variables_to_restore(include=include_vars)
+    variables_to_restore = contrib_slim.get_variables_to_restore(
+        include=include_vars)
     if variables_to_restore:
       reloader = tf.train.Saver(var_list=variables_to_restore)
       reloader.restore(self._sess, checkpoint_path)
