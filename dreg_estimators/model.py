@@ -23,12 +23,13 @@ import numpy as np
 import sonnet as snt
 import tensorflow as tf
 import tensorflow_probability as tfp
+from tensorflow.contrib import layers as contrib_layers
 
 tfd = tfp.distributions
 FLAGS = tf.flags.FLAGS
 
 DEFAULT_INITIALIZERS = {
-    "w": tf.contrib.layers.xavier_initializer(),
+    "w": contrib_layers.xavier_initializer(),
     "b": tf.zeros_initializer()
 }
 

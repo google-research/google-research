@@ -36,6 +36,7 @@ from dataset_analysis.bert import tokenization
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from tensorflow.contrib import data as contrib_data
 
 flags = tf.flags
 
@@ -354,7 +355,7 @@ def file_based_input_fn_builder(input_file, seq_length, is_training,
       d = d.shuffle(buffer_size=100)
 
     d = d.apply(
-        tf.contrib.data.map_and_batch(
+        contrib_data.map_and_batch(
             lambda record: _decode_record(record, name_to_features),
             batch_size=batch_size,
             drop_remainder=drop_remainder))

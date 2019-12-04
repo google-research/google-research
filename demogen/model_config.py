@@ -36,6 +36,7 @@ import os
 
 import tensorflow as tf
 from demogen.models.get_model import get_model
+from tensorflow.contrib import training as contrib_training
 
 
 CKPT_NAME = 'model.ckpt-150000'
@@ -229,7 +230,7 @@ class ModelConfig(object):
     Returns:
       A callable model function built according to the hyper parameters of self.
     """
-    config = tf.contrib.training.HParams(
+    config = contrib_training.HParams(
         wide=self.wide_multiplier,
         dropout=self.dropout_prob,
         batchnorm=self.batchnorm,

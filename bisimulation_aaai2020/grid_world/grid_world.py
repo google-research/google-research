@@ -49,7 +49,7 @@ import time
 import gin.tf
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib import slim
+from tensorflow.contrib import slim as contrib_slim
 
 
 @gin.configurable
@@ -367,12 +367,12 @@ class GridWorld(object):
       Network to approximate bisimulation metric.
     """
     net = tf.cast(states, tf.float64)
-    net = slim.flatten(net)
+    net = contrib_slim.flatten(net)
     # Normalize and rescale in range [-1, 1].
     net /= self.max_val
     net = 2.0 * net - 1.0
-    net = slim.fully_connected(net, self.representation_dimension)
-    return slim.fully_connected(net, 1)
+    net = contrib_slim.fully_connected(net, self.representation_dimension)
+    return contrib_slim.fully_connected(net, 1)
 
   def _concat_states(self, states, transpose=False):
     """Concatenate all pairs of states in a batch.
