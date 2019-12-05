@@ -30,6 +30,7 @@ rather than after.
 
 from __future__ import print_function
 import tensorflow as tf
+from tensorflow.contrib import layers as contrib_layers
 
 _BATCH_NORM_DECAY = 0.997
 _BATCH_NORM_EPSILON = 1e-5
@@ -84,7 +85,7 @@ def conv2d_fixed_padding(inputs, filters, kernel_size, strides, data_format):
   # dimensions of `inputs` (as opposed to using `tf.layers.conv2d` alone).
   if strides > 1:
     inputs = fixed_padding(inputs, kernel_size, data_format)
-  regu = tf.contrib.layers.l2_regularizer(scale=0.0002)
+  regu = contrib_layers.l2_regularizer(scale=0.0002)
   return tf.layers.conv2d(
       inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides,
       padding=('SAME' if strides == 1 else 'VALID'), use_bias=False,
@@ -422,8 +423,8 @@ class Model(object):
     self.block_strides = block_strides
     self.dtype = dtype
     self.pre_activation = resnet_version == 2
-    self.regularizer = tf.contrib.layers.l2_regularizer(scale=wd)
-    self.initializer = tf.contrib.layers.xavier_initializer()
+    self.regularizer = contrib_layers.l2_regularizer(scale=wd)
+    self.initializer = contrib_layers.xavier_initializer()
     self.drop_rate = 0.5
     self.feature_dim = feature_dim
 

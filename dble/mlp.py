@@ -17,6 +17,7 @@
 """
 from __future__ import print_function
 import tensorflow as tf
+from tensorflow.contrib import layers as contrib_layers
 
 
 class MLP(object):
@@ -32,9 +33,9 @@ class MLP(object):
     """
     super(MLP, self).__init__()
 
-    self.regularizer = tf.contrib.layers.l2_regularizer(scale=wd)
-    self.initializer = tf.contrib.layers.xavier_initializer()
-    self.variance_initializer = tf.contrib.layers.variance_scaling_initializer(
+    self.regularizer = contrib_layers.l2_regularizer(scale=wd)
+    self.initializer = contrib_layers.xavier_initializer()
+    self.variance_initializer = contrib_layers.variance_scaling_initializer(
         factor=0.1,
         mode='FAN_IN',
         uniform=False,
@@ -95,4 +96,3 @@ class MLP(object):
 def mlp(keep_prob, wd, feature_dim):
   net = MLP(keep_prob=keep_prob, wd=wd, feature_dim=feature_dim)
   return net
-
