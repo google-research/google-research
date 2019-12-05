@@ -1,6 +1,6 @@
 # Behavior Regularized Actor Critic for Offline Reinforcement Learning.
 
-This codebase implements learning algorithms and experiments from [Behavior Regularized Offline Reinforcement Learning](https://openreview.net/forum?id=BJg9hTNKPH).
+This codebase implements learning algorithms and experiments from [Behavior Regularized Offline Reinforcement Learning](https://arxiv.org/abs/1911.11361).
 
 
 If you use this codebase for your research, please cite the paper:
@@ -9,6 +9,7 @@ If you use this codebase for your research, please cite the paper:
 @article{wu2019behavior,
   title={Behavior Regularized Offline Reinforcement Learning},
   author={Wu, Yifan and Tucker, George and Nachum, Ofir},
+  journal={arXiv preprint arXiv:1911.11361},
   year={2019}
 }
 ```
