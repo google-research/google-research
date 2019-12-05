@@ -2,9 +2,16 @@
 
 ## Overview
 
-This work was originally introduced in the paper in 2019:
-Cuturi M., Teboul O., Vert JP: [Differentiable Sorting using Optimal Transport:
-The Sinkhorn CDF and Quantile Operator](https://arxiv.org/pdf/1905.11885.pdf)
+We propose in this work two operators that can be used to recover differentiable approximations to rank and sort vector operators.
+
+
+## References
+
+Cuturi M., Teboul O., Vert JP: [Differentiable Ranks and Sorting using Optimal Transport](https://arxiv.org/pdf/1905.11885.pdf)
+
+
+[Presentation
+Slides](https://drive.google.com/file/d/1J2bCRN-aN2JgTyO0zk-uviZpadRCB3Pl/view?usp=sharing)
 
 ## License
 
