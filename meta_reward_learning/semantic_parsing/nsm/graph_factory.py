@@ -27,15 +27,17 @@ import tensorflow as tf
 from meta_reward_learning.semantic_parsing.nsm import data_utils
 from meta_reward_learning.semantic_parsing.nsm import score_utils
 from meta_reward_learning.semantic_parsing.nsm import tf_utils
+from tensorflow.contrib import graph_editor as contrib_graph_editor
+from tensorflow.contrib import rnn as contrib_rnn
 
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 RNN_CELL_DICT = dict(
-    rnn=tf.contrib.rnn.RNNCell,
-    lstm=tf.contrib.rnn.BasicLSTMCell,
-    layernorm_lstm=tf.contrib.rnn.LayerNormBasicLSTMCell,
-    gru=tf.contrib.rnn.GRUCell)
+    rnn=contrib_rnn.RNNCell,
+    lstm=contrib_rnn.BasicLSTMCell,
+    layernorm_lstm=contrib_rnn.LayerNormBasicLSTMCell,
+    gru=contrib_rnn.GRUCell)
 
 OPTIMIZER_DICT = dict(
     sgd=tf.train.GradientDescentOptimizer,
@@ -47,7 +49,7 @@ OPTIMIZER_DICT = dict(
 ACTIVATION_DICT = dict(relu=tf.nn.relu, sigmoid=tf.nn.sigmoid, tanh=tf.nn.tanh)
 
 # Graph replace fn
-graph_replace = tf.contrib.graph_editor.graph_replace
+graph_replace = contrib_graph_editor.graph_replace
 
 # Bind a variable length tensor with its sequence_length.
 SeqTensor = collections.namedtuple('SeqTensor', ['tensor', 'sequence_length'])
@@ -1526,13 +1528,13 @@ def multilayer_dropout_cell(cell_fn,
     cell = cell_fn(hidden_size)
     if i > 0 and use_skip_connection:
       cell = tf.nn.rnn_cell.ResidualWrapper(cell)
-    cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=1.0 - dropout)
+    cell = contrib_rnn.DropoutWrapper(cell, output_keep_prob=1.0 - dropout)
     # variational_recurrent=True,
     # state_keep_prob = 1.0 - dropout,
     # dtype=tf.float32)
     cells.append(cell)
 
-  final_cell = tf.contrib.rnn.MultiRNNCell(cells)
+  final_cell = contrib_rnn.MultiRNNCell(cells)
   return final_cell
 
 

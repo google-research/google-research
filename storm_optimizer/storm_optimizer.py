@@ -25,6 +25,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.contrib import graph_editor as contrib_graph_editor
 from tensorflow.contrib.optimizer_v2 import optimizer_v2
 
 GATE_OP = 1
@@ -106,7 +107,7 @@ class StormOptimizer(optimizer_v2.OptimizerV2):
 
     replace_dict = self._make_replace_dict(state, self.grads, self.vars)
 
-    recomputed_grads = tf.contrib.graph_editor.graph_replace(
+    recomputed_grads = contrib_graph_editor.graph_replace(
         self.grads, replace_dict)
 
     return recomputed_grads

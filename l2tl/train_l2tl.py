@@ -28,10 +28,11 @@ from inputs import data_input
 import model
 from models import resnet_params
 import tensorflow as tf
-from tensorflow.contrib import summary
 from tensorflow.core.protobuf import rewriter_config_pb2
 import tensorflow_probability as tfp
 from utils import model_utils
+from tensorflow.contrib import summary as contrib_summary
+from tensorflow.contrib import tpu as contrib_tpu
 
 FLAGS = flags.FLAGS
 
@@ -192,7 +193,7 @@ def get_src_train_op(loss, num_all_iters, params):  # pylint: disable=unused-arg
     optimizer = tf.train.RMSPropOptimizer(
         src_learning_rate, decay=0.9, momentum=0.9, epsilon=1.0)
   if params['use_tpu']:
-    src_optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
+    src_optimizer = contrib_tpu.CrossShardOptimizer(optimizer)
   with tf.variable_scope('src'):
     return src_optimizer.minimize(loss, global_step), src_learning_rate
 
@@ -215,7 +216,7 @@ def meta_train_op(acc, rl_entropy, log_prob, rl_scope, params):  # pylint: disab
   """
   target_global_step = get_global_step('train_rl_global_step')
   rl_reward = acc
-  rl_step_baseline = tf.contrib.tpu.cross_replica_sum(rl_reward)
+  rl_step_baseline = contrib_tpu.cross_replica_sum(rl_reward)
   rl_baseline_momentum = 0.95
   rl_entropy_regularization = 0.
 
@@ -449,7 +450,7 @@ def train_model_fn(features, labels, mode, params):  # pylint: disable=unused-ar
 
   src_one_hot_labels = tf.one_hot(tf.cast(src_labels, tf.int64), num_classes)
 
-  with tf.contrib.tpu.bfloat16_scope():
+  with contrib_tpu.bfloat16_scope():
     ret = get_model_logits(src_features, finetune_features, params, mode,
                            num_classes, target_num_classes)
     src_logits, _ = ret[0:2]
@@ -505,13 +506,13 @@ def train_model_fn(features, labels, mode, params):  # pylint: disable=unused-ar
         gs = gs[0]
         values = tf.unstack(scalar_values)
 
-        with summary.create_file_writer(
+        with contrib_summary.create_file_writer(
             FLAGS.model_dir, max_queue=FLAGS.iterations_per_loop).as_default():
-          with summary.always_record_summaries():
+          with contrib_summary.always_record_summaries():
             for key, value in zip(tensorboard_scalars.keys(), values):
-              tf.contrib.summary.scalar(key, value, step=gs)
+              contrib_summary.scalar(key, value, step=gs)
 
-            return summary.all_summary_ops()
+            return contrib_summary.all_summary_ops()
 
       gs_t = tf.reshape(global_step, [1])
 
@@ -523,7 +524,7 @@ def train_model_fn(features, labels, mode, params):  # pylint: disable=unused-ar
 
   eval_metrics = None
 
-  return tf.contrib.tpu.TPUEstimatorSpec(
+  return contrib_tpu.TPUEstimatorSpec(
       mode=mode,
       loss=loss,
       train_op=train_op,
@@ -618,7 +619,7 @@ def main(unused_argv):
     save_checkpoints_steps = FLAGS.save_checkpoints_steps
 
   # TO BE MODIFIED
-  config = tf.contrib.tpu.RunConfig(
+  config = contrib_tpu.RunConfig(
       cluster='',
       model_dir=FLAGS.model_dir,
       save_checkpoints_steps=save_checkpoints_steps,

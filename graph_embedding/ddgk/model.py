@@ -42,10 +42,11 @@ Where ${ds} is a data set as formatted [here]
 import networkx as nx
 import numpy as np
 import tensorflow as tf
+from tensorflow.contrib import training as contrib_training
 
 
 def MutagHParams():
-  return tf.contrib.training.HParams(
+  return contrib_training.HParams(
       # The size of node embeddings.
       embedding_size=4,
       # The number of layers in the DNN.
@@ -203,7 +204,7 @@ def Encode(source, ckpt_prefix, hparams):
 
     loss = AdjMatrixLoss(logits, y)
 
-    train_op = tf.contrib.training.create_train_op(
+    train_op = contrib_training.create_train_op(
         loss,
         tf.train.AdamOptimizer(hparams.learning_rate),
         summarize_gradients=False)
@@ -268,7 +269,7 @@ def Score(source, target, ckpt_prefix, hparams):
     vars_to_train = tf.get_collection(
         tf.GraphKeys.TRAINABLE_VARIABLES, scope='attention')
 
-    train_op = tf.contrib.training.create_train_op(
+    train_op = contrib_training.create_train_op(
         loss,
         tf.train.AdamOptimizer(hparams.learning_rate),
         variables_to_train=vars_to_train,

@@ -23,6 +23,7 @@ import collections
 import contextlib
 
 import tensorflow as tf
+from tensorflow.contrib import rnn as contrib_rnn
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import init_ops
 from tensorflow.python.ops import math_ops
@@ -31,7 +32,7 @@ from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.util import nest
 
-rnn = tf.contrib.rnn
+rnn = contrib_rnn
 _BIAS_VARIABLE_NAME = 'biases'
 _WEIGHTS_VARIABLE_NAME = 'weights'
 ACTIVATION_DICT = dict(sigmoid=tf.nn.sigmoid, tanh=tf.nn.tanh)
