@@ -1,6 +1,6 @@
 python>=3.5
 matplotlib>=3.0.3
 numpy>=1.16.2
-tensorflow>=1.13.0
+tensorflow==1.13.0
 tqdm>=4.31.1
 keras>=2.3.0
