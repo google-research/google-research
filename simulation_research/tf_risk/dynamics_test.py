@@ -23,6 +23,7 @@ import numpy as np
 import tensorflow as tf  # tf
 
 from simulation_research.tf_risk import dynamics
+from tensorflow.contrib import stateless as contrib_stateless
 
 
 class DynamicsTest(tf.test.TestCase):
@@ -152,7 +153,7 @@ class DynamicsTest(tf.test.TestCase):
     key = 1337
 
     states = tf.ones([num_samples])
-    eps_t = tf.contrib.stateless.stateless_random_normal(
+    eps_t = contrib_stateless.stateless_random_normal(
         shape=[num_samples], seed=[key, int(t / dt)])
 
     next_states = dynamics.gbm_euler_step(
@@ -263,7 +264,7 @@ class DynamicsTest(tf.test.TestCase):
     key = 1337
 
     states_and_max = [tf.ones([num_samples])] * 2
-    eps_t = tf.contrib.stateless.stateless_random_normal(
+    eps_t = contrib_stateless.stateless_random_normal(
         shape=[num_samples], seed=[key, int(t / dt)])
 
     next_states_and_max = dynamics.gbm_euler_step_running_max(
@@ -453,9 +454,9 @@ class DynamicsTest(tf.test.TestCase):
     key = 1337
 
     states_and_max = [tf.ones([num_samples])] * 2
-    eps_t = tf.contrib.stateless.stateless_random_normal(
+    eps_t = contrib_stateless.stateless_random_normal(
         shape=[num_samples], seed=[2 * key, int(t / dt)])
-    u_t = tf.contrib.stateless.stateless_random_uniform(
+    u_t = contrib_stateless.stateless_random_uniform(
         shape=[num_samples], seed=[2 * key + 1, int(t / dt)])
 
     next_states_and_max = dynamics.gbm_euler_step_running_max(
@@ -631,7 +632,7 @@ class DynamicsTest(tf.test.TestCase):
     key = 1337
 
     states_and_sums = [tf.ones([num_samples])] * 2
-    eps_t = tf.contrib.stateless.stateless_random_normal(
+    eps_t = contrib_stateless.stateless_random_normal(
         shape=[num_samples], seed=[key, int(t / dt)])
 
     next_states_and_sums = dynamics.gbm_euler_step_running_sum(
@@ -772,7 +773,7 @@ class DynamicsTest(tf.test.TestCase):
     key = 42
 
     states = tf.ones([num_samples, num_dims])
-    eps_t = tf.contrib.stateless.stateless_random_normal(
+    eps_t = contrib_stateless.stateless_random_normal(
         shape=[num_samples, num_dims], seed=[key, int(t / dt)])
 
     next_states = dynamics.gbm_euler_step_nd(
@@ -887,7 +888,7 @@ class DynamicsTest(tf.test.TestCase):
     key = 13
 
     log_states = tf.zeros([num_samples])
-    eps_t = tf.contrib.stateless.stateless_random_normal(
+    eps_t = contrib_stateless.stateless_random_normal(
         shape=[num_samples], seed=[key, int(t / dt)])
 
     next_log_states = dynamics.gbm_log_euler_step(
@@ -1006,7 +1007,7 @@ class DynamicsTest(tf.test.TestCase):
     key = 128
 
     log_states = tf.zeros([num_samples, num_dims])
-    eps_t = tf.contrib.stateless.stateless_random_normal(
+    eps_t = contrib_stateless.stateless_random_normal(
         shape=[num_samples, num_dims], seed=[key, int(t / dt)])
 
     next_log_states = dynamics.gbm_log_euler_step_nd(
