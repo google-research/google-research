@@ -27,6 +27,8 @@ from models import resnet_params
 import tensorflow as tf
 from tensorflow.python.estimator import estimator  # pylint: disable=g-direct-tensorflow-import
 from utils import model_utils
+from tensorflow.contrib import learn as contrib_learn
+from tensorflow.contrib import training as contrib_training
 
 flags.DEFINE_integer('pre_train_steps', 100, help=('pretrain steps'))
 flags.DEFINE_integer('finetune_steps', 100, help=('pretrain steps'))
@@ -190,7 +192,7 @@ def get_model_fn(run_config):
             optimizer,
             replicas_to_aggregate=FLAGS.sync_replicas,
             total_num_replicas=run_config.num_worker_replicas)
-        train_op = tf.contrib.training.create_train_op(loss, optimizer)
+        train_op = contrib_training.create_train_op(loss, optimizer)
         with tf.variable_scope('finetune'):
           train_op = optimizer.minimize(loss, cur_finetune_step)
         if FLAGS.moving_average:
@@ -248,7 +250,7 @@ def main(unused_argv):
   }
 
   run_config_args['master'] = FLAGS.master
-  config = tf.contrib.learn.RunConfig(**run_config_args)
+  config = contrib_learn.RunConfig(**run_config_args)
 
   resnet_classifier = tf.estimator.Estimator(
       get_model_fn(config), config=config)

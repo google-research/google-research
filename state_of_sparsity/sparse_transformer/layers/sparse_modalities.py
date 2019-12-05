@@ -26,6 +26,7 @@ import tensorflow as tf
 import state_of_sparsity.layers.l0_regularization as l0
 import state_of_sparsity.layers.variational_dropout as vd
 from state_of_sparsity.sparse_transformer.layers import common_sparse
+from tensorflow.contrib.eager.python import tfe as contrib_eager
 from tensorflow.contrib.model_pruning.python import pruning
 
 
@@ -91,7 +92,7 @@ def _get_weights(model_hparams, vocab_size, hidden_dim=None):
 
   if not aux_params_shards:
     # Convert ret to tensor.
-    if not tf.contrib.eager.in_eager_mode():
+    if not contrib_eager.in_eager_mode():
       ret = common_layers.convert_gradient_to_tensor(ret)
     return ret
 
@@ -114,7 +115,7 @@ def _get_weights(model_hparams, vocab_size, hidden_dim=None):
     COLLECTED_VARIABLES = True
 
   # Convert aux ret to tensor.
-  if not tf.contrib.eager.in_eager_mode():
+  if not contrib_eager.in_eager_mode():
     ret = common_layers.convert_gradient_to_tensor(ret)
     aux_ret = common_layers.convert_gradient_to_tensor(aux_ret)
   return (ret, aux_ret)
