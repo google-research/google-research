@@ -24,7 +24,8 @@ from deeplab import feature_extractor
 import elements_embeddings
 import model_input
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
+from tensorflow.contrib import graph_editor as contrib_graph_editor
+from tensorflow.contrib import slim as contrib_slim
 
 
 _LOGITS_SCOPE_NAME = 'logits'
@@ -545,11 +546,11 @@ def extract_features(images,
       ]:
         add_dropout_layer = end_points[dropout_layer_name]
 
-        add_dropout_layer_out = tf.contrib.graph_editor.get_consuming_ops(
+        add_dropout_layer_out = contrib_graph_editor.get_consuming_ops(
             [add_dropout_layer])[0]
         updated_add_dropout_layer = tf.nn.dropout(
             add_dropout_layer, keep_prob=flags.image_keep_prob)
-        tf.contrib.graph_editor.connect(
+        contrib_graph_editor.connect(
             updated_add_dropout_layer,
             add_dropout_layer_out,
             disconnect_first=True)
@@ -642,11 +643,11 @@ def extract_features(images,
     # tf.contrib.graph_editor.swap_outputs(
     #     tf.contrib.graph_editor.sgv(updated_add_ref_elements_layer.op),
     #     tf.contrib.graph_editor.sgv(add_ref_elements_layer.op))
-    add_ref_elements_layer_out = tf.contrib.graph_editor.get_consuming_ops(
+    add_ref_elements_layer_out = contrib_graph_editor.get_consuming_ops(
         [add_ref_elements_layer])[0]
     updated_add_ref_elements_layer = tf.identity(
         updated_add_ref_elements_layer, name='updated_add_ref_elements_layer')
-    tf.contrib.graph_editor.connect(
+    contrib_graph_editor.connect(
         updated_add_ref_elements_layer,
         add_ref_elements_layer_out,
         disconnect_first=True)
@@ -663,37 +664,35 @@ def extract_features(images,
         'scale': True,
     }
 
-    with slim.arg_scope(
-        [slim.conv2d, slim.separable_conv2d],
-        weights_regularizer=slim.l2_regularizer(weight_decay),
+    with contrib_slim.arg_scope(
+        [contrib_slim.conv2d, contrib_slim.separable_conv2d],
+        weights_regularizer=contrib_slim.l2_regularizer(weight_decay),
         activation_fn=tf.nn.relu,
-        normalizer_fn=slim.batch_norm,
+        normalizer_fn=contrib_slim.batch_norm,
         padding='SAME',
         stride=1,
         reuse=reuse):
-      with slim.arg_scope([slim.batch_norm], **batch_norm_params):
+      with contrib_slim.arg_scope([contrib_slim.batch_norm],
+                                  **batch_norm_params):
         depth = 256
         branch_logits = []
 
         if add_image_level_feature:
           pool_height = scale_dimension(crop_size[0], 1. / output_stride)
           pool_width = scale_dimension(crop_size[1], 1. / output_stride)
-          image_feature = slim.avg_pool2d(features,
-                                          [pool_height, pool_width],
-                                          [pool_height, pool_width],
-                                          padding='VALID')
-          image_feature = slim.conv2d(image_feature,
-                                      depth,
-                                      1,
-                                      scope=_IMAGE_POOLING_SCOPE)
+          image_feature = contrib_slim.avg_pool2d(
+              features, [pool_height, pool_width], [pool_height, pool_width],
+              padding='VALID')
+          image_feature = contrib_slim.conv2d(
+              image_feature, depth, 1, scope=_IMAGE_POOLING_SCOPE)
           image_feature = tf.image.resize_bilinear(
               image_feature, [pool_height, pool_width], align_corners=True)
           image_feature.set_shape([None, pool_height, pool_width, depth])
           branch_logits.append(image_feature)
 
         # Employ a 1x1 convolution.
-        branch_logits.append(slim.conv2d(features, depth, 1,
-                                         scope=_ASPP_SCOPE + str(0)))
+        branch_logits.append(
+            contrib_slim.conv2d(features, depth, 1, scope=_ASPP_SCOPE + str(0)))
 
         if atrous_rates:
           # Employ 3x3 convolutions with different atrous rates.
@@ -707,13 +706,13 @@ def extract_features(images,
                   weight_decay=weight_decay,
                   scope=scope)
             else:
-              aspp_features = slim.conv2d(
+              aspp_features = contrib_slim.conv2d(
                   features, depth, 3, rate=rate, scope=scope)
             branch_logits.append(aspp_features)
 
         # Merge branch logits.
         concat_logits = tf.concat(branch_logits, 3)
-        concat_logits = slim.conv2d(
+        concat_logits = contrib_slim.conv2d(
             concat_logits, depth, 1, scope=_CONCAT_PROJECTION_SCOPE)
         concat_logits = tf.nn.dropout(
             concat_logits, keep_prob=flags.comb_dropout_keep_prob)
@@ -861,15 +860,15 @@ def refine_by_decoder(features,
       'scale': True,
   }
 
-  with slim.arg_scope(
-      [slim.conv2d, slim.separable_conv2d],
-      weights_regularizer=slim.l2_regularizer(weight_decay),
+  with contrib_slim.arg_scope(
+      [contrib_slim.conv2d, contrib_slim.separable_conv2d],
+      weights_regularizer=contrib_slim.l2_regularizer(weight_decay),
       activation_fn=tf.nn.relu,
-      normalizer_fn=slim.batch_norm,
+      normalizer_fn=contrib_slim.batch_norm,
       padding='SAME',
       stride=1,
       reuse=reuse):
-    with slim.arg_scope([slim.batch_norm], **batch_norm_params):
+    with contrib_slim.arg_scope([contrib_slim.batch_norm], **batch_norm_params):
       with tf.variable_scope(_DECODER_SCOPE, _DECODER_SCOPE, [features]):
         feature_list = feature_extractor.networks_to_feature_maps[
             model_variant][feature_extractor.DECODER_END_POINTS]
@@ -888,10 +887,11 @@ def refine_by_decoder(features,
               feature_name = '{}/{}'.format(
                   feature_extractor.name_scope[model_variant], name)
             decoder_features_list.append(
-                slim.conv2d(end_points[feature_name],
-                            48,
-                            1,
-                            scope='feature_projection'+str(i)))
+                contrib_slim.conv2d(
+                    end_points[feature_name],
+                    48,
+                    1,
+                    scope='feature_projection' + str(i)))
             # Resize to decoder_height/decoder_width.
             for j, feature in enumerate(decoder_features_list):
               decoder_features_list[j] = tf.image.resize_bilinear(
@@ -916,13 +916,13 @@ def refine_by_decoder(features,
                   scope='decoder_conv1')
             else:
               num_convs = 2
-              decoder_features = slim.repeat(
+              decoder_features = contrib_slim.repeat(
                   tf.concat(decoder_features_list, 3),
                   num_convs,
-                  slim.conv2d,
+                  contrib_slim.conv2d,
                   decoder_depth,
                   3,
-                  scope='decoder_conv'+str(i))
+                  scope='decoder_conv' + str(i))
           return decoder_features
 
 
@@ -1047,9 +1047,9 @@ def _get_branch_logits(features,
     atrous_rates = [1]
     assert kernel_size == 1
 
-  with slim.arg_scope(
-      [slim.conv2d],
-      weights_regularizer=slim.l2_regularizer(weight_decay),
+  with contrib_slim.arg_scope(
+      [contrib_slim.conv2d],
+      weights_regularizer=contrib_slim.l2_regularizer(weight_decay),
       weights_initializer=tf.truncated_normal_initializer(stddev=0.01),
       reuse=reuse):
     with tf.variable_scope(
@@ -1060,10 +1060,15 @@ def _get_branch_logits(features,
         if i != 0:
           scope += '_' + str(i)
 
-        branch_logits.append(slim.conv2d(
-            features, num_classes, kernel_size=kernel_size,
-            rate=rate, activation_fn=None, normalizer_fn=None,
-            scope=scope))
+        branch_logits.append(
+            contrib_slim.conv2d(
+                features,
+                num_classes,
+                kernel_size=kernel_size,
+                rate=rate,
+                activation_fn=None,
+                normalizer_fn=None,
+                scope=scope))
 
       return tf.add_n(branch_logits)
 
@@ -1091,7 +1096,7 @@ def _split_separable_conv2d(inputs,
   Returns:
     Computed features after split separable conv2d.
   """
-  outputs = slim.separable_conv2d(
+  outputs = contrib_slim.separable_conv2d(
       inputs,
       None,
       3,
@@ -1101,13 +1106,13 @@ def _split_separable_conv2d(inputs,
           stddev=depthwise_weights_initializer_stddev),
       weights_regularizer=None,
       scope=scope + '_depthwise')
-  return slim.conv2d(
+  return contrib_slim.conv2d(
       outputs,
       filters,
       1,
       weights_initializer=tf.truncated_normal_initializer(
           stddev=pointwise_weights_initializer_stddev),
-      weights_regularizer=slim.l2_regularizer(weight_decay),
+      weights_regularizer=contrib_slim.l2_regularizer(weight_decay),
       scope=scope + '_pointwise')
 
 

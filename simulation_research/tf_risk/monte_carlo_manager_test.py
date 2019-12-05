@@ -28,6 +28,7 @@ from simulation_research.tf_risk import dynamics
 from simulation_research.tf_risk import monte_carlo_manager
 from simulation_research.tf_risk import payoffs
 from simulation_research.tf_risk import util
+from tensorflow.contrib import stateless as contrib_stateless
 
 
 def _prng_key(i, key):
@@ -35,7 +36,7 @@ def _prng_key(i, key):
 
 
 def _random_normal(shape, i, key=0):
-  return tf.contrib.stateless.stateless_random_normal(
+  return contrib_stateless.stateless_random_normal(
       shape=shape, seed=_prng_key(i, key))
 
 

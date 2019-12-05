@@ -22,10 +22,10 @@ import functools
 import time
 import numpy as np
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
 import towards_gan_benchmarks.lib.flags
 import towards_gan_benchmarks.lib.gan
 import towards_gan_benchmarks.lib.logger
+from tensorflow.contrib import slim as contrib_slim
 
 lib = towards_gan_benchmarks.lib
 
@@ -75,7 +75,7 @@ def _make_runner(flags):
     def generator(_):
       return fakes
 
-    disc_params = slim.get_model_variables('discriminator')
+    disc_params = contrib_slim.get_model_variables('discriminator')
     _, disc_cost, divergence = lib.gan.losses(generator, discriminator, reals,
                                               None, disc_params, flags.gan)
     disc_train_op = lib.gan.disc_train_op(disc_cost, disc_params, step_,
@@ -96,7 +96,7 @@ def _make_runner(flags):
     temps_to_vars_ = tf.group(
         *[tf.assign(a, b) for a, b in zip(disc_params, temps_)])
 
-    init_op = tf.variables_initializer(slim.get_variables())
+    init_op = tf.variables_initializer(contrib_slim.get_variables())
 
     def run_gan_divergence(real_gen, fake_gen):
       """Train a discriminator and measures a GAN divergence."""

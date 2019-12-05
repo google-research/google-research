@@ -21,6 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.contrib import resampler as contrib_resampler
 
 
 def bilinear_wrapper(imgs, coords):
@@ -43,7 +44,7 @@ def bilinear_wrapper(imgs, coords):
       imgs, tf.concat([prod_init_dims[tf.newaxis], end_dims_img], axis=0))
   coords = tf.reshape(
       coords, tf.concat([prod_init_dims[tf.newaxis], end_dims_coords], axis=0))
-  imgs_sampled = tf.contrib.resampler.resampler(imgs, coords)
+  imgs_sampled = contrib_resampler.resampler(imgs, coords)
   imgs_sampled = tf.reshape(
       imgs_sampled, tf.concat([init_dims, tf.shape(imgs_sampled)[-3:]], axis=0))
   return imgs_sampled

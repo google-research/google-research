@@ -20,7 +20,8 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
+from tensorflow.contrib import layers as contrib_layers
+from tensorflow.contrib import slim as contrib_slim
 
 
 def set_flags(flags):
@@ -145,10 +146,10 @@ def dcgan_generator(z, flags, scope=None, reuse=None):
   if not flags.norm_g:
     normalizer = None
   else:
-    normalizer = slim.batch_norm
+    normalizer = contrib_slim.batch_norm
 
   with tf.variable_scope(scope, reuse=reuse):
-    out = slim.fully_connected(
+    out = contrib_slim.fully_connected(
         z,
         4 * 4 * (4 * flags.dim_g),
         scope='fc',
@@ -157,7 +158,7 @@ def dcgan_generator(z, flags, scope=None, reuse=None):
     out = tf.reshape(out, [-1, 4, 4, 4 * flags.dim_g])
 
     if flags.extra_top_conv:
-      out = slim.conv2d(
+      out = contrib_slim.conv2d(
           out,
           4 * flags.dim_d,
           x_fs,
@@ -165,7 +166,7 @@ def dcgan_generator(z, flags, scope=None, reuse=None):
           activation_fn=nonlinearity,
           normalizer_fn=normalizer)
 
-    out = slim.conv2d_transpose(
+    out = contrib_slim.conv2d_transpose(
         out,
         2 * flags.dim_g,
         ds_fs,
@@ -175,7 +176,7 @@ def dcgan_generator(z, flags, scope=None, reuse=None):
         activation_fn=nonlinearity)
 
     for i in range(flags.extra_depth_g):
-      out = slim.conv2d(
+      out = contrib_slim.conv2d(
           out,
           2 * flags.dim_g,
           x_fs,
@@ -183,7 +184,7 @@ def dcgan_generator(z, flags, scope=None, reuse=None):
           normalizer_fn=normalizer,
           activation_fn=nonlinearity)
 
-    out = slim.conv2d_transpose(
+    out = contrib_slim.conv2d_transpose(
         out,
         flags.dim_g,
         ds_fs,
@@ -193,7 +194,7 @@ def dcgan_generator(z, flags, scope=None, reuse=None):
         activation_fn=nonlinearity)
 
     for i in range(flags.extra_depth_g):
-      out = slim.conv2d(
+      out = contrib_slim.conv2d(
           out,
           flags.dim_g,
           x_fs,
@@ -201,7 +202,7 @@ def dcgan_generator(z, flags, scope=None, reuse=None):
           normalizer_fn=normalizer,
           activation_fn=nonlinearity)
 
-    out = slim.conv2d_transpose(
+    out = contrib_slim.conv2d_transpose(
         out, 3, ds_fs, scope='conv3', stride=2, activation_fn=tf.tanh)
 
     return out
@@ -218,20 +219,20 @@ def dcgan_discriminator(x, flags, scope=None, reuse=None, return_acts=False):
     if not flags.norm_d:
       normalizer = None
     elif flags.algorithm == 'vanilla':
-      normalizer = slim.batch_norm
+      normalizer = contrib_slim.batch_norm
     else:
-      normalizer = slim.layer_norm
+      normalizer = contrib_slim.layer_norm
 
     if flags.initializer_d == 'xavier':
-      initializer = tf.contrib.layers.xavier_initializer()
+      initializer = contrib_layers.xavier_initializer()
     elif flags.initializer_d == 'orth_gain2':
       initializer = tf.orthogonal_initializer(gain=2.)
     elif flags.initializer_d == 'he':
-      initializer = tf.contrib.layers.variance_scaling_initializer()
+      initializer = contrib_layers.variance_scaling_initializer()
     elif flags.initializer_d == 'he_uniform':
-      initializer = tf.contrib.layers.variance_scaling_initializer(uniform=True)
+      initializer = contrib_layers.variance_scaling_initializer(uniform=True)
 
-    out = slim.conv2d(
+    out = contrib_slim.conv2d(
         x,
         flags.dim_d,
         ds_fs,
@@ -242,7 +243,7 @@ def dcgan_discriminator(x, flags, scope=None, reuse=None, return_acts=False):
     acts.append(out)
 
     for i in range(flags.extra_depth_d):
-      out = slim.conv2d(
+      out = contrib_slim.conv2d(
           out,
           flags.dim_d,
           x_fs,
@@ -252,7 +253,7 @@ def dcgan_discriminator(x, flags, scope=None, reuse=None, return_acts=False):
           weights_initializer=initializer)
       acts.append(out)
 
-    out = slim.conv2d(
+    out = contrib_slim.conv2d(
         out,
         2 * flags.dim_d,
         ds_fs,
@@ -264,7 +265,7 @@ def dcgan_discriminator(x, flags, scope=None, reuse=None, return_acts=False):
     acts.append(out)
 
     for i in range(flags.extra_depth_d):
-      out = slim.conv2d(
+      out = contrib_slim.conv2d(
           out,
           2 * flags.dim_d,
           x_fs,
@@ -274,7 +275,7 @@ def dcgan_discriminator(x, flags, scope=None, reuse=None, return_acts=False):
           weights_initializer=initializer)
       acts.append(out)
 
-    out = slim.conv2d(
+    out = contrib_slim.conv2d(
         out,
         4 * flags.dim_d,
         ds_fs,
@@ -286,7 +287,7 @@ def dcgan_discriminator(x, flags, scope=None, reuse=None, return_acts=False):
     acts.append(out)
 
     if flags.extra_top_conv:
-      out = slim.conv2d(
+      out = contrib_slim.conv2d(
           out,
           4 * flags.dim_d,
           x_fs,
@@ -297,7 +298,7 @@ def dcgan_discriminator(x, flags, scope=None, reuse=None, return_acts=False):
       acts.append(out)
 
     out = tf.reshape(out, [-1, 4 * 4 * (4 * flags.dim_d)])
-    out = slim.fully_connected(out, 1, scope='fc', activation_fn=None)
+    out = contrib_slim.fully_connected(out, 1, scope='fc', activation_fn=None)
     acts.append(out)
 
     if return_acts:

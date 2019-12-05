@@ -22,6 +22,7 @@ import model_input
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.platform import app
+from tensorflow.contrib import slim as contrib_slim
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -208,7 +209,7 @@ def main(unused_argv):
             predictions_tag += '_flipped'
 
           # Define the evaluation metric.
-          metric_map[predictions_tag] = slim.metrics.mean_iou(
+          metric_map[predictions_tag] = contrib_slim.metrics.mean_iou(
               output_predictions, labels, num_classes, weights=weights)
 
         def label_summary(labels, weights, name):
@@ -233,7 +234,7 @@ def main(unused_argv):
 
     tf.summary.image('image', samples['image'], 8)
 
-    metrics_to_values, metrics_to_updates = slim.metrics.aggregate_metric_map(
+    metrics_to_values, metrics_to_updates = contrib_slim.metrics.aggregate_metric_map(
         metric_map)
 
     for metric_name, metric_value in metrics_to_values.iteritems():
@@ -246,7 +247,7 @@ def main(unused_argv):
     tf.logging.info('Eval batch size %d and num batch %d', FLAGS.batch_size,
                     num_batches)
 
-    slim.evaluation.evaluation_loop(
+    contrib_slim.evaluation.evaluation_loop(
         master='',
         checkpoint_dir=FLAGS.checkpoint_dir,
         logdir=FLAGS.eval_logdir,

@@ -27,6 +27,7 @@ import gin.tf
 import numpy as np
 import six
 import tensorflow as tf
+from tensorflow.contrib import layers as contrib_layers
 
 
 MAX_BYTES_MEM = 10**8
@@ -115,10 +116,10 @@ class LastLayerBayesian(object):
       _variable_summaries(self.ll_vars_concat)
 
       # add regularization that acts as a unit Gaussian prior on the last layer
-      regularizer = tf.contrib.layers.l2_regularizer(1.0)
+      regularizer = contrib_layers.l2_regularizer(1.0)
 
       # regularization
-      prior = tf.contrib.layers.apply_regularization(regularizer, self.ll_vars)
+      prior = contrib_layers.apply_regularization(regularizer, self.ll_vars)
       self.bayesian_loss = self.n * self.loss + prior
 
       # saving the weights of last layer when running SGLD/SGD/MCMC algorithm

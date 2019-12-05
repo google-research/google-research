@@ -24,6 +24,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 from mpi_extrapolation.geometry import homography
+from tensorflow.contrib import resampler as contrib_resampler
 
 
 def projective_forward_homography(src_images, intrinsics, pose, depths):
@@ -168,7 +169,7 @@ def projective_inverse_warp(
   # pixel frame.
   proj_tgt_cam_to_src_pixel = tf.matmul(intrinsics, pose)
   src_pixel_coords = cam2pixel(cam_coords, proj_tgt_cam_to_src_pixel)
-  output_img = tf.contrib.resampler.resampler(img, src_pixel_coords)
+  output_img = contrib_resampler.resampler(img, src_pixel_coords)
   if ret_flows:
     return output_img, src_pixel_coords - cam_coords
   else:
@@ -292,8 +293,8 @@ def flow_gather(source_images, flows):
   coords_x = tf.clip_by_value(w + flows_reshape[Ellipsis, 1], 0.0,
                               tf.to_float(width))
   sampling_coords = tf.stack([coords_x, coords_y], axis=-1)
-  warped_imgs = tf.contrib.resampler.resampler(source_images_reshape,
-                                               sampling_coords)
+  warped_imgs = contrib_resampler.resampler(source_images_reshape,
+                                            sampling_coords)
   warped_imgs_reshape = tf.transpose(
       tf.reshape(warped_imgs, [batchsize, num_depths, height, width, 3]),
       [0, 2, 3, 1, 4])
