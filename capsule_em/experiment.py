@@ -28,6 +28,7 @@ from capsule_em.mnist \
   import mnist_record
 from capsule_em.norb \
   import norb_record
+from tensorflow.contrib import tfprof as contrib_tfprof
 from tensorflow.python import debug as tf_debug
 
 FLAGS = tf.app.flags.FLAGS
@@ -221,15 +222,15 @@ def run_training():
     model = f_model.multi_gpu_model
     print('so far so good!')
     result = model(features)
-    param_stats = tf.contrib.tfprof.model_analyzer.print_model_analysis(
+    param_stats = contrib_tfprof.model_analyzer.print_model_analysis(
         tf.get_default_graph(),
-        tfprof_options=tf.contrib.tfprof.model_analyzer
+        tfprof_options=contrib_tfprof.model_analyzer
         .TRAINABLE_VARS_PARAMS_STAT_OPTIONS)
     sys.stdout.write('total_params: %d\n' % param_stats.total_parameters)
 
-    tf.contrib.tfprof.model_analyzer.print_model_analysis(
+    contrib_tfprof.model_analyzer.print_model_analysis(
         tf.get_default_graph(),
-        tfprof_options=tf.contrib.tfprof.model_analyzer.FLOAT_OPS_OPTIONS)
+        tfprof_options=contrib_tfprof.model_analyzer.FLOAT_OPS_OPTIONS)
     merged = result['summary']
     train_step = result['train']
     # test_writer = tf.summary.FileWriter(FLAGS.summary_dir + '/test')

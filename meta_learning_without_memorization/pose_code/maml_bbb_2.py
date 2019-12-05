@@ -19,6 +19,7 @@ from __future__ import print_function
 from absl import flags
 import numpy as np
 import tensorflow as tf
+from tensorflow.contrib import layers as contrib_layers
 from tensorflow.contrib.layers.python import layers as tf_layers
 
 FLAGS = flags.FLAGS
@@ -236,7 +237,7 @@ class MAML(object):
     weights = {}
 
     dtype = tf.float32
-    conv_initializer = tf.contrib.layers.xavier_initializer_conv2d(dtype=dtype)
+    conv_initializer = contrib_layers.xavier_initializer_conv2d(dtype=dtype)
     k = 3
 
     weights['conv1'] = tf.get_variable(

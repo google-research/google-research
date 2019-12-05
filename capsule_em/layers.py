@@ -20,6 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import tensorflow as tf
+from tensorflow.contrib import metrics as contrib_metrics
 
 
 def margin_loss(labels, raw_logits, margin=0.4, downweight=0.5):
@@ -67,8 +68,8 @@ def optimizer(logits, labels, multi, scope, softmax, rate=1.0, step=0.0):
     with tf.name_scope('correct_prediction'):
       _, classes = tf.nn.top_k(labels, k=2 if multi else 1)
       _, preds = tf.nn.top_k(logits, k=2 if multi else 1)
-      wrong = tf.contrib.metrics.set_size(
-          tf.contrib.metrics.set_difference(classes, preds))
+      wrong = contrib_metrics.set_size(
+          contrib_metrics.set_difference(classes, preds))
       correct_prediction = tf.equal(wrong, 0)
       almost_correct = tf.less(wrong, 2)
       correct_prediction_sum = tf.reduce_sum(

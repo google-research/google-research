@@ -29,6 +29,7 @@ from dble import mlp
 from dble import resnet
 from dble import utils
 from dble import vgg
+from tensorflow.contrib import slim as contrib_slim
 tf.logging.set_verbosity(tf.logging.INFO)
 logging.basicConfig(level=logging.INFO)
 
@@ -543,7 +544,7 @@ def train(flags):
     optimizer_confidence = tf.train.MomentumOptimizer(
         learning_rate=learning_rate, momentum=0.9)
 
-    train_op = tf.contrib.slim.learning.create_train_op(
+    train_op = contrib_slim.learning.create_train_op(
         total_loss=loss,
         optimizer=optimizer,
         global_step=global_step,
@@ -552,7 +553,7 @@ def train(flags):
     for v in tf.trainable_variables():
       if 'fc_variance' in v.name:
         variable_variance.append(v)
-    train_op_confidence = tf.contrib.slim.learning.create_train_op(
+    train_op_confidence = contrib_slim.learning.create_train_op(
         total_loss=loss_confidence,
         optimizer=optimizer_confidence,
         global_step=global_step_confidence,

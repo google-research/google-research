@@ -19,6 +19,8 @@ from __future__ import print_function
 from absl import flags
 import numpy as np
 import tensorflow as tf
+from tensorflow.contrib import layers as contrib_layers
+from tensorflow.contrib import opt as contrib_opt
 from tensorflow.contrib.layers.python import layers as tf_layers
 
 FLAGS = flags.FLAGS
@@ -180,7 +182,7 @@ class MAML(object):
       # OUTER LOOP
       if FLAGS.metatrain_iterations > 0:
         if FLAGS.weight_decay:
-          optimizer = tf.contrib.opt.AdamWOptimizer(
+          optimizer = contrib_opt.AdamWOptimizer(
               weight_decay=FLAGS.beta, learning_rate=self.meta_lr)
         else:
           optimizer = tf.train.AdamOptimizer(self.meta_lr)
@@ -206,7 +208,7 @@ class MAML(object):
     weights = {}
 
     dtype = tf.float32
-    conv_initializer = tf.contrib.layers.xavier_initializer_conv2d(dtype=dtype)
+    conv_initializer = contrib_layers.xavier_initializer_conv2d(dtype=dtype)
     conv_initializer2 = tf.glorot_uniform_initializer(dtype=dtype)
     k = 3
     weights['en_conv1'] = tf.get_variable(

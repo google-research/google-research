@@ -248,7 +248,7 @@ def construct_model(input_tensors, encoder_w0, decoder0, prefix=None):
   if 'train' in prefix:
     if FLAGS.weight_decay:
       loss = mse_loss
-      optimizer = tf.contrib.opt.AdamWOptimizer(
+      optimizer = contrib_opt.AdamWOptimizer(
           weight_decay=FLAGS.beta, learning_rate=FLAGS.update_lr)
       gvs = optimizer.compute_gradients(loss)
       train_op = optimizer.apply_gradients(gvs)

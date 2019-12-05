@@ -29,6 +29,7 @@ import tensorflow as tf
 from unprocessing import dataset
 from unprocessing import estimator
 from unprocessing import network
+from tensorflow.contrib import training as contrib_training
 
 FLAGS = flags.FLAGS
 
@@ -78,7 +79,7 @@ flags.mark_flag_as_required('test_pattern')
 
 def main(_):
   inference_fn = network.inference
-  hparams = tf.contrib.training.HParams(learning_rate=FLAGS.learning_rate)
+  hparams = contrib_training.HParams(learning_rate=FLAGS.learning_rate)
   model_fn = estimator.create_model_fn(inference_fn, hparams)
   config = tf.estimator.RunConfig(FLAGS.model_dir)
   tf_estimator = tf.estimator.Estimator(model_fn=model_fn, config=config)

@@ -21,6 +21,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from capsule_em import utils
+from tensorflow.contrib import layers as contrib_layers
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -83,7 +84,7 @@ def add_convs(features):
     if FLAGS.verbose:
       tf.summary.histogram('activation', conv1)
     if FLAGS.pooling:
-      pool1 = tf.contrib.layers.max_pool2d(
+      pool1 = contrib_layers.max_pool2d(
           conv1, kernel_size=2, stride=2, data_format='NCHW', padding='SAME')
       convs = [pool1]
     else:
@@ -119,7 +120,7 @@ def add_convs(features):
       cur_conv = tf.nn.relu(pre_activation, name=scope.name)
       if FLAGS.pooling:
         convs += [
-            tf.contrib.layers.max_pool2d(
+            contrib_layers.max_pool2d(
                 cur_conv,
                 kernel_size=2,
                 stride=2,
@@ -136,9 +137,9 @@ def add_convs(features):
 def conv_inference(features):
   """Inference for a CNN. Conv + FC."""
   conv, _, _ = add_convs(features)
-  hidden1 = tf.contrib.layers.flatten(conv)
+  hidden1 = contrib_layers.flatten(conv)
   if FLAGS.extra_fc > 0:
-    hidden = tf.contrib.layers.fully_connected(
+    hidden = contrib_layers.fully_connected(
         hidden1,
         FLAGS.extra_fc,
         activation_fn=tf.nn.relu,
@@ -149,7 +150,7 @@ def conv_inference(features):
       hidden = tf.nn.dropout(hidden, 0.5)
   else:
     hidden = hidden1
-  logits = tf.contrib.layers.fully_connected(
+  logits = contrib_layers.fully_connected(
       hidden,
       features['num_classes'],
       activation_fn=None,
