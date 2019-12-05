@@ -22,14 +22,16 @@ from __future__ import print_function
 
 import gin
 import tensorflow as tf
+from tensorflow.contrib import layers as contrib_layers
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 # Register normalization functions as configurables.
-gin.config.external_configurable(tf.contrib.layers.layer_norm,
-                                 module='tf.contrib.layers')
-gin.config.external_configurable(tf.contrib.layers.batch_norm,
-                                 module='tf.contrib.layers')
+gin.config.external_configurable(
+    contrib_layers.layer_norm, module='tf.contrib.layers')
+gin.config.external_configurable(
+    contrib_layers.batch_norm, module='tf.contrib.layers')
 
 
 @gin.configurable

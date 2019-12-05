@@ -26,8 +26,9 @@ import gin
 from six.moves import range
 import tensorflow as tf
 from dql_grasping import tf_modules
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 
 @gin.configurable
