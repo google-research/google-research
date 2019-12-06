@@ -40,6 +40,7 @@ from qanet import squad_data
 from qanet import squad_helper
 from qanet.util import configurable
 from qanet.util import tokenizer_util
+from tensorflow.contrib import data as contrib_data
 
 _ENCODERS = dict()
 # char ids 0-255 come from utf-8 encoding bytes
@@ -908,7 +909,7 @@ def get_input_fn(split='dev',
     if shuffle and repeats != 1:
       tf.logging.info('Shuffle and repeat size: %s' % shuffle_buffer_size)
       ds = ds.apply(
-          tf.contrib.data.shuffle_and_repeat(
+          contrib_data.shuffle_and_repeat(
               buffer_size=shuffle_buffer_size, count=repeats))
     elif repeats != 1:
       tf.logging.info('Repeating')

@@ -20,6 +20,7 @@ import tensorflow as tf
 
 from qanet.util import configurable
 from qanet.util import misc_util
+from tensorflow.contrib import layers as contrib_layers
 
 
 class Decay(configurable.Configurable):
@@ -119,7 +120,7 @@ class Initializer(configurable.Configurable):
 class XavierInit(Initializer):
 
   def __call__(self):
-    return tf.contrib.layers.xavier_initializer()
+    return contrib_layers.xavier_initializer()
 
 
 class Optimizer(configurable.Configurable):
@@ -195,7 +196,7 @@ class Optimizer(configurable.Configurable):
         keep_pattern=self.config['keepgrad_var'],
         exclude_pattern=self.config['nograd_var'])
 
-    train_op = tf.contrib.layers.optimize_loss(
+    train_op = contrib_layers.optimize_loss(
         loss=loss,
         global_step=tf.train.get_or_create_global_step(),
         learning_rate=self.config['learning_rate'],
