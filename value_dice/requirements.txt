@@ -1,0 +1,10 @@
+gym==0.15.4
+mujoco-py==1.50.1.68
+numpy==1.17.3
+tensorboard==2.0.1
+tensorflow==2.0.0
+tensorflow-gan==2.0.0
+tensorflow-probability==0.8.0
+tf-agents-nightly==0.2.0.dev20191125
+tfp-nightly==0.9.0.dev20191125
+tqdm==4.36.1
