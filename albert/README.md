@@ -3,7 +3,7 @@ ALBERT
 
 ***************New October 31, 2019 ***************
 
-Version 2 of ALBERT models is relased. TF-Hub modules are available:
+Version 2 of ALBERT models is released. TF-Hub modules are available:
 
 - https://tfhub.dev/google/albert_base/2
 - https://tfhub.dev/google/albert_large/2
