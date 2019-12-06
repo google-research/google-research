@@ -448,7 +448,7 @@ def main(_):
           actual_label = label_list[int(prediction["predictions"])]
         else:
           actual_label = str(prediction["predictions"])
-        sub_writer.write(example.guid + "\t" + actual_label + "\n")
+        sub_writer.write(example.guid + "\t" + str(actual_label) + "\n")
         num_written_lines += 1
     assert num_written_lines == num_actual_predict_examples
 
