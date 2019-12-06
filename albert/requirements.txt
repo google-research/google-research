@@ -1,3 +1,0 @@
-tensorflow >=1.11.0,<2.0.0   # CPU Version of TensorFlow.
-# tensorflow-gpu  >=1.11.0,<2.0.0  # GPU version of TensorFlow.
-sentencepiece
