@@ -27,6 +27,7 @@ from qanet import squad_data
 from qanet import squad_helper
 from qanet.util import configurable
 from qanet.util import misc_util
+from tensorflow.contrib import learn as contrib_learn
 
 
 MODE_KEYS = tf.estimator.ModeKeys
@@ -195,7 +196,7 @@ class Model(Module):
             scaffold=scaffold)
       else:
         # Maintain backwards compatibility
-        return tf.contrib.learn.ModelFnOps(
+        return contrib_learn.ModelFnOps(
             mode=mode,
             predictions=predictions,
             loss=loss,
