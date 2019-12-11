@@ -73,7 +73,7 @@ def _sum_rightmost_ndims_preserving_shape(x, ndims):
 
 
 class _ExponentiatedQuadratic(
-    tfp.positive_semidefinite_kernels.ExponentiatedQuadratic):
+    tfp.math.psd_kernels.ExponentiatedQuadratic):
   """ExponentiatedQuadratic kernel function with per-dimension parameters."""
 
   def _apply(self, x1, x2, example_ndims=0):
@@ -148,13 +148,13 @@ class RBFKernelFn(tf.keras.layers.Layer):
         amplitude=tf.nn.softplus(self._amplitude),
         length_scale=tf.nn.softplus(self._length_scale))
     if self._add_linear:
-      k += tfp.positive_semidefinite_kernels.Linear(
+      k += tfp.math.psd_kernels.Linear(
           bias_variance=self._linear_bias,
           slope_variance=self._linear_slope)
     return k
 
 
-class _MaternOneHalf(tfp.positive_semidefinite_kernels.MaternOneHalf):
+class _MaternOneHalf(tfp.math.psd_kernels.MaternOneHalf):
   """Matern 1/2 kernel function with per-dimension parameters."""
 
   def _apply(self, x1, x2, example_ndims=0):
@@ -171,7 +171,7 @@ class _MaternOneHalf(tfp.positive_semidefinite_kernels.MaternOneHalf):
     return tf.exp(log_result)
 
 
-class _MaternThreeHalves(tfp.positive_semidefinite_kernels.MaternThreeHalves):
+class _MaternThreeHalves(tfp.math.psd_kernels.MaternThreeHalves):
   """Matern 3/2 kernel function with per-dimension parameters."""
 
   def _apply(self, x1, x2, example_ndims=0):
@@ -189,7 +189,7 @@ class _MaternThreeHalves(tfp.positive_semidefinite_kernels.MaternThreeHalves):
     return tf.exp(log_result)
 
 
-class _MaternFiveHalves(tfp.positive_semidefinite_kernels.MaternFiveHalves):
+class _MaternFiveHalves(tfp.math.psd_kernels.MaternFiveHalves):
   """Matern 5/2 kernel function with per-dimension parameters."""
 
   def _apply(self, x1, x2, example_ndims=0):
@@ -281,7 +281,7 @@ class MaternKernelFn(tf.keras.layers.Layer):
         amplitude=tf.nn.softplus(self._amplitude),
         length_scale=tf.nn.softplus(self._length_scale))
     if self._add_linear:
-      k += tfp.positive_semidefinite_kernels.Linear(
+      k += tfp.math.psd_kernels.Linear(
           bias_variance=self._linear_bias,
           slope_variance=self._linear_slope)
     return k
@@ -324,6 +324,6 @@ class LinearKernelFn(tf.keras.layers.Layer):
 
   @property
   def kernel(self):
-    return tfp.positive_semidefinite_kernels.Linear(
+    return tfp.math.psd_kernels.Linear(
         bias_variance=self._linear_bias,
         slope_variance=self._linear_slope)
