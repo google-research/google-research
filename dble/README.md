@@ -2,10 +2,7 @@
 
 Authors: Chen Xing, Sercan O. Arik, Zizhao Zhang, Tomas Pfister
 
-Paper: Chen Xing, Sercan O. Arik, Zizhao Zhang, Tomas Pfister, "Distance-Based
-Learning from Errors for Confidence Calibration". (The Arxiv link of the paper
-will be added after open-sourcing the code.)
-[[Arxiv]]()
+Link: https://arxiv.org/abs/1912.01730
 
 We propose distance-based learning from errors (DBLE) to improve confidence
 calibration of DNNs. DBLE bases its confidence estimation on distances in the
@@ -19,15 +16,6 @@ model jointly with the classification model by merely learning from
 mis-classified training samples, which we show to be highly beneficial for
 effective learning. On multiple datasets and architectures, we demonstrate that
 DBLE outperforms alternative single-modal confidence calibration approaches.
-
-## Dependencies
-
-*   keras
-*   numpy
-*   python 3.5+
-*   tensorflow 1.3+
-*   tqdm
-*   matplotlib
 
 ## Model architectures
 
@@ -75,7 +63,7 @@ datasets. In this directory, we demonstrate DBLE on
 * CIFAR-100
 * Tiny-ImageNet
 
-The pre-processing of data-sets is in './data_loader.py'. For example,
+The pre-processing of data-sets is in 'data_loader.py'. For example,
 the loading and pre-processing of CIFAR-10 is,
 
 ```
@@ -110,8 +98,8 @@ samples as input and output the processed batch of samples.
 ## Hyper-parameters of DBLE and command examples
 
 All hyper-parameters required for the training and evaluation of DBLE are listed
-in 'dble.py'. Here we list some main hyper-parameters that should be adjusted
-with respect to the data sets and model architectures used.
+in 'main_dble.py'. Here we list some main hyper-parameters that should be
+adjusted with respect to the data sets and model architectures used.
 
 ```
 parser.add_argument('--model_name', type=str, default='vgg')
@@ -129,11 +117,11 @@ prototypical episode.') parser.add_argument( '--train_batch_size', type=int,
 default=100) parser.add_argument('--weight_decay', type=float, default=0.0005)
 ```
 
-Here is the command example for the experimennt that classifies CIFAR-10 with
+Here is the command example for the experiment that classifies CIFAR-10 with
 VGG-11.
 
 ```
-python dble.py
+python3 -m main_dble
 --num_classes_train 10 --num_classes_test 10 --num_shots_train 10
 --train_batch_size 100 --number_of_steps 80000 --num_tasks_per_batch 2
 --num_classes_total 10 --num_samples_per_class 5000 --dataset cifar10

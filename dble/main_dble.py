@@ -13,23 +13,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Training and evaluation using Distance Based Learning from Errors (DBLE).
-"""
+"""Training and evaluation using Distance Based Learning from Errors (DBLE)."""
+
 from __future__ import print_function
+
 import argparse
 import logging
 import os
+import sys
 import time
+
 import numpy as np
 import pathlib
 import tensorflow as tf
 from tqdm import trange
+
+sys.path.insert(0, '..')
+# pylint: disable=g-import-not-at-top
 from dble import data_loader
 from dble import mlp
 from dble import resnet
 from dble import utils
 from dble import vgg
 from tensorflow.contrib import slim as contrib_slim
+
 tf.logging.set_verbosity(tf.logging.INFO)
 logging.basicConfig(level=logging.INFO)
 
@@ -48,10 +55,14 @@ def get_arguments():
 
   # Dataset parameters
   parser.add_argument(
-      '--data_dir', type=str, default='',
+      '--data_dir',
+      type=str,
+      default='',
       help='Path to the data, only for Tiny-ImageNet.')
   parser.add_argument(
-      '--val_data_dir', type=str, default='',
+      '--val_data_dir',
+      type=str,
+      default='',
       help='Path to the validation data, only for Tiny-ImageNet.')
 
   # Training parameters
@@ -74,8 +85,7 @@ def get_arguments():
       '--num_tasks_per_batch',
       type=int,
       default=2,
-      help='Number of few shot episodes per batch.'
-  )
+      help='Number of few shot episodes per batch.')
   parser.add_argument(
       '--init_learning_rate',
       type=float,
@@ -128,36 +138,29 @@ def get_arguments():
       '--eval_interval_steps',
       type=int,
       default=2000,
-      help='Number of train steps between evaluating model in training loop.'
-  )
+      help='Number of train steps between evaluating model in training loop.')
   parser.add_argument(
       '--eval_interval_fine_steps',
       type=int,
       default=1000,
-      help='Number of train steps between evaluating model in the final phase.'
-  )
+      help='Number of train steps between evaluating model in the final phase.')
 
   # Architecture parameters
   parser.add_argument('--conv_keepdim', type=float, default=0.5)
   parser.add_argument('--neck', type=bool, default=False, help='')
   parser.add_argument('--num_forward', type=int, default=10, help='')
   parser.add_argument('--weight_decay', type=float, default=0.0005)
-  parser.add_argument(
-      '--num_cases_train', type=int, default=50000)
-  parser.add_argument(
-      '--num_cases_test', type=int, default=10000)
+  parser.add_argument('--num_cases_train', type=int, default=50000)
+  parser.add_argument('--num_cases_test', type=int, default=10000)
   parser.add_argument('--model_name', type=str, default='vgg')
   parser.add_argument('--dataset', type=str, default='cifar10')
-  parser.add_argument('--num_samples_per_class',
-                      type=int,
-                      default=5000,
-                      help='')
+  parser.add_argument(
+      '--num_samples_per_class', type=int, default=5000, help='')
   parser.add_argument(
       '--num_classes_total',
       type=int,
       default=10,
-      help='Number of classes in total of the data set.'
-  )
+      help='Number of classes in total of the data set.')
   parser.add_argument(
       '--num_classes_test',
       type=int,
@@ -167,8 +170,7 @@ def get_arguments():
       '--num_classes_train',
       type=int,
       default=10,
-      help='Number of classes in a protoypical episode.'
-  )
+      help='Number of classes in a protoypical episode.')
   parser.add_argument(
       '--num_shots_train',
       type=int,
@@ -194,14 +196,16 @@ def build_feature_extractor_graph(inputs,
 
   Args:
     inputs: The input batch with shape (batch_size, height, width,
-    num_channels). The batch_size of a support batch is num_classes_per_task
-    *num_supports_per_class*num_tasks. The batch_size of a query batch is
-    query_batch_size_per_task*num_tasks.
+      num_channels). The batch_size of a support batch is num_classes_per_task
+      *num_supports_per_class*num_tasks. The batch_size of a query batch is
+      query_batch_size_per_task*num_tasks.
     flags: The hyperparameter dictionary.
     is_variance: The bool value of whether to calculate variances for every
-    training sample. For support samples, calculating variaces is not required.
+      training sample. For support samples, calculating variaces is not
+      required.
     is_training: The bool value of whether to use training mode.
     model: The representation model defined in function train(flags).
+
   Returns:
     h: The representations of the input batch with shape
     (batch_size, feature_dim).
@@ -248,11 +252,12 @@ def calculate_class_center(support_embeddings,
 
   Args:
     support_embeddings: The support embeddings with shape
-    (num_classes_per_task*num_supports_per_class*num_tasks, height, width,
-    num_channels).
+      (num_classes_per_task*num_supports_per_class*num_tasks, height, width,
+      num_channels).
     flags: The hyperparameter dictionary.
     is_training: The bool value of whether to use training mode.
     scope: The name of the variable scope.
+
   Returns:
     class_center: The representations of the class centers with shape
     (num_supports_per_class*num_tasks, feature_dim).
@@ -282,12 +287,13 @@ def build_euclidean_calculator(query_representation,
   """Calculates the negative Euclidean distance of queries to class centers.
 
   Args:
-    query_representation: The query embeddings with shape
-    (num_tasks, query_batch_size_per_task, feature_dim).
-    class_center: The representations of class centers with shape
-    (num_tasks, num_training_class, feature_dim).
+    query_representation: The query embeddings with shape (num_tasks,
+      query_batch_size_per_task, feature_dim).
+    class_center: The representations of class centers with shape (num_tasks,
+      num_training_class, feature_dim).
     flags: The hyperparameter dictionary.
     scope: The name of the variable scope.
+
   Returns:
     negative_euclidean: The negative euclidean distance of queries to the class
      centers in their episodes. The shape of negative_euclidean is (num_tasks,
@@ -328,14 +334,14 @@ def build_proto_train_graph(images_query, images_support, flags, is_training,
 
   Args:
     images_query: The processed query batch with shape
-    (query_batch_size_per_task*num_tasks, height, width,
-    num_channels).
+      (query_batch_size_per_task*num_tasks, height, width, num_channels).
     images_support: The processed support batch with shape
-    (num_classes_per_task*num_supports_per_class*num_tasks, height, width,
-    num_channels).
+      (num_classes_per_task*num_supports_per_class*num_tasks, height, width,
+      num_channels).
     flags: The hyperparameter dictionary.
     is_training: The bool value of whether to use training mode.
     model: The model defined in the main train function.
+
   Returns:
     logits: The logits before softmax (negative Euclidean) of the batch
     calculated with the original representations (mu in the paper) of queries.
@@ -380,9 +386,7 @@ def placeholder_inputs(batch_size, image_size, scope):
           name='images')
     else:
       images_placeholder = tf.placeholder(
-          tf.float32,
-          shape=(batch_size, 784),
-          name='images')
+          tf.float32, shape=(batch_size, 784), name='images')
     labels_placeholder = tf.placeholder(
         tf.int32, shape=(batch_size), name='labels')
     return images_placeholder, labels_placeholder
@@ -412,6 +416,7 @@ def build_model(flags):
   for feature extraction, e.g. WaveNet for speech or BERT for text.
   Args:
     flags: The hyperparameter dictionary.
+
   Returns:
     mlp_model: the mlp model instance.
     vgg_model: the vgg model instance.
@@ -420,12 +425,16 @@ def build_model(flags):
   if flags.model_name == 'vgg':
     # Primary task operations
     vgg_model = vgg.vgg11(
-        keep_prob=flags.conv_keepdim, wd=flags.weight_decay, neck=flags.neck,
+        keep_prob=flags.conv_keepdim,
+        wd=flags.weight_decay,
+        neck=flags.neck,
         feature_dim=feature_dim)
     return vgg_model
   elif flags.model_name == 'mlp':
-    mlp_model = mlp(keep_prob=flags.conv_keepdim, feature_dim=feature_dim,
-                    wd=flags.weight_decay)
+    mlp_model = mlp(
+        keep_prob=flags.conv_keepdim,
+        feature_dim=feature_dim,
+        wd=flags.weight_decay)
     return mlp_model
   elif flags.model_name == 'resnet':
     if flags.dataset == 'cifar10' or flags.dataset == 'cifar100':
@@ -485,8 +494,8 @@ def train(flags):
       images_support_pl_aug = data_loader.augment_cifar(
           images_support_pl, is_training=True)
     elif flags.dataset == 'tinyimagenet':
-      images_query_pl_aug = data_loader.augment_tinyimagenet(images_query_pl,
-                                                             is_training=True)
+      images_query_pl_aug = data_loader.augment_tinyimagenet(
+          images_query_pl, is_training=True)
       images_support_pl_aug = data_loader.augment_tinyimagenet(
           images_support_pl, is_training=True)
 
@@ -750,8 +759,8 @@ def get_train_datasets(flags):
   elif flags.dataset == 'cifar100':
     train_set, test_set = data_loader.load_cifar100()
   elif flags.dataset == 'tinyimagenet':
-    train_set, test_set = data_loader.load_tiny_imagenet(flags.data_dir,
-                                                         flags.val_data_dir)
+    train_set, test_set = data_loader.load_tiny_imagenet(
+        flags.data_dir, flags.val_data_dir)
   episodic_train = data_loader.Dataset(train_set)
   return episodic_train, test_set, train_set
 
@@ -849,10 +858,11 @@ class ModelLoader:
     confidence and accuracy of test samples lying in each bin.
     Args:
       pred_logits_np: the softmax output at the dimension of the predicted
-      labels of test samples.
+        labels of test samples.
       pred_np:  the numpy array of the predicted labels of test samples.
       label_np:  the numpy array of the ground-truth labels of test samples.
       num_bins: the number of bins to partition all samples. we set it as 15.
+
     Returns:
       ece: the calculated ECE value.
     """
@@ -898,6 +908,7 @@ class ModelLoader:
     Args:
       num_cases_train: the total number of training samples.
       num_cases_test:  the total number of test samples.
+
     Returns:
       num_correct / num_cases_test: the accuracy of the evaluation.
       nll: the calculated NLL value.
@@ -920,10 +931,8 @@ class ModelLoader:
       images_test = self.test_dataset[0][(
           i * self.test_batch_size):((i + 1) * self.test_batch_size)]
       feed_dict = {self.tensor_images: images_test.astype(dtype=np.float32)}
-      [features_test_batch,
-       variances_test_batch] = self.sess.run([self.representation,
-                                              self.variance],
-                                             feed_dict)
+      [features_test_batch, variances_test_batch
+      ] = self.sess.run([self.representation, self.variance], feed_dict)
       features_test_np.extend(features_test_batch)
       variance_test_np.extend(variances_test_batch)
     features_test_np = np.concatenate(features_test_np, axis=0)
@@ -971,8 +980,9 @@ class ModelLoader:
               self.test_dataset[1]
               [(i * self.test_batch_size):((i + 1) * self.test_batch_size)]
       }
-      [prediction, num_correct_per_batch] = self.sess.run(
-          [self.prediction, self.acc], feed_dict)
+      [prediction,
+       num_correct_per_batch] = self.sess.run([self.prediction, self.acc],
+                                              feed_dict)
       num_correct += num_correct_per_batch
       pred_list.append(prediction)
 
@@ -1028,9 +1038,10 @@ def main(argv=None):
   if not ad.exists():
     ad.mkdir(parents=True)
 
-  # This makes sure that we can store a json and recove a namespace back
-  flags = Namespace(utils.load_and_save_params(vars(default_params), log_dir))
-  # train(flags=flags)
+  # Restores a json and recover a namespace back.
+  flags = Namespace(utils.load_and_save_params(vars(default_params),
+                                               log_dir, ignore_existing=True))
+  train(flags=flags)
 
 
 if __name__ == '__main__':

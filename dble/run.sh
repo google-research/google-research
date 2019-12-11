@@ -20,10 +20,8 @@ virtualenv -p python3 .
 source ./bin/activate
 
 
-pip install tensorflow
 pip install -r requirements.txt
-mkdir
-wget -P /tmp/ http://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz
-tar -xzvf /tmp/cifar-10-python.tar.gz
-rm /tmp/cifar-10-python.tar.gz
-python -m dble
+
+python3 -m main_dble \
+--number_of_steps=2 --train_batch_size=2 \
+--num_cases_train=5 --num_cases_test=5 --num_samples_per_class=3
