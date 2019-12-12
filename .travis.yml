@@ -42,6 +42,7 @@ env:
     - PROJECT="pairwise_fairness"
     - PROJECT="probabilistic_vqvae"
     - PROJECT="property_linking"
+    - PROJECT="protoattend"
     - PROJECT="psycholab"
     - PROJECT="rllim"
     - PROJECT="robust_loss"
