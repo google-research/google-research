@@ -18,10 +18,11 @@
 from __future__ import absolute_import
 from __future__ import division
 
-from compression_lib import compression_op
-from compression_lib import simhash_compression_op as simhash
 import numpy as np
 import tensorflow as tf
+
+from graph_compression.compression_lib import compression_op
+from graph_compression.compression_lib import simhash_compression_op as simhash
 
 
 class SimhashCompressionOpTest(tf.test.TestCase):
