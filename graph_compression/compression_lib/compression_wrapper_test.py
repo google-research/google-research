@@ -24,16 +24,12 @@ from __future__ import absolute_import
 from __future__ import division
 
 from absl.testing import absltest
-from compression_lib import compression_op as comp_op
-from compression_lib import compression_wrapper
 import mock
 
-# Module names needed for mocking.
-_MODULE_PATH = 'compression_lib.compression_wrapper'
-_LOW_RANK_MODULE = 'comp_op.LowRankDecompMatrixCompressor'
-_COMPRESSION_APPLY = 'comp_op.ApplyCompression'
-_SIM_HASH_MODULE = 'simhash_comp_op.SimhashMatrixCompressor'
-_SIM_HASH_APPLY = 'simhash_comp_op.SimhashApplyCompression'
+from graph_compression.compression_lib import compression_op as comp_op
+from graph_compression.compression_lib import compression_wrapper
+from graph_compression.compression_lib import simhash_compression_op
+
 
 # Default global step value.
 _GLOBAL_STEP = 10
@@ -66,14 +62,14 @@ class CompressionWrapperTest(absltest.TestCase):
     spec.set_hparam('rank', hparams.rank)
     return spec
 
-  @mock.patch('.'.join([_MODULE_PATH, _LOW_RANK_MODULE]))
+  @mock.patch.object(comp_op, 'LowRankDecompMatrixCompressor')
   def testWrapper_CreatesProperCompressorOption1(self, low_rank_mock):
     hparams = self._create_compression_op_spec(1)
     mock_compressor = MatrixCompressorInterfaceMock(
         self._default_compressor_spec(hparams))
     low_rank_mock.side_effect = [mock_compressor]
 
-    with mock.patch('.'.join([_MODULE_PATH, _COMPRESSION_APPLY])) as apply_mock:
+    with mock.patch.object(comp_op, 'ApplyCompression') as apply_mock:
       compression_wrapper.get_apply_compression(hparams, _GLOBAL_STEP)
       apply_mock.assert_called_with(
           scope='default_scope',
@@ -81,14 +77,15 @@ class CompressionWrapperTest(absltest.TestCase):
           compressor=mock_compressor,
           global_step=_GLOBAL_STEP)
 
-  @mock.patch('.'.join([_MODULE_PATH, _SIM_HASH_MODULE]))
+  @mock.patch.object(simhash_compression_op, 'SimhashMatrixCompressor')
   def testWrapper_CreatesProperCompressorOption2(self, sim_hash_mock):
     hparams = self._create_compression_op_spec(2)
     mock_compressor = MatrixCompressorInterfaceMock(
         self._default_compressor_spec(hparams))
     sim_hash_mock.side_effect = [mock_compressor]
 
-    with mock.patch('.'.join([_MODULE_PATH, _SIM_HASH_APPLY])) as apply_mock:
+    with mock.patch.object(simhash_compression_op,
+                           'SimhashApplyCompression') as apply_mock:
       compression_wrapper.get_apply_compression(hparams, _GLOBAL_STEP)
       apply_mock.assert_called_with(
           scope='default_scope',

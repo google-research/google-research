@@ -17,7 +17,7 @@
 
 from absl.testing import absltest
 
-from compression_lib import compression_op_utils
+from graph_compression.compression_lib import compression_op_utils
 
 
 class CompressionOpUtilsTest(absltest.TestCase):

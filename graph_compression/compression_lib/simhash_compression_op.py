@@ -21,10 +21,11 @@ from __future__ import division
 import copy
 
 from absl import logging
-from compression_lib import compression_op
-from compression_lib import decompose_matrix
 import numpy as np
 import tensorflow as tf
+
+from graph_compression.compression_lib import compression_op
+from graph_compression.compression_lib import decompose_matrix
 
 
 class SimhashMatrixCompressor(compression_op.LowRankDecompMatrixCompressor):

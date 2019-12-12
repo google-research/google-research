@@ -18,9 +18,9 @@
 from __future__ import absolute_import
 from __future__ import division
 
-from compression_lib import compression_op
 import numpy as np
 import tensorflow as tf
+from graph_compression.compression_lib import compression_op
 
 
 class CompressionOpInterfaceTest(tf.test.TestCase):

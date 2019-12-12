@@ -44,9 +44,9 @@ import abc
 import copy
 
 from absl import logging
-from compression_lib import compression_op_utils as comp_op_utils
 import numpy as np
 import tensorflow as tf
+from graph_compression.compression_lib import compression_op_utils as comp_op_utils
 from tensorflow.contrib import training as contrib_training
 
 

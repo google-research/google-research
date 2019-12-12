@@ -27,8 +27,8 @@ compression_option:
 from __future__ import absolute_import
 
 from absl import logging
-from compression_lib import compression_op as comp_op
-from compression_lib import simhash_compression_op as simhash_comp_op
+from graph_compression.compression_lib import compression_op as comp_op
+from graph_compression.compression_lib import simhash_compression_op as simhash_comp_op
 
 _COMPRESSION_OPTIONS = [1, 2]
 
