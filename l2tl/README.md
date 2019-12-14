@@ -6,6 +6,6 @@ Paper: https://arxiv.org/abs/1908.11406
 
 Learning to transfer learn (L2TL), to improve transfer learning on a target dataset by judicious extraction of information from a source dataset.
 
-This repository contains an example implementation of L2TL framework.
+This repository contains an example implementation of L2TL framework on the task of transferring knowledge from MNIST to SVHN.
 
-This codebase has not been finalized yet. Once it is finalized, usage examples will be added here.
+To run the experiments that compare training from random initialization, fine-tuning and L2TL, run `bash all_experiments.sh`.

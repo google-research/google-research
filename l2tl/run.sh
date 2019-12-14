@@ -15,12 +15,25 @@
 #!/bin/bash
 set -e
 set -x
+chmod +x run.sh
 
 virtualenv -p python3 .
 source ./bin/activate
 
-pip install tensorflow
 pip install -r requirements.txt
 
-# Python code to show testing of small-scale fine-tuning and L2TL
-# examples will be added
+cp svhn_data/__init__.py lib/python3.5/site-packages/tensorflow_datasets/image
+cp svhn_data/svhn_small.py lib/python3.5/site-packages/tensorflow_datasets/image
+cd svhn_data
+wget -nc http://ufldl.stanford.edu/housenumbers/train_32x32.mat
+wget -nc http://ufldl.stanford.edu/housenumbers/test_32x32.mat
+python gen_svhn_mat.py
+cd ..
+
+
+# Training SVHN from random initialization
+python finetuning.py \
+    --target_dataset=svhn_cropped_small \
+    --train_steps=1 \
+    --model_dir=./tmp/l2tl/svhn_small_train_random \
+    --train_batch_size=128
