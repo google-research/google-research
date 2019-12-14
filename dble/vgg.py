@@ -141,16 +141,13 @@ class VggNet(object):
             strides=2,
             padding='same',
             name='pool_' + str(self.pool_num))
-        print(inputs.get_shape().as_list())
         self.pool_num += 1
       elif param == 'D':
         inputs = tf.layers.dropout(
             inputs, rate=self.drop_rate, training=training)
       else:
         inputs = self.conv2d(inputs, param, training)
-        print(inputs.get_shape().as_list())
     inputs = tf.layers.average_pooling2d(inputs, pool_size=1, strides=1)
-    print(inputs.get_shape().as_list())
     return inputs
 
 
