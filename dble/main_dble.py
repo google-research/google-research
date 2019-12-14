@@ -69,12 +69,12 @@ def get_arguments():
   parser.add_argument(
       '--number_of_steps',
       type=int,
-      default=int(100000),
+      default=int(120000),
       help='Number of training steps.')
   parser.add_argument(
       '--number_of_steps_to_early_stop',
       type=int,
-      default=int(1000000),
+      default=int(75000),
       help='Number of training steps after half way to early stop.')
   parser.add_argument(
       '--log_dir',
@@ -94,12 +94,12 @@ def get_arguments():
   parser.add_argument(
       '--save_summaries_secs',
       type=int,
-      default=60,
+      default=300,
       help='Time between saving summaries')
   parser.add_argument(
       '--save_interval_secs',
       type=int,
-      default=60,
+      default=300,
       help='Time between saving models.')
   parser.add_argument(
       '--optimizer', type=str, default='sgd', choices=['sgd', 'adam'])
@@ -182,7 +182,7 @@ def get_arguments():
       default=100,
       help='The size of the query batch in a prototypical episode.')
 
-  args = parser.parse_args()
+  args, _ = parser.parse_known_args()
   print(args)
   return args
 
@@ -849,13 +849,6 @@ class ModelLoader:
   def eval_ece(self, pred_logits_np, pred_np, label_np, num_bins):
     """Calculates ECE.
 
-    The definition of ECE can be found at "On calibration of modern neural
-    networks." Guo, Chuan, et al. Proceedings of the 34th International
-    Conference on Machine Learning-Volume 70. JMLR. org, 2017. ECE approximates
-    the expectation of the difference between accuracy and confidence. It
-    partitions the confidence estimations (the likelihood of the predicted label
-    ) of all test samples into L equally-spaced bins and calculates the average
-    confidence and accuracy of test samples lying in each bin.
     Args:
       pred_logits_np: the softmax output at the dimension of the predicted
         labels of test samples.
@@ -898,13 +891,9 @@ class ModelLoader:
       ece = 0.0
     return ece
 
-  def eval_nll_acc(self, num_cases_train, num_cases_test):
-    """Given training, test samples and the model, calculates NLL and ACC.
+  def eval_acc_nll_ece(self, num_cases_train, num_cases_test):
+    """Returns evaluation metrics.
 
-    The definition of NLL can be found at "On calibration of modern neural
-    networks." Guo, Chuan, et al. Proceedings of the 34th International
-    Conference on Machine Learning-Volume 70. JMLR. org, 2017. NLL averages the
-    negative log-likelihood of all test samples.
     Args:
       num_cases_train: the total number of training samples.
       num_cases_test:  the total number of test samples.
@@ -991,8 +980,23 @@ class ModelLoader:
       nll_sum += nll
     pred_np = np.concatenate(pred_list, axis=0)
     confidence_np = np.concatenate(confidence_list, axis=0)
+
+    # The definition of NLL can be found at "On calibration of modern neural
+    # networks." Guo, Chuan, et al. Proceedings of the 34th International
+    # Conference on Machine Learning-Volume 70. JMLR. org, 2017. NLL averages
+    # the negative log-likelihood of all test samples.
+
     nll = nll_sum / num_cases_test
-    print('Start calculating ece....')
+
+    # The definition of ECE can be found at "On calibration of modern neural
+    # networks." Guo, Chuan, et al. Proceedings of the 34th International
+    # Conference on Machine Learning-Volume 70. JMLR. org, 2017. ECE
+    # approximates the expectation of the difference between accuracy and
+    # confidence. It partitions the confidence estimations (the likelihood of
+    # the predicted label) of all test samples into L equally-spaced bins and
+    # calculates the average confidence and accuracy of test samples lying in
+    # each bin.
+
     ece = self.eval_ece(confidence_np, pred_np, self.test_dataset[1], 15)
     print('acc: ' + str(num_correct / num_cases_test))
     print('nll: ')
@@ -1015,7 +1019,7 @@ def eval(flags, train_dataset, test_dataset):
       train_dataset=train_dataset,
       test_dataset=test_dataset)
   acc_tst, nll, ece \
-      = model.eval_nll_acc(flags.num_cases_train, flags.num_cases_test)
+      = model.eval_acc_nll_ece(flags.num_cases_train, flags.num_cases_test)
 
   results['accuracy_target_tst'] = acc_tst
   results['nll'] = nll
@@ -1032,13 +1036,16 @@ def main(argv=None):
   config.gpu_options.allow_growth = True
   sess = tf.Session(config=config)
 
+  # Gets parameters.
   default_params = get_arguments()
+
+  # Creates the experiment directory.
   log_dir = default_params.log_dir
   ad = pathlib.Path(log_dir)
   if not ad.exists():
     ad.mkdir(parents=True)
 
-  # Restores a json and recover a namespace back.
+  # Main function for training and evaluation.
   flags = Namespace(utils.load_and_save_params(vars(default_params),
                                                log_dir, ignore_existing=True))
   train(flags=flags)

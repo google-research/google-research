@@ -24,7 +24,7 @@ class MLP(object):
   """Definition of MLP Networks."""
 
   def __init__(self, keep_prob, wd, feature_dim):
-    """Creates a model for classifying an image using VGG networks.
+    """Creates a model for classifying using MLP encoding.
 
     Args:
       keep_prob: The rate of keeping one neuron in Dropout.
