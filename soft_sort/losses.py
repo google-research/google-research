@@ -32,16 +32,31 @@ from soft_sort import ops
 
 
 @gin.configurable
-class SoftErrorLoss(tf.losses.Loss):
-  """Implementation of the soft error loss for classification."""
+class TopKErrorLoss(tf.losses.Loss):
+  """Based on a ranks function, compute the topk loss."""
 
-  def __init__(self, topk=1, power=1.0, **kwargs):
+  def __init__(self, topk, rescale_ranks=True, name=None):
+    name = name if name is not None else 'topk_error'
+    super(TopKErrorLoss, self).__init__(name=name)
     self._topk = topk
-    self._power = power
-    self._kwargs = kwargs
-    super(SoftErrorLoss, self).__init__(name='soft_error')
+    self._rescale_ranks = rescale_ranks
 
-  def _soft_topk_accuracy(self, y_true, y_pred):
+  def get_ranks(self, y):
+    """Compute the (hard) ranks of each entry in y."""
+    diff = y[:, :, tf.newaxis] - y[:, tf.newaxis, :]
+    diff -= tf.eye(y.shape[-1])[tf.newaxis, :, :] * 1e9
+    s = tf.cast(diff > 0.0, dtype=tf.float32)
+    return tf.math.reduce_sum(s, axis=-1)
+
+  def rescale_ranks(self, ranks):
+    mu = tf.math.reduce_mean(ranks, axis=-1)
+    std = tf.math.reduce_std(ranks, axis=-1)
+    n = ranks.shape[-1]
+    tgt_mu = (n - 1) / 2
+    tgt_std = tf.sqrt((n - 1) * (n + 1) / 12)
+    return (ranks - mu[:, tf.newaxis]) / std[:, tf.newaxis] * tgt_std + tgt_mu
+
+  def accuracy(self, y_true, y_pred):
     """Computes the soft topk accuracy of the prediction w.r.t the true values.
 
     Args:
@@ -51,12 +66,14 @@ class SoftErrorLoss(tf.losses.Loss):
     Returns:
      A Tensor<float>[batch] of accuracy per batch.
     """
-    num_activations = tf.shape(y_pred)[-1]
-    topk = tf.cast(self._topk, dtype=y_pred.dtype)
-    ranks = ops.softranks(
-        y_pred, direction='ASCENDING', axis=-1, zero_based=True, **self._kwargs)
+    ranks = self.get_ranks(y_pred)
+    if self._rescale_ranks:
+      ranks = self.rescale_ranks(ranks)
+
     # If the ranks are above topk then the accuracy is 1. Below that threshold
     # the accuracy decreases to 0.
+    topk = tf.cast(self._topk, dtype=y_pred.dtype)
+    num_activations = tf.shape(y_pred)[-1]
     accuracies = tf.math.minimum(
         1.0, ranks / (tf.cast(num_activations, dtype=y_pred.dtype) - topk))
     # Multiply with the one hot encoding of the label to select only the soft
@@ -67,8 +84,47 @@ class SoftErrorLoss(tf.losses.Loss):
     return tf.reduce_sum(accuracies * true_labels, axis=-1)
 
   def call(self, y_true, y_pred):
-    acc = self._soft_topk_accuracy(y_true, y_pred)
-    return tf.pow(1.0 - acc, self._power)
+    return 1.0 - self.accuracy(y_true, y_pred)
+
+
+@gin.configurable
+class SoftHeavisideErrorLoss(TopKErrorLoss):
+  """Implements an error loss based on soft heavysides."""
+
+  def __init__(self, topk=1, rescale_ranks=True, epsilon=1e-3):
+    super(SoftHeavisideErrorLoss, self).__init__(
+        topk=topk, rescale_ranks=rescale_ranks, name='soft_heaviside_error')
+    self._epsilon = epsilon
+
+  def get_ranks(self, y):
+
+    @tf.custom_gradient
+    def _ranks(y):
+      diff = y[:, :, tf.newaxis] - y[:, tf.newaxis, :]
+      diff -= tf.eye(y.shape[-1])[tf.newaxis, :, :] * 1e6
+      s = 1.0 / (1 + tf.math.exp(-diff / self._epsilon))
+
+      def grad(dy):
+        return dy * tf.math.reduce_sum(s * (1.0 - s), axis=1) / self._epsilon
+
+      return tf.math.reduce_sum(s, axis=-1), grad
+
+    return _ranks(y)
+
+
+@gin.configurable
+class SoftErrorLoss(TopKErrorLoss):
+  """Implementation of the soft error loss for classification."""
+
+  def __init__(self, topk=1, rescale_ranks=True, **kwargs):
+    super(SoftErrorLoss, self).__init__(
+        topk=topk, rescale_ranks=rescale_ranks, name='soft_error')
+    self._kwargs = kwargs
+
+  @tf.function
+  def get_ranks(self, y):
+    return ops.softranks(
+        y, direction='ASCENDING', axis=-1, zero_based=True, **self._kwargs)
 
 
 @gin.configurable

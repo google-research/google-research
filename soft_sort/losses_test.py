@@ -33,23 +33,23 @@ class LossesTest(parameterized.TestCase, tf.test.TestCase):
     super(LossesTest, self).setUp()
     tf.random.set_seed(0)
 
-  def test_soft_topk_accuracy(self):
+  def test_accuracy(self):
     y_pred = tf.constant([[1.0, 2.0, 3.0, 4.0, 6.0, 5.0]])
     loss_fn = losses.SoftErrorLoss(topk=1.0, power=1.0)
-    acc = loss_fn._soft_topk_accuracy([2], y_pred)
+    acc = loss_fn.accuracy([2], y_pred)
     self.assertGreaterEqual(acc, 0.0)
     self.assertLessEqual(acc, 1.0)
-    acc2 = loss_fn._soft_topk_accuracy([4], y_pred)
+    acc2 = loss_fn.accuracy([4], y_pred)
     self.assertGreater(acc2, acc)
 
     # Test that topk gives the same accuracy for all top 3.
     loss_fn = losses.SoftErrorLoss(topk=3, power=1.0)
-    acc = loss_fn._soft_topk_accuracy([3], y_pred)
-    acc2 = loss_fn._soft_topk_accuracy([4], y_pred)
+    acc = loss_fn.accuracy([3], y_pred)
+    acc2 = loss_fn.accuracy([4], y_pred)
     self.assertAllClose(acc, acc2)
     self.assertAllClose(acc, tf.constant([1.0]))
 
-    acc3 = loss_fn._soft_topk_accuracy([0], y_pred)
+    acc3 = loss_fn.accuracy([0], y_pred)
     self.assertLess(acc3, 1.0)
 
   def test_softerror(self):
