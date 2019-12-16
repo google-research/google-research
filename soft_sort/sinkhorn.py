@@ -27,132 +27,104 @@ from __future__ import division
 
 from __future__ import print_function
 
+import gin
 import tensorflow.compat.v2 as tf
 
 
-def build_distances(x, y):
-  """Computes the distance matrix in 1D."""
-  xn = tf.tile(x[:, :, tf.newaxis], (1, 1, tf.shape(y)[1]))
-  ym = tf.transpose(
-      tf.tile(y[:, :, tf.newaxis], (1, 1, tf.shape(x)[1])), (0, 2, 1))
-  return tf.math.abs(xn - ym)
+@gin.configurable
+class Sinkhorn1D(object):
+  """Runs the Sinkhorn algorithm for 1D inputs.
 
+  This class implements the stabilized Sinkhorn algorithm in log domain with
+  epsilon decay to speed up convergence.
 
-def sinkhorn(
-    x, y, a, b, eps, p, threshold, inner_num_iter=20, max_iterations=1000):
-  """The Sinkhorn algorithm in 1D.
-
-  Computes the Sinkhorn's algorithm to transport the points x with weights a
-  onto the points y with weights b.
-
-  Args:
-   x: the input Tensor[batch, n].
-   y: the target Tensor[batch, m].
-   a: the weights tensor associated to x (same shape).
-   b: the weights tensor associated to y (same shape).
-   eps: the value of the entropic regularization parameter.
-   p: the power to be applied the distance kernel.
-   threshold: the value of sinkhorn error below which to stop iterating.
-   inner_num_iter: the number of iteration before computing the error.
-   max_iterations: the total number of iterations.
-
-  Returns:
-   a tuple: (transport matrix, sinkhorn error, num iterations done).
+  Attributes:
+   cost: Tensor<float>[batch_size, n, m] the cost matrix of optimal transport.
+   eps: (float) the current level of regularization. This changes over time due
+    to the epsilon decay scheme.
+   epsilon: (float) the level of entropic regularization wanted.
+   epsilon_0: (float) the initial level of entropic regularization.
+   epsilon_decay: (float) a multiplicative factor applied at each iteration
+    until reaching the epsilon value.
+   inner_num_iter: (int32) the Sinkhorn error is not computed at each iteration
+    but every inner_num_iter instead to avoid computational overhead.
+   iterations: (int32) the actual number of applied iterations.
+   max_iterations: (int32) the maximum number of Sinkhorn iterations.
+   power: (float) power of the p-norm used in the cost matrix.
+   threshold: (float) the relative threshold on the Sinkhorn error to stop the
+    Sinkhorn iterations.
   """
-  v = tf.ones(tf.shape(b), dtype=x.dtype)
-  u = tf.ones(tf.shape(a), dtype=x.dtype)
-  c = tf.pow(build_distances(x, y), p)
-  k = tf.exp(-c / eps)
-  kt = tf.transpose(k, (0, 2, 1))
 
-  def body_fn(u, v, err, num_iter):
-    """A small loop of Sinkhorn iterations."""
-    del err  # Unused.
-    for _ in range(inner_num_iter):
-      u = a / tf.linalg.matvec(k, v)
-      v = b / tf.linalg.matvec(kt, u)
-    u = a / tf.linalg.matvec(k, v)
-    return u, v, error(u, v), num_iter + inner_num_iter
+  def __init__(
+      self, epsilon=1e-3, epsilon_0=1e-1, epsilon_decay=0.95, power=2.0,
+      threshold=1e-2, inner_num_iter=5, max_iterations=2000):
+    self.epsilon = epsilon
+    self.epsilon_0 = epsilon_0
+    self.epsilon_decay = epsilon_decay
+    self.power = power
+    self.threshold = threshold
+    self.inner_num_iter = inner_num_iter
+    self.max_iterations = max_iterations
+    self._max_outer_iterations = max_iterations // inner_num_iter
 
-  def error(u, v):
-    """Computes the maximum relative Sinkhorn error."""
-    b_target = v * tf.linalg.matvec(kt, u)
+  def center(self, f, g):
+    """Centers the cost matrix relatively to dual variables f and g."""
+    return self.cost - f[:, :, tf.newaxis] - g[:, tf.newaxis, :]
+
+  def softmin(self, f, g, eps, axis):
+    return -eps * tf.reduce_logsumexp(-self.center(f, g) / eps, axis=axis)
+
+  def error(self, f, g, eps, b):
+    """Computes the maximum relative sinkhorn error over the batch."""
+    b_target = tf.math.reduce_sum(
+        tf.math.exp(-self.center(f, g) / eps), axis=1)
     return tf.reduce_max(tf.abs(b_target - b) / b, axis=None)
 
-  def cond_fn(u, v, err, num_iter):
-    """The condition to stop Sinkhorn's iterations."""
-    del u, v, num_iter  # Unused.
-    return err >= threshold
+  def __call__(self, x, y, a, b):
+    """Runs the Sinkhorn algorithm on input (x, a) and target (y, b).
 
-  num_iter = tf.constant(0, dtype=tf.int32)
-  max_iterations //= inner_num_iter
-  err = tf.constant(10.0, dtype=x.dtype)
-  u, v, err, num_iter = tf.while_loop(
-      cond_fn, body_fn, [u, v, err, num_iter],
-      parallel_iterations=1, maximum_iterations=max_iterations)
-  transport = u[:, :, tf.newaxis] * k * v[:, tf.newaxis, :]
-  return transport, err, num_iter
+    Args:
+     x: Tensor<float>[batch, n]: the input point clouds.
+     y: Tensor<float>[batch, m]: the target point clouds.
+     a: Tensor<float>[batch, n]: the weight of each input point.
+     b: Tensor<float>[batch, m]: the weight of each target point.
 
+    Returns:
+     A Tensor<float>[batch, n, m] transport map. As a side effect, it also
+     stores the cost matrix, the number of applied iterations and the obtained
+     level of entropic regularization.
+    """
+    self._b = b
+    loga = tf.math.log(a)
+    logb = tf.math.log(b)
+    self.cost = tf.pow(
+        tf.math.abs(x[:, :, tf.newaxis] - y[:, tf.newaxis, :]), self.power)
 
-def log_sinkhorn(
-    x, y, a, b, eps, p, threshold, inner_num_iter=20, max_iterations=1000):
-  """The stabilized Sinkhorn algorithm in log space.
+    def body_fn(f, g, eps, num_iter):
+      """A small loop of N Sinkhorn iterations."""
+      for _ in range(self.inner_num_iter):
+        g = eps * logb + self.softmin(f, g, eps, axis=1) + g
+        f = eps * loga + self.softmin(f, g, eps, axis=2) + f
+        eps = tf.math.maximum(eps * self.epsilon_decay, self.epsilon)
+      return [f, g, eps, num_iter + self.inner_num_iter]
 
-  Computes the stabilized version of the Sinkhorn's algorithm to transport the
-  points x with weights a onto the points y with weights b.
+    def cond_fn(f, g, eps, num_iter):
+      return tf.math.reduce_all([
+          tf.math.less(num_iter, self.max_iterations),
+          tf.math.reduce_any([
+              tf.math.greater(eps, self.epsilon),
+              tf.math.greater(self.error(f, g, eps, b), self.threshold)
+          ])
+      ])
 
-  Args:
-   x: the input Tensor[batch, n].
-   y: the target Tensor[batch, m].
-   a: the weights tensor associated to x (same shape).
-   b: the weights tensor associated to y (same shape).
-   eps: the value of the entropic regularization parameter.
-   p: the power to be applied the distance kernel.
-   threshold: the value of sinkhorn error below which to stop iterating.
-   inner_num_iter: the number of iteration before computing the error.
-   max_iterations: the total number of iterations.
+    self._f, self._g, self.eps, self.iterations = tf.while_loop(
+        cond_fn, body_fn, [
+            tf.zeros(tf.shape(loga), dtype=x.dtype),
+            tf.zeros(tf.shape(logb), dtype=x.dtype),
+            tf.cast(self.epsilon_0, dtype=x.dtype),
+            tf.constant(0, dtype=tf.int32)
+        ],
+        parallel_iterations=1,
+        maximum_iterations=self._max_outer_iterations + 1)
 
-  Returns:
-   a tuple: transport matrix, sinkhorn error, num iterations done.
-  """
-  c = tf.pow(build_distances(x, y), p)
-  eps = tf.cast(eps, dtype=x.dtype)
-
-  def center(f, g):
-    return c - f[:, :, tf.newaxis] - g[:, tf.newaxis, :]
-
-  def softmin(f, g, eps, axis):
-    return -eps * tf.reduce_logsumexp(-center(f, g) / eps, axis=axis)
-
-  def error(f, g):
-    """Computes the maximum relative sinkhorn error."""
-    b_target = tf.math.reduce_sum(tf.math.exp(-center(f, g) / eps), axis=1)
-    return tf.reduce_max(tf.abs(b_target - b) / b, axis=None)
-
-  loga = tf.math.log(a)
-  logb = tf.math.log(b)
-  f = tf.zeros(tf.shape(loga), dtype=x.dtype)
-  g = tf.zeros(tf.shape(logb), dtype=x.dtype)
-  num_iter = tf.constant(0, dtype=tf.int32)
-
-  def body_fn(f, g, err, num_iter):
-    """A small loop of N Sinkhorn iterations."""
-    del err  # Unused.
-    for _ in range(inner_num_iter):
-      g = eps * logb + softmin(f, g, eps, axis=1) + g
-      f = eps * loga + softmin(f, g, eps, axis=2) + f
-
-    return [f, g, error(f, g), num_iter + inner_num_iter]
-
-  def cond_fn(f, g, err, num_iter):
-    """The condition to stop Sinkhorn's iterations."""
-    del num_iter, f, g  # Unused.
-    return err >= threshold
-
-  max_iterations //= inner_num_iter
-  err = tf.constant(10.0, dtype=x.dtype)
-  f, g, err, num_iter = tf.while_loop(
-      cond_fn, body_fn, [f, g, err, num_iter],
-      parallel_iterations=1, maximum_iterations=max_iterations)
-
-  return tf.math.exp(-center(f, g) / eps), err, num_iter
+    return tf.math.exp(-self.center(self._f, self._g) / self.eps)
