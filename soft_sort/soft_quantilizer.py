@@ -96,8 +96,8 @@ class SoftQuantilizer(object):
    target_weights: Tensor<float>[batch, n], the weights of the target.
    transport: Tensor<float>[batch, n, m], the transport matrix obtain via
     Sinkhorn algorithm.
-   num_iterations: (int) the number of Sinkhorn updates.
-   sinkhorn_error: (float) the error in the Sinkhorn algorithm, due to the fact
+   iterations: (int) the number of Sinkhorn updates.
+   sinkhorn_err: (float) the error in the Sinkhorn algorithm, due to the fact
     that we stop at a given iteration.
    softcdf: Tensor<float>[batch, n]: the obtained cdf of the input x.
    softsort: Tensor<float>[batch, n]: the obtained soft sorted values of x.
@@ -105,7 +105,6 @@ class SoftQuantilizer(object):
 
   def __init__(
       self, x=None, weights=None, num_targets=None, target_weights=None, y=None,
-      epsilon=1e-3, p=2.0, sinkhorn_threshold=1e-3, stabilized=True,
       descending=False, scale_input_fn=group_rescale, **kwargs):
     """Initializes the internal state of the SoftSorter.
 
@@ -124,11 +123,6 @@ class SoftQuantilizer(object):
       the list, array or tensor must be sorted in increasing order in order to
       perform a soft sort. If left to None, it will be set to num_targets values
       [0,1/(num_targets-1),...,1] copied N times.
-     epsilon: scale of the entropic relaxation (see sinkhorn.py).
-     p: (float) power of the distance function (see sinkhorn.py).
-     sinkhorn_threshold: (float) treshold (see sinkhorn.py).
-     stabilized : log-space computations when true. Slower but numerically more
-      stable.
      descending: (bool), if True, targets will be reversed so as to produce a
       decending sorting.
      scale_input_fn: function used to scale input entries so that they fit into
@@ -138,15 +132,10 @@ class SoftQuantilizer(object):
       the input values'range.
      **kwargs: extra parameters to the Sinkhorn algorithm.
     """
-    self._stabilized = stabilized
     self._scale_input_fn = scale_input_fn
-    self._kwargs = kwargs  # The sinkhorn params.
-    self.num_iterations = 0
+    self.iterations = 0
     self._descending = descending
-    self._epsilon = epsilon
-    self._p = p
-    self._sinkhorn_threshold = sinkhorn_threshold
-    self._kwargs = kwargs
+    self._sinkhorn = sinkhorn.Sinkhorn1D(**kwargs)
     self.reset(x, y, weights, target_weights, num_targets)
 
   def reset(
@@ -161,12 +150,9 @@ class SoftQuantilizer(object):
     self._set_input(x, weights)
     self._set_target(y, num_targets, target_weights)
 
-    sinkhorn_fn = sinkhorn.log_sinkhorn if self._stabilized else sinkhorn.sinkhorn
     # We run sinkhorn on the rescaled input values x_s.
-    self.transport, self.sinkhorn_error, self.num_iterations = sinkhorn_fn(
-        self._x_s, self.y, self.weights, self.target_weights,
-        self._epsilon, self._p, self._sinkhorn_threshold,
-        **self._kwargs)
+    self.transport = self._sinkhorn(
+        self._x_s, self.y, self.weights, self.target_weights)
 
   @property
   def softcdf(self):
