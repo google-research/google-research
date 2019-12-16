@@ -40,9 +40,10 @@ import math
 import sys
 import time
 
-from compression_lib.examples.cifar10 import cifar10_compression as cifar10
 import numpy as np
 import tensorflow as tf
+
+from graph_compression.compression_lib.examples.cifar10 import cifar10_compression as cifar10
 
 FLAGS = None
 
