@@ -40,8 +40,9 @@ import datetime
 import sys
 import time
 
-from compression_lib.examples.cifar10 import cifar10_compression as cifar10
 import tensorflow as tf
+
+from graph_compression.compression_lib.examples.cifar10 import cifar10_compression as cifar10
 from tensorflow.contrib import framework as contrib_framework
 
 FLAGS = None
