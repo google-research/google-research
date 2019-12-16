@@ -13,15 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This module defines the softranks and softsort operators."""
+# Lint as: python3
+"""Jax implementation of soft sort operators."""
 
 from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import print_function
 
-import tensorflow.compat.v2 as tf
-from soft_sort import soft_quantilizer
+import jax.numpy as np
+from soft_sort.jax import soft_quantilizer
 
 
 DIRECTIONS = ('ASCENDING', 'DESCENDING')
@@ -35,38 +36,38 @@ def _preprocess(x, axis):
   one.
 
   Args:
-   x: Tensor<float> of any dimension.
+   x: np.ndarray<float> of any dimension.
    axis: (int) the axis to be turned into the second dimension.
 
   Returns:
-   a Tensor<float>[batch, n] where n is the dimensions over the axis and batch
-   the product of all other dimensions
+   a np.ndarray<float>[batch, n] where n is the dimensions over the axis and
+   batch the product of all other dimensions.
   """
-  dims = list(range(x.shape.rank))
+  dims = list(range(len(x.shape)))
   dims[-1], dims[axis] = dims[axis], dims[-1]
-  z = tf.transpose(x, dims) if dims[axis] != dims[-1] else x
-  return tf.reshape(z, (-1, tf.shape(x)[axis]))
+  z = np.transpose(x, dims) if dims[axis] != dims[-1] else x
+  return np.reshape(z, (-1, x.shape[axis]))
 
 
 def _postprocess(x, shape, axis):
   """Applies the inverse transformation of _preprocess.
 
   Args:
-   x: Tensor<float>[batch, n]
+   x: np.ndarray<float>[batch, n]
    shape: TensorShape of the desired output.
    axis: (int) the axis along which the original tensor was processed.
 
   Returns:
-   A Tensor<float> with the shape given in argument.
+   A np.ndarray<float> with the shape given in argument.
   """
   s = list(shape)
   s[axis], s[-1] = s[-1], s[axis]
-  z = tf.reshape(x, s)
+  z = np.reshape(x, s)
 
   # Transpose to get back to the original shape
-  dims = list(range(shape.rank))
+  dims = list(range(len(shape)))
   dims[-1], dims[axis] = dims[axis], dims[-1]
-  return tf.transpose(z, dims) if dims[axis] != dims[-1] else z
+  return np.transpose(z, dims) if dims[axis] != dims[-1] else z
 
 
 def softsort(x, direction='ASCENDING', axis=-1, **kwargs):
@@ -75,26 +76,27 @@ def softsort(x, direction='ASCENDING', axis=-1, **kwargs):
   This operator acts as differentiable alternative to tf.sort.
 
   Args:
-   x: the input tensor. It can be either of shape [batch, n] or [n].
+   x: the input np.ndarray. It can be either of shape [batch, n] or [n].
    direction: the direction 'ASCENDING' or 'DESCENDING'
    axis: the axis on which to operate the sort.
    **kwargs: see SoftQuantilizer for possible parameters.
 
   Returns:
-   A tensor of the same shape as the input.
+   A np.ndarray of the same shape as the input.
   """
   if direction not in DIRECTIONS:
     raise ValueError('`direction` should be one of {}'.format(DIRECTIONS))
 
+  x = np.array(x)
   z = _preprocess(x, axis)
   descending = (direction == 'DESCENDING')
   sorter = soft_quantilizer.SoftQuantilizer(z, descending=descending, **kwargs)
 
   # In case we are applying some quantization while sorting, the number of
   # outputs should be the number of targets.
-  shape = x.shape.as_list()
+  shape = list(x.shape)
   shape[axis] = sorter.target_weights.shape[1]
-  return _postprocess(sorter.softsort, tf.TensorShape(shape), axis)
+  return _postprocess(sorter.softsort, shape, axis)
 
 
 def softranks(x, direction='ASCENDING', axis=-1, zero_based=True, **kwargs):
@@ -105,29 +107,30 @@ def softranks(x, direction='ASCENDING', axis=-1, zero_based=True, **kwargs):
   relative standing (among all n entries) of each entry of x.
 
   Args:
-   x: Tensor<float> of any shape.
+   x: np.ndarray<float> of any shape.
    direction: (str) either 'ASCENDING' or 'DESCENDING', as in tf.sort.
    axis: (int) the axis along which to sort, as in tf.sort.
    zero_based: (bool) to return values in [0, n-1] or in [1, n].
    **kwargs: see SoftQuantilizer for possible parameters.
 
   Returns:
-   A Tensor<float> of the same shape as the input containing the soft ranks.
+   A np.ndarray<float> of the same shape as the input containing the soft ranks.
   """
   if direction not in DIRECTIONS:
     raise ValueError('`direction` should be one of {}'.format(DIRECTIONS))
 
+  x = np.array(x)
   descending = (direction == 'DESCENDING')
   z = _preprocess(x, axis)
   sorter = soft_quantilizer.SoftQuantilizer(z, descending=descending, **kwargs)
-  ranks = sorter.softcdf * tf.cast(tf.shape(z)[1], dtype=x.dtype)
+  ranks = sorter.softcdf * z.shape[1]
   if zero_based:
-    ranks -= tf.cast(1.0, dtype=x.dtype)
+    ranks -= 1
 
   return _postprocess(ranks, x.shape, axis)
 
 
-def softquantiles(x, quantiles, quantile_width=None, axis=-1, **kwargs):
+def softquantile(x, quantile, quantile_width=0.05, axis=-1, **kwargs):
   """Computes soft quantiles via optimal transport.
 
   This operator takes advantage of the fact that an exhaustive softsort is not
@@ -141,9 +144,8 @@ def softquantiles(x, quantiles, quantile_width=None, axis=-1, **kwargs):
   one desired quantile to the next one.
 
   Args:
-   x: Tensor<float> of any shape.
-   quantiles: list<float> the quantiles to be returned. It can also be a single
-    float.
+   x: np.ndarray<float> of any shape.
+   quantile: (float) the quantile to be returned.
    quantile_width: (float) mass given to the bucket supposed to attract points
     whose value concentrate around the desired quantile value. Bigger width
     means that we allow the soft quantile to be a mixture of
@@ -153,70 +155,16 @@ def softquantiles(x, quantiles, quantile_width=None, axis=-1, **kwargs):
    **kwargs: see SoftQuantilizer for possible extra parameters.
 
   Returns:
-    A Tensor<float> similar to the input tensor, but the axis dimension is
-    replaced by the number of quantiles specified in the quantiles list.
-    Hence, if only a quantile is requested (quantiles is a float) only one value
-    in that axis is returned. When several quantiles are requested, the tensor
-    will have that many values in that axis.
-
-  Raises:
-    tf.errors.InvalidArgumentError when the quantiles and quantile width are not
-    correct, namely quantiles are either not in sorted order or the
-    quantile_width is too large.
+    A np.ndarray<float> similar to the input tensor, but without the axis
+    dimension that is squeezed into a single value: its soft quantile.
   """
-  if isinstance(quantiles, float):
-    quantiles = [quantiles]
-  quantiles = tf.constant(quantiles, tf.float32)
-
-  # Preprocesses submitted quantiles to check that they satisfy elementary
-  # constraints.
-  valid_quantiles = tf.boolean_mask(
-      quantiles, tf.logical_and(quantiles > 0.0, quantiles < 1.0))
-  num_quantiles = tf.shape(valid_quantiles)[0]
-
-  # Includes values on both ends of [0,1].
-  extended_quantiles = tf.concat([[0.0], valid_quantiles, [1.0]], axis=0)
-
-  # Builds filler_weights in between the target quantiles.
-  filler_weights = extended_quantiles[1:] - extended_quantiles[:-1]
-  if quantile_width is None:
-    quantile_width = tf.reduce_min(
-        tf.concat(
-            [filler_weights, [1.0 / tf.cast(tf.shape(x)[axis], dtype=x.dtype)]],
-            axis=0))
-
-  # Takes into account quantile_width in the definition of weights
-  shift = -tf.ones(tf.shape(filler_weights), dtype=x.dtype)
-  shift = shift + 0.5 * (
-      tf.one_hot(0, num_quantiles + 1) +
-      tf.one_hot(num_quantiles, num_quantiles + 1))
-  filler_weights = filler_weights + quantile_width * shift
-
-  assert_op = tf.Assert(tf.reduce_all(filler_weights >= 0.0), [filler_weights])
-  with tf.control_dependencies([assert_op]):
-    # Adds one more value to have tensors of the same shape to interleave them.
-    quantile_weights = tf.ones(num_quantiles + 1) * quantile_width
-
-    # Interleaves the filler_weights with the quantile weights.
-    weights = tf.reshape(
-        tf.stack([filler_weights, quantile_weights], axis=1), (-1,))[:-1]
-
-    # Sends only the positive weights to the softsort operator.
-    positive_weights = tf.boolean_mask(weights, weights > 0.0)
-    result = softsort(
-        x,
-        direction='ASCENDING', axis=axis, target_weights=positive_weights,
-        **kwargs)
-
-    # Recovers the indices corresponding to the desired quantiles.
-    odds = tf.math.floormod(tf.range(weights.shape[0], dtype=tf.float32), 2)
-    positives = tf.cast(weights > 0.0, tf.float32)
-    indices = tf.cast(tf.math.cumsum(positives) * odds, dtype=tf.int32)
-    indices = tf.boolean_mask(indices, indices > 0) - 1
-    result = tf.gather(result, indices, axis=axis)
-
-    # In the specific case where we want a single quantile, squeezes the
-    # quantile dimension.
-    return tf.cond(tf.equal(tf.shape(result)[axis], 1),
-                   lambda: tf.squeeze(result, axis=axis),
-                   lambda: result)
+  target_weights = [quantile - 0.5 * quantile_width,
+                    quantile_width,
+                    1.0 - quantile - 0.5 * quantile_width]
+  x = np.array(x)
+  z = _preprocess(x, axis=axis)
+  sorter = soft_quantilizer.SoftQuantilizer(
+      z, target_weights=target_weights, **kwargs)
+  shape = list(x.shape)
+  shape.pop(axis)
+  return np.reshape(sorter.softsort[:, 1], shape)
