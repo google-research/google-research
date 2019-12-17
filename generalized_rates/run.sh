@@ -22,4 +22,4 @@ source ./bin/activate
 pip3 install -r generalized_rates/requirements.txt
 
 python -m generalized_rates.fmeasure_optimization.experiments\
-  --data_file=datasets/synthetic.npy
+  --data_file=./generalized_rates/datasets/synthetic.npy

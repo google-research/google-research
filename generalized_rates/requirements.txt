@@ -1,4 +1,4 @@
 absl-py>=0.7.0
 numpy>=1.13.3
-tensorflow~=1.11.0
+tensorflow>=1.11.0
 tensorflow_constrained_optimization
