@@ -73,7 +73,7 @@ def run_game(env, max_step):
   # 'obs' contains all agent x, y positions.
   # 'state' is an integer representing the combination of
   # all agents x, y positions.
-  state = env.obs2state(obs)
+  state = env.discrete_state(obs)
   transitions = []
   returns = 0
   episode = 0
@@ -83,7 +83,7 @@ def run_game(env, max_step):
     actions = np.random.choice(range(env.num_actions), env.num_players)
     # Environment step:
     obs, rewards, done, info = env.step(actions)
-    new_state = env.obs2state(obs)
+    new_state = env.discrete_state(obs)
     transitions.append((state, new_state, rewards, actions, done, info))
     state = new_state
     # Sum rewards:
@@ -95,7 +95,7 @@ def run_game(env, max_step):
       print('episode', episode, 'returns', returns)
       # Reset env for new episode
       obs = env.reset()
-      # state = env.obs2state(obs)
+      # state = env.odiscrete_state(obs)
       returns = 0
 
   # Close visualizer:

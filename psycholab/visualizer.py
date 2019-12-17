@@ -187,8 +187,8 @@ class Visualizer(object):
     time.sleep(self.freq)
     return observation, rewards, done, infos
 
-  def obs2state(self, obs):
-    return self.env.obs2state(obs)
+  def discrete_state(self, obs):
+    return self.env.discrete_state(obs)
 
   def finish(self):
     if self.save_video:
