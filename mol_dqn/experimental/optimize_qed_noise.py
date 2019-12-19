@@ -27,7 +27,7 @@ from absl import app
 from absl import flags
 from rdkit import Chem
 from rdkit.Chem import QED
-from tensorflow import gfile
+from tensorflow.compat.v1 import gfile
 from mol_dqn.chemgraph.mcts import deep_q_networks
 from mol_dqn.chemgraph.mcts import molecules as molecules_mdp
 from mol_dqn.chemgraph.mcts import run_dqn
