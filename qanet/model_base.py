@@ -21,7 +21,7 @@ from __future__ import print_function
 import copy
 import sonnet as snt
 from tensor2tensor.layers import common_layers
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from qanet import optimizers
 from qanet import squad_data
 from qanet import squad_helper

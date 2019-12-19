@@ -26,7 +26,7 @@ import tempfile
 
 import nltk
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensor2tensor.data_generators import text_encoder
 
 __all__ = ['NltkAndPunctTokenizer', 'clean_text', 'convert_to_spans',
