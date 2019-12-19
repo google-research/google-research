@@ -35,7 +35,7 @@ import os
 import re
 import numpy as np
 from tensor2tensor.data_generators import text_encoder
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from qanet import squad_data
 from qanet import squad_helper
 from qanet.util import configurable

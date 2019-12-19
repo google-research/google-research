@@ -24,7 +24,7 @@ import re
 import string
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from qanet.util import misc_util
 

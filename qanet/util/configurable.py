@@ -22,7 +22,7 @@ import pprint
 import os
 import time
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 __all__ = ['load_config', 'save_config']
 
