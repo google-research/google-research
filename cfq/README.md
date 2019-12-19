@@ -3,6 +3,10 @@
 This repository contains code for training and evaluating ML architectures on
 the Compositional Freebase Questions (CFQ) dataset.
 
+The dataset can be downloaded from the following URL:
+
+[Download the CFQ dataset](https://storage.cloud.google.com/cfq_dataset/cfq.tar.gz)
+
 ## Requirements
 
 This library requires Python3 and the following Python3 libraries:
@@ -20,7 +24,10 @@ sudo pip3 install absl-py tensorflow tensor2tensor
 
 ## Training and evaluating a model
 
-In order to download the dataset, train and evaluate a model, run the following:
+First download the CFQ dataset (link above), and ensure the dataset and the
+splits directory are in the same directory as this library (e.g. by unpacking
+the file in the library directory). In order to train and evaluate a model,
+run the following:
 
 ```shell
 bash run_experiment.sh

@@ -18,17 +18,20 @@
 # Models from our paper: lstm_seq2seq_attention, transformer,
 # universal_transformer. Other models (see subdirectories as well):
 # https://github.com/tensorflow/tensor2tensor/tree/master/tensor2tensor/models
-model=lstm_seq2seq_attention
+model="lstm_seq2seq_attention"
 
 # Custom hyperparameters are defined in cfq/cfq.py. You can select tensor2tensor
 # default parameters as well.
-hparams_set=cfq_lstm_attention_multi
+hparams_set="cfq_lstm_attention_multi"
 
 # We report experiments with 35,000 steps in our paper.
-train_steps=35000
+train_steps="35000"
 
-# Location of the dataset.
-dataset_path="dataset.json"
+# URL to the CFQ dataset.
+dataset_url="https://storage.cloud.google.com/cfq_dataset/cfq.tar.gz"
+
+# Local path to the dataset (after it has been downloaded).
+dataset_local_path="dataset.json"
 
 # Location of the dataset split to run the experiment for.
 split_path="splits/random_split.json"
@@ -41,11 +44,7 @@ eval_results_path="evaluation.txt"
 save_path="t2t_data"
 
 # The tensor2tensor problem to use. The cfq problem is defined in cfq/cfq.py.
-problem=cfq
-
-# Path to the CFQ dataset.
-# TODO(marcvanzee): Finish this once dataset is uploaded.
-# dataset_path=http://ai.google.com/
+problem="cfq"
 
 # Other path-related variables.
 tmp_path="/tmp/cfq_tmp"
@@ -58,15 +57,15 @@ decode_path="${save_path}/dev/dev_decode.txt"
 decode_inferred_path="${save_path}/dev/dev_decode_inferred.txt"
 
 # ================= Pipeline ================
+# Download dataset if it doesn't exist yet.
+if [[ ! -f "${dataset_local_path}" || ! -f "${split_path}" ]]; then
+  echo "ERROR: Dataset not found."
+  echo "Please download the dataset first from ${dataset_url}!"
+  echo "See further instructions in the README."
+  exit 1
+fi
 
-# TODO(marcvanzee): Finish this once dataset is uploaded.
-# # Download dataset if it doesn't exist yet.
-# if [[! -f "dataset.json" ]]; then
-#   wget "${dataset_path}"
-#
-# fi
-
-python3 -m preprocess_dataset --dataset_path="${dataset_path}" \
+python3 -m preprocess_dataset --dataset_path="${dataset_local_path}" \
   --split_path="${split_path}" --save_path="${save_path}"
 
 t2t-datagen --t2t_usr_dir="${work_dir}/cfq/" --data_dir="${save_path}" \
