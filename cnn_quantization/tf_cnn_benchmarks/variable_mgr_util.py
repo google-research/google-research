@@ -22,7 +22,7 @@ from __future__ import print_function
 import collections as pycoll
 import operator
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import data_flow_ops

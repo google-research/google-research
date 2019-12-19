@@ -27,7 +27,7 @@ from __future__ import print_function
 
 from absl import flags as absl_flags
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from cnn_quantization.tf_cnn_benchmarks import benchmark_cnn
 from cnn_quantization.tf_cnn_benchmarks import flags
 from cnn_quantization.tf_cnn_benchmarks import preprocessing

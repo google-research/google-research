@@ -27,7 +27,7 @@ import logging
 import re
 
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from cnn_quantization.tf_cnn_benchmarks import benchmark_cnn
 from cnn_quantization.tf_cnn_benchmarks import datasets
 from cnn_quantization.tf_cnn_benchmarks import mlperf

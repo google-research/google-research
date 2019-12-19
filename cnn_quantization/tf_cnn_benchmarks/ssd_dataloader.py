@@ -23,7 +23,7 @@ import itertools as it
 import math
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from cnn_quantization.tf_cnn_benchmarks import mlperf
 from cnn_quantization.tf_cnn_benchmarks import ssd_constants
 from tensorflow_models.object_detection.box_coders import faster_rcnn_box_coder
