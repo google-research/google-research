@@ -22,7 +22,7 @@ from __future__ import print_function
 
 import math
 from six.moves import xrange  # pylint: disable=redefined-builtin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from cnn_quantization.tf_cnn_benchmarks import cnn_util
 from cnn_quantization.tf_cnn_benchmarks import mlperf

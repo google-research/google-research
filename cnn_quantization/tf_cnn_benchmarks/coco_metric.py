@@ -34,7 +34,7 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 import six
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from cnn_quantization.tf_cnn_benchmarks import mlperf
 from cnn_quantization.tf_cnn_benchmarks import ssd_constants

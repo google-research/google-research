@@ -22,7 +22,7 @@ from __future__ import print_function
 import threading
 import time
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from cnn_quantization.tf_cnn_benchmarks import cnn_util
 

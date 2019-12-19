@@ -39,7 +39,7 @@ import contextlib
 import os
 import sys
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # pylint: disable=g-import-not-at-top
 try:

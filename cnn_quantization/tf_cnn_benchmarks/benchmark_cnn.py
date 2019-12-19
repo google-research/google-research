@@ -38,7 +38,7 @@ import numpy as np
 
 import six
 from six.moves import xrange  # pylint: disable=redefined-builtin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from google.protobuf import text_format
 from cnn_quantization.tf_cnn_benchmarks import cnn_util
 from cnn_quantization.tf_cnn_benchmarks import constants

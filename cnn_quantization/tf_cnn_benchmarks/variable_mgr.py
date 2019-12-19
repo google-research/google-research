@@ -24,7 +24,7 @@ from __future__ import print_function
 import contextlib
 import re
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from cnn_quantization.tf_cnn_benchmarks import allreduce
 from cnn_quantization.tf_cnn_benchmarks import batch_allreduce

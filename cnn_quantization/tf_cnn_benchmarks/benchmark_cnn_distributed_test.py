@@ -33,7 +33,7 @@ import time
 from absl import flags as absl_flags
 import portpicker
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from cnn_quantization.tf_cnn_benchmarks import flags
 from cnn_quantization.tf_cnn_benchmarks import test_util
 from cnn_quantization.tf_cnn_benchmarks.platforms import util as platforms_util

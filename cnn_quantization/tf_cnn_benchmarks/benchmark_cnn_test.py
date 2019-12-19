@@ -24,7 +24,7 @@ import re
 
 import mock
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from google.protobuf import text_format
 from cnn_quantization.tf_cnn_benchmarks import benchmark_cnn
 from cnn_quantization.tf_cnn_benchmarks import datasets

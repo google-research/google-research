@@ -23,7 +23,7 @@ from contextlib import contextmanager
 import os
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from cnn_quantization.tf_cnn_benchmarks import benchmark_cnn
 from cnn_quantization.tf_cnn_benchmarks import cnn_util
 from cnn_quantization.tf_cnn_benchmarks import datasets

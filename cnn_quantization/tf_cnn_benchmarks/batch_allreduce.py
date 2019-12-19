@@ -37,7 +37,7 @@ from __future__ import print_function
 import abc
 
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from cnn_quantization.tf_cnn_benchmarks import allreduce
 from cnn_quantization.tf_cnn_benchmarks import constants
 from tensorflow.python.ops import data_flow_ops
