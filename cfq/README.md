@@ -7,6 +7,8 @@ The dataset can be downloaded from the following URL:
 
 [Download the CFQ dataset](https://storage.cloud.google.com/cfq_dataset/cfq.tar.gz)
 
+The dataset and details about its construction and use are described in this ICLR 2020 paper: [Measuring Compositional Generalization: A Comprehensive Method on Realistic Data](https://openreview.net/forum?id=SygcCnNKwr).
+
 ## Requirements
 
 This library requires Python3 and the following Python3 libraries:
@@ -33,13 +35,13 @@ run the following:
 bash run_experiment.sh
 ```
 
-This will download the dataset, run preprocessing on the dataset, and train an
-LSTM model with attention on the random split of the CFQ dataset, after which it
-will directly be evaluated.
+This will run preprocessing on the dataset and train an LSTM model with
+attention on the random split of the CFQ dataset, after which it will directly
+be evaluated.
 
 NOTE This may take quite long and consume a lot of memory. It is tested on a
 machine with 6-core/12-hyperthread CPUs at 3.7Ghz, and 64Gb RAM, which took
-about 20 hours. Also note that this will consume roughly 20Gb of RAM during
+about 20 hours. Also note that this will consume roughly 35Gb of RAM during
 preprocessing. The run-time can be sped up significantly by running Tensorflow
 with GPU support.
 
