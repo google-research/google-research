@@ -20,7 +20,7 @@
 # pylint: disable=line-too-long, missing-docstring, g-importing-member
 # pylint: disable=g-wrong-blank-lines, missing-super-argument
 import gin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 from functools import partial
 from collections import OrderedDict

@@ -28,7 +28,7 @@ from disentanglement_lib.evaluation.evaluate import evaluate
 import itertools
 import matplotlib.pyplot as plt
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 import time
 

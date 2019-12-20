@@ -24,7 +24,7 @@ from disentanglement_lib.data.ground_truth import mpi3d
 from disentanglement_lib.data.ground_truth import cars3d
 from disentanglement_lib.data.ground_truth import norb
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import gin
 
 from weak_disentangle import utils as ut
