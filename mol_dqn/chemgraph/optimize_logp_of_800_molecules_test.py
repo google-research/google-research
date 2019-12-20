@@ -25,8 +25,8 @@ import tempfile
 from absl import flags
 from absl.testing import flagsaver
 
-import tensorflow as tf
-from tensorflow import gfile
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import gfile
 from mol_dqn.chemgraph import optimize_logp_of_800_molecules
 from mol_dqn.chemgraph.dqn import deep_q_networks
 from mol_dqn.chemgraph.dqn.tensorflow_core import core

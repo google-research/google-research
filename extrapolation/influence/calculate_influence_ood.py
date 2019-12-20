@@ -24,7 +24,7 @@ import time
 from absl import logging
 import numpy as np
 import scipy
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from extrapolation.classifier import classifier
 from extrapolation.influence import calculate_influence
 from extrapolation.utils import dataset_utils

@@ -19,7 +19,7 @@ from __future__ import absolute_import
 import functools
 import numpy as np
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 from eim.models import base
 

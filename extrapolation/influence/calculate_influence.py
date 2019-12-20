@@ -29,7 +29,7 @@ from __future__ import print_function
 import os
 from absl import logging
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from extrapolation.classifier import classifier
 from extrapolation.utils import dataset_utils
 from extrapolation.utils import tensor_utils

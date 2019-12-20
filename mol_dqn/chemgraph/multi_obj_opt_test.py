@@ -26,7 +26,7 @@ import tempfile
 from absl import flags
 from absl.testing import flagsaver
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from mol_dqn.chemgraph import multi_obj_opt
 from mol_dqn.chemgraph.dqn import deep_q_networks
 from mol_dqn.chemgraph.dqn.tensorflow_core import core
