@@ -22,7 +22,7 @@ from __future__ import print_function
 import numpy as np
 import PIL.Image
 import scipy.io
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from robust_loss import util
 from robust_loss import wavelet
 
