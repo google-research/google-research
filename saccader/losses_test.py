@@ -22,7 +22,7 @@ from __future__ import print_function
 
 from absl.testing import parameterized
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from saccader import losses
 from saccader.visual_attention import saccader

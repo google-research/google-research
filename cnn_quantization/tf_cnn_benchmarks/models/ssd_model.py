@@ -34,7 +34,7 @@ import multiprocessing
 import os
 import re
 import threading
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from cnn_quantization.tf_cnn_benchmarks import constants
 from cnn_quantization.tf_cnn_benchmarks import mlperf

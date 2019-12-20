@@ -32,7 +32,7 @@ import pandas as pd
 
 from six.moves import urllib
 from sklearn import preprocessing
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from dvrl import dvrl_utils
 

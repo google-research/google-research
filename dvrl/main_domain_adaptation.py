@@ -26,7 +26,7 @@ from __future__ import print_function
 import argparse
 import lightgbm
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from dvrl import data_loading
 from dvrl import dvrl

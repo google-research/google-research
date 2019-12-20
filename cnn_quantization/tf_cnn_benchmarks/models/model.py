@@ -21,7 +21,7 @@ from __future__ import print_function
 
 from collections import namedtuple
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from cnn_quantization.tf_cnn_benchmarks import convnet_builder
 from cnn_quantization.tf_cnn_benchmarks import mlperf

@@ -20,7 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 # from tensorflow.keras.constraints import non_neg
 from meta_reward_learning.semantic_parsing.nsm import tf_utils
 EPS = 1e-8

@@ -16,7 +16,7 @@
 import json
 import numpy as np
 # import gensim
-from tensorflow import gfile
+from tensorflow.compat.v1 import gfile
 
 
 class EmbeddingModel(object):
