@@ -22,7 +22,7 @@ from __future__ import print_function
 import collections
 import contextlib
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import rnn as contrib_rnn
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import init_ops

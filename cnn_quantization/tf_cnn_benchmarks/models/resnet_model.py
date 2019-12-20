@@ -36,7 +36,7 @@ from __future__ import print_function
 
 import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from cnn_quantization.tf_cnn_benchmarks import datasets
 from cnn_quantization.tf_cnn_benchmarks import mlperf
 from cnn_quantization.tf_cnn_benchmarks.models import model as model_lib

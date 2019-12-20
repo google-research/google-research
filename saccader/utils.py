@@ -22,7 +22,7 @@ from __future__ import print_function
 import os
 import pprint
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def draw_bounding_boxes(images, locations_list, normalized_box_size):

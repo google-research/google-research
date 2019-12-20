@@ -26,7 +26,7 @@ import argparse
 import lightgbm
 import numpy as np
 from sklearn import linear_model
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from dvrl import data_loading
 from dvrl import dvrl

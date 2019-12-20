@@ -20,7 +20,7 @@ import collections
 import random
 import numpy as np
 import six
-from tensorflow import gfile
+from tensorflow.compat.v1 import gfile
 from meta_reward_learning.semantic_parsing.nsm import nlp_utils
 
 DECODE_TK = '<DECODE>'

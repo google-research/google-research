@@ -27,7 +27,7 @@ import keras
 import lightgbm
 import numpy as np
 import pandas as pd
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from dvrl import data_loading
 from dvrl import dvrl

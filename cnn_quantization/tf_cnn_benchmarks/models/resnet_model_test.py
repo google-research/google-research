@@ -20,7 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import mock
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from cnn_quantization.tf_cnn_benchmarks.models import resnet_model
 
