@@ -33,7 +33,7 @@ from __future__ import print_function
 
 from absl import app
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from robust_loss import cubic_spline
 from robust_loss import distribution
 from robust_loss import general

@@ -22,7 +22,7 @@ from __future__ import print_function
 from absl.testing import parameterized
 import numpy as np
 import scipy.stats
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from robust_loss import adaptive
 from robust_loss import util
 from robust_loss import wavelet

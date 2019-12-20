@@ -73,7 +73,7 @@ import os
 
 from absl import flags
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow_probability import distributions as tfd
 from robust_loss import adaptive
 
