@@ -24,11 +24,11 @@ import gin
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import time
 from absl import app
 from absl import flags
-from tensorflow import gfile
+from tensorflow.compat.v1 import gfile
 from tqdm import tqdm
 
 from weak_disentangle import datasets, viz, networks, evaluate

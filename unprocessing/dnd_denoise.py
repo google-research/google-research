@@ -68,7 +68,7 @@ from absl import flags
 import h5py
 import numpy as np
 import scipy.io as sio
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = flags.FLAGS
 

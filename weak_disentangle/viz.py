@@ -23,7 +23,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import norm
-from tensorflow import gfile
+from tensorflow.compat.v1 import gfile
 
 
 def add_padding(images, pad):

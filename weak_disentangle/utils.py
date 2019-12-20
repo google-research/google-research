@@ -18,7 +18,7 @@
 
 # pylint: disable=g-bad-import-order, unused-import, g-multiple-import
 # pylint: disable=line-too-long, missing-docstring, g-importing-member
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import numpy as np
 import gin
 from functools import partial
