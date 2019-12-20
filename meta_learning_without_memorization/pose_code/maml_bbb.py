@@ -31,8 +31,8 @@ from absl import app
 from absl import flags
 import numpy as np
 from six.moves import range
-import tensorflow as tf
-from tensorflow.keras.layers import MaxPooling2D
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1.keras.layers import MaxPooling2D
 import tensorflow_probability as tfp
 from tensorflow_probability.python.layers import util as tfp_layers_util
 

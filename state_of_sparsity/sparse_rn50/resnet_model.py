@@ -26,7 +26,7 @@ from __future__ import print_function
 
 import math
 from absl import flags
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from state_of_sparsity.sparse_rn50.pruning_layers import sparse_conv2d
 from state_of_sparsity.sparse_rn50.pruning_layers import sparse_fully_connected
 from tensorflow.contrib import layers as contrib_layers

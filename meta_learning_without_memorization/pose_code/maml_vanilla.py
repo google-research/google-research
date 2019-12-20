@@ -26,7 +26,7 @@ import time
 from absl import app
 from absl import flags
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from meta_learning_without_memorization.pose_code.maml_vanilla_2 import MAML
 
 

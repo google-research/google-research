@@ -27,7 +27,7 @@ import os
 from absl import app
 from absl import flags
 from absl import logging
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 from state_of_sparsity.sparse_rn50 import imagenet_input

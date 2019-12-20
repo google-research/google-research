@@ -16,7 +16,7 @@
 """Base class for models."""
 from __future__ import absolute_import
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 tfd = tfp.distributions
 
