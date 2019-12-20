@@ -25,7 +25,7 @@ import os
 import numpy as np
 import scipy.stats as spstats
 import six.moves.cPickle as pickle
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 import uncertainties.sources.utils.util as util
 

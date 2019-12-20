@@ -24,7 +24,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import graph_editor as contrib_graph_editor
 from tensorflow.contrib.optimizer_v2 import optimizer_v2
 

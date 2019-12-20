@@ -28,7 +28,7 @@ from absl import flags
 from absl import logging
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from stacked_capsule_autoencoders.capsules.configs import data_config
 from stacked_capsule_autoencoders.capsules.configs import model_config
