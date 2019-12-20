@@ -22,7 +22,7 @@ from __future__ import print_function
 
 import functools
 from absl.testing import parameterized
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from uq_benchmark_2019 import gaussian_process_kernels
 

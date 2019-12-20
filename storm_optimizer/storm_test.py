@@ -20,8 +20,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
-from tensorflow import test
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import test
 
 from storm_optimizer.storm_optimizer import StormOptimizer
 

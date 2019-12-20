@@ -22,7 +22,7 @@ from __future__ import print_function
 
 import attr
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 CORRUPTION_TYPES = [
     'brightness', 'contrast', 'defocus_blur', 'elastic_transform', 'fog',
