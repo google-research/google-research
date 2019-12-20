@@ -19,74 +19,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import numpy as np
 import tensorflow.compat.v2 as tf
 import tensorflow_probability as tfp
-
-
-def _pad_shape_with_ones(x, ndims):
-  """Maybe add `ndims` ones to `x.shape`.
-
-  If `ndims` is zero, this is a no-op; otherwise, we will create and return a
-  new `Tensor` whose shape is that of `x` with `ndims` ones concatenated on the
-  right side. If the shape of `x` is known statically, the shape of the return
-  value will be as well.
-
-  Args:
-    x: The `Tensor` we'll return a reshaping of.
-    ndims: Python `integer` number of ones to pad onto `x.shape`.
-  Returns:
-    If `ndims` is zero, `x`; otherwise, a `Tensor` whose shape is that of `x`
-    with `ndims` ones concatenated on the right side. If possible, returns a
-    `Tensor` whose shape is known statically.
-  """
-  if ndims == 0:
-    return x
-  x = tf.convert_to_tensor(value=x)
-  original_shape = x.shape
-  first_shape = x.get_shape().as_list()
-  new_shape = first_shape + [1] * ndims
-  x = tf.reshape(x, new_shape)
-  x.set_shape(original_shape.concatenate([1] * ndims))
-  return x
-
-
-def _sum_rightmost_ndims_preserving_shape(x, ndims):
-  """Return `Tensor` with right-most ndims summed.
-
-  Args:
-    x: the `Tensor` whose right-most `ndims` dimensions to sum
-    ndims: number of right-most dimensions to sum.
-
-  Returns:
-    A `Tensor` resulting from calling `reduce_sum` on the `ndims` right-most
-    dimensions. If the shape of `x` is statically known, the result will also
-    have statically known shape. Otherwise, the resulting shape will only be
-    known at runtime.
-  """
-  x = tf.convert_to_tensor(value=x)
-  if x.shape.ndims is not None:
-    axes = tf.range(x.shape.ndims - ndims, x.shape.ndims)
-  else:
-    axes = tf.range(tf.rank(x) - ndims, tf.rank(x))
-  return tf.reduce_sum(x, axis=axes)
-
-
-class _ExponentiatedQuadratic(
-    tfp.math.psd_kernels.ExponentiatedQuadratic):
-  """ExponentiatedQuadratic kernel function with per-dimension parameters."""
-
-  def _apply(self, x1, x2, example_ndims=0):
-    exponent = -0.5 * _sum_rightmost_ndims_preserving_shape(
-        tf.math.squared_difference(x1, x2) / self.length_scale,
-        self.feature_ndims)
-
-    if self.amplitude is not None:
-      amplitude = tf.convert_to_tensor(self.amplitude)
-      amplitude = _pad_shape_with_ones(amplitude, example_ndims)
-      exponent += 2. * tf.math.log(amplitude)
-
-    return tf.exp(exponent)
 
 
 class RBFKernelFn(tf.keras.layers.Layer):
@@ -112,7 +46,7 @@ class RBFKernelFn(tf.keras.layers.Layer):
     with tf.compat.v1.variable_scope(name):
       if self._per_class_kernel and num_classes > 1:
         amplitude_shape = (num_classes,)
-        length_scale_shape = (num_classes, 1, 1, feature_size)
+        length_scale_shape = (num_classes, feature_size)
       else:
         amplitude_shape = ()
         length_scale_shape = (feature_size,)
@@ -144,68 +78,15 @@ class RBFKernelFn(tf.keras.layers.Layer):
 
   @property
   def kernel(self):
-    k = _ExponentiatedQuadratic(
-        amplitude=tf.nn.softplus(self._amplitude),
-        length_scale=tf.nn.softplus(self._length_scale))
+    k = tfp.math.psd_kernels.FeatureScaled(
+        tfp.math.psd_kernels.ExponentiatedQuadratic(
+            amplitude=tf.nn.softplus(self._amplitude)),
+        scale_diag=tf.math.sqrt(tf.nn.softplus(self._length_scale)))
     if self._add_linear:
       k += tfp.math.psd_kernels.Linear(
           bias_variance=self._linear_bias,
           slope_variance=self._linear_slope)
     return k
-
-
-class _MaternOneHalf(tfp.math.psd_kernels.MaternOneHalf):
-  """Matern 1/2 kernel function with per-dimension parameters."""
-
-  def _apply(self, x1, x2, example_ndims=0):
-    norm = tf.sqrt(
-        _sum_rightmost_ndims_preserving_shape(
-            tf.math.squared_difference(x1, x2) / self.length_scale,
-            self.feature_ndims))
-    log_result = -norm
-
-    if self.amplitude is not None:
-      amplitude = tf.convert_to_tensor(self.amplitude)
-      amplitude = _pad_shape_with_ones(amplitude, example_ndims)
-      log_result += 2. * tf.math.log(amplitude)
-    return tf.exp(log_result)
-
-
-class _MaternThreeHalves(tfp.math.psd_kernels.MaternThreeHalves):
-  """Matern 3/2 kernel function with per-dimension parameters."""
-
-  def _apply(self, x1, x2, example_ndims=0):
-    norm = tf.sqrt(
-        _sum_rightmost_ndims_preserving_shape(
-            tf.math.squared_difference(x1, x2) / self.length_scale,
-            self.feature_ndims))
-    series_term = np.sqrt(3) * norm
-    log_result = tf.math.log1p(series_term) - series_term
-
-    if self.amplitude is not None:
-      amplitude = tf.convert_to_tensor(self.amplitude)
-      amplitude = _pad_shape_with_ones(amplitude, example_ndims)
-      log_result += 2. * tf.math.log(amplitude)
-    return tf.exp(log_result)
-
-
-class _MaternFiveHalves(tfp.math.psd_kernels.MaternFiveHalves):
-  """Matern 5/2 kernel function with per-dimension parameters."""
-
-  def _apply(self, x1, x2, example_ndims=0):
-    norm = tf.sqrt(
-        _sum_rightmost_ndims_preserving_shape(
-            tf.math.squared_difference(x1, x2) / self.length_scale,
-            self.feature_ndims))
-    series_term = np.sqrt(5) * norm
-    log_result = (
-        tf.math.log1p(series_term + series_term ** 2 / 3.) - series_term)
-
-    if self.amplitude is not None:
-      amplitude = tf.convert_to_tensor(self.amplitude)
-      amplitude = _pad_shape_with_ones(amplitude, example_ndims)
-      log_result += 2. * tf.math.log(amplitude)
-    return tf.exp(log_result)
 
 
 class MaternKernelFn(tf.keras.layers.Layer):
@@ -238,7 +119,7 @@ class MaternKernelFn(tf.keras.layers.Layer):
     with tf.compat.v1.variable_scope(name):
       if self._per_class_kernel and num_classes > 1:
         amplitude_shape = (num_classes,)
-        length_scale_shape = (num_classes, 1, 1, feature_size)
+        length_scale_shape = (num_classes, feature_size)
       else:
         amplitude_shape = ()
         length_scale_shape = (feature_size,)
@@ -271,15 +152,15 @@ class MaternKernelFn(tf.keras.layers.Layer):
   @property
   def kernel(self):
     if self._degree == 1:
-      kernel_class = _MaternOneHalf
+      kernel_class = tfp.math.psd_kernels.MaternOneHalf
     if self._degree == 3:
-      kernel_class = _MaternThreeHalves
+      kernel_class = tfp.math.psd_kernels.MaternThreeHalves
     if self._degree == 5:
-      kernel_class = _MaternFiveHalves
+      kernel_class = tfp.math.psd_kernels.MaternFiveHalves
 
-    k = kernel_class(
-        amplitude=tf.nn.softplus(self._amplitude),
-        length_scale=tf.nn.softplus(self._length_scale))
+    k = tfp.math.psd_kernels.FeatureScaled(
+        kernel_class(amplitude=tf.nn.softplus(self._amplitude)),
+        scale_diag=tf.math.sqrt(tf.nn.softplus(self._length_scale)))
     if self._add_linear:
       k += tfp.math.psd_kernels.Linear(
           bias_variance=self._linear_bias,
