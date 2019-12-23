@@ -23,7 +23,7 @@ from __future__ import print_function
 import math
 
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from deep_homography import hmg_util
 from tensorflow.contrib import slim as contrib_slim

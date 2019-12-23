@@ -28,7 +28,7 @@ import unicodedata
 
 from absl import flags
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = flags.FLAGS
 

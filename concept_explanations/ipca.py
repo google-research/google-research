@@ -36,8 +36,8 @@ import numpy as np
 from numpy import inf
 from numpy.random import seed
 from scipy.special import comb
-import tensorflow as tf
-from tensorflow import set_random_seed
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import set_random_seed
 
 seed(0)
 set_random_seed(0)

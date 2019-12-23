@@ -35,7 +35,7 @@ from __future__ import print_function
 
 import copy
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import yaml
 
 

@@ -23,7 +23,7 @@ from absl import app
 from absl import flags
 import model
 import model_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_datasets as tfds
 
 flags.DEFINE_string('ckpt_path', '', 'Path to evaluation checkpoint')

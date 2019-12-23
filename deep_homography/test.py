@@ -29,7 +29,7 @@ import cv2
 import numpy as np
 
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from deep_homography import hmg_util
 from deep_homography import models
 from tensorflow.contrib import slim as contrib_slim
