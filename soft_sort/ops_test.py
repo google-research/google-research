@@ -178,6 +178,15 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
     with self.assertRaises(tf.errors.InvalidArgumentError):
       ops.softquantiles(x, [q1, q2], quantile_width=width, axis=-1)
 
+  def test_soft_quantile_normalization(self):
+    x = tf.constant([1.2, 1.3, 1.5, -4.0, 1.8, 2.4, -1.0])
+    target = tf.cumsum(tf.ones(x.shape[0]))
+    xn = ops.soft_quantile_normalization(x, target)
+    # Make sure that the order of x and xn are identical
+    self.assertAllEqual(tf.argsort(x), tf.argsort(xn))
+    # Make sure that the values of xn and target are close.
+    self.assertAllClose(tf.sort(target), tf.sort(xn), atol=1e-1)
+
 
 if __name__ == '__main__':
   tf.enable_v2_behavior()
