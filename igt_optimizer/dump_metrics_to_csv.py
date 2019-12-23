@@ -30,7 +30,7 @@ import time
 from absl import app
 from absl import flags
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 BATCH_SIZE = 128
 MODEL_ROOT = ''

@@ -33,7 +33,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def load_model(classes):

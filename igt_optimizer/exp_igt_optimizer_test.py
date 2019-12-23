@@ -22,7 +22,7 @@ from __future__ import print_function
 
 import numpy as np
 from six.moves import zip
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from igt_optimizer import exp_igt_optimizer
 # pylint:disable=g-direct-tensorflow-import

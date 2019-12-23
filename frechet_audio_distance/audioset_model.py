@@ -20,7 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 from tensorflow_models.audioset import mel_features
 from tensorflow_models.audioset import vggish_params

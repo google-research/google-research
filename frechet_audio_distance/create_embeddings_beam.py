@@ -31,7 +31,7 @@ from apache_beam.utils import windowed_value
 import numpy as np
 import scipy.io.wavfile
 import scipy.spatial.distance
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from frechet_audio_distance.audioset_model import AudioSetModel
 

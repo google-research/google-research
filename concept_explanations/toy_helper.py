@@ -40,7 +40,7 @@ from skimage.segmentation import felzenszwalb
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
-from tensorflow import set_random_seed
+from tensorflow.compat.v1 import set_random_seed
 
 seed(0)
 set_random_seed(0)

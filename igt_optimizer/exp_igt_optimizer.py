@@ -25,7 +25,7 @@ from __future__ import division
 from __future__ import print_function
 
 import six
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 # pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.training import slot_creator

@@ -21,7 +21,7 @@ from __future__ import print_function
 
 from absl import flags
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 flags.DEFINE_string('source_dataset', 'mnist', 'Name of the source dataset.')
 flags.DEFINE_string('target_dataset', 'svhn_cropped_small',

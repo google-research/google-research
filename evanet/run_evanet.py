@@ -27,7 +27,7 @@ from absl import flags
 
 import numpy as np
 
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 from evanet import model_dna
 
