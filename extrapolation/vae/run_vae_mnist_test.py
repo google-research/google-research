@@ -19,7 +19,7 @@ from __future__ import print_function
 
 from absl import flags
 from absl.testing import absltest
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from extrapolation.utils import utils
 from extrapolation.utils.running_average_loss import RunningAverageLoss as RALoss
 

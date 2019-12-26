@@ -24,7 +24,7 @@ from absl import app
 from absl import flags
 import h5py
 from .models.tap import TAP
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from .utils import sample_batch_tap
 from .utils import save_im
 from tensorflow.contrib import checkpoint as contrib_checkpoint

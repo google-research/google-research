@@ -40,7 +40,7 @@ import datetime
 import sys
 import time
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from graph_compression.compression_lib.examples.cifar10 import cifar10_compression as cifar10
 from tensorflow.contrib import framework as contrib_framework

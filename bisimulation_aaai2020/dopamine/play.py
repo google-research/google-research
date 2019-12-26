@@ -35,7 +35,7 @@ from absl import flags
 
 from dopamine.discrete_domains import run_experiment as dopamine_run_experiment
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from bisimulation_aaai2020.dopamine import run_experiment
 
 

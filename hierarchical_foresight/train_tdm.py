@@ -25,7 +25,7 @@ from absl import flags
 import h5py
 from .models.tdm import TemporalModel
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from .utils import sample_batch_tdm_maze
 from .utils import save_im
 

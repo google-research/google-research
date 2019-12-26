@@ -22,7 +22,7 @@ from __future__ import print_function
 from absl import app
 from absl import flags
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from large_margin import margin_loss
 from large_margin.mnist import data_provider as mnist
