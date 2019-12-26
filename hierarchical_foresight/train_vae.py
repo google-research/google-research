@@ -26,7 +26,7 @@ from absl import flags
 import h5py
 from .models.vae import ImageTransformSC
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from .utils import sample_batch_vae
 from .utils import save_im
 

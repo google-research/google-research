@@ -40,7 +40,7 @@ import sys
 import tarfile
 
 from six.moves import urllib
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from graph_compression.compression_lib import compression_op as compression
 from graph_compression.compression_lib import compression_wrapper

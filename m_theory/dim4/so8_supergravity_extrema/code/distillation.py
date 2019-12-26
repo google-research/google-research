@@ -33,7 +33,7 @@ import pprint
 import re
 import scipy.linalg
 import scipy.optimize
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from dim4.so8_supergravity_extrema.code import algebra
 from dim4.so8_supergravity_extrema.code import scalar_sector

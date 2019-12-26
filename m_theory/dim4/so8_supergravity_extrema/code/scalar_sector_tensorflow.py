@@ -27,7 +27,7 @@ import collections
 import numpy
 import os
 import pprint
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 from dim4.so8_supergravity_extrema.code import algebra

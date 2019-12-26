@@ -25,7 +25,7 @@ from dopamine.discrete_domains import checkpointer
 from dopamine.discrete_domains import iteration_statistics
 from dopamine.discrete_domains import run_experiment
 import gin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from bisimulation_aaai2020.dopamine import agent_visualizer
 from bisimulation_aaai2020.dopamine import rainbow_agent
 

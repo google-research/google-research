@@ -21,7 +21,7 @@ from __future__ import print_function
 
 from absl import flags
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 
 tfd = tfp.distributions

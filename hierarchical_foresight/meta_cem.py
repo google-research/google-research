@@ -27,7 +27,7 @@ from absl import flags
 from .env import subgoal_env
 from .models.tap import TAP
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from .utils import save_im
 
 FLAGS = flags.FLAGS

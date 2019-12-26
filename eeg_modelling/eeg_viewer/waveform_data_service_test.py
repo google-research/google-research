@@ -22,7 +22,7 @@ import json
 from absl.testing import absltest
 import mock
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from eeg_modelling.eeg_viewer import data_source
 from eeg_modelling.eeg_viewer import utils
