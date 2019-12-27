@@ -82,6 +82,9 @@ class AlignmentSaLTCN(TCN):
       embs_list = []
       steps_list = []
       seq_lens_list = []
+      
+      try: xrange
+      except xrange = range
 
       for i in xrange(int(batch_size)):
         # Randomly sample half of TCN frames as in datasets.py we already

@@ -77,7 +77,7 @@ def get_example(name, seq, seq_label=None, label_string=None,
 
   # Add context or video-level features.
   seq_len = len(seq['video'])
-  context_features_dict = {'name': bytes_feature([name]),
+  context_features_dict = {'name': bytes_feature([name.encode('utf-8')]),
                            'len': int64_feature([seq_len])}
 
   if seq_label is not None:
@@ -85,13 +85,13 @@ def get_example(name, seq, seq_label=None, label_string=None,
     context_features_dict['label'] = int64_feature([seq_label])
 
   if label_string:
-    context_features_dict['label_string'] = bytes_feature([label_string])
+    context_features_dict['label_string'] = bytes_feature([label_string.encode('utf-8')])
 
   if frame_labels_string:
     # Store as a single string as all context features should be Features or
     # FeatureLists. Cannot combine types for now.
     labels_string = ','.join(frame_labels_string)
-    context_features_dict['framelabels_string'] = bytes_feature([labels_string])
+    context_features_dict['framelabels_string'] = bytes_feature([labels_string.encode('utf-8')])
   context_features = tf.train.Features(feature=context_features_dict)
 
   # Create SequenceExample.
@@ -187,6 +187,9 @@ def merge_annotations(label, expected_n):
   """Merge annotations from label based on voting."""
   annotations = {}
 
+  try: xrange
+  except xrange = range
+  
   for k in xrange(expected_n):
     segments = np.vstack([label[person_id][str(k)] for person_id in label])
     annotations[k] = np.mean(segments, axis=0)

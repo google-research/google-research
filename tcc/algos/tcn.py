@@ -104,6 +104,10 @@ class TCN(Algorithm):
       num_steps = CONFIG.EVAL.NUM_FRAMES
       batch_size = CONFIG.EVAL.BATCH_SIZE
     losses = []
+
+    try: xrange
+    except xrange = range
+    
     for i in xrange(batch_size):
       losses.append(single_sequence_loss(embs[i], num_steps))
     loss = tf.reduce_mean(tf.stack(losses))
