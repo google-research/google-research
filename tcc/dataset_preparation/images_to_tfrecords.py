@@ -23,6 +23,7 @@ import json
 import math
 import os
 import random
+import sys
 
 from absl import app
 from absl import flags
@@ -115,7 +116,10 @@ def get_name(filename, videos_dir, penn_action=False):
 
 def get_timestamps(frames, fps, offset=0.0):
   """Returns timestamps for frames in a video."""
-  return [offset + x/float(fps) for x in xrange(len(frames))]
+  if sys.version_info[0] == 2:
+    return [offset + x/float(fps) for x in xrange(len(frames))]
+  else:
+    return [offset + x/float(fps) for x in range(len(frames))]
 
 
 def create_tfrecords(name, output_dir, videos_dir, vid_list, label_file,
