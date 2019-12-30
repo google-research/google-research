@@ -23,7 +23,7 @@ from __future__ import print_function
 import collections
 import gin
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 SARSTransition = collections.namedtuple('SARSTransition',

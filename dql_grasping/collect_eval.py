@@ -22,7 +22,7 @@ from __future__ import print_function
 
 import os
 import gin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from dql_grasping import run_env
 

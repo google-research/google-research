@@ -25,7 +25,7 @@ from absl import flags
 from absl.testing import parameterized
 import numpy as np
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from dql_grasping import grasping_env
 from dql_grasping import policies

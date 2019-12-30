@@ -24,7 +24,7 @@ from __future__ import print_function
 from absl import logging
 import gin
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from dql_grasping import tf_modules
 from tensorflow.contrib import slim as contrib_slim
 
