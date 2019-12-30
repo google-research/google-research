@@ -27,7 +27,7 @@ import gin
 from gym import spaces
 import numpy as np
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from dql_grasping import cross_entropy
 
 

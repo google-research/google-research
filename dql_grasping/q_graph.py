@@ -22,7 +22,7 @@ from __future__ import print_function
 from absl import logging
 import enum
 import gin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class DQNTarget(enum.Enum):

@@ -27,7 +27,7 @@ from absl import app
 from absl import flags
 import gin
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from dql_grasping import gin_imports  # pylint: disable=unused-import
 from dql_grasping import train_collect_eval
 

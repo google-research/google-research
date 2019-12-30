@@ -21,7 +21,7 @@ from __future__ import print_function
 
 from absl import logging
 import gin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from dql_grasping.q_graph import DQNTarget
 
 

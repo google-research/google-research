@@ -28,7 +28,7 @@ from PIL import Image
 from PIL import ImageFile
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 _bytes_feature = (
