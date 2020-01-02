@@ -14,10 +14,10 @@
 # limitations under the License.
 
 """Main code for creating neural tree layer."""
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow import ops
-from tensorflow.keras.initializers import RandomUniform
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import keras
+from tensorflow.compat.v1 import ops
+from tensorflow.compat.v1.keras.initializers import RandomUniform
 
 from tf_trees.gen_neural_trees_ops import nt_compute_input_and_internal_params_gradients_op
 from tf_trees.gen_neural_trees_ops import nt_compute_output_op

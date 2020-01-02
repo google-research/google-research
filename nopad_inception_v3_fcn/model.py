@@ -20,7 +20,7 @@ This is a variant of inception v3 by removing all the paddings. This change
 allows the network to be trained and inference run with different patch size
 (Fully Convolutional Network, FCN mode) while having the same inference results.
 """
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import slim as contrib_slim
 
 slim = contrib_slim

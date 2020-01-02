@@ -16,7 +16,7 @@
 # Lint as: python3
 """Class level test-set accuracy for all ImageNet classes."""
 from absl import flags
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = flags.FLAGS
 

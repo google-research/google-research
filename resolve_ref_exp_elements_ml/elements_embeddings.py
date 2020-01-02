@@ -21,7 +21,7 @@ and will be trained with the rest of the model.
 """
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_hub as hub
 
 REF_EXP_ID = 'ref_exp'

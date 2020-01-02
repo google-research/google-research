@@ -29,7 +29,7 @@ from absl import flags
 from cvx2 import latest as cv2
 import numpy as np
 import skimage.measure
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import resampler as contrib_resampler
 
 # Contrib is lazily loaded so this reference is needed to use the resampler op.

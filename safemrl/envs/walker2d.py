@@ -28,7 +28,7 @@ import gin.tf
 from gym.envs import registration
 from gym.envs.mujoco.walker2d import Walker2dEnv
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 tf.compat.v1.enable_v2_behavior()
