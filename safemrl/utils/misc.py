@@ -28,7 +28,7 @@ from __future__ import print_function
 import datetime
 import os.path as osp
 import matplotlib.pyplot as plt
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from tf_agents.utils import common
 from tensorflow.contrib import summary as contrib_summary

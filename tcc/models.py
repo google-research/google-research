@@ -25,8 +25,8 @@ from keras_applications import resnet_v2
 
 import tensorflow.compat.v2 as tf
 
-from tensorflow.keras import regularizers
-from tensorflow.keras.models import Model
+from tensorflow.compat.v1.keras import regularizers
+from tensorflow.compat.v1.keras.models import Model
 
 from tcc.config import CONFIG
 
