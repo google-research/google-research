@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import sys
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from meta_reward_learning.textworld.lib import model as nn_model
 from meta_reward_learning.textworld.lib.helpers import create_joint_features
 from meta_reward_learning.textworld.lib.helpers import pad_sequences
