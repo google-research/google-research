@@ -25,7 +25,7 @@ import itertools
 import numpy as np
 from six.moves import map
 from six.moves import zip
-from tensorflow import gfile
+from tensorflow.compat.v1 import gfile
 
 from meta_reward_learning.textworld import common_flags
 from meta_reward_learning.textworld.lib import environment
