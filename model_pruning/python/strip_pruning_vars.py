@@ -47,7 +47,7 @@ import argparse
 import os
 import sys
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from model_pruning.python import strip_pruning_vars_lib
 
 FLAGS = None

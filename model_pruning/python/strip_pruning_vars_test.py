@@ -34,7 +34,7 @@ from __future__ import print_function
 
 import re
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from model_pruning.python import pruning
 from model_pruning.python import strip_pruning_vars_lib
 from model_pruning.python.layers import rnn_cells

@@ -16,8 +16,8 @@
 """Contains functions used to build cnc and siamese net models."""
 from __future__ import division
 
-from tensorflow.keras import layers
-from tensorflow.keras.regularizers import l2
+from tensorflow.compat.v1.keras import layers
+from tensorflow.compat.v1.keras.regularizers import l2
 
 
 def stack_layers(inputs, net_layers, kernel_initializer='glorot_uniform'):

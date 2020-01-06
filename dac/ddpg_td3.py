@@ -23,7 +23,7 @@ from __future__ import print_function
 from common import Actor
 from common import CriticDDPG
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from utils import soft_update
 from tensorflow.contrib import summary as contrib_summary
 from tensorflow.contrib.eager.python import tfe as contrib_eager_python_tfe

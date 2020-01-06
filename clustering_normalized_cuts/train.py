@@ -16,7 +16,7 @@
 """Contains all training and prediction backend functions for CNC."""
 from __future__ import division
 import numpy as np
-from tensorflow.keras import backend as K
+from tensorflow.compat.v1.keras import backend as K
 from clustering_normalized_cuts.util import make_batches
 
 

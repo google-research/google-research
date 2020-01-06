@@ -36,7 +36,7 @@ from common import Actor
 import gym
 import numpy as np
 from replay_buffer import ReplayBuffer
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from utils import do_rollout
 from tensorflow.contrib.eager.python import tfe as contrib_eager_python_tfe
 # pylint: enable=g-import-not-at-top,g-bad-import-order

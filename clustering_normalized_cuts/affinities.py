@@ -19,8 +19,8 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras import backend as K
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1.keras import backend as K
 
 
 def squared_distance(input_x, input_y=None, weight=None):
