@@ -32,8 +32,8 @@ import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ConstantKernel
 from sklearn.gaussian_process.kernels import RBF
-import tensorflow as tf
-from tensorflow.examples.tutorials.mnist import input_data
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1.examples.tutorials.mnist import input_data
 
 FLAGS = flags.FLAGS
 flags.DEFINE_bool('uniform_weights', False, 'whether to use uniform weights')

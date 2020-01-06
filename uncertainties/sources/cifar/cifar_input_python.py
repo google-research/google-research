@@ -25,7 +25,7 @@ import os
 
 import numpy as np
 import six.moves.cPickle
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 NUM_TRAIN = 50000
 NUM_TEST = 10000

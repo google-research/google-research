@@ -23,7 +23,7 @@ from __future__ import print_function
 import os
 from absl import app
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from uncertainties.sources.cifar.cifar_input_python import load_data
 from uncertainties.sources.cifar.network_cifar import NetworkCifar

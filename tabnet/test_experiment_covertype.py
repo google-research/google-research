@@ -22,7 +22,7 @@ from absl import app
 import data_helper_covertype
 import numpy as np
 import tabnet_model
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # Fix random seeds
 tf.set_random_seed(1)

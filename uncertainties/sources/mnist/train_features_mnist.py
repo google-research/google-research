@@ -24,7 +24,7 @@ from absl import app
 from absl import flags
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from uncertainties.sources.mnist.mnist_input import load_data
 from uncertainties.sources.mnist.network_mnist import NetworkMnist

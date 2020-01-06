@@ -40,7 +40,7 @@ from tensor2tensor.utils import beam_search
 from tensor2tensor.utils import mlperf_log
 from tensor2tensor.utils import registry
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from state_of_sparsity.sparse_transformer.layers import common_sparse
 from state_of_sparsity.sparse_transformer.layers import sparse_attention

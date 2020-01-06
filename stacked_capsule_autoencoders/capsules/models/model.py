@@ -17,7 +17,7 @@
 import functools
 from monty.collections import AttrDict
 import sonnet as snt
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class _Memoize(object):

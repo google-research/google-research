@@ -37,7 +37,7 @@ from .envs import point_mass
 import gin
 import gin.tf
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tf_agents.agents.sac import sac_agent  # pylint: disable=unused-import
 from tf_agents.environments import suite_gym
 from tf_agents.environments import suite_pybullet

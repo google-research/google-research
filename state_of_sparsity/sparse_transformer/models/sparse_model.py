@@ -19,7 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 from tensor2tensor.utils import t2t_model
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import tpu as contrib_tpu
 from tensorflow.contrib import training as contrib_training
 

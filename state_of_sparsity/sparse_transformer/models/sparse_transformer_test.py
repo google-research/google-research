@@ -22,7 +22,7 @@ import numpy as np
 
 from tensor2tensor.data_generators import problem_hparams
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from state_of_sparsity.sparse_transformer.models import sparse_transformer
 

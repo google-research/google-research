@@ -23,7 +23,7 @@ from absl import app
 import data_helper_covertype
 import numpy as np
 import tabnet_model
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # Run Tensorflow on GPU 0
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
