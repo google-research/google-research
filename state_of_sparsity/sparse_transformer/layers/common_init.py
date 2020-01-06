@@ -20,7 +20,7 @@ from __future__ import print_function
 
 import math
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from tensorflow.python.framework import dtypes  # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import init_ops  # pylint: disable=g-direct-tensorflow-import
