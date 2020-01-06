@@ -18,7 +18,7 @@
 import random
 
 from language.nql import util as nql_util
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from property_linking.src import util
 
 random.seed(0)

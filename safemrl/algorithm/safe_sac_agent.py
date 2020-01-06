@@ -31,7 +31,7 @@ from . import agents
 from absl import logging  # pylint: disable=unused-import
 import gin
 import numpy as np  # pylint: disable=unused-import
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 from tf_agents.agents import tf_agent
 from tf_agents.agents.sac import sac_agent

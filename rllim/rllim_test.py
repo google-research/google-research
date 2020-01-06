@@ -24,7 +24,7 @@ import tempfile
 
 import numpy as np
 from sklearn import linear_model
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from rllim import rllim
 

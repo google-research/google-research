@@ -27,7 +27,7 @@ import tempfile
 
 import gin
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 
 from neutra import utils

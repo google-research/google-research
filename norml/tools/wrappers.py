@@ -28,7 +28,7 @@ import traceback
 import gym
 import gym.spaces
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class AttributeModifier(object):

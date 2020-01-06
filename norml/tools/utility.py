@@ -15,7 +15,7 @@
 
 """Utility for saving/loading training configs."""
 import os
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import yaml
 
 

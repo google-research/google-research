@@ -17,7 +17,7 @@
 import functools
 from absl import flags
 from monty.collections import AttrDict
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from stacked_capsule_autoencoders.capsules.data import constellation
 from stacked_capsule_autoencoders.capsules.data import image
 from stacked_capsule_autoencoders.capsules.data import preprocess
