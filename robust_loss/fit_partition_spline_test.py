@@ -15,13 +15,11 @@
 
 """Tests for fit_partition_spline.py."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v2 as tf
 from robust_loss import distribution
 from robust_loss import fit_partition_spline
+
+tf.enable_v2_behavior()
 
 
 class FitPartitionSplineTest(tf.test.TestCase):
@@ -31,8 +29,7 @@ class FitPartitionSplineTest(tf.test.TestCase):
     for (numer, denom) in [(0, 1), (1, 8), (1, 2), (1, 1), (2, 1), (8, 1)]:
       alpha = tf.cast(numer, tf.float64) / tf.cast(denom, tf.float64)
       z_true = distribution.analytical_base_partition_function(numer, denom)
-      with self.session():
-        z = fit_partition_spline.numerical_base_partition_function(alpha).eval()
+      z = fit_partition_spline.numerical_base_partition_function(alpha)
       self.assertAllClose(z, z_true, atol=1e-10, rtol=1e-10)
 
 

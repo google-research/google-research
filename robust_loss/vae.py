@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Code for training a VAE using our adaptive loss on the Celeb-A dataset.
 
 This code is a fork of TensorFlow Probability's example code at
@@ -36,6 +37,7 @@ the shell script below reproduces the results from all models discussed in that
 paper: Adaptive, Normal, and Cauchy distributions used to model RGB pixels,
 YUV DCTs, and YUV Wavelets. Running it yourself will require changing the paths
 for the output and input, unless you're sitting at barron@'s workstation.
+Though the rest of the code in this repo is TF2, this script is TF1.
 
 RUN="ipython robust_loss/vae.py -- "
 OUTPUT_DIR="--output_dir=/tmp/vae/"
@@ -63,10 +65,6 @@ ${RUN} ${OUTPUT_DIR}students_pixel/ ${OPTIONS} ${PIXEL} ${STUDENTS}
 ${RUN} ${OUTPUT_DIR}normal_pixel/ ${OPTIONS} ${PIXEL} ${NORMAL}
 ${RUN} ${OUTPUT_DIR}cauchy_pixel/ ${OPTIONS} ${PIXEL} ${CAUCHY}
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import functools
 import os
@@ -139,39 +137,39 @@ flags.DEFINE_bool(
 flags.DEFINE_string(
     "color_space",
     default="YUV",
-    help="The loss's color_space, see adaptive.image_lossfun().")
+    help="The loss's color_space, see AdaptiveImageLossFunction.")
 flags.DEFINE_string(
     "representation",
     default="CDF9/7",
-    help="The loss's image representation, see adaptive.image_lossfun().")
+    help="The loss's image representation, see AdaptiveImageLossFunction.")
 flags.DEFINE_integer(
     "wavelet_scale_base",
     default=1,
-    help="The loss's wavelet scaling, see adaptive.image_lossfun().")
+    help="The loss's wavelet scaling, see AdaptiveImageLossFunction.")
 flags.DEFINE_integer(
     "wavelet_num_levels",
     default=5,
-    help="The loss's wavelet depth, see adaptive.image_lossfun().")
+    help="The loss's wavelet depth, see AdaptiveImageLossFunction.")
 flags.DEFINE_float(
     "alpha_lo",
     default=0,
-    help="The lower bound on the loss's alpha, see adaptive.lossfun().")
+    help="The lower bound on the loss's alpha, see AdaptiveLossFunction.")
 flags.DEFINE_float(
     "alpha_hi",
     default=2,
-    help="The upper bound on the loss's alpha, see adaptive.lossfun().")
+    help="The upper bound on the loss's alpha, see AdaptiveLossFunction.")
 flags.DEFINE_float(
     "alpha_init",
     default=None,
-    help="The initial value of the loss's alpha, see adaptive.lossfun().")
+    help="The initial value of the loss's alpha, see AdaptiveLossFunction.")
 flags.DEFINE_float(
     "scale_lo",
     default=1e-8,
-    help="The lower bound on the loss's scale, see adaptive.lossfun().")
+    help="The lower bound on the loss's scale, see AdaptiveLossFunction.")
 flags.DEFINE_float(
     "scale_init",
     default=1e-2,
-    help="The initial value of the loss's scale, see adaptive.lossfun().")
+    help="The initial value of the loss's scale, see AdaptiveLossFunction.")
 flags.DEFINE_bool(
     "use_students_t",
     default=False,
@@ -420,18 +418,20 @@ def model_fn(features, labels, mode, params, config):
   residual = tf.reshape(features - decoder_mu, [-1] + [IMAGE_SIZE] * 2 + [3])
 
   if FLAGS.use_students_t:
-    nll = adaptive.image_lossfun(
-        residual,
+    lossfun = adaptive.AdaptiveImageLossFunction(
+        residual.shape[1:],
+        residual.dtype,
         color_space=FLAGS.color_space,
         representation=FLAGS.representation,
         wavelet_num_levels=FLAGS.wavelet_num_levels,
         wavelet_scale_base=FLAGS.wavelet_scale_base,
         use_students_t=FLAGS.use_students_t,
         scale_lo=FLAGS.scale_lo,
-        scale_init=FLAGS.scale_init)[0]
+        scale_init=FLAGS.scale_init)
   else:
-    nll = adaptive.image_lossfun(
-        residual,
+    lossfun = adaptive.AdaptiveImageLossFunction(
+        residual.shape[1:],
+        residual.dtype,
         color_space=FLAGS.color_space,
         representation=FLAGS.representation,
         wavelet_num_levels=FLAGS.wavelet_num_levels,
@@ -441,7 +441,9 @@ def model_fn(features, labels, mode, params, config):
         alpha_hi=FLAGS.alpha_hi,
         alpha_init=FLAGS.alpha_init,
         scale_lo=FLAGS.scale_lo,
-        scale_init=FLAGS.scale_init)[0]
+        scale_init=FLAGS.scale_init)
+
+  nll = lossfun(residual)
 
   nll = tf.reshape(nll, [tf.shape(decoder_mu)[0],
                          tf.shape(decoder_mu)[1]] + [IMAGE_SIZE] * 2 + [3])
@@ -578,8 +580,7 @@ def main(argv):
     raise ValueError("`output_dir` must be defined")
 
   if FLAGS.delete_existing and tf.gfile.Exists(FLAGS.output_dir):
-    tf.logging.warn("Deleting old log directory at {}".format(
-        FLAGS.output_dir))
+    tf.logging.warn("Deleting old log directory at {}".format(FLAGS.output_dir))
     tf.gfile.DeleteRecursively(FLAGS.output_dir)
   tf.gfile.MakeDirs(FLAGS.output_dir)
 

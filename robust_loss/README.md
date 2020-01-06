@@ -1,6 +1,6 @@
 # A General and Adaptive Robust Loss Function
 
-This directory contains reference code for the paper
+This directory contains Tensorflow 2 reference code for the paper
 [A General and Adaptive Robust Loss Function](https://arxiv.org/abs/1701.03077),
 Jonathan T. Barron CVPR, 2019
 

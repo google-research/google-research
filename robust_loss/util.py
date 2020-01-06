@@ -15,12 +15,8 @@
 
 """Helper functions."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v2 as tf
 
 
 
@@ -138,26 +134,30 @@ def syuv_to_rgb(yuv):
 
 def image_dct(image):
   """Does a type-II DCT (aka "The DCT") on axes 1 and 2 of a rank-3 tensor."""
-  dct_y = tf.transpose(tf.spectral.dct(image, type=2, norm='ortho'), [0, 2, 1])
-  dct_x = tf.transpose(tf.spectral.dct(dct_y, type=2, norm='ortho'), [0, 2, 1])
+  dct_y = tf.transpose(
+      a=tf.signal.dct(image, type=2, norm='ortho'), perm=[0, 2, 1])
+  dct_x = tf.transpose(
+      a=tf.signal.dct(dct_y, type=2, norm='ortho'), perm=[0, 2, 1])
   return dct_x
 
 
 def image_idct(dct_x):
   """Inverts image_dct(), by performing a type-III DCT."""
-  dct_y = tf.spectral.idct(tf.transpose(dct_x, [0, 2, 1]), type=2, norm='ortho')
-  image = tf.spectral.idct(tf.transpose(dct_y, [0, 2, 1]), type=2, norm='ortho')
+  dct_y = tf.signal.idct(
+      tf.transpose(dct_x, perm=[0, 2, 1]), type=2, norm='ortho')
+  image = tf.signal.idct(
+      tf.transpose(dct_y, perm=[0, 2, 1]), type=2, norm='ortho')
   return image
 
 
 def compute_jacobian(f, x):
   """Computes the Jacobian of function `f` with respect to input `x`."""
-  x_ph = tf.placeholder(tf.float32, x.shape)
-  vec = lambda x: tf.reshape(x, [-1])
-  jacobian = tf.stack(
-      [vec(tf.gradients(vec(f(x_ph))[d], x_ph)[0]) for d in range(x.size)], 1)
-  with tf.Session() as sess:
-    jacobian = sess.run(jacobian, {x_ph: x})
+  x = tf.convert_to_tensor(x)
+  with tf.GradientTape(persistent=True) as tape:
+    tape.watch(x)
+    vec = lambda x: tf.reshape(x, [-1])
+    jacobian = tf.stack(
+        [vec(tape.gradient(vec(f(x))[d], x)) for d in range(tf.size(x))])
   return jacobian
 
 

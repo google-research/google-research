@@ -15,11 +15,7 @@
 
 """Implements 1D cubic Hermite spline interpolation."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v2 as tf
 
 
 def interpolate1d(x, values, tangents):
@@ -32,8 +28,8 @@ def interpolate1d(x, values, tangents):
   "m" corresponds to `tangents`.
 
   Args:
-    x: A tensor of any size of single or double precision floats containing
-      the set of values to be used for interpolation into the spline.
+    x: A tensor of any size of single or double precision floats containing the
+      set of values to be used for interpolation into the spline.
     values: A vector of single or double precision floats containing the value
       of each knot of the spline being interpolated into. Must be the same
       length as `tangents` and the same type as `x`.
@@ -47,8 +43,8 @@ def interpolate1d(x, values, tangents):
     as `x`.
   """
   # `values` and `tangents` must have the same type as `x`.
-  tf.assert_type(values, x.dtype)
-  tf.assert_type(tangents, x.dtype)
+  tf.debugging.assert_type(values, x.dtype)
+  tf.debugging.assert_type(tangents, x.dtype)
   float_dtype = x.dtype
   assert_ops = [
       # `values` must be a vector.
@@ -65,8 +61,9 @@ def interpolate1d(x, values, tangents):
     # Find the indices of the knots below and above each x.
     x_lo = tf.cast(
         tf.floor(
-            tf.clip_by_value(x, 0., tf.cast(
-                tf.shape(values)[0] - 2, float_dtype))), tf.int32)
+            tf.clip_by_value(x, 0.,
+                             tf.cast(tf.shape(values)[0] - 2, float_dtype))),
+        tf.int32)
     x_hi = x_lo + 1
 
     # Compute the relative distance between each `x` and the knot below it.

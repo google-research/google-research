@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 r"""Approximate the distribution's partition function with a spline.
 
 This script generates values for the distribution's partition function and then
@@ -27,16 +28,14 @@ obtained by modifying the `x_max`, `x_scale`, and `redundancy` parameters in the
 code below, but this should only be done with care.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from absl import app
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v2 as tf
 from robust_loss import cubic_spline
 from robust_loss import distribution
 from robust_loss import general
+
+tf.enable_v2_behavior()
 
 
 def numerical_base_partition_function(alpha):
@@ -76,18 +75,15 @@ def main(argv):
   x_knots = np.arange(
       0, x_max + spline_spacing, spline_spacing, dtype=np.float64)
   table = []
-  with tf.Session() as sess:
-    x_knot_ph = tf.placeholder(dtype=tf.float64, shape=())
-    alpha_ph = distribution.inv_partition_spline_curve(x_knot_ph)
-    partition_ph = numerical_base_partition_function(alpha_ph)
-    # We iterate over knots, and for each knot recover the alpha value
-    # corresponding to that knot with inv_partition_spline_curve(), and then
-    # with that alpha we accurately approximate its partition function using
-    # numerical_base_partition_function().
-    for x_knot in x_knots:
-      alpha, partition = sess.run((alpha_ph, partition_ph), {x_knot_ph: x_knot})
-      table.append((x_knot, alpha, partition))
-      print(table[-1])
+  # We iterate over knots, and for each knot recover the alpha value
+  # corresponding to that knot with inv_partition_spline_curve(), and then
+  # with that alpha we accurately approximate its partition function using
+  # numerical_base_partition_function().
+  for x_knot in x_knots:
+    alpha = distribution.inv_partition_spline_curve(x_knot).numpy()
+    partition = numerical_base_partition_function(alpha).numpy()
+    table.append((x_knot, alpha, partition))
+    print(table[-1])
 
   table = np.array(table)
   x = table[:, 0]
@@ -108,48 +104,49 @@ def main(argv):
   # knot to have a fixed value Z(infinity) and a tangent of zero.
   n = len(values)
   tangents = tf.Variable(tangents, tf.float64)
-  tangents = tf.where(
-      np.arange(n) == (n - 1), tf.zeros_like(tangents), tangents)
-
   values = tf.Variable(values, tf.float64)
-  values = tf.where(
-      np.arange(n) == (n - 1),
-      tf.ones_like(tangents) * 0.70526025442689566, values)
-
-  # Interpolate into the spline.
-  y = cubic_spline.interpolate1d(x * x_scale, values, tangents)
-
-  # We minimize the maximum residual, which makes for a very ugly optimization
-  # problem but appears to work in practice, and is what we most care about.
-  loss = tf.reduce_max(tf.abs(y - y_gt))
 
   # Fit the spline.
   num_iters = 10001
-  with tf.Session() as sess:
-    global_step = tf.Variable(0, trainable=False)
 
-    opt = tf.train.MomentumOptimizer(learning_rate=1e-9, momentum=0.99)
-    step = opt.minimize(loss, global_step=global_step)
-    sess.run(tf.global_variables_initializer())
+  optimizer = tf.keras.optimizers.SGD(learning_rate=1e-9, momentum=0.99)
 
-    trace = []
-    for ii in range(num_iters):
-      _, i_loss, i_values, i_tangents, i_y = sess.run(
-          [step, loss, values, tangents, y])
-      trace.append(i_loss)
-      if (ii % 200) == 0:
-        print('%5d: %e' % (ii, i_loss))
+  trace = []
+  for ii in range(num_iters):
+    with tf.GradientTape() as tape:
+      tape.watch([values, tangents])
+      # Fix the endpoint to be a known constant with a zero tangent.
+      i_values = tf.where(
+          np.arange(n) == (n - 1),
+          tf.ones_like(values) * 0.70526025442689566, values)
+      i_tangents = tf.where(
+          np.arange(n) == (n - 1), tf.zeros_like(tangents), tangents)
+      i_y = cubic_spline.interpolate1d(x * x_scale, i_values, i_tangents)
+      # We minimize the maximum residual, which makes for a very ugly
+      # optimization problem but works well in practice.
+      i_loss = tf.reduce_max(tf.abs(i_y - y_gt))
+      grads = tape.gradient(i_loss, [values, tangents])
+      optimizer.apply_gradients(zip(grads, [values, tangents]))
+    trace.append(i_loss.numpy())
+    if (ii % 200) == 0:
+      print('{:5d}: {:e}'.format(ii, trace[-1]))
 
   mask = alpha <= 4
-  print('Max Error (a <= 4): %e' % np.max(np.abs(i_y[mask] - y_gt[mask])))
-  print('Max Error: %e' % np.max(np.abs(i_y - y_gt)))
+  max_error_a4 = np.max(np.abs(i_y[mask] - y_gt[mask]))
+  max_error = np.max(np.abs(i_y - y_gt))
+  print('Max Error (a <= 4): {:e}'.format(max_error_a4))
+  print('Max Error: {:e}'.format(max_error))
+
+  # Just a sanity-check on the error.
+  assert max_error_a4 <= 5e-7
+  assert max_error <= 5e-7
 
   # Save the spline to disk.
   np.savez(
       './data/partition_spline.npz',
       x_scale=x_scale,
-      values=i_values,
-      tangents=i_tangents)
+      values=i_values.numpy(),
+      tangents=i_tangents.numpy())
 
 
 if __name__ == '__main__':

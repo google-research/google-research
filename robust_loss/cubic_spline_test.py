@@ -15,13 +15,12 @@
 
 """Tests for cubic_spline.py."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v2 as tf
+
 from robust_loss import cubic_spline
+
+tf.enable_v2_behavior()
 
 
 class CubicSplineTest(tf.test.TestCase):
@@ -49,18 +48,12 @@ class CubicSplineTest(tf.test.TestCase):
     Typical usage example:
       y, dy_dx = self._interpolate1d(x, values, tangents)
     """
-    with tf.Session() as sess:
-      x_ph = tf.placeholder(x.dtype, x.shape)
-      values_ph = tf.placeholder(values.dtype, values.shape)
-      tangents_ph = tf.placeholder(tangents.dtype, tangents.shape)
-      y_ph = cubic_spline.interpolate1d(x_ph, values_ph, tangents_ph)
-      y, (dy_dx,) = sess.run((y_ph, tf.gradients(tf.reduce_sum(y_ph), (x_ph))),
-                             {
-                                 x_ph: x,
-                                 values_ph: values,
-                                 tangents_ph: tangents,
-                             })
-      return y, dy_dx
+    x = tf.convert_to_tensor(x)
+    with tf.GradientTape() as tape:
+      tape.watch(x)
+      y = cubic_spline.interpolate1d(x, values, tangents)
+      dy_dx = tape.gradient(y, x)
+    return y, dy_dx
 
   def _interpolation_preserves_dtype(self, float_dtype):
     """Check that interpolating at a knot produces the value at that knot."""
@@ -68,8 +61,7 @@ class CubicSplineTest(tf.test.TestCase):
     x = float_dtype(np.random.normal(size=n))
     values = float_dtype(np.random.normal(size=n))
     tangents = float_dtype(np.random.normal(size=n))
-    with self.session():
-      y = cubic_spline.interpolate1d(x, values, tangents).eval()
+    y = cubic_spline.interpolate1d(x, values, tangents)
     self.assertDTypeEqual(y, float_dtype)
 
   def testInterpolationPreservesDtypeSingle(self):
@@ -84,8 +76,7 @@ class CubicSplineTest(tf.test.TestCase):
     x = np.arange(n, dtype=float_dtype)
     values = float_dtype(np.random.normal(size=n))
     tangents = float_dtype(np.random.normal(size=n))
-    with self.session():
-      y = cubic_spline.interpolate1d(x, values, tangents).eval()
+    y = cubic_spline.interpolate1d(x, values, tangents)
     self.assertAllClose(y, values)
 
   def testInterpolationReproducesValuesAtKnotsSingle(self):
@@ -167,8 +158,8 @@ class CubicSplineTest(tf.test.TestCase):
     tangents = np.zeros_like(values)
 
     # Query n-1 points placed somewhere randomly in between all adjacent knots.
-    x = np.arange(n - 1, dtype=float_dtype) + float_dtype(
-        np.random.uniform(size=n - 1))
+    x = np.arange(
+        n - 1, dtype=float_dtype) + float_dtype(np.random.uniform(size=n - 1))
 
     # Get the interpolated values and derivatives.
     y, dy_dx = self._interpolate1d(x, values, tangents)
@@ -203,19 +194,18 @@ class CubicSplineTest(tf.test.TestCase):
     Args:
       float_dtype: the dtype of the floats to be tested.
     """
-    with self.session():
-      n = 256
-      # Generate queries inside and outside the support of the spline.
-      x = float_dtype((np.random.uniform(size=1024) * 2 - 0.5) * (n - 1))
-      idx = np.arange(n, dtype=float_dtype)
-      for _ in range(8):
-        slope = np.random.normal()
-        bias = np.random.normal()
-        values = slope * idx + bias
-        tangents = np.ones_like(values) * slope
-        y = cubic_spline.interpolate1d(x, values, tangents).eval()
-        y_true = slope * x + bias
-        self.assertAllClose(y, y_true)
+    n = 256
+    # Generate queries inside and outside the support of the spline.
+    x = float_dtype((np.random.uniform(size=1024) * 2 - 0.5) * (n - 1))
+    idx = np.arange(n, dtype=float_dtype)
+    for _ in range(8):
+      slope = np.random.normal()
+      bias = np.random.normal()
+      values = slope * idx + bias
+      tangents = np.ones_like(values) * slope
+      y = cubic_spline.interpolate1d(x, values, tangents)
+      y_true = slope * x + bias
+      self.assertAllClose(y, y_true)
 
   def testLinearRampsReproduceCorrectlySingle(self):
     self._linear_ramps_reproduce_correctly(np.float32)
@@ -233,26 +223,25 @@ class CubicSplineTest(tf.test.TestCase):
     Args:
       float_dtype: the dtype of the floats to be tested.
     """
-    with self.session():
-      n = 256
-      # Generate queries above and below the support of the spline.
-      x_below = float_dtype(-(np.random.uniform(size=1024)) * (n - 1))
-      x_above = float_dtype((np.random.uniform(size=1024) + 1.) * (n - 1))
-      for _ in range(8):
-        values = float_dtype(np.random.normal(size=n))
-        tangents = float_dtype(np.random.normal(size=n))
+    n = 256
+    # Generate queries above and below the support of the spline.
+    x_below = float_dtype(-(np.random.uniform(size=1024)) * (n - 1))
+    x_above = float_dtype((np.random.uniform(size=1024) + 1.) * (n - 1))
+    for _ in range(8):
+      values = float_dtype(np.random.normal(size=n))
+      tangents = float_dtype(np.random.normal(size=n))
 
-        # Query the spline below its support and check that it's a linear ramp
-        # with the slope and bias of the beginning of the spline.
-        y_below = cubic_spline.interpolate1d(x_below, values, tangents).eval()
-        y_below_true = tangents[0] * x_below + values[0]
-        self.assertAllClose(y_below, y_below_true)
+      # Query the spline below its support and check that it's a linear ramp
+      # with the slope and bias of the beginning of the spline.
+      y_below = cubic_spline.interpolate1d(x_below, values, tangents)
+      y_below_true = tangents[0] * x_below + values[0]
+      self.assertAllClose(y_below, y_below_true)
 
-        # Query the spline above its support and check that it's a linear ramp
-        # with the slope and bias of the end of the spline.
-        y_above = cubic_spline.interpolate1d(x_above, values, tangents).eval()
-        y_above_true = tangents[-1] * (x_above - (n - 1)) + values[-1]
-        self.assertAllClose(y_above, y_above_true)
+      # Query the spline above its support and check that it's a linear ramp
+      # with the slope and bias of the end of the spline.
+      y_above = cubic_spline.interpolate1d(x_above, values, tangents)
+      y_above_true = tangents[-1] * (x_above - (n - 1)) + values[-1]
+      self.assertAllClose(y_above, y_above_true)
 
   def testExtrapolationIsLinearSingle(self):
     self._extrapolation_is_linear(np.float32)
