@@ -23,7 +23,7 @@ from __future__ import print_function
 import math
 
 import sonnet as snt
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def relu1(x):

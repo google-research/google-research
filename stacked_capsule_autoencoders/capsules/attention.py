@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import numpy as np
 import sonnet as snt
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class SetTransformer(snt.AbstractModule):
