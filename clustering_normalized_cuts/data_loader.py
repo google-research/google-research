@@ -22,10 +22,10 @@ import tempfile
 import time
 
 import numpy as np
-from tensorflow import gfile
-from tensorflow.keras import backend as K
-from tensorflow.keras.datasets import mnist
-from tensorflow.keras.models import model_from_json
+from tensorflow.compat.v1 import gfile
+from tensorflow.compat.v1.keras import backend as K
+from tensorflow.compat.v1.keras.datasets import mnist
+from tensorflow.compat.v1.keras.models import model_from_json
 
 from clustering_normalized_cuts import pairs
 

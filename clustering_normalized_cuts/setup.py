@@ -17,7 +17,7 @@
 
 from absl import flags
 from numpy.random import seed
-from tensorflow import set_random_seed
+from tensorflow.compat.v1 import set_random_seed
 
 flags.DEFINE_string('dset', 'mnist', 'dataset')
 flags.DEFINE_float('cnc_lr', 0.005, 'cnc learning rate')

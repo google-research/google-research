@@ -38,7 +38,7 @@ import gym
 import numpy as np
 from replay_buffer import ReplayBuffer
 from replay_buffer import TimeStep
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from utils import do_rollout
 from tensorflow.contrib import summary as contrib_summary
 from tensorflow.contrib.eager.python import tfe as contrib_eager_python_tfe

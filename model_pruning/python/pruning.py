@@ -76,7 +76,7 @@ from __future__ import division
 from __future__ import print_function
 
 import re
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from model_pruning.python import pruning_utils
 from tensorflow.contrib import training as contrib_training

@@ -26,7 +26,7 @@ from absl import logging
 from common import Actor
 import gym
 import lfd_envs
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from utils import do_rollout
 from tensorflow.contrib import summary as contrib_summary
 from tensorflow.contrib import training as contrib_training

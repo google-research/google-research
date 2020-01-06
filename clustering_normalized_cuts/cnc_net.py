@@ -20,9 +20,9 @@ from __future__ import print_function
 import numpy as np
 from sklearn.metrics import normalized_mutual_info_score as nmi
 from sklearn.preprocessing import OneHotEncoder
-import tensorflow as tf
-from tensorflow import gfile
-from tensorflow.keras.layers import Input
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import gfile
+from tensorflow.compat.v1.keras.layers import Input
 
 from clustering_normalized_cuts import networks
 from clustering_normalized_cuts.util import print_accuracy

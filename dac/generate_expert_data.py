@@ -26,7 +26,7 @@ from absl import app
 from absl import flags
 import h5py
 from replay_buffer import ReplayBuffer
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib.eager.python import tfe as contrib_eager_python_tfe
 
 FLAGS = flags.FLAGS

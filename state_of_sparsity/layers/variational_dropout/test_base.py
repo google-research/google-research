@@ -20,7 +20,7 @@ from __future__ import print_function
 
 import functools
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from state_of_sparsity.layers.utils import test_utils
 
