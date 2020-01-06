@@ -27,13 +27,13 @@ import sys
 from absl import flags
 from absl import logging
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
-from tensorflow.keras import callbacks
-from tensorflow.keras import layers
-from tensorflow.keras import models
-from tensorflow.keras import optimizers
-from tensorflow.keras import regularizers
+from tensorflow.compat.v1.keras import callbacks
+from tensorflow.compat.v1.keras import layers
+from tensorflow.compat.v1.keras import models
+from tensorflow.compat.v1.keras import optimizers
+from tensorflow.compat.v1.keras import regularizers
 import tensorflow_probability as tfp
 from tensorflow_probability import layers as tfpl
 

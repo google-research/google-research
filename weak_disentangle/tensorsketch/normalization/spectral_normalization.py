@@ -17,7 +17,7 @@
 """Spectral normalization utilities."""
 
 # pylint: disable=g-importing-member, g-bad-import-order
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from weak_disentangle.tensorsketch.modules.base import build_with_name_scope
 from weak_disentangle.tensorsketch.normalization.base import KernelNorm

@@ -19,7 +19,7 @@
 
 # pylint: disable=g-importing-member, g-bad-import-order
 from collections import OrderedDict
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from weak_disentangle.tensorsketch import utils as tsu
 

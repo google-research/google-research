@@ -26,7 +26,7 @@ from __future__ import print_function
 import collections
 import re
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # disable pylint for keeping the original code from Hendrycks.
 # pylint: disable=bare-except
