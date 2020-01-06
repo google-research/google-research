@@ -20,8 +20,8 @@ from __future__ import division
 from __future__ import print_function
 
 import sonnet as snt
-import tensorflow as tf
-from tensorflow import nest
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import nest
 import tensorflow_probability as tfp
 
 from stacked_capsule_autoencoders.capsules.math_ops import safe_log

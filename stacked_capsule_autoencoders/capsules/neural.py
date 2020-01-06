@@ -23,8 +23,8 @@ from __future__ import print_function
 import math
 import numpy as np
 import sonnet as snt
-import tensorflow as tf
-from tensorflow import nest
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import nest
 
 
 class BatchLinear(snt.AbstractModule):

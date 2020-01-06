@@ -27,7 +27,7 @@ import random
 import time
 from absl import flags
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from norml import rollout_service
 from norml.tools import utility

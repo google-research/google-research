@@ -23,8 +23,8 @@ import collections
 from monty.collections import AttrDict
 import numpy as np
 import sonnet as snt
-import tensorflow as tf
-from tensorflow import nest
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import nest
 import tensorflow_probability as tfp
 
 from stacked_capsule_autoencoders.capsules import math_ops

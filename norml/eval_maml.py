@@ -43,7 +43,7 @@ from absl import flags
 import cv2
 from matplotlib.pylab import plt
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from norml import maml_rl
 from norml import tools
 from norml.tools import utility

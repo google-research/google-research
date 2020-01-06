@@ -23,7 +23,7 @@ from __future__ import division
 from __future__ import print_function
 from absl import flags
 from dotmap import DotMap
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from norml import config_maml
 from norml import maml_rl
