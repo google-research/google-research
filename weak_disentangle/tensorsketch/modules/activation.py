@@ -18,7 +18,7 @@
 """
 
 # pylint: disable=g-bad-import-order
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from weak_disentangle.tensorsketch.modules.base import Module
 

@@ -26,8 +26,8 @@ from absl import flags
 from absl import logging
 import numpy as np
 from sklearn import metrics
-import tensorflow as tf
-from tensorflow.keras import models
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1.keras import models
 import tensorflow_datasets as tfds
 import yaml
 
