@@ -16,7 +16,7 @@
 """Input reading functions."""
 
 from options import FLAGS
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 IMG_SIZE = FLAGS.img_size
 NUM_CHANNELS = 1

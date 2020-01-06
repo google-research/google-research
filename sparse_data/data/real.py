@@ -26,7 +26,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.utils import shuffle as shuffle_arrays
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FILE_PATH = 'trees/raw_data'
 RANDOM_STATE = 109971161161043253 % 8085

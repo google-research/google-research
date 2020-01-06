@@ -21,7 +21,7 @@ for smooth linear and multiplicative functions.
 """
 
 import numpy as np
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 from tensorflow.contrib import layers as contrib_layers
 
 SEED = 49 + 32 + 67 + 111 + 114 + 32 + 49 + 51 + 58 + 52 + 45 + 56

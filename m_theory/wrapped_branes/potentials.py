@@ -29,7 +29,7 @@ from __future__ import print_function
 import collections
 import dataclasses
 import numpy
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # TensorFlow based matrix exponentiation that supports higher derivatives.
 # Will not be needed for TensorFlow1.15+.

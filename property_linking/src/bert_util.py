@@ -18,7 +18,7 @@
 
 from bert import tokenization as bert_tokenization
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_hub as hub
 
 # Some functions are copied from bert, but a direct import of

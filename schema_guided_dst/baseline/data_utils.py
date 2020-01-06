@@ -25,7 +25,7 @@ import json
 import os
 import re
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from schema_guided_dst import schema
 from schema_guided_dst.baseline.bert import tokenization

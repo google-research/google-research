@@ -25,10 +25,10 @@ from __future__ import print_function
 
 import numpy as np
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import matplotlib.pyplot as plt
-from tensorflow.keras.layers import Input, Dense, Flatten, Dropout
-from tensorflow.keras.models import Model
+from tensorflow.compat.v1.keras.layers import Input, Dense, Flatten, Dropout
+from tensorflow.compat.v1.keras.models import Model
 
 from absl import app
 

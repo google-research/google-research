@@ -23,7 +23,7 @@ import cv2
 import input_data
 import numpy as np
 from options import FLAGS
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def class_explainability(labels, weights):

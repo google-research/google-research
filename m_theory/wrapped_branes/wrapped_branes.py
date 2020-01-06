@@ -38,7 +38,7 @@ import dataclasses
 import numpy
 import scipy.optimize
 import sys
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # The actual problem definitions.
 from wrapped_branes import potentials
