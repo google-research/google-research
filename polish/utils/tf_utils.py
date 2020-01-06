@@ -22,7 +22,7 @@ from absl import flags
 from absl import logging
 import gin
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import predictor as contrib_predictor
 from tensorflow.contrib import slim as contrib_slim
 slim = contrib_slim

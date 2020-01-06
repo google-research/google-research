@@ -24,7 +24,7 @@ from __future__ import division
 from __future__ import print_function
 
 from absl import flags
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from motion_blur.train import dataset
 from motion_blur.train import estimator
