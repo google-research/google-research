@@ -25,7 +25,7 @@ from __future__ import division
 from __future__ import print_function
 
 import absl.testing.parameterized as parameterized
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 import state_of_sparsity.layers.l0_regularization as l0
 

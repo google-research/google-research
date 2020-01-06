@@ -23,7 +23,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import expert_utils
 from tensor2tensor.utils import mlperf_log
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from state_of_sparsity.sparse_transformer.layers import sparse_attention
 from state_of_sparsity.sparse_transformer.layers import sparse_layers
 

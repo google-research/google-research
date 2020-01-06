@@ -22,7 +22,7 @@ from six.moves import range  # pylint: disable=redefined-builtin
 
 from tensor2tensor.layers import common_layers
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import state_of_sparsity.layers.l0_regularization as l0
 import state_of_sparsity.layers.variational_dropout as vd
 from state_of_sparsity.sparse_transformer.layers import common_sparse
