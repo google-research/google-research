@@ -15,19 +15,18 @@
 
 """Tests for wavelet.py."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+from absl.testing import parameterized
 import numpy as np
 import PIL.Image
 import scipy.io
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v2 as tf
 from robust_loss import util
 from robust_loss import wavelet
 
+tf.enable_v2_behavior()
 
-class WaveletTest(tf.test.TestCase):
+
+class WaveletTest(parameterized.TestCase, tf.test.TestCase):
 
   def setUp(self):
     super(WaveletTest, self).setUp()
@@ -55,19 +54,16 @@ class WaveletTest(tf.test.TestCase):
       axis = int(np.floor(np.random.uniform() * 3.))
 
       if axis == 0:
-        reference = tf.pad(x, [[padding_below, padding_above], [0, 0], [0, 0]],
-                           'REFLECT')
+        reference = tf.pad(
+            x, [[padding_below, padding_above], [0, 0], [0, 0]], mode='REFLECT')
       elif axis == 1:
-        reference = tf.pad(x, [[0, 0], [padding_below, padding_above], [0, 0]],
-                           'REFLECT')
+        reference = tf.pad(
+            x, [[0, 0], [padding_below, padding_above], [0, 0]], mode='REFLECT')
       elif axis == 2:
-        reference = tf.pad(x, [[0, 0], [0, 0], [padding_below, padding_above]],
-                           'REFLECT')
+        reference = tf.pad(
+            x, [[0, 0], [0, 0], [padding_below, padding_above]], mode='REFLECT')
 
-      with self.session():
-        result = wavelet.pad_reflecting(x, padding_below, padding_above,
-                                        axis).eval()
-        reference = reference.eval()
+      result = wavelet.pad_reflecting(x, padding_below, padding_above, axis)
       self.assertAllEqual(result.shape, reference.shape)
       self.assertAllEqual(result, reference)
 
@@ -77,13 +73,12 @@ class WaveletTest(tf.test.TestCase):
       n = int(np.random.uniform() * 8.) + 1
       p = n - 1
       x = np.random.uniform(size=(n))
-      with self.session():
-        result1 = wavelet.pad_reflecting(x, p, p, 0).eval()
-        result2 = wavelet.pad_reflecting(x, 2 * p, 2 * p, 0).eval()
-        result3 = wavelet.pad_reflecting(x, 3 * p, 3 * p, 0).eval()
-        reference1 = tf.pad(x, [[p, p]], 'REFLECT').eval()
-        reference2 = tf.pad(reference1, [[p, p]], 'REFLECT').eval()
-        reference3 = tf.pad(reference2, [[p, p]], 'REFLECT').eval()
+      result1 = wavelet.pad_reflecting(x, p, p, 0)
+      result2 = wavelet.pad_reflecting(x, 2 * p, 2 * p, 0)
+      result3 = wavelet.pad_reflecting(x, 3 * p, 3 * p, 0)
+      reference1 = tf.pad(x, [[p, p]], mode='REFLECT')
+      reference2 = tf.pad(reference1, [[p, p]], mode='REFLECT')
+      reference3 = tf.pad(reference2, [[p, p]], mode='REFLECT')
       self.assertAllEqual(result1.shape, reference1.shape)
       self.assertAllEqual(result1, reference1)
       self.assertAllEqual(result2.shape, reference2.shape)
@@ -97,11 +92,14 @@ class WaveletTest(tf.test.TestCase):
     p0 = 17
     p1 = 13
     x = np.arange(n)
-    reference1 = np.concatenate((np.arange(3, 0, -1), np.arange(n),
-                                 np.arange(n - 2, 0, -1), np.arange(n),
-                                 np.arange(n - 2, 0, -1), np.arange(7)))
-    with self.session():
-      result1 = wavelet.pad_reflecting(x, p0, p1, 0).eval()
+    reference1 = np.concatenate(
+        (np.arange(3, 0, -1),
+         np.arange(n),
+         np.arange(n - 2, 0, -1),
+         np.arange(n),
+         np.arange(n - 2, 0, -1),
+         np.arange(7)))  # pyformat: disable
+    result1 = wavelet.pad_reflecting(x, p0, p1, 0)
     self.assertAllEqual(result1.shape, reference1.shape)
     self.assertAllEqual(result1, reference1)
 
@@ -111,10 +109,12 @@ class WaveletTest(tf.test.TestCase):
     p0 = 15
     p1 = 7
     x = np.arange(n)
-    reference1 = np.concatenate((np.arange(5, n), np.arange(n - 2, 0, -1),
-                                 np.arange(n), np.arange(n - 2, 2, -1)))
-    with self.session():
-      result1 = wavelet.pad_reflecting(x, p0, p1, 0).eval()
+    reference1 = np.concatenate(
+        (np.arange(5, n),
+         np.arange(n - 2, 0, -1),
+         np.arange(n),
+         np.arange(n - 2, 2, -1)))  # pyformat: disable
+    result1 = wavelet.pad_reflecting(x, p0, p1, 0)
     self.assertAllEqual(result1.shape, reference1.shape)
     self.assertAllEqual(result1, reference1)
 
@@ -129,25 +129,16 @@ class WaveletTest(tf.test.TestCase):
 
   def testWaveletTransformationIsVolumePreserving(self):
     """Tests that construct() is volume preserving when size is a power of 2."""
+    sz = (1, 4, 4)
+    num_levels = 2
+    im = np.float32(np.random.uniform(0., 1., sz))
     for wavelet_type in wavelet.generate_filters():
-      sz = (1, 4, 4)
-      num_levels = 2
       # Construct the Jacobian of construct().
-      im = np.float32(np.random.uniform(0., 1., sz))
-      im_ph = tf.placeholder(tf.float32, im.shape)
-      jacobian = []
-      vec = lambda x: tf.reshape(x, [-1])
-      for d in range(im.size):
-        jacobian.append(
-            vec(
-                tf.gradients(
-                    vec(
-                        wavelet.flatten(
-                            wavelet.construct(im_ph, num_levels,
-                                              wavelet_type)))[d], im_ph)[0]))
-      jacobian = tf.stack(jacobian, 1)
-      with self.session() as sess:
-        jacobian = sess.run(jacobian, {im_ph: im})
+      def fun(z):
+        # pylint: disable=cell-var-from-loop
+        return wavelet.flatten(wavelet.construct(z, num_levels, wavelet_type))
+
+      jacobian = util.compute_jacobian(fun, im)
       # Assert that the determinant of the Jacobian is close to 1.
       det = np.linalg.det(jacobian)
       self.assertAllClose(det, 1., atol=1e-5, rtol=1e-5)
@@ -177,24 +168,18 @@ class WaveletTest(tf.test.TestCase):
     """Tests construct() against golden data."""
     im, pyr_true, wavelet_type = self._load_golden_data()
     pyr = wavelet.construct(im, len(pyr_true) - 1, wavelet_type)
-    with self.session() as sess:
-      pyr = sess.run(pyr)
     self._assert_pyramids_close(pyr, pyr_true, 1e-5)
 
   def testCollapseMatchesGoldenData(self):
     """Tests collapse() against golden data."""
     im, pyr_true, wavelet_type = self._load_golden_data()
     recon = wavelet.collapse(pyr_true, wavelet_type)
-    with self.session() as sess:
-      recon = sess.run(recon)
     self.assertAllClose(recon, im, atol=1e-5, rtol=1e-5)
 
   def testVisualizeMatchesGoldenData(self):
     """Tests visualize() (and implicitly flatten())."""
     _, pyr, _ = self._load_golden_data()
     vis = wavelet.visualize(pyr)
-    with self.session() as sess:
-      vis = sess.run(vis)
     golden_vis_filename = 'robust_loss/data/wavelet_vis_golden.png'
     vis_true = np.asarray(
         PIL.Image.open(util.get_resource_filename(golden_vis_filename)))
@@ -203,34 +188,30 @@ class WaveletTest(tf.test.TestCase):
 
   def testAccurateRoundTripWithSmallRandomImages(self):
     """Tests that collapse(construct(x)) == x for x = [1, k, k], k in [1, 4]."""
-    with self.session() as sess:
-      for wavelet_type in wavelet.generate_filters():
-        for width in range(1, 5):
-          sz = [1, width, width]
-          num_levels = sess.run(wavelet.get_max_num_levels(sz))
-          im = np.random.uniform(size=sz)
+    for wavelet_type in wavelet.generate_filters():
+      for width in range(1, 5):
+        sz = [1, width, width]
+        num_levels = wavelet.get_max_num_levels(sz)
+        im = np.random.uniform(size=sz)
 
-          pyr = wavelet.construct(im, num_levels, wavelet_type)
-          recon = wavelet.collapse(pyr, wavelet_type)
-          pyr, recon = sess.run((pyr, recon))
-          self.assertAllClose(recon, im, atol=1e-8, rtol=1e-8)
+        pyr = wavelet.construct(im, num_levels, wavelet_type)
+        recon = wavelet.collapse(pyr, wavelet_type)
+        self.assertAllClose(recon, im, atol=1e-8, rtol=1e-8)
 
   def testAccurateRoundTripWithLargeRandomImages(self):
     """Tests that collapse(construct(x)) == x for large random x's."""
-    with self.session() as sess:
-      for wavelet_type in wavelet.generate_filters():
-        for _ in range(4):
-          num_levels = np.int32(np.ceil(4 * np.random.uniform()))
-          sz_clamp = 2**(num_levels - 1) + 1
-          sz = np.maximum(
-              np.int32(
-                  np.ceil(np.array([2, 32, 32]) * np.random.uniform(size=3))),
-              np.array([0, sz_clamp, sz_clamp]))
-          im = np.random.uniform(size=sz)
-          pyr = wavelet.construct(im, num_levels, wavelet_type)
-          recon = wavelet.collapse(pyr, wavelet_type)
-          pyr, recon = sess.run([pyr, recon])
-          self.assertAllClose(recon, im, atol=1e-8, rtol=1e-8)
+    for wavelet_type in wavelet.generate_filters():
+      for _ in range(4):
+        num_levels = np.int32(np.ceil(4 * np.random.uniform()))
+        sz_clamp = 2**(num_levels - 1) + 1
+        sz = np.maximum(
+            np.int32(
+                np.ceil(np.array([2, 32, 32]) * np.random.uniform(size=3))),
+            np.array([0, sz_clamp, sz_clamp]))
+        im = np.random.uniform(size=sz)
+        pyr = wavelet.construct(im, num_levels, wavelet_type)
+        recon = wavelet.collapse(pyr, wavelet_type)
+        self.assertAllClose(recon, im, atol=1e-8, rtol=1e-8)
 
   def testDecompositionIsNonRedundant(self):
     """Test that wavelet construction is not redundant.
@@ -241,48 +222,50 @@ class WaveletTest(tf.test.TestCase):
     3) Collapse that decomposition into an image and back
     and the two wavelet decompositions should be the same.
     """
-    with self.session() as sess:
-      for wavelet_type in wavelet.generate_filters():
-        for _ in range(4):
-          # Construct an image and a wavelet decomposition of it.
-          num_levels = np.int32(np.ceil(4 * np.random.uniform()))
-          sz_clamp = 2**(num_levels - 1) + 1
-          sz = np.maximum(
-              np.int32(
-                  np.ceil(np.array([2, 32, 32]) * np.random.uniform(size=3))),
-              np.array([0, sz_clamp, sz_clamp]))
-          im = np.random.uniform(size=sz)
-          pyr = wavelet.construct(im, num_levels, wavelet_type)
-          pyr = sess.run(pyr)
+    for wavelet_type in wavelet.generate_filters():
+      for _ in range(4):
+        # Construct an image and a wavelet decomposition of it.
+        num_levels = np.int32(np.ceil(4 * np.random.uniform()))
+        sz_clamp = 2**(num_levels - 1) + 1
+        sz = np.maximum(
+            np.int32(
+                np.ceil(np.array([2, 32, 32]) * np.random.uniform(size=3))),
+            np.array([0, sz_clamp, sz_clamp]))
+        im = np.random.uniform(size=sz)
+        pyr = wavelet.construct(im, num_levels, wavelet_type)
+        pyr = list(pyr)
 
-        # Pick a coefficient at random in the decomposition to alter.
-        d = np.int32(np.floor(np.random.uniform() * len(pyr)))
-        v = np.random.uniform()
-        if d == (len(pyr) - 1):
-          if np.prod(pyr[d].shape) > 0:
-            c, i, j = np.int32(
-                np.floor(np.array(np.random.uniform(size=3)) *
-                         pyr[d].shape)).tolist()
-            pyr[d][c, i, j] = v
-        else:
-          b = np.int32(np.floor(np.random.uniform() * len(pyr[d])))
-          if np.prod(pyr[d][b].shape) > 0:
-            c, i, j = np.int32(
-                np.floor(np.array(np.random.uniform(size=3)) *
-                         pyr[d][b].shape)).tolist()
-            pyr[d][b][c, i, j] = v
+      # Pick a coefficient at random in the decomposition to alter.
+      d = np.int32(np.floor(np.random.uniform() * len(pyr)))
+      v = np.random.uniform()
+      if d == (len(pyr) - 1):
+        if np.prod(pyr[d].shape) > 0:
+          c, i, j = np.int32(
+              np.floor(np.array(np.random.uniform(size=3)) *
+                       pyr[d].shape)).tolist()
+          pyr[d] = pyr[d].numpy()
+          pyr[d][c, i, j] = v
+      else:
+        b = np.int32(np.floor(np.random.uniform() * len(pyr[d])))
+        if np.prod(pyr[d][b].shape) > 0:
+          c, i, j = np.int32(
+              np.floor(np.array(np.random.uniform(size=3)) *
+                       pyr[d][b].shape)).tolist()
+          pyr[d] = list(pyr[d])
+          pyr[d][b] = pyr[d][b].numpy()
+          pyr[d][b][c, i, j] = v
 
-        # Collapse and then reconstruct the wavelet decomposition, and check
-        # that it is unchanged.
-        recon = wavelet.collapse(pyr, wavelet_type)
-        pyr_again = wavelet.construct(recon, num_levels, wavelet_type)
-        pyr_again = sess.run(pyr_again)
-        self._assert_pyramids_close(pyr, pyr_again, 1e-8)
+      # Collapse and then reconstruct the wavelet decomposition, and check
+      # that it is unchanged.
+      recon = wavelet.collapse(pyr, wavelet_type)
+      pyr_again = wavelet.construct(recon, num_levels, wavelet_type)
+      self._assert_pyramids_close(pyr, pyr_again, 1e-8)
 
   def testUpsampleAndDownsampleAreTransposes(self):
     """Tests that _downsample() is the transpose of _upsample()."""
     n = 8
-    x = np.random.uniform(size=(1, n, 1))
+    x = tf.convert_to_tensor(np.random.uniform(size=(1, n, 1)))
+
     for f_len in range(1, 5):
       f = np.random.uniform(size=f_len)
       for shift in [0, 1]:
@@ -296,33 +279,23 @@ class WaveletTest(tf.test.TestCase):
         range2 = np.arange(f_len // 4, n // 2 - (f_len // 4))
 
         y = wavelet._downsample(x, f, 0, shift)
+        vec = lambda z: tf.reshape(z, [-1])
 
-        # Construct the jacobian of _downsample().
-        x_ph = tf.placeholder(tf.float32, x.shape)
         jacobian_down = []
-        vec = lambda x: tf.reshape(x, [-1])
-        for d in range2:
-          jacobian_down.append(
-              vec(
-                  tf.gradients(
-                      vec(wavelet._downsample(x_ph, f, 0, shift))[d], x_ph)[0]))
-        jacobian_down = tf.stack(jacobian_down, 1)
-        with tf.Session() as sess:
-          jacobian_down, y = sess.run([jacobian_down, y], {x_ph: x})
+        with tf.GradientTape(persistent=True) as tape:
+          tape.watch(x)
+          for d in range2:
+            yd = vec(wavelet._downsample(x, f, 0, shift))[d]
+            jacobian_down.append(vec(tape.gradient(yd, x)))
+          jacobian_down = tf.stack(jacobian_down, 1).numpy()
 
-        # Construct the jacobian of _upsample().
-        y_ph = tf.placeholder(tf.float32, y.shape)
         jacobian_up = []
-        vec = lambda x: tf.reshape(x, [-1])
-        for d in range1:
-          jacobian_up.append(
-              vec(
-                  tf.gradients(
-                      vec(wavelet._upsample(y_ph, x.shape[1:], f, 0, shift))[d],
-                      y_ph)[0]))
-        jacobian_up = tf.stack(jacobian_up, 1)
-        with tf.Session() as sess:
-          jacobian_up = sess.run(jacobian_up, {y_ph: y})
+        with tf.GradientTape(persistent=True) as tape:
+          tape.watch(y)
+          for d in range1:
+            xd = vec(wavelet._upsample(y, x.shape[1:], f, 0, shift))[d]
+            jacobian_up.append(vec(tape.gradient(xd, y)))
+          jacobian_up = tf.stack(jacobian_up, 1).numpy()
 
         # Test that the jacobian of _downsample() is close to the transpose of
         # the jacobian of _upsample().
@@ -332,21 +305,18 @@ class WaveletTest(tf.test.TestCase):
             atol=1e-6,
             rtol=1e-6)
 
-  def _construct_preserves_dtype(self, float_dtype):
+  @parameterized.named_parameters(('Single', np.float32),
+                                  ('Double', np.float64))
+  def testConstructPreservesDtype(self, float_dtype):
     """Checks that construct()'s output has the same precision as its input."""
     x = float_dtype(np.random.normal(size=(3, 16, 16)))
     for wavelet_type in wavelet.generate_filters():
-      with self.session():
-        y = wavelet.flatten(wavelet.construct(x, 3, wavelet_type)).eval()
+      y = wavelet.flatten(wavelet.construct(x, 3, wavelet_type))
       self.assertDTypeEqual(y, float_dtype)
 
-  def testConstructPreservesDtypeSingle(self):
-    self._construct_preserves_dtype(np.float32)
-
-  def testConstructPreservesDtypeDouble(self):
-    self._construct_preserves_dtype(np.float64)
-
-  def _collapse_preserves_dtype(self, float_dtype):
+  @parameterized.named_parameters(('Single', np.float32),
+                                  ('Double', np.float64))
+  def testCollapsePreservesDtype(self, float_dtype):
     """Checks that collapse()'s output has the same precision as its input."""
     n = 16
     x = []
@@ -357,23 +327,14 @@ class WaveletTest(tf.test.TestCase):
       x.append(band)
     x.append(float_dtype(np.random.normal(size=(3, n, n))))
     for wavelet_type in wavelet.generate_filters():
-      with self.session():
-        y = wavelet.collapse(x, wavelet_type).eval()
+      y = wavelet.collapse(x, wavelet_type)
       self.assertDTypeEqual(y, float_dtype)
-
-  def testCollapsePreservesDtypeSingle(self):
-    self._collapse_preserves_dtype(np.float32)
-
-  def testCollapsePreservesDtypeDouble(self):
-    self._collapse_preserves_dtype(np.float64)
 
   def testRescaleOneIsANoOp(self):
     """Tests that rescale(x, 1) = x."""
     im = np.random.uniform(size=(2, 32, 32))
     pyr = wavelet.construct(im, 4, 'LeGall5/3')
     pyr_rescaled = wavelet.rescale(pyr, 1.)
-    with self.session() as sess:
-      pyr, pyr_rescaled = sess.run([pyr, pyr_rescaled])
     self._assert_pyramids_close(pyr, pyr_rescaled, 1e-8)
 
   def testRescaleDoesNotAffectTheFirstLevel(self):
@@ -381,8 +342,6 @@ class WaveletTest(tf.test.TestCase):
     im = np.random.uniform(size=(2, 32, 32))
     pyr = wavelet.construct(im, 4, 'LeGall5/3')
     pyr_rescaled = wavelet.rescale(pyr, np.exp(np.random.normal()))
-    with self.session() as sess:
-      pyr, pyr_rescaled = sess.run([pyr, pyr_rescaled])
     self._assert_pyramids_close(pyr[0:1], pyr_rescaled[0:1], 1e-8)
 
   def testRescaleOneHalfIsNormalized(self):
@@ -392,8 +351,6 @@ class WaveletTest(tf.test.TestCase):
       im = k * np.ones((2, 32, 32))
       pyr = wavelet.construct(im, num_levels, 'LeGall5/3')
       pyr_rescaled = wavelet.rescale(pyr, 0.5)
-      with self.session() as sess:
-        pyr_rescaled = sess.run(pyr_rescaled)
       self.assertAllClose(
           pyr_rescaled[-1],
           k * np.ones_like(pyr_rescaled[-1]),

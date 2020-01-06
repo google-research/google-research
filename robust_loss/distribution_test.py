@@ -15,19 +15,19 @@
 
 """Tests for distribution.py."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+from absl.testing import parameterized
 import numpy as np
 import scipy.stats
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v2 as tf
 from robust_loss import distribution
 
+tf.enable_v2_behavior()
 
-class DistributionTest(tf.test.TestCase):
+
+class DistributionTest(parameterized.TestCase, tf.test.TestCase):
 
   def setUp(self):
+    self._distribution = distribution.Distribution()
     super(DistributionTest, self).setUp()
     np.random.seed(0)
 
@@ -35,17 +35,19 @@ class DistributionTest(tf.test.TestCase):
     """Tests that partition_spline_curve() and its derivative are continuous."""
     x1 = np.linspace(0., 8., 10000, dtype=np.float64)
     x2 = x1 + 1e-7
-    x_ph = tf.placeholder(x1.dtype, len(x1))
-    splinefun_ph = distribution.partition_spline_curve(x_ph)
-    with self.session() as sess:
-      y1, (dy1,) = sess.run(
-          (splinefun_ph, tf.gradients(tf.reduce_sum(splinefun_ph), (x_ph))),
-          feed_dict={x_ph: x1})
-      y2, (dy2,) = sess.run(
-          (splinefun_ph, tf.gradients(tf.reduce_sum(splinefun_ph),
-                                      (x_ph))), {x_ph: x2})
-    self.assertAllClose(y1, y2)
-    self.assertAllClose(dy1, dy2)
+
+    x1 = tf.convert_to_tensor(x1)
+    x2 = tf.convert_to_tensor(x2)
+
+    with tf.GradientTape(persistent=True) as tape:
+      tape.watch(x1)
+      tape.watch(x2)
+      y1 = distribution.partition_spline_curve(x1)
+      y2 = distribution.partition_spline_curve(x2)
+      dy1 = tape.gradient(tf.reduce_sum(y1), x1)
+      dy2 = tape.gradient(tf.reduce_sum(y2), x2)
+      self.assertAllClose(y1, y2)
+      self.assertAllClose(dy1, dy2)
 
   def testAnalyaticalPartitionIsCorrect(self):
     """Tests _analytical_base_partition_function against some golden data."""
@@ -75,26 +77,22 @@ class DistributionTest(tf.test.TestCase):
   def testSplineCurveInverseIsCorrect(self):
     """Tests that the inverse curve is indeed the inverse of the curve."""
     x_knot = np.arange(0, 16, 0.01, dtype=np.float64)
-    with self.session():
-      alpha = distribution.inv_partition_spline_curve(x_knot).eval()
-      x_recon = distribution.partition_spline_curve(alpha).eval()
+    alpha = distribution.inv_partition_spline_curve(x_knot)
+    x_recon = distribution.partition_spline_curve(alpha)
     self.assertAllClose(x_recon, x_knot)
 
-  def _log_partition_infinity_is_accurate(self, float_dtype):
+  @parameterized.named_parameters(('Single', np.float32),
+                                  ('Double', np.float64))
+  def testLogPartitionInfinityIsAccurate(self, float_dtype):
     """Tests that the partition function is accurate at infinity."""
     alpha = float_dtype(float('inf'))
     log_z_true = np.float64(0.70526025442)  # From mathematica.
-    with self.session():
-      log_z = distribution.log_base_partition_function(alpha).eval()
+    log_z = self._distribution.log_base_partition_function(alpha)
     self.assertAllClose(log_z, log_z_true, atol=1e-7, rtol=1e-7)
 
-  def testLogPartitionInfinityIsAccurateSingle(self):
-    self._log_partition_infinity_is_accurate(np.float32)
-
-  def testLogPartitionInfinityIsAccurateDouble(self):
-    self._log_partition_infinity_is_accurate(np.float64)
-
-  def _log_partition_fractions_are_accurate(self, float_dtype):
+  @parameterized.named_parameters(('Single', np.float32),
+                                  ('Double', np.float64))
+  def testLogPartitionFractionsAreAccurate(self, float_dtype):
     """Test that the partition function is correct for [0/11, ... 22/11]."""
     numers = range(0, 23)
     denom = 11
@@ -102,131 +100,89 @@ class DistributionTest(tf.test.TestCase):
         np.log(distribution.analytical_base_partition_function(n, denom))
         for n in numers
     ]
-    with self.session():
-      log_zs = distribution.log_base_partition_function(
-          float_dtype(np.array(numers)) / float_dtype(denom)).eval()
+    log_zs = self._distribution.log_base_partition_function(
+        float_dtype(np.array(numers)) / float_dtype(denom))
     self.assertAllClose(log_zs, log_zs_true, atol=1e-7, rtol=1e-7)
 
-  def testLogPartitionFractionsAreAccurateSingle(self):
-    self._log_partition_fractions_are_accurate(np.float32)
-
-  def testLogPartitionFractionsAreAccurateDouble(self):
-    self._log_partition_fractions_are_accurate(np.float64)
-
-  def _alpha_zero_samples_match_a_cauchy_distribution(self, float_dtype):
+  @parameterized.named_parameters(('Single', np.float32),
+                                  ('Double', np.float64))
+  def testAlphaZeroSamplesMatchACauchyDistribution(self, float_dtype):
     """Tests that samples when alpha=0 match a Cauchy distribution."""
     num_samples = 16384
     scale = float_dtype(1.7)
-    with tf.Session():
-      samples = distribution.draw_samples(
-          np.zeros(num_samples, dtype=float_dtype),
-          scale * np.ones(num_samples, dtype=float_dtype)).eval()
-      # Perform the Kolmogorov-Smirnov test against a Cauchy distribution.
-      ks_statistic = scipy.stats.kstest(samples, 'cauchy',
-                                        (0., scale * np.sqrt(2.))).statistic
-      self.assertLess(ks_statistic, 0.01)
+    samples = self._distribution.draw_samples(
+        np.zeros(num_samples, dtype=float_dtype),
+        scale * np.ones(num_samples, dtype=float_dtype))
+    # Perform the Kolmogorov-Smirnov test against a Cauchy distribution.
+    ks_statistic = scipy.stats.kstest(samples, 'cauchy',
+                                      (0., scale * np.sqrt(2.))).statistic
+    self.assertLess(ks_statistic, 0.01)
 
-  def testAlphaZeroSamplesMatchACauchyDistributionSingle(self):
-    self._alpha_zero_samples_match_a_cauchy_distribution(np.float32)
-
-  def testAlphaZeroSamplesMatchACauchyDistributionDouble(self):
-    self._alpha_zero_samples_match_a_cauchy_distribution(np.float64)
-
-  def _alpha_two_samples_match_a_normal_distribution(self, float_dtype):
+  @parameterized.named_parameters(('Single', np.float32),
+                                  ('Double', np.float64))
+  def testAlphaTwoSamplesMatchANormalDistribution(self, float_dtype):
     """Tests that samples when alpha=2 match a normal distribution."""
     num_samples = 16384
     scale = float_dtype(1.7)
-    with tf.Session():
-      samples = distribution.draw_samples(
-          2. * np.ones(num_samples, dtype=float_dtype),
-          scale * np.ones(num_samples, dtype=float_dtype)).eval()
-      # Perform the Kolmogorov-Smirnov test against a normal distribution.
-      ks_statistic = scipy.stats.kstest(samples, 'norm', (0., scale)).statistic
-      self.assertLess(ks_statistic, 0.01)
+    samples = self._distribution.draw_samples(
+        2. * np.ones(num_samples, dtype=float_dtype),
+        scale * np.ones(num_samples, dtype=float_dtype))
+    # Perform the Kolmogorov-Smirnov test against a normal distribution.
+    ks_statistic = scipy.stats.kstest(samples, 'norm', (0., scale)).statistic
+    self.assertLess(ks_statistic, 0.01)
 
-  def testAlphaTwoSamplesMatchANormalDistributionSingle(self):
-    self._alpha_two_samples_match_a_normal_distribution(np.float32)
-
-  def testAlphaTwoSamplesMatchANormalDistributionDouble(self):
-    self._alpha_two_samples_match_a_normal_distribution(np.float64)
-
-  def _alpha_zero_nlls_match_a_cauchy_distribution(self, float_dtype):
+  @parameterized.named_parameters(('Single', np.float32),
+                                  ('Double', np.float64))
+  def testAlphaZeroNllsMatchACauchyDistribution(self, float_dtype):
     """Tests that NLLs when alpha=0 match a Cauchy distribution."""
     x = np.linspace(-10., 10, 1000, dtype=float_dtype)
     scale = float_dtype(1.7)
-    with tf.Session():
-      nll = distribution.nllfun(x, float_dtype(0.), scale).eval()
+    nll = self._distribution.nllfun(x, float_dtype(0.), scale)
     nll_true = -scipy.stats.cauchy(0., scale * np.sqrt(2.)).logpdf(x)
     self.assertAllClose(nll, nll_true)
 
-  def testAlphaZeroNllsMatchACauchyDistributionSingle(self):
-    self._alpha_zero_nlls_match_a_cauchy_distribution(np.float32)
-
-  def testAlphaZeroNllsMatchACauchyDistributionDouble(self):
-    self._alpha_zero_nlls_match_a_cauchy_distribution(np.float64)
-
-  def _alpha_two_nlls_match_a_normal_distribution(self, float_dtype):
+  @parameterized.named_parameters(('Single', np.float32),
+                                  ('Double', np.float64))
+  def testAlphaTwoNllsMatchANormalDistribution(self, float_dtype):
     """Tests that NLLs when alpha=2 match a normal distribution."""
     x = np.linspace(-10., 10, 1000, dtype=float_dtype)
     scale = float_dtype(1.7)
-    with tf.Session():
-      nll = distribution.nllfun(x, float_dtype(2.), scale).eval()
+    nll = self._distribution.nllfun(x, float_dtype(2.), scale)
     nll_true = -scipy.stats.norm(0., scale).logpdf(x)
     self.assertAllClose(nll, nll_true)
 
-  def testAlphaTwoNllsMatchANormalDistributionSingle(self):
-    self._alpha_two_nlls_match_a_normal_distribution(np.float32)
-
-  def testAlphaTwoNllsMatchANormalDistributionDouble(self):
-    self._alpha_two_nlls_match_a_normal_distribution(np.float64)
-
-  def _pdf_integrates_to_one(self, float_dtype):
+  @parameterized.named_parameters(('Single', np.float32),
+                                  ('Double', np.float64))
+  def testPdfIntegratesToOne(self, float_dtype):
     """Tests that the PDF integrates to 1 for different alphas."""
-    with self.session():
-      alphas = np.exp(np.linspace(-4., 8., 8, dtype=float_dtype))
-      scale = float_dtype(1.7)
-      x = np.arange(-128., 128., 1 / 256., dtype=float_dtype) * scale
-      for alpha in alphas:
-        nll = distribution.nllfun(x, alpha, scale).eval()
-        pdf_sum = np.sum(np.exp(-nll)) * (x[1] - x[0])
-        self.assertAllClose(pdf_sum, 1., atol=0.005, rtol=0.005)
+    alphas = np.exp(np.linspace(-4., 8., 8, dtype=float_dtype))
+    scale = float_dtype(1.7)
+    x = np.arange(-128., 128., 1 / 256., dtype=float_dtype) * scale
+    for alpha in alphas:
+      nll = self._distribution.nllfun(x, alpha, scale)
+      pdf_sum = np.sum(np.exp(-nll)) * (x[1] - x[0])
+      self.assertAllClose(pdf_sum, 1., atol=0.005, rtol=0.005)
 
-  def testPdfIntegratesToOneSingle(self):
-    self._pdf_integrates_to_one(np.float32)
-
-  def testPdfIntegratesToOneDouble(self):
-    self._pdf_integrates_to_one(np.float64)
-
-  def _nllfun_preserves_dtype(self, float_dtype):
+  @parameterized.named_parameters(('Single', np.float32),
+                                  ('Double', np.float64))
+  def testNllfunPreservesDtype(self, float_dtype):
     """Checks that the loss's output has the same precision as its input."""
     n = 16
     x = float_dtype(np.random.normal(size=n))
     alpha = float_dtype(np.exp(np.random.normal(size=n)))
     scale = float_dtype(np.exp(np.random.normal(size=n)))
-    with self.session():
-      y = distribution.nllfun(x, alpha, scale).eval()
+    y = self._distribution.nllfun(x, alpha, scale)
     self.assertDTypeEqual(y, float_dtype)
 
-  def testNllfunPreservesDtypeSingle(self):
-    self._nllfun_preserves_dtype(np.float32)
-
-  def testNllfunPreservesDtypeDouble(self):
-    self._nllfun_preserves_dtype(np.float64)
-
-  def _sampling_preserves_dtype(self, float_dtype):
+  @parameterized.named_parameters(('Single', np.float32),
+                                  ('Double', np.float64))
+  def testSamplingPreservesDtype(self, float_dtype):
     """Checks that sampling's output has the same precision as its input."""
     n = 16
     alpha = float_dtype(np.exp(np.random.normal(size=n)))
     scale = float_dtype(np.exp(np.random.normal(size=n)))
-    with self.session():
-      y = distribution.draw_samples(alpha, scale).eval()
+    y = self._distribution.draw_samples(alpha, scale)
     self.assertDTypeEqual(y, float_dtype)
-
-  def testSamplingPreservesDtypeSingle(self):
-    self._sampling_preserves_dtype(np.float32)
-
-  def testSamplingPreservesDtypeDouble(self):
-    self._sampling_preserves_dtype(np.float64)
 
 
 if __name__ == '__main__':

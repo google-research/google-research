@@ -15,13 +15,9 @@
 
 """Implements wavelets."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v2 as tf
 import tensorflow_probability as tfp
 
 # The four filters used to define a wavelet decomposition:
@@ -315,7 +311,7 @@ def construct(im, num_levels, wavelet_type):
     raise ValueError(
         'Expected `im` to have a rank of 3, but is of size {}'.format(im.shape))
   if num_levels == 0:
-    return (tf.convert_to_tensor(im),)
+    return (tf.convert_to_tensor(value=im),)
   max_num_levels = get_max_num_levels(tf.shape(im))
   assert_ops = [
       tf.Assert(
@@ -328,9 +324,10 @@ def construct(im, num_levels, wavelet_type):
     for _ in range(num_levels):
       hi = _downsample(im, filters.analysis_hi, 0, 1)
       lo = _downsample(im, filters.analysis_lo, 0, 0)
-      pyr.append((_downsample(hi, filters.analysis_hi, 1, 1),
-                  _downsample(lo, filters.analysis_hi, 1, 1),
-                  _downsample(hi, filters.analysis_lo, 1, 0)))
+      pyr.append((
+          _downsample(hi, filters.analysis_hi, 1, 1),
+          _downsample(lo, filters.analysis_hi, 1, 1),
+          _downsample(hi, filters.analysis_lo, 1, 0)))  # pyformat: disable
       im = _downsample(lo, filters.analysis_lo, 1, 0)
     pyr.append(im)
     pyr = tuple(pyr)
@@ -476,5 +473,6 @@ def visualize(pyr, percentile=99.):
       tf.reduce_max(resid) - tf.reduce_min(resid))
   vis_pyr.append(resid_norm)
   vis = tf.cast(
-      tf.math.round(255. * tf.transpose(flatten(vis_pyr), [1, 2, 0])), tf.uint8)
+      tf.math.round(255. * tf.transpose(flatten(vis_pyr), perm=[1, 2, 0])),
+      tf.uint8)
   return vis

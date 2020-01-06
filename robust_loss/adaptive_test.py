@@ -15,20 +15,18 @@
 
 """Tests for adaptive.py."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from absl.testing import parameterized
 import numpy as np
 import scipy.stats
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v2 as tf
 from robust_loss import adaptive
 from robust_loss import util
 from robust_loss import wavelet
 
+tf.enable_v2_behavior()
 
-def _generate_pixel_toy_image_data(image_width, num_samples, _):
+
+def generate_pixel_toy_image_data(image_width, num_samples, _):
   """Generates pixel data for _test_fitting_toy_image_data_is_correct().
 
   Constructs a "mean" image in RGB pixel space (parametrized by `image_width`)
@@ -39,7 +37,7 @@ def _generate_pixel_toy_image_data(image_width, num_samples, _):
     image_width: The width and height in pixels of the images being produced.
     num_samples: The number of samples to generate.
     _: Dummy argument so that this function's interface matches
-      _generate_wavelet_toy_image_data()
+      generate_wavelet_toy_image_data()
 
   Returns:
     A tuple of (samples, reference, color_space, representation), where
@@ -59,8 +57,8 @@ def _generate_pixel_toy_image_data(image_width, num_samples, _):
   return samples, reference, color_space, representation
 
 
-def _generate_wavelet_toy_image_data(image_width, num_samples,
-                                     wavelet_num_levels):
+def generate_wavelet_toy_image_data(image_width, num_samples,
+                                    wavelet_num_levels):
   """Generates wavelet data for testFittingImageDataIsCorrect().
 
   Constructs a "mean" image in the YUV wavelet domain (parametrized by
@@ -115,14 +113,69 @@ def _generate_wavelet_toy_image_data(image_width, num_samples,
   reference = wavelet.collapse(reference, representation)
   samples = tf.transpose(
       tf.reshape(samples, [num_samples, 3, image_width, image_width]),
-      [0, 2, 3, 1])
-  reference = tf.transpose(reference, [1, 2, 0])
+      perm=[0, 2, 3, 1])
+  reference = tf.transpose(reference, perm=[1, 2, 0])
   # Convert into RGB space.
-  samples = util.syuv_to_rgb(samples)
-  reference = util.syuv_to_rgb(reference)
-  with tf.Session() as sess:
-    samples, reference = sess.run((samples, reference))
+  samples = util.syuv_to_rgb(samples).numpy()
+  reference = util.syuv_to_rgb(reference).numpy()
   return samples, reference, color_space, representation
+
+
+def sample_cauchy_ppf(num_samples):
+  """Draws ``num_samples'' samples from a Cauchy distribution.
+
+  Because actual sampling is expensive and requires many samples to converge,
+  here we sample by drawing `num_samples` evenly-spaced values in [0, 1]
+  and then interpolate into the inverse CDF (aka PPF) of a Cauchy
+  distribution. This produces "samples" where maximum-likelihood estimation
+  likely recovers the true distribution even if `num_samples` is small.
+
+  Args:
+    num_samples: The number of samples to draw.
+
+  Returns:
+    A numpy array containing `num_samples` evenly-spaced "samples" from a
+    zero-mean Cauchy distribution whose scale matches our distribution/loss
+    when our scale = 1.
+  """
+  spacing = 1. / num_samples
+  p = np.arange(0., 1., spacing) + spacing / 2.
+  return scipy.stats.cauchy(0., np.sqrt(2.)).ppf(p)
+
+
+def sample_normal_ppf(num_samples):
+  """Draws ``num_samples'' samples from a Normal distribution.
+
+  Because actual sampling is expensive and requires many samples to converge,
+  here we sample by drawing `num_samples` evenly-spaced values in [0, 1]
+  and then interpolate into the inverse CDF (aka PPF) of a Normal
+  distribution. This produces "samples" where maximum-likelihood estimation
+  likely recovers the true distribution even if `num_samples` is small.
+
+  Args:
+    num_samples: The number of samples to draw.
+
+  Returns:
+    A numpy array containing `num_samples` evenly-spaced "samples" from a
+    zero-mean unit-scale Normal distribution.
+  """
+  spacing = 1. / num_samples
+  p = np.arange(0., 1., spacing) + spacing / 2.
+  return scipy.stats.norm(0., 1.).ppf(p)
+
+
+def sample_nd_mixed_data(n, m, float_dtype):
+  """`n` Samples from `m` scaled+shifted Cauchy and Normal distributions."""
+  samples0 = sample_cauchy_ppf(n)
+  samples2 = sample_normal_ppf(n)
+  mu = np.random.normal(size=m)
+  alpha = (np.random.uniform(size=m) > 0.5) * 2
+  scale = np.exp(np.clip(np.random.normal(size=m), -3., 3.))
+  samples = (
+      np.tile(samples0[:, np.newaxis], [1, m]) *
+      (alpha[np.newaxis, :] == 0.) + np.tile(samples2[:, np.newaxis], [1, m]) *
+      (alpha[np.newaxis, :] == 2.)) * scale[np.newaxis, :] + mu[np.newaxis, :]
+  return [float_dtype(x) for x in [samples, mu, alpha, scale]]
 
 
 class AdaptiveTest(parameterized.TestCase, tf.test.TestCase):
@@ -150,109 +203,54 @@ class AdaptiveTest(parameterized.TestCase, tf.test.TestCase):
         true_alpha_init = (alpha_lo + alpha_hi) / 2.
       scale_init = float_dtype(np.random.uniform() + 0.5)
       scale_lo = float_dtype(np.random.uniform() * 0.1)
-      with tf.compat.v1.variable_scope('trial_' + str(i)):
-        _, alpha, scale = adaptive.lossfun(
-            tf.constant(np.zeros((10, 10), float_dtype)),
-            alpha_lo=alpha_lo,
-            alpha_hi=alpha_hi,
-            alpha_init=alpha_init,
-            scale_lo=scale_lo,
-            scale_init=scale_init)
-        with self.session() as sess:
-          sess.run(tf.global_variables_initializer())
-          # Check that `alpha` and `scale` are what we expect them to be.
-          alpha, scale = sess.run([alpha, scale])
-          self.assertAllClose(alpha, true_alpha_init * np.ones_like(alpha))
-          self.assertAllClose(scale, scale_init * np.ones_like(alpha))
+      adaptive_lossfun = adaptive.AdaptiveLossFunction(
+          10,
+          float_dtype,
+          alpha_lo=alpha_lo,
+          alpha_hi=alpha_hi,
+          alpha_init=alpha_init,
+          scale_lo=scale_lo,
+          scale_init=scale_init)
+      alpha = adaptive_lossfun.alpha()[0, :].numpy()
+      scale = adaptive_lossfun.scale()[0, :].numpy()
+      self.assertAllClose(alpha, true_alpha_init * np.ones_like(alpha))
+      self.assertAllClose(scale, scale_init * np.ones_like(alpha))
 
   @parameterized.named_parameters(('Single', np.float32),
                                   ('Double', np.float64))
   def testFixedAlphaAndScaleAreCorrect(self, float_dtype):
     """Tests that fixed alphas and scales do not change during optimization)."""
-    for i in range(8):
+    for _ in range(8):
       alpha_lo = float_dtype(np.random.uniform() * 2.)
       alpha_hi = alpha_lo
       scale_init = float_dtype(np.random.uniform() + 0.5)
       scale_lo = scale_init
       samples = float_dtype(np.random.uniform(size=(10, 10)))
+
       # We must construct some variable for TF to attempt to optimize.
       mu = tf.Variable(
-          tf.zeros(tf.shape(samples)[1], float_dtype), name='DummyMu')
-      x = samples - mu[tf.newaxis, :]
-      with tf.compat.v1.variable_scope('trial_' + str(i)):
-        loss, alpha, scale = adaptive.lossfun(
-            x,
-            alpha_lo=alpha_lo,
-            alpha_hi=alpha_hi,
-            scale_lo=scale_lo,
-            scale_init=scale_init)
-        with self.session() as sess:
-          # Do one giant gradient descent step (usually a bad idea).
-          optimizer = tf.train.GradientDescentOptimizer(learning_rate=1000.)
-          step = optimizer.minimize(tf.reduce_sum(loss))
-          sess.run(tf.global_variables_initializer())
-          _ = sess.run(step)
-          # Check that `alpha` and `scale` have not changed from their initial
-          # values.
-          alpha, scale = sess.run([alpha, scale])
-          alpha_init = (alpha_lo + alpha_hi) / 2.
-          self.assertAllClose(alpha, alpha_init * np.ones_like(alpha))
-          self.assertAllClose(scale, scale_init * np.ones_like(alpha))
+          tf.zeros(tf.shape(samples)[1], float_dtype), name='ToyMu')
+      adaptive_lossfun = adaptive.AdaptiveLossFunction(
+          mu.shape[0],
+          float_dtype,
+          alpha_lo=alpha_lo,
+          alpha_hi=alpha_hi,
+          scale_lo=scale_lo,
+          scale_init=scale_init)
+      trainable_variables = list(adaptive_lossfun.trainable_variables) + [mu]
 
-  def _sample_cauchy_ppf(self, num_samples):
-    """Draws ``num_samples'' samples from a Cauchy distribution.
+      optimizer = tf.keras.optimizers.SGD(learning_rate=1000)
+      # pylint: disable=cell-var-from-loop
+      optimizer.minimize(
+          lambda: tf.reduce_mean(adaptive_lossfun(samples - mu[tf.newaxis, :])),
+          trainable_variables)
 
-    Because actual sampling is expensive and requires many samples to converge,
-    here we sample by drawing `num_samples` evenly-spaced values in [0, 1]
-    and then interpolate into the inverse CDF (aka PPF) of a Cauchy
-    distribution. This produces "samples" where maximum-likelihood estimation
-    likely recovers the true distribution even if `num_samples` is small.
+      alpha = adaptive_lossfun.alpha()[0, :].numpy()
+      scale = adaptive_lossfun.scale()[0, :].numpy()
 
-    Args:
-      num_samples: The number of samples to draw.
-
-    Returns:
-      A numpy array containing `num_samples` evenly-spaced "samples" from a
-      zero-mean Cauchy distribution whose scale matches our distribution/loss
-      when our scale = 1.
-    """
-    spacing = 1. / num_samples
-    p = np.arange(0., 1., spacing) + spacing / 2.
-    return scipy.stats.cauchy(0., np.sqrt(2.)).ppf(p)
-
-  def _sample_normal_ppf(self, num_samples):
-    """Draws ``num_samples'' samples from a Normal distribution.
-
-    Because actual sampling is expensive and requires many samples to converge,
-    here we sample by drawing `num_samples` evenly-spaced values in [0, 1]
-    and then interpolate into the inverse CDF (aka PPF) of a Normal
-    distribution. This produces "samples" where maximum-likelihood estimation
-    likely recovers the true distribution even if `num_samples` is small.
-
-    Args:
-      num_samples: The number of samples to draw.
-
-    Returns:
-      A numpy array containing `num_samples` evenly-spaced "samples" from a
-      zero-mean unit-scale Normal distribution.
-    """
-    spacing = 1. / num_samples
-    p = np.arange(0., 1., spacing) + spacing / 2.
-    return scipy.stats.norm(0., 1.).ppf(p)
-
-  def _sample_nd_mixed_data(self, n, m, float_dtype):
-    """`n` Samples from `m` scaled+shifted Cauchy and Normal distributions."""
-    samples0 = self._sample_cauchy_ppf(n)
-    samples2 = self._sample_normal_ppf(n)
-    mu = np.random.normal(size=m)
-    alpha = (np.random.uniform(size=m) > 0.5) * 2
-    scale = np.exp(np.clip(np.random.normal(size=m), -3., 3.))
-    samples = (
-        np.tile(samples0[:, np.newaxis], [1, m]) *
-        (alpha[np.newaxis, :] == 0.) +
-        np.tile(samples2[:, np.newaxis], [1, m]) *
-        (alpha[np.newaxis, :] == 2.)) * scale[np.newaxis, :] + mu[np.newaxis, :]
-    return [float_dtype(x) for x in [samples, mu, alpha, scale]]
+      alpha_init = (alpha_lo + alpha_hi) / 2.
+      self.assertAllClose(alpha, alpha_init * np.ones_like(alpha))
+      self.assertAllClose(scale, scale_init * np.ones_like(alpha))
 
   @parameterized.named_parameters(('Single', np.float32),
                                   ('Double', np.float64))
@@ -269,29 +267,28 @@ class AdaptiveTest(parameterized.TestCase, tf.test.TestCase):
     Args:
       float_dtype: The type (np.float32 or np.float64) of data to test.
     """
-    samples, mu_true, alpha_true, scale_true = self._sample_nd_mixed_data(
+    samples, mu_true, alpha_true, scale_true = sample_nd_mixed_data(
         100, 8, float_dtype)
-    mu = tf.Variable(tf.zeros(tf.shape(samples)[1], float_dtype))
-    x = samples - mu[tf.newaxis, :]
-    losses, alpha, scale = adaptive.lossfun(x)
-    loss = tf.reduce_mean(losses)
+    mu = tf.Variable(tf.zeros(tf.shape(samples)[1], float_dtype), name='ToyMu')
+    adaptive_lossfun = adaptive.AdaptiveLossFunction(mu.shape[0], float_dtype)
+    trainable_variables = list(adaptive_lossfun.trainable_variables) + [mu]
 
-    with self.session() as sess:
-      init_rate = 1.
-      final_rate = 0.1
-      num_iters = 201
-      global_step = tf.Variable(0, trainable=False)
-      t = tf.cast(global_step, tf.float32) / (num_iters - 1)
-      rate = tf.math.exp(
-          tf.math.log(init_rate) * (1. - t) + tf.math.log(final_rate) * t)
-      optimizer = tf.train.AdamOptimizer(
-          learning_rate=rate, beta1=0.5, beta2=0.9, epsilon=1e-08)
-      step = optimizer.minimize(loss, global_step=global_step)
-      sess.run(tf.global_variables_initializer())
+    init_rate = 1.
+    final_rate = 0.1
+    num_iters = 201
+    learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(
+        init_rate, 1, (final_rate / init_rate)**(1. / num_iters))
+    optimizer = tf.keras.optimizers.Adam(
+        learning_rate=learning_rate, beta_1=0.5, beta_2=0.9, epsilon=1e-08)
 
-      for _ in range(num_iters):
-        _ = sess.run(step)
-      mu, alpha, scale = sess.run([mu, alpha[0, :], scale[0, :]])
+    for _ in range(num_iters):
+      optimizer.minimize(
+          lambda: tf.reduce_mean(adaptive_lossfun(samples - mu[tf.newaxis, :])),
+          trainable_variables)
+
+    mu = mu.numpy()
+    alpha = adaptive_lossfun.alpha()[0, :].numpy()
+    scale = adaptive_lossfun.scale()[0, :].numpy()
 
     for a, b in [(alpha, alpha_true), (scale, scale_true), (mu, mu_true)]:
       self.assertAllClose(a, b * np.ones_like(a), rtol=0.1, atol=0.1)
@@ -311,31 +308,30 @@ class AdaptiveTest(parameterized.TestCase, tf.test.TestCase):
     Args:
       float_dtype: The type (np.float32 or np.float64) of data to test.
     """
-    samples, mu_true, alpha_true, scale_true = self._sample_nd_mixed_data(
+    samples, mu_true, alpha_true, scale_true = sample_nd_mixed_data(
         100, 8, float_dtype)
-    mu = tf.Variable(tf.zeros(tf.shape(samples)[1], float_dtype))
-    x = samples - mu[tf.newaxis, :]
-    losses, log_df, scale = adaptive.lossfun_students(x)
-    loss = tf.reduce_mean(losses)
+    mu = tf.Variable(tf.zeros(tf.shape(samples)[1], float_dtype), name='ToyMu')
+    students_lossfun = adaptive.StudentsTLossFunction(mu.shape[0], float_dtype)
+    trainable_variables = list(students_lossfun.trainable_variables) + [mu]
 
-    with self.session() as sess:
-      init_rate = 1.
-      final_rate = 0.1
-      num_iters = 201
-      global_step = tf.Variable(0, trainable=False)
-      t = tf.cast(global_step, tf.float32) / (num_iters - 1)
-      rate = tf.math.exp(
-          tf.math.log(init_rate) * (1. - t) + tf.math.log(final_rate) * t)
-      optimizer = tf.train.AdamOptimizer(
-          learning_rate=rate, beta1=0.5, beta2=0.9, epsilon=1e-08)
-      step = optimizer.minimize(loss, global_step=global_step)
-      sess.run(tf.global_variables_initializer())
+    init_rate = 1.
+    final_rate = 0.1
+    num_iters = 201
+    learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(
+        init_rate, 1, (final_rate / init_rate)**(1. / num_iters))
+    optimizer = tf.keras.optimizers.Adam(
+        learning_rate=learning_rate, beta_1=0.5, beta_2=0.9, epsilon=1e-08)
 
-      for _ in range(num_iters):
-        _ = sess.run(step)
-      mu, log_df, scale = sess.run([mu, log_df[0, :], scale[0, :]])
+    for _ in range(num_iters):
+      optimizer.minimize(
+          lambda: tf.reduce_mean(students_lossfun(samples - mu[tf.newaxis, :])),
+          trainable_variables)
 
-    for ldf, a_true in zip(log_df, alpha_true):
+    mu = mu.numpy()
+    df = students_lossfun.df()[0, :].numpy()
+    scale = students_lossfun.scale()[0, :].numpy()
+
+    for ldf, a_true in zip(np.log(df), alpha_true):
       if a_true == 0:
         self.assertAllClose(ldf, 0., rtol=0.1, atol=0.1)
       elif a_true == 2:
@@ -348,30 +344,29 @@ class AdaptiveTest(parameterized.TestCase, tf.test.TestCase):
                                   ('Double', np.float64))
   def testLossfunPreservesDtype(self, float_dtype):
     """Checks the loss's outputs have the same precisions as its input."""
-    samples, _, _, _ = self._sample_nd_mixed_data(100, 8, float_dtype)
-    loss, alpha, scale = adaptive.lossfun(samples)
-    with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
-      loss, alpha, scale = sess.run([loss, alpha, scale])
+    num_dims = 8
+    samples, _, _, _ = sample_nd_mixed_data(100, num_dims, float_dtype)
+    lossfun = adaptive.AdaptiveLossFunction(num_dims, float_dtype)
+    loss = lossfun(samples)
     self.assertDTypeEqual(loss, float_dtype)
-    self.assertDTypeEqual(alpha, float_dtype)
-    self.assertDTypeEqual(scale, float_dtype)
+    self.assertDTypeEqual(lossfun.alpha(), float_dtype)
+    self.assertDTypeEqual(lossfun.scale(), float_dtype)
 
   @parameterized.named_parameters(('Single', np.float32),
                                   ('Double', np.float64))
   def testImageLossfunPreservesDtype(self, float_dtype):
-    """Tests that image_lossfun's outputs precisions match its input."""
+    """Tests that the image lossfun's outputs precisions match its input."""
     x = float_dtype(np.random.uniform(size=(10, 64, 64, 3)))
-    loss, alpha, scale = adaptive.image_lossfun(x)
-    with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
-      loss, alpha, scale = sess.run([loss, alpha, scale])
+    lossfun = adaptive.AdaptiveImageLossFunction(x.shape[1:], float_dtype)
+    loss = lossfun(x).numpy()
+    alpha = lossfun.alpha().numpy()
+    scale = lossfun.scale().numpy()
     self.assertDTypeEqual(loss, float_dtype)
     self.assertDTypeEqual(alpha, float_dtype)
     self.assertDTypeEqual(scale, float_dtype)
 
-  @parameterized.named_parameters(('Wavelet', _generate_wavelet_toy_image_data),
-                                  ('Pixel', _generate_pixel_toy_image_data))
+  @parameterized.named_parameters(('Wavelet', generate_wavelet_toy_image_data),
+                                  ('Pixel', generate_pixel_toy_image_data))
   def testFittingImageDataIsCorrect(self, image_data_callback):
     """Tests that minimizing the adaptive image loss recovers the true model.
 
@@ -387,39 +382,52 @@ class AdaptiveTest(parameterized.TestCase, tf.test.TestCase):
     # Generate toy data.
     image_width = 4
     num_samples = 10
-    wavelet_num_levels = 2  # Ignored by _generate_pixel_toy_image_data().
-    (samples, reference, color_space, representation) = image_data_callback(
-        image_width, num_samples, wavelet_num_levels)
+    wavelet_num_levels = 2  # Ignored by generate_pixel_toy_image_data().
+    (samples, reference, color_space,
+     representation) = image_data_callback(image_width, num_samples,
+                                           wavelet_num_levels)
 
     # Construct the loss.
-    prediction = tf.Variable(tf.zeros(tf.shape(reference), tf.float64))
-    x = samples - prediction[tf.newaxis, :]
-    loss, alpha, scale = adaptive.image_lossfun(
-        x,
+    mu = tf.Variable(tf.zeros(tf.shape(reference), samples.dtype))
+    image_lossfun = adaptive.AdaptiveImageLossFunction(
+        [image_width, image_width, 3],
+        samples.dtype,
         color_space=color_space,
         representation=representation,
         wavelet_num_levels=wavelet_num_levels,
         alpha_lo=2,
         alpha_hi=2)
-    loss = tf.reduce_mean(loss)
+    trainable_variables = list(image_lossfun.trainable_variables) + [mu]
 
-    # Minimize the loss.
-    with self.session() as sess:
-      init_rate = 0.1
-      final_rate = 0.01
-      num_iters = 201
-      global_step = tf.Variable(0, trainable=False)
-      t = tf.cast(global_step, tf.float32) / (num_iters - 1)
-      rate = tf.math.exp(
-          tf.math.log(init_rate) * (1. - t) + tf.math.log(final_rate) * t)
-      optimizer = tf.train.AdamOptimizer(
-          learning_rate=rate, beta1=0.5, beta2=0.9, epsilon=1e-08)
-      step = optimizer.minimize(loss, global_step=global_step)
-      sess.run(tf.global_variables_initializer())
-      for _ in range(num_iters):
-        _ = sess.run(step)
-      scale, alpha, prediction = sess.run([scale, alpha, prediction])
-    self.assertAllClose(prediction, reference, rtol=0.01, atol=0.01)
+    init_rate = 1.
+    final_rate = 0.01
+    num_iters = 201
+    learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(
+        init_rate, 1, (final_rate / init_rate)**(1. / num_iters))
+    optimizer = tf.keras.optimizers.Adam(
+        learning_rate=learning_rate, beta_1=0.5, beta_2=0.9, epsilon=1e-08)
+    for _ in range(num_iters):
+      optimizer.minimize(
+          lambda: tf.reduce_mean(image_lossfun(samples - mu[tf.newaxis, :])),
+          trainable_variables)
+    mu = mu.numpy()
+    self.assertAllClose(mu, reference, rtol=0.01, atol=0.01)
+
+  def testLossfunChecksShape(self):
+    """Tests that the image lossfun's checks input shapes."""
+    x1 = np.ones((10, 24), np.float32)
+    x2 = np.ones((10, 16), np.float32)
+    lossfun = adaptive.AdaptiveLossFunction(x1.shape[1], np.float32)
+    with self.assertRaises(tf.errors.InvalidArgumentError):
+      lossfun(x2)
+
+  def testImageLossfunChecksShape(self):
+    """Tests that the image lossfun's checks input shapes."""
+    x1 = np.ones((10, 16, 24, 3), np.float32)
+    x2 = np.ones((10, 16, 16, 3), np.float32)
+    lossfun = adaptive.AdaptiveImageLossFunction(x1.shape[1:], np.float32)
+    with self.assertRaises(tf.errors.InvalidArgumentError):
+      lossfun(x2)
 
 
 if __name__ == '__main__':

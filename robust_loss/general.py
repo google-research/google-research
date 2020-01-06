@@ -21,12 +21,8 @@ hand-tuned ones) and return a loss. For an adaptive loss, look at adaptive.py
 or distribution.py.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v2 as tf
 from robust_loss import util
 
 
@@ -70,9 +66,9 @@ def lossfun(x, alpha, scale, approximate=False, epsilon=1e-6):
     as a TensorFlow graph node of single precision floats.
   """
   # `scale` and `alpha` must have the same type as `x`.
-  tf.assert_type(scale, x.dtype)
-  tf.assert_type(alpha, x.dtype)
   float_dtype = x.dtype
+  tf.debugging.assert_type(scale, float_dtype)
+  tf.debugging.assert_type(alpha, float_dtype)
   # `scale` must be > 0.
   assert_ops = [tf.Assert(tf.reduce_all(tf.greater(scale, 0.)), [scale])]
   with tf.control_dependencies(assert_ops):
