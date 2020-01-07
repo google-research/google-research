@@ -10,6 +10,7 @@ env:
   matrix:
     - PROJECT="albert"
     - PROJECT="attribution"
+    - PROJECT="axial"
     - PROJECT="bam"
     - PROJECT="bisimulation_aaai2020"
     - PROJECT="bitempered_loss"
