@@ -45,6 +45,7 @@ env:
     - PROJECT="property_linking"
     - PROJECT="protoattend"
     - PROJECT="psycholab"
+    - PROJECT="rl4circopt"
     - PROJECT="rllim"
     - PROJECT="robust_loss"
     - PROJECT="sm3"
