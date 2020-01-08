@@ -41,7 +41,7 @@ from matplotlib import pyplot as plt  # pylint: disable=g-import-not-at-top
 import numpy as np
 import stl
 from stl import mesh
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 logging.getLogger("stl").setLevel(logging.ERROR)
 

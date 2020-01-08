@@ -39,7 +39,7 @@ from __future__ import print_function
 
 import itertools
 import numpy
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import opt as contrib_opt
 
 

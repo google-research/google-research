@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import pickle
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 gfile = tf.gfile
 

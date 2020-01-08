@@ -41,7 +41,7 @@ import numpy as np
 from pybullet_envs.minitaur.envs import minitaur_gym_env
 import scipy
 import scipy.special
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # Define indices
 MOTOR_DIRECTION = [-1, -1, -1, -1, 1, 1, 1, 1]

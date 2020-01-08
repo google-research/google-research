@@ -22,7 +22,7 @@ from __future__ import print_function
 import abc
 import csv
 import os
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class Example(object):

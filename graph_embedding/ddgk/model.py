@@ -41,7 +41,7 @@ Where ${ds} is a data set as formatted [here]
 """
 import networkx as nx
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import training as contrib_training
 
 
