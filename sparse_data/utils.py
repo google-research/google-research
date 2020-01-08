@@ -19,7 +19,7 @@ from absl import flags
 from absl import logging
 import numpy as np
 from scipy import io
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from sparse_data.data import decomposition
 from sparse_data.data import real
 from sparse_data.data import sim

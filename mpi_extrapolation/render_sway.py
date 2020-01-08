@@ -33,7 +33,7 @@ from absl import app
 from absl import flags
 import matplotlib.pyplot as plt
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from mpi_extrapolation.mpi import MPI
 

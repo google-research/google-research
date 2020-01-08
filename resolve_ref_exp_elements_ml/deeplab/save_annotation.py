@@ -21,7 +21,7 @@ colormap to the png image for better visualization.
 
 import numpy as np
 import PIL.Image as img
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def save_annotation(label,

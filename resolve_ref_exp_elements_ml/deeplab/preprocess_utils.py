@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """Utility functions related to preprocessing inputs."""
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def pad_to_bounding_box(image, offset_height, offset_width, target_height,

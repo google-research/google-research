@@ -30,7 +30,7 @@ import gin.tf
 import numpy as np
 import scipy
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 MAX_BYTES_MEM = 10**8

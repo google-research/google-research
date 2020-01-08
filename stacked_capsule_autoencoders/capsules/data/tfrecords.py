@@ -14,8 +14,8 @@
 # limitations under the License.
 
 """Dataset class for parsing tfrecord files."""
-import tensorflow as tf
-from tensorflow import nest
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import nest
 
 
 class Dataset(object):

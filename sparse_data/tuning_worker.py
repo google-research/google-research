@@ -26,7 +26,7 @@ from absl import logging
 import numpy as np
 from sklearn.model_selection import KFold
 from sklearn.utils import shuffle as shuffle_coordinately
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from sparse_data import utils
 from sparse_data.exp_framework import dnn
 from sparse_data.exp_framework import gbdt
