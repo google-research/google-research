@@ -19,7 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import gin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from behavior_regularized_offline_rl.brac import utils
 
 EPS = 1e-8  # Epsilon for avoiding numerical issues.
