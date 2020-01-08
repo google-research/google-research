@@ -55,7 +55,7 @@ from absl import logging
 
 import numpy
 from sklearn import metrics
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import slim as contrib_slim
 
 flags.DEFINE_integer('max_number_of_steps', 100,

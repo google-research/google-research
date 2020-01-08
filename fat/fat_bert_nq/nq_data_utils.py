@@ -22,7 +22,7 @@ from __future__ import print_function
 import gzip
 import os
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from fat.fat_bert_nq import run_nq
 

@@ -22,7 +22,7 @@ from __future__ import print_function
 import collections
 import json
 import sys
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from bam import configure
 from bam.bert import modeling

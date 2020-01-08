@@ -28,7 +28,7 @@ from ..models import vae
 import numpy as np
 from tensor2tensor.bin.t2t_decoder import create_hparams
 from tensor2tensor.utils import registry
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from ..utils import save_im
 
 FLAGS = flags.FLAGS

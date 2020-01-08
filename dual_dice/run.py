@@ -25,7 +25,7 @@ import os
 from absl import app
 from absl import flags
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 import dual_dice.algos.dual_dice as dual_dice
 import dual_dice.algos.neural_dual_dice as neural_dual_dice
