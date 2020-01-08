@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import numpy as np
 import scipy.io as sio
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def ed_3d_net(inputs, ch_final, scope='ed_3d_net'):

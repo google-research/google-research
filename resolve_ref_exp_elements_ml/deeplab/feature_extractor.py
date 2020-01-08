@@ -17,7 +17,7 @@
 # pylint: disable=C
 
 import functools
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from mobilenet import mobilenet_v2
 from tensorflow.contrib import slim as contrib_slim
 

@@ -23,7 +23,7 @@ from __future__ import print_function
 import functools
 import numpy as np
 import sonnet as snt
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from stacked_capsule_autoencoders.capsules.tensor_ops import ensure_length
 from tensorflow.contrib import distributions as contrib_distributions

@@ -31,7 +31,7 @@ import os
 import time
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 import mpi_extrapolation.geometry.projector as pj
 from mpi_extrapolation.nets import build_vgg19

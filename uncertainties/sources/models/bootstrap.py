@@ -23,7 +23,7 @@ import os
 import time
 import gin.tf
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def _variable_summaries(var):

@@ -21,8 +21,8 @@ from __future__ import print_function
 from matplotlib import pyplot as plt
 import numpy as np
 import sonnet as snt
-import tensorflow as tf
-from tensorflow import nest
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import nest
 import tensorflow_datasets as tfds
 
 

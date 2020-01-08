@@ -45,7 +45,7 @@ import sys
 import time
 
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from model_pruning.examples.cifar10 import cifar10_pruning as cifar10
 from model_pruning.python import pruning

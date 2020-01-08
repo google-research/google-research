@@ -21,7 +21,7 @@ from __future__ import print_function
 import functools
 import time
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import towards_gan_benchmarks.lib.flags
 import towards_gan_benchmarks.lib.gan
 import towards_gan_benchmarks.lib.logger

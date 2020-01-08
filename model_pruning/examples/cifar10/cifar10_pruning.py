@@ -41,7 +41,7 @@ import sys
 import tarfile
 
 from six.moves import urllib
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from model_pruning.examples.cifar10 import cifar10_input
 from model_pruning.python import pruning
