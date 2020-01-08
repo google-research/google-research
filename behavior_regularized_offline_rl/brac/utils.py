@@ -23,7 +23,7 @@ import datetime
 import re
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def get_summary_str(step=None, info=None, prefix=''):
