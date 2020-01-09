@@ -23,7 +23,7 @@ from __future__ import print_function
 from absl import logging
 import gin
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from polish.ppo import ppo_loss
 from polish.utils import distributions
 from polish.utils import host_call_fn

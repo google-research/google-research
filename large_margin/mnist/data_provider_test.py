@@ -21,7 +21,7 @@ from __future__ import print_function
 
 from absl import flags
 from absl.testing import parameterized
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from large_margin.mnist import data_provider
 

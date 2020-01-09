@@ -29,7 +29,7 @@ import os
 from absl import logging
 import gin
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from polish.utils import math_utils
 from polish.utils import tf_utils
 

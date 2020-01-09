@@ -22,7 +22,7 @@ import copy
 
 from absl import logging
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from graph_compression.compression_lib import compression_op
 from graph_compression.compression_lib import decompose_matrix

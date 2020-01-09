@@ -17,8 +17,8 @@
 import numpy as np
 import os
 import random
-import tensorflow as tf
-from tensorflow.python.platform import flags
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1.python.platform import flags
 from tensorflow.contrib.layers.python import layers as contrib_layers_python_layers
 
 FLAGS = flags.FLAGS

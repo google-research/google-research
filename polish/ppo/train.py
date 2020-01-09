@@ -21,7 +21,7 @@ from absl import logging
 import gin
 import gym
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from polish.env import parallel_env
 from polish.ppo import ppo_input_fn
 from polish.ppo import ppo_model_fn

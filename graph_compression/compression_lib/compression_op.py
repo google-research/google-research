@@ -45,7 +45,7 @@ import copy
 
 from absl import logging
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from graph_compression.compression_lib import compression_op_utils as comp_op_utils
 from tensorflow.contrib import training as contrib_training
 

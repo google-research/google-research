@@ -15,7 +15,7 @@
 
 """Wrapper class around TF estimator to perform training."""
 import gin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from polish.utils import tf_utils
 
 
