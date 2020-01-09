@@ -38,7 +38,7 @@ import tensorflow as tf
 from neutra import neutra
 from neutra import utils
 
-nest = tf.contrib.framework.nest
+nest = tf.nest
 
 flags.DEFINE_string("neutra_log_dir", "/tmp/neutra",
                     "Output directory for experiment artifacts.")
@@ -141,10 +141,9 @@ def main(argv):
       gin.parse_config(f.read())
 
   tf.gfile.MakeDirs(log_dir)
-  summary_writer = tf.contrib.summary.create_file_writer(
-      log_dir, flush_millis=10000)
+  summary_writer = tf.summary.create_file_writer(log_dir, flush_millis=10000)
   summary_writer.set_as_default()
-  with tf.contrib.summary.always_record_summaries():
+  with tf.summary.record_if(True):
     exp = neutra.NeuTraExperiment(log_dir=log_dir)
     with tf.gfile.Open(os.path.join(log_dir, "config"), "w") as f:
       f.write(gin.operative_config_str())
@@ -152,7 +151,7 @@ def main(argv):
 
     with tf.Session() as sess:
       exp.Initialize(sess)
-      tf.contrib.summary.initialize(graph=tf.get_default_graph())
+      tf.compat.v1.summary.initialize(graph=tf.get_default_graph())
 
       checkpoint = tf.train.latest_checkpoint(log_dir)
       if checkpoint:

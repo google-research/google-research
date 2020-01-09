@@ -949,8 +949,8 @@ class NeuTraExperiment(object):
     opt = tf.train.AdamOptimizer(learning_rate=learning_rate)
     self.train_op = opt.minimize(self.loss, global_step=self.global_step)
 
-    tf.contrib.summary.scalar("kl_q_p", self.kl_q_p)
-    tf.contrib.summary.scalar("loss", self.loss)
+    tf.summary.scalar("kl_q_p", self.kl_q_p)
+    tf.summary.scalar("loss", self.loss)
 
     self.init = [
         tf.global_variables_initializer(),
@@ -980,7 +980,7 @@ class NeuTraExperiment(object):
       fetch, _ = sess.run([{
           "global_step": self.global_step
       },
-                           tf.contrib.summary.all_summary_ops()])
+                           tf.compat.v1.summary.all_v2_summary_ops()])
       q_errs.append(sess.run(self.q_stats))
       if plot_callback:
         plot_callback()
@@ -995,11 +995,10 @@ class NeuTraExperiment(object):
 
     summarize()
 
-    flat_q_errs = [tf.contrib.framework.nest.flatten(s) for s in q_errs]
+    flat_q_errs = [tf.nest.flatten(s) for s in q_errs]
     trans_q_errs = list(zip(*flat_q_errs))
     concat_q_errs = [np.stack(q, 0) for q in trans_q_errs]
-    q_stats = tf.contrib.framework.nest.pack_sequence_as(
-        q_errs[0], concat_q_errs)
+    q_stats = tf.nest.pack_sequence_as(q_errs[0], concat_q_errs)
 
     self.saver.save(
         sess,
