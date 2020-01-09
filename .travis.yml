@@ -8,6 +8,7 @@ python:
   - "3.6"
 env:
   matrix:
+    - PROJECT="abps"
     - PROJECT="albert"
     - PROJECT="attribution"
     - PROJECT="axial"
