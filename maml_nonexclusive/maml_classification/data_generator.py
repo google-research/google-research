@@ -18,9 +18,9 @@
 import numpy as np
 import os
 import random
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
-from tensorflow.python.platform import flags
+from tensorflow.compat.v1.python.platform import flags
 from utils import get_images
 from itertools import permutations
 
