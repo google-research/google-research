@@ -23,12 +23,9 @@ rm -rf probability
 git clone --depth 1 https://github.com/tensorflow/probability.git
 cp -R probability/discussion discussion
 
-# TODO(siege): Disabled due to gast + tf-nightly incompatibility.
-# pip install -r neutra/requirements.txt
-# python -m neutra.neutra_test
-# python -m neutra.vae_test
-
-pip install -r neutra/ebm/requirements.txt
+pip install -r neutra/requirements.txt
+python -m neutra.neutra_test
+python -m neutra.vae_test
 python -m neutra.ebm.ebm_test
 
 rm -rf discussion

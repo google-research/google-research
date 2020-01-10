@@ -31,7 +31,7 @@ import gin
 import numpy as np
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -1504,21 +1504,20 @@ class DLGM(object):
         # Not super efficient...
         loss = tf.cond(use_other_z_init, lambda: tf.identity(loss),
                        lambda: tf.identity(-outputs.elbo))
-      recog_train_op = tf.contrib.training.create_train_op(
-          loss,
-          opt,
-          summarize_gradients=True,
+      recog_train_op = utils.CreateTrainOp(
+          total_loss=loss,
+          optimizer=opt,
+          global_step=global_step,
           variables_to_train=self.RecogVars(),
           transform_grads_fn=utils.ProcessGradients)
     with tf.name_scope("gen_train"):
       gen_loss = tf.cond(global_step < self._no_gen_train_steps,
                          lambda: -outputs.elbo, lambda: -outputs.mcmc_log_p)
 
-      gen_train_op = tf.contrib.training.create_train_op(
-          gen_loss,
-          opt,
-          None,
-          summarize_gradients=True,
+      gen_train_op = utils.CreateTrainOp(
+          total_loss=gen_loss,
+          optimizer=opt,
+          global_step=None,
           variables_to_train=self.GenVars(),
           transform_grads_fn=utils.ProcessGradients)
 
@@ -1712,10 +1711,11 @@ class VAE(object):
     tf.summary.image(
         "sample_means", utils.StitchImages(outputs.sample_means))
 
-    return tf.contrib.training.create_train_op(
-        -outputs.elbo,
-        opt,
-        summarize_gradients=True,
+    return utils.CreateTrainOp(
+        total_loss=-outputs.elbo,
+        optimizer=opt,
+        global_step=global_step,
+        variables_to_train=tf.trainable_variables(),
         transform_grads_fn=utils.ProcessGradients)
 
   def GetPosterior(self, images):
@@ -1798,13 +1798,17 @@ def Train(model, dataset, train_dir, master, epochs=600, polyak_averaging=0.0, w
                               TRAIN_BATCH),
       tf.train.LoggingTensorHook(utils.GetLoggingOutputs(), every_n_secs=60)
   ]
-  tf.contrib.training.train(
-      train_op,
-      logdir=train_dir,
+  with tf.train.MonitoredTrainingSession(
       master=master,
+      is_chief=True,
+      checkpoint_dir=train_dir,
       hooks=hooks,
       save_checkpoint_secs=120,
-      save_summaries_steps=60)
+      save_summaries_steps=60,
+      max_wait_secs=7200) as sess:
+
+    while not sess.should_stop():
+      sess.run(train_op)
 
 
 def Eval(model, dataset, train_dir, eval_dir, master,
@@ -1826,17 +1830,12 @@ def Eval(model, dataset, train_dir, eval_dir, master,
 
   tf.Session.reset(master)
 
-  hooks = [
-      # Just for logging.
-      tf.contrib.training.StopAfterNEvalsHook(dataset.test_size // TEST_BATCH),
-      tf.contrib.training.SummaryAtEndHook(eval_dir),
-      tf.train.LoggingTensorHook(utils.GetLoggingOutputs(), at_end=True)
-  ]
-  tf.contrib.training.evaluate_repeatedly(
+  utils.evaluate_repeatedly(
       train_dir,
+      eval_dir,
       eval_ops=eval_op,
-      hooks=hooks,
-      # LOL...
+      stop_after_n_evals=dataset.test_size // TEST_BATCH,
+      # This is widely optimistic.
       eval_interval_secs=120,
       max_number_of_evaluations=max_number_of_evaluations,
       master=master,
