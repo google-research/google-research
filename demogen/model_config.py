@@ -34,7 +34,7 @@ from the margin distribution generalization dataset.
 import json
 import os
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from demogen.models.get_model import get_model
 from tensorflow.contrib import training as contrib_training
 

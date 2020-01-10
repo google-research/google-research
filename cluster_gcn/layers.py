@@ -16,7 +16,7 @@
 """Implementations of different layers."""
 
 import inits
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # global unique layer ID dictionary for layer name assignment
 _LAYER_UIDS = {}
