@@ -22,7 +22,7 @@ from absl import app
 from absl import flags
 from matplotlib import cm
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 
 

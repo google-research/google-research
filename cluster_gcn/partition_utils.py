@@ -18,7 +18,7 @@
 import time
 import metis
 import scipy.sparse as sp
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def partition_graph(adj, idx_nodes, num_clusters):

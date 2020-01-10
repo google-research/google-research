@@ -26,7 +26,7 @@ from absl import app
 from absl import flags
 import imageio
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 flags.DEFINE_string('images_dir', None,
                     'Directory where summaries are located.')

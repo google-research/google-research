@@ -24,8 +24,8 @@ import partition_utils
 import scipy.sparse as sp
 import sklearn.metrics
 import sklearn.preprocessing
-import tensorflow as tf
-from tensorflow import gfile
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import gfile
 
 
 def parse_index_file(filename):

@@ -16,7 +16,7 @@
 """Getting a input function that will give input and label tensors."""
 
 from tensor2tensor import problems
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def get_input(

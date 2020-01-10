@@ -15,7 +15,7 @@
 
 """Implementations of different metrics."""
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def masked_softmax_cross_entropy(preds, labels, mask):
