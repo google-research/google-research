@@ -21,18 +21,21 @@ from __future__ import print_function
 
 import os
 import tempfile
-import shutil
+
 from absl.testing import parameterized
 import gin
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 from neutra import neutra
-import tensorflow.compat.v1 as tf
-import numpy as np
+
+tf.disable_v2_behavior()
 
 
 class NeutraTest(tf.test.TestCase, parameterized.TestCase):
 
   def setUp(self):
+    super(NeutraTest, self).setUp()
     self.temp_dir = tempfile.mkdtemp()
     self.test_german = os.path.join(self.temp_dir, "test_german")
     self.test_cloud = os.path.join(self.temp_dir, "test_cloud")
@@ -42,6 +45,7 @@ class NeutraTest(tf.test.TestCase, parameterized.TestCase):
       np.savetxt(f, np.random.rand(6, 4), delimiter=",")
 
   def tearDown(self):
+    super(NeutraTest, self).tearDown()
     tf.gfile.DeleteRecursively(self.temp_dir)
 
   def testAffineBijector(self):

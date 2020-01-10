@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Lint as: python2, python3
-# pylint: disable=invalid-name,g-bad-import-order,missing-docstring
+# pylint: disable=invalid-name,g-bad-import-order,missing-docstring,logging-not-lazy
 from __future__ import absolute_import
 from __future__ import division
 
@@ -25,6 +25,7 @@ import csv
 import functools
 import gzip
 import os
+import time
 
 from absl import flags
 from absl import logging
@@ -34,7 +35,7 @@ import pandas as pd
 import simplejson
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 import typing
 from typing import Any, Dict, List, Optional, Tuple
@@ -93,7 +94,7 @@ def LogAndSummarizeMetrics(metrics,
     regularly call to update the running mean. Otherwise, this is a no-op.
   """
 
-  prefix = tf.contrib.framework.get_name_scope()
+  prefix = tf.get_default_graph().get_name_scope()
   if prefix:
     prefix += "/"
   logging_collection = tf.get_collection_ref(LOGGING_OUTPUTS)
@@ -101,7 +102,7 @@ def LogAndSummarizeMetrics(metrics,
   update_ops = [tf.no_op()]
   for name, value in metrics.items():
     if use_streaming_mean:
-      value, update_op = tf.contrib.metrics.streaming_mean(value)
+      value, update_op = tf.metrics.mean(value)
       update_ops.append(update_op)
     logging_collection.append((prefix + name, value))
     tf.summary.scalar(name, value)
@@ -274,10 +275,8 @@ def GetBatch(data,
   data = tf.data.Dataset.zip((tf.data.Dataset.range(data_size), data))
   data = data.map(lambda i, x_l: (i, x_l[0], x_l[1]))
   if shuffle_buffer:
-    data = data.apply(
-        tf.contrib.data.shuffle_and_repeat(shuffle_buffer, epochs))
-  else:
-    data = data.repeat(epochs)
+    data = data.shuffle(shuffle_buffer)
+  data = data.repeat(epochs)
   data = data.batch(batch_size).prefetch(1)
   return data.make_one_shot_iterator().get_next()
 
@@ -407,10 +406,9 @@ class CIFAR10Dataset(Dataset):
                parallel_interleave = False):
     if parallel_interleave:
       data_files = tf.data.Dataset.from_tensor_slices(data_files)
-      data = data_files.apply(
-          tf.contrib.data.parallel_interleave(
-              lambda f: tf.data.FixedLengthRecordDataset(f, 1 + 32 * 32 * 3),
-              cycle_length=6))
+      data = data_files.interleave(
+          lambda f: tf.data.FixedLengthRecordDataset(f, 1 + 32 * 32 * 3),
+          cycle_length=6)
     else:
       data = tf.data.FixedLengthRecordDataset(data_files, 1 + 32 * 32 * 3)
 
@@ -1046,3 +1044,109 @@ class LogProbDist(tf.distributions.Distribution):
   def _log_prob(self, value):
     value = tf.convert_to_tensor(value)
     return self._log_prob_fn(value)
+
+
+def CreateTrainOp(total_loss, optimizer, global_step, variables_to_train,
+                  transform_grads_fn):
+  grads_and_vars = optimizer.compute_gradients(total_loss, variables_to_train)
+  if transform_grads_fn:
+    grads_and_vars = transform_grads_fn(grads_and_vars)
+  with tf.name_scope("summarize_grads"):
+    for grad, var in grads_and_vars:
+      if grad is not None:
+        if isinstance(grad, tf.IndexedSlices):
+          grad_values = grad.values
+        else:
+          grad_values = grad
+        tf.summary.histogram(var.op.name + "_gradient", grad_values)
+        tf.summary.scalar(var.op.name + "_gradient_norm",
+                          tf.global_norm([grad_values]))
+      else:
+        logging.info("Var %s has no gradient", var.op.name)
+  grad_updates = optimizer.apply_gradients(
+      grads_and_vars, global_step=global_step)
+  with tf.name_scope("train_op"):
+    with tf.control_dependencies([grad_updates]):
+      total_loss = tf.check_numerics(total_loss, "LossTensor is inf or nan")
+
+  return total_loss
+
+
+def wait_for_new_checkpoint(checkpoint_dir,
+                            last_checkpoint=None,
+                            seconds_to_sleep=1):
+  """Borrowed from tf.contrib.training."""
+  logging.info("Waiting for new checkpoint at %s", checkpoint_dir)
+  while True:
+    checkpoint_path = tf.train.latest_checkpoint(checkpoint_dir)
+    if checkpoint_path is None or checkpoint_path == last_checkpoint:
+      time.sleep(seconds_to_sleep)
+    else:
+      logging.info("Found new checkpoint at %s", checkpoint_path)
+      return checkpoint_path
+
+
+def checkpoints_iterator(
+    checkpoint_dir,
+    min_interval_secs=0,
+):
+  """Borrowed from tf.contrib.training."""
+  checkpoint_path = None
+  while True:
+    new_checkpoint_path = wait_for_new_checkpoint(checkpoint_dir,
+                                                  checkpoint_path)
+    start = time.time()
+    checkpoint_path = new_checkpoint_path
+    yield checkpoint_path
+    time_to_next_eval = start + min_interval_secs - time.time()
+    if time_to_next_eval > 0:
+      time.sleep(time_to_next_eval)
+
+
+def evaluate_repeatedly(
+    checkpoint_dir,
+    eval_dir,
+    stop_after_n_evals,
+    eval_ops,
+    master="",
+    scaffold=None,
+    eval_interval_secs=60,
+    max_number_of_evaluations=None,
+):
+  """Borrowed from tf.contrib.training."""
+
+  summary_op = tf.summary.merge_all()
+  global_step = tf.train.get_or_create_global_step()
+  summary_writer = tf.summary.FileWriterCache.get(eval_dir)
+
+  num_evaluations = 0
+  for checkpoint_path in checkpoints_iterator(
+      checkpoint_dir, min_interval_secs=eval_interval_secs):
+
+    session_creator = tf.train.ChiefSessionCreator(
+        scaffold=scaffold,
+        checkpoint_filename_with_path=checkpoint_path,
+        master=master)
+
+    with tf.train.MonitoredSession(session_creator=session_creator) as sess:
+      logging.info("Starting evaluation at " +
+                   time.strftime("%Y-%m-%d-%H:%M:%S", time.gmtime()))
+      for _ in range(stop_after_n_evals):
+        if sess.should_stop():
+          break
+        sess.run(eval_ops)
+      global_step_, summary_str, log_outputs = sess.run(
+          [global_step, summary_op,
+           GetLoggingOutputs()])
+      logging.info(", ".join(
+          "{} = {}".format(k, v) for k, v in sorted(list(log_outputs.items()))))
+      summary_writer.add_summary(summary_str, global_step_)
+      summary_writer.flush()
+
+      logging.info("Finished evaluation at " +
+                   time.strftime("%Y-%m-%d-%H:%M:%S", time.gmtime()))
+    num_evaluations += 1
+
+    if (max_number_of_evaluations is not None and
+        num_evaluations >= max_number_of_evaluations):
+      return

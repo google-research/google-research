@@ -14,34 +14,34 @@
 # limitations under the License.
 
 # Lint as: python2, python3
-# pylint: disable=invalid-name,g-bad-import-order
+# pylint: disable=invalid-name,g-bad-import-order,g-long-lambda
 """NeuTra VAE tests."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
-import shutil
 import tempfile
 
 import gin
-import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 
 from neutra import utils
 from neutra import vae
 
+tf.disable_v2_behavior()
 tfb = tfp.bijectors
 
 
 class NeutraTest(tf.test.TestCase):
 
   def setUp(self):
+    super(NeutraTest, self).setUp()
     self.temp_dir = tempfile.mkdtemp()
 
   def tearDown(self):
+    super(NeutraTest, self).tearDown()
     tf.gfile.DeleteRecursively(self.temp_dir)
 
   def testConv2DWN(self):

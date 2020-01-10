@@ -30,7 +30,7 @@ import scipy.optimize as sp_opt
 import simplejson
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 from typing import Tuple
 
