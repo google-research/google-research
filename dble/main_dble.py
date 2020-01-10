@@ -25,7 +25,7 @@ import time
 
 import numpy as np
 import pathlib
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tqdm import trange
 
 sys.path.insert(0, '..')

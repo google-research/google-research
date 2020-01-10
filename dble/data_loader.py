@@ -23,7 +23,7 @@ from keras.datasets import cifar10
 from keras.datasets import cifar100
 from keras.datasets import mnist
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from dble import tiny_imagenet
 
 

@@ -28,7 +28,7 @@ from __future__ import print_function
 import os
 import random
 from absl import logging
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 gfile = tf.gfile
 

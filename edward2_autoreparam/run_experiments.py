@@ -27,7 +27,7 @@ import pickle
 from absl import flags
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from edward2_autoreparam import experiments as algs
 from edward2_autoreparam import models

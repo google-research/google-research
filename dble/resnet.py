@@ -29,7 +29,7 @@ rather than after.
 """
 
 from __future__ import print_function
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import layers as contrib_layers
 
 _BATCH_NORM_DECAY = 0.997
