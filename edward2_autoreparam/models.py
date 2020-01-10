@@ -29,7 +29,7 @@ import numpy as np
 import pandas as pd
 from six.moves import urllib
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from tensorflow_probability import bijectors as tfb
 from tensorflow_probability import distributions as tfd

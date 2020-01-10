@@ -18,7 +18,7 @@ import json
 import logging
 import os
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def find_variables(param_dict):

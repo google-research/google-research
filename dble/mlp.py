@@ -16,7 +16,7 @@
 """Contains definitions for MLP Networks.
 """
 from __future__ import print_function
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import layers as contrib_layers
 
 

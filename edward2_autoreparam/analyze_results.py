@@ -28,7 +28,7 @@ import pickle
 from absl import flags
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 alg_names = ['HMC-CP', 'HMC-NCP', 'iHMC', 'c-VIP-HMC', 'd-VIP-HMC']

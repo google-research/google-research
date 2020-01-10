@@ -28,7 +28,7 @@ import time
 from absl import logging
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from tensorflow_probability import bijectors as tfb
 from tensorflow_probability import distributions as tfd
