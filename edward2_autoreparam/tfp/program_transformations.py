@@ -25,7 +25,7 @@ from __future__ import print_function
 import collections
 import inspect
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from tensorflow_probability import bijectors as tfb
 from tensorflow_probability.python.experimental.edward2.generated_random_variables import Normal

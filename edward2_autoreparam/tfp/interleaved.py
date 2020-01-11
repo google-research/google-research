@@ -25,7 +25,7 @@ import collections
 import warnings
 
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 
 from tensorflow_probability.python.mcmc import TransitionKernel
