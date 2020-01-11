@@ -28,7 +28,7 @@ from __future__ import print_function
 
 
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_gan as tfgan
 import tensorflow_hub as hub
 

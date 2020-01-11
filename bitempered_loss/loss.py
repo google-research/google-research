@@ -19,7 +19,7 @@ Source: https://arxiv.org/pdf/1906.03361.pdf
 """
 
 import functools
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def log_t(u, t):

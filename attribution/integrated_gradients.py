@@ -23,7 +23,7 @@ from __future__ import print_function
 import sys
 
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import graph_editor as contrib_graph_editor
 
 

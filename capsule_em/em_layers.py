@@ -23,7 +23,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import math
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from capsule_em import layers
 from capsule_em import utils
 

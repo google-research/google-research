@@ -23,7 +23,7 @@ import collections
 import os
 import random
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from bam.data import feature_spec
 from bam.helpers import utils
