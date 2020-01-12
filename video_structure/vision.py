@@ -21,7 +21,7 @@ These components perform the pixels <--> keypoints transformation.
 
 import functools
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from video_structure import ops
 
 layers = tf.keras.layers

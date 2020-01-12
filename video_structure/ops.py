@@ -17,7 +17,7 @@
 """TensorFlow ops for the structured video representation model."""
 
 import enum
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 EPSILON = 1e-6  # Constant for numerical stability.
 

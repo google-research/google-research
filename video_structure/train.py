@@ -30,7 +30,7 @@ import os
 from absl import app
 from absl import flags
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from video_structure import datasets
 from video_structure import dynamics

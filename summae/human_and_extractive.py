@@ -31,7 +31,7 @@ from absl import logging
 import numpy as np
 import six
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from rouge import rouge_scorer
 from rouge import scoring

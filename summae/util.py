@@ -26,7 +26,7 @@ import time
 
 import six
 from six.moves import range
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 from rouge import rouge_scorer
 from summae import text_encoder

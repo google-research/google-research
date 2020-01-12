@@ -20,7 +20,7 @@ import os
 from absl import flags
 from absl.testing import absltest
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from video_structure import datasets
 
 FLAGS = flags.FLAGS

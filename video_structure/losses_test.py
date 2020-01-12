@@ -18,7 +18,7 @@
 
 from absl.testing import absltest
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from video_structure import hyperparameters
 from video_structure import losses
 

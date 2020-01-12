@@ -16,7 +16,7 @@
 # Lint as: python3
 """Hyperparameters of the structured video prediction models."""
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class ConfigDict(dict):

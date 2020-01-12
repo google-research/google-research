@@ -16,7 +16,7 @@
 # Lint as: python3
 """Losses for the video representation model."""
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def temporal_separation_loss(cfg, coords):

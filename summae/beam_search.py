@@ -25,7 +25,7 @@ itself based on implementation from Tensor2Tensor:
 """
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def inf(dtype):

@@ -24,7 +24,7 @@ import hashlib
 from absl import logging
 import six
 from six.moves import range
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 from summae import util
 
 
