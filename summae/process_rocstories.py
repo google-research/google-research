@@ -31,7 +31,7 @@ import os
 from absl import app
 from absl import flags
 from absl import logging
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 from summae import data_util
 from summae import util
