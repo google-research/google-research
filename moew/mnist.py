@@ -33,7 +33,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ConstantKernel
 from sklearn.gaussian_process.kernels import RBF
 import tensorflow.compat.v1 as tf
-from tensorflow.compat.v1.examples.tutorials.mnist import input_data
+from tensorflow.examples.tutorials.mnist import input_data  # pylint: disable=g-direct-tensorflow-import
 
 FLAGS = flags.FLAGS
 flags.DEFINE_bool('uniform_weights', False, 'whether to use uniform weights')
