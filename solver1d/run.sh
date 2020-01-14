@@ -20,7 +20,7 @@ virtualenv -p python3 .
 source ./bin/activate
 
 pip install -e solver1d
-python -m solver1d.scripts.solve_poschl_teller_potential \
+python3 -m solver1d.scripts.solve_poschl_teller_potential \
 --solver=EigenSolver \
 --lam=0.5 \
 --scaling=1 \
