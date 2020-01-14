@@ -16,8 +16,8 @@
 set -e
 set -x
 
-virtualenv -p python .
+virtualenv -p python3 .
 source ./bin/activate
 
 pip install -r rl4circopt/requirements.txt
-python -m rl4circopt/hello_circuit
+python3 -m rl4circopt.hello_circuit
