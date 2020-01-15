@@ -1,14 +1,15 @@
 # Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting
 
-## Reference
-Bryan Lim, Sercan Arik, Nicolas Loeff and Tomas Pfister. "Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting". *Submitted*, 2019.
+Authors: Bryan Lim, Sercan Arik, Nicolas Loeff and Tomas Pfister
+
+Paper link: https://arxiv.org/pdf/1912.09363.pdf
 
 ### Abstract
 > Multi-horizon forecasting problems often contain a complex mix of inputs -- including static (i.e. time-invariant) covariates, known future inputs, and other exogenous time series that are only observed historically -- without any prior information on how they interact with the target. While several deep learning models have been proposed for multi-step prediction, they typically comprise black-box models which do not account for the full range of inputs present in common scenarios. In this paper, we introduce the Temporal Fusion Transformer (TFT) -- a novel attention-based architecture which combines high-performance multi-horizon forecasting with interpretable insights into temporal dynamics. To learn temporal relationships at different scales, the TFT utilizes recurrent layers for local processing and interpretable self-attention layers for learning long-term dependencies. The TFT also uses specialized components for the judicious selection of relevant features and a series of gating layers to suppress unnecessary components, enabling high performance in a wide range of regimes. On a variety of real-world datasets, we demonstrate significant performance improvements over existing benchmarks, and showcase three practical interpretability use-cases of TFT.
 
 
 ## Code Organisation
-This repository contains the source code for the Temporal Fusion Transformer, along with the training and evaluation routines for the experiments described in the paper. 
+This repository contains the source code for the Temporal Fusion Transformer, along with the training and evaluation routines for the experiments described in the paper.
 
 The key modules for experiments are organised as:
 
@@ -24,27 +25,27 @@ Scripts are all saved in the main folder, with descriptions below:
 * **script\_hyperparameter\_optimisation.py**: Runs full hyperparameter optimization using the default random search ranges defined for the TFT.
 
 ## Running Default Experiements
-Our four default experiments are divided into ``volatility``, ``electricity``, ``traffic``, and``favorita``. To run these experiments, we first download the data, and then run the relevant training routine.
+Our four default experiments are divided into ``volatility``, ``electricity``, ``traffic``, and``favorita``. To run these experiments, first download the data, and then run the relevant training routine.
 
 ### Step 1: Download data for default experiments
 To download the experiment data, run the following script:
 ```bash
 python3 -m script_download_data $EXPT $OUTPUT_FOLDER
 ```
-Where ``$EXPT`` can be any of {``volatility``, ``electricity``, ``traffic``, ``favorita``}, and ``$OUTPUT_FOLDER`` denotes the root folder in which experiment outputs are saved.
+where ``$EXPT`` can be any of {``volatility``, ``electricity``, ``traffic``, ``favorita``}, and ``$OUTPUT_FOLDER`` denotes the root folder in which experiment outputs are saved.
 
 ### Step 2: Train and evaluate network
 To train the network with the optimal default parameters, run:
 ```bash
 python3 -m script_train_fixed_params $EXPT $OUTPUT_FOLDER $USE_GPU 
 ```
-Where ``$EXPT`` and ``$OUTPUT_FOLDER`` are as above, ``$GPU`` denotes whether to run with GPU support (options are {``'yes'`` or``'no'``}).
+where ``$EXPT`` and ``$OUTPUT_FOLDER`` are as above, ``$GPU`` denotes whether to run with GPU support (options are {``'yes'`` or``'no'``}).
 
 For full hyperparameter optimization, run:
 ```bash
 python3 -m script_hyperparam_opt $EXPT $OUTPUT_FOLDER $USE_GPU yes
 ```
-Where options are as above.
+where options are as above.
 
 ## Customising Scripts for New Datasets
 To re-use the hyperparameter optimization scripts for new datasets, we need to add a new experiment -- which involves the creation of a new data formatter and config updates.
@@ -53,7 +54,7 @@ To re-use the hyperparameter optimization scripts for new datasets, we need to a
 First, create a new python file in ``data_formatters`` (e.g. example.py) which contains a data formatter class (e.g. ``ExampleFormatter``). This should inherit ``base.GenericDataFormatter`` and provide implementations of all abstract functions. An implementation example can be found in volatility.py.
 
 ### Step 2: Update configs.py
-Add a name for your new experiement to the ``default_experiments`` attribute in ``expt_settings.configs.ExperimentConfig`` (e.g. ``example``). 
+Add a name for your new experiement to the ``default_experiments`` attribute in ``expt_settings.configs.ExperimentConfig`` (e.g. ``example``).
 ```python
 default_experiments = ['volatility', 'electricity', 'traffic', 'favorita', 'example']
 ```
