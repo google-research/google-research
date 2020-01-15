@@ -25,7 +25,7 @@ import numpy as np
 import numpy.testing as numpy_testing
 import pandas as pd
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from correct_batch_effects_wdn import evaluate
 from correct_batch_effects_wdn import metadata

@@ -29,7 +29,7 @@ import collections
 from absl import logging
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from typing import Callable, MutableMapping, List, Optional, Tuple, Union
 from simulation_research.tf_risk import util

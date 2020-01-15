@@ -20,7 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 from simulation_research.tf_risk import dynamics
 from tensorflow.contrib import stateless as contrib_stateless
@@ -1079,7 +1079,7 @@ class DynamicsTest(tf.test.TestCase):
     # The step is a bijection w.r.t. dw_t, all terms should be different.
     self.assertAllDistinct(next_log_states_0_eval, next_log_states_1_eval)
 
-  @tf.test.mock.patch('tensorflow.random.stateless_normal')
+  @tf.test.mock.patch.object(tf.random, 'stateless_normal')
   def test_random_normal(self, mock_stateless_random_normal):
     _ = dynamics.random_normal(shape=[3, 1], i=41 / 5, key=9)
     _, call_args = mock_stateless_random_normal.call_args

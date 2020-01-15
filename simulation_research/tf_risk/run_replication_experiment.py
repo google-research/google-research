@@ -43,7 +43,7 @@ from absl import logging
 
 import numpy as np
 import scipy.linalg
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from simulation_research.tf_risk import controllers
 from simulation_research.tf_risk import monte_carlo_manager

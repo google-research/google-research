@@ -27,7 +27,7 @@ from absl import flags
 import numpy as np
 import pandas
 from six.moves import range
-from tensorflow import gfile
+from tensorflow.compat.v1 import gfile
 
 from correct_batch_effects_wdn import io_utils
 

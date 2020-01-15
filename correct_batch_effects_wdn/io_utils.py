@@ -21,7 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import pandas
-from tensorflow import gfile
+from tensorflow.compat.v1 import gfile
 
 
 def write_dataframe_to_hdf5(df, path, complib='zlib', complevel=5, key='data'):
