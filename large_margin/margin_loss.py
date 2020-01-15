@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def get_norm_fn(norm_type):
@@ -57,7 +57,7 @@ def maximum_with_relu(a, b):
 
 
 def _ensure_large_margin_args(name, sentinel, one_hot_labels, logits,
-                              layers_list, dist_norm, loss_type):
+                              layers_list, dist_norm, layers_weights):
   """Ensures arguments are correct."""
   # Make sure that all arguments were passed as named arguments.
   if sentinel is not None:
@@ -70,9 +70,9 @@ def _ensure_large_margin_args(name, sentinel, one_hot_labels, logits,
   if dist_norm not in {1, 2, np.inf}:
     raise ValueError("dist_norm must be 1, 2, or np.inf.")
 
-  if loss_type not in {"all_top_k", "average_top_k", "worst_top_k"}:
+  if layers_weights is not None and len(layers_weights) != len(layers_list):
     raise ValueError(
-        "loss_type must be 'all_top_k', 'average_top_k', or 'worst_top_k'.")
+        "layers_weights must have the same length as layers_list.")
 
 
 def large_margin(  # pylint: disable=invalid-name
@@ -86,8 +86,9 @@ def large_margin(  # pylint: disable=invalid-name
     dist_norm=2,
     epsilon=1e-8,
     use_approximation=True,
-    loss_type="all_top_k",
-    loss_collection=tf.GraphKeys.LOSSES):
+    worst_case_loss=True,
+    layers_weights=None,
+    loss_collection=tf.compat.v1.GraphKeys.LOSSES):
   """Creates a large margin loss.
 
   Args:
@@ -107,10 +108,10 @@ def large_margin(  # pylint: disable=invalid-name
     epsilon: Small number to avoid division by 0.
     use_approximation: If true, use approximation of the margin gradient for
       less computationally expensive training.
-    loss_type: 'worst_top_k', 'average_top_k', or 'all_top_k'. If 'worst_top_k'
-      only consider the minimum distance to boundary of the top_k classes. If
-      'average_top_k' consider average distance to boundary. If 'all_top_k'
-      consider all top_k. When top_k = 1, these choices are equivalent.
+    worst_case_loss: (Boolean) Use the minimum distance to boundary of the top_k
+      if true, otherwise, use the of the losses of the top_k classes. When
+      top_k = 1, both True and False choices are equivalent.
+    layers_weights: (List of float) Weight for loss from each layer.
     loss_collection: Collection to which the loss will be added.
 
   Returns:
@@ -121,10 +122,13 @@ def large_margin(  # pylint: disable=invalid-name
   """
 
   _ensure_large_margin_args("large_margin", _sentinel, one_hot_labels, logits,
-                            layers_list, dist_norm, loss_type)
+                            layers_list, dist_norm, layers_weights)
   logits = tf.convert_to_tensor(logits)
   one_hot_labels = tf.cast(one_hot_labels, logits.dtype)
   logits.get_shape().assert_is_compatible_with(one_hot_labels.get_shape())
+
+  layers_weights = [1.] * len(
+      layers_list) if layers_weights is None else layers_weights
   assert top_k > 0
   assert top_k <= logits.get_shape()[1]
 
@@ -147,14 +151,14 @@ def large_margin(  # pylint: disable=invalid-name
     # Difference between correct class probailities and top_k probabilities.
     difference_prob = correct_class_prob - top_k_class_prob
     losses_list = []
-    for layer in layers_list:
+    for wt, layer in zip(layers_weights, layers_list):
       difference_prob_grad = [
           tf.layers.flatten(tf.gradients(difference_prob[:, i], layer)[0])
           for i in range(top_k)
       ]
 
       difference_prob_gradnorm = tf.concat([
-          tf.map_fn(norm_fn, difference_prob_grad[i])[:, tf.newaxis]
+          tf.map_fn(norm_fn, difference_prob_grad[i])[:, tf.newaxis] / wt
           for i in range(top_k)
       ], axis=1)
 
@@ -164,13 +168,10 @@ def large_margin(  # pylint: disable=invalid-name
       distance_to_boundary = difference_prob / (
           difference_prob_gradnorm + epsilon)
 
-      if loss_type == "worst_top_k":
+      if worst_case_loss:
         # Only consider worst distance to boundary.
-        distance_to_boundary = tf.reduce_min(distance_to_boundary, axis=1)
-
-      elif loss_type == "average_top_k":
-        # Only consider average distance to boundary.
-        distance_to_boundary = tf.reduce_mean(distance_to_boundary, axis=1)
+        distance_to_boundary = tf.reduce_min(distance_to_boundary, axis=1,
+                                             keepdims=True)
 
       # Distances to consider between distance_upper and distance_lower bounds
       distance_upper = gamma
@@ -182,6 +183,8 @@ def large_margin(  # pylint: disable=invalid-name
       # Enforce upper bound.
       loss_layer = maximum_with_relu(
           0, distance_upper - loss_layer) - distance_upper
+
+      loss_layer = tf.reduce_sum(loss_layer, axis=1)
 
       losses_list.append(tf.reduce_mean(loss_layer))
 

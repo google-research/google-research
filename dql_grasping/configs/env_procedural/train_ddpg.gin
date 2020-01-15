@@ -1,0 +1,61 @@
+# TRAIN-COLLECT-EVAL LOOP
+train_collect_eval.collect_env = @train/KukaGraspingProceduralEnv()
+train_collect_eval.eval_env = @train/KukaGraspingProceduralEnv()
+train_collect_eval.test_env = @test/KukaGraspingProceduralEnv()
+train_collect_eval.policy_class = @PerStepSwitchPolicy
+
+PerStepSwitchPolicy.explore_policy_class = @RandomGraspingPolicyD4
+PerStepSwitchPolicy.greedy_policy_class = @DDPGPolicy
+
+train_collect_eval.num_collect = 50
+train_collect_eval.num_eval = 50
+train_collect_eval.num_test = 50
+
+train_collect_eval.train_fn = @train_ddpg
+
+# CONFIGURE POLICY (TRAIN, RUN)
+DDPGPolicy.a_func = @cnn_v0
+cnn_v0.num_actions = 4
+DDPGPolicy.q_func = @cnn_ia_v1
+cnn_ia_v1.use_timestep = True
+DDPGPolicy.state_shape = (1, 64, 64, 3)
+DDPGPolicy.action_size = 4
+DDPGPolicy.include_timestep = True
+DDPGPolicy.build_target = True
+
+# TRAINING
+
+get_data.parse_fn = @parse_tfexample_v0
+parse_tfexample_v0.img_height = 64
+parse_tfexample_v0.img_width = 64
+parse_tfexample_v0.action_size = 4
+
+train_ddpg.ddpg_graph_fn = @ddpg_graph
+ddpg_graph.dqda_clipping = 1. # clip gradients.
+
+train_ddpg.actor_optimizer = @actor/AdamOptimizer()
+train_ddpg.critic_optimizer = @critic/AdamOptimizer()
+
+actor/AdamOptimizer.learning_rate = 0.001
+critic/AdamOptimizer.learning_rate = 0.001
+
+train_ddpg.training_steps = 1000
+train_ddpg.max_training_steps = 2000000
+train_ddpg.log_every_n_steps=1000
+train_ddpg.save_summaries_steps=1000
+train_ddpg.update_target_every_n_steps = 50
+train_ddpg.save_checkpoint_steps=1000
+
+huber_loss.delta = 1.0
+
+# RUN AGENT
+run_env.explore_schedule = @LinearSchedule()
+run_env.episode_to_transitions_fn = @episode_to_transitions_v0
+
+# CONFIGURE EXPLORATION
+LinearSchedule.schedule_timesteps = 100000
+LinearSchedule.final_p = .05
+
+episode_to_transitions_v0.continuous = True
+
+

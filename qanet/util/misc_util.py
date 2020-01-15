@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import sys
 import time
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 __all__ = ["init_from_checkpoint", "print_out",
            "get_device_str", "debug_tensor", "get_trainable_vars",

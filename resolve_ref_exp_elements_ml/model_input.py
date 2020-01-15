@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,6 +33,11 @@ ELEMENTS_MASK_ID = "elements_mask"
 IMAGE_PAD_WEIGHTS_ID = "image_pad_weights"
 ELEMENTS_TYPE_ID = "elements_type"
 SELECTED_CANDIDATE_ID = "selected_candidate"
+
+GROUNDTRUTH_XMIN_ID = "groundTruth/bbox/xmin"
+GROUNDTRUTH_XMAX_ID = "groundTruth/bbox/xmax"
+GROUNDTRUTH_YMIN_ID = "groundTruth/bbox/ymin"
+GROUNDTRUTH_YMAX_ID = "groundTruth/bbox/ymax"
 
 # Information that changes from dataset to dataset.
 DatasetDescriptor = collections.namedtuple(
@@ -71,7 +76,7 @@ def get_resize_dim(width, height, image_size):
   return tf.to_int32(new_width), tf.to_int32(new_height)
 
 
-def resize_im(image, image_size, pad_val, channels, elements_boxes=None):
+def resize_im(image, image_size, pad_val, channels, features=None):
   """Decodes and resizes the image.
 
   Args:
@@ -79,30 +84,36 @@ def resize_im(image, image_size, pad_val, channels, elements_boxes=None):
     image_size: The desired max image size.
     pad_val: The value to pad with.
     channels: The number of channels in the image.
-    elements_boxes: The boxes from elements to resize.
+    features: Other features to resize.
 
   Returns:
     Resized image with possible padded regions,
     and possibly the resized elements boxes.
   """
-  [width, height, got_channels] = preprocess_utils.resolve_shape(image, rank=3)
+  [height, width, got_channels] = preprocess_utils.resolve_shape(image, rank=3)
 
-  new_width, new_height = get_resize_dim(width, height, image_size)
+  new_height, new_width = get_resize_dim(height, width, image_size)
 
-  image = tf.reshape(image, [width, height, -1])
+  image = tf.reshape(image, [height, width, -1])
   image = tf.cond(
       tf.logical_and(channels == 3, tf.equal(got_channels, 1)),
       true_fn=lambda: tf.image.grayscale_to_rgb(image),
       false_fn=lambda: image,
   )
 
-  image = tf.image.resize_images(image, [new_width, new_height])
+  image = tf.image.resize_images(image, [new_height, new_width])
 
   image = preprocess_utils.pad_to_bounding_box(image, 0, 0, image_size,
                                                image_size, pad_val)
-  if elements_boxes is not None:
-    return image, elements_boxes / tf.to_float(tf.maximum(width, height))
-
+  if features is not None:
+    width, height = tf.to_float(width), tf.to_float(height)
+    max_dim = tf.to_float(tf.maximum(width, height))
+    features[ELEMENTS_BOX_ID] = features[ELEMENTS_BOX_ID] / max_dim
+    if GROUNDTRUTH_XMIN_ID in features:
+      features[GROUNDTRUTH_XMIN_ID] *= width / max_dim
+      features[GROUNDTRUTH_XMAX_ID] *= width / max_dim
+      features[GROUNDTRUTH_YMIN_ID] *= height / max_dim
+      features[GROUNDTRUTH_YMAX_ID] *= height / max_dim
   return image
 
 
@@ -182,7 +193,7 @@ def input_fn_dataset(dataset, flags):
     if flags.use_ref_exp:
       context_feature_names[REF_EXP_ID] = tf.FixedLenFeature([], tf.string)
 
-    if not flags.inference:
+    if flags.use_labels:
       if dataset_descriptor.has_candidate:
         context_feature_names[SELECTED_CANDIDATE_ID] = tf.FixedLenFeature(
             [], tf.int64)
@@ -208,6 +219,16 @@ def input_fn_dataset(dataset, flags):
       sequence_feature_names[
           ELEMENTS_REF_MATCH_ID] = tf.FixedLenSequenceFeature(
               [], dtype=tf.string)
+
+    if flags.use_groundtruth_box:
+      context_feature_names[GROUNDTRUTH_XMIN_ID] = tf.FixedLenFeature(
+          [], tf.float32)
+      context_feature_names[GROUNDTRUTH_XMAX_ID] = tf.FixedLenFeature(
+          [], tf.float32)
+      context_feature_names[GROUNDTRUTH_YMIN_ID] = tf.FixedLenFeature(
+          [], tf.float32)
+      context_feature_names[GROUNDTRUTH_YMAX_ID] = tf.FixedLenFeature(
+          [], tf.float32)
 
     context_features, sequence_features = tf.parse_single_sequence_example(
         serialized_example,
@@ -239,12 +260,11 @@ def input_fn_dataset(dataset, flags):
                                                 2)
 
     if dataset_descriptor.has_elements_boxes:
-      image, features[ELEMENTS_BOX_ID] = resize_im(
-          image, flags.image_size, mean_pixel, 3, features[ELEMENTS_BOX_ID])
+      image = resize_im(image, flags.image_size, mean_pixel, 3, features)
     else:
       image = resize_im(image, flags.image_size, mean_pixel, 3)
 
-    if not flags.inference:
+    if flags.use_labels:
       if dataset_descriptor.has_candidate:
         features[ELEMENTS_MASK_ID] = tf.map_fn(
             process_label,
@@ -281,8 +301,13 @@ def input_fn_dataset(dataset, flags):
   padded_shapes = {
       IMAGE_ID: [None, None, None],
   }
-  if not flags.inference:
+  if flags.use_labels:
     padded_shapes[LABEL_ID] = [None, None, None]
+    if flags.use_groundtruth_box:
+      padded_shapes[GROUNDTRUTH_XMIN_ID] = []
+      padded_shapes[GROUNDTRUTH_XMAX_ID] = []
+      padded_shapes[GROUNDTRUTH_YMIN_ID] = []
+      padded_shapes[GROUNDTRUTH_YMAX_ID] = []
   if flags.use_elements_texts:
     padded_shapes[ELEMENTS_TEXT_ID] = [None]
     padded_shapes[ELEMENTS_EXIST_ID] = [None]
@@ -357,10 +382,10 @@ def input_fn_dataset(dataset, flags):
       feature_map[ELEMENTS_BOX_ID].set_shape([None, None, 4])
       feature_map[ELEMENTS_EXIST_ID] = tf.cast(feature_map[ELEMENTS_EXIST_ID],
                                                tf.bool)
-    if not flags.inference:
-      feature_map[LABEL_ID] = tf.reshape(
-          feature_map[LABEL_ID], [-1, flags.image_size, flags.image_size, 1])
-
+    if flags.use_labels:
+      if flags.output_mode == "segment" or flags.output_mode == "regression":
+        feature_map[LABEL_ID] = tf.reshape(
+            feature_map[LABEL_ID], [-1, flags.image_size, flags.image_size, 1])
   return feature_map
 
 
@@ -375,6 +400,7 @@ def get_input_fn(flags):
       pattern = os.path.join(
           os.path.join(flags.dataset_dir, dataset_descriptor.subfolder),
           flags.split + "*")
+      print "Pattern", pattern
       dataset = tf.data.Dataset.list_files(pattern)
 
       dataset = dataset.shuffle(buffer_size=flags.file_shuffle_buffer_size)
@@ -389,6 +415,7 @@ def get_input_fn(flags):
       dataset = dataset.interleave(
           prefetch_map_fn, cycle_length=100, block_length=flags.batch_size)
 
+      print "shuffle buffer size", flags.shuffle_buffer_size
       dataset = dataset.shuffle(buffer_size=flags.shuffle_buffer_size)
 
       return input_fn_dataset(dataset, flags)

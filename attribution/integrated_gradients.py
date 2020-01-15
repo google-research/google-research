@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Utilities for improving explainability of neural networks."""
 
 from __future__ import absolute_import
@@ -21,7 +22,9 @@ from __future__ import print_function
 
 import sys
 
-import tensorflow as tf
+import six
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import graph_editor as contrib_graph_editor
 
 
 def AddIntegratedGradientsOps(graph,
@@ -124,15 +127,14 @@ def AddIntegratedGradientsOps(graph,
   with graph.as_default():
     # Compute parts of graph and check correctness.
     all_ops = graph.get_operations()
-    constant_ops = tf.contrib.graph_editor.select.select_ops(
+    constant_ops = contrib_graph_editor.select.select_ops(
         all_ops, positive_filter=lambda x: x.type == 'Const')
-    placeholder_ops = tf.contrib.graph_editor.select.select_ops(
+    placeholder_ops = contrib_graph_editor.select.select_ops(
         all_ops, positive_filter=lambda x: x.type == 'Placeholder')
-    var_read_ops = tf.contrib.graph_editor.select.select_ops(
-        '/read$', graph=graph)
+    var_read_ops = contrib_graph_editor.select.select_ops('/read$', graph=graph)
     attr_ops = [t.op for t in attribution_tensors]
     required_ops = set(
-        tf.contrib.graph_editor.select.get_backward_walk_ops(
+        contrib_graph_editor.select.get_backward_walk_ops(
             output_tensor.op,
             stop_at_ts=(tensors_to_keep + list(attribution_tensors) +
                         ops_to_tensors(var_read_ops) +
@@ -140,24 +142,25 @@ def AddIntegratedGradientsOps(graph,
 
     # Check that attribution tensors are sufficient to compute output_tensor.
     forward_ops = set(
-        tf.contrib.graph_editor.select.get_forward_walk_ops(
-            attr_ops + var_read_ops + constant_ops))
+        contrib_graph_editor.select.get_forward_walk_ops(attr_ops +
+                                                         var_read_ops +
+                                                         constant_ops))
     assert required_ops.issubset(forward_ops)
 
-    required_sgv = tf.contrib.graph_editor.subgraph.make_view(required_ops)
+    required_sgv = contrib_graph_editor.subgraph.make_view(required_ops)
     attribution_subgraph, attribution_transform_info = (
-        tf.contrib.graph_editor.transform.copy_with_input_replacements(
+        contrib_graph_editor.transform.copy_with_input_replacements(
             required_sgv, {}, graph, new_output_scope))
     attribution_hooks['attribution_subgraph'] = attribution_subgraph
     attribution_hooks['attribution_transform_info'] = attribution_transform_info
 
     # Copy feed to attribution part of graph so we can have one part for
     # baseline and one for input.
-    backward_ops = tf.contrib.graph_editor.select.get_backward_walk_ops(
+    backward_ops = contrib_graph_editor.select.get_backward_walk_ops(
         attr_ops, stop_at_ts=ops_to_tensors(var_read_ops))
-    backward_sgv = tf.contrib.graph_editor.subgraph.make_view(backward_ops)
+    backward_sgv = contrib_graph_editor.subgraph.make_view(backward_ops)
     _, baseline_transform_info = (
-        tf.contrib.graph_editor.transform.copy_with_input_replacements(
+        contrib_graph_editor.transform.copy_with_input_replacements(
             backward_sgv, {}, graph, baseline_scope))
     attribution_hooks['baseline_transform_info'] = baseline_transform_info
 
@@ -170,18 +173,25 @@ def AddIntegratedGradientsOps(graph,
       combined_feed_dict = input_feed_dict.copy()
       if baseline_feed_dict is None:
         baseline_feed_dict = input_feed_dict
-      for tensor, feed_value in baseline_feed_dict.iteritems():
-        if isinstance(tensor, tf.Tensor):
+      for key, feed_value in baseline_feed_dict.items():
+        if isinstance(key, tf.Tensor):
+          combined_feed_dict[baseline_transform_info.transformed(key)] = (
+              feed_value)
+        elif isinstance(key, six.text_type):
+          if six.PY2:
+            tensor = graph.get_tensor_by_name(key.decode())
+          else:
+            tensor = graph.get_tensor_by_name(key)
           combined_feed_dict[baseline_transform_info.transformed(tensor)] = (
               feed_value)
-        elif isinstance(tensor, tf.SparseTensor):
+        elif isinstance(key, tf.SparseTensor):
           sparse_transformed_tensor = tf.SparseTensor(
-              baseline_transform_info.transformed(tensor.indices),
-              baseline_transform_info.transformed(tensor.values),
-              baseline_transform_info.transformed(tensor.dense_shape))
+              baseline_transform_info.transformed(key.indices),
+              baseline_transform_info.transformed(key.values),
+              baseline_transform_info.transformed(key.dense_shape))
           combined_feed_dict[sparse_transformed_tensor] = feed_value
         else:
-          raise ValueError('Invalid Entry %s in Feed Dict.' % tensor)
+          raise ValueError('Invalid key type %s in Feed Dict.' % type(key))
       return combined_feed_dict
 
     attribution_hooks['create_combined_feed_dict'] = CreateCombinedFeedDict
@@ -223,7 +233,7 @@ def AddIntegratedGradientsOps(graph,
             weighted_attribution_tensor)
         attribution_hooks['multipliers'].append(multiplier)
 
-    tf.contrib.graph_editor.reroute_ts(
+    contrib_graph_editor.reroute_ts(
         attribution_hooks['weighted_attribution_tensors'],
         attribution_tensors,
         can_modify=attribution_subgraph.ops)
@@ -285,7 +295,7 @@ def AddBOWIntegratedGradientsOps(graph,
     assert len(embedding_lookup.get_shape()) == 3
     assert len(embedding.get_shape()) == 2
   with graph.as_default():
-    num_evals = tf.placeholder_with_default(
+    num_evals = tf.compat.v1.placeholder_with_default(
         tf.constant(50, name='num_evals'), shape=())
     attribution_dims_map = {embedding: [1] for embedding in embedding_list}
     attribution_hooks = AddIntegratedGradientsOps(

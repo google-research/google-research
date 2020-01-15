@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ from tensor2tensor.layers import common_attention
 
 from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import expert_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from qanet import squad_data
 
 

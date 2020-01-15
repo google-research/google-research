@@ -1,0 +1,46 @@
+# NOTE: This has been tested with bazel 0.19.2.
+
+workspace(name = "eeg_modelling")
+
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+# NOTE: This depends on https://github.com/google/lullaby to be present in
+# the parent directory. As of June 2019, lullaby does not have a release yet.
+# Hence we do not include an archive.
+local_repository(
+    name = "org_lullaby",
+    path = "./lullaby",
+)
+
+
+http_archive(
+    name = "org_tensorflow",
+    sha256 = "7cd19978e6bc7edc2c847bce19f95515a742b34ea5e28e4389dade35348f58ed",
+    strip_prefix = "tensorflow-1.13.1",
+    urls = [
+        "https://github.com/tensorflow/tensorflow/archive/v1.13.1.tar.gz",
+    ],
+)
+
+# Required boilerplate for tf_workspace(), apparently.
+http_archive(
+    name = "io_bazel_rules_closure",
+    sha256 = "43c9b882fa921923bcba764453f4058d102bece35a37c9f6383c713004aacff1",
+    strip_prefix = "rules_closure-9889e2348259a5aad7e805547c1a0cf311cfcd91",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_closure/archive/9889e2348259a5aad7e805547c1a0cf311cfcd91.tar.gz",
+        "https://github.com/bazelbuild/rules_closure/archive/9889e2348259a5aad7e805547c1a0cf311cfcd91.tar.gz",  # 2018-12-21
+    ],
+)
+http_archive(
+    name = "bazel_skylib",
+    sha256 = "2ef429f5d7ce7111263289644d233707dba35e39696377ebab8b0bc701f7818e",
+    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/0.8.0/bazel-skylib.0.8.0.tar.gz"],
+)  # https://github.com/bazelbuild/bazel-skylib/releases
+
+
+
+# Import all of the tensorflow dependencies.
+load("@org_tensorflow//tensorflow:workspace.bzl", "tf_workspace")
+
+tf_workspace(tf_repo_name = "org_tensorflow")

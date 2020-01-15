@@ -1,0 +1,40 @@
+// Copyright 2019 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package eeg_modelling.protos;
+
+import "google/protobuf/timestamp.proto";
+
+// Proto for annotation/labelling.
+message Event {
+  // Start time, relative to start of segment.
+  optional float start_time_sec = 1;
+  // End time, relative to start of segment.
+  optional float end_time_sec = 2;
+  // Label.
+  optional string label = 3;
+  // Probability of the label.
+  optional float probability = 4;
+
+  // Absolute start time for event.
+  optional google.protobuf.Timestamp start_time = 5;
+  // Absolute end time for event.
+  optional google.protobuf.Timestamp end_time = 6;
+}
+
+message Events {
+  repeated Event event = 2;
+}

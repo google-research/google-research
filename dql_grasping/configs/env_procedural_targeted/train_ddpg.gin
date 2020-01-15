@@ -1,0 +1,48 @@
+# TRAIN-COLLECT-EVAL LOOP
+train_collect_eval.policy_class = @DDPGPolicy
+train_collect_eval.train_fn = @train_ddpg
+train_collect_eval.run_agent_fn = @run_agent_procedural
+
+DDPGPolicy.a_func = @cnn_actor_v0
+cnn_actor_v0.tstep = True
+DDPGPolicy.q_func = @cnn_ia_v1
+cnn_ia_v1.tstep = True
+DDPGPolicy.state_shape = (1, 64, 64, 3)
+DDPGPolicy.action_size = 4
+DDPGPolicy.build_target = True
+DDPGPolicy.include_tstep = True
+
+# TRAINING
+get_data_v2.parse_fn = @parse_tfexample_v0
+parse_tfexample_v0.img_size = 64
+parse_tfexample_v0.action_size = 4
+parse_tfexample_v0.include_step = True
+
+train_ddpg.ddpg_graph_fn = @ddpg_graph
+
+train_ddpg.pack_transition_fn = @tstep_pack_transition_fn
+train_ddpg.training_steps = 1000
+train_ddpg.max_training_steps = 200000
+train_ddpg.log_every_n_steps=1000
+train_ddpg.save_summaries_steps=1000
+train_ddpg.update_target_every_n_steps = 50
+train_ddpg.save_checkpoints_steps=1000
+train_ddpg.optimizer = @AdamOptimizer()
+
+ddpg_graph.target_network_type = 'normal'
+ddpg_graph.gamma = 1.0
+
+AdamOptimizer.learning_rate = 0.001
+
+# RUN AGENT
+run_agent_procedural.num_episodes = 50
+run_agent_procedural.num_greedy_train_episodes = 50
+run_agent_procedural.explore_schedule = @LinearSchedule()
+run_agent_procedural.episode_to_transitions_fn = @episode_to_transitions_v0
+
+# CONFIGURE EXPLORATION
+LinearSchedule.schedule_timesteps = 100000
+LinearSchedule.final_p = .05
+
+episode_to_transitions_v0.continuous = True
+

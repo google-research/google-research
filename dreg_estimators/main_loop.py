@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,12 +21,13 @@ from __future__ import print_function
 import os
 import random
 import numpy as np
+from six.moves import range
+from six.moves import zip
 import tensorflow as tf
 import tensorflow_probability as tfp
 
 from dreg_estimators import model
 from dreg_estimators import utils
-from tensorflow.python.training import summary_io
 
 tfd = tfp.distributions
 flags = tf.flags
@@ -130,8 +131,8 @@ def main(unused_argv):
       observations, contexts = tf.split(
           observations_ph, num_or_size_splits=2, axis=1)
       # pylint: disable=g-long-lambda
-      get_model_params = (lambda: likelihood.fcnet.get_variables() +
-                          prior.fcnet.get_variables())
+      get_model_params = (lambda: likelihood.get_variables() +
+                          prior.get_variables())  # pytype: disable=attribute-error
       # pylint: enable=g-long-lambda
     else:
       # prior is Normal(0, 1)
@@ -149,7 +150,7 @@ def main(unused_argv):
           bias_init=bias_init,
           hidden_activation_fn=tf.nn.tanh)
       observations, contexts = observations_ph, None
-      get_model_params = lambda: likelihood.fcnet.get_variables()  # pylint: disable=unnecessary-lambda
+      get_model_params = likelihood.get_variables
 
     # Compute the lower bound and the loss
     estimators = model.iwae(
@@ -166,7 +167,7 @@ def main(unused_argv):
     log_p_hat_mean = tf.reduce_mean(log_p_hat)
 
     model_params = get_model_params()
-    inference_network_params = proposal.fcnet.get_variables()
+    inference_network_params = proposal.get_variables()
 
     # Compute and apply the gradients, summarizing the gradient variance.
     global_step = tf.train.get_or_create_global_step()
@@ -270,7 +271,7 @@ def main(unused_argv):
         save_checkpoint_secs=120,
         save_summaries_steps=FLAGS.summarize_every,
         log_step_count_steps=FLAGS.summarize_every * 10) as sess:
-      writer = summary_io.SummaryWriterCache.get(checkpoint_dir)
+      writer = tf.summary.FileWriter(checkpoint_dir)
       t_stats = []
       cur_step = -1
       indices = list(range(train_xs.shape[0]))

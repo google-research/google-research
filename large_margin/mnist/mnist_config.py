@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import functools
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def l2_loss(var, l2_loss_wt):

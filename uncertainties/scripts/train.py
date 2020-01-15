@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,16 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Script to launch the algorithms on the last layer uncertainties."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import os
+
 from absl import app
 from absl import flags
+import gin.tf
 import numpy as np
-import tensorflow as tf
+import six
+import tensorflow.compat.v1 as tf
 
 
 import uncertainties.sources.cifar.cifar_input_python as cifar_input
@@ -34,7 +39,6 @@ import uncertainties.sources.models.simple as simple
 import uncertainties.sources.postprocessing.metrics as metrics
 import uncertainties.sources.postprocessing.postprocess as postprocess
 import uncertainties.sources.utils.util as util
-import gin.tf
 
 
 FLAGS = flags.FLAGS
@@ -56,10 +60,9 @@ flags.DEFINE_multi_string('gin_bindings', [],
 
 def main(unused_argv):
 
-  # Enable passing of configurable references from xmanager.
-  # Xmanager passes them as strings while gin wants them unquoted.
   FLAGS.gin_bindings = [
-      x if "@" not in x else x.replace("\"", "") for x in FLAGS.gin_bindings  # pylint: disable=g-inconsistent-quotes
+      x if "@" not in x else six.ensure_str(x).replace("\"", "")  # pylint: disable=g-inconsistent-quotes
+      for x in FLAGS.gin_bindings
   ]
   gin.parse_config_files_and_bindings(FLAGS.gin_config, FLAGS.gin_bindings)
   if FLAGS.dataset == 'mnist':
@@ -256,7 +259,7 @@ def build_model(dataset, model_dir, dim_input, num_classes):
 
   # Saving the weights
   if FLAGS.algorithm in ['simple', 'precond']:
-    str_file = 'sampled_weights_' + model.sampler + '.npy'
+    str_file = 'sampled_weights_' + six.ensure_str(model.sampler) + '.npy'
   elif FLAGS.algorithm == 'bootstrap':
     str_file = 'sampled_weights_w{}.npy'.format(model.worker_id)
   else:

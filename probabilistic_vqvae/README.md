@@ -117,4 +117,3 @@ $ python -m probabilistic_vqvae.mnist_experiments \
   --entropy_scale=1.0 --num_samples=10 --beta=0.05 --num_iaf_flows=1 \
   --iaf_startup_steps=5000 --stop_training_encoder_after_startup=True
 ```
-

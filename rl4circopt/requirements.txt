@@ -1,0 +1,4 @@
+absl-py
+numpy>=1.16.4
+scipy>=1.2.1
+cirq>=0.7.0

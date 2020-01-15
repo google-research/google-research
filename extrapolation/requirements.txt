@@ -1,0 +1,7 @@
+absl-py
+tensorflow==2.0.0b0
+tensorflow_datasets
+numpy
+tfp-nightly
+matplotlib
+seaborn

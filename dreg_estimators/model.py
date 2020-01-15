@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,12 +23,13 @@ import numpy as np
 import sonnet as snt
 import tensorflow as tf
 import tensorflow_probability as tfp
+from tensorflow.contrib import layers as contrib_layers
 
 tfd = tfp.distributions
 FLAGS = tf.flags.FLAGS
 
 DEFAULT_INITIALIZERS = {
-    "w": tf.contrib.layers.xavier_initializer(),
+    "w": contrib_layers.xavier_initializer(),
     "b": tf.zeros_initializer()
 }
 
@@ -92,6 +93,9 @@ class ConditionalBernoulli(object):
     if kwargs.get("stop_gradient", False):
       p = tf.stop_gradient(p)
     return tfd.Bernoulli(logits=p)
+
+  def get_variables(self):
+    return self.fcnet.get_variables()
 
 
 class ConditionalNormal(object):
@@ -165,6 +169,9 @@ class ConditionalNormal(object):
       sigma = tf.stop_gradient(sigma)
     return tfd.Normal(loc=mu, scale=sigma)
 
+  def get_variables(self):
+    return self.fcnet.get_variables()
+
 
 def iwae(p_z,
          p_x_given_z,
@@ -236,7 +243,7 @@ def iwae(p_z,
   if FLAGS.image_summary:
     best_index = tf.to_int32(tf.argmax(normalized_weights, axis=0))
     indices = tf.stack((best_index, tf.range(0, batch_size)), axis=-1)
-    best_images = tf.nn.sigmoid(tf.gather_nd(likelihood.logits, indices))
+    best_images = tf.gather_nd(likelihood.probs_parameter(), indices)
 
     if FLAGS.dataset == "struct_mnist":
       tf.summary.image("bottom_half",

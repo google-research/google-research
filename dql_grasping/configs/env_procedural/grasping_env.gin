@@ -1,0 +1,22 @@
+# Train environment
+train/KukaGraspingProceduralEnv.block_random = 0.3
+train/KukaGraspingProceduralEnv.camera_random = 0
+train/KukaGraspingProceduralEnv.simple_observations = False
+train/KukaGraspingProceduralEnv.continuous = True
+train/KukaGraspingProceduralEnv.remove_height_hack = True
+train/KukaGraspingProceduralEnv.render_mode = "DIRECT"
+train/KukaGraspingProceduralEnv.num_objects = 5
+train/KukaGraspingProceduralEnv.max_num_training_models = 900
+train/KukaGraspingProceduralEnv.target = False
+train/KukaGraspingProceduralEnv.test = False
+
+test/KukaGraspingProceduralEnv.block_random = 0.3
+test/KukaGraspingProceduralEnv.camera_random = 0
+test/KukaGraspingProceduralEnv.simple_observations = False
+test/KukaGraspingProceduralEnv.continuous = True
+test/KukaGraspingProceduralEnv.remove_height_hack = True
+test/KukaGraspingProceduralEnv.render_mode = "DIRECT"
+test/KukaGraspingProceduralEnv.num_objects = 5
+test/KukaGraspingProceduralEnv.max_num_test_models = 100
+test/KukaGraspingProceduralEnv.target = False
+test/KukaGraspingProceduralEnv.test = True

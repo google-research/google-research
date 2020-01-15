@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """CIFAR python-version dataset.
 """
 
@@ -20,11 +21,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import cPickle
 import os
 
 import numpy as np
-import tensorflow as tf
+import six.moves.cPickle
+import tensorflow.compat.v1 as tf
 
 NUM_TRAIN = 50000
 NUM_TEST = 10000
@@ -33,7 +34,7 @@ IMAGE_SIZE = 24
 
 def load_file(filename, data_path):
   with tf.gfile.Open(os.path.join(data_path, filename), 'rb') as fo:
-    dic = cPickle.load(fo)
+    dic = six.moves.cPickle.load(fo)
   return dic
 
 
@@ -116,8 +117,3 @@ def load_data(distorted, data_path, dataset):
     x_train_np, x_test_np = sess.run([x_train, x_test])
 
   return (x_train_np, y_train), (x_test_np, y_test)
-
-
-
-
-

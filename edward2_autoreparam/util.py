@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,15 +28,15 @@ import time
 from absl import logging
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from tensorflow_probability import bijectors as tfb
 from tensorflow_probability import distributions as tfd
 from tensorflow_probability import edward2 as ed
 
-from tensorflow_probability.python.edward2.generated_random_variables import Normal
-from tensorflow_probability.python.edward2.interceptor import tape
-from tensorflow_probability.python.edward2.program_transformations import make_log_joint_fn
+from tensorflow_probability.python.experimental.edward2.generated_random_variables import Normal
+from tensorflow_probability.python.experimental.edward2.interceptor import tape
+from tensorflow_probability.python.experimental.edward2.program_transformations import make_log_joint_fn
 
 from edward2_autoreparam.tfp import program_transformations
 

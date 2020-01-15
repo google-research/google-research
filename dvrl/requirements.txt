@@ -1,0 +1,10 @@
+absl-py>=0.5.0
+argparse>=1.1
+keras>=2.2.4
+lightgbm>=2.2.3
+matplotlib>=3.0.3
+numpy>=1.16.2
+pandas>=0.24.2
+sklearn>=0.20.3
+tensorflow>=1.13.1
+tqdm>=4.31.1

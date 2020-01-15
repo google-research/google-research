@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,8 @@ from deeplab import feature_extractor
 import elements_embeddings
 import model_input
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
+from tensorflow.contrib import graph_editor as contrib_graph_editor
+from tensorflow.contrib import slim as contrib_slim
 
 
 _LOGITS_SCOPE_NAME = 'logits'
@@ -266,11 +267,14 @@ def predict_labels(images,
   for output in sorted(outputs_to_scales_to_logits):
     scales_to_logits = outputs_to_scales_to_logits[output]
     logits = scales_to_logits[_MERGED_LOGITS_SCOPE]
-    logits = tf.image.resize_bilinear(
-        logits, tf.shape(images)[1:3], align_corners=True)
-    outputs_to_probs[output] = tf.nn.softmax(logits)
-    softmax_axis = 3
-    predictions[output] = tf.argmax(logits, softmax_axis)
+    if output == 'segment':
+      logits = tf.image.resize_bilinear(
+          logits, tf.shape(images)[1:3], align_corners=True)
+      outputs_to_probs[output] = tf.nn.softmax(logits)
+      predictions[output] = tf.argmax(logits, 3)
+    elif output == 'regression':
+      outputs_to_probs[output] = logits
+      predictions[output] = logits
 
   return predictions, outputs_to_probs
 
@@ -414,13 +418,11 @@ def multi_scale_logits(images,
         reuse=True if count > 0 else None,
         is_training=is_training,
         fine_tune_batch_norm=fine_tune_batch_norm)
-
-    # Resize the logits to have the same dimension before merging.
-    for output in sorted(outputs_to_logits):
-      outputs_to_logits[output] = tf.image.resize_bilinear(
-          outputs_to_logits[output], [logits_height, logits_width],
+    if 'segment' in outputs_to_logits:
+      # Resize the logits to have the same dimension before merging.
+      outputs_to_logits['segment'] = tf.image.resize_bilinear(
+          outputs_to_logits['segment'], [logits_height, logits_width],
           align_corners=True)
-
     # Return when only one input scale.
     if len(image_pyramid) == 1:
       for output in sorted(outputs_to_num_classes):
@@ -433,10 +435,12 @@ def multi_scale_logits(images,
       outputs_to_scales_to_logits[output][
           'logits_%.2f' % image_scale] = outputs_to_logits[output]
 
-  merge_axis = 4
-
   # Merge the logits from all the multi-scale inputs.
   for output in sorted(outputs_to_num_classes):
+    if output in ['segment', 'regression']:
+      merge_axis = 4
+    else:
+      merge_axis = 2
     # Concatenate the multi-scale logits for each output type.
     all_logits = [
         tf.expand_dims(logits, axis=merge_axis)
@@ -542,11 +546,11 @@ def extract_features(images,
       ]:
         add_dropout_layer = end_points[dropout_layer_name]
 
-        add_dropout_layer_out = tf.contrib.graph_editor.get_consuming_ops(
+        add_dropout_layer_out = contrib_graph_editor.get_consuming_ops(
             [add_dropout_layer])[0]
         updated_add_dropout_layer = tf.nn.dropout(
             add_dropout_layer, keep_prob=flags.image_keep_prob)
-        tf.contrib.graph_editor.connect(
+        contrib_graph_editor.connect(
             updated_add_dropout_layer,
             add_dropout_layer_out,
             disconnect_first=True)
@@ -639,11 +643,11 @@ def extract_features(images,
     # tf.contrib.graph_editor.swap_outputs(
     #     tf.contrib.graph_editor.sgv(updated_add_ref_elements_layer.op),
     #     tf.contrib.graph_editor.sgv(add_ref_elements_layer.op))
-    add_ref_elements_layer_out = tf.contrib.graph_editor.get_consuming_ops(
+    add_ref_elements_layer_out = contrib_graph_editor.get_consuming_ops(
         [add_ref_elements_layer])[0]
     updated_add_ref_elements_layer = tf.identity(
         updated_add_ref_elements_layer, name='updated_add_ref_elements_layer')
-    tf.contrib.graph_editor.connect(
+    contrib_graph_editor.connect(
         updated_add_ref_elements_layer,
         add_ref_elements_layer_out,
         disconnect_first=True)
@@ -660,37 +664,35 @@ def extract_features(images,
         'scale': True,
     }
 
-    with slim.arg_scope(
-        [slim.conv2d, slim.separable_conv2d],
-        weights_regularizer=slim.l2_regularizer(weight_decay),
+    with contrib_slim.arg_scope(
+        [contrib_slim.conv2d, contrib_slim.separable_conv2d],
+        weights_regularizer=contrib_slim.l2_regularizer(weight_decay),
         activation_fn=tf.nn.relu,
-        normalizer_fn=slim.batch_norm,
+        normalizer_fn=contrib_slim.batch_norm,
         padding='SAME',
         stride=1,
         reuse=reuse):
-      with slim.arg_scope([slim.batch_norm], **batch_norm_params):
+      with contrib_slim.arg_scope([contrib_slim.batch_norm],
+                                  **batch_norm_params):
         depth = 256
         branch_logits = []
 
         if add_image_level_feature:
           pool_height = scale_dimension(crop_size[0], 1. / output_stride)
           pool_width = scale_dimension(crop_size[1], 1. / output_stride)
-          image_feature = slim.avg_pool2d(features,
-                                          [pool_height, pool_width],
-                                          [pool_height, pool_width],
-                                          padding='VALID')
-          image_feature = slim.conv2d(image_feature,
-                                      depth,
-                                      1,
-                                      scope=_IMAGE_POOLING_SCOPE)
+          image_feature = contrib_slim.avg_pool2d(
+              features, [pool_height, pool_width], [pool_height, pool_width],
+              padding='VALID')
+          image_feature = contrib_slim.conv2d(
+              image_feature, depth, 1, scope=_IMAGE_POOLING_SCOPE)
           image_feature = tf.image.resize_bilinear(
               image_feature, [pool_height, pool_width], align_corners=True)
           image_feature.set_shape([None, pool_height, pool_width, depth])
           branch_logits.append(image_feature)
 
         # Employ a 1x1 convolution.
-        branch_logits.append(slim.conv2d(features, depth, 1,
-                                         scope=_ASPP_SCOPE + str(0)))
+        branch_logits.append(
+            contrib_slim.conv2d(features, depth, 1, scope=_ASPP_SCOPE + str(0)))
 
         if atrous_rates:
           # Employ 3x3 convolutions with different atrous rates.
@@ -704,13 +706,13 @@ def extract_features(images,
                   weight_decay=weight_decay,
                   scope=scope)
             else:
-              aspp_features = slim.conv2d(
+              aspp_features = contrib_slim.conv2d(
                   features, depth, 3, rate=rate, scope=scope)
             branch_logits.append(aspp_features)
 
         # Merge branch logits.
         concat_logits = tf.concat(branch_logits, 3)
-        concat_logits = slim.conv2d(
+        concat_logits = contrib_slim.conv2d(
             concat_logits, depth, 1, scope=_CONCAT_PROJECTION_SCOPE)
         concat_logits = tf.nn.dropout(
             concat_logits, keep_prob=flags.comb_dropout_keep_prob)
@@ -787,7 +789,8 @@ def _get_logits(images,
       is_training=is_training,
       fine_tune_batch_norm=fine_tune_batch_norm)
 
-  if decoder_output_stride is not None:
+  if flags.output_mode in ['segment', 'regression', 'combined'
+                          ] and (decoder_output_stride is not None):
     decoder_height = scale_dimension(crop_size[0], 1.0 / decoder_output_stride)
     decoder_width = scale_dimension(crop_size[1], 1.0 / decoder_output_stride)
     features = refine_by_decoder(
@@ -804,15 +807,18 @@ def _get_logits(images,
 
   outputs_to_logits = {}
   for output in sorted(outputs_to_num_classes):
-    outputs_to_logits[output] = _get_branch_logits(
-        features,
-        outputs_to_num_classes[output],
-        atrous_rates,
-        aspp_with_batch_norm=aspp_with_batch_norm,
-        kernel_size=logits_kernel_size,
-        weight_decay=weight_decay,
-        reuse=reuse,
-        scope_suffix=output)
+    if output == 'segment':
+      outputs_to_logits[output] = _get_branch_logits(
+          features,
+          outputs_to_num_classes[output],
+          atrous_rates,
+          aspp_with_batch_norm=aspp_with_batch_norm,
+          kernel_size=logits_kernel_size,
+          weight_decay=weight_decay,
+          reuse=reuse,
+          scope_suffix=output)
+    elif output == 'regression':
+      outputs_to_logits[output] = _get_coordinate_logits(features, flags)
 
   return outputs_to_logits
 
@@ -854,15 +860,15 @@ def refine_by_decoder(features,
       'scale': True,
   }
 
-  with slim.arg_scope(
-      [slim.conv2d, slim.separable_conv2d],
-      weights_regularizer=slim.l2_regularizer(weight_decay),
+  with contrib_slim.arg_scope(
+      [contrib_slim.conv2d, contrib_slim.separable_conv2d],
+      weights_regularizer=contrib_slim.l2_regularizer(weight_decay),
       activation_fn=tf.nn.relu,
-      normalizer_fn=slim.batch_norm,
+      normalizer_fn=contrib_slim.batch_norm,
       padding='SAME',
       stride=1,
       reuse=reuse):
-    with slim.arg_scope([slim.batch_norm], **batch_norm_params):
+    with contrib_slim.arg_scope([contrib_slim.batch_norm], **batch_norm_params):
       with tf.variable_scope(_DECODER_SCOPE, _DECODER_SCOPE, [features]):
         feature_list = feature_extractor.networks_to_feature_maps[
             model_variant][feature_extractor.DECODER_END_POINTS]
@@ -881,10 +887,11 @@ def refine_by_decoder(features,
               feature_name = '{}/{}'.format(
                   feature_extractor.name_scope[model_variant], name)
             decoder_features_list.append(
-                slim.conv2d(end_points[feature_name],
-                            48,
-                            1,
-                            scope='feature_projection'+str(i)))
+                contrib_slim.conv2d(
+                    end_points[feature_name],
+                    48,
+                    1,
+                    scope='feature_projection' + str(i)))
             # Resize to decoder_height/decoder_width.
             for j, feature in enumerate(decoder_features_list):
               decoder_features_list[j] = tf.image.resize_bilinear(
@@ -909,14 +916,102 @@ def refine_by_decoder(features,
                   scope='decoder_conv1')
             else:
               num_convs = 2
-              decoder_features = slim.repeat(
+              decoder_features = contrib_slim.repeat(
                   tf.concat(decoder_features_list, 3),
                   num_convs,
-                  slim.conv2d,
+                  contrib_slim.conv2d,
                   decoder_depth,
                   3,
-                  scope='decoder_conv'+str(i))
+                  scope='decoder_conv' + str(i))
           return decoder_features
+
+
+def cr_conv(inp, feature_size, kernel_size, activation, flags, padding='valid'):
+  """Create a 2d convolution layer for ClickRegression.
+
+  Args:
+    inp: A float tensor of shape [batch, height, width, channels]
+    feature_size: Output feature size
+    kernel_size: Size of kernel as specified by tf.layers.conv2d
+    activation: Activation function as specified by tf.layers.conv2d
+    flags: The input flags
+    padding: Convolution padding type as specified by tf.layers.conv2d
+
+  Returns:
+    Convolution output of shape [batch, height, width, channels]
+  """
+  conv = tf.layers.conv2d(
+      inp, feature_size, kernel_size, activation=activation, padding=padding)
+  if flags.regression_batch_norm:
+    conv = tf.layers.batch_normalization(
+        conv,
+        momentum=0.9997,
+        epsilon=1e-5,
+        training=flags.train_mode,
+        renorm=True)
+  return conv
+
+
+def _get_coordinate_logits(features, flags):
+  """Get the regression output of the model.
+
+  Args:
+    features: A float tensor of shape [batch, height, width, channels].
+    flags: The input flags
+
+  Returns:
+    logits with shape [batch, x_coord, y_coord].
+  """
+  conv1_1 = cr_conv(
+      features, 512, 3, activation=tf.nn.relu, padding='same', flags=flags)
+  conv1_2 = cr_conv(conv1_1, 256, 1, activation=tf.nn.relu, flags=flags)
+  conv1_3 = cr_conv(
+      conv1_2, 512, 3, activation=tf.nn.relu, padding='same', flags=flags)
+  max_pool1 = tf.layers.max_pooling2d(conv1_3, 2, 2)
+
+  conv2_1 = cr_conv(
+      max_pool1, 512, 3, activation=tf.nn.relu, padding='same', flags=flags)
+  conv2_2 = cr_conv(conv2_1, 256, 1, activation=tf.nn.relu, flags=flags)
+  conv2_3 = cr_conv(
+      conv2_2, 512, 3, activation=tf.nn.relu, padding='same', flags=flags)
+  conv2_4 = cr_conv(conv2_3, 256, 1, activation=tf.nn.relu, flags=flags)
+  conv2_5 = cr_conv(
+      conv2_4, 512, 3, activation=tf.nn.relu, padding='same', flags=flags)
+  max_pool2 = tf.layers.max_pooling2d(conv2_5, 2, 2)
+
+  conv3_1 = cr_conv(
+      max_pool2, 1024, 3, activation=tf.nn.relu, padding='same', flags=flags)
+  conv3_2 = cr_conv(conv3_1, 512, 1, activation=tf.nn.relu, flags=flags)
+  conv3_3 = cr_conv(
+      conv3_2, 1024, 3, activation=tf.nn.relu, padding='same', flags=flags)
+  conv3_4 = cr_conv(conv3_3, 512, 1, activation=tf.nn.relu, flags=flags)
+  conv3_5 = cr_conv(
+      conv3_4, 1024, 3, activation=tf.nn.relu, padding='same', flags=flags)
+
+  # Global average pool to create single 1024 sized tensor
+  average_pool = tf.layers.average_pooling2d(
+      conv3_5, [conv3_5.shape[1], conv3_5.shape[2]], 1)
+
+  flatten = tf.layers.flatten(average_pool)
+  if flags.coord_softmax:
+    dense = tf.layers.dense(flatten, 750, activation=tf.nn.relu)
+
+    x_proj = tf.layers.dense(dense, flags.image_size, activation=tf.nn.relu)
+    y_proj = tf.layers.dense(dense, flags.image_size, activation=tf.nn.relu)
+
+    x_softmax = tf.nn.softmax(x_proj)
+    y_softmax = tf.nn.softmax(y_proj)
+
+    coords = tf.to_float(tf.range(flags.image_size))
+    x_pred = tf.reduce_sum(x_softmax * coords, axis=-1)
+    y_pred = tf.reduce_sum(y_softmax * coords, axis=-1)
+
+    predictions = tf.stack([x_pred, y_pred], axis=-1)
+  else:
+    hidden = tf.layers.dense(flatten, 513, activation=tf.nn.relu)
+    predictions = tf.layers.dense(hidden, 2)
+
+  return predictions
 
 
 def _get_branch_logits(features,
@@ -952,9 +1047,9 @@ def _get_branch_logits(features,
     atrous_rates = [1]
     assert kernel_size == 1
 
-  with slim.arg_scope(
-      [slim.conv2d],
-      weights_regularizer=slim.l2_regularizer(weight_decay),
+  with contrib_slim.arg_scope(
+      [contrib_slim.conv2d],
+      weights_regularizer=contrib_slim.l2_regularizer(weight_decay),
       weights_initializer=tf.truncated_normal_initializer(stddev=0.01),
       reuse=reuse):
     with tf.variable_scope(
@@ -965,10 +1060,15 @@ def _get_branch_logits(features,
         if i != 0:
           scope += '_' + str(i)
 
-        branch_logits.append(slim.conv2d(
-            features, num_classes, kernel_size=kernel_size,
-            rate=rate, activation_fn=None, normalizer_fn=None,
-            scope=scope))
+        branch_logits.append(
+            contrib_slim.conv2d(
+                features,
+                num_classes,
+                kernel_size=kernel_size,
+                rate=rate,
+                activation_fn=None,
+                normalizer_fn=None,
+                scope=scope))
 
       return tf.add_n(branch_logits)
 
@@ -996,7 +1096,7 @@ def _split_separable_conv2d(inputs,
   Returns:
     Computed features after split separable conv2d.
   """
-  outputs = slim.separable_conv2d(
+  outputs = contrib_slim.separable_conv2d(
       inputs,
       None,
       3,
@@ -1006,11 +1106,51 @@ def _split_separable_conv2d(inputs,
           stddev=depthwise_weights_initializer_stddev),
       weights_regularizer=None,
       scope=scope + '_depthwise')
-  return slim.conv2d(
+  return contrib_slim.conv2d(
       outputs,
       filters,
       1,
       weights_initializer=tf.truncated_normal_initializer(
           stddev=pointwise_weights_initializer_stddev),
-      weights_regularizer=slim.l2_regularizer(weight_decay),
+      weights_regularizer=contrib_slim.l2_regularizer(weight_decay),
       scope=scope + '_pointwise')
+
+
+def get_ignore_mask(labels, flags):
+  """Get the mask of elements to ignore.
+
+  Args:
+    labels: Ground truth label of shape [batch, height, width].
+    flags: The input flags
+
+  Returns:
+    3D mask of same dimensionality as labels. 0 for elements to ignore, 1 for
+    elements to keep.
+  """
+  mask = tf.to_int32(
+      tf.not_equal(labels,
+                   model_input.dataset_descriptors[flags.dataset].ignore_label))
+  return mask
+
+
+def get_output_to_num_classes(flags):
+  """Get the output_to_num_classes dictionary to define the learning problem.
+
+  Args:
+    flags: The input flags
+
+  Returns:
+    This dictionary defines which part of the model to run given the output
+    mode.
+
+  """
+  # TODO(ahah): Add support for elements model
+  output_to_num_classes = {}
+  if flags.output_mode in ['segment', 'combined']:
+    output_to_num_classes['segment'] = model_input.dataset_descriptors[
+        flags.dataset].num_classes
+  if flags.output_mode in ['regression', 'combined']:
+    output_to_num_classes['regression'] = model_input.dataset_descriptors[
+        flags.dataset].num_classes
+
+  return output_to_num_classes

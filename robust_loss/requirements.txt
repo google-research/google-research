@@ -1,0 +1,6 @@
+# tensorflow>=1.15.0
+# tensorflow_probability>=0.8.0
+numpy>=1.15.4
+scipy>=1.1.0
+absl-py>=0.1.9
+mpmath>=1.1.0

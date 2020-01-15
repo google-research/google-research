@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import time
 from absl import app
 from absl import flags
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from large_margin import margin_loss
 from large_margin.mnist import data_provider as mnist
@@ -63,7 +63,7 @@ def _eval_once(session_creator, ops_dict, summary_writer, merged_summary,
   list_ops = []
   list_phs = []
   list_keys = []
-  for key, value in ops_dict.iteritems():
+  for key, value in ops_dict.items():
     if value[0] is not None and value[1] is not None:
       list_keys.append(key)
       list_ops.append(value[1])
@@ -73,7 +73,7 @@ def _eval_once(session_creator, ops_dict, summary_writer, merged_summary,
     list_results = []
     count = 0.
     total_correct = 0
-    for _ in xrange(num_batches):
+    for _ in range(num_batches):
       res, top1 = sess.run((list_ops, ops_dict["top1"][1]))
       number_correct = np.sum(top1)
       total_correct += number_correct
@@ -108,12 +108,16 @@ def evaluate():
           batch_size=FLAGS.batch_size,
           is_training=False)
       model = mnist_model.MNISTNetwork(config)
-
+      layers_names = [
+          "conv_layer%d" % i
+          for i in range(len(config.filter_sizes_conv_layers))
+      ]
     images, labels, num_examples, num_classes = (dataset.images, dataset.labels,
                                                  dataset.num_examples,
                                                  dataset.num_classes)
 
-    logits, _ = model(images, is_training=False)
+    logits, endpoints = model(images, is_training=False)
+    layers_list = [images] + [endpoints[name] for name in layers_names]
 
     top1_op = tf.nn.in_top_k(logits, labels, 1)
 
@@ -141,11 +145,16 @@ def evaluate():
       margin = margin_loss.large_margin(
           logits=logits,
           one_hot_labels=tf.one_hot(labels, num_classes),
-          layers_list=[images],
+          layers_list=layers_list,
           gamma=gamma,
           alpha_factor=alpha,
           top_k=top_k,
-          dist_norm=dist_norm)
+          dist_norm=dist_norm,
+          epsilon=1e-6,
+          layers_weights=[
+              np.prod(layer.get_shape().as_list()[1:])
+              for layer in layers_list] if np.isinf(dist_norm) else None
+          )
       l2_loss = 0.
       for v in tf.trainable_variables():
         tf.logging.info(v)

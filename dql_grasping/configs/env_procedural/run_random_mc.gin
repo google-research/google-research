@@ -1,0 +1,14 @@
+# TRAIN-COLLECT-EVAL LOOP
+train_collect_eval.collect_env = @train/KukaGraspingProceduralEnv()
+train_collect_eval.eval_env = None
+train_collect_eval.test_env = None
+train_collect_eval.train_fn = None
+train_collect_eval.policy_class = @RandomGraspingPolicyD4
+train_collect_eval.num_collect = 1000
+
+# RUN AGENT
+run_env.episode_to_transitions_fn = @episode_to_transitions_mc
+episode_to_transitions_mc.base_fn = @episode_to_transitions_v0
+run_env.replay_writer = @TFRecordReplayWriter()
+
+episode_to_transitions_v0.continuous = True

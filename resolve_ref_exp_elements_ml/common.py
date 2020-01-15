@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,13 @@
 import tensorflow as tf
 flags = tf.app.flags
 
-flags.DEFINE_string('master', '', 'Name of the tensorflow server')
+flags.DEFINE_enum(
+    'output_mode', 'combined', ['segment', 'regression', 'combined'],
+    '"segment", uses a model similar to DeepLab.'
+    '"regression", uses the ClickRegression model'
+    '"combined", uses the multitask learning architecture')
+
+flags.DEFINE_string('master', '', 'name of the tensorflow server')
 
 flags.DEFINE_integer('image_size', 513, '')
 
@@ -148,8 +154,23 @@ flags.DEFINE_string('dataset_dir', '', 'Where the dataset reside.')
 flags.DEFINE_integer('dataset_threads', 100, '')
 
 flags.DEFINE_boolean('preprocess_divide_label', False, '')
-flags.DEFINE_integer('shuffle_buffer_size', 100000, '')
+flags.DEFINE_integer('shuffle_buffer_size', 10000, '')
 flags.DEFINE_integer('file_shuffle_buffer_size', 100, '')
 
-flags.DEFINE_boolean('inference', False,
-                     "If True, don't include label in input pipeline.")
+flags.DEFINE_boolean('use_labels', True,
+                     'If True, include label in input pipeline.')
+flags.DEFINE_boolean(
+    'train_mode', True,
+    'Specify whether we are in training mode. Used for model ops such as'
+    'dropout and batch norm')
+flags.DEFINE_boolean('coord_softmax', False,
+                     'if True, use the coordinate softmax architecture.')
+
+flags.DEFINE_boolean(
+    'regression_batch_norm', False,
+    'if True, apply batch normalization to all ClickRegression-specific'
+    'convolutions')
+
+flags.DEFINE_boolean(
+    'use_groundtruth_box', False,
+    'if True, use the xmin,xmax,ymin,ymax features of the ground truth box')

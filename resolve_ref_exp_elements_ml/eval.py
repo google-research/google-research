@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import model_input
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.python.platform import app
+from tensorflow.contrib import slim as contrib_slim
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -68,6 +69,38 @@ def calc_high_prob_overlaps(labels, probs, weights):
       tf.reduce_max(non_overlap_probs, [1, 2]))
 
 
+def calc_accuracy_in_box(labels, coords, weights):
+  """Calculate if coordinate lies within the ground truth.
+
+  Args:
+    labels: Ground truth label of shape [batch, height, width].
+    coords: Regression output of shape [batch, 1, 1]
+    weights: Padding mask for label
+
+  Returns:
+    Merged logits with shape [batch, height, width, num_classes].
+  """
+  labels *= weights
+  labels = labels[:, :, :, 0]
+
+  coords = tf.cast(coords, tf.int32)
+  coords = tf.clip_by_value(coords, 0, FLAGS.image_size - 1)
+
+  # Create the indices for the batch dimension
+  batch_ind = tf.expand_dims(tf.range(tf.shape(coords)[0]), -1)
+
+  # Concatenate the indices of the batch dimension with coords
+  # to create a matrix of prediction indices
+  coords = tf.cast(tf.concat([batch_ind, coords], -1), tf.int32)
+
+  # Grab the elements prediced by index
+  predicted_locations = tf.gather_nd(labels, coords)
+
+  # Check if the elements selected are part of the ground truth bounding box
+  accurate = tf.to_float(tf.greater(predicted_locations, 0))
+  return accurate
+
+
 def main(unused_argv):
   FLAGS.comb_dropout_keep_prob = 1.0
   FLAGS.image_keep_prob = 1.0
@@ -82,9 +115,8 @@ def main(unused_argv):
     samples = model_input.get_input_fn(FLAGS)()
 
     # Get model segmentation predictions.
-    output_type = 'semantic'
-
     num_classes = model_input.dataset_descriptors[FLAGS.dataset].num_classes
+    output_to_num_classes = model.get_output_to_num_classes(FLAGS)
 
     if tuple(FLAGS.eval_scales) == (1.0,):
       tf.logging.info('Performing single-scale test.')
@@ -92,7 +124,7 @@ def main(unused_argv):
           samples['image'],
           samples,
           FLAGS,
-          outputs_to_num_classes={output_type: num_classes},
+          outputs_to_num_classes=output_to_num_classes,
           image_pyramid=FLAGS.image_pyramid,
           merge_method=FLAGS.merge_method,
           atrous_rates=FLAGS.atrous_rates,
@@ -113,7 +145,7 @@ def main(unused_argv):
           samples['image'],
           samples,
           FLAGS,
-          outputs_to_num_classes={output_type: num_classes},
+          outputs_to_num_classes=output_to_num_classes,
           eval_scales=FLAGS.eval_scales,
           add_flipped_images=FLAGS.add_flipped_images,
           merge_method=FLAGS.merge_method,
@@ -129,68 +161,80 @@ def main(unused_argv):
           crop_size=[FLAGS.image_size, FLAGS.image_size],
           logits_kernel_size=FLAGS.logits_kernel_size,
           model_variant=FLAGS.model_variant)
-    predictions = predictions[output_type]
-    probs = probs[output_type]
 
     metric_map = {}
-    predictions = tf.expand_dims(predictions, 3)
-    if num_classes == 2:
-      labels = samples['label']
+    for output in output_to_num_classes:
+      output_predictions = predictions[output]
+      output_probs = probs[output]
+      if output == 'segment':
+        output_predictions = tf.expand_dims(output_predictions, 3)
+        if num_classes == 2:
+          labels = samples['label']
 
-      iou, weights = model.foreground_iou(labels, predictions, FLAGS)
-      soft_iou, _ = model.foreground_iou(labels, probs[:, :, :, 1:2], FLAGS)
+          iou, weights = model.foreground_iou(labels, output_predictions, FLAGS)
+          soft_iou, _ = model.foreground_iou(labels, output_probs[:, :, :, 1:2],
+                                             FLAGS)
 
-      metric_map['mIOU'] = tf.metrics.mean(iou)
-      metric_map['soft_mIOU'] = tf.metrics.mean(soft_iou)
+          metric_map['mIOU'] = tf.metrics.mean(iou)
+          metric_map['soft_mIOU'] = tf.metrics.mean(soft_iou)
 
-      high_prob_overlaps = calc_high_prob_overlaps(labels, probs, weights)
-      metric_map['highestOverlaps'] = tf.metrics.mean(high_prob_overlaps)
+          high_prob_overlaps = calc_high_prob_overlaps(labels, output_probs,
+                                                       weights)
+          metric_map['highestOverlaps'] = tf.metrics.mean(high_prob_overlaps)
 
-      probs *= weights
+          output_probs *= weights
 
-    else:
-      predictions = tf.reshape(predictions, shape=[-1])
-      labels = tf.reshape(samples['label'], shape=[-1])
-      weights = tf.to_float(
-          tf.not_equal(
-              labels,
-              model_input.dataset_descriptors[FLAGS.dataset].ignore_label))
+        else:
+          output_predictions = tf.reshape(output_predictions, shape=[-1])
+          labels = tf.reshape(samples['label'], shape=[-1])
+          weights = tf.to_float(
+              tf.not_equal(
+                  labels,
+                  model_input.dataset_descriptors[FLAGS.dataset].ignore_label))
 
-      # Set ignore_label regions to label 0, because metrics.mean_iou requires
-      # range of labels=[0, dataset.num_classes).
-      # Note the ignore_label regions
-      # are not evaluated since the corresponding regions contain weights = 0.
-      labels = tf.where(
-          tf.equal(labels,
-                   model_input.dataset_descriptors[FLAGS.dataset].ignore_label),
-          tf.zeros_like(labels), labels)
+          # Set ignore_label regions to label 0, because metrics.mean_iou
+          # requires range of labels=[0, dataset.num_classes).
+          # Note the ignore_label regions are not evaluated since
+          # the corresponding regions contain weights=0.
+          labels = tf.where(
+              tf.equal(
+                  labels,
+                  model_input.dataset_descriptors[FLAGS.dataset].ignore_label),
+              tf.zeros_like(labels), labels)
 
-      predictions_tag = 'mIOU'
-      for eval_scale in FLAGS.eval_scales:
-        predictions_tag += '_' + str(eval_scale)
-      if FLAGS.add_flipped_images:
-        predictions_tag += '_flipped'
+          predictions_tag = 'mIOU'
+          for eval_scale in FLAGS.eval_scales:
+            predictions_tag += '_' + str(eval_scale)
+          if FLAGS.add_flipped_images:
+            predictions_tag += '_flipped'
 
-      # Define the evaluation metric.
-      metric_map[predictions_tag] = slim.metrics.mean_iou(
-          predictions, labels, num_classes, weights=weights)
+          # Define the evaluation metric.
+          metric_map[predictions_tag] = contrib_slim.metrics.mean_iou(
+              output_predictions, labels, num_classes, weights=weights)
 
-    def label_summary(labels, weights, name):
-      tf.summary.image(
-          name,
-          tf.reshape(
-              tf.cast(
-                  tf.to_float(labels * 255) / tf.to_float(num_classes),
-                  tf.uint8) * tf.cast(weights, tf.uint8),
-              [-1, FLAGS.image_size, FLAGS.image_size, 1]), 8)
+        def label_summary(labels, weights, name):
+          tf.summary.image(
+              name,
+              tf.reshape(
+                  tf.cast(
+                      tf.to_float(labels * 255) / tf.to_float(num_classes),
+                      tf.uint8) * tf.cast(weights, tf.uint8),
+                  [-1, FLAGS.image_size, FLAGS.image_size, 1]), 8)
 
-    label_summary(labels, weights, 'label')
-    label_summary(predictions, weights, 'prediction')
-    tf.summary.image('logits', tf.expand_dims(probs[:, :, :, 1], 3))
+        label_summary(labels, weights, 'label')
+        label_summary(output_predictions, weights, 'output_predictions')
+        tf.summary.image('logits', tf.expand_dims(output_probs[:, :, :, 1], 3))
+
+      elif output == 'regression':
+        labels = samples['label']
+        ignore_mask = model.get_ignore_mask(labels, FLAGS)
+
+        accurate = calc_accuracy_in_box(labels, output_probs, ignore_mask)
+        metric_map['inBoxAccuracy'] = tf.metrics.mean(accurate)
 
     tf.summary.image('image', samples['image'], 8)
 
-    metrics_to_values, metrics_to_updates = slim.metrics.aggregate_metric_map(
+    metrics_to_values, metrics_to_updates = contrib_slim.metrics.aggregate_metric_map(
         metric_map)
 
     for metric_name, metric_value in metrics_to_values.iteritems():
@@ -203,7 +247,7 @@ def main(unused_argv):
     tf.logging.info('Eval batch size %d and num batch %d', FLAGS.batch_size,
                     num_batches)
 
-    slim.evaluation.evaluation_loop(
+    contrib_slim.evaluation.evaluation_loop(
         master='',
         checkpoint_dir=FLAGS.checkpoint_dir,
         logdir=FLAGS.eval_logdir,

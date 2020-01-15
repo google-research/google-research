@@ -1,0 +1,33 @@
+# RUN ENV
+train_collect_eval.eval_env = None
+train_collect_eval.num_collect = 3
+run_env.replay_writer = @TFRecordReplayWriter()
+run_env.explore_schedule = None
+
+train_collect_eval.onpolicy = True
+
+# MODEL
+train_collect_eval.policy_class = @CEMActorPolicy
+CEMActorPolicy.q_func = @cnn_ia_v1
+CEMActorPolicy.state_shape = (1, 64, 64, 3)
+CEMActorPolicy.action_size = 4
+CEMActorPolicy.build_target = True
+get_data.parse_fn = @parse_tfexample_v0
+parse_tfexample_v0.img_height = 64
+parse_tfexample_v0.img_width = 64
+parse_tfexample_v0.action_size = 4
+
+# TRAINING
+train_collect_eval.train_fn = @train_q
+get_data.batch_size = 4
+train_q.q_graph_fn = @random_continuous_q_graph
+random_continuous_q_graph.gamma = .9
+random_continuous_q_graph.num_samples = 4
+random_continuous_q_graph.target_network_type = %doubleq
+
+# OPTIMIZATION
+train_q.optimizer = @tf.train.AdamOptimizer()
+AdamOptimizer.learning_rate = 0.001
+
+train_q.training_steps = 10
+train_q.max_training_steps = 20

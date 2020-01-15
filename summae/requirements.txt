@@ -1,0 +1,2 @@
+tensorflow>=1.11.0, <2.0
+rouge-score>=0.0.2

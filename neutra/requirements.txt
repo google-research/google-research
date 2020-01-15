@@ -1,0 +1,13 @@
+tf-nightly
+tfp-nightly
+jax
+jaxlib
+absl-py>=0.7.0
+gin-config==0.1.2
+matplotlib
+pandas>=0.24.1
+Pillow
+pystan>=2.18.1.0
+PyYAML>=3.13
+scipy>=1.0.0
+simplejson>=3.16.0

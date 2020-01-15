@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -400,7 +400,7 @@ class SisTest(parameterized.TestCase):
   def test_transform_next_masks_index_array_into_tuple_raises_error(
       self, idx_array):
     with self.assertRaises(TypeError):
-      _ = sis._transform_next_masks_index_array_into_tuple(idx_array)
+      sis._transform_next_masks_index_array_into_tuple(idx_array)
 
   @parameterized.named_parameters(
       dict(
@@ -534,8 +534,8 @@ class SisTest(parameterized.TestCase):
   def test_produce_masked_inputs_raises_error(
       self, input_to_mask, fully_masked_input, batch_of_masks):
     with self.assertRaises(TypeError):
-      _ = sis.produce_masked_inputs(input_to_mask, fully_masked_input,
-                                    batch_of_masks)
+      sis.produce_masked_inputs(input_to_mask, fully_masked_input,
+                                batch_of_masks)
 
   @parameterized.named_parameters(
       dict(
@@ -690,7 +690,7 @@ class SisTest(parameterized.TestCase):
   def test_find_sis_from_backselect_raises_error(self, backselect_stack,
                                                  threshold):
     with self.assertRaises(ValueError):
-      _ = sis._find_sis_from_backselect(backselect_stack, threshold)
+      sis._find_sis_from_backselect(backselect_stack, threshold)
 
   @parameterized.named_parameters(
       dict(

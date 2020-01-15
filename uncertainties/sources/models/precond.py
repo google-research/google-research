@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Implementation of Last Layer Bayes.
 
 We apply a preconditioning version, see the article for more details.
@@ -24,11 +25,13 @@ from __future__ import print_function
 
 import os
 import time
-import numpy as np
-import scipy
-import tensorflow as tf
 
 import gin.tf
+import numpy as np
+import scipy
+import six
+import tensorflow.compat.v1 as tf
+
 
 MAX_BYTES_MEM = 10**8
 
@@ -213,7 +216,8 @@ class LastLayerBayesianPrecond(object):
     # sampling
     init_t = time.time()
     print('-----------------------------------------------------')
-    print('Starting sampling of the Bayesian Neural Network by ' + self.sampler)
+    print('Starting sampling of the Bayesian Neural Network by ' +
+          six.ensure_str(self.sampler))
     for i in np.arange(0, num_iters):
       batch_x, batch_y = self.next_batch()
       feed_dict = {self.x: batch_x, self.y: batch_y}

@@ -1,0 +1,6 @@
+numpy==1.11.1
+absl-py==0.6.1
+networkx==2.2
+boltons==19.1.0
+gensim==0.13.2
+scipy==0.15.1

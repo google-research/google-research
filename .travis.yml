@@ -1,25 +1,68 @@
-sudo: required
 language: python
 git:
   depth: 10
   quiet: true
 python:
-  - "3.6"
+  - "3.8"
 env:
   matrix:
-    - PROJECT="dreg_estimators"
-    - PROJECT="edward2_autoreparam"
-    - PROJECT="graph_embedding/watch_your_step"
-    - PROJECT="large_margin"
-    - PROJECT="probabilistic_vqvae"
-    - PROJECT="sufficient_input_subsets"
+    - PROJECT="abps"
+    - PROJECT="albert"
     - PROJECT="attribution"
-
-install:
+    - PROJECT="axial"
+    - PROJECT="bam"
+    - PROJECT="bisimulation_aaai2020"
+    - PROJECT="bitempered_loss"
+    - PROJECT="cfq"
+    - PROJECT="cnn_quantization"
+    - PROJECT="dataset_analysis"
+    - PROJECT="dense_representations_for_entity_retrieval"
+    - PROJECT="depth_from_video_in_the_wild"
+    - PROJECT="dql_grasping"
+    - PROJECT="dreg_estimators"
+    - PROJECT="dvrl"
+    - PROJECT="edward2_autoreparam"
+    - PROJECT="evanet"
+    - PROJECT="explaining_risk_increase"
+    - PROJECT="extrapolation"
+    - PROJECT="fat"
+    - PROJECT="genomics_ood"
+    - PROJECT="generalized_rates"
+    - PROJECT="graph_embedding/watch_your_step"
+    - PROJECT="igt_optimizer"
+    - PROJECT="large_margin"
+    - PROJECT="learnreg"
+    - PROJECT="m_theory"
+    - PROJECT="meta_reward_learning/semantic_parsing"
+    - PROJECT="meta_reward_learning/textworld"
+    - PROJECT="moew"
+    - PROJECT="moment_advice"
+    - PROJECT="neutra"
+    - PROJECT="norml"
+    - PROJECT="pairwise_fairness"
+    - PROJECT="probabilistic_vqvae"
+    - PROJECT="property_linking"
+    - PROJECT="protoattend"
+    - PROJECT="psycholab"
+    - PROJECT="rl4circopt"
+    - PROJECT="rllim"
+    - PROJECT="robust_loss"
+    - PROJECT="sm3"
+    - PROJECT="soft_sort"
+    - PROJECT="solver1d"
+    - PROJECT="state_of_sparsity"
+    - PROJECT="stacked_capsule_autoencoders"
+    - PROJECT="stochastic_to_deterministic"
+    - PROJECT="storm_optimizer"
+    - PROJECT="sufficient_input_subsets"
+    - PROJECT="tabnet"
+    - PROJECT="tcc"
+    - PROJECT="towards_gan_benchmarks"
+    - PROJECT="wiki_split_bleu_eval"
+before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip
   - pip install --upgrade flake8 virtualenv
-before_script:
   # stop the build if there are Python syntax errors or undefined names
   - flake8 . --count --select=E901,E999,F821,F822,F823 --show-source --statistics
   # exit-zero treats all errors as warnings.  The GitHub editor is 127 chars wide

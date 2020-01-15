@@ -1,0 +1,52 @@
+!!python/object/apply:dotmap.DotMap
+dictitems:
+  advantage_function: returns-values
+  advantage_generator: !!python/object:norml.networks.FullyConnectedNetworkGenerator
+    activation_fn: !!python/name:tensorflow.python.ops.gen_nn_ops.relu ''
+    dim_input: 34
+    dim_output: 1
+    layer_sizes: !!python/tuple [50]
+  always_full_rollouts: false
+  early_termination: null
+  first_order: false
+  fixed_tasks: false
+  inner_lr_init: 3.0e-05
+  input_dims: 14
+  learn_advantage_function_inner: true
+  learn_inner_lr: false
+  learn_inner_lr_tensor: false
+  learn_offset: true
+  log_every: 10
+  logdir: /tmp
+  max_num_batch_env: 300
+  max_rollout_len: 1000
+  network_generator: !!python/object:norml.networks.FullyConnectedNetworkGenerator
+    activation_fn: !!python/name:tensorflow.python.ops.array_ops.identity ''
+    dim_input: 14
+    dim_output: 6
+    layer_sizes: !!python/tuple [100]
+  num_inner_rollouts: 50
+  num_outer_iterations: 1000
+  outer_lr_decay: true
+  outer_lr_init: 0.0005
+  outer_optimizer_algo: !!python/name:tensorflow.python.training.adam.AdamOptimizer ''
+  output_dims: 6
+  pol_log_std_init: -1.9
+  policy: !!python/name:norml.policies.GaussianPolicy ''
+  ppo: true
+  ppo_clip_value: 0.2
+  random_seed: 832855
+  reward_disc: 0.99
+  task_env_modifiers:
+  - {_swap_action: true}
+  - {_swap_action: false}
+  task_generator: !!python/object/apply:functools.partial
+    args: [&id001 !!python/name:norml.envs.halfcheetah_motor_env.HalfcheetahMotorEnv '']
+    state: !!python/tuple
+    - *id001
+    - !!python/tuple []
+    - {}
+    - null
+  tasks_batch_size: 4
+  whiten_values: true
+state: {_mutable: false}

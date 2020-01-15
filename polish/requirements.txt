@@ -1,0 +1,6 @@
+absl-py>=0.7.0
+numpy>=1.13.3
+tensorflow>=1.14.0, <2.0.0
+gin-config>=0.2.1
+gym>=0.14.0
+mujoco_py>=2.0.2

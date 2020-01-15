@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Simple feedforward neural network for Mnist."""
 
 from __future__ import absolute_import
@@ -21,7 +22,8 @@ from __future__ import print_function
 
 import time
 import numpy as np
-import tensorflow as tf
+from six.moves import range
+import tensorflow.compat.v1 as tf
 
 
 class NetworkMnist(object):

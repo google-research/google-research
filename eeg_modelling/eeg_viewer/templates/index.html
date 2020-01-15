@@ -1,0 +1,682 @@
+<!--
+   Copyright 2019 The Google Research Authors.
+  
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+  
+       http://www.apache.org/licenses/LICENSE-2.0
+  
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html>
+  <head> <link rel="stylesheet" type="text/css"
+      href="/static/css/css_styles-bundle.css">
+    <script src="/static/js/compiled_app_loader.js" defer></script>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet"
+      href="https://www.gstatic.com/external_hosted/material_design_lite/mdl_css-grey-indigo-bundle.css">
+    <script defer
+      src="https://www.gstatic.com/external_hosted/material_design_lite/mdl_all_js_compiled.js">
+    </script>
+  </head>
+  <body>
+    <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+      <header class="mdl-layout__header mdl-layout__header--seamed">
+        <i class="mdl-layout-icon material-icons">waves</i>
+        <div class="mdl-layout__header-row">
+          <span class="mdl-layout-title">Waveforms Viewer</span>
+          <span id="display-file-path" onclick="menus.toggleMenu()">No data loaded</span>
+          <div id="reloading-spinner" class="mdl-spinner mdl-js-spinner hidden"></div>
+          <div class="mdl-layout-spacer"></div>
+          <div class="mdl-tooltip mdl-tooltip--large" for="display-file-path">
+            File menu
+          </div>
+        </div>
+      </header>
+      <main class="mdl-layout__content">
+        <div id="tool-bar" class="mdl-shadow--2dp">
+          <div id="nav-line-chart-container"></div>
+          <canvas id="nav-overlay" class="canvas-overlay"></canvas>
+          <button id="settings-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.toggleMenu('settings')" disabled>
+            <i class="material-icons">settings</i>
+          </button>
+          <div class="mdl-tooltip mdl-tooltip--large" for="settings-button">
+            Settings
+          </div>
+          <button id="labels-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.toggleMenu('labels')" disabled>
+            <i class="material-icons">label</i>
+          </button>
+          <div class="mdl-tooltip mdl-tooltip--large" for="labels-button">
+            Labels
+          </div>
+          <button id="predictions-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.toggleMenu('predictions')" disabled>
+            <i class="material-icons">insert_chart_outlined</i>
+          </button>
+          <div class="mdl-tooltip mdl-tooltip--large" for="predictions-button">
+            Predictions
+          </div>
+          <button id="wave-events-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.toggleMenu('wave-events')" disabled>
+            <i class="material-icons">list</i>
+          </button>
+          <div class="mdl-tooltip mdl-tooltip--large" for="wave-events-button">
+            Events
+          </div>
+          <button id="next-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.nextChunk()" disabled>
+            <i class="material-icons">last_page</i>
+          </button>
+          <div class="mdl-tooltip mdl-tooltip--large" for="next-button">
+            Next Page
+          </div>
+          <button id="prev-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.prevChunk()" disabled>
+            <i class="material-icons">first_page</i>
+          </button>
+          <div class="mdl-tooltip mdl-tooltip--large" for="prev-button">
+            Prev Page
+          </div>
+          <button id="next-sec-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.nextSec()" disabled>
+            <i class="material-icons">chevron_right</i>
+          </button>
+          <div class="mdl-tooltip mdl-tooltip--large" for="next-sec-button">
+            Next Second
+          </div>
+          <button id="prev-sec-button" class="mdl-button mdl-js-button mdl-button--icon" onclick="toolBar.prevSec()" disabled>
+            <i class="material-icons">chevron_left</i>
+          </button>
+          <div class="mdl-tooltip mdl-tooltip--large" for="prev-sec-button">
+            Prev Second
+          </div>
+        </div>
+        <div id="parent-chart-container" ondrop="graph.drop(event)" ondragover="graph.allowDrop(event)">
+          <div id="line-chart-container"></div>
+          <div id="prediction-line-chart-container"></div>
+          <canvas id="prediction-overlay" class="canvas-overlay"></canvas>
+          <canvas id="labels-overlay" class="canvas-overlay"></canvas>
+          <div id="wave-event-form" class="hidden mdl-card mdl-shadow--2dp" draggable="true" ondragstart="waveEventForm.drag(event)">
+            <div class="mdl-card__title">
+              <h2 class="mdl-card__title-text">New Event</h2>
+            </div>
+            <div class="mdl-card__menu">
+              <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="waveEventForm.close()">
+                <i class="material-icons">close</i>
+              </button>
+            </div>
+            <div class="dropdown" id="wave-event-type-dropdown">
+              <div id="wave-event-type-dropdown-text">SZ</div>
+              <label>Type</label>
+              <i class="material-icons">arrow_drop_down</i>
+            </div>
+            <ul for="wave-event-type-dropdown" class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect">
+              <li class="mdl-menu__item" onclick="waveEventForm.selectType('SZ')">SZ</li>
+              <li class="mdl-menu__item" onclick="waveEventForm.selectType('ED')">ED</li>
+            </ul>
+            <div class="column-container">
+              <div class="textfield clickable" onclick="waveEventForm.clickInput('startTime')">
+                <input class="mdl-textfield__input clickable" type="text" id="wave-event-start-time" readonly>
+                <label class="clickable">Start Time</label>
+              </div>
+              <div class="textfield clickable" onclick="waveEventForm.clickInput('endTime')">
+                <input class="mdl-textfield__input clickable" type="text" id="wave-event-end-time" readonly>
+                <label class="clickable">End Time</label>
+              </div>
+              <div class="textfield">
+                <input class="mdl-textfield__input" type="text" id="wave-event-duration" disabled value="0 s">
+                <label>Duration</label>
+              </div>
+            </div>
+            <div id="wave-event-channels" class="mdl-card">
+              <h4 class="mdl-card__subtitle-text clickable" onclick="waveEventForm.clickInput('channel')">Select channels</h4>
+              <div class="mdl-card__menu">
+                <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="all-checkbox">
+                  <input type="checkbox" id="all-checkbox" class="mdl-checkbox__input" onchange="waveEventForm.toggleAllChannels(event)">
+                  <span class="mdl-checkbox__label">All</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-actions mdl-card__actions mdl-card--border">
+              <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEventForm.save()">
+                Save
+              </button>
+              <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEventForm.close()">
+                Cancel
+              </button>
+            </div>
+          </div>
+          <div id="channel-actions-container" class="hidden mdl-card mdl-shadow--2dp">
+            <div class="mdl-card__title">
+              <h2 id="channel-actions-title" class="mdl-card__title-text"></h2>
+            </div>
+            <div class="mdl-card__menu">
+              <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="graph.closeSensitivityMenu()">
+                <i class="material-icons">close</i>
+              </button>
+            </div>
+            <div class="mdl-card__actions mdl-card--border">
+              <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="graph.increaseSensitivity()">
+                Increase Sensitivity
+              </button>
+              <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="graph.decreaseSensitivity()">
+                Decrease Sensitivity
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="right-side-panel hidden mdl-card mdl-shadow--2dp" id="settings-panel">
+          <div class="mdl-card__title">
+            <h2 class="mdl-card__title-text">Settings</h2>
+          </div>
+          <div class="mdl-card__menu">
+            <button id="close-settings-panel" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="toolBar.toggleMenu('settings')">
+              <i class="material-icons">close</i>
+            </button>
+            <div class="mdl-tooltip mdl-tooltip--large" for="close-settings-panel">
+              Close
+            </div>
+          </div>
+          <div class="dropdown" id="low-cut-dropdown">
+            <div></div>
+            <label>Low cut</label>
+            <i class="material-icons">arrow_drop_down</i>
+          </div>
+          <ul for="low-cut-dropdown" class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect">
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('low-cut-dropdown', 'off', 0)">off</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('low-cut-dropdown', '0.53 Hz', 0.53)">0.53 Hz</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('low-cut-dropdown', '1.0 Hz', 1.0)">1.0 Hz</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('low-cut-dropdown', '1.6 Hz', 1.6)">1.6 Hz</li>
+          </ul>
+          <div class="dropdown" id="high-cut-dropdown">
+            <div></div>
+            <label>High cut</label>
+            <i class="material-icons">arrow_drop_down</i>
+          </div>
+          <ul for="high-cut-dropdown" class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect">
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('high-cut-dropdown', 'off', 0)">off</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('high-cut-dropdown', '70 Hz', 70)">70 Hz</li>
+          </ul>
+          <div class="dropdown" id="notch-dropdown">
+            <div></div>
+            <label>Notch</label>
+            <i class="material-icons">arrow_drop_down</i>
+          </div>
+          <ul for="notch-dropdown" class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect">
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('notch-dropdown', 'off', 0)">off</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('notch-dropdown', '50 Hz', 50)">50 Hz</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('notch-dropdown', '60 Hz', 60)">60 Hz</li>
+          </ul>
+          <div class="dropdown" id="sensitivity-dropdown">
+            <div></div>
+            <label>Sensitivity</label>
+            <i class="material-icons">arrow_drop_down</i>
+          </div>
+          <ul for="sensitivity-dropdown" class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect">
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('sensitivity-dropdown', 'off', 1)">off</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('sensitivity-dropdown', '3 &#181;V', 3)">3&#181;V</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('sensitivity-dropdown', '5 &#181;V', 5)">5&#181;V</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('sensitivity-dropdown', '7 &#181;V', 7)">7&#181;V</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('sensitivity-dropdown', '10 &#181;V', 10)">10&#181;V</li>
+          </ul>
+          <div class="dropdown" id="montage-dropdown">
+            <div></div>
+            <label>Montage</label>
+            <i class="material-icons">arrow_drop_down</i>
+          </div>
+          <ul for="montage-dropdown" class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect">
+            <li class="mdl-menu__item" id="longitudinal bipolar">longitudinal bipolar</li>
+            <li class="mdl-menu__item" id="transverse bipolar">transverse bipolar</li>
+            <li class="mdl-menu__item" id="referential">referential</li>
+            <li class="mdl-menu__item" id="circumferential">circumferential</li>
+            <li class="mdl-menu__item" id="reverse circumferential">reverse circumferential</li>
+          </ul>
+          <div class="dropdown" id="time-frame-dropdown">
+            <div></div>
+            <label>Time frame</label>
+            <i class="material-icons">arrow_drop_down</i>
+          </div>
+          <ul for="time-frame-dropdown" class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect">
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('time-frame-dropdown', '5 sec', 5)">5 sec</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('time-frame-dropdown', '10 sec', 10)">10 sec</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('time-frame-dropdown', '20 sec', 20)">20 sec</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('time-frame-dropdown', '30 sec', 30)">30 sec</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('time-frame-dropdown', '60 sec', 60)">60 sec</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('time-frame-dropdown', '96 sec', 96)">96 sec</li>
+          </ul>
+          <div class="dropdown" id="grid-dropdown">
+            <div></div>
+            <label>Grid</label>
+            <i class="material-icons">arrow_drop_down</i>
+          </div>
+          <ul for="grid-dropdown" class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect">
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('grid-dropdown', '1 / sec', 1)">1/sec</li>
+            <li class="mdl-menu__item" onclick="toolBar.selectDropdown('grid-dropdown', '5 / sec', 0.2)">5/sec</li>
+          </ul>
+        </div>
+        <div class="right-side-panel hidden mdl-card mdl-shadow--2dp" id="predictions-panel">
+          <div class="mdl-card__title">
+            <h2 class="mdl-card__title-text">Predictions</h2>
+          </div>
+          <div class="mdl-card__menu secondary">
+            <button disabled id="predictions-filter-button" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"
+                    onclick="document.querySelector('#filter-container').classList.toggle('hidden')">
+              <i class="material-icons">filter_list</i>
+            </button>
+            <div class="mdl-tooltip mdl-tooltip--large" for="predictions-filter-button">
+              Filters
+            </div>
+          </div>
+          <div class="mdl-card__menu">
+            <button id="close-predictions-panel" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="toolBar.toggleMenu('predictions')">
+              <i class="material-icons">close</i>
+            </button>
+            <div class="mdl-tooltip mdl-tooltip--large" for="close-predictions-panel">
+              Close
+            </div>
+          </div>
+          <div class="hidden dropdown" id="mode-dropdown">
+            <div></div>
+            <label>Mode</label>
+            <i class="material-icons">arrow_drop_down</i>
+          </div>
+          <ul for="mode-dropdown" class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect">
+            <li class="mdl-menu__item" onclick="predictions.selectPredictionMode('None')">None</li>
+            <li class="mdl-menu__item" onclick="predictions.selectPredictionMode('Chunk Scores')">Chunk Scores</li>
+            <li class="mdl-menu__item" onclick="predictions.selectPredictionMode('Attribution Maps')">Attribution Maps</li>
+          </ul>
+          <div class="hidden dropdown" id="label-dropdown">
+            <div></div>
+            <label>Label</label>
+            <i class="material-icons">arrow_drop_down</i>
+          </div>
+          <ul for="label-dropdown" class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect">
+            <li class="mdl-menu__item" onclick="predictions.selectPredictionLabel('ED')">ED</li>
+            <li class="mdl-menu__item" onclick="predictions.selectPredictionLabel('SZ')">SZ</li>
+          </ul>
+          <div id="filter-container" class="sub-card hidden">
+            <div class="mdl-card__title">
+              <h2 class="mdl-card__title-text">Filters</h2>
+            </div>
+            <div class="filter-box">
+              <h4 class="mdl-card__subtitle-text">Label</h4>
+              <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect mdl-checkbox--accent" for="checkbox-label-SZ">
+                <input type="checkbox" id="checkbox-label-SZ" class="mdl-checkbox__input" onchange="predictions.toggleFilter(event, 'label', 'SZ')" checked>
+                <span class="mdl-checkbox__label">SZ</span>
+              </label>
+              <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect mdl-checkbox--accent" for="checkbox-label-ED">
+                <input type="checkbox" id="checkbox-label-ED" class="mdl-checkbox__input" onchange="predictions.toggleFilter(event, 'label', 'ED')" checked>
+                <span class="mdl-checkbox__label">ED</span>
+              </label>
+            </div>
+            <div class="filter-box">
+              <h4 class="mdl-card__subtitle-text">Prediction</h4>
+              <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect mdl-checkbox--accent" for="checkbox-prediction-pos">
+                <input type="checkbox" id="checkbox-prediction-pos" class="mdl-checkbox__input" onchange="predictions.toggleFilter(event, 'prediction', 'pos')" checked>
+                <span class="mdl-checkbox__label">Positive</span>
+              </label>
+              <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect mdl-checkbox--accent" for="checkbox-prediction-neg">
+                <input type="checkbox" id="checkbox-prediction-neg" class="mdl-checkbox__input" onchange="predictions.toggleFilter(event, 'prediction', 'neg')">
+                <span class="mdl-checkbox__label">Negative</span>
+              </label>
+            </div>
+          </div>
+          <div class="scrollable-table-div">
+            <table class="prediction hidden mdl-data-table mdl-js-data-table">
+              <thead>
+                 <tr>
+                   <th class="mdl-data-table__cell--non-numeric">
+                     Start
+                     <i class="material-icons sorted">arrow_drop_up</i>
+                     <i class="material-icons sorted-reverse">arrow_drop_down</i>
+                   </th>
+                   <th class="mdl-data-table__cell--non-numeric">
+                     Type
+                     <i class="material-icons sorted">arrow_drop_up</i>
+                     <i class="material-icons sorted-reverse">arrow_drop_down</i>
+                   </th>
+                   <th class="mdl-data-table__cell--non-numeric">
+                     Pred
+                     <i class="material-icons sorted">arrow_drop_up</i>
+                     <i class="material-icons sorted-reverse">arrow_drop_down</i>
+                   </th>
+                 </tr>
+               </thead>
+            </table>
+          </div>
+          <div id="no-predictions-text" class="panel-info">
+            No predictions loaded
+          </div>
+        </div>
+        <div class="right-side-panel hidden mdl-card mdl-shadow--2dp" id="labels-panel">
+          <div class="mdl-card__title">
+            <h2 class="mdl-card__title-text">Labels</h2>
+          </div>
+          <div class="mdl-card__menu">
+            <button id="close-labels-panel" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="toolBar.toggleMenu('labels')">
+              <i class="material-icons">close</i>
+            </button>
+            <div class="mdl-tooltip mdl-tooltip--large" for="close-labels-panel">
+              Close
+            </div>
+          </div>
+          <div class="scrollable-table-div">
+            <table class="annotation mdl-data-table mdl-js-data-table">
+             <thead>
+               <tr>
+                 <th class="mdl-data-table__cell--non-numeric">Label</th>
+                 <th>Time</th>
+               </tr>
+             </thead>
+             <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="right-side-panel hidden mdl-card mdl-shadow--2dp" id="wave-events-panel">
+          <div class="mdl-card__title">
+            <h2 class="mdl-card__title-text">Events</h2>
+          </div>
+          <div class="mdl-card__menu tertiary">
+            <button id="upload-events-button" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"
+                    onclick="uploader.openMenu()">
+              <i class="material-icons">attach_file</i>
+            </button>
+            <div class="mdl-tooltip mdl-tooltip--large" for="upload-events-button">
+              Upload
+            </div>
+          </div>
+          <div class="mdl-card__menu secondary">
+            <button id="download-events-button" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"
+                    onclick="waveEvents.downloadEvents()">
+              <i class="material-icons">save_alt</i>
+            </button>
+            <div class="mdl-tooltip mdl-tooltip--large" for="download-events-button">
+              Download
+            </div>
+          </div>
+          <div class="mdl-card__menu">
+            <button id="close-wave-events-panel" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="toolBar.toggleMenu('wave-events')">
+              <i class="material-icons">close</i>
+            </button>
+            <div class="mdl-tooltip mdl-tooltip--large" for="close-wave-events-panel">
+              Close
+            </div>
+          </div>
+          <div id="no-events-text" class="panel-info">
+            Click the chart to add events
+          </div>
+          <div id="wave-events-table-container" class="scrollable-table-div">
+            <table id="wave-events-table" class="hidden mdl-data-table mdl-js-data-table">
+             <thead>
+               <tr>
+                 <th class="mdl-data-table__cell--non-numeric">Type</th>
+                 <th class="mdl-data-table__cell--non-numeric">Start</th>
+                 <th class="mdl-data-table__cell--non-numeric">Duration</th>
+               </tr>
+             </thead>
+            </table>
+          </div>
+          <div id="similar-patterns-container">
+            <div class="mdl-card__title">
+              <h3 class="mdl-card__title-text">Similar</h3>
+            </div>
+            <div class="top-right-button">
+              <button id="toggle-similarity-settings" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"
+                      onclick="waveEvents.toggleSimilaritySettings()">
+                <i class="material-icons">tune</i>
+              </button>
+              <div class="mdl-tooltip mdl-tooltip--large" for="toggle-similarity-settings">
+                Parameters
+              </div>
+            </div>
+            <div class="top-right-button">
+              <button id="reject-all-similar-patterns" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.rejectAll()">
+                <i class="material-icons">delete</i>
+              </button>
+              <div class="mdl-tooltip mdl-tooltip--large" for="reject-all-similar-patterns">
+                Reject all
+              </div>
+            </div>
+            <div class="top-right-button">
+              <button id="toggle-similarity-metrics" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"
+                      onclick="document.getElementById('similarity-metrics').classList.toggle('hidden')">
+                <i class="material-icons">assessment</i>
+              </button>
+              <div class="mdl-tooltip mdl-tooltip--large" for="toggle-similarity-metrics">
+                Metrics
+              </div>
+            </div>
+            <div id="similarity-metrics" class="sub-card hidden">
+              <div>
+                Total attempts:
+                <span id="metrics-attempts">0</span>
+              </div>
+              <div>
+                Accepted:
+                <span id="metrics-accepted">0</span>
+              </div>
+              <div>
+                Rejected:
+                <span id="metrics-rejected">0</span>
+              </div>
+              <div>
+                Precision @<span class="at-k">0</span>:
+                <span id="metrics-precision">0</span>
+              </div>
+            </div>
+            <div id="similar-patterns-table-container" class="scrollable-table-div">
+              <table id="similar-patterns-table" class="mdl-data-table mdl-js-data-table">
+               <thead>
+                 <tr>
+                   <th class="mdl-data-table__cell--non-numeric">Similarity</th>
+                   <th class="mdl-data-table__cell--non-numeric">Start</th>
+                   <th class="mdl-data-table__cell--non-numeric">Duration</th>
+                 </tr>
+               </thead>
+              </table>
+            </div>
+            <button id="similar-patterns-search-more" class="hidden block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect"
+                    onclick="waveEvents.searchMore()">
+              Find more
+            </button>
+            <div id="similar-patterns-spinner" class="mdl-spinner mdl-js-spinner hidden"></div>
+            <div id="similarity-error" class="hidden panel-info">
+              Error
+            </div>
+          </div>
+          <div id="event-actions-container" class="event-actions-container hidden mdl-shadow--2dp">
+            <div class="mdl-card__menu">
+              <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.closeWaveEventMenu()">
+                <i class="material-icons">close</i>
+              </button>
+            </div>
+            <div class="mdl-card__actions mdl-card--border">
+              <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.navigateToWaveEvent()">
+                Navigate
+              </button>
+              <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.searchSimilarPatterns()">
+                Find similar
+              </button>
+              <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.deleteWaveEvent()">
+                Delete
+              </button>
+            </div>
+          </div>
+          <div id="pattern-actions-container" class="event-actions-container hidden mdl-shadow--2dp">
+            <div class="mdl-card__menu">
+              <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.closeSimilarPatternMenu()">
+                <i class="material-icons">close</i>
+              </button>
+            </div>
+            <div class="mdl-card__actions mdl-card--border">
+              <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.navigateToPattern()">
+                Navigate
+              </button>
+              <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.acceptSimilarPattern()">
+                Accept
+              </button>
+              <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.editSimilarPattern()">
+                Edit
+              </button>
+              <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.rejectSimilarPattern()">
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="file-menu-modal" class="modal">
+          <div id="file-menu" class="mdl-card mdl-shadow--2dp">
+            <div class="mdl-card__title">
+              <h2 class="mdl-card__title-text">File</h2>
+            </div>
+            <div class="mdl-card__menu secondary">
+              <button id="file-info-button" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="menus.toggleFileInfo()">
+                <i class="material-icons">info</i>
+              </button>
+              <div class="mdl-tooltip mdl-tooltip--large" for="file-info-button">
+                File info
+              </div>
+            </div>
+            <div class="mdl-card__menu">
+              <button id="close-file-menu-button" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="menus.toggleMenu()">
+                <i class="material-icons">close</i>
+              </button>
+              <div class="mdl-tooltip mdl-tooltip--large" for="close-file-menu-button">
+                Close
+              </div>
+            </div>
+            <div class="dropdown" id="file-menu-dropdown">
+              <div>TF Example</div>
+              <i class="material-icons">arrow_drop_down</i>
+            </div>
+            <ul for="file-menu-dropdown" class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect">
+              <li class="mdl-menu__item" onclick="menus.selectFileType('tfex')">TF Example</li>
+              <li class="mdl-menu__item" onclick="menus.selectFileType('sstable')">From SSTable</li>
+              <li class="mdl-menu__item" onclick="menus.selectFileType('edf')">Edf</li>
+            </ul>
+            <div id="file-info" class="sub-card hidden">
+              <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Info</h2>
+              </div>
+              <div class="text" id="patient-id">
+                <div></div>
+                <label>Patient Id</label>
+              </div>
+              <div class="text" id="start-time">
+                <div></div>
+                <label>Start Time</label>
+              </div>
+            </div>
+            <div class="file-menu" id="tfex-file-menu">
+              <div class="textfield">
+                <input class="mdl-textfield__input" type="text" id="input-tfex-path">
+                <label>TF Example Path</label>
+                <label class="helper">*Required</label>
+              </div>
+              <div class="textfield">
+                <input class="mdl-textfield__input" type="text" id="input-prediction-path">
+                <label>Prediction Path</label>
+              </div>
+            </div>
+            <div class="file-menu hidden" id="sstable-file-menu">
+              <div class="textfield">
+                <input class="mdl-textfield__input" type="text" id="input-key">
+                <label>SSTable Key</label>
+                <label class="helper">*Required</label>
+              </div>
+              <div class="textfield">
+                <input class="mdl-textfield__input" type="text" id="input-tfex-sstable">
+                <label>TF Example SSTable</label>
+                <label class="helper">*Required</label>
+              </div>
+              <div class="textfield">
+                <input class="mdl-textfield__input" type="text" id="input-prediction-sstable">
+                <label>Prediction SSTable</label>
+              </div>
+            </div>
+            <div class="file-menu hidden" id="edf-file-menu">
+              <div class="textfield">
+                <input class="mdl-textfield__input" type="text" id="input-edf">
+                <label>Edf Path</label>
+                <label class="helper">*Required</label>
+              </div>
+            </div>
+            <div id="menu-button-container">
+              <button id="menu-loading-button" class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent" onclick="menus.loadFile()">
+                Load
+              </button>
+              <div id="loading-spinner" class="mdl-spinner mdl-js-spinner hidden"></div>
+            </div>
+          </div>
+        </div>
+        <div id="similarity-settings-modal" class="modal hidden">
+          <div class="mdl-card mdl-shadow--2dp">
+            <div class="mdl-card__title">
+              <h2 class="mdl-card__title-text">Similarity parameters</h2>
+            </div>
+            <div class="mdl-card__menu">
+              <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.toggleSimilaritySettings()">
+                <i class="material-icons">close</i>
+              </button>
+            </div>
+            <div class="textfield">
+              <input class="mdl-textfield__input" type="number" id="similarity-top-n" value="1">
+              <label>Amount of results</label>
+            </div>
+            <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="similarity-merge">
+              <input type="checkbox" id="similarity-merge" class="mdl-checkbox__input">
+              <span class="mdl-checkbox__label">Merge results</span>
+            </label>
+            <div class="textfield">
+              <input class="mdl-textfield__input" type="number" id="similarity-merge-threshold" value="1">
+              <label>Merge threshold</label>
+            </div>
+            <div class="form-actions mdl-card__actions mdl-card--border">
+              <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.saveSimilaritySettings()">
+                Save
+              </button>
+              <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.toggleSimilaritySettings()">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="uploader-modal" class="hidden modal">
+          <div class="mdl-card mdl-shadow--2dp">
+            <div class="mdl-card__title">
+              <h2 class="mdl-card__title-text">Upload events</h2>
+            </div>
+            <div class="mdl-card__menu">
+              <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" onclick="uploader.closeMenu()">
+                <i class="material-icons">close</i>
+              </button>
+            </div>
+            <div class="textfield">
+              <input class="clickable mdl-textfield__input" type="text" id="uploader-text-display" readonly value="No file chosen"
+                     onclick="document.getElementById('uploader-file-input').click()">
+              <label for="uploader-file-input">
+                <input class="hidden mdl-textfield__input" type="file" id="uploader-file-input" onchange="uploader.handleFileChange()">
+                Select file
+              </label>
+            </div>
+            <div class="form-actions mdl-card__actions mdl-card--border">
+              <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="uploader.upload()">
+                Upload
+              </button>
+              <button class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="uploader.closeMenu()">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="notification-snackbar" class="mdl-js-snackbar mdl-snackbar">
+          <div class="mdl-snackbar__text"></div>
+          <button class="mdl-snackbar__action" type="button"></button>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

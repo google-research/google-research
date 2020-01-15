@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,10 +18,11 @@
 
 import six
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from deeplab import preprocess_utils
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 
 def add_softmax_cross_entropy_loss_for_each_scale(scales_to_logits,

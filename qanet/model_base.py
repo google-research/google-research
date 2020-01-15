@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,12 +21,13 @@ from __future__ import print_function
 import copy
 import sonnet as snt
 from tensor2tensor.layers import common_layers
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from qanet import optimizers
 from qanet import squad_data
 from qanet import squad_helper
 from qanet.util import configurable
 from qanet.util import misc_util
+from tensorflow.contrib import learn as contrib_learn
 
 
 MODE_KEYS = tf.estimator.ModeKeys
@@ -195,7 +196,7 @@ class Model(Module):
             scaffold=scaffold)
       else:
         # Maintain backwards compatibility
-        return tf.contrib.learn.ModelFnOps(
+        return contrib_learn.ModelFnOps(
             mode=mode,
             predictions=predictions,
             loss=loss,

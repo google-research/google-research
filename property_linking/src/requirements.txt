@@ -1,0 +1,6 @@
+tensorflow==1.14
+tensorflow-gpu==1.14
+tensorflow-hub
+numpy>=1.16
+scipy>=1.2
+bert-tensorflow>=1.0

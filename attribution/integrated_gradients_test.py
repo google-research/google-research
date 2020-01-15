@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,30 +13,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for google_research.attribution.integrated_gradients."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from attribution import integrated_gradients
+from tensorflow.contrib import layers as contrib_layers
 
 
 class AttributionTest(tf.test.TestCase):
 
   def testAddIntegratedGradientsOps(self):
     with tf.Graph().as_default() as graph:
-      var1 = tf.get_variable(name='var1', initializer=[[[1., 2., 3.]]])
+      var1 = tf.compat.v1.get_variable(
+          name='var1', initializer=[[[1., 2., 3.]]])
       input_tensor = tf.placeholder(shape=[None, None, 3], dtype=tf.float32)
       x = tf.multiply(input_tensor, [[[1.]]])
       var1_times_x = tf.multiply(var1, x)
-      var2 = tf.get_variable(
+      var2 = tf.compat.v1.get_variable(
           name='var2', initializer=[[4., 5.], [6., 7.], [4., 3.]])
       matmul = tf.einsum('ijk,kl->ijl', var1_times_x, var2)
       output_tensor = tf.reduce_sum(matmul, [1, 2], name='out')
-      input_feed_dict = {input_tensor: [[[2., 3., 4.], [5., 6., 7.]]]}
+      input_feed_dict = {input_tensor.name: [[[2., 3., 4.], [5., 6., 7.]]]}
       num_evals = tf.placeholder_with_default(
           tf.constant(20, name='num_evals'), shape=())
       attribution_hooks = integrated_gradients.AddIntegratedGradientsOps(
@@ -66,7 +69,7 @@ class AttributionTest(tf.test.TestCase):
       sparse_ids = tf.SparseTensor(
           [[0, 0], [0, 1], [0, 2]], [2, 0, 2], [batch_size, 3])
       # pyformat: enable
-      sparse_embedding = tf.contrib.layers.safe_embedding_lookup_sparse(
+      sparse_embedding = contrib_layers.safe_embedding_lookup_sparse(
           embedding_weights,
           sparse_ids,
           combiner='sum',
@@ -120,9 +123,9 @@ class AttributionTest(tf.test.TestCase):
                       [1.66, 1.33, 1.]]]]
         self.assertTupleEqual(result[0].shape, (1, 2, 3))
         self.assertTupleEqual(result[1].shape, (1, 3, 3))
-        for idx in xrange(len(expected)):
-          for row in xrange(len(expected[idx][0])):
-            for col in xrange(len(expected[idx][0][row])):
+        for idx in range(len(expected)):
+          for row in range(len(expected[idx][0])):
+            for col in range(len(expected[idx][0][row])):
               self.assertAlmostEqual(result[idx][0, row, col],
                                      expected[idx][0][row][col],
                                      delta=0.1)

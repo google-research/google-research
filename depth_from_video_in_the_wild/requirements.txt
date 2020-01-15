@@ -1,0 +1,5 @@
+absl-py>=0.5.0
+numpy>=1.13.3
+opencv-python>=4.1.0.25
+tensorflow>=1.13.0
+tensorflow-graphics

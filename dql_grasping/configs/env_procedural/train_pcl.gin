@@ -1,0 +1,56 @@
+train_collect_eval.collect_env = @train/KukaGraspingProceduralEnv()
+train_collect_eval.eval_env = @train/KukaGraspingProceduralEnv()
+train_collect_eval.test_env = @test/KukaGraspingProceduralEnv()
+train_collect_eval.policy_class = @ContinuousPCLPolicy
+train_collect_eval.num_collect = 50
+train_collect_eval.num_eval = 50
+train_collect_eval.num_test = 50
+
+# CONFIGURE POLICY (TRAIN, RUN)
+ContinuousPCLPolicy.q_func = @cnn_v0
+cnn_v0.use_timestep = False
+ContinuousPCLPolicy.state_shape = (1, 64, 64, 3)
+ContinuousPCLPolicy.num_actions = 4
+ContinuousPCLPolicy.build_target = True
+
+# TRAINING
+get_data.parse_fn = @parse_tfexample_sequence
+parse_tfexample_sequence.img_height = 64
+parse_tfexample_sequence.img_width = 64
+get_data.batch_size = 64
+
+parse_tfexample_sequence.action_size = 4
+parse_tfexample_sequence.episode_length = 16
+
+train_q.q_graph_fn = @discrete_pcl_graph
+
+# 10k calibrated from training fixed environment 4 blocks.
+train_q.optimizer = @AdamOptimizer()
+train_q.training_steps = 1000
+train_q.max_training_steps = 2000000
+train_q.log_every_n_steps=1000
+train_q.save_summaries_steps=1000
+train_q.update_target_every_n_steps = 50
+train_q.save_checkpoint_steps=1000
+
+AdamOptimizer.learning_rate = 0.0001
+huber_loss.delta = 1.0
+
+# RUN AGENT
+run_env.explore_schedule = @LinearSchedule()
+LinearSchedule.schedule_timesteps = 100000
+LinearSchedule.final_p = .05
+
+# DATA
+run_env.episode_to_transitions_fn = @episode_to_sequence_v0
+episode_to_sequence_v0.continuous = True
+episode_to_sequence_v0.episode_length = 16
+
+discrete_pcl_graph.num_actions = 4
+discrete_pcl_graph.clip_adv = 1.0
+discrete_pcl_graph.gamma = 0.95
+discrete_pcl_graph.continuous = True
+discrete_pcl_graph.trust_pcl = True
+discrete_pcl_graph.target_network_type = "normal"
+discrete_pcl_graph.tau = 3.0
+discrete_pcl_graph.rollout = 10

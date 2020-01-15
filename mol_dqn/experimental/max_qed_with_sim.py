@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ from rdkit import DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem import Descriptors
 from rdkit.Contrib import SA_Score
-from tensorflow import gfile
+from tensorflow.compat.v1 import gfile
 from mol_dqn.chemgraph.mcts import deep_q_networks
 from mol_dqn.chemgraph.mcts import molecules as molecules_mdp
 from mol_dqn.chemgraph.mcts import run_dqn

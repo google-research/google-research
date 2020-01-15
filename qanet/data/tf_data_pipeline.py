@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2018 The Google Research Authors.
+# Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,11 +35,12 @@ import os
 import re
 import numpy as np
 from tensor2tensor.data_generators import text_encoder
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from qanet import squad_data
 from qanet import squad_helper
 from qanet.util import configurable
 from qanet.util import tokenizer_util
+from tensorflow.contrib import data as contrib_data
 
 try:
   unicode        # Python 2
@@ -913,7 +914,7 @@ def get_input_fn(split='dev',
     if shuffle and repeats != 1:
       tf.logging.info('Shuffle and repeat size: %s' % shuffle_buffer_size)
       ds = ds.apply(
-          tf.contrib.data.shuffle_and_repeat(
+          contrib_data.shuffle_and_repeat(
               buffer_size=shuffle_buffer_size, count=repeats))
     elif repeats != 1:
       tf.logging.info('Repeating')
@@ -931,13 +932,13 @@ def get_input_fn(split='dev',
     ds = ds.map(filter_fields, num_parallel_calls=16)
 
     if is_training:
-      ds = ds.apply(
-          tf.contrib.data.padded_batch_and_drop_remainder(
-              batch_size, padded_shapes=shapes))
+      ds = ds.padded_batch(
+          batch_size, padded_shapes=shapes, drop_remainder=True)
     else:
       # Never want to ignore values at eval time
       ds = ds.padded_batch(batch_size, padded_shapes=shapes)
-    ds = ds.prefetch(tf.contrib.data.AUTOTUNE)  # Buffer a few batches ahead
+    ds = ds.prefetch(
+        tf.data.experimental.AUTOTUNE)  # Buffer a few batches ahead
     if do_embedding:
       iterator = ds.make_initializable_iterator()
       # Must be initialized when the graph is initialized and before the

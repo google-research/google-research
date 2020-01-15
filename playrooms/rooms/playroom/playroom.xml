@@ -1,0 +1,306 @@
+<mujoco model="Playground">
+    <compiler angle="radian" />
+    <option timestep="0.001" noslip_iterations="20" />
+    <size njmax="500" nconmax="500" nkey="2" />
+    <visual>
+        <global offwidth="4072" offheight="2262" />
+        <quality shadowsize="2048" offsamples="8" />
+        <headlight diffuse="0.6 0.6 0.6" specular="0 0 0" />
+        <map fogstart="6" znear="0.05" />
+        <scale forcewidth="0.01" framelength="0.1" framewidth="0.01" />
+    </visual>
+    <default class="main">
+        <default class="viz_stl_Metal_LR">
+            <geom type="mesh" group="1" material="M_Metal_LR" />
+        </default>
+        <default class="viz_stl_Wood_cube_LR">
+            <geom type="mesh" group="1" material="M_Wood_cube_LR" />
+        </default>
+        <default class="viz_stl_Wood_2d_LR">
+            <geom type="mesh" group="1" material="M_Wood_2d_LR" />
+        </default>
+        <default class="viz_stl_Fabric_cube_LR">
+            <geom type="mesh" group="1" material="M_Fabric_cube_LR" />
+        </default>
+        <default class="viz_stl_Fabric_2d_LR">
+            <geom type="mesh" group="1" material="M_Fabric_2d_LR" />
+        </default>
+        <default class="viz_stl_Painting_cube_LR">
+            <geom type="mesh" group="1" material="M_Painting_cube_LR" />
+        </default>
+        <default class="viz_drawer">
+            <joint limited="true" armature="0.1" damping="2" frictionloss="5" />
+            <geom contype="0" group="3" rgba="1 0 0 1" />
+        </default>
+        <default class="viz_body">
+            <joint limited="true" armature="0.01" damping="1" frictionloss="0.5" />
+            <geom contype="0" group="4" rgba="0 1 0 1" />
+        </default>
+    </default>
+    <asset>
+        <texture type="cube" name="T_Wood_cube_LR" file="../playroom/textures/Surface_wood_chipboard.jpg.png" />
+        <texture type="2d" name="T_Wood_2d_LR" file="../playroom/textures/Surface_wood_chipboard.jpg.png" />
+        <texture type="cube" name="T_Metal_LR" file="../playroom/textures/Texture_P7220210.JPG.png" />
+        <texture type="cube" name="T_Fabric_cube_LR" file="../playroom/textures/Blue_Gray_knit_texture.jpg.png" />
+        <texture type="2d" name="T_Fabric_2d_LR" file="../playroom/textures/Fabric_length_(AM_842431-1).jpg.png" />
+        <texture type="cube" name="T_Painting_cube_LR" file="../playroom/textures/Coloured,_textured_craft_card_edit.jpg.png" />
+        <texture type="2d" name="groundplane" builtin="checker" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" width="200" height="200" />
+        <texture type="skybox" name="skybox" builtin="gradient" mark="random" rgb1="0.4 0.6 0.8" rgb2="0 0 0" markrgb="1 1 1" width="800" height="4800" />
+        <material name="M_Fabric_cube_LR" texture="T_Fabric_cube_LR" shininess="0" />
+        <material name="M_Fabric_2d_LR" texture="T_Fabric_2d_LR" texuniform="true" texrepeat="3 3" shininess="0" rgba="0.2 0.2 0.2 1" />
+        <material name="groundplane" texture="groundplane" texrepeat="20 20" />
+        <material name="M_Wood_cube_LR" texture="T_Wood_cube_LR" shininess="0.2" reflectance="0.3" rgba="0.8 0.8 0.8 1" />
+        <material name="M_Wood_2d_LR" texture="T_Wood_2d_LR" shininess="0.2" reflectance="0.3" rgba="0.8 0.8 0.8 1" />
+        <material name="M_Metal_LR" texture="T_Metal_LR" texrepeat="3 3" reflectance="0.7" />
+        <material name="M_Painting_cube_LR" texture="T_Painting_cube_LR" shininess="0.2" reflectance="0.3" />
+        <material name="MatViz" specular="1" shininess="0.1" reflectance="0.5" rgba="0.07 0.07 0.1 1" />
+        <mesh name="SSC_Body" file="../playroom/meshes//SSC_Body.STL" scale="0.01 0.01 0.01" />
+        <mesh name="SSC_Stand" file="../playroom/meshes//SSC_Stand.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Table_Top" file="../playroom/meshes//Table_Top.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Table_Bottom" file="../playroom/meshes//Table_Bottom.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Doorway_Top" file="../playroom/meshes//Doorway_Top.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Doorway_Bottom" file="../playroom/meshes//Doorway_Bottom.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Window_Top" file="../playroom/meshes//Window_Top.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Window_Bottom" file="../playroom/meshes//Window_Bottom.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Wall_Top" file="../playroom/meshes//Wall_Top.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Wall_Bottom" file="../playroom/meshes//Wall_Bottom.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Lamp_Top" file="../playroom/meshes//Lamp_Top.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Lamp_Stand" file="../playroom/meshes//Lamp_Stand.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Painting_Canvas" file="../playroom/meshes//Painting_Canvas.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Painting_Frame" file="../playroom/meshes//Painting_Frame.STL" scale="0.01 0.01 0.01" />
+        <mesh name="StudyTable" file="../playroom/meshes//StudyTable.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Drawer_Wood" file="../playroom/meshes//Drawer_Wood.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Drawer_Handle" file="../playroom/meshes//Drawer_Handle.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Slide_Wood" file="../playroom/meshes//Slide_Wood.STL" scale="0.01 0.01 0.01" />
+        <mesh name="Slide_Handle" file="../playroom/meshes//Slide_Handle.STL" scale="0.01 0.01 0.01" />
+        <mesh name="BlockBin" file="../playroom/meshes//BlockBin.STL" scale="0.01 0.01 0.01" />
+    </asset>
+    <worldbody>
+        <geom size="4 4 0.25" type="plane" material="groundplane" />
+        <light class="Light" pos="0.4 -1 2.8" dir="-0.125491 0.313728 -0.941184" />
+        <light class="Light" pos="-1.7 -2.8 2" dir="0 0 -1" />
+        <light class="Light" pos="-3.6 0 2" dir="0 0 -1" />
+        <light class="Light" pos="0 0 0" dir="0.705346 -0.0705346 -0.705346" />
+        <light class="Light" pos="0 0 2.8" dir="0 -0.707107 -0.707107" />
+        <body name="SSC_01" pos="0.7 -2.7 0.02" quat="-0.416147 0 0 0.909297">
+            <inertial pos="-1.69568e-05 0.102849 0.460734" quat="0.665175 -0.239795 0.239645 0.66529" mass="255.007" diaginertia="25.2596 22.2539 12.2075" />
+            <geom class="viz_stl_Fabric_cube_LR" contype="0" conaffinity="0" mesh="SSC_Body" />
+            <geom class="viz_stl_Wood_cube_LR" contype="0" conaffinity="0" mesh="SSC_Stand" />
+        </body>
+        <body name="SSC_02" pos="-0.7 -2.7 0.02" quat="0.540302 0 0 0.841471">
+            <inertial pos="-1.69568e-05 0.102849 0.460734" quat="0.665175 -0.239795 0.239645 0.66529" mass="255.007" diaginertia="25.2596 22.2539 12.2075" />
+            <geom class="viz_stl_Fabric_cube_LR" contype="0" conaffinity="0" mesh="SSC_Body" />
+            <geom class="viz_stl_Wood_cube_LR" contype="0" conaffinity="0" mesh="SSC_Stand" />
+        </body>
+        <body name="Table" pos="0.1 -1.85 0.02" quat="-0.801144 0 0 0.598472">
+            <inertial pos="-0.0771861 6.57209e-05 0.268149" quat="0.0822003 0.714375 -0.0781205 0.690514" mass="74.2001" diaginertia="2.9359 2.61546 2.24078" />
+            <geom class="viz_stl_Wood_2d_LR" contype="0" conaffinity="0" mesh="Table_Top" />
+            <geom class="viz_stl_Metal_LR" contype="0" conaffinity="0" mesh="Table_Bottom" />
+        </body>
+        <body name="Wall_01" pos="1.6 0.3 0">
+            <inertial pos="-1.524 0.0597068 1.72544" quat="0.500185 0.499815 0.500185 0.499815" mass="1066.43" diaginertia="1605.4 905.276 702.954" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="Wall_Top" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="0.4 0.4 0.4 1" mesh="Wall_Bottom" />
+        </body>
+        <body name="Window_03" pos="-0.27 -3.2 0" quat="0.000296327 0 0 1">
+            <inertial pos="-0.888568 0.0609232 1.3669" quat="0.707098 -0.00125646 0.00119453 0.707113" mass="894.917" diaginertia="996.607 768.536 230.185" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="Window_Top" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="0.4 0.4 0.4 1" mesh="Window_Bottom" />
+        </body>
+        <body name="Wall_02" pos="-3.318 -3.2 0" quat="0.000296327 0 0 1">
+            <inertial pos="-1.524 0.0597068 1.72544" quat="0.500185 0.499815 0.500185 0.499815" mass="1066.43" diaginertia="1605.4 905.276 702.954" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="Wall_Top" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="0.4 0.4 0.4 1" mesh="Wall_Bottom" />
+        </body>
+        <body name="Wall_03" pos="-1.447 0.3 0">
+            <inertial pos="-1.524 0.0597068 1.72544" quat="0.500185 0.499815 0.500185 0.499815" mass="1066.43" diaginertia="1605.4 905.276 702.954" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="Wall_Top" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="0.4 0.4 0.4 1" mesh="Wall_Bottom" />
+        </body>
+        <body name="Doorway_01" pos="-2.1 0.3 0" quat="0.707035 0 0 0.707179">
+            <inertial pos="-0.761487 0.0559083 1.67853" quat="0.707106 -0.00122681 0.00122681 0.707106" mass="803.811" diaginertia="634.086 474.182 161.903" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="Doorway_Top" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="0.4 0.4 0.4 1" mesh="Doorway_Bottom" />
+        </body>
+        <body name="Wall_04" pos="-2.1 -1.15 0" quat="0.707035 0 0 0.707179">
+            <inertial pos="-1.524 0.0597068 1.72544" quat="0.500185 0.499815 0.500185 0.499815" mass="1066.43" diaginertia="1605.4 905.276 702.954" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="Wall_Top" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="0.4 0.4 0.4 1" mesh="Wall_Bottom" />
+        </body>
+        <body name="Window_04" pos="-3.9 0.3 0" quat="0.707035 0 0 0.707179">
+            <inertial pos="-0.888568 0.0609232 1.3669" quat="0.707098 -0.00125646 0.00119453 0.707113" mass="894.917" diaginertia="996.607 768.536 230.185" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="Window_Top" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="0.4 0.4 0.4 1" mesh="Window_Bottom" />
+        </body>
+        <body name="Wall_05" pos="-3.9 -1.45 0" quat="0.707035 0 0 0.707179">
+            <inertial pos="-1.524 0.0597068 1.72544" quat="0.500185 0.499815 0.500185 0.499815" mass="1066.43" diaginertia="1605.4 905.276 702.954" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="Wall_Top" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="0.4 0.4 0.4 1" mesh="Wall_Bottom" />
+        </body>
+        <body name="Lamp_01" pos="-1.7 -2.8 0">
+            <inertial pos="8.37319e-09 5.67069e-08 0.798383" quat="0.707107 0 0 0.707107" mass="221.061" diaginertia="74.0867 74.0867 4.03714" />
+            <geom class="viz_stl_Fabric_cube_LR" contype="0" conaffinity="0" mesh="Lamp_Top" />
+            <geom class="viz_stl_Metal_LR" contype="0" conaffinity="0" mesh="Lamp_Stand" />
+        </body>
+        <body name="Lamp_02" pos="-3.6 0 0">
+            <inertial pos="8.37319e-09 5.67069e-08 0.798383" quat="0.707107 0 0 0.707107" mass="221.061" diaginertia="74.0867 74.0867 4.03714" />
+            <geom class="viz_stl_Fabric_cube_LR" contype="0" conaffinity="0" mesh="Lamp_Top" />
+            <geom class="viz_stl_Metal_LR" contype="0" conaffinity="0" mesh="Lamp_Stand" />
+        </body>
+        <body name="Ceiling" pos="-1.5 -1.5 3.048" quat="0.707035 0 0 0.707179">
+            <inertial pos="0 0 0" mass="4800" diaginertia="14416 6416 20800" />
+            <geom size="2 3 0.1" type="box" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" />
+        </body>
+        <body name="Rug_01" pos="0 -2.2 0.01">
+            <inertial pos="0 0 0" mass="88" diaginertia="29.3363 35.4963 64.8267" />
+            <geom size="1.1 1 0.01" type="box" contype="0" conaffinity="0" group="1" material="M_Fabric_2d_LR" />
+        </body>
+        <body name="Rug_02" pos="-3 -1 0.01">
+            <inertial pos="0 0 0" mass="52.8" diaginertia="21.2978 6.33776 27.632" />
+            <geom size="0.6 1.1 0.01" type="box" contype="0" conaffinity="0" group="1" material="M_Fabric_2d_LR" />
+        </body>
+        <body name="Painting_01" pos="-2.1 -1.9 1.5" quat="-0.707146 0 0 0.707068">
+            <inertial pos="2.5287e-10 0.0143313 5.58441e-11" quat="0.5 0.5 0.5 0.5" mass="23.3902" diaginertia="2.21053 1.5358 0.677409" />
+            <geom class="viz_stl_Painting_cube_LR" contype="0" conaffinity="0" mesh="Painting_Canvas" />
+            <geom class="viz_stl_Metal_LR" contype="0" conaffinity="0" mesh="Painting_Frame" />
+        </body>
+        <body name="Painting_02" pos="0 0.305 1.5" quat="0.000796327 0 0 1">
+            <inertial pos="2.5287e-10 0.0143313 5.58441e-11" quat="0.5 0.5 0.5 0.5" mass="23.3902" diaginertia="2.21053 1.5358 0.677409" />
+            <geom class="viz_stl_Painting_cube_LR" contype="0" conaffinity="0" mesh="Painting_Canvas" />
+            <geom class="viz_stl_Metal_LR" contype="0" conaffinity="0" mesh="Painting_Frame" />
+        </body>
+        <body name="obj1" pos="0 -0.5 0.66" quat="0.707388 0 0.706825 0">
+            <inertial pos="0 0 0" mass="0.648" diaginertia="0.001944 0.001944 0.0003888" />
+            <joint type="free" />
+            <geom size="0.03 0.03 0.09" type="box" rgba="0.8 0.7 0.9 1" />
+        </body>
+        <body name="obj2" pos="0.3 -0.25 0.86" quat="0.980067 0 0 -0.198669">
+            <inertial pos="0 0 0" mass="0.648" diaginertia="0.001944 0.001944 0.0003888" />
+            <joint type="free" />
+            <geom size="0.03 0.03 0.09" type="box" rgba="0.7 0.9 0.9 1" />
+        </body>
+        <body name="obj3" pos="0.12 -0.5 0.86" quat="0.995004 0 0 -0.0998334">
+            <inertial pos="0 0 0" mass="0.648" diaginertia="0.001944 0.001944 0.0003888" />
+            <joint type="free" />
+            <geom size="0.03 0.03 0.09" type="box" rgba="0.5 0.9 0.9 1" />
+        </body>
+        <body name="Button 1" pos="0 -0.4 -0.2">
+            <inertial pos="-0.15 0.15 0.79" mass="1" diaginertia="0.001 0.001 0.001" />
+            <joint name="Button_Joint_1" pos="0 0 0" axis="0 0 1" type="slide" springref="1" limited="true" stiffness="0.5" range="-0.1 0" damping="1" />
+            <geom size="0.03 0.02" pos="-0.15 0.15 0.79" type="cylinder" group="1" rgba="0.3 0 0 1" />
+        </body>
+        <body name="Button SeeSaw 1" pos="0 -0.4 -0.2">
+            <inertial pos="-0.15 0.22 0.754" mass="0.01" diaginertia="0.001 0.001 0.001" />
+            <joint name="ButtonSeeSaw_Joint_1" pos="-0.15 0.22 0.754" axis="-1 0 0" springref="1" limited="true" stiffness="0.5" range="-0.78 0" damping="0.01" />
+            <geom size="0.02 0.075 0.005" pos="-0.15 0.22 0.754" type="box" group="4" rgba="1 0.1 0.1 1" />
+        </body>
+        <body name="Button Upper 1" pos="0 -0.4 -0.2">
+            <inertial pos="-0.15 0.265 0.76" mass="0.1" diaginertia="0.001 0.001 0.001" />
+            <joint name="ButtonUpper_Joint_1" pos="0 0 0" axis="0 0 1" type="slide" springref="1" limited="true" range="0 0.017" />
+            <geom size="0.02 0.03 0.005" pos="-0.15 0.265 0.79" quat="0.707388 0.706825 0 0" type="box" group="4" rgba="1 0.1 0.1 1" />
+            <geom size="0.06 0.0075" pos="-0.15 0.15 1.109" type="cylinder" group="1" rgba="1 0 0 1" />
+        </body>
+        <body name="Button 2" pos="0 -0.4 -0.2">
+            <inertial pos="-0.3 0.15 0.79" mass="1" diaginertia="0.001 0.001 0.001" />
+            <joint name="Button_Joint_2" pos="0 0 0" axis="0 0 1" type="slide" springref="1" limited="true" stiffness="0.5" range="-0.1 0" damping="1" />
+            <geom size="0.03 0.02" pos="-0.3 0.15 0.79" type="cylinder" group="1" rgba="0 0.3 0 1" />
+        </body>
+        <body name="Button SeeSaw 2" pos="0 -0.4 -0.2">
+            <inertial pos="-0.3 0.22 0.754" mass="0.01" diaginertia="0.001 0.001 0.001" />
+            <joint name="ButtonSeeSaw_Joint_2" pos="-0.15 0.22 0.754" axis="-1 0 0" springref="1" limited="true" stiffness="0.5" range="-0.78 0" damping="0.01" />
+            <geom size="0.02 0.075 0.005" pos="-0.3 0.22 0.754" type="box" group="4" rgba="0.1 1 0.1 1" />
+        </body>
+        <body name="Button Upper 2" pos="0 -0.4 -0.2">
+            <inertial pos="-0.3 0.265 0.76" mass="0.1" diaginertia="0.001 0.001 0.001" />
+            <joint name="ButtonUpper_Joint_2" pos="0 0 0" axis="0 0 1" type="slide" springref="1" limited="true" range="0 0.017" />
+            <geom size="0.02 0.03 0.005" pos="-0.3 0.265 0.79" quat="0.707388 0.706825 0 0" type="box" group="4" rgba="0.1 1 0.1 1" />
+            <geom size="0.06 0.0075" pos="-0.3 0.15 1.109" type="cylinder" group="1" rgba="0 1 0 1" />
+        </body>
+        <body name="Button 3" pos="0 -0.4 -0.2">
+            <inertial pos="-0.45 0.15 0.79" mass="1" diaginertia="0.001 0.001 0.001" />
+            <joint name="Button_Joint_3" pos="0 0 0" axis="0 0 1" type="slide" springref="1" limited="true" stiffness="0.5" range="-0.1 0" damping="1" />
+            <geom size="0.03 0.02" pos="-0.45 0.15 0.79" type="cylinder" group="1" rgba="0 0 0.3 1" />
+        </body>
+        <body name="Button SeeSaw 3" pos="0 -0.4 -0.2">
+            <inertial pos="-0.45 0.22 0.754" mass="0.01" diaginertia="0.001 0.001 0.001" />
+            <joint name="ButtonSeeSaw_Joint_3" pos="-0.15 0.22 0.754" axis="-1 0 0" springref="1" limited="true" stiffness="0.5" range="-0.78 0" damping="0.01" />
+            <geom size="0.02 0.075 0.005" pos="-0.45 0.22 0.754" type="box" group="4" rgba="0.1 0.1 1 1" />
+        </body>
+        <body name="Button Upper 3" pos="0 -0.4 -0.2">
+            <inertial pos="-0.45 0.265 0.76" mass="0.1" diaginertia="0.001 0.001 0.001" />
+            <joint name="ButtonUpper_Joint_3" pos="0 0 0" axis="0 0 1" type="slide" springref="1" limited="true" range="0 0.017" />
+            <geom size="0.02 0.03 0.005" pos="-0.45 0.265 0.79" quat="0.707388 0.706825 0 0" type="box" group="4" rgba="0.1 0.1 1 1" />
+            <geom size="0.06 0.0075" pos="-0.45 0.15 1.109" type="cylinder" group="1" rgba="0 0 1 1" />
+        </body>
+        <body name="StudyTable" childclass="viz_body" pos="0 -0.4 -0.2">
+            <inertial pos="-0.0105241 0.0769411 0.760166" quat="0.584517 0.394281 0.595861 0.384489" mass="554.518" diaginertia="108.365 86.7491 39.9742" />
+            <geom class="viz_stl_Wood_cube_LR" quat="0.000563312 -0.000562864 0.706825 0.707388" contype="0" conaffinity="0" mesh="StudyTable" />
+            <geom size="0.3 0.275 0.025" pos="0.3 0 0.735" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.17 0.26 0.05" pos="0.42 0 0.66" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.17 0.26 0.05" pos="-0.42 0 0.66" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.025 0.025 0.305" pos="-0.565 0.235 0.305" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.025 0.025 0.305" pos="-0.565 -0.235 0.305" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.025 0.025 0.305" pos="0.565 0.235 0.305" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.025 0.025 0.305" pos="0.565 -0.235 0.305" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.3 0.01 0.175" pos="0.3 0.265 0.935" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.3 0.11 0.01" pos="0.3 0.165 1.1" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.01 0.11 0.175" pos="0.59 0.165 0.935" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.01 0.11 0.175" pos="-0.59 0.165 0.935" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.01 0.11 0.175" pos="0 0.165 0.935" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.3 0.19 0.025" pos="-0.3 -0.085 0.735" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.0525 0.26 0.025" pos="-0.055 0 0.735" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.035 0.26 0.025" pos="-0.225 0 0.735" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.035 0.26 0.025" pos="-0.375 0 0.735" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.0525 0.26 0.025" pos="-0.54 0 0.735" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.06 0.01 0.175" pos="-0.065 0.265 0.935" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.0525 0.01 0.175" pos="-0.22535 0.265 0.935" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.0525 0.01 0.175" pos="-0.375 0.265 0.935" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.06 0.01 0.175" pos="-0.54 0.265 0.935" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.3 0.01 0.135" pos="-0.3 0.265 0.96" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.04 0.11 0.01" pos="-0.0475 0.165 1.1" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.0125 0.11 0.01" pos="-0.225 0.165 1.1" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.0125 0.11 0.01" pos="-0.375 0.165 1.1" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.04 0.11 0.01" pos="-0.555 0.165 1.1" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.3 0.01625 0.01" pos="-0.3 0.07125 1.1" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.3 0.03125 0.01" pos="-0.3 0.2435 1.1" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.06 0.001" pos="-0.15 0.15 1.12" type="cylinder" conaffinity="0" group="1" rgba="0 0 0 1" />
+            <geom size="0.06 0.001" pos="-0.3 0.15 1.12" type="cylinder" conaffinity="0" group="1" rgba="0 0 0 1" />
+            <geom size="0.06 0.001" pos="-0.45 0.15 1.12" type="cylinder" conaffinity="0" group="1" rgba="0 0 0 1" />
+        </body>
+        <body name="StudyTable_Drawer" childclass="viz_drawer" pos="0 -0.55 0.455">
+            <inertial pos="0 0 0" mass="2" diaginertia="0.001 0.001 0.001" />
+            <joint pos="0 0 0" axis="0 1 0" type="slide" range="-0.48 0" />
+            <geom class="viz_stl_Wood_cube_LR" quat="0.000563312 -0.000562864 0.706825 0.707388" contype="0" conaffinity="0" mesh="Drawer_Wood" />
+            <geom class="viz_stl_Metal_LR" quat="0.000563312 -0.000562864 0.706825 0.707388" contype="0" conaffinity="0" mesh="Drawer_Handle" />
+            <geom size="0.24 0.26 0.01" pos="0 0 -0.04" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.24 0.01 0.05" pos="0 0.25 0" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.24 0.01 0.05" pos="0 -0.25 0" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.01 0.26 0.05" pos="-0.23 0 0" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.01 0.26 0.05" pos="0.23 0 0" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.014 0.055" pos="0.08203 -0.315 0.01" quat="0.707388 0.706825 0 0" type="cylinder" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.014 0.055" pos="-0.08203 -0.315 0.01" quat="0.707388 0.706825 0 0" type="cylinder" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.014 0.095" pos="0 -0.36 0.01" quat="0.707388 0 0.706825 0" type="cylinder" rgba="0.8 0.9 0.7 1" />
+            <site name="StudyTable_Drawer" pos="0 0 0" quat="0 0 0 1" size="5e-05" />
+        </body>
+        <body name="StudyTable_Slide" childclass="viz_drawer" pos="0.2 -0.36 0.735">
+            <inertial pos="0 0 0" mass="1" diaginertia="0.001 0.001 0.001" />
+            <joint pos="0 0 0" axis="1 0 0" type="slide" range="0 0.6" />
+            <geom class="viz_stl_Wood_cube_LR" quat="0.000563312 -0.000562864 0.706825 0.707388" contype="0" conaffinity="0" mesh="Slide_Wood" />
+            <geom class="viz_stl_Metal_LR" quat="0.000563312 -0.000562864 0.706825 0.707388" contype="0" conaffinity="0" mesh="Slide_Handle" />
+            <geom size="0.3 0.01 0.175" type="box" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.014 0.05525" pos="0 -0.065 0.08302" quat="0.707388 0.706825 0 0" type="cylinder" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.014 0.05525" pos="0 -0.065 -0.08302" quat="0.707388 0.706825 0 0" type="cylinder" rgba="0.8 0.9 0.7 1" />
+            <geom size="0.014 0.095" pos="0 -0.11 0" type="cylinder" rgba="0.8 0.9 0.7 1" />
+            <site name="StudyTable_Slide" pos="0 0 0" quat="0 0 0 1" size="5e-05" />
+        </body>
+        <body name="BlockBin" childclass="viz_body" pos="0.4 -0.9 0">
+            <inertial pos="0 0 0" mass="2" diaginertia="0.001 0.001 0.001" />
+            <geom class="viz_stl_Metal_LR" quat="0.000563312 -0.000562864 0.706825 0.707388" contype="0" conaffinity="0" mesh="BlockBin" />
+            <geom size="0.01 0.11 0.2" pos="-0.12 0 0.2" quat="0.999048 0 -0.0436194 0" type="box" />
+            <geom size="0.01 0.11 0.2" pos="0.12 0 0.2" quat="0.999048 0 0.0436194 0" type="box" />
+            <geom size="0.01 0.11 0.2" pos="0 -0.12 0.2" quat="0.706715 0.0308559 -0.0308313 0.706152" type="box" />
+            <geom size="0.01 0.11 0.2" pos="0 0.12 0.2" quat="0.706715 -0.0308559 0.0308313 0.706152" type="box" />
+            <geom size="0.1 0.1 0.005" pos="0 0 0.05" type="box" />
+        </body>
+    </worldbody>
+</mujoco>

@@ -1,0 +1,8 @@
+numpy>=1.13.3
+tensorflow==1.15.0
+tensorflow_probability
+tfp-nightly
+tensorflow_datasets
+pillow
+matplotlib
+seaborn
