@@ -1,0 +1,61 @@
+// Copyright 2019 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "frequent.h"
+#include "gtest/gtest.h"
+
+namespace sketch {
+
+class FrequentTest : public ::testing::Test {
+ public:
+  FrequentTest()  : freq_(new Frequent(100)) {}
+
+ protected:
+  std::unique_ptr<Frequent> freq_;
+};
+
+
+TEST_F(FrequentTest, TestBasic) {
+  for (uint i = 0; i < 200; ++i) {
+    freq_->Add(i, 4);
+  }
+  EXPECT_EQ(4.0, freq_->Estimate(10));
+  freq_->Add(12, 3);
+  EXPECT_EQ(4.0, freq_->Estimate(10));
+  EXPECT_EQ(7.0, freq_->Estimate(12));
+  freq_->Add(10, 4);
+  EXPECT_EQ(8.0, freq_->Estimate(10));
+  EXPECT_EQ(7.0, freq_->Estimate(12));
+}
+
+TEST_F(FrequentTest, CuckooHashTestBasic) {
+  std::vector<IntFloatPair> keys;
+  CuckooHashParams params;
+  IndexCuckooHash hash(keys, 5, params);
+
+  keys.push_back(std::make_pair(5, 1));
+  hash.Update(5, -1, 0, false);
+  EXPECT_EQ(0, hash.Find(5));
+  keys.push_back(std::make_pair(6, 1));
+  hash.Update(6, -1, 1, false);
+  EXPECT_EQ(1, hash.Find(6));
+  hash.Update(5, 0, -1, false);
+  EXPECT_EQ(-1, hash.Find(5));
+  keys[0].first = 7;
+  EXPECT_EQ(-1, hash.Find(7));
+  hash.Update(7, -1, 0, false);
+  EXPECT_EQ(0, hash.Find(7));
+}
+
+}  // namespace sketch
