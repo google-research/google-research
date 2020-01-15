@@ -32,7 +32,7 @@ import six.moves.cPickle as pickle
 from sklearn import ensemble
 from sklearn import metrics
 import sklearn.linear_model as lm
-from tensorflow import gfile
+from tensorflow.compat.v1 import gfile
 
 from correct_batch_effects_wdn import distance as distance_analysis
 from correct_batch_effects_wdn import evaluate

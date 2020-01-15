@@ -24,7 +24,7 @@ import os
 from absl import flags
 
 import pandas
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from correct_batch_effects_wdn import io_utils
 

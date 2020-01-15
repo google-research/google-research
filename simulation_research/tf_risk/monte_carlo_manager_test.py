@@ -22,7 +22,7 @@ from __future__ import print_function
 from absl.testing import parameterized
 
 import numpy as np
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 from simulation_research.tf_risk import dynamics
 from simulation_research.tf_risk import monte_carlo_manager

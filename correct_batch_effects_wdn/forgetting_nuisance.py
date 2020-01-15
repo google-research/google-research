@@ -33,8 +33,8 @@ from scipy import sparse
 from six.moves import range
 from six.moves import zip
 import six.moves.cPickle as pickle
-import tensorflow as tf
-from tensorflow import gfile
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import gfile
 
 from correct_batch_effects_wdn import io_utils
 from correct_batch_effects_wdn import transform

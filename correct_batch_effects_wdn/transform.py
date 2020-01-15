@@ -24,7 +24,7 @@ from __future__ import print_function
 import numpy as np
 import pandas as pd
 from sklearn import decomposition
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from correct_batch_effects_wdn import metadata
 
