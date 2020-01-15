@@ -1,0 +1,36 @@
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "com_github_gflags_gflags",
+    strip_prefix = "gflags-master",
+    urls = ["https://github.com/gflags/gflags/archive/master.zip"],
+)
+
+bind(
+    name   = "gflags",
+    actual = "@com_github_gflags_gflags//:gflags",
+)
+
+http_archive(
+    name = "com_google_absl",
+    strip_prefix = "abseil-cpp-master",
+    urls = ["https://github.com/abseil/abseil-cpp/archive/master.zip"],
+)
+
+http_archive(
+    name = "com_google_googletest",
+    strip_prefix = "googletest-master",
+    urls = ["https://github.com/google/googletest/archive/master.zip"],
+)
+
+http_archive(
+    name = "com_google_glog",
+    strip_prefix = "glog-master",
+    urls = ["https://github.com/google/glog/archive/master.zip"],
+)
+
+http_archive(
+    name = "rules_cc",
+    strip_prefix = "rules_cc-master",
+    urls = ["https://github.com/bazelbuild/rules_cc/archive/master.zip"],
+)

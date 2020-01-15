@@ -1,0 +1,103 @@
+licenses(["notice"])
+
+cc_library(
+    name = "utils",
+    srcs = ["utils.cc"],
+    hdrs = [
+        "sketch.h",
+        "utils.h",
+    ],
+    deps = [
+        "//external:gflags",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/random:bit_gen_ref",
+        "@com_google_glog//:glog",
+    ],
+)
+
+cc_library(
+    name = "countmin",
+    srcs = ["countmin.cc"],
+    hdrs = ["countmin.h"],
+    deps = [
+        ":utils",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/random",
+    ],
+)
+
+cc_test(
+    name = "countmin_test",
+    srcs = ["countmin_test.cc"],
+    deps = [
+        ":countmin",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "lossy_count",
+    srcs = ["lossy_count.cc"],
+    hdrs = ["lossy_count.h"],
+    deps = [
+        ":countmin",
+        ":utils",
+        "@com_google_absl//absl/random",
+    ],
+)
+
+cc_library(
+    name = "lossy_weight",
+    srcs = ["lossy_weight.cc"],
+    hdrs = ["lossy_weight.h"],
+    deps = [
+        ":countmin",
+        ":utils",
+    ],
+)
+
+cc_test(
+    name = "lossy_weight_test",
+    srcs = ["lossy_weight_test.cc"],
+    deps = [
+        ":lossy_weight",
+        ":utils",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "frequent",
+    srcs = ["frequent.cc"],
+    hdrs = ["frequent.h"],
+    deps = [
+        ":countmin",
+        ":utils",
+    ],
+)
+
+cc_test(
+    name = "frequent_test",
+    srcs = ["frequent_test.cc"],
+    deps = [
+        ":frequent",
+        ":utils",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_absl//absl/random",
+    ],
+)
+
+cc_binary(
+    name = "run_sketches",
+    srcs = ["run_sketches.cc"],
+    deps = [
+        ":countmin",
+        ":frequent",
+        ":lossy_count",
+        ":lossy_weight",
+        ":utils",
+        "//external:gflags",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/random",
+    ],
+)
