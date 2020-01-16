@@ -72,7 +72,8 @@ def load_non_mnist(raw_data_dir):
 def main(unused_argv):
   images_np, labels_np = load_non_mnist(FLAGS.raw_data_dir)
 
-  with tf.gfile.Open(os.path.join(FLAGS.out_dir, 'notmnist.npy'), 'wb') as f:
+  with tf.compat.v1.gfile.Open(
+      os.path.join(FLAGS.out_dir, 'notmnist.npy'), 'wb') as f:
     np.save(f, np.expand_dims(images_np, axis=3))
     np.save(f, labels_np)
   print('Saved np arrays to %s' % FLAGS.out_dir)

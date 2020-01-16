@@ -33,6 +33,8 @@ import tensorflow as tf
 from genomics_ood.images_ood import pixel_cnn
 from genomics_ood.images_ood import utils
 
+tf.compat.v1.disable_v2_behavior()
+
 flags.DEFINE_string('data_dir', '/tmp/image_data',
                     'Directory to data np arrays.')
 flags.DEFINE_string('out_dir', '/tmp/pixelcnn',

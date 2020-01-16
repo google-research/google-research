@@ -24,7 +24,7 @@ import os
 
 import numpy as np
 from sklearn import metrics
-import tensorflow.compat.v2 as tf
+import tensorflow.compat.v1 as tf
 import yaml
 
 

@@ -1,6 +1,6 @@
 # Out-of-Distribution Detection for Genomics Sequences
 
-This directory contains implementation of the generative model and the classification model for the bacteria genomic dataset that are used in the paper of [Ren J, Liu PJ, Fertig E, Snoek J, Poplin R, DePristo MA, Dillon JV, Lakshminarayanan B. Likelihood Ratios for Out-of-Distribution Detection. arXiv preprint arXiv:1906.02845. 2019 Jun 7.](https://arxiv.org/abs/1906.02845)
+This directory contains implementation of the generative model and the classification model for the bacteria genomic dataset that are used in the paper of [Ren J, Liu PJ, Fertig E, Snoek J, Poplin R, DePristo MA, Dillon JV, Lakshminarayanan B. Likelihood Ratios for Out-of-Distribution Detection. arXiv preprint arXiv:1906.02845.](https://arxiv.org/abs/1906.02845)
 
 ## Installation
 
