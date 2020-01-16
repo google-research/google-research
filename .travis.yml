@@ -10,6 +10,7 @@ env:
   matrix:
     - PROJECT="abps"
     - PROJECT="albert"
+    - PROJECT="algae_dice"
     - PROJECT="attribution"
     - PROJECT="axial"
     - PROJECT="bam"
