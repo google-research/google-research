@@ -80,7 +80,7 @@ def np_save(out_dir, name, subset, images_np, labels_np):
 def main(unused_argv):
 
   out_dir = FLAGS.out_dir
-  tf.gfile.MakeDirs(out_dir)
+  tf.compat.v1.gfile.MakeDirs(out_dir)
 
   name = FLAGS.name
 

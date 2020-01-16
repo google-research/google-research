@@ -41,7 +41,7 @@ from __future__ import print_function
 import functools
 
 import numpy as np
-import tensorflow.compat.v2 as tf
+import tensorflow as tf
 from tensorflow_probability.python.bijectors import shift
 from tensorflow_probability.python.distributions import categorical
 from tensorflow_probability.python.distributions import distribution
@@ -54,6 +54,8 @@ from tensorflow_probability.python.internal import prefer_static
 from tensorflow_probability.python.internal import reparameterization
 from tensorflow_probability.python.internal import tensorshape_util
 from tensorflow_probability.python.layers import weight_norm
+
+tf.compat.v1.disable_v2_behavior()
 
 
 class PixelCNN(distribution.Distribution):
