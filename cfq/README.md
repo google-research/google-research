@@ -5,7 +5,10 @@ the Compositional Freebase Questions (CFQ) dataset.
 
 The dataset can be downloaded from the following URL:
 
-[Download the CFQ dataset](https://storage.cloud.google.com/cfq_dataset/cfq.tar.gz)
+NOTE We have found an inconsistency between the data published here and the one
+we used in the paper (for which we used a different, less portable format). We
+will update the dataset as soon as possible to a consistent state, currently we
+expect this to happen by Tuesday, January 21, 2020.
 
 The dataset and details about its construction and use are described in this ICLR 2020 paper: [Measuring Compositional Generalization: A Comprehensive Method on Realistic Data](https://openreview.net/forum?id=SygcCnNKwr).
 
