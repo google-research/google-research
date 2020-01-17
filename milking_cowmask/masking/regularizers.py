@@ -17,11 +17,11 @@
 import abc
 import math
 
+from . import box_mask
+from . import cow_mask
+
 import jax
 import jax.numpy as jnp
-
-from masking import box_mask
-from masking import cow_mask
 
 
 class Regularizer(object):

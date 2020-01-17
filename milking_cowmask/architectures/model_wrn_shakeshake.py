@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """Wide Resnet Model with shake-shake regularization."""
-from architectures import shake
+from . import shake
 from flax import nn
 import jax
 
