@@ -25,13 +25,14 @@ import os
 import pickle
 import time
 
-from architectures import model_pyramidnet
-from architectures import model_resnet
-from architectures import model_wrn
-from architectures import model_wrn_shakeshake
+from . import util
+from .architectures import model_pyramidnet
+from .architectures import model_resnet
+from .architectures import model_wrn
+from .architectures import model_wrn_shakeshake
 
-from data_sources import imagenet_data_source
-from data_sources import small_image_data_source
+from .data_sources import imagenet_data_source
+from .data_sources import small_image_data_source
 
 from flax import jax_utils
 from flax import optim
@@ -43,12 +44,11 @@ import jax
 import jax.nn
 import jax.numpy as jnp
 
-from masking import regularizers
+from .masking import regularizers
 
 import numpy as onp
 
 import tensorflow.compat.v2 as tf
-import util
 
 
 @functools.partial(jax.jit, static_argnums=(1, 2, 3, 4))
@@ -666,6 +666,7 @@ def experiment(model_dir='.',  # pylint: disable=dangerous-default-value
                run_seed=None,
                log_fn=print,
                checkpoints='on',
+               on_epoch_finished_fn=None,
                debug=False):
   """Run experiment."""
   if checkpoints not in {'none', 'on', 'retain'}:
@@ -987,6 +988,22 @@ def experiment(model_dir='.',  # pylint: disable=dangerous-default-value
                    eval_stu_epoch_metrics['error_rate'],
                    eval_tea_epoch_metrics['loss'],
                    eval_tea_epoch_metrics['error_rate'],))
+
+      if on_epoch_finished_fn is not None:
+        if top5_err_required:
+          on_epoch_finished_fn(
+              epoch,
+              eval_stu_err=eval_stu_epoch_metrics['error_rate'],
+              eval_tea_err=eval_tea_epoch_metrics['error_rate'],
+              eval_stu_top5_err=eval_stu_epoch_metrics['top5_error_rate'],
+              eval_tea_top5_err=eval_tea_epoch_metrics['top5_error_rate'],
+          )
+        else:
+          on_epoch_finished_fn(
+              epoch,
+              eval_stu_err=eval_stu_epoch_metrics['error_rate'],
+              eval_tea_err=eval_tea_epoch_metrics['error_rate'],
+          )
 
       t1 = t2
 

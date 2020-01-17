@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """PyramidNet with Shake-Drop."""
-from architectures import shake
+from . import shake
 
 from flax import nn
 import jax
