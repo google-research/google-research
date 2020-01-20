@@ -77,29 +77,39 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
         z = ops._postprocess(y, transp, s)
         self.assertAllEqual(x, z)
 
-  def test_softsort(self):
+  @parameterized.named_parameters(
+      ('all', None),
+      ('top3', 3),
+      ('top5', 5))
+  def test_softsort(self, topk):
     # Tests that the values are sorted (epsilon being small enough)
-    x = tf.constant([3, 4, 1, 5, 2], dtype=tf.float32)
+    x = tf.constant([3, 4, 1, 5, 2, 9, 12, 11, 8, 15], dtype=tf.float32)
     eps = 1e-3
     sinkhorn_threshold = 1e-3
-    values = ops.softsort(x, direction='ASCENDING',
+    values = ops.softsort(x, direction='ASCENDING', topk=topk,
                           epsilon=eps, threshold=sinkhorn_threshold)
-    self.assertEqual(values.shape, x.shape)
+    expect_shape = x.shape if topk is None else (topk,)
+    self.assertEqual(values.shape, expect_shape)
     self.assertAllGreater(np.diff(values), 0.0)
 
     # Since epsilon is not very small, we cannot expect to retrieve the sorted
     # values with high precision.
     tolerance = 1e-1
-    self.assertAllClose(tf.sort(x), values, tolerance, tolerance)
+    expected_values = tf.sort(x)
+    if topk is not None:
+      expected_values = expected_values[:topk]
+    self.assertAllClose(expected_values, values, tolerance, tolerance)
 
     # Test descending sort.
     direction = 'DESCENDING'
-    values = ops.softsort(x, direction=direction,
+    values = ops.softsort(x, direction=direction, topk=topk,
                           epsilon=eps, threshold=sinkhorn_threshold)
-    self.assertEqual(values.shape, x.shape)
+    expected_values = tf.sort(x, direction=direction)
+    if topk is not None:
+      expected_values = expected_values[:topk]
+    self.assertEqual(values.shape, expect_shape)
     self.assertAllLess(np.diff(values), 0.0)
-    self.assertAllClose(
-        tf.sort(x, direction=direction), values, tolerance, tolerance)
+    self.assertAllClose(expected_values, values, tolerance, tolerance)
 
   @parameterized.named_parameters(
       ('ascending_0', 0, 'ASCENDING'),
