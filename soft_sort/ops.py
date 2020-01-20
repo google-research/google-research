@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """This module defines the softranks and softsort operators."""
 
 from __future__ import absolute_import
@@ -25,6 +26,7 @@ from soft_sort import soft_quantilizer
 
 
 DIRECTIONS = ('ASCENDING', 'DESCENDING')
+_TARGET_WEIGHTS_ARG = 'target_weights'
 
 
 def _preprocess(x, axis):
@@ -74,7 +76,12 @@ def _postprocess(x, transposition, shape):
   return tf.transpose(tf.reshape(x, shape), transposition)
 
 
-def softsort(x, direction='ASCENDING', axis=-1, **kwargs):
+def softsort(
+    x,
+    direction = 'ASCENDING',
+    axis = -1,
+    topk = None,
+    **kwargs):
   """Applies the softsort operator on input tensor x.
 
   This operator acts as differentiable alternative to tf.sort.
@@ -83,6 +90,9 @@ def softsort(x, direction='ASCENDING', axis=-1, **kwargs):
    x: the input tensor. It can be either of shape [batch, n] or [n].
    direction: the direction 'ASCENDING' or 'DESCENDING'
    axis: the axis on which to operate the sort.
+   topk: if not None, the number of topk sorted values that are going to be
+    computed. Using topk improves the speed of the algorithms since it solves
+    a simpler problem.
    **kwargs: see SoftQuantilizer for possible parameters.
 
   Returns:
@@ -91,10 +101,23 @@ def softsort(x, direction='ASCENDING', axis=-1, **kwargs):
   if direction not in DIRECTIONS:
     raise ValueError('`direction` should be one of {}'.format(DIRECTIONS))
 
+  if topk is not None and _TARGET_WEIGHTS_ARG in kwargs:
+    raise ValueError(
+        'Conflicting arguments: both topk and target_weights are being set.')
+
   z, transposition, shape = _preprocess(x, axis)
   descending = (direction == 'DESCENDING')
+
+  if topk is not None:
+    n = tf.cast(tf.shape(z)[-1], dtype=x.dtype)
+    kwargs[_TARGET_WEIGHTS_ARG] = 1.0 / n * tf.concat(
+        [tf.ones(topk, dtype=x.dtype), (n - topk) * tf.ones(1, dtype=x.dtype)],
+        axis=0)
+
   sorter = soft_quantilizer.SoftQuantilizer(z, descending=descending, **kwargs)
-  return _postprocess(sorter.softsort, transposition, shape)
+  # We need to compute topk + 1 values in case we use topk
+  values = sorter.softsort if topk is None else sorter.softsort[:, :-1]
+  return _postprocess(values, transposition, shape)
 
 
 def softranks(x, direction='ASCENDING', axis=-1, zero_based=True, **kwargs):

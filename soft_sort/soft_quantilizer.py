@@ -32,45 +32,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import math
 import gin
 import tensorflow.compat.v2 as tf
 from soft_sort import sinkhorn
-
-
-@gin.configurable
-def group_rescale(x, scale=1.0, min_std=1e-10, is_logistic=True):
-  """Applies a sigmoid map on standardized centered inputs.
-
-  This logistic map, when applied on the output of a neural network,
-  redistributes the activations into [0,1] in a smooth adaptative way, helping
-  the numerical stability of the Sinkhorn algorithm while maintaining a
-  well behaved back propagation.
-
-  In case of logistic sigmoid, this map is exactly the CDF of a logistic
-  distribution. See https://en.wikipedia.org/wiki/Logistic_distribution for
-  details, in particular the variance of the distribution. In case of an atan
-  sigmoid (is_logistic == False), it is somewhat related to the CDF of a Cauchy
-  distribution and presents the advantage to have better behaved gradients.
-
-  Args:
-   x: Tensor<float>[batch, n]
-   scale: (float) a scale to be applied after standardizing and centering the
-    inputs.
-   min_std: (float) minimum standard deviation to consider to avoid degenerated
-    values when centering and rescaling the input x.
-   is_logistic: uses either a logistic sigmoid or an arctan.
-
-  Returns:
-   A Tensor<float>[batch, n] after application of the sigmoid map.
-  """
-  mean = tf.math.reduce_mean(x, axis=1)
-  std = tf.maximum(tf.math.reduce_std(x, axis=1), min_std)
-  if is_logistic:
-    scale *= math.sqrt(3.0) / math.pi
-  s = tf.cast(scale * std, dtype=x.dtype)
-  squashing_fn = tf.math.sigmoid if is_logistic else tf.math.atan
-  return squashing_fn((x - mean[:, tf.newaxis]) / s[:, tf.newaxis])
+from soft_sort import squash
 
 
 @gin.configurable
@@ -105,7 +70,7 @@ class SoftQuantilizer(object):
 
   def __init__(
       self, x=None, weights=None, num_targets=None, target_weights=None, y=None,
-      descending=False, scale_input_fn=group_rescale, **kwargs):
+      descending=False, scale_input_fn=squash.group_rescale, **kwargs):
     """Initializes the internal state of the SoftSorter.
 
     Args:
