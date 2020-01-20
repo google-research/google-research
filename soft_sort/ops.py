@@ -39,34 +39,39 @@ def _preprocess(x, axis):
    axis: (int) the axis to be turned into the second dimension.
 
   Returns:
-   a Tensor<float>[batch, n] where n is the dimensions over the axis and batch
-   the product of all other dimensions
+   a Tuple(Tensor<float>[batch, n], List[int], tf.Tensor) where
+    - the first element is the output tensor (n being the dimensions over the
+    axis and batch the product of all other dimensions)
+    - the second element represents the transposition that was applied as a list
+     of integers.
+    - the third element the shape after the transposition was applied.
+
+   Those three outputs are necessary in order to easily perform the inverse
+   transformation down the line.
   """
   dims = list(range(x.shape.rank))
   dims[-1], dims[axis] = dims[axis], dims[-1]
-  z = tf.transpose(x, dims) if dims[axis] != dims[-1] else x
-  return tf.reshape(z, (-1, tf.shape(x)[axis]))
+  x_transposed = tf.transpose(x, dims)
+  x_flat = tf.reshape(x_transposed, (-1, tf.shape(x)[axis]))
+  return x_flat, dims, tf.shape(x_transposed)
 
 
-def _postprocess(x, shape, axis):
+def _postprocess(x, transposition, shape):
   """Applies the inverse transformation of _preprocess.
 
   Args:
    x: Tensor<float>[batch, n]
-   shape: TensorShape of the desired output.
-   axis: (int) the axis along which the original tensor was processed.
+   transposition: Tensor<int>[rank] 1D tensor representing the transposition
+    that was used to preprocess the input tensor. Since transpositions are
+    involutions, applying the same transposition brings back to the original
+    shape.
+   shape: TensorShape of the intermediary output.
 
   Returns:
-   A Tensor<float> with the shape given in argument.
+   A Tensor<float> that is similar in shape to the tensor before preprocessing.
   """
-  s = list(shape)
-  s[axis], s[-1] = s[-1], s[axis]
-  z = tf.reshape(x, s)
-
-  # Transpose to get back to the original shape
-  dims = list(range(shape.rank))
-  dims[-1], dims[axis] = dims[axis], dims[-1]
-  return tf.transpose(z, dims) if dims[axis] != dims[-1] else z
+  shape = tf.concat([shape[:-1], tf.shape(x)[-1:]], axis=0)
+  return tf.transpose(tf.reshape(x, shape), transposition)
 
 
 def softsort(x, direction='ASCENDING', axis=-1, **kwargs):
@@ -81,20 +86,15 @@ def softsort(x, direction='ASCENDING', axis=-1, **kwargs):
    **kwargs: see SoftQuantilizer for possible parameters.
 
   Returns:
-   A tensor of the same shape as the input.
+   A tensor of sorted values of the same shape as the input tensor.
   """
   if direction not in DIRECTIONS:
     raise ValueError('`direction` should be one of {}'.format(DIRECTIONS))
 
-  z = _preprocess(x, axis)
+  z, transposition, shape = _preprocess(x, axis)
   descending = (direction == 'DESCENDING')
   sorter = soft_quantilizer.SoftQuantilizer(z, descending=descending, **kwargs)
-
-  # In case we are applying some quantization while sorting, the number of
-  # outputs should be the number of targets.
-  shape = x.shape.as_list()
-  shape[axis] = sorter.target_weights.shape[1]
-  return _postprocess(sorter.softsort, tf.TensorShape(shape), axis)
+  return _postprocess(sorter.softsort, transposition, shape)
 
 
 def softranks(x, direction='ASCENDING', axis=-1, zero_based=True, **kwargs):
@@ -118,13 +118,12 @@ def softranks(x, direction='ASCENDING', axis=-1, zero_based=True, **kwargs):
     raise ValueError('`direction` should be one of {}'.format(DIRECTIONS))
 
   descending = (direction == 'DESCENDING')
-  z = _preprocess(x, axis)
+  z, transposition, shape = _preprocess(x, axis)
   sorter = soft_quantilizer.SoftQuantilizer(z, descending=descending, **kwargs)
   ranks = sorter.softcdf * tf.cast(tf.shape(z)[1], dtype=x.dtype)
   if zero_based:
     ranks -= tf.cast(1.0, dtype=x.dtype)
-
-  return _postprocess(ranks, x.shape, axis)
+  return _postprocess(ranks, transposition, shape)
 
 
 def softquantiles(x, quantiles, quantile_width=None, axis=-1, **kwargs):
@@ -249,8 +248,8 @@ def soft_quantile_normalization(x, f, axis=-1, **kwargs):
   Returns:
    A tensor of the same shape of x.
   """
-  z = _preprocess(x, axis)
+  z, transposition, shape = _preprocess(x, axis)
   sorter = soft_quantilizer.SoftQuantilizer(
       z, descending=False, num_targets=f.shape[0], **kwargs)
   y = 1.0 / sorter.weights * tf.linalg.matvec(sorter.transport, f)
-  return _postprocess(y, x.shape, axis)
+  return _postprocess(y, transposition, shape)

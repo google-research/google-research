@@ -38,21 +38,21 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
     # Test preprocessing with input of dimension 1.
     n = 10
     x = tf.random.uniform((n,), dtype=tf.float64)
-    z = ops._preprocess(x, axis=-1)
+    z, _, _ = ops._preprocess(x, axis=-1)
     self.assertEqual(z.shape.rank, 2)
     self.assertEqual(z.shape, (1, n))
     self.assertAllEqual(z[0], x)
 
     # Test preprocessing with input of dimension 2.
     x = tf.random.uniform((3, n), dtype=tf.float64)
-    z = ops._preprocess(x, axis=-1)
+    z, _, _ = ops._preprocess(x, axis=-1)
     self.assertEqual(z.shape.rank, 2)
     self.assertEqual(z.shape, x.shape)
     self.assertAllEqual(z, x)
 
     # Test preprocessing with input of dimension 2, preparing for axis 0
     x = tf.random.uniform((3, n), dtype=tf.float64)
-    z = ops._preprocess(x, axis=0)
+    z, _, _ = ops._preprocess(x, axis=0)
     self.assertEqual(z.shape.rank, 2)
     self.assertEqual(z.shape, (x.shape[1], x.shape[0]))
     batch = 1
@@ -63,7 +63,7 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
     x = tf.random.uniform(shape, dtype=tf.float64)
     axis = 2
     n = shape.pop(axis)
-    z = ops._preprocess(x, axis=axis)
+    z, _, _ = ops._preprocess(x, axis=axis)
     self.assertEqual(z.shape.rank, 2)
     self.assertEqual(z.shape, (np.prod(shape), n))
 
@@ -73,7 +73,8 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
     for i in range(1, len(shape)):
       x = tf.random.uniform(shape[:i])
       for axis in range(x.shape.rank):
-        z = ops._postprocess(ops._preprocess(x, axis), x.shape, axis)
+        y, transp, s = ops._preprocess(x, axis)
+        z = ops._postprocess(y, transp, s)
         self.assertAllEqual(x, z)
 
   def test_softsort(self):
@@ -119,7 +120,11 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
         [np.random.permutation(n) for _ in range(p)], dtype=tf.float32)
 
     # Turn it into a tensor of desired shape.
-    target = ops._postprocess(target, shape, axis)
+    dims = np.arange(shape.rank)
+    dims[axis], dims[-1] = dims[-1], dims[axis]
+    fake = tf.zeros(shape)
+    transposition = tf.transpose(fake, dims).shape
+    target = ops._postprocess(target, dims, transposition)
 
     # Apply a monotonic transformation to turn ranks into values
     sign = 2 * float(direction == 'ASCENDING') - 1
