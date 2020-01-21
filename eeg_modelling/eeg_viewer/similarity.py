@@ -175,6 +175,33 @@ def _GetTopNonOverlappingResults(similar_patterns,
   return _SortSimilarPatterns(top_results) if merge else top_results
 
 
+def _GetSliceWindow(array, start, duration, sampling_freq):
+  """Extracts a slice from an array.
+
+  Args:
+    array: numpy array of shape (n_channels, n_samples).
+    start: start seconds to perform the slice.
+    duration: duration in seconds of the slice.
+    sampling_freq: sampling frequency of the array (Hz).
+  Returns:
+    Numpy array of shape (n_channels, window_samples).
+  Raises:
+    ValueError: if the window specified has negative or zero length.
+  """
+  start_index = int(sampling_freq * start)
+  end_index = start_index + int(sampling_freq * duration)
+
+  window_data = array[:, start_index:end_index]
+
+  _, n_samples = window_data.shape
+  if end_index <= start_index or n_samples == 0:
+    raise ValueError(
+        'Window must have positive duration: found %s-%s, (%s samples)' %
+        (end_index, start_index, n_samples))
+
+  return window_data
+
+
 def SearchSimilarPatterns(full_data,
                           window_start,
                           window_duration,
@@ -199,16 +226,8 @@ def SearchSimilarPatterns(full_data,
   Returns:
     Array of SimilarPatterns, holding the most similar patterns found.
   """
-  window_start_index = int(sampling_freq * window_start)
-  window_end_index = window_start_index + int(sampling_freq * window_duration)
-
-  window_data = full_data[:, window_start_index:window_end_index]
-
-  _, n_samples = window_data.shape
-  if window_end_index <= window_start_index or n_samples == 0:
-    raise ValueError(
-        'Window must have positive duration: found %s-%s, (%s samples)' %
-        (window_end_index, window_start_index, n_samples))
+  window_data = _GetSliceWindow(full_data, window_start, window_duration,
+                                sampling_freq)
 
   scores = cv2.matchTemplate(full_data, window_data, cv2.TM_CCORR_NORMED)[0]
   similar_patterns = []
@@ -255,5 +274,96 @@ def CreateSimilarPatternsResponse(array, start_time, duration,
       merge_close_results=settings.merge_close_results,
       merge_threshold=settings.merge_threshold)
   response.similar_patterns.extend(similar_patterns)
+
+  return response
+
+
+def CalculateRollingMax(raw_scores, total_samples, window_samples):
+  """Calculates a rolling maximum across the array, in windows of the same size.
+
+  The scores returned from open-cv matchTemplate are calculated as if each
+  value in the array matches with the first position in the window. Here,
+  for each position in the original array, scores across the window are
+  aggregated, to take into account the match with the first, second, third, ...
+  position in the window. The aggegation method is max(), it performed better
+  than avg().
+  Args:
+    raw_scores: array of scores calculated with open-cv matchTemplate function.
+      It should have length total_samples - window_samples + 1.
+    total_samples: total number of samples of the original data.
+    window_samples: number of samples in the window.
+  Returns:
+    Array of scores calculated aggregating with the maximum.
+  """
+  scores = []
+
+  left = 0
+  current_max = 0
+  for right in range(total_samples):
+    if right < len(raw_scores):
+      if raw_scores[right] > current_max:
+        current_max = raw_scores[right]
+
+    current_size = right - left + 1
+    if current_size > window_samples:
+      pop_value = raw_scores[left]
+      left += 1
+
+      if pop_value >= current_max:
+        current_max = 0
+        for c in range(left, min(right+1, len(raw_scores))):
+          if raw_scores[c] > current_max:
+            current_max = raw_scores[c]
+    score = current_max
+
+    scores.append(score)
+
+  return scores
+
+
+def CalculateSimilarityCurve(full_data, window_start, window_duration,
+                             sampling_freq):
+  """Calculates a similarity score for a target window in a 2d array.
+
+  Args:
+    full_data: numpy array that holds the full data to analyze.
+      Must have shape (n_channels, n_data_points).
+    window_start: the start of the window in seconds.
+    window_duration: the duration of the window in seconds.
+    sampling_freq: sampling frequency used in the data.
+  Returns:
+    List of floats of length n_data_points, holding the scores of similarity
+      across the full_data array.
+  """
+  window_data = _GetSliceWindow(full_data, window_start, window_duration,
+                                sampling_freq)
+
+  raw_scores = cv2.matchTemplate(full_data, window_data, cv2.TM_CCORR_NORMED)[0]
+
+  total_samples = full_data.shape[1]
+  window_size = window_data.shape[1]
+  scores = CalculateRollingMax(raw_scores, total_samples, window_size)
+
+  return scores
+
+
+def CreateSimilarityCurveResponse(array, start_time, duration, sampling_freq):
+  """Calculates the similarity curve across an array of data.
+
+  Note that there could be a single request to get both similar patterns and a
+  similarity curve, though as it is an experimental feature, is left separated.
+
+  Args:
+    array: Numpy array with shape (n_channels, n_data).
+    start_time: seconds to start the window.
+    duration: duration of the window.
+    sampling_freq: Sampling frequency used in the data, in hz.
+  Returns:
+    SimilarityCurveResponse with the scores from the curve.
+  """
+  response = similarity_pb2.SimilarityCurveResponse()
+
+  scores = CalculateSimilarityCurve(array, start_time, duration, sampling_freq)
+  response.scores.extend(scores)
 
   return response

@@ -25,6 +25,8 @@ const FilterParams = goog.require('proto.eeg_modelling.protos.FilterParams');
 const ResponseType = goog.require('goog.net.XhrIo.ResponseType');
 const SimilarPatternsRequest = goog.require('proto.eeg_modelling.protos.SimilarPatternsRequest');
 const SimilarPatternsResponse = goog.require('proto.eeg_modelling.protos.SimilarPatternsResponse');
+const SimilarityCurveRequest = goog.require('proto.eeg_modelling.protos.SimilarityCurveRequest');
+const SimilarityCurveResponse = goog.require('proto.eeg_modelling.protos.SimilarityCurveResponse');
 const SimilaritySettings = goog.require('proto.eeg_modelling.protos.SimilaritySettings');
 const SingleChannel = goog.require('proto.eeg_modelling.protos.ChannelDataId.SingleChannel');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
@@ -69,6 +71,13 @@ class Requests {
           Store.Property.SIMILAR_PATTERN_RESULT_RANK,
         ],
         'Requests', (store) => this.handleSearchSimilarPattern(store));
+    // This listener callback will make a new HTTP request to get a similarity
+    // curve.
+    store.registerListener(
+        [
+          Store.Property.SIMILARITY_CURVE_TEMPLATE,
+        ],
+        'Requests', (store) => this.handleGetSimilarityCurve(store));
 
     this.logger_ = log.getLogger('eeg_modelling.eeg_viewer.Requests');
   }
@@ -333,6 +342,54 @@ class Requests {
       formatResponse,
       Dispatcher.ActionType.SEARCH_SIMILAR_RESPONSE_OK,
       Dispatcher.ActionType.SEARCH_SIMILAR_RESPONSE_ERROR,
+    );
+  }
+
+  /**
+   * Creates a SimilarityCurveRequest proto from the data saved in the store.
+   * @param {!Store.StoreData} store Snapshot of chunk data store.
+   * @return {!SimilarityCurveRequest} A SimilarityCurveRequest proto object.
+   * @private
+   */
+  createSimilarityCurveRequest_(store) {
+    const fileParams = new FileParams();
+    const filterParams = new FilterParams();
+    this.setFileParams_(fileParams, store);
+    this.setFilterParams_(filterParams, store);
+
+    const requestContent = new SimilarityCurveRequest();
+    requestContent.setFileParams(fileParams);
+    requestContent.setFilterParams(filterParams);
+    requestContent.setStartTime(store.similarityCurveTemplate.startTime);
+    requestContent.setDuration(store.similarityCurveTemplate.duration);
+
+    const montageInfo = montages.createMontageInfo(
+        store.indexChannelMap, store.similarityCurveTemplate.channelList);
+    this.setChannelDataIdsParam_(requestContent, montageInfo.indexStrList);
+
+    return requestContent;
+  }
+
+  /**
+   * Sends a request to calculate a similarity curve.
+   * @param {!Store.StoreData} store Data from the store.
+   */
+  handleGetSimilarityCurve(store) {
+    if (!store.similarityCurveTemplate) {
+      return;
+    }
+    const url = '/similarity_curve';
+    const requestContent = this.createSimilarityCurveRequest_(store);
+    const formatResponse = (response) => {
+      return SimilarityCurveResponse.deserializeBinary(response);
+    };
+
+    this.sendRequest(
+      url,
+      requestContent,
+      formatResponse,
+      Dispatcher.ActionType.SIMILARITY_CURVE_RESPONSE_OK,
+      Dispatcher.ActionType.SIMILARITY_CURVE_RESPONSE_ERROR,
     );
   }
 }

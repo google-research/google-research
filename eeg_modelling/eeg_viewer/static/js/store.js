@@ -21,6 +21,7 @@ const DataResponse = goog.require('proto.eeg_modelling.protos.DataResponse');
 const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const JspbMap = goog.require('jspb.Map');
 const SimilarPatternsResponse = goog.require('proto.eeg_modelling.protos.SimilarPatternsResponse');
+const SimilarityCurveResponse = goog.require('proto.eeg_modelling.protos.SimilarityCurveResponse');
 const log = goog.require('goog.log');
 const {assert, assertArray, assertInstanceof, assertNumber, assertString} = goog.require('goog.asserts');
 
@@ -77,6 +78,8 @@ const Property = {
   SIMILAR_PATTERN_TEMPLATE: 'similarPatternTemplate',
   SIMILAR_PATTERNS_SEEN: 'similarPatternsSeen',
   SIMILAR_PATTERNS_UNSEEN: 'similarPatternsUnseen',
+  SIMILARITY_CURVE_RESULT: 'similarityCurveResult',
+  SIMILARITY_CURVE_TEMPLATE: 'similarityCurveTemplate',
   SSTABLE_KEY: 'sstableKey',
   TIMESCALE: 'timeScale',
   TFEX_FILE_PATH: 'tfExFilePath',
@@ -262,6 +265,8 @@ const LoadingStatus = {
  *   similarPatternEdit: ?SimilarPattern,
  *   similarPatternsUnseen: !Array<!SimilarPattern>,
  *   similarPatternsSeen: !Array<!SimilarPattern>,
+ *   similarityCurveResult: ?Array<number>,
+ *   similarityCurveTemplate: ?Annotation,
  *   seriesHeight: number,
  *   sensitivity: number,
  *   sstableKey: ?string,
@@ -312,6 +317,8 @@ let StoreData;
  *   similarPatternEdit: (?SimilarPattern|undefined),
  *   similarPatternsUnseen: (!Array<!SimilarPattern>|undefined),
  *   similarPatternsSeen: (!Array<!SimilarPattern>|undefined),
+ *   similarityCurveResult: (?Array<number>|undefined),
+ *   similarityCurveTemplate: (?Annotation|undefined),
  *   seriesHeight: (number|undefined),
  *   sensitivity: (number|undefined),
  *   sstableKey: (?string|undefined),
@@ -372,6 +379,8 @@ class Store {
         mergeCloseResults: false,
         mergeThreshold: 1,
       },
+      similarityCurveResult: null,
+      similarityCurveTemplate: null,
       seriesHeight: 100,
       sensitivity: 5,
       sstableKey: null,
@@ -449,6 +458,14 @@ class Store {
                      this.handleSimilarPatternReject);
     registerCallback(Dispatcher.ActionType.SIMILAR_PATTERN_REJECT_ALL,
                      this.handleSimilarPatternRejectAll);
+    registerCallback(Dispatcher.ActionType.SIMILARITY_CURVE_CLEAR,
+                     this.handleSimilarityCurveClear);
+    registerCallback(Dispatcher.ActionType.SIMILARITY_CURVE_REQUEST,
+                     this.handleSimilarityCurveRequest);
+    registerCallback(Dispatcher.ActionType.SIMILARITY_CURVE_RESPONSE_ERROR,
+                     this.handleSimilarityCurveResponseError);
+    registerCallback(Dispatcher.ActionType.SIMILARITY_CURVE_RESPONSE_OK,
+                     this.handleSimilarityCurveResponseOk);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_GRIDLINES,
                      this.handleToolBarGridlines);
     registerCallback(Dispatcher.ActionType.TOOL_BAR_HIGH_CUT,
@@ -666,9 +683,24 @@ class Store {
    * @return {!PartialStoreData} store data with changed properties.
    */
   handleDeleteWaveEvent(data) {
-    return {
+    const /** !PartialStoreData */ newStoreData = {
       waveEvents: this.storeData.waveEvents.filter(wave => wave.id !== data.id),
     };
+    if (this.storeData.similarPatternTemplate &&
+        data.id === this.storeData.similarPatternTemplate.id) {
+      newStoreData.similarPatternTemplate = null;
+      newStoreData.similarPatternResultRank = 0;
+      newStoreData.similarPatternTemplate = null;
+      newStoreData.similarPatternEdit = null;
+      newStoreData.similarPatternsUnseen = [];
+      newStoreData.similarPatternsSeen = [];
+    }
+    if (this.storeData.similarityCurveTemplate &&
+        data.id === this.storeData.similarityCurveTemplate.id) {
+      newStoreData.similarityCurveTemplate = null;
+      newStoreData.similarityCurveResult = null;
+    }
+    return newStoreData;
   }
 
   /**
@@ -1092,6 +1124,56 @@ class Store {
         ...this.storeData.similarPatternsSeen,
         ...rejectedPatterns,
       ],
+    };
+  }
+
+  /**
+   * Handles data from a SIMILARITY_CURVE_CLEAR action, which will clear the
+   * target event and the previous result.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleSimilarityCurveClear() {
+    return {
+      similarityCurveTemplate: null,
+      similarityCurveResult: null,
+    };
+  }
+
+  /**
+   * Handles data from a SIMILARITY_CURVE_REQUEST action, which will save the
+   * target event and trigger a request.
+   * @param {!Annotation} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleSimilarityCurveRequest(data) {
+    return {
+      similarityCurveTemplate: data,
+      similarityCurveResult: null,
+    };
+  }
+
+  /**
+   * Handles data from a SIMILARITY_CURVE_RESPONSE_OK action, which will save
+   * the similarity curve returned.
+   * @param {!SimilarityCurveResponse} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleSimilarityCurveResponseOk(data) {
+    return {
+      similarityCurveResult: data.getScoresList(),
+    };
+  }
+
+  /**
+   * Handles data from a SIMILARITY_CURVE_RESPONSE_ERROR action, which will
+   * update the error.
+   * @param {!Dispatcher.ErrorData} data The data payload from the action.
+   * @return {!PartialStoreData} store data with changed properties.
+   */
+  handleSimilarityCurveResponseError(data) {
+    return {
+      similarityCurveResult: null,
+      error: this.newError(data.message),
     };
   }
 

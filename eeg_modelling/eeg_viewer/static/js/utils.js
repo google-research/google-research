@@ -215,6 +215,33 @@ function getProtoMapKeys(protoMap) {
   return keys;
 }
 
+/**
+ * Gets the minimum value of an array.
+ * This function is preferred over Math.min(...array), since said function will
+ * throw overflow with an array too large.
+ * @param {!Array<number>} Array with values.
+ * @return {number} minimum number of the array.
+ */
+function getArrayMin(array) {
+  return array.reduce(
+    (val, currentMin) => (val < currentMin ? val : currentMin),
+    array[0],
+  );
+}
+
+/**
+ * Gets the maximum value of an array.
+ * This function is preferred over Math.max(...array), since said function will
+ * throw overflow with an array too large.
+ * @param {!Array<number>} Array with values.
+ * @return {number} maximum number of the array.
+ */
+function getArrayMax(array) {
+  return array.reduce(
+    (val, currentMax) => (val > currentMax ? val : currentMax),
+    array[0],
+  );
+}
 
 exports = {
   DragOptions,
@@ -230,4 +257,6 @@ exports = {
   addMDLCheckbox,
   toggleMDLCheckbox,
   getProtoMapKeys,
+  getArrayMin,
+  getArrayMax,
 };

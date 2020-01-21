@@ -345,6 +345,42 @@ def SearchSimilarPatterns(similar_patterns_request):
   return similar_patterns_response, {}
 
 
+@MakeProtoRequestHandler(similarity_pb2.SimilarityCurveRequest)
+def GetSimilarityCurve(similarity_curve_request):
+  """Calculates a similarity curve across a file.
+
+  Args:
+    similarity_curve_request: SimilarityCurveRequest instance defining the
+      request to perform.
+  Returns:
+    SimilarityCurveResponse instance with the curve, and no extra headers.
+  Raises:
+    ValueError: No channel selected.
+  """
+  requested_channels = similarity_curve_request.channel_data_ids
+
+  if not requested_channels:
+    raise ValueError('Must select at least one channel')
+
+  file_params = similarity_curve_request.file_params
+  waveform_data_source = GetWaveformDataSource(file_params)
+
+  filter_params = similarity_curve_request.filter_params
+
+  data = waveform_data_service.GetChunkDataAsNumpy(
+      waveform_data_source, requested_channels,
+      filter_params.low_cut, filter_params.high_cut, filter_params.notch)
+
+  sampling_freq = waveform_data_service.GetSamplingFrequency(
+      waveform_data_source, requested_channels)
+
+  similarity_curve_response = similarity.CreateSimilarityCurveResponse(
+      data, similarity_curve_request.start_time,
+      similarity_curve_request.duration, sampling_freq)
+
+  return similarity_curve_response, {}
+
+
 def RegisterRoutes(app):
   """Registers routes in the flask app.
 
@@ -361,6 +397,11 @@ def RegisterRoutes(app):
       '/similarity',
       'similarity',
       SearchSimilarPatterns,
+      methods=['POST'])
+  app.add_url_rule(
+      '/similarity_curve',
+      'similarity_curve',
+      GetSimilarityCurve,
       methods=['POST'])
 
 

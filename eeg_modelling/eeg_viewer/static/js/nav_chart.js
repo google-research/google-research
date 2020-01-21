@@ -20,12 +20,39 @@ const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const array = goog.require('goog.array');
 const formatter = goog.require('eeg_modelling.eeg_viewer.formatter');
+const utils = goog.require('eeg_modelling.eeg_viewer.utils');
 
 /**
  * Handles displaying the full time span of a file as well as annotations and
  * navigational capabilities.
  */
 class NavChart extends ChartBase {
+  /**
+   * Creates a function to scale a value in the Y axis.
+   * The scale goes from (min, max) to (0, 1), where min and max are the
+   * minimum and maximum available values.
+   * @param {!Array<number>} values array of existing values.
+   * @return {!Function} scaler function.
+   */
+  static getYScale(values) {
+    if (!values || values.length === 0) {
+      return () => 0;
+    }
+
+    const minValue = utils.getArrayMin(values);
+    const maxValue = utils.getArrayMax(values);
+
+    const bottomPadding = 0.15;
+    const topPadding = 0.05;
+
+    const minTarget = 0 + bottomPadding;
+    const maxTarget = 1 - topPadding;
+    const slope = (maxTarget - minTarget) / (maxValue - minValue);
+    const intersection = minTarget - slope * minValue;
+    const yScale = (value) => slope * value + intersection;
+
+    return yScale;
+  }
 
   constructor() {
     super();
@@ -40,16 +67,24 @@ class NavChart extends ChartBase {
     this.overlayId = 'nav-overlay';
 
     this.highlightViewportStyle = {
-      color: 'rgba(83, 109, 254, 0.7)',
+      color: '#1b66fe',
       fill: true,
+      height: 5,
     };
 
+    /** @private {number} */
+    this.overlayMarkerPercentage_ = 0.75;
+
     this.chartOptions.chartArea.backgroundColor = 'lightgrey';
-    this.chartOptions.chartArea.height = '30%';
+    this.chartOptions.chartArea.height = '40%';
+    this.chartOptions.chartArea.top = 10;
+    this.chartOptions.chartArea.left = 35;
+    this.chartOptions.chartArea.width = '94%';
     this.chartOptions.crosshair.color = 'transparent';
     this.chartOptions.crosshair.selected.color = 'transparent';
     this.chartOptions.crosshair.trigger = 'focus';
     this.chartOptions.colors = ['transparent'];
+    this.chartOptions.lineWidth = 2;
     this.chartOptions.height = 64;
     this.chartOptions.hAxis.baselineColor = 'white';
     this.chartOptions.hAxis.gridlines.color = 'white';
@@ -83,15 +118,18 @@ class NavChart extends ChartBase {
     this.overlayLayers = [
       {
         name: 'waveEvents',
-        getElementsToDraw: (store) => this.drawWaveEvents(store),
+        getElementsToDraw: (store, chartArea) =>
+            this.drawWaveEvents(store, chartArea),
       },
       {
         name: 'similarPatterns',
-        getElementsToDraw: (store) => this.drawSimilarPatterns(store),
+        getElementsToDraw: (store, chartArea) =>
+            this.drawSimilarPatterns(store, chartArea),
       },
       {
         name: 'waveEventDraft',
-        getElementsToDraw: (store) => this.drawWaveEventDraft(store),
+        getElementsToDraw: (store, chartArea) =>
+            this.drawWaveEventDraft(store, chartArea),
       },
     ];
 
@@ -105,6 +143,7 @@ class NavChart extends ChartBase {
           Store.Property.NUM_SECS, Store.Property.WAVE_EVENTS,
           Store.Property.SIMILAR_PATTERNS_UNSEEN,
           Store.Property.WAVE_EVENT_DRAFT,
+          Store.Property.SIMILARITY_CURVE_RESULT,
         ],
         'NavChart',
         (store, changedProperties) =>
@@ -154,10 +193,21 @@ class NavChart extends ChartBase {
         html: true,
       },
     });
+
+    const yScale = NavChart.getYScale(store.similarityCurveResult);
+
     const numSecs = this.getNumSecs(store);
     const rowData = array.range(0, numSecs + 1).map((seconds) => {
       const prettyTime = formatter.formatTime(store.absStart + seconds);
-      return [seconds, 0.5, `<p>${prettyTime}</p>`];
+      let tooltip = `<p>${prettyTime}</p>`;
+      let value = 0.5;
+      if (store.similarityCurveResult) {
+        const index = store.samplingFreq * seconds;
+        const score = store.similarityCurveResult[index] || 0;
+        tooltip = `${tooltip} <p>Sim: ${score.toFixed(2)}</p>`;
+        value = yScale(score);
+      }
+      return [seconds, value, tooltip];
     });
 
     dataTable.addRows(rowData);
@@ -177,6 +227,9 @@ class NavChart extends ChartBase {
       max: (this.getStart(store) + this.getNumSecs(store)),
     });
     this.setOption('hAxis.ticks', this.createHTicks(store));
+
+    const lineColor = store.similarityCurveResult ? '#9d90f4' : 'transparent';
+    this.setOption('colors', [lineColor]);
   }
 
   /**
@@ -185,12 +238,13 @@ class NavChart extends ChartBase {
    * @param {!Store.StoreData} store Store data.
    * @return {!Array<!ChartBase.OverlayElement>} Elements to draw in the canvas.
    */
-  drawWaveEvents(store) {
+  drawWaveEvents(store, chartArea) {
     return store.waveEvents.map((waveEvent) => ({
       fill: true,
       color: 'rgb(34, 139, 34)', // green
       startX: waveEvent.startTime,
       endX: waveEvent.startTime + waveEvent.duration,
+      top: chartArea.height * this.overlayMarkerPercentage_,
     }));
   }
 
@@ -200,7 +254,7 @@ class NavChart extends ChartBase {
    * @param {!Store.StoreData} store Store data.
    * @return {!Array<!ChartBase.OverlayElement>} Elements to draw in the canvas.
    */
-  drawSimilarPatterns(store) {
+  drawSimilarPatterns(store, chartArea) {
     if (!store.similarPatternsUnseen) {
       return [];
     }
@@ -209,6 +263,7 @@ class NavChart extends ChartBase {
       color: 'rgb(255, 140, 0)', // orange
       startX: similarPattern.startTime,
       endX: similarPattern.startTime + similarPattern.duration,
+      top: chartArea.height * this.overlayMarkerPercentage_,
     }));
   }
 
@@ -218,7 +273,7 @@ class NavChart extends ChartBase {
    * @param {!Store.StoreData} store Store data.
    * @return {!Array<!ChartBase.OverlayElement>} Elements to draw in the canvas.
    */
-  drawWaveEventDraft(store) {
+  drawWaveEventDraft(store, chartArea) {
     if (!store.waveEventDraft) {
       return [];
     }
@@ -227,6 +282,7 @@ class NavChart extends ChartBase {
       color: 'rgba(255, 70, 71)', // red
       startX: store.waveEventDraft.startTime,
       endX: store.waveEventDraft.startTime + store.waveEventDraft.duration,
+      top: chartArea.height * this.overlayMarkerPercentage_,
     }];
   }
 
@@ -236,6 +292,7 @@ class NavChart extends ChartBase {
   shouldUpdateData(store, changedProperties) {
     return ChartBase.changedPropertiesIncludeAny(changedProperties, [
       Store.Property.NUM_SECS,
+      Store.Property.SIMILARITY_CURVE_RESULT,
     ]);
   }
 

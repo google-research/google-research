@@ -342,8 +342,20 @@ th i.sorted, th i.sorted-reverse {
   padding-right: 12px;
 }
 
-tr.selected-wave-event {
-  background-color: lightblue;
+#curve-spinner {
+  margin-top: 16px;
+}
+
+tr.template-event {
+  background-color: #bddfeb;
+}
+
+tr.template-event-curve {
+  background-color: #c1bbed;
+}
+
+tr.template-event.template-event-curve {
+  background: linear-gradient(#c1bbed, #bddfeb);
 }
 
 #wave-event-form {

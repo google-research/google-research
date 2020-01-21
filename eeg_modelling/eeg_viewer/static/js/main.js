@@ -144,6 +144,15 @@ goog.exportSymbol(
     'waveEvents.searchSimilarPatterns',
     goog.bind(waveEvents.searchSimilarPatterns, waveEvents));
 goog.exportSymbol(
+    'waveEvents.clearCurve',
+    goog.bind(waveEvents.clearCurve, waveEvents));
+goog.exportSymbol(
+    'waveEvents.getSimilarityCurve',
+    goog.bind(waveEvents.getSimilarityCurve, waveEvents));
+goog.exportSymbol(
+    'waveEvents.searchAndGetCurve',
+    goog.bind(waveEvents.searchAndGetCurve, waveEvents));
+goog.exportSymbol(
     'waveEvents.acceptSimilarPattern',
     goog.bind(waveEvents.acceptSimilarPattern, waveEvents));
 goog.exportSymbol(

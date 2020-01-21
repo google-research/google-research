@@ -95,3 +95,22 @@ message SimilarPatternsRequest {
   // Settings to perform the similarity search.
   optional SimilaritySettings settings = 7;
 }
+
+// Response to a similarity curve request.
+message SimilarityCurveResponse {
+  repeated float scores = 1;
+}
+
+// Request to get similarity curve.
+message SimilarityCurveRequest {
+  // File parameters to load the data.
+  optional FileParams file_params = 1;
+  // Parameters to filter the signals.
+  optional FilterParams filter_params = 2;
+  // List of channel indices selected in the pattern.
+  repeated ChannelDataId channel_data_ids = 3;
+  // Start time of the target pattern, relative to start.
+  optional float start_time = 4;
+  // Duration of the target pattern, in seconds.
+  optional float duration = 5;
+}

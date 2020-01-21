@@ -50,12 +50,19 @@ class WaveEvents {
     // This listener will highlight the target on the wave events table.
     store.registerListener(
         [Store.Property.SIMILAR_PATTERN_TEMPLATE],
-        'WaveEvents', (store) => this.handleSimilarityTarget(store));
+        'WaveEvents', (store) => this.handleSimilarityTarget(store, false));
+    // This listener will highlight the curve target on the wave events table.
+    store.registerListener(
+        [Store.Property.SIMILARITY_CURVE_TEMPLATE],
+        'WaveEvents', (store) => this.handleSimilarityTarget(store, true));
     // This listener will update the metrics displayed in the UI.
     store.registerListener(
         [Store.Property.SIMILAR_PATTERNS_SEEN],
         'WaveEvents', (store) => this.handleSimilarityMetrics(store));
-
+    // This listener callback will update the loading spinner
+    store.registerListener(
+        [Store.Property.SIMILARITY_CURVE_RESULT],
+        'WaveEvents', (store) => this.handleIncomingCurve(store));
     this.logger_ = log.getLogger('eeg_modelling.eeg_viewer.WaveEvents');
 
     /** @private {string} */
@@ -69,6 +76,10 @@ class WaveEvents {
     this.similarTableId_ = 'similar-patterns-table';
     /** @private @const {string} */
     this.loadingSpinnerId_ = 'similar-patterns-spinner';
+    /** @private @const {string} */
+    this.curveSpinnerId_ = 'curve-spinner';
+    /** @private @const {string} */
+    this.clearCurveButtonId_ = 'clear-curve-button';
     /** @private @const {string} */
     this.errorTextId_ = 'similarity-error';
     /** @private @const {string} */
@@ -87,7 +98,16 @@ class WaveEvents {
     this.clickedSimilarPattern_ = null;
 
     /** @private {?number} */
-    this.selectedWaveEventId_ = null;
+    this.prevTemplateId_ = null;
+
+    /** @private {?number} */
+    this.prevCurveTemplateId_ = null;
+
+    /** @private @const {string} */
+    this.templateEventClass_ = 'template-event';
+
+    /** @private @const {string} */
+    this.curveTemplateEventClass_ = 'template-event-curve';
   }
 
   /**
@@ -125,26 +145,45 @@ class WaveEvents {
   /**
    * Highlights the similarity target on the wave events list.
    * @param {!Store.StoreData} store store data.
+   * @param {boolean} isForCurve indicates if selected event is for the
+   *     similarity curve or for the search-similar-pattern.
    */
-  handleSimilarityTarget(store) {
-    if (this.selectedWaveEventId_) {
+  handleSimilarityTarget(store, isForCurve) {
+    const selectedClass =
+        isForCurve ? this.curveTemplateEventClass_ : this.templateEventClass_;
+
+    const prevTemplateId = isForCurve ?
+        this.prevCurveTemplateId_ : this.prevTemplateId_;
+
+    if (prevTemplateId) {
       const prevSelected =
-          document.getElementById(this.getRowId_(this.selectedWaveEventId_));
+          document.getElementById(this.getRowId_(prevTemplateId));
       if (prevSelected) {
-        prevSelected.classList.remove('selected-wave-event');
+        prevSelected.classList.remove(selectedClass);
       }
     }
 
-    if (!store.similarPatternTemplate ||
-        store.similarPatternTemplate.id == null) {
+    const template = isForCurve
+        ? store.similarityCurveTemplate : store.similarPatternTemplate;
+
+    if (!template || template.id == null) {
+      if (isForCurve) {
+        this.prevCurveTemplateId_ = null;
+      } else {
+        this.prevTemplateId_ = null;
+        utils.hideElement(this.searchMoreButtonId_);
+      }
       return;
     }
 
-    this.selectedWaveEventId_ =
-        /** @type {number} */ (store.similarPatternTemplate.id);
-    const row =
-        document.getElementById(this.getRowId_(this.selectedWaveEventId_));
-    row.classList.add('selected-wave-event');
+    const row = document.getElementById(this.getRowId_(template.id));
+    row.classList.add(selectedClass);
+
+    if (isForCurve) {
+      this.prevCurveTemplateId_ = template.id;
+    } else {
+      this.prevTemplateId_ = template.id;
+    }
   }
 
   /**
@@ -204,6 +243,11 @@ class WaveEvents {
     tableBody = document.createElement('tbody');
     table.appendChild(tableBody);
 
+    const templateId =
+        store.similarPatternTemplate && store.similarPatternTemplate.id;
+    const curveTemplateId =
+        store.similarityCurveTemplate && store.similarityCurveTemplate.id;
+
     store.waveEvents.forEach((waveEvent, index) => {
       if (waveEvent.id == null) {
         log.error(this.logger_, `Event with no id: index ${index}`);
@@ -212,8 +256,11 @@ class WaveEvents {
 
       const row = document.createElement('tr');
       row.id = this.getRowId_(/** @type {number} */ (waveEvent.id));
-      if (waveEvent.id === this.selectedWaveEventId_) {
-        row.classList.add('selected-wave-event');
+      if (waveEvent.id === templateId) {
+        row.classList.add(this.templateEventClass_);
+      }
+      if (waveEvent.id === curveTemplateId) {
+        row.classList.add(this.curveTemplateEventClass_);
       }
       tableBody.appendChild(row);
 
@@ -283,10 +330,13 @@ class WaveEvents {
   /**
    * Searches similar patterns to the previously clicked wave event,
    * and closes the wave event actions menu.
+   * @param {boolean=} closeMenu whether or not to close the menu.
    */
-  searchSimilarPatterns() {
+  searchSimilarPatterns(closeMenu = true) {
     const selectedWave = Object.assign({}, this.clickedWaveEvent_);
-    this.closeWaveEventMenu();
+    if (closeMenu) {
+      this.closeWaveEventMenu();
+    }
     Dispatcher.getInstance().sendAction({
       actionType: Dispatcher.ActionType.SEARCH_SIMILAR_REQUEST,
       data: selectedWave,
@@ -295,6 +345,65 @@ class WaveEvents {
     utils.hideElement(this.errorTextId_);
     utils.hideElement(this.searchMoreButtonId_);
     utils.showMDLSpinner(this.loadingSpinnerId_);
+  }
+
+  /**
+   * Updates the spinner and clear-curve button, according to the new result.
+   * @param {!Store.StoreData} store Store object with chunk data.
+   */
+  handleIncomingCurve(store) {
+    if (store.similarityCurveResult) {
+      utils.hideMDLSpinner(this.curveSpinnerId_);
+      utils.showElement(this.clearCurveButtonId_);
+    } else {
+      utils.hideElement(this.clearCurveButtonId_);
+    }
+  }
+
+  /**
+   * Requests a similarity curve for the previously clicked wave event,
+   * and closes the wave event actions menu.
+   * @param {boolean=} closeMenu whether or not to close the menu. The menu will
+   *     be closed only if a request is actually sent.
+   */
+  getSimilarityCurve(closeMenu = true) {
+    const selectedWave = Object.assign({}, this.clickedWaveEvent_);
+    if (this.prevCurveTemplateId_ === selectedWave.id) {
+      return;
+    }
+
+    if (closeMenu) {
+      this.closeWaveEventMenu();
+    }
+
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.SIMILARITY_CURVE_REQUEST,
+      data: selectedWave,
+    });
+
+    utils.hideElement(this.clearCurveButtonId_);
+    utils.showMDLSpinner(this.curveSpinnerId_);
+  }
+
+  /**
+   * Sends an action to clear the similarity curve.
+   */
+  clearCurve() {
+    Dispatcher.getInstance().sendAction({
+      actionType: Dispatcher.ActionType.SIMILARITY_CURVE_CLEAR,
+      data: {},
+    });
+    this.prevCurveTemplateId_ = null;
+  }
+
+  /**
+   * Requests a similarity curve and searches similar patterns.
+   */
+  searchAndGetCurve() {
+    this.searchSimilarPatterns(false);
+    this.getSimilarityCurve(false);
+
+    this.closeWaveEventMenu();
   }
 
   /**
@@ -335,7 +444,9 @@ class WaveEvents {
       return;
     }
     utils.showElement(this.similarTableId_);
-    utils.showElement(this.searchMoreButtonId_);
+    if (store.similarPatternTemplate) {
+      utils.showElement(this.searchMoreButtonId_);
+    }
     this.createSimilarPatternTable(store);
   }
 
@@ -550,4 +661,3 @@ class WaveEvents {
 goog.addSingletonGetter(WaveEvents);
 
 exports = WaveEvents;
-
