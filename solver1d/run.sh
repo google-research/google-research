@@ -26,5 +26,5 @@ python3 -m solver1d.scripts.solve_poschl_teller_potential \
 --scaling=1 \
 --grid_lower=-20 \
 --grid_upper=20 \
---num_grids=1001 \
+--num_grids=101 \
 --num_electrons=1
