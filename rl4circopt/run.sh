@@ -20,4 +20,5 @@ virtualenv -p python3 .
 source ./bin/activate
 
 pip install -r rl4circopt/requirements.txt
+
 python3 -m rl4circopt.hello_circuit

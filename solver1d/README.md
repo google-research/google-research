@@ -36,7 +36,7 @@ It holds M=ceil(\lambda) levels, where \lambda is a positive float.
 For example, \lambda=0.5 holds 1 electron. The exact eigen energy is -0.125.
 
 ```bash
-python -m solver1d.scripts.solve_poschl_teller_potential \
+python3 -m solver1d.scripts.solve_poschl_teller_potential \
 --solver=EigenSolver \
 --lam=0.5 \
 --scaling=1 \
