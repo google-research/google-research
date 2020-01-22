@@ -14,7 +14,8 @@
 # limitations under the License.
 
 """SVDF layer."""
-import kws_streaming.layers as layers
+from kws_streaming.layers import depthwiseconv1d
+from kws_streaming.layers import non_scaling_dropout
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.modes import Modes
 
@@ -71,13 +72,13 @@ class Svdf(tf.keras.layers.Layer):
     super(Svdf, self).build(input_shape)
 
     if self.mode == Modes.TRAINING:
-      self.dropout1 = layers.non_scaling_dropout.NonScalingDropout(
+      self.dropout1 = non_scaling_dropout.NonScalingDropout(
           self.dropout, training=True)
     else:
       self.dropout1 = tf.keras.layers.Lambda(lambda x: x)
     self.dense1 = tf.keras.layers.Dense(
         units=self.units1, use_bias=self.use_bias1)
-    self.depth_cnn1 = layers.depthwiseconv1d.DepthwiseConv1D(
+    self.depth_cnn1 = depthwiseconv1d.DepthwiseConv1D(
         memory_size=self.memory_size,
         inference_batch_size=self.inference_batch_size,
         use_bias=self.use_bias,
