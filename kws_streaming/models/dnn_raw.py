@@ -71,6 +71,7 @@ def model(flags):
   """Fully connected layer based model on raw wav data.
 
   It is absed on paper (with added pooling and raw audio data):
+  SMALL-FOOTPRINT KEYWORD SPOTTING USING DEEP NEURAL NETWORKS
   https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/42537.pdf
   Args:
     flags: data/model parameters

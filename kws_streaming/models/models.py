@@ -14,7 +14,9 @@
 # limitations under the License.
 
 """Supported models."""
+import kws_streaming.models.att_rnn as att_rnn
 import kws_streaming.models.cnn as cnn
+import kws_streaming.models.crnn as crnn
 import kws_streaming.models.dnn as dnn
 import kws_streaming.models.dnn_raw as dnn_raw
 import kws_streaming.models.ds_cnn as ds_cnn
@@ -23,10 +25,12 @@ import kws_streaming.models.lstm as lstm
 import kws_streaming.models.svdf as svdf
 # dict with supported models
 MODELS = {
+    'att_rnn': att_rnn.model,
     'dnn': dnn.model,
     'dnn_raw': dnn_raw.model,
     'ds_cnn': ds_cnn.model,
     'cnn': cnn.model,
+    'crnn': crnn.model,
     'gru': gru.model,
     'lstm': lstm.model,
     'svdf': svdf.model,

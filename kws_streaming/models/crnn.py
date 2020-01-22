@@ -13,16 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""CNN model with Mel spectrum."""
+"""Conv and RNN based model."""
+
 from kws_streaming.layers import speech_features
 from kws_streaming.layers.compat import tf
+from kws_streaming.layers.gru import GRU
 from kws_streaming.layers.stream import Stream
 from kws_streaming.models.utils import parse
 
 
 def model_parameters(parser_nn):
-  """Covolutional Neural Network(CNN) model parameters."""
-
+  """CRNN model parameters."""
   parser_nn.add_argument(
       '--cnn_filters',
       type=str,
@@ -54,39 +55,61 @@ def model_parameters(parser_nn):
       help='Strides of the convolution layers along the height and width',
   )
   parser_nn.add_argument(
+      '--gru_units',
+      type=str,
+      default='512',
+      help='Output space dimensionality of gru layer',
+  )
+  parser_nn.add_argument(
+      '--return_sequences',
+      type=str,
+      default='1',
+      help='Whether to return the last output in the output sequence,'
+      'or the full sequence',
+  )
+  parser_nn.add_argument(
+      '--stateful',
+      type=int,
+      default='0',
+      help='If True, the last state for each sample at index i'
+      'in a batch will be used as initial state for the sample '
+      'of index i in the following batch',
+  )
+  parser_nn.add_argument(
       '--dropout1',
       type=float,
-      default=0.5,
+      default=0.1,
       help='Percentage of data dropped',
   )
   parser_nn.add_argument(
-      '--units2',
+      '--units1',
       type=str,
-      default='128,256',
+      default='',
       help='Number of units in the last set of hidden layers',
   )
   parser_nn.add_argument(
-      '--act2',
+      '--act1',
       type=str,
-      default="'linear','selu'",
+      default='',
       help='Activation function of the last set of hidden layers',
   )
 
 
 def model(flags):
-  """CNN model.
+  """Convolutional recurrent neural network (CRNN) model.
 
-  It is based on paper:
-  Convolutional Neural Networks for Small-footprint Keyword Spotting
-  http://www.isca-speech.org/archive/interspeech_2015/papers/i15_1478.pdf
-
+  It is based on paper
+  Convolutional Recurrent Neural Networks for Small-Footprint Keyword Spotting
+  https://arxiv.org/pdf/1703.05390.pdf
+  Represented as sequence of Conv, RNN/GRU, FC layers.
+  Hello Edge: Keyword Spotting on Microcontrollers
+  https://arxiv.org/pdf/1711.07128.pdf
   Args:
     flags: data/model parameters
 
   Returns:
     Keras model for training
   """
-
   input_audio = tf.keras.layers.Input(
       shape=(flags.desired_samples,), batch_size=flags.batch_size)
 
@@ -105,6 +128,7 @@ def model(flags):
       dct_num_features=flags.dct_num_features)(
           input_audio)
 
+  # expand dims for the next layer 2d conv
   net = tf.keras.backend.expand_dims(net)
   for filters, kernel_size, activation, dilation_rate, strides in zip(
       parse(flags.cnn_filters), parse(flags.cnn_kernel_size),
@@ -119,10 +143,23 @@ def model(flags):
             strides=strides))(
                 net)
 
+  shape = net.shape
+  # input net dimension: [batch, time, feature, channels]
+  # reshape dimension: [batch, time, feature * channels]
+  # so that GRU/RNN can process it
+  net = tf.keras.layers.Reshape((-1, shape[2] * shape[3]))(net)
+
+  for units, return_sequences in zip(
+      parse(flags.gru_units), parse(flags.return_sequences)):
+    net = GRU(
+        units=units, return_sequences=return_sequences,
+        stateful=flags.stateful)(
+            net)
+
   net = Stream(cell=tf.keras.layers.Flatten())(net)
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)
 
-  for units, activation in zip(parse(flags.units2), parse(flags.act2)):
+  for units, activation in zip(parse(flags.units1), parse(flags.act1)):
     net = tf.keras.layers.Dense(units=units, activation=activation)(net)
 
   net = tf.keras.layers.Dense(units=flags.label_count)(net)

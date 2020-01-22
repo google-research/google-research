@@ -1,9 +1,9 @@
-# Streaming aware neural network models for keyword spotting(KWS) with tf.keras
+# Streaming aware neural network models for keyword spotting(KWS) with tf.keras/TFLite
 
 Directory structure: \
 colab - examples of running KWS models \
 data - data reading utilities \
-experiments - command lines for model training \
+experiments - command lines for model training and evaluation \
 layers - streaming aware layers with speech feature extractor and layer tests \
 models - KWS model definitions \
 train - model training and evaluation \

@@ -149,8 +149,11 @@ def model_parameters(parser_nn):
 def model(flags):
   """Depthwise convolutional model.
 
-  It is based on paper https://arxiv.org/abs/1704.04861
-
+  It is based on paper:
+  MobileNets: Efficient Convolutional Neural Networks for
+  Mobile Vision Applications https://arxiv.org/abs/1704.04861
+  Hello Edge: Keyword Spotting on Microcontrollers
+  https://arxiv.org/pdf/1711.07128.pdf
   Args:
     flags: data/model parameters
 
