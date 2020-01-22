@@ -21,7 +21,7 @@ from __future__ import print_function
 
 from absl import logging
 import numpy as np
-import kws_streaming.layers as layers
+from kws_streaming.layers import depthwiseconv1d
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.modes import Modes
 import kws_streaming.layers.test_utils as tu
@@ -35,7 +35,6 @@ class DepthwiseConv1DTest(tu.TestBase):
     # in setUp, by default input_data should have 3 dimensions
     # size of each dimesnion is constant and is defiend by self.weights
     mode = Modes.TRAINING
-    depthwiseconv1d = layers.depthwiseconv1d
     input_tf = tf.keras.layers.Input(shape=(
         None,
         self.input_data.shape[2],
@@ -63,7 +62,6 @@ class DepthwiseConv1DTest(tu.TestBase):
     output_non_stream_np, _ = self._run_non_stream_model()
 
     mode = Modes.STREAM_INTERNAL_STATE_INFERENCE
-    depthwiseconv1d = layers.depthwiseconv1d
     input_tf = tf.keras.layers.Input(
         shape=(
             1,

@@ -528,4 +528,4 @@ if __name__ == '__main__':
   ds_cnn.model_parameters(parser_ds_cnn)
 
   FLAGS, unparsed = parser.parse_known_args()
-  tf.compat.v1.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+  tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)

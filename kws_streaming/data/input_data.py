@@ -40,7 +40,7 @@ from tensorflow.python.ops import io_ops
 from tensorflow.python.platform import gfile
 from tensorflow.python.util import compat
 
-tf.compat.v1.disable_eager_execution()
+tf.disable_eager_execution()
 
 # If it's available, load the specialized feature generator. If this doesn't
 # work, try building with bazel instead of running the Python script directly.
@@ -128,8 +128,8 @@ def load_wav_file(filename):
   Returns:
     Numpy array holding the sample data as floats between -1.0 and 1.0.
   """
-  with tf.compat.v1.Session(graph=tf.Graph()) as sess:
-    wav_filename_placeholder = tf.compat.v1.placeholder(tf.string, [])
+  with tf.Session(graph=tf.Graph()) as sess:
+    wav_filename_placeholder = tf.placeholder(tf.string, [])
     wav_loader = io_ops.read_file(wav_filename_placeholder)
     wav_decoder = tf.audio.decode_wav(wav_loader, desired_channels=1)
     return sess.run(
@@ -145,10 +145,10 @@ def save_wav_file(filename, wav_data, sample_rate):
     wav_data: 2D array of float PCM-encoded audio data.
     sample_rate: Samples per second to encode in the file.
   """
-  with tf.compat.v1.Session(graph=tf.Graph()) as sess:
-    wav_filename_placeholder = tf.compat.v1.placeholder(tf.string, [])
-    sample_rate_placeholder = tf.compat.v1.placeholder(tf.int32, [])
-    wav_data_placeholder = tf.compat.v1.placeholder(tf.float32, [None, 1])
+  with tf.Session(graph=tf.Graph()) as sess:
+    wav_filename_placeholder = tf.placeholder(tf.string, [])
+    sample_rate_placeholder = tf.placeholder(tf.int32, [])
+    wav_data_placeholder = tf.placeholder(tf.float32, [None, 1])
     wav_encoder = tf.audio.encode_wav(wav_data_placeholder,
                                       sample_rate_placeholder)
     wav_saver = io_ops.write_file(wav_filename_placeholder, wav_encoder)
@@ -417,8 +417,8 @@ class AudioProcessor(object):
     background_dir = os.path.join(self.data_dir, BACKGROUND_NOISE_DIR_NAME)
     if not os.path.exists(background_dir):
       return self.background_data
-    with tf.compat.v1.Session(graph=tf.Graph()) as sess:
-      wav_filename_placeholder = tf.compat.v1.placeholder(tf.string, [])
+    with tf.Session(graph=tf.Graph()) as sess:
+      wav_filename_placeholder = tf.placeholder(tf.string, [])
       wav_loader = io_ops.read_file(wav_filename_placeholder)
       wav_decoder = tf.audio.decode_wav(wav_loader, desired_channels=1)
       search_path = os.path.join(self.data_dir, BACKGROUND_NOISE_DIR_NAME,
@@ -457,15 +457,15 @@ class AudioProcessor(object):
       ValueError: If the preprocessing mode isn't recognized.
       Exception: If the preprocessor wasn't compiled in.
     """
-    with tf.compat.v1.get_default_graph().name_scope('data'):
+    with tf.get_default_graph().name_scope('data'):
       desired_samples = flags.desired_samples
-      self.wav_filename_placeholder_ = tf.compat.v1.placeholder(
+      self.wav_filename_placeholder_ = tf.placeholder(
           tf.string, [], name='wav_filename')
       wav_loader = io_ops.read_file(self.wav_filename_placeholder_)
       wav_decoder = tf.audio.decode_wav(
           wav_loader, desired_channels=1, desired_samples=desired_samples)
       # Allow the audio sample's volume to be adjusted.
-      self.foreground_volume_placeholder_ = tf.compat.v1.placeholder(
+      self.foreground_volume_placeholder_ = tf.placeholder(
           tf.float32, [], name='foreground_volume')
       # signal resampling to generate more training data
       # it will stretch or squeeze input signal proportinally to:
@@ -493,9 +493,9 @@ class AudioProcessor(object):
         scaled_foreground = tf.multiply(wav_decoder.audio,
                                         self.foreground_volume_placeholder_)
       # Shift the sample's start position, and pad any gaps with zeros.
-      self.time_shift_padding_placeholder_ = tf.compat.v1.placeholder(
+      self.time_shift_padding_placeholder_ = tf.placeholder(
           tf.int32, [2, 2], name='time_shift_padding')
-      self.time_shift_offset_placeholder_ = tf.compat.v1.placeholder(
+      self.time_shift_offset_placeholder_ = tf.placeholder(
           tf.int32, [2], name='time_shift_offset')
       padded_foreground = tf.pad(
           tensor=scaled_foreground,
@@ -505,9 +505,9 @@ class AudioProcessor(object):
                                    self.time_shift_offset_placeholder_,
                                    [desired_samples, -1])
       # Mix in background noise.
-      self.background_data_placeholder_ = tf.compat.v1.placeholder(
+      self.background_data_placeholder_ = tf.placeholder(
           tf.float32, [desired_samples, 1], name='background_data')
-      self.background_volume_placeholder_ = tf.compat.v1.placeholder(
+      self.background_volume_placeholder_ = tf.placeholder(
           tf.float32, [], name='background_volume')
       background_mul = tf.multiply(self.background_data_placeholder_,
                                    self.background_volume_placeholder_)
@@ -517,7 +517,7 @@ class AudioProcessor(object):
       if flags.preprocess == 'raw':
         # return raw audio
         self.output_ = background_clamp
-        tf.compat.v1.summary.image(
+        tf.summary.image(
             'input_audio',
             tf.expand_dims(tf.expand_dims(background_clamp, -1), -1),
             max_outputs=1)
@@ -528,7 +528,7 @@ class AudioProcessor(object):
             window_size=flags.window_size_samples,
             stride=flags.window_stride_samples,
             magnitude_squared=True)
-        tf.compat.v1.summary.image(
+        tf.summary.image(
             'spectrogram', tf.expand_dims(spectrogram, -1), max_outputs=1)
         # The number of buckets in each FFT row in the spectrogram will depend
         # on how many input samples there are in each window. This can be quite
@@ -545,15 +545,13 @@ class AudioProcessor(object):
               strides=[1, flags.average_window_width],
               pooling_type='AVG',
               padding='SAME')
-          tf.compat.v1.summary.image('shrunk_spectrogram',
-                                     self.output_,
-                                     max_outputs=1)
+          tf.summary.image('shrunk_spectrogram', self.output_, max_outputs=1)
         elif flags.preprocess == 'mfcc':
           self.output_ = audio_ops.mfcc(
               spectrogram,
               wav_decoder.sample_rate,
               dct_coefficient_count=flags.fingerprint_width)
-          tf.compat.v1.summary.image(
+          tf.summary.image(
               'mfcc', tf.expand_dims(self.output_, -1), max_outputs=1)
         elif flags.preprocess == 'micro':
           if not frontend_op:
@@ -574,7 +572,7 @@ class AudioProcessor(object):
               out_scale=1,
               out_type=tf.float32)
           self.output_ = tf.multiply(micro_frontend, (10.0 / 256.0))
-          tf.compat.v1.summary.image(
+          tf.summary.image(
               'micro',
               tf.expand_dims(tf.expand_dims(self.output_, -1), 0),
               max_outputs=1)
@@ -584,10 +582,10 @@ class AudioProcessor(object):
 
       # Merge all the summaries and write them out to /tmp/retrain_logs (by
       # default)
-      self.merged_summaries_ = tf.compat.v1.summary.merge_all(scope='data')
+      self.merged_summaries_ = tf.summary.merge_all(scope='data')
       if flags.summaries_dir:
-        self.summary_writer_ = tf.compat.v1.summary.FileWriter(
-            flags.summaries_dir + '/data', tf.compat.v1.get_default_graph())
+        self.summary_writer_ = tf.summary.FileWriter(
+            flags.summaries_dir + '/data', tf.get_default_graph())
 
   def set_size(self, mode):
     """Calculates the number of samples in the dataset partition.
@@ -762,12 +760,12 @@ class AudioProcessor(object):
     words_list = self.words_list
     data = np.zeros((sample_count, desired_samples))
     labels = []
-    with tf.compat.v1.Session(graph=tf.Graph()) as sess:
-      wav_filename_placeholder = tf.compat.v1.placeholder(tf.string, [])
+    with tf.Session(graph=tf.Graph()) as sess:
+      wav_filename_placeholder = tf.placeholder(tf.string, [])
       wav_loader = io_ops.read_file(wav_filename_placeholder)
       wav_decoder = tf.audio.decode_wav(
           wav_loader, desired_channels=1, desired_samples=desired_samples)
-      foreground_volume_placeholder = tf.compat.v1.placeholder(tf.float32, [])
+      foreground_volume_placeholder = tf.placeholder(tf.float32, [])
       scaled_foreground = tf.multiply(wav_decoder.audio,
                                       foreground_volume_placeholder)
       for i in range(sample_count):

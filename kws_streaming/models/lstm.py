@@ -80,8 +80,7 @@ def model_parameters(parser_nn):
 def model(flags):
   """LSTM model.
 
-  It is inspired by papers
-  https://arxiv.org/pdf/1705.02411.pdf (We do not use MAX-POOLING LOSS)
+  Similar model in papers:
   Convolutional Recurrent Neural Networks for Small-Footprint Keyword Spotting
   https://arxiv.org/pdf/1703.05390.pdf (with no conv layer)
   Hello Edge: Keyword Spotting on Microcontrollers
