@@ -13,45 +13,62 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""CNN model with Mel spectrum."""
+"""BiLSTM model with attention."""
 from kws_streaming.layers import speech_features
 from kws_streaming.layers.compat import tf
-from kws_streaming.layers.stream import Stream
 from kws_streaming.models.utils import parse
 
 
 def model_parameters(parser_nn):
-  """Covolutional Neural Network(CNN) model parameters."""
+  """BiLSTM attention model parameters."""
 
   parser_nn.add_argument(
       '--cnn_filters',
       type=str,
-      default='64,64,64,64,64,64,128',
+      default='10,1',
       help='Number of output filters in the convolution layers',
   )
   parser_nn.add_argument(
       '--cnn_kernel_size',
       type=str,
-      default='(3,3),(5,3),(5,3),(5,3),(5,2),(5,1),(5,1)',
+      default='(5,1),(5,1)',
       help='Heights and widths of the 2D convolution window',
   )
   parser_nn.add_argument(
       '--cnn_act',
       type=str,
-      default="'relu','selu','selu','selu','selu','selu','selu'",
+      default="'relu','relu'",
       help='Activation function in the convolution layers',
   )
   parser_nn.add_argument(
       '--cnn_dilation_rate',
       type=str,
-      default='(1,1),(1,1),(2,1),(1,1),(2,1),(1,1),(2,1)',
+      default='(1,1),(1,1)',
       help='Dilation rate to use for dilated convolutions',
   )
   parser_nn.add_argument(
       '--cnn_strides',
       type=str,
-      default='(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1)',
+      default='(1,1),(1,1)',
       help='Strides of the convolution layers along the height and width',
+  )
+  parser_nn.add_argument(
+      '--rnn_layers',
+      type=int,
+      default=2,
+      help='number of RNN layers (each RNN is wrapped by Bidirectional)',
+  )
+  parser_nn.add_argument(
+      '--rnn_type',
+      type=str,
+      default='lstm',
+      help='RNN type: it can be rnn or lstm',
+  )
+  parser_nn.add_argument(
+      '--rnn_units',
+      type=int,
+      default=64,
+      help='units number in RNN cell',
   )
   parser_nn.add_argument(
       '--dropout1',
@@ -62,23 +79,23 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--units2',
       type=str,
-      default='128,256',
+      default='64,32',
       help='Number of units in the last set of hidden layers',
   )
   parser_nn.add_argument(
       '--act2',
       type=str,
-      default="'linear','selu'",
+      default="'relu','linear'",
       help='Activation function of the last set of hidden layers',
   )
 
 
 def model(flags):
-  """CNN model.
+  """BiLSTM attention model.
 
   It is based on paper:
-  Convolutional Neural Networks for Small-footprint Keyword Spotting
-  http://www.isca-speech.org/archive/interspeech_2015/papers/i15_1478.pdf
+  A neural attention model for speech command recognition
+  https://arxiv.org/pdf/1808.08929.pdf
 
   Args:
     flags: data/model parameters
@@ -86,6 +103,12 @@ def model(flags):
   Returns:
     Keras model for training
   """
+
+  rnn_types = {'lstm': tf.keras.layers.LSTM, 'gru': tf.keras.layers.GRU}
+
+  if flags.rnn_type not in rnn_types:
+    ValueError('not supported RNN type ', flags.rnn_type)
+  rnn = rnn_types[flags.rnn_type]
 
   input_audio = tf.keras.layers.Input(
       shape=(flags.desired_samples,), batch_size=flags.batch_size)
@@ -110,16 +133,42 @@ def model(flags):
       parse(flags.cnn_filters), parse(flags.cnn_kernel_size),
       parse(flags.cnn_act), parse(flags.cnn_dilation_rate),
       parse(flags.cnn_strides)):
-    net = Stream(
-        cell=tf.keras.layers.Conv2D(
-            filters=filters,
-            kernel_size=kernel_size,
-            activation=activation,
-            dilation_rate=dilation_rate,
-            strides=strides))(
-                net)
+    net = tf.keras.layers.Conv2D(
+        filters=filters,
+        kernel_size=kernel_size,
+        activation=activation,
+        dilation_rate=dilation_rate,
+        strides=strides,
+        padding='same')(
+            net)
+    net = tf.keras.layers.BatchNormalization()(net)
 
-  net = Stream(cell=tf.keras.layers.Flatten())(net)
+  shape = net.shape
+  # input net dimension: [batch, time, feature, channels]
+  # reshape dimension: [batch, time, feature * channels]
+  # so that GRU/RNN can process it
+  net = tf.keras.layers.Reshape((-1, shape[2] * shape[3]))(net)
+
+  # dims: [batch, time, feature]
+  for _ in range(flags.rnn_layers):
+    net = tf.keras.layers.Bidirectional(
+        rnn(flags.rnn_units, return_sequences=True, unroll=True))(
+            net)
+  feature_dim = net.shape[-1]
+  middle = net.shape[1] // 2  # index of middle point of sequence
+
+  # feature vector at middle point [batch, feature]
+  mid_feature = net[:, middle, :]
+  # apply one projection layer with the same dim as input feature
+  query = tf.keras.layers.Dense(feature_dim)(mid_feature)
+
+  # attention weights [batch, time]
+  att_weights = tf.keras.layers.Dot(axes=[1, 2])([query, net])
+  att_weights = tf.keras.layers.Softmax(name='attSoftmax')(att_weights)
+
+  # apply attention weights [batch, feature]
+  net = tf.keras.layers.Dot(axes=[1, 1])([att_weights, net])
+
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)
 
   for units, activation in zip(parse(flags.units2), parse(flags.act2)):

@@ -86,7 +86,8 @@ def model(flags):
 
   This model is based on decomposition of a densely connected ops
   into low rank filters.
-  It is based on paper: https://arxiv.org/pdf/1812.02802.pdf
+  It is based on paper
+  END-TO-END STREAMING KEYWORD SPOTTING https://arxiv.org/pdf/1812.02802.pdf
   Args:
     flags: data/model parameters
 

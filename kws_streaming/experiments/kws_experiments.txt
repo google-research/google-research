@@ -1,0 +1,710 @@
+# Set up for model training and benchmarking
+
+# There are two versions of data sets for training KWS which are well described
+# in https://arxiv.org/pdf/1804.03209.pdf
+# Choose the data sets by setting DATA_URL
+# data sets V1 [2017]: http://download.tensorflow.org/data/speech_commands_v0.01.tar.gz
+# data sets V2 [2018]: https://storage.googleapis.com/download.tensorflow.org/data/speech_commands_v0.02.tar.gz
+DATA_URL='data sets url'
+
+# set path to a main folder with data and models
+KWS_PATH=/tmp/speech_commands/
+
+# Download models archive.
+# There is a set of the same models trained on different data sets
+models V1 trained on data sets V1: https://storage.googleapis.com/kws_models/models1.zip
+models V2 trained on data sets V2: https://storage.googleapis.com/kws_models/models2.zip
+If you selected data sets V1 then download models V1, else models V2
+
+# unpack it into $KWS_PATH by running:
+cd $KWS_PATH
+wget 'models url'
+# unzip models to folder $KWS_PATH/models
+
+# KWS_PATH should have two subfolders:
+# data - has all training/validation/testing data
+# models - contain all models: each model in a separate folder
+
+# set path to a main file for model training
+KWS_BIN=kws_streaming
+
+
+# Set up for neural network benchmarking on phone
+# To build benchmarking tools for Android
+# you will need https://docs.bazel.build/versions/master/bazel-overview.html
+
+# build benchmarking binary
+bazel build -c opt --config=android_arm --cxxopt='--std=c++17' third_party/tensorflow/lite/tools/benchmark:benchmark_model
+
+# check that phone is connected
+adb devices
+
+# copy benchmarking binary to phone
+adb push bazel-bin/third_party/tensorflow/lite/tools/benchmark/benchmark_model /data/local/tmp
+
+# allow executing benchmarking file as a program
+adb shell chmod +x /data/local/tmp/benchmark_model
+
+
+# build benchmarking binary - for a case if Flex is used by neural network model
+bazel build -c opt --config=android_arm --cxxopt='--std=c++17' third_party/tensorflow/lite/tools/benchmark:benchmark_model_plus_flex
+
+# check that phone is connected
+adb devices
+
+# copy benchmarking binary to phone
+adb push bazel-bin/third_party/tensorflow/lite/tools/benchmark/benchmark_model_plus_flex /data/local/tmp
+
+# allow executing benchmarking file as a program
+adb shell chmod +x /data/local/tmp/benchmark_model_plus_flex
+
+
+# If you followed above instructions so that
+# all pretrained models are located in $KWS_PATH/models
+# then you can run below commands with "--train 0"
+# which will evaluate the model and produce
+# accuracy report with TFLite modules.
+
+# If you are interested in retraining a model
+# then you should set a flag "--train 1" in below commands.
+# Also remove model directory from $KWS_PATH/models.
+
+# ds_cnn_stride model =====================
+
+# trained on data V2 accuracy: 96.3
+# trained on data V1 accuracy: 95.8
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/ds_cnn_stride/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 10000,10000,10000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+ds_cnn \
+--cnn1_kernel_size "(10,4)" \
+--cnn1_dilation_rate "(1,1)" \
+--cnn1_strides "(2,1)" \
+--cnn1_padding "same" \
+--cnn1_filters 300 \
+--cnn1_act 'relu' \
+--bn_momentum 0.98 \
+--bn_center 1 \
+--bn_scale 0 \
+--bn_renorm 0 \
+--dw2_kernel_size '(3,3),(3,3),(3,3),(3,3),(3,3)' \
+--dw2_strides '(2,2),(1,1),(1,1),(1,1),(1,1)' \
+--dw2_padding "same" \
+--dw2_act "'relu','relu','relu','relu','relu'" \
+--cnn2_filters '300,300,300,300,300' \
+--cnn2_act "'relu','relu','relu','relu','relu'" \
+--dropout1 0.2
+
+# latency[us]: 9509
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/ds_cnn_stride/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/ds_cnn_stride/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/ds_cnn_stride/tflite_non_stream/non_stream.tflite.benchmark.profile
+
+
+# ds_cnn_stream =====================
+
+# trained on data V2 accuracy: 95.9
+# trained on data V1 accuracy: 95.2
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/ds_cnn_stream/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 10000,10000,10000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+ds_cnn \
+--cnn1_kernel_size "(3,3)" \
+--cnn1_dilation_rate "(2,1)" \
+--cnn1_strides "(1,1)" \
+--cnn1_padding "valid" \
+--cnn1_filters 300 \
+--cnn1_act 'relu' \
+--bn_momentum 0.98 \
+--bn_center 1 \
+--bn_scale 0 \
+--bn_renorm 0 \
+--dw2_kernel_size '(3,3),(3,3),(10,3),(5,3),(10,3)' \
+--dw2_dilation_rate '(1,1),(2,2),(1,1),(2,2),(1,1)' \
+--dw2_strides '(1,1),(1,1),(1,1),(1,1),(1,1)' \
+--dw2_padding "valid" \
+--dw2_act "'relu','relu','relu','relu','relu'" \
+--cnn2_filters '300,300,300,300,300' \
+--cnn2_act "'relu','relu','relu','relu','relu'" \
+--dropout1 0.2
+
+# latency[us]: 18996
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/ds_cnn_stream/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/ds_cnn_stream/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/ds_cnn_stream/tflite_non_stream/non_stream.tflite.benchmark.profile
+
+# latency[us]: 1616
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/ds_cnn_stream/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/ds_cnn_stream/tflite_stream_state_external/stream_state_external.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/ds_cnn_stream/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+
+
+# svdf =====================
+
+# trained on data V2 accuracy: 96.2
+# trained on data V1 accuracy: 95.5
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/svdf/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 20000,20000,20000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 80 \
+--dct_num_features 30 \
+--resample 0.15 \
+--alsologtostderr \
+--time_shift_ms 100 \
+--train 0 \
+svdf \
+--svdf_memory_size 4,10,10,10,10,10 \
+--svdf_units1 256,256,256,256,256,256 \
+--svdf_act "'relu','relu','relu','relu','relu','relu'" \
+--svdf_units2 128,128,128,128,128,-1 \
+--svdf_dropout 0.0,0.0,0.0,0.0,0.0,0.0 \
+--svdf_pad 0 \
+--dropout1 0.0 \
+--units2 '' \
+--act2 ''
+
+# latency[us]: 5028
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/svdf/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/svdf/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/svdf/tflite_non_stream/non_stream.tflite.benchmark.profile
+
+# latency[us]: 590
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/svdf/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/svdf/tflite_stream_state_external/stream_state_external.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/svdf/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+
+
+# lstm_peep =====================
+
+# trained on data V2 accuracy non stream: 95.6; stream: 41.3
+# trained on data V1 accuracy non stream: 95.2; stream: 38.4
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/lstm_peep/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 10000,10000,10000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+lstm \
+--lstm_units 500 \
+--return_sequences 0 \
+--use_peepholes 1 \
+--num_proj 200 \
+--dropout1 0.3 \
+--units1 '' \
+--act1 ''
+
+# latency[us]: 11934
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/lstm_peep/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/lstm_peep/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/lstm_peep/tflite_non_stream/non_stream.tflite.benchmark.profile
+
+# latency[us]: 462
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/lstm_peep/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/lstm_peep/tflite_stream_state_external/stream_state_external.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/lstm_peep/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+
+
+# lstm_peep_state =====================
+
+# trained on data V2 accuracy non stream: 95.2; stream: 95.1
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/lstm_peep_state/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 10000,10000,10000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+lstm \
+--lstm_units 500 \
+--return_sequences 0 \
+--use_peepholes 1 \
+--num_proj 200 \
+--dropout1 0.3 \
+--units1 '' \
+--act1 '' \
+--stateful 1
+
+# latency[us]: 11943
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/lstm_peep_state/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/lstm_peep_state/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/lstm_peep_state/tflite_non_stream/non_stream.tflite.benchmark.profile
+
+# latency[us]: 500
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/lstm_peep_state/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/lstm_peep_state/tflite_stream_state_external/stream_state_external.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/lstm_peep_state/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+
+
+# lstm =====================
+
+# trained on data V2 accuracy: 95.2; stream: 66.7
+# trained on data V1 accuracy: 94.8; stream: 66.5
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/lstm/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 10000,10000,10000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+lstm \
+--lstm_units 360 \
+--return_sequences 0 \
+--use_peepholes 0 \
+--num_proj -1 \
+--dropout1 0.3 \
+--units1 128,256 \
+--act1 "'linear','relu'"
+
+# latency[us]: 11948
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/lstm/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/lstm/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/lstm/tflite_non_stream/non_stream.tflite.benchmark.profile
+
+# latency[us]: 556
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/lstm/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/lstm/tflite_stream_state_external/stream_state_external.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/lstm/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+
+
+# lstm_state =====================
+
+# trained on data V2 accuracy: 95.1; stream: 94.8
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/lstm_state/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 10000,10000,10000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+lstm \
+--lstm_units 360 \
+--return_sequences 0 \
+--use_peepholes 0 \
+--num_proj -1 \
+--dropout1 0.3 \
+--units1 128,256 \
+--act1 "'linear','relu'" \
+--stateful 1
+
+# latency[us]: 11367
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/lstm_state/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/lstm_state/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/lstm_state/tflite_non_stream/non_stream.tflite.benchmark.profile
+
+# latency[us]: 516
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/lstm_state/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/lstm_state/tflite_stream_state_external/stream_state_external.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/lstm_state/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+
+
+# gru =====================
+
+# trained on data V2 accuracy: 96.1; stream: 72.7
+# trained on data V1 accuracy: 95.6; stream: 70.9
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/gru/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 10000,10000,10000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+gru \
+--gru_units 400 \
+--return_sequences 0 \
+--dropout1 0.1 \
+--units1 128,256 \
+--act1 "'linear','relu'"
+
+# latency[us]: 11280
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/gru/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/gru/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/gru/tflite_non_stream/non_stream.tflite.benchmark.profile
+
+# latency[us]: 531
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/gru/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/gru/tflite_stream_state_external/stream_state_external.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/gru/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+
+
+# gru_state =====================
+
+# trained on data V2 accuracy: 96.0; stream: 95.9
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/gru_state/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 15000,15000,15000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+gru \
+--gru_units 400 \
+--return_sequences 0 \
+--dropout1 0.1 \
+--units1 128,256 \
+--act1 "'linear','relu'" \
+--stateful 1
+
+# latency[us]: 10935
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/gru_state/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/gru_state/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/gru_state/tflite_non_stream/non_stream.tflite.benchmark.profile
+
+# latency[us]: 532
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/gru_state/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/gru_state/tflite_stream_state_external/stream_state_external.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/gru_state/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+
+
+# cnn =====================
+
+# trained on data V2 accuracy: 94.9
+# trained on data V1 accuracy: 94.7
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/cnn/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 10000,10000,10000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+cnn \
+--cnn_filters '64,64,64,64,128,64,128' \
+--cnn_kernel_size '(3,3),(5,3),(5,3),(5,3),(5,2),(5,1),(10,1)' \
+--cnn_act "'relu','relu','relu','relu','relu','relu','relu'" \
+--cnn_dilation_rate '(1,1),(1,1),(2,1),(1,1),(2,1),(1,1),(2,1)' \
+--cnn_strides '(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1)' \
+--dropout1 0.5 \
+--units2 '128,256' \
+--act2 "'linear','relu'"
+
+# latency[us]: 15623
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/cnn/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/cnn/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/cnn/tflite_non_stream/non_stream.tflite.benchmark.profile
+
+# latency[us]: 1459
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/cnn/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/cnn/tflite_stream_state_external/stream_state_external.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/cnn/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+
+
+# cnn_stride =====================
+
+# trained on data V2 accuracy: 94.4
+# trained on data V1 accuracy: 94.3
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/cnn_stride/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 10000,10000,10000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+cnn \
+--cnn_filters '64,64,64,128,128,128,128' \
+--cnn_kernel_size '(3,3),(3,3),(3,3),(3,3),(3,3),(3,1),(3,1)' \
+--cnn_act "'relu','relu','relu','relu','relu','relu','relu'" \
+--cnn_dilation_rate '(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1)' \
+--cnn_strides '(2,1),(1,1),(2,2),(1,1),(1,1),(1,1),(1,1)' \
+--dropout1 0.5 \
+--units2 '128,256' \
+--act2 "'linear','relu'"
+
+# latency[us]: 5886
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/cnn_stride/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/cnn_stride/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/cnn_stride/tflite_non_stream/non_stream.tflite.benchmark.profile
+
+
+# crnn =====================
+
+# trained on data V2 accuracy: non stream 96.1; stream 69.1
+# trained on data V1 accuracy: non stream 96.1; stream 68.5
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/crnn/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 10000,10000,10000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+crnn \
+--cnn_filters '16,16' \
+--cnn_kernel_size '(3,3),(5,3)' \
+--cnn_act "'relu','relu'" \
+--cnn_dilation_rate '(1,1),(1,1)' \
+--cnn_strides '(1,1),(1,1)' \
+--gru_units 256 \
+--return_sequences 0 \
+--dropout1 0.1 \
+--units1 '128,256' \
+--act1 "'linear','relu'"
+
+
+# latency[us]: 9441.95
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/crnn/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/crnn/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/crnn/tflite_non_stream/non_stream.tflite.benchmark.profile
+
+# latency[us]: 442
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/crnn/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/crnn/tflite_stream_state_external/stream_state_external.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/crnn/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+
+
+# crnn_state =====================
+
+# trained on data V2 accuracy: 95.6; stream: 95.3
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/crnn_state/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 10000,10000,10000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+crnn \
+--cnn_filters '16,16' \
+--cnn_kernel_size '(3,3),(5,3)' \
+--cnn_act "'relu','relu'" \
+--cnn_dilation_rate '(1,1),(1,1)' \
+--cnn_strides '(1,1),(1,1)' \
+--gru_units 256 \
+--return_sequences 0 \
+--dropout1 0.1 \
+--units1 '128,256' \
+--act1 "'linear','relu'" \
+--stateful 1
+
+
+# dnn =====================
+
+# trained on data V2 accuracy: 89.7
+# trained on data V1 accuracy: 88.5
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/dnn/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 10000,10000,10000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+dnn \
+--units1 '64,128' \
+--act1 "'relu','relu'" \
+--pool_size 2 \
+--strides 2 \
+--dropout1 0.1 \
+--units2 '128,256' \
+--act2 "'linear','relu'"
+
+# latency[us]: 4100
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/dnn/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/dnn/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/dnn/tflite_non_stream/non_stream.tflite.benchmark.profile
+
+# latency[us]: 609
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/dnn/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/dnn/tflite_stream_state_external/stream_state_external.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/dnn/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+
+
+# att_rnn =====================
+
+# trained on data V2 accuracy: 96.9
+# trained on data V1 accuracy: 96.5
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_dir $DATA_URL \
+--train_dir $KWS_PATH/models/att_rnn/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 10000,10000,10000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+att_rnn \
+--cnn_filters '10,1' \
+--cnn_kernel_size '(5,1),(5,1)' \
+--cnn_act "'relu','relu'" \
+--cnn_dilation_rate '(1,1),(1,1)' \
+--cnn_strides '(1,1),(1,1)' \
+--rnn_layers 2 \
+--rnn_type 'gru' \
+--rnn_units 128 \
+--dropout1 0.1 \
+--units2 '64,32' \
+--act2 "'relu','linear'"
+
+# latency[us]: 9984
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/att_rnn/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/att_rnn/tflite_non_stream/non_stream.tflite.benchmark
+
+
+# dnn_raw =====================
+
+# trained on data V2 accuracy: 81.2
+# trained on data V1 accuracy: 79.8
+bazel run -c opt --copt=-mavx2 $KWS_BIN/train:model_train_eval -- \
+--data_url $DATA_URL \
+--data_dir $KWS_PATH/data/ \
+--train_dir $KWS_PATH/models/dnn_raw/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 10000,10000,10000 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+dnn_raw \
+--units1 '64,128' \
+--act1 "'relu','relu'" \
+--pool_size 2 \
+--strides 2 \
+--dropout1 0.1 \
+--units2 '128,256' \
+--act2 "'linear','relu'"
+
+# latency[us]: 621
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/dnn_raw/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/dnn_raw/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/dnn_raw/tflite_non_stream/non_stream.tflite.benchmark.profile
+
+# latency[us]: 353
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $KWS_PATH/models/dnn_raw/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $KWS_PATH/models/dnn_raw/tflite_stream_state_external/stream_state_external.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $KWS_PATH/models/dnn_raw/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
