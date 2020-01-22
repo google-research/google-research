@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,8 @@ from absl import app
 from absl import flags
 import six
 from six.moves import range
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf
+import tensorflow_probability as tfp
 
 from summae import model as m
 from summae import p2s_eval
@@ -758,13 +759,16 @@ def get_model_fn(spid_dict):
       labels: needed by estimator API, ignored here
       mode: tf estimator mode
       params: dict of hyperparams
+
+    Returns:
+      TPUEstimatorSpec
     """
     loss, train_op, metrics_dict, preds_dict, host_call = pors_model(
         features, params, mode == tf.estimator.ModeKeys.TRAIN, spid_dict)
 
     # Need loss, train_op
     if mode == tf.estimator.ModeKeys.TRAIN:
-      return tf.contrib.tpu.TPUEstimatorSpec(
+      return tf.estimator.tpu.TPUEstimatorSpec(
           mode=mode, loss=loss, train_op=train_op, host_call=host_call)
     elif mode == tf.estimator.ModeKeys.EVAL:
       # We need to use eval_on_tpu=False when creating TPUEstimator for
@@ -775,8 +779,8 @@ def get_model_fn(spid_dict):
 
     elif mode == tf.estimator.ModeKeys.PREDICT:
       # Use this mode for auto-regressive decoding.
-      return tf.contrib.tpu.TPUEstimatorSpec(mode,
-                                             predictions=preds_dict)
+      return tf.estimator.tpu.TPUEstimatorSpec(mode,
+                                               predictions=preds_dict)
   return model_fn
 
 
@@ -853,7 +857,7 @@ def get_input_fn(params, data_files, repeat=False, shuffle=True,
               x_d,
               # Like x, but shuffled along first dim
               # TODO(peterjliu): Different shuffling schemes.
-              tf.contrib.layers.dense_to_sparse(add_noise(x_d, augment_scheme))
+              tfp.math.dense_to_sparse(add_noise(x_d, augment_scheme))
           )
       )
       dataset = dataset.map(lambda x, x_d, x_r: (
@@ -990,13 +994,13 @@ def main(unused_argv):
     with tf.gfile.Open(hypers_file, 'w') as f:
       json.dump(params, f)
 
-  run_config = tf.contrib.tpu.RunConfig(
+  run_config = tf.estimator.tpu.RunConfig(
       model_dir=FLAGS.model_dir,
       keep_checkpoint_max=0,
       save_checkpoints_steps=FLAGS.checkpoint_steps,
       master=FLAGS.master,
       tpu_config=tpu_config.TPUConfig(iterations_per_loop=1000,))
-  ae_estimator = tf.contrib.tpu.TPUEstimator(
+  ae_estimator = tf.estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,  # If false, like a regular Estimator
       model_fn=get_model_fn(spid_dict),
       config=run_config,

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ from summae import beam_search
 from summae import sample
 from summae import transformer as trf
 from summae import util
+from tensorflow.contrib import layers as contrib_layers
 from tensorflow.python.ops import inplace_ops  # pylint: disable=g-direct-tensorflow-import
 
 # pylint: disable=invalid-name
@@ -161,10 +162,10 @@ def create_perm_label_table(num_s_per_p):
   # perms_as_str = ['012', '021', '102', '120', '201', '210'].
   num_s_per_p_factorial = math.factorial(num_s_per_p)  # 6
   # This table will map each string in perms_as_str to a unique ID 0 ~ 5.
-  return tf.contrib.lookup.HashTable(
+  return tf.lookup.StaticHashTable(
       tf.lookup.KeyValueTensorInitializer(
-          keys=tf.convert_to_tensor(perms_as_str),
-          values=tf.range(num_s_per_p_factorial)), -1)
+          tf.convert_to_tensor(perms_as_str),
+          tf.range(num_s_per_p_factorial)), -1)
 
 
 def shuffle_paragraph_with_labels(s_ids_BxNxL, num_s_per_p):
@@ -1645,7 +1646,7 @@ def minimize(loss, optimizer, global_step, clip_norm):
 def get_adam(learning_rate, use_tpu=False):
   opt = tf.train.AdamOptimizer(learning_rate=learning_rate)
   if use_tpu:
-    opt = tf.contrib.tpu.CrossShardOptimizer(opt)
+    opt = tf.tpu.CrossShardOptimizer(opt)
   return opt
 
 
@@ -1704,7 +1705,7 @@ def dense_layer_with_proj(x_BxSxI, proj_HxO, scope=None, name=''):
         kernel_initializer=tf.truncated_normal_initializer(
             stddev=SMALL_WEIGHTS_SD),
         name=name + '_kernel')
-    x_BSxH = tf.contrib.layers.layer_norm(
+    x_BSxH = contrib_layers.layer_norm(
         x_BSxH, begin_norm_axis=-1, begin_params_axis=-1)
     logits_bias_O = tf.get_variable(
         name=name + '_output_bias',

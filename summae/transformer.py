@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ from __future__ import print_function
 
 import math
 import tensorflow as tf
+from tensorflow.contrib import layers as contrib_layers
 
 # pylint: disable=invalid-name
 
@@ -166,7 +167,7 @@ class _PreProcess(object):
 
   def __call__(self, inputs):
     with tf.variable_scope("preprocess"):
-      x = tf.contrib.layers.layer_norm(inputs, begin_norm_axis=2)
+      x = contrib_layers.layer_norm(inputs, begin_norm_axis=2)
     return x
 
 

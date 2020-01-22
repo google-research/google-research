@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -577,10 +577,10 @@ class PorsTest(tf.test.TestCase, parameterized.TestCase):
         'max_decode_steps': 2,
         'encoder_type': encoder_type,
     })
-    run_config = tf.contrib.tpu.RunConfig(
+    run_config = tf.estimator.tpu.RunConfig(
         model_dir=self.create_tempdir().full_path, keep_checkpoint_max=10)
 
-    pors_estimator = tf.contrib.tpu.TPUEstimator(
+    pors_estimator = tf.estimator.tpu.TPUEstimator(
         use_tpu=use_tpu,
         config=run_config,
         model_fn=pors.get_model_fn(spid_dict),
