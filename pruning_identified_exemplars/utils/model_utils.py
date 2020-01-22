@@ -99,12 +99,17 @@ def model_fn_w_pruning(features, labels, mode, params):
     A EstimatorSpec for the model
   """
 
-  images = features["image_raw"]
-  labels = features["label"]
+  task = params["task"]
 
-  if params["task"] in [
-      "pie_dataset_gen", "imagenet_predictions", "robustness_imagenet_c",
-      "robustness_imagenet_a", "ckpt_prediction"
+  if task in ["pie_dataset_gen", "imagenet_predictions"]:
+    images = features[0]
+    labels = features[1]
+  else:
+    images = features
+
+  if task in [
+      "pie_dataset_gen", "robustness_imagenet_c", "robustness_imagenet_a",
+      "ckpt_prediction"
   ]:
     human_labels = features["human_label"]
 
