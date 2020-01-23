@@ -29,7 +29,7 @@ DIRECTIONS = ('ASCENDING', 'DESCENDING')
 _TARGET_WEIGHTS_ARG = 'target_weights'
 
 
-def _preprocess(x, axis):
+def preprocess(x, axis):
   """Reshapes the input data to make it rank 2 as required by SoftQuantilizer.
 
   The SoftQuantilizer expects an input tensor of rank 2, where the first
@@ -58,8 +58,8 @@ def _preprocess(x, axis):
   return x_flat, dims, tf.shape(x_transposed)
 
 
-def _postprocess(x, transposition, shape):
-  """Applies the inverse transformation of _preprocess.
+def postprocess(x, transposition, shape):
+  """Applies the inverse transformation of preprocess.
 
   Args:
    x: Tensor<float>[batch, n]
@@ -105,7 +105,7 @@ def softsort(
     raise ValueError(
         'Conflicting arguments: both topk and target_weights are being set.')
 
-  z, transposition, shape = _preprocess(x, axis)
+  z, transposition, shape = preprocess(x, axis)
   descending = (direction == 'DESCENDING')
 
   if topk is not None:
@@ -117,7 +117,7 @@ def softsort(
   sorter = soft_quantilizer.SoftQuantilizer(z, descending=descending, **kwargs)
   # We need to compute topk + 1 values in case we use topk
   values = sorter.softsort if topk is None else sorter.softsort[:, :-1]
-  return _postprocess(values, transposition, shape)
+  return postprocess(values, transposition, shape)
 
 
 def softranks(x, direction='ASCENDING', axis=-1, zero_based=True, **kwargs):
@@ -141,12 +141,12 @@ def softranks(x, direction='ASCENDING', axis=-1, zero_based=True, **kwargs):
     raise ValueError('`direction` should be one of {}'.format(DIRECTIONS))
 
   descending = (direction == 'DESCENDING')
-  z, transposition, shape = _preprocess(x, axis)
+  z, transposition, shape = preprocess(x, axis)
   sorter = soft_quantilizer.SoftQuantilizer(z, descending=descending, **kwargs)
   ranks = sorter.softcdf * tf.cast(tf.shape(z)[1], dtype=x.dtype)
   if zero_based:
     ranks -= tf.cast(1.0, dtype=x.dtype)
-  return _postprocess(ranks, transposition, shape)
+  return postprocess(ranks, transposition, shape)
 
 
 def softquantiles(x, quantiles, quantile_width=None, axis=-1, **kwargs):
@@ -271,8 +271,8 @@ def soft_quantile_normalization(x, f, axis=-1, **kwargs):
   Returns:
    A tensor of the same shape of x.
   """
-  z, transposition, shape = _preprocess(x, axis)
+  z, transposition, shape = preprocess(x, axis)
   sorter = soft_quantilizer.SoftQuantilizer(
       z, descending=False, num_targets=f.shape[0], **kwargs)
   y = 1.0 / sorter.weights * tf.linalg.matvec(sorter.transport, f)
-  return _postprocess(y, transposition, shape)
+  return postprocess(y, transposition, shape)
