@@ -108,7 +108,8 @@ class InputDataTest(tf.test.TestCase):
   def testPrepareWordsList(self):
     words_list = ["a", "b"]
     self.assertGreater(
-        len(input_data.prepare_words_list(words_list)), len(words_list))
+        len(input_data.prepare_words_list(words_list, split_data=True)),
+        len(words_list))
 
   def testWhichSet(self):
     self.assertEqual(

@@ -38,7 +38,8 @@ def update_flags(flags):
   """
 
   label_count = len(
-      input_data.prepare_words_list(flags.wanted_words.split(',')))
+      input_data.prepare_words_list(
+          flags.wanted_words.split(','), flags.split_data))
   desired_samples = int(flags.sample_rate * flags.clip_duration_ms /
                         MS_PER_SECOND)
   window_size_samples = int(flags.sample_rate * flags.window_size_ms /
