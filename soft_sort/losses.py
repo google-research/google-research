@@ -51,7 +51,7 @@ class TopKErrorLoss(tf.losses.Loss):
   def rescale_ranks(self, ranks):
     mu = tf.math.reduce_mean(ranks, axis=-1)
     std = tf.math.reduce_std(ranks, axis=-1)
-    n = ranks.shape[-1]
+    n = tf.cast(tf.shape(ranks)[-1], tf.float32)
     tgt_mu = (n - 1) / 2
     tgt_std = tf.sqrt((n - 1) * (n + 1) / 12)
     return (ranks - mu[:, tf.newaxis]) / std[:, tf.newaxis] * tgt_std + tgt_mu
