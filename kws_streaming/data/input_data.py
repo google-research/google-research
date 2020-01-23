@@ -59,16 +59,22 @@ BACKGROUND_NOISE_DIR_NAME = '_background_noise_'
 RANDOM_SEED = 59185
 
 
-def prepare_words_list(wanted_words):
+def prepare_words_list(wanted_words, split_data):
   """Prepends common tokens to the custom word list.
 
   Args:
     wanted_words: List of strings containing the custom words.
+    split_data: True - split data automatically; False - user splits the data
 
   Returns:
     List with the standard silence and unknown tokens added.
   """
-  return [SILENCE_LABEL, UNKNOWN_WORD_LABEL] + wanted_words
+  if split_data:
+    # with automatic data split we append two more labels
+    return [SILENCE_LABEL, UNKNOWN_WORD_LABEL] + wanted_words
+  else:
+    # data already split by user, no need to add other labels
+    return wanted_words
 
 
 def which_set(filename, validation_percentage, testing_percentage):
@@ -177,9 +183,9 @@ class AudioProcessor(object):
         self.prepare_data_index(flags.silence_percentage,
                                 flags.unknown_percentage, wanted_words,
                                 flags.validation_percentage,
-                                flags.testing_percentage)
+                                flags.testing_percentage, flags.split_data)
       else:
-        self.prepare_split_data_index(wanted_words)
+        self.prepare_split_data_index(wanted_words, flags.split_data)
 
       self.prepare_background_data()
     self.prepare_processing_graph(flags)
@@ -227,7 +233,7 @@ class AudioProcessor(object):
 
   def prepare_data_index(self, silence_percentage, unknown_percentage,
                          wanted_words, validation_percentage,
-                         testing_percentage):
+                         testing_percentage, split_data):
     """Prepares a list of the samples organized by set and label.
 
     The training loop needs a list of all the available data, organized by
@@ -243,6 +249,7 @@ class AudioProcessor(object):
       wanted_words: Labels of the classes we want to be able to recognize.
       validation_percentage: How much of the data set to use for validation.
       testing_percentage: How much of the data set to use for testing.
+      split_data: True - split data automatically; False - user splits the data
 
     Returns:
       Dictionary containing a list of file information for each set partition,
@@ -302,7 +309,7 @@ class AudioProcessor(object):
     for set_index in ['validation', 'testing', 'training']:
       random.shuffle(self.data_index[set_index])
     # Prepare the rest of the result data structure.
-    self.words_list = prepare_words_list(wanted_words)
+    self.words_list = prepare_words_list(wanted_words, split_data)
     self.word_to_index = {}
     for word in all_words:
       if word in wanted_words_index:
@@ -317,7 +324,7 @@ class AudioProcessor(object):
       if not os.path.isdir(sub_dir_name):
         raise IOError('Directory is not found ' + sub_dir_name)
 
-  def prepare_split_data_index(self, wanted_words):
+  def prepare_split_data_index(self, wanted_words, split_data):
     """Prepares a list of the samples organized by set and label.
 
     The training loop needs a list of all the available data, organized by
@@ -332,6 +339,7 @@ class AudioProcessor(object):
 
     Args:
       wanted_words: Labels of the classes we want to be able to recognize.
+      split_data: True - split data automatically; False - user splits the data
 
     Returns:
       Dictionary containing a list of file information for each set partition,
@@ -351,7 +359,7 @@ class AudioProcessor(object):
     for index, wanted_word in enumerate(wanted_words):
       wanted_words_index[wanted_word] = index
 
-    self.words_list = wanted_words
+    self.words_list = prepare_words_list(wanted_words, split_data)
 
     self.data_index = {'validation': [], 'testing': [], 'training': []}
 
