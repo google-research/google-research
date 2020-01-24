@@ -31,6 +31,7 @@ from six.moves import range
 import tensorflow as tf
 from explaining_risk_increase import input_fn
 from explaining_risk_increase import observation_sequence_model as osm
+from tensorflow.contrib import training as contrib_training
 
 
 class ObservationSequenceTest(tf.test.TestCase, parameterized.TestCase):
@@ -133,7 +134,7 @@ class ObservationSequenceTest(tf.test.TestCase, parameterized.TestCase):
 
     # Set high for increased precision of the approximation.
     num_steps = 100
-    hparams = tf.contrib.training.HParams(
+    hparams = contrib_training.HParams(
         sequence_prediction=True,
         use_rnn_attention=False,
         path_integrated_gradients_num_steps=num_steps,
@@ -402,7 +403,7 @@ class ObservationSequenceTest(tf.test.TestCase, parameterized.TestCase):
         across the sequence in the loss multiplied by this factor.
     """
     num_steps = 2
-    hparams = tf.contrib.training.HParams(
+    hparams = contrib_training.HParams(
         batch_size=2,
         learning_rate=0.008,
         sequence_features=[

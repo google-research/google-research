@@ -22,6 +22,10 @@ from __future__ import print_function
 import tensorflow as tf
 
 from explaining_risk_increase import input_fn
+from tensorflow.contrib import estimator as contrib_estimator
+from tensorflow.contrib import lookup as contrib_lookup
+from tensorflow.contrib import rnn as contrib_rnn
+from tensorflow.contrib import training as contrib_training
 from tensorflow.contrib.learn.python.learn.estimators import rnn_common
 
 
@@ -595,9 +599,8 @@ def construct_input(sequence_feature_map, categorical_values,
     # of the lab test and a construct a vector with all zeros but the id-th
     # position is set to the lab test value.
     obs_code = sequence_feature_map[categorical_seq_feature]
-    obs_code_dense_ids = tf.contrib.lookup.index_table_from_tensor(
-        tuple(categorical_values),
-        num_oov_buckets=0,
+    obs_code_dense_ids = contrib_lookup.index_table_from_tensor(
+        tuple(categorical_values), num_oov_buckets=0,
         name='vocab_lookup').lookup(obs_code.values)
     obs_code_sparse = tf.SparseTensor(
         values=obs_code_dense_ids,
@@ -658,7 +661,7 @@ def construct_rnn_logits(diff_delta_time,
     sequence_data = tf.concat(rnn_inputs, axis=2, name='rnn_input')
 
     # Run a recurrent neural network across the time dimension.
-    cell = tf.contrib.rnn.LSTMCell(rnn_size, state_is_tuple=True)
+    cell = contrib_rnn.LSTMCell(rnn_size, state_is_tuple=True)
     if (variational_recurrent_keep_prob < 1 or variational_input_keep_prob < 1
         or variational_output_keep_prob < 1):
       cell = tf.nn.rnn_cell.DropoutWrapper(
@@ -747,12 +750,14 @@ class ObservationSequenceModel(object):
   def create_model_hparams(self):
     """Returns default hparams for observation sequence model."""
     categorical_values_str = 'loinc:2823-3,loinc:2160-0,loinc:804-5,loinc:3094-0,loinc:786-4,loinc:2075-0,loinc:2951-2,loinc:34728-6,mimic3:observation_code:834,mimic3:observation_code:678,loinc:2345-7,mimic3:observation_code:3603,mimic3:observation_code:223761,loinc:3173-2,loinc:5895-7,loinc:5902-2,loinc:2601-3,loinc:2000-8,loinc:2777-1,mimic3:observation_code:3655,loinc:32693-4,mimic3:observation_code:679,mimic3:observation_code:676,loinc:2339-0,loinc:1994-3,mimic3:observation_code:224690,loinc:1975-2,loinc:1742-6,loinc:1920-8,loinc:6768-6,mimic3:observation_code:3312,mimic3:observation_code:8502,mimic3:observation_code:3313,loinc:1751-7,loinc:6598-7,mimic3:observation_code:225309,mimic3:observation_code:225310,mimic3:observation_code:40069,loinc:3016-3,loinc:1968-7,loinc:4548-4,loinc:2093-3,loinc:2085-9,loinc:2090-9,mimic3:observation_code:6701,mimic3:observation_code:8555,mimic3:observation_code:6702,loinc:10839-9,mimic3:observation_code:3318,mimic3:observation_code:3319'
-    return tf.contrib.training.HParams(
+    return contrib_training.HParams(
         context_features=['sequenceLength'],
         batch_size=128,
         learning_rate=0.002,
         sequence_features=[
-            'deltaTime', 'Observation.code', 'Observation.valueQuantity.value',
+            'deltaTime',
+            'Observation.code',
+            'Observation.valueQuantity.value',
             'Observation.valueQuantity.unit',
             'Observation.code.harmonized:valueset-observation-name',
         ],
@@ -951,11 +956,9 @@ class ObservationSequenceModel(object):
         optimizer = tf.train.AdamOptimizer(
             learning_rate=hparams.learning_rate, beta1=0.9, beta2=0.999,
             epsilon=1e-8)
-        optimizer = tf.contrib.estimator.clip_gradients_by_norm(
-            optimizer, 6.0)
-        train_op = tf.contrib.training.create_train_op(
-            total_loss=loss, optimizer=optimizer,
-            summarize_gradients=False)
+        optimizer = contrib_estimator.clip_gradients_by_norm(optimizer, 6.0)
+        train_op = contrib_training.create_train_op(
+            total_loss=loss, optimizer=optimizer, summarize_gradients=False)
       if mode != tf.estimator.ModeKeys.TRAIN:
         for k, v in all_attribution_dict.items():
           if not isinstance(v, tf.SparseTensor):

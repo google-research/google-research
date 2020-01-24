@@ -21,6 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.contrib import data as contrib_data
 
 CONTEXT_KEY_PREFIX = 'c-'
 SEQUENCE_KEY_PREFIX = 's-'
@@ -328,7 +329,7 @@ def get_input_fn(mode,
         files = files.shuffle(buffer_size=len(file_names))
       dataset = (
           files.apply(
-              tf.contrib.data.parallel_interleave(
+              contrib_data.parallel_interleave(
                   tf.data.TFRecordDataset, cycle_length=10)).repeat(num_epochs))
       if shuffle:
         dataset = dataset.shuffle(buffer_size=100)
