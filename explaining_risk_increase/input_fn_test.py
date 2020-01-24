@@ -32,6 +32,7 @@ import tensorflow as tf
 from google.protobuf import text_format
 from explaining_risk_increase import input_fn
 from explaining_risk_increase import observation_sequence_model as osm
+from tensorflow.contrib import training as contrib_training
 
 TESTDATA_DIR = 'explaining_risk_increase/test_data/'
 
@@ -190,7 +191,7 @@ class TestInputFn(tf.test.TestCase):
         batch_size=2,
         shuffle=False)()
     num_steps = 2
-    hparams = tf.contrib.training.HParams(
+    hparams = contrib_training.HParams(
         batch_size=2,
         learning_rate=0.008,
         sequence_features=[

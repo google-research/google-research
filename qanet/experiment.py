@@ -27,6 +27,7 @@ from qanet import model_base  # pylint: disable=unused-import
 from qanet import qanet_model  # pylint: disable=unused-import
 from qanet.data import tf_data_pipeline  # pylint: disable=unused-import
 from qanet.util import configurable
+from tensorflow.contrib import training as contrib_training
 
 
 
@@ -143,7 +144,7 @@ def create_experiment_fn(default_config,
       A configurable object `spec` instantiated from the final config.
         spec.config will return the config.
     """
-    hparams = hparams or tf.contrib.training.HParams()
+    hparams = hparams or contrib_training.HParams()
     tuned_config = configurable.unflatten_dict(hparams.values())
     pprinter = pprint.PrettyPrinter()
     tf.logging.info('Provided extra params:\n%s',
@@ -151,7 +152,7 @@ def create_experiment_fn(default_config,
     try:
       merged_config = configurable.merge(default_config, tuned_config)
       tf.logging.info('Tuned default config:\n%s', merged_config)
-    except TypeError, e:
+    except TypeError as e:
       tf.logging.info(
           'Do not provide same config in both config string and vizier.'
           '  This may lead to type errors.')

@@ -22,7 +22,7 @@ from __future__ import print_function
 
 import gin.tf
 import tensorflow as tf
-framework = tf.contrib.framework
+from tensorflow.contrib import framework as contrib_framework
 
 
 @gin.configurable
@@ -100,8 +100,9 @@ def train_q(dataset,
   q_func = policy.get_q_func(is_training=True, reuse=reuse)
   loss, all_summaries = q_graph_fn(q_func, transition)
 
-  q_func_vars = framework.get_trainable_variables(scope='q_func')
-  target_q_func_vars = framework.get_trainable_variables(scope='target_q_func')
+  q_func_vars = contrib_framework.get_trainable_variables(scope='q_func')
+  target_q_func_vars = contrib_framework.get_trainable_variables(
+      scope='target_q_func')
   global_step = tf.train.get_or_create_global_step()
 
   # Only optimize q_func and update its batchnorm params.
@@ -166,8 +167,8 @@ def train_q(dataset,
 
   init_fn = None
   if init_checkpoint:
-    assign_fn = tf.contrib.framework.assign_from_checkpoint_fn(
-        init_checkpoint, framework.get_model_variables())
+    assign_fn = contrib_framework.assign_from_checkpoint_fn(
+        init_checkpoint, contrib_framework.get_model_variables())
     init_fn = lambda _, sess: assign_fn(sess)
   scaffold = tf.train.Scaffold(saver=saver, init_fn=init_fn)
   with tf.train.MonitoredTrainingSession(
