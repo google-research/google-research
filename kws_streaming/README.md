@@ -14,6 +14,7 @@ We have several steps:
 Conversion to streaming inference mode includes tf/Keras graph traversal and
 buffer insertion for the layers which have to be streamed.
 3 Convert Keras model to TFLite
+4 Run TFLite inference on phone
 
 We build this library, so that speech feature extractor is also part of the model
 and part of the model conversion to inference mode with TFLite.
@@ -21,20 +22,13 @@ It allows to simplify model testing on mobile devices: developer just pass
 audio data into the model and receive classification results.
 
 
-Directory structure:
-colab - examples of running KWS models
-data - data reading utilities
-experiments - command lines for model training and evaluation
-layers - streaming aware layers with speech feature extractor and layer tests
-models - KWS model definitions
-train - model training and evaluation
-
-
-
 We built streaming wrapper layers and streaming aware layers.
 It allows us to design Keras models, train them and automatically
 convert to streaming mode.
-By streaming we mean streaming inference.
+By streaming we mean streaming inference, where model processing every 20ms of audio
+and return classification result.
+Non streaming means that model has to receive the whole sequence (1 sec) and then return classification result
+
 KWS model in streaming mode is executed by steps:
 1 Receive sample(packet) of audio data from microphone
 2 Feed these data into KWS model
@@ -71,7 +65,7 @@ We also implemented stateful KWS models with external state, such models
 receive input speech data and all states buffers required for model's layers
 and return classification results with updated states buffers.
 
-There are several modes:
+Model can run in several modes:
 1 Non streaming training 'Modes.TRAINING'.
 We receive the whole audio sequence and process it
 
@@ -102,6 +96,15 @@ Paper about this work is at: TBD.
 All experiments on KWS models presented in this paper can be reproduced by
 kws_streaming/experiments/kws_experiments.txt
 Models were trained on Ubuntu and tested on Pixel4
+
+
+Code directory structure:
+colab - examples of running KWS models
+data - data reading utilities
+experiments - command lines for model training and evaluation
+layers - streaming aware layers with speech feature extractor and layer tests
+models - KWS model definitions
+train - model training and evaluation
 
 ** Below is an example of evaluation and training DNN model: **
 
@@ -268,3 +271,93 @@ python -m kws_streaming.train.model_train_eval \
 --split_data 0 \
 --wanted_words up,down \
 dnn
+
+
+
+Description of the content of the model folder models1/dnn_1
+logs > - it has training/validation logs:
+
+     train/events.out.tfevents.**.com - training loss/accuracy at every iteration
+
+     validation/events.out.tfevents.**.com - validation loss/accuracy at every iteration
+
+non_stream > - TF non streamable model stored in SavedModel format
+
+stream_state_internal > TF streaming model stored in SavedModel format
+
+tf > this folder has evaluation of tf.keras model in both streaming and non streaming modes
+
+   model_summary_non_stream.png - non streaming model graph (picture)
+
+   model_summary_non_stream.txt - non streaming model graph (txt)
+
+   model_summary_stream_state_external.png - streaming model graph with external states (picture)
+
+   model_summary_stream_state_external.txt - streaming model graph with external states (txt)
+
+   model_summary_stream_state_internal.png - streaming model graph with internal states (picture)
+
+   model_summary_stream_state_internal.txt - streaming model graph with internal states (txt)
+
+   stream_state_external_model_accuracy_sub_set_reset0.txt - accuracy of streaming model with external state
+      on subset of testing data (it is used to validate that TF and TFLite inference gives the same result).
+      Do not use these accuracy for reporting because it is computed on subset of testing data (on 1000 samples)
+      State of the model is not reseted before running inference.
+      So we can see how internal state is influencing accuracy in long run.
+
+   stream_state_external_model_accuracy_sub_set_reset1.txt - accuracy of streaming model with external state
+      on subset of testing data (it is used to validate that TF and TFLite inference gives the same result).
+      Do not use these accuracy for reporting because it is computed on subset of testing data (on 1000 samples)
+      State of the model is reseted before running inference.
+      So it is equivalent to non streaming inference (state is not kept between testing sequences).
+
+   tf_non_stream_model_accuracy.txt - accuracy of non streaming model tested with TF
+
+   tf_non_stream_model_sampling_stream_accuracy.txt - accuracy of non streaming model tested with TF
+      Input testing data are shifted randomly in range: -time_shift_ms ... time_shift_ms
+
+   tf_stream_state_internal_model_accuracy_sub_set.txt - accuracy of streaming model with internal state
+      on subset of testing data.
+      Do not use these accuracy for reporting because it is computed on subset of testing data (on 1000 samples)
+      State of the model is not reseted before running inference.
+      So we can see how internal state is influencing accuracy in long run.
+
+tflite_non_stream > - TF non streaming model is converted to TFLite and stored in this folder
+
+    non_stream.tflite - TFLite non streaming model
+
+    tflite_non_stream_model_accuracy.txt - accuracy of TFLite non streaming model
+        We report this accuracy in the paper
+
+    non_stream.tflite.benchmark - benchmark of TFLite non streaming model on mobile phone
+
+    non_stream.tflite.benchmark.profile - profiling of TFLite non streaming model on mobile phone
+
+tflite_stream_state_external > TF streaming model with external state is converted to TFLite and stored in this folder
+
+    stream_state_external.tflite - TFLite streaming model with external state
+
+    tflite_stream_state_external_model_accuracy_reset0.txt - accuracy of TFLite streaming model with external state
+       State of the model is not reseted before running inference.
+       So we can see how internal state is influencing accuracy in long run.
+       We report this accuracy in the paper for streaming models
+
+    tflite_stream_state_external_model_accuracy_reset1.txt - accuracy of TFLite streaming model with external state
+       State of the model is reseted before running inference.
+       So it is equivalent to non streaming inference (state is not kept between testing sequences).
+
+    stream_state_external.tflite.benchmark - benchmark of TFLite streaming model with external state on mobile phone
+
+    stream_state_external.tflite.benchmark.profile - profiling of TFLite streaming model with external state on mobile phone
+
+accuracy_last.txt - accuracy at the last training iteration (used for debugging)
+
+last_weights.data - weights of the model at last training iteration (used for debugging)
+
+flags.txt - flags which were used for model training (include all model parameters settings, paths all of it)
+
+graph.pbtxt - TF non streaming model in graph representation
+
+labels.txt - list of labels used for model training
+
+best_weights.data - best model weights, these weights will be used for model evaluation with TFLite and reporting
