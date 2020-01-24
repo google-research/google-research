@@ -302,12 +302,12 @@ def connector_capsule_mat(input_tensor,
           input_dim, input_shape[0], input_shape[3], input_shape[4],
           num_out_atoms, output_dim
       ])
-      wx_trans.set_shape((input_dim, None, input_tensor.get_shape()[3].value,
-                          input_tensor.get_shape()[4].value, num_out_atoms,
+      wx_trans.set_shape((input_dim, None, input_tensor.get_shape()[3],
+                          input_tensor.get_shape()[4], num_out_atoms,
                           output_dim))
       h, w, _ = position_grid.get_shape()
-      height = h.value
-      width = w.value
+      height = h
+      width = w
       # t_pose = tf.transpose(position_grid, [2, 0, 1])
       # t_pose_exp = tf.scatter_nd([[sqr_num_out_atoms -1],
       #   [2 * sqr_num_out_atoms - 1]], t_pose, [num_out_atoms, height, width])
@@ -387,13 +387,13 @@ def conv_capsule_mat(input_tensor,
           input_shape[0] * input_dim * in_atom_sq, input_shape[3],
           input_shape[4], 1
       ])
-      input_tensor_reshaped.set_shape((None, input_tensor.get_shape()[3].value,
-                                       input_tensor.get_shape()[4].value, 1))
+      input_tensor_reshaped.set_shape((None, input_tensor.get_shape()[3],
+                                       input_tensor.get_shape()[4], 1))
       input_act_reshaped = tf.reshape(
           input_activation,
           [input_shape[0] * input_dim, input_shape[3], input_shape[4], 1])
-      input_act_reshaped.set_shape((None, input_tensor.get_shape()[3].value,
-                                    input_tensor.get_shape()[4].value, 1))
+      input_act_reshaped.set_shape((None, input_tensor.get_shape()[3],
+                                    input_tensor.get_shape()[4], 1))
       print(input_tensor_reshaped.get_shape())
       # conv: [x*128,out*out_at, c3,c4]
       conv_patches = tf.extract_image_patches(
@@ -410,8 +410,8 @@ def conv_capsule_mat(input_tensor,
           rates=[1, 1, 1, 1],
           padding='VALID',
       )
-      o_height = (in_height.value - kernel_size) // stride + 1
-      o_width = (in_width.value - kernel_size) // stride + 1
+      o_height = (in_height - kernel_size) // stride + 1
+      o_width = (in_width - kernel_size) // stride + 1
       patches = tf.reshape(conv_patches,
                            (input_shape[0], input_dim, in_atom_sq, o_height,
                             o_width, kernel_size, kernel_size))
@@ -490,8 +490,8 @@ def primary_caps(conv, conv_dim, output_dim, out_atoms):
     conv_reshaped = tf.reshape(conv_caps, [
         conv_shape[0], output_dim, out_atoms + 1, conv_shape[2], conv_shape[3]
     ])
-    conv_reshaped.set_shape((None, output_dim, out_atoms + 1, c_height.value,
-                             c_width.value))
+    conv_reshaped.set_shape((None, output_dim, out_atoms + 1, c_height,
+                             c_width))
     conv_caps_center, conv_caps_logit = tf.split(
         conv_reshaped, [out_atoms, 1], axis=2)
     conv_caps_activation = tf.sigmoid(conv_caps_logit - 1.0)

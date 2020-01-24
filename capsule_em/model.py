@@ -19,7 +19,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from capsule_em import em_model
 from capsule_em import layers
 from capsule_em import simple_model
@@ -112,7 +112,7 @@ def multi_gpu_model(features):
     almosts = []
     result = {}
     with tf.variable_scope(tf.get_variable_scope()):
-      for i in xrange(FLAGS.num_gpus):
+      for i in range(FLAGS.num_gpus):
         with tf.device('/gpu:%d' % i):
           with tf.name_scope('tower_%d' % (i)) as scope:
             label_ = features[i]['labels']

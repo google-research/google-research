@@ -50,7 +50,6 @@ def _read_and_decode(filename_queue, image_pixel=96, distort=0):
   image = tf.reshape(image, tf.stack([depth, height, height]))
   image = tf.transpose(image, [1, 2, 0])
   image = tf.cast(image, tf.float32)
-  print(image.get_shape()[0].value)
   if image_pixel < 96:
     print('image resizing to {}'.format(image_pixel))
     image = tf.image.resize_images(image, [image_pixel, image_pixel])
@@ -123,12 +122,16 @@ def inputs(train_dir,
           capacity=2000 + 3 * batch_size,
           # Ensures a minimum amount of shuffling of examples.
           min_after_dequeue=2000)
+      cc_images = images
+      cc_labels = sparse_labels
     else:
       images, sparse_labels, orig_images = tf.train.batch(
           [image, label, orig_image],
           batch_size=batch_size,
           num_threads=1,
           capacity=1000 + 3 * batch_size)
+      cc_images = images
+      cc_labels = sparse_labels
       if patching:
         t_images = tf.tile(orig_images, [4, 1, 1, 1])
         c_images = tf.image.extract_glimpse(
