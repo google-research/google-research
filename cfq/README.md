@@ -46,7 +46,18 @@ preprocessing. The run-time can be sped up significantly by running Tensorflow
 with GPU support.
 
 The expected accuracy using the default setting of the script is 97.4 +/- 0.3.
-For the other expected accuracies of the other splits, please see the paper.
 
 In order to run a different model or try a different split, simply modify the
 parameters in `run_experiment.sh`. See that file for additional details.
+
+For the expected accuracies of the other splits and architectures, please see
+the paper (Table 4). In the paper we report the averages and confidence
+intervals based on 5 runs. For the MCD splits, these numbers vary between MCD1,
+MCD2, and MCD3, and the numbers reported in Table 4 are the averages over the 3
+splits. Accuracies vary between 5% and 37% over splits and architectures:
+
+|      | LSTM+attention | Transformer | Universal Transformer |
+|-------|--------------|--------------|--------------|
+| MCD1  | 28.9 +/- 1.8 | 34.9 +/- 1.1 | 37.4 +/- 2.2 |
+| MCD2  |  5.0 +/- 0.8 |  8.2 +/- 0.3 |  8.1 +/- 1.6 |
+| MCD3  | 10.8 +/- 0.6 | 10.6 +/- 1.1 | 11.3 +/- 0.3 |
