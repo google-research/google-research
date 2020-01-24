@@ -18,17 +18,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import os
-import sys
 import time
 import numpy as np
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from capsule_em import model as f_model
 from capsule_em.mnist \
   import mnist_record
 from capsule_em.norb \
   import norb_record
-from tensorflow.contrib import tfprof as contrib_tfprof
 from tensorflow.python import debug as tf_debug
 
 FLAGS = tf.app.flags.FLAGS
@@ -136,7 +134,7 @@ tf.app.flags.DEFINE_bool('patching', True, 'If set use patching for eval.')
 tf.app.flags.DEFINE_string('data_set', 'norb', 'the data set to use.')
 tf.app.flags.DEFINE_string('cifar_data_dir', '/tmp/cifar10_data',
                            """Path to the CIFAR-10 data directory.""")
-tf.app.flags.DEFINE_string('norb_data_dir', '/tmp/smallNORB/',
+tf.app.flags.DEFINE_string('norb_data_dir', '/root/datasets/smallNORB/',
                            """Path to the norb data directory.""")
 tf.app.flags.DEFINE_string('affnist_data_dir', '/tmp/affnist_data',
                            """Path to the affnist data directory.""")
@@ -159,7 +157,7 @@ def get_features(train, total_batch):
   batch_size = total_batch // max(1, FLAGS.num_gpus)
   split = 'train' if train else 'test'
   features = []
-  for i in xrange(FLAGS.num_gpus):
+  for i in range(FLAGS.num_gpus):
     with tf.device('/cpu:0'):
       with tf.name_scope('input_tower_%d' % (i)):
         if FLAGS.data_set == 'norb':
@@ -222,15 +220,7 @@ def run_training():
     model = f_model.multi_gpu_model
     print('so far so good!')
     result = model(features)
-    param_stats = contrib_tfprof.model_analyzer.print_model_analysis(
-        tf.get_default_graph(),
-        tfprof_options=contrib_tfprof.model_analyzer
-        .TRAINABLE_VARS_PARAMS_STAT_OPTIONS)
-    sys.stdout.write('total_params: %d\n' % param_stats.total_parameters)
 
-    contrib_tfprof.model_analyzer.print_model_analysis(
-        tf.get_default_graph(),
-        tfprof_options=contrib_tfprof.model_analyzer.FLOAT_OPS_OPTIONS)
     merged = result['summary']
     train_step = result['train']
     # test_writer = tf.summary.FileWriter(FLAGS.summary_dir + '/test')

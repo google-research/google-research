@@ -19,9 +19,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from capsule_em import utils
-from tensorflow.contrib import layers as contrib_layers
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -84,8 +83,8 @@ def add_convs(features):
     if FLAGS.verbose:
       tf.summary.histogram('activation', conv1)
     if FLAGS.pooling:
-      pool1 = contrib_layers.max_pool2d(
-          conv1, kernel_size=2, stride=2, data_format='NCHW', padding='SAME')
+      pool1 = tf.nn.max_pool2d(
+          conv1, ksize=2, strides=2, data_format='NCHW', padding='SAME')
       convs = [pool1]
     else:
       convs = [conv1]
@@ -120,10 +119,10 @@ def add_convs(features):
       cur_conv = tf.nn.relu(pre_activation, name=scope.name)
       if FLAGS.pooling:
         convs += [
-            contrib_layers.max_pool2d(
+            tf.nn.max_pool2d(
                 cur_conv,
-                kernel_size=2,
-                stride=2,
+                ksize=2,
+                strides=2,
                 data_format='NCHW',
                 padding='SAME')
         ]
@@ -132,29 +131,3 @@ def add_convs(features):
       if FLAGS.verbose:
         tf.summary.histogram('activation', convs[-1])
   return convs[-1], conv_outputs[-1], position_grid
-
-
-def conv_inference(features):
-  """Inference for a CNN. Conv + FC."""
-  conv, _, _ = add_convs(features)
-  hidden1 = contrib_layers.flatten(conv)
-  if FLAGS.extra_fc > 0:
-    hidden = contrib_layers.fully_connected(
-        hidden1,
-        FLAGS.extra_fc,
-        activation_fn=tf.nn.relu,
-        weights_initializer=tf.truncated_normal_initializer(
-            stddev=0.1, dtype=tf.float32),
-        biases_initializer=tf.constant_initializer(0.1))
-    if FLAGS.dropout and FLAGS.train:
-      hidden = tf.nn.dropout(hidden, 0.5)
-  else:
-    hidden = hidden1
-  logits = contrib_layers.fully_connected(
-      hidden,
-      features['num_classes'],
-      activation_fn=None,
-      weights_initializer=tf.truncated_normal_initializer(
-          stddev=0.1, dtype=tf.float32),
-      biases_initializer=tf.constant_initializer(0.1))
-  return logits, None, None

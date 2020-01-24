@@ -19,11 +19,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import math
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from capsule_em import em_layers
 from capsule_em import simple_model
 from capsule_em import utils
-from tensorflow.contrib import layers as contrib_layers
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -65,7 +64,7 @@ def _build_capsule(input_tensor, input_atom, position_grid, num_classes):
       print(conv_caps_center.get_shape())
       print(conv_caps_act.get_shape())
 
-  capsule1_act = contrib_layers.flatten(conv_caps_act)
+  capsule1_act = tf.layers.flatten(conv_caps_act)
 
   position_grid = tf.squeeze(position_grid, axis=[0])
   position_grid = tf.transpose(position_grid, [1, 2, 0])
