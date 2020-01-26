@@ -40,7 +40,7 @@ class SimhashCompressionOpTest(tf.test.TestCase):
           spec=compression_op.LowRankDecompMatrixCompressor.get_default_hparams(
           ).parse("num_rows=5,num_cols=5,rank=200"))
 
-      global_step = tf.get_variable("global_step", initializer=30)
+      global_step = tf.compat.v1.get_variable("global_step", initializer=30)
 
       apply_comp = simhash.SimhashApplyCompression(
           scope="default_scope",
@@ -54,7 +54,7 @@ class SimhashCompressionOpTest(tf.test.TestCase):
       jitter = np.tile([0, 1e-1, 2e-2], (3, 1))
       a_matrix_init += jitter
 
-      a_matrix = tf.get_variable(
+      a_matrix = tf.compat.v1.get_variable(
           "a_matrix",
           initializer=a_matrix_init.astype(np.float32),
           dtype=tf.float32)
@@ -62,7 +62,7 @@ class SimhashCompressionOpTest(tf.test.TestCase):
           a_matrix, scope="first_compressor")
       c = apply_comp._compression_ops[0]
 
-      a_matrix2 = tf.get_variable(
+      a_matrix2 = tf.compat.v1.get_variable(
           "a_matrix2",
           initializer=a_matrix_init.astype(np.float32),
           dtype=tf.float32)
@@ -70,7 +70,7 @@ class SimhashCompressionOpTest(tf.test.TestCase):
       c2 = apply_comp._compression_ops[1]
 
       _ = apply_comp.all_update_op()
-      tf.global_variables_initializer().run()
+      tf.compat.v1.global_variables_initializer().run()
       _ = a_matrix_compressed.eval()
 
       # Compression won't start until step 1000 + some random_shift amount.
@@ -92,7 +92,7 @@ class SimhashCompressionOpTest(tf.test.TestCase):
 
       # At this point compression should have already started being applied;
       # verify at step 2000 all is as expected.
-      tf.assign(global_step, 2000).eval()
+      tf.compat.v1.assign(global_step, 2000).eval()
       apply_comp._all_update_op.run()
       _ = a_matrix_compressed.eval()
 

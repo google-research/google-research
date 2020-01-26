@@ -126,13 +126,16 @@ class SimhashCompressionOp(compression_op.CompressionOp):
 
   def add_compression_summaries(self):
     """Adds summaries of alpha value and last update step."""
-    with tf.name_scope(self._spec.name + '_summaries'):
-      tf.summary.scalar('last_alpha_update_step', self._last_alpha_update_step)
-      tf.summary.scalar(self.alpha.op.name + '/alpha', self.alpha)
-      tf.summary.scalar(self.a_matrix_tfvar.op.name + '/a_matrix_norm',
-                        tf.norm(self.a_matrix_tfvar))
-      tf.summary.scalar(self.b_matrix_tfvar.op.name + '/b_matrix_norm',
-                        tf.norm(self.b_matrix_tfvar))
+    with tf.compat.v1.name_scope(self._spec.name + '_summaries'):
+      tf.compat.v1.summary.scalar('last_alpha_update_step',
+                                  self._last_alpha_update_step)
+      tf.compat.v1.summary.scalar(self.alpha.op.name + '/alpha', self.alpha)
+      tf.compat.v1.summary.scalar(
+          self.a_matrix_tfvar.op.name + '/a_matrix_norm',
+          tf.norm(tensor=self.a_matrix_tfvar))
+      tf.compat.v1.summary.scalar(
+          self.b_matrix_tfvar.op.name + '/b_matrix_norm',
+          tf.norm(tensor=self.b_matrix_tfvar))
 
   def _compressor_op(self, matrix_compressor, a_matrix_tfvar):
     """Creates compressor op based on simhash matrix_compressor.
@@ -152,10 +155,11 @@ class SimhashCompressionOp(compression_op.CompressionOp):
     if use_tpu:
       [b_matrix_out] = matrix_compressor.tpu_matrix_compressor(a_matrix_tfvar)
     else:
-      [b_matrix_out] = tf.py_func(matrix_compressor.static_matrix_compressor,
-                                  [a_matrix_tfvar], [tf.float32])
+      [b_matrix_out
+      ] = tf.compat.v1.py_func(matrix_compressor.static_matrix_compressor,
+                               [a_matrix_tfvar], [tf.float32])
 
-    b_matrix_assign_op = tf.assign(
+    b_matrix_assign_op = tf.compat.v1.assign(
         self.b_matrix_tfvar, b_matrix_out, name='_b_matrix_assign_op')
     with tf.control_dependencies([b_matrix_assign_op]):
       return tf.no_op('compresor_b_matrix_update')
@@ -185,13 +189,13 @@ class SimhashCompressionOp(compression_op.CompressionOp):
 
     [a_matrix_approx] = simhash_compressor.static_matrix_compressor(a_matrix)
 
-    with tf.variable_scope(scope):
-      self.b_matrix_tfvar = tf.get_variable(
+    with tf.compat.v1.variable_scope(scope):
+      self.b_matrix_tfvar = tf.compat.v1.get_variable(
           'B',
           dtype=tf.float32,
           initializer=a_matrix_approx.astype(np.float32),
           trainable=self.matrix_compressor.get_spec().is_b_matrix_trainable)
-      self.alpha = tf.get_variable(
+      self.alpha = tf.compat.v1.get_variable(
           'alpha', dtype=tf.float32, trainable=False, initializer=1.0)
 
     self.a_matrix_tfvar = a_matrix_tfvar
