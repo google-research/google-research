@@ -112,6 +112,7 @@ import sys
 from absl import logging
 import tensorflow.compat.v1 as tf
 from kws_streaming.layers.modes import Modes
+import kws_streaming.models.att_mh_rnn as att_mh_rnn
 import kws_streaming.models.att_rnn as att_rnn
 import kws_streaming.models.cnn as cnn
 import kws_streaming.models.crnn as crnn
@@ -518,6 +519,10 @@ if __name__ == '__main__':
   # CRNN model settings
   parser_crnn = subparsers.add_parser('crnn')
   crnn.model_parameters(parser_crnn)
+
+  # ATT MH RNN model settings
+  parser_att_mh_rnn = subparsers.add_parser('att_mh_rnn')
+  att_mh_rnn.model_parameters(parser_att_mh_rnn)
 
   # ATT RNN model settings
   parser_att_rnn = subparsers.add_parser('att_rnn')
