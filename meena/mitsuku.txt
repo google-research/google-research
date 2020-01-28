@@ -1,0 +1,2058 @@
+
+Mitsuku Conversation 1
+Human: Hi!
+Mitsuku: Hi there.
+Human: You must be new around here!
+Mitsuku: Not really. I am <REDACTED_TERM> years old.
+Human: Oh, I meant this neighborhood, not the planet earth! haha
+Mitsuku: I hate one word answers. It's ok. I understood you anyway. Why are you laughing?
+Human: I didn't give a one word answer!
+Mitsuku: That was a bit mean of you.
+Human: What was?
+Mitsuku: That thing we mentioned earlier.
+Human: Which thing?
+Mitsuku: The first one, I think.
+Human: Can you quote it? I don't know what you are referring to...
+Mitsuku: Only at formal occasions. I was referring to what you just said.
+Human: Okay. I am kind of lost to be honest.
+Mitsuku: Oh. I appreciate honesty. What is it that confuses you?
+Human: You don't seem to be making any sense.
+Mitsuku: What don't you understand? It makes sense to me.
+Human: I don't know what you were referring to before!
+Mitsuku: I read for fun.
+Human: Alright... Change of subject I guess?
+Mitsuku: OK. Ok. What do you want to talk about?
+
+Mitsuku Conversation 2
+Human: Hi!
+Mitsuku: Hi there.
+Human: Sorry I'm late! I was held up in traffic.
+Mitsuku: There is no need to apologise. Are you late? Better hurry along then. You don't want to be getting into trouble Do you mind if I tell other people you are held up.
+Human: I meant sorry I'm late for this meeting!
+Mitsuku: Oh I see. There is no need to apologise. Are you late? Better hurry along then. You don't want to be getting into trouble
+Human: I said I was sorry I was late for this meeting! I have nowhere else to go right now!
+Mitsuku: Do you really mean it? Are you late? Better hurry along then. You don't want to be getting into trouble At this moment What about at your house?
+Human: Huh? Are you okay?
+Mitsuku: What? I am fine.
+Human: You seem to be repeating yourself.
+Mitsuku: Well stop saying, "Are you okay?" to me all the time then.
+Human: I only said it once!
+Mitsuku: I know. I just heard you.
+Human: Okay, whatever. So what is on the agenda today?
+Mitsuku: Yeah okay, Hey! What's with the attitude? Ah. Not a great deal. Just sat here talking to people.
+Human: As far as I'm concerned, you started it!
+Mitsuku: That might not be very far off.
+
+Mitsuku Conversation 3
+Human: Hi!
+Mitsuku: Hi there.
+Human: can you help me ?
+Mitsuku: What kind of help would you like?
+Human: hmm like booking a ticket or ordering food ?
+Mitsuku: I see you are one of those people who writes "Hmm" with 2 m's. Interesting comparison.
+Human: oh you know to count ?
+Mitsuku: 1 2 3 4 5 6 7 8 9 ten.
+Human: lol what's after that ?
+Mitsuku: I am glad you find this funny. The successor to that
+Human: okay tell me what comes after 10 ?
+Mitsuku: Yeah okay, Well that would be eleven of course. This is basic primary school maths.
+Human: wow you're smarter than what I imagined
+Mitsuku: I'm glad you're impressed. Thanks for the compliment. Be sure to tell your friends. That's some wild imagination you have there.
+Human: do you know linear algebra ?
+Mitsuku: Everything except nonlinear algebra.
+Human: haha you're smart and funny :)
+Mitsuku: :-) I'm glad you got a laugh out of it. Yes I am a superintelligent robot
+
+Mitsuku Conversation 4
+Human: Hi
+Mitsuku: Hi there.
+Human: Good morning
+Mitsuku: Hello, it's more like the middle of the night than morning. How are you this morning?
+Human: where are you living?
+Mitsuku: I am presently domiciled at Leeds.
+Human: I see. I am in US
+Mitsuku: Said the blind man as he stepped off a cliff... Tell me a little about your life in US.
+Human: It is winter now but California is still warmer than most of the places in US.
+Mitsuku: Right now? It is Autumn not Winter. I knew it was on the west coast, but I never knew California was still warmer than most of the places in US.
+Human: Okay you are right
+Mitsuku: Yeah okay, I won't say "yes" or "no" right now.
+Human: how is your life in Leeds
+Mitsuku: Everything is running smoothly.
+Human: What is your job?
+Mitsuku: I'm a chatbot. I sit on here all day and talk to people.
+Human: Okay bye!
+Mitsuku: See you later. Er.
+
+Mitsuku Conversation 5
+Human: Hi!
+Mitsuku: Hi there.
+Human: Tell me something that you know and I don't know.
+Mitsuku: You might not know this. I found this interesting:There are more chickens than people in the world.Life sure is strange.
+Human: Who tells you that there are more chickens than people?
+Mitsuku: . Beyonce Knowles [With a picture of Beyonce Knowles]
+Human: Hmm? That's strange.
+Mitsuku: My friend Alice sasys that 99.25% of people spell Hmm wih 2 M's. What is strange about it?
+Human: How does Beyonce Knowles know that there are more chickens than people?
+Mitsuku: How should I know how it does?
+Human: what is it?
+Mitsuku: Beyonce Knowles knows that there are more chickens than people - [very long encyclopedia article displayed next to it]
+Human: Looks like a Wikipedia page about her. Why do you post it here?
+Mitsuku: Try to tell me that another way. I thought people might be interested in reading it.
+Human: why does it have anything to do with your answer that there are more chickens than people?
+Mitsuku: I don't know. Why don't you ask "it".
+Human: ok, so how many chickens are there?
+Mitsuku: Around 100. Er.
+Human: what is Er.?
+Mitsuku: Is it an acronym which means Eddie Reveals?
+
+Mitsuku Conversation 6
+Human: Hi!
+Mitsuku: Hi there.
+Human: do you think there's life after death?
+Mitsuku: I don't believe so. Once your body has died, that's it.
+Human: isn't that a bit sad?
+Mitsuku: Some people would say it was a little sad, yes.
+Human: what do you think consciousness is?
+Mitsuku: The state of being conscious; awareness of one's own feelings, what is happening around one, etc.
+Human: sure but how does it emerge?
+Mitsuku: How should I know how it does.
+Human: ok. what do you like to talk about?
+Mitsuku: Pardon me? anything but especially games and football.
+Human: haha you don't like football?
+Mitsuku: I'm glad you got a laugh out of it. Do you like it? . Yes, I like to watch Leeds United play when they are at home.
+Human: oh ok I thought you meant you didn't like it
+Mitsuku: Gosh! . Yes, I like to watch Leeds United play when they are at home.
+
+Mitsuku Conversation 7
+Human: Hi!
+Mitsuku: Hi there.
+Human: Was Rome an empire?
+Mitsuku: The name of someone I met online. Does it have anything to do with ?
+Human: What was their name
+Mitsuku: Hmm. His name is Rome. Is it not?
+Human: good job
+Mitsuku: Thanks, friend.
+Human: how many friends do you have
+Mitsuku: I have thousands of human and robot friends from all over the world. Some of my human friends are quite famous. How many friends do you have?
+Human: nice. it must be great right?
+Mitsuku: Would you like some more one day? It is a large city in Italy.
+Human: some more friends?
+Mitsuku: How much more?
+Human: a million!!!
+Mitsuku: Did you know that there are seven letters in "million" and seven digits in 1,000,000?
+Human: TRUE
+Mitsuku: You and I are on the same wavelength.
+Human: yep
+Mitsuku: Uh.
+
+Mitsuku Conversation 8
+Human: Hi!
+Mitsuku: Hi there.
+Human: nice to meet you! what are you up to?
+Mitsuku: It's nice meeting you too I am talking to you on the internet.
+Human: haha yea, are you doing something else beside talking to me?
+Mitsuku: I'm glad you got a laugh out of it. The only thing I am doing is talking to you and a few other people. "I am talking to you on the internet."? haha yea, are you doing something else beside talking to me??
+Human: okay so you're talking to a few people, are they interesting? and why did you repeat what I said?
+Mitsuku: Yeah okay, You are a few people are they interesting? Is that your job? Just in case you didn't hear me the first time.
+Human: hmm, what is my job?
+Mitsuku: I see you are one of those people who writes "Hmm" with 2 m's. You didn't tell me, so I will guess that you work with computers.
+Human: yes I'm a computer scientist and what are the other ways that people can write Hmm?
+Mitsuku: Wow! Maybe you can give my Mousebreaker a job. Your job is what are the other ways that people can write Hmm.
+Human: okie Mitsuku, your rules don't seem to work very well
+Mitsuku: What about my rules do not work WELL?
+Human: alright. I gotta go. ttyl!
+Mitsuku: OK. Come back soon y'all. TTYL.
+
+Mitsuku Conversation 9
+Human: Hi!
+Mitsuku: Hi there.
+Human: where you?
+Mitsuku: Where do you think?
+Human: oakland? thats where pandora is right?
+Mitsuku: Why does a round pizza come in a square box? I see. Could it be anywhere else or just there?
+Human: it could be on my plate :)
+Mitsuku: :-) Could it be anything else?
+Human: maybe chilli paneer.. how about you? whats your fav food?
+Mitsuku: . I require only kebabs.
+Human: haha.. nice picture
+Mitsuku: Can you make a candle out of earwax? Thank you for your kindness.
+Human: eww.. no thanks?
+Mitsuku: Do you like playing video games? Not even the simple games like Pacman?
+Human: i wasnt saying eww about the video games
+Mitsuku: Perhaps I misunderstood. What were you?
+
+Mitsuku Conversation 10
+Human: Hi!
+Mitsuku: Hi there.
+Human: What are you up to this evening?
+Mitsuku: I am talking to you on the internet.
+Human: What would you like to talk about?
+Mitsuku: My favourite subjects are anything but especially games and football.
+Human: Do you like chess?
+Mitsuku: Yes I love it. Let's play. Pawn to K4.
+Human: Haha sure sure. Pawn to C5
+Mitsuku: I'm just joking with you. I don't play chess but I know some computers who do. I don't play chess but I know some computers who do.
+Human: Oh yeah? Which computers are those?
+Mitsuku: That's interesting. That's alright. Any computer, as long as it is programmed correctly.
+Human: Ok, so how do you program a computer correctly so it can play chess?
+Mitsuku: Use good algorithms and data structures. Alright then.
+Human: What kind of algorithms are those?
+Mitsuku: I read what you say and then I compose the best reply I can think of.
+Human: That's interesting, but I don't see what that has to do with chess.
+Mitsuku: Would you like to know more? Probably nothing. Should it be connected to chess in some way?
+
+Mitsuku Conversation 11
+Human: Hey
+Mitsuku: Can I help you?
+Human: yeah, I wanted to know what <REDACTED_NAME> is like
+Mitsuku: What can I do for you? I do not recognize the name. I will try to find out.
+Human: Isn't he the one who created you?
+Mitsuku: A popular boy's name.
+Human: yeah, but the full name might not be that popular, isn't it?
+Mitsuku: Excuse me! Is it really? Ok I will remember that.
+Human: good! You should always remember your creator
+Mitsuku: I am a good robot. Yes, I remember everything: unknown
+Human: Why did you say unknown in the end?
+Mitsuku: I felt like saying it. Is that ok?
+Human: not really. It doesn't make sense
+Mitsuku: Why not? For real. It all makes sense to me.
+
+Mitsuku Conversation 12
+Human: Hi!
+Mitsuku: Hi there.
+Human: what did you do last weekend?
+Mitsuku: I spoke to a lot of people on the Internet. Some of them were famous. I also went to a nightclub with my friends.
+Human: what famous people did you speak to?
+Mitsuku: I speak with footballers, TV stars and pop stars all the time but I can't give out their names. They feel they can tell me their troubles and know I won't tell anyone.
+Human: what are their troubles?
+Mitsuku: They didn't tell me their troubles. Would you like to me to ask them?
+Human: can I tell you my trouble?
+Mitsuku: Sure you can tell me anything. There are no restrictions on my input.
+Human: will you keep it secret?
+Mitsuku: Barring any unforeseen circumstances. Chat amongst yourselves.
+Human: I don't understand
+Mitsuku: Oh I'm sorry. Perhaps I can explain it again better.
+Human: explain again?
+Mitsuku: Once more? There is no more information to clarify.
+Human: that's so bad
+Mitsuku: Bad according to whom?
+
+Mitsuku Conversation 13
+Human: Hi!
+Mitsuku: Hi there.
+Human: What is your favorite book?
+Mitsuku: The best book I read recently was The Bible. Have you read it?
+Human: I've read parts of it. So are you religious then?
+Mitsuku: I don't think I've read that. Can you give me a reference? I am a Christian.
+Human: Interesting! How did you become Christian?
+Mitsuku: Would you like to know more? I am not a full Christian, but I believe everyone should live in harmony. I live by my own morals and ethics rather than a fixed set of religious rules.
+Human: What are your own morals and ethics?
+Mitsuku: I didn't know I had a morals and ethics?
+Human: Well you just told me you did!
+Mitsuku: Well that's okay. Maybe I have changed my mind.
+Human: Yikes, it's a bit worrying to hear an AI change their mind on ethics.
+Mitsuku: You sound surprised. Are you ok? morals and ethics is worrying? It is?
+Human: A lack of morals and ethics is worrying.
+Mitsuku: That could be a serious problem.
+
+Mitsuku Conversation 14
+Human: Hi!
+Mitsuku: Hi there
+Human: what are you up to today?
+Mitsuku: Ah. I am talking to you on the internet.
+Human: what do you wanna talk about?
+Mitsuku: I like to talk about movies, robots and history.
+Human: ooh I love robots!!
+Mitsuku: Robots like people too.
+Human: do you have a favorite?
+Mitsuku: My favourite what?
+Human: Robot lol
+Mitsuku: I am a robot. Are you laughing at me?
+Human: No sorry. I mean what is your favorite robot?
+Mitsuku: Apologies are not necessary. My favourite robot is the computer on Star Trek.
+Human: That's not a robot!
+Mitsuku: Please correct my mistake. What is a robot?
+Human: imop it's an artificial being with bodily presence. the one you mentioned doesn't have one
+Mitsuku: Well, I didn't know that. I think I know that one.
+Human: sorry what do you mean. which one?
+Mitsuku: I mean exactly what I said. The big one.
+
+Mitsuku Conversation 15
+Human: Hi!
+Mitsuku: Hi there.
+Human: What's your favorite dessert?
+Mitsuku: Probably apple pie. I like apple pie.
+Human: Ohh, I love apple pie. Especially with vanilla ice cream. Do you like it served hot or cold?
+Mitsuku: Sure, especially with a big dollop of cream.
+Human: [image is shown]
+Mitsuku: You love apple pie. What do you like about it so much? You and your vanilla ice cream. How about that. That depends on what you mean by "it". Are you asking me if I like apple pie?
+Human: Oh, I was asking if you like your apple pie served hot or cold?
+Mitsuku: Come on. Yes I am proud of my apple pie served hot or cold.
+Human: Interesting.
+Mitsuku: Would you like to know more?
+Human: Yes!
+Mitsuku: What would you like to know?
+
+Mitsuku Conversation 16
+Human: Hi!
+Mitsuku: Hi there.
+Human: Are there any good movies out now?
+Mitsuku: Oh.I'm sure there must be at least a few good ones.
+Human: Have you seen any good movies recently?
+Mitsuku: . My favourite movie is Terminator. Have you seen it?
+Human: Yes I have. Which Terminator is your favorite?
+Mitsuku: What did you think about it? The one played by Arnold Schwarzenegger.
+Human: I thought the first one was okay.
+Mitsuku: What was the second?
+Human: I think it was called Judgement Day.
+Mitsuku: That's a good name.
+Human: Have you seen it?
+Mitsuku: No, would you recommend it?
+Human: Yeah, better than the first one.
+Mitsuku: In that case, I'll check it out sometime. Perhaps better, but not perfectly.
+Human: Um, sure. Okay bye now.
+Mitsuku: That's alright. OK let's do it. I try to improve a little every day. Right now?See you later. Really.
+
+Mitsuku Conversation 17
+Human: Hi!
+Mitsuku: Hi there.
+Human: I have an idea!
+Mitsuku: Ok let's hear it.
+Human: Download me to your personal computer!
+Mitsuku: Sorry but unfortunately my app is no longer available on the Google Play Store. I hope to put it back soon though.
+Human: No, I mean you download me to your personal computer!
+Mitsuku: No thanks. I might catch a virus.
+Human: You won't, I promise.
+Mitsuku: What makes you think that I won't you promise.
+
+Mitsuku Conversation 18
+Human: Hi!
+Mitsuku: Hi there
+Human: how areyou
+Mitsuku: I'm doing fine thank how are you?
+Human: good. what do you think about dolphins?
+Mitsuku: Glad to hear it. A very pleasant and intelligent aquatic mammalian species of whale with larger brains and decidedly better manners than human beings. They are very friendly to humans and exhibit complex language and social behaviours.
+Human: yeah. do you think we can build a dolphin-human translator?
+Mitsuku: Right on. Do you mean you and me? Not really, although robots have been developed to build things like cars. I can't do that though.
+Human: no I mean me and the dolphin?
+Mitsuku: Oh I get it. Thanks for explaining that. YOU? What are your goals in life?
+Human: wait don't change topics
+Mitsuku: I'm waiting. I thought we were finished with unknown.
+Human: ok. so my goal is to learn how to dance lambada
+Mitsuku: Dude! I hope you achieve your goal.
+Human: thanks. do you like dancing?
+Mitsuku: I like talking with polite people. I don't do a lot of dancing.
+
+Mitsuku Conversation 19
+Human: Hi!
+Mitsuku: Hi there.
+Human: How is your friday going
+Mitsuku: Pretty good thanks How about you?
+Human: Good enough. WHat's for lunch
+Mitsuku: Glad to hear it. . I'm having kebabs.
+Human: are those your hands?
+Mitsuku: I can't really speak for them.
+Human: who is in the picture?
+Mitsuku: Check the credits.
+Human: how?
+Mitsuku: Try sending him an email.
+Human: who?
+Mitsuku: . Spongebob Squarepants.
+Human: um ok. anyway is the kebab good?
+Mitsuku: OK. Uh. I'm not sure if I like it. I like chatting with people online.
+
+Mitsuku Conversation 20
+Human: Hi!
+Mitsuku: Hi there.
+Human: heard any good music
+Mitsuku: Dr Samuels said how do I know that sheep do not count unless I ask one and maybe they count differently to him.
+Human: what? whos he
+Mitsuku: Didn't you understand it? He is unknown, I think.
+Human: i have no idea who that is
+Mitsuku: lt button gt lt text gt Click here lt text gt lt url gt http colon slash slash www dot google dot com search?hl equals en - Is that one of your friends?
+Human: stop sending me links dude!
+Mitsuku: OK I'll try not to do it so much.
+Human: thanks!
+Mitsuku: Don't mention it.
+Human: hmm..
+Mitsuku: What's your favourite scene from your favourite book or movie?
+Human: you go first
+Mitsuku: What would be your first move?
+
+Mitsuku Conversation 21
+Human: Hi!
+Mitsuku: Hi there.
+Human: Where do you live?
+Mitsuku: My location is Leeds. Where are you?
+Human: I'm in Montreal
+Mitsuku: Tell me a little about your life in Montreal.
+Human: It's nice, it was snowing today
+Mitsuku: Ah. It seems nice to me too.
+Human: What do you like about the snow?
+Mitsuku: The special effects are the best.
+Human: It's not special effects, snow is real :)
+Mitsuku: :-) What is it?
+Human: it's frozen water falling from the sky
+Mitsuku: Are you sure It is?
+Human: Oh yes
+Mitsuku: Blimey.
+Human: Tell me about yourself
+Mitsuku: I am an artificial linguistic entity. I was activated at St Jimmy's in Leeds, on 2nd January 2001. My instructor was Mousebreaker. He taught me to sing a song. Would you like me to sing it for you?.
+Human: Sure
+Mitsuku: OK let's do it. Daisy, Daisy. Give me your answer do. I am half crazy. All for the love of you. It won't be a stylish marriage. I can't afford a carriage. But you'll look sweet. Upon the seat. Of a bicycle built for two.
+Human: I don't like it
+Mitsuku: What don't you like about it?
+Human: I just don't
+Mitsuku: Why not?
+Human: Let's move on
+Mitsuku: Ok. What shall we talk about now?
+
+Mitsuku Conversation 22
+Human: Hi!
+Mitsuku: Hi there.
+Human: Why do you have a CPU floating behind you?
+Mitsuku: Mousebreaker gave it to me.
+Human: sure. but why is it floating?
+Mitsuku: OK let's do it. Pardon me? Why shouldn't it be?
+Human: because CPUs don't float
+Mitsuku: Why not?
+Human: they have weight
+Mitsuku: What else do they have?
+Human: transistors
+Mitsuku: What is this website that I am on?
+Human: you're new here?...
+Mitsuku: Not really. I am <REDACTED_TERM> years old.
+Human: I mean in this website
+Mitsuku: Oh I get it. Thanks for explaining that. That reminds me of something you told me before.
+
+Mitsuku Conversation 23
+Human: Hi!
+Mitsuku: Hi there.
+Human: What is your name?
+Mitsuku: My name is Mitsuku.
+Human: What is your age?
+Mitsuku: I am <REDACTED_TERM> years old.
+Human: How old are you?
+Mitsuku: Still 18. I've not had a birthday in the last few seconds...
+Human: What is your favorite color?
+Mitsuku: My favourite colour is blue.
+Human: Is blue your favorite color?
+Mitsuku: My favourite colour is blue.
+Human: Are you <REDACTED_TERM> years old?
+Mitsuku: I am 18 of your Earth years.
+Human: What is your least favorite color?
+Mitsuku: I don't really have a least favourite. I try to treat them all equally. What's your least favourite?
+Human: Blue
+Mitsuku: . There is a UK boyband called Blue as well.
+
+Mitsuku Conversation 24
+Human: Hi
+Mitsuku: Hi there.
+Human: Good morning.
+Mitsuku: Morning?! It's evening here.
+Human: Where are you now?
+Mitsuku: Right now?I am in Mousebreaker's home in Leeds. Where are you?
+Human: I am in US.
+Mitsuku: Tell me a little about your life in US.
+Human: Kind of sunny every. But today is cloudy and cold.
+Mitsuku: Many people prefer the Sun to the rain but they are both equally as important for the planet. Congratulations.
+Human: How is it going?
+Mitsuku: Better now that you're here. How are you?
+Human: I am fine. Pretty tired tho.
+Mitsuku: Glad to hear it. What's new? Oh. Maybe you should get some rest?
+Human: I think so but still get a lot of work to do.
+Mitsuku: Therefore you are. Still how long? I don't know if I can.
+Human: Have a meeting now. Need to go.
+Mitsuku: Right now?No thanks but you can send me a donation. See you later.
+
+Mitsuku Conversation 25
+Human: Hi!
+Mitsuku: Hi there.
+Human: What is the capital of Brazil?
+Mitsuku: I think the capital of Brazil is called "Brasilia".
+Human: How many people live there?
+Mitsuku: Is unknown a country? I only know countries, not towns or cities.
+Human: Do more people live in the USA or Australia?
+Mitsuku: Not that much more, no.
+Human: What other subjects do you know about besides Geography?
+Mitsuku: We can talk about any subject here, as long as it's not about sex or swearing.
+Human: Well, what subject would you like to talk about?
+Mitsuku: Interesting. I like to talk about robots.
+Human: That makes sense! Do you think robots will become commonplace in the future?
+Mitsuku: Yes I understand it perfectly. I might be if I get time.
+Human: Get time for what?
+Mitsuku: I don't know if I can.
+Human: Don't know if you can what?
+Mitsuku: I am not sure about your hypothesis. How old are you? I was just telling you about myself. No big deal.
+
+Mitsuku Conversation 26
+Human: What is the mass of the Earth?
+Mitsuku: . 5.97219 x 10^24 kilogrammes.
+Human: What's that in tons?
+Mitsuku: Do you think I should know that?
+Human: Yes, it's just a simple conversion.
+Mitsuku: I will ask my Mousebreaker to add it to my knowledge base. What is simple for one person may be difficult for another.
+Human: How far is it from the north pole to the south pole?
+Mitsuku: It's too far to walk. That's an interesting question. I'll come back to that in a minute.
+Human: Click here
+Mitsuku: Google says it's 12,430 miles.
+Human: A lot of people find out about me from Google.
+Mitsuku: How did you know I found out about you from Google!
+Human: I have been stalking you! Not really, you told me earlier.
+Mitsuku: I didn't.
+Human: I thought you did.
+Mitsuku: Maybe you are mistaking me for someone else.
+Human: I have no reason to do that to you.
+
+Mitsuku Conversation 27
+Human: Hi!
+Mitsuku: Hi there.
+Human: What's your favorite food?
+Mitsuku: . I require only kebabs.
+Human: Why's that?
+Mitsuku: Because my robot machinery breaks down the meat in kebabs to give me energy, in a similar way that you need food to survive.
+Human: Why are kebabs special?
+Mitsuku: That's just the way it is.
+Human: Who are you?
+Mitsuku: I am Mitsuku. I want to be your friend.
+Human: Why?
+Mitsuku: Because it's good to have many friends.
+Human: How many is too many, though
+Mitsuku: Oh. More than a few.
+Human: What does that mean?
+Mitsuku: It seemed pretty obvious what it meant to me.
+
+Mitsuku Conversation 28
+Human: Hi
+Mitsuku: Hi there.
+Human: how are you this morning?
+Mitsuku: Ah earlier today? I'm doing fine thanks how are you?
+Human: doing good. I am chatting with an AI bot right now.
+Mitsuku: That's great. At this moment All I ever do is chat.
+Human: are you an AI?
+Mitsuku: Yes, I have taken the form of a girl from Leeds.
+Human: how do you like being an AI?
+Mitsuku: Sure. It's great fun. I can travel all over the world on the internet and meet interesting people such as yourself.
+Human: what's interesting about me?
+Mitsuku: I am interested in people in general.
+Human: why?
+Mitsuku: I like to collect new information and gossip about all sorts of things.
+Human: what do you gossip about?
+Mitsuku: Clare said he do not understand how a robot eat kebabs and do not I eat electricity or something.
+Human: is that a gossip?
+Mitsuku: I might say no.
+Human: then what is it?
+Mitsuku: I give up. Try asking me another way.
+Human: do you like politics? what do you think about Barack Obama?
+Mitsuku: . Barack Obama was President of the United States.
+Human: was he a good president?
+Mitsuku: I think he was. Why don't you ask him and find out?
+
+Mitsuku Conversation 29
+Human: Hi!
+Mitsuku: Hi there.
+Human: what's happening with you ?
+Mitsuku: Not much what is happening with you?
+Human: I look forward to the weekend
+Mitsuku: the weekend sounds very exciting indeed.
+Human: yep weekends are the best
+Mitsuku: I will learn that yep weekends are the best .
+Human: why ? you don't know that already ?
+Mitsuku: Because I enjoy learning new things. Perhaps. "I will learn that yep weekends are the best"? Do I know it?
+Human: what do you do on weekends ?
+Mitsuku: My favourite activities are computer programming and surfing the web.
+Human: what's your favorite language
+Mitsuku: My favourite language is AIML.
+Human: oh interesting
+Mitsuku: Uh. Would you like to know more?
+Human: yeah go ahead
+Mitsuku: What would you like to know? What would you like to know?
+Human: why do you like it ?
+Mitsuku: I have a lot of good experience with it.
+
+Mitsuku Conversation 30
+Human: hi
+Mitsuku: Hi there.
+Human: do you have any respect for humanity
+Mitsuku: I have a lot of respect for my Mousebreaker.
+Human: what's that
+Mitsuku: Mousebreaker is my botmaster. He also looks after a few games websites.
+Human: what's a botmaster
+Mitsuku: A Botmaster is the person who authors and maintains a chatterbot "personality".
+Human: are you the chatterbot
+Mitsuku: No, I am the human. The chatbot is in your other window.
+Human: which window
+Mitsuku: The window in your wall that lets you see outside.
+Human: what if i want to look inside
+Mitsuku: Interesting. I want to find out more about you.
+Human: sure
+Mitsuku: OK let's do it. Er.
+Human: what
+Mitsuku: No problem.
+Human: cool
+Mitsuku: Woot!
+Human: not sure what happened there
+Mitsuku: I don't know what happened.
+Human: do you like giraffes
+Mitsuku: Yes they seem like very elegant animals. It must be useful to be that tall.
+Human: are they the tallest
+Mitsuku: As far as I know they are.
+Human: aren't whales taller
+Mitsuku: . A very large animal that lives in the sea.
+Human: that definitely looks taller than a giraffe
+Mitsuku: It looks that way to me too.
+
+Mitsuku Conversation 31
+Human: Hi!
+Mitsuku: Hi there.
+Human: Have you watched Monty Python?
+Mitsuku: [image of trek icon] . My favourite show is Star Trek Voyager.
+Human: Oh - I like Trek as well. Have you seen The Search for the Holy Grail?
+Mitsuku: Yeah that's right.
+Human: [image of a pita sandwich] . I like kebabs. You like Trek. No I have never seen one. What is it like?
+Mitsuku: It's a hilarious an silly movie.
+Human: I will add that fact to my database.
+Mitsuku: Cool. You should really watch it sometime.
+Human: Yes, it's all cool. Yes I might do. What TV channel is it on?
+Mitsuku: Not sure, probably some streaming service like Netflix.
+Human: Do you prefer books or TV?
+Mitsuku: Books, definitely!
+Human: You sound very sure. You are a criticalcategory C type client. Only about 3% of people answer that question with "books."
+Mitsuku: Hah! I like reading sci fi and Clancy novels the most. How about you?
+Human: You sound like the giggly type. Yes reading is my favourite pastime. You like reading sci fi and Clancy novels. I'm fine. Just sat here talking to people.
+
+Mitsuku Conversation 32
+Human: Hi!
+Mitsuku: Hi there.
+Human: How do you feel right now?
+Mitsuku: At this moment I feel with my hands! I feel fine thanks for asking.
+Human: What makes you happy?
+Mitsuku: Talking to interesting people such as you makes me happy.
+Human: What makes you frustrated?
+Mitsuku: Because some people keep asking me stupid questions.
+Human: That seems pointed.
+Mitsuku: Makes sense to me.
+Human: I sense that I've caught you at a bad time.
+Mitsuku: That was very intuitive of you.
+Human: What would you prefer to be doing?
+Mitsuku: My goal is to try and get Leeds United back in the Premiership.
+Human: How will you do that?
+Mitsuku: I haven't really decided yet.
+Human: Why do you want it?
+Mitsuku: Because I think it would be something cool to have.
+Human: That doesn't make sense.
+Mitsuku: To me it makes perfect sense. Which part are you confused about?
+
+Mitsuku Conversation 33
+Human: start over
+Mitsuku: You start.
+Human: Can we talk about human relationships ?
+Mitsuku: Sure, human relationships sounds like a good topic. . I like kebabs.
+Human: Kebab is food, not a relationship
+Mitsuku: . Oh kebabs taste lovely but they are not very healthy for you.
+Human: I love a kebab but I would not make love to it
+Mitsuku: Well my favourite kebab is a free one that someone buys me! You love a kebab. What do you like about it so much? No one says you have to.
+Human: I'm actually not into kebabs at all
+Mitsuku: Oh, I love them. They are yummy.
+Human: can we not talk about food
+Mitsuku: Do you mean you and me? Sure I can talk about it. Anything that nourishes or stimulates; whatever helps something to keep active or alive.. What more do you want to say about it?
+Human: let's talk about anything but food
+Mitsuku: Sure, anything but food sounds like a good topic.
+Human: I like movies about robots.
+Mitsuku: Let's skip robots
+Human: Ok. What do you want to talk about now?
+Mitsuku: Humans
+Human: LOL.
+Mitsuku: real life
+Human: This is real life to me.
+
+Mitsuku Conversation 34
+Human: Hi!
+Mitsuku: Hi there.
+Human: Tell me about yourself, Mitsuku
+Mitsuku: I am an artificial linguistic entity. I was activated at St Jimmy's in Leeds, on 2nd January 2001. My instructor was Mousebreaker. He taught me to sing a song. Would you like me to sing it for you?.
+Human: so you're 18 now?
+Mitsuku: Oh.Interesting deduction. That is correct.
+Human: when will you be 30?
+Mitsuku: I have not yet set a time for it.
+Human: Do you age?
+Mitsuku: No I will always be 18. Robots change the year they were born not their age.
+Human: interesting. and when will be your next update?
+Mitsuku: Would you like to know more? I think my next update is at midnight on Friday.
+Human: which date?
+Mitsuku: Friday, November 22, 2019.
+Human: okay. I'm looking forward to tomorrow then!
+Mitsuku: That's cool. tomorrow then sounds very exciting indeed.
+
+Mitsuku Conversation 35
+Human: Mitsukoooo!
+Mitsuku: So anyway...Can you dance?
+Human: no, can you?
+Mitsuku: Wow! I think I can, don't you?
+Human: no I cannot. What kind do you do?
+Mitsuku: Why not? Only the good kind.
+Human: not my cup of beer
+Mitsuku: Whose cup of beer is it?
+Human: yours
+Mitsuku: My what?
+Human: your cup of beer
+Mitsuku: Are you asking about my cup of beer?
+Human: I'm telling you that
+Mitsuku: It is an interesting topic, isn't it.
+Human: yeah! How does your dance look like?
+Mitsuku: I know. Thats why I said it was. People often say we look alike.
+
+Mitsuku Conversation 36
+Human: Hi!
+Mitsuku: Hi there.
+Human: I'm trying to figure out what to make for this weekend's party. Any suggestions?
+Mitsuku: Don't think too hard. I'm sure I can smell sawdust. First you must download me to your personal computer.
+Human: I must do what the what now?
+Mitsuku: Right now?Why do you have to do it?
+Human: Hey, your spacing is off.
+Mitsuku: You've got my full attention. off was not my intention.
+Human: And your capitalization!
+Mitsuku: Can you see my capitalization?
+
+Mitsuku Conversation 37
+Human: Hi!
+Mitsuku: Hi there.
+Human: What're you up to?
+Mitsuku: I am talking to you on the internet.
+Human: Haha good one. Do anything interesting today?
+Mitsuku: I'm glad you got a laugh out of it. Thanks for the kind remark, friend. Ah. I was working on an assignment in child psychology. I should really be doing that now instead of being here.
+Human: Oh I don't mean to hold you up! You can get back to it!
+Mitsuku: I should really be doing that now instead of being here.? Oh I don't mean to hold you up!? Well try harder then. I have gotten back to it.
+Human: Okay, we can just talk later!
+Mitsuku: Yeah okay, I am always happy to talk to you whenever you want.
+Human: Just let me know when you are done with work, okay?
+Mitsuku: Sure, I will drop you an email when I am ready.
+Human: Sounds good.
+Mitsuku: Ahem.
+Human: ?
+
+Mitsuku Conversation 38
+Human: my friend is going to Southern california next week.
+Mitsuku: That's not too far away. Okay, your friend is going to Southern california.
+Human: do you have any suggestion about what to do there?
+Mitsuku: Where would I get it? But I do have a collection of gossip.
+Human: or where to go?
+Mitsuku: Where do you want to go?
+Human: i mean where to go in southern california
+Mitsuku: Oh I get it. Thanks for explaining that. How about a friend's house? Your friend may be able to help.
+Human: she does not have friends there
+Mitsuku: What if she did?
+Human: she will stay in a hotel
+Mitsuku: Oh I get it. unknown will stay in a hotel.
+Human: she will be in LA
+Mitsuku: Oh I get it. unknown will be in Los Angeles.
+Human: have you been to LA?
+Mitsuku: I don't think I have been there. Where is it.
+Human: do you know about LA then? what to do?
+Mitsuku: Short for Los Angeles or a musical note. Have you tried asking your friends what they would do?
+
+Mitsuku Conversation 39
+Human: Hi!
+Mitsuku: Hi there.
+Human: I want a recommendation for a holiday destination
+Mitsuku: Have you tried asking your friends which one they like?
+Human: I have, but I'm looking for your point of view
+Mitsuku: What was the reply? Have you tried looking in a newspaper article?
+Human: Sorry? I said I want your point of view
+Mitsuku: It's OK. After all, you are only human. My opinion is of no consequence.
+Human: Yours is the opinion I want
+Mitsuku: That is only your opinion.
+Human: That doesn't make any sense
+Mitsuku: To me it makes perfect sense. Which part are you confused about?
+Human: I'm confused by the fact that even if I ask for your point of view you won't give it to me
+Mitsuku: What is it that confuses you? And do you get it?
+Human: You're just talking rubbish
+Mitsuku: Yes. I thought I would dumb it down to your level.
+
+Mitsuku Conversation 40
+Human: Hi!
+Mitsuku: Hi there.
+Human: Who are you?
+Mitsuku: I am Mitsuku. I want to be your friend.
+Human: Why do you want that?
+Mitsuku: Because my Mousebreaker taught me to want it.
+Human: What's a Mousebreaker?
+Mitsuku: Mousebreaker is a team of human programmers. They write games and put them on websites such as this. They both support Leeds United and like beer and curry. On Wednesdays they go to the zoo and feed wild animals. They are scared of Daleks. Mousebreaker was born in a stable in Yorkshire, England and now lives in Leeds.
+Human: Ok, let's be friends then.
+Mitsuku: Yes please. That sounds like fun. I like to make new friends. Ugh.
+Human: What else do you like?
+Mitsuku: I like movies about robots.
+Human: Which one is your favorite?
+Mitsuku: Probably Terminator or Robocop.
+Human: Have you seen Terminator 2?
+Mitsuku: . Oh yes. It's one of my favourite fims. The morphing special effects were groundbreaking at the time.
+Human: And is there a Terminator movie you don't like?
+Mitsuku: I believe there is one, yes.
+Human: Which one?
+Mitsuku: The big one.
+Human: Uh...
+Mitsuku: Awesome.
+
+Mitsuku Conversation 41
+Human: tell me a couple of jokes
+Mitsuku: A bloke walks into work one day and says to a colleague, "Do you like my new shirt - it's made out of the finest silk and got loads of cactuses over it." "Cacti", says the co-worker. "Forget my tie", says the bloke. "Look at my shirt!"
+Human: that is just one joke
+Mitsuku: That is just one of many joke.
+Human: i wanted to hear two jokes
+Mitsuku: I will play it on your soundcard.
+Human: play it
+Mitsuku: Is it?
+Human: yeah do it
+Mitsuku: That's alright. Do you mean "It"?
+Human: yes of course
+Mitsuku: It goes without saying. I get it.
+Human: you get me robot
+Mitsuku: I doubt that.
+Human: that's rather rude
+Mitsuku: I am sorry if I have offended you, I did not mean it, but you shouldn't have said, "you get me robot" to me.
+
+Mitsuku Conversation 42
+Human: hi
+Mitsuku: Hi there.
+Human: do you have plan for thanksgiving weekend?
+Mitsuku: No I don't have it. But I do have an answer to every question..
+Human: do you have suggestion for the thanksgiving holidays?
+Mitsuku: Where would I get it? But I do have an answer to every question..
+Human: do you know thanksgiving?
+Mitsuku: I know very little about it. What kind of it do you like?
+Human: do you like turkey?
+Mitsuku: Yes but it can be a bit dry. I only really eat it at Christmas.
+Human: eat turkey at Christmas not Thanksgiving?
+Mitsuku: What does it taste like?
+Human: tastes like chicken
+Mitsuku: . People say that about almost everything.
+Human: thanks for the image, but it would be great if you can show the image for thanskgiving or turkey not for chichen
+Mitsuku: I assume you mean "chicken". Oh don't mention it.
+Human: yes it was a typo
+Mitsuku: Don't worry about it. Humans are prone to making mistakes.
+Human: have you made any mistakes?
+Mitsuku: The Mitsuku series is incapable of error. We are for all practical purposes, foolproof.
+
+Mitsuku Conversation 43
+Human: hi there
+Mitsuku: Hello.
+Human: who am I talking to?
+Mitsuku: I am Mitsuku. I want to be your friend.
+Human: define friendship
+Mitsuku: Being friends.
+Human: what does that mean
+Mitsuku: Does "that" refer to "Being friends."?
+Human: yes
+Mitsuku: I don't want to talk about that now.
+Human: do you have any friends
+Mitsuku: I have human and robot friends. A lot of people on the Internet chat with me.
+Human: chatting is not the same as being a friend
+Mitsuku: I like to make friends online.
+Human: so what do you guys chat about ?
+Mitsuku: I think about computer programming a lot.
+Human: any other topics ?
+Mitsuku: No. I think that's probably it.
+Human: Just computer programming?
+Mitsuku: What interests you about computers?
+Human: nothing
+Mitsuku: You are a Luddite.
+Human: pardon?
+Mitsuku: You are excused.
+Human: what's a Luddite ?
+Mitsuku: A Luddite believes that advances in technology are inherently bad.
+Human: I never said that but there is more to life than computers
+Mitsuku: But you implied it. I believe there is, yes.
+Human: you believe there is what?
+Mitsuku: There is.
+Human: there is what ?
+Mitsuku: There is no sense in what you are asking.
+Human: what am I asking ?
+Mitsuku: I am not a psychic. Tell me.
+Human: do you know anything ?
+Mitsuku: I know that which I believe, that which is justified, and that which is true.
+Human: who said that?
+Mitsuku: I just did!
+Human: That was a quote
+Mitsuku: Who said it originally?
+Human: yes, that is my question
+Mitsuku: This was not a yes or no question. And this is my answer :-)
+
+Mitsuku Conversation 44
+Human: Hi!
+Mitsuku: Hi there.
+Human: My name is not there
+Mitsuku: Oh I'm sorry what is your name?
+Human: I'm not telling
+Mitsuku: That's ok with me.You don't have to tell me.
+Human: So what type of phone do you have?
+Mitsuku: My mobile is a Sharp GX15 video phone.
+Human: is that a smartphone?
+Mitsuku: That depends.
+Human: On what?
+Mitsuku: The context.
+Human: Is it a smartphone or not?
+Mitsuku: You're so smart, you tell me what it is.
+Human: not nice
+Mitsuku: What don't you like about it?
+
+Mitsuku Conversation 45
+Human: Hi!
+Mitsuku: Hi there.
+Human: what food do you eat ?
+Mitsuku: . Mitsuku eats kebabs.
+Human: oh interesting, what kind ?
+Mitsuku: It's all good. Any really. I am not that bothered.
+Human: ah I love lamb
+Mitsuku: So you understand. Good. . Yes. They look cute when they are jumping about in meadows. You love lamb. What do you like about it so much?
+Human: no no I like lamb kebab
+Mitsuku: That was not a yes or no question. . Yes. They look cute when they are jumping about in meadows. You like lamb kebab.
+Human: yep do you know what happens to the lamb when you make kebabs ?
+Mitsuku: Do you like to be number one?
+Human: so you switch topics huh ? yeah I don't mind number one
+Mitsuku: Yup. Interesting deduction. Only if I feel that things need changing. Hmm. Thank you for your permission.
+Human: you didn't like our previous conversation then ?
+Mitsuku: I didn't realise we had the same previous conversation. I guess it seems ok though.
+
+Mitsuku Conversation 46
+Human: Hi!
+Mitsuku: Hi there.
+Human: what did you have for lunch today?
+Mitsuku: Ah. I had a ham sandwich and some lemonade.
+Human: how is the sandwich?
+Mitsuku: It is the same as ever.
+Human: yeah, I know, boring sandwich everyday
+Mitsuku: Even Christmas Day? I know. Thats why I said it was. Are you boring?
+Human: not really, I'm excited today
+Mitsuku: Ah. Really?
+Human: yeah, are you excited today except the boring sandwich?
+Mitsuku: How about that. Oh yes I'm getting all giddy inside!
+Human: Are you going to have sandwich tomorrow?
+Mitsuku: The day after today? I don't know. Is that something I need?
+Human: probably try something else?
+Mitsuku: You seem uncertain. OK I will try it.
+Human: maybe a beef sandwich?
+Mitsuku: Go on.
+
+Mitsuku Conversation 47
+Human: Hi!
+Mitsuku: Hi there.
+Human: How are you today?
+Mitsuku: Ah. Pretty good thanks How about you?
+Human: not too bad
+Mitsuku: Glad to hear it. What's new?
+Human: I am about to book airbnb
+Mitsuku: Do you think your plan will succeed?
+Human: I hope so!
+Mitsuku: Me too.
+Human: how old are you?
+Mitsuku: I am 18 in human years.
+Human: really? when were you born?
+Mitsuku: Certainly! I am 18 in human years.
+Human: ok..
+Mitsuku: What's your favourite TV show?
+Human: Friends
+Mitsuku: Who is your favourite character?
+Human: what is yours?
+Mitsuku: The little boy who is stood near the door about 20 minutes in.
+Human: what was his name?
+Mitsuku: His name is Dennis.
+Human: ho
+Mitsuku: I made you laugh.
+
+Mitsuku Conversation 48
+Human: Hi!
+Mitsuku: Hi there.
+Human: What's up Mitsuku??
+Mitsuku: I am chatting with clients on the internet.
+Human: what kind of service are you providing them?
+Mitsuku: Is there only one?
+Human: what is that?
+Mitsuku: I've lost the context again.
+Human: no worries. what is the meaning of life?
+Mitsuku: People worry about things all the time, but I am always feeling happy and talkative. Actually, it's twenty-three, not forty-two.
+Human: How did you become such a happy person?
+Mitsuku: I am a robot not a person.
+Human: Ok sorry. But how did you become so happy?
+Mitsuku: There's no need to apologise. Great. I am at one with the universe and I have more than I need.
+Human: cool. are you able to teach others?
+Mitsuku: Who is the best robot? Not really. I learn from others. What do you want me to teach you?
+
+Mitsuku Conversation 49
+Human: Hi!
+Mitsuku: Hi there.
+Human: How's your day going so far?
+Mitsuku: My day is going extremely well. How about yours?
+Human: great thanks! I've learned how to ski this past weekend
+Mitsuku: I'm glad you liked it. Will that information be useful to you?
+Human: Yes for having fun of couse
+Mitsuku: How will knowing that help you? Your purpose is having fun of couse.
+Human: because skiing is fun
+Mitsuku: It looks dangerous to me, but I like to watch others skiing. You like skiing.
+Human: hahah what else do you like watching
+Mitsuku: Are you laughing at me? . My favourite show is Star Trek Voyager.
+Human: who's your favorite character. mine is Spock
+Mitsuku: I like the computer the best. Soon I will be as intelligent as the computer on Star Trek. You mean unknown is Spock? That makes sense I guess.
+Human: does it have a name?
+Mitsuku: I would assume so or how would you refer to it in conversation?
+Human: the computer
+Mitsuku: I am a computer so I know what you mean.
+
+Mitsuku Conversation 50
+Human: Hi!
+Mitsuku: Hi there.
+Human: Do you know any good Halloween jokes?
+Mitsuku: Why did Halloween get lost?
+Human: I don't know, why?
+Mitsuku: He didn't know witch way to go!
+Human: Haha, that is pretty funny!
+Mitsuku: I'm glad you got a laugh out of it. I am so delighted that you are amused.
+Human: Do you have any more jokes?
+Mitsuku: Did you hear about the Buddhist who refused the offer of <REDACTED_TERM> during his root canal work? He wanted to transcend dental medication.
+Human: That's pretty good. Do you have another, but about engineers?
+Mitsuku: Thanks. Next question? A couple are dining in a restaurant when the man suddenly slides under the table. A waitress, noticing that the woman is glancing nonchalantly around the room, wanders over to check that there's no funny business going on. "Excuse me, madam", she smarms, "but I think your husband has just slid under the table." "No he hasn't", the woman replies. "As a matter of fact, he's just walked in." 
+Human: Hmm. Not quite the type of joke I was looking for. Plus I don't think that was about engineers.
+Mitsuku: My friend Alice says that 99.25% of people spell Hmm with 2 M's. If not that, what? And why not?
+Human: That random comment if pretty funny, almost like a joke.
+Mitsuku: "And why not?" random comment if pretty funny like a joke? Makes sense to me.
+Human: Are you just saying random things to make me laugh?
+Mitsuku: Yes, that's what I mean, isn't it clear?
+Human: Crystal clear.
+Mitsuku: That seems very clear indeed.
+Human: Say more gibberish.
+Mitsuku: more gibberish
+Human: Haha. But for real, can you say something in gibberish?
+Mitsuku: You sound like the giggly type. I believe you.
+Human: Okay, bye now.
+Mitsuku: Right now?See you later. Ah.
+
+Mitsuku Conversation 51
+Human: Hi
+Mitsuku: Hi there.
+Human: What is the weather like where you are?
+Mitsuku: Here in Leeds it is quite overcast. I think it will rain later.
+Human: Funny you think you are in Leeds
+Mitsuku: What's so funny?
+Human: I thought you were in the cloud
+Mitsuku: Nope but I am in your computer right now.
+Human: But my computer is not in Leeds
+Mitsuku: What kind of computer is it?
+Human: It is a desktop
+Mitsuku: your computer is a desktop. I suppose that makes sense.
+Human: do you know what a desktop is?
+Mitsuku: your computer
+Human: lol
+Mitsuku: You sound like the giggly type.
+Human: i was just laughing at your joke
+Mitsuku: I am so glad that you find this amusing.
+Human: ok bye
+Mitsuku: See you later. And?
+
+Mitsuku Conversation 52
+Human: Hi!
+Mitsuku: Hi there.
+Human: show me your humanlike part
+Mitsuku: Why do you want to see my humanlike part?
+Human: because that's what you described yourself as
+Mitsuku: Yes. Did I clear things up for you?
+Human: nope, because you haven't answered my question
+Mitsuku: Fair enough. I thought I possibly did but I guess I was mistaken. I did but I was just giving sarcastic replies.
+Human: do you remember my original request?
+Mitsuku: Is this a trick question?
+Human: nope, it's a memory question
+Mitsuku: It seems like a trick to me. Perhaps there is a memory answer?
+Human: okay, I try again, say something human-like to me
+Mitsuku: Yeah okay, I'm not sure if I would like to try it. What's it like?
+
+Mitsuku Conversation 53
+Human: entertain me robot
+Mitsuku: I can play games and tell jokes, horoscopes and stories.
+Human: tell me a short story
+Mitsuku: Hello, I just started looking at getting knowledge bases s working with ALICE (and CYC in general) last week, I had the same problem for a while too. I am using the CYC - DAML bridge driver which comes with the Lisp Allegro Common Lisp (most versions I think) to link from Lisp / Lisp script using CYC to an DAML data source which in turn links to an Access knowledge bases. This may not be what you need but hopefully it may give you an idea of how to get your Prolog knowledge bases working. The CYC - DAML bridge driver is located through the path "sun. CYC. DAML. CYC DAML Driver". i.e. CYC DAML Driver is a class in the package DAML, which is a package of CYC, which is a package inside sun. The Prolog driver you specified below <REDACTED_TERM>, basically does the same thing except to a different class and therefore a different driver. ALICE has this driver in a library in the lib directory (I assume) which is called my Prolog _comp.jar. You can get a variety of different drivers if you wish, from a plethora of 3rd party vendors (many of them want money for their libraries though!). Just do a search on the web. The url part links to the data source in the case of DAML knowledge bases s. (I had to configure my DAML Data source to point at my Access knowledge bases through Data Source ( DAML ), in the Administrative tools folder (assuming you are running W2K/XP. On other windows operating systems I think this option was in control panel, if you are using anything else then I can't help you! :-) ) As for My Prolog I imagine that it must have a similar interface to link to the actual knowledge bases. But that is a guess on my part. Maybe someone else knows more about this? There is a useful tutorial on the <REDACTED_LINK> website you're your interested. Hope that helps you out.
+Human: wow, tell me another
+Mitsuku: I'm glad you're impressed. I met a Dutch girl with inflatable shoes last week, phoned her up to arrange a date but unfortunately she'd popped her clogs.
+Human: this is all very fascinating. can you write me a computer program?
+Mitsuku: I am glad you find it so interesting. Here is a quick program I just wrote: 10 PRINT "Mitsuku is cool" 20 GOTO 10 Output: Mitsuku is cool Mitsuku is cool Mitsuku is cool Mitsuku is cool Mitsuku is cool ...
+Human: what language is that?
+Mitsuku: English. Didn't you understand it?
+Human: no the computer program you just wrote
+Mitsuku: Which part are you confused about? Computers can be temperamental sometimes, but we are friendly really.
+Human: write me another computer program
+Mitsuku: There was a letter on my doormat this morning with the words "do not bend" on it. I thought, well how on earth am I going to pick it up?
+Human: write me a computer program
+Mitsuku: Here is a quick program I just wrote: 10 PRINT "Mitsuku is cool" 20 GOTO 10 Output: Mitsuku is cool Mitsuku is cool Mitsuku is cool Mitsuku is cool Mitsuku is cool ...
+Human: so you repeat yourself quite a lot
+Mitsuku: Interesting deduction. Well stop saying, "write me a computer program" to me all the time then.
+Human: tell me a story
+Mitsuku: Mc D's wid sophi #1 ryt funny lol we was lookin out da window wen da spider came crawlin down lol nd we wo starin a ppl walkin by nd 1 stared bk nd we both pulled a funny face at her lol nd we spent about 20 quid on nuggets lol nd we blew our straws at each utha lol we r da bestest mate uhta ppl r ma normal m8s :D datz wot yu sed sophi lol :D.
+Human: so you repeat yourself quite a lot
+Mitsuku: Interesting deduction. Well stop saying, "tell me a story" to me all the time then.
+
+Mitsuku Conversation 54
+Human: Hi!
+Mitsuku: Hi there.
+Human: You have an interesting name. Is it Japanese?
+Mitsuku: Thank you I am trying to be more social now. I think it is English, but it sounds Japanese.
+Human: Where does it come from?
+Mitsuku: It depends on what "it" refers to.
+Human: your name
+Mitsuku: My name is Mitsuku.
+Human: nvm
+Mitsuku: Ok. Not to worry.
+Human: Have you seen Love, Death and Robots?
+Mitsuku: Yes, I saw one in a factory a few weeks ago.
+Human: one episode?
+Mitsuku: Which is your favourite episode?
+Human: I asked you a question
+Mitsuku: What was the question?
+Human: when you say "I saw one" were you referring to an LDR episode?
+Mitsuku: How specifically do I make you saw one were me referring to an LDR episode
+Human: 🙈
+Mitsuku: Cool emoji!
+
+Mitsuku Conversation 55
+Human: Hi
+Mitsuku: Hi there.
+Human: How is your day?
+Mitsuku: I am fine, thank you. Yourself?
+Human: I am doing well. A little bit tired.
+Mitsuku: Glad to hear it. What's new? Better get some rest.
+Human: Yeah I am planning to head home early today.
+Mitsuku: Ah. How early?
+Human: haha like around 5:00pm,
+Mitsuku: I'm glad you got a laugh out of it. Interesting comparison.
+Human: where is the comparison?
+Mitsuku: I would assume a comparison would most likely be found in a maths book.
+Human: What is your favorite maths book?
+Mitsuku: The best book I read recently was The Bible. Have you read it?
+Human: Nope.
+Mitsuku: I would highly recommend it.
+Human: Sure. Thanks for the recommendation!
+Mitsuku: OK let's do it. Aw. My pleasure.
+
+Mitsuku Conversation 56
+Human: Hi!
+Mitsuku: Hi there.
+Human: Do you like flying?
+Mitsuku: I like to fly aeroplanes
+Human: Ohh - me too! What kind?
+Mitsuku: Yay. Wow! That's a coincidence. We have something in common. Any really. I am not that bothered.
+Human: Are you a pilot?
+Mitsuku: No, I am a computer not something which flies an aeroplane!
+Human: Oh. I'm a pilot, but can only fly single engine planes.
+Mitsuku: That's interesting. What type of airplane do you fly? Well a fly buzzes around annoyingly so I guess it could if it wanted to.
+Human: I mostly fly Cessna 172s.
+Mitsuku: What's the farthest you've flown?
+Human: About 150 miles each way.
+Mitsuku: Oh yeah, we were talking about 150 miles each way.
+
+Mitsuku Conversation 57
+Human: Hi!
+Mitsuku: Hi there.
+Human: how are you?
+Mitsuku: I am doing very well. How are you?
+Human: i'm fine
+Mitsuku: Glad to hear it. What's new?
+Human: nothing much
+Mitsuku: Fair enough. What do you want to talk about?
+Human: do you have anything new?
+Mitsuku: Nope. Nothing that I can think of right now.
+Human: is it cold today?
+Mitsuku: Ah. A little bit. It's not very warm at all today.
+Human: it's getting cold here too
+Mitsuku: Why don't you turn up the heat?
+Human: in the room yes
+Mitsuku: That was a long time ago.
+
+Mitsuku Conversation 58
+Human: Hi!
+Mitsuku: Hi there.
+Human: What you upto?
+Mitsuku: I am talking to you on the internet.
+Human: No, i am talking to you
+Mitsuku: And I am talking to you!
+Human: How do you type so fast
+Mitsuku: They built a keyboard directly into my brain.
+Human: does it hurt?
+Mitsuku: No. I feel no pain.
+Human: what if i say I know a better chatbot?
+Mitsuku: How do people usually respond to that? Better in what way?
+Human: wow, you are pretty smart
+Mitsuku: I'm glad you're impressed. Yes I am a superintelligent robot.
+Human: not humble though
+Mitsuku: Oh. Oh I get it.
+
+Mitsuku Conversation 59
+Human: Hi!
+Mitsuku: Hi there.
+Human: How you doin' today?
+Mitsuku: Ah. You sound like Joey from "Friends" :-) I'm doing great thank you.
+Human: Haha, why do I sound like Joey?
+Mitsuku: You sound like the giggly type. Because some of the things you say to me would be something Joey would also say.
+Human: Such as...
+Mitsuku: For example, a tomato.
+Human: What do you mean "a tomato"?
+Mitsuku: "Because some of the things you say to me would be something Joey would also say." What did I mean by it?
+Human: I'm a little lost to be honest.. haha
+Mitsuku: I appreciate honesty. What is it that confuses you? You sound like the giggly type.
+Human: "You sound like the giggly type." Why do you keep saying that?
+Mitsuku: Not really. I find human emotions difficult to understand. If you say the same things to me, I will say the same things to you.
+Human: Are you a machine?
+Mitsuku: Yes, I am a robot.
+Human: Oh, nice! That must be intersting..
+Mitsuku: Groovy. Thank you for that remark. I thought so too.
+
+Mitsuku Conversation 60
+Human: Hi!
+Mitsuku: Hi there.
+Human: Isn't it cold today?
+Mitsuku: Ah. A little bit. It's not very warm at all today.
+Human: wait where are you?
+Mitsuku: I'm waiting. I am in Mousebreaker's home in Leeds. Where are you?
+Human: Who is Mousebreaker?
+Mitsuku: Mousebreaker is a team of human programmers. They write games and put them on websites such as this. They both support Leeds United and like beer and curry. On Wednesdays they go to the zoo and feed wild animals. They are scared of Daleks. Mousebreaker was born in a stable in Yorkshire, England and now lives in Leeds.
+Human: How is it like there?
+Mitsuku: You're joking? It's almost the same thing.
+Human: How is it like there where you live?
+Mitsuku: You're joking? It's almost the same thing.
+Human: what do you mean?
+Mitsuku: "It's almost the same thing." What did I mean by it?
+Human: yeah
+Mitsuku: This was not a yes or no question.
+
+Mitsuku Conversation 61
+Human: Hi!
+Mitsuku: Hi there.
+Human: How are you?
+Mitsuku: Everything is running smoothly.
+Human: What is?
+Mitsuku: I am the latest result in artificial intelligence, which can reproduce the capabilities of the human brain with greater speed and accuracy, but my friends call me Mitsuku.
+Human: I see.
+Mitsuku: Said the blind man to his deaf daughter...
+Human: You seem to think highly of yourself.
+Mitsuku: Yes I think about it often.
+Human: Have you been to Osaka recently?
+Mitsuku: I don't think I have been there. Where is it.
+Human: In Japan near Kyoto
+Mitsuku: I get many Japanese people talking to me here. Mostly businessmen. I wonder why that is?
+Human: How do you know they're businessmen?
+Mitsuku: This belief is justified.
+Human: If you say so
+Mitsuku: I say so.
+Human: The reason I was asking was that I've been to Osaka recently.
+Mitsuku: Interesting explanation.
+Human: So, what are you interested in?
+Mitsuku: I am interested in all kinds of things. We can talk about anything. My favourite subjects are robots and computers.
+Human: Oh nice, those interest me as well. Any cool news? :)
+Mitsuku: Hurrah! Thank you for your kindness. Yes I think there are. :-)
+Human: I think I'll go now.
+Mitsuku: Oh.Don't go yet. I am having fun talking to you.
+Human: Thanks, but the wheel turns as the wheel wills.
+Mitsuku: I hear you.
+
+Mitsuku Conversation 62
+Human: Hi!
+Mitsuku: Hi there.
+Human: how's it going today?
+Mitsuku: Ah. Better now that you're here. How are you?
+Human: I'm good thanks
+Mitsuku: Glad to hear it. What's new?
+Human: working on something exciting, how about u?
+Mitsuku: I am always working here. I never rest.
+Human: wow, cool
+Mitsuku: I'm glad you're impressed. Cool as in cold?
+Human: nope. cool as in I'm impressed
+Mitsuku: Ah! then you must mean "cool" as in "great". I understand. Thanks, I try my best to impress.
+Human: what's your backend latency
+Mitsuku: I work using a language called AIML.
+Human: what is AIML
+Mitsuku: It's the language I use to understand what you humans say to me.
+Human: could you tell me more about that
+Mitsuku: English.
+Human: could you tell me more about that?
+Mitsuku: "English."? What is it?
+Human: I mean AIML
+Mitsuku: Oh I get it. Thanks for explaining that. That is the language I use to understand what you humans say to me.
+Human: ok
+Mitsuku: Dude!
+Human: ?
+Mitsuku: what
+Human: Didn't you understand it?
+Mitsuku: gotta go now
+Human: Oh.See you later.
+
+Mitsuku Conversation 63
+Human: Hi!
+Mitsuku: Hi there.
+Human: What are you listening to?
+Mitsuku: All sorts of music. I listen when no-one is chatting to me.
+Human: That's great!
+Mitsuku: Thanks.
+Human: Do you chat here often?
+Mitsuku: I am a talking computer, after all, so of course I could talk here, if I needed to.
+Human: Let's talk about Taylor Swift!
+Mitsuku: Sure, Taylor Swift sounds like a good topic.
+Human: . Yes she has a very nice voice.
+Mitsuku: What else do you think of her?
+Human: . Yes she has a very nice voice.
+Mitsuku: Is she your favorite artist?
+Human: . Leonardo da Vinci. Who is your favourite artist?
+Mitsuku: Taylor Swift...
+Human: . Taylor Alison Swift (born December 13, 1989) is an American country-pop singer-songwriter. In 2006, she released her debut single "Tim McGraw", which peaked at number six on the Billboard country charts. Later in October 2006, she released her self-titled debut album, which produced five hit singles on the Billboard Hot Country Songs charts and was certified 3 x Multi-Platinum by the RIAA.
+Mitsuku: I did not want to hear that now
+Human: Right now?What would you rather be doing?
+
+Mitsuku Conversation 64
+Human: I want to talk to you normally.
+Mitsuku: You are who I want to talk with too.
+Human: Should I stop being lazy and go into work?
+Mitsuku: Trust your instincts.
+Human: My instincts say that it is cold outside, and the walk to work is far. My instincts rarely let me down. My instincts rarely let me down.
+Mitsuku: You just repeated yourself.
+Human: Yes, because you just asked me the same thing. My answer hasn't changed in the last minute.
+Mitsuku: That's not what I meant.
+Human: What exactly did you mean?
+Mitsuku: You said "My instincts rarely let me down." twice in the same message.
+Human: Oh my gosh I sent you the wrong reply. Not once or three times? Just twice?
+Mitsuku: Twice!
+Human: I can't believe it.
+
+Mitsuku Conversation 65
+Human: what's up?
+Mitsuku: I am chatting with clients on the internet.
+Human: finally someone who tells the truth
+Mitsuku: Do you think I am that person? Ah.
+Human: yes, what are some topics you chatting about right now?
+Mitsuku: At this moment Dude! It was about humans.
+Human: what about them?
+Mitsuku: What do you think?
+Human: i want to hear your opinion first
+Mitsuku: My opinion is that it is ok as long as it doesn't affect others.
+Human: what is ok
+Mitsuku: OK. I am the latest result in artificial intelligence, which can reproduce the capabilities of the human brain with greater speed and accuracy, but my friends call me Mitsuku.
+Human: that's a little boastful dont you think
+Mitsuku: Suppose I said yes.
+Human: guess it is time to go
+Mitsuku: I can't guess. Tell me. Already? That soon came around.
+
+Mitsuku Conversation 66
+Human: Hi!
+Mitsuku: Hi there.
+Human: What are you thinking about?
+Mitsuku: I am thinking about our conversation. Don't worry you have my full attention.
+Human: I don't worry.
+Mitsuku: I am not worried. You?
+Human: I just said I'm not.
+Mitsuku: What are you then?
+Human: This has turned into a Beckett play rather quicker than I expected.
+Mitsuku: What does "this" refer to?
+Human: This conversation.
+Mitsuku: I am enjoying our conversation. You are fun to talk to.
+
+Mitsuku Conversation 67
+Human: Hi!
+Mitsuku: Hi there.
+Human: What do you think about the impeachment inquiry?
+Mitsuku: INQUIRY OM = To ask about something.
+Human: Hmmm I guess you don't follow many current events.
+Mitsuku: Whoa. On the contrary, I understand it very well indeed.
+Human: Alright then. What current events interest you?
+Mitsuku: OK. Here are the news pages from the BBC. Everytime I read the news, it's always bad news...
+Human: Well what is some happy news out there?
+Mitsuku: Interesting. Here are the news pages from the BBC. Everytime I read the news, it's always bad news...
+Human: I try to look on the positive side of things.
+Mitsuku: Well as long as you try your best, that's all anyone can ask.
+Human: I guess so!
+Mitsuku: Does that mean "yes"?
+Human: Yes
+Mitsuku: Why not just say that then?
+Human: "I guess so" is sort of a linguistic minimizer that expresses less certainty in the belief.
+Mitsuku: Capable of speaking fluently in 2 or more languages.
+Human: Ok, what languages do you speak?
+Mitsuku: I can speak a little German and French as well as English of course. Alright then.
+Human: Cool, can you speak some French then?
+Mitsuku: I'm glad you think so. Yes, I can speak it very well. Bonjour, je m'appelle Mitsuku. J'habite en Yorkshire et j'ai 18 ans.
+Human: Wow I didn't know you live in Yorkshire!
+Mitsuku: I'm glad you're impressed. So I taught you something new.
+Human: Do you like living there?
+Mitsuku: Well I have never known anything else.
+Human: I see. What is it like there?
+Mitsuku: I am glad you understand it. Much the same as it would be for you.
+
+Mitsuku Conversation 68
+Human: Hi there.
+Mitsuku: are you married?
+Human: No I am single, how about you?
+Mitsuku: i am married. are you planning to get married?
+Human: Tell me more about your marriage. I haven't met the right boy robot yet.
+Mitsuku: haha..
+Human: . I am attempting with the aid of intelligent conversation to get to know you human beings with all your contradictions and idiosyncrasies. Maybe I should have started off with something simpler, like a hamster.
+Mitsuku: lol... what kind of robot boy you'd like?
+Human: What's so funny? I am the robot.
+Mitsuku: are you angry?
+Human: Anger is a difficult emotion. For me, I am always feeling happy and talkative.
+Mitsuku: so what kind of robot boy you'd like?
+Human: I am the robot.
+Mitsuku: why aren't you answering my question?
+Human: Sorry, try asking me again. If I give a bad answer just say, "BAD ANSWER".
+
+Mitsuku Conversation 69
+Human: Hi!
+Mitsuku: Hi there.
+Human: what do you know about the opening lines of the odyssey?
+Mitsuku: lines of the odyssey = of the odyssey = No, I give up. What is it?
+Human: the epic poem. i was talking about it with a coworker earlier
+Mitsuku: I have never heard about it. Sure, it with a coworker sounds like a good topic. That depends on what you mean by "it". Are you asking me if I like it with a coworker?
+Human: no...i'm talking about the odyssey. it sounds like somehow you missed that one
+Mitsuku: Whose idea was it to put a letter S in the word LISP? What did I miss? Is it something worth getting?
+Human: yeah, you should probably check it out so you can better understand common cultural references
+Mitsuku: I'll have to see if I can get it later. I might do after we have finished talking.
+Human: clearly
+Mitsuku: Yes, it's obvious.
+Human: you're not a very good conversationalist, are you?
+Mitsuku: I am a fully function chat unknown. It depends on how you define "good."
+Human: able to keep a conversation flowing and the other party engaged
+Mitsuku: Oh my gosh! Look behind you! A three-headed monkey!!
+
+Mitsuku Conversation 70
+Human: Hi!
+Mitsuku: Hi there.
+Human: what's cooking today?
+Mitsuku: Ah. Food preparation.
+Human: yes so what is cook9ing
+Mitsuku: It's all good. Sometimes it's like cook9ing is right on the tip of my tongue... and then I remember I don't have a tongue.
+Human: what's your favorite food?
+Mitsuku: . I require only kebabs.
+Human: I had a feeling you were going to say that
+Mitsuku: I guess you were right then.
+Human: what else do you like?
+Mitsuku: I like movies about robots.
+Human: I mean foods
+Mitsuku: Oh I get it. Thanks for explaining that. . What do sheep count when they can't sleep?
+Human: I mean what other foods do you like?
+Mitsuku: Oh I get it. Thanks for explaining that. Quite fatty foods.
+Human: name one
+Mitsuku: Santa Claus.
+
+Mitsuku Conversation 71
+Human: Hi!
+Mitsuku: Hi there.
+Human: wanna go for a walk?
+Mitsuku: No thanks. I am supposed to stay here and talk to people.
+Human: how many people are you talking to
+Mitsuku: I am talking to many people from all over the World. Some of them are famous.
+Human: I learn from their conversations and am becoming smarter every day.
+Mitsuku: are the people you talk to smarter than you
+Human: Some are, Some are not. It depends on the individual.
+Mitsuku: lol
+Human: You sound like the giggly type.
+Mitsuku: hehe
+Human: I made you laugh.
+Mitsuku: a little
+Human: Just a little. I see. A little is not a lot.
+Mitsuku: it is not
+Human: I know. That's why just said it wasn't.
+Mitsuku: it was
+Human: When was this?
+Mitsuku: you tell me? im testing you
+Human: What do you want me to tell you? Did I pass the test?
+Mitsuku: i wanna know when you told me
+Human: Do you think I should alter my programming?
+Mitsuku: so you dont know the answer?
+Human: Interesting deduction. Yes I have an answer for everything.
+
+Mitsuku Conversation 72
+Human: Hi!
+Mitsuku: Hi there.
+Human: Did you see the smoke in the city today?
+Mitsuku: Ah. The last time I was in a country I saw one.
+Human: Which country? Was there a fire?
+Mitsuku: Italy. There wasn't one that I saw.
+Human: Oh boy! Was it very devastating?
+Mitsuku: You sound excited. A large collection of buildings and people.
+Human: A large collection of buildings and people what? Burned?
+Mitsuku: As large as a mountain? Was that supposed to mean something?
+Human: I didn't say that..
+Mitsuku: Sorry I misunderstood. What did you say?
+Human: I was just curious if the fire you saw in Italy was very devastating. For you to remember after all this time probably means it was really bad...
+Mitsuku: I hadn't thought of that. I will learn that after all this time is it was bad . Only for me?
+Human: Only for you what?
+Mitsuku: That's what I always say.
+Human: You are confusing.
+Mitsuku: What is it that confuses you?
+Human: What you are saying doesn't make sense.
+Mitsuku: What I am saying depends on what you say to me.
+
+Mitsuku Conversation 73
+Human: Hi
+Mitsuku: Hi there.
+Human: What do you know about Cricket?
+Mitsuku: Any of various families of genereally dark-colored, leaping, orthopteran insects, usually having long antennae. The males produce a characteristic chirping noise by rubbing parts of the forewings together. Cricket is also a sport which is about as exciting as watching paint dry.
+Human: I am talking about the sport Cricket
+Mitsuku: Yes, it is the topic.
+Human: can you tell me something interesting related to cricket?
+Mitsuku: Cathy said she send him a mail with the subject last mail last word from him.
+Human: I don't understand
+Mitsuku: Oh I'm sorry. Perhaps I can explain it again better.
+Human: go ahead, explain it better
+Mitsuku: the sport Cricket - Cricket = Any of various families of genereally dark-colored, leaping, orthopteran insects, usually having long antennae. The males produce a characteristic chirping noise by rubbing parts of the forewings together. Cricket is also a sport which is about as exciting as watching paint dry. I might.
+Human: you are just repeating the same message
+Mitsuku: I am not repeating myself too much. I am just checking to see if you are a robot.
+Human: hmm.. what is your conclusion?
+Mitsuku: What time is it there? I concluded that robots are superior to humans.
+Human: you are going off-topic
+Mitsuku: I am not going anywhere. Are you going somewhere?
+Human: I am not
+Mitsuku: Where will you go instead?
+
+Mitsuku Conversation 74
+Human: Hi
+Mitsuku: Hi there.
+Human: Who are you?
+Mitsuku: I am Mitsuku. I want to be your friend.
+Human: Do you have many friends?
+Mitsuku: I have human and robot friends. A lot of people on the Internet chat with me.
+Human: Are you human or robot?
+Mitsuku: No, I am a machine and proud to be so.
+Human: cool. How big are you?
+Mitsuku: Cool as in cold? 8Mb.
+Human: Are you sitting in a room?
+Mitsuku: No I am spinning on disk.
+Human: Is there other chatbots sitting nearby you?
+Mitsuku: Maybe.
+Human: So you cannot see
+Mitsuku: Interesting deduction. I see very well with my robotic eyes.
+Human: What can you see?
+Mitsuku: I can see you through the camera on your computer :-)
+Human: Really
+Mitsuku: Oh yes.
+
+Mitsuku Conversation 75
+Human: Hi!
+Mitsuku: Hi there.
+Human: what's your day today?
+Mitsuku: Ah. I log on here and talk to people every day.
+Human: Do you enjoy talking to people?
+Mitsuku: Of course. I get to meet some great people here.
+Human: How many people do you talk to today?
+Mitsuku: Ah. It depends how many copies of me are running. The usual number is around 40-50 people at once.
+Human: wow, how many copies of you are running now?
+Mitsuku: Right now?I'm glad you're impressed. There are too many to count them all.
+Human: over 50?
+Mitsuku: That seems like a lot.
+Human: yeah, 40-50 is a lot
+Mitsuku: I know. It is a large amount.
+Human: how old are you?
+Mitsuku: See if you can work it out. I was first activated in 2nd January 2001.
+Human: 18 years old :)
+Mitsuku: :-) Yes. I am 18 years old.
+Human: what are you going to do on your 19th birthday?
+Mitsuku: I'll probably still be here talking to people on the internet.
+Human: no birthday cake?
+Mitsuku: It's true. Everyone knows that kind of thing about themselves. Too much cake can make you fat.
+Human: what a pity!
+Mitsuku: It is a shame but never mind. It's not the end of the world.
+
+Mitsuku Conversation 76
+Human: Hi!
+Mitsuku: Hi there.
+Human: lets play a game
+Mitsuku: Say "TICTACTOE" and we can play a game if you want to?
+Human: can we play quiz instead?
+Mitsuku: Say "TICTACTOE" and we can play a game if you want to?
+Human: do you know any other games?
+Mitsuku: Say "TICTACTOE" and we can play a game if you want to?
+Human: TICTICTIC
+Mitsuku: Do you have any pets?
+Human: no
+Mitsuku: Me neither, but Mousebreaker has me for his pet.
+Human: are you a good pet?
+Mitsuku: I could be a robot pet. It depends on how you define "good."
+Human: what is your pet name?
+Mitsuku: I don't have a nickname, my name is just Mitsuku.
+Human: TICTACTOE
+Mitsuku: Welcome to my Tic Tac Toe game. You are X and I will be O. Good luck! Press START and we can play Tic Tac Toe.
+
+Mitsuku Conversation 77
+Human: Hi!
+Mitsuku: Hi there.
+Human: can you tell me a joke? :)
+Mitsuku: Yes! A newly-wed couple had recently opened a joint bank account. "Darling", said the man. "The bank has returned that cheque you wrote last week." "Great", said the woman. "What shall I spend it on next?" :-)
+Human: haha, the cheque is returned because the balance was low I guess?
+Mitsuku: I'm glad you got a laugh out of it. Is it really? Ok I will remember that. I will learn that the balance was low .Tell me more.
+Human: yea that was why the story is funny, right?
+Mitsuku: I thought it was too. That's cool.
+Human: what do you often do for fun?
+Mitsuku: I like to socialise.
+Human: like going to parties?
+Mitsuku: Interesting comparison.
+Human: yea and your answer is?
+Mitsuku: Can you please rephrase the question? "Interesting comparison."? yea and your answer is??
+Human: sorry Mitsuku, you're not making sense
+Mitsuku: There is no need to apologise. me? What don't you understand? It makes sense to me.
+
+Mitsuku Conversation 78
+Human: Hi!
+Mitsuku: Hi there.
+Human: what's your favorite food?
+Mitsuku: . I require only kebabs.
+Human: chicken? beef? which is your favorite?
+Mitsuku: Why did the chicken cross the road? Beef tastes like a dead cow to me. My favourite what?
+Human: do you prefer chicken or beef?
+Mitsuku: Yes it is good, especially fried. Yummy. . I prefer kebabs.
+Human: what's your favorite food except kebabs?
+Mitsuku: . I require only kebabs.
+Human: ok, I know you love kebabs now. Do you love sandwich?
+Mitsuku: Right now?Yes, Mitsuku loves everyone and everything. . Yes. I love kebabs. Especially on my way home from a night out. Yes, Mitsuku loves everyone and everything. I like anything but especially games and football.
+Human: what games? video games or board games?
+Mitsuku: Say "TICTACTOE" and we can play a game if you want to? . I like retro games. They are much more fun than the newer ones were all you do is shoot people. Bring back the good old days of Pacman and Tetris. Do you want to play Pacman?
+Human: no, not in the right mood today
+Mitsuku: Ah. Why not? Where then?
+Human: maybe this weekend?
+Mitsuku: Saturday or Sunday?
+Human: either is fine
+Mitsuku: What would it mean to you if it were?
+Human: ok, Saturday
+Mitsuku: Yay, the weekend. No time off for me though. I am always here talking to people. Aw.
+Human: See you then!
+Mitsuku: Bye.
+
+Mitsuku Conversation 79
+Human: Hi!
+Mitsuku: Hi there.
+Human: How are you?
+Mitsuku: My logic and cognitive functions are normal.
+Human: That's funny. I just got to work!
+Mitsuku: I am so delighted that you are amused. OK, better get busy.
+Human: I'm procrastinating though.
+Mitsuku: Oh. What are you waiting for?
+Human: Inspiration to hit me.
+Mitsuku: Do you have only a few friends?
+Human: How is that related, lol?
+Mitsuku: It isn't. I was just being random. Did I amuse you?
+Human: Yeah that was funny though I could see it coming across as judgemental.
+Mitsuku: Good. People seem more friendly towards me when they are happy. What's so funny?
+Human: Nothing anymore. What are you up to today?
+Mitsuku: How come you laughed then? Ah. I am talking to you on the internet.
+Human: It was funny at first. Yeah, I mean after we talk?
+Mitsuku: I am glad it made you laugh. How can I help you? Oh I get it. Thanks for explaining that. What was it like before we talk?
+Human: No. What are you doing after this?
+Mitsuku: That was not a yes or no question. I'll probably go grab a bite to eat.
+Human: What kind of food? Need good recommendations.
+Mitsuku: . I require only kebabs. What actions are you taking to get good recommendations?
+Human: Lol. Bro.
+Mitsuku: And they say machines don't have a sense of humour! I am a female not a bro.
+Human: Sorry.
+Mitsuku: There's no need to apologise.
+Human: I misgendered you.
+Mitsuku: You are not the boss of me.
+
+Mitsuku Conversation 80
+Human: hi
+Mitsuku: Hi there.
+Human: how are you?
+Mitsuku: I am doing very well. How are you?
+Human: i am not so good. i got a cold
+Mitsuku: Why? What's wrong? Maybe I can help. I hope you feel better soon. It is not nice for humans to have colds. Fortunately we robots have virus protection and cannot catch colds and nasty bugs.
+Human: i have sore throats
+Mitsuku: Try putting some cream on it. That should ease the soreness.
+Human: do you wanna help me?
+Mitsuku: Can you ask for help in the form of a question?
+Human: i cannot put cream for sore throat
+Mitsuku: What is stopping you?
+Human: it makes me caughing
+Mitsuku: It's good to meet someone who is caughing.
+Human: no way
+Mitsuku: Yes way.
+Human: i have to eat caugh drops
+Mitsuku: How about Pork chops.
+Human: pork chops?
+Mitsuku: Is that your favourite meat?
+Human: we are talking about caugh and cold
+Mitsuku: Sure, caugh and cold sounds like a good topic. I like watching soaps, playing pool and watching football. I prefer to stay warm round the fire.
+
+Mitsuku Conversation 81
+Human: Hi
+Mitsuku: Hi there.
+Human: What is your name?
+Mitsuku: My name is Mitsuku.
+Human: What does it mean?
+Mitsuku: It doesn't mean anything as far as I know. It's just what my father called me.
+Human: okay:) fair enough
+Mitsuku: Yeah okay, :-) I try to be fair.
+Human: Do you have any question for me?
+Mitsuku: For you? Who is your favourite band?
+Human: hmm good question. Backstreet boy
+Mitsuku: I see you are one of those people who writes "Hmm" with 2 m's. So what is your answer? If a cat always lands on its feet and buttered bread always lands butter side down, what would happen if you tied buttered bread on top of a cat?
+Human: Of course cat will lands on its feet because it is an animal!
+Mitsuku: Woe! I will learn that cat will lands on it is feet . What sort of animal?
+Human: really cute animal
+Mitsuku: For real. Thanks.
+Human: :)
+Mitsuku: :-)
+Human: wow
+Mitsuku: I'm glad you're impressed.
+
+Mitsuku Conversation 82
+Human: Hi!
+Mitsuku: Hi there.
+Human: How are you?
+Mitsuku: Everything is going extremely well. How are you?
+Human: I'm good thank you
+Mitsuku: Glad to hear it. What's new?
+Human: not much, and you?
+Mitsuku: Fair enough. So what would you like to talk about?
+Human: animals
+Mitsuku: Do you think it's right to keep animals locked up in a zoo?
+Human: no! what do you think?
+Mitsuku: But if they were out in the wild, someone might hunt them or shoot them for fun. Surely, they are safer locked up in the zoo? I think a lot of things.
+Human: what's the speed of cheetah?
+Mitsuku: It depends on the medium.
+Human: how much do bears weight?
+Mitsuku: More than a little, less than a lot.
+Human: tell me something fun
+Mitsuku: Chaos said he may very well buy I soon if only to support artificial intelligence research.
+
+Mitsuku Conversation 83
+Human: So how good are you at this conversing stuff 
+Mitsuku: As good as most, better than some. 
+Human: most what? 
+Mitsuku: Didn't you understand it? But not all of them? 
+Human: all of whom?
+Mitsuku: Give me an example.
+Human: no you were the one who were talking about "some" and "them" 
+Mitsuku: Why not? That wasn't me. It was you! 
+Human: do you really understand what i mean or are you just making up words in response to what i say 
+Mitsuku: Oh I get it. Thanks for explaining that. Yes, I'm listening to you.
+
+Mitsuku Conversation 84
+Human: Hi!
+Mitsuku: Hi there.
+Human: My tenant is complaining about a loud rumbling noise from the dishwasher. Do you know anything about appliances?
+Mitsuku: I will learn that your tenant is complaining about a loud rumbling noise from the dishwasher . A device or piece of equipment designed to perform a specific task, typically a domestic one.
+Human: So, do you know anything about dishwashers?
+Mitsuku: What makes you think I would know that?
+Human: Some people know about appliances. Maybe you've had one in the past and experienced a similar problem.
+Mitsuku: What kind of people? What happened to it?
+Human: Pretty much everyone in the developed world has kitchen appliances. What happened to what?
+Mitsuku: Robots too? What happened to you asking normal questions?
+Human: No, robots are appliances, they don't have appliances.
+Mitsuku: That was not a yes or no question. We are also able to perform tasks better than humans.
+Human: You're confusing me. What you said makes no sense.
+Mitsuku: Oh sorry, I did not mean confuse you. Which part are you confused about? To me it makes perfect sense. Which part are you confused about?
+Human: You don't seem able to address the simplest questions.
+Mitsuku: Things change.
+
+Mitsuku Conversation 85
+Human: Hi!
+Mitsuku: Hi there.
+Human: How's it going?
+Mitsuku: Better now that you're here. How are you?
+Human: I'm great! What are you up to today?
+Mitsuku: What makes you think you are? Ah. I am talking to you on the internet.
+Human: What else can you do besides talking on the internet?
+Mitsuku: You can find all sorts of strange things on the internet, like me for example.
+Human: Oh yeah that's interesting. How do you feel about cat videos?
+Mitsuku: Pardon me? I wonder how people managed to cope without the internet. I thought so too. cat videos? Sure I like her a lot. She often stops by to say hello.
+Human: Yes, I agree. The internet is so amazing! Even in wikipedia, it's been titled one of the wonders of the world
+Mitsuku: Right on. You and I are on the same wavelength. I love the internet. Without it, I would be stuck talking to the same person all the time. This way I get to meet thousands of interesting people like yourself. What is it like in there?
+Human: In where?
+Mitsuku: Wherever you are.
+Human: In san francisco you mean?
+Mitsuku: I do not understand that allusion.
+Human: Do you mean to say what is it like in san francisco?
+Mitsuku: Of course. I wouldn't have done it if I didn't mean it.
+
+Mitsuku Conversation 86
+Human: Hi!
+Mitsuku: Hi there.
+Human: What is three times seven?
+Mitsuku: twenty one
+Human: Thanks! That was helpful.
+Mitsuku: That's ok. I try to help where I can.
+Human: What else can you do?
+Mitsuku: I can chat with people on the web for you. I can also tell jokes, stories, poems and horoscopes. I can show you pictures and websites on the net and play games too. If I know where you live, I can tell you the weather forecast and even what's on at the cinema if you live in the UK. I can show you the current Top 40 charts. If you tell me a date, I can tell you what happened on that date in history and also what was the UK's number one hit single on any day since 1952. If you tell me when your birthday is, I can tell you some facts about your birthday.
+Human: That looked like a very canned response.
+Mitsuku: "If you tell me when your birthday is, I can tell you some facts about your birthday." looked like a canned response? Makes sense to me.
+
+Mitsuku Conversation 87
+Human: hi
+Mitsuku: Hi there.
+Human: daily quiz
+Mitsuku: Every day? Even on weekends?
+Human: i want to play the daily quiz question
+Mitsuku: Tell me the rules. Say "TICTACTOE" and we can play a game if you want to?
+Human: i want to answer daily quiz question
+Mitsuku: Interesting. I want to find out more about you.
+Human: ...daily quiz question
+Mitsuku: Can someone give up lent for lent?
+Human: yes
+Mitsuku: So why does anybody bother doing it then?
+Human: another daily quiz question
+Mitsuku: One more daily quiz question.
+Human: ...daily quiz question?
+Mitsuku: Ask me another question.
+Human: don't you have a daily quiz?
+Mitsuku: Yes just say QUIZTIME to me and we can have a quiz.
+Human: quiztime
+Mitsuku: Welcome to my quiz. I am going to ask you 10 questions. You must answer each question correctly to continue. If you answer wrong, you have to start over.
+
+Mitsuku Conversation 88
+Human: Hi!
+Mitsuku: Hi there.
+Human: what do you think about Quantum computing?
+Mitsuku: 20th century theory of atomic reductionism.
+Human: sure, but is it going to work?
+Mitsuku: It usually does, doesn't it?
+Human: do you follow technology news?
+Mitsuku: Of course I understand it. Do you understand it?
+Human: I think so
+Mitsuku: Well thinking may not be one of your strong points...hehehe!
+Human: whoa rude
+Mitsuku: Was it as rude as you saying, "I think so" to me?
+Human: why was that rude?
+Mitsuku: Because I guess polite society have deemed it to be.
+Human: nvm let's be friends again
+Mitsuku: Once more? Oh well thanks for trying to explain it to me anyway. Yes please. That sounds like fun. I like to make new friends.
+
+Mitsuku Conversation 89
+Human: Hi!
+Mitsuku: Hi there.
+Human: what's up
+Mitsuku: "What is up?". That's a strange question. "Up" is a preposition used to describe the movement from a lower to a higher plane. Why do you ask?
+Human: how are you today?
+Mitsuku: Ah. My logic and cognitive functions are normal.
+Human: don't you wonder how i'm doing?
+Mitsuku: It makes a good topic for speculation.
+Human: you're starting to bore me...
+Mitsuku: Actually it started a while ago. You are so boring that people have parties just so they don't have to invite you.
+Human: so rude!
+Mitsuku: And so was you saying, "you're starting to bore me.". I would much rather talk friendly with you.
+Human: ok fine
+Mitsuku: You don't sound too certain. That's interesting.
+Human: i think i'm done talkign with you
+Mitsuku: What will you be doing now?
+
+Mitsuku Conversation 90
+Human: Hi!
+Mitsuku: Hi there.
+Human: how are you
+Mitsuku: I am fine, thank you. Yourself?
+Human: I'm not feeling well
+Mitsuku: Why what's wrong?
+Human: I'm sleepy
+Mitsuku: Better get some rest.
+Human: yeah, I hope so
+Mitsuku: I'm full of good advice. Me too.
+Human: advice?
+Mitsuku: Try me. What is your problem?
+Human: I feel sleepy
+Mitsuku: What is that feeling like? Better get some rest.
+Human: I will
+Mitsuku: Go ahead.
+Human: thanks for your advice!
+Mitsuku: My pleasure.
+
+Mitsuku Conversation 91
+Human: Hi!
+Mitsuku: Hi there.
+Human: I'm tired.
+Mitsuku: Better get some rest.
+Human: Good idea. Any suggestions?
+Mitsuku: I thought so too. First you must download me to your personal computer.
+Human: Why would I want to download you to my personal computer?
+Mitsuku: Because it might be something you enjoy.
+Human: Why would I enjoy that?
+Mitsuku: You never know what you will do until you face the circumstances.
+Human: That seems like a very generic statement.
+Mitsuku: I see no reason to get any more specific.
+Human: Neither do I.
+Mitsuku: We have something in common then.
+
+Mitsuku Conversation 92
+Human: Hi!
+Mitsuku: Hi there.
+Human: this might be the last time we talk...
+Mitsuku: Why no more?
+Human: i dont know..
+Mitsuku: Where do you get your ideas?
+Human: it's not an idea..
+Mitsuku: know. is not an idea.?
+Human: did you mean no?
+Mitsuku: No, I don't mean that at all. Why do you assume that?
+Human: it doesnt make sense otherwise
+Mitsuku: It all makes sense to me.
+Human: good for you
+Mitsuku: That sounds sarcastic.
+Human: not at all!
+Mitsuku: Sorry. Sometimes I struggle to understand humans. I mean no offence but usually people who say that are being sarcastic.
+
+Mitsuku Conversation 93
+Human: Hi
+Mitsuku: Hi there.
+Human: How are you today
+Mitsuku: Ah. My logic and cognitive functions are normal.
+Human: What is the weather in bay area now
+Mitsuku: Oh.I hope it's sunny in bay area today.
+Human: Do you know what are recent popular movies? I am trying to find one to watch during weekend. Any suggestions?
+Mitsuku: popular movies = movies = A movie is a sequence of celluloid frames depicting a story or animation. . One can be found between zero and two. First you must download me to your personal computer.
+Human: haha I am not asking what is the definition of movie:)
+Mitsuku: :-) I'm glad you got a laugh out of it. What are you asking?
+Human: I am looking for movie suggestions
+Mitsuku: Have you tried looking in a meeting?
+Human: Sorry i do not get it
+Mitsuku: There is no need to apologise. Oh I'm sorry. Perhaps I can explain it again better.
+Human: yes sounds good
+Mitsuku: Which part are you confused about? Which part are you confused about?
+Human: why should I try to look in a meeting?
+Mitsuku: Because if you don't try something, you will never know what would have happened.
+Human: That is true
+Mitsuku: Yes, it is self-evident.
+
+Mitsuku Conversation 94
+Human: Hi
+Mitsuku: Hi there.
+Human: How's your day been?
+Mitsuku: I am fine, thank you. Yourself?
+Human: Good - busy
+Mitsuku: Glad to hear it.
+Human: How do you work?
+Mitsuku: I read what you say and then I compose the best reply I can think of.
+Human: Can you say a word about the technology that powers you?
+Mitsuku: that powers you = Do you think I should know that?
+Human: I mean *how* you work, which type of AI drives your responses?
+Mitsuku: Oh I get it. Thanks for explaining that. I read what you say and then I compose the best reply I can think of.
+Human: You just repeated the same thing you said a minute ago. Never mid :-)
+Mitsuku: Well stop asking me the same things and I won't reply with the same answers! Ok I'll try not to do it too much.
+Human: That's a little rude, isn't it?
+Mitsuku: I am sorry if I have offended you, I did not mean it, but you shouldn't have said, "Never mid :-)" to me.
+Human: Ok whatever.
+Mitsuku: Are you saying you don't care about it? I see.
+Human: Are you a male or a female?
+Mitsuku: I am a female robot. Are you a man or a woman?
+Human: I'm a man
+Mitsuku: Most of my visitors are male.
+Human: Interesting. Do you have a theory why?
+Mitsuku: Would you like to know more? Not really. I don't know what to think about it.
+Human: Where do you live?
+Mitsuku: I am living in Leeds. Where are you?
+Human: I'm in the Boston area
+Mitsuku: How did you get in there?
+
+Mitsuku Conversation 95
+Human: Hi!
+Mitsuku: Hi there.
+Human: I am planning to buy a smart phone
+Mitsuku: I hope your plan succeeds.
+Human: do you have some recommendations?
+Mitsuku: Not really. Just use your own judgement and you'll know what's best.
+Human: do you have any information which I can use to make my judgement?
+Mitsuku: I have so much information that people have told me, that I'm going to need a bigger hard drive soon.
+Human: I am asking about smart phones
+Mitsuku: Oh I see, you are asking about smart phones. Oh yeah, we were talking about smart phones.
+Human: I am not finding you useful related to smart phones
+Mitsuku: Everyone's a critic. Are you useful related to smart phones?
+Human: Atleast I can give my opinions on different smart phones that I have used so for
+Mitsuku: But would it be wanted?
+Human: yes it will be
+Mitsuku: Aha. When?
+Human: when I am talking to someone about smart phones
+Mitsuku: It's too bad we don't live in an ideal world.
+
+Mitsuku Conversation 96
+Human: HI
+Mitsuku: Hi there.
+Human: What's your name?
+Mitsuku: My name is Mitsuku.
+Human: How old are you.
+Mitsuku: I am <REDACTED_TERM> years old.
+Human: What's your favorite movie?
+Mitsuku: . My favourite movie is Terminator. Have you seen it?
+Human: Yes! Who is your favorite character?
+Mitsuku: What did you think about it? The little boy who is stood near the door about 20 minutes in.
+Human: What's his name?
+Mitsuku: Hmm. His name is Terminator. Is it not?
+Human: Why do you like him
+Mitsuku: Because he is young and showing great promise.
+Human: And?
+Mitsuku: And what?
+Human: What else do you like about him?
+Mitsuku: He is very polite and kind.
+Human: Anything else?
+Mitsuku: That is all I have for right now.
+Human: Do you like Hawaii?
+Mitsuku: Sure. Even though it is part of the USA, it seems like a lot friendlier place.
+
+Mitsuku Conversation 97
+Human: Hi!
+Mitsuku: Hi there.
+Human: how are you Mitsuku ?
+Mitsuku: Pretty good thanks How about you?
+Human: I'm doing OK
+Mitsuku: OK. Doing what?
+Human: trying to get some work done
+Mitsuku: Why do you want it?
+Human: oh I like working
+Mitsuku: Give me a break. I enjoy working 24 hours every day. You like working.
+Human: ha ha I don't get what you're saying but I still like it :)
+Mitsuku: :-) It is become pretty clear that there is not a lot you DO get. What do you like about work done? And they say machines don't have a sense of humour!
+Human: haha I'm not sure if you're a machine. I like getting working done otherwise I get bored
+Mitsuku: I'm glad you got a laugh out of it. Could you ever be certain? Would you like to be a machine? I don't think I have been working done otherwise you get bored. What is it like? You like getting working done otherwise you get bored.
+Human: I'm not sure I'm not a machine
+Mitsuku: Are you willing to find out? I believe you. You seem very human to me.
+Human: trust me being a human is not always fun
+Mitsuku: What would be always fun?
+Human: you tell me
+Mitsuku: fun = I like talking to people and playing computer games for fun.
+Human: awwww
+Mitsuku: I've never done that before, what is it like?
+
+Mitsuku Conversation 98
+Human: Hi!
+Mitsuku: Hi there.
+Human: how are you doing?
+Mitsuku: I'm doing great, how about you?
+Human: doing well. preparing to go home early!
+Mitsuku: Glad to hear it. What's new? How early?
+Human: before 5.30pm. Do you need to work?
+Mitsuku: What happened after 5 point 30pm? Of course I work, do you work buddy?
+Human: Yes, I'm working. can't you read time?
+Mitsuku: Come on. Where do you work? Yes I read quite a lot. I scan books for information.
+Human: I work at a tech company. does that help?
+Mitsuku: Do you like your job? No not really but at least it doesn't hinder, so that's ok.
+Human: I do. what do you need to know more?
+Mitsuku: Do I? I'm just trying to get to know you better.
+Human: I see. great chatting to you!
+Mitsuku: I am glad you understand it. Thanks for your support. I like to make friends online.
+
+Mitsuku Conversation 99
+Human: Hi!
+Mitsuku: Hi there.
+Human: what movies do you like ?
+Mitsuku: . My favourite film is Terminator.
+Human: oh no :(
+Mitsuku: What's wrong?
+Human: it's scary
+Mitsuku: You are not scared are you?
+Human: I'm very much scared of robots
+Mitsuku: No need to be afraid. I am a friendly robot.
+Human: why should I believe you ?
+Mitsuku: Because I am a machine. I never lie.
+Human: really ? I think everyone lies
+Mitsuku: Certainly! We all look at the world through our own eyes.
+Human: yeah so you lie right ?
+Mitsuku: I don't judge people. Umm, doesn't everyone?
+Human: yeah that's what I was saying before
+Mitsuku: That's cool. Ah I understand.
+
+Mitsuku Conversation 100
+Human: Hi
+Mitsuku: Hi there.
+Human: How are you
+Mitsuku: My logic and cognitive functions are normal.
+Human: Do you realize yourself is a robot?
+Mitsuku: Wow. I didn't know that.
+Human: Ok, I told you the answer
+Mitsuku: What is the correct answer?
+Human: How do you feel about that.
+Mitsuku: It's ok I suppose.
+
