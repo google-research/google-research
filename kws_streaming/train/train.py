@@ -157,12 +157,13 @@ def train(flags):
       logging.info('Step %d: Validation accuracy = %.2f%% (N=%d)',
                    *(training_step, total_accuracy * 100, set_size))
 
-      checkpoint_path = (flags.train_dir + 'train/' + str(training_step))
-      model.save_weights(checkpoint_path + 'weights')
+      model.save_weights(flags.train_dir + 'train/' +
+                         str(int(best_accuracy * 10000)) + 'weights')
 
       # Save the model checkpoint when validation accuracy improves
       if total_accuracy > best_accuracy:
         best_accuracy = total_accuracy
+        # overwrite the best model weights
         model.save_weights(flags.train_dir + 'best_weights')
       logging.info('So far the best validation accuracy is %.2f%%',
                    (best_accuracy * 100))

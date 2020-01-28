@@ -13,14 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""BiRNN model with attention."""
+"""BiRNN model with multihead attention."""
 from kws_streaming.layers import speech_features
 from kws_streaming.layers.compat import tf
 from kws_streaming.models.utils import parse
 
 
 def model_parameters(parser_nn):
-  """BiRNN attention model parameters."""
+  """BiRNN multihead attention model parameters."""
 
   parser_nn.add_argument(
       '--cnn_filters',
@@ -51,6 +51,12 @@ def model_parameters(parser_nn):
       type=str,
       default='(1,1),(1,1)',
       help='Strides of the convolution layers along the height and width',
+  )
+  parser_nn.add_argument(
+      '--heads',
+      type=int,
+      default=4,
+      help='number of heads in multihead attention',
   )
   parser_nn.add_argument(
       '--rnn_layers',
@@ -91,9 +97,11 @@ def model_parameters(parser_nn):
 
 
 def model(flags):
-  """BiRNN attention model.
+  """BiRNN multihead attention model.
 
   It is based on paper:
+  Attention Is All You Need
+  https://papers.nips.cc/paper/7181-attention-is-all-you-need.pdf
   A neural attention model for speech command recognition
   https://arxiv.org/pdf/1808.08929.pdf
 
@@ -161,15 +169,21 @@ def model(flags):
 
   # feature vector at middle point [batch, feature]
   mid_feature = net[:, middle, :]
-  # apply one projection layer with the same dim as input feature
-  query = tf.keras.layers.Dense(feature_dim)(mid_feature)
 
-  # attention weights [batch, time]
-  att_weights = tf.keras.layers.Dot(axes=[1, 2])([query, net])
-  att_weights = tf.keras.layers.Softmax(name='attSoftmax')(att_weights)
+  # prepare multihead attention
+  multiheads = []
+  for _ in range(flags.heads):
+    # apply one projection layer with the same dim as input feature
+    query = tf.keras.layers.Dense(feature_dim)(mid_feature)
 
-  # apply attention weights [batch, feature]
-  net = tf.keras.layers.Dot(axes=[1, 1])([att_weights, net])
+    # attention weights [batch, time]
+    att_weights = tf.keras.layers.Dot(axes=[1, 2])([query, net])
+    att_weights = tf.keras.layers.Softmax()(att_weights)
+
+    # apply attention weights [batch, feature]
+    multiheads.append(tf.keras.layers.Dot(axes=[1, 1])([att_weights, net]))
+
+  net = tf.keras.layers.concatenate(multiheads)
 
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)
 
