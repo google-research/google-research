@@ -101,7 +101,7 @@ class SoftHeavisideErrorLoss(TopKErrorLoss):
     @tf.custom_gradient
     def _ranks(y):
       diff = y[:, :, tf.newaxis] - y[:, tf.newaxis, :]
-      diff -= tf.eye(y.shape[-1])[tf.newaxis, :, :] * 1e6
+      diff -= tf.eye(tf.shape(y)[-1], dtype=y.dtype)[tf.newaxis, :, :] * 1e6
       s = 1.0 / (1 + tf.math.exp(-diff / self._epsilon))
 
       def grad(dy):
