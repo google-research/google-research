@@ -41,7 +41,7 @@ To generate various synthetic datasets used in the paper run './group_agnostic_f
 
 ## Training and Inference
 
-Training and prediction for the dual encoder model can be run as:
+Training and evaluation for the adversarial robust learning model can be run as:
 
 ```bash
 python -m group_agnostic_fairness/main_trainer
