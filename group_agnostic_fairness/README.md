@@ -1,6 +1,3 @@
-# Group Agnostic Fair and Robust Learning
-This repository contains the code for the paper "Group Agnostic Fair and Robust Learning".
-
 ## Installation
 
 Run the following:
