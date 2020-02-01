@@ -238,27 +238,6 @@ def get_pruning_hparams():
       gradient| for pruning.
         second order gradient is approximated by |weight + old_old_weight -
         2*old_weight|.
-      option = 'compression' means using compression.
-    alpha_decrement_value: only effective when prune_option is 'compression',
-      see graph_compression/compression_lib/compression_op.py. The following
-      arguments are all only effective when prune_option == 'compression', see
-      graph_compression/compression_lib/compression_op.py for details.
-    begin_compression_step: only effective when prune_option is 'compression',
-                           see graph_compression/compression_op.py.
-    end_compresson_step: only effective when prune_option is 'compression',
-                           see graph_compression/compression_op.py.
-    compression_frequency: only effective when prune_option is 'compression',
-                           see graph_compression/compression_op.py.
-    compression_option: only effective when prune_option is 'compression',
-                        see graph_compression/compression_op.py.
-    rank: only effective when prune_option is 'compression',
-          see graph_compression/compression_op.py.
-    update_option: only effective when prune_option is 'compression',
-                   see graph_compression/compression_op.py.
-    run_update_interval_check: only effective when prune_option is 'compression'
-                               see graph_compression/compression_op.py.
-    pruning_fraction: only effective when prune_option is 'compression',
-                      see graph_compression/compression_op.py.
 
     We use the following sparsity function:
 
@@ -292,16 +271,7 @@ def get_pruning_hparams():
       sparsity_function_exponent=3.0,
       use_tpu=False,
       gradient_decay_rate=0.99,
-      prune_option='weight',
-      alpha_decrement_value=0.01,
-      begin_compression_step=0,
-      end_compresson_step=-1,
-      compression_frequency=10,
-      compression_option=0,
-      rank=7,
-      update_option=0,
-      run_update_interval_check=1,
-      pruning_fraction=0.4)
+      prune_option='weight')
 
 
 class Pruning(object):
@@ -315,7 +285,7 @@ class Pruning(object):
     sparsity profiles externally and passing it to this pruning functions.
 
     Args:
-      spec: Pruning spec, a tf.HParams object
+      spec: Pruning spec as defined in pruning.proto
       global_step: A tensorflow variable that is used while setting up the
         sparsity function
       sparsity: A tensorflow scalar variable storing the sparsity
@@ -323,10 +293,8 @@ class Pruning(object):
 
     # Pruning specification
     self._spec = spec if spec else get_pruning_hparams()
-    tf.logging.vlog(0, 'Pruning spec...')
+    tf.logging.info('Pruning spec...')
     self.print_hparams()
-
-    self.matrix_compression_spec = self._spec
 
     # Sanity check for pruning hparams
     self._validate_spec()
@@ -964,4 +932,4 @@ class Pruning(object):
         tf.summary.histogram(gradient.op.name + '/abs.gradient', gradient)
 
   def print_hparams(self):
-    tf.logging.vlog(0, self._spec.to_json())
+    tf.logging.info(self._spec.to_json())
