@@ -66,7 +66,7 @@ iterative pruning. This checkpoint is needed before proceeding unto measuring
 
 For use of this code or reference of this work, please cite:
 
-`
+```latex
 @ARTICLE{2019Hooker,
        author = {{Hooker}, Sara and {Courville}, Aaron and {Dauphin}, Yann and
          {Frome}, Andrea},
@@ -78,7 +78,7 @@ For use of this code or reference of this work, please cite:
        eprint = {1911.05248},
  primaryClass = {cs.LG},
 }
-`
+```
 
 For any questions about this code please file a github [issue](https://github.com/google-research/google-research/issues) and tag github handle sarahooker.
 
