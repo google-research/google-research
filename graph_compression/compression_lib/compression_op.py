@@ -39,6 +39,7 @@ DLMatrixCompressor for dictionary learning.
 """
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import print_function
 
 import abc
 import copy
@@ -97,6 +98,9 @@ class LowRankDecompMatrixCompressor(MatrixCompressorInferface):
     super(LowRankDecompMatrixCompressor, self).__init__(spec)
     self._spec = spec
 
+    self.uncompressed_size = 0
+    self.compressed_size = 0
+
   def get_spec(self):
     return self._spec
 
@@ -135,7 +139,11 @@ class LowRankDecompMatrixCompressor(MatrixCompressorInferface):
         use_tpu=False,
         compressor_option=0,
         is_b_matrix_trainable=True,
-        is_c_matrix_trainable=True)
+        is_c_matrix_trainable=True,
+        is_c_matrix_present=True,
+        block_size=1,
+        pruning_fraction=0.0,
+        use_lsh=False)
 
   def static_matrix_compressor(self, a_matrix):
     """Low-rank decomposition of a_matrix.
@@ -162,6 +170,10 @@ class LowRankDecompMatrixCompressor(MatrixCompressorInferface):
     logging.info(
         'Inside static_matrix_compressor: a_matrix,b_matrix,c_matrix shapes '
         'are: %s, %s, %s', a_matrix.shape, b_matrix.shape, c_matrix.shape)
+
+    self.uncompressed_size = a_matrix.size
+    self.compressed_size = b_matrix.size + c_matrix.size
+
     return [b_matrix, c_matrix]
 
   def tpu_matrix_compressor(self, a_matrix):
@@ -282,6 +294,14 @@ class CompressionOp(CompressionOpInterface):
 
     self.update_op = None
     self._last_alpha_update_step = self._setup_last_alpha_update_step()
+    self._last_update_step = -1
+    self._alpha_update_tf_op = None
+
+    self.uncompressed_size = 0
+    self.compressed_size = 0
+    self.a_matrix_read = None
+    self.run_update_count = 0
+    self.last_alpha_value = 1
 
   @staticmethod
   def get_default_hparams():
@@ -321,7 +341,10 @@ class CompressionOp(CompressionOpInterface):
         use_tpu=False,
         compression_option=0,
         rank=7,
-        update_option=0)
+        update_option=0,
+        run_update_interval_check=1,
+        block_size=1,
+        pruning_fraction=0.0)
 
   def add_compression_summaries(self):
     """Adds summaries of alpha value, new variables, and last update step."""
@@ -362,10 +385,11 @@ class CompressionOp(CompressionOpInterface):
       with tf.control_dependencies([
           tf.compat.v1.assign(
               self._last_alpha_update_step,
-              self._global_step,
+              tf.cast(self._global_step, tf.int32),
               name='last_alpha_update_step_assign')
       ]):
         with tf.control_dependencies([self._alpha_assign_op()]):
+          logging.info('Updating alpha.')
           return tf.no_op('alpha_update')
 
   def _alpha_assign_op(self):
@@ -387,7 +411,6 @@ class CompressionOp(CompressionOpInterface):
     use_tpu = self._spec.use_tpu
     # Seeing some tf.py_func error because of which the
     # following may be needed, so enforcing TF operation updates.
-    use_tpu = True
     if use_tpu:
       [b_matrix_out,
        c_matrix_out] = matrix_compressor.tpu_matrix_compressor(a_matrix_tfvar)
@@ -401,6 +424,7 @@ class CompressionOp(CompressionOpInterface):
     c_matrix_assign_op = tf.compat.v1.assign(
         self.c_matrix_tfvar, c_matrix_out, name='c_matrix_assign_op')
     with tf.control_dependencies([b_matrix_assign_op, c_matrix_assign_op]):
+      logging.info('Updating b_matrix,c_matrix.')
       return tf.no_op('compresor_b_matrix_and_c_matrix_update')
 
   def _compressor_and_alpha_update_op(self):
@@ -434,15 +458,18 @@ class CompressionOp(CompressionOpInterface):
         # prune if current step is more than begin_compression_step and
         # less than end_compression_step (unless it's negative)
         is_step_within_compression_range = tf.logical_and(
-            tf.greater_equal(self._global_step,
-                             self._spec.begin_compression_step),
+            tf.greater_equal(
+                tf.cast(self._global_step, tf.int32),
+                self._spec.begin_compression_step),
             tf.logical_or(
-                tf.less_equal(self._global_step,
-                              self._spec.end_compression_step),
+                tf.less_equal(
+                    tf.cast(self._global_step, tf.int32),
+                    self._spec.end_compression_step),
                 tf.less(self._spec.end_compression_step, 0)))
         is_compression_step = tf.less_equal(
             tf.add(self._last_alpha_update_step,
-                   self._spec.compression_frequency), self._global_step)
+                   self._spec.compression_frequency),
+            tf.cast(self._global_step, tf.int32))
         return tf.logical_and(is_step_within_compression_range,
                               is_compression_step)
 
@@ -497,15 +524,75 @@ class CompressionOp(CompressionOpInterface):
       self.alpha = tf.compat.v1.get_variable(
           'alpha', dtype=tf.float32, trainable=False, initializer=1.0)
 
-    self.a_matrix_tfvar = a_matrix_tfvar
+      self.a_matrix_tfvar = a_matrix_tfvar
 
-    self.update_op = self._create_update_op()
+      if self._spec.update_option == 0:
+        self.update_op = self._create_update_op()
+      else:
+        self.setup_update_explicit()
 
     self.final_op = self.alpha * self.a_matrix_tfvar + (
         1 - self.alpha) * tf.matmul(self.b_matrix_tfvar, self.c_matrix_tfvar)
 
     self.add_compression_summaries()
     return [self.final_op, self.update_op]
+
+  def get_apply_embedding_lookup(self, ids):
+    """Returns compressed tensorflow operator for embedding_lookup.
+
+    This method returns a TensorFlow node that performs embedding lookup as
+    alpha * tf.nn.embedding_lookup(a_matrix_tfvar, ids) +
+    (1 - alpha) * tf.nn.embedding_lookup(b_matrix_tfvar, ids) if c_matrix is
+    not present, and alpha * tf.nn.embedding_lookup(a_matrix_tfvar, ids) +
+    (1 - alpha) * tf.matmul(tf.nn.embedding_lookup(b_matrix_tfvar, ids),
+    c_matrix) if c_matrix is present, where b_matrix_tfvar and c_matrix_tfvar
+    are the factor matrices for the compressed embedding table.
+
+    Args:
+      ids: A Tensor with type int32 or int64 containing the ids to be looked up
+        in the embedding table (the a_matrix_tfvar variable).
+
+    Returns:
+      embedding_op: a TensorFlow node that performs compressed embedding lookup.
+    """
+    if self.matrix_compressor.get_spec().is_c_matrix_present:
+      embedding_op = self.alpha * tf.nn.embedding_lookup(
+          self.a_matrix_tfvar, ids) + (1 - self.alpha) * tf.matmul(
+              tf.nn.embedding_lookup(self.b_matrix_tfvar, ids),
+              self.c_matrix_tfvar)
+    else:
+      embedding_op = self.alpha * tf.nn.embedding_lookup(
+          self.a_matrix_tfvar, ids) + (1 - self.alpha) * tf.nn.embedding_lookup(
+              self.b_matrix_tfvar, ids)
+
+    return embedding_op
+
+  def get_apply_matmul(self, left_operand):
+    """Returns compressed TensorFlow node for matmul.
+
+    This method performs matmul (on the right) with the compressed matrix.
+
+    Args:
+      left_operand: a Tensor that is the left operand in matmul.
+
+    Returns:
+      matmul_op: a TensorFlow node that performs matmul of left_operand with the
+      compressed a_matrix_tfvar.
+    """
+    # Applies matmul on the right
+    if self.matrix_compressor.get_spec().is_c_matrix_present:
+      matmul_op = self.alpha * tf.matmul(
+          left_operand, tf.transpose(
+              self.a_matrix_tfvar)) + (1 - self.alpha) * tf.matmul(
+                  tf.matmul(left_operand, tf.transpose(self.c_matrix_tfvar)),
+                  tf.transpose(self.b_matrix_tfvar))
+    else:
+      matmul_op = self.alpha * tf.matmul(
+          left_operand, tf.transpose(
+              self.a_matrix_tfvar)) + (1 - self.alpha) * tf.matmul(
+                  left_operand, tf.transpose(self.b_matrix_tfvar))
+
+    return matmul_op
 
   @staticmethod
   def all_update_op(update_ops_list, scope='default_scope'):
@@ -517,6 +604,7 @@ class CompressionOp(CompressionOpInterface):
     """
     with tf.compat.v1.name_scope(scope):
       with tf.control_dependencies(update_ops_list):
+        logging.info('Updating all compression_ops.')
         return tf.no_op('update_all_compression_ops')
 
   def _validate_spec(self):
@@ -541,6 +629,106 @@ class CompressionOp(CompressionOpInterface):
 
   def print_hparams(self):
     logging.info(self._spec.to_json())
+
+  def setup_update_explicit(self):
+    self._alpha_update_tf_op = self._alpha_update_op()
+    return self._alpha_update_tf_op
+
+  def run_update_step(self, session, step_number=None):
+    """Returns the combine update tf OP."""
+    logging.info('running run_update_step self._global_step is %s name is %s',
+                 self._global_step, self.a_matrix_tfvar.op.name)
+    if step_number is None:
+      if self._spec.run_update_interval_check != 0:
+        logging.info(
+            'running run_update_step step_num is null self.globalstep is %s',
+            self._global_step)
+        step_number = session.run(self._global_step)
+        logging.info('running run_update_step step_num is %s', step_number)
+      else:
+        step_number = 1
+
+    logging.info(
+        'In compression op.run_update_step: '
+        'step_number is %s, begin, end and update_count are: %s %s %s ',
+        step_number, self._spec.begin_compression_step,
+        self._spec.end_compression_step, self.run_update_count)
+    if (step_number >= self._spec.begin_compression_step and
+        step_number < self._spec.end_compression_step):
+      logging.info(
+          'In compression op.run_update_step:'
+          'step_number is %s, begin, end and update_count are: %s %s %s ',
+          step_number, self._spec.begin_compression_step,
+          self._spec.end_compression_step, self.run_update_count)
+      self.run_update_count += 1
+      logging.info('inside compression interval')
+
+      # Need to persist these python state variables in TF as if a task gets
+      # aborted things get out of sync.
+      self._last_update_step = session.run(self._last_alpha_update_step)
+      logging.info(
+          'In compression op.run_update_step: '
+          'step_number is %s, begin, end, update_count, last_alpha_update'
+          ' are: %s %s %s %s',
+          step_number, self._spec.begin_compression_step,
+          self._spec.end_compression_step, self.run_update_count,
+          self._last_update_step)
+      if self._last_update_step == -1:
+        logging.info(
+            'In compression op.run_update_step: step_number is %s, '
+            'begin, end, update_count are: %s %s %s ',
+            step_number, self._spec.begin_compression_step,
+            self._spec.end_compression_step, self.run_update_count)
+        print('inside compression interval: initial decomposition step')
+        a_matrix = session.run(self.a_matrix_tfvar)
+        logging.info(
+            'In compression op.run_update_step: '
+            'a_matrix.shape is %s norm is %d',
+            a_matrix.shape, np.linalg.norm(a_matrix))
+        if self.matrix_compressor.get_spec().is_c_matrix_present:
+          logging.info(
+              'In compression op.run_update_step: '
+              'step_number is %s, begin, end and update_count are: %s %s %s ',
+              step_number, self._spec.begin_compression_step,
+              self._spec.end_compression_step, self.run_update_count)
+          [b_matrix,
+           c_matrix] = self.matrix_compressor.static_matrix_compressor(a_matrix)
+          session.run(tf.assign(self.b_matrix_tfvar, b_matrix))
+          session.run(tf.assign(self.c_matrix_tfvar, c_matrix))
+        else:
+          [b_matrix] = self.matrix_compressor.static_matrix_compressor(a_matrix)
+          session.run(tf.assign(self.b_matrix_tfvar, b_matrix))
+      logging.info(
+          'In compression op.run_update_step: '
+          'step_number is %s, begin, end and update_count are: %s %s %s ',
+          step_number, self._spec.begin_compression_step,
+          self._spec.end_compression_step, self.run_update_count)
+
+      alpha = session.run(self.alpha)
+      self.last_alpha_value = alpha
+      if self.last_alpha_value > 0:
+        make_a_zero = False
+        new_alpha = max(alpha - self._spec.alpha_decrement_value, 0)
+        if make_a_zero and new_alpha == 0:
+          logging.info('Making a_matrix all zero for %s',
+                       self.a_matrix_tfvar.op.name)
+          a_matrix = np.zeros(shape=self.a_matrix_tfvar.shape)
+          session.run(tf.assign(self.a_matrix_tfvar, a_matrix))
+        logging.info('in run_update_step decrementing alpha, alpha value is %d',
+                     self.last_alpha_value)
+
+        logging.info(
+            'running run_update_step self._global_step is %s new and old alpha are %d %d',
+            self._global_step, alpha, new_alpha)
+        session.run(tf.assign(self.alpha, new_alpha))
+        self.last_alpha_value = new_alpha
+        self._last_update_step = step_number
+        session.run(tf.assign(self._last_alpha_update_step, step_number))
+    logging.info(
+        'In compression op.run_update_step: '
+        'step_number is %s, begin, end  and update_count are: %s %s %s ',
+        step_number, self._spec.begin_compression_step,
+        self._spec.end_compression_step, self.run_update_count)
 
 
 class ApplyCompression(object):
@@ -567,6 +755,7 @@ class ApplyCompression(object):
       compressor: matrix compressor object of class MatrixCompressorInferface.
       global_step: tf variable that has the global step.
     """
+    logging.info('Entering ApplyCompression constructor')
     self._compression_op_spec = compression_spec
     self._scope = scope
     self._global_step = global_step
@@ -574,6 +763,9 @@ class ApplyCompression(object):
     self._compression_ops = []
     self._update_ops = []
     self._all_update_op = None
+
+    self.uncompressed_size = 0
+    self.compressed_size = 0
 
   def apply_compression(self, a_matrix_tfvar, scope='default_scope'):
     """Applies matrix compression OP on a_matrix_tfvar as specified in spec.
@@ -586,18 +778,37 @@ class ApplyCompression(object):
       TF node that represents the compressed version of a_matrix_tfvar.
     """
     c = CompressionOp(
-        spec=self._compression_op_spec, global_step=self._global_step)
+        scope=scope,
+        spec=self._compression_op_spec,
+        global_step=self._global_step)
     self._compression_ops.append(c)
     [a_matrix_compressed, a_matrix_update_op] = c.get_apply_compression_op(
         a_matrix_tfvar, self._matrix_compressor, scope=scope)
     self._update_ops.append(a_matrix_update_op)
+
+    self.uncompressed_size = self.uncompressed_size + c.uncompressed_size
+    self.compressed_size = self.compressed_size + c.compressed_size
+
     return a_matrix_compressed
+
+  def get_last_compression_op(self):
+    return self._compression_ops[-1]
 
   def all_update_op(self):
     """Returns the combine update tf OP."""
     self._all_update_op = CompressionOp.all_update_op(self._update_ops,
                                                       self._scope)
     return self._all_update_op
+
+  def run_update_step(self, session=None, step_number=None):
+    """Returns the combine update tf OP."""
+    logging.info('running AC run_update_step step_num is %s', step_number)
+
+    for comp_op in self._compression_ops:
+      logging.info('running run_update_step step_num is %s', step_number)
+      comp_op.run_update_step(session=session, step_number=step_number)
+      logging.info('Finished running run_update_step step_num is %s',
+                   step_number)
 
   def get_operator_hparam(self, hparam):
     """Returns the value of queried hparam of the compression operator."""
