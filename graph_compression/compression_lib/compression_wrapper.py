@@ -28,9 +28,10 @@ from __future__ import absolute_import
 
 from absl import logging
 from graph_compression.compression_lib import compression_op as comp_op
+from graph_compression.compression_lib import dl_compression_op
 from graph_compression.compression_lib import simhash_compression_op as simhash_comp_op
 
-_COMPRESSION_OPTIONS = [1, 2]
+_COMPRESSION_OPTIONS = [1, 2, 3, 4]
 
 
 def get_apply_compression(compression_op_spec, global_step):
@@ -59,6 +60,24 @@ def get_apply_compression(compression_op_spec, global_step):
   elif compression_op_spec.compression_option == 2:
     compressor_spec.set_hparam('is_b_matrix_trainable', False)
     compressor = simhash_comp_op.SimhashMatrixCompressor(spec=compressor_spec)
+    apply_compression = simhash_comp_op.SimhashApplyCompression(
+        scope='default_scope',
+        compression_spec=compression_op_spec,
+        compressor=compressor,
+        global_step=global_step)
+  elif compression_op_spec.compression_option == 3:
+    compressor_spec.set_hparam('is_b_matrix_trainable', False)
+    compressor_spec.set_hparam('use_lsh', True)
+    compressor = dl_compression_op.DLMatrixCompressor(spec=compressor_spec)
+    compression_op_spec.set_hparam('use_tpu', False)
+    apply_compression = dl_compression_op.DLApplyCompression(
+        scope='default_scope',
+        compression_spec=compression_op_spec,
+        compressor=compressor,
+        global_step=global_step)
+  elif compression_op_spec.compression_option == 4:
+    compressor_spec.set_hparam('is_b_matrix_trainable', False)
+    compressor = simhash_comp_op.KmeansMatrixCompressor(spec=compressor_spec)
     apply_compression = simhash_comp_op.SimhashApplyCompression(
         scope='default_scope',
         compression_spec=compression_op_spec,

@@ -26,6 +26,7 @@ import tensorflow.compat.v1 as tf
 
 from graph_compression.compression_lib import compression_op
 from graph_compression.compression_lib import decompose_matrix
+from graph_compression.compression_lib import kmeans_quantize
 
 
 class SimhashMatrixCompressor(compression_op.LowRankDecompMatrixCompressor):
@@ -40,17 +41,19 @@ class SimhashMatrixCompressor(compression_op.LowRankDecompMatrixCompressor):
 
     Args:
       spec: hparams object with default value given by
-        self.get_default_hparams().
+        self.get_default_hparams()
     """
     super(SimhashMatrixCompressor, self).__init__(spec)
     self._spec.set_hparam('name', 'simhash_compressor')
+    self._spec.is_c_matrix_present = False
+    self._spec.is_b_matrix_trainable = False
     self._seed = 42
 
   def static_matrix_compressor(self, a_matrix):
     """Simhash decomposition of a_matrix.
 
     Args:
-      a_matrix: input matrix.
+      a_matrix: input matrix
 
     Returns:
       List [b_matrix] which is the simhash approximation of a_matrix. Rank is
@@ -59,19 +62,23 @@ class SimhashMatrixCompressor(compression_op.LowRankDecompMatrixCompressor):
     # Tag used for all print statements within this method.
     logging_tag = 'Inside simhash static_matrix_compressor:'
 
-    # self._spec.rank can be considered a compression factor out of a 100,
-    # where 100 corresponds to the full size of the original matrix. For
-    # example, self._spec.rank of 200 means that the original rank is
-    # compressed by a factor of 2.
-    rank = np.int(np.floor(a_matrix.shape[1] * 100 / self._spec.rank))
-    logging.info('%s compression factor, old rank, and new rank are %s, %s, %s',
-                 logging_tag, self._spec.rank, a_matrix.shape[1], rank)
+    rank = ((np.min(a_matrix.shape) * 100) // self._spec.rank) + 1
+    tf.logging.info('%s compression factor, old rank, and new rank '
+                    'are %s %s %s',
+                    logging_tag,
+                    self._spec.rank,
+                    a_matrix.shape[1], rank)
 
     r, s, d = decompose_matrix.np_simhash_decompose(
         a_matrix, rank, seed=self._seed)
 
-    logging.info('%s r,s,d shapes are: %s, %s, %s', logging_tag, r.shape,
-                 s.shape, d.shape)
+    self.uncompressed_size = np.size(a_matrix)
+    self.compressed_size = np.size(r)
+
+    logging.info(
+        '%s r,s,d shapes are: %s, %s, %s, compressed and uncompressed size are %s %s',
+        logging_tag, r.shape, s.shape, d.shape, self.uncompressed_size,
+        self.compressed_size)
     a_matrix_approx = np.dot(r, np.dot(s, d))
     logging.info('%s a_matrix_approx norm: %s', logging_tag,
                  np.linalg.norm(a_matrix_approx))
@@ -146,6 +153,9 @@ class SimhashCompressionOp(compression_op.CompressionOp):
     Args:
       matrix_compressor: specifies the matrix compressor object.
       a_matrix_tfvar: the tf tensor to be compressed.
+
+    Returns:
+      a tf.no_op object with assign ops as control dependencies.
     """
     # py_func is not supported on TPU so need non py_func implementation
     # The following line seems to be needed otherwise it says machines with tpu
@@ -203,7 +213,10 @@ class SimhashCompressionOp(compression_op.CompressionOp):
     self.final_op = self.alpha * self.a_matrix_tfvar + (
         1 - self.alpha) * self.b_matrix_tfvar
 
-    self.update_op = self._create_update_op()
+    if self._spec.update_option == 0:
+      self.update_op = self._create_update_op()
+    else:
+      self.setup_update_explicit()
 
     self.add_compression_summaries()
     return [self.final_op, self.update_op]
@@ -266,11 +279,128 @@ class SimhashApplyCompression(compression_op.ApplyCompression):
                  self._compression_op_spec.begin_compression_step,
                  self._compression_op_spec_orig.begin_compression_step)
 
-    c = SimhashCompressionOp(
-        spec=self._compression_op_spec, global_step=self._global_step)
+    if self._compression_op_spec.compression_option == 4:
+      c = KMeansCompressionOp(
+          spec=self._compression_op_spec, global_step=self._global_step)
+    else:
+      c = SimhashCompressionOp(
+          spec=self._compression_op_spec, global_step=self._global_step)
+
     self._compression_ops.append(c)
     [a_matrix_compressed, a_matrix_update_op] = c.get_apply_compression_op(
         a_matrix_tfvar, self._matrix_compressor, scope=scope)
     self._update_ops.append(a_matrix_update_op)
 
+    self.uncompressed_size = self.uncompressed_size + c.uncompressed_size
+    self.compressed_size = self.compressed_size + c.compressed_size
+
     return a_matrix_compressed
+
+
+class KmeansMatrixCompressor(compression_op.LowRankDecompMatrixCompressor):
+  """K-means decomposition compressor.
+
+  Implements matrix compression interface for the kmeans quantize algorithm.
+  """
+
+  def __init__(self, spec=None):
+    """Initializer.
+
+    Args:
+      spec: hparams object with default value given by
+        self.get_default_hparams()
+    """
+    compression_op.LowRankDecompMatrixCompressor.__init__(self, spec=spec)
+    self._spec.set_hparam('name', 'kmeans_compressor')
+    # c_matrix is the encoding array, which is untrainable.
+    self._spec.is_c_matrix_trainable = False
+    self._seed = 42
+
+  def static_matrix_compressor(self, a_matrix):
+    """K-means decomposition of a_matrix.
+
+    Args:
+      a_matrix: input matrix
+
+    Returns:
+      [codebook, a_matrix_encoding]: rows of codebook are centroid vectors, and
+      a_matrix_encoding is an array of centroid indices for blocks in a_matrix.
+    """
+    [codebook, a_matrix_encoding] = kmeans_quantize.kmeans_quantize_block(
+        a_matrix,
+        levels=self._spec.rank,
+        pruning_factor=self._spec.pruning_fraction,
+        block_size=self._spec.block_size,
+        is_padded=True)
+    return [codebook, a_matrix_encoding]
+
+
+class KMeansCompressionOp(compression_op.CompressionOp):
+  """Implements a kmeans compression OP."""
+
+  def add_compression_summaries(self):
+    """Adds summaries of alpha value and last update step."""
+    with tf.name_scope(self._spec.name + '_summaries'):
+      logging.info('add_compression_summaries scope name is %s',
+                   self._spec.name)
+      tf.summary.scalar(self.alpha.op.name + '/alpha', self.alpha)
+      tf.summary.scalar(self.a_matrix_tfvar.op.name + '/a_matrix_norm',
+                        tf.norm(self.a_matrix_tfvar))
+      tf.summary.scalar(self.b_matrix_tfvar.op.name + '/d_matrix_norm',
+                        tf.norm(tf.reshape(self.b_matrix_tfvar, [-1]), ord=1))
+      tf.summary.scalar(self.c_matrix_tfvar.op.name + '/c_matrix_norm',
+                        tf.reduce_sum(self.c_matrix_tfvar))
+
+  def get_apply_compression_op(self,
+                               a_matrix_tfvar,
+                               matrix_compressor,
+                               scope='default_scope'):
+    """Returns compressed tensorflow operator - kmeans.
+
+    Replaces a_matrix by alpha * a_matrix + (1 - alpha) *
+    tf.nn.embedding(b_matrix, c_matrix).
+
+    Args:
+      a_matrix_tfvar: TF variable representihg a tensor variable in a model
+      matrix_compressor: MatrixCompressorInferface object to specify the
+        compression algorithm. Must return two matrices b_matrix,c_matrix in its
+        compression.
+      scope: TF scope used for creating new TF variables
+
+    Returns:
+      A TF node that has the compressed version of a_matrix_tfvar.
+    """
+    self.matrix_compressor = matrix_compressor
+    a_matrix = np.zeros(shape=a_matrix_tfvar.shape)
+    [b_matrix, c_matrix] = matrix_compressor.static_matrix_compressor(a_matrix)
+
+    self.uncompressed_size = matrix_compressor.uncompressed_size
+    self.compressed_size = matrix_compressor.compressed_size
+
+    with tf.variable_scope(scope):
+      self.b_matrix_tfvar = tf.get_variable(
+          'b_matrix',
+          dtype=tf.float32,
+          initializer=b_matrix.astype(np.float32),
+          trainable=self.matrix_compressor.get_spec().is_b_matrix_trainable)
+      self.c_matrix_tfvar = tf.get_variable(
+          'c_matrix',
+          dtype=tf.int32,
+          initializer=c_matrix.astype(np.int32),
+          trainable=self.matrix_compressor.get_spec().is_c_matrix_trainable)
+      self.alpha = tf.get_variable(
+          'alpha', dtype=tf.float32, trainable=False, initializer=1.0)
+
+      self.a_matrix_tfvar = a_matrix_tfvar
+
+      if self._spec.update_option == 0:
+        self.update_op = self._create_update_op()
+      else:
+        self.update_op = self.setup_update_explicit()
+
+    self.final_op = self.alpha * self.a_matrix_tfvar + (
+        1 - self.alpha) * tf.nn.embedding_lookup(self.b_matrix_tfvar,
+                                                 self.c_matrix_tfvar)
+
+    self.add_compression_summaries()
+    return [self.final_op, self.update_op]

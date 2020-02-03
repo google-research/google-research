@@ -63,6 +63,8 @@ use_tpu                | boolean | False             | **Experimental flag** - t
 
 1.  Low Rank Approximation
 2.  Simhash
+3.  Dictionary Learning
+4.  Kmeans Quantization
 
 #### Decomposed Matrix Dimensions
 
