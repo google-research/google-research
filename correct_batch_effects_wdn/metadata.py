@@ -13,12 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Metadata constants."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 
 TREATMENT_GROUP = "treatment_group"
 MOA = "moa"
