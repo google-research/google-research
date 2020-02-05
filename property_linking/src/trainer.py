@@ -20,7 +20,7 @@ import os
 import random
 import time
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from property_linking.src import util
 from tensorflow.contrib import memory_stats as contrib_memory_stats
 

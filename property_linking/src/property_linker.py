@@ -15,7 +15,7 @@
 
 """Main file for property_linking project.
 """
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_hub as hub
 
 from property_linking.src import kb

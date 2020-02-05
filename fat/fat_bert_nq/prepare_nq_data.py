@@ -45,7 +45,7 @@ from __future__ import print_function
 import os
 import random
 from bert import tokenization
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from fat.fat_bert_nq import nq_data_utils
 from fat.fat_bert_nq import run_nq
 

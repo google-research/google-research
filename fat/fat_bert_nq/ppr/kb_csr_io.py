@@ -29,7 +29,7 @@ import tempfile
 import numpy as np
 import scipy.sparse as sparse
 from sklearn.preprocessing import normalize
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from fat.fat_bert_nq.ppr import sling_utils
 

@@ -19,8 +19,8 @@ Simple version: Keep category attributes in.
 Model should learn something like the identity
 """
 import language.nql.nql as nql
-import tensorflow as tf
-from tensorflow.keras import layers
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1.keras import layers
 
 from property_linking.src import util
 from tensorflow.contrib import layers as contrib_layers

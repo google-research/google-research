@@ -19,7 +19,7 @@ import collections
 import itertools
 from language.nql import nql
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import property_linking.src.bert_util as bert
 
 FLAGS = tf.flags.FLAGS

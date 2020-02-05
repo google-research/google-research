@@ -18,9 +18,9 @@
 # pylint: disable=bad-continuation
 # pylint: disable=protected-access
 """Code for second derivatives not implemented in TensorFlow library."""
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import gen_nn_ops
+from tensorflow.compat.v1.python.framework import ops
+from tensorflow.compat.v1.python.ops import array_ops
+from tensorflow.compat.v1.python.ops import gen_nn_ops
 
 
 @ops.RegisterGradient("MaxPoolGrad")
