@@ -13,6 +13,7 @@
 # limitations under the License.
 
 #!/bin/bash
+
 set -e
 set -x
 
