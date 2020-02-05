@@ -81,11 +81,11 @@ import pickle
 import random
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from data_generator import DataGenerator
 from maml import MAML
-from tensorflow.python.platform import flags
+from tensorflow.compat.v1.python.platform import flags
 
 FLAGS = flags.FLAGS
 

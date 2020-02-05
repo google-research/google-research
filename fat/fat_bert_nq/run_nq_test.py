@@ -23,7 +23,7 @@ import gzip
 import json
 import os
 import tempfile
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from fat.fat_bert_nq import nq_data_utils
 from fat.fat_bert_nq import run_nq

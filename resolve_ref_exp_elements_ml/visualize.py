@@ -26,9 +26,9 @@ from deeplab import save_annotation
 import model
 import model_input
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow.contrib.slim as slim
-from tensorflow.python.platform import app
+from tensorflow.compat.v1.python.platform import app
 from tensorflow.contrib import slim as contrib_slim
 
 flags = tf.app.flags

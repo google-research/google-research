@@ -26,7 +26,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from fat.fat_bert_nq.ppr.apr_algo import csr_personalized_pagerank
 from fat.fat_bert_nq.ppr.apr_algo import csr_topk_fact_extractor
 from fat.fat_bert_nq.ppr.kb_csr_io import CsrData
