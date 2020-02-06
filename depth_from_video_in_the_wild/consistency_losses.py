@@ -20,8 +20,8 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf  # tf
-
 from depth_from_video_in_the_wild import transform_utils
+from tensorflow.contrib import resampler as contrib_resampler
 
 
 def rgbd_consistency_loss(frame1transformed_depth, frame1rgb, frame2depth,
@@ -63,7 +63,8 @@ def rgbd_consistency_loss(frame1transformed_depth, frame1rgb, frame2depth,
   """
   pixel_xy = frame1transformed_depth.pixel_xy
   frame2depth_resampled = _resample_depth(frame2depth, pixel_xy)
-  frame2rgb_resampled = tf.contrib.resampler.resampler(frame2rgb, pixel_xy)
+  frame2rgb_resampled = contrib_resampler.resampler.resampler(
+      frame2rgb, pixel_xy)
 
   # f1td.depth is the predicted depth at [pixel_y, pixel_x] for frame2. Now we
   # generate (by interpolation) the actual depth values for frame2's depth, at
@@ -159,7 +160,7 @@ def motion_field_consistency_loss(frame1transformed_pixelxy, mask,
       translation_error: A tf scalar, the translation consistency error.
   """
 
-  translation2resampled = tf.contrib.resampler.resampler(
+  translation2resampled = contrib_resampler.resampler.resampler(
       translation2, tf.stop_gradient(frame1transformed_pixelxy))
   rotation1field = tf.broadcast_to(
       _expand_dims_twice(rotation1, -2), tf.shape(translation1))
@@ -285,7 +286,7 @@ def _weighted_average(x, w, epsilon=1.0):
 
 def _resample_depth(depth, coordinates):
   depth = tf.expand_dims(depth, -1)
-  result = tf.contrib.resampler.resampler(depth, coordinates)
+  result = contrib_resampler.resampler.resampler(depth, coordinates)
   return tf.squeeze(result, axis=3)
 
 

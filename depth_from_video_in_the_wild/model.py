@@ -32,10 +32,11 @@ from depth_from_video_in_the_wild import randomized_layer_normalization
 from depth_from_video_in_the_wild import reader
 from depth_from_video_in_the_wild import transform_depth_map
 from depth_from_video_in_the_wild import transform_utils
+from tensorflow.contrib import slim as contrib_slim
 
 
 gfile = tf.gfile
-slim = tf.contrib.slim
+slim = contrib_slim
 # Number of subsequent frames per training sample. It is set to 3 for mainly
 # legacy reasons: The training loss itself only involves two adjacent images at
 # a time.
