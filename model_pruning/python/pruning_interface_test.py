@@ -110,18 +110,18 @@ class PruningSpeechUtilsTest(tf.test.TestCase):
     self.mock_lstmobj = MockLSTMCell()
     self.wm_pc = np.zeros((2, 2))
 
-  def testApplyPruning(self):
-    pruning_obj = pruning_interface.apply_pruning(self.pruning_obj,
-                                                  self.pruning_hparams,
-                                                  self.mock_weight_params_fn,
-                                                  MockWeightInit,
-                                                  self.mock_lstmobj,
-                                                  self.wm_pc, tf.float32)
+  def testApplyPruningLSTM(self):
+    pruning_obj = pruning_interface.apply_pruning(
+        self.pruning_obj, self.pruning_hparams,
+        self.mock_weight_params_fn,
+        MockWeightInit,
+        self.mock_lstmobj,
+        self.wm_pc, tf.float32)
 
     self.assertEqual(pruning_obj, self.pruning_obj)
 
   def testGetPruningUpdate(self):
-    mask_update_op = pruning_interface.get_pruning_update(
+    mask_update_op = pruning_interface.get_matrix_compression_update_op(
         self.pruning_obj, self.pruning_hparams)
     self.assertNotEqual(mask_update_op, tf.no_op())
 
