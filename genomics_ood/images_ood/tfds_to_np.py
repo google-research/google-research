@@ -35,7 +35,7 @@ from absl import app
 from absl import flags
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_datasets as tfds
 
 flags.DEFINE_string('out_dir', '/tmp/image_data', 'Directory to save datasets.')

@@ -28,7 +28,7 @@ import time
 
 from absl import app
 from absl import flags
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from genomics_ood.images_ood import pixel_cnn
 from genomics_ood.images_ood import utils

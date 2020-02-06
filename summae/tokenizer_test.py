@@ -24,7 +24,7 @@ import os
 import random
 import six
 from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from summae import tokenizer
 
 FLAGS = tf.flags.FLAGS
