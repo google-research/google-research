@@ -24,7 +24,7 @@ import os
 from absl import flags
 from absl.testing import parameterized
 from six.moves import range
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 from summae import pors
 from summae import util
 

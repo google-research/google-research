@@ -27,7 +27,7 @@ from __future__ import division
 from __future__ import print_function
 
 import math
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import layers as contrib_layers
 
 # pylint: disable=invalid-name

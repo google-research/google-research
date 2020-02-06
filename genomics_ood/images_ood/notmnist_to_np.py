@@ -32,7 +32,7 @@ from absl import flags
 
 import numpy as np
 from PIL import Image
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 flags.DEFINE_string('out_dir', '/tmp/image_data', 'Directory to save datasets.')
 flags.DEFINE_string('raw_data_dir', '/tmp/notMNIST_small',

@@ -23,7 +23,7 @@ import math
 
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 from summae import beam_search
 from summae import sample

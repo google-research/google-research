@@ -25,7 +25,7 @@ import sys
 import time
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from enas_lm.src import lstm_lib
 from enas_lm.src import utils
