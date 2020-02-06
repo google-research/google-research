@@ -22,7 +22,7 @@ from absl import flags
 from absl import logging
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from axial import config_imagenet32
 from axial import config_imagenet64

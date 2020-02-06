@@ -23,11 +23,11 @@ import time
 from absl import logging
 import numpy as np
 import PIL.Image
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
-from tensorflow import gfile
-from tensorflow.core.framework.summary_pb2 import Summary
-from tensorflow.core.util.event_pb2 import Event
+from tensorflow.compat.v1 import gfile
+from tensorflow.compat.v1.core.framework.summary_pb2 import Summary
+from tensorflow.compat.v1.core.util.event_pb2 import Event
 
 
 def pack_images(images, rows, cols):
