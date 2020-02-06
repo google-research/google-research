@@ -22,7 +22,7 @@ from __future__ import print_function
 import string
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class Module(tf.Module):

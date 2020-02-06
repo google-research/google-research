@@ -24,7 +24,7 @@ from . import worker_util
 
 from absl import logging
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def log_trainable_variables(trainable_variables):
