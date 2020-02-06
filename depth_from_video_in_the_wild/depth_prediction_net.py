@@ -20,9 +20,11 @@ https://github.com/tensorflow/models/blob/master/research/struct2depth/nets.py
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.contrib import framework as contrib_framework
+from tensorflow.contrib import layers as contrib_layers
 
-layers = tf.contrib.layers
-arg_scope = tf.contrib.framework.arg_scope
+layers = contrib_layers
+arg_scope = contrib_framework.arg_scope
 
 WEIGHT_DECAY_KEY = 'WEIGHT_DECAY'
 
