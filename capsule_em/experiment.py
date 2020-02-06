@@ -27,7 +27,7 @@ from capsule_em.mnist \
   import mnist_record
 from capsule_em.norb \
   import norb_record
-from tensorflow.python import debug as tf_debug
+
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer('num_prime_capsules', 32,
@@ -101,6 +101,11 @@ tf.app.flags.DEFINE_string('conv_strides', '', 'stride for extra conv layers.')
 tf.app.flags.DEFINE_string('conv_kernels', '',
                            'kernel size for extra conv layers.')
 tf.app.flags.DEFINE_bool('leaky', False, 'Use leaky routing.')
+tf.app.flags.DEFINE_bool('fast', False, 'Use the new faster implementation.')
+tf.app.flags.DEFINE_bool('cpu_way', False,
+                         'If set, use NHWC ordering instead of NCHW.')
+tf.app.flags.DEFINE_bool('jit_scopes', False,
+                         'Use xla jit_scopes to compile. Not supported.')
 tf.app.flags.DEFINE_bool('staircase', False, 'Use staircase decay.')
 tf.app.flags.DEFINE_integer('num_gpus', 1, 'number of gpus to train.')
 tf.app.flags.DEFINE_bool('adam', True, 'Use Adam optimizer.')
@@ -122,7 +127,6 @@ tf.app.flags.DEFINE_float('final_beta', 0.01, 'Temperature at the sigmoid.')
 tf.app.flags.DEFINE_bool('eval_ensemble', False, 'eval over aggregated logits.')
 tf.app.flags.DEFINE_string('part1', 'ok', 'ok')
 tf.app.flags.DEFINE_string('part2', 'ok', 'ok')
-tf.app.flags.DEFINE_bool('debug', False, 'If set use tfdbg wrapper.')
 tf.app.flags.DEFINE_bool('reduce_mean', False,
                          'If set normalize mean of each image.')
 tf.app.flags.DEFINE_float('loss_rate', 1.0,
@@ -221,13 +225,13 @@ def run_training():
     print('so far so good!')
     result = model(features)
 
+    # TODO(sasabour): merge jit scopes after jit scopes where enabled.
     merged = result['summary']
     train_step = result['train']
     # test_writer = tf.summary.FileWriter(FLAGS.summary_dir + '/test')
+
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
-    if FLAGS.debug:
-      sess = tf_debug.LocalCLIDebugWrapperSession(sess, ui_type='curses')
-      sess.add_tensor_filter('has_inf_or_nan', tf_debug.has_inf_or_nan)
+
     init_op = tf.group(tf.global_variables_initializer(),
                        tf.local_variables_initializer())
     sess.run(init_op)

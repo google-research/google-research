@@ -37,11 +37,18 @@ def conv_pos(grid, kernel_size, stride, padding):
   ],
                       axis=2)
   pos_kernel = tf.stack([x_kernel, y_kernel], axis=3)
+  if FLAGS.cpu_way:
+    grid = tf.transpose(grid, [0, 2, 3, 1])
+    data_format = 'NHWC'
+    strides = [1, stride, stride, 1]
+  else:
+    data_format = 'NCHW'
+    strides = [1, 1, stride, stride]
+
   conv_position = tf.nn.conv2d(
-      grid,
-      pos_kernel, [1, 1, stride, stride],
-      padding=padding,
-      data_format='NCHW')
+      grid, pos_kernel, strides, padding=padding, data_format=data_format)
+  if FLAGS.cpu_way:
+    conv_position = tf.transpose(conv_position, [0, 3, 1, 2])
   return conv_position / (kernel_size * kernel_size)
 
 
@@ -70,15 +77,25 @@ def add_convs(features):
         stddev=5e-2)
 
     image_reshape = tf.reshape(image, [-1, image_depth, image_dim, image_dim])
+    if FLAGS.cpu_way:
+      image_reshape = tf.transpose(image_reshape, [0, 2, 3, 1])
+      data_format = 'NHWC'
+      strides = [1, FLAGS.stride_1, FLAGS.stride_1, 1]
+    else:
+      data_format = 'NCHW'
+      strides = [1, 1, FLAGS.stride_1, FLAGS.stride_1]
     conv = tf.nn.conv2d(
         image_reshape,
-        kernel, [1, 1, FLAGS.stride_1, FLAGS.stride_1],
+        kernel,
+        strides,
         padding=FLAGS.padding,
-        data_format='NCHW')
+        data_format=data_format)
+    biases = utils.bias_variable([FLAGS.num_start_conv])
+    pre_activation = tf.nn.bias_add(conv, biases, data_format=data_format)
+    if FLAGS.cpu_way:
+      pre_activation = tf.transpose(pre_activation, [0, 3, 1, 2])
     position_grid = conv_pos(position_grid, FLAGS.kernel_size, FLAGS.stride_1,
                              FLAGS.padding)
-    biases = utils.bias_variable([FLAGS.num_start_conv])
-    pre_activation = tf.nn.bias_add(conv, biases, data_format='NCHW')
     conv1 = tf.nn.relu(pre_activation, name=scope.name)
     if FLAGS.verbose:
       tf.summary.histogram('activation', conv1)

@@ -44,7 +44,12 @@ def _build_capsule(input_tensor, input_atom, position_grid, num_classes):
   last_dim = FLAGS.num_prime_capsules
   if FLAGS.extra_caps > 0:
     for i in range(FLAGS.extra_caps):
-      conv_caps_act, conv_caps_center = em_layers.conv_capsule_mat(
+      if FLAGS.fast:
+        conv_function = em_layers.conv_capsule_mat_fast
+      else:
+        conv_function = em_layers.conv_capsule_mat
+
+      conv_caps_act, conv_caps_center = conv_function(
           conv_caps_center,
           conv_caps_act,
           last_dim,
@@ -57,6 +62,7 @@ def _build_capsule(input_tensor, input_atom, position_grid, num_classes):
           kernel_size=int(FLAGS.caps_kernels.split(',')[i]),
           final_beta=FLAGS.final_beta,
       )
+
       position_grid = simple_model.conv_pos(
           position_grid, int(FLAGS.caps_kernels.split(',')[i]),
           int(FLAGS.caps_strides.split(',')[i]), 'VALID')
