@@ -23,6 +23,8 @@ import tensorflow.compat.v1 as tf
 from capsule_em import em_model
 from capsule_em import layers
 from capsule_em import simple_model
+from capsule_em import utils
+
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -68,12 +70,13 @@ def _average_gradients(tower_grads):
     # Average over the 'tower' dimension.
     grad = tf.concat(grads, 0)
     grad = tf.reduce_mean(grad, 0)
+    capped_grad = tf.clip_by_value(grad, -200., 200.)
 
     # Keep in mind that the Variables are redundant because they are shared
     # across towers. So .. we will just return the first tower's pointer to
     # the Variable.
     v = grad_and_vars[0][1]
-    grad_and_var = (grad, v)
+    grad_and_var = (capped_grad, v)
     average_grads.append(grad_and_var)
   return average_grads
 
@@ -133,10 +136,14 @@ def multi_gpu_model(features):
             corrects.append(correct)
             almosts.append(almost)
             #           summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
-            grads = opt.compute_gradients(losses)
+            grads = opt.compute_gradients(
+                losses,
+                gate_gradients=tf.train.Optimizer.GATE_NONE,
+            )
             tower_grads.append(grads)
 
-    grads = _average_gradients(tower_grads)
+    with utils.maybe_jit_scope(), tf.name_scope('average_gradients'):
+      grads = _average_gradients(tower_grads)
     summaries = tf.get_collection(tf.GraphKeys.SUMMARIES)
     if FLAGS.verbose:
       for grad, var in grads:
