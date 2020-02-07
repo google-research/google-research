@@ -42,7 +42,7 @@
 
 const assert = require("assert");
 
-const Vocabulary = require("./vocabulary");
+const vocab = require("./vocabulary");
 
 /**
  * Kneser-Ney "-like" smoothing parameters.
@@ -52,9 +52,6 @@ const Vocabulary = require("./vocabulary");
  */
 const knAlpha = 0.49;
 const knBeta = 0.77;
-
-/* Special symbol denoting the root node. */
-const rootSymbol = 0;
 
 /* Epsilon for sanity checks. */
 const epsilon = 1E-10;
@@ -81,7 +78,7 @@ class Node {
     // Frequency count for this node.
     this.count_ = 1;
     // Symbol that this node stores.
-    this.symbol_ = rootSymbol;
+    this.symbol_ = vocab.rootSymbol;
   }
 
   /**
@@ -99,6 +96,22 @@ class Node {
       current = current.next_;
     }
     return current;
+  }
+
+  /**
+   * Total number of observations for all the children of this node. This
+   * counts all the events observed in this context.
+   * @return {number} Total number of observations under this node.
+   * @final
+   */
+  totalChildrenCounts() {
+    let childNode = this.child_;
+    let count = 0;
+    while (childNode != null) {
+      count += childNode.count_;
+      childNode = childNode.next_;
+    }
+    return count;
   }
 }
 
@@ -144,7 +157,7 @@ class PPMLanguageModel {
 
   /**
    * Adds symbol to the supplied node.
-   * @param {?Node} node Tree node.
+   * @param {?Node} node Tree node which to grow.
    * @param {number} symbol Symbol.
    * @return {?Node} Node with the symbol.
    * @final @private
@@ -209,7 +222,7 @@ class PPMLanguageModel {
    * @final
    */
   addSymbolToContext(context, symbol) {
-    if (symbol <= rootSymbol) {  // Only add valid symbols.
+    if (symbol <= vocab.rootSymbol) {  // Only add valid symbols.
       return;
     }
     assert(symbol < this.vocab_.size(), "Invalid symbol: " + symbol);
@@ -240,7 +253,7 @@ class PPMLanguageModel {
    * @final
    */
   addSymbolAndUpdate(context, symbol) {
-    if (symbol <= rootSymbol) {  // Only add valid symbols.
+    if (symbol <= vocab.rootSymbol) {  // Only add valid symbols.
       return;
     }
     assert(symbol < this.vocab_.size(), "Invalid symbol: " + symbol);
@@ -303,12 +316,7 @@ class PPMLanguageModel {
     let totalMass = 1.0;
     let node = context.head_;
     while (node != null) {
-      let count = 0;
-      let childNode = node.child_;
-      while (childNode != null) {
-        count += childNode.count_;
-        childNode = childNode.next_;
-      }
+      const count = node.totalChildrenCounts();
       if (count > 0) {
         let childNode = node.child_;
         let nodeMass = totalMass;
@@ -322,6 +330,8 @@ class PPMLanguageModel {
       // Backoff to lower-order context.
       node = node.vine_;
     }
+    assert(totalMass >= 0.0,
+           "Invalid remaining probability mass: " + totalMass);
 
     // Adjust the probability mass for all the symbols.
     let numValidSymbols = numSymbols - 1;
@@ -352,7 +362,8 @@ class PPMLanguageModel {
    * @final @private
    */
   printToConsole_(node, indent) {
-    console.log(indent + "  " + node.symbol_ + " [" + node.count_ + "]");
+    console.log(indent + "  " + this.vocab_.symbols_[node.symbol_] +
+                "(" + node.symbol_ + ") [" + node.count_ + "]");
     indent += "  ";
     let child = node.child_;
     while (child != null) {

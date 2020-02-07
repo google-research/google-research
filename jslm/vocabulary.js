@@ -18,11 +18,14 @@
  * This is used to store symbols and map them to contiguous integers.
  */
 
+// Special symbol denoting the root node.
+const rootSymbol = 0;
+
 // Symbol name of the root symbol, also used for out-of-vocabulary symbols.
-const rootSymbolName = "Root";
+const rootSymbolName = "<R>";
 
 // The special out-of-vocabulary (OOV) symbol.
-const oovSymbol = "OOV";
+const oovSymbol = "<OOV>";
 
 /**
  * Vocabulary of symbols, which is a set of symbols that map one-to-one to
@@ -48,7 +51,7 @@ class Vocabulary {
       return pos;
     }
     this.symbols_.push(symbol);
-    return this.symbols_.length - 1;  // Minus the root.
+    return this.symbols_.length;
   }
 
   /**
