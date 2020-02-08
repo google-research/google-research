@@ -402,6 +402,10 @@ class Pruning(object):
     graph_global_step = global_step
     if graph_global_step is None:
       graph_global_step = tf.train.get_global_step()
+      if not graph_global_step:
+        raise ValueError(
+            'Could not get the global step. Either pass it explicitly, or '
+            'ensure that the library is called within a TF graph.')
 
     return tf.cast(graph_global_step, tf.int32)
 
