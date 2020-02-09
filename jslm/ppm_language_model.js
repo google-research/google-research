@@ -311,24 +311,31 @@ class PPMLanguageModel {
     }
 
     // Estimate the probabilities for all the symbols in the supplied context.
-    // This runs over all the symbols in the context and over all the prefixes
+    // This runs over all the symbols in the context and over all the suffixes
     // (orders) of the context.
     let totalMass = 1.0;
     let node = context.head_;
+    let gamma = totalMass;
     while (node != null) {
       const count = node.totalChildrenCounts();
       if (count > 0) {
         let childNode = node.child_;
-        let nodeMass = totalMass;
         while (childNode != null) {
-          let p = nodeMass * (childNode.count_ - knBeta) / (count + knAlpha);
+          let p = gamma * (childNode.count_ - knBeta) / (count + knAlpha);
           probs[childNode.symbol_] += p;
           totalMass -= p;
           childNode = childNode.next_;
         }
       }
-      // Backoff to lower-order context.
+      // Backoff to lower-order context. The $\gamma$ factor represents the
+      // total probability mass after processing the current $n$-th order before
+      // backing off to $n-1$-th order. It roughly corresponds to the usual
+      // interpolation parameter, as used in the literature, e.g. in
+      //   Stanley F. Chen and Joshua Goodman (1999): "An empirical study of
+      //   smoothing techniques for language modeling", Computer Speech and
+      //   Language, vol. 13, pp. 359-–394.
       node = node.vine_;
+      gamma = totalMass;
     }
     assert(totalMass >= 0.0,
            "Invalid remaining probability mass: " + totalMass);
@@ -337,6 +344,8 @@ class PPMLanguageModel {
     let numValidSymbols = numSymbols - 1;
     let remainingMass = totalMass;
     for (let i = 1; i < numSymbols; ++i) {
+      // Following is estimated according to a uniform distribution
+      // corresponding to the context length of zero.
       let p = remainingMass / numValidSymbols;
       probs[i] += p;
       totalMass -= p;
