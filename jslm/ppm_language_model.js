@@ -73,16 +73,17 @@ class Node {
     this.child_ = null;
     // Next node.
     this.next_ = null;
-    // Node in the "vine" structure, also known as "suffix link" in Ukkonen's
-    // algorithm ([1] above). The vine for the given node points at the node
-    // representing the shorter context. For example, if the current node in the
-    // trie represents string "AA" (corresponding to the branch "[R] -> [A] ->
-    // [*A*]" in the trie, where [R] stands for root), then its vine points at
-    // the node "A" (represented by "[R] -> [*A*]"). In this case both nodes are
-    // in the same branch but they don't need to be. For example, for the node
-    // "B" in the trie path for the string "AB" ("[R] -> [A] -> [*B*]") the vine
-    // points at the child node of a different path "[R] -> [*B*]".
-    this.vine_ = null;
+    // Node in the backoff structure, also known as "vine" structure and "suffix
+    // link" in Ukkonen's algorithm ([1] above). The backoff for the given node
+    // points at the node representing the shorter context. For example, if the
+    // current node in the trie represents string "AA" (corresponding to the
+    // branch "[R] -> [A] -> [*A*]" in the trie, where [R] stands for root),
+    // then its backoff points at the node "A" (represented by "[R] ->
+    // [*A*]"). In this case both nodes are in the same branch but they don't
+    // need to be. For example, for the node "B" in the trie path for the string
+    // "AB" ("[R] -> [A] -> [*B*]") the backoff points at the child node of a
+    // different path "[R] -> [*B*]".
+    this.backoff_ = null;
     // Frequency count for this node. Number of times the suffix symbol stored
     // in this node was observed.
     this.count_ = 1;
@@ -174,21 +175,21 @@ class PPMLanguageModel {
   addSymbolToNode_(node, symbol) {
     let symbolNode = node.findChildWithSymbol(symbol);
     if (symbolNode != null) {
-      // Update the counts for the given node and also for all the vine nodes
+      // Update the counts for the given node and also for all the backoff nodes
       // representing shorter contexts.
       symbolNode.count_++;
-      let vineNode = symbolNode.vine_;
-      assert(vineNode != null, "Expected valid vine node!");
-      while (vineNode != null) {
-        assert(vineNode == this.root_ || vineNode.symbol_ == symbol,
-               "Expected vine node to be root or to contain " + symbol +
-               ". Found " + vineNode.symbol_ + " instead");
-        vineNode.count_++;
-        vineNode = vineNode.vine_;
+      let backoffNode = symbolNode.backoff_;
+      assert(backoffNode != null, "Expected valid backoff node!");
+      while (backoffNode != null) {
+        assert(backoffNode == this.root_ || backoffNode.symbol_ == symbol,
+               "Expected backoff node to be root or to contain " + symbol +
+               ". Found " + backoffNode.symbol_ + " instead");
+        backoffNode.count_++;
+        backoffNode = backoffNode.backoff_;
       }
     } else {
       // Symbol does not exist under the given node. Create a new child node
-      // and update the vine structure for lower contexts.
+      // and update the backoff structure for lower contexts.
       symbolNode = new Node();
       symbolNode.symbol_ = symbol;
       symbolNode.next_ = node.child_;
@@ -196,10 +197,10 @@ class PPMLanguageModel {
       this.numNodes_++;
       if (node == this.root_) {
         // Shortest possible context.
-        symbolNode.vine_ = this.root_;
+        symbolNode.backoff_ = this.root_;
       } else {
-        assert(node.vine_ != null, "Expected valid vine node");
-        symbolNode.vine_ = this.addSymbolToNode_(node.vine_, symbol);
+        assert(node.backoff_ != null, "Expected valid backoff node");
+        symbolNode.backoff_ = this.addSymbolToNode_(node.backoff_, symbol);
       }
     }
     return symbolNode;
@@ -247,7 +248,7 @@ class PPMLanguageModel {
       }
       // Try to extend the shorter context.
       context.order_--;
-      context.head_ = context.head_.vine_;
+      context.head_ = context.head_.backoff_;
     }
     if (context.head_ == null) {
       context.head_ = this.root_;
@@ -271,7 +272,7 @@ class PPMLanguageModel {
     context.head_ = symbolNode;
     context.order_++;
     while (context.order_ > this.maxOrder_) {
-      context.head_ = context.head_.vine_;
+      context.head_ = context.head_.backoff_;
       context.order_--;
     }
   }
@@ -309,7 +310,8 @@ class PPMLanguageModel {
    *                     \over{\alpha + \beta * q(x_h)}{T(x_h) + \alpha} *
    *                     P_{kn}(w | x_{h-1}) .
    *
-   * Additional details on the above version are provided in Section 3 of:
+   * Additional details on the above version are provided in Sections 3 and 4
+   * of:
    *   Steinruecken, Christian and Ghahramani, Zoubin and MacKay, David (2016):
    *   "Improving PPM with dynamic parameter updates", In Proc. Data
    *   Compression Conference (DCC-2015), pp. 193--202, April, Snowbird, UT,
@@ -352,7 +354,7 @@ class PPMLanguageModel {
       //   Stanley F. Chen and Joshua Goodman (1999): "An empirical study of
       //   smoothing techniques for language modeling", Computer Speech and
       //   Language, vol. 13, pp. 359-–394.
-      node = node.vine_;
+      node = node.backoff_;
       gamma = totalMass;
     }
     assert(totalMass >= 0.0,
