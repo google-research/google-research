@@ -300,6 +300,12 @@ class PPMLanguageModel {
    *                     \over{\alpha + \beta * q(x_h)}{T(x_h) + \alpha} *
    *                     P_{kn}(w | x_{h-1}) .
    *
+   * Additional details on the above version are provided in Section 3 of:
+   *   Steinruecken, Christian and Ghahramani, Zoubin and MacKay, David (2016):
+   *   "Improving PPM with dynamic parameter updates", In Proc. Data
+   *   Compression Conference (DCC-2015), pp. 193--202, April, Snowbird, UT,
+   *   USA. IEEE.
+   *
    * @param {?Context} context Context symbols.
    * @return {?array} Array of floating point probabilities.
    * @final
