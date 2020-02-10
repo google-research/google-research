@@ -50,8 +50,12 @@ class Vocabulary {
     if (pos >= 0) {
       return pos;
     }
+    // The current symbol container length is used as a unique ID. Because
+    // the symbol IDs are used to index the array directly, the symbol ID is
+    // assigned before updating the array.
+    const symbol_id = this.symbols_.length;
     this.symbols_.push(symbol);
-    return this.symbols_.length;
+    return symbol_id;
   }
 
   /**
@@ -84,4 +88,5 @@ class Vocabulary {
 /**
  * Exported APIs.
  */
+exports.rootSymbol = rootSymbol;
 exports.Vocabulary = Vocabulary;
