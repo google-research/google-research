@@ -276,7 +276,10 @@ class PPMLanguageModel {
    *         $x_h$ : Context representing history, $x_{h-1}$ shorter context.
    *   $n(w, x_h)$ : Count of symbol $w$ in context $x_h$.
    *      $T(x_h)$ : Total count in context $x_h$.
-   *      $q(x_h)$ : Number of symbols seen in context $x_h$.
+   *      $q(x_h)$ : Number of symbols with non-zero counts seen in context
+   *                 $x_h$, i.e. |{w' : c(x_h, w') > 0}|. Alternatively, this
+   *                 represents the number of distinct extensions of history
+   *                 $x_h$ in the training data.
    *
    * Standard Kneser-Ney method (aka Absolute Discounting):
    * ------------------------------------------------------
