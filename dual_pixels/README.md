@@ -14,7 +14,39 @@ Rahul Garg, Neal Wadhwa, Sameer Ansari & Jonathan T. Barron, ICCV 2019. If you u
 
 ## Dataset
 
-Coming soon!
+The dataset containing the RGB images, dual-pixel images, and the depth maps
+can be downloaded from the links below:
+
+[Train (95G)](https://storage.googleapis.com/iccv2019-data/train.tgz)
+
+[Test (29G)](https://storage.googleapis.com/iccv2019-data/test.tgz)
+
+The dataset linked above is slightly smaller than the one used in the paper.
+Please see the dataset [README](https://storage.googleapis.com/iccv2019-data/README.pdf) for more details about the dataset.
+
+## Results and Evaluation.
+
+### Results
+Since the dataset above is slightly smaller than the one used in the paper,
+we trained and evaluated our best performing model (DPNet with Affine
+Invariance) on the data above. The metrics are similar to those reported in the
+paper:
+
+$$ \operatorname{AIWE}(1) = 0.0181 \quad \operatorname{AIWE}(2) = 0.0268 \quad 1 - |\rho_s| = 0.152 $$
+
+Predictions from the model corresponding to the center image in the test dataset
+are available [here](https://storage.googleapis.com/iccv2019-data/model_prediction.tgz) as EXR images or binary numpy files.
+
+### Evaluation
+
+The python script "script.py" in the "eval" directory can be used to evaluate
+the predictions. Assuming that the test dataset is in the "test" folder and
+predictions are in the "model_prediction" folder, evaluation can be run as:
+
+```
+python -m dual_pixels.eval.script --test_dir=test --prediction_dir=model_prediction
+```
+This has been tested with Python 3.
 
 ## Android App to Capture Dual-pixel Data
 
