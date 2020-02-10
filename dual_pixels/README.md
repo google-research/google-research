@@ -32,7 +32,7 @@ we trained and evaluated our best performing model (DPNet with Affine
 Invariance) on the data above. The metrics are similar to those reported in the
 paper:
 
-$$ \operatorname{AIWE}(1) = 0.0181 \quad \operatorname{AIWE}(2) = 0.0268 \quad 1 - |\rho_s| = 0.152 $$
+![$ \mathrm{AIWE}(1) = 0.0181 \quad \mathrm{AIWE}(2) = 0.0268 \quad 1 - |\rho_s| = 0.152 $](https://render.githubusercontent.com/render/math?math=%24%20%5Cmathrm%7BAIWE%7D(1)%20%3D%200.0181%20%5Cquad%20%5Cmathrm%7BAIWE%7D(2)%20%3D%200.0268%20%5Cquad%201%20-%20%7C%5Crho_s%7C%20%3D%200.152%20%24)
 
 Predictions from the model corresponding to the center image in the test dataset
 are available [here](https://storage.googleapis.com/iccv2019-data/model_prediction.tgz) as EXR images or binary numpy files.
