@@ -967,5 +967,8 @@ class Pruning(object):
                           tf.nn.zero_fraction(gradient))
         tf.summary.histogram(gradient.op.name + '/abs.gradient', gradient)
 
+  def apply_mask(self, x, scope=''):
+    return apply_mask(x, scope, self._spec.prune_option)
+
   def print_hparams(self):
     tf.logging.vlog(0, self._spec.to_json())
