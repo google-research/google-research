@@ -57,25 +57,34 @@ const knBeta = 0.77;
 const epsilon = 1E-10;
 
 /**
- * Node in a search tree.
+ * Node in a search tree, which is implemented as a suffix trie that represents
+ * every suffix of a sequence used during its construction. Please see
+ *   [1] Esko Ukknonen (1995): "On-line construction of suffix trees",
+ *       Algorithmica, volume 14, pp. 249--260, Springer, 1995.
+ *   [2] Kennington, C. (2011): "Application of Suffix Trees as an
+ *       Implementation Technique for Varied-Length N-gram Language Models",
+ *       MSc. Thesis, Saarland University.
+ *
  * @final
  */
 class Node {
   constructor() {
-    // Child node for the current node.
+    // Leftmost child node for the current node.
     this.child_ = null;
     // Next node.
     this.next_ = null;
-    // Node in the "vine" structure. The vine for the given node points at the
-    // node representing the shorter context. For example, if the current node
-    // in the trie represents string "AA" (corresponding to the branch "[R] ->
-    // [A] -> [*A*]" in the trie, where [R] stands for root), then its vine
-    // points at the node "A" (represented by "[R] -> [*A*]"). In this case both
-    // nodes are in the same branch but they don't need to be. For example, for
-    // the node "B" in the trie path for the string "AB" ("[R] -> [A] -> [*B*]")
-    // the vine points at the child node of a different path "[R] -> [*B*]".
+    // Node in the "vine" structure, also known as "suffix link" in Ukkonen's
+    // algorithm ([1] above). The vine for the given node points at the node
+    // representing the shorter context. For example, if the current node in the
+    // trie represents string "AA" (corresponding to the branch "[R] -> [A] ->
+    // [*A*]" in the trie, where [R] stands for root), then its vine points at
+    // the node "A" (represented by "[R] -> [*A*]"). In this case both nodes are
+    // in the same branch but they don't need to be. For example, for the node
+    // "B" in the trie path for the string "AB" ("[R] -> [A] -> [*B*]") the vine
+    // points at the child node of a different path "[R] -> [*B*]".
     this.vine_ = null;
-    // Frequency count for this node.
+    // Frequency count for this node. Number of times the suffix symbol stored
+    // in this node was observed.
     this.count_ = 1;
     // Symbol that this node stores.
     this.symbol_ = vocab.rootSymbol;
