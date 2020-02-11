@@ -12,9 +12,10 @@ Prediction by Partial Matching (PPM) character [language model](ppm_language_mod
 #### Bibliography
 
 1.  Cleary, John G. and Witten, Ian H. (1984): [“Data Compression Using Adaptive Coding and Partial String Matching”](https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.14.4305), IEEE Transactions on Communications, vol. 32, no. 4, pp. 396&#x2013;402.
-2.  Ward, David J. and Blackwell, Alan F. and MacKay, David J. C. (2000): [“Dasher -- A Data Entry Interface Using Continuous Gestures and Language Models”](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.36.3318&rep=rep1&type=pdf), UIST '00 Proceedings of the 13th annual ACM symposium on User interface software and technology, pp. 129&#x2013;137, November, San Diego, USA.
-3.  Jin Hu Huang and David Powers (2004): [“Adaptive Compression-based Approach for Chinese Pinyin Input”](https://www.aclweb.org/anthology/W04-1104.pdf), Proceedings of the Third SIGHAN Workshop on Chinese Language Processing, pp. 24--27, Barcelona, Spain. ACL.
-4.  Cowans, Phil (2005): [“Language Modelling In Dasher &#x2013; A Tutorial”](http://www.inference.org.uk/pjc51/talks/05-dasher-lm.pdf), June, Inference Lab, Cambridge University (presentation).
+2.  Ney, Reinhard and Kneser, Hermann (1995): [“Improved backing-off for M-gram language modeling”](http://www-i6.informatik.rwth-aachen.de/publications/download/951/Kneser-ICASSP-1995.pdf), Proc. of Acoustics, Speech, and Signal Processing (ICASSP), May, pp. 181&#x2013;184. IEEE.
+3.  Ward, David J. and Blackwell, Alan F. and MacKay, David J. C. (2000): [“Dasher &#x2013; A Data Entry Interface Using Continuous Gestures and Language Models”](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.36.3318&rep=rep1&type=pdf), UIST '00 Proceedings of the 13th annual ACM symposium on User interface software and technology, pp. 129&#x2013;137, November, San Diego, USA.
+4.  Jin Hu Huang and David Powers (2004): [“Adaptive Compression-based Approach for Chinese Pinyin Input”](https://www.aclweb.org/anthology/W04-1104.pdf), Proceedings of the Third SIGHAN Workshop on Chinese Language Processing, pp. 24&#x2013;27, Barcelona, Spain. ACL.
+5.  Cowans, Phil (2005): [“Language Modelling In Dasher &#x2013; A Tutorial”](http://www.inference.org.uk/pjc51/talks/05-dasher-lm.pdf), June, Inference Lab, Cambridge University (presentation).
 
 ## Example
 
