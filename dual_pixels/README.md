@@ -14,6 +14,8 @@ Rahul Garg, Neal Wadhwa, Sameer Ansari & Jonathan T. Barron, ICCV 2019. If you u
 
 ## Dataset
 
+<div style="text-align:center"><img src="https://lh3.googleusercontent.com/00X4nO0xwOgB8nnHhj8VNC0tng0q2D3l41ibtNemxiMKJA-eS4xMgNOyahQz7NtscH5xQ5MXVk1nQ3qAbgweiS6FBn5gnPHjOyDGiGx8bH5UqmaThcwHRf-eRCtdgdMyIi76fiksHCg=w2400"/></div>
+
 The dataset containing the RGB images, dual-pixel images, and the depth maps
 can be downloaded from the links below:
 
