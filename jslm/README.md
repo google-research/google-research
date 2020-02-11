@@ -20,6 +20,7 @@ Prediction by Partial Matching (PPM) character [language model](ppm_language_mod
 7.  Jin Hu Huang and David Powers (2004): [“Adaptive Compression-based Approach for Chinese Pinyin Input”](https://www.aclweb.org/anthology/W04-1104.pdf), Proceedings of the Third SIGHAN Workshop on Chinese Language Processing, pp. 24&#x2013;27, Barcelona, Spain. ACL.
 8.  Cowans, Phil (2005): [“Language Modelling In Dasher &#x2013; A Tutorial”](http://www.inference.org.uk/pjc51/talks/05-dasher-lm.pdf), June, Inference Lab, Cambridge University (presentation).
 9.  Steinruecken, Christian and Ghahramani, Zoubin and MacKay, David (2016): [“Improving PPM with dynamic parameter updates”](https://www.repository.cam.ac.uk/bitstream/handle/1810/254106/Steinruecken%202015%20Data%20Compression%20Conference%202015.pdf), Proc. of Data Compression Conference (DCC'2015), pp. 193&#x2013;202, April, Snowbird, UT, USA. IEEE.
+10. Steinruecken, Christian (2015): [“Lossless Data Compression”](https://pdfs.semanticscholar.org/f506/884bb2aefd01ccf3d24a5964aad9ef698679.pdf), PhD dissertation, University of Cambridge.
 
 ## Example
 
