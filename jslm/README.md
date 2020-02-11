@@ -13,10 +13,10 @@ Please see a simple example usage of the model API in [example.js](example.js).
 
 ## Test Utility
 
-A simple test driver `language_model_driver.js` can be used to check that the
-model behaves using [NodeJS](https://nodejs.org/en/). The driver takes three
-parameters: the maximum order for the language model, the training file and the
-test file in text format.
+A simple test driver [language_model_driver.js](language_model_driver.js) can be
+used to check that the model behaves using [NodeJS](https://nodejs.org/en/). The
+driver takes three parameters: the maximum order for the language model, the
+training file and the test file in text format.
 
 Example:
 
