@@ -5,7 +5,8 @@ cheap enough memory- and processor-wise to train in a browser on the fly.
 
 ## Language Models
 
-*  Prediction by Partial Matching (PPM) [model](ppm_language_model.js).
+*  Prediction by Partial Matching (PPM) character [language
+   model](ppm_language_model.js).
 
 ## Example
 
