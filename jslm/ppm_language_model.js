@@ -37,7 +37,8 @@
  *       June, Inference Lab, Cambridge University (presentation).
  *   [4] Jin Hu Huang and David Powers (2004): "Adaptive Compression-based
  *       Approach for Chinese Pinyin Input." Proceedings of the Third SIGHAN
- *       Workshop on Chinese Language Processing, pp. 24--27.
+ *       Workshop on Chinese Language Processing, pp. 24--27, Barcelona, Spain,
+ *       ACL.
  */
 
 const assert = require("assert");
@@ -294,8 +295,8 @@ class PPMLanguageModel {
    * Standard Kneser-Ney method (aka Absolute Discounting):
    * ------------------------------------------------------
    * Subtracting \beta (in [0, 1)) from all counts.
-   *   P_{kn}(w | x_h) = \over{\max(n(w, x_h) - \beta, 0)}{T(x_h)} +
-   *                     \beta * \over{q(x_h)}{T(x_h)} * P_{kn}(w | x_{h-1}),
+   *   P_{kn}(w | x_h) = \frac{\max(n(w, x_h) - \beta, 0)}{T(x_h)} +
+   *                     \beta * \frac{q(x_h)}{T(x_h)} * P_{kn}(w | x_{h-1}),
    * where the second term in summation represents escaping to lower-order
    * context.
    *
@@ -306,8 +307,8 @@ class PPMLanguageModel {
    * Modified Kneser-Ney method (Dasher version [3]):
    * ------------------------------------------------
    * Introducing \alpha parameter (in [0, 1)) and estimating as
-   *   P_{kn}(w | x_h) = \over{\max(n(w, x_h) - \beta, 0)}{T(x_h) + \alpha} +
-   *                     \over{\alpha + \beta * q(x_h)}{T(x_h) + \alpha} *
+   *   P_{kn}(w | x_h) = \frac{\max(n(w, x_h) - \beta, 0)}{T(x_h) + \alpha} +
+   *                     \frac{\alpha + \beta * q(x_h)}{T(x_h) + \alpha} *
    *                     P_{kn}(w | x_{h-1}) .
    *
    * Additional details on the above version are provided in Sections 3 and 4
@@ -354,6 +355,27 @@ class PPMLanguageModel {
       //   Stanley F. Chen and Joshua Goodman (1999): "An empirical study of
       //   smoothing techniques for language modeling", Computer Speech and
       //   Language, vol. 13, pp. 359-–394.
+      //
+      // Note on computing $gamma$:
+      // --------------------------
+      // According to the PPM papers, and in particular the Section 4 of
+      //   Steinruecken, Christian and Ghahramani, Zoubin and MacKay,
+      //   David (2016): "Improving PPM with dynamic parameter updates", In
+      //   Proc. Data Compression Conference (DCC-2015), pp. 193--202, April,
+      //   Snowbird, UT, USA. IEEE,
+      // that describes blending (i.e. interpolation), the second multiplying
+      // factor in the interpolation $\lambda$ for a given suffix node $x_h$ in
+      // the tree is given by
+      //   \lambda(x_h) = \frac{q(x_h) * \beta + \alpha}{T(x_h) + \alpha} .
+      // It can be shown that
+      //   \gamma(x_h) = 1.0 - \sum_{w'}
+      //      \frac{\max(n(w', x_h) - \beta, 0)}{T(x_h) + \alpha} =
+      //      \lambda(x_h)
+      // and, in the update below, the following is equivalent:
+      //   \gamma = \gamma * \gamma(x_h) = totalMass .
+      //
+      // Since gamma *= (numChildren * knBeta + knAlpha) / (count + knAlpha) is
+      // expensive, we assign the equivalent totalMass value to gamma.
       node = node.backoff_;
       gamma = totalMass;
     }
