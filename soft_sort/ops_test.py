@@ -172,6 +172,15 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
 
     self.assertAllClose(soft_q, hard_q, 0.2, 0.2)
 
+  def test_sortquantile_shape(self):
+    axis = 1
+    x = tf.random.uniform((3, 20, 4), dtype=tf.float32)
+    soft_q = ops.softquantiles(x, 0.3, 0.03, axis=axis)
+    self.assertEqual(soft_q.shape, (3, 4))
+
+    soft_q2 = ops.softquantiles(x, 0.3, 0.03, axis=axis, may_squeeze=False)
+    self.assertEqual(soft_q2.shape, (3, 1, 4))
+
   def test_softquantiles(self):
     num_points = 19
     sorted_values = tf.range(0, num_points, dtype=tf.float32)

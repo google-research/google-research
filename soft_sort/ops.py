@@ -149,7 +149,8 @@ def softranks(x, direction='ASCENDING', axis=-1, zero_based=True, **kwargs):
   return postprocess(ranks, transposition, shape)
 
 
-def softquantiles(x, quantiles, quantile_width=None, axis=-1, **kwargs):
+def softquantiles(
+    x, quantiles, quantile_width=None, axis=-1, may_squeeze=True, **kwargs):
   """Computes soft quantiles via optimal transport.
 
   This operator takes advantage of the fact that an exhaustive softsort is not
@@ -172,6 +173,8 @@ def softquantiles(x, quantiles, quantile_width=None, axis=-1, **kwargs):
     more points further away from the quantile. If None, the width is set at 1/n
     where n is the number of values considered (the size along the 'axis').
    axis: (int) the axis along which to compute the quantile.
+   may_squeeze: (bool) should we squeeze the output tensor in case of a single
+    quantile.
    **kwargs: see SoftQuantilizer for possible extra parameters.
 
   Returns:
@@ -239,9 +242,10 @@ def softquantiles(x, quantiles, quantile_width=None, axis=-1, **kwargs):
 
     # In the specific case where we want a single quantile, squeezes the
     # quantile dimension.
-    return tf.cond(tf.equal(tf.shape(result)[axis], 1),
-                   lambda: tf.squeeze(result, axis=axis),
-                   lambda: result)
+    can_squeeze = tf.equal(tf.shape(result)[axis], 1)
+    if tf.math.logical_and(can_squeeze, may_squeeze):
+      result = tf.squeeze(result, axis=axis)
+    return result
 
 
 def soft_quantile_normalization(x, f, axis=-1, **kwargs):
