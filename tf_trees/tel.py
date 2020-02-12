@@ -36,7 +36,7 @@ def _nt_compute_input_and_internal_params_gradients_op_cc(
 
 
 class TEL(keras.layers.Layer):
-    """A custom layer containing additive decision trees.
+    """A custom layer containing additive differentiable decision trees.
 
     Each tree in the layer is composed of splitting (internal) nodes and leaves.
     A splitting node "routes" the samples left or right based on the
@@ -55,14 +55,15 @@ class TEL(keras.layers.Layer):
       depth: Depth of each tree.
       smooth_step_param: A non-negative float. Larger values make the trees
         more likely to hard route samples (i.e., samples reach fewer leaves).
+        Values >= 1 are recommended to exploit conditional computation.
         Note smooth_step_param = 1/gamma, where gamma is the parameter defined
-        in the TEL paper. 
+        in the TEL paper.
       sum_outputs: Boolean. If true, the outputs of the trees will be added,
         leading to a 2D tensor of shape=[batch_size, output_logits_dim].
         Otherwise, the tree outputs are not added and the layer output is
         a 2D tensor of shape=[batch_size, trees_num * output_logits_dim].
       parallelize_over_samples: Boolean, If true, parallelizes the updates over
-        the samples in each tree. Might lead to speedups when the number of
+        the samples in the batch. Might lead to speedups when the number of
         trees is small (at the cost of extra memory consumption).
       split_initializer: A Keras initializer for the internal (splitting) nodes.
       leaf_initializer: A Keras initializer for the leaves.
@@ -87,104 +88,108 @@ class TEL(keras.layers.Layer):
                  leaf_regularizer=None,
                  **kwargs):
       """Initializes neural trees layer."""
-      self.trees_num = trees_num
-      self.depth = depth
-      self.output_logits_dim = output_logits_dim
-      self.smooth_step_param = smooth_step_param
-      self.parallelize_over_samples = parallelize_over_samples
-      self.sum_outputs = sum_outputs
-      self.split_initializer = keras.initializers.get(split_initializer)
-      self.leaf_initializer = keras.initializers.get(leaf_initializer)
-      self.split_regularizer = keras.regularizers.get(split_regularizer)
-      self.leaf_regularizer = keras.regularizers.get(leaf_regularizer)
+      self._trees_num = trees_num
+      self._depth = depth
+      self._output_logits_dim = output_logits_dim
+      self._smooth_step_param = smooth_step_param
+      self._parallelize_over_samples = parallelize_over_samples
+      self._sum_outputs = sum_outputs
+      self._split_initializer = keras.initializers.get(split_initializer)
+      self._leaf_initializer = keras.initializers.get(leaf_initializer)
+      self._split_regularizer = keras.regularizers.get(split_regularizer)
+      self._leaf_regularizer = keras.regularizers.get(leaf_regularizer)
       super(TEL, self).__init__(**kwargs)
 
+    # @override
     def build(self, input_shape):
       """Creates a keras layer."""
-      num_leaves = 2**self.depth
+      num_leaves = 2**self._depth
       num_internal_nodes = num_leaves - 1
       input_dim = input_shape[1]
       # A list of node weights. Each element corresponds to one tree.
-      self.node_weights = []
+      self._node_weights = []
       # A list of leaf weights. Each element corresponds to one tree.
-      self.leaf_weights = []
+      self._leaf_weights = []
       # Create node/leaf weights for every tree.
-      for _ in range(self.trees_num):
-        self.node_weights.append(
+      for _ in range(self._trees_num):
+        self._node_weights.append(
             self.add_weight(
                 name='node_weights',
                 shape=[input_dim, num_internal_nodes],
-                initializer=self.split_initializer,
+                initializer=self._split_initializer,
                 trainable=True,
-                regularizer=self.split_regularizer))
+                regularizer=self._split_regularizer))
 
-        self.leaf_weights.append(
+        self._leaf_weights.append(
             self.add_weight(
                 name='leaf_weights',
-                shape=[self.output_logits_dim, num_leaves],
-                initializer=self.leaf_initializer,
+                shape=[self._output_logits_dim, num_leaves],
+                initializer=self._leaf_initializer,
                 trainable=True,
-                regularizer=self.leaf_regularizer))
+                regularizer=self._leaf_regularizer))
 
-        self.smooth_step_param_var = self.add_weight(
+        self._smooth_step_param_var = self.add_weight(
                 name='smooth_step_param_var',
                 shape=[],
                 initializer =
-                tf.constant_initializer(float(self.smooth_step_param)),
+                tf.constant_initializer(float(self._smooth_step_param)),
                 trainable=False)
       super(TEL, self).build(input_shape)
 
+    # @override
     def call(self, inputs):
       """Predict op."""
       # A list of tree outputs. Each element corresponds to one tree.
       tree_logits = []
-      for tree_index in range(self.trees_num):
+      for tree_index in range(self._trees_num):
         tree_out, _ = tf_trees_module.nt_compute_output_op(inputs,
-                                 self.node_weights[tree_index],
-                                 self.leaf_weights[tree_index],
-                                 self.smooth_step_param_var,
-                                 self.output_logits_dim, self.depth,
-                                 self.parallelize_over_samples)
+                                 self._node_weights[tree_index],
+                                 self._leaf_weights[tree_index],
+                                 self._smooth_step_param_var,
+                                 self._output_logits_dim, self._depth,
+                                 self._parallelize_over_samples)
         tree_logits.append(tree_out)
-      if self.trees_num == 1:
+      if self._trees_num == 1:
         return tree_logits[0]
-      elif self.sum_outputs:
+      elif self._sum_outputs:
         return tf.math.accumulate_n(tree_logits)
       else:
         return tf.concat(tree_logits, axis=1)
 
+    # @override
     def get_config(self):
       """Prepares a config with hyperparams."""
       config = ({
           'trees_num':
-              self.trees_num,
+              self._trees_num,
           'depth':
-              self.depth,
+              self._depth,
           'output_logits_dim':
-              self.output_logits_dim,
+              self._output_logits_dim,
           'smooth_step_param':
-              self.smooth_step_param,
+              self._smooth_step_param,
           'parallelize_over_samples':
-              self.parallelize_over_samples,
+              self._parallelize_over_samples,
           'sum_outputs':
-              self.sum_outputs,
+              self._sum_outputs,
           'split_initializer':
-              keras.initializers.serialize(self.split_initializer),
+              keras.initializers.serialize(self._split_initializer),
           'leaf_initializer':
-              keras.initializers.serialize(self.leaf_initializer),
+              keras.initializers.serialize(self._leaf_initializer),
           'split_regularizer':
-              keras.regularizers.serialize(self.split_regularizer),
+              keras.regularizers.serialize(self._split_regularizer),
           'leaf_regularizer':
-              keras.regularizers.serialize(self.leaf_regularizer),
+              keras.regularizers.serialize(self._leaf_regularizer),
       })
 
       base_config = super(TEL, self).get_config()
       return dict(list(base_config.items()) + list(config.items()))
 
+    # @override
     def compute_output_shape(self, input_shape):
       """Defines an output shape."""
-      if self.sum_outputs:
-        return tf.TensorShape([input_shape[0], self.output_logits_dim])
+      if self._sum_outputs:
+        return tf.TensorShape([input_shape[0], self._output_logits_dim])
       else:
         return tf.TensorShape(
-            [input_shape[0], self.trees_num * self.output_logits_dim])
+            [input_shape[0], self._trees_num * self._output_logits_dim])

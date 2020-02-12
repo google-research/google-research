@@ -27,9 +27,6 @@ class NTComputeInputAndInternalParamsGradientsOp : public OpKernel {
     OP_REQUIRES_OK(context,
                    context->GetAttr("output_logits_dim", &output_logits_dim_));
     OP_REQUIRES_OK(context, context->GetAttr("depth", &depth_));
-    // OP_REQUIRES_OK(context,
-    //                context->GetAttr("smooth_step_param",
-    //                &smooth_step_param_));
     OP_REQUIRES_OK(context, context->GetAttr("parallelize_over_samples",
                                              &parallelize_over_samples_));
   }
@@ -199,9 +196,6 @@ class NTComputeOutputOp : public OpKernel {
     OP_REQUIRES_OK(context,
                    context->GetAttr("output_logits_dim", &output_logits_dim_));
     OP_REQUIRES_OK(context, context->GetAttr("depth", &depth_));
-    // OP_REQUIRES_OK(context,
-    //                context->GetAttr("smooth_step_param",
-    //                &smooth_step_param_));
     OP_REQUIRES_OK(context, context->GetAttr("parallelize_over_samples",
                                              &parallelize_over_samples_));
   }
@@ -266,16 +260,15 @@ class NTComputeOutputOp : public OpKernel {
 
           Eigen::VectorXf output_logits_sample(output_logits_dim_);
           std::vector<int> leaves;
-          int num_reachable_leaves_sample = 0;
-          ForwardPassSingleSample(
-              node_weights, leaf_weights, input_features_sample, depth_,
-              smooth_step_param_, &output_logits_sample, &sample_tree, &leaves,
-              &num_reachable_leaves_sample, false);
+          ForwardPassSingleSample(node_weights, leaf_weights,
+                                  input_features_sample, depth_,
+                                  smooth_step_param_, false,
+                                  &output_logits_sample, &sample_tree, &leaves);
 
           // Update the tree output matrix.
           output_logits.row(sample_index) = output_logits_sample;
           average_num_reachable_leaves +=
-              num_reachable_leaves_sample / static_cast<float>(batch_size);
+              leaves.size() / static_cast<float>(batch_size);
         }
       };
       const int64 cost = 10000 * std::log10(input_dim) * std::log2(num_leaves);
@@ -291,15 +284,14 @@ class NTComputeOutputOp : public OpKernel {
         // This tree is specific to the current sample.
         std::vector<Node> sample_tree(tree_num_nodes);
         Eigen::VectorXf output_logits_sample(output_logits_dim_);
-        int num_reachable_leaves_sample = 0;
         std::vector<int> leaves;
-        ForwardPassSingleSample(
-            node_weights, leaf_weights, input_features_sample, depth_,
-            smooth_step_param_, &output_logits_sample, &sample_tree, &leaves,
-            &num_reachable_leaves_sample, false);
+        ForwardPassSingleSample(node_weights, leaf_weights,
+                                input_features_sample, depth_,
+                                smooth_step_param_, false,
+                                &output_logits_sample, &sample_tree, &leaves);
         // Update the tree output matrix.
         output_logits.row(sample_index) = output_logits_sample;
-        average_num_reachable_leaves += num_reachable_leaves_sample;
+        average_num_reachable_leaves += leaves.size();
       }
       average_num_reachable_leaves /= static_cast<float>(batch_size);
     }

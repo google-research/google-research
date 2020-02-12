@@ -62,10 +62,9 @@ void ForwardPassSingleSample(const Eigen::MatrixXf& node_weights,
                              const Eigen::MatrixXf& leaf_weights,
                              const Eigen::VectorXf& input_features,
                              const int depth, const float smooth_step_param,
-                             Eigen::VectorXf* output,
+                             const bool training_mode, Eigen::VectorXf* output,
                              std::vector<Node>* tree_nodes,
-                             std::vector<int>* reachable_leaves,
-                             int* num_reachable_leaves, bool training_mode);
+                             std::vector<int>* reachable_leaves);
 
 // Returns the gradients w.r.t. to the inputs of the tree, internal nodes, and
 // leaves. Internally calls ForwardPassSingleSample to efficiently construct the

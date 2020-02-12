@@ -53,10 +53,9 @@ void ForwardPassSingleSample(const Eigen::MatrixXf& node_weights,
                              const Eigen::MatrixXf& leaf_weights,
                              const Eigen::VectorXf& input_features,
                              const int depth, const float smooth_step_param,
-                             Eigen::VectorXf* output,
+                             const bool training_mode, Eigen::VectorXf* output,
                              std::vector<Node>* tree_nodes,
-                             std::vector<int>* reachable_leaves,
-                             int* num_reachable_leaves, bool training_mode) {
+                             std::vector<int>* reachable_leaves) {
   DCHECK(tree_nodes != nullptr) << "Got a null ptr to tree!";
   // tree allows for more readable indexing (e.g., tree[i]).
   std::vector<Node>& tree = *tree_nodes;
@@ -73,17 +72,18 @@ void ForwardPassSingleSample(const Eigen::MatrixXf& node_weights,
   to_traverse.push(0);
 
   // Fill the tree depth-first, while skipping unreachable nodes.
+  // Note: tree is a perfect binary tree.
   while (!to_traverse.empty()) {
     const int current_index = to_traverse.top();
     to_traverse.pop();
     tree[current_index].weight_input_dot_product =
         input_features.dot(node_weights.col(current_index));
-    float probability_left = SmoothIndicator(
+    const float probability_left = SmoothIndicator(
         tree[current_index].weight_input_dot_product, smooth_step_param);
     tree[current_index].routing_left_prob = probability_left;
     // Branch left if prob_left is non zero.
     if (tree[current_index].routing_left_prob > kTolerance) {
-      int left_index = 2 * current_index + 1;
+      const int left_index = 2 * current_index + 1;
       tree[left_index].root_to_node_prob =
           tree[current_index].root_to_node_prob *
           tree[current_index].routing_left_prob;
@@ -99,7 +99,7 @@ void ForwardPassSingleSample(const Eigen::MatrixXf& node_weights,
     // Branch right if prob_right is non zero.
     // Note: Not mutually exclusive with the previous if.
     if (1 - tree[current_index].routing_left_prob > kTolerance) {
-      int right_index = 2 * current_index + 2;
+      const int right_index = 2 * current_index + 2;
       tree[right_index].root_to_node_prob =
           tree[current_index].root_to_node_prob *
           (1 - tree[current_index].routing_left_prob);
@@ -122,10 +122,9 @@ void ForwardPassSingleSample(const Eigen::MatrixXf& node_weights,
     *output +=
         tree[i].root_to_node_prob * leaf_weights.col(i - first_leaf_label);
   }
-  *num_reachable_leaves = reachable_leaves->size();
 
   if (training_mode) {
-    // Mark all the internal nodes whose descendants are reachable leaves.
+    // Mark all the reachable leaves and their ancestors.
     for (auto i : *reachable_leaves) {
       // Traverse up to the root starting from the current leaf.
       int current_index = i;
@@ -166,10 +165,9 @@ void BackwardPassSingleSample(const Eigen::MatrixXf& node_weights,
   // Do a forward pass to build the tree and obtain the reachable leaves.
   // TODO: Remove this forward pass and use the results from
   // the previous call to the forward pass.
-  int num_reachable_leaves = 0;
   ForwardPassSingleSample(node_weights, leaf_weights, input_features, depth,
-                          smooth_step_param, &output_logits_sample, &tree,
-                          &reachable_leaves, &num_reachable_leaves, true);
+                          smooth_step_param, true, &output_logits_sample, &tree,
+                          &reachable_leaves);
 
   grad_loss_wrt_input_features->setZero();
   grad_loss_wrt_node_weights->setZero();
