@@ -112,14 +112,18 @@ class Node {
   /**
    * Total number of observations for all the children of this node. This
    * counts all the events observed in this context.
+   * @param {!array} exclusionMask Boolean exclusion mask for all the symbols.
+   *                 Can be 'null', in which case no exclusion happens.
    * @return {number} Total number of observations under this node.
    * @final
    */
-  totalChildrenCounts() {
+  totalChildrenCounts(exclusionMask) {
     let childNode = this.child_;
     let count = 0;
     while (childNode != null) {
-      count += childNode.count_;
+      if (!exclusionMask || !exclusionMask[childNode.symbol_]) {
+        count += childNode.count_;
+      }
       childNode = childNode.next_;
     }
     return count;
@@ -164,6 +168,10 @@ class PPMLanguageModel {
     this.rootContext_.head_ = this.root_;
     this.rootContext_.order_ = 0;
     this.numNodes_ = 1;
+
+    // Exclusion mechanism: Off by default, but can be enabled during the
+    // run-time once the constructed suffix tree contains reliable counts.
+    this.useExclusion_ = false;
   }
 
   /**
@@ -319,7 +327,9 @@ class PPMLanguageModel {
    *   USA. IEEE.
    *
    * @param {?Context} context Context symbols.
-   * @return {?array} Array of floating point probabilities.
+   * @return {?array} Array of floating point probabilities corresponding to all
+   *                  the symbols in the vocabulary plus the 0th element
+   *                  representing the root of the tree that should be ignored.
    * @final
    */
   getProbs(context) {
@@ -331,23 +341,46 @@ class PPMLanguageModel {
       probs[i] = 0.0;
     }
 
+    // Initialize the exclusion mask.
+    let exclusionMask = null;
+    if (this.useExclusion_) {
+      exclusionMask = new Array(numSymbols);
+      for (let i = 0; i < numSymbols; ++i) {
+        exclusionMask[i] = false;
+      }
+    }
+
     // Estimate the probabilities for all the symbols in the supplied context.
     // This runs over all the symbols in the context and over all the suffixes
-    // (orders) of the context.
+    // (orders) of the context. If the exclusion mechanism is enabled, the
+    // estimate for a higher-order ngram is fully trusted and is excluded from
+    // further interpolation with lower-order estimates.
+    //
+    // Exclusion mechanism is disabled by default. Enable it with care: it has
+    // been shown to work well on large corpora, but may in theory degrade the
+    // performance on smaller sets (as we observed with default Dasher English
+    // training data).
     let totalMass = 1.0;
     let node = context.head_;
     let gamma = totalMass;
     while (node != null) {
-      const count = node.totalChildrenCounts();
+      const count = node.totalChildrenCounts(exclusionMask);
       if (count > 0) {
         let childNode = node.child_;
         while (childNode != null) {
-          let p = gamma * (childNode.count_ - knBeta) / (count + knAlpha);
-          probs[childNode.symbol_] += p;
-          totalMass -= p;
+          const symbol = childNode.symbol_;
+          if (!exclusionMask || !exclusionMask[symbol]) {
+            let p = gamma * (childNode.count_ - knBeta) / (count + knAlpha);
+            probs[symbol] += p;
+            totalMass -= p;
+            if (exclusionMask) {
+              exclusionMask[symbol] = true;
+            }
+          }
           childNode = childNode.next_;
         }
       }
+
       // Backoff to lower-order context. The $\gamma$ factor represents the
       // total probability mass after processing the current $n$-th order before
       // backing off to $n-1$-th order. It roughly corresponds to the usual
@@ -382,17 +415,32 @@ class PPMLanguageModel {
     assert(totalMass >= 0.0,
            "Invalid remaining probability mass: " + totalMass);
 
+    // Count the total number of symbols that should have their estimates
+    // blended with the uniform distribution representing the zero context.
+    // When exclusion mechanism is enabled (by enabling this.useExclusion_)
+    // this number will represent the number of symbols not seen during the
+    // training, otherwise, this number will be equal to total number of
+    // symbols because we always interpolate with the estimates for an empty
+    // context.
+    let numUnseenSymbols = 0;
+    for (let i = 1; i < numSymbols; ++i) {
+      if (!exclusionMask || !exclusionMask[i]) {
+        numUnseenSymbols++;
+      }
+    }
+
     // Adjust the probability mass for all the symbols.
-    let numValidSymbols = numSymbols - 1;
     let remainingMass = totalMass;
     for (let i = 1; i < numSymbols; ++i) {
       // Following is estimated according to a uniform distribution
       // corresponding to the context length of zero.
-      let p = remainingMass / numValidSymbols;
-      probs[i] += p;
-      totalMass -= p;
+      if (!exclusionMask || !exclusionMask[i]) {
+        let p = remainingMass / numUnseenSymbols;
+        probs[i] += p;
+        totalMass -= p;
+      }
     }
-    let leftSymbols = numValidSymbols;
+    let leftSymbols = numSymbols - 1;
     let newProbMass = 0.0;
     for (let i = 1; i < numSymbols; ++i) {
       let p = totalMass / leftSymbols;
