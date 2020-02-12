@@ -53,8 +53,10 @@ class TEL(keras.layers.Layer):
       output_logits_dim: Dimension of the output.
       trees_num: Number of trees in the layer.
       depth: Depth of each tree.
-      smooth_step_param: A non-negative float. Smaller values make the trees
+      smooth_step_param: A non-negative float. Larger values make the trees
         more likely to hard route samples (i.e., samples reach fewer leaves).
+        Note smooth_step_param = 1/gamma, where gamma is the parameter defined
+        in the TEL paper. 
       sum_outputs: Boolean. If true, the outputs of the trees will be added,
         leading to a 2D tensor of shape=[batch_size, output_logits_dim].
         Otherwise, the tree outputs are not added and the layer output is
@@ -76,7 +78,7 @@ class TEL(keras.layers.Layer):
                  output_logits_dim,
                  trees_num=1,
                  depth=3,
-                 smooth_step_param=0.3,
+                 smooth_step_param=1.0,
                  sum_outputs=True,
                  parallelize_over_samples=False,
                  split_initializer=RandomUniform(-0.01, 0.01),
