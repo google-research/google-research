@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import numpy as np
 import sonnet as snt
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 from tensorflow.contrib import layers as contrib_layers
 

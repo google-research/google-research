@@ -22,7 +22,7 @@ from __future__ import print_function
 import os
 import numpy as np
 import scipy.io
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 flags = tf.flags
 
