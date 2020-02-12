@@ -28,7 +28,7 @@ from absl.testing import parameterized
 import numpy as np
 
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from explaining_risk_increase import input_fn
 from explaining_risk_increase import observation_sequence_model as osm
 from tensorflow.contrib import training as contrib_training

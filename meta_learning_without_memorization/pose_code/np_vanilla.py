@@ -23,9 +23,9 @@ import time
 from absl import app
 from absl import flags
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.layers import MaxPooling2D
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1.keras.layers import Conv2D
+from tensorflow.compat.v1.keras.layers import MaxPooling2D
 
 
 tf.compat.v1.enable_v2_tensorshape()

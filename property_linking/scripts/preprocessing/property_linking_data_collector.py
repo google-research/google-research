@@ -19,7 +19,7 @@ import collections
 import time
 
 import sling
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_string(

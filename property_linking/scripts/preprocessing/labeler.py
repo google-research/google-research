@@ -26,7 +26,7 @@ import sys
 from language.nql import nql
 from language.nql.dataset import k_hot_array_from_string_list
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import Tkinter as tk
 
 flags = tf.flags

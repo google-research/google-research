@@ -25,7 +25,7 @@ import time
 import traceback
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 gfile = tf.gfile
 from enas_lm.src.tpu import data_utils
