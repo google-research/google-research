@@ -822,6 +822,10 @@ class ApplyCompression(object):
     """
     return copy.copy(self._compression_ops)
 
+  def get_spec(self):
+    """Get the spec / hparams used to create the Pruning object."""
+    return self._compression_op_spec
+
 
 class CompressionOpEager(tf.keras.layers.Layer):
   """CompressionOp class that supports eager execution.
