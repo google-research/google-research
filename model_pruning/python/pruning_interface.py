@@ -158,7 +158,7 @@ def get_pruning_update(pruning_obj, pruning_hparams):
     raise NotImplementedError()
 
 
-def get_matrix_compression_update_op(matrix_compression_obj, hparams):
+def get_matrix_compression_update_op(matrix_compression_obj):
   """Return pruning/compression update op.
 
   For pruning, this returns a contional_mask_update_op; for compression, this
@@ -167,7 +167,6 @@ def get_matrix_compression_update_op(matrix_compression_obj, hparams):
   Args:
     matrix_compression_obj: a Pruning or a compression_lib.ApplyCompression
       object;
-    hparams: a Pruning tf.HParams object.
 
   Returns:
     a mask_update_op if the prune_option of the pruning_obj is 'weight',
@@ -180,6 +179,7 @@ def get_matrix_compression_update_op(matrix_compression_obj, hparams):
     0; in this case, the compression should be applied by calling
     compression_obj.run_update_step(session=session).
   """
+  hparams = matrix_compression_obj.get_spec()
   if hparams.prune_option in [
       'weight', 'first_order_gradient', 'second_order_gradient']:
     return matrix_compression_obj.conditional_mask_update_op()

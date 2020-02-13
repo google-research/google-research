@@ -122,7 +122,7 @@ class PruningSpeechUtilsTest(tf.test.TestCase):
 
   def testGetPruningUpdate(self):
     mask_update_op = pruning_interface.get_matrix_compression_update_op(
-        self.pruning_obj, self.pruning_hparams)
+        self.pruning_obj)
     self.assertNotEqual(mask_update_op, tf.no_op())
 
 

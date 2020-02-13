@@ -56,7 +56,7 @@ def import_from_cirq(obj):
     if not np.isclose(np.mod(obj.exponent, 2.0), 1.0):
       raise ValueError('partial ControlledZ gates are not supported')
     return circuit.ControlledZGate()
-  elif isinstance(obj, cirq.MatrixGate):
+  elif isinstance(obj, (cirq.SingleQubitMatrixGate, cirq.TwoQubitMatrixGate)):
     return circuit.MatrixGate(cirq.unitary(obj))
   elif isinstance(obj, cirq.GateOperation):
     return circuit.Operation(
@@ -106,7 +106,16 @@ def export_to_cirq(obj):
   elif isinstance(obj, circuit.ControlledZGate):
     return cirq.CZPowGate(exponent=1.0)
   elif isinstance(obj, circuit.MatrixGate):
-    return cirq.MatrixGate(obj.get_operator())
+    num_qubits = obj.get_num_qubits()
+    operator = obj.get_operator()
+
+    if num_qubits == 1:
+      return cirq.SingleQubitMatrixGate(operator)
+    elif num_qubits == 2:
+      return cirq.TwoQubitMatrixGate(operator)
+    else:
+      raise ValueError('MatrixGate for %d qubits not supported (Cirq has'
+                       ' matrix gates only up to 2 qubits)'%num_qubits)
   elif isinstance(obj, circuit.Operation):
     return cirq.GateOperation(
         export_to_cirq(obj.get_gate()),
