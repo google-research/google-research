@@ -972,3 +972,7 @@ class Pruning(object):
 
   def print_hparams(self):
     tf.logging.vlog(0, self._spec.to_json())
+
+  def get_spec(self):
+    """Get the spec / hparams used to create the ApplyCompression object."""
+    return self._spec
