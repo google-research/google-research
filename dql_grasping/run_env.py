@@ -99,6 +99,7 @@ def run_env(env,
     replay_writer.open(record_prefix)
 
   for ep in range(num_episodes):
+
     done, env_step, episode_reward, episode_data = (False, 0, 0.0, [])
     policy.reset()
     obs = env.reset()
@@ -111,6 +112,7 @@ def run_env(env,
       if policy_debug and 'q' in policy_debug:
         episode_q_values[env_step].append(policy_debug['q'])
       new_obs, rew, done, env_debug = env.step(action)
+
       env_step += 1
       episode_reward += rew
 
@@ -125,9 +127,7 @@ def run_env(env,
     if episode_rewards and len(episode_rewards) % 10 == 0:
       tf.logging.info('Average %d collect episodes reward: %f' %
                       (len(episode_rewards), np.mean(episode_rewards)))
-
   tf.logging.info('Closing environment.')
-  env.close()
 
   if replay_writer:
     replay_writer.close()
