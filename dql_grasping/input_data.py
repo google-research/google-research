@@ -79,6 +79,60 @@ def parse_tfexample_v0(example_proto,
 
 
 @gin.configurable
+def parse_tfexample_pm_v1(example_proto, action_size=None):
+  """Parse TFExamples saved by episode_to_transitions_pm with all metrics.
+
+  Args:
+    example_proto: tf.String tensor representing a serialized protobuf.
+    action_size: Size of continuous actions. If None, actions are assumed to be
+      integer-encoded discrete actions.
+
+  Returns:
+    NamedTuple of type SARSTransition containing unbatched Tensors.
+  """
+  if action_size is None:
+    # Is discrete.
+    action_feature_spec = tf.FixedLenFeature((), tf.int64)
+  else:
+    # Vector-encoded float feature.
+    action_feature_spec = tf.FixedLenFeature((action_size,), tf.float32)
+
+  features = {
+      'A': action_feature_spec,
+      'R': tf.FixedLenFeature((), tf.float32),
+      'done': tf.FixedLenFeature((), tf.int64),
+      't': tf.FixedLenFeature((), tf.int64)
+  }
+
+  for key in ['x', 'v', 'vtg', 'vtg_gt', 'prev_a', 'ae_steps', 'as_steps']:
+    features[key] = tf.FixedLenFeature((), tf.float32)
+    features[key + '_tp1'] = tf.FixedLenFeature((), tf.float32)
+
+  parsed_features = tf.parse_single_example(example_proto, features)
+  state_t = [parsed_features['x'], parsed_features['v']]
+  state_tp1 = [parsed_features['x_tp1'], parsed_features['v_tp1']]
+  vtg_t = parsed_features['vtg']
+  vtg_tp1 = parsed_features['vtg_tp1']
+  vtg_gt_t = parsed_features['vtg_gt']
+  vtg_gt_tp1 = parsed_features['vtg_gt_tp1']
+  prev_a_t = parsed_features['prev_a']
+  prev_a_tp1 = parsed_features['prev_a_tp1']
+  ae_steps_t = parsed_features['ae_steps']
+  ae_steps_tp1 = parsed_features['ae_steps_tp1']
+  as_steps_t = parsed_features['as_steps']
+  as_steps_tp1 = parsed_features['as_steps_tp1']
+  action = parsed_features['A']
+  reward = parsed_features['R']
+  done = tf.cast(parsed_features['done'], tf.float32)
+  step = tf.cast(parsed_features['t'], tf.int32)
+  aux = {'step': step}
+  return SARSTransition(
+      (state_t, step, vtg_t, vtg_gt_t, prev_a_t, ae_steps_t, as_steps_t),
+      action, reward, (state_tp1, step + 1, vtg_tp1, vtg_gt_tp1, prev_a_tp1,
+                       ae_steps_tp1, as_steps_tp1), done, aux)
+
+
+@gin.configurable
 def parse_tfexample_sequence(example_proto,
                              img_height=48,
                              img_width=48,

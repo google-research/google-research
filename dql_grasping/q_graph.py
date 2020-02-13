@@ -290,7 +290,8 @@ def random_continuous_q_graph(q_func,
                               target_network_type=DQNTarget.normal,
                               gamma=1.0,
                               loss_fn=tf.losses.huber_loss,
-                              extra_callback=None):
+                              extra_callback=None,
+                              log_input_image=True):
   """Construct loss/summary graph for continuous Q-Learning via sampling.
 
   This Q-function loss implementation is derived from OpenAI baselines, extended
@@ -313,6 +314,8 @@ def random_continuous_q_graph(q_func,
       (target value tensor, predicted value tensor).
     extra_callback: Optional function that takes in (transition, end_points_t,
       end_points_tp1) and adds additional TF graph elements.
+    log_input_image: If True, creates an image summary of the first element of
+      the state tuple (assumed to be an image tensor).
 
   Returns:
     A tuple (loss, summaries) where loss is a scalar loss tensor to minimize,
@@ -326,7 +329,9 @@ def random_continuous_q_graph(q_func,
 
   q_t_selected, end_points_t = q_func(state, action, scope='q_func')
 
-  tf.summary.image('input_image', state[0])
+  if log_input_image:
+    tf.summary.image('input_image', state[0])
+
   if gamma != 0:
     action_size = action.get_shape().as_list()[1]
     batch_size = tf.shape(done)[0]
