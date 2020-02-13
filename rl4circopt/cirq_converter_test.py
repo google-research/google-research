@@ -34,7 +34,9 @@ class TestExportAndImport(parameterized.TestCase):
       circuit.RotZGate(0.42),
       circuit.ControlledZGate(),
       circuit.MatrixGate(stats.unitary_group.rvs(2)),  # random 1-qubit unitary
-      circuit.MatrixGate(stats.unitary_group.rvs(4))   # random 2-qubit unitary
+      circuit.MatrixGate(stats.unitary_group.rvs(4)),  # random 2-qubit unitary
+      circuit.MatrixGate(stats.unitary_group.rvs(8)),  # random 3-qubit unitary
+      circuit.MatrixGate(stats.unitary_group.rvs(16))  # random 4-qubit unitary
   ])
   def test_gates(self, gate_orig):
     # export the gate to Cirq
@@ -128,15 +130,6 @@ class TestExportAndImport(parameterized.TestCase):
   def test_export_unknown_type_error(self):
     with self.assertRaisesRegex(TypeError, r'unknown type: range'):
       cirq_converter.export_to_cirq(range(42))
-
-  def test_export_large_matrix_gate_error(self):
-    matrix_gate = circuit.MatrixGate(stats.unitary_group.rvs(8))
-
-    with self.assertRaisesRegex(
-        ValueError,
-        r'MatrixGate for 3 qubits not supported \(Cirq has matrix gates only up'
-        r' to 2 qubits\)'):
-      cirq_converter.export_to_cirq(matrix_gate)
 
   def test_import_unknown_type_error(self):
     with self.assertRaisesRegex(TypeError, r'unknown type: range'):
