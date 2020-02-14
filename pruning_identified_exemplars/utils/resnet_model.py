@@ -19,6 +19,8 @@
 """
 from six.moves import range
 import tensorflow.compat.v1 as tf
+from pruning_identified_exemplars.pruning_tools import pruning_layer
+from tensorflow.python.ops import variables as tf_variables  # pylint: disable=g-direct-tensorflow-import
 
 
 def get_model_variables(getter,
@@ -42,7 +44,7 @@ def get_model_variables(getter,
   if rename and short_name in rename:
     name_components[-1] = rename[short_name]
     name = '/'.join(name_components)
-  return tf.ops.variables.model_variable(
+  return tf_variables.model_variable(
       name,
       shape=shape,
       dtype=dtype,
@@ -153,7 +155,6 @@ def conv2d_fixed_padding(inputs,
       'bias': 'biases',
       'kernel': 'weights',
   })
-
   if pruning_method:
     with tf.variable_scope(
         name, 'Conv', [pruning_method],
@@ -164,7 +165,7 @@ def conv2d_fixed_padding(inputs,
         data_format_channels = 'NCHW'
       else:
         raise ValueError('Not a valid channel string:', data_format)
-      return tf.contrib.model_pruning.layers.masked_conv2d(
+      return pruning_layer.masked_conv2d(
           inputs=inputs,
           num_outputs=filters,
           kernel_size=kernel_size,

@@ -18,6 +18,7 @@
 
 import tensorflow.compat.v1 as tf
 import tensorflow.compat.v2 as tf2
+from pruning_identified_exemplars.pruning_tools import pruning
 from pruning_identified_exemplars.utils import class_level_metrics
 from pruning_identified_exemplars.utils import data_input
 from pruning_identified_exemplars.utils import resnet_model
@@ -55,20 +56,27 @@ def train_function(params, loss):
     train_op = optimizer.minimize(loss, global_step)
 
   if params["pruning_method"]:
+    pruning_method = params["pruning_method"]
     pruning_params_string = params["pruning_dict"]
     # Parse pruning hyperparameters
-    pruning_hparams = tf.contrib.model_pruning.get_pruning_hparams().parse(
-        pruning_params_string)
+    if pruning_method == "threshold":
 
-    # Create a pruning object using the pruning hyperparameters
-    pruning_obj = tf.contrib.model_pruning.pruning.Pruning(
-        pruning_hparams, global_step=global_step)
+      # Parse pruning hyperparameters
+      pruning_hparams = pruning.get_pruning_hparams().parse(
+          pruning_params_string)
 
-    # We override the train op to also update the mask.
-    with tf.control_dependencies([train_op]):
-      train_op = pruning_obj.conditional_mask_update_op()
+      pruning_obj = pruning.Pruning(
+          spec=pruning_hparams,
+          global_step=global_step,
+          pruning_method=pruning_method,
+          end_sparsity=params["end_sparsity"],
+          num_classes=params["num_label_classes"])
 
-    masks = tf.contrib.model_pruning.get_masks()
+      # We override the train op to also update the mask.
+      with tf.control_dependencies([train_op]):
+        train_op = pruning_obj.conditional_mask_update_op()
+
+      masks = tf.contrib.model_pruning.get_masks()
 
   with tf2.summary.create_file_writer(params["output_dir"]).as_default():
     with tf2.summary.record_if(True):
@@ -101,9 +109,9 @@ def model_fn_w_pruning(features, labels, mode, params):
 
   task = params["task"]
 
-  if task in ["pie_dataset_gen", "imagenet_predictions"]:
-    images = features[0]
-    labels = features[1]
+  if task in ["pie_dataset_gen", "imagenet_training", "imagenet_predictions"]:
+    images = features["image_raw"]
+    labels = features["label"]
   else:
     images = features
 
@@ -121,7 +129,7 @@ def model_fn_w_pruning(features, labels, mode, params):
   images /= tf.constant(stddev_rgb, shape=[1, 1, 3], dtype=images.dtype)
 
   network = resnet_model.resnet_50(
-      num_classes=1000,
+      num_classes=params["num_label_classes"],
       pruning_method=params["pruning_method"],
       data_format="channels_last")
 
