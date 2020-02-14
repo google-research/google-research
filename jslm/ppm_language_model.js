@@ -39,6 +39,7 @@
  *       Approach for Chinese Pinyin Input." Proceedings of the Third SIGHAN
  *       Workshop on Chinese Language Processing, pp. 24--27, Barcelona, Spain,
  *       ACL.
+ * Please also consult the references in README.md file in this directory.
  */
 
 const assert = require("assert");
@@ -60,9 +61,12 @@ const epsilon = 1E-10;
 /**
  * Node in a search tree, which is implemented as a suffix trie that represents
  * every suffix of a sequence used during its construction. Please see
- *   [1] Esko Ukknonen (1995): "On-line construction of suffix trees",
+ *   [1] Moffat, Alistair (1990): "Implementing the PPM data compression
+ *       scheme", IEEE Transactions on Communications, vol. 38, no. 11, pp.
+ *       1917--1921.
+ *   [2] Esko Ukknonen (1995): "On-line construction of suffix trees",
  *       Algorithmica, volume 14, pp. 249--260, Springer, 1995.
- *   [2] Kennington, C. (2011): "Application of Suffix Trees as an
+ *   [3] Kennington, C. (2011): "Application of Suffix Trees as an
  *       Implementation Technique for Varied-Length N-gram Language Models",
  *       MSc. Thesis, Saarland University.
  *
@@ -74,8 +78,8 @@ class Node {
     this.child_ = null;
     // Next node.
     this.next_ = null;
-    // Node in the backoff structure, also known as "vine" structure and "suffix
-    // link" in Ukkonen's algorithm ([1] above). The backoff for the given node
+    // Node in the backoff structure, also known as "vine" structure (see [1]
+    // above) and "suffix link" (see [2] above). The backoff for the given node
     // points at the node representing the shorter context. For example, if the
     // current node in the trie represents string "AA" (corresponding to the
     // branch "[R] -> [A] -> [*A*]" in the trie, where [R] stands for root),
@@ -112,6 +116,15 @@ class Node {
   /**
    * Total number of observations for all the children of this node. This
    * counts all the events observed in this context.
+   *
+   * Note: This API is used at inference time. A possible alternative that will
+   * speed up the inference is to store the number of children in each node as
+   * originally proposed by Moffat for PPMB in
+   *   Moffat, Alistair (1990): "Implementing the PPM data compression scheme",
+   *   IEEE Transactions on Communications, vol. 38, no. 11, pp. 1917--1921.
+   * This however will increase the memory use of the algorithm which is already
+   * quite substantial.
+   *
    * @param {!array} exclusionMask Boolean exclusion mask for all the symbols.
    *                 Can be 'null', in which case no exclusion happens.
    * @return {number} Total number of observations under this node.
