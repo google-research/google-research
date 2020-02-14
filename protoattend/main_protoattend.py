@@ -27,7 +27,7 @@ import input_data
 import model
 import numpy as np
 from options import FLAGS
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import utils
 
 # GPU options

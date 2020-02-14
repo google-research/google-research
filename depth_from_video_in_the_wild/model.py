@@ -24,7 +24,7 @@ from __future__ import print_function
 
 from absl import logging
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from depth_from_video_in_the_wild import consistency_losses
 from depth_from_video_in_the_wild import depth_prediction_net
 from depth_from_video_in_the_wild import motion_prediction_net
