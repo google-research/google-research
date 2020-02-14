@@ -13,45 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Data helper function for the Forest Covertype dataset."""
+"""Data helper function for the Poker dataset."""
 
 import tensorflow as tf
 
 # Dataset size
-# N_TRAIN_SAMPLES = 309871
-N_VAL_SAMPLES = 154937
-N_TEST_SAMPLES = 116203
-NUM_FEATURES = 54
-NUM_CLASSES = 7
+# N_TRAIN_SAMPLES = 25010
+N_TEST_SAMPLES = 1000000
+NUM_FEATURES = 10
+NUM_CLASSES = 10
 
 # All feature columns in the data
-LABEL_COLUMN = "Covertype"
-
-BOOL_COLUMNS = [
-    "Wilderness_Area1", "Wilderness_Area2", "Wilderness_Area3",
-    "Wilderness_Area4", "Soil_Type1", "Soil_Type2", "Soil_Type3", "Soil_Type4",
-    "Soil_Type5", "Soil_Type6", "Soil_Type7", "Soil_Type8", "Soil_Type9",
-    "Soil_Type10", "Soil_Type11", "Soil_Type12", "Soil_Type13", "Soil_Type14",
-    "Soil_Type15", "Soil_Type16", "Soil_Type17", "Soil_Type18", "Soil_Type19",
-    "Soil_Type20", "Soil_Type21", "Soil_Type22", "Soil_Type23", "Soil_Type24",
-    "Soil_Type25", "Soil_Type26", "Soil_Type27", "Soil_Type28", "Soil_Type29",
-    "Soil_Type30", "Soil_Type31", "Soil_Type32", "Soil_Type33", "Soil_Type34",
-    "Soil_Type35", "Soil_Type36", "Soil_Type37", "Soil_Type38", "Soil_Type39",
-    "Soil_Type40"
-]
-
-INT_COLUMNS = [
-    "Elevation", "Aspect", "Slope", "Horizontal_Distance_To_Hydrology",
-    "Vertical_Distance_To_Hydrology", "Horizontal_Distance_To_Roadways",
-    "Hillshade_9am", "Hillshade_Noon", "Hillshade_3pm",
-    "Horizontal_Distance_To_Fire_Points"
-]
-
+LABEL_COLUMN = "Poker_Hand"
+BOOL_COLUMNS = []
+INT_COLUMNS = ["S1", "C1", "S2", "C2", "S3", "C3", "S4", "C4", "S5", "C5"]
 STR_COLUMNS = []
-STR_NUNIQUESS = []
-
+STR_NUNIQUES = []
 FLOAT_COLUMNS = []
-
 DEFAULTS = ([[0] for col in INT_COLUMNS] + [[""] for col in BOOL_COLUMNS] +
             [[0.0] for col in FLOAT_COLUMNS] + [[""] for col in STR_COLUMNS] +
             [[-1]])
@@ -65,26 +43,7 @@ def get_columns():
   """Get the representations for all input columns."""
 
   columns = []
-  if FLOAT_COLUMNS:
-    columns += [tf.feature_column.numeric_column(ci) for ci in FLOAT_COLUMNS]
-  if INT_COLUMNS:
-    columns += [tf.feature_column.numeric_column(ci) for ci in INT_COLUMNS]
-  if STR_COLUMNS:
-    # pylint: disable=g-complex-comprehension
-    columns += [
-        tf.feature_column.embedding_column(
-            tf.feature_column.categorical_column_with_hash_bucket(
-                ci, hash_bucket_size=int(3 * num)),
-            dimension=1) for ci, num in zip(STR_COLUMNS, STR_NUNIQUESS)
-    ]
-  if BOOL_COLUMNS:
-    # pylint: disable=g-complex-comprehension
-    columns += [
-        tf.feature_column.embedding_column(
-            tf.feature_column.categorical_column_with_hash_bucket(
-                ci, hash_bucket_size=3),
-            dimension=1) for ci in BOOL_COLUMNS
-    ]
+  columns += [tf.feature_column.numeric_column(ci) for ci in INT_COLUMNS]
   return columns
 
 
@@ -93,7 +52,7 @@ def parse_csv(value_column):
   columns = tf.decode_csv(value_column, record_defaults=DEFAULTS)
   features = dict(zip(ALL_COLUMNS, columns))
   label = features.pop(LABEL_COLUMN)
-  classes = tf.cast(label, tf.int32) - 1
+  classes = tf.cast(label, tf.int32)
   return features, classes
 
 

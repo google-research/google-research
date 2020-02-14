@@ -22,30 +22,40 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 import wget
 
-url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/covtype/covtype.data.gz'
-os.mkdir('./data')
-filename = wget.download(url)
-with gzip.open(filename, 'rb') as f_in:
-  with open('data/covtype.csv', 'wb') as f_out:
-    shutil.copyfileobj(f_in, f_out)
+URL = 'https://archive.ics.uci.edu/ml/machine-learning-databases/covtype/covtype.data.gz'
 
-df = pd.read_csv('data/covtype.csv')
-n_total = len(df)
 
-# Train, val and test split follows
-# Rory Mitchell, Andrey Adinets, Thejaswi Rao, and Eibe Frank.
-# Xgboost: Scalable GPU accelerated learning. arXiv:1806.11248, 2018.
+def main():
 
-train_val_indices, test_indices = train_test_split(
-    range(n_total), test_size=0.2, random_state=0)
-train_indices, val_indices = train_test_split(
-    train_val_indices, test_size=0.2 / 0.6, random_state=0)
+  if not os.path.exists('./data'):
+    os.makedirs('./data')
 
-traindf = df.iloc[train_indices]
-valdf = df.iloc[val_indices]
-testdf = df.iloc[test_indices]
-traindf = traindf.sample(frac=1)
+  filename = wget.download(URL)
+  with gzip.open(filename, 'rb') as f_in:
+    with open('data/covtype.csv', 'wb') as f_out:
+      shutil.copyfileobj(f_in, f_out)
 
-traindf.to_csv('data/train.csv', index=False, header=False)
-valdf.to_csv('data/val.csv', index=False, header=False)
-testdf.to_csv('data/test.csv', index=False, header=False)
+  df = pd.read_csv('data/covtype.csv')
+  n_total = len(df)
+
+  # Train, val and test split follows
+  # Rory Mitchell, Andrey Adinets, Thejaswi Rao, and Eibe Frank.
+  # Xgboost: Scalable GPU accelerated learning. arXiv:1806.11248, 2018.
+
+  train_val_indices, test_indices = train_test_split(
+      range(n_total), test_size=0.2, random_state=0)
+  train_indices, val_indices = train_test_split(
+      train_val_indices, test_size=0.2 / 0.6, random_state=0)
+
+  traindf = df.iloc[train_indices]
+  valdf = df.iloc[val_indices]
+  testdf = df.iloc[test_indices]
+  traindf = traindf.sample(frac=1)
+
+  traindf.to_csv('data/train_covertype.csv', index=False, header=False)
+  valdf.to_csv('data/val_covertype.csv', index=False, header=False)
+  testdf.to_csv('data/test_covertype.csv', index=False, header=False)
+
+if __name__ == '__main__':
+  main()
+

@@ -21,7 +21,6 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib import sparsemax as contrib_sparsemax
 
 
 def glu(act, n_units):
@@ -199,7 +198,7 @@ class TabNet(object):
               momentum=self.batch_momentum,
               virtual_batch_size=v_b)
           mask_values *= complemantary_aggregated_mask_values
-          mask_values = contrib_sparsemax.sparsemax(mask_values)
+          mask_values = tf.contrib.sparsemax.sparsemax(mask_values)
 
           # Relaxation factor controls the amount of reuse of features between
           # different decision blocks and updated with the values of
