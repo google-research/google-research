@@ -70,7 +70,8 @@ class SoftQuantilizer(object):
 
   def __init__(
       self, x=None, weights=None, num_targets=None, target_weights=None, y=None,
-      descending=False, scale_input_fn=squash.group_rescale, **kwargs):
+      descending=False, scale_input_fn=squash.group_rescale,
+      sinkhorn_cls=sinkhorn.Sinkhorn1D, **kwargs):
     """Initializes the internal state of the SoftSorter.
 
     Args:
@@ -95,12 +96,13 @@ class SoftQuantilizer(object):
       computations but also to ensure that the regularization parameter epsilon
       is valid throughout gradient iterations, regardless of the variations of
       the input values'range.
+     sinkhorn_cls: which sinkhorn implementation to use.
      **kwargs: extra parameters to the Sinkhorn algorithm.
     """
     self._scale_input_fn = scale_input_fn
     self.iterations = 0
     self._descending = descending
-    self._sinkhorn = sinkhorn.Sinkhorn1D(**kwargs)
+    self._sinkhorn = sinkhorn_cls(**kwargs)
     self.reset(x, y, weights, target_weights, num_targets)
 
   def reset(
