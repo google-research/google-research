@@ -58,7 +58,7 @@ flags.DEFINE_enum(
     'pruning_method', 'baseline',
     ('threshold', 'random_independent', 'random_cumulative', 'baseline'),
     'Method used for pruning'
-    'Specify as None if no pruning is used.')
+    'Specify as baseline if no pruning is used.')
 flags.DEFINE_bool('log_class_level_summaries', True,
                   'Boolean for whether to log class level precision/accuracy.')
 flags.DEFINE_float('expansion_factor', 6.,
