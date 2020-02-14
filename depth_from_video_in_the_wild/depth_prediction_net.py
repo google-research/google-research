@@ -19,7 +19,7 @@ https://github.com/tensorflow/models/blob/master/research/struct2depth/nets.py
 """
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import framework as contrib_framework
 from tensorflow.contrib import layers as contrib_layers
 

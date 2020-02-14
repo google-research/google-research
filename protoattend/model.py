@@ -22,7 +22,7 @@ from __future__ import print_function
 import input_data
 import numpy as np
 from options import FLAGS
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 # Building blocks of the network

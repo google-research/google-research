@@ -15,7 +15,7 @@
 
 """Data helper function for the Poker dataset."""
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # Dataset size
 # N_TRAIN_SAMPLES = 25010
