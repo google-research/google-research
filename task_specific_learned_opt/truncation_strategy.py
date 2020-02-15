@@ -34,7 +34,7 @@ from __future__ import print_function
 
 import gin
 import sonnet as snt
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 nest = tf.contrib.framework.nest
 

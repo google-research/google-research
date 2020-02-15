@@ -25,7 +25,7 @@ import base_trainer as meta_trainers_base
 import device_utils
 import gin
 import session_creators
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 nest = tf.contrib.framework.nest
 

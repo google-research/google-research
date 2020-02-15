@@ -22,7 +22,7 @@ import time
 from absl import flags
 from absl import logging
 import setup_experiment
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import truncated_training
 
 nest = tf.contrib.framework.nest

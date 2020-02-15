@@ -21,7 +21,7 @@ from __future__ import print_function
 import functools
 from absl import flags
 from absl import logging
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = flags.FLAGS
 
