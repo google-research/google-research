@@ -20,7 +20,7 @@ from __future__ import print_function
 
 from absl import flags
 import setup_experiment
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import truncated_training
 
 nest = tf.contrib.framework.nest

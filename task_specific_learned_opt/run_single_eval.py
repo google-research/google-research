@@ -23,7 +23,7 @@ from absl import flags
 import gin
 import numpy as np
 import setup_experiment
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 import tf_utils
 

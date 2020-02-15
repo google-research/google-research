@@ -24,7 +24,7 @@ import itertools
 import time
 import numpy as np
 import py_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 nest = tf.contrib.framework.nest
 

@@ -29,7 +29,7 @@ import device_utils
 import gin
 import py_utils
 import sonnet as snt
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import utils_arch as utils
 
 nest = tf.contrib.framework.nest

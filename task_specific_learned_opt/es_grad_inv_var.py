@@ -28,8 +28,8 @@ import data_store
 # NOTINCLUDED
 import gin
 import py_utils
-import tensorflow as tf
-from tensorflow.python.framework import tensor_spec
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1.python.framework import tensor_spec
 import truncation_strategy
 
 nest = tf.contrib.framework.nest
