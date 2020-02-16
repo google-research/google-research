@@ -22,6 +22,16 @@ Prediction by Partial Matching (PPM) character [language model](ppm_language_mod
 9.  Steinruecken, Christian and Ghahramani, Zoubin and MacKay, David (2016): [“Improving PPM with dynamic parameter updates”](https://www.repository.cam.ac.uk/bitstream/handle/1810/254106/Steinruecken%202015%20Data%20Compression%20Conference%202015.pdf), Proc. of Data Compression Conference (DCC'2015), pp. 193&#x2013;202, April, Snowbird, UT, USA. IEEE.
 10. Steinruecken, Christian (2015): [“Lossless Data Compression”](https://pdfs.semanticscholar.org/f506/884bb2aefd01ccf3d24a5964aad9ef698679.pdf), PhD dissertation, University of Cambridge.
 
+### Histogram Language Model
+
+Very simple context-less histogram character [language model](histogram_language_model.js).
+
+#### Bibliography
+
+1.  Steinruecken, Christian (2015): [“Lossless Data Compression”](https://pdfs.semanticscholar.org/f506/884bb2aefd01ccf3d24a5964aad9ef698679.pdf), PhD dissertation, University of Cambridge.
+2.  Pitman, Jim and Yor, Marc (1997): [“The two-parameter Poisson–Dirichlet distribution derived from a stable subordinator.”](https://projecteuclid.org/download/pdf_1/euclid.aop/1024404422), The Annals of Probability, vol. 25, no. 2, pp. 855&#x2013;900.
+3.  Stanley F. Chen and Joshua Goodman (1999): [“An empirical study of smoothing techniques for language modeling”](http://u.cs.biu.ac.il/~yogo/courses/mt2013/papers/chen-goodman-99.pdf), Computer Speech and Language, vol. 13, pp. 359&#x2013;394.
+
 ## Example
 
 Please see a simple example usage of the model API in [example.js](example.js).
@@ -31,7 +41,8 @@ Please see a simple example usage of the model API in [example.js](example.js).
 A simple test driver [language_model_driver.js](language_model_driver.js) can be
 used to check that the model behaves using [NodeJS](https://nodejs.org/en/). The
 driver takes three parameters: the maximum order for the language model, the
-training file and the test file in text format.
+training file and the test file in text format. Currently only the PPM model is
+supported.
 
 Example:
 
