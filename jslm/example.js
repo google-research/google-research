@@ -13,10 +13,11 @@
 // limitations under the License.
 
 /**
- * @fileoverview Simple example on how to use the PPMLanguageModel API.
+ * @fileoverview Simple example on how to use the language modeling API.
  */
 
 const assert = require("assert");
+const hist = require("./histogram_language_model");
 const ppm = require("./ppm_language_model");
 const vocab = require("./vocabulary");
 
@@ -31,9 +32,9 @@ const a_id = v.symbols_.indexOf("a");
 const b_id = v.symbols_.indexOf("b");
 
 /*
- * ----------------------------------------------------
- * Build the language model trie and update the counts.
- * ----------------------------------------------------
+ * --------------------------------------------------------
+ * Build the PPM language model trie and update the counts.
+ * --------------------------------------------------------
  */
 // Build the trie from a single string "ab".
 const maxOrder = 5;
@@ -120,3 +121,36 @@ assert(probs[1] > 0 && probs[1] < probs[2],
 // Dump the final count trie.
 console.log("Final count trie:");
 lm.printToConsole();
+
+/*
+ * --------------------------------------------------------------
+ * Build the histogram language model trie and update the counts.
+ * --------------------------------------------------------------
+ * Context here is meaningless.
+ */
+lm = new hist.HistogramLanguageModel(v);
+probs = lm.getProbs(c);
+assert(probs[1] == 0.5 && probs[2] == 0.5, "Expected equal probs");
+
+let trainingData = "ababababab";
+for (let i = 0; i < trainingData.length; ++i) {
+  lm.addSymbolAndUpdate(c, v.symbols_.indexOf(trainingData[i]));
+}
+lm.printToConsole();
+probs = lm.getProbs(c);
+assert(probs.length == 3, "Wrong cardinality: " + probs.length);
+assert(probs[1] > 0.0 && probs[1] == probs[2], "Expected two equal probs!");
+
+lm.addSymbolAndUpdate(c, a_id);
+probs = lm.getProbs(c);
+assert(probs[2] > 0.0 && probs[1] > probs[2],
+       "Probability for \"a\" should be higher");
+
+lm.addSymbolAndUpdate(c, b_id);
+probs = lm.getProbs(c);
+assert(probs[1] > 0.0 && probs[1] == probs[2], "Expected two equal probs!");
+
+lm.addSymbolAndUpdate(c, b_id);
+probs = lm.getProbs(c);
+assert(probs[1] > 0.0 && probs[1] < probs[2],
+       "Probability for \"b\" should be higher");
