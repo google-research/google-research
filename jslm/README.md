@@ -36,6 +36,13 @@ Very simple context-less histogram character [language model](histogram_language
 
 Please see a simple example usage of the model API in [example.js](example.js).
 
+The example has no command-line arguments. To run it using
+[NodeJS](https://nodejs.org/en/) invoke
+
+```shell
+> node example.js
+```
+
 ## Test Utility
 
 A simple test driver [language_model_driver.js](language_model_driver.js) can be
