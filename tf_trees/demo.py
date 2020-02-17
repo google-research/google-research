@@ -1,13 +1,9 @@
 from tensorflow import keras
+# Make sure the tf_trees directory is in the search path.
+from tf_trees import TEL
 
-# Import the layer.
-# If the current working directory is not tf_trees, then uncomment the following
-# lines and change "/path/to/" to the parent directory of tf_trees.
-# import sys
-# sys.path.insert(1, '/path/to/tf_trees')
-from tel import TEL
 # The documentation of TEL can be accessed as follows
-?TEL
+print(TEL.__doc__)
 
 # We will fit TEL on the Boston Housing regression dataset.
 # First, load the dataset.
