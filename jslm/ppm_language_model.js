@@ -261,7 +261,7 @@ class PPMLanguageModel {
     while (context.head_ != null) {
       if (context.order_ < this.maxOrder_) {
         // Extend the current context.
-        let childNode = context.head_.findChildWithSymbol(symbol);
+        const childNode = context.head_.findChildWithSymbol(symbol);
         if (childNode != null) {
           context.head_ = childNode;
           context.order_++;
@@ -289,7 +289,7 @@ class PPMLanguageModel {
       return;
     }
     assert(symbol < this.vocab_.size(), "Invalid symbol: " + symbol);
-    let symbolNode = this.addSymbolToNode_(context.head_, symbol);
+    const symbolNode = this.addSymbolToNode_(context.head_, symbol);
     assert(symbolNode == context.head_.findChildWithSymbol(symbol));
     context.head_ = symbolNode;
     context.order_++;
@@ -348,7 +348,7 @@ class PPMLanguageModel {
   getProbs(context) {
     // Initialize the initial estimates. Note, we don't use uniform
     // distribution here.
-    let numSymbols = this.vocab_.size();
+    const numSymbols = this.vocab_.size();
     let probs = new Array(numSymbols);
     for (let i = 0; i < numSymbols; ++i) {
       probs[i] = 0.0;
@@ -383,7 +383,7 @@ class PPMLanguageModel {
         while (childNode != null) {
           const symbol = childNode.symbol_;
           if (!exclusionMask || !exclusionMask[symbol]) {
-            let p = gamma * (childNode.count_ - knBeta) / (count + knAlpha);
+            const p = gamma * (childNode.count_ - knBeta) / (count + knAlpha);
             probs[symbol] += p;
             totalMass -= p;
             if (exclusionMask) {
@@ -443,12 +443,12 @@ class PPMLanguageModel {
     }
 
     // Adjust the probability mass for all the symbols.
-    let remainingMass = totalMass;
+    const remainingMass = totalMass;
     for (let i = 1; i < numSymbols; ++i) {
       // Following is estimated according to a uniform distribution
       // corresponding to the context length of zero.
       if (!exclusionMask || !exclusionMask[i]) {
-        let p = remainingMass / numUnseenSymbols;
+        const p = remainingMass / numUnseenSymbols;
         probs[i] += p;
         totalMass -= p;
       }
@@ -456,7 +456,7 @@ class PPMLanguageModel {
     let leftSymbols = numSymbols - 1;
     let newProbMass = 0.0;
     for (let i = 1; i < numSymbols; ++i) {
-      let p = totalMass / leftSymbols;
+      const p = totalMass / leftSymbols;
       probs[i] += p;
       totalMass -= p;
       newProbMass += probs[i];

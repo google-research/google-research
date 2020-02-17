@@ -200,7 +200,7 @@ class HistogramLanguageModel {
     let newProbMass = 0.0;
     let leftSymbols = numValidSymbols;
     for (let i = 1; i < numSymbols; ++i) {
-      let p = totalMass / leftSymbols;
+      const p = totalMass / leftSymbols;
       probs[i] += p;
       totalMass -= p;
       newProbMass += probs[i];
