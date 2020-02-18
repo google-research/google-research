@@ -26,10 +26,10 @@
 namespace eeg_modelling {
 
 template <typename T>
-#if !defined(CLANG_WARN_UNUSED_RESULT) || defined(SWIG)
+#if !defined(ABSL_MUST_USE_RESULT) || defined(SWIG)
 class StatusOr {
 #else
-class CLANG_WARN_UNUSED_RESULT StatusOr {
+class ABSL_MUST_USE_RESULT StatusOr {
 #endif
   template <typename U>
   friend class StatusOr;
