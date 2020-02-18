@@ -27,7 +27,7 @@ import abc
 from collections import namedtuple
 import functools
 import os
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from state_of_sparsity.sparse_rn50 import resnet_preprocessing
 from tensorflow.contrib import cloud as contrib_cloud
 from tensorflow.contrib import data as contrib_data

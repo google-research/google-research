@@ -24,7 +24,7 @@ import collections
 import json
 import os
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from schema_guided_dst import metrics
 
