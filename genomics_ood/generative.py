@@ -24,7 +24,7 @@ import random
 from absl import flags
 import numpy as np
 from sklearn.metrics import roc_auc_score
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 from genomics_ood import utils
 from tensorflow.contrib import rnn as contrib_rnn
 from tensorflow.contrib import training as contrib_training

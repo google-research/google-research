@@ -21,7 +21,7 @@ from __future__ import print_function
 from tensor2tensor.bin import t2t_trainer
 from tensor2tensor.data_generators import problem
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from state_of_sparsity.sparse_transformer import common_flags
 from state_of_sparsity.sparse_transformer.models import sparse_transformer  # pylint: disable=unused-import

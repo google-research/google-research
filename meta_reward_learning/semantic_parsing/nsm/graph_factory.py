@@ -22,7 +22,7 @@ import os
 import time
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from meta_reward_learning.semantic_parsing.nsm import data_utils
 from meta_reward_learning.semantic_parsing.nsm import score_utils

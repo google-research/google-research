@@ -21,7 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import image as contrib_image
 
 

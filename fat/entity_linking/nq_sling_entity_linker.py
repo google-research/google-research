@@ -34,7 +34,7 @@ import sling
 import sling.flags as flags
 import sling.task.entity as entity
 import sling.task.workflow as workflow
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # Calling these 'args' to avoid conflicts with sling flags
 args = tf.flags

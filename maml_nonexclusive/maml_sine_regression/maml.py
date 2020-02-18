@@ -28,14 +28,14 @@
 from __future__ import print_function
 import sys
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 try:
     import special_grads  # pylint: disable=unused-import
 except KeyError as e:
     print('WARN: Cannot define MaxPoolGrad, likely already defined for this version of tensorflow: %s' % e,
           file=sys.stderr)
 
-from tensorflow.python.platform import flags
+from tensorflow.compat.v1.python.platform import flags
 from utils import mse, xent, conv_block, normalize
 
 FLAGS = flags.FLAGS

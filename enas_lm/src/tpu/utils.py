@@ -20,7 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import re
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import summary as contrib_summary
 from tensorflow.contrib import tpu as contrib_tpu
 
