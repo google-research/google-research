@@ -14,13 +14,15 @@
 # limitations under the License.
 
 """Main code for creating the tree ensemble layer."""
+import os
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.python.framework import ops
 from tensorflow.keras.initializers import RandomUniform
 
-# Assumes that neural_trees_ops.so is in the current directory.
-tf_trees_module = tf.load_op_library('./neural_trees_ops.so')
+# Assumes that neural_trees_ops.so is in tf_trees.
+dir_path = os.path.dirname(os.path.realpath(__file__))
+tf_trees_module = tf.load_op_library(dir_path+'/neural_trees_ops.so')
 
 # Register the custom gradient for NTComputeOutputOp.
 @ops.RegisterGradient('NTComputeOutputOp')
