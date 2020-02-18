@@ -18,6 +18,7 @@
 
 const assert = require("assert");
 const hist = require("./histogram_language_model");
+const polya = require("./polya_tree_language_model");
 const ppm = require("./ppm_language_model");
 const vocab = require("./vocabulary");
 
@@ -123,9 +124,9 @@ console.log("Final count trie:");
 lm.printToConsole();
 
 /*
- * --------------------------------------------------------------
- * Build the histogram language model trie and update the counts.
- * --------------------------------------------------------------
+ * ---------------------------------------------------------
+ * Build the histogram language model and update the counts.
+ * ---------------------------------------------------------
  * Context here is meaningless.
  */
 lm = new hist.HistogramLanguageModel(v);
@@ -154,3 +155,42 @@ lm.addSymbolAndUpdate(c, b_id);
 probs = lm.getProbs(c);
 assert(probs[1] > 0.0 && probs[1] < probs[2],
        "Probability for \"b\" should be higher");
+
+/*
+ * ------------------------------------
+ * Build and test Polya language model.
+ * ------------------------------------
+ * Context here is meaningless.
+ */
+
+v = new vocab.Vocabulary();
+v.addSymbol("a");
+v.addSymbol("b");
+v.addSymbol("c");
+v.addSymbol("d");
+
+const c_id = v.symbols_.indexOf("c");
+const d_id = v.symbols_.indexOf("d");
+
+lm = new polya.PolyaTreeLanguageModel(v);
+console.log(lm.getPath_(a_id));
+console.log(lm.getPath_(b_id));
+console.log(lm.getPath_(c_id));
+console.log(lm.getPath_(d_id));
+
+c = lm.createContext();
+lm.addSymbolAndUpdate(c, a_id);
+lm.addSymbolAndUpdate(c, a_id);
+lm.addSymbolAndUpdate(c, b_id);
+lm.addSymbolAndUpdate(c, c_id);
+lm.addSymbolAndUpdate(c, c_id);
+lm.addSymbolAndUpdate(c, c_id);
+lm.addSymbolAndUpdate(c, c_id);
+lm.addSymbolAndUpdate(c, c_id);
+lm.addSymbolAndUpdate(c, d_id);
+lm.addSymbolAndUpdate(c, d_id);
+lm.addSymbolAndUpdate(c, d_id);
+lm.printToConsole();
+
+probs = lm.getProbs(c);
+console.log(probs);
