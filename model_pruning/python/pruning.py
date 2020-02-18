@@ -295,7 +295,7 @@ def get_pruning_hparams():
       prune_option='weight',
       alpha_decrement_value=0.01,
       begin_compression_step=0,
-      end_compresson_step=-1,
+      end_compression_step=-1,
       compression_frequency=10,
       compression_option=0,
       rank=7,
