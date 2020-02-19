@@ -40,7 +40,7 @@ Context-less predictive distribution based on balanced binary search trees. Tent
 
 1.  Gleave, Adam and Steinruecken, Christian (2017): [“Making compression algorithms for Unicode text”](https://arxiv.org/pdf/1701.04047), arXiv preprint arXiv:1701.04047.
 2.  Steinruecken, Christian (2015): [“Lossless Data Compression”](https://pdfs.semanticscholar.org/f506/884bb2aefd01ccf3d24a5964aad9ef698679.pdf), PhD dissertation, University of Cambridge.
-3.  Mauldin, R. Daniel and Sudderth, William D. and Williams, S. C. (1992): [“Polya Trees and Random Distributions”](https://projecteuclid.org/download/pdf_1/euclid.aos/1176348766), The Annals of Statistics, pp. 1203--1221.
+3.  Mauldin, R. Daniel and Sudderth, William D. and Williams, S. C. (1992): [“Polya Trees and Random Distributions”](https://projecteuclid.org/download/pdf_1/euclid.aos/1176348766), The Annals of Statistics, pp. 1203&#x2013;1221.
 
 ## Example
 
