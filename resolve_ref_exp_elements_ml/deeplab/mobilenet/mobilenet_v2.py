@@ -27,7 +27,7 @@ from __future__ import print_function
 
 import copy
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 import deeplab.mobilenet.conv_blocks as ops
 import deeplab.mobilenet.mobilenet as lib

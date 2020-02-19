@@ -24,7 +24,7 @@ import collections
 import re
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from schema_guided_dst.baseline import data_utils
 from schema_guided_dst.baseline.bert import modeling

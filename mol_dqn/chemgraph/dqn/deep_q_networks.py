@@ -30,7 +30,7 @@ from rdkit.Chem import AllChem
 
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import layers as contrib_layers
 from tensorflow.contrib import training as contrib_training
 

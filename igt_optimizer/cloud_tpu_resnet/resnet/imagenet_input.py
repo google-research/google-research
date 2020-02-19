@@ -39,7 +39,7 @@ import functools
 import os
 # copybara:strip_begin
 from absl import flags
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from igt_optimizer.cloud_tpu_resnet.resnet import resnet_preprocessing
 from tensorflow.contrib import cloud as contrib_cloud
 from tensorflow.contrib import data as contrib_data

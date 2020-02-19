@@ -41,7 +41,7 @@ from absl import app
 from absl import flags
 import absl.logging as _logging  # pylint: disable=unused-import
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from igt_optimizer import exp_igt_optimizer
 from igt_optimizer.cloud_tpu_resnet.hyperparameters import common_hparams_flags

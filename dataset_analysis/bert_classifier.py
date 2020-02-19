@@ -38,7 +38,7 @@ from dataset_analysis.bert import optimization
 from dataset_analysis.bert import tokenization
 import numpy as np
 import pandas as pd
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import data as contrib_data
 
 flags = tf.flags
