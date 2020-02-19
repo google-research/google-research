@@ -183,7 +183,7 @@ def get_matrix_compression_update_op(matrix_compression_obj):
   if hparams.prune_option in [
       'weight', 'first_order_gradient', 'second_order_gradient']:
     return matrix_compression_obj.conditional_mask_update_op()
-  elif hparams.get_operator_hparam('update_option') == 0:
+  elif hparams.update_option == 0:
     # 'update_option' == 0 means matrix compression, for which we can
     # return an update op here. 'update_option' == 1 means dictionary learning,
     # for which we cannot return an update op here, and need to explicitly call
