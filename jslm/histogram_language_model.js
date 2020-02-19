@@ -23,6 +23,9 @@
  * however the main advantage of this approach over the alternatives
  * is its simplicity resulting in low memory and CPU usage.
  *
+ * This language model can be used as a prior in a more sophisticated
+ * context-based model.
+ *
  * References:
  * -----------
  *   [1] Steinruecken, Christian (2015): "Lossless Data Compression", PhD
