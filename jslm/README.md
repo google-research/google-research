@@ -32,6 +32,16 @@ Very simple context-less histogram character [language model](histogram_language
 2.  Pitman, Jim and Yor, Marc (1997): [“The two-parameter Poisson–Dirichlet distribution derived from a stable subordinator.”](https://projecteuclid.org/download/pdf_1/euclid.aop/1024404422), The Annals of Probability, vol. 25, no. 2, pp. 855&#x2013;900.
 3.  Stanley F. Chen and Joshua Goodman (1999): [“An empirical study of smoothing techniques for language modeling”](http://u.cs.biu.ac.il/~yogo/courses/mt2013/papers/chen-goodman-99.pdf), Computer Speech and Language, vol. 13, pp. 359&#x2013;394.
 
+### Pólya Tree (PT) Language Model
+
+Context-less predictive distribution based on balanced binary search trees. Tentative implementation is [here](polya_tree_language_model.js).
+
+#### Bibliography
+
+1.  Gleave, Adam and Steinruecken, Christian (2017): [“Making compression algorithms for Unicode text”](https://arxiv.org/pdf/1701.04047), arXiv preprint arXiv:1701.04047.
+2.  Steinruecken, Christian (2015): [“Lossless Data Compression”](https://pdfs.semanticscholar.org/f506/884bb2aefd01ccf3d24a5964aad9ef698679.pdf), PhD dissertation, University of Cambridge.
+3.  Mauldin, R. Daniel and Sudderth, William D. and Williams, S. C. (1992): [“Polya Trees and Random Distributions”](https://projecteuclid.org/download/pdf_1/euclid.aos/1176348766), The Annals of Statistics, pp. 1203--1221.
+
 ## Example
 
 Please see a simple example usage of the model API in [example.js](example.js).
