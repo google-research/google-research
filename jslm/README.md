@@ -42,6 +42,8 @@ Context-less predictive distribution based on balanced binary search trees. Tent
 2.  Steinruecken, Christian (2015): [“Lossless Data Compression”](https://pdfs.semanticscholar.org/f506/884bb2aefd01ccf3d24a5964aad9ef698679.pdf), PhD dissertation, University of Cambridge.
 3.  Mauldin, R. Daniel and Sudderth, William D. and Williams, S. C. (1992): [“Polya Trees and Random Distributions”](https://projecteuclid.org/download/pdf_1/euclid.aos/1176348766), The Annals of Statistics, vol. 20, no. 3, pp. 1203&#x2013;1221.
 4.  Lavine, Michael (1992): [“Some aspects of Polya tree distributions for statistical modelling”](https://projecteuclid.org/download/pdf_1/euclid.aos/1176348767), The Annals of Statistics, vol. 20, no. 3, pp. 1222&#x2013;1235.
+5.
+5.  Neath, Andrew A. (2003): [“Polya Tree Distributions for Statistical Modeling of Censored Data”](http://downloads.hindawi.com/journals/ads/2003/745230.pdf), Journal of Applied Mathematics and Decision Sciences, vol. 7, no. 3, pp. 175&#x2013;186.
 
 ## Example
 
