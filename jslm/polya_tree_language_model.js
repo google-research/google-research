@@ -14,6 +14,36 @@
 
 /**
  * @fileoverview Pólya Tree (PT) language model.
+ *
+ * The Pólya tree method uses a balanced binary search tree whose leaf nodes
+ * contain the symbols of the vocabulary V, such that each symbol v \in V can be
+ * identified by a sequence of (at most \log_2(|V|)) binary branching decisions
+ * from the root of the tree. The tree has N=|V|−1 internal nodes, each
+ * containing a value \theta_i that represents the probability of choosing
+ * between its two children [1]. The probability of a given symbol v is then
+ * defined as [2]:
+ *
+ *   P(v) = \prod_{i \in PATH(v)} Bernoulli(b_i | \theta_i)
+ *        = \prod_{i \in PATH(v)} \theta_i^{b_i} (1 - \theta_i)^{1 - b_i} ,
+ *
+ * where PATH(v) denotes the set of nodes i that belong to the path from the
+ * root to node v and b_i \in {0, 1} is the branching decision at node i. See
+ * documentation of the getProbs() API to see how the \theta is approximated
+ * using conjugate priors using beta distribution, in other words,
+ * \theta_i ~ Beta(\alpha, \beta).
+ *
+ * This language model can be used as a prior in a more sophisticated
+ * context-based model.
+ *
+ * References:
+ * -----------
+ *   [1] Steinruecken, Christian (2015): "Lossless Data Compression", PhD
+ *       dissertation, University of Cambridge.
+ *   [2] Gleave, Adam and Steinruecken, Christian (2017): "Making compression
+ *       algorithms for Unicode text", arXiv preprint arXiv:1701.04047.
+ *   [3] Mauldin, R. Daniel and Sudderth, William D. and Williams, S. C. (1992):
+ *       "Polya Trees and Random Distributions", The Annals of Statistics,
+ *       pp. 1203--1221.
  */
 
 const assert = require("assert");
@@ -21,7 +51,7 @@ const assert = require("assert");
 const vocab = require("./vocabulary");
 
 /**
- * Hard-coded beta distribution parameters.
+ * Hard-coded parameters for the beta distribution.
  */
 const betaDistrAlpha = 0.5;  // $\alpha$.
 const betaDistrBeta = 0.5;   // $\beta$.
@@ -48,6 +78,8 @@ class Node {
 
 /**
  * Node in a path from the root to the leaf of a Pólya tree.
+ *
+ * @final
  */
 class PathNode {
   /**
@@ -72,6 +104,7 @@ class Context {}
 
 /**
  * Pólya tree language model.
+ *
  * @final
  */
 class PolyaTreeLanguageModel {
@@ -80,12 +113,13 @@ class PolyaTreeLanguageModel {
    * @param {?Vocabulary} vocab Symbol vocabulary object.
    */
   constructor(vocab) {
+    this.totalObservations_ = 0;  // Total number of observations.
     this.vocab_ = vocab;
     assert(this.vocab_.size() > 1,
            "Expecting at least two symbols in the vocabulary");
+
     this.nodes_ = null;  // Array representation of a tree.
     this.buildTree_();
-    this.totalObservations_ = 0;  // Total number of observations.
   }
 
   /**
@@ -134,9 +168,9 @@ class PolyaTreeLanguageModel {
     assert(path.length > 1, "Expected more than one node in the path");
     for (let i = 0; i < path.length; ++i) {
       const pathNode = path[i];
-      if (pathNode.leftBranch_) {
+      if (pathNode.leftBranch_) {  // Update left branch counts.
         this.nodes_[pathNode.id_].numBranchLeft_++;
-      } else {
+      } else {  // Update right branch counts.
         this.nodes_[pathNode.id_].numBranchRight_++;
       }
     }
@@ -146,6 +180,16 @@ class PolyaTreeLanguageModel {
   /**
    * Returns probabilities for all the symbols in the vocabulary given the
    * context.
+   *
+   * Using Bernoulli likelihoods, the probability of symbol v is
+   *
+   *   P(v) = \prod_{i \in PATH(v)} \theta_i^{b_i} (1 - \theta_i)^{1 - b_i} ,
+   *
+   * where \theta_i at node i in the path can be expressed using the parameters
+   * of the beta distribution (\alpha and \beta) and the branching counts n^l_i
+   * (left) and n^r_i (right) at each node i in the path:
+   *
+   *   \theta_i = \frac{\alpha + n^l_i}{\alpha + \beta + n^l_i + n^r_i}.
    *
    * @param {?Context} context Context symbols.
    * @return {?array} Array of floating point probabilities corresponding to all
@@ -173,9 +217,9 @@ class PolyaTreeLanguageModel {
         const theta = (betaDistrAlpha + treeNode.numBranchLeft_) /
               (betaDistrAlpha + betaDistrBeta +
                treeNode.numBranchLeft_ + treeNode.numBranchRight_);
-        if (pathNode.leftBranch_) {
+        if (pathNode.leftBranch_) {  // Follow left branch.
           probs[i] *= theta;
-        } else {
+        } else {  // Follow right branch.
           probs[i] *= (1.0 - theta);
         }
       }
@@ -199,6 +243,9 @@ class PolyaTreeLanguageModel {
 
   /**
    * Constructs Pólya tree from the given vocabulary.
+   *
+   * Note, the Pólya Tree does not correspond exactly to a classical Binary
+   * Search Tree (BST) because of the requirement to have |V|-1 extra nodes.
    *
    * @final @private
    */
