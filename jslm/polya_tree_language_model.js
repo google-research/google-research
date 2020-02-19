@@ -51,7 +51,9 @@ const assert = require("assert");
 const vocab = require("./vocabulary");
 
 /**
- * Hard-coded parameters for the beta distribution.
+ * Hard-coded parameters for the beta distribution. In Beta(\alpha, \beta), the
+ * \alpha and \beta hyperparameters represent the left and right splits,
+ * respectively.
  */
 const betaDistrAlpha = 0.5;  // $\alpha$.
 const betaDistrBeta = 0.5;   // $\beta$.
@@ -119,6 +121,7 @@ class PolyaTreeLanguageModel {
            "Expecting at least two symbols in the vocabulary");
 
     this.nodes_ = null;  // Array representation of a tree.
+    this.rootProbs_ = null;  // Probabilities at the root.
     this.buildTree_();
   }
 
@@ -165,7 +168,8 @@ class PolyaTreeLanguageModel {
     }
     assert(symbol < this.vocab_.size(), "Invalid symbol: " + symbol);
     const path = this.getPath_(symbol);
-    assert(path.length > 1, "Expected more than one node in the path");
+    assert(path.length > 1,
+           "Expected more than one node in the path for symbol " + symbol);
     for (let i = 0; i < path.length; ++i) {
       const pathNode = path[i];
       if (pathNode.leftBranch_) {  // Update left branch counts.
@@ -209,7 +213,7 @@ class PolyaTreeLanguageModel {
       const path = this.getPath_(i);
       assert(path.length > 1,
              "Expected more than one node in the path for symbol " + i);
-      probs[i] = 1.0 / numValidSymbols;  // Uniform distribution.
+      probs[i] = this.rootProbs_[i];
       const numInternalNodes = path.length - 1;
       for (let j = 0; j < numInternalNodes; ++j) {
         const pathNode = path[j];
@@ -227,16 +231,13 @@ class PolyaTreeLanguageModel {
     }
 
     // Adjust the remaining probability mass, if any.
+    const delta = totalMass / numValidSymbols;
     let newProbMass = 0.0;
-    let leftSymbols = numValidSymbols;
     for (let i = 1; i < numSymbols; ++i) {
-      const p = totalMass / leftSymbols;
-      probs[i] += p;
-      totalMass -= p;
+      probs[i] += delta;
+      totalMass -= delta;
       newProbMass += probs[i];
-      --leftSymbols;
     }
-    assert(totalMass == 0.0, "Expected remaining probability mass to be zero!");
     assert(Math.abs(1.0 - newProbMass) < epsilon);
     return probs;
   }
@@ -267,6 +268,38 @@ class PolyaTreeLanguageModel {
     for (let i = 0; i < numSymbols; ++i) {
       this.nodes_[i + numSymbols - 1] = new Node();
     }
+
+    // Compute probabilities at the root node in the absence of branching
+    // frequencies, in other words, given
+    //
+    //   \theta_0 = \frac{\alpha}{\alpha + \beta}
+    //
+    // compute
+    //
+    //   P_0() = \prod_{i \in PATH(v)} \theta_0^{b_i} (1 - \theta_0)^{1 - b_i} .
+    this.rootProbs_ = new Array(numSymbols);
+    this.rootProbs_[0] = 0.0;  // Ignore first symbol.
+    const theta = betaDistrAlpha / (betaDistrAlpha + betaDistrBeta);
+    let totalMass = 1.0;
+    for (let i = 1; i < this.vocab_.size(); ++i) {
+      const path = this.getPath_(i);
+      assert(path.length > 1,
+             "Expected more than one node in the path for symbol " + i);
+      let p = 1.0;
+      const numInternalNodes = path.length - 1;
+      for (let j = 0; j < numInternalNodes; ++j) {
+        const pathNode = path[j];
+        if (pathNode.leftBranch_) {  // Follow left branch.
+          p *= theta;
+        } else {  // Follow right branch.
+          p *= (1.0 - theta);
+        }
+      }
+      this.rootProbs_[i] = p;
+      totalMass -= p;
+    }
+    assert(totalMass == 0.0,
+           "Invalid total mass for initial probabilities: " + totalMass);
   }
 
   /**
