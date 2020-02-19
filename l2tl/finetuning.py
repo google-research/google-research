@@ -25,8 +25,8 @@ from absl import app
 from absl import flags
 import model
 import model_utils
-import tensorflow as tf
-from tensorflow.python.estimator import estimator
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1.python.estimator import estimator
 import tensorflow_datasets as tfds
 
 flags.DEFINE_string(

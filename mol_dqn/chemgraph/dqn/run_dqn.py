@@ -40,8 +40,8 @@ from rdkit.Chem import Descriptors
 from rdkit.Chem import QED
 
 from six.moves import range
-import tensorflow as tf
-from tensorflow import gfile
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import gfile
 
 from mol_dqn.chemgraph.dqn import deep_q_networks
 from mol_dqn.chemgraph.dqn import molecules as molecules_mdp

@@ -21,7 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import re
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def create_optimizer(loss, init_lr, num_train_steps, num_warmup_steps, use_tpu):

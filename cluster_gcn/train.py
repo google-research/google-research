@@ -19,7 +19,7 @@ import time
 import models
 import numpy as np
 import partition_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import utils
 
 tf.logging.set_verbosity(tf.logging.INFO)
