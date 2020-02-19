@@ -18,10 +18,11 @@
  * The Pólya tree method uses a balanced binary search tree whose leaf nodes
  * contain the symbols of the vocabulary V, such that each symbol v \in V can be
  * identified by a sequence of (at most \log_2(|V|)) binary branching decisions
- * from the root of the tree. The tree has N=|V|−1 internal nodes, each
- * containing a value \theta_i that represents the probability of choosing
- * between its two children [1]. The probability of a given symbol v is then
- * defined as [2]:
+ * from the root of the tree. The leafs of the tree represent predictive
+ * probabilities for the respective symbols. The tree has N=|V|−1 internal
+ * nodes, each containing a value \theta_i that represents the probability of
+ * choosing between its two children [1]. The probability of a given symbol v is
+ * then defined as [2]:
  *
  *   P(v) = \prod_{i \in PATH(v)} Bernoulli(b_i | \theta_i)
  *        = \prod_{i \in PATH(v)} \theta_i^{b_i} (1 - \theta_i)^{1 - b_i} ,
@@ -170,12 +171,34 @@ class PolyaTreeLanguageModel {
     const path = this.getPath_(symbol);
     assert(path.length > 1,
            "Expected more than one node in the path for symbol " + symbol);
-    for (let i = 0; i < path.length; ++i) {
+    const numInternalNodes = path.length - 1;
+    for (let i = 0; i < numInternalNodes; ++i) {
+      // Update the branch counts for each node.
       const pathNode = path[i];
+      let treeNode = this.nodes_[pathNode.id_];
       if (pathNode.leftBranch_) {  // Update left branch counts.
-        this.nodes_[pathNode.id_].numBranchLeft_++;
+        treeNode.numBranchLeft_++;
       } else {  // Update right branch counts.
-        this.nodes_[pathNode.id_].numBranchRight_++;
+        treeNode.numBranchRight_++;
+      }
+
+      // Make sure at each step the total frequency of each node corresponds to
+      // to the branching frequency of the parent, left or right, respectively.
+      const nodeTotal = treeNode.numBranchLeft_ + treeNode.numBranchRight_;
+      if (i > 0) {
+        const prevPathNode = path[i - 1];
+        const prevTreeNode = this.nodes_[prevPathNode.id_];
+        if (prevPathNode.leftBranch_) {
+          assert(prevTreeNode.numBranchLeft_ == nodeTotal,
+                 "Expected the total count for the current node (" + nodeTotal +
+                 ") to be equal to the parent left branch count (" +
+                 prevTreeNode.numBranchLeft_ + ")");
+        } else {
+          assert(prevTreeNode.numBranchRight_ == nodeTotal,
+                 "Expected the total count for the current node (" + nodeTotal +
+                 ") to be equal to the parent right branch count (" +
+                 prevTreeNode.numBranchRight_ + ")");
+        }
       }
     }
     this.totalObservations_++;
@@ -229,6 +252,7 @@ class PolyaTreeLanguageModel {
       }
       totalMass -= probs[i];
     }
+    assert(totalMass > 0.0, "Negative probability mass");
 
     // Adjust the remaining probability mass, if any.
     const delta = totalMass / numValidSymbols;
