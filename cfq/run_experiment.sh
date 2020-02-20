@@ -65,7 +65,7 @@ if [[ ! -f "${dataset_local_path}" || ! -f "${split_path}" ]]; then
   exit 1
 fi
 
-python3 -m preprocess_dataset --dataset_path="${dataset_local_path}" \
+python3 -m preprocess_main --dataset_path="${dataset_local_path}" \
   --split_path="${split_path}" --save_path="${save_path}"
 
 t2t-datagen --t2t_usr_dir="${work_dir}/cfq/" --data_dir="${save_path}" \
