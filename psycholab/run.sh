@@ -20,4 +20,4 @@ virtualenv -p python3 .
 source ./bin/activate
 
 pip install -r psycholab/requirements.txt
-python -m psycholab.tests
+python -m psycholab.game_test
