@@ -61,6 +61,7 @@ env:
     - PROJECT="sufficient_input_subsets"
     - PROJECT="tabnet"
     - PROJECT="tcc"
+    - PROJECT="truss_decomposition"
     - PROJECT="towards_gan_benchmarks"
     - PROJECT="wiki_split_bleu_eval"
 before_script:

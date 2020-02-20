@@ -1,0 +1,21 @@
+34a35
+> static const size_t kParallelThreshold = 512;
+108c109,114
+<             if (count[i] > kInsertSortThreshold) {
+---
+>             if (count[i] > kParallelThreshold) {
+> #pragma omp task
+>                 radix_sort_core_<RandomIt, ValueType, RadixTraits,
+>                                   (kWhichByte > 0 ? (kWhichByte - 1) : 0)>
+>                                   (last[i - 1], last[i], radix_traits);
+>             } else if (count[i] > kInsertSortThreshold) {
+116a123
+> #pragma omp taskwait
+125c133,135
+<     else
+---
+>     else {
+> #pragma omp parallel
+> #pragma omp single nowait
+126a137
+>     }
