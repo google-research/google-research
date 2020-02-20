@@ -30,7 +30,7 @@ decode_path="${save_path}/dev/dev_decode.txt"
 decode_inferred_path="${save_path}/dev/dev_decode_inferred.txt"
 
 pip3 install -r requirements.txt
-python3 -m preprocess_dataset --dataset_path="google/example_data/dataset.json" \
+python3 -m preprocess_main --dataset_path="google/example_data/dataset.json" \
   --split_path="google/example_data/test_split.json" --save_path="${save_path}"
 
 t2t-datagen --t2t_usr_dir="${work_dir}/cfq/" --data_dir="${save_path}" \

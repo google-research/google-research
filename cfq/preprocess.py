@@ -14,11 +14,7 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Preprocesses a specific split of the CFQ dataset."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+"""Utils for preprocessing the CFQ dataset."""
 
 import collections
 import json
@@ -26,32 +22,19 @@ import os
 import string
 from typing import Any, Dict, List, Text, Tuple
 
-from absl import app
-from absl import flags
 from absl import logging
 
-FLAGS = flags.FLAGS
-
-flags.DEFINE_string('dataset_path', None, 'Path to the JSON file containing '
-                    'the dataset.')
-
-flags.DEFINE_string('split_path', None, 'Path to the JSON file containing '
-                    'split information.')
-
-flags.DEFINE_string('save_path', None, 'Path to the directory where to '
-                    'save the files to.')
-
-flags.mark_flag_as_required('save_path')
-
-flags.register_validator('dataset_path', os.path.exists, 'Dataset not found.')
-flags.register_validator('split_path', os.path.exists, 'Split not found.')
 
 Dataset = Dict[Text, List[Tuple[Text, Text]]]
 
 
+def open_file(path, mode = 'r'):
+  return open(path, mode, encoding='utf-8')
+
+
 def load_json(path):
   logging.info(f'Reading json from {path} into memory...')
-  with open(path, 'r', encoding='utf-8') as f:
+  with open_file(path) as f:
     data = json.load(f)
   logging.info(f'Successfully loaded json data from {path} into memory.')
   return data
@@ -120,23 +103,24 @@ def write_dataset(dataset, save_path):
       os.makedirs(folder_name)
     encode_name = os.path.join(folder_name, f'{split_name}_encode.txt')
     decode_name = os.path.join(folder_name, f'{split_name}_decode.txt')
-    with open(
-        encode_name, 'w', encoding='utf8') as encode_f, open(
-            decode_name, 'w', encoding='utf8') as decode_f:
+    with open_file(encode_name, 'w') as encode_f, open_file(decode_name,
+                                                            'w') as decode_f:
       for pair in list_of_input_output_pairs:
         encode_f.write(pair[0] + '\n')
         decode_f.write(pair[1] + '\n')
   logging.info(f'Dataset written to {save_path}')
 
 
-def write_token_vocab(words, save_path):
+def write_token_vocab(words,
+                      save_path,
+                      problem = 'cfq'):
   """"Writes token vocabulary from @words to @save_path."""
   # Sort tokens by frequency and then lexically to break ties.
   words_with_counts = words.most_common()
   words_with_counts.sort(key=lambda x: (x[1], x[0]), reverse=True)
-  vocab_path = os.path.join(save_path, 'vocab.cfq.tokens')
+  vocab_path = os.path.join(save_path, f'vocab.{problem}.tokens')
 
-  with open(vocab_path, 'w') as f:
+  with open_file(vocab_path, 'w') as f:
     # Tensor2tensor needs these additional tokens.
     f.write('<pad>\n<EOS>\n<OOV>\n')
     for word, _ in words_with_counts:
@@ -146,7 +130,7 @@ def write_token_vocab(words, save_path):
 
 
 def get_lines(path, filename):
-  with open(os.path.join(path, 'train', filename), 'r') as f:
+  with open_file(os.path.join(path, 'train', filename)) as f:
     lines = [l.strip() for l in f.readlines() if l.strip()]
   return lines
 
@@ -158,17 +142,3 @@ def get_token_vocab(path):
   for line in lines:
     words.update(line.split(' '))
   return words
-
-
-def main(argv):
-  if len(argv) > 1:
-    raise app.UsageError('Too many command-line arguments.')
-
-  write_dataset(
-      get_dataset(load_json(FLAGS.dataset_path), load_json(FLAGS.split_path)),
-      FLAGS.save_path)
-  write_token_vocab(get_token_vocab(FLAGS.save_path), FLAGS.save_path)
-
-
-if __name__ == '__main__':
-  app.run(main)
