@@ -28,10 +28,10 @@
  *        = \prod_{i \in PATH(v)} \theta_i^{b_i} (1 - \theta_i)^{1 - b_i} ,
  *
  * where PATH(v) denotes the set of nodes i that belong to the path from the
- * root to node v and b_i \in {0, 1} is the branching decision at node i. See
- * documentation of the getProbs() API to see how the \theta is approximated
- * using conjugate priors using beta distribution, in other words,
- * \theta_i ~ Beta(\alpha, \beta).
+ * root to node v, b_i \in {0, 1} is the branching decision at node i and
+ * \theta_i is the Bernoulli distribution bias at node i. See documentation of
+ * the getProbs() API to see how the \theta is approximated via conjugate priors
+ * using beta distribution, in other words, \theta_i ~ Beta(\alpha, \beta).
  *
  * This language model can be used as a prior in a more sophisticated
  * context-based model.
@@ -212,9 +212,9 @@ class PolyaTreeLanguageModel {
    *
    *   P(v) = \prod_{i \in PATH(v)} \theta_i^{b_i} (1 - \theta_i)^{1 - b_i} ,
    *
-   * where \theta_i at node i in the path can be expressed using the parameters
-   * of the beta distribution (\alpha and \beta) and the branching counts n^l_i
-   * (left) and n^r_i (right) at each node i in the path:
+   * where the Bernoulli bias \theta_i at node i in the path can be expressed
+   * using the parameters of the beta distribution (\alpha and \beta) and the
+   * branching counts n^l_i (left) and n^r_i (right) at each node i in the path:
    *
    *   \theta_i = \frac{\alpha + n^l_i}{\alpha + \beta + n^l_i + n^r_i}.
    *
