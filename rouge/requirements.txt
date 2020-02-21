@@ -1,4 +1,4 @@
 absl-py
 nltk
 numpy
-six
+six>=1.14
