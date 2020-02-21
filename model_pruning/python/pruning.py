@@ -259,6 +259,12 @@ def get_pruning_hparams():
                                see graph_compression/compression_op.py.
     pruning_fraction: only effective when prune_option is 'compression',
                       see graph_compression/compression_op.py.
+    use_collection: only effective when prune_option is 'compression',
+                    update_ops are retrieved from UPDATE_OP_COLLECTION if True,
+                    otherwise update_ops are obtained from
+                    matrix_compression_obj.all_update_op() directly. Default is
+                    True.
+
 
     We use the following sparsity function:
 
@@ -301,7 +307,8 @@ def get_pruning_hparams():
       rank=7,
       update_option=0,
       run_update_interval_check=1,
-      pruning_fraction=0.4)
+      pruning_fraction=0.4,
+      use_collection=True)
 
 
 class Pruning(object):

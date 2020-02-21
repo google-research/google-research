@@ -623,7 +623,7 @@ class CompressionOp(CompressionOpInterface):
   def _setup_global_step(self, global_step):
     graph_global_step = global_step
     if graph_global_step is None:
-      graph_global_step = tf.get_global_step()
+      graph_global_step = tf.train.get_global_step()
     logging.info('graph_global_step: %s', graph_global_step)
     return tf.cast(graph_global_step, tf.int32)
 
