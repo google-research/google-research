@@ -45,6 +45,9 @@ from graph_compression.compression_lib import compression_wrapper_py2 as compres
 from model_pruning.python import pruning
 
 
+UPDATE_OP_COLLECTION = 'update_op'
+
+
 def get_matrix_compression_object(hparams,
                                   global_step=None,
                                   sparsity=None):
@@ -92,7 +95,12 @@ def apply_matrix_compression(matrix_compression_obj,
     prune_option = matrix_compression_obj.matrix_compression_spec.prune_option
     return pruning.apply_mask(x=weight, scope=scope, prune_option=prune_option)
   else:
-    return matrix_compression_obj.apply_compression(weight, scope)
+    compressed_matrix = matrix_compression_obj.apply_compression(weight, scope)
+    hparams = matrix_compression_obj.get_spec()
+    if hparams.use_collection:
+      tf.add_to_collection(UPDATE_OP_COLLECTION,
+                           matrix_compression_obj.all_update_op())
+    return compressed_matrix
 
 
 def apply_pruning(pruning_obj,
@@ -189,6 +197,12 @@ def get_matrix_compression_update_op(matrix_compression_obj):
     # for which we cannot return an update op here, and need to explicitly call
     # run_update_step(), see graph_compression/compression_lib/compression_op.py
     # for more details.
-    return matrix_compression_obj.all_update_op()
+    if hparams.use_collection:
+      # If use_collection is True, then update_ops are retrieved from
+      # UPDATE_OP_COLLECTION, to ensure the same behavior as pruning.
+      update_ops = tf.get_collection(UPDATE_OP_COLLECTION)
+      return tf.group(*update_ops)
+    else:
+      return matrix_compression_obj.all_update_op()
   else:
     raise NotImplementedError()
