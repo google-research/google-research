@@ -18,6 +18,7 @@
 
 from typing import Tuple
 import gin
+import numpy as np
 import tensorflow.compat.v2 as tf
 
 from soft_sort import ops
@@ -124,3 +125,37 @@ class SoftQuantilesLayer(tf.keras.layers.Layer):
         ops.softquantiles(
             inputs, self._quantiles, axis=self._axis, **self._kwargs),
         self.get_output_shape(tf.shape(inputs)))
+
+
+@gin.configurable
+class SoftQuantileNormalizationLayer(tf.keras.layers.Layer):
+  """A layer applying quantile normalization on inputs values.
+
+  The target distribution can either be fixed or trained.
+  """
+
+  def __init__(self,
+               target_pdf,
+               axis = -1,
+               trainable = False,
+               **kwargs):
+    super(SoftQuantileNormalizationLayer, self).__init__(
+        name='soft_quantile_normalization', trainable=trainable)
+    self._target_pdf = target_pdf
+    self._axis = axis
+    self._kwargs = kwargs
+
+  def compute_output_shape(self, input_shape):
+    return tf.TensorShape((input_shape[0], self._target_pdf.shape[0]))
+
+  def build(self, input_shape):
+    self.w = self.add_weights(
+        shape=self._target_pdf.shape,
+        dtype=tf.float32,
+        initializer=tf.keras.initializers.Constant(np.log(self._target_pdf)),
+        trainable=self.trainable)
+
+  def call(self, inputs):
+    target_cdf = tf.math.cumsum(tf.math.softmax(self.w), axis=self._axis)
+    return ops.soft_quantile_normalization(
+        inputs, target_cdf, axis=self._axis, **self._kwargs)

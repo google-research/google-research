@@ -277,6 +277,6 @@ def soft_quantile_normalization(x, f, axis=-1, **kwargs):
   """
   z, transposition, shape = preprocess(x, axis)
   sorter = soft_quantilizer.SoftQuantilizer(
-      z, descending=False, num_targets=f.shape[0], **kwargs)
+      z, descending=False, num_targets=f.shape[-1], **kwargs)
   y = 1.0 / sorter.weights * tf.linalg.matvec(sorter.transport, f)
   return postprocess(y, transposition, shape)
