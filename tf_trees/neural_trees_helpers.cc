@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "neural_trees_helpers.h"
+#include "third_party/google_research/google_research/tf_trees/neural_trees_helpers.h"
 
 #include <stack>
 
-#include "tensorflow/core/lib/math/math_util.h"
+#include "third_party/tensorflow/core/lib/math/math_util.h"
 
 namespace tensorflow {
 
