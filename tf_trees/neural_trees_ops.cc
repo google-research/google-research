@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/tensorflow/core/framework/op.h"
-#include "third_party/tensorflow/core/framework/shape_inference.h"
-#include "third_party/tensorflow/core/lib/math/math_util.h"
+#include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/framework/shape_inference.h"
+#include "tensorflow/core/lib/math/math_util.h"
 
 namespace tensorflow {
 
@@ -29,18 +29,18 @@ REGISTER_OP("NTComputeInputAndInternalParamsGradientsOp")
     // Logits predicted by the input layer preceding the tree.
     // shape = [batch_size, input_dim]
     .Input("input_features: float32")
-    // Weights of the internal nodes in the tree
+    // Weights of the internal nodes in the tree.
     // shape = [input_dim, num_internal_nodes]
     .Input("node_weights: float32")
-    // Weights of the leaves in the tree
+    // Weights of the leaves in the tree.
     // shape = [output_logits_dim, num_leaves]
     .Input("leaf_weights: float32")
+    // Smooth step activation function parameter.
+    .Input("smooth_step_param: float32")
     // Dimension of the tree output logits
     .Attr("output_logits_dim: int >= 1")
     // Depth of the tree
     .Attr("depth: int >= 1")
-    // Smooth step activation function parameter
-    .Attr("smooth_step_param: float")
     // Set to true to parallelize over the samples in the batch.
     .Attr("parallelize_over_samples: bool")
     // Gradient of loss w.r.t. the tree input features
@@ -111,17 +111,20 @@ REGISTER_OP("NTComputeOutputOp")
     // Weights of the leaves in the tree.
     // shape = [output_logits_dim, num_leaves]
     .Input("leaf_weights: float32")
+    // Smooth step activation function parameter.
+    .Input("smooth_step_param: float32")
     // Dimension of the tree output logits.
     .Attr("output_logits_dim: int >= 1")
     // Depth of the tree
     .Attr("depth: int >= 1")
-    // Smooth step activation function parameter.
-    .Attr("smooth_step_param: float")
     // Set to true to parallelize over the samples in the batch.
     .Attr("parallelize_over_samples: bool")
     // Prediction of the tree.
     // shape = [batch_size, output_logits_dim].
     .Output("output_logits: float32")
+    // Average number of reachable leaves per sample.
+    // shape = [].
+    .Output("average_num_reachable_leaves: float32")
     .SetShapeFn([](InferenceContext* c) {
       shape_inference::ShapeHandle unused_shape;
       // Extract the attributes
@@ -153,7 +156,7 @@ REGISTER_OP("NTComputeOutputOp")
       // output_logits
       auto output_logits_shape = c->MakeShape({batch_size, output_logits_dim});
       c->set_output(0, output_logits_shape);
-
+      c->set_output(1, c->MakeShape({}));
       return Status::OK();
     });
 

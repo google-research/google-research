@@ -12,49 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/google_research/google_research/tf_trees/neural_trees_helpers.h"
+#include "neural_trees_helpers.h"
 
-#include <queue>
+#include <stack>
 
-#include "third_party/tensorflow/core/lib/math/math_util.h"
+#include "tensorflow/core/lib/math/math_util.h"
 
 namespace tensorflow {
 
 const float kTolerance = 1e-10;
 
-float SmoothIndicator(const float v, const float smooth_step_param,
-                      const float c_1, const float c_2) {
+float SmoothIndicator(const float v, const float smooth_step_param) {
   float out;
-  if (v <= -0.5 + smooth_step_param) {
+  if (v <= -0.5 / smooth_step_param) {
     out = 0;
-  } else if (v >= 0.5 - smooth_step_param) {
+  } else if (v >= 0.5 / smooth_step_param) {
     out = 1;
   } else {
-    const float x = v + 0.5;
+    const float x = smooth_step_param * v + 0.5;
     const float x_squared = x * x;
     const float x_cubed = x_squared * x;
-    out = c_1 * (-2 * x_cubed + 3 * x_squared + c_2);
+    out = -2 * x_cubed + 3 * x_squared;
   }
   return out;
 }
 
-void SmoothIndicatorConstants(const float smooth_step_param, float* constant_1,
-                              float* constant_2) {
-  const float smooth_step_param_squared = smooth_step_param * smooth_step_param;
-  const float smooth_step_param_cubed =
-      smooth_step_param_squared * smooth_step_param;
-  *constant_1 =
-      1.0 / (4 * smooth_step_param_cubed - 6 * smooth_step_param_squared + 1);
-  *constant_2 = smooth_step_param_squared * (2 * smooth_step_param - 3);
-}
-
-float SmoothIndicatorDerivative(const float v, const float smooth_step_param,
-                                const float c_1) {
+float SmoothIndicatorDerivative(const float v, const float smooth_step_param) {
   float out;
-  if (std::fabs(v) <= 0.5 - smooth_step_param) {
-    const float x = v + 0.5;
+  if (std::fabs(v) <= 0.5 / smooth_step_param) {
+    const float x = smooth_step_param * v + 0.5;
     const float x_squared = x * x;
-    out = 6 * c_1 * (-x_squared + x);
+    out = 6 * smooth_step_param * (-x_squared + x);
   } else {
     out = 0;
   }
@@ -65,7 +53,7 @@ void ForwardPassSingleSample(const Eigen::MatrixXf& node_weights,
                              const Eigen::MatrixXf& leaf_weights,
                              const Eigen::VectorXf& input_features,
                              const int depth, const float smooth_step_param,
-                             Eigen::VectorXf* output,
+                             const bool training_mode, Eigen::VectorXf* output,
                              std::vector<Node>* tree_nodes,
                              std::vector<int>* reachable_leaves) {
   DCHECK(tree_nodes != nullptr) << "Got a null ptr to tree!";
@@ -76,37 +64,32 @@ void ForwardPassSingleSample(const Eigen::MatrixXf& node_weights,
       << "Inconsistent tree size!";
   // Label of the first leaf (assuming a breadth-first order).
   const int first_leaf_label = (tree.size() + 1) / 2 - 1;
-  // Compute the constants used by the smooth indicator.
-  float smooth_indicator_const_1;
-  float smooth_indicator_const_2;
-  SmoothIndicatorConstants(smooth_step_param, &smooth_indicator_const_1,
-                           &smooth_indicator_const_2);
-  // Queue of indices (of nodes) to traverse.
-  std::queue<int> queue;
+  // Stack of indices (of nodes) to traverse.
+  std::stack<int> to_traverse;
   // Initialize root probability.
   tree[0].root_to_node_prob = 1;
   // Push the root index.
-  queue.push(0);
+  to_traverse.push(0);
 
-  // Fill the tree breadth first, while skipping unreachable nodes.
-  while (!queue.empty()) {
-    int current_index = queue.front();
-    queue.pop();
+  // Fill the tree depth-first, while skipping unreachable nodes.
+  // Note: tree is a perfect binary tree.
+  while (!to_traverse.empty()) {
+    const int current_index = to_traverse.top();
+    to_traverse.pop();
     tree[current_index].weight_input_dot_product =
         input_features.dot(node_weights.col(current_index));
-    tree[current_index].routing_left_prob = SmoothIndicator(
-        tree[current_index].weight_input_dot_product, smooth_step_param,
-        smooth_indicator_const_1, smooth_indicator_const_2);
-
+    const float probability_left = SmoothIndicator(
+        tree[current_index].weight_input_dot_product, smooth_step_param);
+    tree[current_index].routing_left_prob = probability_left;
     // Branch left if prob_left is non zero.
     if (tree[current_index].routing_left_prob > kTolerance) {
-      int left_index = 2 * current_index + 1;
+      const int left_index = 2 * current_index + 1;
       tree[left_index].root_to_node_prob =
           tree[current_index].root_to_node_prob *
           tree[current_index].routing_left_prob;
-      // Push to the queue only if left child is an internal node.
+      // Push to the stack only if left child is an internal node.
       if (left_index < first_leaf_label) {
-        queue.push(left_index);
+        to_traverse.push(left_index);
       } else {
         // This is a reachable leaf.
         reachable_leaves->push_back(left_index);
@@ -116,13 +99,13 @@ void ForwardPassSingleSample(const Eigen::MatrixXf& node_weights,
     // Branch right if prob_right is non zero.
     // Note: Not mutually exclusive with the previous if.
     if (1 - tree[current_index].routing_left_prob > kTolerance) {
-      int right_index = 2 * current_index + 2;
+      const int right_index = 2 * current_index + 2;
       tree[right_index].root_to_node_prob =
           tree[current_index].root_to_node_prob *
           (1 - tree[current_index].routing_left_prob);
-      // Push to the queue only if left child is an internal node.
+      // Push to the stack only if left child is an internal node.
       if (right_index < first_leaf_label) {
-        queue.push(right_index);
+        to_traverse.push(right_index);
       } else {
         // This is a reachable leaf.
         reachable_leaves->push_back(right_index);
@@ -138,6 +121,29 @@ void ForwardPassSingleSample(const Eigen::MatrixXf& node_weights,
     // leaf_weights.
     *output +=
         tree[i].root_to_node_prob * leaf_weights.col(i - first_leaf_label);
+  }
+
+  if (training_mode) {
+    // Mark all the reachable leaves and their ancestors.
+    for (auto i : *reachable_leaves) {
+      // Traverse up to the root starting from the current leaf.
+      int current_index = i;
+      tree[i].reachable_descendant_leaf = true;
+      while (current_index != 0) {
+        // The body below marks the parent.
+        // Is the current_index a left child?
+        const bool left_child = (current_index % 2 == 1);
+        const int parent_index =
+            left_child ? (current_index - 1) / 2 : (current_index - 2) / 2;
+        if (tree[parent_index].reachable_descendant_leaf) {
+          break;
+        } else {
+          tree[parent_index].reachable_descendant_leaf = true;
+        }
+        // Move to the parent.
+        current_index = parent_index;
+      }
+    }
   }
 }
 
@@ -157,72 +163,81 @@ void BackwardPassSingleSample(const Eigen::MatrixXf& node_weights,
   Eigen::VectorXf output_logits_sample(output_logits_dim);
   std::vector<int> reachable_leaves;
   // Do a forward pass to build the tree and obtain the reachable leaves.
-  // TODO(hazimeh): Remove this forward pass and use the results from
+  // TODO: Remove this forward pass and use the results from
   // the previous call to the forward pass.
   ForwardPassSingleSample(node_weights, leaf_weights, input_features, depth,
-                          smooth_step_param, &output_logits_sample, &tree,
+                          smooth_step_param, true, &output_logits_sample, &tree,
                           &reachable_leaves);
 
   grad_loss_wrt_input_features->setZero();
   grad_loss_wrt_node_weights->setZero();
   grad_loss_wrt_leaf_weights->setZero();
-  // Compute the constants used by the smooth indicator.
-  float smooth_indicator_const_1;
-  float smooth_indicator_const_2;
-  SmoothIndicatorConstants(smooth_step_param, &smooth_indicator_const_1,
-                           &smooth_indicator_const_2);
-  // Traverse the tree starting from the reachable leaves up
-  // to the root, while updating the 3 gradients.
-  for (auto i : reachable_leaves) {
-    // index of current leaf starting from 0.
-    const int leaf_zero_based_index = i - first_leaf_label;
-    // Update grad_loss_wrt_leaf_weights for leaf i.
-    grad_loss_wrt_leaf_weights->col(leaf_zero_based_index) =
-        grad_loss_wrt_tree_output * tree[i].root_to_node_prob;
-    // Intermediate quantity used when computing the other two gradients.
-    float delloss_by_delt_dot_ol =
-        grad_loss_wrt_tree_output.dot(leaf_weights.col(leaf_zero_based_index));
-    // Traverse up to the root starting from the current leaf.
-    int current_index = i;
-    while (current_index != 0) {
-      // The body visits the parent of the current_index to update the grads.
-      // Is the current_index a left child?
-      const bool left_child = (current_index % 2 == 1);
 
-      const int parent_index =
-          left_child ? (current_index - 1) / 2 : (current_index - 2) / 2;
+  // Stacks s1 and s2 are for post order traversal.
+  std::stack<int> s1, s2;
+  s1.push(0);
+  while (!s1.empty()) {
+    // Pop an item from s1 and push it to s2.
+    const int current_index = s1.top();
+    s1.pop();
+    s2.push(current_index);
+    // Push "reachable" left and right children to s1.
+    const int left_index = 2 * current_index + 1;
+    if (left_index < tree_num_nodes &&
+        tree[left_index].reachable_descendant_leaf) {
+      s1.push(left_index);
+    }
+    const int right_index = left_index + 1;
+    if (right_index < tree_num_nodes &&
+        tree[right_index].reachable_descendant_leaf) {
+      s1.push(right_index);
+    }
+  }
 
-      const float prob_parent_route_to_leaf =
-          left_child ? tree[parent_index].routing_left_prob
-                     : 1 - tree[parent_index].routing_left_prob;
+  // Now do post order traversal by iterating over s2.
+  while (!s2.empty()) {
+    const int current_index = s2.top();
+    s2.pop();
+    // Process a leaf.
+    if (current_index >= first_leaf_label) {
+      // Update grad_loss_wrt_leaf_weights for leaf i.
+      // index of current leaf starting from 0.
+      const int leaf_zero_based_index = current_index - first_leaf_label;
 
-      const float prob_root_to_leaf_exclude_parent =
-          tree[i].root_to_node_prob / prob_parent_route_to_leaf;
+      grad_loss_wrt_leaf_weights->col(leaf_zero_based_index) =
+          grad_loss_wrt_tree_output * tree[current_index].root_to_node_prob;
 
-      const float smooth_indicator_derivative = SmoothIndicatorDerivative(
-          tree[parent_index].weight_input_dot_product, smooth_step_param,
-          smooth_indicator_const_1);
+      tree[current_index].sum_g =
+          grad_loss_wrt_leaf_weights->col(leaf_zero_based_index)
+              .dot(leaf_weights.col(leaf_zero_based_index));
 
-      Eigen::VectorXf gradient_routing_function_wrt_input_features =
-          smooth_indicator_derivative * node_weights.col(parent_index);
-      if (!left_child) gradient_routing_function_wrt_input_features *= -1;
-
+    }
+    // Process an internal node only if it's fractional (i.e., belongs to the
+    // fractional tree).
+    else if (tree[current_index].routing_left_prob > 0 &&
+             tree[current_index].routing_left_prob < 1) {
+      float activation_function_derivative = SmoothIndicatorDerivative(
+          tree[current_index].weight_input_dot_product, smooth_step_param);
+      // Notation below defined in Algorithm 2 of TEL's paper.
+      const double mu_1 = activation_function_derivative /
+                          tree[current_index].routing_left_prob;
+      const double mu_2 = activation_function_derivative /
+                          (1 - tree[current_index].routing_left_prob);
+      const int left_index = 2 * current_index + 1;
+      const int right_index = left_index + 1;
+      const double a_minus_b =
+          mu_1 * tree[left_index].sum_g - mu_2 * tree[right_index].sum_g;
       *grad_loss_wrt_input_features +=
-          delloss_by_delt_dot_ol *
-          gradient_routing_function_wrt_input_features *
-          prob_root_to_leaf_exclude_parent;
-
-      Eigen::VectorXf gradient_routing_function_wrt_current_node_weight =
-          smooth_indicator_derivative * input_features;
-      if (!left_child) gradient_routing_function_wrt_current_node_weight *= -1;
-
-      grad_loss_wrt_node_weights->col(parent_index) +=
-          delloss_by_delt_dot_ol *
-          gradient_routing_function_wrt_current_node_weight *
-          prob_root_to_leaf_exclude_parent;
-
-      // Move to the parent.
-      current_index = parent_index;
+          a_minus_b * node_weights.col(current_index);
+      grad_loss_wrt_node_weights->col(current_index) =
+          a_minus_b * input_features;
+      tree[current_index].sum_g =
+          tree[left_index].sum_g + tree[right_index].sum_g;
+    } else {
+      const int left_index = 2 * current_index + 1;
+      const int right_index = left_index + 1;
+      tree[current_index].sum_g =
+          tree[left_index].sum_g + tree[right_index].sum_g;
     }
   }
 }

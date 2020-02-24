@@ -14,7 +14,7 @@
 
 #ifndef NEURAL_TREES_HELPERS_H_
 #define NEURAL_TREES_HELPERS_H_
-#include "third_party/tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/framework/op_kernel.h"
 
 namespace tensorflow {
 
@@ -42,21 +42,17 @@ struct Node {
   float root_to_node_prob;
   float weight_input_dot_product;
   float routing_left_prob;
+  bool reachable_descendant_leaf = false;
+  double sum_g = 0;
 };
 
 // A smooth approximation to the indicator function.
-// smooth_step_param must be >= 0 and < 0.5.
-float SmoothIndicator(const float v, const float smooth_step_param,
-                      const float c_1, const float c_2);
-
-// Computes the two constants required by the SmoothIndicator.
-void SmoothIndicatorConstants(const float smooth_step_param, float* constant_1,
-                              float* constant_2);
+// smooth_step_param must be >= 0.
+float SmoothIndicator(const float v, const float smooth_step_param);
 
 // Derivative w.r.t. to SmoothIndicator's input.
-// smooth_step_param must be >= 0 and < 0.5.
-float SmoothIndicatorDerivative(const float v, const float smooth_step_param,
-                                const float c_1);
+// smooth_step_param must be >= 0.
+float SmoothIndicatorDerivative(const float v, const float smooth_step_param);
 
 // Performs a forward pass over the tree while identifying reachable leaves.
 // Returns (i) the output vector, (ii) the updated tree, and (iii) a
@@ -66,7 +62,7 @@ void ForwardPassSingleSample(const Eigen::MatrixXf& node_weights,
                              const Eigen::MatrixXf& leaf_weights,
                              const Eigen::VectorXf& input_features,
                              const int depth, const float smooth_step_param,
-                             Eigen::VectorXf* output,
+                             const bool training_mode, Eigen::VectorXf* output,
                              std::vector<Node>* tree_nodes,
                              std::vector<int>* reachable_leaves);
 
