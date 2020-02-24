@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "third_party/google_research/google_research/tf_trees/neural_trees_helpers.h"
-#include "third_party/tensorflow/core/framework/op_kernel.h"
-#include "third_party/tensorflow/core/lib/math/math_util.h"
-#include "third_party/tensorflow/core/util/work_sharder.h"
+#include "neural_trees_helpers.h"
+#include "tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/lib/math/math_util.h"
+#include "tensorflow/core/util/work_sharder.h"
 
 namespace tensorflow {
 
@@ -27,8 +27,6 @@ class NTComputeInputAndInternalParamsGradientsOp : public OpKernel {
     OP_REQUIRES_OK(context,
                    context->GetAttr("output_logits_dim", &output_logits_dim_));
     OP_REQUIRES_OK(context, context->GetAttr("depth", &depth_));
-    OP_REQUIRES_OK(context,
-                   context->GetAttr("smooth_step_param", &smooth_step_param_));
     OP_REQUIRES_OK(context, context->GetAttr("parallelize_over_samples",
                                              &parallelize_over_samples_));
   }
@@ -60,6 +58,13 @@ class NTComputeInputAndInternalParamsGradientsOp : public OpKernel {
     const int num_leaves = leaf_weights_t->dim_size(1);
     const ConstMatrixMap leaf_weights = NTUtils::TensorToEigenMatrixReadOnly(
         leaf_weights_t, output_logits_dim_, num_leaves);
+
+    const Tensor* smooth_step_param_t;
+    OP_REQUIRES_OK(context,
+                   context->input("smooth_step_param", &smooth_step_param_t));
+    const ConstMatrixMap smooth_step_param_map =
+        NTUtils::TensorToEigenMatrixReadOnly(smooth_step_param_t, 1, 1);
+    smooth_step_param_ = smooth_step_param_map(0, 0);
 
     // Allocate outputs
     Tensor* grad_loss_wrt_input_features_t = nullptr;
@@ -191,8 +196,6 @@ class NTComputeOutputOp : public OpKernel {
     OP_REQUIRES_OK(context,
                    context->GetAttr("output_logits_dim", &output_logits_dim_));
     OP_REQUIRES_OK(context, context->GetAttr("depth", &depth_));
-    OP_REQUIRES_OK(context,
-                   context->GetAttr("smooth_step_param", &smooth_step_param_));
     OP_REQUIRES_OK(context, context->GetAttr("parallelize_over_samples",
                                              &parallelize_over_samples_));
   }
@@ -218,6 +221,13 @@ class NTComputeOutputOp : public OpKernel {
     const ConstMatrixMap leaf_weights = NTUtils::TensorToEigenMatrixReadOnly(
         leaf_weights_t, output_logits_dim_, num_leaves);
 
+    const Tensor* smooth_step_param_t;
+    OP_REQUIRES_OK(context,
+                   context->input("smooth_step_param", &smooth_step_param_t));
+    const ConstMatrixMap smooth_step_param_map =
+        NTUtils::TensorToEigenMatrixReadOnly(smooth_step_param_t, 1, 1);
+    smooth_step_param_ = smooth_step_param_map(0, 0);
+
     // Allocate outputs
     Tensor* output_logits_t = nullptr;
     OP_REQUIRES_OK(context,
@@ -227,12 +237,19 @@ class NTComputeOutputOp : public OpKernel {
     MatrixMap output_logits = NTUtils::TensorToEigenMatrix(
         output_logits_t, batch_size, output_logits_dim_);
 
+    Tensor* average_num_reachable_leaves_t = nullptr;
+    OP_REQUIRES_OK(context,
+                   context->allocate_output("average_num_reachable_leaves", {},
+                                            &average_num_reachable_leaves_t));
+    float average_num_reachable_leaves = 0;
+
     const int tree_num_nodes = MathUtil::IPow(2, depth_ + 1) - 1;
 
     if (parallelize_over_samples_) {
       // Iterate over the samples, performing a forward pass on each.
       auto do_work = [&input_features, &node_weights, &leaf_weights,
-                      &output_logits, tree_num_nodes,
+                      &output_logits, &average_num_reachable_leaves,
+                      tree_num_nodes, batch_size,
                       this](int32 start, int32 end) {
         for (int sample_index = start; sample_index < end; ++sample_index) {
           const Eigen::VectorXf input_features_sample =
@@ -243,12 +260,15 @@ class NTComputeOutputOp : public OpKernel {
 
           Eigen::VectorXf output_logits_sample(output_logits_dim_);
           std::vector<int> leaves;
-          ForwardPassSingleSample(
-              node_weights, leaf_weights, input_features_sample, depth_,
-              smooth_step_param_, &output_logits_sample, &sample_tree, &leaves);
+          ForwardPassSingleSample(node_weights, leaf_weights,
+                                  input_features_sample, depth_,
+                                  smooth_step_param_, false,
+                                  &output_logits_sample, &sample_tree, &leaves);
 
           // Update the tree output matrix.
           output_logits.row(sample_index) = output_logits_sample;
+          average_num_reachable_leaves +=
+              leaves.size() / static_cast<float>(batch_size);
         }
       };
       const int64 cost = 10000 * std::log10(input_dim) * std::log2(num_leaves);
@@ -263,17 +283,20 @@ class NTComputeOutputOp : public OpKernel {
 
         // This tree is specific to the current sample.
         std::vector<Node> sample_tree(tree_num_nodes);
-
         Eigen::VectorXf output_logits_sample(output_logits_dim_);
         std::vector<int> leaves;
-        ForwardPassSingleSample(
-            node_weights, leaf_weights, input_features_sample, depth_,
-            smooth_step_param_, &output_logits_sample, &sample_tree, &leaves);
-
+        ForwardPassSingleSample(node_weights, leaf_weights,
+                                input_features_sample, depth_,
+                                smooth_step_param_, false,
+                                &output_logits_sample, &sample_tree, &leaves);
         // Update the tree output matrix.
         output_logits.row(sample_index) = output_logits_sample;
+        average_num_reachable_leaves += leaves.size();
       }
+      average_num_reachable_leaves /= static_cast<float>(batch_size);
     }
+    average_num_reachable_leaves_t->scalar<float>()() =
+        average_num_reachable_leaves;
   }
 
  private:
