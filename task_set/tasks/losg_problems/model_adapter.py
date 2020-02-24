@@ -18,7 +18,7 @@ import mock
 
 from task_set.tasks.losg_problems import problem_generator as pg
 import tensorflow.compat.v1 as tf
-from tensorflow.python.ops.variables import RefVariable
+from tensorflow.compat.v1.python.ops.variables import RefVariable
 
 
 class ModelAdapter(pg.Problem):
