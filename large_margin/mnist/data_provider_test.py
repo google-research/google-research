@@ -24,6 +24,7 @@ from absl.testing import parameterized
 import tensorflow.compat.v1 as tf
 
 from large_margin.mnist import data_provider
+tf.disable_v2_behavior()
 
 flags.DEFINE_string("data_dir", "", "Data directory.")
 

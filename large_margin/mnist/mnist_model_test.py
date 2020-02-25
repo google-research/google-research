@@ -25,6 +25,7 @@ import tensorflow.compat.v1 as tf
 
 from large_margin.mnist import mnist_config
 from large_margin.mnist import mnist_model
+tf.disable_v2_behavior()
 
 
 def _construct_images(batch_size):

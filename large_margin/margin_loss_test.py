@@ -24,6 +24,7 @@ import numpy as np
 import tensorflow.compat.v1 as tf
 
 from large_margin import margin_loss
+tf.disable_v2_behavior()
 
 
 class MarginLossTest(tf.test.TestCase, parameterized.TestCase):
@@ -46,18 +47,17 @@ class MarginLossTest(tf.test.TestCase, parameterized.TestCase):
     endpoints = {}
     endpoints["input_layer"] = images
     # Convolution layer.
-    net = tf.layers.conv2d(
-        images,
+    net = tf.keras.layers.Conv2D(
         filters=8,
         kernel_size=3,
         strides=(1, 1),
         padding="same",
-        activation=tf.nn.relu)
+        activation=tf.nn.relu)(images)
     endpoints["conv_layer"] = net
     # Global average pooling layer.
     net = tf.reduce_mean(net, axis=[1, 2])
     # Output layer.
-    logits = tf.layers.dense(net, num_classes)
+    logits = tf.keras.layers.Dense(num_classes)(net)
     loss = margin_loss.large_margin(
         logits=logits,
         one_hot_labels=tf.one_hot(labels, num_classes),
