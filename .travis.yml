@@ -33,6 +33,7 @@ env:
     - PROJECT="genomics_ood"
     - PROJECT="generalized_rates"
     - PROJECT="graph_embedding/watch_your_step"
+    - PROJECT="hmc_swindles"
     - PROJECT="igt_optimizer"
     - PROJECT="large_margin"
     - PROJECT="learnreg"
