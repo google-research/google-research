@@ -1,0 +1,4 @@
+tensorflow>=2.0
+tensorflow_datasets>=2.0
+lightgbm>=2.3
+numpy>=1.15.2
