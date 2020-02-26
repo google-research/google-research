@@ -41,7 +41,7 @@ from sklearn.preprocessing import scale
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 from sklearn.svm import SVC
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # pylint: disable=missing-docstring
 # pylint: disable=redefined-outer-name

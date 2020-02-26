@@ -19,7 +19,7 @@ import collections
 import os
 from deeplab import feature_extractor
 from deeplab import preprocess_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 LABEL_ID = "label"
 IMAGE_ID = "image"

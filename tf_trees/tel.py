@@ -15,7 +15,7 @@
 
 """Main code for creating the tree ensemble layer."""
 import os
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow import keras
 from tensorflow.python.framework import ops
 from tensorflow.keras.initializers import RandomUniform

@@ -22,7 +22,7 @@ import collections
 import gin
 import learning_process
 import py_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tf_utils
 
 nest = tf.contrib.framework.nest
