@@ -14,6 +14,8 @@
 
 #!/bin/bash -e
 
+cd "$(readlink -f "$(dirname "$0")")"
+
 echo "Compiling..."
 
 ./compile.sh
