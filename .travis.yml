@@ -43,6 +43,7 @@ env:
     - PROJECT="moew"
     - PROJECT="moment_advice"
     - PROJECT="neutra"
+    - PROJECT="nigt_optimizer"
     - PROJECT="norml"
     - PROJECT="pairwise_fairness"
     - PROJECT="probabilistic_vqvae"
