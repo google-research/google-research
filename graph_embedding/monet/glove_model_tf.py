@@ -26,7 +26,7 @@ import os
 import struct
 import glove_util
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 METRICS_TO_PRINT = {

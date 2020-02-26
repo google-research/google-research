@@ -73,7 +73,7 @@ import re
 import sys
 import unicodedata
 from six import string_types
-from tensorflow import gfile
+from tensorflow.compat.v1 import gfile
 
 ################ String Normalization ################
 

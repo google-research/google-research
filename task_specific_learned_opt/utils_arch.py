@@ -22,7 +22,7 @@ import gin
 import numpy as np
 import py_utils
 import sonnet as snt
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tf_utils
 
 nest = tf.contrib.framework.nest

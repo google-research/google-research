@@ -20,8 +20,8 @@ import os
 import time
 
 import numpy as np
-import tensorflow as tf
-from tensorflow import gfile
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import gfile
 from meta_reward_learning.semantic_parsing.nsm \
 import computer_factory
 from meta_reward_learning.semantic_parsing.nsm \

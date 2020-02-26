@@ -24,9 +24,9 @@ from deeplab import train_utils
 import model
 import model_input
 import six
-import tensorflow as tf
-from tensorflow.python import debug as tf_debug
-from tensorflow.python.platform import app
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1.python import debug as tf_debug
+from tensorflow.compat.v1.python.platform import app
 
 ZERO_DIV_OFFSET = 1e-20
 
