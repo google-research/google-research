@@ -22,7 +22,7 @@ from __future__ import print_function
 import itertools
 from absl.testing import parameterized
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from low_rank_local_connectivity import layers
 
