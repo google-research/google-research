@@ -20,7 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 from absl.testing import parameterized
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from low_rank_local_connectivity.data_provider import get_data_provider
 
