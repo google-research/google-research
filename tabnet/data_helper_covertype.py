@@ -15,7 +15,7 @@
 
 """Data helper function for the Forest Covertype dataset."""
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 # Dataset size
 # N_TRAIN_SAMPLES = 309871
