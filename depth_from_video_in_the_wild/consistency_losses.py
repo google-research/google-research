@@ -63,7 +63,7 @@ def rgbd_consistency_loss(frame1transformed_depth, frame1rgb, frame2depth,
   """
   pixel_xy = frame1transformed_depth.pixel_xy
   frame2depth_resampled = _resample_depth(frame2depth, pixel_xy)
-  frame2rgb_resampled = contrib_resampler.resampler.resampler(
+  frame2rgb_resampled = contrib_resampler.resampler(
       frame2rgb, pixel_xy)
 
   # f1td.depth is the predicted depth at [pixel_y, pixel_x] for frame2. Now we
@@ -160,7 +160,7 @@ def motion_field_consistency_loss(frame1transformed_pixelxy, mask,
       translation_error: A tf scalar, the translation consistency error.
   """
 
-  translation2resampled = contrib_resampler.resampler.resampler(
+  translation2resampled = contrib_resampler.resampler(
       translation2, tf.stop_gradient(frame1transformed_pixelxy))
   rotation1field = tf.broadcast_to(
       _expand_dims_twice(rotation1, -2), tf.shape(translation1))
@@ -286,7 +286,7 @@ def _weighted_average(x, w, epsilon=1.0):
 
 def _resample_depth(depth, coordinates):
   depth = tf.expand_dims(depth, -1)
-  result = contrib_resampler.resampler.resampler(depth, coordinates)
+  result = contrib_resampler.resampler(depth, coordinates)
   return tf.squeeze(result, axis=3)
 
 
