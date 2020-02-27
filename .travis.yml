@@ -45,6 +45,7 @@ env:
     - PROJECT="neutra"
     - PROJECT="nigt_optimizer"
     - PROJECT="norml"
+    - PROJECT="opt_list"
     - PROJECT="pairwise_fairness"
     - PROJECT="probabilistic_vqvae"
     - PROJECT="property_linking"
