@@ -14,7 +14,7 @@
 
 #ifndef NEURAL_TREES_HELPERS_H_
 #define NEURAL_TREES_HELPERS_H_
-#include "third_party/tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/framework/op_kernel.h"
 
 namespace tensorflow {
 
