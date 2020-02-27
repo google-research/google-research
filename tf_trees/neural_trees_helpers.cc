@@ -16,7 +16,7 @@
 
 #include <stack>
 
-#include "third_party/tensorflow/core/lib/math/math_util.h"
+#include "tensorflow/core/lib/math/math_util.h"
 
 namespace tensorflow {
 

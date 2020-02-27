@@ -13,9 +13,9 @@
 // limitations under the License.
 
 #include "neural_trees_helpers.h"
-#include "third_party/tensorflow/core/framework/op_kernel.h"
-#include "third_party/tensorflow/core/lib/math/math_util.h"
-#include "third_party/tensorflow/core/util/work_sharder.h"
+#include "tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/lib/math/math_util.h"
+#include "tensorflow/core/util/work_sharder.h"
 
 namespace tensorflow {
 
