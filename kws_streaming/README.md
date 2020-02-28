@@ -1,7 +1,7 @@
-# Streaming aware neural network models for keyword spotting(KWS) with tf.keras/TFLite
+# Streaming Aware Keyword Spotting Models
 ======================================================================================
 
-Neural Network (NN) model streaming is important for real time response,
+Streaming aware neural network models are important for real time response,
 high accuracy and good user experience. In this work we explore latency and
 accuracy of keyword spotting (KWS) models in the streaming and non streaming modes
 on mobile phone.
