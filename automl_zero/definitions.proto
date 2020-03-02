@@ -1,0 +1,120 @@
+// Copyright 2020 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package brain.evolution.amlz;
+
+////////////////////////////////////////////////////////////////////////////////
+// Instruction-related definitions.
+////////////////////////////////////////////////////////////////////////////////
+
+// The possible operations.
+// NEXT INDEX: 77.
+enum Op {
+  NO_OP = 0;
+
+  // Scalar arithmetic-related instructions.
+  SCALAR_SUM_OP = 1;
+  SCALAR_DIFF_OP = 9;
+  SCALAR_PRODUCT_OP = 10;
+  SCALAR_DIVISION_OP = 19;
+  SCALAR_MIN_OP = 20;
+  SCALAR_MAX_OP = 21;
+  SCALAR_ABS_OP = 22;
+  SCALAR_HEAVYSIDE_OP = 23;
+  SCALAR_CONST_SET_OP = 6;
+  SCALAR_RECIPROCAL_OP = 66;
+
+  // Trigonometry-related instructions.
+  SCALAR_SIN_OP = 24;
+  SCALAR_COS_OP = 25;
+  SCALAR_TAN_OP = 26;
+  SCALAR_ARCSIN_OP = 27;
+  SCALAR_ARCCOS_OP = 28;
+  SCALAR_ARCTAN_OP = 29;
+
+  // Calculus-related instructions.
+  SCALAR_EXP_OP = 30;
+  SCALAR_LOG_OP = 31;
+
+  // Vector arithmetic-related instructions.
+  VECTOR_SUM_OP = 12;
+  VECTOR_DIFF_OP = 32;
+  VECTOR_PRODUCT_OP = 14;
+  VECTOR_DIVISION_OP = 33;
+  VECTOR_MIN_OP = 34;
+  VECTOR_MAX_OP = 35;
+  VECTOR_ABS_OP = 36;
+  VECTOR_HEAVYSIDE_OP = 13;
+  VECTOR_RELU_OP = 7;
+  VECTOR_CONST_SET_OLD_OP = 17;
+  VECTOR_CONST_SET_OP = 45;
+  VECTOR_RECIPROCAL_OP = 67;
+
+  // Matrix arithmetic-related instructions.
+  MATRIX_SUM_OP = 16;
+  MATRIX_DIFF_OP = 37;
+  MATRIX_PRODUCT_OP = 38;
+  MATRIX_DIVISION_OP = 39;
+  MATRIX_MIN_OP = 40;
+  MATRIX_MAX_OP = 41;
+  MATRIX_ABS_OP = 42;
+  MATRIX_HEAVYSIDE_OP = 43;
+  MATRIX_ROW_CONST_SET_OLD_OP = 18;
+  MATRIX_CONST_SET_OP = 44;
+  MATRIX_RECIPROCAL_OP = 68;
+
+  // Linear algebra-related instructions.
+  SCALAR_VECTOR_PRODUCT_OP = 11;
+  VECTOR_INNER_PRODUCT_OP = 8;
+  VECTOR_OUTER_PRODUCT_OP = 15;
+  SCALAR_MATRIX_PRODUCT_OP = 46;
+  MATRIX_VECTOR_PRODUCT_OP = 2;
+  VECTOR_NORM_OP = 47;
+  MATRIX_NORM_OP = 48;
+  MATRIX_ROW_NORM_OP = 69;
+  MATRIX_COLUMN_NORM_OP = 70;
+  MATRIX_TRANSPOSE_OP = 61;
+  MATRIX_MATRIX_PRODUCT_OP = 62;
+  SCALAR_BROADCAST_OP = 71;
+  VECTOR_COLUMN_BROADCAST_OP = 72;
+  VECTOR_ROW_BROADCAST_OP = 73;
+
+  // Probability-related instructions.
+  VECTOR_MEAN_OP = 3;
+  VECTOR_ST_DEV_OP = 49;
+  MATRIX_MEAN_OP = 50;
+  MATRIX_ST_DEV_OP = 51;
+  MATRIX_ROW_MEAN_OP = 52;
+  MATRIX_ROW_ST_DEV_OP = 53;
+  SCALAR_GAUSSIAN_SET_OP = 54;
+  VECTOR_GAUSSIAN_SET_OLD_OP = 4;
+  VECTOR_GAUSSIAN_SET_OP = 63;
+  MATRIX_GAUSSIAN_SET_OLD_OP = 5;
+  MATRIX_GAUSSIAN_SET_OP = 64;
+  SCALAR_UNIFORM_SET_OP = 55;
+  VECTOR_UNIFORM_SET_OP = 56;
+  MATRIX_UNIFORM_SET_OP = 57;
+  SCALAR_BETA_SET_OP = 58;
+  VECTOR_BETA_SET_OP = 59;
+  MATRIX_BETA_SET_OP = 60;
+
+  // Debug ops.
+  SCALAR_PRINT_OP = 74;
+  VECTOR_PRINT_OP = 75;
+  MATRIX_PRINT_OP = 76;
+
+  UNSUPPORTED_OP = 65;
+}

@@ -1,0 +1,32 @@
+// Copyright 2020 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// A proto to specify a budget limit for the training of algorithms.
+//
+// Training time is not measured directly but with respect to a baseline model,
+// so that results remain comparable when running in machines with different
+// speeds.
+
+syntax = "proto2";
+
+package brain.evolution.amlz;
+
+message TrainBudgetSpec {
+  // A Algorithm to use as a reference. See `TrainExamples`.
+  optional int32 train_budget_baseline = 1;
+
+  // Fraction of the training time of the baseline above which the algorithm
+  // will be discarded.
+  optional double train_budget_threshold_factor = 2;
+}
