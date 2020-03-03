@@ -114,55 +114,6 @@ TEST(CustomHashMixTest, DoesNotGenerateShortCycles) {
   EXPECT_EQ(values.size(), num_iters);
 }
 
-TEST(SafeCast, ConvertsFromSignedToUnsignedInteger) {
-  const IntegerT src = 42;
-  const size_t dest = SafeCast<IntegerT, size_t>(src);
-  constexpr size_t expected = 42;
-  EXPECT_EQ(dest, expected);
-}
-
-TEST(SafeCast, DiesFromNegativeSignedToUnsignedInteger) {
-  const IntegerT src = -10;
-  EXPECT_DEATH(
-      (SafeCast<IntegerT, size_t>(src)),
-      "Check failed: util_intops::SafeAdd");
-}
-
-TEST(SafeCast, DiesFromSignedToUnsignedIntegerWithOverflow) {
-  const size_t src = std::numeric_limits<size_t>::max();
-  EXPECT_DEATH(
-      (SafeCast<size_t, IntegerT>(src)),
-      "Check failed: util_intops::SafeAdd");
-}
-
-TEST(SafeCast, ConvertsFromHighToLowPrecisionInteger) {
-  const int64_t src = 42;
-  const int8_t dest = SafeCast<int64_t, int8_t>(src);
-  constexpr int8_t expected = 42;
-  EXPECT_EQ(dest, expected);
-}
-
-TEST(SafeCast, DiesFromHighToLowPrecisionIntegerWithOverflow) {
-  const int64_t src = std::numeric_limits<int64_t>::max();
-  EXPECT_DEATH(
-      (SafeCast<int64_t, int8_t>(src)),
-      "Check failed: util_intops::SafeAdd");
-}
-
-TEST(SafeCast, ConvertsFromHighToLowPrecisionInteger_Negative) {
-  const int64_t src = -42;
-  const int8_t dest = SafeCast<int64_t, int8_t>(src);
-  constexpr int8_t expected = -42;
-  EXPECT_EQ(dest, expected);
-}
-
-TEST(SafeCast, DiesFromHighToLowPrecisionIntegerWithOverflow_Negative) {
-  const int64_t src = std::numeric_limits<int64_t>::min();
-  EXPECT_DEATH(
-      (SafeCast<int64_t, int8_t>(src)),
-      "Check failed: util_intops::SafeAdd");
-}
-
 }  // namespace amlz
 }  // namespace evolution
 }  // namespace brain

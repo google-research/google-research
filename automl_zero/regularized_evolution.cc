@@ -34,7 +34,6 @@
 #include "absl/memory/memory.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "util/gtl/map_util.h"
 
 namespace brain {
 namespace evolution {

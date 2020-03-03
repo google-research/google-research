@@ -26,7 +26,6 @@
 #include "absl/container/node_hash_set.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "util/gtl/map_util.h"
 
 namespace brain {
 namespace evolution {
@@ -138,30 +137,6 @@ bool IsNever(
     }
   }
   return true;
-}
-
-template <class DiscreteSortableType>
-std::map<DiscreteSortableType, IntegerT> ComputeHistogram(
-    std::function<DiscreteSortableType(void)> func,
-    const IntegerT num_samples) {
-  std::map<DiscreteSortableType, IntegerT> histogram;
-  for (IntegerT sample = 0; sample < num_samples; ++sample) {
-    DiscreteSortableType key = func();
-    ++gtl::LookupOrInsert(&histogram, key, 0);
-  }
-  return histogram;
-}
-
-template <class DiscreteSortableType>
-void PrintDistribution(
-    std::function<DiscreteSortableType(void)> func,
-    const IntegerT num_samples) {
-  std::map<DiscreteSortableType, IntegerT> histogram =
-      ComputeHistogram(func, num_samples);
-  for (auto const& kv : histogram) {
-    std::cout << "Class " << internal::AsString(kv.first) << ": " << kv.second
-              << std::endl;
-  }
 }
 
 template <class NumberT>

@@ -44,7 +44,6 @@
 #include "absl/flags/flag.h"
 #include "third_party/eigen3/Eigen/Core"
 #include "util/hash/mix.h"
-#include "util/intops/safe_int_ops.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Conventions.
@@ -234,8 +233,7 @@ typedef uint16_t InstructionIndexT;
 // Cast safely between integer types. Do not overload. Can specialize.
 template<typename InT, typename OutT>
 OutT SafeCast(const InT value) {  // TODO(ereal): can remove?
-  OutT result;
-  CHECK(util_intops::SafeAdd(value, 0, &result));
+  OutT result = value + 0;
   return result;
 }
 
