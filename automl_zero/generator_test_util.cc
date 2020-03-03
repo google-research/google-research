@@ -17,9 +17,7 @@
 #include "random_generator.h"
 #include "absl/memory/memory.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::absl::make_unique;
 using ::std::mt19937;  // NOLINT
@@ -86,6 +84,4 @@ Algorithm SimpleIncreasingDataAlgorithm() {
   return algorithm;
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

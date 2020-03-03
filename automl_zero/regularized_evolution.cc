@@ -35,9 +35,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 namespace {
 
@@ -242,6 +240,4 @@ void RegularizedEvolution::MaybePrintProgress() {
   std::cout.flush();
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

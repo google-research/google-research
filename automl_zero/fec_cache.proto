@@ -14,7 +14,7 @@
 
 syntax = "proto2";
 
-package brain.evolution.amlz;
+package automl_zero;
 
 message FECCacheSpec {
   // Number of examples to train a model in order to evaluate cache hashes.

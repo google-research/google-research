@@ -22,9 +22,7 @@
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::std::unordered_set;  // NOLINT
 using ::std::vector;  // NOLINT
@@ -114,6 +112,4 @@ TEST(CustomHashMixTest, DoesNotGenerateShortCycles) {
   EXPECT_EQ(values.size(), num_iters);
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

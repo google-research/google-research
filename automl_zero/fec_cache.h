@@ -24,9 +24,7 @@
 #include "util/cache/small-lru-cache-inl.h"
 #include "util/cache/small-lru-cache.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 struct CachedEvaluation {
   double fitness;
@@ -82,8 +80,6 @@ class FECCache {
                 std::hash<size_t>, std::equal_to<size_t>> cache_;
 };
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_FEC_CACHE_H_

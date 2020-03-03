@@ -17,9 +17,7 @@
 
 #include "instruction.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 // Returns the cost of train a model in "compute-units". Compute-units are an
 // arbitrary unit of compute cost, to compare across instructions and
@@ -31,8 +29,6 @@ double ComputeCost(
 
 double ComputeCost(const Instruction& instruction);
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_COMPUTE_COST_H_

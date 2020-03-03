@@ -24,9 +24,7 @@
 #include "random_generator.h"
 #include "absl/flags/flag.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::std::istringstream;  // NOLINT
 using ::std::make_shared;  // NOLINT
@@ -204,6 +202,4 @@ vector<shared_ptr<const Instruction>>* Algorithm::MutableComponentFunction(
   }
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

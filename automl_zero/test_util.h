@@ -27,9 +27,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 namespace internal {
 
@@ -161,8 +159,6 @@ absl::node_hash_set<std::pair<NumberT, NumberT>> CartesianProduct(
   return product;
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_TEST_UTIL_H_

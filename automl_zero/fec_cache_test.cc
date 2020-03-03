@@ -21,9 +21,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::absl::StrCat;
 using ::std::pair;
@@ -160,6 +158,4 @@ TEST_F(FECCacheTest, NumValidExamplesWorks) {
 
 // TODO(ereal): test `forget_every` arg.
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

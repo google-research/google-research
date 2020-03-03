@@ -14,14 +14,10 @@
 
 #include "random_generator_test_util.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 RandomGenerator SimpleRandomGenerator() {
   return RandomGenerator();
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

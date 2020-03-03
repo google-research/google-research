@@ -14,9 +14,7 @@
 
 #include "util.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 IntegerT Pow2(const IntegerT exp) {
   return 1 << exp;
@@ -26,6 +24,4 @@ size_t Pow2(const size_t exp) {
   return 1 << exp;
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

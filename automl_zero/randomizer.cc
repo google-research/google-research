@@ -19,9 +19,7 @@
 #include "algorithm.h"
 #include "random_generator.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::std::make_shared;  // NOLINT
 using ::std::mt19937;  // NOLINT
@@ -88,6 +86,4 @@ Op Randomizer::LearnOp() {
   return allowed_learn_ops_[op_index];
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

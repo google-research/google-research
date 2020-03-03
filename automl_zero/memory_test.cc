@@ -21,9 +21,7 @@
 #include "util.h"
 #include "gtest/gtest.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 TEST(MemoryTest, NumAddressesAreWithinLimits) {
   const size_t max_addresses = Pow2(8 * sizeof(AddressT));
@@ -63,6 +61,4 @@ TEST(MemoryTest, RespectsFeaturesSize) {
   EXPECT_EQ(memory8.matrix_[0].cols(), 8);
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

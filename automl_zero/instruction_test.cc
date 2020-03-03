@@ -29,9 +29,7 @@
 #include "google/protobuf/enum-utils.h"
 #include "gtest/gtest.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::proto2::contrib::utils::EnumerateEnumValues;
 using ::std::abs;  // NOLINT
@@ -1558,6 +1556,4 @@ TEST(InstructionTest, SerializesCorrectly) {
   }
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

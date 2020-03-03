@@ -23,14 +23,10 @@
 #include "definitions.proto.h"
 #include "google/protobuf/repeated_field.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 std::vector<Op> ExtractOps(const proto2::RepeatedField<int>& ops_src);
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_EXPERIMENT_UTIL_H_

@@ -31,9 +31,7 @@
 #include "test_util.h"
 #include "gtest/gtest.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 namespace {
 
 using ::std::make_shared;  // NOLINT
@@ -132,6 +130,4 @@ TEST(AlgorithmTest, ToFromProtoIntoDifferentComponentFunctionSizes) {
 }
 
 }  // namespace
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

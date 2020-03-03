@@ -14,9 +14,7 @@
 
 #include "memory.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 template<FeatureIndexT F>
 void Memory<F>::Wipe() {
@@ -39,6 +37,4 @@ template class Memory<8>;
 template class Memory<16>;
 template class Memory<32>;
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

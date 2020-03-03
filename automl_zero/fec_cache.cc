@@ -19,9 +19,7 @@
 #include "executor.h"
 #include "fec_hashing.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::std::make_pair;
 using ::std::vector;
@@ -76,6 +74,4 @@ IntegerT FECCache::NumValidExamples() const {
   return spec_.num_valid_examples();
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

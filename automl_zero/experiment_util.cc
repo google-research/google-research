@@ -24,9 +24,7 @@
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::absl::make_unique;  // NOLINT
 using ::proto2::RepeatedField;
@@ -47,6 +45,4 @@ vector<Op> ExtractOps(const RepeatedField<int>& ops_src) {
   return ops_dest;
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

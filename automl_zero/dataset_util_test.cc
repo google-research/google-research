@@ -37,9 +37,7 @@
 #include "absl/strings/str_cat.h"
 #include "third_party/eigen3/Eigen/Core"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::absl::StrCat;  // NOLINT
 using ::Eigen::Map;
@@ -568,6 +566,4 @@ TEST(RandomizeDatasetSeedsTest, DataSeedsAreIndepdendentAcrossDatasetSpecs) {
       CartesianProduct(Range<RandomSeedT>(0, 3), Range<RandomSeedT>(0, 3))));
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

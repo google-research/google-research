@@ -37,9 +37,7 @@
 #include "random_generator.h"
 #include "testing/production_stub/public/gunit_prod.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 constexpr FeatureIndexT kNumClasses = 10;
 constexpr double kPadLabel = 0.0;
@@ -1529,8 +1527,6 @@ inline double MinusXLogY(const double x, const double y) {
 
 }  // namespace internal
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_EXECUTOR_H_

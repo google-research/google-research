@@ -40,9 +40,7 @@
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::absl::make_unique;  // NOLINT
 using ::std::enable_if;  // NOLINT
@@ -172,6 +170,4 @@ void RandomizeDatasetSeeds(DatasetCollection* dataset_collection,
   }
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

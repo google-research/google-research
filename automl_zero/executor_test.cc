@@ -36,9 +36,7 @@
 #include "absl/strings/str_cat.h"
 #include "third_party/eigen3/Eigen/Core"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::absl::StrCat;  // NOLINT
 using ::std::abs;  // NOLINT
@@ -2000,6 +1998,4 @@ TEST(ArgmaxTest, ComputesCorrectly) {
 
 }  // namespace internal
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

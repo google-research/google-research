@@ -37,9 +37,7 @@
 #include "absl/memory/memory.h"
 #include "absl/time/time.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::absl::GetCurrentTimeNanos;  // NOLINT
 using ::absl::make_unique;  // NOLINT
@@ -256,6 +254,4 @@ IntegerT GetsFromPosition(
   return static_cast<IntegerT>(algorithm->predict_[0]->GetIntegerData());
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

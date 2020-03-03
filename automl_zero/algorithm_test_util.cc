@@ -23,9 +23,7 @@
 #include "instruction.h"
 #include "absl/memory/memory.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::absl::make_unique;
 using ::std::make_shared;
@@ -184,6 +182,4 @@ IntegerT MissingDataInComponentFunction(
   }
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

@@ -16,7 +16,7 @@
 
 syntax = "proto2";
 
-package brain.evolution.amlz;
+package automl_zero;
 
 // The datasets to evaluate.
 message DatasetCollection {

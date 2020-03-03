@@ -17,9 +17,7 @@
 
 #include "util/hash/mix.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::std::vector;
 using internal::HashComponent;
@@ -42,6 +40,4 @@ size_t WellMixedHash(
   return mix.get();
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

@@ -20,9 +20,7 @@
 #include "definitions.h"
 #include "executor.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 namespace internal {
 
@@ -42,8 +40,6 @@ size_t WellMixedHash(const std::vector<double>& train_errors,
                      const std::vector<double>& valid_errors,
                      size_t dataset_index, IntegerT num_train_examples);
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_FEC_HASHING_H_

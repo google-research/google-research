@@ -26,9 +26,7 @@
 #include "datasets.proto.h"
 #include "definitions.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 constexpr IntegerT kNumTrainExamplesNotSet = -963487122;
 constexpr double kDataTolerance = 0.00001;
@@ -337,8 +335,6 @@ class DatasetIterator {
   IntegerT current_epoch_;
 };
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DATASET_H_

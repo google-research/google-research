@@ -24,9 +24,7 @@
 #include "instruction.h"
 #include "absl/flags/flag.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 class RandomGenerator;
 
@@ -76,8 +74,6 @@ class Algorithm {
   std::vector<std::shared_ptr<const Instruction>> learn_;
 };
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_ALGORITHM_H_

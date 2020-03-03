@@ -36,9 +36,7 @@
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::absl::c_linear_search;  // NOLINT
 using ::absl::GetFlag;  // NOLINT
@@ -206,6 +204,4 @@ double CombineFitnesses(
 
 }  // namespace internal
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
