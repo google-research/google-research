@@ -85,9 +85,7 @@ RegularizedEvolution::RegularizedEvolution(
       algorithms_(population_size_, make_shared<Algorithm>()),
       fitnesses_(population_size_),
       num_individuals_(0),
-      num_individuals_since_put_(0) {
-  cout << "Local population size: " << population_size_ << endl;
-}
+      num_individuals_since_put_(0) {}
 
 IntegerT RegularizedEvolution::Init() {
   // Otherwise, initialize the population from scratch.

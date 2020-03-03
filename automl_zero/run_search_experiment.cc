@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <limits>
 #include <memory>
 
 
@@ -46,6 +47,8 @@ typedef brain::evolution::amlz::InstructionIndexT InstructionIndexT;
 
 ABSL_FLAG(std::string, experiment_spec, "",
           "A text-format ExperimentSpec proto. Required.");
+ABSL_FLAG(std::string, final_evaluation_tasks, "",
+          "The text format of a DatasetCollection proto.");
 ABSL_FLAG(
     IntegerT, init_model, 0,
     "Which model to use to initialize the population.");
@@ -67,10 +70,12 @@ ABSL_FLAG(
     "than this after any example during in its training or validation, it "
     "will be assigned the minimum fitness if early stopping is used.");
 ABSL_FLAG(
+    IntegerT, max_experiments, 1,
+    "Number of experiments to run. May run fewer if `sufficient_fitness` is "
+    "set.");
+ABSL_FLAG(
     IntegerT, max_individuals, 1000,
     "Total number of individuals in the experiment.");
-ABSL_FLAG(std::string, dataset_collection, "",
-          "The text format of a DatasetCollection proto.");
 ABSL_FLAG(
     InstructionIndexT,
     mutate_learn_size_max,
@@ -141,10 +146,12 @@ ABSL_FLAG(
     "Whether `progress_every` is measured in seconds (true) or in number of "
     "individuals (false).");
 ABSL_FLAG(
-    RandomSeedT, random_seed, 100000,
-    "Random seed for everything other than dataset parameters.");
+    RandomSeedT, random_seed, 0,
+    "Random seed for everything other than task parameters. Use `0` to not "
+    "specify a seed (creates a new seed each time). If running multiple "
+    "experiments, this seed is set at the beginning of the first experiment.");
 ABSL_FLAG(
-    bool, randomize_dataset_seeds, false,
+    bool, randomize_task_seeds, false,
     "If true, the seeds in the data and param seeds in the curriculum are "
     "randomized. This is done by setting a random seed as the first value for "
     "the param and data seed in each DatasetSpec. Data or param seeds must not "
@@ -152,10 +159,13 @@ ABSL_FLAG(
     "datasets are not affected.");
 ABSL_FLAG(
     RandomSeedT, dataset_randomization_seed, 0,
-    "If randomize_dataset_seeds is set to true, this seed will be used"
+    "If randomize_task_seeds is set to true, this seed will be used"
     " as the seed for the randomization of param and data seed, and other"
     " dataset specs, for example, the positive and negative class in"
     " ProjectedBinaryClassificationDataset.");
+ABSL_FLAG(
+    std::string, search_tasks, "",
+    "The text format of a DatasetCollection proto.");
 ABSL_FLAG(
     InstructionIndexT,
     setup_size_init,
@@ -164,8 +174,11 @@ ABSL_FLAG(
     "this will be the exact number of instructions. With hand-designed models, "
     "the component_function will be padded with no-ops to this number. If this "
     "is too small, the minimum number necessary will be used.");
-ABSL_FLAG(std::string, test_dataset_collection, "",
-          "The text format of a DatasetCollection proto.");
+ABSL_FLAG(
+    double, sufficient_fitness, std::numeric_limits<double>::max(),
+    "Experimentation stops when any experiment reaches this fitness at the "
+    "end. If not specified, keeps experimenting until max_experiments is "
+    "reached.");
 ABSL_FLAG(
     IntegerT, tournament_size, 2,
     "Tournament size.");
@@ -192,34 +205,38 @@ using ::absl::make_unique;  // NOLINT
 using ::std::cout;  // NOLINT
 using ::std::endl;  // NOLINT
 using ::std::make_shared;  // NOLINT
+using ::std::numeric_limits;  // NOLINT
 using ::std::shared_ptr;  // NOLINT
 using ::std::unique_ptr;  // NOLINT
 using ::std::vector;  // NOLINT
 }  // namespace
 
 void run() {
-  // Finalize datasets.
-  DatasetCollection dataset_collection =
-      ParseTextFormat<DatasetCollection>(GetFlag(FLAGS_dataset_collection));
+  // Set random seed.
+  RandomSeedT random_seed = GetFlag(FLAGS_random_seed);
+  if (random_seed == 0) {
+    random_seed = GenerateRandomSeed();
+  }
+  MTRandom bit_gen(random_seed);
+  RandomGenerator rand_gen(&bit_gen);
+  cout << "Random seed = " << random_seed << endl;
 
-  if (GetFlag(FLAGS_randomize_dataset_seeds)) {
+  // Set up tasks.
+  DatasetCollection search_tasks =
+      ParseTextFormat<DatasetCollection>(GetFlag(FLAGS_search_tasks));
+  if (GetFlag(FLAGS_randomize_task_seeds)) {
     RandomizeDatasetSeeds(
-        &dataset_collection,
+        &search_tasks,
         CustomHashMix(GetFlag(FLAGS_dataset_randomization_seed),
                       static_cast<RandomSeedT>(0)));  // TODO(ereal): simplify.
   }
 
-  // Set up.
+  // Build reusable structures.
   CHECK(!GetFlag(FLAGS_experiment_spec).empty());
   const auto parsed_experiment_spec = ParseTextFormat<ExperimentSpec>(
       GetFlag(FLAGS_experiment_spec));
-  RandomSeedT random_seed;
-  // TODO(ereal): consider random_seed = GenerateRandomSeed().
-  random_seed = GetFlag(FLAGS_random_seed);
-  cout << "main: random_seed = " << random_seed << endl;
-  MTRandom bit_gen(random_seed);
-  RandomGenerator rand_gen(&bit_gen);
-
+  const double sufficient_fitness = GetFlag(FLAGS_sufficient_fitness);
+  const IntegerT max_experiments = GetFlag(FLAGS_max_experiments);
   Generator generator(
       static_cast<ModelT>(GetFlag(FLAGS_init_model)),
       GetFlag(FLAGS_setup_size_init),
@@ -228,22 +245,11 @@ void run() {
       ExtractOps(parsed_experiment_spec.predict_ops()),
       ExtractOps(parsed_experiment_spec.learn_ops()), &bit_gen,
       &rand_gen);
-  unique_ptr<FECCache> functional_cache =
-      parsed_experiment_spec.has_fec_cache() ?
-          make_unique<FECCache>(
-              parsed_experiment_spec.fec_cache()) :
-          nullptr;
   unique_ptr<TrainBudget> train_budget;
   if (parsed_experiment_spec.has_train_budget()) {
     train_budget =
         BuildTrainBudget(parsed_experiment_spec.train_budget(), &generator);
   }
-
-  Evaluator evaluator(
-      parsed_experiment_spec.fitness_combination_mode(), dataset_collection,
-      &rand_gen, functional_cache.get(), train_budget.get(),
-      GetFlag(FLAGS_max_abs_error),
-      true);  // verbose
   Mutator mutator(GetFlag(FLAGS_mutation_actions), GetFlag(FLAGS_mutate_prob),
                   ExtractOps(parsed_experiment_spec.setup_ops()),
                   ExtractOps(parsed_experiment_spec.predict_ops()),
@@ -254,58 +260,89 @@ void run() {
                   GetFlag(FLAGS_mutate_predict_size_max),
                   GetFlag(FLAGS_mutate_learn_size_min),
                   GetFlag(FLAGS_mutate_learn_size_max), &bit_gen, &rand_gen);
-  RegularizedEvolution regularized_evolution(
-      &rand_gen, parsed_experiment_spec.local_population_size(),
-      GetFlag(FLAGS_tournament_size), GetFlag(FLAGS_init_mutations),
-      GetFlag(FLAGS_progress_every),
-      GetFlag(FLAGS_progress_every_by_time), &generator, &evaluator, &mutator);
-  cout << "Local algorithm ready." << endl;
 
-  cout << "Initializing..." << endl;
-  const IntegerT max_individuals = GetFlag(FLAGS_max_individuals);
-  IntegerT evolved_num_individuals = 0;
-  regularized_evolution.Init();
-  cout << "Initialization done." << endl;
-  cout << "Evolving..." << endl;
-  const IntegerT remaining_individuals =
-      max_individuals - regularized_evolution.NumIndividuals();
-  IntegerT start_time = GetCurrentTimeNanos();
-  const IntegerT evaluated_individuals = regularized_evolution.Run(
-      remaining_individuals, kUnlimitedTime);
-  evolved_num_individuals += evaluated_individuals;
-  CHECK_EQ(regularized_evolution.NumIndividuals(), max_individuals);
-  double time_per_model_us =
-      static_cast<double>(GetCurrentTimeNanos() - start_time) /
-      static_cast<double>(evolved_num_individuals * kNanosPerMicro);
-  cout << "Evolution done." << endl;
-  cout << "Time per model = " << time_per_model_us << " us." << endl;
-  cout << "Evaluated " << regularized_evolution.NumIndividuals()
-       << " individuals." << endl;
+  IntegerT num_experiments = 0;
+  double best_search_fitness = numeric_limits<double>::lowest();
+  shared_ptr<const Algorithm> best_search_algorithm =
+      make_shared<const Algorithm>();
+  while (true) {
+    // Build non-reusable structures.
+    unique_ptr<FECCache> functional_cache =
+        parsed_experiment_spec.has_fec_cache() ?
+            make_unique<FECCache>(
+                parsed_experiment_spec.fec_cache()) :
+            nullptr;
+    Evaluator evaluator(
+        parsed_experiment_spec.fitness_combination_mode(), search_tasks,
+        &rand_gen, functional_cache.get(), train_budget.get(),
+        GetFlag(FLAGS_max_abs_error),
+        false);  // verbose
+    RegularizedEvolution regularized_evolution(
+        &rand_gen, parsed_experiment_spec.local_population_size(),
+        GetFlag(FLAGS_tournament_size), GetFlag(FLAGS_init_mutations),
+        GetFlag(FLAGS_progress_every),
+        GetFlag(FLAGS_progress_every_by_time),
+        &generator, &evaluator, &mutator);
+
+    // Run one experiment.
+    cout << "Running evolution experiment (on the T_search tasks)..." << endl;
+    const IntegerT max_individuals = GetFlag(FLAGS_max_individuals);
+    regularized_evolution.Init();
+    const IntegerT remaining_individuals =
+        max_individuals - regularized_evolution.NumIndividuals();
+    regularized_evolution.Run(remaining_individuals, kUnlimitedTime);
+    cout << "Experiment done." << endl;
+
+    // Keep track of the best model. We select on T_search for simplicity.
+    // (In the paper, this section was done on a separate set of tasks, i.e.
+    // T_select).  // TODO(ereal): make this more similar to paper.
+    double unused_pop_mean, unused_pop_stdev;
+    double latest_best_search_fitness;
+    shared_ptr<const Algorithm> latest_best_search_algorithm =
+        make_shared<const Algorithm>();
+    regularized_evolution.PopulationStats(
+        &unused_pop_mean, &unused_pop_stdev,
+        &latest_best_search_algorithm, &latest_best_search_fitness);
+    if (latest_best_search_fitness >= best_search_fitness) {
+      best_search_fitness = latest_best_search_fitness;
+      best_search_algorithm = latest_best_search_algorithm;
+    }
+    if (sufficient_fitness > 0.0 &&
+        best_search_fitness > sufficient_fitness) {
+      break;
+    }
+
+    // See if the maximum number of experiments was reached.
+    ++num_experiments;
+    if (num_experiments >= max_experiments) {
+      break;
+    }
+  }
 
   // Evaluate and print details about the best global model.
-  cout << endl << "Testing best model..." << endl;
-  double pop_mean, pop_stdev, best_fitness;
-  shared_ptr<const Algorithm> best_algorithm = make_shared<const Algorithm>();
-  regularized_evolution.PopulationStats(
-      &pop_mean, &pop_stdev, &best_algorithm, &best_fitness);
-
-  const auto test_dataset_collection = ParseTextFormat<DatasetCollection>(
-      GetFlag(FLAGS_test_dataset_collection));
-
-  // Construct the train budget.
-  unique_ptr<TrainBudget> test_train_budget;
-  MTRandom test_bit_gen(random_seed + 426082123);
-  RandomGenerator test_rand_gen(&test_bit_gen);
-  Evaluator test_evaluator(
-      MEAN_FITNESS_COMBINATION, test_dataset_collection, &test_rand_gen,
+  cout << endl << "Evaluating best model "
+       << "(on the unseen T_select tasks)..." << endl;
+  const auto final_evaluation_tasks =
+      ParseTextFormat<DatasetCollection>(
+          GetFlag(FLAGS_final_evaluation_tasks));
+  MTRandom final_evaluation_bit_gen(CustomHashMix<RandomSeedT>(
+      {random_seed, 426082123}));
+  RandomGenerator final_evaluation_rand_gen(&final_evaluation_bit_gen);
+  Evaluator final_evaluation_evaluator(
+      MEAN_FITNESS_COMBINATION,
+      final_evaluation_tasks,
+      &final_evaluation_rand_gen,
       nullptr,  // functional_cache
       nullptr,  // train_budget
       GetFlag(FLAGS_max_abs_error),
       false);  // verbose
-  const double test_fitness = test_evaluator.Evaluate(*best_algorithm);
+  const double final_evaluation_fitness =
+      final_evaluation_evaluator.Evaluate(*best_search_algorithm);
 
-  cout << "test fitness = " << test_fitness << endl;
-  cout << "test algorithm = " << best_algorithm->ToReadable() << endl;
+  cout << "Final evaluation fitness (on unseen data) = "
+       << final_evaluation_fitness << endl;
+  cout << "Algorithm found: " << endl
+       << best_search_algorithm->ToReadable() << endl;
 }
 
 }  // namespace amlz
