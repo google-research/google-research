@@ -115,7 +115,7 @@ TEST(DatasetTest, EpochsContainShuffledTrainExamples) {
     train_it.Next();
   }
   EXPECT_TRUE(
-      (features_and_labels[4] - features_and_labels[1]).norm() >
+      (features_and_labels[7] - features_and_labels[1]).norm() >
       kDataTolerance);
 }
 

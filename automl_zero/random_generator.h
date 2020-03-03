@@ -16,11 +16,11 @@
 #define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_RANDOM_GENERATOR_H_
 
 #include <limits>
+#include <random>
 
 #include "base/integral_types.h"
 #include "definitions.h"
 #include "absl/random/random.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -29,14 +29,14 @@ namespace amlz {
 // Thread-compatible, but not thread-safe.
 class RandomGenerator {
  public:
-  explicit RandomGenerator(MTRandom* gen);
+  explicit RandomGenerator(std::mt19937* gen);
   RandomGenerator(const RandomGenerator& other) = delete;
   RandomGenerator& operator=(const RandomGenerator& other) = delete;
 
-  inline MTRandom* BitGen() {return bit_gen_;}
+  inline std::mt19937* BitGen() {return bit_gen_;}
 
   // Resets the generator with a new random seed.
-  void SetSeed(RandomSeedT seed) {bit_gen_->Reset(seed);}
+  void SetSeed(RandomSeedT seed) {bit_gen_->seed(seed);}
 
   float GaussianFloat(float mean, float stdev);
 
@@ -101,8 +101,8 @@ class RandomGenerator {
   // Used to create a simple class for tests in SimpleRandomGenerator().
   RandomGenerator();
 
-  std::unique_ptr<MTRandom> bit_gen_owned_;
-  MTRandom* bit_gen_;
+  std::unique_ptr<std::mt19937> bit_gen_owned_;
+  std::mt19937* bit_gen_;
 };
 
 // Generate a random seed using current time.

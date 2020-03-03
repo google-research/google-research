@@ -27,10 +27,11 @@ namespace amlz {
 
 using ::absl::GetCurrentTimeNanos;
 using ::absl::make_unique;
+using ::std::mt19937;
 using ::std::numeric_limits;
 using ::std::string;
 
-RandomGenerator::RandomGenerator(MTRandom* bit_gen) : bit_gen_(bit_gen) {}
+RandomGenerator::RandomGenerator(mt19937* bit_gen) : bit_gen_(bit_gen) {}
 
 float RandomGenerator::GaussianFloat(float mean, float stdev) {
   return ::absl::Gaussian<float>(*bit_gen_, mean, stdev);
@@ -149,7 +150,7 @@ double RandomGenerator::BetaActivation(
 }
 
 RandomGenerator::RandomGenerator()
-    : bit_gen_owned_(make_unique<MTRandom>(GenerateRandomSeed())),
+    : bit_gen_owned_(make_unique<mt19937>(GenerateRandomSeed())),
       bit_gen_(bit_gen_owned_.get()) {}
 
 RandomSeedT GenerateRandomSeed() {

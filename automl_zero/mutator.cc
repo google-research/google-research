@@ -19,7 +19,6 @@
 
 #include "random_generator.h"
 #include "absl/memory/memory.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -28,6 +27,7 @@ namespace amlz {
 using ::absl::make_unique;  // NOLINT
 using ::std::endl;  // NOLINT
 using ::std::make_shared;  // NOLINT
+using ::std::mt19937;  // NOLINT
 using ::std::shared_ptr;  // NOLINT
 using ::std::vector;  // NOLINT
 
@@ -43,7 +43,7 @@ Mutator::Mutator(
     const IntegerT predict_size_max,
     const IntegerT learn_size_min,
     const IntegerT learn_size_max,
-    MTRandom* bit_gen,
+    mt19937* bit_gen,
     RandomGenerator* rand_gen)
     : allowed_actions_(allowed_actions),
       mutate_prob_(mutate_prob),
@@ -90,7 +90,7 @@ Mutator::Mutator(
     const IntegerT predict_size_max,
     const IntegerT learn_size_min,
     const IntegerT learn_size_max,
-    MTRandom* bit_gen,
+    mt19937* bit_gen,
     RandomGenerator* rand_gen)
     : Mutator(
       ConvertToMutationAction(allowed_actions),
@@ -147,7 +147,7 @@ Mutator::Mutator()
       predict_size_max_(5),
       learn_size_min_(4),
       learn_size_max_(6),
-      bit_gen_owned_(make_unique<MTRandom>(GenerateRandomSeed())),
+      bit_gen_owned_(make_unique<mt19937>(GenerateRandomSeed())),
       bit_gen_(bit_gen_owned_.get()),
       rand_gen_owned_(make_unique<RandomGenerator>(bit_gen_)),
       rand_gen_(rand_gen_owned_.get()),

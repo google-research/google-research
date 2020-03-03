@@ -15,6 +15,7 @@
 #include "regularized_evolution.h"
 
 #include <limits>
+#include <random>
 
 #include "file/base/filesystem.h"
 #include "file/base/options.h"
@@ -35,7 +36,6 @@
 #include "absl/flags/flag.h"
 #include "absl/memory/memory.h"
 #include "absl/time/time.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -46,6 +46,7 @@ using ::absl::make_unique;  // NOLINT
 using ::absl::StrCat;  // NOLINT
 using ::std::function;  // NOLINT
 using ::std::make_shared;  // NOLINT
+using ::std::mt19937;  // NOLINT
 using ::std::numeric_limits;  // NOLINT
 using ::std::shared_ptr;  // NOLINT
 using ::std::string;  // NOLINT
@@ -71,7 +72,7 @@ TEST(doubleTest, Requirement) {
 }
 
 TEST(RegularizedEvolutionTest, Runs) {
-  MTRandom bit_gen(kEvolutionSeed);
+  mt19937 bit_gen(kEvolutionSeed);
   RandomGenerator rand_gen(&bit_gen);
   Generator generator = SimpleGenerator();
   const auto dataset_collection = ParseTextFormat<DatasetCollection>(
@@ -110,7 +111,7 @@ TEST(RegularizedEvolutionTest, Runs) {
 }
 
 TEST(RegularizedEvolutionTest, TimesCorrectly) {
-  MTRandom bit_gen(kEvolutionSeed);
+  mt19937 bit_gen(kEvolutionSeed);
   RandomGenerator rand_gen(&bit_gen);
   Generator generator = SimpleGenerator();
   const auto dataset_collection = ParseTextFormat<DatasetCollection>(
@@ -154,7 +155,7 @@ TEST(RegularizedEvolutionTest, TimesCorrectly) {
 }
 
 TEST(RegularizedEvolutionTest, CountsCorrectly) {
-  MTRandom bit_gen(kEvolutionSeed);
+  mt19937 bit_gen(kEvolutionSeed);
   RandomGenerator rand_gen(&bit_gen);
   Generator generator = SimpleGenerator();
   const auto dataset_collection = ParseTextFormat<DatasetCollection>(

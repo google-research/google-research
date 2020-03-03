@@ -29,6 +29,7 @@ namespace amlz {
 
 using ::absl::make_unique;
 using ::std::make_shared;
+using ::std::mt19937;
 using ::std::shared_ptr;
 using ::std::vector;
 
@@ -62,7 +63,7 @@ Generator::Generator(
     const vector<Op>& allowed_setup_ops,
     const vector<Op>& allowed_predict_ops,
     const vector<Op>& allowed_learn_ops,
-    MTRandom* bit_gen,
+    mt19937* bit_gen,
     RandomGenerator* rand_gen)
     : init_model_(init_model),
       setup_size_init_(setup_size_init),
@@ -160,7 +161,7 @@ Generator::Generator()
           {NO_OP, SCALAR_SUM_OP, MATRIX_VECTOR_PRODUCT_OP, VECTOR_MEAN_OP}),
       allowed_learn_ops_(
           {NO_OP, SCALAR_SUM_OP, MATRIX_VECTOR_PRODUCT_OP, VECTOR_MEAN_OP}),
-      bit_gen_owned_(make_unique<MTRandom>(GenerateRandomSeed())),
+      bit_gen_owned_(make_unique<mt19937>(GenerateRandomSeed())),
       rand_gen_owned_(make_unique<RandomGenerator>(bit_gen_owned_.get())),
       rand_gen_(rand_gen_owned_.get()),
       randomizer_(

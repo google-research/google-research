@@ -15,6 +15,7 @@
 #include "random_generator.h"
 
 #include <cmath>
+#include <random>
 #include <unordered_set>
 
 #include "definitions.h"
@@ -28,9 +29,10 @@ namespace amlz {
 
 using ::std::round;
 using ::std::function;
+using ::std::mt19937;  // NOLINT
 
 TEST(RandomGeneratorTest, GaussianFloatProducesAllValues) {
-  MTRandom bit_gen(GenerateRandomSeed());
+  mt19937 bit_gen(GenerateRandomSeed());
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<IntegerT(void)>([&](){
@@ -40,7 +42,7 @@ TEST(RandomGeneratorTest, GaussianFloatProducesAllValues) {
 }
 
 TEST(RandomGeneratorTest, UniformIntegerProducesAllValues) {
-  MTRandom bit_gen(GenerateRandomSeed());
+  mt19937 bit_gen(GenerateRandomSeed());
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<IntegerT(void)>([&](){
@@ -50,7 +52,7 @@ TEST(RandomGeneratorTest, UniformIntegerProducesAllValues) {
 }
 
 TEST(RandomGeneratorTest, UniformRandomSeedTest) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<IntegerT(void)>([&]() {
@@ -59,7 +61,7 @@ TEST(RandomGeneratorTest, UniformRandomSeedTest) {
 }
 
 TEST(RandomGeneratorTest, UniformDoubleProducesAllValues) {
-  MTRandom bit_gen(GenerateRandomSeed());
+  mt19937 bit_gen(GenerateRandomSeed());
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<IntegerT(void)>([&](){
@@ -69,7 +71,7 @@ TEST(RandomGeneratorTest, UniformDoubleProducesAllValues) {
 }
 
 TEST(RandomGeneratorTest, UniformFloatProducesAllValues) {
-  MTRandom bit_gen(GenerateRandomSeed());
+  mt19937 bit_gen(GenerateRandomSeed());
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<IntegerT(void)>([&](){
@@ -79,7 +81,7 @@ TEST(RandomGeneratorTest, UniformFloatProducesAllValues) {
 }
 
 TEST(RandomGeneratorTest, UniformProbabilityProducesAllValues) {
-  MTRandom bit_gen(GenerateRandomSeed());
+  mt19937 bit_gen(GenerateRandomSeed());
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<IntegerT(void)>([&](){
@@ -89,7 +91,7 @@ TEST(RandomGeneratorTest, UniformProbabilityProducesAllValues) {
 }
 
 TEST(RandomGeneratorTest, UniformStringProducesAllValues) {
-  MTRandom bit_gen(GenerateRandomSeed());
+  mt19937 bit_gen(GenerateRandomSeed());
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<std::string(void)>([&]() { return rand_gen.UniformString(1); }),
@@ -98,7 +100,7 @@ TEST(RandomGeneratorTest, UniformStringProducesAllValues) {
 }
 
 TEST(RandomGeneratorTest, FeatureIndexTest_Fis4) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<FeatureIndexT(void)>(
@@ -108,7 +110,7 @@ TEST(RandomGeneratorTest, FeatureIndexTest_Fis4) {
 }
 
 TEST(RandomGeneratorTest, FeatureIndexTest_Fis8) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<FeatureIndexT(void)>(
@@ -118,7 +120,7 @@ TEST(RandomGeneratorTest, FeatureIndexTest_Fis8) {
 }
 
 TEST(RandomGeneratorTest, ScalarAddressTest) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<AddressT(void)>([&](){return rand_gen.ScalarInAddress();}),
@@ -127,7 +129,7 @@ TEST(RandomGeneratorTest, ScalarAddressTest) {
 }
 
 TEST(RandomGeneratorTest, VectorAddressTest) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<AddressT(void)>([&](){return rand_gen.VectorInAddress();}),
@@ -136,7 +138,7 @@ TEST(RandomGeneratorTest, VectorAddressTest) {
 }
 
 TEST(RandomGeneratorTest, MatrixAddressTest) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<AddressT(void)>([&](){return rand_gen.MatrixInAddress();}),
@@ -145,7 +147,7 @@ TEST(RandomGeneratorTest, MatrixAddressTest) {
 }
 
 TEST(RandomGeneratorTest, ScalarOutAddressTest) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<AddressT(void)>([&](){return rand_gen.ScalarOutAddress();}),
@@ -156,7 +158,7 @@ TEST(RandomGeneratorTest, ScalarOutAddressTest) {
 }
 
 TEST(RandomGeneratorTest, VectorOutAddressTest) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<AddressT(void)>([&](){return rand_gen.VectorOutAddress();}),
@@ -167,7 +169,7 @@ TEST(RandomGeneratorTest, VectorOutAddressTest) {
 }
 
 TEST(RandomGeneratorTest, MatrixOutAddressTest) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<AddressT(void)>([&](){return rand_gen.MatrixOutAddress();}),
@@ -178,7 +180,7 @@ TEST(RandomGeneratorTest, MatrixOutAddressTest) {
 }
 
 TEST(RandomGeneratorTest, Choice2Test) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<Choice2T(void)>([&](){return rand_gen.Choice2();}),
@@ -187,7 +189,7 @@ TEST(RandomGeneratorTest, Choice2Test) {
 }
 
 TEST(RandomGeneratorTest, Choice3Test) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<Choice3T(void)>([&](){return rand_gen.Choice3();}),
@@ -196,7 +198,7 @@ TEST(RandomGeneratorTest, Choice3Test) {
 }
 
 TEST(RandomGeneratorTest, UniformTest) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<IntegerT(void)>([&](){
@@ -222,7 +224,7 @@ IntegerT FillUniformVectorHelper(
 }
 
 TEST(RandomGeneratorTest, FillUniformVectorTest_Fis4) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   FeatureIndexT index = rand_gen.FeatureIndex(4);
   EXPECT_TRUE(IsEventually(
@@ -233,7 +235,7 @@ TEST(RandomGeneratorTest, FillUniformVectorTest_Fis4) {
 }
 
 TEST(RandomGeneratorTest, FillUniformVectorTest_Fis8) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   FeatureIndexT index = rand_gen.FeatureIndex(8);
   EXPECT_TRUE(IsEventually(
@@ -253,7 +255,7 @@ IntegerT FillUniformMatrixHelper(
 }
 
 TEST(RandomGeneratorTest, FillUniformMatrixTest_Fis2) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   FeatureIndexT index_x = rand_gen.FeatureIndex(2);
   FeatureIndexT index_y = rand_gen.FeatureIndex(2);
@@ -265,7 +267,7 @@ TEST(RandomGeneratorTest, FillUniformMatrixTest_Fis2) {
 }
 
 TEST(RandomGeneratorTest, FillUniformMatrixTest_Fis4) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   FeatureIndexT index_x = rand_gen.FeatureIndex(4);
   FeatureIndexT index_y = rand_gen.FeatureIndex(4);
@@ -277,7 +279,7 @@ TEST(RandomGeneratorTest, FillUniformMatrixTest_Fis4) {
 }
 
 TEST(RandomGeneratorTest, Gaussiandoubleest) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<IntegerT(void)>([&](){
@@ -295,7 +297,7 @@ IntegerT FillGaussianVectorHelper(
 }
 
 TEST(RandomGeneratorTest, FillGaussianVectorTest_Fis4) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   FeatureIndexT index = rand_gen.FeatureIndex(4);
   EXPECT_TRUE(IsEventually(
@@ -306,7 +308,7 @@ TEST(RandomGeneratorTest, FillGaussianVectorTest_Fis4) {
 }
 
 TEST(RandomGeneratorTest, FillGaussianVectorTest_Fis8) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   FeatureIndexT index = rand_gen.FeatureIndex(8);
   EXPECT_TRUE(IsEventually(
@@ -326,7 +328,7 @@ IntegerT FillGaussianMatrixHelper(
 }
 
 TEST(RandomGeneratorTest, FillGaussianMatrixTest_Fis2) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   FeatureIndexT index_x = rand_gen.FeatureIndex(2);
   FeatureIndexT index_y = rand_gen.FeatureIndex(2);
@@ -338,7 +340,7 @@ TEST(RandomGeneratorTest, FillGaussianMatrixTest_Fis2) {
 }
 
 TEST(RandomGeneratorTest, FillGaussianMatrixTest_Fis4) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   FeatureIndexT index_x = rand_gen.FeatureIndex(4);
   FeatureIndexT index_y = rand_gen.FeatureIndex(4);
@@ -350,7 +352,7 @@ TEST(RandomGeneratorTest, FillGaussianMatrixTest_Fis4) {
 }
 
 TEST(RandomGeneratorTest, BetaTest) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   EXPECT_TRUE(IsEventually(
       function<IntegerT(void)>([&](){
@@ -368,7 +370,7 @@ IntegerT FillBetaVectorHelper(
 }
 
 TEST(RandomGeneratorTest, FillBetaVectorTest_Fis4) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   FeatureIndexT index = rand_gen.FeatureIndex(4);
   EXPECT_TRUE(IsEventually(
@@ -379,7 +381,7 @@ TEST(RandomGeneratorTest, FillBetaVectorTest_Fis4) {
 }
 
 TEST(RandomGeneratorTest, FillBetaVectorTest_Fis8) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   FeatureIndexT index = rand_gen.FeatureIndex(8);
   EXPECT_TRUE(IsEventually(
@@ -399,7 +401,7 @@ IntegerT FillBetaMatrixHelper(
 }
 
 TEST(RandomGeneratorTest, FillBetaMatrixTest_Fis2) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   FeatureIndexT index_x = rand_gen.FeatureIndex(2);
   FeatureIndexT index_y = rand_gen.FeatureIndex(2);
@@ -411,7 +413,7 @@ TEST(RandomGeneratorTest, FillBetaMatrixTest_Fis2) {
 }
 
 TEST(RandomGeneratorTest, FillBetaMatrixTest_Fis4) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   FeatureIndexT index_x = rand_gen.FeatureIndex(4);
   FeatureIndexT index_y = rand_gen.FeatureIndex(4);

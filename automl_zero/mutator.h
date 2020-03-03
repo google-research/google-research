@@ -16,6 +16,7 @@
 #define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_MUTATOR_H_
 
 #include <memory>
+#include <random>
 
 #include "definitions.h"
 #include "definitions.proto.h"
@@ -23,7 +24,6 @@
 #include "random_generator.h"
 #include "randomizer.h"
 #include "testing/production_stub/public/gunit_prod.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -79,7 +79,7 @@ class Mutator {
       const IntegerT learn_size_min,
       const IntegerT learn_size_max,
       // The random bit generator.
-      MTRandom* bit_gen,
+      std::mt19937* bit_gen,
       // The random number generator.
       RandomGenerator* rand_gen);
 
@@ -98,7 +98,7 @@ class Mutator {
       const IntegerT predict_size_max,
       const IntegerT learn_size_min,
       const IntegerT learn_size_max,
-      MTRandom* bit_gen,
+      std::mt19937* bit_gen,
       RandomGenerator* rand_gen);
 
   Mutator(const Mutator& other) = delete;
@@ -187,8 +187,8 @@ class Mutator {
   const InstructionIndexT predict_size_max_;
   const InstructionIndexT learn_size_min_;
   const InstructionIndexT learn_size_max_;
-  std::unique_ptr<MTRandom> bit_gen_owned_;
-  MTRandom* bit_gen_;
+  std::unique_ptr<std::mt19937> bit_gen_owned_;
+  std::mt19937* bit_gen_;
   std::unique_ptr<RandomGenerator> rand_gen_owned_;
   RandomGenerator* rand_gen_;
   Randomizer randomizer_;

@@ -15,6 +15,7 @@
 #include "evaluator.h"
 
 #include <functional>
+#include <random>
 
 #include "algorithm.h"
 #include "dataset.h"
@@ -30,7 +31,6 @@
 #include "google/protobuf/text_format.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -39,6 +39,7 @@ namespace amlz {
 using ::absl::StrCat;  // NOLINT
 using ::std::function;  // NOLINT
 using ::std::min;  // NOLINT
+using ::std::mt19937;  // NOLINT
 using test_only::GenerateDataset;
 
 constexpr IntegerT kNumTrainExamples = 1000;
@@ -74,7 +75,7 @@ TEST(EvaluatorTest, AveragesOverDatasets) {
   Algorithm algorithm = SimpleGz();
 
   // Run with datasets independently.
-  MTRandom bit_gen_sep(100000);
+  mt19937 bit_gen_sep(100000);
   RandomGenerator rand_gen_sep(&bit_gen_sep);
   Executor<4> executor0(
       algorithm, dataset_one, kNumTrainExamples, kNumValidExamples,
@@ -86,7 +87,7 @@ TEST(EvaluatorTest, AveragesOverDatasets) {
   const double fitness1 = executor1.Execute();
   const double expected_fitness = (fitness0 + fitness1) / 2.0;
 
-  MTRandom bit_gen(100000);
+  mt19937 bit_gen(100000);
   RandomGenerator rand_gen(&bit_gen);
   const auto dataset_collection = ParseTextFormat<DatasetCollection>(
       StrCat("datasets { "
@@ -114,7 +115,7 @@ TEST(EvaluatorTest, AveragesOverDatasets) {
 }
 
 TEST(EvaluatorTest, GrTildeGrWithBiasHasHighFitness) {
-  MTRandom bit_gen(100000);
+  mt19937 bit_gen(100000);
   RandomGenerator rand_gen(&bit_gen);
   Generator generator = SimpleGenerator();
   Algorithm algorithm = generator.NeuralNet(0.036210, 0.180920, 0.145231);
@@ -138,7 +139,7 @@ TEST(EvaluatorTest, GrTildeGrWithBiasHasHighFitness) {
                       kMaxAbsError,
                       false);  // verbose
   const double fitness = evaluator.Evaluate(algorithm);
-  EXPECT_FLOAT_EQ(fitness, 0.99069703);
+  EXPECT_FLOAT_EQ(fitness, 0.99652964);
 }
 
 namespace internal {

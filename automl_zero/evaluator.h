@@ -17,6 +17,7 @@
 
 #include <cstdio>
 #include <memory>
+#include <random>
 #include <vector>
 
 #include "algorithm.h"
@@ -27,7 +28,6 @@
 #include "fec_cache.h"
 #include "random_generator.h"
 #include "train_budget.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -84,7 +84,7 @@ class Evaluator {
   RandomGenerator* rand_gen_;
   std::vector<std::unique_ptr<DatasetInterface>> datasets_;
   FECCache* functional_cache_;
-  std::unique_ptr<MTRandom> functional_cache_bit_gen_owned_;
+  std::unique_ptr<std::mt19937> functional_cache_bit_gen_owned_;
   std::unique_ptr<RandomGenerator> functional_cache_rand_gen_owned_;
   RandomGenerator* functional_cache_rand_gen_;
   const std::vector<RandomSeedT> first_param_seeds_;

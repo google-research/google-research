@@ -20,11 +20,11 @@
 #define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DATASET_H_
 
 #include <algorithm>
+#include <random>
 #include <vector>
 
 #include "datasets.proto.h"
 #include "definitions.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -104,7 +104,8 @@ bool DataEquals(const std::vector<RankT>& data1,
 }
 
 inline std::vector<std::vector<IntegerT>> GenerateEpochs(
-    const IntegerT num_examples, const IntegerT num_epochs, MTRandom* bit_gen) {
+    const IntegerT num_examples, const IntegerT num_epochs,
+    std::mt19937* bit_gen) {
   std::vector<IntegerT> indexes;
   for (IntegerT i = 0; i < num_examples; ++i) indexes.push_back(i);
   std::vector<std::vector<IntegerT>> epochs(num_epochs);
@@ -121,7 +122,7 @@ template <
 class Dataset : public DatasetInterface {
  public:
   explicit Dataset(const size_t index, const EvalType eval_type,
-                   const IntegerT num_train_epochs, MTRandom* bit_gen,
+                   const IntegerT num_train_epochs, std::mt19937* bit_gen,
                    DatasetBuffer<F>* buffer)
       : index_(index),
         eval_type_(eval_type),

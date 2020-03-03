@@ -16,6 +16,7 @@
 
 #include <functional>
 #include <limits>
+#include <random>
 #include <sstream>
 
 #include "devtools/build/runtime/get_runfiles_dir.h"
@@ -34,7 +35,6 @@
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -42,6 +42,7 @@ namespace amlz {
 
 using ::absl::StrCat;
 using ::std::function;
+using ::std::mt19937;
 using test_only::GenerateDataset;
 
 constexpr IntegerT kNumTrainExamples = 1000;
@@ -145,7 +146,7 @@ TEST(GeneratorTest, Gz_Learns) {
                                 "param_seeds: 100 "
                                 "data_seeds: 1000 "));
   Algorithm algorithm = generator.LinearModel(kDefaultLearningRate);
-  MTRandom bit_gen(10000);
+  mt19937 bit_gen(10000);
   RandomGenerator rand_gen(&bit_gen);
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kLargeMaxAbsError);
@@ -179,7 +180,7 @@ TEST(GeneratorTest, LinearModel_Learns) {
                                 "param_seeds: 100 "
                                 "data_seeds: 1000 "));
   Algorithm algorithm = generator.LinearModel(kDefaultLearningRate);
-  MTRandom bit_gen(10000);
+  mt19937 bit_gen(10000);
   RandomGenerator rand_gen(&bit_gen);
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kLargeMaxAbsError);
@@ -211,18 +212,18 @@ TEST(GeneratorTest, GrTildeGrWithBias_PermanenceTest) {
       "data_seeds: 10000 "));
   Algorithm algorithm = generator.NeuralNet(
       kDefaultLearningRate, kDefaultInitScale, kDefaultInitScale);
-  MTRandom bit_gen(10000);
+  mt19937 bit_gen(10000);
   RandomGenerator rand_gen(&bit_gen);
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kLargeMaxAbsError);
   double fitness = executor.Execute();
   std::cout << "GrTildeGrWithBias_PermanenceTest fitness = " << fitness
             << std::endl;
-  EXPECT_FLOAT_EQ(fitness, 0.71794188);
+  EXPECT_FLOAT_EQ(fitness, 0.80256736);
 }
 
 TEST(GeneratorTest, RandomInstructions) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Generator generator(
       kNoOpModel,  // Irrelevant.
@@ -245,7 +246,7 @@ TEST(GeneratorTest, RandomInstructions) {
 }
 
 TEST(GeneratorTest, RandomInstructionsProducesCorrectComponentFunctionSizes) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Generator generator(
       kNoOpModel,  // Irrelevant.

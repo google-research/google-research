@@ -16,13 +16,13 @@
 
 #include "random_generator.h"
 #include "absl/memory/memory.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
 namespace amlz {
 
 using ::absl::make_unique;
+using ::std::mt19937;  // NOLINT
 using ::std::shared_ptr;
 using ::std::vector;
 
@@ -40,7 +40,7 @@ Algorithm SimpleNoOpAlgorithm() {
 }
 
 Algorithm SimpleRandomAlgorithm() {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Generator generator(
       kRandomModel,  // Irrelevant.

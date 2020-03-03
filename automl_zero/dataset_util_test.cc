@@ -36,7 +36,6 @@
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
 #include "third_party/eigen3/Eigen/Core"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -333,20 +332,20 @@ TEST(FillDatasetWithNonlinearDataTest, PermanenceTest) {
                                 "data_seeds: 10000 "));
   EXPECT_TRUE(VectorEq<4>(
       dataset.train_features_[0],
-      {-0.127427, -1.01917, -2.48068, 0.560308}));
+      {1.30836, -0.192507, 0.549877, -0.667065}));
   EXPECT_TRUE(VectorEq<4>(
       dataset.train_features_[994],
-      {1.8847, 0.958825, 0.708589, -0.105261}));
+      {-0.265714, 1.38325, 0.775253, 1.78923}));
   EXPECT_TRUE(VectorEq<4>(
       dataset.valid_features_[0],
-      {0.6325, 0.586409, -0.681693, 1.84841}));
+      {1.39658, 0.293097, -0.504938, -1.09144}));
   EXPECT_TRUE(VectorEq<4>(
       dataset.valid_features_[94],
-      {-0.808072, 2.63473, 0.444889, -0.400876}));
-  EXPECT_TRUE(ScalarEq(dataset.train_labels_[0], 0.306332));
-  EXPECT_TRUE(ScalarEq(dataset.train_labels_[994], -2.83899));
+      {-0.224309, 1.78054, 1.24783, 0.54083}));
+  EXPECT_TRUE(ScalarEq(dataset.train_labels_[0], 1.508635));
+  EXPECT_TRUE(ScalarEq(dataset.train_labels_[994], -2.8410525));
   EXPECT_TRUE(ScalarEq(dataset.valid_labels_[0], 0.0));
-  EXPECT_TRUE(ScalarEq(dataset.valid_labels_[98], -1.29492));
+  EXPECT_TRUE(ScalarEq(dataset.valid_labels_[98], -0.66133333));
 }
 
 void ClearSeeds(DatasetCollection* dataset_collection) {

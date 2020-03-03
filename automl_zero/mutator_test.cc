@@ -15,6 +15,7 @@
 #include "mutator.h"
 
 #include <memory>
+#include <random>
 
 #include "definitions.h"
 #include "definitions.proto.h"
@@ -27,7 +28,6 @@
 #include "random_generator_test_util.h"
 #include "test_util.h"
 #include "gtest/gtest.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -35,12 +35,13 @@ namespace amlz {
 
 using ::std::function;  // NOLINT
 using ::std::make_shared;  // NOLINT
+using ::std::mt19937;  // NOLINT
 using ::std::shared_ptr;  // NOLINT
 using ::std::vector;  // NOLINT
 using ::testing::Test;
 
 TEST(MutatorTest, Runs) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<MutationAction>{  // allowed_actions
@@ -64,7 +65,7 @@ TEST(MutatorTest, Runs) {
 }
 
 TEST(MutatorTest, CoversActions) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<MutationAction>{  // allowed_actions
@@ -91,7 +92,7 @@ TEST(MutatorTest, CoversActions) {
 }
 
 TEST(MutatorTest, RespectsMutateProb) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<MutationAction>{  // allowed_actions
@@ -116,7 +117,7 @@ TEST(MutatorTest, RespectsMutateProb) {
 }
 
 TEST(MutatorTest, InstructionIndexTest) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{}, 0.0, {}, {}, {},
@@ -130,7 +131,7 @@ TEST(MutatorTest, InstructionIndexTest) {
 }
 
 TEST(MutatorTest, SetupOpTest) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{}, 0.0,
@@ -149,7 +150,7 @@ TEST(MutatorTest, SetupOpTest) {
 }
 
 TEST(MutatorTest, PredictOpTest) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{}, 0.0,
@@ -168,7 +169,7 @@ TEST(MutatorTest, PredictOpTest) {
 }
 
 TEST(MutatorTest, LearnOpTest) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{}, 0.0,
@@ -187,7 +188,7 @@ TEST(MutatorTest, LearnOpTest) {
 }
 
 TEST(MutatorTest, ComponentFunctionTest_SetupPredictLearn) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{}, 0.0,
@@ -207,7 +208,7 @@ TEST(MutatorTest, ComponentFunctionTest_SetupPredictLearn) {
 }
 
 TEST(MutatorTest, ComponentFunctionTest_Setup) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{}, 0.0,
@@ -225,7 +226,7 @@ TEST(MutatorTest, ComponentFunctionTest_Setup) {
 }
 
 TEST(MutatorTest, ComponentFunctionTest_Predict) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{}, 0.0,
@@ -243,7 +244,7 @@ TEST(MutatorTest, ComponentFunctionTest_Predict) {
 }
 
 TEST(MutatorTest, ComponentFunctionTest_Learn) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{}, 0.0,
@@ -372,7 +373,7 @@ TEST(MutatorTest, RandomizeComponentFunction) {
 }
 
 TEST(MutatorTest, IdentityMutationAction_WorksCorrectly) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   const Algorithm algorithm = SimpleRandomAlgorithm();
   Mutator mutator(
@@ -389,7 +390,7 @@ TEST(MutatorTest, IdentityMutationAction_WorksCorrectly) {
 
 TEST(InsertInstructionMutationActionTest, CoversComponentFunctions) {
   const Algorithm no_op_algorithm = SimpleRandomAlgorithm();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kInsertInstructionMutationAction},
@@ -411,7 +412,7 @@ TEST(InsertInstructionMutationActionTest, CoversComponentFunctions) {
 TEST(InsertInstructionMutationActionTest, CoversSetupPositions) {
   const Algorithm no_op_algorithm = SimpleNoOpAlgorithm();
   const IntegerT component_function_size = no_op_algorithm.setup_.size();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kInsertInstructionMutationAction},
@@ -436,7 +437,7 @@ TEST(InsertInstructionMutationActionTest, CoversSetupPositions) {
 TEST(InsertInstructionMutationActionTest, CoversPredictPositions) {
   const Algorithm no_op_algorithm = SimpleNoOpAlgorithm();
   const IntegerT component_function_size = no_op_algorithm.predict_.size();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kInsertInstructionMutationAction},
@@ -461,7 +462,7 @@ TEST(InsertInstructionMutationActionTest, CoversPredictPositions) {
 TEST(InsertInstructionMutationActionTest, CoversLearnPositions) {
   const Algorithm no_op_algorithm = SimpleNoOpAlgorithm();
   const IntegerT component_function_size = no_op_algorithm.learn_.size();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kInsertInstructionMutationAction},
@@ -489,7 +490,7 @@ TEST(InsertInstructionMutationActionTest, InsertsWhenUnderMinSize) {
   const IntegerT predict_component_function_size =
       no_op_algorithm.predict_.size();
   const IntegerT learn_component_function_size = no_op_algorithm.learn_.size();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kInsertInstructionMutationAction},
@@ -511,7 +512,7 @@ TEST(InsertInstructionMutationActionTest, InsertsWhenUnderMinSize) {
 
 TEST(InsertInstructionMutationActionTest, DoesNotInsertWhenOverMaxSize) {
   const Algorithm no_op_algorithm = SimpleNoOpAlgorithm();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kInsertInstructionMutationAction},
@@ -528,7 +529,7 @@ TEST(InsertInstructionMutationActionTest, DoesNotInsertWhenOverMaxSize) {
 
 TEST(InsertInstructionMutationActionTest, CoversSetupInstructions) {
   const Algorithm empty_algorithm;
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kInsertInstructionMutationAction},
@@ -553,7 +554,7 @@ TEST(InsertInstructionMutationActionTest, CoversSetupInstructions) {
 
 TEST(InsertInstructionMutationActionTest, CoversPredictInstructions) {
   const Algorithm empty_algorithm;
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kInsertInstructionMutationAction},
@@ -578,7 +579,7 @@ TEST(InsertInstructionMutationActionTest, CoversPredictInstructions) {
 
 TEST(InsertInstructionMutationActionTest, CoversLearnInstructions) {
   const Algorithm empty_algorithm;
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kInsertInstructionMutationAction},
@@ -603,7 +604,7 @@ TEST(InsertInstructionMutationActionTest, CoversLearnInstructions) {
 
 TEST(RemoveInstructionMutationActionTest, CoversComponentFunctions) {
   const Algorithm random_algorithm = SimpleRandomAlgorithm();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kRemoveInstructionMutationAction},
@@ -622,7 +623,7 @@ TEST(RemoveInstructionMutationActionTest, CoversComponentFunctions) {
 TEST(RemoveInstructionMutationActionTest, CoversSetupPositions) {
   const Algorithm algorithm = SimpleIncreasingDataAlgorithm();
   const IntegerT component_function_size = algorithm.setup_.size();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kRemoveInstructionMutationAction},
@@ -648,7 +649,7 @@ TEST(RemoveInstructionMutationActionTest, CoversSetupPositions) {
 TEST(RemoveInstructionMutationActionTest, CoversPredictPositions) {
   const Algorithm algorithm = SimpleIncreasingDataAlgorithm();
   const IntegerT component_function_size = algorithm.predict_.size();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kRemoveInstructionMutationAction},
@@ -674,7 +675,7 @@ TEST(RemoveInstructionMutationActionTest, CoversPredictPositions) {
 TEST(RemoveInstructionMutationActionTest, CoversLearnPositions) {
   const Algorithm algorithm = SimpleIncreasingDataAlgorithm();
   const IntegerT component_function_size = algorithm.learn_.size();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kRemoveInstructionMutationAction},
@@ -699,7 +700,7 @@ TEST(RemoveInstructionMutationActionTest, CoversLearnPositions) {
 
 TEST(RemoveInstructionMutationActionTest, DoesNotRemoveWhenUnderMinSize) {
   const Algorithm no_op_algorithm = SimpleNoOpAlgorithm();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kRemoveInstructionMutationAction},
@@ -720,7 +721,7 @@ TEST(RemoveInstructionMutationActionTest, RemovesWhenOverMaxSize) {
   const IntegerT predict_component_function_size =
       no_op_algorithm.predict_.size();
   const IntegerT learn_component_function_size = no_op_algorithm.learn_.size();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kRemoveInstructionMutationAction},
@@ -742,7 +743,7 @@ TEST(RemoveInstructionMutationActionTest, RemovesWhenOverMaxSize) {
 
 TEST(TradeInstructionMutationActionTest, CoversComponentFunctions) {
   const Algorithm random_algorithm = SimpleRandomAlgorithm();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kTradeInstructionMutationAction},
@@ -760,7 +761,7 @@ TEST(TradeInstructionMutationActionTest, CoversComponentFunctions) {
 
 TEST(TradeInstructionMutationActionTest, PreservesSizes) {
   const Algorithm random_algorithm = SimpleRandomAlgorithm();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
       vector<IntegerT>{kTradeInstructionMutationAction},
@@ -777,7 +778,7 @@ TEST(TradeInstructionMutationActionTest, PreservesSizes) {
 
 TEST(MutatorTest, RandomizeAlgorithm) {
   RandomGenerator rand_gen = SimpleRandomGenerator();
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   const Algorithm algorithm = SimpleRandomAlgorithm();
   const IntegerT setup_size = algorithm.setup_.size();
   const IntegerT predict_size = algorithm.predict_.size();
