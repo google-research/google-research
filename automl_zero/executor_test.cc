@@ -16,6 +16,7 @@
 
 #include <iostream>
 #include <limits>
+#include <random>
 #include <vector>
 
 #include "datasets.proto.h"
@@ -34,7 +35,6 @@
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
 #include "third_party/eigen3/Eigen/Core"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -45,6 +45,7 @@ using ::std::abs;  // NOLINT
 using ::std::isinf;  // NOLINT
 using ::std::isnan;  // NOLINT
 using ::std::make_shared;  // NOLINT
+using ::std::mt19937;  // NOLINT
 using ::std::vector;  // NOLINT
 using ::testing::ElementsAre;
 using ::testing::Test;
@@ -1235,7 +1236,7 @@ class ExecuteInstructionTest : public Test {
   const AddressT in2_;
   const AddressT out_;
   Memory<4> memory_;
-  MTRandom bit_gen_;
+  mt19937 bit_gen_;
   RandomGenerator train_rand_gen_;
 };
 
@@ -1813,7 +1814,7 @@ TEST_F(ExecuteInstructionTest, ProbabilityRelated_ScalarGaussianSetOp) {
       MakeZeroInputsInstruction(SCALAR_GAUSSIAN_SET_OP,
                                 FloatDataSetter(20.0),
                                 FloatDataSetter(10.0)),
-      34.9785);
+      28.042686);
   VerifyNothingToScalarIsRandomized(
       MakeZeroInputsInstruction(SCALAR_GAUSSIAN_SET_OP,
                                 FloatDataSetter(20.0),
@@ -1824,7 +1825,7 @@ TEST_F(ExecuteInstructionTest, ProbabilityRelated_VectorGaussianSetOldOp) {
   VerifyNothingToVectorEquals(
       MakeZeroInputsInstruction(VECTOR_GAUSSIAN_SET_OLD_OP,
                                 ActivationDataSetter(0.1)),
-      {0.149785, 0.0306481, 0.115642, -0.0957981});
+      {0.0804269, -0.00150771, 0.178303, 0.0416377});
   VerifyNothingToVectorIsRandomized(
       MakeZeroInputsInstruction(VECTOR_GAUSSIAN_SET_OLD_OP,
                                 ActivationDataSetter(0.1)));
@@ -1835,7 +1836,7 @@ TEST_F(ExecuteInstructionTest, ProbabilityRelated_VectorGaussianSetOp) {
       MakeZeroInputsInstruction(VECTOR_GAUSSIAN_SET_OP,
                                 FloatDataSetter(20.0),
                                 FloatDataSetter(10.0)),
-      {34.9785, 23.0648, 31.5642, 10.4202});
+      {28.0427, 19.8492, 37.8303, 24.1638});
   VerifyNothingToVectorIsRandomized(
       MakeZeroInputsInstruction(VECTOR_GAUSSIAN_SET_OP,
                                 FloatDataSetter(20.0),
@@ -1846,10 +1847,10 @@ TEST_F(ExecuteInstructionTest, ProbabilityRelated_MatrixGaussianSetOldOp) {
   VerifyNothingToMatrixEquals(
       MakeZeroInputsInstruction(MATRIX_GAUSSIAN_SET_OLD_OP,
                                 ActivationDataSetter(0.1)),
-      {0.149785, 0.0306481, 0.115642, -0.0957981,
-       0.0176142, 0.00338152, -0.247312, 0.0499434,
-       -0.00362454, 0.0494933, -0.120259, 0.178419,
-       -0.187164, 0.00598776, -0.0320033, -0.0676048});
+      {0.0804269, -0.00150771, 0.178303, 0.0416377,
+       0.126852, 0.0111104, -0.0138105, 0.0856213,
+       0.0580157, -0.0448301, 0.164389, 0.0162463,
+       -0.0230088, 0.268562, 0.0362391, -0.0849112});
   VerifyNothingToMatrixIsRandomized(
       MakeZeroInputsInstruction(MATRIX_GAUSSIAN_SET_OLD_OP,
                                 ActivationDataSetter(0.1)));
@@ -1860,10 +1861,10 @@ TEST_F(ExecuteInstructionTest, ProbabilityRelated_MatrixGaussianSetOp) {
       MakeZeroInputsInstruction(MATRIX_GAUSSIAN_SET_OP,
                                 FloatDataSetter(0.0),
                                 FloatDataSetter(0.1)),
-      {0.149785, 0.0306481, 0.115642, -0.0957981,
-       0.0176142, 0.00338152, -0.247312, 0.0499434,
-       -0.00362454, 0.0494933, -0.120259, 0.178419,
-       -0.187164, 0.00598776, -0.0320033, -0.0676048});
+      {0.0804269, -0.00150771, 0.178303, 0.0416377,
+       0.126852, 0.0111104, -0.0138105, 0.0856213,
+       0.0580157, -0.0448301, 0.164389, 0.0162463,
+       -0.0230088, 0.268562, 0.0362391, -0.0849112});
   VerifyNothingToMatrixIsRandomized(
       MakeZeroInputsInstruction(MATRIX_GAUSSIAN_SET_OP,
                                 FloatDataSetter(0.0),
@@ -1875,7 +1876,7 @@ TEST_F(ExecuteInstructionTest, ProbabilityRelated_ScalarUniformSetOp) {
       MakeZeroInputsInstruction(SCALAR_UNIFORM_SET_OP,
                                 FloatDataSetter(-2.5),
                                 FloatDataSetter(-2.0)),
-      -2.26002);
+      -2.3562196);
   VerifyNothingToScalarIsRandomized(
       MakeZeroInputsInstruction(SCALAR_UNIFORM_SET_OP,
                                 FloatDataSetter(-2.5),
@@ -1887,7 +1888,7 @@ TEST_F(ExecuteInstructionTest, ProbabilityRelated_VectorUniformSetOp) {
       MakeZeroInputsInstruction(VECTOR_UNIFORM_SET_OP,
                                 FloatDataSetter(-2.5),
                                 FloatDataSetter(-2.0)),
-      {-2.26002, -2.38275, -2.28713, -2.13943});
+      {-2.35622, -2.24588, -2.25098, -2.10917});
   VerifyNothingToVectorIsRandomized(
       MakeZeroInputsInstruction(VECTOR_UNIFORM_SET_OP,
                                 FloatDataSetter(-2.5),
@@ -1899,53 +1900,14 @@ TEST_F(ExecuteInstructionTest, ProbabilityRelated_MatrixUniformSetOp) {
       MakeZeroInputsInstruction(MATRIX_UNIFORM_SET_OP,
                                 FloatDataSetter(-2.5),
                                 FloatDataSetter(-2.0)),
-      {-2.26002, -2.38275, -2.28713, -2.13943,
-       -2.47602, -2.49571, -2.0132, -2.43662,
-       -2.23799, -2.39635, -2.1389, -2.27766,
-       -2.02962, -2.47321, -2.14697, -2.11322});
+      {-2.35622, -2.24588, -2.25098, -2.10917,
+       -2.4388, -2.35507, -2.48641, -2.21651,
+       -2.2658, -2.2554, -2.04414, -2.17942,
+       -2.29889, -2.4564, -2.14704, -2.28224});
   VerifyNothingToMatrixIsRandomized(
       MakeZeroInputsInstruction(MATRIX_UNIFORM_SET_OP,
                                 FloatDataSetter(-2.5),
                                 FloatDataSetter(-2.0)));
-}
-
-TEST_F(ExecuteInstructionTest, ProbabilityRelated_ScalarBetaSetOp) {
-  VerifyNothingToScalarEquals(
-      MakeZeroInputsInstruction(SCALAR_BETA_SET_OP,
-                                FloatDataSetter(0.5),
-                                FloatDataSetter(0.5)),
-      0.807292);
-  VerifyNothingToScalarIsRandomized(
-      MakeZeroInputsInstruction(SCALAR_BETA_SET_OP,
-                                FloatDataSetter(0.5),
-                                FloatDataSetter(0.5)));
-}
-
-TEST_F(ExecuteInstructionTest, ProbabilityRelated_VectorBetaSetOp) {
-  VerifyNothingToVectorEquals(
-      MakeZeroInputsInstruction(VECTOR_BETA_SET_OP,
-                                FloatDataSetter(0.5),
-                                FloatDataSetter(0.5)),
-      {0.807292, 0.258444, 0.968962, 0.983333});
-  VerifyNothingToVectorIsRandomized(
-      MakeZeroInputsInstruction(VECTOR_BETA_SET_OP,
-                                FloatDataSetter(0.5),
-                                FloatDataSetter(0.5)));
-}
-
-TEST_F(ExecuteInstructionTest, ProbabilityRelated_MatrixBetaSetOp) {
-  VerifyNothingToMatrixEquals(
-      MakeZeroInputsInstruction(MATRIX_BETA_SET_OP,
-                                FloatDataSetter(0.5),
-                                FloatDataSetter(0.5)),
-      {0.807292, 0.258444, 0.968962, 0.983333,
-       0.86468, 0.725095, 0.996766, 0.000868935,
-       2.93905e-05, 0.000106427, 0.998152, 0.988835,
-       0.959029, 0.0266652, 0.417681, 0.660221});
-  VerifyNothingToMatrixIsRandomized(
-      MakeZeroInputsInstruction(MATRIX_BETA_SET_OP,
-                                FloatDataSetter(0.5),
-                                FloatDataSetter(0.5)));
 }
 
 TEST_F(ExecuteInstructionTest, Debug_ScalarPrintOp) {

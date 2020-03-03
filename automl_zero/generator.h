@@ -16,6 +16,7 @@
 #define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_GENERATOR_H_
 
 #include <memory>
+#include <random>
 
 #include "algorithm.h"
 #include "definitions.h"
@@ -73,7 +74,7 @@ class Generator {
       // empty if deterministic models will be generated.
       const std::vector<Op>& allowed_learn_ops,
       // Can be a nullptr if only deterministic models will be generated.
-      MTRandom* bit_gen,
+      std::mt19937* bit_gen,
       // Can be a nullptr if only deterministic models will be generated.
       RandomGenerator* rand_gen);
   Generator(const Generator&) = delete;
@@ -122,7 +123,7 @@ class Generator {
   const std::vector<Op> allowed_setup_ops_;
   const std::vector<Op> allowed_predict_ops_;
   const std::vector<Op> allowed_learn_ops_;
-  std::unique_ptr<MTRandom> bit_gen_owned_;
+  std::unique_ptr<std::mt19937> bit_gen_owned_;
   std::unique_ptr<RandomGenerator> rand_gen_owned_;
   RandomGenerator* rand_gen_;
   Randomizer randomizer_;

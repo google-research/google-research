@@ -52,10 +52,12 @@ message DatasetSpec {
   // be incrementing from the last seed in data_seeds. If data_seeds is empty,
   // the default seeds will be used. See FillDatasets function in
   // dataset_util.cc for more details.
+  // TODO(crazydonkey): make sure the random seed is never 0.
   repeated uint32 data_seeds = 4;
 
   // Seeds for the parameters that determine the labels function. Same rules
   // as for data_seeds apply.
+  // TODO(crazydonkey): make sure the random seed is never 0.
   repeated uint32 param_seeds = 5;
 
   // See dataset_type case for allowed EvalType values.
@@ -168,6 +170,7 @@ message ProjectedBinaryClassificationDataset {
   // (2) when the dataset is randomized, i.e., when `positive_class` and
   // `negative_classess` are not set, the `data_seed` is also used
   // to randomly select a the positive and negative classes.
+  // TODO(crazydonkey): make sure the random seed is never 0.
   optional int32 min_supported_data_seed = 8 [default = 0];
   optional int32 max_supported_data_seed = 9 [default = 10];
 }

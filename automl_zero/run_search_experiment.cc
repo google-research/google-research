@@ -18,6 +18,7 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <random>
 
 
 #include "glog/logging.h"
@@ -38,7 +39,6 @@
 #include "google/protobuf/text_format.h"
 #include "absl/flags/flag.h"
 #include "absl/time/time.h"
-#include "util/random/mt_random.h"
 #include "util/scaffolding/util/flag_types.h"
 
 typedef brain::evolution::amlz::IntegerT IntegerT;
@@ -204,6 +204,7 @@ using ::absl::make_unique;  // NOLINT
 using ::std::cout;  // NOLINT
 using ::std::endl;  // NOLINT
 using ::std::make_shared;  // NOLINT
+using ::std::mt19937;  // NOLINT
 using ::std::numeric_limits;  // NOLINT
 using ::std::shared_ptr;  // NOLINT
 using ::std::unique_ptr;  // NOLINT
@@ -216,7 +217,7 @@ void run() {
   if (random_seed == 0) {
     random_seed = GenerateRandomSeed();
   }
-  MTRandom bit_gen(random_seed);
+  mt19937 bit_gen(random_seed);
   RandomGenerator rand_gen(&bit_gen);
   cout << "Random seed = " << random_seed << endl;
 
@@ -305,7 +306,7 @@ void run() {
     if (GetFlag(FLAGS_randomize_task_seeds)) {
       RandomizeDatasetSeeds(&select_tasks, rand_gen.UniformRandomSeed());
     }
-    MTRandom select_bit_gen(rand_gen.UniformRandomSeed());
+    mt19937 select_bit_gen(rand_gen.UniformRandomSeed());
     RandomGenerator select_rand_gen(&select_bit_gen);
     Evaluator select_evaluator(
         MEAN_FITNESS_COMBINATION,
@@ -347,7 +348,7 @@ void run() {
        << "(on unseen tasks)..." << endl;
   const auto final_tasks =
       ParseTextFormat<DatasetCollection>(GetFlag(FLAGS_final_tasks));
-  MTRandom final_bit_gen(rand_gen.UniformRandomSeed());
+  mt19937 final_bit_gen(rand_gen.UniformRandomSeed());
   RandomGenerator final_rand_gen(&final_bit_gen);
   Evaluator final_evaluator(
       MEAN_FITNESS_COMBINATION,

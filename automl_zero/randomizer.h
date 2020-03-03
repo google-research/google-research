@@ -16,10 +16,10 @@
 #define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_RANDOMIZER_H_
 
 #include <memory>
+#include <random>
 
 #include "definitions.h"
 #include "definitions.proto.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -42,7 +42,7 @@ class Randomizer {
       // Ops that can be introduced into the learn component_function.
       // Empty means the component_function is not randomized.
       std::vector<Op> allowed_learn_ops,
-      MTRandom* bit_gen,
+      std::mt19937* bit_gen,
       RandomGenerator* rand_gen);
 
   // Randomizes the entire Algorithm (all three component_functions).
@@ -70,7 +70,7 @@ class Randomizer {
   const std::vector<Op> allowed_setup_ops_;
   const std::vector<Op> allowed_predict_ops_;
   const std::vector<Op> allowed_learn_ops_;
-  MTRandom* bit_gen_;
+  std::mt19937* bit_gen_;
   RandomGenerator* rand_gen_;
 };
 

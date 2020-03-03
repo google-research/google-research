@@ -16,6 +16,7 @@
 
 #include <array>
 #include <cstdint>
+#include <random>
 #include <type_traits>
 #include <unordered_set>
 #include <vector>
@@ -27,7 +28,6 @@
 #include "test_util.h"
 #include "google/protobuf/enum-utils.h"
 #include "gtest/gtest.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -37,6 +37,7 @@ using ::proto2::contrib::utils::EnumerateEnumValues;
 using ::std::abs;  // NOLINT
 using ::std::find;  // NOLINT
 using ::std::function;  // NOLINT
+using ::std::mt19937;  // NOLINT
 using ::std::round;  // NOLINT
 using ::std::unordered_set;  // NOLINT
 using ::std::vector;  // NOLINT
@@ -1547,7 +1548,7 @@ TEST(DiscretizationTest, ApproximatesCorrectly) {
 }
 
 TEST(InstructionTest, SerializesCorrectly) {
-  MTRandom bit_gen;
+  mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   for (Op op : TestableOps()) {
     Instruction instr_src(op, &rand_gen);

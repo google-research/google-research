@@ -18,13 +18,13 @@
 
 #include "algorithm.h"
 #include "random_generator.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
 namespace amlz {
 
 using ::std::make_shared;  // NOLINT
+using ::std::mt19937;  // NOLINT
 using ::std::shared_ptr;  // NOLINT
 using ::std::vector;  // NOLINT
 
@@ -32,7 +32,7 @@ Randomizer::Randomizer(
     vector<Op> allowed_setup_ops,
     vector<Op> allowed_predict_ops,
     vector<Op> allowed_learn_ops,
-    MTRandom* bit_gen,
+    mt19937* bit_gen,
     RandomGenerator* rand_gen)
     : allowed_setup_ops_(allowed_setup_ops),
       allowed_predict_ops_(allowed_predict_ops),

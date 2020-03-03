@@ -16,6 +16,7 @@
 #define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DATASET_UTIL_H_
 
 #include <array>
+#include <random>
 #include <type_traits>
 
 #include "base/integral_types.h"
@@ -29,7 +30,6 @@
 #include "random_generator.h"
 #include "sstable/public/sstable.h"
 #include "stats/util/statistics.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -138,9 +138,9 @@ struct ScalarLinearRegressionDatasetCreator {
                      IntegerT num_valid_examples, RandomSeedT param_seed,
                      RandomSeedT data_seed, DatasetBuffer<F>* buffer) {
     ClearAndResize(num_train_examples, num_valid_examples, buffer);
-    MTRandom data_bit_gen(data_seed + 939723201);
+    std::mt19937 data_bit_gen(data_seed + 939723201);
     RandomGenerator data_gen = RandomGenerator(&data_bit_gen);
-    MTRandom param_bit_gen(param_seed + 997958712);
+    std::mt19937 param_bit_gen(param_seed + 997958712);
     RandomGenerator weights_gen = RandomGenerator(&param_bit_gen);
     Generator generator(kNoOpModel, 0, 0, 0, {}, {}, {}, nullptr,
                         nullptr);
@@ -175,9 +175,9 @@ struct Scalar2LayerNnRegressionDatasetCreator {
                      IntegerT num_valid_examples, RandomSeedT param_seed,
                      RandomSeedT data_seed, DatasetBuffer<F>* buffer) {
     ClearAndResize(num_train_examples, num_valid_examples, buffer);
-    MTRandom data_bit_gen(data_seed + 865546086);
+    std::mt19937 data_bit_gen(data_seed + 865546086);
     RandomGenerator data_gen = RandomGenerator(&data_bit_gen);
-    MTRandom param_bit_gen(param_seed + 174299604);
+    std::mt19937 param_bit_gen(param_seed + 174299604);
     RandomGenerator weights_gen = RandomGenerator(&param_bit_gen);
     Generator generator(kNoOpModel, 0, 0, 0, {}, {}, {}, nullptr,
                         nullptr);
@@ -257,7 +257,7 @@ struct ProjectedBinaryClassificationDatasetCreator {
           data_seed % num_supported_data_seeds);
     } else if (!dataset_spec.has_positive_class() &&
                !dataset_spec.has_negative_class()) {
-      MTRandom dataset_bit_gen(CustomHashMix(
+      std::mt19937 dataset_bit_gen(CustomHashMix(
           static_cast<RandomSeedT>(856572777), data_seed));
       RandomGenerator dataset_gen = RandomGenerator(
           &dataset_bit_gen);
@@ -526,7 +526,7 @@ std::unique_ptr<Dataset<F>> CreateDataset(const IntegerT dataset_index,
       break;
   }
 
-  MTRandom data_bit_gen(data_seed + 3274582109);
+  std::mt19937 data_bit_gen(data_seed + 3274582109);
   CHECK_EQ(buffer.train_features_.size(), dataset_spec.num_train_examples());
   CHECK_EQ(buffer.train_labels_.size(), dataset_spec.num_train_examples());
   CHECK_EQ(buffer.valid_features_.size(), dataset_spec.num_valid_examples());
@@ -540,6 +540,7 @@ std::unique_ptr<Dataset<F>> CreateDataset(const IntegerT dataset_index,
 
 // Randomizes all the seeds given a base seed. See "internal workflow" comment
 // in datasets.proto.
+// TODO(crazydonkey): make sure the random seed is never 0.
 void RandomizeDatasetSeeds(DatasetCollection* dataset_collection,
                            RandomSeedT seed);
 

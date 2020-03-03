@@ -48,6 +48,7 @@ using ::absl::make_unique;  // NOLINT
 using ::std::enable_if;  // NOLINT
 using ::std::endl;  // NOLINT
 using ::std::max;  // NOLINT
+using ::std::mt19937;  // NOLINT
 using ::std::is_same;  // NOLINT
 using ::std::unique_ptr;  // NOLINT
 using ::std::vector;  // NOLINT
@@ -142,13 +143,13 @@ void RandomizeDatasetSeeds(DatasetCollection* dataset_collection,
                            const RandomSeedT seed) {
   RandomSeedT base_param_seed =
       CustomHashMix(static_cast<RandomSeedT>(85652777), seed);
-  MTRandom param_seed_bit_gen(base_param_seed);
+  mt19937 param_seed_bit_gen(base_param_seed);
   RandomGenerator param_seed_gen = RandomGenerator(
       &param_seed_bit_gen);
 
   RandomSeedT base_data_seed =
       CustomHashMix(static_cast<RandomSeedT>(38272328), seed);
-  MTRandom data_seed_bit_gen(base_data_seed);
+  mt19937 data_seed_bit_gen(base_data_seed);
   RandomGenerator data_seed_gen = RandomGenerator(
       &data_seed_bit_gen);
 

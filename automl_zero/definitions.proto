@@ -23,6 +23,8 @@ package brain.evolution.amlz;
 // The possible operations.
 // NEXT INDEX: 77.
 enum Op {
+  // TODO(ereal): match numbers to op in table.
+  // TODO(ereal): remove ops not in table.
   NO_OP = 0;
 
   // Scalar arithmetic-related instructions.

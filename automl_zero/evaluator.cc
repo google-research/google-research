@@ -35,7 +35,6 @@
 #include "absl/flags/flag.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
-#include "util/random/mt_random.h"
 
 namespace brain {
 namespace evolution {
@@ -50,6 +49,7 @@ using ::std::endl;  // NOLINT
 using ::std::fixed;  // NOLINT
 using ::std::make_shared;  // NOLINT
 using ::std::min;  // NOLINT
+using ::std::mt19937;  // NOLINT
 using ::std::pair;  // NOLINT
 using ::std::setprecision;  // NOLINT
 using ::std::vector;  // NOLINT
@@ -71,7 +71,7 @@ Evaluator::Evaluator(const FitnessCombinationMode fitness_combination_mode,
       rand_gen_(rand_gen),
       functional_cache_(functional_cache),
       functional_cache_bit_gen_owned_(
-          make_unique<MTRandom>(kFunctionalCacheRandomSeed)),
+          make_unique<mt19937>(kFunctionalCacheRandomSeed)),
       functional_cache_rand_gen_owned_(make_unique<RandomGenerator>(
           functional_cache_bit_gen_owned_.get())),
       functional_cache_rand_gen_(functional_cache_rand_gen_owned_.get()),
@@ -153,7 +153,7 @@ double Evaluator::ExecuteImpl(const Dataset<F>& dataset,
   if (functional_cache_ != nullptr) {
     CHECK_LE(functional_cache_->NumTrainExamples(), dataset.MaxTrainExamples());
     CHECK_LE(functional_cache_->NumValidExamples(), dataset.ValidSteps());
-    functional_cache_bit_gen_owned_->Reset(kFunctionalCacheRandomSeed);
+    functional_cache_bit_gen_owned_->seed(kFunctionalCacheRandomSeed);
     Executor<F> functional_cache_executor(
         algorithm, dataset, functional_cache_->NumTrainExamples(),
         functional_cache_->NumValidExamples(), functional_cache_rand_gen_,
