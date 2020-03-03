@@ -17,15 +17,11 @@
 
 #include "random_generator.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 // Returns a simple random generator.
 RandomGenerator SimpleRandomGenerator();
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_RANDOM_GENERATOR_TEST_UTIL_H_

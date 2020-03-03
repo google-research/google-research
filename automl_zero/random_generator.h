@@ -22,9 +22,7 @@
 #include "definitions.h"
 #include "absl/random/random.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 // Thread-compatible, but not thread-safe.
 class RandomGenerator {
@@ -164,8 +162,6 @@ void RandomGenerator::FillBeta(
   }
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_RANDOM_GENERATOR_H_

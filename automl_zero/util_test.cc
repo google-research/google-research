@@ -18,9 +18,7 @@
 
 #include "gtest/gtest.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 namespace {
 
 TEST(UtilTest, Pow2WorksCorrectly) {
@@ -36,6 +34,4 @@ TEST(UtilTest, VectorEqTest) {
 }
 
 }  // namespace
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

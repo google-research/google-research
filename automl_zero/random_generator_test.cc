@@ -23,9 +23,7 @@
 #include "gtest/gtest.h"
 #include "absl/container/node_hash_set.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::std::round;
 using ::std::function;
@@ -431,6 +429,4 @@ TEST(GenerateRandomSeedTest, GeneratesDifferentSeeds) {
   EXPECT_NE(seed1, seed2);
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

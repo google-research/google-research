@@ -29,9 +29,7 @@
 #include "test_util.h"
 #include "gtest/gtest.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::std::function;  // NOLINT
 using ::std::make_shared;  // NOLINT
@@ -803,6 +801,4 @@ TEST(MutatorTest, RandomizeAlgorithm) {
       Range<IntegerT>(0, num_instr + 1), {num_instr}));
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

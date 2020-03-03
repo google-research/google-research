@@ -14,14 +14,10 @@
 
 #include "mutator_test_util.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 Mutator SimpleMutator() {
   return Mutator();
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

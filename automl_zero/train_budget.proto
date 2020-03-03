@@ -20,7 +20,7 @@
 
 syntax = "proto2";
 
-package brain.evolution.amlz;
+package automl_zero;
 
 message TrainBudgetSpec {
   // A Algorithm to use as a reference. See `TrainExamples`.

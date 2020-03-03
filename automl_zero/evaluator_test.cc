@@ -32,9 +32,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::absl::StrCat;  // NOLINT
 using ::std::function;  // NOLINT
@@ -158,6 +156,4 @@ TEST(CombineFitnessesTest, MedianWorksCorrectly) {
 
 }  // namespace internal
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

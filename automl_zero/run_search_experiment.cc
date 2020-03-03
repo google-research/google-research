@@ -41,9 +41,9 @@
 #include "absl/time/time.h"
 #include "util/scaffolding/util/flag_types.h"
 
-typedef brain::evolution::amlz::IntegerT IntegerT;
-typedef brain::evolution::amlz::RandomSeedT RandomSeedT;
-typedef brain::evolution::amlz::InstructionIndexT InstructionIndexT;
+typedef automl_zero::IntegerT IntegerT;
+typedef automl_zero::RandomSeedT RandomSeedT;
+typedef automl_zero::InstructionIndexT InstructionIndexT;
 
 ABSL_FLAG(
     std::string, experiment_spec, "",
@@ -127,9 +127,9 @@ ABSL_FLAG(
     scaffolding::FlagList<IntegerT>,
     mutation_actions,
     scaffolding::FlagList<IntegerT>({
-        brain::evolution::amlz::kAlterParamMutationAction,
-        brain::evolution::amlz::kRandomizeInstructionMutationAction,
-        brain::evolution::amlz::kRandomizeComponentFunctionMutationAction}),
+        automl_zero::kAlterParamMutationAction,
+        automl_zero::kRandomizeInstructionMutationAction,
+        automl_zero::kRandomizeComponentFunctionMutationAction}),
     "See the MutationAction enum.");
 ABSL_FLAG(
     InstructionIndexT,
@@ -193,9 +193,7 @@ ABSL_FLAG(
     "Determines the maximum number of examples to train for when using certain "
     "training budgets. See TimeTrainBudget.");
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 namespace {
 using ::absl::GetCurrentTimeNanos;  // NOLINT
@@ -367,12 +365,10 @@ void run() {
        << best_algorithm->ToReadable() << endl;
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
-  brain::evolution::amlz::run();
+  automl_zero::run();
   return 0;
 }

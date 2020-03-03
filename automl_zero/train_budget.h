@@ -19,9 +19,7 @@
 #include "instruction.h"
 #include "train_budget.proto.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 // Class to determine how long a given algorithm should be trained for.
 class TrainBudget {
@@ -61,8 +59,6 @@ std::unique_ptr<TrainBudget> BuildTrainBudget(
     // Generator to create baseline.
     Generator* generator);
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_TRAIN_BUDGET_H_

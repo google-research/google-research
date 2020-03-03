@@ -21,9 +21,7 @@
 #include "definitions.h"
 #include "absl/flags/flag.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 // Instantiate only once per worker. Then use Wipe() to wipe clean. Unit tests
 // may create multiple ones.
@@ -72,8 +70,6 @@ void Memory<F>::Wipe() {
   }
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_MEMORY_H_

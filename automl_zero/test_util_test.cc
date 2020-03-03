@@ -21,9 +21,7 @@
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::std::function;  // NOLINT;
 using ::std::pair;  // NOLINT;
@@ -90,6 +88,4 @@ TEST(CartesianProductTest, WorksCorrectly) {
                                    Pair(2, 3), Pair(2, 4)));
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

@@ -21,9 +21,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::absl::GetCurrentTimeNanos;
 using ::absl::make_unique;
@@ -158,6 +156,4 @@ RandomSeedT GenerateRandomSeed() {
       GetCurrentTimeNanos() % numeric_limits<RandomSeedT>::max());
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

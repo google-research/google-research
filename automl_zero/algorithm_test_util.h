@@ -21,9 +21,7 @@
 #include "algorithm.proto.h"
 #include "testing/base/public/gmock.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 // Convenience method to generate a Algorithm with an ID tag.
 Algorithm DnaFromId(const IntegerT algorithm_id);
@@ -105,8 +103,6 @@ IntegerT MissingDataInComponentFunction(
     const std::vector<std::shared_ptr<const Instruction>>& component_function1,
     const std::vector<std::shared_ptr<const Instruction>>& component_function2);
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_ALGORITHM_TEST_UTIL_H_

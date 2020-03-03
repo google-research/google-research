@@ -18,9 +18,7 @@
 #include "compute_cost.h"
 #include "absl/memory/memory.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::absl::make_unique;  // NOLINT
 using ::std::endl;  // NOLINT
@@ -62,6 +60,4 @@ unique_ptr<TrainBudget> BuildTrainBudget(
       baseline_algorithm, train_budget_spec.train_budget_threshold_factor());
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

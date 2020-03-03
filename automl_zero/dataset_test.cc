@@ -18,9 +18,7 @@
 #include "definitions.h"
 #include "gtest/gtest.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using test_only::GenerateDataset;
 
@@ -119,6 +117,4 @@ TEST(DatasetTest, EpochsContainShuffledTrainExamples) {
       kDataTolerance);
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

@@ -25,9 +25,7 @@
 #include "random_generator.h"
 #include "absl/strings/str_replace.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::std::abs;  // NOLINT
 using ::std::max;  // NOLINT
@@ -1488,6 +1486,4 @@ void Instruction::Deserialize(
       checkpoint_instruction.discretized_activation_data_3());
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

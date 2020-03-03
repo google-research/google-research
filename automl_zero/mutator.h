@@ -25,9 +25,7 @@
 #include "randomizer.h"
 #include "testing/production_stub/public/gunit_prod.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 enum MutationAction : IntegerT {
   // Modifies a single parameter within one instruction. Does not change the op.
@@ -194,9 +192,7 @@ class Mutator {
   Randomizer randomizer_;
 };
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_MUTATOR_H_

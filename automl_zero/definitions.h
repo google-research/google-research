@@ -73,9 +73,7 @@
   #define MAX_MATRIX_ADDRESSES 20
 #endif
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Types.
@@ -348,8 +346,6 @@ NumberT CustomHashMix(NumberT first, NumberT second) {
   return CustomHashMix<NumberT>({first, second});
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DEFINITIONS_H_

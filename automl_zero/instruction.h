@@ -29,9 +29,7 @@
 #include "definitions.h"
 #include "random_generator.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 // TODO(ereal): remove eventually.
 typedef uint8_t Discretizeddouble;
@@ -313,8 +311,6 @@ inline void MutateVectorFixedScale(
       rand_gen->GaussianActivation(0.0, 1.0) * kActivationMutationFixedScale;
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_INSTRUCTION_H_

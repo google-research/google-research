@@ -29,9 +29,7 @@
 #include "random_generator.h"
 #include "train_budget.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 class Algorithm;
 
@@ -105,8 +103,6 @@ double CombineFitnesses(
 
 }  // namespace internal
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_EVALUATOR_H_

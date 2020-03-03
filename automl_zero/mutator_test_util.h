@@ -18,14 +18,10 @@
 #include "mutator.h"
 #include "testing/base/public/gmock.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 Mutator SimpleMutator();
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_MUTATOR_TEST_UTIL_H_

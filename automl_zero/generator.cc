@@ -20,9 +20,7 @@
 #include "random_generator.h"
 #include "absl/memory/memory.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 // TODO(ereal): reserve correct space in these Algorithms and check init
 // component_function size.
@@ -547,6 +545,4 @@ Algorithm Generator::LinearModel(const double learning_rate) {
   return algorithm;
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

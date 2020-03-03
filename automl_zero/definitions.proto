@@ -14,7 +14,7 @@
 
 syntax = "proto2";
 
-package brain.evolution.amlz;
+package automl_zero;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Instruction-related definitions.

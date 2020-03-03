@@ -31,9 +31,7 @@
 #include "sstable/public/sstable.h"
 #include "stats/util/statistics.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::std::shuffle;  // NOLINT
 using ::std::vector;  // NOLINT
@@ -544,8 +542,6 @@ std::unique_ptr<Dataset<F>> CreateDataset(const IntegerT dataset_index,
 void RandomizeDatasetSeeds(DatasetCollection* dataset_collection,
                            RandomSeedT seed);
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DATASET_UTIL_H_

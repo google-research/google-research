@@ -36,9 +36,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::absl::StrCat;
 using ::std::function;
@@ -352,6 +350,4 @@ TEST(GeneratorTest, GzPadsComponentFunctionSizesCorrectly) {
   EXPECT_EQ(algorithm.learn_.size(), 13);
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

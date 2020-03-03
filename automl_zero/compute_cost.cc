@@ -17,9 +17,7 @@
 #include "definitions.proto.h"
 #include "algorithm.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 double ComputeCost(
     const std::vector<std::shared_ptr<const Instruction>>& component_function) {
@@ -198,6 +196,4 @@ double ComputeCost(const Instruction& instruction) {
   }
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

@@ -20,9 +20,7 @@
 #include "definitions.h"
 #include "third_party/eigen3/Eigen/Core"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 constexpr double kVectorEqTolerance = 0.000001;
 
@@ -40,8 +38,6 @@ bool VectorEq(const Vector<F>& observed, const std::vector<double>& expected) {
   return (observed - expected_eigen).norm() < kVectorEqTolerance;
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
 
 #endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_UTIL_H_

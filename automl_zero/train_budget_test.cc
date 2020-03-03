@@ -18,9 +18,7 @@
 #include "generator_test_util.h"
 #include "gtest/gtest.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 TEST(TrainBudgetTest, MatchesBaselineExactly) {
   Algorithm baseline_algorithm = SimpleGrTildeGrWithBias();
@@ -46,6 +44,4 @@ TEST(TrainBudgetTest, MoreExpensiveModelIsRejected) {
   EXPECT_EQ(train_budget.TrainExamples(algorithm, 1000), 0);
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero

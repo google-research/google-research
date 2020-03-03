@@ -20,9 +20,7 @@
 #include "random_generator.h"
 #include "absl/memory/memory.h"
 
-namespace brain {
-namespace evolution {
-namespace amlz {
+namespace automl_zero {
 
 using ::absl::make_unique;  // NOLINT
 using ::std::endl;  // NOLINT
@@ -416,6 +414,4 @@ ComponentFunctionT Mutator::ComponentFunction() {
   return allowed_component_functions[index];
 }
 
-}  // namespace amlz
-}  // namespace evolution
-}  // namespace brain
+}  // namespace automl_zero
