@@ -15,15 +15,12 @@
 #include "fec_hashing.h"
 #include <cstddef>
 
-#include "util/hash/farmhash_fingerprint.h"
 #include "util/hash/mix.h"
 
 namespace brain {
 namespace evolution {
 namespace amlz {
 
-using ::farmhash::Fingerprint64;
-using ::std::numeric_limits;
 using ::std::vector;
 using internal::HashComponent;
 
@@ -40,7 +37,8 @@ size_t WellMixedHash(
     mix.Mix(HashComponent(error));
   }
   mix.Mix(dataset_index);
-  mix.Mix(SafeCast<IntegerT, size_t>(num_train_examples));
+  CHECK(num_train_examples >= 0) << "num_train_examples must be >= 0.";
+  mix.Mix(num_train_examples);
   return mix.get();
 }
 
