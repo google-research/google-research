@@ -14,7 +14,7 @@
 
 #include "compute_cost.h"
 
-#include "definitions.proto.h"
+#include "instruction.proto.h"
 #include "algorithm.h"
 
 namespace automl_zero {
@@ -90,10 +90,6 @@ double ComputeCost(const Instruction& instruction) {
       return 3713533.0;
     case VECTOR_HEAVYSIDE_OP:
       return 3965743.0;
-    case VECTOR_RELU_OP:
-      return 3682121.0;
-    case VECTOR_CONST_SET_OLD_OP:
-      return 5989399.0;
     case VECTOR_CONST_SET_OP:
       return 3991421.0;
     case MATRIX_SUM_OP:
@@ -112,8 +108,6 @@ double ComputeCost(const Instruction& instruction) {
       return 4630926.0;
     case MATRIX_HEAVYSIDE_OP:
       return 6728311.0;
-    case MATRIX_ROW_CONST_SET_OLD_OP:
-      return 6440048.0;
     case MATRIX_CONST_SET_OP:
       return 3693035.0;
     case SCALAR_VECTOR_PRODUCT_OP:
@@ -148,12 +142,8 @@ double ComputeCost(const Instruction& instruction) {
       return 16766477.0;
     case SCALAR_GAUSSIAN_SET_OP:
       return 20775635.0;
-    case VECTOR_GAUSSIAN_SET_OLD_OP:
-      return 72814409.0;
     case VECTOR_GAUSSIAN_SET_OP:
       return 77483018.0;
-    case MATRIX_GAUSSIAN_SET_OLD_OP:
-      return 275898169.0;
     case MATRIX_GAUSSIAN_SET_OP:
       return 277690384.0;
     case SCALAR_UNIFORM_SET_OP:
@@ -162,12 +152,6 @@ double ComputeCost(const Instruction& instruction) {
       return 57817372.0;
     case MATRIX_UNIFORM_SET_OP:
       return 208339446.0;
-    case SCALAR_BETA_SET_OP:
-      return 491286547.0;
-    case VECTOR_BETA_SET_OP:
-      return 989092041.0;
-    case MATRIX_BETA_SET_OP:
-      return 2818959138.0;
     case SCALAR_RECIPROCAL_OP:
       return 4212086.0;
     case SCALAR_BROADCAST_OP:
@@ -184,14 +168,6 @@ double ComputeCost(const Instruction& instruction) {
       return 10993088.0;
     case VECTOR_ROW_BROADCAST_OP:
       return 11087322.0;
-    case SCALAR_PRINT_OP:
-      return 0.0;
-    case VECTOR_PRINT_OP:
-      return 0.0;
-    case MATRIX_PRINT_OP:
-      return 0.0;
-    case UNSUPPORTED_OP:
-      LOG(FATAL) << "Unsupported op." << std::endl;
     // Do not add default clause. All ops should be supported here.
   }
 }

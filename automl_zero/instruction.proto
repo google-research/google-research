@@ -1,0 +1,88 @@
+// Copyright 2020 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package automl_zero;
+
+// The possible operations.
+// The number of ops here must match the kNumOps constant
+// in instruction_test.cc.
+enum Op {
+  NO_OP = 0;  // OP0 in paper.
+  SCALAR_SUM_OP = 1;  // OP1 in paper.
+  SCALAR_DIFF_OP = 2;  // OP2 in paper.
+  SCALAR_PRODUCT_OP = 3;  // OP3 in paper.
+  SCALAR_DIVISION_OP = 4;  // OP4 in paper.
+  SCALAR_ABS_OP = 5;  // OP5 in paper.
+  SCALAR_RECIPROCAL_OP = 6;  // OP6 in paper.
+  SCALAR_SIN_OP = 7;  // OP7 in paper.
+  SCALAR_COS_OP = 8;  // OP8 in paper.
+  SCALAR_TAN_OP = 9;  // OP9 in paper.
+  SCALAR_ARCSIN_OP = 10;  // OP10 in paper.
+  SCALAR_ARCCOS_OP = 11;  // OP11 in paper.
+  SCALAR_ARCTAN_OP = 12;  // OP12 in paper.
+  SCALAR_EXP_OP = 13;  // OP13 in paper.
+  SCALAR_LOG_OP = 14;  // OP14 in paper.
+  SCALAR_HEAVYSIDE_OP = 15;  // OP15 in paper.
+  VECTOR_HEAVYSIDE_OP = 16;  // OP16 in paper.
+  MATRIX_HEAVYSIDE_OP = 17;  // OP17 in paper.
+  SCALAR_VECTOR_PRODUCT_OP = 18;  // OP18 in paper.
+  SCALAR_BROADCAST_OP = 19;  // OP19 in paper.
+  VECTOR_RECIPROCAL_OP = 20;  // OP20 in paper.
+  VECTOR_NORM_OP = 21;  // OP21 in paper.
+  VECTOR_ABS_OP = 22;  // OP22 in paper.
+  VECTOR_SUM_OP = 23;  // OP23 in paper.
+  VECTOR_DIFF_OP = 24;  // OP24 in paper.
+  VECTOR_PRODUCT_OP = 25;  // OP25 in paper.
+  VECTOR_DIVISION_OP = 26;  // OP26 in paper.
+  VECTOR_INNER_PRODUCT_OP = 27;  // OP27 in paper.
+  VECTOR_OUTER_PRODUCT_OP = 28;  // OP28 in paper.
+  SCALAR_MATRIX_PRODUCT_OP = 29;  // OP29 in paper.
+  MATRIX_RECIPROCAL_OP = 30;  // OP30 in paper.
+  MATRIX_VECTOR_PRODUCT_OP = 31;  // OP31 in paper.
+  VECTOR_COLUMN_BROADCAST_OP = 32;  // OP32 in paper.
+  VECTOR_ROW_BROADCAST_OP = 33;  // OP33 in paper.
+  MATRIX_NORM_OP = 34;  // OP34 in paper.
+  MATRIX_COLUMN_NORM_OP = 35;  // OP35 in paper.
+  MATRIX_ROW_NORM_OP = 36;  // OP36 in paper.
+  MATRIX_TRANSPOSE_OP = 37;  // OP37 in paper.
+  MATRIX_ABS_OP = 38;  // OP38 in paper.
+  MATRIX_SUM_OP = 39;  // OP39 in paper.
+  MATRIX_DIFF_OP = 40;  // OP40 in paper.
+  MATRIX_PRODUCT_OP = 41;  // OP41 in paper.
+  MATRIX_DIVISION_OP = 42;  // OP42 in paper.
+  MATRIX_MATRIX_PRODUCT_OP = 43;  // OP43 in paper.
+  SCALAR_MIN_OP = 44;  // OP44 in paper.
+  VECTOR_MIN_OP = 45;  // OP45 in paper.
+  MATRIX_MIN_OP = 46;  // OP46 in paper.
+  SCALAR_MAX_OP = 47;  // OP47 in paper.
+  VECTOR_MAX_OP = 48;  // OP48 in paper.
+  MATRIX_MAX_OP = 49;  // OP49 in paper.
+  VECTOR_MEAN_OP = 50;  // OP50 in paper.
+  MATRIX_MEAN_OP = 51;  // OP51 in paper.
+  MATRIX_ROW_MEAN_OP = 52;  // OP52 in paper.
+  MATRIX_ROW_ST_DEV_OP = 53;  // OP53 in paper.
+  VECTOR_ST_DEV_OP = 54;  // OP54 in paper.
+  MATRIX_ST_DEV_OP = 55;  // OP55 in paper.
+  SCALAR_CONST_SET_OP = 56;  // OP56 in paper.
+  VECTOR_CONST_SET_OP = 57;  // OP57 in paper.
+  MATRIX_CONST_SET_OP = 58;  // OP58 in paper.
+  SCALAR_UNIFORM_SET_OP = 59;  // OP59 in paper.
+  VECTOR_UNIFORM_SET_OP = 60;  // OP60 in paper.
+  MATRIX_UNIFORM_SET_OP = 61;  // OP61 in paper.
+  SCALAR_GAUSSIAN_SET_OP = 62;  // OP62 in paper.
+  VECTOR_GAUSSIAN_SET_OP = 63;  // OP63 in paper.
+  MATRIX_GAUSSIAN_SET_OP = 64;  // OP64 in paper.
+}

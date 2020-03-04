@@ -20,7 +20,7 @@
 
 #include "algorithm.h"
 #include "definitions.h"
-#include "definitions.proto.h"
+#include "instruction.proto.h"
 #include "mutator.proto.h"
 #include "random_generator.h"
 #include "randomizer.h"

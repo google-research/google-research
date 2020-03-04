@@ -30,7 +30,7 @@
 #include "datasets.proto.h"
 #include "dataset.h"
 #include "definitions.h"
-#include "definitions.proto.h"
+#include "instruction.proto.h"
 #include "algorithm.h"
 #include "instruction.h"
 #include "memory.h"
@@ -395,29 +395,6 @@ inline void ExecuteVectorHeavisideOp(
 }
 
 template<FeatureIndexT F>
-inline void ExecuteVectorReluOp(
-    const Instruction& instruction, RandomGenerator* rand_gen,
-    Memory<F>* memory) {
-  const double* in = memory->vector_[instruction.in1_].data();
-  const double* in_end = in + F;
-  double* out = memory->vector_[instruction.out_].data();
-  while (in != in_end) {
-    *out = *in > 0.0 ? *in : 0.0;
-    ++out;
-    ++in;
-  }
-}
-
-template<FeatureIndexT F>
-inline void ExecuteVectorConstSetOldOp(
-    const Instruction& instruction, RandomGenerator* rand_gen,
-    Memory<F>* memory) {
-  CHECK_EQ(F, 4);
-  memory->vector_[instruction.out_].block(0, 0, 4, 1) =
-      instruction.GetVectorData();
-}
-
-template<FeatureIndexT F>
 inline void ExecuteVectorConstSetOp(
     const Instruction& instruction, RandomGenerator* rand_gen,
     Memory<F>* memory) {
@@ -531,16 +508,6 @@ inline void ExecuteMatrixHeavisideOp(
     ++out;
     ++in;
   }
-}
-
-template<FeatureIndexT F>
-inline void ExecuteMatrixRowConstSetOldOp(
-    const Instruction& instruction, RandomGenerator* rand_gen,
-    Memory<F>* memory) {
-  CHECK_EQ(F, 4);
-  memory->matrix_[instruction.out_]
-      .block(instruction.GetIndexData0(), 0, 1, 4) =
-          instruction.GetVectorData().transpose();
 }
 
 template<FeatureIndexT F>
@@ -764,30 +731,12 @@ inline void ExecuteScalarGaussianSetOp(
 }
 
 template<FeatureIndexT F>
-inline void ExecuteVectorGaussianSetOldOp(
-    const Instruction& instruction, RandomGenerator* rand_gen,
-    Memory<F>* memory) {
-  rand_gen->FillGaussian<F>(
-      0.0, instruction.GetActivationData(),
-      &memory->vector_[instruction.out_]);
-}
-
-template<FeatureIndexT F>
 inline void ExecuteVectorGaussianSetOp(
     const Instruction& instruction, RandomGenerator* rand_gen,
     Memory<F>* memory) {
   rand_gen->FillGaussian<F>(
       instruction.GetFloatData0(), instruction.GetFloatData1(),
       &memory->vector_[instruction.out_]);
-}
-
-template<FeatureIndexT F>
-inline void ExecuteMatrixGaussianSetOldOp(
-    const Instruction& instruction, RandomGenerator* rand_gen,
-    Memory<F>* memory) {
-  rand_gen->FillGaussian<F>(
-      0.0, instruction.GetActivationData(),
-      &memory->matrix_[instruction.out_]);
 }
 
 template<FeatureIndexT F>
@@ -826,64 +775,6 @@ inline void ExecuteMatrixUniformSetOp(
       &memory->matrix_[instruction.out_]);
 }
 
-template<FeatureIndexT F>
-inline void ExecuteScalarBetaSetOp(
-    const Instruction& instruction, RandomGenerator* rand_gen,
-    Memory<F>* memory) {
-  memory->scalar_[instruction.out_] =
-      rand_gen->BetaActivation(
-          instruction.GetFloatData0(), instruction.GetFloatData1());
-}
-
-template<FeatureIndexT F>
-inline void ExecuteVectorBetaSetOp(
-    const Instruction& instruction, RandomGenerator* rand_gen,
-    Memory<F>* memory) {
-  rand_gen->FillBeta<F>(
-      instruction.GetFloatData0(), instruction.GetFloatData1(),
-      &memory->vector_[instruction.out_]);
-}
-
-template<FeatureIndexT F>
-inline void ExecuteMatrixBetaSetOp(
-    const Instruction& instruction, RandomGenerator* rand_gen,
-    Memory<F>* memory) {
-  rand_gen->FillBeta<F>(
-      instruction.GetFloatData0(), instruction.GetFloatData1(),
-      &memory->matrix_[instruction.out_]);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Debug instructions.
-////////////////////////////////////////////////////////////////////////////////
-
-template<FeatureIndexT F>
-inline void ExecuteScalarPrintOp(
-    const Instruction& instruction, RandomGenerator* rand_gen,
-    Memory<F>* memory) {
-  Print() << "identity" << instruction.GetIntegerData() << ", "
-          << "value=" << memory->scalar_[instruction.out_] << Flush();
-}
-
-template<FeatureIndexT F>
-inline void ExecuteVectorPrintOp(
-    const Instruction& instruction, RandomGenerator* rand_gen,
-    Memory<F>* memory) {
-  Print() << "identity" << instruction.GetIntegerData() << ", "
-          << "value=" << ToString<F>(memory->vector_[instruction.out_])
-          << Flush();
-}
-
-template<FeatureIndexT F>
-inline void ExecuteMatrixPrintOp(
-    const Instruction& instruction, RandomGenerator* rand_gen,
-    Memory<F>* memory) {
-  Print() << "identity" << instruction.GetIntegerData() << ", "
-          << "value=" << ToString<F>(memory->matrix_[instruction.out_])
-          << Flush();
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Other instructions.
@@ -909,81 +800,81 @@ static constexpr std::array<
     128> kOpIndexToExecuteFunction = {
         &ExecuteNoOp<F>,                   // NO_OP = 0
         &ExecuteScalarSumOp<F>,            // SCALAR_SUM_OP = 1
-        &ExecuteMatrixVectorProductOp<F>,  // MATRIX_VECTOR_PRODUCT_OP = 2
-        &ExecuteVectorMeanOp<F>,           // VECTOR_MEAN_OP = 3
-        &ExecuteVectorGaussianSetOldOp,    // VECTOR_GAUSSIAN_SET_OLD_OP = 4
-        &ExecuteMatrixGaussianSetOldOp,    // MATRIX_GAUSSIAN_SET_OLD_OP = 5
-        &ExecuteScalarConstSetOp,        // SCALAR_CONST_SET_OP = 6
-        &ExecuteVectorReluOp,              // VECTOR_RELU_OP = 7
-        &ExecuteVectorInnerProductOp,      // VECTOR_INNER_PRODUCT_OP = 8
-        &ExecuteScalarDiffOp,              // SCALAR_DIFF_OP = 9
-        &ExecuteScalarProductOp,           // SCALAR_PRODUCT_OP = 10
-        &ExecuteScalarVectorProductOp,     // SCALAR_VECTOR_PRODUCT_OP = 11
-        &ExecuteVectorSumOp,               // VECTOR_SUM_OP = 12
-        &ExecuteVectorHeavisideOp,         // VECTOR_HEAVYSIDE_OP = 13
-        &ExecuteVectorProductOp,           // VECTOR_PRODUCT_OP = 14
-        &ExecuteVectorOuterProductOp,      // VECTOR_OUTER_PRODUCT_OP = 15
-        &ExecuteMatrixSumOp,               // MATRIX_SUM_OP = 16
-        &ExecuteVectorConstSetOldOp,       // VECTOR_CONST_SET_OLD_OP = 17
-        &ExecuteMatrixRowConstSetOldOp,    // MATRIX_ROW_CONST_SET_OLD_OP = 18
-        &ExecuteScalarDivisionOp,          // SCALAR_DIVISION_OP = 19
-        &ExecuteScalarMinOp,               // SCALAR_MIN_OP = 20
-        &ExecuteScalarMaxOp,               // SCALAR_MAX_OP = 21
-        &ExecuteScalarAbsOp,               // SCALAR_ABS_OP = 22
-        &ExecuteScalarHeavisideOp,         // SCALAR_HEAVYSIDE_OP = 23
-        &ExecuteScalarSinOp,               // SCALAR_SIN_OP = 24
-        &ExecuteScalarCosOp,               // SCALAR_COS_OP = 25
-        &ExecuteScalarTanOp,               // SCALAR_TAN_OP = 26
-        &ExecuteScalarArcSinOp,            // SCALAR_ARCSIN_OP = 27
-        &ExecuteScalarArcCosOp,            // SCALAR_ARCCOS_OP = 28
-        &ExecuteScalarArcTanOp,            // SCALAR_ARCTAN_OP = 29
-        &ExecuteScalarExpOp,               // SCALAR_EXP_OP = 30
-        &ExecuteScalarLogOp,               // SCALAR_LOG_OP = 31
-        &ExecuteVectorDiffOp,              // VECTOR_DIFF_OP = 32
-        &ExecuteVectorDvisionOp,           // VECTOR_DIVISION_OP = 33
-        &ExecuteVectorMinOp,               // VECTOR_MIN_OP = 34
-        &ExecuteVectorMaxOp,               // VECTOR_MAX_OP = 35
-        &ExecuteVectorAbsOp,               // VECTOR_ABS_OP = 36
-        &ExecuteMatrixDiffOp,              // MATRIX_DIFF_OP = 37
-        &ExecuteMatrixProductOp,           // MATRIX_PRODUCT_OP = 38
-        &ExecuteMatrixDivisionOp,          // MATRIX_DIVISION_OP = 39
-        &ExecuteMatrixMinOp,               // MATRIX_MIN_OP = 40
-        &ExecuteMatrixMaxOp,               // MATRIX_MAX_OP = 41
-        &ExecuteMatrixAbsOp,               // MATRIX_ABS_OP = 42
-        &ExecuteMatrixHeavisideOp,         // MATRIX_HEAVYSIDE_OP = 43
-        &ExecuteMatrixConstSetOp,          // MATRIX_CONST_SET_OP = 44
-        &ExecuteVectorConstSetOp,          // VECTOR_CONST_SET_OP = 45
-        &ExecuteScalarMatrixProductOp,     // SCALAR_MATRIX_PRODUCT_OP = 46
-        &ExecuteVectorNormOp,              // VECTOR_NORM_OP = 47
-        &ExecuteMatrixNormOp,              // MATRIX_NORM_OP = 48
-        &ExecuteVectorStDevOp,             // VECTOR_ST_DEV_OP = 49
-        &ExecuteMatrixMeanOp,              // MATRIX_MEAN_OP = 50
-        &ExecuteMatrixStDevOp,             // MATRIX_ST_DEV_OP = 51
+        &ExecuteScalarDiffOp,              // SCALAR_DIFF_OP = 2
+        &ExecuteScalarProductOp,           // SCALAR_PRODUCT_OP = 3
+        &ExecuteScalarDivisionOp,          // SCALAR_DIVISION_OP = 4
+        &ExecuteScalarAbsOp,               // SCALAR_ABS_OP = 5
+        &ExecuteScalarReciprocalOp,        // SCALAR_RECIPROCAL_OP = 6
+        &ExecuteScalarSinOp,               // SCALAR_SIN_OP = 7
+        &ExecuteScalarCosOp,               // SCALAR_COS_OP = 8
+        &ExecuteScalarTanOp,               // SCALAR_TAN_OP = 9
+        &ExecuteScalarArcSinOp,            // SCALAR_ARCSIN_OP = 10
+        &ExecuteScalarArcCosOp,            // SCALAR_ARCCOS_OP = 11
+        &ExecuteScalarArcTanOp,            // SCALAR_ARCTAN_OP = 12
+        &ExecuteScalarExpOp,               // SCALAR_EXP_OP = 13
+        &ExecuteScalarLogOp,               // SCALAR_LOG_OP = 14
+        &ExecuteScalarHeavisideOp,         // SCALAR_HEAVYSIDE_OP = 15
+        &ExecuteVectorHeavisideOp,         // VECTOR_HEAVYSIDE_OP = 16
+        &ExecuteMatrixHeavisideOp,         // MATRIX_HEAVYSIDE_OP = 17
+        &ExecuteScalarVectorProductOp,     // SCALAR_VECTOR_PRODUCT_OP = 18
+        &ExecuteScalarBroadcastOp,         // SCALAR_BROADCAST_OP = 19
+        &ExecuteVectorReciprocalOp,        // VECTOR_RECIPROCAL_OP = 20
+        &ExecuteVectorNormOp,              // VECTOR_NORM_OP = 21
+        &ExecuteVectorAbsOp,               // VECTOR_ABS_OP = 22
+        &ExecuteVectorSumOp,               // VECTOR_SUM_OP = 23
+        &ExecuteVectorDiffOp,              // VECTOR_DIFF_OP = 24
+        &ExecuteVectorProductOp,           // VECTOR_PRODUCT_OP = 25
+        &ExecuteVectorDvisionOp,           // VECTOR_DIVISION_OP = 26
+        &ExecuteVectorInnerProductOp,      // VECTOR_INNER_PRODUCT_OP = 27
+        &ExecuteVectorOuterProductOp,      // VECTOR_OUTER_PRODUCT_OP = 28
+        &ExecuteScalarMatrixProductOp,     // SCALAR_MATRIX_PRODUCT_OP = 29
+        &ExecuteMatrixReciprocalOp,        // MATRIX_RECIPROCAL_OP = 30
+        &ExecuteMatrixVectorProductOp<F>,  // MATRIX_VECTOR_PRODUCT_OP = 31
+        &ExecuteVectorColumnBroadcastOp,   // VECTOR_COLUMN_BROADCAST_OP = 32
+        &ExecuteVectorRowBroadcastOp,      // VECTOR_ROW_BROADCAST_OP = 33
+        &ExecuteMatrixNormOp,              // MATRIX_NORM_OP = 34
+        &ExecuteMatrixColumnNormOp,        // MATRIX_COLUMN_NORM_OP = 35
+        &ExecuteMatrixRowNormOp,           // MATRIX_ROW_NORM_OP = 36
+        &ExecuteMatrixTransposeOp,         // MATRIX_TRANSPOSE_OP = 37
+        &ExecuteMatrixAbsOp,               // MATRIX_ABS_OP = 38
+        &ExecuteMatrixSumOp,               // MATRIX_SUM_OP = 39
+        &ExecuteMatrixDiffOp,              // MATRIX_DIFF_OP = 40
+        &ExecuteMatrixProductOp,           // MATRIX_PRODUCT_OP = 41
+        &ExecuteMatrixDivisionOp,          // MATRIX_DIVISION_OP = 42
+        &ExecuteMatrixMatrixProductOp,     // MATRIX_MATRIX_PRODUCT_OP = 43
+        &ExecuteScalarMinOp,               // SCALAR_MIN_OP = 44
+        &ExecuteVectorMinOp,               // VECTOR_MIN_OP = 45
+        &ExecuteMatrixMinOp,               // MATRIX_MIN_OP = 46
+        &ExecuteScalarMaxOp,               // SCALAR_MAX_OP = 47
+        &ExecuteVectorMaxOp,               // VECTOR_MAX_OP = 48
+        &ExecuteMatrixMaxOp,               // MATRIX_MAX_OP = 49
+        &ExecuteVectorMeanOp<F>,           // VECTOR_MEAN_OP = 50
+        &ExecuteMatrixMeanOp,              // MATRIX_MEAN_OP = 51
         &ExecuteMatrixRowMeanOp,           // MATRIX_ROW_MEAN_OP = 52
         &ExecuteMatrixRowStDevOp,          // MATRIX_ROW_ST_DEV_OP = 53
-        &ExecuteScalarGaussianSetOp,       // SCALAR_GAUSSIAN_SET_OP = 54
-        &ExecuteScalarUniformSetOp,        // SCALAR_UNIFORM_SET_OP = 55
-        &ExecuteVectorUniformSetOp,        // VECTOR_UNIFORM_SET_OP = 56
-        &ExecuteMatrixUniformSetOp,        // MATRIX_UNIFORM_SET_OP = 57
-        &ExecuteScalarBetaSetOp,           // SCALAR_BETA_SET_OP = 58
-        &ExecuteVectorBetaSetOp,           // VECTOR_BETA_SET_OP = 59
-        &ExecuteMatrixBetaSetOp,           // MATRIX_BETA_SET_OP = 60
-        &ExecuteMatrixTransposeOp,         // MATRIX_TRANSPOSE_OP = 61
-        &ExecuteMatrixMatrixProductOp,     // MATRIX_MATRIX_PRODUCT_OP = 62
+        &ExecuteVectorStDevOp,             // VECTOR_ST_DEV_OP = 54
+        &ExecuteMatrixStDevOp,             // MATRIX_ST_DEV_OP = 55
+        &ExecuteScalarConstSetOp,          // SCALAR_CONST_SET_OP = 56
+        &ExecuteVectorConstSetOp,          // VECTOR_CONST_SET_OP = 57
+        &ExecuteMatrixConstSetOp,          // MATRIX_CONST_SET_OP = 58
+        &ExecuteScalarUniformSetOp,        // SCALAR_UNIFORM_SET_OP = 59
+        &ExecuteVectorUniformSetOp,        // VECTOR_UNIFORM_SET_OP = 60
+        &ExecuteMatrixUniformSetOp,        // MATRIX_UNIFORM_SET_OP = 61
+        &ExecuteScalarGaussianSetOp,       // SCALAR_GAUSSIAN_SET_OP = 62
         &ExecuteVectorGaussianSetOp,       // VECTOR_GAUSSIAN_SET_OP = 63
         &ExecuteMatrixGaussianSetOp,       // MATRIX_GAUSSIAN_SET_OP = 64
         &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 65
-        &ExecuteScalarReciprocalOp,        // SCALAR_RECIPROCAL_OP = 66
-        &ExecuteVectorReciprocalOp,        // VECTOR_RECIPROCAL_OP = 67
-        &ExecuteMatrixReciprocalOp,        // MATRIX_RECIPROCAL_OP = 68
-        &ExecuteMatrixRowNormOp,           // MATRIX_ROW_NORM_OP = 69
-        &ExecuteMatrixColumnNormOp,        // MATRIX_COLUMN_NORM_OP = 70
-        &ExecuteScalarBroadcastOp,         // SCALAR_BROADCAST_OP = 71
-        &ExecuteVectorColumnBroadcastOp,   // VECTOR_COLUMN_BROADCAST_OP = 72
-        &ExecuteVectorRowBroadcastOp,      // VECTOR_ROW_BROADCAST_OP = 73
-        &ExecuteScalarPrintOp,             // SCALAR_PRINT_OP = 74
-        &ExecuteVectorPrintOp,             // VECTOR_PRINT_OP = 75
-        &ExecuteMatrixPrintOp,             // MATRIX_PRINT_OP = 76
+        &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 66
+        &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 67
+        &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 68
+        &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 69
+        &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 70
+        &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 71
+        &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 72
+        &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 73
+        &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 74
+        &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 75
+        &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 76
         &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 77
         &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 78
         &ExecuteUnsupportedOp,             // UNSUPPORTED_OP = 79

@@ -22,6 +22,7 @@
 
 #include "glog/logging.h"
 #include "definitions.h"
+#include "instruction.proto.h"
 #include "random_generator.h"
 #include "absl/strings/str_replace.h"
 
@@ -290,26 +291,16 @@ void Instruction::SetOpAndRandomizeParams(
   op_ = op;
   switch (op_) {
     case NO_OP:
-    case SCALAR_PRINT_OP:
-    case VECTOR_PRINT_OP:
-    case MATRIX_PRINT_OP:
       return;
     case SCALAR_CONST_SET_OP:
-    case VECTOR_CONST_SET_OLD_OP:
     case VECTOR_CONST_SET_OP:
-    case MATRIX_ROW_CONST_SET_OLD_OP:
     case MATRIX_CONST_SET_OP:
     case SCALAR_GAUSSIAN_SET_OP:
-    case VECTOR_GAUSSIAN_SET_OLD_OP:
     case VECTOR_GAUSSIAN_SET_OP:
-    case MATRIX_GAUSSIAN_SET_OLD_OP:
     case MATRIX_GAUSSIAN_SET_OP:
     case SCALAR_UNIFORM_SET_OP:
     case VECTOR_UNIFORM_SET_OP:
     case MATRIX_UNIFORM_SET_OP:
-    case SCALAR_BETA_SET_OP:
-    case VECTOR_BETA_SET_OP:
-    case MATRIX_BETA_SET_OP:
       RandomizeOut(rand_gen);
       RandomizeData(rand_gen);
       return;
@@ -327,7 +318,6 @@ void Instruction::SetOpAndRandomizeParams(
     case SCALAR_BROADCAST_OP:
     case VECTOR_ABS_OP:
     case VECTOR_HEAVYSIDE_OP:
-    case VECTOR_RELU_OP:
     case VECTOR_RECIPROCAL_OP:
     case MATRIX_RECIPROCAL_OP:
     case MATRIX_ROW_NORM_OP:
@@ -376,8 +366,6 @@ void Instruction::SetOpAndRandomizeParams(
       RandomizeIn2(rand_gen);
       RandomizeOut(rand_gen);
       return;
-    case UNSUPPORTED_OP:
-      LOG(FATAL) << "Unsupported op." << std::endl;
     // Do not add default clause. All ops should be supported here.
   }
 }
@@ -386,26 +374,16 @@ void Instruction::AlterParam(
     RandomGenerator* rand_gen) {
   switch (op_) {
     case NO_OP:
-    case SCALAR_PRINT_OP:
-    case VECTOR_PRINT_OP:
-    case MATRIX_PRINT_OP:
       return;
     case SCALAR_CONST_SET_OP:
-    case VECTOR_CONST_SET_OLD_OP:
     case VECTOR_CONST_SET_OP:
-    case MATRIX_ROW_CONST_SET_OLD_OP:
     case MATRIX_CONST_SET_OP:
     case SCALAR_GAUSSIAN_SET_OP:
-    case VECTOR_GAUSSIAN_SET_OLD_OP:
     case VECTOR_GAUSSIAN_SET_OP:
-    case MATRIX_GAUSSIAN_SET_OLD_OP:
     case MATRIX_GAUSSIAN_SET_OP:
     case SCALAR_UNIFORM_SET_OP:
     case VECTOR_UNIFORM_SET_OP:
     case MATRIX_UNIFORM_SET_OP:
-    case SCALAR_BETA_SET_OP:
-    case VECTOR_BETA_SET_OP:
-    case MATRIX_BETA_SET_OP:
       switch (rand_gen->Choice2()) {
         case kChoice0of2:
           RandomizeOut(rand_gen);
@@ -434,7 +412,6 @@ void Instruction::AlterParam(
     case VECTOR_ROW_BROADCAST_OP:
     case VECTOR_ABS_OP:
     case VECTOR_HEAVYSIDE_OP:
-    case VECTOR_RELU_OP:
     case MATRIX_ABS_OP:
     case MATRIX_HEAVYSIDE_OP:
     case VECTOR_NORM_OP:
@@ -489,8 +466,6 @@ void Instruction::AlterParam(
           RandomizeOut(rand_gen);
           return;
       }
-    case UNSUPPORTED_OP:
-      LOG(FATAL) << "Unsupported op." << std::endl;
     // Do not add default clause. All ops should be supported here.
   }
 }
@@ -499,24 +474,14 @@ void Instruction::RandomizeIn1(RandomGenerator* rand_gen) {
   switch (op_) {
     case NO_OP:
     case SCALAR_CONST_SET_OP:
-    case VECTOR_CONST_SET_OLD_OP:
     case VECTOR_CONST_SET_OP:
-    case MATRIX_ROW_CONST_SET_OLD_OP:
     case MATRIX_CONST_SET_OP:
     case SCALAR_GAUSSIAN_SET_OP:
-    case VECTOR_GAUSSIAN_SET_OLD_OP:
     case VECTOR_GAUSSIAN_SET_OP:
-    case MATRIX_GAUSSIAN_SET_OLD_OP:
     case MATRIX_GAUSSIAN_SET_OP:
     case SCALAR_UNIFORM_SET_OP:
     case VECTOR_UNIFORM_SET_OP:
     case MATRIX_UNIFORM_SET_OP:
-    case SCALAR_BETA_SET_OP:
-    case VECTOR_BETA_SET_OP:
-    case MATRIX_BETA_SET_OP:
-    case SCALAR_PRINT_OP:
-    case VECTOR_PRINT_OP:
-    case MATRIX_PRINT_OP:
       LOG(FATAL) << "Invalid op: " << static_cast<IntegerT>(op_) << std::endl;
     case SCALAR_SUM_OP:
     case SCALAR_DIFF_OP:
@@ -548,7 +513,6 @@ void Instruction::RandomizeIn1(RandomGenerator* rand_gen) {
     case VECTOR_MAX_OP:
     case VECTOR_ABS_OP:
     case VECTOR_HEAVYSIDE_OP:
-    case VECTOR_RELU_OP:
     case VECTOR_INNER_PRODUCT_OP:
     case VECTOR_OUTER_PRODUCT_OP:
     case VECTOR_NORM_OP:
@@ -580,8 +544,6 @@ void Instruction::RandomizeIn1(RandomGenerator* rand_gen) {
     case MATRIX_COLUMN_NORM_OP:
       in1_ = rand_gen->MatrixInAddress();
       return;
-    case UNSUPPORTED_OP:
-      LOG(FATAL) << "Unsupported op." << std::endl;
     // Do not add default clause. All ops should be supported here.
   }
 }
@@ -610,12 +572,9 @@ void Instruction::RandomizeIn2(RandomGenerator* rand_gen) {
     case VECTOR_ROW_BROADCAST_OP:
     case VECTOR_ABS_OP:
     case VECTOR_HEAVYSIDE_OP:
-    case VECTOR_RELU_OP:
-    case VECTOR_CONST_SET_OLD_OP:
     case VECTOR_CONST_SET_OP:
     case MATRIX_ABS_OP:
     case MATRIX_HEAVYSIDE_OP:
-    case MATRIX_ROW_CONST_SET_OLD_OP:
     case MATRIX_CONST_SET_OP:
     case VECTOR_NORM_OP:
     case MATRIX_NORM_OP:
@@ -627,19 +586,11 @@ void Instruction::RandomizeIn2(RandomGenerator* rand_gen) {
     case MATRIX_ROW_MEAN_OP:
     case MATRIX_ROW_ST_DEV_OP:
     case SCALAR_GAUSSIAN_SET_OP:
-    case VECTOR_GAUSSIAN_SET_OLD_OP:
     case VECTOR_GAUSSIAN_SET_OP:
-    case MATRIX_GAUSSIAN_SET_OLD_OP:
     case MATRIX_GAUSSIAN_SET_OP:
     case SCALAR_UNIFORM_SET_OP:
     case VECTOR_UNIFORM_SET_OP:
     case MATRIX_UNIFORM_SET_OP:
-    case SCALAR_BETA_SET_OP:
-    case VECTOR_BETA_SET_OP:
-    case MATRIX_BETA_SET_OP:
-    case SCALAR_PRINT_OP:
-    case VECTOR_PRINT_OP:
-    case MATRIX_PRINT_OP:
       LOG(FATAL) << "Invalid op: " << static_cast<IntegerT>(op_) << std::endl;
     case SCALAR_SUM_OP:
     case SCALAR_DIFF_OP:
@@ -671,8 +622,6 @@ void Instruction::RandomizeIn2(RandomGenerator* rand_gen) {
     case MATRIX_MATRIX_PRODUCT_OP:
       in2_ = rand_gen->MatrixInAddress();
       return;
-    case UNSUPPORTED_OP:
-      LOG(FATAL) << "Unsupported op." << std::endl;
     // Do not add default clause. All ops should be supported here.
   }
 }
@@ -680,9 +629,6 @@ void Instruction::RandomizeIn2(RandomGenerator* rand_gen) {
 void Instruction::RandomizeOut(RandomGenerator* rand_gen) {
   switch (op_) {
     case NO_OP:
-    case SCALAR_PRINT_OP:
-    case VECTOR_PRINT_OP:
-    case MATRIX_PRINT_OP:
       LOG(FATAL) << "Invalid op: " << static_cast<IntegerT>(op_) << std::endl;
     case SCALAR_SUM_OP:
     case SCALAR_DIFF_OP:
@@ -711,7 +657,6 @@ void Instruction::RandomizeOut(RandomGenerator* rand_gen) {
     case MATRIX_ST_DEV_OP:
     case SCALAR_GAUSSIAN_SET_OP:
     case SCALAR_UNIFORM_SET_OP:
-    case SCALAR_BETA_SET_OP:
       out_ = rand_gen->ScalarOutAddress();
       return;
     case VECTOR_SUM_OP:
@@ -722,17 +667,13 @@ void Instruction::RandomizeOut(RandomGenerator* rand_gen) {
     case VECTOR_MAX_OP:
     case VECTOR_ABS_OP:
     case VECTOR_HEAVYSIDE_OP:
-    case VECTOR_RELU_OP:
-    case VECTOR_CONST_SET_OLD_OP:
     case VECTOR_CONST_SET_OP:
     case SCALAR_VECTOR_PRODUCT_OP:
     case MATRIX_VECTOR_PRODUCT_OP:
     case MATRIX_ROW_MEAN_OP:
     case MATRIX_ROW_ST_DEV_OP:
-    case VECTOR_GAUSSIAN_SET_OLD_OP:
     case VECTOR_GAUSSIAN_SET_OP:
     case VECTOR_UNIFORM_SET_OP:
-    case VECTOR_BETA_SET_OP:
     case SCALAR_BROADCAST_OP:
     case VECTOR_RECIPROCAL_OP:
     case MATRIX_ROW_NORM_OP:
@@ -747,23 +688,18 @@ void Instruction::RandomizeOut(RandomGenerator* rand_gen) {
     case MATRIX_MAX_OP:
     case MATRIX_ABS_OP:
     case MATRIX_HEAVYSIDE_OP:
-    case MATRIX_ROW_CONST_SET_OLD_OP:
     case MATRIX_CONST_SET_OP:
     case VECTOR_OUTER_PRODUCT_OP:
     case SCALAR_MATRIX_PRODUCT_OP:
     case MATRIX_TRANSPOSE_OP:
     case MATRIX_MATRIX_PRODUCT_OP:
-    case MATRIX_GAUSSIAN_SET_OLD_OP:
     case MATRIX_GAUSSIAN_SET_OP:
     case MATRIX_UNIFORM_SET_OP:
-    case MATRIX_BETA_SET_OP:
     case MATRIX_RECIPROCAL_OP:
     case VECTOR_COLUMN_BROADCAST_OP:
     case VECTOR_ROW_BROADCAST_OP:
       out_ = rand_gen->MatrixOutAddress();
       return;
-    case UNSUPPORTED_OP:
-      LOG(FATAL) << "Unsupported op." << std::endl;
     // Do not add default clause. All ops should be supported here.
   }
 }
@@ -803,7 +739,6 @@ void Instruction::RandomizeData(RandomGenerator* rand_gen) {
     case VECTOR_MAX_OP:
     case VECTOR_ABS_OP:
     case VECTOR_HEAVYSIDE_OP:
-    case VECTOR_RELU_OP:
     case MATRIX_SUM_OP:
     case MATRIX_DIFF_OP:
     case MATRIX_PRODUCT_OP:
@@ -827,19 +762,9 @@ void Instruction::RandomizeData(RandomGenerator* rand_gen) {
     case MATRIX_ST_DEV_OP:
     case MATRIX_ROW_MEAN_OP:
     case MATRIX_ROW_ST_DEV_OP:
-    case SCALAR_PRINT_OP:
-    case VECTOR_PRINT_OP:
-    case MATRIX_PRINT_OP:
       LOG(FATAL) << "Invalid op: " << static_cast<IntegerT>(op_) << std::endl;
     case SCALAR_CONST_SET_OP: {
       activation_data_ = rand_gen->UniformActivation(-1.0, 1.0);
-      return;
-    }
-    case VECTOR_CONST_SET_OLD_OP: {
-      // This case is only triggered by old ops.
-      Vector<4> vector;
-      rand_gen->FillUniform<4>(-1.0, 1.0, &vector);
-      SetVectorData(vector);
       return;
     }
     case VECTOR_CONST_SET_OP: {
@@ -847,14 +772,6 @@ void Instruction::RandomizeData(RandomGenerator* rand_gen) {
       float_data_0_ = rand_gen->UniformFloat(0.0, 1.0);
       // float_data_1_ represents the value to store.
       float_data_1_ = rand_gen->UniformFloat(-1.0, 1.0);
-      return;
-    }
-    case MATRIX_ROW_CONST_SET_OLD_OP: {
-      // This case is only triggered by old ops.
-      index_data_0_ = rand_gen->FeatureIndex(4);
-      Vector<4> matrix_row;
-      rand_gen->FillUniform<4>(-1.0, 1.0, &matrix_row);
-      SetVectorData(matrix_row);
       return;
     }
     case MATRIX_CONST_SET_OP: {
@@ -870,11 +787,6 @@ void Instruction::RandomizeData(RandomGenerator* rand_gen) {
       float_data_1_ = rand_gen->UniformFloat(0.0, 1.0);  // St. dev.
       return;
     }
-    case VECTOR_GAUSSIAN_SET_OLD_OP:
-    case MATRIX_GAUSSIAN_SET_OLD_OP: {
-      activation_data_ = rand_gen->UniformActivation(0.0, 1.0);
-      return;
-    }
     case SCALAR_UNIFORM_SET_OP:
     case VECTOR_UNIFORM_SET_OP:
     case MATRIX_UNIFORM_SET_OP: {
@@ -882,15 +794,6 @@ void Instruction::RandomizeData(RandomGenerator* rand_gen) {
       float_data_1_ = rand_gen->UniformFloat(-1.0, 1.0);
       return;
     }
-    case SCALAR_BETA_SET_OP:
-    case VECTOR_BETA_SET_OP:
-    case MATRIX_BETA_SET_OP: {
-      float_data_0_ = rand_gen->UniformFloat(0.0, 2.0);  // Alpha.
-      float_data_1_ = rand_gen->UniformFloat(0.0, 2.0);  // Beta.
-      return;
-    }
-    case UNSUPPORTED_OP:
-      LOG(FATAL) << "Unsupported op." << std::endl;
     // Do not add default clause. All ops should be supported here.
   }
 }
@@ -922,7 +825,6 @@ void Instruction::AlterData(RandomGenerator* rand_gen) {
     case VECTOR_MAX_OP:
     case VECTOR_ABS_OP:
     case VECTOR_HEAVYSIDE_OP:
-    case VECTOR_RELU_OP:
     case MATRIX_SUM_OP:
     case MATRIX_DIFF_OP:
     case MATRIX_PRODUCT_OP:
@@ -954,19 +856,9 @@ void Instruction::AlterData(RandomGenerator* rand_gen) {
     case MATRIX_COLUMN_NORM_OP:
     case VECTOR_COLUMN_BROADCAST_OP:
     case VECTOR_ROW_BROADCAST_OP:
-    case SCALAR_PRINT_OP:
-    case VECTOR_PRINT_OP:
-    case MATRIX_PRINT_OP:
       LOG(FATAL) << "Invalid op: " << static_cast<IntegerT>(op_) << std::endl;
     case SCALAR_CONST_SET_OP: {
       MutateActivationLogScaleOrFlip(rand_gen, &activation_data_);
-      return;
-    }
-    case VECTOR_CONST_SET_OLD_OP: {
-      // This case is only triggered by old ops.
-      Vector<4> vector = GetVectorData();
-      MutateVectorFixedScale(rand_gen, &vector);
-      SetVectorData(vector);
       return;
     }
     case VECTOR_CONST_SET_OP: {
@@ -980,13 +872,6 @@ void Instruction::AlterData(RandomGenerator* rand_gen) {
           MutateFloatLogScaleOrFlip(rand_gen, &float_data_1_);
           break;
       }
-      return;
-    }
-    case MATRIX_ROW_CONST_SET_OLD_OP: {
-      // This case is only triggered by old ops.
-      Vector<4> matrix_row = GetVectorData();
-      MutateVectorFixedScale(rand_gen, &matrix_row);
-      SetVectorData(matrix_row);
       return;
     }
     case MATRIX_CONST_SET_OP: {
@@ -1021,11 +906,6 @@ void Instruction::AlterData(RandomGenerator* rand_gen) {
       }
       return;
     }
-    case VECTOR_GAUSSIAN_SET_OLD_OP:
-    case MATRIX_GAUSSIAN_SET_OLD_OP: {
-      MutateActivationLogScale(rand_gen, &activation_data_);
-      return;
-    }
     case SCALAR_UNIFORM_SET_OP:
     case VECTOR_UNIFORM_SET_OP:
     case MATRIX_UNIFORM_SET_OP: {
@@ -1045,23 +925,6 @@ void Instruction::AlterData(RandomGenerator* rand_gen) {
       float_data_1_ = max(value0, value1);
       return;
     }
-    case SCALAR_BETA_SET_OP:
-    case VECTOR_BETA_SET_OP:
-    case MATRIX_BETA_SET_OP: {
-      switch (rand_gen->Choice2()) {
-        case kChoice0of2:
-          // Mutate low.
-          MutateFloatUnitInterval(rand_gen, &float_data_0_);
-          break;
-        case kChoice1of2:
-          // Mutate high.
-          MutateFloatUnitInterval(rand_gen, &float_data_1_);
-          break;
-      }
-      return;
-    }
-    case UNSUPPORTED_OP:
-      LOG(FATAL) << "Unsupported op." << std::endl;
     // Do not add default clause. All ops should be supported here.
   }
 }
@@ -1194,20 +1057,6 @@ std::string Instruction::ToString() const {
       stream << "  v[" << out_ << "] = np.heaviside(v[" << in1_ << "], 1.0)"
              << std::endl;
       break;
-    case VECTOR_RELU_OP:
-      stream << "  v[" << out_ << "] = np.maximum(v[" << in1_ << "], 0.0)"
-             << std::endl;
-      break;
-    case VECTOR_CONST_SET_OLD_OP: {
-      // This case is only triggered by old ops.
-      Vector<4> vector = GetVectorData();
-      stream << "  v[" << out_ << "] = np.array([";
-      for (FeatureIndexT index = 0; index < 4; ++index) {
-        stream << vector(index) << ",";
-      }
-      stream << "])" << std::endl;
-      break;
-    }
     case VECTOR_CONST_SET_OP: {
       stream << "  v[" << out_ << "][" << float_data_0_ << "]"
              << " = " << float_data_1_ << std::endl;
@@ -1244,17 +1093,6 @@ std::string Instruction::ToString() const {
       stream << "  m[" << out_ << "] = np.heaviside(m[" << in1_ << "], 1.0)"
              << std::endl;
       break;
-    case MATRIX_ROW_CONST_SET_OLD_OP: {
-      // This case is only triggered by old ops.
-      Vector<4> row_data = GetVectorData();
-      stream << "  m[" << out_ << "]["
-             << static_cast<IntegerT>(index_data_0_) << "] = np.array([";
-      for (FeatureIndexT index = 0; index < 4; ++index) {
-        stream << row_data(index) << ",";
-      }
-      stream << "])" << std::endl;
-      break;
-    }
     case MATRIX_CONST_SET_OP: {
       stream << "  m[" << out_ << "]"
              << "[" << float_data_0_ << ", " << float_data_1_ << "]"
@@ -1322,19 +1160,11 @@ std::string Instruction::ToString() const {
              << ", " << float_data_1_ << ")" << std::endl;
       break;
     }
-    case VECTOR_GAUSSIAN_SET_OLD_OP:
-      stream << "  v[" << out_ << "] = np.random.normal(0.0, "
-             << activation_data_ << ", n_features)" << std::endl;
-      break;
     case VECTOR_GAUSSIAN_SET_OP: {
       stream << "  v[" << out_ << "] = np.random.normal(" << float_data_0_
              << ", " << float_data_1_ << ", n_features)" << std::endl;
       break;
     }
-    case MATRIX_GAUSSIAN_SET_OLD_OP:
-      stream << "  m[" << out_ << "] = np.random.normal(0.0, "
-             << activation_data_ << ", (n_features, n_features))" << std::endl;
-      break;
     case MATRIX_GAUSSIAN_SET_OP: {
       stream << "  m[" << out_ << "] = np.random.normal(" << float_data_0_
              << ", " << float_data_1_ << ", (n_features, n_features))"
@@ -1357,35 +1187,6 @@ std::string Instruction::ToString() const {
              << std::endl;
       break;
     }
-    case SCALAR_BETA_SET_OP: {
-      stream << "  s[" << out_ << "] = np.random.beta(" << float_data_0_ << ", "
-             << float_data_1_ << ")" << std::endl;
-      break;
-    }
-    case VECTOR_BETA_SET_OP: {
-      stream << "  v[" << out_ << "] = np.random.beta(" << float_data_0_ << ", "
-             << float_data_1_ << ", n_features)" << std::endl;
-      break;
-    }
-    case MATRIX_BETA_SET_OP: {
-      stream << "  m[" << out_ << "] = np.random.beta(" << float_data_0_ << ", "
-             << float_data_1_ << ", (n_features, n_features))" << std::endl;
-      break;
-    }
-    case SCALAR_PRINT_OP: {
-      stream << "  s[" << out_ << "]" << std::endl;
-      break;
-    }
-    case VECTOR_PRINT_OP: {
-      stream << "  v[" << out_ << "]" << std::endl;
-      break;
-    }
-    case MATRIX_PRINT_OP: {
-      stream << "  m[" << out_ << "]" << std::endl;
-      break;
-    }
-    case UNSUPPORTED_OP:
-      LOG(FATAL) << "Unsupported op." << std::endl;
     // Do not add default clause. All ops should be supported here.
   }
   std::string instr_str = stream.str();

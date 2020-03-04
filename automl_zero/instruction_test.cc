@@ -22,16 +22,14 @@
 #include <vector>
 
 #include "definitions.h"
-#include "definitions.proto.h"
+#include "instruction.proto.h"
 #include "random_generator.h"
 #include "random_generator_test_util.h"
 #include "test_util.h"
-#include "google/protobuf/enum-utils.h"
 #include "gtest/gtest.h"
 
 namespace automl_zero {
 
-using ::proto2::contrib::utils::EnumerateEnumValues;
 using ::std::abs;  // NOLINT
 using ::std::find;  // NOLINT
 using ::std::function;  // NOLINT
@@ -42,6 +40,9 @@ using ::std::vector;  // NOLINT
 using ::testing::Test;
 
 constexpr double kTolerance = 0.0001;
+
+// Must match the number of ops in the op enum in instruction.proto.
+constexpr IntegerT kNumOps = 65;
 
 enum DiffId : IntegerT {
   kNoDifference = 0,
@@ -61,12 +62,11 @@ enum DiffId : IntegerT {
 };
 
 vector<Op> TestableOps() {
-  auto all_ops = EnumerateEnumValues<Op>();
-  vector<Op> testable_ops(all_ops.begin(), all_ops.end());
-  testable_ops.erase(
-      find(testable_ops.begin(), testable_ops.end(), UNSUPPORTED_OP));
-  CHECK(!testable_ops.empty());
-  return testable_ops;
+  vector<Op> ops;
+  for (IntegerT op_id = 0; op_id < kNumOps; ++op_id) {
+    ops.push_back(static_cast<Op>(op_id));
+  }
+  return ops;
 }
 
 Instruction NoOpInstruction() {
@@ -381,43 +381,6 @@ TEST(InstructionTest,
   EXPECT_EQ(instruction.GetVectorData().norm(), 0.0);
 }
 
-TEST(InstructionTest, Constructor_Op_Address_VectorData) {
-  Vector<4> vector;
-  vector << kActivationAsDataMin, -1.6875, 0.0, kActivationAsDataMax;
-  Instruction instruction(
-      VECTOR_CONST_SET_OLD_OP, 10, VectorDataSetter(vector));
-  EXPECT_EQ(instruction.op_, VECTOR_CONST_SET_OLD_OP);
-  EXPECT_EQ(instruction.in1_, 0);
-  EXPECT_EQ(instruction.in2_, 0);
-  EXPECT_EQ(instruction.out_, 10);
-  EXPECT_EQ(instruction.GetActivationData(), 0.0);
-  EXPECT_EQ(instruction.GetIndexData0(), 0);
-  EXPECT_EQ(instruction.GetFloatData0(), 0.0);
-  EXPECT_EQ(instruction.GetFloatData1(), 0.0);
-  EXPECT_EQ(instruction.GetFloatData2(), 0.0);
-  EXPECT_LE((instruction.GetVectorData() - vector).norm(),
-            kVectorDataTolerance);
-}
-
-TEST(InstructionTest, Constructor_Op_Address_IndexData_VectorData) {
-  Vector<4> vector;
-  vector << kActivationAsDataMin, -1.6875, 0.0, kActivationAsDataMax;
-  Instruction instruction(
-      VECTOR_CONST_SET_OLD_OP, 10, IndexDataSetter(20),
-      VectorDataSetter(vector));
-  EXPECT_EQ(instruction.op_, VECTOR_CONST_SET_OLD_OP);
-  EXPECT_EQ(instruction.in1_, 0);
-  EXPECT_EQ(instruction.in2_, 0);
-  EXPECT_EQ(instruction.out_, 10);
-  EXPECT_EQ(instruction.GetActivationData(), 0.0);
-  EXPECT_EQ(instruction.GetIndexData0(), 20);
-  EXPECT_EQ(instruction.GetFloatData0(), 0.0);
-  EXPECT_EQ(instruction.GetFloatData1(), 0.0);
-  EXPECT_EQ(instruction.GetFloatData2(), 0.0);
-  EXPECT_LE((instruction.GetVectorData() - vector).norm(),
-            kVectorDataTolerance);
-}
-
 TEST(InstructionTest, CopyConstructor) {
   RandomGenerator rand_gen = SimpleRandomGenerator();
   Instruction instruction1;
@@ -447,21 +410,6 @@ TEST(InstructionTest, EqualsOperatorThroughSomeExamples) {
   EXPECT_TRUE(instruction != instruction_diff_in1);
   EXPECT_TRUE(instruction != instruction_diff_in2);
   EXPECT_TRUE(instruction != instruction_diff_out);
-}
-
-TEST(InstructionTest, EqualsOperatorForDataThroughSomeExamples) {
-  Vector<4> vector;
-  vector << -0.1, 0.2, -0.3, 0.4;
-  Vector<4> vector_diff;
-  vector_diff << -0.1, 0.02, -0.3, 0.4;
-  Instruction instruction(
-      VECTOR_CONST_SET_OLD_OP, 3, VectorDataSetter(vector));
-  Instruction instruction_same(
-      VECTOR_CONST_SET_OLD_OP, 3, VectorDataSetter(vector));
-  Instruction instruction_diff_data(
-      VECTOR_CONST_SET_OLD_OP, 3, VectorDataSetter(vector_diff));
-  EXPECT_TRUE(instruction == instruction_same);
-  EXPECT_TRUE(instruction != instruction_diff_data);
 }
 
 TEST(InstructionTest, EqualsOperatorConsidersOp) {
@@ -517,24 +465,14 @@ TEST(InstructionTest, RandomizesIn1) {
     switch (op) {
       case NO_OP:
       case SCALAR_CONST_SET_OP:
-      case VECTOR_CONST_SET_OLD_OP:
       case VECTOR_CONST_SET_OP:
-      case MATRIX_ROW_CONST_SET_OLD_OP:
       case MATRIX_CONST_SET_OP:
       case SCALAR_GAUSSIAN_SET_OP:
-      case VECTOR_GAUSSIAN_SET_OLD_OP:
       case VECTOR_GAUSSIAN_SET_OP:
-      case MATRIX_GAUSSIAN_SET_OLD_OP:
       case MATRIX_GAUSSIAN_SET_OP:
       case SCALAR_UNIFORM_SET_OP:
       case VECTOR_UNIFORM_SET_OP:
       case MATRIX_UNIFORM_SET_OP:
-      case SCALAR_BETA_SET_OP:
-      case VECTOR_BETA_SET_OP:
-      case MATRIX_BETA_SET_OP:
-      case SCALAR_PRINT_OP:
-      case VECTOR_PRINT_OP:
-      case MATRIX_PRINT_OP:
         EXPECT_DEATH({RandomizeIn1(op, &rand_gen);}, "Invalid op");
         break;
       case SCALAR_SUM_OP:
@@ -570,7 +508,6 @@ TEST(InstructionTest, RandomizesIn1) {
       case VECTOR_MAX_OP:
       case VECTOR_ABS_OP:
       case VECTOR_HEAVYSIDE_OP:
-      case VECTOR_RELU_OP:
       case VECTOR_INNER_PRODUCT_OP:
       case VECTOR_OUTER_PRODUCT_OP:
       case VECTOR_NORM_OP:
@@ -608,8 +545,6 @@ TEST(InstructionTest, RandomizesIn1) {
               return RandomizeIn1(op, &rand_gen);}),
             matrix_range, matrix_range));
         break;
-      case UNSUPPORTED_OP:
-        LOG(FATAL) << "Unsupported op." << std::endl;
       // Do not add default clause. All ops should be supported here.
     }
   }
@@ -640,12 +575,9 @@ TEST(InstructionTest, RandomizesIn2) {
       case SCALAR_LOG_OP:
       case VECTOR_ABS_OP:
       case VECTOR_HEAVYSIDE_OP:
-      case VECTOR_RELU_OP:
-      case VECTOR_CONST_SET_OLD_OP:
       case VECTOR_CONST_SET_OP:
       case MATRIX_ABS_OP:
       case MATRIX_HEAVYSIDE_OP:
-      case MATRIX_ROW_CONST_SET_OLD_OP:
       case MATRIX_CONST_SET_OP:
       case VECTOR_NORM_OP:
       case MATRIX_NORM_OP:
@@ -657,16 +589,11 @@ TEST(InstructionTest, RandomizesIn2) {
       case MATRIX_ROW_MEAN_OP:
       case MATRIX_ROW_ST_DEV_OP:
       case SCALAR_GAUSSIAN_SET_OP:
-      case VECTOR_GAUSSIAN_SET_OLD_OP:
       case VECTOR_GAUSSIAN_SET_OP:
-      case MATRIX_GAUSSIAN_SET_OLD_OP:
       case MATRIX_GAUSSIAN_SET_OP:
       case SCALAR_UNIFORM_SET_OP:
       case VECTOR_UNIFORM_SET_OP:
       case MATRIX_UNIFORM_SET_OP:
-      case SCALAR_BETA_SET_OP:
-      case VECTOR_BETA_SET_OP:
-      case MATRIX_BETA_SET_OP:
       case SCALAR_RECIPROCAL_OP:
       case SCALAR_BROADCAST_OP:
       case VECTOR_RECIPROCAL_OP:
@@ -675,9 +602,6 @@ TEST(InstructionTest, RandomizesIn2) {
       case MATRIX_COLUMN_NORM_OP:
       case VECTOR_COLUMN_BROADCAST_OP:
       case VECTOR_ROW_BROADCAST_OP:
-      case SCALAR_PRINT_OP:
-      case VECTOR_PRINT_OP:
-      case MATRIX_PRINT_OP:
         EXPECT_DEATH({RandomizeIn2(op, &rand_gen);}, "Invalid op");
         break;
       case SCALAR_SUM_OP:
@@ -719,8 +643,6 @@ TEST(InstructionTest, RandomizesIn2) {
               return RandomizeIn2(op, &rand_gen);}),
             matrix_range, matrix_range));
         break;
-      case UNSUPPORTED_OP:
-        LOG(FATAL) << "Unsupported op." << std::endl;
       // Do not add default clause. All ops should be supported here.
     }
   }
@@ -740,9 +662,6 @@ TEST(InstructionTest, RandomizesOut) {
   for (const Op op : TestableOps()) {
     switch (op) {
       case NO_OP:
-      case SCALAR_PRINT_OP:
-      case VECTOR_PRINT_OP:
-      case MATRIX_PRINT_OP:
         EXPECT_DEATH({RandomizeOut(op, &rand_gen);}, "Invalid op");
         break;
       case SCALAR_SUM_OP:
@@ -771,7 +690,6 @@ TEST(InstructionTest, RandomizesOut) {
       case MATRIX_ST_DEV_OP:
       case SCALAR_GAUSSIAN_SET_OP:
       case SCALAR_UNIFORM_SET_OP:
-      case SCALAR_BETA_SET_OP:
       case SCALAR_RECIPROCAL_OP:
         EXPECT_TRUE(IsEventually(
             function<AddressT(void)>([op, &rand_gen](){
@@ -786,17 +704,13 @@ TEST(InstructionTest, RandomizesOut) {
       case VECTOR_MAX_OP:
       case VECTOR_ABS_OP:
       case VECTOR_HEAVYSIDE_OP:
-      case VECTOR_RELU_OP:
-      case VECTOR_CONST_SET_OLD_OP:
       case VECTOR_CONST_SET_OP:
       case SCALAR_VECTOR_PRODUCT_OP:
       case MATRIX_VECTOR_PRODUCT_OP:
       case MATRIX_ROW_MEAN_OP:
       case MATRIX_ROW_ST_DEV_OP:
-      case VECTOR_GAUSSIAN_SET_OLD_OP:
       case VECTOR_GAUSSIAN_SET_OP:
       case VECTOR_UNIFORM_SET_OP:
-      case VECTOR_BETA_SET_OP:
       case SCALAR_BROADCAST_OP:
       case VECTOR_RECIPROCAL_OP:
       case MATRIX_ROW_NORM_OP:
@@ -814,16 +728,13 @@ TEST(InstructionTest, RandomizesOut) {
       case MATRIX_MAX_OP:
       case MATRIX_ABS_OP:
       case MATRIX_HEAVYSIDE_OP:
-      case MATRIX_ROW_CONST_SET_OLD_OP:
       case MATRIX_CONST_SET_OP:
       case VECTOR_OUTER_PRODUCT_OP:
       case SCALAR_MATRIX_PRODUCT_OP:
       case MATRIX_TRANSPOSE_OP:
       case MATRIX_MATRIX_PRODUCT_OP:
-      case MATRIX_GAUSSIAN_SET_OLD_OP:
       case MATRIX_GAUSSIAN_SET_OP:
       case MATRIX_UNIFORM_SET_OP:
-      case MATRIX_BETA_SET_OP:
       case MATRIX_RECIPROCAL_OP:
       case VECTOR_COLUMN_BROADCAST_OP:
       case VECTOR_ROW_BROADCAST_OP:
@@ -832,8 +743,6 @@ TEST(InstructionTest, RandomizesOut) {
               return RandomizeOut(op, &rand_gen);}),
             matrix_range, matrix_range));
         break;
-      case UNSUPPORTED_OP:
-        LOG(FATAL) << "Unsupported op." << std::endl;
       // Do not add default clause. All ops should be supported here.
     }
   }
@@ -869,7 +778,6 @@ TEST(InstructionTest, RandomizesData) {
       case VECTOR_MAX_OP:
       case VECTOR_ABS_OP:
       case VECTOR_HEAVYSIDE_OP:
-      case VECTOR_RELU_OP:
       case MATRIX_SUM_OP:
       case MATRIX_DIFF_OP:
       case MATRIX_PRODUCT_OP:
@@ -900,10 +808,7 @@ TEST(InstructionTest, RandomizesData) {
       case MATRIX_COLUMN_NORM_OP:
       case VECTOR_COLUMN_BROADCAST_OP:
       case VECTOR_ROW_BROADCAST_OP:
-      case MATRIX_ROW_ST_DEV_OP:
-      case SCALAR_PRINT_OP:
-      case VECTOR_PRINT_OP:
-      case MATRIX_PRINT_OP: {
+      case MATRIX_ROW_ST_DEV_OP: {
         Instruction instr;
         EXPECT_DEATH({RandomizeData(op, &rand_gen, &instr);}, "Invalid op");
         break;
@@ -919,9 +824,6 @@ TEST(InstructionTest, RandomizesData) {
             Range<IntegerT>(-100, 101), Range<IntegerT>(-10, 11)));
         break;
       }
-      case VECTOR_CONST_SET_OLD_OP:
-        // Deprecated. Data ranges tested in instruction_manual_test.cc.
-        break;
       case VECTOR_CONST_SET_OP: {
         EXPECT_TRUE(IsEventually(
             function<FeatureIndexT(void)>([op, &rand_gen](){
@@ -938,24 +840,6 @@ TEST(InstructionTest, RandomizesData) {
                   round(10.0 * instr.GetFloatData1()));
             }),
             Range<IntegerT>(-10, 11), Range<IntegerT>(-10, 11)));
-        break;
-      }
-      case MATRIX_ROW_CONST_SET_OLD_OP: {
-        // Deprecated.
-        // Data row entry ranges tested in instruction_manual_test.cc.
-        EXPECT_TRUE(IsEventually(
-            function<AddressT(void)>(
-                [&](){return SetOpAndRandomizeParams(op, &rand_gen).out_;}),
-            Range(kFirstOutMatrixAddress, kMaxMatrixAddresses),
-            Range(kFirstOutMatrixAddress, kMaxMatrixAddresses)));
-        EXPECT_TRUE(IsEventually(
-            function<FeatureIndexT(void)>(
-                [&](){
-                  Instruction instr(op, &rand_gen);
-                  return instr.GetIndexData0();
-                }),
-            Range(FeatureIndexT(0), FeatureIndexT(4)),
-            Range(FeatureIndexT(0), FeatureIndexT(4)), 10.0));
         break;
       }
       case MATRIX_CONST_SET_OP: {
@@ -1004,11 +888,6 @@ TEST(InstructionTest, RandomizesData) {
             Range<IntegerT>(0, 11), Range<IntegerT>(0, 11)));
         break;
       }
-      case VECTOR_GAUSSIAN_SET_OLD_OP:
-      case MATRIX_GAUSSIAN_SET_OLD_OP:
-        // Deprecated.
-        // Data ranges tested in instruction_manual_test.cc.
-        break;
       case SCALAR_UNIFORM_SET_OP:
       case VECTOR_UNIFORM_SET_OP:
       case MATRIX_UNIFORM_SET_OP: {
@@ -1030,29 +909,6 @@ TEST(InstructionTest, RandomizesData) {
             Range<IntegerT>(-3, 4), Range<IntegerT>(-3, 4)));
         break;
       }
-      case SCALAR_BETA_SET_OP:
-      case VECTOR_BETA_SET_OP:
-      case MATRIX_BETA_SET_OP: {
-        EXPECT_TRUE(IsEventually(
-            function<IntegerT(void)>([op, &rand_gen](){
-              Instruction instr;
-              RandomizeData(op, &rand_gen, &instr);
-              return static_cast<IntegerT>(
-                  round(10.0 * instr.GetFloatData0()));
-            }),
-            Range<IntegerT>(0, 21), Range<IntegerT>(0, 21)));
-        EXPECT_TRUE(IsEventually(
-            function<IntegerT(void)>([op, &rand_gen](){
-              Instruction instr;
-              RandomizeData(op, &rand_gen, &instr);
-              return static_cast<IntegerT>(
-                  round(10.0 * instr.GetFloatData1()));
-            }),
-            Range<IntegerT>(0, 21), Range<IntegerT>(0, 21)));
-        break;
-      }
-      case UNSUPPORTED_OP:
-        LOG(FATAL) << "Unsupported op." << std::endl;
       // Do not add default clause. All ops should be supported here.
     }
   }
@@ -1064,9 +920,6 @@ TEST(InstructionTest, RandomizesCorrectFields) {
     Instruction blank_instr = BlankInstruction(op);
     switch (op) {
       case NO_OP:
-      case SCALAR_PRINT_OP:
-      case VECTOR_PRINT_OP:
-      case MATRIX_PRINT_OP:
         EXPECT_TRUE(IsEventually(
             function<IntegerT(void)>([&](){
               return CountDifferences(
@@ -1126,7 +979,6 @@ TEST(InstructionTest, RandomizesCorrectFields) {
       case SCALAR_LOG_OP:
       case VECTOR_ABS_OP:
       case VECTOR_HEAVYSIDE_OP:
-      case VECTOR_RELU_OP:
       case MATRIX_ABS_OP:
       case MATRIX_HEAVYSIDE_OP:
       case VECTOR_NORM_OP:
@@ -1171,23 +1023,6 @@ TEST(InstructionTest, RandomizesCorrectFields) {
             {kNoDifference, kDifferentOut, kDifferentActivationData},
             {kDifferentOut, kDifferentActivationData}));
         break;
-      case VECTOR_CONST_SET_OLD_OP:
-        EXPECT_TRUE(IsEventually(
-            function<IntegerT(void)>([&](){
-              return CountDifferences(
-                  blank_instr, SetOpAndRandomizeParams(op, &rand_gen));}),
-            {0, 1, 2, 3, 4, 5}, {5}));
-        EXPECT_TRUE(IsEventually(
-            function<DiffId(void)>([&](){
-              return RandomDifference(
-                  blank_instr, SetOpAndRandomizeParams(op, &rand_gen));}),
-            {kNoDifference, kDifferentOut, kDifferentVectorData0,
-             kDifferentVectorData1, kDifferentVectorData2,
-             kDifferentVectorData3},
-            {kDifferentOut, kDifferentVectorData0,
-             kDifferentVectorData1, kDifferentVectorData2,
-             kDifferentVectorData3}));
-        break;
       case VECTOR_CONST_SET_OP:
         EXPECT_TRUE(IsEventually(
             function<IntegerT(void)>([&](){
@@ -1201,23 +1036,6 @@ TEST(InstructionTest, RandomizesCorrectFields) {
             {kNoDifference, kDifferentOut, kDifferentFloatData0,
              kDifferentFloatData1},
             {kDifferentOut, kDifferentFloatData0, kDifferentFloatData1}));
-        break;
-      case MATRIX_ROW_CONST_SET_OLD_OP:
-        EXPECT_TRUE(IsEventually(
-            function<IntegerT(void)>([&](){
-              return CountDifferences(
-                  blank_instr, SetOpAndRandomizeParams(op, &rand_gen));}),
-            {0, 1, 2, 3, 4, 5, 6}, {6}));
-        EXPECT_TRUE(IsEventually(
-            function<DiffId(void)>([&](){
-              return RandomDifference(
-                  blank_instr, SetOpAndRandomizeParams(op, &rand_gen));}),
-            {kNoDifference, kDifferentOut, kDifferentIndexData0,
-             kDifferentVectorData0, kDifferentVectorData1,
-             kDifferentVectorData2, kDifferentVectorData3},
-            {kDifferentOut, kDifferentIndexData0, kDifferentVectorData0,
-             kDifferentVectorData1, kDifferentVectorData2,
-             kDifferentVectorData3}));
         break;
       case MATRIX_CONST_SET_OP:
         EXPECT_TRUE(IsEventually(
@@ -1240,9 +1058,6 @@ TEST(InstructionTest, RandomizesCorrectFields) {
       case SCALAR_UNIFORM_SET_OP:
       case VECTOR_UNIFORM_SET_OP:
       case MATRIX_UNIFORM_SET_OP:
-      case SCALAR_BETA_SET_OP:
-      case VECTOR_BETA_SET_OP:
-      case MATRIX_BETA_SET_OP:
         EXPECT_TRUE(IsEventually(
             function<IntegerT(void)>([&](){
               return CountDifferences(
@@ -1256,22 +1071,6 @@ TEST(InstructionTest, RandomizesCorrectFields) {
              kDifferentFloatData1},
             {kDifferentOut, kDifferentFloatData0, kDifferentFloatData1}));
         break;
-      case VECTOR_GAUSSIAN_SET_OLD_OP:
-      case MATRIX_GAUSSIAN_SET_OLD_OP:
-        EXPECT_TRUE(IsEventually(
-            function<IntegerT(void)>([&](){
-              return CountDifferences(
-                  blank_instr, SetOpAndRandomizeParams(op, &rand_gen));}),
-            {0, 1, 2}, {2}));
-        EXPECT_TRUE(IsEventually(
-            function<DiffId(void)>([&](){
-              return RandomDifference(
-                  blank_instr, SetOpAndRandomizeParams(op, &rand_gen));}),
-            {kNoDifference, kDifferentOut, kDifferentActivationData},
-            {kDifferentOut, kDifferentActivationData}));
-        break;
-      case UNSUPPORTED_OP:
-        LOG(FATAL) << "Unsupported op." << std::endl;
       // Do not add default clause. All ops should be supported here.
     }
   }
@@ -1283,9 +1082,6 @@ TEST(InstructionTest, AltersCorrectFields) {
     const Instruction instr = SetOpAndRandomizeParams(op, &rand_gen);
     switch (op) {
       case NO_OP:
-      case SCALAR_PRINT_OP:
-      case VECTOR_PRINT_OP:
-      case MATRIX_PRINT_OP:
         EXPECT_TRUE(IsEventually(
             function<IntegerT(void)>([&](){
               return CountDifferences(
@@ -1345,7 +1141,6 @@ TEST(InstructionTest, AltersCorrectFields) {
       case SCALAR_LOG_OP:
       case VECTOR_ABS_OP:
       case VECTOR_HEAVYSIDE_OP:
-      case VECTOR_RELU_OP:
       case MATRIX_ABS_OP:
       case MATRIX_HEAVYSIDE_OP:
       case VECTOR_NORM_OP:
@@ -1390,22 +1185,6 @@ TEST(InstructionTest, AltersCorrectFields) {
             {kNoDifference, kDifferentOut, kDifferentActivationData},
             {kDifferentOut, kDifferentActivationData}));
         break;
-      case VECTOR_CONST_SET_OLD_OP:
-        EXPECT_TRUE(IsEventually(
-            function<IntegerT(void)>([&](){
-              return CountDifferences(
-                  instr, AlterParam(instr, &rand_gen));}),
-            {0, 1}, {1}));
-        EXPECT_TRUE(IsEventually(
-            function<DiffId(void)>([&](){
-              return RandomDifference(
-                  instr, AlterParam(instr, &rand_gen));}),
-            {kNoDifference, kDifferentOut, kDifferentVectorData0,
-             kDifferentVectorData1, kDifferentVectorData2,
-             kDifferentVectorData3},
-            {kDifferentOut, kDifferentVectorData0, kDifferentVectorData1,
-             kDifferentVectorData2, kDifferentVectorData3}));
-        break;
       case VECTOR_CONST_SET_OP:
         EXPECT_TRUE(IsEventually(
             function<IntegerT(void)>([&](){
@@ -1419,23 +1198,6 @@ TEST(InstructionTest, AltersCorrectFields) {
             {kNoDifference, kDifferentOut,
              kDifferentFloatData0, kDifferentFloatData1},
             {kDifferentOut, kDifferentFloatData0, kDifferentFloatData1}));
-        break;
-      case MATRIX_ROW_CONST_SET_OLD_OP:
-        EXPECT_TRUE(IsEventually(
-            function<IntegerT(void)>([&](){
-              return CountDifferences(
-                  instr, AlterParam(instr, &rand_gen));}),
-            {0, 1}, {1}));
-        EXPECT_TRUE(IsEventually(
-            function<DiffId(void)>([&](){
-              return RandomDifference(
-                  instr, AlterParam(instr, &rand_gen));}),
-            {kNoDifference, kDifferentOut, kDifferentVectorData0,
-             kDifferentVectorData1, kDifferentVectorData2,
-             kDifferentVectorData3},
-            {kDifferentOut, kDifferentVectorData0,
-             kDifferentVectorData1, kDifferentVectorData2,
-             kDifferentVectorData3}));
         break;
       case MATRIX_CONST_SET_OP:
         EXPECT_TRUE(IsEventually(
@@ -1455,22 +1217,6 @@ TEST(InstructionTest, AltersCorrectFields) {
       case SCALAR_GAUSSIAN_SET_OP:
       case VECTOR_GAUSSIAN_SET_OP:
       case MATRIX_GAUSSIAN_SET_OP:
-      case SCALAR_BETA_SET_OP:
-      case VECTOR_BETA_SET_OP:
-      case MATRIX_BETA_SET_OP:
-        EXPECT_TRUE(IsEventually(
-            function<IntegerT(void)>([&](){
-              return CountDifferences(
-                  instr, AlterParam(instr, &rand_gen));}),
-            {0, 1}, {1}));
-        EXPECT_TRUE(IsEventually(
-            function<DiffId(void)>([&](){
-              return RandomDifference(
-                  instr, AlterParam(instr, &rand_gen));}),
-            {kNoDifference, kDifferentOut, kDifferentFloatData0,
-             kDifferentFloatData1},
-            {kDifferentOut, kDifferentFloatData0, kDifferentFloatData1}));
-        break;
       case SCALAR_UNIFORM_SET_OP:
       case VECTOR_UNIFORM_SET_OP:
       case MATRIX_UNIFORM_SET_OP:
@@ -1491,22 +1237,6 @@ TEST(InstructionTest, AltersCorrectFields) {
              kDifferentFloatData1},
             {kDifferentOut, kDifferentFloatData0, kDifferentFloatData1}));
         break;
-      case VECTOR_GAUSSIAN_SET_OLD_OP:
-      case MATRIX_GAUSSIAN_SET_OLD_OP:
-        EXPECT_TRUE(IsEventually(
-            function<IntegerT(void)>([&](){
-              return CountDifferences(
-                  instr, AlterParam(instr, &rand_gen));}),
-            {0, 1}, {1}));
-        EXPECT_TRUE(IsEventually(
-            function<DiffId(void)>([&](){
-              return RandomDifference(
-                  instr, AlterParam(instr, &rand_gen));}),
-            {kNoDifference, kDifferentOut, kDifferentActivationData},
-            {kDifferentOut, kDifferentActivationData}));
-        break;
-      case UNSUPPORTED_OP:
-        LOG(FATAL) << "Unsupported op." << std::endl;
       // Do not add default clause. All ops should be supported here.
     }
   }

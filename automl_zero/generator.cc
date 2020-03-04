@@ -15,7 +15,7 @@
 #include "generator.h"
 
 #include "definitions.h"
-#include "definitions.proto.h"
+#include "instruction.proto.h"
 #include "instruction.h"
 #include "random_generator.h"
 #include "absl/memory/memory.h"
@@ -31,18 +31,6 @@ using ::std::make_shared;
 using ::std::mt19937;
 using ::std::shared_ptr;
 using ::std::vector;
-
-void AddLayerInstructions(
-    double init_scale,
-    AddressT input_address, AddressT output_address,
-    AddressT grad_wrt_output_address, AddressT grad_wrt_input_address,
-    AddressT* first_free_scalar_address_ptr,
-    AddressT* first_free_vector_address_ptr,
-    AddressT* first_free_matrix_address_ptr,
-    std::vector<std::shared_ptr<const Instruction>>* setup_ptr,
-    std::vector<std::shared_ptr<const Instruction>>* predict_ptr,
-    std::vector<std::shared_ptr<const Instruction>>* learn_ptr,
-    bool compute_grad_wrt_input, bool add_skip_connection);
 
 void PadComponentFunctionWithInstruction(
     const size_t total_instructions,
@@ -267,113 +255,6 @@ Algorithm Generator::UnitTestNeuralNetNoBiasNoGradient(
       learn_size_init_, no_op_instruction, &algorithm.learn_);
 
   return algorithm;
-}
-
-void AddLayerInstructions(
-    double init_scale,
-    AddressT input_address, AddressT output_address,
-    AddressT grad_wrt_output_address, AddressT grad_wrt_input_address,
-    AddressT* first_free_scalar_address_ptr,
-    AddressT* first_free_vector_address_ptr,
-    AddressT* first_free_matrix_address_ptr,
-    std::vector<std::shared_ptr<const Instruction>>* setup_ptr,
-    std::vector<std::shared_ptr<const Instruction>>* predict_ptr,
-    std::vector<std::shared_ptr<const Instruction>>* learn_ptr,
-    bool compute_grad_wrt_input, bool add_skip_connection) {
-
-  // Allocate matrix addresses.
-  IntegerT weight_address = *first_free_matrix_address_ptr;
-  (*first_free_matrix_address_ptr)++;
-  IntegerT grad_wrt_weight_address = *first_free_matrix_address_ptr;
-  (*first_free_matrix_address_ptr)++;
-
-  // Allocate vector addresses.
-  IntegerT bias_address = *first_free_vector_address_ptr;
-  (*first_free_vector_address_ptr)++;
-  IntegerT output_before_relu_address = *first_free_vector_address_ptr;
-  (*first_free_vector_address_ptr)++;
-  AddressT grad_of_relu_address = *first_free_vector_address_ptr;
-  (*first_free_vector_address_ptr)++;
-  AddressT grad_wrt_before_relu_address = *first_free_vector_address_ptr;
-  (*first_free_vector_address_ptr)++;
-
-  // Setup: initialize the variables.
-  // Initialize weight matrix.
-  setup_ptr->emplace_back(make_shared<const Instruction>(
-      MATRIX_GAUSSIAN_SET_OP,
-      weight_address,
-      FloatDataSetter(0.0),
-      FloatDataSetter(init_scale)));
-  // setup_ptr->emplace_back(make_shared<const Instruction>(
-  //     MATRIX_UNIFORM_SET_OP,
-  //     weight_address,
-  //     FloatDataSetter(-init_scale),
-  //     FloatDataSetter(init_scale)));
-
-  // Predict: forward pass through the layer.
-  predict_ptr->emplace_back(make_shared<const Instruction>(
-      MATRIX_VECTOR_PRODUCT_OP,
-      weight_address, input_address,
-      output_before_relu_address));
-  // Add first layer bias.
-  predict_ptr->emplace_back(make_shared<const Instruction>(
-      VECTOR_SUM_OP, output_before_relu_address, bias_address,
-      output_before_relu_address));
-  // Apply RELU.
-  predict_ptr->emplace_back(make_shared<const Instruction>(
-      VECTOR_RELU_OP, output_before_relu_address, 0,
-      output_address));
-
-  // Skip connetion.
-  if (add_skip_connection) {
-    predict_ptr->emplace_back(make_shared<const Instruction>(
-        VECTOR_SUM_OP, output_address, input_address,
-        output_address));
-  }
-
-  // Learn: backward pass through the layer.
-  // Compute the gradient of RELU.
-  learn_ptr->emplace_back(make_shared<const Instruction>(
-      VECTOR_HEAVYSIDE_OP,
-      output_before_relu_address, 0, grad_of_relu_address));
-  // Compute the gradient w.r.t the activation before RELU.
-  learn_ptr->emplace_back(make_shared<const Instruction>(
-      VECTOR_PRODUCT_OP,
-      grad_of_relu_address, grad_wrt_output_address,
-      grad_wrt_before_relu_address));
-  // Update the bias vector.
-  learn_ptr->emplace_back(make_shared<const Instruction>(
-    VECTOR_SUM_OP, bias_address, grad_wrt_before_relu_address,
-    bias_address));
-  // Compute the gradient w.r.t the input.
-  if (compute_grad_wrt_input) {
-    IntegerT transposed_weight_address = *first_free_matrix_address_ptr;
-    (*first_free_matrix_address_ptr)++;
-    learn_ptr->emplace_back(make_shared<const Instruction>(
-        MATRIX_TRANSPOSE_OP,
-        weight_address, 0,
-        transposed_weight_address));
-    learn_ptr->emplace_back(make_shared<const Instruction>(
-        MATRIX_VECTOR_PRODUCT_OP,
-        transposed_weight_address, grad_wrt_output_address,
-        grad_wrt_input_address));
-    if (add_skip_connection) {
-      // Gradient from skip connetion.
-      learn_ptr->emplace_back(make_shared<const Instruction>(
-        VECTOR_SUM_OP, grad_wrt_input_address, grad_wrt_output_address,
-        grad_wrt_input_address));
-    }
-  }
-  // Compute the gradient w.r.t the weight matrix.
-  learn_ptr->emplace_back(make_shared<const Instruction>(
-      VECTOR_OUTER_PRODUCT_OP,
-      grad_wrt_before_relu_address, input_address,
-      grad_wrt_weight_address));
-  // Update the weight matrix.
-  learn_ptr->emplace_back(make_shared<const Instruction>(
-      MATRIX_SUM_OP,
-      weight_address, grad_wrt_weight_address,
-      weight_address));
 }
 
 Algorithm Generator::NeuralNet(
