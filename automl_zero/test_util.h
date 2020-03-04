@@ -21,7 +21,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "glog/logging.h"
 #include "definitions.h"
 #include "absl/container/node_hash_set.h"
 #include "absl/time/clock.h"

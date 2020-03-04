@@ -21,7 +21,6 @@
 #include <random>
 
 
-#include "glog/logging.h"
 #include "algorithm.h"
 #include "dataset_util.h"
 #include "datasets.proto.h"

@@ -19,7 +19,6 @@
 #include <random>
 #include <type_traits>
 
-#include "base/integral_types.h"
 #include "file/base/path.h"
 #include "dataset.h"
 #include "datasets.proto.h"

@@ -18,7 +18,6 @@
 #include <limits>
 #include <random>
 
-#include "base/integral_types.h"
 #include "definitions.h"
 #include "absl/random/random.h"
 

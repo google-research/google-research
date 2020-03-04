@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 
-#include "glog/logging.h"
 #include "definitions.h"
 #include "instruction.h"
 #include "random_generator.h"

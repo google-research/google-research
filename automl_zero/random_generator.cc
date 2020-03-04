@@ -14,7 +14,6 @@
 
 #include "random_generator.h"
 
-#include "glog/logging.h"
 #include "definitions.h"
 #include "absl/memory/memory.h"
 #include "absl/random/distributions.h"

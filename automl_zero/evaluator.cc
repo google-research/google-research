@@ -21,7 +21,6 @@
 #include <memory>
 #include <string>
 
-#include "glog/logging.h"
 #include "dataset.h"
 #include "dataset_util.h"
 #include "datasets.proto.h"

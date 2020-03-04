@@ -26,7 +26,6 @@
 #include <string>
 #include <type_traits>
 
-#include "glog/logging.h"
 #include "datasets.proto.h"
 #include "dataset.h"
 #include "definitions.h"

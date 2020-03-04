@@ -20,7 +20,6 @@
 #include <sstream>
 #include <type_traits>
 
-#include "glog/logging.h"
 #include "definitions.h"
 #include "instruction.proto.h"
 #include "random_generator.h"

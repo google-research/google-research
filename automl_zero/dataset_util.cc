@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 
-#include "glog/logging.h"
 #include "file/base/path.h"
 #include "algorithm.h"
 #include "dataset.h"
