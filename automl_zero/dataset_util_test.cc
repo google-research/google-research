@@ -20,7 +20,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "devtools/build/runtime/get_runfiles_dir.h"
 #include "algorithm.h"
 #include "dataset.h"
 #include "datasets.proto.h"
