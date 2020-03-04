@@ -16,19 +16,6 @@
 
 namespace automl_zero {
 
-template<FeatureIndexT F>
-void Memory<F>::Wipe() {
-  for (Scalar& value : scalar_) {
-    value = 0.0;
-  }
-  for (Vector<F>& value : vector_) {
-    value.setZero();
-  }
-  for (Matrix<F>& value : matrix_) {
-    value.setZero();
-  }
-}
-
 // Define here all the class-instances of the template that will be compiled.
 // Bigger than 32 leads to allocs too large for dense-storage in Eigen in stack.
 template class Memory<2>;
