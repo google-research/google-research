@@ -1,5 +1,8 @@
 # (FAT) Fact Augmented Text
 
+This was [Vidhisha Balachandran](https://github.com/vidhishanair)'s summer 2019
+research intern project. It is no longer being used.
+
 ## Answering Natural Questions with Background Knowledge
 
 Natural Questions (NQ) is a newly-release question-answering (QA) dataset. We
