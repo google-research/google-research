@@ -40,13 +40,13 @@ namespace automl_zero {
 using ::absl::c_linear_search;  // NOLINT
 using ::absl::GetFlag;  // NOLINT
 using ::absl::make_unique;  // NOLINT
-using ::stats_util::Median;
 using ::std::cout;  // NOLINT
 using ::std::endl;  // NOLINT
 using ::std::fixed;  // NOLINT
 using ::std::make_shared;  // NOLINT
 using ::std::min;  // NOLINT
 using ::std::mt19937;  // NOLINT
+using ::std::nth_element;  // NOLINT
 using ::std::pair;  // NOLINT
 using ::std::setprecision;  // NOLINT
 using ::std::vector;  // NOLINT
@@ -183,6 +183,12 @@ double Evaluator::ExecuteImpl(const Dataset<F>& dataset,
 }
 
 namespace internal {
+
+double Median(vector<double> values) {  // Intentional copy.
+  const size_t half_num_values = values.size() / 2;
+  nth_element(values.begin(), values.begin() + half_num_values, values.end());
+  return values[half_num_values];
+}
 
 double CombineFitnesses(
     const vector<double>& dataset_fitnesses,
