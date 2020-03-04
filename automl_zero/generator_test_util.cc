@@ -29,7 +29,7 @@ Generator SimpleGenerator() {
 }
 
 Algorithm SimpleNoOpAlgorithm() {
-  Generator generator(kNoOpModel,                         // Irrelevant.
+  Generator generator(NO_OP_ALGORITHM,                         // Irrelevant.
                       6,                                  // setup_size_init
                       3,                                  // predict_size_init
                       9,                                  // learn_size_init
@@ -41,7 +41,7 @@ Algorithm SimpleRandomAlgorithm() {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Generator generator(
-      kRandomModel,  // Irrelevant.
+      RANDOM_ALGORITHM,  // Irrelevant.
       6,  // setup_size_init
       3,  // predict_size_init
       9,  // learn_size_init
@@ -54,12 +54,12 @@ Algorithm SimpleRandomAlgorithm() {
 }
 
 Algorithm SimpleGz() {
-  Generator generator(kNoOpModel, 0, 0, 0, {}, {}, {}, nullptr, nullptr);
+  Generator generator(NO_OP_ALGORITHM, 0, 0, 0, {}, {}, {}, nullptr, nullptr);
   return generator.LinearModel(kDefaultLearningRate);
 }
 
 Algorithm SimpleGrTildeGrWithBias() {
-  Generator generator(kNoOpModel, 0, 0, 0, {}, {}, {}, nullptr, nullptr);
+  Generator generator(NO_OP_ALGORITHM, 0, 0, 0, {}, {}, {}, nullptr, nullptr);
   return generator.NeuralNet(
       kDefaultLearningRate, kDefaultInitScale, kDefaultInitScale);
 }

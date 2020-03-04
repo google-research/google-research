@@ -21,6 +21,7 @@
 #include "algorithm.h"
 #include "definitions.h"
 #include "definitions.proto.h"
+#include "generator.proto.h"
 #include "instruction.h"
 #include "randomizer.h"
 
@@ -31,32 +32,13 @@ class RandomGenerator;
 constexpr double kDefaultLearningRate = 0.01;
 constexpr double kDefaultInitScale = 0.1;
 
-enum ModelT : IntegerT {
-  // The no-op model (see NoOp function).
-  kNoOpModel = 0,
-
-  // A random model (see Random function).
-  kRandomModel = 1,
-
-  // A stand-alone Gz model without bias.
-  kLinearModel = 29,
-
-  // A stand-alone implementation of Gr~Gr model (see NeuralNet
-  // function) with default learning rate and initialization constants,
-  // and uses bias. This implementation also works with different feature sizes.
-  kNeuralNet = 21,
-
-  // A damaged NeuralNet Algorithm used in nonlinear test in integration tests.
-  kIntegrationTestDamagedNeuralNet = 25,
-};
-
 // A class to generate Algorithms.
 class Generator {
  public:
   Generator(
-      // The model used to initialize the population. See ModelT enum.
-      // Used by TheInitModel() and ignored by other methods.
-      ModelT init_model,
+      // The model used to initialize the population. See HardcodedAlgorithmID
+      // enum. Used by TheInitModel() and ignored by other methods.
+      HardcodedAlgorithmID init_model,
       // The sizes of the component_functions. Can be zero if only using
       // deterministic models without padding.
       IntegerT setup_size_init,
@@ -83,7 +65,7 @@ class Generator {
 
   // Returns Algorithm of the given model type. This will be one of the ones
   // below.
-  Algorithm ModelByID(ModelT model);
+  Algorithm ModelByID(HardcodedAlgorithmID model);
 
   // A Algorithm with no-op instructions.
   Algorithm NoOp();
@@ -93,7 +75,7 @@ class Generator {
   Algorithm Random();
 
   // A linear model with learning by gradient descent.
-  static constexpr AddressT kLinearModelWeightsAddress = 1;
+  static constexpr AddressT LINEAR_ALGORITHMWeightsAddress = 1;
   Algorithm LinearModel(double learning_rate);
 
   // A 2-layer neural network with one nonlinearity, where both layers implement
@@ -114,7 +96,7 @@ class Generator {
   // Used to create a simple generator for tests. See SimpleGenerator.
   Generator();
 
-  const ModelT init_model_;
+  const HardcodedAlgorithmID init_model_;
   const IntegerT setup_size_init_;
   const IntegerT predict_size_init_;
   const IntegerT learn_size_init_;

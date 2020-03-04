@@ -22,11 +22,18 @@ syntax = "proto2";
 
 package automl_zero;
 
-message TrainBudgetSpec {
-  // A Algorithm to use as a reference. See `TrainExamples`.
-  optional int32 train_budget_baseline = 1;
+import "third_party/google_research/google_research/automl_zero/generator.proto";
 
-  // Fraction of the training time of the baseline above which the algorithm
+// A budget used to discard algorithms that take too long. If any algorithm
+// takes longer than a threshold time, it is discarded. The threshold time is
+// specified as a product of the time it takes to train a baseline model
+// multiplied by a fixed factor (for headroom).
+message TrainBudgetSpec {
+  // An Algorithm to use as a reference. See `TrainBudget`.
+  optional HardcodedAlgorithmID train_budget_baseline = 1
+      [default = NEURAL_NET_ALGORITHM];
+
+  // Fraction of the training time of the baseline above which an algorithm
   // will be discarded.
-  optional double train_budget_threshold_factor = 2;
+  optional double train_budget_threshold_factor = 2 [default = 2.0];
 }

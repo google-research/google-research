@@ -17,6 +17,7 @@
 #include <memory>
 #include <vector>
 
+#include "definitions.h"
 #include "random_generator.h"
 #include "absl/memory/memory.h"
 
@@ -30,7 +31,7 @@ using ::std::shared_ptr;  // NOLINT
 using ::std::vector;  // NOLINT
 
 Mutator::Mutator(
-    const vector<MutationAction>& allowed_actions,
+    const MutationTypeList& allowed_actions,
     const double mutate_prob,
     const vector<Op>& allowed_setup_ops,
     const vector<Op>& allowed_predict_ops,
@@ -66,44 +67,15 @@ Mutator::Mutator(
           bit_gen_,
           rand_gen_) {}
 
-vector<MutationAction> ConvertToMutationAction(
+vector<MutationType> ConvertToMutationType(
     const vector<IntegerT>& mutation_actions_as_ints) {
-  vector<MutationAction> mutation_actions;
+  vector<MutationType> mutation_actions;
   mutation_actions.reserve(mutation_actions_as_ints.size());
   for (const IntegerT action_as_int : mutation_actions_as_ints) {
-    mutation_actions.push_back(static_cast<MutationAction>(action_as_int));
+    mutation_actions.push_back(static_cast<MutationType>(action_as_int));
   }
   return mutation_actions;
 }
-
-Mutator::Mutator(
-    const vector<IntegerT>& allowed_actions,
-    const double mutate_prob,
-    const vector<Op>& allowed_setup_ops,
-    const vector<Op>& allowed_predict_ops,
-    const vector<Op>& allowed_learn_ops,
-    const IntegerT setup_size_min,
-    const IntegerT setup_size_max,
-    const IntegerT predict_size_min,
-    const IntegerT predict_size_max,
-    const IntegerT learn_size_min,
-    const IntegerT learn_size_max,
-    mt19937* bit_gen,
-    RandomGenerator* rand_gen)
-    : Mutator(
-      ConvertToMutationAction(allowed_actions),
-      mutate_prob,
-      allowed_setup_ops,
-      allowed_predict_ops,
-      allowed_learn_ops,
-      setup_size_min,
-      setup_size_max,
-      predict_size_min,
-      predict_size_max,
-      learn_size_min,
-      learn_size_max,
-      bit_gen,
-      rand_gen) {}
 
 void Mutator::Mutate(shared_ptr<const Algorithm>* algorithm) {
   if (mutate_prob_ >= 1.0 || rand_gen_->UniformProbability() < mutate_prob_) {
@@ -125,10 +97,12 @@ void Mutator::Mutate(const IntegerT num_mutations,
 }
 
 Mutator::Mutator()
-    : allowed_actions_({
-          kAlterParamMutationAction,
-          kRandomizeInstructionMutationAction,
-          kRandomizeComponentFunctionMutationAction}),
+    : allowed_actions_(ParseTextFormat<MutationTypeList>(
+        "mutation_types: [ "
+        "  ALTER_PARAM_MUTATION_TYPE, "
+        "  RANDOMIZE_INSTRUCTION_MUTATION_TYPE, "
+        "  RANDOMIZE_COMPONENT_FUNCTION_MUTATION_TYPE "
+        "]")),
       mutate_prob_(0.5),
       allowed_setup_ops_(
           {NO_OP, SCALAR_SUM_OP, MATRIX_VECTOR_PRODUCT_OP, VECTOR_MEAN_OP}),
@@ -157,32 +131,33 @@ Mutator::Mutator()
           rand_gen_) {}
 
 void Mutator::MutateImpl(Algorithm* algorithm) {
-  CHECK(!allowed_actions_.empty());
+  CHECK(!allowed_actions_.mutation_types().empty());
   const size_t action_index =
-      absl::Uniform<size_t>(*bit_gen_, 0, allowed_actions_.size());
-  const MutationAction action = allowed_actions_[action_index];
+      absl::Uniform<size_t>(*bit_gen_, 0,
+                            allowed_actions_.mutation_types_size());
+  const MutationType action = allowed_actions_.mutation_types(action_index);
   switch (action) {
-    case kAlterParamMutationAction:
+    case ALTER_PARAM_MUTATION_TYPE:
       AlterParam(algorithm);
       return;
-    case kRandomizeInstructionMutationAction:
+    case RANDOMIZE_INSTRUCTION_MUTATION_TYPE:
       RandomizeInstruction(algorithm);
       return;
-    case kRandomizeComponentFunctionMutationAction:
+    case RANDOMIZE_COMPONENT_FUNCTION_MUTATION_TYPE:
       RandomizeComponentFunction(algorithm);
       return;
-    case kIdentityMutationAction:
+    case IDENTITY_MUTATION_TYPE:
       return;
-    case kInsertInstructionMutationAction:
+    case INSERT_INSTRUCTION_MUTATION_TYPE:
       InsertInstruction(algorithm);
       return;
-    case kRemoveInstructionMutationAction:
+    case REMOVE_INSTRUCTION_MUTATION_TYPE:
       RemoveInstruction(algorithm);
       return;
-    case kTradeInstructionMutationAction:
+    case TRADE_INSTRUCTION_MUTATION_TYPE:
       TradeInstruction(algorithm);
       return;
-    case kRandomizeAlgorithmMutationAction:
+    case RANDOMIZE_ALGORITHM_MUTATION_TYPE:
       RandomizeAlgorithm(algorithm);
       return;
     // Do not add a default clause here. All actions should be supported.

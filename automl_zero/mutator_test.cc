@@ -23,6 +23,7 @@
 #include "algorithm_test_util.h"
 #include "generator.h"
 #include "generator_test_util.h"
+#include "mutator.proto.h"
 #include "mutator_test_util.h"
 #include "random_generator.h"
 #include "random_generator_test_util.h"
@@ -42,12 +43,15 @@ TEST(MutatorTest, Runs) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<MutationAction>{  // allowed_actions
-        kAlterParamMutationAction, kRandomizeInstructionMutationAction,
-        kRandomizeComponentFunctionMutationAction,
-        kInsertInstructionMutationAction, kTradeInstructionMutationAction,
-        kRemoveInstructionMutationAction
-      },
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [ "
+          "  ALTER_PARAM_MUTATION_TYPE, "
+          "  RANDOMIZE_INSTRUCTION_MUTATION_TYPE, "
+          "  RANDOMIZE_COMPONENT_FUNCTION_MUTATION_TYPE, "
+          "  INSERT_INSTRUCTION_MUTATION_TYPE, "
+          "  TRADE_INSTRUCTION_MUTATION_TYPE, "
+          "  REMOVE_INSTRUCTION_MUTATION_TYPE "
+          "] "),
       0.5,  // mutate_prob
       {NO_OP, SCALAR_SUM_OP, VECTOR_SUM_OP},  // allowed_setup_ops
       {NO_OP, SCALAR_DIFF_OP, VECTOR_DIFF_OP},  // allowed_predict_ops
@@ -55,7 +59,7 @@ TEST(MutatorTest, Runs) {
       0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
       &bit_gen,
       &rand_gen);
-  Generator generator(kNoOpModel, 10, 10, 10, {}, {}, {}, nullptr,
+  Generator generator(NO_OP_ALGORITHM, 10, 10, 10, {}, {}, {}, nullptr,
                       nullptr);
   shared_ptr<const Algorithm> algorithm =
       make_shared<const Algorithm>(SimpleRandomAlgorithm());
@@ -66,10 +70,12 @@ TEST(MutatorTest, CoversActions) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<MutationAction>{  // allowed_actions
-        kInsertInstructionMutationAction, kTradeInstructionMutationAction,
-        kRemoveInstructionMutationAction
-      },
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [ "
+          "  INSERT_INSTRUCTION_MUTATION_TYPE, "
+          "  TRADE_INSTRUCTION_MUTATION_TYPE, "
+          "  REMOVE_INSTRUCTION_MUTATION_TYPE "
+          "] "),
       1.0,  // mutate_prob
       {},  // allowed_setup_ops
       {NO_OP},  // allowed_predict_ops
@@ -93,8 +99,10 @@ TEST(MutatorTest, RespectsMutateProb) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<MutationAction>{  // allowed_actions
-        kInsertInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [ "
+          "  INSERT_INSTRUCTION_MUTATION_TYPE "
+          "] "),
       0.5,  // mutate_prob
       {},  // allowed_setup_ops
       {NO_OP},  // allowed_predict_ops
@@ -118,7 +126,7 @@ TEST(MutatorTest, InstructionIndexTest) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{}, 0.0, {}, {}, {},
+      MutationTypeList(), 0.0, {}, {}, {},
       0, 10000, 0, 10000, 0, 10000,
       &bit_gen, &rand_gen);
   EXPECT_TRUE(IsEventually(
@@ -132,7 +140,7 @@ TEST(MutatorTest, SetupOpTest) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{}, 0.0,
+      MutationTypeList(), 0.0,
       // allowed_setup_ops
       {NO_OP, SCALAR_SUM_OP, MATRIX_VECTOR_PRODUCT_OP, VECTOR_MEAN_OP},
       {},  // allowed_predict_ops
@@ -151,7 +159,7 @@ TEST(MutatorTest, PredictOpTest) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{}, 0.0,
+      MutationTypeList(), 0.0,
       {},  // allowed_setup_ops
       // allowed_predict_ops
       {NO_OP, SCALAR_SUM_OP, MATRIX_VECTOR_PRODUCT_OP, VECTOR_MEAN_OP},
@@ -170,7 +178,7 @@ TEST(MutatorTest, LearnOpTest) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{}, 0.0,
+      MutationTypeList(), 0.0,
       {},  // allowed_setup_ops
       {},  // allowed_predict_ops
       // allowed_learn_ops
@@ -189,7 +197,7 @@ TEST(MutatorTest, ComponentFunctionTest_SetupPredictLearn) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{}, 0.0,
+      MutationTypeList(), 0.0,
       {NO_OP, SCALAR_SUM_OP},  // allowed_setup_ops
       {NO_OP, SCALAR_SUM_OP},  // allowed_predict_ops
       {NO_OP, SCALAR_SUM_OP},  // allowed_learn_ops
@@ -209,7 +217,7 @@ TEST(MutatorTest, ComponentFunctionTest_Setup) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{}, 0.0,
+      MutationTypeList(), 0.0,
       {NO_OP, SCALAR_SUM_OP},  // allowed_setup_ops
       {},  // allowed_predict_ops
       {},  // allowed_learn_ops
@@ -227,7 +235,7 @@ TEST(MutatorTest, ComponentFunctionTest_Predict) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{}, 0.0,
+      MutationTypeList(), 0.0,
       {},  // allowed_setup_ops
       {NO_OP, SCALAR_SUM_OP},  // allowed_predict_ops
       {},  // allowed_learn_ops
@@ -245,7 +253,7 @@ TEST(MutatorTest, ComponentFunctionTest_Learn) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{}, 0.0,
+      MutationTypeList(), 0.0,
       {},  // allowed_setup_ops
       {},  // allowed_predict_ops
       {NO_OP, SCALAR_SUM_OP},  // allowed_learn_ops
@@ -370,12 +378,14 @@ TEST(MutatorTest, RandomizeComponentFunction) {
       {learn_size}));
 }
 
-TEST(MutatorTest, IdentityMutationAction_WorksCorrectly) {
+TEST(MutatorTest, IdentityMutationType_WorksCorrectly) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   const Algorithm algorithm = SimpleRandomAlgorithm();
   Mutator mutator(
-      vector<IntegerT>{kIdentityMutationAction}, 1.0,
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [IDENTITY_MUTATION_TYPE] "),
+      1.0,
       {NO_OP, SCALAR_SUM_OP},  // allowed_setup_ops
       {NO_OP, SCALAR_SUM_OP},  // allowed_predict_ops
       {NO_OP, SCALAR_SUM_OP},  // allowed_learn_ops
@@ -386,12 +396,13 @@ TEST(MutatorTest, IdentityMutationAction_WorksCorrectly) {
   EXPECT_EQ(*mutated_algorithm, algorithm);
 }
 
-TEST(InsertInstructionMutationActionTest, CoversComponentFunctions) {
+TEST(InsertInstructionMutationTypeTest, CoversComponentFunctions) {
   const Algorithm no_op_algorithm = SimpleRandomAlgorithm();
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kInsertInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [INSERT_INSTRUCTION_MUTATION_TYPE] "),
       1.0,  // mutate_prob
       {SCALAR_SUM_OP},  // allowed_setup_ops
       {SCALAR_SUM_OP},  // allowed_predict_ops
@@ -407,13 +418,14 @@ TEST(InsertInstructionMutationActionTest, CoversComponentFunctions) {
     {0, 1, 2}, {0, 1, 2}));
 }
 
-TEST(InsertInstructionMutationActionTest, CoversSetupPositions) {
+TEST(InsertInstructionMutationTypeTest, CoversSetupPositions) {
   const Algorithm no_op_algorithm = SimpleNoOpAlgorithm();
   const IntegerT component_function_size = no_op_algorithm.setup_.size();
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kInsertInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [INSERT_INSTRUCTION_MUTATION_TYPE] "),
       1.0,  // mutate_prob
       {SCALAR_SUM_OP},  // allowed_setup_ops
       {},  // allowed_predict_ops
@@ -432,13 +444,14 @@ TEST(InsertInstructionMutationActionTest, CoversSetupPositions) {
     3));
 }
 
-TEST(InsertInstructionMutationActionTest, CoversPredictPositions) {
+TEST(InsertInstructionMutationTypeTest, CoversPredictPositions) {
   const Algorithm no_op_algorithm = SimpleNoOpAlgorithm();
   const IntegerT component_function_size = no_op_algorithm.predict_.size();
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kInsertInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [INSERT_INSTRUCTION_MUTATION_TYPE] "),
       1.0,  // mutate_prob
       {},  // allowed_setup_ops
       {SCALAR_SUM_OP},  // allowed_predict_ops
@@ -457,13 +470,14 @@ TEST(InsertInstructionMutationActionTest, CoversPredictPositions) {
     3));
 }
 
-TEST(InsertInstructionMutationActionTest, CoversLearnPositions) {
+TEST(InsertInstructionMutationTypeTest, CoversLearnPositions) {
   const Algorithm no_op_algorithm = SimpleNoOpAlgorithm();
   const IntegerT component_function_size = no_op_algorithm.learn_.size();
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kInsertInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [INSERT_INSTRUCTION_MUTATION_TYPE] "),
       1.0,  // mutate_prob
       {},  // allowed_setup_ops
       {},  // allowed_predict_ops
@@ -482,7 +496,7 @@ TEST(InsertInstructionMutationActionTest, CoversLearnPositions) {
     3));
 }
 
-TEST(InsertInstructionMutationActionTest, InsertsWhenUnderMinSize) {
+TEST(InsertInstructionMutationTypeTest, InsertsWhenUnderMinSize) {
   const Algorithm no_op_algorithm = SimpleNoOpAlgorithm();
   const IntegerT setup_component_function_size = no_op_algorithm.setup_.size();
   const IntegerT predict_component_function_size =
@@ -491,7 +505,8 @@ TEST(InsertInstructionMutationActionTest, InsertsWhenUnderMinSize) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kInsertInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [INSERT_INSTRUCTION_MUTATION_TYPE] "),
       1.0,  // mutate_prob
       {SCALAR_SUM_OP},  // allowed_setup_ops
       {SCALAR_SUM_OP},  // allowed_predict_ops
@@ -508,12 +523,13 @@ TEST(InsertInstructionMutationActionTest, InsertsWhenUnderMinSize) {
                   learn_component_function_size + 1);
 }
 
-TEST(InsertInstructionMutationActionTest, DoesNotInsertWhenOverMaxSize) {
+TEST(InsertInstructionMutationTypeTest, DoesNotInsertWhenOverMaxSize) {
   const Algorithm no_op_algorithm = SimpleNoOpAlgorithm();
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kInsertInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [INSERT_INSTRUCTION_MUTATION_TYPE] "),
       1.0,  // mutate_prob
       {SCALAR_SUM_OP},  // allowed_setup_ops
       {SCALAR_SUM_OP},  // allowed_predict_ops
@@ -525,12 +541,13 @@ TEST(InsertInstructionMutationActionTest, DoesNotInsertWhenOverMaxSize) {
   EXPECT_EQ(*mutated_algorithm, no_op_algorithm);
 }
 
-TEST(InsertInstructionMutationActionTest, CoversSetupInstructions) {
+TEST(InsertInstructionMutationTypeTest, CoversSetupInstructions) {
   const Algorithm empty_algorithm;
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kInsertInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [INSERT_INSTRUCTION_MUTATION_TYPE] "),
       1.0,  // mutate_prob
       {SCALAR_SUM_OP, SCALAR_DIFF_OP},  // allowed_setup_ops
       {},  // allowed_predict_ops
@@ -550,12 +567,13 @@ TEST(InsertInstructionMutationActionTest, CoversSetupInstructions) {
     {SCALAR_SUM_OP, SCALAR_DIFF_OP}, {SCALAR_SUM_OP, SCALAR_DIFF_OP}, 3));
 }
 
-TEST(InsertInstructionMutationActionTest, CoversPredictInstructions) {
+TEST(InsertInstructionMutationTypeTest, CoversPredictInstructions) {
   const Algorithm empty_algorithm;
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kInsertInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [INSERT_INSTRUCTION_MUTATION_TYPE] "),
       1.0,  // mutate_prob
       {},  // allowed_setup_ops
       {SCALAR_SUM_OP, SCALAR_DIFF_OP},  // allowed_predict_ops
@@ -575,12 +593,13 @@ TEST(InsertInstructionMutationActionTest, CoversPredictInstructions) {
     {SCALAR_SUM_OP, SCALAR_DIFF_OP}, {SCALAR_SUM_OP, SCALAR_DIFF_OP}, 3));
 }
 
-TEST(InsertInstructionMutationActionTest, CoversLearnInstructions) {
+TEST(InsertInstructionMutationTypeTest, CoversLearnInstructions) {
   const Algorithm empty_algorithm;
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kInsertInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [INSERT_INSTRUCTION_MUTATION_TYPE] "),
       1.0,  // mutate_prob
       {},  // allowed_setup_ops
       {},  // allowed_predict_ops
@@ -600,12 +619,13 @@ TEST(InsertInstructionMutationActionTest, CoversLearnInstructions) {
     {SCALAR_SUM_OP, SCALAR_DIFF_OP}, {SCALAR_SUM_OP, SCALAR_DIFF_OP}, 3));
 }
 
-TEST(RemoveInstructionMutationActionTest, CoversComponentFunctions) {
+TEST(RemoveInstructionMutationTypeTest, CoversComponentFunctions) {
   const Algorithm random_algorithm = SimpleRandomAlgorithm();
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kRemoveInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [REMOVE_INSTRUCTION_MUTATION_TYPE] "),
       1.0, {NO_OP}, {NO_OP}, {NO_OP},
       0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
       &bit_gen, &rand_gen);
@@ -618,13 +638,14 @@ TEST(RemoveInstructionMutationActionTest, CoversComponentFunctions) {
     {0, 1, 2}, {0, 1, 2}, 3));
 }
 
-TEST(RemoveInstructionMutationActionTest, CoversSetupPositions) {
+TEST(RemoveInstructionMutationTypeTest, CoversSetupPositions) {
   const Algorithm algorithm = SimpleIncreasingDataAlgorithm();
   const IntegerT component_function_size = algorithm.setup_.size();
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kRemoveInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [REMOVE_INSTRUCTION_MUTATION_TYPE] "),
       1.0,  // mutate_prob
       {NO_OP},  // allowed_setup_ops
       {},  // allowed_predict_ops
@@ -644,13 +665,14 @@ TEST(RemoveInstructionMutationActionTest, CoversSetupPositions) {
     3));
 }
 
-TEST(RemoveInstructionMutationActionTest, CoversPredictPositions) {
+TEST(RemoveInstructionMutationTypeTest, CoversPredictPositions) {
   const Algorithm algorithm = SimpleIncreasingDataAlgorithm();
   const IntegerT component_function_size = algorithm.predict_.size();
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kRemoveInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [REMOVE_INSTRUCTION_MUTATION_TYPE] "),
       1.0,  // mutate_prob
       {},  // allowed_setup_ops
       {NO_OP},  // allowed_predict_ops
@@ -670,13 +692,14 @@ TEST(RemoveInstructionMutationActionTest, CoversPredictPositions) {
     3));
 }
 
-TEST(RemoveInstructionMutationActionTest, CoversLearnPositions) {
+TEST(RemoveInstructionMutationTypeTest, CoversLearnPositions) {
   const Algorithm algorithm = SimpleIncreasingDataAlgorithm();
   const IntegerT component_function_size = algorithm.learn_.size();
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kRemoveInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [REMOVE_INSTRUCTION_MUTATION_TYPE] "),
       1.0,  // mutate_prob
       {},  // allowed_setup_ops
       {},  // allowed_predict_ops
@@ -696,12 +719,13 @@ TEST(RemoveInstructionMutationActionTest, CoversLearnPositions) {
     3));
 }
 
-TEST(RemoveInstructionMutationActionTest, DoesNotRemoveWhenUnderMinSize) {
+TEST(RemoveInstructionMutationTypeTest, DoesNotRemoveWhenUnderMinSize) {
   const Algorithm no_op_algorithm = SimpleNoOpAlgorithm();
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kRemoveInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [REMOVE_INSTRUCTION_MUTATION_TYPE] "),
       1.0,  // mutate_prob
       {SCALAR_SUM_OP},  // allowed_setup_ops
       {SCALAR_SUM_OP},  // allowed_predict_ops
@@ -713,7 +737,7 @@ TEST(RemoveInstructionMutationActionTest, DoesNotRemoveWhenUnderMinSize) {
   EXPECT_EQ(*mutated_algorithm, no_op_algorithm);
 }
 
-TEST(RemoveInstructionMutationActionTest, RemovesWhenOverMaxSize) {
+TEST(RemoveInstructionMutationTypeTest, RemovesWhenOverMaxSize) {
   const Algorithm no_op_algorithm = SimpleNoOpAlgorithm();
   const IntegerT setup_component_function_size = no_op_algorithm.setup_.size();
   const IntegerT predict_component_function_size =
@@ -722,7 +746,8 @@ TEST(RemoveInstructionMutationActionTest, RemovesWhenOverMaxSize) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kRemoveInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [REMOVE_INSTRUCTION_MUTATION_TYPE] "),
       1.0,  // mutate_prob
       {SCALAR_SUM_OP},  // allowed_setup_ops
       {SCALAR_SUM_OP},  // allowed_predict_ops
@@ -739,12 +764,13 @@ TEST(RemoveInstructionMutationActionTest, RemovesWhenOverMaxSize) {
                   learn_component_function_size - 1);
 }
 
-TEST(TradeInstructionMutationActionTest, CoversComponentFunctions) {
+TEST(TradeInstructionMutationTypeTest, CoversComponentFunctions) {
   const Algorithm random_algorithm = SimpleRandomAlgorithm();
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kTradeInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [TRADE_INSTRUCTION_MUTATION_TYPE] "),
       1.0, {NO_OP}, {NO_OP}, {NO_OP},
       0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
       &bit_gen, &rand_gen);
@@ -757,12 +783,13 @@ TEST(TradeInstructionMutationActionTest, CoversComponentFunctions) {
     {-1, 0, 1, 2}, {0, 1, 2}, 3));
 }
 
-TEST(TradeInstructionMutationActionTest, PreservesSizes) {
+TEST(TradeInstructionMutationTypeTest, PreservesSizes) {
   const Algorithm random_algorithm = SimpleRandomAlgorithm();
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Mutator mutator(
-      vector<IntegerT>{kTradeInstructionMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [TRADE_INSTRUCTION_MUTATION_TYPE] "),
       1.0, {NO_OP}, {NO_OP}, {NO_OP},
       0, 10000, 0, 10000, 0, 10000,  // min/max prog. sizes
       &bit_gen, &rand_gen);
@@ -782,7 +809,8 @@ TEST(MutatorTest, RandomizeAlgorithm) {
   const IntegerT predict_size = algorithm.predict_.size();
   const IntegerT learn_size = algorithm.learn_.size();
   Mutator mutator(
-      vector<IntegerT>{kRandomizeAlgorithmMutationAction},
+      ParseTextFormat<MutationTypeList>(
+          "mutation_types: [RANDOMIZE_ALGORITHM_MUTATION_TYPE] "),
       1.0,
       {NO_OP, SCALAR_SUM_OP, MATRIX_VECTOR_PRODUCT_OP, VECTOR_MEAN_OP},
       {NO_OP, SCALAR_SUM_OP, MATRIX_VECTOR_PRODUCT_OP, VECTOR_MEAN_OP},
