@@ -23,6 +23,79 @@ namespace automl_zero {
 
 using ::std::make_pair;
 using ::std::vector;
+using K = LRUCache::K;
+using V = LRUCache::V;
+
+LRUCache::LRUCache(IntegerT max_size)
+    : max_size_(max_size) {
+  CHECK_GT(max_size, 1);
+}
+
+V* LRUCache::Insert(const K key, const V& value) {
+  // If already inserted, erase it.
+  MapIterator found = map_.find(key);
+  if (found != map_.end()) EraseImpl(found);
+  V* inserted = InsertImpl(key, value);
+  MaybeResize();
+  return inserted;
+}
+
+const V* LRUCache::Lookup(const K key) {
+  MapIterator found = map_.find(key);
+  if (found == map_.end()) {
+    // If not found, return nullptr.
+    return nullptr;
+  } else {
+    // If found, return it.
+    return &found->second->second;
+  }
+}
+
+V* LRUCache::MutableLookup(const K key) {
+  MapIterator found = map_.find(key);
+  if (found == map_.end()) {
+    // If not found, return nullptr.
+    return nullptr;
+  } else {
+    // If found, move it to the front and return it.
+    const V value = found->second->second;
+    EraseImpl(found);
+    return InsertImpl(key, value);
+  }
+}
+
+void LRUCache::Erase(const K key) {
+  MapIterator found = map_.find(key);
+  CHECK(found != map_.end());
+  EraseImpl(found);
+}
+
+void LRUCache::Clear() {
+  map_.clear();
+  list_.clear();
+}
+
+void LRUCache::EraseImpl(MapIterator it) {
+  list_.erase(it->second);
+  map_.erase(it);
+}
+
+V* LRUCache::InsertImpl(const K key, const V& value) {
+  list_.push_front(make_pair(key, value));
+  ListIterator pushed = list_.begin();
+  map_.insert(make_pair(key, pushed));
+  return &pushed->second;
+}
+
+void LRUCache::MaybeResize() {
+  // Keep within size limit.
+  while (list_.size() > max_size_) {
+    // Erase last element.
+    const K erasing = list_.back().first;
+    list_.pop_back();
+    map_.erase(erasing);
+  }
+}
 
 FECCache::FECCache(const FECCacheSpec& spec)
     : spec_(spec), cache_(spec_.cache_size()) {

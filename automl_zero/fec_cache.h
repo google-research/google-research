@@ -16,30 +16,53 @@
 #define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_FEC_CACHE_H_
 
 #include <functional>
+#include <list>
+#include <unordered_map>
 #include <vector>
 
 #include "definitions.h"
 #include "executor.h"
 #include "fec_cache.proto.h"
-#include "util/cache/small-lru-cache-inl.h"
-#include "util/cache/small-lru-cache.h"
 
 namespace automl_zero {
 
 struct CachedEvaluation {
   double fitness;
   IntegerT count;
-  CachedEvaluation() {  // Default constructor required by SmallLRUCache.
-    fitness = kMinFitness;
-    count = 0;
-  }
   explicit CachedEvaluation(const double fitness) {
     this->fitness = fitness;
     count = 1;
   }
 };
 
-// TODO(ereal): rename to FECCache.
+class LRUCache {
+ public:
+  typedef size_t K;
+  typedef CachedEvaluation V;
+
+  explicit LRUCache(IntegerT max_size);
+  V* Insert(K key, const V& value);
+  const V* Lookup(K key);
+  V* MutableLookup(K key);
+  void Erase(K key);
+  void Clear();
+
+ private:
+  typedef std::list<std::pair<K, V>> List;
+  typedef List::iterator ListIterator;
+  typedef std::unordered_map<K, ListIterator> Map;
+  typedef Map::iterator MapIterator;
+
+  void EraseImpl(MapIterator it);
+  V* InsertImpl(const K key, const V& value);
+  void MaybeResize();
+  V* MoveToFront(MapIterator it);
+
+  const IntegerT max_size_;
+  List list_;  // Least recently used at back.
+  Map map_;
+};
+
 class FECCache {
  public:
   explicit FECCache(const FECCacheSpec& spec);
@@ -76,8 +99,7 @@ class FECCache {
  private:
   const FECCacheSpec spec_;
 
-  SmallLRUCache<size_t, CachedEvaluation,
-                std::hash<size_t>, std::equal_to<size_t>> cache_;
+  LRUCache cache_;
 };
 
 }  // namespace automl_zero
