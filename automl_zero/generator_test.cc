@@ -19,7 +19,6 @@
 #include <random>
 #include <sstream>
 
-#include "devtools/build/runtime/get_runfiles_dir.h"
 #include "algorithm_test_util.h"
 #include "dataset.h"
 #include "dataset_util.h"

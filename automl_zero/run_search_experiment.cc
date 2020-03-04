@@ -39,7 +39,6 @@
 #include "google/protobuf/text_format.h"
 #include "absl/flags/flag.h"
 #include "absl/time/time.h"
-#include "util/scaffolding/util/flag_types.h"
 
 typedef automl_zero::IntegerT IntegerT;
 typedef automl_zero::RandomSeedT RandomSeedT;

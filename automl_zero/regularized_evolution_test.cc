@@ -17,9 +17,6 @@
 #include <limits>
 #include <random>
 
-#include "file/base/filesystem.h"
-#include "file/base/options.h"
-#include "file/base/path.h"
 #include "algorithm.h"
 #include "algorithm_test_util.h"
 #include "dataset_util.h"
