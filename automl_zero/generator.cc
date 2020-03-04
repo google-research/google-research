@@ -26,6 +26,7 @@ namespace automl_zero {
 // component_function size.
 
 using ::absl::make_unique;
+using ::std::endl;
 using ::std::make_shared;
 using ::std::mt19937;
 using ::std::shared_ptr;
@@ -54,7 +55,7 @@ void PadComponentFunctionWithInstruction(
 }
 
 Generator::Generator(
-    const ModelT init_model,
+    const HardcodedAlgorithmID init_model,
     const IntegerT setup_size_init,
     const IntegerT predict_size_init,
     const IntegerT learn_size_init,
@@ -83,16 +84,16 @@ Algorithm Generator::TheInitModel() {
   return ModelByID(init_model_);
 }
 
-Algorithm Generator::ModelByID(const ModelT model) {
+Algorithm Generator::ModelByID(const HardcodedAlgorithmID model) {
   switch (model) {
-    case kNoOpModel:
+    case NO_OP_ALGORITHM:
       return NoOp();
-    case kRandomModel:
+    case RANDOM_ALGORITHM:
       return Random();
-    case kNeuralNet:
+    case NEURAL_NET_ALGORITHM:
       return NeuralNet(
           kDefaultLearningRate, 0.1, 0.1);
-    case kIntegrationTestDamagedNeuralNet: {
+    case INTEGRATION_TEST_DAMAGED_NEURAL_NET_ALGORITHM: {
       Algorithm algorithm = NeuralNet(
           kDefaultLearningRate, 0.1, 0.1);
       // Delete the first two instructions in setup which are the
@@ -101,9 +102,10 @@ Algorithm Generator::ModelByID(const ModelT model) {
       algorithm.setup_.erase(algorithm.setup_.begin());
       return algorithm;
     }
-    case kLinearModel:
+    case LINEAR_ALGORITHM:
       return LinearModel(kDefaultLearningRate);
-    // Do not add a default case. All cases should be supported here.
+    default:
+      LOG(FATAL) << "Unsupported algorithm ID." << endl;
   }
 }
 
@@ -149,7 +151,7 @@ void PadComponentFunctionWithRandomInstruction(
 }
 
 Generator::Generator()
-    : init_model_(kRandomModel),
+    : init_model_(RANDOM_ALGORITHM),
       setup_size_init_(6),
       predict_size_init_(3),
       learn_size_init_(9),

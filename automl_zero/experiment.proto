@@ -18,8 +18,11 @@ syntax = "proto2";
 
 package automl_zero;
 
+import "third_party/google_research/google_research/automl_zero/datasets.proto";
 import "third_party/google_research/google_research/automl_zero/definitions.proto";
 import "third_party/google_research/google_research/automl_zero/fec_cache.proto";
+import "third_party/google_research/google_research/automl_zero/generator.proto";
+import "third_party/google_research/google_research/automl_zero/mutator.proto";
 import "third_party/google_research/google_research/automl_zero/train_budget.proto";
 
 enum FitnessCombinationMode {
@@ -29,16 +32,43 @@ enum FitnessCombinationMode {
 }
 
 // Stores the entire configuration of an experiment.
-message ExperimentSpec {
+message SearchExperimentSpec {
+  //////////////////////////////////////////////////////////////////////////////
+  // Search tasks. /////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  // Tasks for T_search.
+  optional DatasetCollection search_tasks = 20;  // Required.
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Search space. /////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
   // Allowed ops in each of the component_function. To prevent evolving one
   // component_function, leave the list of ops as empty.
   repeated Op setup_ops = 34;
-  repeated Op imagine_ops = 42;
   repeated Op predict_ops = 35;
   repeated Op learn_ops = 36;
 
+  // Initial number of instructions in the component functions. For example, if
+  // initial_population=NO_OP_ALGORITHM and predict_size_init=5, the predict
+  // component function of every algorithm in the initial population will have
+  // 5 no-op instructions.
+  optional int32 setup_size_init = 5;  // Required.
+  optional int32 predict_size_init = 6;  // Required.
+  optional int32 learn_size_init = 7;  // Required.
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Search evaluation. ////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
   // Training budget. If omitted, no training budget is imposed.
   optional TrainBudgetSpec train_budget = 3;
+
+  // Maximum absolute error. If an algorithm produces errors larger
+  // than this after any example during in its training or validation, it "
+  // will be assigned the minimum fitness if early stopping is used.
+  optional double max_abs_error = 14 [default = 100.0];
 
   // If not present, cache is disabled.
   // TODO(ereal): rename to FEC or something like that.
@@ -47,8 +77,45 @@ message ExperimentSpec {
   optional FitnessCombinationMode fitness_combination_mode = 1
       [default = MEAN_FITNESS_COMBINATION];
 
+  //////////////////////////////////////////////////////////////////////////////
+  // Search method. ////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
   // The population size that should be used by workers that have this dataset.
   // Should the same worker have contradicting values, the code will crash.
   // For each worker, at least one of the datasets must have this field set.
-  optional int64 local_population_size = 33;
+  optional int64 population_size = 33;
+
+  // The tournament size.
+  optional int64 tournament_size = 19;
+
+  // The algorith to use to initialize the population. Typically, a
+  // NO_OP_ALGORITHM or a RANDOM_ALGORITHM.
+  optional HardcodedAlgorithmID initial_population = 4
+      [default = NO_OP_ALGORITHM];
+
+  // Total number of algorithms in the experiment.
+  optional int64 max_individuals = 15 [default = 1000000];
+
+  // The mutation types that can happen during the experiment.
+  optional MutationTypeList allowed_mutation_types = 17;  // Required.
+
+  // Probability that a child will be mutated from the parent. If not mutated,
+  // the child is identical to the parent.
+  optional double mutate_prob = 18 [default = 0.9];
+
+  // The minimum and maximum allowed number of instructions for the component
+  // functions. These are required only if insert/remove mutations are used
+  // (otherwise, the number of instructions remains at the setup_size_init,
+  // predict_size_init, and learn_size_init values).
+  optional int32 mutate_setup_size_min = 8;
+  optional int32 mutate_setup_size_max = 9;
+  optional int32 mutate_predict_size_min = 10;
+  optional int32 mutate_predict_size_max = 11;
+  optional int32 mutate_learn_size_min = 12;
+  optional int32 mutate_learn_size_max = 13;
+
+  // The period between progress reports to stdout, as the experiment
+  // advances.
+  optional int64 progress_every = 16 [default = 10000];
 }

@@ -18,46 +18,21 @@
 #include <memory>
 #include <random>
 
+#include "algorithm.h"
 #include "definitions.h"
 #include "definitions.proto.h"
-#include "algorithm.h"
+#include "mutator.proto.h"
 #include "random_generator.h"
 #include "randomizer.h"
 #include "testing/production_stub/public/gunit_prod.h"
 
 namespace automl_zero {
 
-enum MutationAction : IntegerT {
-  // Modifies a single parameter within one instruction. Does not change the op.
-  kAlterParamMutationAction = 0,
-
-  // Randomizes an instruction, including its op.
-  kRandomizeInstructionMutationAction = 1,
-
-  // Randomizes a whole component_function, preserving its size.
-  kRandomizeComponentFunctionMutationAction = 2,
-
-  // Does nothing. Useful for debugging.
-  kIdentityMutationAction = 3,
-
-  // Inserts an instruction in a component_function.
-  kInsertInstructionMutationAction = 4,
-
-  // Removes a mutation.
-  kRemoveInstructionMutationAction = 5,
-
-  // Removes a mutation and inserts another.
-  kTradeInstructionMutationAction = 6,
-
-  // Randomizes all component_functions.
-  kRandomizeAlgorithmMutationAction = 7,
-};
-
 class Mutator {
  public:
   Mutator(
-      // What mutations may be applied. See the MutationAction enum.
-      const std::vector<MutationAction>& allowed_actions,
+      // What mutations may be applied. See the MutationType enum.
+      const MutationTypeList& allowed_actions,
       // The probability of mutating each time.
       double mutate_prob,
       // Ops that can be introduced into the setup component_function. Empty
@@ -79,24 +54,6 @@ class Mutator {
       // The random bit generator.
       std::mt19937* bit_gen,
       // The random number generator.
-      RandomGenerator* rand_gen);
-
-  // Similar to the first constructor, but provides a convenience transformation
-  // from vector<IntegerT> to vector<MutationAction> that allows initializing
-  // from a flag.
-  Mutator(
-      const std::vector<IntegerT>& allowed_actions,
-      double mutate_prob,
-      const std::vector<Op>& allowed_setup_ops,
-      const std::vector<Op>& allowed_predict_ops,
-      const std::vector<Op>& allowed_learn_ops,
-      const IntegerT setup_size_min,
-      const IntegerT setup_size_max,
-      const IntegerT predict_size_min,
-      const IntegerT predict_size_max,
-      const IntegerT learn_size_min,
-      const IntegerT learn_size_max,
-      std::mt19937* bit_gen,
       RandomGenerator* rand_gen);
 
   Mutator(const Mutator& other) = delete;
@@ -171,7 +128,7 @@ class Mutator {
   // Returns which component_function to mutate.
   ComponentFunctionT ComponentFunction();
 
-  const std::vector<MutationAction> allowed_actions_;
+  const MutationTypeList allowed_actions_;
   const double mutate_prob_;
   const std::vector<Op> allowed_setup_ops_;
   const std::vector<Op> allowed_predict_ops_;

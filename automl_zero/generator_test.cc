@@ -49,7 +49,7 @@ constexpr double kLargeMaxAbsError = 1000000000.0;
 
 TEST(GeneratorTest, NoOpHasNoOpInstructions) {
   Generator generator(
-      kNoOpModel,  // Irrelevant.
+      NO_OP_ALGORITHM,  // Irrelevant.
       10,  // setup_size_init
       12,  // predict_size_init
       13,  // learn_size_init
@@ -106,7 +106,7 @@ TEST(GeneratorTest, NoOpHasNoOpInstructions) {
 
 TEST(GeneratorTest, NoOpProducesCorrectComponentFunctionSize) {
   Generator generator(
-      kNoOpModel,  // Irrelevant.
+      NO_OP_ALGORITHM,  // Irrelevant.
       10,  // setup_size_init
       12,  // predict_size_init
       13,  // learn_size_init
@@ -123,7 +123,7 @@ TEST(GeneratorTest, NoOpProducesCorrectComponentFunctionSize) {
 
 TEST(GeneratorTest, Gz_Learns) {
   Generator generator(
-      kNoOpModel,  // Irrelevant.
+      NO_OP_ALGORITHM,  // Irrelevant.
       10,  // setup_size_init, irrelevant
       12,  // predict_size_init, irrelevant
       13,  // learn_size_init, irrelevant
@@ -157,7 +157,7 @@ TEST(GeneratorTest, Gz_Learns) {
 
 TEST(GeneratorTest, LinearModel_Learns) {
   Generator generator(
-      kNoOpModel,  // Irrelevant.
+      NO_OP_ALGORITHM,  // Irrelevant.
       10,  // setup_size_init, irrelevant
       12,  // predict_size_init, irrelevant
       13,  // learn_size_init, irrelevant
@@ -191,7 +191,7 @@ TEST(GeneratorTest, LinearModel_Learns) {
 
 TEST(GeneratorTest, GrTildeGrWithBias_PermanenceTest) {
   Generator generator(
-      kNoOpModel,  // Irrelevant.
+      NO_OP_ALGORITHM,  // Irrelevant.
       0,  // setup_size_init, irrelevant.
       0,  // predict_size_init, irrelevant.
       0,  // learn_size_init, irrelevant.
@@ -224,7 +224,7 @@ TEST(GeneratorTest, RandomInstructions) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Generator generator(
-      kNoOpModel,  // Irrelevant.
+      NO_OP_ALGORITHM,  // Irrelevant.
       2,           // setup_size_init
       4,           // predict_size_init
       5,           // learn_size_init
@@ -247,7 +247,7 @@ TEST(GeneratorTest, RandomInstructionsProducesCorrectComponentFunctionSizes) {
   mt19937 bit_gen;
   RandomGenerator rand_gen(&bit_gen);
   Generator generator(
-      kNoOpModel,  // Irrelevant.
+      NO_OP_ALGORITHM,  // Irrelevant.
       2,           // setup_size_init
       4,           // predict_size_init
       5,           // learn_size_init
@@ -264,7 +264,7 @@ TEST(GeneratorTest, RandomInstructionsProducesCorrectComponentFunctionSizes) {
 
 TEST(GeneratorTest, GzHasCorrectComponentFunctionSizes) {
   Generator generator(
-      kNoOpModel,  // Irrelevant.
+      NO_OP_ALGORITHM,  // Irrelevant.
       0,  // setup_size_init, no padding.
       0,  // predict_size_init, no padding.
       0,  // learn_size_init, no padding.
@@ -281,7 +281,7 @@ TEST(GeneratorTest, GzHasCorrectComponentFunctionSizes) {
 
 TEST(GeneratorTest, GzTildeGzHasCorrectComponentFunctionSizes) {
   Generator generator(
-      kNoOpModel,  // Irrelevant.
+      NO_OP_ALGORITHM,  // Irrelevant.
       0,  // setup_size_init, no padding.
       0,  // predict_size_init, no padding.
       0,  // learn_size_init, no padding.
@@ -299,7 +299,7 @@ TEST(GeneratorTest, GzTildeGzHasCorrectComponentFunctionSizes) {
 
 TEST(GeneratorTest, GzTildeGzPadsComponentFunctionSizesCorrectly) {
   Generator generator(
-      kNoOpModel,  // Irrelevant.
+      NO_OP_ALGORITHM,  // Irrelevant.
       10,  // setup_size_init
       12,  // predict_size_init
       13,  // learn_size_init
@@ -317,7 +317,7 @@ TEST(GeneratorTest, GzTildeGzPadsComponentFunctionSizesCorrectly) {
 
 TEST(GeneratorTest, GrTildeGrPadsComponentFunctionSizesCorrectly) {
   Generator generator(
-      kNoOpModel,  // Irrelevant.
+      NO_OP_ALGORITHM,  // Irrelevant.
       16,  // setup_size_init
       18,  // predict_size_init
       19,  // learn_size_init
@@ -335,7 +335,7 @@ TEST(GeneratorTest, GrTildeGrPadsComponentFunctionSizesCorrectly) {
 
 TEST(GeneratorTest, GzPadsComponentFunctionSizesCorrectly) {
   Generator generator(
-      kNoOpModel,  // Irrelevant.
+      NO_OP_ALGORITHM,  // Irrelevant.
       10,  // setup_size_init
       12,  // predict_size_init
       13,  // learn_size_init

@@ -53,8 +53,9 @@ IntegerT TrainBudget::TrainExamples(
 
 unique_ptr<TrainBudget> BuildTrainBudget(
     TrainBudgetSpec train_budget_spec, Generator* generator) {
-  const ModelT baseline_id =
-      static_cast<ModelT>(train_budget_spec.train_budget_baseline());
+  const HardcodedAlgorithmID baseline_id =
+      static_cast<HardcodedAlgorithmID>(
+          train_budget_spec.train_budget_baseline());
   const Algorithm baseline_algorithm = generator->ModelByID(baseline_id);
   return make_unique<TrainBudget>(
       baseline_algorithm, train_budget_spec.train_budget_threshold_factor());

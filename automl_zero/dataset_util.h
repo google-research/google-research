@@ -140,7 +140,7 @@ struct ScalarLinearRegressionDatasetCreator {
     RandomGenerator data_gen = RandomGenerator(&data_bit_gen);
     std::mt19937 param_bit_gen(param_seed + 997958712);
     RandomGenerator weights_gen = RandomGenerator(&param_bit_gen);
-    Generator generator(kNoOpModel, 0, 0, 0, {}, {}, {}, nullptr,
+    Generator generator(NO_OP_ALGORITHM, 0, 0, 0, {}, {}, {}, nullptr,
                         nullptr);
 
     // Fill the features.
@@ -156,7 +156,7 @@ struct ScalarLinearRegressionDatasetCreator {
     Memory<F> memory;
     memory.Wipe();
     weights_gen.FillGaussian<F>(
-        0.0, 1.0, &memory.vector_[Generator::kLinearModelWeightsAddress]);
+        0.0, 1.0, &memory.vector_[Generator::LINEAR_ALGORITHMWeightsAddress]);
 
     // Fill in the labels by executing the Algorithm.
     ExecuteAndFillLabels<F>(algorithm, &memory, buffer, &data_gen);
@@ -177,7 +177,7 @@ struct Scalar2LayerNnRegressionDatasetCreator {
     RandomGenerator data_gen = RandomGenerator(&data_bit_gen);
     std::mt19937 param_bit_gen(param_seed + 174299604);
     RandomGenerator weights_gen = RandomGenerator(&param_bit_gen);
-    Generator generator(kNoOpModel, 0, 0, 0, {}, {}, {}, nullptr,
+    Generator generator(NO_OP_ALGORITHM, 0, 0, 0, {}, {}, {}, nullptr,
                         nullptr);
 
     // Fill the features.
