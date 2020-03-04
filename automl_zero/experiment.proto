@@ -19,7 +19,7 @@ syntax = "proto2";
 package automl_zero;
 
 import "third_party/google_research/google_research/automl_zero/datasets.proto";
-import "third_party/google_research/google_research/automl_zero/definitions.proto";
+import "third_party/google_research/google_research/automl_zero/instruction.proto";
 import "third_party/google_research/google_research/automl_zero/fec_cache.proto";
 import "third_party/google_research/google_research/automl_zero/generator.proto";
 import "third_party/google_research/google_research/automl_zero/mutator.proto";

@@ -26,7 +26,7 @@
 #include "dataset_util.h"
 #include "datasets.proto.h"
 #include "definitions.h"
-#include "definitions.proto.h"
+#include "instruction.proto.h"
 #include "evaluator.h"
 #include "experiment.proto.h"
 #include "experiment_util.h"

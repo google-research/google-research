@@ -23,7 +23,7 @@
 #include "dataset.h"
 #include "dataset_util.h"
 #include "definitions.h"
-#include "definitions.proto.h"
+#include "instruction.proto.h"
 #include "algorithm.h"
 #include "generator.h"
 #include "generator_test_util.h"
@@ -1462,21 +1462,6 @@ TEST_F(ExecuteInstructionTest, VectorArithmeticRelated_VectorHeavisideOp) {
       {-0.01, 0.001, 1.3, -0.001}, {0.0, 1.0, 1.0, 0.0});
 }
 
-TEST_F(ExecuteInstructionTest, VectorArithmeticRelated_VectorReluOp) {
-  VerifyVectorToVectorEquals(
-      MakeOneInputInstruction(VECTOR_RELU_OP),
-      {-0.01, 0.0, 1.3, -0.001}, {0.0, 0.0, 1.3, 0.0});
-}
-
-TEST_F(ExecuteInstructionTest, VectorConstSetOldOpWorksCorrectly) {
-  Vector<4> data_vector;
-  data_vector << -1.6875, -0.4 * kActivationAsDataStep, 0.0, 10.5;
-  VerifyNothingToVectorEquals(
-      MakeZeroInputsInstruction(VECTOR_CONST_SET_OLD_OP,
-                                VectorDataSetter(data_vector)),
-      {-1.6875, 0.0, 0.0, kActivationAsDataMax});
-}
-
 TEST_F(ExecuteInstructionTest, VectorArithmeticRelated_VectorConstSetOp) {
   VerifyNothingToVectorEquals(
       MakeZeroInputsInstruction(VECTOR_CONST_SET_OP,
@@ -1631,19 +1616,6 @@ TEST_F(ExecuteInstructionTest, MatrixArithmeticRelated_MatrixHeavisideOp) {
        1.0, 0.0, 0.0, 1.0,
        1.0, 1.0, 0.0, 1.0,
        1.0, 1.0, 0.0, 1.0});
-}
-
-TEST_F(ExecuteInstructionTest, MatrixRowConstSetOldOpWorksCorrectly) {
-  Vector<4> data_vector;
-  data_vector << -1.6875, -0.4 * kActivationAsDataStep, 0.0, 10.5;
-  VerifyNothingToMatrixEquals(
-      MakeZeroInputsInstruction(MATRIX_ROW_CONST_SET_OLD_OP,
-                                IndexDataSetter(1),
-                                VectorDataSetter(data_vector)),
-      {0.0, 0.0, 0.0, 0.0,
-       -1.6875, 0.0, 0.0, kActivationAsDataMax,
-       0.0, 0.0, 0.0, 0.0,
-       0.0, 0.0, 0.0, 0.0});
 }
 
 TEST_F(ExecuteInstructionTest, MatrixArithmeticRelated_MatrixConstSetOp) {
@@ -1819,16 +1791,6 @@ TEST_F(ExecuteInstructionTest, ProbabilityRelated_ScalarGaussianSetOp) {
                                 FloatDataSetter(10.0)));
 }
 
-TEST_F(ExecuteInstructionTest, ProbabilityRelated_VectorGaussianSetOldOp) {
-  VerifyNothingToVectorEquals(
-      MakeZeroInputsInstruction(VECTOR_GAUSSIAN_SET_OLD_OP,
-                                ActivationDataSetter(0.1)),
-      {0.0804269, -0.00150771, 0.178303, 0.0416377});
-  VerifyNothingToVectorIsRandomized(
-      MakeZeroInputsInstruction(VECTOR_GAUSSIAN_SET_OLD_OP,
-                                ActivationDataSetter(0.1)));
-}
-
 TEST_F(ExecuteInstructionTest, ProbabilityRelated_VectorGaussianSetOp) {
   VerifyNothingToVectorEquals(
       MakeZeroInputsInstruction(VECTOR_GAUSSIAN_SET_OP,
@@ -1839,19 +1801,6 @@ TEST_F(ExecuteInstructionTest, ProbabilityRelated_VectorGaussianSetOp) {
       MakeZeroInputsInstruction(VECTOR_GAUSSIAN_SET_OP,
                                 FloatDataSetter(20.0),
                                 FloatDataSetter(10.0)));
-}
-
-TEST_F(ExecuteInstructionTest, ProbabilityRelated_MatrixGaussianSetOldOp) {
-  VerifyNothingToMatrixEquals(
-      MakeZeroInputsInstruction(MATRIX_GAUSSIAN_SET_OLD_OP,
-                                ActivationDataSetter(0.1)),
-      {0.0804269, -0.00150771, 0.178303, 0.0416377,
-       0.126852, 0.0111104, -0.0138105, 0.0856213,
-       0.0580157, -0.0448301, 0.164389, 0.0162463,
-       -0.0230088, 0.268562, 0.0362391, -0.0849112});
-  VerifyNothingToMatrixIsRandomized(
-      MakeZeroInputsInstruction(MATRIX_GAUSSIAN_SET_OLD_OP,
-                                ActivationDataSetter(0.1)));
 }
 
 TEST_F(ExecuteInstructionTest, ProbabilityRelated_MatrixGaussianSetOp) {
@@ -1906,28 +1855,6 @@ TEST_F(ExecuteInstructionTest, ProbabilityRelated_MatrixUniformSetOp) {
       MakeZeroInputsInstruction(MATRIX_UNIFORM_SET_OP,
                                 FloatDataSetter(-2.5),
                                 FloatDataSetter(-2.0)));
-}
-
-TEST_F(ExecuteInstructionTest, Debug_ScalarPrintOp) {
-  VerifyNothingToScalarEquals(
-      MakeZeroInputsInstruction(
-          SCALAR_PRINT_OP, IntegerDataSetter(4)), 0.0);
-}
-
-TEST_F(ExecuteInstructionTest, Debug_VectorPrintOp) {
-  VerifyNothingToVectorEquals(
-      MakeZeroInputsInstruction(
-          VECTOR_PRINT_OP, IntegerDataSetter(4)), {0.0, 0.0, 0.0, 0.0});
-}
-
-TEST_F(ExecuteInstructionTest, Debug_MatrixPrintOp) {
-  VerifyNothingToMatrixEquals(
-      MakeZeroInputsInstruction(
-          MATRIX_PRINT_OP, IntegerDataSetter(4)),
-          {0.0, 0.0, 0.0, 0.0,
-           0.0, 0.0, 0.0, 0.0,
-           0.0, 0.0, 0.0, 0.0,
-           0.0, 0.0, 0.0, 0.0});
 }
 
 TEST(SquashTest, MapsEndpointsCorrectly) {

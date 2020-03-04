@@ -23,7 +23,7 @@
 #include "dataset.h"
 #include "dataset_util.h"
 #include "definitions.h"
-#include "definitions.proto.h"
+#include "instruction.proto.h"
 #include "evaluator.h"
 #include "executor.h"
 #include "generator_test_util.h"

@@ -39,7 +39,7 @@
 #include <thread>  // NOLINT(build/c++11)
 
 #include "base/integral_types.h"
-#include "definitions.proto.h"
+#include "instruction.proto.h"
 #include "google/protobuf/text_format.h"
 #include "absl/flags/flag.h"
 #include "third_party/eigen3/Eigen/Core"

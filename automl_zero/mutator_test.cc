@@ -18,7 +18,7 @@
 #include <random>
 
 #include "definitions.h"
-#include "definitions.proto.h"
+#include "instruction.proto.h"
 #include "algorithm.h"
 #include "algorithm_test_util.h"
 #include "generator.h"

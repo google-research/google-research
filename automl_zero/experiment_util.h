@@ -20,7 +20,7 @@
 
 #include "datasets.proto.h"
 #include "definitions.h"
-#include "definitions.proto.h"
+#include "instruction.proto.h"
 #include "google/protobuf/repeated_field.h"
 
 namespace automl_zero {
