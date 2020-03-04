@@ -29,7 +29,6 @@
 #include "memory.h"
 #include "random_generator.h"
 #include "sstable/public/sstable.h"
-#include "stats/util/statistics.h"
 
 namespace automl_zero {
 
