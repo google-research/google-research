@@ -43,7 +43,6 @@
 #include "google/protobuf/text_format.h"
 #include "absl/flags/flag.h"
 #include "third_party/eigen3/Eigen/Core"
-#include "util/hash/mix.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Conventions.
@@ -326,16 +325,38 @@ class Print {
   std::ostringstream stream_;
 };
 
+// A hash mix function for 64 bits
+// adapted from https://burtleburtle.net/bob/hash/evahash.html.
+template <class T>
+inline void HashCombine(std::size_t& seed, const T& v) {
+  std::size_t a = 0x9e3779b9;
+  std::size_t b = seed;
+  std::size_t c = std::hash<T>{}(v);
+  a = a - b;  a = a - c;  a = a ^ (c >> 43);
+  b = b - c;  b = b - a;  b = b ^ (a << 9);
+  c = c - a;  c = c - b;  c = c ^ (b >> 8);
+  a = a - b;  a = a - c;  a = a ^ (c >> 38);
+  b = b - c;  b = b - a;  b = b ^ (a << 23);
+  c = c - a;  c = c - b;  c = c ^ (b >> 5);
+  a = a - b;  a = a - c;  a = a ^ (c >> 35);
+  b = b - c;  b = b - a;  b = b ^ (a << 49);
+  c = c - a;  c = c - b;  c = c ^ (b >> 11);
+  a = a - b;  a = a - c;  a = a ^ (c >> 12);
+  b = b - c;  b = b - a;  b = b ^ (a << 18);
+  c = c - a;  c = c - b;  c = c ^ (b >> 22);
+  seed = c;
+}
+
 // Hash-mixes a vector of numbers. The numbers must be of a type that can be
 // casted to a size_t (it must be unsigned and it must have <= 64 bits).
 // Intended to be used with the RandomSeedT type.
 template<typename NumberT>
 NumberT CustomHashMix(const std::vector<NumberT>& numbers) {
-  HashMix mix;
+  std::size_t seed = 42;
   for (const NumberT number : numbers) {
-    mix.Mix(static_cast<size_t>(number));
+    HashCombine(seed, number);
   }
-  return mix.get();
+  return static_cast<NumberT>(seed);
 }
 
 // Hash-mixes two numbers. The numbers must be of a type that can be

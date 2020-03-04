@@ -15,29 +15,27 @@
 #include "fec_hashing.h"
 #include <cstddef>
 
-#include "util/hash/mix.h"
+#include "definitions.h"
 
 namespace automl_zero {
 
 using ::std::vector;
-using internal::HashComponent;
 
 size_t WellMixedHash(
     const vector<double>& train_errors,
     const vector<double>& valid_errors,
     const size_t dataset_index,
     const IntegerT num_train_examples) {
-  HashMix mix;
+  std::size_t seed = 42;
   for (const double error : train_errors) {
-    mix.Mix(HashComponent(error));
+    HashCombine(seed, error);
   }
   for (const double error : valid_errors) {
-    mix.Mix(HashComponent(error));
+    HashCombine(seed, error);
   }
-  mix.Mix(dataset_index);
-  CHECK(num_train_examples >= 0) << "num_train_examples must be >= 0.";
-  mix.Mix(num_train_examples);
-  return mix.get();
+  HashCombine(seed, dataset_index);
+  HashCombine(seed, num_train_examples);
+  return seed;
 }
 
 }  // namespace automl_zero
