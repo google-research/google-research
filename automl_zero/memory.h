@@ -17,7 +17,6 @@
 
 #include <array>
 
-#include "glog/logging.h"
 #include "definitions.h"
 #include "absl/flags/flag.h"
 
