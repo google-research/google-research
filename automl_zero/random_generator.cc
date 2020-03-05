@@ -36,7 +36,7 @@ float RandomGenerator::GaussianFloat(float mean, float stdev) {
 
 IntegerT RandomGenerator::UniformInteger(IntegerT low, IntegerT high) {
   // TODO(ereal): change this to IntegerT and change the values provided by
-  //              LeanClient::PutGetAndCount.
+  // LeanClient::PutGetAndCount. Probably affects random number generation.
   CHECK_GE(low, std::numeric_limits<int32_t>::min());
   CHECK_LE(high, std::numeric_limits<int32_t>::max());
   return ::absl::Uniform<int32_t>(*bit_gen_, low, high);
@@ -87,7 +87,7 @@ string RandomGenerator::UniformString(const size_t size) {
 FeatureIndexT RandomGenerator::FeatureIndex(
     const FeatureIndexT features_size) {
   // TODO(ereal): below should have FeatureIndexT instead of InstructionIndexT;
-  // change when ok to alter random number generation.
+  // affects random number generation.
   return absl::Uniform<InstructionIndexT>(*bit_gen_, 0, features_size);
 }
 

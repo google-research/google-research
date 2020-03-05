@@ -71,21 +71,21 @@ vector<RandomSeedT> DefaultFirstDataSeeds() {
   return {11001, 11012, 11010, 11000, 11006, 11008, 11007, 11003};
 }
 
-void FillDatasetsFromDatasetSpec(
-    const DatasetSpec& dataset_spec,
-    vector<unique_ptr<DatasetInterface>>* return_datasets) {
-  const IntegerT num_datasets = dataset_spec.num_datasets();
+void FillDatasetsFromTaskSpec(
+    const TaskSpec& task_spec,
+    vector<unique_ptr<TaskInterface>>* return_datasets) {
+  const IntegerT num_datasets = task_spec.num_datasets();
   CHECK_GT(num_datasets, 0);
   vector<RandomSeedT> first_param_seeds =
-      dataset_spec.param_seeds_size() == 0
+      task_spec.param_seeds_size() == 0
           ? DefaultFirstParamSeeds()
-          : vector<RandomSeedT>(dataset_spec.param_seeds().begin(),
-                                dataset_spec.param_seeds().end());
+          : vector<RandomSeedT>(task_spec.param_seeds().begin(),
+                                task_spec.param_seeds().end());
   vector<RandomSeedT> first_data_seeds =
-      dataset_spec.data_seeds_size() == 0
+      task_spec.data_seeds_size() == 0
           ? DefaultFirstDataSeeds()
-          : vector<RandomSeedT>(dataset_spec.data_seeds().begin(),
-                                dataset_spec.data_seeds().end());
+          : vector<RandomSeedT>(task_spec.data_seeds().begin(),
+                                task_spec.data_seeds().end());
   CHECK(!first_param_seeds.empty());
   CHECK(!first_data_seeds.empty());
 
@@ -98,71 +98,64 @@ void FillDatasetsFromDatasetSpec(
         i < first_data_seeds.size() ? first_data_seeds[i] : data_seed + 1;
 
     const IntegerT dataset_index = return_datasets->size();
-    switch (dataset_spec.features_size()) {
+    switch (task_spec.features_size()) {
       case 2:
         return_datasets->push_back(CreateDataset<2>(dataset_index, param_seed,
-                                                    data_seed, dataset_spec));
+                                                    data_seed, task_spec));
         break;
       case 4:
         return_datasets->push_back(CreateDataset<4>(dataset_index, param_seed,
-                                                    data_seed, dataset_spec));
+                                                    data_seed, task_spec));
         break;
       case 8:
         return_datasets->push_back(CreateDataset<8>(dataset_index, param_seed,
-                                                    data_seed, dataset_spec));
+                                                    data_seed, task_spec));
         break;
       case 16:
         return_datasets->push_back(CreateDataset<16>(dataset_index, param_seed,
-                                                     data_seed, dataset_spec));
+                                                     data_seed, task_spec));
         break;
       case 32:
         return_datasets->push_back(CreateDataset<32>(dataset_index, param_seed,
-                                                     data_seed, dataset_spec));
+                                                     data_seed, task_spec));
         break;
       default:
         LOG(FATAL) << "Unsupported features size: "
-                   << dataset_spec.features_size() << std::endl;
+                   << task_spec.features_size() << std::endl;
     }
   }
 }
 
 void FillDatasets(
-    const DatasetCollection& dataset_collection,
-    vector<unique_ptr<DatasetInterface>>* return_datasets) {
+    const TaskCollection& task_collection,
+    vector<unique_ptr<TaskInterface>>* return_datasets) {
   // Check return targets are empty.
   CHECK(return_datasets->empty());
-  for (const DatasetSpec& dataset_spec : dataset_collection.datasets()) {
-    FillDatasetsFromDatasetSpec(dataset_spec, return_datasets);
+  for (const TaskSpec& task_spec : task_collection.datasets()) {
+    FillDatasetsFromTaskSpec(task_spec, return_datasets);
   }
 }
 
-void RandomizeDatasetSeeds(DatasetCollection* dataset_collection,
+void RandomizeDatasetSeeds(TaskCollection* task_collection,
                            const RandomSeedT seed) {
   RandomSeedT base_param_seed =
-      CustomHashMix(static_cast<RandomSeedT>(85652777), seed);
+      HashMix(static_cast<RandomSeedT>(85652777), seed);
   mt19937 param_seed_bit_gen(base_param_seed);
   RandomGenerator param_seed_gen = RandomGenerator(
       &param_seed_bit_gen);
 
   RandomSeedT base_data_seed =
-      CustomHashMix(static_cast<RandomSeedT>(38272328), seed);
+      HashMix(static_cast<RandomSeedT>(38272328), seed);
   mt19937 data_seed_bit_gen(base_data_seed);
   RandomGenerator data_seed_gen = RandomGenerator(
       &data_seed_bit_gen);
 
-  for (DatasetSpec& dataset : *dataset_collection->mutable_datasets()) {
-    CHECK_EQ(dataset.param_seeds_size(), 0)
-        << "Seed randomization requested but param seed was provided."
-        << std::endl;
+  for (TaskSpec& dataset : *task_collection->mutable_datasets()) {
     dataset.clear_param_seeds();
+    dataset.clear_data_seeds();
     for (IntegerT i = 0; i < dataset.num_datasets(); i++) {
       dataset.add_param_seeds(param_seed_gen.UniformRandomSeed());
     }
-
-    CHECK_EQ(dataset.data_seeds_size(), 0)
-        << "Seed randomization requested but data seed was provided."
-        << std::endl;
-    dataset.clear_data_seeds();
     for (IntegerT i = 0; i < dataset.num_datasets(); i++) {
       dataset.add_data_seeds(data_seed_gen.UniformRandomSeed());
     }

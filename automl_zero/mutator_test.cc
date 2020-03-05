@@ -56,14 +56,14 @@ TEST(MutatorTest, Runs) {
       {NO_OP, SCALAR_SUM_OP, VECTOR_SUM_OP},  // allowed_setup_ops
       {NO_OP, SCALAR_DIFF_OP, VECTOR_DIFF_OP},  // allowed_predict_ops
       {NO_OP, SCALAR_PRODUCT_OP, VECTOR_PRODUCT_OP},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen,
       &rand_gen);
   Generator generator(NO_OP_ALGORITHM, 10, 10, 10, {}, {}, {}, nullptr,
                       nullptr);
   shared_ptr<const Algorithm> algorithm =
       make_shared<const Algorithm>(SimpleRandomAlgorithm());
-  mutator.Mutate(10, &algorithm);
+  mutator.Mutate(&algorithm);
 }
 
 TEST(MutatorTest, CoversActions) {
@@ -80,7 +80,7 @@ TEST(MutatorTest, CoversActions) {
       {},  // allowed_setup_ops
       {NO_OP},  // allowed_predict_ops
       {},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen,
       &rand_gen);
   const Algorithm algorithm = SimpleRandomAlgorithm();
@@ -107,7 +107,7 @@ TEST(MutatorTest, RespectsMutateProb) {
       {},  // allowed_setup_ops
       {NO_OP},  // allowed_predict_ops
       {},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen,
       &rand_gen);
   const Algorithm algorithm = SimpleRandomAlgorithm();
@@ -145,7 +145,7 @@ TEST(MutatorTest, SetupOpTest) {
       {NO_OP, SCALAR_SUM_OP, MATRIX_VECTOR_PRODUCT_OP, VECTOR_MEAN_OP},
       {},  // allowed_predict_ops
       {},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   EXPECT_TRUE(IsEventually(
       function<Op(void)>([&](){
@@ -164,7 +164,7 @@ TEST(MutatorTest, PredictOpTest) {
       // allowed_predict_ops
       {NO_OP, SCALAR_SUM_OP, MATRIX_VECTOR_PRODUCT_OP, VECTOR_MEAN_OP},
       {},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   EXPECT_TRUE(IsEventually(
       function<Op(void)>([&](){
@@ -183,7 +183,7 @@ TEST(MutatorTest, LearnOpTest) {
       {},  // allowed_predict_ops
       // allowed_learn_ops
       {NO_OP, SCALAR_SUM_OP, MATRIX_VECTOR_PRODUCT_OP, VECTOR_MEAN_OP},
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   EXPECT_TRUE(IsEventually(
       function<Op(void)>([&](){
@@ -201,7 +201,7 @@ TEST(MutatorTest, ComponentFunctionTest_SetupPredictLearn) {
       {NO_OP, SCALAR_SUM_OP},  // allowed_setup_ops
       {NO_OP, SCALAR_SUM_OP},  // allowed_predict_ops
       {NO_OP, SCALAR_SUM_OP},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   EXPECT_TRUE(IsEventually(
       function<ComponentFunctionT(void)>([&](){
@@ -221,7 +221,7 @@ TEST(MutatorTest, ComponentFunctionTest_Setup) {
       {NO_OP, SCALAR_SUM_OP},  // allowed_setup_ops
       {},  // allowed_predict_ops
       {},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   EXPECT_TRUE(IsEventually(
       function<ComponentFunctionT(void)>([&](){
@@ -239,7 +239,7 @@ TEST(MutatorTest, ComponentFunctionTest_Predict) {
       {},  // allowed_setup_ops
       {NO_OP, SCALAR_SUM_OP},  // allowed_predict_ops
       {},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   EXPECT_TRUE(IsEventually(
       function<ComponentFunctionT(void)>([&](){
@@ -257,7 +257,7 @@ TEST(MutatorTest, ComponentFunctionTest_Learn) {
       {},  // allowed_setup_ops
       {},  // allowed_predict_ops
       {NO_OP, SCALAR_SUM_OP},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   EXPECT_TRUE(IsEventually(
       function<ComponentFunctionT(void)>([&](){
@@ -389,7 +389,7 @@ TEST(MutatorTest, IdentityMutationType_WorksCorrectly) {
       {NO_OP, SCALAR_SUM_OP},  // allowed_setup_ops
       {NO_OP, SCALAR_SUM_OP},  // allowed_predict_ops
       {NO_OP, SCALAR_SUM_OP},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   auto mutated_algorithm = make_shared<const Algorithm>(algorithm);
   mutator.Mutate(&mutated_algorithm);
@@ -407,7 +407,7 @@ TEST(InsertInstructionMutationTypeTest, CoversComponentFunctions) {
       {SCALAR_SUM_OP},  // allowed_setup_ops
       {SCALAR_SUM_OP},  // allowed_predict_ops
       {SCALAR_SUM_OP},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   EXPECT_TRUE(IsEventually(
     function<IntegerT(void)>([&mutator, no_op_algorithm](){
@@ -430,7 +430,7 @@ TEST(InsertInstructionMutationTypeTest, CoversSetupPositions) {
       {SCALAR_SUM_OP},  // allowed_setup_ops
       {},  // allowed_predict_ops
       {},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   ASSERT_GT(component_function_size, 0);
   EXPECT_TRUE(IsEventually(
@@ -456,7 +456,7 @@ TEST(InsertInstructionMutationTypeTest, CoversPredictPositions) {
       {},  // allowed_setup_ops
       {SCALAR_SUM_OP},  // allowed_predict_ops
       {},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   ASSERT_GT(component_function_size, 0);
   EXPECT_TRUE(IsEventually(
@@ -482,7 +482,7 @@ TEST(InsertInstructionMutationTypeTest, CoversLearnPositions) {
       {},  // allowed_setup_ops
       {},  // allowed_predict_ops
       {SCALAR_SUM_OP},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   ASSERT_GT(component_function_size, 0);
   EXPECT_TRUE(IsEventually(
@@ -511,7 +511,7 @@ TEST(InsertInstructionMutationTypeTest, InsertsWhenUnderMinSize) {
       {SCALAR_SUM_OP},  // allowed_setup_ops
       {SCALAR_SUM_OP},  // allowed_predict_ops
       {SCALAR_SUM_OP},  // allowed_learn_ops
-      100, 10000, 100, 10000, 100, 10000,  // min/max component_function sizes
+      100, 10000, 100, 10000, 100, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   auto mutated_algorithm = make_shared<const Algorithm>(no_op_algorithm);
   mutator.Mutate(&mutated_algorithm);
@@ -534,7 +534,7 @@ TEST(InsertInstructionMutationTypeTest, DoesNotInsertWhenOverMaxSize) {
       {SCALAR_SUM_OP},  // allowed_setup_ops
       {SCALAR_SUM_OP},  // allowed_predict_ops
       {SCALAR_SUM_OP},  // allowed_learn_ops
-      0, 1, 0, 1, 0, 1,  // min/max component_function sizes
+      0, 1, 0, 1, 0, 1,  // min/max component function sizes
       &bit_gen, &rand_gen);
   auto mutated_algorithm = make_shared<const Algorithm>(no_op_algorithm);
   mutator.Mutate(&mutated_algorithm);
@@ -552,7 +552,7 @@ TEST(InsertInstructionMutationTypeTest, CoversSetupInstructions) {
       {SCALAR_SUM_OP, SCALAR_DIFF_OP},  // allowed_setup_ops
       {},  // allowed_predict_ops
       {},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   EXPECT_TRUE(IsEventually(
     function<IntegerT(void)>([&mutator, empty_algorithm](){
@@ -578,7 +578,7 @@ TEST(InsertInstructionMutationTypeTest, CoversPredictInstructions) {
       {},  // allowed_setup_ops
       {SCALAR_SUM_OP, SCALAR_DIFF_OP},  // allowed_predict_ops
       {},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   EXPECT_TRUE(IsEventually(
     function<IntegerT(void)>([&mutator, empty_algorithm](){
@@ -604,7 +604,7 @@ TEST(InsertInstructionMutationTypeTest, CoversLearnInstructions) {
       {},  // allowed_setup_ops
       {},  // allowed_predict_ops
       {SCALAR_SUM_OP, SCALAR_DIFF_OP},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   EXPECT_TRUE(IsEventually(
     function<IntegerT(void)>([&mutator, empty_algorithm](){
@@ -627,7 +627,7 @@ TEST(RemoveInstructionMutationTypeTest, CoversComponentFunctions) {
       ParseTextFormat<MutationTypeList>(
           "mutation_types: [REMOVE_INSTRUCTION_MUTATION_TYPE] "),
       1.0, {NO_OP}, {NO_OP}, {NO_OP},
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   EXPECT_TRUE(IsEventually(
     function<IntegerT(void)>([&mutator, random_algorithm](){
@@ -650,7 +650,7 @@ TEST(RemoveInstructionMutationTypeTest, CoversSetupPositions) {
       {NO_OP},  // allowed_setup_ops
       {},  // allowed_predict_ops
       {},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   ASSERT_GT(component_function_size, 0);
   EXPECT_TRUE(IsEventually(
@@ -677,7 +677,7 @@ TEST(RemoveInstructionMutationTypeTest, CoversPredictPositions) {
       {},  // allowed_setup_ops
       {NO_OP},  // allowed_predict_ops
       {},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   ASSERT_GT(component_function_size, 0);
   EXPECT_TRUE(IsEventually(
@@ -704,7 +704,7 @@ TEST(RemoveInstructionMutationTypeTest, CoversLearnPositions) {
       {},  // allowed_setup_ops
       {},  // allowed_predict_ops
       {NO_OP},  // allowed_learn_ops
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   ASSERT_GT(component_function_size, 0);
   EXPECT_TRUE(IsEventually(
@@ -730,7 +730,7 @@ TEST(RemoveInstructionMutationTypeTest, DoesNotRemoveWhenUnderMinSize) {
       {SCALAR_SUM_OP},  // allowed_setup_ops
       {SCALAR_SUM_OP},  // allowed_predict_ops
       {SCALAR_SUM_OP},  // allowed_learn_ops
-      100, 10000, 100, 10000, 100, 10000,  // min/max component_function sizes
+      100, 10000, 100, 10000, 100, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   auto mutated_algorithm = make_shared<const Algorithm>(no_op_algorithm);
   mutator.Mutate(&mutated_algorithm);
@@ -752,7 +752,7 @@ TEST(RemoveInstructionMutationTypeTest, RemovesWhenOverMaxSize) {
       {SCALAR_SUM_OP},  // allowed_setup_ops
       {SCALAR_SUM_OP},  // allowed_predict_ops
       {SCALAR_SUM_OP},  // allowed_learn_ops
-      0, 1, 0, 1, 0, 1,  // min/max component_function sizes
+      0, 1, 0, 1, 0, 1,  // min/max component function sizes
       &bit_gen, &rand_gen);
   auto mutated_algorithm = make_shared<const Algorithm>(no_op_algorithm);
   mutator.Mutate(&mutated_algorithm);
@@ -772,7 +772,7 @@ TEST(TradeInstructionMutationTypeTest, CoversComponentFunctions) {
       ParseTextFormat<MutationTypeList>(
           "mutation_types: [TRADE_INSTRUCTION_MUTATION_TYPE] "),
       1.0, {NO_OP}, {NO_OP}, {NO_OP},
-      0, 10000, 0, 10000, 0, 10000,  // min/max component_function sizes
+      0, 10000, 0, 10000, 0, 10000,  // min/max component function sizes
       &bit_gen, &rand_gen);
   EXPECT_TRUE(IsEventually(
     function<IntegerT(void)>([&mutator, random_algorithm](){

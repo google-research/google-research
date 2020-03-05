@@ -22,9 +22,6 @@
 
 namespace automl_zero {
 
-// TODO(ereal): reserve correct space in these Algorithms and check init
-// component_function size.
-
 using ::absl::make_unique;
 using ::std::endl;
 using ::std::make_shared;

@@ -40,26 +40,26 @@ const RandomSeedT kFirstDataSeedForTest = 19000;
 // Fills `return_datasets` with `experiment_datasets` Datasets.
 // `return_datasets` must be empty an empty vector.
 void FillDatasets(
-    const DatasetCollection& dataset_collection,
-    std::vector<std::unique_ptr<DatasetInterface>>* return_datasets);
+    const TaskCollection& task_collection,
+    std::vector<std::unique_ptr<TaskInterface>>* return_datasets);
 
-// Downcasts a DatasetInterface. Crashes if the downcast would have been
+// Downcasts a TaskInterface. Crashes if the downcast would have been
 // incorrect.
 template <FeatureIndexT F>
-Dataset<F>* SafeDowncast(DatasetInterface* dataset) {
+Dataset<F>* SafeDowncast(TaskInterface* dataset) {
   CHECK(dataset != nullptr);
   CHECK_EQ(dataset->FeaturesSize(), F);
   return dynamic_cast<Dataset<F>*>(dataset);
 }
 template <FeatureIndexT F>
-const Dataset<F>* SafeDowncast(const DatasetInterface* dataset) {
+const Dataset<F>* SafeDowncast(const TaskInterface* dataset) {
   CHECK(dataset != nullptr);
   CHECK_EQ(dataset->FeaturesSize(), F);
   return dynamic_cast<const Dataset<F>*>(dataset);
 }
 template <FeatureIndexT F>
 std::unique_ptr<Dataset<F>> SafeDowncast(
-    std::unique_ptr<DatasetInterface> dataset) {
+    std::unique_ptr<TaskInterface> dataset) {
   CHECK(dataset != nullptr);
   return std::unique_ptr<Dataset<F>>(SafeDowncast<F>(dataset.release()));
 }
@@ -67,28 +67,27 @@ std::unique_ptr<Dataset<F>> SafeDowncast(
 namespace test_only {
 
 // Convenience method to generates a single dataset from a string containing a
-// text-format DatasetSpec. Only generates 1 dataset, so `num_datasets` can be
+// text-format TaskSpec. Only generates 1 dataset, so `num_datasets` can be
 // 1 or can be left unset. The features size is determined by the template
-// argument `F`, so the `features_size` in the DatasetSpec can be equal to `F`
+// argument `F`, so the `features_size` in the TaskSpec can be equal to `F`
 // or be left unset.
 template <FeatureIndexT F>
-Dataset<F> GenerateDataset(const std::string& dataset_spec_str) {
-  DatasetCollection dataset_collection;
-  DatasetSpec* dataset_spec = dataset_collection.add_datasets();
-  CHECK(proto2::TextFormat::ParseFromString(dataset_spec_str, dataset_spec));
-  if (!dataset_spec->has_features_size()) {
-    dataset_spec->set_features_size(F);
+Dataset<F> GenerateTask(const std::string& task_spec_str) {
+  TaskCollection task_collection;
+  TaskSpec* task_spec = task_collection.add_datasets();
+  CHECK(proto2::TextFormat::ParseFromString(task_spec_str, task_spec));
+  if (!task_spec->has_features_size()) {
+    task_spec->set_features_size(F);
   }
-  CHECK_EQ(dataset_spec->features_size(), F);
-  if (!dataset_spec->has_num_datasets()) {
-    dataset_spec->set_num_datasets(1);
+  CHECK_EQ(task_spec->features_size(), F);
+  if (!task_spec->has_num_datasets()) {
+    task_spec->set_num_datasets(1);
   }
-  CHECK_EQ(dataset_spec->num_datasets(), 1);
-  std::vector<std::unique_ptr<DatasetInterface>> datasets;
-  FillDatasets(dataset_collection, &datasets);
+  CHECK_EQ(task_spec->num_datasets(), 1);
+  std::vector<std::unique_ptr<TaskInterface>> datasets;
+  FillDatasets(task_collection, &datasets);
   CHECK_EQ(datasets.size(), 1);
 
-  // TODO(ereal): remove the std::move hack.
   std::unique_ptr<Dataset<F>> dataset = SafeDowncast<F>(std::move(datasets[0]));
   return std::move(*dataset);
 }
@@ -99,7 +98,7 @@ template <FeatureIndexT F>
 struct ClearAndResizeImpl {
   static void Call(const IntegerT num_train_examples,
                    const IntegerT num_valid_examples,
-                   DatasetBuffer<F>* buffer) {
+                   TaskBuffer<F>* buffer) {
     buffer->train_features_.clear();
     buffer->train_labels_.clear();
     buffer->valid_features_.clear();
@@ -121,7 +120,7 @@ struct ClearAndResizeImpl {
 template <FeatureIndexT F>
 void ClearAndResize(const IntegerT num_train_examples,
                     const IntegerT num_valid_examples,
-                    DatasetBuffer<F>* buffer) {
+                    TaskBuffer<F>* buffer) {
   ClearAndResizeImpl<F>::Call(num_train_examples, num_valid_examples, buffer);
 }
 
@@ -132,7 +131,7 @@ template <FeatureIndexT F>
 struct ScalarLinearRegressionDatasetCreator {
   static void Create(EvalType eval_type, IntegerT num_train_examples,
                      IntegerT num_valid_examples, RandomSeedT param_seed,
-                     RandomSeedT data_seed, DatasetBuffer<F>* buffer) {
+                     RandomSeedT data_seed, TaskBuffer<F>* buffer) {
     ClearAndResize(num_train_examples, num_valid_examples, buffer);
     std::mt19937 data_bit_gen(data_seed + 939723201);
     RandomGenerator data_gen = RandomGenerator(&data_bit_gen);
@@ -169,7 +168,7 @@ template <FeatureIndexT F>
 struct Scalar2LayerNnRegressionDatasetCreator {
   static void Create(EvalType eval_type, IntegerT num_train_examples,
                      IntegerT num_valid_examples, RandomSeedT param_seed,
-                     RandomSeedT data_seed, DatasetBuffer<F>* buffer) {
+                     RandomSeedT data_seed, TaskBuffer<F>* buffer) {
     ClearAndResize(num_train_examples, num_valid_examples, buffer);
     std::mt19937 data_bit_gen(data_seed + 865546086);
     RandomGenerator data_gen = RandomGenerator(&data_bit_gen);
@@ -222,16 +221,16 @@ struct Scalar2LayerNnRegressionDatasetCreator {
 template <FeatureIndexT F>
 struct ProjectedBinaryClassificationDatasetCreator {
   static void Create(EvalType eval_type,
-                     const ProjectedBinaryClassificationDataset& dataset_spec,
+                     const ProjectedBinaryClassificationDataset& task_spec,
                      IntegerT num_train_examples, IntegerT num_valid_examples,
                      IntegerT features_size, RandomSeedT data_seed,
-                     DatasetBuffer<F>* buffer) {
+                     TaskBuffer<F>* buffer) {
     ClearAndResize(num_train_examples, num_valid_examples, buffer);
 
     std::string dump_path;
-    CHECK(dataset_spec.has_dump_path() & !dataset_spec.dump_path().empty())
+    CHECK(task_spec.has_dump_path() & !task_spec.dump_path().empty())
         << "You have to specifiy the path to the dataset!" << std::endl;
-    dump_path = dataset_spec.dump_path();
+    dump_path = task_spec.dump_path();
 
     std::unique_ptr<SSTable> sstable(
         SSTable::Open(
@@ -241,25 +240,25 @@ struct ProjectedBinaryClassificationDatasetCreator {
     IntegerT positive_class;
     IntegerT negative_class;
 
-    if (dataset_spec.has_positive_class() &&
-        dataset_spec.has_negative_class()) {
-      positive_class = dataset_spec.positive_class();
-      negative_class = dataset_spec.negative_class();
+    if (task_spec.has_positive_class() &&
+        task_spec.has_negative_class()) {
+      positive_class = task_spec.positive_class();
+      negative_class = task_spec.negative_class();
       IntegerT num_supported_data_seeds =
-          dataset_spec.max_supported_data_seed() -
-          dataset_spec.min_supported_data_seed();
+          task_spec.max_supported_data_seed() -
+          task_spec.min_supported_data_seed();
       data_seed = static_cast<RandomSeedT>(
-          dataset_spec.min_supported_data_seed() +
+          task_spec.min_supported_data_seed() +
           data_seed % num_supported_data_seeds);
-    } else if (!dataset_spec.has_positive_class() &&
-               !dataset_spec.has_negative_class()) {
-      std::mt19937 dataset_bit_gen(CustomHashMix(
+    } else if (!task_spec.has_positive_class() &&
+               !task_spec.has_negative_class()) {
+      std::mt19937 dataset_bit_gen(HashMix(
           static_cast<RandomSeedT>(856572777), data_seed));
       RandomGenerator dataset_gen = RandomGenerator(
           &dataset_bit_gen);
 
       std::set<std::pair<IntegerT, IntegerT>> held_out_pairs_set;
-      for (ClassPair class_pair : dataset_spec.held_out_pairs()) {
+      for (ClassPair class_pair : task_spec.held_out_pairs()) {
         held_out_pairs_set.insert(std::pair<IntegerT, IntegerT>(
             std::min(class_pair.positive_class(),
                      class_pair.negative_class()),
@@ -287,15 +286,15 @@ struct ProjectedBinaryClassificationDatasetCreator {
       negative_class = selected_pair.second;
       data_seed = static_cast<RandomSeedT>(
           dataset_gen.UniformInteger(
-              dataset_spec.min_supported_data_seed(),
-              dataset_spec.max_supported_data_seed()));
+              task_spec.min_supported_data_seed(),
+              task_spec.max_supported_data_seed()));
     } else {
       LOG(FATAL) << ("You should either provide both or none of the positive"
                      " and negative classes.") << std::endl;
     }
 
-    // Generate the key using the dataset_spec.
-    std::string key = absl::StrCat(dataset_spec.dataset_name(), "-pos_",
+    // Generate the key using the task_spec.
+    std::string key = absl::StrCat(task_spec.dataset_name(), "-pos_",
                                    positive_class, "-neg_", negative_class,
                                    "-dim_", features_size, "-seed_", data_seed);
 
@@ -357,32 +356,32 @@ void CopyUnitTestFixedDatasetVector(
 
 template <FeatureIndexT F>
 struct UnitTestFixedDatasetCreator {
-  static void Create(const UnitTestFixedDataset& dataset_spec,
-                     DatasetBuffer<F>* buffer) {
-    const IntegerT num_train_examples = dataset_spec.train_features_size();
-    CHECK_EQ(dataset_spec.train_labels_size(), num_train_examples);
-    const IntegerT num_valid_examples = dataset_spec.valid_features_size();
-    CHECK_EQ(dataset_spec.valid_labels_size(), num_valid_examples);
+  static void Create(const UnitTestFixedDataset& task_spec,
+                     TaskBuffer<F>* buffer) {
+    const IntegerT num_train_examples = task_spec.train_features_size();
+    CHECK_EQ(task_spec.train_labels_size(), num_train_examples);
+    const IntegerT num_valid_examples = task_spec.valid_features_size();
+    CHECK_EQ(task_spec.valid_labels_size(), num_valid_examples);
     ClearAndResize(num_train_examples, num_valid_examples, buffer);
 
     // Copy the training features and labels.
     for (IntegerT example = 0; example < num_train_examples; ++example) {
       CopyUnitTestFixedDatasetVector<F>(
-          dataset_spec.train_features(example).elements(),
+          task_spec.train_features(example).elements(),
           &buffer->train_features_[example]);
-      CHECK_EQ(dataset_spec.train_labels(example).elements_size(), 1);
+      CHECK_EQ(task_spec.train_labels(example).elements_size(), 1);
       buffer->train_labels_[example] =
-          dataset_spec.train_labels(example).elements(0);
+          task_spec.train_labels(example).elements(0);
     }
 
     // Copy the validation features and labels.
     for (IntegerT example = 0; example < num_valid_examples; ++example) {
       CopyUnitTestFixedDatasetVector<F>(
-          dataset_spec.valid_features(example).elements(),
+          task_spec.valid_features(example).elements(),
           &buffer->valid_features_[example]);
-      CHECK_EQ(dataset_spec.valid_labels(example).elements_size(), 1);
+      CHECK_EQ(task_spec.valid_labels(example).elements_size(), 1);
       buffer->valid_labels_[example] =
-          dataset_spec.valid_labels(example).elements(0);
+          task_spec.valid_labels(example).elements(0);
     }
   }
 };
@@ -391,8 +390,8 @@ template <FeatureIndexT F>
 struct UnitTestZerosDatasetCreator {
   static void Create(const IntegerT num_train_examples,
                      const IntegerT num_valid_examples,
-                     const UnitTestZerosDatasetSpec& dataset_spec,
-                     DatasetBuffer<F>* buffer) {
+                     const UnitTestZerosTaskSpec& task_spec,
+                     TaskBuffer<F>* buffer) {
     ClearAndResize(num_train_examples, num_valid_examples, buffer);
     for (Vector<F>& feature : buffer->train_features_) {
       feature.setZero();
@@ -413,8 +412,8 @@ template <FeatureIndexT F>
 struct UnitTestOnesDatasetCreator {
   static void Create(const IntegerT num_train_examples,
                      const IntegerT num_valid_examples,
-                     const UnitTestOnesDatasetSpec& dataset_spec,
-                     DatasetBuffer<F>* buffer) {
+                     const UnitTestOnesTaskSpec& task_spec,
+                     TaskBuffer<F>* buffer) {
     ClearAndResize(num_train_examples, num_valid_examples, buffer);
     for (Vector<F>& feature : buffer->train_features_) {
       feature.setOnes();
@@ -435,11 +434,11 @@ template <FeatureIndexT F>
 struct UnitTestIncrementDatasetCreator {
   static void Create(const IntegerT num_train_examples,
                      const IntegerT num_valid_examples,
-                     const UnitTestIncrementDatasetSpec& dataset_spec,
-                     DatasetBuffer<F>* buffer) {
+                     const UnitTestIncrementTaskSpec& task_spec,
+                     TaskBuffer<F>* buffer) {
     ClearAndResize(num_train_examples, num_valid_examples, buffer);
 
-    const double increment = dataset_spec.increment();
+    const double increment = task_spec.increment();
     Scalar incrementing_scalar = 0.0;
     Vector<F> incrementing_vector = Vector<F>::Zero(F, 1);
     Vector<F> ones_vector = Vector<F>::Ones(F, 1);
@@ -472,50 +471,50 @@ template <FeatureIndexT F>
 std::unique_ptr<Dataset<F>> CreateDataset(const IntegerT dataset_index,
                                           const RandomSeedT param_seed,
                                           const RandomSeedT data_seed,
-                                          const DatasetSpec& dataset_spec) {
-  CHECK_GT(dataset_spec.num_train_examples(), 0);
-  CHECK_GT(dataset_spec.num_valid_examples(), 0);
-  DatasetBuffer<F> buffer;
-  switch (dataset_spec.dataset_type_case()) {
-    case (DatasetSpec::kScalarLinearRegressionDataset):
+                                          const TaskSpec& task_spec) {
+  CHECK_GT(task_spec.num_train_examples(), 0);
+  CHECK_GT(task_spec.num_valid_examples(), 0);
+  TaskBuffer<F> buffer;
+  switch (task_spec.dataset_type_case()) {
+    case (TaskSpec::kScalarLinearRegressionDataset):
       ScalarLinearRegressionDatasetCreator<F>::Create(
-          dataset_spec.eval_type(), dataset_spec.num_train_examples(),
-          dataset_spec.num_valid_examples(), param_seed, data_seed, &buffer);
+          task_spec.eval_type(), task_spec.num_train_examples(),
+          task_spec.num_valid_examples(), param_seed, data_seed, &buffer);
       break;
-    case (DatasetSpec::kScalar2LayerNnRegressionDataset):
+    case (TaskSpec::kScalar2LayerNnRegressionDataset):
       Scalar2LayerNnRegressionDatasetCreator<F>::Create(
-          dataset_spec.eval_type(), dataset_spec.num_train_examples(),
-          dataset_spec.num_valid_examples(), param_seed, data_seed, &buffer);
+          task_spec.eval_type(), task_spec.num_train_examples(),
+          task_spec.num_valid_examples(), param_seed, data_seed, &buffer);
       break;
-    case (DatasetSpec::kProjectedBinaryClassificationDataset):
+    case (TaskSpec::kProjectedBinaryClassificationDataset):
       ProjectedBinaryClassificationDatasetCreator<F>::Create(
-          dataset_spec.eval_type(),
-          dataset_spec.projected_binary_classification_dataset(),
-          dataset_spec.num_train_examples(), dataset_spec.num_valid_examples(),
-          dataset_spec.features_size(), data_seed, &buffer);
+          task_spec.eval_type(),
+          task_spec.projected_binary_classification_dataset(),
+          task_spec.num_train_examples(), task_spec.num_valid_examples(),
+          task_spec.features_size(), data_seed, &buffer);
       break;
-    case (DatasetSpec::kUnitTestFixedDataset):
+    case (TaskSpec::kUnitTestFixedDataset):
       UnitTestFixedDatasetCreator<F>::Create(
-          dataset_spec.unit_test_fixed_dataset(), &buffer);
+          task_spec.unit_test_fixed_dataset(), &buffer);
       break;
-    case (DatasetSpec::kUnitTestZerosDataset):
+    case (TaskSpec::kUnitTestZerosDataset):
       UnitTestZerosDatasetCreator<F>::Create(
-          dataset_spec.num_train_examples(),
-          dataset_spec.num_valid_examples(),
-          dataset_spec.unit_test_zeros_dataset(),
+          task_spec.num_train_examples(),
+          task_spec.num_valid_examples(),
+          task_spec.unit_test_zeros_dataset(),
           &buffer);
       break;
-    case (DatasetSpec::kUnitTestOnesDataset):
+    case (TaskSpec::kUnitTestOnesDataset):
       UnitTestOnesDatasetCreator<F>::Create(
-          dataset_spec.num_train_examples(),
-          dataset_spec.num_valid_examples(),
-          dataset_spec.unit_test_ones_dataset(),
+          task_spec.num_train_examples(),
+          task_spec.num_valid_examples(),
+          task_spec.unit_test_ones_dataset(),
           &buffer);
       break;
-    case (DatasetSpec::kUnitTestIncrementDataset):
+    case (TaskSpec::kUnitTestIncrementDataset):
       UnitTestIncrementDatasetCreator<F>::Create(
-          dataset_spec.num_train_examples(), dataset_spec.num_valid_examples(),
-          dataset_spec.unit_test_increment_dataset(), &buffer);
+          task_spec.num_train_examples(), task_spec.num_valid_examples(),
+          task_spec.unit_test_increment_dataset(), &buffer);
       break;
     default:
       LOG(FATAL) << "Unknown dataset type\n";
@@ -523,21 +522,21 @@ std::unique_ptr<Dataset<F>> CreateDataset(const IntegerT dataset_index,
   }
 
   std::mt19937 data_bit_gen(data_seed + 3274582109);
-  CHECK_EQ(buffer.train_features_.size(), dataset_spec.num_train_examples());
-  CHECK_EQ(buffer.train_labels_.size(), dataset_spec.num_train_examples());
-  CHECK_EQ(buffer.valid_features_.size(), dataset_spec.num_valid_examples());
-  CHECK_EQ(buffer.valid_labels_.size(), dataset_spec.num_valid_examples());
+  CHECK_EQ(buffer.train_features_.size(), task_spec.num_train_examples());
+  CHECK_EQ(buffer.train_labels_.size(), task_spec.num_train_examples());
+  CHECK_EQ(buffer.valid_features_.size(), task_spec.num_valid_examples());
+  CHECK_EQ(buffer.valid_labels_.size(), task_spec.num_valid_examples());
 
-  CHECK(dataset_spec.has_eval_type());
+  CHECK(task_spec.has_eval_type());
   return absl::make_unique<Dataset<F>>(
-      dataset_index, dataset_spec.eval_type(),
-      dataset_spec.num_train_epochs(), &data_bit_gen, &buffer);
+      dataset_index, task_spec.eval_type(),
+      task_spec.num_train_epochs(), &data_bit_gen, &buffer);
 }
 
 // Randomizes all the seeds given a base seed. See "internal workflow" comment
 // in datasets.proto.
 // TODO(crazydonkey): make sure the random seed is never 0.
-void RandomizeDatasetSeeds(DatasetCollection* dataset_collection,
+void RandomizeDatasetSeeds(TaskCollection* task_collection,
                            RandomSeedT seed);
 
 }  // namespace automl_zero

@@ -41,12 +41,8 @@ class RegularizedEvolution {
       // Runs up to this many total individuals.
       IntegerT population_size,
       IntegerT tournament_size,
-      // Number of training examples for each model.
-      // Number of mutations to apply to each seed individual before inserting.
-      IntegerT init_mutations,
       // How frequently to print progress reports.
       IntegerT progress_every,
-      bool progress_every_by_time,
       Generator* generator,
       Evaluator* evaluator,
       // The mutator to use to perform all mutations.
@@ -107,10 +103,8 @@ class RegularizedEvolution {
   IntegerT epoch_secs_;
   IntegerT epoch_secs_last_progress_;
   IntegerT num_individuals_last_progress_;
-  const IntegerT init_mutations_;
   const IntegerT tournament_size_;
   const IntegerT progress_every_;
-  const bool progress_every_by_time_;
   bool initialized_;
   Generator* generator_;
   Mutator* mutator_;

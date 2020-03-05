@@ -13,17 +13,18 @@
 // limitations under the License.
 
 // TODO(ereal):
-// -Rename namespace to amlz.
+// -Finish renaming dataset --> task.
+// -Ensure random seed is not 0.
+// -Make algorithm printing more like figures in paper.
+// -Add comments, especially in protos and compute_cost.h.
 // -Clean up optimized training (leave only optimized code).
 // -Clean up functional cache choice (leave only functional cache branch).
-// -Simplify train budgets and remove interface.
-// -Have only py3 tests.
 // -Renumber proto fields.
 // -Address or remove all TODOs.
 // -Consider removing test_util files.
 // -Apply linter.
 // -Apply build cleaner.
-// -Rename "component_functions" to "component functions" everywhere.
+// -Rename "programs" to "component functions" everywhere.
 // -Add more comments, link to paper.
 
 #ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DEFINITIONS_H_
@@ -54,8 +55,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // These allow defining compile-time flags. They can be used to evolve larger
-// component_functions without forcing the small-component_function evolution to
-// be slow.
+// component functions without forcing the evolution of small component
+// functions to be slow.
 
 // NOTE: if you specify any of these in the command line and you want to analyze
 // the results in Colab, you must specify the same values when you use
@@ -123,9 +124,6 @@ constexpr IntegerT kUnlimitedTime = 100000000000000000;  // About 3 years.
 
 constexpr IntegerT kNanosPerSecond = 1000000000;
 constexpr IntegerT kNanosPerMicro = 1000;
-
-// TODO(ereal): remove?
-constexpr FeatureIndexT kFirstFeaturesIndex = 0;
 
 const double kPi = 3.14159265359;
 const double kE = 2.71828182846;
@@ -226,13 +224,6 @@ typedef uint16_t InstructionIndexT;
 // Commonly used methods.
 ////////////////////////////////////////////////////////////////////////////////
 
-// Cast safely between integer types. Do not overload. Can specialize.
-template<typename InT, typename OutT>
-OutT SafeCast(const InT value) {  // TODO(ereal): can remove?
-  OutT result = value + 0;
-  return result;
-}
-
 // Convenience methods to parse protos.
 template <class ProtoT>
 ProtoT ParseSerialized(const std::string& str) {
@@ -292,12 +283,6 @@ ContainerT* SizeLessThanOrDie(
   return value;
 }
 
-// Method to let other threads do work.
-inline void Chill() {
-  std::this_thread::yield();  // TODO(ereal): reconsider.
-  sched_yield();
-}
-
 // Print and Flush can be used to print to stdout for debugging purposes.
 // Usage:
 // Print() << "my_variable = " << my_variable << stuff << "etc." << Flush();
@@ -350,7 +335,7 @@ inline void HashCombine(std::size_t& seed, const T& v) {
 // casted to a size_t (it must be unsigned and it must have <= 64 bits).
 // Intended to be used with the RandomSeedT type.
 template<typename NumberT>
-NumberT CustomHashMix(const std::vector<NumberT>& numbers) {
+NumberT HashMix(const std::vector<NumberT>& numbers) {
   std::size_t seed = 42;
   for (const NumberT number : numbers) {
     HashCombine(seed, number);
@@ -362,8 +347,8 @@ NumberT CustomHashMix(const std::vector<NumberT>& numbers) {
 // casted to a size_t (it must be unsigned and it must have <= 64 bits).
 // Intended to be used with the RandomSeedT type.
 template<typename NumberT>
-NumberT CustomHashMix(NumberT first, NumberT second) {
-  return CustomHashMix<NumberT>({first, second});
+NumberT HashMix(NumberT first, NumberT second) {
+  return HashMix<NumberT>({first, second});
 }
 
 }  // namespace automl_zero

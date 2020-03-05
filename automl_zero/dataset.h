@@ -34,9 +34,9 @@ constexpr double kDataTolerance = 0.00001;
 // Holds data temporarily while it is being created, so that later it can be
 // moved to a Dataset. This allows the Dataset to store const data.
 template <FeatureIndexT F>
-class DatasetBuffer {
+class TaskBuffer {
  public:
-  DatasetBuffer() : consumed_(false) {}
+  TaskBuffer() : consumed_(false) {}
   bool IsConsumed() {return consumed_;}
   void Consume() {consumed_ = true;}
 
@@ -51,17 +51,17 @@ class DatasetBuffer {
 
  private:
   // Whether this object has already been consumed by moving the data into
-  // a dataset. A consumed DatasetBuffer has no further use.
+  // a dataset. A consumed TaskBuffer has no further use.
   bool consumed_;
 };
 
 // We define this base class so we can put datasets of different sizes into the
 // same container of datasets.
-class DatasetInterface {
+class TaskInterface {
  public:
   // Always have at least one virtual method in this class. Because it is meant
   // to be downcasted, we need to keep it polymorphic.
-  virtual ~DatasetInterface() {}
+  virtual ~TaskInterface() {}
 
   // Returns the size of the feature vectors in this dataset.
   virtual FeatureIndexT FeaturesSize() const = 0;
@@ -78,7 +78,7 @@ class DatasetInterface {
 };
 
 template <FeatureIndexT F>
-class DatasetIterator;
+class TaskIterator;
 
 template<typename RankT>
 bool ItemEquals(const RankT& data1, const RankT& data2) {
@@ -117,11 +117,11 @@ inline std::vector<std::vector<IntegerT>> GenerateEpochs(
 template <
     // The dimensionality of activations.
     FeatureIndexT F>
-class Dataset : public DatasetInterface {
+class Dataset : public TaskInterface {
  public:
   explicit Dataset(const size_t index, const EvalType eval_type,
                    const IntegerT num_train_epochs, std::mt19937* bit_gen,
-                   DatasetBuffer<F>* buffer)
+                   TaskBuffer<F>* buffer)
       : index_(index),
         eval_type_(eval_type),
         train_features_(std::move(buffer->train_features_)),
@@ -206,11 +206,11 @@ class Dataset : public DatasetInterface {
   }
 
   // Iterate.
-  DatasetIterator<F> TrainIterator() const {
-    return DatasetIterator<F>(&train_features_, &train_labels_, &train_epochs_);
+  TaskIterator<F> TrainIterator() const {
+    return TaskIterator<F>(&train_features_, &train_labels_, &train_epochs_);
   }
-  DatasetIterator<F> ValidIterator() const {
-    return DatasetIterator<F>(&valid_features_, &valid_labels_, &valid_epochs_);
+  TaskIterator<F> ValidIterator() const {
+    return TaskIterator<F>(&valid_features_, &valid_labels_, &valid_epochs_);
   }
 
   // ***IMPORTANT***: if you add a member variable below, you *must* also add it
@@ -276,9 +276,9 @@ class Dataset : public DatasetInterface {
 };
 
 template <FeatureIndexT F>
-class DatasetIterator {
+class TaskIterator {
  public:
-  DatasetIterator(const std::vector<Vector<F>>* features,
+  TaskIterator(const std::vector<Vector<F>>* features,
                   const std::vector<Scalar>* labels,
                   const std::vector<std::vector<IntegerT>>* epochs)
       : features_(features),
@@ -287,17 +287,17 @@ class DatasetIterator {
         current_example_(0),
         current_epoch_(0) {}
 
-  DatasetIterator(const DatasetIterator&) = delete;
-  DatasetIterator& operator=(const DatasetIterator&) = delete;
+  TaskIterator(const TaskIterator&) = delete;
+  TaskIterator& operator=(const TaskIterator&) = delete;
 
-  DatasetIterator(DatasetIterator&& other)
+  TaskIterator(TaskIterator&& other)
       : features_(other.features_),
         labels_(other.labels_),
         epochs_(other.epochs_),
         current_example_(other.current_example_),
         current_epoch_(other.current_epoch_) {}
 
-  DatasetIterator& operator=(DatasetIterator&& other) {
+  TaskIterator& operator=(TaskIterator&& other) {
     this->features_ = other.features_;
     this->labels_ = other.labels_;
     this->epochs_ = other.epochs_;

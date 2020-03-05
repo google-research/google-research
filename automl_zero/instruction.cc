@@ -40,30 +40,19 @@ Instruction::Instruction()
       in2_(0),
       out_(0),
       activation_data_(0.0),
-      index_data_0_(0),
       float_data_0_(0.0),
       float_data_1_(0.0),
-      float_data_2_(0.0),
-      discretized_activation_data_0_(kDiscretizedZero),
-      discretized_activation_data_1_(kDiscretizedZero),
-      discretized_activation_data_2_(kDiscretizedZero),
-      discretized_activation_data_3_(kDiscretizedZero) {}
+      float_data_2_(0.0) {}
 
-// TODO(ereal): move integer data access to test-only library.
 Instruction::Instruction(const IntegerDataSetter& integer_data_setter)
     : op_(NO_OP),
       in1_(0),
       in2_(0),
       out_(0),
       activation_data_(static_cast<double>(integer_data_setter.value_)),
-      index_data_0_(0),
       float_data_0_(0.0),
       float_data_1_(0.0),
-      float_data_2_(0.0),
-      discretized_activation_data_0_(kDiscretizedZero),
-      discretized_activation_data_1_(kDiscretizedZero),
-      discretized_activation_data_2_(kDiscretizedZero),
-      discretized_activation_data_3_(kDiscretizedZero) {}
+      float_data_2_(0.0) {}
 
 Instruction::Instruction(const Op op, const AddressT in, const AddressT out)
     : op_(op),
@@ -71,14 +60,9 @@ Instruction::Instruction(const Op op, const AddressT in, const AddressT out)
       in2_(0),
       out_(out),
       activation_data_(0.0),
-      index_data_0_(0),
       float_data_0_(0.0),
       float_data_1_(0.0),
-      float_data_2_(0.0),
-      discretized_activation_data_0_(kDiscretizedZero),
-      discretized_activation_data_1_(kDiscretizedZero),
-      discretized_activation_data_2_(kDiscretizedZero),
-      discretized_activation_data_3_(kDiscretizedZero) {}
+      float_data_2_(0.0) {}
 
 Instruction::Instruction(
     const Op op, const AddressT in1, const AddressT in2, const AddressT out)
@@ -87,14 +71,9 @@ Instruction::Instruction(
       in2_(in2),
       out_(out),
       activation_data_(0.0),
-      index_data_0_(0),
       float_data_0_(0.0),
       float_data_1_(0.0),
-      float_data_2_(0.0),
-      discretized_activation_data_0_(kDiscretizedZero),
-      discretized_activation_data_1_(kDiscretizedZero),
-      discretized_activation_data_2_(kDiscretizedZero),
-      discretized_activation_data_3_(kDiscretizedZero) {}
+      float_data_2_(0.0) {}
 
 Instruction::Instruction(
     const Op op, const AddressT out,
@@ -104,14 +83,9 @@ Instruction::Instruction(
       in2_(0),
       out_(out),
       activation_data_(activation_data_setter.value_),
-      index_data_0_(0),
       float_data_0_(0.0),
       float_data_1_(0.0),
-      float_data_2_(0.0),
-      discretized_activation_data_0_(kDiscretizedZero),
-      discretized_activation_data_1_(kDiscretizedZero),
-      discretized_activation_data_2_(kDiscretizedZero),
-      discretized_activation_data_3_(kDiscretizedZero) {}
+      float_data_2_(0.0) {}
 
 Instruction::Instruction(
     const Op op, const AddressT out,
@@ -121,14 +95,9 @@ Instruction::Instruction(
       in2_(0),
       out_(out),
       activation_data_(static_cast<double>(integer_data_setter.value_)),
-      index_data_0_(0),
       float_data_0_(0.0),
       float_data_1_(0.0),
-      float_data_2_(0.0),
-      discretized_activation_data_0_(kDiscretizedZero),
-      discretized_activation_data_1_(kDiscretizedZero),
-      discretized_activation_data_2_(kDiscretizedZero),
-      discretized_activation_data_3_(kDiscretizedZero) {}
+      float_data_2_(0.0) {}
 
 Instruction::Instruction(
     const Op op, const AddressT out,
@@ -139,14 +108,9 @@ Instruction::Instruction(
       in2_(0),
       out_(out),
       activation_data_(0.0),
-      index_data_0_(0),
       float_data_0_(float_data_setter_0.value_),
       float_data_1_(float_data_setter_1.value_),
-      float_data_2_(0.0),
-      discretized_activation_data_0_(kDiscretizedZero),
-      discretized_activation_data_1_(kDiscretizedZero),
-      discretized_activation_data_2_(kDiscretizedZero),
-      discretized_activation_data_3_(kDiscretizedZero) {}
+      float_data_2_(0.0) {}
 
 Instruction::Instruction(
     const Op op, const AddressT out,
@@ -158,52 +122,9 @@ Instruction::Instruction(
       in2_(0),
       out_(out),
       activation_data_(0.0),
-      index_data_0_(0),
       float_data_0_(float_data_setter_0.value_),
       float_data_1_(float_data_setter_1.value_),
-      float_data_2_(float_data_setter_2.value_),
-      discretized_activation_data_0_(kDiscretizedZero),
-      discretized_activation_data_1_(kDiscretizedZero),
-      discretized_activation_data_2_(kDiscretizedZero),
-      discretized_activation_data_3_(kDiscretizedZero) {}
-
-Instruction::Instruction(
-    const Op op, const AddressT out, const VectorDataSetter& vector_data_setter)
-    : op_(op),
-      in1_(0),
-      in2_(0),
-      out_(out),
-      activation_data_(0.0),
-      index_data_0_(0),
-      float_data_0_(0.0),
-      float_data_1_(0.0),
-      float_data_2_(0.0),
-      discretized_activation_data_0_(kDiscretizedZero),
-      discretized_activation_data_1_(kDiscretizedZero),
-      discretized_activation_data_2_(kDiscretizedZero),
-      discretized_activation_data_3_(kDiscretizedZero) {
-  SetVectorData(vector_data_setter.value_ref_);
-}
-
-Instruction::Instruction(
-    Op op, AddressT out, const IndexDataSetter& index_data_setter,
-    const VectorDataSetter& vector_data_setter)
-    : op_(op),
-      in1_(0),
-      in2_(0),
-      out_(out),
-      activation_data_(0.0),
-      index_data_0_(index_data_setter.value_),
-      float_data_0_(0.0),
-      float_data_1_(0.0),
-      float_data_2_(0.0),
-      discretized_activation_data_0_(kDiscretizedZero),
-      discretized_activation_data_1_(kDiscretizedZero),
-      discretized_activation_data_2_(kDiscretizedZero),
-      discretized_activation_data_3_(kDiscretizedZero) {
-  // This constructor is only triggered by old ops.
-  SetVectorData(vector_data_setter.value_ref_);
-}
+      float_data_2_(float_data_setter_2.value_) {}
 
 Instruction::Instruction(Op op, RandomGenerator* rand_gen) {
   SetOpAndRandomizeParams(op, rand_gen);
@@ -216,14 +137,9 @@ Instruction::Instruction(
       in2_(other.in2_),
       out_(other.out_),
       activation_data_(other.activation_data_),
-      index_data_0_(other.index_data_0_),
       float_data_0_(other.float_data_0_),
       float_data_1_(other.float_data_1_),
-      float_data_2_(other.float_data_2_),
-      discretized_activation_data_0_(other.discretized_activation_data_0_),
-      discretized_activation_data_1_(other.discretized_activation_data_1_),
-      discretized_activation_data_2_(other.discretized_activation_data_2_),
-      discretized_activation_data_3_(other.discretized_activation_data_3_) {
+      float_data_2_(other.float_data_2_) {
   AlterParam(rand_gen);
 }
 
@@ -232,21 +148,11 @@ Instruction::Instruction(
   Deserialize(serialized);
 }
 
-// TODO(ereal): move integer data access to test-only library.
 IntegerT Instruction::GetIntegerData() const {
   const double rounded = round(activation_data_);
   CHECK_GE(rounded, std::numeric_limits<IntegerT>::min());
   CHECK_LE(rounded, std::numeric_limits<IntegerT>::max());
   return static_cast<IntegerT>(rounded);
-}
-
-Vector<4> Instruction::GetVectorData() const {
-  Vector<4> vector;
-  vector(0) = Undiscretize(discretized_activation_data_0_);
-  vector(1) = Undiscretize(discretized_activation_data_1_);
-  vector(2) = Undiscretize(discretized_activation_data_2_);
-  vector(3) = Undiscretize(discretized_activation_data_3_);
-  return vector;
 }
 
 bool Instruction::operator==(const Instruction& other) const {
@@ -256,16 +162,12 @@ bool Instruction::operator==(const Instruction& other) const {
          out_ == other.out_ &&
          abs(activation_data_ - other.activation_data_) <
              kActivationDataTolerance &&
-         index_data_0_ == other.index_data_0_ &&
          abs(float_data_0_ - other.float_data_0_) <
              kFloatDataTolerance &&
          abs(float_data_1_ - other.float_data_1_) <
              kFloatDataTolerance &&
          abs(float_data_2_ - other.float_data_2_) <
-             kFloatDataTolerance &&
-         // Vector data is only used with old ops.
-         (GetVectorData() - other.GetVectorData()).norm() <
-             kVectorDataTolerance;
+             kFloatDataTolerance;
 }
 
 void Instruction::FillWithNoOp() {
@@ -274,14 +176,9 @@ void Instruction::FillWithNoOp() {
   in2_ = 0;
   out_ = 0;
   activation_data_ = 0.0;
-  index_data_0_ = 0;
   float_data_0_ = 0.0;
   float_data_1_ = 0.0;
   float_data_2_ = 0.0;
-  discretized_activation_data_0_ = kDiscretizedZero;
-  discretized_activation_data_1_ = kDiscretizedZero;
-  discretized_activation_data_2_ = kDiscretizedZero;
-  discretized_activation_data_3_ = kDiscretizedZero;
 }
 
 void Instruction::SetOpAndRandomizeParams(
@@ -1202,19 +1099,9 @@ SerializedInstruction Instruction::Serialize() const {
   checkpoint_instruction.set_out(
       static_cast<int32>(out_));  // Convert to higher precision.
   checkpoint_instruction.set_activation_data(activation_data_);
-  checkpoint_instruction.set_index_data_0(
-      static_cast<int32>(index_data_0_));  // Convert to higher precision.
   checkpoint_instruction.set_float_data_0(float_data_0_);
   checkpoint_instruction.set_float_data_1(float_data_1_);
   checkpoint_instruction.set_float_data_2(float_data_2_);
-  checkpoint_instruction.set_discretized_activation_data_0(
-      static_cast<int32>(discretized_activation_data_0_));  // To higher prec.
-  checkpoint_instruction.set_discretized_activation_data_1(
-      static_cast<int32>(discretized_activation_data_1_));  // To higher prec.
-  checkpoint_instruction.set_discretized_activation_data_2(
-      static_cast<int32>(discretized_activation_data_2_));  // To higher prec.
-  checkpoint_instruction.set_discretized_activation_data_3(
-      static_cast<int32>(discretized_activation_data_3_));  // To higher prec.
   return checkpoint_instruction;
 }
 
@@ -1222,68 +1109,28 @@ void Instruction::Deserialize(
     const SerializedInstruction& checkpoint_instruction) {
   op_ = checkpoint_instruction.op();
 
-  // Convert to lower precision.  // TODO(ereal): use SafeCast instead.
+  // Convert to lower precision.
   CHECK_GE(checkpoint_instruction.in1(), numeric_limits<AddressT>::min());
   CHECK_LE(checkpoint_instruction.in1(), numeric_limits<AddressT>::max());
   in1_ = static_cast<AddressT>(checkpoint_instruction.in1());
 
-  // Convert to lower precision.  // TODO(ereal): use SafeCast instead.
+  // Convert to lower precision.
   CHECK_GE(checkpoint_instruction.in2(), numeric_limits<AddressT>::min());
   CHECK_LE(checkpoint_instruction.in2(), numeric_limits<AddressT>::max());
   in2_ = static_cast<AddressT>(checkpoint_instruction.in2());
 
-  // Convert to lower precision.  // TODO(ereal): use SafeCast instead.
+  // Convert to lower precision.
   CHECK_GE(checkpoint_instruction.out(), numeric_limits<AddressT>::min());
   CHECK_LE(checkpoint_instruction.out(), numeric_limits<AddressT>::max());
   out_ = static_cast<AddressT>(checkpoint_instruction.out());
 
   activation_data_ = checkpoint_instruction.activation_data();
 
-  // Convert to lower precision.  // TODO(ereal): use SafeCast instead.
-  CHECK_GE(checkpoint_instruction.index_data_0(),
-           numeric_limits<FeatureIndexT>::min());
-  CHECK_LE(checkpoint_instruction.index_data_0(),
-           numeric_limits<FeatureIndexT>::max());
-  index_data_0_ = static_cast<FeatureIndexT>(
-      checkpoint_instruction.index_data_0());
-
   float_data_0_ = checkpoint_instruction.float_data_0();
 
   float_data_1_ = checkpoint_instruction.float_data_1();
 
   float_data_2_ = checkpoint_instruction.float_data_2();
-
-  // Convert to lower precision.  // TODO(ereal): use SafeCast instead.
-  CHECK_GE(checkpoint_instruction.discretized_activation_data_0(),
-           numeric_limits<Discretizeddouble>::min());
-  CHECK_LE(checkpoint_instruction.discretized_activation_data_0(),
-           numeric_limits<Discretizeddouble>::max());
-  discretized_activation_data_0_ = static_cast<Discretizeddouble>(
-      checkpoint_instruction.discretized_activation_data_0());
-
-  // Convert to lower precision.  // TODO(ereal): use SafeCast instead.
-  CHECK_GE(checkpoint_instruction.discretized_activation_data_1(),
-           numeric_limits<Discretizeddouble>::min());
-  CHECK_LE(checkpoint_instruction.discretized_activation_data_1(),
-           numeric_limits<Discretizeddouble>::max());
-  discretized_activation_data_1_ = static_cast<Discretizeddouble>(
-      checkpoint_instruction.discretized_activation_data_1());
-
-  // Convert to lower precision.  // TODO(ereal): use SafeCast instead.
-  CHECK_GE(checkpoint_instruction.discretized_activation_data_2(),
-           numeric_limits<Discretizeddouble>::min());
-  CHECK_LE(checkpoint_instruction.discretized_activation_data_2(),
-           numeric_limits<Discretizeddouble>::max());
-  discretized_activation_data_2_ = static_cast<Discretizeddouble>(
-      checkpoint_instruction.discretized_activation_data_2());
-
-  // Convert to lower precision.  // TODO(ereal): use SafeCast instead.
-  CHECK_GE(checkpoint_instruction.discretized_activation_data_3(),
-           numeric_limits<Discretizeddouble>::min());
-  CHECK_LE(checkpoint_instruction.discretized_activation_data_3(),
-           numeric_limits<Discretizeddouble>::max());
-  discretized_activation_data_3_ = static_cast<Discretizeddouble>(
-      checkpoint_instruction.discretized_activation_data_3());
 }
 
 }  // namespace automl_zero

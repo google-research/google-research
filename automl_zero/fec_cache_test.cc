@@ -48,7 +48,7 @@ class FECCacheTest : public Test {
 };
 
 TEST_F(FECCacheTest, InsertsCorrectly) {
-  FECCache cache(ParseTextFormat<FECCacheSpec>(StrCat(
+  FECCache cache(ParseTextFormat<FECSpec>(StrCat(
       "num_train_examples: ", kNumTrainExamples, " "
       "num_valid_examples: ", kNumValidExamples, " "
       "cache_size: ", kCacheSize, " "
@@ -75,7 +75,7 @@ TEST_F(FECCacheTest, InsertsCorrectly) {
 }
 
 TEST_F(FECCacheTest, DiscardsByLRUPolicy) {
-  FECCache cache(ParseTextFormat<FECCacheSpec>(StrCat(
+  FECCache cache(ParseTextFormat<FECSpec>(StrCat(
       "num_train_examples: ", kNumTrainExamples, " "
       "num_valid_examples: ", kNumValidExamples, " "
       "cache_size: ", 5, " "
@@ -104,7 +104,7 @@ TEST_F(FECCacheTest, DiscardsByLRUPolicy) {
 }
 
 TEST_F(FECCacheTest, LRUPolicyConsidersReinserts) {
-  FECCache cache(ParseTextFormat<FECCacheSpec>(StrCat(
+  FECCache cache(ParseTextFormat<FECSpec>(StrCat(
       "num_train_examples: ", kNumTrainExamples, " "
       "num_valid_examples: ", kNumValidExamples, " "
       "cache_size: ", 5, " "
@@ -137,7 +137,7 @@ TEST_F(FECCacheTest, LRUPolicyConsidersReinserts) {
 }
 
 TEST_F(FECCacheTest, NumTrainExamplesWorks) {
-  FECCache cache(ParseTextFormat<FECCacheSpec>(StrCat(
+  FECCache cache(ParseTextFormat<FECSpec>(StrCat(
       "num_train_examples: ", kNumTrainExamples, " "
       "num_valid_examples: ", kNumValidExamples, " "
       "cache_size: ", kCacheSize, " "
@@ -147,7 +147,7 @@ TEST_F(FECCacheTest, NumTrainExamplesWorks) {
 }
 
 TEST_F(FECCacheTest, NumValidExamplesWorks) {
-  FECCache cache(ParseTextFormat<FECCacheSpec>(StrCat(
+  FECCache cache(ParseTextFormat<FECSpec>(StrCat(
       "num_train_examples: ", kNumTrainExamples, " "
       "num_valid_examples: ", kNumValidExamples, " "
       "cache_size: ", kCacheSize, " "
@@ -155,7 +155,5 @@ TEST_F(FECCacheTest, NumValidExamplesWorks) {
       )));
   EXPECT_EQ(cache.NumValidExamples(), kNumValidExamples);
 }
-
-// TODO(ereal): test `forget_every` arg.
 
 }  // namespace automl_zero

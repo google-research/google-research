@@ -65,7 +65,7 @@ class LRUCache {
 
 class FECCache {
  public:
-  explicit FECCache(const FECCacheSpec& spec);
+  explicit FECCache(const FECSpec& spec);
   FECCache(const FECCache& other) = delete;
   FECCache& operator=(const FECCache& other) =
       delete;
@@ -85,7 +85,6 @@ class FECCache {
 
   // Notes that a hash in the cache has been seen again. Call only if the hash
   // was found.
-  // TODO(ereal): remove from template and caller if/when no longer necessary.
   void UpdateOrDie(size_t hash, double fitness) {}
 
   // Removes all items in the cache.
@@ -97,7 +96,7 @@ class FECCache {
   IntegerT NumValidExamples() const;
 
  private:
-  const FECCacheSpec spec_;
+  const FECSpec spec_;
 
   LRUCache cache_;
 };

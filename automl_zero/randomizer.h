@@ -31,35 +31,35 @@ class Algorithm;
 class Randomizer {
  public:
   Randomizer(
-      // Ops that can be introduced into the setup component_function.
-      // Empty means the component_function is not randomized.
+      // Ops that can be introduced into the setup component function.
+      // Empty means the component function is not randomized.
       std::vector<Op> allowed_setup_ops,
-      // Ops that can be introduced into the predict component_function.
-      // Empty means the component_function is not randomized.
+      // Ops that can be introduced into the predict component function.
+      // Empty means the component function is not randomized.
       std::vector<Op> allowed_predict_ops,
-      // Ops that can be introduced into the learn component_function.
-      // Empty means the component_function is not randomized.
+      // Ops that can be introduced into the learn component function.
+      // Empty means the component function is not randomized.
       std::vector<Op> allowed_learn_ops,
       std::mt19937* bit_gen,
       RandomGenerator* rand_gen);
 
-  // Randomizes the entire Algorithm (all three component_functions).
-  // Does not change the component_function sizes.
+  // Randomizes the entire Algorithm (all three component functions).
+  // Does not change the component function sizes.
   void Randomize(Algorithm* algorithm);
 
-  // Randomizes all the instructions in the setup component_function.
-  // Does not change the component_function size.
+  // Randomizes all the instructions in the setup component function.
+  // Does not change the component function size.
   void RandomizeSetup(Algorithm* algorithm);
 
-  // Randomizes all the instructions in the predict component_function.
-  // Does not change the component_function size.
+  // Randomizes all the instructions in the predict component function.
+  // Does not change the component function size.
   void RandomizePredict(Algorithm* algorithm);
 
-  // Randomizes all the instructions in the learn component_function.
-  // Does not change the component_function size.
+  // Randomizes all the instructions in the learn component function.
+  // Does not change the component function size.
   void RandomizeLearn(Algorithm* algorithm);
 
-  // Return operations to introduce into the component_functions.
+  // Return operations to introduce into the component functions.
   Op SetupOp();
   Op PredictOp();
   Op LearnOp();

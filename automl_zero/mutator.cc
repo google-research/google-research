@@ -383,7 +383,7 @@ ComponentFunctionT Mutator::ComponentFunction() {
     allowed_component_functions.push_back(kLearnComponentFunction);
   }
   CHECK(!allowed_component_functions.empty())
-      << "Must mutate at least one component_function." << endl;
+      << "Must mutate at least one component function." << endl;
   const IntegerT index =
       absl::Uniform<IntegerT>(*bit_gen_, 0, allowed_component_functions.size());
   return allowed_component_functions[index];

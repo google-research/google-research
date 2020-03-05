@@ -25,13 +25,13 @@ enum MutationType {
   // Randomizes an instruction, including its op.
   RANDOMIZE_INSTRUCTION_MUTATION_TYPE = 1;
 
-  // Randomizes a whole component_function, preserving its size.
+  // Randomizes a whole component function, preserving its size.
   RANDOMIZE_COMPONENT_FUNCTION_MUTATION_TYPE = 2;
 
   // Does nothing. Useful for debugging.
   IDENTITY_MUTATION_TYPE = 3;
 
-  // Inserts an instruction in a component_function.
+  // Inserts an instruction in a component function.
   INSERT_INSTRUCTION_MUTATION_TYPE = 4;
 
   // Removes a mutation.
@@ -40,7 +40,7 @@ enum MutationType {
   // Removes a mutation and inserts another.
   TRADE_INSTRUCTION_MUTATION_TYPE = 6;
 
-  // Randomizes all component_functions.
+  // Randomizes all component functions.
   RANDOMIZE_ALGORITHM_MUTATION_TYPE = 7;
 };
 

@@ -56,13 +56,13 @@ constexpr IntegerT kMinNumTrainExamples = 10;
 constexpr RandomSeedT kFunctionalCacheRandomSeed = 235732282;
 
 Evaluator::Evaluator(const FitnessCombinationMode fitness_combination_mode,
-                     const DatasetCollection& dataset_collection,
+                     const TaskCollection& task_collection,
                      RandomGenerator* rand_gen,
                      FECCache* functional_cache,
                      TrainBudget* train_budget,
-                     const double max_abs_error, const bool verbose)
+                     const double max_abs_error)
     : fitness_combination_mode_(fitness_combination_mode),
-      dataset_collection_(dataset_collection),
+      task_collection_(task_collection),
       train_budget_(train_budget),
       rand_gen_(rand_gen),
       functional_cache_(functional_cache),
@@ -71,15 +71,10 @@ Evaluator::Evaluator(const FitnessCombinationMode fitness_combination_mode,
       functional_cache_rand_gen_owned_(make_unique<RandomGenerator>(
           functional_cache_bit_gen_owned_.get())),
       functional_cache_rand_gen_(functional_cache_rand_gen_owned_.get()),
-      verbose_(verbose),
       best_fitness_(-1.0),
       max_abs_error_(max_abs_error) {
-  FillDatasets(dataset_collection_, &datasets_);
+  FillDatasets(task_collection_, &datasets_);
   CHECK_GT(datasets_.size(), 0);
-  if (verbose_) {
-    cout << "evaluator: dataset_collection = " << endl
-         << dataset_collection_.DebugString() << endl;
-  }
 }
 
 double Evaluator::Evaluate(const Algorithm& algorithm) {
@@ -94,7 +89,7 @@ double Evaluator::Evaluate(const Algorithm& algorithm) {
     dataset_indexes.push_back(i);
   }
   for (IntegerT dataset_index : dataset_indexes) {
-    const unique_ptr<DatasetInterface>& dataset = datasets_[dataset_index];
+    const unique_ptr<TaskInterface>& dataset = datasets_[dataset_index];
     CHECK_GE(dataset->MaxTrainExamples(), kMinNumTrainExamples);
     const IntegerT num_train_examples =
         train_budget_ == nullptr ?
@@ -113,7 +108,7 @@ double Evaluator::Evaluate(const Algorithm& algorithm) {
   return combined_fitness;
 }
 
-double Evaluator::Execute(const DatasetInterface& dataset,
+double Evaluator::Execute(const TaskInterface& dataset,
                           const IntegerT num_train_examples,
                           const Algorithm& algorithm) {
   switch (dataset.FeaturesSize()) {

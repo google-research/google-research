@@ -38,14 +38,14 @@ message SearchExperimentSpec {
   //////////////////////////////////////////////////////////////////////////////
 
   // Tasks for T_search.
-  optional DatasetCollection search_tasks = 20;  // Required.
+  optional TaskCollection search_tasks = 20;  // Required.
 
   //////////////////////////////////////////////////////////////////////////////
   // Search space. /////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  // Allowed ops in each of the component_function. To prevent evolving one
-  // component_function, leave the list of ops as empty.
+  // Allowed ops in each of the component functions. To prevent evolving one
+  // component function, leave the corresponding list of ops as empty.
   repeated Op setup_ops = 34;
   repeated Op predict_ops = 35;
   repeated Op learn_ops = 36;
@@ -71,8 +71,7 @@ message SearchExperimentSpec {
   optional double max_abs_error = 14 [default = 100.0];
 
   // If not present, cache is disabled.
-  // TODO(ereal): rename to FEC or something like that.
-  optional FECCacheSpec fec_cache = 2;
+  optional FECSpec fec = 2;
 
   optional FitnessCombinationMode fitness_combination_mode = 1
       [default = MEAN_FITNESS_COMBINATION];

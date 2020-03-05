@@ -100,13 +100,13 @@ TEST(SizeLessThanOrDieTest, WorksCorrectly_PointerCase) {
   EXPECT_DEATH({SizeLessThanOrDie(&large, 3);}, "Too large.");
 }
 
-TEST(CustomHashMixTest, DoesNotGenerateShortCycles) {
+TEST(HashMixTest, DoesNotGenerateShortCycles) {
   const IntegerT num_iters = 100;
   const RandomSeedT seed = 20;
   RandomSeedT current = seed;
   unordered_set<RandomSeedT> values;
   for (IntegerT iters = 0; iters < num_iters; ++iters) {
-    current = CustomHashMix(current, seed);
+    current = HashMix(current, seed);
     values.insert(current);
   }
   EXPECT_EQ(values.size(), num_iters);

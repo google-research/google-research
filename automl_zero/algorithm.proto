@@ -20,12 +20,6 @@ package automl_zero;
 
 import "third_party/google_research/google_research/automl_zero/instruction.proto";
 
-// TODO(crazydonkey): remove.
-message SerializedEvaluatedAlgorithm {
-  optional SerializedAlgorithm algorithm = 1;  // Required.
-  optional double fitness = 2;                 // Required.
-}
-
 message SerializedAlgorithm {
   repeated SerializedInstruction setup_instructions = 1;
   repeated SerializedInstruction predict_instructions = 2;
@@ -42,8 +36,4 @@ message SerializedInstruction {
   optional float float_data_0 = 7;                    // Required.
   optional float float_data_1 = 8;                    // Required.
   optional float float_data_2 = 9;                    // Required.
-  optional int32 discretized_activation_data_0 = 10;  // Required.
-  optional int32 discretized_activation_data_1 = 11;  // Required.
-  optional int32 discretized_activation_data_2 = 12;  // Required.
-  optional int32 discretized_activation_data_3 = 13;  // Required.
 }
