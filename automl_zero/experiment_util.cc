@@ -19,7 +19,7 @@
 #include <memory>
 #include <ostream>
 
-#include "datasets.proto.h"
+#include "task.proto.h"
 #include "google/protobuf/repeated_field.h"
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"

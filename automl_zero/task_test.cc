@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "dataset.h"
+#include "task.h"
 
-#include "dataset_util.h"
+#include "task_util.h"
 #include "definitions.h"
 #include "gtest/gtest.h"
 
@@ -38,9 +38,9 @@ IntegerT CountOccurrences(
 
 // Tests that all the examples appear the correct number of times and that the
 // features and labels remain matched correctly after generating the epochs.
-TEST(DatasetTest, EpochsContainCorrectTrainExamples) {
-  auto dataset = GenerateTask<4>(
-      "unit_test_fixed_dataset { "
+TEST(TaskTest, EpochsContainCorrectTrainExamples) {
+  auto task = GenerateTask<4>(
+      "unit_test_fixed_task { "
       "  train_features {elements: [0.41, 0.42, 0.43, 0.44]} "
       "  train_features {elements: [0.51, 0.52, 0.53, 0.54]} "
       "  train_features {elements: [0.61, 0.62, 0.63, 0.64]} "
@@ -56,10 +56,10 @@ TEST(DatasetTest, EpochsContainCorrectTrainExamples) {
       "num_train_examples: 3 "
       "num_train_epochs: 8 "
       "num_valid_examples: 2 "
-      "num_datasets: 1 "
+      "num_tasks: 1 "
       "features_size: 4 ");
 
-  TaskIterator<4> train_it = dataset.TrainIterator();
+  TaskIterator<4> train_it = task.TrainIterator();
   vector<Vector<5>> features_and_labels;
   while (!train_it.Done()) {
     Vector<4> features = train_it.GetFeatures();
@@ -81,9 +81,9 @@ TEST(DatasetTest, EpochsContainCorrectTrainExamples) {
       8);
 }
 
-TEST(DatasetTest, EpochsContainShuffledTrainExamples) {
-  auto dataset = GenerateTask<4>(
-      "unit_test_fixed_dataset { "
+TEST(TaskTest, EpochsContainShuffledTrainExamples) {
+  auto task = GenerateTask<4>(
+      "unit_test_fixed_task { "
       "  train_features {elements: [0.41, 0.42, 0.43, 0.44]} "
       "  train_features {elements: [0.51, 0.52, 0.53, 0.54]} "
       "  train_features {elements: [0.61, 0.62, 0.63, 0.64]} "
@@ -99,10 +99,10 @@ TEST(DatasetTest, EpochsContainShuffledTrainExamples) {
       "num_train_examples: 3 "
       "num_train_epochs: 8 "
       "num_valid_examples: 2 "
-      "num_datasets: 1 "
+      "num_tasks: 1 "
       "features_size: 4 ");
 
-  TaskIterator<4> train_it = dataset.TrainIterator();
+  TaskIterator<4> train_it = task.TrainIterator();
   vector<Vector<5>> features_and_labels;
   while (!train_it.Done()) {
     Vector<4> features = train_it.GetFeatures();

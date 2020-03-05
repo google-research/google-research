@@ -13,7 +13,6 @@
 // limitations under the License.
 
 // TODO(ereal):
-// -Finish renaming dataset --> task.
 // -Ensure random seed is not 0.
 // -Make algorithm printing more like figures in paper.
 // -Add comments, especially in protos and compute_cost.h.

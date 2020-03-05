@@ -18,7 +18,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "datasets.proto.h"
+#include "task.proto.h"
 #include "definitions.h"
 #include "instruction.proto.h"
 #include "google/protobuf/repeated_field.h"

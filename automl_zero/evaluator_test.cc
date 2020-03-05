@@ -18,9 +18,9 @@
 #include <random>
 
 #include "algorithm.h"
-#include "dataset.h"
-#include "dataset_util.h"
-#include "datasets.proto.h"
+#include "task.h"
+#include "task_util.h"
+#include "task.proto.h"
 #include "definitions.h"
 #include "executor.h"
 #include "generator.h"
@@ -42,13 +42,13 @@ using test_only::GenerateTask;
 
 constexpr IntegerT kNumTrainExamples = 1000;
 constexpr IntegerT kNumValidExamples = 100;
-constexpr IntegerT kNumDatasets = 2;
+constexpr IntegerT kNumTasks = 2;
 constexpr double kNumericTolerance = 0.0000001;
 constexpr double kMaxAbsError = 100.0;
 
-TEST(EvaluatorTest, AveragesOverDatasets) {
-  Dataset<4> dataset_one =
-      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
+TEST(EvaluatorTest, AveragesOverTasks) {
+  Task<4> task_one =
+      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_task {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -58,8 +58,8 @@ TEST(EvaluatorTest, AveragesOverDatasets) {
                                 "eval_type: RMS_ERROR "
                                 "param_seeds: 1001 "
                                 "data_seeds: 11001 "));
-  Dataset<4> dataset_two =
-      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
+  Task<4> task_two =
+      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_task {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -72,15 +72,15 @@ TEST(EvaluatorTest, AveragesOverDatasets) {
 
   Algorithm algorithm = SimpleGz();
 
-  // Run with datasets independently.
+  // Run with tasks independently.
   mt19937 bit_gen_sep(100000);
   RandomGenerator rand_gen_sep(&bit_gen_sep);
   Executor<4> executor0(
-      algorithm, dataset_one, kNumTrainExamples, kNumValidExamples,
+      algorithm, task_one, kNumTrainExamples, kNumValidExamples,
       &rand_gen_sep, kMaxAbsError);
   const double fitness0 = executor0.Execute();
   Executor<4> executor1(
-      algorithm, dataset_two, kNumTrainExamples, kNumValidExamples,
+      algorithm, task_two, kNumTrainExamples, kNumValidExamples,
       &rand_gen_sep, kMaxAbsError);
   const double fitness1 = executor1.Execute();
   const double expected_fitness = (fitness0 + fitness1) / 2.0;
@@ -88,8 +88,8 @@ TEST(EvaluatorTest, AveragesOverDatasets) {
   mt19937 bit_gen(100000);
   RandomGenerator rand_gen(&bit_gen);
   const auto task_collection = ParseTextFormat<TaskCollection>(
-      StrCat("datasets { "
-             "  scalar_2layer_nn_regression_dataset {} "
+      StrCat("tasks { "
+             "  scalar_2layer_nn_regression_task {} "
              "  features_size: 4 "
              "  num_train_examples: ",
              kNumTrainExamples,
@@ -97,8 +97,8 @@ TEST(EvaluatorTest, AveragesOverDatasets) {
              "  num_valid_examples: ",
              kNumValidExamples,
              " "
-             "  num_datasets: ",
-             kNumDatasets,
+             "  num_tasks: ",
+             kNumTasks,
              " "
              "  eval_type: RMS_ERROR "
              "} "));
@@ -118,14 +118,14 @@ TEST(EvaluatorTest, GrTildeGrWithBiasHasHighFitness) {
   Algorithm algorithm = generator.NeuralNet(0.036210, 0.180920, 0.145231);
 
   const auto task_collection = ParseTextFormat<TaskCollection>(
-      StrCat("datasets { "
-             "  scalar_2layer_nn_regression_dataset {} "
+      StrCat("tasks { "
+             "  scalar_2layer_nn_regression_task {} "
              "  features_size: 4 "
              "  num_train_examples: 10000 "
              "  num_valid_examples: ",
              kNumValidExamples,
              " "
-             "  num_datasets: 1 "
+             "  num_tasks: 1 "
              "  eval_type: RMS_ERROR "
              "} "));
 

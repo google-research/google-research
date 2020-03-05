@@ -20,8 +20,8 @@
 #include <sstream>
 
 #include "algorithm_test_util.h"
-#include "dataset.h"
-#include "dataset_util.h"
+#include "task.h"
+#include "task_util.h"
 #include "definitions.h"
 #include "instruction.proto.h"
 #include "evaluator.h"
@@ -121,8 +121,8 @@ TEST(GeneratorTest, Gz_Learns) {
       {},  // allowed_learn_ops, irrelevant.
       nullptr,  // bit_gen, irrelevant.
       nullptr);  // rand_gen, irrelevant.
-  Dataset<4> dataset =
-      GenerateTask<4>(StrCat("scalar_linear_regression_dataset {} "
+  Task<4> dataset =
+      GenerateTask<4>(StrCat("scalar_linear_regression_task {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -155,8 +155,8 @@ TEST(GeneratorTest, LinearModel_Learns) {
       {},  // allowed_learn_ops, irrelevant.
       nullptr,  // bit_gen, irrelevant.
       nullptr);  // rand_gen, irrelevant.
-  Dataset<4> dataset =
-      GenerateTask<4>(StrCat("scalar_linear_regression_dataset {} "
+  Task<4> dataset =
+      GenerateTask<4>(StrCat("scalar_linear_regression_task {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -189,11 +189,11 @@ TEST(GeneratorTest, GrTildeGrWithBias_PermanenceTest) {
       {},  // allowed_learn_ops, irrelevant.
       nullptr,  // bit_gen, irrelevant.
       nullptr);  // rand_gen, irrelevant.
-  Dataset<4> dataset = GenerateTask<4>(StrCat(
-      "scalar_2layer_nn_regression_dataset {} "
+  Task<4> dataset = GenerateTask<4>(StrCat(
+      "scalar_2layer_nn_regression_task {} "
       "num_train_examples: ", kNumTrainExamples, " "
       "num_valid_examples: ", kNumValidExamples, " "
-      "num_datasets: 1 "
+      "num_tasks: 1 "
       "eval_type: RMS_ERROR "
       "param_seeds: 1000 "
       "data_seeds: 10000 "));

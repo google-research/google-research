@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "dataset_util.h"
+#include "task_util.h"
 
 #include <cmath>
 #include <ostream>
@@ -21,8 +21,8 @@
 #include <vector>
 
 #include "algorithm.h"
-#include "dataset.h"
-#include "datasets.proto.h"
+#include "task.h"
+#include "task.proto.h"
 #include "definitions.h"
 #include "executor.h"
 #include "generator.h"
@@ -70,9 +70,9 @@ bool VectorEq(const Vector<F>& vector1,
 const Vector<4> kZeroVector = Vector<4>::Zero(4, 1);
 const Vector<4> kOnesVector = Vector<4>::Ones(4, 1);
 
-TEST(FillDatasetsTest, WorksCorrectly) {
-  Dataset<4> expected_dataset_0 =
-      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
+TEST(FillTasksTest, WorksCorrectly) {
+  Task<4> expected_task_0 =
+      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_task {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -82,8 +82,8 @@ TEST(FillDatasetsTest, WorksCorrectly) {
                                 "eval_type: RMS_ERROR "
                                 "param_seeds: 1000 "
                                 "data_seeds: 10000 "));
-  Dataset<4> expected_dataset_1 =
-      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
+  Task<4> expected_task_1 =
+      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_task {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -95,81 +95,81 @@ TEST(FillDatasetsTest, WorksCorrectly) {
                                 "data_seeds: 10001 "));
 
   TaskCollection task_collection;
-  TaskSpec* dataset = task_collection.add_datasets();
-  dataset->set_features_size(4);
-  dataset->set_num_train_examples(kNumTrainExamples);
-  dataset->set_num_valid_examples(kNumValidExamples);
-  dataset->set_num_datasets(2);
-  dataset->set_eval_type(RMS_ERROR);
-  dataset->add_data_seeds(10000);
-  dataset->add_data_seeds(10001);
-  dataset->add_param_seeds(1000);
-  dataset->add_param_seeds(1001);
-  dataset->mutable_scalar_2layer_nn_regression_dataset();
-  vector<unique_ptr<TaskInterface>> owned_datasets;
-  FillDatasets(task_collection, &owned_datasets);
-  vector<Dataset<4>*> datasets;
-  for (const unique_ptr<TaskInterface>& owned_dataset : owned_datasets) {
-    datasets.push_back(SafeDowncast<4>(owned_dataset.get()));
+  TaskSpec* task = task_collection.add_tasks();
+  task->set_features_size(4);
+  task->set_num_train_examples(kNumTrainExamples);
+  task->set_num_valid_examples(kNumValidExamples);
+  task->set_num_tasks(2);
+  task->set_eval_type(RMS_ERROR);
+  task->add_data_seeds(10000);
+  task->add_data_seeds(10001);
+  task->add_param_seeds(1000);
+  task->add_param_seeds(1001);
+  task->mutable_scalar_2layer_nn_regression_task();
+  vector<unique_ptr<TaskInterface>> owned_tasks;
+  FillTasks(task_collection, &owned_tasks);
+  vector<Task<4>*> tasks;
+  for (const unique_ptr<TaskInterface>& owned_dataset : owned_tasks) {
+    tasks.push_back(SafeDowncast<4>(owned_dataset.get()));
   }
 
-  EXPECT_EQ(datasets[0]->MaxTrainExamples(), kNumTrainExamples);
+  EXPECT_EQ(tasks[0]->MaxTrainExamples(), kNumTrainExamples);
 
   EXPECT_LT(
-      (datasets[0]->train_features_[478] -
-       expected_dataset_0.train_features_[478]).norm(),
+      (tasks[0]->train_features_[478] -
+       expected_task_0.train_features_[478]).norm(),
       kDataTolerance);
   EXPECT_LT(
-      (datasets[1]->train_features_[478] -
-       expected_dataset_1.train_features_[478]).norm(),
+      (tasks[1]->train_features_[478] -
+       expected_task_1.train_features_[478]).norm(),
       kDataTolerance);
   EXPECT_LT(
-      (datasets[0]->valid_features_[94] -
-       expected_dataset_0.valid_features_[94]).norm(),
+      (tasks[0]->valid_features_[94] -
+       expected_task_0.valid_features_[94]).norm(),
       kDataTolerance);
   EXPECT_LT(
-      (datasets[1]->valid_features_[94] -
-       expected_dataset_1.valid_features_[94]).norm(),
+      (tasks[1]->valid_features_[94] -
+       expected_task_1.valid_features_[94]).norm(),
       kDataTolerance);
 
   EXPECT_LT(
-      abs(datasets[0]->train_labels_[478] -
-          expected_dataset_0.train_labels_[478]),
+      abs(tasks[0]->train_labels_[478] -
+          expected_task_0.train_labels_[478]),
       kDataTolerance);
   EXPECT_LT(
-      abs(datasets[1]->train_labels_[478] -
-          expected_dataset_1.train_labels_[478]),
+      abs(tasks[1]->train_labels_[478] -
+          expected_task_1.train_labels_[478]),
       kDataTolerance);
   EXPECT_LT(
-      abs(datasets[0]->valid_labels_[94] -
-          expected_dataset_0.valid_labels_[94]),
+      abs(tasks[0]->valid_labels_[94] -
+          expected_task_0.valid_labels_[94]),
       kDataTolerance);
   EXPECT_LT(
-      abs(datasets[1]->valid_labels_[94] -
-          expected_dataset_1.valid_labels_[94]),
+      abs(tasks[1]->valid_labels_[94] -
+          expected_task_1.valid_labels_[94]),
       kDataTolerance);
 
-  EXPECT_EQ(datasets[0]->index_, 0);
-  EXPECT_EQ(datasets[1]->index_, 1);
+  EXPECT_EQ(tasks[0]->index_, 0);
+  EXPECT_EQ(tasks[1]->index_, 1);
 }
 
-TEST(FillDatasetTest, FillsEvalType) {
+TEST(FillTaskTest, FillsEvalType) {
   std::string task_spec_string =
-      StrCat("scalar_linear_regression_dataset {} "
+      StrCat("scalar_linear_regression_task {} "
              "num_train_examples: 1000 "
              "num_valid_examples: 100 "
              "param_seeds: 1000 "
              "data_seeds: 1000 "
              "eval_type: RMS_ERROR");
-  Dataset<4> dataset = GenerateTask<4>(task_spec_string);
+  Task<4> dataset = GenerateTask<4>(task_spec_string);
   TaskSpec task_spec =
       ParseTextFormat<TaskSpec>(task_spec_string);
   EXPECT_EQ(dataset.eval_type_, task_spec.eval_type());
 }
 
-TEST(FillDatasetWithZerosTest, WorksCorrectly) {
+TEST(FillTaskWithZerosTest, WorksCorrectly) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_zeros_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_zeros_task {} "
                                 "eval_type: ACCURACY "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -177,7 +177,7 @@ TEST(FillDatasetWithZerosTest, WorksCorrectly) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
   for (const Scalar& label : dataset.train_labels_) {
     EXPECT_FLOAT_EQ(label, 0.0);
@@ -190,9 +190,9 @@ TEST(FillDatasetWithZerosTest, WorksCorrectly) {
   }
 }
 
-TEST(FillDatasetWithOnesTest, WorksCorrectly) {
+TEST(FillTaskWithOnesTest, WorksCorrectly) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_ones_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_ones_task {} "
                                 "eval_type: ACCURACY "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -200,7 +200,7 @@ TEST(FillDatasetWithOnesTest, WorksCorrectly) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
   for (const Vector<4>& feature : dataset.train_features_) {
     EXPECT_TRUE(feature.isApprox(kOnesVector));
@@ -216,9 +216,9 @@ TEST(FillDatasetWithOnesTest, WorksCorrectly) {
   }
 }
 
-TEST(FillDatasetWithIncrementingIntegersTest, WorksCorrectly) {
+TEST(FillTaskWithIncrementingIntegersTest, WorksCorrectly) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_increment_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_increment_task {} "
                                 "eval_type: ACCURACY "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -226,7 +226,7 @@ TEST(FillDatasetWithIncrementingIntegersTest, WorksCorrectly) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   EXPECT_TRUE(dataset.train_features_[0].isApprox(kZeroVector));
@@ -250,9 +250,9 @@ TEST(FillDatasetWithIncrementingIntegersTest, WorksCorrectly) {
       static_cast<double>(kNumValidExamples - 1));
 }
 
-TEST(FillDatasetWithNonlinearDataTest, DifferentForDifferentSeeds) {
-  Dataset<4> dataset_1000_10000 =
-      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
+TEST(FillTaskWithNonlinearDataTest, DifferentForDifferentSeeds) {
+  Task<4> dataset_1000_10000 =
+      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_task {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -262,8 +262,8 @@ TEST(FillDatasetWithNonlinearDataTest, DifferentForDifferentSeeds) {
                                 "eval_type: RMS_ERROR "
                                 "param_seeds: 1000 "
                                 "data_seeds: 10000 "));
-  Dataset<4> dataset_1001_10000 =
-      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
+  Task<4> dataset_1001_10000 =
+      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_task {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -273,8 +273,8 @@ TEST(FillDatasetWithNonlinearDataTest, DifferentForDifferentSeeds) {
                                 "eval_type: RMS_ERROR "
                                 "param_seeds: 1001 "
                                 "data_seeds: 10000 "));
-  Dataset<4> dataset_1000_10001 =
-      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
+  Task<4> dataset_1000_10001 =
+      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_task {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -289,9 +289,9 @@ TEST(FillDatasetWithNonlinearDataTest, DifferentForDifferentSeeds) {
   EXPECT_NE(dataset_1001_10000, dataset_1000_10001);
 }
 
-TEST(FillDatasetWithNonlinearDataTest, SameForSameSeed) {
-  Dataset<4> dataset_1000_10000_a =
-      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
+TEST(FillTaskWithNonlinearDataTest, SameForSameSeed) {
+  Task<4> dataset_1000_10000_a =
+      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_task {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -301,8 +301,8 @@ TEST(FillDatasetWithNonlinearDataTest, SameForSameSeed) {
                                 "eval_type: RMS_ERROR "
                                 "param_seeds: 1000 "
                                 "data_seeds: 10000 "));
-  Dataset<4> dataset_1000_10000_b =
-      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
+  Task<4> dataset_1000_10000_b =
+      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_task {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -315,9 +315,9 @@ TEST(FillDatasetWithNonlinearDataTest, SameForSameSeed) {
   EXPECT_EQ(dataset_1000_10000_a, dataset_1000_10000_b);
 }
 
-TEST(FillDatasetWithNonlinearDataTest, PermanenceTest) {
-  Dataset<4> dataset =
-      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
+TEST(FillTaskWithNonlinearDataTest, PermanenceTest) {
+  Task<4> dataset =
+      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_task {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -346,140 +346,140 @@ TEST(FillDatasetWithNonlinearDataTest, PermanenceTest) {
 }
 
 void ClearSeeds(TaskCollection* task_collection) {
-  for (TaskSpec& dataset : *task_collection->mutable_datasets()) {
+  for (TaskSpec& dataset : *task_collection->mutable_tasks()) {
     dataset.clear_param_seeds();
     dataset.clear_data_seeds();
   }
 }
 
-TEST(RandomizeDatasetSeedsTest, FillsCorrectNumberOfRandomSeeds) {
+TEST(RandomizeTaskSeedsTest, FillsCorrectNumberOfRandomSeeds) {
   auto task_collection = ParseTextFormat<TaskCollection>(
-      "datasets {num_datasets: 8} "
-      "datasets {num_datasets: 3} ");
+      "tasks {num_tasks: 8} "
+      "tasks {num_tasks: 3} ");
 
-  RandomizeDatasetSeeds(&task_collection, GenerateRandomSeed());
-  EXPECT_EQ(task_collection.datasets_size(), 2);
-  EXPECT_EQ(task_collection.datasets(0).param_seeds_size(), 8);
-  EXPECT_EQ(task_collection.datasets(0).data_seeds_size(), 8);
-  EXPECT_EQ(task_collection.datasets(1).param_seeds_size(), 3);
-  EXPECT_EQ(task_collection.datasets(1).data_seeds_size(), 3);
+  RandomizeTaskSeeds(&task_collection, GenerateRandomSeed());
+  EXPECT_EQ(task_collection.tasks_size(), 2);
+  EXPECT_EQ(task_collection.tasks(0).param_seeds_size(), 8);
+  EXPECT_EQ(task_collection.tasks(0).data_seeds_size(), 8);
+  EXPECT_EQ(task_collection.tasks(1).param_seeds_size(), 3);
+  EXPECT_EQ(task_collection.tasks(1).data_seeds_size(), 3);
 }
 
-TEST(RandomizeDatasetSeedsTest, SameForSameSeed) {
+TEST(RandomizeTaskSeedsTest, SameForSameSeed) {
   const RandomSeedT seed = GenerateRandomSeed();
   auto task_collection_1 = ParseTextFormat<TaskCollection>(
-      "datasets {num_datasets: 8} "
-      "datasets {num_datasets: 3} ");
+      "tasks {num_tasks: 8} "
+      "tasks {num_tasks: 3} ");
   TaskCollection task_collection_2 = task_collection_1;
-  RandomizeDatasetSeeds(&task_collection_1, seed);
-  RandomizeDatasetSeeds(&task_collection_2, seed);
-  EXPECT_EQ(task_collection_1.datasets(0).param_seeds(5),
-            task_collection_2.datasets(0).param_seeds(5));
-  EXPECT_EQ(task_collection_1.datasets(0).data_seeds(5),
-            task_collection_2.datasets(0).data_seeds(5));
-  EXPECT_EQ(task_collection_1.datasets(1).param_seeds(1),
-            task_collection_2.datasets(1).param_seeds(1));
-  EXPECT_EQ(task_collection_1.datasets(1).data_seeds(1),
-            task_collection_2.datasets(1).data_seeds(1));
+  RandomizeTaskSeeds(&task_collection_1, seed);
+  RandomizeTaskSeeds(&task_collection_2, seed);
+  EXPECT_EQ(task_collection_1.tasks(0).param_seeds(5),
+            task_collection_2.tasks(0).param_seeds(5));
+  EXPECT_EQ(task_collection_1.tasks(0).data_seeds(5),
+            task_collection_2.tasks(0).data_seeds(5));
+  EXPECT_EQ(task_collection_1.tasks(1).param_seeds(1),
+            task_collection_2.tasks(1).param_seeds(1));
+  EXPECT_EQ(task_collection_1.tasks(1).data_seeds(1),
+            task_collection_2.tasks(1).data_seeds(1));
 }
 
-TEST(RandomizeDatasetSeedsTest, DifferentForDifferentSeeds) {
+TEST(RandomizeTaskSeedsTest, DifferentForDifferentSeeds) {
   const RandomSeedT seed1 = 519801251;
   const RandomSeedT seed2 = 208594758;
   auto task_collection_1 = ParseTextFormat<TaskCollection>(
-      "datasets {num_datasets: 8} "
-      "datasets {num_datasets: 3} ");
+      "tasks {num_tasks: 8} "
+      "tasks {num_tasks: 3} ");
   TaskCollection task_collection_2 = task_collection_1;
-  RandomizeDatasetSeeds(&task_collection_1, seed1);
-  RandomizeDatasetSeeds(&task_collection_2, seed2);
-  EXPECT_NE(task_collection_1.datasets(0).param_seeds(5),
-            task_collection_2.datasets(0).param_seeds(5));
-  EXPECT_NE(task_collection_1.datasets(0).data_seeds(5),
-            task_collection_2.datasets(0).data_seeds(5));
-  EXPECT_NE(task_collection_1.datasets(1).param_seeds(1),
-            task_collection_2.datasets(1).param_seeds(1));
-  EXPECT_NE(task_collection_1.datasets(1).data_seeds(1),
-            task_collection_2.datasets(1).data_seeds(1));
+  RandomizeTaskSeeds(&task_collection_1, seed1);
+  RandomizeTaskSeeds(&task_collection_2, seed2);
+  EXPECT_NE(task_collection_1.tasks(0).param_seeds(5),
+            task_collection_2.tasks(0).param_seeds(5));
+  EXPECT_NE(task_collection_1.tasks(0).data_seeds(5),
+            task_collection_2.tasks(0).data_seeds(5));
+  EXPECT_NE(task_collection_1.tasks(1).param_seeds(1),
+            task_collection_2.tasks(1).param_seeds(1));
+  EXPECT_NE(task_collection_1.tasks(1).data_seeds(1),
+            task_collection_2.tasks(1).data_seeds(1));
 }
 
-TEST(RandomizeDatasetSeedsTest, CoversParamSeeds) {
-  IntegerT num_datasets = 0;
-  auto task_collection = ParseTextFormat<TaskCollection>("datasets {} ");
+TEST(RandomizeTaskSeedsTest, CoversParamSeeds) {
+  IntegerT num_tasks = 0;
+  auto task_collection = ParseTextFormat<TaskCollection>("tasks {} ");
   const RandomSeedT seed = GenerateRandomSeed();
   EXPECT_TRUE(IsEventually(
-      function<RandomSeedT(void)>([&task_collection, &num_datasets, seed]() {
-        // We need to keep increasing the number of datasets in order to
-        // generate new seeds because the RandomizeDatasetSeeds function is
+      function<RandomSeedT(void)>([&task_collection, &num_tasks, seed]() {
+        // We need to keep increasing the number of tasks in order to
+        // generate new seeds because the RandomizeTaskSeeds function is
         // deterministic.
-        ++num_datasets;
-        task_collection.mutable_datasets(0)->set_num_datasets(num_datasets);
+        ++num_tasks;
+        task_collection.mutable_tasks(0)->set_num_tasks(num_tasks);
 
         ClearSeeds(&task_collection);
-        RandomizeDatasetSeeds(&task_collection, seed);
+        RandomizeTaskSeeds(&task_collection, seed);
         const RandomSeedT param_seed =
-            *task_collection.datasets(0).param_seeds().rbegin();
+            *task_collection.tasks(0).param_seeds().rbegin();
         return (param_seed % 5);
       }),
       Range<RandomSeedT>(0, 5), Range<RandomSeedT>(0, 5)));
 }
 
-TEST(RandomizeDatasetSeedsTest, CoversDataSeeds) {
-  IntegerT num_datasets = 0;
-  auto task_collection = ParseTextFormat<TaskCollection>("datasets {} ");
+TEST(RandomizeTaskSeedsTest, CoversDataSeeds) {
+  IntegerT num_tasks = 0;
+  auto task_collection = ParseTextFormat<TaskCollection>("tasks {} ");
   const RandomSeedT seed = GenerateRandomSeed();
   EXPECT_TRUE(IsEventually(
-      function<RandomSeedT(void)>([&task_collection, &num_datasets, seed]() {
-        ++num_datasets;
-        task_collection.mutable_datasets(0)->set_num_datasets(num_datasets);
+      function<RandomSeedT(void)>([&task_collection, &num_tasks, seed]() {
+        ++num_tasks;
+        task_collection.mutable_tasks(0)->set_num_tasks(num_tasks);
         ClearSeeds(&task_collection);
 
         // Return the last seed.
-        RandomizeDatasetSeeds(&task_collection, seed);
+        RandomizeTaskSeeds(&task_collection, seed);
         const RandomSeedT data_seed =
-            *task_collection.datasets(0).data_seeds().rbegin();
+            *task_collection.tasks(0).data_seeds().rbegin();
         return (data_seed % 5);
       }),
       Range<RandomSeedT>(0, 5), Range<RandomSeedT>(0, 5)));
 }
 
-TEST(RandomizeDatasetSeedsTest, ParamAndDataSeedsAreIndependent) {
-  IntegerT num_datasets = 0;
-  auto task_collection = ParseTextFormat<TaskCollection>("datasets {} ");
+TEST(RandomizeTaskSeedsTest, ParamAndDataSeedsAreIndependent) {
+  IntegerT num_tasks = 0;
+  auto task_collection = ParseTextFormat<TaskCollection>("tasks {} ");
   const RandomSeedT seed = GenerateRandomSeed();
   EXPECT_TRUE(IsEventually(
       function<pair<RandomSeedT, RandomSeedT>(void)>([&task_collection,
-                                                      &num_datasets, seed]() {
-        ++num_datasets;
-        task_collection.mutable_datasets(0)->set_num_datasets(num_datasets);
+                                                      &num_tasks, seed]() {
+        ++num_tasks;
+        task_collection.mutable_tasks(0)->set_num_tasks(num_tasks);
         ClearSeeds(&task_collection);
-        RandomizeDatasetSeeds(&task_collection, seed);
+        RandomizeTaskSeeds(&task_collection, seed);
 
         // Return the last data seed and the last param seed.
         const RandomSeedT param_seed =
-            *task_collection.datasets(0).param_seeds().rbegin();
+            *task_collection.tasks(0).param_seeds().rbegin();
         const RandomSeedT data_seed =
-            *task_collection.datasets(0).data_seeds().rbegin();
+            *task_collection.tasks(0).data_seeds().rbegin();
         return (make_pair(param_seed % 3, data_seed % 3));
       }),
       CartesianProduct(Range<RandomSeedT>(0, 3), Range<RandomSeedT>(0, 3)),
       CartesianProduct(Range<RandomSeedT>(0, 3), Range<RandomSeedT>(0, 3))));
 }
 
-TEST(RandomizeDatasetSeedsTest, ParamSeedsAreIndepdendentWithinTaskSpec) {
-  IntegerT num_datasets = 1;
-  auto task_collection = ParseTextFormat<TaskCollection>("datasets {} ");
+TEST(RandomizeTaskSeedsTest, ParamSeedsAreIndepdendentWithinTaskSpec) {
+  IntegerT num_tasks = 1;
+  auto task_collection = ParseTextFormat<TaskCollection>("tasks {} ");
   const RandomSeedT seed = GenerateRandomSeed();
   EXPECT_TRUE(IsEventually(
       function<pair<RandomSeedT, RandomSeedT>(void)>([&task_collection,
-                                                      &num_datasets, seed]() {
-        ++num_datasets;
-        task_collection.mutable_datasets(0)->set_num_datasets(num_datasets);
+                                                      &num_tasks, seed]() {
+        ++num_tasks;
+        task_collection.mutable_tasks(0)->set_num_tasks(num_tasks);
         ClearSeeds(&task_collection);
-        RandomizeDatasetSeeds(&task_collection, seed);
+        RandomizeTaskSeeds(&task_collection, seed);
 
         // Return the last two seeds.
         auto param_seed_it =
-            task_collection.datasets(0).param_seeds().rbegin();
+            task_collection.tasks(0).param_seeds().rbegin();
         const RandomSeedT param_seed_1 = *param_seed_it;
         ++param_seed_it;
         const RandomSeedT param_seed_2 = *param_seed_it;
@@ -489,21 +489,21 @@ TEST(RandomizeDatasetSeedsTest, ParamSeedsAreIndepdendentWithinTaskSpec) {
       CartesianProduct(Range<RandomSeedT>(0, 3), Range<RandomSeedT>(0, 3))));
 }
 
-TEST(RandomizeDatasetSeedsTest, DataSeedsAreIndepdendentWithinTaskSpec) {
-  IntegerT num_datasets = 1;
-  auto task_collection = ParseTextFormat<TaskCollection>("datasets {} ");
+TEST(RandomizeTaskSeedsTest, DataSeedsAreIndepdendentWithinTaskSpec) {
+  IntegerT num_tasks = 1;
+  auto task_collection = ParseTextFormat<TaskCollection>("tasks {} ");
   const RandomSeedT seed = GenerateRandomSeed();
   EXPECT_TRUE(IsEventually(
       function<pair<RandomSeedT, RandomSeedT>(void)>([&task_collection,
-                                                      &num_datasets, seed]() {
-        ++num_datasets;
-        task_collection.mutable_datasets(0)->set_num_datasets(num_datasets);
+                                                      &num_tasks, seed]() {
+        ++num_tasks;
+        task_collection.mutable_tasks(0)->set_num_tasks(num_tasks);
         ClearSeeds(&task_collection);
-        RandomizeDatasetSeeds(&task_collection, seed);
+        RandomizeTaskSeeds(&task_collection, seed);
 
         // Return the last two seeds.
         auto data_seed_it =
-            task_collection.datasets(0).data_seeds().rbegin();
+            task_collection.tasks(0).data_seeds().rbegin();
         const RandomSeedT data_seed_1 = *data_seed_it;
         ++data_seed_it;
         const RandomSeedT data_seed_2 = *data_seed_it;
@@ -513,52 +513,52 @@ TEST(RandomizeDatasetSeedsTest, DataSeedsAreIndepdendentWithinTaskSpec) {
       CartesianProduct(Range<RandomSeedT>(0, 3), Range<RandomSeedT>(0, 3))));
 }
 
-TEST(RandomizeDatasetSeedsTest, ParamSeedsAreIndepdendentAcrossTaskSpecs) {
-  IntegerT num_datasets = 1;
+TEST(RandomizeTaskSeedsTest, ParamSeedsAreIndepdendentAcrossTaskSpecs) {
+  IntegerT num_tasks = 1;
   auto task_collection = ParseTextFormat<TaskCollection>(
-      "datasets {} "
-      "datasets {} ");
+      "tasks {} "
+      "tasks {} ");
   const RandomSeedT seed = GenerateRandomSeed();
   EXPECT_TRUE(IsEventually(
       function<pair<RandomSeedT, RandomSeedT>(void)>([&task_collection,
-                                                      &num_datasets, seed]() {
-        ++num_datasets;
-        task_collection.mutable_datasets(0)->set_num_datasets(num_datasets);
-        task_collection.mutable_datasets(1)->set_num_datasets(num_datasets);
+                                                      &num_tasks, seed]() {
+        ++num_tasks;
+        task_collection.mutable_tasks(0)->set_num_tasks(num_tasks);
+        task_collection.mutable_tasks(1)->set_num_tasks(num_tasks);
         ClearSeeds(&task_collection);
-        RandomizeDatasetSeeds(&task_collection, seed);
+        RandomizeTaskSeeds(&task_collection, seed);
 
         // Return the last seed of each TaskSpec.
         const RandomSeedT param_seed_1 =
-            *task_collection.datasets(0).param_seeds().rbegin();
+            *task_collection.tasks(0).param_seeds().rbegin();
         const RandomSeedT param_seed_2 =
-            *task_collection.datasets(1).param_seeds().rbegin();
+            *task_collection.tasks(1).param_seeds().rbegin();
         return (make_pair(param_seed_1 % 3, param_seed_2 % 3));
       }),
       CartesianProduct(Range<RandomSeedT>(0, 3), Range<RandomSeedT>(0, 3)),
       CartesianProduct(Range<RandomSeedT>(0, 3), Range<RandomSeedT>(0, 3))));
 }
 
-TEST(RandomizeDatasetSeedsTest, DataSeedsAreIndepdendentAcrossTaskSpecs) {
-  IntegerT num_datasets = 1;
+TEST(RandomizeTaskSeedsTest, DataSeedsAreIndepdendentAcrossTaskSpecs) {
+  IntegerT num_tasks = 1;
   auto task_collection = ParseTextFormat<TaskCollection>(
-      "datasets {} "
-      "datasets {} ");
+      "tasks {} "
+      "tasks {} ");
   const RandomSeedT seed = GenerateRandomSeed();
   EXPECT_TRUE(IsEventually(
       function<pair<RandomSeedT, RandomSeedT>(void)>([&task_collection,
-                                                      &num_datasets, seed]() {
-        ++num_datasets;
-        task_collection.mutable_datasets(0)->set_num_datasets(num_datasets);
-        task_collection.mutable_datasets(1)->set_num_datasets(num_datasets);
+                                                      &num_tasks, seed]() {
+        ++num_tasks;
+        task_collection.mutable_tasks(0)->set_num_tasks(num_tasks);
+        task_collection.mutable_tasks(1)->set_num_tasks(num_tasks);
         ClearSeeds(&task_collection);
-        RandomizeDatasetSeeds(&task_collection, seed);
+        RandomizeTaskSeeds(&task_collection, seed);
 
         // Return the last seed of each TaskSpec.
         const RandomSeedT data_seed_1 =
-            *task_collection.datasets(0).data_seeds().rbegin();
+            *task_collection.tasks(0).data_seeds().rbegin();
         const RandomSeedT data_seed_2 =
-            *task_collection.datasets(1).data_seeds().rbegin();
+            *task_collection.tasks(1).data_seeds().rbegin();
         return (make_pair(data_seed_1 % 3, data_seed_2 % 3));
       }),
       CartesianProduct(Range<RandomSeedT>(0, 3), Range<RandomSeedT>(0, 3)),

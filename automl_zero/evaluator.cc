@@ -21,9 +21,9 @@
 #include <memory>
 #include <string>
 
-#include "dataset.h"
-#include "dataset_util.h"
-#include "datasets.proto.h"
+#include "task.h"
+#include "task_util.h"
+#include "task.proto.h"
 #include "definitions.h"
 #include "executor.h"
 #include "random_generator.h"
@@ -73,34 +73,34 @@ Evaluator::Evaluator(const FitnessCombinationMode fitness_combination_mode,
       functional_cache_rand_gen_(functional_cache_rand_gen_owned_.get()),
       best_fitness_(-1.0),
       max_abs_error_(max_abs_error) {
-  FillDatasets(task_collection_, &datasets_);
-  CHECK_GT(datasets_.size(), 0);
+  FillTasks(task_collection_, &tasks_);
+  CHECK_GT(tasks_.size(), 0);
 }
 
 double Evaluator::Evaluate(const Algorithm& algorithm) {
-  // Compute the mean fitness across all datasets.
-  vector<double> dataset_fitnesses;
-  dataset_fitnesses.reserve(datasets_.size());
+  // Compute the mean fitness across all tasks.
+  vector<double> task_fitnesses;
+  task_fitnesses.reserve(tasks_.size());
   vector<double> debug_fitnesses;
   vector<IntegerT> debug_num_train_examples;
-  vector<IntegerT> dataset_indexes;  // Datasets to use.
-  // Use all the datasets.
-  for (IntegerT i = 0; i < datasets_.size(); ++i) {
-    dataset_indexes.push_back(i);
+  vector<IntegerT> task_indexes;  // Tasks to use.
+  // Use all the tasks.
+  for (IntegerT i = 0; i < tasks_.size(); ++i) {
+    task_indexes.push_back(i);
   }
-  for (IntegerT dataset_index : dataset_indexes) {
-    const unique_ptr<TaskInterface>& dataset = datasets_[dataset_index];
-    CHECK_GE(dataset->MaxTrainExamples(), kMinNumTrainExamples);
+  for (IntegerT task_index : task_indexes) {
+    const unique_ptr<TaskInterface>& task = tasks_[task_index];
+    CHECK_GE(task->MaxTrainExamples(), kMinNumTrainExamples);
     const IntegerT num_train_examples =
         train_budget_ == nullptr ?
-        dataset->MaxTrainExamples() :
-        train_budget_->TrainExamples(algorithm, dataset->MaxTrainExamples());
+        task->MaxTrainExamples() :
+        train_budget_->TrainExamples(algorithm, task->MaxTrainExamples());
     double curr_fitness = -1.0;
-    curr_fitness = Execute(*dataset, num_train_examples, algorithm);
-    dataset_fitnesses.push_back(curr_fitness);
+    curr_fitness = Execute(*task, num_train_examples, algorithm);
+    task_fitnesses.push_back(curr_fitness);
   }
   double combined_fitness =
-      CombineFitnesses(dataset_fitnesses, fitness_combination_mode_);
+      CombineFitnesses(task_fitnesses, fitness_combination_mode_);
 
   CHECK_GE(combined_fitness, kMinFitness);
   CHECK_LE(combined_fitness, kMaxFitness);
@@ -108,29 +108,29 @@ double Evaluator::Evaluate(const Algorithm& algorithm) {
   return combined_fitness;
 }
 
-double Evaluator::Execute(const TaskInterface& dataset,
+double Evaluator::Execute(const TaskInterface& task,
                           const IntegerT num_train_examples,
                           const Algorithm& algorithm) {
-  switch (dataset.FeaturesSize()) {
+  switch (task.FeaturesSize()) {
     case 2: {
-      const Dataset<2>& downcasted_dataset = *SafeDowncast<2>(&dataset);
-      return ExecuteImpl<2>(downcasted_dataset, num_train_examples, algorithm);
+      const Task<2>& downcasted_task = *SafeDowncast<2>(&task);
+      return ExecuteImpl<2>(downcasted_task, num_train_examples, algorithm);
     }
     case 4: {
-      const Dataset<4>& downcasted_dataset = *SafeDowncast<4>(&dataset);
-      return ExecuteImpl<4>(downcasted_dataset, num_train_examples, algorithm);
+      const Task<4>& downcasted_task = *SafeDowncast<4>(&task);
+      return ExecuteImpl<4>(downcasted_task, num_train_examples, algorithm);
     }
     case 8: {
-      const Dataset<8>& downcasted_dataset = *SafeDowncast<8>(&dataset);
-      return ExecuteImpl<8>(downcasted_dataset, num_train_examples, algorithm);
+      const Task<8>& downcasted_task = *SafeDowncast<8>(&task);
+      return ExecuteImpl<8>(downcasted_task, num_train_examples, algorithm);
     }
     case 16: {
-      const Dataset<16>& downcasted_dataset = *SafeDowncast<16>(&dataset);
-      return ExecuteImpl<16>(downcasted_dataset, num_train_examples, algorithm);
+      const Task<16>& downcasted_task = *SafeDowncast<16>(&task);
+      return ExecuteImpl<16>(downcasted_task, num_train_examples, algorithm);
     }
     case 32: {
-      const Dataset<32>& downcasted_dataset = *SafeDowncast<32>(&dataset);
-      return ExecuteImpl<32>(downcasted_dataset, num_train_examples, algorithm);
+      const Task<32>& downcasted_task = *SafeDowncast<32>(&task);
+      return ExecuteImpl<32>(downcasted_task, num_train_examples, algorithm);
     }
     default:
       LOG(FATAL) << "Unsupported features size." << endl;
@@ -138,22 +138,22 @@ double Evaluator::Execute(const TaskInterface& dataset,
 }
 
 template <FeatureIndexT F>
-double Evaluator::ExecuteImpl(const Dataset<F>& dataset,
+double Evaluator::ExecuteImpl(const Task<F>& task,
                               const IntegerT num_train_examples,
                               const Algorithm& algorithm) {
   if (functional_cache_ != nullptr) {
-    CHECK_LE(functional_cache_->NumTrainExamples(), dataset.MaxTrainExamples());
-    CHECK_LE(functional_cache_->NumValidExamples(), dataset.ValidSteps());
+    CHECK_LE(functional_cache_->NumTrainExamples(), task.MaxTrainExamples());
+    CHECK_LE(functional_cache_->NumValidExamples(), task.ValidSteps());
     functional_cache_bit_gen_owned_->seed(kFunctionalCacheRandomSeed);
     Executor<F> functional_cache_executor(
-        algorithm, dataset, functional_cache_->NumTrainExamples(),
+        algorithm, task, functional_cache_->NumTrainExamples(),
         functional_cache_->NumValidExamples(), functional_cache_rand_gen_,
         max_abs_error_);
     vector<double> train_errors;
     vector<double> valid_errors;
     functional_cache_executor.Execute(&train_errors, &valid_errors);
     const size_t hash = functional_cache_->Hash(
-        train_errors, valid_errors, dataset.index_, num_train_examples);
+        train_errors, valid_errors, task.index_, num_train_examples);
     pair<double, bool> fitness_and_found = functional_cache_->Find(hash);
     if (fitness_and_found.second) {
       // Cache hit.
@@ -161,15 +161,15 @@ double Evaluator::ExecuteImpl(const Dataset<F>& dataset,
       return fitness_and_found.first;
     } else {
       // Cache miss.
-      Executor<F> executor(algorithm, dataset, num_train_examples,
-                           dataset.ValidSteps(), rand_gen_, max_abs_error_);
+      Executor<F> executor(algorithm, task, num_train_examples,
+                           task.ValidSteps(), rand_gen_, max_abs_error_);
       double fitness = executor.Execute();
       functional_cache_->InsertOrDie(hash, fitness);
       return fitness;
     }
   } else {
     Executor<F> executor(
-        algorithm, dataset, num_train_examples, dataset.ValidSteps(),
+        algorithm, task, num_train_examples, task.ValidSteps(),
         rand_gen_, max_abs_error_);
     const double fitness = executor.Execute();
     return fitness;
@@ -185,17 +185,17 @@ double Median(vector<double> values) {  // Intentional copy.
 }
 
 double CombineFitnesses(
-    const vector<double>& dataset_fitnesses,
+    const vector<double>& task_fitnesses,
     const FitnessCombinationMode mode) {
   if (mode == MEAN_FITNESS_COMBINATION) {
     double combined_fitness = 0.0;
-    for (const double fitness : dataset_fitnesses) {
+    for (const double fitness : task_fitnesses) {
       combined_fitness += fitness;
     }
-    combined_fitness /= static_cast<double>(dataset_fitnesses.size());
+    combined_fitness /= static_cast<double>(task_fitnesses.size());
     return combined_fitness;
   } else if (mode == MEDIAN_FITNESS_COMBINATION) {
-    return Median(dataset_fitnesses);
+    return Median(task_fitnesses);
   } else {
     LOG(FATAL) << "Unsupported fitness combination." << endl;
   }

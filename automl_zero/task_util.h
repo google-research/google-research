@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DATASET_UTIL_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DATASET_UTIL_H_
+#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_TASK_UTIL_H_
+#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_TASK_UTIL_H_
 
 #include <array>
 #include <random>
 #include <type_traits>
 
 #include "file/base/path.h"
-#include "dataset.h"
-#include "datasets.proto.h"
+#include "task.h"
+#include "task.proto.h"
 #include "definitions.h"
 #include "executor.h"
 #include "generator.h"
@@ -37,59 +37,59 @@ using ::std::vector;  // NOLINT
 const RandomSeedT kFirstParamSeedForTest = 9000;
 const RandomSeedT kFirstDataSeedForTest = 19000;
 
-// Fills `return_datasets` with `experiment_datasets` Datasets.
-// `return_datasets` must be empty an empty vector.
-void FillDatasets(
+// Fills `return_tasks` with `experiment_tasks` Tasks.
+// `return_tasks` must be empty an empty vector.
+void FillTasks(
     const TaskCollection& task_collection,
-    std::vector<std::unique_ptr<TaskInterface>>* return_datasets);
+    std::vector<std::unique_ptr<TaskInterface>>* return_tasks);
 
 // Downcasts a TaskInterface. Crashes if the downcast would have been
 // incorrect.
 template <FeatureIndexT F>
-Dataset<F>* SafeDowncast(TaskInterface* dataset) {
-  CHECK(dataset != nullptr);
-  CHECK_EQ(dataset->FeaturesSize(), F);
-  return dynamic_cast<Dataset<F>*>(dataset);
+Task<F>* SafeDowncast(TaskInterface* task) {
+  CHECK(task != nullptr);
+  CHECK_EQ(task->FeaturesSize(), F);
+  return dynamic_cast<Task<F>*>(task);
 }
 template <FeatureIndexT F>
-const Dataset<F>* SafeDowncast(const TaskInterface* dataset) {
-  CHECK(dataset != nullptr);
-  CHECK_EQ(dataset->FeaturesSize(), F);
-  return dynamic_cast<const Dataset<F>*>(dataset);
+const Task<F>* SafeDowncast(const TaskInterface* task) {
+  CHECK(task != nullptr);
+  CHECK_EQ(task->FeaturesSize(), F);
+  return dynamic_cast<const Task<F>*>(task);
 }
 template <FeatureIndexT F>
-std::unique_ptr<Dataset<F>> SafeDowncast(
-    std::unique_ptr<TaskInterface> dataset) {
-  CHECK(dataset != nullptr);
-  return std::unique_ptr<Dataset<F>>(SafeDowncast<F>(dataset.release()));
+std::unique_ptr<Task<F>> SafeDowncast(
+    std::unique_ptr<TaskInterface> task) {
+  CHECK(task != nullptr);
+  return std::unique_ptr<Task<F>>(SafeDowncast<F>(task.release()));
 }
 
 namespace test_only {
 
-// Convenience method to generates a single dataset from a string containing a
-// text-format TaskSpec. Only generates 1 dataset, so `num_datasets` can be
+// Convenience method to generates a single task from a string containing a
+// text-format TaskSpec. Only generates 1 task, so `num_tasks` can be
 // 1 or can be left unset. The features size is determined by the template
 // argument `F`, so the `features_size` in the TaskSpec can be equal to `F`
 // or be left unset.
 template <FeatureIndexT F>
-Dataset<F> GenerateTask(const std::string& task_spec_str) {
+Task<F> GenerateTask(const std::string& task_spec_str) {
   TaskCollection task_collection;
-  TaskSpec* task_spec = task_collection.add_datasets();
+  TaskSpec* task_spec = task_collection.add_tasks();
   CHECK(proto2::TextFormat::ParseFromString(task_spec_str, task_spec));
   if (!task_spec->has_features_size()) {
     task_spec->set_features_size(F);
   }
   CHECK_EQ(task_spec->features_size(), F);
-  if (!task_spec->has_num_datasets()) {
-    task_spec->set_num_datasets(1);
+  if (!task_spec->has_num_tasks()) {
+    task_spec->set_num_tasks(1);
   }
-  CHECK_EQ(task_spec->num_datasets(), 1);
-  std::vector<std::unique_ptr<TaskInterface>> datasets;
-  FillDatasets(task_collection, &datasets);
-  CHECK_EQ(datasets.size(), 1);
+  CHECK_EQ(task_spec->num_tasks(), 1);
+  std::vector<std::unique_ptr<TaskInterface>> tasks;
+  FillTasks(task_collection, &tasks);
+  CHECK_EQ(tasks.size(), 1);
 
-  std::unique_ptr<Dataset<F>> dataset = SafeDowncast<F>(std::move(datasets[0]));
-  return std::move(*dataset);
+  std::unique_ptr<Task<F>> task = SafeDowncast<F>(std::move(tasks[0]));
+  return std::move(*task);
 }
 
 }  // namespace test_only
@@ -124,11 +124,11 @@ void ClearAndResize(const IntegerT num_train_examples,
   ClearAndResizeImpl<F>::Call(num_train_examples, num_valid_examples, buffer);
 }
 
-// Creates a dataset using the linear regressor with fixed weights. The
+// Creates a task using the linear regressor with fixed weights. The
 // weights are determined by the seed. Serves as a way to initialize the
-// dataset.
+// task.
 template <FeatureIndexT F>
-struct ScalarLinearRegressionDatasetCreator {
+struct ScalarLinearRegressionTaskCreator {
   static void Create(EvalType eval_type, IntegerT num_train_examples,
                      IntegerT num_valid_examples, RandomSeedT param_seed,
                      RandomSeedT data_seed, TaskBuffer<F>* buffer) {
@@ -161,11 +161,11 @@ struct ScalarLinearRegressionDatasetCreator {
   }
 };
 
-// Creates a dataset using the nonlinear regressor with fixed weights. The
+// Creates a task using the nonlinear regressor with fixed weights. The
 // weights are determined by the seed. Serves as a way to initialize the
-// dataset.
+// task.
 template <FeatureIndexT F>
-struct Scalar2LayerNnRegressionDatasetCreator {
+struct Scalar2LayerNnRegressionTaskCreator {
   static void Create(EvalType eval_type, IntegerT num_train_examples,
                      IntegerT num_valid_examples, RandomSeedT param_seed,
                      RandomSeedT data_seed, TaskBuffer<F>* buffer) {
@@ -219,9 +219,9 @@ struct Scalar2LayerNnRegressionDatasetCreator {
 
 // TODO(crazydonkey): make this function more readable.
 template <FeatureIndexT F>
-struct ProjectedBinaryClassificationDatasetCreator {
+struct ProjectedBinaryClassificationTaskCreator {
   static void Create(EvalType eval_type,
-                     const ProjectedBinaryClassificationDataset& task_spec,
+                     const ProjectedBinaryClassificationTask& task_spec,
                      IntegerT num_train_examples, IntegerT num_valid_examples,
                      IntegerT features_size, RandomSeedT data_seed,
                      TaskBuffer<F>* buffer) {
@@ -229,7 +229,7 @@ struct ProjectedBinaryClassificationDatasetCreator {
 
     std::string dump_path;
     CHECK(task_spec.has_dump_path() & !task_spec.dump_path().empty())
-        << "You have to specifiy the path to the dataset!" << std::endl;
+        << "You have to specifiy the path to the data!" << std::endl;
     dump_path = task_spec.dump_path();
 
     std::unique_ptr<SSTable> sstable(
@@ -252,10 +252,9 @@ struct ProjectedBinaryClassificationDatasetCreator {
           data_seed % num_supported_data_seeds);
     } else if (!task_spec.has_positive_class() &&
                !task_spec.has_negative_class()) {
-      std::mt19937 dataset_bit_gen(HashMix(
+      std::mt19937 task_bit_gen(HashMix(
           static_cast<RandomSeedT>(856572777), data_seed));
-      RandomGenerator dataset_gen = RandomGenerator(
-          &dataset_bit_gen);
+      RandomGenerator task_gen = RandomGenerator(&task_bit_gen);
 
       std::set<std::pair<IntegerT, IntegerT>> held_out_pairs_set;
       for (ClassPair class_pair : task_spec.held_out_pairs()) {
@@ -281,11 +280,11 @@ struct ProjectedBinaryClassificationDatasetCreator {
           << "All the pairs are held out!" << std::endl;
 
       std::pair<IntegerT, IntegerT> selected_pair =
-          search_pairs[dataset_gen.UniformInteger(0, (search_pairs.size()))];
+          search_pairs[task_gen.UniformInteger(0, (search_pairs.size()))];
       positive_class = selected_pair.first;
       negative_class = selected_pair.second;
       data_seed = static_cast<RandomSeedT>(
-          dataset_gen.UniformInteger(
+          task_gen.UniformInteger(
               task_spec.min_supported_data_seed(),
               task_spec.max_supported_data_seed()));
     } else {
@@ -302,38 +301,38 @@ struct ProjectedBinaryClassificationDatasetCreator {
     // SSTable.
     std::unique_ptr<SSTable::Iterator> iter(sstable->GetIterator());
     iter->Seek(key);
-    ProjectedBinaryClassificationDataset saved_dataset;
+    ProjectedBinaryClassificationTask saved_task;
     while (!iter->done() && (iter->key() == key)) {
-      CHECK(saved_dataset.ParseFromString(iter->value())) << iter->key();
+      CHECK(saved_task.ParseFromString(iter->value())) << iter->key();
       iter->Next();
     }
 
     // Check there is enough data saved in the sstable.
-    CHECK_GE(saved_dataset.dumped_dataset().train_features_size(),
+    CHECK_GE(saved_task.dumped_task().train_features_size(),
              buffer->train_features_.size());
-    CHECK_GE(saved_dataset.dumped_dataset().train_labels_size(),
+    CHECK_GE(saved_task.dumped_task().train_labels_size(),
              buffer->train_labels_.size());
 
     for (IntegerT k = 0; k < buffer->train_features_.size(); ++k)  {
       for (IntegerT i_dim = 0; i_dim < F; ++i_dim) {
        buffer->train_features_[k][i_dim] =
-           saved_dataset.dumped_dataset().train_features(k).features(i_dim);
+           saved_task.dumped_task().train_features(k).features(i_dim);
       }
       buffer->train_labels_[k] =
-           saved_dataset.dumped_dataset().train_labels(k);
+           saved_task.dumped_task().train_labels(k);
     }
 
-    CHECK_GE(saved_dataset.dumped_dataset().valid_features_size(),
+    CHECK_GE(saved_task.dumped_task().valid_features_size(),
              buffer->valid_features_.size());
-    CHECK_GE(saved_dataset.dumped_dataset().valid_labels_size(),
+    CHECK_GE(saved_task.dumped_task().valid_labels_size(),
              buffer->valid_labels_.size());
     for (IntegerT k = 0; k < buffer->valid_features_.size(); ++k)  {
       for (IntegerT i_dim = 0; i_dim < F; ++i_dim) {
        buffer->valid_features_[k][i_dim] =
-           saved_dataset.dumped_dataset().valid_features(k).features(i_dim);
+           saved_task.dumped_task().valid_features(k).features(i_dim);
       }
       buffer->valid_labels_[k] =
-           saved_dataset.dumped_dataset().valid_labels(k);
+           saved_task.dumped_task().valid_labels(k);
     }
 
     CHECK(eval_type == ACCURACY);
@@ -341,12 +340,12 @@ struct ProjectedBinaryClassificationDatasetCreator {
 };
 
 template<FeatureIndexT F>
-void CopyUnitTestFixedDatasetVector(
+void CopyUnitTestFixedTaskVector(
     const proto2::RepeatedField<double>& src, Scalar* dest) {
   LOG(FATAL) << "Not allowed." << std::endl;
 }
 template<FeatureIndexT F>
-void CopyUnitTestFixedDatasetVector(
+void CopyUnitTestFixedTaskVector(
     const proto2::RepeatedField<double>& src, Vector<F>* dest) {
   CHECK_EQ(src.size(), F);
   for (IntegerT index = 0; index < F; ++index) {
@@ -355,8 +354,8 @@ void CopyUnitTestFixedDatasetVector(
 }
 
 template <FeatureIndexT F>
-struct UnitTestFixedDatasetCreator {
-  static void Create(const UnitTestFixedDataset& task_spec,
+struct UnitTestFixedTaskCreator {
+  static void Create(const UnitTestFixedTask& task_spec,
                      TaskBuffer<F>* buffer) {
     const IntegerT num_train_examples = task_spec.train_features_size();
     CHECK_EQ(task_spec.train_labels_size(), num_train_examples);
@@ -366,7 +365,7 @@ struct UnitTestFixedDatasetCreator {
 
     // Copy the training features and labels.
     for (IntegerT example = 0; example < num_train_examples; ++example) {
-      CopyUnitTestFixedDatasetVector<F>(
+      CopyUnitTestFixedTaskVector<F>(
           task_spec.train_features(example).elements(),
           &buffer->train_features_[example]);
       CHECK_EQ(task_spec.train_labels(example).elements_size(), 1);
@@ -376,7 +375,7 @@ struct UnitTestFixedDatasetCreator {
 
     // Copy the validation features and labels.
     for (IntegerT example = 0; example < num_valid_examples; ++example) {
-      CopyUnitTestFixedDatasetVector<F>(
+      CopyUnitTestFixedTaskVector<F>(
           task_spec.valid_features(example).elements(),
           &buffer->valid_features_[example]);
       CHECK_EQ(task_spec.valid_labels(example).elements_size(), 1);
@@ -387,7 +386,7 @@ struct UnitTestFixedDatasetCreator {
 };
 
 template <FeatureIndexT F>
-struct UnitTestZerosDatasetCreator {
+struct UnitTestZerosTaskCreator {
   static void Create(const IntegerT num_train_examples,
                      const IntegerT num_valid_examples,
                      const UnitTestZerosTaskSpec& task_spec,
@@ -409,7 +408,7 @@ struct UnitTestZerosDatasetCreator {
 };
 
 template <FeatureIndexT F>
-struct UnitTestOnesDatasetCreator {
+struct UnitTestOnesTaskCreator {
   static void Create(const IntegerT num_train_examples,
                      const IntegerT num_valid_examples,
                      const UnitTestOnesTaskSpec& task_spec,
@@ -431,7 +430,7 @@ struct UnitTestOnesDatasetCreator {
 };
 
 template <FeatureIndexT F>
-struct UnitTestIncrementDatasetCreator {
+struct UnitTestIncrementTaskCreator {
   static void Create(const IntegerT num_train_examples,
                      const IntegerT num_valid_examples,
                      const UnitTestIncrementTaskSpec& task_spec,
@@ -468,56 +467,56 @@ struct UnitTestIncrementDatasetCreator {
 };
 
 template <FeatureIndexT F>
-std::unique_ptr<Dataset<F>> CreateDataset(const IntegerT dataset_index,
-                                          const RandomSeedT param_seed,
-                                          const RandomSeedT data_seed,
-                                          const TaskSpec& task_spec) {
+std::unique_ptr<Task<F>> CreateTask(const IntegerT task_index,
+                                    const RandomSeedT param_seed,
+                                    const RandomSeedT data_seed,
+                                    const TaskSpec& task_spec) {
   CHECK_GT(task_spec.num_train_examples(), 0);
   CHECK_GT(task_spec.num_valid_examples(), 0);
   TaskBuffer<F> buffer;
-  switch (task_spec.dataset_type_case()) {
-    case (TaskSpec::kScalarLinearRegressionDataset):
-      ScalarLinearRegressionDatasetCreator<F>::Create(
+  switch (task_spec.task_type_case()) {
+    case (TaskSpec::kScalarLinearRegressionTask):
+      ScalarLinearRegressionTaskCreator<F>::Create(
           task_spec.eval_type(), task_spec.num_train_examples(),
           task_spec.num_valid_examples(), param_seed, data_seed, &buffer);
       break;
-    case (TaskSpec::kScalar2LayerNnRegressionDataset):
-      Scalar2LayerNnRegressionDatasetCreator<F>::Create(
+    case (TaskSpec::kScalar2LayerNnRegressionTask):
+      Scalar2LayerNnRegressionTaskCreator<F>::Create(
           task_spec.eval_type(), task_spec.num_train_examples(),
           task_spec.num_valid_examples(), param_seed, data_seed, &buffer);
       break;
-    case (TaskSpec::kProjectedBinaryClassificationDataset):
-      ProjectedBinaryClassificationDatasetCreator<F>::Create(
+    case (TaskSpec::kProjectedBinaryClassificationTask):
+      ProjectedBinaryClassificationTaskCreator<F>::Create(
           task_spec.eval_type(),
-          task_spec.projected_binary_classification_dataset(),
+          task_spec.projected_binary_classification_task(),
           task_spec.num_train_examples(), task_spec.num_valid_examples(),
           task_spec.features_size(), data_seed, &buffer);
       break;
-    case (TaskSpec::kUnitTestFixedDataset):
-      UnitTestFixedDatasetCreator<F>::Create(
-          task_spec.unit_test_fixed_dataset(), &buffer);
+    case (TaskSpec::kUnitTestFixedTask):
+      UnitTestFixedTaskCreator<F>::Create(
+          task_spec.unit_test_fixed_task(), &buffer);
       break;
-    case (TaskSpec::kUnitTestZerosDataset):
-      UnitTestZerosDatasetCreator<F>::Create(
+    case (TaskSpec::kUnitTestZerosTask):
+      UnitTestZerosTaskCreator<F>::Create(
           task_spec.num_train_examples(),
           task_spec.num_valid_examples(),
-          task_spec.unit_test_zeros_dataset(),
+          task_spec.unit_test_zeros_task(),
           &buffer);
       break;
-    case (TaskSpec::kUnitTestOnesDataset):
-      UnitTestOnesDatasetCreator<F>::Create(
+    case (TaskSpec::kUnitTestOnesTask):
+      UnitTestOnesTaskCreator<F>::Create(
           task_spec.num_train_examples(),
           task_spec.num_valid_examples(),
-          task_spec.unit_test_ones_dataset(),
+          task_spec.unit_test_ones_task(),
           &buffer);
       break;
-    case (TaskSpec::kUnitTestIncrementDataset):
-      UnitTestIncrementDatasetCreator<F>::Create(
+    case (TaskSpec::kUnitTestIncrementTask):
+      UnitTestIncrementTaskCreator<F>::Create(
           task_spec.num_train_examples(), task_spec.num_valid_examples(),
-          task_spec.unit_test_increment_dataset(), &buffer);
+          task_spec.unit_test_increment_task(), &buffer);
       break;
     default:
-      LOG(FATAL) << "Unknown dataset type\n";
+      LOG(FATAL) << "Unknown task type\n";
       break;
   }
 
@@ -528,17 +527,17 @@ std::unique_ptr<Dataset<F>> CreateDataset(const IntegerT dataset_index,
   CHECK_EQ(buffer.valid_labels_.size(), task_spec.num_valid_examples());
 
   CHECK(task_spec.has_eval_type());
-  return absl::make_unique<Dataset<F>>(
-      dataset_index, task_spec.eval_type(),
+  return absl::make_unique<Task<F>>(
+      task_index, task_spec.eval_type(),
       task_spec.num_train_epochs(), &data_bit_gen, &buffer);
 }
 
 // Randomizes all the seeds given a base seed. See "internal workflow" comment
-// in datasets.proto.
+// in task.proto.
 // TODO(crazydonkey): make sure the random seed is never 0.
-void RandomizeDatasetSeeds(TaskCollection* task_collection,
-                           RandomSeedT seed);
+void RandomizeTaskSeeds(TaskCollection* task_collection,
+                        RandomSeedT seed);
 
 }  // namespace automl_zero
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DATASET_UTIL_H_
+#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_TASK_UTIL_H_
