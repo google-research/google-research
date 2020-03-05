@@ -48,7 +48,7 @@ class TrainBudget {
       IntegerT budget) const;
 
  private:
-  // Cost for running each component_function once. Measured in compute-units.
+  // Cost for running each component function once. Measured in compute-units.
   const double baseline_setup_cost_;
   const double baseline_train_cost_;
   const double threshold_factor_;

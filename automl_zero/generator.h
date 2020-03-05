@@ -39,18 +39,18 @@ class Generator {
       // The model used to initialize the population. See HardcodedAlgorithmID
       // enum. Used by TheInitModel() and ignored by other methods.
       HardcodedAlgorithmID init_model,
-      // The sizes of the component_functions. Can be zero if only using
+      // The sizes of the component functions. Can be zero if only using
       // deterministic models without padding.
       IntegerT setup_size_init,
       IntegerT predict_size_init,
       IntegerT learn_size_init,
-      // Ops that can be introduced into the setup component_function. Can be
+      // Ops that can be introduced into the setup component function. Can be
       // empty if only deterministic models will be generated.
       const std::vector<Op>& allowed_setup_ops,
-      // Ops that can be introduced into the predict component_function. Can be
+      // Ops that can be introduced into the predict component function. Can be
       // empty if only deterministic models will be generated.
       const std::vector<Op>& allowed_predict_ops,
-      // Ops that can be introduced into the learn component_function. Can be
+      // Ops that can be introduced into the learn component function. Can be
       // empty if deterministic models will be generated.
       const std::vector<Op>& allowed_learn_ops,
       // Can be a nullptr if only deterministic models will be generated.

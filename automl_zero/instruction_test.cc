@@ -51,14 +51,9 @@ enum DiffId : IntegerT {
   kDifferentIn2 = 3,
   kDifferentOut = 4,
   kDifferentActivationData = 5,
-  kDifferentIndexData0 = 6,
   kDifferentFloatData0 = 7,
   kDifferentFloatData1 = 8,
   kDifferentFloatData2 = 9,
-  kDifferentVectorData0 = 10,
-  kDifferentVectorData1 = 11,
-  kDifferentVectorData2 = 12,
-  kDifferentVectorData3 = 13,
 };
 
 vector<Op> TestableOps() {
@@ -113,9 +108,6 @@ unordered_set<DiffId> Differences(
       kActivationDataTolerance) {
     differences.insert(kDifferentActivationData);
   }
-  if (instr1.GetIndexData0() != instr2.GetIndexData0()) {
-    differences.insert(kDifferentIndexData0);
-  }
   if (abs(instr1.GetFloatData0() - instr2.GetFloatData0()) >
       kFloatDataTolerance) {
     differences.insert(kDifferentFloatData0);
@@ -127,22 +119,6 @@ unordered_set<DiffId> Differences(
   if (abs(instr1.GetFloatData2() - instr2.GetFloatData2()) >
       kFloatDataTolerance) {
     differences.insert(kDifferentFloatData2);
-  }
-  if (abs(instr1.GetVectorData()(0) - instr2.GetVectorData()(0)) >
-      kActivationDataTolerance) {
-    differences.insert(kDifferentVectorData0);
-  }
-  if (abs(instr1.GetVectorData()(1) - instr2.GetVectorData()(1)) >
-      kActivationDataTolerance) {
-    differences.insert(kDifferentVectorData1);
-  }
-  if (abs(instr1.GetVectorData()(2) - instr2.GetVectorData()(2)) >
-      kActivationDataTolerance) {
-    differences.insert(kDifferentVectorData2);
-  }
-  if (abs(instr1.GetVectorData()(3) - instr2.GetVectorData()(3)) >
-      kActivationDataTolerance) {
-    differences.insert(kDifferentVectorData3);
   }
   return differences;
 }
@@ -173,11 +149,9 @@ AddressT RandomizeIn1(Op op, RandomGenerator* rand_gen) {
   CHECK_EQ(instr.in2_, 0);
   CHECK_EQ(instr.out_, 0);
   CHECK_EQ(instr.GetActivationData(), 0.0);
-  CHECK_EQ(instr.GetIndexData0(), 0);
   CHECK_EQ(instr.GetFloatData0(), 0.0);
   CHECK_EQ(instr.GetFloatData1(), 0.0);
   CHECK_EQ(instr.GetFloatData2(), 0.0);
-  CHECK_EQ(instr.GetVectorData().norm(), 0.0);
   return instr.in1_;
 }
 
@@ -188,11 +162,9 @@ AddressT RandomizeIn2(Op op, RandomGenerator* rand_gen) {
   CHECK_EQ(instr.in1_, 0);
   CHECK_EQ(instr.out_, 0);
   CHECK_EQ(instr.GetActivationData(), 0.0);
-  CHECK_EQ(instr.GetIndexData0(), 0);
   CHECK_EQ(instr.GetFloatData0(), 0.0);
   CHECK_EQ(instr.GetFloatData1(), 0.0);
   CHECK_EQ(instr.GetFloatData2(), 0.0);
-  CHECK_EQ(instr.GetVectorData().norm(), 0.0);
   return instr.in2_;
 }
 
@@ -203,11 +175,9 @@ AddressT RandomizeOut(Op op, RandomGenerator* rand_gen) {
   CHECK_EQ(instr.in1_, 0);
   CHECK_EQ(instr.in2_, 0);
   CHECK_EQ(instr.GetActivationData(), 0.0);
-  CHECK_EQ(instr.GetIndexData0(), 0);
   CHECK_EQ(instr.GetFloatData0(), 0.0);
   CHECK_EQ(instr.GetFloatData1(), 0.0);
   CHECK_EQ(instr.GetFloatData2(), 0.0);
-  CHECK_EQ(instr.GetVectorData().norm(), 0.0);
   return instr.out_;
 }
 
@@ -244,11 +214,9 @@ TEST(InstructionTest, Constructor_Default) {
   EXPECT_EQ(instruction.in2_, 0);
   EXPECT_EQ(instruction.out_, 0);
   EXPECT_EQ(instruction.GetActivationData(), 0.0);
-  EXPECT_EQ(instruction.GetIndexData0(), 0);
   EXPECT_EQ(instruction.GetFloatData0(), 0.0);
   EXPECT_EQ(instruction.GetFloatData1(), 0.0);
   EXPECT_EQ(instruction.GetFloatData2(), 0.0);
-  EXPECT_EQ(instruction.GetVectorData().norm(), 0.0);
 }
 
 TEST(InstructionTest, Constructor_IntegerData) {
@@ -258,11 +226,9 @@ TEST(InstructionTest, Constructor_IntegerData) {
   EXPECT_EQ(instruction.in2_, 0);
   EXPECT_EQ(instruction.out_, 0);
   EXPECT_EQ(instruction.GetIntegerData(), 10);
-  EXPECT_EQ(instruction.GetIndexData0(), 0);
   EXPECT_EQ(instruction.GetFloatData0(), 0.0);
   EXPECT_EQ(instruction.GetFloatData1(), 0.0);
   EXPECT_EQ(instruction.GetFloatData2(), 0.0);
-  EXPECT_EQ(instruction.GetVectorData().norm(), 0.0);
 }
 
 TEST(InstructionTest, Constructor_Op_Address_Address) {
@@ -272,11 +238,9 @@ TEST(InstructionTest, Constructor_Op_Address_Address) {
   EXPECT_EQ(instruction.in2_, 0);
   EXPECT_EQ(instruction.out_, 20);
   EXPECT_EQ(instruction.GetActivationData(), 0.0);
-  EXPECT_EQ(instruction.GetIndexData0(), 0);
   EXPECT_EQ(instruction.GetFloatData0(), 0.0);
   EXPECT_EQ(instruction.GetFloatData1(), 0.0);
   EXPECT_EQ(instruction.GetFloatData2(), 0.0);
-  EXPECT_EQ(instruction.GetVectorData().norm(), 0.0);
 }
 
 TEST(InstructionTest, Constructor_Op_Address_Address_Address) {
@@ -286,11 +250,9 @@ TEST(InstructionTest, Constructor_Op_Address_Address_Address) {
   EXPECT_EQ(instruction.in2_, 20);
   EXPECT_EQ(instruction.out_, 30);
   EXPECT_EQ(instruction.GetActivationData(), 0.0);
-  EXPECT_EQ(instruction.GetIndexData0(), 0);
   EXPECT_EQ(instruction.GetFloatData0(), 0.0);
   EXPECT_EQ(instruction.GetFloatData1(), 0.0);
   EXPECT_EQ(instruction.GetFloatData2(), 0.0);
-  EXPECT_EQ(instruction.GetVectorData().norm(), 0.0);
 }
 
 TEST(InstructionTest, Constructor_Op_Address_ActivationData) {
@@ -301,11 +263,9 @@ TEST(InstructionTest, Constructor_Op_Address_ActivationData) {
   EXPECT_EQ(instruction.out_, 10);
   EXPECT_LE(abs(instruction.GetActivationData() - 2.2),
             kActivationDataTolerance);
-  EXPECT_EQ(instruction.GetIndexData0(), 0);
   EXPECT_EQ(instruction.GetFloatData0(), 0.0);
   EXPECT_EQ(instruction.GetFloatData1(), 0.0);
   EXPECT_EQ(instruction.GetFloatData2(), 0.0);
-  EXPECT_EQ(instruction.GetVectorData().norm(), 0.0);
 }
 
 TEST(InstructionTest, Constructor_Op_Address_FloatData_FloatData) {
@@ -316,13 +276,11 @@ TEST(InstructionTest, Constructor_Op_Address_FloatData_FloatData) {
   EXPECT_EQ(instruction.in2_, 0);
   EXPECT_EQ(instruction.out_, 10);
   EXPECT_EQ(instruction.GetActivationData(), 0.0);
-  EXPECT_EQ(instruction.GetIndexData0(), 0);
   EXPECT_LE(abs(instruction.GetFloatData0() - 2.2),
             kFloatDataTolerance);
   EXPECT_LE(abs(instruction.GetFloatData1() - 3.3),
             kFloatDataTolerance);
   EXPECT_EQ(instruction.GetFloatData2(), 0.0);
-  EXPECT_EQ(instruction.GetVectorData().norm(), 0.0);
 }
 
 TEST(InstructionTest,
@@ -336,11 +294,9 @@ TEST(InstructionTest,
   EXPECT_EQ(instruction.in2_, 0);
   EXPECT_EQ(instruction.out_, 10);
   EXPECT_EQ(instruction.GetActivationData(), 0.0);
-  EXPECT_EQ(instruction.GetIndexData0(), 0);
   EXPECT_LE(FloatToIndex(instruction.GetFloatData0(), 4), 3);
   EXPECT_LE(FloatToIndex(instruction.GetFloatData1(), 4), 2);
   EXPECT_EQ(instruction.GetFloatData2(), 0.0);
-  EXPECT_EQ(instruction.GetVectorData().norm(), 0.0);
 }
 
 TEST(InstructionTest, Constructor_Op_Address_FloatData_FloatData_FloatData) {
@@ -352,14 +308,12 @@ TEST(InstructionTest, Constructor_Op_Address_FloatData_FloatData_FloatData) {
   EXPECT_EQ(instruction.in2_, 0);
   EXPECT_EQ(instruction.out_, 10);
   EXPECT_EQ(instruction.GetActivationData(), 0.0);
-  EXPECT_EQ(instruction.GetIndexData0(), 0);
   EXPECT_LE(abs(instruction.GetFloatData0() - 2.2),
             kFloatDataTolerance);
   EXPECT_LE(abs(instruction.GetFloatData1() - 3.3),
             kFloatDataTolerance);
   EXPECT_LE(abs(instruction.GetFloatData2() - 4.4),
             kFloatDataTolerance);
-  EXPECT_EQ(instruction.GetVectorData().norm(), 0.0);
 }
 
 TEST(InstructionTest,
@@ -374,11 +328,9 @@ TEST(InstructionTest,
   EXPECT_EQ(instruction.in2_, 0);
   EXPECT_EQ(instruction.out_, 10);
   EXPECT_EQ(instruction.GetActivationData(), 0.0);
-  EXPECT_EQ(instruction.GetIndexData0(), 0);
   EXPECT_LE(FloatToIndex(instruction.GetFloatData0(), 4), 1);
   EXPECT_LE(FloatToIndex(instruction.GetFloatData1(), 4), 0);
   EXPECT_LE(FloatToIndex(instruction.GetFloatData2(), 4), 4);
-  EXPECT_EQ(instruction.GetVectorData().norm(), 0.0);
 }
 
 TEST(InstructionTest, CopyConstructor) {
@@ -750,7 +702,7 @@ TEST(InstructionTest, RandomizesOut) {
 
 TEST(InstructionTest, RandomizesData) {
   RandomGenerator rand_gen = SimpleRandomGenerator();
-  auto feature_index_range = Range(kFirstFeaturesIndex, FeatureIndexT(4));
+  auto feature_index_range = Range(0, FeatureIndexT(4));
   for (const Op op : TestableOps()) {
     switch (op) {
       case NO_OP:
@@ -1240,39 +1192,6 @@ TEST(InstructionTest, AltersCorrectFields) {
       // Do not add default clause. All ops should be supported here.
     }
   }
-}
-
-TEST(DiscretizationTest, WorksCorrectly) {
-  EXPECT_EQ(Undiscretize(Discretize(kActivationAsDataMin)),
-            kActivationAsDataMin);
-  EXPECT_EQ(Undiscretize(Discretize(-1.6875)),
-            -1.6875);
-  EXPECT_EQ(Undiscretize(Discretize(0.0)),
-            0.0);
-  EXPECT_EQ(Undiscretize(Discretize(kActivationAsDataMax)),
-            kActivationAsDataMax);
-}
-
-TEST(DiscretizationTest, ClipsCorrectly) {
-  EXPECT_EQ(Undiscretize(Discretize(-10.5)),
-            kActivationAsDataMin);
-  EXPECT_EQ(Undiscretize(Discretize(-2.1)),
-            kActivationAsDataMin);
-  EXPECT_EQ(Undiscretize(Discretize(2.1)),
-            kActivationAsDataMax);
-  EXPECT_EQ(Undiscretize(Discretize(10.5)),
-            kActivationAsDataMax);
-}
-
-TEST(DiscretizationTest, ApproximatesCorrectly) {
-  EXPECT_EQ(Undiscretize(Discretize(-0.6 * kActivationAsDataStep)),
-            -kActivationAsDataStep);
-  EXPECT_EQ(Undiscretize(Discretize(-0.4 * kActivationAsDataStep)),
-            0.0);
-  EXPECT_EQ(Undiscretize(Discretize(0.4 * kActivationAsDataStep)),
-            0.0);
-  EXPECT_EQ(Undiscretize(Discretize(0.6 * kActivationAsDataStep)),
-            kActivationAsDataStep);
 }
 
 TEST(InstructionTest, SerializesCorrectly) {

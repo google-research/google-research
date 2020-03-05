@@ -38,7 +38,7 @@ using ::absl::StrCat;  // NOLINT
 using ::std::function;  // NOLINT
 using ::std::min;  // NOLINT
 using ::std::mt19937;  // NOLINT
-using test_only::GenerateDataset;
+using test_only::GenerateTask;
 
 constexpr IntegerT kNumTrainExamples = 1000;
 constexpr IntegerT kNumValidExamples = 100;
@@ -48,7 +48,7 @@ constexpr double kMaxAbsError = 100.0;
 
 TEST(EvaluatorTest, AveragesOverDatasets) {
   Dataset<4> dataset_one =
-      GenerateDataset<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
+      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -59,7 +59,7 @@ TEST(EvaluatorTest, AveragesOverDatasets) {
                                 "param_seeds: 1001 "
                                 "data_seeds: 11001 "));
   Dataset<4> dataset_two =
-      GenerateDataset<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
+      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -87,7 +87,7 @@ TEST(EvaluatorTest, AveragesOverDatasets) {
 
   mt19937 bit_gen(100000);
   RandomGenerator rand_gen(&bit_gen);
-  const auto dataset_collection = ParseTextFormat<DatasetCollection>(
+  const auto task_collection = ParseTextFormat<TaskCollection>(
       StrCat("datasets { "
              "  scalar_2layer_nn_regression_dataset {} "
              "  features_size: 4 "
@@ -102,11 +102,10 @@ TEST(EvaluatorTest, AveragesOverDatasets) {
              " "
              "  eval_type: RMS_ERROR "
              "} "));
-  Evaluator evaluator(MEAN_FITNESS_COMBINATION, dataset_collection, &rand_gen,
+  Evaluator evaluator(MEAN_FITNESS_COMBINATION, task_collection, &rand_gen,
                       nullptr,  // functional_cache
                       nullptr,  // train_budget
-                      kMaxAbsError,
-                      false);  // verbose
+                      kMaxAbsError);
   const double fitness = evaluator.Evaluate(algorithm);
 
   EXPECT_FLOAT_EQ(fitness, expected_fitness);
@@ -118,7 +117,7 @@ TEST(EvaluatorTest, GrTildeGrWithBiasHasHighFitness) {
   Generator generator = SimpleGenerator();
   Algorithm algorithm = generator.NeuralNet(0.036210, 0.180920, 0.145231);
 
-  const auto dataset_collection = ParseTextFormat<DatasetCollection>(
+  const auto task_collection = ParseTextFormat<TaskCollection>(
       StrCat("datasets { "
              "  scalar_2layer_nn_regression_dataset {} "
              "  features_size: 4 "
@@ -130,12 +129,11 @@ TEST(EvaluatorTest, GrTildeGrWithBiasHasHighFitness) {
              "  eval_type: RMS_ERROR "
              "} "));
 
-  Evaluator evaluator(MEAN_FITNESS_COMBINATION, dataset_collection,
+  Evaluator evaluator(MEAN_FITNESS_COMBINATION, task_collection,
                       &rand_gen,  // random_seed
                       nullptr,    // functional_cache
                       nullptr,  // train_budget
-                      kMaxAbsError,
-                      false);  // verbose
+                      kMaxAbsError);
   const double fitness = evaluator.Evaluate(algorithm);
   EXPECT_FLOAT_EQ(fitness, 0.99652964);
 }

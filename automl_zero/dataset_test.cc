@@ -20,7 +20,7 @@
 
 namespace automl_zero {
 
-using test_only::GenerateDataset;
+using test_only::GenerateTask;
 
 template<FeatureIndexT F>
 IntegerT CountOccurrences(
@@ -39,7 +39,7 @@ IntegerT CountOccurrences(
 // Tests that all the examples appear the correct number of times and that the
 // features and labels remain matched correctly after generating the epochs.
 TEST(DatasetTest, EpochsContainCorrectTrainExamples) {
-  auto dataset = GenerateDataset<4>(
+  auto dataset = GenerateTask<4>(
       "unit_test_fixed_dataset { "
       "  train_features {elements: [0.41, 0.42, 0.43, 0.44]} "
       "  train_features {elements: [0.51, 0.52, 0.53, 0.54]} "
@@ -59,7 +59,7 @@ TEST(DatasetTest, EpochsContainCorrectTrainExamples) {
       "num_datasets: 1 "
       "features_size: 4 ");
 
-  DatasetIterator<4> train_it = dataset.TrainIterator();
+  TaskIterator<4> train_it = dataset.TrainIterator();
   vector<Vector<5>> features_and_labels;
   while (!train_it.Done()) {
     Vector<4> features = train_it.GetFeatures();
@@ -82,7 +82,7 @@ TEST(DatasetTest, EpochsContainCorrectTrainExamples) {
 }
 
 TEST(DatasetTest, EpochsContainShuffledTrainExamples) {
-  auto dataset = GenerateDataset<4>(
+  auto dataset = GenerateTask<4>(
       "unit_test_fixed_dataset { "
       "  train_features {elements: [0.41, 0.42, 0.43, 0.44]} "
       "  train_features {elements: [0.51, 0.52, 0.53, 0.54]} "
@@ -102,7 +102,7 @@ TEST(DatasetTest, EpochsContainShuffledTrainExamples) {
       "num_datasets: 1 "
       "features_size: 4 ");
 
-  DatasetIterator<4> train_it = dataset.TrainIterator();
+  TaskIterator<4> train_it = dataset.TrainIterator();
   vector<Vector<5>> features_and_labels;
   while (!train_it.Done()) {
     Vector<4> features = train_it.GetFeatures();

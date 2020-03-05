@@ -61,20 +61,16 @@ constexpr double kLn2 = 0.69314718056;
 
 RegularizedEvolution::RegularizedEvolution(
     RandomGenerator* rand_gen, const IntegerT population_size,
-    const IntegerT tournament_size, const IntegerT init_mutations,
-    const IntegerT progress_every,
-    const bool progress_every_by_time, Generator* generator,
-    Evaluator* evaluator, Mutator* mutator)
+    const IntegerT tournament_size, const IntegerT progress_every,
+    Generator* generator, Evaluator* evaluator, Mutator* mutator)
     : evaluator_(evaluator),
       rand_gen_(rand_gen),
       start_secs_(GetCurrentTimeNanos() / kNanosPerSecond),
       epoch_secs_(start_secs_),
       epoch_secs_last_progress_(epoch_secs_),
       num_individuals_last_progress_(std::numeric_limits<IntegerT>::min()),
-      init_mutations_(init_mutations),
       tournament_size_(tournament_size),
       progress_every_(progress_every),
-      progress_every_by_time_(progress_every_by_time),
       initialized_(false),
       generator_(generator),
       mutator_(mutator),
@@ -183,7 +179,8 @@ void RegularizedEvolution::PopulationStats(
 void RegularizedEvolution::InitAlgorithm(
     shared_ptr<const Algorithm>* algorithm) {
   *algorithm = make_shared<Algorithm>(generator_->TheInitModel());
-  mutator_->Mutate(init_mutations_, algorithm);
+  // TODO(ereal): remove next line. Affects random number generation.
+  mutator_->Mutate(0, algorithm);
 }
 
 double RegularizedEvolution::Execute(shared_ptr<const Algorithm> algorithm) {
@@ -216,17 +213,10 @@ void RegularizedEvolution::SingleParentSelect(
 }
 
 void RegularizedEvolution::MaybePrintProgress() {
-  if (progress_every_by_time_) {
-    if (epoch_secs_ < epoch_secs_last_progress_ + progress_every_) {
-      return;
-    }
-    epoch_secs_last_progress_ = epoch_secs_;
-  } else {
-    if (num_individuals_ < num_individuals_last_progress_ + progress_every_) {
-      return;
-    }
-    num_individuals_last_progress_ = num_individuals_;
+  if (num_individuals_ < num_individuals_last_progress_ + progress_every_) {
+    return;
   }
+  num_individuals_last_progress_ = num_individuals_;
   double pop_mean, pop_stdev, pop_best_fitness;
   shared_ptr<const Algorithm> pop_best_algorithm;
   PopulationStats(

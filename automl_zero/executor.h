@@ -45,7 +45,7 @@ template <FeatureIndexT F>
 class Executor {
  public:
   // Constructs a standard executor. Uses a clean memory and automatically
-  // executes the setup component_function. All arguments are stored by
+  // executes the setup component function. All arguments are stored by
   // reference, so they must out-live the Executor instance.
   Executor(const Algorithm& algorithm, const Dataset<F>& dataset,
            // Includes the examples in all the training epochs.
@@ -91,18 +91,18 @@ class Executor {
              // dataset_.train_labels_.begin() and
              // dataset_.vector_train_labels_.begin() initially, and will be
              // updated after each training step.
-             DatasetIterator<F>* train_it);
+             TaskIterator<F>* train_it);
 
-  // Implementations of the train component_function, with different
+  // Implementations of the train component function, with different
   // optimizations.
   bool TrainNoOptImpl(IntegerT max_steps, std::vector<double>* errors,
                       // See `Train` for more details about the following args.
-                      DatasetIterator<F>* train_it);
+                      TaskIterator<F>* train_it);
 
   template <size_t max_component_function_size>
   bool TrainOptImpl(IntegerT max_steps, std::vector<double>* errors,
                     // See `Train` for more details about the following args.
-                    DatasetIterator<F>* train_it);
+                    TaskIterator<F>* train_it);
 
   // Performs validation and returns the loss.
   double Validate(std::vector<double>* errors);
@@ -125,12 +125,12 @@ class Executor {
 };
 
 // Fills the training and validation labels, using the given Algorithm and
-// memory. Can alter this memory, but only if the predict component_function of
-// the Algorithm does so--only runs the predict component_function. Useful for
+// memory. Can alter this memory, but only if the predict component function of
+// the Algorithm does so--only runs the predict component function. Useful for
 // dataset generators to generate labels.
 template <FeatureIndexT F>
 void ExecuteAndFillLabels(const Algorithm& algorithm, Memory<F>* memory,
-                          DatasetBuffer<F>* buffer,
+                          TaskBuffer<F>* buffer,
                           RandomGenerator* rand_gen);
 
 // Maps the interval [0.0, inf] to [0.0, 1.0]. The squashing is done by an
@@ -996,7 +996,7 @@ double Executor<F>::Execute(std::vector<double>* train_errors,
   CHECK_GE(dataset_.NumTrainEpochs(), 1);
 
   // Iterators that track the progresss of training.
-  DatasetIterator<F> train_it = dataset_.TrainIterator();
+  TaskIterator<F> train_it = dataset_.TrainIterator();
 
   // Train for multiple epochs, evaluate on validation set
   // after each epoch and take the best validation result as fitness.
@@ -1045,12 +1045,12 @@ bool Executor<F>::Train(std::vector<double>* errors) {
                &train_label_it);
 }
 
-// At or above these many steps, we optimize the train component_function.
+// At or above these many steps, we optimize the train component function.
 constexpr IntegerT kTrainStepsOptThreshold = 1000;
 
 template <FeatureIndexT F>
 bool Executor<F>::Train(const IntegerT max_steps, std::vector<double>* errors,
-                        DatasetIterator<F>* train_it) {
+                        TaskIterator<F>* train_it) {
   CHECK(errors == nullptr || max_steps <= 100) <<
       "You should only record the training errors for few training steps."
       << std::endl;
@@ -1076,12 +1076,12 @@ bool Executor<F>::Train(const IntegerT max_steps, std::vector<double>* errors,
 template <FeatureIndexT F>
 inline bool Executor<F>::TrainNoOptImpl(const IntegerT max_steps,
                                         std::vector<double>* errors,
-                                        DatasetIterator<F>* train_it) {
+                                        TaskIterator<F>* train_it) {
   if (errors != nullptr) {
     errors->reserve(max_steps);
   }
   for (IntegerT step = 0; step < max_steps; ++step) {
-    // Run predict component_function for this example.
+    // Run predict component function for this example.
     const Vector<F>& features = train_it->GetFeatures();
     memory_.vector_[kFeaturesVectorAddress] = features;
     ZeroLabelAssigner<F>::Assign(&memory_);
@@ -1104,7 +1104,7 @@ inline bool Executor<F>::TrainNoOptImpl(const IntegerT max_steps,
       errors->push_back(abs_error);
     }
 
-    // Run learn component_function for this example.
+    // Run learn component function for this example.
     memory_.vector_[kFeaturesVectorAddress] = features;
     LabelAssigner<F>::Assign(label, &memory_);
     for (const std::shared_ptr<const Instruction>& instruction :
@@ -1125,7 +1125,7 @@ template <FeatureIndexT F>
 template <size_t max_component_function_size>
 bool Executor<F>::TrainOptImpl(const IntegerT max_steps,
                                std::vector<double>* errors,
-                               DatasetIterator<F>* train_it) {
+                               TaskIterator<F>* train_it) {
   if (errors != nullptr) {
     errors->reserve(max_steps);
   }
@@ -1153,7 +1153,7 @@ bool Executor<F>::TrainOptImpl(const IntegerT max_steps,
   const IntegerT num_learn_instr = algorithm_.learn_.size();
 
   for (IntegerT step = 0; step < max_steps; ++step) {
-    // Run predict component_function for this example.
+    // Run predict component function for this example.
     const Vector<F>& features = train_it->GetFeatures();
     memory_.vector_[kFeaturesVectorAddress] = features;
     ZeroLabelAssigner<F>::Assign(&memory_);
@@ -1181,7 +1181,7 @@ bool Executor<F>::TrainOptImpl(const IntegerT max_steps,
       errors->push_back(abs_error);
     }
 
-    // Run learn component_function for this example.
+    // Run learn component function for this example.
     memory_.vector_[kFeaturesVectorAddress] = features;
     LabelAssigner<F>::Assign(label, &memory_);
     IntegerT learn_instr_num = 0;
@@ -1246,9 +1246,9 @@ double Executor<F>::Validate(std::vector<double>* errors) {
       "You should only record the validation errors for few validation steps."
       << std::endl;
 
-  DatasetIterator<F> valid_it = dataset_.ValidIterator();
+  TaskIterator<F> valid_it = dataset_.ValidIterator();
   for (IntegerT step = 0; step < num_steps; ++step) {
-    // Run predict component_function for this example.
+    // Run predict component function for this example.
     const Vector<F>& features = valid_it.GetFeatures();
     memory_.vector_[kFeaturesVectorAddress] = features;
     ZeroLabelAssigner<F>::Assign(&memory_);
@@ -1318,13 +1318,13 @@ void Executor<F>::GetMemory(Memory<F>* memory) {
 
 template <FeatureIndexT F>
 void ExecuteAndFillLabels(const Algorithm& algorithm, Memory<F>* memory,
-                          DatasetBuffer<F>* buffer,
+                          TaskBuffer<F>* buffer,
                           RandomGenerator* rand_gen) {
   // Fill training labels.
   typename std::vector<Scalar>::iterator train_label_it =
       buffer->train_labels_.begin();
   for (const Vector<F>& train_features : buffer->train_features_) {
-    // Run predict component_function for this example.
+    // Run predict component function for this example.
     memory->vector_[kFeaturesVectorAddress] = train_features;
     ZeroLabelAssigner<F>::Assign(memory);
     for (const std::shared_ptr<const Instruction>& instruction :
@@ -1339,7 +1339,7 @@ void ExecuteAndFillLabels(const Algorithm& algorithm, Memory<F>* memory,
   std::vector<Scalar>::iterator valid_label_it =
       buffer->valid_labels_.begin();
   for (const Vector<F>& valid_features : buffer->valid_features_) {
-    // Run predict component_function for this example.
+    // Run predict component function for this example.
     memory->vector_[kFeaturesVectorAddress] = valid_features;
     ZeroLabelAssigner<F>::Assign(memory);
     for (const std::shared_ptr<const Instruction>& instruction :

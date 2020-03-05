@@ -49,7 +49,7 @@ ABSL_FLAG(
     "proto in text-format. Required.");
 ABSL_FLAG(
     std::string, final_tasks, "",
-    "The tasks to use for the final evaluation. Must be a DatasetCollection "
+    "The tasks to use for the final evaluation. Must be a TaskCollection "
     "proto in text format. Required.");
 ABSL_FLAG(
     IntegerT, max_experiments, 1,
@@ -69,7 +69,7 @@ ABSL_FLAG(
     "respected, however).");
 ABSL_FLAG(
     std::string, select_tasks, "",
-    "The tasks to use in T_select. Must be a DatasetCollection proto "
+    "The tasks to use in T_select. Must be a TaskCollection proto "
     "in text-format. Required.");
 ABSL_FLAG(
     double, sufficient_fitness, std::numeric_limits<double>::max(),
@@ -102,9 +102,9 @@ void run() {
   RandomGenerator rand_gen(&bit_gen);
   cout << "Random seed = " << random_seed << endl;
 
-  // Build reusable search structures.
+  // Build reusable search and select structures.
   CHECK(!GetFlag(FLAGS_search_experiment_spec).empty());
-  const auto experiment_spec = ParseTextFormat<SearchExperimentSpec>(
+  auto experiment_spec = ParseTextFormat<SearchExperimentSpec>(
       GetFlag(FLAGS_search_experiment_spec));
   const double sufficient_fitness = GetFlag(FLAGS_sufficient_fitness);
   const IntegerT max_experiments = GetFlag(FLAGS_max_experiments);
@@ -135,36 +135,34 @@ void run() {
       experiment_spec.mutate_learn_size_min(),
       experiment_spec.mutate_learn_size_max(),
       &bit_gen, &rand_gen);
+  auto select_tasks =
+      ParseTextFormat<TaskCollection>(GetFlag(FLAGS_select_tasks));
 
-  // Run experiments and select best algorithm.
+  // Run search experiments and select best algorithm.
   IntegerT num_experiments = 0;
   double best_select_fitness = numeric_limits<double>::lowest();
   shared_ptr<const Algorithm> best_algorithm = make_shared<const Algorithm>();
   while (true) {
-    // Set up the T_search tasks.
-    DatasetCollection search_tasks = experiment_spec.search_tasks();
-    CHECK(!search_tasks.datasets().empty());
+    // Randomize T_search tasks.
     if (GetFlag(FLAGS_randomize_task_seeds)) {
-      RandomizeDatasetSeeds(&search_tasks, rand_gen.UniformRandomSeed());
+      RandomizeDatasetSeeds(experiment_spec.mutable_search_tasks(),
+                            rand_gen.UniformRandomSeed());
     }
 
     // Build non-reusable search structures.
     unique_ptr<FECCache> functional_cache =
-        experiment_spec.has_fec_cache() ?
-            make_unique<FECCache>(
-                experiment_spec.fec_cache()) :
+        experiment_spec.has_fec() ?
+            make_unique<FECCache>(experiment_spec.fec()) :
             nullptr;
     Evaluator evaluator(
-        experiment_spec.fitness_combination_mode(), search_tasks,
+        experiment_spec.fitness_combination_mode(),
+        experiment_spec.search_tasks(),
         &rand_gen, functional_cache.get(), train_budget.get(),
-        experiment_spec.max_abs_error(),
-        false);  // verbose
+        experiment_spec.max_abs_error());
     RegularizedEvolution regularized_evolution(
         &rand_gen, experiment_spec.population_size(),
         experiment_spec.tournament_size(),
-        0,  // init_mutations  // TODO(ereal): remove arg.
         experiment_spec.progress_every(),
-        false,  // progress_every_by_time  // TODO(ereal): remove arg.
         &generator, &evaluator, &mutator);
 
     // Run one experiment.
@@ -186,27 +184,23 @@ void run() {
     cout << "Search fitness for candidate algorithm = "
          << search_fitness << endl;
 
-    // Set up T_select tasks.
-    auto select_tasks =
-        ParseTextFormat<DatasetCollection>(GetFlag(FLAGS_select_tasks));
-    CHECK(!select_tasks.datasets().empty());
+    // Randomize T_select tasks.
     if (GetFlag(FLAGS_randomize_task_seeds)) {
       RandomizeDatasetSeeds(&select_tasks, rand_gen.UniformRandomSeed());
     }
     mt19937 select_bit_gen(rand_gen.UniformRandomSeed());
     RandomGenerator select_rand_gen(&select_bit_gen);
+
+    // Keep track of the best model on the T_select tasks.
+    cout << "Evaluating candidate algorithm from experiment "
+         << "(on T_select tasks)... " << endl;
     Evaluator select_evaluator(
         MEAN_FITNESS_COMBINATION,
         select_tasks,
         &select_rand_gen,
         nullptr,  // functional_cache
         nullptr,  // train_budget
-        experiment_spec.max_abs_error(),
-        false);  // verbose
-
-    // Keep track of the best model on the T_select tasks.
-    cout << "Evaluating candidate algorithm from experiment "
-         << "(on T_select tasks)... " << endl;
+        experiment_spec.max_abs_error());
     const double select_fitness =
         select_evaluator.Evaluate(*candidate_algorithm);
     cout << "Select fitness for candidate algorithm = "
@@ -234,8 +228,7 @@ void run() {
   cout << "Final evaluation of best algorithm "
        << "(on unseen tasks)..." << endl;
   const auto final_tasks =
-      ParseTextFormat<DatasetCollection>(GetFlag(FLAGS_final_tasks));
-  CHECK(!final_tasks.datasets().empty());
+      ParseTextFormat<TaskCollection>(GetFlag(FLAGS_final_tasks));
   mt19937 final_bit_gen(rand_gen.UniformRandomSeed());
   RandomGenerator final_rand_gen(&final_bit_gen);
   Evaluator final_evaluator(
@@ -244,8 +237,7 @@ void run() {
       &final_rand_gen,
       nullptr,  // functional_cache
       nullptr,  // train_budget
-      experiment_spec.max_abs_error(),
-      false);  // verbose
+      experiment_spec.max_abs_error());
   const double final_fitness =
       final_evaluator.Evaluate(*best_algorithm);
 

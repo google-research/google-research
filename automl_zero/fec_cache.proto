@@ -16,7 +16,7 @@ syntax = "proto2";
 
 package automl_zero;
 
-message FECCacheSpec {
+message FECSpec {
   // Number of examples to train a model in order to evaluate cache hashes.
   // Required to be smaller than or equal to the number of training examples.
   // However, for the cache to provide an advantage, should be kept much smaller

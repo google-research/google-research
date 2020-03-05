@@ -35,16 +35,16 @@ class Mutator {
       const MutationTypeList& allowed_actions,
       // The probability of mutating each time.
       double mutate_prob,
-      // Ops that can be introduced into the setup component_function. Empty
-      // means the component_function won't be mutated at all.
+      // Ops that can be introduced into the setup component function. Empty
+      // means the component function won't be mutated at all.
       const std::vector<Op>& allowed_setup_ops,
-      // Ops that can be introduced into the predict component_function. Empty
-      // means the component_function won't be mutated at all.
+      // Ops that can be introduced into the predict component function. Empty
+      // means the component function won't be mutated at all.
       const std::vector<Op>& allowed_predict_ops,
-      // Ops that can be introduced into the learn component_function. Empty
-      // means the component_function won't be mutated at all.
+      // Ops that can be introduced into the learn component function. Empty
+      // means the component function won't be mutated at all.
       const std::vector<Op>& allowed_learn_ops,
-      // Minimum/maximum component_function sizes.
+      // Minimum/maximum component function sizes.
       const IntegerT setup_size_min,
       const IntegerT setup_size_max,
       const IntegerT predict_size_min,
@@ -89,25 +89,24 @@ class Mutator {
   // Randomizes an instruction (all its parameters, including the op).
   void RandomizeInstruction(Algorithm* algorithm);
 
-  // Randomizes all the instructions in one of the three component_functions.
-  // Does not change the component_function size.
+  // Randomizes all the instructions in one of the three component functions.
+  // Does not change the component function size.
   void RandomizeComponentFunction(Algorithm* algorithm);
 
-  // Inserts an instruction, making the component_function longer. Has
-  // no effect on a maximum-length component_function.
+  // Inserts an instruction, making the component function longer. Has
+  // no effect on a maximum-length component function.
   void InsertInstruction(Algorithm* algorithm);
 
-  // Inserts an instruction, making the component_function shorter. Has
-  // no effect on a
-  // minimum-length component_function.
+  // Inserts an instruction, making the component function shorter. Has
+  // no effect on a minimum-length component function.
   void RemoveInstruction(Algorithm* algorithm);
 
   // First removes an instruction, then inserts an instruction. Has
-  // no effect on a zero-length component_function.
+  // no effect on a zero-length component function.
   void TradeInstruction(Algorithm* algorithm);
 
-  // Randomizes all the instructions in all of the component_functions. Does not
-  // change the component_function sizes.
+  // Randomizes all the instructions in all of the component functions. Does not
+  // change the component function sizes.
   void RandomizeAlgorithm(Algorithm* algorithm);
 
   void InsertInstructionUnconditionally(
@@ -117,7 +116,7 @@ class Mutator {
   void RemoveInstructionUnconditionally(
       std::vector<std::shared_ptr<const Instruction>>* component_function);
 
-  // Return operations to introduce into the component_functions.
+  // Return operations to introduce into the component functions.
   Op SetupOp();
   Op PredictOp();
   Op LearnOp();
@@ -125,7 +124,7 @@ class Mutator {
   // Returns which instruction to mutate.
   InstructionIndexT InstructionIndex(InstructionIndexT component_function_size);
 
-  // Returns which component_function to mutate.
+  // Returns which component function to mutate.
   ComponentFunctionT ComponentFunction();
 
   const MutationTypeList allowed_actions_;

@@ -50,7 +50,6 @@ using ::testing::Test;
 
 constexpr RandomSeedT kEvolutionSeed = 100000;
 constexpr double kFitnessTolerance = 0.0001;
-constexpr IntegerT kInitMutations = 0;
 constexpr IntegerT kNanosPerMilli = 1000000;
 constexpr IntegerT kNumDatasetsForSearch = 2;
 constexpr IntegerT kNumTrainExamplesForSearch = 1000;
@@ -70,7 +69,7 @@ TEST(RegularizedEvolutionTest, Runs) {
   mt19937 bit_gen(kEvolutionSeed);
   RandomGenerator rand_gen(&bit_gen);
   Generator generator = SimpleGenerator();
-  const auto dataset_collection = ParseTextFormat<DatasetCollection>(
+  const auto task_collection = ParseTextFormat<TaskCollection>(
       StrCat("datasets { "
              "  scalar_2layer_nn_regression_dataset {} "
              "  features_size: 4 "
@@ -85,19 +84,16 @@ TEST(RegularizedEvolutionTest, Runs) {
              " "
              "  eval_type: RMS_ERROR "
              "} "));
-  Evaluator evaluator(MEAN_FITNESS_COMBINATION, dataset_collection, &rand_gen,
+  Evaluator evaluator(MEAN_FITNESS_COMBINATION, task_collection, &rand_gen,
                       nullptr,  // functional_cache
                       nullptr,  // train_budget
-                      kLargeMaxAbsError,
-                      false);  // verbose
+                      kLargeMaxAbsError);
   Mutator mutator = SimpleMutator();
   RegularizedEvolution regularized_evolution(
       &rand_gen,
       5,  // population_size
       2,  // tournament_size
-      kInitMutations,
       kUnlimitedIndividuals,  // progress_every
-      false,  // progress_every_by_time
       &generator,
       &evaluator,
       &mutator);
@@ -109,7 +105,7 @@ TEST(RegularizedEvolutionTest, TimesCorrectly) {
   mt19937 bit_gen(kEvolutionSeed);
   RandomGenerator rand_gen(&bit_gen);
   Generator generator = SimpleGenerator();
-  const auto dataset_collection = ParseTextFormat<DatasetCollection>(
+  const auto task_collection = ParseTextFormat<TaskCollection>(
       StrCat("datasets { "
              "  scalar_2layer_nn_regression_dataset {} "
              "  features_size: 4 "
@@ -124,19 +120,16 @@ TEST(RegularizedEvolutionTest, TimesCorrectly) {
              " "
              "  eval_type: RMS_ERROR "
              "} "));
-  Evaluator evaluator(MEAN_FITNESS_COMBINATION, dataset_collection, &rand_gen,
+  Evaluator evaluator(MEAN_FITNESS_COMBINATION, task_collection, &rand_gen,
                       nullptr,  // functional_cache
                       nullptr,  // train_budget
-                      kLargeMaxAbsError,
-                      false);  // verbose
+                      kLargeMaxAbsError);
   Mutator mutator = SimpleMutator();
   RegularizedEvolution regularized_evolution(
       &rand_gen,
       5,  // population_size
       2,  // tournament_size
-      kInitMutations,
       kUnlimitedIndividuals,  // progress_every
-      false,  // progress_every_by_time
       &generator,
       &evaluator,
       &mutator);
@@ -153,7 +146,7 @@ TEST(RegularizedEvolutionTest, CountsCorrectly) {
   mt19937 bit_gen(kEvolutionSeed);
   RandomGenerator rand_gen(&bit_gen);
   Generator generator = SimpleGenerator();
-  const auto dataset_collection = ParseTextFormat<DatasetCollection>(
+  const auto task_collection = ParseTextFormat<TaskCollection>(
       StrCat("datasets { "
              "  scalar_2layer_nn_regression_dataset {} "
              "  features_size: 4 "
@@ -169,19 +162,16 @@ TEST(RegularizedEvolutionTest, CountsCorrectly) {
              "  eval_type: RMS_ERROR "
              "} "));
 
-  Evaluator evaluator(MEAN_FITNESS_COMBINATION, dataset_collection, &rand_gen,
+  Evaluator evaluator(MEAN_FITNESS_COMBINATION, task_collection, &rand_gen,
                       nullptr,  // functional_cache
                       nullptr,  // train_budget
-                      kLargeMaxAbsError,
-                      false);  // verbose
+                      kLargeMaxAbsError);
   Mutator mutator = SimpleMutator();
   RegularizedEvolution regularized_evolution(
       &rand_gen,
       5,  // population_size
       2,  // tournament_size
-      kInitMutations,
       kUnlimitedIndividuals,  // progress_every
-      false,  // progress_every_by_time
       &generator,
       &evaluator,
       &mutator);

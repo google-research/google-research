@@ -104,7 +104,7 @@ bool Algorithm::operator==(const Algorithm& other) const {
 
 string Algorithm::ToReadable() const {
   ostringstream stream;
-  stream << "\n### Start component_function. ###\n" << std::endl;
+  stream << "\n### Start component function. ###\n" << std::endl;
   stream << "# s is a list of scalars." << std::endl;
   stream << "# v is a list of vectors." << std::endl;
   stream << "# m is a list of matrices.\n" << std::endl;
@@ -133,7 +133,7 @@ string Algorithm::ToReadable() const {
     stream << instruction->ToString();
   }
   stream << std::endl;
-  stream << "### End component_function. ###\n" << std::endl;
+  stream << "### End component function. ###\n" << std::endl;
   return stream.str();
 }
 

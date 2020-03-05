@@ -40,7 +40,7 @@ namespace automl_zero {
 using ::absl::StrCat;
 using ::std::function;
 using ::std::mt19937;
-using test_only::GenerateDataset;
+using test_only::GenerateTask;
 
 constexpr IntegerT kNumTrainExamples = 1000;
 constexpr IntegerT kNumValidExamples = 100;
@@ -67,27 +67,20 @@ TEST(GeneratorTest, NoOpHasNoOpInstructions) {
   EXPECT_EQ(algorithm.setup_[setup_instruction_index]->out_, 0);
   EXPECT_EQ(algorithm.setup_[setup_instruction_index]->GetActivationData(),
             0.0);
-  EXPECT_EQ(algorithm.setup_[setup_instruction_index]->GetIndexData0(), 0);
   EXPECT_EQ(algorithm.setup_[setup_instruction_index]->GetFloatData0(), 0.0);
   EXPECT_EQ(algorithm.setup_[setup_instruction_index]->GetFloatData1(), 0.0);
   EXPECT_EQ(algorithm.setup_[setup_instruction_index]->GetFloatData2(), 0.0);
-  EXPECT_EQ(algorithm.setup_[setup_instruction_index]->GetVectorData().norm(),
-            0.0);
   EXPECT_EQ(algorithm.predict_[predict_instruction_index]->op_, NO_OP);
   EXPECT_EQ(algorithm.predict_[predict_instruction_index]->in1_, 0);
   EXPECT_EQ(algorithm.predict_[predict_instruction_index]->in2_, 0);
   EXPECT_EQ(algorithm.predict_[predict_instruction_index]->out_, 0);
   EXPECT_EQ(algorithm.predict_[predict_instruction_index]->GetActivationData(),
             0.0);
-  EXPECT_EQ(algorithm.predict_[predict_instruction_index]->GetIndexData0(), 0);
   EXPECT_EQ(algorithm.predict_[predict_instruction_index]->GetFloatData0(),
             0.0);
   EXPECT_EQ(algorithm.predict_[predict_instruction_index]->GetFloatData1(),
             0.0);
   EXPECT_EQ(algorithm.predict_[predict_instruction_index]->GetFloatData2(),
-            0.0);
-  EXPECT_EQ(algorithm.predict_[predict_instruction_index]
-                ->GetVectorData().norm(),
             0.0);
   EXPECT_EQ(algorithm.learn_[learn_instruction_index]->op_, NO_OP);
   EXPECT_EQ(algorithm.learn_[learn_instruction_index]->in1_, 0);
@@ -95,12 +88,9 @@ TEST(GeneratorTest, NoOpHasNoOpInstructions) {
   EXPECT_EQ(algorithm.learn_[learn_instruction_index]->out_, 0);
   EXPECT_EQ(algorithm.learn_[learn_instruction_index]->GetActivationData(),
             0.0);
-  EXPECT_EQ(algorithm.learn_[learn_instruction_index]->GetIndexData0(), 0);
   EXPECT_EQ(algorithm.learn_[learn_instruction_index]->GetFloatData0(), 0.0);
   EXPECT_EQ(algorithm.learn_[learn_instruction_index]->GetFloatData1(), 0.0);
   EXPECT_EQ(algorithm.learn_[learn_instruction_index]->GetFloatData2(), 0.0);
-  EXPECT_EQ(algorithm.learn_[learn_instruction_index]->GetVectorData().norm(),
-            0.0);
 }
 
 TEST(GeneratorTest, NoOpProducesCorrectComponentFunctionSize) {
@@ -132,7 +122,7 @@ TEST(GeneratorTest, Gz_Learns) {
       nullptr,  // bit_gen, irrelevant.
       nullptr);  // rand_gen, irrelevant.
   Dataset<4> dataset =
-      GenerateDataset<4>(StrCat("scalar_linear_regression_dataset {} "
+      GenerateTask<4>(StrCat("scalar_linear_regression_dataset {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -166,7 +156,7 @@ TEST(GeneratorTest, LinearModel_Learns) {
       nullptr,  // bit_gen, irrelevant.
       nullptr);  // rand_gen, irrelevant.
   Dataset<4> dataset =
-      GenerateDataset<4>(StrCat("scalar_linear_regression_dataset {} "
+      GenerateTask<4>(StrCat("scalar_linear_regression_dataset {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -199,7 +189,7 @@ TEST(GeneratorTest, GrTildeGrWithBias_PermanenceTest) {
       {},  // allowed_learn_ops, irrelevant.
       nullptr,  // bit_gen, irrelevant.
       nullptr);  // rand_gen, irrelevant.
-  Dataset<4> dataset = GenerateDataset<4>(StrCat(
+  Dataset<4> dataset = GenerateTask<4>(StrCat(
       "scalar_2layer_nn_regression_dataset {} "
       "num_train_examples: ", kNumTrainExamples, " "
       "num_valid_examples: ", kNumValidExamples, " "

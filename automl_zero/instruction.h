@@ -12,11 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO(ereal): the mutation code could be simplified a lot by using
-// template meta-component_functionming to avoid having different methods for
-// different types of fields and to avoid having so many long switch
-// statements. Consider refactoring later.
-
 #ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_INSTRUCTION_H_
 #define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_INSTRUCTION_H_
 
@@ -31,17 +26,7 @@
 
 namespace automl_zero {
 
-// TODO(ereal): remove eventually.
-typedef uint8_t Discretizeddouble;
-
-// TODO(ereal): consider removing discretization of vector initialization.
-constexpr double kActivationAsDataMin = -2.0;  // Inclusive. Encoded as 0.
-constexpr double kActivationAsDataMax = 1.984375;  // Incl. Enc. as 255.
-constexpr double kActivationAsDataStep = 4.0 / 256.0;
-constexpr double kActivationAsDataInverseStep = 256.0 / 4.0;
-constexpr Discretizeddouble kDiscretizedZero = 128;
-
-// TODO(ereal): move comparisons to test_only library.
+// Used for unit tests.
 constexpr double kActivationDataTolerance = 0.00001;
 constexpr float kFloatDataTolerance = 0.00001;
 constexpr double kVectorDataTolerance = 0.001;
@@ -50,6 +35,7 @@ constexpr double kMatrixRowDataTolerance = 0.001;
 constexpr double kActivationMutationFixedScale = 0.1;
 constexpr double kSignFlipProb = 0.1;
 
+// Used in unit tests.
 class IntegerDataSetter {
  public:
   explicit IntegerDataSetter(const IntegerT value) : value_(value) {}
@@ -73,36 +59,6 @@ class IndexDataSetter {
   explicit IndexDataSetter(const FeatureIndexT value) : value_(value) {}
   const FeatureIndexT value_;
 };
-
-// Only used with old ops.
-class VectorDataSetter {
- public:
-  explicit VectorDataSetter(const Vector<4>& value_ref)
-      : value_ref_(value_ref) {}
-  const Vector<4>& value_ref_;
-};
-
-// TODO(ereal) remove discretization.
-inline Discretizeddouble Discretize(double value) {
-  if (value < kActivationAsDataMin) {
-    value = kActivationAsDataMin;
-  }
-  if (value > kActivationAsDataMax) {
-    value = kActivationAsDataMax;
-  }
-  const IntegerT value_int =
-      static_cast<IntegerT>(std::round(
-          (value - kActivationAsDataMin) * kActivationAsDataInverseStep));
-  CHECK_GE(value_int, std::numeric_limits<Discretizeddouble>::min());
-  CHECK_LE(value_int, std::numeric_limits<Discretizeddouble>::max());
-  return static_cast<Discretizeddouble>(value_int);
-}
-
-// TODO(ereal) remove discretization.
-inline double Undiscretize(Discretizeddouble value_int) {
-  return static_cast<double>(value_int) * kActivationAsDataStep +
-         kActivationAsDataMin;
-}
 
 // Within the Instructions/Algorithm, we represent the index in a
 // vector/matrix as a float. This float is interpreted as the fraction of the
@@ -150,11 +106,6 @@ class Instruction {
       const FloatDataSetter& float_data_setter_0,
       const FloatDataSetter& float_data_setter_1,
       const FloatDataSetter& float_data_setter_2);
-  Instruction(
-      Op op, AddressT out, const VectorDataSetter& vector_data_setter);
-  Instruction(
-      Op op, AddressT out, const IndexDataSetter& index_data_setter,
-      const VectorDataSetter& vector_data_setter);
 
   // Constructor that randomizes all parameters.
   Instruction(Op op, RandomGenerator* rand_gen);
@@ -170,15 +121,12 @@ class Instruction {
   }
 
   // Instruction data accessors. Setting is mainly through the constructors.
-  IntegerT GetIntegerData() const;
+  IntegerT GetIntegerData() const;  // Used in unit tests.
   inline double GetActivationData() const {return activation_data_;}
-  inline FeatureIndexT GetIndexData0() const {return index_data_0_;}
   inline float GetFloatData0() const {return float_data_0_;}
   inline float GetFloatData1() const {return float_data_1_;}
   inline float GetFloatData2() const {return float_data_2_;}
-  Vector<4> GetVectorData() const;  // Only triggered by old ops.
 
-  // TODO(ereal): make these test_only.
   bool operator ==(const Instruction& other) const;
   bool operator !=(const Instruction& other) const {
     return !(*this == other);
@@ -186,24 +134,21 @@ class Instruction {
 
   // Clears the instruction, setting it to a no-op. Serves as a way to
   // initialize the instruction.
-  void FillWithNoOp();  // TODO(ereal): delete in favor of constructor.
+  void FillWithNoOp();
 
   // Sets an op and randomizes all the parameters of the instruction. The
   // operation is passed as an argument because it's choice must be decided
-  // based on the component_function (setup / learn / predict), and that is
+  // based on the component function (setup / learn / predict), and that is
   // not known at this point. Serves as a way to initialize the instruction.
-  // TODO(ereal): move to constructor.
   void SetOpAndRandomizeParams(Op op, RandomGenerator* rand_gen);
 
   // Alters one parameter a small amount (if it makes sense) or randomizes it
   // (otherwise), depending on the parameter. The choice of parameter is random.
   // Does not serve as a way to initialize the Instruction; typically used after
   // copy-construction.
-  // TODO(ereal): make private.
   void AlterParam(RandomGenerator* rand_gen);
 
   // Randomizes one parameter in the instruction. Internal use and tests only.
-  // TODO(ereal): make private.
   void RandomizeIn1(RandomGenerator* rand_gen);
   void RandomizeIn2(RandomGenerator* rand_gen);
   void RandomizeOut(RandomGenerator* rand_gen);
@@ -213,7 +158,6 @@ class Instruction {
   std::string ToString() const;
   SerializedInstruction Serialize() const;
 
-  // TODO(ereal): move code to constructor or make private?
   void Deserialize(const SerializedInstruction& checkpoint_instruction);
 
   Op op_;
@@ -222,26 +166,10 @@ class Instruction {
   AddressT out_;  // Output address.
 
  private:
-  // Special data setter for vector data. Only triggered by old olps.
-  // Other setting is done through the constructors.
-  inline void SetVectorData(const Vector<4>& vector) {
-    // This method is only triggered by old ops.
-    discretized_activation_data_0_ = Discretize(vector(0));
-    discretized_activation_data_1_ = Discretize(vector(1));
-    discretized_activation_data_2_ = Discretize(vector(2));
-    discretized_activation_data_3_ = Discretize(vector(3));
-  }
-
-  // TODO(ereal): remove some of these after generalizing FEATURE_SIZE.
   double activation_data_;
-  FeatureIndexT index_data_0_;  // Only used by old ops.
   float float_data_0_;
   float float_data_1_;
   float float_data_2_;
-  Discretizeddouble discretized_activation_data_0_;
-  Discretizeddouble discretized_activation_data_1_;
-  Discretizeddouble discretized_activation_data_2_;
-  Discretizeddouble discretized_activation_data_3_;
 };
 
 inline void MutateActivationLogScale(
@@ -301,14 +229,6 @@ inline void MutateFloatLogScaleOrFlip(
     MutateFloatLogScale(rand_gen, value);
     return;
   }
-}
-
-// Only used by old ops.
-inline void MutateVectorFixedScale(
-    RandomGenerator* rand_gen, Vector<4>* vector) {
-  FeatureIndexT feature_index = rand_gen->FeatureIndex(4);
-  (*vector)(feature_index) +=
-      rand_gen->GaussianActivation(0.0, 1.0) * kActivationMutationFixedScale;
 }
 
 }  // namespace automl_zero

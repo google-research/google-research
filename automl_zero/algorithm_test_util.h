@@ -61,43 +61,43 @@ void IncrementDnaId(std::shared_ptr<const Algorithm>* algorithm,
                     IntegerT by = 1);
 
 // Counts how many different instructions there are in the setup
-// component_function between the two given Algorithm instances. Assumes both
-// component_functions are the same size.
+// component function between the two given Algorithm instances. Assumes both
+// component functions are the same size.
 IntegerT CountDifferentSetupInstructions(const Algorithm& algorithm1,
                                          const Algorithm& algorithm2);
 
 // Counts how many different instructions there are in the predict
-// component_function between the two given Algorithm instances. Assumes both
-// component_functions are the same size.
+// component function between the two given Algorithm instances. Assumes both
+// component functions are the same size.
 IntegerT CountDifferentPredictInstructions(const Algorithm& algorithm1,
                                            const Algorithm& algorithm2);
 
 // Counts how many different instructions there are in the learn
-// component_function between the two given Algorithm instances. Assumes both
-// component_functions are the same size.
+// component function between the two given Algorithm instances. Assumes both
+// component functions are the same size.
 IntegerT CountDifferentLearnInstructions(const Algorithm& algorithm1,
                                          const Algorithm& algorithm2);
 
 // Counts how many different instructions there are between the two given
-// Algorithm instances. Assumes matching component_functions are the same size.
+// Algorithm instances. Assumes matching component functions are the same size.
 IntegerT CountDifferentInstructions(const Algorithm& algorithm1,
                                     const Algorithm& algorithm2);
 
 // Returns the position of the instruction with SCALAR_SUM_OP in the given
-// component_function. Returns -1 if it doesn't appear in that
-// component_function and -2 if it appears multiple times.
+// component function. Returns -1 if it doesn't appear in that
+// component function and -2 if it appears multiple times.
 IntegerT ScalarSumOpPosition(
     const std::vector<std::shared_ptr<const Instruction>>& component_function);
 
-// Returns which component_function is different (as a casted
-// ComponentFunctionT integer). Returns -1 if none of the component_functions
+// Returns which component function is different (as a casted
+// ComponentFunctionT integer). Returns -1 if none of the component functions
 // are different and -2 if more than 1 is.
 IntegerT DifferentComponentFunction(const Algorithm& algorithm1,
                                     const Algorithm& algorithm2);
 
-// Assumes that each position in both component_functions has integer data
+// Assumes that each position in both component functions has integer data
 // (one integer per position). Returns which integer is present in
-// component_function 1 that is not present in component_function 2. Returns -1
+// component function 1 that is not present in component function 2. Returns -1
 // if none is missing and -2 if multiple are missing.
 IntegerT MissingDataInComponentFunction(
     const std::vector<std::shared_ptr<const Instruction>>& component_function1,

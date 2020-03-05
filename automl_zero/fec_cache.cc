@@ -97,7 +97,7 @@ void LRUCache::MaybeResize() {
   }
 }
 
-FECCache::FECCache(const FECCacheSpec& spec)
+FECCache::FECCache(const FECSpec& spec)
     : spec_(spec), cache_(spec_.cache_size()) {
   CHECK_GT(spec_.num_train_examples(), 0);
   CHECK_GT(spec_.num_valid_examples(), 0);
@@ -134,7 +134,6 @@ void FECCache::InsertOrDie(
   CHECK(inserted != nullptr);
 }
 
-// TODO(ereal): test.
 void FECCache::Clear() {
   cache_.Clear();
 }

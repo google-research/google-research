@@ -40,9 +40,9 @@ class Evaluator {
       const FitnessCombinationMode fitness_combination_mode,
       // Datasets to use. Will be filtered to only keep datasets targeted
       // to this worker.
-      const DatasetCollection& dataset_collection,
+      const TaskCollection& task_collection,
       // The random generator seed to use for any random operations that
-      // may be executed by the component_function (e.g. VectorRandomInit).
+      // may be executed by the component function (e.g. VectorRandomInit).
       RandomGenerator* rand_gen,
       // An cache to avoid reevaluating models that are functionally
       // identical. Can be nullptr.
@@ -51,10 +51,9 @@ class Evaluator {
       TrainBudget* train_budget,
       // Errors larger than this trigger early stopping, as they signal
       // models that likely have runnaway behavior.
-      double max_abs_error,
+      double max_abs_error);
       // If false, suppresses all logging output. Finer grain control
       // available through logging flags.
-      bool verbose);
 
   Evaluator(const Evaluator& other) = delete;
   Evaluator& operator=(const Evaluator& other) = delete;
@@ -64,7 +63,7 @@ class Evaluator {
   double Evaluate(const Algorithm& algorithm);
 
  private:
-  double Execute(const DatasetInterface& dataset, IntegerT num_train_examples,
+  double Execute(const TaskInterface& dataset, IntegerT num_train_examples,
                  const Algorithm& algorithm);
 
   template <FeatureIndexT F>
@@ -76,18 +75,17 @@ class Evaluator {
   const FitnessCombinationMode fitness_combination_mode_;
 
   // Contains only dataset specifications targeted to his worker.
-  const DatasetCollection dataset_collection_;
+  const TaskCollection task_collection_;
 
   TrainBudget* train_budget_;
   RandomGenerator* rand_gen_;
-  std::vector<std::unique_ptr<DatasetInterface>> datasets_;
+  std::vector<std::unique_ptr<TaskInterface>> datasets_;
   FECCache* functional_cache_;
   std::unique_ptr<std::mt19937> functional_cache_bit_gen_owned_;
   std::unique_ptr<RandomGenerator> functional_cache_rand_gen_owned_;
   RandomGenerator* functional_cache_rand_gen_;
   const std::vector<RandomSeedT> first_param_seeds_;
   const std::vector<RandomSeedT> first_data_seeds_;
-  const bool verbose_;
 
   double best_fitness_;
   std::shared_ptr<Algorithm> best_algorithm_;

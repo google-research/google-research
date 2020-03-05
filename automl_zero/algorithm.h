@@ -28,7 +28,7 @@ namespace automl_zero {
 
 class RandomGenerator;
 
-// Denotes one of the three component_functions in the Algorithm.
+// Denotes one of the three component functions in the Algorithm.
 enum ComponentFunctionT : IntegerT {
   kSetupComponentFunction = 0,
   kPredictComponentFunction = 1,
@@ -62,13 +62,13 @@ class Algorithm {
   SerializedAlgorithm ToProto() const;
   void FromProto(const SerializedAlgorithm& checkpoint_algorithm);
 
-  // Returns a reference to the given component_function in the Algorithm.
+  // Returns a reference to the given component function in the Algorithm.
   const std::vector<std::shared_ptr<const Instruction>>&
       ComponentFunction(ComponentFunctionT component_function_type) const;
   std::vector<std::shared_ptr<const Instruction>>* MutableComponentFunction(
       ComponentFunctionT component_function_type);
 
-  // Setup, predict, and learn component_functions.
+  // Setup, predict, and learn component functions.
   std::vector<std::shared_ptr<const Instruction>> setup_;
   std::vector<std::shared_ptr<const Instruction>> predict_;
   std::vector<std::shared_ptr<const Instruction>> learn_;

@@ -36,7 +36,7 @@ Algorithm SimpleGz();
 // Returns a Gz Algorithm with default parameters.
 Algorithm SimpleGrTildeGrWithBias();
 
-// Returns a Algorithm where each component_function has the data of
+// Returns a Algorithm where each component function has the data of
 // instruction at position p set to the integer p.
 Algorithm SimpleIncreasingDataAlgorithm();
 
