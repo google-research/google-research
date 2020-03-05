@@ -26,8 +26,8 @@
 #include <string>
 #include <type_traits>
 
-#include "datasets.proto.h"
-#include "dataset.h"
+#include "task.proto.h"
+#include "task.h"
 #include "definitions.h"
 #include "instruction.proto.h"
 #include "algorithm.h"
@@ -47,7 +47,7 @@ class Executor {
   // Constructs a standard executor. Uses a clean memory and automatically
   // executes the setup component function. All arguments are stored by
   // reference, so they must out-live the Executor instance.
-  Executor(const Algorithm& algorithm, const Dataset<F>& dataset,
+  Executor(const Algorithm& algorithm, const Task<F>& dataset,
            // Includes the examples in all the training epochs.
            IntegerT num_all_train_examples, IntegerT num_valid_examples,
            RandomGenerator* rand_gen,
@@ -114,7 +114,7 @@ class Executor {
   const Algorithm& algorithm_;
 
   // The dataset used for training.
-  const Dataset<F>& dataset_;
+  const Task<F>& dataset_;
 
   const IntegerT num_all_train_examples_;
   const IntegerT num_valid_examples_;
@@ -972,7 +972,7 @@ struct ProbabilityConverter {
 };
 
 template <FeatureIndexT F>
-Executor<F>::Executor(const Algorithm& algorithm, const Dataset<F>& dataset,
+Executor<F>::Executor(const Algorithm& algorithm, const Task<F>& dataset,
                       const IntegerT num_all_train_examples,
                       const IntegerT num_valid_examples,
                       RandomGenerator* rand_gen,

@@ -19,7 +19,7 @@
 
 #include "algorithm.h"
 #include "algorithm_test_util.h"
-#include "dataset_util.h"
+#include "task_util.h"
 #include "definitions.h"
 #include "instruction.proto.h"
 #include "experiment.proto.h"
@@ -51,7 +51,7 @@ using ::testing::Test;
 constexpr RandomSeedT kEvolutionSeed = 100000;
 constexpr double kFitnessTolerance = 0.0001;
 constexpr IntegerT kNanosPerMilli = 1000000;
-constexpr IntegerT kNumDatasetsForSearch = 2;
+constexpr IntegerT kNumTasksForSearch = 2;
 constexpr IntegerT kNumTrainExamplesForSearch = 1000;
 constexpr IntegerT kNumValidExamplesForSearch = 100;
 constexpr double kLargeMaxAbsError = 1000000000.0;
@@ -70,8 +70,8 @@ TEST(RegularizedEvolutionTest, Runs) {
   RandomGenerator rand_gen(&bit_gen);
   Generator generator = SimpleGenerator();
   const auto task_collection = ParseTextFormat<TaskCollection>(
-      StrCat("datasets { "
-             "  scalar_2layer_nn_regression_dataset {} "
+      StrCat("tasks { "
+             "  scalar_2layer_nn_regression_task {} "
              "  features_size: 4 "
              "  num_train_examples: ",
              kNumTrainExamplesForSearch,
@@ -79,8 +79,8 @@ TEST(RegularizedEvolutionTest, Runs) {
              "  num_valid_examples: ",
              kNumValidExamplesForSearch,
              " "
-             "  num_datasets: ",
-             kNumDatasetsForSearch,
+             "  num_tasks: ",
+             kNumTasksForSearch,
              " "
              "  eval_type: RMS_ERROR "
              "} "));
@@ -106,8 +106,8 @@ TEST(RegularizedEvolutionTest, TimesCorrectly) {
   RandomGenerator rand_gen(&bit_gen);
   Generator generator = SimpleGenerator();
   const auto task_collection = ParseTextFormat<TaskCollection>(
-      StrCat("datasets { "
-             "  scalar_2layer_nn_regression_dataset {} "
+      StrCat("tasks { "
+             "  scalar_2layer_nn_regression_task {} "
              "  features_size: 4 "
              "  num_train_examples: ",
              kNumTrainExamplesForSearch,
@@ -115,8 +115,8 @@ TEST(RegularizedEvolutionTest, TimesCorrectly) {
              "  num_valid_examples: ",
              kNumValidExamplesForSearch,
              " "
-             "  num_datasets: ",
-             kNumDatasetsForSearch,
+             "  num_tasks: ",
+             kNumTasksForSearch,
              " "
              "  eval_type: RMS_ERROR "
              "} "));
@@ -147,8 +147,8 @@ TEST(RegularizedEvolutionTest, CountsCorrectly) {
   RandomGenerator rand_gen(&bit_gen);
   Generator generator = SimpleGenerator();
   const auto task_collection = ParseTextFormat<TaskCollection>(
-      StrCat("datasets { "
-             "  scalar_2layer_nn_regression_dataset {} "
+      StrCat("tasks { "
+             "  scalar_2layer_nn_regression_task {} "
              "  features_size: 4 "
              "  num_train_examples: ",
              kNumTrainExamplesForSearch,
@@ -156,8 +156,8 @@ TEST(RegularizedEvolutionTest, CountsCorrectly) {
              "  num_valid_examples: ",
              kNumValidExamplesForSearch,
              " "
-             "  num_datasets: ",
-             kNumDatasetsForSearch,
+             "  num_tasks: ",
+             kNumTasksForSearch,
              " "
              "  eval_type: RMS_ERROR "
              "} "));

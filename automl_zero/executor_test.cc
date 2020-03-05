@@ -19,9 +19,9 @@
 #include <random>
 #include <vector>
 
-#include "datasets.proto.h"
-#include "dataset.h"
-#include "dataset_util.h"
+#include "task.proto.h"
+#include "task.h"
+#include "task_util.h"
 #include "definitions.h"
 #include "instruction.proto.h"
 #include "algorithm.h"
@@ -68,7 +68,7 @@ bool VectorEq(const Vector<16>& vector1,
 
 TEST(ExecutorTest, PredictComponentFunctionRuns) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_ones_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_ones_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -76,7 +76,7 @@ TEST(ExecutorTest, PredictComponentFunctionRuns) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm that counts the examples in the
@@ -103,7 +103,7 @@ TEST(ExecutorTest, PredictComponentFunctionRuns) {
 
 TEST(ExecutorTest, LearnComponentFunctionRuns) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_ones_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_ones_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -111,7 +111,7 @@ TEST(ExecutorTest, LearnComponentFunctionRuns) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm that counts the examples in the
@@ -138,7 +138,7 @@ TEST(ExecutorTest, LearnComponentFunctionRuns) {
 
 TEST(ExecutorTest, ComputesLossCorrectly) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_ones_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_ones_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -146,7 +146,7 @@ TEST(ExecutorTest, ComputesLossCorrectly) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm in which the error is always 0.1.
@@ -165,7 +165,7 @@ TEST(ExecutorTest, ComputesLossCorrectly) {
 
 TEST(ExecutorTest, ProbAccuracyComputesLossCorrectly) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_ones_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_ones_task {} "
                                 "eval_type: ACCURACY "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -173,7 +173,7 @@ TEST(ExecutorTest, ProbAccuracyComputesLossCorrectly) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm in which the accuracy is always 0.0.
@@ -232,7 +232,7 @@ TEST(ExecutorTest, ReportsErrors) {
   const IntegerT num_train_examples = 11;
   const IntegerT num_valid_examples = 9;
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_increment_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_increment_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 num_train_examples,
@@ -240,7 +240,7 @@ TEST(ExecutorTest, ReportsErrors) {
                                 "num_valid_examples: ",
                                 num_valid_examples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
   Algorithm algorithm = SimpleNoOpAlgorithm();
   RandomGenerator rand_gen = SimpleRandomGenerator();
@@ -262,7 +262,7 @@ TEST(ExecutorTest, ReportsErrors) {
 
 TEST(ExecutorTest, ItereatesThroughFeatures) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_increment_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_increment_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -270,7 +270,7 @@ TEST(ExecutorTest, ItereatesThroughFeatures) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm that aggretates the mean value of the features.
@@ -294,7 +294,7 @@ TEST(ExecutorTest, ItereatesThroughFeatures) {
 
 TEST(ExecutorTest, ItereatesThroughLabelsDuringTraining) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_increment_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_increment_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -302,7 +302,7 @@ TEST(ExecutorTest, ItereatesThroughLabelsDuringTraining) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm that aggretates the mean value of the labels.
@@ -323,7 +323,7 @@ TEST(ExecutorTest, ItereatesThroughLabelsDuringTraining) {
 
 TEST(ExecutorTest, ItereatesThroughLabelsDuringValidation) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_increment_dataset {increment: 0.1} "
+      GenerateTask<4>(StrCat("unit_test_increment_task {increment: 0.1} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -331,7 +331,7 @@ TEST(ExecutorTest, ItereatesThroughLabelsDuringValidation) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   Algorithm algorithm = SimpleNoOpAlgorithm();
@@ -345,7 +345,7 @@ TEST(ExecutorTest, ItereatesThroughLabelsDuringValidation) {
 
 TEST(ExecutorTest, ValidationDoesNotSeeLabels) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_increment_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_increment_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -353,7 +353,7 @@ TEST(ExecutorTest, ValidationDoesNotSeeLabels) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm that aggretates the mean value of the labels.
@@ -374,7 +374,7 @@ TEST(ExecutorTest, ValidationDoesNotSeeLabels) {
 
 TEST(ExecutorTest, StopsEarlyIfLargeErrorInSetupComponentFunction) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_increment_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_increment_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -382,7 +382,7 @@ TEST(ExecutorTest, StopsEarlyIfLargeErrorInSetupComponentFunction) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm that creates a NaN in the predict component function.
@@ -402,7 +402,7 @@ TEST(ExecutorTest, StopsEarlyIfLargeErrorInSetupComponentFunction) {
 
 TEST(ExecutorTest, StopsEarlyIfLargeErrorInPredictComponentFunction) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_increment_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_increment_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -410,7 +410,7 @@ TEST(ExecutorTest, StopsEarlyIfLargeErrorInPredictComponentFunction) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm that creates a NaN in the predict component function.
@@ -430,7 +430,7 @@ TEST(ExecutorTest, StopsEarlyIfLargeErrorInPredictComponentFunction) {
 
 TEST(ExecutorTest, StopsEarlyIfLargeErrorInLearnComponentFunction) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_ones_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_ones_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -438,7 +438,7 @@ TEST(ExecutorTest, StopsEarlyIfLargeErrorInLearnComponentFunction) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm that creates a NaN in the predict component function.
@@ -458,7 +458,7 @@ TEST(ExecutorTest, StopsEarlyIfLargeErrorInLearnComponentFunction) {
 
 TEST(ExecutorTest, StopsEarlyIfInfinityInSetupComponentFunction) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_ones_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_ones_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -466,7 +466,7 @@ TEST(ExecutorTest, StopsEarlyIfInfinityInSetupComponentFunction) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm that creates a NaN in the predict component function.
@@ -489,7 +489,7 @@ TEST(ExecutorTest, StopsEarlyIfInfinityInSetupComponentFunction) {
 
 TEST(ExecutorTest, StopsEarlyIfInfinityInPredictComponentFunction) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_ones_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_ones_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -497,7 +497,7 @@ TEST(ExecutorTest, StopsEarlyIfInfinityInPredictComponentFunction) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm that creates a NaN in the predict component function.
@@ -520,7 +520,7 @@ TEST(ExecutorTest, StopsEarlyIfInfinityInPredictComponentFunction) {
 
 TEST(ExecutorTest, StopsEarlyIfInfinityInLearnComponentFunction) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_ones_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_ones_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -528,7 +528,7 @@ TEST(ExecutorTest, StopsEarlyIfInfinityInLearnComponentFunction) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm that creates a NaN in the predict component function.
@@ -551,7 +551,7 @@ TEST(ExecutorTest, StopsEarlyIfInfinityInLearnComponentFunction) {
 
 TEST(ExecutorTest, StopsEarlyIfNanInSetupComponentFunction) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_ones_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_ones_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -559,7 +559,7 @@ TEST(ExecutorTest, StopsEarlyIfNanInSetupComponentFunction) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm that creates a NaN in the predict component function.
@@ -579,7 +579,7 @@ TEST(ExecutorTest, StopsEarlyIfNanInSetupComponentFunction) {
 
 TEST(ExecutorTest, StopsEarlyIfNanInPredictComponentFunction) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_ones_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_ones_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -587,7 +587,7 @@ TEST(ExecutorTest, StopsEarlyIfNanInPredictComponentFunction) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm that creates a NaN in the predict component function.
@@ -607,7 +607,7 @@ TEST(ExecutorTest, StopsEarlyIfNanInPredictComponentFunction) {
 
 TEST(ExecutorTest, StopsEarlyIfNanInLearnComponentFunction) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_ones_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_ones_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -615,7 +615,7 @@ TEST(ExecutorTest, StopsEarlyIfNanInLearnComponentFunction) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   // Create a Algorithm that creates a NaN in the predict component function.
@@ -635,7 +635,7 @@ TEST(ExecutorTest, StopsEarlyIfNanInLearnComponentFunction) {
 
 TEST(ExecutorTest, StopsEarlyIfErrorTooLarge) {
   auto dataset = GenerateTask<4>(
-      "unit_test_fixed_dataset { "
+      "unit_test_fixed_task { "
       "  train_features {elements: [0.0, 0.0, 0.0, 0.0]} "
       "  train_features {elements: [0.0, 0.0, 0.0, 0.0]} "
       "  train_features {elements: [0.0, 0.0, 0.0, 0.0]} "
@@ -680,7 +680,7 @@ TEST(ExecutorTest, StopsEarlyIfErrorTooLarge) {
       "eval_type: RMS_ERROR "
       "num_train_examples: 10 "
       "num_valid_examples: 10 "
-      "num_datasets: 1 "
+      "num_tasks: 1 "
       "features_size: 4 ");
 
   Algorithm algorithm = SimpleNoOpAlgorithm();
@@ -696,7 +696,7 @@ TEST(ExecutorTest, StopsEarlyIfErrorTooLarge) {
 
 TEST(ExecutorTest, DoesNotStopIfErrorNotLargeEnough) {
   auto dataset = GenerateTask<4>(
-      "unit_test_fixed_dataset { "
+      "unit_test_fixed_task { "
       "  train_features {elements: [0.0, 0.0, 0.0, 0.0]} "
       "  train_features {elements: [0.0, 0.0, 0.0, 0.0]} "
       "  train_features {elements: [0.0, 0.0, 0.0, 0.0]} "
@@ -741,7 +741,7 @@ TEST(ExecutorTest, DoesNotStopIfErrorNotLargeEnough) {
       "eval_type: RMS_ERROR "
       "num_train_examples: 10 "
       "num_valid_examples: 10 "
-      "num_datasets: 1 "
+      "num_tasks: 1 "
       "features_size: 4 ");
 
   Algorithm algorithm = SimpleNoOpAlgorithm();
@@ -756,7 +756,7 @@ TEST(ExecutorTest, DoesNotStopIfErrorNotLargeEnough) {
 
 TEST(ExecutorTest, StopsEarlyIfProblemDuringValidation) {
   auto dataset = GenerateTask<4>(
-      "unit_test_fixed_dataset { "
+      "unit_test_fixed_task { "
       "  train_features {elements: [0.0, 0.0, 0.0, 0.0]} "
       "  train_features {elements: [0.0, 0.0, 0.0, 0.0]} "
       "  train_features {elements: [0.0, 0.0, 0.0, 0.0]} "
@@ -801,7 +801,7 @@ TEST(ExecutorTest, StopsEarlyIfProblemDuringValidation) {
       "eval_type: RMS_ERROR "
       "num_train_examples: 10 "
       "num_valid_examples: 10 "
-      "num_datasets: 1 "
+      "num_tasks: 1 "
       "features_size: 4 ");
 
   Algorithm algorithm = SimpleNoOpAlgorithm();
@@ -816,7 +816,7 @@ TEST(ExecutorTest, StopsEarlyIfProblemDuringValidation) {
 
 TEST(ExecutorTest, DoesNotStopsEarlyIfEverythingIsFine) {
   auto dataset =
-      GenerateTask<4>(StrCat("unit_test_zeros_dataset {} "
+      GenerateTask<4>(StrCat("unit_test_zeros_task {} "
                                 "eval_type: RMS_ERROR "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
@@ -824,7 +824,7 @@ TEST(ExecutorTest, DoesNotStopsEarlyIfEverythingIsFine) {
                                 "num_valid_examples: ",
                                 kNumValidExamples,
                                 " "
-                                "num_datasets: 1 "
+                                "num_tasks: 1 "
                                 "features_size: 4 "));
 
   Algorithm algorithm = SimpleNoOpAlgorithm();
@@ -838,8 +838,8 @@ TEST(ExecutorTest, DoesNotStopsEarlyIfEverythingIsFine) {
 }
 
 TEST(ExecutorTest, TrainOptimizationsAreCorrect) {
-  Dataset<4> dataset =
-      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_dataset {} "
+  Task<4> dataset =
+      GenerateTask<4>(StrCat("scalar_2layer_nn_regression_task {} "
                                 "num_train_examples: ",
                                 kNumTrainExamples,
                                 " "
@@ -883,8 +883,8 @@ TEST(ExecutorTest, TrainOptimizationsAreCorrect) {
 // executor is only training one epoch. This means this test cannot be testing
 // the multi-epoch training. Please fix and uncomment.
 // TEST(ExecutorTest, MultiEpochTrainingWorksCorrectly) {
-//   Dataset<4> dataset = GenerateTask<4>(StrCat(
-//       "scalar_2layer_nn_regression_dataset {} "
+//   Task<4> dataset = GenerateTask<4>(StrCat(
+//       "scalar_2layer_nn_regression_task {} "
 //       "num_train_examples: ", kNumTrainExamples, " "
 //       "num_valid_examples: ", kNumValidExamples, " "
 //       "eval_type: RMS_ERROR "
@@ -895,8 +895,8 @@ TEST(ExecutorTest, TrainOptimizationsAreCorrect) {
 //   // Check that multiple epoch training works correctly. For example,
 //   // training for another epoch will improve the validation error.
 //   {
-//     Dataset<4> dataset = GenerateTask<4>(StrCat(
-//         "scalar_2layer_nn_regression_dataset {} "
+//     Task<4> dataset = GenerateTask<4>(StrCat(
+//         "scalar_2layer_nn_regression_task {} "
 //         "num_train_examples: ", kNumTrainExamples, " "
 //         "num_valid_examples: ", kNumValidExamples, " "
 //         "eval_type: RMS_ERROR "

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "dataset_util.h"
+#include "task_util.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -25,8 +25,8 @@
 
 #include "file/base/path.h"
 #include "algorithm.h"
-#include "dataset.h"
-#include "datasets.proto.h"
+#include "task.h"
+#include "task.proto.h"
 #include "definitions.h"
 #include "executor.h"
 #include "generator.h"
@@ -52,8 +52,8 @@ using ::std::vector;  // NOLINT
 using ::std::pair;  // NOLINT
 using ::std::set;  // NOLINT
 
-// The values of the seeds below were chosen so that they span datasets of
-// varying difficulties (the difficulties are for the nonlinear datasets).
+// The values of the seeds below were chosen so that they span tasks of
+// varying difficulties (the difficulties are for the nonlinear tasks).
 vector<RandomSeedT> DefaultFirstParamSeeds() {
   return {
       1001,  // Easy.
@@ -71,11 +71,11 @@ vector<RandomSeedT> DefaultFirstDataSeeds() {
   return {11001, 11012, 11010, 11000, 11006, 11008, 11007, 11003};
 }
 
-void FillDatasetsFromTaskSpec(
+void FillTasksFromTaskSpec(
     const TaskSpec& task_spec,
-    vector<unique_ptr<TaskInterface>>* return_datasets) {
-  const IntegerT num_datasets = task_spec.num_datasets();
-  CHECK_GT(num_datasets, 0);
+    vector<unique_ptr<TaskInterface>>* return_tasks) {
+  const IntegerT num_tasks = task_spec.num_tasks();
+  CHECK_GT(num_tasks, 0);
   vector<RandomSeedT> first_param_seeds =
       task_spec.param_seeds_size() == 0
           ? DefaultFirstParamSeeds()
@@ -91,32 +91,32 @@ void FillDatasetsFromTaskSpec(
 
   RandomSeedT param_seed;
   RandomSeedT data_seed;
-  for (IntegerT i = 0; i < num_datasets; ++i) {
+  for (IntegerT i = 0; i < num_tasks; ++i) {
     param_seed =
         i < first_param_seeds.size() ? first_param_seeds[i] : param_seed + 1;
     data_seed =
         i < first_data_seeds.size() ? first_data_seeds[i] : data_seed + 1;
 
-    const IntegerT dataset_index = return_datasets->size();
+    const IntegerT task_index = return_tasks->size();
     switch (task_spec.features_size()) {
       case 2:
-        return_datasets->push_back(CreateDataset<2>(dataset_index, param_seed,
+        return_tasks->push_back(CreateTask<2>(task_index, param_seed,
                                                     data_seed, task_spec));
         break;
       case 4:
-        return_datasets->push_back(CreateDataset<4>(dataset_index, param_seed,
+        return_tasks->push_back(CreateTask<4>(task_index, param_seed,
                                                     data_seed, task_spec));
         break;
       case 8:
-        return_datasets->push_back(CreateDataset<8>(dataset_index, param_seed,
+        return_tasks->push_back(CreateTask<8>(task_index, param_seed,
                                                     data_seed, task_spec));
         break;
       case 16:
-        return_datasets->push_back(CreateDataset<16>(dataset_index, param_seed,
+        return_tasks->push_back(CreateTask<16>(task_index, param_seed,
                                                      data_seed, task_spec));
         break;
       case 32:
-        return_datasets->push_back(CreateDataset<32>(dataset_index, param_seed,
+        return_tasks->push_back(CreateTask<32>(task_index, param_seed,
                                                      data_seed, task_spec));
         break;
       default:
@@ -126,17 +126,17 @@ void FillDatasetsFromTaskSpec(
   }
 }
 
-void FillDatasets(
+void FillTasks(
     const TaskCollection& task_collection,
-    vector<unique_ptr<TaskInterface>>* return_datasets) {
+    vector<unique_ptr<TaskInterface>>* return_tasks) {
   // Check return targets are empty.
-  CHECK(return_datasets->empty());
-  for (const TaskSpec& task_spec : task_collection.datasets()) {
-    FillDatasetsFromTaskSpec(task_spec, return_datasets);
+  CHECK(return_tasks->empty());
+  for (const TaskSpec& task_spec : task_collection.tasks()) {
+    FillTasksFromTaskSpec(task_spec, return_tasks);
   }
 }
 
-void RandomizeDatasetSeeds(TaskCollection* task_collection,
+void RandomizeTaskSeeds(TaskCollection* task_collection,
                            const RandomSeedT seed) {
   RandomSeedT base_param_seed =
       HashMix(static_cast<RandomSeedT>(85652777), seed);
@@ -150,14 +150,14 @@ void RandomizeDatasetSeeds(TaskCollection* task_collection,
   RandomGenerator data_seed_gen = RandomGenerator(
       &data_seed_bit_gen);
 
-  for (TaskSpec& dataset : *task_collection->mutable_datasets()) {
-    dataset.clear_param_seeds();
-    dataset.clear_data_seeds();
-    for (IntegerT i = 0; i < dataset.num_datasets(); i++) {
-      dataset.add_param_seeds(param_seed_gen.UniformRandomSeed());
+  for (TaskSpec& task : *task_collection->mutable_tasks()) {
+    task.clear_param_seeds();
+    task.clear_data_seeds();
+    for (IntegerT i = 0; i < task.num_tasks(); i++) {
+      task.add_param_seeds(param_seed_gen.UniformRandomSeed());
     }
-    for (IntegerT i = 0; i < dataset.num_datasets(); i++) {
-      dataset.add_data_seeds(data_seed_gen.UniformRandomSeed());
+    for (IntegerT i = 0; i < task.num_tasks(); i++) {
+      task.add_data_seeds(data_seed_gen.UniformRandomSeed());
     }
   }
 }

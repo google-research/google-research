@@ -22,8 +22,8 @@
 
 
 #include "algorithm.h"
-#include "dataset_util.h"
-#include "datasets.proto.h"
+#include "task_util.h"
+#include "task.proto.h"
 #include "definitions.h"
 #include "instruction.proto.h"
 #include "evaluator.h"
@@ -145,7 +145,7 @@ void run() {
   while (true) {
     // Randomize T_search tasks.
     if (GetFlag(FLAGS_randomize_task_seeds)) {
-      RandomizeDatasetSeeds(experiment_spec.mutable_search_tasks(),
+      RandomizeTaskSeeds(experiment_spec.mutable_search_tasks(),
                             rand_gen.UniformRandomSeed());
     }
 
@@ -186,7 +186,7 @@ void run() {
 
     // Randomize T_select tasks.
     if (GetFlag(FLAGS_randomize_task_seeds)) {
-      RandomizeDatasetSeeds(&select_tasks, rand_gen.UniformRandomSeed());
+      RandomizeTaskSeeds(&select_tasks, rand_gen.UniformRandomSeed());
     }
     mt19937 select_bit_gen(rand_gen.UniformRandomSeed());
     RandomGenerator select_rand_gen(&select_bit_gen);

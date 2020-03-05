@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Dataset generation.
+// Taskl generation.
 
 // These are called once-per-worker, so they can be slow.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DATASET_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DATASET_H_
+#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_TASK_H_
+#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_TASK_H_
 
 #include <algorithm>
 #include <random>
 #include <vector>
 
-#include "datasets.proto.h"
+#include "task.proto.h"
 #include "definitions.h"
 
 namespace automl_zero {
@@ -32,7 +32,7 @@ constexpr IntegerT kNumTrainExamplesNotSet = -963487122;
 constexpr double kDataTolerance = 0.00001;
 
 // Holds data temporarily while it is being created, so that later it can be
-// moved to a Dataset. This allows the Dataset to store const data.
+// moved to a Task. This allows the Task to store const data.
 template <FeatureIndexT F>
 class TaskBuffer {
  public:
@@ -40,8 +40,8 @@ class TaskBuffer {
   bool IsConsumed() {return consumed_;}
   void Consume() {consumed_ = true;}
 
-  // How the datasets are filled is up to each dataset Creator struct. By the
-  // end of dataset creation, the train/valid features/labels should be
+  // How the tasks are filled is up to each task Creator struct. By the
+  // end of task creation, the train/valid features/labels should be
   // assigned correctly.
   std::vector<Vector<F>> train_features_;
   std::vector<Vector<F>> valid_features_;
@@ -51,26 +51,26 @@ class TaskBuffer {
 
  private:
   // Whether this object has already been consumed by moving the data into
-  // a dataset. A consumed TaskBuffer has no further use.
+  // a task. A consumed TaskBuffer has no further use.
   bool consumed_;
 };
 
-// We define this base class so we can put datasets of different sizes into the
-// same container of datasets.
+// We define this base class so we can put tasks of different sizes into the
+// same container of tasks.
 class TaskInterface {
  public:
   // Always have at least one virtual method in this class. Because it is meant
   // to be downcasted, we need to keep it polymorphic.
   virtual ~TaskInterface() {}
 
-  // Returns the size of the feature vectors in this dataset.
+  // Returns the size of the feature vectors in this task.
   virtual FeatureIndexT FeaturesSize() const = 0;
 
   // Returns the eval type.
   virtual EvalType GetEvalType() const = 0;
 
-  // Returns the number of examples in the dataset. These can only be called
-  // after the dataset creation is complete.
+  // Returns the number of examples in the task. These can only be called
+  // after the task creation is complete.
   virtual IntegerT TrainExamplesPerEpoch() const = 0;
   virtual IntegerT NumTrainEpochs() const = 0;
   virtual IntegerT MaxTrainExamples() const = 0;
@@ -117,11 +117,11 @@ inline std::vector<std::vector<IntegerT>> GenerateEpochs(
 template <
     // The dimensionality of activations.
     FeatureIndexT F>
-class Dataset : public TaskInterface {
+class Task : public TaskInterface {
  public:
-  explicit Dataset(const size_t index, const EvalType eval_type,
-                   const IntegerT num_train_epochs, std::mt19937* bit_gen,
-                   TaskBuffer<F>* buffer)
+  explicit Task(const size_t index, const EvalType eval_type,
+                const IntegerT num_train_epochs, std::mt19937* bit_gen,
+                TaskBuffer<F>* buffer)
       : index_(index),
         eval_type_(eval_type),
         train_features_(std::move(buffer->train_features_)),
@@ -137,10 +137,10 @@ class Dataset : public TaskInterface {
     CHECK_EQ(valid_features_.size(), valid_labels_.size());
   }
 
-  Dataset(const Dataset&) = delete;
-  Dataset& operator=(const Dataset&) = delete;
+  Task(const Task&) = delete;
+  Task& operator=(const Task&) = delete;
 
-  Dataset(Dataset&& other)
+  Task(Task&& other)
       : index_(other.index_),
         eval_type_(other.eval_type_),
         train_features_(std::move(other.train_features_)),
@@ -150,7 +150,7 @@ class Dataset : public TaskInterface {
         valid_labels_(std::move(other.valid_labels_)),
         valid_epochs_(std::move(other.valid_epochs_)) {}
 
-  Dataset& operator=(Dataset&& other) {
+  Task& operator=(Task&& other) {
     this->index_ = other.index_;
     this->eval_type_ = other.eval_type_;
     this->train_features_ = std::move(other.train_features_);
@@ -162,7 +162,7 @@ class Dataset : public TaskInterface {
     return *this;
   }
 
-  bool operator==(const Dataset<F>& other) const {
+  bool operator==(const Task<F>& other) const {
     CHECK_EQ(train_features_.size(), train_labels_.size());
     CHECK_EQ(other.train_features_.size(), other.train_labels_.size());
     if (!DataEquals(train_features_, other.train_features_)) {
@@ -188,7 +188,7 @@ class Dataset : public TaskInterface {
     return true;
   }
 
-  bool operator!=(const Dataset<F>& other) const { return !(*this == other); }
+  bool operator!=(const Task<F>& other) const { return !(*this == other); }
 
   FeatureIndexT FeaturesSize() const override {return F;}
   EvalType GetEvalType() const override {return eval_type_;}
@@ -217,47 +217,47 @@ class Dataset : public TaskInterface {
   // to the move constructor. Or else it may just disappear in the middle of
   // your experiment.
 
-  // Dataset index. Used to distinguish between different dataset caches.
+  // Task index. Used to distinguish between different task caches.
   const size_t index_;
 
   const EvalType eval_type_;
 
  private:
-  FRIEND_TEST(FillDatasetsTest, WorksCorrectly);
-  FRIEND_TEST(FillDatasetWithZerosTest, WorksCorrectly);
-  FRIEND_TEST(FillDatasetWithOnesTest, WorksCorrectly);
-  FRIEND_TEST(FillDatasetWithIncrementingIntegersTest, WorksCorrectly);
-  FRIEND_TEST(FillDatasetWithNonlinearDataTest, PermanenceTest);
-  FRIEND_TEST(FillDatasetWithProjectedBinaryClassificationDatasetTest,
+  FRIEND_TEST(FillTasksTest, WorksCorrectly);
+  FRIEND_TEST(FillTaskWithZerosTest, WorksCorrectly);
+  FRIEND_TEST(FillTaskWithOnesTest, WorksCorrectly);
+  FRIEND_TEST(FillTaskWithIncrementingIntegersTest, WorksCorrectly);
+  FRIEND_TEST(FillTaskWithNonlinearDataTest, PermanenceTest);
+  FRIEND_TEST(FillTaskWithProjectedBinaryClassificationTaskTest,
               WorksCorrectly);
-  FRIEND_TEST(FillDatasetWithProjectedBinaryClassificationDatasetTest,
+  FRIEND_TEST(FillTaskWithProjectedBinaryClassificationTaskTest,
               BalancedClass);
-  FRIEND_TEST(FillDatasetWithDownsampledBinaryClassificationDatasetTest,
+  FRIEND_TEST(FillTaskWithDownsampledBinaryClassificationTaskTest,
               WorksCorrectly);
-  FRIEND_TEST(FillDatasetWithDownsampledBinaryClassificationDatasetTest,
+  FRIEND_TEST(FillTaskWithDownsampledBinaryClassificationTaskTest,
               BalancedClass);
-  FRIEND_TEST(FillDatasetWithProjectedMulticlassClassificationDatasetTest,
+  FRIEND_TEST(FillTaskWithProjectedMulticlassClassificationTaskTest,
               WorksCorrectly);
-  FRIEND_TEST(FillDatasetWithProjectedMulticlassClassificationDatasetTest,
+  FRIEND_TEST(FillTaskWithProjectedMulticlassClassificationTaskTest,
               BalancedClass);
-  FRIEND_TEST(FillDatasetWithProjectedMulticlassClassificationDatasetTest,
+  FRIEND_TEST(FillTaskWithProjectedMulticlassClassificationTaskTest,
               SoftensLabels);
-  FRIEND_TEST(FillDatasetWithCustomNNClassificationDataTest, BalancedClass);
-  FRIEND_TEST(FillDatasetWithCustomNNDistillationDataTest, PermanenceTest);
-  FRIEND_TEST(CreateDatasetWithPolynomialRegressionDataTest, LabelsAreCorrect);
-  FRIEND_TEST(CreateDatasetWithRandomPolynomialDataTest,
+  FRIEND_TEST(FillTaskWithCustomNNClassificationDataTest, BalancedClass);
+  FRIEND_TEST(FillTaskWithCustomNNDistillationDataTest, PermanenceTest);
+  FRIEND_TEST(CreateTaskWithPolynomialRegressionDataTest, LabelsAreCorrect);
+  FRIEND_TEST(CreateTaskWithRandomPolynomialDataTest,
               DifferentForDifferentSeeds);
-  FRIEND_TEST(CreateDatasetWithRationalDataTest,
+  FRIEND_TEST(CreateTaskWithRationalDataTest,
               LabelsAreCorrect);
-  FRIEND_TEST(CreateDatasetWithRandomRationalDataTest,
+  FRIEND_TEST(CreateTaskWithRandomRationalDataTest,
               DifferentForDifferentSeeds);
-  FRIEND_TEST(UnitTestFixedDatasetCreatorTest, GeneratesScalarDataset);
-  FRIEND_TEST(UnitTestFixedDatasetCreatorTest, GeneratesVectorDataset);
+  FRIEND_TEST(UnitTestFixedTaskCreatorTest, GeneratesScalarTask);
+  FRIEND_TEST(UnitTestFixedTaskCreatorTest, GeneratesVectorTask);
   FRIEND_TEST(FillWithDynamicMatrix, FillWithDynamicMatrixPermanenceTest);
-  FRIEND_TEST(DatasetTest, HasCorrectSizes);
-  FRIEND_TEST(CreateDatasetWithRandomMulticlassRationalDataTest,
+  FRIEND_TEST(TaskTest, HasCorrectSizes);
+  FRIEND_TEST(CreateTaskWithRandomMulticlassRationalDataTest,
               DifferentParamSeedsCoverAllLabelIndexes);
-  FRIEND_TEST(CreateDatasetWithRandomMulticlassRationalDataTest,
+  FRIEND_TEST(CreateTaskWithRandomMulticlassRationalDataTest,
               SameParamSeedsUsesOnlyTwoLabelIndexes);
 
   // ***IMPORTANT***: if you add a member variable below, you *must* also add it
@@ -337,4 +337,4 @@ class TaskIterator {
 
 }  // namespace automl_zero
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DATASET_H_
+#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_TASK_H_

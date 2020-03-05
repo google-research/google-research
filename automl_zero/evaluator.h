@@ -21,8 +21,8 @@
 #include <vector>
 
 #include "algorithm.h"
-#include "dataset.h"
-#include "datasets.proto.h"
+#include "task.h"
+#include "task.proto.h"
 #include "definitions.h"
 #include "experiment.proto.h"
 #include "fec_cache.h"
@@ -38,7 +38,7 @@ class Evaluator {
  public:
   Evaluator(
       const FitnessCombinationMode fitness_combination_mode,
-      // Datasets to use. Will be filtered to only keep datasets targeted
+      // Tasks to use. Will be filtered to only keep tasks targeted
       // to this worker.
       const TaskCollection& task_collection,
       // The random generator seed to use for any random operations that
@@ -58,28 +58,28 @@ class Evaluator {
   Evaluator(const Evaluator& other) = delete;
   Evaluator& operator=(const Evaluator& other) = delete;
 
-  // Evaluates a Algorithm by executing it on the datasets. Returns the mean
+  // Evaluates a Algorithm by executing it on the tasks. Returns the mean
   // fitness.
   double Evaluate(const Algorithm& algorithm);
 
  private:
-  double Execute(const TaskInterface& dataset, IntegerT num_train_examples,
+  double Execute(const TaskInterface& task, IntegerT num_train_examples,
                  const Algorithm& algorithm);
 
   template <FeatureIndexT F>
-  double ExecuteImpl(const Dataset<F>& dataset, IntegerT num_train_examples,
+  double ExecuteImpl(const Task<F>& task, IntegerT num_train_examples,
                      const Algorithm& algorithm);
 
   double CapFitness(double fitness);
 
   const FitnessCombinationMode fitness_combination_mode_;
 
-  // Contains only dataset specifications targeted to his worker.
+  // Contains only task specifications targeted to his worker.
   const TaskCollection task_collection_;
 
   TrainBudget* train_budget_;
   RandomGenerator* rand_gen_;
-  std::vector<std::unique_ptr<TaskInterface>> datasets_;
+  std::vector<std::unique_ptr<TaskInterface>> tasks_;
   FECCache* functional_cache_;
   std::unique_ptr<std::mt19937> functional_cache_bit_gen_owned_;
   std::unique_ptr<RandomGenerator> functional_cache_rand_gen_owned_;
@@ -96,7 +96,7 @@ class Evaluator {
 namespace internal {
 
 double CombineFitnesses(
-    const std::vector<double>& dataset_fitnesses,
+    const std::vector<double>& task_fitnesses,
     const FitnessCombinationMode mode);
 
 }  // namespace internal

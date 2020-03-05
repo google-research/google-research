@@ -21,8 +21,8 @@
 #include <ostream>
 #include <vector>
 
-#include "dataset.h"
-#include "dataset_util.h"
+#include "task.h"
+#include "task_util.h"
 #include "definitions.h"
 #include "executor.h"
 #include "generator_test_util.h"
