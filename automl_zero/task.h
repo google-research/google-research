@@ -16,8 +16,8 @@
 
 // These are called once-per-worker, so they can be slow.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_TASK_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_TASK_H_
+#ifndef TASK_H_
+#define TASK_H_
 
 #include <algorithm>
 #include <random>
@@ -337,4 +337,4 @@ class TaskIterator {
 
 }  // namespace automl_zero
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_TASK_H_
+#endif  // TASK_H_

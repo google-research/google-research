@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_COMPUTE_COST_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_COMPUTE_COST_H_
+#ifndef COMPUTE_COST_H_
+#define COMPUTE_COST_H_
 
 #include "instruction.h"
 
@@ -31,4 +31,4 @@ double ComputeCost(const Instruction& instruction);
 
 }  // namespace automl_zero
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_COMPUTE_COST_H_
+#endif  // COMPUTE_COST_H_

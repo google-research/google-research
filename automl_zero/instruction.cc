@@ -1093,11 +1093,11 @@ SerializedInstruction Instruction::Serialize() const {
   SerializedInstruction checkpoint_instruction;
   checkpoint_instruction.set_op(op_);
   checkpoint_instruction.set_in1(
-      static_cast<int32>(in1_));  // Convert to higher precision.
+      static_cast<int32_t>(in1_));  // Convert to higher precision.
   checkpoint_instruction.set_in2(
-      static_cast<int32>(in2_));  // Convert to higher precision.
+      static_cast<int32_t>(in2_));  // Convert to higher precision.
   checkpoint_instruction.set_out(
-      static_cast<int32>(out_));  // Convert to higher precision.
+      static_cast<int32_t>(out_));  // Convert to higher precision.
   checkpoint_instruction.set_activation_data(activation_data_);
   checkpoint_instruction.set_float_data_0(float_data_0_);
   checkpoint_instruction.set_float_data_1(float_data_1_);

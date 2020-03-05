@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_TASK_UTIL_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_TASK_UTIL_H_
+#ifndef TASK_UTIL_H_
+#define TASK_UTIL_H_
 
 #include <array>
 #include <random>
@@ -73,7 +73,7 @@ template <FeatureIndexT F>
 Task<F> GenerateTask(const std::string& task_spec_str) {
   TaskCollection task_collection;
   TaskSpec* task_spec = task_collection.add_tasks();
-  CHECK(proto2::TextFormat::ParseFromString(task_spec_str, task_spec));
+  CHECK(google::protobuf::TextFormat::ParseFromString(task_spec_str, task_spec));
   if (!task_spec->has_features_size()) {
     task_spec->set_features_size(F);
   }
@@ -217,12 +217,12 @@ struct Scalar2LayerNnRegressionTaskCreator {
 
 template<FeatureIndexT F>
 void CopyUnitTestFixedTaskVector(
-    const proto2::RepeatedField<double>& src, Scalar* dest) {
+    const google::protobuf::RepeatedField<double>& src, Scalar* dest) {
   LOG(FATAL) << "Not allowed." << std::endl;
 }
 template<FeatureIndexT F>
 void CopyUnitTestFixedTaskVector(
-    const proto2::RepeatedField<double>& src, Vector<F>* dest) {
+    const google::protobuf::RepeatedField<double>& src, Vector<F>* dest) {
   CHECK_EQ(src.size(), F);
   for (IntegerT index = 0; index < F; ++index) {
     (*dest)(index) = src.at(index);
@@ -409,4 +409,4 @@ void RandomizeTaskSeeds(TaskCollection* task_collection,
 
 }  // namespace automl_zero
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_TASK_UTIL_H_
+#endif  // TASK_UTIL_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_MUTATOR_TEST_UTIL_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_MUTATOR_TEST_UTIL_H_
+#ifndef MUTATOR_TEST_UTIL_H_
+#define MUTATOR_TEST_UTIL_H_
 
 #include "mutator.h"
 #include "testing/base/public/gmock.h"
@@ -24,4 +24,4 @@ Mutator SimpleMutator();
 
 }  // namespace automl_zero
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_MUTATOR_TEST_UTIL_H_
+#endif  // MUTATOR_TEST_UTIL_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_EXECUTOR_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_EXECUTOR_H_
+#ifndef EXECUTOR_H_
+#define EXECUTOR_H_
 
 #include <algorithm>
 #include <cmath>
@@ -1418,4 +1418,4 @@ inline double MinusXLogY(const double x, const double y) {
 
 }  // namespace automl_zero
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_EXECUTOR_H_
+#endif  // EXECUTOR_H_

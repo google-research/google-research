@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_FEC_CACHE_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_FEC_CACHE_H_
+#ifndef FEC_CACHE_H_
+#define FEC_CACHE_H_
 
 #include <functional>
 #include <list>
@@ -103,4 +103,4 @@ class FECCache {
 
 }  // namespace automl_zero
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_FEC_CACHE_H_
+#endif  // FEC_CACHE_H_
