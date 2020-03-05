@@ -225,6 +225,7 @@ void run() {
   }
 
   // Do a final evaluation on unseen tasks.
+  cout << endl;
   cout << "Final evaluation of best algorithm "
        << "(on unseen tasks)..." << endl;
   const auto final_tasks =

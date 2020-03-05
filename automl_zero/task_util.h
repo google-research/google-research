@@ -403,7 +403,6 @@ std::unique_ptr<Task<F>> CreateTask(const IntegerT task_index,
 
 // Randomizes all the seeds given a base seed. See "internal workflow" comment
 // in task.proto.
-// TODO(crazydonkey): make sure the random seed is never 0.
 void RandomizeTaskSeeds(TaskCollection* task_collection,
                         RandomSeedT seed);
 

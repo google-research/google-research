@@ -832,253 +832,253 @@ std::string Instruction::ToString() const {
       stream << "  NoOp()" << std::endl;
       break;
     case SCALAR_SUM_OP:
-      stream << "  s[" << out_ << "] = s[" << in1_ << "] + s[" << in2_ << "]"
+      stream << "  s" << out_ << " = s" << in1_ << " + s" << in2_
              << std::endl;
       break;
     case SCALAR_DIFF_OP:
-      stream << "  s[" << out_ << "] = s[" << in1_ << "] - s[" << in2_ << "]"
+      stream << "  s" << out_ << " = s" << in1_ << " - s" << in2_
              << std::endl;
       break;
     case SCALAR_PRODUCT_OP:
-      stream << "  s[" << out_ << "] = s[" << in1_ << "] * s[" << in2_ << "]"
+      stream << "  s" << out_ << " = s" << in1_ << " * s" << in2_
              << std::endl;
       break;
     case SCALAR_DIVISION_OP:
-      stream << "  s[" << out_ << "] = s[" << in1_ << "] / s[" << in2_ << "]"
+      stream << "  s" << out_ << " = s" << in1_ << " / s" << in2_
              << std::endl;
       break;
     case SCALAR_MIN_OP:
-      stream << "  s[" << out_ << "] = min(s[" << in1_ << "], s[" << in2_
-             << "])" << std::endl;
+      stream << "  s" << out_ << " = minimum(s" << in1_ << ", s" << in2_
+             << ")" << std::endl;
       break;
     case SCALAR_MAX_OP:
-      stream << "  s[" << out_ << "] = np.maximum(s[" << in1_ << "], s[" << in2_
-             << "])" << std::endl;
+      stream << "  s" << out_ << " = maximum(s" << in1_ << ", s" << in2_
+             << ")" << std::endl;
       break;
     case SCALAR_ABS_OP:
-      stream << "  s[" << out_ << "] = np.abs(s[" << in1_ << "])" << std::endl;
+      stream << "  s" << out_ << " = abs(s" << in1_ << ")" << std::endl;
       break;
     case SCALAR_HEAVYSIDE_OP:
-      stream << "  s[" << out_ << "] = np.heaviside(s[" << in1_ << "], 1.0)"
+      stream << "  s" << out_ << " = heaviside(s" << in1_ << ", 1.0)"
              << std::endl;
       break;
     case SCALAR_CONST_SET_OP: {
-      stream << "  s[" << out_ << "] = " << activation_data_ << std::endl;
+      stream << "  s" << out_ << " = " << activation_data_ << std::endl;
       break;
     }
     case SCALAR_SIN_OP:
-      stream << "  s[" << out_ << "] = np.sin(s[" << in1_ << "])" << std::endl;
+      stream << "  s" << out_ << " = sin(s" << in1_ << ")" << std::endl;
       break;
     case SCALAR_COS_OP:
-      stream << "  s[" << out_ << "] = np.cos(s[" << in1_ << "])" << std::endl;
+      stream << "  s" << out_ << " = cos(s" << in1_ << ")" << std::endl;
       break;
     case SCALAR_TAN_OP:
-      stream << "  s[" << out_ << "] = np.tan(s[" << in1_ << "])" << std::endl;
+      stream << "  s" << out_ << " = tan(s" << in1_ << ")" << std::endl;
       break;
     case SCALAR_ARCSIN_OP:
-      stream << "  s[" << out_ << "] = np.arcsin(s[" << in1_ << "])"
+      stream << "  s" << out_ << " = arcsin(s" << in1_ << ")"
              << std::endl;
       break;
     case SCALAR_ARCCOS_OP:
-      stream << "  s[" << out_ << "] = np.arccos(s[" << in1_ << "])"
+      stream << "  s" << out_ << " = arccos(s" << in1_ << ")"
              << std::endl;
       break;
     case SCALAR_ARCTAN_OP:
-      stream << "  s[" << out_ << "] = np.arctan(s[" << in1_ << "])"
+      stream << "  s" << out_ << " = arctan(s" << in1_ << ")"
              << std::endl;
       break;
     case SCALAR_EXP_OP:
-      stream << "  s[" << out_ << "] = np.exp(s[" << in1_ << "])" << std::endl;
+      stream << "  s" << out_ << " = exp(s" << in1_ << ")" << std::endl;
       break;
     case SCALAR_LOG_OP:
-      stream << "  s[" << out_ << "] = np.log(s[" << in1_ << "])" << std::endl;
+      stream << "  s" << out_ << " = log(s" << in1_ << ")" << std::endl;
       break;
     case SCALAR_RECIPROCAL_OP:
-      stream << "  s[" << out_ << "] = 1 / s[" << in1_ << "]" << std::endl;
+      stream << "  s" << out_ << " = 1 / s" << in1_ << std::endl;
       break;
     case SCALAR_BROADCAST_OP:
-      stream << "  v[" << out_ << "] = broadcast(s[" << in1_ << "])"
+      stream << "  v" << out_ << " = bcast(s" << in1_ << ")"
              << std::endl;
       break;
     case VECTOR_RECIPROCAL_OP:
-      stream << "  v[" << out_ << "] = 1 / v[" << in1_ << "]" << std::endl;
+      stream << "  v" << out_ << " = 1 / v" << in1_ << std::endl;
       break;
     case MATRIX_RECIPROCAL_OP:
-      stream << "  m[" << out_ << "] = 1 / m[" << in1_ << "]" << std::endl;
+      stream << "  m" << out_ << " = 1 / m" << in1_ << std::endl;
       break;
     case MATRIX_ROW_NORM_OP:
-      stream << "  v[" << out_ << "] = row_norm(m[" << in1_ << "])"
+      stream << "  v" << out_ << " = norm(m" << in1_ << ", axis=1)"
              << std::endl;
       break;
     case MATRIX_COLUMN_NORM_OP:
-      stream << "  v[" << out_ << "] = col_norm(m[" << in1_ << "])"
+      stream << "  v" << out_ << " = norm(m" << in1_ << ", axis=0)"
              << std::endl;
       break;
     case VECTOR_COLUMN_BROADCAST_OP:
-      stream << "  m[" << out_ << "] = col_broadcast(v[" << in1_ << "])"
+      stream << "  m" << out_ << " = bcast(v" << in1_ << ", axis=0)"
              << std::endl;
       break;
     case VECTOR_ROW_BROADCAST_OP:
-      stream << "  m[" << out_ << "] = row_broadcast(v[" << in1_ << "])"
+      stream << "  m" << out_ << " = bcast(v" << in1_ << ", axis=1)"
              << std::endl;
       break;
     case VECTOR_SUM_OP:
-      stream << "  v[" << out_ << "] = v[" << in1_ << "] + v[" << in2_ << "]"
+      stream << "  v" << out_ << " = v" << in1_ << " + v" << in2_
              << std::endl;
       break;
     case VECTOR_DIFF_OP:
-      stream << "  v[" << out_ << "] = v[" << in1_ << "] - v[" << in2_ << "]"
+      stream << "  v" << out_ << " = v" << in1_ << " - v" << in2_
              << std::endl;
       break;
     case VECTOR_PRODUCT_OP:
-      stream << "  v[" << out_ << "] = v[" << in1_ << "] * v[" << in2_ << "]"
+      stream << "  v" << out_ << " = v" << in1_ << " * v" << in2_
              << std::endl;
       break;
     case VECTOR_DIVISION_OP:
-      stream << "  v[" << out_ << "] = v[" << in1_ << "] / v[" << in2_ << "]"
+      stream << "  v" << out_ << " = v" << in1_ << " / v" << in2_
              << std::endl;
       break;
     case VECTOR_MIN_OP:
-      stream << "  v[" << out_ << "] = np.minimum(v[" << in1_ << "], v[" << in2_
-             << "])" << std::endl;
+      stream << "  v" << out_ << " = minimum(v" << in1_ << ", v" << in2_
+             << ")" << std::endl;
       break;
     case VECTOR_MAX_OP:
-      stream << "  v[" << out_ << "] = np.maximum(v[" << in1_ << "], v[" << in2_
-             << "])" << std::endl;
+      stream << "  v" << out_ << " = maximum(v" << in1_ << ", v" << in2_
+             << ")" << std::endl;
       break;
     case VECTOR_ABS_OP:
-      stream << "  v[" << out_ << "] = np.abs(v[" << in1_ << "])" << std::endl;
+      stream << "  v" << out_ << " = abs(v" << in1_ << ")" << std::endl;
       break;
     case VECTOR_HEAVYSIDE_OP:
-      stream << "  v[" << out_ << "] = np.heaviside(v[" << in1_ << "], 1.0)"
+      stream << "  v" << out_ << " = heaviside(v" << in1_ << ", 1.0)"
              << std::endl;
       break;
     case VECTOR_CONST_SET_OP: {
-      stream << "  v[" << out_ << "][" << float_data_0_ << "]"
+      stream << "  v" << out_ << "[" << float_data_0_ << "]"
              << " = " << float_data_1_ << std::endl;
       break;
     }
     case MATRIX_SUM_OP:
-      stream << "  m[" << out_ << "] = m[" << in1_ << "] + m[" << in2_ << "]"
+      stream << "  m" << out_ << " = m" << in1_ << " + m" << in2_
              << std::endl;
       break;
     case MATRIX_DIFF_OP:
-      stream << "  m[" << out_ << "] = m[" << in1_ << "] - m[" << in2_ << "]"
+      stream << "  m" << out_ << " = m" << in1_ << " - m" << in2_
              << std::endl;
       break;
     case MATRIX_PRODUCT_OP:
-      stream << "  m[" << out_ << "] = m[" << in1_ << "] * m[" << in2_ << "]"
+      stream << "  m" << out_ << " = m" << in1_ << " * m" << in2_
              << std::endl;
       break;
     case MATRIX_DIVISION_OP:
-      stream << "  m[" << out_ << "] = m[" << in1_ << "] / m[" << in2_ << "]"
+      stream << "  m" << out_ << " = m" << in1_ << " / m" << in2_
              << std::endl;
       break;
     case MATRIX_MIN_OP:
-      stream << "  m[" << out_ << "] = np.minimum(m[" << in1_ << "], m[" << in2_
-             << "])" << std::endl;
+      stream << "  m" << out_ << " = minimum(m" << in1_ << ", m" << in2_
+             << ")" << std::endl;
       break;
     case MATRIX_MAX_OP:
-      stream << "  m[" << out_ << "] = np.maximum(m[" << in1_ << "], m[" << in2_
-             << "])" << std::endl;
+      stream << "  m" << out_ << " = maximum(m" << in1_ << ", m" << in2_
+             << ")" << std::endl;
       break;
     case MATRIX_ABS_OP:
-      stream << "  m[" << out_ << "] = np.abs(m[" << in1_ << "])" << std::endl;
+      stream << "  m" << out_ << " = abs(m" << in1_ << ")" << std::endl;
       break;
     case MATRIX_HEAVYSIDE_OP:
-      stream << "  m[" << out_ << "] = np.heaviside(m[" << in1_ << "], 1.0)"
+      stream << "  m" << out_ << " = heaviside(m" << in1_ << ", 1.0)"
              << std::endl;
       break;
     case MATRIX_CONST_SET_OP: {
-      stream << "  m[" << out_ << "]"
+      stream << "  m" << out_
              << "[" << float_data_0_ << ", " << float_data_1_ << "]"
              << " = " << float_data_2_ << std::endl;
       break;
     }
     case SCALAR_VECTOR_PRODUCT_OP:
-      stream << "  v[" << out_ << "] = s[" << in1_ << "] * v[" << in2_ << "]"
+      stream << "  v" << out_ << " = s" << in1_ << " * v" << in2_
              << std::endl;
       break;
     case VECTOR_INNER_PRODUCT_OP:
-      stream << "  s[" << out_ << "] = "
-             << "np.dot(v[" << in1_ << "], v[" << in2_ << "])" << std::endl;
+      stream << "  s" << out_ << " = "
+             << "dot(v" << in1_ << ", v" << in2_ << ")" << std::endl;
       break;
     case VECTOR_OUTER_PRODUCT_OP:
-      stream << "  m[" << out_ << "] = "
-             << "np.outer(v[" << in1_ << "], v[" << in2_ << "])" << std::endl;
+      stream << "  m" << out_ << " = "
+             << "outer(v" << in1_ << ", v" << in2_ << ")" << std::endl;
       break;
     case SCALAR_MATRIX_PRODUCT_OP:
-      stream << "  m[" << out_ << "] = s[" << in1_ << "] * m[" << in2_ << "]"
+      stream << "  m" << out_ << " = s" << in1_ << " * m" << in2_
              << std::endl;
       break;
     case MATRIX_VECTOR_PRODUCT_OP:
-      stream << "  v[" << out_ << "] = np.dot(m[" << in1_ << "], v[" << in2_
-             << "])" << std::endl;
+      stream << "  v" << out_ << " = dot(m" << in1_ << ", v" << in2_
+             << ")" << std::endl;
       break;
     case VECTOR_NORM_OP:
-      stream << "  s[" << out_ << "] = np.linalg.norm(v[" << in1_ << "])"
+      stream << "  s" << out_ << " = norm(v" << in1_ << ")"
              << std::endl;
       break;
     case MATRIX_NORM_OP:
-      stream << "  s[" << out_ << "] = np.linalg.norm(m[" << in1_ << "])"
+      stream << "  s" << out_ << " = norm(m" << in1_ << ")"
              << std::endl;
       break;
     case MATRIX_TRANSPOSE_OP:
-      stream << "  m[" << out_ << "] = np.transpose(m[" << in1_ << "])"
+      stream << "  m" << out_ << " = transpose(m" << in1_ << ")"
              << std::endl;
       break;
     case MATRIX_MATRIX_PRODUCT_OP:
-      stream << "  m[" << out_ << "] = np.dot(m[" << in1_ << "], m[" << in2_
-             << "])" << std::endl;
+      stream << "  m" << out_ << " = matmul(m" << in1_ << ", m" << in2_
+             << ")" << std::endl;
       break;
     case VECTOR_MEAN_OP:
-      stream << "  s[" << out_ << "] = np.mean(v[" << in1_ << "])" << std::endl;
+      stream << "  s" << out_ << " = mean(v" << in1_ << ")" << std::endl;
       break;
     case VECTOR_ST_DEV_OP:
-      stream << "  s[" << out_ << "] = np.std(v[" << in1_ << "])" << std::endl;
+      stream << "  s" << out_ << " = std(v" << in1_ << ")" << std::endl;
       break;
     case MATRIX_MEAN_OP:
-      stream << "  s[" << out_ << "] = np.mean(m[" << in1_ << "])" << std::endl;
+      stream << "  s" << out_ << " = mean(m" << in1_ << ")" << std::endl;
       break;
     case MATRIX_ST_DEV_OP:
-      stream << "  s[" << out_ << "] = np.std(m[" << in1_ << "])" << std::endl;
+      stream << "  s" << out_ << " = std(m" << in1_ << ")" << std::endl;
       break;
     case MATRIX_ROW_MEAN_OP:
-      stream << "  v[" << out_ << "] = np.mean(m[" << in1_ << "], axis=1)"
+      stream << "  v" << out_ << " = mean(m" << in1_ << ", axis=1)"
              << std::endl;
       break;
     case MATRIX_ROW_ST_DEV_OP:
-      stream << "  v[" << out_ << "] = np.std(m[" << in1_ << "], axis=1)"
+      stream << "  v" << out_ << " = std(m" << in1_ << ", axis=1)"
              << std::endl;
       break;
     case SCALAR_GAUSSIAN_SET_OP: {
-      stream << "  s[" << out_ << "] = np.random.normal(" << float_data_0_
+      stream << "  s" << out_ << " = gaussian(" << float_data_0_
              << ", " << float_data_1_ << ")" << std::endl;
       break;
     }
     case VECTOR_GAUSSIAN_SET_OP: {
-      stream << "  v[" << out_ << "] = np.random.normal(" << float_data_0_
+      stream << "  v" << out_ << " = gaussian(" << float_data_0_
              << ", " << float_data_1_ << ", n_features)" << std::endl;
       break;
     }
     case MATRIX_GAUSSIAN_SET_OP: {
-      stream << "  m[" << out_ << "] = np.random.normal(" << float_data_0_
+      stream << "  m" << out_ << " = gaussian(" << float_data_0_
              << ", " << float_data_1_ << ", (n_features, n_features))"
              << std::endl;
       break;
     }
     case SCALAR_UNIFORM_SET_OP: {
-      stream << "  s[" << out_ << "] = np.random.uniform(" << float_data_0_
+      stream << "  s" << out_ << " = uniform(" << float_data_0_
              << ", " << float_data_1_ << ")" << std::endl;
       break;
     }
     case VECTOR_UNIFORM_SET_OP: {
-      stream << "  v[" << out_ << "] = np.random.uniform(" << float_data_0_
+      stream << "  v" << out_ << " = uniform(" << float_data_0_
              << ", " << float_data_1_ << ", n_features)" << std::endl;
       break;
     }
     case MATRIX_UNIFORM_SET_OP: {
-      stream << "  m[" << out_ << "] = np.random.uniform(" << float_data_0_
+      stream << "  m" << out_ << " = uniform(" << float_data_0_
              << ", " << float_data_1_ << ", (n_features, n_features))"
              << std::endl;
       break;

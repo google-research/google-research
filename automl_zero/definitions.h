@@ -13,17 +13,10 @@
 // limitations under the License.
 
 // TODO(ereal):
-// -Ensure random seed is not 0.
-// -Make algorithm printing more like figures in paper.
 // -Add comments, especially in protos and compute_cost.h.
-// -Clean up optimized training (leave only optimized code).
-// -Clean up functional cache choice (leave only functional cache branch).
 // -Renumber proto fields.
 // -Address or remove all TODOs.
-// -Consider removing test_util files.
 // -Apply linter.
-// -Apply build cleaner.
-// -Rename "programs" to "component functions" everywhere.
 // -Add more comments, link to paper.
 
 #ifndef DEFINITIONS_H_

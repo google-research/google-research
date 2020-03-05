@@ -33,7 +33,10 @@ class RandomGenerator {
   inline std::mt19937* BitGen() {return bit_gen_;}
 
   // Resets the generator with a new random seed.
-  void SetSeed(RandomSeedT seed) {bit_gen_->seed(seed);}
+  void SetSeed(RandomSeedT seed) {
+    assert(seed != 0);
+    bit_gen_->seed(seed);
+  }
 
   float GaussianFloat(float mean, float stdev);
 
