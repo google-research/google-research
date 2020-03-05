@@ -15,7 +15,7 @@
 #include "generator.h"
 
 #include "definitions.h"
-#include "instruction.proto.h"
+#include "instruction.pb.h"
 #include "instruction.h"
 #include "random_generator.h"
 #include "absl/memory/memory.h"

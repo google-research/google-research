@@ -18,12 +18,12 @@
 #include <random>
 
 #include "definitions.h"
-#include "instruction.proto.h"
+#include "instruction.pb.h"
 #include "algorithm.h"
 #include "algorithm_test_util.h"
 #include "generator.h"
 #include "generator_test_util.h"
-#include "mutator.proto.h"
+#include "mutator.pb.h"
 #include "mutator_test_util.h"
 #include "random_generator.h"
 #include "random_generator_test_util.h"

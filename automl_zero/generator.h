@@ -20,8 +20,8 @@
 
 #include "algorithm.h"
 #include "definitions.h"
-#include "instruction.proto.h"
-#include "generator.proto.h"
+#include "instruction.pb.h"
+#include "generator.pb.h"
 #include "instruction.h"
 #include "randomizer.h"
 

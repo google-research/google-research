@@ -18,7 +18,7 @@ syntax = "proto2";
 
 package automl_zero;
 
-import "third_party/google_research/google_research/automl_zero/instruction.proto";
+import "instruction.proto";
 
 message SerializedAlgorithm {
   repeated SerializedInstruction setup_instructions = 1;

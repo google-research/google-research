@@ -19,15 +19,13 @@
 #include <random>
 #include <type_traits>
 
-#include "file/base/path.h"
 #include "task.h"
-#include "task.proto.h"
+#include "task.pb.h"
 #include "definitions.h"
 #include "executor.h"
 #include "generator.h"
 #include "memory.h"
 #include "random_generator.h"
-#include "sstable/public/sstable.h"
 
 namespace automl_zero {
 
@@ -217,128 +215,6 @@ struct Scalar2LayerNnRegressionTaskCreator {
   }
 };
 
-// TODO(crazydonkey): make this function more readable.
-template <FeatureIndexT F>
-struct ProjectedBinaryClassificationTaskCreator {
-  static void Create(EvalType eval_type,
-                     const ProjectedBinaryClassificationTask& task_spec,
-                     IntegerT num_train_examples, IntegerT num_valid_examples,
-                     IntegerT features_size, RandomSeedT data_seed,
-                     TaskBuffer<F>* buffer) {
-    ClearAndResize(num_train_examples, num_valid_examples, buffer);
-
-    std::string dump_path;
-    CHECK(task_spec.has_dump_path() & !task_spec.dump_path().empty())
-        << "You have to specifiy the path to the data!" << std::endl;
-    dump_path = task_spec.dump_path();
-
-    std::unique_ptr<SSTable> sstable(
-        SSTable::Open(
-            dump_path,
-            SSTable::ON_DISK()));
-
-    IntegerT positive_class;
-    IntegerT negative_class;
-
-    if (task_spec.has_positive_class() &&
-        task_spec.has_negative_class()) {
-      positive_class = task_spec.positive_class();
-      negative_class = task_spec.negative_class();
-      IntegerT num_supported_data_seeds =
-          task_spec.max_supported_data_seed() -
-          task_spec.min_supported_data_seed();
-      data_seed = static_cast<RandomSeedT>(
-          task_spec.min_supported_data_seed() +
-          data_seed % num_supported_data_seeds);
-    } else if (!task_spec.has_positive_class() &&
-               !task_spec.has_negative_class()) {
-      std::mt19937 task_bit_gen(HashMix(
-          static_cast<RandomSeedT>(856572777), data_seed));
-      RandomGenerator task_gen = RandomGenerator(&task_bit_gen);
-
-      std::set<std::pair<IntegerT, IntegerT>> held_out_pairs_set;
-      for (ClassPair class_pair : task_spec.held_out_pairs()) {
-        held_out_pairs_set.insert(std::pair<IntegerT, IntegerT>(
-            std::min(class_pair.positive_class(),
-                     class_pair.negative_class()),
-            std::max(class_pair.positive_class(),
-                     class_pair.negative_class())));
-      }
-
-      std::vector<std::pair<IntegerT, IntegerT>> search_pairs;
-      // Assumming the classes are in [0, 10).
-      for (IntegerT i = 0; i < 10; i++) {
-        for (IntegerT j = i+1; j < 10; j++){
-          std::pair<IntegerT, IntegerT> class_pair(i, j);
-          // Collect all the pairs that is not held out.
-          if (held_out_pairs_set.count(class_pair) == 0)
-            search_pairs.push_back(class_pair);
-        }
-      }
-
-      CHECK(!search_pairs.empty())
-          << "All the pairs are held out!" << std::endl;
-
-      std::pair<IntegerT, IntegerT> selected_pair =
-          search_pairs[task_gen.UniformInteger(0, (search_pairs.size()))];
-      positive_class = selected_pair.first;
-      negative_class = selected_pair.second;
-      data_seed = static_cast<RandomSeedT>(
-          task_gen.UniformInteger(
-              task_spec.min_supported_data_seed(),
-              task_spec.max_supported_data_seed()));
-    } else {
-      LOG(FATAL) << ("You should either provide both or none of the positive"
-                     " and negative classes.") << std::endl;
-    }
-
-    // Generate the key using the task_spec.
-    std::string key = absl::StrCat(task_spec.dataset_name(), "-pos_",
-                                   positive_class, "-neg_", negative_class,
-                                   "-dim_", features_size, "-seed_", data_seed);
-
-    // Create SSTable::Iterator object and Seek() to the search term in the
-    // SSTable.
-    std::unique_ptr<SSTable::Iterator> iter(sstable->GetIterator());
-    iter->Seek(key);
-    ProjectedBinaryClassificationTask saved_task;
-    while (!iter->done() && (iter->key() == key)) {
-      CHECK(saved_task.ParseFromString(iter->value())) << iter->key();
-      iter->Next();
-    }
-
-    // Check there is enough data saved in the sstable.
-    CHECK_GE(saved_task.dumped_task().train_features_size(),
-             buffer->train_features_.size());
-    CHECK_GE(saved_task.dumped_task().train_labels_size(),
-             buffer->train_labels_.size());
-
-    for (IntegerT k = 0; k < buffer->train_features_.size(); ++k)  {
-      for (IntegerT i_dim = 0; i_dim < F; ++i_dim) {
-       buffer->train_features_[k][i_dim] =
-           saved_task.dumped_task().train_features(k).features(i_dim);
-      }
-      buffer->train_labels_[k] =
-           saved_task.dumped_task().train_labels(k);
-    }
-
-    CHECK_GE(saved_task.dumped_task().valid_features_size(),
-             buffer->valid_features_.size());
-    CHECK_GE(saved_task.dumped_task().valid_labels_size(),
-             buffer->valid_labels_.size());
-    for (IntegerT k = 0; k < buffer->valid_features_.size(); ++k)  {
-      for (IntegerT i_dim = 0; i_dim < F; ++i_dim) {
-       buffer->valid_features_[k][i_dim] =
-           saved_task.dumped_task().valid_features(k).features(i_dim);
-      }
-      buffer->valid_labels_[k] =
-           saved_task.dumped_task().valid_labels(k);
-    }
-
-    CHECK(eval_type == ACCURACY);
-  }
-};
-
 template<FeatureIndexT F>
 void CopyUnitTestFixedTaskVector(
     const proto2::RepeatedField<double>& src, Scalar* dest) {
@@ -484,13 +360,6 @@ std::unique_ptr<Task<F>> CreateTask(const IntegerT task_index,
       Scalar2LayerNnRegressionTaskCreator<F>::Create(
           task_spec.eval_type(), task_spec.num_train_examples(),
           task_spec.num_valid_examples(), param_seed, data_seed, &buffer);
-      break;
-    case (TaskSpec::kProjectedBinaryClassificationTask):
-      ProjectedBinaryClassificationTaskCreator<F>::Create(
-          task_spec.eval_type(),
-          task_spec.projected_binary_classification_task(),
-          task_spec.num_train_examples(), task_spec.num_valid_examples(),
-          task_spec.features_size(), data_seed, &buffer);
       break;
     case (TaskSpec::kUnitTestFixedTask):
       UnitTestFixedTaskCreator<F>::Create(

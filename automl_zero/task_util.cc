@@ -23,18 +23,15 @@
 #include <utility>
 #include <vector>
 
-#include "file/base/path.h"
 #include "algorithm.h"
 #include "task.h"
-#include "task.proto.h"
+#include "task.pb.h"
 #include "definitions.h"
 #include "executor.h"
 #include "generator.h"
 #include "memory.h"
 #include "random_generator.h"
 #include "google/protobuf/text_format.h"
-#include "sstable/public/sstable.h"
-#include "absl/base/integral_types.h"
 #include "absl/flags/flag.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"

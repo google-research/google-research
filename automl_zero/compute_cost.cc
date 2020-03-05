@@ -14,7 +14,7 @@
 
 #include "compute_cost.h"
 
-#include "instruction.proto.h"
+#include "instruction.pb.h"
 #include "algorithm.h"
 
 namespace automl_zero {

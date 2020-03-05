@@ -20,7 +20,7 @@
 #include <memory>
 #include <ostream>
 
-#include "algorithm.proto.h"
+#include "algorithm.pb.h"
 #include "instruction.h"
 #include "absl/flags/flag.h"
 

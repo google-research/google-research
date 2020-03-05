@@ -17,7 +17,7 @@
 #include <limits>
 
 #include "definitions.h"
-#include "fec_cache.proto.h"
+#include "fec_cache.pb.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
 

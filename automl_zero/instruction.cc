@@ -21,7 +21,7 @@
 #include <type_traits>
 
 #include "definitions.h"
-#include "instruction.proto.h"
+#include "instruction.pb.h"
 #include "random_generator.h"
 #include "absl/strings/str_replace.h"
 
