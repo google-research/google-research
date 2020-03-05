@@ -37,6 +37,7 @@
 #include "train_budget.h"
 #include "google/protobuf/text_format.h"
 #include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
 #include "absl/time/time.h"
 
 typedef automl_zero::IntegerT IntegerT;
@@ -251,7 +252,7 @@ void run() {
 }  // namespace automl_zero
 
 int main(int argc, char** argv) {
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  absl::ParseCommandLine(argc, argv);
   automl_zero::run();
   return 0;
 }

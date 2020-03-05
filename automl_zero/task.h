@@ -25,6 +25,7 @@
 
 #include "task.pb.h"
 #include "definitions.h"
+#include "gtest/gtest_prod.h"
 
 namespace automl_zero {
 

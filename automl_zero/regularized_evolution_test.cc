@@ -28,7 +28,7 @@
 #include "mutator_test_util.h"
 #include "random_generator.h"
 #include "test_util.h"
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/flags/flag.h"
 #include "absl/memory/memory.h"

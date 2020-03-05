@@ -19,7 +19,7 @@
 
 #include "algorithm.h"
 #include "algorithm.pb.h"
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 
 namespace automl_zero {
 

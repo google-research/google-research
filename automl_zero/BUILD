@@ -43,6 +43,7 @@ cc_library(
     deps = [
         "datasets_cc_proto",
         ":definitions",
+        "@com_google_googletest//:gtest_prod",
     ],
 )
 
@@ -71,6 +72,7 @@ cc_library(
         ":memory",
         ":random_generator",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/strings",
         "@com_google_protobuf//:protobuf",
@@ -109,6 +111,7 @@ cc_library(
         ":instruction",
         ":random_generator",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
     ],
 )
 
@@ -151,6 +154,7 @@ cc_library(
     deps = [
         ":instruction_cc_proto",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
         "@com_google_glog//:glog",
         "@com_google_protobuf//:protobuf",
         "@eigen_archive//:eigen",
@@ -183,6 +187,7 @@ cc_library(
         ":train_budget",
         "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/strings",
         "@com_google_protobuf//:protobuf",
@@ -223,6 +228,7 @@ cc_library(
         ":instruction_cc_proto",
         ":memory",
         ":random_generator",
+        "@com_google_googletest//:gtest_prod",
     ],
 )
 
@@ -455,6 +461,7 @@ cc_library(
     deps = [
         ":definitions",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
     ],
 )
 
@@ -481,6 +488,7 @@ cc_library(
         ":random_generator",
         ":randomizer",
         "@com_google_absl//absl/memory",
+        "@com_google_googletest//:gtest_prod",
     ],
 )
 
@@ -578,8 +586,10 @@ cc_library(
         ":mutator",
         ":random_generator",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_prod",
     ],
 )
 
@@ -600,6 +610,7 @@ cc_test(
         ":regularized_evolution",
         ":test_util",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
@@ -625,6 +636,7 @@ cc_binary(
         ":regularized_evolution",
         ":train_budget",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/time",
         "@com_google_protobuf//:protobuf",
     ],

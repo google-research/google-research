@@ -132,9 +132,9 @@ struct ScalarLinearRegressionTaskCreator {
                      RandomSeedT data_seed, TaskBuffer<F>* buffer) {
     ClearAndResize(num_train_examples, num_valid_examples, buffer);
     std::mt19937 data_bit_gen(data_seed + 939723201);
-    RandomGenerator data_gen = RandomGenerator(&data_bit_gen);
+    RandomGenerator data_gen(&data_bit_gen);
     std::mt19937 param_bit_gen(param_seed + 997958712);
-    RandomGenerator weights_gen = RandomGenerator(&param_bit_gen);
+    RandomGenerator weights_gen(&param_bit_gen);
     Generator generator(NO_OP_ALGORITHM, 0, 0, 0, {}, {}, {}, nullptr,
                         nullptr);
 
@@ -169,9 +169,9 @@ struct Scalar2LayerNnRegressionTaskCreator {
                      RandomSeedT data_seed, TaskBuffer<F>* buffer) {
     ClearAndResize(num_train_examples, num_valid_examples, buffer);
     std::mt19937 data_bit_gen(data_seed + 865546086);
-    RandomGenerator data_gen = RandomGenerator(&data_bit_gen);
+    RandomGenerator data_gen(&data_bit_gen);
     std::mt19937 param_bit_gen(param_seed + 174299604);
-    RandomGenerator weights_gen = RandomGenerator(&param_bit_gen);
+    RandomGenerator weights_gen(&param_bit_gen);
     Generator generator(NO_OP_ALGORITHM, 0, 0, 0, {}, {}, {}, nullptr,
                         nullptr);
 

@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "testing/base/public/benchmark.h"
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace automl_zero {
