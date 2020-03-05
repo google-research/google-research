@@ -43,9 +43,9 @@ IntegerT RandomGenerator::UniformInteger(IntegerT low, IntegerT high) {
 }
 
 RandomSeedT RandomGenerator::UniformRandomSeed() {
-  return absl::Uniform<RandomSeedT>(absl::IntervalOpen, *bit_gen_,
-                                    std::numeric_limits<RandomSeedT>::min(),
-                                    std::numeric_limits<RandomSeedT>::max());
+  return absl::Uniform<RandomSeedT>(
+      absl::IntervalOpen, *bit_gen_,
+      1, std::numeric_limits<RandomSeedT>::max());
 }
 
 double RandomGenerator::UniformDouble(double low, double high) {
@@ -151,8 +151,12 @@ RandomGenerator::RandomGenerator()
       bit_gen_(bit_gen_owned_.get()) {}
 
 RandomSeedT GenerateRandomSeed() {
-  return static_cast<RandomSeedT>(
-      GetCurrentTimeNanos() % numeric_limits<RandomSeedT>::max());
+  RandomSeedT seed = 0;
+  while (seed == 0) {
+    seed = static_cast<RandomSeedT>(
+        GetCurrentTimeNanos() % numeric_limits<RandomSeedT>::max());
+  }
+  return seed;
 }
 
 }  // namespace automl_zero

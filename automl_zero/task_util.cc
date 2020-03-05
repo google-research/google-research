@@ -134,7 +134,7 @@ void FillTasks(
 }
 
 void RandomizeTaskSeeds(TaskCollection* task_collection,
-                           const RandomSeedT seed) {
+                        const RandomSeedT seed) {
   RandomSeedT base_param_seed =
       HashMix(static_cast<RandomSeedT>(85652777), seed);
   mt19937 param_seed_bit_gen(base_param_seed);

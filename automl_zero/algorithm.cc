@@ -104,36 +104,18 @@ bool Algorithm::operator==(const Algorithm& other) const {
 
 string Algorithm::ToReadable() const {
   ostringstream stream;
-  stream << "\n### Start component function. ###\n" << std::endl;
-  stream << "# s is a list of scalars." << std::endl;
-  stream << "# v is a list of vectors." << std::endl;
-  stream << "# m is a list of matrices.\n" << std::endl;
-  stream << "def setup(s, v, m):" << std::endl;
+  stream << "def Setup():" << std::endl;
   for (const shared_ptr<const Instruction>& instruction : setup_) {
     stream << instruction->ToString();
   }
-  stream << std::endl;
-
-  stream << "def predict(s, v, m, features):" << std::endl;
-  stream << "  v[" << kFeaturesVectorAddress << "] = features" << std::endl;
-  stream << "  s[" << kLabelsScalarAddress << "] = 0.0" << std::endl;
+  stream << "def Predict():" << std::endl;
   for (const shared_ptr<const Instruction>& instruction : predict_) {
     stream << instruction->ToString();
   }
-  stream << "  scalar_pred = s[" << kPredictionsScalarAddress << "]"
-         << std::endl;
-  stream << "  vector_pred = v[" << kPredictionsVectorAddress << "]"
-         << std::endl;
-  stream << "  return scalar_pred, vector_pred\n" << std::endl;
-
-  stream << "def learn(s, v, m, features, label):" << std::endl;
-  stream << "  v[" << kFeaturesVectorAddress << "] = features" << std::endl;
-  stream << "  s[" << kLabelsScalarAddress << "] = label" << std::endl;
+  stream << "def Learn():" << std::endl;
   for (const shared_ptr<const Instruction>& instruction : learn_) {
     stream << instruction->ToString();
   }
-  stream << std::endl;
-  stream << "### End component function. ###\n" << std::endl;
   return stream.str();
 }
 
