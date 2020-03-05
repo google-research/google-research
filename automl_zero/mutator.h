@@ -24,6 +24,7 @@
 #include "mutator.pb.h"
 #include "random_generator.h"
 #include "randomizer.h"
+#include "gtest/gtest_prod.h"
 
 namespace automl_zero {
 

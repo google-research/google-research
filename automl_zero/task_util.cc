@@ -138,14 +138,12 @@ void RandomizeTaskSeeds(TaskCollection* task_collection,
   RandomSeedT base_param_seed =
       HashMix(static_cast<RandomSeedT>(85652777), seed);
   mt19937 param_seed_bit_gen(base_param_seed);
-  RandomGenerator param_seed_gen = RandomGenerator(
-      &param_seed_bit_gen);
+  RandomGenerator param_seed_gen(&param_seed_bit_gen);
 
   RandomSeedT base_data_seed =
       HashMix(static_cast<RandomSeedT>(38272328), seed);
   mt19937 data_seed_bit_gen(base_data_seed);
-  RandomGenerator data_seed_gen = RandomGenerator(
-      &data_seed_bit_gen);
+  RandomGenerator data_seed_gen(&data_seed_bit_gen);
 
   for (TaskSpec& task : *task_collection->mutable_tasks()) {
     task.clear_param_seeds();

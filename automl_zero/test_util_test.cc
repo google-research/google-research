@@ -18,7 +18,7 @@
 #include <iostream>
 
 #include "definitions.h"
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace automl_zero {

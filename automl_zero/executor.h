@@ -34,6 +34,7 @@
 #include "instruction.h"
 #include "memory.h"
 #include "random_generator.h"
+#include "gtest/gtest_prod.h"
 
 namespace automl_zero {
 

@@ -31,7 +31,7 @@
 #include "random_generator.h"
 #include "random_generator_test_util.h"
 #include "test_util.h"
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
 #include "Eigen/Core"

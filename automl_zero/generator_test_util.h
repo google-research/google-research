@@ -17,7 +17,7 @@
 
 #include "algorithm.h"
 #include "generator.h"
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 
 namespace automl_zero {
 

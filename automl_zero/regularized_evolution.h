@@ -29,6 +29,7 @@
 #include "random_generator.h"
 #include "absl/flags/flag.h"
 #include "absl/time/time.h"
+#include "gtest/gtest_prod.h"
 
 namespace automl_zero {
 

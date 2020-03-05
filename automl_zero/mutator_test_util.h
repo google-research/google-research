@@ -16,7 +16,7 @@
 #define MUTATOR_TEST_UTIL_H_
 
 #include "mutator.h"
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 
 namespace automl_zero {
 
