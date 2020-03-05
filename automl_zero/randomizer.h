@@ -19,7 +19,7 @@
 #include <random>
 
 #include "definitions.h"
-#include "instruction.proto.h"
+#include "instruction.pb.h"
 
 namespace automl_zero {
 

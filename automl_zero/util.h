@@ -18,7 +18,7 @@
 #include <cstdlib>
 
 #include "definitions.h"
-#include "third_party/eigen3/Eigen/Core"
+#include "Eigen/Core"
 
 namespace automl_zero {
 

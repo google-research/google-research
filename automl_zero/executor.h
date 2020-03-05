@@ -26,15 +26,14 @@
 #include <string>
 #include <type_traits>
 
-#include "task.proto.h"
+#include "task.pb.h"
 #include "task.h"
 #include "definitions.h"
-#include "instruction.proto.h"
+#include "instruction.pb.h"
 #include "algorithm.h"
 #include "instruction.h"
 #include "memory.h"
 #include "random_generator.h"
-#include "testing/production_stub/public/gunit_prod.h"
 
 namespace automl_zero {
 

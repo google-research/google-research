@@ -38,10 +38,10 @@
 #include <string>
 #include <thread>  // NOLINT(build/c++11)
 
-#include "instruction.proto.h"
+#include "instruction.pb.h"
 #include "google/protobuf/text_format.h"
 #include "absl/flags/flag.h"
-#include "third_party/eigen3/Eigen/Core"
+#include "Eigen/Core"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Conventions.
@@ -89,7 +89,7 @@ typedef std::atomic_llong AtomicIntegerT;
 
 // Type for seeding random generators.
 // Must be castable from RandomSeedT.
-typedef uint32 RandomSeedT;
+typedef uint32_t RandomSeedT;
 
 // Index for the coordinates of the activations for any rank > 0.
 typedef int FeatureIndexT;

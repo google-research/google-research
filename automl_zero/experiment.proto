@@ -18,12 +18,12 @@ syntax = "proto2";
 
 package automl_zero;
 
-import "third_party/google_research/google_research/automl_zero/task.proto";
-import "third_party/google_research/google_research/automl_zero/instruction.proto";
-import "third_party/google_research/google_research/automl_zero/fec_cache.proto";
-import "third_party/google_research/google_research/automl_zero/generator.proto";
-import "third_party/google_research/google_research/automl_zero/mutator.proto";
-import "third_party/google_research/google_research/automl_zero/train_budget.proto";
+import "task.proto";
+import "instruction.proto";
+import "fec_cache.proto";
+import "generator.proto";
+import "mutator.proto";
+import "train_budget.proto";
 
 enum FitnessCombinationMode {
   UNKNOWN_FITNESS_COMBINATION = 0;

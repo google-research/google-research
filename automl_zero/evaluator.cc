@@ -23,7 +23,7 @@
 
 #include "task.h"
 #include "task_util.h"
-#include "task.proto.h"
+#include "task.pb.h"
 #include "definitions.h"
 #include "executor.h"
 #include "random_generator.h"

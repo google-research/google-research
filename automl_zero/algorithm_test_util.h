@@ -18,7 +18,7 @@
 #define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_ALGORITHM_TEST_UTIL_H_
 
 #include "algorithm.h"
-#include "algorithm.proto.h"
+#include "algorithm.pb.h"
 #include "testing/base/public/gmock.h"
 
 namespace automl_zero {

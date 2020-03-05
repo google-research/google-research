@@ -23,7 +23,7 @@
 #include <random>
 #include <vector>
 
-#include "task.proto.h"
+#include "task.pb.h"
 #include "definitions.h"
 
 namespace automl_zero {

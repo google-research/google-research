@@ -19,11 +19,11 @@
 #include <random>
 #include <vector>
 
-#include "task.proto.h"
+#include "task.pb.h"
 #include "task.h"
 #include "task_util.h"
 #include "definitions.h"
-#include "instruction.proto.h"
+#include "instruction.pb.h"
 #include "algorithm.h"
 #include "generator.h"
 #include "generator_test_util.h"
@@ -34,7 +34,7 @@
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
-#include "third_party/eigen3/Eigen/Core"
+#include "Eigen/Core"
 
 namespace automl_zero {
 

@@ -22,7 +22,7 @@
 
 #include "definitions.h"
 #include "executor.h"
-#include "fec_cache.proto.h"
+#include "fec_cache.pb.h"
 
 namespace automl_zero {
 

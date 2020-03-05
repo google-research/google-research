@@ -23,13 +23,12 @@
 #include <utility>
 
 #include "algorithm.h"
-#include "algorithm.proto.h"
+#include "algorithm.pb.h"
 #include "task_util.h"
 #include "definitions.h"
 #include "executor.h"
 #include "instruction.h"
 #include "random_generator.h"
-#include "absl/base/integral_types.h"
 #include "absl/flags/flag.h"
 #include "absl/memory/memory.h"
 #include "absl/time/clock.h"

@@ -27,7 +27,6 @@
 #include "generator.h"
 #include "mutator.h"
 #include "random_generator.h"
-#include "testing/production_stub/public/gunit_prod.h"
 #include "absl/flags/flag.h"
 #include "absl/time/time.h"
 

@@ -23,7 +23,7 @@
 #include "task.h"
 #include "task_util.h"
 #include "definitions.h"
-#include "instruction.proto.h"
+#include "instruction.pb.h"
 #include "evaluator.h"
 #include "executor.h"
 #include "generator_test_util.h"

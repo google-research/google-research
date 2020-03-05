@@ -18,9 +18,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "task.proto.h"
+#include "task.pb.h"
 #include "definitions.h"
-#include "instruction.proto.h"
+#include "instruction.pb.h"
 #include "google/protobuf/repeated_field.h"
 
 namespace automl_zero {

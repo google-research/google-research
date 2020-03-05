@@ -22,7 +22,7 @@ syntax = "proto2";
 
 package automl_zero;
 
-import "third_party/google_research/google_research/automl_zero/generator.proto";
+import "generator.proto";
 
 // A budget used to discard algorithms that take too long. If any algorithm
 // takes longer than a threshold time, it is discarded. The threshold time is

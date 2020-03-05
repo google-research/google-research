@@ -17,7 +17,7 @@
 
 #include "generator.h"
 #include "instruction.h"
-#include "train_budget.proto.h"
+#include "train_budget.pb.h"
 
 namespace automl_zero {
 

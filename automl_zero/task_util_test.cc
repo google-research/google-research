@@ -22,7 +22,7 @@
 
 #include "algorithm.h"
 #include "task.h"
-#include "task.proto.h"
+#include "task.pb.h"
 #include "definitions.h"
 #include "executor.h"
 #include "generator.h"
@@ -34,7 +34,7 @@
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
-#include "third_party/eigen3/Eigen/Core"
+#include "Eigen/Core"
 
 namespace automl_zero {
 

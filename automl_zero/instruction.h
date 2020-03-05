@@ -20,7 +20,7 @@
 #include <cmath>
 #include <cstring>
 
-#include "algorithm.proto.h"
+#include "algorithm.pb.h"
 #include "definitions.h"
 #include "random_generator.h"
 
