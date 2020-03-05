@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_REGULARIZED_EVOLUTION_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_REGULARIZED_EVOLUTION_H_
+#ifndef REGULARIZED_EVOLUTION_H_
+#define REGULARIZED_EVOLUTION_H_
 
 #include <memory>
 #include <string>
@@ -118,4 +118,4 @@ class RegularizedEvolution {
 
 }  // namespace automl_zero
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_REGULARIZED_EVOLUTION_H_
+#endif  // REGULARIZED_EVOLUTION_H_

@@ -26,8 +26,8 @@
 // -Rename "programs" to "component functions" everywhere.
 // -Add more comments, link to paper.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DEFINITIONS_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DEFINITIONS_H_
+#ifndef DEFINITIONS_H_
+#define DEFINITIONS_H_
 
 #include <sched.h>
 
@@ -38,6 +38,7 @@
 #include <string>
 #include <thread>  // NOLINT(build/c++11)
 
+#include "glog/logging.h"
 #include "instruction.pb.h"
 #include "google/protobuf/text_format.h"
 #include "absl/flags/flag.h"
@@ -206,7 +207,6 @@ inline std::vector<Op> ConvertToOps(const std::vector<IntegerT>& values) {
   std::vector<Op> converted_values;
   converted_values.reserve(values.size());
   for (const IntegerT value : values) {
-    CHECK(Op_IsValid(value));
     converted_values.push_back(static_cast<Op>(value));
   }
   return converted_values;
@@ -233,7 +233,7 @@ ProtoT ParseSerialized(const std::string& str) {
 template <class ProtoT>
 ProtoT ParseTextFormat(const std::string& str) {
   ProtoT proto;
-  CHECK(proto2::TextFormat::ParseFromString(str, &proto));
+  CHECK(google::protobuf::TextFormat::ParseFromString(str, &proto));
   return proto;
 }
 
@@ -282,32 +282,6 @@ ContainerT* SizeLessThanOrDie(
   return value;
 }
 
-// Print and Flush can be used to print to stdout for debugging purposes.
-// Usage:
-// Print() << "my_variable = " << my_variable << stuff << "etc." << Flush();
-class Flush {};
-class Print {
- public:
-  Print() {
-    stream_ << "DEBUG: ";
-  }
-
-  template <typename PrintedT>
-  Print& operator<<(const PrintedT& component) {
-    stream_ << component;
-    return *this;
-  }
-
-  template <>
-  Print& operator<< <Flush>(const Flush& component) {
-    std::cout << stream_.str() << std::endl;
-    return *this;
-  }
-
- private:
-  std::ostringstream stream_;
-};
-
 // A hash mix function for 64 bits
 // adapted from https://burtleburtle.net/bob/hash/evahash.html.
 template <class T>
@@ -352,4 +326,4 @@ NumberT HashMix(NumberT first, NumberT second) {
 
 }  // namespace automl_zero
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_DEFINITIONS_H_
+#endif  // DEFINITIONS_H_

@@ -151,6 +151,7 @@ cc_library(
     deps = [
         ":instruction_cc_proto",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_glog//:glog",
         "@com_google_protobuf//:protobuf",
         "@eigen_archive//:eigen",
     ],

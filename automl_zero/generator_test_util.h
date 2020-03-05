@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_GENERATOR_TEST_UTIL_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_GENERATOR_TEST_UTIL_H_
+#ifndef GENERATOR_TEST_UTIL_H_
+#define GENERATOR_TEST_UTIL_H_
 
 #include "algorithm.h"
 #include "generator.h"
@@ -42,4 +42,4 @@ Algorithm SimpleIncreasingDataAlgorithm();
 
 }  // namespace automl_zero
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_GENERATOR_TEST_UTIL_H_
+#endif  // GENERATOR_TEST_UTIL_H_

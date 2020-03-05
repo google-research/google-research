@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_ALGORITHM_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_ALGORITHM_H_
+#ifndef ALGORITHM_H_
+#define ALGORITHM_H_
 
 #include <array>
 #include <cstdint>
@@ -76,4 +76,4 @@ class Algorithm {
 
 }  // namespace automl_zero
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_ALGORITHM_H_
+#endif  // ALGORITHM_H_

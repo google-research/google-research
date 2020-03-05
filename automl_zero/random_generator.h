@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_RANDOM_GENERATOR_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_RANDOM_GENERATOR_H_
+#ifndef RANDOM_GENERATOR_H_
+#define RANDOM_GENERATOR_H_
 
 #include <limits>
 #include <random>
@@ -163,4 +163,4 @@ void RandomGenerator::FillBeta(
 
 }  // namespace automl_zero
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_AUTOML_ZERO_RANDOM_GENERATOR_H_
+#endif  // RANDOM_GENERATOR_H_
