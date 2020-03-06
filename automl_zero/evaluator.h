@@ -61,6 +61,8 @@ class Evaluator {
   // Evaluates a Algorithm by executing it on the tasks. Returns the mean
   // fitness.
   double Evaluate(const Algorithm& algorithm);
+  // Get the number of train steps this evaluator has performed.
+  IntegerT GetNumTrainStepsCompleted() const;
 
  private:
   double Execute(const TaskInterface& task, IntegerT num_train_examples,
@@ -91,6 +93,7 @@ class Evaluator {
   std::shared_ptr<Algorithm> best_algorithm_;
 
   const double max_abs_error_;
+  IntegerT num_train_steps_completed_;
 };
 
 namespace internal {
