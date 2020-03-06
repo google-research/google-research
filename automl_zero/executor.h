@@ -67,6 +67,9 @@ class Executor {
       std::vector<double>* train_errors = nullptr,
       std::vector<double>* valid_errors = nullptr);
 
+  // Get the number of train steps this executor has performed.
+  IntegerT GetNumTrainStepsCompleted() const;
+
   // Use only from unit tests.
   inline Memory<F>& MemoryRef() {return memory_;}
 
@@ -122,6 +125,7 @@ class Executor {
   Memory<F> memory_;
 
   const double max_abs_error_;
+  IntegerT num_train_steps_completed_;
 };
 
 // Fills the training and validation labels, using the given Algorithm and
@@ -982,7 +986,8 @@ Executor<F>::Executor(const Algorithm& algorithm, const Task<F>& dataset,
       num_all_train_examples_(num_all_train_examples),
       num_valid_examples_(num_valid_examples),
       rand_gen_(rand_gen),
-      max_abs_error_(max_abs_error) {
+      max_abs_error_(max_abs_error),
+      num_train_steps_completed_(0) {
   memory_.Wipe();
   for (const std::shared_ptr<const Instruction>& instruction :
        algorithm_.setup_) {
@@ -1029,6 +1034,11 @@ double Executor<F>::Execute(std::vector<double>* train_errors,
   }
 
   return best_fitness;
+}
+
+template <FeatureIndexT F>
+IntegerT Executor<F>::GetNumTrainStepsCompleted() const {
+  return num_train_steps_completed_;
 }
 
 template <FeatureIndexT F>
@@ -1081,6 +1091,7 @@ inline bool Executor<F>::TrainNoOptImpl(const IntegerT max_steps,
     errors->reserve(max_steps);
   }
   for (IntegerT step = 0; step < max_steps; ++step) {
+    num_train_steps_completed_++;
     // Run predict component function for this example.
     const Vector<F>& features = train_it->GetFeatures();
     memory_.vector_[kFeaturesVectorAddress] = features;
@@ -1153,6 +1164,7 @@ bool Executor<F>::TrainOptImpl(const IntegerT max_steps,
   const IntegerT num_learn_instr = algorithm_.learn_.size();
 
   for (IntegerT step = 0; step < max_steps; ++step) {
+    num_train_steps_completed_++;
     // Run predict component function for this example.
     const Vector<F>& features = train_it->GetFeatures();
     memory_.vector_[kFeaturesVectorAddress] = features;

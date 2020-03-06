@@ -93,8 +93,13 @@ message SearchExperimentSpec {
   optional HardcodedAlgorithmID initial_population = 4
       [default = NO_OP_ALGORITHM];
 
-  // Total number of algorithms in the experiment.
-  optional int64 max_individuals = 15 [default = 1000000];
+  // Total number of train steps executed in the experiment. The default yields
+  // ~1000000 individuals each trained for 8000 steps on 10 tasks, when
+  // techniques that reduce train steps per individual, such as FEC and hurdles,
+  // are not used. Note, "~1000000 individuals" is approximate because of
+  // early stopping; however, in practice, we did not witness early stopping
+  // drastically reduce the number of individuals.
+  optional int64 max_train_steps = 15 [default = 80000000000];
 
   // The mutation types that can happen during the experiment.
   optional MutationTypeList allowed_mutation_types = 17;  // Required.

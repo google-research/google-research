@@ -169,10 +169,10 @@ void run() {
     // Run one experiment.
     cout << "Running evolution experiment (on the T_search tasks)..." << endl;
     regularized_evolution.Init();
-    const IntegerT remaining_individuals =
-        experiment_spec.max_individuals() -
-        regularized_evolution.NumIndividuals();
-    regularized_evolution.Run(remaining_individuals, kUnlimitedTime);
+    const IntegerT remaining_train_steps =
+        experiment_spec.max_train_steps() -
+        regularized_evolution.NumTrainSteps();
+    regularized_evolution.Run(remaining_train_steps, kUnlimitedTime);
     cout << "Experiment done. Retrieving candidate algorithm." << endl;
 
     // Extract best algorithm based on T_search.

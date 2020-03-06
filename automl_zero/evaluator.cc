@@ -68,11 +68,12 @@ Evaluator::Evaluator(const FitnessCombinationMode fitness_combination_mode,
       functional_cache_(functional_cache),
       functional_cache_bit_gen_owned_(
           make_unique<mt19937>(kFunctionalCacheRandomSeed)),
-      functional_cache_rand_gen_owned_(make_unique<RandomGenerator>(
-          functional_cache_bit_gen_owned_.get())),
+      functional_cache_rand_gen_owned_(
+          make_unique<RandomGenerator>(functional_cache_bit_gen_owned_.get())),
       functional_cache_rand_gen_(functional_cache_rand_gen_owned_.get()),
       best_fitness_(-1.0),
-      max_abs_error_(max_abs_error) {
+      max_abs_error_(max_abs_error),
+      num_train_steps_completed_(0) {
   FillTasks(task_collection_, &tasks_);
   CHECK_GT(tasks_.size(), 0);
 }
@@ -137,6 +138,10 @@ double Evaluator::Execute(const TaskInterface& task,
   }
 }
 
+IntegerT Evaluator::GetNumTrainStepsCompleted() const {
+  return num_train_steps_completed_;
+}
+
 template <FeatureIndexT F>
 double Evaluator::ExecuteImpl(const Task<F>& task,
                               const IntegerT num_train_examples,
@@ -152,6 +157,8 @@ double Evaluator::ExecuteImpl(const Task<F>& task,
     vector<double> train_errors;
     vector<double> valid_errors;
     functional_cache_executor.Execute(&train_errors, &valid_errors);
+    num_train_steps_completed_ +=
+        functional_cache_executor.GetNumTrainStepsCompleted();
     const size_t hash = functional_cache_->Hash(
         train_errors, valid_errors, task.index_, num_train_examples);
     pair<double, bool> fitness_and_found = functional_cache_->Find(hash);
@@ -164,6 +171,7 @@ double Evaluator::ExecuteImpl(const Task<F>& task,
       Executor<F> executor(algorithm, task, num_train_examples,
                            task.ValidSteps(), rand_gen_, max_abs_error_);
       double fitness = executor.Execute();
+      num_train_steps_completed_ += executor.GetNumTrainStepsCompleted();
       functional_cache_->InsertOrDie(hash, fitness);
       return fitness;
     }
@@ -172,6 +180,7 @@ double Evaluator::ExecuteImpl(const Task<F>& task,
         algorithm, task, num_train_examples, task.ValidSteps(),
         rand_gen_, max_abs_error_);
     const double fitness = executor.Execute();
+    num_train_steps_completed_ += executor.GetNumTrainStepsCompleted();
     return fitness;
   }
 }

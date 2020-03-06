@@ -57,14 +57,17 @@ class RegularizedEvolution {
   IntegerT Init();
 
   // Runs for a given amount of time (rounded up to the nearest generation) or
-  // for a certain number of individuals (rounded up to the nearest generation),
+  // for a certain number of train steps (rounded up to the nearest generation),
   // whichever is first. Assumes that Init has been called. Returns the number
-  // of individuals evaluated in this call.
-  IntegerT Run(IntegerT max_individuals, IntegerT max_nanos);
+  // of train steps executed in this call.
+  IntegerT Run(IntegerT max_train_steps, IntegerT max_nanos);
 
   // Returns the CUs/number of individuals evaluated so far. Returns an exact
   // number.
   IntegerT NumIndividuals() const;
+
+  // The number of train steps executed.
+  IntegerT NumTrainSteps() const;
 
   // Returns a random serialized Algorithm in the population and its fitness.
   std::shared_ptr<const Algorithm> Get(double* fitness);
@@ -114,7 +117,6 @@ class RegularizedEvolution {
   std::vector<std::shared_ptr<const Algorithm>> algorithms_;
   std::vector<double> fitnesses_;
   IntegerT num_individuals_;
-  IntegerT num_individuals_since_put_;
 };
 
 }  // namespace automl_zero
