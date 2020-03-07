@@ -21,9 +21,6 @@
 
 namespace automl_zero {
 
-// Returns a simple generator.
-Generator SimpleGenerator();
-
 // Returns a small fixed-size Algorithm with no-op instructions.
 Algorithm SimpleNoOpAlgorithm();
 

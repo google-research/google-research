@@ -63,6 +63,9 @@ class Mutator {
   void Mutate(IntegerT num_mutations,
               std::shared_ptr<const Algorithm>* algorithm);
 
+  // Used to create a simple instance for tests.
+  Mutator();
+
  private:
   friend Mutator SimpleMutator();
   FRIEND_TEST(MutatorTest, InstructionIndexTest);
@@ -77,9 +80,6 @@ class Mutator {
   FRIEND_TEST(MutatorTest, RandomizeInstruction);
   FRIEND_TEST(MutatorTest, RandomizeComponentFunction);
   FRIEND_TEST(MutatorTest, RandomizeAlgorithm);
-
-  // Used to create a simple instance for tests.
-  Mutator();
 
   void MutateImpl(Algorithm* algorithm);
 

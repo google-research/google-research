@@ -44,7 +44,7 @@ bazel run -c opt --copt=-mavx --dynamic_mode=off \
     population_size: 1000 \
     tournament_size: 10 \
     initial_population: INTEGRATION_TEST_DAMAGED_NEURAL_NET_ALGORITHM \
-    max_individuals: 100000 \
+    max_train_steps: 100000000 \
     allowed_mutation_types {
       mutation_types: [ALTER_PARAM_MUTATION_TYPE, INSERT_INSTRUCTION_MUTATION_TYPE, REMOVE_INSTRUCTION_MUTATION_TYPE, TRADE_INSTRUCTION_MUTATION_TYPE] \
     } \

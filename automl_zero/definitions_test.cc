@@ -18,7 +18,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "testing/base/public/benchmark.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 

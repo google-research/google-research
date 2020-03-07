@@ -23,9 +23,7 @@
 #include "definitions.h"
 #include "instruction.pb.h"
 #include "experiment.pb.h"
-#include "generator_test_util.h"
 #include "mutator.h"
-#include "mutator_test_util.h"
 #include "random_generator.h"
 #include "test_util.h"
 #include "gmock/gmock.h"
@@ -70,7 +68,7 @@ TEST(doubleTest, Requirement) {
 TEST(RegularizedEvolutionTest, Runs) {
   mt19937 bit_gen(kEvolutionSeed);
   RandomGenerator rand_gen(&bit_gen);
-  Generator generator = SimpleGenerator();
+  Generator generator;
   const auto task_collection = ParseTextFormat<TaskCollection>(
       StrCat("tasks { "
              "  scalar_2layer_nn_regression_task {} "
@@ -90,7 +88,7 @@ TEST(RegularizedEvolutionTest, Runs) {
                       nullptr,  // functional_cache
                       nullptr,  // train_budget
                       kLargeMaxAbsError);
-  Mutator mutator = SimpleMutator();
+  Mutator mutator;
   RegularizedEvolution regularized_evolution(
       &rand_gen,
       5,  // population_size
@@ -106,7 +104,7 @@ TEST(RegularizedEvolutionTest, Runs) {
 TEST(RegularizedEvolutionTest, TimesCorrectly) {
   mt19937 bit_gen(kEvolutionSeed);
   RandomGenerator rand_gen(&bit_gen);
-  Generator generator = SimpleGenerator();
+  Generator generator;
   const auto task_collection = ParseTextFormat<TaskCollection>(
       StrCat("tasks { "
              "  scalar_2layer_nn_regression_task {} "
@@ -126,7 +124,7 @@ TEST(RegularizedEvolutionTest, TimesCorrectly) {
                       nullptr,  // functional_cache
                       nullptr,  // train_budget
                       kLargeMaxAbsError);
-  Mutator mutator = SimpleMutator();
+  Mutator mutator;
   RegularizedEvolution regularized_evolution(
       &rand_gen,
       5,  // population_size
@@ -148,7 +146,7 @@ TEST(RegularizedEvolutionTest, TimesCorrectly) {
 TEST(RegularizedEvolutionTest, CountsCorrectly) {
   mt19937 bit_gen(kEvolutionSeed);
   RandomGenerator rand_gen(&bit_gen);
-  Generator generator = SimpleGenerator();
+  Generator generator;
   const auto task_collection = ParseTextFormat<TaskCollection>(
       StrCat("tasks { "
              "  scalar_2layer_nn_regression_task {} "
@@ -169,7 +167,7 @@ TEST(RegularizedEvolutionTest, CountsCorrectly) {
                       nullptr,  // functional_cache
                       nullptr,  // train_budget
                       kLargeMaxAbsError);
-  Mutator mutator = SimpleMutator();
+  Mutator mutator;
   RegularizedEvolution regularized_evolution(
       &rand_gen,
       5,  // population_size

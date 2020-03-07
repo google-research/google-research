@@ -95,11 +95,11 @@ class RandomGenerator {
   template<FeatureIndexT F> void FillBeta(
       double alpha, double beta, Matrix<F>* matrix);
 
- private:
-  friend RandomGenerator SimpleRandomGenerator();
-
-  // Used to create a simple class for tests in SimpleRandomGenerator().
+  // Used to create a simple class for tests in RandomGenerator().
   RandomGenerator();
+
+ private:
+  friend RandomGenerator RandomGenerator();
 
   std::unique_ptr<std::mt19937> bit_gen_owned_;
   std::mt19937* bit_gen_;
