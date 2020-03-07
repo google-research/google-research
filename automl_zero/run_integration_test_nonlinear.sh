@@ -17,7 +17,7 @@
 # TODO(ereal): fix mutate_*_size_* values. Affects random number generation.
 
 # Nonlinear example with Neural Network as init model:
-bazel run -c opt --copt=-mavx --dynamic_mode=off \
+bazel run -c opt \
   --copt=-DMAX_SCALAR_ADDRESSES=5 \
   --copt=-DMAX_VECTOR_ADDRESSES=9 \
   --copt=-DMAX_MATRIX_ADDRESSES=2 \
