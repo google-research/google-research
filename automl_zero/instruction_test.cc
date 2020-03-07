@@ -24,7 +24,6 @@
 #include "definitions.h"
 #include "instruction.pb.h"
 #include "random_generator.h"
-#include "random_generator_test_util.h"
 #include "test_util.h"
 #include "gtest/gtest.h"
 
@@ -125,7 +124,7 @@ unordered_set<DiffId> Differences(
 
 DiffId RandomDifference(
     const Instruction& instr1, const Instruction& instr2) {
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   const unordered_set<DiffId> differences = Differences(instr1, instr2);
   if (differences.empty()) {
     return kNoDifference;
@@ -334,7 +333,7 @@ TEST(InstructionTest,
 }
 
 TEST(InstructionTest, CopyConstructor) {
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Instruction instruction1;
   instruction1.SetOpAndRandomizeParams(SCALAR_SUM_OP, &rand_gen);
   Instruction instruction2 = instruction1;
@@ -342,7 +341,7 @@ TEST(InstructionTest, CopyConstructor) {
 }
 
 TEST(InstructionTest, CopyAssignmentOperator) {
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Instruction instruction1;
   instruction1.SetOpAndRandomizeParams(SCALAR_SUM_OP, &rand_gen);
   Instruction instruction2;
@@ -384,7 +383,7 @@ TEST(InstructionTest, EqualsOperatorConsidersOp) {
 }
 
 TEST(InstructionTest, EqualsOperatorConsidersStuffOtherThanOp) {
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   for (Op op : TestableOps()) {
     Instruction instr;
     instr.SetOpAndRandomizeParams(op, &rand_gen);
@@ -408,7 +407,7 @@ TEST(InstructionTest, RandomizesIn1) {
   CHECK_GE(kMaxScalarAddresses, 4);
   CHECK_GE(kMaxVectorAddresses, 3);
   CHECK_GE(kMaxMatrixAddresses, 2);
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   const AddressT range_start = 0;
   auto scalar_range = Range(range_start, kMaxScalarAddresses);
   auto vector_range = Range(range_start, kMaxVectorAddresses);
@@ -506,7 +505,7 @@ TEST(InstructionTest, RandomizesIn2) {
   CHECK_GE(kMaxScalarAddresses, 4);
   CHECK_GE(kMaxVectorAddresses, 3);
   CHECK_GE(kMaxMatrixAddresses, 2);
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   const AddressT range_start = 0;
   auto scalar_range = Range(range_start, kMaxScalarAddresses);
   auto vector_range = Range(range_start, kMaxVectorAddresses);
@@ -604,7 +603,7 @@ TEST(InstructionTest, RandomizesOut) {
   CHECK_GE(kMaxScalarAddresses, 4);
   CHECK_GE(kMaxVectorAddresses, 3);
   CHECK_GE(kMaxMatrixAddresses, 2);
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   auto scalar_range =
       Range(kFirstOutScalarAddress, kMaxScalarAddresses);
   auto vector_range =
@@ -701,7 +700,7 @@ TEST(InstructionTest, RandomizesOut) {
 }
 
 TEST(InstructionTest, RandomizesData) {
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   auto feature_index_range = Range(0, FeatureIndexT(4));
   for (const Op op : TestableOps()) {
     switch (op) {
@@ -867,7 +866,7 @@ TEST(InstructionTest, RandomizesData) {
 }
 
 TEST(InstructionTest, RandomizesCorrectFields) {
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   for (const Op op : TestableOps()) {
     Instruction blank_instr = BlankInstruction(op);
     switch (op) {
@@ -1029,7 +1028,7 @@ TEST(InstructionTest, RandomizesCorrectFields) {
 }
 
 TEST(InstructionTest, AltersCorrectFields) {
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   for (const Op op : TestableOps()) {
     const Instruction instr = SetOpAndRandomizeParams(op, &rand_gen);
     switch (op) {

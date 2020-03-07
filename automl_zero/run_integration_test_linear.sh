@@ -42,7 +42,7 @@ bazel run -c opt --copt=-mavx --dynamic_mode=off \
     population_size: 1000 \
     tournament_size: 10 \
     initial_population: RANDOM_ALGORITHM \
-    max_individuals: 1000000 \
+    max_train_steps: 100000000 \
     allowed_mutation_types {
       mutation_types: [ALTER_PARAM_MUTATION_TYPE, RANDOMIZE_INSTRUCTION_MUTATION_TYPE, RANDOMIZE_COMPONENT_FUNCTION_MUTATION_TYPE] \
     } \

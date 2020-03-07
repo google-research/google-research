@@ -90,10 +90,8 @@ cc_test(
         ":definitions",
         ":executor",
         ":generator",
-        ":generator_test_util",
         ":memory",
         ":random_generator",
-        ":random_generator_test_util",
         ":test_util",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
@@ -208,7 +206,6 @@ cc_test(
         ":generator",
         ":generator_test_util",
         ":random_generator",
-        ":random_generator_test_util",
         ":test_util",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
@@ -248,7 +245,6 @@ cc_test(
         ":instruction_cc_proto",
         ":memory",
         ":random_generator",
-        ":random_generator_test_util",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
         "@eigen_archive//:eigen",
@@ -334,10 +330,8 @@ cc_test(
         ":evaluator",
         ":executor",
         ":generator",
-        ":generator_test_util",
         ":instruction_cc_proto",
         ":random_generator",
-        ":random_generator_test_util",
         ":test_util",
         ":util",
         "@com_google_absl//absl/strings",
@@ -415,7 +409,6 @@ cc_test(
         ":instruction",
         ":instruction_cc_proto",
         ":random_generator",
-        ":random_generator_test_util",
         ":test_util",
         "@com_google_googletest//:gtest_main",
     ],
@@ -504,21 +497,8 @@ cc_test(
         ":instruction_cc_proto",
         ":mutator",
         ":mutator_cc_proto",
-        ":mutator_test_util",
         ":random_generator",
-        ":random_generator_test_util",
         ":test_util",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "mutator_test_util",
-    testonly = 1,
-    srcs = ["mutator_test_util.cc"],
-    hdrs = ["mutator_test_util.h"],
-    deps = [
-        ":mutator",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -545,16 +525,6 @@ cc_test(
         ":test_util",
         "@com_google_absl//absl/container:node_hash_set",
         "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "random_generator_test_util",
-    testonly = 1,
-    srcs = ["random_generator_test_util.cc"],
-    hdrs = ["random_generator_test_util.h"],
-    deps = [
-        ":random_generator",
     ],
 )
 
@@ -602,10 +572,8 @@ cc_test(
         ":dataset_util",
         ":definitions",
         ":experiment_cc_proto",
-        ":generator_test_util",
         ":instruction_cc_proto",
         ":mutator",
-        ":mutator_test_util",
         ":random_generator",
         ":regularized_evolution",
         ":test_util",

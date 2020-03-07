@@ -24,9 +24,7 @@
 #include "generator.h"
 #include "generator_test_util.h"
 #include "mutator.pb.h"
-#include "mutator_test_util.h"
 #include "random_generator.h"
-#include "random_generator_test_util.h"
 #include "test_util.h"
 #include "gtest/gtest.h"
 
@@ -268,9 +266,9 @@ TEST(MutatorTest, ComponentFunctionTest_Learn) {
 }
 
 TEST(MutatorTest, AlterParam) {
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   const Algorithm algorithm = SimpleRandomAlgorithm();
-  Mutator mutator = SimpleMutator();
+  Mutator mutator;
   EXPECT_TRUE(IsEventually(
       function<IntegerT(void)>([&](){
         Algorithm mutated_algorithm = algorithm;
@@ -302,9 +300,9 @@ TEST(MutatorTest, AlterParam) {
 }
 
 TEST(MutatorTest, RandomizeInstruction) {
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   const Algorithm algorithm = SimpleRandomAlgorithm();
-  Mutator mutator = SimpleMutator();
+  Mutator mutator;
   EXPECT_TRUE(IsEventually(
       function<IntegerT(void)>([&](){
         Algorithm mutated_algorithm = algorithm;
@@ -336,9 +334,9 @@ TEST(MutatorTest, RandomizeInstruction) {
 }
 
 TEST(MutatorTest, RandomizeComponentFunction) {
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   const Algorithm algorithm = SimpleRandomAlgorithm();
-  Mutator mutator = SimpleMutator();
+  Mutator mutator;
   const IntegerT setup_size = algorithm.setup_.size();
   const IntegerT predict_size = algorithm.predict_.size();
   const IntegerT learn_size = algorithm.learn_.size();
@@ -802,7 +800,7 @@ TEST(TradeInstructionMutationTypeTest, PreservesSizes) {
 }
 
 TEST(MutatorTest, RandomizeAlgorithm) {
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   mt19937 bit_gen;
   const Algorithm algorithm = SimpleRandomAlgorithm();
   const IntegerT setup_size = algorithm.setup_.size();

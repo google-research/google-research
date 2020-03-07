@@ -24,10 +24,6 @@ using ::std::mt19937;  // NOLINT
 using ::std::shared_ptr;
 using ::std::vector;
 
-Generator SimpleGenerator() {
-  return Generator();
-}
-
 Algorithm SimpleNoOpAlgorithm() {
   Generator generator(NO_OP_ALGORITHM,                         // Irrelevant.
                       6,                                  // setup_size_init

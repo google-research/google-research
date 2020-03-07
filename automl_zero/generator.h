@@ -90,11 +90,11 @@ class Generator {
       kUnitTestNeuralNetNoBiasNoGradientFirstLayerWeightsAddress = 0;
   Algorithm UnitTestNeuralNetNoBiasNoGradient(const double learning_rate);
 
- private:
-  friend Generator SimpleGenerator();
-
-  // Used to create a simple generator for tests. See SimpleGenerator.
+  // Used to create a simple generator for tests. See Generator.
   Generator();
+
+ private:
+  friend Generator Generator();
 
   const HardcodedAlgorithmID init_model_;
   const IntegerT setup_size_init_;

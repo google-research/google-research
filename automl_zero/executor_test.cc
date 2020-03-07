@@ -30,7 +30,6 @@
 #include "instruction.h"
 #include "memory.h"
 #include "random_generator.h"
-#include "random_generator_test_util.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
@@ -90,7 +89,7 @@ TEST(ExecutorTest, PredictComponentFunctionRuns) {
       temp_scalar_address, kPredictionsScalarAddress,
       kPredictionsScalarAddress);
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kLargeMaxAbsError);
   executor.Execute();
@@ -125,7 +124,7 @@ TEST(ExecutorTest, LearnComponentFunctionRuns) {
       temp_scalar_address, kPredictionsScalarAddress,
       kPredictionsScalarAddress);
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kLargeMaxAbsError);
   executor.Execute();
@@ -156,7 +155,7 @@ TEST(ExecutorTest, ComputesLossCorrectly) {
       kPredictionsScalarAddress,
       ActivationDataSetter(0.9));
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kLargeMaxAbsError);
   double fitness = executor.Execute();
@@ -183,7 +182,7 @@ TEST(ExecutorTest, ProbAccuracyComputesLossCorrectly) {
       kPredictionsScalarAddress,
       ActivationDataSetter(-3.0));
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor_0(
       algorithm_0, dataset, kNumTrainExamples, kNumValidExamples,
       &rand_gen, kLargeMaxAbsError);
@@ -243,7 +242,7 @@ TEST(ExecutorTest, ReportsErrors) {
                                 "num_tasks: 1 "
                                 "features_size: 4 "));
   Algorithm algorithm = SimpleNoOpAlgorithm();
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(
       algorithm, dataset, num_train_examples, num_valid_examples,
       &rand_gen, kLargeMaxAbsError);
@@ -283,7 +282,7 @@ TEST(ExecutorTest, ItereatesThroughFeatures) {
       temp_scalar_address, kPredictionsScalarAddress,
       kPredictionsScalarAddress);
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kLargeMaxAbsError);
   executor.Execute();
@@ -312,7 +311,7 @@ TEST(ExecutorTest, ItereatesThroughLabelsDuringTraining) {
       kLabelsScalarAddress, kPredictionsScalarAddress,
       kPredictionsScalarAddress);
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kLargeMaxAbsError);
   executor.Execute();
@@ -336,7 +335,7 @@ TEST(ExecutorTest, ItereatesThroughLabelsDuringValidation) {
 
   Algorithm algorithm = SimpleNoOpAlgorithm();
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kLargeMaxAbsError);
   double fitness = executor.Execute();
@@ -363,7 +362,7 @@ TEST(ExecutorTest, ValidationDoesNotSeeLabels) {
       kLabelsScalarAddress, kPredictionsScalarAddress,
       kPredictionsScalarAddress);
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kLargeMaxAbsError);
   executor.Execute();
@@ -392,7 +391,7 @@ TEST(ExecutorTest, StopsEarlyIfLargeErrorInSetupComponentFunction) {
       kPredictionsScalarAddress,
       ActivationDataSetter(kMaxAbsError + 10.0));
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kMaxAbsError);
   double fitness = executor.Execute();
@@ -420,7 +419,7 @@ TEST(ExecutorTest, StopsEarlyIfLargeErrorInPredictComponentFunction) {
       kPredictionsScalarAddress,
       ActivationDataSetter(kMaxAbsError + 10.0));
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kMaxAbsError);
   double fitness = executor.Execute();
@@ -448,7 +447,7 @@ TEST(ExecutorTest, StopsEarlyIfLargeErrorInLearnComponentFunction) {
       kPredictionsScalarAddress,
       ActivationDataSetter(kMaxAbsError + 10.0));
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kMaxAbsError);
   double fitness = executor.Execute();
@@ -479,7 +478,7 @@ TEST(ExecutorTest, StopsEarlyIfInfinityInSetupComponentFunction) {
       SCALAR_DIVISION_OP,
       one_address, zero_address, kPredictionsScalarAddress);
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kMaxAbsError);
   double fitness = executor.Execute();
@@ -510,7 +509,7 @@ TEST(ExecutorTest, StopsEarlyIfInfinityInPredictComponentFunction) {
       SCALAR_DIVISION_OP,
       one_address, zero_address, kPredictionsScalarAddress);
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kMaxAbsError);
   double fitness = executor.Execute();
@@ -541,7 +540,7 @@ TEST(ExecutorTest, StopsEarlyIfInfinityInLearnComponentFunction) {
       SCALAR_DIVISION_OP,
       one_address, zero_address, kPredictionsScalarAddress);
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kMaxAbsError);
   double fitness = executor.Execute();
@@ -569,7 +568,7 @@ TEST(ExecutorTest, StopsEarlyIfNanInSetupComponentFunction) {
       SCALAR_DIVISION_OP,
       zero_address, zero_address, kPredictionsScalarAddress);
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kMaxAbsError);
   double fitness = executor.Execute();
@@ -597,7 +596,7 @@ TEST(ExecutorTest, StopsEarlyIfNanInPredictComponentFunction) {
       SCALAR_DIVISION_OP,
       zero_address, zero_address, kPredictionsScalarAddress);
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kMaxAbsError);
   double fitness = executor.Execute();
@@ -625,7 +624,7 @@ TEST(ExecutorTest, StopsEarlyIfNanInLearnComponentFunction) {
       SCALAR_DIVISION_OP,
       zero_address, zero_address, kPredictionsScalarAddress);
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kMaxAbsError);
   double fitness = executor.Execute();
@@ -685,7 +684,7 @@ TEST(ExecutorTest, StopsEarlyIfErrorTooLarge) {
 
   Algorithm algorithm = SimpleNoOpAlgorithm();
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kMaxAbsError);
 
@@ -746,7 +745,7 @@ TEST(ExecutorTest, DoesNotStopIfErrorNotLargeEnough) {
 
   Algorithm algorithm = SimpleNoOpAlgorithm();
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kMaxAbsError);
   double fitness = executor.Execute();
@@ -806,7 +805,7 @@ TEST(ExecutorTest, StopsEarlyIfProblemDuringValidation) {
 
   Algorithm algorithm = SimpleNoOpAlgorithm();
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kMaxAbsError);
   double fitness = executor.Execute();
@@ -829,7 +828,7 @@ TEST(ExecutorTest, DoesNotStopsEarlyIfEverythingIsFine) {
 
   Algorithm algorithm = SimpleNoOpAlgorithm();
 
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Executor<4> executor(algorithm, dataset, kNumTrainExamples, kNumValidExamples,
                        &rand_gen, kMaxAbsError);
   double fitness = executor.Execute();
@@ -852,7 +851,7 @@ TEST(ExecutorTest, TrainOptimizationsAreCorrect) {
                                 " "
                                 "data_seeds: ",
                                 kFirstDataSeedForTest));
-  RandomGenerator rand_gen = SimpleRandomGenerator();
+  RandomGenerator rand_gen;
   Algorithm algorithm = SimpleGz();
   double fitness_no_opt;
   { // Without optimization.
@@ -890,7 +889,7 @@ TEST(ExecutorTest, TrainOptimizationsAreCorrect) {
 //       "eval_type: RMS_ERROR "
 //       "param_seeds: ", kFirstParamSeedForTest, " "
 //       "data_seeds: ", kFirstDataSeedForTest));
-//   RandomGenerator rand_gen = SimpleRandomGenerator();
+//   RandomGenerator rand_gen;
 //   Algorithm algorithm = SimpleGz();
 //   // Check that multiple epoch training works correctly. For example,
 //   // training for another epoch will improve the validation error.

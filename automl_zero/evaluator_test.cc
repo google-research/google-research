@@ -26,7 +26,6 @@
 #include "generator.h"
 #include "generator_test_util.h"
 #include "random_generator.h"
-#include "random_generator_test_util.h"
 #include "test_util.h"
 #include "google/protobuf/text_format.h"
 #include "gtest/gtest.h"
@@ -114,7 +113,7 @@ TEST(EvaluatorTest, AveragesOverTasks) {
 TEST(EvaluatorTest, GrTildeGrWithBiasHasHighFitness) {
   mt19937 bit_gen(100000);
   RandomGenerator rand_gen(&bit_gen);
-  Generator generator = SimpleGenerator();
+  Generator generator;
   Algorithm algorithm = generator.NeuralNet(0.036210, 0.180920, 0.145231);
 
   const auto task_collection = ParseTextFormat<TaskCollection>(
