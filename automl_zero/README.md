@@ -1,23 +1,39 @@
-# AutoML-Zero
+# AutoML-Zero Open-Sourced Code
 
 This directory contains the open-sourced code for the paper:
 
-*E. Real\*, C. Liang\*, D. R. So, and Q. V. Le. "AutoML-Zero: Evolving Machine Learning Algorithms From Scratch" (\*equal contribution)*
+\"**AutoML-Zero: Evolving Machine Learning Algorithms From Scratch**\" \
+*Esteban Real\*, Chen Liang\*, David R. So, and Quoc V. Le. \(\*equal contribution)*
 
 &nbsp;
 
-## Quick 1-Minute Demo: Rediscovering Linear Regression from Scratch
+## Evolving Algorithms with Minimal Human Bias
 
-As a quick demo (~1 minute in 1 CPU), we provide a script that runs a
-local evolution experiment under simplified conditions:
+The paper presents experiments that automatically discover computer programs to solve machine learning tasks. Starting from empty or random programs and using only basic mathematical operations as building blocks, the evolutionary search method discovers linear regression, 2-layer fully connected neural networks, bilinear models, and the like. Backpropagation by gradient descent is discovered simultaneously as a way to train the models when the search process is made to evaluate on *multiple* tasks. In other words, searching the AutoML-Zero space discovers not only these simple architectures, but also the learning algorithm.
 
-* the goal is to discover an algorithm to solve linear tasks,
-* using only the necessary ops for a linear regressor (i.e. a much smaller search space than most of the paper),
-* starting with a population of completely random algorithms.
+For example, one of our experiments evaluates on binary classification tasks extracted CIFAR-10. It produces the following sequence of discoveries:
 
-The demo will run short evolution experiments in succession on the "search
-tasks" (see paper) and evaluate the best algorithm discovered by each
-experiment on the "select tasks". Once an algorithm attains a
+TODO(crazydonkey): add animation here.
+
+In other words, AutoML-Zero aims to simultaneously search for all aspects of an ML algorithm, including the architecture, the data augmentation, and the learning strategy, all the while employing *minimal human bias*. To minimize biasing the results in favor of human-discovered ideas, we search over large sparse spaces that have not been heavily designed, using fine-grained components (e.g. 58 basic mathematical ops) and imposing minimal restrictions on form&mdash;i.e directly evolving the code. As an example of the evolved code, here's the best algorithm discovered by the experiment above:
+
+TODO(ereal) or TODO(crazydonkey): show code.
+
+There are few restrictions in that every instruction inside each of the three component functions above is free to change during the search: instructions can be inserted or removed, their arguments and output variables can be modified, and the operations used to combine those arguments can be altered. We even allow a variable number of instructions. This code performs better than hand-designs of comparable complexity, such as logistic regressors or two-layer preceptrons. This remains the case even after transferring to other datasets like SVHN or down-sampled ImageNet. Most importantly, the evolved code is *interpretable*: our paper analyzes this model in terms of multiplicative interactions, gradient descent, and similar concepts.
+
+
+&nbsp;
+
+## Quick 5-Minute Demo: Rediscovering Linear Regression from Scratch
+
+As a quick demo, we provide a script that runs a
+local evolution experiment to search for algorithms that can solve multiple linear tasks. Typically, it will discover linear regression by gradient descent in under 5 minutes using 1 CPU.
+
+To reduce resource usage, we simplified the setting: the code is restricted to short programs of fixed length and the allowed ops are only those necessary for a linear regressor (i.e. a much smaller search space than most of the paper).
+
+The demo will run short evolution experiments in succession on the *search
+tasks* (see paper) and evaluate the best algorithm discovered by each
+experiment on the *selection tasks*. Once an algorithm attains a
 fitness (1 - RMS error) greater than 0.9999, it is selected for a final
 evaluation on unseen data. To conclude, the demo prints the results of this
 one-time final evaluation and shows the code for the corresponding algorithm.
