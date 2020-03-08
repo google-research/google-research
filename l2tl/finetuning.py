@@ -25,8 +25,8 @@ from absl import app
 from absl import flags
 import model
 import model_utils
-import tensorflow.compat.v1 as tf
-from tensorflow.compat.v1.python.estimator import estimator
+import tensorflow as tf
+from tensorflow.python.estimator import estimator
 import tensorflow_datasets as tfds
 
 flags.DEFINE_string(
@@ -49,23 +49,20 @@ flags.DEFINE_float('weight_decay', 0.0005, 'The value for weight decay.')
 
 FLAGS = flags.FLAGS
 
-NUM_TRAIN_IMAGES = {
-    'mnist': 50000,
-    'svhn_cropped': 73257,
-    'svhn_cropped_small': 600,
-}
-
 
 def lr_schedule():
   """Learning rate scheduling."""
-  num_train_images = NUM_TRAIN_IMAGES[FLAGS.target_dataset]
   target_lr = FLAGS.target_base_learning_rate
-  steps_per_epoch = num_train_images // FLAGS.train_batch_size
   current_step = tf.train.get_global_step()
-  return tf.train.piecewise_constant(current_step, [
-      steps_per_epoch * 80,
-      steps_per_epoch * 120,
-  ], [target_lr, target_lr * 0.1, target_lr * 0.01])
+
+  if FLAGS.target_dataset == 'mnist':
+    return tf.train.piecewise_constant(current_step, [
+        500, 1500,
+    ], [target_lr, target_lr * 0.1, target_lr * 0.01])
+  else:
+    return tf.train.piecewise_constant(current_step, [
+        800,
+    ], [target_lr, target_lr * 0.1])
 
 
 def get_model_fn():
@@ -84,11 +81,16 @@ def get_model_fn():
 
     def get_logits():
       """Return the logits."""
-      avg_pool = model.conv_model(feature, mode)
+      avg_pool = model.conv_model(feature, mode,
+                                  target_dataset=FLAGS.target_dataset,
+                                  src_hw=FLAGS.src_hw,
+                                  target_hw=FLAGS.target_hw)
       name = 'final_dense_dst'
       with tf.variable_scope('target_CLS'):
         logits = tf.layers.dense(
-            inputs=avg_pool, units=FLAGS.src_num_classes, name=name)
+            inputs=avg_pool, units=FLAGS.src_num_classes, name=name,
+            kernel_initializer=tf.random_normal_initializer(stddev=.05),
+        )
       return logits
 
     logits = get_logits()
@@ -112,8 +114,11 @@ def get_model_fn():
       update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
       with tf.control_dependencies(update_ops):
         finetune_learning_rate = lr_schedule()
-        optimizer = tf.train.AdamOptimizer(finetune_learning_rate)
-
+        optimizer = tf.train.MomentumOptimizer(
+            learning_rate=finetune_learning_rate,
+            momentum=0.9,
+            use_nesterov=True
+        )
         train_op = tf.contrib.slim.learning.create_train_op(loss, optimizer)
         with tf.variable_scope('finetune'):
           train_op = optimizer.minimize(loss, cur_finetune_step)
@@ -158,7 +163,7 @@ def main(unused_argv):
     checkpoint_path = FLAGS.warm_start_ckpt_path
     reader = tf.train.NewCheckpointReader(checkpoint_path)
     for key in reader.get_variable_to_shape_map():
-      keep_str = 'Momentum|global_step|finetune_global_step|Adam'
+      keep_str = 'Momentum|global_step|finetune_global_step|Adam|final_dense_dst'
       if not re.findall('({})'.format(keep_str,), key):
         var_names.append(key)
 

@@ -28,7 +28,7 @@ np.random.seed(seed=0)
 def sample(input_path,
            output_path,
            is_test=False,
-           num_classes=10,
+           num_classes=5,
            n_train_per_class=60,
            n_test_per_class=1200):
   """Samples from the given input path and saves the sampled dataset."""
@@ -56,6 +56,7 @@ def sample(input_path,
       new_data_y_1.append(np.array(train_data['y'][index, :]))
   new_data = np.concatenate(new_data, 3)
   new_data_y = np.concatenate(new_data_y, 0)
+
   sio.savemat(
       open(output_path, 'wb'),
       {
@@ -76,5 +77,9 @@ def sample(input_path,
     )
 
 
-sample('train_32x32.mat', 'train_small_32x32.mat')
-sample('test_32x32.mat', 'val_small_32x32.mat', is_test=True)
+sample('train_32x32.mat', 'train_small_32x32.mat',
+       n_train_per_class=60,)
+sample('test_32x32.mat', 'val_small_32x32.mat',
+       n_train_per_class=600,
+       n_test_per_class=1200,
+       is_test=True)
