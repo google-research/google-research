@@ -7,15 +7,15 @@ Open source code for the paper: \"[**AutoML-Zero: Evolving Machine Learning Algo
 
 ## What is AutoML-Zero?
 
-AutoML-Zero aims at automatically discovering computer programs to solve machine learning tasks, starting from empty or random programs and using only basic math operations. The goal is to simultaneously search for all aspects of an ML algorithm (e.g., the model structure and the learning strategy), while employing *minimal human bias*. Despite the challenging search space for AutoML-Zero, *Evolutionary Search* showed promising results by discovering linear regression, 2-layer neural network with backpropagation, and even algorithms better than hand designed baselines of comparable complexity. An example sequence of discoveries on binary classification tasks is shown below.
+AutoML-Zero aims at automatically discovering computer programs to solve machine learning tasks, starting from empty or random programs and using only basic math operations. The goal is to simultaneously search for all aspects of an ML algorithm (e.g., the model structure and the learning strategy), while employing *minimal human bias*. 
 
 ![GIF for the experiment progress](progress.gif)
 
-More importantly, the evolved algorithms can be *interpreted*. Below is an analysis of the best evolved algorithm, which "invents" techniques like bilinear interactions, weight averaging, normalized gradient and adding noise to inputs.
+Despite the challenging search space for AutoML-Zero, *Evolutionary Search* showed promising results by discovering linear regression, 2-layer neural network with backpropagation, and even algorithms better than hand designed baselines of comparable complexity. An example sequence of discoveries on binary classification tasks is shown above. More importantly, the evolved algorithms can be *interpreted*. Below is an analysis of the best evolved algorithm, which "invents" techniques like bilinear interactions, weight averaging, normalized gradient and adding noise to inputs.
 
 ![GIF for the interpretation of the best evolved algorithm](best_algo.gif)
 
-Note that the algorithms shown above are already simplified and reordered for better readability. The raw codes, and the details about more experiments and analyses can be found in the [paper](https://github.com/google-research/google-research/tree/master/automl_zero).
+Note that the programs shown above are already simplified and reordered for better readability. The raw programs, and the details about more experiments and analyses can be found in the [paper](https://github.com/google-research/google-research/tree/master/automl_zero).
 
 
 &nbsp;
