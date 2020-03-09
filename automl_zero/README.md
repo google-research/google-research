@@ -7,15 +7,15 @@ Open source code for the paper: \"[**AutoML-Zero: Evolving Machine Learning Algo
 
 ## What is AutoML-Zero?
 
-AutoML-Zero aims at automatically discovering computer programs to solve machine learning tasks, starting from empty or random programs and using only basic math operations. The goal is to simultaneously search for all aspects of an ML algorithm (e.g., the model structure and the learning strategy), while employing *minimal human bias*.
+AutoML-Zero aims to automatically discover computer programs that can solve machine learning tasks, starting from empty or random programs and using only basic math operations. The goal is to simultaneously search for all aspects of an ML algorithm&mdash;including the model structure and the learning strategy&mdash;while employing *minimal human bias*.
 
 ![GIF for the experiment progress](progress.gif)
 
-Despite the challenging search space for AutoML-Zero, *Evolutionary Search* showed promising results by discovering linear regression, 2-layer neural network with backpropagation, and even algorithms better than hand designed baselines of comparable complexity. An example sequence of discoveries on binary classification tasks is shown above. More importantly, the evolved algorithms can be *interpreted*. Below is an analysis of the best evolved algorithm, which "invents" techniques like bilinear interactions, weight averaging, normalized gradient and adding noise to inputs.
+Despite AutoML-Zero's challenging search space, evolutionary search showed promising results by discovering linear regression with gradient descent, 2-layer neural networks with backpropagation, and even algorithms that surpass hand designed baselines of comparable complexity. The figure above shows an example sequence of discoveries performed by one of our experiments, evolving algorithms to solve binary classification tasks. Notably, the evolved algorithms can be *interpreted*. Below is an analysis of the best evolved algorithm: the search process "invented" techniques like bilinear interactions, weight averaging, normalized gradient, and noise addition to the inputs.
 
 ![GIF for the interpretation of the best evolved algorithm](best_algo.gif)
 
-Note that the programs shown above are already simplified and reordered for better readability. The raw programs, and the details about more experiments and analyses can be found in the [paper](https://github.com/google-research/google-research/tree/master/automl_zero).
+More examples, analysis, and details can be found in the [paper](https://github.com/google-research/google-research/tree/master/automl_zero).
 
 
 &nbsp;
@@ -32,10 +32,9 @@ cd google-research/automl_zero
 ./run_demo.sh
 ```
 
-
 This script runs evolutionary search on 10 linear tasks (*T<sub>search</sub>* in the paper). After each experiment, it evaluates the best algorithm discovered on 100 new linear tasks (*T<sub>select</sub>* in the paper). Once an algorithm attains a fitness (1 - RMS error) greater than 0.9999, it is selected for a final evaluation on 100 *unseen tasks*. To conclude, the demo prints the results of the final evaluation and shows the code for the automatically discovered algorithm.
 
-To make this demo quick, we use a much smaller search space: only the math operations necessary to implement linear regression are allowed and the programs are constrained to a short, fixed length. This way, the demo will typically discover programs similar to linear regression by gradient descent in under 5 minutes using 1 CPU (Note that the runtime may vary due to the random seeds and hardware). We have seen similar and more interesting discoveries in the unconstrained search space (see more details in the [paper](https://github.com/google-research/google-research/tree/master/automl_zero#automl-zero)).
+To make this demo quick, we use a much smaller search space: only the math operations necessary to implement linear regression are allowed and the programs are constrained to a short, fixed length. Even with these limitations, the search space is quite sparse, as random search experiments show that only ~1 in 10<sup>8</sup> algorithms in the space can solve the tasks with the required accuracy. Nevertheless, this demo will typically discover programs similar to linear regression by gradient descent in under 5 minutes using 1 CPU (Note that the runtime may vary due to the random seeds and hardware). We have seen similar and more interesting discoveries in the unconstrained search space (see more details in the [paper](https://github.com/google-research/google-research/tree/master/automl_zero#automl-zero)).
 
 You can compare the automatically discovered algorithm with the solution from a human ML researcher (one of the authors):
 
@@ -53,7 +52,7 @@ def Learn():  # v0 = features; s0 = label
   v1 = v1 + v2  # Update weights.
 ```
 
-In this human designed program, the ```Setup``` function establishes a learning rate, the ```Predict``` function applies a set of weights to the inputs, and the ```Learn``` function corrects the weights in the opposite direction to the gradient. In other words, a linear regressor trained with gradient descent. You might have noticed that the evolved programs may order the instructions very differently and usually contain many redundant instructions, which can make it challenging to interpret. See more details about how we address these problems in the [paper](https://github.com/google-research/google-research/tree/master/automl_zero#automl-zero).
+In this human designed program, the ```Setup``` function establishes a learning rate, the ```Predict``` function applies a set of weights to the inputs, and the ```Learn``` function corrects the weights in the opposite direction to the gradient. In other words, a linear regressor trained with gradient descent. The evolved programs may look different even if they have the same functionality (redundant instructions, different order), which can make them challenging to interpret. See more details about how we address these problems in the [paper](https://github.com/google-research/google-research/tree/master/automl_zero#automl-zero).
 
 &nbsp;
 
