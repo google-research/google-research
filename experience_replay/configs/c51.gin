@@ -1,0 +1,46 @@
+# Hyperparameters follow the settings from Bellemare et al. (2017), but we
+# modify as necessary to match those used in Rainbow (Hessel et al., 2018), to
+# ensure apples-to-apples comparison.
+import dopamine.discrete_domains.atari_lib
+import dopamine.discrete_domains.run_experiment
+import gin.tf.external_configurables
+
+import experience_replay.replay_memory.prioritized_replay_buffer
+import experience_replay.agents.rainbow_agent
+import experience_replay.run_experience_replay_experiment
+
+ElephantRainbowAgent.num_atoms = 51
+ElephantRainbowAgent.vmax = 10.
+ElephantRainbowAgent.gamma = 0.99
+ElephantRainbowAgent.update_horizon = 1
+ElephantRainbowAgent.min_replay_history = 20000  # agent steps
+ElephantRainbowAgent.update_period = 4
+ElephantRainbowAgent.target_update_period = 8000  # agent steps
+ElephantRainbowAgent.epsilon_train = 0.01
+ElephantRainbowAgent.epsilon_eval = 0.001
+ElephantRainbowAgent.epsilon_decay_period = 250000  # agent steps
+ElephantRainbowAgent.replay_scheme = 'uniform'
+ElephantRainbowAgent.replay_forgetting = 'default'
+ElephantRainbowAgent.tf_device = '/gpu:0'  # use '/cpu:*' for non-GPU version
+ElephantRainbowAgent.sample_newest_immediately = False
+ElephantRainbowAgent.oldest_policy_in_buffer = 250000  # Default value for 1M replay buffer
+
+ElephantRainbowAgent.optimizer = @tf.train.AdamOptimizer()
+tf.train.AdamOptimizer.learning_rate = 0.00025
+tf.train.AdamOptimizer.epsilon = 0.0003125
+
+atari_lib.create_atari_environment.game_name = 'Pong'
+# Sticky actions with probability 0.25, as suggested by (Machado et al., 2017).
+atari_lib.create_atari_environment.sticky_actions = True
+run_experience_replay_experiment.create_agent.agent_name = 'rainbow'
+Runner.num_iterations = 200
+Runner.training_steps = 250000  # agent steps
+Runner.evaluation_steps = 125000  # agent steps
+Runner.max_steps_per_episode = 27000  # agent steps
+Runner.log_every_n = 10  # iterations
+ElephantRunner.checkpoint_every_n = 10  # iterations
+
+experience_replay.replay_memory.prioritized_replay_buffer.WrappedPrioritizedReplayBuffer.replay_capacity = 1000000
+experience_replay.replay_memory.prioritized_replay_buffer.WrappedPrioritizedReplayBuffer.batch_size = 32
+
+run_experience_replay_experiment.create_agent.debug_mode = True
