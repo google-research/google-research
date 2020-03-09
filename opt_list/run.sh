@@ -18,7 +18,7 @@ set -x
 virtualenv -p python3 .
 source ./bin/activate
 
-pip3 install tensorflow
+pip3 install tensorflow torch
 
 python3 -m opt_list.examples.tf_v1
 python3 -m opt_list.examples.tf_keras
