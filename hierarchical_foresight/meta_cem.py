@@ -29,6 +29,8 @@ from .models.tap import TAP
 import numpy as np
 import tensorflow.compat.v1 as tf
 from .utils import save_im
+from .models import q_func
+
 
 
 FLAGS = flags.FLAGS
