@@ -11,6 +11,10 @@ Rahul Garg, Neal Wadhwa, Sameer Ansari & Jonathan T. Barron, ICCV 2019. If you u
 }
 ```
 
+If you have any questions about our app, dataset or code, please email
+<dual-pixel-questions@google.com>. We are more likely to respond if you email us
+than if you open an issue on GitHub.
+
 
 ## Dataset
 
