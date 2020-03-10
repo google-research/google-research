@@ -20,7 +20,7 @@ You will also need to clone the open source [tensor2tensor](https://github.com/t
 ## Generate Data
 Run `python -m hierarchical_foresight.generate_data --savepath=SAVEPATH`
 
-## Train SV2P
+## Train [SV2P](https://arxiv.org/abs/1710.11252)
 Train a video prediction model using the open source tensor2tensor library.
 Run `git clone https://github.com/tensorflow/tensor2tensor` and follow instructions
 under "Adding a Dataset".
@@ -28,7 +28,7 @@ under "Adding a Dataset".
 Once you have a trained model on your problem, modify `hierarchical_foresight/env/subgoal_env.py` to use your model/problem. 
 
 ## Train VAE
-Train the conditional variation autoencoder
+Train the conditional variational autoencoder
 `python -m hierarchical_foresight.train_vae --beta=0.1 --datapath=DATAPATH --savedir=SAVEDIR`
 
 ## Run HVF
