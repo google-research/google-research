@@ -1,22 +1,20 @@
-# Hierarchical Visual Foresight (HVF)
+# Hierarchical Visual Foresight ([HVF](https://sites.google.com/stanford.edu/hvf))
 
-This directory contains code for the paper
-"Hierarchical Foresight: Self-Supervised Learning of Long-Horizon Tasks via Visual Subgoal Generation" Suraj Nair, Chelsea Finn
+This directory contains code for the ICLR 2020 paper
+["Hierarchical Foresight: Self-Supervised Learning of Long-Horizon Tasks via Visual Subgoal Generation"](https://arxiv.org/abs/1909.05829) Suraj Nair, Chelsea Finn
 
-## Usage
+## Setup
+
+This code base uses Python 3.5 and Tensorflow 1.14.
 From the google_research directory, run:
 
 ```
-virtualenv -p python3.6 hvf
-```
-
-```
+python3 -m venv hvf
 source hvf/bin/activate
-```
-
-```
 pip install -r hierarchical_foresight/requirements.txt
 ```
+
+You will also need to clone the open source [tensor2tensor](https://github.com/tensorflow/tensor2tenso) library to run video prediction. Specififcally you will need to clone `tensor2tensor==1.13.4` and follow instructions under "Adding a Dataset".
 
 ## Generate Data
 Run `python -m hierarchical_foresight.generate_data --savepath=SAVEPATH`
@@ -28,9 +26,14 @@ under "Adding a Dataset".
 
 Once you have a trained model on your problem, modify `hierarchical_foresight/env/subgoal_env.py` to use your model/problem. 
 
-## Train VAE, TDM, TAP
+## Train VAE
 Train the conditional variation autoencoder
-`python -m hierarchical_foresight.train_vae --datapath=DATAPATH --savedir=SAVEDIR`
+`python -m hierarchical_foresight.train_vae --beta=0.1 --datapath=DATAPATH --savedir=SAVEDIR`
+
+## Run HVF
+`python -m hierarchical_foresight.meta_cem --difficulty=h --cost=pixel --numsg=1 --horizon=50 --gt_goals=1 --phorizon=5 --envtype=maze --vaedir=VAEDIR`
+
+## Train TDM, TAP (Optional)
 
 Train the temporal distance cost function
 `python -m hierarchical_foresight.train_tdm --datapath=DATAPATH --savedir=SAVEDIR`
@@ -38,5 +41,7 @@ Train the temporal distance cost function
 Train the time agnostic prediction baseline
 `python -m hierarchical_foresight.train_tap --datapath=DATAPATH --savedir=SAVEDIR`
 
-## Run HVF
-`python -m hierarchical_foresight.meta_cem --difficulty=m --cost=pixel --numsg=1 --horizon=50 --gt_goals=1 --phorizon=15 --envtype=maze --vaedir=VAEDIR --tdmdir=TDMDIR --tapdir=TAPDIR`
+Then you can run HVF with 
+`python -m hierarchical_foresight.meta_cem --difficulty=h --cost=pixel --numsg=1 --horizon=50 --gt_goals=1 --phorizon=5 --envtype=maze --vaedir=VAEDIR --tdmdir=TDMDIR --tapdir=TAPDIR`
+
+
