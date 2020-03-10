@@ -195,6 +195,18 @@ The fields in `trial_id/metadata.json` have the following meanings:
   * `steps`: The number of training steps taken.
   * `trial_id`: The trial id within the study.
 
+**Note** Following studies use fixed `end_learning_rate_factor` which
+is not reported in `parameters` field in `trial_id/metadata.json`.
+
+```
+ batch_science/cifar_10/resnet_8/{nesterov_momentum, sgd}
+   "end_learning_rate_factor": 1e-2
+
+batch_science/imagenet/vgg_11/nesterov_momentum
+   "end_learning_rate_factor": 1e-3
+```
+
+
 The `measurements.csv` file contains data for each evaluation performed during
 training each trial. It looks like this:
 
@@ -212,6 +224,8 @@ training each trial. It looks like this:
 
 Note that different models have different metrics available, and that the time
 between successive evaluations is not necessarily constant.
+
+
 
 ## Summary of all available data
 
