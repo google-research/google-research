@@ -1,7 +1,8 @@
 # Hierarchical Visual Foresight ([HVF](https://sites.google.com/stanford.edu/hvf))
 
-This directory contains code for the ICLR 2020 paper
-["Hierarchical Foresight: Self-Supervised Learning of Long-Horizon Tasks via Visual Subgoal Generation"](https://arxiv.org/abs/1909.05829) Suraj Nair, Chelsea Finn
+This directory contains code for the paper
+["Hierarchical Foresight: Self-Supervised Learning of Long-Horizon Tasks via Visual Subgoal Generation"](https://arxiv.org/abs/1909.05829). 
+Suraj Nair, Chelsea Finn. ICLR 2020.
 
 ## Setup
 
@@ -31,7 +32,11 @@ Train the conditional variation autoencoder
 `python -m hierarchical_foresight.train_vae --beta=0.1 --datapath=DATAPATH --savedir=SAVEDIR`
 
 ## Run HVF
-`python -m hierarchical_foresight.meta_cem --difficulty=h --cost=pixel --numsg=1 --horizon=50 --gt_goals=1 --phorizon=5 --envtype=maze --vaedir=VAEDIR`
+
+Run trials on new tasks using HVF by running
+`python -m hierarchical_foresight.meta_cem --difficulty=h --cost=pixel --numsg=1 --horizon=50 --gt_goals=1 --phorizon=5 --envtype=maze --vaedir=VAEDIR`.
+
+This will run 100 trials with randomly generated tasks of the specified difficulty, and report the success rate, while also logging the identified subgoals. Using the default planning parameters each trial takes ~5 minutes, and can be adjusted to search over more or less samples by setting the hyperparams `metacem_samples, metacem_iters, cem_samples, cem_iters`.
 
 ## Train TDM, TAP (Optional)
 
