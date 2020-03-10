@@ -21,13 +21,14 @@ from absl import logging
 import numpy as np
 from opt_list import common
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
+import tensorflow.compat.v1 as tf1
 from tensorflow.python.framework import ops
 from tensorflow.python.keras.optimizer_v2 import adam
 from tensorflow.python.keras.optimizer_v2 import learning_rate_schedule
 from tensorflow.python.keras.optimizer_v2 import optimizer_v2
 
 
-class NAdamWOptimizer(tf.train.AdamOptimizer):
+class NAdamWOptimizer(tf1.train.AdamOptimizer):
   """Optimizer that implements Nadam / Adam / AdamW / NadamW type optimizers.
 
   This implements the default TF Optimizer API.
