@@ -11,7 +11,7 @@ AutoML-Zero aims to automatically discover computer programs that can solve mach
 
 ![GIF for the experiment progress](progress.gif)
 
-Despite AutoML-Zero's challenging search space, evolutionary search shows promising results by discovering linear regression with gradient descent, 2-layer neural networks with backpropagation, and even algorithms that surpass hand designed baselines of comparable complexity. The figure above shows an example sequence of discoveries performed by one of our experiments, evolving algorithms to solve binary classification tasks. Notably, the evolved algorithms can be *interpreted*. Below is an analysis of the best evolved algorithm: the search process "invented" techniques like bilinear interactions, weight averaging, normalized gradient, and data augmentation (by adding noise to the inputs).
+Despite AutoML-Zero's challenging search space, *evolutionary search* shows promising results by discovering linear regression with gradient descent, 2-layer neural networks with backpropagation, and even algorithms that surpass hand designed baselines of comparable complexity. The figure above shows an example sequence of discoveries from one of our experiments, evolving algorithms to solve binary classification tasks. Notably, the evolved algorithms can be *interpreted*. Below is an analysis of the best evolved algorithm: the search process "invented" techniques like bilinear interactions, weight averaging, normalized gradient, and data augmentation (by adding noise to the inputs).
 
 ![GIF for the interpretation of the best evolved algorithm](best_algo.gif)
 
@@ -24,7 +24,7 @@ More examples, analysis, and details can be found in the [paper](https://arxiv.o
 
 As a miniature "AutoML-Zero" experiment, let's try to automatically discover programs to solve linear regression tasks.
 
-To get started, first install `bazel` following instructions [here](https://docs.bazel.build/versions/master/install.html), then run the demo with:
+To get started, first install `bazel` following instructions [here](https://docs.bazel.build/versions/master/install.html) (bazel>=2.2.0 and C++>=14 are required), then run the demo with:
 
 ```
 git clone https://github.com/google-research/google-research.git
@@ -52,13 +52,13 @@ def Learn():  # v0 = features; s0 = label
   v1 = v1 + v2  # Update weights.
 ```
 
-In this human designed program, the ```Setup``` function establishes a learning rate, the ```Predict``` function applies a set of weights to the inputs, and the ```Learn``` function corrects the weights in the opposite direction to the gradient; in other words, a linear regressor trained with gradient descent. The evolved programs may look different even if they have the same functionality (e.g. redundant instructions, different order, etc.), which can make them challenging to interpret. See more details about how we address these problems in the [paper](https://github.com/google-research/google-research/tree/master/automl_zero#automl-zero).
+In this human designed program, the ```Setup``` function establishes a learning rate, the ```Predict``` function applies a set of weights to the inputs, and the ```Learn``` function corrects the weights in the opposite direction to the gradient; in other words, a linear regressor trained with gradient descent. The evolved programs may look different even if they have the same functionality due to redundant instructions and different ordering, which can make them challenging to interpret. See more details about how we address these problems in the [paper](https://github.com/google-research/google-research/tree/master/automl_zero#automl-zero).
 
 &nbsp;
 
 ## Reproducing Search Baselines
 
-First install `bazel` following instructions [here](https://docs.bazel.build/versions/master/install.html),then run the following command to reproduce the results in Supplementary
+First install `bazel` following instructions [here](https://docs.bazel.build/versions/master/install.html) (bazel>=2.2.0 and C++>=14 are required),then run the following command to reproduce the results in Supplementary
 Section 9 ("Baselines") with the "Basic" method on 1 process (1 CPU):
 
 *[To be continued, ETA: March, 2020]*
