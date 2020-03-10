@@ -99,12 +99,12 @@ The results are stored in the folder ```cold_posterior_bnn/results_cnnlstm```.
 
 Florian Wenzel ([florianwenzel@google.com](mailto:florianwenzel@google.com))<br>
 Rodolphe Jenatton ([rjenatton@google.com](mailto:rjenatton@google.com))<br>
-Sebastian Nowozin ([nowozin@google.com](nowozin@google.com))
+Sebastian Nowozin ([nowozin@google.com](mailto:nowozin@google.com))
 
 
 ### Reference
 
-> Florian Wenzel, Kevin Roth,Bastiaan S. Veeling,Jakub Swiatkowski,Linh Tran,
+> Florian Wenzel, Kevin Roth, Bastiaan S. Veeling, Jakub Swiatkowski, Linh Tran,
 > Stephan Mandt, Jasper Snoek, Tim Salimans, Rodolphe Jenatton and Sebastian
 > Nowozin (2020).
 > [How Good is the Bayes Posterior in Deep Neural Networks Really?](https://arxiv.org/pdf/2002.02405.pdf).
