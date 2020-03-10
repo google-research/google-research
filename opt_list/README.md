@@ -6,7 +6,7 @@ The “Learned Optimizer List” is a sequential list of hyperparameters that ha
 
 Instead of worrying about finding a good hyperparameter search space for your problem, or complex hyperparameter search methods, we suggest you try using this list of hyperparameters instead.
 
-Wondering how this list is made? See our paper: "Using a thousand optimization tasks to learn hyperparameter search strategies" from [todo](todo).
+Wondering how this list is made? See our paper: "Using a thousand optimization tasks to learn hyperparameter search strategies" on [arxiv](https://arxiv.org/abs/2002.11887).
 
 Contact Luke Metz (lmetz@google.com) for questions or issues.
 
@@ -78,6 +78,19 @@ model.compile(loss='mse', optimizer=opt, metrics=[])
 
 for i in range(training_steps):
   model.train_on_batch(inp, target)
+```
+
+## Citation
+
+```
+@misc{metz2020using,
+    title={Using a thousand optimization tasks to learn hyperparameter search strategies},
+    author={Luke Metz and Niru Maheswaranathan and Ruoxi Sun and C. Daniel Freeman and Ben Poole and Jascha Sohl-Dickstein},
+    year={2020},
+    eprint={2002.11887},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG}
+}
 ```
 
 
