@@ -36,12 +36,15 @@ flags.DEFINE_integer('batchsize', 256,
                      'Batch Size')
 flags.DEFINE_integer('latentsize', 8,
                      'Latent Size')
+flags.DEFINE_float('beta', 1,
+                     'Beta')
 flags.DEFINE_integer('trainsteps', 100000,
                      'Train Steps')
 flags.DEFINE_string('datapath', '/tmp/test.hdf5',
                     'Path to the HDF5 dataset')
 flags.DEFINE_string('savedir', '/tmp/mazevae/',
                     'Where to save the model')
+
 
 
 def main(argv):
@@ -51,7 +54,7 @@ def main(argv):
   batchsize = FLAGS.batchsize
   latentsize = FLAGS.latentsize
 
-  savedir = FLAGS.savedir + str(batchsize) + '_' + str(latentsize) + '/'
+  savedir = FLAGS.savedir + str(batchsize) + '_' + str(latentsize) + "_" + str(FLAGS.beta) + '/'
   path = FLAGS.datapath
 
   if not os.path.exists(savedir):
@@ -69,7 +72,7 @@ def main(argv):
   likelihood = likelihood2
   kl = 0.5 * tf.reduce_sum(-1 - tf.log(1e-5 +var) + tf.math.square(mu) + var,
                            axis=[1])
-  loss = -1 * (tf.reduce_mean(likelihood) - tf.reduce_mean(kl))
+  loss = -1 * (tf.reduce_mean(likelihood) - FLAGS.beta * tf.reduce_mean(kl))
 
   optim = tf.train.AdamOptimizer(0.0001)
   optimizer_step = optim.minimize(loss)

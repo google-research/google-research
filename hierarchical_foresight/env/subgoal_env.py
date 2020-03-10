@@ -25,6 +25,7 @@ from . import environment
 from absl import flags
 from ..models import tdm
 from ..models import vae
+
 import numpy as np
 from tensor2tensor.bin.t2t_decoder import create_hparams
 from tensor2tensor.utils import registry
@@ -39,11 +40,15 @@ class SubGoalEnv(object):
 
   def __init__(self, difficulty, modeltype, cost, numsg=1, savedir='/tmp/',
                envtype='maze', phorizon=5, parallel=0,
-               tdmdir='/tmp/mazetdm/', vaedir='/tmp/mazevae'):
+               tdmdir='/tmp/mazetdm/', vaedir='/tmp/mazevae',
+               cem_samples = 100, cem_iters = 3):
     self.parallel = parallel
     self.envtype = envtype
     self.cost = cost
     self.modeltype = modeltype
+    self.cem_samples = cem_samples
+    self.cem_iters = cem_iters
+    self.verbose = False
 
     # Only use maze env
     if self.envtype == 'maze':
@@ -66,31 +71,32 @@ class SubGoalEnv(object):
       self.out, _, _, _ = outall
 
       itsaver = tf.train.Saver()
-      vaedir = vaedir + '256_8/'
+      vaedir = vaedir + '256_8_0.1/'
       # Restore variables from disk.
-      itsaver.restore(self.itsess, vaedir + 'model-0')
+      itsaver.restore(self.itsess, vaedir + 'model-660000')
       print('LOADED VAE!')
 
     # LOADING TDM
-    self.tdm_graph = tf.Graph()
-    with self.tdm_graph.as_default():
-      self.tdmsess = tf.Session()
-      self.tdm = tdm.TemporalModel()
-      self.s1 = tf.placeholder(tf.float32, shape=[None, 64, 64, 3])
-      self.s2 = tf.placeholder(tf.float32, shape=[None, 64, 64, 3])
-      self.tdout = tf.nn.softmax(self.tdm(self.s1, self.s2))
+    if tdmdir is not None:
+      self.tdm_graph = tf.Graph()
+      with self.tdm_graph.as_default():
+        self.tdmsess = tf.Session()
+        self.tdm = tdm.TemporalModel()
+        self.s1 = tf.placeholder(tf.float32, shape=[None, 64, 64, 3])
+        self.s2 = tf.placeholder(tf.float32, shape=[None, 64, 64, 3])
+        self.tdout = tf.nn.softmax(self.tdm(self.s1, self.s2))
 
-      tdmsaver = tf.train.Saver()
-      tdmdir = tdmdir + '256TDM/'
-      # Restore variables from disk.
-      tdmsaver.restore(self.tdmsess, tdmdir + 'model-0')
-      print('LOADED TDM!')
+        tdmsaver = tf.train.Saver()
+        tdmdir = tdmdir + '256TDM/'
+        # Restore variables from disk.
+        tdmsaver.restore(self.tdmsess, tdmdir + 'model-0')
+        print('LOADED TDM!')
 
     # LOADING SV2P (Modify this to your path and problem)
-    homedir = '/usr/local/google/home/nairsuraj'
-    FLAGS.data_dir = homedir + '/data/maze3/'
-    FLAGS.output_dir = homedir + '/models/rs=6.3/maze3/checkpoint'
-    FLAGS.problem = 'video_bair_robot_pushing'
+    homedir = '/iris/u/surajn/data'
+    FLAGS.data_dir = homedir + '/maze_t2t_data/'
+    FLAGS.output_dir = homedir + '/maze_t2t/'
+    FLAGS.problem = 'maze_navigation'
     FLAGS.hparams = 'video_num_input_frames=1,video_num_target_frames=10'
     FLAGS.hparams_set = 'next_frame_sv2p'
     FLAGS.model = 'next_frame_sv2p'
@@ -100,7 +106,7 @@ class SubGoalEnv(object):
     hparams.video_num_target_frames = self.phorizon
 
     # Params
-    num_replicas = 200
+    num_replicas = self.cem_samples
     frame_shape = hparams.problem.frame_shape
     forward_graph = tf.Graph()
     with forward_graph.as_default():
@@ -123,7 +129,7 @@ class SubGoalEnv(object):
       self.forward_prediction_ops, _ = forward_model(self.forward_placeholders)
       forward_saver = tf.train.Saver()
       forward_saver.restore(self.forward_sess,
-                            homedir + '/models/rs=6.3/maze6/model.ckpt-0')
+                            homedir + '/maze_t2t/model.ckpt-130000')
     print('LOADED SV2P!')
 
     _, self.state = self.env.get_observation()
@@ -223,8 +229,9 @@ class SubGoalEnv(object):
     sd1 = np.array([0.2]*(self.num_acts * horizon))
 
     t = 0
-    sample_size = 200
-    resample_size = 40
+    sample_size = self.cem_samples
+    resample_size = self.cem_samples // 5
+    
 
     if horizon == 15:
       hz = 5
@@ -267,18 +274,19 @@ class SubGoalEnv(object):
         losses = (goalim - forward_predictions[:, :, :, :, :, 0])**2
         losses = losses.mean(axis=(2, 3, 4))
       losses = losses[:, -1]
-
-      for q in range(sample_size):
-        head = self.savedir + str(self.eps) + '/' + str(self.planstep) + '/'
-        tail = str(t) + '/' + str(losses[q]) + '_' + str(q) + '/'
-        drr = head + tail
-        os.makedirs(drr)
-        with open(drr + 'acts.txt', 'a') as f:
-          f.write(str(acts1[q]))
-        save_im(im1, drr+'curr.jpg')
-        save_im(im2, drr+'goal.jpg')
-        for p in range(horizon):
-          save_im(forward_predictions[q, p, :, :, :, 0], drr + str(p) + '.jpg')
+      
+      if self.verbose:
+        for q in range(sample_size):
+          head = self.savedir + str(self.eps) + '/' + str(self.planstep) + '/'
+          tail = str(t) + '/' + str(losses[q]) + '_' + str(q) + '/'
+          drr = head + tail
+          os.makedirs(drr)
+          with open(drr + 'acts.txt', 'a') as f:
+            f.write(str(acts1[q]))
+          save_im(im1, drr+'curr.jpg')
+          save_im(im2, drr+'goal.jpg')
+          for p in range(horizon):
+            save_im(forward_predictions[q, p, :, :, :, 0], drr + str(p) + '.jpg')
 
       best_actions = np.array([x for _, x in sorted(
           zip(losses, acts1.tolist()), reverse=False)][:resample_size])
@@ -293,7 +301,7 @@ class SubGoalEnv(object):
       mu1 = np.mean(best_actions1, axis=0)
       sd1 = np.std(best_actions1, axis=0)
       t += 1
-      if t >= 5:
+      if t >= self.cem_iters:
         break
 
     chosen = best_actions1[0]
