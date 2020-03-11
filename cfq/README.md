@@ -62,6 +62,16 @@ splits. Accuracies vary between 5% and 37% over splits and architectures:
 | MCD2  |  5.0 +/- 0.8 |  8.2 +/- 0.3 |  8.1 +/- 1.6 |
 | MCD3  | 10.8 +/- 0.6 | 10.6 +/- 1.1 | 11.3 +/- 0.3 |
 
+## Tensorflow datasets
+
+Our dataset and splits are also part of [TensorFlow Datasets](https://www.tensorflow.org/datasets)
+(as of v2.1.0). Using the data is as simple as:
+
+```python
+import tensorflow_datasets as tfds
+data = tfds.load('cfq/mcd1')
+```
+
 ## License
 
 CFQ is released under the [CC-BY license](https://creativecommons.org/licenses/by/4.0/).
