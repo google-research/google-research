@@ -24,4 +24,6 @@ pip3 install git+https://github.com/google-research/flax.git@prerelease
 python3 -m opt_list.examples.tf_v1
 python3 -m opt_list.examples.tf_keras
 python3 -m opt_list.examples.torch
-python3 -m opt_list.examples.jax
+python3 -m opt_list.examples.jax_flax
+python3 -m opt_list.examples.jax_optimizers
+python3 -m opt_list.examples.jax_optix

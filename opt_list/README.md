@@ -37,21 +37,6 @@ for i in range(training_steps):
   opt.step()
 ```
 
-### Jax
-Full example: `python3 -m opt_list.examples.jax`
-
-
-For now support Flax style optimizers. It should be fairly easy to port this code
-to work with other optimizer apis.
-```python
-from opt_list import jax_opt_list
-
-optimizer_def = jax_opt_list.optimizer_for_idx(idx=0, training_steps)
-optimizer = optimizer_def.create(model)
-for i in range(training_steps):
-  optimizer, loss = optimizer.optimize(loss_fn)
-```
-
 ### TF V1
 Full example: `python3 -m opt_list.examples.tf_v1`
 
@@ -78,6 +63,54 @@ model.compile(loss='mse', optimizer=opt, metrics=[])
 
 for i in range(training_steps):
   model.train_on_batch(inp, target)
+```
+
+### Jax: Flax
+Full example: `python3 -m opt_list.examples.jax_flax`
+
+
+```python
+from opt_list import jax_flax_opt_list
+
+optimizer_def = jax_flax_opt_list.optimizer_for_idx(idx=0, training_steps)
+optimizer = optimizer_def.create(model)
+for i in range(training_steps):
+  optimizer, loss = optimizer.optimize(loss_fn)
+```
+
+
+### Jax: Optimizers (jax.experimental.optimizers)
+Full example: `python3 -m opt_list.examples.jax_optimizers`
+
+```python
+from opt_list import jax_optimizers_opt_list
+
+opt_init, opt_update, get_params = jax_optimizers_opt_list.optimizer_for_idx(
+    0, training_iters)
+opt_state = opt_init(params)
+
+for i in range(training_steps):
+  params = get_params(opt_state)
+  opt_state = opt_update(i, jax.grad(loss_fn)(params, batch), opt_state)
+```
+
+### Jax: Optix (jax.experimental.optix)
+Full example: `python3 -m opt_list.examples.jax_optix`
+
+For now, optix doesn't support AdamW style weight decay. As such this will NOT
+be a drop in replacement but will follow a similar API.
+
+```python
+from opt_list import jax_optix_opt_list
+
+opt = jax_optix_opt_list.optimizer_for_idx(idx=0, training_steps)
+opt_state = opt.init(params)
+
+for i in range(training_steps):
+  grads = jax.grad(loss_fn)(params, batch)
+  # Not opt.update! We need parameter values too!
+  updates, opt_state = opt.update_with_params(grads, params, opt_state)
+  params = optix.apply_updates(params, updates)
 ```
 
 
