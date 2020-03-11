@@ -4,6 +4,8 @@ This directory contains code for the paper
 ["Hierarchical Foresight: Self-Supervised Learning of Long-Horizon Tasks via Visual Subgoal Generation"](https://arxiv.org/abs/1909.05829). 
 Suraj Nair, Chelsea Finn. ICLR 2020.
 
+For the most recent version of the code, please see the up to date repo [here](https://github.com/suraj-nair-1/google-research/tree/master/hierarchical_foresight)
+
 ## Setup
 
 This code base uses Python 3.5 and Tensorflow 1.14.
