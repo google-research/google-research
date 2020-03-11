@@ -114,7 +114,7 @@ class NAdamWOptimizer(tf1.train.AdamOptimizer):
     # AdamW style weight decay term.
     step = step + lr_t * self._adamw_weight_decay * var
 
-    theta_t = tf.assign_sub(var, step)
+    theta_t = tf1.assign_sub(var, step)
 
     return tf.group(*[theta_t, m_t, v_t])
 
@@ -167,22 +167,22 @@ def get_cosine_learning_rate_fn(
   def fn(global_step):
     """Returns a learning rate given the current training iteration."""
 
-    float_training_steps = tf.to_float(training_steps)
-    global_step = tf.to_float(global_step)
+    float_training_steps = tf1.to_float(training_steps)
+    global_step = tf1.to_float(global_step)
 
     # ensure we don't train longer than training steps
     global_step = tf.minimum(global_step, float_training_steps)
 
     constant_steps = float_training_steps * constant_fraction
-    x = tf.maximum(tf.to_float(global_step), tf.to_float(constant_steps))
+    x = tf.maximum(tf1.to_float(global_step), tf1.to_float(constant_steps))
 
     min_learning_rate = min_learning_rate_mult * learning_rate
 
     if warmup_fraction:
       min_warmup_fraction = tf.minimum(warmup_fraction, constant_fraction)
       warmup_steps = float_training_steps * min_warmup_fraction
-      is_warmup = tf.to_float(
-          tf.greater(tf.to_float(warmup_steps), tf.to_float(global_step)))
+      is_warmup = tf1.to_float(
+          tf.greater(tf1.to_float(warmup_steps), tf1.to_float(global_step)))
       warmup_lr = (global_step / warmup_steps) * learning_rate
     else:
       warmup_lr = learning_rate
@@ -348,10 +348,10 @@ def optimizer_for_idx(
   # TODO(lmetz) the global step is obtained here. Ideally, we should be using
   # the value used by the underlying tensorflow optimizer but at this moment
   # we don't have access to it.
-  if not iteration:
+  if iteration is None:
     logging.warning("Iteration not passed in! Using the default global_step for"
                     "keeping track of training progress")
-    iteration = tf.train.get_or_create_global_step()
+    iteration = tf1.train.get_or_create_global_step()
 
   cfg = common.get_optimizer_config(idx)
 
