@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "frequent.h"
+#include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 
 namespace sketch {
@@ -34,9 +35,11 @@ TEST_F(FrequentTest, TestBasic) {
   freq_->Add(12, 3);
   EXPECT_EQ(4.0, freq_->Estimate(10));
   EXPECT_EQ(7.0, freq_->Estimate(12));
+  EXPECT_THAT(freq_->HeavyHitters(6.9), testing::Contains(12));
   freq_->Add(10, 4);
   EXPECT_EQ(8.0, freq_->Estimate(10));
   EXPECT_EQ(7.0, freq_->Estimate(12));
+  EXPECT_THAT(freq_->HeavyHitters(7.9), testing::Contains(10));
 }
 
 TEST_F(FrequentTest, CuckooHashTestBasic) {

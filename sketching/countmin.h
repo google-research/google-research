@@ -50,7 +50,7 @@ class CountMin : public Sketch {
 
   virtual float Estimate(uint item) const;
 
-  virtual void HeavyHitters(float threshold, std::vector<uint>* items) const;
+  virtual std::vector<uint> HeavyHitters(float threshold) const;
 
   virtual uint Size() const;
 
@@ -126,8 +126,10 @@ class CountMinHierarchical : public Sketch {
     return sketches_[0]->Estimate(item);
   }
 
-  virtual void HeavyHitters(float threshold, std::vector<uint>* items) const {
-    HeavyHittersRecursive(levels_, 0, threshold, items);
+  virtual std::vector<uint> HeavyHitters(float threshold) const {
+    std::vector<uint> items;
+    HeavyHittersRecursive(levels_, 0, threshold, &items);
+    return items;
   }
 
   virtual uint Size() const;

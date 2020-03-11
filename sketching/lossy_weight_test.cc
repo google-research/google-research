@@ -34,9 +34,8 @@ TEST_F(LossyWeightTest, TestHashing) {
   }
   lw_->Add(12, 3);
   lw_->Add(10, 4);
-  std::vector<uint> items;
   lw_->ReadyToEstimate();
-  lw_->HeavyHitters(3, &items);
+  std::vector<uint> items = lw_->HeavyHitters(3);
   EXPECT_EQ(2, items.size());
   EXPECT_FLOAT_EQ(4.1, lw_->Estimate(10));
   EXPECT_FLOAT_EQ(3.1, lw_->Estimate(12));

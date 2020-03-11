@@ -1,10 +1,15 @@
 licenses(["notice"])
 
 cc_library(
+    name = "sketch",
+    hdrs = ["sketch.h"],
+    deps = [":utils"],
+)
+
+cc_library(
     name = "utils",
     srcs = ["utils.cc"],
     hdrs = [
-        "sketch.h",
         "utils.h",
     ],
     deps = [
@@ -20,6 +25,7 @@ cc_library(
     srcs = ["countmin.cc"],
     hdrs = ["countmin.h"],
     deps = [
+        ":sketch",
         ":utils",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/random",
@@ -41,6 +47,7 @@ cc_library(
     hdrs = ["lossy_count.h"],
     deps = [
         ":countmin",
+        ":sketch",
         ":utils",
         "@com_google_absl//absl/random",
     ],
@@ -52,6 +59,7 @@ cc_library(
     hdrs = ["lossy_weight.h"],
     deps = [
         ":countmin",
+        ":sketch",
         ":utils",
     ],
 )
@@ -72,6 +80,7 @@ cc_library(
     hdrs = ["frequent.h"],
     deps = [
         ":countmin",
+        ":sketch",
         ":utils",
     ],
 )
@@ -93,6 +102,7 @@ cc_binary(
     deps = [
         ":countmin",
         ":frequent",
+        ":sketch",
         ":lossy_count",
         ":lossy_weight",
         ":utils",

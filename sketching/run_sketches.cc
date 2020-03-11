@@ -92,7 +92,7 @@ void TestSketch(float threshold, const std::vector<IntFloatPair>& data,
   stats->add_time = std::chrono::duration_cast<std::chrono::microseconds>(
       end_add - start).count();
   sketch->ReadyToEstimate();
-  sketch->HeavyHitters(threshold, &stats->heavy_hitters);
+  stats->heavy_hitters = sketch->HeavyHitters(threshold);
   auto end_hh = std::chrono::high_resolution_clock::now();
   stats->hh_time = std::chrono::duration_cast<std::chrono::microseconds>(
       end_hh - end_add).count();
