@@ -45,7 +45,8 @@ def optimizer_for_idx(idx, training_steps):
   def update(i, g, state):
     x = state[0]
     state = jax_common.NAdamWParamState(*state[1:])
-    new_x, new_s = jax_common.nadamw_update(i, hyper_params, x, state, g)
+    update, new_s = jax_common.nadamw_update(i, hyper_params, x, state, g)
+    new_x = x + update
     return new_x, new_s[0], new_s[1]
 
   def get_params(state):

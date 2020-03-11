@@ -33,7 +33,9 @@ NAdamWParamState = collections.namedtuple("NAdamWParamState",
 
 
 def nadamw_update(step, hyper_params, param, state, grad):
-  """Apply a parameter update using the nadamw optimizer.
+  """Compute the next update using the nadamw optimizer.
+
+  This term should then be *added* to the parameter value.
 
   Args:
     step: int
@@ -89,10 +91,8 @@ def nadamw_update(step, hyper_params, param, state, grad):
 
   step = step + lr_t * hyper_params.adamw_weight_decay * param
 
-  new_param = param - step
-
   new_state = NAdamWParamState(grad_ema, grad_sq_ema)
-  return new_param, new_state
+  return -step, new_state
 
 
 def get_cosine_learning_rate_fn(
