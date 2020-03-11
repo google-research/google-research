@@ -14,6 +14,9 @@
 
 #include "lossy_weight.h"
 
+#include "sketch.h"
+#include "utils.h"
+
 namespace sketch {
 
 LossyWeight::LossyWeight(uint window_size, uint hash_count, uint hash_size)
@@ -43,14 +46,8 @@ float LossyWeight::Estimate(uint item) const {
   return cm_.Estimate(item);
 }
 
-void LossyWeight::HeavyHitters(float threshold, std::vector<uint>* items) const{
-  items->resize(0);
-  items->reserve(counters_.size());
-  for (const auto& kv : counters_) {
-    if (kv.second > threshold) {
-      items->push_back(kv.first);
-    }
-  }
+std::vector<uint> LossyWeight::HeavyHitters(float threshold) const {
+  return FilterOutAboveThreshold(counters_, threshold);
 }
 
 unsigned int LossyWeight::Size() const {

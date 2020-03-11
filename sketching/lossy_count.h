@@ -51,7 +51,7 @@ class LossyCount : public Sketch {
 
   // LossyCount works best if threshold >= N/window_size, where
   // N is the total number of items added so far.
-  virtual void HeavyHitters(float threshold, std::vector<uint>* items) const;
+  virtual std::vector<uint> HeavyHitters(float threshold) const;
 
   virtual unsigned int Size() const;
 

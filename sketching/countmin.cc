@@ -59,14 +59,14 @@ float CountMin::Estimate(uint item) const {
   return result;
 }
 
-void CountMin::HeavyHitters(float threshold, std::vector<uint>* items) const {
-  items->resize(0);
-  items->reserve(max_item_);
+std::vector<uint> CountMin::HeavyHitters(float threshold) const {
+  std::vector<uint> items(max_item_);
   for (uint i = 0; i <= max_item_; ++i) {
     if (Estimate(i) > threshold) {
-      items->push_back(i);
+      items.push_back(i);
     }
   }
+  return items;
 }
 
 uint CountMin::Size() const {

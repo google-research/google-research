@@ -16,6 +16,7 @@
 #define SKETCHING_UTILS_H_
 
 #include <utility>
+
 #include "glog/logging.h"
 #include "absl/random/bit_gen_ref.h"
 
@@ -43,6 +44,9 @@ class BitGenerator {
   absl::BitGen bit_gen_;
   absl::BitGenRef bit_gen_ref_;
 };
+
+std::vector<uint> FilterOutAboveThreshold(
+    const std::vector<IntFloatPair>& candidates, float threshold);
 
 }  // namespace sketch
 

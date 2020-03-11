@@ -15,6 +15,8 @@
 #include "frequent.h"
 
 #include <cmath>
+
+#include "sketch.h"
 #include "utils.h"
 
 namespace sketch {
@@ -248,14 +250,8 @@ float Frequent::Estimate(uint item) const {
   return EstimateMissing(item);
 }
 
-void Frequent::HeavyHitters(float threshold, std::vector<uint>* items) const {
-  items->resize(0);
-  items->reserve(counter_heap_.size());
-  for (const auto& kv : counter_heap_) {
-    if (kv.second > threshold) {
-      items->push_back(kv.first);
-    }
-  }
+std::vector<uint> Frequent::HeavyHitters(float threshold) const {
+  return FilterOutAboveThreshold(counter_heap_, threshold);
 }
 
 unsigned int Frequent::Size() const {

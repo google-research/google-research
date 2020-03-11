@@ -41,7 +41,7 @@ class LossyWeight : public Sketch {
 
   virtual float Estimate(uint item) const;
 
-  virtual void HeavyHitters(float threshold, std::vector<uint>* items) const;
+  virtual std::vector<uint> HeavyHitters(float threshold) const;
 
   virtual unsigned int Size() const;
 

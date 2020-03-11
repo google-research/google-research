@@ -13,7 +13,10 @@
 // limitations under the License.
 
 #include "lossy_count.h"
+
 #include <algorithm>
+
+#include "utils.h"
 
 namespace sketch {
 
@@ -44,14 +47,8 @@ float LossyCount::Estimate(uint item) const {
   return EstimateMissing(item);
 }
 
-void LossyCount::HeavyHitters(float threshold, std::vector<uint>* items) const {
-  items->resize(0);
-  items->reserve(current_.size());
-  for (const auto& kv : current_) {
-    if (kv.second > threshold) {
-      items->push_back(kv.first);
-    }
-  }
+std::vector<uint> LossyCount::HeavyHitters(float threshold) const {
+  return FilterOutAboveThreshold(current_, threshold);
 }
 
 unsigned int LossyCount::Size() const {

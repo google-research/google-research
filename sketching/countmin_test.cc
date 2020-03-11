@@ -106,8 +106,7 @@ TEST_F(CountMinHierarchicalTest, TestAdd) {
   countmin.Add(25, 3);
   EXPECT_LE(3, countmin.Estimate(25));
 
-  std::vector<uint> hh;
-  countmin.HeavyHitters(2.5, &hh);
+  std::vector<uint> hh = countmin.HeavyHitters(2.5);
   for (auto h : hh) {
     printf("HH %d\n", h);
   }
@@ -118,7 +117,7 @@ TEST_F(CountMinHierarchicalTest, TestAdd) {
   EXPECT_LE(4, countmin.Estimate(3));
   EXPECT_LE(6, countmin.Estimate(25));
   hh.clear();
-  countmin.HeavyHitters(5, &hh);
+  hh = countmin.HeavyHitters(5);
   for (auto h : hh) {
     printf("HH %d\n", h);
   }
@@ -135,8 +134,7 @@ TEST_F(CountMinHierarchicalTest, TestAddCU) {
   countmin.Add(25, 3);
   EXPECT_LE(3, countmin.Estimate(25));
 
-  std::vector<uint> hh;
-  countmin.HeavyHitters(2.5, &hh);
+  std::vector<uint> hh = countmin.HeavyHitters(2.5);
   for (auto h : hh) {
     printf("HH %d\n", h);
   }
@@ -147,7 +145,7 @@ TEST_F(CountMinHierarchicalTest, TestAddCU) {
   EXPECT_LE(4, countmin.Estimate(3));
   EXPECT_LE(6, countmin.Estimate(25));
   hh.clear();
-  countmin.HeavyHitters(5, &hh);
+  hh = countmin.HeavyHitters(5);
   for (auto h : hh) {
     printf("HH %d\n", h);
   }

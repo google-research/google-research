@@ -48,4 +48,15 @@ uint log2int(uint val) {
   return ret;
 }
 
+std::vector<uint> FilterOutAboveThreshold(
+    const std::vector<IntFloatPair>& candidates, float threshold) {
+  std::vector<uint> items;
+  for (const auto& [key, value] : candidates) {
+    if (value > threshold) {
+      items.push_back(key);
+    }
+  }
+  return items;
+}
+
 }  // namespace sketch
