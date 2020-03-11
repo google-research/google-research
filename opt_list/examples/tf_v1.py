@@ -22,6 +22,8 @@ from opt_list import tf_opt_list
 
 import tensorflow.compat.v1 as tf
 
+tf.disable_eager_execution()
+
 
 def main(_):
   # Construct tensors representing a batch of data. For this example we use
