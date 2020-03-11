@@ -38,16 +38,6 @@ BitGenerator::BitGenerator() :
     bit_gen_ref_(bit_gen_)
 {}
 
-uint log2int(uint val) {
-  DCHECK_GT(val, 0);
-  uint ret = 0;
-  while (val > 1) {
-    val >>= 1;
-    ret++;
-  }
-  return ret;
-}
-
 std::vector<uint> FilterOutAboveThreshold(
     const std::vector<IntFloatPair>& candidates, float threshold) {
   std::vector<uint> items;

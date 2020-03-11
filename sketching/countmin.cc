@@ -14,6 +14,8 @@
 
 #include "countmin.h"
 
+#include <cmath>
+
 #include "utils.h"
 #include "absl/random/random.h"
 
@@ -145,7 +147,7 @@ void CountMinHierarchical::Initialize(
   levels_ = static_cast<int>(ceil(static_cast<float>(lgN) /
                                   static_cast<float>(granularity)));
 
-  uint exact_count_size = log2int(hash_count * hash_size);
+  uint exact_count_size = floor(log2(hash_count * hash_size));
   exact_counts_.resize(exact_count_size);
   int j = 1;
   for (int i = exact_counts_.size() - 1; i >= 0; --i) {
