@@ -29,7 +29,6 @@ typedef std::pair<uint, float> IntFloatPair;
 unsigned int Hash(ULONG a, ULONG b, ULONG x, ULONG size);
 bool cmpByItem(const IntFloatPair& a, const IntFloatPair& b);
 bool cmpByValue(const IntFloatPair& a, const IntFloatPair& b);
-uint log2int(uint val);
 
 // A wrapper around absl's bit generator class. Could allow a switch to a
 // deterministic generator for testing, not implemented.
