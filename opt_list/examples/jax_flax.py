@@ -23,7 +23,7 @@ import jax
 from jax import random
 import jax.numpy as jnp
 
-from opt_list import jax_opt_list
+from opt_list import jax_flax_opt_list
 
 
 class SimpleModel(nn.Module):
@@ -48,7 +48,7 @@ def main(_):
 
   # Create the optimizer corresponding to the 0th hyperparameter configuration
   # with the specified amount of training steps.
-  optimizer_def = jax_opt_list.optimizer_for_idx(0, training_iters)
+  optimizer_def = jax_flax_opt_list.optimizer_for_idx(0, training_iters)
   optimizer = optimizer_def.create(model)
 
   @jax.jit
