@@ -102,7 +102,9 @@ class NAdamWCosineDecay(OptimizerDef):
     return _NAdamWParamState(jnp.zeros_like(param), jnp.zeros_like(param))
 
   def apply_param_gradient(self, step, hyper_params, param, state, grad):
-    return jax_common.nadamw_update(step, hyper_params, param, state, grad)
+    update, state = jax_common.nadamw_update(step, hyper_params, param, state,
+                                             grad)
+    return param + update, state
 
 
 def optimizer_for_idx(idx, training_steps):
