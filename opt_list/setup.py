@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,20 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#! /bin/bash
-set -e
-set -x
-virtualenv -p python3 .
-source ./bin/activate
+"""Install opt_list."""
+import os
+import setuptools
 
-pip3 install tensorflow torch jax jaxlib
-pip3 install git+https://github.com/google-research/flax.git@prerelease
+# Read in requirements
+with open(os.path.join(os.path.dirname(__file__), 'requirements.txt')) as f:
+  requirements = [r.strip() for r in f]
 
-cd opt_list/
-
-python3 -m opt_list.examples.tf_v1
-python3 -m opt_list.examples.tf_keras
-python3 -m opt_list.examples.torch
-python3 -m opt_list.examples.jax_flax
-python3 -m opt_list.examples.jax_optimizers
-python3 -m opt_list.examples.jax_optix
+  setuptools.setup(
+      name='opt_list',
+      version='0.0.0',
+      license='Apache 2.0',
+      author='Google LLC',
+      author_email='lmetz@google.com',
+      install_requires=requirements,
+      url='https://github.com/google-research/google-research/'
+      'tree/master/opt_list',
+      packages=setuptools.find_packages(),
+      python_requires='>=3.6')
