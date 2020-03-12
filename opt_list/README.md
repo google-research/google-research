@@ -21,6 +21,23 @@ The list is sorted, and we have found a small number of trials, e.g. under 10, s
 Try it out on your problem and let us know where it works, and where it doesn't!
 
 We provide full example usage in [examples/](https://github.com/google-research/google-research/tree/master/opt_list/examples) and code snippets below.
+For all examples we assume you are in the google\_research/opt\_list directory.
+
+## Installation
+Install via pip from github:
+
+```bash
+ pip install git+https://github.com/google-research/google-research.git#subdirectory=opt_list
+ ```
+
+ Alternatively, clone the repository and install the module from there.
+
+ ```bash
+git clone https://github.com/google-research/google-research.git
+cd google-research/opt_list/
+pip install -e .
+ ```
+
 
 ### PyTorch
 Full example: `python3 -m opt_list.examples.torch`
