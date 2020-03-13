@@ -14,40 +14,14 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Given a list of questions, compare golden answers with inferred answers.
-
-Writes accuracy (fraction of answers correct), and writes all correct and
-incorrect output.
-"""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+"""Library for computing and writing accuracy results."""
 
 import logging
-import os
 from typing import List, Tuple, Text, Optional
 
-from absl import app
-from absl import flags
 import dataclasses
 
-FLAGS = flags.FLAGS
-
-flags.DEFINE_string('questions_path', None, 'Path to the input questions.')
-flags.DEFINE_string('golden_answers_path', None,
-                    'Path to the expected (golden) answers.')
-flags.DEFINE_string('inferred_answers_path', None,
-                    'Path to the inferred answers.')
-flags.DEFINE_string('output_path', None, 'Path to write evaluation results to')
-
-flags.mark_flag_as_required('output_path')
-flags.register_validator('questions_path', os.path.exists,
-                         'Questions path not found.')
-flags.register_validator('golden_answers_path', os.path.exists,
-                         'Golden answers path not found.')
-flags.register_validator('inferred_answers_path', os.path.exists,
-                         'Inferred answers path not found.')
+from tensorflow.compat.v1.io import gfile
 
 
 @dataclasses.dataclass
@@ -55,15 +29,21 @@ class AccuracyResult(object):
   total_lines: int
   matches: List[Tuple[Text, Text]]
   mismatches: List[Tuple[Text, Text, Text]]
+  inferred_answers_path: Text
+
+  def get_accuracy(self):
+    return len(self.matches) / self.total_lines
 
 
-def write_accuracy_result(result):
+def write_accuracy_result(result,
+                          output_path,
+                          print_output = False):
   """Writes the accuracy results to a text file."""
   if not result:
     return
-  accuracy = len(result.matches) / result.total_lines
-  summary = f'Accuracy on {FLAGS.inferred_answers_path} is {accuracy}'
-  with open(FLAGS.output_path, 'w') as f:
+  accuracy = result.get_accuracy()
+  summary = f'Accuracy on {result.inferred_answers_path} is {accuracy}'
+  with gfile.GFile(output_path, 'w') as f:
     f.write(f'{summary}\n')
     if result.mismatches:
       f.write('\n==========WRONG==========\n')
@@ -73,17 +53,24 @@ def write_accuracy_result(result):
       f.write('\n==========CORRECT==========\n')
     for question, golden in result.matches:
       f.write(f'Q: {question}Gold/Inferred: {golden}\n')
-  print(f'Evaluation result written to {FLAGS.output_path}\n')
-  print(summary)
+  if print_output:
+    print(f'Evaluation result written to {output_path}\n')
+    print(summary)
 
 
-def get_accuracy_result():
+def get_accuracy_result(
+    questions_path, golden_answers_path,
+    inferred_answers_path):
   """Collect accuracy results from input files."""
-  questions = open(FLAGS.questions_path).readlines()
-  golden_answers = open(FLAGS.golden_answers_path).readlines()
-  inferred_answers = open(FLAGS.inferred_answers_path).readlines()
+  questions = gfile.GFile(questions_path).readlines()
+  golden_answers = gfile.GFile(golden_answers_path).readlines()
+  inferred_answers = gfile.GFile(inferred_answers_path).readlines()
 
-  result = AccuracyResult(total_lines=len(questions), matches=[], mismatches=[])
+  result = AccuracyResult(
+      total_lines=len(questions),
+      matches=[],
+      mismatches=[],
+      inferred_answers_path=inferred_answers_path)
   if len(set((len(questions), len(golden_answers), len(inferred_answers)))) > 1:
     logging.fatal(f'Not writing accuracy results: Input files have different '
                   'lengths')
@@ -98,14 +85,3 @@ def get_accuracy_result():
     else:
       result.mismatches.append((question, golden, inferred))
   return result
-
-
-def main(argv):
-  if len(argv) > 1:
-    raise app.UsageError('Too many command-line arguments.')
-
-  write_accuracy_result(get_accuracy_result())
-
-
-if __name__ == '__main__':
-  app.run(main)

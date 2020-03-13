@@ -48,7 +48,7 @@ t2t-decoder --t2t_usr_dir="${work_dir}/cfq/" --data_dir="${save_path}" \
   --decode_from_file="${encode_path}" \
   --decode_to_file="${decode_inferred_path}"
 
-python3 -m evaluate --questions_path="${encode_path}" \
+python3 -m evaluate_main --questions_path="${encode_path}" \
   --golden_answers_path="${decode_path}" \
   --inferred_answers_path="${decode_inferred_path}" \
   --output_path="evaluation.txt"

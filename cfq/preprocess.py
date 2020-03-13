@@ -24,17 +24,14 @@ from typing import Any, Dict, List, Text, Tuple
 
 from absl import logging
 
+from tensorflow.compat.v1.io import gfile
 
 Dataset = Dict[Text, List[Tuple[Text, Text]]]
 
 
-def open_file(path, mode = 'r'):
-  return open(path, mode, encoding='utf-8')
-
-
 def load_json(path):
   logging.info(f'Reading json from {path} into memory...')
-  with open_file(path) as f:
+  with gfile.GFile(path) as f:
     data = json.load(f)
   logging.info(f'Successfully loaded json data from {path} into memory.')
   return data
@@ -103,8 +100,9 @@ def write_dataset(dataset, save_path):
       os.makedirs(folder_name)
     encode_name = os.path.join(folder_name, f'{split_name}_encode.txt')
     decode_name = os.path.join(folder_name, f'{split_name}_decode.txt')
-    with open_file(encode_name, 'w') as encode_f, open_file(decode_name,
-                                                            'w') as decode_f:
+    with gfile.GFile(encode_name,
+                     'w') as encode_f, gfile.GFile(decode_name,
+                                                   'w') as decode_f:
       for pair in list_of_input_output_pairs:
         encode_f.write(pair[0] + '\n')
         decode_f.write(pair[1] + '\n')
@@ -120,7 +118,7 @@ def write_token_vocab(words,
   words_with_counts.sort(key=lambda x: (x[1], x[0]), reverse=True)
   vocab_path = os.path.join(save_path, f'vocab.{problem}.tokens')
 
-  with open_file(vocab_path, 'w') as f:
+  with gfile.GFile(vocab_path, 'w') as f:
     # Tensor2tensor needs these additional tokens.
     f.write('<pad>\n<EOS>\n<OOV>\n')
     for word, _ in words_with_counts:
@@ -130,7 +128,7 @@ def write_token_vocab(words,
 
 
 def get_lines(path, filename):
-  with open_file(os.path.join(path, 'train', filename)) as f:
+  with gfile.GFile(os.path.join(path, 'train', filename)) as f:
     lines = [l.strip() for l in f.readlines() if l.strip()]
   return lines
 
