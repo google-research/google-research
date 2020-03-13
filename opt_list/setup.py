@@ -31,4 +31,5 @@ with open(os.path.join(os.path.dirname(__file__), 'requirements.txt')) as f:
       url='https://github.com/google-research/google-research/'
       'tree/master/opt_list',
       packages=setuptools.find_packages(),
+      package_data={'opt_list': ['*.json', '*.txt']},
       python_requires='>=3.6')
