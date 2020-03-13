@@ -75,9 +75,9 @@ def get_cosine_learning_rate_fn(
     min_learning_rate = min_learning_rate_mult * learning_rate
 
     if warmup_fraction:
-      min_warmup_fraction = torch.max(warmup_fraction, constant_fraction)
+      min_warmup_fraction = max(warmup_fraction, constant_fraction)
       warmup_steps = float_training_steps * min_warmup_fraction
-      is_warmup = ff(torch.greater(ff(warmup_steps), ff(global_step)))
+      is_warmup = ff(ff(warmup_steps) > ff(global_step))
       warmup_lr = (global_step / warmup_steps) * learning_rate
     else:
       warmup_lr = learning_rate
