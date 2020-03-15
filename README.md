@@ -8,7 +8,7 @@ This repository contains code released by
 Because the repo is large, we recommend you clone the repo without its history.
 
 ```
-git clone git@github.com:google-research/google-research.git --depth=1
+git clone https://github.com/google-research/google-research.git --depth=1
 ```
 
 ---
