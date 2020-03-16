@@ -44,6 +44,7 @@ $ source fad/bin/activate
 $ python -m pip install --upgrade pip
 # Install dependences
 $ pip install apache-beam numpy scipy tensorflow
+$ pip install git+git://github.com/google-research/tf-slim.git
 ```
 
 #### Clone TensorFlow models repo into a 'models' directory.
