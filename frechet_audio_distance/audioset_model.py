@@ -87,7 +87,7 @@ class AudioSetModel(object):
       np_samples /= np.maximum(min_ratio, np.amax(np_samples))
     if self._step_size is not None:
       samples_splits = []
-      for i in xrange(0, samples - vggish_params.SAMPLE_RATE + 1,
+      for i in range(0, samples - vggish_params.SAMPLE_RATE + 1,
                       self._step_size):
         samples_splits.append(np_samples[i:i + vggish_params.SAMPLE_RATE])
     else:

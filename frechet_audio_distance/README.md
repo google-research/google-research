@@ -36,8 +36,8 @@ Create a virtualenv to isolate from everything else and activate it first.
 ```shell
 # Python 2
 $ virtualenv fad
-# or Oython 3
-$ python3 -m venv fad # (apache-beam does not yet support Python 3)
+# or Python 3
+$ python3 -m venv fad
 # activate the virtualenv
 $ source fad/bin/activate
 # Upgrade pip
