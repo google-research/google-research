@@ -62,7 +62,7 @@ def get_matrix_compression_object(hparams,
   Returns:
     A Pruning or compression_lib.compression_op.ApplyCompression object.
   """
-  if not global_step:
+  if global_step is None:
     global_step = tf.cast(tf.train.get_global_step(), tf.int32)
   if hparams.prune_option in [
       'weight', 'first_order_gradient', 'second_order_gradient']:
