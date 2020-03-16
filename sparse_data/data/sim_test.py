@@ -156,7 +156,7 @@ class TestSparsity(TestCardinality):
           problem=problem)
       d.reset()
       x, _ = d.generate()
-      x_inf = x[:, :num_feature / 2]
+      x_inf = x[:, :int(num_feature / 2)]
       observed_prop_nonzero = np.true_divide(np.sum(x_inf > 0), np.size(x_inf))
       self.assertLess(
           np.abs(observed_prop_nonzero - prop_nonzero), 0.1 * prop_nonzero)
