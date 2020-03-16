@@ -75,7 +75,7 @@ def train():
     # training step is in [begin_pruning_step, end_pruning_step] specified in
     # the pruning spec.
     update_op = pruning_interface.get_matrix_compression_update_op(
-        pruning_obj, pruning_hparams)
+        pruning_obj)
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
