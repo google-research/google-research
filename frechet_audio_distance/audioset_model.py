@@ -22,9 +22,9 @@ from __future__ import print_function
 import numpy as np
 import tensorflow.compat.v1 as tf  # tf
 
-from tensorflow_models.audioset import mel_features
-from tensorflow_models.audioset import vggish_params
-from tensorflow_models.audioset import vggish_slim
+from tensorflow_models.audioset.vggish import mel_features
+from tensorflow_models.audioset.vggish import vggish_params
+from tensorflow_models.audioset.vggish import vggish_slim
 
 
 class AudioSetModel(object):
