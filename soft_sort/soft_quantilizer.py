@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Soft Sorting core library.
 
 Computes all sort of statistical objects related to (soft) sorting, such as the
@@ -27,10 +28,6 @@ It is based on:
 Operator" by Cuturi M., Teboul O., Vert JP.
 (see https://arxiv.org/pdf/1905.11885.pdf)
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import gin
 import tensorflow.compat.v2 as tf
@@ -70,8 +67,7 @@ class SoftQuantilizer(object):
 
   def __init__(
       self, x=None, weights=None, num_targets=None, target_weights=None, y=None,
-      descending=False, scale_input_fn=squash.group_rescale,
-      sinkhorn_cls=sinkhorn.Sinkhorn1D, **kwargs):
+      descending=False, scale_input_fn=squash.group_rescale, **kwargs):
     """Initializes the internal state of the SoftSorter.
 
     Args:
@@ -96,13 +92,12 @@ class SoftQuantilizer(object):
       computations but also to ensure that the regularization parameter epsilon
       is valid throughout gradient iterations, regardless of the variations of
       the input values'range.
-     sinkhorn_cls: which sinkhorn implementation to use.
      **kwargs: extra parameters to the Sinkhorn algorithm.
     """
     self._scale_input_fn = scale_input_fn
     self.iterations = 0
     self._descending = descending
-    self._sinkhorn = sinkhorn_cls(**kwargs)
+    self._kwargs = kwargs
     self.reset(x, y, weights, target_weights, num_targets)
 
   def reset(
@@ -118,8 +113,8 @@ class SoftQuantilizer(object):
     self._set_target(y, num_targets, target_weights)
 
     # We run sinkhorn on the rescaled input values x_s.
-    self.transport = self._sinkhorn(
-        self._x_s, self.y, self.weights, self.target_weights)
+    self.transport = sinkhorn.sinkhorn(
+        self._x_s, self.y, self.weights, self.target_weights, **self._kwargs)
 
   @property
   def softcdf(self):
