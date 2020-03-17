@@ -20,21 +20,24 @@
 //    Cormode and Muthukrishnan. "An Improved Data Stream Summary:
 //    The Count-Min Sketch and its Applications". Journal of Algorithms,
 //    Volume 55, Number 1, pages 58-75, 2005.
-// 2. Hierarchical Countmin (good for finding percentiles and heavy hitters)
-//    Cheung-Mon-Chan and Clerot. "Finding Hierarchical Heavy Hitters with
-//    the Count Min Sketch". 4th International Workshop on Internet Performance,
-//    Simulation, Monitoring and Measurements, 2006.
-// 3. CountMinCU, a CountMin with Conservative Update
+// 2. CountMinCU, a CountMin with Conservative Update
 //    Estan and Varghese. "New Directions in Traffic Measurement and
 //    Accounting: Focusing on the Elephants, Ignoring the Mice".
 //    ACM Transactions on Computer Systems, Volume 21 Issue 3, August 2003
 //    Pages 270-313.
+// 3. Hierarchical Countmin (good for finding percentiles and heavy hitters)
+//    Cheung-Mon-Chan and Clerot. "Finding Hierarchical Heavy Hitters with
+//    the Count Min Sketch". 4th International Workshop on Internet Performance,
+//    Simulation, Monitoring and Measurements, 2006.
 // 4. Hierarchical Countmin with Conservative Update.
 
+#include <functional>
+#include <memory>
 #include <vector>
 
-#include "sketch.h"
 #include "absl/memory/memory.h"
+#include "sketch.h"
+#include "utils.h"
 
 namespace sketch {
 
@@ -68,17 +71,18 @@ class CountMin : public Sketch {
 
  protected:
   const uint hash_size_;
-  uint max_item_;
+  uint max_item_ = 0;
   std::vector<uint> hash_a_;
   std::vector<uint> hash_b_;
-  std::vector<std::vector<float> > values_;
+  std::vector<std::vector<float>> values_;
+  std::function<uint(ULONG, ULONG, ULONG)> hash_func_;
 };
 
 
 class CountMinCU : public CountMin {
  public:
-  CountMinCU(uint hash_count, uint hash_size) :
-      CountMin(hash_count, hash_size) {}
+  CountMinCU(uint hash_count, uint hash_size)
+      : CountMin(hash_count, hash_size) {}
 
   virtual ~CountMinCU() {}
 
@@ -88,11 +92,11 @@ class CountMinCU : public CountMin {
   // are unique.
   virtual void BatchAdd(const std::vector<IntFloatPair>& item_deltas);
 
-  // Ensure that the value of item will be (at least) value
+  // Ensure that the value of item will be (at least) value.
   void Update(uint item, float value);
 
   static std::unique_ptr<CountMin> CreateCM_CU(uint hash_count,
-                                                uint hash_size) {
+                                               uint hash_size) {
     return absl::make_unique<CountMinCU>(CountMinCU(hash_count, hash_size));
   }
 

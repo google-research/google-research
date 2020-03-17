@@ -14,7 +14,7 @@ cc_library(
     ],
     deps = [
         "//external:gflags",
-        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/random",
         "@com_google_absl//absl/random:bit_gen_ref",
         "@com_google_glog//:glog",
     ],
@@ -37,6 +37,7 @@ cc_test(
     srcs = ["countmin_test.cc"],
     deps = [
         ":countmin",
+        ":utils",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -102,9 +103,9 @@ cc_binary(
     deps = [
         ":countmin",
         ":frequent",
-        ":sketch",
         ":lossy_count",
         ":lossy_weight",
+        ":sketch",
         ":utils",
         "//external:gflags",
         "@com_google_absl//absl/algorithm:container",

@@ -16,6 +16,7 @@
 
 #include <cmath>
 
+#include "glog/logging.h"
 #include "sketch.h"
 #include "utils.h"
 
