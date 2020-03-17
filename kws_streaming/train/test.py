@@ -475,7 +475,8 @@ def convert_model_tflite(flags,
                          folder,
                          mode,
                          fname,
-                         weights_name='best_weights'):
+                         weights_name='best_weights',
+                         optimizations=None):
   """Convert model to streaming and non streaming TFLite.
 
   Args:
@@ -484,6 +485,7 @@ def convert_model_tflite(flags,
       mode: inference mode
       fname: file name of converted model
       weights_name: file name with model weights
+      optimizations: list of optimization options
   """
   tf.reset_default_graph()
   config = tf.ConfigProto()
@@ -502,7 +504,9 @@ def convert_model_tflite(flags,
     os.makedirs(path_model)
   try:
     with open(os.path.join(path_model, fname), 'wb') as fd:
-      fd.write(utils.model_to_tflite(sess, model, flags, mode, path_model))
+      fd.write(
+          utils.model_to_tflite(sess, model, flags, mode, path_model,
+                                optimizations))
   except IOError as e:
     logging.warning('FAILED to write file: %s', e)
   except (ValueError, AttributeError, RuntimeError, TypeError) as e:

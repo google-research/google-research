@@ -105,6 +105,7 @@ def model(flags):
       use_tf_fft=flags.use_tf_fft,
       preemph=flags.preemph,
       window_type=flags.window_type,
+      feature_type=flags.feature_type,
       mel_num_bins=flags.mel_num_bins,
       mel_lower_edge_hertz=flags.mel_lower_edge_hertz,
       mel_upper_edge_hertz=flags.mel_upper_edge_hertz,

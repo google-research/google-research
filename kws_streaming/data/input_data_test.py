@@ -36,10 +36,9 @@ class DictStruct(object):
 class InputDataTest(tf.test.TestCase):
 
   def _GetWavData(self):
-    with self.cached_session() as sess:
-      sample_data = tf.zeros([32000, 2])
-      wav_encoder = tf.audio.encode_wav(sample_data, 16000)
-      wav_data = self.evaluate(wav_encoder)
+    sample_data = tf.zeros([32000, 2])
+    wav_encoder = tf.audio.encode_wav(sample_data, 16000)
+    wav_data = self.evaluate(wav_encoder)
     return wav_data
 
   def _SaveTestWavFile(self, filename, wav_data):
@@ -76,6 +75,7 @@ class InputDataTest(tf.test.TestCase):
         "silence_percentage": 10,
         "unknown_percentage": 10,
         "average_window_width": 6,
+        "fft_magnitude_squared": False,
         "split_data": 1,
     }
     return DictStruct(**dummy_flags)

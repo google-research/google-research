@@ -83,6 +83,10 @@ def update_flags(flags):
   upd_flags.fingerprint_width = fingerprint_width
   upd_flags.fingerprint_size = fingerprint_size
   upd_flags.average_window_width = average_window_width
+  if upd_flags.fft_magnitude_squared in (0, 1):
+    upd_flags.fft_magnitude_squared = bool(upd_flags.fft_magnitude_squared)
+  else:
+    raise ValueError('Non boolean value %d' % upd_flags.fft_magnitude_squared)
 
   # summary logs for TensorBoard
   upd_flags.summaries_dir = os.path.join(flags.train_dir, 'logs/')

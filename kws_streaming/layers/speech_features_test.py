@@ -30,7 +30,7 @@ class MelSpeechFeaturesTest(tf.test.TestCase):
 
     self.inference_batch_size = 1
     self.preemph = 0.97
-    self.window_type = 'hann_greco'
+    self.window_type = 'hann'
     self.frame_size_ms = 25.0
     self.frame_step_ms = 10.0
     self.mel_num_bins = 80

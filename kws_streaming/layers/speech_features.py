@@ -22,6 +22,7 @@ from kws_streaming.layers.modes import Modes
 from kws_streaming.layers.normalizer import Normalizer
 from kws_streaming.layers.preemphasis import Preemphasis
 from kws_streaming.layers.windowing import Windowing
+from tensorflow.python.ops import gen_audio_ops as audio_ops  # pylint: disable=g-direct-tensorflow-import
 
 
 class SpeechFeatures(tf.keras.layers.Layer):
@@ -37,6 +38,7 @@ class SpeechFeatures(tf.keras.layers.Layer):
                inference_batch_size=1,
                preemph=0.0,
                window_type='hann',
+               feature_type='mfcc_tf',
                frame_size_ms=40.0,
                frame_step_ms=20.0,
                mel_num_bins=40,
@@ -58,6 +60,7 @@ class SpeechFeatures(tf.keras.layers.Layer):
     self.inference_batch_size = inference_batch_size
     self.preemph = preemph
     self.window_type = window_type
+    self.feature_type = feature_type
     self.frame_size_ms = frame_size_ms
     self.frame_step_ms = frame_step_ms
     self.mel_num_bins = mel_num_bins
@@ -127,7 +130,10 @@ class SpeechFeatures(tf.keras.layers.Layer):
 
     self.normalizer = Normalizer(mean=self.mean, stddev=self.stddev)
 
-  def call(self, inputs):
+  def _mfcc_tf(self, inputs):
+    # MFCC implementation based on TF.
+    # It is based on DFT which is computed using matmul with const weights.
+    # Where const weights are the part of the model, it increases model size.
     outputs = self.data_frame(inputs)
     outputs = self.add_noise(outputs)
     outputs = self.preemphasis(outputs)
@@ -138,6 +144,47 @@ class SpeechFeatures(tf.keras.layers.Layer):
     outputs = self.normalizer(outputs)
     return outputs
 
+  def _mfcc_op(self, inputs):
+    # MFCC implementation based on TF custom op (supported by TFLite)
+    # It reduces model size in comparison to _mfcc_tf
+    if (self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE or
+        self.mode == Modes.STREAM_INTERNAL_STATE_INFERENCE):
+      outputs = self.data_frame(inputs)
+      # in streaming mode there is only one frame for FFT calculation
+      # dims will be [batch=1, time=1, frame],
+      # but audio_spectrogram requre 2D input data, so we remove time dim
+      outputs = tf.squeeze(outputs, axis=1)
+    else:
+      outputs = inputs
+
+    # audio_spectrogram expects [frame, channels/batch]
+    # so transpose it, to make [channels/batch, frame]
+    outputs = tf.transpose(outputs, [1, 0])
+    outputs = audio_ops.audio_spectrogram(
+        outputs,
+        window_size=self.frame_size,
+        stride=self.frame_step,
+        magnitude_squared=self.fft_magnitude_squared)
+
+    outputs = audio_ops.mfcc(
+        outputs,
+        self.sample_rate,
+        upper_frequency_limit=self.mel_upper_edge_hertz,
+        lower_frequency_limit=self.mel_lower_edge_hertz,
+        filterbank_channel_count=self.mel_num_bins,
+        dct_coefficient_count=self.dct_num_features)
+    return outputs
+
+  def call(self, inputs):
+    if self.feature_type == 'mfcc_tf':
+      outputs = self._mfcc_tf(inputs)
+    elif self.feature_type == 'mfcc_op':
+      outputs = self._mfcc_op(inputs)
+    else:
+      raise ValueError('unsupported feature_type', self.feature_type)
+
+    return outputs
+
   def get_config(self):
     config = {
         'mode': self.mode,
@@ -145,6 +192,7 @@ class SpeechFeatures(tf.keras.layers.Layer):
         'inference_batch_size': self.inference_batch_size,
         'preemph': self.preemph,
         'window_type': self.window_type,
+        'feature_type': self.feature_type,
         'frame_size_ms': self.frame_size_ms,
         'frame_step_ms': self.frame_step_ms,
         'mel_num_bins': self.mel_num_bins,
