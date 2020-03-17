@@ -21,7 +21,7 @@ We recommend getting [pip3](https://pip.pypa.io/en/stable/) and then running the
 following command, which will install all required libraries in one go:
 
 ```shell
-sudo pip3 install absl-py tensorflow tensor2tensor
+sudo pip3 install -r requirements.txt
 ```
 
 ## Training and evaluating a model
