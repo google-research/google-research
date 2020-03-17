@@ -425,6 +425,11 @@ if __name__ == '__main__':
       default='raw',
       help='Supports only raw')
   parser.add_argument(
+      '--feature_type',
+      type=str,
+      default='mfcc_tf',
+      help='Feature type: mfcc_tf, mfcc_op')
+  parser.add_argument(
       '--preemph',
       type=float,
       default=0.0,

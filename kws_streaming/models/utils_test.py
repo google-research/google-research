@@ -47,6 +47,7 @@ class UtilsTest(tf.test.TestCase):
     self.flags.label_count = 3
     self.flags.preemph = 0.0
     self.flags.window_type = 'hann'
+    self.flags.feature_type = 'mfcc_tf'
     self.flags.mel_num_bins = 40
     self.flags.mel_lower_edge_hertz = 20
     self.flags.mel_upper_edge_hertz = 4000

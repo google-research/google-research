@@ -32,11 +32,13 @@ class MagnitudeRDFT(tf.keras.layers.Layer):
                mode=Modes.TRAINING,
                use_tf_fft=False,
                magnitude_squared=False,
+               fft_size=None,
                **kwargs):
     super(MagnitudeRDFT, self).__init__(**kwargs)
     self.use_tf_fft = use_tf_fft
     self.mode = mode
     self.magnitude_squared = magnitude_squared
+    self.fft_size = fft_size
 
   def build(self, input_shape, fft_mel_size=None):
     super(MagnitudeRDFT, self).build(input_shape)

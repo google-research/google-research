@@ -189,6 +189,8 @@ class TrainTest(tf.test.TestCase, parameterized.TestCase):
             0.0,
         'window_type':
             'hann',
+        'feature_type':
+            'mfcc_tf',
         'mel_num_bins':
             40,
         'mel_lower_edge_hertz':

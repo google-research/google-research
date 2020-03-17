@@ -18,13 +18,8 @@ import numpy as np
 from kws_streaming.layers.compat import tf
 
 
-def _hann_greco_window_generator(window_length, dtype):
-  """Computes a greco-style hanning window.
-
-  Note that the Hanning window in Wikipedia is not the same as the Hanning
-  window in Greco.  The Greco3 Hanning window at 0 is NOT 0, as the wikipedia
-  page would indicate. Talkin's explanation was that it was like wasting two
-  samples to have the values at the edge of the window to be 0.0 exactly.
+def _hann_offset_window_generator(window_length, dtype):
+  """Computes a hanning window with offset.
 
   Args:
     window_length: The length of the window (typically frame size).
@@ -69,8 +64,8 @@ class Windowing(tf.keras.layers.Layer):
   def build(self, input_shape):
     super(Windowing, self).build(input_shape)
     self.window_size = int(input_shape[-1])
-    if self.window_type == 'hann_greco':
-      self.window = _hann_greco_window_generator(self.window_size, np.float32)
+    if self.window_type == 'hann_offest':
+      self.window = _hann_offset_window_generator(self.window_size, np.float32)
     elif self.window_type == 'hann':
       self.window = _hann_window_generator(self.window_size, np.float32)
     else:
