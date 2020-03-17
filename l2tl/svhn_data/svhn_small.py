@@ -102,6 +102,6 @@ class SvhnCroppedSmall(tfds.core.GeneratorBasedBuilder):
       label = label.reshape(())
       record = {
           "image": image,
-          "label": label % 10,  # digit 0 is saved as 0 (instead of 10)
+          "label": label % 5,  # digit 0 is saved as 0 (instead of 10)
       }
       yield i, record

@@ -32,51 +32,13 @@ cd ..
 
 
 # Training SVHN from random initialization
-python finetuning.py \
-    --target_dataset=svhn_cropped_small \
-    --train_steps=6000 \
-    --model_dir=./tmp/l2tl/svhn_small_train_random \
-    --train_batch_size=128
-
-python evaluate.py \
-    --ckpt_path=./tmp/l2tl/svhn_small_train_random/model.ckpt-6000 \
-    --target_dataset=svhn_cropped_small \
-    --cls_dense_name=final_dense_dst
+bash ./scratch_svhn.sh
 
 # MNIST pre-training
-python finetuning.py \
-    --target_dataset=mnist \
-    --train_steps=10000 \
-    --model_dir=./tmp/l2tl/mnist_train \
-    --train_batch_size=128
-
-python evaluate.py \
-    --ckpt_path=./tmp/l2tl/mnist_train/model.ckpt-10000 \
-    --target_dataset=mnist \
-    --cls_dense_name=final_dense_dst
+bash ./mnist.sh
 
 # Fine-tuning SVHN from MNIST initialization
-python finetuning.py \
-    --target_dataset=svhn_cropped_small \
-    --train_steps=6000 \
-    --model_dir=./tmp/l2tl/svhn_small_train_finetune \
-    --train_batch_size=128 \
-    --warm_start_ckpt_path=./tmp/l2tl/mnist_train/model.ckpt-10000
-
-python evaluate.py \
-    --ckpt_path=./tmp/l2tl/svhn_small_train_finetune/model.ckpt-6000 \
-    --target_dataset=svhn_cropped_small \
-    --cls_dense_name=final_dense_dst
-
+bash ./ft.sh
 
 # L2TL on SVHN from MNIST initialization
-python train_l2tl.py \
-    --train_batch_size=128 \
-    --train_steps=6000 \
-    --model_dir=./tmp/l2tl/l2tl_train \
-    --warm_start_ckpt_path=./tmp/l2tl/mnist_train/model.ckpt-10000
-
-python evaluate.py \
-    --ckpt_path=./tmp/l2tl/l2tl_train/model.ckpt-6000 \
-    --target_dataset=svhn_cropped_small \
-    --cls_dense_name=final_target_dense
+bash train_l2tl.sh
