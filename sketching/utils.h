@@ -16,9 +16,10 @@
 #define SKETCHING_UTILS_H_
 
 #include <utility>
+#include <vector>
 
-#include "glog/logging.h"
 #include "absl/random/bit_gen_ref.h"
+#include "absl/random/random.h"
 
 namespace sketch {
 
@@ -26,7 +27,7 @@ typedef unsigned int uint;
 typedef unsigned long long ULONG;
 typedef std::pair<uint, float> IntFloatPair;
 
-unsigned int Hash(ULONG a, ULONG b, ULONG x, ULONG size);
+uint Hash(ULONG a, ULONG b, ULONG x, ULONG size);
 bool cmpByItem(const IntFloatPair& a, const IntFloatPair& b);
 bool cmpByValue(const IntFloatPair& a, const IntFloatPair& b);
 

@@ -14,9 +14,11 @@
 
 #include "countmin.h"
 
-#include <memory>
+#include <cstdio>
+#include <vector>
 
 #include "gtest/gtest.h"
+#include "utils.h"
 
 namespace sketch {
 namespace {
@@ -69,9 +71,9 @@ TEST_F(CountMinTest, TestMerge) {
 
 
 TEST_F(CountMinTest, TestSize) {
-  // Fixed cost for 5 hashes = 248 bytes. Variable cost = 5 * 4 * hash_size.
-  EXPECT_EQ(408, CountMin(5, 8).Size());
-  EXPECT_EQ(41208, CountMin(5, 2048).Size());
+  // Fixed cost for 5 hashes = 248 bytes. Variable cost = 5 * 5 * hash_size.
+  EXPECT_EQ(440, CountMin(5, 8).Size());
+  EXPECT_EQ(41240, CountMin(5, 2048).Size());
 }
 
 class CountMinCUTest : public ::testing::Test {

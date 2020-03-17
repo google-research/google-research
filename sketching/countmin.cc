@@ -14,15 +14,23 @@
 
 #include "countmin.h"
 
+#include <algorithm>
 #include <cmath>
+#include <functional>
+#include <memory>
+#include <vector>
 
+#include "absl/random/bit_gen_ref.h"
+#include "absl/random/uniform_int_distribution.h"
+#include "sketch.h"
 #include "utils.h"
-#include "absl/random/random.h"
 
 namespace sketch {
 
 CountMin::CountMin(uint hash_count, uint hash_size)
-    : hash_size_(hash_size), max_item_(0) {
+    : hash_size_(hash_size), hash_func_([hash_size](ULONG a, ULONG b, ULONG x) {
+        return Hash(a, b, x, hash_size);
+      }) {
   hash_a_.resize(hash_count);
   hash_b_.resize(hash_count);
   values_.resize(hash_count);
@@ -40,23 +48,22 @@ CountMin::CountMin(uint hash_count, uint hash_size)
 void CountMin::Reset() {
   max_item_ = 0;
   for (int i = 0; i < values_.size(); ++i) {
-    values_[i].resize(0);
-    values_[i].resize(hash_size_, 0);
+    values_[i] = std::vector<float>(hash_size_, 0);
   }
 }
 
 void CountMin::Add(uint item, float delta) {
   max_item_ = std::max(item, max_item_);
   for (int i = 0; i < values_.size(); ++i) {
-    values_[i][Hash(hash_a_[i], hash_b_[i], item, hash_size_)] += delta;
+    values_[i][hash_func_(hash_a_[i], hash_b_[i], item)] += delta;
   }
 }
 
 float CountMin::Estimate(uint item) const {
-  float result = values_[0][Hash(hash_a_[0], hash_b_[0], item, hash_size_)];
+  float result = values_[0][hash_func_(hash_a_[0], hash_b_[0], item)];
   for (int i = 1; i < values_.size(); ++i) {
-    result = std::min(
-        result, values_[i][Hash(hash_a_[i], hash_b_[i], item, hash_size_)]);
+    result =
+        std::min(result, values_[i][hash_func_(hash_a_[i], hash_b_[i], item)]);
   }
   return result;
 }
@@ -82,12 +89,7 @@ bool CountMin::Compatible(const Sketch& other_sketch) const {
   const CountMin* other = dynamic_cast<const CountMin*>(&other_sketch);
   if (other == nullptr) return false;
   if (hash_size_ != other->hash_size_) return false;
-  if (hash_a_.size() != other->hash_a_.size()) return false;
-  for (int i = 0; i < hash_a_.size(); ++i) {
-    if (hash_a_[i] != other->hash_a_[i]) return false;
-    if (hash_b_[i] != other->hash_b_[i]) return false;
-  }
-  return true;
+  return hash_a_ == other->hash_a_ && hash_b_ == other->hash_b_;
 }
 
 void CountMin::Merge(const Sketch& other_sketch) {
@@ -106,22 +108,20 @@ void CountMinCU::Add(uint item, float delta) {
 }
 
 void CountMinCU::BatchAdd(const std::vector<IntFloatPair>& item_deltas) {
-  std::vector<IntFloatPair> updates;
-  updates.reserve(item_deltas.size());
-  for (const auto & item_delta : item_deltas) {
-    updates.push_back(std::make_pair(
-        item_delta.first, Estimate(item_delta.first) + item_delta.second));
+  std::vector<IntFloatPair> updates(item_deltas.size());
+  for (const auto& [item, delta] : item_deltas) {
+    updates.emplace_back(item, Estimate(item) + delta);
   }
-  for (const auto &update : updates) {
-    Update(update.first, update.second);
+  for (const auto& [item, value] : updates) {
+    Update(item, value);
   }
 }
 
 void CountMinCU::Update(uint item, float value) {
   max_item_ = std::max(item, max_item_);
   for (int i = 0; i < values_.size(); ++i) {
-    uint ind = Hash(hash_a_[i], hash_b_[i], item, hash_size_);
-    values_[i][ind] = std::max(values_[i][ind], value);
+    uint idx = hash_func_(hash_a_[i], hash_b_[i], item);
+    values_[i][idx] = std::max(values_[i][idx], value);
   }
 }
 
