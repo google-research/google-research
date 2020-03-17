@@ -69,11 +69,7 @@ in `uncertainties/sources/models` and use the pre-computed features.
 Execution: using the script `scripts/train_local.sh`, work in progress.
 
 ## Training the neural networks and computing the features <training>
-
-For CIFAR10/100, we trained the neural network using the
-[tensorflow tutorial](https://www.tensorflow.org/tutorials/images/deep_cnn), see
-also the associated
-[github page](https://github.com/tensorflow/models/tree/master/tutorials/image/cifar10).
+  
 To compute the features of the last but one layer, execute
 
 ```
