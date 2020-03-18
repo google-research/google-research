@@ -6,7 +6,7 @@ The “Learned Optimizer List” is a sequential list of hyperparameters that ha
 
 Instead of worrying about finding a good hyperparameter search space for your problem, or complex hyperparameter search methods, we suggest you try using this list of hyperparameters instead.
 
-Wondering how this list is made? See our paper: ["Using a thousand optimization tasks to learn hyperparameter search strategies"](https://arxiv.org/abs/2002.11887).
+Wondering how this list is made? See our paper: ["Using a thousand optimization tasks to learn hyperparameter search strategies"](https://arxiv.org/abs/2002.11887) see [task\_set](https://github.com/google-research/google-research/tree/master/task_set).
 
 Contact Luke Metz (lmetz@google.com) for questions or issues.
 
@@ -23,6 +23,12 @@ Try it out on your problem and let us know where it works, and where it doesn't!
 We provide full example usage in [opt\_list/examples/](https://github.com/google-research/google-research/tree/master/opt_list/opt_list/examples) and code snippets below.
 For all examples we assume you are in the google\_research/opt\_list directory.
 
+### Remove your weight decay!
+
+For best performance, we recommend turning off any form l2 regularization or
+weight decay. These optimizers already manage this for you.
+
+
 ## Installation
 Install via pip from github:
 
@@ -38,6 +44,7 @@ cd google-research/opt_list/
 pip install -e .
  ```
 
+## Examples
 
 ### PyTorch
 Full example: `python3 -m opt_list.examples.torch`
