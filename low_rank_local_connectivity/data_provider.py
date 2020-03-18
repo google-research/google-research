@@ -70,7 +70,7 @@ def construct_iterator(dataset_builder,
     dataset = utils.pad_to_batch(dataset, batch_size)
 
   dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-  return dataset.make_one_shot_iterator()
+  return tf.compat.v1.data.make_one_shot_iterator(dataset)
 
 
 class MNISTDataProvider(object):
