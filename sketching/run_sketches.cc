@@ -50,7 +50,7 @@ DEFINE_int32(frequent_size, 2000, "Items in memory for Frequent (Misra-Gries)");
 namespace sketch {
 
 std::pair<std::vector<IntFloatPair>, std::vector<float>> CreateStream() {
-  std::vector<IntFloatPair> data(FLAGS_stream_size);
+  std::vector<IntFloatPair> data;
   uint stream_range = 1 << FLAGS_lg_stream_range;
   std::vector<float> counts(stream_range, 0.0);
   BitGenerator bit_gen;
