@@ -38,7 +38,7 @@ def softmin(cost, f, g, eps, axis):
 
 
 def error(cost, f, g, eps, b):
-  b_target = tf.math.reduce_sum(tf.math.exp(-center(cost, f, g) / eps), axis=1)
+  b_target = tf.math.reduce_sum(transport(cost, f, g, eps), axis=1)
   return tf.reduce_max(tf.abs(b_target - b) / b, axis=None)
 
 

@@ -16,10 +16,6 @@
 # Lint as: python3
 """Tests for the soft_quantilizer module."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from absl.testing import absltest
 import jax.numpy as np
 import jax.test_util
@@ -38,25 +34,27 @@ class SoftQuantilizerTestCase(jax.test_util.JaxTestCase):
         [17.9, 14.2, 55.5, 9.8, 3.5]]
 
   def test_sort(self):
-    q = soft_quantilizer.SoftQuantilizer(self.x)
+    q = soft_quantilizer.SoftQuantilizer(self.x, threshold=1e-3, epsilon=1e-3)
     deltas = np.diff(q.softsort, axis=-1) > 0
     self.assertAllClose(deltas, np.ones(deltas.shape, dtype=bool), True)
 
   def test_target_weights(self):
     q = soft_quantilizer.SoftQuantilizer(
-        self.x, target_weights=[0.49, 0.02, 0.49])
+        self.x, target_weights=[0.49, 0.02, 0.49], threshold=1e-3, epsilon=1e-3)
     self.assertTupleEqual(q.softsort.shape, (3, 3))
 
   def test_targets(self):
-    q = soft_quantilizer.SoftQuantilizer(self.x, y=[0.1, 0.2, 0.3])
+    q = soft_quantilizer.SoftQuantilizer(
+        self.x, y=[0.1, 0.2, 0.3], threshold=1e-3, epsilon=1e-3)
     self.assertTupleEqual(q.softsort.shape, (3, 3))
 
     q = soft_quantilizer.SoftQuantilizer(
-        self.x, y=[[0.1, 0.2, 0.3], [0.5, 0.7, 0.9], [-0.3, -0.2, -0.1]])
+        self.x, y=[[0.1, 0.2, 0.3], [0.5, 0.7, 0.9], [-0.3, -0.2, -0.1]],
+        threshold=1e-3, epsilon=1e-3)
     self.assertTupleEqual(q.softsort.shape, (3, 3))
 
   def test_ranks(self):
-    q = soft_quantilizer.SoftQuantilizer(self.x)
+    q = soft_quantilizer.SoftQuantilizer(self.x, threshold=1e-3, epsilon=1e-3)
     soft_ranks = q._n * q.softcdf
     true_ranks = np.argsort(np.argsort(q.x, axis=-1), axis=-1) + 1
     self.assertAllClose(soft_ranks, true_ranks, False, atol=1e-3)
