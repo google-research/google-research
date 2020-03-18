@@ -3,8 +3,10 @@ This directory contains a variety of optimization problems for use in evaluating
 and meta-training learned optimizers. It is decribed in
 "Using a thousand optimization tasks to learn hyperparameter search strategies"
 [arxiv](https://arxiv.org/abs/2002.11887).
+For the learned hyper parameter lists see [opt\_list](https://github.com/google-research/google-research/tree/master/opt_list).
 
 The problems are implemented as tensorflow 1.x style models mostly using Sonnet.
+
 
 ## Learning curves of trained models
 As part of this repository we are releasing learning curves and corresponding
