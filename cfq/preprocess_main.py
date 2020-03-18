@@ -49,7 +49,7 @@ def main(argv):
     raise app.UsageError('Too many command-line arguments.')
 
   dataset = preprocessor.get_dataset(
-      preprocessor.load_json(FLAGS.dataset_path),
+      preprocessor.load_dataset(FLAGS.dataset_path),
       preprocessor.load_json(FLAGS.split_path))
   preprocessor.write_dataset(dataset, FLAGS.save_path)
   token_vocab = preprocessor.get_token_vocab(FLAGS.save_path)
