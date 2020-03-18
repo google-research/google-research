@@ -69,7 +69,7 @@ float CountMin::Estimate(uint item) const {
 }
 
 std::vector<uint> CountMin::HeavyHitters(float threshold) const {
-  std::vector<uint> items(max_item_);
+  std::vector<uint> items;
   for (uint i = 0; i <= max_item_; ++i) {
     if (Estimate(i) > threshold) {
       items.push_back(i);
@@ -108,7 +108,8 @@ void CountMinCU::Add(uint item, float delta) {
 }
 
 void CountMinCU::BatchAdd(const std::vector<IntFloatPair>& item_deltas) {
-  std::vector<IntFloatPair> updates(item_deltas.size());
+  std::vector<IntFloatPair> updates;
+  updates.reserve(item_deltas.size());
   for (const auto& [item, delta] : item_deltas) {
     updates.emplace_back(item, Estimate(item) + delta);
   }
