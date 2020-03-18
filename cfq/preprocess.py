@@ -37,6 +37,27 @@ def load_json(path):
   return data
 
 
+def load_scan(path):
+  """Read original scan task data and convert into CFQ-style json format."""
+  logging.info(f'Reading SCAN tasks from {path}.')
+  def parse(infile):
+    for line in infile.read().split('\n'):
+      if not line.startswith('IN: '):
+        continue
+      commands, actions = line[len('IN: '):].strip().split(' OUT: ', 1)
+      yield {'questionPatternModEntities': commands,
+             'sparqlPatternModEntities': actions}
+  return list(parse(gfile.GFile(path)))
+
+
+def load_dataset(path):
+  """Load dataset from .json or SCAN task format."""
+  if path[-5:] == '.json':
+    return load_json(path)
+  else:
+    return load_scan(path)
+
+
 def tokenize_punctuation(text):
   text = map(lambda c: f' {c} ' if c in string.punctuation else c, text)
   return ' '.join(''.join(text).split())
