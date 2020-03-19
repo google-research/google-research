@@ -153,8 +153,8 @@ def main(_):
 
   # ---------------- non streaming model accuracy evaluation ----------------
   # with TF
-  folder = 'tf'
-  test.tf_non_stream_model_accuracy(flags, folder)
+  folder_name = 'tf'
+  test.tf_non_stream_model_accuracy(flags, folder_name)
 
   # with TF.
   # We can apply non stream model on stream data, by running inference
@@ -167,58 +167,66 @@ def main(_):
       (flags.time_shift_ms * flags.sample_rate) / model_flags.MS_PER_SECOND)
   test.tf_non_stream_model_accuracy(
       flags,
-      folder,
+      folder_name,
       time_shift_samples,
       accuracy_name='tf_non_stream_model_sampling_stream_accuracy.txt')
 
-  # with TFLite
-  folder = 'tflite_non_stream'
-  fname = 'non_stream.tflite'
-  mode = Modes.NON_STREAM_INFERENCE
-  test.convert_model_tflite(flags, folder, mode, fname)
-  test.tflite_non_stream_model_accuracy(flags, folder, fname)
+  name2opt = {
+      '': None,
+      'quantize_opt_for_size_': [tf.lite.Optimize.OPTIMIZE_FOR_SIZE],
+  }
 
-  # ---------------- TF streaming model accuracy evaluation ----------------
-  # Streaming model (with external state) evaluation using TF (with state reset)
-  folder = 'tf'
-  test.tf_stream_state_external_model_accuracy(
-      flags,
-      folder,
-      accuracy_name='stream_state_external_model_accuracy_sub_set_reset1.txt',
-      reset_state=True)  # with state reset between test sequences
+  for opt_name, optimizations in name2opt.items():
+    folder_name = opt_name + 'tflite_non_stream'
+    file_name = 'non_stream.tflite'
+    mode = Modes.NON_STREAM_INFERENCE
+    test.convert_model_tflite(flags, folder_name, mode, file_name,
+                              optimizations=optimizations)
+    test.tflite_non_stream_model_accuracy(flags, folder_name, file_name)
 
-  # Streaming model (with external state) evaluation using TF (no state reset)
-  test.tf_stream_state_external_model_accuracy(
-      flags,
-      folder,
-      accuracy_name='stream_state_external_model_accuracy_sub_set_reset0.txt',
-      reset_state=False)  # without state reset
+    # ---------------- TF streaming model accuracy evaluation ----------------
+    # Streaming model (with external state) evaluation using TF with state reset
+    if not opt_name:  # run TF evalution only without optimization/quantization
+      folder_name = 'tf'
+      test.tf_stream_state_external_model_accuracy(
+          flags,
+          folder_name,
+          accuracy_name='stream_state_external_model_accuracy_sub_set_reset1.txt',
+          reset_state=True)  # with state reset between test sequences
 
-  # Streaming model (with internal state) evaluation using TF (no state reset)
-  test.tf_stream_state_internal_model_accuracy(flags, folder)
+      # Streaming model (with external state) evaluation using TF no state reset
+      test.tf_stream_state_external_model_accuracy(
+          flags,
+          folder_name,
+          accuracy_name='stream_state_external_model_accuracy_sub_set_reset0.txt',
+          reset_state=False)  # without state reset
 
-  # --------------- TFlite streaming model accuracy evaluation ---------------
-  # convert model to TFlite
-  folder = 'tflite_stream_state_external'
-  fname = 'stream_state_external.tflite'
-  mode = Modes.STREAM_EXTERNAL_STATE_INFERENCE
-  test.convert_model_tflite(flags, folder, mode, fname)
+      # Streaming model (with internal state) evaluation using TF no state reset
+      test.tf_stream_state_internal_model_accuracy(flags, folder_name)
 
-  # Streaming model accuracy evaluation with TFLite with state reset
-  test.tflite_stream_state_external_model_accuracy(
-      flags,
-      folder,
-      fname,
-      accuracy_name='tflite_stream_state_external_model_accuracy_reset1.txt',
-      reset_state=True)
+    # --------------- TFlite streaming model accuracy evaluation ---------------
+    # convert model to TFlite
+    folder_name = opt_name + 'tflite_stream_state_external'
+    file_name = 'stream_state_external.tflite'
+    mode = Modes.STREAM_EXTERNAL_STATE_INFERENCE
+    test.convert_model_tflite(flags, folder_name, mode, file_name,
+                              optimizations=optimizations)
 
-  # Streaming model accuracy evaluation with TFLite without state reset
-  test.tflite_stream_state_external_model_accuracy(
-      flags,
-      folder,
-      fname,
-      accuracy_name='tflite_stream_state_external_model_accuracy_reset0.txt',
-      reset_state=False)
+    # Streaming model accuracy evaluation with TFLite with state reset
+    test.tflite_stream_state_external_model_accuracy(
+        flags,
+        folder_name,
+        file_name,
+        accuracy_name='tflite_stream_state_external_model_accuracy_reset1.txt',
+        reset_state=True)
+
+    # Streaming model accuracy evaluation with TFLite without state reset
+    test.tflite_stream_state_external_model_accuracy(
+        flags,
+        folder_name,
+        file_name,
+        accuracy_name='tflite_stream_state_external_model_accuracy_reset0.txt',
+        reset_state=False)
 
 
 if __name__ == '__main__':
