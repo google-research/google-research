@@ -143,7 +143,7 @@ class EvalWorker(object):
     def model_wrapper(inputs_):
       return model_fn(inputs_['image'])
 
-    out = self.strategy.experimental_run_v2(model_wrapper, args=args)
+    out = self.strategy.run(model_wrapper, args=args)
     assert isinstance(out, dict)
 
     if reduction == 'mean':
