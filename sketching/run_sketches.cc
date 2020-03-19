@@ -153,6 +153,14 @@ void TestCounts() {
       "CM_CU", absl::make_unique<CountMinCU>(
           CountMinCU(FLAGS_hash_count, FLAGS_hash_size)));
   sketches.emplace_back(
+      "CMH", absl::make_unique<CountMinHierarchical>(CountMinHierarchical(
+          FLAGS_hash_count, FLAGS_hash_size, FLAGS_lg_stream_range)));
+  sketches.emplace_back(
+      "CMH_CU", absl::make_unique<CountMinHierarchicalCU>(
+          CountMinHierarchicalCU(
+              FLAGS_hash_count, FLAGS_hash_size, FLAGS_lg_stream_range)));
+
+  sketches.emplace_back(
       "LC", absl::make_unique<LossyCount>(LossyCount(
           (int)(1.0 / FLAGS_epsilon))));
   sketches.emplace_back(
@@ -161,18 +169,12 @@ void TestCounts() {
   sketches.emplace_back(
       "LW", absl::make_unique<LossyWeight>(LossyWeight(
           FLAGS_frequent_size, FLAGS_hash_count, FLAGS_hash_size)));
+
   sketches.emplace_back(
       "Freq", absl::make_unique<Frequent>(Frequent(FLAGS_frequent_size)));
   sketches.emplace_back(
       "Freq_FB", absl::make_unique<Frequent_Fallback>(Frequent_Fallback(
       FLAGS_frequent_size, FLAGS_hash_count, FLAGS_hash_size)));
-  sketches.emplace_back(
-      "CMH", absl::make_unique<CountMinHierarchical>(CountMinHierarchical(
-          FLAGS_hash_count, FLAGS_hash_size, FLAGS_lg_stream_range)));
-  sketches.emplace_back(
-      "CMH_CU", absl::make_unique<CountMinHierarchicalCU>(
-          CountMinHierarchicalCU(
-              FLAGS_hash_count, FLAGS_hash_size, FLAGS_lg_stream_range)));
 
   std::vector<SketchStats> sketch_stats;
   for (const auto& [name, sketch] : sketches) {
