@@ -1,6 +1,6 @@
 numpy>=1.16.2
 tensorflow==1.13.1
-tensorflow-datasets
+tensorflow-datasets==1.3.0
 scipy>=1.3.0
 tensorflow-probability==0.5.0
 tfp-nightly==0.7.0.dev20190529

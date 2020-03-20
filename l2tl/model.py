@@ -21,7 +21,7 @@ from __future__ import print_function
 
 from absl import flags
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 
 flags.DEFINE_string('source_dataset', 'mnist', 'Name of the source dataset.')
 flags.DEFINE_string('target_dataset', 'svhn_cropped_small',
@@ -35,22 +35,26 @@ flags.DEFINE_integer('random_seed', 1, 'Random seed.')
 FLAGS = flags.FLAGS
 
 
-def conv_model(features, mode, dataset_name=None, reuse=None):
+def conv_model(features,
+               mode,
+               target_dataset,
+               src_hw=28,
+               target_hw=32,
+               dataset_name=None,
+               reuse=None):
   """Architecture of the LeNet model for MNIST."""
 
   def build_network(features, is_training):
     """Returns the network output."""
     # Input reshape
-    if dataset_name == 'mnist' or FLAGS.target_dataset == 'mnist':
-      input_layer = tf.reshape(features, [-1, FLAGS.src_hw, FLAGS.src_hw, 1])
+    if dataset_name == 'mnist' or target_dataset == 'mnist':
+      input_layer = tf.reshape(features, [-1, src_hw, src_hw, 1])
       input_layer = tf.pad(input_layer, [[0, 0], [2, 2], [2, 2], [0, 0]])
     else:
-      input_layer = tf.reshape(features,
-                               [-1, FLAGS.target_hw, FLAGS.target_hw, 3])
+      input_layer = tf.reshape(features, [-1, target_hw, target_hw, 3])
       input_layer = tf.image.rgb_to_grayscale(input_layer)
 
-    input_layer = tf.reshape(input_layer,
-                             [-1, FLAGS.target_hw, FLAGS.target_hw, 1])
+    input_layer = tf.reshape(input_layer, [-1, target_hw, target_hw, 1])
     input_layer = tf.image.convert_image_dtype(input_layer, dtype=tf.float32)
 
     discard_rate = 0.2
