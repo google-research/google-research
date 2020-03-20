@@ -60,6 +60,8 @@ void LossyCount::Add(uint item, float delta) {
   }
 }
 
+void LossyCount::ReadyToEstimate() { MergeCounters(epochs_); }
+
 float LossyCount::Estimate(uint item) const {
   const auto& pos = lower_bound(current_.begin(), current_.end(),
                                 std::make_pair(item, 0), cmpByItem);
@@ -87,46 +89,61 @@ bool LossyCount::Compatible(const Sketch& other_sketch) const {
 
 void LossyCount::Merge(const Sketch& other_sketch) {
   if (!Compatible(other_sketch)) return;
-  const LossyCount& other = static_cast<const LossyCount &>(other_sketch);
+
+  const LossyCount& other = static_cast<const LossyCount&>(other_sketch);
   std::vector<IntFloatPair> next_current;
   next_current.reserve(current_.capacity());
+
   int i = 0;
   int j = 0;
-  while (i < current_.size() || j < other.current_.size()) {
-    IntFloatPair pr;
-    if (i < current_.size() && j < other.current_.size()) {
-      if (current_[i].first <= other.current_[j].first) {
-        pr = current_[i];
-        i++;
-        if (pr.first == other.current_[j].first) {
-          pr.second += other.current_[j].second;
-          j++;
-        } else {
-          pr.second += other.EstimateMissing(pr.first);
-        }
-      } else {
-        pr = other.current_[j];
-        pr.second += EstimateMissing(pr.first);
-        j++;
-      }
-    } else if (i < current_.size()) {
-      pr = current_[i];
-      pr.second += other.EstimateMissing(pr.first);
-      i++;
-    } else {
-      pr = other.current_[j];
-      pr.second += EstimateMissing(pr.first);
-      j++;
+  while (i < current_.size() && j < other.current_.size()) {
+    const uint this_item = current_[i].first;
+    const uint other_item = other.current_[j].first;
+    IntFloatPair min_pair;
+    if (this_item < other_item) {
+      min_pair = std::move(current_[i++]);
+      min_pair.second += other.EstimateMissing(min_pair.first);
+    } else if (this_item > other_item) {
+      min_pair = other.current_[j++];
+      min_pair.second += Estimate(min_pair.first);
+    } else {  // this_item == other_item
+      min_pair = {this_item, current_[i++].second + other.current_[j++].second};
     }
-    next_current.push_back(pr);
+    next_current.push_back(std::move(min_pair));
+  }
+  while (i < current_.size()) {
+    next_current.emplace_back(
+        current_[i].first,
+        current_[i].second + other.EstimateMissing(current_[i].first));
+    ++i;
+  }
+  while (j < other.current_.size()) {
+    next_current.emplace_back(
+        other.current_[j].first,
+        other.current_[j].second + EstimateMissing(other.current_[j].first));
+    ++j;
   }
   current_ = std::move(next_current);
 
   MergeMissing(other);
-  for (const auto &kv : other.window_) {
-    Add(kv.first, kv.second);
+  for (const auto &[item, freq] : other.window_) {
+    Add(item, freq);
   }
 }
+
+void LossyCount::Forget(const std::vector<IntFloatPair>& forget) {}
+
+float LossyCount::EstimateMissing(uint k) const { return epochs_; }
+
+bool LossyCount::CompatibleMissing(const LossyCount& other) const {
+  return true;
+}
+
+void LossyCount::MergeMissing(const LossyCount& other) {
+  epochs_ += other.epochs_;
+}
+
+void LossyCount::ResetMissing() { epochs_ = 0; }
 
 void LossyCount::MergeCounters(float threshold) {
   // Early return if window_ is empty as we don't want to clear current_.
@@ -169,6 +186,44 @@ void LossyCount::MergeCounters(float threshold) {
   Forget(forget_pairs);
   window_.clear();
   current_ = std::move(next_current);
+}
+
+LossyCount_Fallback::LossyCount_Fallback(uint window_size, uint hash_count,
+                                         uint hash_size)
+    : LossyCount(window_size), cm_(CountMinCU(hash_count, hash_size)) {}
+
+float LossyCount_Fallback::EstimateMissing(uint k) const {
+  return cm_.Estimate(k);
+}
+
+void LossyCount_Fallback::MergeMissing(const LossyCount& other) {
+  LossyCount::MergeMissing(other);
+  const LossyCount_Fallback& other_cast =
+      dynamic_cast<const LossyCount_Fallback&>(other);
+  cm_.Merge(other_cast.cm_);
+}
+
+bool LossyCount_Fallback::CompatibleMissing(const LossyCount& other) const {
+  if (!LossyCount::CompatibleMissing(other)) return false;
+  const LossyCount_Fallback& other_cast =
+      dynamic_cast<const LossyCount_Fallback&>(other);
+  return cm_.Compatible(other_cast.cm_);
+}
+
+void LossyCount_Fallback::ResetMissing() {
+  LossyCount::ResetMissing();
+  cm_.Reset();
+}
+
+void LossyCount_Fallback::Forget(
+    const std::vector<IntFloatPair>& forget_pairs) {
+  for (const auto& [item, freq] : forget_pairs) {
+    cm_.Update(item, freq);
+  }
+}
+
+unsigned int LossyCount_Fallback::Size() const {
+  return LossyCount::Size() + cm_.Size();
 }
 
 }  // namespace sketch
