@@ -50,7 +50,6 @@ cc_library(
         ":countmin",
         ":sketch",
         ":utils",
-        "@com_google_absl//absl/random",
     ],
 )
 

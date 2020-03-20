@@ -30,12 +30,13 @@
 
 #include "sketch.h"
 #include "countmin.h"
+#include "utils.h"
 
 namespace sketch {
 
 class LossyCount : public Sketch {
  public:
-  LossyCount(uint window_size);
+  explicit LossyCount(uint window_size);
 
   virtual ~LossyCount() {}
 
@@ -61,12 +62,11 @@ class LossyCount : public Sketch {
 
  protected:
   uint window_size_;
-  uint epochs_;
+  uint epochs_ = 0;
   std::vector<IntFloatPair> window_;
   std::vector<IntFloatPair> current_;
 
-  // Forget the pair kv from the current set
-  virtual void Forget(const IntFloatPair& kv) {}
+  virtual void Forget(const std::vector<IntFloatPair>& forget) {}
 
   // return estimate for items not found in current
   virtual float EstimateMissing(uint k) const { return epochs_; }
@@ -98,8 +98,10 @@ class LossyCount_Fallback : public LossyCount {
     return LossyCount::Size() + cm_.Size() - sizeof(CountMinCU);
   }
 
-  void Forget(const IntFloatPair& kv) override {
-    cm_.Update(kv.first, kv.second);
+  void Forget(const std::vector<IntFloatPair>& forget_pairs) override {
+    for (const auto& [item, freq] : forget_pairs) {
+      cm_.Update(item, freq);
+    }
   }
 
   float EstimateMissing(uint k) const override {

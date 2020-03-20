@@ -15,28 +15,48 @@
 #include "lossy_count.h"
 
 #include <algorithm>
+#include <iterator>
+#include <limits>
+#include <utility>
+#include <vector>
 
+#include "sketch.h"
 #include "utils.h"
 
 namespace sketch {
+namespace {
 
-LossyCount::LossyCount(uint window_size)
-    : window_size_(window_size), epochs_(0) {
+std::vector<IntFloatPair> MergeConsecutiveEqualItems(
+    const std::vector<IntFloatPair>& entries) {
+  std::vector<IntFloatPair> result;
+  for (const auto& entry : entries) {
+    if (!result.empty() && entry.first == result.back().first) {
+      result.back().second += entry.second;
+    } else {
+      result.push_back(entry);
+    }
+  }
+  return result;
+}
+
+}  // namespace
+
+LossyCount::LossyCount(uint window_size) : window_size_(window_size) {
   window_.reserve(window_size);
   current_.reserve(window_size * 2);
 }
 
 void LossyCount::Reset() {
-  window_.resize(0);
-  current_.resize(0);
+  window_.clear();
+  current_.clear();
   ResetMissing();
 }
 
 void LossyCount::Add(uint item, float delta) {
-  window_.push_back(std::make_pair(item, std::max(delta, 1.0f)));
+  window_.emplace_back(item, std::max(delta, 1.0f));
   if (window_.size() >= window_size_) {
     MergeCounters(epochs_ + 1);
-    epochs_++;
+    ++epochs_;
   }
 }
 
@@ -68,8 +88,8 @@ bool LossyCount::Compatible(const Sketch& other_sketch) const {
 void LossyCount::Merge(const Sketch& other_sketch) {
   if (!Compatible(other_sketch)) return;
   const LossyCount& other = static_cast<const LossyCount &>(other_sketch);
-  std::vector<IntFloatPair> tmp;
-  tmp.reserve(current_.capacity());
+  std::vector<IntFloatPair> next_current;
+  next_current.reserve(current_.capacity());
   int i = 0;
   int j = 0;
   while (i < current_.size() || j < other.current_.size()) {
@@ -98,9 +118,9 @@ void LossyCount::Merge(const Sketch& other_sketch) {
       pr.second += EstimateMissing(pr.first);
       j++;
     }
-    tmp.push_back(pr);
+    next_current.push_back(pr);
   }
-  current_.swap(tmp);
+  current_ = std::move(next_current);
 
   MergeMissing(other);
   for (const auto &kv : other.window_) {
@@ -109,37 +129,46 @@ void LossyCount::Merge(const Sketch& other_sketch) {
 }
 
 void LossyCount::MergeCounters(float threshold) {
-  if (window_.empty()) return;
+  // Early return if window_ is empty as we don't want to clear current_.
+  if (window_.empty()) {
+    return;
+  }
   sort(window_.begin(), window_.end(), cmpByItem);
-  std::vector<IntFloatPair> tmp;
-  tmp.reserve(current_.capacity());
-  int i = 0;
-  int j = 0;
-  std::vector<IntFloatPair> forget;
-  while (i < current_.size() || j < window_.size()) {
-    IntFloatPair pr;
-    if (i < current_.size() &&
-        (j >= window_.size() || current_[i].first <= window_[j].first)) {
-      pr = current_[i];
-      i++;
-    } else {
-      pr.first = window_[j].first;
-      pr.second = EstimateMissing(pr.first);
+  std::vector<IntFloatPair> merged_window =
+      MergeConsecutiveEqualItems(window_);
+
+  std::vector<IntFloatPair> next_current;
+  next_current.reserve(current_.capacity());
+  std::vector<IntFloatPair> forget_pairs;
+  for (int i = 0, j = 0; i < current_.size() || j < merged_window.size(); ) {
+    const uint current_item = i < current_.size()
+                                  ? current_[i].first
+                                  : std::numeric_limits<uint>::max();
+    const uint window_item = j < merged_window.size()
+                                 ? merged_window[j].first
+                                 : std::numeric_limits<uint>::max();
+    IntFloatPair min_pair;
+    if (current_item < window_item) {
+      min_pair = current_[i++];
+    } else if (current_item > window_item) {
+      min_pair = {window_item,
+                  EstimateMissing(window_item) + merged_window[j].second};
+      ++j;
+    } else {  // current_item == window_item
+      min_pair = {current_item,
+                  current_[i++].second + merged_window[j++].second};
     }
-    for (; j < window_.size() && window_[j].first == pr.first; ++j) {
-      pr.second += window_[j].second;
-    }
-    if (pr.second > threshold) {
-      tmp.push_back(pr);
+
+    if (min_pair.second > threshold) {
+      next_current.push_back(std::move(min_pair));
     } else {
-      forget.push_back(pr);
+      forget_pairs.push_back(std::move(min_pair));
     }
   }
-  for (const auto& pr : forget) {
-    Forget(pr);
-  }
-  window_.resize(0);
-  current_.swap(tmp);
+
+  Forget(forget_pairs);
+  window_.clear();
+  current_ = std::move(next_current);
 }
 
 }  // namespace sketch
