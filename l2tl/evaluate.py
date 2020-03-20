@@ -23,7 +23,7 @@ from absl import app
 from absl import flags
 import model
 import model_utils
-import tensorflow.compat.v1 as tf
+import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 import tensorflow_datasets as tfds
 
 flags.DEFINE_string('ckpt_path', '', 'Path to evaluation checkpoint')
@@ -36,8 +36,7 @@ FLAGS = flags.FLAGS
 
 NUM_EVAL_IMAGES = {
     'mnist': 10000,
-    'svhn_cropped': 26032,
-    'svhn_cropped_small': 12000,
+    'svhn_cropped_small': 6000,
 }
 
 
@@ -56,7 +55,12 @@ def get_model_fn():
 
     def get_logits():
       """Return the logits."""
-      network_output = model.conv_model(feature, mode)
+      network_output = model.conv_model(
+          feature,
+          mode,
+          target_dataset=FLAGS.target_dataset,
+          src_hw=FLAGS.src_hw,
+          target_hw=FLAGS.target_hw)
       name = FLAGS.cls_dense_name
       with tf.variable_scope('target_CLS'):
         logits = tf.layers.dense(
@@ -124,5 +128,5 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
-  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
+  tf.logging.set_verbosity(tf.logging.INFO)
   app.run(main)

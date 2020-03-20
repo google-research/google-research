@@ -25,7 +25,7 @@ from absl import app
 from absl import flags
 import model
 import model_utils
-import tensorflow.compat.v1 as tf
+import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 import tensorflow_datasets as tfds
 import tensorflow_probability as tfp
 
@@ -37,7 +37,7 @@ flags.DEFINE_string(
     help=('The directory where the model and training/evaluation summaries are'
           ' stored.'))
 flags.DEFINE_integer(
-    'log_step_count_steps', 64, 'The number of steps at '
+    'log_step_count_steps', 200, 'The number of steps at '
     'which the global step information is logged.')
 flags.DEFINE_string(
     'warm_start_ckpt_path', None, 'The path to the checkpoint '
@@ -51,7 +51,7 @@ flags.DEFINE_float('dst_weight_decay', 0.0005,
                    'Weight decay for the target dataset.')
 flags.DEFINE_integer('save_checkpoints_steps', 100,
                      'Number of steps for each checkpoint saving.')
-flags.DEFINE_float('rl_learning_rate', 0.01, 'Learning rate for RL updates.')
+flags.DEFINE_float('rl_learning_rate', 0.001, 'Learning rate for RL updates.')
 flags.DEFINE_float('learning_rate', 0.001, 'Learning rate for l2tl.')
 flags.DEFINE_integer('target_num_classes', 10,
                      'The number of classes in the target dataset.')
@@ -87,7 +87,11 @@ def get_src_train_op(loss):  # pylint: disable=unused-argument
   """Returns the source training op."""
   global_step = tf.train.get_global_step()
   src_learning_rate = FLAGS.learning_rate
-  optimizer = tf.train.AdamOptimizer(src_learning_rate)
+  src_learning_rate = tf.train.piecewise_constant(global_step, [
+      800,
+  ], [FLAGS.learning_rate, FLAGS.learning_rate * 0.1])
+  optimizer = tf.train.MomentumOptimizer(
+      learning_rate=src_learning_rate, momentum=0.9, use_nesterov=True)
   with tf.variable_scope('src'):
     return optimizer.minimize(loss, global_step), src_learning_rate
 
@@ -111,8 +115,8 @@ def meta_train_op(acc, rl_entropy, log_prob, rl_scope, params):  # pylint: disab
   target_global_step = get_global_step('train_rl_global_step')
   rl_reward = acc
   rl_step_baseline = rl_reward
-  rl_baseline_momentum = 0.95
-  rl_entropy_regularization = 0.
+  rl_baseline_momentum = 0.9
+  rl_entropy_regularization = 0.001
 
   def update_rl_baseline():
     return model_utils.update_exponential_moving_average(
@@ -129,6 +133,9 @@ def meta_train_op(acc, rl_entropy, log_prob, rl_scope, params):  # pylint: disab
       tf.greater_equal(target_global_step, FLAGS.first_pretrain_steps),
       tf.float32)
   rl_learning_rate = FLAGS.rl_learning_rate * enable_rl_optimizer
+  rl_learning_rate = tf.train.piecewise_constant(target_global_step, [
+      800,
+  ], [rl_learning_rate, rl_learning_rate * 0.1])
 
   optimizer = tf.train.AdamOptimizer(rl_learning_rate)
   target_train_op = optimizer.minimize(
@@ -150,7 +157,14 @@ def meta_train_op(acc, rl_entropy, log_prob, rl_scope, params):  # pylint: disab
 
 def get_logits(feature, mode, dataset_name, reuse=None):
   """Returns the network logits."""
-  avg_pool = model.conv_model(feature, mode, dataset_name, reuse=reuse)
+  avg_pool = model.conv_model(
+      feature,
+      mode,
+      target_dataset=FLAGS.target_dataset,
+      src_hw=FLAGS.src_hw,
+      target_hw=FLAGS.target_hw,
+      dataset_name=dataset_name,
+      reuse=reuse)
   return avg_pool
 
 
@@ -160,7 +174,7 @@ def do_cls(avg_pool, num_classes, name='dense'):
     logits = tf.layers.dense(
         inputs=avg_pool,
         units=num_classes,
-        kernel_initializer=tf.random_normal_initializer(stddev=.01),
+        kernel_initializer=tf.random_normal_initializer(stddev=.05),
         name=name)
     return logits
 
@@ -243,6 +257,7 @@ def train_model_fn(features, labels, mode, params):  # pylint: disable=unused-ar
       k=bs,
       sorted=True,
   )
+
   src_features = tf.reshape(src_features, [
       bs * FLAGS.source_train_batch_multiplier,
       hw,
