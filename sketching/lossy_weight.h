@@ -31,23 +31,23 @@ class LossyWeight : public Sketch {
  public:
   LossyWeight(uint window_size, uint hash_count, uint hash_size);
 
-  virtual ~LossyWeight() {}
+  ~LossyWeight() override = default;
 
-  virtual void Reset();
+  void Reset() override;
 
-  virtual void Add(uint item, float delta);
+  void Add(uint item, float delta) override;
 
-  virtual void ReadyToEstimate() { MergeCounters(); }
+  void ReadyToEstimate() override;
 
-  virtual float Estimate(uint item) const;
+  float Estimate(uint item) const override;
 
-  virtual std::vector<uint> HeavyHitters(float threshold) const;
+  std::vector<uint> HeavyHitters(float threshold) const override;
 
-  virtual unsigned int Size() const;
+  unsigned int Size() const override;
 
-  virtual bool Compatible(const Sketch& other_sketch) const;
+  bool Compatible(const Sketch& other_sketch) const override;
 
-  virtual void Merge(const Sketch& other_sketch);
+  void Merge(const Sketch& other_sketch) override;
 
  private:
   uint window_size_;

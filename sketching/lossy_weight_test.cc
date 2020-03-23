@@ -16,6 +16,7 @@
 #include "gtest/gtest.h"
 
 namespace sketch {
+namespace {
 
 class LossyWeightTest : public ::testing::Test {
  public:
@@ -49,4 +50,5 @@ TEST_F(LossyWeightTest, TestHashing) {
   EXPECT_FLOAT_EQ(0.2, lw2.Estimate(11));
 }
 
+}  // namespace
 }  // namespace sketch
