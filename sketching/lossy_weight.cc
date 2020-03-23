@@ -38,6 +38,8 @@ void LossyWeight::Add(uint item, float delta) {
   }
 }
 
+void LossyWeight::ReadyToEstimate() { MergeCounters(); }
+
 float LossyWeight::Estimate(uint item) const {
   const auto& pos = lower_bound(counters_.begin(),
                                 counters_.begin() + accumulated_counters_,
