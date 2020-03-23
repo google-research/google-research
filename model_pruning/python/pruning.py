@@ -440,8 +440,7 @@ class Pruning(object):
     return sparsity
 
   def _setup_last_update_step(self):
-    with tf.variable_scope(
-        self._spec.name, use_resource=self._spec.use_tpu) as scope:
+    with tf.variable_scope(self._spec.name, use_resource=True) as scope:
       try:
         last_update_step = tf.get_variable(
             'last_mask_update_step', [],
@@ -486,8 +485,7 @@ class Pruning(object):
     return block_dims_list[0]
 
   def _setup_last_gradient_update_step(self):
-    with tf.variable_scope(
-        self._spec.name, use_resource=self._spec.use_tpu) as scope:
+    with tf.variable_scope(self._spec.name, use_resource=True) as scope:
       try:
         last_gradient_update_step = tf.get_variable(
             'last_gradient_update_step', [],
