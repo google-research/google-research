@@ -95,7 +95,7 @@ def vnge_naive(adjacency):
 
 
 if __name__ == '__main__':
-  fname = 'data/karate.txt'
+  fname = 'graph_embedding/slaq/data/karate.txt'
   graph = read_graph(fname)
 
   lsd_full = netlsd_naive(graph)
