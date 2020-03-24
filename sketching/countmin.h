@@ -45,29 +45,25 @@ class CountMin : public Sketch {
  public:
   CountMin(uint hash_count, uint hash_size);
 
-  virtual ~CountMin() {}
+  ~CountMin() override = default;
 
-  virtual void Reset();
+  void Reset() override;
 
-  virtual void Add(uint item, float delta);
+  void Add(uint item, float delta) override;
 
-  virtual float Estimate(uint item) const;
+  float Estimate(uint item) const override;
 
-  virtual std::vector<uint> HeavyHitters(float threshold) const;
+  std::vector<uint> HeavyHitters(float threshold) const override;
 
-  virtual uint Size() const;
+  uint Size() const override;
 
-  virtual bool Compatible(const Sketch& other) const;
+  bool Compatible(const Sketch& other) const override;
 
-  virtual void Merge(const Sketch& other);
+  void Merge(const Sketch& other) override;
 
-  static std::unique_ptr<CountMin> CreateCM(uint hash_count, uint hash_size) {
-    return absl::make_unique<CountMin>(CountMin(hash_count, hash_size));
-  }
+  static std::unique_ptr<CountMin> CreateCM(uint hash_count, uint hash_size);
 
-  virtual std::unique_ptr<CountMin> CreateCopy() const {
-    return absl::WrapUnique<CountMin>(new CountMin(*this));
-  }
+  virtual std::unique_ptr<CountMin> CreateCopy() const;
 
  protected:
   const uint hash_size_;
@@ -81,10 +77,9 @@ class CountMin : public Sketch {
 
 class CountMinCU : public CountMin {
  public:
-  CountMinCU(uint hash_count, uint hash_size)
-      : CountMin(hash_count, hash_size) {}
+  CountMinCU(uint hash_count, uint hash_size);
 
-  virtual ~CountMinCU() {}
+  ~CountMinCU() override = default;
 
   void Add(uint item, float delta) override;
 
@@ -95,46 +90,31 @@ class CountMinCU : public CountMin {
   // Ensure that the value of item will be (at least) value.
   void Update(uint item, float value);
 
-  static std::unique_ptr<CountMin> CreateCM_CU(uint hash_count,
-                                               uint hash_size) {
-    return absl::make_unique<CountMinCU>(CountMinCU(hash_count, hash_size));
-  }
+  static std::unique_ptr<CountMin> CreateCM_CU(uint hash_count, uint hash_size);
 
-  std::unique_ptr<CountMin> CreateCopy() const override {
-    return absl::WrapUnique<CountMinCU>(new CountMinCU(*this));
-  }
+  std::unique_ptr<CountMin> CreateCopy() const override;
 };
 
 class CountMinHierarchical : public Sketch {
  public:
   CountMinHierarchical(uint hash_count, uint hash_size, uint lgN,
-                       uint granularity = 1) {
-    Initialize(hash_count, hash_size, lgN, granularity, &CountMin::CreateCM);
-  }
+                       uint granularity = 1);
 
   CountMinHierarchical(uint hash_count, uint hash_size, uint lgN,
                        uint granularity,
-                       std::unique_ptr<CountMin> (*CreateSketch)(uint, uint)) {
-    Initialize(hash_count, hash_size, lgN, granularity, CreateSketch);
-  }
+                       std::unique_ptr<CountMin> (*CreateSketch)(uint, uint));
 
   CountMinHierarchical(const CountMinHierarchical& other);
 
-  virtual ~CountMinHierarchical() {}
+  ~CountMinHierarchical() override = default;
 
-  virtual void Reset();
+  void Reset() override;
 
-  virtual void Add(uint item, float delta);
+  void Add(uint item, float delta) override;
 
-  virtual float Estimate(uint item) const {
-    return sketches_[0]->Estimate(item);
-  }
+  float Estimate(uint item) const override;
 
-  virtual std::vector<uint> HeavyHitters(float threshold) const {
-    std::vector<uint> items;
-    HeavyHittersRecursive(levels_, 0, threshold, &items);
-    return items;
-  }
+  std::vector<uint> HeavyHitters(float threshold) const override;
 
   virtual uint Size() const;
 
@@ -153,8 +133,8 @@ class CountMinHierarchical : public Sketch {
   uint levels_;
   uint granularity_;
   float total_;
-  std::vector<std::vector<float> > exact_counts_;
-  std::vector<std::unique_ptr<CountMin> > sketches_;
+  std::vector<std::vector<float>> exact_counts_;
+  std::vector<std::unique_ptr<CountMin>> sketches_;
 
   void Initialize(uint hash_count, uint hash_size, uint lgN, uint granularity,
                   std::unique_ptr<CountMin> (*CreateSketch)(uint, uint));
@@ -176,11 +156,9 @@ class CountMinHierarchical : public Sketch {
 class CountMinHierarchicalCU : public CountMinHierarchical {
  public:
   CountMinHierarchicalCU(uint hash_count, uint hash_size, uint lgN,
-                          uint granularity = 1) :
-      CountMinHierarchical(hash_count, hash_size, lgN, granularity,
-                           &CountMinCU::CreateCM_CU) {}
+                         uint granularity = 1);
 
-  virtual ~CountMinHierarchicalCU() {}
+  ~CountMinHierarchicalCU() override = default;
 };
 
 }  // namespace sketch
