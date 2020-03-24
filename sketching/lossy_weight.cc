@@ -14,6 +14,8 @@
 
 #include "lossy_weight.h"
 
+#include <algorithm>
+
 #include "sketch.h"
 #include "utils.h"
 
@@ -41,9 +43,9 @@ void LossyWeight::Add(uint item, float delta) {
 void LossyWeight::ReadyToEstimate() { MergeCounters(); }
 
 float LossyWeight::Estimate(uint item) const {
-  const auto& pos = lower_bound(counters_.begin(),
-                                counters_.begin() + accumulated_counters_,
-                                std::make_pair(item, 0), cmpByItem);
+  const auto& pos = std::lower_bound(counters_.begin(),
+                                     counters_.begin() + accumulated_counters_,
+                                     std::make_pair(item, 0), cmpByItem);
   if (pos != counters_.end() && pos->first == item) return pos->second;
   return cm_.Estimate(item);
 }
@@ -93,13 +95,13 @@ void LossyWeight::Merge(const Sketch& other_sketch) {
   }
   cm_.Merge(other.cm_);
   if (counters_.size() > window_size_) {
-    sort(counters_.begin(), counters_.end(), cmpByValue);
+    std::sort(counters_.begin(), counters_.end(), cmpByValue);
     for (int i = window_size_; i < counters_.size(); ++i) {
       cm_.Update(counters_[i].first, counters_[i].second);
     }
     counters_.resize(window_size_);
   }
-  sort(counters_.begin(), counters_.end(), cmpByItem);
+  std::sort(counters_.begin(), counters_.end(), cmpByItem);
   // Also add any unmerged items in other
   for (j = other.accumulated_counters_; j < other.counters_.size(); ++j) {
     Add(other.counters_[j].first, other.counters_[j].second);
@@ -108,7 +110,8 @@ void LossyWeight::Merge(const Sketch& other_sketch) {
 
 void LossyWeight::MergeCounters() {
   if (counters_.size() <= accumulated_counters_) return;  // nothing to merge
-  sort(counters_.begin() + accumulated_counters_, counters_.end(), cmpByItem);
+  std::sort(counters_.begin() + accumulated_counters_, counters_.end(),
+            cmpByItem);
   int i = 0;
   int j = accumulated_counters_;
   int m = accumulated_counters_;
@@ -133,15 +136,24 @@ void LossyWeight::MergeCounters() {
   }
 
   if (m > window_size_) {
-    sort(counters_.begin(), counters_.begin() + m, cmpByValue);
-    for (i = window_size_; i < m; ++i) {
+    static auto comp = [](const IntFloatPair& a, const IntFloatPair& b) {
+      if (a.second != b.second) {
+        return a.second > b.second;
+      }
+      return a.first < b.first;
+    };
+
+    std::nth_element(
+        counters_.begin(),
+        counters_.begin() + window_size_ - 1, counters_.begin() + m, comp);
+    for (int i = window_size_; i < counters_.size(); ++i) {
       cm_.Update(counters_[i].first, counters_[i].second);
     }
     m = window_size_;
   }
 
   counters_.resize(m);
-  sort(counters_.begin(), counters_.end(), cmpByItem);
+  std::sort(counters_.begin(), counters_.end(), cmpByItem);
   accumulated_counters_ = counters_.size();
 }
 
