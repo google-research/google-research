@@ -126,16 +126,46 @@ void CountMinCU::Update(uint item, float value) {
   }
 }
 
-CountMinHierarchical::CountMinHierarchical(const CountMinHierarchical& other) {
-  lgN_ = other.lgN_;
-  granularity_ = other.granularity_;
-  total_ = other.total_;
-  levels_ = other.levels_;
-  exact_counts_ = other.exact_counts_;
+std::unique_ptr<CountMin> CountMin::CreateCM(uint hash_count, uint hash_size) {
+  return absl::make_unique<CountMin>(CountMin(hash_count, hash_size));
+}
 
+std::unique_ptr<CountMin> CountMin::CreateCopy() const {
+  return absl::WrapUnique<CountMin>(new CountMin(*this));
+}
+
+CountMinCU::CountMinCU(uint hash_count, uint hash_size)
+    : CountMin(hash_count, hash_size) {}
+
+std::unique_ptr<CountMin> CountMinCU::CreateCM_CU(uint hash_count,
+                                                  uint hash_size) {
+  return absl::make_unique<CountMinCU>(CountMinCU(hash_count, hash_size));
+}
+
+std::unique_ptr<CountMin> CountMinCU::CreateCopy() const {
+  return absl::WrapUnique(new CountMinCU(*this));
+}
+
+CountMinHierarchical::CountMinHierarchical(uint hash_count, uint hash_size,
+                                           uint lgN, uint granularity) {
+  Initialize(hash_count, hash_size, lgN, granularity, &CountMin::CreateCM);
+}
+
+CountMinHierarchical::CountMinHierarchical(
+    uint hash_count, uint hash_size, uint lgN, uint granularity,
+    std::unique_ptr<CountMin> (*CreateSketch)(uint, uint)) {
+  Initialize(hash_count, hash_size, lgN, granularity, CreateSketch);
+}
+
+CountMinHierarchical::CountMinHierarchical(const CountMinHierarchical& other)
+    : lgN_(other.lgN_),
+      levels_(other.levels_),
+      granularity_(other.granularity_),
+      total_(other.total_),
+      exact_counts_(other.exact_counts_) {
   sketches_.reserve(other.sketches_.size());
-  for (int j = 0; j < other.sketches_.size(); ++j) {
-    sketches_.push_back(other.sketches_[j]->CreateCopy());
+  for (const auto& other_sketch : other.sketches_) {
+    sketches_.push_back(other_sketch->CreateCopy());
   }
 }
 
@@ -168,11 +198,10 @@ void CountMinHierarchical::Reset() {
       exact_counts_[i][j] = 0;
     }
   }
-  for (int i = 0; i < sketches_.size(); ++i) {
-    sketches_[i]->Reset();
+  for (auto& sketch : sketches_) {
+    sketch->Reset();
   }
 }
-
 
 void CountMinHierarchical::Add(uint item, float delta) {
   total_ += delta;
@@ -184,6 +213,16 @@ void CountMinHierarchical::Add(uint item, float delta) {
     }
     item >>= granularity_;
   }
+}
+
+float CountMinHierarchical::Estimate(uint item) const {
+  return sketches_[0]->Estimate(item);
+}
+
+std::vector<uint> CountMinHierarchical::HeavyHitters(float threshold) const {
+  std::vector<uint> items;
+  HeavyHittersRecursive(levels_, 0, threshold, &items);
+  return items;
 }
 
 uint CountMinHierarchical::Size() const {
@@ -302,5 +341,10 @@ uint CountMinHierarchical::Quantile(float frac) const {
   return (FindRange(total_ * frac, true) +
           FindRange(total_ * (1 - frac), false)) / 2;
 }
+
+CountMinHierarchicalCU::CountMinHierarchicalCU(uint hash_count, uint hash_size,
+                                               uint lgN, uint granularity)
+    : CountMinHierarchical(hash_count, hash_size, lgN, granularity,
+                           &CountMinCU::CreateCM_CU) {}
 
 }  // namespace sketch
