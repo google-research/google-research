@@ -22,19 +22,18 @@
 namespace sketch {
 
 LossyWeight::LossyWeight(uint window_size, uint hash_count, uint hash_size)
-    : window_size_(window_size), accumulated_counters_(0),
-      cm_(CountMinCU(hash_count, hash_size)) {
+    : window_size_(window_size), cm_(CountMinCU(hash_count, hash_size)) {
   counters_.reserve(window_size * 2);
 }
 
 void LossyWeight::Reset() {
   accumulated_counters_ = 0;
-  counters_.resize(0);
+  counters_.clear();
   cm_.Reset();
 }
 
 void LossyWeight::Add(uint item, float delta) {
-  counters_.push_back(std::make_pair(item, delta));
+  counters_.emplace_back(item, delta);
   if (counters_.size() >= window_size_ + accumulated_counters_) {
     MergeCounters();
   }
@@ -46,8 +45,8 @@ float LossyWeight::Estimate(uint item) const {
   const auto& pos = std::lower_bound(counters_.begin(),
                                      counters_.begin() + accumulated_counters_,
                                      std::make_pair(item, 0), cmpByItem);
-  if (pos != counters_.end() && pos->first == item) return pos->second;
-  return cm_.Estimate(item);
+  return (pos != counters_.end() && pos->first == item) ? pos->second
+                                                        : cm_.Estimate(item);
 }
 
 std::vector<uint> LossyWeight::HeavyHitters(float threshold) const {
@@ -63,8 +62,7 @@ bool LossyWeight::Compatible(const Sketch& other_sketch) const {
   const LossyWeight* other = dynamic_cast<const LossyWeight*>(&other_sketch);
   if (other == nullptr) return false;
   if (window_size_ != other->window_size_) return false;
-  if (!cm_.Compatible(other->cm_)) return false;
-  return true;
+  return cm_.Compatible(other->cm_);
 }
 
 void LossyWeight::Merge(const Sketch& other_sketch) {
@@ -112,26 +110,22 @@ void LossyWeight::MergeCounters() {
   if (counters_.size() <= accumulated_counters_) return;  // nothing to merge
   std::sort(counters_.begin() + accumulated_counters_, counters_.end(),
             cmpByItem);
-  int i = 0;
-  int j = accumulated_counters_;
   int m = accumulated_counters_;
-  while (i < accumulated_counters_ || j < counters_.size()) {
+  for (int i = 0, j = accumulated_counters_;
+       i < accumulated_counters_ || j < counters_.size();) {
+    int target_idx;
     if (i < accumulated_counters_ &&
         (j >= counters_.size() || counters_[i].first <= counters_[j].first)) {
-      for (; j < counters_.size() && counters_[j].first == counters_[i].first;
-           ++j) {
-        counters_[i].second += counters_[j].second;
-      }
-      i++;
+      target_idx = i++;
     } else {
       counters_[m].first = counters_[j].first;
       counters_[m].second = cm_.Estimate(counters_[m].first) +
                             counters_[j++].second;
-      for (; j < counters_.size() && counters_[j].first == counters_[m].first;
-           ++j) {
-        counters_[m].second += counters_[j].second;
-      }
-      m++;
+      target_idx = m++;
+    }
+    while (j < counters_.size() &&
+           counters_[j].first == counters_[target_idx].first) {
+      counters_[target_idx].second += counters_[j++].second;
     }
   }
 

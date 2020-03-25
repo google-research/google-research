@@ -50,8 +50,8 @@ class LossyWeight : public Sketch {
   void Merge(const Sketch& other_sketch) override;
 
  private:
-  uint window_size_;
-  uint accumulated_counters_;
+  const uint window_size_;
+  uint accumulated_counters_ = 0;
   std::vector<IntFloatPair> counters_;
   CountMinCU cm_;
 
