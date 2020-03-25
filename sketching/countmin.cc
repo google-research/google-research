@@ -105,7 +105,27 @@ void CountMin::Merge(const Sketch& other_sketch) {
 }
 
 void CountMinCU::Add(uint item, float delta) {
-  Update(item, Estimate(item) + delta);
+  // Update(item, Estimate(item) + delta);
+  // Expanded this out, because we don't want to compute hashes twice.
+  max_item_ = std::max(item, max_item_);
+  float result = std::numeric_limits<float>::max();
+  for (int i = 0; i < values_.size(); ++i) {
+    uint idx = scratch_[i] = hash_func_(hash_a_[i], hash_b_[i], item);
+    result = std::min(result, values_[i][idx]);
+  }
+  result += delta;
+  for (int i = 0; i < values_.size(); ++i) {
+    uint idx = scratch_[i];
+    values_[i][idx] = std::max(values_[i][idx], result);
+  }
+}
+
+uint CountMinCU::Size() const {
+  return sizeof(CountMinCU) +
+      (hash_b_.capacity() + hash_a_.capacity()
+       + scratch_.capacity()) * sizeof(uint) +
+      values_.capacity() * (sizeof(values_[0]) +
+                            values_[0].capacity() * sizeof(float));
 }
 
 void CountMinCU::BatchAdd(const std::vector<IntFloatPair>& item_deltas) {
@@ -136,7 +156,7 @@ std::unique_ptr<CountMin> CountMin::CreateCopy() const {
 }
 
 CountMinCU::CountMinCU(uint hash_count, uint hash_size)
-    : CountMin(hash_count, hash_size) {}
+    : CountMin(hash_count, hash_size), scratch_(hash_count) {}
 
 std::unique_ptr<CountMin> CountMinCU::CreateCM_CU(uint hash_count,
                                                   uint hash_size) {

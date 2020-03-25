@@ -83,6 +83,8 @@ class CountMinCU : public CountMin {
 
   void Add(uint item, float delta) override;
 
+  uint Size() const override;
+
   // Add a batch of item_delta pairs. We assume no duplicates, so the items
   // are unique.
   virtual void BatchAdd(const std::vector<IntFloatPair>& item_deltas);
@@ -93,6 +95,9 @@ class CountMinCU : public CountMin {
   static std::unique_ptr<CountMin> CreateCM_CU(uint hash_count, uint hash_size);
 
   std::unique_ptr<CountMin> CreateCopy() const override;
+
+ private:
+  std::vector<uint> scratch_;  // temporary storage, used for Add.
 };
 
 class CountMinHierarchical : public Sketch {
