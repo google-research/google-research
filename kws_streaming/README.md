@@ -33,7 +33,7 @@ By streaming we mean streaming inference, where model processing every 20ms of a
 and return classification result.
 Non streaming means that model has to receive the whole sequence (1 sec) and then return classification result.
 
-## Inference 
+## Inference
 KWS model in streaming mode is executed by steps:
 
 1. Receive sample(packet) of audio data from microphone
@@ -225,6 +225,39 @@ dnn \
 --units2 '128,256' \
 --act2 "'linear','relu'"
 ```
+
+### Re-train dnn model from scratch with quantization on data set V1 and run evaluation:
+
+Model quantization is compatible only with speech feature mfcc_op.
+If you specify --feature_type 'mfcc_op', then model will be trained and
+evaluated in unquantized and qunatized form (only post training quantization is supported).
+
+```shell
+python -m kws_streaming.train.model_train_eval \
+--data_url '' \
+--data_dir ./data1/ \
+--train_dir ./models1/dnn_1/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 100,100,100 \
+--learning_rate 0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 20 \
+--resample 0.15 \
+--feature_type 'mfcc_op' \
+--alsologtostderr \
+--train 1 \
+dnn \
+--units1 '64,128' \
+--act1 "'relu','relu'" \
+--pool_size 2 \
+--strides 2 \
+--dropout1 0.1 \
+--units2 '128,256' \
+--act2 "'linear','relu'"
+```
+
 
 Some key flags are described below:
 
