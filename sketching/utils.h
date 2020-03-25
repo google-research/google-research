@@ -28,7 +28,16 @@ typedef unsigned int uint;
 typedef unsigned long long ULONG;
 typedef std::pair<uint, float> IntFloatPair;
 
-uint Hash(ULONG a, ULONG b, ULONG x, ULONG size);
+inline constexpr int HL = 31;
+inline constexpr ULONG MOD = 2147483647;
+
+inline uint Hash(ULONG a, ULONG b, ULONG x, ULONG size) {
+  ULONG result = a * x + b;
+  result = ((result >> HL) + result) & MOD;
+  uint lresult = (uint)result;
+  return lresult % size;
+}
+
 bool cmpByItem(const IntFloatPair& a, const IntFloatPair& b);
 bool cmpByValue(const IntFloatPair& a, const IntFloatPair& b);
 
