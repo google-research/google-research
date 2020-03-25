@@ -16,16 +16,6 @@
 
 namespace sketch {
 
-#define MOD 2147483647
-#define HL  31
-
-uint Hash(ULONG a, ULONG b, ULONG x, ULONG size) {
-  ULONG result = a * x + b;
-  result = ((result >> HL) + result) & MOD;
-  uint lresult = (uint)result;
-  return lresult % size;
-}
-
 bool cmpByItem(const IntFloatPair& a, const IntFloatPair& b) {
   return a.first < b.first;
 }

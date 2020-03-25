@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cmath>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -60,8 +61,8 @@ void CountMin::Add(uint item, float delta) {
 }
 
 float CountMin::Estimate(uint item) const {
-  float result = values_[0][hash_func_(hash_a_[0], hash_b_[0], item)];
-  for (int i = 1; i < values_.size(); ++i) {
+  float result = std::numeric_limits<float>::max();
+  for (int i = 0; i < values_.size(); ++i) {
     result =
         std::min(result, values_[i][hash_func_(hash_a_[i], hash_b_[i], item)]);
   }
