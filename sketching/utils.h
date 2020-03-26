@@ -39,7 +39,6 @@ inline uint Hash(ULONG a, ULONG b, ULONG x, ULONG size) {
 }
 
 bool cmpByItem(const IntFloatPair& a, const IntFloatPair& b);
-bool cmpByValue(const IntFloatPair& a, const IntFloatPair& b);
 
 // A wrapper around absl's bit generator class. Could allow a switch to a
 // deterministic generator for testing, not implemented.

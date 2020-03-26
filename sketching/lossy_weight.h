@@ -57,6 +57,11 @@ class LossyWeight : public Sketch {
 
   // Merge duplicate counters in counters_
   void MergeCounters();
+
+  // Discard low frequency items from counters_ into CountMinCU whose freq order
+  // is lower than window_size_. After discarding low frequent items, sort the
+  // counters_ by its item value.
+  void DiscardLowFreqItems();
 };
 
 }  // namespace sketch

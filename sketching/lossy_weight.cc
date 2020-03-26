@@ -71,35 +71,28 @@ void LossyWeight::Merge(const Sketch& other_sketch) {
   MergeCounters();
   int i = 0;
   int j = 0;
-  while (i < accumulated_counters_ || j < other.accumulated_counters_) {
-    if (i < accumulated_counters_ && j < other.accumulated_counters_) {
-      if (counters_[i].first == other.counters_[j].first) {
-        counters_[i].second += other.counters_[j].second;
-        i++; j++;
-      } else if (counters_[i].first < other.counters_[j].first) {
-        counters_[i].second += other.cm_.Estimate(counters_[i].first);
-        i++;
-      } else {
-        counters_.push_back(other.counters_[j++]);
-        counters_.back().second += cm_.Estimate(counters_.back().first);
-      }
-    } else if (i < accumulated_counters_) {
+  while (i < accumulated_counters_ && j < other.accumulated_counters_) {
+    if (counters_[i].first == other.counters_[j].first) {
+      counters_[i++].second += other.counters_[j++].second;
+    } else if (counters_[i].first < other.counters_[j].first) {
       counters_[i].second += other.cm_.Estimate(counters_[i].first);
-      i++;
+      ++i;
     } else {
       counters_.push_back(other.counters_[j++]);
       counters_.back().second += cm_.Estimate(counters_.back().first);
     }
   }
-  cm_.Merge(other.cm_);
-  if (counters_.size() > window_size_) {
-    std::sort(counters_.begin(), counters_.end(), cmpByValue);
-    for (int i = window_size_; i < counters_.size(); ++i) {
-      cm_.Update(counters_[i].first, counters_[i].second);
-    }
-    counters_.resize(window_size_);
+  while (i < accumulated_counters_) {
+    counters_[i].second += other.cm_.Estimate(counters_[i].first);
+    ++i;
   }
-  std::sort(counters_.begin(), counters_.end(), cmpByItem);
+  while (j < other.accumulated_counters_) {
+    counters_.push_back(other.counters_[j++]);
+    counters_.back().second += cm_.Estimate(counters_.back().first);
+  }
+
+  cm_.Merge(other.cm_);
+  DiscardLowFreqItems();
   // Also add any unmerged items in other
   for (j = other.accumulated_counters_; j < other.counters_.size(); ++j) {
     Add(other.counters_[j].first, other.counters_[j].second);
@@ -129,7 +122,13 @@ void LossyWeight::MergeCounters() {
     }
   }
 
-  if (m > window_size_) {
+  counters_.resize(m);
+  DiscardLowFreqItems();
+  accumulated_counters_ = counters_.size();
+}
+
+void LossyWeight::DiscardLowFreqItems() {
+  if (counters_.size() > window_size_) {
     static auto comp = [](const IntFloatPair& a, const IntFloatPair& b) {
       if (a.second != b.second) {
         return a.second > b.second;
@@ -137,18 +136,15 @@ void LossyWeight::MergeCounters() {
       return a.first < b.first;
     };
 
-    std::nth_element(
-        counters_.begin(),
-        counters_.begin() + window_size_ - 1, counters_.begin() + m, comp);
+    std::nth_element(counters_.begin(), counters_.begin() + window_size_ - 1,
+                     counters_.end(), comp);
     for (int i = window_size_; i < counters_.size(); ++i) {
       cm_.Update(counters_[i].first, counters_[i].second);
     }
-    m = window_size_;
+    counters_.resize(window_size_);
   }
 
-  counters_.resize(m);
   std::sort(counters_.begin(), counters_.end(), cmpByItem);
-  accumulated_counters_ = counters_.size();
 }
 
 }  // namespace sketch
