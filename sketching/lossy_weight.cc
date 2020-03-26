@@ -33,7 +33,15 @@ void LossyWeight::Reset() {
 }
 
 void LossyWeight::Add(uint item, float delta) {
-  counters_.emplace_back(item, delta);
+  IntFloatPair p(item, delta);
+  auto pos =
+      std::lower_bound(counters_.begin(),
+                       counters_.begin() + accumulated_counters_, p, cmpByItem);
+  if (pos != counters_.end() && pos->first == item) {
+    pos->second += delta;
+  } else {
+    counters_.push_back(std::move(p));
+  }
   if (counters_.size() >= window_size_ + accumulated_counters_) {
     MergeCounters();
   }
