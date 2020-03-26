@@ -146,7 +146,7 @@ class NadamWCosineDecay(Optimizer):
       training_steps: number of training steps the schedule should be run for.
     """
     defaults = dict(
-        learning_rate=learning_rate,
+        lr=learning_rate,
         beta1=beta1,
         beta2=beta2,
         epsilon=epsilon,
@@ -201,8 +201,7 @@ class NadamWCosineDecay(Optimizer):
           state["exp_avg_sq"] = torch.zeros_like(
               p, memory_format=torch.preserve_format)
 
-        lr = get_cosine_learning_rate_fn(group["training_steps"],
-                                         group["learning_rate"],
+        lr = get_cosine_learning_rate_fn(group["training_steps"], group["lr"],
                                          group["min_learning_rate_mult"],
                                          group["constant_fraction"],
                                          group["warmup_fraction"])(
