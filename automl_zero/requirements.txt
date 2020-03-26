@@ -1,0 +1,6 @@
+tensorflow==2.1.0
+tensorflow-datasets==2.1.0
+sklearn==0.0
+scikit-learn==0.22.2.post1
+numpy==1.18.2
+protobuf==3.11.3
