@@ -94,9 +94,7 @@ message ScalarLinearRegressionTaskSpec {}
 
 message Scalar2LayerNNRegressionTaskSpec {}
 
-// A projected binary classification task. These use pre-generated tasks
-// saved in sstables.
-//
+// A projected binary classification task. These use pre-generated datasets.
 // The following TaskSpec fields are restricted to the given values:
 //   eval_type: ACCURACY.
 //   num_train_examples: the value should be an integer in (0, 8000]
@@ -113,16 +111,14 @@ message Scalar2LayerNNRegressionTaskSpec {}
 // Meta-train / meta-validation / meta-test split:
 // Since some positive-negative pairs are heldout,
 // you can use all the seeds during search (meta-train) and use the heldout
-// pairs in reevaluation (meta-validation and meta-test).
+// pairs in model selection and evaluation (meta-validation and meta-test).
 // Among all 45 possible pairs, we recommend that the following
 // 9 randomly selected pairs be held out for meta-validation and meta-test:
 // (4, 6), (3, 5), (8, 9), (3, 8), (0, 9), (2, 9), (1, 8), (3, 6), (0, 5).
-// If the transfer stage is used as final meta-test,
-// you can use all the pairs in reevaluation as meta-validation.
-// If the reevaluation stage is used as final meta-test,
-// you can use the first 4 pairs as meta-validation and the rest 5 pairs as
-// meta-test.
-// TODO(crazydonkey): simplify.
+// If transferring to the original feature size is used as final evaluation
+// (meta-test), you can use all the heldout pairs as meta-validation.
+// If no transferring is used, you can use the first 4 pairs as
+// meta-validation and the rest 5 pairs as meta-test.
 message ProjectedBinaryClassificationTask {
   // Below are the IDs for the positive and negative classes, you should
   // either specify:
@@ -143,20 +139,16 @@ message ProjectedBinaryClassificationTask {
   // There are two possible sources to get the projected data:
   // (1) the data is saved in this proto, i.e., all the features and
   //     labels of the train/validation/test set are saved in the
-  //     `dumped_task` field.
-  // (2) If `dumped_path` is set, it will be used as the path to the sstable
-  // containing the data.
+  //     `dataset` field.
+  // (2) If `path` is set, it will be used as the path to the folder
+  // containing all the serialized data.
   oneof task_source {
-    string dump_path = 4;
-    DumpedTask dumped_task = 5;
+    string path = 4;
+    ScalarLabelDataset dataset = 5;
   }
 
-  // Currently there are copies of the data only in
-  // JE, TP, YM, UE, YO, LU and OL.
-  optional string cell = 6;
-
   // Pairs to hold out when randomizing the dataset.
-  repeated ClassPair held_out_pairs = 7;
+  repeated ClassPair held_out_pairs = 6;
 
   // Minimum (incl.) and maximum (excl.) data seeds supported in the sstable
   // that saves the dumped projected dataset.
@@ -171,8 +163,8 @@ message ProjectedBinaryClassificationTask {
   // `negative_classess` are not set, the `data_seed` is also used
   // to randomly select a the positive and negative classes.
   // TODO(crazydonkey): make sure the random seed is never 0.
-  optional int32 min_supported_data_seed = 8 [default = 0];
-  optional int32 max_supported_data_seed = 9 [default = 10];
+  optional int32 min_supported_data_seed = 7 [default = 0];
+  optional int32 max_supported_data_seed = 8 [default = 10];
 }
 
 message ClassPair {
@@ -180,9 +172,7 @@ message ClassPair {
   optional int32 negative_class = 2;
 }
 
-// TODO(crazydonkey): unify with UnitTestFixedTask.
-// TODO(crazydonkey): rename to something nicer.
-message DumpedTask {
+message ScalarLabelDataset {
   // Training, validation and test examples.
   repeated FeatureVector train_features = 1;
   repeated float train_labels = 2;
