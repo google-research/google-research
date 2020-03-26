@@ -20,10 +20,6 @@ bool cmpByItem(const IntFloatPair& a, const IntFloatPair& b) {
   return a.first < b.first;
 }
 
-bool cmpByValue(const IntFloatPair& a, const IntFloatPair& b) {
-  return a.second > b.second;
-}
-
 BitGenerator::BitGenerator() :
     bit_gen_ref_(bit_gen_)
 {}
