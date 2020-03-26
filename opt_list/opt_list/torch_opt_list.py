@@ -161,6 +161,7 @@ class NadamWCosineDecay(Optimizer):
 
     super(NadamWCosineDecay, self).__init__(params, defaults)
 
+  @torch.no_grad()
   def step(self, closure=None):
     """Performs a single optimization step.
 
@@ -176,13 +177,14 @@ class NadamWCosineDecay(Optimizer):
     """
     loss = None
     if closure is not None:
-      loss = closure()
+      with torch.enable_grad():
+        loss = closure()
 
     for group in self.param_groups:
       for p in group["params"]:
         if p.grad is None:
           continue
-        grad = p.grad.data
+        grad = p.grad
 
         if grad.is_sparse:
           raise RuntimeError("No SparseGrads supported at this time.")
@@ -194,10 +196,10 @@ class NadamWCosineDecay(Optimizer):
           state["step"] = 0
           # Exponential moving average of gradient values
           state["exp_avg"] = torch.zeros_like(
-              p.data, memory_format=torch.preserve_format)
+              p, memory_format=torch.preserve_format)
           # Exponential moving average of squared gradient values
           state["exp_avg_sq"] = torch.zeros_like(
-              p.data, memory_format=torch.preserve_format)
+              p, memory_format=torch.preserve_format)
 
         lr = get_cosine_learning_rate_fn(group["training_steps"],
                                          group["learning_rate"],
@@ -233,7 +235,7 @@ class NadamWCosineDecay(Optimizer):
 
         step = step + (lr_t * group["adamw_weight_decay"] * p)
 
-        p.data.add_(-step)
+        p.add_(-step)
 
     return loss
 
