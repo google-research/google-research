@@ -1,0 +1,6 @@
+tensorflow-gpu==1.14
+tqdm
+absl-py
+numpy
+sklearn
+gast==0.2.2 
