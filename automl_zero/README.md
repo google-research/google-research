@@ -75,7 +75,12 @@ for ML algorithms).
 
 If you use the code in your research, please cite:
 
-`TODO`
+@article{real2020automl,
+  title={AutoML-Zero: Evolving Machine Learning Algorithms From Scratch},
+  author={Real, Esteban and Liang, Chen and So, David R and Le, Quoc V},
+  journal={arXiv preprint arXiv:2003.03384},
+  year={2020}
+}
 
 &nbsp;
 
