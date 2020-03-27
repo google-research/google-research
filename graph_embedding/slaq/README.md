@@ -1,7 +1,7 @@
 Just SLaQ When You Approximate: Accurate Spectral Distances for Web-Scale Graphs
 ===============================
 
-This is the implementation accompanying our WWW'2020 paper, Just SLaQ When You Approximate: Accurate Spectral Distances for Web-Scale Graphs.
+This is the implementation accompanying our WWW'2020 paper, [Just SLaQ When You Approximate: Accurate Spectral Distances for Web-Scale Graphs](https://arxiv.org/abs/2003.01282).
 
 Example usage:
 ---
