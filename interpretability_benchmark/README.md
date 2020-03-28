@@ -46,14 +46,15 @@ The script produces a new set of tfrecords (the data input for ```interpretabili
 ## Citation
 If you are using ROAR code you may cite:
 ```
-@article{2018explainabilityeval,
-  author    = {Sara Hooker and
-               Dumitru Erhan and
-               Pieter{-}Jan Kindermans and
-               Been Kim},
-  title     = {Evaluating Feature Importance Estimates},
-  year      = {2018},
-  url       = {http://arxiv.org/abs/1806.10758},
+@incollection{NIPS2019_9167,
+title = {A Benchmark for Interpretability Methods in Deep Neural Networks},
+author = {Hooker, Sara and Erhan, Dumitru and Kindermans, Pieter-Jan and Kim, Been},
+booktitle = {Advances in Neural Information Processing Systems 32},
+editor = {H. Wallach and H. Larochelle and A. Beygelzimer and F. d\textquotesingle Alch\'{e}-Buc and E. Fox and R. Garnett},
+pages = {9737--9748},
+year = {2019},
+publisher = {Curran Associates, Inc.},
+url = {http://papers.nips.cc/paper/9167-a-benchmark-for-interpretability-methods-in-deep-neural-networks.pdf}
 }
 ```
 
