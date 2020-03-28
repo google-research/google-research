@@ -17,6 +17,7 @@
 #include "gtest/gtest.h"
 
 namespace sketch {
+namespace {
 
 class FrequentTest : public ::testing::Test {
  public:
@@ -42,23 +43,5 @@ TEST_F(FrequentTest, TestBasic) {
   EXPECT_THAT(freq_->HeavyHitters(7.9), testing::Contains(10));
 }
 
-TEST_F(FrequentTest, CuckooHashTestBasic) {
-  std::vector<IntFloatPair> keys;
-  CuckooHashParams params;
-  IndexCuckooHash hash(keys, 5, params);
-
-  keys.push_back(std::make_pair(5, 1));
-  hash.Update(5, -1, 0, false);
-  EXPECT_EQ(0, hash.Find(5));
-  keys.push_back(std::make_pair(6, 1));
-  hash.Update(6, -1, 1, false);
-  EXPECT_EQ(1, hash.Find(6));
-  hash.Update(5, 0, -1, false);
-  EXPECT_EQ(-1, hash.Find(5));
-  keys[0].first = 7;
-  EXPECT_EQ(-1, hash.Find(7));
-  hash.Update(7, -1, 0, false);
-  EXPECT_EQ(0, hash.Find(7));
-}
-
+}  // namespace
 }  // namespace sketch

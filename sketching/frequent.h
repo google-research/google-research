@@ -24,71 +24,20 @@
 // We also implement a version of Misra-Gries combined with a CountMin sketch,
 // which results in a significantly improved performance and accuracy.
 
+#include <algorithm>
+#include <map>
 #include <vector>
 
-#include "sketch.h"
+#include "absl/container/flat_hash_map.h"
 #include "countmin.h"
+#include "sketch.h"
+#include "utils.h"
 
 namespace sketch {
 
-typedef struct CuckooHashParams {
-  int hash_tables = 2;
-  float resize_factor = 1.5;
-  int max_retries = 20;
-} CuckooHashParams;
-
-class IndexCuckooHash {
- public:
-  IndexCuckooHash(const std::vector<IntFloatPair>& keys,
-                  int size, const CuckooHashParams& params);
-
-  virtual ~IndexCuckooHash() {}
-
-  virtual void Reset();
-
-  virtual uint Size() const;
-
-  // Make each hashtable be of size hash_size, and initialize all entries to -1.
-  // If keys_ is non-empty, insert the indices of key elements in the
-  // table, indexes by the hashes of the items.
-  virtual void Create(int hash_size);
-
-  // Find the index of the item in keys, using the hash_tables.
-  // Return -1 if not found
-  virtual int Find(uint item) const;
-
-  // Change the index of the item from current to next.
-  // To insert an new element, set current = -1.
-  // To delete an element, set next = -1.
-  // If rehash is true, and in the cuckoo hashing algorithm too many elements
-  // have been kicked around, time to rehash.
-  // We set rehash to false if the UpdateHash is being called from Create,
-  // otherwise it is set to true.
-  // The return value is always true, except during Create, where insert can
-  // fail if too many elements were evicted.
-  virtual bool Update(uint item, int current, int next, bool rehash);
-
-  // We want to swap entries at loc1 and loc2 in keys, so update the hash.
-  virtual void Swap(int loc1, int loc2);
-
-  virtual void Print() const;
-
-  const CuckooHashParams& GetParams() const { return params_; }
-
- protected:
-  const std::vector<IntFloatPair>& keys_;
-  const CuckooHashParams params_;
-  std::vector< std::vector<int> > hash_tables_;
-  std::vector<uint> hash_a_;
-  std::vector<uint> hash_b_;
-  int hash_max_;  // hashes will be computed between 0 .. hash_max_-1
-};
-
 class Frequent : public Sketch {
  public:
-  Frequent(uint heap_size);
-
-  Frequent(uint heap_size, const CuckooHashParams& params);
+  explicit Frequent(uint heap_size);
 
   Frequent(const Frequent& other);
 
@@ -126,23 +75,15 @@ class Frequent : public Sketch {
   virtual void MergeMissing(const Frequent& other) {}
 
  private:
+  // map from a weight to the corresponding item. Helps find the smallest item
+  // quickly.
+  std::multimap<float, uint> weight_to_item_;
+  // map from item to an iterator into the weight_to_item_ map.
+  absl::flat_hash_map<uint, decltype(weight_to_item_)::const_iterator>
+      item_to_weight_;
+
   uint heap_size_;
-  float delete_threshold_;
-  std::vector<IntFloatPair> counter_heap_;
-  IndexCuckooHash hash_;
-
-  // This is called when the item at position loc has been changed (either a
-  // new item has been placed at loc, or its weight has changed). Performs
-  // a series of Swaps to ensure the heap property - the weight of every
-  // parent <= the weights of either child.
-  void Heapify(int loc);
-
-  // A utility function to swap the items at loc1 and loc2 in the heap.
-  // Also updates the hash tables. Returns loc2, for convenience.
-  int Swap(int loc1, int loc2);
-
-  // Check the consistency of the hash with the heap, for debugging.
-  bool Consistent(const std::string& message) const;
+  float delete_threshold_ = 0;
 };
 
 class Frequent_Fallback : public Frequent {
