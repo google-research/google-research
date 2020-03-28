@@ -14,11 +14,13 @@
 
 #include "frequent.h"
 
+#include <algorithm>
 #include <map>
 #include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "countmin.h"
 #include "sketch.h"
 #include "utils.h"
 
@@ -37,7 +39,6 @@ void Frequent::Reset() {
   weight_to_item_.clear();
   ResetMissing();
 }
-
 
 void Frequent::Add(uint item, float delta) {
   if (auto item_to_weight_it = item_to_weight_.find(item);
@@ -118,6 +119,56 @@ void Frequent::Merge(const Sketch& other_sketch) {
     }
   }
   MergeMissing(other);
+}
+
+void Frequent::ResetMissing() { delete_threshold_ = 0; }
+
+float Frequent::EstimateMissing(uint item) const { return delete_threshold_; }
+
+void Frequent::UpdateMissing(uint item, float value) {
+  delete_threshold_ = std::max(delete_threshold_, value);
+}
+
+bool Frequent::CompatibleMissing(const Frequent& other) const { return true; }
+
+void Frequent::MergeMissing(const Frequent& other) {}
+
+Frequent_Fallback::Frequent_Fallback(uint heap_size, uint hash_count,
+                                     uint hash_size)
+    : Frequent(heap_size), cm_(CountMinCU(hash_count, hash_size)) {}
+
+Frequent_Fallback::Frequent_Fallback(const Frequent_Fallback& other)
+    : Frequent(other), cm_(other.cm_) {}
+
+uint Frequent_Fallback::Size() const {
+  return Frequent::Size() + cm_.Size();
+}
+
+void Frequent_Fallback::ResetMissing() {
+  Frequent::ResetMissing();
+  cm_.Reset();
+}
+
+float Frequent_Fallback::EstimateMissing(uint item) const {
+  return cm_.Estimate(item);
+}
+
+void Frequent_Fallback::UpdateMissing(uint item, float value) {
+  cm_.Update(item, value);
+}
+
+bool Frequent_Fallback::CompatibleMissing(const Frequent& other) const {
+  if (!Frequent::CompatibleMissing(other)) return false;
+  const Frequent_Fallback& other_cast =
+      dynamic_cast<const Frequent_Fallback&>(other);
+  return cm_.Compatible(other_cast.cm_);
+}
+
+void Frequent_Fallback::MergeMissing(const Frequent& other) {
+  Frequent::MergeMissing(other);
+  const Frequent_Fallback& other_cast =
+      dynamic_cast<const Frequent_Fallback&>(other);
+  cm_.Merge(other_cast.cm_);
 }
 
 }  // namespace sketch

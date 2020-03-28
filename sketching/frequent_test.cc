@@ -13,8 +13,12 @@
 // limitations under the License.
 
 #include "frequent.h"
+
+#include <memory>
+
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
+#include "utils.h"
 
 namespace sketch {
 namespace {

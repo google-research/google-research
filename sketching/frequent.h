@@ -24,7 +24,6 @@
 // We also implement a version of Misra-Gries combined with a CountMin sketch,
 // which results in a significantly improved performance and accuracy.
 
-#include <algorithm>
 #include <map>
 #include <vector>
 
@@ -41,38 +40,32 @@ class Frequent : public Sketch {
 
   Frequent(const Frequent& other);
 
-  virtual ~Frequent() {}
+  ~Frequent() override = default;
 
-  virtual void Reset();
+  void Reset() override;
 
-  virtual void Add(uint item, float delta);
+  void Add(uint item, float delta) override;
 
-  virtual float Estimate(uint item) const;
+  float Estimate(uint item) const override;
 
-  virtual std::vector<uint> HeavyHitters(float threshold) const;
+  std::vector<uint> HeavyHitters(float threshold) const override;
 
-  virtual uint Size() const;
+  uint Size() const override;
 
-  virtual bool Compatible(const Sketch& other) const;
+  bool Compatible(const Sketch& other) const override;
 
-  virtual void Merge(const Sketch& other);
+  void Merge(const Sketch& other) override;
 
  protected:
-  virtual void ResetMissing() {
-    delete_threshold_ = 0;
-  }
+  virtual void ResetMissing();
 
-  virtual float EstimateMissing(uint item) const {
-    return delete_threshold_;
-  }
+  virtual float EstimateMissing(uint item) const;
 
-  virtual void UpdateMissing(uint item, float value) {
-    delete_threshold_ = std::max(delete_threshold_, value);
-  }
+  virtual void UpdateMissing(uint item, float value);
 
-  virtual bool CompatibleMissing(const Frequent& other) const { return true; }
+  virtual bool CompatibleMissing(const Frequent& other) const;
 
-  virtual void MergeMissing(const Frequent& other) {}
+  virtual void MergeMissing(const Frequent& other);
 
  private:
   // map from a weight to the corresponding item. Helps find the smallest item
@@ -88,43 +81,22 @@ class Frequent : public Sketch {
 
 class Frequent_Fallback : public Frequent {
  public:
-  Frequent_Fallback(uint heap_size, uint hash_count, uint hash_size) :
-      Frequent(heap_size), cm_(CountMinCU(hash_count, hash_size)) {}
+  Frequent_Fallback(uint heap_size, uint hash_count, uint hash_size);
 
-  Frequent_Fallback(const Frequent_Fallback& other)
-      : Frequent(other), cm_(other.cm_) {}
+  Frequent_Fallback(const Frequent_Fallback& other);
+
+  uint Size() const override;
 
  protected:
-  virtual void ResetMissing() {
-    Frequent::ResetMissing();
-    cm_.Reset();
-  }
+  void ResetMissing() override;
 
-  virtual float EstimateMissing(uint item) const {
-    return cm_.Estimate(item);
-  }
+  float EstimateMissing(uint item) const override;
 
-  virtual void UpdateMissing(uint item, float value) {
-    cm_.Update(item, value);
-  }
+  void UpdateMissing(uint item, float value) override;
 
-  virtual bool CompatibleMissing(const Frequent& other) const {
-    if (!Frequent::CompatibleMissing(other)) return false;
-    const Frequent_Fallback& other_cast =
-        dynamic_cast<const Frequent_Fallback&>(other);
-    return cm_.Compatible(other_cast.cm_);
-  }
+  bool CompatibleMissing(const Frequent& other) const override;
 
-  virtual void MergeMissing(const Frequent& other) {
-    Frequent::MergeMissing(other);
-    const Frequent_Fallback& other_cast =
-        dynamic_cast<const Frequent_Fallback&>(other);
-    cm_.Merge(other_cast.cm_);
-  }
-
-  virtual unsigned int Size() const {
-    return Frequent::Size() + cm_.Size();
-  }
+  void MergeMissing(const Frequent& other) override;
 
  private:
     CountMinCU cm_;
