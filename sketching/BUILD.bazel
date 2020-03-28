@@ -82,6 +82,7 @@ cc_library(
         ":countmin",
         ":sketch",
         ":utils",
+        "@com_google_absl//absl/container:flat_hash_map",
     ],
 )
 
@@ -90,8 +91,6 @@ cc_test(
     srcs = ["frequent_test.cc"],
     deps = [
         ":frequent",
-        ":utils",
-        "@com_google_absl//absl/random",
         "@com_google_googletest//:gtest_main",
     ],
 )
