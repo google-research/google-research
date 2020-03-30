@@ -57,6 +57,9 @@ class BitGenerator {
 std::vector<uint> FilterOutAboveThreshold(
     const std::vector<IntFloatPair>& candidates, float threshold);
 
+std::pair<std::vector<IntFloatPair>, std::vector<float>> CreateStream(
+    int stream_size, int lg_stream_range = 20, double zipf_param = 1.1);
+
 }  // namespace sketch
 
 #endif  // SKETCHING_UTILS_H_

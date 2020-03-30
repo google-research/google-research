@@ -25,12 +25,11 @@ namespace {
 
 class FrequentTest : public ::testing::Test {
  public:
-  FrequentTest()  : freq_(new Frequent(100)) {}
+  FrequentTest() : freq_(new Frequent(100)) {}
 
  protected:
   std::unique_ptr<Frequent> freq_;
 };
-
 
 TEST_F(FrequentTest, TestBasic) {
   for (uint i = 0; i < 200; ++i) {

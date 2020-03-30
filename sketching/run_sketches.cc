@@ -28,9 +28,6 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
-#include "absl/random/bit_gen_ref.h"
-#include "absl/random/uniform_int_distribution.h"
-#include "absl/random/zipf_distribution.h"
 #include "countmin.h"
 #include "frequent.h"
 #include "lossy_count.h"
@@ -39,7 +36,7 @@
 #include "utils.h"
 
 DEFINE_int32(stream_size, 1000000, "Number of items in the stream");
-DEFINE_int32(lg_stream_range, 20, "Stream elements in 0..2^log_stream_range");
+DEFINE_int32(lg_stream_range, 20, "Stream elements in 0..2^lg_stream_range");
 DEFINE_string(distribution, "zipf", "Which distribution?");
 DEFINE_double(zipf_param, 1.1, "Parameter for the Zipf distribution");
 DEFINE_double(epsilon, 0.0001, "Heavy hitter fraction");
@@ -48,23 +45,6 @@ DEFINE_int32(hash_size, 2048, "Size of each hash");
 DEFINE_int32(frequent_size, 2000, "Items in memory for Frequent (Misra-Gries)");
 
 namespace sketch {
-
-std::pair<std::vector<IntFloatPair>, std::vector<float>> CreateStream() {
-  std::vector<IntFloatPair> data;
-  uint stream_range = 1 << FLAGS_lg_stream_range;
-  std::vector<float> counts(stream_range, 0.0);
-  BitGenerator bit_gen;
-  absl::BitGenRef& gen = *bit_gen.BitGen();
-  absl::zipf_distribution<uint> zipf(stream_range, FLAGS_zipf_param, 1.0);
-  ULONG a = absl::uniform_int_distribution<int>(0, stream_range - 1)(gen);
-  ULONG b = absl::uniform_int_distribution<int>(0, stream_range - 1)(gen);
-  for (int i = 0; i < FLAGS_stream_size; ++i) {
-    const auto& k = Hash(a, b, zipf(gen), stream_range);
-    counts.at(k) += 1.0;
-    data.emplace_back(k, 1.0);
-  }
-  return {data, counts};
-}
 
 struct SketchStats {
   std::string name;
@@ -134,7 +114,8 @@ void PrintOutput(const std::vector<SketchStats>& stats) {
 }
 
 void TestCounts() {
-  auto [data, counts] = CreateStream();
+  auto [data, counts] =
+      CreateStream(FLAGS_stream_size, FLAGS_lg_stream_range, FLAGS_zipf_param);
   const float threshold = FLAGS_epsilon * FLAGS_stream_size + 1e-6;
   int heavy_hitters = absl::c_count_if(counts, [&](float c) {
     return c > threshold;
