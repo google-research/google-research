@@ -16,7 +16,7 @@ cc_library(
         "//external:gflags",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/random:bit_gen_ref",
-        "@com_google_glog//:glog",
+        "@com_google_absl//absl/random:distributions",
     ],
 )
 
@@ -28,7 +28,20 @@ cc_library(
         ":sketch",
         ":utils",
         "@com_google_absl//absl/memory",
-        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/random:bit_gen_ref",
+        "@com_google_absl//absl/random:distributions",
+    ],
+)
+
+cc_library(
+    name = "benchmark_utils",
+    testonly = 1,
+    srcs = ["benchmark_utils.cc"],
+    hdrs = ["benchmark_utils.h"],
+    deps = [
+        ":sketch",
+        ":utils",
+        "@com_google_benchmark//:benchmark",
     ],
 )
 
@@ -96,6 +109,18 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "frequent_benchmark",
+    srcs = ["frequent_benchmark.cc"],
+    deps = [
+        ":benchmark_utils",
+        ":frequent",
+        ":sketch",
+        ":utils",
+        "@com_google_benchmark//:benchmark_main",
+    ],
+)
+
 cc_binary(
     name = "run_sketches",
     srcs = ["run_sketches.cc"],
@@ -109,6 +134,5 @@ cc_binary(
         "//external:gflags",
         "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/memory",
-        "@com_google_absl//absl/random",
     ],
 )
