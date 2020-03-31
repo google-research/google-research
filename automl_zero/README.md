@@ -24,7 +24,7 @@ More examples, analysis, and details can be found in the [paper](https://arxiv.o
 
 As a miniature "AutoML-Zero" experiment, let's try to automatically discover programs to solve linear regression tasks.
 
-To get started, first install `bazel` following instructions [here](https://docs.bazel.build/versions/master/install.html) (bazel>=2.2.0 and C++>=14 are required), then run the demo with:
+To get started, first install `bazel` following instructions [here](https://docs.bazel.build/versions/master/install.html) (bazel>=2.2.0 and g++>=9 are required), then run the demo with:
 
 ```
 git clone https://github.com/google-research/google-research.git
@@ -58,7 +58,7 @@ In this human designed program, the ```Setup``` function establishes a learning 
 
 ## Reproducing Search Baselines
 
-First install `bazel` following instructions [here](https://docs.bazel.build/versions/master/install.html) (bazel>=2.2.0 and C++>=14 are required),then run the following command to reproduce the results in Supplementary
+First install `bazel` following instructions [here](https://docs.bazel.build/versions/master/install.html) (bazel>=2.2.0 and g++>=9 are required),then run the following command to reproduce the results in Supplementary
 Section 9 ("Baselines") with the "Basic" method on 1 process (1 CPU):
 
 *[To be continued, ETA: March, 2020]*
