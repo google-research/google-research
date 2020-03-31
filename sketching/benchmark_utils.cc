@@ -22,14 +22,23 @@
 
 namespace sketch {
 
+constexpr int kAddBatchSize = 32;
+
+auto MakeAddStreams(int count) {
+  std::vector<std::vector<IntFloatPair>> streams(kAddBatchSize);
+  for (auto& stream : streams) {
+    stream = CreateStream(count).first;
+  }
+  return streams;
+}
+
 void Add(benchmark::State& state, Sketch* sketch) {
-  for (auto _ : state) {
-    state.PauseTiming();
-    sketch->Reset();
-    auto data = sketch::CreateStream(state.range(0)).first;
-    state.ResumeTiming();
-    for (const auto& [item, freq] : data) {
-      sketch->Add(item, freq);
+  auto streams = MakeAddStreams(state.range(0));
+  while (state.KeepRunningBatch(kAddBatchSize)) {
+    for (const auto& stream : streams) {
+      for (const auto& [item, freq] : stream) {
+        sketch->Add(item, freq);
+      }
     }
   }
 }
