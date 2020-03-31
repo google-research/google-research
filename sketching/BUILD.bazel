@@ -109,8 +109,9 @@ cc_test(
     ],
 )
 
-cc_test(
+cc_binary(
     name = "frequent_benchmark",
+    testonly = 1,
     srcs = ["frequent_benchmark.cc"],
     deps = [
         ":benchmark_utils",
