@@ -14,7 +14,7 @@
 
 #!/bin/bash
 
-pip install -r requirements.txt
+pip install tensorflow_datasets tensorflow sklearn numpy
 # If the task_pb2.py doesn't work, you will need to install protobuf compiler
 # (https://github.com/protocolbuffers/protobuf/blob/master/README.md#protocol-compiler-installation)
 # and run the line below to compite the protobuf for your environment.
