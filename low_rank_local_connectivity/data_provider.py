@@ -121,8 +121,8 @@ class MNISTDataProvider(object):
     image_size = self.image_size
     def preprocess_image(image):
       """Preprocessing."""
-      image = tf.cast(image, dtype=tf.float32)
-      image = image / 255.
+      # Normalize to 0-1 range.
+      image = tf.image.convert_image_dtype(image, dtype=tf.float32)
       image = 2 * image - 1
       image = tf.image.resize_image_with_crop_or_pad(
           image, image_size, image_size)
@@ -181,6 +181,8 @@ class CIFAR10DataProvider(object):
     image_size = self.image_size
     def preprocess_image(image):
       """Preprocessing."""
+      # Normalize to 0-1 range.
+      image = tf.image.convert_image_dtype(image, dtype=tf.float32)
       image = tf.image.resize_image_with_crop_or_pad(
           image, image_size, image_size)
       return image
@@ -263,6 +265,7 @@ class CelebADataProvider(object):
       Returns:
         Preprocessed image.
       """
+      # Normalize to 0-1 range.
       image = tf.image.convert_image_dtype(image, dtype=tf.float32)
       if crop:
         image = tf.image.crop_to_bounding_box(image, 40, 20, 218 - 80, 178 - 40)
