@@ -48,7 +48,7 @@ const montages = goog.require('eeg_modelling.eeg_viewer.montages');
 let ErrorResponse;
 
 /**
- * @typedef {!DataRequest|!SimilarPatternsRequest}
+ * @typedef {!DataRequest|!SimilarPatternsRequest|!SimilarityCurveRequest}
  */
 let ProtoRequest;
 

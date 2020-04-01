@@ -21,6 +21,7 @@ const Store = goog.require('eeg_modelling.eeg_viewer.Store');
 const array = goog.require('goog.array');
 const formatter = goog.require('eeg_modelling.eeg_viewer.formatter');
 const utils = goog.require('eeg_modelling.eeg_viewer.utils');
+const {assertNumber} = goog.require('goog.asserts');
 
 /**
  * Handles displaying the full time span of a file as well as annotations and
@@ -31,7 +32,7 @@ class NavChart extends ChartBase {
    * Creates a function to scale a value in the Y axis.
    * The scale goes from (min, max) to (0, 1), where min and max are the
    * minimum and maximum available values.
-   * @param {!Array<number>} values array of existing values.
+   * @param {?Array<number>} values array of existing values.
    * @return {!Function} scaler function.
    */
   static getYScale(values) {
@@ -202,7 +203,7 @@ class NavChart extends ChartBase {
       let tooltip = `<p>${prettyTime}</p>`;
       let value = 0.5;
       if (store.similarityCurveResult) {
-        const index = store.samplingFreq * seconds;
+        const index = assertNumber(store.samplingFreq) * seconds;
         const score = store.similarityCurveResult[index] || 0;
         tooltip = `${tooltip} <p>Sim: ${score.toFixed(2)}</p>`;
         value = yScale(score);

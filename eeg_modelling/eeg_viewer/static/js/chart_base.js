@@ -55,6 +55,8 @@ const {assert, assertInstanceof, assertObject, assertString} = goog.require('goo
  *     }),
  *     height: (string|undefined),
  *     width: (string|undefined),
+ *     top: (number|undefined),
+ *     left: (number|undefined),
  *   },
  *   colors: ?Array<string>,
  *   crosshair: {
@@ -211,7 +213,7 @@ class ChartBase {
         backgroundColor: {
           stroke: '#696969',
           strokeWidth: 1,
-       },
+        },
         width: '90%',
       },
       colors: ['#696969', '#696969'],

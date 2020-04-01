@@ -219,7 +219,7 @@ function getProtoMapKeys(protoMap) {
  * Gets the minimum value of an array.
  * This function is preferred over Math.min(...array), since said function will
  * throw overflow with an array too large.
- * @param {!Array<number>} Array with values.
+ * @param {!Array<number>} array with values.
  * @return {number} minimum number of the array.
  */
 function getArrayMin(array) {
@@ -233,7 +233,7 @@ function getArrayMin(array) {
  * Gets the maximum value of an array.
  * This function is preferred over Math.max(...array), since said function will
  * throw overflow with an array too large.
- * @param {!Array<number>} Array with values.
+ * @param {!Array<number>} array with values.
  * @return {number} maximum number of the array.
  */
 function getArrayMax(array) {

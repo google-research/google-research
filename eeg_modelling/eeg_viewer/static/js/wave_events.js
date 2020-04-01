@@ -367,7 +367,7 @@ class WaveEvents {
    *     be closed only if a request is actually sent.
    */
   getSimilarityCurve(closeMenu = true) {
-    const selectedWave = Object.assign({}, this.clickedWaveEvent_);
+    const selectedWave = /** @type {?Store.Annotation} */ (Object.assign({}, this.clickedWaveEvent_));
     if (this.prevCurveTemplateId_ === selectedWave.id) {
       return;
     }
