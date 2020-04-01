@@ -1,4 +1,4 @@
-// Copyright 2019 The Google Research Authors.
+// Copyright 2020 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,9 +41,8 @@ class Sketch {
   // Returns the estimated value of an item
   virtual float Estimate(uint item) const = 0;
 
-  // Returns the list of elements with estimated counts above threshold
-  virtual void HeavyHitters(float threshold,
-                            std::vector<uint>* items) const = 0;
+  // Returns the list of elements with estimated counts above threshold.
+  virtual std::vector<uint> HeavyHitters(float threshold) const = 0;
 
   // Returns the amount of memory (in bytes) used by the sketch.
   virtual uint Size() const = 0;

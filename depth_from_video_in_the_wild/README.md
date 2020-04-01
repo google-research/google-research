@@ -1,10 +1,9 @@
 # Depth from Video in the Wild: Unsupervised Monocular Depth Learning from Unknown Cameras
-
 This repository contains a preliminary release of code for the paper bearing the
-title above, at https://arxiv.org/abs/1904.04998, and to appear at ICCV 2019.
+title above, [published at ICCV 2019](http://openaccess.thecvf.com/content_ICCV_2019/html/Gordon_Depth_From_Videos_in_the_Wild_Unsupervised_Monocular_Depth_Learning_ICCV_2019_paper.html).
 The code is based on the Struct2depth [repository]
 (https://github.com/tensorflow/models/tree/master/research/struct2depth)
-(see the respective paper [here](https://arxiv.org/abs/1811.06152)), 
+(see the respective paper [here](https://arxiv.org/abs/1811.06152)),
 and utilizes the same data format.
 
 This release supports training a depth and motion prediciton model, with either
@@ -94,7 +93,6 @@ number of training steps is given in the table.
 The code for generating "Learned & corrected" is not yet publically available.
 
 
-
 ## YouTube8M IDs of the videos used in the paper
 `1ofm 2Ffk 2Gc7 2hdG 4Kdy 4gbW 70eK 77cq 7We1 8Eff 8W2O 8bfg 9q4L A8cd AHdn Ai8q
 B8fJ BfeT C23C C4be CP6A EOdA Gu4d IdeB Ixfs Kndm L1fF M28T M92S NSbx NSfl NT57
@@ -106,4 +104,23 @@ The YouTube8M [website](https://research.google.com/youtube8m/) provides the
 instructions for mapping them you YouTube IDs. Two consecutive frames were
 sampled off of each video every second.
 
+
+## Checkpoints trained on EuRoC MAV
+The checkpoint used to obtain the results in Table 4 in the paper is given
+[here](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Feuroc_ckpt%2FMachineHallAll.zip?generation=1581119531504792&alt=media).
+It was trained on all the "Machine Hall" sequences jointly, with
+learned intrinsics. In addition, we trained a model on each sequence
+separatelty, the results were used to obtain the numbers in Table 5. The
+respective checkpoints are given in the table below. All models in this section
+were trained with a resolution of 256x384.
+
+<center>
+
+|Room|01|02|03|04|
+|:---------|:------:|:------:|:------:|:------:|
+|Machine Hall | [checkpoint](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Feuroc_ckpt%2FMachineHall01.zip?generation=1581119518041994&alt=media) | [checkpoint](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Feuroc_ckpt%2FMachineHall02.zip?generation=1581119521439219&alt=media) | [checkpoint](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Feuroc_ckpt%2FMachineHall03.zip?generation=1581119524820502&alt=media) | [checkpoint](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Feuroc_ckpt%2FMachineHall04.zip?generation=1581119528160751&alt=media) |
+|Vicon Room 1| [checkpoint](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Feuroc_ckpt%2FViconRoom1-01.zip?generation=1581119546027773&alt=media) | [checkpoint](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Feuroc_ckpt%2FViconRoom1-02.zip?generation=1581119549454887&alt=media) | [checkpoint](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Feuroc_ckpt%2FViconRoom1-03.zip?generation=1581119552830334&alt=media) ||
+|Vicon Room 2 | [checkpoint](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Feuroc_ckpt%2FViconRoom2-01.zip?generation=1581119556122637&alt=media) | [checkpoint](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Feuroc_ckpt%2FViconRoom2-02.zip?generation=1581119572784082&alt=media) | [checkpoint](https://www.googleapis.com/download/storage/v1/b/gresearch/o/depth_from_video_in_the_wild%2Feuroc_ckpt%2FViconRoom2-03.zip?generation=1581119589325131&alt=media) ||
+
+</center>
 

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ import functools
 import os
 # copybara:strip_begin
 from absl import flags
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from igt_optimizer.cloud_tpu_resnet.resnet import resnet_preprocessing
 from tensorflow.contrib import cloud as contrib_cloud
 from tensorflow.contrib import data as contrib_data

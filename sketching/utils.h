@@ -1,4 +1,4 @@
-// Copyright 2019 The Google Research Authors.
+// Copyright 2020 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,8 +16,11 @@
 #define SKETCHING_UTILS_H_
 
 #include <utility>
-#include "glog/logging.h"
+#include <vector>
+
+#include "base/integral_types.h"
 #include "absl/random/bit_gen_ref.h"
+#include "absl/random/random.h"
 
 namespace sketch {
 
@@ -25,10 +28,17 @@ typedef unsigned int uint;
 typedef unsigned long long ULONG;
 typedef std::pair<uint, float> IntFloatPair;
 
-unsigned int Hash(ULONG a, ULONG b, ULONG x, ULONG size);
+inline constexpr int HL = 31;
+inline constexpr ULONG MOD = 2147483647;
+
+inline uint Hash(ULONG a, ULONG b, ULONG x, ULONG size) {
+  ULONG result = a * x + b;
+  result = ((result >> HL) + result) & MOD;
+  uint lresult = (uint)result;
+  return lresult % size;
+}
+
 bool cmpByItem(const IntFloatPair& a, const IntFloatPair& b);
-bool cmpByValue(const IntFloatPair& a, const IntFloatPair& b);
-uint log2int(uint val);
 
 // A wrapper around absl's bit generator class. Could allow a switch to a
 // deterministic generator for testing, not implemented.
@@ -43,6 +53,12 @@ class BitGenerator {
   absl::BitGen bit_gen_;
   absl::BitGenRef bit_gen_ref_;
 };
+
+std::vector<uint> FilterOutAboveThreshold(
+    const std::vector<IntFloatPair>& candidates, float threshold);
+
+std::pair<std::vector<IntFloatPair>, std::vector<float>> CreateStream(
+    int stream_size, int lg_stream_range = 20, double zipf_param = 1.1);
 
 }  // namespace sketch
 

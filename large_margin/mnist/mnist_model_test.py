@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import tensorflow.compat.v1 as tf
 
 from large_margin.mnist import mnist_config
 from large_margin.mnist import mnist_model
+tf.disable_v2_behavior()
 
 
 def _construct_images(batch_size):

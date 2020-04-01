@@ -1,4 +1,4 @@
-// Copyright 2019 The Google Research Authors.
+// Copyright 2020 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #include "gtest/gtest.h"
 
 namespace sketch {
+namespace {
 
 class LossyWeightTest : public ::testing::Test {
  public:
@@ -34,9 +35,8 @@ TEST_F(LossyWeightTest, TestHashing) {
   }
   lw_->Add(12, 3);
   lw_->Add(10, 4);
-  std::vector<uint> items;
   lw_->ReadyToEstimate();
-  lw_->HeavyHitters(3, &items);
+  std::vector<uint> items = lw_->HeavyHitters(3);
   EXPECT_EQ(2, items.size());
   EXPECT_FLOAT_EQ(4.1, lw_->Estimate(10));
   EXPECT_FLOAT_EQ(3.1, lw_->Estimate(12));
@@ -50,4 +50,5 @@ TEST_F(LossyWeightTest, TestHashing) {
   EXPECT_FLOAT_EQ(0.2, lw2.Estimate(11));
 }
 
+}  // namespace
 }  // namespace sketch

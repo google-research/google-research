@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ from absl import app
 from absl import flags
 import absl.logging as _logging  # pylint: disable=unused-import
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from igt_optimizer import exp_igt_optimizer
 from igt_optimizer.cloud_tpu_resnet.hyperparameters import common_hparams_flags

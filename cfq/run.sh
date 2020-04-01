@@ -1,4 +1,4 @@
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ decode_path="${save_path}/dev/dev_decode.txt"
 decode_inferred_path="${save_path}/dev/dev_decode_inferred.txt"
 
 pip3 install -r requirements.txt
-python3 -m preprocess_dataset --dataset_path="google/example_data/dataset.json" \
+python3 -m preprocess_main --dataset_path="google/example_data/dataset.json" \
   --split_path="google/example_data/test_split.json" --save_path="${save_path}"
 
 t2t-datagen --t2t_usr_dir="${work_dir}/cfq/" --data_dir="${save_path}" \
@@ -48,7 +48,7 @@ t2t-decoder --t2t_usr_dir="${work_dir}/cfq/" --data_dir="${save_path}" \
   --decode_from_file="${encode_path}" \
   --decode_to_file="${decode_inferred_path}"
 
-python3 -m evaluate --questions_path="${encode_path}" \
+python3 -m evaluate_main --questions_path="${encode_path}" \
   --golden_answers_path="${decode_path}" \
   --inferred_answers_path="${decode_inferred_path}" \
   --output_path="evaluation.txt"

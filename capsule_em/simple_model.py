@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,9 +19,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from capsule_em import utils
-from tensorflow.contrib import layers as contrib_layers
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -38,11 +37,18 @@ def conv_pos(grid, kernel_size, stride, padding):
   ],
                       axis=2)
   pos_kernel = tf.stack([x_kernel, y_kernel], axis=3)
+  if FLAGS.cpu_way:
+    grid = tf.transpose(grid, [0, 2, 3, 1])
+    data_format = 'NHWC'
+    strides = [1, stride, stride, 1]
+  else:
+    data_format = 'NCHW'
+    strides = [1, 1, stride, stride]
+
   conv_position = tf.nn.conv2d(
-      grid,
-      pos_kernel, [1, 1, stride, stride],
-      padding=padding,
-      data_format='NCHW')
+      grid, pos_kernel, strides, padding=padding, data_format=data_format)
+  if FLAGS.cpu_way:
+    conv_position = tf.transpose(conv_position, [0, 3, 1, 2])
   return conv_position / (kernel_size * kernel_size)
 
 
@@ -71,21 +77,31 @@ def add_convs(features):
         stddev=5e-2)
 
     image_reshape = tf.reshape(image, [-1, image_depth, image_dim, image_dim])
+    if FLAGS.cpu_way:
+      image_reshape = tf.transpose(image_reshape, [0, 2, 3, 1])
+      data_format = 'NHWC'
+      strides = [1, FLAGS.stride_1, FLAGS.stride_1, 1]
+    else:
+      data_format = 'NCHW'
+      strides = [1, 1, FLAGS.stride_1, FLAGS.stride_1]
     conv = tf.nn.conv2d(
         image_reshape,
-        kernel, [1, 1, FLAGS.stride_1, FLAGS.stride_1],
+        kernel,
+        strides,
         padding=FLAGS.padding,
-        data_format='NCHW')
+        data_format=data_format)
+    biases = utils.bias_variable([FLAGS.num_start_conv])
+    pre_activation = tf.nn.bias_add(conv, biases, data_format=data_format)
+    if FLAGS.cpu_way:
+      pre_activation = tf.transpose(pre_activation, [0, 3, 1, 2])
     position_grid = conv_pos(position_grid, FLAGS.kernel_size, FLAGS.stride_1,
                              FLAGS.padding)
-    biases = utils.bias_variable([FLAGS.num_start_conv])
-    pre_activation = tf.nn.bias_add(conv, biases, data_format='NCHW')
     conv1 = tf.nn.relu(pre_activation, name=scope.name)
     if FLAGS.verbose:
       tf.summary.histogram('activation', conv1)
     if FLAGS.pooling:
-      pool1 = contrib_layers.max_pool2d(
-          conv1, kernel_size=2, stride=2, data_format='NCHW', padding='SAME')
+      pool1 = tf.nn.max_pool2d(
+          conv1, ksize=2, strides=2, data_format='NCHW', padding='SAME')
       convs = [pool1]
     else:
       convs = [conv1]
@@ -120,10 +136,10 @@ def add_convs(features):
       cur_conv = tf.nn.relu(pre_activation, name=scope.name)
       if FLAGS.pooling:
         convs += [
-            contrib_layers.max_pool2d(
+            tf.nn.max_pool2d(
                 cur_conv,
-                kernel_size=2,
-                stride=2,
+                ksize=2,
+                strides=2,
                 data_format='NCHW',
                 padding='SAME')
         ]
@@ -132,29 +148,3 @@ def add_convs(features):
       if FLAGS.verbose:
         tf.summary.histogram('activation', convs[-1])
   return convs[-1], conv_outputs[-1], position_grid
-
-
-def conv_inference(features):
-  """Inference for a CNN. Conv + FC."""
-  conv, _, _ = add_convs(features)
-  hidden1 = contrib_layers.flatten(conv)
-  if FLAGS.extra_fc > 0:
-    hidden = contrib_layers.fully_connected(
-        hidden1,
-        FLAGS.extra_fc,
-        activation_fn=tf.nn.relu,
-        weights_initializer=tf.truncated_normal_initializer(
-            stddev=0.1, dtype=tf.float32),
-        biases_initializer=tf.constant_initializer(0.1))
-    if FLAGS.dropout and FLAGS.train:
-      hidden = tf.nn.dropout(hidden, 0.5)
-  else:
-    hidden = hidden1
-  logits = contrib_layers.fully_connected(
-      hidden,
-      features['num_classes'],
-      activation_fn=None,
-      weights_initializer=tf.truncated_normal_initializer(
-          stddev=0.1, dtype=tf.float32),
-      biases_initializer=tf.constant_initializer(0.1))
-  return logits, None, None

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -156,7 +156,7 @@ class TestSparsity(TestCardinality):
           problem=problem)
       d.reset()
       x, _ = d.generate()
-      x_inf = x[:, :num_feature / 2]
+      x_inf = x[:, :int(num_feature / 2)]
       observed_prop_nonzero = np.true_divide(np.sum(x_inf > 0), np.size(x_inf))
       self.assertLess(
           np.abs(observed_prop_nonzero - prop_nonzero), 0.1 * prop_nonzero)

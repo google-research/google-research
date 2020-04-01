@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,118 +13,294 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """A Sinkhorn implementation for 1D Optimal Transport.
 
 Sinkhorn algorithm was introduced in 1967 by R. Sinkhorn in the article
 "Diagonal equivalence to matrices with prescribed row and column sums." in
 The American Mathematical Monthly. It is an iterative algorithm that turns an
-input matrix into a bi-stochastic, alternating between normalizing rows and
-columns.
+input matrix (here the kernel matrix corresponding to transportation costs) into
+a matrix with prescribed (a, b) (row, colums) sum marginals by multiplying it on
+the left an right by two diagonal matrices.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
-
+from typing import Tuple
 import gin
 import tensorflow.compat.v2 as tf
 
 
+def center(cost, f, g):
+  return cost - f[:, :, tf.newaxis] - g[:, tf.newaxis, :]
+
+
+def softmin(cost, f, g, eps, axis):
+  return -eps * tf.reduce_logsumexp(-center(cost, f, g) / eps, axis=axis)
+
+
+def error(cost, f, g, eps, b):
+  b_target = tf.math.reduce_sum(transport(cost, f, g, eps), axis=1)
+  return tf.reduce_max(tf.abs(b_target - b) / b, axis=None)
+
+
+def transport(cost, f, g, eps):
+  return tf.math.exp(-center(cost, f, g) / eps)
+
+
+def cost_fn(
+    x, y, power):
+  """A transport cost in the form |x-y|^p and its derivative."""
+  xy_difference = x[:, :, tf.newaxis] - y[:, tf.newaxis, :]
+  if power == 1.0:
+    cost = tf.math.abs(xy_difference)
+    derivative = tf.math.sign(xy_difference)
+  elif power == 2.0:
+    cost = xy_difference ** 2.0
+    derivative = 2.0 * xy_difference
+  else:
+    abs_diff = tf.math.abs(xy_difference)
+    cost = abs_diff ** power
+    derivative = power * tf.math.sign(xy_difference) * abs_diff ** (power - 1.0)
+  return cost, derivative
+
+
 @gin.configurable
-class Sinkhorn1D(object):
-  """Runs the Sinkhorn algorithm for 1D inputs.
+def sinkhorn_iterations(x,
+                        y,
+                        a,
+                        b,
+                        power = 2.0,
+                        epsilon = 1e-3,
+                        epsilon_0 = 1e-1,
+                        epsilon_decay = 0.95,
+                        threshold = 1e-2,
+                        inner_num_iter = 5,
+                        max_iterations = 2000):
+  """Runs the Sinkhorn's algorithm from (x, a) to (y, b).
 
-  This class implements the stabilized Sinkhorn algorithm in log domain with
-  epsilon decay to speed up convergence.
-
-  Attributes:
-   cost: Tensor<float>[batch_size, n, m] the cost matrix of optimal transport.
-   eps: (float) the current level of regularization. This changes over time due
-    to the epsilon decay scheme.
+  Args:
+   x: Tensor<float>[batch, n]: the input point clouds.
+   y: Tensor<float>[batch, m]: the target point clouds.
+   a: Tensor<float>[batch, n]: the weight of each input point. The sum of all
+    elements of b must match that of a to converge.
+   b: Tensor<float>[batch, m]: the weight of each target point. The sum of all
+    elements of b must match that of a to converge.
+   power: (float) the power of the distance for the cost function.
    epsilon: (float) the level of entropic regularization wanted.
    epsilon_0: (float) the initial level of entropic regularization.
    epsilon_decay: (float) a multiplicative factor applied at each iteration
     until reaching the epsilon value.
-   inner_num_iter: (int32) the Sinkhorn error is not computed at each iteration
-    but every inner_num_iter instead to avoid computational overhead.
-   iterations: (int32) the actual number of applied iterations.
-   max_iterations: (int32) the maximum number of Sinkhorn iterations.
-   power: (float) power of the p-norm used in the cost matrix.
    threshold: (float) the relative threshold on the Sinkhorn error to stop the
     Sinkhorn iterations.
+   inner_num_iter: (int32) the Sinkhorn error is not recomputed at each
+    iteration but every inner_num_iter instead to avoid computational overhead.
+   max_iterations: (int32) the maximum number of Sinkhorn iterations.
+
+  Returns:
+   A 5-tuple containing: the values of the conjugate variables f and g, the
+   final value of the entropic parameter epsilon, the cost matrix and the number
+   of iterations.
+  """
+  max_outer_iterations = max_iterations // inner_num_iter
+  loga = tf.math.log(a)
+  logb = tf.math.log(b)
+  cost, d_cost = cost_fn(x, y, power)
+
+  def body_fn(f, g, eps, num_iter):
+    for _ in range(inner_num_iter):
+      g = eps * logb + softmin(cost, f, g, eps, axis=1) + g
+      f = eps * loga + softmin(cost, f, g, eps, axis=2) + f
+      eps = tf.math.maximum(eps * epsilon_decay, epsilon)
+    return [f, g, eps, num_iter + inner_num_iter]
+
+  def cond_fn(f, g, eps, num_iter):
+    return tf.math.reduce_all([
+        tf.math.less(num_iter, max_iterations),
+        tf.math.reduce_any([
+            tf.math.greater(eps, epsilon),
+            tf.math.greater(error(cost, f, g, eps, b), threshold)
+        ])
+    ])
+
+  f, g, eps, iterations = tf.while_loop(
+      cond_fn, body_fn, [
+          tf.zeros_like(loga),
+          tf.zeros_like(logb),
+          tf.cast(epsilon_0, dtype=x.dtype),
+          tf.constant(0, dtype=tf.int32)
+      ],
+      parallel_iterations=1,
+      maximum_iterations=max_outer_iterations + 1)
+
+  return f, g, eps, cost, d_cost, iterations
+
+
+def transport_implicit_gradients(derivative_cost,
+                                 transport_matrix, eps, b, d_p):
+  """Application of the transpose of the Jacobians dP/dx and dP/db.
+
+  This is applied to a perturbation of the size of the transport matrix.
+  Required to back-propagate through Sinkhorn's output.
+
+  Args:
+   derivative_cost: the derivative of the cost function.
+   transport_matrix: the obtained transport matrix tensor.
+   eps: the value of the entropic regualarization parameter.
+   b: the target weights.
+   d_p: the perturbation of the transport matrix.
+
+  Returns:
+   A list of two tensor that correspond to the application of the transpose
+   of dP/dx and dP/db on dP.
+  """
+  batch_size = tf.shape(b)[0]
+  m = tf.shape(b)[1]
+  invmargin1 = tf.math.reciprocal(tf.reduce_sum(transport_matrix, axis=2))
+  m1 = invmargin1[:, 1:, tf.newaxis] * transport_matrix[:, 1:, :]
+  m1 = tf.concat([tf.zeros([tf.shape(m1)[0], 1, tf.shape(m1)[2]]), m1], axis=1)
+
+  invmargin2 = tf.math.reciprocal(tf.reduce_sum(transport_matrix, axis=1))
+  m2 = invmargin2[:, :, tf.newaxis] * tf.transpose(transport_matrix, [0, 2, 1])
+  eye_m = tf.eye(m, batch_shape=[batch_size])
+  schur = eye_m - tf.linalg.matmul(m2, m1)
+
+  def jac_b_p_transpose(d_p):
+    """Transposed of the jacobian of the transport w.r.t the target weights."""
+    d_p_p = d_p * transport_matrix
+    u_f = tf.reduce_sum(d_p_p, axis=2) / eps
+    u_g = tf.reduce_sum(d_p_p, axis=1) / eps
+
+    m1_tranpose_u_f = tf.linalg.matvec(m1, u_f, transpose_a=True)
+    to_invert = tf.concat(
+        [m1_tranpose_u_f[:, :, tf.newaxis], u_g[:, :, tf.newaxis]], axis=2)
+    inverses = tf.linalg.solve(tf.transpose(schur, [0, 2, 1]), to_invert)
+    inv_m1_tranpose_u_f, inv_u_g = inverses[:, :, 0], inverses[:, :, 1]
+    jac_2 = -inv_m1_tranpose_u_f + inv_u_g
+    return eps * jac_2 / b
+
+  def jac_x_p_transpose(d_p):
+    """Transposed of the jacobian of the transport w.r.t the inputs."""
+    d_p_p = d_p * transport_matrix
+    c_x = -tf.reduce_sum(derivative_cost * d_p_p, axis=2) / eps
+    u_f = tf.math.reduce_sum(d_p_p, axis=2) / eps
+    u_g = tf.math.reduce_sum(d_p_p, axis=1) / eps
+    m1_tranpose_u_f = tf.linalg.matvec(m1, u_f, transpose_a=True)
+    to_invert = tf.concat(
+        [m1_tranpose_u_f[:, :, tf.newaxis], u_g[:, :, tf.newaxis]], axis=2)
+    inverses = tf.linalg.solve(tf.transpose(schur, [0, 2, 1]), to_invert)
+    inv_m1_tranpose_u_f, inv_u_g = inverses[:, :, 0], inverses[:, :, 1]
+    jac_1 = u_f + tf.linalg.matvec(
+        m2, inv_m1_tranpose_u_f - inv_u_g, transpose_a=True)
+    jac_2 = -inv_m1_tranpose_u_f + inv_u_g
+    jac_1 = jac_1 * tf.reduce_sum(m1 * derivative_cost, axis=2)
+    jac_2 = tf.linalg.matvec(
+        tf.transpose(m2, [0, 2, 1]) * derivative_cost, jac_2)
+    return c_x + jac_1 + jac_2
+
+  return [jac_x_p_transpose(d_p), jac_b_p_transpose(d_p)]
+
+
+def autodiff_sinkhorn(x,
+                      y,
+                      a,
+                      b,
+                      **kwargs):
+  """A Sinkhorn function that returns the transportation matrix.
+
+  This function back-propagates through the computational graph defined by the
+  Sinkhorn iterations.
+
+  Args:
+   x: the input batch of 1D points clouds
+   y: the target batch 1D points clouds.
+   a: the intput weight of each point in the input point cloud. The sum of all
+    elements of b must match that of a to converge.
+   b: the target weight of each point in the target point cloud. The sum of all
+    elements of b must match that of a to converge.
+   **kwargs: additional parameters passed to the sinkhorn algorithm. See
+    sinkhorn_iterations for more details.
+
+  Returns:
+   A tf.Tensor representing the optimal transport matrix.
+  """
+  f, g, eps, cost, _, _ = sinkhorn_iterations(x, y, a, b, **kwargs)
+  return transport(cost, f, g, eps)
+
+
+def implicit_sinkhorn(x,
+                      y,
+                      a,
+                      b,
+                      **kwargs):
+  """A Sinkhorn function using the implicit function theorem.
+
+  That is to say using the the differentiating optimality confiditions.
+
+  Args:
+   x: the input batch of 1D points clouds
+   y: the target batch 1D points clouds.
+   a: the intput weight of each point in the input point cloud. The sum of all
+    elements of b must match that of a to converge.
+   b: the target weight of each point in the target point cloud. The sum of all
+    elements of b must match that of a to converge.
+   **kwargs: additional parameters passed to the sinkhorn algorithm. See
+    sinkhorn_iterations for more details.
+
+  Returns:
+   A tf.Tensor representing the optimal transport matrix.
   """
 
-  def __init__(
-      self, epsilon=1e-3, epsilon_0=1e-1, epsilon_decay=0.95, power=2.0,
-      threshold=1e-2, inner_num_iter=5, max_iterations=2000):
-    self.epsilon = epsilon
-    self.epsilon_0 = epsilon_0
-    self.epsilon_decay = epsilon_decay
-    self.power = power
-    self.threshold = threshold
-    self.inner_num_iter = inner_num_iter
-    self.max_iterations = max_iterations
-    self._max_outer_iterations = max_iterations // inner_num_iter
+  @tf.custom_gradient
+  def _aux(x, b):
+    """Auxiliary closure to compute custom gradient over x and b."""
+    x = tf.stop_gradient(x)
+    b = tf.stop_gradient(b)
+    f, g, eps, cost, d_cost, _ = sinkhorn_iterations(x, y, a, b, **kwargs)
+    # This centering is crucial to ensure Jacobian is invertible.
+    # This centering is also assumed in the computation of the
+    # transpose-Jacobians themselves.
+    to_remove = f[:, 0]
+    f = f - to_remove[:, tf.newaxis]
+    g = g + to_remove[:, tf.newaxis]
+    forward = transport(cost, f, g, eps)
 
-  def center(self, f, g):
-    """Centers the cost matrix relatively to dual variables f and g."""
-    return self.cost - f[:, :, tf.newaxis] - g[:, tf.newaxis, :]
+    def grad(d_p):
+      return transport_implicit_gradients(d_cost, forward, eps, b, d_p)
 
-  def softmin(self, f, g, eps, axis):
-    return -eps * tf.reduce_logsumexp(-self.center(f, g) / eps, axis=axis)
+    return forward, grad
 
-  def error(self, f, g, eps, b):
-    """Computes the maximum relative sinkhorn error over the batch."""
-    b_target = tf.math.reduce_sum(
-        tf.math.exp(-self.center(f, g) / eps), axis=1)
-    return tf.reduce_max(tf.abs(b_target - b) / b, axis=None)
+  return _aux(x, b)
 
-  def __call__(self, x, y, a, b):
-    """Runs the Sinkhorn algorithm on input (x, a) and target (y, b).
 
-    Args:
-     x: Tensor<float>[batch, n]: the input point clouds.
-     y: Tensor<float>[batch, m]: the target point clouds.
-     a: Tensor<float>[batch, n]: the weight of each input point.
-     b: Tensor<float>[batch, m]: the weight of each target point.
+@gin.configurable
+def sinkhorn(x,
+             y,
+             a,
+             b,
+             implicit = True,
+             **kwargs):
+  """A Sinkhorn function that returns the transportation matrix.
 
-    Returns:
-     A Tensor<float>[batch, n, m] transport map. As a side effect, it also
-     stores the cost matrix, the number of applied iterations and the obtained
-     level of entropic regularization.
-    """
-    self._b = b
-    loga = tf.math.log(a)
-    logb = tf.math.log(b)
-    self.cost = tf.pow(
-        tf.math.abs(x[:, :, tf.newaxis] - y[:, tf.newaxis, :]), self.power)
+  This function back-propagates through the computational graph defined by the
+  Sinkhorn iterations.
 
-    def body_fn(f, g, eps, num_iter):
-      """A small loop of N Sinkhorn iterations."""
-      for _ in range(self.inner_num_iter):
-        g = eps * logb + self.softmin(f, g, eps, axis=1) + g
-        f = eps * loga + self.softmin(f, g, eps, axis=2) + f
-        eps = tf.math.maximum(eps * self.epsilon_decay, self.epsilon)
-      return [f, g, eps, num_iter + self.inner_num_iter]
+  Args:
+   x: the input batch of 1D points clouds
+   y: the target batch 1D points clouds.
+   a: the intput weight of each point in the input point cloud. The sum of all
+    elements of b must match that of a to converge.
+   b: the target weight of each point in the target point cloud. The sum of all
+    elements of b must match that of a to converge.
+   implicit: whether to run the autodiff version of the backprop or the implicit
+    computation of the gradient. The implicit version is more efficient in terms
+    of both speed and memory, but might be less stable numerically. It requires
+    high-accuracy in the computation of the optimal transport itself.
+   **kwargs: additional parameters passed to the sinkhorn algorithm. See
+    sinkhorn_iterations for more details.
 
-    def cond_fn(f, g, eps, num_iter):
-      return tf.math.reduce_all([
-          tf.math.less(num_iter, self.max_iterations),
-          tf.math.reduce_any([
-              tf.math.greater(eps, self.epsilon),
-              tf.math.greater(self.error(f, g, eps, b), self.threshold)
-          ])
-      ])
+  Returns:
+   A tf.Tensor representing the optimal transport matrix.
+  """
+  if implicit:
+    return implicit_sinkhorn(x, y, a, b, **kwargs)
+  return autodiff_sinkhorn(x, y, a, b, **kwargs)
 
-    self._f, self._g, self.eps, self.iterations = tf.while_loop(
-        cond_fn, body_fn, [
-            tf.zeros(tf.shape(loga), dtype=x.dtype),
-            tf.zeros(tf.shape(logb), dtype=x.dtype),
-            tf.cast(self.epsilon_0, dtype=x.dtype),
-            tf.constant(0, dtype=tf.int32)
-        ],
-        parallel_iterations=1,
-        maximum_iterations=self._max_outer_iterations + 1)
-
-    return tf.math.exp(-self.center(self._f, self._g) / self.eps)

@@ -1,4 +1,4 @@
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ if [[ ! -f "${dataset_local_path}" || ! -f "${split_path}" ]]; then
   exit 1
 fi
 
-python3 -m preprocess_dataset --dataset_path="${dataset_local_path}" \
+python3 -m preprocess_main --dataset_path="${dataset_local_path}" \
   --split_path="${split_path}" --save_path="${save_path}"
 
 t2t-datagen --t2t_usr_dir="${work_dir}/cfq/" --data_dir="${save_path}" \
@@ -81,7 +81,7 @@ t2t-decoder --t2t_usr_dir="${work_dir}/cfq/" --data_dir="${save_path}" \
   --decode_from_file="${encode_path}" \
   --decode_to_file="${decode_inferred_path}"
 
-python3 -m evaluate --questions_path="${encode_path}" \
+python3 -m evaluate_main --questions_path="${encode_path}" \
   --golden_answers_path="${decode_path}" \
   --inferred_answers_path="${decode_inferred_path}" \
   --output_path="${eval_results_path}"

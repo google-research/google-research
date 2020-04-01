@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ https://github.com/tensorflow/models/tree/master/research/deeplab.
 from deeplab import feature_extractor
 import elements_embeddings
 import model_input
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import graph_editor as contrib_graph_editor
 from tensorflow.contrib import slim as contrib_slim
 

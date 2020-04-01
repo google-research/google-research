@@ -1,0 +1,5 @@
+absl-py>=0.7.1
+future>=0.17.1
+numpy>=1.16.2
+six>=1.12.0
+tensorflow>=1.13.1

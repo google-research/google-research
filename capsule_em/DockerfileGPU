@@ -1,0 +1,27 @@
+# --- Template docker image
+FROM nvidia/cuda:10.0-cudnn7-runtime
+
+# --- system packages (not in nvidia image)
+RUN apt-get update
+RUN apt-get -y install python3
+RUN apt-get -y install python3-pip
+
+# --- (unclear why necessary)
+WORKDIR /root
+
+# --- Installs packages
+RUN pip3 install --upgrade pip
+RUN pip3 install numpy
+RUN pip3 install matplotlib
+RUN pip3 install absl-py
+RUN pip3 install tqdm
+RUN pip3 install tensorflow-gpu==2.0.0-alpha0
+
+# --- Copies the source code
+RUN mkdir /root/capsule_em
+COPY ./*.py /root/capsule_em/
+COPY ./norb/ /root/capsule_em/norb/
+COPY ./mnist/ /root/capsule_em/mnist/
+
+# --- Defines the entry point
+ENTRYPOINT ["python3", "-m", "capsule_em.experiment"]

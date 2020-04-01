@@ -1,4 +1,4 @@
-// Copyright 2019 The Google Research Authors.
+// Copyright 2020 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,57 +30,53 @@
 
 #include "sketch.h"
 #include "countmin.h"
+#include "utils.h"
 
 namespace sketch {
 
 class LossyCount : public Sketch {
  public:
-  LossyCount(uint window_size);
+  explicit LossyCount(uint window_size);
 
-  virtual ~LossyCount() {}
+  ~LossyCount() override = default;
 
-  virtual void Reset();
+  void Reset() override;
 
   // Note that LossyCount only maintains count. However it is ok to
   // update with delta > 1.
-  virtual void Add(uint item, float delta);
+  void Add(uint item, float delta) override;
 
-  virtual void ReadyToEstimate() { MergeCounters(epochs_); }
+  void ReadyToEstimate() override;
 
-  virtual float Estimate(uint item) const;
+  float Estimate(uint item) const override;
 
   // LossyCount works best if threshold >= N/window_size, where
   // N is the total number of items added so far.
-  virtual void HeavyHitters(float threshold, std::vector<uint>* items) const;
+  std::vector<uint> HeavyHitters(float threshold) const override;
 
-  virtual unsigned int Size() const;
+  unsigned int Size() const override;
 
-  virtual bool Compatible(const Sketch& other_sketch) const;
+  bool Compatible(const Sketch& other_sketch) const override;
 
-  virtual void Merge(const Sketch& other_sketch);
+  void Merge(const Sketch& other_sketch) override;
 
  protected:
   uint window_size_;
-  uint epochs_;
+  uint epochs_ = 0;
   std::vector<IntFloatPair> window_;
   std::vector<IntFloatPair> current_;
 
-  // Forget the pair kv from the current set
-  virtual void Forget(const IntFloatPair& kv) {}
+  virtual void Forget(const std::vector<IntFloatPair>& forget);
 
   // return estimate for items not found in current
-  virtual float EstimateMissing(uint k) const { return epochs_; }
+  virtual float EstimateMissing(uint k) const;
 
-  virtual bool CompatibleMissing(const LossyCount& other) const { return true; }
+  virtual bool CompatibleMissing(const LossyCount& other) const;
 
   // Merge the mechanism for missing values
-  virtual void MergeMissing(const LossyCount& other) {
-    epochs_ += other.epochs_;
-  }
+  virtual void MergeMissing(const LossyCount& other);
 
-  virtual void ResetMissing() {
-    epochs_ = 0;
-  }
+  virtual void ResetMissing();
 
   // Merge the counts in window_ with current_
   void MergeCounters(float threshold);
@@ -88,42 +84,22 @@ class LossyCount : public Sketch {
 
 class LossyCount_Fallback : public LossyCount {
  public:
-  LossyCount_Fallback(uint window_size,
-                     uint hash_count, uint hash_size) :
-      LossyCount(window_size), cm_(CountMinCU(hash_count, hash_size)) {}
+  explicit LossyCount_Fallback(uint window_size, uint hash_count,
+                               uint hash_size);
 
-  virtual ~LossyCount_Fallback() {}
+  ~LossyCount_Fallback() override = default;
 
-  unsigned int Size() const override {
-    return LossyCount::Size() + cm_.Size() - sizeof(CountMinCU);
-  }
+  unsigned int Size() const override;
 
-  void Forget(const IntFloatPair& kv) override {
-    cm_.Update(kv.first, kv.second);
-  }
+  void Forget(const std::vector<IntFloatPair>& forget_pairs) override;
 
-  float EstimateMissing(uint k) const override {
-    return cm_.Estimate(k);
-  }
+  float EstimateMissing(uint k) const override;
 
-  void ResetMissing() override {
-    LossyCount::ResetMissing();
-    cm_.Reset();
-  }
+  void ResetMissing() override;
 
-  bool CompatibleMissing(const LossyCount& other) const override {
-    if (!LossyCount::CompatibleMissing(other)) return false;
-    const LossyCount_Fallback& other_cast =
-        dynamic_cast<const LossyCount_Fallback&>(other);
-    return cm_.Compatible(other_cast.cm_);
-  }
+  bool CompatibleMissing(const LossyCount& other) const override;
 
-  void MergeMissing(const LossyCount& other) override {
-    LossyCount::MergeMissing(other);
-    const LossyCount_Fallback& other_cast =
-        dynamic_cast<const LossyCount_Fallback&>(other);
-    cm_.Merge(other_cast.cm_);
-  }
+  void MergeMissing(const LossyCount& other) override;
 
  private:
   CountMinCU cm_;

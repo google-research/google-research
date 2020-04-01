@@ -11,10 +11,48 @@ Rahul Garg, Neal Wadhwa, Sameer Ansari & Jonathan T. Barron, ICCV 2019. If you u
 }
 ```
 
+If you have any questions about our app, dataset or code, please email
+<dual-pixel-questions@google.com>. We are more likely to respond if you email us
+than if you open an issue on GitHub.
+
 
 ## Dataset
 
-Coming soon!
+<div style="text-align:center"><img src="https://lh3.googleusercontent.com/00X4nO0xwOgB8nnHhj8VNC0tng0q2D3l41ibtNemxiMKJA-eS4xMgNOyahQz7NtscH5xQ5MXVk1nQ3qAbgweiS6FBn5gnPHjOyDGiGx8bH5UqmaThcwHRf-eRCtdgdMyIi76fiksHCg=w2400"/></div>
+
+The dataset containing the RGB images, dual-pixel images, and the depth maps
+can be downloaded from the links below:
+
+[Train (95G)](https://storage.googleapis.com/iccv2019-data/train.tgz)
+
+[Test (29G)](https://storage.googleapis.com/iccv2019-data/test.tgz)
+
+The dataset linked above is slightly smaller than the one used in the paper.
+Please see the dataset [README](https://storage.googleapis.com/iccv2019-data/README.pdf) for more details about the dataset.
+
+## Results and Evaluation.
+
+### Results
+Since the dataset above is slightly smaller than the one used in the paper,
+we trained and evaluated our best performing model (DPNet with Affine
+Invariance) on the data above. The metrics are similar to those reported in the
+paper:
+
+![$ \mathrm{AIWE}(1) = 0.0181 \quad \mathrm{AIWE}(2) = 0.0268 \quad 1 - |\rho_s| = 0.152 $](https://render.githubusercontent.com/render/math?math=%24%20%5Cmathrm%7BAIWE%7D(1)%20%3D%200.0181%20%5Cquad%20%5Cmathrm%7BAIWE%7D(2)%20%3D%200.0268%20%5Cquad%201%20-%20%7C%5Crho_s%7C%20%3D%200.152%20%24)
+
+Predictions from the model corresponding to the center image in the test dataset
+are available [here](https://storage.googleapis.com/iccv2019-data/model_prediction.tgz) as EXR images or binary numpy files.
+
+### Evaluation
+
+The python script "script.py" in the "eval" directory can be used to evaluate
+the predictions. Assuming that the test dataset is in the "test" folder and
+predictions are in the "model_prediction" folder, evaluation can be run as:
+
+```
+python -m dual_pixels.eval.script --test_dir=test --prediction_dir=model_prediction
+```
+This has been tested with Python 3.
 
 ## Android App to Capture Dual-pixel Data
 

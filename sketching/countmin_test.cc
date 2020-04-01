@@ -1,4 +1,4 @@
-// Copyright 2019 The Google Research Authors.
+// Copyright 2020 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,9 +14,11 @@
 
 #include "countmin.h"
 
-#include <memory>
+#include <cstdio>
+#include <vector>
 
 #include "gtest/gtest.h"
+#include "utils.h"
 
 namespace sketch {
 namespace {
@@ -69,9 +71,9 @@ TEST_F(CountMinTest, TestMerge) {
 
 
 TEST_F(CountMinTest, TestSize) {
-  // Fixed cost for 5 hashes = 248 bytes. Variable cost = 5 * 4 * hash_size.
-  EXPECT_EQ(408, CountMin(5, 8).Size());
-  EXPECT_EQ(41208, CountMin(5, 2048).Size());
+  // Fixed cost for 5 hashes = 248 bytes. Variable cost = 5 * 5 * hash_size.
+  EXPECT_EQ(440, CountMin(5, 8).Size());
+  EXPECT_EQ(41240, CountMin(5, 2048).Size());
 }
 
 class CountMinCUTest : public ::testing::Test {
@@ -106,8 +108,7 @@ TEST_F(CountMinHierarchicalTest, TestAdd) {
   countmin.Add(25, 3);
   EXPECT_LE(3, countmin.Estimate(25));
 
-  std::vector<uint> hh;
-  countmin.HeavyHitters(2.5, &hh);
+  std::vector<uint> hh = countmin.HeavyHitters(2.5);
   for (auto h : hh) {
     printf("HH %d\n", h);
   }
@@ -118,7 +119,7 @@ TEST_F(CountMinHierarchicalTest, TestAdd) {
   EXPECT_LE(4, countmin.Estimate(3));
   EXPECT_LE(6, countmin.Estimate(25));
   hh.clear();
-  countmin.HeavyHitters(5, &hh);
+  hh = countmin.HeavyHitters(5);
   for (auto h : hh) {
     printf("HH %d\n", h);
   }
@@ -135,8 +136,7 @@ TEST_F(CountMinHierarchicalTest, TestAddCU) {
   countmin.Add(25, 3);
   EXPECT_LE(3, countmin.Estimate(25));
 
-  std::vector<uint> hh;
-  countmin.HeavyHitters(2.5, &hh);
+  std::vector<uint> hh = countmin.HeavyHitters(2.5);
   for (auto h : hh) {
     printf("HH %d\n", h);
   }
@@ -147,7 +147,7 @@ TEST_F(CountMinHierarchicalTest, TestAddCU) {
   EXPECT_LE(4, countmin.Estimate(3));
   EXPECT_LE(6, countmin.Estimate(25));
   hh.clear();
-  countmin.HeavyHitters(5, &hh);
+  hh = countmin.HeavyHitters(5);
   for (auto h : hh) {
     printf("HH %d\n", h);
   }

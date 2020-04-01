@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,7 +32,6 @@ def input_fn(params):
     """Parses a single tf.Example into image and label tensors."""
     data = {}
     if params['test_small_sample']:
-      print('test small sample')
       data['image_raw'] = serialized_example
       data['label'] = tf.constant(0, tf.int32)
       data['human_label'] = tf.constant('human_label', tf.string)
@@ -57,16 +56,17 @@ def input_fn(params):
           tf.reshape(features['image/class/label'], shape=[]),
           dtype=tf.int32) - 1
       image = tf.image.decode_jpeg(features['image/encoded'], 3)
-      # training is set to false in prediction mode
-      image = preprocessing_helper.preprocess_image(
-          image=image, image_size=224, is_training=False)
+
       human_label = tf.cast(
           tf.reshape(features['image/class/text'], shape=[]), dtype=tf.string)
-      print('human_label')
       if params['task'] == 'imagenet_training':
         # training is set to false in prediction mode
         image = preprocessing_helper.preprocess_image(
             image=image, image_size=224, is_training=True)
+      else:
+        # training is set to false in prediction mode
+        image = preprocessing_helper.preprocess_image(
+            image=image, image_size=224, is_training=False)
 
       if params['task'] == 'pie_dataset_gen':
         data['image_raw'] = image_bytes

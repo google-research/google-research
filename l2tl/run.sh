@@ -1,4 +1,4 @@
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,20 +20,26 @@ chmod +x run.sh
 virtualenv -p python3 .
 source ./bin/activate
 
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
 cp svhn_data/__init__.py lib/python3.5/site-packages/tensorflow_datasets/image
 cp svhn_data/svhn_small.py lib/python3.5/site-packages/tensorflow_datasets/image
 cd svhn_data
 wget -nc http://ufldl.stanford.edu/housenumbers/train_32x32.mat
 wget -nc http://ufldl.stanford.edu/housenumbers/test_32x32.mat
-python gen_svhn_mat.py
+python3 gen_svhn_mat.py
 cd ..
-
+rm -rf trained_models
+mkdir -p trained_models
 
 # Training SVHN from random initialization
-python finetuning.py \
-    --target_dataset=svhn_cropped_small \
-    --train_steps=1 \
-    --model_dir=./tmp/l2tl/svhn_small_train_random \
-    --train_batch_size=128
+bash ./scratch_svhn.sh
+
+# MNIST pre-training
+bash ./mnist_pretrain.sh
+
+# Fine-tuning SVHN from MNIST initialization
+bash ./ft.sh
+
+# L2TL on SVHN from MNIST initialization
+bash train_l2tl.sh

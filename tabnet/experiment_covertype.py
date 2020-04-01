@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,69 +23,67 @@ from absl import app
 import data_helper_covertype
 import numpy as np
 import tabnet_model
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 # Run Tensorflow on GPU 0
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-# Fix random seeds
-tf.set_random_seed(1)
-np.random.seed(1)
+# Training parameters
+TRAIN_FILE = "data/train_covertype.csv"
+VAL_FILE = "data/val_covertype.csv"
+TEST_FILE = "data/test_covertype.csv"
+MAX_STEPS = 1000000
+DISPLAY_STEP = 5000
+VAL_STEP = 10000
+SAVE_STEP = 40000
+INIT_LEARNING_RATE = 0.02
+DECAY_EVERY = 500
+DECAY_RATE = 0.95
+BATCH_SIZE = 16384
+SPARSITY_LOSS_WEIGHT = 0.0001
+GRADIENT_THRESH = 2000.0
+SEED = 1
 
 
 def main(unused_argv):
 
-  # Load training and eval data.
-
-  train_file = "data/train.csv"
-  val_file = "data/val.csv"
-  test_file = "data/test.csv"
+  # Fix random seeds
+  tf.set_random_seed(SEED)
+  np.random.seed(SEED)
 
   # Define the TabNet model
   tabnet_forest_covertype = tabnet_model.TabNet(
       columns=data_helper_covertype.get_columns(),
-      num_features=data_helper_covertype.num_features,
+      num_features=data_helper_covertype.NUM_FEATURES,
       feature_dim=128,
       output_dim=64,
       num_decision_steps=6,
       relaxation_factor=1.5,
       batch_momentum=0.7,
       virtual_batch_size=512,
-      num_classes=data_helper_covertype.num_classes)
+      num_classes=data_helper_covertype.NUM_CLASSES)
 
-  column_names = sorted(data_helper_covertype.feature_columns)
+  column_names = sorted(data_helper_covertype.FEATURE_COLUMNS)
   print(
       "Ordered column names, corresponding to the indexing in Tensorboard visualization"
   )
   for fi in range(len(column_names)):
     print(str(fi) + " : " + column_names[fi])
 
-  # Training parameters
-  max_steps = 1000000
-  display_step = 5000
-  val_step = 10000
-  save_step = 40000
-  init_localearning_rate = 0.02
-  decay_every = 500
-  decay_rate = 0.95
-  batch_size = 16384
-  sparsity_loss_weight = 0.0001
-  gradient_thresh = 2000.0
-
   # Input sampling
   train_batch = data_helper_covertype.input_fn(
-      train_file, num_epochs=100000, shuffle=True, batch_size=batch_size)
+      TRAIN_FILE, num_epochs=100000, shuffle=True, batch_size=BATCH_SIZE)
   val_batch = data_helper_covertype.input_fn(
-      val_file,
+      VAL_FILE,
       num_epochs=10000,
       shuffle=False,
-      batch_size=data_helper_covertype.n_val_samples)
+      batch_size=data_helper_covertype.N_VAL_SAMPLES)
   test_batch = data_helper_covertype.input_fn(
-      test_file,
+      TEST_FILE,
       num_epochs=10000,
       shuffle=False,
-      batch_size=data_helper_covertype.n_test_samples)
+      batch_size=data_helper_covertype.N_TEST_SAMPLES)
 
   train_iter = train_batch.make_initializable_iterator()
   val_iter = val_batch.make_initializable_iterator()
@@ -107,22 +105,22 @@ def main(unused_argv):
       tf.nn.sparse_softmax_cross_entropy_with_logits(
           logits=logits_orig_batch, labels=label_train_batch))
 
-  train_loss_op = softmax_orig_key_op + sparsity_loss_weight * total_entropy
+  train_loss_op = softmax_orig_key_op + SPARSITY_LOSS_WEIGHT * total_entropy
   tf.summary.scalar("Total loss", train_loss_op)
 
   # Optimization step
   global_step = tf.train.get_or_create_global_step()
   learning_rate = tf.train.exponential_decay(
-      init_localearning_rate,
+      INIT_LEARNING_RATE,
       global_step=global_step,
-      decay_steps=decay_every,
-      decay_rate=decay_rate)
+      decay_steps=DECAY_EVERY,
+      decay_rate=DECAY_RATE)
   optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
   update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
   with tf.control_dependencies(update_ops):
     gvs = optimizer.compute_gradients(train_loss_op)
-    capped_gvs = [(tf.clip_by_value(grad, -gradient_thresh,
-                                    gradient_thresh), var) for grad, var in gvs]
+    capped_gvs = [(tf.clip_by_value(grad, -GRADIENT_THRESH,
+                                    GRADIENT_THRESH), var) for grad, var in gvs]
     train_op = optimizer.apply_gradients(capped_gvs, global_step=global_step)
 
   # Model evaluation
@@ -169,8 +167,8 @@ def main(unused_argv):
     sess.run(val_iter.initializer)
     sess.run(test_iter.initializer)
 
-    for step in range(1, max_steps + 1):
-      if step % display_step == 0:
+    for step in range(1, MAX_STEPS + 1):
+      if step % DISPLAY_STEP == 0:
         _, train_loss, merged_summary = sess.run(
             [train_op, train_loss_op, summaries])
         summary_writer.add_summary(merged_summary, step)
@@ -179,7 +177,7 @@ def main(unused_argv):
       else:
         _ = sess.run(train_op)
 
-      if step % val_step == 0:
+      if step % VAL_STEP == 0:
         feed_arr = [
             vars()["summaries"],
             vars()["val_acc_op"],
@@ -194,7 +192,7 @@ def main(unused_argv):
               "{:.4f}".format(val_acc))
         summary_writer.add_summary(merged_summary, step)
 
-      if step % save_step == 0:
+      if step % SAVE_STEP == 0:
         saver.save(sess, "./checkpoints/" + model_name + ".ckpt")
 
 

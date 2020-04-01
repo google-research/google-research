@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,19 +19,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 
 
 def metric_fn(labels, logits):
   """Metric function for evaluation."""
   predictions = tf.argmax(logits, axis=1)
   top_1_accuracy = tf.metrics.accuracy(labels, predictions)
-  in_top_5 = tf.cast(tf.nn.in_top_k(logits, labels, 5), tf.float32)
-  top_5_accuracy = tf.metrics.mean(in_top_5)
 
   return {
       'top_1_accuracy': top_1_accuracy,
-      'top_5_accuracy': top_5_accuracy,
   }
 
 

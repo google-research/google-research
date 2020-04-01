@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ from absl import flags
 import gin
 import numpy as np
 import setup_experiment
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 import tf_utils
 

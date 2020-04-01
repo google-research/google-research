@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,6 @@
 # Lint as: python3
 """Tests for sinkhorn module."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from absl.testing import parameterized
 import numpy as np
 import tensorflow.compat.v2 as tf
@@ -30,7 +26,7 @@ from soft_sort import sinkhorn
 class SinkhornTest(parameterized.TestCase, tf.test.TestCase):
 
   def setUp(self):
-    super(SinkhornTest, self).setUp()
+    super().setUp()
     tf.random.set_seed(0)
     np.random.seed(seed=0)
 
@@ -40,21 +36,18 @@ class SinkhornTest(parameterized.TestCase, tf.test.TestCase):
     self.b = 1.0 / self.y.shape[1] * tf.ones(self.y.shape)
 
   def test_routine(self):
-    sinkhorn1d = sinkhorn.Sinkhorn1D()
-    p = sinkhorn1d(self.x, self.y, self.a, self.b)
+    p = sinkhorn.sinkhorn(self.x, self.y, self.a, self.b)
     self.assertEqual(p.shape.as_list(), [1, 8, 8])
 
   def test_decay(self):
-    sinkhorn_no_decay = sinkhorn.Sinkhorn1D(
-        epsilon=1e-3, epsilon_0=1e-3, epsilon_decay=1.0, power=2.0,
-        threshold=1e-3)
-    sinkhorn_decay = sinkhorn.Sinkhorn1D(
-        epsilon=1e-3, epsilon_0=1e-1, epsilon_decay=0.95, power=2.0,
-        threshold=1e-3)
+    result_nodecay = sinkhorn.sinkhorn_iterations(
+        self.x, self.y, self.a, self.b, epsilon=1e-3, epsilon_0=1e-3,
+        epsilon_decay=1.0, threshold=1e-3)
 
-    sinkhorn_no_decay(self.x, self.y, self.a, self.b)
-    sinkhorn_decay(self.x, self.y, self.a, self.b)
-    self.assertLess(sinkhorn_decay.iterations, sinkhorn_no_decay.iterations)
+    result_decay = sinkhorn.sinkhorn_iterations(
+        self.x, self.y, self.a, self.b, epsilon=1e-3, epsilon_0=1e-1,
+        epsilon_decay=0.95, threshold=1e-3)
+    self.assertLess(result_decay[-1], result_nodecay[-1])
 
 
 if __name__ == '__main__':

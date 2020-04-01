@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ from __future__ import print_function
 
 from absl import logging
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from depth_from_video_in_the_wild import consistency_losses
 from depth_from_video_in_the_wild import depth_prediction_net
 from depth_from_video_in_the_wild import motion_prediction_net
@@ -32,10 +32,11 @@ from depth_from_video_in_the_wild import randomized_layer_normalization
 from depth_from_video_in_the_wild import reader
 from depth_from_video_in_the_wild import transform_depth_map
 from depth_from_video_in_the_wild import transform_utils
+from tensorflow.contrib import slim as contrib_slim
 
 
 gfile = tf.gfile
-slim = tf.contrib.slim
+slim = contrib_slim
 # Number of subsequent frames per training sample. It is set to 3 for mainly
 # legacy reasons: The training loss itself only involves two adjacent images at
 # a time.

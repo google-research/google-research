@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as: python3
 """Convert Ljosa embeddings to h5 dataframe."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import os
 

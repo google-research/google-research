@@ -23,3 +23,5 @@ To get 1.3 (1.4 in the paper), enable patching:
 ```
 python -m capsule_em.experiment  --train=0 --eval_once=1 --eval_size=24300 --ckpnt=$HOME/model.ckpt-1 --final_beta=0.01 --norb_data_dir=$HOME/smallNORB/ --patching=True
 ```
+
+A docker is now added to the repository. Please install docker with NVIDIA support. Then modify the run_local_gpu.sh with your smallNORB directory (-v option). Running ./run_local_gpu.sh will start training the model.

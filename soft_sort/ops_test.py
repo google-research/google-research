@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,25 +34,25 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
     np.random.seed(seed=0)
 
   def test_preprocess(self):
-    """Tests that _preprocess prepares the tensor as expected."""
+    """Tests that preprocess prepares the tensor as expected."""
     # Test preprocessing with input of dimension 1.
     n = 10
     x = tf.random.uniform((n,), dtype=tf.float64)
-    z, _, _ = ops._preprocess(x, axis=-1)
+    z, _, _ = ops.preprocess(x, axis=-1)
     self.assertEqual(z.shape.rank, 2)
     self.assertEqual(z.shape, (1, n))
     self.assertAllEqual(z[0], x)
 
     # Test preprocessing with input of dimension 2.
     x = tf.random.uniform((3, n), dtype=tf.float64)
-    z, _, _ = ops._preprocess(x, axis=-1)
+    z, _, _ = ops.preprocess(x, axis=-1)
     self.assertEqual(z.shape.rank, 2)
     self.assertEqual(z.shape, x.shape)
     self.assertAllEqual(z, x)
 
     # Test preprocessing with input of dimension 2, preparing for axis 0
     x = tf.random.uniform((3, n), dtype=tf.float64)
-    z, _, _ = ops._preprocess(x, axis=0)
+    z, _, _ = ops.preprocess(x, axis=0)
     self.assertEqual(z.shape.rank, 2)
     self.assertEqual(z.shape, (x.shape[1], x.shape[0]))
     batch = 1
@@ -63,18 +63,18 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
     x = tf.random.uniform(shape, dtype=tf.float64)
     axis = 2
     n = shape.pop(axis)
-    z, _, _ = ops._preprocess(x, axis=axis)
+    z, _, _ = ops.preprocess(x, axis=axis)
     self.assertEqual(z.shape.rank, 2)
     self.assertEqual(z.shape, (np.prod(shape), n))
 
   def test_postprocess(self):
-    """Tests that _postprocess is the inverse of _preprocess."""
+    """Tests that postprocess is the inverse of preprocess."""
     shape = (4, 21, 7, 10)
     for i in range(1, len(shape)):
       x = tf.random.uniform(shape[:i])
       for axis in range(x.shape.rank):
-        y, transp, s = ops._preprocess(x, axis)
-        z = ops._postprocess(y, transp, s)
+        y, transp, s = ops.preprocess(x, axis)
+        z = ops.postprocess(y, transp, s)
         self.assertAllEqual(x, z)
 
   @parameterized.named_parameters(
@@ -134,7 +134,7 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
     dims[axis], dims[-1] = dims[-1], dims[axis]
     fake = tf.zeros(shape)
     transposition = tf.transpose(fake, dims).shape
-    target = ops._postprocess(target, dims, transposition)
+    target = ops.postprocess(target, dims, transposition)
 
     # Apply a monotonic transformation to turn ranks into values
     sign = 2 * float(direction == 'ASCENDING') - 1
@@ -171,6 +171,15 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
         int(quantile * num_points), axis=1)
 
     self.assertAllClose(soft_q, hard_q, 0.2, 0.2)
+
+  def test_sortquantile_shape(self):
+    axis = 1
+    x = tf.random.uniform((3, 20, 4), dtype=tf.float32)
+    soft_q = ops.softquantiles(x, 0.3, 0.03, axis=axis)
+    self.assertEqual(soft_q.shape, (3, 4))
+
+    soft_q2 = ops.softquantiles(x, 0.3, 0.03, axis=axis, may_squeeze=False)
+    self.assertEqual(soft_q2.shape, (3, 1, 4))
 
   def test_softquantiles(self):
     num_points = 19

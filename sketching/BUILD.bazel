@@ -1,17 +1,22 @@
 licenses(["notice"])
 
 cc_library(
+    name = "sketch",
+    hdrs = ["sketch.h"],
+    deps = [":utils"],
+)
+
+cc_library(
     name = "utils",
     srcs = ["utils.cc"],
     hdrs = [
-        "sketch.h",
         "utils.h",
     ],
     deps = [
         "//external:gflags",
-        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/random",
         "@com_google_absl//absl/random:bit_gen_ref",
-        "@com_google_glog//:glog",
+        "@com_google_absl//absl/random:distributions",
     ],
 )
 
@@ -20,9 +25,23 @@ cc_library(
     srcs = ["countmin.cc"],
     hdrs = ["countmin.h"],
     deps = [
+        ":sketch",
         ":utils",
         "@com_google_absl//absl/memory",
-        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/random:bit_gen_ref",
+        "@com_google_absl//absl/random:distributions",
+    ],
+)
+
+cc_library(
+    name = "benchmark_utils",
+    testonly = 1,
+    srcs = ["benchmark_utils.cc"],
+    hdrs = ["benchmark_utils.h"],
+    deps = [
+        ":sketch",
+        ":utils",
+        "@com_google_benchmark//:benchmark",
     ],
 )
 
@@ -31,6 +50,7 @@ cc_test(
     srcs = ["countmin_test.cc"],
     deps = [
         ":countmin",
+        ":utils",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -41,8 +61,8 @@ cc_library(
     hdrs = ["lossy_count.h"],
     deps = [
         ":countmin",
+        ":sketch",
         ":utils",
-        "@com_google_absl//absl/random",
     ],
 )
 
@@ -52,6 +72,7 @@ cc_library(
     hdrs = ["lossy_weight.h"],
     deps = [
         ":countmin",
+        ":sketch",
         ":utils",
     ],
 )
@@ -72,7 +93,9 @@ cc_library(
     hdrs = ["frequent.h"],
     deps = [
         ":countmin",
+        ":sketch",
         ":utils",
+        "@com_google_absl//absl/container:flat_hash_map",
     ],
 )
 
@@ -83,7 +106,19 @@ cc_test(
         ":frequent",
         ":utils",
         "@com_google_googletest//:gtest_main",
-        "@com_google_absl//absl/random",
+    ],
+)
+
+cc_binary(
+    name = "frequent_benchmark",
+    testonly = 1,
+    srcs = ["frequent_benchmark.cc"],
+    deps = [
+        ":benchmark_utils",
+        ":frequent",
+        ":sketch",
+        ":utils",
+        "@com_google_benchmark//:benchmark_main",
     ],
 )
 
@@ -95,9 +130,10 @@ cc_binary(
         ":frequent",
         ":lossy_count",
         ":lossy_weight",
+        ":sketch",
         ":utils",
         "//external:gflags",
+        "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/memory",
-        "@com_google_absl//absl/random",
     ],
 )

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,10 +19,12 @@ https://github.com/tensorflow/models/blob/master/research/struct2depth/nets.py
 """
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import framework as contrib_framework
+from tensorflow.contrib import layers as contrib_layers
 
-layers = tf.contrib.layers
-arg_scope = tf.contrib.framework.arg_scope
+layers = contrib_layers
+arg_scope = contrib_framework.arg_scope
 
 WEIGHT_DECAY_KEY = 'WEIGHT_DECAY'
 

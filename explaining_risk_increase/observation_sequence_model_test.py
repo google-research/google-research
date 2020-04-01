@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,9 +28,10 @@ from absl.testing import parameterized
 import numpy as np
 
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from explaining_risk_increase import input_fn
 from explaining_risk_increase import observation_sequence_model as osm
+from tensorflow.contrib import training as contrib_training
 
 
 class ObservationSequenceTest(tf.test.TestCase, parameterized.TestCase):
@@ -133,7 +134,7 @@ class ObservationSequenceTest(tf.test.TestCase, parameterized.TestCase):
 
     # Set high for increased precision of the approximation.
     num_steps = 100
-    hparams = tf.contrib.training.HParams(
+    hparams = contrib_training.HParams(
         sequence_prediction=True,
         use_rnn_attention=False,
         path_integrated_gradients_num_steps=num_steps,
@@ -402,7 +403,7 @@ class ObservationSequenceTest(tf.test.TestCase, parameterized.TestCase):
         across the sequence in the loss multiplied by this factor.
     """
     num_steps = 2
-    hparams = tf.contrib.training.HParams(
+    hparams = contrib_training.HParams(
         batch_size=2,
         learning_rate=0.008,
         sequence_features=[

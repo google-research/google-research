@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,8 +21,9 @@ from __future__ import division
 from __future__ import print_function
 
 import gin.tf
-import tensorflow as tf
-framework = tf.contrib.framework
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import framework as contrib_framework
+from tensorflow.contrib import training as contrib_training
 
 
 @gin.configurable
@@ -104,9 +105,10 @@ def train_ddpg(dataset,
   actor_loss, critic_loss, all_summaries = ddpg_graph_fn(
       a_func, q_func, transition)
 
-  a_func_vars = tf.contrib.framework.get_trainable_variables(scope='a_func')
-  q_func_vars = framework.get_trainable_variables(scope='q_func')
-  target_q_func_vars = framework.get_trainable_variables(scope='target_q_func')
+  a_func_vars = contrib_framework.get_trainable_variables(scope='a_func')
+  q_func_vars = contrib_framework.get_trainable_variables(scope='q_func')
+  target_q_func_vars = contrib_framework.get_trainable_variables(
+      scope='target_q_func')
 
   # with tf.variable_scope('ddpg', use_resource=True):
   global_step = tf.train.get_or_create_global_step()
@@ -114,7 +116,7 @@ def train_ddpg(dataset,
   # CRITIC OPTIMIZATION
   # Only optimize q_func and update its batchnorm params.
   update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope='q_func')
-  critic_train_op = tf.contrib.training.create_train_op(
+  critic_train_op = contrib_training.create_train_op(
       critic_loss,
       critic_optimizer,
       global_step=global_step,
@@ -125,7 +127,7 @@ def train_ddpg(dataset,
 
   # ACTOR OPTIMIZATION
   update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope='a_func')
-  actor_train_op = tf.contrib.training.create_train_op(
+  actor_train_op = contrib_training.create_train_op(
       actor_loss,
       actor_optimizer,
       global_step=None,
@@ -193,8 +195,8 @@ def train_ddpg(dataset,
 
   init_fn = None
   if init_checkpoint:
-    assign_fn = tf.contrib.framework.assign_from_checkpoint_fn(
-        init_checkpoint, framework.get_model_variables())
+    assign_fn = contrib_framework.assign_from_checkpoint_fn(
+        init_checkpoint, contrib_framework.get_model_variables())
     init_fn = lambda _, sess: assign_fn(sess)
   scaffold = tf.train.Scaffold(saver=saver, init_fn=init_fn)
   with tf.train.MonitoredTrainingSession(

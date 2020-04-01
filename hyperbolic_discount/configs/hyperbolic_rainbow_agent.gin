@@ -1,0 +1,44 @@
+import dopamine.discrete_domains.atari_lib
+import dopamine.discrete_domains.run_experiment
+
+import hyperbolic_discount.hyperbolic_dqn_agent
+import hyperbolic_discount.hyperbolic_rainbow_agent
+
+import hyperbolic_discount.replay_memory.prioritized_replay_buffer
+
+import gin.tf.external_configurables
+
+
+HyperRainbowAgent.number_of_gammas = 10
+HyperRainbowAgent.gamma_max = 0.99
+HyperRainbowAgent.hyp_exponent = 0.01  # k in 1/(1 + kt)
+HyperRainbowAgent.acting_policy = 'hyperbolic'
+
+HyperRainbowAgent.num_atoms = 51
+HyperRainbowAgent.vmax = 10.
+HyperRainbowAgent.update_horizon = 3
+HyperRainbowAgent.min_replay_history = 20000  # agent steps
+HyperRainbowAgent.update_period = 4
+HyperRainbowAgent.target_update_period = 8000  # agent steps
+HyperRainbowAgent.epsilon_train = 0.01
+HyperRainbowAgent.epsilon_eval = 0.001
+HyperRainbowAgent.epsilon_decay_period = 250000  # agent steps
+HyperRainbowAgent.tf_device = '/gpu:0'  # use '/cpu:*' for non-GPU version
+HyperRainbowAgent.optimizer = @tf.train.AdamOptimizer()
+HyperRainbowAgent.network_size_expansion = 1.0
+
+# Rainbow.  Note these parameters are different from C51's.
+tf.train.AdamOptimizer.learning_rate = 0.0000625
+tf.train.AdamOptimizer.epsilon = 0.00015
+HyperRainbowAgent.replay_scheme = 'prioritized'
+
+atari_lib.create_atari_environment.game_name = 'Pong'
+# Sticky actions with probability 0.25, as suggested by (Machado et al., 2017).
+atari_lib.create_atari_environment.sticky_actions = True
+Runner.num_iterations = 200
+Runner.training_steps = 250000  # agent steps
+Runner.evaluation_steps = 125000  # agent steps
+Runner.max_steps_per_episode = 27000  # agent steps
+
+hyperbolic_discount.replay_memory.prioritized_replay_buffer.WrappedPrioritizedReplayBuffer.replay_capacity = 1000000
+hyperbolic_discount.replay_memory.prioritized_replay_buffer.WrappedPrioritizedReplayBuffer.batch_size = 32

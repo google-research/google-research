@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,25 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Helper functions for pruning functionalities."""
+"""Helper functions for applying Pruning / Compression to tensors.
+
+Example:
+
+compression_obj = get_matrix_compression_object(hparams, global_step)
+
+# matrix_tensor = tf.Variable(...)
+compressed_tensor = apply_matrix_compression(compression_obj,
+                                             matrix_tensor)
+# compressed_tensor can be used in place of matrix_tensor when constructing
+# graphs.
+
+update_op = get_matrix_compression_update_op(matrix_compression_obj,
+                                             hparams)
+# update_op should be called during training. One way to do this can be to group
+# the two ops, and used the grouped op in place of train_op.
+
+train_op = tf.group(train_op, update_op)
+"""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -23,14 +41,73 @@ from __future__ import print_function
 
 import tensorflow.compat.v1 as tf
 
+from graph_compression.compression_lib import compression_wrapper_py2 as compression_wrapper
 from model_pruning.python import pruning
+
+
+UPDATE_OP_COLLECTION = 'update_op'
+
+
+def get_matrix_compression_object(hparams,
+                                  global_step=None,
+                                  sparsity=None):
+  """Returns a pruning/compression object.
+
+  Args:
+    hparams: Pruning spec as defined in pruing.py;
+    global_step: A tensorflow variable that is used for scheduling
+    pruning/compression;
+    sparsity: A tensorflow scalar variable storing the sparsity.
+
+  Returns:
+    A Pruning or compression_lib.compression_op.ApplyCompression object.
+  """
+  if global_step is None:
+    global_step = tf.cast(tf.train.get_global_step(), tf.int32)
+  if hparams.prune_option in [
+      'weight', 'first_order_gradient', 'second_order_gradient']:
+    return pruning.Pruning(hparams, global_step, sparsity)
+  else:
+    return compression_wrapper.get_apply_compression(hparams,
+                                                     global_step=global_step)
+
+
+def apply_matrix_compression(matrix_compression_obj,
+                             weight,
+                             scope=''):
+  """Apply pruning/compression to a weight tensor.
+
+  For pruning, this is equivalent to apply_mask; for compression, this is
+  equivalent to apply_compression.
+
+  Args:
+    matrix_compression_obj: A Pruning or
+      compression_lib.compression_op.ApplyCompression object;
+    weight: input weight tensor;
+    scope: the current variable scope. Defaults to ''.
+
+  Returns:
+    A TF node that represents the masked weight tensor if pruning_indicator is
+    True, and the compressed version of weight tensor if pruning_indicator is
+    False.
+  """
+  if isinstance(matrix_compression_obj, pruning.Pruning):
+    prune_option = matrix_compression_obj.matrix_compression_spec.prune_option
+    return pruning.apply_mask(x=weight, scope=scope, prune_option=prune_option)
+  else:
+    compressed_matrix = matrix_compression_obj.apply_compression(weight, scope)
+    hparams = matrix_compression_obj.get_spec()
+    if hparams.use_collection:
+      tf.add_to_collection(UPDATE_OP_COLLECTION,
+                           matrix_compression_obj.all_update_op())
+    return compressed_matrix
 
 
 def apply_pruning(pruning_obj,
                   pruning_hparams,
                   weight_params_fn, weight_init_obj, lstmobj,
                   wm_pc, dtype):
-  """Apply pruning to a weight matrix.
+  """Apply pruning to an LSTM cell.
 
   Args:
     pruning_obj: a Pruning object;
@@ -66,6 +143,10 @@ def apply_pruning(pruning_obj,
 def get_pruning_update(pruning_obj, pruning_hparams):
   """Return pruning mask update op.
 
+  Note: clients are encouraged to use get_matrix_compression_update_op instead,
+    which has the same functionality as this function, but supports compression
+    too.
+
   Args:
     pruning_obj: a Pruning object;
     pruning_hparams: a Pruning hparams object.
@@ -81,5 +162,47 @@ def get_pruning_update(pruning_obj, pruning_hparams):
   if pruning_hparams.prune_option in [
       'weight', 'first_order_gradient', 'second_order_gradient']:
     return pruning_obj.conditional_mask_update_op()
+  else:
+    raise NotImplementedError()
+
+
+def get_matrix_compression_update_op(matrix_compression_obj):
+  """Return pruning/compression update op.
+
+  For pruning, this returns a contional_mask_update_op; for compression, this
+  returns an ApplyCompression.all_update_op.
+
+  Args:
+    matrix_compression_obj: a Pruning or a compression_lib.ApplyCompression
+      object;
+
+  Returns:
+    a mask_update_op if the prune_option of the pruning_obj is 'weight',
+    'first_order_gradient', or 'second_order_gradient'; or an
+    ApplyCompression.all_update_op otherwise.
+
+  Raises:
+    NotImplementedError if the prune_option of the pruning_obj is not 'weight',
+    'first_order_gradient', or 'second_order_gradient' and update_option is not
+    0; in this case, the compression should be applied by calling
+    compression_obj.run_update_step(session=session).
+  """
+  hparams = matrix_compression_obj.get_spec()
+  if hparams.prune_option in [
+      'weight', 'first_order_gradient', 'second_order_gradient']:
+    return matrix_compression_obj.conditional_mask_update_op()
+  elif hparams.update_option == 0:
+    # 'update_option' == 0 means matrix compression, for which we can
+    # return an update op here. 'update_option' == 1 means dictionary learning,
+    # for which we cannot return an update op here, and need to explicitly call
+    # run_update_step(), see graph_compression/compression_lib/compression_op.py
+    # for more details.
+    if hparams.use_collection:
+      # If use_collection is True, then update_ops are retrieved from
+      # UPDATE_OP_COLLECTION, to ensure the same behavior as pruning.
+      update_ops = tf.get_collection(UPDATE_OP_COLLECTION)
+      return tf.group(*update_ops)
+    else:
+      return matrix_compression_obj.all_update_op()
   else:
     raise NotImplementedError()

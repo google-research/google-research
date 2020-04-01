@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,23 +15,19 @@
 
 """Data helper function for the Forest Covertype dataset."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 # Dataset size
-n_train_samples = 309871
-n_val_samples = 154937
-n_test_samples = 116203
-num_features = 54
-num_classes = 7
+# N_TRAIN_SAMPLES = 309871
+N_VAL_SAMPLES = 154937
+N_TEST_SAMPLES = 116203
+NUM_FEATURES = 54
+NUM_CLASSES = 7
 
 # All feature columns in the data
-label_column = "Covertype"
+LABEL_COLUMN = "Covertype"
 
-bool_columns = [
+BOOL_COLUMNS = [
     "Wilderness_Area1", "Wilderness_Area2", "Wilderness_Area3",
     "Wilderness_Area4", "Soil_Type1", "Soil_Type2", "Soil_Type3", "Soil_Type4",
     "Soil_Type5", "Soil_Type6", "Soil_Type7", "Soil_Type8", "Soil_Type9",
@@ -44,51 +40,61 @@ bool_columns = [
     "Soil_Type40"
 ]
 
-int_columns = [
+INT_COLUMNS = [
     "Elevation", "Aspect", "Slope", "Horizontal_Distance_To_Hydrology",
     "Vertical_Distance_To_Hydrology", "Horizontal_Distance_To_Roadways",
     "Hillshade_9am", "Hillshade_Noon", "Hillshade_3pm",
     "Horizontal_Distance_To_Fire_Points"
 ]
 
-str_columns = []
-str_nuniques = []
+STR_COLUMNS = []
+STR_NUNIQUESS = []
 
-float_columns = []
+FLOAT_COLUMNS = []
 
-feature_columns = (
-    int_columns + bool_columns + str_columns + float_columns + [label_column])
-all_columns = feature_columns + [label_column]
-defaults = ([[0] for col in int_columns] + [[""] for col in bool_columns] +
-            [[0.0] for col in float_columns] + [[""] for col in str_columns] +
+DEFAULTS = ([[0] for col in INT_COLUMNS] + [[""] for col in BOOL_COLUMNS] +
+            [[0.0] for col in FLOAT_COLUMNS] + [[""] for col in STR_COLUMNS] +
             [[-1]])
+
+FEATURE_COLUMNS = (
+    INT_COLUMNS + BOOL_COLUMNS + STR_COLUMNS + FLOAT_COLUMNS)
+ALL_COLUMNS = FEATURE_COLUMNS + [LABEL_COLUMN]
 
 
 def get_columns():
   """Get the representations for all input columns."""
 
   columns = []
-  if float_columns:
-    columns += [tf.feature_column.numeric_column(ci) for ci in float_columns]
-  if int_columns:
-    columns += [tf.feature_column.numeric_column(ci) for ci in int_columns]
-  if str_columns:
+  if FLOAT_COLUMNS:
+    columns += [tf.feature_column.numeric_column(ci) for ci in FLOAT_COLUMNS]
+  if INT_COLUMNS:
+    columns += [tf.feature_column.numeric_column(ci) for ci in INT_COLUMNS]
+  if STR_COLUMNS:
     # pylint: disable=g-complex-comprehension
     columns += [
         tf.feature_column.embedding_column(
             tf.feature_column.categorical_column_with_hash_bucket(
                 ci, hash_bucket_size=int(3 * num)),
-            dimension=1) for ci, num in zip(str_columns, str_nuniques)
+            dimension=1) for ci, num in zip(STR_COLUMNS, STR_NUNIQUESS)
     ]
-  if bool_columns:
+  if BOOL_COLUMNS:
     # pylint: disable=g-complex-comprehension
     columns += [
         tf.feature_column.embedding_column(
             tf.feature_column.categorical_column_with_hash_bucket(
                 ci, hash_bucket_size=3),
-            dimension=1) for ci in bool_columns
+            dimension=1) for ci in BOOL_COLUMNS
     ]
   return columns
+
+
+def parse_csv(value_column):
+  """Parses a CSV file based on the provided column types."""
+  columns = tf.decode_csv(value_column, record_defaults=DEFAULTS)
+  features = dict(zip(ALL_COLUMNS, columns))
+  label = features.pop(LABEL_COLUMN)
+  classes = tf.cast(label, tf.int32) - 1
+  return features, classes
 
 
 def input_fn(data_file,
@@ -97,14 +103,19 @@ def input_fn(data_file,
              batch_size,
              n_buffer=50,
              n_parallel=16):
-  """Function to read the input file and return the dataset."""
+  """Function to read the input file and return the dataset.
 
-  def parse_csv(value_column):
-    columns = tf.decode_csv(value_column, record_defaults=defaults)
-    features = dict(zip(all_columns, columns))
-    label = features.pop(label_column)
-    classes = tf.cast(label, tf.int32) - 1
-    return features, classes
+  Args:
+    data_file: Name of the file.
+    num_epochs: Number of epochs.
+    shuffle: Whether to shuffle the data.
+    batch_size: Batch size.
+    n_buffer: Buffer size.
+    n_parallel: Number of cores for multi-core processing option.
+
+  Returns:
+    The Tensorflow dataset.
+  """
 
   # Extract lines from input files using the Dataset API.
   dataset = tf.data.TextLineDataset(data_file)

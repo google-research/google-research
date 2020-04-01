@@ -1,4 +1,4 @@
-// Copyright 2019 The Google Research Authors.
+// Copyright 2020 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,32 +31,37 @@ class LossyWeight : public Sketch {
  public:
   LossyWeight(uint window_size, uint hash_count, uint hash_size);
 
-  virtual ~LossyWeight() {}
+  ~LossyWeight() override = default;
 
-  virtual void Reset();
+  void Reset() override;
 
-  virtual void Add(uint item, float delta);
+  void Add(uint item, float delta) override;
 
-  virtual void ReadyToEstimate() { MergeCounters(); }
+  void ReadyToEstimate() override;
 
-  virtual float Estimate(uint item) const;
+  float Estimate(uint item) const override;
 
-  virtual void HeavyHitters(float threshold, std::vector<uint>* items) const;
+  std::vector<uint> HeavyHitters(float threshold) const override;
 
-  virtual unsigned int Size() const;
+  unsigned int Size() const override;
 
-  virtual bool Compatible(const Sketch& other_sketch) const;
+  bool Compatible(const Sketch& other_sketch) const override;
 
-  virtual void Merge(const Sketch& other_sketch);
+  void Merge(const Sketch& other_sketch) override;
 
  private:
-  uint window_size_;
-  uint accumulated_counters_;
+  const uint window_size_;
+  uint accumulated_counters_ = 0;
   std::vector<IntFloatPair> counters_;
   CountMinCU cm_;
 
   // Merge duplicate counters in counters_
   void MergeCounters();
+
+  // Discard low frequency items from counters_ into CountMinCU whose freq order
+  // is lower than window_size_. After discarding low frequent items, sort the
+  // counters_ by its item value.
+  void DiscardLowFreqItems();
 };
 
 }  // namespace sketch

@@ -63,6 +63,8 @@ use_tpu                | boolean | False             | **Experimental flag** - t
 
 1.  Low Rank Approximation
 2.  Simhash
+3.  Dictionary Learning
+4.  Kmeans Quantization
 
 #### Decomposed Matrix Dimensions
 
@@ -145,9 +147,18 @@ Eval:
 $ python cifar10_eval.py --compression_hparams=name=cifar10_compression,alpha_decrement_value=0.005,begin_compression_step=40000,end_compression_step=100000,compression_frequency=100,compression_option=1,use_tpu=True,update_option=0,rank=200 --run_once
 ```
 
+Eager execution example.
+
+An eager execution example is provided at compression_lib/examples/mnist_eager_mode/mnist_compression.py. To train the model, run:
+
+```shell
+$python mnist_compression.py
+```
+
+
+
 Authors: Rina Panigrahy (corresponding author -- email: rinap@google.com),
-Lucine Oganesian, Sudeshna Roy, with support from: Badih Ghazi for helpful
-contributions, Rasmus Pagh (pagh@google.com,
+Lucine Oganesian, Sudeshna Roy, Xin Wang, with support from: Badih Ghazi for helpful contributions, Rasmus Pagh (pagh@google.com,
 [doc](https://drive.google.com/file/d/10TWVnHExdWdQ8DyPELV18Rq92zutSzp9/view?usp=sharing))
 for the simhash code, Zoya Svitkina for code reviews, and Suyog Gupta for
 consultations.

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Soft Sorting core library.
 
 Computes all sort of statistical objects related to (soft) sorting, such as the
@@ -27,10 +28,6 @@ It is based on:
 Operator" by Cuturi M., Teboul O., Vert JP.
 (see https://arxiv.org/pdf/1905.11885.pdf)
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import gin
 import tensorflow.compat.v2 as tf
@@ -100,7 +97,7 @@ class SoftQuantilizer(object):
     self._scale_input_fn = scale_input_fn
     self.iterations = 0
     self._descending = descending
-    self._sinkhorn = sinkhorn.Sinkhorn1D(**kwargs)
+    self._kwargs = kwargs
     self.reset(x, y, weights, target_weights, num_targets)
 
   def reset(
@@ -116,8 +113,8 @@ class SoftQuantilizer(object):
     self._set_target(y, num_targets, target_weights)
 
     # We run sinkhorn on the rescaled input values x_s.
-    self.transport = self._sinkhorn(
-        self._x_s, self.y, self.weights, self.target_weights)
+    self.transport = sinkhorn.sinkhorn(
+        self._x_s, self.y, self.weights, self.target_weights, **self._kwargs)
 
   @property
   def softcdf(self):
@@ -172,7 +169,8 @@ class SoftQuantilizer(object):
     # Then we set the target vector itself. It must be sorted.
     if y is None:
       m = tf.cast(self._num_targets, dtype=self.dtype)
-      y = tf.range(0, m, dtype=self.dtype) / tf.math.maximum(1.0, m - 1.0)
+      one = tf.cast(1.0, dtype=self.dtype)
+      y = tf.range(0, m, dtype=self.dtype) / tf.math.maximum(one, m - one)
     self.y = self._cast_may_repeat(y)
     if self._descending:
       self.y = tf.reverse(self.y, (1,))

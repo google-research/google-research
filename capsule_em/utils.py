@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,10 +23,50 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
+import contextlib
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_bool('verbose', False, 'If true, adds summary.')
+
+
+XLA_COMPILE = False
+JIT_SCOPE = 'routing'
+RECOMPUTE = False
+
+
+@contextlib.contextmanager
+def noop_jit_scope(compile_ops=True, scope_name=JIT_SCOPE):
+  tf.logging.info('No-op jit_scope %s %s', compile_ops, scope_name)
+  yield
+
+
+def maybe_jit_scope(*args, **kwargs):
+  """Placeholder to enable jit scoping."""
+
+  # kwargs['compile_ops'] = op_filter
+
+  if FLAGS.jit_scopes:
+    # if 'scope_name' not in kwargs:
+    #   kwargs['scope_name'] = JIT_SCOPE
+    # # This makes things really messed up...
+    # # kwargs['separate_compiled_gradients'] = True
+    # tf.logging.info('Adding jit_scope "%s"', kwargs['scope_name'])
+    return tf.xla.experimental.jit_scope(*args, **kwargs)
+  else:
+    return noop_jit_scope(*args, **kwargs)
+
+
+def noop_recompute_grad(func):
+  tf.logging.info('No-op recompute_grad')
+  return func
+
+
+if RECOMPUTE:
+  maybe_recompute_grad = tf.recompute_grad
+else:
+  maybe_recompute_grad = noop_recompute_grad
 
 
 def weight_variable(shape, stddev=0.1, wd=.0000002):
@@ -119,3 +159,59 @@ def loss_summaries(total_loss):
     tf.summary.scalar(l.op.name, loss_averages.average(l))
 
   return loss_averages_op
+
+
+def kernel_tile(input_tensor, kernel, stride=1, rate=1, name='kernel_tile'):
+  """Tiles the input in a convolutional manner based on kernel size.
+
+  Equivalent of:
+   output = tf.extract_image_patches(
+       input,
+       ksizes=[1, kernel, kernel, 1],
+       strides=[1, stride, stride, 1],
+       rates=[1, rate, rate, 1],
+       padding='VALID')
+  Args:
+    input_tensor: The input feature map to be tiled.
+    kernel: The kernel size for the convolutional map.
+    stride: The stride for the convolutional feature map.
+    rate: The rate of sampling for the convolutional feature map.
+    name: The name for this module.
+
+  Returns:
+    output: The tiled version of input, considering convolutional dimensions.
+  """
+
+  input_shape = input_tensor.get_shape()
+  tf.logging.info('kernel_tile: input shape %s', input_shape)
+
+  tile_filter = np.zeros(
+      shape=[kernel * rate, kernel * rate, input_shape[3], kernel * kernel],
+      dtype=np.float32)
+  for i in range(kernel):
+    for j in range(kernel):
+      tile_filter[i * rate, j * rate, :, i * kernel + j] = 1.0
+
+  with tf.name_scope(name):
+    tile_filter_op = tf.constant(tile_filter, dtype=tf.float32)
+    if rate > 1:
+      input_tensor = tf.pad(input_tensor,
+                            [[0, 0], [0, rate - 1], [0, rate - 1], [0, 0]])
+    output = tf.nn.depthwise_conv2d(
+        input_tensor,
+        tile_filter_op,
+        strides=[1, stride, stride, 1],
+        padding='VALID')
+    output_shape = output.get_shape()
+    output = tf.reshape(
+        output,
+        shape=[
+            int(output_shape[0]),
+            int(output_shape[1]),
+            int(output_shape[2]),
+            int(input_shape[3]), kernel * kernel
+        ])
+    output = tf.transpose(output, perm=[0, 1, 2, 4, 3])
+
+  tf.logging.info('kernel_tile: output shape %s', output.shape)
+  return output

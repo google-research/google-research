@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,6 +40,98 @@ class SimhashCompressionOpTest(tf.test.TestCase):
           spec=compression_op.LowRankDecompMatrixCompressor.get_default_hparams(
           ).parse("num_rows=5,num_cols=5,rank=200"))
 
+      global_step = tf.compat.v1.get_variable("global_step", initializer=30)
+
+      apply_comp = simhash.SimhashApplyCompression(
+          scope="default_scope",
+          compression_spec=spec,
+          compressor=matrix_compressor,
+          global_step=global_step)
+
+      # Need to add initial value for a_matrix so that we would know what to
+      # expect back.
+      a_matrix_init = np.outer(np.array([1., 2., 3.]), np.array([4., 5., 6.]))
+      jitter = np.tile([0, 1e-1, 2e-2], (3, 1))
+      a_matrix_init += jitter
+
+      a_matrix = tf.compat.v1.get_variable(
+          "a_matrix",
+          initializer=a_matrix_init.astype(np.float32),
+          dtype=tf.float32)
+      a_matrix_compressed = apply_comp.apply_compression(
+          a_matrix, scope="first_compressor")
+      c = apply_comp._compression_ops[0]
+
+      a_matrix2 = tf.compat.v1.get_variable(
+          "a_matrix2",
+          initializer=a_matrix_init.astype(np.float32),
+          dtype=tf.float32)
+      _ = apply_comp.apply_compression(a_matrix2, scope="second_compressor")
+      c2 = apply_comp._compression_ops[1]
+
+      _ = apply_comp.all_update_op()
+      tf.compat.v1.global_variables_initializer().run()
+      _ = a_matrix_compressed.eval()
+
+      # Compression won't start until step 1000 + some random_shift amount.
+      # Here we make sure output is as expected at step 30.
+      self.assertEqual(c._global_step.eval(), 30)
+      self.assertEqual(c.alpha.eval(), 1.0)
+      self.assertEqual(c2.alpha.eval(), 1.0)
+      self.assertEqual(c._last_alpha_update_step.eval(), -1)
+      self.assertAllEqual(
+          np.array([
+              np.linalg.norm(c.a_matrix_tfvar.eval()),
+              np.linalg.norm(c.b_matrix_tfvar.eval()),
+          ]) > 0, [True, False])
+      self.assertAllEqual(
+          np.array([
+              np.linalg.norm(c.a_matrix_tfvar.eval()),
+              np.linalg.norm(c.b_matrix_tfvar.eval()),
+          ]) < 0.00001, [False, True])
+
+      # At this point compression should have already started being applied;
+      # verify at step 2000 all is as expected.
+      tf.compat.v1.assign(global_step, 2000).eval()
+      apply_comp._all_update_op.run()
+      _ = a_matrix_compressed.eval()
+
+      self.assertEqual(c._global_step.eval(), 2000)
+      self.assertAlmostEqual(c.alpha.eval(), 0.99)
+      self.assertEqual(c._last_alpha_update_step.eval(), 2000)
+      self.assertAllEqual(
+          np.array([
+              np.linalg.norm(c.a_matrix_tfvar.eval()),
+              np.linalg.norm(c.b_matrix_tfvar.eval()),
+          ]) > 0, [True, True])
+      self.assertFalse(
+          np.all(np.abs(np.linalg.norm(c.b_matrix_tfvar.eval())) < 0.00001))
+
+      # The static_matrix_compressor was configured with a rank spec of 200 --
+      # meaning compression by half, i.e. new_rank = orig_rank / 2.
+      self.assertEqual(
+          np.linalg.matrix_rank(c.b_matrix_tfvar.eval()),
+          np.linalg.matrix_rank(c.a_matrix_tfvar.eval()) / 2)
+
+      b_matrix = matrix_compressor.static_matrix_compressor(a_matrix_init)
+      self.assertAllEqual(
+          np.linalg.norm(np.abs(b_matrix) - np.abs(c.b_matrix_tfvar.eval())) <
+          0.00001, True)
+
+  def testSimhashApplyCompressionKmeans(self):
+    with self.cached_session() as session:
+      hparams = ("name=cifar10_compression,"
+                 "begin_compression_step=1000,"
+                 "end_compression_step=2001,"
+                 "compression_frequency=100,"
+                 "compression_option=4,"
+                 "update_option=1")
+      spec = simhash.SimhashCompressionOp.get_default_hparams().parse(hparams)
+
+      matrix_compressor = simhash.KmeansMatrixCompressor(
+          spec=compression_op.LowRankDecompMatrixCompressor.get_default_hparams(
+          ).parse("rank=2,block_size=3,pruning_fraction=0.0"))
+
       global_step = tf.get_variable("global_step", initializer=30)
 
       apply_comp = simhash.SimhashApplyCompression(
@@ -69,7 +161,6 @@ class SimhashCompressionOpTest(tf.test.TestCase):
       _ = apply_comp.apply_compression(a_matrix2, scope="second_compressor")
       c2 = apply_comp._compression_ops[1]
 
-      _ = apply_comp.all_update_op()
       tf.global_variables_initializer().run()
       _ = a_matrix_compressed.eval()
 
@@ -93,8 +184,7 @@ class SimhashCompressionOpTest(tf.test.TestCase):
       # At this point compression should have already started being applied;
       # verify at step 2000 all is as expected.
       tf.assign(global_step, 2000).eval()
-      apply_comp._all_update_op.run()
-      _ = a_matrix_compressed.eval()
+      apply_comp.run_update_step(session=session)
 
       self.assertEqual(c._global_step.eval(), 2000)
       self.assertAlmostEqual(c.alpha.eval(), 0.99)
@@ -107,13 +197,7 @@ class SimhashCompressionOpTest(tf.test.TestCase):
       self.assertFalse(
           np.all(np.abs(np.linalg.norm(c.b_matrix_tfvar.eval())) < 0.00001))
 
-      # The static_matrix_compressor was configured with a rank spec of 200 --
-      # meaning compression by half, i.e. new_rank = orig_rank / 2.
-      self.assertEqual(
-          np.linalg.matrix_rank(c.b_matrix_tfvar.eval()),
-          np.linalg.matrix_rank(c.a_matrix_tfvar.eval()) / 2)
-
-      b_matrix = matrix_compressor.static_matrix_compressor(a_matrix_init)
+      [b_matrix, _] = matrix_compressor.static_matrix_compressor(a_matrix_init)
       self.assertAllEqual(
           np.linalg.norm(np.abs(b_matrix) - np.abs(c.b_matrix_tfvar.eval())) <
           0.00001, True)

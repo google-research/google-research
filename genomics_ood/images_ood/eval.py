@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from genomics_ood.images_ood import pixel_cnn
 from genomics_ood.images_ood import utils

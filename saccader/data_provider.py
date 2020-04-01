@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -262,7 +262,7 @@ class ImageNetDataProvider(object):
       dataset = utils.pad_to_batch(dataset, batch_size)
 
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-    iterator = dataset.make_one_shot_iterator()
+    iterator = tf.compat.v1.data.make_one_shot_iterator(dataset)
     self.images, self.labels, self.mask = iterator.get_next()
     self.num_classes = info.features["label"].num_classes + 1
     self.class_names = ["unused"] + info.features["label"].names

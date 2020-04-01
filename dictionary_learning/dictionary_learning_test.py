@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,10 +34,18 @@ class DictionaryLearningTest(absltest.TestCase):
                                 [54, 53, 52, 51, 50]])
 
     [code0, dictionary0] = dictionary_learning.dictionary_learning(
-        embedding_table, row_percentage=0.5, col_percentage=0.5)
+        embedding_table,
+        row_percentage=0.5,
+        col_percentage=0.5,
+        version_num=1,
+        num_buckets=1)
 
     [code1, dictionary1] = dictionary_learning.dictionary_learning(
-        embedding_table, row_percentage=0.8, col_percentage=0.8)
+        embedding_table,
+        row_percentage=0.8,
+        col_percentage=0.8,
+        version_num=1,
+        num_buckets=1)
 
     approx0 = np.matmul(code0, dictionary0)
     error0 = 100.0 * LA.norm(embedding_table - approx0,
@@ -62,6 +70,112 @@ class DictionaryLearningTest(absltest.TestCase):
 
     # Expect that 'approx' is a 0-matrix
     self.assertEqual(np.count_nonzero(approx), 0)
+
+  def testDictionaryLearningWithSimulatedData(self):
+    # Generate random matrices a, b, and c.
+    b = np.random.normal(0, 1, [30, 20])
+    sub_thresh_indices = (b <= 0.7)
+    b[sub_thresh_indices] = 0
+    b[:, 0] = np.ones(shape=b[:, 0].shape)
+    c = np.random.normal(0, 1, [20, 10])
+    a = np.matmul(b, c)
+
+    [b_out, c_out] = dictionary_learning.dictionary_learning(
+        a,
+        row_percentage=0.5,
+        col_percentage=0.3,
+        n_iterations=0,
+        version_num=1)
+    a_recovered = np.matmul(b_out, c_out)
+    error = np.linalg.norm(a - a_recovered) / np.linalg.norm(a)
+    # Expect that the approximation 'a_recovered' is not too bad.
+    self.assertGreaterEqual(error, 0.00005)
+
+  def testDictionaryLearningWithSimulatedDataLsh(self):
+    # The test case has been modified to smaller matrices, the original runtime
+    # is recorded as follows:for b.shape = [10000, 5000], c.shape = [5000, 650],
+    # one iteration of DL takes about 1 hour.
+    # Generate random matrices a, b, and c.
+    b = np.random.normal(0, 1, [1000, 500])
+    sub_thresh_indices = (b <= 0.7)
+    b[sub_thresh_indices] = 0
+    b[:, 0] = np.ones(shape=b[:, 0].shape)
+    c = np.random.normal(0, 1, [500, 65])
+    a = np.matmul(b, c)
+
+    [b_out, c_out] = dictionary_learning.dictionary_learning(
+        a,
+        row_percentage=0.5,
+        col_percentage=0.3,
+        n_iterations=3,
+        use_lsh=True,
+        version_num=1)
+    a_recovered = np.matmul(b_out, c_out)
+    error = np.linalg.norm(a - a_recovered) / np.linalg.norm(a)
+
+    # Expect that the approximation 'a_recovered' is not too bad.
+    self.assertLessEqual(error, 0.2)
+    self.assertGreaterEqual(error, 0.00005)
+
+  def testDictionaryLearningWithSimulatedDataLshWithProjection(self):
+    # The test case has been modified to smaller matrices, the original runtime
+    # recorded as follows: for b.shape = [10000, 5000], c.shape = [5000, 650],
+    # one iteration of DL takes about 10 minutes.
+    # Generate random matrices a, b, and c.
+    b = np.random.normal(0, 1, [1000, 500])
+    sub_thresh_indices = (b <= 0.7)
+    b[sub_thresh_indices] = 0
+    b[:, 0] = np.ones(shape=b[:, 0].shape)
+    c = np.random.normal(0, 1, [500, 65])
+    a = np.matmul(b, c)
+
+    [b_out, c_out] = dictionary_learning.dictionary_learning(
+        a,
+        row_percentage=0.5,
+        col_percentage=0.3,
+        n_iterations=1,
+        use_lsh=True,
+        use_projection=True,
+        projection_dim=10,
+        version_num=1)
+    a_recovered = np.matmul(b_out, c_out)
+    error = np.linalg.norm(a - a_recovered) / np.linalg.norm(a)
+
+    # Expect that the approximation 'a_recovered' is not too bad.
+    self.assertLessEqual(error, 0.98)
+
+  def testDictionaryLearningWithSimulatedDataLshProjectionComparison(self):
+    # Generate random matrices a, b, and c.
+    b = np.random.normal(0, 1, [1000, 500])
+    sub_thresh_indices = (b <= 0.7)
+    b[sub_thresh_indices] = 0
+    b[:, 0] = np.ones(shape=b[:, 0].shape)
+    c = np.random.normal(0, 1, [500, 65])
+    a = np.matmul(b, c)
+
+    [b_out, c_out] = dictionary_learning.dictionary_learning(
+        a,
+        row_percentage=0.5,
+        col_percentage=0.3,
+        n_iterations=1,
+        use_lsh=True,
+        use_projection=True,
+        projection_dim=10,
+        version_num=1)
+    a_recovered = np.matmul(b_out, c_out)
+    error_with_projection = np.linalg.norm(a - a_recovered) / np.linalg.norm(a)
+
+    [b_out_prime, c_out_prime] = dictionary_learning.dictionary_learning(
+        a,
+        row_percentage=0.5,
+        col_percentage=0.3,
+        n_iterations=1,
+        use_lsh=True,
+        version_num=1)
+    a_recovered = np.matmul(b_out_prime, c_out_prime)
+    error = np.linalg.norm(a - a_recovered) / np.linalg.norm(a)
+
+    self.assertLessEqual(error, error_with_projection)
 
 
 if __name__ == "__main__":

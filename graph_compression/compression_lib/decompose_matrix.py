@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -73,13 +73,13 @@ def tf_simhash_decompose(matrix, inner_dimension, seed=0):
   rows, _ = matrix.get_shape().as_list()
   np.random.seed(seed=seed)
   r = tf.convert_to_tensor(
-      np.random.normal(size=(rows, inner_dimension)), dtype=tf.float32)
+      value=np.random.normal(size=(rows, inner_dimension)), dtype=tf.float32)
   s_with_zeros = tf.math.sign(tf.linalg.matmul(r, matrix, transpose_a=True))
-  s = tf.where(
+  s = tf.compat.v1.where(
       tf.math.equal(s_with_zeros, tf.constant(0.)),
-      tf.ones(tf.shape(s_with_zeros)), s_with_zeros)
-  rs_column_norms = tf.norm(tf.matmul(r, s), axis=0)
-  matrix_column_norms = tf.norm(matrix, axis=0)
+      tf.ones(tf.shape(input=s_with_zeros)), s_with_zeros)
+  rs_column_norms = tf.norm(tensor=tf.matmul(r, s), axis=0)
+  matrix_column_norms = tf.norm(tensor=matrix, axis=0)
   d = tf.linalg.tensor_diag(
       tf.math.divide(matrix_column_norms, rs_column_norms))
   return r, s, d

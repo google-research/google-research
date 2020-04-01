@@ -1,0 +1,5 @@
+{
+  "num_leapfrog_steps": 3,
+  "step_size": 0.046223481810743934,
+  "__type__": "TuneOutputs"
+}

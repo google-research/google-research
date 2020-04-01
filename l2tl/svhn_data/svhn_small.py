@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 import tensorflow_datasets.public_api as tfds
 
 URL = "http://ufldl.stanford.edu/housenumbers/"
@@ -102,6 +102,6 @@ class SvhnCroppedSmall(tfds.core.GeneratorBasedBuilder):
       label = label.reshape(())
       record = {
           "image": image,
-          "label": label % 10,  # digit 0 is saved as 0 (instead of 10)
+          "label": label % 5,  # We use five classes, with labels 0-4.
       }
       yield i, record

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import collections
 import custom_getters
 import py_utils
 import sonnet as snt
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tf_utils
 
 nest = tf.contrib.framework.nest

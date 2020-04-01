@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,6 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib.optimizer_v2 import optimizer_v2
 
 GATE_OP = 1
 
@@ -70,13 +69,12 @@ ONSBET = "ONSBET"
 SCINOL = "SCINOL"
 INNER_OPTIMIZERS = [ONSBET, SCINOL]
 
-
 INITIAL_VALUE = "initial_value"
 
 SMALL_VALUE = 0.00000001
 
 
-class RecursiveOptimizer(optimizer_v2.OptimizerV2):
+class RecursiveOptimizer(tf.train.Optimizer):
   """RecursiveOptimizer implementation."""
 
   def __init__(self,
@@ -107,8 +105,8 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
       betting_domain: maximum betting fraction.
       tau: initial value for denominator in inner optimizer update.
       eta: If inner optimizer is ONS, manually overrides the ONS learning rate.
-           If inner optimizer is SCINOL, sets maximum betting fraction of
-           SCINOL in first several iterations.
+        If inner optimizer is SCINOL, sets maximum betting fraction of SCINOL in
+        first several iterations.
       rescale_inner: Modifies the behavior of the inner optimizer to adapt to
         gradient scaling. For ONS, rescale the gradients supplied to the inner
         optimizer by their maximum value. For SCINOL, scale the initial wealth
@@ -119,9 +117,9 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
         (https://arxiv.org/pdf/1902.07528.pdf).
       add_average: Whether to add the weighted average of past iterates to the
         current iterate as described in (section 6 of
-        https://arxiv.org/abs/1802.06293). This is "morally" similar to
-        momentum term in other SGD variants in that it pushes the iterates
-        further in direction they have been moving.
+        https://arxiv.org/abs/1802.06293). This is "morally" similar to momentum
+        term in other SGD variants in that it pushes the iterates further in
+        direction they have been moving.
       output_summaries: Whether to output scalar_summaries of some internal
         variables. Note that this will significantly impact the number of
         iterations per second.
@@ -155,9 +153,11 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
         eta = 0.1
     self.eta = eta
 
-    self._set_hyper(LR, lr)
-    self._set_hyper(ETA, eta)
-    self._set_hyper(BETTING_DOMAIN, betting_domain)
+    self.lr = lr
+    self.eta = eta
+    self.betting_domain = betting_domain
+
+    self.non_slot_dict = {}
 
   # Propagates use_locking from constructor to
   # https://www.tensorflow.org/api_docs/python/tf/assign
@@ -169,45 +169,58 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
   def _assign_add(self, ref, value):
     return tf.assign_add(ref, value, use_locking=self._use_locking)
 
-  def _create_slot_with_value(self, state, var, value, name, dtype=None):
+  def _create_slot_with_value(self, var, value, name, dtype=None):
     if dtype is None:
       dtype = var.dtype.base_dtype
-    state.create_slot(var, tf.constant(value, shape=var.shape, dtype=dtype),
-                      name)
+    self._get_or_make_slot(var,
+                           tf.constant(value, shape=var.shape,
+                                       dtype=dtype), name, name + "_slot")
 
-  def _create_non_slot_with_value(self, state, value, name, dtype):
-    state.create_non_slot(
-        initial_value=tf.constant(value, dtype=dtype),
-        name=name)
+  def _create_non_slot_with_value(self, value, name, dtype):
+    non_slot = tf.get_variable(
+        name=self.get_name() + "/non_slot_variables/" + name,
+        dtype=dtype,
+        trainable=False,
+        initializer=value)
+    self.non_slot_dict[name] = non_slot
 
-  def _create_vars(self, var_list, state):
+  def _get_non_slot(self, name):
+    return self.non_slot_dict[name]
+
+  def _create_zeros_slot(self, var, name):
+    self._zeros_slot(var, name, name + "_slot")
+
+  def _create_slots(self, var_list):
     for var in var_list:
       # TODO(cutkosky): See if any of these can be eliminated, and if this
       # improves performance.
-      state.zeros_slot(var, OUTER_BETTING_FRACTION)
+      self._create_zeros_slot(var, OUTER_BETTING_FRACTION)
 
-      state.create_slot(var, var.initialized_value(), INITIAL_VALUE)
-      self._create_slot_with_value(state, var, self.tau, INNER_SUM_GRAD_SQUARED)
-      self._create_slot_with_value(state, var, self.g_max,
-                                   INNER_MAXIMUM_GRADIENT)
+      self._get_or_make_slot(var, var.initialized_value(), INITIAL_VALUE,
+                             INITIAL_VALUE + "_slot")
+      self._create_slot_with_value(var, self.tau, INNER_SUM_GRAD_SQUARED)
+      self._create_slot_with_value(var, self.g_max, INNER_MAXIMUM_GRADIENT)
 
       if self.inner_optimizer == SCINOL:
-        state.zeros_slot(var, INNER_SUM_GRAD)
-        state.zeros_slot(var, INNER_REWARD)
+        self._create_zeros_slot(
+            var,
+            INNER_SUM_GRAD,
+        )
+        self._create_zeros_slot(var, INNER_REWARD)
 
       if self.inner_optimizer == ONSBET:
-        state.zeros_slot(var, INNER_BETTING_FRACTION)
-        self._create_slot_with_value(state, var, self.epsilon_v, INNER_WEALTH)
+        self._create_zeros_slot(var, INNER_BETTING_FRACTION)
+        self._create_slot_with_value(var, self.epsilon_v, INNER_WEALTH)
 
       if self.add_average:
-        state.zeros_slot(var, AVERAGE_OFFSET)
+        self._create_zeros_slot(var, AVERAGE_OFFSET)
 
-    dtype=var_list[0].dtype.base_dtype
-    self._create_non_slot_with_value(state, self.epsilon, OUTER_WEALTH, dtype)
-    self._create_non_slot_with_value(state, self.g_max, MAXIMUM_GRADIENT, dtype)
-    self._create_non_slot_with_value(state, 0.0, SUM_GRAD_NORM_SQUARED, dtype)
+    dtype = var_list[0].dtype.base_dtype
+    self._create_non_slot_with_value(self.epsilon, OUTER_WEALTH, dtype)
+    self._create_non_slot_with_value(self.g_max, MAXIMUM_GRADIENT, dtype)
+    self._create_non_slot_with_value(0.0, SUM_GRAD_NORM_SQUARED, dtype)
 
-  def _prepare(self, state):
+  def _prepare(self):
     # These are dicts to hold per-variable intermediate values
     # that are recomputed from scratch every iteration.
     self.grads = {}
@@ -218,10 +231,10 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
     self.wealth_deltas = {}
     self.grad_norms = {}
 
-  def _resource_apply_dense(self, grad, var, state):
-    return self._apply_dense(grad, var, state)
+  def _resource_apply_dense(self, grad, var):
+    return self._apply_dense(grad, var)
 
-  def _apply_dense(self, grad, var, state):
+  def _apply_dense(self, grad, var):
     # We actually apply grads in _finish. This function is used
     # to record intermediate variables related to the individual gradients
     # which we eventually combine in _finish to obtain global statistics
@@ -229,7 +242,7 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
 
     self.grads[var] = grad
 
-    betting_fraction = state.get_slot(var, OUTER_BETTING_FRACTION)
+    betting_fraction = self.get_slot(var, OUTER_BETTING_FRACTION)
     self.betting_fraction_dot_product_deltas[var] = tf.reduce_sum(
         betting_fraction * grad)
 
@@ -239,34 +252,32 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
     # TODO(cutkosky): at one point there was a bug in which epsilon
     # was not added here. It seemed performance may have degraded
     # somewhat after fixing this. Find out why this would be.
-    # epsilon = tf.cast(state.get_hyper(EPSILON), var.dtype.base_dtype)
     wealth_delta = -self.betting_fraction_dot_product_deltas[
-        var] * state.get_non_slot(OUTER_WEALTH)
+        var] * self._get_non_slot(OUTER_WEALTH)
     self.wealth_deltas[var] = wealth_delta
 
     self.grad_norms[var] = tf.norm(grad, 1)
 
     return tf.no_op()
 
-  def _compute_inner_update(self, var, grad, state):
+  def _compute_inner_update(self, var, grad):
     if self.inner_optimizer == ONSBET:
-      return self._compute_inner_update_onsbet(var, grad, state)
+      return self._compute_inner_update_onsbet(var, grad)
     if self.inner_optimizer == SCINOL:
-      return self._compute_inner_update_scinol(var, grad, state)
+      return self._compute_inner_update_scinol(var, grad)
 
     raise TypeError("Unknown inner_optimizer: " + self.inner_optimizer)
 
-  def _compute_inner_update_scinol(self, var, grad, state):
+  def _compute_inner_update_scinol(self, var, grad):
     update_ops = []
 
-    betting_domain = tf.cast(
-        state.get_hyper(BETTING_DOMAIN), var.dtype.base_dtype)
+    betting_domain = tf.cast(self.betting_domain, var.dtype.base_dtype)
 
-    reward = state.get_slot(var, INNER_REWARD)
-    betting_fraction = state.get_slot(var, OUTER_BETTING_FRACTION)
-    sum_grad_squared = state.get_slot(var, INNER_SUM_GRAD_SQUARED)
-    sum_grad = state.get_slot(var, INNER_SUM_GRAD)
-    inner_maximum_gradient = state.get_slot(var, INNER_MAXIMUM_GRADIENT)
+    reward = self.get_slot(var, INNER_REWARD)
+    betting_fraction = self.get_slot(var, OUTER_BETTING_FRACTION)
+    sum_grad_squared = self.get_slot(var, INNER_SUM_GRAD_SQUARED)
+    sum_grad = self.get_slot(var, INNER_SUM_GRAD)
+    inner_maximum_gradient = self.get_slot(var, INNER_MAXIMUM_GRADIENT)
 
     # clip inner gradient to respect previous inner_maximum_gradient value
     # This introduces at most an additive constant overhead in the regret
@@ -303,9 +314,10 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
 
     # The second term in this maximum, inner_maximum_gradient_updated / self.eta
     # is a hack to force the betting fraction to not be too big at first.
-    scaling = tf.minimum(tf.rsqrt(sum_grad_squared_updated +
-                tf.square(inner_maximum_gradient_updated)),
-                         self.eta/inner_maximum_gradient_updated)
+    scaling = tf.minimum(
+        tf.rsqrt(sum_grad_squared_updated +
+                 tf.square(inner_maximum_gradient_updated)),
+        self.eta / inner_maximum_gradient_updated)
     theta = -sum_grad_updated * scaling
 
     # rescale inner flag is a hack that rescales the epsilon_v by the
@@ -357,18 +369,17 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
           max_truncated_grad)
     return clipped_betting_fraction, tf.group(*update_ops)
 
-  def _compute_inner_update_onsbet(self, var, grad, state):
+  def _compute_inner_update_onsbet(self, var, grad):
     update_ops = []
 
-    eta = tf.cast(state.get_hyper(ETA), var.dtype.base_dtype)
-    betting_domain = tf.cast(
-        state.get_hyper(BETTING_DOMAIN), var.dtype.base_dtype)
+    eta = tf.cast(self.eta, var.dtype.base_dtype)
+    betting_domain = tf.cast(self.betting_domain, var.dtype.base_dtype)
 
-    wealth = state.get_slot(var, INNER_WEALTH)
-    betting_fraction = state.get_slot(var, OUTER_BETTING_FRACTION)
-    inner_betting_fraction = state.get_slot(var, INNER_BETTING_FRACTION)
-    sum_grad_squared = state.get_slot(var, INNER_SUM_GRAD_SQUARED)
-    inner_maximum_gradient = state.get_slot(var, INNER_MAXIMUM_GRADIENT)
+    wealth = self.get_slot(var, INNER_WEALTH)
+    betting_fraction = self.get_slot(var, OUTER_BETTING_FRACTION)
+    inner_betting_fraction = self.get_slot(var, INNER_BETTING_FRACTION)
+    sum_grad_squared = self.get_slot(var, INNER_SUM_GRAD_SQUARED)
+    inner_maximum_gradient = self.get_slot(var, INNER_MAXIMUM_GRADIENT)
 
     inner_maximum_gradient_updated = self._assign(
         inner_maximum_gradient, tf.maximum(inner_maximum_gradient,
@@ -439,13 +450,11 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
 
     return clipped_betting_fraction, tf.group(*update_ops)
 
-  def _finish(self, state):
+  def _finish(self, update_ops, name):
 
-    update_ops = []
-
-    outer_wealth = state.get_non_slot(OUTER_WEALTH)
-    betting_domain = state.get_hyper(BETTING_DOMAIN)
-    maximum_gradient = state.get_non_slot(MAXIMUM_GRADIENT)
+    outer_wealth = self._get_non_slot(OUTER_WEALTH)
+    betting_domain = self.betting_domain
+    maximum_gradient = self._get_non_slot(MAXIMUM_GRADIENT)
 
     wealth_increment = sum(self.wealth_deltas.values())
     betting_fraction_dot_product = sum(
@@ -478,7 +487,7 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
 
     if self.add_average:
       grad_norm_squared = tf.square(grad_norm)
-      sum_grad_norm_squared = state.get_non_slot(SUM_GRAD_NORM_SQUARED)
+      sum_grad_norm_squared = self._get_non_slot(SUM_GRAD_NORM_SQUARED)
       sum_grad_norm_squared_updated = self._assign_add(sum_grad_norm_squared,
                                                        grad_norm_squared)
 
@@ -494,7 +503,7 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
         inner_grad = scaled_grad * inner_grad_scaling
 
       betting_fraction, inner_update_op = self._compute_inner_update(
-          var, inner_grad, state)
+          var, inner_grad)
       update_ops.append(inner_update_op)
 
       if self.output_summaries:
@@ -505,12 +514,11 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
         tf.summary.scalar(self._name + "/max_abs_betting_fraction/" + var.name,
                           max_betting_fraction_summary)
 
-      next_offset = state.get_hyper(
-          LR) * betting_fraction * outer_wealth_updated
-      initial_value = state.get_slot(var, INITIAL_VALUE)
+      next_offset = self.lr * betting_fraction * outer_wealth_updated
+      initial_value = self.get_slot(var, INITIAL_VALUE)
 
       if self.add_average:
-        average_offset = state.get_slot(var, AVERAGE_OFFSET)
+        average_offset = self.get_slot(var, AVERAGE_OFFSET)
         previous_sum_grad_norm_squared = sum_grad_norm_squared - grad_norm_squared
         average_offset_updated = self._assign_add(
             average_offset,
@@ -524,21 +532,4 @@ class RecursiveOptimizer(optimizer_v2.OptimizerV2):
         var_updated = self._assign(var, next_offset + initial_value)
       update_ops.append(var_updated)
 
-    return tf.group(*update_ops)
-
-  # Add colocate_gradients_with_ops argument to compute_gradients for
-  # compatibility with tensor2tensor.
-  def compute_gradients(self,
-                        loss,
-                        var_list=None,
-                        gate_gradients=GATE_OP,
-                        aggregation_method=None,
-                        grad_loss=None,
-                        stop_gradients=None,
-                        colocate_gradients_with_ops=False,
-                        scale_loss_by_num_replicas=None):
-    return super(RecursiveOptimizer,
-                 self).compute_gradients(loss, var_list, gate_gradients,
-                                         aggregation_method, grad_loss,
-                                         stop_gradients,
-                                         scale_loss_by_num_replicas)
+    return tf.group(*update_ops, name=name)

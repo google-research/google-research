@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,9 +22,7 @@ from __future__ import print_function
 
 
 import os.path
-import random
-import tensorflow as tf
-from tensorflow.contrib import image as contrib_image
+import tensorflow.compat.v1 as tf
 
 
 def _read_and_decode(filename_queue, image_pixel=28, distort=0):
@@ -61,8 +59,8 @@ def _read_and_decode(filename_queue, image_pixel=28, distort=0):
     image = tf.reshape(image, [28, 28])
     image = tf.random_crop(image, [24, 24])
     # 0.26179938779 is 15 degress in radians
-    image = contrib_image.rotate(image,
-                                 random.uniform(-0.26179938779, 0.26179938779))
+    # image = contrib_image.rotate(image,
+    #                             random.uniform(-0.26179938779, 0.26179938779))
     image = tf.reshape(image, [24, 24, 1])
   elif distort == 2:
     image = tf.reshape(image, [28, 28])

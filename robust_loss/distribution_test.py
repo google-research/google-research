@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -116,7 +116,7 @@ class DistributionTest(parameterized.TestCase, tf.test.TestCase):
     # Perform the Kolmogorov-Smirnov test against a Cauchy distribution.
     ks_statistic = scipy.stats.kstest(samples, 'cauchy',
                                       (0., scale * np.sqrt(2.))).statistic
-    self.assertLess(ks_statistic, 0.01)
+    self.assertLess(ks_statistic, 0.02)
 
   @parameterized.named_parameters(('Single', np.float32),
                                   ('Double', np.float64))

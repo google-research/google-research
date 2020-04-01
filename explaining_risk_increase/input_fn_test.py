@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,11 +27,12 @@ from absl.testing import absltest
 
 import numpy as np
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from google.protobuf import text_format
 from explaining_risk_increase import input_fn
 from explaining_risk_increase import observation_sequence_model as osm
+from tensorflow.contrib import training as contrib_training
 
 TESTDATA_DIR = 'explaining_risk_increase/test_data/'
 
@@ -190,7 +191,7 @@ class TestInputFn(tf.test.TestCase):
         batch_size=2,
         shuffle=False)()
     num_steps = 2
-    hparams = tf.contrib.training.HParams(
+    hparams = contrib_training.HParams(
         batch_size=2,
         learning_rate=0.008,
         sequence_features=[

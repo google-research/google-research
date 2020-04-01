@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -238,6 +238,33 @@ def get_pruning_hparams():
       gradient| for pruning.
         second order gradient is approximated by |weight + old_old_weight -
         2*old_weight|.
+      option = 'compression' means using compression.
+    alpha_decrement_value: only effective when prune_option is 'compression',
+      see graph_compression/compression_lib/compression_op.py. The following
+      arguments are all only effective when prune_option == 'compression', see
+      graph_compression/compression_lib/compression_op.py for details.
+    begin_compression_step: only effective when prune_option is 'compression',
+                           see graph_compression/compression_op.py.
+    end_compresson_step: only effective when prune_option is 'compression',
+                           see graph_compression/compression_op.py.
+    compression_frequency: only effective when prune_option is 'compression',
+                           see graph_compression/compression_op.py.
+    compression_option: only effective when prune_option is 'compression',
+                        see graph_compression/compression_op.py.
+    rank: only effective when prune_option is 'compression',
+          see graph_compression/compression_op.py.
+    update_option: only effective when prune_option is 'compression',
+                   see graph_compression/compression_op.py.
+    run_update_interval_check: only effective when prune_option is 'compression'
+                               see graph_compression/compression_op.py.
+    pruning_fraction: only effective when prune_option is 'compression',
+                      see graph_compression/compression_op.py.
+    use_collection: only effective when prune_option is 'compression',
+                    update_ops are retrieved from UPDATE_OP_COLLECTION if True,
+                    otherwise update_ops are obtained from
+                    matrix_compression_obj.all_update_op() directly. Default is
+                    True.
+
 
     We use the following sparsity function:
 
@@ -271,7 +298,17 @@ def get_pruning_hparams():
       sparsity_function_exponent=3.0,
       use_tpu=False,
       gradient_decay_rate=0.99,
-      prune_option='weight')
+      prune_option='weight',
+      alpha_decrement_value=0.01,
+      begin_compression_step=0,
+      end_compression_step=-1,
+      compression_frequency=10,
+      compression_option=0,
+      rank=7,
+      update_option=0,
+      run_update_interval_check=1,
+      pruning_fraction=0.4,
+      use_collection=True)
 
 
 class Pruning(object):
@@ -285,7 +322,7 @@ class Pruning(object):
     sparsity profiles externally and passing it to this pruning functions.
 
     Args:
-      spec: Pruning spec as defined in pruning.proto
+      spec: Pruning spec, a tf.HParams object
       global_step: A tensorflow variable that is used while setting up the
         sparsity function
       sparsity: A tensorflow scalar variable storing the sparsity
@@ -293,8 +330,10 @@ class Pruning(object):
 
     # Pruning specification
     self._spec = spec if spec else get_pruning_hparams()
-    tf.logging.info('Pruning spec...')
+    tf.logging.vlog(0, 'Pruning spec...')
     self.print_hparams()
+
+    self.matrix_compression_spec = self._spec
 
     # Sanity check for pruning hparams
     self._validate_spec()
@@ -370,6 +409,10 @@ class Pruning(object):
     graph_global_step = global_step
     if graph_global_step is None:
       graph_global_step = tf.train.get_global_step()
+      if not graph_global_step:
+        raise ValueError(
+            'Could not get the global step. Either pass it explicitly, or '
+            'ensure that the library is called within a TF graph.')
 
     return tf.cast(graph_global_step, tf.int32)
 
@@ -397,8 +440,7 @@ class Pruning(object):
     return sparsity
 
   def _setup_last_update_step(self):
-    with tf.variable_scope(
-        self._spec.name, use_resource=self._spec.use_tpu) as scope:
+    with tf.variable_scope(self._spec.name, use_resource=True) as scope:
       try:
         last_update_step = tf.get_variable(
             'last_mask_update_step', [],
@@ -443,8 +485,7 @@ class Pruning(object):
     return block_dims_list[0]
 
   def _setup_last_gradient_update_step(self):
-    with tf.variable_scope(
-        self._spec.name, use_resource=self._spec.use_tpu) as scope:
+    with tf.variable_scope(self._spec.name, use_resource=True) as scope:
       try:
         last_gradient_update_step = tf.get_variable(
             'last_gradient_update_step', [],
@@ -931,5 +972,12 @@ class Pruning(object):
                           tf.nn.zero_fraction(gradient))
         tf.summary.histogram(gradient.op.name + '/abs.gradient', gradient)
 
+  def apply_mask(self, x, scope=''):
+    return apply_mask(x, scope, self._spec.prune_option)
+
   def print_hparams(self):
-    tf.logging.info(self._spec.to_json())
+    tf.logging.vlog(0, self._spec.to_json())
+
+  def get_spec(self):
+    """Get the spec / hparams used to create the ApplyCompression object."""
+    return self._spec

@@ -1,0 +1,38 @@
+// Copyright 2020 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// ProtoBestPractices: ignore
+
+syntax = "proto2";
+
+package automl_zero;
+
+enum HardcodedAlgorithmID {
+  // The no-op model (see NoOp function).
+  NO_OP_ALGORITHM = 0;
+
+  // A random model (see Random function).
+  RANDOM_ALGORITHM = 1;
+
+  // A stand-alone Gz model without bias.
+  LINEAR_ALGORITHM = 2;
+
+  // A stand-alone implementation of Gr~Gr model (see NeuralNet
+  // function) with default learning rate and initialization constants,
+  // and uses bias. This implementation also works with different feature sizes.
+  NEURAL_NET_ALGORITHM = 3;
+
+  // A damaged NeuralNet Algorithm used in nonlinear test in integration tests.
+  INTEGRATION_TEST_DAMAGED_NEURAL_NET_ALGORITHM = 4;
+};

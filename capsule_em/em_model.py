@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,11 +19,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import math
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from capsule_em import em_layers
 from capsule_em import simple_model
 from capsule_em import utils
-from tensorflow.contrib import layers as contrib_layers
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -45,7 +44,12 @@ def _build_capsule(input_tensor, input_atom, position_grid, num_classes):
   last_dim = FLAGS.num_prime_capsules
   if FLAGS.extra_caps > 0:
     for i in range(FLAGS.extra_caps):
-      conv_caps_act, conv_caps_center = em_layers.conv_capsule_mat(
+      if FLAGS.fast:
+        conv_function = em_layers.conv_capsule_mat_fast
+      else:
+        conv_function = em_layers.conv_capsule_mat
+
+      conv_caps_act, conv_caps_center = conv_function(
           conv_caps_center,
           conv_caps_act,
           last_dim,
@@ -58,6 +62,7 @@ def _build_capsule(input_tensor, input_atom, position_grid, num_classes):
           kernel_size=int(FLAGS.caps_kernels.split(',')[i]),
           final_beta=FLAGS.final_beta,
       )
+
       position_grid = simple_model.conv_pos(
           position_grid, int(FLAGS.caps_kernels.split(',')[i]),
           int(FLAGS.caps_strides.split(',')[i]), 'VALID')
@@ -65,7 +70,7 @@ def _build_capsule(input_tensor, input_atom, position_grid, num_classes):
       print(conv_caps_center.get_shape())
       print(conv_caps_act.get_shape())
 
-  capsule1_act = contrib_layers.flatten(conv_caps_act)
+  capsule1_act = tf.layers.flatten(conv_caps_act)
 
   position_grid = tf.squeeze(position_grid, axis=[0])
   position_grid = tf.transpose(position_grid, [1, 2, 0])

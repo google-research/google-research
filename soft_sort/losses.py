@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,13 +45,13 @@ class TopKErrorLoss(tf.losses.Loss):
     """Compute the (hard) ranks of each entry in y."""
     diff = y[:, :, tf.newaxis] - y[:, tf.newaxis, :]
     diff -= tf.eye(y.shape[-1])[tf.newaxis, :, :] * 1e9
-    s = tf.cast(diff > 0.0, dtype=tf.float32)
+    s = tf.cast(diff > 0.0, dtype=y.dtype)
     return tf.math.reduce_sum(s, axis=-1)
 
   def rescale_ranks(self, ranks):
     mu = tf.math.reduce_mean(ranks, axis=-1)
     std = tf.math.reduce_std(ranks, axis=-1)
-    n = ranks.shape[-1]
+    n = tf.cast(tf.shape(ranks)[-1], ranks.dtype)
     tgt_mu = (n - 1) / 2
     tgt_std = tf.sqrt((n - 1) * (n + 1) / 12)
     return (ranks - mu[:, tf.newaxis]) / std[:, tf.newaxis] * tgt_std + tgt_mu
@@ -75,7 +75,8 @@ class TopKErrorLoss(tf.losses.Loss):
     topk = tf.cast(self._topk, dtype=y_pred.dtype)
     num_activations = tf.shape(y_pred)[-1]
     accuracies = tf.math.minimum(
-        1.0, ranks / (tf.cast(num_activations, dtype=y_pred.dtype) - topk))
+        tf.cast(1.0, dtype=y_pred.dtype),
+        ranks / (tf.cast(num_activations, dtype=y_pred.dtype) - topk))
     # Multiply with the one hot encoding of the label to select only the soft
     # topk accuracy of the true labels.
     true_labels = tf.one_hot(tf.cast(y_true, dtype=tf.int32),
@@ -101,7 +102,7 @@ class SoftHeavisideErrorLoss(TopKErrorLoss):
     @tf.custom_gradient
     def _ranks(y):
       diff = y[:, :, tf.newaxis] - y[:, tf.newaxis, :]
-      diff -= tf.eye(y.shape[-1])[tf.newaxis, :, :] * 1e6
+      diff -= tf.eye(tf.shape(y)[-1], dtype=y.dtype)[tf.newaxis, :, :] * 1e6
       s = 1.0 / (1 + tf.math.exp(-diff / self._epsilon))
 
       def grad(dy):

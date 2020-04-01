@@ -1,4 +1,4 @@
-# Copyright 2019 The Google Research Authors.
+# Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,4 +20,4 @@ virtualenv -p python3 .
 source ./bin/activate
 
 pip install -r psycholab/requirements.txt
-python -m psycholab.tests
+python -m psycholab.game_test
