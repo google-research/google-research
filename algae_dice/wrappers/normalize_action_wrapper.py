@@ -28,7 +28,7 @@ class NormalizeBoxActionWrapper(gym.ActionWrapper):
     if not isinstance(env.action_space, spaces.Box):
       raise ValueError('env %s does not use spaces.Box.' % str(env))
     super(NormalizeBoxActionWrapper, self).__init__(env)
-    self._max_episode_steps = env._max_episode_steps  # pylint: disable=protected-access
+    self._max_episode_steps = env.max_episode_steps
 
   def action(self, action):
     # rescale the action

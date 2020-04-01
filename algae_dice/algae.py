@@ -329,12 +329,12 @@ class ALGAE(object):
 
         if discount == 1:
           critic_loss1 = tf.reduce_mean(
-              self.f(self._lambda + self.algae_alpha + target_q1 - q1)
-              - self.algae_alpha * self._lambda)
+              self.f(self._lambda + self.algae_alpha + target_q1 - q1) -
+              self.algae_alpha * self._lambda)
 
           critic_loss2 = tf.reduce_mean(
-              self.f(self._lambda + self.algae_alpha + target_q2 - q2)
-              - self.algae_alpha * self._lambda)
+              self.f(self._lambda + self.algae_alpha + target_q2 - q2) -
+              self.algae_alpha * self._lambda)
         else:
           critic_loss1 = tf.reduce_mean(
               self.f(target_q1 - q1) +
@@ -355,12 +355,11 @@ class ALGAE(object):
 
         if discount == 1:
           critic_loss = tf.reduce_mean(
-              self.f(self._lambda + self.algae_alpha + target_q - q)
-              - self.algae_alpha * self._lambda)
+              self.f(self._lambda + self.algae_alpha + target_q - q) -
+              self.algae_alpha * self._lambda)
         else:
           critic_loss = tf.reduce_mean(
-              self.f(target_q - q) +
-              (1 - discount) * init_q * self.algae_alpha)
+              self.f(target_q - q) + (1 - discount) * init_q * self.algae_alpha)
 
     critic_grads = tape.gradient(critic_loss,
                                  self.critic.variables + [self._lambda])
@@ -414,12 +413,12 @@ class ALGAE(object):
               * (target_q2 - q2))
         else:
           actor_loss1 = -tf.reduce_mean(
-              tf.stop_gradient(self.fgrad(target_q1 - q1)) *
-              (target_q1 - q1) + (1 - discount) * init_q1 * self.algae_alpha)
+              tf.stop_gradient(self.fgrad(target_q1 - q1)) * (target_q1 - q1) +
+              (1 - discount) * init_q1 * self.algae_alpha)
 
           actor_loss2 = -tf.reduce_mean(
-              tf.stop_gradient(self.fgrad(target_q2 - q2)) *
-              (target_q2 - q2) + (1 - discount) * init_q2 * self.algae_alpha)
+              tf.stop_gradient(self.fgrad(target_q2 - q2)) * (target_q2 - q2) +
+              (1 - discount) * init_q2 * self.algae_alpha)
 
         actor_loss = (actor_loss1 + actor_loss2) / 2.0
       else:
@@ -433,12 +432,12 @@ class ALGAE(object):
         if discount == 1:
           actor_loss = -tf.reduce_mean(
               tf.stop_gradient(
-                  self.fgrad(self._lambda + self.algae_alpha + target_q - q))
-              * (target_q - q))
+                  self.fgrad(self._lambda + self.algae_alpha + target_q - q)) *
+              (target_q - q))
         else:
           actor_loss = -tf.reduce_mean(
-              tf.stop_gradient(self.fgrad(target_q - q)) *
-              (target_q - q) + (1 - discount) * init_q * self.algae_alpha)
+              tf.stop_gradient(self.fgrad(target_q - q)) * (target_q - q) +
+              (1 - discount) * init_q * self.algae_alpha)
       actor_loss += keras_utils.orthogonal_regularization(self.actor.trunk)
 
     actor_grads = tape.gradient(actor_loss, self.actor.variables)
@@ -468,8 +467,8 @@ class ALGAE(object):
     Args:
       replay_buffer_iter: An tensorflow graph iteratable object for sampling
         transitions.
-      init_replay_buffer: An tensorflow graph iteratable object for
-        sampling init states.
+      init_replay_buffer: An tensorflow graph iteratable object for sampling
+        init states.
       discount: A discount used to compute returns.
       tau: A soft updates discount.
       target_entropy: A target entropy for alpha.
@@ -486,13 +485,15 @@ class ALGAE(object):
 
     critic_loss = self.fit_critic(states, actions, next_states, rewards, masks,
                                   discount, init_states)
-
+    step = 0
     self.avg_critic_loss(critic_loss)
     if tf.equal(self.critic_optimizer.iterations % self.log_interval, 0):
-      tf.summary.scalar(
-          'train/critic_loss',
-          self.avg_critic_loss.result(),
-          step=self.critic_optimizer.iterations)
+      train_measurements = [
+          ('train/critic_loss', self.avg_critic_loss.result()),
+      ]
+      for (label, value) in train_measurements:
+        tf.summary.scalar(label, value, step=step)
+
       keras_utils.my_reset_states(self.avg_critic_loss)
 
     if tf.equal(self.critic_optimizer.iterations % actor_update_freq, 0):
@@ -509,34 +510,19 @@ class ALGAE(object):
       self.avg_alpha(self.alpha)
       self.avg_lambda(self._lambda)
       if tf.equal(self.actor_optimizer.iterations % self.log_interval, 0):
-        tf.summary.scalar(
-            'train/actor_loss',
-            self.avg_actor_loss.result(),
-            step=self.actor_optimizer.iterations)
+        train_measurements = [
+            ('train/actor_loss', self.avg_actor_loss.result()),
+            ('train/alpha_loss', self.avg_alpha_loss.result()),
+            ('train/actor entropy', self.avg_actor_entropy.result()),
+            ('train/alpha', self.avg_alpha.result()),
+            ('train/lambda', self.avg_lambda.result()),
+        ]
+        for (label, value) in train_measurements:
+          tf.summary.scalar(label, value, step=self.critic_optimizer.iterations)
         keras_utils.my_reset_states(self.avg_actor_loss)
-
-        tf.summary.scalar(
-            'train/alpha_loss',
-            self.avg_alpha_loss.result(),
-            step=self.actor_optimizer.iterations)
         keras_utils.my_reset_states(self.avg_alpha_loss)
-
-        tf.summary.scalar(
-            'train/actor entropy',
-            self.avg_actor_entropy.result(),
-            step=self.actor_optimizer.iterations)
         keras_utils.my_reset_states(self.avg_actor_entropy)
-
-        tf.summary.scalar(
-            'train/alpha',
-            self.avg_alpha.result(),
-            step=self.actor_optimizer.iterations)
         keras_utils.my_reset_states(self.avg_alpha)
-
-        tf.summary.scalar(
-            'train/lambda',
-            self.avg_lambda.result(),
-            step=self.actor_optimizer.iterations)
         keras_utils.my_reset_states(self.avg_lambda)
 
   def evaluate(self, env, num_episodes=10, max_episode_steps=None):

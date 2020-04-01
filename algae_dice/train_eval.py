@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import print_function
+import collections
 import json
 import os
 import random
@@ -55,7 +56,7 @@ flags.DEFINE_float('tau', 0.005,
 flags.DEFINE_integer('num_updates_per_env_step', 1,
                      'How many train steps per env step.')
 flags.DEFINE_float('f_exponent', 1.5, 'Exponent for f.')
-flags.DEFINE_integer('max_timesteps', int(4e6), 'Max timesteps to train.')
+flags.DEFINE_integer('max_timesteps', int(5e5), 'Max timesteps to train.')
 flags.DEFINE_integer('num_random_actions', int(1e4),
                      'Fill replay buffer with N random actions.')
 flags.DEFINE_integer('start_training_timesteps', int(1e3),
@@ -63,9 +64,10 @@ flags.DEFINE_integer('start_training_timesteps', int(1e3),
 flags.DEFINE_string('save_dir', None, 'Directory to save results to.')
 flags.DEFINE_integer('log_interval', int(1e3), 'Log every N timesteps.')
 flags.DEFINE_integer('eval_interval', int(5e3), 'Evaluate every N timesteps.')
-flags.DEFINE_float('target_entropy', None,
-                   '(optional) target_entropy for training actor. If None, '
-                   '-env.action_space.shape[0] is used.')
+flags.DEFINE_float(
+    'target_entropy', None,
+    '(optional) target_entropy for training actor. If None, '
+    '-env.action_space.shape[0] is used.')
 flags.DEFINE_integer('num_stack_frames', 1,
                      '(optional) wrap env to stack frames (use 1 to disable).')
 
@@ -84,9 +86,18 @@ def _update_pbar_msg(pbar, total_timesteps):
     pbar.set_description(msg)
 
 
+def _write_measurements(summary_writer, labels_and_values, step):
+  """Write all the measurements."""
+
+  # Write TF Summaries Measurements.
+  with summary_writer.as_default():
+    for (label, value) in labels_and_values:
+      tf.summary.scalar(label, value, step=step)
+
+
+
 def main(_):
   tf.enable_v2_behavior()
-
   tf.random.set_seed(FLAGS.seed)
   np.random.seed(FLAGS.seed)
   random.seed(FLAGS.seed)
@@ -123,8 +134,10 @@ def main(_):
       init_spec, batch_size=1, max_length=FLAGS.max_timesteps)
 
   hparam_str_dict = dict(seed=FLAGS.seed, env=FLAGS.env_name)
-  hparam_str = ','.join(['%s=%s' % (k, str(hparam_str_dict[k])) for k in
-                         sorted(hparam_str_dict.keys())])
+  hparam_str = ','.join([
+      '%s=%s' % (k, str(hparam_str_dict[k]))
+      for k in sorted(hparam_str_dict.keys())
+  ])
   summary_writer = tf.summary.create_file_writer(
       os.path.join(FLAGS.save_dir, 'tb', hparam_str))
 
@@ -159,20 +172,22 @@ def main(_):
   eval_returns = []
 
   with tqdm(total=FLAGS.max_timesteps, desc='') as pbar:
+    # Final return is the average of the last 10 measurmenets.
+    final_returns = collections.deque(maxlen=10)
+    final_timesteps = 0
     while total_timesteps < FLAGS.max_timesteps:
       _update_pbar_msg(pbar, total_timesteps)
       if done:
 
         if episode_timesteps > 0:
           current_time = time.time()
-          with summary_writer.as_default():
-            tf.summary.scalar(
-                'train/returns', episode_return, step=total_timesteps)
-            tf.summary.scalar(
-                'train/FPS',
-                episode_timesteps / (current_time - previous_time),
-                step=total_timesteps)
 
+          train_measurements = [
+              ('train/returns', episode_return),
+              ('train/FPS', episode_timesteps / (current_time - previous_time)),
+          ]
+          _write_measurements(summary_writer, train_measurements,
+                              total_timesteps)
         obs = env.reset()
         episode_return = 0
         episode_timesteps = 0
@@ -188,9 +203,9 @@ def main(_):
 
       if total_timesteps >= FLAGS.start_training_timesteps:
         with summary_writer.as_default():
-          target_entropy = (
-              -env.action_space.shape[0] if FLAGS.target_entropy is None else
-              FLAGS.target_entropy)
+          target_entropy = (-env.action_space.shape[0]
+                            if FLAGS.target_entropy is None else
+                            FLAGS.target_entropy)
           for _ in range(FLAGS.num_updates_per_env_step):
             rl_algo.train(
                 replay_buffer_iter,
@@ -233,15 +248,24 @@ def main(_):
         np.save(fin, np.array(eval_returns))
         fin.close()
 
-        with summary_writer.as_default():
-          tf.summary.scalar(
-              'eval/average returns', average_returns, step=total_timesteps)
-          tf.summary.scalar(
-              'eval/average episode length',
-              evaluation_timesteps,
-              step=total_timesteps)
+        eval_measurements = [
+            ('eval/average returns', average_returns),
+            ('eval/average episode length', evaluation_timesteps),
+        ]
+        # TODO(sandrafaust) Make this average of the last N.
+        final_returns.append(average_returns)
+        final_timesteps = evaluation_timesteps
+
+        _write_measurements(summary_writer, eval_measurements, total_timesteps)
+
         logging.info('Eval: ave returns=%f, ave episode length=%f',
                      average_returns, evaluation_timesteps)
+    # Final measurement.
+    final_measurements = [
+        ('final/average returns', sum(final_returns) / len(final_returns)),
+        ('final/average episode length', final_timesteps),
+    ]
+    _write_measurements(summary_writer, final_measurements, total_timesteps)
 
 
 if __name__ == '__main__':
