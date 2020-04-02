@@ -24,8 +24,8 @@ static void BM_FrequentAdd(benchmark::State& state) {
 }
 
 static void BM_FrequentFallbackAdd(benchmark::State& state) {
-  sketch::Frequent_Fallback sketch(/*heap_size=*/2000, /*hash_count=*/5,
-                                   /*hash_size=*/2048);
+  sketch::FrequentFallback sketch(/*heap_size=*/2000, /*hash_count=*/5,
+                                  /*hash_size=*/2048);
   Add(state, &sketch);
 }
 

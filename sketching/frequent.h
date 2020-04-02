@@ -79,11 +79,11 @@ class Frequent : public Sketch {
   float delete_threshold_ = 0;
 };
 
-class Frequent_Fallback : public Frequent {
+class FrequentFallback : public Frequent {
  public:
-  Frequent_Fallback(uint heap_size, uint hash_count, uint hash_size);
+  FrequentFallback(uint heap_size, uint hash_count, uint hash_size);
 
-  Frequent_Fallback(const Frequent_Fallback& other);
+  FrequentFallback(const FrequentFallback& other);
 
   uint Size() const override;
 

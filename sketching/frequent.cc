@@ -133,41 +133,39 @@ bool Frequent::CompatibleMissing(const Frequent& other) const { return true; }
 
 void Frequent::MergeMissing(const Frequent& other) {}
 
-Frequent_Fallback::Frequent_Fallback(uint heap_size, uint hash_count,
-                                     uint hash_size)
+FrequentFallback::FrequentFallback(uint heap_size, uint hash_count,
+                                   uint hash_size)
     : Frequent(heap_size), cm_(CountMinCU(hash_count, hash_size)) {}
 
-Frequent_Fallback::Frequent_Fallback(const Frequent_Fallback& other)
+FrequentFallback::FrequentFallback(const FrequentFallback& other)
     : Frequent(other), cm_(other.cm_) {}
 
-uint Frequent_Fallback::Size() const {
-  return Frequent::Size() + cm_.Size();
-}
+uint FrequentFallback::Size() const { return Frequent::Size() + cm_.Size(); }
 
-void Frequent_Fallback::ResetMissing() {
+void FrequentFallback::ResetMissing() {
   Frequent::ResetMissing();
   cm_.Reset();
 }
 
-float Frequent_Fallback::EstimateMissing(uint item) const {
+float FrequentFallback::EstimateMissing(uint item) const {
   return cm_.Estimate(item);
 }
 
-void Frequent_Fallback::UpdateMissing(uint item, float value) {
+void FrequentFallback::UpdateMissing(uint item, float value) {
   cm_.Update(item, value);
 }
 
-bool Frequent_Fallback::CompatibleMissing(const Frequent& other) const {
+bool FrequentFallback::CompatibleMissing(const Frequent& other) const {
   if (!Frequent::CompatibleMissing(other)) return false;
-  const Frequent_Fallback& other_cast =
-      dynamic_cast<const Frequent_Fallback&>(other);
+  const FrequentFallback& other_cast =
+      dynamic_cast<const FrequentFallback&>(other);
   return cm_.Compatible(other_cast.cm_);
 }
 
-void Frequent_Fallback::MergeMissing(const Frequent& other) {
+void FrequentFallback::MergeMissing(const Frequent& other) {
   Frequent::MergeMissing(other);
-  const Frequent_Fallback& other_cast =
-      dynamic_cast<const Frequent_Fallback&>(other);
+  const FrequentFallback& other_cast =
+      dynamic_cast<const FrequentFallback&>(other);
   cm_.Merge(other_cast.cm_);
 }
 

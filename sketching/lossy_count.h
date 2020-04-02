@@ -82,12 +82,12 @@ class LossyCount : public Sketch {
   void MergeCounters(float threshold);
 };
 
-class LossyCount_Fallback : public LossyCount {
+class LossyCountFallback : public LossyCount {
  public:
-  explicit LossyCount_Fallback(uint window_size, uint hash_count,
-                               uint hash_size);
+  explicit LossyCountFallback(uint window_size, uint hash_count,
+                              uint hash_size);
 
-  ~LossyCount_Fallback() override = default;
+  ~LossyCountFallback() override = default;
 
   unsigned int Size() const override;
 
