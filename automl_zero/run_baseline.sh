@@ -71,7 +71,7 @@ bazel run -c opt \
       mutation_types: [ALTER_PARAM_MUTATION_TYPE, RANDOMIZE_COMPONENT_FUNCTION_MUTATION_TYPE, INSERT_INSTRUCTION_MUTATION_TYPE, REMOVE_INSTRUCTION_MUTATION_TYPE] \
     } \
     mutate_prob: 0.9 \
-    progress_every: 100 \
+    progress_every: 10000 \
     " \
   --final_tasks="
     tasks { \
