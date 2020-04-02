@@ -100,6 +100,19 @@ cc_test(
     ],
 )
 
+cc_binary(
+    name = "lossy_weight_benchmark",
+    testonly = 1,
+    srcs = ["lossy_weight_benchmark.cc"],
+    deps = [
+        ":benchmark_utils",
+        ":lossy_weight",
+        ":sketch",
+        ":utils",
+        "@com_google_benchmark//:benchmark_main",
+    ],
+)
+
 cc_library(
     name = "frequent",
     srcs = ["frequent.cc"],
