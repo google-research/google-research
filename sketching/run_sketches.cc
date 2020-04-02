@@ -145,7 +145,8 @@ void TestCounts() {
       "LC", absl::make_unique<LossyCount>(LossyCount(
           (int)(1.0 / FLAGS_epsilon))));
   sketches.emplace_back(
-      "LC_FB", absl::make_unique<LossyCount_Fallback>(LossyCount_Fallback(
+      "LC_FB",
+      absl::make_unique<LossyCountFallback>(LossyCountFallback(
           (int)(1.0 / FLAGS_epsilon), FLAGS_hash_count, FLAGS_hash_size)));
   sketches.emplace_back(
       "LW", absl::make_unique<LossyWeight>(LossyWeight(
@@ -154,8 +155,8 @@ void TestCounts() {
   sketches.emplace_back(
       "Freq", absl::make_unique<Frequent>(Frequent(FLAGS_frequent_size)));
   sketches.emplace_back(
-      "Freq_FB", absl::make_unique<Frequent_Fallback>(Frequent_Fallback(
-      FLAGS_frequent_size, FLAGS_hash_count, FLAGS_hash_size)));
+      "Freq_FB", absl::make_unique<FrequentFallback>(FrequentFallback(
+                     FLAGS_frequent_size, FLAGS_hash_count, FLAGS_hash_size)));
 
   std::vector<SketchStats> sketch_stats;
   for (const auto& [name, sketch] : sketches) {

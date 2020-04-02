@@ -188,41 +188,40 @@ void LossyCount::MergeCounters(float threshold) {
   current_ = std::move(next_current);
 }
 
-LossyCount_Fallback::LossyCount_Fallback(uint window_size, uint hash_count,
-                                         uint hash_size)
+LossyCountFallback::LossyCountFallback(uint window_size, uint hash_count,
+                                       uint hash_size)
     : LossyCount(window_size), cm_(CountMinCU(hash_count, hash_size)) {}
 
-float LossyCount_Fallback::EstimateMissing(uint k) const {
+float LossyCountFallback::EstimateMissing(uint k) const {
   return cm_.Estimate(k);
 }
 
-void LossyCount_Fallback::MergeMissing(const LossyCount& other) {
+void LossyCountFallback::MergeMissing(const LossyCount& other) {
   LossyCount::MergeMissing(other);
-  const LossyCount_Fallback& other_cast =
-      dynamic_cast<const LossyCount_Fallback&>(other);
+  const LossyCountFallback& other_cast =
+      dynamic_cast<const LossyCountFallback&>(other);
   cm_.Merge(other_cast.cm_);
 }
 
-bool LossyCount_Fallback::CompatibleMissing(const LossyCount& other) const {
+bool LossyCountFallback::CompatibleMissing(const LossyCount& other) const {
   if (!LossyCount::CompatibleMissing(other)) return false;
-  const LossyCount_Fallback& other_cast =
-      dynamic_cast<const LossyCount_Fallback&>(other);
+  const LossyCountFallback& other_cast =
+      dynamic_cast<const LossyCountFallback&>(other);
   return cm_.Compatible(other_cast.cm_);
 }
 
-void LossyCount_Fallback::ResetMissing() {
+void LossyCountFallback::ResetMissing() {
   LossyCount::ResetMissing();
   cm_.Reset();
 }
 
-void LossyCount_Fallback::Forget(
-    const std::vector<IntFloatPair>& forget_pairs) {
+void LossyCountFallback::Forget(const std::vector<IntFloatPair>& forget_pairs) {
   for (const auto& [item, freq] : forget_pairs) {
     cm_.Update(item, freq);
   }
 }
 
-unsigned int LossyCount_Fallback::Size() const {
+unsigned int LossyCountFallback::Size() const {
   return LossyCount::Size() + cm_.Size();
 }
 
