@@ -163,11 +163,11 @@ IntegerT MissingDataInComponentFunction(
     const vector<shared_ptr<const Instruction>>& component_function1,
     const vector<shared_ptr<const Instruction>>& component_function2) {
   std::unordered_set<IntegerT> data2;
-  for (shared_ptr<const Instruction> instruction : component_function2) {
+  for (const shared_ptr<const Instruction>& instruction : component_function2) {
     data2.insert(instruction->GetIntegerData());
   }
   vector<IntegerT> missing;
-  for (shared_ptr<const Instruction> instruction : component_function1) {
+  for (const shared_ptr<const Instruction>& instruction : component_function1) {
     const IntegerT data1_value = instruction->GetIntegerData();
     if (data2.find(data1_value) == data2.end()) {
       missing.insert(missing.end(), data1_value);
