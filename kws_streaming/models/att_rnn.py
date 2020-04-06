@@ -61,19 +61,19 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--rnn_type',
       type=str,
-      default='lstm',
+      default='gru',
       help='RNN type: it can be gru or lstm',
   )
   parser_nn.add_argument(
       '--rnn_units',
       type=int,
-      default=64,
+      default=128,
       help='units number in RNN cell',
   )
   parser_nn.add_argument(
       '--dropout1',
       type=float,
-      default=0.5,
+      default=0.1,
       help='Percentage of data dropped',
   )
   parser_nn.add_argument(

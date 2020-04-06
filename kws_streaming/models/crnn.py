@@ -27,50 +27,50 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--cnn_filters',
       type=str,
-      default='64,64,64,64,64,64,128',
+      default='16,16',
       help='Number of output filters in the convolution layers',
   )
   parser_nn.add_argument(
       '--cnn_kernel_size',
       type=str,
-      default='(3,3),(5,3),(5,3),(5,3),(5,2),(5,1),(5,1)',
+      default='(3,3),(5,3)',
       help='Heights and widths of the 2D convolution window',
   )
   parser_nn.add_argument(
       '--cnn_act',
       type=str,
-      default="'relu','selu','selu','selu','selu','selu','selu'",
+      default="'relu','relu'",
       help='Activation function in the convolution layers',
   )
   parser_nn.add_argument(
       '--cnn_dilation_rate',
       type=str,
-      default='(1,1),(1,1),(2,1),(1,1),(2,1),(1,1),(2,1)',
+      default='(1,1),(1,1)',
       help='Dilation rate to use for dilated convolutions',
   )
   parser_nn.add_argument(
       '--cnn_strides',
       type=str,
-      default='(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1)',
+      default='(1,1),(1,1)',
       help='Strides of the convolution layers along the height and width',
   )
   parser_nn.add_argument(
       '--gru_units',
       type=str,
-      default='512',
+      default='256',
       help='Output space dimensionality of gru layer',
   )
   parser_nn.add_argument(
       '--return_sequences',
       type=str,
-      default='1',
+      default='0',
       help='Whether to return the last output in the output sequence,'
       'or the full sequence',
   )
   parser_nn.add_argument(
       '--stateful',
       type=int,
-      default='0',
+      default='1',
       help='If True, the last state for each sample at index i'
       'in a batch will be used as initial state for the sample '
       'of index i in the following batch',
@@ -84,13 +84,13 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--units1',
       type=str,
-      default='',
+      default='128,256',
       help='Number of units in the last set of hidden layers',
   )
   parser_nn.add_argument(
       '--act1',
       type=str,
-      default='',
+      default="'linear','relu'",
       help='Activation function of the last set of hidden layers',
   )
 

@@ -176,6 +176,7 @@ ds_cnn \
 --bn_center 1 \
 --bn_scale 0 \
 --bn_renorm 0 \
+--dw2_dilation_rate '(1,1),(1,1),(1,1),(1,1),(1,1)' \
 --dw2_kernel_size '(3,3),(3,3),(3,3),(3,3),(3,3)' \
 --dw2_strides '(2,2),(1,1),(1,1),(1,1),(1,1)' \
 --dw2_padding "same" \
