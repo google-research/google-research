@@ -27,7 +27,7 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--lstm_units',
       type=str,
-      default='512',
+      default='500',
       help='Output space dimensionality of lstm layer ',
   )
   parser_nn.add_argument(
@@ -40,7 +40,7 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--stateful',
       type=int,
-      default='0',
+      default='1',
       help='If True, the last state for each sample at index i'
       'in a batch will be used as initial state for the sample '
       'of index i in the following batch',
@@ -48,7 +48,7 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--num_proj',
       type=str,
-      default='256',
+      default='200',
       help='The output dimensionality for the projection matrices.',
   )
   parser_nn.add_argument(
@@ -60,7 +60,7 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--dropout1',
       type=float,
-      default=0.1,
+      default=0.3,
       help='Percentage of data dropped',
   )
   parser_nn.add_argument(

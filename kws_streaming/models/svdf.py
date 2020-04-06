@@ -40,7 +40,7 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--svdf_act',
       type=str,
-      default='relu,selu,selu,selu,selu,selu',
+      default="'relu','relu','relu','relu','relu','relu'",
       help='Number of units in the first set of hidden layers',
   )
   parser_nn.add_argument(
@@ -52,7 +52,7 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--svdf_dropout',
       type=str,
-      default='0.5,0.5,0.5,0.5,0.5,0.5',
+      default='0.0,0.0,0.0,0.0,0.0,0.0',
       help='Percentage of data dropped in svdf layers',
   )
   parser_nn.add_argument(
@@ -64,7 +64,7 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--dropout1',
       type=float,
-      default=0.5,
+      default=0.0,
       help='Percentage of data dropped after svdf layers',
   )
   parser_nn.add_argument(

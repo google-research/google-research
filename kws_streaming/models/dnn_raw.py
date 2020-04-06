@@ -26,13 +26,13 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--units1',
       type=str,
-      default='32',
+      default='64,128',
       help='List of units in the first set of hidden layers',
   )
   parser_nn.add_argument(
       '--act1',
       type=str,
-      default="'relu'",
+      default="'relu','relu'",
       help='List of activation functions of the first set hidden layers',
   )
   parser_nn.add_argument(
@@ -56,13 +56,13 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--units2',
       type=str,
-      default='256,256',
+      default='128,256',
       help='List of units in the second set of hidden layers',
   )
   parser_nn.add_argument(
       '--act2',
       type=str,
-      default="'relu','relu'",
+      default="'linear','relu'",
       help='List of activation functions of the second set of hidden layers',
   )
 

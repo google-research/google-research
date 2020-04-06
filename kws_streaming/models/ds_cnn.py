@@ -36,13 +36,13 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--cnn1_kernel_size',
       type=str,
-      default='10,1',
+      default='3,3',
       help='Heights and widths of the first 2D convolution',
   )
   parser_nn.add_argument(
       '--cnn1_dilation_rate',
       type=str,
-      default='1,1',
+      default='2,1',
       help='Dilation rate of the first 2D convolution',
   )
   parser_nn.add_argument(
@@ -60,7 +60,7 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--cnn1_filters',
       type=int,
-      default=276,
+      default=300,
       help='Number of output filters in the first 2D convolution layers',
   )
   parser_nn.add_argument(
@@ -72,7 +72,7 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--bn_momentum',
       type=float,
-      default=0.96,
+      default=0.98,
       help='Momentum for the moving average',
   )
   parser_nn.add_argument(
@@ -99,13 +99,13 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--dw2_kernel_size',
       type=str,
-      default='(10,2),(5,2),(5,3),(5,3),(6,3)',
+      default='(3,3),(3,3),(10,3),(5,3),(10,3)',
       help='Height and width of the 2D Depthwise convolutions',
   )
   parser_nn.add_argument(
       '--dw2_dilation_rate',
       type=str,
-      default='(1,1),(1,1),(1,1),(1,1),(1,1)',
+      default='(1,1),(2,2),(1,1),(2,2),(1,1)',
       help='Dilation rate of the 2D Depthwise convolutions',
   )
   parser_nn.add_argument(
@@ -129,7 +129,7 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--cnn2_filters',
       type=str,
-      default='276,276,276,276,276',
+      default='300,300,300,300,300',
       help='Number of output filters in 1x1 convolution layers',
   )
   parser_nn.add_argument(
@@ -141,7 +141,7 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--dropout1',
       type=float,
-      default=0.0,
+      default=0.2,
       help='Percentage of data dropped',
   )
 

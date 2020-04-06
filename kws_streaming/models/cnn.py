@@ -26,19 +26,19 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--cnn_filters',
       type=str,
-      default='64,64,64,64,64,64,128',
+      default='64,64,64,64,128,64,128',
       help='Number of output filters in the convolution layers',
   )
   parser_nn.add_argument(
       '--cnn_kernel_size',
       type=str,
-      default='(3,3),(5,3),(5,3),(5,3),(5,2),(5,1),(5,1)',
+      default='(3,3),(5,3),(5,3),(5,3),(5,2),(5,1),(10,1)',
       help='Heights and widths of the 2D convolution window',
   )
   parser_nn.add_argument(
       '--cnn_act',
       type=str,
-      default="'relu','selu','selu','selu','selu','selu','selu'",
+      default="'relu','relu','relu','relu','relu','relu','relu'",
       help='Activation function in the convolution layers',
   )
   parser_nn.add_argument(
@@ -68,7 +68,7 @@ def model_parameters(parser_nn):
   parser_nn.add_argument(
       '--act2',
       type=str,
-      default="'linear','selu'",
+      default="'linear','relu'",
       help='Activation function of the last set of hidden layers',
   )
 

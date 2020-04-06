@@ -24,10 +24,10 @@ from kws_streaming.models.utils import parse
 def model_parameters(parser_nn):
   """DNN model parameters."""
   parser_nn.add_argument(
-      '--units1', type=str, default='32',
+      '--units1', type=str, default='64,128',
       help='List of units in the first set of hidden layers',)
   parser_nn.add_argument(
-      '--act1', type=str, default="'relu'",
+      '--act1', type=str, default="'relu','relu'",
       help='List of activation functions of the first set hidden layers',)
   parser_nn.add_argument(
       '--pool_size', type=int, default=2,
@@ -39,10 +39,10 @@ def model_parameters(parser_nn):
       '--dropout1', type=float, default=0.1,
       help='Percentage of data dropped',)
   parser_nn.add_argument(
-      '--units2', type=str, default='256,256',
+      '--units2', type=str, default='128,256',
       help='List of units in the second set of hidden layers',)
   parser_nn.add_argument(
-      '--act2', type=str, default="'relu','relu'",
+      '--act2', type=str, default="'linear','relu'",
       help='List of activation functions of the second set of hidden layers',)
 
 
