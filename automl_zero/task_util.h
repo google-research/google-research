@@ -157,7 +157,7 @@ struct ProjectedBinaryClassificationTaskCreator {
       RandomGenerator task_gen(&task_bit_gen);
 
       std::set<std::pair<IntegerT, IntegerT>> held_out_pairs_set;
-      for (ClassPair class_pair : task_spec.held_out_pairs()) {
+      for (const ClassPair& class_pair : task_spec.held_out_pairs()) {
         held_out_pairs_set.insert(std::pair<IntegerT, IntegerT>(
             std::min(class_pair.positive_class(),
                      class_pair.negative_class()),
@@ -201,6 +201,9 @@ struct ProjectedBinaryClassificationTaskCreator {
     std::string full_path = path + "/" + filename;
     ScalarLabelDataset saved_dataset;
     std::ifstream is(full_path, std::ifstream::binary);
+    CHECK(is.good()) << "No data found at " << full_path
+        << (". Please follow the README to generate "
+            "the projected binary datasets first.") << std::endl;
     if (is.good()) {
       std::string read_buffer((std::istreambuf_iterator<char>(is)),
                               std::istreambuf_iterator<char>());
@@ -212,11 +215,14 @@ struct ProjectedBinaryClassificationTaskCreator {
 
     // Check there is enough data saved in the sstable.
     CHECK_GE(saved_dataset.train_features_size(),
-             buffer->train_features_.size());
+             buffer->train_features_.size())
+        << "Not enough training examples in " << full_path << std::endl;
     CHECK_GE(saved_dataset.train_labels_size(),
-             buffer->train_labels_.size());
+             buffer->train_labels_.size())
+         << "Not enough training labels in " << full_path << std::endl;
     CHECK_EQ(features_size,
-             saved_dataset.train_features(0).features_size());
+             saved_dataset.train_features(0).features_size())
+        << "Incorrect feature size in " << full_path << std::endl;
 
     for (IntegerT k = 0; k < buffer->train_features_.size(); ++k)  {
       for (IntegerT i_dim = 0; i_dim < F; ++i_dim) {

@@ -15,7 +15,7 @@
 #!/bin/bash
 
 
-DATA_DIR=$(pwd)/binary_cifar10_data/
+DATA_DIR=$(pwd)/unit_test_data/
 
 # First generate the data by running the following command.
 python generate_datasets.py --data_dir="${DATA_DIR}" \
