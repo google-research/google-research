@@ -24,8 +24,8 @@ static void BM_LossyCountAdd(benchmark::State& state) {
 }
 
 static void BM_LossyCountFallbackAdd(benchmark::State& state) {
-  sketch::LossyCount_Fallback sketch(/*window_size=*/2000, /*hash_count=*/5,
-                                     /*hash_size=*/2048);
+  sketch::LossyCountFallback sketch(/*window_size=*/2000, /*hash_count=*/5,
+                                    /*hash_size=*/2048);
   Add(state, &sketch);
 }
 
