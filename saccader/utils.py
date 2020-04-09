@@ -111,7 +111,8 @@ def add_histogram_summary(tensor):
 
 def position_channels(images):
   """Constructs two channels with position information."""
-  batch_size, h, w = images.shape.as_list()[0:3]
+  batch_size = tf.shape(images)[0]
+  _, h, w = images.shape.as_list()[:3]
   pos_h = tf.tile(tf.linspace(-1., 1., h)[:, tf.newaxis],
                   [1, w])[tf.newaxis, :, :, tf.newaxis]
 
@@ -301,7 +302,8 @@ def extract_glimpse(images, size, offsets):
   Returns:
     A Tensor of type float32.
   """
-  batch_size, height, width, num_channels = images.shape.as_list()
+  batch_size = tf.shape(images)[0]
+  _, height, width, num_channels = images.shape.as_list()
   offsets = tf.cast(offsets, dtype=tf.float32)
 
   # Compute the coordinates of the top left of each glimpse.
@@ -416,7 +418,7 @@ def batch_gather_nd(x, indices, axis):
   dims = [0, axis] + list(set(range(1, n_dims)) - set((axis,)))
   indices = tf.cast(indices, dtype=tf.int32)
   indices_nd = tf.stack(
-      (tf.range(int(x.shape[0]), dtype=tf.int32), indices), 1)
+      (tf.range(tf.shape(x)[0], dtype=tf.int32), indices), 1)
   return tf.gather_nd(tf.transpose(x, dims), indices_nd)
 
 
@@ -438,7 +440,8 @@ def sort2d(tensor2d,
     sorted_ref_indices: 3D Tensor of size (first_k, batch_size, 2) with
       ref_indices sorted order based on the order of the input (tensor2d).
   """
-  batch_size, height, width = tensor2d.shape.as_list()
+  _, height, width = tensor2d.shape.as_list()
+  batch_size = tf.shape(tensor2d)[0]
   first_k = min(first_k, height*width)
   tensor2d_reshaped = tf.reshape(
       tensor2d, [batch_size, height*width])
@@ -505,7 +508,8 @@ def onehot2d(input_tensor, offsets, dtype=tf.float32):
   Returns:
     A Tensor of type float32.
   """
-  batch_size, height, width, _ = input_tensor.shape.as_list()
+  batch_size = tf.shape(input_tensor)[0]
+  _, height, width, _ = input_tensor.shape.as_list()
   offsets = tf.cast(offsets, dtype=tf.float32)
   indices_height, indices_width = normalized_locations_to_indices(
       offsets, height, width)
@@ -518,7 +522,8 @@ def onehot2d(input_tensor, offsets, dtype=tf.float32):
 
 def softmax2d(input_tensor):
   """Applies softmax to input_trensor across 2D plain (i.e., axis=[1,2])."""
-  batch_size, height, width, channels = input_tensor.shape.as_list()
+  batch_size = tf.shape(input_tensor)[0]
+  _, height, width, channels = input_tensor.shape.as_list()
   reshaped_tensor = tf.reshape(
       input_tensor, (batch_size, height*width, channels))
   return tf.reshape(
@@ -538,7 +543,7 @@ def patches_masks(locations_t, image_size, patch_size):
     masks: 4-D image tensor with patch masks.
   """
   num_times = len(locations_t)
-  batch_size = locations_t[0].shape.as_list()[0]
+  batch_size = tf.shape(locations_t[0])[0]
   def _helper(offsets):
     """Helper function."""
     mask = tf.ones([patch_size, patch_size, 1])
