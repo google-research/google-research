@@ -21,7 +21,9 @@ from kws_streaming.layers import magnitude_rdft
 from kws_streaming.layers import magnitude_rdft_mel
 from kws_streaming.layers import mel_spectrogram
 from kws_streaming.layers.compat import tf
+from kws_streaming.layers.compat import tf1
 from kws_streaming.layers.modes import Modes
+tf1.disable_eager_execution()
 
 
 class MagnitudeRDFTmelTest(tf.test.TestCase, parameterized.TestCase):

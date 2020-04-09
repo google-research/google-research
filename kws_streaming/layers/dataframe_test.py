@@ -18,9 +18,11 @@
 import numpy as np
 from kws_streaming.layers import dataframe
 from kws_streaming.layers.compat import tf
+from kws_streaming.layers.compat import tf1
 from kws_streaming.layers.modes import Modes
 import kws_streaming.layers.test_utils as tu
 from kws_streaming.models import utils
+tf1.disable_eager_execution()
 
 
 class DataFrameTest(tu.FrameTestBase):

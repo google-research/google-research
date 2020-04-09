@@ -26,6 +26,7 @@ from absl.testing import parameterized
 import tensorflow.compat.v1 as tf
 from kws_streaming.train import model_flags
 from kws_streaming.train import train
+tf.disable_eager_execution()
 
 
 FLAGS = flags.FLAGS

@@ -18,6 +18,8 @@
 import numpy as np
 from kws_streaming.layers import magnitude_rdft
 from kws_streaming.layers.compat import tf
+from kws_streaming.layers.compat import tf1
+tf1.disable_eager_execution()
 
 
 class MagnitudeRDFTTest(tf.test.TestCase):

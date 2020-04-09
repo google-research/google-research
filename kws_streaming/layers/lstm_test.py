@@ -20,7 +20,9 @@ from absl.testing import parameterized
 import numpy as np
 from kws_streaming.layers import lstm
 from kws_streaming.layers.compat import tf
+from kws_streaming.layers.compat import tf1
 from kws_streaming.layers.modes import Modes
+tf1.disable_eager_execution()
 
 
 class LSTMTest(tf.test.TestCase, parameterized.TestCase):

@@ -18,7 +18,9 @@
 import numpy as np
 from kws_streaming.layers import preemphasis
 from kws_streaming.layers.compat import tf
+from kws_streaming.layers.compat import tf1
 import kws_streaming.layers.test_utils as tu
+tf1.disable_eager_execution()
 
 
 class PreemphasisTest(tu.FrameTestBase):

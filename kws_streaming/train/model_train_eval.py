@@ -121,6 +121,7 @@ import kws_streaming.models.ds_cnn as ds_cnn
 import kws_streaming.models.gru as gru
 import kws_streaming.models.lstm as lstm
 import kws_streaming.models.svdf as svdf
+from kws_streaming.models.utils import parse
 from kws_streaming.train import base_parser
 from kws_streaming.train import model_flags
 from kws_streaming.train import train
@@ -190,56 +191,79 @@ def main(_):
                               optimizations=optimizations)
     test.tflite_non_stream_model_accuracy(flags, folder_name, file_name)
 
-    # ---------------- TF streaming model accuracy evaluation ----------------
-    # Streaming model (with external state) evaluation using TF with state reset
-    if not opt_name:
-      logging.info('run TF evalution only without optimization/quantization')
+    # these models are using bi-rnn, so they are non streamable by default
+    non_streamable_models = {'att_mh_rnn', 'att_rnn'}
+
+    model_is_streamable = True
+    if flags.model_name in non_streamable_models:
+      model_is_streamable = False
+    # below models can use striding in time dimension,
+    # but this is currently unsupported
+    elif flags.model_name == 'cnn':
+      for strides in parse(flags.cnn_strides):
+        if strides[0] > 1:
+          model_is_streamable = False
+          break
+    elif flags.model_name == 'ds_cnn':
+      if parse(flags.cnn1_strides)[0] > 1:
+        model_is_streamable = False
+      for strides in parse(flags.dw2_strides):
+        if strides[0] > 1:
+          model_is_streamable = False
+          break
+
+    # if model can be streamed, then run conversion/evaluation in streaming mode
+    if model_is_streamable:
+      # ---------------- TF streaming model accuracy evaluation ----------------
+      # Streaming model with external state evaluation using TF with state reset
+      if not opt_name:
+        logging.info('run TF evalution only without optimization/quantization')
+        try:
+          folder_name = 'tf'
+          test.tf_stream_state_external_model_accuracy(
+              flags,
+              folder_name,
+              accuracy_name='stream_state_external_model_accuracy_sub_set_reset1.txt',
+              reset_state=True)  # with state reset between test sequences
+
+          # Streaming (with external state) evaluation using TF no state reset
+          test.tf_stream_state_external_model_accuracy(
+              flags,
+              folder_name,
+              accuracy_name='stream_state_external_model_accuracy_sub_set_reset0.txt',
+              reset_state=False)  # without state reset
+
+          # Streaming (with internal state) evaluation using TF no state reset
+          test.tf_stream_state_internal_model_accuracy(flags, folder_name)
+        except ValueError as e:
+          logging.error('FAILED to run TF streaming: %s', e)
+
+      logging.info('run TFlite streaming model accuracy evaluation')
       try:
-        folder_name = 'tf'
-        test.tf_stream_state_external_model_accuracy(
+        # convert model to TFlite
+        folder_name = opt_name + 'tflite_stream_state_external'
+        file_name = 'stream_state_external.tflite'
+        mode = Modes.STREAM_EXTERNAL_STATE_INFERENCE
+        test.convert_model_tflite(flags, folder_name, mode, file_name,
+                                  optimizations=optimizations)
+
+        # Streaming model accuracy evaluation with TFLite with state reset
+        test.tflite_stream_state_external_model_accuracy(
             flags,
             folder_name,
-            accuracy_name='stream_state_external_model_accuracy_sub_set_reset1.txt',
-            reset_state=True)  # with state reset between test sequences
+            file_name,
+            accuracy_name='tflite_stream_state_external_model_accuracy_reset1.txt',
+            reset_state=True)
 
-        # Streaming (with external state) evaluation using TF no state reset
-        test.tf_stream_state_external_model_accuracy(
+        # Streaming model accuracy evaluation with TFLite without state reset
+        test.tflite_stream_state_external_model_accuracy(
             flags,
             folder_name,
-            accuracy_name='stream_state_external_model_accuracy_sub_set_reset0.txt',
-            reset_state=False)  # without state reset
-
-        # Streaming (with internal state) evaluation using TF no state reset
-        test.tf_stream_state_internal_model_accuracy(flags, folder_name)
+            file_name,
+            accuracy_name='tflite_stream_state_external_model_accuracy_reset0.txt',
+            reset_state=False)
       except ValueError as e:
-        logging.error('FAILED to run TF streaming: %s', e)
-
-    logging.info('run TFlite streaming model accuracy evaluation')
-    try:
-      # convert model to TFlite
-      folder_name = opt_name + 'tflite_stream_state_external'
-      file_name = 'stream_state_external.tflite'
-      mode = Modes.STREAM_EXTERNAL_STATE_INFERENCE
-      test.convert_model_tflite(flags, folder_name, mode, file_name,
-                                optimizations=optimizations)
-
-      # Streaming model accuracy evaluation with TFLite with state reset
-      test.tflite_stream_state_external_model_accuracy(
-          flags,
-          folder_name,
-          file_name,
-          accuracy_name='tflite_stream_state_external_model_accuracy_reset1.txt',
-          reset_state=True)
-
-      # Streaming model accuracy evaluation with TFLite without state reset
-      test.tflite_stream_state_external_model_accuracy(
-          flags,
-          folder_name,
-          file_name,
-          accuracy_name='tflite_stream_state_external_model_accuracy_reset0.txt',
-          reset_state=False)
-    except ValueError as e:
-      logging.error('FAILED to run TFLite streaming: %s', e)
+        logging.error('FAILED to run TFLite streaming: %s', e)
 
 if __name__ == '__main__':
   # parser for training/testing data and speach feature flags
