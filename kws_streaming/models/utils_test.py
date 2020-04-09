@@ -237,7 +237,9 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
   def setUp(self):
     super(UtilsTest, self).setUp()
     tf1.reset_default_graph()
-    self.sess = tf1.Session()
+    config = tf1.ConfigProto()
+    config.gpu_options.allow_growth = True
+    self.sess = tf1.Session(config=config)
     tf1.keras.backend.set_session(self.sess)
 
   def testToNonStreamInferenceTFandTFLite(self, model_name='svdf'):
