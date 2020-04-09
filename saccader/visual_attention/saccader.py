@@ -46,7 +46,8 @@ def gather_2d(images, offsets):
   Returns:
     A Tensor of type float32.
   """
-  batch_size, height, width, num_channels = images.shape.as_list()
+  batch_size = tf.shape(images)[0]
+  _, height, width, num_channels = images.shape.as_list()
   indices_height, indices_width = utils.normalized_locations_to_indices(
       offsets, height, width)
 
@@ -111,7 +112,8 @@ def build_attention_network(features2d,
 
 def sobel_edges(images):
   """Computes edge intensity of image using sobel operator."""
-  batch_size, h, w, _ = images.shape.as_list()
+  batch_size = tf.shape(images)[0]
+  _, h, w, _ = images.shape.as_list()
   edges = tf.image.sobel_edges(tf.image.rgb_to_grayscale(images))
   edges = tf.reshape(edges, (batch_size, h, w, 2))
   edge_intensity = tf.norm(edges, ord="euclidean", axis=-1)
@@ -240,7 +242,8 @@ class SaccaderCell(object):
       cell_state: New cell state.
       endpoints: Dictionary with cell parameters.
     """
-    batch_size, height, width, channels = mixed_features2d.shape.as_list()
+    batch_size = tf.shape(mixed_features2d)[0]
+    _, height, width, channels = mixed_features2d.shape.as_list()
     reuse = True if self.var_list else False
     position_channels = utils.position_channels(mixed_features2d)
 
@@ -417,7 +420,7 @@ class Saccader(object):
 
     self.glimpse_shape = self.representation_network.receptive_field
     glimpse_size = tf.cast(self.glimpse_shape[0], dtype=tf.float32)
-    image_size = tf.cast(tf.shape(images)[1], dtype=tf.float32)
+    image_size = tf.cast(images.shape.as_list()[1], dtype=tf.float32)
     # Ensure glimpses within image.
     location_scale = 1. - glimpse_size / image_size
     endpoints["location_scale"] = location_scale
@@ -465,7 +468,8 @@ class Saccader(object):
     locations_t = []
     best_locations_t = []
     locations_logits2d_t = []
-    batch_size, height, width, _ = mixed_features2d.shape.as_list()
+    batch_size = tf.shape(mixed_features2d)[0]
+    _, height, width, _ = mixed_features2d.shape.as_list()
     cell_state = tf.zeros((batch_size, height, width, 1), dtype=tf.float32)
     # Engineered policies.
     if policy in ["ordered_logits", "sobel_mean", "sobel_var"]:

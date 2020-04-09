@@ -110,7 +110,7 @@ class SaccaderClassNet(Saccader):
           images_classnet, size=self.glimpse_shape_classnet, offsets=locations)
       images_glimpse_t.append(images_glimpse)
 
-    batch_size = images_classnet.shape.as_list()[0]
+    batch_size = tf.shape(images_classnet)[0]
     images_glimpse_t = tf.concat(images_glimpse_t, axis=0)
 
     variables_before = set(tf.global_variables())

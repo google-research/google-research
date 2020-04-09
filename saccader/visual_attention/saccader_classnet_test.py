@@ -57,8 +57,9 @@ class SaccaderClassNetTest(tf.test.TestCase, parameterized.TestCase):
     config.num_times = num_times
     config.classnet_type = classnet_type
     batch_size = 3
-    images = tf.constant(
-        np.random.rand(*((batch_size,) + image_shape)), dtype=tf.float32)
+    images = np.random.rand(*((batch_size,) + image_shape))
+    images = tf.placeholder_with_default(images, shape=(None,) + image_shape)
+    images = tf.cast(images, dtype=tf.float32)
     model = saccader_classnet.SaccaderClassNet(config)
     logits = model(images, images,
                    num_times=num_times,
@@ -104,7 +105,7 @@ class SaccaderClassNetTest(tf.test.TestCase, parameterized.TestCase):
     self.evaluate(init)
     logits1, logits2 = self.evaluate((logits1, logits2))
     l2_loss1, l2_loss2 = self.evaluate((l2_loss1, l2_loss2))
-    np.testing.assert_almost_equal(l2_loss1, l2_loss2, decimal=9)
+    np.testing.assert_almost_equal(l2_loss1, l2_loss2, decimal=5)
 
 
 if __name__ == "__main__":
