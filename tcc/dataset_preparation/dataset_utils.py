@@ -187,7 +187,7 @@ def merge_annotations(label, expected_n):
   """Merge annotations from label based on voting."""
   annotations = {}
 
-  for k in xrange(expected_n):
+  for k in range(expected_n):
     segments = np.vstack([label[person_id][str(k)] for person_id in label])
     annotations[k] = np.mean(segments, axis=0)
     # Convert from microseconds to seconds.
@@ -198,7 +198,7 @@ def merge_annotations(label, expected_n):
   start_sorted_keys = [sorted_keys[idx] for idx in start_sorted_idxes]
 
   # Add gaps.
-  for i in xrange(1, expected_n):
+  for i in range(1, expected_n):
     avg_time = 0.5 * (annotations[start_sorted_keys[i-1]][1] +
                       annotations[start_sorted_keys[i]][0])
     annotations[start_sorted_keys[i-1]][1] = avg_time
@@ -285,6 +285,7 @@ def create_tfrecords(name, output_dir, input_dir, label_file, input_pattern,
     for file_pattern in input_pattern:
       file_pattern = os.path.join(input_dir, file_pattern)
       filenames += [os.path.basename(x) for x in gfile.glob(file_pattern)]
+  filenames = sorted(filenames)
   logging.info('Found %s files', len(filenames))
 
   names_to_seqs = {}

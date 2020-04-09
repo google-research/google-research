@@ -22,7 +22,6 @@ import glob
 import json
 import math
 import os
-import random
 
 from absl import app
 from absl import flags
@@ -115,7 +114,7 @@ def get_name(filename, videos_dir, penn_action=False):
 
 def get_timestamps(frames, fps, offset=0.0):
   """Returns timestamps for frames in a video."""
-  return [offset + x/float(fps) for x in xrange(len(frames))]
+  return [offset + x/float(fps) for x in range(len(frames))]
 
 
 def create_tfrecords(name, output_dir, videos_dir, vid_list, label_file,
@@ -141,9 +140,7 @@ def create_tfrecords(name, output_dir, videos_dir, vid_list, label_file,
     os.makedirs(output_dir)
 
   with open(vid_list, 'r') as f:
-    paths = [os.path.join(videos_dir, x.strip()) for x in f.readlines()]
-
-  random.shuffle(paths)
+    paths = sorted([os.path.join(videos_dir, x.strip()) for x in f.readlines()])
 
   if label_file is not None:
     with open(os.path.join(label_file)) as labels_file:
