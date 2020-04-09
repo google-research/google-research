@@ -19,7 +19,9 @@ import random as rn
 import numpy as np
 from kws_streaming.layers import gru
 from kws_streaming.layers.compat import tf
+from kws_streaming.layers.compat import tf1
 from kws_streaming.layers.modes import Modes
+tf1.disable_eager_execution()
 
 
 class GRUTest(tf.test.TestCase):

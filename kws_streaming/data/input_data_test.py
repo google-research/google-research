@@ -24,6 +24,7 @@ import numpy as np
 import tensorflow.compat.v1 as tf
 from kws_streaming.data import input_data
 from kws_streaming.train import model_flags
+tf.disable_eager_execution()
 
 
 # Used to convert a dictionary into an object, for mocking parsed flags.

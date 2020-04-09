@@ -22,6 +22,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow.compat.v1 as tf
 from kws_streaming.layers import non_scaling_dropout
+tf.disable_eager_execution()
 
 
 class NonScalingDropoutTest(tf.test.TestCase):

@@ -543,4 +543,4 @@ def convert_model_saved(flags, folder, mode, weights_name='best_weights'):
     logging.warning('FAILED to write file: %s', e)
   except (ValueError, AttributeError, RuntimeError, TypeError,
           AssertionError) as e:
-    logging.warning('FAILED to convert to stream SavedModel: %s', e)
+    logging.warning('WARNING: failed to convert to SavedModel: %s', e)

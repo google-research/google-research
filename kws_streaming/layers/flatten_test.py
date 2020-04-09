@@ -17,9 +17,11 @@
 
 import numpy as np
 from kws_streaming.layers.compat import tf
+from kws_streaming.layers.compat import tf1
 from kws_streaming.layers.modes import Modes
 from kws_streaming.layers.stream import Stream
 from kws_streaming.models import utils
+tf1.disable_eager_execution()
 
 
 class FlattenTest(tf.test.TestCase):
