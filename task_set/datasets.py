@@ -373,7 +373,7 @@ class ResizedDataset(tfds.core.GeneratorBasedBuilder):
   def _split_generators(self, dl_manager):
     return [
         tfds.core.SplitGenerator(
-            name=split, num_shards=4, gen_kwargs=dict(split=split))
+            name=split, gen_kwargs=dict(split=split))
         for split in self._builder.info.splits.keys()
     ]
 
@@ -563,7 +563,7 @@ class TokenizedWikipedia(tfds.core.GeneratorBasedBuilder):
 
     return [
         tfds.core.SplitGenerator(
-            name=split, num_shards=10, gen_kwargs=dict(split=split))
+            name=split, gen_kwargs=dict(split=split))
         for split in ["train", "test"]
     ]
 
@@ -658,7 +658,7 @@ class TokenizedAmazonReviews(tfds.core.GeneratorBasedBuilder):
 
     return [
         tfds.core.SplitGenerator(
-            name=split, num_shards=10, gen_kwargs=dict(split=split))
+            name=split, gen_kwargs=dict(split=split))
         for split in ["train", "test"]
     ]
 
