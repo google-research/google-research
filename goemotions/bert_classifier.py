@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Script based on the BERT finetuning runner, modified for performing target prediction.
+"""Script based on the BERT finetuning runner, modified for performing emotion prediction.
 
 Main changes:
 - Updated DataProcessor
@@ -45,8 +45,8 @@ flags = tf.flags
 FLAGS = flags.FLAGS
 
 ## Required parameters
-flags.DEFINE_string("target_file", "data/targets.txt",
-                    "File containing a list of targets.")
+flags.DEFINE_string("emotion_file", "data/emotions.txt",
+                    "File containing a list of emotions.")
 
 flags.DEFINE_string(
     "data_dir", "data/model_input",
@@ -118,7 +118,7 @@ flags.DEFINE_float(
     "E.g., 0.1 = 10% of training.")
 
 flags.DEFINE_float("pred_cutoff", 0.05,
-                   "Cutoff probability for showing top targets.")
+                   "Cutoff probability for showing top emotions.")
 
 flags.DEFINE_float(
     "eval_prob_threshold", 0.1,
@@ -135,7 +135,7 @@ flags.DEFINE_float("entailment", 1e-3,
                    "Regularization parameter for entailment relations.")
 
 flags.DEFINE_float("correlation", 1,
-                   "Regularization parameter for target correlations.")
+                   "Regularization parameter for emotion correlations.")
 
 flags.DEFINE_integer("save_checkpoints_steps", 500,
                      "How often to save the model checkpoint.")
@@ -155,8 +155,8 @@ flags.DEFINE_string("sentiment_file", "sentiment_dict.json",
 flags.DEFINE_string("entailment_file", "entailment_dict.json",
                     "Dictionary of entailments.")
 
-flags.DEFINE_string("target_correlations", "data/model_input/correlations.tsv",
-                    "Dataframe containing target correlation values.")
+flags.DEFINE_string("emotion_correlations", "data/model_input/correlations.tsv",
+                    "Dataframe containing emotion correlation values.")
 
 flags.DEFINE_bool(
     "transfer_learning", False,
@@ -197,7 +197,7 @@ class InputFeatures(object):
 
 
 class DataProcessor(object):
-  """Class for preprocessing the corpus target dataset."""
+  """Class for preprocessing the corpus emotion dataset."""
 
   def __init__(self, num_labels, data_dir):
     self.num_labels = num_labels
@@ -446,7 +446,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
     #                        [0.3] [0.3] [0.3]
     #     subtract [0.1, 0.2, 0.3] row-wise
     #     result:   [0.0] [-.1] [-.2] --> row represents difference between
-    #                                     target 1 and all other targets
+    #                                     emotion 1 and all other emotions
     #               [0.1] [0.0] [-.1]
     #               [0.2] [0.1] [0.0]
     dists = tf.square(tf.subtract(m, probs_exp_t))  # square distances
@@ -484,7 +484,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                      num_train_steps, num_warmup_steps, multilabel, sent_rels,
                      sentiment, entailment_rels, entailment, corr_rels,
-                     correlation, idx2target, sentiment_groups,
+                     correlation, idx2emotion, sentiment_groups,
                      intensity_groups):
   """Returns `model_fn` closure for Estimator."""
 
@@ -616,19 +616,19 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
         # Calculate accuracy, precision and recall
         get_threshold_based_scores(label_ids, probabilities)
 
-        # Calculate values at the target level
+        # Calculate values at the emotion level
         auc_vals = []
         accuracies = []
         for j, logits in enumerate(logits_split):
           current_auc, update_op_auc = tf.metrics.auc(label_ids_split[j],
                                                       logits)
-          eval_dict[idx2target[j] + "_auc"] = (current_auc, update_op_auc)
+          eval_dict[idx2emotion[j] + "_auc"] = (current_auc, update_op_auc)
           current_acc, update_op_acc = tf.metrics.accuracy(
               label_ids_split[j], pred_ind_split[j])
-          eval_dict[idx2target[j] + "_accuracy"] = (current_acc, update_op_acc)
-          eval_dict[idx2target[j] + "_precision"] = tf.metrics.precision(
+          eval_dict[idx2emotion[j] + "_accuracy"] = (current_acc, update_op_acc)
+          eval_dict[idx2emotion[j] + "_precision"] = tf.metrics.precision(
               label_ids_split[j], pred_ind_split[j])
-          eval_dict[idx2target[j] + "_recall"] = tf.metrics.recall(
+          eval_dict[idx2emotion[j] + "_recall"] = tf.metrics.recall(
               label_ids_split[j], pred_ind_split[j])
           auc_vals.append(current_auc)
           accuracies.append(current_auc)
@@ -646,10 +646,10 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                                   tf.constant(sentiment_groups, dtype=tf.int64),
                                   "sentiment")
 
-        # Calculate target-intensity based performance
+        # Calculate emotion-intensity based performance
         get_relation_based_scores(label_ids, pred_ind,
                                   tf.constant(intensity_groups, dtype=tf.int64),
-                                  "target_intensity")
+                                  "emotion_intensity")
 
       if multilabel:
         metric_fn_multi(per_example_loss, label_ids, probabilities)
@@ -672,38 +672,38 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
   return model_fn
 
 
-def get_sent_rels(targets):
-  """Get target distance matrix for sentiment regularization."""
+def get_sent_rels(emotions):
+  """Get emotion distance matrix for sentiment regularization."""
   with open(FLAGS.sentiment_file) as f:
     sent_dict = json.loads(f.read())
 
-  target2sentiment = {}
+  emotion2sentiment = {}
   for k, v in sent_dict.items():
     for e in v:
-      assert e not in target2sentiment  # no target should be in two categories
-      target2sentiment[e] = k
+      assert e not in emotion2sentiment  # no emotion should be in two categories
+      emotion2sentiment[e] = k
   rels = []
-  for e1 in targets:
+  for e1 in emotions:
     e1_rels = []
-    for e2 in targets:
-      if e1 not in target2sentiment or e2 not in target2sentiment:
+    for e2 in emotions:
+      if e1 not in emotion2sentiment or e2 not in emotion2sentiment:
         e1_rels.append(0)
-      elif target2sentiment[e1] != target2sentiment[e2]:
+      elif emotion2sentiment[e1] != emotion2sentiment[e2]:
         e1_rels.append(-1)
-      elif target2sentiment[e1] == target2sentiment[e2]:
+      elif emotion2sentiment[e1] == emotion2sentiment[e2]:
         e1_rels.append(1)
     rels.append(e1_rels)
   return rels
 
 
-def get_entailment_rels(targets):
-  """Entailment relations between targets."""
+def get_entailment_rels(emotions):
+  """Entailment relations between emotions."""
   with open(FLAGS.entailment_file) as f:
     entailments = json.loads(f.read())
   rels = []
-  for e1 in targets:
+  for e1 in emotions:
     e1_rels = []
-    for e2 in targets:
+    for e2 in emotions:
       if e1 in entailments and e2 in entailments[e1]:
         e1_rels.append(1)
       else:
@@ -712,16 +712,16 @@ def get_entailment_rels(targets):
   return rels
 
 
-def get_correlations(targets):
-  """Get correlations between targets based training data."""
-  corrs = pd.read_csv(FLAGS.target_correlations, index_col=0, sep="\t")
+def get_correlations(emotions):
+  """Get correlations between emotions based training data."""
+  corrs = pd.read_csv(FLAGS.emotion_correlations, index_col=0, sep="\t")
   rels = []
-  for e1 in targets:
+  for e1 in emotions:
     if e1 == "neutral":
-      rels.append([0] * len(targets))
+      rels.append([0] * len(emotions))
     else:
       e1_rels = []
-      for e2 in targets:
+      for e2 in emotions:
         if e2 == "neutral":
           e1_rels.append(0)
         else:
@@ -730,14 +730,14 @@ def get_correlations(targets):
   return rels
 
 
-def get_intensity_groups(targets):
-  """Get target-intensity groups for evaluating intensity-based performance."""
+def get_intensity_groups(emotions):
+  """Get emotion-intensity groups for evaluating intensity-based performance."""
   with open(FLAGS.entailment_file) as f:
     entailments = json.loads(f.read())
   rels = []
   for k, v in entailments.items():
     grouped_labels = []
-    for e in targets:
+    for e in emotions:
       if e == k or e in v:
         grouped_labels.append(1)
       else:
@@ -746,14 +746,14 @@ def get_intensity_groups(targets):
   return rels
 
 
-def get_sentiment_groups(targets):
+def get_sentiment_groups(emotions):
   """Get sentiment groups for evaluating sentiment-based performance."""
   with open(FLAGS.sentiment_file) as f:
     sent_dict = json.loads(f.read())
   rels = []
   for _, v in sent_dict.items():
     grouped_labels = []
-    for e in targets:
+    for e in emotions:
       if e in v:
         grouped_labels.append(1)
       else:
@@ -765,13 +765,13 @@ def get_sentiment_groups(targets):
 def main(_):
   os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
 
-  # Load target categories
-  with open(FLAGS.target_file, "r") as f:
-    all_targets = f.read().splitlines()
+  # Load emotion categories
+  with open(FLAGS.emotion_file, "r") as f:
+    all_emotions = f.read().splitlines()
     if FLAGS.add_neutral:
-      all_targets = all_targets + ["neutral"]
-    idx2target = {i: e for i, e in enumerate(all_targets)}
-  num_labels = len(all_targets)
+      all_emotions = all_emotions + ["neutral"]
+    idx2emotion = {i: e for i, e in enumerate(all_emotions)}
+  num_labels = len(all_emotions)
   print("%d labels" % num_labels)
   print("Multilabel: %r" % FLAGS.multilabel)
 
@@ -779,26 +779,26 @@ def main(_):
   entailment = FLAGS.entailment
   correlation = FLAGS.correlation
 
-  # Create target distance matrix
+  # Create emotion distance matrix
   # If the regularization parameter is set to 0, don't load matrix.
   print("Getting distance matrix...")
   empty_rels = [[0] * num_labels] * num_labels
   if sentiment == 0:
     sent_rels = empty_rels
   else:
-    sent_rels = get_sent_rels(all_targets)
-  sent_groups = get_sentiment_groups(all_targets)
+    sent_rels = get_sent_rels(all_emotions)
+  sent_groups = get_sentiment_groups(all_emotions)
   print(sent_rels)
   if entailment == 0:
     entailment_rels = empty_rels
   else:
-    entailment_rels = get_entailment_rels(all_targets)
-  intensity_groups = get_intensity_groups(all_targets)
+    entailment_rels = get_entailment_rels(all_emotions)
+  intensity_groups = get_intensity_groups(all_emotions)
   print(entailment_rels)
   if correlation == 0:
     corr_rels = empty_rels
   else:
-    corr_rels = get_correlations(all_targets)
+    corr_rels = get_correlations(all_emotions)
   print(corr_rels)
 
   tf.logging.set_verbosity(tf.logging.INFO)
@@ -876,7 +876,7 @@ def main(_):
       entailment=entailment,
       corr_rels=corr_rels,
       correlation=correlation,
-      idx2target=idx2target,
+      idx2emotion=idx2emotion,
       sentiment_groups=sent_groups,
       intensity_groups=intensity_groups)
 
@@ -980,9 +980,9 @@ def main(_):
 
     with tf.gfile.GFile(output_predict_file, "w") as writer:
       with tf.gfile.GFile(output_labels, "w") as writer2:
-        writer.write("\t".join(all_targets) + "\n")
+        writer.write("\t".join(all_emotions) + "\n")
         writer2.write("\t".join([
-            "text", "target_1", "prob_1", "target_2", "prob_2", "target_3",
+            "text", "emotion_1", "prob_1", "emotion_2", "prob_2", "emotion_3",
             "prob_3"
         ]) + "\n")
         tf.logging.info("***** Predict results *****")
@@ -995,12 +995,12 @@ def main(_):
               str(class_probability)
               for class_probability in probabilities) + "\n"
           sorted_idx = np.argsort(-probabilities)
-          top_3_target = [idx2target[idx] for idx in sorted_idx[:3]]
+          top_3_emotion = [idx2emotion[idx] for idx in sorted_idx[:3]]
           top_3_prob = [probabilities[idx] for idx in sorted_idx[:3]]
           pred_line = []
-          for target, prob in zip(top_3_target, top_3_prob):
+          for emotion, prob in zip(top_3_emotion, top_3_prob):
             if prob >= FLAGS.pred_cutoff:
-              pred_line.extend([target, "%.4f" % prob])
+              pred_line.extend([emotion, "%.4f" % prob])
             else:
               pred_line.extend(["", ""])
           writer.write(output_line)

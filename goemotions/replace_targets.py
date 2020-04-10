@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Replace target script."""
+"""Replace emotion script."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -31,43 +31,43 @@ flags.DEFINE_string("input", "data/train.tsv", "Input tsv file.")
 
 flags.DEFINE_string(
     "mapping_dict", None,
-    "File containing a mapping dictionary from new targets to old targets.")
+    "File containing a mapping dictionary from new emotions to old emotions.")
 
-flags.DEFINE_string("target_file", "data/targets.txt",
-                    "File containing list of old targets.")
+flags.DEFINE_string("emotion_file", "data/emotions.txt",
+                    "File containing list of old emotions.")
 
-flags.DEFINE_string("output_target_file", "data/new_targets.txt",
-                    "Output file for list of new targets.")
+flags.DEFINE_string("output_emotion_file", "data/new_emotions.txt",
+                    "Output file for list of new emotions.")
 
 flags.DEFINE_string("output_data", "data/new_train.tsv",
                     "Output file new data.")
 
 
-def replace_labels(labels, idx2target, mapping_dict, target2idx):
-  """Replace old targets with new targets.
+def replace_labels(labels, idx2emotion, mapping_dict, emotion2idx):
+  """Replace old emotions with new emotions.
 
   Args:
-      labels: comma-separated list of ids (for old targets)
-      idx2target: dictionary, mapping old target ids to old target names
-      mapping_dict: dictionary, with new target (str) : new targets (list of
+      labels: comma-separated list of ids (for old emotions)
+      idx2emotion: dictionary, mapping old emotion ids to old emotion names
+      mapping_dict: dictionary, with new emotion (str) : new emotions (list of
         strings) key: value pairs
-      target2idx: dictionary, mapping new target names to new target ids
+      emotion2idx: dictionary, mapping new emotion names to new emotion ids
 
   Returns:
-      comma-separated list of ids for new targets
+      comma-separated list of ids for new emotions
   """
   split = labels.split(",")
   new_labels = []
   for label_idx in split:
-    old_target = idx2target[int(label_idx)]
+    old_emotion = idx2emotion[int(label_idx)]
     found = False
-    for new_target, v in mapping_dict.items():
-      if old_target in v:
-        new_labels.append(str(target2idx[new_target]))
+    for new_emotion, v in mapping_dict.items():
+      if old_emotion in v:
+        new_labels.append(str(emotion2idx[new_emotion]))
         found = True
         break
     if not found:
-      new_labels.append(str(target2idx[old_target]))
+      new_labels.append(str(emotion2idx[old_emotion]))
   assert new_labels
   return ",".join(new_labels)
 
@@ -76,17 +76,17 @@ def main(_):
 
   data = pd.read_csv(
       FLAGS.input, sep="\t", header=None, names=["text", "labels", "id"])
-  targets = open(FLAGS.target_file).read().splitlines() + ["neutral"]
-  idx2target = {i: t for i, t in enumerate(targets)}
+  emotions = open(FLAGS.emotion_file).read().splitlines() + ["neutral"]
+  idx2emotion = {i: t for i, t in enumerate(emotions)}
 
   with open(FLAGS.mapping_dict) as f:
     mapping_dict = json.loads(f.read())
 
-  new_targets = list(mapping_dict.keys())
+  new_emotions = list(mapping_dict.keys())
 
-  # Find those targets that are not in the mapping dictionary
+  # Find those emotions that are not in the mapping dictionary
   not_found = []
-  for t in targets:
+  for t in emotions:
     found = False
     for _, v in mapping_dict.items():
       if t in v:
@@ -96,16 +96,16 @@ def main(_):
       print("%s is not found" % t)
       not_found.append(t)
 
-  print("New targets:")
-  new_targets = sorted(new_targets + not_found)
-  print(new_targets)
-  target2idx = {t: i for i, t in enumerate(new_targets)}
+  print("New emotions:")
+  new_emotions = sorted(new_emotions + not_found)
+  print(new_emotions)
+  emotion2idx = {t: i for i, t in enumerate(new_emotions)}
 
   data["labels"] = data["labels"].apply(
-      replace_labels, args=(idx2target, mapping_dict, target2idx))
+      replace_labels, args=(idx2emotion, mapping_dict, emotion2idx))
 
-  with open(FLAGS.output_target_file, "w") as f:
-    f.write("\n".join(new_targets))
+  with open(FLAGS.output_emotion_file, "w") as f:
+    f.write("\n".join(new_emotions))
 
   data.to_csv(
       FLAGS.output_data, sep="\t", encoding="utf-8", header=False, index=False)

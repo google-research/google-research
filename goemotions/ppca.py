@@ -14,9 +14,9 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Script for running PPCA on the target dataset and generating plots.
+"""Script for running PPCA on the emotion dataset and generating plots.
 
-The goal of this analysis is to understand which dimensions of the target label
+The goal of this analysis is to understand which dimensions of the emotion label
 space are significant via Principal Preserved Component Analysis
 (Cowen et al., 2019). PPCA seeks to identify dimensions of the latent space
 that maximally covary across two datasets (in our case, randomly split raters).
@@ -60,15 +60,15 @@ flags.DEFINE_string("data", None, "Input data.")
 
 flags.DEFINE_string("plot_dir", "plots", "Directory for saving plots.")
 
-flags.DEFINE_string("target_file", "data/targets.txt",
-                    "File containing list of targets.")
+flags.DEFINE_string("emotion_file", "data/emotions.txt",
+                    "File containing list of emotions.")
 
 flags.DEFINE_string("rgb_colors", "plots/colors.tsv",
                     "File containing list of distinctive rgb colors.")
 
 flags.DEFINE_string(
-    "target_color_order", "plots/color_order.txt",
-    "File containing targets in order for coloring based on FLAGS.rgb_colors.")
+    "emotion_color_order", "plots/color_order.txt",
+    "File containing emotions in order for coloring based on FLAGS.rgb_colors.")
 
 
 def PPCA(x, y):
@@ -223,11 +223,11 @@ def main(_):
   print("%d Annotations" % len(data))
   os.makedirs(FLAGS.plot_dir, exist_ok=True)
 
-  with open(FLAGS.target_file, "r") as f:
-    all_targets = f.read().splitlines()
-  all_targets_neutral = all_targets + ["neutral"]
-  target2idx = {e: i for i, e in enumerate(all_targets)}
-  print("%d Target Categories" % len(all_targets))
+  with open(FLAGS.emotion_file, "r") as f:
+    all_emotions = f.read().splitlines()
+  all_emotions_neutral = all_emotions + ["neutral"]
+  emotion2idx = {e: i for i, e in enumerate(all_emotions)}
+  print("%d emotion Categories" % len(all_emotions))
 
   print("Processing data...")
 
@@ -235,7 +235,7 @@ def main(_):
   data = data[data["neutral"] == 0]
 
   # Remove examples with no ratings (difficult examples)
-  data = data[data[all_targets_neutral].sum(axis=1) != 0]
+  data = data[data[all_emotions_neutral].sum(axis=1) != 0]
 
   # Convert into num_examples x num_raters x num_ratings format
   data = data.groupby("id").filter(lambda x: len(x) >= 3)
@@ -244,7 +244,7 @@ def main(_):
   worker2examples = {}  # dict mapping worker ids to (example, rater id) tuples
   max_num_raters = data.groupby("id").size().max()
   ratings = np.zeros(
-      (len(id_groups), max_num_raters, len(all_targets)))  # ignore "neutral"
+      (len(id_groups), max_num_raters, len(all_emotions)))  # ignore "neutral"
   rater_msk = np.zeros(
       (len(id_groups), max_num_raters))  # for masking out non-existent raters
   print("Ratings shape", ratings.shape)
@@ -257,8 +257,8 @@ def main(_):
 
     # iterate through workers
     for _, row in g.iterrows():
-      for e in all_targets:
-        ratings[ex_idx, rater_count, target2idx[e]] = row[e]
+      for e in all_emotions:
+        ratings[ex_idx, rater_count, emotion2idx[e]] = row[e]
         rater_msk[ex_idx, rater_count] = 1
 
       worker_id = row["rater_id"]
@@ -274,7 +274,7 @@ def main(_):
   for worker_id in worker2examples:
     partial_corrs, corrs = LeaveOut(ratings, rater_msk, worker2examples,
                                     worker_id)
-    if len(partial_corrs) < len(all_targets):
+    if len(partial_corrs) < len(all_emotions):
       continue
 
     partial_corr_per_rater.append(partial_corrs)
@@ -327,9 +327,9 @@ def main(_):
   # Apply varimax rotation
   w_vari = Varimax(w)
 
-  # Get mapping between ppcs and targets
+  # Get mapping between ppcs and emotions
   map_df = pd.DataFrame(
-      w_vari, index=all_targets, columns=np.arange(len(all_targets))).round(4)
+      w_vari, index=all_emotions, columns=np.arange(len(all_emotions))).round(4)
   # Sort to move values to diagonal
   map_df = map_df[list(
       np.argsort(map_df.apply(lambda x: pd.Series.nonzero(x)[0]).values)[0])]
@@ -338,28 +338,28 @@ def main(_):
       map_df,
       center=0,
       cmap=sns.diverging_palette(240, 10, n=50),
-      yticklabels=all_targets)
+      yticklabels=all_emotions)
   plt.xlabel("Component")
   plt.savefig(
       FLAGS.plot_dir + "/component_loadings.pdf",
       dpi=600,
       format="pdf",
       bbox_inches="tight")
-  ppc2target = map_df.abs().idxmax().to_dict()
-  target2ppc = {e: i for i, e in ppc2target.items()}
-  print(ppc2target)
+  ppc2emotion = map_df.abs().idxmax().to_dict()
+  emotion2ppc = {e: i for i, e in ppc2emotion.items()}
+  print(ppc2emotion)
 
   print("Plotting frequency and mean left-out rater correlations...")
   corr_mean = corr_per_rater.mean(axis=0)
-  corr_mean_ordered = [corr_mean[target2ppc[e]] for e in all_targets]
+  corr_mean_ordered = [corr_mean[emotion2ppc[e]] for e in all_emotions]
   df_plot = pd.DataFrame({
-      "target": all_targets,
+      "emotion": all_emotions,
       "agreement": corr_mean_ordered
   })
-  df_plot["count"] = df_plot["target"].map(
-      data[all_targets].sum(axis=0).to_dict())
+  df_plot["count"] = df_plot["emotion"].map(
+      data[all_emotions].sum(axis=0).to_dict())
   df_plot.sort_values("count", ascending=False, inplace=True)
-  df_plot.to_csv(FLAGS.plot_dir + "/target_agreements.csv", index=False)
+  df_plot.to_csv(FLAGS.plot_dir + "/emotion_agreements.csv", index=False)
 
   # Get colors
   norm = plt.Normalize(df_plot["agreement"].min(), df_plot["agreement"].max())
@@ -370,7 +370,7 @@ def main(_):
   fig = plt.figure(dpi=600, figsize=(5, 6))
   ax = sns.barplot(
       data=df_plot,
-      y="target",
+      y="emotion",
       x="count",
       orient="h",
       hue="agreement",
@@ -405,30 +405,30 @@ def main(_):
 
   # Set colors (todo(ddemszky): add names to colors in file)
   palette_rgb = colors.values
-  with open(FLAGS.target_color_order) as f:
+  with open(FLAGS.emotion_color_order) as f:
     color_order = f.read().splitlines()
-  ppc2color = {target2ppc[e]: i for i, e in enumerate(color_order)}
-  # get rgb value for each example based on weighted average of top targets
+  ppc2color = {emotion2ppc[e]: i for i, e in enumerate(color_order)}
+  # get rgb value for each example based on weighted average of top emotions
   rgb_vals = []
   hex_vals = []
   top_categories = []
   threshold = 0.5  # exclude points not loading on any of the top 10 categories
   counter = 0
   rgb_max = 255
-  other_color = palette_rgb[len(all_targets), :]
+  other_color = palette_rgb[len(all_emotions), :]
   for i, scores in enumerate(ppc_scores_abs):
 
     top_ppcs = [
         idx for idx in (-scores).argsort()[:2] if scores[idx] > threshold
     ]
-    top_targets = ",".join([ppc2target[idx] for idx in top_ppcs
+    top_emotions = ",".join([ppc2emotion[idx] for idx in top_ppcs
                            ]) if top_ppcs else "other"
-    top_categories.append(top_targets)
-    if len(top_ppcs) < 1:  # doesn't have top targets from list
+    top_categories.append(top_emotions)
+    if len(top_ppcs) < 1:  # doesn't have top emotions from list
       color = other_color  # use grey
       counter += 1
     else:
-      # Weighted average of top targets (square->weighted average->square root)
+      # Weighted average of top emotions (square->weighted average->square root)
       color_ids = [ppc2color[idx] for idx in top_ppcs]
       weights = [scores[idx] for idx in top_ppcs]
       # Need to round, otherwise floating point precision issues will result

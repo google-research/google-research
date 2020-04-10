@@ -37,14 +37,14 @@ flags.DEFINE_string("predictions", None, "Predictions tsv file.")
 flags.DEFINE_string("output", "results.json", "Output json file.")
 
 flags.DEFINE_string(
-    "target_file",
-    "data/targets.txt",
-    "File containing list of targets.")
+    "emotion_file",
+    "data/emotions.txt",
+    "File containing list of emotions.")
 
 flags.DEFINE_boolean(
     "add_neutral",
     True,
-    "Whether to add neutral as target.")
+    "Whether to add neutral as emotion.")
 
 flags.DEFINE_float(
     "threshold",
@@ -55,19 +55,19 @@ flags.DEFINE_float(
 def main(_):
     preds = pd.read_csv(FLAGS.predictions, sep="\t")
     true = pd.read_csv(FLAGS.test_data, sep="\t", header=None, names=["text", "labels", "id"])
-    targets = open(FLAGS.target_file).read().splitlines()
+    emotions = open(FLAGS.emotion_file).read().splitlines()
     if FLAGS.add_neutral:
-        targets.append("neutral")
-    num_targets = len(targets)
+        emotions.append("neutral")
+    num_emotions = len(emotions)
 
-    idx2target = {i: e for i, e in enumerate(targets)}
+    idx2emotion = {i: e for i, e in enumerate(emotions)}
 
-    preds_mat = np.zeros((len(preds), num_targets))
-    true_mat = np.zeros((len(preds), num_targets))
+    preds_mat = np.zeros((len(preds), num_emotions))
+    true_mat = np.zeros((len(preds), num_emotions))
     for i in range(len(preds)):
         true_labels = [int(idx) for idx in true.loc[i, "labels"].split(",")]
-        for j in range(num_targets):
-            preds_mat[i, j] = preds.loc[i, idx2target[j]]
+        for j in range(num_emotions):
+            preds_mat[i, j] = preds.loc[i, idx2emotion[j]]
             true_mat[i, j] = 1 if j in true_labels else 0
 
     threshold = FLAGS.threshold
@@ -88,13 +88,13 @@ def main(_):
         "weighted_f1"], _ = precision_recall_fscore_support(true_mat,
                                                             pred_ind,
                                                             average="weighted")
-    for i in range(num_targets):
-        target = idx2target[i]
-        target_true = true_mat[:, i]
-        target_pred = pred_ind[:, i]
-        results[target + "_accuracy"] = accuracy_score(target_true, target_pred)
-        results[target + "_precision"], results[target + "_recall"], results[
-            target + "_f1"], _ = precision_recall_fscore_support(target_true, target_pred,
+    for i in range(num_emotions):
+        emotion = idx2emotion[i]
+        emotion_true = true_mat[:, i]
+        emotion_pred = pred_ind[:, i]
+        results[emotion + "_accuracy"] = accuracy_score(emotion_true, emotion_pred)
+        results[emotion + "_precision"], results[emotion + "_recall"], results[
+            emotion + "_f1"], _ = precision_recall_fscore_support(emotion_true, emotion_pred,
                                                               average="binary")
 
     with open(FLAGS.output, "w") as f:

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Script for target prediction based on the BERT finetuning runner.
+"""Script for emotion prediction based on the BERT finetuning runner.
 
 Main changes:
 - Updated DataProcessor
@@ -42,11 +42,11 @@ flags = tf.flags
 FLAGS = flags.FLAGS
 
 ## Required parameters
-flags.DEFINE_string("target_file", "data/targets.txt",
-                    "File containing a list of targets.")
+flags.DEFINE_string("emotion_file", "data/emotions.txt",
+                    "File containing a list of emotions.")
 
-flags.DEFINE_integer("original_target_size", 29,
-                     "Number of target labels in our dataset.")
+flags.DEFINE_integer("original_emotion_size", 29,
+                     "Number of emotion labels in our dataset.")
 
 flags.DEFINE_string(
     "data_dir", "data/model_input",
@@ -119,7 +119,7 @@ flags.DEFINE_float(
     "E.g., 0.1 = 10% of training.")
 
 flags.DEFINE_float("pred_cutoff", 0.05,
-                   "Cutoff probability for showing top targets.")
+                   "Cutoff probability for showing top emotions.")
 
 flags.DEFINE_float(
     "eval_prob_threshold", 0.1,
@@ -174,7 +174,7 @@ class InputFeatures(object):
 
 
 class DataProcessor(object):
-  """Class for preprocessing the corpus target dataset."""
+  """Class for preprocessing the corpus emotion dataset."""
 
   def __init__(self, num_labels, data_dir):
     self.num_labels = num_labels
@@ -381,15 +381,15 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
   hidden_size = output_layer.shape[-1].value
 
   output_weights = tf.get_variable(
-      "output_weights", [FLAGS.original_target_size, hidden_size],
+      "output_weights", [FLAGS.original_emotion_size, hidden_size],
       initializer=tf.truncated_normal_initializer(stddev=0.02))
 
   output_bias = tf.get_variable(
-      "output_bias", [FLAGS.original_target_size],
+      "output_bias", [FLAGS.original_emotion_size],
       initializer=tf.zeros_initializer())
 
   new_output_weights = tf.get_variable(
-      "new_output_weights", [num_labels, FLAGS.original_target_size],
+      "new_output_weights", [num_labels, FLAGS.original_emotion_size],
       initializer=tf.truncated_normal_initializer(stddev=0.02))
 
   new_output_bias = tf.get_variable(
@@ -426,7 +426,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 
 
 def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
-                     num_train_steps, num_warmup_steps, multilabel, idx2target):
+                     num_train_steps, num_warmup_steps, multilabel, idx2emotion):
   """Returns `model_fn` closure for Estimator."""
 
   def model_fn(features, labels, mode, params):  # pylint: disable=unused-argument
@@ -532,19 +532,19 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
         # Calculate accuracy, precision and recall
         get_threshold_based_scores(label_ids, probabilities)
 
-        # Calculate values at the target level
+        # Calculate values at the emotion level
         auc_vals = []
         accuracies = []
         for j, logits in enumerate(logits_split):
           current_auc, update_op_auc = tf.metrics.auc(label_ids_split[j],
                                                       logits)
-          eval_dict[idx2target[j] + "_auc"] = (current_auc, update_op_auc)
+          eval_dict[idx2emotion[j] + "_auc"] = (current_auc, update_op_auc)
           current_acc, update_op_acc = tf.metrics.accuracy(
               label_ids_split[j], pred_ind_split[j])
-          eval_dict[idx2target[j] + "_accuracy"] = (current_acc, update_op_acc)
-          eval_dict[idx2target[j] + "_precision"] = tf.metrics.precision(
+          eval_dict[idx2emotion[j] + "_accuracy"] = (current_acc, update_op_acc)
+          eval_dict[idx2emotion[j] + "_precision"] = tf.metrics.precision(
               label_ids_split[j], pred_ind_split[j])
-          eval_dict[idx2target[j] + "_recall"] = tf.metrics.recall(
+          eval_dict[idx2emotion[j] + "_recall"] = tf.metrics.recall(
               label_ids_split[j], pred_ind_split[j])
           auc_vals.append(current_auc)
           accuracies.append(current_auc)
@@ -581,13 +581,13 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
 def main(_):
   os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
 
-  # Load target categories
-  with open(FLAGS.target_file, "r") as f:
-    all_targets = f.read().splitlines()
+  # Load emotion categories
+  with open(FLAGS.emotion_file, "r") as f:
+    all_emotions = f.read().splitlines()
     if FLAGS.add_neutral:
-      all_targets = all_targets + ["neutral"]
-    idx2target = {i: e for i, e in enumerate(all_targets)}
-  num_labels = len(all_targets)
+      all_emotions = all_emotions + ["neutral"]
+    idx2emotion = {i: e for i, e in enumerate(all_emotions)}
+  num_labels = len(all_emotions)
   print("%d labels" % num_labels)
   print("Multilabel: %r" % FLAGS.multilabel)
 
@@ -657,7 +657,7 @@ def main(_):
       num_train_steps=num_train_steps,
       num_warmup_steps=num_warmup_steps,
       multilabel=FLAGS.multilabel,
-      idx2target=idx2target)
+      idx2emotion=idx2emotion)
 
   estimator = tf.estimator.Estimator(
       model_fn=model_fn,
@@ -759,9 +759,9 @@ def main(_):
 
     with tf.gfile.GFile(output_predict_file, "w") as writer:
       with tf.gfile.GFile(output_labels, "w") as writer2:
-        writer.write("\t".join(all_targets) + "\n")
+        writer.write("\t".join(all_emotions) + "\n")
         writer2.write("\t".join([
-            "text", "target_1", "prob_1", "target_2", "prob_2", "target_3",
+            "text", "emotion_1", "prob_1", "emotion_2", "prob_2", "emotion_3",
             "prob_3"
         ]) + "\n")
         tf.logging.info("***** Predict results *****")
@@ -774,12 +774,12 @@ def main(_):
               str(class_probability)
               for class_probability in probabilities) + "\n"
           sorted_idx = np.argsort(-probabilities)
-          top_3_target = [idx2target[idx] for idx in sorted_idx[:3]]
+          top_3_emotion = [idx2emotion[idx] for idx in sorted_idx[:3]]
           top_3_prob = [probabilities[idx] for idx in sorted_idx[:3]]
           pred_line = []
-          for target, prob in zip(top_3_target, top_3_prob):
+          for emotion, prob in zip(top_3_emotion, top_3_prob):
             if prob >= FLAGS.pred_cutoff:
-              pred_line.extend([target, "%.4f" % prob])
+              pred_line.extend([emotion, "%.4f" % prob])
             else:
               pred_line.extend(["", ""])
           writer.write(output_line)

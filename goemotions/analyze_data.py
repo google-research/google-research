@@ -14,10 +14,10 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Script for analyzing dataset annotations.
+"""Script for analyzing the annotations of GoEmotions.
 
 The analysis includes calculating high-level statistics as well as correlation
-among labels.
+among emotion labels.
 """
 
 from __future__ import absolute_import
@@ -37,19 +37,19 @@ import seaborn as sns
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("data", None, "Input data.")
+flags.DEFINE_string("data", "data/full_dataset.tsv", "Input data.")
 
 flags.DEFINE_string("plot_dir", "plots",
                     "Directory for saving plots and analyses.")
 
-flags.DEFINE_string("target_file", "data/targets.txt",
-                    "File containing list of targets.")
-flags.DEFINE_string("sentiment_dict", None, "Sentiment dictionary.")
+flags.DEFINE_string("emotion_file", "data/emotions.txt",
+                    "File containing list of emotions.")
+flags.DEFINE_string("sentiment_dict", "data/sentiment_dict.json", "Sentiment dictionary.")
 
 
-def CheckAgreement(ex, min_agreement, all_targets, max_agreement=100):
+def CheckAgreement(ex, min_agreement, all_emotions, max_agreement=100):
   """Return the labels that at least min_agreement raters agree on."""
-  sum_ratings = ex[all_targets].sum(axis=0)
+  sum_ratings = ex[all_emotions].sum(axis=0)
   agreement = ((sum_ratings >= min_agreement) & (sum_ratings <= max_agreement))
   return ",".join(sum_ratings.index[agreement].tolist())
 
@@ -67,30 +67,30 @@ def main(_):
   print("%d Annotations" % len(data))
   os.makedirs(FLAGS.plot_dir, exist_ok=True)
 
-  with open(FLAGS.target_file, "r") as f:
-    all_targets = f.read().splitlines()
-  all_targets_neutral = all_targets + ["neutral"]
-  print("%d Target Categories" % len(all_targets))
+  with open(FLAGS.emotion_file, "r") as f:
+    all_emotions = f.read().splitlines()
+  all_emotions_neutral = all_emotions + ["neutral"]
+  print("%d emotion Categories" % len(all_emotions))
 
   print("%d unique raters" % len(data["rater_id"].unique()))
   print("%.3f marked unclear" %
         (data["example_very_unclear"].sum() / len(data)))
 
   # Since the ones marked as difficult have no labels, exclude those
-  data = data[data[all_targets_neutral].sum(axis=1) != 0]
+  data = data[data[all_emotions_neutral].sum(axis=1) != 0]
 
   print("Distribution of number of labels per example:")
-  print(data[all_targets_neutral].sum(axis=1).value_counts() / len(data))
+  print(data[all_emotions_neutral].sum(axis=1).value_counts() / len(data))
   print("%.2f with more than 3 labels" %
-        ((data[all_targets_neutral].sum(axis=1) > 3).sum() /
+        ((data[all_emotions_neutral].sum(axis=1) > 3).sum() /
          len(data)))  # more than 3 labels
 
   print("Label distributions:")
-  print((data[all_targets_neutral].sum(axis=0).sort_values(ascending=False) /
+  print((data[all_emotions_neutral].sum(axis=0).sort_values(ascending=False) /
          len(data) * 100).round(2))
 
   print("Plotting label correlations...")
-  ratings = data.groupby("id")[all_targets].mean()
+  ratings = data.groupby("id")[all_emotions].mean()
 
   # Compute the correlation matrix
   corr = ratings.corr()
@@ -150,7 +150,7 @@ def main(_):
   with open(FLAGS.sentiment_dict) as f:
     sent_dict = json.loads(f.read())
   sent_colors = {}
-  for e in all_targets:
+  for e in all_emotions:
     if e in sent_dict["positive"]:
       sent_colors[e] = sent_color_map["positive"]
     elif e in sent_dict["negative"]:
@@ -201,26 +201,26 @@ def main(_):
 
   print("Calculating agreements...")
   unique_labels = data.groupby("id").apply(CheckAgreement, 1,
-                                           all_targets_neutral).to_dict()
+                                           all_emotions_neutral).to_dict()
   data["unique_labels"] = data["id"].map(unique_labels)
   agree_dict_2 = data.groupby("id").apply(CheckAgreement, 2,
-                                          all_targets_neutral).to_dict()
+                                          all_emotions_neutral).to_dict()
   data["agree_2"] = data["id"].map(agree_dict_2)
   agree_dict = data.groupby("id").apply(CheckAgreement, 3,
-                                        all_targets_neutral).to_dict()
+                                        all_emotions_neutral).to_dict()
   data["agree_3"] = data["id"].map(agree_dict)
-  agree_dict = data.groupby("id").apply(CheckAgreement, 1, all_targets_neutral,
+  agree_dict = data.groupby("id").apply(CheckAgreement, 1, all_emotions_neutral,
                                         1).to_dict()
   data["no_agree"] = data["id"].map(agree_dict)
 
   filtered_2 = data[data["agree_2"].str.len() > 0]
   print(
-      "%d (%d%%) of the examples have 2+ raters agreeing on at least one target label"
+      "%d (%d%%) of the examples have 2+ raters agreeing on at least one emotion label"
       % (len(filtered_2["id"].unique()), (len(filtered_2) / len(data) * 100)))
 
   filtered_3 = data[data["agree_3"].str.len() > 0]
   print(
-      "%d (%d%%) of the examples have 3+ raters agreeing on at least one target label"
+      "%d (%d%%) of the examples have 3+ raters agreeing on at least one emotion label"
       % (len(filtered_3["id"].unique()), (len(filtered_3) / len(data) * 100)))
 
   print("Plotting number of labels...")
@@ -254,7 +254,7 @@ def main(_):
 
   print("Proportion of agreement per label:")
   print(
-      filtered_2[all_targets_neutral].sum(axis=0).sort_values(ascending=False) /
+      filtered_2[all_emotions_neutral].sum(axis=0).sort_values(ascending=False) /
       len(data))
 
 
