@@ -123,9 +123,9 @@ def input_fn(data_file,
   if shuffle:
     dataset = dataset.shuffle(buffer_size=n_buffer)
 
+  dataset = dataset.batch(batch_size, drop_remainder=True)
   dataset = dataset.map(parse_csv, num_parallel_calls=n_parallel)
 
   # Repeat after shuffling, to prevent separate epochs from blending together.
   dataset = dataset.repeat(num_epochs)
-  dataset = dataset.batch(batch_size)
   return dataset
