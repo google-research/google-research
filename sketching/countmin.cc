@@ -21,30 +21,34 @@
 #include <memory>
 #include <vector>
 
+#include "absl/algorithm/container.h"
+#include "absl/memory/memory.h"
 #include "absl/random/bit_gen_ref.h"
-#include "absl/random/uniform_int_distribution.h"
+#include "absl/random/distributions.h"
 #include "sketch.h"
 #include "utils.h"
 
 namespace sketch {
+namespace {
 
-CountMin::CountMin(uint hash_count, uint hash_size)
-    : hash_size_(hash_size), hash_func_([hash_size](ULONG a, ULONG b, ULONG x) {
-        return Hash(a, b, x, hash_size);
-      }) {
-  hash_a_.resize(hash_count);
-  hash_b_.resize(hash_count);
-  values_.resize(hash_count);
-
+std::vector<uint> GenerateHashes(int hash_count) {
+  std::vector<uint> hashes(hash_count);
   BitGenerator bit_gen;
   absl::BitGenRef& generator = *bit_gen.BitGen();
-  absl::uniform_int_distribution<int> rand_int;
-  for (int i = 0; i < hash_count; ++i) {
-    values_[i].resize(hash_size);
-    hash_a_[i] = rand_int(generator);
-    hash_b_[i] = rand_int(generator);
-  }
+  absl::c_generate(hashes, [&]() { return absl::Uniform<uint>(generator); });
+  return hashes;
 }
+
+}  // namespace
+
+CountMin::CountMin(uint hash_count, uint hash_size)
+    : hash_size_(hash_size),
+      hash_a_(GenerateHashes(hash_count)),
+      hash_b_(GenerateHashes(hash_count)),
+      values_(hash_count, std::vector<float>(hash_size, 0.0)),
+      hash_func_([hash_size](ULONG a, ULONG b, ULONG x) {
+        return Hash(a, b, x, hash_size);
+      }) {}
 
 void CountMin::Reset() {
   max_item_ = 0;
@@ -174,8 +178,8 @@ CountMinHierarchical::CountMinHierarchical(uint hash_count, uint hash_size,
 
 CountMinHierarchical::CountMinHierarchical(
     uint hash_count, uint hash_size, uint lgN, uint granularity,
-    std::unique_ptr<CountMin> (*CreateSketch)(uint, uint)) {
-  Initialize(hash_count, hash_size, lgN, granularity, CreateSketch);
+    std::function<std::unique_ptr<CountMin>(uint, uint)> create_sketch) {
+  Initialize(hash_count, hash_size, lgN, granularity, create_sketch);
 }
 
 CountMinHierarchical::CountMinHierarchical(const CountMinHierarchical& other)
@@ -192,7 +196,7 @@ CountMinHierarchical::CountMinHierarchical(const CountMinHierarchical& other)
 
 void CountMinHierarchical::Initialize(
     uint hash_count, uint hash_size, uint lgN, uint granularity,
-    std::unique_ptr<CountMin> (*CreateSketch)(uint, uint)) {
+    std::function<std::unique_ptr<CountMin>(uint, uint)> create_sketch) {
   lgN_ = lgN;
   granularity_ = granularity;
   total_ = 0;
@@ -208,7 +212,7 @@ void CountMinHierarchical::Initialize(
   }
   sketches_.reserve(levels_ - exact_count_size);
   for (int j = exact_count_size; j < levels_; ++j) {
-    sketches_.push_back((*CreateSketch)(hash_count, hash_size));
+    sketches_.push_back(create_sketch(hash_count, hash_size));
   }
 }
 
