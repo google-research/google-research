@@ -68,8 +68,8 @@ class CountMin : public Sketch {
  protected:
   const uint hash_size_;
   uint max_item_ = 0;
-  std::vector<uint> hash_a_;
-  std::vector<uint> hash_b_;
+  const std::vector<uint> hash_a_;
+  const std::vector<uint> hash_b_;
   std::vector<std::vector<float>> values_;
   std::function<uint(ULONG, ULONG, ULONG)> hash_func_;
 };
@@ -105,9 +105,9 @@ class CountMinHierarchical : public Sketch {
   CountMinHierarchical(uint hash_count, uint hash_size, uint lgN,
                        uint granularity = 1);
 
-  CountMinHierarchical(uint hash_count, uint hash_size, uint lgN,
-                       uint granularity,
-                       std::unique_ptr<CountMin> (*CreateSketch)(uint, uint));
+  CountMinHierarchical(
+      uint hash_count, uint hash_size, uint lgN, uint granularity,
+      std::function<std::unique_ptr<CountMin>(uint, uint)> create_sketch);
 
   CountMinHierarchical(const CountMinHierarchical& other);
 
@@ -141,8 +141,9 @@ class CountMinHierarchical : public Sketch {
   std::vector<std::vector<float>> exact_counts_;
   std::vector<std::unique_ptr<CountMin>> sketches_;
 
-  void Initialize(uint hash_count, uint hash_size, uint lgN, uint granularity,
-                  std::unique_ptr<CountMin> (*CreateSketch)(uint, uint));
+  void Initialize(
+      uint hash_count, uint hash_size, uint lgN, uint granularity,
+      std::function<std::unique_ptr<CountMin>(uint, uint)> create_sketch);
 
   // Similar to estimate, but only at the given depth.
   float EstimateAtDepth(int depth, uint item) const;
