@@ -1,0 +1,3 @@
+# Run pip install --upgrade pip if tensorflow 1.15 cannot be found
+tensorflow==1.15.2   # CPU Version of TensorFlow
+# tensorflow-gpu==1.15  # GPU version of TensorFlow
