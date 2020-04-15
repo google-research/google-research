@@ -20,6 +20,7 @@ and implemented most popular KWS models:
 * svdf - singular value decomposition filter neural network;
 * att_rnn - combination of attention with RNN(bi directional LSTM)
 * att_mh_rnn - combination of multihead attention with RNN(bi directional LSTM)
+
 They all use speech feature extractor, which is easy to configure as MFCC, LFBE
 or raw features (so user can train own speech feature extractor).
 We explored latency and accuracy of the streaming and non streaming models
@@ -143,7 +144,7 @@ Inference graph is stateless, so that graph has not internal state.
 All states are received as inputs and after update are returned as output state
 
 ### Further information
-A paper about this work is work in progress.
+A paper about this work is in progress.
 All experiments on KWS models presented in this paper can be reproduced by
 following the steps described in
 `kws_streaming/experiments/kws_experiments.txt`.
@@ -268,9 +269,17 @@ dnn \
 
 ### Re-train dnn model from scratch with quantization on data set V1 and run evaluation:
 
-Model quantization is compatible only with speech feature mfcc_op.
+By default we use mfcc_tf option to specify speech feature extractor.
+It is based on DFT and DCT, where DFT and DCT are implemented with matrix matrix multiplications. This approach is compatible with any inference engine, but it can increase model size significantly. Post quantization of such model
+can reduce its accuracy.
+That is why we also introduced mfcc_op option. In this case speech
+feature extractor is based on TFLite custom operations. This kind of feature extractor
+functionally is the same with mfcc_tf, but all DFT, DCT are executed using FFT,
+so it will be faster and model size will be defined by neural net only.
 If you specify --feature_type 'mfcc_op', then model will be trained and
-evaluated in unquantized and qunatized form (only post training quantization is supported).
+evaluated in unquantized and quantized form (only post training quantization is supported). With mfcc_op we observed insignificant accuracy reduction of quantized models.
+
+
 
 ```shell
 python -m kws_streaming.train.model_train_eval \
