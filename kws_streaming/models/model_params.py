@@ -13,11 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Models parameters (with toy values for testing)."""
+"""Models parameters (with toy values, for testing)."""
 
 
-class Flags(object):
-  """Default flags for data and feature settings."""
+class Params(object):
+  """Default parameters for data and feature settings.
+
+     These parameters are compatible with command line flags
+  """
 
   def __init__(self):
     self.train_dir = ''
@@ -44,8 +47,8 @@ class Flags(object):
 
 
 def att_mh_rnn_params():
-  """Flags for toy multihead attention model."""
-  params = Flags()
+  """Parameters for toy multihead attention model."""
+  params = Params()
   params.model_name = 'att_rnn'
   params.cnn_filters = '3,1'
   params.cnn_kernel_size = '(5,1),(5,1)'
@@ -63,8 +66,8 @@ def att_mh_rnn_params():
 
 
 def att_rnn_params():
-  """Flags for toy attention model."""
-  params = Flags()
+  """Parameters for toy attention model."""
+  params = Params()
   params.model_name = 'att_rnn'
   params.cnn_filters = '3,1'
   params.cnn_kernel_size = '(5,1),(5,1)'
@@ -81,8 +84,8 @@ def att_rnn_params():
 
 
 def dnn_params():
-  """Flags for toy dnn model."""
-  params = Flags()
+  """Parameters for toy dnn model."""
+  params = Params()
   params.model_name = 'dnn'
   params.units1 = '16,16'
   params.act1 = "'relu','relu'"
@@ -95,8 +98,8 @@ def dnn_params():
 
 
 def crnn_params():
-  """Flags for toy conv rnn model."""
-  params = Flags()
+  """Parameters for toy conv rnn model."""
+  params = Params()
   params.model_name = 'crnn'
   params.cnn_filters = '16,16'
   params.cnn_kernel_size = '(3,3),(5,3)'
@@ -113,8 +116,8 @@ def crnn_params():
 
 
 def cnn_stride_params():
-  """Flags for toy conv striding model."""
-  params = Flags()
+  """Parameters for toy conv striding model."""
+  params = Params()
   params.model_name = 'cnn'
   params.cnn_filters = '16,16,16,16,16,16,16'
   params.cnn_kernel_size = '(3,3),(3,3),(3,3),(3,3),(3,3),(3,1),(3,1)'
@@ -128,8 +131,8 @@ def cnn_stride_params():
 
 
 def cnn_params():
-  """Flags for toy conv model."""
-  params = Flags()
+  """Parameters for toy conv model."""
+  params = Params()
   params.model_name = 'cnn'
   params.cnn_filters = '16,16,16,16,16,16,16'
   params.cnn_kernel_size = '(3,3),(5,3),(5,3),(5,3),(5,2),(5,1),(10,1)'
@@ -143,8 +146,8 @@ def cnn_params():
 
 
 def lstm_params():
-  """Flags for toy lstm model."""
-  params = Flags()
+  """Parameters for toy lstm model."""
+  params = Params()
   params.model_name = 'lstm'
   params.lstm_units = '32'
   params.return_sequences = '0'
@@ -158,8 +161,8 @@ def lstm_params():
 
 
 def gru_params():
-  """Flags for toy gru model."""
-  params = Flags()
+  """Parameters for toy gru model."""
+  params = Params()
   params.model_name = 'gru'
   params.gru_units = '32'
   params.return_sequences = '0'
@@ -171,8 +174,8 @@ def gru_params():
 
 
 def ds_cnn_stride_params():
-  """Flags for toy "depthwise convolutional neural network" stride model."""
-  params = Flags()
+  """Parameters for toy "depthwise convolutional neural network" stride model."""
+  params = Params()
   params.model_name = 'ds_cnn'
   params.cnn1_kernel_size = '(10,4)'
   params.cnn1_dilation_rate = '(1,1)'
@@ -196,8 +199,8 @@ def ds_cnn_stride_params():
 
 
 def svdf_params():
-  """Flags for toy svdf model."""
-  params = Flags()
+  """Parameters for toy svdf model."""
+  params = Params()
   params.mel_num_bins = 80
   params.dct_num_features = 30
   params.model_name = 'svdf'

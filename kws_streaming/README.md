@@ -1,23 +1,44 @@
-# Streaming Aware Keyword Spotting Models
+# Streaming Aware neural network models
 ======================================================================================
 
 Streaming aware neural network models are important for real time response,
-high accuracy and good user experience. In this work we explore latency and
-accuracy of keyword spotting (KWS) models in the streaming and non streaming modes
-on mobile phone.
+high accuracy and good user experience. In this work we designed keras streaming
+wrappers and streaming aware layers. By streaming we mean streaming inference,
+where model receives portion of the input sequence (for example 20ms of audio),
+process it incrementally and return an output(for example classification result).
+Non streaming means that model has to receive the whole sequence
+(for example 1 sec) and then return an output.
+We applied this lib for keyword spotting (KWS) problem
+and implemented most popular KWS models:
+* dnn - deep neural network based on combination of fully connected layers;
+* dnn_raw - an example of dnn model on raw audio features;
+* gru - gated recurrent unit model;
+* lstm - long short term memory model;
+* cnn - convolutional neural network;
+* crnn - combination of convolutional layers with RNNs(GRU or LSTM);
+* ds_cnn - depth wise convolutional neural network;
+* svdf - singular value decomposition filter neural network;
+* att_rnn - combination of attention with RNN(bi directional LSTM)
+* att_mh_rnn - combination of multihead attention with RNN(bi directional LSTM)
+They all use speech feature extractor, which is easy to configure as MFCC, LFBE
+or raw features (so user can train own speech feature extractor).
+We explored latency and accuracy of the streaming and non streaming models
+on mobile phone and demonstrated that models outperform previously reported accuracy
+on public data sets. This lib also can be applied on other sequence problems
+such as speech noise reduction, sound detection, text classification...
 
 ## Overall design
 NN model conversion from non streaming mode (which is frequently
 used during training) to streaming can require manual model rewriting.
-We address this by designing a Keras based library which allows automatic conversion
-of non streaming models to streaming one with no or minimum efforts.
-We achieve this in several steps:
+We address this by designing a Keras based library which allows
+automatic conversion of non streaming models to streaming one with no
+or minimum efforts. We achieve this in several steps:
 
 1. Train model using non streaming TensorFlow (TF) graph representation.
-2. Convert model to streaming and non streaming inference modes.
+2. Automatically convert model to streaming and non streaming inference modes.
 Conversion to streaming inference mode includes TF/Keras graph traversal and
 buffer insertion for the layers which have to be streamed.
-3. Convert Keras model to TensorFlow Lite (TFLite)
+3. Convert Keras model to TensorFlow Lite (TFLite) and quantize if needed.
 4. Run TFLite inference on phone.
 
 We build this library with the speech feature extractor being a part of the model
@@ -25,18 +46,36 @@ and also part of the model conversion to inference mode with TFLite.
 It allows to simplify model testing on mobile devices: the developer can simply pass
 audio data into the model and receive classification results.
 
+We built streaming wrapper for layers (such as conv,flatten) and
+streaming aware layers (for GRU and LSTM).
+It allows us to design Keras models, train them and automatically convert them
+to streaming mode.
 
-We build streaming wrapper for layers and streaming aware layers.
-It allows us to design Keras models, train them and automatically
-convert them to streaming mode.
-By streaming we mean streaming inference, where model processing every 20ms of audio
-and return classification result.
-Non streaming means that model has to receive the whole sequence (1 sec) and then return classification result.
+## Migration to Streaming Aware neural network models
+For migration of existing keras model to streaming one, developer need to
+replace RNNs by streaming aware RNNs. Streaming aware LSTM and GRU of this lib
+are fully compatible with keras api.
+Remaining layers, which are doing data processing in time dimension,
+has to be wrapped by Stream wrapper, as it is shown below:
+
+Standard keras model:
+```
+output = tf.keras.layers.Conv2D(...)(input)
+output = tf.keras.layers.Flatten(...)(output)
+output = tf.keras.layers.Dense(...)(output)
+```
+
+Streaming aware model:
+```
+output = Stream(cell=tf.keras.layers.Conv2D(...))(input)
+output = Stream(cell=tf.keras.layers.Flatten(...))(output)
+output = tf.keras.layers.Dense(...)(output)
+```
 
 ## Inference
 KWS model in streaming mode is executed by steps:
 
-1. Receive sample(packet) of audio data from microphone
+1. Receive sample(packet), for example audio data from microphone.
 2. Feed these data into KWS model
 3. Process these data and return detection output
 4. Go to next inference iteration to step 1 above.
@@ -68,9 +107,10 @@ A stateful model can be implemented using stateless graph (above example 2.)
 because some inference engines do not support updates
 of the internal buffer variables.
 
-We implemented stateful KWS models with internal state, such models receive
-input speech data and return classification results.
-We also implemented stateful KWS models with external state, such models
+This lib allow us to do several types of conversions:
+1. Non streaming model to stateful KWS models with internal state,
+such models receive input speech data and return classification results.
+2. Non streaming model to stateful KWS models with external state, such models
 receive input speech data and all states buffers required for model's layers
 and return classification results with updated states buffers.
 
