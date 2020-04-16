@@ -16,9 +16,10 @@
 #define UTIL_H_
 
 #include <cstdlib>
+#include <iostream>
 
-#include "definitions.h"
 #include "Eigen/Core"
+#include "definitions.h"
 
 namespace automl_zero {
 
