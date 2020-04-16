@@ -9,6 +9,8 @@ This is the open source code repository to accompany the work **Selective Brain 
 3. [Full paper](https://arxiv.org/abs/1911.05248)
 
 
+Take a look at a sample of PIE images and impacted classes [here](http://weightpruningdamage.github.io/).
+
 ### tl;dr
 
 Summary: The ability to prune networks with seemingly so little degradation to
