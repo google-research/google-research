@@ -49,7 +49,7 @@ flags.DEFINE_string("emotion_file", "data/emotions.txt",
                     "File containing a list of emotions.")
 
 flags.DEFINE_string(
-    "data_dir", "data/model_input",
+    "data_dir", "data",
     "The input data dir. Should contain the .tsv files (or other data files) "
     "for the task.")
 
@@ -102,9 +102,9 @@ flags.DEFINE_bool(
     "do_predict", True,
     "Whether to run the model in inference mode on the test set.")
 
-flags.DEFINE_integer("train_batch_size", 32, "Total batch size for training.")
+flags.DEFINE_integer("train_batch_size", 16, "Total batch size for training.")
 
-flags.DEFINE_float("learning_rate", 2e-3, "The initial learning rate for Adam.")
+flags.DEFINE_float("learning_rate", 5e-5, "The initial learning rate for Adam.")
 
 flags.DEFINE_float("num_train_epochs", 4.0,
                    "Total number of training epochs to perform.")
@@ -121,20 +121,21 @@ flags.DEFINE_float("pred_cutoff", 0.05,
                    "Cutoff probability for showing top emotions.")
 
 flags.DEFINE_float(
-    "eval_prob_threshold", 0.1,
+    "eval_prob_threshold", 0.3,
     "Cutoff probability determine which labels are 1 vs 0, when calculating "
     "certain evaluation metrics.")
+
 flags.DEFINE_string(
     "eval_thresholds", "0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95,0.99",
     "Thresholds for evaluating precision, recall and F-1 scores.")
 
-flags.DEFINE_float("sentiment", 1e-3,
+flags.DEFINE_float("sentiment", 0,
                    "Regularization parameter for sentiment relations.")
 
-flags.DEFINE_float("entailment", 1e-3,
+flags.DEFINE_float("entailment", 0,
                    "Regularization parameter for entailment relations.")
 
-flags.DEFINE_float("correlation", 1,
+flags.DEFINE_float("correlation", 0,
                    "Regularization parameter for emotion correlations.")
 
 flags.DEFINE_integer("save_checkpoints_steps", 500,
@@ -155,8 +156,8 @@ flags.DEFINE_string("sentiment_file", "sentiment_dict.json",
 flags.DEFINE_string("entailment_file", "entailment_dict.json",
                     "Dictionary of entailments.")
 
-flags.DEFINE_string("emotion_correlations", "data/model_input/correlations.tsv",
-                    "Dataframe containing emotion correlation values.")
+flags.DEFINE_string("emotion_correlations", None,
+                    "Dataframe containing emotion correlation values (if FLAGS.correlation != 0).")
 
 flags.DEFINE_bool(
     "transfer_learning", False,
@@ -165,8 +166,10 @@ flags.DEFINE_bool(
 flags.DEFINE_bool("freeze_layers", False, "Whether to freeze BERT layers.")
 
 flags.DEFINE_bool(
-    "add_neutral", True,
-    "Whether to add a neutral label in addition to the other labels.")
+    "add_neutral",
+    False,
+    "Whether to add a neutral label in addition to the other labels"
+    "(necessary when neutral is not part of the emotion file).")
 
 
 class InputExample(object):

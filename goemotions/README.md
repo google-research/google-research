@@ -30,7 +30,7 @@ Our raw dataset, under `goemotions.tsv` includes all annotations as well as meta
 * `created_utc`: The timestamp of the comment.
 * `rater_id`: The unique id of the annotator.
 * `example_very_unclear`: Whether the annotator marked the example as being very unclear or difficult to label (in this case they did not choose any emotion labels).
-* + separate columns representing each of the emotion categories, with binary labels (0 or 1)
+* separate columns representing each of the emotion categories, with binary labels (0 or 1)
 
 The data we used for training the models includes examples where there is agreement between at least 2 raters. Our data includes 43,410 training examples (`train.tsv`), 5426 dev examples (`dev.tsv`) and 5427 test examples (`test.tsv`). These files have _no header row_ and have the following columns:
 
