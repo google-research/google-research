@@ -46,6 +46,7 @@ env:
     - PROJECT="moment_advice"
     - PROJECT="neutra"
     - PROJECT="nigt_optimizer"
+    - PROJECT="non_semantic_speech_benchmark"
     - PROJECT="norml"
     - PROJECT="opt_list"
     - PROJECT="pairwise_fairness"
