@@ -1,4 +1,4 @@
-# Towards Learning a Universal Non-Semantic Representation of Speech  (WORK IN PROGRESS)
+# Towards Learning a Universal Non-Semantic Representation of Speech
 
 Paper: [Towards Learning a Universal Non-Semantic Representation of Speech](https://arxiv.org/abs/2002.12764)
 
@@ -28,6 +28,9 @@ To use this benchmark or embeddings, please cite as follows:
 
 ## Overview
 
+![Data flowchart](images/data_flowchart.png "Data flowchart"){width="500"}
+
+![Embedding flowchart](images/embedding_flowchat.png "Embedding flowchart"){width="400"} ![Eval model flowchart](images/eval_moodel_flowchart.png "Eval model flowchart"){width="400"}
 
 
 ## Detailed Instructions
