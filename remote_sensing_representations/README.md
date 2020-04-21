@@ -1,21 +1,28 @@
 # In-Domain Representation Learning for Remote Sensing
 
-Repository related to: `In-Domain Representation Learning for Remote Sensing'
-by Maxim Neumann, André Susano Pinto, Xiaohua Zhai and Neil Houlsby. Pre-print
-available in [arXiv](https://arxiv.org/abs/1911.06721).
+Repository related to: "In-Domain Representation Learning for Remote Sensing"
+by Maxim Neumann, André Susano Pinto, Xiaohua Zhai and Neil Houlsby.
 
-* Pre-trained representations are available in [TensorFlow Hub](https://tfhub.dev/google/collections/remote_sensing/1).
+Paper: [arxiv.org/abs/1911.06721](https://arxiv.org/abs/1911.06721).
 
-* Datasets are available in
-[TensorFlow Datasets](https://www.tensorflow.org/datasets/catalog).
+Pre-trained representations are available in [TensorFlow Hub](https://tfhub.dev/google/collections/remote_sensing/1)
+
+Datasets are available in
+[TensorFlow Datasets](https://www.tensorflow.org/datasets/catalog):
+
+* https://www.tensorflow.org/datasets/catalog/bigearthnet
+* https://www.tensorflow.org/datasets/catalog/eurosat
+* https://www.tensorflow.org/datasets/catalog/resisc45
+* https://www.tensorflow.org/datasets/catalog/so2sat
+* https://www.tensorflow.org/datasets/catalog/uc_merced
 
 
 ## Dataset splits
 The python notebook [rsr_datasets.ipynb](rsr_datasets.ipynb) shows how to
-generate the exact splits used in the work directly from the TensorFlow
+generate the exact splits used in the paper directly from the TensorFlow
 datasets.
 
-For convenience, the splits can also be found in:
+For convenience, the splits (denoting filenames or sample IDs) can also be found in:
 
 ### BigEarthNet
 - https://storage.googleapis.com/remote_sensing_representations/bigearthnet-train.txt
