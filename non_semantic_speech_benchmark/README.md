@@ -26,25 +26,17 @@ To use this benchmark or embeddings, please cite as follows:
 }
 ```
 
+#### For questions reach out to
+
+Joel Shor ([joelshor@google.com](mailto:joelshor@google.com))
+
+Oran Lang ([oranl@google.com](mailto:oranl@google.com))
+
 ## Overview
 
-![Data flowchart](images/data_flowchart.png "Data flowchart"){width="500"}
+<img src="https://github.com/google-research/google-research/raw/master/non_semantic_speech_benchmark/images/data_flowchart.png" alt="Data flowchart" width="400">
 
-![Embedding flowchart](images/embedding_flowchat.png "Embedding flowchart"){width="400"} ![Eval model flowchart](images/eval_moodel_flowchart.png "Eval model flowchart"){width="400"}
+<img src="https://github.com/google-research/google-research/raw/master/non_semantic_speech_benchmark/images/embedding_flowchart.png" alt="Embedding flowchart" width="400">
 
+<img src="https://github.com/google-research/google-research/raw/master/non_semantic_speech_benchmark/images/eval_model_flowchart.png" alt="Eval model flowchart" width="400">
 
-## Detailed Instructions
-
-### Full-flow colaboratory notebook
-
-Use `non_semantic_speech_benchmark/train_and_eval_sklearn_small_TFDS_dataset.ipynb`.
-
-### Embedding data prep beam job, TFDS dataset
-
-Use `non_semantic_speech_benchmark/data_prep/audio_to_embeddings_beam_main.py`
-with `tfds_dataset`.
-
-### Embedding data prep beam job, custom dataset
-
-Use `non_semantic_speech_benchmark/data_prep/audio_to_embeddings_beam_main.py`
-with `input_glob`.
