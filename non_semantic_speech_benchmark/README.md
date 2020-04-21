@@ -5,7 +5,7 @@ Paper: [Towards Learning a Universal Non-Semantic Representation of Speech](http
 ## Things you can do
 
 1. Reproduce the results from our [paper](https://arxiv.org/abs/2002.12764)
-1. Compute performance of a new embedding on the [Non-semantic Speech
+1. Compute performance of a new embedding on the [Non-Semantic Speech
    Benchmark (NOSS)](https://www.tensorflow.org/datasets/catalog/overview#audio)
 1. Run our embedding [TRILL](https://aihub.cloud.google.com/s?q=nonsemantic-speech-benchmark),
    or any of the other embedding networks on a new dataset.
