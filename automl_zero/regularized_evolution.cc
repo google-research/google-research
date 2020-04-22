@@ -54,7 +54,7 @@ using ::std::shared_ptr;  // NOLINT
 using ::std::unique_ptr;  // NOLINT
 using ::std::vector;  // NOLINT
 
-constexpr double kLn2 = 0.69314718056;
+//constexpr double kLn2 = 0.69314718056;
 
 }  // namespace
 

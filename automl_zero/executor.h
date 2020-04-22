@@ -1108,7 +1108,7 @@ inline bool Executor<F>::TrainNoOptImpl(const IntegerT max_steps,
     // Check whether we should stop early.
     const Scalar& label = train_it->GetLabel();
     const double abs_error = ErrorComputer<F>::Compute(memory_, label);
-    if (isnan(abs_error) || abs_error > max_abs_error_) {
+    if (std::isnan(abs_error) || abs_error > max_abs_error_) {
       return false;
     }
     if (errors != nullptr) {
@@ -1186,7 +1186,7 @@ bool Executor<F>::TrainOptImpl(const IntegerT max_steps,
     // Check whether we should stop early.
     const Scalar& label = train_it->GetLabel();
     const double abs_error = ErrorComputer<F>::Compute(memory_, label);
-    if (isnan(abs_error) || abs_error > max_abs_error_) {
+    if (std::isnan(abs_error) || abs_error > max_abs_error_) {
       return false;
     }
     if (errors != nullptr) {
@@ -1289,7 +1289,7 @@ double Executor<F>::Validate(std::vector<double>* errors) {
     }
 
     const double abs_error = std::abs(error);
-    if (isnan(abs_error) || abs_error > max_abs_error_) {
+    if (std::isnan(abs_error) || abs_error > max_abs_error_) {
       // Stop early. Return infinite loss.
       return kMinFitness;
     }
@@ -1366,7 +1366,7 @@ void ExecuteAndFillLabels(const Algorithm& algorithm, Memory<F>* memory,
 constexpr double kMinusTwoOverPi = -0.63661977236758138243;
 
 inline double FlipAndSquash(const double value) {
-  if (isnan(value) || isinf(value)) {
+  if (std::isnan(value) || std::isinf(value)) {
     return 0.0;
   }
   CHECK_GE(value, 0.0);
