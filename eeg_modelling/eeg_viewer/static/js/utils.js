@@ -12,6 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Copyright 2019 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /**
  * @fileoverview Provide util functions.
  *
@@ -215,6 +229,33 @@ function getProtoMapKeys(protoMap) {
   return keys;
 }
 
+/**
+ * Gets the minimum value of an array.
+ * This function is preferred over Math.min(...array), since said function will
+ * throw overflow with an array too large.
+ * @param {!Array<number>} array with values.
+ * @return {number} minimum number of the array.
+ */
+function getArrayMin(array) {
+  return array.reduce(
+      (val, currentMin) => (val < currentMin ? val : currentMin),
+      array[0],
+  );
+}
+
+/**
+ * Gets the maximum value of an array.
+ * This function is preferred over Math.max(...array), since said function will
+ * throw overflow with an array too large.
+ * @param {!Array<number>} array with values.
+ * @return {number} maximum number of the array.
+ */
+function getArrayMax(array) {
+  return array.reduce(
+      (val, currentMax) => (val > currentMax ? val : currentMax),
+      array[0],
+  );
+}
 
 exports = {
   DragOptions,
@@ -230,4 +271,6 @@ exports = {
   addMDLCheckbox,
   toggleMDLCheckbox,
   getProtoMapKeys,
+  getArrayMin,
+  getArrayMax,
 };

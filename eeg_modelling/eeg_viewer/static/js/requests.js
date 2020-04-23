@@ -12,6 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Copyright 2019 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 goog.module('eeg_modelling.eeg_viewer.Requests');
 
 const BipolarChannel = goog.require('proto.eeg_modelling.protos.ChannelDataId.BipolarChannel');
@@ -25,6 +39,8 @@ const FilterParams = goog.require('proto.eeg_modelling.protos.FilterParams');
 const ResponseType = goog.require('goog.net.XhrIo.ResponseType');
 const SimilarPatternsRequest = goog.require('proto.eeg_modelling.protos.SimilarPatternsRequest');
 const SimilarPatternsResponse = goog.require('proto.eeg_modelling.protos.SimilarPatternsResponse');
+const SimilarityCurveRequest = goog.require('proto.eeg_modelling.protos.SimilarityCurveRequest');
+const SimilarityCurveResponse = goog.require('proto.eeg_modelling.protos.SimilarityCurveResponse');
 const SimilaritySettings = goog.require('proto.eeg_modelling.protos.SimilaritySettings');
 const SingleChannel = goog.require('proto.eeg_modelling.protos.ChannelDataId.SingleChannel');
 const Store = goog.require('eeg_modelling.eeg_viewer.Store');
@@ -46,7 +62,7 @@ const montages = goog.require('eeg_modelling.eeg_viewer.montages');
 let ErrorResponse;
 
 /**
- * @typedef {!DataRequest|!SimilarPatternsRequest}
+ * @typedef {!DataRequest|!SimilarPatternsRequest|!SimilarityCurveRequest}
  */
 let ProtoRequest;
 
@@ -69,6 +85,13 @@ class Requests {
           Store.Property.SIMILAR_PATTERN_RESULT_RANK,
         ],
         'Requests', (store) => this.handleSearchSimilarPattern(store));
+    // This listener callback will make a new HTTP request to get a similarity
+    // curve.
+    store.registerListener(
+        [
+          Store.Property.SIMILARITY_CURVE_TEMPLATE,
+        ],
+        'Requests', (store) => this.handleGetSimilarityCurve(store));
 
     this.logger_ = log.getLogger('eeg_modelling.eeg_viewer.Requests');
   }
@@ -333,6 +356,54 @@ class Requests {
       formatResponse,
       Dispatcher.ActionType.SEARCH_SIMILAR_RESPONSE_OK,
       Dispatcher.ActionType.SEARCH_SIMILAR_RESPONSE_ERROR,
+    );
+  }
+
+  /**
+   * Creates a SimilarityCurveRequest proto from the data saved in the store.
+   * @param {!Store.StoreData} store Snapshot of chunk data store.
+   * @return {!SimilarityCurveRequest} A SimilarityCurveRequest proto object.
+   * @private
+   */
+  createSimilarityCurveRequest_(store) {
+    const fileParams = new FileParams();
+    const filterParams = new FilterParams();
+    this.setFileParams_(fileParams, store);
+    this.setFilterParams_(filterParams, store);
+
+    const requestContent = new SimilarityCurveRequest();
+    requestContent.setFileParams(fileParams);
+    requestContent.setFilterParams(filterParams);
+    requestContent.setStartTime(store.similarityCurveTemplate.startTime);
+    requestContent.setDuration(store.similarityCurveTemplate.duration);
+
+    const montageInfo = montages.createMontageInfo(
+        store.indexChannelMap, store.similarityCurveTemplate.channelList);
+    this.setChannelDataIdsParam_(requestContent, montageInfo.indexStrList);
+
+    return requestContent;
+  }
+
+  /**
+   * Sends a request to calculate a similarity curve.
+   * @param {!Store.StoreData} store Data from the store.
+   */
+  handleGetSimilarityCurve(store) {
+    if (!store.similarityCurveTemplate) {
+      return;
+    }
+    const url = '/similarity_curve';
+    const requestContent = this.createSimilarityCurveRequest_(store);
+    const formatResponse = (response) => {
+      return SimilarityCurveResponse.deserializeBinary(response);
+    };
+
+    this.sendRequest(
+        url,
+        requestContent,
+        formatResponse,
+        Dispatcher.ActionType.SIMILARITY_CURVE_RESPONSE_OK,
+        Dispatcher.ActionType.SIMILARITY_CURVE_RESPONSE_ERROR,
     );
   }
 }

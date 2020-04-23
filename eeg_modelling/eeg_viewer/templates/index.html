@@ -14,6 +14,22 @@
    limitations under the License.
 -->
 
+<!--
+   Copyright 2019 The Google Research Authors.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
 <!DOCTYPE html>
 <html>
   <head> <link rel="stylesheet" type="text/css"
@@ -93,6 +109,13 @@
           <div class="mdl-tooltip mdl-tooltip--large" for="prev-sec-button">
             Prev Second
           </div>
+          <button id="clear-curve-button" class="hidden mdl-button mdl-js-button mdl-button--icon" onclick="waveEvents.clearCurve()" disabled>
+            <i class="material-icons">clear</i>
+          </button>
+          <div class="mdl-tooltip mdl-tooltip--large" for="clear-curve-button">
+            Clear Curve
+          </div>
+          <div id="curve-spinner" class="mdl-spinner mdl-js-spinner hidden"></div>
         </div>
         <div id="parent-chart-container" ondrop="graph.drop(event)" ondragover="graph.allowDrop(event)">
           <div id="line-chart-container"></div>
@@ -499,6 +522,12 @@
               </button>
               <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.searchSimilarPatterns()">
                 Find similar
+              </button>
+              <button id="curve-button" class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.getSimilarityCurve()">
+                Similarity curve
+              </button>
+              <button id="curve-button" class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.searchAndGetCurve()">
+                Find + curve
               </button>
               <button class="block mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect" onclick="waveEvents.deleteWaveEvent()">
                 Delete
