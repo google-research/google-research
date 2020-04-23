@@ -13,6 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2019 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Serves web UI requests for Waveforms Viewer.
 
 Serves requests for various data queries.
@@ -345,6 +358,45 @@ def SearchSimilarPatterns(similar_patterns_request):
   return similar_patterns_response, {}
 
 
+@MakeProtoRequestHandler(similarity_pb2.SimilarityCurveRequest)
+def GetSimilarityCurve(similarity_curve_request):
+  """Calculates a similarity curve across a file.
+
+  Args:
+    similarity_curve_request: SimilarityCurveRequest instance defining the
+      request to perform.
+
+  Returns:
+    SimilarityCurveResponse instance with the curve, and no extra headers.
+  Raises:
+    ValueError: No channel selected.
+  """
+  requested_channels = similarity_curve_request.channel_data_ids
+
+  if not requested_channels:
+    raise ValueError('Must select at least one channel')
+
+  file_params = similarity_curve_request.file_params
+  waveform_data_source = GetWaveformDataSource(file_params)
+
+  filter_params = similarity_curve_request.filter_params
+
+  data = waveform_data_service.GetChunkDataAsNumpy(waveform_data_source,
+                                                   requested_channels,
+                                                   filter_params.low_cut,
+                                                   filter_params.high_cut,
+                                                   filter_params.notch)
+
+  sampling_freq = waveform_data_service.GetSamplingFrequency(
+      waveform_data_source, requested_channels)
+
+  similarity_curve_response = similarity.CreateSimilarityCurveResponse(
+      data, similarity_curve_request.start_time,
+      similarity_curve_request.duration, sampling_freq)
+
+  return similarity_curve_response, {}
+
+
 def RegisterRoutes(app):
   """Registers routes in the flask app.
 
@@ -361,6 +413,11 @@ def RegisterRoutes(app):
       '/similarity',
       'similarity',
       SearchSimilarPatterns,
+      methods=['POST'])
+  app.add_url_rule(
+      '/similarity_curve',
+      'similarity_curve',
+      GetSimilarityCurve,
       methods=['POST'])
 
 

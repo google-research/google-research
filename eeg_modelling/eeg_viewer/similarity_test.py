@@ -13,6 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2019 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Lint as: python2, python3
 """Tests for similarity operations."""
 
@@ -81,7 +95,7 @@ class SimilarityTest(absltest.TestCase):
 
     self.base_data = np.zeros((n_leads, n_samples), dtype=np.float32)
 
-  def testCreateResponse(self):
+  def testCreateSimilarPatternsResponse(self):
     settings = similarity_pb2.SimilaritySettings()
     settings.top_n = 7
     settings.merge_close_results = False
@@ -179,6 +193,13 @@ class SimilarityTest(absltest.TestCase):
     merged_targets_span.start_time = target_1_start_time
     merged_targets_span.duration = merged_duration
     self.assertTrue(overlaps(merged_targets_span, patterns_found[0]))
+
+  def testCreateSimilarityCurveResponse(self):
+    response = similarity.CreateSimilarityCurveResponse(self.base_data, 1, 2,
+                                                        sampling_freq)
+
+    self.assertIsInstance(response, similarity_pb2.SimilarityCurveResponse)
+    self.assertLen(response.scores, self.base_data.shape[1])
 
 
 if __name__ == '__main__':

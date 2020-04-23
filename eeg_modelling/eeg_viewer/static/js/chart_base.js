@@ -55,6 +55,8 @@ const {assert, assertInstanceof, assertObject, assertString} = goog.require('goo
  *     }),
  *     height: (string|undefined),
  *     width: (string|undefined),
+ *     top : (number|undefined),
+ *     left : (number|undefined),
  *   },
  *   colors: ?Array<string>,
  *   crosshair: {

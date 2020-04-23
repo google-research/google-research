@@ -94,7 +94,7 @@ testSuite({
          {v: 4, f: '00:00:06'}, {v: 5, f: '00:00:07'},
          {v: 6, f: '00:00:08'}, {v: 7, f: '00:00:09'},
          {v: 8, f: '00:00:10'}, {v: 9, f: '00:00:11'}]).$once();
-
+    mockSet('colors', ['transparent']).$once();
     mockControl.$replayAll();
 
     navChart.updateChartOptions(storeData);
