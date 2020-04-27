@@ -66,6 +66,7 @@ env:
     - PROJECT="stochastic_to_deterministic"
     - PROJECT="storm_optimizer"
     - PROJECT="sufficient_input_subsets"
+    - PROJECT="t5_closed_book_qa"
     - PROJECT="tabnet"
     - PROJECT="tcc"
     - PROJECT="truss_decomposition"
