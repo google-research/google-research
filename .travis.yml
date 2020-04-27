@@ -16,6 +16,7 @@ env:
     - PROJECT="bam"
     - PROJECT="bisimulation_aaai2020"
     - PROJECT="bitempered_loss"
+    - PROJECT="cell_mixer"
     - PROJECT="cfq"
     - PROJECT="cnn_quantization"
     - PROJECT="dataset_analysis"
