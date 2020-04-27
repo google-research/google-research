@@ -26,6 +26,7 @@ import random
 
 import numpy as np
 import tensorflow.compat.v1 as tf
+import tensorflow_hub as hub
 
 from mobilebert import modeling
 from mobilebert import optimization
@@ -36,6 +37,11 @@ flags = tf.flags
 FLAGS = flags.FLAGS
 
 ## Required parameters
+
+flags.DEFINE_string(
+    "hub_module_url", None, "TF-Hub path/url to MobileBert module."
+    "If specified, init_checkpoint flag should not be used.")
+
 flags.DEFINE_string(
     "bert_config_file", None,
     "The config json file corresponding to the pre-trained BERT model. "
@@ -576,18 +582,31 @@ def create_model(bert_config,
                  input_mask,
                  segment_ids,
                  use_one_hot_embeddings,
-                 use_einsum=False):
+                 use_einsum=False,
+                 hub_module_url=None):
   """Creates a classification model."""
-  model = modeling.BertModel(
-      config=bert_config,
-      is_training=is_training,
-      input_ids=input_ids,
-      input_mask=input_mask,
-      token_type_ids=segment_ids,
-      use_one_hot_embeddings=use_one_hot_embeddings,
-      use_einsum=use_einsum)
+  if hub_module_url is None:
+    model = modeling.BertModel(
+        config=bert_config,
+        is_training=is_training,
+        input_ids=input_ids,
+        input_mask=input_mask,
+        token_type_ids=segment_ids,
+        use_one_hot_embeddings=use_one_hot_embeddings,
+        use_einsum=use_einsum)
 
-  final_hidden = model.get_sequence_output()
+    final_hidden = model.get_sequence_output()
+  else:
+    tags = set()
+    if is_training:
+      tags.add("train")
+
+    bert_module = hub.Module(hub_module_url, tags=tags, trainable=True)
+    bert_inputs = dict(
+        input_ids=input_ids, input_mask=input_mask, segment_ids=segment_ids)
+    bert_outputs = bert_module(bert_inputs, signature="tokens", as_dict=True)
+    final_hidden = bert_outputs["sequence_output"]
+
   final_hidden_shape = modeling.get_shape_list(final_hidden, expected_rank=3)
   batch_size = final_hidden_shape[0]
   seq_length = final_hidden_shape[1]
@@ -616,7 +635,7 @@ def create_model(bert_config,
 
 def model_fn_builder(bert_config, init_checkpoint, learning_rate,
                      num_train_steps, num_warmup_steps, use_tpu,
-                     use_one_hot_embeddings):
+                     use_one_hot_embeddings, hub_module_url):
   """Returns `model_fn` closure for TPUEstimator."""
 
   def model_fn(features, labels, mode, params):  # pylint: disable=unused-argument
@@ -642,7 +661,8 @@ def model_fn_builder(bert_config, init_checkpoint, learning_rate,
         input_ids=input_ids,
         input_mask=input_mask,
         segment_ids=segment_ids,
-        use_one_hot_embeddings=use_one_hot_embeddings)
+        use_one_hot_embeddings=use_one_hot_embeddings,
+        hub_module_url=hub_module_url)
 
     start_logits = tf.identity(start_logits, name="start_logits")
     end_logits = tf.identity(end_logits, name="end_logits")
@@ -1152,6 +1172,10 @@ def validate_flags_or_throw(bert_config):
         "The max_seq_length (%d) must be greater than max_query_length "
         "(%d) + 3" % (FLAGS.max_seq_length, FLAGS.max_query_length))
 
+  if FLAGS.init_checkpoint and FLAGS.hub_module_url:
+    raise ValueError(
+        "At most one of init_checkpoint and hub_module_url can be set.")
+
 
 def build_squad_serving_input_fn(seq_length):
   """Builds a serving input fn for raw images."""
@@ -1243,6 +1267,18 @@ class LiteRunner(object):
     return all_results
 
 
+def create_tokenizer_from_hub_module(bert_hub_module_handle):
+  """Get the vocab file and casing info from the Hub module."""
+  with tf.Graph().as_default():
+    bert_module = hub.Module(bert_hub_module_handle)
+    tokenization_info = bert_module(signature="tokenization_info", as_dict=True)
+    with tf.Session() as sess:
+      vocab_file, do_lower_case = sess.run(
+          [tokenization_info["vocab_file"], tokenization_info["do_lower_case"]])
+  return tokenization.FullTokenizer(
+      vocab_file=vocab_file, do_lower_case=do_lower_case)
+
+
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -1255,8 +1291,11 @@ def main(_):
   if FLAGS.data_dir:
     tf.gfile.MakeDirs(FLAGS.data_dir)
 
-  tokenizer = tokenization.FullTokenizer(
-      vocab_file=FLAGS.vocab_file, do_lower_case=FLAGS.do_lower_case)
+  if FLAGS.hub_module_url:
+    tokenizer = create_tokenizer_from_hub_module(FLAGS.hub_module_url)
+  else:
+    tokenizer = tokenization.FullTokenizer(
+        vocab_file=FLAGS.vocab_file, do_lower_case=FLAGS.do_lower_case)
 
   tpu_cluster_resolver = None
   if FLAGS.use_tpu and FLAGS.tpu_name:
@@ -1297,7 +1336,8 @@ def main(_):
       num_train_steps=num_train_steps,
       num_warmup_steps=num_warmup_steps,
       use_tpu=FLAGS.use_tpu,
-      use_one_hot_embeddings=False)
+      use_one_hot_embeddings=False,
+      hub_module_url=FLAGS.hub_module_url)
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
