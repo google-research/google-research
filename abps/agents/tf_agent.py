@@ -54,10 +54,10 @@ class TFAgent(tf.Module):
         the user.
       action_spec: A nest of BoundedTensorSpec representing the actions.
         Provided by the user.
-      policy: An instance of `tf_policy.Base` representing the Agent's current
-        policy.
-      collect_policy: An instance of `tf_policy.Base` representing the Agent's
-        current data collection policy (used to set `self.step_spec`).
+      policy: An instance of `tf_policy.TFPolicy` representing the Agent's
+        current policy.
+      collect_policy: An instance of `tf_policy.TFPolicy` representing the
+        Agent's current data collection policy (used to set `self.step_spec`).
       train_sequence_length: A python integer or `None`, signifying the number
         of time steps required from tensors in `experience` as passed to
         `train()`.  All tensors in `experience` will be shaped `[B, T, ...]` but
@@ -239,7 +239,7 @@ class TFAgent(tf.Module):
     """Return the current policy held by the agent.
 
     Returns:
-      A `tf_policy.Base` object.
+      A `tf_policy.TFPolicy` object.
     """
     return self._policy
 
@@ -252,7 +252,7 @@ class TFAgent(tf.Module):
     """Return a policy that can be used to collect data from the environment.
 
     Returns:
-      A `tf_policy.Base` object.
+      A `tf_policy.TFPolicy` object.
     """
     return self._collect_policy
 
