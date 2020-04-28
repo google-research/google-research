@@ -26,6 +26,13 @@ LossyWeight::LossyWeight(uint window_size, uint hash_count, uint hash_size)
   counters_.reserve(window_size * 2);
 }
 
+LossyWeight::LossyWeight(const LossyWeight& lw)
+    : window_size_(lw.window_size_), cm_(lw.cm_) {
+  Reset();
+  counters_.reserve(window_size_ * 2);
+  Merge(lw);
+}
+
 void LossyWeight::Reset() {
   accumulated_counters_ = 0;
   counters_.clear();
@@ -132,7 +139,6 @@ void LossyWeight::MergeCounters() {
 
   counters_.resize(m);
   DiscardLowFreqItems();
-  accumulated_counters_ = counters_.size();
 }
 
 void LossyWeight::DiscardLowFreqItems() {
@@ -153,6 +159,7 @@ void LossyWeight::DiscardLowFreqItems() {
   }
 
   std::sort(counters_.begin(), counters_.end(), cmpByItem);
+  accumulated_counters_ = counters_.size();
 }
 
 }  // namespace sketch

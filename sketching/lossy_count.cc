@@ -43,7 +43,13 @@ std::vector<IntFloatPair> MergeConsecutiveEqualItems(
 
 LossyCount::LossyCount(uint window_size) : window_size_(window_size) {
   window_.reserve(window_size);
-  current_.reserve(window_size * 2);
+  current_.reserve(window_size);
+}
+
+LossyCount::LossyCount(const LossyCount& lc) : window_size_(lc.window_size_) {
+  window_.reserve(window_size_);
+  current_.reserve(window_size_);
+  Merge(lc);
 }
 
 void LossyCount::Reset() {
