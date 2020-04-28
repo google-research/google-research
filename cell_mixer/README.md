@@ -100,7 +100,7 @@ AnnData has to be generate by first generating the data in csv, then by running
 the `convert.py` script.
 
 ```bash
-Rsript cell_mixer.R \
+Rscript cell_mixer.R \
 --data_path=$DATA_PATH \
 --name=mixture \
 --format=csv \
