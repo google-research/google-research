@@ -1,4 +1,4 @@
-# coding=utf-8
+# coding=utf-8barn
 # Copyright 2019 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
