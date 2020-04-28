@@ -21,7 +21,7 @@ from absl.testing import parameterized
 import t5
 import tensorflow.compat.v1 as tf
 
-import t5_closed_book_qa.tasks  # pylint:disable=unused-import
+import t5_closed_book_qa.t5_cbqa.tasks  # pylint:disable=unused-import
 
 tf.disable_v2_behavior()
 tf.enable_eager_execution()

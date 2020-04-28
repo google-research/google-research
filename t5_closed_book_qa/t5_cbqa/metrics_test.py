@@ -19,7 +19,7 @@
 from absl.testing import absltest
 from t5.evaluation import test_utils
 
-from t5_closed_book_qa import metrics
+from t5_closed_book_qa.t5_cbqa import metrics
 
 
 class MetricsTest(test_utils.BaseMetricsTest):

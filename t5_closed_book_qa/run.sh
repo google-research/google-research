@@ -20,7 +20,7 @@ virtualenv -p python3 .
 source ./bin/activate
 
 pip install -r t5_closed_book_qa/requirements.txt
-python -m t5_closed_book_qa.metrics_test
-python -m t5_closed_book_qa.preprocessors_test
-python -m t5_closed_book_qa.postprocessors_test
+python -m t5_closed_book_qa.t5_cbqa.metrics_test
+python -m t5_closed_book_qa.t5_cbqa.preprocessors_test
+python -m t5_closed_book_qa.t5_cbqa.postprocessors_test
 

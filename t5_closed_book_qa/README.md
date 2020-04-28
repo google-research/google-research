@@ -19,55 +19,55 @@ If using the `t5` API from an interactive shell or script, simply call `import t
 
 As an example, you can fine-tune on a mixture of all 3 CBQA tasks
 (Natural Questions, Web Questions, and TriviaQA) with the
-T5-11B model by running the command below from this directory.
+T5.1.1-XXL + SSM model by running the command below from this directory.
 
 The remaining experiments are shown in the [tasks.py](tasks.py) file.
 
-```
-export PROJECT=yourproject
-export ZONE=yourzone
-export BUCKET=yourbucket
-export TPU=yourtpu
+```shell
+PROJECT=yourproject
+ZONE=yourzone
+BUCKET=gs://yourbucket
+TPU=yourtpu
 
 ctpu up   --name=$TPU   --project=$PROJECT  --zone=$ZONE   --tpu-size=v3-128   --tpu-only   --noconf
 
 TASK=closed_book_qa
-PRETRAINED_DIR=gs://t5-data/pretrained_models/11B
-PRETRAINED_STEPS=1000000
+PRETRAINED_DIR=gs://t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm
+PRETRAINED_STEPS=1100000
+FINETUNE_STEPS=10000
+MODEL_DIR="${BUCKET}/${TASK}/xxl_ssm"
 
 # Run fine-tuning
-t5_mesh_transformer \
-  --module_import="tasks" \
+python -m t5.models.mesh_transformer_main \
+  --module_import="t5_cbqa.tasks" \
   --tpu="${TPU}" \
   --gcp_project="${PROJECT}" \
   --tpu_zone="${ZONE}" \
-  --model_dir="${BUCKET}/{$TASK}/11B/" \
+  --model_dir="${MODEL_DIR}" \
   --gin_file="dataset.gin" \
   --gin_file="${PRETRAINED_DIR}/operative_config.gin" \
   --gin_param="utils.tpu_mesh_shape.tpu_topology = '8x8'" \
   --gin_param="MIXTURE_NAME = '${TASK}'" \
-  --gin_param="mesh_train_dataset_fn.use_cached=False" \
-  --gin_param="utils.run.save_checkpoints_steps=100" \
+  --gin_param="utils.run.save_checkpoints_steps=1000" \
   --gin_param="utils.run.batch_size=('tokens_per_batch', 196608)" \
-  --gin_param="utils.run.train_steps=1010000" \
-  --gin_param="utils.run.init_checkpoint='${PRETRAINED_DIR}/11B/model.ckpt-${PRETRAINED_STEPS}'" \
+  --gin_param="utils.run.train_steps=$((PRETRAINED_STEPS+FINETUNE_STEPS))" \
+  --gin_param="utils.run.init_checkpoint='${PRETRAINED_DIR}/model.ckpt-${PRETRAINED_STEPS}'" \
   --gin_param="utils.run.learning_rate_schedule=@learning_rate_schedules.constant_learning_rate" \
   --gin_param="constant_learning_rate.learning_rate=1e-3" \
-  --t5_tfds_data_dir="${BUCKET}/t5-tfds" 
+  --t5_tfds_data_dir="${BUCKET}/t5-tfds"
 
 # Run eval
-t5_mesh_transformer \
-  --module_import="tasks" \
+python -m t5.models.mesh_transformer_main \
+  --module_import="t5_cbqa.tasks" \
   --tpu="${TPU}" \
   --gcp_project="${PROJECT}" \
   --tpu_zone="${ZONE}" \
-  --model_dir="${BUCKET}/${TASK}/11B/" \
+  --model_dir="${MODEL_DIR}" \
   --gin_file="dataset.gin" \
-  --gin_file="${BUCKET}/${TASK}/11B/operative_config.gin" \
+  --gin_file="${MODEL_DIR}/operative_config.gin" \
   --gin_file="eval.gin" \
   --gin_param="utils.tpu_mesh_shape.tpu_topology = '8x8'" \
-  --gin_param="MIXTURE_NAME = '${TASK}"" \
-  --gin_param="mesh_eval_dataset_fn.use_cached=False" \
+  --gin_param="MIXTURE_NAME = '${TASK}'" \
   --gin_param="utils.run.dataset_split = 'validation'" \
   --gin_param="utils.run.batch_size=('tokens_per_batch', 65536)" \
   --gin_param="utils.run.eval_checkpoint_step='all'" \

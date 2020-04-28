@@ -17,13 +17,13 @@
 """T5 CBQA tasks."""
 import functools
 
+from . import metrics
+from . import postprocessors
+from . import preprocessors
+
 import t5.data
 from t5.data import postprocessors as t5_postprocessors
 from t5.evaluation import metrics as t5_metrics
-
-from t5_closed_book_qa import metrics
-from t5_closed_book_qa import postprocessors
-from t5_closed_book_qa import preprocessors
 
 MixtureRegistry = t5.data.MixtureRegistry
 TaskRegistry = t5.data.TaskRegistry
@@ -187,19 +187,17 @@ TaskRegistry.add(
 MixtureRegistry.add(
     "closed_book_qa",
     [
-        "trivia_qa_open",
-        "natural_questions_open",
-        "web_questions_open"
-    ],
-    default_rate=t5.data.utils.rate_num_examples
+        ("trivia_qa_open", 87622),
+        ("natural_questions_open", 85666),
+        ("web_questions_open", 3400)
+    ]
 )
 
 MixtureRegistry.add(
     "closed_book_qa_test",
     [
-        "trivia_qa_open_test",
-        "natural_questions_open_test",
-        "web_questions_open_test"
-    ],
-    default_rate=t5.data.utils.rate_num_examples
+        ("trivia_qa_open_test", 98935),
+        ("natural_questions_open_test", 87925),
+        ("web_questions_open_test", 3778)
+    ]
 )

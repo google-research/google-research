@@ -20,7 +20,7 @@ from absl.testing import absltest
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-from t5_closed_book_qa import postprocessors
+from t5_closed_book_qa.t5_cbqa import postprocessors
 
 tf.disable_v2_behavior()
 tf.enable_eager_execution()
