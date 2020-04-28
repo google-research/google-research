@@ -6,7 +6,6 @@ natsort>=7.0.1
 numpy>=1.18.3
 packaging>=20.3
 pandas>=1.0.3
-pkg-resources>=0.0.0
 pyparsing>=2.4.7
 python-dateutil>=2.8.1
 pytz>=2019.3

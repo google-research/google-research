@@ -39,7 +39,7 @@ R -q -e 'BiocManager::install("DropletUtils")'
 DATA_PATH=/tmp/data
 bash cell_mixer/fetch_data.sh $DATA_PATH
 
-Rsript cell_mixer.R \
+Rscript cell_mixer.R \
 --data_path=$DATA_PATH \
 --name=mixture \
 --format=csv \
@@ -47,5 +47,5 @@ Rsript cell_mixer.R \
 --naive_t=500
 
 python3 -m cell_mixer.converter \
---input_csv=mixture \
+--input_csv_prefix=mixture \
 --format=anndata
