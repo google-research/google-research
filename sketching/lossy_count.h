@@ -38,6 +38,8 @@ class LossyCount : public Sketch {
  public:
   explicit LossyCount(uint window_size);
 
+  LossyCount(const LossyCount& lc);
+
   ~LossyCount() override = default;
 
   void Reset() override;

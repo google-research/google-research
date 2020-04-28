@@ -82,16 +82,15 @@ std::vector<uint> Frequent::HeavyHitters(float threshold) const {
 
 unsigned int Frequent::Size() const {
   return sizeof(Frequent) +
-         item_to_weight_.capacity() *
-             sizeof(
-                 std::pair<uint, decltype(weight_to_item_)::const_iterator>) +
+      heap_size_ * sizeof(
+          std::pair<uint, decltype(weight_to_item_)::const_iterator>) +
          // The space required for the contents (not pointers) of nodes in the
          // BST (i.e., weight_to_item_).
-         weight_to_item_.size() * sizeof(std::pair<float, uint>) +
+      heap_size_ * sizeof(std::pair<float, uint>) +
          // The space required for the pointers of nodes in BST where each node
          // requires three pointers (i.e., parent, left child, and right
          // child).
-         weight_to_item_.size() * 3 * sizeof(std::pair<float, uint>&);
+      heap_size_ * 3 * sizeof(std::pair<float, uint>&);
 }
 
 bool Frequent::Compatible(const Sketch& other_sketch) const {

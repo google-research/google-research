@@ -31,6 +31,8 @@ class LossyWeight : public Sketch {
  public:
   LossyWeight(uint window_size, uint hash_count, uint hash_size);
 
+  LossyWeight(const LossyWeight& lw);
+
   ~LossyWeight() override = default;
 
   void Reset() override;

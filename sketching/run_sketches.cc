@@ -40,8 +40,11 @@ DEFINE_int32(lg_stream_range, 20, "Stream elements in 0..2^lg_stream_range");
 DEFINE_string(distribution, "zipf", "Which distribution?");
 DEFINE_double(zipf_param, 1.1, "Parameter for the Zipf distribution");
 DEFINE_double(epsilon, 0.0001, "Heavy hitter fraction");
+DEFINE_int32(sketch_size, 100000,
+             "Size of sketch, all algorithms get same memory, in bytes");
+DEFINE_double(fallback_fraction, 0.2,
+              "Fraction of memory used for fallback");
 DEFINE_int32(hash_count, 5, "Number of hashes");
-DEFINE_int32(hash_size, 2048, "Size of each hash");
 DEFINE_int32(frequent_size, 2000, "Items in memory for Frequent (Misra-Gries)");
 
 namespace sketch {
@@ -113,6 +116,25 @@ void PrintOutput(const std::vector<SketchStats>& stats) {
   }
 }
 
+int DetermineSketchParam(uint max_sketch_size,
+                         std::function<uint(uint)> compute_sketch_size) {
+  uint lb = 1;
+  uint ub = max_sketch_size;
+  uint val = max_sketch_size / 8;
+
+  while (ub > lb + 1) {
+    uint sketch_size = compute_sketch_size(val);
+    if (sketch_size > max_sketch_size) {
+      ub = val - 1;
+    } else {
+      lb = val;
+    }
+    uint mid = lb + (ub - lb) / 2;  // trick to avoid uint overflow
+    val = std::min(std::max(val / 2, mid), val * 2);
+  }
+  return val;
+}
+
 void TestCounts() {
   auto [data, counts] =
       CreateStream(FLAGS_stream_size, FLAGS_lg_stream_range, FLAGS_zipf_param);
@@ -127,37 +149,105 @@ void TestCounts() {
 
   std::vector<std::pair<std::string, std::unique_ptr<Sketch>>> sketches;
 
+  const uint cm_hash_size = DetermineSketchParam(
+      FLAGS_sketch_size,
+      [](uint val) -> uint {
+        return CountMin(FLAGS_hash_count, val).Size();
+      });
+  std::cout << "CM params: hash_size " << cm_hash_size << std::endl;
   sketches.emplace_back(
       "CM", absl::make_unique<CountMin>(
-          CountMin(FLAGS_hash_count, FLAGS_hash_size)));
+          CountMin(FLAGS_hash_count, cm_hash_size)));
+
+  const uint cmcu_hash_size = DetermineSketchParam(
+      FLAGS_sketch_size,
+      [](uint val) -> uint {
+        return CountMinCU(FLAGS_hash_count, val).Size();
+      });
+  std::cout << "CM_CU params: hash_size " << cmcu_hash_size << std::endl;
   sketches.emplace_back(
       "CM_CU", absl::make_unique<CountMinCU>(
-          CountMinCU(FLAGS_hash_count, FLAGS_hash_size)));
+          CountMinCU(FLAGS_hash_count, cmcu_hash_size)));
+
+  const uint cmh_hash_size = DetermineSketchParam(
+      FLAGS_sketch_size,
+      [](uint val) -> uint {
+        return CountMinHierarchical(FLAGS_hash_count, val,
+                                    FLAGS_lg_stream_range).Size();
+      });
+  std::cout << "CMH params: hash_size " << cmh_hash_size << std::endl;
   sketches.emplace_back(
       "CMH", absl::make_unique<CountMinHierarchical>(CountMinHierarchical(
-          FLAGS_hash_count, FLAGS_hash_size, FLAGS_lg_stream_range)));
+          FLAGS_hash_count, cmh_hash_size, FLAGS_lg_stream_range)));
+
+  const uint cmhcu_hash_size = DetermineSketchParam(
+      FLAGS_sketch_size,
+      [](uint val) -> uint {
+        return CountMinHierarchicalCU(FLAGS_hash_count, val,
+                                      FLAGS_lg_stream_range).Size();
+      });
+  std::cout << "CMH_CU params: hash_size " << cmhcu_hash_size << std::endl;
   sketches.emplace_back(
       "CMH_CU", absl::make_unique<CountMinHierarchicalCU>(
           CountMinHierarchicalCU(
-              FLAGS_hash_count, FLAGS_hash_size, FLAGS_lg_stream_range)));
+              FLAGS_hash_count, cmhcu_hash_size, FLAGS_lg_stream_range)));
 
+  const uint fb_hash_size = DetermineSketchParam(
+      static_cast<uint>(FLAGS_sketch_size * FLAGS_fallback_fraction),
+      [](uint val) -> uint {
+        return CountMinCU(FLAGS_hash_count, val).Size();
+      });
+
+  const uint lc_window = DetermineSketchParam(
+      FLAGS_sketch_size,
+      [](uint val) -> uint { return LossyCount(val).Size(); });
+  std::cout << "LC params: window_size " << lc_window << std::endl;
   sketches.emplace_back(
-      "LC", absl::make_unique<LossyCount>(LossyCount(
-          (int)(1.0 / FLAGS_epsilon))));
+      "LC", absl::make_unique<LossyCount>(LossyCount(lc_window)));
+
+  const uint lcfb_window = DetermineSketchParam(
+      FLAGS_sketch_size,
+      [fb_hash_size](uint val) -> uint {
+        return LossyCountFallback(val, FLAGS_hash_count,
+                                   fb_hash_size).Size();
+      });
+  std::cout << "LC_FB params: window_size " << lcfb_window
+            << " fallback_hashsize " << fb_hash_size << std::endl;
   sketches.emplace_back(
       "LC_FB",
       absl::make_unique<LossyCountFallback>(LossyCountFallback(
-          (int)(1.0 / FLAGS_epsilon), FLAGS_hash_count, FLAGS_hash_size)));
+          lcfb_window, FLAGS_hash_count, fb_hash_size)));
+
+  const uint lw_size = DetermineSketchParam(
+      FLAGS_sketch_size,
+      [fb_hash_size](uint val) -> uint {
+        return LossyWeight(val, FLAGS_hash_count, fb_hash_size).Size();
+      });
+  std::cout << "LW params: storage_size " << lw_size
+            << " fallback_hashsize " << fb_hash_size << std::endl;
   sketches.emplace_back(
       "LW", absl::make_unique<LossyWeight>(LossyWeight(
-          FLAGS_frequent_size, FLAGS_hash_count, FLAGS_hash_size)));
+          lw_size, FLAGS_hash_count, fb_hash_size)));
 
+  const uint freq_size = DetermineSketchParam(
+      FLAGS_sketch_size,
+      [](uint val) -> uint { return Frequent(val).Size(); });
+  std::cout << "Freq params: store_size " << freq_size << std::endl;
   sketches.emplace_back(
-      "Freq", absl::make_unique<Frequent>(Frequent(FLAGS_frequent_size)));
+      "Freq", absl::make_unique<Frequent>(Frequent(freq_size)));
+
+  const uint freqfb_size = DetermineSketchParam(
+      FLAGS_sketch_size,
+      [fb_hash_size](uint val) -> uint {
+        return FrequentFallback(val, FLAGS_hash_count, fb_hash_size).Size();
+      });
+  std::cout << "Freq_FB params: store_size " << freqfb_size
+            << " fallback_hashsize " << fb_hash_size << std::endl;
   sketches.emplace_back(
       "Freq_FB", absl::make_unique<FrequentFallback>(FrequentFallback(
-                     FLAGS_frequent_size, FLAGS_hash_count, FLAGS_hash_size)));
+      freqfb_size, FLAGS_hash_count, fb_hash_size)));
 
+  std::cout << std::endl;
   std::vector<SketchStats> sketch_stats;
   for (const auto& [name, sketch] : sketches) {
     SketchStats s;
