@@ -14,14 +14,14 @@ This repository contains the code for reproducing the experiments in
 To run this code, you first need to install the
 [t5 library](https://pypi.org/project/t5/). General instructions for training, fine-tuning, evaluation, and exporting models for inference can be found in the [t5 repo](https://github.com/google-research/text-to-text-transfer-transformer).
 
-In order to use the additional CBQA tasks provided in this library with the `t5_mesh_transformer` commands, run from this directory and add the flag `--module_import="tasks"`.
-If using the `t5` API from an interactive shell or script, simply call `import tasks`.
+In order to use the additional CBQA tasks provided in this library with the `t5_mesh_transformer` commands, run from this directory and add the flag `--module_import="t5_cbqa.tasks"`.
+If using the `t5` API from an interactive shell or script, simply call `import t5_cbqa.tasks`.
 
 As an example, you can fine-tune on a mixture of all 3 CBQA tasks
 (Natural Questions, Web Questions, and TriviaQA) with the
 T5.1.1-XXL + SSM model by running the command below from this directory.
 
-The remaining experiments are shown in the [tasks.py](tasks.py) file.
+The remaining experiments are shown in the [tasks.py](t5_cbqa/tasks.py) file.
 
 ```shell
 PROJECT=yourproject
