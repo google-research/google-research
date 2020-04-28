@@ -58,6 +58,7 @@ env:
     - PROJECT="rl4circopt"
     - PROJECT="rllim"
     - PROJECT="robust_loss"
+    - PROJECT="scrna_benchmark"
     - PROJECT="sm3"
     - PROJECT="soft_sort"
     - PROJECT="solver1d"
