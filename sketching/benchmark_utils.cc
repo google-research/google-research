@@ -24,7 +24,7 @@ namespace sketch {
 
 constexpr int kAddBatchSize = 32;
 
-auto MakeAddStreams(int count) {
+std::vector<std::vector<IntFloatPair>> MakeAddStreams(int count) {
   std::vector<std::vector<IntFloatPair>> streams(kAddBatchSize);
   for (auto& stream : streams) {
     stream = CreateStream(count).first;
