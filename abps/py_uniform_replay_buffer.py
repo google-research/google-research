@@ -158,7 +158,10 @@ class PyUniformReplayBuffer(replay_buffer.ReplayBuffer):
   def _as_dataset(self,
                   sample_batch_size=None,
                   num_steps=None,
+                  sequence_preprocess_fn=None,
                   num_parallel_calls=None):
+    if sequence_preprocess_fn is not None:
+      raise NotImplementedError('sequence_preprocess_fn is not supported.')
     if num_parallel_calls is not None:
       raise NotImplementedError('PyUniformReplayBuffer does not support '
                                 'num_parallel_calls (must be None).')
