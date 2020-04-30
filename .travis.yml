@@ -73,6 +73,7 @@ env:
     - PROJECT="truss_decomposition"
     - PROJECT="towards_gan_benchmarks"
     - PROJECT="wiki_split_bleu_eval"
+    - PROJECT="wt5"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip

@@ -1,0 +1,8 @@
+# -*-Python-*-
+
+# Actual max lengths from CoS-E after preprocessing are:
+# max_inputs: 101
+# max_targets: 77
+# Rounding up to next power-of-two composite.
+
+utils.run.sequence_length = {'inputs': 128, 'targets': 96}
