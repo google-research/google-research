@@ -17,6 +17,7 @@
 
 import tensorflow.compat.v1 as tf
 from tensorflow.contrib import layers
+from tensorflow.contrib.framework import arg_scope
 
 
 def add_intrinsics_head(bottleneck, image_height, image_width):
@@ -248,3 +249,132 @@ def _refine_motion_field(motion_field, layer):
       activation_fn=None,
       biases_initializer=None,
       scope=layer.op.name + '/MotionBottleneck')
+
+
+# In the networks above there is a bug, where some of the MotionBottleneck
+# variables are replicated instead of being reused. This issue was raised here:
+# https://github.com/google-research/google-research/issues/230#issue-583223537
+# The code below fixes the issue. The effect on model performance is generally
+# positive but minor. This code is released per users' request. However all the
+# published checkpoints are only compatible with the old version of the code
+# (above this comment).
+
+
+def motion_field_net_v2(images, weight_reg=0.0):
+  """Predict object-motion vectors from a stack of frames or embeddings.
+
+  Args:
+    images: Input tensor with shape [B, h, w, 2c], containing two
+      depth-concatenated images.
+    weight_reg: A float scalar, the amount of weight regularization.
+
+  Returns:
+    A tuple of 3 tf.Tensors:
+    rotation: [B, 3], global rotation angles (due to camera rotation).
+    translation: [B, 1, 1, 3], global translation vectors (due to camera
+      translation).
+    residual_translation: [B, h, w, 3], residual translation vector field, due
+      to motion of objects relatively to the scene. The overall translation
+      field is translation + residual_translation.
+  """
+
+  with tf.variable_scope('MotionFieldNet'):
+    with arg_scope([layers.conv2d],
+                   weights_regularizer=layers.l2_regularizer(weight_reg),
+                   activation_fn=tf.nn.relu):
+
+      conv1 = layers.conv2d(images, 16, [3, 3], stride=2, scope='Conv1')
+      conv2 = layers.conv2d(conv1, 32, [3, 3], stride=2, scope='Conv2')
+      conv3 = layers.conv2d(conv2, 64, [3, 3], stride=2, scope='Conv3')
+      conv4 = layers.conv2d(conv3, 128, [3, 3], stride=2, scope='Conv4')
+      conv5 = layers.conv2d(conv4, 256, [3, 3], stride=2, scope='Conv5')
+      conv6 = layers.conv2d(conv5, 512, [3, 3], stride=2, scope='Conv6')
+      conv7 = layers.conv2d(conv6, 1024, [3, 3], stride=2, scope='Conv7')
+
+      bottleneck = tf.reduce_mean(conv7, axis=[1, 2], keepdims=True)
+
+      background_motion = layers.conv2d(
+          bottleneck,
+          6, [1, 1],
+          stride=1,
+          activation_fn=None,
+          biases_initializer=None,
+          scope='background_motion')
+
+      rotation = background_motion[:, 0, 0, :3]
+      translation = background_motion[:, :, :, 3:]
+
+      residual_translation = layers.conv2d(
+          background_motion,
+          3, [1, 1],
+          stride=1,
+          activation_fn=None,
+          scope='unrefined_residual_translation')
+      residual_translation = _refine_motion_field_v2(
+          residual_translation, conv7, scope='Refine7')
+      residual_translation = _refine_motion_field_v2(
+          residual_translation, conv6, scope='Refine6')
+      residual_translation = _refine_motion_field_v2(
+          residual_translation, conv5, scope='Refine5')
+      residual_translation = _refine_motion_field_v2(
+          residual_translation, conv4, scope='Refine4')
+      residual_translation = _refine_motion_field_v2(
+          residual_translation, conv3, scope='Refine3')
+      residual_translation = _refine_motion_field_v2(
+          residual_translation, conv2, scope='Refine2')
+      residual_translation = _refine_motion_field_v2(
+          residual_translation, conv1, scope='Refine1')
+      residual_translation = _refine_motion_field_v2(
+          residual_translation, images, scope='RefineImages')
+
+    rot_scale, trans_scale = create_scales(0.001)
+    translation *= trans_scale
+    residual_translation *= trans_scale
+    rotation *= rot_scale
+
+    image_height, image_width = tf.unstack(tf.shape(images)[1:3])
+    intrinsic_mat = add_intrinsics_head(bottleneck, image_height, image_width)
+
+    return (rotation, translation, residual_translation, intrinsic_mat)
+
+
+def _refine_motion_field_v2(motion_field, layer, scope=None):
+  """Refines a motion field using features from another layer.
+
+  Same as _refine_motion_field above, but all variables are now properly reused
+  (see comment above).
+
+  Args:
+    motion_field: a tf.Tensor of shape [B, h1, w1, m]. m is the number of
+      dimensions in the motion field, for example, 3 in case of a 3D translation
+      field.
+    layer: tf.Tensor of shape [B, h2, w2, c].
+    scope: the variable scope.
+
+  Returns:
+    A tf.Tensor of shape [B, h2, w2, m], obtained by upscaling motion_field to
+    h2, w2, and mixing it with layer using a few convolutions.
+
+  """
+  with tf.variable_scope(scope):
+    _, h, w, _ = tf.unstack(tf.shape(layer))
+    upsampled_motion_field = tf.image.resize_bilinear(motion_field, [h, w])
+    conv_input = tf.concat([upsampled_motion_field, layer], axis=3)
+    conv_output = layers.conv2d(
+        conv_input, max(4,
+                        layer.shape.as_list()[-1]), [3, 3], stride=1)
+    conv_input = layers.conv2d(
+        conv_input, max(4,
+                        layer.shape.as_list()[-1]), [3, 3], stride=1)
+    conv_output2 = layers.conv2d(
+        conv_input, max(4,
+                        layer.shape.as_list()[-1]), [3, 3], stride=1)
+    # pyformat: enable
+    conv_output = tf.concat([conv_output, conv_output2], axis=-1)
+
+    return upsampled_motion_field + layers.conv2d(
+        conv_output,
+        motion_field.shape.as_list()[-1], [1, 1],
+        stride=1,
+        activation_fn=None,
+        biases_initializer=None)
