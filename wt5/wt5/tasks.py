@@ -16,15 +16,16 @@
 """WT5 tasks."""
 import functools
 
+from . import metrics
+from . import postprocessors
+from . import preprocessors
+
 import t5.data
 from t5.data import postprocessors as t5_postprocessors
 from t5.data import preprocessors as t5_preprocessors
 from t5.evaluation import metrics as t5_metrics
 import tensorflow_datasets as tfds
 
-from wt5.wt5 import metrics
-from wt5.wt5 import postprocessors
-from wt5.wt5 import preprocessors
 
 TaskRegistry = t5.data.TaskRegistry
 TfdsTask = t5.data.TfdsTask

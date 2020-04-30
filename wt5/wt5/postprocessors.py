@@ -21,9 +21,10 @@ from absl import logging
 import numpy as np
 import tensorflow.compat.v1 as tf
 
+# pylint: disable=pointless-string-statement
 import spacy
 spacy_nlp = spacy.load("en_core_web_sm")
-"""  # GOOGLE-INTERNAL pylint: disable=pointless-string-statement
+# pylint: enable=pointless-string-statement
 
 
 def abstractive_explanations(output,
@@ -77,13 +78,14 @@ def extractive_explanations(output,
   # If no tokenizer was provided, convert string to list of characters
   tokenizer_fn = tokenizer_fn or list
 
+  # pylint: disable=pointless-string-statement
   def spacy_tokenizer(text):
     doc = spacy_nlp(text)
     tokens = [token.text for token in doc]
     return tokens
 
   tokenizer_fn = spacy_tokenizer
-  """  # GOOGLE-INTERNAL  pylint:disable=pointless-string-statement
+  # pylint: enable=g-import-not-at-top,invalid-name
 
   def _find_exact_match(haystack, needle):
     for start_pos in range(len(haystack) - len(needle) + 1):
