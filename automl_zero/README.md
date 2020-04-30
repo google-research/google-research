@@ -47,7 +47,7 @@ def Predict():  # v0 = features
 
 def Learn():  # v0 = features; s0 = label
   s3 = s0 - s1  # Compute error.
-  s4 = s3 * s1  # Apply learning rate.
+  s4 = s3 * s2  # Apply learning rate.
   v2 = v0 * s4  # Compute gradient.
   v1 = v1 + v2  # Update weights.
 ```
