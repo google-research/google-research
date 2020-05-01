@@ -1,11 +1,17 @@
 # WT5
 
 This repository contains the code for reproducing the experiments in
-"WT5?! Training Text-to-Text Models to Explain their Predictions".
+[WT5?! Training Text-to-Text Models to Explain their Predictions](https://arxiv.org/abs/2004.14546).
+
+## Table of Contents
+
+* [Usage](#usage)
+* [How to Cite](#how-to-cite)
+
+## Usage
 
 To run this code, you need to install the
 [t5 library](https://pypi.org/project/t5/). General instructions for training, fine-tuning, evaluation, and exporting models for inference can be found in the [t5 repo](https://github.com/google-research/text-to-text-transfer-transformer). In order to use the additional WT5 tasks and mixtures provided in this library with the `t5_mesh_transformer` commands, run from this directory and add the flag `--module_import="wt5.mixtures"`.
-
 
 As an example, you can reproduce the experiment for Movies rationales with 1000
 explanations on the 11B model by running (from this directory):
@@ -72,3 +78,18 @@ t5_mesh_transformer \
 ```
 
 The remaining experiments are shown in the [tasks.py](wt5/tasks.py) and [mixtures.py](wt5/mixtures.py) files.
+
+# How to Cite
+
+If you extend or use this work, please cite the [paper](https://arxiv.org/abs/2004.14546) where it was introduced:
+
+```
+@misc{narang2020wt5,
+    title={WT5?! Training Text-to-Text Models to Explain their Predictions},
+    author={Sharan Narang and Colin Raffel and Katherine Lee and Adam Roberts and Noah Fiedel and Karishma Malkan},
+    year={2020},
+    eprint={2004.14546},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL}
+}
+```
