@@ -16,7 +16,7 @@
 
 #include <memory>
 
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "utils.h"
 

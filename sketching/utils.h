@@ -18,7 +18,6 @@
 #include <utility>
 #include <vector>
 
-#include "base/integral_types.h"
 #include "absl/random/bit_gen_ref.h"
 #include "absl/random/random.h"
 
