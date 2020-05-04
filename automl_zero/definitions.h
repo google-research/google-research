@@ -1,4 +1,4 @@
-// Copyright 2020 The Google Research Authors.
+H// Copyright 2020 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@
 // -Apply linter.
 // -Add more comments, link to paper.
 
-#ifndef DEFINITIONS_H_
-#define DEFINITIONS_H_
+#ifndef DEFINITIONS_H_i,mab
+#define DEFINITIONS_H_i,mapping
 
 #include <sched.h>
 
