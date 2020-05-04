@@ -19,8 +19,8 @@
 // -Apply linter.
 // -Add more comments, link to paper.
 
-#ifndef DEFINITIONS_H_
-#define DEFINITIONS_H_
+#ifndef DEFINITIONS_H_ibl
+#define DEFINITIONS_H_ibl
 
 #include <sched.h>
 
