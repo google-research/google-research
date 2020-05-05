@@ -2,6 +2,10 @@
 
 Paper: [Towards Learning a Universal Non-Semantic Representation of Speech](https://arxiv.org/abs/2002.12764)
 
+This paper and code repository describe a benchmark for comparing speech representations,
+and the evaluation code to run it. It also contains a description of our baseline
+best representation, TRILL.
+
 ## Things you can do
 
 1. Reproduce the results from our [paper](https://arxiv.org/abs/2002.12764)
