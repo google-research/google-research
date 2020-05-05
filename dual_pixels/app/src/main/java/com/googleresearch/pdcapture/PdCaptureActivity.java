@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -75,8 +76,10 @@ public class PdCaptureActivity extends Activity {
   private CameraCaptureSession cameraCaptureSession;
   private HandlerThread cameraThread;
   private Handler cameraHandler;
-  private ImageReader imageReader;
+  private ImageReader dpImageReader;
+  private ImageReader rawImageReader;
   private Size previewDimensions;
+  private Size raw10Dimensions;
   private File outputDirectory;
 
   // Permission
@@ -158,6 +161,7 @@ public class PdCaptureActivity extends Activity {
       StreamConfigurationMap streamConfigMap =
           characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
       previewDimensions = getLargestByArea(streamConfigMap.getOutputSizes(SurfaceTexture.class));
+      raw10Dimensions = getLargestByArea(streamConfigMap.getOutputSizes(ImageFormat.RAW10));
       Log.d(TAG, "Preview dimensions: " + previewDimensions);
       if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
         requestPermissions(
@@ -203,8 +207,9 @@ public class PdCaptureActivity extends Activity {
       // orientation. Therefore, we reverse height and width here.
       adjustAspectRatio(previewDimensions.getHeight(), previewDimensions.getWidth());
       final Surface viewfinderSurface = new Surface(texture);
-      List<Surface> outputSurfaces = new ArrayList<Surface>(2);
-      outputSurfaces.add(imageReader.getSurface());
+      List<Surface> outputSurfaces = new ArrayList<Surface>(3);
+      outputSurfaces.add(dpImageReader.getSurface());
+      outputSurfaces.add(rawImageReader.getSurface());
       outputSurfaces.add(viewfinderSurface);
       cameraDevice.createCaptureSession(
           outputSurfaces,
@@ -246,9 +251,13 @@ public class PdCaptureActivity extends Activity {
       cameraDevice.close();
       cameraDevice = null;
     }
-    if (null != imageReader) {
-      imageReader.close();
-      imageReader = null;
+    if (null != dpImageReader) {
+      dpImageReader.close();
+      dpImageReader = null;
+    }
+    if (null != rawImageReader) {
+      rawImageReader.close();
+      rawImageReader = null;
     }
   }
 
@@ -257,7 +266,7 @@ public class PdCaptureActivity extends Activity {
     try {
       final CaptureRequest.Builder captureBuilder =
           cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-      captureBuilder.addTarget(imageReader.getSurface());
+      captureBuilder.addTarget(dpImageReader.getSurface());
       captureBuilder.addTarget(new Surface(viewfinderTextureView.getSurfaceTexture()));
       captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
       cameraCaptureSession.capture(captureBuilder.build(), null, cameraHandler);
@@ -268,10 +277,10 @@ public class PdCaptureActivity extends Activity {
 
   /** Configures an ImageReader for dual-pixel data. */
   private void createImageReader() {
-    imageReader =
+    dpImageReader =
         ImageReader.newInstance(
-            IMAGE_READER_DP_WIDTH, IMAGE_READER_DP_HEIGHT, IMAGE_FORMAT_DP, /*maxImages=*/ 1);
-    imageReader.setOnImageAvailableListener(
+            IMAGE_READER_DP_WIDTH, IMAGE_READER_DP_HEIGHT, IMAGE_FORMAT_DP, /*maxImages=*/ 10);
+    dpImageReader.setOnImageAvailableListener(
         new ImageReader.OnImageAvailableListener() {
           @Override
           public void onImageAvailable(ImageReader reader) {
@@ -305,6 +314,13 @@ public class PdCaptureActivity extends Activity {
           }
         },
         cameraHandler);
+    // Some devices require a RAW10 image reader for DP capture to work.
+    rawImageReader =
+        ImageReader.newInstance(
+            raw10Dimensions.getWidth(),
+            raw10Dimensions.getHeight(),
+            ImageFormat.RAW10,
+            /*maxImages=*/ 10);
   }
 
   /** Holds data corresponding to the left and right dual-pixel views. */
