@@ -13,8 +13,8 @@
 suppressPackageStartupMessages({
   library("argparse")
   library("SingleCellExperiment")
-  library("scran")
   library("scater")
+  library("scran")
   library("Seurat")
   library("zinbwave")
   library("matrixStats")
