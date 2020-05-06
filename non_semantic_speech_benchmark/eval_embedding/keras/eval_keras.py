@@ -75,9 +75,10 @@ def eval_and_report():
 
     logging.info('Loaded weights for eval step: %s.', step)
 
+    reader = tf.data.TFRecordDataset
     ds = get_data.get_data(
         file_pattern=FLAGS.file_pattern,
-        reader=tf.data.TFRecordDataset,
+        reader=reader,
         embedding_name=FLAGS.en,
         embedding_dim=FLAGS.ed,
         preaveraged=False,

@@ -57,9 +57,10 @@ def train_and_report(debug=False):
   tf.logging.info('Batch size: %s', FLAGS.tbs)
 
   with tf.Graph().as_default():
+    reader = tf.data.TFRecordDataset
     ds = get_data.get_data(
         file_pattern=FLAGS.file_pattern,
-        reader=tf.data.TFRecordDataset,
+        reader=reader,
         embedding_name=FLAGS.en,
         embedding_dim=FLAGS.ed,
         preaveraged=False,
