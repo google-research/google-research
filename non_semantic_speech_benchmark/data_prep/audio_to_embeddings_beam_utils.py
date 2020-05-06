@@ -22,6 +22,7 @@ This file has two modes:
 """
 
 import copy
+import os
 import random
 import typing
 from absl import logging
@@ -183,7 +184,9 @@ def _add_embedding_column_map_fn(k_v, original_example_key,
 
 def _tfds_filenames(dataset_name, split_name):
   """Returns filenames for a TFDS dataset."""
-  return tfds.builder(dataset_name).info.splits[split_name].filenames
+  data_dir = tfds.builder(dataset_name).data_dir
+  return [os.path.join(data_dir, x) for x in
+          tfds.builder(dataset_name).info.splits[split_name].filenames]
 
 
 def _tfds_sample_rate(dataset_name):
@@ -212,6 +215,8 @@ def read_input_glob_and_sample_rate_from_flags(
     dataset_name, split_name = tfds_dataset_flag.split(':')
     tfds.load(dataset_name)  # download dataset, if necessary.
     input_filenames = _tfds_filenames(dataset_name, split_name)
+    for filename in input_filenames:
+      assert tf.io.gfile.Exists(filename), filename
     sample_rate = _tfds_sample_rate(dataset_name)
     assert sample_rate, sample_rate
     logging.info('TFDS input filenames: %s', input_filenames)
