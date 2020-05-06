@@ -22,6 +22,7 @@ This file has two modes:
 """
 
 import copy
+import numbers
 import os
 import random
 import typing
@@ -216,11 +217,14 @@ def read_input_glob_and_sample_rate_from_flags(
     tfds.load(dataset_name)  # download dataset, if necessary.
     input_filenames = _tfds_filenames(dataset_name, split_name)
     for filename in input_filenames:
-      assert tf.io.gfile.Exists(filename), filename
+      assert tf.io.gfile.exists(filename), filename
     sample_rate = _tfds_sample_rate(dataset_name)
     assert sample_rate, sample_rate
     logging.info('TFDS input filenames: %s', input_filenames)
     logging.info('sample rate: %s', sample_rate)
+
+  if sample_rate:
+    assert isinstance(sample_rate, numbers.Number)
 
   return input_filenames, sample_rate
 
