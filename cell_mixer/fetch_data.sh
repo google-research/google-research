@@ -17,7 +17,7 @@
 DIR="$1"
 echo "Storing the data to $DIR"
 
-for variant in b_cells memory_t native_t cd56_nk cd14_monocytes cd4_t_helper regulatory_t naive_cytotoxic;do
+for variant in b_cells memory_t naive_t cd56_nk cd14_monocytes cd4_t_helper regulatory_t naive_cytotoxic;do
     dst="$DIR/$variant"
     mkdir -p "$dst"
     wget http://cf.10xgenomics.com/samples/cell-exp/1.1.0/$variant/${variant}_filtered_gene_bc_matrices.tar.gz -O - |tar xzv --directory "$dst"

@@ -50,9 +50,9 @@ sklearn>=0.0
 statsmodels>=0.11.1
 tables>=3.6.1
 tbb>=2020.0.133
-tensorboard>=1.14.0
-tensorflow>=1.14.0
-tensorflow-estimator>=1.14.0
+tensorboard==1.14.0
+tensorflow==1.14.0
+tensorflow-estimator==1.14.0
 termcolor>=1.1.0
 torch>=1.5.0
 tqdm>=4.45.0

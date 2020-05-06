@@ -23,23 +23,29 @@ source ./bin/activate
 pip install -r cell_mixer/requirements.txt
 
 # Install R and R dependencies
-sudo apt-get install r-base
-R -q -e 'install.packages("devtools")'
-R -q -e 'install.packages("argparse")'
-R -q -e 'install.packages("Seurat")'
-R -q -e 'install.packages("purrr")'
-R -q -e 'devtools::install_github(repo = "hhoeflin/hdf5r")'
-R -q -e 'devtools::install_github(repo = "mojaveazure/loomR", ref = "develop")'
-R -q -e 'install.packages("BiocManager")'
-R -q -e 'BiocManager::install("SingleCellExperiment")'
-R -q -e 'BiocManager::install("scater")'
-R -q -e 'BiocManager::install("scran")'
-R -q -e 'BiocManager::install("DropletUtils")'
+sudo apt-get install r-base \
+  libcurl4-openssl-dev \
+  libhdf5-dev \
+  libxml2-dev \
+  libssl-dev \
+  wget
+
+sudo R -q -e 'install.packages("devtools")'
+sudo R -q -e 'install.packages("argparse")'
+sudo R -q -e 'install.packages("Seurat")'
+sudo R -q -e 'install.packages("purrr")'
+sudo R -q -e 'devtools::install_github(repo = "hhoeflin/hdf5r")'
+sudo R -q -e 'devtools::install_github(repo = "mojaveazure/loomR", ref = "develop")'
+sudo R -q -e 'install.packages("BiocManager")'
+sudo R -q -e 'BiocManager::install("SingleCellExperiment")'
+sudo R -q -e 'BiocManager::install("scater")'
+sudo R -q -e 'BiocManager::install("scran")'
+sudo R -q -e 'BiocManager::install("DropletUtils")'
 
 DATA_PATH=/tmp/data
 bash cell_mixer/fetch_data.sh $DATA_PATH
 
-Rscript cell_mixer.R \
+Rscript cell_mixer/cell_mixer.R \
 --data_path=$DATA_PATH \
 --name=mixture \
 --format=csv \

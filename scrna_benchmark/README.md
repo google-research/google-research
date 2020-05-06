@@ -1,7 +1,6 @@
 # Influence of parameters on scRNA-seq dimension reduction methods.
 
-This repository contains the code used for analyzing the influence of parameters
-on the performances of dimension reduction (DR) methods.
+This repository contains the code used in [Tuning parameters of dimensionality reduction methods forsingle-cell RNA-seq analysis](https://www.biorxiv.org/content/10.1101/2020.04.27.064816v1)
 
 The methods selected for DR are:
 
@@ -19,7 +18,8 @@ sc\_celseq2, and sc\_celseq2\_5cl from [Tian et al](https://www.nature.com/artic
 And a mixture of the 'FACS' (smart-SEQ2) data from [TabulaMuris](https://www.nature.com/articles/s41586-018-0590-4)
 containing all the Brain\_Myeloid, Large\_Intestine, Skin and Spleen cells.
 
-Finally we also created Zhengmix5eq and Zhengmix8uneq with the cell_mixer
+Finally we also created Zhengmix5eq and Zhengmix8uneq with the
+[cell_mixer](https://github.com/google-research/google-research/tree/master/cell_mixer)
 software with the following settings:
 
 ```bash
@@ -39,7 +39,7 @@ Rsript cell_mixer.R \
 
 Rsript cell_mixer.R \
 --data_path=$DATA_PATH \
---name=Zhengmix5eq \
+--name=Zhengmix8uneq \
 --format=SingleCellExperiment \
 --seed=1234 \
 --qc_count_mad_lower=3 \
@@ -54,6 +54,58 @@ Rsript cell_mixer.R \
 --memory_t=1000 \
 --naive_t==1500
 ```
+
+Note that you can create Zhengmix4eq, Zhengmix4uneq and Zhengmix8eq (with
+the mitochondrial preprocessing) with the following commands:
+
+
+```bash
+Rsript cell_mixer.R \
+--data_path=$DATA_PATH \
+--name=Zhengmix4eq \
+--format=SingleCellExperiment \
+--seed=1234 \
+--qc_count_mad_lower=3 \
+--qc_feature_count_mad_lower=3 \
+--qc_mito_mad_upper=3 \
+--b_cells=1000 \
+--naive_cytotoxic=1000 \
+--cd14_monocytes=1000 \
+--regulatory_t=1000
+
+Rsript cell_mixer.R \
+--data_path=$DATA_PATH \
+--name=Zhengmix4uneq \
+--format=SingleCellExperiment \
+--seed=1234 \
+--qc_count_mad_lower=3 \
+--qc_feature_count_mad_lower=3 \
+--qc_mito_mad_upper=3 \
+--b_cells=1000 \
+--naive_cytotoxic=500 \
+--cd14_monocytes=2000 \
+--regulatory_t=3000
+
+Rsript cell_mixer.R \
+--data_path=$DATA_PATH \
+--name=Zhengmix8eq \
+--format=SingleCellExperiment \
+--seed=1234 \
+--qc_count_mad_lower=3 \
+--qc_feature_count_mad_lower=3 \
+--qc_mito_mad_upper=3 \
+--b_cells=500 \
+--naive_cytotoxic=400 \
+--cd14_monocytes=600 \
+--regulatory_t=500 \
+--cd4_t_helper=400 \
+--cd56_nk=600 \
+--memory_t=500 \
+--naive_t=500
+```
+
+The cell lines and TabulaMuris dataset are created in the `Generate Cell Lines`
+and `Generate Tabula Muris` R Jupyter notebooks.
 
 ## Launching the scripts
 
