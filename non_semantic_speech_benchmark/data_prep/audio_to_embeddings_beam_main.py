@@ -50,9 +50,9 @@ flags.DEFINE_string('audio_key', None, 'Key of audio.')
 flags.DEFINE_string('sample_rate_key', None, 'Key of sample rate. '
                     'Exactly one of `sample_rate_key`, `sample_rate`, or '
                     '`tfds_dataset` must be not None.')
-flags.DEFINE_string('sample_rate', None, 'Sample rate.'
-                    'Exactly one of `sample_rate_key`, `sample_rate`, or '
-                    '`tfds_dataset` must be not None.')
+flags.DEFINE_integer('sample_rate', None, 'Sample rate.'
+                     'Exactly one of `sample_rate_key`, `sample_rate`, or '
+                     '`tfds_dataset` must be not None.')
 flags.DEFINE_string('label_key', None,
                     'Key for labels. If the feature value is an integer, '
                     'convert to bytes.')
