@@ -184,6 +184,9 @@ TaskRegistry.add(
 
 
 # ============================= CBQA Mixtures ==================================
+# This mixture is to be used for hyperparameter tuning. Training happens on
+# validation sets (if available) or subsplits of the train set. Evaluation
+# happens on the validation (or heldout portion of the train) split.
 MixtureRegistry.add(
     "closed_book_qa",
     [
@@ -193,6 +196,8 @@ MixtureRegistry.add(
     ]
 )
 
+# This mixture is to be used at test time. Training happens on the combined
+# train and validation splits and evaluation happens on the test split.
 MixtureRegistry.add(
     "closed_book_qa_test",
     [
