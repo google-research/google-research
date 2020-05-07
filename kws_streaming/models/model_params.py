@@ -44,6 +44,11 @@ class Params(object):
     self.mel_non_zero_only = 1
     self.fft_magnitude_squared = False
     self.mel_num_bins = 40
+    self.use_spec_augment = 0
+    self.time_masks_number = 2
+    self.time_mask_max_size = 10
+    self.frequency_masks_number = 2
+    self.frequency_mask_max_size = 5
 
 
 def att_mh_rnn_params():

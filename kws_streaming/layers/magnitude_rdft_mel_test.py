@@ -22,7 +22,6 @@ from kws_streaming.layers import magnitude_rdft_mel
 from kws_streaming.layers import mel_spectrogram
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
-from kws_streaming.layers.modes import Modes
 tf1.disable_eager_execution()
 
 
@@ -39,7 +38,6 @@ class MagnitudeRDFTmelTest(tf.test.TestCase, parameterized.TestCase):
     signal = np.random.rand(1, signal_size)
 
     # model parameters
-    mode = Modes.NON_STREAM_INFERENCE
     use_tf_fft = False
     magnitude_squared = False
     num_mel_bins = 40
@@ -50,10 +48,9 @@ class MagnitudeRDFTmelTest(tf.test.TestCase, parameterized.TestCase):
     # build rdft mel model and run it
     input_signal = tf.keras.Input(shape=(signal_size,), batch_size=1)
     mag_rdft = magnitude_rdft.MagnitudeRDFT(
-        mode=mode, use_tf_fft=use_tf_fft, magnitude_squared=magnitude_squared)(
+        use_tf_fft=use_tf_fft, magnitude_squared=magnitude_squared)(
             input_signal)
     mel_spectr = mel_spectrogram.MelSpectrogram(
-        mode=mode,
         use_tf=False,
         num_mel_bins=num_mel_bins,
         lower_edge_hertz=lower_edge_hertz,

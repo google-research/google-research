@@ -46,11 +46,25 @@ def base_parser():
       Where to download the speech training data to.
       """)
   parser.add_argument(
+      '--lr_schedule',
+      type=str,
+      default='linear',
+      help="""\
+      Learning rate schedule: linear, exp.
+      """)
+  parser.add_argument(
       '--background_volume',
       type=float,
       default=0.1,
       help="""\
       How loud the background noise should be, between 0 and 1.
+      """)
+  parser.add_argument(
+      '--l2_weight_decay',
+      type=float,
+      default=0.0,
+      help="""\
+      l2 weight decay for layers weights regularization.
       """)
   parser.add_argument(
       '--background_frequency',
@@ -303,6 +317,36 @@ def base_parser():
       type=int,
       default=40,
       help='How many bands in the resulting mel spectrum.',
+  )
+  parser.add_argument(
+      '--use_spec_augment',
+      type=int,
+      default=0,
+      help='use SpecAugment',
+  )
+  parser.add_argument(
+      '--time_masks_number',
+      type=int,
+      default=2,
+      help='SpecAugment parameter time_masks_number',
+  )
+  parser.add_argument(
+      '--time_mask_max_size',
+      type=int,
+      default=10,
+      help='SpecAugment parameter time_mask_max_size.',
+  )
+  parser.add_argument(
+      '--frequency_masks_number',
+      type=int,
+      default=2,
+      help='SpecAugment parameter frequency_masks_number.',
+  )
+  parser.add_argument(
+      '--frequency_mask_max_size',
+      type=int,
+      default=5,
+      help='SpecAugment parameter frequency_mask_max_size.',
   )
 
   return parser

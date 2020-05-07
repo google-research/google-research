@@ -127,7 +127,6 @@ from kws_streaming.train import model_flags
 from kws_streaming.train import train
 import kws_streaming.train.test as test
 
-
 FLAGS = None
 
 

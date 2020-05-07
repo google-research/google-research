@@ -149,9 +149,6 @@ CMD_TRAIN="python -m kws_streaming.train.model_train_eval"
 
 
 # ds_cnn_stride model =====================
-
-# trained on data V2 accuracy: 96.5
-# trained on data V1 accuracy: 95.748
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -194,9 +191,6 @@ adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/mod
 
 
 # ds_cnn_stream =====================
-
-# trained on data V2 accuracy: 96.1
-# trained on data V1 accuracy: 95.3
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -245,9 +239,6 @@ adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/loc
 
 
 # svdf =====================
-
-# trained on data V2 accuracy: 96.93
-# trained on data V1 accuracy: 96.26
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -288,9 +279,6 @@ adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/loc
 
 
 # lstm_peep =====================
-
-# trained on data V2 accuracy non stream: 95.58
-# trained on data V1 accuracy non stream: 95.2
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -329,8 +317,6 @@ adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/loc
 
 
 # lstm_peep_state =====================
-
-# trained on data V2 accuracy 95.1
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -369,9 +355,6 @@ adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/loc
 
 
 # lstm =====================
-
-# trained on data V2 accuracy: 95.2
-# trained on data V1 accuracy: 94.8
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -410,8 +393,6 @@ adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/loc
 
 
 # lstm_state =====================
-
-# trained on data V2 accuracy: 94.80
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -450,9 +431,6 @@ adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/loc
 
 
 # gru =====================
-
-# trained on data V2 accuracy: 96.0
-# trained on data V1 accuracy: 95.55
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -489,8 +467,6 @@ adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/loc
 
 
 # gru_state =====================
-
-# trained on data V2 accuracy: 96.0
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -527,9 +503,6 @@ adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/loc
 
 
 # cnn =====================
-
-# trained on data V2 accuracy: 95.4
-# trained on data V1 accuracy: 94.9
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -568,9 +541,6 @@ adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/mod
 
 
 # cnn_stride =====================
-
-# trained on data V2 accuracy: 94.4
-# trained on data V1 accuracy: 94.9
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -603,9 +573,6 @@ adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/mod
 
 
 # crnn =====================
-
-# trained on data V2 accuracy: 96.1
-# trained on data V1 accuracy: 95.58
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -648,8 +615,6 @@ adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/loc
 
 
 # crnn_state =====================
-
-# trained on data V2 accuracy: 95.3
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -679,9 +644,6 @@ crnn \
 
 
 # dnn =====================
-
-# trained on data V2 accuracy: 90.26
-# trained on data V1 accuracy: 90.29
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -719,9 +681,6 @@ adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/loc
 
 
 # att_rnn =====================
-
-# trained on data V2 accuracy: 97.05
-# trained on data V1 accuracy: 96.26
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -755,9 +714,6 @@ adb push $MODELS_PATH/att_rnn/tflite_non_stream/non_stream.tflite /data/local/tm
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/att_rnn/tflite_non_stream/non_stream.tflite.benchmark
 
 # att_mh_rnn =====================
-
-# trained on data V2 accuracy: 97.5
-# trained on data V1 accuracy: 96.59
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -795,9 +751,6 @@ adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/loc
 
 
 # dnn_raw =====================
-
-# trained on data V2 accuracy: 86.35
-# trained on data V1 accuracy: 86.3
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \

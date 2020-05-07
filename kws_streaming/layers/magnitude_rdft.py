@@ -17,7 +17,6 @@
 import math
 import numpy as np
 from kws_streaming.layers.compat import tf
-from kws_streaming.layers.modes import Modes
 
 
 class MagnitudeRDFT(tf.keras.layers.Layer):
@@ -29,14 +28,12 @@ class MagnitudeRDFT(tf.keras.layers.Layer):
   """
 
   def __init__(self,
-               mode=Modes.TRAINING,
                use_tf_fft=False,
                magnitude_squared=False,
                fft_size=None,
                **kwargs):
     super(MagnitudeRDFT, self).__init__(**kwargs)
     self.use_tf_fft = use_tf_fft
-    self.mode = mode
     self.magnitude_squared = magnitude_squared
     self.fft_size = fft_size
 
@@ -88,7 +85,6 @@ class MagnitudeRDFT(tf.keras.layers.Layer):
   def get_config(self):
     config = {
         'use_tf_fft': self.use_tf_fft,
-        'mode': self.mode,
         'fft_size': self.fft_size,
         'magnitude_squared': self.magnitude_squared,
     }

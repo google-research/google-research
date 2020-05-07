@@ -218,6 +218,20 @@ class TrainTest(tf.test.TestCase, parameterized.TestCase):
             '256,256',
         'act2':
             "'relu','relu'",
+        'train':
+            0,
+        'lr_schedule':
+            'linear',
+        'use_spec_augment':
+            0,
+        'time_masks_number':
+            2,
+        'time_mask_max_size':
+            10,
+        'frequency_masks_number':
+            2,
+        'frequency_mask_max_size':
+            5,
     }
     return DictStruct(**dummy_flags)
 
