@@ -378,7 +378,7 @@ def create_pipeline(embedding_model,
   if embeddings_output:
     _ = (
         embeddings.examples
-        | 'DropKey' >> beam.ParDo(DropKey())
+        | 'DropKeyEmbeddings' >> beam.ParDo(DropKey())
         | 'Write Examples' >> WriteToTFRecord(
             embeddings_output,
             shard_name_template='',
