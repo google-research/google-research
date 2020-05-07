@@ -100,22 +100,33 @@ def train(flags):
   with tf.io.gfile.GFile(os.path.join(flags.train_dir, 'labels.txt'), 'w') as f:
     f.write('\n'.join(audio_processor.words_list))
 
-  # Training loop.
   best_accuracy = 0.0
+
+  # prepare parameters for exp learning rate decay
   training_steps_max = np.sum(training_steps_list)
+  lr_init = learning_rates_list[0]
+  exp_rate = -np.log(learning_rates_list[-1] / lr_init)/training_steps_max
+
+  # Training loop.
   for training_step in range(start_step, training_steps_max + 1):
-    # Figure out what the current learning rate is.
-    training_steps_sum = 0
-    for i in range(len(training_steps_list)):
-      training_steps_sum += training_steps_list[i]
-      if training_step <= training_steps_sum:
-        learning_rate_value = learning_rates_list[i]
-        break
     # Pull the audio samples we'll use for training.
     train_fingerprints, train_ground_truth = audio_processor.get_data(
         flags.batch_size, 0, flags, flags.background_frequency,
         flags.background_volume, time_shift_samples, 'training', flags.resample,
         sess)
+
+    if flags.lr_schedule == 'exp':
+      learning_rate_value = lr_init * np.exp(-exp_rate * training_step)
+    elif flags.lr_schedule == 'linear':
+      # Figure out what the current learning rate is.
+      training_steps_sum = 0
+      for i in range(len(training_steps_list)):
+        training_steps_sum += training_steps_list[i]
+        if training_step <= training_steps_sum:
+          learning_rate_value = learning_rates_list[i]
+          break
+    else:
+      raise ValueError('Wrong lr_schedule: %s' % flags.lr_schedule)
 
     tf.keras.backend.set_value(model.optimizer.lr, learning_rate_value)
     result = model.train_on_batch(train_fingerprints, train_ground_truth)
@@ -158,10 +169,11 @@ def train(flags):
                    *(training_step, total_accuracy * 100, set_size))
 
       model.save_weights(flags.train_dir + 'train/' +
-                         str(int(best_accuracy * 10000)) + 'weights')
+                         str(int(best_accuracy * 10000)) + 'weights_' +
+                         str(training_step))
 
       # Save the model checkpoint when validation accuracy improves
-      if total_accuracy > best_accuracy:
+      if total_accuracy >= best_accuracy:
         best_accuracy = total_accuracy
         # overwrite the best model weights
         model.save_weights(flags.train_dir + 'best_weights')

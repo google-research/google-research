@@ -15,9 +15,9 @@
 
 """SVDF layer."""
 from kws_streaming.layers import depthwiseconv1d
+from kws_streaming.layers import modes
 from kws_streaming.layers import non_scaling_dropout
 from kws_streaming.layers.compat import tf
-from kws_streaming.layers.modes import Modes
 
 
 class Svdf(tf.keras.layers.Layer):
@@ -36,7 +36,7 @@ class Svdf(tf.keras.layers.Layer):
                activation='relu',
                use_bias=True,
                inference_batch_size=1,
-               mode=Modes.TRAINING,
+               mode=modes.Modes.TRAINING,
                kernel_initializer='glorot_uniform',
                kernel_regularizer=None,
                kernel_constraint=None,
@@ -71,7 +71,7 @@ class Svdf(tf.keras.layers.Layer):
   def build(self, input_shape):
     super(Svdf, self).build(input_shape)
 
-    if self.mode == Modes.TRAINING:
+    if self.mode == modes.Modes.TRAINING:
       self.dropout1 = non_scaling_dropout.NonScalingDropout(
           self.dropout, training=True)
     else:
@@ -92,7 +92,8 @@ class Svdf(tf.keras.layers.Layer):
   def compute_output_shape(self, input_shape):
     if input_shape.rank != 3:
       raise ValueError('input_shape.rank:%d must = 3' % input_shape.rank)
-    if self.mode not in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE):
+    if self.mode not in (modes.Modes.TRAINING,
+                         modes.Modes.NON_STREAM_INFERENCE):
       if input_shape[1] != 1:
         raise ValueError('input_shape[1]:%d must = 1' % input_shape[1])
 

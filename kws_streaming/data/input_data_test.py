@@ -78,6 +78,7 @@ class InputDataTest(tf.test.TestCase):
         "average_window_width": 6,
         "fft_magnitude_squared": False,
         "split_data": 1,
+        "train": 1,
     }
     return DictStruct(**dummy_flags)
 

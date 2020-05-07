@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """DNN model with fully connected layers on raw data."""
-
 from kws_streaming.layers import dataframe
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.stream import Stream

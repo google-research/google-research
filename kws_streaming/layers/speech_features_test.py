@@ -24,27 +24,44 @@ from kws_streaming.models import utils
 tf1.disable_eager_execution()
 
 
-class MelSpeechFeaturesTest(tf.test.TestCase):
-  """Mel speech feature extractor testing."""
+class Params(object):
 
-  def setUp(self):
-    super(MelSpeechFeaturesTest, self).setUp()
-
-    self.inference_batch_size = 1
+  def __init__(self):
+    self.sample_rate = 16000.0
+    self.window_size_ms = 25.0
+    self.window_stride_ms = 10.0
+    self.feature_type = "mfcc_tf"
     self.preemph = 0.97
-    self.window_type = 'hann'
-    self.frame_size_ms = 25.0
-    self.frame_step_ms = 10.0
-    self.mel_num_bins = 80
     self.mel_lower_edge_hertz = 125.0
     self.mel_upper_edge_hertz = 7600.0
-    self.sample_rate = 16000.0
-    self.noise_scale = 0.0
-    self.mean = None
-    self.stddev = None
+    self.log_epsilon = 1e-12
+    self.dct_num_features = 13
+    self.mel_non_zero_only = 1
+    self.fft_magnitude_squared = 0
+    self.mel_num_bins = 80
+    self.window_type = "hann"
+    self.use_spec_augment = 0
+    self.time_masks_number = 2
+    self.time_mask_max_size = 10
+    self.frequency_masks_number = 2
+    self.frequency_mask_max_size = 5
+    self.use_tf_fft = 0
+    self.train = 0
+    self.mode = Modes.NON_STREAM_INFERENCE
 
-    self.frame_size = int(round(self.sample_rate * self.frame_size_ms / 1000.0))
-    self.frame_step = int(round(self.sample_rate * self.frame_step_ms / 1000.0))
+
+class SpeechFeaturesTest(tf.test.TestCase):
+  """Speech feature extractor testing."""
+
+  def setUp(self):
+    super(SpeechFeaturesTest, self).setUp()
+
+    self.inference_batch_size = 1
+    self.params = Params()
+    self.frame_size = int(
+        round(self.params.sample_rate * self.params.window_size_ms / 1000.0))
+    self.frame_step = int(
+        round(self.params.sample_rate * self.params.window_stride_ms / 1000.0))
 
     # generate input signal
     np.random.seed(1)
@@ -52,24 +69,11 @@ class MelSpeechFeaturesTest(tf.test.TestCase):
     self.signal = np.random.rand(self.inference_batch_size, self.data_size)
 
   def test_tf_non_streaming_vs_streaming_inference_internal_state(self):
-    use_tf_fft = False
+    speech_params = speech_features.SpeechFeatures.get_params(self.params)
     mode = Modes.NON_STREAM_INFERENCE
     # TF non streaming frame extraction based on tf.signal.frame
     mel_speech_tf = speech_features.SpeechFeatures(
-        mode=mode,
-        use_tf_fft=use_tf_fft,
-        inference_batch_size=self.inference_batch_size,
-        preemph=self.preemph,
-        window_type=self.window_type,
-        frame_size_ms=self.frame_size_ms,
-        frame_step_ms=self.frame_step_ms,
-        mel_num_bins=self.mel_num_bins,
-        mel_lower_edge_hertz=self.mel_lower_edge_hertz,
-        mel_upper_edge_hertz=self.mel_upper_edge_hertz,
-        sample_rate=self.sample_rate,
-        noise_scale=self.noise_scale,
-        mean=self.mean,
-        stddev=self.stddev)
+        speech_params, mode, self.inference_batch_size)
     # it receives all data with size: data_size
     input1 = tf.keras.layers.Input(
         shape=(self.data_size,),
@@ -85,20 +89,7 @@ class MelSpeechFeaturesTest(tf.test.TestCase):
     # it receives input data incrementally with step: frame_step
     mode = Modes.STREAM_INTERNAL_STATE_INFERENCE
     mel_speech_stream = speech_features.SpeechFeatures(
-        mode=mode,
-        use_tf_fft=use_tf_fft,
-        inference_batch_size=self.inference_batch_size,
-        preemph=self.preemph,
-        window_type=self.window_type,
-        frame_size_ms=self.frame_size_ms,
-        frame_step_ms=self.frame_step_ms,
-        mel_num_bins=self.mel_num_bins,
-        mel_lower_edge_hertz=self.mel_lower_edge_hertz,
-        mel_upper_edge_hertz=self.mel_upper_edge_hertz,
-        sample_rate=self.sample_rate,
-        noise_scale=self.noise_scale,
-        mean=self.mean,
-        stddev=self.stddev)
+        speech_params, mode, self.inference_batch_size)
     input2 = tf.keras.layers.Input(
         shape=(self.frame_step,),
         batch_size=self.inference_batch_size,
@@ -137,24 +128,11 @@ class MelSpeechFeaturesTest(tf.test.TestCase):
           streamed_frames[i][0][0], output_tf[0][i], rtol=1e-4, atol=1e-4)
 
   def test_tf_non_streaming_vs_streaming_inference_external_state(self):
-    use_tf_fft = False
+    speech_params = speech_features.SpeechFeatures.get_params(self.params)
     mode = Modes.NON_STREAM_INFERENCE
     # TF non streaming frame extraction based on tf.signal.frame
     mel_speech_tf = speech_features.SpeechFeatures(
-        mode=mode,
-        use_tf_fft=use_tf_fft,
-        inference_batch_size=self.inference_batch_size,
-        preemph=self.preemph,
-        window_type=self.window_type,
-        frame_size_ms=self.frame_size_ms,
-        frame_step_ms=self.frame_step_ms,
-        mel_num_bins=self.mel_num_bins,
-        mel_lower_edge_hertz=self.mel_lower_edge_hertz,
-        mel_upper_edge_hertz=self.mel_upper_edge_hertz,
-        sample_rate=self.sample_rate,
-        noise_scale=self.noise_scale,
-        mean=self.mean,
-        stddev=self.stddev)
+        speech_params, mode, self.inference_batch_size)
     # it receives all data with size: data_size
     input1 = tf.keras.layers.Input(
         shape=(self.data_size,),
@@ -209,5 +187,5 @@ class MelSpeechFeaturesTest(tf.test.TestCase):
           streamed_frames[i][0][0], output_tf[0][i], rtol=1e-4, atol=1e-4)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   tf.test.main()
