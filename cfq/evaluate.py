@@ -17,7 +17,7 @@
 """Library for computing and writing accuracy results."""
 
 import logging
-from typing import List, Tuple, Text, Optional
+from typing import List, Tuple, Optional
 
 import dataclasses
 
@@ -27,9 +27,9 @@ from tensorflow.compat.v1.io import gfile
 @dataclasses.dataclass
 class AccuracyResult(object):
   total_lines: int
-  matches: List[Tuple[Text, Text]]
-  mismatches: List[Tuple[Text, Text, Text]]
-  inferred_answers_path: Text
+  matches: List[Tuple[str, str]]
+  mismatches: List[Tuple[str, str, str]]
+  inferred_answers_path: str
 
   def get_accuracy(self):
     return len(self.matches) / self.total_lines

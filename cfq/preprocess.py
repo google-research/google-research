@@ -20,13 +20,13 @@ import collections
 import json
 import os
 import string
-from typing import Any, Dict, List, Text, Tuple
+from typing import Any, Dict, List, Tuple
 
 from absl import logging
 
 from tensorflow.compat.v1.io import gfile
 
-Dataset = Dict[Text, List[Tuple[Text, Text]]]
+Dataset = Dict[str, List[Tuple[str, str]]]
 
 
 def load_json(path):
