@@ -17,7 +17,7 @@
 declare -a env_names=("HalfCheetah-v2"  "Hopper-v2"  "Walker2d-v2" "Ant-v2")
 declare -a algos=("bc" "dac" "value_dice")
 
-expert_dir="./experts/"
+expert_dir="./datasets/"
 save_dir="./save/"
 
 for algo in "${algos[@]}"
