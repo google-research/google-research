@@ -195,45 +195,65 @@ def _tfds_sample_rate(dataset_name):
 
 
 def read_input_glob_and_sample_rate_from_flags(
-    input_glob_flag, sample_rate_flag, tfds_dataset_flag):
+    input_glob_flag, sample_rate_flag, tfds_dataset_flag, output_filename_flag):
   """Read flags for input data and sample rate.
 
   Args:
-    input_glob_flag: Pass.
-    sample_rate_flag: Pass.
-    tfds_dataset_flag: Pass
+    input_glob_flag: String flag. The input file glob.
+    sample_rate_flag: String flag. The sample rate.
+    tfds_dataset_flag: String flag. The TFDS dataset.
+    output_filename_flag: String flag. The output filename.
 
   Returns:
-    (input_filenames, sample_rate)
+    (input_filenames, output_filenames, sample_rate)
+    `input_filenames` is a list of list of filenames. `output_filenames` is a
+    list of the same length.
   """
   if input_glob_flag:
     assert file_utils.Glob(input_glob_flag), input_glob_flag
-    input_filenames = file_utils.Glob(input_glob_flag)
+    input_filenames = [file_utils.Glob(input_glob_flag)]
+    output_filenames = [output_filename_flag]
     sample_rate = sample_rate_flag
   else:
     assert tfds_dataset_flag
-    assert tfds_dataset_flag.count(':') == 1
-    dataset_name, split_name = tfds_dataset_flag.split(':')
+    dataset_name = tfds_dataset_flag
     tfds.load(dataset_name)  # download dataset, if necessary.
-    input_filenames = _tfds_filenames(dataset_name, split_name)
-    for filename in input_filenames:
-      assert tf.io.gfile.exists(filename), filename
     sample_rate = _tfds_sample_rate(dataset_name)
     assert sample_rate, sample_rate
+
+    input_filenames = []
+    output_filenames = []
+    for split_name in ('train', 'validation', 'test'):
+      input_filenames.append(_tfds_filenames(dataset_name, split_name))
+      output_filenames.append(output_filename_flag + f'.{split_name}')
+
     logging.info('TFDS input filenames: %s', input_filenames)
     logging.info('sample rate: %s', sample_rate)
 
   if sample_rate:
     assert isinstance(sample_rate, numbers.Number)
 
-  return input_filenames, sample_rate
+  for filename_list in input_filenames:
+    for filename in filename_list:
+      assert tf.io.gfile.exists(filename), filename
+  assert len(input_filenames) == len(output_filenames)
+
+  return input_filenames, output_filenames, sample_rate
 
 
 def validate_inputs(
-    output_filename, embedding_modules, embedding_names, module_output_keys):
+    input_filenames_list, output_filenames, embedding_modules, embedding_names,
+    module_output_keys):
   """Validate inputs and input flags."""
+  for filename_list in input_filenames_list:
+    for filename in filename_list:
+      assert tf.io.gfile.exists(filename), filename
+  assert len(input_filenames_list) == len(output_filenames)
+
   # Make sure output files don't already exist.
-  assert not file_utils.Glob(f'{output_filename}*'), output_filename
+  for output_filename in output_filenames:
+    assert not file_utils.Glob(f'{output_filename}*'), output_filename
+
   # Lengths of flag lists must be the same.
   assert len(embedding_names) == len(embedding_modules),\
          (embedding_names, embedding_modules)
@@ -243,26 +263,28 @@ def validate_inputs(
   assert len(set(embedding_names)) == len(embedding_names), embedding_names
 
   # Create output directory if it doesn't already exist.
-  output_dir = output_filename.rsplit('/', 1)[0]
-  file_utils.MaybeMakeDirs(output_dir)
+  for output_filename in output_filenames:
+    output_dir = output_filename.rsplit('/', 1)[0]
+    file_utils.MaybeMakeDirs(output_dir)
 
 
-def _read_from_tfrecord(root, input_filenames):
+def _read_from_tfrecord(root, input_filenames, suffix):
   """Reads from a Python list of TFRecord files."""
   assert isinstance(input_filenames, list), input_filenames
   return (root
-          | 'MakeFilenames' >> beam.Create(input_filenames)
-          | 'ReadTFRecords' >> beam.io.tfrecordio.ReadAllFromTFRecord(
+          | f'MakeFilenames{suffix}' >> beam.Create(input_filenames)
+          | f'ReadTFRecords{suffix}' >> beam.io.tfrecordio.ReadAllFromTFRecord(
               coder=beam.coders.ProtoCoder(tf.train.Example))
-          | 'AddKeys' >> beam.Map(lambda x: (str(random.getrandbits(128)), x)))
+          | f'AddKeys{suffix}' >> beam.Map(
+              lambda x: (str(random.getrandbits(128)), x)))
 
 
 
 
-def _write_to_tfrecord(combined_tbl, output_filename):
+def _write_to_tfrecord(combined_tbl, output_filename, suffix):
   _ = (combined_tbl
-       | 'RemoveKey' >> beam.Map(lambda k_v: k_v[1])
-       | 'Write' >> beam.io.WriteToTFRecord(
+       | f'RemoveKey{suffix}' >> beam.Map(lambda k_v: k_v[1])
+       | f'Write{suffix}' >> beam.io.WriteToTFRecord(
            output_filename, coder=beam.coders.ProtoCoder(tf.train.Example)))
 
 
@@ -286,7 +308,8 @@ def make_beam_pipeline(
     root, input_filenames, sample_rate, debug, embedding_names,
     embedding_modules, module_output_keys, audio_key, sample_rate_key,
     label_key, speaker_id_key, average_over_time, delete_audio_from_output,
-    output_filename, input_format='tfrecord', output_format='tfrecord'):
+    output_filename, input_format='tfrecord', output_format='tfrecord',
+    suffix='Main'):
   """Construct beam pipeline for mapping from audio to embeddings.
 
   Args:
@@ -311,27 +334,29 @@ def make_beam_pipeline(
       `reader_functions`.
     output_format: Python string. Must correspond to a function
       `writer_functions`.
+    suffix: Python string. Suffix to stage names to make them unique.
   """
   tf_examples_key_ = 'tf_examples'
   assert tf_examples_key_ not in embedding_names
+  s = suffix  # for code brevity.
 
   # Read from input.
-  input_examples = reader_functions[input_format](root, input_filenames)
+  input_examples = reader_functions[input_format](root, input_filenames, s)
 
   # In debug mode, take one input example.
   if debug:
     input_examples = (
         input_examples
-        | 'TakeOne' >> beam.transforms.combiners.Sample.FixedSizeGlobally(1)
+        | f'TakeOne{s}' >> beam.transforms.combiners.Sample.FixedSizeGlobally(1)
         # Sampling generates lists, so flatten back into one collection.
-        | beam.FlatMap(lambda x: x))
+        | f'DebugFlatten{s}' >> beam.FlatMap(lambda x: x))
 
   # Compute all the embeddings simultaneously.
   embedding_tables = {}
   for name, mod, out_key in zip(
       embedding_names, embedding_modules, module_output_keys):
     logging.info('Adding signal: %s %s, %s', name, mod, out_key)
-    tbl = input_examples | f'ComputeEmbedding-{name}' >> beam.ParDo(
+    tbl = input_examples | f'ComputeEmbedding-{name}-{s}' >> beam.ParDo(
         ComputeEmbeddingMapFn(
             name=name,
             module=mod,
@@ -348,8 +373,8 @@ def make_beam_pipeline(
   # Combine embeddings and tf.train.Example, using the common key.
   combined_tbl = (
       embedding_tables
-      | 'CombineEmbeddingTables' >> beam.CoGroupByKey()
-      | 'AddEmbeddings' >> beam.Map(
+      | f'CombineEmbeddingTables-{s}' >> beam.CoGroupByKey()
+      | f'AddEmbeddings-{s}' >> beam.Map(
           _add_embedding_column_map_fn,
           original_example_key=tf_examples_key_,
           delete_audio_from_output=delete_audio_from_output,
@@ -359,4 +384,4 @@ def make_beam_pipeline(
 
   output_filename = f'{output_filename}@*'
   logging.info('Writing to %s', output_filename)
-  writer_functions[output_format](combined_tbl, output_filename)
+  writer_functions[output_format](combined_tbl, output_filename, s)
