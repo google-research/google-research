@@ -15,6 +15,7 @@ and implemented most popular KWS models:
 * gru - gated recurrent unit model;
 * lstm - long short term memory model;
 * cnn - convolutional neural network;
+* TC-ResNet - temporal convolution with sequence of residual blocks;
 * crnn - combination of convolutional layers with RNNs(GRU or LSTM);
 * ds_cnn - depth wise convolutional neural network;
 * svdf - singular value decomposition filter neural network;
