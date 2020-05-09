@@ -163,6 +163,12 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --train 0 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 ds_cnn \
 --cnn1_kernel_size "(10,4)" \
 --cnn1_dilation_rate "(1,1)" \
@@ -205,6 +211,12 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --train 0 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 ds_cnn \
 --cnn1_kernel_size "(3,3)" \
 --cnn1_dilation_rate "(2,1)" \
@@ -284,8 +296,8 @@ $CMD_TRAIN \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/lstm_peep/ \
 --mel_upper_edge_hertz 7000 \
---how_many_training_steps 10000,10000,10000 \
---learning_rate 0.0005,0.0001,0.00002 \
+--how_many_training_steps 20000,20000,20000,20000 \
+--learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
 --window_stride_ms 20.0 \
 --mel_num_bins 40 \
@@ -293,6 +305,12 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --train 0 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 lstm \
 --lstm_units 500 \
 --return_sequences 0 \
@@ -322,8 +340,8 @@ $CMD_TRAIN \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/lstm_peep_state/ \
 --mel_upper_edge_hertz 7000 \
---how_many_training_steps 10000,10000,10000 \
---learning_rate 0.0005,0.0001,0.00002 \
+--how_many_training_steps 20000,20000,20000,20000 \
+--learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
 --window_stride_ms 20.0 \
 --mel_num_bins 40 \
@@ -331,6 +349,12 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --train 0 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 lstm \
 --lstm_units 500 \
 --return_sequences 0 \
@@ -360,8 +384,8 @@ $CMD_TRAIN \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/lstm/ \
 --mel_upper_edge_hertz 7000 \
---how_many_training_steps 10000,10000,10000 \
---learning_rate 0.0005,0.0001,0.00002 \
+--how_many_training_steps 20000,20000,20000,20000 \
+--learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
 --window_stride_ms 20.0 \
 --mel_num_bins 40 \
@@ -369,6 +393,12 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --train 0 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 lstm \
 --lstm_units 360 \
 --return_sequences 0 \
@@ -398,8 +428,8 @@ $CMD_TRAIN \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/lstm_state/ \
 --mel_upper_edge_hertz 7000 \
---how_many_training_steps 10000,10000,10000 \
---learning_rate 0.0005,0.0001,0.00002 \
+--how_many_training_steps 20000,20000,20000,20000 \
+--learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
 --window_stride_ms 20.0 \
 --mel_num_bins 40 \
@@ -407,6 +437,12 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --train 0 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 lstm \
 --lstm_units 360 \
 --return_sequences 0 \
@@ -436,8 +472,8 @@ $CMD_TRAIN \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/gru/ \
 --mel_upper_edge_hertz 7000 \
---how_many_training_steps 10000,10000,10000 \
---learning_rate 0.0005,0.0001,0.00002 \
+--how_many_training_steps 20000,20000,20000,20000 \
+--learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
 --window_stride_ms 20.0 \
 --mel_num_bins 40 \
@@ -445,6 +481,12 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --train 0 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 gru \
 --gru_units 400 \
 --return_sequences 0 \
@@ -472,8 +514,8 @@ $CMD_TRAIN \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/gru_state/ \
 --mel_upper_edge_hertz 7000 \
---how_many_training_steps 15000,15000,15000 \
---learning_rate 0.0005,0.0001,0.00002 \
+--how_many_training_steps 20000,20000,20000,20000 \
+--learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
 --window_stride_ms 20.0 \
 --mel_num_bins 40 \
@@ -481,6 +523,12 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --train 0 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 gru \
 --gru_units 400 \
 --return_sequences 0 \
@@ -517,6 +565,12 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --train 0 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 cnn \
 --cnn_filters '64,64,64,64,128,64,128' \
 --cnn_kernel_size '(3,3),(5,3),(5,3),(5,3),(5,2),(5,1),(10,1)' \
@@ -555,6 +609,12 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --train 0 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 cnn \
 --cnn_filters '64,64,64,128,128,128,128' \
 --cnn_kernel_size '(3,3),(3,3),(3,3),(3,3),(3,3),(3,1),(3,1)' \
@@ -578,8 +638,8 @@ $CMD_TRAIN \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/crnn/ \
 --mel_upper_edge_hertz 7000 \
---how_many_training_steps 10000,10000,10000 \
---learning_rate 0.0005,0.0001,0.00002 \
+--how_many_training_steps 20000,20000,20000,20000 \
+--learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
 --window_stride_ms 20.0 \
 --mel_num_bins 40 \
@@ -587,6 +647,12 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --train 0 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 crnn \
 --cnn_filters '16,16' \
 --cnn_kernel_size '(3,3),(5,3)' \
@@ -620,8 +686,8 @@ $CMD_TRAIN \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/crnn_state/ \
 --mel_upper_edge_hertz 7000 \
---how_many_training_steps 10000,10000,10000 \
---learning_rate 0.0005,0.0001,0.00002 \
+--how_many_training_steps 20000,20000,20000,20000 \
+--learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
 --window_stride_ms 20.0 \
 --mel_num_bins 40 \
@@ -629,6 +695,12 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --train 0 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 crnn \
 --cnn_filters '16,16' \
 --cnn_kernel_size '(3,3),(5,3)' \
@@ -658,6 +730,12 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --train 0 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 dnn \
 --units1 '64,128' \
 --act1 "'relu','relu'" \
@@ -694,7 +772,13 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 att_rnn \
 --cnn_filters '10,1' \
 --cnn_kernel_size '(5,1),(5,1)' \
@@ -728,6 +812,12 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --train 0 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 att_mh_rnn \
 --cnn_filters '10,1' \
 --cnn_kernel_size '(5,1),(5,1)' \
@@ -749,6 +839,39 @@ adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/loc
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/att_mh_rnn/tflite_non_stream/non_stream.tflite.benchmark.profile
 
 
+# tc_resnet =====================
+$CMD_TRAIN \
+--data_url '' \
+--data_dir $DATA_PATH/ \
+--train_dir $MODELS_PATH/tc_resnet/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 20000,20000,20000,20000 \
+--learning_rate 0.1,0.05,0.02,0.01 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 40 \
+--dct_num_features 40 \
+--resample 0.15 \
+--alsologtostderr \
+--train 0 \
+--optimizer 'mom' \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
+tc_resnet \
+--channels '50, 50, 50, 50, 50, 72, 72' \
+--debug_2d 0 \
+--pool_size '' \
+--pool_stride 0 \
+--bn_momentum 0.997 \
+--bn_center 1 \
+--bn_scale 1 \
+--bn_renorm 0 \
+--dropout 0.2
+
 
 # dnn_raw =====================
 $CMD_TRAIN \
@@ -764,7 +887,13 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
 dnn_raw \
 --units1 '64,128' \
 --act1 "'relu','relu'" \
