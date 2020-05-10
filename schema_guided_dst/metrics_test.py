@@ -51,7 +51,8 @@ class MetricsTest(absltest.TestCase):
       test_data = json.load(f)
     self.frame_ref = test_data["frame_ref"]
     self.frame_hyp = test_data["frame_hyp"]
-    self.known_metrics = test_data["metrics_hyp"]
+    self.correct_metrics = test_data["metrics_hyp_fuzzy_match"]
+    self.correct_metrics_exact_match = test_data["metrics_hyp_exact_match"]
     self.utterance = test_data["utterance"]
 
     schema_file = os.path.join(THIS_DIR, "test_data",
@@ -73,7 +74,7 @@ class MetricsTest(absltest.TestCase):
     # (2) Test on a previously known frame.
     intent_acc_hyp = metrics.get_active_intent_accuracy(self.frame_ref,
                                                         self.frame_hyp)
-    self.assertAlmostEqual(self.known_metrics[metrics.ACTIVE_INTENT_ACCURACY],
+    self.assertAlmostEqual(self.correct_metrics[metrics.ACTIVE_INTENT_ACCURACY],
                            intent_acc_hyp)
 
   def test_slot_tagging_f1(self):
@@ -82,7 +83,7 @@ class MetricsTest(absltest.TestCase):
         self.frame_ref, self.frame_ref, self.utterance, self.schema)
     # Ground truth values for oracle prediction are all 1.0.
     self._assert_dicts_almost_equal(
-        {k: 1.0 for k in self.known_metrics[metrics.SLOT_TAGGING_F1]},
+        {k: 1.0 for k in self.correct_metrics[metrics.SLOT_TAGGING_F1]},
         slot_tagging_f1_oracle._asdict())
 
     # (2) Test on a previously known frame.
@@ -90,8 +91,9 @@ class MetricsTest(absltest.TestCase):
                                                       self.frame_hyp,
                                                       self.utterance,
                                                       self.schema)
-    self._assert_dicts_almost_equal(self.known_metrics[metrics.SLOT_TAGGING_F1],
-                                    slot_tagging_f1_hyp._asdict())
+    self._assert_dicts_almost_equal(
+        self.correct_metrics[metrics.SLOT_TAGGING_F1],
+        slot_tagging_f1_hyp._asdict())
 
   def test_requested_slots_f1(self):
     # (1) Test on oracle frame.
@@ -99,29 +101,36 @@ class MetricsTest(absltest.TestCase):
         self.frame_ref, self.frame_ref)
     # Ground truth values for oracle prediction are all 1.0.
     self._assert_dicts_almost_equal(
-        {k: 1.0 for k in self.known_metrics[metrics.REQUESTED_SLOTS_F1]},
+        {k: 1.0 for k in self.correct_metrics[metrics.REQUESTED_SLOTS_F1]},
         requestable_slots_f1_oracle._asdict())
 
     # (2) Test on a previously known frame.
     requested_slots_f1_hyp = metrics.get_requested_slots_f1(
         self.frame_ref, self.frame_hyp)
     self._assert_dicts_almost_equal(
-        self.known_metrics[metrics.REQUESTED_SLOTS_F1],
+        self.correct_metrics[metrics.REQUESTED_SLOTS_F1],
         requested_slots_f1_hyp._asdict())
 
   def test_average_and_joint_goal_accuracy(self):
     # (1) Test on oracle frame.
-    goal_accuracy_oracle = metrics.get_average_and_joint_goal_accuracy(
-        self.frame_ref, self.frame_ref, self.schema)
+    goal_accuracy_oracle_strict = metrics.get_average_and_joint_goal_accuracy(
+        self.frame_ref, self.frame_ref, self.schema, False)
     # Ground truth values for oracle prediction are all 1.0.
     self._assert_dicts_almost_equal({k: 1.0 for k in ACCURACY_METRICS},
-                                    goal_accuracy_oracle)
+                                    goal_accuracy_oracle_strict)
 
     # (2) Test on a previously known frame.
     goal_accuracy_hyp = metrics.get_average_and_joint_goal_accuracy(
-        self.frame_ref, self.frame_hyp, self.schema)
+        self.frame_ref, self.frame_hyp, self.schema, True)
     self._assert_dicts_almost_equal(
-        {k: self.known_metrics[k] for k in ACCURACY_METRICS}, goal_accuracy_hyp)
+        {k: self.correct_metrics[k] for k in ACCURACY_METRICS},
+        goal_accuracy_hyp)
+    # (3) Test using strict string matching for non-categorical slot values.
+    goal_accuracy_hyp = metrics.get_average_and_joint_goal_accuracy(
+        self.frame_ref, self.frame_hyp, self.schema, False)
+    self._assert_dicts_almost_equal(
+        {k: self.correct_metrics_exact_match[k] for k in ACCURACY_METRICS},
+        goal_accuracy_hyp)
 
 
 if __name__ == "__main__":

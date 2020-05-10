@@ -136,6 +136,7 @@ class Schema(object):
       service_schemas[service] = ServiceSchema(
           schema, service_id=self.get_service_id(service))
     self._service_schemas = service_schemas
+    self._schemas = schemas
 
   def get_service_id(self, service):
     return self._services_vocab[service]
@@ -149,3 +150,7 @@ class Schema(object):
   @property
   def services(self):
     return self._services
+
+  def save_to_file(self, file_path):
+    with tf.io.gfile.GFile(file_path, "w") as f:
+      json.dump(self._schemas, f, indent=2)

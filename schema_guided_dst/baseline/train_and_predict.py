@@ -28,9 +28,10 @@ import collections
 import os
 
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 from schema_guided_dst import schema
+from schema_guided_dst.baseline import config
 from schema_guided_dst.baseline import data_utils
 from schema_guided_dst.baseline import extract_schema_embedding
 from schema_guided_dst.baseline import pred_utils
@@ -39,7 +40,7 @@ from schema_guided_dst.baseline.bert import optimization
 from schema_guided_dst.baseline.bert import tokenization
 
 
-flags = tf.flags
+flags = tf.compat.v1.flags
 FLAGS = flags.FLAGS
 
 # BERT based utterance encoder related flags.
@@ -112,7 +113,7 @@ flags.DEFINE_bool(
     "since it is much faster.")
 
 # Input and output paths and other flags.
-flags.DEFINE_enum("task_name", None, data_utils.FILE_RANGES.keys(),
+flags.DEFINE_enum("task_name", None, config.DATASET_CONFIG.keys(),
                   "The name of the task to train.")
 
 flags.DEFINE_string(
@@ -158,14 +159,15 @@ flags.DEFINE_bool(
 
 
 # Modified from run_classifier.file_based_input_fn_builder
-def _file_based_input_fn_builder(input_dial_file, schema_embedding_file,
-                                 is_training, drop_remainder):
+def _file_based_input_fn_builder(dataset_config, input_dial_file,
+                                 schema_embedding_file, is_training,
+                                 drop_remainder):
   """Creates an `input_fn` closure to be passed to TPUEstimator."""
 
-  max_num_cat_slot = data_utils.MAX_NUM_CAT_SLOT
-  max_num_noncat_slot = data_utils.MAX_NUM_NONCAT_SLOT
+  max_num_cat_slot = dataset_config.max_num_cat_slot
+  max_num_noncat_slot = dataset_config.max_num_noncat_slot
   max_num_total_slot = max_num_cat_slot + max_num_noncat_slot
-  max_num_intent = data_utils.MAX_NUM_INTENT
+  max_num_intent = dataset_config.max_num_intent
   max_utt_len = FLAGS.max_seq_length
 
   name_to_features = {
@@ -703,10 +705,13 @@ def _create_dialog_examples(processor, dial_file):
   if not tf.io.gfile.exists(FLAGS.dialogues_example_dir):
     tf.io.gfile.makedirs(FLAGS.dialogues_example_dir)
   frame_examples = processor.get_dialog_examples(FLAGS.dataset_split)
-  data_utils.file_based_convert_examples_to_features(frame_examples, dial_file)
+  data_utils.file_based_convert_examples_to_features(frame_examples,
+                                                     processor.dataset_config,
+                                                     dial_file)
 
 
-def _create_schema_embeddings(bert_config, schema_embedding_file):
+def _create_schema_embeddings(bert_config, schema_embedding_file,
+                              dataset_config):
   """Create schema embeddings and save it into file."""
   if not tf.io.gfile.exists(FLAGS.schema_embedding_dir):
     tf.io.gfile.makedirs(FLAGS.schema_embedding_dir)
@@ -740,20 +745,18 @@ def _create_schema_embeddings(bert_config, schema_embedding_file):
       vocab_file=vocab_file, do_lower_case=FLAGS.do_lower_case)
   emb_generator = extract_schema_embedding.SchemaEmbeddingGenerator(
       tokenizer, schema_emb_estimator, FLAGS.max_seq_length)
-  emb_generator.save_embeddings(schemas, schema_embedding_file)
+  emb_generator.save_embeddings(schemas, schema_embedding_file, dataset_config)
 
 
 def main(_):
   vocab_file = os.path.join(FLAGS.bert_ckpt_dir, "vocab.txt")
   task_name = FLAGS.task_name.lower()
-  if task_name not in data_utils.FILE_RANGES:
+  if task_name not in config.DATASET_CONFIG:
     raise ValueError("Task not found: %s" % (task_name))
-
+  dataset_config = config.DATASET_CONFIG[task_name]
   processor = data_utils.Dstc8DataProcessor(
       FLAGS.dstc8_data_dir,
-      train_file_range=data_utils.FILE_RANGES[task_name]["train"],
-      dev_file_range=data_utils.FILE_RANGES[task_name]["dev"],
-      test_file_range=data_utils.FILE_RANGES[task_name]["test"],
+      dataset_config=dataset_config,
       vocab_file=vocab_file,
       do_lower_case=FLAGS.do_lower_case,
       max_seq_length=FLAGS.max_seq_length,
@@ -787,7 +790,8 @@ def main(_):
   if (not tf.io.gfile.exists(schema_embedding_file) or
       FLAGS.overwrite_schema_emb_file):
     tf.compat.v1.logging.info("Start generating the schema embeddings.")
-    _create_schema_embeddings(bert_config, schema_embedding_file)
+    _create_schema_embeddings(bert_config, schema_embedding_file,
+                              dataset_config)
     tf.compat.v1.logging.info("Finish generating the schema embeddings.")
 
   # Create estimator for training or inference.
@@ -846,6 +850,7 @@ def main(_):
     tf.compat.v1.logging.info("  Batch size = %d", FLAGS.train_batch_size)
     tf.compat.v1.logging.info("  Num steps = %d", num_train_steps)
     train_input_fn = _file_based_input_fn_builder(
+        dataset_config=dataset_config,
         input_dial_file=dial_file,
         schema_embedding_file=schema_embedding_file,
         is_training=True,
@@ -862,6 +867,7 @@ def main(_):
     tf.compat.v1.logging.info("  Batch size = %d", FLAGS.predict_batch_size)
 
     predict_input_fn = _file_based_input_fn_builder(
+        dataset_config=dataset_config,
         input_dial_file=dial_file,
         schema_embedding_file=schema_embedding_file,
         is_training=False,
@@ -870,7 +876,7 @@ def main(_):
     input_json_files = [
         os.path.join(FLAGS.dstc8_data_dir, FLAGS.dataset_split,
                      "dialogues_{:03d}.json".format(fid))
-        for fid in data_utils.FILE_RANGES[FLAGS.task_name][FLAGS.dataset_split]
+        for fid in dataset_config.file_ranges[FLAGS.dataset_split]
     ]
     schema_json_file = os.path.join(FLAGS.dstc8_data_dir, FLAGS.dataset_split,
                                     "schema.json")

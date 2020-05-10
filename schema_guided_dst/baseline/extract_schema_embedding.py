@@ -24,7 +24,7 @@ import collections
 import re
 
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 from schema_guided_dst.baseline import data_utils
 from schema_guided_dst.baseline.bert import modeling
@@ -391,14 +391,14 @@ class SchemaEmbeddingGenerator(object):
       else:
         emb_mat[output["intent_or_slot_id"]] = embedding
 
-  def save_embeddings(self, schemas, output_file):
+  def save_embeddings(self, schemas, output_file, dataset_config):
     """Generate schema element embeddings and save it as a numpy file."""
     schema_embs = []
-    max_num_intent = data_utils.MAX_NUM_INTENT
-    max_num_cat_slot = data_utils.MAX_NUM_CAT_SLOT
-    max_num_noncat_slot = data_utils.MAX_NUM_NONCAT_SLOT
+    max_num_intent = dataset_config.max_num_intent
+    max_num_cat_slot = dataset_config.max_num_cat_slot
+    max_num_noncat_slot = dataset_config.max_num_noncat_slot
     max_num_slot = max_num_cat_slot + max_num_noncat_slot
-    max_num_value = data_utils.MAX_NUM_VALUE_PER_CAT_SLOT
+    max_num_value = dataset_config.max_num_value_per_cat_slot
     embedding_dim = data_utils.EMBEDDING_DIMENSION
     for _ in schemas.services:
       schema_embs.append({

@@ -30,18 +30,9 @@ import tensorflow.compat.v1 as tf
 from schema_guided_dst import schema
 from schema_guided_dst.baseline.bert import tokenization
 
-
 # Dimension of the embedding for intents, slots and categorical slot values in
 # the schema. Should be equal to BERT's hidden_size.
 EMBEDDING_DIMENSION = 768
-# Maximum allowed number of categorical trackable slots for a service.
-MAX_NUM_CAT_SLOT = 6
-# Maximum allowed number of non-categorical trackable slots for a service.
-MAX_NUM_NONCAT_SLOT = 12
-# Maximum allowed number of values per categorical trackable slot.
-MAX_NUM_VALUE_PER_CAT_SLOT = 11
-# Maximum allowed number of intents for a service.
-MAX_NUM_INTENT = 4
 STR_DONTCARE = "dontcare"
 # The maximum total input sequence length after WordPiece tokenization.
 DEFAULT_MAX_SEQ_LENGTH = 128
@@ -51,24 +42,6 @@ DEFAULT_MAX_SEQ_LENGTH = 128
 STATUS_OFF = 0
 STATUS_ACTIVE = 1
 STATUS_DONTCARE = 2
-
-FILE_RANGES = {
-    "dstc8_single_domain": {
-        "train": range(1, 44),
-        "dev": range(1, 8),
-        "test": range(1, 12)
-    },
-    "dstc8_multi_domain": {
-        "train": range(44, 128),
-        "dev": range(8, 21),
-        "test": range(12, 35)
-    },
-    "dstc8_all": {
-        "train": range(1, 128),
-        "dev": range(1, 21),
-        "test": range(1, 35)
-    }
-}
 
 # Name of the file containing all predictions and their corresponding frame
 # metrics.
@@ -103,24 +76,22 @@ class Dstc8DataProcessor(object):
 
   def __init__(self,
                dstc8_data_dir,
-               train_file_range,
-               dev_file_range,
-               test_file_range,
+               dataset_config,
                vocab_file,
                do_lower_case,
                max_seq_length=DEFAULT_MAX_SEQ_LENGTH,
                log_data_warnings=False):
     self.dstc8_data_dir = dstc8_data_dir
     self._log_data_warnings = log_data_warnings
-    self._file_ranges = {
-        "train": train_file_range,
-        "dev": dev_file_range,
-        "test": test_file_range,
-    }
+    self._dataset_config = dataset_config
     # BERT tokenizer
     self._tokenizer = tokenization.FullTokenizer(
         vocab_file=vocab_file, do_lower_case=do_lower_case)
     self._max_seq_length = max_seq_length
+
+  @property
+  def dataset_config(self):
+    return self._dataset_config
 
   def get_dialog_examples(self, dataset):
     """Return a list of `InputExample`s of the data splits' dialogues.
@@ -134,7 +105,7 @@ class Dstc8DataProcessor(object):
     dialog_paths = [
         os.path.join(self.dstc8_data_dir, dataset,
                      "dialogues_{:03d}.json".format(i))
-        for i in self._file_ranges[dataset]
+        for i in self._dataset_config.file_ranges[dataset]
     ]
     dialogs = load_dialogues(dialog_paths)
     schema_path = os.path.join(self.dstc8_data_dir, dataset, "schema.json")
@@ -142,8 +113,8 @@ class Dstc8DataProcessor(object):
 
     examples = []
     for dialog_idx, dialog in enumerate(dialogs):
-      tf.compat.v1.logging.log_every_n(
-          tf.compat.v1.logging.INFO, "Processed %d dialogs.", 1000, dialog_idx)
+      tf.logging.log_every_n(tf.logging.INFO, "Processed %d dialogs.", 1000,
+                             dialog_idx)
       examples.extend(
           self._create_examples_from_dialog(dialog, schemas, dataset))
     return examples
@@ -190,6 +161,7 @@ class Dstc8DataProcessor(object):
         self._tokenize(user_utterance))
     states = {}
     base_example = InputExample(
+        dataset_config=self._dataset_config,
         max_seq_length=self._max_seq_length,
         is_real_example=True,
         tokenizer=self._tokenizer,
@@ -311,7 +283,7 @@ class Dstc8DataProcessor(object):
     dialog_paths = [
         os.path.join(self.dstc8_data_dir, dataset,
                      "dialogues_{:03d}.json".format(i))
-        for i in self._file_ranges[dataset]
+        for i in self._dataset_config.file_ranges[dataset]
     ]
     dst_set = load_dialogues(dialog_paths)
     for dialog in dst_set:
@@ -325,6 +297,7 @@ class InputExample(object):
   """An example for training/inference."""
 
   def __init__(self,
+               dataset_config,
                max_seq_length=DEFAULT_MAX_SEQ_LENGTH,
                service_schema=None,
                example_id="NONE",
@@ -334,6 +307,7 @@ class InputExample(object):
     """Constructs an InputExample.
 
     Args:
+      dataset_config: DataConfig object denoting the config of the dataset.
       max_seq_length: The maximum length of the sequence. Sequences longer than
         this value will be truncated.
       service_schema: A ServiceSchema object wrapping the schema for the service
@@ -353,6 +327,7 @@ class InputExample(object):
     self._max_seq_length = max_seq_length
     self._tokenizer = tokenizer
     self._log_data_warnings = log_data_warnings
+    self._dataset_config = dataset_config
     if self.is_real_example and self._tokenizer is None:
       raise ValueError("Must specify tokenizer when input is a real example.")
 
@@ -377,34 +352,39 @@ class InputExample(object):
     # Number of categorical slots present in the service.
     self.num_categorical_slots = 0
     # The status of each categorical slot in the service.
-    self.categorical_slot_status = [STATUS_OFF] * MAX_NUM_CAT_SLOT
+    self.categorical_slot_status = [STATUS_OFF
+                                   ] * dataset_config.max_num_cat_slot
     # Number of values taken by each categorical slot.
-    self.num_categorical_slot_values = [0] * MAX_NUM_CAT_SLOT
+    self.num_categorical_slot_values = [0] * dataset_config.max_num_cat_slot
     # The index of the correct value for each categorical slot.
-    self.categorical_slot_values = [0] * MAX_NUM_CAT_SLOT
+    self.categorical_slot_values = [0] * dataset_config.max_num_cat_slot
 
     # Number of non-categorical slots present in the service.
     self.num_noncategorical_slots = 0
     # The status of each non-categorical slot in the service.
-    self.noncategorical_slot_status = [STATUS_OFF] * MAX_NUM_NONCAT_SLOT
+    self.noncategorical_slot_status = [STATUS_OFF
+                                      ] * dataset_config.max_num_noncat_slot
     # The index of the starting subword corresponding to the slot span for a
     # non-categorical slot value.
-    self.noncategorical_slot_value_start = [0] * MAX_NUM_NONCAT_SLOT
+    self.noncategorical_slot_value_start = [
+        0
+    ] * dataset_config.max_num_noncat_slot
     # The index of the ending (inclusive) subword corresponding to the slot span
     # for a non-categorical slot value.
-    self.noncategorical_slot_value_end = [0] * MAX_NUM_NONCAT_SLOT
+    self.noncategorical_slot_value_end = [0
+                                         ] * dataset_config.max_num_noncat_slot
 
     # Total number of slots present in the service. All slots are included here
     # since every slot can be requested.
     self.num_slots = 0
     # Takes value 1 if the corresponding slot is requested, 0 otherwise.
     self.requested_slot_status = [STATUS_OFF] * (
-        MAX_NUM_CAT_SLOT + MAX_NUM_NONCAT_SLOT)
+        dataset_config.max_num_cat_slot + dataset_config.max_num_noncat_slot)
 
     # Total number of intents present in the service.
     self.num_intents = 0
     # Takes value 1 if the intent is active, 0 otherwise.
-    self.intent_status = [STATUS_OFF] * MAX_NUM_INTENT
+    self.intent_status = [STATUS_OFF] * dataset_config.max_num_intent
 
   @property
   def readable_summary(self):
@@ -487,8 +467,8 @@ class InputExample(object):
     # (including [CLS], [SEP], [SEP]) is no more than max_utt_len
     is_too_long = truncate_seq_pair(system_tokens, user_tokens, max_utt_len - 3)
     if is_too_long and self._log_data_warnings:
-      tf.compat.v1.logging.info(
-          "Utterance sequence truncated in example id - %s.", self.example_id)
+      tf.logging.info("Utterance sequence truncated in example id - %s.",
+                      self.example_id)
 
     # Construct the tokens, segment mask and valid token mask which will be
     # input to BERT, using the tokens for system utterance (sequence A) and
@@ -551,6 +531,7 @@ class InputExample(object):
   def make_copy_with_utterance_features(self):
     """Make a copy of the current example with utterance features."""
     new_example = InputExample(
+        dataset_config=self._dataset_config,
         max_seq_length=self._max_seq_length,
         service_schema=self.service_schema,
         example_id=self.example_id,
@@ -608,7 +589,7 @@ class InputExample(object):
           # only makes use of the last two utterances to predict state updates,
           # it will fail in such cases.
           if self._log_data_warnings:
-            tf.compat.v1.logging.info(
+            tf.logging.info(
                 "Slot values %s not found in user or system utterance in "
                 "example with id - %s.", str(values), self.example_id)
           continue
@@ -638,18 +619,18 @@ def _create_int_feature(values):
 # Modified from run_classifier.file_based_convert_examples_to_features in the
 # public bert model repo.
 # https://github.com/google-research/bert/blob/master/run_classifier.py.
-def file_based_convert_examples_to_features(dial_examples, output_file):
+def file_based_convert_examples_to_features(dial_examples, dataset_config,
+                                            output_file):
   """Convert a set of `InputExample`s to a TFRecord file."""
 
   writer = tf.io.TFRecordWriter(output_file)
 
   for (ex_index, example) in enumerate(dial_examples):
     if ex_index % 10000 == 0:
-      tf.compat.v1.logging.info("Writing example %d of %d", ex_index,
-                                len(dial_examples))
+      tf.logging.info("Writing example %d of %d", ex_index, len(dial_examples))
 
     if isinstance(example, PaddingInputExample):
-      ex = InputExample()
+      ex = InputExample(dataset_config=dataset_config)
     else:
       ex = example
 

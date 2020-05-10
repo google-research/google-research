@@ -24,7 +24,7 @@ import collections
 import json
 import os
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 from schema_guided_dst import metrics
 
@@ -46,6 +46,14 @@ flags.DEFINE_string(
     "output_metric_file", None,
     "Single JSON output file containing aggregated evaluation metrics results"
     " for all predictions files in FLAGS.prediction_dir.")
+flags.DEFINE_boolean(
+    "joint_acc_across_turn", False,
+    "Whether to compute joint accuracy across turn instead of across service. "
+    "Should be set to True when conducting multiwoz style evaluation.")
+flags.DEFINE_boolean(
+    "use_fuzzy_match", True,
+    "Whether to use fuzzy string matching when comparing non-categorical slot "
+    "values. Should be set to False when conducting multiwoz style evaluation.")
 
 ALL_SERVICES = "#ALL_SERVICES"
 SEEN_SERVICES = "#SEEN_SERVICES"
@@ -131,9 +139,14 @@ def get_metrics(dataset_ref, dataset_hyp, service_schemas, in_domain_services):
       raise ValueError(
           "Set of services present in ground truth and predictions don't match "
           "for dialogue with id {}".format(dial_id))
-
+    joint_metrics = [
+        metrics.JOINT_GOAL_ACCURACY, metrics.JOINT_CAT_ACCURACY,
+        metrics.JOINT_NONCAT_ACCURACY
+    ]
     for turn_id, (turn_ref, turn_hyp) in enumerate(
         zip(dial_ref["turns"], dial_hyp["turns"])):
+      metric_collections_per_turn = collections.defaultdict(
+          lambda: collections.defaultdict(lambda: 1.0))
       if turn_ref["speaker"] != turn_hyp["speaker"]:
         raise ValueError(
             "Speakers don't match in dialogue with id {}".format(dial_id))
@@ -169,7 +182,7 @@ def get_metrics(dataset_ref, dataset_hyp, service_schemas, in_domain_services):
         requested_slots_f1_scores = metrics.get_requested_slots_f1(
             frame_ref, frame_hyp)
         goal_accuracy_dict = metrics.get_average_and_joint_goal_accuracy(
-            frame_ref, frame_hyp, service)
+            frame_ref, frame_hyp, service, FLAGS.use_fuzzy_match)
 
         frame_metric = {
             metrics.ACTIVE_INTENT_ACCURACY:
@@ -205,8 +218,18 @@ def get_metrics(dataset_ref, dataset_hyp, service_schemas, in_domain_services):
         for domain_key in domain_keys:
           for metric_key, metric_value in frame_metric.items():
             if metric_value != metrics.NAN_VAL:
-              metric_collections[domain_key][metric_key].append(metric_value)
-
+              if FLAGS.joint_acc_across_turn and metric_key in joint_metrics:
+                metric_collections_per_turn[domain_key][
+                    metric_key] *= metric_value
+              else:
+                metric_collections[domain_key][metric_key].append(metric_value)
+      if FLAGS.joint_acc_across_turn:
+        # Conduct multiwoz style evaluation that computes joint goal accuracy
+        # across all the slot values of all the domains for each turn.
+        for domain_key in metric_collections_per_turn:
+          for metric_key, metric_value in metric_collections_per_turn[
+              domain_key].items():
+            metric_collections[domain_key][metric_key].append(metric_value)
   all_metric_aggregate = {}
   for domain_key, domain_metric_vals in metric_collections.items():
     domain_metric_aggregate = {}
@@ -238,17 +261,21 @@ def main(_):
   dataset_hyp = get_dataset_as_dict(
       os.path.join(FLAGS.prediction_dir, "*.json"))
 
-  all_metric_aggregate, _ = get_metrics(
-      dataset_ref, dataset_hyp, eval_services, in_domain_services)
+  all_metric_aggregate, _ = get_metrics(dataset_ref, dataset_hyp, eval_services,
+                                        in_domain_services)
   tf.logging.info("Dialog metrics: %s", str(all_metric_aggregate[ALL_SERVICES]))
 
   # Write the aggregated metrics values.
   with tf.gfile.GFile(FLAGS.output_metric_file, "w") as f:
-    json.dump(all_metric_aggregate, f, indent=2, separators=(",", ": "),
-              sort_keys=True)
+    json.dump(
+        all_metric_aggregate,
+        f,
+        indent=2,
+        separators=(",", ": "),
+        sort_keys=True)
   # Write the per-frame metrics values with the corrresponding dialogue frames.
-  with tf.gfile.GFile(os.path.join(FLAGS.prediction_dir,
-                                   PER_FRAME_OUTPUT_FILENAME), "w") as f:
+  with tf.gfile.GFile(
+      os.path.join(FLAGS.prediction_dir, PER_FRAME_OUTPUT_FILENAME), "w") as f:
     json.dump(dataset_hyp, f, indent=2, separators=(",", ": "))
 
 
