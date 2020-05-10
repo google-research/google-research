@@ -63,7 +63,7 @@
     ],
     "service": "Restaurants_1"
   },
-  "metrics_hyp": {
+  "metrics_hyp_fuzzy_match": {
     "active_intent_accuracy": 0.0,
     "slot_tagging_f1": {
       "precision": 0.5,
@@ -81,5 +81,13 @@
     "average_goal_accuracy": 0.6675,
     "average_cat_accuracy": 0.0,
     "average_noncat_accuracy": 0.89
+  },
+  "metrics_hyp_exact_match": {
+    "joint_goal_accuracy": 0.0,
+    "joint_cat_accuracy": 0.0,
+    "joint_noncat_accuracy": 0.0,
+    "average_goal_accuracy": 0.5,
+    "average_cat_accuracy": 0.0,
+    "average_noncat_accuracy": 0.6666667
   }
 }

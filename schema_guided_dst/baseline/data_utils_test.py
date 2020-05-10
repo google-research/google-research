@@ -23,6 +23,7 @@ import os
 
 from absl.testing import absltest
 
+from schema_guided_dst.baseline import config
 from schema_guided_dst.baseline import data_utils
 
 _VOCAB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -38,9 +39,16 @@ class Dstc8DataProcessorTest(absltest.TestCase):
   def setUp(self):
     self._processor = data_utils.Dstc8DataProcessor(
         dstc8_data_dir=_TEST_DATA_DIR,
-        train_file_range=range(1),
-        dev_file_range=None,
-        test_file_range=None,
+        dataset_config=config.DatasetConfig(
+            file_ranges={
+                'train': range(1),
+                'dev': None,
+                'test': None
+            },
+            max_num_cat_slot=6,
+            max_num_noncat_slot=6,
+            max_num_value_per_cat_slot=4,
+            max_num_intent=2),
         vocab_file=_VOCAB_FILE,
         do_lower_case=_DO_LOWER_CASE)
     super(Dstc8DataProcessorTest, self).setUp()
