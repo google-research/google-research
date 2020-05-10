@@ -14,12 +14,15 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Beam job to map to tf.Examples of embeddings.
+# pylint:disable=line-too-long
+r"""Beam job to map to tf.Examples of embeddings.
 
 This file has two modes:
 1) Map from tf.Examples of audio to tf.Examples of embeddings.
 2) Map from TFDS dataseet to tf.Examples of embeddings.
+
 """
+# pylint:enable=line-too-long
 
 from absl import app
 from absl import flags
@@ -30,9 +33,8 @@ from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_uti
 flags.DEFINE_string('input_glob', None,
                     'Glob for input dir. XOR with `tfds_data`.')
 flags.DEFINE_string(
-    'tfds_dataset', None, 'Name of TFDS data. '
-    'XOR with `input_glob`. Should be of the form ex '
-    '"cifar:train."'
+    'tfds_dataset', None, 'Name of TFDS dataset. '
+    'XOR with `input_glob`. Should be of the form ex "cifar".'
     'Exactly one of `sample_rate_key`, `sample_rate`, or '
     '`tfds_dataset` must be not None.')
 
@@ -54,7 +56,7 @@ flags.DEFINE_string(
     'sample_rate_key', None, 'Key of sample rate. '
     'Exactly one of `sample_rate_key`, `sample_rate`, or '
     '`tfds_dataset` must be not None.')
-flags.DEFINE_integer(
+flags.DEFINE_string(
     'sample_rate', None, 'Sample rate.'
     'Exactly one of `sample_rate_key`, `sample_rate`, or '
     '`tfds_dataset` must be not None.')
@@ -78,6 +80,7 @@ FLAGS = flags.FLAGS
 
 
 def main(unused_argv):
+
   # Get input data location from flags. If we're reading a TFDS dataset, get
   # train, validation, and test.
   input_filenames_list, output_filenames, sample_rate = audio_to_embeddings_beam_utils.read_input_glob_and_sample_rate_from_flags(
@@ -91,16 +94,34 @@ def main(unused_argv):
                                                  FLAGS.embedding_names,
                                                  FLAGS.module_output_keys)
 
+  input_format = 'tfrecord'
+  output_format = 'tfrecord'
+
+  # If you have custom beam options, add them here.
+  beam_options = None
+
   logging.info('Starting to create flume pipeline...')
-  with beam.Pipeline() as root:
-    for i, (input_filenames, output_filename) in enumerate(
+  with beam.Pipeline(beam_options) as root:
+    for i, (input_filenames_or_glob, output_filename) in enumerate(
         zip(input_filenames_list, output_filenames)):
       audio_to_embeddings_beam_utils.make_beam_pipeline(
-          root, input_filenames, sample_rate, FLAGS.debug,
-          FLAGS.embedding_names, FLAGS.embedding_modules,
-          FLAGS.module_output_keys, FLAGS.audio_key, FLAGS.sample_rate_key,
-          FLAGS.label_key, FLAGS.speaker_id_key, FLAGS.average_over_time,
-          FLAGS.delete_audio_from_output, output_filename, suffix=i)
+          root,
+          input_filenames_or_glob,
+          sample_rate,
+          FLAGS.debug,
+          FLAGS.embedding_names,
+          FLAGS.embedding_modules,
+          FLAGS.module_output_keys,
+          FLAGS.audio_key,
+          FLAGS.sample_rate_key,
+          FLAGS.label_key,
+          FLAGS.speaker_id_key,
+          FLAGS.average_over_time,
+          FLAGS.delete_audio_from_output,
+          output_filename,
+          input_format=input_format,
+          output_format=output_format,
+          suffix=i)
 
 
 if __name__ == '__main__':
