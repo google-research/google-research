@@ -49,6 +49,7 @@ class Params(object):
     self.time_mask_max_size = 10
     self.frequency_masks_number = 2
     self.frequency_mask_max_size = 5
+    self.optimizer = 'adam'
 
 
 def att_mh_rnn_params():
@@ -150,6 +151,22 @@ def cnn_params():
   return params
 
 
+def tc_resnet_params():
+  """Parameters for toy tc_resnet model."""
+  params = Params()
+  params.model_name = 'tc_resnet'
+  params.channels = '24, 36'
+  params.debug_2d = 0
+  params.pool_size = ''
+  params.pool_stride = 0
+  params.bn_momentum = 0.997
+  params.bn_center = 1
+  params.bn_scale = 1
+  params.bn_renorm = 0
+  params.dropout = 0.2
+  return params
+
+
 def lstm_params():
   """Parameters for toy lstm model."""
   params = Params()
@@ -230,6 +247,7 @@ HOTWORD_MODEL_PARAMS = {
     'lstm': lstm_params(),
     'cnn_stride': cnn_stride_params(),
     'cnn': cnn_params(),
+    'tc_resnet': tc_resnet_params(),
     'crnn': crnn_params(),
     'dnn': dnn_params(),
     'att_rnn': att_rnn_params(),

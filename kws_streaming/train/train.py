@@ -81,6 +81,14 @@ def train(flags):
 
   loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
   optimizer = tf.keras.optimizers.Adam(epsilon=flags.optimizer_epsilon)
+
+  if flags.optimizer == 'adam':
+    optimizer = tf.keras.optimizers.Adam(epsilon=flags.optimizer_epsilon)
+  elif flags.optimizer == 'momentum':
+    optimizer = tf.keras.optimizers.SGD(momentum=0.9)
+  else:
+    raise ValueError('Unsupported optimizer:%s' % flags.optimizer)
+
   model.compile(optimizer=optimizer, loss=loss, metrics=['accuracy'])
 
   train_writer = tf.summary.FileWriter(flags.summaries_dir + '/train',

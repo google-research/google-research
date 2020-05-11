@@ -26,6 +26,7 @@ class BaseParserTest(tf.test.TestCase):
   def test_default_values(self):
     # validate default parameters to avoid regression
     self.assertEqual(FLAGS.lr_schedule, 'linear')
+    self.assertEqual(FLAGS.optimizer, 'adam')
     self.assertEqual(FLAGS.background_volume, 0.1)
     self.assertEqual(FLAGS.l2_weight_decay, 0.0)
     self.assertEqual(FLAGS.background_frequency, 0.8)

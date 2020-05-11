@@ -156,6 +156,8 @@ class TrainTest(tf.test.TestCase, parameterized.TestCase):
             '2',
         'learning_rate':
             '0.01',
+        'optimizer':
+            'adam',
         'quantize':
             False,
         'check_nans':

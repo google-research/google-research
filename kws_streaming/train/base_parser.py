@@ -53,6 +53,11 @@ def base_parser():
       Learning rate schedule: linear, exp.
       """)
   parser.add_argument(
+      '--optimizer',
+      type=str,
+      default='adam',
+      help='Optimizer: adam, momentum')
+  parser.add_argument(
       '--background_volume',
       type=float,
       default=0.1,
