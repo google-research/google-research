@@ -110,15 +110,18 @@ These numbers should be taken as indicative and may be updated in the future. In
 the table below, SGD refers to the Schema-Guided Dialogue dataset. SGD-Single
 model is trained and evaluated on single domain dialogues only whereas SGD-All
 model has been trained and evaluated on the entire dataset. We are also
-reporting results on [WOZ 2.0 dataset](https://arxiv.org/pdf/1606.03777.pdf) as
-a sanity check.
+reporting results on [WOZ 2.0 dataset](https://arxiv.org/pdf/1606.03777.pdf) and
+[MultiWOZ 2.1](https://arxiv.org/pdf/1907.01669.pdf) datasets.
 
-| Metrics                | SGD-Single | SGD-All | WOZ 2.0 |
-|------------------------|:----------:|:-------:|:-------:|
-| Active Intent Accuracy | 0.966      | 0.885   | NA      |
-| Requested Slots F1     | 0.965      | 0.972   | 0.970   |
-| Average Goal Accuracy  | 0.776      | 0.694   | 0.915   |
-| Joint Goal Accuracy    | 0.486      | 0.383   | 0.814   |
+| Metrics                | SGD-Single | SGD-All | WOZ 2.0 | MultiWOZ 2.1\* |
+|------------------------|:----------:|:-------:|:-------:|:--------------:|
+| Active Intent Accuracy | 0.966      | 0.885   | NA      | 0.924          |
+| Requested Slots F1     | 0.965      | 0.972   | 0.970   | NA             |
+| Average Goal Accuracy  | 0.776      | 0.694   | 0.915   | 0.875          |
+| Joint Goal Accuracy    | 0.486      | 0.383   | 0.814   | 0.434          |
+
+\* Please note that MultiWOZ 2.1 experiments use a different experimental setup
+as described below.
 
 ### Required files
 
