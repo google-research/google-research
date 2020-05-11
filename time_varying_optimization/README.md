@@ -12,7 +12,7 @@ Contacts:
 [TOC]
 
 To see the iPython document in Colaboratory from your web browser, please
-navigate to [this page](https://colab.research.google.com/github/google-research/google-research/blob/master/tvsdp/tvsdp.ipynb).
+navigate to [this page](https://colab.research.google.com/github/google-research/google-research/blob/master/time_varying_optimization/tvsdp.ipynb).
 
 
 ## TV-SDP: Time-varying Semi-definite Programs
