@@ -1,5 +1,4 @@
-sudo: required
-dist: trusty
+os: linux
 language: python
 git:
   depth: 10
@@ -7,7 +6,7 @@ git:
 python:
   - "3.6"
 env:
-  matrix:
+  jobs:
     - PROJECT="abps"
     - PROJECT="albert"
     - PROJECT="algae_dice"
