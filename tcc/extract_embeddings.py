@@ -98,6 +98,7 @@ def evaluate():
 
 def main(_):
   # Executing eagerly.
+  tf.enable_v2_behavior()
   tf.keras.backend.set_learning_phase(0)
   evaluate()
 
