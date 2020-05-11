@@ -24,6 +24,7 @@ import kws_streaming.models.ds_cnn as ds_cnn
 import kws_streaming.models.gru as gru
 import kws_streaming.models.lstm as lstm
 import kws_streaming.models.svdf as svdf
+import kws_streaming.models.tc_resnet as tc_resnet
 # dict with supported models
 MODELS = {
     'att_mh_rnn': att_mh_rnn.model,
@@ -32,6 +33,7 @@ MODELS = {
     'dnn_raw': dnn_raw.model,
     'ds_cnn': ds_cnn.model,
     'cnn': cnn.model,
+    'tc_resnet': tc_resnet.model,
     'crnn': crnn.model,
     'gru': gru.model,
     'lstm': lstm.model,

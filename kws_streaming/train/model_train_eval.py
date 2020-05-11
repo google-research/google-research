@@ -121,6 +121,7 @@ import kws_streaming.models.ds_cnn as ds_cnn
 import kws_streaming.models.gru as gru
 import kws_streaming.models.lstm as lstm
 import kws_streaming.models.svdf as svdf
+import kws_streaming.models.tc_resnet as tc_resnet
 from kws_streaming.models.utils import parse
 from kws_streaming.train import base_parser
 from kws_streaming.train import model_flags
@@ -191,7 +192,8 @@ def main(_):
     test.tflite_non_stream_model_accuracy(flags, folder_name, file_name)
 
     # these models are using bi-rnn, so they are non streamable by default
-    non_streamable_models = {'att_mh_rnn', 'att_rnn'}
+    # also models using striding or pooling are not supported for streaming now
+    non_streamable_models = {'att_mh_rnn', 'att_rnn', 'tc_resnet'}
 
     model_is_streamable = True
     if flags.model_name in non_streamable_models:
@@ -310,6 +312,10 @@ if __name__ == '__main__':
   # DS_CNN model settings
   parser_ds_cnn = subparsers.add_parser('ds_cnn')
   ds_cnn.model_parameters(parser_ds_cnn)
+
+  # TC Resnet model settings
+  parser_tc_resnet = subparsers.add_parser('tc_resnet')
+  tc_resnet.model_parameters(parser_tc_resnet)
 
   FLAGS, unparsed = parser.parse_known_args()
   tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
