@@ -16,6 +16,7 @@
 """Tests for base_parser default values."""
 
 import tensorflow as tf
+from kws_streaming.models import model_params
 from kws_streaming.train import base_parser
 
 FLAGS = None
@@ -24,45 +25,49 @@ FLAGS = None
 class BaseParserTest(tf.test.TestCase):
 
   def test_default_values(self):
+    params = model_params.Params()
     # validate default parameters to avoid regression
-    self.assertEqual(FLAGS.lr_schedule, 'linear')
-    self.assertEqual(FLAGS.optimizer, 'adam')
-    self.assertEqual(FLAGS.background_volume, 0.1)
-    self.assertEqual(FLAGS.l2_weight_decay, 0.0)
-    self.assertEqual(FLAGS.background_frequency, 0.8)
-    self.assertEqual(FLAGS.split_data, 1)
-    self.assertEqual(FLAGS.silence_percentage, 10.0)
-    self.assertEqual(FLAGS.unknown_percentage, 10.0)
-    self.assertEqual(FLAGS.time_shift_ms, 100.0)
-    self.assertEqual(FLAGS.testing_percentage, 10)
-    self.assertEqual(FLAGS.validation_percentage, 10)
-    self.assertEqual(FLAGS.how_many_training_steps, '10000,10000,10000')
-    self.assertEqual(FLAGS.eval_step_interval, 400)
-    self.assertEqual(FLAGS.learning_rate, '0.0005,0.0001,0.00002')
-    self.assertEqual(FLAGS.batch_size, 100)
-    self.assertEqual(FLAGS.optimizer_epsilon, 1e-08)
-    self.assertEqual(FLAGS.resample, 0.15)
-    self.assertEqual(FLAGS.sample_rate, 16000)
-    self.assertEqual(FLAGS.clip_duration_ms, 1000)
-    self.assertEqual(FLAGS.window_size_ms, 40.0)
-    self.assertEqual(FLAGS.window_stride_ms, 20.0)
-    self.assertEqual(FLAGS.preprocess, 'raw')
-    self.assertEqual(FLAGS.feature_type, 'mfcc_tf')
-    self.assertEqual(FLAGS.preemph, 0.0)
-    self.assertEqual(FLAGS.window_type, 'hann')
-    self.assertEqual(FLAGS.mel_lower_edge_hertz, 20.0)
-    self.assertEqual(FLAGS.mel_upper_edge_hertz, 7000.0)
-    self.assertEqual(FLAGS.log_epsilon, 1e-12)
-    self.assertEqual(FLAGS.dct_num_features, 20)
-    self.assertEqual(FLAGS.use_tf_fft, 0)
-    self.assertEqual(FLAGS.mel_non_zero_only, 1)
-    self.assertEqual(FLAGS.fft_magnitude_squared, 0)
-    self.assertEqual(FLAGS.mel_num_bins, 40)
-    self.assertEqual(FLAGS.use_spec_augment, 0)
-    self.assertEqual(FLAGS.time_masks_number, 2)
-    self.assertEqual(FLAGS.time_mask_max_size, 10)
-    self.assertEqual(FLAGS.frequency_masks_number, 2)
-    self.assertEqual(FLAGS.frequency_mask_max_size, 5)
+    self.assertEqual(FLAGS.lr_schedule, params.lr_schedule)
+    self.assertEqual(FLAGS.optimizer, params.optimizer)
+    self.assertEqual(FLAGS.background_volume, params.background_volume)
+    self.assertEqual(FLAGS.l2_weight_decay, params.l2_weight_decay)
+    self.assertEqual(FLAGS.background_frequency, params.background_frequency)
+    self.assertEqual(FLAGS.split_data, params.split_data)
+    self.assertEqual(FLAGS.silence_percentage, params.silence_percentage)
+    self.assertEqual(FLAGS.unknown_percentage, params.unknown_percentage)
+    self.assertEqual(FLAGS.time_shift_ms, params.time_shift_ms)
+    self.assertEqual(FLAGS.testing_percentage, params.testing_percentage)
+    self.assertEqual(FLAGS.validation_percentage, params.validation_percentage)
+    self.assertEqual(FLAGS.how_many_training_steps,
+                     params.how_many_training_steps)
+    self.assertEqual(FLAGS.eval_step_interval, params.eval_step_interval)
+    self.assertEqual(FLAGS.learning_rate, params.learning_rate)
+    self.assertEqual(FLAGS.batch_size, params.batch_size)
+    self.assertEqual(FLAGS.optimizer_epsilon, params.optimizer_epsilon)
+    self.assertEqual(FLAGS.resample, params.resample)
+    self.assertEqual(FLAGS.sample_rate, params.sample_rate)
+    self.assertEqual(FLAGS.clip_duration_ms, params.clip_duration_ms)
+    self.assertEqual(FLAGS.window_size_ms, params.window_size_ms)
+    self.assertEqual(FLAGS.window_stride_ms, params.window_stride_ms)
+    self.assertEqual(FLAGS.preprocess, params.preprocess)
+    self.assertEqual(FLAGS.feature_type, params.feature_type)
+    self.assertEqual(FLAGS.preemph, params.preemph)
+    self.assertEqual(FLAGS.window_type, params.window_type)
+    self.assertEqual(FLAGS.mel_lower_edge_hertz, params.mel_lower_edge_hertz)
+    self.assertEqual(FLAGS.mel_upper_edge_hertz, params.mel_upper_edge_hertz)
+    self.assertEqual(FLAGS.log_epsilon, params.log_epsilon)
+    self.assertEqual(FLAGS.dct_num_features, params.dct_num_features)
+    self.assertEqual(FLAGS.use_tf_fft, params.use_tf_fft)
+    self.assertEqual(FLAGS.mel_non_zero_only, params.mel_non_zero_only)
+    self.assertEqual(FLAGS.fft_magnitude_squared, params.fft_magnitude_squared)
+    self.assertEqual(FLAGS.mel_num_bins, params.mel_num_bins)
+    self.assertEqual(FLAGS.use_spec_augment, params.use_spec_augment)
+    self.assertEqual(FLAGS.time_masks_number, params.time_masks_number)
+    self.assertEqual(FLAGS.time_mask_max_size, params.time_mask_max_size)
+    self.assertEqual(FLAGS.frequency_masks_number,
+                     params.frequency_masks_number)
+    self.assertEqual(FLAGS.frequency_mask_max_size,
+                     params.frequency_mask_max_size)
 
 
 if __name__ == '__main__':
