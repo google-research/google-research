@@ -38,4 +38,4 @@ python -m tcc.evaluate --alsologtostderr --max_embs 2 --nocontinuous_eval --visu
 # Extracts embeddings of 4 videos in the val set.
 python -m tcc.extract_embeddings --alsologtostderr --logdir /tmp/alignment_logs --dataset pouring --split val --max_embs 4 --keep_data
 # Aligns videos using extracted embeddings.
-python -m tcc.visualize_alignment --alsologtostderr --video_path /tmp/aligned.mp4  --embs_path /tmp/embeddings.npy
+python -m tcc.visualize_alignment --alsologtostderr --video_path /tmp/aligned.gif  --embs_path /tmp/embeddings.npy
