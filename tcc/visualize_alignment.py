@@ -94,7 +94,7 @@ def create_video(embs, frames, video_path, use_dtw, query, candidate, interval):
   """Create aligned videos."""
   # If candiidate is not None implies alignment is being calculated between
   # 2 videos only.
-  if candidate is not None:
+  if (candidate is not None) or (len(embs) < 4):
     fig, ax = plt.subplots(ncols=2, figsize=(10, 10), tight_layout=True)
     nns = align(embs[query], embs[candidate], use_dtw)
 
