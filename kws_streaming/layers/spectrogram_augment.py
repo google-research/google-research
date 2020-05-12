@@ -20,7 +20,7 @@ from tensorflow.python.ops import array_ops  # pylint: disable=g-direct-tensorfl
 
 
 def spectrogram_masking(spectrogram, dim=1, masks_number=2, mask_max_size=5):
-  """Spectrogram masking on frequency dimension.
+  """Spectrogram masking on frequency or time dimension.
 
   Args:
     spectrogram: Input spectrum [batch, time, frequency]

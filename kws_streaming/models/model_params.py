@@ -23,8 +23,8 @@ class Params(object):
   """
 
   def __init__(self):
+    # default parameters
     self.train_dir = ''
-    self.batch_size = 1
     self.wanted_words = 'yes,no,up,down,left,right,on,off,stop,go'
     self.train = 0
     self.split_data = 1
@@ -50,6 +50,21 @@ class Params(object):
     self.frequency_masks_number = 2
     self.frequency_mask_max_size = 5
     self.optimizer = 'adam'
+    self.lr_schedule = 'linear'
+    self.background_volume = 0.1
+    self.l2_weight_decay = 0.0
+    self.background_frequency = 0.8
+    self.silence_percentage = 10.0
+    self.unknown_percentage = 10.0
+    self.time_shift_ms = 100.0
+    self.testing_percentage = 10
+    self.validation_percentage = 10
+    self.how_many_training_steps = '10000,10000,10000'
+    self.eval_step_interval = 400
+    self.learning_rate = '0.0005,0.0001,0.00002'
+    self.batch_size = 100
+    self.optimizer_epsilon = 1e-08
+    self.resample = 0.15
 
 
 def att_mh_rnn_params():
