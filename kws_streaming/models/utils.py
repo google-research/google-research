@@ -23,7 +23,7 @@ from kws_streaming.layers.compat import tf1
 from kws_streaming.layers.modes import Modes
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.keras import models
-from tensorflow.python.keras.engine import network
+from tensorflow.python.keras.engine import functional
 # pylint: enable=g-direct-tensorflow-import
 
 
@@ -91,7 +91,7 @@ def _clone_model(model, input_tensors):
 
   # Reconstruct model from the config, using the cloned layers.
   input_tensors, output_tensors, created_layers = (
-      network.reconstruct_from_config(
+      functional.reconstruct_from_config(
           model_config, created_layers=created_layers))
 
   new_model = tf.keras.Model(input_tensors, output_tensors, name=model.name)
