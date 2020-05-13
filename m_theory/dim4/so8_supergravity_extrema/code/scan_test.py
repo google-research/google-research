@@ -15,11 +15,7 @@
 
 """Basic tests for the solution scanner."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 from dim4.so8_supergravity_extrema.code import extrema
 
@@ -27,10 +23,10 @@ from dim4.so8_supergravity_extrema.code import extrema
 class SO8SupergravityTest(tf.test.TestCase):
 
   def testScan(self):
-    solutions = extrema.scan_for_solutions(1, 0.1, 10, None)
-    # Assert that we did indeed find at least one solution in this
-    # near-origin search.
-    self.assertTrue(bool(solutions))
+    pot, stat, _ = next(extrema.scan_for_solutions())
+    # Check that we did indeed find an AdS solution.
+    self.assertLess(pot, 0)
+    self.assertLess(stat, 1e-3)
 
 
 if __name__ == "__main__":

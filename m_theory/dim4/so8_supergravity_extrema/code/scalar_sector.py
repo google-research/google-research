@@ -19,10 +19,6 @@ Depending on how this is integrated, it can run the computation with
 double-float numpy arrays, mpmath numpy arrays, or TensorFlow 1.x graph-objects.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 import itertools
 import numpy
@@ -80,6 +76,15 @@ def get_unscaled_proj_35_8888_sd_asd(dtype=numpy.int32):
           mnpq[abcd[3]]] = sign_abcd * sign * part2_sign
   return ret_sd, ret_asd
 
+def _t_tensor(t_u_ijIJ, t_u_klKL,
+              t_v_ijKL, t_v_klIJ,
+              einsum):
+  t_uv = t_u_klKL + t_v_klIJ
+  t_uuvv = (
+    einsum('lmJK,kmKI->lkIJ', t_u_ijIJ, t_u_klKL) -
+    einsum('lmJK,kmKI->lkIJ', t_v_ijKL, t_v_klIJ))
+  return einsum('ijIJ,lkIJ->lkij', t_uv, t_uuvv)
+
 
 def get_scalar_manifold_evaluator(
     frac=lambda p, q: p / float(q),
@@ -89,6 +94,7 @@ def get_scalar_manifold_evaluator(
     eye=lambda n: numpy.eye(n, dtype=numpy.complex128),
     # We need tracing-over-last-two-indices as a separate operation, as
     # tf.einsum() cannot trace.
+    # TODO(tfish): Remove `trace` arg once TF can do this.
     # Caution: numpy.trace() by default traces over the first two indices,
     # but tf.trace() traces over the last two indices.
     trace=lambda x: numpy.trace(x, axis1=-1, axis2=-2),
@@ -104,6 +110,7 @@ def get_scalar_manifold_evaluator(
   - numpy arrays (complex-valued).
   - numpy arrays (mpmath.mpc high-precision complex-valued)
   - TensorFlow 1.x 'tensor' graph components.
+  - TensorFlow 2.x Tensors.
 
   As this needs to first wrap up some constants, we return a function
   that maps an object representing a 70-vector location to a pair of
@@ -173,11 +180,9 @@ def get_scalar_manifold_evaluator(
     t_u_klKL = conjugate(t_u_ijIJ)
     t_v_ijKL = expand_ijkl(t_vielbein[:28, 28:])
     t_v_klIJ = conjugate(t_v_ijKL)
-    t_uv = t_u_klKL + t_v_klIJ
-    t_uuvv = (
-        einsum('lmJK,kmKI->lkIJ', t_u_ijIJ, t_u_klKL) -
-        einsum('lmJK,kmKI->lkIJ', t_v_ijKL, t_v_klIJ))
-    t_t = einsum('ijIJ,lkIJ->lkij', t_uv, t_uuvv)
+    t_t = _t_tensor(t_u_ijIJ, t_u_klKL,
+                    t_v_ijKL, t_v_klIJ,
+                    einsum)
     t_a1 = frac(-4, 21) * trace(einsum('mijn->ijmn', t_t))
     t_a2 = frac(-4, 3 * 3) * (
         # Antisymmetrize in last 3 indices, but using antisymmetry in last 2.

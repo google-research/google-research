@@ -2,6 +2,4 @@ mpmath>=1.0.0
 numpy>=1.16.2
 opt_einsum>=2.3.2
 scipy>=0.19.1
-# Specifically request TensorFlow1 (for now).
-# Note: TensorFlow1.14 has a bug that impacts these calculations.
-tensorflow==1.13.2
+tensorflow==2.0.1

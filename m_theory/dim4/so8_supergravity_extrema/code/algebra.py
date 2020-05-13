@@ -13,16 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Lie algebra definitions relevant for SO(8) supergravity."""
+"""Lie algebra definitions relevant for supergravity."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import itertools
 import numpy
 import scipy.linalg
 import re
+
+
+def np_esum(spec, *tensors, optimize='greedy'):
+  """Shorthand for numpy.einsum with 'greedy' optimization default."""
+  return numpy.einsum(spec, *tensors, optimize=optimize)
 
 
 def dict_from_tensor(tensor, magnitude_threshold=0):
@@ -51,7 +53,7 @@ class Spin8(object):
   r"""Container class for Spin(8) tensor invariants.
 
   An instance essentially is just a namespace for constants.
-  All attributes are to be treated read-only by the user.
+  All attributes are to be considered as read-only by the user.
 
   Attributes:
     gamma_vsc:  The spin(8) gamma^i_{alpha,\dot\beta} gamma matrices, indexed by
@@ -68,9 +70,17 @@ class Spin8(object):
       [i, j, k, l, \dot\alpha, \dot\beta].
   """
 
-  def __init__(self):
+  def __init__(self, conventions='gsw'):
+    """Initializes the instance.
+
+    Args:
+      conventions: str, the conventions to use for Gamma matrices. Options are:
+        'gsw': Green, Schwarz, Witten, "Superstring Theory", Volume 1, (5.B.3).
+        'octonionic': https://arxiv.org/abs/math/0105155, Table 1.
+    """
     r8 = range(8)
-    self.gamma_vsc = gamma_vsc = self._get_gamma_vsc()
+    self._conventions = conventions
+    self.gamma_vsc = gamma_vsc = self._get_gamma_vsc(conventions=conventions)
     #
     # The gamma^{ab}_{alpha beta} tensor that translates between antisymmetric
     # matrices over vectors [ij] and antisymmetric matrices over spinors [sS].
@@ -107,24 +117,49 @@ class Spin8(object):
     self.gamma_vvvvss = gamma_vvvvss / 24.0
     self.gamma_vvvvcc = gamma_vvvvcc / 24.0
 
-  def _get_gamma_vsc(self):
-    """Computes Spin(8) gamma-matrices."""
-    # Conventions for Spin(8) gamma matrices match Green, Schwarz, Witten,
-    # but with indices shifted down by 1 to the range [0 .. 7].
-    entries = (
-        "007+ 016- 025- 034+ 043- 052+ 061+ 070- "
-        "101+ 110- 123- 132+ 145+ 154- 167- 176+ "
-        "204+ 215- 226+ 237- 240- 251+ 262- 273+ "
-        "302+ 313+ 320- 331- 346- 357- 364+ 375+ "
-        "403+ 412- 421+ 430- 447+ 456- 465+ 474- "
-        "505+ 514+ 527+ 536+ 541- 550- 563- 572- "
-        "606+ 617+ 624- 635- 642+ 653+ 660- 671- "
-        "700+ 711+ 722+ 733+ 744+ 755+ 766+ 777+")
+  def _get_gamma_vsc(self, conventions='gsw'):
+    """Computes Spin(8) gamma-matrices.
+
+    Args:
+      conventions: str, the conventions to use for Gamma matrices. Options are:
+        'gsw': Green, Schwarz, Witten, "Superstring Theory", Volume 1, (5.B.3).
+        'octonionic': https://arxiv.org/abs/math/0105155, Table 1.
+
+    Returns:
+      [8, 8, 8]-tensor gamma^i_\alpha\dot\beta.
+    """
     ret = numpy.zeros([8, 8, 8])
-    for ijkc in entries.split():
-      indices = tuple([int(m) for m in ijkc[:-1]])
-      sign = 1 if ijkc[-1] == '+' else -1
-      ret[indices] = sign
+    if conventions == 'gsw':
+      # Conventions for Spin(8) gamma matrices match Green, Schwarz, Witten,
+      # but with indices shifted down by 1 to the range [0 .. 7].
+      entries = (
+          "007+ 016- 025- 034+ 043- 052+ 061+ 070- "
+          "101+ 110- 123- 132+ 145+ 154- 167- 176+ "
+          "204+ 215- 226+ 237- 240- 251+ 262- 273+ "
+          "302+ 313+ 320- 331- 346- 357- 364+ 375+ "
+          "403+ 412- 421+ 430- 447+ 456- 465+ 474- "
+          "505+ 514+ 527+ 536+ 541- 550- 563- 572- "
+          "606+ 617+ 624- 635- 642+ 653+ 660- 671- "
+          "700+ 711+ 722+ 733+ 744+ 755+ 766+ 777+")
+      for ijkc in entries.split():
+        indices = tuple([int(m) for m in ijkc[:-1]])
+        sign = 1 if ijkc[-1] == '+' else -1
+        ret[indices] = sign
+    elif conventions == 'octonionic':
+      fano_lines = "124 156 137 235 267 346 457"
+      for n in range(1, 8):
+        ret[0, n, n] = -1
+        ret[n, n, 0] = ret[n, 0, n] = 1
+      ret[0, 0, 0] = 1
+      for cijk in fano_lines.split():
+        ijk = tuple(int(idx) for idx in cijk)
+        for p, q, r in ((0, 1, 2), (1, 2, 0), (2, 0, 1)):
+          # Note that we have to `go against the direction of the arrows'
+          # to make the correspondence work.
+          ret[ijk[r], ijk[p], ijk[q]] = -1
+          ret[ijk[r], ijk[q], ijk[p]] = +1
+    else:
+      raise ValueError('Unknown spin(8) conventions: %r' % conventions)
     return ret
 
 
@@ -132,7 +167,7 @@ class SU8(object):
   """Container class for su(8) tensor invariants.
 
   An instance essentially is just a namespace for constants.
-  All attributes are to be treated read-only by the user.
+  All attributes are to be considered as read-only by the user.
 
   Attributes:
     index56_and_coeff_by_ijk: dict mapping triplet (i, j, k) of three different
@@ -248,7 +283,7 @@ class E7(object):
   """Container class for e7 tensor invariants.
 
   An instance essentially is just a namespace for constants.
-  All attributes are to be treated read-only by the user.
+  All attributes are to be considered as read-only by the user.
 
   Due to triality, we have freedom which 8-dimensional spin(8)
   representation to call the 'vector', 'spinor', and 'co-spinor'
@@ -293,152 +328,124 @@ class E7(object):
     self._su8 = su8
     ij_map = su8.ij_map
     t_a_ij_kl = numpy.zeros([133, 56, 56], dtype=numpy.complex128)
-    # numpy.einsum() does not compute intermediate tensors in a smart way,
-    # hence we manually split 3+-tensor contractions for better efficiency.
-    for a in range(35):
-      t_a_ij_kl[:35, 28:, :28] = (1 / 8.0) * (
-          numpy.einsum(
-              'qIkl,Kkl->qIK',
-              numpy.einsum(
-                  'ijklq,Iij->qIkl',
-                  numpy.einsum('ijklsS,qsS->ijklq', spin8.gamma_vvvvss,
-                               su8.m_35_8_8), su8.m_28_8_8), su8.m_28_8_8))
-      t_a_ij_kl[:35, :28, 28:] = (1 / 8.0) * (
-          numpy.einsum(
-              'qIkl,Kkl->qIK',
-              numpy.einsum(
-                  'ijklq,Iij->qIkl',
-                  numpy.einsum('ijklsS,qsS->ijklq', spin8.gamma_vvvvss,
-                               su8.m_35_8_8), su8.m_28_8_8), su8.m_28_8_8))
-      #
-      t_a_ij_kl[35:70, 28:, :28] = (1.0j / 8.0) * (
-          numpy.einsum(
-              'qIkl,Kkl->qIK',
-              numpy.einsum(
-                  'ijklq,Iij->qIkl',
-                  numpy.einsum('ijklcC,qcC->ijklq', spin8.gamma_vvvvcc,
-                               su8.m_35_8_8), su8.m_28_8_8), su8.m_28_8_8))
-      t_a_ij_kl[35:70, :28, 28:] = (-1.0j / 8.0) * (
-          numpy.einsum(
-              'qIkl,Kkl->qIK',
-              numpy.einsum(
-                  'ijklq,Iij->qIkl',
-                  numpy.einsum('ijklcC,qcC->ijklq', spin8.gamma_vvvvcc,
-                               su8.m_35_8_8), su8.m_28_8_8), su8.m_28_8_8))
-      #
-      # We need to find the action of the su(8) algebra on the
-      # 28-representation.
-      su8_28 = 2 * (
-          numpy.einsum(
-              'aIjn,Jjn->aIJ',
-              numpy.einsum(
-                  'aimjn,Iim->aIjn',
-                  numpy.einsum('aij,mn->aimjn', su8.t_aij,
-                               numpy.eye(8, dtype=numpy.complex128)),
-                  su8.m_28_8_8), su8.m_28_8_8))
-      t_a_ij_kl[70:, :28, :28] = su8_28
-      t_a_ij_kl[70:, 28:, 28:] = su8_28.conjugate()
-      self.t_a_ij_kl = t_a_ij_kl
-      m_35_8_8 = su8.m_35_8_8.real
-      inv_inner_products = numpy.linalg.inv(
-          numpy.einsum('aij,bij->ab', m_35_8_8, m_35_8_8))
-      # Note that, due to the way our conventions work, the entries of this
-      # matrix are all multiples of 1/8.0 = 0.125, which is an
-      # exactly-representable floating point number. So, we are good to use this
-      # even in conjunction with high-accuracy numerics(!). However,
-      # we first have to 'sanitize away' numerical noise.
-      raw_inv_gramian70 = numpy.einsum('AB,ab->AaBb', numpy.eye(2),
-                                       inv_inner_products).reshape(70, 70)
-      self.inv_gramian70 = numpy.round(raw_inv_gramian70 * 8) / 8
-      assert numpy.allclose(raw_inv_gramian70, self.inv_gramian70)
-      # Assert that we only see 'good exact' numbers that are multiples of 1/8
-      # with nonnegative values up to 16/8 = 2.
-      assert set(abs(x * 8)
-                 for x in self.inv_gramian70.reshape(-1)) <= set(range(17))
-      # Auxiliary constant to map [2, 8, 8] (sc, i, j)-data to 70-vectors.
-      aux_35_from_8x8 = numpy.einsum('Aa,aij->Aij',
-                                     inv_inner_products, m_35_8_8)
-      self.v70_as_sc8x8 = numpy.einsum('sc,xab->sxcab',
-                                       numpy.eye(2),
-                                       m_35_8_8).reshape(70, 2, 8, 8)
-      self.v70_from_sc8x8 = numpy.einsum('vsab,vw->wsab',
-                                         self.v70_as_sc8x8,
-                                         self.inv_gramian70)
-      # We also want to directly look at the action of the 28 Spin(8) generators
-      # on the 70 scalars, both to determine residual gauge groups
-      # (which we could also do in a 56-representation of E7),
-      # and also to look for residual discrete subgroups of SO(8).
-      spin8_action_on_s = 0.5 * numpy.einsum(
-          'Aij,ijab->Aab', su8.m_28_8_8, spin8.gamma_vvss)
-      spin8_action_on_c = 0.5 * numpy.einsum(
-          'Aij,ijab->Aab', su8.m_28_8_8, spin8.gamma_vvcc)
-      spin8_action_on_35s = (
-          # [A,v,m,n]-array showing how acting with spin(8) generator A
-          # changes a 35s element indexed by v, but with the change
-          # expressed as a symmetric 8x8 matrix indexed (m, n).
-          #
-          # This could be simplified, exploiting symmetry, at the cost
-          # of making the expression slightly less readable.
-          numpy.einsum('Aab,van->Avbn', spin8_action_on_s,
-                       self.v70_as_sc8x8[:35, 0, :, :]) +
-          numpy.einsum('Aab,vma->Avmb', spin8_action_on_s,
-                       self.v70_as_sc8x8[:35, 0, :, :]))
-      spin8_action_on_35c = (
-          # This could be simplified, exploiting symmetry, at the cost
-          # of making the expression slightly less readable.
-          numpy.einsum('Aab,van->Avbn', spin8_action_on_c,
-                       self.v70_as_sc8x8[35:, 1, :, :]) +
-          numpy.einsum('Aab,vma->Avmb', spin8_action_on_c,
-                       self.v70_as_sc8x8[35:, 1, :, :]))
-      spin8_action_on_35s35c = numpy.stack([spin8_action_on_35s,
-                                            spin8_action_on_35c],
-                                           axis=1)
-      self.spin8_action_on_v70 = numpy.einsum(
-          'Asvab,wsab->Asvw',
-          spin8_action_on_35s35c,
-          self.v70_from_sc8x8).reshape(28, 70, 70)
-      #
-      # We also need an orthonormal basis for the 70 scalars.
-      # While we can find mass-eigenstates with the non-orthonormal basis
-      # above (exercising a bit of care), these would be the eigenvalues of
-      # a non-hermitean matrix operator. We do need orthonormal bases for
-      # the mass-eigenstate subspaces so that subsequent automatic numerical
-      # identification of charges can work (for which the code assumes that
-      # charge-operators are represented as hermitean matrices, on which it
-      # uses scipy.linalg.eigh() to produce orthonormal eigenbases).
-      # We do not have to pay attention to define the mapping between these
-      # 70-bases in a particularly elegant way.
-      #
-      # Also, it is important for high-accuracy calculations to have
-      # exactly-representable matrix entries, while we can absorb an overall
-      # (not-exactly-representable-at-finite-accuracy)
-      # factor into the definition of the inner product.
-      v70_from_v70o = numpy.zeros([70, 70])
-      for num_ijkl, ijkl in enumerate(
-          ijkl for ijkl in itertools.combinations(range(8), 4) if 0 in ijkl):
-        v35a = numpy.einsum('vsab,s,ab->v',
-                            self.v70_from_sc8x8,
-                            numpy.array([1.0, 0.0]),
-                            spin8.gamma_vvvvss[
-                                ijkl[0], ijkl[1], ijkl[2], ijkl[3], :, :])
-        v35b = numpy.einsum('vsab,s,ab->v',
-                            self.v70_from_sc8x8,
-                            numpy.array([0.0, 1.0]),
-                            spin8.gamma_vvvvcc[
-                                ijkl[0], ijkl[1], ijkl[2], ijkl[3], :, :])
-        v70_from_v70o[:, num_ijkl] = 0.5 * v35a
-        v70_from_v70o[:, 35 + num_ijkl] = 0.5 * v35b
-      assert numpy.allclose(
-          numpy.einsum('Vv,Wv->VW', v70_from_v70o, v70_from_v70o),
-          2 * self.inv_gramian70)
-      self.v70_from_v70o = v70_from_v70o
-      self.v70o_from_v70 = numpy.linalg.inv(v70_from_v70o)
-      self.spin8_action_on_v70o = numpy.einsum(
-          'aVw,Ww->aVW',
-          numpy.einsum('avw,vV->aVw',
-                       self.spin8_action_on_v70,
-                       self.v70_from_v70o),
-          self.v70o_from_v70)
+    t_a_ij_kl[:35, 28:, :28] = (1 / 8.0) * (
+        np_esum('ijklsS,qsS,Iij,Kkl->qIK',
+                spin8.gamma_vvvvss, su8.m_35_8_8, su8.m_28_8_8, su8.m_28_8_8))
+    t_a_ij_kl[:35, :28, 28:] = t_a_ij_kl[:35, 28:, :28]
+    t_a_ij_kl[35:70, 28:, :28] = (1.0j / 8.0) * (
+        np_esum('ijklcC,qcC,Iij,Kkl->qIK',
+                spin8.gamma_vvvvcc, su8.m_35_8_8, su8.m_28_8_8, su8.m_28_8_8))
+    t_a_ij_kl[35:70, :28, 28:] = -t_a_ij_kl[35:70, 28:, :28]
+    #
+    # We need to find the action of the su(8) algebra on the
+    # 28-representation.
+    su8_28 = 2 * np_esum('aij,mn,Iim,Jjn->aIJ',
+                         su8.t_aij,
+                         numpy.eye(8, dtype=numpy.complex128),
+                         su8.m_28_8_8, su8.m_28_8_8)
+    t_a_ij_kl[70:, :28, :28] = su8_28
+    t_a_ij_kl[70:, 28:, 28:] = su8_28.conjugate()
+    self.t_a_ij_kl = t_a_ij_kl
+    m_35_8_8 = su8.m_35_8_8.real
+    inv_inner_products = numpy.linalg.inv(
+        numpy.einsum('aij,bij->ab', m_35_8_8, m_35_8_8))
+    # Note that, due to the way our conventions work, the entries of this
+    # matrix are all multiples of 1/8.0 = 0.125, which is an
+    # exactly-representable floating point number. So, we are good to use this
+    # even in conjunction with high-accuracy numerics(!). However,
+    # we first have to 'sanitize away' numerical noise.
+    raw_inv_gramian70 = numpy.einsum('AB,ab->AaBb', numpy.eye(2),
+                                     inv_inner_products).reshape(70, 70)
+    self.inv_gramian70 = numpy.round(raw_inv_gramian70 * 8) / 8
+    assert numpy.allclose(raw_inv_gramian70, self.inv_gramian70)
+    # Assert that we only see 'good exact' numbers that are multiples of 1/8
+    # with nonnegative values up to 16/8 = 2.
+    assert set(abs(x * 8)
+               for x in self.inv_gramian70.reshape(-1)) <= set(range(17))
+    # Auxiliary constant to map [2, 8, 8] (sc, i, j)-data to 70-vectors.
+    aux_35_from_8x8 = numpy.einsum('Aa,aij->Aij',
+                                   inv_inner_products, m_35_8_8)
+    self.v70_as_sc8x8 = numpy.einsum('sc,xab->sxcab',
+                                     numpy.eye(2),
+                                     m_35_8_8).reshape(70, 2, 8, 8)
+    self.v70_from_sc8x8 = numpy.einsum('vsab,vw->wsab',
+                                       self.v70_as_sc8x8,
+                                       self.inv_gramian70)
+    # We also want to directly look at the action of the 28 Spin(8) generators
+    # on the 70 scalars, both to determine residual gauge groups
+    # (which we could also do in a 56-representation of E7),
+    # and also to look for residual discrete subgroups of SO(8).
+    spin8_action_on_s = 0.5 * numpy.einsum(
+        'Aij,ijab->Aab', su8.m_28_8_8, spin8.gamma_vvss)
+    spin8_action_on_c = 0.5 * numpy.einsum(
+        'Aij,ijab->Aab', su8.m_28_8_8, spin8.gamma_vvcc)
+    spin8_action_on_35s = (
+        # [A,v,m,n]-array showing how acting with spin(8) generator A
+        # changes a 35s element indexed by v, but with the change
+        # expressed as a symmetric 8x8 matrix indexed (m, n).
+        #
+        # This could be simplified, exploiting symmetry, at the cost
+        # of making the expression slightly less readable.
+        numpy.einsum('Aab,van->Avbn', spin8_action_on_s,
+                     self.v70_as_sc8x8[:35, 0, :, :]) +
+        numpy.einsum('Aab,vma->Avmb', spin8_action_on_s,
+                     self.v70_as_sc8x8[:35, 0, :, :]))
+    spin8_action_on_35c = (
+        # This could be simplified, exploiting symmetry, at the cost
+        # of making the expression slightly less readable.
+        numpy.einsum('Aab,van->Avbn', spin8_action_on_c,
+                     self.v70_as_sc8x8[35:, 1, :, :]) +
+        numpy.einsum('Aab,vma->Avmb', spin8_action_on_c,
+                     self.v70_as_sc8x8[35:, 1, :, :]))
+    spin8_action_on_35s35c = numpy.stack([spin8_action_on_35s,
+                                          spin8_action_on_35c],
+                                         axis=1)
+    self.spin8_action_on_v70 = numpy.einsum(
+        'Asvab,wsab->Asvw',
+        spin8_action_on_35s35c,
+        self.v70_from_sc8x8).reshape(28, 70, 70)
+    #
+    # We also need an orthonormal basis for the 70 scalars.
+    # While we can find mass-eigenstates with the non-orthonormal basis
+    # above (exercising a bit of care), these would be the eigenvalues of
+    # a non-hermitean matrix operator. We do need orthonormal bases for
+    # the mass-eigenstate subspaces so that subsequent automatic numerical
+    # identification of charges can work (for which the code assumes that
+    # charge-operators are represented as hermitean matrices, on which it
+    # uses scipy.linalg.eigh() to produce orthonormal eigenbases).
+    # We do not have to pay attention to define the mapping between these
+    # 70-bases in a particularly elegant way.
+    #
+    # Also, it is important for high-accuracy calculations to have
+    # exactly-representable matrix entries, while we can absorb an overall
+    # (not-exactly-representable-at-finite-accuracy)
+    # factor into the definition of the inner product.
+    v70_from_v70o = numpy.zeros([70, 70])
+    for num_ijkl, ijkl in enumerate(
+        ijkl for ijkl in itertools.combinations(range(8), 4) if 0 in ijkl):
+      v35a = numpy.einsum('vsab,s,ab->v',
+                          self.v70_from_sc8x8,
+                          numpy.array([1.0, 0.0]),
+                          spin8.gamma_vvvvss[
+                              ijkl[0], ijkl[1], ijkl[2], ijkl[3], :, :])
+      v35b = numpy.einsum('vsab,s,ab->v',
+                          self.v70_from_sc8x8,
+                          numpy.array([0.0, 1.0]),
+                          spin8.gamma_vvvvcc[
+                              ijkl[0], ijkl[1], ijkl[2], ijkl[3], :, :])
+      v70_from_v70o[:, num_ijkl] = 0.5 * v35a
+      v70_from_v70o[:, 35 + num_ijkl] = 0.5 * v35b
+    assert numpy.allclose(
+        numpy.einsum('Vv,Wv->VW', v70_from_v70o, v70_from_v70o),
+        2 * self.inv_gramian70)
+    self.v70_from_v70o = v70_from_v70o
+    self.v70o_from_v70 = numpy.linalg.inv(v70_from_v70o)
+    self.spin8_action_on_v70o = numpy.einsum(
+        'aVw,Ww->aVW',
+        numpy.einsum('avw,vV->aVw',
+                     self.spin8_action_on_v70,
+                     self.v70_from_v70o),
+        self.v70o_from_v70)
 
   def v70_from_35s35c(self, m35s, m35c):
     """Computes a v70-vector from 35s and 35c matrices."""
@@ -449,6 +456,7 @@ class E7(object):
   def v70_as_35s35c(self, v70):
     m = numpy.einsum('v,vsab->sab', v70, self.v70_as_sc8x8)
     return m[0], m[1]
+
 
 
 spin8 = Spin8()

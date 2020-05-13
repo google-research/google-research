@@ -33,6 +33,11 @@ source env/bin/activate
 pip3 install -r m_theory_lib/requirements.txt
 ```
 
+The `requirements.txt` file by default installs a TensorFlow package that works
+on every machine, but on many machines, one should get substantially better
+performance by not installing the `tensorflow` package but the matching
+`tensorflow-gpu` package. It is recommended to use the TensorFlow package
+version(s) listed in `requirements.txt`.
 
 # Structure
 

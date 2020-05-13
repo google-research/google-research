@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-
 # cd to the script's own directory.
 thisdir=$(dirname $0)
 cd $(readlink -f "${thisdir}")
@@ -25,6 +23,6 @@ set -x
 virtualenv -p python3 env
 source env/bin/activate
 
-pip install -r dim4/so8_supergravity_extrema/code/requirements.txt
-python -m dim4.so8_supergravity_extrema.code.scan_test
+pip3 install -r m_theory_lib/requirements.txt
+python3 -m dim4.so8_supergravity_extrema.code.extrema
 

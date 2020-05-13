@@ -20,10 +20,6 @@ known for many years, we can restrict ourselves to a residual Lie symmetry of
 Spin(3)^A x U(1)^B. This considerably simplifies the analysis.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import cmath
 import collections
 import glob

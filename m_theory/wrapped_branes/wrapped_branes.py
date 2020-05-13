@@ -29,97 +29,41 @@ than numerical quantities), and then call:
 
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+import pdb  # For interactive debugging only.
 
 import collections
 import dataclasses
 import numpy
 import scipy.optimize
 import sys
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
+
+from m_theory_lib import m_util
 
 # The actual problem definitions.
 from wrapped_branes import potentials
+
 
 @dataclasses.dataclass(frozen=True)
 class Solution(object):
   potential: float
   stationarity: float
-  scalars: numpy.ndarray
+  pos: numpy.ndarray
 
 
-def call_with_evaluator(
-    num_scalars,
+def scan_for_critical_points(
     problem,
-    f,
-    punish_scalars_beyond=2.0,
-    problem_args=(), problem_kwargs={},
-    f_args=(), f_kwargs={}):
-  """Calls `f` with potential-stationarity-gradient-evaluator in TF context.
-
-  Sets up the TensorFlow graph that implements a wrapped-branes potential,
-  such as (3.20) of arXiv:1906.08900.
-
-  Args:
-    num_scalars: The number of scalars.
-    problem: The function that specifies the scalar potential computation
-      for the problem under study. This must have the following siguature:
-      problem(scalars) -> potential.
-    f: The function to call with an evaluator (and optionally extra arguments).
-    punish_scalars_beyond: Threshold numerical magnitude of scalar parameters
-      beyond which a regularizing term drives optimization back to a physically
-      plausible region.
-    problem_args: Extra positional arguments for `problem`.
-    problem_kwargs: Extra keyword arguments for `problem`.
-    f_args: Extra positional arguments for `f`
-    f_kwargs: Extra keyword arguments for `f`.
-
-  Returns:
-    The result of f(evaluator, *f_args, **f_kwargs) as evaluated in a TensorFlow
-    session context set up as required by the evaluator.
-  """
-  graph = tf.Graph()
-  with graph.as_default():
-    t_input = tf.Variable(numpy.zeros(num_scalars), dtype=tf.float64)
-    t_potential = problem(t_input, *problem_args, **problem_kwargs)
-    t_grad_potential = tf.gradients(t_potential, [t_input])[0]
-    t_stationarity = tf.reduce_sum(tf.square(t_grad_potential))
-    # Punish large scalars.
-    # This drives the search away from 'unphysical' regions.
-    t_eff_stationarity = t_stationarity + tf.reduce_sum(
-        tf.sinh(  # Make stationarity-violation grow rapidly for far-out scalars.
-            tf.nn.relu(tf.abs(t_input) - punish_scalars_beyond)))
-    t_grad_stationarity = tf.gradients(t_eff_stationarity, [t_input])[0]
-    with tf.compat.v1.Session() as session:
-      session.run([tf.compat.v1.global_variables_initializer()])
-      def evaluator(scalars):
-        return session.run(
-            (t_potential, t_stationarity, t_grad_stationarity),
-            feed_dict={t_input: scalars})
-      return f(evaluator, *f_args, **f_kwargs)
-
-
-def scan(
-    num_scalars,
-    problem,
-    num_solutions=40,  # We normally would want to run many more scan trials.
-    seed=1,
-    scale=0.15,
+    starting_points,
     stationarity_threshold=1e-4,
+    mdnewton=True,
     debug=True,
     *problem_extra_args,
     **problem_extra_kwargs):
-  """Scans for critical points in the scalar potential.
+  """Scans for critical points of a scalar function.
 
   Args:
-    num_scalars: The number of scalars.
-    problem: The function specifying the problem,
-      such as `call_with_cgr_psg_evaluator`.
-    num_solutions: Number of critical points to collect before returning.
-    seed: Random number generator seed for generating starting points.
-    scale: Scale for normal-distributed search starting point coordinates.
+    problem: The potential-function specifying the problem.
+    starting_points: iterable with starting points to start the search from.
     stationarity_threshold: Upper bound on permissible post-optimization
       stationarity for a solution to be considered good.
     debug: Whether to print newly found solutions right when they
@@ -127,55 +71,66 @@ def scan(
     problem_extra_args: Extra positional arguments for the problem-function.
     problem_extra_kwargs: Extra keyword arguments for the problem-function.
 
-  Returns:
-    A list of `Solution` with numerical solutions.
+  Yields:
+    A `Solution` numerical solution.
   """
-  # Use a seeded random number generator for better reproducibility
-  # (but note that scipy's optimizers may themselves use independent
-  # and not-easily-controllable random state).
-  rng = numpy.random.RandomState(seed=seed)
-  def get_x0():
-    return rng.normal(scale=scale, size=num_scalars)
-  def do_scans(evaluator):
-    def f_opt(scalars):
-      unused_potential, stationarity, unused_grad = evaluator(scalars)
-      return stationarity
-    def fprime_opt(scalars):
-      unused_potential, unused_stationarity, grad = evaluator(scalars)
-      return grad
-    ret = []
-    while len(ret) < num_solutions:
-      opt = scipy.optimize.fmin_bfgs(f_opt, get_x0(), fprime=fprime_opt,
-                                     maxiter=10**5)
-      opt_pot, opt_stat, opt_grad = evaluator(opt)
-      if numpy.isnan(opt_pot) or not opt_stat < 1e-4:
-        continue  # Optimization ran into a bad solution.
-      solution = Solution(potential=opt_pot,
-                          stationarity=opt_stat,
-                          scalars=opt)
-      ret.append(solution)
-      if debug:
-        print(solution)
-    return ret
-  return call_with_evaluator(num_scalars, problem, do_scans,
-                             problem_args=problem_extra_args,
-                             problem_kwargs=problem_extra_kwargs)
+  def f_problem(pos):
+    return problem(pos, *problem_extra_args, **problem_extra_kwargs)
+  tf_stat_func = m_util.tf_stationarity(f_problem)
+  tf_grad_stat_func = m_util.tf_grad(tf_stat_func)
+  tf_grad_pot_func = None
+  tf_jacobian_pot_func = None
+  if mdnewton:
+    tf_grad_pot_func = m_util.tf_grad(f_problem)
+    tf_jacobian_pot_func = m_util.tf_jacobian(tf_grad_pot_func)
+  for x0 in starting_points:
+    val_opt, xs_opt = m_util.tf_minimize(tf_stat_func, x0,
+                                         tf_grad_func=tf_grad_stat_func,
+                                         precise=False)
+    if val_opt > stationarity_threshold:
+      continue  # with next starting point.
+    # We found a point that apparently is close to a critical point.
+    t_xs_opt = tf.constant(xs_opt, dtype=tf.float64)
+    if not mdnewton:
+      yield Solution(potential=f_problem(t_xs_opt).numpy(),
+                     stationarity=tf_stat_func(t_xs_opt).numpy(),
+                     pos=xs_opt)
+      continue  # with next solution.
+    # We could use MDNewton to force each gradient-component
+    # of the stationarity condition to zero. It is however
+    # more straightforward to instead do this directly
+    # for the gradient of the potential.
+    *_, xs_opt_mdnewton = m_util.tf_mdnewton(
+      f_problem,
+      t_xs_opt,
+      maxsteps=4,
+      debug_func=None,
+      tf_grad_func=tf_grad_pot_func,
+      tf_jacobian_func=tf_jacobian_pot_func)
+    t_xs_opt_mdnewton = tf.constant(xs_opt_mdnewton, dtype=tf.float64)
+    yield Solution(potential=f_problem(t_xs_opt_mdnewton).numpy(),
+                   stationarity=tf_stat_func(t_xs_opt_mdnewton).numpy(),
+                   pos=xs_opt_mdnewton)
 
 
 if __name__ == '__main__':
-  # Set numpy's default array-formatting width to 160 characters.
-  numpy.set_printoptions(linewidth=160)
+  # Set numpy's default array-formatting width to large width.
+  numpy.set_printoptions(linewidth=200)
   if len(sys.argv) != 2 or sys.argv[-1] not in potentials.PROBLEMS:
-    sys.exit('\n\nUsage: python3 -i -m dim5.cgr.cgr_theory {problem_name}.\n'
+    sys.exit('\n\nUsage: python3 -i -m wrapped_branes.wrapped_branes {problem_name}.\n'
              'Known problem names are: %s' % ', '.join(
                  sorted(potentials.PROBLEMS)))
   problem = potentials.PROBLEMS[sys.argv[-1]]
-  solutions = scan(problem.num_scalars,
-                   problem.tf_potential,
-                   **problem.tf_potential_kwargs)
-  for sol in sorted(solutions, key=lambda s: s.potential):
-    print('P=%+8.3f S=%8.3f at: %s' % (sol.potential, sol.stationarity,
-                                       numpy.round(sol.scalars, 4)))
-  # At this point, a summary of `solutions` has been printed, and accurate data
-  # is available in `solutions`. If the process was started with
-  # `python -i -m ...`, this can now be inspected from the Python prompt.
+  rng = numpy.random.RandomState(seed=0)
+  def gen_x0s():
+    while True:
+      yield rng.normal(scale=0.15, size=problem.num_scalars)
+  solutions_iter = scan_for_critical_points(
+    problem.tf_potential,
+    gen_x0s(),
+    mdnewton=True,
+    **problem.tf_potential_kwargs)
+  for n, solution in zip(range(100), solutions_iter):
+    print('P=%+12.8f S=%8.3g at: %s' % (solution.potential,
+                                        solution.stationarity,
+                                        numpy.round(solution.pos, 4)))
