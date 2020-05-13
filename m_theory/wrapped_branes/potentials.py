@@ -22,19 +22,13 @@ This includes definitions from:
 
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import collections
 import dataclasses
 import numpy
 import tensorflow.compat.v1 as tf
 
-# TensorFlow based matrix exponentiation that supports higher derivatives.
-# Will not be needed for TensorFlow1.15+.
-from m_theory_lib import tf_cexpm
-from m_theory_lib import util
+from m_theory_lib import m_util
 
 
 @dataclasses.dataclass(frozen=True)
@@ -50,16 +44,15 @@ class Problem(object):
 def dim7_potential(scalars):
   """Implements the D=7 supergravity potential, (2.3) in arXiv:1906.08900."""
   # This can be regarded as a warm-up exercise.
-  basis = tf.constant(util.get_symmetric_traceless_basis(5), dtype=tf.float64)
-  g = tf.einsum('aAB,a->AB', basis, scalars)
-  T = tf_cexpm.cexpm(g, complex_arg=False)
+  basis = tf.constant(m_util.get_symmetric_traceless_basis(5), dtype=tf.float64)
+  T = tf.linalg.expm(tf.einsum('aAB,a->AB', basis, scalars))
   trT = tf.linalg.trace(T)
   return tf.einsum('ij,ij->', T, T) - 0.5 * trT * trT
 
 
 def cgr_potential(scalars, compactify_on='S2'):
   """Implements the potential (3.20) of arXiv:1906.08900."""
-  basis5 = tf.constant(util.get_symmetric_traceless_basis(3), dtype=tf.float64)
+  basis5 = tf.constant(m_util.get_symmetric_traceless_basis(3), dtype=tf.float64)
   L = tf.constant(dict(S2=1, R2=0, H2=-1)[compactify_on], dtype=tf.float64)
   # Psi_a_alpha, a in (0,1), alpha in (0,1,2).
   psi = tf.reshape(scalars[:6], [2, 3])
@@ -81,9 +74,9 @@ def cgr_potential(scalars, compactify_on='S2'):
   e3 = e2 * e
   e4 = e2 * e2
   e6 = e2 * e4
-  T = tf_cexpm.cexpm(tau33, complex_arg=False)
+  T = tf.linalg.expm(tau33)
   trT = T[0, 0] + T[1, 1] + T[2, 2]  # Simplistic way to get trace.
-  Tinv = tf_cexpm.cexpm(-tau33, complex_arg=False)
+  Tinv = tf.linalg.expm(-tau33)
   psi_Tinv_psi = tf.einsum(
       'aB,cB->ac', tf.einsum('aA,AB->aB', psi, Tinv), psi)
   psi_T_psi = tf.einsum(
@@ -107,19 +100,16 @@ def cgr_potential(scalars, compactify_on='S2'):
 
 def dgkv_potential(scalars, compactify_on='S3'):
   """Implements the potential (3.8) of arXiv:1009.3805."""
-  basis2 = tf.constant(util.get_symmetric_traceless_basis(2), dtype=tf.float64)
+  basis2 = tf.constant(m_util.get_symmetric_traceless_basis(2), dtype=tf.float64)
   L = tf.constant(dict(S3=1, R3=0, H3=-1)[compactify_on], dtype=tf.float64)
   s_phi, s_lambda, s_beta = scalars[0], scalars[1], scalars[2]
   tau22 = tf.einsum('aAB,a->AB', basis2, scalars[3:5])
-  T = tf_cexpm.cexpm(tau22, complex_arg=False)
-  Tinv = tf_cexpm.cexpm(-tau22, complex_arg=False)
+  T = tf.linalg.expm(tau22)
+  Tinv = tf.linalg.expm(-tau22)
   theta = scalars[5:7]
   chi = scalars[7:9]
   #
-  tr = tf.linalg.trace
-  esum = tf.einsum
-  sq = tf.math.square
-  exp = tf.exp
+  tr, esum, sq, exp = tf.linalg.trace, tf.einsum, tf.math.square, tf.exp
   trT = tr(T)
   th_Tinv_th = esum('a,ab,b->', theta, Tinv, theta)
   return (

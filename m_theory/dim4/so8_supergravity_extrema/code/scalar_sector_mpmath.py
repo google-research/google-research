@@ -20,10 +20,6 @@ As it depends on the 'opt_einsum' and 'mpmath' Python modules, it is optional.
 
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 
 import mpmath

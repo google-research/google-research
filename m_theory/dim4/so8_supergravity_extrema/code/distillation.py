@@ -15,9 +15,6 @@
 
 """Distills precision data out of approximate critical point locations."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import ast  # For ast.literal_eval() only.
 import collections
@@ -33,15 +30,15 @@ import pprint
 import re
 import scipy.linalg
 import scipy.optimize
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 from dim4.so8_supergravity_extrema.code import algebra
 from dim4.so8_supergravity_extrema.code import scalar_sector
 from dim4.so8_supergravity_extrema.code import scalar_sector_mpmath
 from dim4.so8_supergravity_extrema.code import scalar_sector_tensorflow
 from dim4.so8_supergravity_extrema.code import symmetries
-from m_theory_lib import tf_cexpm
-from tensorflow.contrib import opt as contrib_opt
+from m_theory_lib import m_util
+
 
 # A 'model' of a critical point is a coordinate description that has been
 # rotated in such a way that many entries can be set to zero.
@@ -215,29 +212,28 @@ def _reduce_second_m35(m35s, m35c, is_diagonal_35s, seed=0):
   rng = numpy.random.RandomState(seed=seed)
   v_coeffs_initial = rng.normal(
       scale=1e-3, size=(num_gens,))  # Break symmetry with noise.
-  graph = tf.Graph()
-  with graph.as_default():
+  #
+  # @tf.function  # TODO(tfish): Activate once compilation is fast.
+  def tf_get_m35_rotated(t_coeffs):
     tc_gens = tf.constant(gens, dtype=tf.float64)
     tc_m35 = tf.constant(m35c if is_diagonal_35s else m35s,
                          dtype=tf.float64)
-    t_coeffs = tf.Variable(initial_value=v_coeffs_initial,
-                           trainable=True,
-                           dtype=tf.float64)
-    t_rot = tf_cexpm.cexpm(tf.einsum('i,iab->ab', t_coeffs, tc_gens),
-                           complex_arg=False)
-    t_m35_rotated = tf.einsum('Ab,Bb->AB',
-                              tf.einsum('ab,Aa->Ab', tc_m35, t_rot), t_rot)
+    t_rot = tf.linalg.expm(tf.einsum('i,iab->ab', t_coeffs, tc_gens))
+    return tf.einsum(
+      'Ab,Bb->AB',
+      tf.einsum('ab,Aa->Ab', tc_m35, t_rot), t_rot)
+  #
+  # @tf.function  # TODO(tfish): Activate once compilation is fast.
+  def tf_get_loss(t_coeffs):
+    t_m35_rotated = tf_get_m35_rotated(t_coeffs)
     # Our 'loss' is the sum of magnitudes of the off-diagonal parts after
     # rotation.
-    t_loss = (tf.norm(t_m35_rotated, ord=1) -
-              tf.norm(tf.linalg.diag_part(t_m35_rotated), ord=1))
-    optimizer = contrib_opt.ScipyOptimizerInterface(t_loss)
-    with tf.compat.v1.Session() as sess:
-      sess.run([tf.global_variables_initializer()])
-      optimizer.minimize(sess)
-      # We are only interested in the diagonalized matrix.
-      m_diag = sess.run([t_m35_rotated])[0]
-      return (m35s, m_diag) if is_diagonal_35s else (m_diag, m35c)
+    return (tf.norm(t_m35_rotated, ord=1) -
+            tf.norm(tf.linalg.diag_part(t_m35_rotated), ord=1))
+  opt_val, opt_pos = m_util.tf_minimize(
+    tf_get_loss, tf.constant(v_coeffs_initial, dtype=tf.float64), precise=False)
+  m_diag = tf_get_m35_rotated(tf.constant(opt_pos, dtype=tf.float64)).numpy()
+  return (m35s, m_diag) if is_diagonal_35s else (m_diag, m35c)
 
 
 def canonicalize_v70(v70,
@@ -437,6 +433,7 @@ def refine_model_nelder_mead(
   if len(low_dimensional_model.params) == 0:
     return low_dimensional_model
   nn = [0]
+  best = [numpy.inf, None]
   def f_off(model_vec):
     nn[0] += 1
     if nn[0] % 20 == 0:
@@ -447,13 +444,18 @@ def refine_model_nelder_mead(
     if nn[0] % 100 == 0:
       print('[Nelder-Mead]\n potential %s\n stationarity %s' % (
           sinfo.potential, sinfo.stationarity))
+      if not sinfo.stationarity < best[0]:
+        raise NoImprovement()
+      best[0] = sinfo.stationarity
+      best[1] = model_vec
     return sinfo.stationarity
   x0 = low_dimensional_model.params
   initial_simplex = numpy.array(
       [[x - step0 / len(x0) for x in x0]] +
       [[x + step0 * (j == k) for j, x in enumerate(x0)]
        for k in range(len(x0))], dtype=mpmath.mpf)
-  opt = fmin(
+  try:
+    opt = fmin(
       f_off,
       x0,
       initial_simplex=initial_simplex,
@@ -462,7 +464,9 @@ def refine_model_nelder_mead(
       maxiter=10**7,
       maxfun=10**7,
       # dtype=mpmath.mpf  # TODO(tfish): Enable `dtype` argument.
-  )
+    )
+  except NoImprovement:
+    opt = best[1]
   return LowDimensionalModel(
       v70_from_params=low_dimensional_model.v70_from_params, params=opt)
 
@@ -541,14 +545,18 @@ def refine_model_mdnewton_mpmath(
               stationarity, expected_stationarity, num_step))
     if not still_good(opt_v70):
       raise ValueError('Solution is no longer good.')
-    print('[MDNewton] Step %d: stat=%s' % (num_step, mpfmt(stationarity)))
+    print('[MDNewton Step %d, num_params=%d]: stat=%s' % (
+      num_step, len(opt), mpfmt(stationarity)))
   return LowDimensionalModel(
       v70_from_params=low_dimensional_model.v70_from_params,
       params=numpy.array(opt, dtype=mpmath.mpf))
 
 
 class BadStationarity(Exception):
-  """Raised when a solution unexpectedly violates the stationarity-condition."""
+  """A solution unexpectedly violates the stationarity-condition."""
+
+class NoImprovement(Exception):
+  """Optimization no longer improves a solution."""
 
 
 def refine_model_gradient_descent(low_dimensional_model,
@@ -561,90 +569,82 @@ def refine_model_gradient_descent(low_dimensional_model,
   v70 = numpy.dot(low_dimensional_model.v70_from_params,
                   numpy.array(low_dimensional_model.params,
                               dtype=mpmath.mpf)).astype(float)
-  graph = tf.Graph()
-  with graph.as_default():
-    tf_scalar_evaluator = scalar_sector_tensorflow.get_tf_scalar_evaluator()
-    t_v70 = tf.Variable(
-        initial_value=numpy.zeros([70]), trainable=True, dtype=tf.float64)
-    sinfo = tf_scalar_evaluator(tf.cast(t_v70, tf.complex128))
-    t_potential = sinfo.potential
-    #
-    t_stationarity = sinfo.stationarity
-    t_grad = tf.gradients(t_stationarity, t_v70)[0]
-    with tf.compat.v1.Session() as sess:
-      sess.run([tf.global_variables_initializer()])
-      n_pot0 = sess.run(t_potential, feed_dict={t_v70: v70})
-      def still_good(potential):
-        return abs(n_pot0 - potential) < 1e-4
-      def do_gradient_steps(num_steps, v70_start,
-                            learning_rate=1e-5,
-                            max_acceptable_stationarity=numpy.inf,
-                            report_on=lambda n: False):
-        v70 = v70_start.astype(float)
-        for n in range(num_steps):
-          n_pot, n_stat, n_grad = sess.run(
-              [t_potential, t_stationarity, t_grad],
-              feed_dict={t_v70: v70})
-          if n_stat > max_acceptable_stationarity:
-            raise BadStationarity()
-          if report_on(n):
-            print('[GradDesc] %3d: p=%.16g s=%.8g' % (n, n_pot, n_stat))
-          v70 -= learning_rate * n_grad
-        return n_pot, n_stat, v70
-      def descend_with_adaptive_learning_rate(v70):
-        # Use gradent-descent with some naive heuristics to adjust the
-        # learning rate.
-        v70_now = v70
-        n_stat_now = sess.run(t_stationarity, feed_dict={t_v70: v70})
-        learning_rate = 1e-5
+  tf_scalar_evaluator = scalar_sector_tensorflow.get_tf_scalar_evaluator()
+  sinfo0 = tf_scalar_evaluator(tf.constant(v70, tf.float64))
+  pot0 = sinfo0.potential.numpy()
+  def still_good(potential):
+    return abs(pot0 - potential) < 1e-4
+  def pot_stat_grad(v70):
+    tape = tf.GradientTape()
+    t_v70 = tf.constant(v70, dtype=tf.float64)
+    with tape:
+      tape.watch(t_v70)
+      sinfo = tf_scalar_evaluator(t_v70)
+    return (sinfo.potential.numpy(),
+            sinfo.stationarity.numpy(),
+            tape.gradient(sinfo.stationarity, t_v70).numpy())
+  def do_gradient_steps(num_steps, v70_start,
+                        learning_rate=1e-5,
+                        max_acceptable_stationarity=numpy.inf,
+                        report_on=lambda n: False):
+    v70 = v70_start
+    for n in range(num_steps):
+      n_pot, n_stat, n_grad = pot_stat_grad(v70)
+      if n_stat > max_acceptable_stationarity:
+        raise BadStationarity()
+      if report_on(n):
+        print('[GradDesc] %3d: p=%.16g s=%.8g' % (n, n_pot, n_stat))
+      v70 -= learning_rate * n_grad
+    return n_pot, n_stat, v70
+  v70_now = v70
+  stat_now = sinfo0.stationarity.numpy()
+  learning_rate = 1e-5
+  can_increase_learning_rate = True
+  while True:
+    trial_performances = [(numpy.inf, 0.02)]
+    trial_learning_rate_factors = (5.0, 2.0, 1.25, 1.0, 0.8, 0.5, 0.2)
+    try:
+      for learning_rate_factor in trial_learning_rate_factors:
+        if not can_increase_learning_rate and learning_rate_factor > 1:
+          continue
+        trial_learning_rate = learning_rate * learning_rate_factor
+        # Do 10 steps with the trial learning rate.
+        pot_stat_pos_log = [
+          do_gradient_steps(10, v70_now,
+                            learning_rate=trial_learning_rate)]
+        # Closely look at what happens over a few more steps.
+        for n in range(10):
+          pot_stat_pos_log.append(
+            do_gradient_steps(1, pot_stat_pos_log[-1][-1],
+                              learning_rate=trial_learning_rate))
+        if not all(still_good(pot_stat_pos[0])
+                   for pot_stat_pos in pot_stat_pos_log):
+          continue  # with next learning_rate_factor.
+        if not all(psp_prev[1] >= psp[1] for psp_prev, psp in zip(
+            pot_stat_pos_log, pot_stat_pos_log[1:])):
+          continue  # with next learning_rate_factor.
+        trial_performances.append(
+          (pot_stat_pos_log[-1][1], learning_rate_factor))
+      trial_performances.sort()
+      best_factor = trial_performances[0][1]
+      learning_rate *= best_factor * 0.9  # Include safety fudge-factor.
+      print('[GradDesc] Adjusted learning rate to: %g' % learning_rate)
+      pot, stat, v70_next = do_gradient_steps(
+        8000, v70_now,
+        learning_rate=learning_rate,
+        max_acceptable_stationarity=1.1 * stat_now, report_on=report_on)
+      if stat <= target_stationarity or learning_rate < 1e-16:
+        return pot, stat, v70_next
+      if stat < stat_now:
+        stat_now = stat
+        v70_now = v70_next
         can_increase_learning_rate = True
-        while True:
-          # Fallback: If no trial learning rate works, reduce it by a factor 50.
-          trial_performances = [(numpy.inf, 0.02)]
-          trial_learning_rate_factors = (5.0, 2.0, 1.25, 1.0, 0.8, 0.5, 0.2)
-          try:
-            for learning_rate_factor in trial_learning_rate_factors:
-              if not can_increase_learning_rate and learning_rate_factor > 1:
-                continue
-              trial_learning_rate = learning_rate * learning_rate_factor
-              # Do 10 steps with the trial learning rate.
-              pot_stat_pos_log = [
-                  do_gradient_steps(10, v70_now,
-                                    learning_rate=trial_learning_rate)]
-              # Closely look at what happens over a few more steps.
-              for n in range(10):
-                pot_stat_pos_log.append(
-                    do_gradient_steps(1, pot_stat_pos_log[-1][-1],
-                                      learning_rate=trial_learning_rate))
-              if not all(still_good(pot_stat_pos[0])
-                         for pot_stat_pos in pot_stat_pos_log):
-                continue  # with next learning_rate_factor.
-              if not all(psp_prev[1] >= psp[1] for psp_prev, psp in zip(
-                  pot_stat_pos_log, pot_stat_pos_log[1:])):
-                continue  # with next learning_rate_factor.
-              trial_performances.append(
-                (pot_stat_pos_log[-1][1], learning_rate_factor))
-            trial_performances.sort()
-            best_factor = trial_performances[0][1]
-            learning_rate *= best_factor * 0.9  # Include safety fudge-factor.
-            print('[GradDesc] Adjusted learning rate to: %g' % learning_rate)
-            n_pot, n_stat, n_pos = do_gradient_steps(
-                8000, v70_now,
-                learning_rate=learning_rate,
-                max_acceptable_stationarity=1.1*n_stat_now, report_on=report_on)
-            if n_stat <= target_stationarity or learning_rate < 1e-16:
-              return n_pot, n_stat, n_pos
-            if n_stat < n_stat_now:
-              n_stat_now = n_stat
-              v70_now = n_pos
-              can_increase_learning_rate = True
-            else:
-              raise BadStationarity()
-          except BadStationarity:
-            can_increase_learning_rate = False
-            "Gradient-descent failed. Reducing learning rate."
-            learning_rate *= 0.75
-      return descend_with_adaptive_learning_rate(v70)
+      else:
+        raise BadStationarity()
+    except BadStationarity:
+      can_increase_learning_rate = False
+      "Gradient-descent failed. Reducing learning rate."
+      learning_rate *= 0.75
 
 
 def write_model(h, model, extra_info):
@@ -667,6 +667,7 @@ def write_model(h, model, extra_info):
 def distill_model(low_dimensional_model,
                   target_digits_position=7,
                   newton_steps=4,  # May be None.
+                  skip_gradient_descent=False,
                   still_good=lambda _: True):
   """Distills a low-dimensional model to high precision."""
   xtol = 10**(-target_digits_position)
@@ -690,6 +691,9 @@ def distill_model(low_dimensional_model,
   except Exception as exn:
     print('[Distillation] MDNewton failed:', exn)
     try:
+      if skip_gradient_descent:
+        print('Skipping Gradient Descent')
+        raise StopIteration()
       refined_pot_stat_pos, from_mdnewton = (
           refine_model_gradient_descent(
               low_dimensional_model,
@@ -716,6 +720,7 @@ def distill_model(low_dimensional_model,
 
 
 def distill(v70, target_digits_position=7, newton_steps=4,
+            skip_gradient_descent=False,
             min_model_digits=None,
             allowed_forms=('diag35s', 'diag35c')):
   """Distills a raw v70 into high-precision few-parameters form."""
@@ -740,7 +745,8 @@ def distill(v70, target_digits_position=7, newton_steps=4,
     refined_model, from_mdnewton = distill_model(
         model,
         target_digits_position=target_digits_position,
-        newton_steps=newton_steps)
+        newton_steps=newton_steps,
+        skip_gradient_descent=skip_gradient_descent)
     if refined_model is not None:
       return refined_model, from_mdnewton
   return None, False
@@ -785,7 +791,7 @@ def read_distillate_model(distillate_filename):
 
 # First distillation will be only roughly good enough to find the correct
 # few-parameters model. Redistill to "purify" to high accuracy.
-def redistill(distillate_filename, out_filename, expected_dps=100,
+def redistill(distillate_filename, out_filename, expected_dps=60,
               newton_steps=7,
               min_model_digits=None):
   """Second-distills a distillate."""
@@ -852,7 +858,7 @@ def get_susy_from_a2(a2, tol=1e-6):
               if abs(s) <= tol]
   susy = [r / r[numpy.argmax(abs(r))] for r in susy_raw]
   assert all(numpy.allclose(u, u.real) for u in susy)
-  return [tuple(u.real) for u in susy]
+  return [tuple(u) for u in susy]
 
 
 def get_gravitino_mass_eigenstates_from_a1(a1, potential, tolerance=1e-6):
@@ -945,6 +951,27 @@ def call_with_scalar_mass_matrix_evaluator(f, *args):
       return f(evaluator, *args)
 
 
+def get_scalar_mass_matrix(v70):
+  """Returns the spin-0 mass matrix at position v70."""
+  tf_scalar_evaluator = scalar_sector_tensorflow.get_tf_scalar_evaluator()
+  t_left_onb = tf.constant(numpy.zeros(70), dtype=tf.float64)
+  t_v70 = tf.constant(v70, dtype=tf.complex128)
+  sinfo0 = tf_scalar_evaluator(t_v70)
+  tc_v70_from_v70o = tf.constant(algebra.e7.v70_from_v70o)
+  def tf_potential_relative(t_left_onb):
+    sinfo = tf_scalar_evaluator(
+      t_v70,
+      t_left=tf.cast(tf.einsum('vV,V->v', tc_v70_from_v70o, t_left_onb),
+                     tf.complex128))
+    return sinfo.potential
+  scalar_mm = m_util.tf_hessian(tf_potential_relative)(
+    tf.constant(numpy.zeros(70), dtype=tf.float64)).numpy()
+  return (scalar_mm /
+          # Factor -3/8 (rather than -3/4) is due to normalization of
+          # our orthonormal basis.
+          (-3.0 / 8) / sinfo0.potential.numpy())
+
+
 def explain_physics(distillate_filename):
   """Explains residual SUSY and particle masses for a solution."""
   distillate = read_distillate(distillate_filename)
@@ -955,9 +982,8 @@ def explain_physics(distillate_filename):
   a2 = sinfo.a2
   gravitinos = get_gravitino_mass_eigenstates_from_a1(a1, sinfo.potential)
   fermions = get_fermion_mass_eigenstates_from_a2(a2, sinfo.potential)
-  mass_matrix = call_with_scalar_mass_matrix_evaluator(
-      lambda ev: ev(v70.astype(float)))
-  scalars = get_scalar_mass_eigenstates_from_mass_matrix(mass_matrix)
+  scalar_mass_matrix = get_scalar_mass_matrix(v70)
+  scalars = get_scalar_mass_eigenstates_from_mass_matrix(scalar_mass_matrix)
   return dict(potential=str(sinfo.potential),
               susy=get_susy_from_a2(a2),
               gravitinos=gravitinos,

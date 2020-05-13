@@ -13,18 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Code to process extrema."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+"""Finds and processes extrema."""
 
 import ast  # For ast.literal_eval() only.
 import glob
 import os
-import pdb  # To simplify interactive debugging only.
+import pdb  # To simplify interactive debugging.
 import pprint
-import time
 
 from dim4.so8_supergravity_extrema.code import distillation
 from dim4.so8_supergravity_extrema.code import scalar_sector_mpmath
@@ -33,16 +28,6 @@ from dim4.so8_supergravity_extrema.code import symmetries
 
 import mpmath
 import numpy
-
-# Setting up `mpmath` global default precision at initialization time.
-# Uses value from the environment variable `MPMATH_DPS`, or 100 if unset.
-mpmath.mp.dps = int(os.getenv('MPMATH_DPS', '100'))
-
-
-def scan_for_solutions(seed, scale, num_iterations, output_basename):
-  """Scans for critical points (with TensorFlow)."""
-  scanner = scalar_sector_tensorflow.get_scanner(output_basename)
-  return scanner(seed, scale, num_iterations)
 
 
 def read_v70(fileglob):
@@ -105,73 +90,76 @@ def generate_symmetry_info(solution_tags,
         raise
 
 
-def demo(work_dir='EXAMPLE_SOLUTIONS'):
-  """Demonstrates basic usage of extrema-scanning code."""
-  def makedirs(path):
-    try:
-      # Python2 does not have the exist_ok keyword arg for os.makedirs(),
-      # and it would be silly to break Python2/Python3 compatibility simply
-      # for that.
-      os.makedirs(path, mode=0o755)
-    except OSError:
-      pass  # Benign, directory already existed.
-  def generate_some_solutions():
-    # Let us first get some critical points.
-    print('\n=== Scanning for solutions ===\n')
-    # We pause for a second after each such "stage" message to give the user
-    # an opportunity to see what is currently going on, amongst all the
-    # messages flying by that come from optimizers whose output can not
-    # be suppressed.
-    time.sleep(1)
-    # This scans for solutions and writes the result to the file
-    # given as last arg.
-    makedirs(work_dir)
-    # A scale of 0.2 for the initial vector only probes a small region
-    # "near the origin". We do not expect to find difficult-to-analyze solutions
-    # there. A more appropriate starting value for a deeper search would be
-    # e.g. 2.0.
-    extrema = scan_for_solutions(
-        1, 0.2, 10, os.path.join(work_dir, 'SCANS.pytxt'))
-    tags = sorted(extrema)
-    print('\n=== Found: %s ===\n' % tags)
-    time.sleep(1)
-    # For this demo, we only process the very first one.
-    # First, canonicalize.
-    v70_last_extremum = numpy.array(extrema[tags[-1]][0][-1])
-    print('\n=== Distilling (this will take a while)... ===\n')
-    time.sleep(1)
-    distilled, _ = distillation.distill(v70_last_extremum,
-                                        target_digits_position=40)
-    out_dir = os.path.join(work_dir, tags[-1])
-    makedirs(out_dir)
-    v70 = distillation.v70_from_model(distilled)
-    sinfo = scalar_sector_mpmath.mpmath_scalar_manifold_evaluator(v70)
-    with open(os.path.join(out_dir, 'location.pytxt'), 'w') as out_handle:
-      distillation.write_model(out_handle, distilled, dict(
-          potential=str(sinfo.potential),
-          stationarity=str(sinfo.stationarity)))
-  #
-  location_glob = os.path.join(work_dir, 'S*/location.pytxt')
-  location_files = sorted(glob.glob(location_glob))
-  if location_files:
-    print('Skipping generation of example solution - using earlier result.')
-  else:
-    generate_some_solutions()
-    location_files = sorted(glob.glob(location_glob))
-  location_file = location_files[0]
-  data_dir = os.path.dirname(location_files[0])
-  solution_tag = os.path.basename(data_dir)
-  # Load and process the critical point.
-  physics = distillation.explain_physics(location_file)
+def process_raw_v70(raw_v70, work_dir,
+                    newton_steps=4,
+                    skip_gradient_descent=False):
+  """Processes a raw 70-vector."""
+  model, _ = distillation.distill(raw_v70,
+                                  target_digits_position=25,
+                                  newton_steps=newton_steps,
+                                  skip_gradient_descent=skip_gradient_descent)
+  v70 = distillation.v70_from_model(model)
+  sinfo = scalar_sector_mpmath.mpmath_scalar_manifold_evaluator(v70)
+  tag = scalar_sector_tensorflow.S_id(sinfo.potential)
+  data_dir = os.path.join(work_dir, tag)
+  os.makedirs(data_dir, exist_ok=True)
+  location_filename = os.path.join(data_dir, 'location.pytxt')
+  with open(location_filename, 'wt') as out_handle:
+    distillation.write_model(out_handle, model, dict(
+      potential=str(sinfo.potential),
+      stationarity=str(sinfo.stationarity)))
+  physics = distillation.explain_physics(location_filename)
   with open(os.path.join(data_dir, 'physics.pytxt'),
-            'w') as out_handle:
+            'wt') as out_handle:
     # The output file provides angular momenta and charges for the
     # mass eigenstates.
     out_handle.write(pprint.pformat(physics))
-  generate_symmetry_info([solution_tag], directory=work_dir)
+  generate_symmetry_info([tag], directory=work_dir)
   print('\n=== Done. Data is in %s/*.pytxt ===\n' % data_dir)
+
+
+def scan_for_solutions(seed=1, scale=0.1,
+                       stationarity_threshold=1e-6,
+                       output_filename=None,
+                       rpow=None,
+                       susy_regulator=None):
+  return scalar_sector_tensorflow.scan(
+      output_filename,
+      rpow=rpow,
+      susy_regulator=susy_regulator,
+      stationarity_threshold=stationarity_threshold,
+      seed=seed, scale=scale)
+
+
+def demo(work_dir='EXAMPLE_SOLUTIONS',
+         num_runs=3, seed=1, scale=0.1,
+         stationarity_threshold=1e-6,
+         rpow=None, susy_regulator=None):
+  """Demonstrates basic usage of extrema-scanning code."""
+  os.makedirs(work_dir, exist_ok=True)
+  output_filename = os.path.join(work_dir, 'scan_log.txt')
+  scan_iter = scan_for_solutions(
+      output_filename=output_filename,
+      rpow=rpow,
+      susy_regulator=susy_regulator,
+      stationarity_threshold=stationarity_threshold,
+      seed=seed, scale=scale)
+  solutions = []
+  for n in range(num_runs):
+    sol = next(scan_iter)
+    print('Found: %.5f' % sol[0])
+    solutions.append(sol)
+  # Pick the solution with lowest cosmological constant. (Highest == -6.0.)
+  pot, stat, raw_v70 = min(solutions, key=lambda p_s_v70: p_s_v70[0])
+  print(
+    '\n=== Distilling P=%.8f/S=%12.6g (this will take a while)... ===\n' % (
+      pot, stat))
+  process_raw_v70(raw_v70, work_dir)
 
 
 if __name__ == '__main__':
   print('=== Running Demo ===')
+  # Setting up `mpmath` global default precision at initialization time.
+  # Uses value from the environment variable `MPMATH_DPS`, or a default if unset.
+  mpmath.mp.dps = int(os.getenv('MPMATH_DPS', '60'))
   demo()
