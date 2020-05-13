@@ -125,6 +125,7 @@ class PostprocessorsTest(absltest.TestCase):
             answer,
             separator=" explanation: ",
             example={"inputs_plaintext": inputs},
+            tokenizer_fn=list,
         ),
         {
             "label": "negative",
@@ -146,6 +147,7 @@ class PostprocessorsTest(absltest.TestCase):
             answer,
             separator=" explanation: ",
             example={"inputs_plaintext": inputs},
+            tokenizer_fn=list,
         ),
         {
             "label": "negative",
@@ -171,6 +173,7 @@ class PostprocessorsTest(absltest.TestCase):
             answer,
             separator=" explanation: ",
             example={"inputs_plaintext": inputs},
+            tokenizer_fn=list,
         ),
         {
             "label": "negative",

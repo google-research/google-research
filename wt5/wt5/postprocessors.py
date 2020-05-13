@@ -75,17 +75,17 @@ def extractive_explanations(output,
       indicates it isn't.
   """
 
-  # If no tokenizer was provided, convert string to list of characters
-  tokenizer_fn = tokenizer_fn or list
-
   # pylint: disable=pointless-string-statement
   def spacy_tokenizer(text):
     doc = spacy_nlp(text)
     tokens = [token.text for token in doc]
     return tokens
 
-  tokenizer_fn = spacy_tokenizer
+  tokenizer_fn = tokenizer_fn or spacy_tokenizer
   # pylint: enable=g-import-not-at-top,invalid-name
+
+  # If no tokenizer was provided, convert string to list of characters
+  tokenizer_fn = tokenizer_fn or list
 
   def _find_exact_match(haystack, needle):
     for start_pos in range(len(haystack) - len(needle) + 1):

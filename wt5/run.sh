@@ -19,8 +19,7 @@ set -x
 virtualenv -p python3 .
 source ./bin/activate
 
-pip install -e wt5
-cd wt5/
-python -m wt5.metrics_test
-python -m wt5.postprocessors_test
-python -m wt5.preprocessors_test
+pip install -r wt5/requirements.txt
+python -m wt5.wt5.metrics_test
+python -m wt5.wt5.postprocessors_test
+python -m wt5.wt5.preprocessors_test
