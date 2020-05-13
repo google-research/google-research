@@ -21,11 +21,12 @@
 #include <unordered_set>
 #include <vector>
 
+#include "gtest/gtest.h"
+#include "absl/container/node_hash_set.h"
 #include "definitions.h"
 #include "instruction.pb.h"
 #include "random_generator.h"
 #include "test_util.h"
-#include "gtest/gtest.h"
 
 namespace automl_zero {
 
@@ -88,9 +89,9 @@ Instruction AlterParam(
   return modified_instruction;
 }
 
-unordered_set<DiffId> Differences(
-    const Instruction& instr1, const Instruction& instr2) {
-  unordered_set<DiffId> differences;
+absl::node_hash_set<DiffId> Differences(const Instruction& instr1,
+                                        const Instruction& instr2) {
+  absl::node_hash_set<DiffId> differences;
   if (instr1.op_ != instr2.op_) {
     differences.insert(kDifferentOp);
   }
@@ -125,7 +126,7 @@ unordered_set<DiffId> Differences(
 DiffId RandomDifference(
     const Instruction& instr1, const Instruction& instr2) {
   RandomGenerator rand_gen;
-  const unordered_set<DiffId> differences = Differences(instr1, instr2);
+  const absl::node_hash_set<DiffId> differences = Differences(instr1, instr2);
   if (differences.empty()) {
     return kNoDifference;
   }
@@ -137,7 +138,7 @@ DiffId RandomDifference(
 
 IntegerT CountDifferences(
     const Instruction& instr1, const Instruction& instr2) {
-  const unordered_set<DiffId> differences = Differences(instr1, instr2);
+  const absl::node_hash_set<DiffId> differences = Differences(instr1, instr2);
   return differences.size();
 }
 
