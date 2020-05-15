@@ -15,16 +15,16 @@ KWS_PATH=/tmp/test
 
 # set up virtual env
 sudo pip install virtualenv
-virtualenv --system-site-packages -p python2 ./venv
-source ./venv/bin/activate
+virtualenv --system-site-packages -p python3 ./venv3
+source ./venv3/bin/activate
 
-# install TensorFlow CPU version (just in case if you do not have CUDA/GPU)
-# correct TensorFlow version is important
+# install TensorFlow, correct TensorFlow version is important
 pip install --upgrade pip
-pip install tensorflow==2.1.0-rc1
+pip install tf_nightly # was tested on tf_nightly-2.3.0.dev20200515-cp36-cp36m-manylinux2010_x86_64.whl
 
 # install pydot and graphviz
-sudo apt install python-pydot python-pydot-ng graphviz
+pip install pydot
+pip install graphviz
 
 
 ## Set up data sets:
@@ -150,8 +150,6 @@ MODELS_PATH=$KWS_PATH/models1
 
 # CMD_TRAIN="bazel run -c opt --copt=-mavx2 kws_streaming/train:model_train_eval --"
 CMD_TRAIN="python -m kws_streaming.train.model_train_eval"
-
-
 
 # ds_cnn_stride model =====================
 $CMD_TRAIN \
@@ -919,3 +917,27 @@ adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/dnn_raw/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/dnn_raw/tflite_stream_state_external/stream_state_external.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/dnn_raw/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+
+# confirm that unit tests are working:
+python -m kws_streaming.data.input_data_test
+python -m kws_streaming.layers.conv2d_test
+python -m kws_streaming.layers.dataframe_test
+python -m kws_streaming.layers.dct_test
+python -m kws_streaming.layers.dense_test
+python -m kws_streaming.layers.depthwiseconv1d_test
+python -m kws_streaming.layers.flatten_test
+python -m kws_streaming.layers.gru_test
+python -m kws_streaming.layers.lstm_test
+python -m kws_streaming.layers.magnitude_rdft_mel_test
+python -m kws_streaming.layers.magnitude_rdft_test
+python -m kws_streaming.layers.mel_spectrogram_test
+python -m kws_streaming.layers.mel_table_test
+python -m kws_streaming.layers.non_scaling_dropout_test
+python -m kws_streaming.layers.preemphasis_test
+python -m kws_streaming.layers.speech_features_test
+python -m kws_streaming.layers.spectrogram_augment_test
+python -m kws_streaming.layers.svdf_test
+python -m kws_streaming.layers.stream_test
+python -m kws_streaming.train.train_test
+python -m kws_streaming.train.base_parser_test
+python -m kws_streaming.models.utils_test
