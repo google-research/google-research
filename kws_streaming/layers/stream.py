@@ -50,6 +50,7 @@ class Stream(tf.keras.layers.Layer):
                mode=Modes.TRAINING,
                pad_time_dim=False,
                state_shape=None,
+               ring_buffer_size_in_time_dim=None,
                **kwargs):
     super(Stream, self).__init__(**kwargs)
 
@@ -59,9 +60,15 @@ class Stream(tf.keras.layers.Layer):
     self.pad_time_dim = pad_time_dim
     self.state_shape = state_shape
 
-    self.effective_ksize_tdim = None
-    if (isinstance(cell, tf.keras.layers.Conv2D) or
-        isinstance(cell, tf.keras.layers.DepthwiseConv2D)):
+    self.ring_buffer_size_in_time_dim = ring_buffer_size_in_time_dim
+
+    if self.ring_buffer_size_in_time_dim:
+      # it is a special case when ring_buffer_size_in_time_dim is specified
+      # outside of the layer in this case we just build a ring buffer
+      # and do not check what is the type of the cell
+      pass
+    elif (isinstance(cell, tf.keras.layers.Conv2D) or
+          isinstance(cell, tf.keras.layers.DepthwiseConv2D)):
       strides = cell.get_config()['strides']
       if self.mode not in (Modes.TRAINING,
                            Modes.NON_STREAM_INFERENCE) and strides[0] > 1:
@@ -70,7 +77,8 @@ class Stream(tf.keras.layers.Layer):
       dilation_rate = cell.get_config()['dilation_rate']
       kernel_size = cell.get_config()['kernel_size']
       # effective kernel size in time dimension
-      self.effective_ksize_tdim = dilation_rate[0] * (kernel_size[0] - 1) + 1
+      self.ring_buffer_size_in_time_dim = dilation_rate[0] * (kernel_size[0] -
+                                                              1) + 1
 
     elif isinstance(self.cell, tf.keras.layers.AveragePooling2D):
       strides = cell.get_config()['strides']
@@ -80,17 +88,17 @@ class Stream(tf.keras.layers.Layer):
         raise ValueError('Stride in time %d must = pool size in time %d' %
                          (strides[0], pool_size[0]))
       # effective kernel size in time dimension
-      self.effective_ksize_tdim = pool_size[0]
+      self.ring_buffer_size_in_time_dim = pool_size[0]
 
     elif isinstance(self.cell, tf.keras.layers.Flatten):
       # effective kernel size in time dimension
       if self.state_shape:
-        self.effective_ksize_tdim = self.state_shape[1]
+        self.ring_buffer_size_in_time_dim = self.state_shape[1]
 
     else:
       raise ValueError('Cell is not supported ', cell)
 
-    if self.effective_ksize_tdim == 1:
+    if self.ring_buffer_size_in_time_dim == 1:
       logging.warn('There is no need to use Stream on time dim with size 1')
 
   def build(self, input_shape):
@@ -98,10 +106,11 @@ class Stream(tf.keras.layers.Layer):
     if isinstance(self.cell, tf.keras.layers.Conv2D) or isinstance(
         self.cell, tf.keras.layers.DepthwiseConv2D) or isinstance(
             self.cell, tf.keras.layers.AveragePooling2D):
-      self.state_shape = [self.inference_batch_size, self.effective_ksize_tdim
-                         ] + input_shape.as_list()[2:]
-
-    if isinstance(self.cell, tf.keras.layers.Flatten) and not self.state_shape:
+      self.state_shape = [
+          self.inference_batch_size, self.ring_buffer_size_in_time_dim
+      ] + input_shape.as_list()[2:]
+    elif isinstance(self.cell,
+                    tf.keras.layers.Flatten) and not self.state_shape:
       if self.mode in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE):
         # Only in the non-streaming modes we have access to the whole training
         # sequence. In the streaming mode input_shape will not be available.
@@ -113,6 +122,12 @@ class Stream(tf.keras.layers.Layer):
         # [batch, time, feature, ...]
         self.state_shape = input_shape.as_list()
         self.state_shape[0] = self.inference_batch_size
+    elif self.ring_buffer_size_in_time_dim:
+      # it is a special case when ring_buffer_size_in_time_dim
+      # is defined by user and cell is not defined in Stream wrapper
+      self.state_shape = [
+          self.inference_batch_size, self.ring_buffer_size_in_time_dim
+      ] + input_shape.as_list()[2:]
 
     if self.mode == Modes.STREAM_INTERNAL_STATE_INFERENCE:
       # Create a state varaible for streaming inference mode (internal state).
@@ -158,6 +173,7 @@ class Stream(tf.keras.layers.Layer):
         'pad_time_dim': self.pad_time_dim,
         'cell': self.cell,
         'state_shape': self.state_shape,
+        'ring_buffer_size_in_time_dim': self.ring_buffer_size_in_time_dim,
     })
     return config
 
@@ -181,7 +197,7 @@ class Stream(tf.keras.layers.Layer):
       raise ValueError('inputs.shape[1]: %d must be 1 ' % inputs.shape[1])
 
     # remove latest row [batch_size, (memory_size-1), feature_dim, channel]
-    memory = self.states[:, 1:self.effective_ksize_tdim, :]
+    memory = self.states[:, 1:self.ring_buffer_size_in_time_dim, :]
 
     # add new row [batch_size, memory_size, feature_dim, channel]
     memory = tf.keras.backend.concatenate([memory, inputs], 1)
@@ -197,7 +213,7 @@ class Stream(tf.keras.layers.Layer):
       raise ValueError('inputs.shape[1]: %d must be 1 ' % inputs.shape[1])
 
     # remove latest row [batch_size, (memory_size-1), feature_dim, channel]
-    memory = state[:, 1:self.effective_ksize_tdim, :]
+    memory = state[:, 1:self.ring_buffer_size_in_time_dim, :]
 
     # add new row [batch_size, memory_size, feature_dim, channel]
     memory = tf.keras.backend.concatenate([memory, inputs], 1)
@@ -210,6 +226,7 @@ class Stream(tf.keras.layers.Layer):
     if self.pad_time_dim:
       if isinstance(self.cell, tf.keras.layers.Conv2D) or isinstance(
           self.cell, tf.keras.layers.DepthwiseConv2D):
-        inputs = tf.pad(inputs, ((0, 0), (self.effective_ksize_tdim - 1, 0),
-                                 (0, 0), (0, 0)), 'constant')
+        inputs = tf.pad(inputs,
+                        ((0, 0), (self.ring_buffer_size_in_time_dim - 1, 0),
+                         (0, 0), (0, 0)), 'constant')
     return self.cell(inputs)
