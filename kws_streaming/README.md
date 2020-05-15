@@ -15,7 +15,7 @@ and implemented most popular KWS models:
 * gru - gated recurrent unit model;
 * lstm - long short term memory model;
 * cnn - convolutional neural network;
-* TC-ResNet - temporal convolution with sequence of residual blocks;
+* tc-resnet - temporal convolution with sequence of residual blocks;
 * crnn - combination of convolutional layers with RNNs(GRU or LSTM);
 * ds_cnn - depth wise convolutional neural network;
 * svdf - singular value decomposition filter neural network;
@@ -26,7 +26,9 @@ They all use speech feature extractor, which is easy to configure as MFCC, LFBE
 or raw features (so user can train own speech feature extractor).
 We explored latency and accuracy of the streaming and non streaming models
 on mobile phone and demonstrated that models outperform previously reported accuracy
-on public data sets. This lib also can be applied on other sequence problems
+on public data sets.
+Summary about this work is presented at [paper](https://arxiv.org/abs/2005.06720)
+This lib also can be applied on other sequence problems
 such as speech noise reduction, sound detection, text classification...
 
 ## Overall design
@@ -145,7 +147,7 @@ Inference graph is stateless, so that graph has not internal state.
 All states are received as inputs and after update are returned as output state
 
 ### Further information
-A paper about this work is in progress.
+Summary about this work is presented at [paper](https://arxiv.org/abs/2005.06720)
 All experiments on KWS models presented in this paper can be reproduced by
 following the steps described in
 `kws_streaming/experiments/kws_experiments.txt`.
@@ -189,6 +191,8 @@ tar -xf ./speech_commands_v0.02.tar.gz
 cd ../
 ```
 
+We would suggest to explore training, validation and testing data
+in colab 'kws_streaming/colab/check-data.ipynb'
 
 ### Set up models:
 

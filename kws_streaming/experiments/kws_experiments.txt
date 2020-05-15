@@ -1,4 +1,5 @@
 # Set up for model training and benchmarking
+# Below experiments were reported in [paper](https://arxiv.org/abs/2005.06720)
 
 
 ## Set up environment:
@@ -133,6 +134,9 @@ DATA_PATH=$KWS_PATH/data1
 # for example data V1
 MODELS_PATH=$KWS_PATH/models1
 
+# or models trained on data V2
+# MODELS_PATH=$KWS_PATH/models2
+
 # Now we can run below commands with "--train 0"
 # which will evaluate the model and produce
 # accuracy report with TFLite modules.
@@ -146,6 +150,7 @@ MODELS_PATH=$KWS_PATH/models1
 
 # CMD_TRAIN="bazel run -c opt --copt=-mavx2 kws_streaming/train:model_train_eval --"
 CMD_TRAIN="python -m kws_streaming.train.model_train_eval"
+
 
 
 # ds_cnn_stride model =====================
@@ -772,7 +777,7 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 1 \
+--train 0 \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
@@ -914,34 +919,3 @@ adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/dnn_raw/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/dnn_raw/tflite_stream_state_external/stream_state_external.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/dnn_raw/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
-
-
-# Model quantization.
-# For post training model quantization you should use mfcc_op as shown in below example
-# Note model has to be trained with feature mfcc_op.
-$CMD_TRAIN \
---data_url '' \
---data_dir $DATA_PATH/ \
---train_dir $MODELS_PATH/svdf_q/ \
---mel_upper_edge_hertz 7000 \
---how_many_training_steps 20000,20000,20000,20000 \
---learning_rate 0.001,0.0005,0.0001,0.00002 \
---window_size_ms 40.0 \
---window_stride_ms 20.0 \
---mel_num_bins 80 \
---dct_num_features 30 \
---resample 0.15 \
---feature_type 'mfcc_op' \
---alsologtostderr \
---time_shift_ms 100 \
---train 1 \
-svdf \
---svdf_memory_size 4,10,10,10,10,10 \
---svdf_units1 256,256,256,256,256,256 \
---svdf_act "'relu','relu','relu','relu','relu','relu'" \
---svdf_units2 128,128,128,128,128,-1 \
---svdf_dropout 0.0,0.0,0.0,0.0,0.0,0.0 \
---svdf_pad 0 \
---dropout1 0.0 \
---units2 '' \
---act2 ''
