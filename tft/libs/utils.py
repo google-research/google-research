@@ -21,7 +21,7 @@ import pathlib
 
 import numpy as np
 import tensorflow.compat.v1 as tf
-from tensorflow.compat.v1.python.tools.inspect_checkpoint import print_tensors_in_checkpoint_file
+from tensorflow.python.tools.inspect_checkpoint import print_tensors_in_checkpoint_file
 
 
 # Generic.
