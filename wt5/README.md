@@ -6,6 +6,7 @@ This repository contains the code for reproducing the experiments in
 ## Table of Contents
 
 * [Usage](#usage)
+* [Released Model Checkpoints](#released-model-checkpoints)
 * [How to Cite](#how-to-cite)
 
 ## Usage
@@ -78,6 +79,24 @@ t5_mesh_transformer \
 ```
 
 The remaining experiments are shown in the [tasks.py](wt5/tasks.py) and [mixtures.py](wt5/mixtures.py) files.
+
+## Released Model Checkpoints
+
+To facilitate reproducibility and future work, we have released the model checkpoints for our largest (and best-performing) models, which are the most difficult to train.
+
+Each was initialized with a pre-trained T5 checkpoint (available in the
+[t5 repo](https://github.com/google-research/text-to-text-transfer-transformer#released-model-checkpoints))
+and fine-tuned for 20k steps on the various datasets. For more details, please see [our paper](https://arxiv.org/abs/2004.14546).
+
+* **T5-11B finetuned on e-SNLI:** [gs://t5-data/pretrained_models/wt5/esnli_11b](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/wt5/esnli_11b)
+* **T5-11B finetuned on CoS-E:** [gs://t5-data/pretrained_models/wt5/cose_11b](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/wt5/cose_11b)
+* **T5-11B finetuned on Movie Rationales:** [gs://t5-data/pretrained_models/wt5/movie_rationales_11b](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/wt5/movie_rationales_11b)
+* **T5-11B finetuned on MultiRC:** [gs://t5-data/pretrained_models/wt5/multirc_11b](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/wt5/multirc_11b)
+
+### Models for transfering accross datasets and tasks
+* **T5-11B finetuned on e-SNLI and MNLI:** [gs://t5-data/pretrained_models/wt5/transfer/esnli_mnli_11b](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/wt5/transfer/esnli_mnli_11b)
+* **T5-11B finetuned on Movie Rationales and IMDb:** [gs://t5-data/pretrained_models/wt5/transfer/movie_rationales_imdb_11b](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/wt5/transfer/movie_rationales_imdb_11b)
+* **T5-11B finetuned on e-SNLI and CoS-E:** [gs://t5-data/pretrained_models/wt5/transfer/esnli_cose_11b](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/wt5/transfer/esnli_cose_11b)
 
 # How to Cite
 
