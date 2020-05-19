@@ -1,6 +1,8 @@
 # Streaming Aware neural network models
 ======================================================================================
 
+Summary about this work is presented at paper [Streaming keyword spotting on mobile devices](https://arxiv.org/abs/2005.06720)
+
 Streaming aware neural network models are important for real time response,
 high accuracy and good user experience. In this work we designed keras streaming
 wrappers and streaming aware layers. By streaming we mean streaming inference,
@@ -25,9 +27,7 @@ and implemented most popular KWS models:
 They all use speech feature extractor, which is easy to configure as MFCC, LFBE
 or raw features (so user can train own speech feature extractor).
 We explored latency and accuracy of the streaming and non streaming models
-on mobile phone and demonstrated that models outperform previously reported accuracy
-on public data sets.
-Summary about this work is presented at [paper](https://arxiv.org/abs/2005.06720)
+on mobile phone and demonstrated that models outperform previously reported accuracy on public data sets.
 This lib also can be applied on other sequence problems
 such as speech noise reduction, sound detection, text classification...
 
@@ -147,7 +147,7 @@ Inference graph is stateless, so that graph has not internal state.
 All states are received as inputs and after update are returned as output state
 
 ### Further information
-Summary about this work is presented at [paper](https://arxiv.org/abs/2005.06720)
+Summary about this work is presented at paper [Streaming keyword spotting on mobile devices](https://arxiv.org/abs/2005.06720)
 All experiments on KWS models presented in this paper can be reproduced by
 following the steps described in
 `kws_streaming/experiments/kws_experiments.txt`.
