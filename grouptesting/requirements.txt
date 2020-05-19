@@ -1,0 +1,7 @@
+gin-config>=0.3.0
+jax>=0.1.67
+jaxlib>=0.1.47
+numpy>=1.18.4
+pandas>=1.0.3
+scipy>=1.4.1
+scikit-learn>=0.23.0
