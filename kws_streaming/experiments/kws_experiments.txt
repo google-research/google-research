@@ -1,5 +1,6 @@
 # Set up for model training and benchmarking
-# Below experiments were reported in [paper](https://arxiv.org/abs/2005.06720)
+# Below experiments were reported in paper
+[Streaming keyword spotting on mobile devices](https://arxiv.org/abs/2005.06720)
 
 
 ## Set up environment:
