@@ -1,0 +1,39 @@
+import grouptesting.group_selectors.mutual_information
+import grouptesting.group_selectors.origami
+import grouptesting.group_selectors.random
+import grouptesting.group_selectors.split
+import grouptesting.group_selectors.informative_dorfman
+import grouptesting.policy
+import grouptesting.samplers.sequential_monte_carlo
+import grouptesting.samplers.loopy_belief_propagation
+import grouptesting.samplers.kernels
+import grouptesting.wet_lab
+
+Simulator.num_simulations = 1
+Simulator.max_group_size = 5
+Simulator.num_tests_per_cycle = 6
+Simulator.max_test_cycles = 4
+Simulator.prior_specificity = 0.97
+Simulator.prior_sensitivity = 0.85
+Simulator.prior_infection_rate = 0.03
+
+Simulator.wetlab = @WetLab()
+WetLab.num_patients = 32
+WetLab.sensitivity = 0.85
+WetLab.specificity = 0.97
+WetLab.base_infection_rate = 0.06
+WetLab.freeze_diseased = False
+
+Simulator.policy = @Policy()
+Policy.selectors = (@MaxMutualInformation(),)
+MaxMutualInformation.forward_iterations = 1
+MaxMutualInformation.backward_iterations = 0
+
+Simulator.sampler = @SmcSampler()
+SmcSampler.num_particles = 5000
+SmcSampler.resample_at_each_iteration = True
+LbpSampler.num_iterations = 100
+SmcSampler.kernel = @Gibbs()
+Gibbs.cycles = 4
+Gibbs.liu_modification = True
+Simulator.export_metrics_every = 5
