@@ -1,6 +1,6 @@
 # Group Testing: doing more with less.
 
-Implementation of (the group testing work)[https://arxiv.org/abs/2004.12508]
+Implementation of [the group testing work](https://arxiv.org/abs/2004.12508)
 using Sequential Monte-Carlo techniques.
 
 We offer two modes to run our code.
