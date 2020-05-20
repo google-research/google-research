@@ -36,7 +36,7 @@ flags.DEFINE_multi_string('gin_bindings', [],
 flags.DEFINE_bool('interactive_mode',
                   True,
                   'Run in interactive mode to let the user enters the positive '
-                  'groups at each test cycle. Use --nointeractive mode to '
+                  'groups at each test cycle. Use --nointeractive_mode to '
                   'disable it.')
 FLAGS = flags.FLAGS
 
