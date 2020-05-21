@@ -15,5 +15,5 @@ The MobileNetV1 models have a block size of 4 in the last inverted residual bloc
 | MobileNetV2 1.4  | 72.0% | 85% | 54 | [link](https://storage.googleapis.com/fast-convnets/tflite-models/mbv2_1.4_11-16b2_85_72_0.tflite)
 | MobileNetV2 1.8  | 74.9% | 80% | 102 | [link](https://storage.googleapis.com/fast-convnets/tflite-models/mbv2_1.8_x_80_74.9.tflite)
 | MobileNetV2 2.0  | 74.5% | 85% | 93 | [link](https://storage.googleapis.com/fast-convnets/tflite-models/mbv2_2.0_11-16b2_85_74_5.tflite)
-| EfficientNet B0  | 75.1% | 80% | 80 | [link](https://storage.googleapis.com/fast-convnets/tflite-models/en_b0_x_80_75_1.tflite)
+| EfficientNet B0  | 75.1% | 80% | 80 | [link](https://storage.googleapis.com/fast-convnets/tflite-models/en_b0_x_80_75_0.tflite)
 | EfficientNet B1  | 76.7% | 85% | 110 | [link](https://storage.googleapis.com/fast-convnets/tflite-models/en_b1_x_85_76.7.tflite)
