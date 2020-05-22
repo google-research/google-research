@@ -14,15 +14,20 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Beam job to try a bunch of hparams."""
+"""Beam job to try a bunch of hparams.
+
+"""
 
 import itertools
 import os
 from absl import app
 from absl import flags
+from absl import logging
 import apache_beam as beam
 
+
 from non_semantic_speech_benchmark import file_utils
+
 from non_semantic_speech_benchmark.eval_embedding.sklearn import models
 from non_semantic_speech_benchmark.eval_embedding.sklearn import train_and_eval_sklearn
 
@@ -82,16 +87,17 @@ def main(unused_argv):
     })
 
   # Make and run beam pipeline.
-  p = beam.Pipeline()
-  _ = (p
-       | 'MakeCollection' >> beam.Create(exp_params)
-       | 'CalcScores' >> beam.Map(
-           lambda d: (d, train_and_eval_sklearn.train_and_get_score(**d)))
-       | 'FormatText' >> beam.Map(format_text_line)
-       | 'WriteOutput' >> beam.io.WriteToText(FLAGS.output_file, num_shards=1)
-      )
-  result = p.run()
-  result.wait_until_finish()
+  beam_options = None
+
+  logging.info('Starting to create flume pipeline...')
+  with beam.Pipeline(beam_options) as root:
+    _ = (root
+         | 'MakeCollection' >> beam.Create(exp_params)
+         | 'CalcScores' >> beam.Map(
+             lambda d: (d, train_and_eval_sklearn.train_and_get_score(**d)))
+         | 'FormatText' >> beam.Map(format_text_line)
+         | 'WriteOutput' >> beam.io.WriteToText(FLAGS.output_file, num_shards=1)
+        )
 
 
 if __name__ == '__main__':
