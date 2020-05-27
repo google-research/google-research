@@ -44,10 +44,29 @@ class InformativeDorfman(group_selector.GroupSelector):
   to account for testing capacities.
   """
 
-  NEEDS_POSTERIOR = True
+  NEEDS_POSTERIOR = False
 
-  def __init__(self, cut_off_high = 0.95, cut_off_low = 1e-4):
+  def __init__(self,
+               modified = True,
+               cut_off_high = 0.95,
+               cut_off_low = 1e-4):
+    """Creates an Informative Dorfman selector.
+
+    Args:
+      modified : bool that indicates whether the ID selector (from original
+        paper) is modified to only output a predetermined number of tests, in
+        which case the idea is to randomly sample a subset of them, or whether
+        we proceed in standard fashion, as is the case with Dorfman strategies,
+        by adding all tests that are needed regardless of the capacity of the
+        testing device in the next testing cycle.
+      cut_off_high : float, patients with a marginal value above that threshold
+        are not considered.
+      cut_off_low : float, patients with a marginal value below that threshold
+        are not considered.
+    """
+
     super().__init__()
+    self.modified = modified
     self.cut_off_high = cut_off_high
     self.cut_off_low = cut_off_low
 
@@ -90,9 +109,20 @@ class InformativeDorfman(group_selector.GroupSelector):
       all_new_groups = np.concatenate((all_new_groups, new_group), axis=0)
       n_p = n_p + opt_size_group
       n_r = n_r - opt_size_group
-    # sample randomly extra_tests_needed groups
+    # sample randomly extra_tests_needed groups in modified case, all in
+    # regular ID.
+    # Because ID is a Dorfman type approach, it might be followed
+    # by exhaustive splitting, which requires to keep track of groups
+    # that tested positives to retest them.
     all_new_groups = jax.random.permutation(rng, all_new_groups)
-    new_groups = np.array(all_new_groups[0:state.extra_tests_needed],
-                          dtype=bool)
-    state.add_groups_to_test(new_groups)
+    if self.modified:
+      # in the case where we use modified ID, we only subsample a few groups.
+      # one needs to take care of requesting to keep track of positives.
+      new_groups = all_new_groups[0:state.extra_tests_needed].astype(bool)
+      state.add_groups_to_test(new_groups,
+                               results_need_clearing=True)
+    else:
+      # with regular ID we add all groups at once.
+      state.add_groups_to_test(all_new_groups.astype(bool),
+                               results_need_clearing=True)
     return state

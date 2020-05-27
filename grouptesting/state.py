@@ -17,7 +17,6 @@
 """A state of the group testing algorithm."""
 
 from typing import Dict
-import jax
 import jax.numpy as np
 from jax.scipy import special
 
@@ -27,8 +26,8 @@ class State:
 
   Attributes:
    num_patients: the number of patients to be tested.
-   num_tests_per_cycle: how many tests can we run in one cycle (
-    depends on the PCR machines and the machine availability).
+   num_tests_per_cycle: how many tests can we run in one cycle ( depends on the
+     PCR machines and the machine availability).
    max_group_size: (int) the maximum size of a group in this experiment.
    curr_cycle: the index of the current test cycle.
    extra_tests_needed: are there remaining tests neeed to be completed before
@@ -41,32 +40,28 @@ class State:
    logit_prior_specificity: same but in logit.
    logit_prior_sensitivity: same but in logit.
    past_groups: np.ndarray<bool>[num_groups_tested, num_patients] the groups
-    that were built in so far.
+     that were built in so far.
    past_test_results: np.ndarray<bool>[num_groups_tested]. The outcomes of the
-    tests for the past_groups.
+     tests for the past_groups.
    groups_to_test: np.array<bool>[num_groups, num_patients] who to test next.
    particle_weights: np.ndarray<float>[num_particles]. In particle filters, the
-    weight of each particle.
+     weight of each particle.
    particles: np.ndarray<float>[num_particles, num_patients]. In particle
-    filters, the value of the particle as a possible scenario of who is
-    diseased and who is not.
+     filters, the value of the particle as a possible scenario of who is
+     diseased and who is not.
    to_clear_positives: some methods (Dorfman) need this information.
    all_cleared: bool, some methods consider perfect tests and stop when every
-    one has been cleared.
+     one has been cleared.
    marginals: store different ways to compute the marginal.
    num_groups_left_to_test: (int) the number of groups that were decided and
-    still waiting to be tested.
+     still waiting to be tested.
    log_posterior_params: a dictionary that contains the parameters used for
-    computing the log posterior probabilities of the particles.
+     computing the log posterior probabilities of the particles.
   """
 
-  def __init__(self,
-               num_patients,
-               num_tests_per_cycle,
-               max_group_size,
-               prior_infection_rate,
-               prior_specificity,
-               prior_sensitivity):
+  def __init__(self, num_patients, num_tests_per_cycle,
+               max_group_size, prior_infection_rate,
+               prior_specificity, prior_sensitivity):
     self.num_patients = num_patients
     self.num_tests_per_cycle = num_tests_per_cycle
     self.max_group_size = max_group_size
@@ -107,21 +102,47 @@ class State:
     self.marginals = {}
 
   def add_test_results(self, test_results):
+    """Update state with results from recently tested groups."""
     self.past_test_results = np.concatenate(
         (self.past_test_results, test_results), axis=0)
-    self.to_clear_positives = np.concatenate(
-        (self.to_clear_positives, test_results), axis=0)
+    missing_entries_in_to_clear = (
+        np.size(self.past_test_results) - np.size(self.to_clear_positives))
+    if missing_entries_in_to_clear > 0:
+      # we should update the list of groups that have been tested positives.
+      # this information is used by some strategies, notably Dorfman type ones.
+      # if some entries are missing, they come by default from the latest wave
+      # of tests carried out.
+      self.to_clear_positives = np.concatenate(
+          (self.to_clear_positives,
+           test_results[-missing_entries_in_to_clear:]),
+          axis=0)
 
-  def add_groups_to_test(self, groups):
+  def add_groups_to_test(self,
+                         groups,
+                         results_need_clearing = False):
+    """Add groups to test to state.
+
+    Args:
+      groups: np.ndarray <bool> : matrix of new tests to add
+      results_need_clearing: bool, if false, one does not expect results
+        returned for these groups to form the basis of further retesting. To
+        impact this, a buffer of False values (as many as new tests added) is
+        appended to the vector to_clear_positives. If logging is required, these
+        results will be added by default when calling add_test_results.
+    """
     self.groups_to_test = np.concatenate((self.groups_to_test, groups), axis=0)
+    if not results_need_clearing:
+      # if we do not need to record whether groups will be reused if positive,
+      # we add to vector to_clear_positives as many False values.
+      self.to_clear_positives = np.concatenate(
+          (self.to_clear_positives, np.zeros((groups.shape[0],), dtype=bool)),
+          axis=0)
 
   def add_past_groups(self, groups):
     self.past_groups = np.concatenate((self.past_groups, groups), axis=0)
 
   def update_to_clear_positives(self):
-    self.to_clear_positives = jax.ops.index_update(
-        self.to_clear_positives, jax.ops.index[self.to_clear_positives],
-        False)
+    self.to_clear_positives = np.zeros_like(self.to_clear_positives, dtype=bool)
 
   @property
   def num_groups_left_to_test(self):
@@ -134,8 +155,8 @@ class State:
 
   def next_groups_to_test(self):
     """Moves the next batch from groups_to_test to past_group."""
-    num_groups = np.minimum(
-        self.groups_to_test.shape[0], self.num_tests_per_cycle)
+    num_groups = np.minimum(self.groups_to_test.shape[0],
+                            self.num_tests_per_cycle)
     result = self.groups_to_test[:num_groups, :]
     self.groups_to_test = self.groups_to_test[num_groups:, :]
     self.add_past_groups(result)

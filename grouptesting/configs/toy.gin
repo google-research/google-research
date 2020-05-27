@@ -16,6 +16,7 @@ Simulator.max_test_cycles = 4
 Simulator.prior_specificity = 0.97
 Simulator.prior_sensitivity = 0.85
 Simulator.prior_infection_rate = 0.03
+Simulator.export_metrics_every = 5
 
 Simulator.wetlab = @WetLab()
 WetLab.num_patients = 32
@@ -32,8 +33,12 @@ MaxMutualInformation.backward_iterations = 0
 Simulator.sampler = @SmcSampler()
 SmcSampler.num_particles = 5000
 SmcSampler.resample_at_each_iteration = True
-LbpSampler.num_iterations = 100
 SmcSampler.kernel = @Gibbs()
+
+Simulator.cheap_sampler = @LbpSampler()
+LbpSampler.num_iterations = 100
+
 Gibbs.cycles = 4
 Gibbs.liu_modification = True
-Simulator.export_metrics_every = 5
+
+

@@ -50,7 +50,7 @@ class SimulatorTestCase(jax.test_util.JaxTestCase):
 
   def test_sampler(self):
     self.assertIsNotNone(self.simulator.sampler)
-    self.assertIs(self.simulator.sampler, self.simulator._samplers[0])
+    self.assertIs(self.simulator.sampler, self.simulator._samplers[1])
 
   def test_run(self):
     """A setup were we find a solution before the last cycle."""

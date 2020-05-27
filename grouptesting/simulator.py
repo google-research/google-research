@@ -31,6 +31,7 @@ from grouptesting import policy as group_policy
 from grouptesting import state
 from grouptesting import wet_lab
 from grouptesting.samplers import loopy_belief_propagation as lbp
+from grouptesting.samplers import sequential_monte_carlo as smc
 
 
 @gin.configurable
@@ -55,7 +56,7 @@ class Simulator(object):
                workdir = None,
                wetlab=wet_lab.WetLab(),
                policy=group_policy.Dorfman(),
-               sampler=None,
+               sampler=smc.SmcSampler(),
                cheap_sampler=lbp.LbpSampler(),
                num_simulations = 1,
                num_tests_per_cycle = 10,
@@ -68,9 +69,7 @@ class Simulator(object):
                export_metrics_every = 5):
     self._wetlab = wetlab
     self._policy = policy
-    self._samplers = [cheap_sampler]
-    if sampler is not None and not isinstance(sampler, type(cheap_sampler)):
-      self._samplers.append(sampler)
+    self._samplers = [cheap_sampler, sampler]
 
     self._max_test_cycles = max_test_cycles
     self._num_simulations = num_simulations
@@ -163,7 +162,7 @@ class Simulator(object):
   def marginal(self):
     """Returns our best guess on the current probability of each patient."""
     if self.state.marginals:
-      return self.state.marginals[self._samplers[0].NAME]
+      return self.state.marginals[0]
     else:
       return self.sampler.marginal
 
@@ -178,15 +177,35 @@ class Simulator(object):
     return self.state.next_groups_to_test()
 
   def _resample(self, rng):
-    """(Re)Samples posterior/marginals given past test results."""
-    for sampler in self._samplers:
-      if (sampler.is_cheap or
-          (self._policy.next_selector.NEEDS_POSTERIOR and
-           self.state.extra_tests_needed > 0 and
-           self.state.curr_cycle < self._max_test_cycles - 1)):
-        sampler.produce_sample(rng, self.state)
-        self.state.marginals[sampler.NAME] = sampler.marginal
-    self.state.update_particles(self.sampler)
+    """(Re)Samples posterior/marginals given past test results.
+
+    Args:
+      rng: random key
+
+    Produces and examines first the marginal produced by LBP.
+    If that marginal is not valid because LBP did not converge,
+    or that posterior samples are needed in the next iteration of the
+    simulator by a group selector, we compute both marginals
+    and posterior  using the more expensive sampler.
+    """
+    # reset marginals
+    self.state.marginals = []
+    # compute marginal using a cheap LBP sampler.
+    lbp_sampler = self._samplers[0]
+    lbp_sampler.produce_sample(rng, self.state)
+    # if marginal is valid (i.e. LBP has converged), append it to state.
+    if not np.any(np.isnan(lbp_sampler.marginal)):
+      self.state.marginals.append(lbp_sampler.marginal)
+      self.state.update_particles(lbp_sampler)
+    # if marginal has not converged, or expensive sampler is needed, use it.
+    if (np.any(np.isnan(lbp_sampler.marginal)) or
+        (self._policy.next_selector.NEEDS_POSTERIOR and
+         self.state.extra_tests_needed > 0 and
+         self.state.curr_cycle < self._max_test_cycles - 1)):
+      sampler = self._samplers[1]
+      sampler.produce_sample(rng, self.state)
+      self.state.marginals.append(sampler.marginal)
+      self.state.update_particles(sampler)
 
   def _on_iteration_end(self,
                         sim_idx,
@@ -196,7 +215,7 @@ class Simulator(object):
     """Save metrics and ROC data at the end of one iteration."""
     self.metrics.update(sim_idx,
                         cycle_idx,
-                        self.state.marginals[self._samplers[0].NAME],
+                        self.state.marginals[0],
                         self._wetlab.diseased,
                         new_groups,
                         new_tests)

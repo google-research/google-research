@@ -25,6 +25,7 @@ import jax.numpy as np
 import numpy as onp
 import scipy.special
 
+from grouptesting import utils
 from grouptesting.group_selectors import group_selector
 
 
@@ -57,19 +58,23 @@ class Mezard(group_selector.GroupSelector):
      A np.array<bool>[num_groups, patients].
     """
     if self.group_size is None:
-      # if no size has been defined, we compute it adaptively
-      # in the simple case where prior is uniform.
       if np.size(state.prior_infection_rate) == 1:
-        group_size = np.ceil(
-            (np.log(state.prior_sensitivity - .5) -
-             np.log(state.prior_sensitivity + state.prior_specificity - 1)) /
-            np.log(1 - state.prior_infection_rate))
-        group_size = np.minimum(group_size, state.max_group_size)
-      # if prior is not uniform, pick max size.
+        # candidate group sizes
+        group_sizes = np.arange(state.max_group_size) + 1
+        sensitivity = utils.select_from_sizes(state.prior_sensitivity,
+                                              group_sizes)
+        specificity = utils.select_from_sizes(state.prior_specificity,
+                                              group_sizes)
+        rho = specificity + sensitivity - 1
+        utility_size_groups = (sensitivity - rho *
+                               (1 - state.prior_infection_rate)**group_sizes -
+                               0.5)**2
+        group_size = group_sizes[np.argmin(utility_size_groups)]
       else:
-        group_size = self.max_group_size
+        group_size = state.max_group_size
     else:
       group_size = self.group_size
+
     group_size = int(np.squeeze(group_size))
     new_groups = np.empty((0, state.num_patients), dtype=bool)
     for _ in range(state.extra_tests_needed):
@@ -127,7 +132,6 @@ def eval_disjoint(mat, d, count_fn):
   """Evaluates how disjoint a matrix is based on count_fn."""
   num_rows, num_cols = mat.shape
   count = 0
-  print('num_cols ', num_cols, ' d ', d)
   for s in itertools.combinations(range(num_cols), d):
     boolean_sum_subset = onp.sum(mat[:, s], axis=1) > 0
     boolean_sum_mat = onp.broadcast_to(boolean_sum_subset[:, None],
@@ -182,7 +186,6 @@ def sample_maxeval_disjoint_matrix(num_cols,
     attempt += 1
     random_groups_iter = sample_groups_of_size((num_rows, num_cols), n_max_test)
     count_iter = eval_disjoint(random_groups, d, count_fn=count_fn)
-    print('attempt', attempt, 'count_iter', count_iter, 'count ', count)
     if count_iter > count:
       count = count_iter
       random_groups = random_groups_iter

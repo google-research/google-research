@@ -57,6 +57,12 @@ class SplitSelector(group_selector.GroupSelector):
       new_groups[i, indices[i]] = True
     return np.array(new_groups, dtype=bool)
 
+  def __call__(self, rng, state):
+    new_groups = self.get_groups(rng, state)
+    state.add_groups_to_test(
+        new_groups, results_need_clearing=True)
+    return state
+
 
 @gin.configurable
 class SplitPositive(group_selector.GroupSelector):
@@ -75,12 +81,11 @@ class SplitPositive(group_selector.GroupSelector):
     # i.e. we test everyone as in Dorfman groups
     use_split_factor = self.split_factor
     # make sure this is a matrix
-    if np.ndim(groups) == 1:
-      groups = onp.expand_dims(groups, 0)
+    groups = onp.atleast_2d(groups)
     n_groups, n_patients = groups.shape
 
-    # we form new groups one by one now.
-    new_groups = None
+    # we form new groups one by one now. initialize matrix first
+    new_groups = onp.empty((0, n_patients), dtype=bool)
     for i in range(n_groups):
       group_i = groups[i, :]
       # test if there is one individual to test
@@ -92,10 +97,7 @@ class SplitPositive(group_selector.GroupSelector):
         newg = onp.zeros((len(indices), n_patients))
         for j in range(len(indices)):
           newg[j, indices[j]] = 1
-      if new_groups is None:
-        new_groups = newg
-      else:
-        new_groups = onp.concatenate((new_groups, newg), axis=0)
+      new_groups = onp.concatenate((new_groups, newg), axis=0)
     return np.array(new_groups, dtype=bool)
 
   def get_groups(self, rng, state):
@@ -115,7 +117,8 @@ class SplitPositive(group_selector.GroupSelector):
     new_groups = self.get_groups(rng, state)
 
     if new_groups is not None:
-      state.add_groups_to_test(new_groups)
+      state.add_groups_to_test(new_groups,
+                               results_need_clearing=True)
       state.update_to_clear_positives()
 
     else:
