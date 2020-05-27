@@ -16,6 +16,8 @@
 # Lint as: python3
 """Loopy belief propagation based sampler."""
 
+from absl import logging
+
 import gin
 import jax
 import jax.nn
@@ -26,14 +28,11 @@ from grouptesting import utils
 from grouptesting.samplers import sampler
 
 
-@jax.jit
-def loopy_belief_propagation(tests,
-                             groups,
+def loopy_belief_propagation(tests, groups,
                              base_infection_rate,
-                             sensitivity,
-                             specificity,
-                             n_iter = 200
-                             ):
+                             sensitivity, specificity,
+                             min_iterations, max_iterations,
+                             atol):
   """LBP approach to compute approximate marginal of posterior distribution.
 
   Outputs marginal approximation of posterior distribution using all tests'
@@ -45,19 +44,26 @@ def loopy_belief_propagation(tests,
     base_infection_rate : np.ndarray<float> [1,] or [n_patients,] infection rate
     sensitivity : np.ndarray<float> [?,] of sensitivity per group size
     specificity : np.ndarray<float> [?,] of specificity per group size
-    n_iter : int, number of loops in belief propagation.
+    min_iterations: int, min number of belief propagation iterations
+    max_iterations: int, max number of belief propagation iterations
+    atol: float, elementwise tolerance for the difference between two
+      consecutive iterations.
+
   Returns:
-    a vector of marginal probabilities for all n_patients.
+    two vectors of marginal probabilities for all n_patients, obtained
+    as consecutive evaluations of the LBP algorithm after n_iter and n_iter+1
+    iterations.
   """
+  n_groups, n_patients = groups.shape
   if np.size(groups) == 0:
     if np.size(base_infection_rate) == 1:  # only one rate
-      return base_infection_rate * np.ones(groups.shape[1])
-    elif np.size(base_infection_rate) == groups.shape[1]:
-      return base_infection_rate
+      marginal = base_infection_rate * np.ones(n_patients)
+      return marginal, 0
+    elif np.size(base_infection_rate) == n_patients:
+      return base_infection_rate, 0
     else:
       raise ValueError("Improper size for vector of base infection rates")
 
-  n_groups, n_patients = groups.shape
   mu = -jax.scipy.special.logit(base_infection_rate)
 
   groups_size = np.sum(groups, axis=1)
@@ -70,11 +76,18 @@ def loopy_belief_propagation(tests,
 
   # Initialization
   alphabeta = np.zeros((2, n_groups, n_patients))
+  alpha_beta_iteration = [alphabeta, 0]
+
+  # return marginal from alphabeta
+  def marginal_from_alphabeta(alphabeta):
+    beta_bar = np.sum(alphabeta[1, :, :], axis=0)
+    return jax.scipy.special.expit(-beta_bar - mu)
 
   # lbp loop
   def lbp_loop(_, alphabeta):
     alpha = alphabeta[0, :, :]
     beta = alphabeta[1, :, :]
+
     # update alpha
     beta_bar = np.sum(beta, axis=0)
     alpha = jax.nn.log_sigmoid(beta_bar - beta + mu)
@@ -82,17 +95,36 @@ def loopy_belief_propagation(tests,
 
     # update beta
     alpha_bar = np.sum(alpha, axis=1, keepdims=True)
-    beta = np.log1p(
-        test_sign * np.exp(-alpha + alpha_bar + gamma[:, np.newaxis]))
+    beta = np.log1p(test_sign *
+                    np.exp(-alpha + alpha_bar + gamma[:, np.newaxis]))
     beta *= groups
     return np.stack((alpha, beta), axis=0)
 
-  # Run LBP loop
-  alphabeta = jax.lax.fori_loop(0, n_iter, lbp_loop, alphabeta)
+  def cond_fun(alpha_beta_iteration):
+    alphabeta, iteration = alpha_beta_iteration
+    marginal = marginal_from_alphabeta(alphabeta)
+    marginal_plus_one_iteration = marginal_from_alphabeta(
+        lbp_loop(0, alphabeta))
+    converged = np.allclose(marginal, marginal_plus_one_iteration, atol=atol)
+    return (not converged) and (iteration < max_iterations)
 
-  # return marginals
-  beta_bar = np.sum(alphabeta[1, :, :], axis=0)
-  return jax.scipy.special.expit(-beta_bar - mu)
+  def body_fun(alpha_beta_iteration):
+    alphabeta, iteration = alpha_beta_iteration
+    alphabeta = jax.lax.fori_loop(0, min_iterations, lbp_loop, alphabeta)
+    iteration += min_iterations
+    return [alphabeta, iteration]
+
+  # Run LBP while loop
+  while cond_fun(alpha_beta_iteration):
+    alpha_beta_iteration = body_fun(alpha_beta_iteration)
+
+  alphabeta, _ = alpha_beta_iteration
+
+  # Compute two consecutive marginals
+  marginal = marginal_from_alphabeta(alphabeta)
+  marginal_plus_one_iteration = marginal_from_alphabeta(lbp_loop(0, alphabeta))
+
+  return marginal, np.amax(np.abs(marginal - marginal_plus_one_iteration))
 
 
 @gin.configurable
@@ -101,18 +133,44 @@ class LbpSampler(sampler.Sampler):
 
   NAME = "LBP"
 
-  def __init__(self, num_iterations = 50):
+  def __init__(self,
+               min_iterations = 10,
+               max_iterations = 1000,
+               atol = 1e-4,
+               gaptol = 1e-2):
+    """Initialize LbpSampler with parameters passed on to LBP algorithm.
+
+    Args:
+      min_iterations : int, minimal number of executions per loop of LBP
+      max_iterations : int, maximal number of iterations LBP updates marginal
+      atol : float, tolerance parameter used to measure discrepancy between two
+        consecutive iterations with np.allclose to decide termination of LBP
+        loops.
+      gaptol : float, tolerance used to decide whether the gap returned by an
+        LBP sampler is acceptable or requires resampling.
+    """
     super().__init__()
-    self.num_iterations = num_iterations
+    self.min_iterations = min_iterations
+    self.max_iterations = max_iterations
+    self.atol = atol
+    self.gaptol = gaptol
 
   def produce_sample(self, rng, state):
     """Produces only "one" fractional particle state: a marginal."""
-    marginal = loopy_belief_propagation(
-        state.past_test_results,
-        state.past_groups,
-        state.prior_infection_rate,
-        state.prior_sensitivity,
-        state.prior_specificity,
-        n_iter=self.num_iterations)
-    self.particles = np.expand_dims(marginal, axis=0)
     self.particle_weights = np.array([1])
+    marginal, gap_between_consecutives = loopy_belief_propagation(
+        state.past_test_results, state.past_groups, state.prior_infection_rate,
+        state.prior_sensitivity, state.prior_specificity, self.min_iterations,
+        self.max_iterations, self.atol)
+    if gap_between_consecutives < self.gaptol:
+      # if LBP has converged and is not oscillating (hence relatively large
+      # tolerance of up to 3%, return marginal
+      self.particles = np.expand_dims(marginal, axis=0)
+    else:
+      # if LBP has not converged, return a vector of NaNs
+      vector_of_nans = np.zeros_like(marginal)
+      vector_of_nans = jax.ops.index_update(vector_of_nans, jax.ops.index[:],
+                                            np.nan)
+      self.particles = np.expand_dims(vector_of_nans, axis=0)
+      logging.info("LBP Sampler has not converged and/or oscillates.")
+      logging.info("gap: %8.4f", gap_between_consecutives)

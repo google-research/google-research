@@ -40,10 +40,10 @@ class SmcSampler(sampler.Sampler):
                kernel=kernels.Gibbs(),
                resample_at_each_iteration: bool = True,
                num_particles: int = 10000,
-               min_kernel_iterations: int = 3,
+               min_kernel_iterations: int = 2,
                max_kernel_iterations: int = 20,
-               min_ratio_delta: float = 0.05,
-               max_unique_ratio: float = 0.95):
+               min_ratio_delta: float = 0.02,
+               target_unique_ratio: float = 0.95):
     super().__init__()
     self._kernel = kernel
     self._resample_at_each_iteration = resample_at_each_iteration
@@ -51,7 +51,7 @@ class SmcSampler(sampler.Sampler):
     self._min_kernel_iterations = min_kernel_iterations
     self._max_kernel_iterations = max_kernel_iterations
     self._min_ratio_delta = min_ratio_delta
-    self._max_unique_ratio = max_unique_ratio
+    self._target_unique_ratio = target_unique_ratio
 
   @property
   def is_cheap(self):
@@ -163,12 +163,11 @@ class SmcSampler(sampler.Sampler):
 
       old_unique_ratio = unique_ratio
       unique_ratio = utils.unique(rngs[1], particles) / num_particles
-      if it < self._min_kernel_iterations:
+      if it < self._min_kernel_iterations - 1:
         continue
-
       ratio_delta = np.abs(old_unique_ratio - unique_ratio)
       if (ratio_delta <= self._min_ratio_delta or
-          unique_ratio > self._max_unique_ratio):
+          unique_ratio > self._target_unique_ratio):
         break
 
     return particles

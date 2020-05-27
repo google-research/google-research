@@ -28,7 +28,7 @@ class GroupSelector:
   def __call__(self, rng, state):
     new_groups = self.get_groups(rng, state)
     state.add_groups_to_test(new_groups)
-    logging.warning(f'Chosen groups of shape {new_groups.shape}')
+    logging.warning('Added %i groups to test', new_groups.shape[0])
     logging.debug(new_groups.astype(np.int32))
     return state
 

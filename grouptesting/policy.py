@@ -59,7 +59,9 @@ class MimaxPolicy(Policy):
   def __init__(self, subsequent_selectors=None, **kwargs):
     selectors = [mutual_information.MaxMutualInformation(**kwargs)]
     if subsequent_selectors is not None:
-      selectors.append(subsequent_selectors)
+      selectors.extend(
+          subsequent_selectors if isinstance(subsequent_selectors, list)
+          else [subsequent_selectors])
     super().__init__(selectors=selectors)
 
 
@@ -70,7 +72,9 @@ class OrigamiPolicy(Policy):
   def __init__(self, subsequent_selectors=None):
     selectors = [origami.Origami()]
     if subsequent_selectors is not None:
-      selectors.append(subsequent_selectors)
+      selectors.extend(
+          subsequent_selectors if isinstance(subsequent_selectors, list)
+          else [subsequent_selectors])
     super().__init__(selectors=selectors)
 
 
@@ -81,7 +85,9 @@ class MezardPolicy(Policy):
   def __init__(self, subsequent_selectors=None, **kwargs):
     selectors = [random.Mezard(**kwargs)]
     if subsequent_selectors is not None:
-      selectors.append(subsequent_selectors)
+      selectors.extend(
+          subsequent_selectors if isinstance(subsequent_selectors, list)
+          else [subsequent_selectors])
     super().__init__(selectors=selectors)
 
 
