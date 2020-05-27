@@ -90,6 +90,9 @@ def expected_calibration_error(probabilities, ground_truth, bins=15):
   Returns:
     Float: the expected calibration error.
   """
+
+  probabilities = probabilities.flatten()
+  ground_truth = ground_truth.flatten()
   bin_edges, accuracies, counts = bin_predictions_and_accuracies(
       probabilities, ground_truth, bins)
   bin_centers = bin_centers_of_mass(probabilities, bin_edges)
