@@ -46,6 +46,7 @@ class BaseParserTest(tf.test.TestCase):
     self.assertEqual(FLAGS.optimizer_epsilon, params.optimizer_epsilon)
     self.assertEqual(FLAGS.resample, params.resample)
     self.assertEqual(FLAGS.sample_rate, params.sample_rate)
+    self.assertEqual(FLAGS.volume_resample, params.volume_resample)
     self.assertEqual(FLAGS.clip_duration_ms, params.clip_duration_ms)
     self.assertEqual(FLAGS.window_size_ms, params.window_size_ms)
     self.assertEqual(FLAGS.window_stride_ms, params.window_stride_ms)

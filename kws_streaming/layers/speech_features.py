@@ -168,14 +168,17 @@ class SpeechFeatures(tf.keras.layers.Layer):
     else:
       outputs = inputs
 
-    # audio_spectrogram expects [frame, channels/batch]
-    # so transpose it, to make [channels/batch, frame]
+    # outputs has dims [batch, time]
+    # but audio_spectrogram expects [time, channels/batch] so transpose it
     outputs = tf.transpose(outputs, [1, 0])
+
+    # outputs: [time, channels/batch]
     outputs = audio_ops.audio_spectrogram(
         outputs,
         window_size=self.frame_size,
         stride=self.frame_step,
         magnitude_squared=self.params['fft_magnitude_squared'])
+    # outputs: [channels/batch, frames, fft_feature]
 
     outputs = audio_ops.mfcc(
         outputs,
@@ -184,6 +187,7 @@ class SpeechFeatures(tf.keras.layers.Layer):
         lower_frequency_limit=self.params['mel_lower_edge_hertz'],
         filterbank_channel_count=self.params['mel_num_bins'],
         dct_coefficient_count=self.params['dct_num_features'])
+    # outputs: [channels/batch, frames, dct_coefficient_count]
     outputs = self.spec_augment(outputs)
     return outputs
 

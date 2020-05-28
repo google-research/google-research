@@ -40,9 +40,38 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
     self.sess = tf1.Session(config=config)
     tf1.keras.backend.set_session(self.sess)
 
-  def testToNonStreamInferenceTFandTFLite(self, model_name='svdf'):
+  @parameterized.named_parameters([
+      {
+          'testcase_name': 'raw with mfcc_tf',
+          'preprocess': 'raw',
+          'feature_type': 'mfcc_tf'
+      },
+      {
+          'testcase_name': 'raw with mfcc_op',
+          'preprocess': 'raw',
+          'feature_type': 'mfcc_op'
+      },
+      {
+          'testcase_name': 'mfcc',
+          'preprocess': 'mfcc',
+          'feature_type': 'mfcc_op'
+      },  # feature_type will be ignored
+      {
+          'testcase_name': 'micro',
+          'preprocess': 'micro',
+          'feature_type': 'mfcc_op'
+      },  # feature_type will be ignored
+  ])
+  def testToNonStreamInferenceTFandTFLite(self,
+                                          preprocess,
+                                          feature_type,
+                                          model_name='svdf'):
     """Validate that model can be converted to non stream inference mode."""
     params = model_params.HOTWORD_MODEL_PARAMS[model_name]
+
+    # set parameters to test
+    params.preprocess = preprocess
+    params.feature_type = feature_type
     params = model_flags.update_flags(params)
 
     # create model
@@ -58,9 +87,37 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
         utils.model_to_tflite(self.sess, model, params,
                               Modes.NON_STREAM_INFERENCE))
 
-  def testToStreamInferenceModeTFandTFLite(self, model_name='gru'):
+  @parameterized.named_parameters([
+      {
+          'testcase_name': 'raw with mfcc_tf',
+          'preprocess': 'raw',
+          'feature_type': 'mfcc_tf'
+      },
+      {
+          'testcase_name': 'raw with mfcc_op',
+          'preprocess': 'raw',
+          'feature_type': 'mfcc_op'
+      },
+      {
+          'testcase_name': 'mfcc',
+          'preprocess': 'mfcc',
+          'feature_type': 'mfcc_op'
+      },  # feature_type will be ignored
+      {
+          'testcase_name': 'micro',
+          'preprocess': 'micro',
+          'feature_type': 'mfcc_op'
+      },  # feature_type will be ignored
+  ])
+  def testToStreamInferenceModeTFandTFLite(self,
+                                           preprocess,
+                                           feature_type,
+                                           model_name='gru'):
     """Validate that model can be converted to any streaming inference mode."""
     params = model_params.HOTWORD_MODEL_PARAMS[model_name]
+    # set parameters to test
+    params.preprocess = preprocess
+    params.feature_type = feature_type
     params = model_flags.update_flags(params)
 
     # create model

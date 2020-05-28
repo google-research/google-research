@@ -121,7 +121,7 @@ def train(flags):
     train_fingerprints, train_ground_truth = audio_processor.get_data(
         flags.batch_size, 0, flags, flags.background_frequency,
         flags.background_volume, time_shift_samples, 'training', flags.resample,
-        sess)
+        flags.volume_resample, sess)
 
     if flags.lr_schedule == 'exp':
       learning_rate_value = lr_init * np.exp(-exp_rate * training_step)
@@ -157,7 +157,7 @@ def train(flags):
       for i in range(0, set_size, flags.batch_size):
         validation_fingerprints, validation_ground_truth = (
             audio_processor.get_data(flags.batch_size, i, flags, 0.0, 0.0, 0,
-                                     'validation', 0.0, sess))
+                                     'validation', 0.0, 0.0, sess))
 
         # Run a validation step and capture training summaries for TensorBoard
         # with the `merged` op.
@@ -197,7 +197,7 @@ def train(flags):
 
   for i in range(0, set_size, flags.batch_size):
     test_fingerprints, test_ground_truth = audio_processor.get_data(
-        flags.batch_size, i, flags, 0.0, 0.0, 0, 'testing', 0.0, sess)
+        flags.batch_size, i, flags, 0.0, 0.0, 0, 'testing', 0.0, 0.0, sess)
 
     result = model.test_on_batch(test_fingerprints, test_ground_truth)
 

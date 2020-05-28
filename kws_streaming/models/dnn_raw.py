@@ -79,6 +79,9 @@ def model(flags):
     Keras model for training
   """
 
+  if flags.preprocess != 'raw':
+    ValueError('input audio has to be raw, but get ', flags.preprocess)
+
   input_audio = tf.keras.layers.Input(
       shape=(flags.desired_samples,), batch_size=flags.batch_size)
 

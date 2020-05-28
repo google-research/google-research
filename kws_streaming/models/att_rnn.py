@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """BiRNN model with attention."""
+from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
 from kws_streaming.layers.compat import tf
 from kws_streaming.models.utils import parse
@@ -113,11 +114,15 @@ def model(flags):
   rnn = rnn_types[flags.rnn_type]
 
   input_audio = tf.keras.layers.Input(
-      shape=(flags.desired_samples,), batch_size=flags.batch_size)
+      shape=modes.get_input_data_shape(flags, modes.Modes.TRAINING),
+      batch_size=flags.batch_size)
+  net = input_audio
 
-  net = speech_features.SpeechFeatures(
-      speech_features.SpeechFeatures.get_params(flags))(
-          input_audio)
+  if flags.preprocess == 'raw':
+    # it is a self contained model, user need to feed raw audio only
+    net = speech_features.SpeechFeatures(
+        speech_features.SpeechFeatures.get_params(flags))(
+            net)
 
   net = tf.keras.backend.expand_dims(net)
   for filters, kernel_size, activation, dilation_rate, strides in zip(
