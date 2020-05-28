@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """LSTM with Mel spectrum and fully connected layers."""
+from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.lstm import LSTM
@@ -92,11 +93,15 @@ def model(flags):
     Keras model for training
   """
   input_audio = tf.keras.layers.Input(
-      shape=(flags.desired_samples,), batch_size=flags.batch_size)
+      shape=modes.get_input_data_shape(flags, modes.Modes.TRAINING),
+      batch_size=flags.batch_size)
+  net = input_audio
 
-  net = speech_features.SpeechFeatures(
-      speech_features.SpeechFeatures.get_params(flags))(
-          input_audio)
+  if flags.preprocess == 'raw':
+    # it is a self contained model, user need to feed raw audio only
+    net = speech_features.SpeechFeatures(
+        speech_features.SpeechFeatures.get_params(flags))(
+            net)
 
   for units, return_sequences, num_proj in zip(
       parse(flags.lstm_units), parse(flags.return_sequences),

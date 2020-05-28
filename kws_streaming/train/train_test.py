@@ -132,8 +132,6 @@ class TrainTest(tf.test.TestCase, parameterized.TestCase):
             30,
         'window_stride_ms':
             20,
-        'feature_bin_count':
-            40,
         'preprocess':
             'raw',
         'split_data':
@@ -185,6 +183,8 @@ class TrainTest(tf.test.TestCase, parameterized.TestCase):
         'log_epsilon':
             1e-12,
         'resample':
+            0.0,
+        'volume_resample':
             0.0,
         'use_tf_fft':
             0,

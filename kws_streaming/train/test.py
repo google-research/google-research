@@ -67,7 +67,7 @@ def tf_non_stream_model_accuracy(
   for i in range(0, set_size, flags.batch_size):
     test_fingerprints, test_ground_truth = audio_processor.get_data(
         flags.batch_size, i, flags, 0.0, 0.0, time_shift_samples, 'testing',
-        0.0, sess)
+        0.0, 0.0, sess)
 
     predictions = model.predict(test_fingerprints)
     predicted_labels = np.argmax(predictions, axis=1)
@@ -141,20 +141,35 @@ def tf_stream_state_internal_model_accuracy(
   count = 0.0
   for i in range(0, set_size, inference_batch_size):
     test_fingerprints, test_ground_truth = audio_processor.get_data(
-        inference_batch_size, i, flags, 0.0, 0.0, 0, 'testing', 0.0, sess)
+        inference_batch_size, i, flags, 0.0, 0.0, 0, 'testing', 0.0, 0.0, sess)
 
-    start = 0
-    end = flags.window_stride_samples
-    while end <= test_fingerprints.shape[1]:
-      stream_update = test_fingerprints[:, start:end]
+    if flags.preprocess == 'raw':
+      start = 0
+      end = flags.window_stride_samples
+      while end <= test_fingerprints.shape[1]:
+        # get overlapped audio sequence
+        stream_update = test_fingerprints[:, start:end]
 
-      # get new frame from stream of data
-      stream_output_prediction = model_stream.predict(stream_update)
-      stream_output_arg = np.argmax(stream_output_prediction)
+        # classification result of a current frame
+        stream_output_prediction = model_stream.predict(stream_update)
+        stream_output_arg = np.argmax(stream_output_prediction)
 
-      # update indexes of streamed updates
-      start = end
-      end = start + flags.window_stride_samples
+        # update indexes of streamed updates
+        start = end
+        end = start + flags.window_stride_samples
+    else:
+      # iterate over frames
+      for t in range(test_fingerprints.shape[1]):
+        # get new frame from stream of data
+        stream_update = test_fingerprints[:, t, :]
+
+        # [batch, time=1, feature]
+        stream_update = np.expand_dims(stream_update, axis=1)
+
+        # classification result of a current frame
+        stream_output_prediction = model_stream.predict(stream_update)
+        stream_output_arg = np.argmax(stream_output_prediction)
+
     total_accuracy = total_accuracy + (
         test_ground_truth[0] == stream_output_arg)
     count = count + 1
@@ -237,34 +252,57 @@ def tf_stream_state_external_model_accuracy(
   inference_batch_size = 1
   for i in range(0, set_size, inference_batch_size):
     test_fingerprints, test_ground_truth = audio_processor.get_data(
-        inference_batch_size, i, flags, 0.0, 0.0, 0, 'testing', 0.0, sess)
+        inference_batch_size, i, flags, 0.0, 0.0, 0, 'testing', 0.0, 0.0, sess)
 
     if reset_state:
       for s in range(len(model_stream.inputs)):
         inputs[s] = np.zeros(model_stream.inputs[s].shape, dtype=np.float32)
 
-    start = 0
-    end = flags.window_stride_samples
-    while end <= test_fingerprints.shape[1]:
-      # get new frame from stream of data
-      stream_update = test_fingerprints[:, start:end]
+    if flags.preprocess == 'raw':
+      start = 0
+      end = flags.window_stride_samples
+      # iterate over time samples with stride = window_stride_samples
+      while end <= test_fingerprints.shape[1]:
+        # get new frame from stream of data
+        stream_update = test_fingerprints[:, start:end]
 
-      # update indexes of streamed updates
-      start = end
-      end = start + flags.window_stride_samples
+        # update indexes of streamed updates
+        start = end
+        end = start + flags.window_stride_samples
 
-      # set input audio data (by default input data at index 0)
-      inputs[0] = stream_update
+        # set input audio data (by default input data at index 0)
+        inputs[0] = stream_update
 
-      # run inference
-      outputs = model_stream.predict(inputs)
+        # run inference
+        outputs = model_stream.predict(inputs)
 
-      # get output states and set it back to input states
-      # which will be fed in the next inference cycle
-      for s in range(1, len(model_stream.inputs)):
-        inputs[s] = outputs[s]
+        # get output states and set it back to input states
+        # which will be fed in the next inference cycle
+        for s in range(1, len(model_stream.inputs)):
+          inputs[s] = outputs[s]
 
-      stream_output_arg = np.argmax(outputs[0])
+        stream_output_arg = np.argmax(outputs[0])
+    else:
+      # iterate over frames
+      for t in range(test_fingerprints.shape[1]):
+        # get new frame from stream of data
+        stream_update = test_fingerprints[:, t, :]
+
+        # [batch, time=1, feature]
+        stream_update = np.expand_dims(stream_update, axis=1)
+
+        # set input audio data (by default input data at index 0)
+        inputs[0] = stream_update
+
+        # run inference
+        outputs = model_stream.predict(inputs)
+
+        # get output states and set it back to input states
+        # which will be fed in the next inference cycle
+        for s in range(1, len(model_stream.inputs)):
+          inputs[s] = outputs[s]
+
+        stream_output_arg = np.argmax(outputs[0])
     total_accuracy = total_accuracy + (
         test_ground_truth[0] == stream_output_arg)
     count = count + 1
@@ -343,7 +381,7 @@ def tflite_stream_state_external_model_accuracy(
   inference_batch_size = 1
   for i in range(0, set_size, inference_batch_size):
     test_fingerprints, test_ground_truth = audio_processor.get_data(
-        inference_batch_size, i, flags, 0.0, 0.0, 0, 'testing', 0.0, sess)
+        inference_batch_size, i, flags, 0.0, 0.0, 0, 'testing', 0.0, 0.0, sess)
 
     # before processing new test sequence we can reset model state
     # if we reset model state then it is not real streaming mode
@@ -351,37 +389,68 @@ def tflite_stream_state_external_model_accuracy(
       for s in range(len(input_details)):
         inputs[s] = np.zeros(input_details[s]['shape'], dtype=np.float32)
 
-    start = 0
-    end = flags.window_stride_samples
-    while end <= test_fingerprints.shape[1]:
-      stream_update = test_fingerprints[:, start:end]
-      stream_update = stream_update.astype(np.float32)
+    if flags.preprocess == 'raw':
+      start = 0
+      end = flags.window_stride_samples
+      while end <= test_fingerprints.shape[1]:
+        stream_update = test_fingerprints[:, start:end]
+        stream_update = stream_update.astype(np.float32)
 
-      # update indexes of streamed updates
-      start = end
-      end = start + flags.window_stride_samples
+        # update indexes of streamed updates
+        start = end
+        end = start + flags.window_stride_samples
 
-      # set input audio data (by default input data at index 0)
-      interpreter.set_tensor(input_details[0]['index'], stream_update)
+        # set input audio data (by default input data at index 0)
+        interpreter.set_tensor(input_details[0]['index'], stream_update)
 
-      # set input states (index 1...)
-      for s in range(1, len(input_details)):
-        interpreter.set_tensor(input_details[s]['index'], inputs[s])
+        # set input states (index 1...)
+        for s in range(1, len(input_details)):
+          interpreter.set_tensor(input_details[s]['index'], inputs[s])
 
-      # run inference
-      interpreter.invoke()
+        # run inference
+        interpreter.invoke()
 
-      # get output: classification
-      out_tflite = interpreter.get_tensor(output_details[0]['index'])
+        # get output: classification
+        out_tflite = interpreter.get_tensor(output_details[0]['index'])
 
-      # get output states and set it back to input states
-      # which will be fed in the next inference cycle
-      for s in range(1, len(input_details)):
-        # The function `get_tensor()` returns a copy of the tensor data.
-        # Use `tensor()` in order to get a pointer to the tensor.
-        inputs[s] = interpreter.get_tensor(output_details[s]['index'])
+        # get output states and set it back to input states
+        # which will be fed in the next inference cycle
+        for s in range(1, len(input_details)):
+          # The function `get_tensor()` returns a copy of the tensor data.
+          # Use `tensor()` in order to get a pointer to the tensor.
+          inputs[s] = interpreter.get_tensor(output_details[s]['index'])
 
-      out_tflite_argmax = np.argmax(out_tflite)
+        out_tflite_argmax = np.argmax(out_tflite)
+    else:
+      for t in range(test_fingerprints.shape[1]):
+        # get new frame from stream of data
+        stream_update = test_fingerprints[:, t, :]
+        stream_update = np.expand_dims(stream_update, axis=1)
+
+        # [batch, time=1, feature]
+        stream_update = stream_update.astype(np.float32)
+
+        # set input audio data (by default input data at index 0)
+        interpreter.set_tensor(input_details[0]['index'], stream_update)
+
+        # set input states (index 1...)
+        for s in range(1, len(input_details)):
+          interpreter.set_tensor(input_details[s]['index'], inputs[s])
+
+        # run inference
+        interpreter.invoke()
+
+        # get output: classification
+        out_tflite = interpreter.get_tensor(output_details[0]['index'])
+
+        # get output states and set it back to input states
+        # which will be fed in the next inference cycle
+        for s in range(1, len(input_details)):
+          # The function `get_tensor()` returns a copy of the tensor data.
+          # Use `tensor()` in order to get a pointer to the tensor.
+          inputs[s] = interpreter.get_tensor(output_details[s]['index'])
+
+        out_tflite_argmax = np.argmax(out_tflite)
 
     total_accuracy = total_accuracy + (
         test_ground_truth[0] == out_tflite_argmax)
@@ -441,7 +510,7 @@ def tflite_non_stream_model_accuracy(
   inference_batch_size = 1
   for i in range(0, set_size, inference_batch_size):
     test_fingerprints, test_ground_truth = audio_processor.get_data(
-        inference_batch_size, i, flags, 0.0, 0.0, 0, 'testing', 0.0, sess)
+        inference_batch_size, i, flags, 0.0, 0.0, 0, 'testing', 0.0, 0.0, sess)
 
     # set input audio data (by default input data at index 0)
     interpreter.set_tensor(input_details[0]['index'],

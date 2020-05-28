@@ -142,6 +142,9 @@ def main(_):
 
     # Model training
     train.train(flags)
+  else:
+    if not os.path.isdir(flags.train_dir):
+      raise ValueError('model is not trained set "--train 1" and retrain it')
 
   # write all flags settings into json
   with open(os.path.join(flags.train_dir, 'flags.json'), 'wt') as f:
@@ -149,8 +152,11 @@ def main(_):
 
   # convert to SavedModel
   test.convert_model_saved(flags, 'non_stream', Modes.NON_STREAM_INFERENCE)
-  test.convert_model_saved(flags, 'stream_state_internal',
-                           Modes.STREAM_INTERNAL_STATE_INFERENCE)
+  try:
+    test.convert_model_saved(flags, 'stream_state_internal',
+                             Modes.STREAM_INTERNAL_STATE_INFERENCE)
+  except (ValueError, IndexError) as e:
+    logging.info('FAILED to run TF streaming: %s', e)
 
   logging.info('run TF non streaming model accuracy evaluation')
   # with TF
@@ -179,7 +185,8 @@ def main(_):
 
   for opt_name, optimizations in name2opt.items():
 
-    if opt_name and flags.feature_type == 'mfcc_tf':
+    if (opt_name and flags.feature_type == 'mfcc_tf' and
+        flags.preprocess == 'raw'):
       logging.info('feature type mfcc_tf needs quantization aware training '
                    'for quantization - it is not implemented')
       continue
@@ -236,8 +243,8 @@ def main(_):
 
           # Streaming (with internal state) evaluation using TF no state reset
           test.tf_stream_state_internal_model_accuracy(flags, folder_name)
-        except ValueError as e:
-          logging.error('FAILED to run TF streaming: %s', e)
+        except (ValueError, IndexError) as e:
+          logging.info('FAILED to run TF streaming: %s', e)
 
       logging.info('run TFlite streaming model accuracy evaluation')
       try:
@@ -263,8 +270,8 @@ def main(_):
             file_name,
             accuracy_name='tflite_stream_state_external_model_accuracy_reset0.txt',
             reset_state=False)
-      except ValueError as e:
-        logging.error('FAILED to run TFLite streaming: %s', e)
+      except (ValueError, IndexError) as e:
+        logging.info('FAILED to run TFLite streaming: %s', e)
 
 if __name__ == '__main__':
   # parser for training/testing data and speach feature flags

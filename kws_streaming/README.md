@@ -328,8 +328,32 @@ If you interested to train or evaluate models on data sets V2 just set:
 * set `--train_dir ./models2/dnn/` to avoid overwriting previous results.
 
 
+### Speech feature extraction configs:
+
+Model can be trained with different feature extractors including raw audio. An example of model training on raw audio is presented at models/dnn_raw.py (in this case speech feature extractor will be learned).
+
+This lib also supports TFlite speech feature extractors for different hardware: desktop, mobile phone and microcontrollers.
+
+There are several options to run a model on desktop and mobile phone. These options with properties are described below table:
+
+
+|                  | preprocess 'raw' <br> feature_type 'mfcc_tf'  | preprocess 'raw' <br> feature_type 'mfcc_op'  | preprocess 'mfcc'     | preprocess 'micro'    |
+| ---------------- | --------------------- | --------------------- | ------------------- | ------------------- |
+|**Speech feature <br> extractor:**| part of model      | part of model      |  not part of model|  not part of model|
+|                  |                       |                       |                     |                     |
+|**Speech feature <br> based on:**| DFT, DFT weights <br> are part of model  |   FFT     |    FFT    |     FFT         |
+|                  |                       |                       |                     |                     |
+|**Model size:**   |         'big'         |      'small'          |        'small'      |         'small'     |
+|                  |                       |                       |                     |                     |
+|**Quantization:** |    not implemented    |      post training    |     post training   |     post training   |
+|                  |                       |                       |                     |                     |
+|**Can run on:**   |    desktop, <br> mobile    |      desktop, <br> mobile  |     desktop, <br> mobile |   microcontrollers  |
+
+If speech feature extractor is part of the model then it is convenient for deployment, otherwise user will have to manage speech feature extractor and data streams between model and speech feature extractor. Speech feature extractor based on DFT can be a good option for hardware with no FFT support. Combination of FFT with post training quantization can reduce latency by 2x.
+
+
 ### Training on custom data
-If you want to train on your own data, you'll need to create .wavs with your
+If you prefer to train on your own data, you'll need to create .wavs with your
 recordings, all at a consistent length, and then arrange them into subfolders
 organized by label. For example, here's a possible file structure:
 

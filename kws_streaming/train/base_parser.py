@@ -215,6 +215,14 @@ def base_parser():
       help='Resample input signal to generate more data [0.0...0.15].',
   )
   parser.add_argument(
+      '--volume_resample',
+      type=float,
+      default=0.0,
+      help='Controlls audio volume, '
+      'sampled in range: [1-volume_resample...1+volume_resample].',
+  )
+
+  parser.add_argument(
       '--train',
       type=int,
       default=1,
@@ -250,14 +258,23 @@ def base_parser():
       '--preprocess',
       type=str,
       default='raw',
-      help='Supports only raw')
+      help='Supports raw, mfcc, micro as input features for neural net'
+      'raw - model is built end to end '
+      'mfcc - model divided into mfcc feature extractor and neural net.'
+      'micro - model divided into micro feature extractor and neural net.'
+      'if mfcc/micro is selected user has to manage speech feature extractor '
+      'and feed extracted features into neural net on device.'
+      )
   parser.add_argument(
       '--feature_type',
       type=str,
       default='mfcc_tf',
-      help='Feature type: mfcc_tf, mfcc_op.'
-      'If mfcc_tf, it will produce unquantized model only'
-      'If mfcc_op, it will produce both quantized and unquantized models')
+      help='It is used only for model which uses preprocess=raw'
+      'In this case model will contain speech feature extractor and neural net.'
+      'It simplifies model deployment on device.'
+      'Two options supported:'
+      '* mfcc_tf, it will produce unquantized model only'
+      '* mfcc_op, it will produce both quantized and unquantized models')
   parser.add_argument(
       '--preemph',
       type=float,
