@@ -17,7 +17,7 @@ set -e
 set -x
 
 virtualenv -p python3 .
-source ./bin/activate
+Voice ./bin/activate
 
 pip install tensorflow
 pip install -r attribution/requirements.txt
