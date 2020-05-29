@@ -84,6 +84,19 @@ class MoleculesTest(parameterized.TestCase, tf.test.TestCase):
     mol = Chem.MolFromSmiles(mol)
     self.assertAlmostEqual(molecules.penalized_logp(mol), score)
 
+  @parameterized.parameters(
+      ('ClC1=CC=C2C(C=C(C(C)=O)C(C(NC3=CC(NC(NC4=CC(C5=C('
+      'C)C=CC=C5)=CC=C4)=O)=CC=C3)=O)=C2)=C1', 5.30),
+      ('CC(NC1=CC(C2=CC=CC(NC(NC3=CC=CC(C4=CC('
+       'F)=CC=C4)=C3)=O)=C2)=CC=C1)=O', 4.49),
+      ('ClC(C(Cl)=C1)=CC=C1NC2=CC=CC=C2C(NC(NC3'
+       '=C(C(NC4=C(Cl)C=CC=C4)=S)C=CC=C3)=O)=O', 4.93)
+  )
+  def test_penalized_logp_normalized(self, mol, score):
+    mol = Chem.MolFromSmiles(mol)
+    self.assertAlmostEqual(
+        round(molecules.penalized_logp_normalized(mol), 2), score)
+
 
 if __name__ == '__main__':
   tf.test.main()
