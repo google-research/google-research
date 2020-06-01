@@ -50,7 +50,7 @@ def get_shuffled_indices_and_labels(batch_size, num_samples, shuffle_fraction,
   shuffled_samples = tf.where(
       tf.less_equal(tf.random.uniform((total_num_samples, 1)), 0.5),
       tf.gather(indices, [1, 0, 3], axis=1),
-      tf.gather(indices, [1, 0, 3], axis=1))
+      tf.gather(indices, [1, 4, 3], axis=1))
   ordered_samples = tf.gather(indices, [1, 2, 3], axis=1)
   indices = tf.where(tf.equal(tf.expand_dims(shuffle_labels, axis=-1), 1),
                      shuffled_samples, ordered_samples)
