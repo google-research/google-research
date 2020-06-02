@@ -44,7 +44,8 @@ class OpsTestCase(jax.test_util.JaxTestCase):
     s = ops.softsort(self.x, axis=-1, threshold=1e-3, epsilon=1e-3)
     self.assertEqual(s.shape, self.x.shape)
     deltas = np.diff(s, axis=-1) > 0
-    self.assertAllClose(deltas, np.ones(deltas.shape, dtype=bool), True)
+    self.assertAllClose(
+        deltas, np.ones(deltas.shape, dtype=bool), check_dtypes=True)
 
   def test_sort_descending(self):
     x = self.x[0][0]
@@ -52,20 +53,21 @@ class OpsTestCase(jax.test_util.JaxTestCase):
                      threshold=1e-3, epsilon=1e-3)
     self.assertEqual(s.shape, x.shape)
     deltas = np.diff(s, axis=-1) < 0
-    self.assertAllClose(deltas, np.ones(deltas.shape, dtype=bool), True)
+    self.assertAllClose(
+        deltas, np.ones(deltas.shape, dtype=bool), check_dtypes=True)
 
   def test_ranks(self):
     ranks = ops.softranks(self.x, axis=-1, threshold=1e-3, epsilon=1e-3)
     self.assertEqual(ranks.shape, self.x.shape)
     true_ranks = np.argsort(np.argsort(self.x, axis=-1), axis=-1)
-    self.assertAllClose(ranks, true_ranks, False, atol=1e-3)
+    self.assertAllClose(ranks, true_ranks, check_dtypes=False, atol=1e-3)
 
   def test_ranks_one_based(self):
     ranks = ops.softranks(self.x, axis=-1, zero_based=False,
                           threshold=1e-3, epsilon=1e-3)
     self.assertEqual(ranks.shape, self.x.shape)
     true_ranks = np.argsort(np.argsort(self.x, axis=-1), axis=-1) + 1
-    self.assertAllClose(ranks, true_ranks, False, atol=1e-3)
+    self.assertAllClose(ranks, true_ranks, check_dtypes=False, atol=1e-3)
 
   def test_ranks_descending(self):
     ranks = ops.softranks(
@@ -75,7 +77,7 @@ class OpsTestCase(jax.test_util.JaxTestCase):
 
     max_rank = self.x.shape[-1] - 1
     true_ranks = max_rank - np.argsort(np.argsort(self.x, axis=-1), axis=-1)
-    self.assertAllClose(ranks, true_ranks, False, atol=1e-3)
+    self.assertAllClose(ranks, true_ranks, check_dtypes=False, atol=1e-3)
 
   @parameterized.named_parameters(
       ('medians_-1', 0.5, -1),
@@ -95,7 +97,7 @@ class OpsTestCase(jax.test_util.JaxTestCase):
     s.pop(axis)
     self.assertTupleEqual(qs.shape, tuple(s))
     self.assertAllClose(
-        qs, np.quantile(x, quantile, axis=axis), True, rtol=1e-2)
+        qs, np.quantile(x, quantile, axis=axis), check_dtypes=True, rtol=1e-2)
 
 
 if __name__ == '__main__':

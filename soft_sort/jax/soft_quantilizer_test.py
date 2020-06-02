@@ -36,7 +36,8 @@ class SoftQuantilizerTestCase(jax.test_util.JaxTestCase):
   def test_sort(self):
     q = soft_quantilizer.SoftQuantilizer(self.x, threshold=1e-3, epsilon=1e-3)
     deltas = np.diff(q.softsort, axis=-1) > 0
-    self.assertAllClose(deltas, np.ones(deltas.shape, dtype=bool), True)
+    self.assertAllClose(
+        deltas, np.ones(deltas.shape, dtype=bool), check_dtypes=True)
 
   def test_target_weights(self):
     q = soft_quantilizer.SoftQuantilizer(
@@ -57,7 +58,7 @@ class SoftQuantilizerTestCase(jax.test_util.JaxTestCase):
     q = soft_quantilizer.SoftQuantilizer(self.x, threshold=1e-3, epsilon=1e-3)
     soft_ranks = q._n * q.softcdf
     true_ranks = np.argsort(np.argsort(q.x, axis=-1), axis=-1) + 1
-    self.assertAllClose(soft_ranks, true_ranks, False, atol=1e-3)
+    self.assertAllClose(soft_ranks, true_ranks, check_dtypes=False, atol=1e-3)
 
 
 if __name__ == '__main__':
