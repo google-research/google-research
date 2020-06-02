@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """A script for dumping experiment results to csv files.
 
 This aims to make the data easy to consume via straight up python.
