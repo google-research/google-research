@@ -13,15 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Environment Class.
 
 Code adapted from the github repository:
 https://github.com/spro/practical-pytorch/blob/master/reinforce-gridworld/
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import numpy as np
 from meta_reward_learning.textworld.lib.replay_buffer import path_to_str
 from meta_reward_learning.textworld.lib.seed_helpers import np_random
