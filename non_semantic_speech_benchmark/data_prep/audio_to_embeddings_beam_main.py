@@ -56,7 +56,7 @@ flags.DEFINE_string(
     'sample_rate_key', None, 'Key of sample rate. '
     'Exactly one of `sample_rate_key`, `sample_rate`, or '
     '`tfds_dataset` must be not None.')
-flags.DEFINE_string(
+flags.DEFINE_integer(
     'sample_rate', None, 'Sample rate.'
     'Exactly one of `sample_rate_key`, `sample_rate`, or '
     '`tfds_dataset` must be not None.')
