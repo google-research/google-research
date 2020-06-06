@@ -201,7 +201,7 @@ class BatchedInference(beam.DoFn):
         'cos': _float_feature([cos_dis]),
         'num_samples': _float_feature([float(dist_samples.shape[0])])
     }
-    return tf.Example(features=tf.train.Features(feature=feature))
+    return tf.train.Example(features=tf.train.Features(feature=feature))
 
   def _flush_buffer(self, add_window=False):
     """Calls the model with the examples in the buffer to create embeddings.
@@ -378,9 +378,9 @@ def create_pipeline(embedding_model,
   if embeddings_output:
     _ = (
         embeddings.examples
-        | 'DropKey' >> beam.ParDo(DropKey())
+        | 'DropKeyEmbeddings' >> beam.ParDo(DropKey())
         | 'Write Examples' >> WriteToTFRecord(
             embeddings_output,
             shard_name_template='',
-            coder=beam.coders.ProtoCoder(tf.Example)))
+            coder=beam.coders.ProtoCoder(tf.train.Example)))
   return pipeline

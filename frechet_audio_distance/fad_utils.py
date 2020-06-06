@@ -34,7 +34,7 @@ def read_mean_and_covariances(filename):
   Returns:
     The values of mu and sigma.
   """
-  tf_record = tf.python_io.tf_record_iterator(filename).next()
+  tf_record = next(tf.python_io.tf_record_iterator(filename))
   example = tf.train.Example().FromString(tf_record)
   mu = np.array(example.features.feature['mu'].float_list.value)
   emb_len = np.array(

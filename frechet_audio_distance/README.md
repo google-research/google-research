@@ -36,14 +36,15 @@ Create a virtualenv to isolate from everything else and activate it first.
 ```shell
 # Python 2
 $ virtualenv fad
-# or Oython 3
-$ python3 -m venv fad # (apache-beam does not yet support Python 3)
+# or Python 3
+$ python3 -m venv fad
 # activate the virtualenv
 $ source fad/bin/activate
 # Upgrade pip
 $ python -m pip install --upgrade pip
 # Install dependences
 $ pip install apache-beam numpy scipy tensorflow
+$ pip install git+git://github.com/google-research/tf-slim.git
 ```
 
 #### Clone TensorFlow models repo into a 'models' directory.
@@ -52,6 +53,7 @@ $ mkdir tensorflow_models
 $ touch tensorflow_models/__init__.py
 $ svn export https://github.com/tensorflow/models/trunk/research/audioset tensorflow_models/audioset/
 $ touch tensorflow_models/audioset/__init__.py
+$ touch tensorflow_models/audioset/vggish/__init__.py
 ```
 
 #### Download data files into a data directory
