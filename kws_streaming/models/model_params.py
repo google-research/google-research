@@ -174,6 +174,7 @@ def tc_resnet_params():
   params.channels = '24, 36'
   params.debug_2d = 0
   params.pool_size = ''
+  params.kernel_size = '(3, 1)'
   params.pool_stride = 0
   params.bn_momentum = 0.997
   params.bn_center = 1
@@ -211,7 +212,7 @@ def gru_params():
   return params
 
 
-def ds_cnn_stride_params():
+def ds_cnn_params():
   """Parameters for toy "depthwise convolutional neural network" stride model."""
   params = Params()
   params.model_name = 'ds_cnn'
@@ -239,8 +240,6 @@ def ds_cnn_stride_params():
 def svdf_params():
   """Parameters for toy svdf model."""
   params = Params()
-  params.mel_num_bins = 80
-  params.dct_num_features = 30
   params.model_name = 'svdf'
   params.svdf_memory_size = '4,10,10,10,10,10'
   params.svdf_units1 = '16,16,16,16,16,16'
@@ -254,11 +253,107 @@ def svdf_params():
   return params
 
 
+def mobilenet_params():
+  """Parameters for mobilenet model."""
+  params = Params()
+  params.model_name = 'mobilenet'
+  params.cnn1_filters = 32
+  params.cnn1_kernel_size = '(3,1)'
+  params.cnn1_strides = '(2,2)'
+  params.ds_kernel_size = '(3,1),(3,1),(3,1),(3,1)'
+  params.ds_strides = '(2,2),(2,2),(1,1),(1,1)'
+  params.cnn_filters = '16,32,32,32'
+  params.dropout = 0.2
+  params.bn_scale = 0
+  return params
+
+
+def mobilenet_v2_params():
+  """Parameters for mobilenet v2 model."""
+  params = Params()
+  params.model_name = 'mobilenet_v2'
+  params.cnn1_filters = 32
+  params.cnn1_kernel_size = '(3,1)'
+  params.cnn1_strides = '(2,2)'
+  params.ds_kernel_size = '(3,1),(3,1),(3,1),(3,1)'
+  params.cnn_strides = '(1,1),(2,2),(1,1),(1,1)'
+  params.cnn_filters = '32,32,32,32'
+  params.cnn_expansions = '1.5,1.5,1.5,1.5'
+  params.dropout = 0.2
+  params.bn_scale = 0
+  return params
+
+
+def xception_params():
+  """Parameters for xception model."""
+  params = Params()
+  params.model_name = 'xception'
+  params.cnn1_kernel_size = '(3,3),(3,1)'
+  params.cnn1_filters = '16,24'
+  params.cnn1_strides = '(2,2),(1,1)'
+  params.cnn2_filters = '32,32'
+  params.cnn3_blocks = 1
+  params.dropout = 0.2
+  params.bn_scale = 0
+  return params
+
+
+def inception_params():
+  """Parameters for inception model."""
+  params = Params()
+  params.model_name = 'inception'
+  params.cnn_filters0 = '24'
+  params.cnn_strides = '2,1'
+  params.cnn_filters1 = '16,24'
+  params.cnn_filters2 = '10,10'
+  params.dropout = 0.2
+  params.bn_scale = 0
+  return params
+
+
+def inception_resnet_params():
+  """Parameters for inception resnet model."""
+  params = Params()
+  params.model_name = 'inception_resnet'
+  params.cnn_filters0 = '32'
+  params.strides = '2,1'
+  params.scales = '0.5,1'
+  params.filters_branch0 = '32,32'
+  params.filters_branch1 = '32,32'
+  params.dropout = 0.2
+  params.bn_scale = 0
+  return params
+
+
+def svdf_resnet_params():
+  """Parameters for svdf with resnet model."""
+  params = Params()
+  params.model_name = 'svdf_resnet'
+  params.block1_memory_size = '4,10'
+  params.block2_memory_size = '10,10'
+  params.block3_memory_size = '10,10'
+  params.block1_units1 = '16,32'
+  params.block2_units1 = '32,32'
+  params.block3_units1 = '64,128'
+  params.blocks_pool = '1,2,2'
+  params.use_batch_norm = 1
+  params.bn_scale = 0
+  params.activation = 'relu'
+  params.svdf_dropout = 0.0
+  params.svdf_pad = 1
+  params.svdf_use_bias = 0
+  params.dropout1 = 0.2
+  params.units2 = '64'
+  params.flatten = 0
+  return params
+
+
 # these are toy hotword model parameters
-# with reduced dims for test latency reduction
+# with reduced dims for unit test only
 HOTWORD_MODEL_PARAMS = {
     'svdf': svdf_params(),
-    'ds_cnn_stride': ds_cnn_stride_params(),
+    'svdf_resnet': svdf_resnet_params(),
+    'ds_cnn': ds_cnn_params(),
     'gru': gru_params(),
     'lstm': lstm_params(),
     'cnn_stride': cnn_stride_params(),
@@ -268,4 +363,9 @@ HOTWORD_MODEL_PARAMS = {
     'dnn': dnn_params(),
     'att_rnn': att_rnn_params(),
     'att_mh_rnn': att_mh_rnn_params(),
+    'mobilenet': mobilenet_params(),
+    'mobilenet_v2': mobilenet_v2_params(),
+    'xception': xception_params(),
+    'inception': inception_params(),
+    'inception_resnet': inception_resnet_params(),
 }

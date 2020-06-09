@@ -53,6 +53,12 @@ def model_parameters(parser_nn):
       help="pool size for example '4,4'",
   )
   parser_nn.add_argument(
+      '--kernel_size',
+      type=str,
+      default='(9,1)',
+      help='kernel_size of conv layer',
+  )
+  parser_nn.add_argument(
       '--pool_stride',
       type=int,
       default=0,
@@ -128,7 +134,7 @@ def model(flags):
     net = tf.reshape(
         net, [-1, time_size, 1, feature_size])  # [batch, time, 1, feature]
     first_conv_kernel = (3, 1)
-    conv_kernel = (9, 1)
+    conv_kernel = parse(flags.kernel_size)
 
   net = tf.keras.layers.Conv2D(
       filters=channels[0],

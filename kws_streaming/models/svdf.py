@@ -41,7 +41,7 @@ def model_parameters(parser_nn):
       '--svdf_act',
       type=str,
       default="'relu','relu','relu','relu','relu','relu'",
-      help='Number of units in the first set of hidden layers',
+      help='Activation functions in svdf modules',
   )
   parser_nn.add_argument(
       '--svdf_units2',

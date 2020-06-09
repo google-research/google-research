@@ -27,6 +27,40 @@ from tensorflow.python.keras.engine import functional
 # pylint: enable=g-direct-tensorflow-import
 
 
+def conv2d_bn(x,
+              filters,
+              kernel_size,
+              padding='same',
+              strides=(1, 1),
+              activation='relu',
+              use_bias=False,
+              scale=False):
+  """Utility function to apply conv + BN.
+
+  Arguments:
+    x: input tensor.
+    filters: filters in `Conv2D`.
+    kernel_size: size of convolution kernel.
+    padding: padding mode in `Conv2D`.
+    strides: strides in `Conv2D`.
+    activation: activation function applied in the end.
+    use_bias: use bias for convolution.
+    scale: scale batch normalization.
+
+  Returns:
+    Output tensor after applying `Conv2D` and `BatchNormalization`.
+  """
+
+  x = tf.keras.layers.Conv2D(
+      filters, kernel_size,
+      strides=strides,
+      padding=padding,
+      use_bias=use_bias)(x)
+  x = tf.keras.layers.BatchNormalization(scale=scale)(x)
+  x = tf.keras.layers.Activation(activation)(x)
+  return x
+
+
 def save_model_summary(model, path, file_name='model_summary.txt'):
   """Saves model topology/summary in text format.
 

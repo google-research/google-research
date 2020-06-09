@@ -12,17 +12,23 @@ Non streaming means that model has to receive the whole sequence
 (for example 1 sec) and then return an output.
 We applied this lib for keyword spotting (KWS) problem
 and implemented most popular KWS models:
-* dnn - deep neural network based on combination of fully connected layers;
-* dnn_raw - an example of dnn model on raw audio features;
-* gru - gated recurrent unit model;
-* lstm - long short term memory model;
-* cnn - convolutional neural network;
-* tc-resnet - temporal convolution with sequence of residual blocks;
-* crnn - combination of convolutional layers with RNNs(GRU or LSTM);
-* ds_cnn - depth wise convolutional neural network;
-* svdf - singular value decomposition filter neural network;
-* att_rnn - combination of attention with RNN(bi directional LSTM)
-* att_mh_rnn - combination of multihead attention with RNN(bi directional LSTM)
+* [dnn](https://arxiv.org/pdf/1711.07128.pdf) - deep neural network based on combination of fully connected layers;
+* dnn_raw - an example of [dnn](https://arxiv.org/pdf/1711.07128.pdf) model on raw audio features;
+* [gru](https://arxiv.org/pdf/1711.07128.pdf) - gated recurrent unit model;
+* [lstm](https://arxiv.org/pdf/1711.07128.pdf) - long short term memory model;
+* [cnn](https://arxiv.org/pdf/1711.07128.pdf) - convolutional neural network;
+* [tc_resnet](https://arxiv.org/pdf/1904.03814.pdf) - temporal convolution with sequence of residual blocks;
+* [crnn](https://arxiv.org/pdf/1711.07128.pdf) - combination of convolutional layers with RNNs(GRU or LSTM);
+* [ds_cnn](https://arxiv.org/pdf/1711.07128.pdf) - depth wise convolutional neural network;
+* [svdf](https://arxiv.org/pdf/1812.02802.pdf) - singular value decomposition filter neural network (sequence of 1d depthwise conv and 1x1 conv);
+* svdf_resnet - [svdf](https://arxiv.org/pdf/1812.02802.pdf) neural network with residual connections;
+* [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) - combination of attention with RNN(bi directional LSTM);
+* att_mh_rnn - extended version of [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) with multihead attention;
+* [mobilenet](https://arxiv.org/abs/1704.04861) - reduced version of mobilenet vision/imagenet model, but with 1d temporal conv;
+* [mobilenet_v2](https://arxiv.org/abs/1801.04381) - reduced version of mobilenet_v2 vision/imagenet model, but with 1d temporal conv;
+* [xception](https://arxiv.org/abs/1610.02357) - reduced version of xception vision/imagenet model;
+* [inception](http://arxiv.org/abs/1512.00567) - reduced version of inception vision/imagenet model;
+* [inception_resnet](https://arxiv.org/abs/1602.07261) - reduced version of inception_resnet vision/imagenet model;
 
 They all use speech feature extractor, which is easy to configure as MFCC, LFBE
 or raw features (so user can train own speech feature extractor).
@@ -150,7 +156,7 @@ All states are received as inputs and after update are returned as output state
 Summary about this work is presented at paper [Streaming keyword spotting on mobile devices](https://arxiv.org/abs/2005.06720)
 All experiments on KWS models presented in this paper can be reproduced by
 following the steps described in
-`kws_streaming/experiments/kws_experiments.txt`.
+`kws_streaming/experiments/kws_experiments_paper.txt`.
 Models were trained on a desktop (Ubuntu) and tested on a Pixel4 phone.
 
 

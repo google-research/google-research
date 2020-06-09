@@ -22,9 +22,15 @@ import kws_streaming.models.dnn as dnn
 import kws_streaming.models.dnn_raw as dnn_raw
 import kws_streaming.models.ds_cnn as ds_cnn
 import kws_streaming.models.gru as gru
+import kws_streaming.models.inception as inception
+import kws_streaming.models.inception_resnet as inception_resnet
 import kws_streaming.models.lstm as lstm
+import kws_streaming.models.mobilenet as mobilenet
+import kws_streaming.models.mobilenet_v2 as mobilenet_v2
 import kws_streaming.models.svdf as svdf
+import kws_streaming.models.svdf_resnet as svdf_resnet
 import kws_streaming.models.tc_resnet as tc_resnet
+import kws_streaming.models.xception as xception
 # dict with supported models
 MODELS = {
     'att_mh_rnn': att_mh_rnn.model,
@@ -38,4 +44,10 @@ MODELS = {
     'gru': gru.model,
     'lstm': lstm.model,
     'svdf': svdf.model,
+    'svdf_resnet': svdf_resnet.model,
+    'mobilenet': mobilenet.model,
+    'mobilenet_v2': mobilenet_v2.model,
+    'xception': xception.model,
+    'inception': inception.model,
+    'inception_resnet': inception_resnet.model,
 }
