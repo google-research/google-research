@@ -1,0 +1,227 @@
+In below commands models are configured to have around 30K parameters.
+Non-quantized model size will be around 100..150KB
+Quantized model size will be around 30..50KB
+
+TODO: switch to md
+## Set up environment:
+TODO: convert below commands into shell function
+# create main folder
+mkdir /tmp/test
+cd /tmp/test
+
+# set path to a main folder
+KWS_PATH=/tmp/test
+
+# copy content of kws_streaming to a folder
+/tmp/test/kws_streaming
+
+# set up virtual env
+sudo pip install virtualenv
+virtualenv --system-site-packages -p python3 ./venv3
+source ./venv3/bin/activate
+
+# install TensorFlow, correct TensorFlow version is important
+pip install --upgrade pip
+pip install tf_nightly # was tested on tf_nightly-2.3.0.dev20200515-cp36-cp36m-manylinux2010_x86_64.whl
+
+# install pydot and graphviz
+pip install pydot
+pip install graphviz
+
+
+## Set up data sets:
+
+# There are two versions of data sets for training KWS which are well described
+# in https://arxiv.org/pdf/1804.03209.pdf
+# data sets V1 [2017]: http://download.tensorflow.org/data/speech_commands_v0.01.tar.gz
+# data sets V2 [2018]: https://storage.googleapis.com/download.tensorflow.org/data/speech_commands_v0.02.tar.gz
+
+# download and set up path to data set V1 and set it up
+wget http://download.tensorflow.org/data/speech_commands_v0.01.tar.gz
+mkdir data1
+mv ./speech_commands_v0.01.tar.gz ./data1
+cd ./data1
+tar -xf ./speech_commands_v0.01.tar.gz
+cd ../
+
+# download and set up path to data set V2 and set it up
+wget https://storage.googleapis.com/download.tensorflow.org/data/speech_commands_v0.02.tar.gz
+mkdir data2
+mv ./speech_commands_v0.02.tar.gz ./data2
+cd ./data2
+tar -xf ./speech_commands_v0.02.tar.gz
+cd ../
+
+
+# Set data path to data V1 or data V2
+# for example data V1
+DATA_PATH=$KWS_PATH/data1
+
+
+# Set models path to models trained on data V1 or data V2
+# for example data V1
+MODELS_PATH=$KWS_PATH/models1
+
+# or models trained on data V2
+# MODELS_PATH=$KWS_PATH/models2
+
+# Now we can run below commands with "--train 0"
+# which will evaluate the model and produce
+# accuracy report with TFLite modules.
+# If you would like to re-train model from scratch then you should:
+# set "--train 0" and remove model subfolder inside of $MODELS_PATH
+
+# depending on which data sets to use, set DATA_PATH
+
+# To train model training evaluation we can use bazel (commented below)
+# or use standard python
+
+# CMD_TRAIN="bazel run -c opt --copt=-mavx2 kws_streaming/train:model_train_eval --"
+CMD_TRAIN="python -m kws_streaming.train.model_train_eval"
+
+
+
+$CMD_TRAIN \
+--data_url '' \
+--data_dir $DATA_PATH/ \
+--train_dir $MODELS_PATH/mobilenet_mfcc_op/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 20000,20000,20000,20000 \
+--learning_rate 0.1,0.05,0.02,0.01 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 80 \
+--dct_num_features 40 \
+--resample 0.15 \
+--alsologtostderr \
+--time_shift_ms 100 \
+--feature_type 'mfcc_op' \
+--preprocess 'raw' \
+--train 1 \
+--optimizer 'momentum' \
+--lr_schedule 'exp' \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 10 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 5 \
+mobilenet \
+--cnn1_filters 32 \
+--cnn1_kernel_size '(3,1)' \
+--cnn1_strides '(2,2)' \
+--ds_kernel_size '(3,1),(3,1),(3,1),(3,1)' \
+--ds_strides '(2,2),(2,2),(1,1),(1,1)' \
+--cnn_filters '32,64,128,128' \
+--dropout 0.2
+
+95.6
+$CMD_TRAIN \
+--data_url '' \
+--data_dir $DATA_PATH/ \
+--train_dir $MODELS_PATH/mobilenet_v2_mfcc_op/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 20000,20000,20000,20000 \
+--learning_rate 0.001,0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 80 \
+--dct_num_features 30 \
+--resample 0.15 \
+--alsologtostderr \
+--time_shift_ms 100 \
+--train 1 \
+--feature_type 'mfcc_op' \
+--preprocess 'raw' \
+--volume_resample 0.25 \
+mobilenet_v2 \
+--cnn1_filters 32 \
+--cnn1_kernel_size '(3,1)' \
+--cnn1_strides '(2,2)' \
+--ds_kernel_size '(3,1),(3,1),(3,1),(3,1)' \
+--cnn_strides '(1,1),(2,2),(1,1),(1,1)' \
+--cnn_filters '32,32,64,64' \
+--cnn_expansions '1.5,1.5,1.5,1.5' \
+--dropout 0.2
+
+
+$CMD_TRAIN \
+--data_url '' \
+--data_dir $DATA_PATH/ \
+--train_dir $MODELS_PATH/inception_mfcc_op/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 20000,20000,20000,20000 \
+--learning_rate 0.001,0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 80 \
+--dct_num_features 30 \
+--resample 0.15 \
+--alsologtostderr \
+--time_shift_ms 100 \
+--train 1 \
+--feature_type 'mfcc_op' \
+--preprocess 'raw' \
+--volume_resample 0.25 \
+inception \
+--cnn_filters0 '24' \
+--cnn_strides '2,1' \
+--cnn_filters1 '16,32' \
+--cnn_filters2 '16,16' \
+--dropout 0.2
+
+
+$CMD_TRAIN \
+--data_url '' \
+--data_dir $DATA_PATH/ \
+--train_dir $MODELS_PATH/tc_resnet_mfcc_op/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 20000,20000,20000,20000 \
+--learning_rate 0.001,0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 80 \
+--dct_num_features 30 \
+--resample 0.15 \
+--alsologtostderr \
+--time_shift_ms 100 \
+--train 1 \
+--feature_type 'mfcc_op' \
+--preprocess 'raw' \
+--volume_resample 0.25 \
+tc_resnet \
+--kernel_size '(3,1)' \
+--channels '32, 36, 36, 40' \
+--debug_2d 0 \
+--pool_size '' \
+--pool_stride 0 \
+--bn_momentum 0.997 \
+--bn_center 1 \
+--bn_scale 1 \
+--bn_renorm 0 \
+--dropout 0.2
+
+
+$CMD_TRAIN \
+--data_url '' \
+--data_dir $DATA_PATH/ \
+--train_dir $MODELS_PATH/inception_resnet_mfcc_op/ \
+--mel_upper_edge_hertz 7000 \
+--how_many_training_steps 20000,20000,20000,20000 \
+--learning_rate 0.001,0.0005,0.0001,0.00002 \
+--window_size_ms 40.0 \
+--window_stride_ms 20.0 \
+--mel_num_bins 80 \
+--dct_num_features 30 \
+--resample 0.15 \
+--alsologtostderr \
+--time_shift_ms 100 \
+--train 1 \
+--feature_type 'mfcc_op' \
+--preprocess 'raw' \
+inception_resnet \
+--cnn_filters0 '32' \
+--strides '2,1,1' \
+--scales '0.2,0.5,1.0' \
+--filters_branch0 '32,32,32' \
+--filters_branch1 '32,32,32' \
+--dropout 0.2

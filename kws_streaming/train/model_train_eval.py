@@ -119,10 +119,16 @@ import kws_streaming.models.dnn as dnn
 import kws_streaming.models.dnn_raw as dnn_raw
 import kws_streaming.models.ds_cnn as ds_cnn
 import kws_streaming.models.gru as gru
+import kws_streaming.models.inception as inception
+import kws_streaming.models.inception_resnet as inception_resnet
 import kws_streaming.models.lstm as lstm
+import kws_streaming.models.mobilenet as mobilenet
+import kws_streaming.models.mobilenet_v2 as mobilenet_v2
 import kws_streaming.models.svdf as svdf
+import kws_streaming.models.svdf_resnet as svdf_resnet
 import kws_streaming.models.tc_resnet as tc_resnet
 from kws_streaming.models.utils import parse
+import kws_streaming.models.xception as xception
 from kws_streaming.train import base_parser
 from kws_streaming.train import model_flags
 from kws_streaming.train import train
@@ -323,6 +329,30 @@ if __name__ == '__main__':
   # TC Resnet model settings
   parser_tc_resnet = subparsers.add_parser('tc_resnet')
   tc_resnet.model_parameters(parser_tc_resnet)
+
+  # Mobilenet model settings
+  parser_mobilenet = subparsers.add_parser('mobilenet')
+  mobilenet.model_parameters(parser_mobilenet)
+
+  # Mobilenet V2 model settings
+  parser_mobilenet_v2 = subparsers.add_parser('mobilenet_v2')
+  mobilenet_v2.model_parameters(parser_mobilenet_v2)
+
+  # xception model settings
+  parser_xception = subparsers.add_parser('xception')
+  xception.model_parameters(parser_xception)
+
+  # inception model settings
+  parser_inception = subparsers.add_parser('inception')
+  inception.model_parameters(parser_inception)
+
+  # inception resnet model settings
+  parser_inception_resnet = subparsers.add_parser('inception_resnet')
+  inception_resnet.model_parameters(parser_inception_resnet)
+
+  # svdf resnet model settings
+  parser_svdf_resnet = subparsers.add_parser('svdf_resnet')
+  svdf_resnet.model_parameters(parser_svdf_resnet)
 
   FLAGS, unparsed = parser.parse_known_args()
   tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)

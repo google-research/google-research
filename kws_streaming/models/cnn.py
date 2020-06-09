@@ -80,6 +80,8 @@ def model(flags):
   It is based on paper:
   Convolutional Neural Networks for Small-footprint Keyword Spotting
   http://www.isca-speech.org/archive/interspeech_2015/papers/i15_1478.pdf
+  Model topology is similar with "Hello Edge: Keyword Spotting on
+  Microcontrollers" https://arxiv.org/pdf/1711.07128.pdf
 
   Args:
     flags: data/model parameters

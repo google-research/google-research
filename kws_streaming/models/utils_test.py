@@ -29,8 +29,28 @@ tf1.disable_eager_execution()
 FLAGS = flags.FLAGS
 
 
-# two models tested per test to reduce test latency
+# two models are tested with all cobinations of speech frontend
+# and all models are tested with one frontend
 class UtilsTest(tf.test.TestCase, parameterized.TestCase):
+
+  def _testTFLite(self,
+                  preprocess='raw',
+                  feature_type='mfcc_op',
+                  model_name='svdf'):
+    params = model_params.HOTWORD_MODEL_PARAMS[model_name]
+
+    # set parameters to test
+    params.preprocess = preprocess
+    params.feature_type = feature_type
+    params = model_flags.update_flags(params)
+
+    # create model
+    model = models.MODELS[params.model_name](params)
+
+    # convert TF non streaming model to TFLite non streaming inference
+    self.assertTrue(
+        utils.model_to_tflite(self.sess, model, params,
+                              Modes.NON_STREAM_INFERENCE))
 
   def setUp(self):
     super(UtilsTest, self).setUp()
@@ -62,30 +82,13 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
           'feature_type': 'mfcc_op'
       },  # feature_type will be ignored
   ])
-  def testToNonStreamInferenceTFandTFLite(self,
-                                          preprocess,
-                                          feature_type,
-                                          model_name='svdf'):
-    """Validate that model can be converted to non stream inference mode."""
-    params = model_params.HOTWORD_MODEL_PARAMS[model_name]
-
-    # set parameters to test
-    params.preprocess = preprocess
-    params.feature_type = feature_type
-    params = model_flags.update_flags(params)
-
-    # create model
-    model = models.MODELS[params.model_name](params)
-
-    # convert TF non streaming model to TF non streaming inference model
-    # it will disable dropouts
-    self.assertTrue(utils.to_streaming_inference(
-        model, params, Modes.NON_STREAM_INFERENCE))
-
-    # convert TF non streaming model to TFLite non streaming inference
-    self.assertTrue(
-        utils.model_to_tflite(self.sess, model, params,
-                              Modes.NON_STREAM_INFERENCE))
+  def testPreprocessNonStreamInferenceTFandTFLite(self,
+                                                  preprocess,
+                                                  feature_type,
+                                                  model_name='svdf'):
+    # Validate that model with different preprocessing
+    # can be converted to non stream inference mode.
+    self._testTFLite(preprocess, feature_type, model_name)
 
   @parameterized.named_parameters([
       {
@@ -109,11 +112,12 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
           'feature_type': 'mfcc_op'
       },  # feature_type will be ignored
   ])
-  def testToStreamInferenceModeTFandTFLite(self,
-                                           preprocess,
-                                           feature_type,
-                                           model_name='gru'):
-    """Validate that model can be converted to any streaming inference mode."""
+  def testPreprocessStreamInferenceModeTFandTFLite(self,
+                                                   preprocess,
+                                                   feature_type,
+                                                   model_name='gru'):
+    # Validate that model with different preprocessing
+    # can be converted to stream inference mode with TF and TFLite.
     params = model_params.HOTWORD_MODEL_PARAMS[model_name]
     # set parameters to test
     params.preprocess = preprocess
@@ -147,6 +151,15 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
 
   def testNextPowerOfTwo(self):
     self.assertEqual(utils.next_power_of_two(11), 16)
+
+  @parameterized.parameters('att_mh_rnn', 'att_rnn', 'dnn', 'ds_cnn', 'cnn',
+                            'tc_resnet', 'crnn', 'gru', 'lstm', 'svdf',
+                            'svdf_resnet', 'mobilenet', 'mobilenet_v2',
+                            'xception', 'inception', 'inception_resnet')
+  def testNonStreamInferenceTFandTFLite(self, model_name):
+    # Validate that all models with selected preprocessing
+    # can be converted to non stream inference mode.
+    self._testTFLite(model_name=model_name)
 
 
 if __name__ == '__main__':

@@ -83,8 +83,8 @@ def model(flags):
   Similar model in papers:
   Convolutional Recurrent Neural Networks for Small-Footprint Keyword Spotting
   https://arxiv.org/pdf/1703.05390.pdf (with no conv layer)
-  Hello Edge: Keyword Spotting on Microcontrollers
-  https://arxiv.org/pdf/1711.07128.pdf
+  Model topology is similar with "Hello Edge: Keyword Spotting on
+  Microcontrollers" https://arxiv.org/pdf/1711.07128.pdf
 
   Args:
     flags: data/model parameters
