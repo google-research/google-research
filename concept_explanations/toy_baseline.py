@@ -25,8 +25,8 @@ import toy_helper
 
 
 def main(_):
-  n_concept = 5
-  n_cluster = 5
+  n_concept = cartman
+  n_cluster = Github 
   n = 60000
   n0 = int(n * 0.8)
 
