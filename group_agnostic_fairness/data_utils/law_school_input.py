@@ -78,7 +78,8 @@ class LawSchoolInput():
 
     self._mean_std_file = "{}/mean_std.json".format(self._dataset_base_dir)
     self._vocabulary_file = "{}/vocabulary.json".format(self._dataset_base_dir)
-    self._ips_with_label_file = "{}/IPS_example_weights_with_label.json".format(self._dataset_base_dir)
+    self._ips_with_label_file = "{}/IPS_example_weights_with_label.json".format(
+        self._dataset_base_dir)
     self._ips_without_label_file = "{}/IPS_example_weights_without_label.json".format(self._dataset_base_dir)
 
     # Refer to http://www.seaphe.org/databases.php for full explanation of features_names

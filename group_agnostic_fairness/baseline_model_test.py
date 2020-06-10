@@ -39,9 +39,12 @@ class BaselineModelTest(tf.test.TestCase, absltest.TestCase):
     self.batch_size = 8
     self.train_steps = 20
     self.test_steps = 5
-    self.dataset_base_dir = os.path.join(os.path.dirname(__file__), 'data/toy_data')  # pylint: disable=line-too-long
-    self.train_file = [os.path.join(os.path.dirname(__file__), 'data/toy_data/train.csv')]  # pylint: disable=line-too-long
-    self.test_file = [os.path.join(os.path.dirname(__file__), 'data/toy_data/test.csv')]  # pylint: disable=line-too-long
+    self.dataset_base_dir = os.path.join(os.path.dirname(__file__),
+                                         'data/toy_data')
+    self.train_file = [os.path.join(os.path.dirname(__file__),
+                                    'data/toy_data/train.csv')]
+    self.test_file = [os.path.join(os.path.dirname(__file__),
+                                   'data/toy_data/test.csv')]
     self.load_dataset = UCIAdultInput(
         dataset_base_dir=self.dataset_base_dir,
         train_file=self.train_file,

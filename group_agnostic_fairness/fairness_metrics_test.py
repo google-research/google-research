@@ -71,7 +71,8 @@ class FairnessMetricsTest(tf.test.TestCase, absltest.TestCase):
   def _get_estimator(self):
     config = tf.estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=1)
-    feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=True)  # pylint: disable=line-too-long
+    feature_columns, _, _, label_column_name = (
+        self.load_dataset.get_feature_columns(include_sensitive_columns=True))
     estimator = robust_learning_model.get_estimator(
         feature_columns=feature_columns,
         label_column_name=label_column_name,

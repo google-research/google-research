@@ -305,9 +305,10 @@ def run_model():
   test_input_fn = load_dataset.get_input_fn(
       mode=tf.estimator.ModeKeys.EVAL, batch_size=FLAGS.batch_size)
 
-  feature_columns, _, protected_groups, label_column_name = load_dataset.get_feature_columns(
-      embedding_dimension=FLAGS.embedding_dimension,
-      include_sensitive_columns=FLAGS.include_sensitive_columns)
+  feature_columns, _, protected_groups, label_column_name = (
+      load_dataset.get_feature_columns(
+          embedding_dimension=FLAGS.embedding_dimension,
+          include_sensitive_columns=FLAGS.include_sensitive_columns))
 
   # Constructs a int list enumerating the number of subgroups in the dataset.
   # # For example, if the dataset has two (binary) protected_groups. The dataset has 2^2 = 4 subgroups, which we enumerate as [0, 1, 2, 3].

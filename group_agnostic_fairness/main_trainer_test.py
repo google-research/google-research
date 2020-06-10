@@ -124,8 +124,7 @@ class RunModelTest(tf.test.TestCase, absltest.TestCase):
   def test_run_not_implemented_model(self):
     """Shoud raise ValueError as <dummy_name> model is not implemented."""
     with self.assertRaises(ValueError):
-      self._model_name = 'dummy_name'
-      run_experiment(model_name=self._model_name, dataset=self._dataset)
+      run_experiment(model_name='dummy_name', dataset=self._dataset)
 
 
 if __name__ == '__main__':
