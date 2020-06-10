@@ -120,3 +120,53 @@ python3 run_pretraining.py \
   --use_tpu \
   --tpu_name=${TPU_NAME} \
 ```
+
+### Run Quantization-aware-training with Squad
+
+After we have distilled the pre-trained mobile bert, we can insert fake quant
+nodes for quantization-aware-training:
+
+```shell
+export DATA_DIR=/tmp/mobilebert/data_cache/
+export INIT_CHECKPOINT=/path/to/checkpoint/
+export OUTPUT_DIR=/tmp/mobilebert/experiment/
+python3 run_squad.py \
+  --bert_config_file=config/uncased_L-24_H-128_B-512_A-4_F-4_OPT_QAT.json \
+  --data_dir=${DATA_DIR} \
+  --do_lower_case \
+  --do_predict \
+  --do_train \
+  --doc_stride=128 \
+  --init_checkpoint=${INIT_CHECKPOINT}/mobilebert.ckpt \
+  --learning_rate=4e-05 \
+  --max_answer_length=30 \
+  --max_query_length=64 \
+  --max_seq_length=384 \
+  --n_best_size=20 \
+  --num_train_epochs=5 \
+  --output_dir=${OUTPUT_DIR} \
+  --predict_file=/path/to/squad/dev-v1.1.json \
+  --train_batch_size=32 \
+  --train_file=/path/to/squad/train-v1.1.json \
+  --use_tpu \
+  --tpu_name=${TPU_NAME} \
+  --vocab_file=${INIT_CHECKPOINT}/vocab.txt \
+  --warmup_proportion=0.1
+  --use_quantized_training=true
+```
+
+## Export an integer-only MobileBERT to TF-Lite format.
+
+```shell
+export EXPORT_DIR='path/to/tflite'
+python3 run_squad.py \
+  --use_quantized_training=true \
+  --use_post_quantization=true \
+  --activation_quantization=true \
+  --data_dir=${DATA_DIR}  \
+  --output_dir=${OUTPUT_DIR} \
+  --vocab_file=${INIT_CHECKPOINT}/vocab.txt \
+  --bert_config_file=config/uncased_L-24_H-128_B-512_A-4_F-4_OPT_QAT.json \
+  --train_file=/path/to/squad/train-v1.1.json \
+  --export_dir=${EXPORT_DIR}
+```

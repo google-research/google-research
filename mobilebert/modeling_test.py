@@ -52,6 +52,8 @@ class BertModelTest(tf.test.TestCase):
                  max_position_embeddings=512,
                  type_vocab_size=16,
                  initializer_range=0.02,
+                 normalization_type="layer_norm",
+                 use_quantized_training=False,
                  scope=None):
       self.parent = parent
       self.batch_size = batch_size
@@ -71,6 +73,8 @@ class BertModelTest(tf.test.TestCase):
       self.max_position_embeddings = max_position_embeddings
       self.type_vocab_size = type_vocab_size
       self.initializer_range = initializer_range
+      self.normalization_type = normalization_type
+      self.use_quantized_training = use_quantized_training
       self.scope = scope
 
     def create_model(self):
@@ -99,7 +103,8 @@ class BertModelTest(tf.test.TestCase):
           attention_probs_dropout_prob=self.attention_probs_dropout_prob,
           max_position_embeddings=self.max_position_embeddings,
           type_vocab_size=self.type_vocab_size,
-          initializer_range=self.initializer_range)
+          initializer_range=self.initializer_range,
+          normalization_type=self.normalization_type)
 
       model = modeling.BertModel(
           config=config,
@@ -107,6 +112,7 @@ class BertModelTest(tf.test.TestCase):
           input_ids=input_ids,
           input_mask=input_mask,
           token_type_ids=token_type_ids,
+          use_quantized_training=self.use_quantized_training,
           scope=self.scope)
 
       outputs = {
@@ -131,6 +137,14 @@ class BertModelTest(tf.test.TestCase):
 
   def test_default(self):
     self.run_tester(BertModelTest.BertModelTester(self))
+
+  def test_quantized(self):
+    self.run_tester(
+        BertModelTest.BertModelTester(
+            self,
+            hidden_act="relu6",
+            normalization_type="no_norm",
+            use_quantized_training=True))
 
   def test_config_to_json_string(self):
     config = modeling.BertConfig(vocab_size=99, hidden_size=37)
@@ -175,6 +189,8 @@ class BertModelTest(tf.test.TestCase):
         "^.*/Tensordot/concat$",
         "^.*/Tensordot/concat/axis$",
         "^testing/.*$",
+        "^.*/MobileBertActFakeQuantWithMinMaxVars.*/.*$",
+        "^.*/MobileBertWeightFakeQuantWithMinMaxVars.*/.*$",
     ]
 
     ignore_regexes = [re.compile(x) for x in ignore_strings]
