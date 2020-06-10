@@ -266,8 +266,8 @@ class _AdversarialSubgroupReweightingModel():
 
       with tf.name_scope('primary_NN'):
         with tf.variable_scope('primary'):
-          input_layer = tf.feature_column.input_layer(features,
-                                                      self._feature_columns)
+          input_layer = tf.feature_column.input_layer(
+              features, self._feature_columns)
           layer = input_layer
           for unit in self._primary_hidden_units:
             layer = tf.layers.Dense(unit, activation=self._activation)(layer)

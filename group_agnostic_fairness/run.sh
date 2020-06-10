@@ -21,6 +21,7 @@ source ./bin/activate
 
 pip3 install -r group_agnostic_fairness/requirements.txt
 
+# Select from the following models or tests to run.
 python -m group_agnostic_fairness.main_trainer
 python -m group_agnostic_fairness.main_trainer_test
 python -m group_agnostic_fairness.robust_learning_model_test

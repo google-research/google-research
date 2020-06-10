@@ -170,7 +170,8 @@ class _IPSReweightingModel():
       class_labels = labels[self._label_column_name]
 
       ips_example_weights_with_label = labels[IPS_WITH_LABEL_TARGET_COLUMN_NAME]
-      ips_example_weights_without_label = labels[IPS_WITHOUT_LABEL_TARGET_COLUMN_NAME]  # pylint: disable=line-too-long
+      ips_example_weights_without_label = labels[
+          IPS_WITHOUT_LABEL_TARGET_COLUMN_NAME]
 
       tf.logging.info('model_fn for mode: {}'.format(mode))
 

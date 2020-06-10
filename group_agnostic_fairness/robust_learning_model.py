@@ -285,7 +285,8 @@ class _RobustModel():
                                activation=self._activation)(h1)
           logits = tf.layers.Dense(1)(h2)
           sigmoid_output = tf.nn.sigmoid(logits, name='sigmoid')
-          class_predictions = tf.cast(tf.greater(sigmoid_output, 0.5), tf.float32)  # pylint: disable=line-too-long
+          class_predictions = tf.cast(
+              tf.greater(sigmoid_output, 0.5), tf.float32)
           tf.summary.histogram('class_predictions', class_predictions)
 
       # Creates a network architecture for the adversarial regression task

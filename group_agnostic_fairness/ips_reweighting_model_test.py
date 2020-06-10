@@ -55,7 +55,8 @@ class IPSReweightingModelTest(tf.test.TestCase, absltest.TestCase):
         subgroups=self.subgroups)
 
   def test_get_feature_columns_with_demographics(self):
-    feature_columns, _, _, target_variable_column = self.load_dataset.get_feature_columns(include_sensitive_columns=True)  # pylint: disable=line-too-long
+    feature_columns, _, _, target_variable_column = (
+        self.load_dataset.get_feature_columns(include_sensitive_columns=True))
     self.assertLen(feature_columns, 14)
     self.assertEqual(target_variable_column, self.label_column_name)
 
