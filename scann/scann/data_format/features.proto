@@ -1,0 +1,114 @@
+// Copyright 2020 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+syntax = "proto2";
+
+package tensorflow.scann_ops;
+
+import "google/protobuf/timestamp.proto";
+import "scann/coscann/v2_restricts.proto";
+import "scann/proto/restricts.proto";
+
+option java_package = "com.google.research.scann";
+option cc_enable_arenas = true;
+
+message GenericFeatureVector {
+  extensions 1000 to max;
+
+  enum FeatureType {
+    UNKNOWN = 0;
+    INT64 = 1;
+    FLOAT = 2;
+    DOUBLE = 3;
+    STRING = 4;
+    BINARY = 5;
+  }
+
+  required FeatureType feature_type = 1;
+
+  optional bytes data_id_str = 2;
+
+  repeated float feature_value_float = 4 [packed = true];
+  repeated double feature_value_double = 5 [packed = true];
+  repeated int64 feature_value_int64 = 3 [packed = true];
+
+  optional bytes feature_value_string = 13;
+
+  repeated uint64 feature_index = 6 [packed = true];
+
+  enum FeatureNorm {
+    NONE = 0;
+    UNITL2NORM = 1;
+    STDGAUSSNORM = 2;
+    UNITL1NORM = 3;
+  }
+
+  optional FeatureNorm norm_type = 9 [default = NONE];
+
+  optional string class_label = 16;
+
+  message Crowding {
+    optional int64 crowding_attribute = 1;
+  }
+  optional Crowding crowding = 18;
+
+  message RestrictTokens {
+    optional V3Restrict v3 = 7;
+
+    repeated int64 token_membership = 1 [packed = true];
+
+    repeated int64 whitelist_token = 2 [packed = true];
+    repeated int64 blacklist_token = 3 [packed = true];
+
+    oneof v2_restricts {
+      tensorflow.scann_ops.coscann.EasyRestrictDefinition easy_definition = 6;
+      tensorflow.scann_ops.coscann.RestrictTokensV2 tokens = 5;
+      tensorflow.scann_ops.coscann.RestrictDefinition definition = 4;
+    }
+
+    optional string v3_compatible_namespace = 8;
+  }
+  optional RestrictTokens restrict_tokens = 15;
+
+  message FixedPointMetadata {
+    optional float squared_l2_norm = 1;
+  }
+
+  optional FixedPointMetadata fixed_point_metadata = 19;
+
+  optional bytes userinfo = 17 [ctype = CORD];
+
+  optional google.protobuf.Timestamp expiration_timestamp = 20;
+
+  optional uint64 feature_dim = 10 [default = 0xFFFFFFFFFFFFFFFF];
+
+  optional float weight = 8;
+  repeated int32 tokens = 14 [packed = true, deprecated = true];
+}

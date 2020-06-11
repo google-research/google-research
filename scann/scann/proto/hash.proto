@@ -1,0 +1,221 @@
+// Copyright 2020 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package tensorflow.scann_ops;
+
+import "scann/proto/distance_measure.proto";
+import "scann/proto/projection.proto";
+
+message HashConfig {
+  optional int32 num_bits = 1;
+
+  optional ProjectionConfig projection = 2;
+
+  enum ThresholdType {
+    UNKNOWN = 0;
+    SIGN = 1;
+    MEAN = 2;
+    MEDIAN = 3;
+    SINUSOIDAL = 4;
+  }
+
+  optional ThresholdType threshold_type = 3 [default = SIGN];
+
+  optional string parameters_filename = 4;
+
+  optional AsymmetricHasherConfig asymmetric_hash = 5;
+
+  optional MinHasherConfig min_hash = 6;
+
+  optional PcaHasherConfig pca_hash = 7;
+
+  optional BitSamplingHasherConfig bit_sampling_hash = 9;
+
+  optional BncHasherConfig bnc_hash = 10;
+}
+
+message AsymmetricHasherConfig {
+  optional ProjectionConfig projection = 1;
+
+  optional int32 num_clusters_per_block = 2 [default = 256];
+
+  enum LookupType {
+    FLOAT = 0;
+
+    INT8 = 1;
+
+    INT16 = 2;
+
+    INT8_LUT16 = 3;
+  }
+
+  optional LookupType lookup_type = 20 [default = FLOAT];
+
+  optional int32 clustering_seed = 9 [default = 1];
+
+  optional bool use_residual_quantization = 22 [default = false];
+
+  optional bool use_normalized_residual_quantization = 32 [default = false];
+
+  optional double noise_shaping_threshold = 28 [default = nan];
+
+  optional bool use_norm_biasing_correction = 31 [default = false];
+
+  optional bool use_noise_shaped_training = 30 [default = false];
+
+  message FixedPointLUTConversionOptions {
+    enum FloatToIntConversionMethod {
+      TRUNCATE = 0;
+
+      ROUND = 1;
+    }
+
+    optional FloatToIntConversionMethod float_to_int_conversion_method = 1
+        [default = TRUNCATE];
+
+    optional float multiplier_quantile = 2 [default = 1.0];
+  }
+
+  optional FixedPointLUTConversionOptions fixed_point_lut_conversion_options =
+      25;
+
+  oneof SamplingFractionOrExpectedSize {
+    float sampling_fraction = 10 [default = 1.0];
+
+    int32 expected_sample_size = 29;
+  }
+
+  optional int32 sampling_seed = 11 [default = 1];
+
+  optional DistanceMeasureConfig quantization_distance = 18;
+
+  optional int32 max_clustering_iterations = 4 [default = 10];
+
+  optional float clustering_convergence_tolerance = 5 [default = 1e-5];
+
+  optional float min_cluster_size = 19 [default = 1.0];
+
+  optional string centers_filename = 6;
+
+  optional int32 num_machines = 27;
+
+  optional bool use_per_leaf_partition_training = 17 [default = false];
+
+  optional string mr_jobname_prefix = 12;
+
+  optional string cell = 13;
+
+  optional int32 ram_gb = 14 [default = 4];
+
+  optional int32 num_cpus = 15 [default = 1];
+
+  enum QuantizationScheme {
+    PRODUCT = 0;
+    STACKED = 1;
+    PRODUCT_AND_BIAS = 2;
+    PRODUCT_AND_PACK = 3;
+  }
+
+  optional QuantizationScheme quantization_scheme = 23 [default = PRODUCT];
+
+  optional StackedQuantizersConfig stacked_quantizers_config = 24;
+
+  optional float partition_level_confidence_interval_stdevs = 26
+      [default = 0.0];
+
+  optional bool use_single_machine_trainer = 8 [default = false];
+
+  optional int32 min_number_machines = 7;
+
+  optional int32 max_sample_size = 3 [default = 2147483647];
+}
+
+message MinHasherConfig {
+  optional int32 config_id = 1;
+
+  optional int32 num_sketches = 2;
+
+  optional int32 num_hashes = 3;
+
+  repeated int64 seeds = 4;
+
+  optional int32 num_bits_per_hash = 5;
+}
+
+message BitSamplingHasherConfig {
+  optional int32 num_bits = 1 [default = 3];
+
+  optional bool use_entropy = 2 [default = false];
+
+  reserved 3;
+  reserved "chunked_hamming";
+}
+
+message PcaHasherConfig {
+  optional bool rotate_projections = 1 [default = false];
+
+  optional float sampling_fraction = 2 [default = 1.0];
+
+  optional int32 sampling_seed = 3 [default = 1];
+
+  optional int32 max_sample_size = 4;
+
+  optional bool learn_projections = 5 [default = false];
+
+  optional int32 max_num_iteration = 6 [default = 40];
+
+  optional float iteration_tolerance = 7 [default = 1e-5];
+}
+
+message BncHasherConfig {
+  optional float compression_ratio = 1 [default = 0.0];
+
+  optional float gamma = 2 [default = 10];
+
+  optional float learning_rate = 3 [default = 0.1];
+
+  optional int32 batch_size = 4 [default = 128];
+
+  optional int32 num_phase1_iterations = 5 [default = 50];
+
+  optional int32 num_phase2_iterations = 6 [default = 100];
+
+  optional int32 sampling_seed = 7 [default = 1];
+
+  optional int32 num_cpus = 8 [default = 1];
+}
+
+message StackedQuantizersConfig {
+  optional int32 min_num_iterations = 1 [default = 3];
+
+  optional int32 max_num_iterations = 2 [default = 10];
+
+  optional float relative_improvement_threshold = 3 [default = 0.001];
+}

@@ -1,0 +1,109 @@
+// Copyright 2020 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+syntax = "proto2";
+
+package tensorflow.scann_ops;
+
+message TreeConfig {
+  optional int32 max_leaf_size = 1 [default = 8];
+
+  optional int32 max_leaf_nodes = 2;
+
+  optional int32 max_distance_computations = 3;
+
+  enum Searcher {
+    BACKTRACKING = 0;
+    PRIORITY_QUEUE = 1;
+  }
+
+  optional Searcher searcher = 4;
+
+  optional KDTreeConfig kd_tree = 5;
+
+  optional KMeansTreeConfig kmeans_tree = 6;
+
+  optional VantagePointTreeConfig vantage_point_tree = 9;
+
+  optional LinearProjectionTreeConfig linear_projection_tree = 10;
+
+  optional bool build_contiguous_dataset = 8 [default = false];
+}
+
+message KDTreeConfig {
+  enum DimensionSelector {
+    VARIANCE = 0;
+
+    RANDOMIZED_VARIANCE = 1;
+
+    MEDIAN_ABS_DEVIATION = 2;
+
+    GAP = 3;
+
+    INTERQUANTILE = 4;
+  }
+
+  optional DimensionSelector dimension_selector = 1 [default = VARIANCE];
+
+  optional float quantile_fraction = 2 [default = 0.5];
+
+  optional int32 n_random = 3 [default = 5];
+
+  optional int32 n_trees = 4 [default = 1];
+}
+
+message KMeansTreeConfig {
+  required int32 k_per_level = 1;
+
+  enum KMeansType {
+    GENERIC = 0;
+    SPHERICAL = 1;
+  }
+
+  optional KMeansType k_means_type = 2 [default = GENERIC];
+}
+
+message VantagePointTreeConfig {
+  optional uint32 vantage_point_selection_sample_size = 1 [default = 100];
+}
+
+message LinearProjectionTreeConfig {
+  enum ProjectionType {
+    PCA = 1;
+
+    RANDOM = 2;
+
+    BALL_TREE = 3;
+  }
+
+  optional ProjectionType projection_type = 1 [default = RANDOM];
+
+  optional uint32 max_training_datapoints = 2 [default = 4294967295];
+}
