@@ -1,5 +1,6 @@
 
 
+#include "scann/oss_wrappers/scann_bits.h"
 #include "tensorflow/core/platform/logging.h"
 template <bool kIsEquality, typename DistT>
 SCANN_SIMD_INLINE size_t CalculateSwapMasks(const DistT* values,

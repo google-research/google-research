@@ -12,20 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include "scann/scann_ops/cc/scann.h"
 
 #include <fstream>
@@ -87,10 +73,8 @@ Status ScannInterface::Initialize(ScannConfig config,
     opts.datapoints_by_token =
         std::make_shared<vector<std::vector<DatapointIndex>>>(
             opts.serialized_partitioner->n_tokens());
-    auto ptr = datapoint_to_token.data();
-    for (int i = 0; i < datapoint_to_token.size(); i++) {
-      opts.datapoints_by_token->at(ptr[i]).push_back(i);
-    }
+    for (auto [dp_idx, token] : Enumerate(datapoint_to_token))
+      opts.datapoints_by_token->at(token).push_back(dp_idx);
   }
   return Initialize(dataset, dimensionality, opts);
 }
@@ -125,8 +109,8 @@ Status ScannInterface::Initialize(ConstSpan<float> ds_span,
       config_.partitioning().partitioning_type() ==
           PartitioningConfig::SPHERICAL)
     dataset->set_normalization_tag(tensorflow::scann_ops::UNITL2NORM);
-  TF_ASSIGN_OR_RETURN(scann_,
-                      SingleMachineFactory<float>(config_, std::move(dataset),
+  TF_ASSIGN_OR_RETURN(
+      scann_, SingleMachineFactoryNoSparse<float>(config_, std::move(dataset),
                                                   std::move(opts)));
 
   const std::string& distance = config_.distance_measure().distance_measure();
@@ -231,10 +215,8 @@ Status ScannInterface::Serialize(std::string path) {
                             opts.serialized_partitioner.get()));
   if (opts.datapoints_by_token != nullptr) {
     vector<int32_t> datapoint_to_token(n_points_);
-    for (int i = 0; i < opts.datapoints_by_token->size(); i++) {
-      for (auto dp_idx : opts.datapoints_by_token->at(i))
-        datapoint_to_token[dp_idx] = i;
-    }
+    for (const auto& [token_idx, dps] : Enumerate(*opts.datapoints_by_token))
+      for (auto dp_idx : dps) datapoint_to_token[dp_idx] = token_idx;
     SCANN_RETURN_IF_ERROR(
         VectorToNumpy(path + "/datapoint_to_token.npy", datapoint_to_token));
   }

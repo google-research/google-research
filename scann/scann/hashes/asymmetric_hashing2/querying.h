@@ -12,22 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 
 
 #ifndef SCANN__HASHES_ASYMMETRIC_HASHING2_QUERYING_H_
@@ -40,7 +24,7 @@
 #include <utility>
 
 #include "absl/flags/flag.h"
-#include "scann/base/restrict_whitelist.h"
+#include "scann/base/restrict_allowlist.h"
 #include "scann/base/search_parameters.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
@@ -141,13 +125,13 @@ class AsymmetricQueryer {
       const LookupTable& lookup_table, const SearchParameters& params,
       QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n);
 
-  template <size_t kBatchSize, typename TopN, typename Functor,
+  template <size_t kNumQueries, typename TopN, typename Functor,
             typename DatasetView = DefaultDenseDatasetView<uint8_t>>
   static Status FindApproximateNeighborsBatched(
-      array<const LookupTable*, kBatchSize> lookup_tables,
-      array<const SearchParameters*, kBatchSize> params,
+      array<const LookupTable*, kNumQueries> lookup_tables,
+      array<const SearchParameters*, kNumQueries> params,
       QueryerOptions<Functor, DatasetView> querying_options,
-      array<TopN*, kBatchSize> top_ns);
+      array<TopN*, kNumQueries> top_ns);
 
   template <typename Functor = IdentityPostprocessFunctor,
             typename DatasetView = DefaultDenseDatasetView<uint8_t>>
@@ -187,7 +171,7 @@ class AsymmetricQueryer {
       const DatasetView* __restrict__ hashed_dataset,
       DimensionIndex num_clusters_per_block,
       ConstSpan<LookupElement> lookup_raw, MaxDist max_dist,
-      const RestrictWhitelist* whitelist_or_null, Functor postprocess,
+      const RestrictAllowlist* whitelist_or_null, Functor postprocess,
       TopN* top_n);
 
   template <typename TopN, typename Functor = IdentityPostprocessFunctor,
@@ -404,17 +388,17 @@ Status AsymmetricQueryer<T>::FindApproximateNeighbors(
 
 namespace asymmetric_hashing2_internal {
 
-template <size_t kBatchSize>
+template <size_t kNumQueries>
 Status FindApproxNeighborsFastTopNeighbors(
-    array<const LookupTable*, kBatchSize> lookup_tables,
-    array<const SearchParameters*, kBatchSize> params,
+    array<const LookupTable*, kNumQueries> lookup_tables,
+    array<const SearchParameters*, kNumQueries> params,
     const PackedDataset& packed_dataset,
-    array<TopNeighbors<float>*, kBatchSize> top_ns) {
-  array<FastTopNeighbors<int16_t>, kBatchSize> ftns;
-  array<FastTopNeighbors<int16_t>*, kBatchSize> ftn_ptrs;
-  array<const uint8_t*, kBatchSize> raw_luts;
-  array<RestrictWhitelistConstView, kBatchSize> restricts;
-  for (size_t batch_idx : Seq(kBatchSize)) {
+    array<TopNeighbors<float>*, kNumQueries> top_ns) {
+  array<FastTopNeighbors<int16_t>, kNumQueries> ftns;
+  array<FastTopNeighbors<int16_t>*, kNumQueries> ftn_ptrs;
+  array<const uint8_t*, kNumQueries> raw_luts;
+  array<RestrictWhitelistConstView, kNumQueries> restricts;
+  for (size_t batch_idx : Seq(kNumQueries)) {
     int32_t fixed_point_max_distance =
         ai::ComputePossiblyFixedPointMaxDistance<int8_t>(
             params[batch_idx]->pre_reordering_epsilon(),
@@ -439,14 +423,14 @@ Status FindApproxNeighborsFastTopNeighbors(
   args.packed_dataset = packed_dataset.bit_packed_data.data();
   args.num_32dp_simd_iters = DivRoundUp(packed_dataset.num_datapoints, 32);
   args.num_blocks = packed_dataset.num_blocks;
-  args.lookups = {raw_luts.data(), kBatchSize};
+  args.lookups = {raw_luts.data(), kNumQueries};
   args.first_dp_index = 0;
   args.num_datapoints = packed_dataset.num_datapoints;
-  args.fast_topns = {ftn_ptrs.data(), kBatchSize};
+  args.fast_topns = {ftn_ptrs.data(), kNumQueries};
   args.restrict_whitelists = restricts;
   asymmetric_hashing_internal::LUT16Interface::GetTopDistances(std::move(args));
 
-  for (size_t batch_idx : Seq(kBatchSize)) {
+  for (size_t batch_idx : Seq(kNumQueries)) {
     ConstSpan<DatapointIndex> ii;
     ConstSpan<int16_t> vv;
     std::tie(ii, vv) = ftns[batch_idx].FinishUnsorted();
@@ -469,14 +453,14 @@ Status FindApproxNeighborsFastTopNeighbors(
 }  // namespace asymmetric_hashing2_internal
 
 template <typename T>
-template <size_t kBatchSize, typename TopN, typename Functor,
+template <size_t kNumQueries, typename TopN, typename Functor,
           typename DatasetView>
 Status AsymmetricQueryer<T>::FindApproximateNeighborsBatched(
-    array<const LookupTable*, kBatchSize> lookup_tables,
-    array<const SearchParameters*, kBatchSize> params,
+    array<const LookupTable*, kNumQueries> lookup_tables,
+    array<const SearchParameters*, kNumQueries> params,
     QueryerOptions<Functor, DatasetView> querying_options,
-    array<TopN*, kBatchSize> top_ns) {
-  static_assert(kBatchSize <= 9,
+    array<TopN*, kNumQueries> top_ns) {
+  static_assert(kNumQueries <= 9,
                 "Only batch sizes up to 9 are supported in "
                 "FindApproximateNeighborsBatched.");
   static_assert(
@@ -522,7 +506,7 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsBatched(
   }();
 
   if (!can_use_lut16_for_all) {
-    for (size_t i = 0; i < kBatchSize; ++i) {
+    for (size_t i = 0; i < kNumQueries; ++i) {
       SCANN_RETURN_IF_ERROR(FindApproximateNeighbors(
           *lookup_tables[i], *params[i], querying_options, top_ns[i]));
     }
@@ -537,10 +521,10 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsBatched(
   }();
 
   const auto& packed_dataset = *querying_options.lut16_packed_dataset;
-  std::array<ConstSpan<uint8_t>, kBatchSize> lookup_spans;
-  std::array<int32_t, kBatchSize> max_dists;
-  std::array<const RestrictWhitelist*, kBatchSize> restrict_whitelists_or_null;
-  for (size_t i = 0; i < kBatchSize; ++i) {
+  std::array<ConstSpan<uint8_t>, kNumQueries> lookup_spans;
+  std::array<int32_t, kNumQueries> max_dists;
+  std::array<const RestrictAllowlist*, kNumQueries> restrict_whitelists_or_null;
+  for (size_t i = 0; i < kNumQueries; ++i) {
     lookup_spans[i] = lookup_tables[i]->int8_lookup_table;
     restrict_whitelists_or_null[i] = params[i]->restrict_whitelist();
     max_dists[i] = ai::ComputePossiblyFixedPointMaxDistance<int8_t>(
@@ -550,9 +534,9 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsBatched(
 
   using RawTopN =
       decltype(top_ns[0]->template CloneWithAlternateDistanceType<int32_t>());
-  array<RawTopN, kBatchSize> raw_top_ns_storage;
-  array<RawTopN*, kBatchSize> raw_top_ns;
-  for (size_t i = 0; i < kBatchSize; ++i) {
+  array<RawTopN, kNumQueries> raw_top_ns_storage;
+  array<RawTopN*, kNumQueries> raw_top_ns;
+  for (size_t i = 0; i < kNumQueries; ++i) {
     raw_top_ns_storage[i] =
         top_ns[i]->template CloneWithAlternateDistanceType<int32_t>();
     raw_top_ns[i] = &raw_top_ns_storage[i];
@@ -560,9 +544,9 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsBatched(
   if (can_use_int16_accumulator_for_all) {
     if constexpr (std::is_same_v<TopN, TopNeighbors<float>>) {
       auto& top_ns_casted =
-          *reinterpret_cast<array<TopNeighbors<float>*, kBatchSize>*>(&top_ns);
+          *reinterpret_cast<array<TopNeighbors<float>*, kNumQueries>*>(&top_ns);
       return asymmetric_hashing2_internal::FindApproxNeighborsFastTopNeighbors<
-          kBatchSize>(lookup_tables, params, packed_dataset, top_ns_casted);
+          kNumQueries>(lookup_tables, params, packed_dataset, top_ns_casted);
     } else {
       ai::GetNeighborsViaAsymmetricDistanceLUT16WithInt16AccumulatorBatched2(
           lookup_spans, packed_dataset.num_datapoints,
@@ -575,7 +559,7 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsBatched(
         packed_dataset.bit_packed_data, restrict_whitelists_or_null, max_dists,
         querying_options.postprocessing_functor, raw_top_ns);
   }
-  for (size_t i = 0; i < kBatchSize; ++i) {
+  for (size_t i = 0; i < kNumQueries; ++i) {
     const float inv_fixed_point_multiplier =
         1.0f / lookup_tables[i]->fixed_point_multiplier;
     top_ns[i]->OverwriteFromClone(raw_top_ns[i],
@@ -660,7 +644,7 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsNoLUT16(
                      lookup_raw.size() / num_clusters_per_block, "."));
   }
 
-  const RestrictWhitelist* whitelist_or_null = params.restrict_whitelist();
+  const RestrictAllowlist* whitelist_or_null = params.restrict_whitelist();
   if (std::is_same<Functor, IdentityPostprocessFunctor>::value ||
       std::is_same<LookupElement, float>::value) {
     auto possibly_fixed_point_max_distance =
@@ -699,7 +683,7 @@ template <typename LookupElement, typename MaxDist, typename TopN,
 Status AsymmetricQueryer<T>::FindApproximateNeighborsNoLUT16Impl(
     const DatasetView* __restrict__ hashed_dataset,
     DimensionIndex num_clusters_per_block, ConstSpan<LookupElement> lookup_raw,
-    MaxDist max_dist, const RestrictWhitelist* whitelist_or_null,
+    MaxDist max_dist, const RestrictAllowlist* whitelist_or_null,
     Functor postprocess, TopN* top_n) {
   using TopNFunctor = ai::AddPostprocessedValueToTopN<TopN, MaxDist, Functor>;
   TopNFunctor top_n_functor(top_n, max_dist, postprocess);

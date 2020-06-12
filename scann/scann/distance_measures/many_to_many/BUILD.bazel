@@ -1,0 +1,78 @@
+package(
+    default_visibility = ["//visibility:public"],
+    licenses = ["notice"],
+)
+
+# NOTE:  Forcing low-level modules to always compile in optimized mode to
+# avoid excessive stack usage due to lack of compiler optimization.  This
+# avoids stack overflows in partner tests.
+cc_library(
+    name = "many_to_many",
+    srcs = [
+        "many_to_many_double_results.cc",
+        "many_to_many_double_top1.cc",
+        "many_to_many_float_results.cc",
+        "many_to_many_float_top1.cc",
+    ],
+    hdrs = [
+        "many_to_many.h",
+        "many_to_many_templates.h",
+    ],
+    copts = [
+        "-O3",
+        "-Wno-pass-failed",
+    ],
+    tags = ["local"],
+    textual_hdrs = ["many_to_many_impl.inc"],
+    deps = [
+        "fp8_transposed",
+        "many_to_many_common",
+        "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
+        "//scann/distance_measures",
+        "//scann/distance_measures/one_to_many",
+        "//scann/distance_measures/one_to_one:dot_product",
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/utils:types",
+        "//scann/utils/intrinsics:flags",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/memory",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "many_to_many_common",
+    hdrs = ["many_to_many_common.h"],
+    tags = ["local"],
+    deps = [
+        "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
+        "//scann/distance_measures",
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/utils:types",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/synchronization",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "fp8_transposed",
+    srcs = ["fp8_transposed.cc"],
+    hdrs = ["fp8_transposed.h"],
+    tags = ["local"],
+    deps = [
+        "//scann/data_format:dataset",
+        "//scann/utils:types",
+        "//scann/utils/intrinsics:flags",
+    ],
+)

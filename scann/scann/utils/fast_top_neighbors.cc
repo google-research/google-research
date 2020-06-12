@@ -12,20 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include "scann/utils/fast_top_neighbors.h"
 
 #include "absl/strings/str_cat.h"
@@ -50,7 +36,7 @@ SCANN_INLINE std::string DebugLogArrayContents(DatapointIndexT* indices,
     absl::StrAppend(&txt, j ? " || " : "");
     uint32_t mask = masks ? masks[j] : 0;
     string_view sep = "";
-    for (const auto& offset : Seq(32)) {
+    for (size_t offset : Seq(32)) {
       const size_t idx = 32 * j + offset;
       const bool idx_is_masked = mask & 1;
       mask >>= 1;
@@ -183,19 +169,34 @@ void FastTopNeighbors<DistT, DatapointIndexT>::Mutator::PushDistanceBlock(
 }
 
 template <typename DistT, typename DatapointIndexT>
+void FastTopNeighbors<DistT, DatapointIndexT>::AllocateArrays(size_t capacity) {
+  constexpr size_t kPadding = 96;
+
+  capacity_ = capacity;
+  indices_.reset(new DatapointIndexT[2 * capacity_ + kPadding]);
+  distances_.reset(new DistT[capacity_ + kPadding]);
+  masks_.reset(new uint32_t[2 * capacity_ / 32 + 2]);
+}
+
+template <typename DistT, typename DatapointIndexT>
+void FastTopNeighbors<DistT, DatapointIndexT>::FillDistancesForASan() {
+  constexpr size_t kPadding = 96;
+  std::fill(distances_.get() + sz_, distances_.get() + capacity_ + kPadding,
+            epsilon_);
+}
+
+template <typename DistT, typename DatapointIndexT>
 void FastTopNeighbors<DistT, DatapointIndexT>::ReallocateForPureEnn() {
   if (sz_ < capacity_) return;
-  capacity_ = std::min(capacity_ * 2, max_capacity_);
 
-  auto new_indices = new DatapointIndexT[2 * capacity_ + kPadding];
-  std::copy(indices_.get(), indices_.get() + sz_, new_indices);
-  indices_.reset(new_indices);
-  auto new_distances = new DistT[capacity_ + kPadding];
-  std::copy(distances_.get(), distances_.get() + sz_, new_distances);
-  std::fill(new_distances + sz_, new_distances + capacity_ + kPadding,
-            epsilon_);
-  distances_.reset(new_distances);
-  masks_.reset(new uint32_t[2 * capacity_ / 32 + 2]);
+  unique_ptr<DatapointIndexT[]> old_indices = std::move(indices_);
+  unique_ptr<DistT[]> old_distances = std::move(distances_);
+
+  AllocateArrays(std::min(capacity_ * 2, max_capacity_));
+
+  std::copy(old_indices.get(), old_indices.get() + sz_, indices_.get());
+  std::copy(old_distances.get(), old_distances.get() + sz_, distances_.get());
+  FillDistancesForASan();
 }
 
 template <typename DistT, typename DatapointIndexT>

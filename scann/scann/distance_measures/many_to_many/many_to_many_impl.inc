@@ -255,7 +255,7 @@ class DenseManyToManyTransposed {
         num_datapoints_(database.size()),
         pool_(pool),
         callback_(std::move(callback)) {
-    DCHECK_EQ(queries.dimensionality(), database.dimensionality());
+    CHECK_EQ(queries.dimensionality(), database.dimensionality());
     DCHECK_GE(num_queries_, 1);
     if (num_queries_ >= 2) {
       DCHECK_EQ(queries_ + dimensionality_, queries[1].values());
@@ -277,7 +277,7 @@ class DenseManyToManyTransposed {
         num_datapoints_(database->size()),
         pool_(pool),
         callback_(std::move(callback)) {
-    DCHECK_EQ(queries.dimensionality(), database->dimensionality());
+    CHECK_EQ(queries.dimensionality(), database->dimensionality());
     DCHECK_GE(num_queries_, 1);
     if (num_queries_ >= 2) {
       DCHECK_EQ(queries_ + dimensionality_, queries[1].values());
@@ -532,7 +532,7 @@ class DenseManyToManyUntransposed {
         num_datapoints_(database.size()),
         pool_(pool),
         callback_(std::move(callback)) {
-    DCHECK_EQ(queries.dimensionality(), database.dimensionality());
+    CHECK_EQ(queries.dimensionality(), database.dimensionality());
     DCHECK_GE(num_queries_, 1);
     if (num_queries_ >= 2) {
       DCHECK_EQ(queries_ + dimensionality_, queries[1].values());

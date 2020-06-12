@@ -1,0 +1,27 @@
+# Description:
+#   AVX utility function classes.
+
+package(
+    default_visibility = ["//visibility:public"],
+    licenses = ["notice"],
+)
+
+cc_library(
+    name = "avx_funcs",
+    hdrs = ["avx_funcs.h"],
+    tags = ["local"],
+    deps = [
+        "//scann/utils:types",
+        "//scann/utils/intrinsics:avx1",
+    ],
+)
+
+cc_library(
+    name = "avx2_funcs",
+    hdrs = ["avx2_funcs.h"],
+    tags = ["local"],
+    deps = [
+        "//scann/utils:types",
+        "//scann/utils/intrinsics:avx2",
+    ],
+)

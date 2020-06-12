@@ -12,23 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-
-
-#include "scann/base/single_machine_factory.h"
+#include "scann/base/single_machine_factory_no_sparse.h"
 
 #include <functional>
 #include <memory>
@@ -36,6 +20,7 @@
 #include "absl/base/casts.h"
 #include "absl/base/optimization.h"
 #include "absl/memory/memory.h"
+#include "scann/base/internal/single_machine_factory_impl.h"
 #include "scann/base/reordering_helper_factory.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/base/single_machine_factory_options.h"
@@ -49,13 +34,11 @@
 #include "scann/partitioning/partitioner_factory_base.h"
 #include "scann/partitioning/projecting_decorator.h"
 #include "scann/proto/brute_force.pb.h"
-#include "scann/proto/crowding.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
 #include "scann/tree_x_hybrid/tree_ah_hybrid_residual.h"
 #include "scann/tree_x_hybrid/tree_x_hybrid_smmd.h"
 #include "scann/utils/factory_helpers.h"
 #include "scann/utils/hash_leaf_helpers.h"
-#include "scann/utils/scann_config_utils.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/threadpool.h"
 
@@ -64,10 +47,6 @@ using std::dynamic_pointer_cast;
 namespace tensorflow {
 namespace scann_ops {
 namespace {
-
-int NumQueryDatabaseSearchTypesConfigured(const ScannConfig& config) {
-  return config.has_brute_force() + config.has_tree() + config.has_hash();
-}
 
 template <typename T>
 StatusOr<unique_ptr<Partitioner<T>>> CreateTreeXPartitioner(
@@ -503,7 +482,7 @@ StatusOrSearcherUntyped NonResidualTreeXHybridFactory(
       leaf_opts.hashed_dataset = leaf_hashed_dataset;
       leaf_opts.parallelization_pool = opts->parallelization_pool;
       TF_ASSIGN_OR_RETURN(auto leaf_searcher,
-                          internal::SingleMachineFactoryLeafSearcher<T>(
+                          internal::SingleMachineFactoryLeafSearcherNoSparse<T>(
                               spec_config, leaf_dataset, params, &leaf_opts));
       return {unique_cast_unsafe<SingleMachineSearcherBase<T>>(
           std::move(leaf_searcher))};
@@ -633,123 +612,71 @@ StatusOrSearcherUntyped BruteForceFactory<float>(
   }
 }
 
-template <typename T>
-StatusOrSearcherUntyped SingleMachineFactoryImpl(
-    ScannConfig config, const shared_ptr<Dataset>& dataset,
-    const GenericSearchParameters& params, SingleMachineFactoryOptions* opts) {
-  config.mutable_input_output()->set_in_memory_data_type(TagForType<T>());
-  SCANN_RETURN_IF_ERROR(CanonicalizeScannConfigForRetrieval(&config));
-  auto typed_dataset = dynamic_pointer_cast<TypedDataset<T>>(dataset);
-  if (dataset && !typed_dataset) {
-    return InvalidArgumentError("Dataset is the wrong type");
+class NoSparseLeafSearcher {
+ public:
+  template <typename T>
+  static StatusOrSearcherUntyped SingleMachineFactoryLeafSearcher(
+      const ScannConfig& config, const shared_ptr<TypedDataset<T>>& dataset,
+      const GenericSearchParameters& params,
+      SingleMachineFactoryOptions* opts) {
+    if (internal::NumQueryDatabaseSearchTypesConfigured(config) != 1) {
+      return InvalidArgumentError(
+          "Exactly one single-machine search type must be configured in "
+          "ScannConfig if using SingleMachineFactory.");
+    }
+
+    if (config.has_partitioning()) {
+      return TreeXHybridFactory<T>(config, dataset, params, opts);
+    } else if (config.has_brute_force()) {
+      if (std::is_same<T, float>::value &&
+          config.brute_force().fixed_point().enabled() &&
+          opts->pre_quantized_fixed_point) {
+        return BruteForceFactory(config.brute_force(), params,
+                                 opts->pre_quantized_fixed_point.get());
+      } else {
+        return BruteForceFactory(config.brute_force(), dataset, params);
+      }
+    } else if (config.has_hash()) {
+      return HashFactory<T>(dataset, config, opts, params);
+    } else {
+      return UnknownError("Unhandled case");
+    }
   }
-
-  TF_ASSIGN_OR_RETURN(auto searcher, internal::SingleMachineFactoryLeafSearcher(
-                                         config, typed_dataset, params, opts));
-  auto* typed_searcher =
-      down_cast<SingleMachineSearcherBase<T>*>(searcher.get());
-
-  TF_ASSIGN_OR_RETURN(auto reordering_helper,
-                      ReorderingHelperFactory<T>::Build(
-                          config, params.reordering_dist, typed_dataset, opts));
-  typed_searcher->EnableReordering(std::move(reordering_helper),
-                                   params.post_reordering_num_neighbors,
-                                   params.post_reordering_epsilon);
-  if (config.has_compressed_reordering()) {
-    DCHECK(!typed_searcher->needs_dataset());
-    typed_searcher->ReleaseDatasetAndDocids();
-    typed_searcher->set_compressed_dataset(opts->compressed_dataset);
-  }
-
-  return {std::move(searcher)};
-}
+};
 
 }  // namespace
 
-StatusOrSearcherUntyped SingleMachineFactoryUntyped(
-    const ScannConfig& config, shared_ptr<Dataset> dataset,
-    SingleMachineFactoryOptions opts) {
-  GenericSearchParameters params;
-  SCANN_RETURN_IF_ERROR(params.PopulateValuesFromScannConfig(config));
-  if (params.reordering_dist->NormalizationRequired() != NONE && dataset &&
-      dataset->normalization() !=
-          params.reordering_dist->NormalizationRequired()) {
-    return InvalidArgumentError(
-        "Dataset not correctly normalized for the exact distance measure.");
-  }
-
-  if (params.pre_reordering_dist->NormalizationRequired() != NONE && dataset &&
-      dataset->normalization() !=
-          params.pre_reordering_dist->NormalizationRequired()) {
-    return InvalidArgumentError(
-        "Dataset not correctly normalized for the pre-reordering distance "
-        "measure.");
-  }
-
-  if (opts.type_tag == kInvalidTypeTag) {
-    CHECK(dataset) << "Code fails to wire-through the type tag";
-    opts.type_tag = dataset->TypeTag();
-  }
-
-  TF_ASSIGN_OR_RETURN(
-      auto searcher,
-      SCANN_CALL_FUNCTION_BY_TAG(opts.type_tag, SingleMachineFactoryImpl,
-                                 config, dataset, params, &opts));
-  CHECK(searcher) << "Returning nullptr instead of Status is a bug";
-
-  if (config.crowding().enabled() && opts.crowding_attributes) {
-    SCANN_RETURN_IF_ERROR(
-        searcher->EnableCrowding(std::move(opts.crowding_attributes)));
-  }
-
-  searcher->set_creation_timestamp(opts.creation_timestamp);
-  return {std::move(searcher)};
-}
-
 template <typename T>
-StatusOrSearcher<T> SingleMachineFactory(const ScannConfig& config,
-                                         shared_ptr<TypedDataset<T>> dataset,
-                                         SingleMachineFactoryOptions opts) {
+StatusOr<unique_ptr<SingleMachineSearcherBase<T>>> SingleMachineFactoryNoSparse(
+    const ScannConfig& config, shared_ptr<TypedDataset<T>> dataset,
+    SingleMachineFactoryOptions opts) {
   opts.type_tag = TagForType<T>();
-  TF_ASSIGN_OR_RETURN(auto searcher, SingleMachineFactoryUntyped(
+  TF_ASSIGN_OR_RETURN(auto searcher, SingleMachineFactoryUntypedNoSparse(
                                          config, dataset, std::move(opts)));
   return {
       unique_cast_unsafe<SingleMachineSearcherBase<T>>(std::move(searcher))};
 }
 
+StatusOrSearcherUntyped SingleMachineFactoryUntypedNoSparse(
+    const ScannConfig& config, shared_ptr<Dataset> dataset,
+    SingleMachineFactoryOptions opts) {
+  return internal::SingleMachineFactoryUntypedImpl<NoSparseLeafSearcher>(
+      config, dataset, opts);
+}
+
 namespace internal {
 
 template <typename T>
-StatusOrSearcherUntyped SingleMachineFactoryLeafSearcher(
+StatusOrSearcherUntyped SingleMachineFactoryLeafSearcherNoSparse(
     const ScannConfig& config, const shared_ptr<TypedDataset<T>>& dataset,
     const GenericSearchParameters& params, SingleMachineFactoryOptions* opts) {
-  if (NumQueryDatabaseSearchTypesConfigured(config) != 1) {
-    return InvalidArgumentError(
-        "Exactly one single-machine search type must be configured in "
-        "ScannConfig if using SingleMachineFactory.");
-  }
-
-  if (config.has_partitioning()) {
-    return TreeXHybridFactory<T>(config, dataset, params, opts);
-  } else if (config.has_brute_force()) {
-    if (std::is_same<T, float>::value &&
-        config.brute_force().fixed_point().enabled() &&
-        opts->pre_quantized_fixed_point) {
-      return BruteForceFactory(config.brute_force(), params,
-                               opts->pre_quantized_fixed_point.get());
-    } else {
-      return BruteForceFactory(config.brute_force(), dataset, params);
-    }
-  } else if (config.has_hash()) {
-    return HashFactory<T>(dataset, config, opts, params);
-  } else {
-    return UnknownError("Unhandled case");
-  }
+  return NoSparseLeafSearcher::SingleMachineFactoryLeafSearcher(config, dataset,
+                                                                params, opts);
 }
 
 }  // namespace internal
 
-SCANN_INSTANTIATE_SINGLE_MACHINE_FACTORY();
+SCANN_INSTANTIATE_SINGLE_MACHINE_FACTORY_NO_SPARSE();
 
 }  // namespace scann_ops
 }  // namespace tensorflow

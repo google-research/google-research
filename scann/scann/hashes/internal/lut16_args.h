@@ -12,26 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #ifndef SCANN__HASHES_INTERNAL_LUT16_ARGS_H_
 #define SCANN__HASHES_INTERNAL_LUT16_ARGS_H_
 
-#include "scann/base/restrict_whitelist.h"
+#include "scann/base/restrict_allowlist.h"
 #include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/types.h"
 
@@ -41,12 +25,14 @@ namespace asymmetric_hashing_internal {
 
 template <typename DistT>
 struct LUT16ArgsBase {
+  SCANN_DECLARE_COPYABLE_CLASS(LUT16ArgsBase);
   static_assert(IsSameAny<DistT, int16_t, int32_t, float>(), "");
 
-  SCANN_DECLARE_MOVE_ONLY_CLASS(LUT16ArgsBase);
   LUT16ArgsBase() {}
 
   const uint8_t* packed_dataset = nullptr;
+
+  int enable_avx512_codepath = 0;
 
   size_t num_32dp_simd_iters = 0;
 
@@ -72,18 +58,18 @@ struct LUT16ArgsTopNBase : public LUT16Args<DistT> {
 
   ConstSpan<RestrictWhitelistConstView> restrict_whitelists;
 
-  template <size_t kBatchSize>
-  SCANN_INLINE array<const uint32_t*, kBatchSize> GetRestrictWhitelistPtrs()
+  template <size_t kNumQueries>
+  SCANN_INLINE array<const uint32_t*, kNumQueries> GetRestrictWhitelistPtrs()
       const {
-    array<const uint32_t*, kBatchSize> restrict_whitelist_ptrs;
+    array<const uint32_t*, kNumQueries> restrict_whitelist_ptrs;
     if (restrict_whitelists.empty()) {
       std::fill(restrict_whitelist_ptrs.begin(), restrict_whitelist_ptrs.end(),
                 nullptr);
       return restrict_whitelist_ptrs;
     }
-    DCHECK_EQ(restrict_whitelists.size(), kBatchSize);
+    DCHECK_EQ(restrict_whitelists.size(), kNumQueries);
 
-    for (size_t i : Seq(kBatchSize)) {
+    for (size_t i : Seq(kNumQueries)) {
       restrict_whitelist_ptrs[i] =
           reinterpret_cast<const uint32_t*>(restrict_whitelists[i].data());
       if (!restrict_whitelists[i].empty()) {
@@ -102,6 +88,8 @@ struct LUT16ArgsTopN<float, TopN> : public LUT16ArgsTopNBase<float, TopN> {
   ConstSpan<float> biases;
 
   ConstSpan<float> fixed_point_multipliers;
+
+  std::function<bool(DatapointIndex)> final_predicate;
 };
 
 #define SCANN_INSTANTIATE_CLASS_FOR_LUT16_BATCH_SIZES(EXTERN_KEYWORD, \

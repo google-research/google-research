@@ -12,21 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include "scann/utils/intrinsics/flags.h"
+
 #include "tensorflow/core/platform/cpu_info.h"
 
 ABSL_FLAG(bool, ignore_avx512, false,
@@ -54,8 +41,9 @@ namespace flags_internal {
 bool should_use_sse4 = port::TestCPUFeature(port::SSE4_2);
 bool should_use_avx1 = port::TestCPUFeature(port::AVX);
 bool should_use_avx2 = port::TestCPUFeature(port::AVX2);
-bool should_use_avx512 =
-    port::TestCPUFeature(port::AVX512F) && port::TestCPUFeature(port::AVX512DQ);
+bool should_use_avx512 = port::TestCPUFeature(port::AVX512F) &&
+                         port::TestCPUFeature(port::AVX512DQ) &&
+                         port::TestCPUFeature(port::AVX512BW);
 
 }  // namespace flags_internal
 
