@@ -87,7 +87,7 @@ bool ItemEquals(const RankT& data1, const RankT& data2) {
 }
 template<>
 inline bool ItemEquals<Scalar>(const Scalar& data1, const Scalar& data2) {
-  return abs(data1 - data2) < kDataTolerance;
+  return std::abs(data1 - data2) < kDataTolerance;
 }
 
 template <typename RankT>

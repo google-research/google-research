@@ -21,6 +21,7 @@ bazel run -c opt \
   --copt=-DMAX_SCALAR_ADDRESSES=4 \
   --copt=-DMAX_VECTOR_ADDRESSES=3 \
   --copt=-DMAX_MATRIX_ADDRESSES=1 \
+  --cxxopt='-std=c++14' \
   :run_search_experiment -- \
   --search_experiment_spec=" \
     search_tasks { \
