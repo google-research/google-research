@@ -13,20 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copyright 2020 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from __future__ import print_function
 
 import tempfile
@@ -77,10 +63,16 @@ class ScannTest(absltest.TestCase):
     for _ in range(100):
       q = np.random.rand(n_dims).astype(np.float)
       idx, dis = s.search(q)
-      gt_idx, gt_dis = ground_truth(ds, q, 10)
+      _, gt_dis = ground_truth(ds, q, 10)
 
-      np.testing.assert_array_equal(idx, gt_idx)
-      np.testing.assert_allclose(dis, gt_dis, rtol=1e-5)
+      # The following leads to flakiness due to non-associativity of FP addition
+      # np.testing.assert_array_equal(idx, gt_idx)
+      # Instead, ensure distances are close to ground truth distances, and that
+      # distances of indices returned are close to Numpy-computed distances for
+      # those indices.
+      selected_distances = np.matmul(ds[idx], q)
+      np.testing.assert_allclose(dis, selected_distances, rtol=1e-6)
+      np.testing.assert_allclose(dis, gt_dis, rtol=1e-6)
 
   def test_batching(self):
     k = 10
@@ -93,10 +85,11 @@ class ScannTest(absltest.TestCase):
     qs = np.random.rand(n_points, n_dims).astype(np.float)
     batch_idx, batch_dis = s.search_batched(qs)
     for i, q in enumerate(qs):
-      idx, dis = s.search(q)
+      _, dis = s.search(q)
 
-      np.testing.assert_array_equal(idx, batch_idx[i])
-      np.testing.assert_allclose(dis, batch_dis[i], rtol=1e-5)
+      selected_distances = np.matmul(ds[batch_idx[i]], q)
+      np.testing.assert_allclose(dis, selected_distances, rtol=1e-6)
+      np.testing.assert_allclose(dis, batch_dis[i], rtol=1e-6)
 
   def test_tree_ah(self):
     n_dims = 50

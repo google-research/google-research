@@ -12,20 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 
 
 #include "scann/hashes/asymmetric_hashing2/searcher.h"
@@ -372,19 +358,19 @@ Status Searcher<T>::FindNeighborsBatchedInternal(
 }
 
 template <typename T>
-template <size_t kBatchSize, typename PostprocessFunctor>
+template <size_t kNumQueries, typename PostprocessFunctor>
 Status Searcher<T>::FindOneLowLevelBatchOfNeighbors(
     size_t low_level_batch_start,
     std::function<DatapointPtr<T>(DatapointIndex)> get_query,
     ConstSpan<SearchParameters> params,
     const QueryerOptions<PostprocessFunctor>& queryer_options,
     MutableSpan<NNResultsVector> results) const {
-  std::array<LookupTable, kBatchSize> lookup_storages;
-  std::array<const LookupTable*, kBatchSize> lookup_ptrs;
-  std::array<TopNeighbors<float>, kBatchSize> top_ns_storage;
-  std::array<TopNeighbors<float>*, kBatchSize> top_ns;
-  std::array<const SearchParameters*, kBatchSize> cur_batch_params;
-  for (size_t batch_idx = 0; batch_idx < kBatchSize; ++batch_idx) {
+  std::array<LookupTable, kNumQueries> lookup_storages;
+  std::array<const LookupTable*, kNumQueries> lookup_ptrs;
+  std::array<TopNeighbors<float>, kNumQueries> top_ns_storage;
+  std::array<TopNeighbors<float>*, kNumQueries> top_ns;
+  std::array<const SearchParameters*, kNumQueries> cur_batch_params;
+  for (size_t batch_idx = 0; batch_idx < kNumQueries; ++batch_idx) {
     TF_ASSIGN_OR_RETURN(
         lookup_ptrs[batch_idx],
         GetOrCreateLookupTable(get_query(low_level_batch_start + batch_idx),
@@ -398,7 +384,7 @@ Status Searcher<T>::FindOneLowLevelBatchOfNeighbors(
   }
   SCANN_RETURN_IF_ERROR(AsymmetricQueryer<T>::FindApproximateNeighborsBatched(
       lookup_ptrs, cur_batch_params, queryer_options, top_ns));
-  for (size_t batch_idx = 0; batch_idx < kBatchSize; ++batch_idx) {
+  for (size_t batch_idx = 0; batch_idx < kNumQueries; ++batch_idx) {
     results[low_level_batch_start + batch_idx] =
         top_ns_storage[batch_idx].ExtractUnsorted();
   }

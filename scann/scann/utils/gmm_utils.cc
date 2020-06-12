@@ -12,20 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include "scann/utils/gmm_utils.h"
 
 #include <cfloat>
@@ -40,7 +26,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/random/distributions.h"
 #include "absl/time/time.h"
-#include "scann/base/restrict_whitelist.h"
+#include "scann/base/restrict_allowlist.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/data_format/docid_collection.h"
@@ -48,6 +34,7 @@
 #include "scann/distance_measures/many_to_many/many_to_many.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
+#include "scann/oss_wrappers/scann_bits.h"
 #include "scann/oss_wrappers/scann_comparator.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/proto/partitioning.pb.h"

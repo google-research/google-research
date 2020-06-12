@@ -12,28 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #ifndef SCANN__UTILS_FAST_TOP_NEIGHBORS_H_
 #define SCANN__UTILS_FAST_TOP_NEIGHBORS_H_
 
 #include <string>
 
 #include "absl/numeric/int128.h"
+#include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/common.h"
 #include "scann/utils/intrinsics/sse4.h"
 #include "scann/utils/types.h"
@@ -76,11 +61,15 @@ class FastTopNeighbors {
           NextMultipleOf(2 * std::min(kMaxPossibleResults, max_results), 32);
     }
 
-    indices_.reset(new DatapointIndexT[2 * capacity_ + kPadding]);
-    distances_.reset(new DistT[capacity_ + kPadding]);
-    std::fill(distances_.get(), distances_.get() + capacity_ + kPadding,
-              epsilon);
-    masks_.reset(new uint32_t[2 * capacity_ / 32 + 2]);
+    AllocateArrays(capacity_);
+    FillDistancesForASan();
+  }
+
+  void InitWithCapacity(size_t capacity) {
+    CHECK(!mutator_held_);
+    epsilon_ = MaxOrInfinity<DistT>();
+    capacity_ = max_capacity_ = capacity;
+    AllocateArrays(capacity_);
   }
 
   SCANN_INLINE DistT epsilon() const { return epsilon_; }
@@ -104,6 +93,15 @@ class FastTopNeighbors {
   SCANN_INLINE pair<MutableSpan<DatapointIndexT>, MutableSpan<DistT>>
   FinishUnsorted() {
     return FinishUnsorted(max_results_);
+  }
+
+  SCANN_INLINE pair<MutableSpan<DatapointIndexT>, MutableSpan<DistT>>
+  GetRawStorage(size_t set_size_to) {
+    CHECK(set_size_to <= capacity_);
+    sz_ = set_size_to;
+    auto indices = MutableSpan<DatapointIndexT>(indices_.get(), sz_);
+    auto dists = MutableSpan<DistT>(distances_.get(), sz_);
+    return std::make_pair(indices, dists);
   }
 
   pair<MutableSpan<DatapointIndexT>, MutableSpan<DistT>> FinishSorted();
@@ -138,6 +136,8 @@ class FastTopNeighbors {
     GarbageCollect(max_results_, keep_max);
   }
 
+  void AllocateArrays(size_t capacity);
+  void FillDistancesForASan();
   void ReallocateForPureEnn();
 
   SCANN_INLINE void ReleaseMutator(ssize_t pushes_remaining_negated) {
@@ -166,8 +166,6 @@ class FastTopNeighbors {
   DatapointIndexT tiebreaker_idx_;
 
   bool mutator_held_ = false;
-
-  enum : size_t { kPadding = 96 };
 
   friend class Mutator;
   friend class FastTopNeighborsTest;

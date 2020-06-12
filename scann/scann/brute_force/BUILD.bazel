@@ -1,0 +1,65 @@
+# Description:
+#   Brute force KNN/ENN search.
+
+package(
+    default_visibility = ["//visibility:public"],
+    licenses = ["notice"],
+)
+
+cc_library(
+    name = "brute_force",
+    srcs = [
+        "brute_force.cc",
+    ],
+    hdrs = ["brute_force.h"],
+    tags = ["local"],
+    deps = [
+        "//scann/base:restrict_allowlist",
+        "//scann/base:search_parameters",
+        "//scann/base:single_machine_base",
+        "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
+        "//scann/distance_measures",
+        "//scann/distance_measures/many_to_many",
+        "//scann/distance_measures/one_to_many",
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/utils:common",
+        "//scann/utils:fast_top_neighbors",
+        "//scann/utils:top_n_amortized_constant",
+        "//scann/utils:types",
+        "//scann/utils/intrinsics:sse4",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/synchronization",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "scalar_quantized_brute_force",
+    srcs = [
+        "scalar_quantized_brute_force.cc",
+    ],
+    hdrs = ["scalar_quantized_brute_force.h"],
+    tags = ["local"],
+    deps = [
+        "//scann/base:restrict_allowlist",
+        "//scann/base:search_parameters",
+        "//scann/base:single_machine_base",
+        "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
+        "//scann/distance_measures",
+        "//scann/distance_measures/one_to_many",
+        "//scann/oss_wrappers:scann_status",
+        "//scann/tree_x_hybrid:leaf_searcher_optional_parameter_creator",
+        "//scann/utils:scalar_quantization_helpers",
+        "//scann/utils:top_n_amortized_constant",
+        "//scann/utils:types",
+        "@com_google_absl//absl/memory",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)

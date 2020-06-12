@@ -12,20 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include "scann/utils/scann_config_utils.h"
 
 #include <string>
@@ -95,7 +81,8 @@ Status CanonicalizeDeprecatedFields(ScannConfig* config) {
 
 Status CanonicalizeRecallCurves(ScannConfig* config) { return OkStatus(); }
 
-Status CanonicalizeScannConfigImpl(ScannConfig* config) {
+Status CanonicalizeScannConfigImpl(ScannConfig* config,
+                                   bool artifact_with_stable_base_name) {
   SCANN_RETURN_IF_ERROR(CanonicalizeDeprecatedFields(config));
   SCANN_RETURN_IF_ERROR(EnsureCorrectNormalizationForDistanceMeasure(config));
   auto io = config->mutable_input_output();
@@ -144,12 +131,21 @@ Status CanonicalizeScannConfigImpl(ScannConfig* config) {
 
 }  // namespace
 
-Status CanonicalizeScannConfigForRetrieval(ScannConfig* config) {
-  SCANN_RETURN_IF_ERROR(CanonicalizeScannConfigImpl(config));
+namespace {
+Status CanonicalizeScannConfigForRetrieval(ScannConfig* config,
+                                           bool artifact_with_stable_base_name,
+                                           bool artifact_must_exist) {
+  SCANN_RETURN_IF_ERROR(
+      CanonicalizeScannConfigImpl(config, artifact_with_stable_base_name));
 
   auto io = config->mutable_input_output();
   if (io->preprocessed_artifacts_dir().empty()) return OkStatus();
   return OkStatus();
+}
+}  // namespace
+
+Status CanonicalizeScannConfigForRetrieval(ScannConfig* config) {
+  return CanonicalizeScannConfigForRetrieval(config, false, false);
 }
 
 StatusOr<InputOutputConfig::InMemoryTypes> TagFromGFVFeatureType(

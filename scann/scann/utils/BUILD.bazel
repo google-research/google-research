@@ -1,0 +1,503 @@
+# Description:
+#   This is for the utility functions to be used across ScaNN.
+
+package(
+    default_visibility = ["//visibility:public"],
+    licenses = ["notice"],
+)
+
+# Libraries
+# ========================================================================
+
+cc_library(
+    name = "alignment",
+    srcs = ["alignment.cc"],
+    hdrs = ["alignment.h"],
+    tags = ["local"],
+    deps = [
+        ":common",
+    ],
+)
+
+cc_library(
+    name = "types",
+    srcs = ["types.cc"],
+    hdrs = ["types.h"],
+    tags = ["local"],
+    deps = [
+        ":common",
+        "//scann/proto:input_output_cc_proto",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+cc_library(
+    name = "datapoint_utils",
+    hdrs = ["datapoint_utils.h"],
+    tags = ["local"],
+    deps = [
+        ":reduction",
+        ":types",
+        "//scann/data_format:datapoint",
+        "//scann/distance_measures",
+        "//scann/oss_wrappers:scann_bits",
+        "//scann/proto:input_output_cc_proto",
+        "//scann/utils/intrinsics:flags",
+    ],
+)
+
+cc_library(
+    name = "fast_top_neighbors",
+    srcs = ["fast_top_neighbors.cc"],
+    hdrs = ["fast_top_neighbors.h"],
+    tags = ["local"],
+    textual_hdrs = ["fast_top_neighbors_impl.inc"],
+    deps = [
+        ":bits",
+        ":common",
+        ":types",
+        ":util_functions",
+        ":zip_sort",
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_bits",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/utils/intrinsics:avx2",
+        "//scann/utils/intrinsics:flags",
+        "//scann/utils/intrinsics:sse4",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/numeric:int128",
+        "@com_google_absl//absl/strings",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "gmm_utils",
+    srcs = ["gmm_utils.cc"],
+    hdrs = ["gmm_utils.h"],
+    tags = ["local"],
+    deps = [
+        ":common",
+        ":datapoint_utils",
+        ":fast_top_neighbors",
+        ":parallel_for",
+        ":types",
+        ":util_functions",
+        ":zip_sort",
+        "//scann/base:restrict_allowlist",
+        "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
+        "//scann/data_format:docid_collection",
+        "//scann/distance_measures",
+        "//scann/distance_measures/many_to_many",
+        "//scann/distance_measures/one_to_many",
+        "//scann/distance_measures/one_to_one:l2_distance",
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_bits",
+        "//scann/oss_wrappers:scann_comparator",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:scann_random",
+        "//scann/oss_wrappers:scann_status",
+        "//scann/partitioning:partitioner_cc_proto",
+        "//scann/proto:partitioning_cc_proto",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/random:distributions",
+        "@com_google_absl//absl/time",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "infinite_one_array",
+    hdrs = ["infinite_one_array.h"],
+    tags = ["local"],
+    deps = [":types"],
+)
+
+cc_library(
+    name = "bits",
+    hdrs = ["bits.h"],
+    tags = ["local"],
+    deps = [
+        ":types",
+        "//scann/oss_wrappers:scann_bits",
+    ],
+)
+
+cc_library(
+    name = "reduction",
+    hdrs = ["reduction.h"],
+    tags = ["local"],
+    deps = [
+        ":types",
+        "//scann/data_format:datapoint",
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "util_functions",
+    srcs = ["util_functions.cc"],
+    hdrs = ["util_functions.h"],
+    tags = ["local"],
+    deps = [
+        ":common",
+        ":parallel_for",
+        ":reduction",
+        ":types",
+        ":zip_sort",
+        "//scann/data_format:datapoint",
+        "//scann/data_format:features_cc_proto",
+        "//scann/data_format/internal:short_string_optimized_string",
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/partitioning:partitioner_cc_proto",
+        "//scann/proto:exact_reordering_cc_proto",
+        "//scann/proto:input_output_cc_proto",
+        "//scann/proto:results_cc_proto",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_protobuf//:protobuf",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "scann_config_utils",
+    srcs = ["scann_config_utils.cc"],
+    hdrs = ["scann_config_utils.h"],
+    tags = ["local"],
+    deps = [
+        ":common",
+        ":types",
+        "//scann/data_format:datapoint",
+        "//scann/data_format:features_cc_proto",
+        "//scann/distance_measures",
+        "//scann/oss_wrappers:scann_status",
+        "//scann/partitioning:partitioner_cc_proto",
+        "//scann/proto:brute_force_cc_proto",
+        "//scann/proto:compressed_reordering_cc_proto",
+        "//scann/proto:distance_measure_cc_proto",
+        "//scann/proto:evaluation_cc_proto",
+        "//scann/proto:exact_reordering_cc_proto",
+        "//scann/proto:hash_cc_proto",
+        "//scann/proto:input_output_cc_proto",
+        "//scann/proto:metadata_cc_proto",
+        "//scann/proto:partitioning_cc_proto",
+        "//scann/proto:projection_cc_proto",
+        "//scann/proto:scann_cc_proto",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "threads",
+    srcs = ["threads.cc"],
+    hdrs = ["threads.h"],
+    tags = ["local"],
+    deps = [
+        ":types",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
+    name = "memory_logging",
+    srcs = ["memory_logging.cc"],
+    hdrs = ["memory_logging.h"],
+    tags = ["local"],
+    deps = [
+        ":types",
+        "//scann/data_format:datapoint",
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/strings",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "bit_iterator",
+    hdrs = ["bit_iterator.h"],
+    tags = ["local"],
+    deps = [
+        ":types",
+        "//scann/oss_wrappers:scann_bits",
+    ],
+)
+
+cc_library(
+    name = "reordering_helper",
+    srcs = ["reordering_helper.cc"],
+    hdrs = ["reordering_helper.h"],
+    tags = ["local"],
+    deps = [
+        ":common",
+        ":datapoint_utils",
+        ":scalar_quantization_helpers",
+        ":types",
+        ":util_functions",
+        "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
+        "//scann/distance_measures",
+        "//scann/distance_measures/one_to_many",
+        "//scann/hashes/asymmetric_hashing2:querying",
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:scann_status",
+        "//scann/utils/internal:avx2_funcs",
+        "//scann/utils/internal:avx_funcs",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/strings:str_format",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "factory_helpers",
+    srcs = ["factory_helpers.cc"],
+    hdrs = ["factory_helpers.h"],
+    tags = ["local"],
+    deps = [
+        ":types",
+        "//scann/distance_measures",
+        "//scann/proto:compressed_reordering_cc_proto",
+        "//scann/proto:distance_measure_cc_proto",
+        "//scann/proto:exact_reordering_cc_proto",
+        "//scann/proto:scann_cc_proto",
+    ],
+)
+
+cc_library(
+    name = "hash_leaf_helpers",
+    srcs = ["hash_leaf_helpers.cc"],
+    hdrs = ["hash_leaf_helpers.h"],
+    tags = ["local"],
+    deps = [
+        ":factory_helpers",
+        ":types",
+        "//scann/base:single_machine_base",
+        "//scann/distance_measures",
+        "//scann/hashes/asymmetric_hashing2:indexing",
+        "//scann/hashes/asymmetric_hashing2:querying",
+        "//scann/hashes/asymmetric_hashing2:searcher",
+        "//scann/hashes/asymmetric_hashing2:training",
+        "//scann/hashes/asymmetric_hashing2:training_options",
+        "//scann/projection:projection_factory",
+        "//scann/proto:centers_cc_proto",
+        "//scann/proto:distance_measure_cc_proto",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_library(
+    name = "io_oss_wrapper",
+    srcs = ["io_oss_wrapper.cc"],
+    hdrs = ["io_oss_wrapper.h"],
+    tags = ["local"],
+    deps = [
+        ":common",
+        "@com_google_protobuf//:protobuf",
+    ],
+)
+
+cc_library(
+    name = "io_npy",
+    srcs = ["io_npy.cc"],
+    hdrs = ["io_npy.h"],
+    tags = ["local"],
+    deps = [
+        ":io_oss_wrapper",
+        "//scann/data_format:dataset",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+cc_library(
+    name = "zip_sort",
+    hdrs = [
+        "zip_sort.h",
+        "zip_sort_impl.h",
+    ],
+    tags = ["local"],
+    deps = [
+        ":types",
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_bits",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "top_n_amortized_constant",
+    srcs = ["top_n_amortized_constant.cc"],
+    hdrs = ["top_n_amortized_constant.h"],
+    tags = ["local"],
+    deps = [
+        ":types",
+        ":util_functions",
+        ":zip_sort",
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "parallel_for",
+    hdrs = ["parallel_for.h"],
+    tags = ["local"],
+    deps = [
+        ":types",
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/synchronization",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "dataset_sampling",
+    hdrs = [
+        "dataset_sampling.h",
+        "sampled_index_list.h",
+    ],
+    tags = ["local"],
+    deps = [
+        ":types",
+        "//scann/data_format:dataset",
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:scann_random",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:variant",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "iterators",
+    hdrs = ["iterators.h"],
+    tags = ["local"],
+    deps = [
+        ":types",
+    ],
+)
+
+cc_library(
+    name = "scalar_quantization_helpers",
+    srcs = ["scalar_quantization_helpers.cc"],
+    hdrs = ["scalar_quantization_helpers.h"],
+    tags = ["local"],
+    deps = [
+        ":common",
+        ":datapoint_utils",
+        ":noise_shaping_utils",
+        ":top_n_amortized_constant",
+        ":types",
+        ":util_functions",
+        ":zip_sort",
+        "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
+    ],
+)
+
+# Binaries
+# =========================================================================
+
+# Tests
+# =========================================================================
+
+cc_library(
+    name = "common",
+    srcs = ["common.cc"],
+    hdrs = ["common.h"],
+    tags = ["local"],
+    deps = [
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:scann_serialize",
+        "//scann/oss_wrappers:scann_status",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/container:node_hash_map",
+        "@com_google_absl//absl/container:node_hash_set",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+    ],
+)
+
+cc_library(
+    name = "noise_shaping_utils",
+    hdrs = ["noise_shaping_utils.h"],
+    tags = ["local"],
+    deps = [
+        ":types",
+    ],
+)
+
+cc_library(
+    name = "weak_ptr_cache",
+    hdrs = ["weak_ptr_cache.h"],
+    tags = ["local"],
+    deps = [
+        ":types",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/numeric:int128",
+        "@com_google_absl//absl/synchronization",
+    ],
+)

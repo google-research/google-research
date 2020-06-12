@@ -12,26 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 
-
-#ifndef SCANN__BASE_RESTRICT_WHITELIST_H_
-#define SCANN__BASE_RESTRICT_WHITELIST_H_
+#ifndef SCANN__BASE_RESTRICT_ALLOWLIST_H_
+#define SCANN__BASE_RESTRICT_ALLOWLIST_H_
 
 #include <limits>
 
@@ -47,23 +31,23 @@ namespace scann_ops {
 class RestrictTokenMap;
 class RestrictWhitelistConstView;
 
-class RestrictWhitelist {
+class RestrictAllowlist {
  public:
-  RestrictWhitelist(DatapointIndex num_points, bool default_whitelisted);
-  RestrictWhitelist() : RestrictWhitelist(0, false) {}
+  RestrictAllowlist(DatapointIndex num_points, bool default_whitelisted);
+  RestrictAllowlist() : RestrictAllowlist(0, false) {}
 
-  RestrictWhitelist(const RestrictWhitelist& rhs);
-  RestrictWhitelist(RestrictWhitelist&& rhs) noexcept = default;
-  RestrictWhitelist& operator=(const RestrictWhitelist& rhs);
-  RestrictWhitelist& operator=(RestrictWhitelist&& rhs) = default;
+  RestrictAllowlist(const RestrictAllowlist& rhs);
+  RestrictAllowlist(RestrictAllowlist&& rhs) noexcept = default;
+  RestrictAllowlist& operator=(const RestrictAllowlist& rhs);
+  RestrictAllowlist& operator=(RestrictAllowlist&& rhs) = default;
 
-  explicit RestrictWhitelist(const RestrictWhitelistConstView& view);
+  explicit RestrictAllowlist(const RestrictWhitelistConstView& view);
 
   void Initialize(DatapointIndex num_points, bool default_whitelisted);
 
-  RestrictWhitelist CopyWithCapacity(DatapointIndex capacity) const;
+  RestrictAllowlist CopyWithCapacity(DatapointIndex capacity) const;
 
-  RestrictWhitelist CopyWithSize(DatapointIndex size,
+  RestrictAllowlist CopyWithSize(DatapointIndex size,
                                  bool default_whitelisted) const;
 
   void Append(bool is_whitelisted);
@@ -175,11 +159,11 @@ class RestrictWhitelistConstView {
  public:
   RestrictWhitelistConstView() {}
 
-  explicit RestrictWhitelistConstView(const RestrictWhitelist& whitelist)
+  explicit RestrictWhitelistConstView(const RestrictAllowlist& whitelist)
       : whitelist_array_(whitelist.whitelist_array_.data()),
         num_points_(whitelist.num_points_) {}
 
-  explicit RestrictWhitelistConstView(const RestrictWhitelist* whitelist)
+  explicit RestrictWhitelistConstView(const RestrictAllowlist* whitelist)
       : whitelist_array_(whitelist ? whitelist->whitelist_array_.data()
                                    : nullptr),
         num_points_(whitelist ? whitelist->num_points_ : 0) {}
@@ -188,14 +172,14 @@ class RestrictWhitelistConstView {
                              DatapointIndex num_points)
       : whitelist_array_(storage.data()), num_points_(num_points) {
     DCHECK_EQ(storage.size(),
-              DivRoundUp(num_points, RestrictWhitelist::kBitsPerWord));
+              DivRoundUp(num_points, RestrictAllowlist::kBitsPerWord));
   }
 
   bool IsWhitelisted(DatapointIndex dp_index) const {
     DCHECK_LT(dp_index, num_points_);
     return GetWordContainingDatapoint(dp_index) &
-           (RestrictWhitelist::kOne
-            << (dp_index % RestrictWhitelist::kBitsPerWord));
+           (RestrictAllowlist::kOne
+            << (dp_index % RestrictAllowlist::kBitsPerWord));
   }
 
   bool IsWhitelistedWithDefault(DatapointIndex dp_index,
@@ -205,7 +189,7 @@ class RestrictWhitelistConstView {
   }
 
   size_t GetWordContainingDatapoint(DatapointIndex dp_index) const {
-    return whitelist_array_[dp_index / RestrictWhitelist::kBitsPerWord];
+    return whitelist_array_[dp_index / RestrictAllowlist::kBitsPerWord];
   }
 
   const size_t* data() const { return whitelist_array_; }
@@ -218,7 +202,7 @@ class RestrictWhitelistConstView {
  private:
   const size_t* whitelist_array_ = nullptr;
   DatapointIndex num_points_ = 0;
-  friend class RestrictWhitelist;
+  friend class RestrictAllowlist;
 };
 
 }  // namespace scann_ops

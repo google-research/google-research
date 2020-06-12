@@ -1,0 +1,278 @@
+package(
+    default_visibility = ["//visibility:public"],
+    licenses = ["notice"],
+)
+
+# Generated Files
+# ==================================================================
+
+proto_library(
+    name = "scann_proto",
+    srcs = ["scann.proto"],
+    tags = ["local"],
+    deps = [
+        ":brute_force_proto",
+        ":compressed_reordering_proto",
+        ":crowding_proto",
+        ":disjoint_restrict_token_proto",
+        ":distance_measure_proto",
+        ":evaluation_proto",
+        ":exact_reordering_proto",
+        ":hash_proto",
+        ":input_output_proto",
+        ":metadata_proto",
+        ":partitioning_proto",
+        ":restricts_proto",
+        ":trees_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "scann_cc_proto",
+    tags = ["local"],
+    deps = [":scann_proto"],
+)
+
+proto_library(
+    name = "crowding_proto",
+    srcs = ["crowding.proto"],
+    tags = ["local"],
+    deps = [
+    ],
+)
+
+cc_proto_library(
+    name = "crowding_cc_proto",
+    tags = ["local"],
+    deps = [":crowding_proto"],
+)
+
+proto_library(
+    name = "input_output_proto",
+    srcs = ["input_output.proto"],
+    tags = ["local"],
+    deps = [
+        ":incremental_updates_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "input_output_cc_proto",
+    tags = ["local"],
+    deps = [":input_output_proto"],
+)
+
+proto_library(
+    name = "restricts_proto",
+    srcs = ["restricts.proto"],
+    tags = ["local"],
+)
+
+proto_library(
+    name = "evaluation_proto",
+    srcs = ["evaluation.proto"],
+    tags = ["local"],
+)
+
+cc_proto_library(
+    name = "evaluation_cc_proto",
+    tags = ["local"],
+    deps = [":evaluation_proto"],
+)
+
+proto_library(
+    name = "hash_proto",
+    srcs = ["hash.proto"],
+    tags = ["local"],
+    deps = [
+        ":distance_measure_proto",
+        ":projection_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "hash_cc_proto",
+    tags = ["local"],
+    deps = [":hash_proto"],
+)
+
+proto_library(
+    name = "metadata_proto",
+    srcs = ["metadata.proto"],
+    tags = ["local"],
+    deps = [
+        ":distance_measure_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "metadata_cc_proto",
+    tags = ["local"],
+    deps = [":metadata_proto"],
+)
+
+proto_library(
+    name = "brute_force_proto",
+    srcs = ["brute_force.proto"],
+    tags = ["local"],
+    deps = [
+        ":exact_reordering_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "brute_force_cc_proto",
+    tags = ["local"],
+    deps = [":brute_force_proto"],
+)
+
+proto_library(
+    name = "exact_reordering_proto",
+    srcs = ["exact_reordering.proto"],
+    tags = ["local"],
+    deps = [
+        ":distance_measure_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "exact_reordering_cc_proto",
+    tags = ["local"],
+    deps = [":exact_reordering_proto"],
+)
+
+proto_library(
+    name = "compressed_reordering_proto",
+    srcs = ["compressed_reordering.proto"],
+    tags = ["local"],
+    deps = [":hash_proto"],
+)
+
+cc_proto_library(
+    name = "compressed_reordering_cc_proto",
+    tags = ["local"],
+    deps = [":compressed_reordering_proto"],
+)
+
+proto_library(
+    name = "partitioning_proto",
+    srcs = ["partitioning.proto"],
+    tags = ["local"],
+    deps = [
+        ":distance_measure_proto",
+        ":exact_reordering_proto",
+        ":input_output_proto",
+        ":projection_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "partitioning_cc_proto",
+    tags = ["local"],
+    deps = [":partitioning_proto"],
+)
+
+proto_library(
+    name = "projection_proto",
+    srcs = ["projection.proto"],
+    tags = ["local"],
+    deps = [
+    ],
+)
+
+cc_proto_library(
+    name = "projection_cc_proto",
+    tags = ["local"],
+    deps = [":projection_proto"],
+)
+
+proto_library(
+    name = "distance_measure_proto",
+    srcs = ["distance_measure.proto"],
+    tags = ["local"],
+    deps = [
+    ],
+)
+
+cc_proto_library(
+    name = "distance_measure_cc_proto",
+    tags = ["local"],
+    deps = [":distance_measure_proto"],
+)
+
+proto_library(
+    name = "results_proto",
+    srcs = ["results.proto"],
+    tags = ["local"],
+    deps = [
+    ],
+)
+
+cc_proto_library(
+    name = "results_cc_proto",
+    tags = ["local"],
+    deps = [":results_proto"],
+)
+
+proto_library(
+    name = "trees_proto",
+    srcs = ["trees.proto"],
+    tags = ["local"],
+    deps = [
+    ],
+)
+
+cc_proto_library(
+    name = "trees_cc_proto",
+    tags = ["local"],
+    deps = [":trees_proto"],
+)
+
+proto_library(
+    name = "centers_proto",
+    srcs = ["centers.proto"],
+    tags = ["local"],
+    deps = [
+        ":hash_proto",
+        "//scann/data_format:features_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "centers_cc_proto",
+    tags = ["local"],
+    deps = [":centers_proto"],
+)
+
+proto_library(
+    name = "hashed_proto",
+    srcs = ["hashed.proto"],
+    tags = ["local"],
+    deps = [
+        "//scann/data_format:features_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "hashed_cc_proto",
+    tags = ["local"],
+    deps = [":hashed_proto"],
+)
+
+proto_library(
+    name = "disjoint_restrict_token_proto",
+    srcs = ["disjoint_restrict_token.proto"],
+    tags = ["local"],
+    deps = [
+    ],
+)
+
+proto_library(
+    name = "incremental_updates_proto",
+    srcs = ["incremental_updates.proto"],
+    tags = ["local"],
+    deps = [
+        "@com_google_protobuf//:duration_proto",
+        "@com_google_protobuf//:timestamp_proto",
+    ],
+)

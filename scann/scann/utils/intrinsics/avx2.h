@@ -12,22 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #ifndef SCANN__UTILS_INTRINSICS_AVX2_H_
 #define SCANN__UTILS_INTRINSICS_AVX2_H_
 
@@ -213,6 +197,38 @@ class M256Mixin {
     return *reinterpret_cast<ClassName*>(this);
   }
 
+  SCANN_AVX2_INLINE ClassName
+  InterleaveBottomPerLane(const ClassName& other) const {
+    if (IsSameAny<CType, int8_t, uint8_t>()) {
+      return {_mm256_unpacklo_epi8(val_, other.val_)};
+    }
+    if (IsSameAny<CType, int16_t, uint16_t>()) {
+      return {_mm256_unpacklo_epi16(val_, other.val_)};
+    }
+    if (IsSameAny<CType, int32_t, uint32_t>()) {
+      return {_mm256_unpacklo_epi32(val_, other.val_)};
+    }
+    if (IsSameAny<CType, int64_t, uint64_t>()) {
+      return {_mm256_unpacklo_epi64(val_, other.val_)};
+    }
+  }
+
+  SCANN_AVX2_INLINE ClassName
+  InterleaveTopPerLane(const ClassName& other) const {
+    if (IsSameAny<CType, int8_t, uint8_t>()) {
+      return {_mm256_unpackhi_epi8(val_, other.val_)};
+    }
+    if (IsSameAny<CType, int16_t, uint16_t>()) {
+      return {_mm256_unpackhi_epi16(val_, other.val_)};
+    }
+    if (IsSameAny<CType, int32_t, uint32_t>()) {
+      return {_mm256_unpackhi_epi32(val_, other.val_)};
+    }
+    if (IsSameAny<CType, int64_t, uint64_t>()) {
+      return {_mm256_unpackhi_epi64(val_, other.val_)};
+    }
+  }
+
  private:
   __m256i val_;
   friend ClassName;
@@ -267,15 +283,6 @@ class M256_16Xint16 : public M256Mixin<M256_16Xint16, int16_t> {
 
   SCANN_AVX2_INLINE M256_8Xint32 ExtractTopAs8Xint32() const {
     return {_mm256_cvtepi16_epi32(_mm256_extractf128_si256(val_, 1))};
-  }
-
-  SCANN_AVX2_INLINE M256_16Xint16
-  InterleaveBottomPerLane(M256_16Xint16 x) const {
-    return {_mm256_unpacklo_epi16(val_, x.val_)};
-  }
-
-  SCANN_AVX2_INLINE M256_16Xint16 InterleaveTopPerLane(M256_16Xint16 x) const {
-    return {_mm256_unpackhi_epi16(val_, x.val_)};
   }
 
   SCANN_AVX2_INLINE int BitDoubledMaskFromHighBits() const {

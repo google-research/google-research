@@ -12,22 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #ifndef SCANN__UTILS_COMMON_H_
 #define SCANN__UTILS_COMMON_H_
 
@@ -49,6 +33,7 @@
 #include "absl/strings/match.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_replace.h"
+#include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
@@ -82,13 +67,19 @@ using ::absl::node_hash_map;
 using ::absl::node_hash_set;
 
 using ::absl::PrintF;
+using ::absl::StrAppend;
 using ::absl::StrAppendFormat;
 using ::absl::StrCat;
 using ::absl::StrFormat;
 using ::absl::string_view;
 using ::absl::StrJoin;
+using ::absl::StrSplit;
 
 using ::absl::GetFlag;
+
+using ::absl::Mutex;
+using ::absl::MutexLock;
+using ::absl::ReaderMutexLock;
 
 using OkStatus = Status;
 using internal::StatusOr;
@@ -113,48 +104,6 @@ MAKE_TF_ERROR_FORWARDER(Unknown);
 
 #undef MAKE_TF_ERROR_FORWARDER
 
-#define SCANN_INLINE inline ABSL_ATTRIBUTE_ALWAYS_INLINE
-
-#define SCANN_INLINE_LAMBDA ABSL_ATTRIBUTE_ALWAYS_INLINE
-
-#define SCANN_OUTLINE ABSL_ATTRIBUTE_NOINLINE
-
-struct VirtualDestructor {
-  virtual ~VirtualDestructor() {}
-};
-
-struct MoveOnly {
-  MoveOnly() = default;
-
-  MoveOnly(MoveOnly&&) = default;
-  MoveOnly& operator=(MoveOnly&&) = default;
-
-  MoveOnly(const MoveOnly&) = delete;
-  MoveOnly& operator=(const MoveOnly&) = delete;
-};
-
-#define SCANN_DECLARE_COPYABLE_CLASS(ClassName) \
-  ClassName(ClassName&&) = default;             \
-  ClassName& operator=(ClassName&&) = default;  \
-  ClassName(const ClassName&) = default;        \
-  ClassName& operator=(const ClassName&) = default
-
-#define SCANN_DECLARE_MOVE_ONLY_CLASS(ClassName) \
-  ClassName(ClassName&&) = default;              \
-  ClassName& operator=(ClassName&&) = default;   \
-  ClassName(const ClassName&) = delete;          \
-  ClassName& operator=(const ClassName&) = delete
-
-#define SCANN_DECLARE_MOVE_ONLY_CLASS_CUSTOM_IMPL(ClassName) \
-  ClassName(const ClassName&) = delete;                      \
-  ClassName& operator=(const ClassName&) = delete
-
-#define SCANN_DECLARE_IMMOBILE_CLASS(ClassName) \
-  ClassName(ClassName&&) = delete;              \
-  ClassName& operator=(ClassName&&) = delete;   \
-  ClassName(const ClassName&) = delete;         \
-  ClassName& operator=(const ClassName&) = delete
-
 template <typename T>
 using ConstSpan = absl::Span<const T>;
 
@@ -169,12 +118,36 @@ auto MakeMutableSpan(Args&&... args)
   return absl::MakeSpan(std::forward<Args>(args)...);
 }
 
+enum : uint32_t {
+  kInvalidIdx32 = std::numeric_limits<uint32_t>::max(),
+};
+enum : uint64_t {
+  kInvalidIdx64 = std::numeric_limits<uint64_t>::max(),
+};
+
+#define SCANN_INLINE inline ABSL_ATTRIBUTE_ALWAYS_INLINE
+
+#define SCANN_INLINE_LAMBDA ABSL_ATTRIBUTE_ALWAYS_INLINE
+
+#define SCANN_OUTLINE ABSL_ATTRIBUTE_NOINLINE
+
+const std::string& EmptyString();
+
 template <typename CollectionT>
 bool NotEmpty(const CollectionT& c) {
   return !c.empty();
 }
 
+inline bool NotEmpty(const absl::Flag<std::string>& flag) {
+  return NotEmpty(absl::GetFlag(flag));
+}
+
 inline bool NotOk(const Status& status) { return !status.ok(); }
+
+template <typename T>
+inline bool NotOk(const StatusOr<T>& statusor) {
+  return !statusor.ok();
+}
 
 template <typename... Args>
 ABSL_MUST_USE_RESULT Status FailedPreconditionError(
@@ -241,6 +214,11 @@ constexpr Int NextMultipleOf(Int num, DenomInt denom) {
   return DivRoundUp(num, denom) * denom;
 }
 
+template <typename Int, typename DenomInt>
+constexpr bool IsDivisibleBy(Int num, DenomInt denom) {
+  return num % denom == 0;
+}
+
 template <typename T>
 T ValueOrDie(StatusOr<T> statusor) {
   if (!statusor.ok()) {
@@ -249,7 +227,7 @@ T ValueOrDie(StatusOr<T> statusor) {
   return std::move(statusor).ValueOrDie();
 }
 
-template <size_t kStride = 1>
+template <ssize_t kStride = 1>
 class SeqWithStride {
  public:
   static constexpr size_t Stride() { return kStride; }
@@ -258,49 +236,88 @@ class SeqWithStride {
 
   SCANN_INLINE SeqWithStride(size_t begin, size_t end)
       : begin_(begin), end_(end) {
-    DCHECK_LE(begin, end);
+    static_assert(kStride != 0);
+    if (kStride > 0) {
+      DCHECK_LE(begin, end);
+      DCHECK_GE(static_cast<ssize_t>(begin), 0);
+      DCHECK_GE(static_cast<ssize_t>(end), 0);
+    } else {
+      DCHECK_GE(begin, end);
+      DCHECK_GE(static_cast<ssize_t>(begin + 1), 0);
+      DCHECK_GE(static_cast<ssize_t>(end), 0);
+    }
   }
 
-  class iterator {
+  class SizeT {
    public:
-    class SizeT {
-     public:
-      SCANN_INLINE SizeT(size_t val) : val_(val) {}
+    SCANN_INLINE SizeT(size_t val) : val_(val) {}
+    SCANN_INLINE operator size_t() const { return val_; }
 
-      SCANN_INLINE ~SizeT() {}
-
-      operator size_t() const { return val_; }
-
-     private:
-      size_t val_;
-    };
-
-    SCANN_INLINE explicit iterator(size_t i) : i_(i) {}
-    SCANN_INLINE SizeT operator*() const { return i_; }
-    SCANN_INLINE iterator& operator++() {
-      i_ += kStride;
-      return *this;
-    }
-    SCANN_INLINE bool operator!=(iterator rhs) const { return i_ < rhs.i_; }
+    SCANN_INLINE ~SizeT() {}
 
    private:
-    size_t i_;
+    size_t val_;
   };
 
-  SCANN_INLINE iterator begin() const { return iterator(begin_); }
-  SCANN_INLINE iterator end() const { return iterator(end_); }
+  class Iterator {
+   public:
+    SCANN_INLINE explicit Iterator(size_t idx) : idx_(idx) {}
+
+    SCANN_INLINE SizeT operator*() const {
+      DCHECK_GE(static_cast<ssize_t>(idx_), 0);
+      return idx_;
+    }
+
+    SCANN_INLINE Iterator& operator++() {
+      idx_ += kStride;
+      return *this;
+    }
+
+    SCANN_INLINE bool operator!=(Iterator end) const {
+      if constexpr (kStride > 0) {
+        return idx_ < end.idx_;
+      }
+
+      return static_cast<ssize_t>(idx_) >= static_cast<ssize_t>(end.idx_);
+    }
+
+   private:
+    size_t idx_;
+  };
+  using iterator = Iterator;
+
+  SCANN_INLINE Iterator begin() const { return Iterator(begin_); }
+  SCANN_INLINE Iterator end() const { return Iterator(end_); }
 
  private:
   size_t begin_;
   size_t end_;
 };
 
-SCANN_INLINE SeqWithStride<1> Seq(size_t end) {
-  return SeqWithStride<1>(0, end);
+SCANN_INLINE auto Seq(size_t end) { return SeqWithStride<1>(0, end); }
+
+SCANN_INLINE auto Seq(size_t begin, size_t end) {
+  return SeqWithStride<1>(begin, end);
 }
 
-SCANN_INLINE SeqWithStride<1> Seq(size_t begin, size_t end) {
-  return SeqWithStride<1>(begin, end);
+SCANN_INLINE auto ReverseSeq(size_t end) {
+  return SeqWithStride<-1>(end - 1, 0);
+}
+
+SCANN_INLINE auto ReverseSeq(size_t begin, size_t end) {
+  return SeqWithStride<-1>(end - 1, begin);
+}
+
+template <size_t kStride>
+SCANN_INLINE auto ReverseSeqWithStride(size_t end) {
+  end = (end - 1) / kStride * kStride;
+  return SeqWithStride<-kStride>(end, 0);
+}
+
+template <size_t kStride>
+SCANN_INLINE auto ReverseSeqWithStride(size_t begin, size_t end) {
+  end = begin + (end - begin - 1) / kStride * kStride;
+  return SeqWithStride<-kStride>(end, begin);
 }
 
 template <typename Container>
@@ -308,12 +325,37 @@ SeqWithStride<1> IndicesOf(const Container& container) {
   return Seq(container.size());
 }
 
+template <typename T, typename IdxType = size_t,
+          typename TIter = decltype(std::begin(std::declval<T>())),
+          typename = decltype(std::end(std::declval<T>()))>
+constexpr auto Enumerate(T&& iterable) {
+  class IteratorWithIndex {
+   public:
+    IteratorWithIndex(IdxType idx, TIter it) : idx_(idx), it_(it) {}
+    bool operator!=(const IteratorWithIndex& other) const {
+      return it_ != other.it_;
+    }
+    void operator++() { idx_++, it_++; }
+    auto operator*() const { return std::tie(idx_, *it_); }
+
+   private:
+    IdxType idx_;
+    TIter it_;
+  };
+  struct iterator_wrapper {
+    T iterable;
+    auto begin() { return IteratorWithIndex{0, std::begin(iterable)}; }
+    auto end() { return IteratorWithIndex{0, std::end(iterable)}; }
+  };
+  return iterator_wrapper{std::forward<T>(iterable)};
+}
+
 template <typename FloatT>
 Status VerifyAllFiniteImpl(ConstSpan<FloatT> span) {
-  for (size_t i : IndicesOf(span)) {
-    if (!ABSL_PREDICT_TRUE(std::isfinite(span[i]))) {
-      return InternalError("Element not finite (dim idx = %d, value = %f)", i,
-                           span[i]);
+  for (size_t j : Seq(span.size())) {
+    if (!ABSL_PREDICT_TRUE(std::isfinite(span[j]))) {
+      return InternalError("Element not finite (dim idx = %d, value = %f)", j,
+                           span[j]);
     }
   }
   return OkStatus();
@@ -326,6 +368,42 @@ inline Status VerifyAllFinite(ConstSpan<float> span) {
 inline Status VerifyAllFinite(ConstSpan<double> span) {
   return VerifyAllFiniteImpl<double>(span);
 }
+
+struct VirtualDestructor {
+  virtual ~VirtualDestructor() {}
+};
+
+struct MoveOnly {
+  MoveOnly() = default;
+
+  MoveOnly(MoveOnly&&) = default;
+  MoveOnly& operator=(MoveOnly&&) = default;
+
+  MoveOnly(const MoveOnly&) = delete;
+  MoveOnly& operator=(const MoveOnly&) = delete;
+};
+
+#define SCANN_DECLARE_COPYABLE_CLASS(ClassName) \
+  ClassName(ClassName&&) = default;             \
+  ClassName& operator=(ClassName&&) = default;  \
+  ClassName(const ClassName&) = default;        \
+  ClassName& operator=(const ClassName&) = default
+
+#define SCANN_DECLARE_MOVE_ONLY_CLASS(ClassName) \
+  ClassName(ClassName&&) = default;              \
+  ClassName& operator=(ClassName&&) = default;   \
+  ClassName(const ClassName&) = delete;          \
+  ClassName& operator=(const ClassName&) = delete
+
+#define SCANN_DECLARE_MOVE_ONLY_CLASS_CUSTOM_IMPL(ClassName) \
+  ClassName(const ClassName&) = delete;                      \
+  ClassName& operator=(const ClassName&) = delete
+
+#define SCANN_DECLARE_IMMOBILE_CLASS(ClassName) \
+  ClassName(ClassName&&) = delete;              \
+  ClassName& operator=(ClassName&&) = delete;   \
+  ClassName(const ClassName&) = delete;         \
+  ClassName& operator=(const ClassName&) = delete
 
 using ::absl::conditional_t;
 using ::absl::decay_t;

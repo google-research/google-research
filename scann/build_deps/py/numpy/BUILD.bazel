@@ -1,0 +1,25 @@
+package(
+    default_visibility = ["//visibility:public"],
+    licenses = ["notice"],
+)
+
+py_library(
+    name = "numpy",
+    srcs = ["tf_numpy_dummy.py"],
+    srcs_version = "PY2AND3",
+    tags = ["local"],
+)
+
+alias(
+    name = "headers",
+    actual = "@local_config_python//:numpy_headers",
+    tags = ["local"],
+)
+
+genrule(
+    name = "dummy",
+    outs = ["tf_numpy_dummy.py"],
+    cmd = "touch $@",
+    tags = ["local"],
+    visibility = ["//visibility:private"],
+)

@@ -12,21 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include "scann/hashes/internal/lut16_sse4.h"
+
+#include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/common.h"
 
 #ifdef __x86_64__
@@ -66,13 +54,13 @@ SCANN_INLINE array<T, size> ToLocalArray(ConstSpan<T> span) {
   return result;
 }
 
-template <size_t kBatchSize, bool kPrefetch>
-SCANN_SSE4_INLINE array<Accum32Int16s, kBatchSize> Sse4LUT16BottomLoop(
-    const uint8_t* data_start, array<const uint8_t*, kBatchSize> lookup_starts,
+template <size_t kNumQueries, bool kPrefetch>
+SCANN_SSE4_INLINE array<Accum32Int16s, kNumQueries> Sse4LUT16BottomLoop(
+    const uint8_t* data_start, array<const uint8_t*, kNumQueries> lookup_starts,
     DimensionIndex num_blocks) {
-  static_assert(kBatchSize <= 3,
-                "Register spilling happens when kBatchSize > 3");
-  array<Accum32Int16s, kBatchSize> result;
+  static_assert(kNumQueries <= 3,
+                "Register spilling happens when kNumQueries > 3");
+  array<Accum32Int16s, kNumQueries> result;
   auto sign7 = M128_16Xuint8::Broadcast(0x0f);
   const auto total_bias =
       M128_8Xint16::Broadcast(static_cast<int16_t>(num_blocks * 128));
@@ -86,7 +74,7 @@ SCANN_SSE4_INLINE array<Accum32Int16s, kBatchSize> Sse4LUT16BottomLoop(
     M128_16Xuint8 mask1 =
         M128_16Xuint8((M128_8Xuint16(mask.val()) >> 4).val()) & sign7;
     M128_16Xuint8 mask0 = mask & sign7;
-    for (size_t j : Seq(kBatchSize)) {
+    for (size_t j : Seq(kNumQueries)) {
       const M128_16Xuint8 dict = M128_16Xuint8::Load(lookup_starts[j]);
       lookup_starts[j] += 16;
       const M128_16Xuint8 res0 = dict.Perform16LUT16Lookups(mask0);
@@ -99,7 +87,7 @@ SCANN_SSE4_INLINE array<Accum32Int16s, kBatchSize> Sse4LUT16BottomLoop(
     }
   }
 
-  for (size_t j : Seq(kBatchSize)) {
+  for (size_t j : Seq(kNumQueries)) {
     result[j].acc00 -= result[j].acc08 << 8;
     result[j].acc16 -= result[j].acc24 << 8;
     auto bottom0 = result[j].acc00.InterleaveBottom(result[j].acc08);
@@ -119,11 +107,11 @@ SCANN_SSE4_INLINE array<Accum32Int16s, kBatchSize> Sse4LUT16BottomLoop(
   return result;
 }
 
-template <size_t kBottomLevelBatchSize, size_t kBatchSize>
+template <size_t kBottomLevelBatchSize, size_t kNumQueries>
 SCANN_SSE4_INLINE array<const uint8_t*, kBottomLevelBatchSize>
 MakeBottomLevelBatchLookupArray(
-    array<const uint8_t*, kBatchSize> mid_level_lookups, size_t start) {
-  DCHECK_LE(start + kBottomLevelBatchSize, kBatchSize);
+    array<const uint8_t*, kNumQueries> mid_level_lookups, size_t start) {
+  DCHECK_LE(start + kBottomLevelBatchSize, kNumQueries);
   array<const uint8_t*, kBottomLevelBatchSize> result;
   for (size_t j : Seq(kBottomLevelBatchSize)) {
     result[j] = mid_level_lookups[start + j];
@@ -131,21 +119,21 @@ MakeBottomLevelBatchLookupArray(
   return result;
 }
 
-template <size_t kBatchSize, bool kPrefetch>
-SCANN_SSE4_INLINE array<Accum32Int16s, kBatchSize> Sse4LUT16MiddleLoop(
-    const uint8_t* data_start, array<const uint8_t*, kBatchSize> lookup_starts,
+template <size_t kNumQueries, bool kPrefetch>
+SCANN_SSE4_INLINE array<Accum32Int16s, kNumQueries> Sse4LUT16MiddleLoop(
+    const uint8_t* data_start, array<const uint8_t*, kNumQueries> lookup_starts,
     const DimensionIndex num_blocks) {
-  constexpr size_t kSizeB = (kBatchSize == 1) ? 1 : 2;
+  constexpr size_t kSizeB = (kNumQueries == 1) ? 1 : 2;
   constexpr size_t kNumBCases[] = {0, 2, 1};
-  constexpr size_t kNumB = (kBatchSize == 1) ? 1 : kNumBCases[kBatchSize % 3];
+  constexpr size_t kNumB = (kNumQueries == 1) ? 1 : kNumBCases[kNumQueries % 3];
 
-  constexpr size_t kRemaining = kBatchSize - kNumB * kSizeB;
+  constexpr size_t kRemaining = kNumQueries - kNumB * kSizeB;
   static_assert(kRemaining % 3 == 0, "");
 
   constexpr size_t kSizeA = 3;
   constexpr size_t kNumA = kRemaining / 3;
 
-  array<Accum32Int16s, kBatchSize> result;
+  array<Accum32Int16s, kNumQueries> result;
   for (size_t j : Seq(kNumA)) {
     const size_t start = j * kSizeA;
     auto bottom_level_lookups =
@@ -170,18 +158,18 @@ SCANN_SSE4_INLINE array<Accum32Int16s, kBatchSize> Sse4LUT16MiddleLoop(
   return result;
 }
 
-template <size_t kBatchSize, bool kPrefetch>
-SCANN_SSE4_INLINE array<Accum32Int32s, kBatchSize> Sse4LUT16BottomLoopInt32(
-    const uint8_t* data_start, array<const uint8_t*, kBatchSize> lookup_starts,
+template <size_t kNumQueries, bool kPrefetch>
+SCANN_SSE4_INLINE array<Accum32Int32s, kNumQueries> Sse4LUT16BottomLoopInt32(
+    const uint8_t* data_start, array<const uint8_t*, kNumQueries> lookup_starts,
     DimensionIndex num_blocks) {
-  array<Accum32Int32s, kBatchSize> int32_accumulators;
+  array<Accum32Int32s, kNumQueries> int32_accumulators;
   for (DimensionIndex k = 0; k < num_blocks;) {
     DimensionIndex reaccumulate_limit = std::min(num_blocks - k, uint64_t{256});
     k += reaccumulate_limit;
-    auto int16_accumulators = Sse4LUT16MiddleLoop<kBatchSize, kPrefetch>(
+    auto int16_accumulators = Sse4LUT16MiddleLoop<kNumQueries, kPrefetch>(
         data_start, lookup_starts, reaccumulate_limit);
     data_start += 16 * reaccumulate_limit;
-    for (size_t j : Seq(kBatchSize)) {
+    for (size_t j : Seq(kNumQueries)) {
       lookup_starts[j] += 16 * reaccumulate_limit;
       const auto& int16_accums = int16_accumulators[j];
       auto& int32_accums = int32_accumulators[j];
@@ -200,21 +188,21 @@ SCANN_SSE4_INLINE array<Accum32Int32s, kBatchSize> Sse4LUT16BottomLoopInt32(
 
 }  // namespace
 
-template <size_t kBatchSize, bool kPrefetch>
-SCANN_SSE4_OUTLINE void LUT16Sse4<kBatchSize, kPrefetch>::GetInt16Distances(
+template <size_t kNumQueries, bool kPrefetch>
+SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetInt16Distances(
     LUT16Args<int16_t> args) {
   const uint8_t* packed_dataset = args.packed_dataset;
   const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;
   const size_t num_blocks = args.num_blocks;
-  auto lookups = ToLocalArray<kBatchSize>(args.lookups);
-  auto distances = ToLocalArray<kBatchSize>(args.distances);
+  auto lookups = ToLocalArray<kNumQueries>(args.lookups);
+  auto distances = ToLocalArray<kNumQueries>(args.distances);
   for (size_t k : Seq(num_32dp_simd_iters)) {
     const size_t dp_idx = k * 32;
 
     const uint8_t* data_start = packed_dataset + dp_idx * num_blocks / 2;
-    auto int16_accumulators = Sse4LUT16MiddleLoop<kBatchSize, kPrefetch>(
+    auto int16_accumulators = Sse4LUT16MiddleLoop<kNumQueries, kPrefetch>(
         data_start, lookups, num_blocks);
-    for (size_t j : Seq(kBatchSize)) {
+    for (size_t j : Seq(kNumQueries)) {
       auto int16_accums = int16_accumulators[j];
       int16_accums.acc00.Store(distances[j] + dp_idx);
       int16_accums.acc08.Store(distances[j] + dp_idx + 8);
@@ -224,19 +212,19 @@ SCANN_SSE4_OUTLINE void LUT16Sse4<kBatchSize, kPrefetch>::GetInt16Distances(
   }
 }
 
-template <size_t kBatchSize, bool kPrefetch>
-SCANN_SSE4_OUTLINE void LUT16Sse4<kBatchSize, kPrefetch>::GetInt32Distances(
+template <size_t kNumQueries, bool kPrefetch>
+SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetInt32Distances(
     LUT16Args<int32_t> args) {
   const uint8_t* packed_dataset = args.packed_dataset;
   const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;
   const size_t num_blocks = args.num_blocks;
-  auto lookups = ToLocalArray<kBatchSize>(args.lookups);
-  auto distances = ToLocalArray<kBatchSize>(args.distances);
+  auto lookups = ToLocalArray<kNumQueries>(args.lookups);
+  auto distances = ToLocalArray<kNumQueries>(args.distances);
   for (DatapointIndex k = 0; k < num_32dp_simd_iters; k++) {
     const uint8_t* data_start = packed_dataset + k * 16 * num_blocks;
-    auto int32_accumulators = Sse4LUT16BottomLoopInt32<kBatchSize, kPrefetch>(
+    auto int32_accumulators = Sse4LUT16BottomLoopInt32<kNumQueries, kPrefetch>(
         data_start, lookups, num_blocks);
-    for (size_t j : Seq(kBatchSize)) {
+    for (size_t j : Seq(kNumQueries)) {
       const auto& int32_accums = int32_accumulators[j];
       int32_accums.acc00.Store(distances[j] + 32 * k);
       int32_accums.acc04.Store(distances[j] + 32 * k + 4);
@@ -250,21 +238,21 @@ SCANN_SSE4_OUTLINE void LUT16Sse4<kBatchSize, kPrefetch>::GetInt32Distances(
   }
 }
 
-template <size_t kBatchSize, bool kPrefetch>
-SCANN_SSE4_OUTLINE void LUT16Sse4<kBatchSize, kPrefetch>::GetFloatDistances(
+template <size_t kNumQueries, bool kPrefetch>
+SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetFloatDistances(
     LUT16Args<float> args, ConstSpan<float> inv_fp_multipliers) {
   const uint8_t* packed_dataset = args.packed_dataset;
   const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;
   const size_t num_blocks = args.num_blocks;
-  auto lookups = ToLocalArray<kBatchSize>(args.lookups);
-  auto distances = ToLocalArray<kBatchSize>(args.distances);
-  auto mults = ToLocalArray<kBatchSize>(inv_fp_multipliers);
+  auto lookups = ToLocalArray<kNumQueries>(args.lookups);
+  auto distances = ToLocalArray<kNumQueries>(args.distances);
+  auto mults = ToLocalArray<kNumQueries>(inv_fp_multipliers);
 
   for (DatapointIndex k = 0; k < num_32dp_simd_iters; k++) {
     const uint8_t* data_start = packed_dataset + k * 16 * num_blocks;
-    auto int32_accumulators = Sse4LUT16BottomLoopInt32<kBatchSize, kPrefetch>(
+    auto int32_accumulators = Sse4LUT16BottomLoopInt32<kNumQueries, kPrefetch>(
         data_start, lookups, num_blocks);
-    for (size_t j : Seq(kBatchSize)) {
+    for (size_t j : Seq(kNumQueries)) {
       const auto& int32_accums = int32_accumulators[j];
       float* d = distances[j];
       const M128_4Xfloat mult = M128_4Xfloat::Broadcast(mults[j]);
@@ -281,36 +269,36 @@ SCANN_SSE4_OUTLINE void LUT16Sse4<kBatchSize, kPrefetch>::GetFloatDistances(
 }
 
 namespace {
-template <size_t kBatchSize, bool kPrefetch, typename TopN>
+template <size_t kNumQueries, bool kPrefetch, typename TopN>
 SCANN_SSE4_INLINE void GetTopInt16DistancesImpl(
     LUT16ArgsTopN<int16_t, TopN> args) {
   const uint8_t* packed_dataset = args.packed_dataset;
   const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;
   const size_t num_blocks = args.num_blocks;
-  auto lookups = ToLocalArray<kBatchSize>(args.lookups);
+  auto lookups = ToLocalArray<kNumQueries>(args.lookups);
   const DatapointIndex first_dp_index = args.first_dp_index;
   const uint32_t final_mask = GetFinalMask32(args.num_datapoints);
   DCHECK_EQ(num_32dp_simd_iters, DivRoundUp(args.num_datapoints, 32));
 
-  M128_8Xint16 simd_thresholds[kBatchSize];
-  for (size_t j : Seq(kBatchSize)) {
+  M128_8Xint16 simd_thresholds[kNumQueries];
+  for (size_t j : Seq(kNumQueries)) {
     const int16_t int16_threshold = args.fast_topns[j]->epsilon();
     simd_thresholds[j] = M128_8Xint16::Broadcast(int16_threshold);
   }
 
-  typename TopN::Mutator topn_mutators[kBatchSize];
-  for (size_t j : Seq(kBatchSize)) {
+  typename TopN::Mutator topn_mutators[kNumQueries];
+  for (size_t j : Seq(kNumQueries)) {
     args.fast_topns[j]->AcquireMutator(&topn_mutators[j]);
   }
 
   int16_t distances_buffer[32];
   auto restrict_whitelist_ptrs =
-      args.template GetRestrictWhitelistPtrs<kBatchSize>();
+      args.template GetRestrictWhitelistPtrs<kNumQueries>();
   for (DatapointIndex k : Seq(num_32dp_simd_iters)) {
     const uint8_t* data_start = packed_dataset + k * 16 * num_blocks;
-    auto int16_accumulators = Sse4LUT16MiddleLoop<kBatchSize, kPrefetch>(
+    auto int16_accumulators = Sse4LUT16MiddleLoop<kNumQueries, kPrefetch>(
         data_start, lookups, num_blocks);
-    for (size_t j : Seq(kBatchSize)) {
+    for (size_t j : Seq(kNumQueries)) {
       auto& int16_accums = int16_accumulators[j];
 
       auto compute_push_mask = [&]() SCANN_INLINE_LAMBDA {
@@ -360,10 +348,10 @@ SCANN_SSE4_INLINE void GetTopInt16DistancesImpl(
 }
 }  // namespace
 
-template <size_t kBatchSize, bool kPrefetch>
-SCANN_SSE4_OUTLINE void LUT16Sse4<kBatchSize, kPrefetch>::GetTopInt16Distances(
+template <size_t kNumQueries, bool kPrefetch>
+SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetTopInt16Distances(
     LUT16ArgsTopN<int16_t> args) {
-  return GetTopInt16DistancesImpl<kBatchSize, kPrefetch>(std::move(args));
+  return GetTopInt16DistancesImpl<kNumQueries, kPrefetch>(std::move(args));
 }
 
 SCANN_SSE4_INLINE int16_t GetInt16Threshold(float float_threshold) {
@@ -373,50 +361,50 @@ SCANN_SSE4_INLINE int16_t GetInt16Threshold(float float_threshold) {
 }
 
 namespace {
-template <size_t kBatchSize, bool kPrefetch, typename TopN>
+template <size_t kNumQueries, bool kPrefetch, typename TopN>
 SCANN_SSE4_INLINE void GetTopFloatDistancesImpl(
     LUT16ArgsTopN<float, TopN> args) {
   const uint8_t* packed_dataset = args.packed_dataset;
   const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;
   const size_t num_blocks = args.num_blocks;
-  auto lookups = ToLocalArray<kBatchSize>(args.lookups);
+  auto lookups = ToLocalArray<kNumQueries>(args.lookups);
   const DatapointIndex first_dp_index = args.first_dp_index;
   const uint32_t final_mask = GetFinalMask32(args.num_datapoints);
   DCHECK_EQ(num_32dp_simd_iters, DivRoundUp(args.num_datapoints, 32));
 
-  auto biases = ToLocalArray<kBatchSize>(args.biases);
-  M128_4Xfloat simd_biases[kBatchSize];
-  for (size_t j : Seq(kBatchSize)) {
+  auto biases = ToLocalArray<kNumQueries>(args.biases);
+  M128_4Xfloat simd_biases[kNumQueries];
+  for (size_t j : Seq(kNumQueries)) {
     simd_biases[j] = M128_4Xfloat::Broadcast(biases[j]);
   }
 
-  auto mults = ToLocalArray<kBatchSize>(args.fixed_point_multipliers);
-  M128_4Xfloat inv_mults[kBatchSize];
-  for (size_t j : Seq(kBatchSize)) {
+  auto mults = ToLocalArray<kNumQueries>(args.fixed_point_multipliers);
+  M128_4Xfloat inv_mults[kNumQueries];
+  for (size_t j : Seq(kNumQueries)) {
     inv_mults[j] = M128_4Xfloat::Broadcast(1.0 / mults[j]);
   }
 
-  M128_8Xint16 simd_thresholds[kBatchSize];
-  for (size_t j : Seq(kBatchSize)) {
+  M128_8Xint16 simd_thresholds[kNumQueries];
+  for (size_t j : Seq(kNumQueries)) {
     const float epsilon = args.fast_topns[j]->epsilon();
     const float float_threshold = (epsilon - biases[j]) * mults[j];
     const int16_t int16_threshold = GetInt16Threshold(float_threshold);
     simd_thresholds[j] = M128_8Xint16::Broadcast(int16_threshold);
   }
 
-  typename TopN::Mutator topn_mutators[kBatchSize];
-  for (size_t j : Seq(kBatchSize)) {
+  typename TopN::Mutator topn_mutators[kNumQueries];
+  for (size_t j : Seq(kNumQueries)) {
     args.fast_topns[j]->AcquireMutator(&topn_mutators[j]);
   }
 
   float distances_buffer[32];
   auto restrict_whitelist_ptrs =
-      args.template GetRestrictWhitelistPtrs<kBatchSize>();
+      args.template GetRestrictWhitelistPtrs<kNumQueries>();
   for (DatapointIndex k : Seq(num_32dp_simd_iters)) {
     const uint8_t* data_start = packed_dataset + k * 16 * num_blocks;
-    auto int16_accumulators = Sse4LUT16MiddleLoop<kBatchSize, kPrefetch>(
+    auto int16_accumulators = Sse4LUT16MiddleLoop<kNumQueries, kPrefetch>(
         data_start, lookups, num_blocks);
-    for (size_t j : Seq(kBatchSize)) {
+    for (size_t j : Seq(kNumQueries)) {
       auto& int16_accums = int16_accumulators[j];
 
       auto compute_push_mask = [&]() SCANN_INLINE_LAMBDA {
@@ -462,6 +450,8 @@ SCANN_SSE4_INLINE void GetTopFloatDistancesImpl(
             !restrict_whitelist_ptrs[j] ||
             args.restrict_whitelists[j].IsWhitelisted(dp_idx - first_dp_index))
             << dp_idx;
+        if (args.final_predicate && !args.final_predicate(dp_idx)) continue;
+
         const bool needs_gc =
             topn_mutators[j].Push(dp_idx, distances_buffer[offset]);
         if (ABSL_PREDICT_FALSE(needs_gc)) {
@@ -480,10 +470,10 @@ SCANN_SSE4_INLINE void GetTopFloatDistancesImpl(
 }
 }  // namespace
 
-template <size_t kBatchSize, bool kPrefetch>
-SCANN_SSE4_OUTLINE void LUT16Sse4<kBatchSize, kPrefetch>::GetTopFloatDistances(
+template <size_t kNumQueries, bool kPrefetch>
+SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetTopFloatDistances(
     LUT16ArgsTopN<float> args) {
-  return GetTopFloatDistancesImpl<kBatchSize, kPrefetch>(std::move(args));
+  return GetTopFloatDistancesImpl<kNumQueries, kPrefetch>(std::move(args));
 }
 
 SCANN_INSTANTIATE_CLASS_FOR_LUT16_BATCH_SIZES(, LUT16Sse4);

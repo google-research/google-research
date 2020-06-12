@@ -12,23 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include "scann/hashes/internal/write_distances_to_topn.h"
 
-#include "scann/base/restrict_whitelist.h"
+#include "scann/base/restrict_allowlist.h"
 #include "scann/utils/intrinsics/sse4.h"
 
 namespace tensorflow {
@@ -71,7 +57,7 @@ DatapointIndex CountLessEqual(const int16_t* begin, const int16_t* end,
 }
 
 template <bool restricts_enabled>
-void WriteDistancesToTopNImpl(const RestrictWhitelist* whitelist_or_null,
+void WriteDistancesToTopNImpl(const RestrictAllowlist* whitelist_or_null,
                               int32_t max_distance,
                               ConstSpan<int16_t> distances,
                               TopFixedPointNeighbors* top_n_ptr) {
@@ -116,7 +102,7 @@ void WriteDistancesToTopNImpl(const RestrictWhitelist* whitelist_or_null,
   auto block_contains_whitelisted_8 =
       [whitelist_or_null](DatapointIndex dp_index) -> bool {
     if (!restricts_enabled) return true;
-    const uint8_t offset = dp_index % RestrictWhitelist::kBitsPerWord;
+    const uint8_t offset = dp_index % RestrictAllowlist::kBitsPerWord;
     return ((whitelist_or_null->GetWordContainingDatapoint(dp_index) >>
              offset) &
             0xFF) != 0;
@@ -210,7 +196,7 @@ void WriteDistancesToTopNImpl(const RestrictWhitelist* whitelist_or_null,
 }
 
 template <bool restricts_enabled>
-void WriteDistancesToTopNImpl(const RestrictWhitelist* whitelist_or_null,
+void WriteDistancesToTopNImpl(const RestrictAllowlist* whitelist_or_null,
                               int32_t max_distance,
                               ConstSpan<int32_t> distances,
                               TopFixedPointNeighbors* top_n_ptr) {
@@ -265,7 +251,7 @@ void WriteDistancesToTopNImpl(const RestrictWhitelist* whitelist_or_null,
 
 }  // namespace
 
-void WriteDistancesToTopN(const RestrictWhitelist* whitelist_or_null,
+void WriteDistancesToTopN(const RestrictAllowlist* whitelist_or_null,
                           int32_t max_distance, ConstSpan<int16_t> distances,
                           const IdentityPostprocessFunctor&,
                           TopFixedPointNeighbors* top_n) {
@@ -276,7 +262,7 @@ void WriteDistancesToTopN(const RestrictWhitelist* whitelist_or_null,
                                               distances, top_n);
 }
 
-void WriteDistancesToTopN(const RestrictWhitelist* whitelist_or_null,
+void WriteDistancesToTopN(const RestrictAllowlist* whitelist_or_null,
                           int32_t max_distance, ConstSpan<int32_t> distances,
                           const IdentityPostprocessFunctor&,
                           TopFixedPointNeighbors* top_n) {
