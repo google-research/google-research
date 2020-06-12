@@ -117,7 +117,7 @@ int Log2Ceiling(uint32_t n) {
     return floor + 1;
 }
 
-int Log2Ceiling64(unsigned long long_t n) {
+int Log2Ceiling64(uint64_t n) {
   int floor = Log2Floor64(n);
   if ((n & (n - 1)) == 0)
     return floor;

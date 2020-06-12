@@ -43,8 +43,8 @@ double BinaryJaccardDistance::GetDistanceDense(
   int32_t or_sum = 0;
   size_t i = 0;
   for (; i + 8 <= a.nonzero_entries(); i += 8) {
-    const unsigned long long_t aval = ABSL_INTERNAL_UNALIGNED_LOAD64(a.values() + i);
-    const unsigned long long_t bval = ABSL_INTERNAL_UNALIGNED_LOAD64(b.values() + i);
+    const uint64_t aval = ABSL_INTERNAL_UNALIGNED_LOAD64(a.values() + i);
+    const uint64_t bval = ABSL_INTERNAL_UNALIGNED_LOAD64(b.values() + i);
     xor_sum += bits::CountOnes64(aval ^ bval);
     or_sum += bits::CountOnes64(aval | bval);
   }

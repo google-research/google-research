@@ -51,7 +51,7 @@ std::string numpy_type_name<uint32_t>() {
   return "'<u4'";
 }
 template <>
-std::string numpy_type_name<unsigned long long_t>() {
+std::string numpy_type_name<uint64_t>() {
   return "'<u8'";
 }
 template <>

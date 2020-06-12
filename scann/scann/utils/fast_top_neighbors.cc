@@ -228,8 +228,8 @@ FastTopNeighbors<DistT, DatapointIndexT>::FinishSorted() {
 
 template class FastTopNeighbors<int16_t, DatapointIndex>;
 template class FastTopNeighbors<float, DatapointIndex>;
-template class FastTopNeighbors<int16_t, unsigned long long_t>;
-template class FastTopNeighbors<float, unsigned long long_t>;
+template class FastTopNeighbors<int16_t, uint64_t>;
+template class FastTopNeighbors<float, uint64_t>;
 template class FastTopNeighbors<float, absl::uint128>;
 
 }  // namespace scann_ops

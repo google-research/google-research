@@ -62,7 +62,7 @@ inline std::string Uint32ToKey(uint32_t u32) {
   return key;
 }
 
-inline std::string Uint64ToKey(unsigned long long_t u64) {
+inline std::string Uint64ToKey(uint64_t u64) {
   std::string key;
   KeyFromUint64(u64, &key);
   return key;
@@ -73,8 +73,8 @@ inline void KeyFromUint32(uint32_t u32, std::string* key) {
   key->assign(reinterpret_cast<const char*>(&norder), sizeof(norder));
 }
 
-inline void KeyFromUint64(unsigned long long_t u64, std::string* key) {
-  unsigned long long_t norder = absl::ghtonll(u64);
+inline void KeyFromUint64(uint64_t u64, std::string* key) {
+  uint64_t norder = absl::ghtonll(u64);
   key->assign(reinterpret_cast<const char*>(&norder), sizeof(norder));
 }
 
@@ -84,8 +84,8 @@ inline uint32_t KeyToUint32(absl::string_view key) {
   return absl::gntohl(value);
 }
 
-inline unsigned long long_t KeyToUint64(absl::string_view key) {
-  unsigned long long_t value;
+inline uint64_t KeyToUint64(absl::string_view key) {
+  uint64_t value;
   memcpy(&value, key.data(), sizeof(value));
   return absl::gntohll(value);
 }

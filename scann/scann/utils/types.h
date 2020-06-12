@@ -51,15 +51,15 @@ enum : DatapointIndex {
 enum : uint32_t {
   kInvalidIndex32 = std::numeric_limits<uint32_t>::max(),
 };
-enum : unsigned long long_t {
-  kInvalidIndex64 = std::numeric_limits<unsigned long long_t>::max(),
+enum : uint64_t {
+  kInvalidIndex64 = std::numeric_limits<uint64_t>::max(),
 };
 
 enum : size_t {
   kMaxNumDatapoints = 1 << 30,
 };
 
-using DimensionIndex = unsigned long long_t;
+using DimensionIndex = uint64_t;
 enum : DimensionIndex {
   kInvalidDimension = std::numeric_limits<DimensionIndex>::max(),
 };
@@ -194,7 +194,7 @@ inline constexpr TypeTag TagForType<int64_t>() {
   return InputOutputConfig::INT64;
 }
 template <>
-inline constexpr TypeTag TagForType<unsigned long long_t>() {
+inline constexpr TypeTag TagForType<uint64_t>() {
   return InputOutputConfig::UINT64;
 }
 template <>
@@ -289,7 +289,7 @@ T NonFpTagErrorOrCrash(uint8_t tag) {
       case ::tensorflow::scann_ops::InputOutputConfig::INT64:                 \
         return function<int64_t>(__VA_ARGS__);                                \
       case ::tensorflow::scann_ops::InputOutputConfig::UINT64:                \
-        return function<unsigned long long_t>(__VA_ARGS__);                               \
+        return function<uint64_t>(__VA_ARGS__);                               \
       case ::tensorflow::scann_ops::InputOutputConfig::FLOAT:                 \
         return function<float>(__VA_ARGS__);                                  \
       case ::tensorflow::scann_ops::InputOutputConfig::DOUBLE:                \
@@ -321,7 +321,7 @@ T NonFpTagErrorOrCrash(uint8_t tag) {
       case ::tensorflow::scann_ops::InputOutputConfig::INT64:                 \
         return function<int64_t>(__VA_ARGS__);                                \
       case ::tensorflow::scann_ops::InputOutputConfig::UINT64:                \
-        return function<unsigned long long_t>(__VA_ARGS__);                               \
+        return function<uint64_t>(__VA_ARGS__);                               \
       case ::tensorflow::scann_ops::InputOutputConfig::FLOAT:                 \
         return function<float>(__VA_ARGS__);                                  \
       case ::tensorflow::scann_ops::InputOutputConfig::DOUBLE:                \
@@ -414,7 +414,7 @@ T NonFpTagErrorOrCrash(uint8_t tag) {
   EXTERN_KEYWORD template class ClassName<int32_t>;              \
   EXTERN_KEYWORD template class ClassName<uint32_t>;             \
   EXTERN_KEYWORD template class ClassName<int64_t>;              \
-  EXTERN_KEYWORD template class ClassName<unsigned long long_t>;             \
+  EXTERN_KEYWORD template class ClassName<uint64_t>;             \
   EXTERN_KEYWORD template class ClassName<float>;                \
   EXTERN_KEYWORD template class ClassName<double>;
 
@@ -440,7 +440,7 @@ inline uint16_t ScannAbs(uint16_t num) { return num; }
 inline int16_t ScannAbs(int16_t num) { return std::abs(num); }
 inline uint32_t ScannAbs(uint32_t num) { return num; }
 inline int32_t ScannAbs(int32_t num) { return std::abs(num); }
-inline unsigned long long_t ScannAbs(unsigned long long_t num) { return num; }
+inline uint64_t ScannAbs(uint64_t num) { return num; }
 inline int64_t ScannAbs(int64_t num) { return std::abs(num); }
 inline float ScannAbs(float num) { return std::abs(num); }
 inline double ScannAbs(double num) { return std::abs(num); }

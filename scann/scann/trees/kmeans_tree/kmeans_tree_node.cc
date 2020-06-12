@@ -277,8 +277,8 @@ Status KMeansTreeNode::CheckDimensionality(DimensionIndex query_dims) const {
   } else {
     const std::string error_msg =
         StrFormat("Incorrect query dimensionality.  Expected %u, got %u.\n",
-                  static_cast<unsigned long long_t>(float_centers_.dimensionality()),
-                  static_cast<unsigned long long_t>(query_dims));
+                  static_cast<uint64_t>(float_centers_.dimensionality()),
+                  static_cast<uint64_t>(query_dims));
     return FailedPreconditionError(error_msg);
   }
 }

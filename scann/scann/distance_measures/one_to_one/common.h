@@ -106,7 +106,7 @@ inline DimensionIndex SparseDenseDispatch(
   SCANN_DECLARE_DISTANCE_MEASURE_VIRTUAL_METHODS_1(uint32_t)       \
                                                                    \
   SCANN_DECLARE_DISTANCE_MEASURE_VIRTUAL_METHODS_1(int64_t)        \
-  SCANN_DECLARE_DISTANCE_MEASURE_VIRTUAL_METHODS_1(unsigned long long_t)       \
+  SCANN_DECLARE_DISTANCE_MEASURE_VIRTUAL_METHODS_1(uint64_t)       \
                                                                    \
   SCANN_DECLARE_DISTANCE_MEASURE_VIRTUAL_METHODS_1(float)          \
   SCANN_DECLARE_DISTANCE_MEASURE_VIRTUAL_METHODS_1(double)
@@ -160,7 +160,7 @@ SCANN_INLINE double GetDistanceDenseEarlyStopping(const DistanceT& dist,
   SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS_1(     \
       CLASS, EARLY_STOPPING_GRANULARITY, int64_t)      \
   SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS_1(     \
-      CLASS, EARLY_STOPPING_GRANULARITY, unsigned long long_t)     \
+      CLASS, EARLY_STOPPING_GRANULARITY, uint64_t)     \
                                                        \
   SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS_1(     \
       CLASS, EARLY_STOPPING_GRANULARITY, float)        \

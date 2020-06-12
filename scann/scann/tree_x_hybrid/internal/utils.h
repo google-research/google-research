@@ -102,7 +102,7 @@ StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
     for (int i = 0; i < n_leaves; i++) {
       int inner_idx = 0;
       for (const auto dptr : *leaf_opts[i].hashed_dataset) {
-        const unsigned long long_t res_idx = datapoints_by_token[i][inner_idx++];
+        const uint64_t res_idx = datapoints_by_token[i][inner_idx++];
         std::copy(dptr.values(), dptr.values() + hash_dim,
                   storage.begin() + res_idx * hash_dim);
       }

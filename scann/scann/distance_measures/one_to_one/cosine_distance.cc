@@ -42,8 +42,8 @@ double BinaryCosineDistance::GetDistanceDense(
     num_intersect += bits::CountOnesInByte(a.values()[i] & b.values()[i]);
   }
 
-  return 1.0 - (num_intersect / sqrt(static_cast<unsigned long long_t>(a_num_ones) *
-                                     static_cast<unsigned long long_t>(b_num_ones)));
+  return 1.0 - (num_intersect / sqrt(static_cast<uint64_t>(a_num_ones) *
+                                     static_cast<uint64_t>(b_num_ones)));
 }
 
 double BinaryCosineDistance::GetDistanceSparse(
@@ -51,8 +51,8 @@ double BinaryCosineDistance::GetDistanceSparse(
   const DimensionIndex num_intersect = SparseBinaryDotProduct(a, b);
 
   return 1.0 -
-         (num_intersect / sqrt(static_cast<unsigned long long_t>(a.nonzero_entries()) *
-                               static_cast<unsigned long long_t>(b.nonzero_entries())));
+         (num_intersect / sqrt(static_cast<uint64_t>(a.nonzero_entries()) *
+                               static_cast<uint64_t>(b.nonzero_entries())));
 }
 
 double BinaryCosineDistance::GetDistanceHybrid(
@@ -70,8 +70,8 @@ double BinaryCosineDistance::GetDistanceHybrid(
   const auto num_ones_dense =
       bits::Count(dense.values(), dense.nonzero_entries());
 
-  return 1.0 - (num_intersect / sqrt(static_cast<unsigned long long_t>(num_ones_sparse) *
-                                     static_cast<unsigned long long_t>(num_ones_dense)));
+  return 1.0 - (num_intersect / sqrt(static_cast<uint64_t>(num_ones_sparse) *
+                                     static_cast<uint64_t>(num_ones_dense)));
 }
 
 SCANN_REGISTER_DISTANCE_MEASURE(BinaryCosineDistance)

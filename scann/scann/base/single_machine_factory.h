@@ -125,7 +125,7 @@ StatusOrSearcherUntyped SingleMachineFactoryLeafSearcher(
   SCANN_INSTANTIATE_SINGLE_MACHINE_FACTORY_FOR_TYPE(extern_keyword, int32_t);  \
   SCANN_INSTANTIATE_SINGLE_MACHINE_FACTORY_FOR_TYPE(extern_keyword, uint32_t); \
   SCANN_INSTANTIATE_SINGLE_MACHINE_FACTORY_FOR_TYPE(extern_keyword, int64_t);  \
-  SCANN_INSTANTIATE_SINGLE_MACHINE_FACTORY_FOR_TYPE(extern_keyword, unsigned long long_t); \
+  SCANN_INSTANTIATE_SINGLE_MACHINE_FACTORY_FOR_TYPE(extern_keyword, uint64_t); \
   SCANN_INSTANTIATE_SINGLE_MACHINE_FACTORY_FOR_TYPE(extern_keyword, float);    \
   SCANN_INSTANTIATE_SINGLE_MACHINE_FACTORY_FOR_TYPE(extern_keyword, double);
 

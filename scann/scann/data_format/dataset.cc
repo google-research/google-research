@@ -417,15 +417,15 @@ Status DenseDataset<T>::Append(const DatapointPtr<T>& dptr, string_view docid) {
     return FailedPreconditionError(
         StrFormat("Dimensionality mismatch:  Appending a %u dimensional "
                   "datapoint to a %u dimensional dataset.",
-                  static_cast<unsigned long long_t>(dptr_dim),
-                  static_cast<unsigned long long_t>(this->dimensionality())));
+                  static_cast<uint64_t>(dptr_dim),
+                  static_cast<uint64_t>(this->dimensionality())));
   } else if (stride_ != dptr.nonzero_entries()) {
     return FailedPreconditionError(
         StrFormat("Cannot append a vector to a dataset with different "
                   "stride: Appending a %u dimensional datapoint to a %u "
                   "dimensional dataset.",
-                  static_cast<unsigned long long_t>(dptr.nonzero_entries()),
-                  static_cast<unsigned long long_t>(stride_)));
+                  static_cast<uint64_t>(dptr.nonzero_entries()),
+                  static_cast<uint64_t>(stride_)));
   }
 
   Datapoint<T> storage;
@@ -599,8 +599,8 @@ Status SparseDataset<T>::AppendImpl(const GenericFeatureVector& gfv,
     return FailedPreconditionError(
         StrFormat("Dimensionality mismatch:  Appending a %u dimensional "
                   "datapoint to a %u dimensional dataset.",
-                  static_cast<unsigned long long_t>(gfv_dim),
-                  static_cast<unsigned long long_t>(this->dimensionality())));
+                  static_cast<uint64_t>(gfv_dim),
+                  static_cast<uint64_t>(this->dimensionality())));
   }
 
   const bool gfv_is_binary = gfv.feature_type() == GenericFeatureVector::BINARY;
@@ -662,8 +662,8 @@ Status SparseDataset<T>::AppendImpl(const DatapointPtr<T>& dptr,
     return FailedPreconditionError(
         StrFormat("Dimensionality mismatch:  Appending a %u dimensional "
                   "datapoint to a %u dimensional dataset.",
-                  static_cast<unsigned long long_t>(dptr_dim),
-                  static_cast<unsigned long long_t>(this->dimensionality())));
+                  static_cast<uint64_t>(dptr_dim),
+                  static_cast<uint64_t>(this->dimensionality())));
   }
 
   const bool dptr_may_be_binary = dptr.values() == nullptr;

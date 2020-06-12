@@ -176,7 +176,7 @@ SCANN_SSE4_INLINE array<Accum32Int32s, kBatchSize> Sse4LUT16BottomLoopInt32(
     DimensionIndex num_blocks) {
   array<Accum32Int32s, kBatchSize> int32_accumulators;
   for (DimensionIndex k = 0; k < num_blocks;) {
-    DimensionIndex reaccumulate_limit = std::min(num_blocks - k, unsigned long long_t{256});
+    DimensionIndex reaccumulate_limit = std::min(num_blocks - k, uint64_t{256});
     k += reaccumulate_limit;
     auto int16_accumulators = Sse4LUT16MiddleLoop<kBatchSize, kPrefetch>(
         data_start, lookup_starts, reaccumulate_limit);

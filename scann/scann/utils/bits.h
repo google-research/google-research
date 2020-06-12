@@ -43,19 +43,19 @@ inline uint32_t NextPowerOfTwo32(uint32_t x) {
   return (x & (x - 1)) ? 1UL << (32 - bits::CountLeadingZeros32(x)) : x;
 }
 
-inline unsigned long long_t NextPowerOfTwo64(unsigned long long_t x) {
+inline uint64_t NextPowerOfTwo64(uint64_t x) {
   return (x & (x - 1)) ? 1ULL << (64 - bits::CountLeadingZeros64(x)) : x;
 }
 
 inline size_t NextPowerOfTwo(size_t x) {
-  if (sizeof(size_t) == sizeof(unsigned long long_t)) {
+  if (sizeof(size_t) == sizeof(uint64_t)) {
     return NextPowerOfTwo64(x);
   } else {
     return NextPowerOfTwo32(x);
   }
 }
 
-inline bool IsPowerOfTwo(unsigned long long_t x) { return x && ((x & (x - 1)) == 0); }
+inline bool IsPowerOfTwo(uint64_t x) { return x && ((x & (x - 1)) == 0); }
 
 SCANN_INLINE uint32_t GetFinalMask32(size_t num_datapoints) {
   const size_t remainder_bits = num_datapoints % 32;
