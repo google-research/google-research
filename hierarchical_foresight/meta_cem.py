@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import os
 import sys
-
+import time
 from absl import app
 from absl import flags
 from .env import subgoal_env
@@ -29,6 +29,9 @@ from .models.tap import TAP
 import numpy as np
 import tensorflow.compat.v1 as tf
 from .utils import save_im
+from .models import q_func
+
+
 
 FLAGS = flags.FLAGS
 
@@ -56,12 +59,21 @@ flags.DEFINE_string('savedir', '/tmp/meta_cem/',
                     'Where to save results')
 flags.DEFINE_string('tapdir', '/tmp/mazetap/',
                     'Path to the TAP model')
-flags.DEFINE_string('tdmdir', '/tmp/mazetdm/',
+flags.DEFINE_string('tdmdir', None,
                     'Path to the TDM model')
 flags.DEFINE_string('vaedir', '/tmp/mazevae/',
                     'Path to the VAE model')
+flags.DEFINE_integer('metacem_samples', 100, 
+                     'Number of samples in CEM over subgoals')
+flags.DEFINE_integer('cem_samples', 100, 
+                     'Number of samples in CEM for planning')
+flags.DEFINE_integer('metacem_iters', 3, 
+                     'Number of iters in CEM over subgoals')
+flags.DEFINE_integer('cem_iters', 3, 
+                     'Number of iters in CEM for planning')
 
 
+      
 def meta_cem(env):
   """Runs the META-CEM procedure over the subgoals."""
   # Initialize subgoal distribution
@@ -69,8 +81,8 @@ def meta_cem(env):
   sd1 = np.array([1.0]*(8*FLAGS.numsg))
 
   t = 0
-  sample_size = 200
-  resample_size = 40
+  sample_size = FLAGS.metacem_samples
+  resample_size = FLAGS.metacem_samples // 5
 
   while np.max(sd1) > .001:
     acts1 = np.random.normal(mu1, sd1, (sample_size, (8*FLAGS.numsg)))
@@ -84,12 +96,11 @@ def meta_cem(env):
         zip(losses, acts1.tolist()), reverse=False)][:resample_size])
     best_actions1 = best_actions.reshape(resample_size, -1)
 
-    # Refit distribution to latents of best subgoals
     mu1 = np.mean(best_actions1, axis=0)
     sd1 = np.std(best_actions1, axis=0)
 
     t += 1
-    if t >= 5:
+    if t >= FLAGS.metacem_iters:
       break
   chosen = best_actions1[0]
   return chosen
@@ -134,7 +145,9 @@ def main(argv):
                                phorizon=FLAGS.phorizon,
                                parallel=FLAGS.parallel,
                                tdmdir=FLAGS.tdmdir,
-                               vaedir=FLAGS.vaedir)
+                               vaedir=FLAGS.vaedir,
+                               cem_samples = FLAGS.cem_samples,
+                               cem_iters = FLAGS.cem_iters)
 
   forward_episodes = 100 // int(FLAGS.num_parallel)
   forward_steps_per_ep = FLAGS.horizon
@@ -201,7 +214,10 @@ def main(argv):
         im = env.state
       else:
         _, im = env.env.get_observation()
-      cst = env.temporal_cost(np.expand_dims(im, 0), subgoals[goalnum])
+      if FLAGS.cost == 'temporal':
+        cst = env.temporal_cost(np.expand_dims(im, 0), subgoals[goalnum])
+      else:
+        cst = [0] 
       pxcst = np.mean((im -subgoals[goalnum])**2)
       save_im(im, savedir + str(ep+1) + '/' + 'state'+ str(step) + '_pxcost' +
               str(pxcst) + '_tmcst' + str(cst[0])+ '.jpg')
@@ -217,7 +233,6 @@ def main(argv):
             sgsteps = 0
 
       acts, _ = env.plan(im, subgoals[goalnum])
-      # print(acts.shape)
       if FLAGS.envtype == 'real':
         break
       else:
