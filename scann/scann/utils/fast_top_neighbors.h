@@ -297,8 +297,8 @@ void PushDistanceBlockTopFastTopNeighbors(ConstSpan<DistT> distance_block,
 
 extern template class FastTopNeighbors<int16_t, DatapointIndex>;
 extern template class FastTopNeighbors<float, DatapointIndex>;
-extern template class FastTopNeighbors<int16_t, unsigned long long_t>;
-extern template class FastTopNeighbors<float, unsigned long long_t>;
+extern template class FastTopNeighbors<int16_t, uint64_t>;
+extern template class FastTopNeighbors<float, uint64_t>;
 extern template class FastTopNeighbors<float, absl::uint128>;
 
 }  // namespace scann_ops

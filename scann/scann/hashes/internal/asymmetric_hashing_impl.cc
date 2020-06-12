@@ -241,7 +241,7 @@ StatusOr<vector<DenseDataset<double>>> AhImpl<T>::TrainAsymmetricHashing(
     constexpr size_t kAssumedCacheLineSize = 64;
     constexpr size_t kFloatsPerCacheLine =
         kAssumedCacheLineSize / sizeof(float);
-    const unsigned long long_t cache_lines_per_row =
+    const uint64_t cache_lines_per_row =
         std::max(static_cast<size_t>(1), centers.size() / kFloatsPerCacheLine);
     const size_t num_rotate =
         ((i / 2) % cache_lines_per_row) * kFloatsPerCacheLine;

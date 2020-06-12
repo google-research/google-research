@@ -40,12 +40,12 @@ namespace scann_ops {
 namespace strings {
 
 std::string Uint32ToKey(uint32_t u32);
-std::string Uint64ToKey(unsigned long long_t u64);
+std::string Uint64ToKey(uint64_t u64);
 void KeyFromUint32(uint32_t u32, std::string* key);
-void KeyFromUint64(unsigned long long_t u64, std::string* key);
+void KeyFromUint64(uint64_t u64, std::string* key);
 float KeyToFloat(absl::string_view key);
 uint32_t KeyToUint32(absl::string_view key);
-unsigned long long_t KeyToUint64(absl::string_view key);
+uint64_t KeyToUint64(absl::string_view key);
 void KeyFromFloat(float x, std::string* key);
 std::string FloatToKey(float x);
 

@@ -66,7 +66,7 @@ class M128Mixin {
     if (IsSameAny<CType, int32_t, uint32_t>()) {
       return {_mm_set1_epi32(x)};
     }
-    static_assert(!IsSameAny<CType, int64_t, unsigned long long_t>(),
+    static_assert(!IsSameAny<CType, int64_t, uint64_t>(),
                   "There is no 64-bit broadcast instruction");
     LOG(FATAL) << "Undefined";
   }
@@ -92,7 +92,7 @@ class M128Mixin {
     if (IsSameAny<CType, int32_t, uint32_t>()) {
       return {_mm_add_epi32(val_, other.val_)};
     }
-    if (IsSameAny<CType, int64_t, unsigned long long_t>()) {
+    if (IsSameAny<CType, int64_t, uint64_t>()) {
       return {_mm_add_epi64(val_, other.val_)};
     }
     LOG(FATAL) << "Undefined";
@@ -108,7 +108,7 @@ class M128Mixin {
     if (IsSameAny<CType, int32_t, uint32_t>()) {
       return {_mm_sub_epi32(val_, other.val_)};
     }
-    if (IsSameAny<CType, int64_t, unsigned long long_t>()) {
+    if (IsSameAny<CType, int64_t, uint64_t>()) {
       return {_mm_sub_epi64(val_, other.val_)};
     }
     LOG(FATAL) << "Undefined";
@@ -117,7 +117,7 @@ class M128Mixin {
   SCANN_SSE4_INLINE ClassName operator>>(int count) const {
     static_assert(!IsSameAny<CType, int8_t, uint8_t>(),
                   "There is no 8-bit '>>' instruction");
-    static_assert(!IsSameAny<CType, int64_t, unsigned long long_t>(),
+    static_assert(!IsSameAny<CType, int64_t, uint64_t>(),
                   "There is no 64-bit '>>' instruction");
 
     if (IsSame<CType, int16_t>()) {
@@ -139,7 +139,7 @@ class M128Mixin {
   SCANN_SSE4_INLINE ClassName operator<<(int count) const {
     static_assert(!IsSameAny<CType, int8_t, uint8_t>(),
                   "There is no 8-bit '<<' instruction");
-    static_assert(!IsSameAny<CType, int64_t, unsigned long long_t>(),
+    static_assert(!IsSameAny<CType, int64_t, uint64_t>(),
                   "There is no 64-bit '<<' instruction");
 
     if (IsSameAny<CType, int16_t, uint16_t>()) {
@@ -161,7 +161,7 @@ class M128Mixin {
     if (IsSameAny<CType, int32_t, uint32_t>()) {
       return {_mm_cmpeq_epi32(val_, other.val_)};
     }
-    if (IsSameAny<CType, int64_t, unsigned long long_t>()) {
+    if (IsSameAny<CType, int64_t, uint64_t>()) {
       return {_mm_cmpeq_epi64(val_, other.val_)};
     }
     LOG(FATAL) << "Undefined";
@@ -177,7 +177,7 @@ class M128Mixin {
     if (IsSameAny<CType, int32_t, uint32_t>()) {
       return {_mm_cmpgt_epi32(val_, other.val_)};
     }
-    if (IsSameAny<CType, int64_t, unsigned long long_t>()) {
+    if (IsSameAny<CType, int64_t, uint64_t>()) {
       return {_mm_cmpgt_epi64(val_, other.val_)};
     }
     LOG(FATAL) << "Undefined";

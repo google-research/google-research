@@ -69,7 +69,7 @@ class M256Mixin {
     if (IsSameAny<CType, int32_t, uint32_t>()) {
       return {_mm256_set1_epi32(x)};
     }
-    static_assert(!IsSameAny<CType, int64_t, unsigned long long_t>(),
+    static_assert(!IsSameAny<CType, int64_t, uint64_t>(),
                   "There is no 64-bit broadcast instruction");
     LOG(FATAL) << "Undefined";
   }
@@ -95,7 +95,7 @@ class M256Mixin {
     if (IsSameAny<CType, int32_t, uint32_t>()) {
       return {_mm256_add_epi32(val_, other.val_)};
     }
-    if (IsSameAny<CType, int64_t, unsigned long long_t>()) {
+    if (IsSameAny<CType, int64_t, uint64_t>()) {
       return {_mm256_add_epi64(val_, other.val_)};
     }
     LOG(FATAL) << "Undefined";
@@ -111,7 +111,7 @@ class M256Mixin {
     if (IsSameAny<CType, int32_t, uint32_t>()) {
       return {_mm256_sub_epi32(val_, other.val_)};
     }
-    if (IsSameAny<CType, int64_t, unsigned long long_t>()) {
+    if (IsSameAny<CType, int64_t, uint64_t>()) {
       return {_mm256_sub_epi64(val_, other.val_)};
     }
     LOG(FATAL) << "Undefined";
@@ -120,7 +120,7 @@ class M256Mixin {
   SCANN_AVX2_INLINE ClassName operator>>(int count) const {
     static_assert(!IsSameAny<CType, int8_t, uint8_t>(),
                   "There is no 8-bit '>>' instruction");
-    static_assert(!IsSameAny<CType, int64_t, unsigned long long_t>(),
+    static_assert(!IsSameAny<CType, int64_t, uint64_t>(),
                   "There is no 64-bit '>>' instruction");
 
     if (IsSame<CType, int16_t>()) {
@@ -142,7 +142,7 @@ class M256Mixin {
   SCANN_AVX2_INLINE ClassName operator<<(int count) const {
     static_assert(!IsSameAny<CType, int8_t, uint8_t>(),
                   "There is no 8-bit '<<' instruction");
-    static_assert(!IsSameAny<CType, int64_t, unsigned long long_t>(),
+    static_assert(!IsSameAny<CType, int64_t, uint64_t>(),
                   "There is no 64-bit '<<' instruction");
 
     if (IsSameAny<CType, int16_t, uint16_t>()) {
@@ -164,7 +164,7 @@ class M256Mixin {
     if (IsSameAny<CType, int32_t, uint32_t>()) {
       return {_mm256_cmpeq_epi32(val_, other.val_)};
     }
-    if (IsSameAny<CType, int64_t, unsigned long long_t>()) {
+    if (IsSameAny<CType, int64_t, uint64_t>()) {
       return {_mm256_cmpeq_epi64(val_, other.val_)};
     }
     LOG(FATAL) << "Undefined";
@@ -180,7 +180,7 @@ class M256Mixin {
     if (IsSameAny<CType, int32_t, uint32_t>()) {
       return {_mm256_cmpgt_epi32(val_, other.val_)};
     }
-    if (IsSameAny<CType, int64_t, unsigned long long_t>()) {
+    if (IsSameAny<CType, int64_t, uint64_t>()) {
       return {_mm256_cmpgt_epi64(val_, other.val_)};
     }
     LOG(FATAL) << "Undefined";

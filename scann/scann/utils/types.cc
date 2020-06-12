@@ -82,7 +82,7 @@ StatusOr<TypeTag> TypeTagFromName(string_view type_name) {
   if (type_name_lc == "int64") {
     return err_if_uncommon_disabled(InputOutputConfig::INT64);
   }
-  if (type_name_lc == "unsigned long long") {
+  if (type_name_lc == "uint64") {
     return err_if_uncommon_disabled(InputOutputConfig::UINT64);
   }
   if (type_name_lc == "double") {
@@ -111,7 +111,7 @@ string_view TypeNameFromTag(TypeTag type_tag) {
     case InputOutputConfig::INT64:
       return "int64";
     case InputOutputConfig::UINT64:
-      return "unsigned long long";
+      return "uint64";
     case InputOutputConfig::FLOAT:
       return "float";
     case InputOutputConfig::DOUBLE:

@@ -250,7 +250,7 @@ SCANN_AVX2_INLINE Avx2Array<Accum32Int32s, kBatchSize> Avx2LUT16MiddleLoopInt32(
     const DimensionIndex num_blocks) {
   Avx2Array<Accum32Int32s, kBatchSize> int32_accumulators;
   for (DimensionIndex k = 0; k < num_blocks;) {
-    DimensionIndex reaccumulate_limit = std::min(num_blocks - k, unsigned long long_t{256});
+    DimensionIndex reaccumulate_limit = std::min(num_blocks - k, uint64_t{256});
     auto int16_accumulators = Avx2LUT16MiddleLoop<kBatchSize, kPrefetch>(
         data_start, lookup_starts, reaccumulate_limit);
     data_start += 16 * reaccumulate_limit;

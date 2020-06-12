@@ -1079,7 +1079,7 @@ Status GmmUtils::PCAKmeansReinitialization(
       split_directions.push_back(svd.matrixU().col(j) * scaling_factor);
     }
 
-    const unsigned long long_t combinatoric_limit = 1ULL << split_directions.size();
+    const uint64_t combinatoric_limit = 1ULL << split_directions.size();
     VectorXd old_centroid(dim);
     VectorXd centroid_storage(dim);
     auto old_centroid_span = centroids->mutable_data(partition_permutation[i]);
@@ -1097,7 +1097,7 @@ Status GmmUtils::PCAKmeansReinitialization(
     std::copy(centroid_storage.begin(), centroid_storage.end(),
               old_centroid_span.begin());
 
-    for (unsigned long long_t j = 1; j < combinatoric_limit; ++j) {
+    for (uint64_t j = 1; j < combinatoric_limit; ++j) {
       const uint32_t small_cluster_index =
           partition_permutation[--min_partition_idx];
       if (min_partition_idx <= i) {

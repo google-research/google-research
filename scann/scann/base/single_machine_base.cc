@@ -322,8 +322,8 @@ Status SingleMachineSearcherBase<T>::FindNeighborsNoSortNoExactReorder(
     return FailedPreconditionError(
         StrFormat("Query dimensionality (%u) does not match database "
                   "dimensionality (%u)",
-                  static_cast<unsigned long long_t>(query.dimensionality()),
-                  static_cast<unsigned long long_t>(dataset()->dimensionality())));
+                  static_cast<uint64_t>(query.dimensionality()),
+                  static_cast<uint64_t>(dataset()->dimensionality())));
   }
 
   return FindNeighborsImpl(query, params, result);
