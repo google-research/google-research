@@ -17,7 +17,7 @@ In this work, we take noise in tests into account by switching to a Bayesian app
 
 The overall flow of information between all components, coordinated in the `simulator` object, is described in the figure below.
 
-![Overall flow](./images/schema_github_grouptesting.png) 
+![Overall flow](./images/schema_github_grouptesting.png)
 *Flow of information between the `wet_lab`, tasked with producing test results, communicated next to a `sampler` that can refresh his estimate of the posterior distribution, to inform next the proposal of new groups by the `group_selector` object*
 
 Our code can be run in two different modes.

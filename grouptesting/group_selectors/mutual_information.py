@@ -219,8 +219,13 @@ class MaxMutualInformation(group_selector.GroupSelector):
       positives_in_proposed_group = np.zeros((n_particles,), dtype=bool)
       proposed_group_size = 0
       obj_old = -1
-
-      while proposed_group_size < state.max_group_size:
+      forward_it = self.forward_iterations
+      backward_it = self.backward_iterations
+      # test if it is feasible to add fw - bw groups and still maintain
+      # group within size of constraints.
+      while (proposed_group_size
+             + forward_it
+             - backward_it) <= state.max_group_size:
         iterations = [self.forward_iterations, self.backward_iterations]
         for steps, backtrack in zip(iterations, [False, True]):
           for _ in range(steps):
@@ -246,7 +251,14 @@ class MaxMutualInformation(group_selector.GroupSelector):
           cur_groups_recorded_prob_partstates = proposed_group_prob_partstates
           # cur_positives = positives_in_proposed_group
           obj_old = obj_new
-          proposed_group_size += 1
+          proposed_group_size += (forward_it - backward_it)
+          # correction on backward_it done to ensure one is able to get to
+          # upperbound on group size.
+          backward_it = np.maximum(backward_it,
+                                   proposed_group_size + forward_it
+                                   - state.max_group_size)
+          # still check it is feasible, by taking a min w.r.t. largest possible
+          backward_it = np.minimum(backward_it, forward_it -1)
         else:
           break
       # stop adding, form next group

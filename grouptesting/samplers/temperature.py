@@ -21,40 +21,39 @@ import jax.numpy as np
 from jax.scipy import special
 
 
-def effective_sample_size(alpha, log_posterior_particles):
+def effective_sample_size(alpha,
+                          log_posterior):
   """Quantifies diversity of weights."""
-  lognumerator = 2 * special.logsumexp(alpha * log_posterior_particles, axis=-1)
+  lognumerator = 2 * special.logsumexp(
+      alpha * log_posterior, axis=-1)
   logdenominator = (
-      np.log(log_posterior_particles.shape[0]) +
-      special.logsumexp(2 * alpha * log_posterior_particles, axis=-1))
+      np.log(log_posterior.shape[0]) +
+      special.logsumexp(2 * alpha * log_posterior, axis=-1))
   return np.exp(lognumerator - logdenominator)
 
 
 @gin.configurable
 def find_step_length(rho,
-                     logpi_x,
+                     log_posterior,
                      tolerance=0.02,
                      effective_sample_size_target=0.9):
   """Ensures diversity in the weights induced by log-posterior."""
   low = 0
   up = 1.05 - rho
   alpha = 0.05
-
-  go_on = True
-  while go_on:
-    if effective_sample_size(alpha, logpi_x) < effective_sample_size_target:
+  while (np.abs(up - low) > tolerance) and (low < 1.0 - rho):
+    if (effective_sample_size(alpha, log_posterior)
+        < effective_sample_size_target):
       up = alpha
       alpha = (alpha + low) * 0.5
     else:
       low = alpha
       alpha = (alpha + up) * 0.5
-    go_on = (np.abs(up - low) > tolerance) and (low < 1.0 - rho)
   alpha = np.minimum(alpha, 1.0 - rho)
-  return alpha, alpha*logpi_x
+  return alpha, alpha * log_posterior
 
 
 def importance_weights(log_unnormalized_probabilities):
   """Normalizes log-weights."""
   return np.exp(log_unnormalized_probabilities -
                 special.logsumexp(log_unnormalized_probabilities))
-

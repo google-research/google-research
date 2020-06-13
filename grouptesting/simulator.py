@@ -67,6 +67,38 @@ class Simulator(object):
                prior_infection_rate = 0.05,
                metrics_cls=metrics.Metrics,
                export_metrics_every = 5):
+    """Initializes simulation.
+
+    Args:
+      workdir: where results will be stored.
+      wetlab: WetLab objet tasked with producing test results given groups.
+      policy: group testing policy, a sequence of algorithms tasked with
+        choosing groups to test. Can be adaptive to test environment (spec/sens)
+        of tests. Can be adaptive to previously tested groups. Can leverage
+        samplers to build information on what are the most likely disease status
+        among patients.
+      sampler: sampler that produces a posterior approximation. Instantiated by
+        default to SmcSampler that resamples at each iteration to fix cases
+        where the LBP sampler does not quite work the way it should.
+      cheap_sampler: LBP object to yield cheap approximation of marginal.
+      num_simulations: number of simulations run consecutively. Here randomness
+        can come from the group testing policy (if it uses randomness), as well
+        as diseased label, if WetLab.freeze_diseased is False.
+      num_tests_per_cycle: number of tests a testing machine can carry out in
+        the next testing cycle.
+      max_test_cycles: number of cycles in total that should be considered.
+      max_group_size: maximal size of groups, how many individuals can be pooled
+      prior_specificity: best guess one has prior to simulation of the testing
+        device's specificity per group size (or for all sizes, if singleton).
+      prior_sensitivity: best guess one has prior to simulation of the testing
+        device's sensitivity per group size (or for all sizes, if singleton).
+      prior_infection_rate: best guess of prior probability for patient to be
+        infected (same for all patients, if singleton)
+      metrics_cls: class of metrics object used to store results.
+      export_metrics_every: frequency of exports to file when carrying our
+        num_simulations results.
+    """
+
     self._wetlab = wetlab
     self._policy = policy
     self._samplers = [cheap_sampler, sampler]
@@ -201,7 +233,8 @@ class Simulator(object):
     if (np.any(np.isnan(lbp_sampler.marginal)) or
         (self._policy.next_selector.NEEDS_POSTERIOR and
          self.state.extra_tests_needed > 0 and
-         self.state.curr_cycle < self._max_test_cycles - 1)):
+         (self.state.curr_cycle == 0 or
+          self.state.curr_cycle < self._max_test_cycles - 1))):
       sampler = self._samplers[1]
       sampler.produce_sample(rng, self.state)
       self.state.marginals.append(sampler.marginal)
@@ -213,12 +246,19 @@ class Simulator(object):
                         new_groups=None,
                         new_tests=None):
     """Save metrics and ROC data at the end of one iteration."""
+
+    lbp_conv = self._samplers[0].convergence_metric
+    self._samplers[0].reset_convergence_metric()
+    smc_conv = self._samplers[1].convergence_metric
+    self._samplers[1].reset_convergence_metric()
     self.metrics.update(sim_idx,
                         cycle_idx,
                         self.state.marginals[0],
                         self._wetlab.diseased,
                         new_groups,
-                        new_tests)
+                        new_tests,
+                        lbp_conv,
+                        smc_conv)
 
   def interactive_loop(self, rngkey = None, show_fn=None):
     """Runs an interactive loop producing groups and asking for results.

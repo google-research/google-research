@@ -39,24 +39,28 @@ class State:
    log_prior_1msensitivity: log(1-prior_sensitivity).
    logit_prior_specificity: same but in logit.
    logit_prior_sensitivity: same but in logit.
-   past_groups: np.ndarray<bool>[num_groups_tested, num_patients] the groups
-     that were built in so far.
-   past_test_results: np.ndarray<bool>[num_groups_tested]. The outcomes of the
-     tests for the past_groups.
-   groups_to_test: np.array<bool>[num_groups, num_patients] who to test next.
+   past_groups: np.ndarray<bool>[num_groups_tested, num_patients] groups that
+     have been tested so far.
+   past_test_results: np.ndarray<bool>[num_groups_tested]. Outcomes of tests for
+     all past_groups, from start of testing campaign.
+   sampled_up_to: int, keeps track of what tests have been included in sampling
+     so far
+   groups_to_test: np.array<bool>[num_groups, num_patients] groups scheduled for
+     testing in next cycle(s).
    particle_weights: np.ndarray<float>[num_particles]. In particle filters, the
      weight of each particle.
    particles: np.ndarray<float>[num_particles, num_patients]. In particle
-     filters, the value of the particle as a possible scenario of who is
-     diseased and who is not.
-   to_clear_positives: some methods (Dorfman) need this information.
+     filters, the description of num_particles, where each particle is a boolean
+     vector describing who is diseased and who is not.
+   to_clear_positives: some methods (e.g. Dorfman) need this information to keep
+     track of which groups need to be tested next.
    all_cleared: bool, some methods consider perfect tests and stop when every
      one has been cleared.
-   marginals: store different ways to compute the marginal.
+   marginals: store one (or more) marginal approximations from samplers.
    num_groups_left_to_test: (int) the number of groups that were decided and
      still waiting to be tested.
-   log_posterior_params: a dictionary that contains the parameters used for
-     computing the log posterior probabilities of the particles.
+   log_posterior_params: a dictionary that contains the parameters used to
+     evaluate the log posterior probabilities of each particle.
   """
 
   def __init__(self, num_patients, num_tests_per_cycle,
@@ -105,6 +109,7 @@ class State:
     """Update state with results from recently tested groups."""
     self.past_test_results = np.concatenate(
         (self.past_test_results, test_results), axis=0)
+
     missing_entries_in_to_clear = (
         np.size(self.past_test_results) - np.size(self.to_clear_positives))
     if missing_entries_in_to_clear > 0:
@@ -167,11 +172,88 @@ class State:
     self.particle_weights = sampler.particle_weights
     self.particles = sampler.particles
 
-  @property
-  def log_posterior_params(self):
-    return dict(
-        past_test_results=self.past_test_results,
-        past_groups=self.past_groups,
+  def log_posterior_params(self,
+                           sampling_from_scratch=True,
+                           start_from_prior=False,
+                           sampled_up_to=0):
+    """Outputs parameters used to compute log posterior.
+
+    Two scenarios are possible, depending on whether one wants to update an
+    existing posterior approximation, or whether one wants to resample it from
+    scratch
+    Args:
+      sampling_from_scratch: bool, flag to select all tests / prior seen so far
+        or only the last wave of tests results.
+      start_from_prior: bool, flag to indicate whether the first particles have
+        been sampled from prior (True) or from a uniform measure.
+      sampled_up_to: indicates what tests were used previously to generate
+        samples. used when sampling_from_scratch is False
+
+
+    Returns:
+      a dict structure with fields relevant to evaluate Bayes.log_posterior
+    """
+    log_posterior_params = dict(
         log_prior_specificity=self.log_prior_specificity,
-        log_prior_1msensitivity=self.log_prior_1msensitivity,
-        prior_infection_rate=self.prior_infection_rate)
+        log_prior_1msensitivity=self.log_prior_1msensitivity)
+    # if past groups are same as latest, use by all past, including prior.
+    if sampling_from_scratch or sampled_up_to == 0:
+      log_posterior_params.update(
+          test_results=self.past_test_results,
+          groups=self.past_groups)
+      if start_from_prior:
+        log_posterior_params.update(
+            prior_infection_rate=None)
+      else:
+        log_posterior_params.update(
+            prior_infection_rate=self.prior_infection_rate)
+    # if only using latest wave of tests, use no prior in posterior and only
+    # use tests added since sampler was last asked to produce_sample.
+    else:
+      log_posterior_params.update(
+          test_results=self.past_test_results[sampled_up_to:],
+          groups=self.past_groups[sampled_up_to:],
+          prior_infection_rate=None)
+    return log_posterior_params
+
+  def log_base_measure_params(self,
+                              sampling_from_scratch=True,
+                              start_from_prior=False,
+                              sampled_up_to=0
+                             ):
+    """Outputs parameters used to compute log probability of base measure.
+
+    Two scenarios are possible, depending on whether one wants to update an
+    existing posterior approximation, or whether one wants to resample it from
+    scratch
+    Args:
+      sampling_from_scratch: bool, flag to select all tests / prior seen so far
+        or only the last wave of tests results.
+      start_from_prior: bool, flag to indicate whether the first particles have
+        been sampled from prior (True) or from a uniform measure.
+      sampled_up_to: indicates what tests were used previously to generate
+        samples. used when sampling_from_scratch is False
+
+    Returns:
+      a dict structure with fields relevant to evaluate Bayes.log_posterior
+    """
+    log_base_measure_params = dict(
+        log_prior_specificity=self.log_prior_specificity,
+        log_prior_1msensitivity=self.log_prior_1msensitivity)
+    if sampling_from_scratch or sampled_up_to == 0:
+      log_base_measure_params.update(
+          test_results=None, groups=None)
+      if start_from_prior:
+        log_base_measure_params.update(
+            prior_infection_rate=self.prior_infection_rate)
+      else:
+        log_base_measure_params.update(prior_infection_rate=None)
+
+    else:
+      past_minus_unused_tests = self.past_test_results[:sampled_up_to]
+      past_minus_unused_groups = self.past_groups[:sampled_up_to]
+      log_base_measure_params.update(
+          test_results=past_minus_unused_tests,
+          groups=past_minus_unused_groups,
+          prior_infection_rate=self.prior_infection_rate)
+    return log_base_measure_params

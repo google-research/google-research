@@ -54,7 +54,7 @@ class ExhaustiveSampler(sampler.Sampler):
 
   def produce_sample(self, rng, state):
     self.particles = all_binary_vectors(state.num_patients, self.upper_bound)
-    log_posteriors = bayes.log_posterior(
+    log_posteriors = bayes.log_probability(
         self.particles, state.past_test_results,
         state.past_groups, state.log_prior_specificity,
         state.log_prior_1msensitivity,
