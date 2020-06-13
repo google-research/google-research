@@ -37,39 +37,39 @@ def model_parameters(parser_nn):
       '--cnn1_kernel_size',
       type=str,
       default='(3,1)',
-      help='kernel_size of the first conv',
+      help='Kernel size of the first conv',
   )
   parser_nn.add_argument(
       '--cnn1_strides',
       type=str,
       default='(2,2)',
-      help='strides of the first conv',
+      help='Strides of the first conv',
   )
   parser_nn.add_argument(
       '--ds_kernel_size',
       type=str,
       default='(3,1),(3,1),(3,1),(3,1)',
-      help='kernel_sizes of depthwise_conv_blocks',
+      help='Kernel sizes of depthwise_conv_blocks',
   )
   parser_nn.add_argument(
       '--cnn_strides',
       type=str,
       default='(1,1),(2,2),(1,1),(1,1)',
-      help='strides of Inverted ResNet block '
+      help='Strides of Inverted ResNet block '
       'if stride != 1 then there will be no residual connection',
   )
   parser_nn.add_argument(
       '--cnn_filters',
       type=str,
       default='32,32,64,64',
-      help='number of filters in Inverted ResNet block'
+      help='Number of filters in Inverted ResNet block'
       'when filter number is changes there will be no residual connection',
   )
   parser_nn.add_argument(
       '--cnn_expansions',
       type=str,
       default='1.5,1.5,1.5,1.5',
-      help='filters expansion coefficient in Inverted ResNet block',
+      help='Filters expansion coefficient in Inverted ResNet block',
   )
   parser_nn.add_argument(
       '--dropout',

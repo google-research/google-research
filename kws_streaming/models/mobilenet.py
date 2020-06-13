@@ -37,31 +37,31 @@ def model_parameters(parser_nn):
       '--cnn1_kernel_size',
       type=str,
       default='(3,1)',
-      help='kernel_size of the first conv',
+      help='Kernel size of the first conv',
   )
   parser_nn.add_argument(
       '--cnn1_strides',
       type=str,
       default='(2,2)',
-      help='strides of the first conv',
+      help='Strides of the first conv',
   )
   parser_nn.add_argument(
       '--ds_kernel_size',
       type=str,
       default='(3,1),(3,1),(3,1),(3,1)',
-      help='kernel_sizes of depthwise_conv_blocks',
+      help='Kernel sizes of depthwise_conv_blocks',
   )
   parser_nn.add_argument(
       '--ds_strides',
       type=str,
       default='(2,2),(2,2),(1,1),(1,1)',
-      help='strides of depthwise_conv_blocks',
+      help='Strides of depthwise_conv_blocks',
   )
   parser_nn.add_argument(
       '--cnn_filters',
       type=str,
       default='32,64,128,128',
-      help='number of filters in depthwise_conv_blocks',
+      help='Number of filters in depthwise_conv_blocks',
   )
   parser_nn.add_argument(
       '--dropout',

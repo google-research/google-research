@@ -57,13 +57,13 @@ def model_parameters(parser_nn):
       '--heads',
       type=int,
       default=4,
-      help='number of heads in multihead attention',
+      help='Number of heads in multihead attention',
   )
   parser_nn.add_argument(
       '--rnn_layers',
       type=int,
       default=2,
-      help='number of RNN layers (each RNN is wrapped by Bidirectional)',
+      help='Number of RNN layers (each RNN is wrapped by Bidirectional)',
   )
   parser_nn.add_argument(
       '--rnn_type',
@@ -75,7 +75,7 @@ def model_parameters(parser_nn):
       '--rnn_units',
       type=int,
       default=128,
-      help='units number in RNN cell',
+      help='Units number in RNN cell',
   )
   parser_nn.add_argument(
       '--dropout1',

@@ -288,11 +288,19 @@ def xception_params():
   """Parameters for xception model."""
   params = Params()
   params.model_name = 'xception'
-  params.cnn1_kernel_size = '(3,3),(3,1)'
-  params.cnn1_filters = '16,24'
-  params.cnn1_strides = '(2,2),(1,1)'
-  params.cnn2_filters = '32,32'
-  params.cnn3_blocks = 1
+  params.cnn1_kernel_sizes = '5'
+  params.cnn1_filters = '32'
+  params.stride1 = 2
+  params.stride2 = 2
+  params.stride3 = 1
+  params.stride4 = 1
+  params.cnn2_kernel_sizes = '5'
+  params.cnn2_filters = '32'
+  params.cnn3_kernel_sizes = '5'
+  params.cnn3_filters = '32'
+  params.cnn4_kernel_sizes = '5'
+  params.cnn4_filters = '32'
+  params.units2 = '64'
   params.dropout = 0.2
   params.bn_scale = 0
   return params
@@ -302,10 +310,13 @@ def inception_params():
   """Parameters for inception model."""
   params = Params()
   params.model_name = 'inception'
-  params.cnn_filters0 = '24'
-  params.cnn_strides = '2,1'
-  params.cnn_filters1 = '16,24'
-  params.cnn_filters2 = '10,10'
+  params.cnn1_filters = '24'
+  params.cnn1_kernel_sizes = '5'
+  params.cnn1_strides = '1'
+  params.cnn2_filters1 = '10,10,16'
+  params.cnn2_filters2 = '10,10,16'
+  params.cnn2_kernel_sizes = '5,5,5'
+  params.cnn2_strides = '2,2,1'
   params.dropout = 0.2
   params.bn_scale = 0
   return params
@@ -315,11 +326,15 @@ def inception_resnet_params():
   """Parameters for inception resnet model."""
   params = Params()
   params.model_name = 'inception_resnet'
-  params.cnn_filters0 = '32'
-  params.strides = '2,1'
-  params.scales = '0.5,1'
-  params.filters_branch0 = '32,32'
-  params.filters_branch1 = '32,32'
+  params.cnn1_filters = '32'
+  params.cnn1_strides = '2'
+  params.cnn1_kernel_sizes = '5'
+  params.cnn2_scales = '0.2,0.5,1.0'
+  params.cnn2_filters_branch0 = '32,32,32'
+  params.cnn2_filters_branch1 = '32,32,32'
+  params.cnn2_filters_branch2 = '32,32,64'
+  params.cnn2_strides = '2,1,1'
+  params.cnn2_kernel_sizes = '3,5,5'
   params.dropout = 0.2
   params.bn_scale = 0
   return params

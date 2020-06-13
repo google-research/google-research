@@ -28,29 +28,48 @@ def model_parameters(parser_nn):
   Returns: parser with updated arguments
   """
   parser_nn.add_argument(
-      '--cnn_filters0',
+      '--cnn1_filters',
       type=str,
       default='24',
-      help='Number of filters in conv blocks',
+      help='Number of filters in the first conv blocks',
   )
   parser_nn.add_argument(
-      '--cnn_strides',
+      '--cnn1_kernel_sizes',
       type=str,
-      default='2,2,1',
-      help='strides applied in inception block',
+      default='5',
+      help='Kernel size in time dim of conv blocks',
   )
   parser_nn.add_argument(
-      '--cnn_filters1',
+      '--cnn1_strides',
       type=str,
-      default='16,24,24',
-      help='internal number of filters inside of inception block',
+      default='1',
+      help='Strides applied in pooling layer in the first conv block',
   )
   parser_nn.add_argument(
-      '--cnn_filters2',
+      '--cnn2_filters1',
       type=str,
       default='10,10,16',
-      help='number of filters inside of inception block '
+      help='Number of filters inside of inception block '
       'will be multipled by 4 because of concatenation of 4 branches',
+  )
+  parser_nn.add_argument(
+      '--cnn2_filters2',
+      type=str,
+      default='10,10,16',
+      help='Number of filters inside of inception block '
+      'it is used to reduce the dim of cnn2_filters1*4',
+  )
+  parser_nn.add_argument(
+      '--cnn2_kernel_sizes',
+      type=str,
+      default='5,5,5',
+      help='Kernel sizes of conv layers in the inception block',
+  )
+  parser_nn.add_argument(
+      '--cnn2_strides',
+      type=str,
+      default='2,2,1',
+      help='Stride parameter of pooling layer in the inception block',
   )
   parser_nn.add_argument(
       '--dropout',
@@ -92,49 +111,41 @@ def model(flags):
             net)
 
   # [batch, time, feature]
-  net = tf.keras.backend.expand_dims(net, axis=-1)
-  # [batch, time, feature, 1]
+  net = tf.keras.backend.expand_dims(net, axis=2)
+  # [batch, time, 1, feature]
 
-  for filters in utils.parse(flags.cnn_filters0):
-    net = tf.keras.layers.SeparableConv2D(
-        filters, (3, 3), padding='valid', use_bias=False)(net)
-    net = tf.keras.layers.BatchNormalization(scale=flags.bn_scale)(net)
-    net = tf.keras.layers.Activation('relu')(net)
-    net = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2))(net)
-    # [batch, time, feature, filters]
-
-  filters = utils.parse(flags.cnn_filters0)[-1]
-  net = utils.conv2d_bn(
-      net, filters, (3, 1), padding='valid', scale=flags.bn_scale)
-  net = utils.conv2d_bn(
-      net, filters, (1, 3), padding='valid', scale=flags.bn_scale)
-
-  for stride, filters1, filters2 in zip(
-      utils.parse(flags.cnn_strides), utils.parse(flags.cnn_filters1),
-      utils.parse(flags.cnn_filters2)):
-
+  for stride, filters, kernel_size in zip(
+      utils.parse(flags.cnn1_strides),
+      utils.parse(flags.cnn1_filters),
+      utils.parse(flags.cnn1_kernel_sizes)):
+    net = utils.conv2d_bn(
+        net, filters, (kernel_size, 1), padding='valid', scale=flags.bn_scale)
     if stride > 1:
-      net = tf.keras.layers.MaxPooling2D((3, 3), strides=stride)(net)
+      net = tf.keras.layers.MaxPooling2D((3, 1), strides=(stride, 1))(net)
 
-    branch1 = utils.conv2d_bn(net, filters2, (1, 1), scale=flags.bn_scale)
+  for stride, filters1, filters2, kernel_size in zip(
+      utils.parse(flags.cnn2_strides), utils.parse(flags.cnn2_filters1),
+      utils.parse(flags.cnn2_filters2), utils.parse(flags.cnn2_kernel_sizes)):
+
+    branch1 = utils.conv2d_bn(net, filters1, (1, 1), scale=flags.bn_scale)
 
     branch2 = utils.conv2d_bn(net, filters1, (1, 1), scale=flags.bn_scale)
-    branch2 = utils.conv2d_bn(branch2, filters1, (3, 1), scale=flags.bn_scale)
-    branch2 = utils.conv2d_bn(branch2, filters2, (1, 3), scale=flags.bn_scale)
+    branch2 = utils.conv2d_bn(
+        branch2, filters1, (kernel_size, 1), scale=flags.bn_scale)
 
     branch3 = utils.conv2d_bn(net, filters1, (1, 1), scale=flags.bn_scale)
-    branch3 = utils.conv2d_bn(branch3, filters1, (3, 1), scale=flags.bn_scale)
-    branch3 = utils.conv2d_bn(branch3, filters1, (1, 3), scale=flags.bn_scale)
-    branch3 = utils.conv2d_bn(branch3, filters1, (3, 1), scale=flags.bn_scale)
-    branch3 = utils.conv2d_bn(branch3, filters2, (1, 3), scale=flags.bn_scale)
+    branch3 = utils.conv2d_bn(
+        branch3, filters1, (kernel_size, 1), scale=flags.bn_scale)
+    branch3 = utils.conv2d_bn(
+        branch3, filters1, (kernel_size, 1), scale=flags.bn_scale)
 
-    branch4 = tf.keras.layers.AveragePooling2D((3, 3),
-                                               strides=(1, 1),
-                                               padding='same')(
-                                                   net)
-    branch4 = utils.conv2d_bn(branch4, filters2, (1, 1), scale=flags.bn_scale)
-    net = tf.keras.layers.concatenate([branch1, branch2, branch3, branch4])
-    # [batch, time, feature, filters*4]
+    net = tf.keras.layers.concatenate([branch1, branch2, branch3])
+    # [batch, time, 1, filters*4]
+    net = utils.conv2d_bn(net, filters2, (1, 1), scale=flags.bn_scale)
+    # [batch, time, 1, filters2]
+
+    if stride > 1:
+      net = tf.keras.layers.MaxPooling2D((3, 1), strides=(stride, 1))(net)
 
   net = tf.keras.layers.GlobalAveragePooling2D()(net)
   # [batch, filters*4]

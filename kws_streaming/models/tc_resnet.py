@@ -44,25 +44,25 @@ def model_parameters(parser_nn):
       '--debug_2d',
       type=int,
       default=0,
-      help='if 0 conv_kernel will be [3, 3], else conv_kernel [3, 1]',
+      help='If 0 conv_kernel will be [3, 3], else conv_kernel [3, 1]',
   )
   parser_nn.add_argument(
       '--pool_size',
       type=str,
       default='',
-      help="pool size for example '4,4'",
+      help="Pool size for example '4,4'",
   )
   parser_nn.add_argument(
       '--kernel_size',
       type=str,
       default='(9,1)',
-      help='kernel_size of conv layer',
+      help='Kernel size of conv layer',
   )
   parser_nn.add_argument(
       '--pool_stride',
       type=int,
       default=0,
-      help='pool stride, for example 4',
+      help='Pool stride, for example 4',
   )
   parser_nn.add_argument(
       '--bn_momentum',
