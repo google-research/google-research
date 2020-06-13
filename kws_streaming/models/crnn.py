@@ -102,8 +102,8 @@ def model(flags):
   Convolutional Recurrent Neural Networks for Small-Footprint Keyword Spotting
   https://arxiv.org/pdf/1703.05390.pdf
   Represented as sequence of Conv, RNN/GRU, FC layers.
-  Hello Edge: Keyword Spotting on Microcontrollers
-  https://arxiv.org/pdf/1711.07128.pdf
+  Model topology is similar with "Hello Edge: Keyword Spotting on
+  Microcontrollers" https://arxiv.org/pdf/1711.07128.pdf
   Args:
     flags: data/model parameters
 

@@ -72,6 +72,7 @@ env:
     - PROJECT="tcc"
     - PROJECT="truss_decomposition"
     - PROJECT="towards_gan_benchmarks"
+    - PROJECT="uflow"
     - PROJECT="wiki_split_bleu_eval"
     - PROJECT="wt5"
 before_script:

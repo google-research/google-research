@@ -1,0 +1,91 @@
+// Copyright 2020 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+syntax = "proto2";
+
+package tensorflow.scann_ops;
+
+message EvaluationConfig {
+  oneof SamplingFractionOrExpectedSize {
+    float evaluation_sampling_fraction = 1;
+
+    int32 expected_sample_size = 17;
+  }
+
+  optional string diff_wildcard = 9;
+
+  optional double distance_tolerance = 6 [default = 1e-5];
+
+  optional int32 num_query_sample_shards = 10 [default = 10];
+
+  optional int32 num_evaluation_result_shards = 7 [default = 10];
+
+  optional bool reuse_sampling_and_groundtruth = 8 [default = false];
+
+  optional bool use_docids = 11 [default = false];
+
+  optional string result_csv_filename = 12;
+
+  message HTMLVisualization {
+    optional bool enabled = 1 [default = false];
+
+    optional string visualization_filename = 2;
+  }
+
+  optional HTMLVisualization html_visualization = 16;
+
+  message KMRCurve {
+    optional bool enabled = 1 [default = false];
+
+    optional string output_location = 2;
+
+    optional int32 num_pct_buckets = 3 [default = 1000];
+
+    optional double pct_to_zoom = 4 [default = 20];
+  }
+
+  message AHRCurve {
+    optional bool enabled = 1 [default = false];
+
+    optional string output_location = 2;
+
+    optional int32 num_recall_curve_neighbors = 3 [default = -1];
+
+    repeated double noise_shaping_thresholds = 4;
+  }
+
+  message FPRCurve {
+    optional bool enabled = 1 [default = false];
+
+    optional string output_location = 2;
+
+    optional string evaluation_fpr_result_prefix = 3;
+
+    optional int32 num_fpr_shards = 4 [default = 10];
+  }
+
+  optional KMRCurve kmr_curve = 13;
+  optional AHRCurve ahr_curve = 14;
+  optional FPRCurve fpr_curve = 15;
+
+  optional string evaluation_query_prefix = 3;
+
+  optional string evaluation_groundtruth_result_prefix = 4;
+
+  optional string evaluation_approx_result_prefix = 5;
+
+  optional int32 evaluation_sampling_seed = 2 [default = 1, deprecated = true];
+}

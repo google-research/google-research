@@ -146,7 +146,7 @@ class _BaselineModel():
           layer = tf.layers.Dense(unit, activation=self._activation)(layer)
         logits = tf.layers.Dense(1)(layer)
         sigmoid_output = tf.nn.sigmoid(logits, name='sigmoid')
-        class_predictions = tf.cast(tf.greater(sigmoid_output, 0.5), tf.float32)  # pylint: disable=line-too-long
+        class_predictions = tf.cast(tf.greater(sigmoid_output, 0.5), tf.float32)
         tf.summary.histogram('class_predictions', class_predictions)
 
       # Initializes Loss Functions

@@ -44,6 +44,8 @@ class Svdf(tf.keras.layers.Layer):
                bias_regularizer=None,
                bias_constraint=None,
                dropout=0.0,
+               use_batch_norm=False,
+               bn_scale=False,
                pad=True,
                **kwargs):
     super(Svdf, self).__init__(**kwargs)
@@ -67,6 +69,8 @@ class Svdf(tf.keras.layers.Layer):
     self.bias_constraint = bias_constraint
     self.dropout = min(1., max(0., dropout))
     self.pad = pad
+    self.use_batch_norm = use_batch_norm
+    self.bn_scale = bn_scale
 
   def build(self, input_shape):
     super(Svdf, self).build(input_shape)
@@ -89,6 +93,11 @@ class Svdf(tf.keras.layers.Layer):
     else:
       self.dense2 = tf.keras.layers.Lambda(lambda x: x)
 
+    if self.use_batch_norm:
+      self.batch_norm = tf.keras.layers.BatchNormalization(scale=self.bn_scale)
+    else:
+      self.batch_norm = tf.keras.layers.Lambda(lambda x: x)
+
   def compute_output_shape(self, input_shape):
     if input_shape.rank != 3:
       raise ValueError('input_shape.rank:%d must = 3' % input_shape.rank)
@@ -105,6 +114,7 @@ class Svdf(tf.keras.layers.Layer):
     output = self.dropout1(inputs)
     output = self.dense1(output)
     output = self.depth_cnn1(output)
+    output = self.batch_norm(output)
     output = self.activation(output)
     output = self.dense2(output)
     return output
@@ -127,6 +137,8 @@ class Svdf(tf.keras.layers.Layer):
         'bias_constraint': self.bias_constraint,
         'dropout': self.dropout,
         'pad': self.pad,
+        'use_batch_norm': self.use_batch_norm,
+        'bn_scale': self.bn_scale,
     }
     base_config = super(Svdf, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))

@@ -30,6 +30,7 @@ import six
 import tensorflow.compat.v1 as tf
 
 from tensorflow.contrib import layers as contrib_layers
+from tensorflow.contrib.quantize.python import quant_ops
 
 
 class BertConfig(object):
@@ -174,6 +175,7 @@ class BertModel(object):
                token_type_ids=None,
                use_one_hot_embeddings=False,
                use_einsum=True,
+               use_quantized_training=False,
                scope=None):
     """Constructor for BertModel.
 
@@ -188,6 +190,7 @@ class BertModel(object):
       use_one_hot_embeddings: (optional) bool. Whether to use one-hot word
         embeddings or tf.embedding_lookup() for the word embeddings.
       use_einsum: (optional) use einsum for faster tpu computation.
+      use_quantized_training: (optional) use quantization-aware training.
       scope: (optional) variable scope. Defaults to "bert".
 
     Raises:
@@ -267,6 +270,15 @@ class BertModel(object):
 
         # Run the stacked transformer.
         # `sequence_output` shape = [batch_size, seq_length, hidden_size].
+        intermediate_act_fn = get_activation(config.hidden_act)
+        normalization_type = config.normalization_type
+        # For quantization-aware-training, we have to use relu6 for activation.
+        # And we also need to use "no_norm"
+        if use_quantized_training:
+          if intermediate_act_fn != tf.nn.relu6:
+            raise ValueError("Should use relu6 for activation")
+          if normalization_type != "no_norm":
+            raise ValueError("Should use no_norm for layer norm")
         self.all_encoder_layers, self.all_attention_maps = transformer_model(
             input_tensor=self.embedding_output,
             attention_mask=attention_mask,
@@ -274,7 +286,7 @@ class BertModel(object):
             num_hidden_layers=config.num_hidden_layers,
             num_attention_heads=config.num_attention_heads,
             intermediate_size=config.intermediate_size,
-            intermediate_act_fn=get_activation(config.hidden_act),
+            intermediate_act_fn=intermediate_act_fn,
             hidden_dropout_prob=config.hidden_dropout_prob,
             attention_probs_dropout_prob=config.attention_probs_dropout_prob,
             initializer_range=config.initializer_range,
@@ -283,9 +295,11 @@ class BertModel(object):
             use_bottleneck_attention=config.use_bottleneck_attention,
             key_query_shared_bottleneck=config.key_query_shared_bottleneck,
             num_feedforward_networks=config.num_feedforward_networks,
-            normalization_type=config.normalization_type,
+            normalization_type=normalization_type,
             use_einsum=use_einsum,
-            do_return_all_layers=True)
+            do_return_all_layers=True,
+            use_quantized_training=use_quantized_training,
+            is_training=is_training)
 
       self.sequence_output = self.all_encoder_layers[-1]
       # The "pooler" converts the encoded sequence tensor of shape
@@ -353,6 +367,33 @@ class BertModel(object):
     return self.embedding_table
 
 
+def quantize(x, is_training, activation=True, num_bits=8):
+  """Insert fake quantize function."""
+  if activation:
+    return quant_ops.MovingAvgQuantize(
+        x,
+        init_min=-6.0,
+        init_max=6.0,
+        ema_decay=0.999,
+        is_training=is_training,
+        num_bits=num_bits,
+        symmetric=False,
+        narrow_range=False,
+        name_prefix="MobileBertActFakeQuantWithMinMaxVars",
+        vars_collection=[])
+  else:
+    return quant_ops.LastValueQuantize(
+        x,
+        init_min=-6.0,
+        init_max=6.0,
+        is_training=is_training,
+        num_bits=num_bits,
+        symmetric=True,
+        narrow_range=True,
+        name_prefix="MobileBertWeightFakeQuantWithMinMaxVars",
+        vars_collection=[])
+
+
 def gelu(x):
   """Gaussian Error Linear Unit.
 
@@ -398,6 +439,8 @@ def get_activation(activation_string):
     return None
   elif act == "relu":
     return tf.nn.relu
+  elif act == "relu6":
+    return tf.nn.relu6
   elif act == "gelu":
     return gelu
   elif act == "tanh":
@@ -469,20 +512,33 @@ def dropout(input_tensor, dropout_prob):
   return output
 
 
-def layer_norm(input_tensor, normalization="layer_norm", name=None):
+def layer_norm(input_tensor,
+               normalization="layer_norm",
+               name=None,
+               use_quantized_training=False,
+               is_training=True):
   """Run layer normalization on the last dimension of the tensor."""
   if normalization == "layer_norm":
     return contrib_layers.layer_norm(
         inputs=input_tensor, begin_norm_axis=-1,
         begin_params_axis=-1, scope=name)
   elif normalization == "no_norm":
+    if use_quantized_training:
+      input_tensor = quantize(input_tensor, is_training)
     filters = get_shape_list(input_tensor)[-1]
     with tf.variable_scope(name or "FakeLayerNorm"):
       bias = tf.get_variable(
           "beta", [filters], initializer=tf.zeros_initializer())
+      if use_quantized_training:
+        bias = quantize(bias, is_training)
       scale = tf.get_variable(
           "gamma", [filters], initializer=tf.ones_initializer())
-      return input_tensor * scale + bias
+      if use_quantized_training:
+        scale = quantize(scale, is_training)
+      temp = input_tensor * scale
+      if use_quantized_training:
+        temp = quantize(temp, is_training)
+      return temp + bias
   elif normalization == "manual_layer_norm":
     filters = get_shape_list(input_tensor)[-1]
     with tf.variable_scope(name or "LayerNorm"):
@@ -705,7 +761,9 @@ def dense_layer_3d(input_tensor,
                    initializer,
                    activation,
                    name=None,
-                   use_einsum=True):
+                   use_einsum=True,
+                   use_quantized_training=False,
+                   is_training=True):
   """A dense layer with 3D kernel.
 
   Args:
@@ -716,10 +774,16 @@ def dense_layer_3d(input_tensor,
     activation: Actication function.
     name: The name scope of this layer.
     use_einsum: Use tf.einsum.
+    use_quantized_training: (optional) use quantization-aware training.
+    is_training: bool. true for training model, false for eval model, only need
+      for QAT.
 
   Returns:
     float logits Tensor.
   """
+  with tf.variable_scope(name):
+    if use_quantized_training:
+      input_tensor = quantize(input_tensor, is_training)
 
   batch_size, seq_len, last_dim = get_shape_list(input_tensor)
 
@@ -728,6 +792,9 @@ def dense_layer_3d(input_tensor,
         name="kernel",
         shape=[last_dim, num_attention_heads * size_per_head],
         initializer=initializer)
+    if use_quantized_training:
+      w = quantize(w, is_training, activation=False)
+
     b = tf.get_variable(
         name="bias",
         shape=[num_attention_heads * size_per_head],
@@ -758,7 +825,9 @@ def dense_layer_3d_proj(input_tensor,
                         initializer,
                         activation,
                         name=None,
-                        use_einsum=True):
+                        use_einsum=True,
+                        use_quantized_training=False,
+                        is_training=True):
   """A dense layer with 3D kernel for projection.
 
   Args:
@@ -771,10 +840,16 @@ def dense_layer_3d_proj(input_tensor,
     activation: Actication function.
     name: The name scope of this layer.
     use_einsum: Use tf.einsum.
+    use_quantized_training: (optional) use quantization-aware training.
+    is_training: bool. true for training model, false for eval model, only need
+      for QAT.
 
   Returns:
     float logits Tensor.
   """
+  with tf.variable_scope(name):
+    if use_quantized_training:
+      input_tensor = quantize(input_tensor, is_training)
   batch_size = get_shape_list(input_tensor)[0]
   seq_len = get_shape_list(input_tensor)[1]
 
@@ -784,6 +859,9 @@ def dense_layer_3d_proj(input_tensor,
         name="kernel",
         shape=[num_attention_heads * head_size, hidden_size],
         initializer=initializer)
+    if use_quantized_training:
+      w = quantize(w, is_training, activation=False)
+
     b = tf.get_variable(
         name="bias", shape=[hidden_size], initializer=tf.zeros_initializer)
 
@@ -809,7 +887,9 @@ def dense_layer_2d(input_tensor,
                    initializer,
                    activation,
                    name=None,
-                   use_einsum=True):
+                   use_einsum=True,
+                   use_quantized_training=False,
+                   is_training=True):
   """A dense layer with 2D kernel.
 
   Args:
@@ -819,15 +899,23 @@ def dense_layer_2d(input_tensor,
     activation: Actication function.
     name: The name scope of this layer.
     use_einsum: Use tf.einsum.
+    use_quantized_training: (optional) use quantization-aware training.
+    is_training: bool. true for training model, false for eval model, only need
+      for QAT.
 
   Returns:
     float logits Tensor.
   """
+  with tf.variable_scope(name):
+    if use_quantized_training:
+      input_tensor = quantize(input_tensor, is_training)
   if len(get_shape_list(input_tensor)) == 3:
     batch_size, seq_len, last_dim = get_shape_list(input_tensor)
     with tf.variable_scope(name):
       w = tf.get_variable(
           name="kernel", shape=[last_dim, output_size], initializer=initializer)
+      if use_quantized_training:
+        w = quantize(w, is_training, activation=False)
       b = tf.get_variable(
           name="bias", shape=[output_size], initializer=tf.zeros_initializer)
 
@@ -846,6 +934,8 @@ def dense_layer_2d(input_tensor,
     with tf.variable_scope(name):
       w = tf.get_variable(
           name="kernel", shape=[last_dim, output_size], initializer=initializer)
+      if use_quantized_training:
+        w = quantize(w, is_training, activation=False)
       b = tf.get_variable(
           name="bias", shape=[output_size], initializer=tf.zeros_initializer)
 
@@ -876,7 +966,9 @@ def attention_layer(query_tensor,
                     use_einsum=True,
                     batch_size=None,
                     from_seq_length=None,
-                    to_seq_length=None):
+                    to_seq_length=None,
+                    use_quantized_training=False,
+                    is_training=True):
   """Performs multi-headed attention from `from_tensor` to `to_tensor`.
 
   This is an implementation of multi-headed attention based on "Attention
@@ -930,6 +1022,9 @@ def attention_layer(query_tensor,
       of the 3D version of the `from_tensor`.
     to_seq_length: (Optional) If the input is 2D, this might be the seq length
       of the 3D version of the `to_tensor`.
+       use_quantized_training: (optional) use quantization-aware training.
+    is_training: bool. true for training model, false for eval model, only need
+      for QAT.
 
   Returns:
     float Tensor of shape [batch_size, from_seq_length, num_attention_heads,
@@ -964,19 +1059,40 @@ def attention_layer(query_tensor,
   #   H = `size_per_head`
 
   # `query_layer` = [B, F, N, H]
-  query_layer = dense_layer_3d(query_tensor, num_attention_heads, size_per_head,
-                               create_initializer(initializer_range), query_act,
-                               "query", use_einsum)
+  query_layer = dense_layer_3d(
+      query_tensor,
+      num_attention_heads,
+      size_per_head,
+      create_initializer(initializer_range),
+      query_act,
+      "query",
+      use_einsum,
+      use_quantized_training=use_quantized_training,
+      is_training=is_training)
 
   # `key_layer` = [B, T, N, H]
-  key_layer = dense_layer_3d(key_tensor, num_attention_heads, size_per_head,
-                             create_initializer(initializer_range), key_act,
-                             "key", use_einsum)
+  key_layer = dense_layer_3d(
+      key_tensor,
+      num_attention_heads,
+      size_per_head,
+      create_initializer(initializer_range),
+      key_act,
+      "key",
+      use_einsum,
+      use_quantized_training=use_quantized_training,
+      is_training=is_training)
 
   # `value_layer` = [B, T, N, H]
-  value_layer = dense_layer_3d(value_tensor, num_attention_heads, size_per_head,
-                               create_initializer(initializer_range), value_act,
-                               "value", use_einsum)
+  value_layer = dense_layer_3d(
+      value_tensor,
+      num_attention_heads,
+      size_per_head,
+      create_initializer(initializer_range),
+      value_act,
+      "value",
+      use_einsum,
+      use_quantized_training=use_quantized_training,
+      is_training=is_training)
 
   # Take the dot product between "query" and "key" to get the raw
   # attention scores.
@@ -988,6 +1104,9 @@ def attention_layer(query_tensor,
     # We want "BNFH,BNTH->BNFT" now.
     attention_scores = tf.matmul(query_layer, key_layer, transpose_b=True)
 
+  if use_quantized_training:
+    attention_scores = quantize(attention_scores, is_training=is_training)
+
   attention_scores = tf.multiply(attention_scores,
                                  1.0 / math.sqrt(float(size_per_head)))
 
@@ -995,16 +1114,25 @@ def attention_layer(query_tensor,
     # `attention_mask` = [B, 1, F, T]
     attention_mask = tf.expand_dims(attention_mask, axis=[1])
 
-    # Since attention_mask is 1.0 for positions we want to attend and 0.0 for
-    # masked positions, this operation will create a tensor which is 0.0 for
-    # positions we want to attend and -10000.0 for masked positions.
     if attention_mask.dtype != tf.float32:
       attention_mask = tf.cast(attention_mask, tf.float32)
-    adder = tf.math.add(-10000.0, attention_mask * 10000.0)
 
-    # Since we are adding it to the raw scores before the softmax, this is
-    # effectively the same as removing these entirely.
-    attention_scores += adder
+    # This mask processing is quantization friendly:
+    # We basically hard-code the to-be-masked-out part have -6.
+    # (-6 is also careful chosen: as we know softmax is gonna happen next and
+    # e^-6 is ~0.002).
+    # This will try to make attention_scores within a small range.
+    # (But we still probably need more clipping).
+    to_be_masked = 1 - attention_mask
+    to_be_masked_score = to_be_masked * -6
+
+    attention_scores = attention_scores * attention_mask
+    if use_quantized_training:
+      attention_scores = quantize(attention_scores, is_training)
+    attention_scores = attention_scores + to_be_masked_score
+    if use_quantized_training:
+      attention_scores = quantize(attention_scores, is_training)
+      attention_scores = tf.clip_by_value(attention_scores, -6, 60)
 
   # Normalize the attention scores to probabilities.
   # `attention_probs` = [B, N, F, T]
@@ -1017,10 +1145,14 @@ def attention_layer(query_tensor,
   # `context_layer` = [B, F, N, H]
   if use_einsum:
     context_layer = tf.einsum("BNFT,BTNH->BFNH", attention_probs, value_layer)
+    if use_quantized_training:
+      context_layer = quantize(context_layer, is_training=is_training)
   else:
     value_layer = tf.transpose(value_layer, [0, 2, 1, 3])
     # We want "BNFT,BNTH->BNFH" now.
     context_layer = tf.matmul(attention_probs, value_layer)
+    if use_quantized_training:
+      context_layer = quantize(context_layer, is_training=is_training)
 
     # `context_layer` = [B, F, N, H]
     context_layer = tf.transpose(context_layer, [0, 2, 1, 3])
@@ -1045,7 +1177,9 @@ def transformer_model(input_tensor,
                       num_feedforward_networks=1,
                       normalization_type="layer_norm",
                       use_einsum=False,
-                      do_return_all_layers=False):
+                      do_return_all_layers=False,
+                      use_quantized_training=False,
+                      is_training=True):
   """Multi-headed, multi-layer Transformer from "Attention is All You Need".
 
   This is almost an exact implementation of the original Transformer encoder.
@@ -1084,6 +1218,10 @@ def transformer_model(input_tensor,
     use_einsum: whether to use tf.einsum.
     do_return_all_layers: Whether to also return all layers or just the final
       layer.
+      use_quantized_training: (optional) use quantization-aware training.
+    is_training: bool. true for training model, false for eval model, only need
+      for QAT.
+
   Returns:
     float Tensor of shape [batch_size, seq_length, hidden_size], the final
     hidden layer of the Transformer.
@@ -1128,20 +1266,34 @@ def transformer_model(input_tensor,
                 create_initializer(initializer_range),
                 None,
                 name="dense",
-                use_einsum=use_einsum)
-            layer_input = layer_norm(layer_input, normalization_type)
+                use_einsum=use_einsum,
+                use_quantized_training=use_quantized_training,
+                is_training=is_training)
+            layer_input = layer_norm(
+                layer_input,
+                normalization_type,
+                use_quantized_training=use_quantized_training,
+                is_training=is_training)
           if use_bottleneck_attention:
             query_tensor = layer_input
             key_tensor = layer_input
             value_tensor = layer_input
           elif key_query_shared_bottleneck:
             with tf.variable_scope("attention"):
-              shared_attention_input = tf.layers.dense(
+              shared_attention_input = dense_layer_2d(
                   prev_output,
                   intra_bottleneck_size,
-                  kernel_initializer=create_initializer(initializer_range))
-              shared_attention_input = layer_norm(shared_attention_input,
-                                                  normalization_type)
+                  create_initializer(initializer_range),
+                  None,
+                  name="dense",
+                  use_einsum=use_einsum,
+                  use_quantized_training=use_quantized_training,
+                  is_training=is_training)
+              shared_attention_input = layer_norm(
+                  shared_attention_input,
+                  normalization_type,
+                  use_quantized_training=use_quantized_training,
+                  is_training=is_training)
             key_tensor = shared_attention_input
             query_tensor = shared_attention_input
             value_tensor = prev_output
@@ -1171,21 +1323,32 @@ def transformer_model(input_tensor,
               size_per_head=attention_head_size,
               attention_probs_dropout_prob=attention_probs_dropout_prob,
               initializer_range=initializer_range,
-              use_einsum=use_einsum)
+              use_einsum=use_einsum,
+              use_quantized_training=use_quantized_training,
+              is_training=is_training)
           all_attention_maps.append(attention_map)
 
         # Run a linear projection of `hidden_size` then add a residual
         # with `layer_input`.
         with tf.variable_scope("output"):
           attention_output = dense_layer_3d_proj(
-              attention_output, true_hidden_size,
-              num_attention_heads, attention_head_size,
-              create_initializer(initializer_range), None, "dense",
-              use_einsum)
+              attention_output,
+              true_hidden_size,
+              num_attention_heads,
+              attention_head_size,
+              create_initializer(initializer_range),
+              None,
+              "dense",
+              use_einsum,
+              use_quantized_training=use_quantized_training,
+              is_training=is_training)
           if not use_bottleneck:
             attention_output = dropout(attention_output, hidden_dropout_prob)
-          attention_output = layer_norm(attention_output + layer_input,
-                                        normalization_type)
+          attention_output = layer_norm(
+              attention_output + layer_input,
+              normalization_type,
+              use_quantized_training=use_quantized_training,
+              is_training=is_training)
 
       layer_input = attention_output
 
@@ -1195,46 +1358,85 @@ def transformer_model(input_tensor,
             # The activation is only applied to the "intermediate" hidden layer.
             with tf.variable_scope("intermediate"):
               intermediate_output = dense_layer_2d(
-                  layer_input, intermediate_size,
+                  layer_input,
+                  intermediate_size,
                   create_initializer(initializer_range),
-                  intermediate_act_fn, "dense", use_einsum)
+                  intermediate_act_fn,
+                  "dense",
+                  use_einsum,
+                  use_quantized_training=use_quantized_training,
+                  is_training=is_training)
 
             # Down-project back to `hidden_size` then add the residual.
             with tf.variable_scope("output"):
               layer_output = dense_layer_2d(
-                  intermediate_output, true_hidden_size,
+                  intermediate_output,
+                  true_hidden_size,
                   create_initializer(initializer_range),
-                  None, "dense", use_einsum)
-              layer_output = layer_norm(layer_output + layer_input,
-                                        normalization_type)
+                  None,
+                  "dense",
+                  use_einsum,
+                  use_quantized_training=use_quantized_training,
+                  is_training=is_training)
+              layer_output = layer_norm(
+                  layer_output + layer_input,
+                  normalization_type,
+                  use_quantized_training=use_quantized_training,
+                  is_training=is_training)
               layer_input = layer_output
 
       # The activation is only applied to the "intermediate" hidden layer.
       with tf.variable_scope("intermediate"):
         intermediate_output = dense_layer_2d(
-            layer_input, intermediate_size,
+            layer_input,
+            intermediate_size,
             create_initializer(initializer_range),
-            intermediate_act_fn, "dense", use_einsum)
+            intermediate_act_fn,
+            "dense",
+            use_einsum,
+            use_quantized_training=use_quantized_training,
+            is_training=is_training)
 
       # Down-project back to `hidden_size` then add the residual.
       with tf.variable_scope("output"):
-        layer_output = dense_layer_2d(intermediate_output, true_hidden_size,
-                                      create_initializer(initializer_range),
-                                      None, "dense", use_einsum)
+        layer_output = dense_layer_2d(
+            intermediate_output,
+            true_hidden_size,
+            create_initializer(initializer_range),
+            None,
+            "dense",
+            use_einsum,
+            use_quantized_training=use_quantized_training,
+            is_training=is_training)
         if not use_bottleneck:
           layer_output = dropout(layer_output, hidden_dropout_prob)
-          layer_output = layer_norm(layer_output + layer_input,
-                                    normalization_type)
+          layer_output = layer_norm(
+              layer_output + layer_input,
+              normalization_type,
+              use_quantized_training=use_quantized_training,
+              is_training=is_training)
         else:
-          layer_output = layer_norm(layer_output + layer_input,
-                                    normalization_type)
+          layer_output = layer_norm(
+              layer_output + layer_input,
+              normalization_type,
+              use_quantized_training=use_quantized_training,
+              is_training=is_training)
           with tf.variable_scope("bottleneck"):
-            layer_output = dense_layer_2d(layer_output, hidden_size,
-                                          create_initializer(initializer_range),
-                                          None, "dense", use_einsum)
+            layer_output = dense_layer_2d(
+                layer_output,
+                hidden_size,
+                create_initializer(initializer_range),
+                None,
+                "dense",
+                use_einsum,
+                use_quantized_training=use_quantized_training,
+                is_training=is_training)
             layer_output = dropout(layer_output, hidden_dropout_prob)
-            layer_output = layer_norm(layer_output + prev_output,
-                                      normalization_type)
+            layer_output = layer_norm(
+                layer_output + prev_output,
+                normalization_type,
+                use_quantized_training=use_quantized_training,
+                is_training=is_training)
 
         prev_output = layer_output
         all_layer_outputs.append(layer_output)

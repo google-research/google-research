@@ -1,0 +1,19 @@
+package(
+    default_visibility = ["//visibility:public"],
+    licenses = ["notice"],
+)
+
+sh_binary(
+    name = "build_pip_pkg",
+    srcs = ["build_deps/build_pip_pkg.sh"],
+    data = [
+        "MANIFEST.in",
+        "requirements.txt",
+        "setup.py",
+        "//scann/scann_ops/py:scann",
+    ],
+    tags = [
+        "local",
+        "notap",
+    ],
+)

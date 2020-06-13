@@ -1,18 +1,4 @@
 # coding=utf-8
-# Copyright 2020 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 r"""Implementation of Splitter embedding using Gensim.
 
 ===============================
@@ -22,6 +8,8 @@ Single Embedding Enough? Learning Node Representations that Capture Multiple
 Social Contexts_](https://ai.google/research/pubs/pub46238).
 
 The code in this file allows one to create persona embeddings.
+
+This code was tested with gensim==0.13.2.
 
 Known issues:  The inner loop (train_batch_sg_constraints) is written in pure
 python, and its speed could be greatly improved by porting to an optimized
@@ -36,7 +24,6 @@ the following paper:
 Multiple Social Contexts.
 > In _The Web Conference_.
 """
-#pylint: skip-file
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function

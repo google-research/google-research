@@ -49,7 +49,8 @@ class RobustLearningModelTest(tf.test.TestCase, absltest.TestCase):
     self.target_column_name = 'income'
 
   def test_get_feature_columns_with_demographics(self):
-    feature_columns, _, _, target_variable_column = self.load_dataset.get_feature_columns(include_sensitive_columns=True)  # pylint: disable=line-too-long
+    feature_columns, _, _, target_variable_column = (
+        self.load_dataset.get_feature_columns(include_sensitive_columns=True))
     self.assertLen(feature_columns, 14)
     self.assertEqual(target_variable_column, self.target_column_name)
 

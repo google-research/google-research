@@ -1,0 +1,29 @@
+# Description:
+#   This package contains hashing methods available in ScaNN.
+
+package(
+    default_visibility = ["//visibility:public"],
+    licenses = ["notice"],
+)
+
+# Generated Files
+# ========================================================================
+
+# Libraries
+# ========================================================================
+
+cc_library(
+    name = "hashing_base",
+    srcs = ["hashing_base.cc"],
+    hdrs = ["hashing_base.h"],
+    tags = ["local"],
+    deps = [
+        "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
+        "//scann/proto:hashed_cc_proto",
+        "//scann/utils:types",
+    ],
+)
+
+# Unit Tests
+# ========================================================================

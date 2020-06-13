@@ -793,7 +793,7 @@ class ImagenetPreprocessor(RecordInputImagePreprocessor):
   def preprocess(self, image_buffer, bbox, batch_position):
     # pylint: disable=g-import-not-at-top
     try:
-      from tensorflow_models.official.resnet.imagenet_preprocessing import preprocess_image
+      from tensorflow_models.official.r1.resnet.imagenet_preprocessing import preprocess_image
     except ImportError:
       tf.logging.fatal('Please include tensorflow/models to the PYTHONPATH.')
       raise

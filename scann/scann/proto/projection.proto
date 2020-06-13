@@ -1,0 +1,99 @@
+// Copyright 2020 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+syntax = "proto2";
+
+package tensorflow.scann_ops;
+
+message ProjectionConfig {
+  enum ProjectionType {
+    NONE = 0;
+    CHUNK = 1;
+    VARIABLE_CHUNK = 2;
+    RANDOM_GAUSS = 3;
+    RANDOM_BINARY = 4;
+    RANDOM_BINARY_DYNAMIC = 5;
+    RANDOM_SPARSE_BINARY = 6;
+    RANDOM_ORTHOGONAL = 7;
+    PCA = 8;
+    RANDOM_BILINEAR = 9;
+    RANDOM_CIRCULANT = 10;
+    CKMEANS_PROJECTION = 11;
+    MEANSTD_PROJECTION = 12;
+    IDENTITY_CHUNK = 13;
+    TRUNCATE = 14;
+  }
+
+  required ProjectionType projection_type = 1;
+
+  optional uint64 input_dim = 9;
+
+  optional int32 num_blocks = 2 [default = 1];
+
+  optional int32 num_dims_per_block = 3;
+
+  message VariableBlock {
+    required int32 num_blocks = 1;
+    required int32 num_dims_per_block = 2;
+  }
+  repeated VariableBlock variable_blocks = 4;
+
+  optional int32 seed = 5 [default = 1];
+
+  optional bool is_bit_packed = 6 [default = false];
+
+  optional bool is_dense = 7 [default = true];
+
+  optional bool build_covariance = 8 [default = true];
+
+  optional RandomBilinearConfig random_bilinear_config = 10;
+
+  optional CkmeansConfig ckmeans_config = 11;
+
+  optional MeanStdConfig meanstd_config = 12;
+}
+
+message CkmeansConfig {
+  optional bool need_learning = 1 [default = true];
+
+  optional string projection_filename = 2;
+
+  optional int32 num_clusters = 3 [default = 256];
+
+  optional int32 num_rotation_iterations = 4 [default = 100];
+
+  optional float rotation_convergence = 5 [default = 1e-4];
+
+  optional int32 max_sample_size = 6 [default = 100000];
+
+  optional int32 max_clustering_iterations = 7 [default = 1];
+
+  optional float clustering_convergence_tolerance = 8 [default = 1e-5];
+}
+
+message MeanStdConfig {
+  optional string projection_filename = 1;
+}
+
+message RandomBilinearConfig {
+  optional int32 input_vector_rows = 1;
+
+  optional int32 input_vector_columns = 2;
+
+  optional int32 proj_vector_rows = 3;
+
+  optional int32 proj_vector_columns = 4;
+}

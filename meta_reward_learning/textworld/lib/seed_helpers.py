@@ -13,14 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Seed Helpers copied from OpenAI Gym.
 
 https://github.com/openai/gym/blob/master/gym/utils/seeding.py
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import hashlib
 import os
 import struct

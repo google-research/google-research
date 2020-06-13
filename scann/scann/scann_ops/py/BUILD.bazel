@@ -1,0 +1,59 @@
+package(
+    default_visibility = ["//visibility:public"],
+    licenses = ["notice"],
+)
+
+py_library(
+    name = "scann",
+    srcs = ["scann_builder.py"],
+    tags = ["local"],
+    deps = [
+        ":scann_ops",
+        ":scann_ops_pybind",
+    ],
+)
+
+py_library(
+    name = "scann_ops",
+    srcs = [
+        "scann_ops.py",
+    ],
+    data = [
+        "//scann/scann_ops/cc:_scann_ops.so",
+    ],
+    tags = ["local"],
+    deps = [],
+)
+
+py_test(
+    name = "scann_ops_test",
+    size = "large",
+    srcs = ["scann_ops_test.py"],
+    python_version = "PY3",
+    tags = ["local"],
+    deps = [
+        ":scann",
+        ":scann_ops",
+    ],
+)
+
+py_library(
+    name = "scann_ops_pybind",
+    srcs = ["scann_ops_pybind.py"],
+    data = [
+        "//scann/scann_ops/cc/python:scann_pybind.so",
+    ],
+    tags = ["local"],
+    deps = [],
+)
+
+py_test(
+    name = "scann_ops_pybind_test",
+    srcs = ["scann_ops_pybind_test.py"],
+    python_version = "PY3",
+    tags = ["local"],
+    deps = [
+        ":scann",
+        ":scann_ops_pybind",
+    ],
+)

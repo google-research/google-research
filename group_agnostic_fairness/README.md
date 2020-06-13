@@ -1,3 +1,6 @@
+# Fairness without Demographics through Adversarially Reweighted Learning
+This repository contains the code for the paper "Fairness without Demographics through Adversarially Reweighted Learning".
+
 ## Installation
 
 Run the following:

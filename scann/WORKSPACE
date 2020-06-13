@@ -1,0 +1,75 @@
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("//build_deps/py:python_configure.bzl", "python_configure")
+load("//build_deps/tf_dependency:tf_configure.bzl", "tf_configure")
+
+tf_configure(
+    name = "local_config_tf",
+)
+
+python_configure(name = "local_config_python")
+
+git_repository(
+    name = "pybind11_bazel",
+    commit = "f22df0e57ba664c2d3cf439ddfb7f8804e3f36c1",
+    remote = "https://github.com/pybind/pybind11_bazel.git",
+)
+
+http_archive(
+    name = "pybind11",
+    build_file = "@pybind11_bazel//:pybind11.BUILD",
+    strip_prefix = "pybind11-2.4.3",
+    urls = [
+        "https://github.com/pybind/pybind11/archive/v2.4.3.tar.gz",
+    ],
+)
+
+http_archive(
+    name = "com_google_absl",
+    strip_prefix = "abseil-cpp",
+    urls = [
+        "https://storage.googleapis.com/scann/abseil-cpp.tar.gz",
+    ],
+)
+
+git_repository(
+    name = "com_google_protobuf",
+    remote = "https://github.com/protocolbuffers/protobuf.git",
+    tag = "v3.8.0",
+)
+
+git_repository(
+    name = "com_google_googletest",
+    remote = "https://github.com/google/googletest.git",
+    tag = "release-1.8.1",
+)
+
+# rules_cc defines rules for generating C++ code from Protocol Buffers.
+http_archive(
+    name = "rules_cc",
+    sha256 = "35f2fb4ea0b3e61ad64a369de284e4fbbdcdba71836a5555abb5e194cf119509",
+    strip_prefix = "rules_cc-624b5d59dfb45672d4239422fa1e3de1822ee110",
+    urls = [
+        "https://github.com/bazelbuild/rules_cc/archive/624b5d59dfb45672d4239422fa1e3de1822ee110.tar.gz",
+    ],
+)
+
+# rules_proto defines abstract rules for building Protocol Buffers.
+http_archive(
+    name = "rules_proto",
+    sha256 = "57001a3b33ec690a175cdf0698243431ef27233017b9bed23f96d44b9c98242f",
+    strip_prefix = "rules_proto-9cd4f8f1ede19d81c6d48910429fe96776e567b1",
+    urls = [
+        "https://github.com/bazelbuild/rules_proto/archive/9cd4f8f1ede19d81c6d48910429fe96776e567b1.tar.gz",
+    ],
+)
+
+load("@rules_cc//cc:repositories.bzl", "rules_cc_dependencies")
+
+rules_cc_dependencies()
+
+load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
+
+rules_proto_dependencies()
+
+rules_proto_toolchains()

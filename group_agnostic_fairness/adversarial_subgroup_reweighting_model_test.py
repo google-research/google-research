@@ -87,7 +87,9 @@ class AdversarialSubgroupReweightingModelTest(tf.test.TestCase, absltest.TestCas
     with self.assertRaises(ValueError):
       config = tf.estimator.RunConfig(model_dir=self.model_dir,
                                       save_checkpoints_steps=2)
-      feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=False)  # pylint: disable=line-too-long
+      feature_columns, _, _, label_column_name = (
+          self.load_dataset.get_feature_columns(
+              include_sensitive_columns=False))
       _ = adversarial_subgroup_reweighting_model.get_estimator(
           feature_columns=feature_columns,
           label_column_name=label_column_name,

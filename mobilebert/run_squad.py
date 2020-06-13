@@ -98,8 +98,11 @@ flags.DEFINE_bool("do_predict", False, "Whether to run eval on the dev set.")
 flags.DEFINE_string("lite_model_path", None,
                     "[Optional] Path to lite model for prediction.")
 
+flags.DEFINE_bool("use_quantized_training", False,
+                  "whether to use quantization-aware training.")
+
 flags.DEFINE_bool("use_post_quantization", False,
-                  "Whether to use quantization-aware training.")
+                  "whether to quantize the model.")
 flags.DEFINE_bool(
     "activation_quantization", False,
     "Whether to provide representive dataset for TFLite to fully "
@@ -593,7 +596,8 @@ def create_model(bert_config,
         input_mask=input_mask,
         token_type_ids=segment_ids,
         use_one_hot_embeddings=use_one_hot_embeddings,
-        use_einsum=use_einsum)
+        use_einsum=use_einsum,
+        use_quantized_training=FLAGS.use_quantized_training)
 
     final_hidden = model.get_sequence_output()
   else:
@@ -1473,7 +1477,7 @@ def main(_):
         train_examples = read_squad_examples(
             input_file=FLAGS.train_file, is_training=True)
         examples = convert_examples_to_features(
-            examples=train_examples[:200],
+            examples=train_examples[:100],
             tokenizer=tokenizer,
             max_seq_length=FLAGS.max_seq_length,
             doc_stride=FLAGS.doc_stride,

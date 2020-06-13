@@ -20,6 +20,7 @@ virtualenv -p python3 .
 source ./bin/activate
 
 pip install -r wt5/requirements.txt
+python -m spacy download en_core_web_sm
 python -m wt5.wt5.metrics_test
 python -m wt5.wt5.postprocessors_test
 python -m wt5.wt5.preprocessors_test

@@ -231,7 +231,8 @@ class RobustFairnessMetrics():
       """
       # If print_dir is not None, initializes tf.print for following tensors:
       # # example_weights, label, prediction, subgroup and protected_groups
-      control_dependencies_for_print = self._get_control_dependencies_for_print(labels, predictions)  # pylint: disable=line-too-long
+      control_dependencies_for_print = self._get_control_dependencies_for_print(
+          labels, predictions)
 
       with tf.control_dependencies(control_dependencies_for_print):
         masks_protected_group_0, masks_protected_group_1, masks_subgroup = self._get_protected_group_masks(labels)  # pylint: disable=line-too-long

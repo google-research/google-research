@@ -56,7 +56,7 @@ def model_parameters(parser_nn):
       '--cnn1_padding',
       type=str,
       default='valid',
-      help="one of 'valid' or 'same'",
+      help="One of 'valid' or 'same'",
   )
   parser_nn.add_argument(
       '--cnn1_filters',
@@ -119,7 +119,7 @@ def model_parameters(parser_nn):
       '--dw2_padding',
       type=str,
       default='valid',
-      help="one of 'valid' or 'same'",
+      help="One of 'valid' or 'same'",
   )
   parser_nn.add_argument(
       '--dw2_act',
@@ -153,8 +153,8 @@ def model(flags):
   It is based on paper:
   MobileNets: Efficient Convolutional Neural Networks for
   Mobile Vision Applications https://arxiv.org/abs/1704.04861
-  Hello Edge: Keyword Spotting on Microcontrollers
-  https://arxiv.org/pdf/1711.07128.pdf
+  Model topology is similar with "Hello Edge: Keyword Spotting on
+  Microcontrollers" https://arxiv.org/pdf/1711.07128.pdf
   Args:
     flags: data/model parameters
 
