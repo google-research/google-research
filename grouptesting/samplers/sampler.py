@@ -16,6 +16,7 @@
 # Lint as: python3
 """Base class for particles samplers."""
 import jax.numpy as np
+import numpy as onp
 
 
 class Sampler:
@@ -24,10 +25,12 @@ class Sampler:
   def __init__(self):
     self.particle_weights = None
     self.particles = None
+    self.convergence_metric = onp.NaN
 
   def reset(self):
     self.particle_weights = None
     self.particles = None
+    self.convergence_metric = onp.NaN
 
   @property
   def is_cheap(self):
@@ -38,3 +41,6 @@ class Sampler:
   def marginal(self):
     """Produces the marginal distribution of the posterior currently stored."""
     return np.sum(self.particle_weights[:, np.newaxis] * self.particles, axis=0)
+
+  def reset_convergence_metric(self):
+    self.convergence_metric = onp.NaN

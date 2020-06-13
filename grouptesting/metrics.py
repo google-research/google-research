@@ -72,7 +72,11 @@ class Metrics:
     self.groups[:] = onp.NaN
     self.test_results = onp.empty(
         (num_simulations, num_cycles, num_tests_per_cycle))
-    self.groups[:] = onp.NaN
+    self.test_results[:] = onp.NaN
+    self.lbp_convergence = onp.empty((num_simulations, num_cycles))
+    self.lbp_convergence[:] = onp.NaN
+    self.smc_convergence = onp.empty((num_simulations, num_cycles))
+    self.smc_convergence[:] = onp.NaN
 
   def update(self,
              simulation,
@@ -80,14 +84,20 @@ class Metrics:
              marginal,
              ground_truth,
              groups=None,
-             test_results=None):
+             test_results=None,
+             lbp_convergence=None,
+             smc_convergence=None):
     """Updates the values of the metrics for a given simulation and cycle."""
-    logging.info('Exporting simulatiom %i at Cycle %i.', simulation, cycle)
+    logging.info('Exporting simulation %i at Cycle %i.', simulation, cycle)
     self.ground_truth[simulation] = ground_truth
     self.marginals[simulation, cycle] = marginal
     if groups is not None:
       self.groups[simulation, cycle, :groups.shape[0], :] = groups
       self.test_results[simulation, cycle, :groups.shape[0]] = test_results
+    if lbp_convergence is not None:
+      self.lbp_convergence[simulation, cycle] = lbp_convergence
+    if smc_convergence is not None:
+      self.smc_convergence[simulation, cycle] = smc_convergence
 
   def load(self):
     """Loads metrics from files."""
@@ -105,8 +115,10 @@ class Metrics:
     if not os.path.exists(self.workdir):
       os.makedirs(self.workdir)
 
-    names = ['marginals', 'ground_truth', 'groups', 'test_results']
-    arrays = [self.marginals, self.ground_truth, self.groups, self.test_results]
+    names = ['marginals', 'ground_truth', 'groups',
+             'test_results', 'lbp_convergence', 'smc_convergence']
+    arrays = [self.marginals, self.ground_truth, self.groups,
+              self.test_results, self.lbp_convergence, self.smc_convergence]
     for arr, name in zip(arrays, names):
       output_file = os.path.join(self.workdir, f'{name}.npy')
       with open(output_file, 'wb') as fp:

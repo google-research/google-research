@@ -156,15 +156,27 @@ class LbpSampler(sampler.Sampler):
     self.gaptol = gaptol
 
   def produce_sample(self, rng, state):
-    """Produces only "one" fractional particle state: a marginal."""
+    """Produces only "one" fractional particle state: a marginal.
+
+    Args:
+      rng : random PRNG key
+      state : state object containing all relevant information to produce sample
+
+    Returns:
+      a measure of the quality of convergence, here gap_between_consecutives
+      also updates particle_weights and particles members.
+    """
+
     self.particle_weights = np.array([1])
     marginal, gap_between_consecutives = loopy_belief_propagation(
         state.past_test_results, state.past_groups, state.prior_infection_rate,
         state.prior_sensitivity, state.prior_specificity, self.min_iterations,
         self.max_iterations, self.atol)
+
+    # record convergence of LBP in sampler
+    self.convergence_metric = gap_between_consecutives
     if gap_between_consecutives < self.gaptol:
-      # if LBP has converged and is not oscillating (hence relatively large
-      # tolerance of up to 3%, return marginal
+      # if LBP has converged and is not oscillating, return marginal
       self.particles = np.expand_dims(marginal, axis=0)
     else:
       # if LBP has not converged, return a vector of NaNs

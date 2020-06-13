@@ -36,6 +36,7 @@ def gibbs_kernel(rng,
                  particles,
                  rho,
                  log_posterior_params,
+                 log_base_measure_params,
                  cycles = 2,
                  liu_modification = True):
   """Applies a (Liu modified) Gibbs kernel (with MH) update.
@@ -57,6 +58,7 @@ def gibbs_kernel(rng,
    particles: np.ndarray [n_particles,n_patients] plausible infections states.
    rho: float, scaling for posterior.
    log_posterior_params: Dict of parameters to compute log-posterior.
+   log_base_measure_params: Dict of parameters to compute log-base measure.
    cycles: the number of times we want of do Gibbs sampling.
    liu_modification : use or not Liu's modification.
 
@@ -71,8 +73,8 @@ def gibbs_kernel(rng,
     particles_flipped = jax.ops.index_update(particles, jax.ops.index[:, i],
                                              np.logical_not(particles[:, i]))
     # compute log_posterior of flipped particles
-    log_posteriors_flipped_at_i = rho * bayes.log_posterior(
-        particles_flipped, **log_posterior_params)
+    log_posteriors_flipped_at_i = bayes.tempered_logpos_logbase(
+        particles_flipped, log_posterior_params, log_base_measure_params, rho)
     # compute acceptance probability, depending on whether we use Liu mod.
     if liu_modification:
       log_proposal_ratio = log_posteriors_flipped_at_i - log_posteriors
@@ -91,9 +93,11 @@ def gibbs_kernel(rng,
     return [rng, particles, log_posteriors]
 
   num_patients = particles.shape[1]
-  log_posteriors = bayes.log_posterior(particles, **log_posterior_params)
-  rng_particles = jax.lax.fori_loop(0, cycles * num_patients,
-                                    gibbs_loop,
+
+  log_posteriors = bayes.tempered_logpos_logbase(particles,
+                                                 log_posterior_params,
+                                                 log_base_measure_params, rho)
+  rng_particles = jax.lax.fori_loop(0, cycles * num_patients, gibbs_loop,
                                     [rng, particles, log_posteriors])
   # TODO(cuturi) : might be relevant to forward log_posterior_particles
   return rng_particles[1]
@@ -111,11 +115,17 @@ class Gibbs:
     self.model = None
 
   # TODO(oliviert): use jit here with `@partial(jit, static_argnums=(0,))`
-  def __call__(self, rng, particles, rho, log_posterior_params):
-    return gibbs_kernel(rng, particles, rho, log_posterior_params, self.cycles)
+  def __call__(self, rng, particles, rho,
+               log_posterior_params,
+               log_base_measure_params):
+    return gibbs_kernel(rng, particles, rho,
+                        log_posterior_params,
+                        log_base_measure_params,
+                        self.cycles)
 
   def fit_model(self, particle_weights, particles):
     """Because Gibbs sampler do not use any model, we return nothing."""
+    del particle_weights, particles
     return
 
 
@@ -130,7 +140,8 @@ class Chopin:
                rng,
                particles,
                rho,
-               log_posterior_params):
+               log_posterior_params,
+               log_base_measure_params):
     """Call carries out procedures 4 in https://arxiv.org/pdf/1101.6037.pdf.
 
     One expects that fit_model has been called right before to store the model
@@ -142,6 +153,7 @@ class Chopin:
      particles: np.ndarray [n_particles,n_patients] plausible infections states
      rho: float, scaling for posterior.
      log_posterior_params: Dict of parameters to compute log-posterior.
+     log_base_measure_params: Dict of parameters to compute log-base measure.
 
     Returns:
      A np.ndarray representing the new particles.
@@ -151,8 +163,10 @@ class Chopin:
 
     proposed, logprop_proposed, logprop_particles = self.sample_from_model(
         rngs[0], particles)
-    llparticles = rho * bayes.log_posterior(particles, **log_posterior_params)
-    llproposed = rho * bayes.log_posterior(proposed, **log_posterior_params)
+    llparticles = bayes.tempered_logpos_logbase(
+        particles, log_posterior_params, log_base_measure_params, rho)
+    llproposed = bayes.tempered_logpos_logbase(
+        proposed, log_posterior_params, log_base_measure_params, rho)
     logratio = llproposed - llparticles + logprop_particles - logprop_proposed
     p_replacement = np.minimum(np.exp(logratio), 1)
     replacement = (
@@ -287,10 +301,13 @@ class Chopin:
 class ChopinGibbs(Chopin):
   """Defines a kernel that does first Chopin kernel moves then Gibbs."""
 
-  def __call__(self, rng, particles, rho, log_posterior_params):
+  def __call__(self, rng, particles, rho,
+               log_posterior_params, log_base_measure_params):
     rngs = jax.random.split(rng, 2)
     new_particles = super().__call__(rngs[0], particles, rho,
-                                     log_posterior_params)
+                                     log_posterior_params,
+                                     log_base_measure_params)
     new_particles = gibbs_kernel(rngs[1], new_particles, rho,
-                                 log_posterior_params)
+                                 log_posterior_params,
+                                 log_base_measure_params)
     return new_particles
