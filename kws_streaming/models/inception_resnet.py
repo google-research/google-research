@@ -28,36 +28,58 @@ def model_parameters(parser_nn):
   Returns: parser with updated arguments
   """
   parser_nn.add_argument(
-      '--cnn_filters0',
+      '--cnn1_filters',
       type=str,
       default='32',
       help='Number of filters in conv blocks',
   )
   parser_nn.add_argument(
-      '--strides',
+      '--cnn1_strides',
       type=str,
-      default='2,1,1',
-      help='strides applied in inception block',
+      default='1',
+      help='Strides applied in pooling of blocks',
   )
   parser_nn.add_argument(
-      '--scales',
+      '--cnn1_kernel_sizes',
+      type=str,
+      default='5',
+      help='Kernel sizes in time dim of conv block',
+  )
+  parser_nn.add_argument(
+      '--cnn2_scales',
       type=str,
       default='0.2,0.5,1.0',
-      help='internal number of filters inside of inception block',
+      help='Scaling factor to scale the residuals inside of inception block',
   )
   parser_nn.add_argument(
-      '--filters_branch0',
+      '--cnn2_filters_branch0',
       type=str,
       default='32,32,32',
-      help='number of filters inside of inception block branch0'
-      'will be multipled by 4 because of concatenation of 4 branches',
+      help='Number of filters inside of inception block branch0'
   )
   parser_nn.add_argument(
-      '--filters_branch1',
+      '--cnn2_filters_branch1',
       type=str,
       default='32,32,32',
-      help='number of filters inside of inception block branch1'
-      'will be multipled by 4 because of concatenation of 4 branches',
+      help='Number of filters inside of inception block branch1'
+  )
+  parser_nn.add_argument(
+      '--cnn2_filters_branch2',
+      type=str,
+      default='32,32,64',
+      help='Number of filters outsize of inception block'
+  )
+  parser_nn.add_argument(
+      '--cnn2_strides',
+      type=str,
+      default='2,2,1',
+      help='Stride parameter of poolling after inception block'
+  )
+  parser_nn.add_argument(
+      '--cnn2_kernel_sizes',
+      type=str,
+      default='3,5,5',
+      help='Kernel sizes of conv in inception block branch1, applied twice'
   )
   parser_nn.add_argument(
       '--dropout',
@@ -79,6 +101,7 @@ def inception_resnet_block(x,
                            scale,
                            filters_branch0,
                            filters_branch1,
+                           kernel_size,
                            activation='relu',
                            bn_scale=False):
   """Adds a Inception-ResNet block.
@@ -94,6 +117,7 @@ def inception_resnet_block(x,
       the output of this block will be `x + scale * r`.
     filters_branch0: number of filters in branch0
     filters_branch1: number of filters in branch1
+    kernel_size: kernel size of conv in branch1
     activation: activation function to use at the end of the block
     bn_scale: use scale in batch normalization layer
 
@@ -104,8 +128,10 @@ def inception_resnet_block(x,
   # only one type of branching is supported
   branch_0 = utils.conv2d_bn(x, filters_branch0, 1, scale=bn_scale)
   branch_1 = utils.conv2d_bn(x, filters_branch0, 1, scale=bn_scale)
-  branch_1 = utils.conv2d_bn(branch_1, filters_branch1, [3, 1], scale=bn_scale)
-  branch_1 = utils.conv2d_bn(branch_1, filters_branch1, [1, 3], scale=bn_scale)
+  branch_1 = utils.conv2d_bn(
+      branch_1, filters_branch1, [kernel_size, 1], scale=bn_scale)
+  branch_1 = utils.conv2d_bn(
+      branch_1, filters_branch1, [kernel_size, 1], scale=bn_scale)
   branches = [branch_0, branch_1]
 
   mixed = tf.keras.layers.Concatenate()(branches)
@@ -150,29 +176,39 @@ def model(flags):
             net)
 
   # [batch, time, feature]
-  net = tf.keras.backend.expand_dims(net, axis=-1)
-  # [batch, time, feature, 1]
+  net = tf.keras.backend.expand_dims(net, axis=2)
+  # [batch, time, 1, feature]
 
-  for filters in utils.parse(flags.cnn_filters0):
-    net = tf.keras.layers.SeparableConv2D(
-        filters, (3, 3), padding='valid', use_bias=False)(net)
-    net = tf.keras.layers.BatchNormalization(scale=flags.bn_scale)(net)
-    net = tf.keras.layers.Activation('relu')(net)
-    net = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2))(net)
-    # [batch, time, feature, filters]
+  for filters, kernel_size, stride in zip(
+      utils.parse(flags.cnn1_filters), utils.parse(flags.cnn1_kernel_sizes),
+      utils.parse(flags.cnn1_strides)):
+    net = utils.conv2d_bn(
+        net, filters, (kernel_size, 1), scale=flags.bn_scale, padding='valid')
+    if stride > 1:
+      net = tf.keras.layers.MaxPooling2D((3, 1), strides=(stride, 1))(net)
+    # [batch, time, 1, filters]
 
-  for stride, scale, filters_branch0, filters_branch1 in zip(
-      utils.parse(flags.strides), utils.parse(flags.scales),
-      utils.parse(flags.filters_branch0), utils.parse(flags.filters_branch1)):
+  for stride, scale, filters_branch0, filters_branch1, filters_branch2, kernel_size in zip(
+      utils.parse(flags.cnn2_strides), utils.parse(flags.cnn2_scales),
+      utils.parse(flags.cnn2_filters_branch0),
+      utils.parse(flags.cnn2_filters_branch1),
+      utils.parse(flags.cnn2_filters_branch2),
+      utils.parse(flags.cnn2_kernel_sizes)):
     net = inception_resnet_block(
         net,
         scale,
         filters_branch0,
         filters_branch1,
-        bn_scale=flags.bn_scale
-    )
-    net = tf.keras.layers.MaxPooling2D(3, strides=stride, padding='valid')(net)
-    # [batch, time, feature, filters]
+        kernel_size,
+        bn_scale=flags.bn_scale)
+    net = utils.conv2d_bn(
+        net, filters_branch2, (1, 1), scale=flags.bn_scale, padding='valid')
+    if stride > 1:
+      net = tf.keras.layers.MaxPooling2D((3, 1),
+                                         strides=(stride, 1),
+                                         padding='valid')(
+                                             net)
+    # [batch, time, 1, filters]
 
   net = tf.keras.layers.GlobalAveragePooling2D()(net)
   # [batch, filters]

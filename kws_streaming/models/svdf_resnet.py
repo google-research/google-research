@@ -193,6 +193,9 @@ def model(flags):
   net = tf.keras.layers.Add()([net, residual])
   # [batch, time, feature]
   net = tf.keras.layers.Activation(flags.activation)(net)
+  net = tf.keras.layers.MaxPool1D(
+      3, strides=blocks_pool[0], padding='valid')(
+          net)
 
   # second residual block
   number_of_blocks = len(parse(flags.block2_units1))

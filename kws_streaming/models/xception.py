@@ -29,40 +29,81 @@ def model_parameters(parser_nn):
   """
 
   parser_nn.add_argument(
-      '--cnn1_kernel_size',
+      '--cnn1_kernel_sizes',
       type=str,
-      default='(3,3),(3,1)',
-      help='kernel_size of the first conv block',
+      default='5',
+      help='Kernel_size of the conv block 1',
   )
   parser_nn.add_argument(
       '--cnn1_filters',
       type=str,
-      default='32,32',
-      help='Number of filters in the first conv block',
+      default='32',
+      help='Number of filters in the conv block 1',
   )
   parser_nn.add_argument(
-      '--cnn1_strides',
+      '--stride1',
+      type=int,
+      default=2,
+      help='Stride of pooling layer after conv block 1',
+  )
+  parser_nn.add_argument(
+      '--stride2',
+      type=int,
+      default=2,
+      help='Stride of pooling layer after conv block 2 xception',
+  )
+  parser_nn.add_argument(
+      '--stride3',
+      type=int,
+      default=2,
+      help='Stride of pooling layer after conv block 3 xception',
+  )
+  parser_nn.add_argument(
+      '--stride4',
+      type=int,
+      default=2,
+      help='Stride of pooling layer after conv block 4 xception',
+  )
+  parser_nn.add_argument(
+      '--cnn2_kernel_sizes',
       type=str,
-      default='(2,2),(1,1)',
-      help='strides of the first conv block',
+      default='5',
+      help='Kernel_size of the conv block 2 xception',
   )
   parser_nn.add_argument(
       '--cnn2_filters',
       type=str,
-      default='64,64',
-      help='filters in the first residual block, which has striding',
+      default='32',
+      help='Number of filters in the conv block 2 xception',
   )
   parser_nn.add_argument(
-      '--cnn3_blocks',
-      type=int,
-      default=2,
-      help='number of residual blocks in second pass'
-      ', which does not have striding',
+      '--cnn3_kernel_sizes',
+      type=str,
+      default='5',
+      help='Kernel size of the conv block 3 xception',
+  )
+  parser_nn.add_argument(
+      '--cnn3_filters',
+      type=str,
+      default='32',
+      help='Number of filters in the third conv block 3 xception',
+  )
+  parser_nn.add_argument(
+      '--cnn4_kernel_sizes',
+      type=str,
+      default='5',
+      help='Kernel sizes of the conv block 4 xception',
+  )
+  parser_nn.add_argument(
+      '--cnn4_filters',
+      type=str,
+      default='32',
+      help='Number of filters in the conv block4 xception',
   )
   parser_nn.add_argument(
       '--dropout',
       type=float,
-      default=0.2,
+      default=0.0,
       help='Percentage of data dropped',
   )
   parser_nn.add_argument(
@@ -73,14 +114,80 @@ def model_parameters(parser_nn):
       'When the next layer is linear (also e.g. nn.relu), this can be disabled'
       'since the scaling will be done by the next layer.',
   )
+  parser_nn.add_argument(
+      '--units2',
+      type=str,
+      default='64',
+      help='Number of units in the last set of hidden layers',
+  )
+
+
+def block(net, kernel_sizes, filters, dropout, bn_scale=False):
+  """Utility function to apply conv + BN.
+
+  Arguments:
+    net: input tensor.
+    kernel_sizes: size of convolution kernel.
+    filters: filters in `Conv2D`.
+    dropout: percentage of dropped data
+    bn_scale: scale batch normalization.
+
+  Returns:
+    Output tensor after applying `Conv2D` and `BatchNormalization`.
+  """
+  if not filters:
+    return net
+
+  net_residual = net
+  # project
+  net_residual = tf.keras.layers.Conv2D(
+      filters[-1],
+      kernel_size=1,
+      padding='same',
+      use_bias=False,
+      activation=None)(
+          net_residual)
+  net_residual = tf.keras.layers.BatchNormalization(scale=bn_scale)(
+      net_residual)
+
+  for i, (kernel_size, filters) in enumerate(zip(kernel_sizes, filters)):
+
+    net = tf.keras.layers.DepthwiseConv2D(
+        kernel_size=(kernel_size, 1),
+        activation=None,
+        use_bias=False,
+        padding='same')(net)
+
+    net = tf.keras.layers.Conv2D(
+        filters,
+        kernel_size=1,
+        padding='same',
+        use_bias=False,
+        activation=None)(net)
+    net = tf.keras.layers.BatchNormalization(scale=bn_scale)(net)
+
+    # in the bottom of this function we add residual connection
+    # and then apply activation with dropout
+    # so no need to do another activation and dropout in the end of this loop
+    if i != len(kernel_sizes)-1:
+      net = tf.keras.layers.Activation('relu')(net)
+      net = tf.keras.layers.Dropout(dropout)(net)
+
+  net = tf.keras.layers.Add()([net_residual, net])
+  net = tf.keras.layers.Activation('relu')(net)
+  net = tf.keras.layers.Dropout(dropout)(net)
+  return net
 
 
 def model(flags):
   """Xception model.
 
-  It is based on paper:
+  It is based on papers:
   Xception: Deep Learning with Depthwise Separable Convolutions
       https://arxiv.org/abs/1610.02357
+  MatchboxNet: 1D Time-Channel Separable Convolutional
+  Neural Network Architecture for Speech Commands Recognition
+  https://arxiv.org/pdf/2004.08531
   Args:
     flags: data/model parameters
 
@@ -99,65 +206,60 @@ def model(flags):
             net)
 
   # [batch, time, feature]
-  net = tf.keras.backend.expand_dims(net, axis=-1)
-  # [batch, time, feature, 1]
+  net = tf.keras.backend.expand_dims(net, axis=2)
+  # [batch, time, 1, feature]
 
   # conv block
-  for kernel_size, stride, filters in zip(
-      parse(flags.cnn1_kernel_size), parse(flags.cnn1_strides),
+  for kernel_size, filters in zip(
+      parse(flags.cnn1_kernel_sizes),
       parse(flags.cnn1_filters)):
     net = tf.keras.layers.Conv2D(
-        filters, kernel_size,
-        strides=stride,
+        filters, (kernel_size, 1),
         use_bias=False)(net)
     net = tf.keras.layers.BatchNormalization(scale=flags.bn_scale)(net)
     net = tf.keras.layers.Activation('relu')(net)
-    # [batch, time, feature, filters]
+    # [batch, time, 1, feature]
 
-  # first residual block
-  for filters in parse(flags.cnn2_filters):
-    residual = tf.keras.layers.Conv2D(
-        filters, (1, 1), strides=(2, 2), padding='same', use_bias=False)(
-            net)
-    residual = tf.keras.layers.BatchNormalization(scale=flags.bn_scale)(
-        residual)
-    net = tf.keras.layers.SeparableConv2D(
-        filters, (3, 3), padding='same', use_bias=False)(
-            net)
-    net = tf.keras.layers.BatchNormalization(scale=flags.bn_scale)(net)
-    net = tf.keras.layers.MaxPooling2D((3, 3), strides=(2, 2), padding='same')(
-        net)
-    net = tf.keras.layers.add([net, residual])
-    # [batch, time, feature, filters]
+  if flags.stride1 > 1:
+    net = tf.keras.layers.MaxPooling2D((3, 1),
+                                       strides=(flags.stride1, 1),
+                                       padding='valid')(
+                                           net)
 
-  # second residual block
-  filters = parse(flags.cnn2_filters)[-1]
-  for _ in range(flags.cnn3_blocks):
-    residual = net
-    net = tf.keras.layers.Activation('relu')(net)
-    net = tf.keras.layers.SeparableConv2D(
-        filters, (3, 3),
-        padding='same',
-        use_bias=False)(net)
-    net = tf.keras.layers.BatchNormalization(scale=flags.bn_scale)(net)
-    net = tf.keras.layers.Activation('relu')(net)
-    net = tf.keras.layers.SeparableConv2D(
-        filters, (3, 3),
-        padding='same',
-        use_bias=False,)(net)
-    net = tf.keras.layers.BatchNormalization(scale=flags.bn_scale)(net)
-    net = tf.keras.layers.Activation('relu')(net)
-    net = tf.keras.layers.SeparableConv2D(
-        filters, (3, 3),
-        padding='same',
-        use_bias=False)(net)
-    net = tf.keras.layers.BatchNormalization(scale=flags.bn_scale)(net)
-    net = tf.keras.layers.add([net, residual])
-    # [batch, time, feature, filters]
+  net = block(net, parse(flags.cnn2_kernel_sizes), parse(flags.cnn2_filters),
+              flags.dropout, flags.bn_scale)
+  if flags.stride2 > 1:
+    net = tf.keras.layers.MaxPooling2D((3, 1),
+                                       strides=(flags.stride2, 1),
+                                       padding='valid')(
+                                           net)
+
+  net = block(net, parse(flags.cnn3_kernel_sizes), parse(flags.cnn3_filters),
+              flags.dropout, flags.bn_scale)
+  if flags.stride3 > 1:
+    net = tf.keras.layers.MaxPooling2D((3, 1),
+                                       strides=(flags.stride3, 1),
+                                       padding='valid')(
+                                           net)
+
+  net = block(net, parse(flags.cnn4_kernel_sizes), parse(flags.cnn4_filters),
+              flags.dropout, flags.bn_scale)
+  if flags.stride4 > 1:
+    net = tf.keras.layers.MaxPooling2D((3, 1),
+                                       strides=(flags.stride4, 1),
+                                       padding='valid')(
+                                           net)
 
   net = tf.keras.layers.GlobalAveragePooling2D()(net)
   # [batch, filters]
   net = tf.keras.layers.Dropout(flags.dropout)(net)
+  for units in parse(flags.units2):
+    net = tf.keras.layers.Dense(
+        units=units, activation=None, use_bias=False)(
+            net)
+    net = tf.keras.layers.BatchNormalization(scale=flags.bn_scale)(net)
+    net = tf.keras.layers.Activation('relu')(net)
+
   net = tf.keras.layers.Dense(flags.label_count)(net)
   # [batch, label_count]
   return tf.keras.Model(input_audio, net)

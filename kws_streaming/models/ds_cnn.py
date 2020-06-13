@@ -56,7 +56,7 @@ def model_parameters(parser_nn):
       '--cnn1_padding',
       type=str,
       default='valid',
-      help="one of 'valid' or 'same'",
+      help="One of 'valid' or 'same'",
   )
   parser_nn.add_argument(
       '--cnn1_filters',
@@ -119,7 +119,7 @@ def model_parameters(parser_nn):
       '--dw2_padding',
       type=str,
       default='valid',
-      help="one of 'valid' or 'same'",
+      help="One of 'valid' or 'same'",
   )
   parser_nn.add_argument(
       '--dw2_act',
