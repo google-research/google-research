@@ -86,3 +86,39 @@ def pad_and_shift(img, output_size, shift=None, pad_kwargs=None):
   return img[:height, :width]
 
 
+def normalized_sobel_edges(img,
+                           subtract_median=True,
+                           same_number_of_channels=True):
+  """Applies the sobel filter to images and normalizes the result.
+
+  Args:
+    img: tensor of shape [B, H, W, C].
+    subtract_median: bool; if True it subtracts the median from every channel.
+      This makes constant backgrounds black.
+    same_number_of_channels: bool; returnd tensor has the same number of
+      channels as the input tensor if True.
+
+  Returns:
+    Tensor of shape [B, H, W, C] if same_number_of_channels
+    else [B, H, W, 2C].
+  """
+
+  sobel_img = tf.image.sobel_edges(img)
+
+  if same_number_of_channels:
+    sobel_img = tf.reduce_sum(sobel_img, -1)
+  else:
+    n_channels = int(img.shape[-1])
+    sobel_img = tf.reshape(sobel_img,
+                           sobel_img.shape[:-2].concatenate(2 * n_channels))
+
+  if subtract_median:
+    sobel_img = abs(sobel_img - contrib_distributions.percentile(
+        sobel_img, 50.0, axis=(1, 2), keep_dims=True))
+
+  smax = tf.reduce_max(sobel_img, (1, 2), keepdims=True)
+  smin = tf.reduce_min(sobel_img, (1, 2), keepdims=True)
+  sobel_img = (sobel_img - smin) / (smax - smin + 1e-8)
+  return sobel_img
+
+
