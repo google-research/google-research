@@ -46,6 +46,7 @@ env:
     - PROJECT="moew"
     - PROJECT="moment_advice"
     - PROJECT="neutra"
+    - PROJECT="neural_additive_models"
     - PROJECT="nigt_optimizer"
     - PROJECT="non_semantic_speech_benchmark"
     - PROJECT="norml"
