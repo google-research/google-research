@@ -1,42 +1,64 @@
-TODO: switch to md
-
-# Set up for model training and benchmarking
-# Below experiments were reported in paper
-[Streaming keyword spotting on mobile devices](https://arxiv.org/abs/2005.06720)
+# Models reported in paper [Streaming keyword spotting on mobile devices](https://arxiv.org/abs/2005.06720)
+======================================================================================
 
 
-## Set up environment:
+## Set up python kws_streaming.
+
+Set main folder.
+```shell
 # create main folder
-mkdir /tmp/test
-cd /tmp/test
+mkdir test
 
 # set path to a main folder
-KWS_PATH=/tmp/test
+KWS_PATH=$PWD/test
 
-# copy content of kws_streaming to a folder
-/tmp/test/kws_streaming
+cd $KWS_PATH
+```
 
+```shell
+# copy content of kws_streaming to a folder /tmp/test/kws_streaming
+git clone https://github.com/google-research/google-research.git
+mv google-research/kws_streaming .
+```
+
+## Install tensorflow with deps.
+```shell
 # set up virtual env
-sudo pip install virtualenv
+pip install virtualenv
 virtualenv --system-site-packages -p python3 ./venv3
 source ./venv3/bin/activate
 
 # install TensorFlow, correct TensorFlow version is important
 pip install --upgrade pip
-pip install tf_nightly # was tested on tf_nightly-2.3.0.dev20200515-cp36-cp36m-manylinux2010_x86_64.whl
+pip install tf_nightly==2.3.0.dev20200515
+# was tested on tf_nightly-2.3.0.dev20200515-cp36-cp36m-manylinux2010_x86_64.whl
 
-# install pydot and graphviz
+# install libs:
 pip install pydot
 pip install graphviz
-
+pip install frozendict
+pip install numpy
+pip install absl-py
+```
 
 ## Set up data sets:
 
-# There are two versions of data sets for training KWS which are well described
-# in https://arxiv.org/pdf/1804.03209.pdf
-# data sets V1 [2017]: http://download.tensorflow.org/data/speech_commands_v0.01.tar.gz
-# data sets V2 [2018]: https://storage.googleapis.com/download.tensorflow.org/data/speech_commands_v0.02.tar.gz
+There are two versions of data sets for training KWS which are well described
+in [paper](https://arxiv.org/pdf/1804.03209.pdf)
+[data sets V1 2017](http://download.tensorflow.org/data/speech_commands_v0.01.tar.gz)
+[data sets V2 2018](https://storage.googleapis.com/download.tensorflow.org/data/speech_commands_v0.02.tar.gz)
 
+```shell
+# download and set up path to data set V2 and set it up
+wget https://storage.googleapis.com/download.tensorflow.org/data/speech_commands_v0.02.tar.gz
+mkdir data2
+mv ./speech_commands_v0.02.tar.gz ./data2
+cd ./data2
+tar -xf ./speech_commands_v0.02.tar.gz
+cd ../
+```
+
+```shell
 # download and set up path to data set V1 and set it up
 wget http://download.tensorflow.org/data/speech_commands_v0.01.tar.gz
 mkdir data1
@@ -45,66 +67,57 @@ cd ./data1
 tar -xf ./speech_commands_v0.01.tar.gz
 cd ../
 
-# download and set up path to data set V2 and set it up
-wget https://storage.googleapis.com/download.tensorflow.org/data/speech_commands_v0.02.tar.gz
-mkdir data2
-mv ./speech_commands_v0.02.tar.gz ./data2
-cd ./data2
-tar -xf ./speech_commands_v0.02.tar.gz
-cd ../
+# Select data V1 or data V2 by setting DATA_PATH
+# here we select data V2
+DATA_PATH=$KWS_PATH/data2
 
+```
 
-## Set up models:
+## Set pre trained models:
 
+```shell
 # download and set up path to models trained and evaluated on data sets V1
 wget https://storage.googleapis.com/kws_models/models1.zip
-mkdir models1
-mv ./models1.zip ./models1
-cd ./models1
 unzip ./models1.zip
-cd ../
 
 # download and set up path to models trained and evaluated on data sets V2
 wget https://storage.googleapis.com/kws_models/models2.zip
-mkdir models2
-mv ./models2.zip ./models2
-cd ./models2
 unzip ./models2.zip
-cd ../
 
-# After all of these, main folder should have several subfolders:
-# /tmp/test/
-            kws_streaming
-                         colab
-                         data
-                         experiments
-                         layers
-                         models
-                         train
-            data1
-                 _background_noise_
-                 bed
-                 ...
-            data2
-                 _background_noise_
-                 bed
-                 ...
-            models1
-                   att_rnn
-                   cnn
-                   ...
-            models2
-                   att_rnn
-                   cnn
-                   ...
+# select pretrained models trained on data V1 or data V2
+# by setting models path
+# he we select models trained on data V2
+MODELS_PATH=$KWS_PATH/models2
 
+# models trained on data V1
+#MODELS_PATH=$KWS_PATH/models1
+```
+Note that DATA_PATH and MODELS_PATH have to point to the same version of data and models accordingly.
 
-# Set up TFLite based neural network benchmarking on phone
-# To build benchmarking tools for Android
-# you will need https://docs.bazel.build/versions/master/bazel-overview.html
+After all of these, main folder KWS_PATH should have several subfolders:
+<pre><code>
+  kws_streaming/
+    colab/
+    data/
+    experiments/
+    ...
+  data2
+    _background_noise_/
+    bed/
+    ...
+  models2/
+    att_rnn/
+    ...
+</code></pre>
 
+## Compile TFLite benchmarking tools
+Set up TFLite based neural network benchmarking on phone.
+To build benchmarking tools for Android you will need [bazel](https://docs.bazel.build/versions/master/bazel-overview.html)
+
+```shell
 # build benchmarking binary
-bazel build -c opt --config=android_arm --cxxopt='--std=c++17' third_party/tensorflow/lite/tools/benchmark:benchmark_model
+bazel build -c opt --config=android_arm64 --cxxopt='--std=c++17' \
+third_party/tensorflow/lite/tools/benchmark:benchmark_model
 
 # check that phone is connected
 adb devices
@@ -115,9 +128,9 @@ adb push bazel-bin/third_party/tensorflow/lite/tools/benchmark/benchmark_model /
 # allow executing benchmarking file as a program
 adb shell chmod +x /data/local/tmp/benchmark_model
 
-
 # build benchmarking binary - for a case if Flex is used by neural network model
-bazel build -c opt --config=android_arm --cxxopt='--std=c++17' third_party/tensorflow/lite/tools/benchmark:benchmark_model_plus_flex
+bazel build -c opt --config=android_arm64 --cxxopt='--std=c++17' \
+third_party/tensorflow/lite/tools/benchmark:benchmark_model_plus_flex
 
 # check that phone is connected
 adb devices
@@ -127,34 +140,23 @@ adb push bazel-bin/third_party/tensorflow/lite/tools/benchmark/benchmark_model_p
 
 # allow executing benchmarking file as a program
 adb shell chmod +x /data/local/tmp/benchmark_model_plus_flex
-
-# Set data path to data V1 or data V2
-# for example data V1
-DATA_PATH=$KWS_PATH/data1
+```
 
 
-# Set models path to models trained on data V1 or data V2
-# for example data V1
-MODELS_PATH=$KWS_PATH/models1
+## Models training and evaluation:
 
-# or models trained on data V2
-# MODELS_PATH=$KWS_PATH/models2
+Now we can run below commands with "--train 0" which will evaluate the model and produce accuracy report with TFLite modules. If you would like to re-train model from scratch then you should: set "--train 0" and remove model subfolder inside of $MODELS_PATH
 
-# Now we can run below commands with "--train 0"
-# which will evaluate the model and produce
-# accuracy report with TFLite modules.
-# If you would like to re-train model from scratch then you should:
-# set "--train 0" and remove model subfolder inside of $MODELS_PATH
-
-# depending on which data sets to use, set DATA_PATH
-
-# To train model training evaluation we can use bazel (commented below)
-# or use standard python
-
+There are two options of running python script. One with bazel and another by calling python directly shown below:
+```shell
 # CMD_TRAIN="bazel run -c opt --copt=-mavx2 kws_streaming/train:model_train_eval --"
 CMD_TRAIN="python -m kws_streaming.train.model_train_eval"
+```
 
-# ds_cnn_stride model =====================
+
+### ds_cnn_stride
+
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -194,15 +196,19 @@ ds_cnn \
 --cnn2_filters '300,300,300,300,300' \
 --cnn2_act "'relu','relu','relu','relu','relu'" \
 --dropout1 0.2
+```
 
-# non stream latency[us]: 9509
+non stream latency[us]: 9509 7601
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/ds_cnn_stride/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/ds_cnn_stride/tflite_non_stream/non_stream.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/ds_cnn_stride/tflite_non_stream/non_stream.tflite.benchmark.profile
+```
 
+### ds_cnn_stream
 
-# ds_cnn_stream =====================
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -242,21 +248,26 @@ ds_cnn \
 --cnn2_filters '300,300,300,300,300' \
 --cnn2_act "'relu','relu','relu','relu','relu'" \
 --dropout1 0.2
+```
 
-# non stream latency[us]: 18996
+non stream latency[us]: 18996 15684
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/ds_cnn_stream/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/ds_cnn_stream/tflite_non_stream/non_stream.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/ds_cnn_stream/tflite_non_stream/non_stream.tflite.benchmark.profile
-
-# stream latency[us]: 1616
+```
+stream latency[us]: 1616 1143
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/ds_cnn_stream/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/ds_cnn_stream/tflite_stream_state_external/stream_state_external.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/ds_cnn_stream/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+```
 
+### svdf
 
-# svdf =====================
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -282,21 +293,26 @@ svdf \
 --dropout1 0.0 \
 --units2 '' \
 --act2 ''
+```
 
-# non stream latency[us]: 5028
+non stream latency[us]: 5028 3959
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/svdf/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/svdf/tflite_non_stream/non_stream.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/svdf/tflite_non_stream/non_stream.tflite.benchmark.profile
-
-# stream latency[us]: 590
+```
+stream latency[us]: 590 622
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/svdf/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/svdf/tflite_stream_state_external/stream_state_external.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/svdf/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+```
 
+### lstm_peep
 
-# lstm_peep =====================
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -326,153 +342,26 @@ lstm \
 --units1 '' \
 --act1 '' \
 --stateful 0
+```
 
-# non stream latency[us]: 11934
+non stream latency[us]: 11934 12870
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/lstm_peep/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/lstm_peep/tflite_non_stream/non_stream.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/lstm_peep/tflite_non_stream/non_stream.tflite.benchmark.profile
-
-# stream latency[us]: 462
+```
+stream latency[us]: 462 474
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/lstm_peep/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/lstm_peep/tflite_stream_state_external/stream_state_external.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/lstm_peep/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+```
 
+### gru
 
-# lstm_peep_state =====================
-$CMD_TRAIN \
---data_url '' \
---data_dir $DATA_PATH/ \
---train_dir $MODELS_PATH/lstm_peep_state/ \
---mel_upper_edge_hertz 7000 \
---how_many_training_steps 20000,20000,20000,20000 \
---learning_rate 0.001,0.0005,0.0001,0.00002 \
---window_size_ms 40.0 \
---window_stride_ms 20.0 \
---mel_num_bins 40 \
---dct_num_features 20 \
---resample 0.15 \
---alsologtostderr \
---train 0 \
---lr_schedule 'exp' \
---use_spec_augment 1 \
---time_masks_number 2 \
---time_mask_max_size 10 \
---frequency_masks_number 2 \
---frequency_mask_max_size 5 \
-lstm \
---lstm_units 500 \
---return_sequences 0 \
---use_peepholes 1 \
---num_proj 200 \
---dropout1 0.3 \
---units1 '' \
---act1 '' \
---stateful 1
-
-# non stream latency[us]: 11943
-adb shell rm -f /data/local/tmp/model.tflite
-adb push $MODELS_PATH/lstm_peep_state/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/lstm_peep_state/tflite_non_stream/non_stream.tflite.benchmark
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/lstm_peep_state/tflite_non_stream/non_stream.tflite.benchmark.profile
-
-# stream latency[us]: 500
-adb shell rm -f /data/local/tmp/model.tflite
-adb push $MODELS_PATH/lstm_peep_state/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/lstm_peep_state/tflite_stream_state_external/stream_state_external.tflite.benchmark
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/lstm_peep_state/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
-
-
-# lstm =====================
-$CMD_TRAIN \
---data_url '' \
---data_dir $DATA_PATH/ \
---train_dir $MODELS_PATH/lstm/ \
---mel_upper_edge_hertz 7000 \
---how_many_training_steps 20000,20000,20000,20000 \
---learning_rate 0.001,0.0005,0.0001,0.00002 \
---window_size_ms 40.0 \
---window_stride_ms 20.0 \
---mel_num_bins 40 \
---dct_num_features 20 \
---resample 0.15 \
---alsologtostderr \
---train 0 \
---lr_schedule 'exp' \
---use_spec_augment 1 \
---time_masks_number 2 \
---time_mask_max_size 10 \
---frequency_masks_number 2 \
---frequency_mask_max_size 5 \
-lstm \
---lstm_units 360 \
---return_sequences 0 \
---use_peepholes 0 \
---num_proj -1 \
---dropout1 0.3 \
---units1 128,256 \
---act1 "'linear','relu'" \
---stateful 0
-
-# non stream latency[us]: 11948
-adb shell rm -f /data/local/tmp/model.tflite
-adb push $MODELS_PATH/lstm/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/lstm/tflite_non_stream/non_stream.tflite.benchmark
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/lstm/tflite_non_stream/non_stream.tflite.benchmark.profile
-
-# stream latency[us]: 556
-adb shell rm -f /data/local/tmp/model.tflite
-adb push $MODELS_PATH/lstm/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/lstm/tflite_stream_state_external/stream_state_external.tflite.benchmark
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/lstm/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
-
-
-# lstm_state =====================
-$CMD_TRAIN \
---data_url '' \
---data_dir $DATA_PATH/ \
---train_dir $MODELS_PATH/lstm_state/ \
---mel_upper_edge_hertz 7000 \
---how_many_training_steps 20000,20000,20000,20000 \
---learning_rate 0.001,0.0005,0.0001,0.00002 \
---window_size_ms 40.0 \
---window_stride_ms 20.0 \
---mel_num_bins 40 \
---dct_num_features 20 \
---resample 0.15 \
---alsologtostderr \
---train 0 \
---lr_schedule 'exp' \
---use_spec_augment 1 \
---time_masks_number 2 \
---time_mask_max_size 10 \
---frequency_masks_number 2 \
---frequency_mask_max_size 5 \
-lstm \
---lstm_units 360 \
---return_sequences 0 \
---use_peepholes 0 \
---num_proj -1 \
---dropout1 0.3 \
---units1 128,256 \
---act1 "'linear','relu'" \
---stateful 1
-
-# non stream latency[us]: 11367
-adb shell rm -f /data/local/tmp/model.tflite
-adb push $MODELS_PATH/lstm_state/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/lstm_state/tflite_non_stream/non_stream.tflite.benchmark
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/lstm_state/tflite_non_stream/non_stream.tflite.benchmark.profile
-
-# stream latency[us]: 516
-adb shell rm -f /data/local/tmp/model.tflite
-adb push $MODELS_PATH/lstm_state/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/lstm_state/tflite_stream_state_external/stream_state_external.tflite.benchmark
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/lstm_state/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
-
-
-# gru =====================
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -500,21 +389,26 @@ gru \
 --units1 128,256 \
 --act1 "'linear','relu'" \
 --stateful 0
+```
 
-# non stream latency[us]: 11280
+non stream latency[us]: 11280 11767
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/gru/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/gru/tflite_non_stream/non_stream.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/gru/tflite_non_stream/non_stream.tflite.benchmark.profile
-
-# stream latency[us]: 531
+```
+stream latency[us]: 531 485
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/gru/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/gru/tflite_stream_state_external/stream_state_external.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/gru/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+```
 
+### gru_state
 
-# gru_state =====================
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -542,21 +436,27 @@ gru \
 --units1 128,256 \
 --act1 "'linear','relu'" \
 --stateful 1
+```
 
-# non stream latency[us]: 10935
+non stream latency[us]: 10935 12161
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/gru_state/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/gru_state/tflite_non_stream/non_stream.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/gru_state/tflite_non_stream/non_stream.tflite.benchmark.profile
+```
 
-# stream latency[us]: 532
+stream latency[us]: 532 481
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/gru_state/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/gru_state/tflite_stream_state_external/stream_state_external.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/gru_state/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+```
 
+### cnn
 
-# cnn =====================
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -586,21 +486,26 @@ cnn \
 --dropout1 0.5 \
 --units2 '128,256' \
 --act2 "'linear','relu'"
+```
 
-# non stream latency[us]: 15623
+non stream latency[us]: 15623 12268
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/cnn/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/cnn/tflite_non_stream/non_stream.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/cnn/tflite_non_stream/non_stream.tflite.benchmark.profile
-
-# stream latency[us]: 1459
+```
+stream latency[us]: 1459 996
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/cnn/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/cnn/tflite_stream_state_external/stream_state_external.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/cnn/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+```
 
+### cnn_stride
 
-# cnn_stride =====================
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -630,15 +535,19 @@ cnn \
 --dropout1 0.5 \
 --units2 '128,256' \
 --act2 "'linear','relu'"
+```
 
-# non stream latency[us]: 5886
+non stream latency[us]: 5886 4686
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/cnn_stride/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/cnn_stride/tflite_non_stream/non_stream.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/cnn_stride/tflite_non_stream/non_stream.tflite.benchmark.profile
+```
 
+### crnn
 
-# crnn =====================
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -671,22 +580,27 @@ crnn \
 --units1 '128,256' \
 --act1 "'linear','relu'" \
 --stateful 0
+```
 
 
-# non stream latency[us]: 9441.95
+non stream latency[us]: 9441.95 9382
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/crnn/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/crnn/tflite_non_stream/non_stream.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/crnn/tflite_non_stream/non_stream.tflite.benchmark.profile
-
-# stream latency[us]: 442
+```
+stream latency[us]: 442 474
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/crnn/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/crnn/tflite_stream_state_external/stream_state_external.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/crnn/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+```
 
+### crnn_state
 
-# crnn_state =====================
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -719,9 +633,12 @@ crnn \
 --units1 '128,256' \
 --act1 "'linear','relu'" \
 --stateful 1
+```
 
 
-# dnn =====================
+### dnn
+
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -750,21 +667,27 @@ dnn \
 --dropout1 0.1 \
 --units2 '128,256' \
 --act2 "'linear','relu'"
+```
 
-# non stream latency[us]: 4100
+non stream latency[us]: 4100 3237
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/dnn/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/dnn/tflite_non_stream/non_stream.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/dnn/tflite_non_stream/non_stream.tflite.benchmark.profile
+```
 
-# stream latency[us]: 609
+stream latency[us]: 609 608
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/dnn/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/dnn/tflite_stream_state_external/stream_state_external.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/dnn/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
+```
 
+### att_rnn
 
-# att_rnn =====================
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -778,7 +701,7 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
@@ -797,13 +720,13 @@ att_rnn \
 --dropout1 0.1 \
 --units2 '64,32' \
 --act2 "'relu','linear'"
+```
 
-# non stream latency[us]: 9984
-adb shell rm -f /data/local/tmp/model.tflite
-adb push $MODELS_PATH/att_rnn/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/att_rnn/tflite_non_stream/non_stream.tflite.benchmark
+non stream latency[us]: 9984
 
-# att_mh_rnn =====================
+### att_mh_rnn
+
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -837,15 +760,19 @@ att_mh_rnn \
 --dropout1 0.2 \
 --units2 '64,32' \
 --act2 "'relu','linear'"
+```
 
-# non stream latency[us]: 10273
+non stream latency[us]: 10273 10979
+```shell
 adb shell rm -f /data/local/tmp/model.tflite
 adb push $MODELS_PATH/att_mh_rnn/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/att_mh_rnn/tflite_non_stream/non_stream.tflite.benchmark
 adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/att_mh_rnn/tflite_non_stream/non_stream.tflite.benchmark.profile
+```
 
+### tc_resnet
 
-# tc_resnet =====================
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -877,9 +804,19 @@ tc_resnet \
 --bn_scale 1 \
 --bn_renorm 0 \
 --dropout 0.2
+```
 
+non stream latency[us]: 4257
+```shell
+adb shell rm -f /data/local/tmp/model.tflite
+adb push $MODELS_PATH/tc_resnet/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/tc_resnet/tflite_non_stream/non_stream.tflite.benchmark
+adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/tc_resnet/tflite_non_stream/non_stream.tflite.benchmark.profile
+```
 
-# dnn_raw =====================
+### dnn_raw
+
+```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
@@ -908,20 +845,14 @@ dnn_raw \
 --dropout1 0.1 \
 --units2 '128,256' \
 --act2 "'linear','relu'"
+```
 
-# non stream latency[us]: 621
-adb shell rm -f /data/local/tmp/model.tflite
-adb push $MODELS_PATH/dnn_raw/tflite_non_stream/non_stream.tflite /data/local/tmp/model.tflite
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/dnn_raw/tflite_non_stream/non_stream.tflite.benchmark
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/dnn_raw/tflite_non_stream/non_stream.tflite.benchmark.profile
+non stream latency[us]: 621
+stream latency[us]: 353
 
-# stream latency[us]: 353
-adb shell rm -f /data/local/tmp/model.tflite
-adb push $MODELS_PATH/dnn_raw/tflite_stream_state_external/stream_state_external.tflite /data/local/tmp/model.tflite
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 > $MODELS_PATH/dnn_raw/tflite_stream_state_external/stream_state_external.tflite.benchmark
-adb shell taskset f0 /data/local/tmp/benchmark_model_plus_flex --graph=/data/local/tmp/model.tflite --warmup_runs=1 --num_threads=1 --num_runs=1000 --enable_op_profiling=true > $MODELS_PATH/dnn_raw/tflite_stream_state_external/stream_state_external.tflite.benchmark.profile
 
 # confirm that unit tests are working:
+```shell
 python -m kws_streaming.data.input_data_test
 python -m kws_streaming.layers.conv2d_test
 python -m kws_streaming.layers.dataframe_test
@@ -944,3 +875,4 @@ python -m kws_streaming.layers.stream_test
 python -m kws_streaming.train.train_test
 python -m kws_streaming.train.base_parser_test
 python -m kws_streaming.models.utils_test
+```

@@ -355,4 +355,6 @@ if __name__ == '__main__':
   svdf_resnet.model_parameters(parser_svdf_resnet)
 
   FLAGS, unparsed = parser.parse_known_args()
+  if unparsed and tuple(unparsed) != ('--alsologtostderr',):
+    raise ValueError('Unknown argument: {}'.format(unparsed))
   tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)

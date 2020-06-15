@@ -37,7 +37,7 @@ on mobile phone and demonstrated that models outperform previously reported accu
 This lib also can be applied on other sequence problems
 such as speech noise reduction, sound detection, text classification...
 
-## Overall design
+## Experimentation steps
 NN model conversion from non streaming mode (which is frequently
 used during training) to streaming can require manual model rewriting.
 We address this by designing a Keras based library which allows
@@ -61,6 +61,42 @@ streaming aware layers (for GRU and LSTM).
 It allows us to design Keras models, train them and automatically convert them
 to streaming mode.
 
+## Experimental results
+
+All experiments are listed in folder "experiments". It contains:
+* kws_experiments_paper - experiments presented in [paper](https://arxiv.org/abs/2005.06720)
+* kws_experiments_q - quantized model presented in [paper](https://arxiv.org/abs/2005.06720)
+* kws_experiments_30k - models with 30k parameters.
+
+### Streamable and non streamable models
+
+Below we plot performance of models from kws_experiments_paper, kws_experiments_q and kws_experiments_30k. It is only a subset of the models with selected parameters. In the graphs below, model size is a size of TFLite module including both speech feature extractor and neural network.
+
+* Accuracy/Latency[ms]. Latency of processing the whole 1sec audio.
+
+![alt text](accuracy_latency.png)
+
+* Accuracy/Model size[KB].
+
+![alt text](accuracy_size.png)
+
+* Latency[ms]/Model size[KB].
+
+![alt text](latency_size.png)
+
+
+### Streaming models
+
+* Accuracy/Latency[ms]. Latency of processing 20ms audio packet (in streaming mode).
+
+![alt text](accuracy_latency_stream.png)
+
+* Accuracy/Model size[KB].
+
+![alt text](accuracy_size_stream.png)
+
+
+
 ## Migration to Streaming Aware neural network models
 For migration of existing keras model to streaming one, developer need to
 replace RNNs by streaming aware RNNs. Streaming aware LSTM and GRU of this lib
@@ -81,6 +117,8 @@ output = Stream(cell=tf.keras.layers.Conv2D(...))(input)
 output = Stream(cell=tf.keras.layers.Flatten(...))(output)
 output = tf.keras.layers.Dense(...)(output)
 ```
+
+Current limitation: pooling and striding in time dimension is not supported
 
 ## Inference
 KWS model in streaming mode is executed by steps:
@@ -347,7 +385,7 @@ There are several options to run a model on desktop and mobile phone. These opti
 | ---------------- | --------------------- | --------------------- | ------------------- | ------------------- |
 |**Speech feature <br> extractor:**| part of model      | part of model      |  not part of model|  not part of model|
 |**Speech feature <br> based on:**| DFT, DFT weights <br> are part of model  |   FFT     |    FFT    |     FFT         |
-|**Model size:**   |         'big'         |      'small'          |        'small'      |         'small'     |
+|**Model size:**   |   DFT weights + model weights         |      model weights          |        model weights      |         model weights     |
 |**Quantization:** |    not implemented    |      post training    |     post training   |     post training   |
 |**Can run on:**   |    desktop, <br> mobile    |      desktop, <br> mobile  |     desktop, <br> mobile |   microcontrollers  |
 
