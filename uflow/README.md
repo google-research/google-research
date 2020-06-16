@@ -1,7 +1,15 @@
-# This package contains UFlow, a library for research on learning unsupervised optical flow.
+# This package contains UFlow, a library for research on unsupervised learning of optical flow.
 
-Read paper at **insert link here.**
+This code accompanies the paper **What Matters in Unsupervised Optical Flow**, which can be found [here](https://arxiv.org/pdf/2006.04902.pdf). We hope that the code enables future research in unsupervised optical flow and beyond. If you find it useful in your own research, please give credit by citing our paper.
 
+```
+@article{jonschkowski2020matters,
+  title={What Matters in Unsupervised Optical Flow},
+  author={Jonschkowski, Rico and Stone, Austin and Barron, Jonathan T and Gordon, Ariel and Konolige, Kurt and Angelova, Anelia},
+  journal={arXiv preprint arXiv:2006.04902},
+  year={2020}
+}
+```
 
 ## Basic Usage
 
