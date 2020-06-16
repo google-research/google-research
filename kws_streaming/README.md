@@ -73,26 +73,21 @@ All experiments are listed in folder "experiments". It contains:
 Below we plot performance of models from kws_experiments_paper, kws_experiments_q and kws_experiments_30k. It is only a subset of the models with selected parameters. In the graphs below, model size is a size of TFLite module including both speech feature extractor and neural network.
 
 * Accuracy/Latency[ms]. Latency of processing the whole 1sec audio.
-
 ![alt text](accuracy_latency.png)
 
 * Accuracy/Model size[KB].
-
 ![alt text](accuracy_size.png)
 
 * Latency[ms]/Model size[KB].
-
 ![alt text](latency_size.png)
 
 
 ### Streaming models
 
 * Accuracy/Latency[ms]. Latency of processing 20ms audio packet (in streaming mode).
-
 ![alt text](accuracy_latency_stream.png)
 
 * Accuracy/Model size[KB].
-
 ![alt text](accuracy_size_stream.png)
 
 
@@ -118,7 +113,10 @@ output = Stream(cell=tf.keras.layers.Flatten(...))(output)
 output = tf.keras.layers.Dense(...)(output)
 ```
 
-Current limitation: pooling and striding in time dimension is not supported
+### Current limitation:
+Some models are not supported in streaming mode:
+* Bidirectional RNN kind of models such as att_rnn, att_mh_rnn require access to the whole sequence.
+* Pooling and striding in time dimension is not supported in streaming mode. So models such as mobilenet, mobilenet_v2, xception, inception, inception_resnet, tc_resnet are not streamable in this library now. It is only a design decision and can be enabled in the future.
 
 ## Inference
 KWS model in streaming mode is executed by steps:
