@@ -73,21 +73,26 @@ All experiments are listed in folder "experiments". It contains:
 Below we plot performance of models from kws_experiments_paper, kws_experiments_q and kws_experiments_30k. It is only a subset of the models with selected parameters. In the graphs below, model size is a size of TFLite module including both speech feature extractor and neural network.
 
 * Accuracy/Latency[ms]. Latency of processing the whole 1sec audio.
+
 ![alt text](accuracy_latency.png)
 
 * Accuracy/Model size[KB].
+
 ![alt text](accuracy_size.png)
 
 * Latency[ms]/Model size[KB].
+
 ![alt text](latency_size.png)
 
 
 ### Streaming models
 
 * Accuracy/Latency[ms]. Latency of processing 20ms audio packet (in streaming mode).
+
 ![alt text](accuracy_latency_stream.png)
 
 * Accuracy/Model size[KB].
+
 ![alt text](accuracy_size_stream.png)
 
 
@@ -372,14 +377,14 @@ If you interested to train or evaluate models on data sets V2 just set:
 
 ### Speech feature extraction configs:
 
-Model can be trained with different feature extractors including raw audio. An example of model training on raw audio is presented at models/dnn_raw.py (in this case speech feature extractor will be learned).
+Model can be trained with different feature extractors including raw audio. An example of model training on raw audio is presented at models/dnn_raw.py (in this case speech feature extractor will be learned). In models/dnn_raw.py, model does not have speech feature extractor so 'feature_type' will be ignored. All other models have speech feature extractor as a part of the model which can be configured by feature_type: 'mfcc_tf', 'mfcc_op' (in this case 'preprocess' has to be 'raw', so that model receives raw audio and then apply speech feature extractor 'mfcc_tf' or 'mfcc_op'). If you specify 'preprocess' equal 'mfcc' or 'micro', then speech feature extraction is done outside of the model during audio preprocessing (in this case model does not have internal feature extractor and 'feature_type' will be ignored; model receives speech features as input).
 
-This lib also supports TFlite speech feature extractors for different hardware: desktop, mobile phone and microcontrollers.
+This lib supports TFlite speech feature extractors for different hardware: desktop, mobile phone and microcontrollers.
 
 There are several options to run a model on desktop and mobile phone. These options with properties are described below table:
 
 
-|                  | preprocess 'raw' <br> feature_type 'mfcc_tf'  | preprocess 'raw' <br> feature_type 'mfcc_op'  | preprocess 'mfcc'     | preprocess 'micro'    |
+|                  | preprocess 'raw'; <br> feature_type 'mfcc_tf'  | preprocess 'raw'; <br> feature_type 'mfcc_op'  | preprocess 'mfcc'; <br> feature_type is ignored     | preprocess 'micro'; <br> feature_type is ignored    |
 | ---------------- | --------------------- | --------------------- | ------------------- | ------------------- |
 |**Speech feature <br> extractor:**| part of model      | part of model      |  not part of model|  not part of model|
 |**Speech feature <br> based on:**| DFT, DFT weights <br> are part of model  |   FFT     |    FFT    |     FFT         |
