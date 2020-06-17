@@ -28,6 +28,7 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
+#include "absl/strings/str_format.h"
 #include "countmin.h"
 #include "frequent.h"
 #include "lossy_count.h"
@@ -106,13 +107,14 @@ void Evaluate(float threshold, const std::vector<float>& counts,
 }
 
 void PrintOutput(const std::vector<SketchStats>& stats) {
-  printf("Method\tRecall\tPrec\tSpace\tUpdate Time\tHH time\t"
-         "Estimate Err\tEstimate SD\tEstimate time\t\n");
+  absl::PrintF(
+      "Method\tRecall\tPrec\tSpace\tUpdate Time\tHH time\t"
+      "Estimate Err\tEstimate SD\tEstimate time\t\n");
   for (const auto& stat : stats) {
-    printf("%s\t%0.2f%%\t%0.2f%%\t%d\t%llu\t\t%llu\t%f\t%f \t%llu\n",
-           stat.name.c_str(),
-           100 * stat.recall, 100 * stat.precision, stat.size, stat.add_time,
-           stat.hh_time, stat.error_mean, stat.error_sd, stat.estimate_time);
+    absl::PrintF("%s\t%0.2f%%\t%0.2f%%\t%d\t%u\t\t%u\t%f\t%f \t%u\n", stat.name,
+                 100 * stat.recall, 100 * stat.precision, stat.size,
+                 stat.add_time, stat.hh_time, stat.error_mean, stat.error_sd,
+                 stat.estimate_time);
   }
 }
 
@@ -142,10 +144,10 @@ void TestCounts() {
   int heavy_hitters = absl::c_count_if(counts, [&](float c) {
     return c > threshold;
   });
-  printf("\nStream size: %d, Stream range: 2^%d\n", FLAGS_stream_size,
-         FLAGS_lg_stream_range);
-  printf("There were %d elements above threshold %0.2f, for e = %f\n\n",
-         heavy_hitters, FLAGS_epsilon * FLAGS_stream_size, FLAGS_epsilon);
+  absl::PrintF("\nStream size: %d, Stream range: 2^%d\n", FLAGS_stream_size,
+               FLAGS_lg_stream_range);
+  absl::PrintF("There were %d elements above threshold %0.2f, for e = %f\n\n",
+               heavy_hitters, FLAGS_epsilon * FLAGS_stream_size, FLAGS_epsilon);
 
   std::vector<std::pair<std::string, std::unique_ptr<Sketch>>> sketches;
 
