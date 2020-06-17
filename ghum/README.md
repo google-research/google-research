@@ -33,13 +33,13 @@ body scans of humans, captured in various poses, together with additional closeu
 </table>
 
 ## Paper \& Presentation
-[Paper and supplemental material](https://drive.google.com/file/d/1k5mb6-FkqM7SJfaDQ7vrfkVO-BZpfnTO/view?usp=sharing)
+[Paper and supplementary material](https://drive.google.com/file/d/1k5mb6-FkqM7SJfaDQ7vrfkVO-BZpfnTO/view?usp=sharing)
 
 [Video](https://drive.google.com/file/d/1OH76ZC36A-0D_I5rJDh24wdJyRxHusdI/view?usp=sharing),  [Slides](https://drive.google.com/file/d/14xSu0OeYW46mMvsPO8r1bGrKgiHWxXCH/view?usp=sharing)
 
 ## Model Download
 
-[Request model form](https://docs.google.com/forms/d/e/1FAIpQLSduGNoQUQxaIwna944hdgsX7m9bSM4aqh2YDXD02V2VfNnP9g/viewform). 
+[GHUM/GHUM-L request form](https://docs.google.com/forms/d/e/1FAIpQLSduGNoQUQxaIwna944hdgsX7m9bSM4aqh2YDXD02V2VfNnP9g/viewform) 
 
 ## Citations
 If you use this model or code for your publication, please cite the following papers [1](http://openaccess.thecvf.com/content_CVPR_2020/papers/Xu_GHUM__GHUML_Generative_3D_Human_Shape_and_Articulated_Pose_CVPR_2020_paper.pdf)
