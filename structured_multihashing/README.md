@@ -89,7 +89,7 @@ pool = variable_pool.ProductVariablePool(
     )
 factory = variable_factory.VariableFactory(
     variable_pool = pool,
-    apply_to = '*',  # Apply to every variable created in the model.
+    apply_to = '.*',  # Apply to every variable created in the model.
     modifier = variable_factory.fanout_scale_modifier)
 ```
 
@@ -119,7 +119,7 @@ variables.
 ```python
 kernel_factory = variable_factory.VariableFactory(
     variable_pool = pool,
-    apply_to = '*kernel*',  # Kernel variables have default name of 'kernel' for Keras layers.
+    apply_to = '.*kernel.*',  # Kernel variables have default name of 'kernel' for Keras layers.
     modifier = variable_factory.fanout_scale_modifier)
 # This will apply SMH compression to the kernel variables of all the layers in
 # the Keras model created by toy_network_tf2 method.
@@ -169,7 +169,7 @@ variable names match the given regular expression. For example,
 ```python
 conv_factory = variable_factory.VariableFactory(
     variable_pool = pool,
-    apply_to = '*conv*',  # Apply to variables whose name contains 'conv'.
+    apply_to = '.*conv.*',  # Apply to variables whose name contains 'conv'.
     modifier = variable_factory.fanout_scale_modifier)
 with tf.compat.v1.variable_scope(
     'SMH', custom_getter=conv_factory.custom_getter):
