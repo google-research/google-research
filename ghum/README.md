@@ -1,5 +1,5 @@
 # GHUM & GHUML: Generative 3D Human Shape and Articulated Pose Models
-Hongyi Xu, Eduard Gabriel Bazavan, Andrei Zanfir, Mihai Zanfir, William T. Freeman, Rahul Sukthankar, Cristian Sminchisescu
+Hongyi Xu, Eduard Gabriel Bazavan, Andrei Zanfir, William T. Freeman, Rahul Sukthankar, Cristian Sminchisescu
 <p align="center"> <strong>Google Research</strong> </p>
 
 ## Introduction
@@ -16,19 +16,19 @@ body scans of humans, captured in various poses, together with additional closeu
 <table>
   <tr>
     <td><img src="figures/shape_eval.png" width="1500"> </td> 
-    <td align="left">- 16-dimensional body shape latent spaces, represented as both linear PCA bases and nonlinear variational autoencoders. We provide low-dimensional gender-neutral shape spaces, as well as gender-specific ones, trained based on 4,329 male and female body shape scans. </td>
+    <td align="left">16-dimensional body shape latent spaces, represented as both linear PCA bases and nonlinear variational autoencoders. We provide low-dimensional gender-neutral shape spaces, as well as gender-specific ones, trained based on 4,329 male and female body shape scans. </td>
   </tr>
   <tr>
     <td><img src="figures/head_eval.png" width="1500"> </td> 
-    <td align="left">- 20-dimensional facial expressions latent spaces, with options for both linear/PCA bases and nonlinear variational autoencoders.  </td>
+    <td align="left">20-dimensional facial expressions latent spaces, with options for both linear/PCA bases and nonlinear variational autoencoders.  </td>
   </tr>
   <tr>
     <td><img src="figures/pose_eval.png" width="1500"> </td> 
-    <td align="left">- Articulated full body representations (including head and hands) with optimized blend skinning, joint centers, and  pose-space deformation,  in the context of minimal human skeleton parameterizations (63 joints, 124 DOFs) with anatomical joint angle limit constraints. The dynamic shape (posing) model component is constrained by over 60,000 dynamic full body and closeup face and hand scans from 60 people (exhibiting a variety of body poses, hand gestures, and facial action units/FACS). </td>
+    <td align="left">Articulated full body representations (including head and hands) with optimized blend skinning, joint centers, and  pose-space deformation,  in the context of minimal human skeleton parameterizations (63 joints, 124 DOFs) with anatomical joint angle limit constraints. The dynamic shape (posing) model component is constrained by over 60,000 dynamic full body and closeup face and hand scans from 60 people (exhibiting a variety of body poses, hand gestures, and facial action units/FACS). </td>
   </tr>
   <tr>
     <td><img src="figures/ghum_retarget_mocap.gif" width="1500"> </td> 
-    <td align="left">- Normalizing-flow based kinematic priors for both body and hands, obtained by retargeting over 2 million configurations of body mocap raw (optimizing skeleton, shape and marker placement) and over 4.8K hand configurations.   Our model supports posing using both Euler angles and 6D rotation representations, and we release posing support and kinematic priors for both. </td>
+    <td align="left">Normalizing-flow based kinematic priors for both body and hands, obtained by retargeting over 2 million configurations of body mocap raw (optimizing skeleton, shape and marker placement) and over 4.8K hand configurations.   Our model supports posing using both Euler angles and 6D rotation representations, and we release posing support and kinematic priors for both. </td>
   </tr>
 </table>
 
@@ -37,7 +37,7 @@ body scans of humans, captured in various poses, together with additional closeu
 
 [Video](https://drive.google.com/file/d/1OH76ZC36A-0D_I5rJDh24wdJyRxHusdI/view?usp=sharing),  [Slides](docs/Slides_CVPR2020_GHUM.pdf)
 
-## Model Downloads
+## Model Download
 
 [Request model form](https://docs.google.com/forms/d/e/1FAIpQLSduGNoQUQxaIwna944hdgsX7m9bSM4aqh2YDXD02V2VfNnP9g/viewform). 
 
