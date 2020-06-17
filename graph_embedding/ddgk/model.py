@@ -182,7 +182,7 @@ def NeighborEdgesLabelsLoss(target_neighbors_prob, target, num_labels):
 
 
 def Encode(source, ckpt_prefix, hparams):
-  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+  tf.logging.set_verbosity(tf.logging.ERROR)
   tf.reset_default_graph()
 
   g = tf.Graph()
@@ -218,7 +218,7 @@ def Encode(source, ckpt_prefix, hparams):
 
 
 def Score(source, target, ckpt_prefix, hparams):
-  tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+  tf.logging.set_verbosity(tf.logging.ERROR)
   tf.reset_default_graph()
 
   g = tf.Graph()
