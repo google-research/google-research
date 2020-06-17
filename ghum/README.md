@@ -1,5 +1,5 @@
 # GHUM & GHUML: Generative 3D Human Shape and Articulated Pose Models
-Hongyi Xu, Eduard Gabriel Bazavan, Andrei Zanfir, William T. Freeman, Rahul Sukthankar, Cristian Sminchisescu
+<p align="center"> Hongyi Xu, &nbsp; Eduard Gabriel Bazavan, &nbsp; Andrei Zanfir, &nbsp; William T. Freeman,&nbsp;  Rahul Sukthankar, &nbsp; Cristian Sminchisescu </p>
 <p align="center"> <strong>Google Research</strong> </p>
 
 ## Introduction
@@ -33,9 +33,9 @@ body scans of humans, captured in various poses, together with additional closeu
 </table>
 
 ## Paper \& Presentation
-[Paper and supplemental material](docs/Paper_CVPR2020_GHUM.pdf)
+[Paper and supplemental material](https://drive.google.com/file/d/1k5mb6-FkqM7SJfaDQ7vrfkVO-BZpfnTO/view?usp=sharing)
 
-[Video](https://drive.google.com/file/d/1OH76ZC36A-0D_I5rJDh24wdJyRxHusdI/view?usp=sharing),  [Slides](docs/Slides_CVPR2020_GHUM.pdf)
+[Video](https://drive.google.com/file/d/1OH76ZC36A-0D_I5rJDh24wdJyRxHusdI/view?usp=sharing),  [Slides](https://drive.google.com/file/d/14xSu0OeYW46mMvsPO8r1bGrKgiHWxXCH/view?usp=sharing)
 
 ## Model Download
 
