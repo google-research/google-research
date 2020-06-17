@@ -468,96 +468,115 @@ python -m kws_streaming.train.model_train_eval \
 dnn
 ```
 
-
-<section class="zippy">
 Description of the content of the model folder models1/dnn_1:
 
 ```
-logs > - it has training/validation logs:
-
-     train/events.out.tfevents.**.com - training loss/accuracy at every iteration
-
-     validation/events.out.tfevents.**.com - validation loss/accuracy at every iteration
-
-non_stream > - TF non streamable model stored in SavedModel format
-
-stream_state_internal > TF streaming model stored in SavedModel format
-
-tf > this folder has evaluation of tf.keras model in both streaming and non streaming modes
-
-   model_summary_non_stream.png - non streaming model graph (picture)
-
-   model_summary_non_stream.txt - non streaming model graph (txt)
-
-   model_summary_stream_state_external.png - streaming model graph with external states (picture)
-
-   model_summary_stream_state_external.txt - streaming model graph with external states (txt)
-
-   model_summary_stream_state_internal.png - streaming model graph with internal states (picture)
-
-   model_summary_stream_state_internal.txt - streaming model graph with internal states (txt)
-
-   stream_state_external_model_accuracy_sub_set_reset0.txt - accuracy of streaming model with external state
-      on subset of testing data (it is used to validate that TF and TFLite inference gives the same result).
-      Do not use these accuracy for reporting because it is computed on subset of testing data (on 1000 samples)
-      State of the model is not reseted before running inference.
-      So we can see how internal state is influencing accuracy in long run.
-
-   stream_state_external_model_accuracy_sub_set_reset1.txt - accuracy of streaming model with external state
-      on subset of testing data (it is used to validate that TF and TFLite inference gives the same result).
-      Do not use these accuracy for reporting because it is computed on subset of testing data (on 1000 samples)
-      State of the model is reseted before running inference.
-      So it is equivalent to non streaming inference (state is not kept between testing sequences).
-
-   tf_non_stream_model_accuracy.txt - accuracy of non streaming model tested with TF
-
-   tf_non_stream_model_sampling_stream_accuracy.txt - accuracy of non streaming model tested with TF
-      Input testing data are shifted randomly in range: -time_shift_ms ... time_shift_ms
-
-   tf_stream_state_internal_model_accuracy_sub_set.txt - accuracy of streaming model with internal state
-      on subset of testing data.
-      Do not use these accuracy for reporting because it is computed on subset of testing data (on 1000 samples)
-      State of the model is not reseted before running inference.
-      So we can see how internal state is influencing accuracy in long run.
-
-tflite_non_stream > - TF non streaming model is converted to TFLite and stored in this folder
-
-    non_stream.tflite - TFLite non streaming model
-
-    tflite_non_stream_model_accuracy.txt - accuracy of TFLite non streaming model
-        We report this accuracy in the paper
-
-    non_stream.tflite.benchmark - benchmark of TFLite non streaming model on mobile phone
-
-    non_stream.tflite.benchmark.profile - profiling of TFLite non streaming model on mobile phone
-
-tflite_stream_state_external > TF streaming model with external state is converted to TFLite and stored in this folder
-
-    stream_state_external.tflite - TFLite streaming model with external state
-
-    tflite_stream_state_external_model_accuracy_reset0.txt - accuracy of TFLite streaming model with external state
-       State of the model is not reseted before running inference.
-       So we can see how internal state is influencing accuracy in long run.
-       We report this accuracy in the paper for streaming models
-
-    tflite_stream_state_external_model_accuracy_reset1.txt - accuracy of TFLite streaming model with external state
-       State of the model is reseted before running inference.
-       So it is equivalent to non streaming inference (state is not kept between testing sequences).
-
-    stream_state_external.tflite.benchmark - benchmark of TFLite streaming model with external state on mobile phone
-
-    stream_state_external.tflite.benchmark.profile - profiling of TFLite streaming model with external state on mobile phone
-
-accuracy_last.txt - accuracy at the last training iteration (used for debugging)
-
-last_weights.data - weights of the model at last training iteration (used for debugging)
-
-flags.txt - flags which were used for model training (include all model parameters settings, paths all of it)
-
-graph.pbtxt - TF non streaming model in graph representation
-
-labels.txt - list of labels used for model training
-
-best_weights.data - best model weights, these weights will be used for model evaluation with TFLite and reporting
+├── accuracy_last.txt - accuracy at the last training iteration (for debugging)
+├── best_weights.data-00000-of-00002
+├── best_weights.data-00001-of-00002
+├── best_weights.index  - best model weights, these weights are used for
+|       model evaluation with TF/TFLite for reporting
+├── flags.json - flags which were used for model training (include all model parameters settings, paths all of it)
+├── flags.txt - the same as flags.json just in txt
+├── graph.pbtxt - TF graph non streaming model representation
+├── labels.txt - list of labels used for model training
+├── last_weights.data-00000-of-00002
+├── last_weights.data-00001-of-00002
+├── last_weights.index - weights of the model at last training iteration (used for debugging)
+├── logs
+│   ├── train
+│   │   └── events.out.tfevents... - tranining loss/accuracy on every minibatch
+│   └── validation
+│       └── events.out.tfevents... - validation loss/accuracy on every eval step
+├── model_summary.txt - model topology in non streaming mode
+├── non_stream - (optional)TF non streamable model stored in SavedModel format
+│   ├── assets
+│   ├── model_summary.txt
+│   ├── saved_model.pb
+│   └── variables
+│       ├── variables.data-00000-of-00002
+│       ├── variables.data-00001-of-00002
+│       └── variables.index
+├── quantize_opt_for_size_tflite_non_stream - quantized non stream TFlite model, works with options:
+|   |        (preprocess 'raw'; feature_type 'mfcc_op')
+|   |        (preprocess 'mfcc')
+|   |        (preprocess 'micro')
+│   ├── model_summary.txt
+│   ├── non_stream.tflite - quantized non streaming TFlite model
+│   └── tflite_non_stream_model_accuracy.txt  - accuracy of quantized TFlite model
+├── quantize_opt_for_size_tflite_stream_state_external - quantized streamimg TFlite model, works with options:
+|   |        (preprocess 'raw'; feature_type 'mfcc_op')
+|   |        (preprocess 'mfcc')
+|   |        (preprocess 'micro')
+|   |        Not all models can be streamed (check models desription above)
+│   ├── model_summary.txt - model topology in streaming mode with external state
+│   ├── stream_state_external.tflite - quantized streaming TFlite model
+│   ├── tflite_stream_state_external_model_accuracy_reset0.txt - accuracy of TFLite streaming model
+|   |       with external state
+|   |       State of the model is not reseted before running inference.
+|   |       So we can see how internal state is influencing accuracy in long run.
+|   |       We report this accuracy in the paper for streaming models
+│   └── tflite_stream_state_external_model_accuracy_reset1.txt - accuracy of TFLite streaming model with external
+|            state. State of the model is reseted before running inference.
+|            So it is equivalent to non streaming inference (state is not kept between testing sequences).
+├── stream_state_internal - (optional)TF streaming model stored in SavedModel format
+│   ├── assets
+│   ├── model_summary.txt - model topology in streaming mode with internal state
+│   ├── saved_model.pb
+│   └── variables
+│       ├── variables.data-00000-of-00002
+│       ├── variables.data-00001-of-00002
+│       └── variables.index
+├── tf - evaluation of tf float model in both streaming and non streaming modes
+│   ├── model_summary_non_stream.png - non streaming model graph (picture)
+│   ├── model_summary_non_stream.txt - - non streaming model graph (txt)
+│   ├── model_summary_stream_state_external.png - streaming model graph with external states (picture)
+│   ├── model_summary_stream_state_external.txt - streaming model graph with external states (txt)
+│   ├── model_summary_stream_state_internal.png - streaming model graph with internal states (picture)
+│   ├── model_summary_stream_state_internal.txt - streaming model graph with internal states (txt)
+│   ├── stream_state_external_model_accuracy_sub_set_reset0.txt - accuracy of streaming model with external state
+|   |       on subset of testing data (it is used to validate that TF and TFLite inference gives the same result).
+|   |       Do not use this accuracy for reporting because it is computed 
+|   |       on subset of testing data (on 1000 samples)
+|   |       State of the model is not reseted before running inference.
+|   |       So we can see how internal state is influencing accuracy in long run.
+│   ├── stream_state_external_model_accuracy_sub_set_reset1.txt - accuracy of streaming model with external state
+|   |       on subset of testing data (it is used to validate that TF and TFLite inference gives the same result).
+|   |       Do not use this accuracy for reporting because it is computed 
+|   |       on subset of testing data (on 1000 samples)
+|   |       State of the model is reseted before running inference.
+|   |       So it is equivalent to non streaming inference (state is not kept between testing sequences).
+│   ├── tf_non_stream_model_accuracy.txt - accuracy of non streaming model tested with TF
+│   ├── tf_non_stream_model_sampling_stream_accuracy.txt - accuracy of non streaming model tested with TF
+|   |       Input testing data are shifted randomly in range: -time_shift_ms ... time_shift_ms (for debugging)
+│   └── tf_stream_state_internal_model_accuracy_sub_set.txt - accuracy of streaming model with internal state
+|           on subset of testing data.
+|           Do not use this accuracy for reporting because it is computed
+|           on subset of testing data (on 1000 samples)
+|           State of the model is not reseted before running inference.
+|           So we can see how internal state is influencing accuracy in long run.
+├── tflite_non_stream - TF non streaming model is converted to TFLite and stored here
+│   ├── model_summary.txt - model topology in non streaming mode
+│   ├── non_stream.tflite - TFLite non streaming model
+│   └── tflite_non_stream_model_accuracy.txt - accuracy of TFLite non streaming model (reported in paper)
+├── tflite_stream_state_external - TF streaming model with external state is converted to TFLite and stored here
+│   ├── model_summary.txt - model topology in streaming mode with external state
+│   ├── stream_state_external.tflite - TFLite streaming model with external state
+│   ├── tflite_stream_state_external_model_accuracy_reset0.txt - accuracy of TFLite streaming model
+|   |       with external state
+|   |       State of the model is not reseted before running inference.
+|   |       So we can see how internal state is influencing accuracy in long run.
+|   |       We report this accuracy in the paper for streaming models
+│   └── tflite_stream_state_external_model_accuracy_reset1.txt - accuracy of TFLite streaming model
+|           with external state. State of the model is reseted before running inference.
+|           So it is equivalent to non streaming inference (state is not kept between testing sequences).
+└── train - check points of tf.keras model weights after every evaluation step
+    ├── 0weights_400.data-00000-of-00002
+    ├── 0weights_400.data-00001-of-00002
+    ├── 0weights_400.index
+    ├── ...
+    ├── 9027weights_....data-00000-of-00002
+    ├── 9027weights_....data-00001-of-00002
+    ├── 9027weights_....index
+    └── checkpoint
 ```
-</section>
