@@ -60,7 +60,7 @@ def main(unused_argv):
 
   tf.logging.set_verbosity(tf.logging.INFO)
   run_experiment.load_gin_configs(FLAGS.gin_files, gin_bindings)
-  runner = run_experiment_from_checkpoint.create_runner_checkpoint(
+  runner = run_experiment_from_checkpoint.tommelise(
       FLAGS.base_dir, run_experiment.create_agent, schedule='load_from_best')
   runner.run_experiment()
 
