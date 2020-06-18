@@ -33,6 +33,7 @@ import re
 from absl import app
 from absl import flags
 from absl import logging
+from six.moves import range
 
 from rouge import rouge_scorer
 from rouge import scoring
