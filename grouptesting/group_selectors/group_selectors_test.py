@@ -23,6 +23,7 @@ import jax.numpy as np
 import jax.test_util
 
 from grouptesting import state
+from grouptesting.group_selectors import bayes_oed
 from grouptesting.group_selectors import informative_dorfman
 from grouptesting.group_selectors import mutual_information
 from grouptesting.group_selectors import random
@@ -34,11 +35,11 @@ class GroupSelectorsTest(jax.test_util.JaxTestCase, parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.num_patients = 72
-    self.num_tests_per_cycle = 6
+    self.num_patients = 20
+    self.num_tests_per_cycle = 3
     self.state = state.State(
-        self.num_patients, self.num_tests_per_cycle, max_group_size=7,
-        prior_infection_rate=0.10, prior_specificity=0.9, prior_sensitivity=0.7)
+        self.num_patients, self.num_tests_per_cycle, max_group_size=4,
+        prior_infection_rate=0.30, prior_specificity=0.9, prior_sensitivity=0.7)
 
     self.rng = jax.random.PRNGKey(0)
 
@@ -56,9 +57,13 @@ class GroupSelectorsTest(jax.test_util.JaxTestCase, parameterized.TestCase):
   @parameterized.parameters([
       mutual_information.MaxMutualInformation(),
       informative_dorfman.InformativeDorfman(),
+      bayes_oed.BayesOED(),
+      bayes_oed.BayesOED(utility_fn=bayes_oed.auc()),
+      bayes_oed.BayesOED(utility_fn=bayes_oed.entropy()),
+      bayes_oed.BayesOED(utility_fn=bayes_oed.mean_sensitivity_specificity()),
   ])
   def test_selector_with_particles(self, selector):
-    sampler = sequential_monte_carlo.SmcSampler()
+    sampler = sequential_monte_carlo.SmcSampler(num_particles=100)
     rngs = jax.random.split(self.rng, 2)
     sampler.produce_sample(rngs[0], self.state)
     self.state.update_particles(sampler)
