@@ -11,11 +11,12 @@ feed-forward networks.
 
 ## Pre-trained checkpoints
 
-Download compressed files for pre-trained weights.
+Download compressed files for pre-trained weights and `SavedModel`.
 
-MobileBert Optimized Uncased English:
+* MobileBert Optimized Uncased English:
 [uncased_L-24_H-128_B-512_A-4_F-4_OPT](https://storage.googleapis.com/cloud-tpu-checkpoints/mobilebert/uncased_L-24_H-128_B-512_A-4_F-4_OPT.tar.gz)
-We provide both float32 and quantized int8 `SavedModel`s for the Squad V1.1 that
+
+* We provide both float32 and quantized int8 `SavedModel` for the Squad V1.1 that
 are useful tf.lite conversion. Please checkout [mobilebert_squad_savedmodels](https://storage.googleapis.com/cloud-tpu-checkpoints/mobilebert/mobilebert_squad_savedmodels.tar.gz) for sequence length
 at 384.
 
