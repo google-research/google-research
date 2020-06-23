@@ -27,8 +27,8 @@ from __future__ import print_function
 
 from absl import app
 from absl import flags
-import evaluation
-import methods
+from generalized_rates.kld_optimization import evaluation
+from generalized_rates.kld_optimization import methods
 import numpy as np
 import tensorflow_constrained_optimization as tfco
 

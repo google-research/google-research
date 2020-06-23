@@ -23,7 +23,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import evaluation
+from generalized_rates.fmeasure_optimization import evaluation
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow_constrained_optimization as tfco
@@ -205,9 +205,9 @@ def lagrangian_optimizer_fmeasure(
   context1 = context.subset(z_train > 0)
 
   # F-measure rates.
-  fm_overall = tfco.f_score_lower_bound(context)
-  fm1 = tfco.f_score_lower_bound(context1)
-  fm0 = tfco.f_score_upper_bound(context0)
+  fm_overall = tfco.f_score(context)
+  fm1 = tfco.f_score(context1)
+  fm0 = tfco.f_score(context0)
 
   # Rate minimization problem.
   problem = tfco.RateMinimizationProblem(-fm_overall, [fm0 <= fm1 + epsilon])

@@ -52,7 +52,8 @@ def compute_hash(features, hash_matrix, hash_vector):
 
   # Concatenate features and apply MD5 hash to get a fixed length encoding.
   feature_sum_str = [''.join(x) for x in features.astype('str')]
-  feature_sum_hex = [hashlib.md5(s).hexdigest() for s in feature_sum_str]
+  feature_sum_hex = [hashlib.md5(s.encode('utf-8')).hexdigest()
+                     for s in feature_sum_str]
   feature_sum_int = [int(h, 16) for h in feature_sum_hex]
 
   # Binarize features
