@@ -110,36 +110,40 @@ def filter_for_label(features, target_label):
                   tf.convert_to_tensor(target_label, dtype=tf.int32))
 
 
-def load_datasets(params):
+def load_datasets(params, mode_eval=False):
   """load class labels, in_tr_data, in_val_data, ood_val_data."""
-  in_tr_file_list = [
-      os.path.join(params.in_tr_data_dir, x)
-      for x in tf.gfile.ListDirectory(params.in_tr_data_dir)
-      if params.in_tr_file_pattern in x
-  ]
-
-  # load in-distribution training sequence
-  in_tr_data_file_list = [x for x in in_tr_file_list if '.tfrecord' in x]
-  tf.logging.info('in_tr_data_file_list=%s', in_tr_data_file_list)
-
-  def parse_single_tfexample_addmutations_short(unused_key, v):
-    return utils.parse_single_tfexample_addmutations(
-        unused_key, v, params.mutation_rate, params.seq_len)
-
-  # for training a background model, we mutate input sequences
-  if params.mutation_rate == 0:
-    in_tr_dataset = tf.data.TFRecordDataset(
-        in_tr_data_file_list).map(lambda v: utils.parse_single_tfexample(v, v))
+  if mode_eval:  # For evaluation, no need to prepare training data
+    in_tr_dataset = None
   else:
-    in_tr_dataset = tf.data.TFRecordDataset(in_tr_data_file_list).map(
-        lambda v: parse_single_tfexample_addmutations_short(v, v))
+    in_tr_file_list = [
+        os.path.join(params.in_tr_data_dir, x)
+        for x in tf.gfile.ListDirectory(params.in_tr_data_dir)
+        if params.in_tr_file_pattern in x
+    ]
 
-  if params.filter_label != -1:
+    # load in-distribution training sequence
+    in_tr_data_file_list = [x for x in in_tr_file_list if '.tfrecord' in x]
+    tf.logging.info('in_tr_data_file_list=%s', in_tr_data_file_list)
 
-    def filter_fn(v):
-      return filter_for_label(v, params.filter_label)
+    def parse_single_tfexample_addmutations_short(unused_key, v):
+      return utils.parse_single_tfexample_addmutations(unused_key, v,
+                                                       params.mutation_rate,
+                                                       params.seq_len)
 
-    in_tr_dataset = in_tr_dataset.filter(filter_fn)
+    # for training a background model, we mutate input sequences
+    if params.mutation_rate == 0:
+      in_tr_dataset = tf.data.TFRecordDataset(in_tr_data_file_list).map(
+          lambda v: utils.parse_single_tfexample(v, v))
+    else:
+      in_tr_dataset = tf.data.TFRecordDataset(in_tr_data_file_list).map(
+          lambda v: parse_single_tfexample_addmutations_short(v, v))
+
+    if params.filter_label != -1:
+
+      def filter_fn(v):
+        return filter_for_label(v, params.filter_label)
+
+      in_tr_dataset = in_tr_dataset.filter(filter_fn)
 
   # in-distribution validation
   in_val_data_file_list = [
