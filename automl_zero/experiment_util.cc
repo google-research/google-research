@@ -19,10 +19,11 @@
 #include <memory>
 #include <ostream>
 
-#include "task.pb.h"
 #include "google/protobuf/repeated_field.h"
 #include "absl/algorithm/container.h"
+#include "absl/container/node_hash_map.h"
 #include "absl/memory/memory.h"
+#include "task.pb.h"
 
 namespace automl_zero {
 
@@ -33,7 +34,7 @@ using ::std::equal;          // NOLINT
 using ::std::function;       // NOLINT
 using ::std::set;            // NOLINT
 using ::std::unique_ptr;     // NOLINT
-using ::std::unordered_map;  // NOLINT
+// NOLINT
 using ::std::unordered_set;  // NOLINT
 using ::std::vector;         // NOLINT
 
