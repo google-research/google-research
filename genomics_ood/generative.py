@@ -79,11 +79,9 @@ def create_out_dir(params):
   params.ood_val_data_dir = utils.clean_last_slash_if_any(
       params.ood_val_data_dir)
 
-  sub_dir = ('tr%s_ood%s_rnn_l%d_bs%d_lr%.4f'
+  sub_dir = ('generative_l%d_bs%d_lr%.4f'
              '_hr%d_nr%s_reg%s_regw%.6f_fi%d_mt%.2f') % (
-                 os.path.basename(params.in_tr_data_dir),
-                 os.path.basename(params.ood_val_data_dir), params.seq_len,
-                 params.batch_size, params.learning_rate,
+                 params.seq_len, params.batch_size, params.learning_rate,
                  params.hidden_lstm_size, params.norm_lstm, params.reg_type,
                  params.reg_weight, params.filter_label, params.mutation_rate)
   log_dir = os.path.join(params.out_dir, sub_dir, 'log')

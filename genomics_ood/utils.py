@@ -20,9 +20,12 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import json
 import os
 import time
 import tensorflow as tf
+import yaml
+from tensorflow.contrib import training as contrib_training
 
 
 def parse_single_tfexample(_, serialized_example):
@@ -172,3 +175,17 @@ def get_ckpt_at_step(tr_model_dir, step):
 
 def clean_last_slash_if_any(path):
   return path[:-1] if path.endswith('/') else path
+
+
+def generate_hparams(params_yaml_file):
+  """Create tf.HParams object based on params loaded from yaml file."""
+  with tf.gfile.Open(params_yaml_file, mode='rb') as f:
+    params_json = yaml.safe_load(f)
+    params_dict = json.loads(params_json)
+    params = contrib_training.HParams()
+    for key, value in params_dict.items():
+      params.add_hparam(key, value)
+    params.master = ''  # should be 'local' or ''
+    params.dropout_rate = 0.0  # turn off dropout for eval
+
+  return params

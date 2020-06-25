@@ -81,13 +81,12 @@ def create_out_dir(params):
   params.ood_val_data_dir = utils.clean_last_slash_if_any(
       params.ood_val_data_dir)
 
-  sub_dir = ('%s_emb%s_l%d_bs%d_lr%.4f_nm%d_lm%d_hd%d'
+  sub_dir = ('classifier_emb%s_l%d_bs%d_lr%.4f_nm%d_lm%d_hd%d'
              '_t%.2f_l2r%.6f_rw%s_mr%.2f') % (
-                 os.path.basename(params.in_tr_data_dir), params.embedding,
-                 params.seq_len, params.batch_size, params.learning_rate,
-                 params.num_motifs, params.len_motifs, params.hidden_dense_size,
-                 params.temperature, params.l2_reg, params.reweight_sample,
-                 params.mutation_rate)
+                 params.embedding, params.seq_len, params.batch_size,
+                 params.learning_rate, params.num_motifs, params.len_motifs,
+                 params.hidden_dense_size, params.temperature, params.l2_reg,
+                 params.reweight_sample, params.mutation_rate)
   log_dir = os.path.join(params.out_dir, sub_dir, 'log')
   params.add_hparam('log_dir_in_tr', os.path.join(log_dir, 'tr'))
   params.add_hparam('log_dir_in_val', os.path.join(log_dir, 'val'))
