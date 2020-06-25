@@ -88,15 +88,18 @@ class RecursiveOptimizer(tf.train.Optimizer):
                rescale_inner=True,
                inner_optimizer="SCINOL",
                add_average=False,
+               beta=0.9,
                output_summaries=False,
                use_locking=False,
                name="RecursiveOptimizer"):
     """Construct new RecursiveOptimizer.
 
     Args:
-      lr: ''learning rate'' - a scale factor on the predictions.
-      epsilon: regret at 0 of outer optimizer.
+      lr: ''learning rate'' - a scale factor on the predictions. Should have
+        identical performance to changing epsilon (initial wealth).
+      epsilon: regret at 0 of outer optimizer (this is the initial wealth).
       epsilon_v: regret at 0 of each coordinate of inner optimizer
+        (per-coordinate initial wealth)
       g_max: guess for maximum L1 norm of gradients. In theory, this guess needs
         to be an over-estimate, otherwise all bounds are invalid in the worst
         case. In stochastic problems we shouldn't expect worst-case behavior and
@@ -118,8 +121,11 @@ class RecursiveOptimizer(tf.train.Optimizer):
       add_average: Whether to add the weighted average of past iterates to the
         current iterate as described in (section 6 of
         https://arxiv.org/abs/1802.06293). This is "morally" similar to momentum
-        term in other SGD variants in that it pushes the iterates further in
-        direction they have been moving.
+          term in other SGD variants in that it pushes the iterates further in
+          direction they have been moving.
+      beta: only relevent when add_average=True. Uses an exponentially weighted
+        average with exponential parameter beta when computing the average
+        iterate.
       output_summaries: Whether to output scalar_summaries of some internal
         variables. Note that this will significantly impact the number of
         iterations per second.
@@ -155,17 +161,18 @@ class RecursiveOptimizer(tf.train.Optimizer):
 
     self.lr = lr
     self.eta = eta
+    self.beta = beta
     self.betting_domain = betting_domain
 
     self.non_slot_dict = {}
 
   # Propagates use_locking from constructor to
-  # https://www.tensorflow.org/api_docs/python/tf/assign
+  # https://www.tensorflow.org/api_docs/python/tf/compat/v1/assign
   def _assign(self, ref, value):
     return tf.assign(ref, value, use_locking=self._use_locking)
 
   # Propagates use_locking from constructor to
-  # https://www.tensorflow.org/api_docs/python/tf/assign_add
+  # https://www.tensorflow.org/api_docs/python/tf/compat/v1/assign_add
   def _assign_add(self, ref, value):
     return tf.assign_add(ref, value, use_locking=self._use_locking)
 
@@ -488,8 +495,9 @@ class RecursiveOptimizer(tf.train.Optimizer):
     if self.add_average:
       grad_norm_squared = tf.square(grad_norm)
       sum_grad_norm_squared = self._get_non_slot(SUM_GRAD_NORM_SQUARED)
-      sum_grad_norm_squared_updated = self._assign_add(sum_grad_norm_squared,
-                                                       grad_norm_squared)
+      sum_grad_norm_squared_updated = self._assign(
+          sum_grad_norm_squared,
+          self.beta * sum_grad_norm_squared + grad_norm_squared)
 
     for var in self.grads:
 
@@ -519,10 +527,9 @@ class RecursiveOptimizer(tf.train.Optimizer):
 
       if self.add_average:
         average_offset = self.get_slot(var, AVERAGE_OFFSET)
-        previous_sum_grad_norm_squared = sum_grad_norm_squared - grad_norm_squared
         average_offset_updated = self._assign_add(
             average_offset,
-            (previous_sum_grad_norm_squared *
+            (grad_norm_squared *
              (next_offset - average_offset)) / (sum_grad_norm_squared_updated))
         update_ops.append(average_offset_updated)
 
