@@ -53,7 +53,11 @@ def get_input_data_shape(flags, mode):
                   Modes.STREAM_EXTERNAL_STATE_INFERENCE):
     raise ValueError('Unknown mode "%s" ' % flags.mode)
 
-  if flags.preprocess == 'raw':
+  if flags.preprocess == 'custom':
+    # it is a special case to customize input data shape
+    # and use model on its own (for debugging only)
+    data_shape = flags.data_shape
+  elif flags.preprocess == 'raw':
     if mode in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE):
       data_shape = (flags.desired_samples,)
     else:
