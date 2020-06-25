@@ -9,6 +9,12 @@ pip install -r norml/requirements.txt
 ```
 The HalfCheetah environment requires Mujoco, so make sure you also followed the proper [instructions](https://github.com/openai/mujoco-py) to install mujoco and mujoco-py.
 
+Example checkpoints are stored in Google Cloud Storage and can be downloaded by running:
+
+```
+gsutil cp -r gs://gresearch/norml/example_checkpoints/ .
+```
+
 You can start training from scratch by
 ```
 python -m norml.train_maml --config MOVE_POINT_ROTATE_MAML --logs maml_checkpoints

@@ -27,6 +27,15 @@ pip install -m requirements.txt
 You will also need to install Mujoco and use a valid license. Follow the install
 instructions [here](https://github.com/openai/mujoco-py).
 
+Datasets are stored in Google Cloud Storage and should be downloaded by running:
+
+```bash
+wget -P value_dice/datasets/ https://storage.googleapis.com/gresearch/value_dice/datasets/Ant-v2.npz
+wget -P value_dice/datasets/ https://storage.googleapis.com/gresearch/value_dice/datasets/HalfCheetah-v2.npz
+wget -P value_dice/datasets/ https://storage.googleapis.com/gresearch/value_dice/datasets/Hopper-v2.npz
+wget -P value_dice/datasets/ https://storage.googleapis.com/gresearch/value_dice/datasets/Walker2d-v2.npz
+```
+
 Expert Trajectories:
 -------------------------------
 
@@ -38,6 +47,7 @@ Running Training
 From the root google_research directory, run:
 
 ```bash
+wget -P value_dice/datasets/ https://storage.googleapis.com/gresearch/value_dice/datasets/HalfCheetah-v2.npz
 python -m value_dice.train_eval \
   --expert_dir ./datasets/ \
   --save_dir ./save/ \

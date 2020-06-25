@@ -22,5 +22,8 @@ source ./bin/activate
 pip install tensorflow
 pip install -r evanet/requirements.txt
 
+wget -P evanet/data/ https://storage.googleapis.com/gresearch/evanet/data/label_map.txt
+wget -P evanet/data/ https://storage.googleapis.com/gresearch/evanet/data/v_CricketShot_g04_c01_flow.npy
+wget -P evanet/data/ https://storage.googleapis.com/gresearch/evanet/data/v_CricketShot_g04_c01_rgb.npy
 
 python -m evanet.run_evanet

@@ -21,4 +21,9 @@ virtualenv -p python3 .
 source ./bin/activate
 
 pip install -r norml/requirements.txt
+
+wget -P norml/example_checkpoints/move_point_rotate_sparse/norml/ https://storage.googleapis.com/gresearch/norml/example_checkpoints/move_point_rotate_sparse/norml/all_weights.ckpt-991.data-00000-of-00001
+wget -P norml/example_checkpoints/move_point_rotate_sparse/norml/ https://storage.googleapis.com/gresearch/norml/example_checkpoints/move_point_rotate_sparse/norml/all_weights.ckpt-991.index
+wget -P norml/example_checkpoints/move_point_rotate_sparse/norml/ https://storage.googleapis.com/gresearch/norml/example_checkpoints/move_point_rotate_sparse/norml/all_weights.ckpt-991.meta
+wget -P norml/example_checkpoints/move_point_rotate_sparse/norml/ https://storage.googleapis.com/gresearch/norml/example_checkpoints/move_point_rotate_sparse/norml/config.yaml
 python -m norml.eval_maml --model_dir example_checkpoints/move_point_rotate_sparse/norml/all_weights.ckpt-991 --output_dir /usr/local/google/home/yxyang/temp --render=False --num_finetune_steps 1 --test_task_index 0 --eval_finetune=True

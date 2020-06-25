@@ -52,7 +52,10 @@ bash summae/run_locally.sh decode /tmp/testmodel 0
 ### Run decode of best model
 ```
 mkdir /tmp/best
-cp -r summae/testdata/best /tmp/
+wget -P /tmp/best https://storage.googleapis.com/gresearch/summae/testdata/best/checkpoint
+wget -P /tmp/best https://storage.googleapis.com/gresearch/summae/testdata/best/model.ckpt-358000.data-00000-of-00001
+wget -P /tmp/best https://storage.googleapis.com/gresearch/summae/testdata/best/model.ckpt-358000.index
+wget -P /tmp/best https://storage.googleapis.com/gresearch/summae/testdata/best/model.ckpt-358000.meta
 bash summae/run_locally.sh decode /tmp/best 358000
 ```
 
