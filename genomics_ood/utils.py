@@ -22,7 +22,7 @@ from __future__ import division
 from __future__ import print_function
 import os
 import time
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def parse_single_tfexample(_, serialized_example):
@@ -52,7 +52,7 @@ def mutate_x(x, mutation_rate, seq_len):
   # in order to be different than itselves, the mutations have to be >= 1
   # mute the untargeted positions by multiple mask (1 for targeted)
   # adding the mutations to the original, mod 4 if necessary
-  tf.random.set_random_seed(time.time())
+  tf.set_random_seed(time.time())
 
   def true_fn():
     """no mutations."""
