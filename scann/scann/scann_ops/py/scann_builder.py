@@ -60,6 +60,7 @@ class ScannBuilder(object):
       min_partition_size=50,
       training_iterations=10,
       spherical=False,
+      quantize_centroids=False,
       # the following are set automatically
       distance_measure=None):
     """Configure partitioning. If not called, no partitioning is performed."""
@@ -78,10 +79,12 @@ class ScannBuilder(object):
         expected_sample_size: {}
         query_tokenization_distance_override {}
         partitioning_type: {}
+        query_tokenization_type: {}
       }}
     """.format(num_leaves, min_partition_size, training_iterations,
                num_leaves_to_search, training_sample_size, distance_measure,
-               "SPHERICAL" if spherical else "GENERIC")
+               "SPHERICAL" if spherical else "GENERIC",
+               "FIXED_POINT_INT8" if quantize_centroids else "FLOAT")
 
   @_factory_decorator("score_ah")
   def score_ah(

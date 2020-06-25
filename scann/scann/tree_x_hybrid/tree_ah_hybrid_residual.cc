@@ -40,7 +40,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "scann/oss_wrappers/scann_status_builder.h"
-#include "scann/utils/top_n_amortized_constant.h"
+#include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/errors.h"
 
@@ -439,7 +439,8 @@ vector<std::vector<QueryForLeaf>> InvertCentersToSearch(
 }
 
 vector<SearchParameters> CreateParamsSubsetForLeaf(
-    ConstSpan<SearchParameters> params, ConstSpan<TopNeighbors<float>> top_ns,
+    ConstSpan<SearchParameters> params,
+    ConstSpan<FastTopNeighbors<float>::Mutator> mutators,
     ConstSpan<
         shared_ptr<asymmetric_hashing2::AsymmetricHashingOptionalParameters>>
         lookup_tables,
@@ -450,11 +451,8 @@ vector<SearchParameters> CreateParamsSubsetForLeaf(
     SearchParameters leaf_params;
     leaf_params.set_pre_reordering_num_neighbors(
         params[q.query_index].pre_reordering_num_neighbors());
-    const auto& cur_top_n = top_ns[q.query_index];
-    const float raw_eps =
-        (cur_top_n.full()) ? (cur_top_n.approx_bottom().second)
-                           : (params[q.query_index].pre_reordering_epsilon());
-    leaf_params.set_pre_reordering_epsilon(raw_eps - q.distance_to_center);
+    leaf_params.set_pre_reordering_epsilon(mutators[q.query_index].epsilon() -
+                                           q.distance_to_center);
     leaf_params.set_searcher_specific_optional_parameters(
         lookup_tables[q.query_index]);
     result.emplace_back(std::move(leaf_params));
@@ -462,19 +460,30 @@ vector<SearchParameters> CreateParamsSubsetForLeaf(
   return result;
 }
 
-template <typename TopN>
+template <typename Mutator>
 void AddLeafResultsToTopN(ConstSpan<DatapointIndex> local_to_global_index,
                           const float distance_to_center,
                           const float query_variance_adjustment,
-                          const float cluster_stdev_adjustiment,
+                          const float cluster_stdev_adjustment,
                           ConstSpan<pair<DatapointIndex, float>> leaf_results,
-                          TopN* top_n) {
+                          Mutator* mutator) {
+  float epsilon = mutator->epsilon();
   const float per_leaf_term = distance_to_center - query_variance_adjustment;
   for (const auto& result : leaf_results) {
-    top_n->push(std::make_pair(
-        local_to_global_index[result.first],
-        result.second * cluster_stdev_adjustiment + per_leaf_term));
+    const float dist = result.second * cluster_stdev_adjustment + per_leaf_term;
+    if (dist < epsilon) {
+      if (ABSL_PREDICT_FALSE(
+              mutator->Push(local_to_global_index[result.first], dist))) {
+        mutator->GarbageCollect();
+        epsilon = mutator->epsilon();
+      }
+    }
   }
+}
+
+template <typename TopN>
+inline void AssignResults(TopN* top_n, NNResultsVector* results) {
+  top_n->FinishUnsorted(results);
 }
 
 }  // namespace
@@ -526,21 +535,20 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
     lookup_tables[i] =
         make_shared<AsymmetricHashingOptionalParameters>(std::move(lut));
   }
-  vector<TopNeighbors<float>> top_ns;
+  vector<FastTopNeighbors<float>> top_ns;
+  vector<FastTopNeighbors<float>::Mutator> mutators(params.size());
   top_ns.reserve(params.size());
-  for (const auto& p : params) {
-    top_ns.emplace_back(p.pre_reordering_num_neighbors());
-    if (p.pre_reordering_epsilon() == numeric_limits<float>::infinity()) {
-      top_ns.back().reserve(std::min<DatapointIndex>(
-          2 * p.pre_reordering_num_neighbors(), num_datapoints_));
-    }
+  for (const auto& [idx, p] : Enumerate(params)) {
+    top_ns.emplace_back(p.pre_reordering_num_neighbors(),
+                        p.pre_reordering_epsilon());
+    top_ns[idx].AcquireMutator(&mutators[idx]);
   }
   vector<NNResultsVector> leaf_results;
   for (size_t leaf_token : leaf_tokens_by_norm_) {
     ConstSpan<QueryForLeaf> queries_for_cur_leaf = queries_by_leaf[leaf_token];
     if (queries_for_cur_leaf.empty()) continue;
     vector<SearchParameters> leaf_params = CreateParamsSubsetForLeaf(
-        params, top_ns, lookup_tables, queries_for_cur_leaf);
+        params, mutators, lookup_tables, queries_for_cur_leaf);
     auto get_query = [&queries, &queries_for_cur_leaf](DatapointIndex i) {
       return queries[queries_for_cur_leaf[i].query_index];
     };
@@ -566,20 +574,22 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
                                       ? status_or_partition_stdev.ValueOrDie()
                                       : 1.0;
     for (size_t j = 0; j < queries_for_cur_leaf.size(); ++j) {
+      const DatapointIndex cur_query_index =
+          queries_for_cur_leaf[j].query_index;
       const float query_variance_adjustment =
           partition_variance_adjustment
               ? (partition_variance_adjustment *
-                 std::sqrt(SquaredL2Norm(
-                     queries[queries_for_cur_leaf[j].query_index])))
+                 std::sqrt(SquaredL2Norm(queries[cur_query_index])))
               : 0.0f;
-      AddLeafResultsToTopN(
-          local_to_global_index, queries_for_cur_leaf[j].distance_to_center,
-          query_variance_adjustment, partition_stdev, leaf_results[j],
-          &top_ns[queries_for_cur_leaf[j].query_index]);
+      AddLeafResultsToTopN(local_to_global_index,
+                           queries_for_cur_leaf[j].distance_to_center,
+                           query_variance_adjustment, partition_stdev,
+                           leaf_results[j], &mutators[cur_query_index]);
     }
   }
   for (size_t query_index = 0; query_index < results.size(); ++query_index) {
-    results[query_index] = top_ns[query_index].TakeUnsorted();
+    mutators[query_index].Release();
+    top_ns[query_index].FinishUnsorted(&results[query_index]);
   }
   return OkStatus();
 }
@@ -591,11 +601,8 @@ Status TreeAHHybridResidual::FindNeighborsInternal1(
   if (params.pre_reordering_crowding_enabled()) {
     return FailedPreconditionError("Crowding is not supported.");
   } else {
-    TopNeighbors<float> top_n(params.pre_reordering_num_neighbors());
-    if (params.pre_reordering_epsilon() == numeric_limits<float>::infinity()) {
-      top_n.reserve(std::min<DatapointIndex>(
-          2 * params.pre_reordering_num_neighbors(), num_datapoints_));
-    }
+    FastTopNeighbors<float> top_n(params.pre_reordering_num_neighbors(),
+                                  params.pre_reordering_epsilon());
     return FindNeighborsInternal2(query, params, centers_to_search,
                                   std::move(top_n), result);
   }
@@ -627,13 +634,14 @@ Status TreeAHHybridResidual::FindNeighborsInternal2(
         make_unique<AsymmetricHashingOptionalParameters>(
             std::move(shared_lookup_table)));
   }
+  typename TopN::Mutator mutator;
+  top_n.AcquireMutator(&mutator);
   for (size_t i = 0; i < centers_to_search.size(); ++i) {
     const int32_t token = centers_to_search[i].node->LeafId();
     NNResultsVector leaf_results;
-    const float raw_eps = (top_n.full()) ? (top_n.approx_bottom().second)
-                                         : (params.pre_reordering_epsilon());
     const float distance_to_center = centers_to_search[i].distance_to_center;
-    leaf_params.set_pre_reordering_epsilon(raw_eps - distance_to_center);
+    leaf_params.set_pre_reordering_epsilon(mutator.epsilon() -
+                                           distance_to_center);
     TranslateGlobalToLeafLocalWhitelist(params, datapoints_by_token_[token],
                                         &leaf_params);
     SCANN_RETURN_IF_ERROR(
@@ -647,10 +655,11 @@ Status TreeAHHybridResidual::FindNeighborsInternal2(
     float cluster_stdev_adjustment = centers_to_search[i].residual_stdev;
     AddLeafResultsToTopN(datapoints_by_token_[token], distance_to_center,
                          query_variance_adjustment, cluster_stdev_adjustment,
-                         leaf_results, &top_n);
+                         leaf_results, &mutator);
   }
+  mutator.Release();
 
-  *result = top_n.TakeUnsorted();
+  AssignResults(&top_n, result);
   return OkStatus();
 }
 

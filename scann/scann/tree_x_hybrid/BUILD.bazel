@@ -92,7 +92,7 @@ cc_library(
         "//scann/proto:hash_cc_proto",
         "//scann/tree_x_hybrid/internal:utils",
         "//scann/trees/kmeans_tree",
-        "//scann/utils:top_n_amortized_constant",
+        "//scann/utils:fast_top_neighbors",
         "//scann/utils:types",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",

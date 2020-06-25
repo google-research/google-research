@@ -56,7 +56,7 @@ struct LUT16ArgsTopNBase : public LUT16Args<DistT> {
 
   ConstSpan<TopN*> fast_topns;
 
-  ConstSpan<RestrictWhitelistConstView> restrict_whitelists;
+  ConstSpan<RestrictAllowlistConstView> restrict_whitelists;
 
   template <size_t kNumQueries>
   SCANN_INLINE array<const uint32_t*, kNumQueries> GetRestrictWhitelistPtrs()

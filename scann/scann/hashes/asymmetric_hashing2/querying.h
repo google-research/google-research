@@ -397,7 +397,7 @@ Status FindApproxNeighborsFastTopNeighbors(
   array<FastTopNeighbors<int16_t>, kNumQueries> ftns;
   array<FastTopNeighbors<int16_t>*, kNumQueries> ftn_ptrs;
   array<const uint8_t*, kNumQueries> raw_luts;
-  array<RestrictWhitelistConstView, kNumQueries> restricts;
+  array<RestrictAllowlistConstView, kNumQueries> restricts;
   for (size_t batch_idx : Seq(kNumQueries)) {
     int32_t fixed_point_max_distance =
         ai::ComputePossiblyFixedPointMaxDistance<int8_t>(
@@ -414,9 +414,9 @@ Status FindApproxNeighborsFastTopNeighbors(
     raw_luts[batch_idx] = lookup_tables[batch_idx]->int8_lookup_table.data();
     if (params[batch_idx]->restricts_enabled()) {
       restricts[batch_idx] =
-          RestrictWhitelistConstView(*params[batch_idx]->restrict_whitelist());
+          RestrictAllowlistConstView(*params[batch_idx]->restrict_whitelist());
     } else {
-      restricts[batch_idx] = RestrictWhitelistConstView();
+      restricts[batch_idx] = RestrictAllowlistConstView();
     }
   }
   asymmetric_hashing_internal::LUT16ArgsTopN<int16_t> args;

@@ -29,7 +29,7 @@ namespace tensorflow {
 namespace scann_ops {
 
 class RestrictTokenMap;
-class RestrictWhitelistConstView;
+class RestrictAllowlistConstView;
 
 class RestrictAllowlist {
  public:
@@ -41,7 +41,7 @@ class RestrictAllowlist {
   RestrictAllowlist& operator=(const RestrictAllowlist& rhs);
   RestrictAllowlist& operator=(RestrictAllowlist&& rhs) = default;
 
-  explicit RestrictAllowlist(const RestrictWhitelistConstView& view);
+  explicit RestrictAllowlist(const RestrictAllowlistConstView& view);
 
   void Initialize(DatapointIndex num_points, bool default_whitelisted);
 
@@ -110,7 +110,7 @@ class RestrictAllowlist {
   }
 
   template <typename Lambda>
-  void PointwiseLogic(const RestrictWhitelistConstView& rhs, Lambda lambda,
+  void PointwiseLogic(const RestrictAllowlistConstView& rhs, Lambda lambda,
                       bool zero_trailing);
 
   std::vector<size_t> whitelist_array_;
@@ -119,19 +119,19 @@ class RestrictAllowlist {
 
   friend class RestrictTokenMap;
 
-  friend class RestrictWhitelistConstView;
+  friend class RestrictAllowlistConstView;
 
-  FRIEND_TEST(RestrictWhitelist, ResizeUpwardDefaultWhitelisted);
-  FRIEND_TEST(RestrictWhitelist, ResizeDownwardDefaultWhitelisted);
-  FRIEND_TEST(RestrictWhitelist, ResizeDownwardDefaultNonWhitelisted);
-  FRIEND_TEST(RestrictWhitelist, ResizeUpwardDefaultNonWhitelisted);
+  FRIEND_TEST(RestrictAllowlist, ResizeUpwardDefaultWhitelisted);
+  FRIEND_TEST(RestrictAllowlist, ResizeDownwardDefaultWhitelisted);
+  FRIEND_TEST(RestrictAllowlist, ResizeDownwardDefaultNonWhitelisted);
+  FRIEND_TEST(RestrictAllowlist, ResizeUpwardDefaultNonWhitelisted);
 };
 
-class DummyWhitelist {
+class DummyAllowlist {
  public:
-  explicit DummyWhitelist(DatapointIndex num_points);
+  explicit DummyAllowlist(DatapointIndex num_points);
 
-  bool IsWhitelisted(DatapointIndex dp_index) const { return true; }
+  bool IsAllowlisted(DatapointIndex dp_index) const { return true; }
 
   class Iterator {
    public:
@@ -140,7 +140,7 @@ class DummyWhitelist {
     void Next() { ++value_; }
 
    private:
-    friend class DummyWhitelist;
+    friend class DummyAllowlist;
 
     explicit Iterator(DatapointIndex num_points);
 
@@ -149,26 +149,26 @@ class DummyWhitelist {
     DatapointIndex num_points_;
   };
 
-  Iterator WhitelistedPointIterator() const { return Iterator(num_points_); }
+  Iterator AllowlistedPointIterator() const { return Iterator(num_points_); }
 
  private:
   DatapointIndex num_points_;
 };
 
-class RestrictWhitelistConstView {
+class RestrictAllowlistConstView {
  public:
-  RestrictWhitelistConstView() {}
+  RestrictAllowlistConstView() {}
 
-  explicit RestrictWhitelistConstView(const RestrictAllowlist& whitelist)
+  explicit RestrictAllowlistConstView(const RestrictAllowlist& whitelist)
       : whitelist_array_(whitelist.whitelist_array_.data()),
         num_points_(whitelist.num_points_) {}
 
-  explicit RestrictWhitelistConstView(const RestrictAllowlist* whitelist)
+  explicit RestrictAllowlistConstView(const RestrictAllowlist* whitelist)
       : whitelist_array_(whitelist ? whitelist->whitelist_array_.data()
                                    : nullptr),
         num_points_(whitelist ? whitelist->num_points_ : 0) {}
 
-  RestrictWhitelistConstView(ConstSpan<size_t> storage,
+  RestrictAllowlistConstView(ConstSpan<size_t> storage,
                              DatapointIndex num_points)
       : whitelist_array_(storage.data()), num_points_(num_points) {
     DCHECK_EQ(storage.size(),

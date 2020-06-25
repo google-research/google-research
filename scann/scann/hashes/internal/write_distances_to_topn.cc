@@ -66,9 +66,9 @@ void WriteDistancesToTopNImpl(const RestrictAllowlist* whitelist_or_null,
          (!restricts_enabled && whitelist_or_null == nullptr));
   const size_t num_neighbors = top_n_ptr->limit();
 
-  RestrictWhitelistConstView whitelist_view;
+  RestrictAllowlistConstView whitelist_view;
   if (restricts_enabled) {
-    whitelist_view = RestrictWhitelistConstView(whitelist_or_null);
+    whitelist_view = RestrictAllowlistConstView(whitelist_or_null);
   }
 
   auto is_whitelisted =
@@ -205,9 +205,9 @@ void WriteDistancesToTopNImpl(const RestrictAllowlist* whitelist_or_null,
   const size_t num_neighbors = top_n_ptr->limit();
   const size_t dataset_size = distances.size();
 
-  RestrictWhitelistConstView whitelist_view;
+  RestrictAllowlistConstView whitelist_view;
   if (restricts_enabled) {
-    whitelist_view = RestrictWhitelistConstView(whitelist_or_null);
+    whitelist_view = RestrictAllowlistConstView(whitelist_or_null);
   }
 
   auto is_whitelisted =

@@ -27,12 +27,12 @@
 # limitations under the License.
 
 BAZEL_PREFIX="bazel-bin/build_pip_pkg.runfiles/__main__/"
-
 TMPDIR=$(mktemp -d -t tmp.XXXXXXXXXX)
+# set variable equal to "python" by default
+: ${PYTHON:=python}
 
 echo "$TMPDIR"
 
-cp ${BAZEL_PREFIX}LICENSE "${TMPDIR}"
 cp ${BAZEL_PREFIX}MANIFEST.in "${TMPDIR}"
 cp ${BAZEL_PREFIX}requirements.txt "${TMPDIR}"
 cp ${BAZEL_PREFIX}setup.py "${TMPDIR}"
@@ -44,9 +44,10 @@ echo "from scann.scann_ops.py import scann_ops_pybind" >> "${TMPDIR}"/scann/__in
 touch "${TMPDIR}"/scann/scann_ops/__init__.py
 touch "${TMPDIR}"/scann/scann_ops/py/__init__.py
 
-pushd "$TMPDIR"
-python setup.py bdist_wheel
-popd
+cwd="$(pwd)"
+cd "$TMPDIR"
+"$PYTHON" setup.py bdist_wheel
+cd "$cwd"
 
 cp "${TMPDIR}"/dist/*.whl ./
 rm -rf "$TMPDIR"

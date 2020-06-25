@@ -99,6 +99,15 @@ class ScannTest(absltest.TestCase):
         300, 30, min_partition_size=10).score_ah(2).create_pybind()
     self.verify_serialization(ds, s, n_dims, 5)
 
+  def test_tree_ah_quantized(self):
+    n_dims = 50
+    n_points = 10000
+    ds = np.random.rand(n_points, n_dims).astype(np.float)
+    s = scann_builder.ScannBuilder(ds, 10, "dot_product").tree(
+        300, 30, min_partition_size=10,
+        quantize_centroids=True).score_ah(2).create_pybind()
+    self.verify_serialization(ds, s, n_dims, 5)
+
   def test_pure_ah(self):
     n_dims = 50
     n_points = 10000
@@ -112,6 +121,15 @@ class ScannTest(absltest.TestCase):
     ds = np.random.rand(12345, n_dims).astype(np.float)
     s = scann_builder.ScannBuilder(ds, 10, "dot_product").tree(
         100, 10).score_brute_force(True).create_pybind()
+    self.verify_serialization(ds, s, n_dims, 5)
+
+  def test_empty_partiitons(self):
+    n_dims = 100
+    ds = np.random.rand(1234, n_dims).astype(np.float)
+    # with 1234 points and 200 partitions, k-means fails to work well and some
+    # partitions are empty; make sure this serializes properly
+    s = scann_builder.ScannBuilder(ds, 10, "dot_product").tree(
+        200, 10, min_partition_size=5).score_ah(1).create_pybind()
     self.verify_serialization(ds, s, n_dims, 5)
 
   def test_shapes(self):

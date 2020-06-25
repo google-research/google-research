@@ -334,5 +334,45 @@ void KMeansTreeNode::UnionIndicesImpl(
     }
   }
 }
+
+namespace kmeans_tree_internal {
+
+template <>
+Status FindChildrenWithSpilling(
+    const DatapointPtr<float>& query,
+    QuerySpillingConfig::SpillingType spilling_type, double spilling_threshold,
+    int32_t max_centers, const DistanceMeasure& dist,
+    const DenseDataset<int8_t>& centers, float fixed_point_multiplier,
+    std::vector<pair<DatapointIndex, float>>* child_centers) {
+  DCHECK_GT(centers.size(), 0);
+  DCHECK(child_centers);
+
+  std::vector<float> distances(centers.size());
+  DCHECK(centers.IsDense());
+  SCANN_RETURN_IF_ERROR(GetAllDistances<float>(
+      dist, query, centers, fixed_point_multiplier, &distances));
+  const size_t nearest_center_index = std::distance(
+      distances.begin(), std::min_element(distances.begin(), distances.end()));
+  const float nearest_center_distance = distances[nearest_center_index];
+
+  TF_ASSIGN_OR_RETURN(
+      float max_dist_to_consider,
+      ComputeThreshold(nearest_center_distance,
+                       cast_ops::DoubleToFloat(spilling_threshold),
+                       spilling_type));
+  FastTopNeighbors<float> top_n(
+      (spilling_type == QuerySpillingConfig::NO_SPILLING) ? 1 : max_centers,
+      max_dist_to_consider);
+  {
+    FastTopNeighbors<float>::Mutator m;
+    top_n.AcquireMutator(&m);
+    m.PushDistanceBlock(MakeConstSpan(distances), 0);
+  }
+  top_n.FinishUnsorted(child_centers);
+  return OkStatus();
+}
+
+}  // namespace kmeans_tree_internal
+
 }  // namespace scann_ops
 }  // namespace tensorflow

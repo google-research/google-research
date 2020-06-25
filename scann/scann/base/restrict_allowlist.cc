@@ -51,7 +51,7 @@ RestrictAllowlist::RestrictAllowlist(DatapointIndex num_points,
   Initialize(num_points, default_whitelisted);
 }
 
-RestrictAllowlist::RestrictAllowlist(const RestrictWhitelistConstView& view)
+RestrictAllowlist::RestrictAllowlist(const RestrictAllowlistConstView& view)
     : whitelist_array_(
           view.whitelist_array_,
           view.whitelist_array_ + DivRoundUp(view.num_points_, kBitsPerWord)),
@@ -80,10 +80,10 @@ void RestrictAllowlist::Resize(size_t num_points, bool default_whitelisted) {
   ClearRemainderBits(MakeMutableSpan(whitelist_array_), num_points);
 }
 
-DummyWhitelist::DummyWhitelist(DatapointIndex num_points)
+DummyAllowlist::DummyAllowlist(DatapointIndex num_points)
     : num_points_(num_points) {}
 
-DummyWhitelist::Iterator::Iterator(DatapointIndex num_points)
+DummyAllowlist::Iterator::Iterator(DatapointIndex num_points)
     : value_(0), num_points_(num_points) {}
 
 }  // namespace scann_ops

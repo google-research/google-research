@@ -143,11 +143,12 @@ inline Status GetAllDistances(const DistanceMeasure& dist,
   return OkStatus();
 }
 
+template <typename OutT = double>
 inline Status GetAllDistances(const DistanceMeasure& dist,
                               const DatapointPtr<float>& query,
                               const DenseDataset<int8_t>& centers,
                               float fixed_point_multiplier,
-                              std::vector<double>* distances) {
+                              std::vector<OutT>* distances) {
   if (dist.specially_optimized_distance_tag() != DistanceMeasure::DOT_PRODUCT) {
     return InvalidArgumentError(
         "Fixed-point tokenization in K-Means trees currently works only for "
@@ -166,28 +167,11 @@ inline Status GetAllDistances(const DistanceMeasure& dist,
   return OkStatus();
 }
 
-template <typename Real, typename DataType>
-Status FindChildrenWithSpilling(
-    const DatapointPtr<Real>& query,
-    QuerySpillingConfig::SpillingType spilling_type, double spilling_threshold,
-    int32_t max_centers, const DistanceMeasure& dist,
-    const DenseDataset<DataType>& centers, float fixed_point_multiplier,
-    std::vector<pair<DatapointIndex, float>>* child_centers) {
-  static_assert(std::is_same<Real, float>::value ||
-                    !std::is_same<DataType, int8_t>::value,
-                "Real must be float if DataType is int8_t.");
-  DCHECK_GT(centers.size(), 0);
-  DCHECK(child_centers);
-
-  std::vector<double> distances(centers.size());
-  DCHECK(centers.IsDense());
-  SCANN_RETURN_IF_ERROR(GetAllDistances(dist, query, centers,
-                                        fixed_point_multiplier, &distances));
-  const size_t nearest_center_index = std::distance(
-      distances.begin(), std::min_element(distances.begin(), distances.end()));
-  const double nearest_center_distance = distances[nearest_center_index];
-
-  double max_dist_to_consider;
+template <typename Real>
+inline StatusOr<Real> ComputeThreshold(
+    const Real nearest_center_distance, const Real spilling_threshold,
+    QuerySpillingConfig::SpillingType spilling_type) {
+  Real max_dist_to_consider;
   if (std::isnan(spilling_threshold)) {
     spilling_type = QuerySpillingConfig::NO_SPILLING;
   }
@@ -208,12 +192,35 @@ Status FindChildrenWithSpilling(
           std::max(spilling_threshold, nearest_center_distance);
       break;
     case QuerySpillingConfig::FIXED_NUMBER_OF_CENTERS:
-      max_dist_to_consider = numeric_limits<double>::infinity();
+      max_dist_to_consider = numeric_limits<Real>::infinity();
       break;
     default:
       return InvalidArgumentError("Unknown spilling type.");
   }
+  return max_dist_to_consider;
+}
 
+template <typename Real, typename DataType>
+Status FindChildrenWithSpilling(
+    const DatapointPtr<Real>& query,
+    QuerySpillingConfig::SpillingType spilling_type, double spilling_threshold,
+    int32_t max_centers, const DistanceMeasure& dist,
+    const DenseDataset<DataType>& centers, float fixed_point_multiplier,
+    std::vector<pair<DatapointIndex, float>>* child_centers) {
+  DCHECK_GT(centers.size(), 0);
+  DCHECK(child_centers);
+
+  std::vector<double> distances(centers.size());
+  DCHECK(centers.IsDense());
+  SCANN_RETURN_IF_ERROR(GetAllDistances(dist, query, centers,
+                                        fixed_point_multiplier, &distances));
+  const size_t nearest_center_index = std::distance(
+      distances.begin(), std::min_element(distances.begin(), distances.end()));
+  const double nearest_center_distance = distances[nearest_center_index];
+
+  TF_ASSIGN_OR_RETURN(double max_dist_to_consider,
+                      ComputeThreshold(nearest_center_distance,
+                                       spilling_threshold, spilling_type));
   using cast_ops::DoubleToFloat;
   FastTopNeighbors<float> top_n(
       (spilling_type == QuerySpillingConfig::NO_SPILLING) ? 1 : max_centers,
@@ -234,6 +241,14 @@ Status FindChildrenWithSpilling(
   top_n.FinishUnsorted(child_centers);
   return OkStatus();
 }
+
+template <>
+Status FindChildrenWithSpilling(
+    const DatapointPtr<float>& query,
+    QuerySpillingConfig::SpillingType spilling_type, double spilling_threshold,
+    int32_t max_centers, const DistanceMeasure& dist,
+    const DenseDataset<int8_t>& centers, float fixed_point_multiplier,
+    std::vector<pair<DatapointIndex, float>>* child_centers);
 
 }  // namespace kmeans_tree_internal
 

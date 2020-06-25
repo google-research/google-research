@@ -63,6 +63,12 @@ cc_proto_library(
 )
 
 proto_library(
+    name = "query_metadata_proto",
+    srcs = ["query_metadata.proto"],
+    tags = ["local"],
+)
+
+proto_library(
     name = "restricts_proto",
     srcs = ["restricts.proto"],
     tags = ["local"],
@@ -205,6 +211,7 @@ proto_library(
     srcs = ["results.proto"],
     tags = ["local"],
     deps = [
+        ":query_metadata_proto",
     ],
 )
 

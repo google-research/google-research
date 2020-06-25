@@ -63,9 +63,9 @@ void WriteDistancesToTopNImpl(const RestrictAllowlist* whitelist_or_null,
                               PostprocessedDistance max_distance,
                               ConstSpan<Int> distances,
                               const Postprocess& postprocess, TopN* top_n_ptr) {
-  RestrictWhitelistConstView whitelist_view;
+  RestrictAllowlistConstView whitelist_view;
   if (restricts_enabled) {
-    whitelist_view = RestrictWhitelistConstView(whitelist_or_null);
+    whitelist_view = RestrictAllowlistConstView(whitelist_or_null);
   }
 
   auto is_whitelisted =

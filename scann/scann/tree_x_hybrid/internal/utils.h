@@ -44,13 +44,18 @@ StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
         leaf_opts[i], leaf_searchers[i]->ExtractSingleMachineFactoryOptions());
     if (leaf_opts[i].hashed_dataset != nullptr) {
       hash_ct++;
-      total_hashed += leaf_opts[i].hashed_dataset->size();
+      size_t cur_size = leaf_opts[i].hashed_dataset->size();
+      total_hashed += cur_size;
       const int cur_dims = leaf_opts[i].hashed_dataset->dimensionality();
-      if (hash_dim == -1)
-        hash_dim = cur_dims;
-      else if (hash_dim != cur_dims)
-        return FailedPreconditionError(
-            "Dimensionality mismatch among hashed leaf datasets");
+
+      if (cur_size > 0) {
+        if (hash_dim == -1)
+          hash_dim = cur_dims;
+        else if (hash_dim != cur_dims)
+          return FailedPreconditionError(absl::StrFormat(
+              "Dimensionality mismatch among hashed leaf datasets: %d vs %d",
+              hash_dim, cur_dims));
+      }
     }
     if (leaf_opts[i].ah_codebook != nullptr) codebook_ct++;
   }

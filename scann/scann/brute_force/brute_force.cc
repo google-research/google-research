@@ -331,17 +331,17 @@ void BruteForceSearcher<T>::FindNeighborsInternal(
     auto it = params.restrict_whitelist()->WhitelistedPointIterator();
     FindNeighborsOneToOneInternal(query, params, &it, top_n_ptr);
   } else {
-    DummyWhitelist whitelist(this->dataset()->size());
-    auto it = whitelist.WhitelistedPointIterator();
+    DummyAllowlist allowlist(this->dataset()->size());
+    auto it = allowlist.AllowlistedPointIterator();
     FindNeighborsOneToOneInternal(query, params, &it, top_n_ptr);
   }
 }
 
 template <typename T>
-template <typename WhitelistIterator, typename TopN>
+template <typename AllowlistIterator, typename TopN>
 void BruteForceSearcher<T>::FindNeighborsOneToOneInternal(
     const DatapointPtr<T>& query, const SearchParameters& params,
-    WhitelistIterator* whitelist_iterator, TopN* top_n_ptr) const {
+    AllowlistIterator* allowlist_iterator, TopN* top_n_ptr) const {
   DCHECK(top_n_ptr);
 
   TopN top_n = std::move(*top_n_ptr);
@@ -351,8 +351,8 @@ void BruteForceSearcher<T>::FindNeighborsOneToOneInternal(
   if (query.IsDense() && this->dataset()->IsDense()) {
     const DenseDataset<T>& dataset =
         *down_cast<const DenseDataset<T>*>(this->dataset());
-    for (; !whitelist_iterator->Done(); whitelist_iterator->Next()) {
-      const DatapointIndex i = whitelist_iterator->value();
+    for (; !allowlist_iterator->Done(); allowlist_iterator->Next()) {
+      const DatapointIndex i = allowlist_iterator->value();
       const DatapointPtr<T> dptr = dataset[i];
       const double dist = distance_->GetDistanceDense(query, dptr);
       if (dist <= min_keep_distance) {
@@ -365,8 +365,8 @@ void BruteForceSearcher<T>::FindNeighborsOneToOneInternal(
   } else if (query.IsSparse() && this->dataset()->IsSparse()) {
     const SparseDataset<T>& dataset =
         *down_cast<const SparseDataset<T>*>(this->dataset());
-    for (; !whitelist_iterator->Done(); whitelist_iterator->Next()) {
-      const DatapointIndex i = whitelist_iterator->value();
+    for (; !allowlist_iterator->Done(); allowlist_iterator->Next()) {
+      const DatapointIndex i = allowlist_iterator->value();
       const DatapointPtr<T> dptr = dataset[i];
       const double dist = distance_->GetDistanceSparse(query, dptr);
       if (dist <= min_keep_distance) {
@@ -377,8 +377,8 @@ void BruteForceSearcher<T>::FindNeighborsOneToOneInternal(
       }
     }
   } else {
-    for (; !whitelist_iterator->Done(); whitelist_iterator->Next()) {
-      const DatapointIndex i = whitelist_iterator->value();
+    for (; !allowlist_iterator->Done(); allowlist_iterator->Next()) {
+      const DatapointIndex i = allowlist_iterator->value();
       const DatapointPtr<T> dptr = (*this->dataset())[i];
       const double dist = distance_->GetDistanceHybrid(query, dptr);
       if (dist <= min_keep_distance) {
