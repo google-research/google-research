@@ -1,0 +1,4 @@
+tensorflow==2.2.0
+tf_agents==0.5.0
+gym==0.13.1
+mujoco-py==2.0.2.10
