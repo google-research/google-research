@@ -1,0 +1,11 @@
+include "base.txt"
+
+env {
+  reward_rules {
+    room13monster = 1000
+  }
+
+  done_rules {
+    room13monster = True
+  }
+}

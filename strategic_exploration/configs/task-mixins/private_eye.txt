@@ -1,0 +1,10 @@
+env {
+  domain = "PrivateEyeNoFrameskip"
+}
+
+policy {
+  success_weight = 1
+  runner {
+    enable_teleporting = False
+  }
+}

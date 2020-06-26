@@ -1,0 +1,94 @@
+# Default config for SystematicExploration
+max_episodes = 1000000000  # Number of episodes to run
+checkpoint_freq = 20000
+max_checkpoints = 2
+video_freq = 1600  # How many episodes between video logging
+text_freq = 800  # How many episodes between text logging
+eval_freq = 800  # How many episodes between evaluation
+eval_video_freq = 4000
+stats_freq = 20   # Number of episodes between updating tensorboard stats
+edge_expansion_coeff = 100
+num_processes = 5  # Number of environment processes to run
+max_worker_reward = 4.0
+
+env {
+  stochastic = False
+  domain = "MontezumaRevengeNoFrameskip"
+  max_episode_len = 100000  # Terminate episode after this many steps
+  ram = True
+  skip = 4
+  max_noops = 0
+}
+
+policy {
+  # dqn or systematic_exploration
+  type = "systematic_exploration"
+  new_reward = False
+  success_weight = 100
+
+  runner {
+    enable_teleporting = True
+    worker_reward_thresh = ${max_worker_reward}
+    explorer {
+      type = "uniform"
+      no_ops = 0
+      exploration_horizon = 50
+    }
+  }
+
+  abstract_graph {
+    type = "abstract"
+    whitelist = False
+    traverse_threshold = 0.95
+    edge_window_size = 100
+    max_edge_degree = 15
+    min_visit_count = 500
+  }
+
+  worker {
+    max_steps = 30
+    max_combined_buffer_size = 500000
+    debug_stats = False
+    max_worker_reward = ${max_worker_reward}
+
+    skill {
+      alternate_observation_type = "pixel-reward-embed-goal"
+      imitation = True
+      max_worker_reward = ${max_worker_reward}
+      adaptive_update = True
+      epsilon_clipping = True
+      dqn_vmax = ${max_worker_reward}
+      dqn_vmin = 0.0
+      policy {
+        type = "dqn"
+        debug_stats = False
+
+        # ram or pixel
+        observation_type = "reward-embed-goal-only"
+
+        # discount factor
+        gamma = 1.0
+
+        # configs for linear schedule of exploration parameter
+        epsilon_schedule {
+          begin = 0.5
+          end = 0.5
+          total_steps = 1000000
+        }
+        test_epsilon = 0
+      }
+
+      buffer {
+        type = "vanilla"
+        max_buffer_size = 5000  # Max size of replay buffer (in experiences)
+      }
+
+      learning_rate=0.001
+      sync_target_freq = 75
+      batch_size = 32
+      min_buffer_size = 50
+      grad_steps_per_update = 1
+      max_grad_norm = 3.0
+    }
+  }
+}
