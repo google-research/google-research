@@ -401,7 +401,7 @@ class IEG(BaseModel):
 
     # end of parallel
     (pr_net_loss, pr_xe_loss, pr_cs_loss, pr_metaloss, pr_metaacc, pr_acc,
-     pr_weight, pr_labels) = self.strategy.experimental_run_v2(
+     pr_weight, pr_labels) = self.strategy.run(
          step_fn,
          args=((next(self.train_input_iterator),
                 next(self.probe_input_iterator)),))
