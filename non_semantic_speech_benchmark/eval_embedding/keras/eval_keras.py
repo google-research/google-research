@@ -62,6 +62,8 @@ def eval_and_report():
 
   writer = tf.summary.create_file_writer(FLAGS.eval_dir)
   num_classes = len(FLAGS.label_list)
+  model = models.get_keras_model(num_classes, FLAGS.ubn, num_clusters=FLAGS.nc)
+  checkpoint = tf.train.Checkpoint(model=model)
 
   for ckpt in tf.train.checkpoints_iterator(
       FLAGS.logdir, timeout=FLAGS.timeout):
@@ -69,9 +71,7 @@ def eval_and_report():
     step = ckpt.split('ckpt-')[-1]
     logging.info('Starting to evaluate step: %s.', step)
 
-    model = models.get_keras_model(
-        num_classes, FLAGS.ubn, num_clusters=FLAGS.nc)
-    model.load_weights(ckpt)
+    checkpoint.restore(ckpt)
 
     logging.info('Loaded weights for eval step: %s.', step)
 

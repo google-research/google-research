@@ -21,8 +21,11 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 from absl.testing import parameterized
 import mock
-import tensorflow.compat.v1 as tf
-from non_semantic_speech_benchmark.eval_embedding.keras import train_keras
+import tensorflow.compat.v2 as tf
+tf.compat.v2.enable_v2_behavior()
+assert tf.executing_eagerly()
+
+from non_semantic_speech_benchmark.eval_embedding.keras import train_keras  # pylint: disable=g-import-not-at-top
 
 
 def _get_data(*args, **kwargs):
@@ -43,18 +46,28 @@ class TrainKerasTest(parameterized.TestCase):
       {'num_clusters': 0},
       {'num_clusters': 4},
   )
-  def test_make_graph(self, num_clusters):
-    with tf.Graph().as_default():
-      emb = tf.zeros([3, 5, 8])
-      y_onehot = tf.one_hot([0, 1, 2], 4)
-      loss, train_op = train_keras.make_graph(
-          emb, y_onehot, ubn=True, nc=num_clusters)
-      with tf.train.MonitoredSession() as sess:
-        sess.run([loss, train_op])
+  def test_get_model(self, num_clusters):
+    num_classes = 4
+    emb = tf.zeros([3, 5, 8])
+    y_onehot = tf.one_hot([0, 1, 2], num_classes)
 
-  @mock.patch.object(
-      train_keras.get_data, 'get_data',
-      new=_get_data)
+    model = train_keras.get_model(num_classes, ubn=True, nc=num_clusters)
+
+    loss_obj = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+    opt = tf.keras.optimizers.Adam()
+    train_loss = tf.keras.metrics.Mean()
+    train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
+    summary_writer = tf.summary.create_file_writer(
+        absltest.get_default_test_tmpdir())
+    train_step = train_keras.get_train_step(
+        model, loss_obj, opt, train_loss, train_accuracy, summary_writer)
+    gstep = opt.iterations
+    train_step(emb, y_onehot, gstep)
+    self.assertEqual(1, gstep)
+    train_step(emb, y_onehot, gstep)
+    self.assertEqual(2, gstep)
+
+  @mock.patch.object(train_keras.get_data, 'get_data', new=_get_data)
   @flagsaver.flagsaver
   def test_full_flow(self):
     flags.FLAGS.file_pattern = 'dummy'

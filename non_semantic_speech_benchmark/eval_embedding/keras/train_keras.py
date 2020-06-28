@@ -16,11 +16,12 @@
 # Lint as: python3
 """Trains on embeddings using Keras."""
 
-import os
 from absl import app
 from absl import flags
 
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v2 as tf
+tf.compat.v2.enable_v2_behavior()
+assert tf.executing_eagerly()
 
 from non_semantic_speech_benchmark.eval_embedding.keras import get_data
 from non_semantic_speech_benchmark.eval_embedding.keras import models
@@ -56,97 +57,95 @@ def train_and_report(debug=False):
   tf.logging.info('Logdir: %s', FLAGS.logdir)
   tf.logging.info('Batch size: %s', FLAGS.tbs)
 
-  with tf.Graph().as_default():
-    reader = tf.data.TFRecordDataset
-    ds = get_data.get_data(
-        file_pattern=FLAGS.file_pattern,
-        reader=reader,
-        embedding_name=FLAGS.en,
-        embedding_dim=FLAGS.ed,
-        preaveraged=False,
-        label_name=FLAGS.label_name,
-        label_list=FLAGS.label_list,
-        batch_size=FLAGS.tbs,
-        loop_forever=True,
-        shuffle=True,
-        shuffle_buffer_size=FLAGS.shuffle_buffer_size)
-    emb, y_onehot = ds.make_one_shot_iterator().get_next()
+  reader = tf.data.TFRecordDataset
+  ds = get_data.get_data(
+      file_pattern=FLAGS.file_pattern,
+      reader=reader,
+      embedding_name=FLAGS.en,
+      embedding_dim=FLAGS.ed,
+      preaveraged=False,
+      label_name=FLAGS.label_name,
+      label_list=FLAGS.label_list,
+      batch_size=FLAGS.tbs,
+      loop_forever=True,
+      shuffle=True,
+      shuffle_buffer_size=FLAGS.shuffle_buffer_size)
+
+  # Create model, loss, and other objects.
+  y_onehot_spec = ds.element_spec[1]
+  assert len(y_onehot_spec.shape) == 2
+  num_classes = y_onehot_spec.shape[1]
+  model = get_model(num_classes, ubn=FLAGS.ubn, nc=FLAGS.nc)
+  # Define loss and optimizer hyparameters.
+  loss_obj = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+  opt = tf.keras.optimizers.Adam(
+      learning_rate=FLAGS.lr, beta_1=0.9, beta_2=0.999, epsilon=1e-8)
+  # Add additional metrics to track.
+  train_loss = tf.keras.metrics.Mean(name='train_loss')
+  train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
+      name='train_accuracy')
+  summary_writer = tf.summary.create_file_writer(FLAGS.logdir)
+  train_step = get_train_step(
+      model, loss_obj, opt, train_loss, train_accuracy, summary_writer)
+  gstep = opt.iterations
+  checkpoint = tf.train.Checkpoint(model=model, gstep=gstep)
+  manager = tf.train.CheckpointManager(
+      checkpoint, FLAGS.logdir, max_to_keep=None)
+  tf.logging.info('Checkpoint prefix: %s', FLAGS.logdir)
+  checkpoint.restore(manager.latest_checkpoint)
+
+  if debug: return
+  for emb, y_onehot in ds:
     emb.shape.assert_has_rank(3)
     assert emb.shape[2] == FLAGS.ed
     y_onehot.shape.assert_has_rank(2)
     assert y_onehot.shape[1] == len(FLAGS.label_list)
 
-    # Loss and train.
-    loss, train_op = make_graph(emb, y_onehot, FLAGS.ubn, FLAGS.nc)
+    train_step(emb, y_onehot, gstep)
 
-    # Run training.
-    train_ops_to_run = {
-        'train_loss': loss,
-        'train_op': train_op,
-        'tensorboard_summary': tf.summary.merge_all()
-    }
-    if debug: return
-    train_loop(train_ops_to_run)
-    tf.logging.info('Finished training.')
+    # Optional print output and save model.
+    if gstep % 10 == 0:
+      tf.logging.info('step: %i, train loss: %f, train accuracy: %f', gstep,
+                      train_loss.result(), train_accuracy.result())
+    if gstep % FLAGS.measurement_store_interval == 0:
+      manager.save(checkpoint_number=gstep)
 
-
-def train_loop(train_ops_to_run):
-  """Simple train loop."""
-  summary_writer = None
-  assert FLAGS.logdir
-  summary_writer = tf.summary.FileWriter(FLAGS.logdir)
-  saver = tf.train.Saver(max_to_keep=None)
-  save_fn = os.path.join(FLAGS.logdir, 'ckpt')
-
-  # Gstep must be in TF so that reloads work properly.
-  assert 'gstep' not in train_ops_to_run
-  train_ops_to_run['gstep'] = tf.train.get_or_create_global_step()
-  gstep = 0
-
-  with tf.train.SingularMonitoredSession(
-      hooks=[tf.train.StepCounterHook(summary_writer=summary_writer)],
-      ) as sess:
-    while gstep < FLAGS.training_steps:
-      train_values = sess.run(train_ops_to_run)
-      # Report objective value periodically.
-      # Step must be in TF so it deals with job restarts correctly.
-      gstep = train_values['gstep']
-      if gstep % 10 == 0:
-        tf.logging.info('{{\'step\': {}, \'train_loss\': {}}}'.format(
-            gstep, train_values['train_loss']))
-      if gstep % FLAGS.measurement_store_interval == 0:
-        tensorboard_summary = train_values['tensorboard_summary']
-        summary_writer.add_summary(tensorboard_summary, gstep)
-        saver.save(sess.raw_session(), save_fn, global_step=gstep)
+  manager.save(checkpoint_number=gstep)
+  tf.logging.info('Finished training.')
 
 
-def make_graph(emb, y_onehot, ubn=None, nc=None):
-  """Make a graph on data."""
-  num_classes = y_onehot.shape[1]
+def get_train_step(model, loss_obj, opt, train_loss, train_accuracy,
+                   summary_writer):
+  """Returns a function for train step."""
+  @tf.function
+  def train_step(emb, y_onehot, step):
+    with tf.GradientTape() as tape:
+      logits = model(emb, training=True)
+      assert model.trainable_variables
+      logits.shape.assert_is_compatible_with(y_onehot.shape)
+      loss_value = loss_obj(y_true=y_onehot, y_pred=logits)
+    # Grads and optimizer.
+    grads = tape.gradient(loss_value, model.trainable_variables)
+    opt.apply_gradients(zip(grads, model.trainable_variables))
+
+    # Record loss.
+    train_loss.update_state(loss_value)
+    train_accuracy.update_state(tf.math.argmax(y_onehot, axis=1), logits)
+
+    # Summaries.
+    with summary_writer.as_default():
+      tf.summary.scalar('xent_loss', loss_value, step=step)
+      tf.summary.scalar('xent_loss_smoothed', train_loss.result(), step=step)
+      tf.summary.scalar('accuracy', train_accuracy.result(), step=step)
+
+  return train_step
+
+
+def get_model(num_classes, ubn=None, nc=None):
   model = models.get_keras_model(num_classes, ubn, num_clusters=nc)
-  logits = model(emb, training=True)
-  logits.shape.assert_is_compatible_with(y_onehot.shape)
   for u_op in model.updates:
     tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, u_op)
-
-  # Loss.
-  loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)(
-      y_true=y_onehot,
-      y_pred=logits)
-  tf.summary.scalar('xent_loss', loss)
-
-  # Gradient.
-  opt = tf.train.AdamOptimizer(
-      learning_rate=FLAGS.lr, beta1=0.9, beta2=0.999, epsilon=1e-8)
-  update_ops = set(tf.get_collection(tf.GraphKeys.UPDATE_OPS))
-  with tf.control_dependencies(update_ops):
-    total_loss = tf.identity(loss)
-  var_list = tf.trainable_variables()
-  assert var_list
-  train_op = opt.minimize(total_loss, tf.train.get_or_create_global_step(),
-                          var_list)
-
-  return total_loss, train_op
+  return model
 
 
 def main(unused_argv):
