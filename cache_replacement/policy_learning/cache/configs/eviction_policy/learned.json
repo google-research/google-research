@@ -1,0 +1,10 @@
+{
+  "eviction_policy": {
+    "policy_type": "greedy",
+    "scorer": {
+        "type": "learned",
+        "config_path": "/path/to/experiment/model_config.json",
+        "checkpoint": "/path/to/experiment/checkpoints/0.ckpt"
+    }
+  }
+}

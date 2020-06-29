@@ -1,0 +1,22 @@
+{
+  "eviction_policy": {
+    "policy_type": "mixture",
+    "subpolicies": [
+      {
+        "policy_type": "greedy",
+        "scorer": {
+            "type": "belady"
+        }
+      },
+      {
+        "policy_type": "greedy",
+        "scorer": {
+            "type": "learned",
+            "config_path": "/path/to/experiment/model_config.json",
+            "checkpoint": "/path/to/experiment/checkpoints/0.ckpt"
+        }
+      }
+    ],
+    "weights": [0.7, 0.3]
+  }
+}

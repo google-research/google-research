@@ -1,0 +1,8 @@
+{
+  "eviction_policy": {
+    "policy_type": "greedy",
+    "scorer": {
+        "type": "belady"
+    }
+  }
+}

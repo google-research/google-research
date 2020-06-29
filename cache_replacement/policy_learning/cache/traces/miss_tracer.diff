@@ -1,0 +1,238 @@
+diff --git a/clients/drcachesim/CMakeLists.txt b/clients/drcachesim/CMakeLists.txt
+index d161dab4..5a0547cc 100644
+--- a/clients/drcachesim/CMakeLists.txt
++++ b/clients/drcachesim/CMakeLists.txt
+@@ -102,6 +102,7 @@ add_exported_library(drmemtrace_simulator STATIC
+   simulator/cache_lru.cpp
+   simulator/cache_fifo.cpp
+   simulator/cache_miss_analyzer.cpp
++  simulator/cache_miss_tracer.cpp
+   simulator/caching_device.cpp
+   simulator/caching_device_stats.cpp
+   simulator/cache_stats.cpp
+diff --git a/clients/drcachesim/common/options.h b/clients/drcachesim/common/options.h
+index 112e83d1..bec77758 100644
+--- a/clients/drcachesim/common/options.h
++++ b/clients/drcachesim/common/options.h
+@@ -43,6 +43,7 @@
+ #define PREFETCH_POLICY_NONE "none"
+ #define CPU_CACHE "cache"
+ #define MISS_ANALYZER "miss_analyzer"
++#define MISS_TRACER "miss_tracer"
+ #define TLB "TLB"
+ #define HISTOGRAM "histogram"
+ #define REUSE_DIST "reuse_distance"
+diff --git a/clients/drcachesim/simulator/analyzer_interface.cpp b/clients/drcachesim/simulator/analyzer_interface.cpp
+index 46756606..30703891 100644
+--- a/clients/drcachesim/simulator/analyzer_interface.cpp
++++ b/clients/drcachesim/simulator/analyzer_interface.cpp
+@@ -129,6 +129,9 @@ drmemtrace_analysis_tool_create()
+         return cache_miss_analyzer_create(*knobs, op_miss_count_threshold.get_value(),
+                                           op_miss_frac_threshold.get_value(),
+                                           op_confidence_threshold.get_value());
++    } else if (op_simulator_type.get_value() == MISS_TRACER) {
++        cache_simulator_knobs_t *knobs = get_cache_simulator_knobs();
++        return cache_miss_tracer_create(*knobs);
+     } else if (op_simulator_type.get_value() == TLB) {
+         tlb_simulator_knobs_t knobs;
+         knobs.num_cores = op_num_cores.get_value();
+diff --git a/clients/drcachesim/simulator/cache_miss_tracer.cpp b/clients/drcachesim/simulator/cache_miss_tracer.cpp
+new file mode 100644
+index 00000000..5ee52fa0
+--- /dev/null
++++ b/clients/drcachesim/simulator/cache_miss_tracer.cpp
+@@ -0,0 +1,94 @@
++// NOTE: The following is the original DynamoRIO license notice. Please refer to
++// the LICENSES file in the repository for the license applied to the changes
++// made in this file on top of the original DynamoRIO.
++
++/* **********************************************************
++ * Copyright (c) 2015-2020 Google, LLC  All rights reserved.
++ * **********************************************************/
++
++/*
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * * Redistributions of source code must retain the above copyright notice,
++ *   this list of conditions and the following disclaimer.
++ *
++ * * Redistributions in binary form must reproduce the above copyright notice,
++ *   this list of conditions and the following disclaimer in the documentation
++ *   and/or other materials provided with the distribution.
++ *
++ * * Neither the name of Google, Inc. nor the names of its contributors may be
++ *   used to endorse or promote products derived from this software without
++ *   specific prior written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED. IN NO EVENT SHALL GOOGLE, LLC OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
++ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
++ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
++ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
++ * DAMAGE.
++ */
++
++#include "cache_miss_tracer.h"
++
++#include <iostream>
++#include <stdint.h>
++
++analysis_tool_t *
++cache_miss_tracer_create(const cache_simulator_knobs_t &knobs)
++{
++    return new cache_miss_tracer_t(knobs);
++}
++
++cache_miss_tracer_stats_t::cache_miss_tracer_stats_t(FILE *trace_file,
++                                                     bool warmup_enabled)
++    : cache_stats_t("", warmup_enabled, false)
++    , trace_file_(trace_file)
++{
++    // Setting this variable to true ensures that the dump_miss() function below
++    // gets called during cache simulation on a cache miss.
++    dump_misses_ = true;
++}
++
++void
++cache_miss_tracer_stats_t::reset()
++{
++    cache_stats_t::reset();
++}
++
++void
++cache_miss_tracer_stats_t::dump_miss(const memref_t &memref)
++{
++    const addr_t pc = memref.data.pc;
++    const addr_t addr = memref.data.addr;
++    fprintf(trace_file_, "0x%lx, 0x%lx\n", pc, addr);
++}
++
++cache_miss_tracer_t::cache_miss_tracer_t(const cache_simulator_knobs_t &knobs)
++    : cache_simulator_t(knobs)
++{
++    if (!success_) {
++        return;
++    }
++    bool warmup_enabled_ = (knobs.warmup_refs > 0 || knobs.warmup_fraction > 0.0);
++
++    if (!knobs.LL_miss_file.empty()) {
++        trace_file_ = fopen(knobs.LL_miss_file.c_str(), "w");
++    }
++    if (trace_file_) {
++        delete llcaches_["LL"]->get_stats();
++        ll_stats_ = new cache_miss_tracer_stats_t(trace_file_, warmup_enabled_);
++        llcaches_["LL"]->set_stats(ll_stats_);
++    }
++}
++
++cache_miss_tracer_t::~cache_miss_tracer_t() {
++    if (trace_file_) {
++        fclose(trace_file_);
++    }
++}
+diff --git a/clients/drcachesim/simulator/cache_miss_tracer.h b/clients/drcachesim/simulator/cache_miss_tracer.h
+new file mode 100644
+index 00000000..72493a71
+--- /dev/null
++++ b/clients/drcachesim/simulator/cache_miss_tracer.h
+@@ -0,0 +1,82 @@
++// NOTE: The following is the original DynamoRIO license notice. Please refer to
++// the LICENSES file in the repository for the license applied to the changes
++// made in this file on top of the original DynamoRIO.
++
++/* **********************************************************
++ * Copyright (c) 2015-2020 Google, LLC  All rights reserved.
++ * **********************************************************/
++
++/*
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * * Redistributions of source code must retain the above copyright notice,
++ *   this list of conditions and the following disclaimer.
++ *
++ * * Redistributions in binary form must reproduce the above copyright notice,
++ *   this list of conditions and the following disclaimer in the documentation
++ *   and/or other materials provided with the distribution.
++ *
++ * * Neither the name of Google, Inc. nor the names of its contributors may be
++ *   used to endorse or promote products derived from this software without
++ *   specific prior written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED. IN NO EVENT SHALL GOOGLE, LLC OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
++ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
++ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
++ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
++ * DAMAGE.
++ */
++
++#ifndef _CACHE_MISS_TRACER_H_
++#define _CACHE_MISS_TRACER_H_ 1
++
++#include <cstdint>
++#include <string>
++#include <unordered_map>
++#include <vector>
++
++#include "cache_simulator.h"
++#include "cache_stats.h"
++#include "../common/memref.h"
++
++class cache_miss_tracer_stats_t : public cache_stats_t {
++public:
++    cache_miss_tracer_stats_t(FILE *trace_file, bool warmup_enabled = false);
++
++    cache_miss_tracer_stats_t &
++    operator=(const cache_miss_tracer_stats_t &)
++    {
++        return *this;
++    }
++
++    void
++    reset() override;
++
++protected:
++    void
++    dump_miss(const memref_t &memref) override;
++
++private:
++    FILE *trace_file_;
++};
++
++class cache_miss_tracer_t : public cache_simulator_t {
++public:
++    cache_miss_tracer_t(const cache_simulator_knobs_t &knobs);
++
++    ~cache_miss_tracer_t() override;
++
++private:
++    cache_miss_tracer_stats_t *ll_stats_;
++
++    FILE *trace_file_ = NULL;
++};
++
++#endif /* _CACHE_MISS_ANALYZER_H_ */
+diff --git a/clients/drcachesim/simulator/cache_simulator_create.h b/clients/drcachesim/simulator/cache_simulator_create.h
+index 679bcb3c..5f8a8864 100644
+--- a/clients/drcachesim/simulator/cache_simulator_create.h
++++ b/clients/drcachesim/simulator/cache_simulator_create.h
+@@ -107,4 +107,7 @@ cache_miss_analyzer_create(const cache_simulator_knobs_t &knobs,
+                            unsigned int miss_count_threshold, double miss_frac_threshold,
+                            double confidence_threshold);
+ 
++analysis_tool_t *
++cache_miss_tracer_create(const cache_simulator_knobs_t &knobs);
++
+ #endif /* _CACHE_SIMULATOR_CREATE_H_ */

@@ -1,0 +1,5 @@
+{
+  "cache_line_size": 64,
+  "capacity": 32768,
+  "associativity": 16
+}
