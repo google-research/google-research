@@ -52,6 +52,7 @@ env:
     - PROJECT="non_semantic_speech_benchmark"
     - PROJECT="norml"
     - PROJECT="opt_list"
+    - PROJECT="protein_lm"
     - PROJECT="probabilistic_vqvae"
     - PROJECT="property_linking"
     - PROJECT="protoattend"
