@@ -1,0 +1,5 @@
+gin-config >= 0.3.0
+pandas >= 1.0.5
+attrs >= 19.3.0
+jax >= 0.1.71
+jaxlib >= 0.1.48
