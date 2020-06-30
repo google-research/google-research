@@ -190,6 +190,7 @@ class SquadExample(object):
                qas_id,
                question_text,
                doc_tokens,
+               answers,
                orig_answer_text=None,
                start_position=None,
                end_position=None,
@@ -197,6 +198,7 @@ class SquadExample(object):
     self.qas_id = qas_id
     self.question_text = question_text
     self.doc_tokens = doc_tokens
+    self.answers = answers
     self.orig_answer_text = orig_answer_text
     self.start_position = start_position
     self.end_position = end_position
@@ -225,6 +227,7 @@ class InputFeatures(object):
 
   def __init__(self,
                unique_id,
+               qas_id,
                example_index,
                doc_span_index,
                tokens,
@@ -237,6 +240,7 @@ class InputFeatures(object):
                end_position=None,
                is_impossible=None):
     self.unique_id = unique_id
+    self.qas_id = qas_id
     self.example_index = example_index
     self.doc_span_index = doc_span_index
     self.tokens = tokens
@@ -281,6 +285,9 @@ def read_squad_examples(input_file, is_training):
       for qa in paragraph["qas"]:
         qas_id = qa["id"]
         question_text = qa["question"]
+        answers = []
+        for answer in qa["answers"]:
+          answers.append(answer["text"])
         start_position = None
         end_position = None
         orig_answer_text = None
@@ -323,6 +330,7 @@ def read_squad_examples(input_file, is_training):
             qas_id=qas_id,
             question_text=question_text,
             doc_tokens=doc_tokens,
+            answers=answers,
             orig_answer_text=orig_answer_text,
             start_position=start_position,
             end_position=end_position,
@@ -483,6 +491,7 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length,
 
       feature = InputFeatures(
           unique_id=unique_id,
+          qas_id=example.qas_id,
           example_index=example_index,
           doc_span_index=doc_span_index,
           tokens=tokens,
