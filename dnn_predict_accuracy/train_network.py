@@ -211,6 +211,30 @@ def build_cnn(n_layers, n_hidden, n_outputs, dropout_rate, activation, stride,
   return model
 
 
+def build_fcn(n_layers, n_hidden, n_outputs, dropout_rate, activation,
+              w_regularizer, w_init, b_init, use_batchnorm):
+  """Fully Connected deep neural network."""
+  model = tf.keras.Sequential()
+  model.add(tf.keras.layers.Flatten())
+  for _ in range(n_layers):
+    model.add(
+        tf.keras.layers.Dense(
+            n_hidden,
+            activation=activation,
+            kernel_regularizer=w_regularizer,
+            kernel_initializer=w_init,
+            bias_initializer=b_init))
+    if dropout_rate > 0.0:
+      model.add(tf.keras.layers.Dropout(dropout_rate))
+    if use_batchnorm:
+      model.add(tf.keras.layers.BatchNormalization())
+  model.add(
+      tf.keras.layers.Dense(
+          n_outputs,
+          kernel_regularizer=w_regularizer,
+          kernel_initializer=w_init,
+          bias_initializer=b_init))
+  return model
 
 
 def eval_model(model, data_tr, data_te, info, logger, cur_epoch, workdir):
@@ -272,9 +296,9 @@ def run(workdir,
       model = build_cnn(n_layers, n_hiddens, n_outputs, dropout_rate,
                         activation, cnn_stride, w_reg, w_init, b_init,
                         architecture == 'cnnbn')
-    elif architecture == 'nin':
-      model = build_nin(n_hiddens, n_outputs, dropout_rate, activation, w_reg,
-                        w_init, b_init)
+    elif architecture == 'fcn':
+      model = build_fcn(n_layers, n_hiddens, n_outputs, dropout_rate,
+                        activation, w_reg, w_init, b_init, False)
     else:
       assert False, 'Unknown architecture: ' % architecture
 
