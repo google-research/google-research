@@ -69,6 +69,8 @@ class BaseParserTest(tf.test.TestCase):
                      params.frequency_masks_number)
     self.assertEqual(FLAGS.frequency_mask_max_size,
                      params.frequency_mask_max_size)
+    self.assertEqual(FLAGS.return_softmax,
+                     params.return_softmax)
 
 
 if __name__ == '__main__':

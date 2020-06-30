@@ -234,6 +234,8 @@ class TrainTest(tf.test.TestCase, parameterized.TestCase):
             2,
         'frequency_mask_max_size':
             5,
+        'return_softmax':
+            0,
     }
     return DictStruct(**dummy_flags)
 

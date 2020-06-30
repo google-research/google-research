@@ -229,4 +229,6 @@ def model(flags):
           net)
 
   net = tf.reshape(net, shape=(-1, net.shape[3]))
+  if flags.return_softmax:
+    net = tf.keras.layers.Activation('softmax')(net)
   return tf.keras.Model(input_audio, net)

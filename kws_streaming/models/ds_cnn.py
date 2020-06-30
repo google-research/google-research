@@ -227,4 +227,6 @@ def model(flags):
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)
 
   net = tf.keras.layers.Dense(units=flags.label_count)(net)
+  if flags.return_softmax:
+    net = tf.keras.layers.Activation('softmax')(net)
   return tf.keras.Model(input_audio, net)

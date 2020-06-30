@@ -66,6 +66,7 @@ class Params(object):
     self.optimizer_epsilon = 1e-08
     self.resample = 0.15
     self.volume_resample = 0.0
+    self.return_softmax = 0
 
 
 def att_mh_rnn_params():

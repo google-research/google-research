@@ -370,5 +370,12 @@ def base_parser():
       default=5,
       help='SpecAugment parameter frequency_mask_max_size.',
   )
-
+  parser.add_argument(
+      '--return_softmax',
+      type=int,
+      default=0,
+      help='Use softmax in the model: '
+      ' 0 for SparseCategoricalCrossentropy '
+      ' 1 for CategoricalCrossentropy '
+  )
   return parser

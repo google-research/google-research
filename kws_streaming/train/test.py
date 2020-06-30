@@ -46,6 +46,8 @@ def tf_non_stream_model_accuracy(
         To emulate sampling effect we use time_shift_samples.
       weights_name: file name with model weights
       accuracy_name: file name for storing accuracy in path + accuracy_name
+  Returns:
+    accuracy
   """
   tf.reset_default_graph()
   config = tf.ConfigProto()
@@ -94,6 +96,7 @@ def tf_non_stream_model_accuracy(
 
   with open(os.path.join(path, accuracy_name), 'wt') as fd:
     fd.write('%f on set_size %d' % (total_accuracy * 100, set_size))
+  return total_accuracy * 100
 
 
 def tf_stream_state_internal_model_accuracy(
@@ -114,6 +117,8 @@ def tf_stream_state_internal_model_accuracy(
       max_test_samples: max number of test samples. In this mode model is slow
         with TF because of batch size 1, so accuracy is computed on subset of
         testing data
+  Returns:
+    accuracy
   """
   tf.reset_default_graph()
   config = tf.ConfigProto()
@@ -198,6 +203,7 @@ def tf_stream_state_internal_model_accuracy(
 
   with open(os.path.join(path, accuracy_name), 'wt') as fd:
     fd.write('%f on set_size %d' % (total_accuracy * 100, set_size))
+  return total_accuracy * 100
 
 
 def tf_stream_state_external_model_accuracy(
@@ -221,6 +227,8 @@ def tf_stream_state_external_model_accuracy(
       max_test_samples: max number of test samples. In this mode model is slow
         with TF because of batch size 1, so accuracy is computed on subset of
         testing data
+  Returns:
+    accuracy
   """
   tf.reset_default_graph()
   config = tf.ConfigProto()
@@ -331,6 +339,7 @@ def tf_stream_state_external_model_accuracy(
 
   with open(os.path.join(path, accuracy_name), 'wt') as fd:
     fd.write('%f on set_size %d' % (total_accuracy * 100, set_size))
+  return total_accuracy * 100
 
 
 def tflite_stream_state_external_model_accuracy(
@@ -350,6 +359,8 @@ def tflite_stream_state_external_model_accuracy(
         If True - then it is non streaming testing environment: state will be
           reseted in the beginning of every test sequence and will not be
           transferred to another one (as it is done in real streaming).
+  Returns:
+    accuracy
   """
   tf.reset_default_graph()
   config = tf.ConfigProto()
@@ -467,6 +478,7 @@ def tflite_stream_state_external_model_accuracy(
 
   with open(os.path.join(path, accuracy_name), 'wt') as fd:
     fd.write('%f on set_size %d' % (total_accuracy * 100, set_size))
+  return total_accuracy * 100
 
 
 def tflite_non_stream_model_accuracy(
@@ -482,6 +494,8 @@ def tflite_non_stream_model_accuracy(
       folder: folder name where model is located
       tflite_model_name: file name with tflite model
       accuracy_name: file name for storing accuracy in path + accuracy_name
+  Returns:
+    accuracy
   """
   tf.reset_default_graph()
   config = tf.ConfigProto()
@@ -538,6 +552,7 @@ def tflite_non_stream_model_accuracy(
 
   with open(os.path.join(path, accuracy_name), 'wt') as fd:
     fd.write('%f on set_size %d' % (total_accuracy * 100, set_size))
+  return total_accuracy * 100
 
 
 def convert_model_tflite(flags,
