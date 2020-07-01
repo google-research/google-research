@@ -27,9 +27,10 @@ from six.moves import range
 from protein_lm import seq_utils
 from protein_lm import utils
 
-
 BOS_TOKEN = '<'  # Beginning of sequence token.
 EOS_TOKEN = '>'  # End of sequence token.
+PAD_TOKEN = '_'  # End of sequence token.
+MASK_TOKEN = '*'  # End of sequence token.
 SEP_TOKEN = '|'  # A special token for separating tokens for serialization.
 
 
@@ -41,8 +42,12 @@ class Vocabulary(object):
                tokens,
                include_bos=False,
                include_eos=False,
+               include_pad=False,
+               include_mask=False,
                bos_token=BOS_TOKEN,
-               eos_token=EOS_TOKEN):
+               eos_token=EOS_TOKEN,
+               pad_token=PAD_TOKEN,
+               mask_token=MASK_TOKEN):
     """A token vocabulary.
 
     Args:
@@ -53,10 +58,18 @@ class Vocabulary(object):
         beginning of a sequence.
       include_eos: Whether to append `eos_token` to `tokens` that marks the
         end of a sequence.
+      include_pad: Whether to append `pad_token` to `tokens` to marks past end
+        of sequence.
+      include_mask: Whether to append `mask_token` to `tokens` to mark masked
+        positions.
       bos_token: A special token than marks the beginning of sequence.
         Ignored if `include_bos == False`.
       eos_token: A special token than marks the end of sequence.
         Ignored if `include_eos == False`.
+      pad_token: A special token than marks past the end of sequence.
+        Ignored if `include_pad == False`.
+      mask_token: A special token than marks MASKED positions for e.g. BERT.
+        Ignored if `include_mask == False`.
     """
     if not isinstance(tokens, collections.Iterable):
       tokens = range(tokens)
@@ -65,6 +78,10 @@ class Vocabulary(object):
       tokens.append(bos_token)
     if include_eos:
       tokens.append(eos_token)
+    if include_pad:
+      tokens.append(pad_token)
+    if include_mask:
+      tokens.append(mask_token)
     if len(set(tokens)) != len(tokens):
       raise ValueError('tokens not unique!')
     special_tokens = sorted(set(tokens) & set([SEP_TOKEN]))
@@ -80,6 +97,8 @@ class Vocabulary(object):
         zip(self._tokens, self._token_ids))
     self._bos_token = bos_token if include_bos else None
     self._eos_token = eos_token if include_eos else None
+    self._mask_token = mask_token if include_mask else None
+    self._pad_token = pad_token if include_pad else None
 
   def __len__(self):
     return len(self._tokens)
@@ -105,6 +124,18 @@ class Vocabulary(object):
     """Returns the index of the EOS token or None if unspecified."""
     return (None if self._eos_token is None else
             self._token_to_id[self._eos_token])
+
+  @property
+  def mask(self):
+    """Returns the index of the MASK token or None if unspecified."""
+    return (None if self._mask_token is None else
+            self._token_to_id[self._mask_token])
+
+  @property
+  def pad(self):
+    """Returns the index of the PAD token or None if unspecified."""
+    return (None
+            if self._pad_token is None else self._token_to_id[self._pad_token])
 
   def is_valid(self, value):
     """Tests if a value is a valid token id and returns a bool."""

@@ -35,7 +35,7 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
     domain = domains.FixedLengthDiscreteDomain(length=4, vocab_size=2)
     lm = lm_cls(domain=domain)
     count = utils.param_count(lm)
-    self.assertEqual(13091, count)
+    self.assertEqual(13059, count)
 
     # Check these methods run.
     utils.param_pprint(lm)

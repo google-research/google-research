@@ -16,6 +16,7 @@
 # Lint as: python3
 """Functions related to sampling from a model."""
 
+from absl import logging
 from flax.training import common_utils
 import jax
 from jax import lax
@@ -117,8 +118,10 @@ def temperature_sample(prompt,
                        repetition_penalty_normalize=False,
                        max_decode_len=512,
                        rng=None,
-                       bos_token=None,
-                       eos_token=None):
+                       eos_token=None,
+                       pad_token=None,
+                       masked_tokens=None,
+                       use_lax_while_loop=True):
   """Temperature sampling for sequence models.
 
   Args:
@@ -142,9 +145,13 @@ def temperature_sample(prompt,
       that all logits have the same sign.
     max_decode_len: An int indicating the maximum sequence length.
     rng: A jax.random.PRNGKey.
-    bos_token: An int token id. If not None, we mask this token before sampling.
     eos_token: An int token id. If not None, we stop decoding a sequence after
-      first instance.
+      the first instance.
+    pad_token: An int token used to pad sequences after the eos token. If none,
+      we set pad_token to eos_token.
+    masked_tokens: A list of int token id. If not None, we mask these token
+      before sampling.
+    use_lax_while_loop: A bool; whether to use a lax while loop or python loop.
 
   Returns:
     An array of shape (batch_size, max_decode_len) containing sequences. If
@@ -152,6 +159,9 @@ def temperature_sample(prompt,
   """
   batch_size = prompt.shape[0]
   eos_token = eos_token if eos_token is not None else -1
+  if pad_token is None:
+    logging.warn('Pad token is not provided. Using the EOS token.')
+  pad_token = pad_token if pad_token is not None else eos_token
   end_marker = jnp.array(eos_token)
   temperature = jnp.array(temperature)
 
@@ -169,11 +179,14 @@ def temperature_sample(prompt,
   token0 = sequences0[:, 0:1]
 
   # Sampling loop state is stored in a simple tuple.
-  sampling_loop_init_state = (i0, sequences0, init_cache, token0, ended0, rng0)
+  tokens_to_logits_state = None
+
+  sampling_loop_init_state = (i0, sequences0, init_cache, token0, ended0, rng0,
+                              tokens_to_logits_state)
 
   def sampling_loop_cond_fn(state):
     """Sampling loop termination condition."""
-    (i, _, _, _, ended, _) = state
+    (i, _, _, _, ended, _, _) = state
     # Have we reached max decoding length?
     not_at_end = (i <= max_decode_len)
     # Have all sampled sequences reached an end marker?
@@ -182,21 +195,23 @@ def temperature_sample(prompt,
 
   def sampling_loop_body_fn(state):
     """Sampling loop state update."""
-    i, sequences, cache, cur_token, ended, rng = state
+    i, sequences, cache, cur_token, ended, rng, tokens_to_logits_state = state
 
     # Split RNG for sampling.
     rng1, rng2 = random.split(rng)
 
     # Call fast-decoder model on current tokens to get raw next-position logits.
-    logits, new_cache = tokens_to_logits(cur_token, cache)
+    logits, new_cache, new_tokens_to_logits_state = tokens_to_logits(
+        cur_token, cache, internal_state=tokens_to_logits_state)
     logits = logits / temperature
 
     # Mask out the BOS token.
-    if bos_token is not None:
+    if masked_tokens is not None:
       mask = common_utils.onehot(
-          jnp.array([bos_token]),
+          jnp.array(masked_tokens),
           num_classes=logits.shape[-1],
           on_value=LARGE_NEGATIVE)
+      mask = jnp.sum(mask, axis=0)[None, :]  # Combine multiple masks together
       logits = logits + mask
 
     # Apply the repetition penalty.
@@ -226,21 +241,27 @@ def temperature_sample(prompt,
     next_token = next_token[:, None]
     next_token_or_endpad = jnp.where(ended,
                                      jnp.full_like(next_token,
-                                                   eos_token), next_token)
+                                                   pad_token), next_token)
     ended |= (next_token_or_endpad == end_marker)
     # Add current sampled tokens to recorded sequences.
     new_sequences = lax.dynamic_update_slice(sequences, next_token_or_endpad,
                                              (0, i + 1))
-    return (i + 1, new_sequences, new_cache, next_token_or_endpad, ended, rng2)
+    return (i + 1, new_sequences, new_cache, next_token_or_endpad, ended, rng2,
+            new_tokens_to_logits_state)
 
   # Run sampling loop and collect final state.
-  final_state = lax.while_loop(sampling_loop_cond_fn, sampling_loop_body_fn,
-                               sampling_loop_init_state)
+  if use_lax_while_loop:
+    final_state = lax.while_loop(sampling_loop_cond_fn, sampling_loop_body_fn,
+                                 sampling_loop_init_state)
+  else:
+    final_state = sampling_loop_init_state
+    while sampling_loop_cond_fn:
+      final_state = sampling_loop_body_fn(final_state)
 
   final_sequences = final_state[1]
   # If generation ended early (all sampled sequences reached an end marker)
-  # replace all remaining out_of_prompt_marker instances with the eos_token.
+  # replace all remaining out_of_prompt_marker instances with the pad_token.
   final_sequences = jnp.where(final_sequences == out_of_prompt_marker,
-                              jnp.full_like(final_sequences, eos_token),
+                              jnp.full_like(final_sequences, pad_token),
                               final_sequences)
   return final_sequences

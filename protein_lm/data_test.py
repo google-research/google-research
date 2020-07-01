@@ -39,13 +39,14 @@ class DataTest(tf.test.TestCase):
   def test_preprocess_and_read(self):
     max_length = 30
 
-    # Write 2 tfrecord shards
+    # Write 2 sstable shards
     csv_path = os.path.join(_TEST_DATA_DIR, 'trembl.csv')
     data.csv_to_tfrecord(csv_path=csv_path, outdir=self._tmpdir, idx=0, total=2)
     data.csv_to_tfrecord(csv_path=csv_path, outdir=self._tmpdir, idx=1, total=2)
 
     # Construct dataset
-    train_files, test_files = data.get_train_test_files(self._tmpdir)
+    train_files, test_files = data.get_train_valid_files(
+        self._tmpdir, num_test_files=0, num_valid_files=1)
     train_ds, test_ds = data.load_dataset(
         train_files=train_files,
         test_files=test_files,
@@ -57,7 +58,6 @@ class DataTest(tf.test.TestCase):
     seqs = []
     with tf.gfile.GFile(csv_path) as f:
       for line in f:
-        print(line)
         seq = line.strip().split(',')[-1]
         enc = data.protein_domain.encode([seq], pad=False)[0][:max_length]
         seqs.append(enc)
@@ -73,4 +73,4 @@ class DataTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  absltest.main()
+  tf.test.main()

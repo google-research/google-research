@@ -16,6 +16,7 @@
 # Lint as: python3
 """Tests for fine tuning models."""
 
+from absl.testing import parameterized
 import numpy as np
 import tensorflow.compat.v1 as tf
 from protein_lm import domains
@@ -25,16 +26,21 @@ from protein_lm import models
 tf.enable_eager_execution()
 
 
-def _get_lm(domain, use_dropout=True):
+def _get_lm(model_cls, domain, use_dropout=True):
   cfg = dict(batch_size=1, num_layers=2, num_heads=2, emb_dim=32,
              mlp_dim=32, qkv_dim=32)
   if not use_dropout:
     cfg.update(dict(dropout_rate=0., attention_dropout_rate=0.))
-  return models.FlaxLM(domain, **cfg)
+  return model_cls(domain, **cfg)
 
 
 def _test_domain():
-  return domains.FixedLengthDiscreteDomain(length=3, vocab_size=4)
+  vocab = domains.Vocabulary(
+      tokens=['a', 'b', 'c'],
+      include_bos=True,
+      include_mask=True,
+      include_pad=True)
+  return domains.FixedLengthDiscreteDomain(vocab=vocab, length=3)
 
 
 def _compute_logprob(inputs, model, weights):
@@ -43,12 +49,13 @@ def _compute_logprob(inputs, model, weights):
       inputs, model, mask_token=None)
 
 
-class FineTuneTest(tf.test.TestCase):
+class FineTuneTest(tf.test.TestCase, parameterized.TestCase):
 
-  def test_fine_tuning_increases_likelihood(self):
+  @parameterized.parameters((models.FlaxLM,), (models.FlaxBERT,))
+  def test_fine_tuning_increases_likelihood(self, model_cls):
     domain = _test_domain()
     seqs = domain.sample_uniformly(6, seed=0)
-    lm = _get_lm(domain=domain)
+    lm = _get_lm(model_cls, domain=domain)
     init_weights = lm.get_weights()
     init_logprob = _compute_logprob(seqs, lm, init_weights).mean()
     fine_tune_weights = fine_tune.fine_tune(
@@ -56,10 +63,11 @@ class FineTuneTest(tf.test.TestCase):
     final_logprob = _compute_logprob(seqs, lm, fine_tune_weights).mean()
     self.assertGreater(final_logprob, init_logprob)
 
-  def test_fine_tuning_zero_learning_rate(self):
+  @parameterized.parameters((models.FlaxLM,), (models.FlaxBERT,))
+  def test_fine_tuning_zero_learning_rate(self, model_cls):
     domain = _test_domain()
     seqs = domain.sample_uniformly(6, seed=0)
-    lm = _get_lm(domain=domain)
+    lm = _get_lm(model_cls, domain=domain)
     init_weights = lm.get_weights()
     init_logprob = _compute_logprob(seqs, lm, init_weights).mean()
     fine_tune_weights = fine_tune.fine_tune(
@@ -67,10 +75,11 @@ class FineTuneTest(tf.test.TestCase):
     final_logprob = _compute_logprob(seqs, lm, fine_tune_weights).mean()
     self.assertAllClose(final_logprob, init_logprob)
 
-  def test_fine_tuning_with_example_weights(self):
+  @parameterized.parameters((models.FlaxLM,), (models.FlaxBERT,))
+  def test_fine_tuning_with_example_weights(self, model_cls):
     domain = _test_domain()
     seqs = domain.sample_uniformly(2, seed=0)
-    lm = _get_lm(domain=domain)
+    lm = _get_lm(model_cls, domain=domain)
     init_weights = lm.get_weights()
     init_logprobs = _compute_logprob(seqs, lm, init_weights)
 
@@ -92,12 +101,13 @@ class FineTuneTest(tf.test.TestCase):
     # Check that the ranking of their likelihoods is reversed.
     self.assertGreater(final_logprobs[1], final_logprobs[0])
 
-  def test_deterministic(self):
+  @parameterized.parameters((models.FlaxLM,), (models.FlaxBERT,))
+  def test_deterministic(self, model_cls):
     domain = _test_domain()
     seqs = domain.sample_uniformly(2, seed=0)
     # Note that we are checking that it is deterministic when dropout is used.
     # All of the random number generation should be deterministic.
-    lm = _get_lm(domain=domain, use_dropout=True)
+    lm = _get_lm(model_cls, domain=domain, use_dropout=True)
     init_weights = lm.get_weights()
 
     def run():
@@ -115,10 +125,13 @@ class FineTuneTest(tf.test.TestCase):
     final_logprob2 = run()
     self.assertAllClose(final_logprob1, final_logprob2)
 
-  def test_duplicated_inputs(self):
+  # No BERT because each example in batch is masked differently.
+  @parameterized.parameters(
+      (models.FlaxLM,),)
+  def test_duplicated_inputs(self, model_cls):
     domain = _test_domain()
     seq = domain.sample_uniformly(1, seed=0)
-    lm = _get_lm(domain=domain, use_dropout=False)
+    lm = _get_lm(model_cls, domain=domain, use_dropout=False)
     init_weights = lm.get_weights()
 
     def run(n_copies):
@@ -136,9 +149,12 @@ class FineTuneTest(tf.test.TestCase):
     final_logprob_3_copies = run(3)
     self.assertAllClose(final_logprob_1_copy, final_logprob_3_copies)
 
-  def test_fine_tuning_with_zero_example_weight(self):
+  # No BERT because each example in batch is masked differently.
+  @parameterized.parameters(
+      (models.FlaxLM,),)
+  def test_fine_tuning_with_zero_example_weight(self, model_cls):
     domain = _test_domain()
-    lm = _get_lm(domain=domain, use_dropout=False)
+    lm = _get_lm(model_cls, domain=domain, use_dropout=False)
     init_weights = lm.get_weights()
 
     # Use 2 sequences of equal length, such that their contribution to

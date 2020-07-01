@@ -37,6 +37,7 @@ class EmbedTest(absltest.TestCase):
         num_layers=1,
         num_heads=1,
         qkv_dim=32,
+        emb_dim=32,
         mlp_dim=32)
     reduction = functools.partial(jax.numpy.sum, axis=-2)
 

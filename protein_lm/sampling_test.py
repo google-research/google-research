@@ -18,7 +18,6 @@
 
 import functools
 
-from absl import logging
 from absl.testing import parameterized
 from jax import random
 import jax.numpy as jnp
@@ -86,52 +85,6 @@ class SamplingTest(tf.test.TestCase, parameterized.TestCase):
     samples_str = domain.decode(samples)
     samples_hist = {elem: samples_str.count(elem) for elem in set(samples_str)}
     self.assertAllClose(samples_hist['abab'] / batch_size, 1., atol=0.1)
-
-  def test_top_k_sampling(self):
-    """Tests that top-1 samples with prompt 'a' are all equal to 'abab'."""
-    lm, domain = self._make_pretrained_transformer(top_k=1)
-    batch_size = 10
-    prompt_token = domain.vocab.tokens.index('a')
-    prompt = jnp.concatenate(
-        [jnp.ones((batch_size, 1)).astype(jnp.int32) * lm.bos_token,
-         jnp.ones((batch_size, 1)).astype(jnp.int32) * prompt_token],
-        axis=1)
-    samples = lm.sample_with_prompt(prompt)
-    samples_str = domain.decode(samples)
-    correct_count = samples_str.count('abab')
-    self.assertAllEqual(correct_count, batch_size)
-
-  @parameterized.parameters((True,), (False,))
-  def test_sampling_with_repetition_penalty(self, normalize):
-    """Tests that the repetition penalty affects diversity."""
-    length = 4
-    domain = domains.FixedLengthDiscreteDomain(
-        vocab=domains.Vocabulary(tokens=['a', 'b', 'c', 'd'],
-                                 include_bos=True),
-        length=length)
-    percent_repeats = []
-    for repetition_penalty in [1, 100, 1/100]:
-      lm = lm_cls(
-          domain=domain,
-          repetition_penalty=repetition_penalty,
-          repetition_penalty_normalize=normalize)
-      batch_size = 100
-      prompt_token = domain.vocab.tokens.index('a')
-      prompt = jnp.concatenate(
-          [jnp.ones((batch_size, 1)).astype(jnp.int32) * lm.bos_token,
-           jnp.ones((batch_size, 1)).astype(jnp.int32) * prompt_token],
-          axis=1)
-      samples = lm.sample_with_prompt(prompt)
-      samples_str = domain.decode(samples)
-      logging.info('samples: %s', str(samples_str))
-      num_repeats = 0
-      for sample in samples_str:
-        num_repeats += sum([sample[:i].count(sample[i]) > 0
-                            for i in np.arange(1, length)])
-      percent_repeats.append(num_repeats / (batch_size * (length - 1)))
-    logging.info('percent_repeats: %s', str(percent_repeats))
-    self.assertGreater(percent_repeats[0] - percent_repeats[1], 0.1)
-    self.assertGreater(percent_repeats[2] - percent_repeats[0], 0.1)
 
 
 if __name__ == '__main__':

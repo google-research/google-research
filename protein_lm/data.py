@@ -29,8 +29,12 @@ from protein_lm import domains
 
 protein_domain = domains.VariableLengthDiscreteDomain(
     vocab=domains.ProteinVocab(
-        include_anomalous_amino_acids=True, include_bos=True, include_eos=True),
-    length=512)
+        include_anomalous_amino_acids=True,
+        include_bos=True,
+        include_eos=True,
+        include_pad=True,
+        include_mask=True),
+    length=1024)  # TODO(ddohan): Make a `make_protein_domain` fn.
 
 
 def dataset_from_tensors(tensors):
@@ -47,11 +51,14 @@ def _parse_example(value):
   return sequence
 
 
-def get_train_test_files(directory):
+@gin.configurable
+def get_train_valid_files(directory, num_test_files=10, num_valid_files=1):
   """Given a directory, list files and split into train/test files.
 
   Args:
     directory: Directory containing data.
+    num_test_files: Number of files to set aside for testing.
+    num_valid_files: Number of files to use for validation.
 
   Returns:
     Tuple of lists of (train files, test files).
@@ -59,9 +66,16 @@ def get_train_test_files(directory):
   files = tf.gfile.ListDirectory(directory)
   files = [os.path.join(directory, f) for f in files if 'tmp' not in f]
   files = sorted(files)
-  test_files = files[:1]
-  train_files = files[1:]
-  return train_files, test_files
+  # Set aside the first num_test_files files for testing.
+  valid_files = files[num_test_files:num_test_files + num_valid_files]
+  train_files = files[num_test_files + num_valid_files:]
+  return train_files, valid_files
+
+
+def _add_eos(seq):
+  """Add end of sequence markers."""
+  # TODO(ddohan): Support non-protein domains.
+  return tf.concat([seq, [protein_domain.vocab.eos]], axis=-1)
 
 
 def load_dataset(train_files,
@@ -122,20 +136,36 @@ def load_dataset(train_files,
 
 
 @gin.configurable
-def batch_ds(ds, length=512, batch_size=32, shuffle_buffer=8192):
+def batch_ds(ds,
+             length=512,
+             batch_size=32,
+             shuffle_buffer=8192,
+             pack_length=None):
   """Crop, shuffle, and batch a dataset of sequences."""
 
   def _crop(x):
     return x[:length]
 
-  ds = ds.map(_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+  if length:
+    ds = ds.map(_crop, num_parallel_calls=tf.data.experimental.AUTOTUNE)
   if shuffle_buffer:
     ds = ds.shuffle(buffer_size=shuffle_buffer, reshuffle_each_iteration=True)
-  ds = ds.padded_batch(
-      batch_size,
-      padded_shapes=length,
-      padding_values=np.array(protein_domain.vocab.bos, dtype=np.int64),
-      drop_remainder=True)
+
+  if pack_length:
+    logging.info('Packing sequences to length %s', pack_length)
+    # Add EOS tokens.
+    ds = ds.map(_add_eos, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+    # Pack sequences together by concatenating.
+    ds = ds.unbatch()
+    ds = ds.batch(pack_length)  # Pack length
+    ds = ds.batch(batch_size, drop_remainder=True)  # Add batch dimension.
+  else:
+    ds = ds.padded_batch(
+        batch_size,
+        padded_shapes=length,
+        padding_values=np.array(protein_domain.vocab.pad, dtype=np.int64),
+        drop_remainder=True)
   return ds
 
 

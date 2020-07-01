@@ -72,9 +72,13 @@ def get_embed_fn(model=None,
     if ckpt_dir is not None:
       raise ValueError('Provide only one of `model` or checkpoint directory.')
 
-  def predict_fn(model_target, batch):
+  def predict_fn(model_target, inputs):
+
     emb = models.predict_step(
-        model_target, batch, bos_token=model.bos_token, output_head=output_head)
+        model_target,
+        inputs,
+        preprocess_fn=model.preprocess,
+        output_head=output_head)
     if reduce_fn:
       emb = reduce_fn(emb)
     return emb

@@ -44,6 +44,8 @@ class _OptimizationRunner(object):
   """Helper class for running optimization steps."""
 
   def __init__(self, model, learning_rate, **optimizer_kwargs):
+    self._bos_token = model.bos_token
+    self._pad_token = model.pad_token
     unreplicated_optimizer = model.get_weights()
     self._replicated_optimizer = utils.create_adam_optimizer(
         model=unreplicated_optimizer.target,
@@ -54,18 +56,20 @@ class _OptimizationRunner(object):
     self._p_train_step = jax.pmap(
         functools.partial(
             models.train_step,
-            learning_rate_fn=lambda t: learning_rate,
-            bos_token=model._bos_token),
+            preprocess_fn=model.preprocess,
+            learning_rate_fn=lambda t: learning_rate),
         axis_name='batch')
 
   def fit_batch(self, batch, example_weights=None):
     """Runs one optimization step on batch."""
+    batch = common_utils.shard(batch)
+
     if example_weights is not None:
       example_weights = common_utils.shard(example_weights)
     (self._replicated_optimizer, metrics,
      self._dropout_rngs) = self._p_train_step(
          self._replicated_optimizer,
-         common_utils.shard(batch),
+         inputs=batch,
          example_weights=example_weights,
          dropout_rng=self._dropout_rngs)
 

@@ -118,7 +118,7 @@ def run_experiment(
 
   batch_size = batch_size_per_device * jax.local_device_count()
   max_eval_length = max_eval_length or max_train_length
-  train_files, test_files = data.get_train_test_files(directory=data_dir)
+  train_files, test_files = data.get_train_valid_files(directory=data_dir)
   train_ds, eval_ds = data.load_dataset(
       train_files=train_files,
       test_files=test_files,

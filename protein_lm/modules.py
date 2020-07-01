@@ -18,19 +18,49 @@
 from flax import nn
 from jax import lax
 import jax.numpy as jnp
+import jax.random as jrandom
 import numpy as np
 
 
-def shift_right(x, train=True, bos_token=0):
+def shift_right(x, bos_token):
   """Shift the input to the right by padding on axis 1 at train time."""
-  if train:
-    pad_widths = [(0, 0)] * len(x.shape)
-    pad_widths[1] = (1, 0)  # Padding on axis=1
-    padded = jnp.pad(
-        x, pad_widths, mode='constant', constant_values=x.dtype.type(bos_token))
-    return padded[:, :-1]
-  else:
-    # Do nothing when not in train mode, as then the sequence length is 1.
+  pad_widths = [(0, 0)] * len(x.shape)
+  pad_widths[1] = (1, 0)  # Padding on axis=1
+  padded = jnp.pad(
+      x,
+      pad_widths,
+      mode='constant',
+      constant_values=jnp.asarray(bos_token, dtype=x.dtype))
+  return padded[:, :-1]
+
+
+def mask_uniform(inputs, rate, rng, mask_value):
+  """Applies a random dropout mask to the input.
+
+  Args:
+    inputs: the inputs that should be randomly masked.
+    rate: the probablity of masking out a value.
+    rng: an optional `jax.random.PRNGKey`. By default `nn.make_rng()` will be
+      used.
+    mask_value: Value to mask with.
+
+  Returns:
+    The masked inputs.
+  """
+  if rate == 0.:
+    return inputs
+  keep_prob = 1. - rate
+  mask = jrandom.bernoulli(rng, p=keep_prob, shape=inputs.shape)
+  return lax.select(mask, inputs, jnp.full_like(inputs, mask_value))
+
+
+class Tag(nn.Module):
+  """Save a value to global state when running in stateful mode."""
+
+  def apply(self, x):
+    if self.is_stateful():
+      tagged = self.state('tag')
+      tagged.value = x
     return x
 
 
@@ -43,26 +73,48 @@ class Embed(nn.Module):
   def apply(self,
             inputs,
             num_embeddings,
-            features,
+            num_features,
             mode='input',
             emb_init=nn.initializers.normal(stddev=1.0)):
-    """Applies Embed module.
+    """Applies the Embed module.
 
     Args:
-      inputs: input data
-      num_embeddings: number of embedding
-      features: size of the embedding dimension
-      mode: either 'input' or 'output' -> to share input/output embedding
-      emb_init: embedding initializer
+      inputs: An array of shape (batch_size, length) or (batch_size, length,
+        vocab_size) with the input sequences. When 2-dimensional, the array
+        contains sequences of int tokens. Otherwise, the array contains
+        next-token distributions over tokens (e.g. one-hot representations).
+      num_embeddings: An int with the number of embeddings.
+      num_features: An int with the size of the embedding dimension.
+      mode: A string, 'input' or 'output' -> to share input/output embeddings.
+      emb_init: A callable, the embedding initializer function.
 
     Returns:
-      output which is embedded input data
+      An array of shape (batch_size, length, num_features) with embedded data.
     """
-    embedding = self.param('embedding', (num_embeddings, features), emb_init)
+    if inputs.ndim != 2 and inputs.ndim != 3:
+      raise ValueError('Expected 2 or 3 dimensions, found %d.' % inputs.ndim)
+
+    embedding = self.param('embedding', (num_embeddings, num_features),
+                           emb_init)
     if mode == 'input':
-      if inputs.dtype not in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]:
-        raise ValueError('Input type must be an integer or unsigned integer.')
-      return jnp.take(embedding, inputs, axis=0)
+      if inputs.ndim == 2:  # Inputs are lists of integers.
+        if inputs.dtype not in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]:
+          raise ValueError('Input type must be an integer or unsigned integer.')
+        return jnp.take(embedding, inputs, axis=0)
+
+      # Inputs contain per-token probabilities.
+      if inputs.shape[2] != num_embeddings:
+        raise ValueError('Expected shape (..., %d), found (..., %d)' %
+                         (num_embeddings, inputs.shape[2]))
+      batch_size, length, _ = tuple(inputs.shape)
+
+      # Tile embeddings to (batch_size, length, num_features, num_embeddings).
+      emb = jnp.transpose(embedding)
+      tiled_emb = jnp.tile(emb[None, None, Ellipsis], [batch_size, length, 1, 1])
+
+      # Accumulate embeddings proportional to token probabilities.
+      accum_emb = jnp.matmul(tiled_emb, inputs[Ellipsis, None])
+      return accum_emb[Ellipsis, 0]
     if mode == 'output':
       return jnp.einsum('bld,vd->blv', inputs, embedding)
 
@@ -248,7 +300,8 @@ class Transformer1DBlock(nn.Module):
             dropout_rate=0.1,
             attention_dropout_rate=0.1,
             deterministic=False,
-            attention_fn=nn.dot_product_attention,
+            self_attention_module=nn.SelfAttention,
+            attention_fn=None,
             cache=None):
     """Applies Transformer1DBlock module.
 
@@ -262,6 +315,7 @@ class Transformer1DBlock(nn.Module):
       dropout_rate: dropout rate
       attention_dropout_rate: dropout rate for attention weights
       deterministic: bool, deterministic or not (to apply dropout)
+      self_attention_module: Self attention module.
       attention_fn: dot product function to use inside attention.
       cache: Cache for decoding.
 
@@ -273,7 +327,10 @@ class Transformer1DBlock(nn.Module):
     # Attention block.
     assert inputs.ndim == 3
     x = nn.LayerNorm(inputs)
-    x = nn.SelfAttention(
+    if attention_fn is not None:
+      self_attention_module = self_attention_module.partial(
+          attention_fn=attention_fn)
+    x = self_attention_module(
         x,
         num_heads=num_heads,
         qkv_features=qkv_dim,
@@ -286,7 +343,6 @@ class Transformer1DBlock(nn.Module):
         broadcast_dropout=False,
         dropout_rate=attention_dropout_rate,
         deterministic=deterministic,
-        attention_fn=attention_fn,
         cache=cache)
     x = nn.dropout(x, rate=dropout_rate, deterministic=deterministic)
     x = x + inputs
@@ -303,7 +359,7 @@ class Transformer1DBlock(nn.Module):
 
 
 # TODO(levskaya): modify for 3 modes: train, eval and fast predict.
-class TransformerLM(nn.Module):
+class Transformer(nn.Module):
   """Transformer Model for language modeling."""
 
   def apply(self,
@@ -321,13 +377,17 @@ class TransformerLM(nn.Module):
             causal=True,
             cache=None,
             positional_encoding_module=AddLearnedPositionalEncodings,
-            attention_fn=nn.dot_product_attention,
-            bos_token=None,
+            self_attention_module=nn.SelfAttention,
+            attention_fn=None,
+            pad_token=None,
             output_head='logits'):
     """Applies Transformer model on the inputs.
 
     Args:
-      inputs: An array of shape (batch_size, length) with the input sequences.
+      inputs: An array of shape (batch_size, length) or (batch_size, length,
+        vocab_size) with the input sequences. When 2-dimensional, the array
+        contains sequences of int tokens. Otherwise, the array contains
+        next-token distributions over tokens (e.g. one-hot representations).
       vocab_size: An int with the size of the vocabulary.
       emb_dim: An int with the token embedding dimension.
       num_heads: An int with the number of attention heads.
@@ -342,27 +402,35 @@ class TransformerLM(nn.Module):
       causal: Whether to apply causal masking.
       cache: Cache for decoding.
       positional_encoding_module: A module used for adding positional encodings.
-      attention_fn: A callable to use in place of dot product attention.
-      bos_token: An int token to shift with and ignore in loss.
-      output_head: Output head of model to return. Used for embeddings.
+      self_attention_module: Self attention module.
+      attention_fn: Method to use in place of dot product attention.
+      pad_token: Token to ignore in attention.
+      output_head: String or iterable over strings containing the model's output
+        head(s) to return.
 
     Returns:
-      output of a transformer decoder.
-
+      Output of a transformer decoder. If output_head is a string, we return a
+        single output head output; if output_head is an iterable, we return a
+        dict with (output head name, output head output) key-value pairs.
     """
-    assert inputs.ndim == 2  # (batch, len)
-    if bos_token is None:
-      raise ValueError('Must provide a bos_token.')
+    if inputs.ndim != 2 and inputs.ndim != 3:
+      raise ValueError('Expected 2 or 3 dimensions, found %d.' % inputs.ndim)
 
-    # Mask out padding tokens.
-    padding_mask = jnp.where(inputs != bos_token, 1,
-                             0).astype(jnp.float32)[Ellipsis, None]
+    if inputs.ndim == 3:
+      padding_mask = jnp.ones_like(inputs[Ellipsis, 0])
+    elif pad_token is None:
+      padding_mask = jnp.ones_like(inputs)
+    else:
+      # Mask out padding tokens.
+      padding_mask = jnp.where(inputs != pad_token, 1, 0).astype(jnp.float32)
+    padding_mask = padding_mask[Ellipsis, None]  # Add embedding dimension.
 
     heads = dict()
-    ## TODO(ddohan): Add mode train/eval/predict
-    x = shift_right(inputs, train=train, bos_token=bos_token)
-    x = x.astype('int32')
-    x = Embed(x, num_embeddings=vocab_size, features=emb_dim, name='embed')
+    x = inputs
+    if inputs.ndim == 2:
+      x = x.astype('int32')
+    x = Embed(x, num_embeddings=vocab_size, num_features=emb_dim, name='embed')
+
     if positional_encoding_module == AddLearnedPositionalEncodings:
       x = positional_encoding_module(
           x,
@@ -383,17 +451,31 @@ class TransformerLM(nn.Module):
           padding_mask=padding_mask,
           dropout_rate=dropout_rate,
           attention_dropout_rate=attention_dropout_rate,
+          self_attention_module=self_attention_module,
           deterministic=not train,
           attention_fn=attention_fn,
           cache=cache,
       )
       heads['layer_%s' % i] = x
     x = nn.LayerNorm(x)
-    heads['output_emb'] = x
-    logits = nn.Dense(
-        x,
-        vocab_size,
-        kernel_init=nn.initializers.xavier_uniform(),
-        bias_init=nn.initializers.normal(stddev=1e-6))
-    heads['logits'] = logits
+    heads['output_emb'] = x * padding_mask  # Zero out PAD positions.
+    if 'logits' in output_head:
+      logits = nn.Dense(
+          x,
+          vocab_size,
+          kernel_init=nn.initializers.xavier_uniform(),
+          bias_init=nn.initializers.normal(stddev=1e-6))
+      heads['logits'] = logits
+
+    if 'regression' in output_head:
+      regression = nn.Dense(
+          x,
+          1,
+          kernel_init=nn.initializers.xavier_uniform(),
+          bias_init=nn.initializers.normal(stddev=1e-6))
+      regression = jnp.squeeze(regression, axis=-1)
+      heads['regression'] = regression
+
+    if isinstance(output_head, (tuple, list)):
+      return {head: heads[head] for head in output_head}
     return heads[output_head]
