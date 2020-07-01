@@ -3,10 +3,8 @@
 *Authors*: Evan Zheran Liu, Milad Hashemi, Kevin Swersky, Parthasarathy
 Ranganathan, Junwhan Ahn
 
-Source code accompanying our ICML 2020 paper: [An Imitation Learning Approach to
-Cache Replacement](https://arxiv.org).
-
-TODO(evzliu): Fill in with the actual paper link.
+Source code accompanying our ICML 2020 paper: [An Imitation Learning Approach for
+Cache Replacement](https://arxiv.org/abs/2006.16239).
 
 # Setup
 
@@ -247,3 +245,14 @@ python3 -m cache_replacement.policy_learning.cache.main \
 
 This logs the final cache hit rate to tensorboard files in the directory
 `/tmp/evaluate_checkpoint`.
+
+# Citation
+
+```
+@article{liu2020imitation,
+  title={An imitation learning approach for cache replacement},
+  author={Liu, Evan Zheran and Hashemi, Milad and Swersky, Kevin and Ranganathan, Parthasarathy and Ahn, Junwhan},
+  journal={arXiv preprint arXiv:2006.16239},
+  year={2020}
+}
+```
