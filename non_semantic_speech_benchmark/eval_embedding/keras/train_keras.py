@@ -21,7 +21,6 @@ from absl import flags
 
 import tensorflow.compat.v2 as tf
 tf.compat.v2.enable_v2_behavior()
-assert tf.executing_eagerly()
 
 from non_semantic_speech_benchmark.eval_embedding.keras import get_data
 from non_semantic_speech_benchmark.eval_embedding.keras import models
@@ -29,16 +28,22 @@ from non_semantic_speech_benchmark.eval_embedding.keras import models
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string('file_pattern', None, 'Dataset location.')
-flags.DEFINE_string('en', None, 'Embedding name.')
-flags.DEFINE_string('ed', None, 'Embedding dimension.')
+flags.DEFINE_string('embedding_name', None, 'Embedding name.')
+flags.DEFINE_alias('en', 'embedding_name')
+flags.DEFINE_string('embedding_dimension', None, 'Embedding dimension.')
+flags.DEFINE_alias('ed', 'embedding_dimension')
 flags.DEFINE_string('label_name', None, 'Name of label to use.')
 flags.DEFINE_list('label_list', None, 'List of possible label values.')
 
-flags.DEFINE_integer('tbs', 1, 'Hyperparameter: batch size.')
+flags.DEFINE_integer('train_batch_size', 1, 'Hyperparameter: batch size.')
+flags.DEFINE_alias('tbs', 'train_batch_size')
 flags.DEFINE_integer('shuffle_buffer_size', None, 'shuffle_buffer_size')
 
-flags.DEFINE_integer('nc', None, 'num_clusters')
-flags.DEFINE_boolean('ubn', None, 'Whether to use batch normalization.')
+flags.DEFINE_integer('num_clusters', None, 'num_clusters')
+flags.DEFINE_alias('nc', 'num_clusters')
+flags.DEFINE_boolean('use_batch_normalization', None,
+                     'Whether to use batch normalization.')
+flags.DEFINE_alias('ubn', 'use_batch_normalization')
 flags.DEFINE_float('lr', 0.001, 'Hyperparameter: learning rate.')
 
 flags.DEFINE_string('logdir', None,
@@ -53,20 +58,20 @@ flags.DEFINE_integer('measurement_store_interval', 10,
 
 def train_and_report(debug=False):
   """Trains the classifier."""
-  tf.logging.info('embedding_name: %s', FLAGS.en)
+  tf.logging.info('embedding_name: %s', FLAGS.embedding_dimension)
   tf.logging.info('Logdir: %s', FLAGS.logdir)
-  tf.logging.info('Batch size: %s', FLAGS.tbs)
+  tf.logging.info('Batch size: %s', FLAGS.train_batch_size)
 
   reader = tf.data.TFRecordDataset
   ds = get_data.get_data(
       file_pattern=FLAGS.file_pattern,
       reader=reader,
-      embedding_name=FLAGS.en,
-      embedding_dim=FLAGS.ed,
+      embedding_name=FLAGS.embedding_name,
+      embedding_dim=FLAGS.embedding_dimension,
       preaveraged=False,
       label_name=FLAGS.label_name,
       label_list=FLAGS.label_list,
-      batch_size=FLAGS.tbs,
+      batch_size=FLAGS.train_batch_size,
       loop_forever=True,
       shuffle=True,
       shuffle_buffer_size=FLAGS.shuffle_buffer_size)
@@ -75,7 +80,8 @@ def train_and_report(debug=False):
   y_onehot_spec = ds.element_spec[1]
   assert len(y_onehot_spec.shape) == 2
   num_classes = y_onehot_spec.shape[1]
-  model = get_model(num_classes, ubn=FLAGS.ubn, nc=FLAGS.nc)
+  model = get_model(num_classes, ubn=FLAGS.use_batch_normalization,
+                    nc=FLAGS.num_clusters)
   # Define loss and optimizer hyparameters.
   loss_obj = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
   opt = tf.keras.optimizers.Adam(
@@ -87,8 +93,8 @@ def train_and_report(debug=False):
   summary_writer = tf.summary.create_file_writer(FLAGS.logdir)
   train_step = get_train_step(
       model, loss_obj, opt, train_loss, train_accuracy, summary_writer)
-  gstep = opt.iterations
-  checkpoint = tf.train.Checkpoint(model=model, gstep=gstep)
+  global_step = opt.iterations
+  checkpoint = tf.train.Checkpoint(model=model, global_step=global_step)
   manager = tf.train.CheckpointManager(
       checkpoint, FLAGS.logdir, max_to_keep=None)
   tf.logging.info('Checkpoint prefix: %s', FLAGS.logdir)
@@ -97,20 +103,20 @@ def train_and_report(debug=False):
   if debug: return
   for emb, y_onehot in ds:
     emb.shape.assert_has_rank(3)
-    assert emb.shape[2] == FLAGS.ed
+    assert emb.shape[2] == FLAGS.embedding_dimension
     y_onehot.shape.assert_has_rank(2)
     assert y_onehot.shape[1] == len(FLAGS.label_list)
 
-    train_step(emb, y_onehot, gstep)
+    train_step(emb, y_onehot, global_step)
 
     # Optional print output and save model.
-    if gstep % 10 == 0:
-      tf.logging.info('step: %i, train loss: %f, train accuracy: %f', gstep,
-                      train_loss.result(), train_accuracy.result())
-    if gstep % FLAGS.measurement_store_interval == 0:
-      manager.save(checkpoint_number=gstep)
+    if global_step % 10 == 0:
+      tf.logging.info('step: %i, train loss: %f, train accuracy: %f',
+                      global_step, train_loss.result(), train_accuracy.result())
+    if global_step % FLAGS.measurement_store_interval == 0:
+      manager.save(checkpoint_number=global_step)
 
-  manager.save(checkpoint_number=gstep)
+  manager.save(checkpoint_number=global_step)
   tf.logging.info('Finished training.')
 
 
@@ -151,11 +157,12 @@ def get_model(num_classes, ubn=None, nc=None):
 def main(unused_argv):
   assert FLAGS.file_pattern
   assert FLAGS.shuffle_buffer_size
-  assert FLAGS.en
-  assert FLAGS.ed
+  assert FLAGS.embedding_name
+  assert FLAGS.embedding_dimension
   assert FLAGS.label_name
   assert FLAGS.label_list
   assert FLAGS.logdir
+  assert tf.executing_eagerly()
   train_and_report()
 
 
