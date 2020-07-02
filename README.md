@@ -3,6 +3,12 @@
 This repository contains code released by
 [Google Research](https://research.google).
 
+All datasets in this repository are released under the CC BY 4.0 International
+license, which can be found here:
+https://creativecommons.org/licenses/by/4.0/legalcode.  All source files in this
+repository are released under the Apache 2.0 license, the text of which can be
+found in the LICENSE file.
+
 ---
 
 Because the repo is large, we recommend you download only the subdirectory of
