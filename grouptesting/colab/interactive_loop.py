@@ -51,12 +51,14 @@ class InteractiveSimulator(simulator.Simulator):
 
   def reset(self, rng):
     """Maybe reset simulator's state based on the current spreadsheet."""
-    super().reset(rng)
+    rngs = jax.random.split(rng, 2)
+    super().reset(rngs[0])
     groups = self.sheet.read_groups()
     if np.size(groups):
-      tests_results = self.sheet.read_results()
-      self.state.add_test_results(tests_results)
       self.state.add_past_groups(groups)
+      tests_results = self.sheet.read_results()
+      self.process_tests_results(rngs[1], tests_results)
+      self.sheet.write_marginals(self.marginal)
 
   def run(self, rngkey=None):
     """Starts an interaction loop."""
