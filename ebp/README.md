@@ -5,7 +5,7 @@ Code for "Energy-Based Processes for Exchangeable Data"
 
 Paper available at https://arxiv.org/abs/2003.07521
 
-Upon using this this codebase, please cite the paper:
+Upon using this codebase, please cite the paper:
 
 ```
 @article{yang2020energy,
