@@ -2,8 +2,7 @@
 
 Paper available at: https://arxiv.org/pdf/2006.15502.pdf
 
-<img src="figures/fenwick.png" alt="drawing" width="400"/>
-<img src="figures/test_time.png" alt="drawing" width="260"/>
+<img src="figures/gif_demo.gif" alt="drawing" width="600"/>
 
 Upon using this codebase, please cite the paper:
 ```
