@@ -29,3 +29,7 @@ def MaybeMakeDirs(output_dir):
   if not os.path.exists(output_dir):  # pylint: disable=unreachable
     logging.info('Creating output directory: %s', output_dir)
     os.makedirs(output_dir)
+
+
+def Open(filename, mode):
+  return open(filename, mode)  # pylint: disable=unreachable

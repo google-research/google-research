@@ -39,6 +39,8 @@ flags.DEFINE_list('embedding_list', None, 'Python list of embedding names.')
 flags.DEFINE_string('label_name', None, 'Name of label to use.')
 flags.DEFINE_list('label_list', None, 'Python list of possible label values.')
 flags.DEFINE_string('speaker_id_name', None, '`None`, or speaker ID field.')
+flags.DEFINE_string('save_model_dir', None, 'If not `None`, save sklearn '
+                    'models in this directory.')
 
 FLAGS = flags.FLAGS
 
@@ -84,6 +86,7 @@ def main(unused_argv):
         # if you wanted.
         'l2_normalization': FLAGS.speaker_id_name is None,
         'speaker_id_name': FLAGS.speaker_id_name,
+        'save_model_dir': FLAGS.save_model_dir,
     })
 
   # Make and run beam pipeline.

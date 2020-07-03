@@ -16,18 +16,21 @@
 # Lint as: python3
 """Train and eval a sklearn model."""
 
+import os
+import pickle
 import time
 from absl import logging
 
 import numpy as np
 
+from non_semantic_speech_benchmark import file_utils
 from non_semantic_speech_benchmark.eval_embedding.sklearn import models
 from non_semantic_speech_benchmark.eval_embedding.sklearn import sklearn_utils
 
 
 def train_and_get_score(embedding_name, label_name, label_list, train_glob,
                         eval_glob, test_glob, model_name, l2_normalization,
-                        speaker_id_name=None):
+                        speaker_id_name=None, save_model_dir=None):
   """Train and eval sklearn models on data.
 
   Args:
@@ -40,6 +43,7 @@ def train_and_get_score(embedding_name, label_name, label_list, train_glob,
     model_name: Name of model.
     l2_normalization: Python bool. If `True`, normalize embeddings by L2 norm.
     speaker_id_name: `None`, or name of speaker ID field.
+    save_model_dir: If not `None`, write sklearn models to this directory.
 
   Returns:
     A Python float, of the accuracy on the eval set.
@@ -95,5 +99,17 @@ def train_and_get_score(embedding_name, label_name, label_list, train_glob,
   # Test.
   test_score = d.score(npx_test, npy_test)
   logging.info('%s: %.3f', model_name, test_score)
+
+  # If `save_model_dir` is present, write model to this directory.
+  # To load the model after saving, use:
+  # ```python
+  # with file_utils.Open(model_filename, 'rb') as f:
+  #   m = pickle.load(f)
+  # ```
+  if save_model_dir:
+    file_utils.MaybeMakeDirs(save_model_dir)
+    model_filename = os.path.join(save_model_dir, f'{model_name}.pickle')
+    with file_utils.Open(model_filename, 'wb') as f:
+      pickle.dump(d, f)
 
   return (eval_score, test_score)
