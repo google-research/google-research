@@ -245,9 +245,7 @@ class GroupTestingSheet:
     if num_groups < 2:
       return np.array([])
 
-    offset = 2
-    result = self._read_bools(
-        offset, offset + self.num_patients - 1, num_groups)
+    result = self._read_bools(1, self.num_patients, num_groups)
     return result.T
 
   def read_results(self, num_groups = None):
