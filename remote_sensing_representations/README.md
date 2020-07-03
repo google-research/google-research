@@ -48,3 +48,28 @@ For convenience, the splits (denoting filenames or sample IDs) can also be found
 - https://storage.googleapis.com/remote_sensing_representations/uc_merced-train.txt
 - https://storage.googleapis.com/remote_sensing_representations/uc_merced-val.txt
 - https://storage.googleapis.com/remote_sensing_representations/uc_merced-test.txt
+
+## Citation
+```
+@inproceedings{rsr:iclr2020,
+  author    = {M. Neumann and A. S. Pinto and X. Zhai and N. Houlsby},
+  title     = {In-domain representation learning for remote sensing},
+  booktitle = {AI for Earth Sciences Workshop at International Conference on Learning Representations (ICLR)},
+  month     = apr,
+  year      = {2020},
+  pages     = {1-20},
+  url       = {https://arxiv.org/abs/1911.06721},
+}
+```
+
+```
+@inproceedings{rsr:igarss2020,
+  author    = {M. Neumann and A. S. Pinto and X. Zhai and N. Houlsby},
+  title     = {Training general representations for remote sensing using in-domain knowledge},
+  booktitle = {IEEE International Geoscience and Remote Sensing Symposium (IGARSS)},
+  publisher = {{IEEE}},
+  month     = sep,
+  year      = {2020},
+  pages     = {1-4},
+}
+```
