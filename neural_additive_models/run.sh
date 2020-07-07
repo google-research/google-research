@@ -20,4 +20,4 @@ virtualenv -p python3 .
 source ./bin/activate
 
 pip install -r neural_additive_models/requirements.txt
-python -m neural_additive_models.tests.graph_builder_test.py
+python -m neural_additive_models.nam_train_test.py

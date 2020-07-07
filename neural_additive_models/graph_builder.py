@@ -17,7 +17,7 @@
 """Build a deep GAM model graph."""
 
 import functools
-from typing import Union, List, Optional, Tuple, Callable
+from typing import Union, List, Optional, Tuple, Callable, Dict
 import numpy as np
 from sklearn import metrics as sk_metrics
 import tensorflow.compat.v1 as tf
@@ -28,6 +28,8 @@ from neural_additive_models import models
 np.warnings.filterwarnings('ignore')
 TfInput = models.TfInput
 LossFunction = Callable[[tf.keras.Model, TfInput, TfInput], tf.Tensor]
+GraphOpsAndTensors = Dict[str, Union[tf.Tensor, tf.Operation, tf.keras.Model]]
+EvaluationMetric = Callable[[tf.Session], float]
 
 
 def cross_entropy_loss(model, inputs,
@@ -298,25 +300,27 @@ def create_nam_model(x_train,
   return nn_model
 
 
-def build_graph(x_train,
-                y_train,
-                x_test,
-                y_test,
-                learning_rate,
-                batch_size,
-                output_regularization,
-                dropout,
-                decay_rate,
-                shallow,
-                l2_regularization = 0.0,
-                feature_dropout = 0.0,
-                num_basis_functions = 1000,
-                units_multiplier = 2,
-                activation = 'exu',
-                name_scope = 'model',
-                regression = False,
-                use_dnn = False,
-                trainable = True):
+def build_graph(
+    x_train,
+    y_train,
+    x_test,
+    y_test,
+    learning_rate,
+    batch_size,
+    output_regularization,
+    dropout,
+    decay_rate,
+    shallow,
+    l2_regularization = 0.0,
+    feature_dropout = 0.0,
+    num_basis_functions = 1000,
+    units_multiplier = 2,
+    activation = 'exu',
+    name_scope = 'model',
+    regression = False,
+    use_dnn = False,
+    trainable = True
+):
   """Constructs the computation graph with specified hyperparameters."""
   if regression:
     ds_tensors = tf.data.Dataset.from_tensor_slices((x_train, y_train)).apply(
