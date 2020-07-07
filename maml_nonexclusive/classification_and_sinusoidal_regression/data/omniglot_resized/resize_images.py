@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Usage instructions:
+"""Usage instructions.
+
     First download the omniglot dataset
-    and put the contents of both images_background and images_evaluation in data/omniglot/ (without the root folder)
+    and put the contents of both images_background and images_evaluation in
+    data/omniglot/ (without the root folder)
 
     Then, run the following:
     cd data/
@@ -24,8 +25,8 @@ Usage instructions:
     cd omniglot_resized/
     python resize_images.py
 """
-from PIL import Image
 import glob
+from PIL import Image
 
 image_path = '*/*/'
 
@@ -34,11 +35,10 @@ all_images = glob.glob(image_path + '*')
 i = 0
 
 for image_file in all_images:
-    im = Image.open(image_file)
-    im = im.resize((28,28), resample=Image.LANCZOS)
-    im.save(image_file)
-    i += 1
+  im = Image.open(image_file)
+  im = im.resize((28, 28), resample=Image.LANCZOS)
+  im.save(image_file)
+  i += 1
 
-    if i % 200 == 0:
-        print(i)
-
+  if i % 200 == 0:
+    print(i)

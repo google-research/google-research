@@ -13,32 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Usage instructions:
-    First download the omniglot dataset
-    and put the contents of both images_background and images_evaluation in data/omniglot/ (without the root folder)
-
-    Then, run the following:
-    cd data/
-    cp -r omniglot/* omniglot_resized/
-    cd omniglot_resized/
-    python resize_images.py
-"""
-from PIL import Image
+"""Processes DClaw images."""
+from __future__ import print_function
 import glob
+import os
 
-image_path = '*/*/'
+from PIL import Image
 
-all_images = glob.glob(image_path + '*')
+path_to_images = './../dclaw/'
 
-i = 0
+all_images = glob.glob(path_to_images + '*')
+print(all_images)
 
-for image_file in all_images:
+for subdir, dirs, files in os.walk(path_to_images):
+  for file_name in files:
+    image_file = os.path.join(subdir, file_name)
     im = Image.open(image_file)
-    im = im.resize((28,28), resample=Image.LANCZOS)
+    im = im.resize((84, 84), resample=Image.LANCZOS)
     im.save(image_file)
-    i += 1
-
-    if i % 200 == 0:
-        print(i)
-
