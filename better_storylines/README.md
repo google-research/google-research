@@ -1,7 +1,6 @@
 # Code for "Toward Better Storylines with Sentence-Level Language Models"
 This code reproduces the experiments on ROC Stories in the ACL paper
-[Toward Better Storylines with Sentence-Level Language Models]
-(https://www.aclweb.org/anthology/2020.acl-main.666/).
+[Toward Better Storylines with Sentence-Level Language Models](https://www.aclweb.org/anthology/2020.acl-main.666/).
 It contains
 scripts to download the checkpoints used to reproduce the accuracy numbers
 in Tables 1 and 2 as well as Figure 1 of the paper.
@@ -53,7 +52,7 @@ sh scripts/build_tfds_dataset.sh
 ## Available Checkpoints
 The following pre-trained checkpoints are available for download.
 | Checkpoint Name               | Link |                        Description                                           |
-|-------------------------------|:-----------------------------------------------------------------------------------:|
+|-------------------------------|:----:|:-----------------------------------------------------------------------------|
 | `mlp_best_largescale_cl`      | [link](https://storage.googleapis.com/gresearch/better_storylines/mlp_best_largescale_cl.zip) | Best MLP checkpoint for largescale ranking task (CSLoss).            |
 | `mlp_best_largescale_nocl`    | [link](https://storage.googleapis.com/gresearch/better_storylines/mlp_best_largescale_nocl.zip) | Best MLP checkpoint for largescale ranking task (no CSLoss).         |
 | `mlp_best_story_cloze_cl`     | [link](https://storage.googleapis.com/gresearch/better_storylines/mlp_best_story_cloze_cl.zip) | Best MLP checkpoint for Story Cloze task. (CSLoss)                   |
