@@ -1,0 +1,34 @@
+# Hyperparameters used for NoisyDQN following those used for reporting DQN results in Bellemare et al. (2017).
+import dopamine.discrete_domains.atari_lib
+import dopamine.replay_memory.prioritized_replay_buffer
+import bonus_based_exploration.noisy_networks.noisy_dqn_agent
+from bonus_based_exploration.run_experiment import create_exploration_agent
+import gin.tf.external_configurables
+
+create_exploration_agent.agent_name = 'noisy_dqn'
+
+NoisyDQNAgent.gamma = 0.99
+NoisyDQNAgent.update_horizon = 1
+NoisyDQNAgent.min_replay_history = 50000  # agent steps
+NoisyDQNAgent.update_period = 4
+NoisyDQNAgent.target_update_period = 10000  # agent steps
+NoisyDQNAgent.tf_device = '/gpu:0'  # use '/cpu:*' for non-GPU version
+NoisyDQNAgent.optimizer = @tf.train.RMSPropOptimizer()
+NoisyRainbowAgent.noise_distribution = %NoiseDistribution.FACTORISED
+
+tf.train.RMSPropOptimizer.learning_rate = 0.00025
+tf.train.RMSPropOptimizer.decay = 0.95
+tf.train.RMSPropOptimizer.momentum = 0.0
+tf.train.RMSPropOptimizer.epsilon = 0.00001
+tf.train.RMSPropOptimizer.centered = True
+
+atari_lib.create_atari_environment.game_name = 'MontezumaRevenge'
+# Sticky actions with probability 0.25, as suggested by (Machado et al., 2017).
+atari_lib.create_atari_environment.sticky_actions = True
+Runner.num_iterations = 200
+Runner.training_steps = 250000  # agent steps
+Runner.evaluation_steps = 0  # agent steps
+Runner.max_steps_per_episode = 27000  # agent steps
+
+WrappedReplayBuffer.replay_capacity = 1000000
+WrappedReplayBuffer.batch_size = 32

@@ -1,0 +1,55 @@
+# Hyperparameters follow Hessel et al. (2018), except for sticky_actions,
+# which was False (not using sticky actions) in the original paper.
+import dopamine.discrete_domains.atari_lib
+import dopamine.replay_memory.prioritized_replay_buffer
+import bonus_based_exploration.intrinsic_motivation.intrinsic_rainbow_agent
+import bonus_based_exploration.intrinsic_motivation.intrinsic_rewards
+import bonus_based_exploration.run_experiment
+import gin.tf.external_configurables
+
+create_exploration_agent.agent_name = 'rainbow_pixelcnn'
+
+PixelCNNRainbowAgent.num_atoms = 51
+PixelCNNRainbowAgent.vmax = 10.
+PixelCNNRainbowAgent.gamma = 0.99
+PixelCNNRainbowAgent.update_horizon = 3
+PixelCNNRainbowAgent.min_replay_history = 20000  # agent steps
+PixelCNNRainbowAgent.update_period = 4
+PixelCNNRainbowAgent.target_update_period = 8000  # agent steps
+PixelCNNRainbowAgent.epsilon_train = 0.01
+PixelCNNRainbowAgent.epsilon_eval = 0.001
+PixelCNNRainbowAgent.epsilon_decay_period = 250000  # agent steps
+PixelCNNRainbowAgent.replay_scheme = 'prioritized'
+PixelCNNRainbowAgent.tf_device = '/gpu:0'  # use '/cpu:*' for non-GPU version
+PixelCNNRainbowAgent.optimizer = @tf.train.AdamOptimizer()
+
+# Note these parameters are different from C51's.
+tf.train.AdamOptimizer.learning_rate = 0.0000625
+tf.train.AdamOptimizer.epsilon = 0.00015
+
+# Parameters for the agent density model
+_network_template.num_layers = 2
+_network_template.hidden_units = 16
+PixelCNNIntrinsicReward.reward_scale = 0.5
+PixelCNNIntrinsicReward.ipd_scale = 0.1
+PixelCNNIntrinsicReward.observation_shape = (84, 84)
+PixelCNNIntrinsicReward.resize_shape = (42, 42)
+PixelCNNIntrinsicReward.tf_device = '/gpu:0'
+PixelCNNIntrinsicReward.optimizer = @tf.train.RMSPropOptimizer()
+
+tf.train.RMSPropOptimizer.learning_rate = 0.0001
+tf.train.RMSPropOptimizer.momentum = 0.9
+tf.train.RMSPropOptimizer.epsilon = 0.0001
+
+atari_lib.create_atari_environment.game_name = 'MontezumaRevenge'
+# Sticky actions with probability 0.25, as suggested by (Machado et al., 2017).
+atari_lib.create_atari_environment.sticky_actions = True
+Runner.num_iterations = 200
+Runner.training_steps = 250000  # agent steps
+Runner.evaluation_steps = 125000  # agent steps
+Runner.max_steps_per_episode = 27000  # agent steps
+
+AtariPreprocessing.terminal_on_life_loss = False
+
+WrappedPrioritizedReplayBuffer.replay_capacity = 1000000
+WrappedPrioritizedReplayBuffer.batch_size = 32
