@@ -25,10 +25,10 @@ from six.moves import zip
 from tensorflow.compat.v1 import gfile
 
 from meta_reward_learning.textworld import common_flags
-from meta_reward_learning.textworld.lib import environment
 from meta_reward_learning.textworld.lib.graph_search import dfs_paths
 from meta_reward_learning.textworld.lib.replay_buffer import AllGoodReplayBuffer
 from meta_reward_learning.textworld.lib.replay_buffer import Traj
+from meta_reward_learning.textworld.third_party import environment
 
 # pylint: disable=g-import-not-at-top
 try:
