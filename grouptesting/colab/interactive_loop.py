@@ -75,8 +75,16 @@ class InteractiveSimulator(simulator.Simulator):
       groups = self.get_new_groups(rngs[0])
       self.sheet.write_groups(groups)
 
-      input(f'Please enters group results in\n{self.sheet.groups_url}\n')
-      tests_results = self.sheet.read_results(groups.shape[0])
+      tests_results = None
+      while tests_results is None:
+        input(f'Please enters group results in\n{self.sheet.groups_url}\n')
+        try:
+          tests_results = self.sheet.read_results(groups.shape[0])
+        except ValueError:
+          print('Error: some group are lacking test results.')
+          tests_results = None
+          continue
+
       self.process_tests_results(rngs[1], tests_results)
       self.sheet.write_marginals(self.marginal)
 
