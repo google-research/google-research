@@ -77,7 +77,7 @@ def get_example(name, seq, seq_label=None, label_string=None,
 
   # Add context or video-level features.
   seq_len = len(seq['video'])
-  context_features_dict = {'name': bytes_feature([name]),
+  context_features_dict = {'name': bytes_feature([name.encode()]),
                            'len': int64_feature([seq_len])}
 
   if seq_label is not None:
