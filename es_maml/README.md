@@ -1,11 +1,11 @@
 # ES-MAML Variant of Blackbox Optimization.
 
-See "ES-MAML: Simple Hessian-Free Meta Learning" (https://arxiv.org/abs/1910.01215) for the paper associated with this library.
+See ["ES-MAML: Simple Hessian-Free Meta Learning"](https://arxiv.org/abs/1910.01215) for the paper associated with this library. This was also used in ["Rapidly Adaptable Legged Robots via Evolutionary Meta-Learning"](https://arxiv.org/abs/2003.01239) with associated [Google AI Blog Post](https://ai.googleblog.com/2020/04/exploring-evolutionary-meta-learning-in.html).
 
-In order to run the algorithm, you must launch both the binaries es_maml_client (which produces the 'central' CPU) and multiple launches of es_maml_server (which produces the 'workers'). 
+In order to run the algorithm, you must launch both the binaries `es_maml_client` (which produces the 'central' CPU) and multiple launches of `es_maml_server` (which produces the 'workers'). 
 This depends on your particular distributed communication infrastructure, but we by default use GRPC.
 
-The hyperparameters are all contained in config.py.
+The hyperparameters are all contained in `config.py`.
 
 There are two algorithms:
 
@@ -23,3 +23,5 @@ There are two algorithms:
 1.  Uses local-worker state normalization.
 
 2.  Allows Hessian computation.
+
+If you found this codebase useful, please consider citing the two papers, thanks!

@@ -25,7 +25,6 @@ import math
 import time
 
 from absl import flags
-from absl import logging
 
 import numpy as np
 
@@ -319,9 +318,6 @@ class GeneralMAMLBlackboxWorker(zero_order_pb2_grpc.EvaluationServicer):
           task_list,
           hyperparameters=hyperparameters)
 
-      logging.info("FUNCTION_VALUE")
-      logging.info(function_value)
-
       evaluation_stats.append(evaluation_stat)
       function_values.append(function_value)
 
@@ -332,16 +328,12 @@ class GeneralMAMLBlackboxWorker(zero_order_pb2_grpc.EvaluationServicer):
           function_values=function_values,
           evaluation_stats=evaluation_stats_reduced,
           tag=tag)
-      logging.info("FUNCTION_VALUE_YES_PERTURBATIONS")
-      logging.info(function_values)
     else:
       results = zero_order_pb2.EvaluationResponse(
           perturbations=[],
           function_values=function_values,
           evaluation_stats=evaluation_stats_reduced,
           tag=tag)
-      logging.info("FUNCTION_VALUE_NO_PERTURBATIONS")
-      logging.info(function_values)
     return results
 
   def TestEvaluate(self, request, context):
@@ -436,13 +428,9 @@ class GradientMAMLWorker(first_order_pb2_grpc.EvaluationServicer):
     task_maml_gradient = []
     if request.eval_order == 0:
       function_value = [evaluation_result[0]]
-      logging.info("FUNCTION_VALUE_EVAL_ORDER_0")
-      logging.info(function_value)
 
     elif request.eval_order == 1:
       task_maml_gradient = evaluation_result[0].tolist()
-      logging.info("MAML GRADIENT_EVAL_ORDER_1")
-      logging.info(task_maml_gradient)
 
     results = first_order_pb2.TaskEvaluationResponse(
         respond_task_idx=task_idx,

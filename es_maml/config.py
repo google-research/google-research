@@ -232,9 +232,6 @@ def generate_config(config, **kwargs):
           policy_param_dim=policy_param_dim,
           perturbation_type=config.perturbation_type,
           dpp_rho=config.dpp_rho,
-          mixing_params=config.asebo_mixing_param,
-          asebo_k=config.asebo_k,
-          asebo_decay=config.asebo_decay,
           parallel_alg=config.hillclimb_parallel_alg,
           parallel_evaluations=config.hillclimb_parallel_evaluations)
       blackbox_object.use_adapter(adapter)

@@ -23,6 +23,7 @@ from concurrent import futures
 import time
 from absl import app
 from absl import flags
+from absl import logging
 
 import grpc
 from grpc import loas2
@@ -92,7 +93,7 @@ def main(unused_argv):
   server.add_secure_port("[::]:{}".format(port), server_creds)
   servers.append(server)
   server.start()
-  print("Start server {}".format(FLAGS.server_id))
+  logging.info("Start server %d", FLAGS.server_id)
 
   # prevent the main thread from exiting
   try:
