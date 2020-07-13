@@ -37,7 +37,7 @@ testSuite({
   setUp() {
     mockControl = new MockControl();
 
-    singleton.reset();
+    singleton.resetAll();
     downloader = Downloader.getInstance();
 
     fileParams = {

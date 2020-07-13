@@ -36,7 +36,7 @@ testSuite({
   setUp() {
     mockControl = new MockControl();
 
-    singleton.reset();
+    singleton.resetAll();
     navChart = NavChart.getInstance();
 
     storeData = {
