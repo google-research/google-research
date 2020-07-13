@@ -78,8 +78,6 @@ def extract(worksheet,
             end_row,
             end_col):
   """Extracts a range given as zero-based indices from a spreadsheet."""
-  start_row = start_row + 1  # zero-based vs. one-based indexing
-  end_row = start_row if end_row is None else end_row + 1
   start_char = index_to_column(start_col)
   end_char = index_to_column(end_col)
   cell_range = f'{start_char}{start_row}:{end_char}{end_row}'
@@ -87,8 +85,8 @@ def extract(worksheet,
   result = np.zeros((end_row - start_row + 1, end_col - start_col + 1))
   cells = worksheet.range(cell_range)
   for cell in cells:
-    col = cell.col - 1 - start_col
-    row = cell.row - 1 - start_row
+    col = cell.col - start_col -1
+    row = cell.row - start_row
     result[row, col] = cell.value
   return np.array(result)
 
@@ -245,7 +243,7 @@ class GroupTestingSheet:
     if num_groups < 2:
       return np.array([])
 
-    result = self._read_bools(1, self.num_patients, num_groups)
+    result = self._read_bools(3, self.num_patients + 2, num_groups)
     return result.T
 
   def read_results(self, num_groups = None):
@@ -257,7 +255,7 @@ class GroupTestingSheet:
     Returns:
       A np.ndarray<bool>[num_groups].
     """
-    return np.squeeze(self._read_bools(1, 1, num_groups))
+    return np.squeeze(self._read_bools(2, 2, num_groups))
 
   @property
   def groups_url(self):
