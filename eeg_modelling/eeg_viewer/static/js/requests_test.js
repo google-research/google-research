@@ -38,7 +38,7 @@ testSuite({
   setUp() {
     mockControl = new MockControl();
 
-    singleton.resetAll();
+    singleton.reset();
     requests = Requests.getInstance();
 
     // Initialize mocks for XhrIo requests.

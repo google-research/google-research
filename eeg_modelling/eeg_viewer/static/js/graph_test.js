@@ -34,7 +34,7 @@ testSuite({
   setUp() {
     mockControl = new MockControl();
 
-    singleton.resetAll();
+    singleton.reset();
     graph = Graph.getInstance();
 
     storeData = {

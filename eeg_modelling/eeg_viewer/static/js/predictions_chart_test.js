@@ -41,7 +41,7 @@ testSuite({
   setUp() {
     mockControl = new MockControl();
 
-    singleton.resetAll();
+    singleton.reset();
     predictionsChart = PredictionsChart.getInstance();
 
     storeData = {
