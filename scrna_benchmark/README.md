@@ -130,3 +130,18 @@ Note that the scripts for scVI and DCA can be interrupted, and will restart
 where they left off so that it can be launched on a shared GPU cluster with
 preemption.
 
+## Data availability
+
+The evaluation for all the runs as well as 5000 embeddings can be found in this
+Google Drive [folder](https://drive.google.com/drive/folders/1FeDryVXau6n3Ff4FQ4_g1CboPfz2Nbh_?usp=sharing)
+
+The files named `df_scran.csv`, `df_seurat.csv`, `df_zinbwave.csv`,
+`df_dca.csv`, and `df_scvi.csv` contain one row per configuration that we ran
+successfully.
+
+The files named `DATASET.METHOD.h5ad` are encoded with anndata `v0.7.0` (be
+careful as they are not readable with previous versions) and contain 100
+embeddings each. The embeddings are in the `obsm` attribute of the object.
+All the embeddings can be listed with the `obsm_keys()` method.
+The name of the embedding contains the parameters used to generate that
+embedding and are written like that `method=zinbwave.dims=10.epsilon=1000.features=300.gene_covariate=0`.
