@@ -1,13 +1,33 @@
-# Compositional Freebase Questions (CFQ) Tools
+# Compositional Freebase Questions (CFQ)
 
-This repository contains code for training and evaluating ML architectures on
-the Compositional Freebase Questions (CFQ) dataset.
+This repository contains a leaderboard and code for training and evaluating ML
+architectures on the Compositional Freebase Questions (CFQ) dataset.
 
 The dataset can be downloaded from the following URL:
 
 [Download the CFQ dataset](https://storage.cloud.google.com/cfq_dataset/cfq1.1.tar.gz)
 
 The dataset and details about its construction and use are described in this ICLR 2020 paper: [Measuring Compositional Generalization: A Comprehensive Method on Realistic Data](https://openreview.net/forum?id=SygcCnNKwr).
+
+## Leaderboard
+
+Architectures are ranked by accuracy on MCD-MEAN, which is the average over the
+accuracy of the three MCD splits. We also report average accuracy results and
+confidence intervals on the inidividual MCD splits.
+
+If you submit papers on CFQ, please consider sending a pull request to merge
+your results onto the leaderboard.
+
+|                           | MCD-MEAN      | MCD1         | MCD2        | MCD3         |
+|---------------------------|---------------|--------------|-------------|--------------|
+| Universal Transformer [1] | ***18.9 +/- 1.4***  | ***37.4 +/- 2.2*** | 8.1 +/- 1.6 | ***11.3 +/- 0.3*** |
+| Transformer [1]           |  17.9 +/- 0.9 | 34.9 +/- 1.1 | ***8.2 +/- 0.3*** | 10.6 +/- 1.1 |
+| LSTM+Attention [1]        | 14.9 +/- 1.1  | 28.9 +/- 1.8 | 5.0 +/- 0.8 | 10.8 +/- 0.6 |
+
+[1] [Keysers, Daniel, Nathanael Schärli, Nathan Scales, Hylke Buisman, Daniel
+Furrer, Sergii Kashubin, Nikola Momchev et al. "Measuring Compositional
+Generalization: A Comprehensive Method on Realistic Data." In *International
+Conference on Learning Representations.* 2019.](https://openreview.net/forum?id=SygcCnNKwr)
 
 ## Requirements
 
