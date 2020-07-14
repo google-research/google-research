@@ -20,7 +20,7 @@ import collections
 
 from dopamine.agents.dqn import dqn_agent
 from dopamine.agents.rainbow import rainbow_agent
-from dopamine.discrete_domains import atari_lib
+from dopamine.discrete_domains import legacy_networks
 
 import gin
 import numpy as np
@@ -51,7 +51,7 @@ class ElephantRainbowAgent(dqn_agent.DQNAgent):
                observation_shape=dqn_agent.NATURE_DQN_OBSERVATION_SHAPE,
                observation_dtype=dqn_agent.NATURE_DQN_DTYPE,
                stack_size=dqn_agent.NATURE_DQN_STACK_SIZE,
-               network=atari_lib.rainbow_network,
+               network=legacy_networks.rainbow_network,
                num_atoms=51,
                vmax=10.,
                gamma=0.99,
@@ -88,7 +88,7 @@ class ElephantRainbowAgent(dqn_agent.DQNAgent):
       network: function expecting three parameters:
         (num_actions, network_type, state). This function will return the
         network_type object containing the tensors output by the network.
-        See dopamine.discrete_domains.atari_lib.rainbow_network as
+        See dopamine.discrete_domains.legacy_networks.rainbow_network as
         an example.
       num_atoms: int, the number of buckets of the value function distribution.
       vmax: float, the value distribution support is [-vmax, vmax].
