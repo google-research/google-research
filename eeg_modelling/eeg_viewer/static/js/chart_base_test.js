@@ -37,7 +37,7 @@ testSuite({
   setUp() {
     mockControl = new MockControl();
 
-    singleton.reset();
+    singleton.resetAll();
     chartBase = ChartBase.getInstance();
 
     // Define things to resemble a subclass, which would have these overridden
