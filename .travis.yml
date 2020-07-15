@@ -26,7 +26,6 @@ env:
     - PROJECT="dreg_estimators"
     - PROJECT="dual_pixels"
     - PROJECT="dvrl"
-    - PROJECT="edward2_autoreparam"
     - PROJECT="evanet"
     - PROJECT="explaining_risk_increase"
     - PROJECT="extrapolation"
