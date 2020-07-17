@@ -278,6 +278,7 @@ cc_library(
         ":definitions",
         ":instruction_cc_proto",
         "@com_google_absl//absl/algorithm:container",
+        "@com_google_absl//absl/container:node_hash_map",
         "@com_google_absl//absl/memory",
         "@com_google_protobuf//:protobuf",
     ],
@@ -410,6 +411,7 @@ cc_test(
         ":instruction_cc_proto",
         ":random_generator",
         ":test_util",
+        "@com_google_absl//absl/container:node_hash_map",
         "@com_google_googletest//:gtest_main",
     ],
 )

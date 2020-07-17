@@ -34,7 +34,6 @@
 #include "google/protobuf/text_format.h"
 #include "absl/flags/flag.h"
 #include "absl/memory/memory.h"
-#include "absl/strings/str_cat.h"
 
 namespace automl_zero {
 

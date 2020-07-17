@@ -27,6 +27,7 @@
 #include "generator.h"
 #include "memory.h"
 #include "random_generator.h"
+#include "absl/strings/str_cat.h"
 
 namespace automl_zero {
 
