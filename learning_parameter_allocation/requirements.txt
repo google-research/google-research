@@ -1,0 +1,5 @@
+absl-py==0.8.0
+numpy==1.17.2
+tensorflow==1.15.0rc1
+tensorflow-datasets==1.2.0
+tensorflow-probability==0.7.0

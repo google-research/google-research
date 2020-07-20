@@ -39,6 +39,7 @@ env:
     - PROJECT="igt_optimizer"
     - PROJECT="large_margin"
     - PROJECT="learnreg"
+    - PROJECT="learning_parameter_allocation"
     - PROJECT="local_implicit_grid"
     - PROJECT="m_theory"
     - PROJECT="meta_reward_learning/semantic_parsing"
