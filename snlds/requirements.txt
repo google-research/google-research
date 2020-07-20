@@ -1,0 +1,5 @@
+absl-py
+scipy>=1.2.1
+tensorflow>=2.2.0
+matplotlib>=2.2.3
+tensorflow_probability>=0.10.0
