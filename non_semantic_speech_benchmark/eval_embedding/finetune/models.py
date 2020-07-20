@@ -21,30 +21,19 @@ from tensorflow_addons.layers.netvlad import NetVLAD
 import tensorflow_hub as hub
 
 
-class TrillOnBatches(tf.keras.layers.Layer):
-  """Run TRILL on a batch of samples."""
-
-  def __init__(self):
-    super(TrillOnBatches, self).__init__()
-    self.module = hub.load(
-        'https://tfhub.dev/google/nonsemantic-speech-benchmark/trill-distilled/2')  # pylint:disable=line-too-long
-    assert self.module
-    assert self.module.trill_module.variables
-
-  def call(self, batched_samples, sample_rate=16000):
-    batched_samples.shape.assert_has_rank(2)
-    batched_embeddings = self.module(
-        batched_samples, tf.constant(sample_rate, tf.int32))['embedding']
-    batched_embeddings.shape.assert_has_rank(3)
-    return batched_embeddings
-
-
 def get_keras_model(num_classes, input_length, use_batchnorm=True, l2=1e-5,
                     num_clusters=None):
   """Make a model."""
   model = tf.keras.models.Sequential()
   model.add(tf.keras.Input((input_length,)))  # Input is [bs, input_length]
-  model.add(TrillOnBatches())
+  trill_layer = hub.KerasLayer(
+      handle='https://tfhub.dev/google/nonsemantic-speech-benchmark/trill-distilled/2',
+      trainable=True,
+      arguments={'sample_rate': tf.constant(16000, tf.int32)},
+      output_key='embedding',
+      output_shape=[None, 2048]
+  )
+  model.add(trill_layer)
   if num_clusters > 0:
     model.add(NetVLAD(num_clusters=num_clusters))
     if use_batchnorm:
