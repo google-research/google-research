@@ -13,21 +13,34 @@ The dataset and details about its construction and use are described in this ICL
 
 Architectures are ranked by accuracy on MCD-MEAN, which is the average over the
 accuracy of the three MCD splits. We also report average accuracy results and
-confidence intervals on the inidividual MCD splits.
+95% confidence intervals on the individual MCD splits.
 
 If you submit papers on CFQ, please consider sending a pull request to merge
 your results onto the leaderboard.
 
-|                           | MCD-MEAN      | MCD1         | MCD2        | MCD3         |
-|---------------------------|---------------|--------------|-------------|--------------|
-| Universal Transformer [1] | ***18.9 +/- 1.4***  | ***37.4 +/- 2.2*** | 8.1 +/- 1.6 | ***11.3 +/- 0.3*** |
-| Transformer [1]           |  17.9 +/- 0.9 | 34.9 +/- 1.1 | ***8.2 +/- 0.3*** | 10.6 +/- 1.1 |
-| LSTM+Attention [1]        | 14.9 +/- 1.1  | 28.9 +/- 1.8 | 5.0 +/- 0.8 | 10.8 +/- 0.6 |
+|                             | MCD-MEAN      | MCD1         | MCD2         | MCD3         |
+|-----------------------------|---------------|--------------|--------------|--------------|
+| T5-11B-mod [2]              | **42.1 +/- 9.1** | 61.6 +/- 12.4 | **31.3 +/ 12.8** | **33.3 +/- 2.3** |
+| T5-11B [2]                  | 40.9 +/- 4.3  | 61.4 +/- 4.8 | 30.1 +/- 2.2 | 31.2 +/- 5.7 |
+| T5-3B [2]                   | 40.2 +/- 4.2  | **64.0 +/- 1.5** | 29.7 +/- 2.8 | 27.0 +/- 8.3 |
+| T5-large [2]                | 34.8 +/- 1.5  | 63.3 +/- 0.6 | 22.2 +/- 1.5 | 18.8 +/- 2.6 |
+| T5-base [2]                 | 31.2 +/ 1.3   | 57.6 +/- 1.4 | 19.5 +/- 1.0 | 16.6 +/- 1.5 |
+| T5-small [2]                | 28.0 +/- 0.6  | 54.2 +/- 0.8 | 16.0 +/- 0.3 | 13.8 +/- 0.8 |
+| Evolved Transformer [2]     | 20.8 +/- 0.7  | 42.4 +/- 1.0 | 9.3 +/- 0.8  | 10.8 +/- 0.2 |
+| Universal Transformer [1]   | 18.9 +/- 1.4  | 37.4 +/- 2.2 | 8.1 +/- 1.6  | 11.3 +/- 0.3 |
+| Transformer [1]             | 17.9 +/- 0.9  | 34.9 +/- 1.1 | 8.2 +/- 0.3  | 10.6 +/- 1.1 |
+| LSTM+Attention [1]          | 14.9 +/- 1.1  | 28.9 +/- 1.8 | 5.0 +/- 0.8  | 10.8 +/- 0.6 |
+| CGPS [2]                    | 7.1 +/- 1.8   | 13.2 +/- 3.9 | 1.6 +/- 0.8  | 6.6 +/- 0.6  |
+| Neural Shuffle Exchange [2] | 2.8 +/- 0.3   | 5.1 +/- 0.4  | 0.9 +/- 0.1  | 2.3 +/- 0.3  |
 
 [1] [Keysers, Daniel, Nathanael Schärli, Nathan Scales, Hylke Buisman, Daniel
 Furrer, Sergii Kashubin, Nikola Momchev et al. "Measuring Compositional
 Generalization: A Comprehensive Method on Realistic Data." In *International
 Conference on Learning Representations.* 2019.](https://openreview.net/forum?id=SygcCnNKwr)
+
+[2] [Daniel Furrer, Marc van Zee, Nathan Scales, Nathanael Schärli.
+"Compositional Generalization in Semantic Parsing: Pre-training vs. Specialized
+Architectures" In *arXiv e-prints, arXiv:2007.08970* 2020.](https://arxiv.org/abs/2007.08970)
 
 ## Requirements
 
