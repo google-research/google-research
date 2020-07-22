@@ -27,12 +27,13 @@ def get_keras_model(num_classes, input_length, use_batchnorm=True, l2=1e-5,
   model = tf.keras.models.Sequential()
   model.add(tf.keras.Input((input_length,)))  # Input is [bs, input_length]
   trill_layer = hub.KerasLayer(
-      handle='https://tfhub.dev/google/nonsemantic-speech-benchmark/trill-distilled/2',
+      handle='https://tfhub.dev/google/nonsemantic-speech-benchmark/trill-distilled/3',
       trainable=True,
       arguments={'sample_rate': tf.constant(16000, tf.int32)},
       output_key='embedding',
       output_shape=[None, 2048]
   )
+  assert trill_layer.trainable_variables
   model.add(trill_layer)
   if num_clusters > 0:
     model.add(NetVLAD(num_clusters=num_clusters))
