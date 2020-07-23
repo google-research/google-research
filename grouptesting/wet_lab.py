@@ -52,8 +52,11 @@ class WetLab:
       of which patient is diseased and which is not. In a large scale
       simulations, consider using False in order to have different setups of
       diseased patients in each simulation.
-     base_infection_rate: Can be either a single value for every one or a prior
-      per patient as a list or array.
+     base_infection_rate: Can be either a single value between 0 and 1, which
+      applies to all patients, or a prior value for each patient given as a list
+      or array. In the case one wants to enforce a certain infection status
+      (not a random one), it suffices to set these values to 0 and 1 for non
+      infected and infected patients respectively.
      specificity: the specificity of the PCR machine to be used. In case of an
       vector, it corresponds to the specificity for a given group size.
      sensitivity: the sensitivity of the PCR machine to be used. In case of an

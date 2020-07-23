@@ -35,7 +35,8 @@ class InteractiveSimulator(simulator.Simulator):
     sampler = smc.SmcSampler(num_particles=num_particles,
                              resample_at_each_iteration=True)
     if policy is None:
-      policy = group_policy.MimaxPolicy()
+      policy = group_policy.MimaxPolicy(forward_iterations=2,
+                                        backward_iterations=1)
     super().__init__(
         wetlab=wetlab,
         sampler=sampler,
