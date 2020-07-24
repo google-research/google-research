@@ -28,7 +28,8 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string('file_pattern', None, 'Dataset location.')
 flags.DEFINE_string('samples_key', None, 'Samples name.')
-flags.DEFINE_integer('min_length', 16000, 'Minimum length.')
+flags.DEFINE_integer('ml', 16000, 'Minimum length.')
+flags.DEFINE_alias('min_length', 'ml')
 flags.DEFINE_string('label_key', None, 'Name of label to use.')
 flags.DEFINE_list('label_list', None, 'List of possible label values.')
 
