@@ -44,6 +44,11 @@ flags.DEFINE_integer('num_steps_per_iteration', 10000,
 flags.DEFINE_integer('num_iterations', 100, 'Number of iterations.')
 flags.DEFINE_integer('num_eval_episodes', 10, 'Number of evaluation episodes.')
 flags.DEFINE_integer('samples_per_insert', 256, 'Controls update frequency.')
+flags.DEFINE_float('policy_learning_rate', 1e-4,
+                   'Larning rate for policy updates')
+flags.DEFINE_float('critic_learning_rate', 1e-4,
+                   'Larning rate for critic updates')
+
 FLAGS = flags.FLAGS
 
 
@@ -53,15 +58,20 @@ def main(_):
   environment_spec = specs.make_environment_spec(environment)
 
   # Create Rewarder.
-  demonstrations = utils.load_demonstrations(demo_dir=FLAGS.demo_dir,
-                                             env_name=FLAGS.env_name)
+  demonstrations = utils.load_demonstrations(
+      demo_dir=FLAGS.demo_dir, env_name=FLAGS.env_name)
   pwil_rewarder = rewarder.PWILRewarder(
       demonstrations,
       subsampling=FLAGS.subsampling,
       env_specs=environment_spec,
       num_demonstrations=FLAGS.num_demonstrations,
-      observation_only=FLAGS.state_only
-  )
+      observation_only=FLAGS.state_only)
+
+  # Define optimizers
+  policy_optimizer = snt.optimizers.Adam(
+      learning_rate=FLAGS.policy_learning_rate)
+  critic_optimizer = snt.optimizers.Adam(
+      learning_rate=FLAGS.critic_learning_rate)
 
   # Define D4PG agent.
   agent_networks = utils.make_d4pg_networks(environment_spec.actions)
@@ -70,6 +80,8 @@ def main(_):
       policy_network=agent_networks['policy'],
       critic_network=agent_networks['critic'],
       observation_network=agent_networks['observation'],
+      policy_optimizer=policy_optimizer,
+      critic_optimizer=critic_optimizer,
       samples_per_insert=FLAGS.samples_per_insert,
       sigma=FLAGS.sigma,
   )
@@ -89,17 +101,18 @@ def main(_):
   eval_agent = FeedForwardActor(policy_network=eval_policy)
 
   # Define train/eval loops.
-  logger = csv_logger.CSVLogger(directory=FLAGS.workdir, label='train_logs')
-  train_loop = imitation_loop.TrainEnvironmentLoop(environment,
-                                                   agent,
-                                                   pwil_rewarder,
-                                                   logger=logger)
 
-  eval_logger = csv_logger.CSVLogger(directory=FLAGS.workdir, label='eval_logs')
-  eval_loop = imitation_loop.EvalEnvironmentLoop(environment,
-                                                 eval_agent,
-                                                 pwil_rewarder,
-                                                 logger=eval_logger)
+  train_logger = csv_logger.CSVLogger(
+      directory=FLAGS.workdir, label='train_logs')
+  eval_logger = csv_logger.CSVLogger(
+      directory=FLAGS.workdir, label='eval_logs')
+
+
+  train_loop = imitation_loop.TrainEnvironmentLoop(
+      environment, agent, pwil_rewarder, logger=train_logger)
+
+  eval_loop = imitation_loop.EvalEnvironmentLoop(
+      environment, eval_agent, pwil_rewarder, logger=eval_logger)
 
   for _ in range(FLAGS.num_iterations):
     train_loop.run(num_steps=FLAGS.num_steps_per_iteration)
