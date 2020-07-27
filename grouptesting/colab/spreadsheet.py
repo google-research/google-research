@@ -17,6 +17,7 @@
 """Connect to and interact with google spreadsheet."""
 
 import datetime
+import re
 from typing import Optional
 
 import numpy as np
@@ -134,17 +135,20 @@ class GroupTestingSheet:
   def load(self):
     """Reads the spreadsheet, loads and adapt the data."""
     worksheet = self.sheet.sheet1
-    num_params = len(self.params)
+    num_params = worksheet.row_count
     cells = worksheet.range(f'A1:B{num_params}')
     params = [[None, None] for _ in range(num_params)]
     for cell in cells:
       if cell.col == 1:
         value = cell.value
       else:
-        cast = float if '.' in cell.value else int
-        value = cast(cell.value)
+        if re.match(r'[0-9]+\.?[0-9]*$', cell.value) is not None:
+          cast = float if '.' in cell.value else int
+          value = cast(cell.value)
+        else:
+          value = cell.value
       params[cell.row - 1][cell.col - 1] = value
-    self.params = dict(params)
+    self.params.update(params)
 
     # Adapts the other two worksheets
     offsets = [1, 2]
