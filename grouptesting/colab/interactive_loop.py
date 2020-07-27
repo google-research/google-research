@@ -30,13 +30,21 @@ from grouptesting.samplers import sequential_monte_carlo as smc
 class InteractiveSimulator(simulator.Simulator):
   """Interactive group testing loop, reading an write into a spreadsheet."""
 
-  def __init__(self, sheet, num_particles=10000, policy=None):
+  def __init__(self, sheet):
     wetlab = wet_lab.WetLab(num_patients=sheet.num_patients)
-    sampler = smc.SmcSampler(num_particles=num_particles,
-                             resample_at_each_iteration=True)
-    if policy is None:
+    sampler = None
+    policy_name = sheet.params['policy']
+    if policy_name == 'G-MIMAX':
       policy = group_policy.MimaxPolicy(forward_iterations=2,
                                         backward_iterations=1)
+      sampler = smc.SmcSampler(num_particles=sheet.num_patients * 150,
+                               resample_at_each_iteration=True)
+    elif policy_name == 'InformativeDorfman':
+      policy = group_policy.InformativeDorfmanPolicy(cut_off_high=0.95,
+                                                     cut_off_low=0.001)
+    elif policy_name == 'Random':
+      policy = group_policy.MezardPolicy()
+
     super().__init__(
         wetlab=wetlab,
         sampler=sampler,

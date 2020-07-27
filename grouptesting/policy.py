@@ -18,6 +18,7 @@
 
 import gin
 
+from grouptesting.group_selectors import informative_dorfman
 from grouptesting.group_selectors import mutual_information
 from grouptesting.group_selectors import origami
 from grouptesting.group_selectors import random
@@ -60,8 +61,8 @@ class MimaxPolicy(Policy):
     selectors = [mutual_information.MaxMutualInformation(**kwargs)]
     if subsequent_selectors is not None:
       selectors.extend(
-          subsequent_selectors if isinstance(subsequent_selectors, list)
-          else [subsequent_selectors])
+          subsequent_selectors if isinstance(subsequent_selectors, list
+                                            ) else [subsequent_selectors])
     super().__init__(selectors=selectors)
 
 
@@ -73,30 +74,45 @@ class OrigamiPolicy(Policy):
     selectors = [origami.Origami()]
     if subsequent_selectors is not None:
       selectors.extend(
-          subsequent_selectors if isinstance(subsequent_selectors, list)
-          else [subsequent_selectors])
+          subsequent_selectors if isinstance(subsequent_selectors, list
+                                            ) else [subsequent_selectors])
     super().__init__(selectors=selectors)
 
 
 @gin.configurable
 class MezardPolicy(Policy):
-  """A policy that starts with Mezard."""
+  """A policy that starts with Mezard (random) selector."""
 
   def __init__(self, subsequent_selectors=None, **kwargs):
     selectors = [random.Mezard(**kwargs)]
     if subsequent_selectors is not None:
       selectors.extend(
-          subsequent_selectors if isinstance(subsequent_selectors, list)
-          else [subsequent_selectors])
+          subsequent_selectors if isinstance(subsequent_selectors, list
+                                            ) else [subsequent_selectors])
     super().__init__(selectors=selectors)
 
 
 @gin.configurable
 class Dorfman(Policy):
-  """A Dorfman policy."""
+  """A Dorfman policy that re-tests members in a positive group.
+
+  Attributes:
+    second_split : either None (all members of a positive groups are re-tested
+      individually) or p-ary (e.g. binary if second_split=2).
+  """
 
   def __init__(self, second_split=None, **kwargs):
     super().__init__(selectors=[
         split.SplitSelector(**kwargs),
         split.SplitPositive(split_factor=second_split)
+    ])
+
+
+@gin.configurable
+class InformativeDorfmanPolicy(Policy):
+  """Informative Dorfman policy."""
+
+  def __init__(self, **kwargs):
+    super().__init__(selectors=[
+        informative_dorfman.InformativeDorfman(**kwargs)
     ])

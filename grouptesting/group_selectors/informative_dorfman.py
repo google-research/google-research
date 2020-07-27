@@ -47,22 +47,22 @@ class InformativeDorfman(group_selector.GroupSelector):
   NEEDS_POSTERIOR = False
 
   def __init__(self,
-               modified = True,
-               cut_off_high = 0.95,
-               cut_off_low = 1e-4):
+               cut_off_high = 1,
+               cut_off_low = 0,
+               modified = False):
     """Creates an Informative Dorfman selector.
 
     Args:
+      cut_off_high : float, patients with a marginal value above that threshold
+        are not considered.
+      cut_off_low : float, patients with a marginal value below that threshold
+        are not considered.
       modified : bool that indicates whether the ID selector (from original
         paper) is modified to only output a predetermined number of tests, in
         which case the idea is to randomly sample a subset of them, or whether
         we proceed in standard fashion, as is the case with Dorfman strategies,
         by adding all tests that are needed regardless of the capacity of the
         testing device in the next testing cycle.
-      cut_off_high : float, patients with a marginal value above that threshold
-        are not considered.
-      cut_off_low : float, patients with a marginal value below that threshold
-        are not considered.
     """
 
     super().__init__()

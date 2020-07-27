@@ -111,8 +111,13 @@ class GroupTestingSheet:
     name = f'Group Testing - {now}'
     # Initialize with some default values.
     self.params = dict(
-        patients=10, sensitivity=0.97, specificity=0.95,
-        tests_per_cycle=8, cycles=10, max_group_size=6)
+        patients=10,
+        sensitivity=0.97,
+        specificity=0.95,
+        tests_per_cycle=8,
+        cycles=10,
+        max_group_size=6,
+        policy='G-MIMAX')
     self._gc = google_credentials
     if sheet_id is not None:
       self.sheet = self._gc.open_by_key(sheet_id)
