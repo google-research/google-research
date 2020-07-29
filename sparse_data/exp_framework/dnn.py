@@ -19,24 +19,22 @@ Trains and evaluates deep neural network classification models using Keras.
 Performs parameter tuning with grid search and randomized search.
 """
 
-from keras import backend as K
-from keras import regularizers
-from keras.layers import Activation
-from keras.layers import Dense
-from keras.layers import Dropout
-from keras.layers import Input
-from keras.layers.advanced_activations import ELU
-from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.advanced_activations import PReLU
-from keras.layers.advanced_activations import ThresholdedReLU
-from keras.models import Model
-from keras.optimizers import Adam
-# from keras.utils import np_utils
-from keras.wrappers.scikit_learn import KerasClassifier
-from keras.wrappers.scikit_learn import KerasRegressor
-
 import numpy as np
 from scipy import sparse
+from tensorflow.compat.v1.keras import backend as K
+from tensorflow.compat.v1.keras import regularizers
+from tensorflow.compat.v1.keras.layers import Activation
+from tensorflow.compat.v1.keras.layers import Dense
+from tensorflow.compat.v1.keras.layers import Dropout
+from tensorflow.compat.v1.keras.layers import ELU
+from tensorflow.compat.v1.keras.layers import Input
+from tensorflow.compat.v1.keras.layers import LeakyReLU
+from tensorflow.compat.v1.keras.layers import PReLU
+from tensorflow.compat.v1.keras.layers import ThresholdedReLU
+from tensorflow.compat.v1.keras.models import Model
+from tensorflow.compat.v1.keras.optimizers import Adam
+from tensorflow.compat.v1.keras.wrappers.scikit_learn import KerasClassifier
+from tensorflow.compat.v1.keras.wrappers.scikit_learn import KerasRegressor
 
 from sparse_data.exp_framework.utils import generic_pipeline
 
