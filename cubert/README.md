@@ -1,0 +1,1 @@
+This is a repository for code and data accompanying the ICML 2020 paper [Learning and Evaluating Contextual Embedding of Source Code] (https://proceedings.icml.cc/static/paper_files/icml/2020/5401-Paper.pdf).

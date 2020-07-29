@@ -1,0 +1,24 @@
+# Lint as: python3
+"""This is a test script."""
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+from absl import app
+from absl import flags
+
+FLAGS = flags.FLAGS
+
+
+def uncommon_method_name_to_test_subtokenization():
+  print('This is a test message.')
+
+
+def main(argv):
+  if len(argv) > 1:
+    raise app.UsageError('Too many command-line arguments.')
+  uncommon_method_name_to_test_subtokenization()
+
+if __name__ == '__main__':
+  app.run(main)
