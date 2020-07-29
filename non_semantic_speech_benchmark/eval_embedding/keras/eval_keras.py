@@ -23,8 +23,6 @@ from absl import flags
 from absl import logging
 
 import tensorflow.compat.v2 as tf
-tf.compat.v2.enable_v2_behavior()
-assert tf.executing_eagerly()
 
 from non_semantic_speech_benchmark.eval_embedding.keras import get_data
 from non_semantic_speech_benchmark.eval_embedding.keras import models
@@ -119,14 +117,12 @@ def eval_and_report():
 
 
 def main(unused_argv):
-  assert FLAGS.file_pattern
-  assert FLAGS.en
-  assert FLAGS.ed
-  assert FLAGS.label_name
-  assert FLAGS.label_list
-  assert FLAGS.logdir
+  tf.compat.v2.enable_v2_behavior()
+  assert tf.executing_eagerly()
   eval_and_report()
 
 
 if __name__ == '__main__':
+  flags.mark_flags_as_required([
+      'file_pattern', 'en', 'ed', 'lable_name', 'label_list', 'logdir'])
   app.run(main)
