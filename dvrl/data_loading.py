@@ -24,15 +24,14 @@ import os
 
 import zipfile
 
-from keras import backend
-from keras import datasets
-
 import numpy as np
 import pandas as pd
 
 from six.moves import urllib
 from sklearn import preprocessing
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1.keras import backend
+from tensorflow.compat.v1.keras import datasets
 
 from dvrl import dvrl_utils
 

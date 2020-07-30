@@ -21,13 +21,13 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-import keras
-from keras import applications
-from keras import layers
-from keras import models
 import numpy as np
 from sklearn import linear_model
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import keras
+from tensorflow.compat.v1.keras import applications
+from tensorflow.compat.v1.keras import layers
+from tensorflow.compat.v1.keras import models
 
 from dvrl import data_loading
 from dvrl import dvrl
