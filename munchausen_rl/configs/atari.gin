@@ -1,0 +1,73 @@
+import dopamine.discrete_domains.atari_lib
+import dopamine.discrete_domains.run_experiment
+import dopamine.agents.dqn.dqn_agent
+import dopamine.replay_memory.circular_replay_buffer
+import gin.tf.external_configurables
+
+
+MunchausenDQNAgent.gamma = 0.99
+MunchausenDQNAgent.update_horizon = 1
+MunchausenDQNAgent.min_replay_history = 20000  # agent steps
+MunchausenDQNAgent.update_period = 4
+MunchausenDQNAgent.target_update_period = 8000  # agent steps
+MunchausenDQNAgent.epsilon_train = 0.01
+MunchausenDQNAgent.epsilon_eval = 0.001
+MunchausenDQNAgent.epsilon_decay_period = 250000  # agent steps
+MunchausenDQNAgent.optimizer_type = 'adam'
+MunchausenDQNAgent.optimizer_lr = 0.00005
+MunchausenDQNAgent.tf_device = '/gpu:0'  # use '/cpu:*' for non-GPU version
+
+MunchausenIQNAgent.kappa = 1.0
+MunchausenIQNAgent.num_tau_samples = 64
+MunchausenIQNAgent.num_tau_prime_samples = 64
+MunchausenIQNAgent.num_quantile_samples = 32
+MunchausenIQNAgent.gamma = 0.99
+MunchausenIQNAgent.update_horizon = 1
+MunchausenIQNAgent.min_replay_history = 20000 # agent steps
+MunchausenIQNAgent.update_period = 4
+MunchausenIQNAgent.target_update_period = 8000 # agent steps
+MunchausenIQNAgent.epsilon_train = 0.01
+MunchausenIQNAgent.epsilon_eval = 0.001
+MunchausenIQNAgent.epsilon_decay_period = 250000  # agent steps
+MunchausenIQNAgent.tf_device = '/gpu:0'  # '/cpu:*' use for non-GPU version
+MunchausenIQNAgent.optimizer = @iqn/tf.train.AdamOptimizer()
+
+DQNAgent.gamma = 0.99
+DQNAgent.update_horizon = 1
+DQNAgent.min_replay_history = 20000  # agent steps
+DQNAgent.update_period = 4
+DQNAgent.target_update_period = 8000  # agent steps
+DQNAgent.epsilon_train = 0.01
+DQNAgent.epsilon_eval = 0.001
+DQNAgent.epsilon_decay_period = 250000  # agent steps
+DQNAgent.tf_device = '/gpu:0'  # use '/cpu:*' for non-GPU version
+DQNAgent.optimizer = @dqn/tf.train.AdamOptimizer()
+
+ALDQNAgent.gamma = 0.99
+ALDQNAgent.update_horizon = 1
+ALDQNAgent.min_replay_history = 20000  # agent steps
+ALDQNAgent.update_period = 4
+ALDQNAgent.target_update_period = 8000  # agent steps
+ALDQNAgent.epsilon_train = 0.01
+ALDQNAgent.epsilon_eval = 0.001
+ALDQNAgent.epsilon_decay_period = 250000  # agent steps
+ALDQNAgent.tf_device = '/gpu:0'  # use '/cpu:*' for non-GPU version
+ALDQNAgent.optimizer = @dqn/tf.train.AdamOptimizer()
+
+dqn/tf.train.AdamOptimizer.learning_rate = 0.00005
+dqn/tf.train.AdamOptimizer.epsilon = 0.0003125
+
+iqn/tf.train.AdamOptimizer.learning_rate = 0.00005
+iqn/tf.train.AdamOptimizer.epsilon = 0.0003125
+
+Runner.num_iterations = 200
+Runner.training_steps = 250000  # agent steps
+Runner.evaluation_steps = 125000  # agent steps
+Runner.max_steps_per_episode = 27000  # agent steps
+
+WrappedReplayBuffer.replay_capacity = 1000000
+WrappedReplayBuffer.batch_size = 32
+
+AtariPreprocessing.terminal_on_life_loss = False
+atari_lib.create_atari_environment.sticky_actions = True
+

@@ -1,0 +1,57 @@
+import dopamine.discrete_domains.gym_lib
+import dopamine.discrete_domains.run_experiment
+import dopamine.agents.dqn.dqn_agent
+import dopamine.replay_memory.circular_replay_buffer
+import gin.tf.external_configurables
+
+
+MunchausenDQNAgent.observation_shape = %gym_lib.CARTPOLE_OBSERVATION_SHAPE
+MunchausenDQNAgent.observation_dtype = %gym_lib.CARTPOLE_OBSERVATION_DTYPE
+MunchausenDQNAgent.stack_size = %gym_lib.CARTPOLE_STACK_SIZE
+MunchausenDQNAgent.network = @gym_lib.CartpoleDQNNetwork
+MunchausenDQNAgent.gamma = 0.99
+MunchausenDQNAgent.update_horizon = 1
+MunchausenDQNAgent.min_replay_history = 500
+MunchausenDQNAgent.update_period = 4
+MunchausenDQNAgent.target_update_period = 100
+MunchausenDQNAgent.epsilon_fn = @dqn_agent.identity_epsilon
+MunchausenDQNAgent.tf_device = '/cpu:*'  # use '/cpu:*' for non-GPU version
+MunchausenDQNAgent.optimizer_type = 'adam'
+MunchausenDQNAgent.optimizer_lr = 0.001
+
+DQNAgent.observation_shape = %gym_lib.CARTPOLE_OBSERVATION_SHAPE
+DQNAgent.observation_dtype = %gym_lib.CARTPOLE_OBSERVATION_DTYPE
+DQNAgent.stack_size = %gym_lib.CARTPOLE_STACK_SIZE
+DQNAgent.network = @gym_lib.CartpoleDQNNetwork
+DQNAgent.gamma = 0.99
+DQNAgent.update_horizon = 1
+DQNAgent.min_replay_history = 500
+DQNAgent.update_period = 4
+DQNAgent.target_update_period = 100
+DQNAgent.epsilon_fn = @dqn_agent.identity_epsilon
+DQNAgent.tf_device = '/cpu:*'  # use '/cpu:*' for non-GPU version
+DQNAgent.optimizer = @dqn/tf.train.AdamOptimizer()
+
+ALDQNAgent.observation_shape = %gym_lib.CARTPOLE_OBSERVATION_SHAPE
+ALDQNAgent.observation_dtype = %gym_lib.CARTPOLE_OBSERVATION_DTYPE
+ALDQNAgent.stack_size = %gym_lib.CARTPOLE_STACK_SIZE
+ALDQNAgent.network = @gym_lib.CartpoleDQNNetwork
+ALDQNAgent.gamma = 0.99
+ALDQNAgent.update_horizon = 1
+ALDQNAgent.min_replay_history = 500
+ALDQNAgent.update_period = 4
+ALDQNAgent.target_update_period = 100
+ALDQNAgent.epsilon_fn = @dqn_agent.identity_epsilon
+ALDQNAgent.tf_device = '/cpu:*'  # use '/cpu:*' for non-GPU version
+ALDQNAgent.optimizer = @dqn/tf.train.AdamOptimizer()
+
+dqn/tf.train.AdamOptimizer.learning_rate = 0.001
+dqn/tf.train.AdamOptimizer.epsilon = 0.0003125
+
+Runner.num_iterations = 500
+Runner.training_steps = 1000
+Runner.evaluation_steps = 1000
+Runner.max_steps_per_episode = 500
+
+WrappedReplayBuffer.replay_capacity = 50000
+WrappedReplayBuffer.batch_size = 128
