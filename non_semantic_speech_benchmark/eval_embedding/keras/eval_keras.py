@@ -30,8 +30,10 @@ from non_semantic_speech_benchmark.eval_embedding.keras import models
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string('file_pattern', None, 'Dataset location.')
-flags.DEFINE_string('en', None, 'Embedding name.')
-flags.DEFINE_string('ed', None, 'Embedding dimension.')
+flags.DEFINE_string('embedding_name', None, 'Embedding name.')
+flags.DEFINE_alias('en', 'embedding_name')
+flags.DEFINE_string('embedding_dimension', None, 'Embedding dimension.')
+flags.DEFINE_alias('ed', 'embedding_dimension')
 flags.DEFINE_string('label_name', None, 'Name of label to use.')
 flags.DEFINE_list('label_list', None, 'List of possible label values.')
 
@@ -117,12 +119,17 @@ def eval_and_report():
 
 
 def main(unused_argv):
+  assert FLAGS.file_pattern
+  assert FLAGS.embedding_name
+  assert FLAGS.embedding_dimension
+  assert FLAGS.label_name
+  assert FLAGS.label_list
+  assert FLAGS.logdir
+
   tf.compat.v2.enable_v2_behavior()
   assert tf.executing_eagerly()
   eval_and_report()
 
 
 if __name__ == '__main__':
-  flags.mark_flags_as_required([
-      'file_pattern', 'en', 'ed', 'lable_name', 'label_list', 'logdir'])
   app.run(main)

@@ -118,13 +118,14 @@ def eval_and_report():
 
 
 def main(unused_argv):
-  tf.compat.v2.enable_v2_behavior()
-  assert tf.executing_eagerly()
   assert FLAGS.file_pattern
   assert FLAGS.samples_key
   assert FLAGS.label_key
   assert FLAGS.label_list
   assert FLAGS.logdir
+
+  tf.compat.v2.enable_v2_behavior()
+  assert tf.executing_eagerly()
   eval_and_report()
 
 

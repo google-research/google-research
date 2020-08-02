@@ -154,13 +154,18 @@ def get_model(num_classes, ubn=None, nc=None):
 
 
 def main(unused_argv):
+  assert FLAGS.file_pattern
+  assert FLAGS.shuffle_buffer_size
+  assert FLAGS.embedding_name
+  assert FLAGS.embedding_dimension
+  assert FLAGS.label_name
+  assert FLAGS.label_list
+  assert FLAGS.logdir
+
   tf.compat.v2.enable_v2_behavior()
   assert tf.executing_eagerly()
   train_and_report()
 
 
 if __name__ == '__main__':
-  flags.mark_flags_as_required([
-      'file_pattern', 'shuffle_buffer_size', 'embedding_dimension',
-      'lable_name', 'label_list', 'logdir'])
   app.run(main)

@@ -150,14 +150,15 @@ def get_model(num_classes, ubn=None, nc=None):
 
 
 def main(unused_argv):
-  tf.enable_v2_behavior()
-  assert tf.executing_eagerly()
   assert FLAGS.file_pattern
   assert FLAGS.shuffle_buffer_size
   assert FLAGS.samples_key
   assert FLAGS.label_key
   assert FLAGS.label_list
   assert FLAGS.logdir
+
+  tf.enable_v2_behavior()
+  assert tf.executing_eagerly()
   train_and_report()
 
 
