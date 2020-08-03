@@ -99,6 +99,7 @@ def main(unused_argv):
          | 'CalcScores' >> beam.Map(
              lambda d: (d, train_and_eval_sklearn.train_and_get_score(**d)))
          | 'FormatText' >> beam.Map(format_text_line)
+         | 'Reshuffle' >> beam.Reshuffle()
          | 'WriteOutput' >> beam.io.WriteToText(FLAGS.output_file, num_shards=1)
         )
 
