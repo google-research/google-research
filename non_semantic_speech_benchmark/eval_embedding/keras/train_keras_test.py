@@ -22,10 +22,9 @@ from absl.testing import flagsaver
 from absl.testing import parameterized
 import mock
 import tensorflow.compat.v2 as tf
-tf.compat.v2.enable_v2_behavior()
-assert tf.executing_eagerly()
 
-from non_semantic_speech_benchmark.eval_embedding.keras import train_keras  # pylint: disable=g-import-not-at-top
+from non_semantic_speech_benchmark.eval_embedding.keras import models
+from non_semantic_speech_benchmark.eval_embedding.keras import train_keras
 
 
 def _get_data(*args, **kwargs):
@@ -51,7 +50,8 @@ class TrainKerasTest(parameterized.TestCase):
     emb = tf.zeros([3, 5, 8])
     y_onehot = tf.one_hot([0, 1, 2], num_classes)
 
-    model = train_keras.get_model(num_classes, ubn=True, nc=num_clusters)
+    model = models.get_keras_model(num_classes, use_batchnorm=True,
+                                   num_clusters=num_clusters)
 
     loss_obj = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
     opt = tf.keras.optimizers.Adam()
@@ -83,4 +83,6 @@ class TrainKerasTest(parameterized.TestCase):
 
 
 if __name__ == '__main__':
+  tf.compat.v2.enable_v2_behavior()
+  assert tf.executing_eagerly()
   absltest.main()

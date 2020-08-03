@@ -79,8 +79,9 @@ def train_and_report(debug=False):
   y_onehot_spec = ds.element_spec[1]
   assert len(y_onehot_spec.shape) == 2
   num_classes = y_onehot_spec.shape[1]
-  model = get_model(num_classes, ubn=FLAGS.use_batch_normalization,
-                    nc=FLAGS.num_clusters)
+  model = models.get_keras_model(
+      num_classes, FLAGS.use_batch_normalization,
+      num_clusters=FLAGS.num_clusters)
   # Define loss and optimizer hyparameters.
   loss_obj = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
   opt = tf.keras.optimizers.Adam(
@@ -144,13 +145,6 @@ def get_train_step(model, loss_obj, opt, train_loss, train_accuracy,
       tf.summary.scalar('accuracy', train_accuracy.result(), step=step)
 
   return train_step
-
-
-def get_model(num_classes, ubn=None, nc=None):
-  model = models.get_keras_model(num_classes, ubn, num_clusters=nc)
-  for u_op in model.updates:
-    tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, u_op)
-  return model
 
 
 def main(unused_argv):

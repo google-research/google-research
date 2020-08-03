@@ -40,8 +40,11 @@ flags.DEFINE_list('label_list', None, 'List of possible label values.')
 flags.DEFINE_integer('batch_size', None, 'The number of images in each batch.')
 flags.DEFINE_integer('tbs', None, 'not used')
 
-flags.DEFINE_integer('nc', None, 'num_clusters')
-flags.DEFINE_boolean('ubn', None, 'Whether to normalize')
+flags.DEFINE_integer('num_clusters', None, 'num_clusters')
+flags.DEFINE_alias('nc', 'num_clusters')
+flags.DEFINE_boolean('use_batch_normalization', None,
+                     'Whether to use batch normalization.')
+flags.DEFINE_alias('ubn', 'use_batch_normalization')
 flags.DEFINE_float('lr', None, 'not used')
 
 flags.DEFINE_string('logdir', None,
@@ -62,7 +65,8 @@ def eval_and_report():
 
   writer = tf.summary.create_file_writer(FLAGS.eval_dir)
   num_classes = len(FLAGS.label_list)
-  model = models.get_keras_model(num_classes, FLAGS.ubn, num_clusters=FLAGS.nc)
+  model = models.get_keras_model(num_classes, FLAGS.use_batch_normalization,
+                                 num_clusters=FLAGS.num_clusters)
   checkpoint = tf.train.Checkpoint(model=model)
 
   for ckpt in tf.train.checkpoints_iterator(
