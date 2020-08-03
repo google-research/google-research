@@ -1,0 +1,40 @@
+# Utilities related to CuBERT.
+load("@rules_python//python:defs.bzl", "py_binary", "py_library")
+
+licenses(["notice"])
+
+py_binary(
+    name = "code_to_subtokenized_sentences",
+    srcs = ["code_to_subtokenized_sentences.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":cubert_tokenizer",
+        "//third_party/py/absl:app",
+        "//third_party/py/absl/flags",
+        "//third_party/py/absl/logging",
+        "//third_party/py/tensor2tensor/data_generators:text_encoder",
+    ],
+)
+
+py_library(
+    name = "cubert_tokenizer",
+    srcs = ["cubert_tokenizer.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":unified_tokenizer",
+        "//third_party/py/absl/logging",
+        "//third_party/py/six",
+    ],
+)
+
+py_library(
+    name = "unified_tokenizer",
+    srcs = ["unified_tokenizer.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//third_party/py/absl/logging",
+        "//third_party/py/regex",
+        "//third_party/py/six",
+    ],
+)
