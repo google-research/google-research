@@ -30,6 +30,7 @@ env:
     - PROJECT="explaining_risk_increase"
     - PROJECT="extrapolation"
     - PROJECT="fat"
+    - PROJECT="flax_cifar"
     - PROJECT="generalized_rates"
     - PROJECT="genomics_ood"
     - PROJECT="graph_embedding/slaq"
