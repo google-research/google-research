@@ -108,7 +108,7 @@ TaskRegistry.add(
 TaskRegistry.add(
     "esnli_v002_with_choices",
     TfdsTask,
-    tfds_name="esnli/plain_text:0.0.2",
+    tfds_name="esnli:0.0.2",
     text_preprocessor=functools.partial(preprocessors.esnli,
                                         add_choices=True),
     postprocess_fn=postprocessors.abstractive_explanations,
@@ -119,7 +119,7 @@ TaskRegistry.add(
 TaskRegistry.add(
     "esnli_v002_0_expln_with_choices",
     TfdsTask,
-    tfds_name="esnli/plain_text:0.0.2",
+    tfds_name="esnli:0.0.2",
     text_preprocessor=functools.partial(
         preprocessors.esnli, prefix="nli", drop_explanations=True,
         add_choices=True),
@@ -131,7 +131,7 @@ TaskRegistry.add(
 TaskRegistry.add(
     "esnli_v002",
     TfdsTask,
-    tfds_name="esnli/plain_text:0.0.2",
+    tfds_name="esnli:0.0.2",
     text_preprocessor=preprocessors.esnli,
     postprocess_fn=postprocessors.abstractive_explanations,
     sentencepiece_model_path=DEFAULT_SPM_PATH,
@@ -141,7 +141,7 @@ TaskRegistry.add(
 TaskRegistry.add(
     "esnli_v002_0_expln",
     TfdsTask,
-    tfds_name="esnli/plain_text:0.0.2",
+    tfds_name="esnli:0.0.2",
     text_preprocessor=functools.partial(
         preprocessors.esnli, prefix="nli", drop_explanations=True),
     postprocess_fn=postprocessors.abstractive_explanations,
@@ -151,7 +151,7 @@ TaskRegistry.add(
 TaskRegistry.add(
     "esnli_eval_v002",
     TfdsTask,
-    tfds_name="esnli/plain_text:0.0.2",
+    tfds_name="esnli:0.0.2",
     text_preprocessor=preprocessors.esnli,
     postprocess_fn=postprocessors.abstractive_explanations,
     sentencepiece_model_path=DEFAULT_SPM_PATH,
@@ -164,7 +164,7 @@ for n in n_esnli_explanations:
   TaskRegistry.add(
       "esnli_explanations_take{}_v002".format(n),
       t5.data.TfdsTask,
-      tfds_name="esnli/plain_text:0.0.2",
+      tfds_name="esnli:0.0.2",
       splits={"train": "train[0:{}]".format(n)},
       text_preprocessor=[preprocessors.esnli],
       postprocess_fn=postprocessors.abstractive_explanations,
@@ -174,7 +174,7 @@ for n in n_esnli_explanations:
   TaskRegistry.add(
       "esnli_labels_skip{}_v002".format(n),
       t5.data.TfdsTask,
-      tfds_name="esnli/plain_text:0.0.2",
+      tfds_name="esnli:0.0.2",
       splits={"train": "train[{}:]".format(n)},
       text_preprocessor=functools.partial(
           preprocessors.esnli, prefix="nli", drop_explanations=True),
@@ -271,7 +271,7 @@ TaskRegistry.add(
 TaskRegistry.add(
     "imdb_reviews_v100",
     TfdsTask,
-    tfds_name="imdb_reviews/plain_text:1.0.0",
+    tfds_name="imdb_reviews:1.0.0",
     text_preprocessor=preprocessors.imdb_reviews,
     postprocess_fn=functools.partial(
         t5_postprocessors.string_label_to_class_id,
@@ -283,7 +283,7 @@ TaskRegistry.add(
 TaskRegistry.add(
     "imdb_reviews_eval_v100",
     TfdsTask,
-    tfds_name="imdb_reviews/plain_text:1.0.0",
+    tfds_name="imdb_reviews:1.0.0",
     text_preprocessor=functools.partial(
         preprocessors.imdb_reviews, prefix="explain sentiment"),
     postprocess_fn=postprocessors.extractive_explanations,
