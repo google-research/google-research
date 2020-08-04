@@ -465,14 +465,14 @@ class TokenizedConfig(tfds.core.BuilderConfig):
 
     Args:
       version (string): version as string.
-      text_encoder_config: `tfds.features.text.TextEncoderConfig`, configuration
-        for the `tfds.features.text.TextEncoder` used for the `"text"` feature.
+      text_encoder_config: `tfds.deprecated.text.TextEncoderConfig`, configuration
+        for the `tfds.deprecated.text.TextEncoder` used for the `"text"` feature.
       **kwargs: keyword arguments forwarded to super.
     """
     super(TokenizedConfig, self).__init__(
         version=tfds.core.Version(version), **kwargs)
     self.text_encoder_config = (
-        text_encoder_config or tfds.features.text.TextEncoderConfig())
+        text_encoder_config or tfds.deprecated.text.TextEncoderConfig())
 
 
 # This is an arbitrarily chosen subset of languages.
@@ -490,18 +490,18 @@ def _get_builder_configs(base_configs):
             name="%s_bytes" % prefix,
             version="0.0.1",
             description=("Uses byte-level text encoding with "
-                         "`tfds.features.text.ByteTextEncoder`"),
-            text_encoder_config=tfds.features.text.TextEncoderConfig(
-                encoder=tfds.features.text.ByteTextEncoder()),
+                         "`tfds.deprecated.text.ByteTextEncoder`"),
+            text_encoder_config=tfds.deprecated.text.TextEncoderConfig(
+                encoder=tfds.deprecated.text.ByteTextEncoder()),
         ))
     configs.append(
         TokenizedConfig(
             name="%s_subwords8k" % prefix,
             version="0.0.1",
-            description=("Uses `tfds.features.text.SubwordTextEncoder` with 8k "
+            description=("Uses `tfds.deprecated.text.SubwordTextEncoder` with 8k "
                          "vocab size"),
-            text_encoder_config=tfds.features.text.TextEncoderConfig(
-                encoder_cls=tfds.features.text.SubwordTextEncoder,
+            text_encoder_config=tfds.deprecated.text.TextEncoderConfig(
+                encoder_cls=tfds.deprecated.text.SubwordTextEncoder,
                 vocab_size=8192),
         ))
   return configs
