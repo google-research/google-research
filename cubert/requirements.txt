@@ -1,4 +1,5 @@
+bert-tensorflow
 dopamine-rl==3.0.1
-regex==2020.7.14
-tensor2tensor==1.15.7
-tensorflow==2.2.0
+regex
+tensor2tensor
+tensorflow==1.15
