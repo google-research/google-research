@@ -1,0 +1,5 @@
+tqdm
+tensorflow
+numpy
+scipy
+absl
