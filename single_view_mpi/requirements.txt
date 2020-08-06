@@ -1,0 +1,2 @@
+tensorflow==2.2.0
+tensorflow-addons==0.10.0
