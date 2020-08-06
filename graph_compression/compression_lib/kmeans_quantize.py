@@ -54,7 +54,8 @@ def kmeans_quantize_block(matrix,
                           levels=8,
                           pruning_factor=0.0,
                           block_size=16,
-                          is_padded=True):
+                          is_padded=True,
+                          seed=42):
   """Perform kmeans quantization.
 
   View 1 x block_size blocks of the matrix as vectors in a vector space and
@@ -71,7 +72,8 @@ def kmeans_quantize_block(matrix,
       matrix.shape[1], default is 16;
     is_padded: whether to pad the number of kmeans centroids, if True, zero
       vectors will be added to codebook so that the number of centroids will be
-      exactly `levels`, boolean, default is True.
+      exactly `levels`, boolean, default is True;
+    seed: random seed, int. If None, no seed is set. Default value is 42.
 
   Returns:
     codebook: a matrix whose rows are the kmeans centroid vectors, if
@@ -96,13 +98,22 @@ def kmeans_quantize_block(matrix,
   logging.info('In kmeans_quantize_block, levels is %d, pruning_factor is %f.',
                levels, pruning_factor)
 
-  np.random.seed(42)
+  if seed:
+    np.random.seed(seed)
+
   matrix_in_block = np.reshape(matrix, (-1, block_size))
   if pruning_factor > 0:
     matrix_in_block = prune(matrix_in_block, pruning_factor)
 
   codebook, _ = kmeans(matrix_in_block, levels, thresh=1e-05)
   encoding, dist = vq(matrix_in_block, codebook)
+
+  # Zero blocks should stay as zero. Here we look up the codebook item that is
+  # closest to the zero block and set the item to be zero.
+  zero_block = np.zeros((1, block_size))
+  zero_encoding, _ = vq(zero_block, codebook)
+  zero_index = zero_encoding[0]
+  codebook[zero_index, :] = zero_block[:]
 
   logging.info(
       'kmeans_quantize_block: %d levels, mean square distance is %.4f.', levels,
@@ -114,4 +125,6 @@ def kmeans_quantize_block(matrix,
     padded_codebook = np.zeros((levels, block_size))
     padded_codebook[:codebook.shape[0], :] = codebook
     codebook = padded_codebook
-  return [codebook, encoding]
+
+  reshaped_encoding = np.reshape(encoding, (matrix.shape[0], -1))
+  return [codebook, reshaped_encoding]

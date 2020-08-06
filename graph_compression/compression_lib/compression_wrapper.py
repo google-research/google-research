@@ -33,13 +33,14 @@ from graph_compression.compression_lib import compression_op as comp_op
 from graph_compression.compression_lib import dl_compression_op
 from graph_compression.compression_lib import simhash_compression_op as simhash_comp_op
 
-_COMPRESSION_OPTIONS = [1, 2, 3, 4]
+_COMPRESSION_OPTIONS = [1, 2, 3, 4, 8]
 
 
 def get_apply_compression(compression_op_spec, global_step):
   """Returns apply_compression operation matching compression_option input."""
   compressor_spec = comp_op.LowRankDecompMatrixCompressor.get_default_hparams()
   compressor_spec.set_hparam('rank', compression_op_spec.rank)
+  compressor_spec.set_hparam('block_size', compression_op_spec.block_size)
   logging.info('Compressor spec %s', compressor_spec.to_json())
   logging.info('Compression operator spec %s', compression_op_spec.to_json())
 
@@ -78,6 +79,14 @@ def get_apply_compression(compression_op_spec, global_step):
         compressor=compressor,
         global_step=global_step)
   elif compression_op_spec.compression_option == 4:
+    compressor_spec.set_hparam('is_b_matrix_trainable', False)
+    compressor = simhash_comp_op.KmeansMatrixCompressor(spec=compressor_spec)
+    apply_compression = simhash_comp_op.SimhashApplyCompression(
+        scope='default_scope',
+        compression_spec=compression_op_spec,
+        compressor=compressor,
+        global_step=global_step)
+  elif compression_op_spec.compression_option == 8:
     compressor_spec.set_hparam('is_b_matrix_trainable', False)
     compressor = simhash_comp_op.KmeansMatrixCompressor(spec=compressor_spec)
     apply_compression = simhash_comp_op.SimhashApplyCompression(

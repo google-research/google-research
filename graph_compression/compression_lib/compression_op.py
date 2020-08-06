@@ -344,7 +344,24 @@ class CompressionOp(CompressionOpInterface):
         update_option=0,
         run_update_interval_check=1,
         block_size=1,
-        pruning_fraction=0.0)
+        pruning_fraction=0.0,
+        begin_pruning_step=0,
+        end_pruning_step=-1,
+        weight_sparsity_map=[''],
+        block_dims_map=[''],
+        threshold_decay=0.0,
+        pruning_frequency=10,
+        nbins=256,
+        block_height=1,
+        block_width=1,
+        block_pooling_function='AVG',
+        initial_sparsity=0.0,
+        target_sparsity=0.5,
+        sparsity_function_begin_step=0,
+        sparsity_function_end_step=100,
+        sparsity_function_exponent=3.0,
+        gradient_decay_rate=0.99,
+        prune_option='weight')
 
   def add_compression_summaries(self):
     """Adds summaries of alpha value, new variables, and last update step."""
@@ -916,6 +933,9 @@ class ApplyCompression(object):
 
   def get_last_compression_op(self):
     return self._compression_ops[-1]
+
+  def get_mix_operator(self, theta, concat):
+    return self._compression_ops[-1].get_mix_operator(theta, concat)
 
   def all_update_op(self):
     """Returns the combine update tf OP."""
