@@ -20,7 +20,7 @@ import tensorflow.compat.v1 as tf
 
 def natural_questions_nocontext(
     dataset,
-    prefix='nq',
+    prefix='nq question: ',
     drop_yes_no=False,
     max_tokens=None,
     max_answers=None,
@@ -56,8 +56,7 @@ def natural_questions_nocontext(
   """
   def nq_map(ex):
     """Map Natural Questions example to text-to-text example."""
-    inputs = tf.strings.join(
-        [prefix, 'question:', ex['question']['text']], separator=' ')
+    inputs = prefix + ex['question']['text']
 
     annotations = ex['annotations']
 
@@ -101,7 +100,7 @@ def natural_questions_nocontext(
 
 def natural_questions_open(
     dataset,
-    prefix='nq',
+    prefix='nq question: ',
     max_tokens=5,
     sample_answer=False,
     ):
@@ -134,8 +133,7 @@ def natural_questions_open(
   """
   def nq_map(ex):
     """Map Natural Questions example to text-to-text example."""
-    inputs = tf.strings.join(
-        [prefix, 'question:', ex['question']['text']], separator=' ')
+    inputs = prefix + ex['question']['text']
 
     short_answers = ex['annotations']['short_answers']
     num_tokens = short_answers['end_token'] - short_answers['start_token']
@@ -162,7 +160,7 @@ def natural_questions_open(
 
 def trivia_qa_open(
     dataset,
-    prefix='trivia_qa'
+    prefix='trivia_qa question: '
     ):
   """Convert TriviaQA dataset to open domain qa examples.
 
@@ -184,9 +182,7 @@ def trivia_qa_open(
   def tqa_map(ex):
     """Map TriviaQA example to text-to-text example."""
     return {
-        'inputs':
-            tf.strings.join(
-                [prefix, 'question:', ex['question']], separator=' '),
+        'inputs': prefix + ex['question'],
         'targets': ex['answer']['value'],
         'answers': ex['answer']['aliases'],
     }
@@ -196,7 +192,7 @@ def trivia_qa_open(
 
 def web_questions_open(
     dataset,
-    prefix='wq'
+    prefix='wq question: '
     ):
   """Convert Web Questions TFDS to open domain examples.
 
@@ -222,9 +218,7 @@ def web_questions_open(
   def wq_map(ex):
     """Map Web Question example to text-to-text example."""
     return {
-        'inputs':
-            tf.strings.join(
-                [prefix, 'question:', ex['question']], separator=' '),
+        'inputs': prefix + ex['question'],
         'targets': ex['answers'][0],
         'answers': ex['answers'],
     }
