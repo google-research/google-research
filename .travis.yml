@@ -33,6 +33,7 @@ env:
     - PROJECT="flax_cifar"
     - PROJECT="generalized_rates"
     - PROJECT="genomics_ood"
+    - PROJECT="graph_embedding/dmon"
     - PROJECT="graph_embedding/slaq"
     - PROJECT="graph_embedding/watch_your_step"
     - PROJECT="grouptesting"
