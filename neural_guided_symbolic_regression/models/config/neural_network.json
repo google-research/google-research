@@ -1,0 +1,25 @@
+{
+  "train_pattern": "neural_guided_symbolic_regression/data/train.tfrecords",
+  "tune_pattern": "neural_guided_symbolic_regression/data/eval.tfrecords",
+  "grammar_path": "neural_guided_symbolic_regression/grammar/univariate_one_constant_grammar.txt",
+  "symbol": "x",
+  "max_length": 100,
+  "batch_size": 256,
+  "learning_rate": 0.001,
+  "learning_rate_decay_steps": 100000,
+  "learning_rate_decay_rate": 0.99,
+  "symbolic_properties": [
+    "leading_at_0",
+    "leading_at_inf"
+  ],
+  "gru_hidden_sizes": [1000],
+  "bidirectional": true,
+  "cache_dataset": true,
+  "train_steps": 10000000,
+  "eval_steps": null,
+  "start_delay_secs": 120,
+  "throttle_secs": 120,
+  "save_checkpoints_secs": 120,
+  "generation_leading_powers_abs_sums": [0, 1, 2, 3, 4, 5],
+  "num_expressions_per_condition": 5
+}
