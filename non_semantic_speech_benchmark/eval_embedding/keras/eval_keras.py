@@ -42,6 +42,8 @@ flags.DEFINE_integer('tbs', None, 'not used')
 
 flags.DEFINE_integer('num_clusters', None, 'num_clusters')
 flags.DEFINE_alias('nc', 'num_clusters')
+flags.DEFINE_float('alpha_init', None, 'Initial autopool alpha.')
+flags.DEFINE_alias('ai', 'alpha_init')
 flags.DEFINE_boolean('use_batch_normalization', None,
                      'Whether to use batch normalization.')
 flags.DEFINE_alias('ubn', 'use_batch_normalization')
@@ -59,14 +61,15 @@ flags.DEFINE_integer('timeout', 7200, 'Wait-for-checkpoint timeout.')
 
 def eval_and_report():
   """Eval on voxceleb."""
-  logging.info('embedding_name: %s', FLAGS.en)
+  logging.info('embedding_name: %s', FLAGS.embedding_name)
   logging.info('Logdir: %s', FLAGS.logdir)
   logging.info('Batch size: %s', FLAGS.batch_size)
 
   writer = tf.summary.create_file_writer(FLAGS.eval_dir)
   num_classes = len(FLAGS.label_list)
-  model = models.get_keras_model(num_classes, FLAGS.use_batch_normalization,
-                                 num_clusters=FLAGS.num_clusters)
+  model = models.get_keras_model(
+      num_classes, FLAGS.use_batch_normalization,
+      num_clusters=FLAGS.num_clusters, alpha_init=FLAGS.alpha_init)
   checkpoint = tf.train.Checkpoint(model=model)
 
   for ckpt in tf.train.checkpoints_iterator(
@@ -83,8 +86,8 @@ def eval_and_report():
     ds = get_data.get_data(
         file_pattern=FLAGS.file_pattern,
         reader=reader,
-        embedding_name=FLAGS.en,
-        embedding_dim=FLAGS.ed,
+        embedding_name=FLAGS.embedding_name,
+        embedding_dim=FLAGS.embedding_dimension,
         preaveraged=False,
         label_name=FLAGS.label_name,
         label_list=FLAGS.label_list,
@@ -103,7 +106,7 @@ def eval_and_report():
     s = time.time()
     for emb, y_onehot in ds:
       emb.shape.assert_has_rank(3)
-      assert emb.shape[2] == FLAGS.ed
+      assert emb.shape[2] == FLAGS.embedding_dimension
       y_onehot.shape.assert_has_rank(2)
       assert y_onehot.shape[1] == len(FLAGS.label_list)
 

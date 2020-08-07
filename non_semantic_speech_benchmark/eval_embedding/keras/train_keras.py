@@ -18,6 +18,7 @@
 
 from absl import app
 from absl import flags
+from absl import logging
 
 import tensorflow.compat.v2 as tf
 
@@ -40,6 +41,8 @@ flags.DEFINE_integer('shuffle_buffer_size', None, 'shuffle_buffer_size')
 
 flags.DEFINE_integer('num_clusters', None, 'num_clusters')
 flags.DEFINE_alias('nc', 'num_clusters')
+flags.DEFINE_float('alpha_init', None, 'Initial autopool alpha.')
+flags.DEFINE_alias('ai', 'alpha_init')
 flags.DEFINE_boolean('use_batch_normalization', None,
                      'Whether to use batch normalization.')
 flags.DEFINE_alias('ubn', 'use_batch_normalization')
@@ -57,9 +60,10 @@ flags.DEFINE_integer('measurement_store_interval', 10,
 
 def train_and_report(debug=False):
   """Trains the classifier."""
-  tf.logging.info('embedding_name: %s', FLAGS.embedding_dimension)
-  tf.logging.info('Logdir: %s', FLAGS.logdir)
-  tf.logging.info('Batch size: %s', FLAGS.train_batch_size)
+  logging.info('embedding_name: %s', FLAGS.embedding_name)
+  logging.info('embedding_dimension: %s', FLAGS.embedding_dimension)
+  logging.info('Logdir: %s', FLAGS.logdir)
+  logging.info('Batch size: %s', FLAGS.train_batch_size)
 
   reader = tf.data.TFRecordDataset
   ds = get_data.get_data(
@@ -81,7 +85,7 @@ def train_and_report(debug=False):
   num_classes = y_onehot_spec.shape[1]
   model = models.get_keras_model(
       num_classes, FLAGS.use_batch_normalization,
-      num_clusters=FLAGS.num_clusters)
+      num_clusters=FLAGS.num_clusters, alpha_init=FLAGS.alpha_init)
   # Define loss and optimizer hyparameters.
   loss_obj = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
   opt = tf.keras.optimizers.Adam(
@@ -97,7 +101,7 @@ def train_and_report(debug=False):
   checkpoint = tf.train.Checkpoint(model=model, global_step=global_step)
   manager = tf.train.CheckpointManager(
       checkpoint, FLAGS.logdir, max_to_keep=None)
-  tf.logging.info('Checkpoint prefix: %s', FLAGS.logdir)
+  logging.info('Checkpoint prefix: %s', FLAGS.logdir)
   checkpoint.restore(manager.latest_checkpoint)
 
   if debug: return
@@ -111,13 +115,13 @@ def train_and_report(debug=False):
 
     # Optional print output and save model.
     if global_step % 10 == 0:
-      tf.logging.info('step: %i, train loss: %f, train accuracy: %f',
-                      global_step, train_loss.result(), train_accuracy.result())
+      logging.info('step: %i, train loss: %f, train accuracy: %f',
+                   global_step, train_loss.result(), train_accuracy.result())
     if global_step % FLAGS.measurement_store_interval == 0:
       manager.save(checkpoint_number=global_step)
 
   manager.save(checkpoint_number=global_step)
-  tf.logging.info('Finished training.')
+  logging.info('Finished training.')
 
 
 def get_train_step(model, loss_obj, opt, train_loss, train_accuracy,
@@ -140,11 +144,21 @@ def get_train_step(model, loss_obj, opt, train_loss, train_accuracy,
 
     # Summaries.
     with summary_writer.as_default():
+      tf.summary.scalar('train_time_length', emb.shape[1], step=step)
       tf.summary.scalar('xent_loss', loss_value, step=step)
       tf.summary.scalar('xent_loss_smoothed', train_loss.result(), step=step)
       tf.summary.scalar('accuracy', train_accuracy.result(), step=step)
+      _maybe_add_autopool_summary(model, step)
 
   return train_step
+
+
+def _maybe_add_autopool_summary(model, step):
+  autopool_layer_names = [l.name for l in model.layers if 'auto_pool' in l.name]
+  if autopool_layer_names:
+    assert len(autopool_layer_names) == 1, autopool_layer_names
+    avg_alpha = model.get_layer(autopool_layer_names[0]).average_alpha
+    tf.summary.scalar('average_alpha', avg_alpha, step=step)
 
 
 def main(unused_argv):
