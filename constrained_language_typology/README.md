@@ -113,7 +113,7 @@ The above will evaluate a bunch of classifiers trained for the
 
 To predict unknown (missing) WALS features for the test data (which marks those
 by `?`), first generate the associations for the combined training and
-development set:
+development set using [compute_associations_main.py](compute_associations_main.py):
 
 ```shell
 mkdir -p ${WORK_DIR}/associations/train_dev
