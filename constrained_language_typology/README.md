@@ -30,8 +30,9 @@ git clone https://github.com/sigtyp/ST2020 ${WORK_DIR}/sigtyp
 ### Preprocessing the data
 
 The pipeline internally uses a different csv format from the original
-distribution. In particular, each WALS feature has its own dedicated column.
-To generate data in the internal format please run:
+distribution. In particular, each WALS feature has its own dedicated column.  To
+generate data in the internal format please run
+[sigtyp_reader_main.py](sigtyp_reader_main.py):
 
 ```shell
 mkdir ${WORK_DIR}/internal_data
