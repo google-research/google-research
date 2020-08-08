@@ -77,7 +77,8 @@ The above will generate several feature association files under
 #### Evaluating
 
 Following will evaluate the random forest models trained using the training data
-on the development set:
+on the development set using the general tool
+[evaluate_main.py](evaluate_main.py) for doing such things:
 
 ```shall
 python3 evaluate_main.py \
