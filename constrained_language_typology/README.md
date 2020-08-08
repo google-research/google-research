@@ -92,7 +92,8 @@ python3 evaluate_main.py \
 ```
 
 Alternatively, it is possible to evaluate individual features or groups of
-features as follows:
+features using the specialized tool operating on `sklearn`-based classifiers
+using [scikit_classifier_main.py](scikit_classifier_main.py) as follows:
 
 ```shell
 python3 scikit_classifier_main.py \
