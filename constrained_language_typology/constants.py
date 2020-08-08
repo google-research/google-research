@@ -29,8 +29,11 @@ TRAIN_FILENAME = "train"
 # Development data.
 DEV_FILENAME = "dev"
 
-# Test data.
+# Test data (blind).
 TEST_BLIND_FILENAME = "test_blinded"
+
+# Test data (golden).
+TEST_GOLD_FILENAME = "test_gold"
 
 # Key for the combined train/dev data.
 TRAIN_DEV_FILENAME = "train_dev"

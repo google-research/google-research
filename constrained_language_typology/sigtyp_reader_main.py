@@ -126,6 +126,7 @@ def _process_files():
   # Process training and development files individually.
   _process_file(const.TRAIN_FILENAME)
   _process_file(const.DEV_FILENAME)
+  _process_file(const.TEST_GOLD_FILENAME)
   test_data_info = _process_file(const.TEST_BLIND_FILENAME)
 
   # Save features requested for prediction in the test set.
