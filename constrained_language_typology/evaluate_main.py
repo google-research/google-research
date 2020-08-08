@@ -66,6 +66,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import collections
 import os
 
 from absl import app
@@ -78,6 +79,8 @@ import constants as const
 import nemo_model as nemo
 import pandas as pd
 import sigtyp_reader as sigtyp
+
+# pylint: disable=g-long-lambda
 
 flags.DEFINE_string(
     "sigtyp_dir", "",
@@ -154,7 +157,8 @@ def _features_to_predict(test_df):
   return list(test_feature_names)
 
 
-def _evaluate_language(language_df, model, feature_counts):
+def _evaluate_language(language_df, model, feature_counts,
+                       feature_value_counts):
   """Performs prediction and/or evaluation of a single language.
 
   Returns the total number of evaluations/predictions and number of correct
@@ -165,6 +169,7 @@ def _evaluate_language(language_df, model, feature_counts):
     language_df: (pandas) Dataframe representing a single language.
     model: (object) Model to evaluate language with.
     feature_counts: (dict) Counters for the language features.
+    feature_value_counts: (dict) Counters for feature values (classes).
 
   Returns:
     A triple representing total number of evaluations, number of correct
@@ -187,7 +192,6 @@ def _evaluate_language(language_df, model, feature_counts):
       continue
 
     if feature not in feature_counts:
-      feature_counts[feature] = {}
       feature_counts[feature]["correct"] = 0
       feature_counts[feature]["total"] = 0
 
@@ -205,6 +209,12 @@ def _evaluate_language(language_df, model, feature_counts):
     if not unknown_feature and single_best == value:  # Correct prediction.
       num_correct += 1
       feature_counts[feature]["correct"] += 1
+    elif single_best != value:
+      # Accumulate false positives (for precision) and false negatives (for
+      # recall).
+      feature_value_counts[feature][single_best]["fp"] += 1
+      feature_value_counts[feature][value]["fn"] += 1
+
     if not unknown_feature or FLAGS.prediction_mode:
       num_evals += 1
       feature_counts[feature]["total"] += 1
@@ -212,6 +222,30 @@ def _evaluate_language(language_df, model, feature_counts):
   if FLAGS.prediction_mode:
     predictions.append("|".join(predicted_feature_values))
   return num_evals, num_correct, predictions
+
+
+def _feature_accuracy(feature_stats):
+  """Computes accuracy from the supplied counters."""
+  return (feature_stats["correct"] / feature_stats["total"] * 100.0
+          if feature_stats["total"] != 0.0 else 0.0)
+
+
+def _feature_micro_precision(feature_stats, value_stats):
+  """Computes micro-averaged precision from the supplied counts."""
+  num_all_positives = feature_stats["correct"]
+  for value in value_stats:
+    num_all_positives += value_stats[value]["fp"]
+  return (feature_stats["correct"] / num_all_positives * 100.0
+          if num_all_positives != 0.0 else 0.0)
+
+
+def _feature_micro_recall(feature_stats, value_stats):
+  """Computes micro-averaged recall from the supplied counts."""
+  num_actual_positives = feature_stats["correct"]
+  for value in value_stats:
+    num_actual_positives += value_stats[value]["fn"]
+  return (feature_stats["correct"] / num_actual_positives * 100.0
+          if num_actual_positives != 0.0 else 0.0)
 
 
 def _evaluate(test_df, test_data_info, model):
@@ -228,11 +262,13 @@ def _evaluate(test_df, test_data_info, model):
   logging.info("[%s] Running over %d languages ...", mode_info, len(test_df))
   total_num_evals = 0
   total_num_correct = 0.0
-  feature_counts = {}
+  feature_counts = collections.defaultdict(lambda: collections.defaultdict(int))
+  feature_value_counts = collections.defaultdict(
+      lambda: collections.defaultdict(lambda: collections.defaultdict(int)))
   all_languages_predictions = []
   for _, test_language_df in test_df.iterrows():
     lang_num_evals, lang_num_correct, predictions = _evaluate_language(
-        test_language_df, model, feature_counts)
+        test_language_df, model, feature_counts, feature_value_counts)
     total_num_evals += lang_num_evals
     total_num_correct += lang_num_correct
     all_languages_predictions.append(predictions)
@@ -247,10 +283,12 @@ def _evaluate(test_df, test_data_info, model):
                  total_num_correct / total_num_evals * 100.0)
   for feature in sorted(feature_counts):
     stats = feature_counts[feature]
+    value_stats = feature_value_counts[feature]
     if not FLAGS.prediction_mode:
-      logging.info("%s: [n=%d] Accuracy: %f%%", feature, stats["total"],
-                   (stats["correct"] / stats["total"] * 100.0
-                    if stats["total"] != 0.0 else 0.0))
+      logging.info("%s: [n=%d] Accuracy: %f%%, Precision: %f%%, Recall: %f%%",
+                   feature, stats["total"], _feature_accuracy(stats),
+                   _feature_micro_precision(stats, value_stats),
+                   _feature_micro_recall(stats, value_stats))
     else:
       logging.info("%s: [%d predictions]", feature, stats["total"])
 
