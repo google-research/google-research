@@ -19,7 +19,8 @@ directory where all the python code resides.
 ### Initial setup
 
 The original shared task data is distributed here
-[here](https://github.com/sigtyp/ST2020). Download it to some local directory:
+[here](https://github.com/sigtyp/ST2020). Download it to some local directory
+(in the examples below,`${WORK_DIR}`):
 
 ```shell
 WORK_DIR=/tmp/workspace
@@ -51,7 +52,8 @@ data directory:
 
 ### Preparing training and evaluation data
 
-Compute the feature associations (such as implicational universals):
+Compute the feature associations (such as implicational universals) using
+the [compute_associations_main.py](compute_associations_main.py) tool:
 
 ```shell
 mkdir -p ${WORK_DIR}/associations/train
