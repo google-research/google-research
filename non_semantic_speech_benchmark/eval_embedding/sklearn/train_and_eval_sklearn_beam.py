@@ -41,6 +41,9 @@ flags.DEFINE_list('label_list', None, 'Python list of possible label values.')
 flags.DEFINE_string('speaker_id_name', None, '`None`, or speaker ID field.')
 flags.DEFINE_string('save_model_dir', None, 'If not `None`, save sklearn '
                     'models in this directory.')
+flags.DEFINE_boolean('calculate_equal_error_rate', False,
+                     'Whether to calculate the Equal Error Rate. Only '
+                     'applicable for binary classification problems.')
 
 FLAGS = flags.FLAGS
 

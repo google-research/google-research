@@ -24,13 +24,15 @@ from absl import logging
 import numpy as np
 
 from non_semantic_speech_benchmark import file_utils
+from non_semantic_speech_benchmark.eval_embedding import eer_metric
 from non_semantic_speech_benchmark.eval_embedding.sklearn import models
 from non_semantic_speech_benchmark.eval_embedding.sklearn import sklearn_utils
 
 
 def train_and_get_score(embedding_name, label_name, label_list, train_glob,
                         eval_glob, test_glob, model_name, l2_normalization,
-                        speaker_id_name=None, save_model_dir=None):
+                        speaker_id_name=None, save_model_dir=None,
+                        calculate_equal_error_rate=False):
   """Train and eval sklearn models on data.
 
   Args:
@@ -44,9 +46,11 @@ def train_and_get_score(embedding_name, label_name, label_list, train_glob,
     l2_normalization: Python bool. If `True`, normalize embeddings by L2 norm.
     speaker_id_name: `None`, or name of speaker ID field.
     save_model_dir: If not `None`, write sklearn models to this directory.
+    calculate_equal_error_rate: Whether to return score function or Equal Error
+      Rate.
 
   Returns:
-    A Python float, of the accuracy on the eval set.
+    A tuple of Python floats, (eval metric, test metric).
   """
   def _cur_s(s):
     return time.time() - s
@@ -92,12 +96,19 @@ def train_and_get_score(embedding_name, label_name, label_list, train_glob,
   d.fit(npx_train, npy_train)
   logging.info('Trained model: %.2f min', _cur_m(s))
 
-  # Eval.
-  eval_score = d.score(npx_eval, npy_eval)
+  if calculate_equal_error_rate:
+    # Eval.
+    regression_output = d.predict_proba(npx_eval)[:, 1]  # Prob of class 1.
+    eval_score = eer_metric.calculate_eer(regression_output, npy_eval)
+    # Test.
+    regression_output = d.predict_proba(npx_test)[:, 1]  # Prob of class 1.
+    test_score = eer_metric.calculate_eer(regression_output, npy_test)
+  else:
+    # Eval.
+    eval_score = d.score(npx_eval, npy_eval)
+    # Test.
+    test_score = d.score(npx_test, npy_test)
   logging.info('%s: %.3f', model_name, eval_score)
-
-  # Test.
-  test_score = d.score(npx_test, npy_test)
   logging.info('%s: %.3f', model_name, test_score)
 
   # If `save_model_dir` is present, write model to this directory.

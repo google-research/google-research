@@ -24,6 +24,7 @@ from absl import logging
 
 import tensorflow.compat.v2 as tf
 
+from non_semantic_speech_benchmark.eval_embedding import eer_metric
 from non_semantic_speech_benchmark.eval_embedding.keras import get_data
 from non_semantic_speech_benchmark.eval_embedding.keras import models
 
@@ -57,6 +58,9 @@ flags.DEFINE_string('eval_dir', None,
 flags.DEFINE_integer('take_fixed_data', None,
                      'If not `None`, take a fixed number of data elements.')
 flags.DEFINE_integer('timeout', 7200, 'Wait-for-checkpoint timeout.')
+flags.DEFINE_boolean('calculate_equal_error_rate', False,
+                     'Whether to calculate the Equal Error Rate. Only '
+                     'applicable for binary classification problems.')
 
 
 def eval_and_report():
@@ -103,6 +107,7 @@ def eval_and_report():
 
     logging.info('Starting the ds loop...')
     count, ex_count = 0, 0
+    all_logits, all_real = [], []
     s = time.time()
     for emb, y_onehot in ds:
       emb.shape.assert_has_rank(3)
@@ -111,6 +116,8 @@ def eval_and_report():
       assert y_onehot.shape[1] == len(FLAGS.label_list)
 
       logits = model(emb, training=False)
+      all_logits.extend(logits.numpy()[:, 1])
+      all_real.extend(y_onehot.numpy()[:, 1])
       acc_m.update_state(y_true=tf.argmax(y_onehot, 1),
                          y_pred=tf.argmax(logits, 1))
       xent_m.update_state(y_true=y_onehot, y_pred=logits)
@@ -119,9 +126,13 @@ def eval_and_report():
       logging.info('Saw %i examples after %i iterations as %.2f secs...',
                    ex_count, count,
                    time.time() - s)
+    if FLAGS.calculate_equal_error_rate:
+      eer_score = eer_metric.calculate_eer(all_logits, all_real)
     with writer.as_default():
       tf.summary.scalar('accuracy', acc_m.result().numpy(), step=int(step))
       tf.summary.scalar('xent_loss', xent_m.result().numpy(), step=int(step))
+      if FLAGS.calculate_equal_error_rate:
+        tf.summary.scalar('eer', eer_score, step=int(step))
     logging.info('Done with eval step: %s in %.2f secs.', step, time.time() - s)
 
 
