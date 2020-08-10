@@ -15,7 +15,7 @@ Our code base implements the following classes:
 - A `simulator` object that can evaluate, through one or multiple runs, the performance of a group testing algorithm given a testing environment (size of population to be screened, prior of infection within that population, sensitivity/specificity of tests, maximum number of tests that can be run simultaneously, etc...).
 
 - A `state` object that stores all relevant information observed so far in a simulation, and coordinates calls between testing actions carried out by a `wet_lab`, posterior sampling as produced by a `sampler` and the selection of new groups to test, as carried out sequentially by a `policy`:
-  -  a `wet_lab` is tasked with computing the testing results from pooled samples. This can be either simulated (in which case the `wet_lab` also sets arbitrarily the ground truth of who is infected or not, drawn using the `base_infection_rate` prior and stored in the `diseased` variable) or describes the entry point for a *real* wet lab that will produce actual test results using pooled samples and a testing machine.
+  - a `wet_lab` is tasked with computing the testing results from pooled samples. This can be either simulated (in which case the `wet_lab` also sets arbitrarily the ground truth of who is infected or not, drawn using the `base_infection_rate` prior and stored in the `diseased` variable) or describes the entry point for a *real* wet lab that will produce actual test results using pooled samples and a testing machine.
   - a `sampler` object is loosely defined as an algorithm able to produce relevant information on the posterior probability distribution of the infected binary status vector of all screened patients, using both prior and past test results. We implemented [loopy belief propagation](https://en.wikipedia.org/wiki/Belief_propagation) (LBP) samplers that can compute the marginal distribution of infection given previous tests results, or, alternatively [SMC samplers](https://www.stats.ox.ac.uk/~doucet/delmoral_doucet_jasra_sequentialmontecarlosamplersJRSSB.pdf) that produce weighted samples (binary vectors) that aim to approximate the posterior distribution.
   - a `policy` object which is itself a sequence of `group_selector` objects. At each stage, the `policy` picks the `group_selector` corresponding to that stage and uses it to compute, using possibly past results and/or outputs from the `sampler`, the next wave of groups that should be tested.
 
@@ -29,8 +29,7 @@ The overall flow of information between all components, coordinated in the `simu
 
 *The starting point of group testing is defined by a population to screen (on top). That population provides two pieces of information: samples and prior beliefs on infection rates. From there, a `sampler` object will draw thousands of hypotheses that build on the prior and tests carried out so far (if any). This will be used at any time to provide an expected infection rate for each individual, along with the input required by a `group_selector` object to propose new groups. These groups are then passed on to a `wet_lab`, which tasked with producing test results. The loop is then closed when the `wet_lab` communicates these results to the `sampler` to trigger the drawing of updated hypotheses.*
 
-
-## Using our code 
+## Using our code
 
 You can play with our code in three different ways.
 
@@ -42,14 +41,15 @@ The colab will ask to be given access to your Google Drive, to store results in 
 
 ![colab_interface](./images/demo_colab.png)
 
-
 ### Line Interactive
+
 The line command mode gives you more freedom in setting parameters. The experimental setup should go in a `gin` config file (see `configs/toy.gin` for a blueprint). This file defines hyperparemeters, described below in step 1.
 
 In this mode, the user will receive groups of patients to be pooled and tested, and will be asked to list (using the command line) those that returned positive. Once the user submits these results, the selected policy will compute and return new groups to be tested, as well as the marginal infection probability of each individual, that is to say the current belief that each patient is infectious, based on the initial prior and all test results seen so far.
 
 To run this mode:
-```
+
+```python
 python3 -m run_experiment --gin_config=configs/toy.gin --interactive_mode
 ```
 
@@ -79,7 +79,6 @@ At this stage, the wetlab has two options:
 -- `test_results` : indices of the latest wave of instructed groups that have returned positive.
 Once these results are sent via command line, we go back to step 2 in which the algorithm will propose new groups using that extra information.
 
-
 ### Simulator
 
 The third mode is designed to assess the performance of a policy (here understood as sequential experimental design algorithm) in a completely simulated environment. This mode is of interest to researchers who would like to define new policies, or benchmark existing ones. This is the one we used to produce results in the paper.
@@ -89,6 +88,7 @@ At each simulation, the infection status of patients is re-sampled according to 
 When enough simulations are run, the policy's average precision-recall or ROC characteristics can be evaluated.
 
 To run this second mode and assess the performance of a group testing strategy:
-```
+
+```python
 python3 -m run_experiment --gin_config=configs/toy.gin --nointeractive_mode
 ```
