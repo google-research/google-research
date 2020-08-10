@@ -102,7 +102,7 @@ Gibbs.liu_modification = True
 
 # To decode results we use by default a LBP sampler
 Simulator.cheap_sampler = @LbpSampler()
-LbpSampler.num_iterations = 100
+LbpSampler.max_iterations = 100
 
 
 
