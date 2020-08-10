@@ -19,7 +19,7 @@ Implementation of the approximate fast softmax and generalized
 attention mechanism leveraging structured random feature maps [RFM] techniques
 and low rank decomposition of the attention matrix.
 """
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, missing-function-docstring
 
 import abc
 from collections.abc import Iterable  # pylint: disable=g-importing-member
@@ -202,7 +202,8 @@ def make_fast_softmax_attention(qkv_dim,
                                 ortho_features=True,
                                 ortho_scaling=0.,
                                 redraw_features=False,
-                                nonnegative_features=False,
+                                unidirectional=False,
+                                nonnegative_features=True,
                                 lax_scan_unroll=1):
   """Construct a fast softmax attention method."""
   logging.info(
@@ -250,6 +251,7 @@ def make_fast_softmax_attention(qkv_dim,
       renormalize_attention=renormalize_attention,
       numerical_stabilizer=numerical_stabilizer,
       redraw_features=redraw_features,
+      unidirectional=unidirectional,
       lax_scan_unroll=lax_scan_unroll).dot_product_attention
   return attention_fn
 
@@ -263,6 +265,7 @@ def make_fast_generalized_attention(qkv_dim,
                                     kernel_fn=jax.nn.relu,
                                     kernel_epsilon=0.001,
                                     redraw_features=False,
+                                    unidirectional=False,
                                     lax_scan_unroll=1):
   """Construct a fast generalized attention menthod."""
   logging.info('Fast generalized attention.: %s features and renormalize=%s',
@@ -298,6 +301,7 @@ def make_fast_generalized_attention(qkv_dim,
       renormalize_attention=renormalize_attention,
       numerical_stabilizer=numerical_stabilizer,
       redraw_features=redraw_features,
+      unidirectional=unidirectional,
       lax_scan_unroll=lax_scan_unroll).dot_product_attention
   return attention_fn
 
@@ -424,6 +428,86 @@ class FastAttention(object):
     raise NotImplementedError('Abstract method')
 
 
+def _numerator_fwd(z_slice_shape, precision, qs, ks, vs):
+
+  def body(p, qkv):
+    (q, k, v) = qkv
+    p += jnp.einsum('...m,...d->...md', k, v, precision=precision)
+    X_slice = jnp.einsum('...m,...md->...d', q, p, precision=precision)
+    return p, X_slice
+
+  init_value = jnp.zeros(z_slice_shape)
+  p, W = lax.scan(body, init_value, (qs, ks, vs))
+  return W, (p, qs, ks, vs)
+
+
+def _numerator_bwd(z_slice_shape, precision, pqkv, W_ct):
+  del z_slice_shape
+
+  def body(carry, qkv_xct):
+    p, p_ct = carry
+    q, k, v, x_ct = qkv_xct
+    q_ct = jnp.einsum('...d,...md->...m', x_ct, p, precision=precision)
+    p_ct += jnp.einsum('...d,...m->...md', x_ct, q, precision=precision)
+    k_ct = jnp.einsum('...md,...d->...m', p_ct, v, precision=precision)
+    v_ct = jnp.einsum('...md,...m->...d', p_ct, k, precision=precision)
+    p -= jnp.einsum('...m,...d->...md', k, v, precision=precision)
+    return (p, p_ct), (q_ct, k_ct, v_ct)
+
+  p, qs, ks, vs = pqkv
+  _, (qs_ct, ks_ct, vs_ct) = lax.scan(
+      body, (p, jnp.zeros_like(p)), (qs, ks, vs, W_ct), reverse=True)
+  return qs_ct, ks_ct, vs_ct
+
+
+@functools.partial(jax.custom_vjp, nondiff_argnums=(0, 1))
+def _numerator(z_slice_shape, precision, qs, ks, vs):
+  W, _ = _numerator_fwd(z_slice_shape, precision, qs, ks, vs)
+  return W
+
+
+_numerator.defvjp(_numerator_fwd, _numerator_bwd)
+
+
+def _denominator_fwd(t_slice_shape, precision, qs, ks):
+
+  def body(p, qk):
+    q, k = qk
+    p += k
+    x = jnp.einsum('...m,...m->...', q, p, precision=precision)
+    return p, x
+
+  p = jnp.zeros(t_slice_shape)
+  p, R = lax.scan(body, p, (qs, ks))
+  return R, (qs, ks, p)
+
+
+def _denominator_bwd(_t_slice_shape, precision, qkp, R_ct):
+
+  def body(carry, qkx):
+    p, p_ct = carry
+    q, k, x_ct = qkx
+    q_ct = jnp.einsum('...,...m->...m', x_ct, p, precision=precision)
+    p_ct += jnp.einsum('...,...m->...m', x_ct, q, precision=precision)
+    k_ct = p_ct
+    p -= k
+    return (p, p_ct), (q_ct, k_ct)
+
+  qs, ks, p = qkp
+  _, (qs_ct, ks_ct) = lax.scan(
+      body, (p, jnp.zeros_like(p)), (qs, ks, R_ct), reverse=True)
+  return (qs_ct, ks_ct)
+
+
+@functools.partial(jax.custom_vjp, nondiff_argnums=(0, 1))
+def _denominator(t_slice_shape, precision, qs, ks):
+  R, _ = _denominator_fwd(t_slice_shape, precision, qs, ks)
+  return R
+
+
+_denominator.defvjp(_denominator_fwd, _denominator_bwd)
+
+
 class FastAttentionviaLowRankDecomposition(FastAttention):
   r"""Class providing a method for fast attention via low rank decomposition.
 
@@ -438,6 +522,7 @@ class FastAttentionviaLowRankDecomposition(FastAttention):
                renormalize_attention,
                numerical_stabilizer,
                redraw_features,
+               unidirectional,
                lax_scan_unroll=1):  # For optimal GPU performance, set to 16.
     rng = random.PRNGKey(0)
     self.matrix_creator = matrix_creator
@@ -446,6 +531,7 @@ class FastAttentionviaLowRankDecomposition(FastAttention):
     self.renormalize_attention = renormalize_attention
     self.numerical_stabilizer = numerical_stabilizer
     self.redraw_features = redraw_features
+    self.unidirectional = unidirectional
     self.lax_scan_unroll = lax_scan_unroll
 
   def draw_weights(self, key):
@@ -515,54 +601,88 @@ class FastAttentionviaLowRankDecomposition(FastAttention):
                                             attention_dims_t, batch_dims_t,
                                             precision, False)
 
-    contract_query = tuple(
-        range(len(batch_dims) + len(axis),
-              len(batch_dims) + len(axis) + 1))
-    contract_z = tuple(range(len(batch_dims), len(batch_dims) + 1))
-    # Constructing Z = (K^{'})^{T}V
-    # Z (bs, <non-attention dims>, num_heads, channels_m, channels_v)
-    Z = lax.dot_general(
-        key_prime,
-        value,
-        ((attention_dims_t, attention_dims_t), (batch_dims_t, batch_dims_t)),
-        precision=precision)
-    # Constructing W = Q^{'}Z = Q^{'}(K^{'})^{T}V
-    # q (bs, <non-attention dims>, num_heads, <attention dims>, channels_m)
-    # Z (bs, <non-attention dims>, num_heads, channels_m, channels_v)
-    # W (bs,  <non-attention dims>, num_heads, <attention dims>, channels_v)
-    W = lax.dot_general(
-        query_prime,
-        Z, ((contract_query, contract_z), (batch_dims_t, batch_dims_t)),
-        precision=precision)
-    if not self.renormalize_attention:
-      # Bidirectional, not-normalized attention.
-      perm_inv = _invert_perm(qk_perm)
-      result = W.transpose(perm_inv)
-      return result
-    else:
-      # Bidirectional, normalized attention.
-      thick_all_ones = jnp.zeros(key.shape[0:-1]) + jnp.ones(
-          key_extra.shape[0:len(axis)])
-      contract_key = tuple(range(len(batch_dims), len(batch_dims) + len(axis)))
-      contract_thick_all_ones = tuple(
-          range(thick_all_ones.ndim - len(axis), thick_all_ones.ndim))
-      # Construct T = (K^{'})^{T} 1_L
-      # k (bs, <non-attention dims>, num_heads, <attention dims>, channels)
-      T = lax.dot_general(
-          key_prime,
-          thick_all_ones, ((contract_key, contract_thick_all_ones),
-                           (batch_dims_t, batch_dims_t)),
-          precision=precision)
+    if self.unidirectional:
+      index = attention_dims_t[0]
+      z_slice_shape = key_prime.shape[0:len(batch_dims_t)] + (
+          key_prime.shape[-1],) + (value.shape[-1],)
 
-      # Construct partition function: R = Q^{'} T = Q^{'}(K^{'})^{T} 1_L
-      # q_p (bs, <non-attention dims>, num_heads, <attention dims>, channs_m)
-      # T   (bs, <non-attention dims>, num_heads, channels_m)
-      R = lax.dot_general(
-          query_prime,
-          T, (((query_prime.ndim - 1,), (T.ndim - 1,)),
-              (batch_dims_t, range(0,
-                                   len(T.shape) - 1))),
+      W = _numerator(z_slice_shape, precision,
+                     jnp.moveaxis(query_prime, index, 0),
+                     jnp.moveaxis(key_prime, index, 0),
+                     jnp.moveaxis(value, index, 0))
+
+      # Constructing W = (Q^{'}(K^{'})^{T})_{masked}V
+      W = jnp.moveaxis(W, 0, index)
+
+      if not self.renormalize_attention:
+        # Unidirectional, not-normalized attention.
+        perm_inv = _invert_perm(qk_perm)
+        result = W.transpose(perm_inv)
+        return result
+      else:
+        # Unidirectional, normalized attention.
+        thick_all_ones = jnp.zeros(key.shape[0:-1]) + jnp.ones(
+            key_extra.shape[0:len(axis)])
+
+        index = attention_dims_t[0]
+        t_slice_shape = key_prime.shape[0:len(batch_dims_t)] + (
+            key_prime.shape[-1],)
+        R = _denominator(t_slice_shape, precision,
+                         jnp.moveaxis(query_prime, index, 0),
+                         jnp.moveaxis(key_prime, index, 0))
+
+        R = jnp.moveaxis(R, 0, index)
+    else:
+      contract_query = tuple(
+          range(len(batch_dims) + len(axis),
+                len(batch_dims) + len(axis) + 1))
+      contract_z = tuple(range(len(batch_dims), len(batch_dims) + 1))
+      # Constructing Z = (K^{'})^{T}V
+      # Z (bs, <non-attention dims>, num_heads, channels_m, channels_v)
+      Z = lax.dot_general(
+          key_prime,
+          value,
+          ((attention_dims_t, attention_dims_t), (batch_dims_t, batch_dims_t)),
           precision=precision)
+      # Constructing W = Q^{'}Z = Q^{'}(K^{'})^{T}V
+      # q (bs, <non-attention dims>, num_heads, <attention dims>, channels_m)
+      # Z (bs, <non-attention dims>, num_heads, channels_m, channels_v)
+      # W (bs,  <non-attention dims>, num_heads, <attention dims>, channels_v)
+      W = lax.dot_general(
+          query_prime,
+          Z, ((contract_query, contract_z), (batch_dims_t, batch_dims_t)),
+          precision=precision)
+      if not self.renormalize_attention:
+        # Bidirectional, not-normalized attention.
+        perm_inv = _invert_perm(qk_perm)
+        result = W.transpose(perm_inv)
+        return result
+      else:
+        # Bidirectional, normalized attention.
+        thick_all_ones = jnp.zeros(key.shape[0:-1]) + jnp.ones(
+            key_extra.shape[0:len(axis)])
+        contract_key = tuple(
+            range(len(batch_dims),
+                  len(batch_dims) + len(axis)))
+        contract_thick_all_ones = tuple(
+            range(thick_all_ones.ndim - len(axis), thick_all_ones.ndim))
+        # Construct T = (K^{'})^{T} 1_L
+        # k (bs, <non-attention dims>, num_heads, <attention dims>, channels)
+        T = lax.dot_general(
+            key_prime,
+            thick_all_ones, ((contract_key, contract_thick_all_ones),
+                             (batch_dims_t, batch_dims_t)),
+            precision=precision)
+
+        # Construct partition function: R = Q^{'} T = Q^{'}(K^{'})^{T} 1_L
+        # q_p (bs, <non-attention dims>, num_heads, <attention dims>, channs_m)
+        # T   (bs, <non-attention dims>, num_heads, channels_m)
+        R = lax.dot_general(
+            query_prime,
+            T, (((query_prime.ndim - 1,), (T.ndim - 1,)),
+                (batch_dims_t, range(0,
+                                     len(T.shape) - 1))),
+            precision=precision)
 
     R = R + 2 * self.numerical_stabilizer * (
         jnp.abs(R) <= self.numerical_stabilizer)

@@ -69,6 +69,7 @@ class FSAAccuracyTest(absltest.TestCase):
     renormalize_attention = True
     numerical_stabilizer = 0.0
     redraw_features = False
+    unidirectional = False
 
     unstructured_random_matrix_creator = functools.partial(
         fast_self_attention.GaussianUnstructuredRandomMatrix,
@@ -78,10 +79,12 @@ class FSAAccuracyTest(absltest.TestCase):
         qk_dim)
     fast_unstruct_rfm_dot_product_attention = fast_self_attention.FastAttentionviaLowRankDecomposition(
         unstructured_random_matrix_creator, kernel_feature_creator,
-        renormalize_attention, numerical_stabilizer, redraw_features)
+        renormalize_attention, numerical_stabilizer, redraw_features,
+        unidirectional)
     fast_ortho_rfm_dot_product_attention = fast_self_attention.FastAttentionviaLowRankDecomposition(
         ortho_random_matrix_creator, kernel_feature_creator,
-        renormalize_attention, numerical_stabilizer, redraw_features)
+        renormalize_attention, numerical_stabilizer, redraw_features,
+        unidirectional)
 
     standard_attention_result = attention.dot_product_attention(
         query, key, value)
@@ -114,12 +117,14 @@ class FSAAccuracyTest(absltest.TestCase):
     num_heads = 1
     renormalize_attention = True
     nb_features = 256
+    unidirectional = False
 
     if fast:
       raw_attention_fn = fast_self_attention.make_fast_generalized_attention(
           qk_dim // num_heads,
           renormalize_attention=renormalize_attention,
-          nb_features=nb_features)
+          nb_features=nb_features,
+          unidirectional=unidirectional)
     else:
       raw_attention_fn = attention.dot_product_attention
 
