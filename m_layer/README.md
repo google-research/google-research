@@ -27,10 +27,8 @@ Luca Versari, Jyrki Alakuijala "Intelligent Matrix Exponentiation", arxiv:2008.0
 
 ## How to use
 
-Run the [M-layer experiments colab](https://colab.sanbox.google.com/github/google-
-research/google-research/blob/master/m_layer/M_layer_Experiments.ipynb)
-or the [M-layer robustness colab](https://colab.sanbox.google.com/github/google-
-research/google-research/blob/master/m_layer/M_layer_Robustness.ipynb) directly!
+Run the [M-layer experiments colab](https://colab.research.google.com/github/google-research/google-research/blob/master/m_layer/M_Layer_Experiments.ipynb)
+or the [M-layer robustness colab](https://colab.research.google.com/github/google-research/google-research/blob/master/m_layer/M_Layer_Robustness.ipynb) directly!
 
 Cloning this part of the google-research github repository is done by installing subversion and running:
 
