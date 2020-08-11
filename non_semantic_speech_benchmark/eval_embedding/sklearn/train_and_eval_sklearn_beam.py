@@ -90,6 +90,7 @@ def main(unused_argv):
         'l2_normalization': FLAGS.speaker_id_name is None,
         'speaker_id_name': FLAGS.speaker_id_name,
         'save_model_dir': FLAGS.save_model_dir,
+        'calculate_equal_error_rate': FLAGS.calculate_equal_error_rate,
     })
 
   # Make and run beam pipeline.
