@@ -38,6 +38,10 @@ MobileNetV3.
 in our search spaces (to ensure that our random search baselines are
 reproducible), and for analyzing the outputs of architecture search experiments.
 
+**Released datasets:** In addition to the source code for reproducing
+our experiments, we also include additional datasets, which are linked
+to and described in detail in the "Released datasets" section below.
+
 **Platform requirements:** The TuNAS codebase is written on top of TensorFlow.
 It is optimized for -- and currently only runs on -- Cloud TPUs. Our experiments
 were conducted using
@@ -215,3 +219,77 @@ ones are included in the Cloud TPU ResNet instructions linked to above.
   increase the number of epochs from 90 to 360) and `--use_held_out_test_set`.
   We recommend using the `--use_held_out_test_set` option sparingly, as frequent
   use may increase the risk of overfitting to the test set.
+
+
+# Released datasets
+In addition to the source code, we provide additional datasets: one with
+information about our train-validation set split, and another which contains
+experimental results from searched and random architectures.
+
+## Train-validation split
+Because the labels for the official ImageNet test set were never publicly
+released, we followed the common practice of using the official ImageNet
+validation set as our test set, and use a held-out portion of the training
+set as our validation set.
+
+[This file](http://storage.googleapis.com/gresearch/tunas/imagenet_valid_split_filenames.txt)
+contains the ids of all the images in the held-out portion of the ImageNet
+training set which we used as a validation set in our experiments.
+
+## Searched and random architectures
+We have released data from quality control experiments we ran on the
+TuNAS open-source code. Our main goals were to verify that we could
+reproduce the published results from the
+[TuNAS paper](https://openaccess.thecvf.com/content_CVPR_2020/papers/Bender_Can_Weight_Sharing_Outperform_Random_Architecture_Search_An_Investigation_With_CVPR_2020_paper.pdf),
+and to make details of these experiments available to external researchers.
+
+The data files are:
+
+* [random\_architectures.csv](http://storage.googleapis.com/gresearch/tunas/random_architectures.csv):
+  A file containing the specifications, simulated inference times, and
+  accuracies of more than 750 random architectures sampled from our three main
+  search spaces.
+* [searched\_architectures.csv](http://storage.googleapis.com/gresearch/tunas/searched_architectures.csv):
+  A file containing the specifications and simulated inference times of searched
+  network architectures found using TuNAS.
+
+Each file contains results for the three main search space definitions (SSDs) we
+investigated in our paper:
+
+1. `proxylessnas_search`, which is referred to as the ProxylessNAS search space
+   in our paper.
+2. `proxylessnas_enlarged_search`, which is referred to the
+   ProxylessNAS-Enlarged search space in our paper.
+3. `mobilenet_v3_like_search`, which is referred to the MobileNetV3-Like
+   search space in our paper.
+
+We provide two CSV files: one for searched architectures found using TuNAS, and
+another for our random search baselines, where we  sampled and evaluated random
+architectures from each search space. We sampled architectures from the search
+space uniformly at random, and used rejection sampling to restrict the results
+to architectures whose latencies were 83-85ms for `proxylessnas_search` and
+`proxylessnas_enlarged_search`, and 57-59ms for `mobilenet_v3_like_search`.
+These ranges were chosen to be comparable with the reference and the searched
+models.
+
+Each CSV file contains the following columns:
+
+* `ssd`: The search space definition used for the experiment.
+* `indices`: A colon-separated list of integers that uniquely identifies a
+  specific architecture in the search space. The `ssd` and `indices` can be
+  passed to TuNAS' `mobile_train_eval.py` tool in order to train and evaluate a
+  given architecture on ImageNet.
+* `simulated_pixel1_time_ms`: The simulated inference time of the network
+  architecture on a Pixel 1 phone. Simulated numbers were obtained by fitting
+  a linear regression to predicted inference times obtained using the
+  [NetAdapt](https://arxiv.org/abs/1804.03230) lookup tables.
+* `90epoch_validation_accuracy`: The model's "validation" set accuracy after
+  training for 90 epochs on ImageNet. Because the labels for the ImageNet test
+  set were never released, we use a held-out subset of 50,046 examples from the
+  ImageNet training set as our "validation" set, and use the remaining examples
+  as our "training" set for these experiments.
+* `360epoch_test_accuracy`: The model's "test" set accuracy after training for
+  90 epochs on ImageNet. Because the labels for the real ImageNet test set were
+  never released, we following the common practice of using the official
+  ImageNet validation set as our "test" set. We train on the full ImageNet
+  training set for these experiments.
