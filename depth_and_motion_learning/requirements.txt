@@ -1,0 +1,2 @@
+tensorflow==1.15.0
+tensorflow-graphics==1.0.0
