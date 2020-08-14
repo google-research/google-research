@@ -462,6 +462,42 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
         for name in self._right_ankle_keypoint_name
     ]
 
+  def get_standard_part_index(self, part_name):
+    """Gets part index by standardized name."""
+    if part_name.upper() == 'HEAD':
+      return self.head_keypoint_index
+    if part_name.upper() == 'NECK':
+      return self.neck_keypoint_index
+    if part_name.upper() == 'LEFT_SHOULDER':
+      return self.left_shoulder_keypoint_index
+    if part_name.upper() == 'RIGHT_SHOULDER':
+      return self.right_shoulder_keypoint_index
+    if part_name.upper() == 'LEFT_ELBOW':
+      return self.left_elbow_keypoint_index
+    if part_name.upper() == 'RIGHT_ELBOW':
+      return self.right_elbow_keypoint_index
+    if part_name.upper() == 'LEFT_WRIST':
+      return self.left_wrist_keypoint_index
+    if part_name.upper() == 'RIGHT_WRIST':
+      return self.right_wrist_keypoint_index
+    if part_name.upper() == 'SPINE':
+      return self.spine_keypoint_index
+    if part_name.upper() == 'PELVIS':
+      return self.pelvis_keypoint_index
+    if part_name.upper() == 'LEFT_HIP':
+      return self.left_hip_keypoint_index
+    if part_name.upper() == 'RIGHT_HIP':
+      return self.right_hip_keypoint_index
+    if part_name.upper() == 'LEFT_KNEE':
+      return self.left_knee_keypoint_index
+    if part_name.upper() == 'RIGHT_KNEE':
+      return self.right_knee_keypoint_index
+    if part_name.upper() == 'LEFT_ANKLE':
+      return self.left_ankle_keypoint_index
+    if part_name.upper() == 'RIGHT_ANKLE':
+      return self.right_ankle_keypoint_index
+    raise ValueError('Unsupported part name: `%s`.' % part_name)
+
   def normalize(self, keypoints, keypoint_masks=None):
     """Normalizes keypoints."""
     del keypoint_masks
