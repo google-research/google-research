@@ -21,7 +21,6 @@ from absl import flags
 import tensorflow.compat.v1 as tf
 import tf_slim
 
-from poem.core import keypoint_profiles
 from poem.core import keypoint_utils
 from poem.core import loss_utils
 from poem.core import models
@@ -263,7 +262,8 @@ flags.DEFINE_integer(
 flags.DEFINE_integer('task', 0, 'Task replica identifier for training.')
 
 
-def _validate_and_setup(common_module, keypoint_distance_config_override):
+def _validate_and_setup(common_module, keypoint_profiles_module,
+                        keypoint_distance_config_override):
   """Validates and sets up training configurations."""
   # Set default values for unspecified flags.
   if FLAGS.use_normalized_embeddings_for_triplet_mining is None:
@@ -355,13 +355,13 @@ def _validate_and_setup(common_module, keypoint_distance_config_override):
   # Set up configurations.
   configs = {
       'keypoint_profile_3d':
-          keypoint_profiles.create_keypoint_profile_or_die(
+          keypoint_profiles_module.create_keypoint_profile_or_die(
               FLAGS.input_keypoint_profile_name_3d),
       'keypoint_profile_2d':
-          keypoint_profiles.create_keypoint_profile_or_die(
+          keypoint_profiles_module.create_keypoint_profile_or_die(
               FLAGS.input_keypoint_profile_name_2d),
       'target_keypoint_profile_3d':
-          keypoint_profiles.create_keypoint_profile_or_die(
+          keypoint_profiles_module.create_keypoint_profile_or_die(
               FLAGS.input_keypoint_profile_name_3d),
       'triplet_embedding_keys':
           pipeline_utils.get_embedding_keys(
@@ -447,8 +447,8 @@ def _validate_and_setup(common_module, keypoint_distance_config_override):
   return configs
 
 
-def run(master, input_dataset_class, common_module, tfe_parser_creator,
-        keypoint_preprocessor_3d, create_model_input_fn,
+def run(master, input_dataset_class, common_module, keypoint_profiles_module,
+        tfe_parser_creator, keypoint_preprocessor_3d, create_model_input_fn,
         keypoint_distance_config_override):
   """Runs training pipeline.
 
@@ -456,6 +456,7 @@ def run(master, input_dataset_class, common_module, tfe_parser_creator,
     master: BNS name of the TensorFlow master to use.
     input_dataset_class: An input dataset class that matches input table type.
     common_module: A Python module that defines common flags and constants.
+    keypoint_profiles_module: A Python module that defines keypoint profiles.
     tfe_parser_creator: A function handle for creating tf.Example parser
       function. If None, uses the default parser creator.
     keypoint_preprocessor_3d: A function handle for preprocessing raw 3D
@@ -466,6 +467,7 @@ def run(master, input_dataset_class, common_module, tfe_parser_creator,
   """
   configs = _validate_and_setup(
       common_module=common_module,
+      keypoint_profiles_module=keypoint_profiles_module,
       keypoint_distance_config_override=keypoint_distance_config_override)
 
   g = tf.Graph()

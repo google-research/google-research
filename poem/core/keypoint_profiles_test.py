@@ -95,15 +95,15 @@ class KeypointProfileTest(tf.test.TestCase):
     self.assertEqual(profile.left_ankle_keypoint_index, [14])
     self.assertEqual(profile.right_ankle_keypoint_index, [15])
 
-  def test_std13_keypoint_profile_2d_is_correct(self):
-    profile = keypoint_profiles.create_keypoint_profile_or_die('2DSTD13')
-    self.assertEqual(profile.name, '2DSTD13')
-    self.assertEqual(profile.keypoint_dim, 2)
+  def test_std13_keypoint_profile_3d_is_correct(self):
+    profile = keypoint_profiles.create_keypoint_profile_or_die('3DSTD13')
+    self.assertEqual(profile.name, '3DSTD13')
+    self.assertEqual(profile.keypoint_dim, 3)
     self.assertEqual(profile.keypoint_num, 13)
     self.assertEqual(profile.keypoint_names, [
-        'NOSE_TIP', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
-        'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'LEFT_HIP', 'RIGHT_HIP',
-        'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE', 'RIGHT_ANKLE'
+        'HEAD', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW', 'RIGHT_ELBOW',
+        'LEFT_WRIST', 'RIGHT_WRIST', 'LEFT_HIP', 'RIGHT_HIP', 'LEFT_KNEE',
+        'RIGHT_KNEE', 'LEFT_ANKLE', 'RIGHT_ANKLE'
     ])
     self.assertEqual(
         profile.keypoint_left_right_type(1),
@@ -111,53 +111,34 @@ class KeypointProfileTest(tf.test.TestCase):
     self.assertEqual(
         profile.segment_left_right_type(1, 2),
         keypoint_profiles.LeftRightType.CENTRAL)
-    self.assertEqual(profile.offset_keypoint_index, [1, 2])
-    self.assertEqual(profile.scale_keypoint_index_pairs,
-                     [([0], [1]), ([0], [2]), ([1], [2]), ([1], [7]),
-                      ([2], [8]), ([1], [8]), ([2], [7])])
+    self.assertEqual(profile.offset_keypoint_index, [7, 8])
+    self.assertEqual(profile.scale_keypoint_index_pairs, [([1, 2], [7, 8])])
     self.assertEqual(profile.keypoint_index('LEFT_SHOULDER'), 1)
     self.assertEqual(profile.keypoint_index('dummy'), -1)
-    self.assertEqual(profile.segment_index_pairs, [([0], [1]), ([0], [2]),
-                                                   ([1], [2]), ([1], [3]),
-                                                   ([2], [4]), ([3], [5]),
-                                                   ([4], [6]), ([1], [7]),
-                                                   ([2], [8]), ([7], [8]),
+    self.assertEqual(profile.segment_index_pairs, [([0], [1, 2]), ([1, 2], [1]),
+                                                   ([1, 2], [2]),
+                                                   ([1, 2], [1, 2, 7, 8]),
+                                                   ([1], [3]), ([2], [4]),
+                                                   ([3], [5]), ([4], [6]),
+                                                   ([1, 2, 7, 8], [7, 8]),
+                                                   ([7, 8], [7]), ([7, 8], [8]),
                                                    ([7], [9]), ([8], [10]),
                                                    ([9], [11]), ([10], [12])])
     self.assertAllEqual(profile.keypoint_affinity_matrix, [
         [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-        [1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+        [1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+        [1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0],
         [0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
-        [0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
-        [0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0],
+        [0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+        [0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0],
         [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1],
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
     ])
-    self.assertEqual(
-        profile.compatible_keypoint_name_dict, {
-            '3DSTD16': [
-                'HEAD', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
-                'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'LEFT_HIP',
-                'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
-                'RIGHT_ANKLE'
-            ],
-            'LEGACY_3DH36M17': [
-                'Head', 'LShoulder', 'RShoulder', 'LElbow', 'RElbow', 'LWrist',
-                'RWrist', 'LHip', 'RHip', 'LKnee', 'RKnee', 'LFoot', 'RFoot'
-            ],
-            'LEGACY_3DMPII3DHP17': [
-                'head', 'left_shoulder', 'right_shoulder', 'left_elbow',
-                'right_elbow', 'left_wrist', 'right_wrist', 'left_hip',
-                'right_hip', 'left_knee', 'right_knee', 'left_ankle',
-                'right_ankle'
-            ],
-        })
     self.assertEqual(profile.head_keypoint_index, [0])
     self.assertEqual(profile.neck_keypoint_index, [1, 2])
     self.assertEqual(profile.left_shoulder_keypoint_index, [1])
@@ -368,10 +349,9 @@ class KeypointProfileTest(tf.test.TestCase):
     self.assertEqual(profile.left_ankle_keypoint_index, [15])
     self.assertEqual(profile.right_ankle_keypoint_index, [16])
 
-  def test_legacy_coco13_keypoint_profile_2d_is_correct(self):
-    profile = keypoint_profiles.create_keypoint_profile_or_die(
-        'LEGACY_2DCOCO13')
-    self.assertEqual(profile.name, 'LEGACY_2DCOCO13')
+  def _test_std13_keypoint_profile_2d_is_correct(self, name):
+    profile = keypoint_profiles.create_keypoint_profile_or_die(name)
+    self.assertEqual(profile.name, name)
     self.assertEqual(profile.keypoint_dim, 2)
     self.assertEqual(profile.keypoint_num, 13)
     self.assertEqual(profile.keypoint_names, [
@@ -380,11 +360,11 @@ class KeypointProfileTest(tf.test.TestCase):
         'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE', 'RIGHT_ANKLE'
     ])
     self.assertEqual(
-        profile.keypoint_left_right_type(0),
-        keypoint_profiles.LeftRightType.CENTRAL)
-    self.assertEqual(
-        profile.segment_left_right_type(0, 1),
+        profile.keypoint_left_right_type(1),
         keypoint_profiles.LeftRightType.LEFT)
+    self.assertEqual(
+        profile.segment_left_right_type(1, 2),
+        keypoint_profiles.LeftRightType.CENTRAL)
     self.assertEqual(profile.offset_keypoint_index, [7, 8])
     self.assertEqual(profile.scale_keypoint_index_pairs,
                      [([1], [2]), ([1], [7]), ([1], [8]), ([2], [7]),
@@ -392,12 +372,12 @@ class KeypointProfileTest(tf.test.TestCase):
     self.assertEqual(profile.keypoint_index('LEFT_SHOULDER'), 1)
     self.assertEqual(profile.keypoint_index('dummy'), -1)
     self.assertEqual(profile.segment_index_pairs, [([0], [1]), ([0], [2]),
-                                                   ([1], [3]), ([3], [5]),
-                                                   ([2], [4]), ([4], [6]),
-                                                   ([1], [7]), ([2], [8]),
-                                                   ([7], [9]), ([9], [11]),
-                                                   ([8], [10]), ([10], [12]),
-                                                   ([1], [2]), ([7], [8])])
+                                                   ([1], [2]), ([1], [3]),
+                                                   ([2], [4]), ([3], [5]),
+                                                   ([4], [6]), ([1], [7]),
+                                                   ([2], [8]), ([7], [8]),
+                                                   ([7], [9]), ([8], [10]),
+                                                   ([9], [11]), ([10], [12])])
     self.assertAllEqual(profile.keypoint_affinity_matrix, [
         [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
@@ -421,6 +401,12 @@ class KeypointProfileTest(tf.test.TestCase):
                 'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
                 'RIGHT_ANKLE'
             ],
+            '3DSTD13': [
+                'HEAD', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
+                'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'LEFT_HIP',
+                'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
+                'RIGHT_ANKLE'
+            ],
             'LEGACY_3DH36M17': [
                 'Head', 'LShoulder', 'RShoulder', 'LElbow', 'RElbow', 'LWrist',
                 'RWrist', 'LHip', 'RHip', 'LKnee', 'RKnee', 'LFoot', 'RFoot'
@@ -430,7 +416,7 @@ class KeypointProfileTest(tf.test.TestCase):
                 'right_elbow', 'left_wrist', 'right_wrist', 'left_hip',
                 'right_hip', 'left_knee', 'right_knee', 'left_ankle',
                 'right_ankle'
-            ]
+            ],
         })
     self.assertEqual(profile.head_keypoint_index, [0])
     self.assertEqual(profile.neck_keypoint_index, [1, 2])
@@ -448,6 +434,12 @@ class KeypointProfileTest(tf.test.TestCase):
     self.assertEqual(profile.right_knee_keypoint_index, [10])
     self.assertEqual(profile.left_ankle_keypoint_index, [11])
     self.assertEqual(profile.right_ankle_keypoint_index, [12])
+
+  def test_std13_keypoint_profile_2d_is_correct(self):
+    self._test_std13_keypoint_profile_2d_is_correct('2DSTD13')
+
+  def test_legacy_coco13_keypoint_profile_2d_is_correct(self):
+    self._test_std13_keypoint_profile_2d_is_correct('LEGACY_2DCOCO13')
 
   def test_legacy_h36m13_keypoint_profile_2d_is_correct(self):
     profile = keypoint_profiles.create_keypoint_profile_or_die(
@@ -496,6 +488,12 @@ class KeypointProfileTest(tf.test.TestCase):
     self.assertEqual(
         profile.compatible_keypoint_name_dict, {
             '3DSTD16': [
+                'HEAD', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
+                'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'LEFT_HIP',
+                'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
+                'RIGHT_ANKLE'
+            ],
+            '3DSTD13': [
                 'HEAD', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
                 'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'LEFT_HIP',
                 'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',

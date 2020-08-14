@@ -674,14 +674,14 @@ class Std16KeypointProfile3D(KeypointProfile3D):
               right_ankle_keypoint_name=['RIGHT_ANKLE'])
 
 
-class Std13KeypointProfile2D(KeypointProfile2D):
-  """Standard 2D 13-keypoint profile."""
+class Std13KeypointProfile3D(KeypointProfile3D):
+  """Standard 3D 13-keypoint profile."""
 
   def __init__(self):
     """Initializer."""
-    super(Std13KeypointProfile2D, self).__init__(
-        name='2DSTD13',
-        keypoint_names=[('NOSE_TIP', LeftRightType.CENTRAL),
+    super(Std13KeypointProfile3D, self).__init__(
+        name='3DSTD13',
+        keypoint_names=[('HEAD', LeftRightType.CENTRAL),
                         ('LEFT_SHOULDER', LeftRightType.LEFT),
                         ('RIGHT_SHOULDER', LeftRightType.RIGHT),
                         ('LEFT_ELBOW', LeftRightType.LEFT),
@@ -694,47 +694,27 @@ class Std13KeypointProfile2D(KeypointProfile2D):
                         ('RIGHT_KNEE', LeftRightType.RIGHT),
                         ('LEFT_ANKLE', LeftRightType.LEFT),
                         ('RIGHT_ANKLE', LeftRightType.RIGHT)],
-        offset_keypoint_names=['LEFT_SHOULDER', 'RIGHT_SHOULDER'],
-        scale_keypoint_name_pairs=[(['NOSE_TIP'], ['LEFT_SHOULDER']),
-                                   (['NOSE_TIP'], ['RIGHT_SHOULDER']),
-                                   (['LEFT_SHOULDER'], ['RIGHT_SHOULDER']),
-                                   (['LEFT_SHOULDER'], ['LEFT_HIP']),
-                                   (['RIGHT_SHOULDER'], ['RIGHT_HIP']),
-                                   (['LEFT_SHOULDER'], ['RIGHT_HIP']),
-                                   (['RIGHT_SHOULDER'], ['LEFT_HIP'])],
-        segment_name_pairs=[(['NOSE_TIP'], ['LEFT_SHOULDER']),
-                            (['NOSE_TIP'], ['RIGHT_SHOULDER']),
-                            (['LEFT_SHOULDER'], ['RIGHT_SHOULDER']),
-                            (['LEFT_SHOULDER'], ['LEFT_ELBOW']),
-                            (['RIGHT_SHOULDER'], ['RIGHT_ELBOW']),
-                            (['LEFT_ELBOW'], ['LEFT_WRIST']),
-                            (['RIGHT_ELBOW'], ['RIGHT_WRIST']),
-                            (['LEFT_SHOULDER'], ['LEFT_HIP']),
-                            (['RIGHT_SHOULDER'], ['RIGHT_HIP']),
-                            (['LEFT_HIP'], ['RIGHT_HIP']),
-                            (['LEFT_HIP'], ['LEFT_KNEE']),
-                            (['RIGHT_HIP'], ['RIGHT_KNEE']),
-                            (['LEFT_KNEE'], ['LEFT_ANKLE']),
-                            (['RIGHT_KNEE'], ['RIGHT_ANKLE'])],
-        compatible_keypoint_name_dict={
-            '3DSTD16': [
-                'HEAD', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
-                'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'LEFT_HIP',
-                'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
-                'RIGHT_ANKLE'
-            ],
-            'LEGACY_3DH36M17': [
-                'Head', 'LShoulder', 'RShoulder', 'LElbow', 'RElbow', 'LWrist',
-                'RWrist', 'LHip', 'RHip', 'LKnee', 'RKnee', 'LFoot', 'RFoot'
-            ],
-            'LEGACY_3DMPII3DHP17': [
-                'head', 'left_shoulder', 'right_shoulder', 'left_elbow',
-                'right_elbow', 'left_wrist', 'right_wrist', 'left_hip',
-                'right_hip', 'left_knee', 'right_knee', 'left_ankle',
-                'right_ankle'
-            ],
-        },
-        head_keypoint_name=['NOSE_TIP'],
+        offset_keypoint_names=['LEFT_HIP', 'RIGHT_HIP'],
+        scale_keypoint_name_pairs=[(['LEFT_SHOULDER', 'RIGHT_SHOULDER'],
+                                    ['LEFT_HIP', 'RIGHT_HIP'])],
+        segment_name_pairs=[
+            (['HEAD'], ['LEFT_SHOULDER', 'RIGHT_SHOULDER']),
+            (['LEFT_SHOULDER', 'RIGHT_SHOULDER'], ['LEFT_SHOULDER']),
+            (['LEFT_SHOULDER', 'RIGHT_SHOULDER'], ['RIGHT_SHOULDER']),
+            (['LEFT_SHOULDER', 'RIGHT_SHOULDER'],
+             ['LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_HIP', 'RIGHT_HIP']),
+            (['LEFT_SHOULDER'], ['LEFT_ELBOW']),
+            (['RIGHT_SHOULDER'], ['RIGHT_ELBOW']),
+            (['LEFT_ELBOW'], ['LEFT_WRIST']),
+            (['RIGHT_ELBOW'], ['RIGHT_WRIST']),
+            (['LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_HIP',
+              'RIGHT_HIP'], ['LEFT_HIP', 'RIGHT_HIP']),
+            (['LEFT_HIP', 'RIGHT_HIP'], ['LEFT_HIP']),
+            (['LEFT_HIP', 'RIGHT_HIP'], ['RIGHT_HIP']),
+            (['LEFT_HIP'], ['LEFT_KNEE']), (['RIGHT_HIP'], ['RIGHT_KNEE']),
+            (['LEFT_KNEE'], ['LEFT_ANKLE']), (['RIGHT_KNEE'], ['RIGHT_ANKLE'])
+        ],
+        head_keypoint_name=['HEAD'],
         neck_keypoint_name=['LEFT_SHOULDER', 'RIGHT_SHOULDER'],
         left_shoulder_keypoint_name=['LEFT_SHOULDER'],
         right_shoulder_keypoint_name=['RIGHT_SHOULDER'],
@@ -921,13 +901,13 @@ class LegacyMpii3dhp17KeypointProfile3D(KeypointProfile3D):
         right_ankle_keypoint_name=['right_ankle'])
 
 
-class LegacyCoco13KeypointProfile2D(KeypointProfile2D):
-  """Legacy COCO 2D 13-keypoint profile."""
+class Std13KeypointProfile2D(KeypointProfile2D):
+  """Standard 2D 13-keypoint profile."""
 
   def __init__(self):
     """Initializer."""
-    super(LegacyCoco13KeypointProfile2D, self).__init__(
-        name='LEGACY_2DCOCO13',
+    super(Std13KeypointProfile2D, self).__init__(
+        name='2DSTD13',
         keypoint_names=[('NOSE_TIP', LeftRightType.CENTRAL),
                         ('LEFT_SHOULDER', LeftRightType.LEFT),
                         ('RIGHT_SHOULDER', LeftRightType.RIGHT),
@@ -950,20 +930,26 @@ class LegacyCoco13KeypointProfile2D(KeypointProfile2D):
                                    (['LEFT_HIP'], ['RIGHT_HIP'])],
         segment_name_pairs=[(['NOSE_TIP'], ['LEFT_SHOULDER']),
                             (['NOSE_TIP'], ['RIGHT_SHOULDER']),
+                            (['LEFT_SHOULDER'], ['RIGHT_SHOULDER']),
                             (['LEFT_SHOULDER'], ['LEFT_ELBOW']),
-                            (['LEFT_ELBOW'], ['LEFT_WRIST']),
                             (['RIGHT_SHOULDER'], ['RIGHT_ELBOW']),
+                            (['LEFT_ELBOW'], ['LEFT_WRIST']),
                             (['RIGHT_ELBOW'], ['RIGHT_WRIST']),
                             (['LEFT_SHOULDER'], ['LEFT_HIP']),
                             (['RIGHT_SHOULDER'], ['RIGHT_HIP']),
+                            (['LEFT_HIP'], ['RIGHT_HIP']),
                             (['LEFT_HIP'], ['LEFT_KNEE']),
-                            (['LEFT_KNEE'], ['LEFT_ANKLE']),
                             (['RIGHT_HIP'], ['RIGHT_KNEE']),
-                            (['RIGHT_KNEE'], ['RIGHT_ANKLE']),
-                            (['LEFT_SHOULDER'], ['RIGHT_SHOULDER']),
-                            (['LEFT_HIP'], ['RIGHT_HIP'])],
+                            (['LEFT_KNEE'], ['LEFT_ANKLE']),
+                            (['RIGHT_KNEE'], ['RIGHT_ANKLE'])],
         compatible_keypoint_name_dict={
             '3DSTD16': [
+                'HEAD', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
+                'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'LEFT_HIP',
+                'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
+                'RIGHT_ANKLE'
+            ],
+            '3DSTD13': [
                 'HEAD', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
                 'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'LEFT_HIP',
                 'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
@@ -998,6 +984,18 @@ class LegacyCoco13KeypointProfile2D(KeypointProfile2D):
         right_knee_keypoint_name=['RIGHT_KNEE'],
         left_ankle_keypoint_name=['LEFT_ANKLE'],
         right_ankle_keypoint_name=['RIGHT_ANKLE'])
+
+
+class LegacyCoco13KeypointProfile2D(Std13KeypointProfile2D):
+  """Legacy COCO 2D 13-keypoint profile.
+
+  This profile is the same as the `2DSTD13` profil, except the name.
+  """
+
+  def __init__(self):
+    """Initializer."""
+    super(LegacyCoco13KeypointProfile2D, self).__init__()
+    self._name = 'LEGACY_2DCOCO13'
 
 
 class LegacyH36m13KeypointProfile2D(KeypointProfile2D):
@@ -1047,6 +1045,12 @@ class LegacyH36m13KeypointProfile2D(KeypointProfile2D):
                       'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
                       'RIGHT_ANKLE'
                   ],
+                  '3DSTD13': [
+                      'HEAD', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
+                      'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'LEFT_HIP',
+                      'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
+                      'RIGHT_ANKLE'
+                  ],
                   'LEGACY_3DH36M17': [
                       'Head', 'LShoulder', 'RShoulder', 'LElbow', 'RElbow',
                       'LWrist', 'RWrist', 'LHip', 'RHip', 'LKnee', 'RKnee',
@@ -1091,14 +1095,16 @@ def create_keypoint_profile_or_die(keypoint_profile_name):
   """
   if keypoint_profile_name == '3DSTD16':
     return Std16KeypointProfile3D()
-  if keypoint_profile_name == '2DSTD13':
-    return Std13KeypointProfile2D()
+  if keypoint_profile_name == '3DSTD13':
+    return Std13KeypointProfile3D()
   if keypoint_profile_name == 'LEGACY_3DH36M17':
     return LegacyH36m17KeypointProfile3D()
   if keypoint_profile_name == 'LEGACY_3DH36M13':
     return LegacyH36m13KeypointProfile3D()
   if keypoint_profile_name == 'LEGACY_3DMPII3DHP17':
     return LegacyMpii3dhp17KeypointProfile3D()
+  if keypoint_profile_name == '2DSTD13':
+    return Std13KeypointProfile2D()
   if keypoint_profile_name == 'LEGACY_2DCOCO13':
     return LegacyCoco13KeypointProfile2D()
   if keypoint_profile_name == 'LEGACY_2DH36M13':
