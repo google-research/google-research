@@ -26,28 +26,24 @@ def get_data(
     reader,
     embedding_name,
     embedding_dim,
-    preaveraged,
     label_name,
     label_list,
-    batch_size,
+    bucket_boundaries,
+    bucket_batch_sizes,
     loop_forever,
     shuffle,
     shuffle_buffer_size=10000):
   """Gets the data for keras training.
-
-  Note that if `preaveraged=False` and `batch_size>1`, batches will be cut to
-  the shortest length and data will be lost.
 
   Args:
     file_pattern: Glob for input data.
     reader: Class used to parse data on disk.
     embedding_name: Name of embedding in tf.Examples.
     embedding_dim: Fixed size of embedding.
-    preaveraged: Python bool. If `True`, expect embeddings to be of size
-      (1, embedding_dim). Otherwise, it's (var len, embedding_dim).
     label_name: Name of label key in tf.Examples.
     label_list: Python list of all possible label values.
-    batch_size: Batch size of data in returned tf.data.Dataset.
+    bucket_boundaries: Boundaries for bucketing.
+    bucket_batch_sizes: Batch size for bucket size.
     loop_forever: Python bool. Whether to loop forever.
     shuffle: Python bool. Whether to shuffle data.
     shuffle_buffer_size: Size of shuffle buffer.
@@ -56,25 +52,23 @@ def get_data(
     A tf.data.Dataset of (embeddings, onehot labels).
   """
   assert file_utils.Glob(file_pattern), file_pattern
+  assert isinstance(bucket_boundaries, (tuple, list))
+  if isinstance(bucket_boundaries[0], str):
+    bucket_boundaries = [int(x) for x in bucket_boundaries]
+
   emb_key = f'embedding/{embedding_name}'
   label_key = label_name
 
-  # Preaveraged embeddings are fixed length, non-preaveraged are variable size.
-  if preaveraged:
-    emb_feat = tf.io.FixedLenFeature(
-        shape=(1, embedding_dim), dtype=tf.float32)
-  else:
-    emb_feat = tf.io.VarLenFeature(dtype=tf.float32)
   features = {
-      emb_key: emb_feat,
+      emb_key: tf.io.VarLenFeature(dtype=tf.float32),
       label_key: tf.io.FixedLenFeature(
           shape=(), dtype=tf.string, default_value=None),
   }
 
   # Load data into a dataset.
-  ds = tf.data.experimental.make_batched_features_dataset(
+  ds = (tf.data.experimental.make_batched_features_dataset(
       file_pattern=file_pattern,
-      batch_size=batch_size,
+      batch_size=1,
       num_epochs=None if loop_forever else 1,
       reader_num_threads=tf.data.experimental.AUTOTUNE,
       parser_num_threads=2,
@@ -82,26 +76,30 @@ def get_data(
       reader=reader,
       shuffle=shuffle,
       shuffle_buffer_size=shuffle_buffer_size,
-      prefetch_buffer_size=batch_size,  # consider tf.data.experimental.AUTOTUNE
+      prefetch_buffer_size=tf.data.experimental.AUTOTUNE,
       sloppy_ordering=True)
-
-  ds = ds.map(lambda kv: (kv[emb_key], kv[label_key]),
-              num_parallel_calls=tf.data.experimental.AUTOTUNE)
-  if preaveraged:
-    reshape_fn = _reshape_preaveraged
-  else:
-    reshape_fn = functools.partial(_reshape_full, embedding_dim=embedding_dim)
-  ds = ds.map(reshape_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-  ds = ds.map(functools.partial(_y_to_onehot, label_list=label_list),
-              num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        .map(lambda kv: (kv[emb_key], kv[label_key]),
+             num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        .map(functools.partial(_reshape_full, embedding_dim=embedding_dim),
+             num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        .map(functools.partial(_y_to_onehot, label_list=label_list),
+             num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        .map(_remove_batchdim_one,
+             num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        .apply(
+            tf.data.experimental.bucket_by_sequence_length(
+                element_length_func=lambda emb, lbl: tf.shape(emb)[0],
+                bucket_boundaries=bucket_boundaries,
+                bucket_batch_sizes=bucket_batch_sizes,
+                padded_shapes=None,
+                padding_values=None,
+                pad_to_bucket_boundary=False,
+                no_padding=False,
+                drop_remainder=False)
+            )
+        )
 
   return ds
-
-
-def _reshape_preaveraged(embeddings, labels):
-  embeddings.shape.assert_has_rank(3)
-  labels.shape.assert_has_rank(1)
-  return tf.squeeze(embeddings, axis=1), labels
 
 
 def _reshape_full(embeddings, labels, embedding_dim):
@@ -110,14 +108,13 @@ def _reshape_full(embeddings, labels, embedding_dim):
   emb = tf.sparse.to_dense(embeddings)
   emb = tf.reshape(emb, [tf.shape(emb)[0], -1, embedding_dim])
   emb.shape.assert_has_rank(3)
-
   labels.shape.assert_has_rank(1)
 
   return emb, labels
 
 
 def _y_to_onehot(embeddings, labels, label_list):
-  """Reshape embedding to 2D and map label to int."""
+  """Map label to int."""
   labels.shape.assert_has_rank(1)
 
   # Let's do some y remapping trickery.
@@ -126,3 +123,7 @@ def _y_to_onehot(embeddings, labels, label_list):
   y_out = tf.one_hot(y_out, len(label_list))
 
   return embeddings, y_out
+
+
+def _remove_batchdim_one(emb, lbl):
+  return (tf.squeeze(emb, axis=0), tf.squeeze(lbl, axis=0))

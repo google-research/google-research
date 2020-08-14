@@ -30,9 +30,10 @@ from non_semantic_speech_benchmark.eval_embedding.keras import train_keras
 def _get_data(*args, **kwargs):
   del args
   assert 'embedding_dim' in kwargs
-  assert 'batch_size' in kwargs
+  assert 'bucket_boundaries' in kwargs
+  assert 'bucket_batch_sizes' in kwargs
   assert 'label_list' in kwargs
-  bs = kwargs['batch_size']
+  bs = kwargs['bucket_batch_sizes'][0]
   emb = tf.zeros((bs, 10, kwargs['embedding_dim']), tf.float32)
   labels = tf.zeros([bs], tf.int32)
   labels_onehot = tf.one_hot(labels, len(kwargs['label_list']))
@@ -79,6 +80,7 @@ class TrainKerasTest(parameterized.TestCase):
     flags.FLAGS.nc = 2
     flags.FLAGS.label_name = 'emotion'
     flags.FLAGS.label_list = ['no', 'yes']
+    flags.FLAGS.bucket_boundaries = [10, 20]
     flags.FLAGS.logdir = absltest.get_default_test_tmpdir()
 
     train_keras.train_and_report(debug=True)

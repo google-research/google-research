@@ -34,6 +34,7 @@ flags.DEFINE_string('embedding_dimension', None, 'Embedding dimension.')
 flags.DEFINE_alias('ed', 'embedding_dimension')
 flags.DEFINE_string('label_name', None, 'Name of label to use.')
 flags.DEFINE_list('label_list', None, 'List of possible label values.')
+flags.DEFINE_list('bucket_boundaries', None, 'bucket_boundaries for data.')
 
 flags.DEFINE_integer('train_batch_size', 1, 'Hyperparameter: batch size.')
 flags.DEFINE_alias('tbs', 'train_batch_size')
@@ -71,10 +72,10 @@ def train_and_report(debug=False):
       reader=reader,
       embedding_name=FLAGS.embedding_name,
       embedding_dim=FLAGS.embedding_dimension,
-      preaveraged=False,
       label_name=FLAGS.label_name,
       label_list=FLAGS.label_list,
-      batch_size=FLAGS.train_batch_size,
+      bucket_boundaries=FLAGS.bucket_boundaries,
+      bucket_batch_sizes=[FLAGS.train_batch_size] * (len(FLAGS.bucket_boundaries) + 1),  # pylint:disable=line-too-long
       loop_forever=True,
       shuffle=True,
       shuffle_buffer_size=FLAGS.shuffle_buffer_size)
@@ -168,6 +169,8 @@ def main(unused_argv):
   assert FLAGS.embedding_dimension
   assert FLAGS.label_name
   assert FLAGS.label_list
+  assert FLAGS.bucket_boundaries
+  assert FLAGS.train_batch_size
   assert FLAGS.logdir
 
   tf.compat.v2.enable_v2_behavior()

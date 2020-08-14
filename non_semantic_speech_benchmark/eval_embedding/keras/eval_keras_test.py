@@ -26,6 +26,8 @@ class EvalKerasTest(absltest.TestCase):
   def test_full_flow(self):
     flags.FLAGS.label_name = 'test'
     flags.FLAGS.label_list = ['no', 'yes']
+    flags.FLAGS.bucket_boundaries = [10, 20]
+    flags.FLAGS.label_list = ['no', 'yes']
     flags.FLAGS.logdir = absltest.get_default_test_tmpdir()
     flags.FLAGS.eval_dir = absltest.get_default_test_tmpdir()
     flags.FLAGS.nc = 2
