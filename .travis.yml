@@ -78,6 +78,7 @@ env:
     - PROJECT="t5_closed_book_qa"
     - PROJECT="tabnet"
     - PROJECT="tcc"
+    - PROJECT="tiny_video_nets"
     - PROJECT="towards_gan_benchmarks"
     - PROJECT="truss_decomposition"
     - PROJECT="towards_gan_benchmarks"
