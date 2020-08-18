@@ -54,6 +54,7 @@ EVAL:
   FRAMES_PER_BATCH: 25
   KENDALLS_TAU_DISTANCE: sqeuclidean
   KENDALLS_TAU_STRIDE: 5
+  NUM_FRAMES: 5
   TASKS:
   - algo_loss
   - classification
