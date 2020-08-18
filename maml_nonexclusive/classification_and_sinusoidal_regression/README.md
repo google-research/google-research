@@ -36,7 +36,7 @@ This code requires the following:
 `--datasource=dclaw --meta_batch_size=4 --update_batch_size=1 --update_lr=0.01 --num_updates=5 --num_classes=2 --num_filters=32 --max_pool=True --dclaw_pn=1`
 
 ### Sinusoidal regression
-`--datasource=sinusoid --norm=None --update_batch_size=10 --sine_seed=1 --meta_batch_size=7`
+`--datasource=sinusoid --norm=None --update_batch_size=10 --sine_seed=1 --meta_batch_size=6`
 
 ## Task settings
 ### For Omniglot, Miniimagenet and Dclaw:
