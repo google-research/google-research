@@ -21,6 +21,7 @@ source ./bin/activate
 
 pip install tensorflow==1.15.0
 pip install tensorflow-graphics==1.0.0
+pip install matplotlib==3.3.0
 pip install -r depth_and_motion_learning/requirements.txt
 
 python -m depth_and_motion_learning.depth_motion_field_train \

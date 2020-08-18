@@ -1,4 +1,4 @@
-# Semantically-Agnostic Unsupervised Monocular Depth Learning
+# Unsupervised Monocular Depth and Motion Learning
 
 This release supports joint training a depth prediction model and a motion
 prediction model using only pairs of RGB images. The depth model infers a dense
