@@ -99,12 +99,12 @@ def matrix(dist_fn, df, aux_df=None, n_jobs=1, **kwds):
   if aux_df is not None:
     combined = np.zeros([dfrow, dfcol + int(auxrow / dfrow) * auxcol])
     for i, (idx, row) in enumerate(df.iterrows()):
-      combined[i, :] = _combine(row.as_matrix(), aux_df.loc[idx].as_matrix())
+      combined[i, :] = _combine(row.values, aux_df.loc[idx].values)
     kwds.update(dist_fn=dist_fn, dfcol=dfcol, auxcol=auxcol)
     dist = sklearn.metrics.pairwise.pairwise_distances(
         X=combined, metric=_wrapped_dist_fn, n_jobs=n_jobs, **kwds)
   else:
     dist = sklearn.metrics.pairwise.pairwise_distances(
-        X=df.as_matrix(), metric=dist_fn, n_jobs=n_jobs, **kwds)
+        X=df.values, metric=dist_fn, n_jobs=n_jobs, **kwds)
 
   return pd.DataFrame(dist, columns=df.index, index=df.index)
