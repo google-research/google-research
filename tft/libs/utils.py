@@ -82,7 +82,7 @@ def tensorflow_quantile_loss(y, y_pred, quantile):
         'Illegal quantile value={}! Values should be between 0 and 1.'.format(
             quantile))
 
-  prediction_underflow = y - y_pred
+  prediction_underflow = (y - y_pred) * tf.cast(y > -1, tf.float32)
   q_loss = quantile * tf.maximum(prediction_underflow, 0.) + (
       1. - quantile) * tf.maximum(-prediction_underflow, 0.)
 

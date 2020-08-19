@@ -37,6 +37,9 @@ source $OUTPUT_FOLDER/venv/bin/activate
 pip3 install --pre "tensorflow==1.15.*"
 pip3 install -r requirements.txt
 
+# Step 1: allow extraction of 7z files
+sudo apt-get install p7zip
+
 # Step 2: Downloads data if not present.
 echo
 python3 -m script_download_data $EXPT $OUTPUT_FOLDER
