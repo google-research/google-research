@@ -14,9 +14,11 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Beam job to try a bunch of hparams.
+# pylint:disable=line-too-long
+r"""Beam job to try a bunch of hparams.
 
 """
+# pylint:enable=line-too-long
 
 import itertools
 import os
