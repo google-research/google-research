@@ -43,7 +43,7 @@ feel more than welcome.
 ## Getting Started
 
 The easiest way to get started is
-[in colaboratory]( https://colab.research.google.com/github/google-research/google-research/blob/master/jax2tex/notebook/jax2tex.ipynb).
+[in colaboratory](https://colab.research.google.com/github/google-research/google-research/blob/master/jax2tex/notebook/jax2tex.ipynb).
 
 To download jax2tex locally, you can clone the jax2tex subdirectory of the
 google-research repository by installing subversion and running:
