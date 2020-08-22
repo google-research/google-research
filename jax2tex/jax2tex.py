@@ -700,6 +700,9 @@ op2ind[jax.ad_util.stop_gradient_p] = noop2ind
 if hasattr(lax.lax, 'tie_in_p'):
   tie_in2tex = lambda x, y: y
   tie_in2ind = lambda in_shaped, out_indices, out_used: (None, out_indices)
+  op2tex[lax.lax.tie_in_p] = noop2tex
+  op2ind[lax.lax.tie_in_p] = noop2ind
+
 
 op2tex[lax.sqrt_p] = lambda x: '\\sqrt{' + str(x) + '}'
 op2ind[lax.sqrt_p] = noop2ind
