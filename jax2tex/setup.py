@@ -48,7 +48,7 @@ INSTALL_REQUIRES = [
 ]
 
 
-def _get_version():
+def _get_version() -> str:
   """Returns the package version.
 
   Adapted from:
