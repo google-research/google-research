@@ -24,7 +24,7 @@ from absl.testing import flagsaver
 from absl.testing import parameterized
 import tensorflow.compat.v1 as tf
 
-from neural_additive_models import nam_train
+import nam_train
 
 FLAGS = flags.FLAGS
 

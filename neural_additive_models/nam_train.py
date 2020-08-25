@@ -26,8 +26,8 @@ from absl import flags
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-from neural_additive_models import data_utils
-from neural_additive_models import graph_builder
+import data_utils
+import graph_builder
 
 gfile = tf.io.gfile
 DatasetType = data_utils.DatasetType
