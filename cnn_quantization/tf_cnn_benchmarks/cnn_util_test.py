@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for tf_cnn_benchmarks.cnn_util."""
 
 from __future__ import absolute_import
@@ -22,6 +23,7 @@ from __future__ import print_function
 import threading
 import time
 
+from six.moves import range
 import tensorflow.compat.v1 as tf
 
 from cnn_quantization.tf_cnn_benchmarks import cnn_util
