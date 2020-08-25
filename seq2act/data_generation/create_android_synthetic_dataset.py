@@ -79,12 +79,9 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     'output_dir', _OUTPUT_DIR,
     'Full path to the directory for saving the tf record file.')
-
 flags.DEFINE_string(
     'filter_file', _FILTER_FILE,
-    'Full path to the directory for saving the tf record file.')
-
-
+    'Full path to the directory for saving filter file or RICO.')
 flags.DEFINE_integer(
     'num_threads', _NUM_THREADS_DEFAULT,
     'The number of threads to process the data files concurrently.')
@@ -99,6 +96,9 @@ flags.DEFINE_integer('max_word_length_upper', _MAX_WORD_LENGTH_UPPER_DEFAULT,
 flags.DEFINE_enum('dataset', _DATASET_TYPE_DEFAULT,
                   ['android_settings', 'rico'],
                   'The type of supported dataset.')
+flags.DEFINE_enum('file_to_generate', 'tf_example',
+                  ['tf_example', 'corpus'],
+                  'Whether generate feature tfexample or corpus txt.')
 
 
 debug_info_lock = threading.Lock()
@@ -335,9 +335,9 @@ def _get_full_feature_dict(dataset_type, file_path, max_word_num,
           (ui_object_num,)
       'ui_obj_clickable_seq': clickable sequence, np int array, shape =
           (ui_object_num,)
-      'ui_obj_cord_x_seq': x cordinate sequence, np float array, shape =
+      'ui_obj_cord_x_seq': x coordinate sequence, np float array, shape =
           (ui_object_num*2,)
-      'ui_obj_cord_y_seq': y cordinate sequence, np float array, shape =
+      'ui_obj_cord_y_seq': y coordinate sequence, np float array, shape =
           (ui_object_num*2,)
       'ui_obj_v_distance': vertical relation matrix, np float array, shape =
           (ui_object_num, ui_object_num)
@@ -421,13 +421,23 @@ def _assert_feature_shape(feature, expected_shape):
   """Asserts feature shape is legal, same as expected_shape."""
   assert set(feature.keys()) == set(expected_shape.keys(
   )), '[FATAL] feature keys %s different from expected %s' % (
-      feature.keys(), expected_shape.keys())
+      sorted(feature.keys()), sorted(expected_shape.keys()))
   for key in feature:
     if feature[key].shape != expected_shape[key]:
       tf.logging.info('[FATAL] feature %s shape is different from expected',
                       key)
       return False
   return True
+
+
+def _produce_corpus(corpus_writer, writer_lock, file_path):
+  """Writes all UI names."""
+  view_hierarchy_leaf_nodes = common.get_view_hierarchy_list(file_path)
+  ui_obj_list = [ele.uiobject for ele in view_hierarchy_leaf_nodes]
+  ui_names = [ui.obj_name.lower().strip() for ui in ui_obj_list if ui.obj_name]
+  corpus = '\n'.join(ui_names)
+  with writer_lock:
+    corpus_writer.write(corpus + '\n')
 
 
 def _process_features(tf_record_writer, writer_lock,
@@ -473,6 +483,7 @@ def _process_features(tf_record_writer, writer_lock,
       'obj_desc_position_seq': (phrase_count*2,),
   }
 
+  _stat_distribution('ui_obj_type_id_seq', feature_dict['ui_obj_type_id_seq'])
   _stat_distribution('verb_id_seq', feature_dict['verb_id_seq'])
   _stat_distribution('instruction_rule_id', feature_dict['instruction_rule_id'])
   target_objs = feature_dict['ui_target_id_seq']
@@ -521,6 +532,7 @@ def _write_dataset(dataset_type, input_dir, output_dir, max_word_num,
         os.path.join(input_dir, '*.json'))
 
     all_file_path = filter_file_by_name(all_file_path)
+    assert len(all_file_path) == 26210
 
     for file_path in sorted(all_file_path):
       shard = num_processed_files % FLAGS.num_shards
@@ -568,16 +580,17 @@ def main(_):
   create_dataset(FLAGS.dataset, FLAGS.input_dir, FLAGS.output_dir)
 
   tf.logging.info('\n\n%s\n\n', longest_stats)
-  with open(os.path.join(FLAGS.output_dir, 'stats.txt'), 'w+') as writer:
+  if FLAGS.file_to_generate == 'tf_example':
+    with open(os.path.join(FLAGS.output_dir, 'stats.txt'), 'w+') as writer:
 
-    for key, distribution in distributions.items():
-      writer.write(
-          '%s: %s\n' %
-          (key, sorted(distribution.items(), key=operator.itemgetter(0))))
+      for key, distribution in distributions.items():
+        writer.write(
+            '%s: %s\n' %
+            (key, sorted(distribution.items(), key=operator.itemgetter(0))))
 
-    for key, distribution in sums.items():
-      writer.write('%s: %s\n' %
-                   (key, sorted(sums.items(), key=operator.itemgetter(0))))
+      for key, distribution in sums.items():
+        writer.write('%s: %s\n' %
+                     (key, sorted(sums.items(), key=operator.itemgetter(0))))
 
 
 if __name__ == '__main__':

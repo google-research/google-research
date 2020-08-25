@@ -19,12 +19,9 @@ set -x
 virtualenv -p python3.7 .
 source ./bin/activate
 
-pip install tensorflow
-pip install -r seq2act/requirements.txt
-python -m seq2act.bin.setup_test --train_file_list "seq2act/data/android_howto/tfexample/*.tfrecord,seq2act/data/rico_sca/tfexample/*.tfrecord" \
-                                 --train_source_list "android_howto,rico_sca" \
-                                 --train_batch_sizes "2,2" \
-                                 --train_steps 2 \
-                                 --batch_size 2 \
-                                 --experiment_dir "/tmp/seq2act" \
-                                 --logtostderr
+pip install -r seq2act/data_generation/requirements.txt
+pip install bs4
+
+python -m seq2act.data_generation.crawl_instructions \
+--input_warc_dir=${PWD}"/seq2act/data/android_howto/warc" \
+--output_instruction_json=${PWD}"/seq2act/data/android_howto/crawled_instructions.json"
