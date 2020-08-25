@@ -12,6 +12,7 @@ env:
     - PROJECT="algae_dice"
     - PROJECT="attribution"
     - PROJECT="amortized_bo"
+    - PROJECT="assemblenet"
     - PROJECT="axial"
     - PROJECT="bam"
     - PROJECT="bisimulation_aaai2020"
