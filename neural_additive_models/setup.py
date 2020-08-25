@@ -67,8 +67,6 @@ setup(
     keywords='nam, reinforcement, machine, learning, research',
     include_package_data=True,
     packages=find_packages(exclude=['docs']),
-    # package_data={'testdata': ['testdata/*.gin']},
     install_requires=install_requires,
-    # project_urls={},
     license='Apache 2.0',
 )
