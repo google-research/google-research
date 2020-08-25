@@ -25,7 +25,7 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 install_requires = [
     'tensorflow>=1.15',
     'numpy>=1.15.2',
-    'sklearn>=0.19.2',
+    'sklearn',
     'pandas>=0.24',
     'absl-py',
 ]
@@ -33,7 +33,7 @@ install_requires = [
 nam_description = ('Neural Additive Models: Intepretable ML with Neural Nets')
 
 setup(
-    name='nam',
+    name='neural_additive_models',
     description=nam_description,
     long_description=long_description,
     long_description_content_type='text/markdown',
