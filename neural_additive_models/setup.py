@@ -37,7 +37,7 @@ setup(
     description=nam_description,
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/google/nam',
+    url='https://github.com/agarwl/google-research/tree/master/neural_additive_models',
     author='Rishabh Agarwal',
     classifiers=[
         'Development Status :: 4 - Beta',
