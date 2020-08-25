@@ -45,6 +45,6 @@ If you use any of the materials, please cite the following paper.
   author = {Yang Li and Jiacong He and Xin Zhou and Yuan Zhang and Jason Baldridge},
   booktitle = {Annual Conference of the Association for Computational Linguistics (ACL 2020)},
   year = {2020},
-  url = {https://arxiv.org/pdf/tbd.pdf},
+  url = {https://www.aclweb.org/anthology/2020.acl-main.729.pdf},
 }
 ```
