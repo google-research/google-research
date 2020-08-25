@@ -33,13 +33,12 @@ install_requires = [
 nam_description = ('Neural Additive Models: Intepretable ML with Neural Nets')
 
 setup(
-    name='neural_additive_models',
-    version='3.1.7',
+    name='nam',
     description=nam_description,
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/google/nam',
-    author='The Dopamine Team',
+    author='Rishabh Agarwal',
     classifiers=[
         'Development Status :: 4 - Beta',
 
