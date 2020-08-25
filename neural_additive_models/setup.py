@@ -34,6 +34,7 @@ nam_description = ('Neural Additive Models: Intepretable ML with Neural Nets')
 
 setup(
     name='neural_additive_models',
+    version=0.1,
     description=nam_description,
     long_description=long_description,
     long_description_content_type='text/markdown',
