@@ -38,16 +38,25 @@ More details of this version is described in the supplementary materials of the 
 We confirmed that a single GPU (with 16GB memory) can host a batch of 8 videos with 32 frames (or a batch of 2 videos with 128 frames), for the model training.
 
 
+# Neural Architecture Search
+
+As you will find from the [AssembleNet](https://arxiv.org/abs/1905.13209) paper, the models we provide in [model_structures.py](model_structures.py) are the result of architecture search/learning.
+
+The architecture search in AssembleNet (and AssembleNet++) has two components: (i) convolutional block configuration search using an evolutionary algorithm, and (ii) one-shot differentiable connection search. We did not include the code for the first part (i.e., evolution), as it relies on another infrastructure and heavy computation. The 2nd part (i.e., differentiable search) is included in the code however, which will allow you to use to code to search for the best connectivity for your own models.
+
+That is, as also described in the [AssembleNet++](https://arxiv.org/abs/2008.08072) paper, once the convolutional blocks are decided based on the search or manually, you can use the provide code to obtain the best block connections and learn attention connectivity in a one-shot differentiable way. You just need to train the network (with `FLAGS.model_edge_weights` as `[]`) and the connectivity search will be done simultaneously.
+
+
+# Fixed Connectivity vs. Connectivity Learning
+
+When training, you can use the code in two different ways. (1) If you specify the detailed connection weights in `FLAGS.model_edge_weights` (as we are doing in [model_structures.py](model_structures.py)), the optimizer will fix these weights and focus on the learning of conv. filters. (2) If you set `FLAGS.model_edge_weights` to be `[]`, the optimizer will simultaneously learn connection weights and conv. filters through automatic gradient computation (as described in the above section). This allows you to search for the best connectivity for your own model, and then prune it.
+
+
 # AssembleNet and AssembleNet++ Structure Format
 
 The format we use to specify AssembleNet/++ architectures is as follows: It is a `list` corresponding to a graph representation of the network, where a node is a convolutional block and an edge specifies a connection from one block to another. Each node itself (in the structure list) is a `list` with the following format: `[block_level, [list_of_input_blocks], number_filter, temporal_dilation, spatial_stride]`. `[list_of_input_blocks]` should be the list of node indexes whose values are less than the index of the node itself. The 'stems' of the network directly taking raw inputs follow a different node format: `[stem_type, temporal_dilation]`. The stem_type is -1 for RGB stem and is -2 for optical flow stem. The stem_type -3 is reserved for the object segmentation input.
 
 In AssembleNet++lite, instead of passing a single `int` for `number_filter`, we pass a list/tuple of three `int`s. They specify the number of channels to be used for each layer in the inverted bottleneck modules.
-
-
-# Fixed Connectivity vs. Connectivity Learning
-
-When training, you can use the code in two different ways. (i) If you specify the detailed connection weights in `FLAGS.model_edge_weights` (as we are doing in [model_structures.py](model_structures.py)), the optimizer will fix these weights and focus on the learning of conv. filters. (ii) If you set `FLAGS.model_edge_weights` to be `[]`, the optimizer will simultaneously learn connection weights and conv. filters through automatic gradient computation. This allows you to search for the best connectivity for your own model, and then fix it.
 
 
 # Optical Flow and Data Loading
