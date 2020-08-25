@@ -42,7 +42,7 @@ We confirmed that a single GPU (with 16GB memory) can host a batch of 8 videos w
 
 As you will find from the [AssembleNet](https://arxiv.org/abs/1905.13209) paper, the models we provide in [model_structures.py](model_structures.py) are the result of architecture search/learning.
 
-The architecture search in AssembleNet (and AssembleNet++) has two components: (i) convolutional block configuration search using an evolutionary algorithm, and (ii) one-shot differentiable connection search. We did not include the code for the first part (i.e., evolution), as it relies on another infrastructure and heavy computation. The 2nd part (i.e., differentiable search) is included in the code however, which will allow you to use to code to search for the best connectivity for your own models.
+The architecture search in AssembleNet (and AssembleNet++) has two components: (i) convolutional block configuration search using an evolutionary algorithm, and (ii) one-shot differentiable connection search. We did not include the code for the first part (i.e., evolution), as it relies on another infrastructure and more computation. The 2nd part (i.e., differentiable search) is included in the code however, which will allow you to use to code to search for the best connectivity for your own models.
 
 That is, as also described in the [AssembleNet++](https://arxiv.org/abs/2008.08072) paper, once the convolutional blocks are decided based on the search or manually, you can use the provide code to obtain the best block connections and learn attention connectivity in a one-shot differentiable way. You just need to train the network (with `FLAGS.model_edge_weights` as `[]`) and the connectivity search will be done simultaneously.
 
