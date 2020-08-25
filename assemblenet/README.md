@@ -61,9 +61,7 @@ For the object segmentation inputs used in AssembleNet++ paper, you will need to
 
 AssembleNet and AssembleNet++ obtains state-of-the-art results outperforming existing models on multiple public datasets, including the [Charades](https://prior.allenai.org/projects/charades) and the [Toyota Smart Home](https://project.inria.fr/toyotasmarthome/) datasets.
 
-![asn_charades_results](charades_assemblenet.png "asn_charades_results"){width="480"}
-
-![asn_toyota_results](toyota_assemblenet.png "asn_toyota_results"){width="480"}
+![asn_results](result_image.png "asn_results")
 
 Note that AssembleNet++ results are without any pre-training, unlike all the other methods in the figure that benefits from pre-training.
 
