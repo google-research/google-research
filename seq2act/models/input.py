@@ -189,6 +189,10 @@ def input_fn(data_files,
     return tf.greater_equal(example['agreement_count'], required_agreement)
   dataset = dataset.filter(_is_enough_agreement)
 
+  def _length_filter(example):
+    return tf.less(tf.shape(example['obj_refs'])[0], 20)
+  dataset = dataset.filter(_length_filter)
+
   def _filter_data_by_rule(example, rule_id_list):
     return tf.reduce_any(
         [tf.equal(example['rule'], rule_id) for rule_id in rule_id_list])

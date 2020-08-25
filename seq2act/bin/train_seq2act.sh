@@ -19,11 +19,11 @@ DEFINE_string experiment_dir --required "" "Specify the experimental directory"
 DEFINE_string train "ground" "Specify the training type: [parse, ground]"
 DEFINE_string hparam_file "./seq2act/ckpt_hparams/grounding/" \
                           "Specify the hyper-parameter file"
-DEFINE_string parser_checkpoint "seq2act/ckpt_hparams/tuple_extract" \
+DEFINE_string parser_checkpoint "./seq2act/ckpt_hparams/tuple_extract" \
                                 "Specify the checkpoint of tuple extraction"
-DEFINE_string rico_sca_train "./seq2act/data/rico_sca/*[!0].tfrecord" \
+DEFINE_string rico_sca_train "./seq2act/data/rico_sca/tfexample/*[!0].tfrecord" \
                              "Specify the path to rico_sca dataset"
-DEFINE_string android_howto_train "./seq2act/data/android_howto/*[!0].tfrecord" \
+DEFINE_string android_howto_train "./seq2act/data/android_howto/tfexample/*[!0].tfrecord" \
                                   "Specify the path to android_howto dataset"
 
 gbash::init_google "$@"
@@ -31,7 +31,7 @@ gbash::init_google "$@"
 set -e
 set -x
 
-virtualenv -p python3 .
+virtualenv -p python3.7 .
 source ./bin/activate
 
 pip install tensorflow

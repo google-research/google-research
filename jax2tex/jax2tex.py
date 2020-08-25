@@ -57,7 +57,7 @@ zip = util.safe_zip
 # pylint: enable=redefined-builtin
 
 Array = np.ndarray
-ArrayOrArrayTuple = Union[Array, Tuple[Array, Ellipsis]]
+ArrayOrArrayTuple = Union[Array, Tuple[Array, ...]]
 PyTree = Any
 Params = Any
 Shape = Tuple[int]
@@ -65,7 +65,7 @@ Shape = Tuple[int]
 # API Functions.
 
 
-def bind_names(fn):
+def bind_names(fn: Callable[..., Array]) -> Callable[..., Array]:
   """Annotates a function, assigning names to function inputs and outputs."""
   fn_name = tuple(value for name, value in inspect.getmembers(fn) if
                   name == '__name__')[0]
@@ -97,7 +97,7 @@ def bind_names(fn):
   return named_fn
 
 
-def jax2tex(fn, *args):
+def jax2tex(fn: Callable[..., Array], *args) -> str:
   r"""Converts a function and example inputs to a LaTeX representation.
 
   `jax2tex` takes a jax function `fn` along with example arguments to `fn` and
@@ -268,10 +268,10 @@ def jax2tex(fn, *args):
   return output
 
 
-def tex_var(x,
-            name,
-            is_alias = False,
-            depends_on = ()):
+def tex_var(x: Array,
+            name: str,
+            is_alias: bool = False,
+            depends_on: ArrayOrArrayTuple = ()) -> Array:
   r"""Annotates a function with an intermediate variable in the tex expression.
 
   This function adds an intermediate variable to a latex expression. These
@@ -318,7 +318,7 @@ def tex_var(x,
 class BoundTExpr(object):
   """A Latex Expression node in the AST after index assignement."""
 
-  def __init__(self, texpr, indices, used_indices):
+  def __init__(self, texpr: 'TExpr', indices: str, used_indices: str):
     """Creates a BoundTExpr from a TExpr with indices bound to characters.
 
     Args:
@@ -350,7 +350,7 @@ class BoundTExpr(object):
       self.in_ast_nodes += ((arg.bind(ind, used),) if ind is not None else
                             (None,))
 
-  def __str__(self):
+  def __str__(self) -> str:
     return str(op2tex[self.prim](*self.in_ast_nodes, **self.params))
   __repr__ = __str__
 
@@ -374,12 +374,12 @@ class TExpr(object):
   """
 
   def __init__(self,
-               prim,
-               shape,
-               params,
-               in_vars,
-               in_shaped,
-               in_ast_nodes):
+               prim: core.Primitive,
+               shape: Shape,
+               params: Dict[str, Any],
+               in_vars: List[Union[core.Literal, core.Var]],
+               in_shaped: List[ShapedArray],
+               in_ast_nodes: List['ASTNode']):
     self.prim = prim
     self.shape = shape
     self.params = params
@@ -387,7 +387,7 @@ class TExpr(object):
     self.in_shaped = in_shaped
     self.in_ast_nodes = in_ast_nodes
 
-  def bind(self, out_indices, used_indices = ''):
+  def bind(self, out_indices: str, used_indices: str = '') -> BoundTExpr:
     """Recursively assign indices from the output to the input expression."""
     return BoundTExpr(self, out_indices, used_indices)
 
@@ -396,10 +396,10 @@ class BoundVariable(object):
   """A Variable node in the AST after index assignement."""
 
   def __init__(self,
-               var,
-               val,
-               depends_on,
-               indices):
+               var: Union[str, core.Var, core.Literal],
+               val: Union[float, int, Array, ShapedArray],
+               depends_on: Tuple['Variable', ...],
+               indices: str):
     self.var = var
     self.val = val
     self.shape = self.val.shape if hasattr(self.val, 'shape') else ()
@@ -441,9 +441,9 @@ class Variable(object):
   """
 
   def __init__(self,
-               var,
-               val,
-               depends_on = ()):
+               var: Union[str, core.Var, core.Literal],
+               val: Union[float, int, Array, ShapedArray],
+               depends_on: Tuple['Variable', ...] = ()):
     self.var = var
     self.val = val
     self.shape = self.val.shape if hasattr(self.val, 'shape') else ()
@@ -451,7 +451,7 @@ class Variable(object):
     if var is core.Literal and abs(int(self.val) - self.val) < 1e-7:
       self.val = int(val)
 
-  def bind(self, indices, _ = ''):
+  def bind(self, indices: str, _: str = '') -> BoundVariable:
     nontrivial_indices = ''
     if indices:
       skipped_indices = 0
@@ -469,19 +469,19 @@ class Variable(object):
 
 
 T = TypeVar('T')
-MaybeEmptyTuple = Union[Tuple[T, Ellipsis], Tuple[()]]
+MaybeEmptyTuple = Union[Tuple[T, ...], Tuple[()]]
 
 ASTNode = Union[Variable, TExpr]
 BoundASTNode = Union[BoundVariable, BoundTExpr]
 
 
-def is_array_or_float(x):
+def is_array_or_float(x: Array) -> bool:
   return (isinstance(x, np.ndarray) or
           isinstance(x, float) or
           isinstance(x, int))
 
 
-def canonicalize_consts(literals):
+def canonicalize_consts(literals: List[Array]) -> MaybeEmptyTuple[Variable]:
   """Formats constants based on their shape, dtype, and value."""
   constvars = ()
   namedconstvars = 0
@@ -510,7 +510,7 @@ def canonicalize_consts(literals):
   return constvars
 
 
-def get_dependencies(expr):
+def get_dependencies(expr: ASTNode) -> MaybeEmptyTuple[Variable]:
   if isinstance(expr, Variable):
     return expr.depends_on
 
@@ -528,7 +528,7 @@ op2ind = {}
 
 
 def broadcast2ind(
-    in_shaped, out_indices, _):
+    in_shaped: Tuple[ShapedArray, ...], out_indices: str, _: str) -> Tuple[str]:
   max_ndim = max(len([ss for ss in s.shape if ss > 1]) for s in in_shaped)
   assert max_ndim == len(out_indices)
   implicit_dims = tuple((max_ndim - len(s.shape)) for s in in_shaped)
@@ -539,13 +539,13 @@ def broadcast2ind(
   return in_indices
 
 
-def get_free_index(char, used):
+def get_free_index(char: int, used: str) -> int:
   while chr(char) in used:
     char += 1
   return char
 
 
-def add2tex(a, b):
+def add2tex(a: BoundASTNode, b: BoundASTNode) -> str:
   return f'{a} + {b}'
 op2tex[lax.add_p] = add2tex
 op2ind[lax.add_p] = broadcast2ind
@@ -553,13 +553,13 @@ op2tex[ad.add_jaxvals_p] = add2tex
 op2ind[ad.add_jaxvals_p] = broadcast2ind
 
 
-def sub2tex(a, b):
+def sub2tex(a: BoundASTNode, b: BoundASTNode) -> str:
   return f'{a} - {b}'
 op2tex[lax.sub_p] = sub2tex
 op2ind[lax.sub_p] = broadcast2ind
 
 
-def mul2tex(a, b):
+def mul2tex(a: BoundASTNode, b: BoundASTNode) -> str:
   if hasattr(a, 'prim') and a.prim in (lax.add_p, lax.sub_p):
     a = f'\\left({a}\\right)'
   if hasattr(b, 'prim') and b.prim in (lax.add_p, lax.sub_p):
@@ -569,16 +569,16 @@ op2tex[lax.mul_p] = mul2tex
 op2ind[lax.mul_p] = broadcast2ind
 
 
-def div2tex(a, b):
+def div2tex(a: BoundASTNode, b: BoundASTNode) -> str:
   return '{' + f'{a} \\over {b}' + '}'
 op2tex[lax.div_p] = div2tex
 op2ind[lax.div_p] = broadcast2ind
 
 
-def dot_general2tex(a,
-                    b,
-                    dimension_numbers,
-                    precision):
+def dot_general2tex(a: BoundASTNode,
+                    b: BoundASTNode,
+                    dimension_numbers: lax.DotDimensionNumbers,
+                    precision) -> str:
   """Converts dot_general op to latex."""
   del precision
 
@@ -607,11 +607,11 @@ def dot_general2tex(a,
 op2tex[lax.dot_general_p] = dot_general2tex
 
 
-def dot_general2ind(in_shaped,
-                    out_indices,
-                    out_used,
-                    dimension_numbers,
-                    precision):
+def dot_general2ind(in_shaped: Tuple[ShapedArray, ...],
+                    out_indices: str,
+                    out_used: str,
+                    dimension_numbers: lax.DotDimensionNumbers,
+                    precision) -> Tuple[str, ...]:
   """Computes indices of inputs given indices of outputs for dot_general."""
   del precision
 
@@ -650,7 +650,7 @@ def dot_general2ind(in_shaped,
 op2ind[lax.dot_general_p] = dot_general2ind
 
 
-def reduce_sum2tex(x, axes):
+def reduce_sum2tex(x: BoundASTNode, axes: Tuple[int, ...]) -> str:
   cindices = ''
   for i, s in enumerate(x.indices):
     if i in axes:
@@ -663,10 +663,10 @@ def reduce_sum2tex(x, axes):
 op2tex[lax.reduce_sum_p] = reduce_sum2tex
 
 
-def reduce_sum2ind(in_shaped,
-                   out_indices,
-                   out_used,
-                   axes):
+def reduce_sum2ind(in_shaped: Tuple[ShapedArray, ...],
+                   out_indices: str,
+                   out_used: str,
+                   axes: Tuple[int, ...]) -> Tuple[str, ...]:
   """Computes indices of inputs given indices of outputs for reduce_sum."""
   x, = in_shaped
 
@@ -700,8 +700,8 @@ op2ind[jax.ad_util.stop_gradient_p] = noop2ind
 if hasattr(lax.lax, 'tie_in_p'):
   tie_in2tex = lambda x, y: y
   tie_in2ind = lambda in_shaped, out_indices, out_used: (None, out_indices)
-  op2tex[lax.lax.tie_in_p] = noop2tex
-  op2ind[lax.lax.tie_in_p] = noop2ind
+  op2tex[lax.lax.tie_in_p] = tie_in2tex
+  op2ind[lax.lax.tie_in_p] = tie_in2ind
 
 
 op2tex[lax.sqrt_p] = lambda x: '\\sqrt{' + str(x) + '}'
@@ -738,7 +738,7 @@ op2tex[lax.sin_p] = lambda x: f'\\sin\\left({x}\\right)'
 op2ind[lax.sin_p] = noop2ind
 
 
-def reduce_max2tex(x, axes):
+def reduce_max2tex(x: BoundASTNode, axes: Tuple[int, ...]) -> str:
   mindices = ''
   skipped_indices = 0
   for i, s in enumerate(x.shape):
@@ -751,10 +751,10 @@ def reduce_max2tex(x, axes):
 op2tex[lax.reduce_max_p] = reduce_max2tex
 
 
-def reduce_max2ind(in_shaped,
-                   out_indices,
-                   out_used,
-                   axes):
+def reduce_max2ind(in_shaped: Tuple[ShapedArray, ...],
+                   out_indices: str,
+                   out_used: str,
+                   axes: Tuple[int, ...]) -> Tuple[str, ...]:
   """Computes indices of inputs given indices of outputs for reduce_max."""
   x, = in_shaped
 
@@ -776,11 +776,11 @@ def reduce_max2ind(in_shaped,
 op2ind[lax.reduce_max_p] = reduce_max2ind
 
 
-def broadcast_in_dim2ind(in_shaped,
-                         out_indices,
-                         out_used,
-                         shape,
-                         broadcast_dimensions):
+def broadcast_in_dim2ind(in_shaped: Tuple[ShapedArray, ...],
+                         out_indices: str,
+                         out_used: str,
+                         shape: Shape,
+                         broadcast_dimensions) -> Tuple[str, ...]:
   """Computes indices of inputs given outputs for broadcast_in_dim."""
   del in_shaped, out_used
 
@@ -800,14 +800,14 @@ op2tex[lax.broadcast_in_dim_p] = noop2tex
 op2ind[lax.broadcast_in_dim_p] = broadcast_in_dim2ind
 
 
-def select2tex(pred, x, y):
+def select2tex(pred: BoundASTNode, x: BoundASTNode, y: BoundASTNode) -> str:
   one = '\\mathbbm 1_{' + str(pred) +'}'
   return f'{one}{x} + \\left(1 - {one}\\right){y}'
 op2tex[lax.select_p] = select2tex
 op2ind[lax.select_p] = broadcast2ind
 
 
-def neg2tex(a):
+def neg2tex(a: BoundASTNode) -> str:
   if hasattr(a, 'prim') and a.prim in (lax.add_p, lax.sub_p):
     a = f'\\left({a}\\right)'
   return f'-{a}'
@@ -815,13 +815,13 @@ op2tex[lax.neg_p] = neg2tex
 op2ind[lax.neg_p] = noop2ind
 
 
-def abs2tex(a):
+def abs2tex(a: BoundASTNode) -> str:
   return f'\\left|{a}\\right|'
 op2tex[lax.abs_p] = abs2tex
 op2ind[lax.abs_p] = noop2ind
 
 
-def integer_pow2tex(a, y):
+def integer_pow2tex(a: BoundASTNode, y: int) -> str:
   if hasattr(a, 'prim'):
     a = f'\\left({a}\\right)'
   return '{' + str(a) + '}^{' + str(y) + '}'
@@ -829,7 +829,7 @@ op2tex[lax.integer_pow_p] = integer_pow2tex
 op2ind[lax.integer_pow_p] = noop2ind
 
 
-def pow2tex(a, b):
+def pow2tex(a: BoundASTNode, b: BoundASTNode) -> str:
   if hasattr(a, 'prim'):
     a = f'\\left({a}\\right)'
   return '{' + str(a) + '}^{' + str(b) + '}'
@@ -837,13 +837,13 @@ op2tex[lax.pow_p] = pow2tex
 op2ind[lax.pow_p] = broadcast2ind
 
 
-def eq2tex(a, b):
+def eq2tex(a: BoundASTNode, b: BoundASTNode) -> str:
   return f'{a}={b}'
 op2tex[lax.eq_p] = eq2tex
 op2ind[lax.eq_p] = broadcast2ind
 
 
-def neq2tex(a, b):
+def neq2tex(a: BoundASTNode, b: BoundASTNode) -> str:
   return f'{a}\\neq{b}'
 op2tex[lax.ne_p] = neq2tex
 op2ind[lax.ne_p] = broadcast2ind
@@ -855,13 +855,13 @@ op2tex[lax.log_p] = lambda x: f'\\log\\left({x}\\right)'
 op2ind[lax.log_p] = noop2ind
 
 
-def is_finite2tex(x):
+def is_finite2tex(x: BoundASTNode) -> str:
   return f'{x}<\\infty'
 op2tex[lax.is_finite_p] = is_finite2tex
 op2ind[lax.is_finite_p] = noop2ind
 
 
-def max2tex(a, b):
+def max2tex(a: BoundASTNode, b: BoundASTNode) -> str:
   if isinstance(b, BoundVariable) and np.allclose(b.val, 0.):
     return '\\text{relu}' + f'({a})'
   return f'\\max({a},{b})'
@@ -869,22 +869,22 @@ op2tex[lax.max_p] = max2tex
 op2ind[lax.max_p] = broadcast2ind
 
 
-def min2tex(a, b):
+def min2tex(a: BoundASTNode, b: BoundASTNode) -> str:
   return f'\\min({a},{b})'
 op2tex[lax.min_p] = min2tex
 op2ind[lax.min_p] = broadcast2ind
 
 
-def transpose2tex(a, permutation):
+def transpose2tex(a: BoundASTNode, permutation: Tuple[int, ...]) -> str:
   del permutation
   return str(a)
 op2tex[lax.transpose_p] = transpose2tex
 
 
-def transpose2ind(in_shaped,
-                  out_indices,
-                  out_used,
-                  permutation):
+def transpose2ind(in_shaped: Tuple[ShapedArray],
+                  out_indices: str,
+                  out_used: str,
+                  permutation: Tuple[int, ...]) -> Tuple[str, ...]:
   """Computes indices of inputs given indices of outputs for transpose."""
   del out_used
 
@@ -903,16 +903,16 @@ def transpose2ind(in_shaped,
 op2ind[lax.transpose_p] = transpose2ind
 
 
-def reshape2tex(a, new_sizes, dimensions):
+def reshape2tex(a: BoundASTNode, new_sizes, dimensions) -> str:
   del new_sizes, dimensions
   return str(a)
 op2tex[lax.reshape_p] = reshape2tex
 
 
-def reshape2ind(in_shaped,
-                out_indices,
+def reshape2ind(in_shaped: Tuple[ShapedArray, ...],
+                out_indices: str,
                 new_sizes,
-                dimensions):
+                dimensions) -> Tuple[str, ...]:
   """Computes indices of inputs given indices of outputs for reshape."""
   x, = in_shaped
   assert not dimensions

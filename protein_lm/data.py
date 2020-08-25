@@ -25,16 +25,29 @@ import gin
 import numpy as np
 import tensorflow.compat.v1 as tf
 
+
 from protein_lm import domains
 
-protein_domain = domains.VariableLengthDiscreteDomain(
-    vocab=domains.ProteinVocab(
-        include_anomalous_amino_acids=True,
-        include_bos=True,
-        include_eos=True,
-        include_pad=True,
-        include_mask=True),
-    length=1024)  # TODO(ddohan): Make a `make_protein_domain` fn.
+
+@gin.configurable
+def make_protein_domain(include_anomalous_amino_acids=True,
+                        include_bos=True,
+                        include_eos=True,
+                        include_pad=True,
+                        include_mask=True,
+                        length=1024):
+  return domains.VariableLengthDiscreteDomain(
+      vocab=domains.ProteinVocab(
+          include_anomalous_amino_acids=include_anomalous_amino_acids,
+          include_bos=include_bos,
+          include_eos=include_eos,
+          include_pad=include_pad,
+          include_mask=include_mask),
+      length=length,
+  )
+
+
+protein_domain = make_protein_domain()
 
 
 def dataset_from_tensors(tensors):

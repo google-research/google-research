@@ -18,19 +18,23 @@ sh seq2act/run.sh
 * Train (and continuously evaluate) seq2act Phrase Tuple Extraction models.
 
 ```
-sh seq2act/bin/train_seq2act.sh --experiment_dir=your_exp_dir --train=parse --hparam_file=./seq2act/ckpt_hparams/tuple_extract
+sh seq2act/bin/train_seq2act.sh --experiment_dir=./your_parser_exp_dir --train=parse --hparam_file=./seq2act/ckpt_hparams/tuple_extract
 ```
+
+Then copy your lastest checkpoint from your_parser_exp_dir to `./seq2act/ckpt_hparams/tuple_extract/`
 
 * Train (and continuously evaluate) seq2act Grounding models.
 
 ```
-sh seq2act/bin/train_seq2act.sh --experiment_dir=your_exp_dir --train=grou nd --hparam_file=./seq2act/ckpt_hparams/grounding
+sh seq2act/bin/train_seq2act.sh --experiment_dir=./your_grounding_exp_dir --train=ground --hparam_file=./seq2act/ckpt_hparams/grounding
 ```
+
+Then copy your latest checkpoint from your_grounding_exp_dir to `./seq2act/ckpt_hparams/grounding/`
 
 * Test the grounding model or only the phrase extraction model by running the decoder.
 
 ```
-sh seq2act/bin/decode_seq2act.sh
+sh seq2act/bin/decode_seq2act.sh --output_dir=./your_decode_dir
 ```
 
 If you use any of the materials, please cite the following paper.
@@ -41,6 +45,6 @@ If you use any of the materials, please cite the following paper.
   author = {Yang Li and Jiacong He and Xin Zhou and Yuan Zhang and Jason Baldridge},
   booktitle = {Annual Conference of the Association for Computational Linguistics (ACL 2020)},
   year = {2020},
-  url = {https://arxiv.org/pdf/tbd.pdf},
+  url = {https://www.aclweb.org/anthology/2020.acl-main.729.pdf},
 }
 ```

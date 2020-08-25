@@ -30,7 +30,6 @@ import numpy as np
 from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow.compat.v1 as tf
-from kws_streaming.data import data_utils
 from kws_streaming.layers import modes
 
 # pylint: disable=g-direct-tensorflow-import
@@ -482,21 +481,40 @@ class AudioProcessor(object):
       # signal resampling to generate more training data
       # it will stretch or squeeze input signal proportinally to:
       self.foreground_resampling_placeholder_ = tf.placeholder(tf.float32, [])
-      wav_resampled = data_utils.resample(
-          wav_decoder.audio, self.foreground_resampling_placeholder_,
-          desired_samples)
-      scaled_foreground = tf.multiply(wav_resampled,
-                                      self.foreground_volume_placeholder_)
 
+      if self.foreground_resampling_placeholder_ != 1.0:
+        image = tf.expand_dims(wav_decoder.audio, 0)
+        image = tf.expand_dims(image, 2)
+        shape = tf.shape(wav_decoder.audio)
+        image_resized = tf.image.resize(
+            images=image,
+            size=(tf.cast((tf.cast(shape[0], tf.float32) *
+                           self.foreground_resampling_placeholder_),
+                          tf.int32), 1),
+            preserve_aspect_ratio=False)
+        image_resized_cropped = tf.image.resize_with_crop_or_pad(
+            image_resized,
+            target_height=desired_samples,
+            target_width=1,
+        )
+        image_resized_cropped = tf.squeeze(image_resized_cropped, axis=[0, 3])
+        scaled_foreground = tf.multiply(image_resized_cropped,
+                                        self.foreground_volume_placeholder_)
+      else:
+        scaled_foreground = tf.multiply(wav_decoder.audio,
+                                        self.foreground_volume_placeholder_)
       # Shift the sample's start position, and pad any gaps with zeros.
       self.time_shift_padding_placeholder_ = tf.placeholder(
           tf.int32, [2, 2], name='time_shift_padding')
       self.time_shift_offset_placeholder_ = tf.placeholder(
           tf.int32, [2], name='time_shift_offset')
-      sliced_foreground = data_utils.shift_in_time(
-          scaled_foreground, self.time_shift_padding_placeholder_,
-          self.time_shift_offset_placeholder_, desired_samples)
-
+      padded_foreground = tf.pad(
+          tensor=scaled_foreground,
+          paddings=self.time_shift_padding_placeholder_,
+          mode='CONSTANT')
+      sliced_foreground = tf.slice(padded_foreground,
+                                   self.time_shift_offset_placeholder_,
+                                   [desired_samples, -1])
       # Mix in background noise.
       self.background_data_placeholder_ = tf.placeholder(
           tf.float32, [desired_samples, 1], name='background_data')
@@ -645,8 +663,12 @@ class AudioProcessor(object):
         time_shift_amount = np.random.randint(-time_shift, time_shift)
       else:
         time_shift_amount = 0
-      (time_shift_padding, time_shift_offset
-      ) = data_utils.get_time_shift_pad_offset(time_shift_amount)
+      if time_shift_amount > 0:
+        time_shift_padding = [[time_shift_amount, 0], [0, 0]]
+        time_shift_offset = [0, 0]
+      else:
+        time_shift_padding = [[0, -time_shift_amount], [0, 0]]
+        time_shift_offset = [-time_shift_amount, 0]
 
       resample = 1.0
       if mode == 'training' and resample_offset != 0.0:

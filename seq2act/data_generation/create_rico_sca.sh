@@ -16,18 +16,20 @@
 set -e
 set -x
 
-virtualenv -p python3 .
+virtualenv -p python3.7 .
 source ./bin/activate
 
-
 pip install -r seq2act/data_generation/requirements.txt
+
+mkdir -p ${PWD}"/seq2act/data/rico_sca/tfexample"
+
 python -m seq2act.data_generation.create_android_synthetic_dataset \
---input_dir=${PWD}"seq2act/data/rico_sca/raw" \
---output_dir=${PWD}"seq2act/data/rico_sca/output" \
+--input_dir=${PWD}"/seq2act/data/rico_sca/raw" \
+--output_dir=${PWD}"/seq2act/data/rico_sca/tfexample" \
 --filter_file=${PWD}"/seq2act/data_generation/filter.txt" \
 --thread_num=10 \
 --shard_num=10 \
---vocab_file=${PWD}"/seq2act/data_generation/lower_case_vocab" \
+--vocab_file=${PWD}"/seq2act/data_generation/commoncrawl_rico_vocab_subtoken_44462" \
 --input_candiate_file=${PWD}"/seq2act/data_generation/input_candidate_words.txt" \
 --logtostderr
 

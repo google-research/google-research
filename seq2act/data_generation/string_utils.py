@@ -183,7 +183,7 @@ def get_t2t_token_pos_from_char_pos(text, start, end):
   if curr == tokens[len(prev): len(prev) + len(curr)]:
     return len(prev), len(prev) + len(curr)
 
-  space = 1535
+  space = tokenize_to_ids(' ')[0][0]  # subtoken for space ' _'
 
   # try ignore the last token(' ') of prev tokens.
   if prev[-1] == space and curr == tokens[len(prev)-1: len(prev) + len(curr)-1]:

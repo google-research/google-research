@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for tf_cnn_benchmark.allreduce."""
 
 from __future__ import absolute_import
@@ -22,6 +23,7 @@ from __future__ import print_function
 import collections as pycoll
 
 import numpy as np
+from six.moves import range
 import tensorflow.compat.v1 as tf
 from cnn_quantization.tf_cnn_benchmarks import allreduce
 from tensorflow.python.framework import ops
@@ -110,7 +112,7 @@ class AllReduceTest(tf.test.TestCase):
         packing, {
             '0:0':
                 allreduce.GradPackTuple(
-                    indices=range(2),
+                    indices=list(range(2)),
                     vars=['v0', 'v1'],
                     shapes=[tf.TensorShape([4]),
                             tf.TensorShape([4])])
@@ -127,7 +129,7 @@ class AllReduceTest(tf.test.TestCase):
         packing, {
             '1:0':
                 allreduce.GradPackTuple(
-                    indices=range(4),
+                    indices=list(range(4)),
                     vars=['v0', 'v1', 'v2', 'v3'],
                     shapes=[
                         tf.TensorShape([4]),
@@ -141,7 +143,7 @@ class AllReduceTest(tf.test.TestCase):
     packing = {
         '0:0':
             allreduce.GradPackTuple(
-                indices=range(4),
+                indices=list(range(4)),
                 vars=['v0', 'v1', 'v2', 'v3'],
                 shapes=[
                     tf.TensorShape([4]),
@@ -196,22 +198,27 @@ class AllReduceTest(tf.test.TestCase):
     self.assertEqual(3, len(first_tower))
     self.assertEqual(1, first_tower[0][0].shape.ndims)
     self.assertEqual(8, first_tower[0][0].shape.dims[0])
-    self.assertEqual(packing,
-                     {'0:0': allreduce.GradPackTuple(
-                         indices=range(2),
-                         vars=['v_0_0', 'v_0_1'],
-                         shapes=[tf.TensorShape([4]),
-                                 tf.TensorShape([4])]),
-                      '1:0': allreduce.GradPackTuple(
-                          indices=range(2),
-                          vars=['v_1_0', 'v_1_1'],
-                          shapes=[tf.TensorShape([4]),
-                                  tf.TensorShape([4])]),
-                      '2:0': allreduce.GradPackTuple(
-                          indices=range(2),
-                          vars=['v_2_0', 'v_2_1'],
-                          shapes=[tf.TensorShape([4]),
-                                  tf.TensorShape([4])])})
+    self.assertEqual(
+        packing, {
+            '0:0':
+                allreduce.GradPackTuple(
+                    indices=list(range(2)),
+                    vars=['v_0_0', 'v_0_1'],
+                    shapes=[tf.TensorShape([4]),
+                            tf.TensorShape([4])]),
+            '1:0':
+                allreduce.GradPackTuple(
+                    indices=list(range(2)),
+                    vars=['v_1_0', 'v_1_1'],
+                    shapes=[tf.TensorShape([4]),
+                            tf.TensorShape([4])]),
+            '2:0':
+                allreduce.GradPackTuple(
+                    indices=list(range(2)),
+                    vars=['v_2_0', 'v_2_1'],
+                    shapes=[tf.TensorShape([4]),
+                            tf.TensorShape([4])])
+        })
 
     # 3) Set the size limit so all tensors get concatenated
     new_tower_grads, packing = allreduce.pack_small_tensors(
@@ -223,46 +230,95 @@ class AllReduceTest(tf.test.TestCase):
     first_tower = new_tower_grads[0]
     self.assertEqual(1, first_tower[0][0].shape.ndims)
     self.assertEqual(26, first_tower[0][0].shape.dims[0])
-    self.assertEqual(packing,
-                     {'0:0': allreduce.GradPackTuple(
-                         indices=range(4),
-                         vars=['v_0_0', 'v_0_1', 'v_0_2', 'v_0_3'],
-                         shapes=[tf.TensorShape([4]),
-                                 tf.TensorShape([4]),
-                                 tf.TensorShape([3, 3,]),
-                                 tf.TensorShape([3, 3,])]),
-                      '1:0': allreduce.GradPackTuple(
-                          indices=range(4),
-                          vars=['v_1_0', 'v_1_1', 'v_1_2', 'v_1_3'],
-                          shapes=[tf.TensorShape([4]),
-                                  tf.TensorShape([4]),
-                                  tf.TensorShape([3, 3,]),
-                                  tf.TensorShape([3, 3,])]),
-                      '2:0': allreduce.GradPackTuple(
-                          indices=range(4),
-                          vars=['v_2_0', 'v_2_1', 'v_2_2', 'v_2_3'],
-                          shapes=[tf.TensorShape([4]),
-                                  tf.TensorShape([4]),
-                                  tf.TensorShape([3, 3,]),
-                                  tf.TensorShape([3, 3,])])})
+    self.assertEqual(
+        packing, {
+            '0:0':
+                allreduce.GradPackTuple(
+                    indices=list(range(4)),
+                    vars=['v_0_0', 'v_0_1', 'v_0_2', 'v_0_3'],
+                    shapes=[
+                        tf.TensorShape([4]),
+                        tf.TensorShape([4]),
+                        tf.TensorShape([
+                            3,
+                            3,
+                        ]),
+                        tf.TensorShape([
+                            3,
+                            3,
+                        ])
+                    ]),
+            '1:0':
+                allreduce.GradPackTuple(
+                    indices=list(range(4)),
+                    vars=['v_1_0', 'v_1_1', 'v_1_2', 'v_1_3'],
+                    shapes=[
+                        tf.TensorShape([4]),
+                        tf.TensorShape([4]),
+                        tf.TensorShape([
+                            3,
+                            3,
+                        ]),
+                        tf.TensorShape([
+                            3,
+                            3,
+                        ])
+                    ]),
+            '2:0':
+                allreduce.GradPackTuple(
+                    indices=list(range(4)),
+                    vars=['v_2_0', 'v_2_1', 'v_2_2', 'v_2_3'],
+                    shapes=[
+                        tf.TensorShape([4]),
+                        tf.TensorShape([4]),
+                        tf.TensorShape([
+                            3,
+                            3,
+                        ]),
+                        tf.TensorShape([
+                            3,
+                            3,
+                        ])
+                    ])
+        })
 
   def testUnpackSmallTensors(self):
-    packing = {'0:0': allreduce.GradPackTuple(indices=range(2),
-                                              vars=['v_0_0', 'v_0_1'],
-                                              shapes=[tf.TensorShape([4]),
-                                                      tf.TensorShape([4])]),
-               '0:1': allreduce.GradPackTuple(indices=range(3, 5),
-                                              vars=['v_0_3', 'v_0_4'],
-                                              shapes=[tf.TensorShape([3, 3,]),
-                                                      tf.TensorShape([3, 3,])]),
-               '1:0': allreduce.GradPackTuple(indices=range(2),
-                                              vars=['v_1_0', 'v_1_1'],
-                                              shapes=[tf.TensorShape([4]),
-                                                      tf.TensorShape([4])]),
-               '1:1': allreduce.GradPackTuple(indices=range(3, 5),
-                                              vars=['v_1_3', 'v_1_4'],
-                                              shapes=[tf.TensorShape([3, 3,]),
-                                                      tf.TensorShape([3, 3,])])}
+    packing = {
+        '0:0':
+            allreduce.GradPackTuple(
+                indices=list(range(2)),
+                vars=['v_0_0', 'v_0_1'],
+                shapes=[tf.TensorShape([4]),
+                        tf.TensorShape([4])]),
+        '0:1':
+            allreduce.GradPackTuple(
+                indices=list(range(3, 5)),
+                vars=['v_0_3', 'v_0_4'],
+                shapes=[tf.TensorShape([
+                    3,
+                    3,
+                ]), tf.TensorShape([
+                    3,
+                    3,
+                ])]),
+        '1:0':
+            allreduce.GradPackTuple(
+                indices=list(range(2)),
+                vars=['v_1_0', 'v_1_1'],
+                shapes=[tf.TensorShape([4]),
+                        tf.TensorShape([4])]),
+        '1:1':
+            allreduce.GradPackTuple(
+                indices=list(range(3, 5)),
+                vars=['v_1_3', 'v_1_4'],
+                shapes=[tf.TensorShape([
+                    3,
+                    3,
+                ]), tf.TensorShape([
+                    3,
+                    3,
+                ])])
+    }
     t0 = tf.constant([0, 1, 2, 3, 4, 5, 6, 7], dtype=tf.float32)
     t1 = tf.constant([17, 17], dtype=tf.float32)
     t2 = tf.constant([0, 1, 2, 3, 4, 5, 6, 7, 8,
@@ -324,8 +380,9 @@ class DynamicPackingTest(test_util.TensorFlowTestCase):
           num_elts = 0
           for d in shape:
             num_elts = (num_elts or 1) * d
-          c = np.fromiter(range(base_value, base_value + num_elts),
-                          dtype=np.float32).reshape(shape)
+          c = np.fromiter(
+              list(range(base_value, base_value + num_elts)),
+              dtype=np.float32).reshape(shape)
           base_value += num_elts
           consts[dev_idx].append(c)
           tensors[dev_idx].append(tf.constant(c))
@@ -362,10 +419,12 @@ class DynamicPackingTest(test_util.TensorFlowTestCase):
             num_elts = 0
             for dim in tt.out_shapes[t]:
               num_elts = (num_elts or 1) * dim
-            self.assertTrue(np.array_equal(
-                np.array(range(tt.out_i[t], tt.out_i[t] + num_elts),
-                         dtype=np.float32).reshape(tt.out_shapes[t]),
-                packed[d][t][0]))
+            self.assertTrue(
+                np.array_equal(
+                    np.array(
+                        list(range(tt.out_i[t], tt.out_i[t] + num_elts)),
+                        dtype=np.float32).reshape(tt.out_shapes[t]),
+                    packed[d][t][0]))
         unpacked = sess.run(unpacked_tg)
         for d in range(0, tt.num_devices):
           for t in range(0, len(tt.in_shapes)):
@@ -403,7 +462,7 @@ class DynamicPackingTest(test_util.TensorFlowTestCase):
       alg = 'xring'
       shards = 1
       single_session = True
-      gpu_indices = range(0, tt.num_devices)
+      gpu_indices = list(range(0, tt.num_devices))
       assert len(gpu_indices) == len(tower_grads)
       no_pack_all_reduce = allreduce.sum_gradients_all_reduce(
           single_session,

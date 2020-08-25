@@ -18,7 +18,7 @@ source gbash.sh || exit
 DEFINE_string output_dir --required "" "Specify the output directory"
 DEFINE_string data_files "./seq2act/data/pixel_help/*.tfrecord" \
                          "Specify the test data files"
-DEFINE_string checkpoint_path "seq2act/ckpt_hparams/grounding" \
+DEFINE_string checkpoint_path "./seq2act/ckpt_hparams/grounding" \
                               "Specify the checkpoint file"
 DEFINE_string problem "pixel_help" "Specify the dataset to decode"
 
@@ -27,7 +27,7 @@ gbash::init_google "$@"
 set -e
 set -x
 
-virtualenv -p python3 .
+virtualenv -p python3.7 .
 source ./bin/activate
 
 pip install tensorflow

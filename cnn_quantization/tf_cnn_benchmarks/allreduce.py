@@ -529,7 +529,7 @@ def pack_range(key, packing, grad_vars, rng):
       with tf.device(g.device):
         members.append(tf.reshape(g, [-1]))
     packing[key] = GradPackTuple(
-        indices=range(rng[0], rng[1] + 1),
+        indices=list(range(rng[0], rng[1] + 1)),
         vars=variables,
         shapes=restore_shapes)
     with tf.device(members[0].device):
