@@ -15,7 +15,7 @@
 
 """Spectrogram augmentation for model regularization."""
 from kws_streaming.layers.compat import tf
-from tensorflow.python.keras.utils import tf_utils  # pylint: disable=g-direct-tensorflow-import
+from tensorflow.python.keras.utils import control_flow_util  # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import array_ops  # pylint: disable=g-direct-tensorflow-import
 
 
@@ -92,8 +92,8 @@ class SpecAugment(tf.keras.layers.Layer):
                                 self.frequency_mask_max_size)
       return net
 
-    outputs = tf_utils.smart_cond(training, masked_inputs,
-                                  lambda: array_ops.identity(inputs))
+    outputs = control_flow_util.smart_cond(training, masked_inputs,
+                                           lambda: array_ops.identity(inputs))
     return outputs
 
   def get_config(self):
