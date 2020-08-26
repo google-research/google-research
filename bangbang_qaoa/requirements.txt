@@ -1,0 +1,4 @@
+absl-py
+cirq>=0.8
+mock>=1
+numpy>=1.16
