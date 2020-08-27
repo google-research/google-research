@@ -15,6 +15,7 @@
 
 """Tests for kws_streaming.layers.stream."""
 
+from absl.testing import parameterized
 import numpy as np
 from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
@@ -36,12 +37,12 @@ class Sum(tf.keras.layers.Layer):
     return tf.keras.backend.sum(inputs, axis=self.time_dim)
 
   def get_config(self):
-    config = {"time_dim": self.time_dim}
+    config = {'time_dim': self.time_dim}
     base_config = super(Sum, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
 
 
-class StreamTest(tf.test.TestCase):
+class StreamTest(tf.test.TestCase, parameterized.TestCase):
 
   def test_streaming_with_effective_tdim(self):
     time_size = 10
@@ -54,7 +55,7 @@ class StreamTest(tf.test.TestCase):
     inputs = tf.keras.layers.Input(
         shape=(time_size, feature_size),
         batch_size=batch_size,
-        name="inp_sequence")
+        name='inp_sequence')
 
     mode = Modes.TRAINING
 
@@ -73,7 +74,9 @@ class StreamTest(tf.test.TestCase):
             shape=(
                 1,  # time dim is size 1 in streaming mode
                 feature_size,
-            ), batch_size=batch_size, name="inp_stream")
+            ),
+            batch_size=batch_size,
+            name='inp_stream')
     ]
     # convert non streaming model to streaming one
     model_stream = utils.convert_to_inference_model(model_train,
@@ -103,6 +106,29 @@ class StreamTest(tf.test.TestCase):
           axis=time_dim)
       self.assertAllEqual(target, output_stream_np)
 
+  @parameterized.parameters('causal', 'same')
+  def test_padding(self, padding):
+    batch_size = 1
+    time_dim = 3
+    feature_dim = 3
+    kernel_size = 3
+    inputs = tf.keras.layers.Input(
+        shape=(time_dim, feature_dim), batch_size=batch_size)
 
-if __name__ == "__main__":
+    # set it in train mode (in stream mode padding is not applied)
+    net = stream.Stream(
+        mode=Modes.TRAINING,
+        cell=tf.keras.layers.Lambda(lambda x: x),
+        ring_buffer_size_in_time_dim=kernel_size,
+        pad_time_dim=padding)(inputs)
+    model = tf.keras.Model(inputs, net)
+
+    np.random.seed(1)
+    input_signal = np.random.rand(batch_size, time_dim, feature_dim)
+    outputs = model.predict(input_signal)
+    self.assertAllEqual(outputs.shape,
+                        [batch_size, time_dim + kernel_size - 1, feature_dim])
+
+
+if __name__ == '__main__':
   tf.test.main()

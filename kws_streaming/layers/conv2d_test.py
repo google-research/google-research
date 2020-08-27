@@ -170,7 +170,7 @@ class Conv2DTest(tf.test.TestCase):
         cell,
         mode=mode,
         inference_batch_size=self.batch_size,
-        pad_time_dim=True,
+        pad_time_dim='causal',
     )
 
   def _get_expected_output(self, dilation_rate=(1, 1), stacked=False):

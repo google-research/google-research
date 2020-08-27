@@ -48,7 +48,7 @@ class Stream(tf.keras.layers.Layer):
                cell,
                inference_batch_size=1,
                mode=Modes.TRAINING,
-               pad_time_dim=False,
+               pad_time_dim=None,
                state_shape=None,
                ring_buffer_size_in_time_dim=None,
                **kwargs):
@@ -59,7 +59,6 @@ class Stream(tf.keras.layers.Layer):
     self.mode = mode
     self.pad_time_dim = pad_time_dim
     self.state_shape = state_shape
-
     self.ring_buffer_size_in_time_dim = ring_buffer_size_in_time_dim
 
     if self.ring_buffer_size_in_time_dim:
@@ -67,19 +66,24 @@ class Stream(tf.keras.layers.Layer):
       # outside of the layer in this case we just build a ring buffer
       # and do not check what is the type of the cell
       pass
-    elif (isinstance(cell, tf.keras.layers.Conv2D) or
-          isinstance(cell, tf.keras.layers.DepthwiseConv2D)):
-      strides = cell.get_config()['strides']
-      if self.mode not in (Modes.TRAINING,
-                           Modes.NON_STREAM_INFERENCE) and strides[0] > 1:
-        raise ValueError('Stride in time dim %d greater than 1 '
-                         'in streaming mode not supported' % strides[0])
+    elif isinstance(cell, (tf.keras.layers.Conv1D, tf.keras.layers.Conv2D,
+                           tf.keras.layers.DepthwiseConv2D)):
+
+      if self.mode not in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE):
+        strides = cell.get_config()['strides']
+        if strides[0] > 1:
+          raise ValueError('Stride in time dim %d greater than 1 '
+                           'in streaming mode not supported' % strides[0])
+        padding = cell.get_config()['padding']
+        if padding != 'valid':
+          raise ValueError("padding in a stream cell has to be 'valid'."
+                           " Use pad_time_dim for 'same' or 'causal' padding.")
+
       dilation_rate = cell.get_config()['dilation_rate']
       kernel_size = cell.get_config()['kernel_size']
       # effective kernel size in time dimension
       self.ring_buffer_size_in_time_dim = dilation_rate[0] * (kernel_size[0] -
                                                               1) + 1
-
     elif isinstance(self.cell, tf.keras.layers.AveragePooling2D):
       strides = cell.get_config()['strides']
       pool_size = cell.get_config()['pool_size']
@@ -103,9 +107,10 @@ class Stream(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     super(Stream, self).build(input_shape)
-    if isinstance(self.cell, tf.keras.layers.Conv2D) or isinstance(
-        self.cell, tf.keras.layers.DepthwiseConv2D) or isinstance(
-            self.cell, tf.keras.layers.AveragePooling2D):
+    if isinstance(
+        self.cell,
+        (tf.keras.layers.Conv1D, tf.keras.layers.Conv2D,
+         tf.keras.layers.DepthwiseConv2D, tf.keras.layers.AveragePooling2D)):
       self.state_shape = [
           self.inference_batch_size, self.ring_buffer_size_in_time_dim
       ] + input_shape.as_list()[2:]
@@ -222,11 +227,18 @@ class Stream(tf.keras.layers.Layer):
     return output, memory
 
   def _non_streaming(self, inputs):
-    # Zero pad inputs in time dime, from the left to make convolution causal.
+    # Pad inputs in time dim: causal or same
     if self.pad_time_dim:
-      if isinstance(self.cell, tf.keras.layers.Conv2D) or isinstance(
-          self.cell, tf.keras.layers.DepthwiseConv2D):
-        inputs = tf.pad(inputs,
-                        ((0, 0), (self.ring_buffer_size_in_time_dim - 1, 0),
-                         (0, 0), (0, 0)), 'constant')
+      if isinstance(self.cell, tf.keras.layers.Flatten):
+        raise ValueError('pad_time_dim can not be used with Flatten')
+
+      # temporal padding
+      pad = [[0, 0]] * inputs.shape.rank
+      if self.pad_time_dim == 'causal':
+        pad[1] = [self.ring_buffer_size_in_time_dim - 1, 0]
+      elif self.pad_time_dim == 'same':
+        half = self.ring_buffer_size_in_time_dim // 2
+        pad[1] = [half, half]
+      inputs = tf.pad(inputs, pad, 'constant')
+
     return self.cell(inputs)
