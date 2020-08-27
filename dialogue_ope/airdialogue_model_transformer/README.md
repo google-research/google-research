@@ -8,6 +8,7 @@
 git submodule init
 git submodule update
 cd ParlAI
+git checkout 1a65ad04bc2c05aad048a1dc9a3d6791aa2286e4
 python setup.py develop
 cd ..
 ```
