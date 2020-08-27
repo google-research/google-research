@@ -298,21 +298,30 @@ def procrustes_align_points(target_points, source_points):
   return translations + scales * tf.linalg.matmul(source_points, rotations)
 
 
-def compute_mpjpes(lhs_points, rhs_points):
+def compute_mpjpes(lhs_points, rhs_points, point_masks=None):
   """Computes the Mean Per-Joint Position Errors (MPJPEs).
+
+  If `point_masks` is specified, computes MPJPEs weighted by `point_masks`.
 
   Args:
     lhs_points: A tensor for the LHS points. Shape = [..., num_points,
       point_dim].
     rhs_points: A tensor for the RHS points. Shape = [..., num_points,
       point_dim].
+    point_masks: A tensor for the masks. Shape = [..., num_points]. Ignored if
+      None.
 
   Returns:
     A tensor for MPJPEs. Shape = [...].
   """
   distances = distance_utils.compute_l2_distances(
       lhs_points, rhs_points, keepdims=False)
-  return tf.math.reduce_mean(distances, axis=-1)
+
+  if point_masks is None:
+    return tf.math.reduce_mean(distances, axis=-1)
+
+  return (tf.math.reduce_sum(distances * point_masks, axis=-1) /
+          tf.math.maximum(1e-12, tf.math.reduce_sum(point_masks, axis=-1)))
 
 
 def compute_procrustes_aligned_mpjpes(target_points, source_points):

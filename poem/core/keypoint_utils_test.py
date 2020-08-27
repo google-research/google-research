@@ -177,6 +177,18 @@ class KeypointUtilsTest(tf.test.TestCase):
     mpjpes = keypoint_utils.compute_mpjpes(lhs_points, rhs_points)
     self.assertAlmostEqual(self.evaluate(mpjpes), 2.76866, places=5)
 
+  def test_compute_mpjpes_with_point_masks(self):
+    # Shape = [2, 3, 2].
+    lhs_points = tf.constant([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]],
+                              [[7.0, 8.0], [9.0, 10.0], [11.0, 12.0]]])
+    rhs_points = tf.constant([[[2.0, 3.0], [4.0, 5.0], [7.0, 8.0]],
+                              [[8.0, 9.0], [10.0, 11.0], [12.0, 13.0]]])
+    # Shape = [2, 3].
+    point_masks = tf.constant([[1.0, 0.0, 0.5], [0.0, 0.0, 0.0]])
+    mpjpes = keypoint_utils.compute_mpjpes(
+        lhs_points, rhs_points, point_masks=point_masks)
+    self.assertAllClose(mpjpes, [1.88561808316, 0.0])
+
   def test_compute_procrustes_aligned_mpjpes_case_1(self):
     target_points = tf.constant([[[1.0, 1.0, 1.0], [0.0, 0.0, 0.0],
                                   [1.0, 1.0, 1.0]],
