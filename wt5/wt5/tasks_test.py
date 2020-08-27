@@ -33,10 +33,10 @@ TaskRegistry = t5.data.TaskRegistry
 _SEQUENCE_LENGTH = {'inputs': 2048, 'targets': 512}
 
 _TASKS = [
-    'esnli_v002',
-    'esnli_v002_0_expln',
-    'esnli_explanations_take100_v002',
-    'esnli_labels_skip100_v002',
+    'esnli_v010',
+    'esnli_v010_0_expln',
+    'esnli_explanations_take100_v010',
+    'esnli_labels_skip100_v010',
     'mnli_v002',
     'cos_e_v001',
     'cos_e_v001_0_expln_like_esnli',

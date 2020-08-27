@@ -57,9 +57,9 @@ ESNLI_SIZE = 549367
 
 for n in tasks.n_esnli_explanations:
   esnli_n_explanations_tasks = [
-      ("esnli_explanations_take{}_v002".format(n), n),
-      ("esnli_labels_skip{}_v002".format(n), ESNLI_SIZE-n),
-      ("esnli_eval_v002", ESNLI_SIZE),
+      ("esnli_explanations_take{}_v010".format(n), n),
+      ("esnli_labels_skip{}_v010".format(n), ESNLI_SIZE-n),
+      ("esnli_eval_v010", ESNLI_SIZE),
   ]
   MixtureRegistry.add(
       "esnli_{}_explanations".format(n),
@@ -76,7 +76,7 @@ for n in tasks.n_esnli_explanations:
 
 MixtureRegistry.add(
     "esnli_mnli_all_explanations",
-    ["esnli_v002", "mnli_v002",
+    ["esnli_v010", "mnli_v002",
      "mnli_explain_eval_matched_v002", "mnli_explain_eval_mismatched_v002"],
     default_rate=_rate_num_input_examples,
 )
@@ -90,8 +90,8 @@ MixtureRegistry.add(
 # ------------------------- eSNLI to CoS-E explanation Transfer ---------------
 MixtureRegistry.add(
     "esnli_cos_e_transfer",
-    [("esnli_v002", ESNLI_SIZE),
-     ("esnli_v002_0_expln", ESNLI_SIZE),
+    [("esnli_v010", ESNLI_SIZE),
+     ("esnli_v010_0_expln", ESNLI_SIZE),
      ("cos_e_v001_0_expln_like_esnli", COS_E_SIZE),
      ("cos_e_eval_v001_like_esnli", 1221)],
     default_rate=_rate_num_input_examples,
@@ -99,8 +99,8 @@ MixtureRegistry.add(
 
 MixtureRegistry.add(
     "esnli_cos_e_transfer_choices",
-    [("esnli_v002_with_choices", ESNLI_SIZE),
-     ("esnli_v002_0_expln_with_choices", ESNLI_SIZE),
+    [("esnli_v010_with_choices", ESNLI_SIZE),
+     ("esnli_v010_0_expln_with_choices", ESNLI_SIZE),
      ("cos_e_v001_0_expln_like_esnli", COS_E_SIZE),
      ("cos_e_eval_v001_like_esnli", 1221)],
     default_rate=_rate_num_input_examples,
