@@ -24,8 +24,8 @@ from poem.core import common
 from poem.core import data_utils
 
 
-def _linear(input_features, output_size, weight_max_norm, weight_initializer,
-            bias_initializer, name):
+def linear(input_features, output_size, weight_max_norm, weight_initializer,
+           bias_initializer, name):
   """Builds a linear layer.
 
   Args:
@@ -79,7 +79,7 @@ def simple_base(input_features, is_training, name='SimpleModel', **kwargs):
 
   def fully_connected(input_features, is_training, name):
     """Builds a fully connected layer."""
-    net = _linear(
+    net = linear(
         input_features,
         output_size=kwargs.get('num_hidden_nodes', 1024),
         weight_max_norm=kwargs.get('weight_max_norm', 0.0),
@@ -154,7 +154,7 @@ def simple_model(input_features,
   activations = {'base_activations': net}
 
   if num_bottleneck_nodes > 0:
-    net = _linear(
+    net = linear(
         net,
         output_size=num_bottleneck_nodes,
         weight_max_norm=kwargs.get('weight_max_norm', 0.0),
@@ -169,7 +169,7 @@ def simple_model(input_features,
   for output_name, output_size in output_sizes.items():
     if isinstance(output_size, int):
       output_size = [output_size]
-    outputs[output_name] = _linear(
+    outputs[output_name] = linear(
         net,
         output_size=np.prod(output_size),
         weight_max_norm=kwargs.get('weight_max_norm', 0.0),
