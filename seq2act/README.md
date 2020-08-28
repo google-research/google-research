@@ -3,7 +3,7 @@ This repository contains the code for the models and the experimental framework 
 
 ## Datasets
 
-The data pipelines will be available in future updates.
+Please see `./seq2act/data_generation/README.md`.
 
 ## Setup
 
@@ -30,6 +30,8 @@ sh seq2act/bin/train_seq2act.sh --experiment_dir=./your_grounding_exp_dir --trai
 ```
 
 Then copy your latest checkpoint from your_grounding_exp_dir to `./seq2act/ckpt_hparams/grounding/`
+
+NOTE: You can also try out our trained checkpoint from here: `gs://gresearch/seq2act/ccg3-transformer-6-dot_product_attention-lr_0.003_rd_0.1_ad_0.1_pd_0.2.tar.gz`, or open you browser with this link to download: [https://storage.googleapis.com/gresearch/seq2act/ccg3-transformer-6-dot_product_attention-lr_0.003_rd_0.1_ad_0.1_pd_0.2.tar.gz](https://storage.googleapis.com/gresearch/seq2act/ccg3-transformer-6-dot_product_attention-lr_0.003_rd_0.1_ad_0.1_pd_0.2.tar.gz). After download, extract the checkpoint files (1 file named 'checkpoint' and 3 files with name starts with "model.ckpt-250000") to `./seq2act/ckpt_hparams/grounding/`
 
 * Test the grounding model or only the phrase extraction model by running the decoder.
 
