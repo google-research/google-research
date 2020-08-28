@@ -44,7 +44,7 @@ class SplitSelector(group_selector.GroupSelector):
       group_size = 1 + np.ceil(1 / np.sqrt(np.squeeze(
           state.prior_infection_rate)))
       # adjust to take into account testing limits
-      group_size = np.amin((group_size, state.max_group_size))
+      group_size = min(group_size, state.max_group_size)
       split_factor = -(-state.num_patients // group_size)
     else:
       # ensure the split factor does not produce groups that are too large
