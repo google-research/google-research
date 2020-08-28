@@ -1,0 +1,5 @@
+jax
+numpy
+haiku
+tensorflow
+tensorflow_datasets
