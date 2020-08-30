@@ -3,7 +3,11 @@ This repository contains the code for the models and the experimental framework 
 
 ## Datasets
 
-Please see `./seq2act/data_generation/README.md`.
+Our datasets and data pipelines are released! Please note that we had to 
+re-create two of these datasets (AndroidHowTo and PixelHelp) based on public
+sources so that they can be opensourced. The re-created datasets led to some 
+small differences with the experimental results as those in the paper. Please 
+see details of the datasets [here](https://github.com/google-research/google-research/blob/master/seq2act/data_generation/README.md).
 
 ## Setup
 
@@ -31,7 +35,11 @@ sh seq2act/bin/train_seq2act.sh --experiment_dir=./your_grounding_exp_dir --trai
 
 Then copy your latest checkpoint from your_grounding_exp_dir to `./seq2act/ckpt_hparams/grounding/`
 
-NOTE: You can also try out our trained checkpoint from here: `gs://gresearch/seq2act/ccg3-transformer-6-dot_product_attention-lr_0.003_rd_0.1_ad_0.1_pd_0.2.tar.gz`, or open you browser with this link to download: [https://storage.googleapis.com/gresearch/seq2act/ccg3-transformer-6-dot_product_attention-lr_0.003_rd_0.1_ad_0.1_pd_0.2.tar.gz](https://storage.googleapis.com/gresearch/seq2act/ccg3-transformer-6-dot_product_attention-lr_0.003_rd_0.1_ad_0.1_pd_0.2.tar.gz). After download, extract the checkpoint files (1 file named 'checkpoint' and 3 files with name starts with "model.ckpt-250000") to `./seq2act/ckpt_hparams/grounding/`
+NOTE: You can also try out our pre-trained checkpoint for end-to-end grounding
+by downloading the checkpoint [here](https://storage.googleapis.com/gresearch/seq2act/ccg3-transformer-6-dot_product_attention-lr_0.003_rd_0.1_ad_0.1_pd_0.2.tar.gz). 
+Once downloaded, you can extract the checkpoint files from the zip file, which 
+result in 1 file named 'checkpoint' and 3 files with "model.ckpt-250000*".
+You can then move these files to  to `./seq2act/ckpt_hparams/grounding/`
 
 * Test the grounding model or only the phrase extraction model by running the decoder.
 
