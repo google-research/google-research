@@ -4,7 +4,7 @@ See ["Masked Language Modeling for Proteins via Linearly Scalable Long-Context T
 
 There are two main attention variants, a `make_fast_softmax_attention` and a `make_fast_generalized_attention`. `make_fast_softmax_attention` is an unbiased approximation of regular softmax attention, while `make_fast_generalized_attention` allows for generalized attention functions as described in the paper. Their default hyperparameters are currently optimal for the task of protein language modelling. The two functions create a `attention_fn` that has the same API as `flax.nn.attention.dot_product_attention`, allowing quick replacement for a Transformer built on top of `flax.nn.attention` modules.
 
-The protein language modelling code can be found in [/google-research/protein_lm/](https://github.com/google-research/google-research/tree/master/protein_lm). In order to replace regular attention with our fast attention, set via gin: `FlaxModel.attention_fn=@make_fast_softmax_attention()` or `FlaxModel.attention_fn=@make_fast_generalized_attention()`.
+The protein language modelling code can be found in [/google-research/protein_lm/](https://github.com/google-research/google-research/tree/master/protein_lm). In order to replace regular attention with our fast attention, set via gin: `FlaxModel.attention_fn = @make_fast_softmax_attention()` or `FlaxModel.attention_fn = @make_fast_generalized_attention()`.
 
 
 ## Notes:
