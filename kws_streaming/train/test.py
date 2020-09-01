@@ -24,6 +24,37 @@ from kws_streaming.models import models
 from kws_streaming.models import utils
 
 
+def run_stream_inference(flags, model_stream, inp_audio):
+  """Runs streaming inference.
+
+  It is useful for speech filtering/enhancement
+  Args:
+    flags: model and data settings
+    model_stream: tf model in streaming mode
+    inp_audio: input audio data
+  Returns:
+    output sequence
+  """
+
+  step = flags.data_shape[0]
+  start = 0
+  end = step
+  stream_out = None
+
+  while end <= inp_audio.shape[1]:
+    stream_update = inp_audio[:, start:end]
+    stream_output_sample = model_stream.predict(stream_update)
+
+    if stream_out is None:
+      stream_out = stream_output_sample
+    else:
+      stream_out = np.concatenate((stream_out, stream_output_sample), axis=1)
+
+    start = end
+    end = start + step
+  return stream_out
+
+
 def tf_non_stream_model_accuracy(
     flags,
     folder,

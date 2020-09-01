@@ -19,6 +19,29 @@ import numpy as np
 from kws_streaming.layers import dataframe
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.modes import Modes
+from kws_streaming.train import model_flags
+
+
+class Params(object):
+  """Parameters for data and other settings."""
+
+  def __init__(self, cnn_strides):
+    self.sample_rate = 16000
+    self.clip_duration_ms = 16
+
+    # it is a special case to customize input data shape
+    self.preprocess = 'custom'
+
+    # defines the step of feeding input data
+    self.data_shape = (np.prod(cnn_strides),)
+
+    self.batch_size = 1
+    self.desired_samples = int(
+        self.sample_rate * self.clip_duration_ms / model_flags.MS_PER_SECOND)
+
+    # align data length with the step
+    self.desired_samples = (
+        self.desired_samples // self.data_shape[0]) * self.data_shape[0]
 
 
 def get_test_batch_features_and_labels_numpy(input_shape=None,

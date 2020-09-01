@@ -42,6 +42,23 @@ class Stream(tf.keras.layers.Layer):
   The graph will be the same as in training mode, but some training features
   will be removed (such as dropout, etc)
   4 Training mode.
+
+  Attributes:
+    cell: keras layer which has to be streamed or tf.identity
+    inference_batch_size: batch size in inference mode
+    mode: mode: inference or training mode
+    pad_time_dim: padding in time
+    state_shape:
+    ring_buffer_size_in_time_dim: size of ring buffer in time dim
+    use_one_step: True - model will run one sample per one inference step;
+      False - model will run multiple per one inference step.
+      It is useful for strided streaming
+    **kwargs: additional layer arguments
+
+  Raises:
+    ValueError: if padding is not 'valid' in streaming mode;
+                or if striding is used with use_one_step;
+                or cell is not supported
   """
 
   def __init__(self,
@@ -51,6 +68,7 @@ class Stream(tf.keras.layers.Layer):
                pad_time_dim=None,
                state_shape=None,
                ring_buffer_size_in_time_dim=None,
+               use_one_step=True,
                **kwargs):
     super(Stream, self).__init__(**kwargs)
 
@@ -60,6 +78,7 @@ class Stream(tf.keras.layers.Layer):
     self.pad_time_dim = pad_time_dim
     self.state_shape = state_shape
     self.ring_buffer_size_in_time_dim = ring_buffer_size_in_time_dim
+    self.use_one_step = use_one_step
 
     if self.ring_buffer_size_in_time_dim:
       # it is a special case when ring_buffer_size_in_time_dim is specified
@@ -70,20 +89,29 @@ class Stream(tf.keras.layers.Layer):
                            tf.keras.layers.DepthwiseConv2D)):
 
       if self.mode not in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE):
-        strides = cell.get_config()['strides']
-        if strides[0] > 1:
-          raise ValueError('Stride in time dim %d greater than 1 '
-                           'in streaming mode not supported' % strides[0])
         padding = cell.get_config()['padding']
+        strides = cell.get_config()['strides']
         if padding != 'valid':
-          raise ValueError("padding in a stream cell has to be 'valid'."
-                           " Use pad_time_dim for 'same' or 'causal' padding.")
+          raise ValueError('conv/cell padding has to be valid,'
+                           'padding has to be set by pad_time_dim')
+
+        if self.use_one_step:
+          if strides[0] > 1:
+            raise ValueError('Stride in time dim greater than 1 '
+                             'in streaming mode with use_one_step=True'
+                             ' is not supported, set use_one_step=False')
 
       dilation_rate = cell.get_config()['dilation_rate']
       kernel_size = cell.get_config()['kernel_size']
-      # effective kernel size in time dimension
-      self.ring_buffer_size_in_time_dim = dilation_rate[0] * (kernel_size[0] -
-                                                              1) + 1
+      if self.use_one_step:
+        # effective kernel size in time dimension
+        self.ring_buffer_size_in_time_dim = dilation_rate[0] * (kernel_size[0] -
+                                                                1) + 1
+      else:
+        # streaming of strided or 1 step conv
+        self.ring_buffer_size_in_time_dim = dilation_rate[0] * (
+            kernel_size[0] - 1)
+
     elif isinstance(self.cell, tf.keras.layers.AveragePooling2D):
       strides = cell.get_config()['strides']
       pool_size = cell.get_config()['pool_size']
@@ -111,6 +139,7 @@ class Stream(tf.keras.layers.Layer):
         self.cell,
         (tf.keras.layers.Conv1D, tf.keras.layers.Conv2D,
          tf.keras.layers.DepthwiseConv2D, tf.keras.layers.AveragePooling2D)):
+
       self.state_shape = [
           self.inference_batch_size, self.ring_buffer_size_in_time_dim
       ] + input_shape.as_list()[2:]
@@ -137,19 +166,23 @@ class Stream(tf.keras.layers.Layer):
     if self.mode == Modes.STREAM_INTERNAL_STATE_INFERENCE:
       # Create a state varaible for streaming inference mode (internal state).
       # Where states become a weight in the layer
-      self.states = self.add_weight(
-          name='states',
-          shape=self.state_shape,
-          trainable=False,
-          initializer=tf.zeros_initializer)
+      if self.ring_buffer_size_in_time_dim:
+        self.states = self.add_weight(
+            name='states',
+            shape=self.state_shape,
+            trainable=False,
+            initializer=tf.zeros_initializer)
 
     elif self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       # For streaming inference with extrnal states,
       # the states are passed in as input.
-      self.input_state = tf.keras.layers.Input(
-          shape=self.state_shape[1:],
-          batch_size=self.inference_batch_size,
-          name=self.name + '/input_state')  # adding names to make it unique
+      if self.ring_buffer_size_in_time_dim:
+        self.input_state = tf.keras.layers.Input(
+            shape=self.state_shape[1:],
+            batch_size=self.inference_batch_size,
+            name=self.name + '/input_state')  # adding names to make it unique
+      else:
+        self.input_state = []
       self.output_state = None
 
   def call(self, inputs):
@@ -179,6 +212,7 @@ class Stream(tf.keras.layers.Layer):
         'cell': self.cell,
         'state_shape': self.state_shape,
         'ring_buffer_size_in_time_dim': self.ring_buffer_size_in_time_dim,
+        'use_one_step': self.use_one_step,
     })
     return config
 
@@ -197,34 +231,60 @@ class Stream(tf.keras.layers.Layer):
       raise ValueError('wrong mode', self.mode)
 
   def _streaming_internal_state(self, inputs):
-    # The time dimenstion always has to equal 1 in streaming mode.
-    if inputs.shape[1] != 1:
-      raise ValueError('inputs.shape[1]: %d must be 1 ' % inputs.shape[1])
+    if self.use_one_step:
+      # The time dimenstion always has to equal 1 in streaming mode.
+      if inputs.shape[1] != 1:
+        raise ValueError('inputs.shape[1]: %d must be 1 ' % inputs.shape[1])
 
-    # remove latest row [batch_size, (memory_size-1), feature_dim, channel]
-    memory = self.states[:, 1:self.ring_buffer_size_in_time_dim, :]
+      # remove latest row [batch_size, (memory_size-1), feature_dim, channel]
+      memory = self.states[:, 1:self.ring_buffer_size_in_time_dim, :]
 
-    # add new row [batch_size, memory_size, feature_dim, channel]
-    memory = tf.keras.backend.concatenate([memory, inputs], 1)
+      # add new row [batch_size, memory_size, feature_dim, channel]
+      memory = tf.keras.backend.concatenate([memory, inputs], 1)
 
-    assign_states = self.states.assign(memory)
+      assign_states = self.states.assign(memory)
 
-    with tf.control_dependencies([assign_states]):
-      return self.cell(memory)
+      with tf.control_dependencies([assign_states]):
+        return self.cell(memory)
+    else:
+      # # add new row [batch_size, memory_size, feature_dim, channel]
+      if self.ring_buffer_size_in_time_dim:
+        memory = tf.keras.backend.concatenate([self.states, inputs], 1)
+
+        state_update = memory[:, -self.ring_buffer_size_in_time_dim:, :]  # pylint: disable=invalid-unary-operand-type
+
+        assign_states = self.states.assign(state_update)
+
+        with tf.control_dependencies([assign_states]):
+          return self.cell(memory)
+      else:
+        return inputs
 
   def _streaming_external_state(self, inputs, state):
-    # The time dimenstion always has to equal 1 in streaming mode.
-    if inputs.shape[1] != 1:
-      raise ValueError('inputs.shape[1]: %d must be 1 ' % inputs.shape[1])
+    if self.use_one_step:
+      # The time dimenstion always has to equal 1 in streaming mode.
+      if inputs.shape[1] != 1:
+        raise ValueError('inputs.shape[1]: %d must be 1 ' % inputs.shape[1])
 
-    # remove latest row [batch_size, (memory_size-1), feature_dim, channel]
-    memory = state[:, 1:self.ring_buffer_size_in_time_dim, :]
+      # remove latest row [batch_size, (memory_size-1), feature_dim, channel]
+      memory = state[:, 1:self.ring_buffer_size_in_time_dim, :]
 
-    # add new row [batch_size, memory_size, feature_dim, channel]
-    memory = tf.keras.backend.concatenate([memory, inputs], 1)
+      # add new row [batch_size, memory_size, feature_dim, channel]
+      memory = tf.keras.backend.concatenate([memory, inputs], 1)
 
-    output = self.cell(memory)
-    return output, memory
+      output = self.cell(memory)
+      return output, memory
+    else:
+      # add new row [batch_size, memory_size, feature_dim, channel]
+      if self.ring_buffer_size_in_time_dim:
+        memory = tf.keras.backend.concatenate([state, inputs], 1)
+
+        state_update = memory[:, -self.ring_buffer_size_in_time_dim:, :]  # pylint: disable=invalid-unary-operand-type
+
+        output = self.cell(memory)
+        return output, state_update
+      else:
+        return inputs, []
 
   def _non_streaming(self, inputs):
     # Pad inputs in time dim: causal or same
@@ -235,7 +295,10 @@ class Stream(tf.keras.layers.Layer):
       # temporal padding
       pad = [[0, 0]] * inputs.shape.rank
       if self.pad_time_dim == 'causal':
-        pad[1] = [self.ring_buffer_size_in_time_dim - 1, 0]
+        if self.use_one_step:
+          pad[1] = [self.ring_buffer_size_in_time_dim - 1, 0]
+        else:
+          pad[1] = [self.ring_buffer_size_in_time_dim, 0]
       elif self.pad_time_dim == 'same':
         half = self.ring_buffer_size_in_time_dim // 2
         pad[1] = [half, half]
