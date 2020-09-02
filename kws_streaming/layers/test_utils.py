@@ -23,11 +23,21 @@ from kws_streaming.train import model_flags
 
 
 class Params(object):
-  """Parameters for data and other settings."""
+  """Parameters for data and other settings.
 
-  def __init__(self, cnn_strides):
+  Attributes:
+    cnn_strides: list of strides
+    clip_duration_ms: duration of audio clipl in ms
+    sample_rate: sample rate of the data
+    preprocess: method of preprocessing
+    data_shape: shape of the data in streaming inference mode
+    batch_size: batch size
+    desired_samples: number of samples in one sequence
+  """
+
+  def __init__(self, cnn_strides, clip_duration_ms=16):
     self.sample_rate = 16000
-    self.clip_duration_ms = 16
+    self.clip_duration_ms = clip_duration_ms
 
     # it is a special case to customize input data shape
     self.preprocess = 'custom'
