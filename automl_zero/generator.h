@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef GENERATOR_H_
-#define GENERATOR_H_
+#ifndef AUTOML_ZERO_GENERATOR_H_
+#define AUTOML_ZERO_GENERATOR_H_
 
 #include <memory>
 #include <random>
@@ -112,4 +112,4 @@ class Generator {
 
 }  // namespace automl_zero
 
-#endif  // GENERATOR_H_
+#endif  // AUTOML_ZERO_GENERATOR_H_

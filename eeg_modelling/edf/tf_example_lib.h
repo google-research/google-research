@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_EEG_MODELLING_EDF_TF_EXAMPLE_LIB_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_EEG_MODELLING_EDF_TF_EXAMPLE_LIB_H_
+#ifndef EEG_MODELLING_EDF_TF_EXAMPLE_LIB_H_
+#define EEG_MODELLING_EDF_TF_EXAMPLE_LIB_H_
 
 #include <string>
 
@@ -29,4 +29,4 @@ StatusOr<tensorflow::Example> GenerateExampleForSegment(
     const Segment& segment, const Annotations& annotations);
 }
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_EEG_MODELLING_EDF_TF_EXAMPLE_LIB_H_
+#endif  // EEG_MODELLING_EDF_TF_EXAMPLE_LIB_H_

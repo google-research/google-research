@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ALGORITHM_H_
-#define ALGORITHM_H_
+#ifndef AUTOML_ZERO_ALGORITHM_H_
+#define AUTOML_ZERO_ALGORITHM_H_
 
 #include <array>
 #include <cstdint>
@@ -76,4 +76,4 @@ class Algorithm {
 
 }  // namespace automl_zero
 
-#endif  // ALGORITHM_H_
+#endif  // AUTOML_ZERO_ALGORITHM_H_

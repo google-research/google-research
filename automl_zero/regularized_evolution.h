@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef REGULARIZED_EVOLUTION_H_
-#define REGULARIZED_EVOLUTION_H_
+#ifndef AUTOML_ZERO_REGULARIZED_EVOLUTION_H_
+#define AUTOML_ZERO_REGULARIZED_EVOLUTION_H_
 
 #include <memory>
 #include <string>
@@ -121,4 +121,4 @@ class RegularizedEvolution {
 
 }  // namespace automl_zero
 
-#endif  // REGULARIZED_EVOLUTION_H_
+#endif  // AUTOML_ZERO_REGULARIZED_EVOLUTION_H_

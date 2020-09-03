@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef TRAIN_BUDGET_H_
-#define TRAIN_BUDGET_H_
+#ifndef AUTOML_ZERO_TRAIN_BUDGET_H_
+#define AUTOML_ZERO_TRAIN_BUDGET_H_
 
 #include "generator.h"
 #include "instruction.h"
@@ -61,4 +61,4 @@ std::unique_ptr<TrainBudget> BuildTrainBudget(
 
 }  // namespace automl_zero
 
-#endif  // TRAIN_BUDGET_H_
+#endif  // AUTOML_ZERO_TRAIN_BUDGET_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MEMORY_H_
-#define MEMORY_H_
+#ifndef AUTOML_ZERO_MEMORY_H_
+#define AUTOML_ZERO_MEMORY_H_
 
 #include <array>
 
@@ -71,4 +71,4 @@ void Memory<F>::Wipe() {
 
 }  // namespace automl_zero
 
-#endif  // MEMORY_H_
+#endif  // AUTOML_ZERO_MEMORY_H_

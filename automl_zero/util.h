@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef UTIL_H_
-#define UTIL_H_
+#ifndef AUTOML_ZERO_UTIL_H_
+#define AUTOML_ZERO_UTIL_H_
 
 #include <cstdlib>
 #include <iostream>
@@ -41,4 +41,4 @@ bool VectorEq(const Vector<F>& observed, const std::vector<double>& expected) {
 
 }  // namespace automl_zero
 
-#endif  // UTIL_H_
+#endif  // AUTOML_ZERO_UTIL_H_

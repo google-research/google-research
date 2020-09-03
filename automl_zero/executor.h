@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef EXECUTOR_H_
-#define EXECUTOR_H_
+#ifndef AUTOML_ZERO_EXECUTOR_H_
+#define AUTOML_ZERO_EXECUTOR_H_
 
 #include <algorithm>
 #include <cmath>
@@ -1431,4 +1431,4 @@ inline double MinusXLogY(const double x, const double y) {
 
 }  // namespace automl_zero
 
-#endif  // EXECUTOR_H_
+#endif  // AUTOML_ZERO_EXECUTOR_H_

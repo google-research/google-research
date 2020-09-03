@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_EEG_MODELLING_EDF_EDF_FILE_H_
-#define THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_EEG_MODELLING_EDF_EDF_FILE_H_
+#ifndef EEG_MODELLING_EDF_EDF_FILE_H_
+#define EEG_MODELLING_EDF_EDF_FILE_H_
 
 #include <string>
 
@@ -38,4 +38,4 @@ class EdfFile {
 
 }  // namespace eeg_modelling
 
-#endif  // THIRD_PARTY_GOOGLE_RESEARCH_GOOGLE_RESEARCH_EEG_MODELLING_EDF_EDF_FILE_H_
+#endif  // EEG_MODELLING_EDF_EDF_FILE_H_

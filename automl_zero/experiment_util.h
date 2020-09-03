@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef EXPERIMENT_UTIL_H_
-#define EXPERIMENT_UTIL_H_
+#ifndef AUTOML_ZERO_EXPERIMENT_UTIL_H_
+#define AUTOML_ZERO_EXPERIMENT_UTIL_H_
 
 #include <unordered_map>
 #include <unordered_set>
@@ -29,4 +29,4 @@ std::vector<Op> ExtractOps(const google::protobuf::RepeatedField<int>& ops_src);
 
 }  // namespace automl_zero
 
-#endif  // EXPERIMENT_UTIL_H_
+#endif  // AUTOML_ZERO_EXPERIMENT_UTIL_H_

@@ -14,8 +14,8 @@
 
 // Tools to test code that moves Algorithms around.
 
-#ifndef ALGORITHM_TEST_UTIL_H_
-#define ALGORITHM_TEST_UTIL_H_
+#ifndef AUTOML_ZERO_ALGORITHM_TEST_UTIL_H_
+#define AUTOML_ZERO_ALGORITHM_TEST_UTIL_H_
 
 #include "algorithm.h"
 #include "algorithm.pb.h"
@@ -105,4 +105,4 @@ IntegerT MissingDataInComponentFunction(
 
 }  // namespace automl_zero
 
-#endif  // ALGORITHM_TEST_UTIL_H_
+#endif  // AUTOML_ZERO_ALGORITHM_TEST_UTIL_H_

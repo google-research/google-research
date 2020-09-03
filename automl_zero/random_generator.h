@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef RANDOM_GENERATOR_H_
-#define RANDOM_GENERATOR_H_
+#ifndef AUTOML_ZERO_RANDOM_GENERATOR_H_
+#define AUTOML_ZERO_RANDOM_GENERATOR_H_
 
 #include <limits>
 #include <random>
@@ -166,4 +166,4 @@ void RandomGenerator::FillBeta(
 
 }  // namespace automl_zero
 
-#endif  // RANDOM_GENERATOR_H_
+#endif  // AUTOML_ZERO_RANDOM_GENERATOR_H_

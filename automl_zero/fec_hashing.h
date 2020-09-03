@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FEC_HASHING_H_
-#define FEC_HASHING_H_
+#ifndef AUTOML_ZERO_FEC_HASHING_H_
+#define AUTOML_ZERO_FEC_HASHING_H_
 
 #include <cstddef>
 
@@ -42,4 +42,4 @@ size_t WellMixedHash(const std::vector<double>& train_errors,
 
 }  // namespace automl_zero
 
-#endif  // FEC_HASHING_H_
+#endif  // AUTOML_ZERO_FEC_HASHING_H_

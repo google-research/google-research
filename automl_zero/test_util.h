@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef TEST_UTIL_H_
-#define TEST_UTIL_H_
+#ifndef AUTOML_ZERO_TEST_UTIL_H_
+#define AUTOML_ZERO_TEST_UTIL_H_
 
 #include <functional>
 #include <iostream>
@@ -160,4 +160,4 @@ absl::node_hash_set<std::pair<NumberT, NumberT>> CartesianProduct(
 
 }  // namespace automl_zero
 
-#endif  // TEST_UTIL_H_
+#endif  // AUTOML_ZERO_TEST_UTIL_H_

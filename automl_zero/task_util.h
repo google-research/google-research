@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef TASK_UTIL_H_
-#define TASK_UTIL_H_
+#ifndef AUTOML_ZERO_TASK_UTIL_H_
+#define AUTOML_ZERO_TASK_UTIL_H_
 
 #include <array>
 #include <fstream>
@@ -544,4 +544,4 @@ void RandomizeTaskSeeds(TaskCollection* task_collection,
 
 }  // namespace automl_zero
 
-#endif  // TASK_UTIL_H_
+#endif  // AUTOML_ZERO_TASK_UTIL_H_

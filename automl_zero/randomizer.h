@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef RANDOMIZER_H_
-#define RANDOMIZER_H_
+#ifndef AUTOML_ZERO_RANDOMIZER_H_
+#define AUTOML_ZERO_RANDOMIZER_H_
 
 #include <memory>
 #include <random>
@@ -74,4 +74,4 @@ class Randomizer {
 
 }  // namespace automl_zero
 
-#endif  // RANDOMIZER_H_
+#endif  // AUTOML_ZERO_RANDOMIZER_H_

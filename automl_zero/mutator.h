@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MUTATOR_H_
-#define MUTATOR_H_
+#ifndef AUTOML_ZERO_MUTATOR_H_
+#define AUTOML_ZERO_MUTATOR_H_
 
 #include <memory>
 #include <random>
@@ -151,4 +151,4 @@ class Mutator {
 }  // namespace automl_zero
 
 
-#endif  // MUTATOR_H_
+#endif  // AUTOML_ZERO_MUTATOR_H_

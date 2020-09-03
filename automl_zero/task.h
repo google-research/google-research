@@ -16,8 +16,8 @@
 
 // These are called once-per-worker, so they can be slow.
 
-#ifndef TASK_H_
-#define TASK_H_
+#ifndef AUTOML_ZERO_TASK_H_
+#define AUTOML_ZERO_TASK_H_
 
 #include <algorithm>
 #include <random>
@@ -338,4 +338,4 @@ class TaskIterator {
 
 }  // namespace automl_zero
 
-#endif  // TASK_H_
+#endif  // AUTOML_ZERO_TASK_H_

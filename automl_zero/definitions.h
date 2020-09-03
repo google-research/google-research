@@ -19,8 +19,8 @@
 // -Apply linter.
 // -Add more comments, link to paper.
 
-#ifndef DEFINITIONS_H_
-#define DEFINITIONS_H_
+#ifndef AUTOML_ZERO_DEFINITIONS_H_
+#define AUTOML_ZERO_DEFINITIONS_H_
 
 #include <sched.h>
 
@@ -319,4 +319,4 @@ NumberT HashMix(NumberT first, NumberT second) {
 
 }  // namespace automl_zero
 
-#endif  // DEFINITIONS_H_
+#endif  // AUTOML_ZERO_DEFINITIONS_H_
