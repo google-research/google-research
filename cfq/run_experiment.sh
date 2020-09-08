@@ -79,7 +79,8 @@ t2t-decoder --t2t_usr_dir="${work_dir}/cfq/" --data_dir="${save_path}" \
   --problem="${problem}" --model="${model}" --hparams_set="${hparams_set}" \
   --checkpoint_path="${checkpoint_path}" \
   --decode_from_file="${encode_path}" \
-  --decode_to_file="${decode_inferred_path}"
+  --decode_to_file="${decode_inferred_path}" \
+  --output_dir="${output_dir}"
 
 python3 -m evaluate_main --questions_path="${encode_path}" \
   --golden_answers_path="${decode_path}" \
