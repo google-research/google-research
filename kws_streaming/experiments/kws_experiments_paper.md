@@ -855,7 +855,7 @@ stream latency[us]: 353
 ```shell
 python -m kws_streaming.data.input_data_test
 python -m kws_streaming.layers.conv2d_test
-python -m kws_streaming.layers.dataframe_test
+python -m kws_streaming.layers.data_frame_test
 python -m kws_streaming.layers.dct_test
 python -m kws_streaming.layers.dense_test
 python -m kws_streaming.layers.depthwiseconv1d_test

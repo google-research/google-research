@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kws_streaming.layers.depthwiseconv1d."""
+"""Tests for kws_streaming.layers.depthwise_conv1d."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -21,7 +21,7 @@ from __future__ import print_function
 
 from absl import logging
 import numpy as np
-from kws_streaming.layers import depthwiseconv1d
+from kws_streaming.layers import depthwise_conv1d
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 from kws_streaming.layers.modes import Modes
@@ -44,7 +44,7 @@ class DepthwiseConv1DTest(tu.TestBase):
 
     dense1 = tf.keras.layers.Dense(
         units=self.weights[0].shape[1], use_bias=False)
-    depthwisecnn1 = depthwiseconv1d.DepthwiseConv1D(
+    depthwisecnn1 = depthwise_conv1d.DepthwiseConv1D(
         memory_size=self.memory_size,
         inference_batch_size=self.batch_size,
         mode=mode)
@@ -71,7 +71,7 @@ class DepthwiseConv1DTest(tu.TestBase):
         ), batch_size=self.batch_size)
     dense1 = tf.keras.layers.Dense(
         units=self.weights[0].shape[1], use_bias=False)
-    depthwisecnn1 = depthwiseconv1d.DepthwiseConv1D(
+    depthwisecnn1 = depthwise_conv1d.DepthwiseConv1D(
         memory_size=self.memory_size,
         inference_batch_size=self.batch_size,
         mode=mode)

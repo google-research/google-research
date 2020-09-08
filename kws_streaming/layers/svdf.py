@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """SVDF layer."""
-from kws_streaming.layers import depthwiseconv1d
+from kws_streaming.layers import depthwise_conv1d
 from kws_streaming.layers import modes
 from kws_streaming.layers import non_scaling_dropout
 from kws_streaming.layers.compat import tf
@@ -56,7 +56,7 @@ class Svdf(tf.keras.layers.Layer):
 
     self.units2 = units2  # number of hidden units in the second dense layer
     self.activation = tf.keras.activations.get(activation)
-    self.use_bias = use_bias  # use bias at depthwiseconv1d
+    self.use_bias = use_bias  # use bias at DepthwiseConv1D
     self.inference_batch_size = inference_batch_size
     self.mode = mode
 
@@ -82,7 +82,7 @@ class Svdf(tf.keras.layers.Layer):
       self.dropout1 = tf.keras.layers.Lambda(lambda x: x)
     self.dense1 = tf.keras.layers.Dense(
         units=self.units1, use_bias=self.use_bias1)
-    self.depth_cnn1 = depthwiseconv1d.DepthwiseConv1D(
+    self.depth_cnn1 = depthwise_conv1d.DepthwiseConv1D(
         memory_size=self.memory_size,
         inference_batch_size=self.inference_batch_size,
         use_bias=self.use_bias,

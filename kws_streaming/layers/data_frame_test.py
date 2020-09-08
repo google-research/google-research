@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kws_streaming.layers.dataframe."""
+"""Tests for kws_streaming.layers.data_frame."""
 
 import numpy as np
-from kws_streaming.layers import dataframe
+from kws_streaming.layers import data_frame
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 from kws_streaming.layers.modes import Modes
@@ -29,7 +29,7 @@ class DataFrameTest(tu.FrameTestBase):
 
   def test_tf_non_streaming_vs_streaming_internal_state(self):
     # prepare streaming frame extraction model with internal state
-    data_frame_stream = dataframe.DataFrame(
+    data_frame_stream = data_frame.DataFrame(
         mode=Modes.STREAM_INTERNAL_STATE_INFERENCE,
         inference_batch_size=self.inference_batch_size,
         frame_size=self.frame_size,

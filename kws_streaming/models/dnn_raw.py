@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """DNN model with fully connected layers on raw data."""
-from kws_streaming.layers import dataframe
+from kws_streaming.layers import data_frame
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.stream import Stream
 from kws_streaming.models.utils import parse
@@ -85,7 +85,7 @@ def model(flags):
   input_audio = tf.keras.layers.Input(
       shape=(flags.desired_samples,), batch_size=flags.batch_size)
 
-  net = dataframe.DataFrame(
+  net = data_frame.DataFrame(
       frame_size=flags.window_size_samples,
       frame_step=flags.window_stride_samples)(
           input_audio)

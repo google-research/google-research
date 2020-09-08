@@ -15,7 +15,7 @@
 
 """A layer for extracting features from speech data."""
 import frozendict
-from kws_streaming.layers import dataframe
+from kws_streaming.layers import data_frame
 from kws_streaming.layers import dct
 from kws_streaming.layers import magnitude_rdft_mel
 from kws_streaming.layers import modes
@@ -80,7 +80,7 @@ class SpeechFeatures(tf.keras.layers.Layer):
   def build(self, input_shape):
     super(SpeechFeatures, self).build(input_shape)
 
-    self.data_frame = dataframe.DataFrame(
+    self.data_frame = data_frame.DataFrame(
         mode=self.mode,
         inference_batch_size=self.inference_batch_size,
         frame_size=self.frame_size,
