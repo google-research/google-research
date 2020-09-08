@@ -118,10 +118,9 @@ output = Stream(cell=tf.keras.layers.Flatten(...))(output)
 output = tf.keras.layers.Dense(...)(output)
 ```
 
-### Current limitation:
-Some models are not supported in streaming mode:
-* Bidirectional RNN kind of models such as att_rnn, att_mh_rnn require access to the whole sequence.
-* Pooling and striding in time dimension is not supported in streaming mode. So models such as mobilenet, mobilenet_v2, xception, inception, inception_resnet, tc_resnet are not streamable in this library now. It is only a design decision and can be enabled in the future.
+### Limitation:
+* Models which require access to the whole input sequence are not streamable, such as bidirectional RNN or attention computed over the whole sequence.
+* Any causal models including models with pooling and striding in time dimension can be supported in streaming mode: for example [test_stream_strided_convolution](https://github.com/google-research/google-research/blob/master/kws_streaming/layers/stream_test.py). For causal models we set padding='causal'. If the model is not causal, then the delay layer has to be inserted manually, as it is shown in [residual_model](https://github.com/google-research/google-research/blob/master/kws_streaming/layers/delay_test.py).
 
 ## Inference
 KWS model in streaming mode is executed by steps:
