@@ -19,6 +19,7 @@
 import collections
 import json
 import os
+import re
 import string
 from typing import Any, Dict, List, Tuple
 
@@ -28,11 +29,33 @@ from tensorflow.compat.v1.io import gfile
 
 Dataset = Dict[str, List[Tuple[str, str]]]
 
+_QUESTION_FIELD = 'questionPatternModEntities'
+_QUERY_FIELD = 'sparqlPatternModEntities'
 
-def load_json(path):
+
+def _scrub_json(content):
+  """Reduce JSON by filtering out only the fields of interest."""
+  # Loading of json data with the standard Python library is very inefficient:
+  # For the 4GB dataset file it requires more than 40GB of RAM and takes 3min.
+  # There are more efficient libraries but in order to avoid additional
+  # dependencies we use a simple (perhaps somewhat brittle) regexp to reduce
+  # the content to only what is needed. This takes 1min to execute but
+  # afterwards loading requires only 500MB or RAM and is done in 2s.
+  regex = re.compile(
+      r'("%s":\s*"[^"]*").*?("%s":\s*"[^"]*")' %
+      (_QUESTION_FIELD, _QUERY_FIELD), re.DOTALL)
+  return '[' + ','.join([
+      '{' + m.group(1) + ',' + m.group(2) + '}' for m in regex.finditer(content)
+  ]) + ']'
+
+
+def load_json(path, scrub = False):
   logging.info(f'Reading json from {path} into memory...')
   with gfile.GFile(path) as f:
-    data = json.load(f)
+    if scrub:
+      data = json.loads(_scrub_json(f.read()))
+    else:
+      data = json.load(f)
   logging.info(f'Successfully loaded json data from {path} into memory.')
   return data
 
@@ -40,20 +63,21 @@ def load_json(path):
 def load_scan(path):
   """Read original scan task data and convert into CFQ-style json format."""
   logging.info(f'Reading SCAN tasks from {path}.')
+
   def parse(infile):
     for line in infile.read().split('\n'):
       if not line.startswith('IN: '):
         continue
       commands, actions = line[len('IN: '):].strip().split(' OUT: ', 1)
-      yield {'questionPatternModEntities': commands,
-             'sparqlPatternModEntities': actions}
+      yield {_QUESTION_FIELD: commands, _QUERY_FIELD: actions}
+
   return list(parse(gfile.GFile(path)))
 
 
 def load_dataset(path):
   """Load dataset from .json or SCAN task format."""
   if path[-5:] == '.json':
-    return load_json(path)
+    return load_json(path, scrub=True)
   else:
     return load_scan(path)
 
