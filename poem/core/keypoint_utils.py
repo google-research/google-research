@@ -200,6 +200,22 @@ def normalize_points(points, offset_point_indices,
   return normalized_points, offset_points, scale_distances
 
 
+def centralize_masked_points(points, point_masks):
+  """Sets masked out points to the centers of rest of the points.
+
+  Args:
+    points: A tensor for points. Shape = [..., num_points, point_dim].
+    point_masks: A tensor for the masks. Shape = [..., num_points].
+
+  Returns:
+    A tensor for points with masked out points centralized.
+  """
+  point_masks = tf.expand_dims(point_masks, axis=-1)
+  kept_centers = data_utils.reduce_weighted_mean(
+      points, weights=point_masks, axis=-2, keepdims=True)
+  return tf.where(tf.cast(point_masks, dtype=tf.bool), points, kept_centers)
+
+
 def standardize_points(points):
   """Standardizes points by centering and scaling.
 
@@ -220,7 +236,9 @@ def standardize_points(points):
   return points, offsets, scales
 
 
-def compute_procrustes_alignment_params(target_points, source_points):
+def compute_procrustes_alignment_params(target_points,
+                                        source_points,
+                                        point_masks=None):
   """Computes procrustes alignment parameters.
 
   Args:
@@ -228,12 +246,18 @@ def compute_procrustes_alignment_params(target_points, source_points):
       point_dim].
     source_points: A tensor for source points. Shape = [..., num_points,
       point_dim].
+    point_masks: A tensor for the masks. Shape = [..., num_points]. Ignored if
+      None.
 
   Returns:
     rotations: A tensor for rotations. Shape = [..., point_dim, point_dim].
     scales: A tensor for scales. Shape = [..., 1, 1].
     translations: A tensor for translations. Shape = [..., 1, point_dim].
   """
+  if point_masks is not None:
+    target_points = centralize_masked_points(target_points, point_masks)
+    source_points = centralize_masked_points(source_points, point_masks)
+
   # standardized_target_points: Shape = [..., num_points, point_dim].
   # target_offsets: Shape = [..., 1, point_dim].
   # target_scales: Shape = [..., 1, 1].
@@ -281,7 +305,7 @@ def compute_procrustes_alignment_params(target_points, source_points):
   return rotations, scales, translations
 
 
-def procrustes_align_points(target_points, source_points):
+def procrustes_align_points(target_points, source_points, point_masks=None):
   """Performs Procrustes alignment on source points to target points.
 
   Args:
@@ -289,12 +313,14 @@ def procrustes_align_points(target_points, source_points):
       point_dim].
     source_points: A tensor for source points. Shape = [..., num_points,
       point_dim].
+    point_masks: A tensor for the masks. Shape = [..., num_points]. Ignored if
+      None.
 
   Returns:
     A tensor for aligned source points. Shape = [..., num_points, point_dim].
   """
   rotations, scales, translations = compute_procrustes_alignment_params(
-      target_points, source_points)
+      target_points, source_points, point_masks=point_masks)
   return translations + scales * tf.linalg.matmul(source_points, rotations)
 
 
@@ -316,15 +342,13 @@ def compute_mpjpes(lhs_points, rhs_points, point_masks=None):
   """
   distances = distance_utils.compute_l2_distances(
       lhs_points, rhs_points, keepdims=False)
-
-  if point_masks is None:
-    return tf.math.reduce_mean(distances, axis=-1)
-
-  return (tf.math.reduce_sum(distances * point_masks, axis=-1) /
-          tf.math.maximum(1e-12, tf.math.reduce_sum(point_masks, axis=-1)))
+  return data_utils.reduce_weighted_mean(
+      distances, weights=point_masks, axis=-1)
 
 
-def compute_procrustes_aligned_mpjpes(target_points, source_points):
+def compute_procrustes_aligned_mpjpes(target_points,
+                                      source_points,
+                                      point_masks=None):
   """Computes MPJPEs after Procrustes alignment.
 
   Args:
@@ -332,12 +356,16 @@ def compute_procrustes_aligned_mpjpes(target_points, source_points):
       point_dim].
     source_points: A tensor for source points. Shape = [..., num_points,
       point_dim].
+    point_masks: A tensor for the masks. Shape = [..., num_points]. Ignored if
+      None.
 
   Returns:
     A tensor for MPJPEs. Shape = [...].
   """
-  aligned_source_points = procrustes_align_points(target_points, source_points)
-  return compute_mpjpes(aligned_source_points, target_points)
+  aligned_source_points = procrustes_align_points(
+      target_points, source_points, point_masks=point_masks)
+  return compute_mpjpes(
+      aligned_source_points, target_points, point_masks=point_masks)
 
 
 def normalize_points_by_image_size(points, image_sizes):
@@ -671,3 +699,32 @@ def insert_at_indices(keypoints, indices, insert_keypoints=None):
       head_index += 1
 
   return tf.gather(keypoints, indices=perm_indices, axis=-2)
+
+
+def transfer_keypoint_masks(input_keypoint_masks, input_keypoint_profile,
+                            output_keypoint_profile):
+  """Transfers keypoint masks according to a different profile."""
+  input_keypoint_masks = tf.split(
+      input_keypoint_masks,
+      num_or_size_splits=input_keypoint_profile.keypoint_num,
+      axis=-1)
+  output_keypoint_masks = [None] * output_keypoint_profile.keypoint_num
+  for part_name in input_keypoint_profile.standard_part_names:
+    input_keypoint_index = input_keypoint_profile.get_standard_part_index(
+        part_name)
+    output_keypoint_index = output_keypoint_profile.get_standard_part_index(
+        part_name)
+    if len(output_keypoint_index) != 1:
+      continue
+    if len(input_keypoint_index) == 1:
+      output_keypoint_masks[output_keypoint_index[0]] = (
+          input_keypoint_masks[input_keypoint_index[0]])
+    else:
+      input_keypoint_mask_subset = [
+          input_keypoint_masks[i] for i in input_keypoint_index
+      ]
+      output_keypoint_masks[output_keypoint_index[0]] = tf.math.reduce_prod(
+          tf.stack(input_keypoint_mask_subset, axis=-1),
+          axis=-1,
+          keepdims=False)
+  return tf.concat(output_keypoint_masks, axis=-1)

@@ -158,22 +158,36 @@ def create_sample_distance_fn(
   return sample_distance_fn
 
 
-def compute_negative_indicator_matrix(anchors, matches, distance_fn,
-                                      min_negative_distance):
+def compute_negative_indicator_matrix(anchor_points,
+                                      match_points,
+                                      distance_fn,
+                                      min_negative_distance,
+                                      anchor_point_masks=None,
+                                      match_point_masks=None):
   """Computes all-pair negative match indicator matrix.
 
   Args:
-    anchors: A tensor for anchor points. Shape = [num_anchors, ...].
-    matches: A tensor for match points. Shape = [num_matches, ...].
+    anchor_points: A tensor for anchor points. Shape = [num_anchors, ...,
+      point_dim].
+    match_points: A tensor for match points. Shape = [num_matches, ...,
+      point_dim].
     distance_fn: A function handle for computing distance matrix.
     min_negative_distance: A float for the minimum negative distance threshold.
+    anchor_point_masks: A tensor for anchor point masks. Shape = [num_anchors,
+      ...]. Ignored if None.
+    match_point_masks: A tensor for match point masks. Shape = [num_matches,
+      ...]. Ignored if None.
 
   Returns:
     A boolean tensor for negative indicator matrix. Shape = [num_anchors,
       num_matches].
   """
   distance_matrix = distance_utils.compute_distance_matrix(
-      anchors, matches, distance_fn=distance_fn)
+      anchor_points,
+      match_points,
+      distance_fn=distance_fn,
+      start_point_masks=anchor_point_masks,
+      end_point_masks=match_point_masks)
   return distance_matrix >= min_negative_distance
 
 
@@ -331,6 +345,8 @@ def compute_keypoint_triplet_losses(
     min_negative_keypoint_distance,
     use_semi_hard,
     exclude_inactive_triplet_loss,
+    anchor_keypoint_masks=None,
+    match_keypoint_masks=None,
     embedding_sample_distance_fn=create_sample_distance_fn(),
     keypoint_distance_fn=keypoint_utils.compute_procrustes_aligned_mpjpes,
     anchor_mining_embeddings=None,
@@ -347,9 +363,9 @@ def compute_keypoint_triplet_losses(
     match_embeddings: A tensor for candidate negative match embeddings. Shape =
       [num_anchors, embedding_dim] or [num_matches, num_samples, embedding_dim].
     anchor_keypoints: A tensor for anchor keypoints for computing pair labels.
-      Shape = [num_anchors, ...].
+      Shape = [num_anchors, ..., num_keypoints, keypoint_dim].
     match_keypoints: A tensor for match keypoints for computing pair labels.
-      Shape = [num_anchors, ...].
+      Shape = [num_anchors, ..., num_keypoints, keypoint_dim].
     margin: A float for triplet loss margin.
     min_negative_keypoint_distance: A float for the minimum negative distance
       threshold.
@@ -357,6 +373,10 @@ def compute_keypoint_triplet_losses(
       as the final loss.
     exclude_inactive_triplet_loss: A boolean for whether to exclude inactive
       triplets in the final loss computation.
+    anchor_keypoint_masks: A tensor for anchor keypoint masks for computing pair
+      labels. Shape = [num_anchors, ..., num_keypoints]. Ignored if None.
+    match_keypoint_masks: A tensor for match keypoint masks for computing pair
+      labels. Shape = [num_anchors, ..., num_keypoints]. Ignored if None.
     embedding_sample_distance_fn: A function handle for computing sample
       embedding distances, which takes two embedding tensors of shape [...,
       num_samples, embedding_dim] and returns a distance tensor of shape [...].
@@ -395,10 +415,12 @@ def compute_keypoint_triplet_losses(
 
   anchor_match_negative_indicator_matrix = (
       compute_negative_indicator_matrix(
-          anchors=anchor_keypoints,
-          matches=match_keypoints,
+          anchor_points=anchor_keypoints,
+          match_points=match_keypoints,
           distance_fn=keypoint_distance_fn,
-          min_negative_distance=min_negative_keypoint_distance))
+          min_negative_distance=min_negative_keypoint_distance,
+          anchor_point_masks=anchor_keypoint_masks,
+          match_point_masks=match_keypoint_masks))
 
   anchor_positive_distances = embedding_sample_distance_fn(
       anchor_embeddings, positive_embeddings)

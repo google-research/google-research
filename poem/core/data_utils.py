@@ -205,6 +205,26 @@ def reshape_by_last_dims(x, last_dim_shape):
   return tf.reshape(x, new_shape)
 
 
+def reduce_weighted_mean(tensor, weights, axis=None, keepdims=False):
+  """Reduces weighted means.
+
+  Args:
+    tensor: A tensor to reduce.
+    weights: A tensor for weights. Must be non-negative and multiplicable to
+      `tensor`. If None, this function falls back to tf.math.reduce_mean.
+    axis: A list of integer for axes to reduce along.
+    keepdims: A boolean for whether to keep the orignial dimension for results.
+
+  Returns:
+    A reduced tensor.
+  """
+  if weights is None:
+    return tf.math.reduce_mean(tensor, axis=axis, keepdims=keepdims)
+  return (tf.math.reduce_sum(tensor * weights, axis=axis, keepdims=keepdims) /
+          tf.math.maximum(
+              1e-12, tf.math.reduce_sum(weights, axis=axis, keepdims=keepdims)))
+
+
 def sample_gaussians(means, stddevs, num_samples, seed=None):
   """Samples from multivariate Gaussian distributions.
 

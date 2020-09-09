@@ -119,6 +119,22 @@ class KeypointUtilsTest(tf.test.TestCase):
     self.assertAllClose(scale_distances,
                         [[[[4.0 * sqrt_2]]], [[[4.0 * sqrt_2]]]])
 
+  def test_centralize_masked_points(self):
+    # Shape = [2, 4, 2].
+    points = [[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
+              [[9.0, 10.0], [11.0, 12.0], [13.0, 14.0], [15.0, 16.0]]]
+    # Shape = [2, 4].
+    point_masks = [[1.0, 1.0, 1.0, 0.0], [1.0, 1.0, 0.0, 0.0]]
+
+    # Shape = [2, 4, 2].
+    centralized_points = keypoint_utils.centralize_masked_points(
+        points, point_masks)
+
+    self.assertAllClose(
+        centralized_points,
+        [[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [3.0, 4.0]],
+         [[9.0, 10.0], [11.0, 12.0], [10.0, 11.0], [10.0, 11.0]]])
+
   def test_standardize_points(self):
     # Shape = [2, 3, 2].
     x = tf.constant([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]],
@@ -147,6 +163,49 @@ class KeypointUtilsTest(tf.test.TestCase):
     rotations, scales, translations = (
         keypoint_utils.compute_procrustes_alignment_params(
             target_points, source_points))
+    self.assertAllClose(rotations, [[[-0.87982, -0.47514731, 0.01232074],
+                                     [-0.31623112, 0.60451691, 0.73113418],
+                                     [-0.35484453, 0.63937027, -0.68212243]],
+                                    [[-0.87982, 0.01232074, -0.47514731],
+                                     [-0.35484453, -0.68212243, 0.63937027],
+                                     [-0.31623112, 0.73113418, 0.60451691]],
+                                    [[-0.87982, 0.01232074, -0.47514731],
+                                     [-0.35484453, -0.68212243, 0.63937027],
+                                     [-0.31623112, 0.73113418, 0.60451691]]])
+    self.assertAllClose(
+        scales, [[[0.63716284347]], [[0.63716284347]], [[0.63716284347]]])
+    self.assertAllClose(translations, [[[4.17980137, 0.02171898, 0.96621997]],
+                                       [[4.17980137, 0.96621997, 0.02171898]],
+                                       [[8.35960274, 1.93243994, 0.04343796]]])
+
+  def test_compute_procrustes_alignment_params_with_masks(self):
+    # Shape = [3, 6, 3].
+    target_points = tf.constant([[[1.0, 1.0, 0.0], [5.0, 2.0, 2.0],
+                                  [4.0, 0.0, 0.0], [-1.0, -2.0, 3.0],
+                                  [100.0, 200.0, 300.0], [400.0, 500.0, 600.0]],
+                                 [[1.0, 0.0, 1.0], [5.0, 2.0, 2.0],
+                                  [700.0, 800.0, 900.0], [800.0, 700.0, 600.0],
+                                  [4.0, 0.0, 0.0], [-1.0, 3.0, -2.0]],
+                                 [[2.0, 0.0, 2.0], [500.0, 400.0, 300.0],
+                                  [10.0, 4.0, 4.0], [200.0, 100.0, 200.0],
+                                  [8.0, 0.0, 0.0], [-2.0, 6.0, -4.0]]])
+    source_points = tf.constant([[[3.0, 1.0, 5.0], [-2.0, 3.0, 0.0],
+                                  [1.0, -1.0, 1.0], [8.0, 3.0, -2.0],
+                                  [300.0, 400.0, 500.0], [600.0, 700.0, 800.0]],
+                                 [[3.0, 5.0, 1.0], [-2.0, 0.0, 3.0],
+                                  [900.0, 800.0, 700.0], [600.0, 500.0, 400.0],
+                                  [1.0, 1.0, -1.0], [8.0, -2.0, 3.0]],
+                                 [[6.0, 10.0, 2.0], [300.0, 200.0, 100.0],
+                                  [-4.0, 0.0, 6.0], [200.0, 300.0, 400.0],
+                                  [2.0, 2.0, -2.0], [16.0, -4.0, 6.0]]])
+    # Shape = [3, 6].
+    point_masks = tf.constant([[1.0, 1.0, 1.0, 1.0, 0.0, 0.0],
+                               [1.0, 1.0, 0.0, 0.0, 1.0, 1.0],
+                               [1.0, 0.0, 1.0, 0.0, 1.0, 1.0]])
+
+    rotations, scales, translations = (
+        keypoint_utils.compute_procrustes_alignment_params(
+            target_points, source_points, point_masks=point_masks))
     self.assertAllClose(rotations, [[[-0.87982, -0.47514731, 0.01232074],
                                      [-0.31623112, 0.60451691, 0.73113418],
                                      [-0.35484453, 0.63937027, -0.68212243]],
@@ -245,6 +304,20 @@ class KeypointUtilsTest(tf.test.TestCase):
                                  [1.0, 1.0, 1.0]])
     mpjpes = keypoint_utils.compute_procrustes_aligned_mpjpes(
         target_points, source_points)
+    self.assertAlmostEqual(self.evaluate(mpjpes), 0.3496029, places=5)
+
+  def test_compute_procrustes_aligned_mpjpes_with_masks(self):
+    # Shape = [5, 3].
+    target_points = tf.constant([[2.0, 2.0, 2.0], [-1.5, -1.0, 0.0],
+                                 [100.0, 200.0, 300.0], [2.5, 1.3, 1.4],
+                                 [400.0, 500.0, 600.0]])
+    source_points = tf.constant([[1.0, 1.0, 1.0], [0.0, 0.0, 0.0],
+                                 [700.0, 800.0, 900.0], [1.0, 1.0, 1.0],
+                                 [800.0, 700.0, 600.0]])
+    # Shape = [5].
+    point_masks = tf.constant([1.0, 1.0, 0.0, 1.0, 0.0])
+    mpjpes = keypoint_utils.compute_procrustes_aligned_mpjpes(
+        target_points, source_points, point_masks=point_masks)
     self.assertAlmostEqual(self.evaluate(mpjpes), 0.3496029, places=5)
 
   def test_normalize_points_by_image_size(self):
@@ -462,6 +535,171 @@ class KeypointUtilsTest(tf.test.TestCase):
         keypoints, indices, insert_keypoints=None)
     self.assertAllClose(keypoints, [[[1.0, 2.0], [0.0, 0.0], [0.0, 0.0],
                                      [3.0, 4.0], [5.0, 6.0], [0.0, 0.0]]])
+
+  def test_transfer_keypoint_masks_case_1(self):
+    # Shape = [2, 13].
+    input_keypoint_masks = tf.constant([
+        [
+            1.0,  # NOSE_TIP
+            1.0,  # LEFT_SHOULDER
+            1.0,  # RIGHT_SHOULDER
+            0.0,  # LEFT_ELBOW
+            1.0,  # RIGHT_ELBOW
+            1.0,  # LEFT_WRIST
+            0.0,  # RIGHT_WRIST
+            1.0,  # LEFT_HIP
+            0.0,  # RIGHT_HIP
+            1.0,  # LEFT_KNEE
+            1.0,  # RIGHT_KNEE
+            0.0,  # LEFT_ANKLE
+            0.0,  # RIGHT_ANKLE
+        ],
+        [
+            0.0,  # NOSE_TIP
+            0.0,  # LEFT_SHOULDER
+            0.0,  # RIGHT_SHOULDER
+            1.0,  # LEFT_ELBOW
+            0.0,  # RIGHT_ELBOW
+            0.0,  # LEFT_WRIST
+            1.0,  # RIGHT_WRIST
+            0.0,  # LEFT_HIP
+            1.0,  # RIGHT_HIP
+            0.0,  # LEFT_KNEE
+            0.0,  # RIGHT_KNEE
+            1.0,  # LEFT_ANKLE
+            1.0,  # RIGHT_ANKLE
+        ]
+    ])
+    input_keypoint_profile = keypoint_profiles.create_keypoint_profile_or_die(
+        '2DSTD13')
+    output_keypoint_profile = keypoint_profiles.create_keypoint_profile_or_die(
+        '3DSTD16')
+    # Shape = [2, 16].
+    output_keypoint_masks = keypoint_utils.transfer_keypoint_masks(
+        input_keypoint_masks, input_keypoint_profile, output_keypoint_profile)
+    self.assertAllClose(
+        output_keypoint_masks,
+        [
+            [
+                1.0,  # NOSE
+                1.0,  # NECK
+                1.0,  # LEFT_SHOULDER
+                1.0,  # RIGHT_SHOULDER
+                0.0,  # LEFT_ELBOW
+                1.0,  # RIGHT_ELBOW
+                1.0,  # LEFT_WRIST
+                0.0,  # RIGHT_WRIST
+                0.0,  # SPINE
+                0.0,  # PELVIS
+                1.0,  # LEFT_HIP
+                0.0,  # RIGHT_HIP
+                1.0,  # LEFT_KNEE
+                1.0,  # RIGHT_KNEE
+                0.0,  # LEFT_ANKLE
+                0.0,  # RIGHT_ANKLE
+            ],
+            [
+                0.0,  # NOSE
+                0.0,  # NECK
+                0.0,  # LEFT_SHOULDER
+                0.0,  # RIGHT_SHOULDER
+                1.0,  # LEFT_ELBOW
+                0.0,  # RIGHT_ELBOW
+                0.0,  # LEFT_WRIST
+                1.0,  # RIGHT_WRIST
+                0.0,  # SPINE
+                0.0,  # PELVIS
+                0.0,  # LEFT_HIP
+                1.0,  # RIGHT_HIP
+                0.0,  # LEFT_KNEE
+                0.0,  # RIGHT_KNEE
+                1.0,  # LEFT_ANKLE
+                1.0,  # RIGHT_ANKLE
+            ]
+        ])
+
+
+def test_transfer_keypoint_masks_case_2(self):
+  # Shape = [2, 16].
+  input_keypoint_masks = tf.constant([
+      [
+          1.0,  # NOSE
+          1.0,  # NECK
+          1.0,  # LEFT_SHOULDER
+          1.0,  # RIGHT_SHOULDER
+          0.0,  # LEFT_ELBOW
+          1.0,  # RIGHT_ELBOW
+          1.0,  # LEFT_WRIST
+          0.0,  # RIGHT_WRIST
+          0.0,  # SPINE
+          0.0,  # PELVIS
+          1.0,  # LEFT_HIP
+          0.0,  # RIGHT_HIP
+          1.0,  # LEFT_KNEE
+          1.0,  # RIGHT_KNEE
+          0.0,  # LEFT_ANKLE
+          0.0,  # RIGHT_ANKLE
+      ],
+      [
+          0.0,  # NOSE
+          0.0,  # NECK
+          0.0,  # LEFT_SHOULDER
+          0.0,  # RIGHT_SHOULDER
+          1.0,  # LEFT_ELBOW
+          0.0,  # RIGHT_ELBOW
+          0.0,  # LEFT_WRIST
+          1.0,  # RIGHT_WRIST
+          1.0,  # SPINE
+          1.0,  # PELVIS
+          0.0,  # LEFT_HIP
+          1.0,  # RIGHT_HIP
+          0.0,  # LEFT_KNEE
+          0.0,  # RIGHT_KNEE
+          1.0,  # LEFT_ANKLE
+          1.0,  # RIGHT_ANKLE
+      ]
+  ])
+  input_keypoint_profile = keypoint_profiles.create_keypoint_profile_or_die(
+      '3DSTD16')
+  output_keypoint_profile = keypoint_profiles.create_keypoint_profile_or_die(
+      '2DSTD13')
+  # Shape = [2, 13].
+  output_keypoint_masks = keypoint_utils.transfer_keypoint_masks(
+      input_keypoint_masks, input_keypoint_profile, output_keypoint_profile)
+  self.assertAllClose(
+      output_keypoint_masks,
+      [
+          [
+              1.0,  # NOSE_TIP
+              1.0,  # LEFT_SHOULDER
+              1.0,  # RIGHT_SHOULDER
+              0.0,  # LEFT_ELBOW
+              1.0,  # RIGHT_ELBOW
+              1.0,  # LEFT_WRIST
+              0.0,  # RIGHT_WRIST
+              1.0,  # LEFT_HIP
+              0.0,  # RIGHT_HIP
+              1.0,  # LEFT_KNEE
+              1.0,  # RIGHT_KNEE
+              0.0,  # LEFT_ANKLE
+              0.0,  # RIGHT_ANKLE
+          ],
+          [
+              0.0,  # NOSE_TIP
+              0.0,  # LEFT_SHOULDER
+              0.0,  # RIGHT_SHOULDER
+              1.0,  # LEFT_ELBOW
+              0.0,  # RIGHT_ELBOW
+              0.0,  # LEFT_WRIST
+              1.0,  # RIGHT_WRIST
+              0.0,  # LEFT_HIP
+              1.0,  # RIGHT_HIP
+              0.0,  # LEFT_KNEE
+              0.0,  # RIGHT_KNEE
+              1.0,  # LEFT_ANKLE
+              1.0,  # RIGHT_ANKLE
+          ]
+      ])
 
 
 if __name__ == '__main__':

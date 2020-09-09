@@ -119,13 +119,114 @@ class DistanceUtilsTest(tf.test.TestCase):
 
   def test_compute_distance_matrix(self):
     # Shape = [2, 1]
-    starts = tf.constant([[1], [2]])
+    start_points = tf.constant([[1], [2]])
     # Shape = [3, 1]
-    ends = tf.constant([[3], [4], [5]])
+    end_points = tf.constant([[3], [4], [5]])
     distance_matrix = distance_utils.compute_distance_matrix(
-        starts, ends, distance_fn=tf.math.subtract)
+        start_points, end_points, distance_fn=tf.math.subtract)
     self.assertAllEqual(distance_matrix,
                         [[[-2], [-3], [-4]], [[-1], [-2], [-3]]])
+
+  def test_compute_distance_matrix_with_both_masks(self):
+    # Shape = [2, 3, 1].
+    start_points = tf.constant([
+        [[1.0], [2.0], [3.0]],
+        [[4.0], [5.0], [6.0]],
+    ])
+    # Shape = [3, 3, 1].
+    end_points = tf.constant([
+        [[11.0], [12.0], [13.0]],
+        [[14.0], [15.0], [16.0]],
+        [[17.0], [18.0], [19.0]],
+    ])
+    # Shape = [2, 3].
+    start_point_masks = tf.constant([[1.0, 1.0, 1.0], [1.0, 1.0, 0.0]])
+    # Shape = [3, 3].
+    end_point_masks = tf.constant([[1.0, 0.0, 1.0], [1.0, 0.0, 0.0],
+                                   [1.0, 1.0, 1.0]])
+
+    def masked_add(lhs, rhs, masks):
+      masks = tf.expand_dims(masks, axis=-1)
+      return tf.math.reduce_sum((lhs + rhs) * masks, axis=[-2, -1])
+
+    # Shape = [2, 3].
+    distance_matrix = distance_utils.compute_distance_matrix(
+        start_points,
+        end_points,
+        distance_fn=masked_add,
+        start_point_masks=start_point_masks,
+        end_point_masks=end_point_masks)
+
+    with self.session() as sess:
+      distance_matrix_result = sess.run(distance_matrix)
+
+    self.assertAllClose(distance_matrix_result,
+                        [[28.0, 15.0, 60.0], [15.0, 18.0, 44.0]])
+
+  def test_compute_distance_matrix_with_start_masks(self):
+    # Shape = [2, 3, 1].
+    start_points = tf.constant([
+        [[1.0], [2.0], [3.0]],
+        [[4.0], [5.0], [6.0]],
+    ])
+    # Shape = [3, 3, 1].
+    end_points = tf.constant([
+        [[11.0], [12.0], [13.0]],
+        [[14.0], [15.0], [16.0]],
+        [[17.0], [18.0], [19.0]],
+    ])
+    # Shape = [2, 3].
+    start_point_masks = tf.constant([[1.0, 1.0, 1.0], [1.0, 1.0, 0.0]])
+
+    def masked_add(lhs, rhs, masks):
+      masks = tf.expand_dims(masks, axis=-1)
+      return tf.math.reduce_sum((lhs + rhs) * masks, axis=[-2, -1])
+
+    # Shape = [2, 3].
+    distance_matrix = distance_utils.compute_distance_matrix(
+        start_points,
+        end_points,
+        distance_fn=masked_add,
+        start_point_masks=start_point_masks)
+
+    with self.session() as sess:
+      distance_matrix_result = sess.run(distance_matrix)
+
+    self.assertAllClose(distance_matrix_result,
+                        [[42.0, 51.0, 60.0], [32.0, 38.0, 44.0]])
+
+  def test_compute_distance_matrix_with_end_masks(self):
+    # Shape = [2, 3, 1].
+    start_points = tf.constant([
+        [[1.0], [2.0], [3.0]],
+        [[4.0], [5.0], [6.0]],
+    ])
+    # Shape = [3, 3, 1].
+    end_points = tf.constant([
+        [[11.0], [12.0], [13.0]],
+        [[14.0], [15.0], [16.0]],
+        [[17.0], [18.0], [19.0]],
+    ])
+    # Shape = [3, 3].
+    end_point_masks = tf.constant([[1.0, 0.0, 1.0], [1.0, 0.0, 0.0],
+                                   [1.0, 1.0, 1.0]])
+
+    def masked_add(lhs, rhs, masks):
+      masks = tf.expand_dims(masks, axis=-1)
+      return tf.math.reduce_sum((lhs + rhs) * masks, axis=[-2, -1])
+
+    # Shape = [2, 3].
+    distance_matrix = distance_utils.compute_distance_matrix(
+        start_points,
+        end_points,
+        distance_fn=masked_add,
+        end_point_masks=end_point_masks)
+
+    with self.session() as sess:
+      distance_matrix_result = sess.run(distance_matrix)
+
+    self.assertAllClose(distance_matrix_result,
+                        [[28.0, 15.0, 60.0], [34.0, 18.0, 69.0]])
 
   def test_compute_gaussian_kl_divergence_unit_univariate(self):
     lhs_means = [0.0]

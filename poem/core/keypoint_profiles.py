@@ -462,6 +462,16 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
         for name in self._right_ankle_keypoint_name
     ]
 
+  @property
+  def standard_part_names(self):
+    """Gets all standard part names."""
+    return [
+        'HEAD', 'NECK', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
+        'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'SPINE', 'PELVIS',
+        'LEFT_HIP', 'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
+        'RIGHT_ANKLE'
+    ]
+
   def get_standard_part_index(self, part_name):
     """Gets part index by standardized name."""
     if part_name.upper() == 'HEAD':

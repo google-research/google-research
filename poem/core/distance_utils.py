@@ -200,8 +200,16 @@ def compute_gaussian_likelihoods(
   return p
 
 
-def compute_distance_matrix(starts, ends, distance_fn):
+def compute_distance_matrix(start_points,
+                            end_points,
+                            distance_fn,
+                            start_point_masks=None,
+                            end_point_masks=None):
   """Computes all-pair distance matrix.
+
+  Note if either point mask tensor is specified, `distance_fn` must support a
+  third argument as point masks. If both masks are specified, they will be
+  multiplied. Otherwise if either is specified, it will be used for both points.
 
   Computes distance matrix as:
     [d(s_1, e_1),  d(s_1, e_2),  ...,  d(s_1, e_N)]
@@ -210,21 +218,61 @@ def compute_distance_matrix(starts, ends, distance_fn):
     [d(s_M, e_1),  d(s_2, e_2),  ...,  d(s_2, e_N)]
 
   Args:
-    starts: A tensor for starts. Shape = [num_starts, ...].
-    ends: A tensor for ends. Shape = [num_ends, ...].
+    start_points: A tensor for start points. Shape = [num_start_points, ...,
+      point_dim].
+    end_points: A tensor for end_points. Shape = [num_end_points, ...,
+      point_dim].
     distance_fn: A function handle for computing distance matrix, which takes
-      two matrix tensors and returns an element-wise distance matrix tensor.
+      two matrix point tensors and a mask matrix tensor, and returns an
+      element-wise distance matrix tensor.
+    start_point_masks: A tensor for start point masks. Shape =
+      [num_start_points, ...].
+    end_point_masks: A tensor for end point masks. Shape = [num_end_points,
+      ...].
 
   Returns:
-    A tensor for distance matrix. Shape = [num_starts, num_ends, ...].
+    A tensor for distance matrix. Shape = [num_start_points, num_end_points,
+      ...].
   """
-  starts = tf.expand_dims(starts, axis=1)
-  ends = tf.expand_dims(ends, axis=0)
-  starts = data_utils.tile_first_dims(
-      starts, first_dim_multiples=[1, tf.shape(ends)[1]])
-  ends = data_utils.tile_first_dims(
-      ends, first_dim_multiples=[tf.shape(starts)[0], 1])
-  return distance_fn(starts, ends)
+
+  def expand_and_tile_axis_01(x, target_axis, target_dim):
+    """Expands and tiles tensor along target axis 0 or 1."""
+    if target_axis not in [0, 1]:
+      raise ValueError('Only supports 0 or 1 as target axis: %s.' %
+                       str(target_axis))
+    x = tf.expand_dims(x, axis=target_axis)
+    first_dim_multiples = [1, 1]
+    first_dim_multiples[target_axis] = target_dim
+    return data_utils.tile_first_dims(
+        x, first_dim_multiples=first_dim_multiples)
+
+  num_start_points = tf.shape(start_points)[0]
+  num_end_points = tf.shape(end_points)[0]
+  start_points = expand_and_tile_axis_01(
+      start_points, target_axis=1, target_dim=num_end_points)
+  end_points = expand_and_tile_axis_01(
+      end_points, target_axis=0, target_dim=num_start_points)
+
+  if start_point_masks is None and end_point_masks is None:
+    return distance_fn(start_points, end_points)
+
+  point_masks = None
+  if start_point_masks is not None and end_point_masks is not None:
+    start_point_masks = expand_and_tile_axis_01(
+        start_point_masks, target_axis=1, target_dim=num_end_points)
+    end_point_masks = expand_and_tile_axis_01(
+        end_point_masks, target_axis=0, target_dim=num_start_points)
+    point_masks = start_point_masks * end_point_masks
+  elif start_point_masks is not None:
+    start_point_masks = expand_and_tile_axis_01(
+        start_point_masks, target_axis=1, target_dim=num_end_points)
+    point_masks = start_point_masks
+  else:  # End_point_masks is not None.
+    end_point_masks = expand_and_tile_axis_01(
+        end_point_masks, target_axis=0, target_dim=num_start_points)
+    point_masks = end_point_masks
+
+  return distance_fn(start_points, end_points, point_masks)
 
 
 def compute_gaussian_kl_divergence(lhs_means,

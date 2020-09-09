@@ -71,6 +71,18 @@ class DataUtilsTest(tf.test.TestCase):
     reshaped_x = data_utils.reshape_by_last_dims(x, last_dim_shape=[2, 2])
     self.assertAllEqual(reshaped_x, [[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
 
+  def test_reduce_mean(self):
+    # Shape = [2, 3, 2].
+    tensor = tf.constant([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]],
+                          [[7.0, 8.0], [9.0, 10.0], [11.0, 12.0]]])
+    # Shape = [2, 3, 1].
+    weights = tf.constant([[[1.0], [0.0], [1.0]], [[0.0], [1.0], [0.0]]])
+    # Shape = [2, 1, 2].
+    means = data_utils.reduce_weighted_mean(
+        tensor, weights, axis=-2, keepdims=True)
+
+    self.assertAllClose(means, [[[3.0, 4.0]], [[9.0, 10.0]]])
+
   def test_sample_gaussians(self):
     means = tf.constant([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     stddevs = tf.constant([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])

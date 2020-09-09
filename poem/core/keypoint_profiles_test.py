@@ -155,6 +155,12 @@ class KeypointProfileTest(tf.test.TestCase):
     self.assertEqual(profile.right_knee_keypoint_index, [10])
     self.assertEqual(profile.left_ankle_keypoint_index, [11])
     self.assertEqual(profile.right_ankle_keypoint_index, [12])
+    self.assertEqual(profile.standard_part_names, [
+        'HEAD', 'NECK', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
+        'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'SPINE', 'PELVIS',
+        'LEFT_HIP', 'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
+        'RIGHT_ANKLE'
+    ])
     self.assertEqual(profile.get_standard_part_index('HEAD'), [0])
     self.assertEqual(profile.get_standard_part_index('NECK'), [1, 2])
     self.assertEqual(profile.get_standard_part_index('LEFT_SHOULDER'), [1])
@@ -237,6 +243,12 @@ class KeypointProfileTest(tf.test.TestCase):
     self.assertEqual(profile.right_knee_keypoint_index, [14])
     self.assertEqual(profile.left_ankle_keypoint_index, [15])
     self.assertEqual(profile.right_ankle_keypoint_index, [16])
+    self.assertEqual(profile.standard_part_names, [
+        'HEAD', 'NECK', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
+        'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'SPINE', 'PELVIS',
+        'LEFT_HIP', 'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
+        'RIGHT_ANKLE'
+    ])
     self.assertEqual(profile.get_standard_part_index('HEAD'), [1])
     self.assertEqual(profile.get_standard_part_index('NECK'), [3])
     self.assertEqual(profile.get_standard_part_index('LEFT_SHOULDER'), [4])
@@ -313,6 +325,12 @@ class KeypointProfileTest(tf.test.TestCase):
     self.assertEqual(profile.right_knee_keypoint_index, [10])
     self.assertEqual(profile.left_ankle_keypoint_index, [11])
     self.assertEqual(profile.right_ankle_keypoint_index, [12])
+    self.assertEqual(profile.standard_part_names, [
+        'HEAD', 'NECK', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
+        'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'SPINE', 'PELVIS',
+        'LEFT_HIP', 'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
+        'RIGHT_ANKLE'
+    ])
     self.assertEqual(profile.get_standard_part_index('HEAD'), [0])
     self.assertEqual(profile.get_standard_part_index('NECK'), [1, 2])
     self.assertEqual(profile.get_standard_part_index('LEFT_SHOULDER'), [1])
@@ -396,6 +414,12 @@ class KeypointProfileTest(tf.test.TestCase):
     self.assertEqual(profile.right_knee_keypoint_index, [14])
     self.assertEqual(profile.left_ankle_keypoint_index, [15])
     self.assertEqual(profile.right_ankle_keypoint_index, [16])
+    self.assertEqual(profile.standard_part_names, [
+        'HEAD', 'NECK', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
+        'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'SPINE', 'PELVIS',
+        'LEFT_HIP', 'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
+        'RIGHT_ANKLE'
+    ])
     self.assertEqual(profile.get_standard_part_index('HEAD'), [1])
     self.assertEqual(profile.get_standard_part_index('NECK'), [2])
     self.assertEqual(profile.get_standard_part_index('LEFT_SHOULDER'), [4])
@@ -498,6 +522,12 @@ class KeypointProfileTest(tf.test.TestCase):
     self.assertEqual(profile.right_knee_keypoint_index, [10])
     self.assertEqual(profile.left_ankle_keypoint_index, [11])
     self.assertEqual(profile.right_ankle_keypoint_index, [12])
+    self.assertEqual(profile.standard_part_names, [
+        'HEAD', 'NECK', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
+        'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'SPINE', 'PELVIS',
+        'LEFT_HIP', 'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
+        'RIGHT_ANKLE'
+    ])
     self.assertEqual(profile.get_standard_part_index('HEAD'), [0])
     self.assertEqual(profile.get_standard_part_index('NECK'), [1, 2])
     self.assertEqual(profile.get_standard_part_index('LEFT_SHOULDER'), [1])
@@ -606,6 +636,12 @@ class KeypointProfileTest(tf.test.TestCase):
     self.assertEqual(profile.right_knee_keypoint_index, [10])
     self.assertEqual(profile.left_ankle_keypoint_index, [11])
     self.assertEqual(profile.right_ankle_keypoint_index, [12])
+    self.assertEqual(profile.standard_part_names, [
+        'HEAD', 'NECK', 'LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW',
+        'RIGHT_ELBOW', 'LEFT_WRIST', 'RIGHT_WRIST', 'SPINE', 'PELVIS',
+        'LEFT_HIP', 'RIGHT_HIP', 'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE',
+        'RIGHT_ANKLE'
+    ])
     self.assertEqual(profile.get_standard_part_index('HEAD'), [0])
     self.assertEqual(profile.get_standard_part_index('NECK'), [1, 2])
     self.assertEqual(profile.get_standard_part_index('LEFT_SHOULDER'), [1])
