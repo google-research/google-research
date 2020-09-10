@@ -1,0 +1,2 @@
+numpy>=1.13.3
+tensorflow==1.12
