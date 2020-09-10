@@ -42,6 +42,8 @@ flags.DEFINE_bool('train_feature_grad', False, 'Train _ param')
 flags.DEFINE_bool('train_divergence', False, 'Train _ param')
 flags.DEFINE_bool('train_flow_grad', False, 'Train _ param')
 flags.DEFINE_bool('train_hyper', False, 'Train _ param')
+flags.DEFINE_float('bn_decay', 0.99, 'batch norm decay')
+flags.DEFINE_float('bn_epsilon', 1e-5, 'batch norm epsilon')
 FLAGS = flags.FLAGS
 
 BATCH_NORM_DECAY = 0.99
@@ -258,7 +260,7 @@ def rep_flow(inputs,
             padding='SAME',
             use_bias=False,
             kernel_initializer=tf.variance_scaling_initializer(),
-            data_format=df)
+            data_format=data_format)
 
       inp = norm_img(inputs)
       inp = tf.reshape(
@@ -368,7 +370,7 @@ def rep_flow(inputs,
             padding='SAME',
             use_bias=False,
             kernel_initializer=tf.variance_scaling_initializer(),
-            data_format=df)
+            data_format=data_format)
 
         flow = batch_norm_relu(
             flow, is_training, relu=False, init_zero=True,

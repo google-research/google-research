@@ -47,10 +47,6 @@ flags.DEFINE_string(
     'model_edge_weights', '[]',
     'AssembleNet model structure connection weights in the string format.')
 
-flags.DEFINE_float('bn_decay', 0.99, 'batch norm decay')
-flags.DEFINE_float('bn_epsilon', 1e-5, 'batch norm epsilon')
-
-
 flags.DEFINE_string('attention_mode', None, '"peer" or "self" or None')
 
 flags.DEFINE_float('dropout_keep_prob', None, 'Keep ratio for dropout.')
