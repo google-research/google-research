@@ -16,18 +16,17 @@
 """This module contains utilities for source code tokenization."""
 
 import abc
-import keyword
-import re
 import tokenize
-import typing
-from typing import Any, Dict, List, Sequence, Text, Tuple, Union
-
-from absl import logging
+from typing import Dict
+from typing import List
+from typing import Sequence
+from typing import Text
+from typing import Tuple
+from typing import Union
 import six
 from cubert import unified_tokenizer
 
-# Quote string for special tokens. Must make the resulting string a valid Python
-# token.
+# Quote string for special tokens.
 SPECIAL_QUOTE = '___'
 
 
@@ -43,7 +42,7 @@ MAX_OUTPUT_TOKEN_LENGTH = 15
 
 
 @six.add_metaclass(abc.ABCMeta)
-class Tokenizer(object):
+class CuBertTokenizer(object):
   """A tokenizer that implements a language-agnostic tokenization.
 
   The tokenizer implements a language-agnostic tokenization. This is available
@@ -189,166 +188,8 @@ class Tokenizer(object):
     return self.untokenize_abstract(whole_tokens)
 
 
-def _token_from_token_type(token_type):
+def token_from_token_type(token_type):
   """Turns a token type into a reserved token string."""
   # We use the tok_name dict from tokenize, not token. The former has
   # NL and COMMENT and such, whereas the latter doesn't.
   return quote_special(tokenize.tok_name[token_type])
-
-
-class CuBertTokenizer(Tokenizer):
-  """Tokenizer that extracts Python's lexical elements preserving strings."""
-  _TOKEN_TYPE_MAP = {
-      tokenize.COMMENT: unified_tokenizer.TokenKind.COMMENT,
-      tokenize.DEDENT: unified_tokenizer.TokenKind.KEYWORD,
-      tokenize.ENDMARKER: unified_tokenizer.TokenKind.EOS,
-      tokenize.ERRORTOKEN: unified_tokenizer.TokenKind.ERROR,
-      tokenize.INDENT: unified_tokenizer.TokenKind.KEYWORD,
-      tokenize.NEWLINE: unified_tokenizer.TokenKind.NEWLINE,
-      tokenize.NL: unified_tokenizer.TokenKind.PUNCTUATION,
-      tokenize.NUMBER: unified_tokenizer.TokenKind.NUMBER,
-      tokenize.OP: unified_tokenizer.TokenKind.PUNCTUATION,
-      tokenize.STRING: unified_tokenizer.TokenKind.STRING,
-  }
-  _REVERSE_TOKEN_MAP = {
-      _token_from_token_type(tokenize.INDENT): tokenize.INDENT,
-      _token_from_token_type(tokenize.DEDENT): tokenize.DEDENT,
-      quote_special(
-          unified_tokenizer.TokenKind.EOS.name): tokenize.ENDMARKER,
-      quote_special(
-          unified_tokenizer.TokenKind.ERROR.name): tokenize.ERRORTOKEN,
-      quote_special(
-          unified_tokenizer.TokenKind.NEWLINE.name): tokenize.NEWLINE,
-      _token_from_token_type(tokenize.NL): tokenize.NL,
-  }
-  # Adding the end-of-string anchor \Z below, since re.fullmatch wasn't
-  # available in Python2.
-  _NUMBERS = re.compile('(' + tokenize.Number + r')\Z')  # pytype: disable=module-attr
-  _SINGLE_STRINGS = re.compile('(' + tokenize.String + r')\Z')  # pytype: disable=module-attr
-  _TRIPLE_STRING_BEGINNINGS = re.compile(tokenize.Triple)  # pytype: disable=module-attr
-  _COMMENTS = re.compile('(' + tokenize.Comment + r')\Z')  # pytype: disable=module-attr
-
-  _EXACT_TOKEN_TYPES = tokenize.EXACT_TOKEN_TYPES.keys()  # pytype: disable=module-attr
-
-  # Token types that CubertTokenizer will tokenize by their type and not
-  # content.
-  _TOKEN_TYPES_TO_TOKENIZE_BY_TYPE = [
-      tokenize.NEWLINE, tokenize.DEDENT, tokenize.NL
-  ]
-
-  def __init__(self, *args, **kwargs):
-    super(CuBertTokenizer, self).__init__(*args, **kwargs)
-
-    # By default, we drop COMMENT tokens.
-    self.update_types_to_skip([unified_tokenizer.TokenKind.COMMENT])
-    self.update_mappings({
-        # By default, replace \n and \r. We choose special names that are
-        # different from the Python token types (i.e., NL).
-        '\n':
-            quote_special('NLCHAR'),
-        '\r':
-            quote_special('CR'),
-        unified_tokenizer.SENTINEL:
-            quote_special(unified_tokenizer.SENTINEL_ESCAPE),
-    })
-
-  def tokenize_and_abstract(
-      self,
-      source_code):
-    """Produces a language-agnostic tokenization of the input code."""
-    token_pairs = []  # type: List[Tuple[Text, int]]
-    try:
-      token_tuples = unified_tokenizer.code_to_tokens(source_code)
-      token_pairs = [(six.ensure_text(token_name), token_type)
-                     for token_type, token_name, _, _, _ in token_tuples]
-    except (tokenize.TokenError, IndentationError) as e:
-      logging.warning('The tokenizer raised exception `%s` while parsing %s',
-                      e, source_code)
-      token_pairs = [
-          (quote_special(unified_tokenizer.TokenKind.ERROR.name),
-           tokenize.ERRORTOKEN),
-          ('',
-           tokenize.ENDMARKER),
-      ]
-    agnostic_tokens = []  # type: List[Tuple[Text, unified_tokenizer.TokenKind]]
-
-    for spelling, kind in token_pairs:
-      adjusted_spelling = spelling
-      token_kind = unified_tokenizer.TokenKind.NONE
-      if kind == tokenize.NAME:
-        # Disambiguate identifiers from keywords.
-        if keyword.iskeyword(spelling):
-          token_kind = unified_tokenizer.TokenKind.KEYWORD
-        else:
-          token_kind = unified_tokenizer.TokenKind.IDENTIFIER
-      else:
-        if kind in CuBertTokenizer._TOKEN_TYPES_TO_TOKENIZE_BY_TYPE:
-          # Replace spelling with type.
-          adjusted_spelling = _token_from_token_type(kind)
-        elif kind is tokenize.INDENT:
-          # For INDENT, in particular, we also record the actual spelling too.
-          adjusted_spelling = '{indent}{spelling}'.format(
-              indent=_token_from_token_type(kind),
-              spelling=spelling)
-        elif kind == tokenize.ENDMARKER:
-          adjusted_spelling = quote_special(
-              unified_tokenizer.TokenKind.EOS.name)
-
-        # Map everything according to table.
-        try:
-          token_kind = CuBertTokenizer._TOKEN_TYPE_MAP[kind]
-        except KeyError as ke:
-          # It's possible we're here because of async/await. Those kept being
-          # turned into keywords and then removed from keywords, so we can't
-          # rely on knowing which they are. We'll check by spelling.
-          # See: https://bugs.python.org/issue30406
-          # and https://bugs.python.org/issue33260
-          # and https://bugs.python.org/issue35975
-          if spelling in ('async', 'await'):
-            token_kind = unified_tokenizer.TokenKind.KEYWORD
-          else:
-            raise ValueError('While trying to turn Python token %r into an '
-                             'agnostic one, raised %r.' % ((spelling, kind),
-                                                           ke))
-
-      agnostic_tokens.append((adjusted_spelling, token_kind))
-
-    return agnostic_tokens
-
-  def untokenize_abstract(self, whole_tokens):
-    # Reconstruct Python tokenizer tuples, so that Python's untokenize can be
-    # invoked.
-    token_tuples = []  # type: List[Tuple[int, Text]]
-
-    for whole_token in whole_tokens:
-      if whole_token in CuBertTokenizer._EXACT_TOKEN_TYPES:
-        token_tuples.append((tokenize.OP, whole_token))
-      elif _token_from_token_type(tokenize.INDENT) in whole_token:
-        # We baked the type and spelling into one token. Break them up.
-        spelling = whole_token.replace(
-            _token_from_token_type(tokenize.INDENT), '')
-        token_tuples.append((tokenize.INDENT, spelling))
-      elif whole_token in CuBertTokenizer._REVERSE_TOKEN_MAP:
-        python_kind = CuBertTokenizer._REVERSE_TOKEN_MAP[whole_token]
-        if python_kind in (tokenize.DEDENT, tokenize.ENDMARKER,
-                           tokenize.ERRORTOKEN):
-          spelling = ''
-        else:  # python_kind in (tokenize.NEWLINE, tokenize.NL)
-          spelling = '\n'
-        token_tuples.append((python_kind, spelling))
-      elif keyword.iskeyword(whole_token):
-        token_tuples.append((tokenize.NAME, whole_token))
-      elif CuBertTokenizer._NUMBERS.match(whole_token):
-        token_tuples.append((tokenize.NUMBER, whole_token))
-      elif CuBertTokenizer._SINGLE_STRINGS.match(whole_token):
-        token_tuples.append((tokenize.STRING, whole_token))
-      elif CuBertTokenizer._TRIPLE_STRING_BEGINNINGS.match(whole_token):
-        token_tuples.append((tokenize.STRING, whole_token))
-      elif CuBertTokenizer._COMMENTS.match(whole_token):
-        token_tuples.append((tokenize.COMMENT, whole_token))
-      else:
-        # Everything else we map back to NAME.
-        token_tuples.append((tokenize.NAME, whole_token))
-
-    reconstructed = tokenize.untokenize(typing.cast(Any, token_tuples))
-    return reconstructed

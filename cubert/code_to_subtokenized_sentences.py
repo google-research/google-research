@@ -25,6 +25,7 @@ from absl import logging
 from tensor2tensor.data_generators import text_encoder
 
 from cubert import cubert_tokenizer
+from cubert import python_tokenizer
 
 FLAGS = flags.FLAGS
 
@@ -51,7 +52,7 @@ def code_to_cubert_sentences(
       example, there should be no unmatched parentheses, and `if` and other
       blocks of code must have bodies.
     initial_tokenizer: The first tokenizer that creates sentences, probably a
-      program_tokenizers.CuBertTokenizer.
+      cubert_tokenizer.CuBertTokenizer.
     subword_tokenizer: A second tokenizer that splits tokens of the
       `initial_tokenizer` into subtokens.
 
@@ -103,7 +104,7 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  tokenizer = cubert_tokenizer.CuBertTokenizer()
+  tokenizer = python_tokenizer.PythonTokenizer()
   subword_tokenizer = text_encoder.SubwordTextEncoder(FLAGS.vocabulary_filepath)
 
   with open(FLAGS.input_filepath, 'r') as input_file:
