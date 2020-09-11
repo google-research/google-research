@@ -1,0 +1,114 @@
+licenses(["notice"])
+
+package(default_visibility = ["//visibility:public"])
+
+# All clusterers.
+
+cc_library(
+    name = "all-clusterers",
+    deps = [
+        ":parallel-affinity",
+        ":parallel-correlation-clusterer",
+    ],
+    alwayslink = 1,
+)
+
+# Individual clusterers.
+
+cc_library(
+    name = "parallel-affinity",
+    srcs = ["parallel-affinity.cc"],
+    hdrs = ["parallel-affinity.h"],
+    deps = [
+        ":parallel-affinity-internal",
+        "//:config_cc_proto",
+        "//:gbbs-graph",
+        "//:in-memory-clusterer",
+        "//:status_macros",
+        "//parallel:parallel-graph-utils",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/status:statusor",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "parallel-correlation-clusterer",
+    srcs = ["parallel-correlation-clusterer.cc"],
+    hdrs = ["parallel-correlation-clusterer.h"],
+    deps = [
+        ":parallel-correlation-clusterer-internal",
+        "//:config_cc_proto",
+        "//:gbbs-graph",
+        "//:in-memory-clusterer",
+        "//:status_macros",
+        "//parallel:parallel-graph-utils",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/status:statusor",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "correlation-clusterer-util",
+    hdrs = ["correlation-clusterer-util.h"],
+    deps = [
+        "//:config_cc_proto",
+        "//:in-memory-clusterer",
+        "@com_google_absl//absl/container:flat_hash_map",
+    ],
+)
+
+# Private support libraries.
+
+cc_library(
+    name = "parallel-affinity-internal",
+    srcs = ["parallel-affinity-internal.cc"],
+    hdrs = ["parallel-affinity-internal.h"],
+    deps = [
+        "//:config_cc_proto",
+        "//:in-memory-clusterer",
+        "//parallel:parallel-graph-utils",
+        "//parallel:parallel-sequence-ops",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@gbbs//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
+        "@gbbs//gbbs",
+        "@gbbs//gbbs:bridge",
+        "@gbbs//gbbs:macros",
+        "@gbbs//pbbslib:sample_sort",
+        "@gbbs//pbbslib:seq",
+        "@gbbs//pbbslib:sequence_ops",
+        "@gbbs//pbbslib:utilities",
+    ],
+)
+
+cc_library(
+    name = "parallel-correlation-clusterer-internal",
+    srcs = ["parallel-correlation-clusterer-internal.cc"],
+    hdrs = ["parallel-correlation-clusterer-internal.h"],
+    deps = [
+        ":correlation-clusterer-util",
+        "//:config_cc_proto",
+        "//:in-memory-clusterer",
+        "//parallel:parallel-graph-utils",
+        "//parallel:parallel-sequence-ops",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:optional",
+        "@gbbs//gbbs",
+        "@gbbs//gbbs:bridge",
+        "@gbbs//gbbs:graph",
+        "@gbbs//gbbs:macros",
+        "@gbbs//gbbs:vertex_subset",
+        "@gbbs//pbbslib:random_shuffle",
+        "@gbbs//pbbslib:sample_sort",
+        "@gbbs//pbbslib:seq",
+        "@gbbs//pbbslib:sequence_ops",
+        "@gbbs//pbbslib:utilities",
+    ],
+)
