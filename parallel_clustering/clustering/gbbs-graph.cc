@@ -19,8 +19,8 @@
 
 #include "absl/strings/str_cat.h"
 #include "absl/synchronization/mutex.h"
+#include "clustering/status_macros.h"
 #include "external/gbbs/gbbs/macros.h"
-#include "status_macros.h"  // NOLINT(build/include)
 
 namespace research_graph {
 namespace in_memory {

@@ -25,12 +25,12 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 
-#include "clusterers/parallel-affinity.h"
-#include "clusterers/parallel-correlation-clusterer.h"
-#include "config.pb.h"  // NOLINT(build/include)
+#include "clustering/clusterers/parallel-affinity.h"
+#include "clustering/clusterers/parallel-correlation-clusterer.h"
+#include "clustering/config.pb.h"
+#include "clustering/in-memory-clusterer.h"
+#include "clustering/status_macros.h"
 #include "external/gbbs/gbbs/edge_map_blocked.h"
-#include "in-memory-clusterer.h"  // NOLINT(build/include)
-#include "status_macros.h"  // NOLINT(build/include)
 
 ABSL_FLAG(std::string, clusterer_name, "",
           "Name of a clusterer (ParallelAffinityClusterer or "

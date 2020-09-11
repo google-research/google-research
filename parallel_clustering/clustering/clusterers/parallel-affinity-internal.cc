@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "clusterers/parallel-affinity-internal.h"
+#include "clustering/clusterers/parallel-affinity-internal.h"
 
 #include <stdlib.h>
 
@@ -22,7 +22,7 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "config.pb.h"  // NOLINT(build/include)
+#include "clustering/config.pb.h"
 #include "external/gbbs/benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 #include "external/gbbs/gbbs/bridge.h"
 #include "external/gbbs/gbbs/gbbs.h"

@@ -20,12 +20,12 @@ respectively.
 
 ## Example Usage
 
-The main executable is cluster-in-memory_main. It will run either parallel
-affinity clusterer or parallel correlation clusterer, by setting the input
-clusterer_name to "ParallelAffinityClusterer" or "ParallelCorrelationClusterer"
-respectively. Both clusterers take configs given in a protobuf, as detailed
-in config.proto, which can be passed in by setting the input clusterer_config.
-Note that the proto should be passed in text format.
+The main executable is cluster-in-memory_main in the clustering directory. It
+will run either parallel affinity clusterer or parallel correlation clusterer,
+by setting the input clusterer_name to "ParallelAffinityClusterer" or
+"ParallelCorrelationClusterer" respectively. Both clusterers take configs given
+in a protobuf, as detailed in config.proto, which can be passed in by setting
+the input clusterer_config. Note that the proto should be passed in text format.
 
 The input graph format should be an edge list format. For an unweighted graph,
 every line consists of two endpoints separated by a space, and the weight of
@@ -40,5 +40,5 @@ Note that various flags must be set to ensure compilation, due to dependencies
 on GBBS. A template command is:
 
 ```
-bazel run -c opt --cxxopt=-pthread --cxxopt=-std=c++17 --cxxopt=-w --cxxopt=-mcx16 --cxxopt=-march=native --cxxopt=-fvisibility=hidden --cxxopt=-fvisibility-inlines-hidden --cxxopt=-DHOMEGROWN --cxxopt=-DLONG --cxxopt=-DUSEMALLOC :cluster-in-memory_main -- --input_graph=</path/to/graph> --output_clustering=</path/to/output> --clusterer_name=<clusterer name> --clusterer_config='<clusterer proto>'
+bazel run -c opt --cxxopt=-pthread --cxxopt=-std=c++17 --cxxopt=-w --cxxopt=-mcx16 --cxxopt=-march=native --cxxopt=-fvisibility=hidden --cxxopt=-fvisibility-inlines-hidden --cxxopt=-DHOMEGROWN --cxxopt=-DLONG --cxxopt=-DUSEMALLOC //clustering:cluster-in-memory_main -- --input_graph=</path/to/graph> --output_clustering=</path/to/output> --clusterer_name=<clusterer name> --clusterer_config='<clusterer proto>'
 ```

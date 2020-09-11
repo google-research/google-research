@@ -16,8 +16,8 @@
 #define RESEARCH_GRAPH_IN_MEMORY_CLUSTERING_CLUSTERERS_CORRELATION_CLUSTERER_UTIL_H_
 
 #include "absl/container/flat_hash_map.h"
-#include "config.pb.h"  // NOLINT(build/include)
-#include "in-memory-clusterer.h"  // NOLINT(build/include)
+#include "clustering/config.pb.h"
+#include "clustering/in-memory-clusterer.h"
 
 namespace research_graph::in_memory {
 

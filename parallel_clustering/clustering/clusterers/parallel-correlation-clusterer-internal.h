@@ -23,10 +23,10 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/types/optional.h"
-#include "config.pb.h"  // NOLINT(build/include)
+#include "clustering/config.pb.h"
 #include "external/gbbs/gbbs/graph.h"
 #include "external/gbbs/gbbs/vertex_subset.h"
-#include "in-memory-clusterer.h"  // NOLINT(build/include)
+#include "clustering/in-memory-clusterer.h"
 
 namespace research_graph {
 namespace in_memory {

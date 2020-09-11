@@ -22,7 +22,7 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "config.pb.h"  // NOLINT(build/include)
+#include "clustering/config.pb.h"
 
 namespace research_graph {
 namespace in_memory {

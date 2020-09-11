@@ -21,10 +21,10 @@
 #include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/types/optional.h"
+#include "clustering/in-memory-clusterer.h"
 #include "external/gbbs/gbbs/gbbs.h"
 #include "external/gbbs/gbbs/graph.h"
 #include "external/gbbs/gbbs/macros.h"
-#include "in-memory-clusterer.h"  // NOLINT(build/include)
 
 namespace research_graph {
 namespace in_memory {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "clusterers/parallel-correlation-clusterer-internal.h"
+#include "clustering/clusterers/parallel-correlation-clusterer-internal.h"
 
 #include <algorithm>
 #include <utility>
@@ -22,8 +22,8 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/types/optional.h"
-#include "clusterers/correlation-clusterer-util.h"
-#include "config.pb.h"  // NOLINT(build/include)
+#include "clustering/clusterers/correlation-clusterer-util.h"
+#include "clustering/config.pb.h"
 #include "external/gbbs/gbbs/bridge.h"
 #include "external/gbbs/gbbs/gbbs.h"
 #include "external/gbbs/gbbs/macros.h"
@@ -32,7 +32,7 @@
 #include "external/gbbs/pbbslib/seq.h"
 #include "external/gbbs/pbbslib/sequence_ops.h"
 #include "external/gbbs/pbbslib/utilities.h"
-#include "in-memory-clusterer.h"  // NOLINT(build/include)
+#include "clustering/in-memory-clusterer.h"
 #include "parallel/parallel-graph-utils.h"
 #include "parallel/parallel-sequence-ops.h"
 

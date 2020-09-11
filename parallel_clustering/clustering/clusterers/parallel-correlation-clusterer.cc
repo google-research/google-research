@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "clusterers/parallel-correlation-clusterer.h"
+#include "clustering/clusterers/parallel-correlation-clusterer.h"
 
 #include <algorithm>
 #include <iterator>
@@ -21,12 +21,12 @@
 
 #include "absl/memory/memory.h"
 #include "absl/status/statusor.h"
-#include "clusterers/parallel-correlation-clusterer-internal.h"
-#include "config.pb.h"  // NOLINT(build/include)
-#include "gbbs-graph.h"  // NOLINT(build/include)
-#include "in-memory-clusterer.h"  // NOLINT(build/include)
+#include "clustering/clusterers/parallel-correlation-clusterer-internal.h"
+#include "clustering/config.pb.h"
+#include "clustering/gbbs-graph.h"
+#include "clustering/in-memory-clusterer.h"
 #include "parallel/parallel-graph-utils.h"
-#include "status_macros.h"  // NOLINT(build/include)
+#include "clustering/status_macros.h"
 
 namespace research_graph {
 namespace in_memory {

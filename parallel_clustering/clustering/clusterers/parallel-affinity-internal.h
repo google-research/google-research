@@ -20,7 +20,8 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "config.pb.h"  // NOLINT(build/include)
+#include "clustering/config.pb.h"
+#include "clustering/in-memory-clusterer.h"
 #include "external/gbbs/gbbs/bridge.h"
 #include "external/gbbs/gbbs/gbbs.h"
 #include "external/gbbs/gbbs/macros.h"
@@ -28,7 +29,6 @@
 #include "external/gbbs/pbbslib/seq.h"
 #include "external/gbbs/pbbslib/sequence_ops.h"
 #include "external/gbbs/pbbslib/utilities.h"
-#include "in-memory-clusterer.h"  // NOLINT(build/include)
 #include "parallel/parallel-sequence-ops.h"
 
 namespace research_graph {
