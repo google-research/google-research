@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <google/protobuf/text_format.h>
-
 #include <memory>
 #include <string>
 #include <vector>
@@ -31,6 +29,7 @@
 #include "clustering/in-memory-clusterer.h"
 #include "clustering/status_macros.h"
 #include "external/gbbs/gbbs/edge_map_blocked.h"
+#include "google/protobuf/text_format.h"
 
 ABSL_FLAG(std::string, clusterer_name, "",
           "Name of a clusterer (ParallelAffinityClusterer or "

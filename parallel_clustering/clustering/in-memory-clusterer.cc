@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "in-memory-clusterer.h"  // NOLINT(build/include)
+#include "clustering/in-memory-clusterer.h"
 
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
