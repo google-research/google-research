@@ -57,20 +57,6 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
       tokenizer.Null: unified_tokenizer.TokenKind.STRING,
   }
 
-  def __init__(self, *args, **kwargs):
-    super(JavaTokenizer, self).__init__(*args, **kwargs)
-
-    self.update_mappings({
-        # By default, replace \n and \r. We choose special names that are
-        # different from the Python token types (i.e., NL).
-        '\n':
-            cubert_tokenizer.quote_special('NLCHAR'),
-        '\r':
-            cubert_tokenizer.quote_special('CR'),
-        unified_tokenizer.SENTINEL:
-            cubert_tokenizer.quote_special(unified_tokenizer.SENTINEL_ESCAPE),
-    })
-
   def tokenize_and_abstract(
       self,
       source_code):

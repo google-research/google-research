@@ -19,11 +19,11 @@ import abc
 import tokenize
 from typing import Dict
 from typing import List
+from typing import Mapping
 from typing import Sequence
 from typing import Text
 from typing import Tuple
 from typing import Union
-import six
 from cubert import unified_tokenizer
 
 # Quote string for special tokens.
@@ -41,8 +41,7 @@ NEWLINE = quote_special('NEWLINE')
 MAX_OUTPUT_TOKEN_LENGTH = 15
 
 
-@six.add_metaclass(abc.ABCMeta)
-class CuBertTokenizer(object):
+class CuBertTokenizer(abc.ABC):
   """A tokenizer that implements a language-agnostic tokenization.
 
   The tokenizer implements a language-agnostic tokenization. This is available
@@ -53,7 +52,16 @@ class CuBertTokenizer(object):
                reserved = ()):
     self.types_to_skip = []
     self.reserved = reserved
-    self.mappings = dict()
+    self.mappings: Dict[str, str]
+    self.update_mappings({
+        # By default, replace \n and \r. This is meant primarily for literals.
+        '\n':
+            quote_special('NLCHAR'),
+        '\r':
+            quote_special('CR'),
+        unified_tokenizer.SENTINEL:
+            quote_special(unified_tokenizer.SENTINEL_ESCAPE),
+    })
     self.max_output_token_length = max_output_token_length
 
   @abc.abstractmethod
@@ -130,6 +138,9 @@ class CuBertTokenizer(object):
     """
     unified_tokenizer.check_mappings(mappings)
     self.mappings = mappings
+
+  def get_mappings(self):
+    return self.mappings
 
   def condition_full_tokens(
       self, agnostic

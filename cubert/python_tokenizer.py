@@ -77,16 +77,6 @@ class PythonTokenizer(cubert_tokenizer.CuBertTokenizer):
 
     # By default, we drop COMMENT tokens.
     self.update_types_to_skip([unified_tokenizer.TokenKind.COMMENT])
-    self.update_mappings({
-        # By default, replace \n and \r. We choose special names that are
-        # different from the Python token types (i.e., NL).
-        '\n':
-            cubert_tokenizer.quote_special('NLCHAR'),
-        '\r':
-            cubert_tokenizer.quote_special('CR'),
-        unified_tokenizer.SENTINEL:
-            cubert_tokenizer.quote_special(unified_tokenizer.SENTINEL_ESCAPE),
-    })
 
   def tokenize_and_abstract(
       self,
