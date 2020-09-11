@@ -22,6 +22,7 @@ from . import preprocessors
 import t5.data
 from t5.data import postprocessors as t5_postprocessors
 from t5.data import preprocessors as t5_preprocessors
+from t5.data.glue_utils import get_glue_postprocess_fn
 from t5.data.utils import Feature
 from t5.data.utils import get_default_vocabulary
 from t5.evaluation import metrics as t5_metrics
@@ -196,9 +197,9 @@ TaskRegistry.add(
         t5_preprocessors.glue,
         benchmark_name="nli",
         label_names=mnli_config.label_classes),
-    metric_fns=t5.data.tasks.GLUE_METRICS["mnli"],
+    metric_fns=t5.data.glue_utils.GLUE_METRICS["mnli"],
     output_features=DEFAULT_OUTPUT_FEATURES,
-    postprocess_fn=t5.data.tasks._get_glue_postprocess_fn(mnli_config),
+    postprocess_fn=get_glue_postprocess_fn(mnli_config),
 )
 for mnli_eval_set in ("matched", "mismatched"):
   TaskRegistry.add(
