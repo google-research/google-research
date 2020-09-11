@@ -27,17 +27,22 @@ year      = {2020},
 
 ## The CuBERT Tokenizer
 
-The CuBERT tokenizer for Python is implemented in `cubert_tokenizer.py`, whereas
-`unified_tokenizer.py` contains a language-agnostic tokenization mechanism,
-which can be extended along the lines of the Python tokenizer for other languages.
+The CuBERT tokenizer for Python is implemented in `python_tokenizer.py`, as
+a subclass of a language-agnostic tokenization framework in
+`cubert_tokenizer.py`. `unified_tokenizer.py` contains useful utilities for
+language-agnostic tokenization,
+which can be extended along the lines of the Python tokenizer for other
+languages. We show one other instance, for Java, in `java_tokenizer.py`,
+although the original CuBERT benchmark is only about Python code.
 
 The code within the `code_to_subtokenized_sentences.py` script can be used for
-converting Python code into CuBERT sentences. This script can be evaluated on
+converting Python code (in fact, any language for which there's a subclass of
+`CuBertTokenizer`) into CuBERT sentences. This script can be evaluated on
 the `source_code.py.test` file along with the CuBERT subword vocabulary
 (**to be released**). It should produce the output as illustrated in the
-`subtokenized_source_code.json` file. To obtain, token-ID sequences for use with
-TensorFlow models, the `decode_list` logic from `code_to_subtokenized_sentences.py`
-can be skipped.
+`subtokenized_source_code.py.json` file. To obtain, token-ID sequences for use
+with TensorFlow models, the `decode_list` logic from
+`code_to_subtokenized_sentences.py` can be skipped.
 
 ## The Multi-Headed Pointer Model
 

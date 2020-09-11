@@ -25,7 +25,7 @@ from absl import logging
 from tensor2tensor.data_generators import text_encoder
 
 from cubert import cubert_tokenizer
-from cubert import python_tokenizer
+from cubert import tokenizer_registry
 
 FLAGS = flags.FLAGS
 
@@ -37,6 +37,12 @@ flags.DEFINE_string('input_filepath', None,
 
 flags.DEFINE_string('output_filepath', None,
                     'Path to the output file of subtokenized source code.')
+
+flags.DEFINE_enum_class(
+    'tokenizer',
+    default=tokenizer_registry.TokenizerEnum.PYTHON,
+    enum_class=tokenizer_registry.TokenizerEnum,
+    help='The tokenizer to use.')
 
 
 def code_to_cubert_sentences(
@@ -104,17 +110,24 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  tokenizer = python_tokenizer.PythonTokenizer()
+  # The value of the `TokenizerEnum` is a `CuBertTokenizer` subclass.
+  tokenizer = FLAGS.tokenizer.value()
   subword_tokenizer = text_encoder.SubwordTextEncoder(FLAGS.vocabulary_filepath)
 
   with open(FLAGS.input_filepath, 'r') as input_file:
     code = input_file.read()
+    print('#' * 80)
+    print('Original Code')
+    print('#' * 80)
     print(code)
 
   subtokenized_sentences = code_to_cubert_sentences(
       code=code,
       initial_tokenizer=tokenizer,
       subword_tokenizer=subword_tokenizer)
+  print('#' * 80)
+  print('CuBERT Sentences')
+  print('#' * 80)
   print(subtokenized_sentences)
 
   with open(FLAGS.output_filepath, 'wt') as output_file:
