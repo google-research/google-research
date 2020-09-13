@@ -79,21 +79,24 @@ def main(unused_argv):
   exp_params = []
   model_names = models.get_sklearn_models().keys()
   for elem in itertools.product(*[FLAGS.embedding_list, model_names]):
-    exp_params.append({
-        'embedding_name': elem[0],
-        'model_name': elem[1],
-        'label_name': FLAGS.label_name,
-        'label_list': FLAGS.label_list,
-        'train_glob': FLAGS.train_glob,
-        'eval_glob': FLAGS.eval_glob,
-        'test_glob': FLAGS.test_glob,
-        # Either L2 normalization or speaker normalization. You could try both
-        # if you wanted.
-        'l2_normalization': FLAGS.speaker_id_name is None,
-        'speaker_id_name': FLAGS.speaker_id_name,
-        'save_model_dir': FLAGS.save_model_dir,
-        'calculate_equal_error_rate': FLAGS.calculate_equal_error_rate,
-    })
+    def _params_dict(l2_normalization, elem=elem):
+      return {
+          'embedding_name': elem[0],
+          'model_name': elem[1],
+          'label_name': FLAGS.label_name,
+          'label_list': FLAGS.label_list,
+          'train_glob': FLAGS.train_glob,
+          'eval_glob': FLAGS.eval_glob,
+          'test_glob': FLAGS.test_glob,
+          # Either L2 normalization or speaker normalization. You could try both
+          # if you wanted.
+          'l2_normalization': l2_normalization,
+          'speaker_id_name': FLAGS.speaker_id_name,
+          'save_model_dir': FLAGS.save_model_dir,
+          'calculate_equal_error_rate': FLAGS.calculate_equal_error_rate,
+      }
+    exp_params.append(_params_dict(l2_normalization=True))
+    exp_params.append(_params_dict(l2_normalization=False))
 
   # Make and run beam pipeline.
   beam_options = None
