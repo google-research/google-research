@@ -34,14 +34,15 @@ dataset_url="https://storage.cloud.google.com/cfq_dataset/cfq.tar.gz"
 dataset_local_path="dataset.json"
 
 # Location of the dataset split to run the experiment for.
-split_path="splits/random_split.json"
+split="mcd1"
+split_path="splits/${split}.json"
 
 # Evaluation results will be written to this path.
-eval_results_path="evaluation.txt"
+eval_results_path="evaluation-${model}-${split}.txt"
 
 # Tensor2tensor results will be written to this path. This includes encode/
 # decode files, the vocabulary, and the trained models.
-save_path="t2t_data"
+save_path="t2t_data/${model}/${split}"
 
 # The tensor2tensor problem to use. The cfq problem is defined in cfq/cfq.py.
 problem="cfq"
