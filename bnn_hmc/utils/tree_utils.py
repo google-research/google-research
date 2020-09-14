@@ -19,8 +19,16 @@ import jax
 from jax import numpy as jnp
 
 
+def tree_get_types(tree):
+  return [p.dtype for p in jax.tree_flatten(tree)[0]]
+
+
 def tree_add(a, b):
   return jax.tree_multimap(lambda e1, e2: e1+e2, a, b)
+
+
+def tree_diff(a, b):
+  return jax.tree_multimap(lambda p_a, p_b: p_a - p_b, a, b)
 
 
 def tree_dot(a, b):
@@ -36,3 +44,21 @@ def tree_dist(a, b):
 
 def tree_scalarmul(a, s):
   return jax.tree_map(lambda e: e*s, a)
+
+
+def get_first_elem_in_sharded_tree(tree):
+  return jax.tree_map(lambda p: p[0], tree)
+
+
+def tree_norm(a):
+  return float(jnp.sqrt(sum([jnp.sum(p_a ** 2) for p_a in jax.tree_leaves(a)])))
+
+
+def normal_like_tree(a, key):
+  treedef = jax.tree_structure(a)
+  num_vars = len(jax.tree_leaves(a))
+  all_keys = jax.random.split(key, num=(num_vars + 1))
+  noise = jax.tree_multimap(
+      lambda p, k: jax.random.normal(k, shape=p.shape),
+      a, jax.tree_unflatten(treedef, all_keys[1:]))
+  return noise, all_keys[0]
