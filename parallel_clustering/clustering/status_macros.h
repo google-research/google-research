@@ -46,7 +46,7 @@ absl::Status DoAssignOrReturn(T& lhs, absl::StatusOr<T> result) {
   absl::Status status = DoAssignOrReturn(lhs, (rexpr)); \
   if (!status.ok()) return status;
 
-// Executes an expression that returns a util::StatusOr, extracting its value
+// Executes an expression that returns an absl::StatusOr, extracting its value
 // into the variable defined by lhs (or returning on error).
 //
 // Example: Assigning to an existing value
