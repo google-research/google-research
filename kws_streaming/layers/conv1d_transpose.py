@@ -36,6 +36,12 @@ class Conv1DTranspose(tf.keras.layers.Conv1DTranspose):
                crop_output=True,
                **kwargs):
     super(Conv1DTranspose, self).__init__(**kwargs)
+
+    if (kwargs.get('activation') not in [None, 'linear']) and self.use_bias:
+      raise ValueError('activation should be disabled because we need to '
+                       'subtract bias from remainder state, in streaming mode',
+                       kwargs.get('activation'))
+
     self.mode = mode
     self.inference_batch_size = inference_batch_size
     self.state_shape = state_shape
@@ -120,7 +126,13 @@ class Conv1DTranspose(tf.keras.layers.Conv1DTranspose):
         [self.states, tf.zeros(output_shape, tf.float32)], 1)
     outputs = outputs + padded_remainder
 
-    new_state = outputs[:, -self.overlap:, :]
+    # extract remainder state and substruct bias if it is used:
+    # bias will be added in the next iteration again and remainder
+    # should have only convolution part, so that bias is not added twice
+    if self.use_bias:
+      new_state = outputs[:, -self.overlap:, :] - self.bias
+    else:
+      new_state = outputs[:, -self.overlap:, :]
     assign_states = self.states.assign(new_state)
 
     with tf.control_dependencies([assign_states]):
@@ -145,7 +157,10 @@ class Conv1DTranspose(tf.keras.layers.Conv1DTranspose):
         [states, tf.zeros(output_shape, tf.float32)], 1)
     outputs = outputs + padded_remainder
 
-    new_state = outputs[:, -self.overlap:, :]
+    if self.use_bias:
+      new_state = outputs[:, -self.overlap:, :] - self.bias
+    else:
+      new_state = outputs[:, -self.overlap:, :]
     if self.crop_output:
       return outputs[:, 0:self.output_time_dim, :], new_state
     else:

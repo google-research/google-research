@@ -49,7 +49,7 @@ def conv1d_transpose_model(flags, filters, kernel_size, stride):
       filters=filters,
       kernel_size=kernel_size,
       strides=stride,
-      use_bias=False,
+      use_bias=True,
       crop_output=True)(
           net)
 
@@ -86,6 +86,14 @@ class Conv1DTransposeTest(tf.test.TestCase, parameterized.TestCase):
     model = conv1d_transpose_model(
         params, filters=1, kernel_size=3, stride=stride)
     model.summary()
+
+    # set weights with bias
+    for layer in model.layers:
+      if isinstance(layer, tf.keras.layers.Conv1DTranspose):
+        layer.set_weights([
+            np.ones(layer.weights[0].shape),
+            np.zeros(layer.weights[1].shape) + 0.5
+        ])
 
     # prepare streaming model
     model_stream = utils.to_streaming_inference(
