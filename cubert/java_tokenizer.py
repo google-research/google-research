@@ -63,8 +63,11 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
     """As per the superclass."""
     try:
       java_tokens = tokenizer.tokenize(source_code)
-    except tokenizer.LexerError as e:
-      logging.warn('The tokenizer raised exception `%s` while parsing %s', e,
+    except (tokenizer.LexerError, TypeError) as e:
+      # Sometimes, javalang returns a TypeError when reading a number.
+      # See
+      # https://github.com/c2nes/javalang/blob/0664afb7f4d40254312693f2e833c1ed4ac551c7/javalang/tokenizer.py#L370
+      logging.warn('The tokenizer raised exception `%r` while parsing %s', e,
                    source_code)
       return (
           (cubert_tokenizer.quote_special(
