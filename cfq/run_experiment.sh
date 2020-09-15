@@ -34,11 +34,11 @@ dataset="cfq"
 split="mcd1"
 
 # Evaluation results will be written to this path.
-eval_results_path="evaluation-${model}-${split}.txt"
+eval_results_path="evaluation-${dataset}-${split}-${model}.txt"
 
 # Tensor2tensor results will be written to this path. This includes encode/
 # decode files, the vocabulary, and the trained models.
-save_path="t2t_data/${model}/${split}"
+save_path="t2t_data/${dataset}/${split}/${model}"
 
 # The tensor2tensor problem to use. The cfq problem is defined in cfq/cfq.py.
 problem="cfq"
