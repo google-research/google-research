@@ -53,27 +53,40 @@ class Conv1DTranspose(tf.keras.layers.Conv1DTranspose):
   def build(self, input_shape):
     super(Conv1DTranspose, self).build(input_shape)
 
-    self.output_time_dim = input_shape.as_list()[1] * self.strides[0]
+    if input_shape.rank < 2:
+      raise ValueError('input_shape.rank:%d must at least 2' % input_shape.rank)
 
-    self.input_state = []
-    self.output_state = []
-    if self.overlap > 0:
-      self.state_shape = [self.inference_batch_size, self.overlap, self.filters]
+    if self.mode in [
+        Modes.STREAM_INTERNAL_STATE_INFERENCE,
+        Modes.STREAM_EXTERNAL_STATE_INFERENCE
+    ]:
+      if input_shape.as_list()[1] is None:
+        raise ValueError('in streaming mode time dimension of input packet '
+                         'should not be dynamic: TFLite limitation')
 
-      if self.mode == Modes.STREAM_INTERNAL_STATE_INFERENCE:
-        self.states = self.add_weight(
-            name='states',
-            shape=self.state_shape,
-            trainable=False,
-            initializer=tf.zeros_initializer)
+      self.output_time_dim = input_shape.as_list()[1] * self.strides[0]
 
-      elif self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
-        # For streaming inference with extrnal states,
-        # the states are passed in as input.
-        self.input_state = tf.keras.layers.Input(
-            shape=self.state_shape[1:],
-            batch_size=self.inference_batch_size,
-            name=self.name + '/input_state_remainder')
+      self.input_state = []
+      self.output_state = []
+      if self.overlap > 0:
+        self.state_shape = [
+            self.inference_batch_size, self.overlap, self.filters
+        ]
+
+        if self.mode == Modes.STREAM_INTERNAL_STATE_INFERENCE:
+          self.states = self.add_weight(
+              name='states',
+              shape=self.state_shape,
+              trainable=False,
+              initializer=tf.zeros_initializer)
+
+        elif self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+          # For streaming inference with extrnal states,
+          # the states are passed in as input.
+          self.input_state = tf.keras.layers.Input(
+              shape=self.state_shape[1:],
+              batch_size=self.inference_batch_size,
+              name=self.name + '/input_state_remainder')
 
   def call(self, inputs):
 
@@ -168,8 +181,10 @@ class Conv1DTranspose(tf.keras.layers.Conv1DTranspose):
 
   def _non_streaming(self, inputs):
     outputs = super(Conv1DTranspose, self).call(inputs)
+    # during training or non streaming inference, input shape can be dynamic
+    output_time_dim = tf.shape(inputs)[1] * self.strides[0]
     if self.crop_output:
-      return outputs[:, 0:self.output_time_dim, :]
+      return outputs[:, 0:output_time_dim, :]
     else:
       return outputs
 

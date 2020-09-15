@@ -106,6 +106,31 @@ class Conv1DTransposeTest(tf.test.TestCase, parameterized.TestCase):
 
     self.assertAllClose(stream_out, non_stream_out)
 
+  def test_dynamic_shape(self):
+    # model and data parameters
+    params = test_utils.Params([1], clip_duration_ms=0.25)
+
+    # prepare input data
+    x = np.arange(10)
+    inp_audio = x
+    inp_audio = np.expand_dims(inp_audio, 0)  # add batch dim
+
+    # prepare non stream model
+    params.desired_samples = None
+    model = conv1d_transpose_model(params, filters=1, kernel_size=3, stride=1)
+    model.summary()
+
+    # run inference on input with dynamic shape
+    model.predict(inp_audio)
+
+    with self.assertRaisesRegex(
+        ValueError, 'in streaming mode time dimension of input packet '
+        'should not be dynamic: TFLite limitation'):
+      # streaming model expected to fail on input data with dynamic shape
+      params.data_shape = (None,)
+      utils.to_streaming_inference(
+          model, params, Modes.STREAM_INTERNAL_STATE_INFERENCE)
+
 
 if __name__ == '__main__':
   tf.test.main()
