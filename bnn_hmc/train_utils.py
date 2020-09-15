@@ -19,9 +19,9 @@ from typing import Callable
 
 import haiku as hk
 import jax
-from jax.experimental import optix
 import jax.numpy as jnp
 import numpy as onp
+import optax
 
 from bnn_hmc import data
 from bnn_hmc import hmc
@@ -29,7 +29,7 @@ from bnn_hmc import nn_loss
 
 
 LRSchedule = Callable[[jnp.ndarray], jnp.ndarray]
-Opt = optix.GradientTransformation
+Opt = optax.GradientTransformation
 
 
 def make_cosine_lr_schedule(init_lr,
@@ -42,9 +42,9 @@ def make_cosine_lr_schedule(init_lr,
 
 
 def make_optimizer(lr_schedule, momentum_decay):
-  return optix.chain(optix.trace(decay=momentum_decay, nesterov=False),
-                     optix.scale_by_schedule(lr_schedule),
-                     optix.scale(-1))
+  return optax.chain(optax.trace(decay=momentum_decay, nesterov=False),
+                     optax.scale_by_schedule(lr_schedule),
+                     optax.scale(-1))
 
 
 def make_hmc_update_eval_fns(net,
