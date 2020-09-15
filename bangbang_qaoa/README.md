@@ -1,13 +1,15 @@
 # Investigating Quantum Approximate Optimization Algorithms under Bang-bang Protocols
 
-This repository contains a python implementation of "Investigating Quantum
-Approximate Optimization Algorithms under Bang-bang Protocols" by Daniel Liang,
-Li Li and Stefan Leichenauer (accepted as regular article in Physics Review
-Research).
+This repository contains a python implementation of
 
-Paper link: https://arxiv.org/abs/2005.13103
+*Investigating Quantum
+Approximate Optimization Algorithms under Bang-bang Protocols*
 
-![](core_fig.png){width="600"}
+Daniel Liang, Li Li and Stefan Leichenauer, Phys. Rev. Research **2**, 033402 (2020)
+
+Paper link: https://link.aps.org/doi/10.1103/PhysRevResearch.2.033402
+
+![](core_fig.png)
 
 ## Requirements
 
