@@ -50,19 +50,19 @@ def _scrub_json(content):
 
 
 def load_json(path, scrub = False):
-  logging.info(f'Reading json from {path} into memory...')
+  logging.info('Reading json from %s into memory...', path)
   with gfile.GFile(path) as f:
     if scrub:
       data = json.loads(_scrub_json(f.read()))
     else:
       data = json.load(f)
-  logging.info(f'Successfully loaded json data from {path} into memory.')
+  logging.info('Successfully loaded json data from %s into memory.', path)
   return data
 
 
 def load_scan(path):
   """Read original scan task data and convert into CFQ-style json format."""
-  logging.info(f'Reading SCAN tasks from {path}.')
+  logging.info('Reading SCAN tasks from %s.', path)
 
   def parse(infile):
     for line in infile.read().split('\n'):
@@ -83,7 +83,7 @@ def load_dataset(path):
 
 
 def tokenize_punctuation(text):
-  text = map(lambda c: f' {c} ' if c in string.punctuation else c, text)
+  text = map(lambda c: ' %s ' % c if c in string.punctuation else c, text)
   return ' '.join(''.join(text).split())
 
 
@@ -120,16 +120,16 @@ def get_dataset(samples, split):
   idx_names = [f'{s}Idxs' for s in split_names]
   dataset = collections.defaultdict(list)
   if not set(idx_names) <= split.keys():
-    logging.fatal(f'Invalid split: JSON should contain fields {idx_names}.')
+    logging.fatal('Invalid split: JSON should contain fields %s.', idx_names)
     return dataset
   for split_name, idx_name in zip(split_names, idx_names):
     logging.info(
-        f'  Retrieving {split_name} ({len(split[idx_name])} instances)')
+        '  Retrieving %s (%s instances)', split_name, len(split[idx_name]))
     for idx in split[idx_name]:
       dataset[split_name].append(get_encode_decode_pair(samples[idx]))
 
-  size_str = ', '.join(f'{s}={len(dataset[s])}' for s in split_names)
-  logging.info(f'Finished retrieving splits. Size: {size_str}')
+  size_str = ', '.join('%s=%s' %(s, len(dataset[s])) for s in split_names)
+  logging.info('Finished retrieving splits. Size: %s', size_str)
   return dataset
 
 
@@ -138,20 +138,20 @@ def write_dataset(dataset, save_path):
   if not dataset:
     logging.info('No dataset to write.')
     return
-  logging.info(f'Writing dataset to {save_path}')
+  logging.info('Writing dataset to %s', save_path)
   for split_name, list_of_input_output_pairs in dataset.items():
     folder_name = os.path.join(save_path, split_name)
     if not os.path.exists(folder_name):
       os.makedirs(folder_name)
-    encode_name = os.path.join(folder_name, f'{split_name}_encode.txt')
-    decode_name = os.path.join(folder_name, f'{split_name}_decode.txt')
+    encode_name = os.path.join(folder_name, '%s_encode.txt' % split_name)
+    decode_name = os.path.join(folder_name, '%s_decode.txt' % split_name)
     with gfile.GFile(encode_name,
                      'w') as encode_f, gfile.GFile(decode_name,
                                                    'w') as decode_f:
       for pair in list_of_input_output_pairs:
         encode_f.write(pair[0] + '\n')
         decode_f.write(pair[1] + '\n')
-  logging.info(f'Dataset written to {save_path}')
+  logging.info('Dataset written to %s', save_path)
 
 
 def write_token_vocab(words,
@@ -161,15 +161,15 @@ def write_token_vocab(words,
   # Sort tokens by frequency and then lexically to break ties.
   words_with_counts = words.most_common()
   words_with_counts.sort(key=lambda x: (x[1], x[0]), reverse=True)
-  vocab_path = os.path.join(save_path, f'vocab.{problem}.tokens')
+  vocab_path = os.path.join(save_path, 'vocab.%s.tokens' % problem)
 
   with gfile.GFile(vocab_path, 'w') as f:
     # Tensor2tensor needs these additional tokens.
     f.write('<pad>\n<EOS>\n<OOV>\n')
     for word, _ in words_with_counts:
-      f.write(f'{word}\n')
-  logging.info(f'Token vocabulary written to {vocab_path} ({len(words)} '
-               'distinct tokens).')
+      f.write(word + '\n')
+  logging.info('Token vocabulary written to %s (%s distinct tokens).',
+               vocab_path, len(words))
 
 
 def get_lines(path, filename):

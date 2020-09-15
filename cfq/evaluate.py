@@ -16,7 +16,6 @@
 # Lint as: python3
 """Library for computing and writing accuracy results."""
 
-import logging
 from typing import List, Tuple, Optional
 
 import dataclasses
@@ -42,25 +41,24 @@ def write_accuracy_result(result,
   if not result:
     return
   accuracy = result.get_accuracy()
-  summary = f'Accuracy on {result.inferred_answers_path} is {accuracy}'
+  summary = 'Accuracy on %s is %s' % (result.inferred_answers_path, accuracy)
   with gfile.GFile(output_path, 'w') as f:
-    f.write(f'{summary}\n')
+    f.write(summary + '\n')
     if result.mismatches:
       f.write('\n==========WRONG==========\n')
     for question, golden, inferred in result.mismatches:
-      f.write(f'Q: {question}Gold: {golden}Inferred: {inferred}\n')
+      f.write('Q: %s Gold: %s Inferred: %s\n' % (question, golden, inferred))
     if result.matches:
       f.write('\n==========CORRECT==========\n')
     for question, golden in result.matches:
-      f.write(f'Q: {question}Gold/Inferred: {golden}\n')
+      f.write('Q: %sGold/Inferred: %s\n' % (question, golden))
   if print_output:
-    print(f'Evaluation result written to {output_path}\n')
+    print('Evaluation result written to %s\n' % output_path)
     print(summary)
 
 
-def get_accuracy_result(
-    questions_path, golden_answers_path,
-    inferred_answers_path):
+def get_accuracy_result(questions_path, golden_answers_path,
+                        inferred_answers_path):
   """Collect accuracy results from input files."""
   questions = gfile.GFile(questions_path).readlines()
   golden_answers = gfile.GFile(golden_answers_path).readlines()
@@ -72,12 +70,10 @@ def get_accuracy_result(
       mismatches=[],
       inferred_answers_path=inferred_answers_path)
   if len(set((len(questions), len(golden_answers), len(inferred_answers)))) > 1:
-    logging.fatal(f'Not writing accuracy results: Input files have different '
-                  'lengths')
-    logging.fatal(f'Questions: {len(questions)}, golden answers: '
-                  '{len(golden_answers)}, inferred answers: '
-                  '{len(inferred_answers)}')
-    return None
+    raise ValueError(
+        'Not writing accuracy results: Input files have different lengths\n'
+        'Questions: %s, golden answers: %s, inferred answers: %s' %
+        (len(questions), len(golden_answers), len(inferred_answers)))
   for question, golden, inferred in zip(questions, golden_answers,
                                         inferred_answers):
     if inferred == golden:
