@@ -49,6 +49,7 @@ This library requires Python3 and the following Python3 libraries:
 *   [absl-py](https://pypi.org/project/absl-py/)
 *   [tensorflow](https://www.tensorflow.org/)
 *   [tensor2tensor](https://github.com/tensorflow/tensor2tensor)
+*   [tensorflow-datasets](https://www.tensorflow.org/datasets)
 
 We recommend getting [pip3](https://pip.pypa.io/en/stable/) and then running the
 following command, which will install all required libraries in one go:
@@ -57,18 +58,18 @@ following command, which will install all required libraries in one go:
 sudo pip3 install -r requirements.txt
 ```
 
+Note that Tensor2Tensor is no longer updated and is based on Tensorflow 1 which
+is only available for Python <= 3.7.
+
 ## Training and evaluating a model
 
-First download the CFQ dataset (link above), and ensure the dataset and the
-splits directory are in the same directory as this library (e.g. by unpacking
-the file in the library directory). In order to train and evaluate a model,
-run the following:
+In order to train and evaluate a model, run the following:
 
 ```shell
 bash run_experiment.sh
 ```
 
-This will run preprocessing on the dataset and train an LSTM model with
+This will download and preprocessing the dataset, then train an LSTM model with
 attention on the random split of the CFQ dataset, after which it will directly
 be evaluated.
 

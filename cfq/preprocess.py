@@ -17,69 +17,16 @@
 """Utils for preprocessing the CFQ dataset."""
 
 import collections
-import json
 import os
-import re
 import string
 from typing import Any, Dict, List, Tuple
 
 from absl import logging
 
 from tensorflow.compat.v1.io import gfile
+import tensorflow_datasets as tfds
 
 Dataset = Dict[str, List[Tuple[str, str]]]
-
-_QUESTION_FIELD = 'questionPatternModEntities'
-_QUERY_FIELD = 'sparqlPatternModEntities'
-
-
-def _scrub_json(content):
-  """Reduce JSON by filtering out only the fields of interest."""
-  # Loading of json data with the standard Python library is very inefficient:
-  # For the 4GB dataset file it requires more than 40GB of RAM and takes 3min.
-  # There are more efficient libraries but in order to avoid additional
-  # dependencies we use a simple (perhaps somewhat brittle) regexp to reduce
-  # the content to only what is needed. This takes 1min to execute but
-  # afterwards loading requires only 500MB or RAM and is done in 2s.
-  regex = re.compile(
-      r'("%s":\s*"[^"]*").*?("%s":\s*"[^"]*")' %
-      (_QUESTION_FIELD, _QUERY_FIELD), re.DOTALL)
-  return '[' + ','.join([
-      '{' + m.group(1) + ',' + m.group(2) + '}' for m in regex.finditer(content)
-  ]) + ']'
-
-
-def load_json(path, scrub = False):
-  logging.info('Reading json from %s into memory...', path)
-  with gfile.GFile(path) as f:
-    if scrub:
-      data = json.loads(_scrub_json(f.read()))
-    else:
-      data = json.load(f)
-  logging.info('Successfully loaded json data from %s into memory.', path)
-  return data
-
-
-def load_scan(path):
-  """Read original scan task data and convert into CFQ-style json format."""
-  logging.info('Reading SCAN tasks from %s.', path)
-
-  def parse(infile):
-    for line in infile.read().split('\n'):
-      if not line.startswith('IN: '):
-        continue
-      commands, actions = line[len('IN: '):].strip().split(' OUT: ', 1)
-      yield {_QUESTION_FIELD: commands, _QUERY_FIELD: actions}
-
-  return list(parse(gfile.GFile(path)))
-
-
-def load_dataset(path):
-  """Load dataset from .json or SCAN task format."""
-  if path[-5:] == '.json':
-    return load_json(path, scrub=True)
-  else:
-    return load_scan(path)
 
 
 def tokenize_punctuation(text):
@@ -113,23 +60,25 @@ def get_encode_decode_pair(sample):
   return (encode_text, decode_text)
 
 
-def get_dataset(samples, split):
-  """Creates a dataset by taking @split from @samples."""
-  logging.info('Retrieving splits...')
-  split_names = ['train', 'dev', 'test']
-  idx_names = [f'{s}Idxs' for s in split_names]
-  dataset = collections.defaultdict(list)
-  if not set(idx_names) <= split.keys():
-    logging.fatal('Invalid split: JSON should contain fields %s.', idx_names)
-    return dataset
-  for split_name, idx_name in zip(split_names, idx_names):
-    logging.info(
-        '  Retrieving %s (%s instances)', split_name, len(split[idx_name]))
-    for idx in split[idx_name]:
-      dataset[split_name].append(get_encode_decode_pair(samples[idx]))
+def get_dataset_from_tfds(dataset, split):
+  """..."""
+  logging.info('Loading dataset via TFDS.')
+  allsplits = tfds.load(dataset + '/' + split, as_supervised=True)
+  split_names = {'train': 'train', 'validation': 'dev', 'test': 'test'}
+  if dataset == 'scan':
+    # scan has 'train' and 'test' sets only. We call the test set dev in our
+    # output to keep the bash script simple.
+    split_names = {'train': 'train', 'test': 'dev'}
 
-  size_str = ', '.join('%s=%s' %(s, len(dataset[s])) for s in split_names)
-  logging.info('Finished retrieving splits. Size: %s', size_str)
+  dataset = collections.defaultdict(list)
+  for tfds_split_name, cfq_split_name in split_names.items():
+    for raw_x, raw_y in tfds.as_numpy(allsplits[tfds_split_name]):
+      encode_decode_pair = (tokenize_punctuation(raw_x.decode()),
+                            preprocess_sparql(raw_y.decode()))
+      dataset[cfq_split_name].append(encode_decode_pair)
+
+  size_str = ', '.join(f'{s}={len(dataset[s])}' for s in split_names)
+  logging.info('Finished loading splits. Size: %s', size_str)
   return dataset
 
 

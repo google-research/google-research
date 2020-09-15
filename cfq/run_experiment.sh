@@ -27,15 +27,11 @@ hparams_set="cfq_lstm_attention_multi"
 # We report experiments with 35,000 steps in our paper.
 train_steps="35000"
 
-# URL to the CFQ dataset.
-dataset_url="https://storage.cloud.google.com/cfq_dataset/cfq.tar.gz"
+# The dataset to use (cfq or scan)
+dataset="cfq"
 
-# Local path to the dataset (after it has been downloaded).
-dataset_local_path="dataset.json"
-
-# Location of the dataset split to run the experiment for.
+# The split of the dataset (random, mcd1, mcd2, mcd3).
 split="mcd1"
-split_path="splits/${split}.json"
 
 # Evaluation results will be written to this path.
 eval_results_path="evaluation-${model}-${split}.txt"
@@ -58,16 +54,9 @@ decode_path="${save_path}/dev/dev_decode.txt"
 decode_inferred_path="${save_path}/dev/dev_decode_inferred.txt"
 
 # ================= Pipeline ================
-# Download dataset if it doesn't exist yet.
-if [[ ! -f "${dataset_local_path}" || ! -f "${split_path}" ]]; then
-  echo "ERROR: Dataset not found."
-  echo "Please download the dataset first from ${dataset_url}!"
-  echo "See further instructions in the README."
-  exit 1
-fi
 
-python3 -m preprocess_main --dataset_path="${dataset_local_path}" \
-  --split_path="${split_path}" --save_path="${save_path}"
+python3 -m preprocess_main --dataset="${dataset}" \
+  --split="${split}" --save_path="${save_path}"
 
 t2t-datagen --t2t_usr_dir="${work_dir}/cfq/" --data_dir="${save_path}" \
   --problem="${problem}" --tmp_dir="${tmp_path}"

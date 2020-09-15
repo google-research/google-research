@@ -2,3 +2,4 @@ absl-py>=0.8.1
 tensorflow>=1.14.0,<2.0
 tensor2tensor>=1.14.1
 dataclasses
+tensorflow-datasets>=3.0
