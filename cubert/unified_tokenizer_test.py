@@ -409,8 +409,14 @@ class FlattenUnflattenTest(parameterized.TestCase):
   )
   def test_flatten_returns_expected(self, subtoken_lists, mappings,
                                     expected_subtoken_list):
+    multi_tokens = []
+    for s in subtoken_lists:
+      multi_tokens.append(unified_tokenizer.AbstractMultiToken(
+          spellings=s,
+          kind=unified_tokenizer.TokenKind.STRING,
+          metadata=unified_tokenizer.TokenMetadata()))
     subtokens = unified_tokenizer.flatten_and_sanitize_subtoken_lists(
-        subtoken_lists, mappings, sentinel='^')
+        multi_tokens, mappings, sentinel='^')
     self.assertSequenceEqual(expected_subtoken_list, subtokens)
 
   @parameterized.named_parameters(
@@ -442,9 +448,15 @@ class FlattenUnflattenTest(parameterized.TestCase):
       ),
   )
   def test_flatten_raises_when_expected(self, list_of_lists, mapping):
+    multi_tokens = []
+    for s in list_of_lists:
+      multi_tokens.append(unified_tokenizer.AbstractMultiToken(
+          spellings=s,
+          kind=unified_tokenizer.TokenKind.STRING,
+          metadata=unified_tokenizer.TokenMetadata()))
     with self.assertRaises(ValueError):
       unified_tokenizer.flatten_and_sanitize_subtoken_lists(
-          list_of_lists, sanitization_mapping=mapping, sentinel='^')
+          multi_tokens, sanitization_mapping=mapping, sentinel='^')
 
   @parameterized.named_parameters(
       (

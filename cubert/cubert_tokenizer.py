@@ -181,9 +181,9 @@ class CuBertTokenizer(abc.ABC):
 
     conditioned = self.condition_full_tokens(agnostic)
 
-    subtoken_lists = self.subtokenize_full_tokens(conditioned)
+    multi_tokens = self.subtokenize_full_tokens(conditioned)
 
-    subtokens = unified_tokenizer.flatten_subtoken_lists(subtoken_lists)
+    subtokens = unified_tokenizer.flatten_subtoken_lists(multi_tokens)
     return subtokens
 
   def untokenize(self, token_list):

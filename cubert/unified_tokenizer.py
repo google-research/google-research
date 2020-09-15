@@ -19,7 +19,7 @@
 import enum
 import token as python_token
 import tokenize
-from typing import List, Mapping, Sequence, Text, Tuple
+from typing import List, Mapping, Optional, Sequence, Text, Tuple
 
 from absl import logging
 import dataclasses
@@ -51,8 +51,23 @@ class TokenKind(enum.Enum):
 
 
 @dataclasses.dataclass(frozen=True)
+class Position():
+  line: int
+  column: int
+
+
+@dataclasses.dataclass(frozen=True)
 class TokenMetadata():
-  pass
+  """Metadata about abstract tokens.
+
+  Attributes:
+    start: The position of the first character of the token.
+    end: The position right after the last character of the token. The line is
+      the same as the line of the last character and the column is the
+      column immediately following the last column of the token.
+  """
+  start: Optional[Position] = None
+  end: Optional[Position] = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -568,15 +583,15 @@ def sanitize_subtoken_lists(
   """Sanitizes lists of subtoken lists, adding sentinels.
 
   Args:
-    subtoken_lists: A list of subtoken lists, one list per initial language
-      token. Cannot be empty or contain empty sublists.
+    subtoken_lists: A list of multi-tokens. Cannot be empty or contain empty
+      sublists.
     sanitization_mapping: A mapping from sensitive characters to replacement
       strings. It is assumed to have been checked by `check_mappings`.
     sentinel: The sentinel character. It is expected to be one of the keys
       in `sanitization_mapping`.
 
   Returns:
-    A list of subtoken lists representing the entire original sequence.
+    A list of multi-tokens.
 
   Raises:
     ValueError: If one of the input sublists is empty, or the entire input
@@ -590,20 +605,22 @@ def sanitize_subtoken_lists(
                      'but is not.' % (sentinel, sanitization_mapping))
 
   sanitized_lists = []
-  for spelling_list in subtoken_lists:
-    if not spelling_list:
-      raise ValueError('Received empty sublist %r but expected no sublist '
-                       'to be empty' % subtoken_lists)
-    sanitized_list = [
+  for multi_token in subtoken_lists:
+    spellings = multi_token.spellings
+    if not spellings:
+      raise ValueError('Received empty multi-token %r but expected no empty '
+                       'ones' % multi_token)
+    sanitized_spellings = [
         sanitize(t, sanitization_mapping)
-        for t in spelling_list
+        for t in spellings
     ]
 
     # Add the sentinel to all subtokens except the last one.
-    with_sentinel = [
-        t + sentinel for t in sanitized_list[:-1]] + [sanitized_list[-1]]
+    with_sentinel = ([t + sentinel for t in sanitized_spellings[:-1]] +
+                     [sanitized_spellings[-1]])
 
-    sanitized_lists.append(with_sentinel)
+    sanitized_lists.append(
+        dataclasses.replace(multi_token, spellings=with_sentinel))
   return sanitized_lists
 
 
@@ -623,9 +640,9 @@ def flatten_subtoken_lists(
   """
   if not subtoken_lists:
     raise ValueError('Received empty input %r but expected it to be non '
-                     'empty' % subtoken_lists)
-
-  subtokens = sum(subtoken_lists, [])
+                     'empty' % (subtoken_lists,))
+  spellings = (t.spellings for t in subtoken_lists)
+  subtokens = sum(spellings, [])
 
   return subtokens
 
@@ -637,7 +654,7 @@ def flatten_and_sanitize_subtoken_lists(
   """Sanitizes and then flattens lists of subtoken lists, adding sentinels.
 
   Args:
-    subtoken_lists: A list of subtoken lists, one list per initial language
+    subtoken_lists: A list of multi-tokens, one per initial language
       token. Cannot be empty or contain empty sublits.
     sanitization_mapping: A mapping from sensitive characters to replacement
       strings. It is assumed to have been checked by `check_mappings`.
@@ -797,11 +814,7 @@ def subtokenize_agnostic_tokens_in_place(
   labelled_subtokenized = split_agnostic_tokens(agnostic_tokens,
                                                 max_output_token_length)
 
-  unlabelled_subtokenized = [
-      t.spellings for t in labelled_subtokenized
-  ]
-
-  subtoken_lists = sanitize_subtoken_lists(unlabelled_subtokenized,
+  subtoken_lists = sanitize_subtoken_lists(labelled_subtokenized,
                                            sanitization_mapping,
                                            sentinel)
   return subtoken_lists

@@ -80,7 +80,11 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
         agnostic_tokens.append(
             unified_tokenizer.AbstractToken(
                 spelling, JavaTokenizer._TOKEN_TYPE_MAP[token_type],
-                unified_tokenizer.TokenMetadata()))
+                unified_tokenizer.TokenMetadata(
+                    start=unified_tokenizer.Position(
+                        # JavaTokenizer counts lines and columns from 1.
+                        line=token.position.line - 1,
+                        column=token.position.column - 1))))
     except (tokenizer.LexerError, TypeError) as e:
       # Sometimes, javalang returns a TypeError when reading a number.
       # See
