@@ -98,8 +98,7 @@ The results are stored in the folder ```cold_posterior_bnn/results_cnnlstm```.
 ### For questions reach out to
 
 Florian Wenzel ([florianwenzel@google.com](mailto:florianwenzel@google.com))<br>
-Rodolphe Jenatton ([rjenatton@google.com](mailto:rjenatton@google.com))<br>
-Sebastian Nowozin ([nowozin@google.com](mailto:nowozin@google.com))
+Rodolphe Jenatton ([rjenatton@google.com](mailto:rjenatton@google.com))
 
 
 ### Reference
@@ -107,14 +106,14 @@ Sebastian Nowozin ([nowozin@google.com](mailto:nowozin@google.com))
 > Florian Wenzel, Kevin Roth, Bastiaan S. Veeling, Jakub Swiatkowski, Linh Tran,
 > Stephan Mandt, Jasper Snoek, Tim Salimans, Rodolphe Jenatton and Sebastian
 > Nowozin (2020).
-> [How Good is the Bayes Posterior in Deep Neural Networks Really?](https://arxiv.org/pdf/2002.02405.pdf).
-> In _arXiv preprint arXiv:2002.02405_.
+> [How Good is the Bayes Posterior in Deep Neural Networks Really?](https://arxiv.org/abs/2002.02405).
+> In _International Conference of Machine Learning_.
 
 ```none
-@article{wenzel2020good,
+@inproceedings{wenzel2020good,
   author = {Florian Wenzel and Kevin Roth and Bastiaan S. Veeling and Jakub Swiatkowski and Linh Tran and Stephan Mandt and Jasper Snoek and Tim Salimans and Rodolphe Jenatton and Sebastian Nowozin},
   title = {How Good is the Bayes Posterior in Deep Neural Networks Really?},
-  journal={arXiv preprint arXiv:2002.02405},
+  booktitle = {International Conference of Machine Learning},
   year = {2020},
 }
 ```
