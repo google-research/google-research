@@ -236,7 +236,7 @@ class SplitLongTest(parameterized.TestCase):
   def test_split_long_returns_expected(self, token, components):
     actual_components = unified_tokenizer.split_long_token(
         token_string=token, max_output_token_length=3)
-    self.assertListEqual(components, actual_components)
+    self.assertSequenceEqual(components, actual_components)
 
   def test_split_long_raises_on_empty(self):
     with self.assertRaises(ValueError):
@@ -347,9 +347,25 @@ class SplitAgnosticTest(parameterized.TestCase):
   )
   def test_split_agnostic_returns_expected(self, labelled_tokens, max_length,
                                            expected_labelled_subtokens):
+    tokens = [
+        unified_tokenizer.AbstractToken(s, k, unified_tokenizer.TokenMetadata())
+        for s, k in labelled_tokens
+    ]
     labelled_subtokens = unified_tokenizer.split_agnostic_tokens(
-        labelled_tokens, max_length)
-    self.assertListEqual(expected_labelled_subtokens, labelled_subtokens)
+        tokens, max_length)
+
+    expected_multi_tokens = []
+    for spelling_list, kind in expected_labelled_subtokens:
+      expected_multi_tokens.append(
+          unified_tokenizer.AbstractMultiToken(
+              # We cast spellings to tuples, since we know that
+              # `split_agnostic_tokens` creates multi tokens with tuples rather
+              # than lists.
+              spellings=tuple(spelling_list),
+              kind=kind,
+              metadata=unified_tokenizer.TokenMetadata()))
+
+    self.assertSequenceEqual(expected_multi_tokens, labelled_subtokens)
 
 
 class FlattenUnflattenTest(parameterized.TestCase):
@@ -395,7 +411,7 @@ class FlattenUnflattenTest(parameterized.TestCase):
                                     expected_subtoken_list):
     subtokens = unified_tokenizer.flatten_and_sanitize_subtoken_lists(
         subtoken_lists, mappings, sentinel='^')
-    self.assertListEqual(expected_subtoken_list, subtokens)
+    self.assertSequenceEqual(expected_subtoken_list, subtokens)
 
   @parameterized.named_parameters(
       (
@@ -479,7 +495,7 @@ class FlattenUnflattenTest(parameterized.TestCase):
                                          expected_tokens):
     whole_tokens = unified_tokenizer.reconstitute_full_unsanitary_tokens(
         subtokens, mappings, sentinel='^')
-    self.assertListEqual(expected_tokens, whole_tokens)
+    self.assertSequenceEqual(expected_tokens, whole_tokens)
 
   @parameterized.named_parameters(
       (

@@ -18,12 +18,15 @@
 import abc
 import tokenize
 from typing import Dict
+from typing import Iterable
 from typing import List
 from typing import Mapping
 from typing import Sequence
 from typing import Text
-from typing import Tuple
 from typing import Union
+
+import dataclasses
+
 from cubert import unified_tokenizer
 
 # Quote string for special tokens.
@@ -146,13 +149,14 @@ class CuBertTokenizer(abc.ABC):
       self, agnostic
   ):
     """Applies reserved keywords and character sanitization."""
-    filtered = [(spelling, kind) for spelling, kind in agnostic
-                if kind not in self.types_to_skip]
+    filtered: Iterable[unified_tokenizer.AbstractToken] = (
+        a for a in agnostic if a.kind not in self.types_to_skip)
 
     # Now turn all reserved words, regardless of kind, into keywords.
-    with_reserved = [(spelling, unified_tokenizer.TokenKind.KEYWORD
-                      if spelling in self.reserved else kind)
-                     for spelling, kind in filtered]
+    with_reserved: Sequence[unified_tokenizer.AbstractToken] = tuple(
+        dataclasses.replace(a, kind=unified_tokenizer.TokenKind.KEYWORD)
+        if a.spelling in self.reserved else a
+        for a in filtered)
     return with_reserved
 
   def subtokenize_full_tokens(

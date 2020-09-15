@@ -16,7 +16,6 @@
 """A Python tokenizer subclass of CuBertTokenizer."""
 from typing import List
 from typing import Sequence
-from typing import Tuple
 
 
 from absl import logging
@@ -61,33 +60,47 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
       self,
       source_code):
     """As per the superclass."""
+    agnostic_tokens: List[unified_tokenizer.AbstractToken] = []
+
     try:
       java_tokens = tokenizer.tokenize(source_code)
+
+      for token in java_tokens:
+        # The token kind is the subclass type of the token.
+        token_type = type(token)
+        if token_type not in JavaTokenizer._TOKEN_TYPE_MAP:
+          raise ValueError(
+              'Received Java token type %s, but it was unexpected, '
+              'while tokenizing \n%s\n' % (token_type, source_code))
+
+        # The tokenizer seems to take some liberties with Unicode, returning
+        # invalid characters. This cleans spellings up.
+        spelling = token.value.encode('utf-8', errors='replace').decode('utf-8')
+
+        agnostic_tokens.append(
+            unified_tokenizer.AbstractToken(
+                spelling, JavaTokenizer._TOKEN_TYPE_MAP[token_type],
+                unified_tokenizer.TokenMetadata()))
     except (tokenizer.LexerError, TypeError) as e:
       # Sometimes, javalang returns a TypeError when reading a number.
       # See
       # https://github.com/c2nes/javalang/blob/0664afb7f4d40254312693f2e833c1ed4ac551c7/javalang/tokenizer.py#L370
       logging.warn('The tokenizer raised exception `%r` while parsing %s', e,
                    source_code)
-      return (
-          (cubert_tokenizer.quote_special(
-              unified_tokenizer.TokenKind.ERROR.name),
-           unified_tokenizer.TokenKind.ERROR),
-          (cubert_tokenizer.quote_special(unified_tokenizer.TokenKind.EOS),
-           unified_tokenizer.TokenKind.EOS),
-      )
-
-    agnostic_tokens: List[Tuple[str, unified_tokenizer.TokenKind]] = []
-
-    for token in java_tokens:
-      # The token kind is the subclass type of the token.
-      token_type = type(token)
-      if token_type not in JavaTokenizer._TOKEN_TYPE_MAP:
-        raise ValueError('Received Java token type %s, but it was unexpected, '
-                         'while tokenizing \n%s\n' % (token_type, source_code))
-
       agnostic_tokens.append(
-          (token.value, JavaTokenizer._TOKEN_TYPE_MAP[token_type]))
+          unified_tokenizer.AbstractToken(
+              cubert_tokenizer.quote_special(
+                  unified_tokenizer.TokenKind.ERROR.name),
+              unified_tokenizer.TokenKind.ERROR,
+              unified_tokenizer.TokenMetadata()))
+
+    # javalang doesn't seem to ever return `EndOfinput` despite there being a
+    # token type for it. We insert it here.
+    agnostic_tokens.append(
+        unified_tokenizer.AbstractToken(
+            cubert_tokenizer.quote_special(
+                unified_tokenizer.TokenKind.EOS.name),
+            unified_tokenizer.TokenKind.EOS, unified_tokenizer.TokenMetadata()))
 
     return agnostic_tokens
 

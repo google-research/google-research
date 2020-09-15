@@ -19,12 +19,11 @@ import re
 import tokenize
 import typing
 from typing import Any
+from typing import Iterable
 from typing import List
 from typing import Sequence
-from typing import Text
 from typing import Tuple
 from absl import logging
-import six
 from cubert import cubert_tokenizer
 from cubert import unified_tokenizer
 
@@ -82,20 +81,21 @@ class PythonTokenizer(cubert_tokenizer.CuBertTokenizer):
       self,
       source_code):
     """Produces a language-agnostic tokenization of the input code."""
-    token_pairs = []  # type: List[Tuple[Text, int]]
+    token_pairs: Iterable[Tuple[str, int]]
     try:
       token_tuples = unified_tokenizer.code_to_tokens(source_code)
-      token_pairs = [(six.ensure_text(token_name), token_type)
-                     for token_type, token_name, _, _, _ in token_tuples]
+      token_pairs = ((token_name, token_type)
+                     for token_type, token_name, _, _, _ in token_tuples)
     except (tokenize.TokenError, IndentationError) as e:
       logging.warning('The tokenizer raised exception `%s` while parsing %s', e,
                       source_code)
-      token_pairs = [
+      token_pairs = (
           (cubert_tokenizer.quote_special(
               unified_tokenizer.TokenKind.ERROR.name), tokenize.ERRORTOKEN),
           ('', tokenize.ENDMARKER),
-      ]
-    agnostic_tokens = []  # type: List[Tuple[Text, unified_tokenizer.TokenKind]]
+          )
+
+    agnostic_tokens: List[unified_tokenizer.AbstractToken] = []
 
     for spelling, kind in token_pairs:
       adjusted_spelling = spelling
@@ -136,14 +136,19 @@ class PythonTokenizer(cubert_tokenizer.CuBertTokenizer):
                              'agnostic one, raised %r.' %
                              ((spelling, kind), ke))
 
-      agnostic_tokens.append((adjusted_spelling, token_kind))
+      agnostic_tokens.append(
+          unified_tokenizer.AbstractToken(
+              spelling=adjusted_spelling, kind=token_kind,
+              # TODO(maniatis): Eventually, we'll store token positioning info
+              # in metadata.
+              metadata=unified_tokenizer.TokenMetadata()))
 
     return agnostic_tokens
 
   def untokenize_abstract(self, whole_tokens):
     # Reconstruct Python tokenizer tuples, so that Python's untokenize can be
     # invoked.
-    token_tuples = []  # type: List[Tuple[int, Text]]
+    token_tuples: List[Tuple[int, str]] = []
 
     for whole_token in whole_tokens:
       if whole_token in PythonTokenizer._EXACT_TOKEN_TYPES:
