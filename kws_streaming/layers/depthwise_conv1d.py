@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """Depthwise Conv1D layer for streaming and non streaming use case."""
+from kws_streaming.layers import temporal_padding
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.modes import Modes
 
@@ -45,7 +46,7 @@ class DepthwiseConv1D(tf.keras.layers.Layer):
                bias_initializer='zeros',
                bias_regularizer=None,
                bias_constraint=None,
-               pad=True,
+               pad='causal',
                **kwargs):
     super(DepthwiseConv1D, self).__init__(**kwargs)
     self.memory_size = memory_size
@@ -214,13 +215,11 @@ class DepthwiseConv1D(tf.keras.layers.Layer):
   def _non_streaming(self, inputs):
     # depthwise 1D convolution in non streaming mode
     # it is used for training or non streaming inference.
-    # Zero pad inputs from the left to make conv1d causal.
-    # [batch_size, time_steps, feature_dim]
-    if self.pad:
-      inputs_pad = tf.keras.backend.temporal_padding(
-          inputs, padding=(self.memory_size - 1, 0))
-    else:
-      inputs_pad = inputs
+
+    # pad input data
+    inputs_pad = temporal_padding.TemporalPadding(
+        padding=self.pad, padding_size=self.memory_size - 1)(
+            inputs)
 
     # expand dimensionality for depthwise_conv2d
     # to [memory_size, 1, feature_dim, 1]

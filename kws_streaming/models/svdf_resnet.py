@@ -107,7 +107,7 @@ def model_parameters(parser_nn):
       '--svdf_pad',
       type=int,
       default=1,
-      help='If 1, pad svdf input data with zeros',
+      help='If 1, causal pad svdf input data with zeros, else valid pad',
   )
   parser_nn.add_argument(
       '--dropout1',
@@ -160,6 +160,9 @@ def model(flags):
     raise ValueError('number of pooling blocks has to be 3, but get: ',
                      len(blocks_pool))
 
+  # for streaming mode it is better to use causal padding
+  padding = 'causal' if flags.svdf_pad else 'valid'
+
   # first residual block
   number_of_blocks = len(parse(flags.block1_units1))
   activations = [flags.activation] * number_of_blocks
@@ -175,7 +178,7 @@ def model(flags):
         units2=-1,
         dropout=flags.svdf_dropout,
         activation=activation,
-        pad=flags.svdf_pad,
+        pad=padding,
         use_bias=flags.svdf_use_bias,
         use_batch_norm=flags.use_batch_norm,
         bn_scale=flags.bn_scale,
@@ -212,7 +215,7 @@ def model(flags):
         units2=-1,
         dropout=flags.svdf_dropout,
         activation=activation,
-        pad=flags.svdf_pad,
+        pad=padding,
         use_bias=flags.svdf_use_bias,
         use_batch_norm=flags.use_batch_norm,
         bn_scale=flags.bn_scale,
@@ -248,7 +251,7 @@ def model(flags):
         units2=-1,
         dropout=flags.svdf_dropout,
         activation=activation,
-        pad=flags.svdf_pad,
+        pad=padding,
         use_bias=flags.svdf_use_bias,
         use_batch_norm=flags.use_batch_norm,
         bn_scale=flags.bn_scale,

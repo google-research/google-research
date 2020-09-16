@@ -156,6 +156,13 @@ class SpeechFeatures(tf.keras.layers.Layer):
     return outputs
 
   def _mfcc_op(self, inputs):
+
+    if self.params['dct_num_features'] <= 0:
+      raise ValueError('dct_num_features for mfcc_op has to be > 0')
+
+    if self.params['mel_num_bins'] <= 0:
+      raise ValueError('mel_num_bins for mfcc_op has to be > 0')
+
     # MFCC implementation based on TF custom op (supported by TFLite)
     # It reduces model size in comparison to _mfcc_tf
     if (self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE or

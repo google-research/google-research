@@ -46,7 +46,7 @@ class Svdf(tf.keras.layers.Layer):
                dropout=0.0,
                use_batch_norm=False,
                bn_scale=False,
-               pad=True,
+               pad='causal',
                **kwargs):
     super(Svdf, self).__init__(**kwargs)
 
