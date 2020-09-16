@@ -17,6 +17,9 @@ set up. For more information, see [Set up an account and a Cloud TPU project](ht
 
 We recommend using CTPU to create a VM and a TPU device. See [the quickstart](https://cloud.google.com/tpu/docs/quickstart) for more details.
 
+**NOTE** Please make sure your VM has at least 30Gb of RAM, otherwise
+preprocessing the CFQ dataset will fail.
+
 The [T5 Github page](https://github.com/google-research/text-to-text-transfer-transformer) contains further instructions for setting up the TPU device using CTPU.
 
 ### Installing dependencies
@@ -43,7 +46,7 @@ into a directory and adding it to `PYTHONPATH`.
 ```
 mkdir t5_utils
 mv preprocess.py cfq_scan_tasks.py t5_utils
-export PYTHONPATH=$PYTHONPATH:$(pwd)/t5_utils
+export PYTHONPATH=$PYTHONPATH:$(pwd)
 ```
 
 ### Fine-tuning.
@@ -86,7 +89,6 @@ t5_mesh_transformer  \
   --model_dir="${MODEL_DIR}" \
   --t5_tfds_data_dir="${DATA_DIR}" \
   --gin_file="dataset.gin" \
-  --gin_file="models/bi_v1.gin" \
   --gin_param="utils.tpu_mesh_shape.model_parallelism = 1" \
   --gin_param="utils.tpu_mesh_shape.tpu_topology = '${TPU_SIZE}'" \
   --gin_file="gs://t5-data/pretrained_models/${T5_SIZE}/operative_config.gin" \
