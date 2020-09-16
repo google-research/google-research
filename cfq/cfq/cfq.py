@@ -28,6 +28,8 @@ from tensor2tensor.layers import common_hparams
 from tensor2tensor.models.research import universal_transformer
 from tensor2tensor.utils import registry
 
+import tensorflow.compat.v1 as tf
+
 
 @registry.register_problem
 class CFQ(text_problems.Text2TextProblem):
@@ -63,7 +65,8 @@ class CFQ(text_problems.Text2TextProblem):
     encode_name = os.path.join(folder_name, '%s_encode.txt' % split_name)
     decode_name = os.path.join(folder_name, '%s_decode.txt' % split_name)
 
-    with open(encode_name) as encode_f, open(decode_name) as decode_f:
+    with tf.gfile.Open(encode_name) as encode_f, tf.gfile.Open(
+        decode_name) as decode_f:
       for x, y in zip(encode_f, decode_f):
         yield {
             'inputs': x.strip(),
