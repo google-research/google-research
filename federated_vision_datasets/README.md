@@ -4,13 +4,14 @@ This repo contains the data splits from the following paper.
 
 > Federated Visual Classification with Real-World Data Distribution<br>
 Tzu-Ming Harry Hsu, Hang Qi, Matthew Brown<br>
+ECCV 2020<br>
 https://arxiv.org/abs/2003.08082
 
 ## Datasets
 
 Dataset               | # users     | # classes | # examples | Download split files          |
 --------------------- | ----------: | --------: | ---------: | ----------------------------- |
-Landmarks-User-160k   | 1,062       | 2,028     | 164,172    | [Download][dl-landmarks-user] |
+Landmarks-User-160k   | 1,262       | 2,028     | 164,172    | [Download][dl-landmarks-user] |
 iNaturalist-User-120k | 9,275       | 1,203     | 120,300    | [Download][dl-inat-user]      |
 iNaturalist-Geo       | 11 to 3,606 | 1,203     | 120,300    | [Download][dl-inat-geo]       |
 CIFAR-10              | 100         | 100       | 50,000     | [Download][dl-cifar10]        |
@@ -77,6 +78,8 @@ Please cite the following publication if you intend to use these datasets.
 @inproceedings{hsu2020federated,
   author = {Tzu-Ming Harry Hsu and Hang Qi and Matthew Brown},
   title = {{Federated Visual Classification with Real-World Data Distribution}},
+  booktitle = {Proceedings of the European Conference on Computer Vision (ECCV)},
+  month = {August},
   year = {2020}
 }
 ```
