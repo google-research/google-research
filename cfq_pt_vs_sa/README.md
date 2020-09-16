@@ -95,3 +95,25 @@ t5_mesh_transformer  \
   --gin_param="MIXTURE_NAME = '${DATASET}_${SPLIT}'" \
   --module_import=t5_utils.cfq_scan_tasks
 ```
+
+### Evaluation
+
+Assuming the model-finetuned for 262,144 steps (the default), and all bash flags
+mentioned above are set, evaluation can be run with the following command:
+
+```
+t5_mesh_transformer \
+  --tpu="${TPU_NAME}" \
+  --gcp_project="${PROJECT}" \
+  --tpu_zone="${ZONE}" \
+  --model_dir="${MODEL_DIR}" \
+  --gin_file="${MODEL_DIR}/operative_config.gin" \
+  --t5_tfds_data_dir=${DATA_DIR} \
+  --gin_file="eval.gin" \
+  --gin_file="beam_search.gin" \
+  --gin_param="run.dataset_split = 'validation'" \
+  --gin_param="utils.tpu_mesh_shape.tpu_topology = '${TPU_SIZE}'" \
+  --gin_param="eval_checkpoint_step = 262144" \
+  --gin_param="MIXTURE_NAME = 'cfq_${SPLIT}'" \
+  --module_import=t5_utils.cfq_scan_tasks
+```
