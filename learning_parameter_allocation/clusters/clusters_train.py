@@ -34,7 +34,7 @@ from learning_parameter_allocation.pathnet import components as pn_components
 from learning_parameter_allocation.pathnet import pathnet_lib as pn
 from learning_parameter_allocation.pathnet.utils import create_uniform_layer
 
-import tensorflow.compat.v1 as tf  # pylint: disable=g-explicit-tensorflow-version-import
+import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 
 
 _INPUT_SHAPE = [32, 32, 3]

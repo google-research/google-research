@@ -27,7 +27,7 @@ from learning_parameter_allocation.pathnet.utils import \
     create_wrapped_routed_layer
 
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 from tqdm import tqdm
 

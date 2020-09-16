@@ -32,7 +32,7 @@ from learning_parameter_allocation.pathnet import components as pn_components
 from learning_parameter_allocation.pathnet import pathnet_lib as pn
 from learning_parameter_allocation.pathnet.utils import create_uniform_layer
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 _OMNIGLOT_INPUT_SHAPE = [105, 105, 1]
