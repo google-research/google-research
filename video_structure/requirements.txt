@@ -1,1 +1,1 @@
-tensorflow-gpu>=1.13.1,<2.0.0
+tensorflow-gpu>=1.15.3,<2.0.0
