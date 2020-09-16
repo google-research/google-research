@@ -15,7 +15,6 @@
 
 # Lint as: python3
 # coding=utf-8
-
 """Code for creating the M-layer as a keras layer."""
 
 import tensorflow as tf
@@ -33,16 +32,23 @@ class MLayer(tf.keras.layers.Layer):
   TODO(firsching): add link to paper.
   """
 
-  def __init__(self, dim_m, matrix_init=None, with_bias=False, **kwargs):
+  def __init__(self,
+               dim_m,
+               matrix_init=None,
+               with_bias=False,
+               matrix_squarings_exp=None,
+               **kwargs):
     """Initializes the instance.
 
     Args:
-      dim_m: The matrix to be exponentiated in the M-layer has the shape
-        (dim_m, dim_m).
+      dim_m: The matrix to be exponentiated in the M-layer has the shape (dim_m,
+        dim_m).
       matrix_init: What initializer to use for the matrix. `None` defaults to
         `normal` initalization.
       with_bias: Whether a bias should be included in layer after
         exponentiation.
+      matrix_squarings_exp: None to compute tf.linalg.expm(M), an integer `k` to
+        instead approximate it with (I+M/2**k)**(2**k).
       **kwargs: keyword arguments passed to the Keras layer base class.
     """
     self._dim_m = dim_m
@@ -50,6 +56,7 @@ class MLayer(tf.keras.layers.Layer):
     self._matrix_init = matrix_init or 'normal'
     self._with_bias = with_bias
     self._matrix_bias = None
+    self._matrix_squarings_exp = matrix_squarings_exp
     super(MLayer, self).__init__(**kwargs)
 
   def build(self, input_shape):
@@ -71,11 +78,17 @@ class MLayer(tf.keras.layers.Layer):
 
   def call(self, x):
     if not self._with_bias:
-      return tf.linalg.expm(
-          tf.einsum('amn,...a->...mn', self._rep_to_exp_tensor, x))
-    return tf.linalg.expm(
-        tf.einsum('amn,...a->...mn', self._rep_to_exp_tensor, x) +
-        self._matrix_bias)
+      mat = tf.einsum('amn,...a->...mn', self._rep_to_exp_tensor, x)
+    else:
+      mat = tf.einsum('amn,...a->...mn', self._rep_to_exp_tensor,
+                      x) + self._matrix_bias
+    if self._matrix_squarings_exp is None:
+      return tf.linalg.expm(mat)
+    # Approximation of exp(mat) as (1+mat/k)**k with k = 2**MATRIX_SQUARINGS_EXP
+    mat = mat * 0.5**self._matrix_squarings_exp + tf.eye(self._dim_m)
+    for _ in range(self.matATRIX_SQUARINGS_EXP):
+      mat = tf.einsum('...ij,...jk->...ik', mat, mat)
+    return mat
 
   def compute_output_shape(self, input_shape):
     return input_shape[0], self._dim_m, self._dim_m
@@ -85,4 +98,5 @@ class MLayer(tf.keras.layers.Layer):
     config['dim_m'] = self._dim_m
     config['matrix_init'] = self._matrix_init
     config['with_bias'] = self._with_bias
+    config['matrix_squarings_exp'] = self._matrix_squarings_exp
     return config
