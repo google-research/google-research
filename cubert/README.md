@@ -23,6 +23,7 @@ booktitle = {Proceedings of the 37th International Conference on Machine Learnin
 series    = {Proceedings of Machine Learning Research},
 publisher = {{PMLR}},
 year      = {2020},
+}
 ```
 
 ## The CuBERT Tokenizer
