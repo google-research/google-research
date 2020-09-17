@@ -4,6 +4,72 @@ Code and details for reproducing results for the paper ["Compositional
 Generalization in Semantic Parsing: Pre-training vs. Specialized Architectures"]
 (https://arxiv.org/abs/2007.08970)
 
+## Instructions for most experiments
+
+This section describes how most experiments of the paper can be reproduced. For
+CGPS and T5 see the separate sections further down.
+
+### Prerequisites
+
+If you want to get started quickly you can use the
+`tf-1-15-cu100` image from `deeplearning-platform-release` which comes with some of the right dependencies preinstalled. The following command starts a VM with this image and a V100 GPU on Google Cloud:
+
+```
+VM_NAME=run_experiments
+gcloud beta compute instances create $VM_NAME \
+  --image-project=deeplearning-platform-release \
+  --image-family=tf-1-15-cu100 \
+  --project ${YOUR_GCP_PROJECT} \
+  --machine-type=n1-standard-8 \
+  --boot-disk-size=120GB \
+  --maintenance-policy=TERMINATE \
+  --accelerator="type=nvidia-tesla-v100,count=1" \
+  --metadata="install-nvidia-driver=True"
+```
+
+Next, get code with:
+
+```
+svn export https://github.com/google-research/google-research/trunk/cfq
+```
+
+You can then install the necessary Python dependencies using:
+
+```
+sudo pip3 install -r cfq/requirements.txt
+```
+
+### Running the experiment
+
+This command will download the dataset, preprocess it, train a model and finally evaluate it and report it's accuracy:
+
+```
+python3 -m cfq.run_experiment \
+  --dataset=scan --split=mcd1 \
+  --model=evolved_transformer --hparams_set=cfq_evolved_transformer \
+  --train_steps=100000
+```
+
+Customize the invocation arguments for the experiment that you want to run.
+
+Model / hyperparameter configurations used in the paper are:
+
+| model                  | hparams_set               |
+|------------------------|---------------------------|
+| lstm_seq2seq_attention | cfq_lstm_attention_multi  |
+| transformer            | cfq_transformer           |
+| universal_transformer  | cfq_universal_transformer |
+| evolved_transformer    | cfq_evolved_transformer   |
+| shuffle_network        | shuffle_network_baseline  |
+
+## Instructions for CGPS experiments
+
+This command will download the dataset, preprocess it, train a model and finally evaluate it and report it's accuracy:
+
+```
+python3.7 -m CGPS.main --flagfile=CGPS/experiments/cfq_mcd1/flags.txt
+```
+
 ## T5 fine-tuning instructions
 
 Below are instructions for fine-tuning a T5-small model on the MCD1 split of
