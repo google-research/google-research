@@ -28,7 +28,7 @@ To calculate the weight sparsity for a checkpoint, use the `checkpoint_sparsity.
 
 ## Trained Checkpoints
 
-The top performing checkpoints for each model and sparsity technique can be downloaded with the following links.
+The top performing checkpoints for each model and sparsity technique can be downloaded with the following links. See https://github.com/google-research/google-research/issues/392 about how to inspect the checkpoints.
 
 |    Model    |      Technique      | Sparsity |  BLEU |                                                                       Link                                                                      |
 |-----------|-------------------|--------|-----|-----------------------------------------------------------------------------------------------------------------------------------------------|
