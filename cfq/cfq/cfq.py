@@ -25,6 +25,7 @@ from tensor2tensor.data_generators import problem
 from tensor2tensor.data_generators import text_problems
 from tensor2tensor.data_generators.problem import DatasetSplit
 from tensor2tensor.layers import common_hparams
+from tensor2tensor.models import evolved_transformer
 from tensor2tensor.models.research import universal_transformer
 from tensor2tensor.utils import registry
 
@@ -219,4 +220,19 @@ def cfq_universal_transformer():
   hparams.num_hidden_layers = 6
   hparams.num_rec_steps = 4
   hparams.recurrence_type = 'basic'
+  return hparams
+
+
+@registry.register_hparams
+def cfq_evolved_transformer():
+  """Evolved transformer hyperparameters tuned for CFQ."""
+  hparams = evolved_transformer.evolved_transformer_base()
+  hparams.learning_rate_decay_scheme = 'none'
+  hparams.learning_rate_schedule = 'constant*single_cycle_cos_decay'
+  hparams.learning_rate_constant = 0.0011703123695332683
+  hparams.learning_rate_warmup_steps = 4000
+  hparams.batch_size = 4096
+  hparams.hidden_size = 128
+  hparams.num_heads = 8
+  hparams.num_hidden_layers = 2
   return hparams
