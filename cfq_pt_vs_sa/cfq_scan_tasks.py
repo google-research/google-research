@@ -15,32 +15,64 @@
 
 # Lint as: python3
 """CFQ and SCAN tasks for T5."""
+import string
+
 import t5.data
 from t5.data import postprocessors as t5_postprocessors
 from t5.evaluation import metrics as t5_metrics
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from cfq import preprocess
-
 TaskRegistry = t5.data.TaskRegistry
 TfdsTask = t5.data.TfdsTask
+
+
+def tokenize_punctuation(text):
+  text = map(lambda c: ' %s ' % c if c in string.punctuation else c, text)
+  return ' '.join(''.join(text).split())
+
+
+def preprocess_sparql(query):
+  """Do various preprocessing on the SPARQL query."""
+  # Tokenize braces.
+  query = query.replace('count(*)', 'count ( * )')
+
+  tokens = []
+  for token in query.split():
+    # Replace 'ns:' prefixes.
+    if token.startswith('ns:'):
+      token = token[3:]
+    # Replace mid prefixes.
+    if token.startswith('m.'):
+      token = 'm_' + token[2:]
+    tokens.append(token)
+
+  return ' '.join(tokens).replace('\\n', ' ')
 
 
 def cfq_preprocess(dataset):
   """Select input/target features and add prefix to input."""
 
-  def cfq_map(sample):
-    inputs = preprocess.tokenize_punctuation(sample['question']).split()
-    targets = preprocess.preprocess_sparql(sample['query']).split()
+  def compute_inputs_and_targets(inputs, targets):
+    inputs = tf.compat.as_text(inputs.numpy())
+    inputs = tokenize_punctuation(inputs)
+    targets = tf.compat.as_text(targets.numpy())
+    targets = preprocess_sparql(targets)
+
+    return inputs, targets
+
+  def map_fn(x):
+    inputs, targets = tf.py_function(
+        compute_inputs_and_targets,
+        inp=[x['question'], x['query']],
+        Tout=[tf.string, tf.string])
     return {
-        'inputs':
-            tf.strings.join(['semanticparse: ', inputs], ' '),
-        'targets':
-            tf.strings.join(targets, ' ')
+        # The reshape is necessary as otherwise the tensor has unknown rank.
+        'inputs': tf.reshape(inputs, shape=[]),
+        'targets': tf.reshape(targets, shape=[])
     }
 
-  return dataset.map(cfq_map, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+  return dataset.map(map_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
 
 for split in ['mcd1', 'mcd2', 'mcd3', '2m', 'random']:

@@ -31,25 +31,45 @@ pip3 install t5[gcp]
 ```
 
 Then download the custom T5 tasks from this repository in order to run
-fine-tuning on SCAN and CFQ, as well as the preprocessing library that is part
-of CFQ.
+fine-tuning on SCAN and CFQ, and make sure the tasks can be used by the T5 binary by
+putting them into a directory and adding it to `PYTHONPATH`.
 
 ```
 GR_REPO="https://raw.githubusercontent.com/google-research/google-research"
-wget "${GR_REPO}/master/cfq/preprocess.py" \
-"${GR_REPO}/master/cfq_pt_vs_sa/cfq_scan_tasks.py"
-```
-
-Next, make sure these two files can be used by the T5 binary by putting them 
-into a directory and adding it to `PYTHONPATH`.
-
-```
-mkdir t5_utils
-mv preprocess.py cfq_scan_tasks.py t5_utils
+wget "${GR_REPO}/master/cfq_pt_vs_sa/cfq_scan_tasks.py"
+mkdir t5_cfq_scan
+mv cfq_scan_tasks.py t5_cfq_scan
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 ```
 
 ### Fine-tuning.
+
+The preprocessing in `cfq_scan_tasks.py` uses `tf.py_function`, which doesn't
+work on headless TPU devices. Therefore we cache the datasets first using T5's [cache_tasks_main.py](https://github.com/google-research/text-to-text-transfer-transformer/blob/master/t5/data/cache_tasks_main.py).
+
+First download the dataset and split to your local disc using TFDS.
+
+```
+python3 -c "import tensorflow_datasets as tfds; tfds.load('cfq/mcd1')"
+```
+
+The dataset will be cached to `~/tensorflow_datasets` by default. Next we
+cache the dataset.
+
+```
+TFDS_LOCAL_PATH=$USER/tensorflow_datasets
+# Change this to a directory in a Cloud bucket.
+CACHE_DIR=gs://<YOUR_CLOUD_BUCKET>/cache
+
+# Clone the repository locally.
+git clone https://github.com/google-research/text-to-text-transfer-transformer.git
+
+python3 text-to-text-transfer-transformer/t5/data/cache_tasks_main.py \
+  --tasks=cfq_mcd1 \
+  --output_cache_dir=$CACHE_DIR \
+  --module_import=t5_cfq_scan.cfq_scan_tasks \
+  --tasks_additional_cache_dirs=$TFDS_LOCAL_PATH
+```
 
 Make sure the following environment variables are set:
 
@@ -64,6 +84,8 @@ Make sure the following environment variables are set:
 *   `DATA_DIR`: Location where the dataset data will be saved.
 
 *   `TPU_SIZE`: Size of your TPU (e.g., 2x2).
+
+*   `CACHE_DIR`: Google Cloud directory where the dataset is cached.
 
 We used the following settings for model parallelism and TPU topologies when
 doing our experiments.
@@ -93,7 +115,9 @@ t5_mesh_transformer  \
   --gin_param="utils.tpu_mesh_shape.tpu_topology = '${TPU_SIZE}'" \
   --gin_file="gs://t5-data/pretrained_models/${T5_SIZE}/operative_config.gin" \
   --gin_param="MIXTURE_NAME = '${DATASET}_${SPLIT}'" \
-  --module_import=t5_utils.cfq_scan_tasks
+  --module_import=t5_cfq_scan.cfq_scan_tasks \
+  --additional_task_cache_dirs="${CACHE_DIR}" \
+  --gin_param="mesh_train_dataset_fn.use_cached = True"
 ```
 
 ### Evaluation
@@ -115,5 +139,5 @@ t5_mesh_transformer \
   --gin_param="utils.tpu_mesh_shape.tpu_topology = '${TPU_SIZE}'" \
   --gin_param="eval_checkpoint_step = 262144" \
   --gin_param="MIXTURE_NAME = 'cfq_${SPLIT}'" \
-  --module_import=t5_utils.cfq_scan_tasks
+  --module_import=t5_cfq_scan.cfq_scan_tasks
 ```
