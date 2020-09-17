@@ -15,8 +15,8 @@
 
 """DNN model with fully connected layers on raw data."""
 from kws_streaming.layers import data_frame
+from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
-from kws_streaming.layers.stream import Stream
 from kws_streaming.models.utils import parse
 
 
@@ -93,7 +93,7 @@ def model(flags):
   for units, activation in zip(parse(flags.units1), parse(flags.act1)):
     net = tf.keras.layers.Dense(units=units, activation=activation)(net)
 
-  net = Stream(cell=tf.keras.layers.Flatten())(net)
+  net = stream.Stream(cell=tf.keras.layers.Flatten())(net)
 
   # after flattening data in time, we can apply any layer: pooling, bi-lstm etc
   if flags.pool_size > 1:

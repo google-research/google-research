@@ -14,11 +14,11 @@
 # limitations under the License.
 
 """LSTM with Mel spectrum and fully connected layers."""
+from kws_streaming.layers import lstm
 from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
+from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
-from kws_streaming.layers.lstm import LSTM
-from kws_streaming.layers.stream import Stream
 from kws_streaming.models.utils import parse
 
 
@@ -106,7 +106,7 @@ def model(flags):
   for units, return_sequences, num_proj in zip(
       parse(flags.lstm_units), parse(flags.return_sequences),
       parse(flags.num_proj)):
-    net = LSTM(
+    net = lstm.LSTM(
         units=units,
         return_sequences=return_sequences,
         stateful=flags.stateful,
@@ -114,7 +114,7 @@ def model(flags):
         num_proj=num_proj)(
             net)
 
-  net = Stream(cell=tf.keras.layers.Flatten())(net)
+  net = stream.Stream(cell=tf.keras.layers.Flatten())(net)
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)
 
   for units, activation in zip(parse(flags.units1), parse(flags.act1)):

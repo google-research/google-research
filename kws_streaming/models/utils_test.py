@@ -38,6 +38,7 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
                   feature_type='mfcc_op',
                   model_name='svdf'):
     params = model_params.HOTWORD_MODEL_PARAMS[model_name]
+    params.clip_duration_ms = 100  # make it shorter for testing
 
     # set parameters to test
     params.preprocess = preprocess
@@ -154,8 +155,8 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
 
   @parameterized.parameters('att_mh_rnn', 'att_rnn', 'dnn', 'ds_cnn', 'cnn',
                             'tc_resnet', 'crnn', 'gru', 'lstm', 'svdf',
-                            'svdf_resnet', 'mobilenet', 'mobilenet_v2',
-                            'xception', 'inception', 'inception_resnet')
+                            'mobilenet', 'mobilenet_v2', 'xception',
+                            'inception', 'inception_resnet', 'ds_tc_resnet')
   def testNonStreamInferenceTFandTFLite(self, model_name):
     # Validate that all models with selected preprocessing
     # can be converted to non stream inference mode.

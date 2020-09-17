@@ -75,7 +75,7 @@ def att_mh_rnn_params():
   params = Params()
   params.model_name = 'att_rnn'
   params.cnn_filters = '3,1'
-  params.cnn_kernel_size = '(5,1),(5,1)'
+  params.cnn_kernel_size = '(3,1),(3,1)'
   params.cnn_act = "'relu','relu'"
   params.cnn_dilation_rate = '(1,1),(1,1)'
   params.cnn_strides = '(1,1),(1,1)'
@@ -94,7 +94,7 @@ def att_rnn_params():
   params = Params()
   params.model_name = 'att_rnn'
   params.cnn_filters = '3,1'
-  params.cnn_kernel_size = '(5,1),(5,1)'
+  params.cnn_kernel_size = '(3,1),(3,1)'
   params.cnn_act = "'relu','relu'"
   params.cnn_dilation_rate = '(1,1),(1,1)'
   params.cnn_strides = '(1,1),(1,1)'
@@ -111,12 +111,12 @@ def dnn_params():
   """Parameters for toy dnn model."""
   params = Params()
   params.model_name = 'dnn'
-  params.units1 = '16,16'
+  params.units1 = '4,4'
   params.act1 = "'relu','relu'"
   params.pool_size = 2
   params.strides = 2
   params.dropout1 = 0.1
-  params.units2 = '16,16'
+  params.units2 = '4,4'
   params.act2 = "'linear','relu'"
   return params
 
@@ -125,15 +125,15 @@ def crnn_params():
   """Parameters for toy conv rnn model."""
   params = Params()
   params.model_name = 'crnn'
-  params.cnn_filters = '16,16'
-  params.cnn_kernel_size = '(3,3),(5,3)'
+  params.cnn_filters = '4,4'
+  params.cnn_kernel_size = '(3,3),(1,1)'
   params.cnn_act = "'relu','relu'"
   params.cnn_dilation_rate = '(1,1),(1,1)'
   params.cnn_strides = '(1,1),(1,1)'
-  params.gru_units = '16'
+  params.gru_units = '4'
   params.return_sequences = '0'
   params.dropout1 = 0.1
-  params.units1 = '16,16'
+  params.units1 = '4,4'
   params.act1 = "'linear','relu'"
   params.stateful = 0
   return params
@@ -143,13 +143,13 @@ def cnn_stride_params():
   """Parameters for toy conv striding model."""
   params = Params()
   params.model_name = 'cnn'
-  params.cnn_filters = '16,16,16,16,16,16,16'
-  params.cnn_kernel_size = '(3,3),(3,3),(3,3),(3,3),(3,3),(3,1),(3,1)'
-  params.cnn_act = "'relu','relu','relu','relu','relu','relu','relu'"
-  params.cnn_dilation_rate = '(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1)'
-  params.cnn_strides = '(2,1),(1,1),(2,2),(1,1),(1,1),(1,1),(1,1)'
+  params.cnn_filters = '4,4'
+  params.cnn_kernel_size = '(3,3),(3,1)'
+  params.cnn_act = "'relu','relu'"
+  params.cnn_dilation_rate = '(1,1),(1,1)'
+  params.cnn_strides = '(2,1),(1,1)'
   params.dropout1 = 0.5
-  params.units2 = '16,16'
+  params.units2 = '4,4'
   params.act2 = "'linear','relu'"
   return params
 
@@ -158,13 +158,13 @@ def cnn_params():
   """Parameters for toy conv model."""
   params = Params()
   params.model_name = 'cnn'
-  params.cnn_filters = '16,16,16,16,16,16,16'
-  params.cnn_kernel_size = '(3,3),(5,3),(5,3),(5,3),(5,2),(5,1),(10,1)'
-  params.cnn_act = "'relu','relu','relu','relu','relu','relu','relu'"
-  params.cnn_dilation_rate = '(1,1),(1,1),(2,1),(1,1),(2,1),(1,1),(2,1)'
-  params.cnn_strides = '(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1)'
+  params.cnn_filters = '4,4'
+  params.cnn_kernel_size = '(3,3),(1,1)'
+  params.cnn_act = "'relu','relu'"
+  params.cnn_dilation_rate = '(1,1),(1,1)'
+  params.cnn_strides = '(1,1),(1,1)'
   params.dropout1 = 0.5
-  params.units2 = '16,16'
+  params.units2 = '4,4'
   params.act2 = "'linear','relu'"
   return params
 
@@ -173,7 +173,7 @@ def tc_resnet_params():
   """Parameters for toy tc_resnet model."""
   params = Params()
   params.model_name = 'tc_resnet'
-  params.channels = '24, 36'
+  params.channels = '4, 8'
   params.debug_2d = 0
   params.pool_size = ''
   params.kernel_size = '(3, 1)'
@@ -190,12 +190,12 @@ def lstm_params():
   """Parameters for toy lstm model."""
   params = Params()
   params.model_name = 'lstm'
-  params.lstm_units = '32'
+  params.lstm_units = '4'
   params.return_sequences = '0'
   params.use_peepholes = 0
   params.num_proj = '-1'
   params.dropout1 = 0.3
-  params.units1 = '32,32'
+  params.units1 = '4,4'
   params.act1 = "'linear','relu'"
   params.stateful = 0
   return params
@@ -205,10 +205,10 @@ def gru_params():
   """Parameters for toy gru model."""
   params = Params()
   params.model_name = 'gru'
-  params.gru_units = '32'
+  params.gru_units = '4'
   params.return_sequences = '0'
   params.dropout1 = 0.1
-  params.units1 = '32,32'
+  params.units1 = '4,4'
   params.act1 = "'linear','relu'"
   params.stateful = 0
   return params
@@ -218,23 +218,23 @@ def ds_cnn_params():
   """Parameters for toy "depthwise convolutional neural network" stride model."""
   params = Params()
   params.model_name = 'ds_cnn'
-  params.cnn1_kernel_size = '(10,4)'
+  params.cnn1_kernel_size = '(3,2)'
   params.cnn1_dilation_rate = '(1,1)'
   params.cnn1_strides = '(2,1)'
   params.cnn1_padding = 'same'
-  params.cnn1_filters = 16
+  params.cnn1_filters = 4
   params.cnn1_act = 'relu'
   params.bn_momentum = 0.98
   params.bn_center = 1
   params.bn_scale = 0
   params.bn_renorm = 0
-  params.dw2_dilation_rate = '(1,1),(1,1),(1,1),(1,1),(1,1)'
-  params.dw2_kernel_size = '(3,3),(3,3),(3,3),(3,3),(3,3)'
-  params.dw2_strides = '(2,2),(1,1),(1,1),(1,1),(1,1)'
+  params.dw2_dilation_rate = '(1,1),(1,1)'
+  params.dw2_kernel_size = '(3,3),(3,3)'
+  params.dw2_strides = '(2,2),(1,1)'
   params.dw2_padding = 'same'
-  params.dw2_act = "'relu','relu','relu','relu','relu'"
-  params.cnn2_filters = '16,16,16,16,16'
-  params.cnn2_act = "'relu','relu','relu','relu','relu'"
+  params.dw2_act = "'relu','relu'"
+  params.cnn2_filters = '4,4'
+  params.cnn2_act = "'relu','relu'"
   params.dropout1 = 0.2
   return params
 
@@ -243,11 +243,11 @@ def svdf_params():
   """Parameters for toy svdf model."""
   params = Params()
   params.model_name = 'svdf'
-  params.svdf_memory_size = '4,10,10,10,10,10'
-  params.svdf_units1 = '16,16,16,16,16,16'
-  params.svdf_act = "'relu','relu','relu','relu','relu','relu'"
-  params.svdf_units2 = '16,16,16,16,16,-1'
-  params.svdf_dropout = '0.0,0.0,0.0,0.0,0.0,0.0'
+  params.svdf_memory_size = '2,1'
+  params.svdf_units1 = '4,4'
+  params.svdf_act = "'relu','relu'"
+  params.svdf_units2 = '4,-1'
+  params.svdf_dropout = '0.0,0.0'
   params.svdf_pad = 0
   params.dropout1 = 0.0
   params.units2 = ''
@@ -259,12 +259,12 @@ def mobilenet_params():
   """Parameters for mobilenet model."""
   params = Params()
   params.model_name = 'mobilenet'
-  params.cnn1_filters = 32
+  params.cnn1_filters = 4
   params.cnn1_kernel_size = '(3,1)'
-  params.cnn1_strides = '(2,2)'
-  params.ds_kernel_size = '(3,1),(3,1),(3,1),(3,1)'
-  params.ds_strides = '(2,2),(2,2),(1,1),(1,1)'
-  params.cnn_filters = '16,32,32,32'
+  params.cnn1_strides = '(1,1)'
+  params.ds_kernel_size = '(3,1),(1,1)'
+  params.ds_strides = '(1,1),(1,1)'
+  params.cnn_filters = '4,4'
   params.dropout = 0.2
   params.bn_scale = 0
   return params
@@ -274,13 +274,13 @@ def mobilenet_v2_params():
   """Parameters for mobilenet v2 model."""
   params = Params()
   params.model_name = 'mobilenet_v2'
-  params.cnn1_filters = 32
+  params.cnn1_filters = 4
   params.cnn1_kernel_size = '(3,1)'
-  params.cnn1_strides = '(2,2)'
-  params.ds_kernel_size = '(3,1),(3,1),(3,1),(3,1)'
-  params.cnn_strides = '(1,1),(2,2),(1,1),(1,1)'
-  params.cnn_filters = '32,32,32,32'
-  params.cnn_expansions = '1.5,1.5,1.5,1.5'
+  params.cnn1_strides = '(2,1)'
+  params.ds_kernel_size = '(3,1),(3,1)'
+  params.cnn_strides = '(1,1),(1,1)'
+  params.cnn_filters = '4,4'
+  params.cnn_expansions = '1.5,1.5'
   params.dropout = 0.2
   params.bn_scale = 0
   return params
@@ -290,19 +290,19 @@ def xception_params():
   """Parameters for xception model."""
   params = Params()
   params.model_name = 'xception'
-  params.cnn1_kernel_sizes = '5'
-  params.cnn1_filters = '32'
-  params.stride1 = 2
-  params.stride2 = 2
+  params.cnn1_kernel_sizes = '3'
+  params.cnn1_filters = '4'
+  params.stride1 = 1
+  params.stride2 = 1
   params.stride3 = 1
   params.stride4 = 1
-  params.cnn2_kernel_sizes = '5'
-  params.cnn2_filters = '32'
-  params.cnn3_kernel_sizes = '5'
-  params.cnn3_filters = '32'
-  params.cnn4_kernel_sizes = '5'
-  params.cnn4_filters = '32'
-  params.units2 = '64'
+  params.cnn2_kernel_sizes = '3'
+  params.cnn2_filters = '4'
+  params.cnn3_kernel_sizes = '1'
+  params.cnn3_filters = '4'
+  params.cnn4_kernel_sizes = '1'
+  params.cnn4_filters = '4'
+  params.units2 = '4'
   params.dropout = 0.2
   params.bn_scale = 0
   return params
@@ -312,13 +312,13 @@ def inception_params():
   """Parameters for inception model."""
   params = Params()
   params.model_name = 'inception'
-  params.cnn1_filters = '24'
-  params.cnn1_kernel_sizes = '5'
+  params.cnn1_filters = '4'
+  params.cnn1_kernel_sizes = '3'
   params.cnn1_strides = '1'
-  params.cnn2_filters1 = '10,10,16'
-  params.cnn2_filters2 = '10,10,16'
-  params.cnn2_kernel_sizes = '5,5,5'
-  params.cnn2_strides = '2,2,1'
+  params.cnn2_filters1 = '4,4'
+  params.cnn2_filters2 = '4,4'
+  params.cnn2_kernel_sizes = '3,1'
+  params.cnn2_strides = '1,1'
   params.dropout = 0.2
   params.bn_scale = 0
   return params
@@ -328,15 +328,15 @@ def inception_resnet_params():
   """Parameters for inception resnet model."""
   params = Params()
   params.model_name = 'inception_resnet'
-  params.cnn1_filters = '32'
-  params.cnn1_strides = '2'
-  params.cnn1_kernel_sizes = '5'
-  params.cnn2_scales = '0.2,0.5,1.0'
-  params.cnn2_filters_branch0 = '32,32,32'
-  params.cnn2_filters_branch1 = '32,32,32'
-  params.cnn2_filters_branch2 = '32,32,64'
-  params.cnn2_strides = '2,1,1'
-  params.cnn2_kernel_sizes = '3,5,5'
+  params.cnn1_filters = '4'
+  params.cnn1_strides = '1'
+  params.cnn1_kernel_sizes = '3'
+  params.cnn2_scales = '0.2,1.0'
+  params.cnn2_filters_branch0 = '4,4'
+  params.cnn2_filters_branch1 = '4,4'
+  params.cnn2_filters_branch2 = '4,4'
+  params.cnn2_strides = '1,1'
+  params.cnn2_kernel_sizes = '3,1'
   params.dropout = 0.2
   params.bn_scale = 0
   return params
@@ -346,13 +346,13 @@ def svdf_resnet_params():
   """Parameters for svdf with resnet model."""
   params = Params()
   params.model_name = 'svdf_resnet'
-  params.block1_memory_size = '4,10'
-  params.block2_memory_size = '10,10'
-  params.block3_memory_size = '10,10'
-  params.block1_units1 = '16,32'
-  params.block2_units1 = '32,32'
-  params.block3_units1 = '64,128'
-  params.blocks_pool = '1,2,2'
+  params.block1_memory_size = '1'
+  params.block2_memory_size = '1'
+  params.block3_memory_size = '1'
+  params.block1_units1 = '4'
+  params.block2_units1 = '4'
+  params.block3_units1 = '4'
+  params.blocks_pool = '1,1,1'
   params.use_batch_norm = 1
   params.bn_scale = 0
   params.activation = 'relu'
@@ -360,8 +360,25 @@ def svdf_resnet_params():
   params.svdf_pad = 1
   params.svdf_use_bias = 0
   params.dropout1 = 0.2
-  params.units2 = '64'
+  params.units2 = '4'
   params.flatten = 0
+  return params
+
+
+def ds_tc_resnet_params():
+  """Parameters for ds_tc_resnet model based on MatchboxNet."""
+  params = Params()
+  params.model_name = 'ds_tc_resnet'
+  params.padding = 'same'
+  params.activation = 'relu'
+  params.dropout = 0.0
+  params.ds_filters = '4, 4'
+  params.ds_repeat = '1, 1'
+  params.ds_residual = '1, 0'
+  params.ds_kernel_size = '3, 1'
+  params.ds_stride = '1, 1'
+  params.ds_dilation = '2, 1'
+  params.activation = 'relu'
   return params
 
 
@@ -385,4 +402,5 @@ HOTWORD_MODEL_PARAMS = {
     'xception': xception_params(),
     'inception': inception_params(),
     'inception_resnet': inception_resnet_params(),
+    'ds_tc_resnet': ds_tc_resnet_params(),
 }

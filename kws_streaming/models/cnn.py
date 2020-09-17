@@ -16,8 +16,8 @@
 """CNN model with Mel spectrum."""
 from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
+from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
-from kws_streaming.layers.stream import Stream
 from kws_streaming.models.utils import parse
 
 
@@ -106,7 +106,7 @@ def model(flags):
       parse(flags.cnn_filters), parse(flags.cnn_kernel_size),
       parse(flags.cnn_act), parse(flags.cnn_dilation_rate),
       parse(flags.cnn_strides)):
-    net = Stream(
+    net = stream.Stream(
         cell=tf.keras.layers.Conv2D(
             filters=filters,
             kernel_size=kernel_size,
@@ -115,7 +115,7 @@ def model(flags):
             strides=strides))(
                 net)
 
-  net = Stream(cell=tf.keras.layers.Flatten())(net)
+  net = stream.Stream(cell=tf.keras.layers.Flatten())(net)
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)
 
   for units, activation in zip(parse(flags.units2), parse(flags.act2)):

@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Model based on combination of depthwise and 1x1 convolutions."""
+"""Model based on combination of 2D depthwise and 1x1 convolutions."""
 from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
+from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
-from kws_streaming.layers.stream import Stream
 from kws_streaming.models.utils import parse
 
 
@@ -175,7 +175,7 @@ def model(flags):
 
   net = tf.keras.backend.expand_dims(net)
 
-  net = Stream(
+  net = stream.Stream(
       cell=tf.keras.layers.Conv2D(
           kernel_size=parse(flags.cnn1_kernel_size),
           dilation_rate=parse(flags.cnn1_dilation_rate),
@@ -195,7 +195,7 @@ def model(flags):
       parse(flags.dw2_kernel_size), parse(flags.dw2_act),
       parse(flags.dw2_dilation_rate), parse(flags.dw2_strides),
       parse(flags.cnn2_filters), parse(flags.cnn2_act)):
-    net = Stream(
+    net = stream.Stream(
         cell=tf.keras.layers.DepthwiseConv2D(
             kernel_size=kernel_size,
             dilation_rate=dilation_rate,
@@ -218,12 +218,12 @@ def model(flags):
             net)
     net = tf.keras.layers.Activation(cnn2_act)(net)
 
-  net = Stream(
+  net = stream.Stream(
       cell=tf.keras.layers.AveragePooling2D(
           pool_size=(int(net.shape[1]), int(net.shape[2]))))(
               net)
 
-  net = Stream(cell=tf.keras.layers.Flatten())(net)
+  net = stream.Stream(cell=tf.keras.layers.Flatten())(net)
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)
 
   net = tf.keras.layers.Dense(units=flags.label_count)(net)

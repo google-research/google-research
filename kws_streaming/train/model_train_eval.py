@@ -118,6 +118,7 @@ import kws_streaming.models.crnn as crnn
 import kws_streaming.models.dnn as dnn
 import kws_streaming.models.dnn_raw as dnn_raw
 import kws_streaming.models.ds_cnn as ds_cnn
+import kws_streaming.models.ds_tc_resnet as ds_tc_resnet
 import kws_streaming.models.gru as gru
 import kws_streaming.models.inception as inception
 import kws_streaming.models.inception_resnet as inception_resnet
@@ -353,6 +354,10 @@ if __name__ == '__main__':
   # svdf resnet model settings
   parser_svdf_resnet = subparsers.add_parser('svdf_resnet')
   svdf_resnet.model_parameters(parser_svdf_resnet)
+
+  # ds_tc_resnet model settings
+  parser_ds_tc_resnet = subparsers.add_parser('ds_tc_resnet')
+  ds_tc_resnet.model_parameters(parser_ds_tc_resnet)
 
   FLAGS, unparsed = parser.parse_known_args()
   if unparsed and tuple(unparsed) != ('--alsologtostderr',):
