@@ -49,6 +49,15 @@ Non-mutually-exclusive: `--expt_name=non_exclusive`
 Meta-augmentation with uniform noise: `--expt_name=uniform_noise`
 
 ## Path to datasets
+
+Datasets besides Dclaw should be downloaded from elsewhere and placed into the
+appropriate directory.
+
+For Dclaw dataset: preprocessing has already been done, and should not need to
+be repeated. Folders `train1, val1, test1` correspond to one split of the
+objects. There are 3 different splits which can be chosen by the `dclaw_pn`
+flag. Results are based on averaging numbers across all 3 splits.
+
 ### Omniglot: 
 path: `./data/omniglot_resized` (train, val, test split happens within the code)  
 Preprocessing: `./data/omniglot_resized/resize_images.py`
