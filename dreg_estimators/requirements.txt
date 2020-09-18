@@ -1,4 +1,4 @@
-tensorflow==1.15rc2
+tensorflow==1.15.2
 # tfp-nightly
 dm-sonnet>=1.23
 scipy>=1.1.0
