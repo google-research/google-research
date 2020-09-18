@@ -44,7 +44,7 @@ import flask
 from flask import wrappers as flask_wrappers
 from gevent.pywsgi import WSGIServer
 import tensorflow.compat.v1 as tf
-from werkzeug.contrib import wrappers as werkzeug_wrappers
+import werkzeug.exceptions
 from google.protobuf.message import DecodeError
 
 from eeg_modelling.eeg_viewer import data_source
@@ -421,7 +421,46 @@ def RegisterRoutes(app):
       methods=['POST'])
 
 
-class Request(werkzeug_wrappers.ProtobufRequestMixin, flask_wrappers.Request):
+# Copied from Werkzeug 0.16.0.
+class ProtobufRequestMixin(object):
+  """Add protobuf parsing method to a request object.
+
+  This will parse the input data through `protobuf`_ if possible.
+
+  :exc:`~werkzeug.exceptions.BadRequest` will be raised if the content-type
+  is not protobuf or if the data itself cannot be parsed property.
+
+  .. _protobuf: https://github.com/protocolbuffers/protobuf
+
+  .. deprecated:: 0.15
+     This mixin will be removed in version 1.0.
+  """
+
+  #: by default the :class:`ProtobufRequestMixin` will raise a
+  #: :exc:`~werkzeug.exceptions.BadRequest` if the object is not
+  #: initialized.  You can bypass that check by setting this
+  #: attribute to `False`.
+  protobuf_check_initialization = True
+
+  def parse_protobuf(self, proto_type):  # pylint: disable=invalid-name
+    """Parse the data into an instance of proto_type."""
+    if 'protobuf' not in self.environ.get('CONTENT_TYPE', ''):
+      raise werkzeug.exceptions.BadRequest('Not a Protobuf request')
+
+    obj = proto_type()
+    try:
+      obj.ParseFromString(self.data)
+    except Exception:
+      raise werkzeug.exceptions.BadRequest('Unable to parse Protobuf request')
+
+    # Fail if not all required fields are set
+    if self.protobuf_check_initialization and not obj.IsInitialized():
+      raise werkzeug.exceptions.BadRequest('Partial Protobuf request')
+
+    return obj
+
+
+class Request(ProtobufRequestMixin, flask_wrappers.Request):
   """Request class with protobuf mixin."""
 
 
