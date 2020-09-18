@@ -20,6 +20,7 @@ from typing import Sequence
 from absl.testing import absltest
 from absl.testing import parameterized
 from cubert import java_tokenizer
+from cubert import unified_tokenizer
 
 
 class JavaTokenizerTest(parameterized.TestCase):
@@ -41,8 +42,12 @@ class JavaTokenizerTest(parameterized.TestCase):
           'different_lines',
           """TokenA
 TokenB TokenC""",
-          (0, 1, 1),
-          (0, 0, 7),
+          (0,
+           0,  # NEWLINE
+           1, 1),
+          (0,
+           java_tokenizer._MAX_COLUMN,  # NEWLINE
+           0, 7),
       ),
       (
           'comment',
@@ -55,8 +60,12 @@ TokenB TokenC""",
           '''TokenA /** comment
 
 */ TokenB''',
-          (0, 2),
-          (0, 3),
+          (0,
+           0, 1,  # NEWLINEs.
+           2),
+          (0,
+           java_tokenizer._MAX_COLUMN, java_tokenizer._MAX_COLUMN,  # NEWLINEs.
+           3),
       ),
   )
   def test_tokenization_returns_expected_positions(
@@ -74,6 +83,37 @@ TokenB TokenC""",
 
     self.assertSequenceEqual(expected_lines_and_columns,
                              actual_lines_and_columns)
+
+  @parameterized.named_parameters(
+      (
+          'same_line',
+          """TokenA TokenB""",
+          (),
+      ),
+      (
+          'different_lines',
+          """TokenA
+TokenB
+
+TokenC""",
+          (0, 1, 2),
+      ),
+  )
+  def test_tokenization_returns_expected_newlines(
+      self, source, expected_newline_lines):
+    tokenizer = java_tokenizer.JavaTokenizer()
+
+    # Produce multi-tokens, right before flattening.
+    agnostic = tokenizer.tokenize_and_abstract(source)
+    conditioned = tokenizer.condition_full_tokens(agnostic)
+    multi_tokens = tokenizer.subtokenize_full_tokens(conditioned)[:-1]
+    actual_newline_lines = tuple(
+        m.metadata.start.line
+        for m in multi_tokens
+        if m.kind == unified_tokenizer.TokenKind.NEWLINE)
+
+    self.assertSequenceEqual(expected_newline_lines,
+                             actual_newline_lines)
 
 
 if __name__ == '__main__':

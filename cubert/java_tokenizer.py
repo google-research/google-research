@@ -13,7 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""A Python tokenizer subclass of CuBertTokenizer."""
+"""A Python tokenizer subclass of CuBertTokenizer.
+
+The `javalang` tokenizer only gives start position for tokens, and gives no
+whitespace tokens. This tokenizer synthetically injects NEWLINE tokens between
+tokens that differ in their start line position. For those tokens, the
+start column is an artifical, "high" column number in `_MAX_COLUMN`.
+
+In a future implementation, we'll modify the `JavaTokenizer` class to emit
+start and end positions, as well as comments.
+"""
 from typing import List
 from typing import Sequence
 
@@ -24,6 +33,10 @@ from javalang import tokenizer
 
 from cubert import cubert_tokenizer
 from cubert import unified_tokenizer
+
+
+# The column number we give synthetically-generated NEWLINE tokens.
+_MAX_COLUMN = 120
 
 
 class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
@@ -65,6 +78,8 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
     try:
       java_tokens = tokenizer.tokenize(source_code)
 
+      current_start_line = 0
+
       for token in java_tokens:
         # The token kind is the subclass type of the token.
         token_type = type(token)
@@ -73,18 +88,29 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
               'Received Java token type %s, but it was unexpected, '
               'while tokenizing \n%s\n' % (token_type, source_code))
 
+        # JavaTokenizer counts lines and columns from 1.
+        start_line = token.position.line - 1
+        start_column = token.position.column - 1
+        while start_line > current_start_line:
+          agnostic_tokens.append(
+              unified_tokenizer.AbstractToken(
+                  cubert_tokenizer.quote_special(
+                      unified_tokenizer.TokenKind.NEWLINE.name),
+                  unified_tokenizer.TokenKind.NEWLINE,
+                  unified_tokenizer.TokenMetadata(
+                      start=unified_tokenizer.Position(
+                          line=current_start_line, column=_MAX_COLUMN))))
+          current_start_line += 1
+
         # The tokenizer seems to take some liberties with Unicode, returning
         # invalid characters. This cleans spellings up.
         spelling = token.value.encode('utf-8', errors='replace').decode('utf-8')
-
         agnostic_tokens.append(
             unified_tokenizer.AbstractToken(
                 spelling, JavaTokenizer._TOKEN_TYPE_MAP[token_type],
                 unified_tokenizer.TokenMetadata(
                     start=unified_tokenizer.Position(
-                        # JavaTokenizer counts lines and columns from 1.
-                        line=token.position.line - 1,
-                        column=token.position.column - 1))))
+                        line=start_line, column=start_column))))
     except (tokenizer.LexerError, TypeError) as e:
       # Sometimes, javalang returns a TypeError when reading a number.
       # See
