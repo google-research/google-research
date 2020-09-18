@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Given a list of questions, compare golden answers with inferred answers.
 
 Writes accuracy (fraction of answers correct), and writes all correct and
