@@ -1,6 +1,0 @@
-absl-py>=0.5.0
-matplotlib>=1.5.2
-numpy>=1.13.3
-tensor2tensor>=1.9.0
-# tf-nightly
-# tfp-nightly
