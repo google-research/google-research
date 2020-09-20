@@ -5,9 +5,6 @@
 This is a repository for code, models and data accompanying the ICML 2020 paper
 [Learning and Evaluating Contextual Embedding of Source Code](https://proceedings.icml.cc/static/paper_files/icml/2020/5401-Paper.pdf).
 
-**The model checkpoints and datasets will be linked from this README within
-the next few weeks.**
-
 If you use the code, models or data released through this repository, please
 cite the following paper:
 ```
@@ -112,5 +109,66 @@ At this time, we release the following pre-trained datasets and models:
 
 ## Benchmarks and Fine-Tuned Models
 
-_Coming soon._
+Here we describe the 6 Python benchmarks we created. All 6 benchmarks were derived from [ETH Py150 Open](https://github.com/google-research-datasets/eth_py150_open). All examples are stored as sharded text files. Each text line corresponds to a separate example encoded as a JSON object. For each dataset, we release separate training/validation/testing splits along the same boundaries that ETH Py150 Open splits its files to the corresponding splits. The fine-tuned models are the checkpoints of each model with the highest validation accuracy.
 
+1. **Function-docstring classification**. Combinations of functions with their correct or incorrect documentation string, used to train a classifier that can tell which pairs go together. The JSON fields are:
+     * `function`: string, the source code of a function as text
+     * `docstring`: string, the documentation string for that function
+     * `label`: string, one of (“Incorrect”, “Correct”), the label of the example.
+     * `info`: string, an unformatted description of how the example was constructed, including the source dataset (always “ETHPy150Open”), the repository and filepath, the function name and, for “Incorrect” examples, the function whose docstring was substituted.
+1. **Exception classification**. Combinations of functions where one exception type has been masked, along with a label indicating the masked exception type. The JSON fields are:
+     * `function`: string, the source code of a function as text, in which one exception type has been replaced with the special token “__HOLE__”
+     * `label`: string, one of (`ValueError`, `AttributeError`, `TypeError`, `OSError`, `IOError`, `ImportError`, `IndexError`, `DoesNotExist`, `KeyboardInterrupt`, `StopIteration`, `AssertionError`, `SystemExit`, `RuntimeError`, `HTTPError`, `UnicodeDecodeError`, `NotImplementedError`, `ValidationError`, `ObjectDoesNotExist`, `NameError`), the masked exception type
+     * `info`: string, an unformatted description of how the example was constructed, including the source dataset (always “ETHPy150Open”), the repository and filepath, and the fully-qualified function name.
+1. **Variable-misuse classification**. Combinations of functions where one use of a variable may have been replaced with another variable defined in the same context, along with a label indicating if this bug-injection has occurred. The JSON fields are:
+     * `function`: string, the source code of a function as text.
+     * `label`: string, one of (“Correct”, “Variable misuse”) indicating if this is a buggy or bug-free example.
+     * `info`: string, an unformatted description of how the example was constructed, including the source dataset (always “ETHPy150Open”), the repository and filepath, the function, and whether the example is bugfree (marked “original”) or the variable substitution that has occurred (e.g., “correct_variable” → “incorrect_variable”).
+1. **Swapped-operand classification**. Combinations of functions where one use binary operator’s arguments have been swapped, to create a buggy example, or left undisturbed, along with a label indicating if this bug-injection has occurred. The JSON fields are:
+     * `function`: string, the source code of a function as text.
+     * `label`: string, one of (“Correct”, “Swapped operands”) indicating if this is a buggy or bug-free example.
+     * `info`: string, an unformatted description of how the example was constructed, including the source dataset (always “ETHPy150Open”), the repository and filepath, the function, and whether the example is bugfree (marked “original”) or the operand swap has occurred (e.g., “swapped operands of `not in`”).
+1. **Wrong-binary-operator classification**. Combinations of functions where one binary operator has been swapped with another, to create a buggy example, or left undisturbed, along with a label indicating if this bug-injection has occurred. The JSON fields are:
+     * `function`: string, the source code of a function as text.
+     * `label`: string, one of (“Correct”, “Wrong binary operator”) indicating if this is a buggy or bug-free example.
+     * `info`: string, an unformatted description of how the example was constructed, including the source dataset (always “ETHPy150Open”), the repository and filepath, the function, and whether the example is bugfree (marked “original”) or the operator replacement has occurred (e.g., “`==`-> `!=`”).
+1. **Variable-misuse localization and repair**. Combinations of functions where one use of a variable may have been replaced with another variable defined in the same context, along with information that can be used to localize and repair the bug, as well as the location of the bug if such a bug exists. The JSON fields are:
+     * `function`: a list of strings, the source code of a function, tokenized with the vocabulary from item b. Note that, unlike other task datasets, this dataset gives a tokenized function, rather than the code as a single string.
+     * `target_mask`: a list of integers (0 or 1). If the integer at some position is 1, then the token at the corresponding position of the function token list is a correct repair for the introduced bug. If a variable has been split into multiple tokens, only the first subtoken is marked in this mask. If the example is bug-free, all integers are 0.
+     * `error_location_mask`: a list of integers (0 or 1). If the integer at some position is 1, then there is a variable-misuse bug at the corresponding location of the tokenized function. In a bug-free example, the first integer is 1. There is exactly one integer set to 1 for all examples. If a variable has been split into multiple tokens, only the first subtoken is marked in this mask.
+     * `candidate_mask`: a list of integers (0 or 1). If the integer at some position is 1, then the variable starting at that position in the tokenized function is a candidate to consider when repairing a bug. Candidates are all variables defined in the function parameters or via variable declarations in the function. If a variable has been split into multiple tokens, only the first subtoken is marked in this mask, for each candidate.
+     * `provenance`: string, an unformatted description of how the example was constructed, including the source dataset (always “ETHPy150Open”), the repository and filepath, the function, and whether the example is bugfree (marked “original”) or the buggy/repair token positions and variables (e.g., “16/18 `kwargs` → `self`”). 16 is the position of the introduced error, 18 is the location of the repair.
+
+
+We release the following file collections:
+
+1. **Function-docstring classification**.
+    * Dataset: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/function_docstring_datasets)
+        [`gs://cubert/20200621_Python/function_docstring_datasets`].
+    * Fine-tuned Model: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/function_docstring__epochs_20__pre_trained_epochs_1)
+        [`gs://cubert/20200621_Python/function_docstring__epochs_20__pre_trained_epochs_1`].
+1. **Exception classification**.
+    * Dataset: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/exception_datasets)
+        [`gs://cubert/20200621_Python/exception_datasets`].
+    * Fine-tuned Model: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/exception__epochs_20__pre_trained_epochs_1)
+        [`gs://cubert/20200621_Python/exception__epochs_20__pre_trained_epochs_1`].
+1. **Variable-misuse classification**.
+    * Dataset: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/variable_misuse_datasets)
+        [`gs://cubert/20200621_Python/variable_misuse_datasets`].
+    * Fine-tuned Model: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/variable_misuse__epochs_20__pre_trained_epochs_1)
+        [`gs://cubert/20200621_Python/variable_misuse__epochs_20__pre_trained_epochs_1`].
+1. **Swapped-operand classification**.
+    * Dataset: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/swapped_operands_datasets)
+        [`gs://cubert/20200621_Python/swapped_operands_datasets`].
+    * Fine-tuned Model: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/swapped_operands__epochs_20__pre_trained_epochs_1)
+        [`gs://cubert/20200621_Python/swapped_operands__epochs_20__pre_trained_epochs_1`].
+1. **Wrong-binary-operator classification**.
+    * Dataset: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/wrong_binary_operator_datasets)
+        [`gs://cubert/20200621_Python/wrong_binary_operator_datasets`].
+    * Fine-tuned Model: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/wrong_binary_operator__epochs_20__pre_trained_epochs_1)
+        [`gs://cubert/20200621_Python/wrong_binary_operator__epochs_20__pre_trained_epochs_1`].
+1. **Variable-misuse localization and repair**.
+    * Dataset: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/variable_misuse_repair_datasets)
+        [`gs://cubert/20200621_Python/variable_misuse_repair_datasets`].
+    * Fine-tuned Model: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/variable_misuse_repair__epochs_20__pre_trained_epochs_1)
+        [`gs://cubert/20200621_Python/variable_misuse_repair__epochs_20__pre_trained_epochs_1`].
