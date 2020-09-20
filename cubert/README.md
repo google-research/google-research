@@ -99,8 +99,10 @@ At this time, we release the following pre-trained datasets and models:
         [`gs://cubert/20200621_Python/github_python_minus_ethpy150open_deduplicated_vocabulary.txt`].
     * Model checkpoint for length 512, 1 epoch: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/pre_trained_model__epochs_1__length_512)
         [`gs://cubert/20200621_Python/pre_trained_model__epochs_1__length_512`].
+    * Model checkpoint for length 512, 2 epochs: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/pre_trained_model__epochs_2__length_512)
+        [`gs://cubert/20200621_Python/pre_trained_model__epochs_2__length_512`].
 
-1. Java, **not deduplicated**, BigQuery snapshot as of September 13 2020.
+1. Java, **experimental, not deduplicated**, BigQuery snapshot as of September 13 2020.
     * Manifest: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200913_Java/github_java_manifest)
         [`gs://cubert/20200913_Java/github_java_manifest`].
     * Vocabulary: [[UI]](https://console.cloud.google.com/storage/browser/_details/cubert/20200913_Java/github_java_vocabulary.txt)
