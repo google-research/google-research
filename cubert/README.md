@@ -105,8 +105,8 @@ At this time, we release the following pre-trained datasets and models:
         [`gs://cubert/20200913_Java/github_java_manifest`].
     * Vocabulary: [[UI]](https://console.cloud.google.com/storage/browser/_details/cubert/20200913_Java/github_java_vocabulary.txt)
         [`gs://cubert/20200913_Java/github_java_vocabulary.txt`].
-    * Model checkpoint for length 1024, 0.03 epochs: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200913_Java/pre_trained_model__epochs_0.03__length_1024)
-        [`gs://cubert/20200913_Java/pre_trained_model__epochs_0.03__length_1024`].
+    * Model checkpoint for length 1024, 0.1 epochs: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200913_Java/pre_trained_model__epochs_0.1__length_1024)
+        [`gs://cubert/20200913_Java/pre_trained_model__epochs_0.1__length_1024`].
 
 ## Benchmarks and Fine-Tuned Models
 
