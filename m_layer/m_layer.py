@@ -86,7 +86,7 @@ class MLayer(tf.keras.layers.Layer):
       return tf.linalg.expm(mat)
     # Approximation of exp(mat) as (1+mat/k)**k with k = 2**MATRIX_SQUARINGS_EXP
     mat = mat * 0.5**self._matrix_squarings_exp + tf.eye(self._dim_m)
-    for _ in range(self.matATRIX_SQUARINGS_EXP):
+    for _ in range(self._matrix_squarings_exp):
       mat = tf.einsum('...ij,...jk->...ik', mat, mat)
     return mat
 
