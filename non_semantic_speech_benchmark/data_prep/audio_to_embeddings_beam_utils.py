@@ -30,10 +30,8 @@ from absl import logging
 import apache_beam as beam
 import librosa
 import numpy as np
-import tensorflow.compat.v2 as tf
-tf.enable_v2_behavior()
-assert tf.executing_eagerly()
-import tensorflow_datasets as tfds  # pylint: disable=g-import-not-at-top
+import tensorflow as tf
+import tensorflow_datasets as tfds
 import tensorflow_hub as hub
 from non_semantic_speech_benchmark import file_utils
 

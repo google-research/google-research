@@ -28,6 +28,7 @@ from absl import app
 from absl import flags
 from absl import logging
 import apache_beam as beam
+import tensorflow as tf
 from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_utils
 
 flags.DEFINE_string('input_glob', None,
@@ -133,4 +134,6 @@ if __name__ == '__main__':
                                        required=True)
   flags.mark_flags_as_mutual_exclusive(
       ['tfds_dataset', 'sample_rate_key', 'sample_rate'], required=True)
+  tf.compat.v2.enable_v2_behavior()
+  assert tf.executing_eagerly()
   app.run(main)
