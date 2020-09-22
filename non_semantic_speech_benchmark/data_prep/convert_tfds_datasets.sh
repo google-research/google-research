@@ -21,26 +21,28 @@ OUTPUT_BASE="~/tmp/noss"
 
 function convert_tfds() {
   local dataset_name=$1
-  local split_name=$2
+  local has_speaker_id=$2
 
-  python3 -m audio_to_embeddings_beam \
+  if [ "$has_speaker_id" = true ] ; then
+    extra_args="--speaker_id_key=speaker_id"
+  else
+    extra_args=""
+  fi
+
+  python3 -m audio_to_embeddings_beam_main \
 --alsologtostderr \
---tfds_dataset="${dataset_name}:${split_name}" \
---output_filename="${OUTPUT_BASE}/${dataset_name}/${split_name}" \
+--tfds_dataset="${dataset_name}" \
+--output_filename="${OUTPUT_BASE}/${dataset_name}" \
 --embedding_names=trill,trill-distilled \
---embedding_modules="https://tfhub.dev/google/nonsemantic-speech-benchmark/trill/1,https://tfhub.dev/google/nonsemantic-speech-benchmark/trill-distilled/1" \
+--embedding_modules="https://tfhub.dev/google/nonsemantic-speech-benchmark/trill/3,https://tfhub.dev/google/nonsemantic-speech-benchmark/trill-distilled/3" \
 --module_output_keys=layer19,embedding \
---audio_key=audio
+--audio_key=audio \
+--label_key=label ${extra_args} &
 }
 
-convert_tfds "crema_d" "train"
-convert_tfds "crema_d" "validation"
-convert_tfds "crema_d" "test"
-
-convert_tfds "savee" "train"
-convert_tfds "savee" "validation"
-convert_tfds "savee" "test"
-
-convert_tfds "speech_commands" "train"
-convert_tfds "speech_commands" "validation"
-convert_tfds "speech_commands" "test"
+convert_tfds "crema_d" true
+convert_tfds "savee" true
+convert_tfds "dementiabank" true
+#convert_tfds "voxforge" true  # This dataset requires manual download.
+convert_tfds "speech_commands" false
+convert_tfds "voxceleb" false
