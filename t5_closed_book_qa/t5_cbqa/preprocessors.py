@@ -100,62 +100,37 @@ def natural_questions_nocontext(
 
 def natural_questions_open(
     dataset,
-    prefix='nq question: ',
-    max_tokens=5,
-    sample_answer=False,
+    prefix='nq question: '
     ):
-  """Convert Natural Questions TFDS to open domain single answer examples.
+  """Convert Natural Questions Open TFDS to examples.
 
-  Yes/no answers and short answers with more than `max_tokens` are first
-  removed. The first remaining answer (or a random one if `sample_answer` is
-  True) becomes the target. All remaining answers are flattened into a single
-  list (losing annotator grouping) and passed to the postprocessor for use in
-  evaluation.
+  If there are multiple answers in the input, selects the first one as the
+  target.
 
-  The function takes the natural_questions TFDS dataset an emits examples of the
-  form:
+  The function takes the natural_question_open TFDS dataset and emits examples
+  of the form:
   {
-    'inputs': 'nq question: what are the names of the olsen twins'
-    'targets': 'Mary-Kate'
-    'answers': ['Mary-Kate', 'Ashley']
+    'inputs': 'nq question: What are the names of the Olsen Twins?'
+    'targets': 'Mary-Kate and Ashley',
+    'answers': ['Mary-Kate and Ashley', 'Ashley and Mary-Kate']
   }
 
   Args:
     dataset: a tf.data.Dataset to process.
     prefix: str, prefix to prepend to the inputs.
-    max_tokens: int, the maximum number of tokens (as specified by NQ) beyond
-      which a short answer is dropped.
-    sample_answer: bool, whether to sample a random answer instead of using the
-      first.
 
   Returns:
     a tf.data.Dataset
   """
+
   def nq_map(ex):
     """Map Natural Questions example to text-to-text example."""
-    inputs = prefix + ex['question']['text']
-
-    short_answers = ex['annotations']['short_answers']
-    num_tokens = short_answers['end_token'] - short_answers['start_token']
-    short_answers_text = tf.boolean_mask(
-        short_answers['text'].values,
-        tf.math.logical_and(
-            num_tokens.values > 0, num_tokens.values <= max_tokens))
-    if sample_answer:
-      short_answers_text = tf.random.shuffle(short_answers_text)
-
-    # Produces empty string when `short_answers_text` is empty.
-    targets = tf.strings.reduce_join(short_answers_text[0:1])
-
     return {
-        'inputs': inputs,
-        'targets': targets,
-        'answers': short_answers_text,
+        'inputs': prefix + ex['question'],
+        'targets': ex['answer'][0],
+        'answers': ex['answer'],
     }
-
-  dataset = dataset.map(
-      nq_map, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-  return dataset.filter(lambda ex: tf.strings.length(ex['targets']) > 0)
+  return dataset.map(nq_map, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
 
 def trivia_qa_open(
@@ -194,7 +169,7 @@ def web_questions_open(
     dataset,
     prefix='wq question: '
     ):
-  """Convert Web Questions TFDS to open domain examples.
+  """Convert WebQuestions TFDS to open domain examples.
 
   If there are multiple answers in the input, selects the first one as the
   target.
@@ -216,10 +191,25 @@ def web_questions_open(
   """
 
   def wq_map(ex):
-    """Map Web Question example to text-to-text example."""
+    """Map WebQuestions example to text-to-text example."""
     return {
         'inputs': prefix + ex['question'],
         'targets': ex['answers'][0],
         'answers': ex['answers'],
     }
   return dataset.map(wq_map, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+
+def sample_answer(
+    dataset,
+    ):
+  """Replaces target with sampled answer."""
+
+  def samp_map(ex):
+    answers = tf.random.shuffle(ex['answers'])
+    return {
+        'inputs': ex['inputs'],
+        'targets': answers[0],
+        'answers': answers,
+    }
+  return dataset.map(samp_map, num_parallel_calls=tf.data.experimental.AUTOTUNE)

@@ -49,7 +49,7 @@ TaskRegistry.add(
     TfdsTask,
     tfds_name="natural_questions:0.0.2",
     splits={
-        "train": "train[7830:]",
+        "train": "train[7830:79168]",
         "validation": "train[:7830]",
         "test": "validation"
     },
@@ -84,10 +84,10 @@ TaskRegistry.add(
 TaskRegistry.add(
     "natural_questions_open",
     TfdsTask,
-    tfds_name="natural_questions:0.0.2",
+    tfds_name="natural_questions_open:1.0.0",
     splits={
-        "train": "train[7830:]",
-        "validation": "train[:7830]",
+        "train": "train[:79168]",
+        "validation": "train[79168:]",
         "test": "validation"
     },
     text_preprocessor=preprocessors.natural_questions_open,
@@ -99,16 +99,14 @@ TaskRegistry.add(
 TaskRegistry.add(
     "natural_questions_open_randanswer",
     TfdsTask,
-    tfds_name="natural_questions:0.0.2",
+    tfds_name="natural_questions_open:1.0.0",
     splits={
-        "train": "train[7830:]",
-        "validation": "train[:7830]",
+        "train": "train[79168:]",
+        "validation": "train[:79168]",
         "test": "validation"
     },
-    text_preprocessor=functools.partial(
-        preprocessors.natural_questions_open,
-        sample_answer=True
-    ),
+    text_preprocessor=[
+        preprocessors.natural_questions_open, preprocessors.sample_answer],
     supports_caching=False,  # Ensures we are sampling different answers.
     postprocess_fn=t5_postprocessors.qa,
     sentencepiece_model_path=DEFAULT_SPM_PATH,
@@ -118,7 +116,7 @@ TaskRegistry.add(
 TaskRegistry.add(
     "natural_questions_open_test",
     TfdsTask,
-    tfds_name="natural_questions:0.0.2",
+    tfds_name="natural_questions_open:1.0.0",
     text_preprocessor=preprocessors.natural_questions_open,
     postprocess_fn=t5_postprocessors.qa,
     sentencepiece_model_path=DEFAULT_SPM_PATH,
@@ -132,8 +130,8 @@ TaskRegistry.add(
     TfdsTask,
     tfds_name="web_questions:1.0.0",
     splits={
-        "train": "train[10%:]",
-        "validation": "train[:10%]",
+        "train": "train[:3417]",  # ~90%, matches numbers used by ORQA
+        "validation": "train[3417:]",  # ~10%, matches numbers used by ORQA
         "test": "test"
     },
     text_preprocessor=[preprocessors.web_questions_open],
@@ -163,6 +161,11 @@ TaskRegistry.add(
     "trivia_qa_open",
     TfdsTask,
     tfds_name="trivia_qa/unfiltered.nocontext:1.1.0",
+    splits={
+        "train": "train[:78785]",  # ~90%, matches numbers used by ORQA
+        "validation": "train[78785:]",  # ~10%, matches numbers used by ORQA
+        "test": "validation"
+    },
     text_preprocessor=preprocessors.trivia_qa_open,
     postprocess_fn=t5_postprocessors.qa,
     sentencepiece_model_path=DEFAULT_SPM_PATH,

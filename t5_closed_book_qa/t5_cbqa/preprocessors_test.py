@@ -28,7 +28,7 @@ tf.enable_eager_execution()
 
 class PreprocessorsTest(absltest.TestCase):
 
-  def test_natural_questions(self):
+  def test_natural_questions_nocontext(self):
     input_examples = [
         {
             'question': {
@@ -229,34 +229,20 @@ class PreprocessorsTest(absltest.TestCase):
         ]
     )
 
-    dataset = preprocessors.natural_questions_open(og_dataset, max_tokens=3)
+  def test_natural_questions_open(self):
+    input_data = {
+        'question': ['What are the names of the Olsen Twins?'],
+        'answer': ['Mary-Kate', 'Ashley']
+    }
+    og_dataset = tf.data.Dataset.from_tensors(input_data)
+    dataset = preprocessors.natural_questions_open(og_dataset)
     test_utils.assert_dataset(
         dataset,
-        [
-            {
-                'inputs': 'nq question: is the answer to this question yes',
-                'targets': 'not sure',
-                'answers': ['not sure'],
-            },
-            {
-                'inputs': 'nq question: what are the names of the olsen twins',
-                'targets': 'Mary-Kate',
-                'answers': ['Mary-Kate', 'Ashley'],
-            }
-        ]
-    )
-
-    dataset = preprocessors.natural_questions_open(
-        og_dataset, max_tokens=1, sample_answer=True)
-    test_utils.assert_dataset(
-        dataset,
-        [
-            {
-                'inputs': 'nq question: what are the names of the olsen twins',
-                'targets': 'Ashley',
-                'answers': ['Ashley'],
-            }
-        ]
+        {
+            'inputs': 'nq question: What are the names of the Olsen Twins?',
+            'targets': 'Mary-Kate',
+            'answers': ['Mary-Kate', 'Ashley'],
+        }
     )
 
   def test_trivia_qa_open(self):
@@ -301,6 +287,32 @@ class PreprocessorsTest(absltest.TestCase):
         }
     )
 
+  def test_sample_answer(self):
+    input_data = {
+        'inputs': ['What are the names of the Olsen Twins?'],
+        'targets': ['Mary-Kate'],
+        'answers': ['Mary-Kate', 'Ashley']
+    }
+    og_dataset = tf.data.Dataset.from_tensors(input_data)
+
+    tf.set_random_seed(42)
+    test_utils.assert_dataset(
+        preprocessors.sample_answer(og_dataset),
+        {
+            'inputs': 'What are the names of the Olsen Twins?',
+            'targets': 'Ashley',
+            'answers': ['Ashley', 'Mary-Kate'],
+        }
+    )
+    tf.set_random_seed(420)
+    test_utils.assert_dataset(
+        preprocessors.sample_answer(og_dataset),
+        {
+            'inputs': ['What are the names of the Olsen Twins?'],
+            'targets': ['Mary-Kate'],
+            'answers': ['Mary-Kate', 'Ashley']
+        }
+    )
 
 if __name__ == '__main__':
   absltest.main()
