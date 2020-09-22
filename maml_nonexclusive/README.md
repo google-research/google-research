@@ -1,5 +1,6 @@
 Holds variants of the MAML code for different task settings.
 
-Does not include any of the data. To run the code, first download the datasets
-yourself to the data/ directories, then process it. This should only need to be
-done once.
+DClaw data is available at `data/dclaw`, see the README in that folder for
+details. Omniglot and mini-ImageNet data should be downloaded yourself to the
+`data/` directories, then processed. Processing should only need to be done
+once.
