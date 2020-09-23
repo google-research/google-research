@@ -680,6 +680,7 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
         indicates how the update logic is being run. More specifically:
         0 - run the update logic in TF; needed when using GPU/TPU.
         1 - run the update logic in regular python as opposed to TF.
+        2 - run the update logic in TF and in regular python.
       TODO(wanxin): add doc strings for pruning hparams.
 
     Returns:
@@ -695,7 +696,7 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
         use_tpu=False,
         compression_option=0,
         rank=7,
-        update_option=0,
+        update_option=2,
         run_update_interval_check=1,
         block_size=1,
         pruning_fraction=0.0,
@@ -774,10 +775,8 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
       [self.pruned_a_matrix_tfvar, self.mask] = pruning.apply_mask_and_return(
           self.a_matrix_tfvar, scope)
 
-      if self._spec.update_option == 0:
+      if self._spec.update_option in [0, 2]:
         self.update_op = self._create_update_op()
-      else:
-        self.update_op = self.setup_update_explicit()
 
     def maybe_apply_compression():
       """Decide whether global step is within compression range.
@@ -927,7 +926,7 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
                                                layer_obj.vars.mask,
                                                'masked_weight')
 
-      if self._spec.update_option == 0:
+      if self._spec.update_option in [0, 2]:
         self.update_op = self._create_update_op()
       else:
         self.update_op = self.setup_update_explicit()

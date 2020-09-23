@@ -327,6 +327,7 @@ class CompressionOp(CompressionOpInterface):
         indicates how the update logic is being run. More specifically:
         0 - run the update logic in TF; needed when using GPU/TPU.
         1 - run the update logic in regular python as opposed to TF.
+        2 - run the update logic in TF and in regular python.
 
     Returns:
       tf.HParams object initialized to default values.
