@@ -18,7 +18,7 @@
 
 import tensorflow.compat.v2 as tf
 from tensorflow_addons.layers.netvlad import NetVLAD
-from non_semantic_speech_benchmark.eval_embedding.keras import autopool
+from non_semantic_speech_benchmark.eval_embedding import autopool
 
 
 def get_keras_model(num_classes, use_batchnorm=True, l2=1e-5,

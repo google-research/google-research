@@ -42,6 +42,8 @@ flags.DEFINE_integer('batch_size', None, 'The number of images in each batch.')
 flags.DEFINE_integer('tbs', None, 'not used')
 
 flags.DEFINE_integer('nc', None, 'num_clusters')
+flags.DEFINE_float('alpha_init', None, 'Initial autopool alpha.')
+flags.DEFINE_alias('ai', 'alpha_init')
 flags.DEFINE_boolean('ubn', None, 'Whether to normalize')
 flags.DEFINE_float('lr', None, 'not used')
 
@@ -66,7 +68,9 @@ def eval_and_report():
 
   writer = tf.summary.create_file_writer(FLAGS.eval_dir)
   num_classes = len(FLAGS.label_list)
-  model = models.get_keras_model(num_classes, FLAGS.ubn, num_clusters=FLAGS.nc)
+  model = models.get_keras_model(
+      num_classes, FLAGS.ubn, num_clusters=FLAGS.nc,
+      alpha_init=FLAGS.alpha_init)
   checkpoint = tf.train.Checkpoint(model=model)
 
   for ckpt in tf.train.checkpoints_iterator(

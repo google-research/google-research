@@ -28,7 +28,7 @@ class EvalKerasTest(absltest.TestCase):
     flags.FLAGS.label_list = ['no', 'yes']
     flags.FLAGS.logdir = absltest.get_default_test_tmpdir()
     flags.FLAGS.eval_dir = absltest.get_default_test_tmpdir()
-    flags.FLAGS.nc = 2
+    flags.FLAGS.ai = 2.0
     flags.FLAGS.timeout = 5
     eval_keras.eval_and_report()
 

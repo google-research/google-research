@@ -18,9 +18,9 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 
-import tensorflow.compat.v2 as tf
+import tensorflow as tf
 
-from non_semantic_speech_benchmark.eval_embedding.keras import autopool
+from non_semantic_speech_benchmark.eval_embedding import autopool
 
 
 def _softmax_pool(x, axis, keepdims):
@@ -95,6 +95,6 @@ class AutopoolTest(tf.test.TestCase, parameterized.TestCase):
 
 
 if __name__ == '__main__':
-  tf.enable_v2_behavior()
+  tf.compat.v2.enable_v2_behavior()
   assert tf.executing_eagerly()
   absltest.main()

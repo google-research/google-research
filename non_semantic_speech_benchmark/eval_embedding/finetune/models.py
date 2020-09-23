@@ -16,14 +16,17 @@
 # Lint as: python3
 """Small models to be finetuned on embeddings."""
 
-import tensorflow.compat.v2 as tf
+import tensorflow as tf
 from tensorflow_addons.layers.netvlad import NetVLAD
 import tensorflow_hub as hub
 
+from non_semantic_speech_benchmark.eval_embedding import autopool
+
 
 def get_keras_model(num_classes, input_length, use_batchnorm=True, l2=1e-5,
-                    num_clusters=None):
+                    num_clusters=None, alpha_init=None):
   """Make a model."""
+  assert not num_clusters or not alpha_init
   model = tf.keras.models.Sequential()
   model.add(tf.keras.Input((input_length,)))  # Input is [bs, input_length]
   trill_layer = hub.KerasLayer(
@@ -35,10 +38,12 @@ def get_keras_model(num_classes, input_length, use_batchnorm=True, l2=1e-5,
   )
   assert trill_layer.trainable_variables
   model.add(trill_layer)
-  if num_clusters > 0:
+  if num_clusters and num_clusters > 0:
     model.add(NetVLAD(num_clusters=num_clusters))
     if use_batchnorm:
       model.add(tf.keras.layers.BatchNormalization())
+  elif alpha_init is not None:
+    model.add(autopool.AutoPool(axis=1, alpha_init=alpha_init, trainable=False))
   else:
     model.add(tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)))
   model.add(tf.keras.layers.Dense(

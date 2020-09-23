@@ -17,19 +17,20 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-import tensorflow.compat.v2 as tf
+import tensorflow as tf
 from non_semantic_speech_benchmark.eval_embedding.finetune import models
 
 
 class ModelTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      {'num_clusters': 0},
-      {'num_clusters': 4},
+      {'num_clusters': 0, 'alpha_init': 0},
+      {'num_clusters': 4, 'alpha_init': 0},
+      {'num_clusters': 0, 'alpha_init': 1.0},
   )
-  def test_basic_model(self, num_clusters):
+  def test_basic_model(self, num_clusters, alpha_init):
     m = models.get_keras_model(num_classes=5, input_length=16000,
-                               num_clusters=num_clusters)
+                               num_clusters=num_clusters, alpha_init=alpha_init)
     o = m(tf.zeros([4, 16000], dtype=tf.float32))
     self.assertEqual(o.shape, (4, 5))
 

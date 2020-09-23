@@ -39,6 +39,8 @@ flags.DEFINE_integer('shuffle_buffer_size', None, 'shuffle_buffer_size')
 
 flags.DEFINE_integer('nc', None, 'num_clusters')
 flags.DEFINE_alias('num_clusters', 'nc')
+flags.DEFINE_float('alpha_init', None, 'Initial autopool alpha.')
+flags.DEFINE_alias('ai', 'alpha_init')
 flags.DEFINE_boolean('ubn', None, 'Whether to use batch normalization.')
 flags.DEFINE_alias('use_batch_normalization', 'ubn')
 flags.DEFINE_float('lr', 0.001, 'Hyperparameter: learning rate.')
@@ -78,7 +80,8 @@ def train_and_report(debug=False):
   assert len(y_onehot_spec.shape) == 2, y_onehot_spec.shape
   num_classes = y_onehot_spec.shape[1]
   model = get_model(
-      num_classes, ubn=FLAGS.use_batch_normalization, nc=FLAGS.num_clusters)
+      num_classes, ubn=FLAGS.use_batch_normalization, nc=FLAGS.num_clusters,
+      alpha_init=FLAGS.alpha_init)
   # Define loss and optimizer hyparameters.
   loss_obj = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
   opt = tf.keras.optimizers.Adam(
@@ -145,8 +148,9 @@ def get_train_step(model, loss_obj, opt, train_loss, train_accuracy,
   return train_step
 
 
-def get_model(num_classes, ubn=None, nc=None):
-  return models.get_keras_model(num_classes, ubn, num_clusters=nc)
+def get_model(num_classes, ubn=None, nc=None, alpha_init=None):
+  return models.get_keras_model(
+      num_classes, ubn, num_clusters=nc, alpha_init=alpha_init)
 
 
 def main(unused_argv):
