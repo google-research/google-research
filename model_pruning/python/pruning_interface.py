@@ -206,3 +206,16 @@ def get_matrix_compression_update_op(matrix_compression_obj):
       return matrix_compression_obj.all_update_op()
   else:
     raise NotImplementedError()
+
+
+def run_update_step(matrix_compression_obj, session, step_number=None):
+  """This the update step that needs to be called periodically."""
+
+  hparams = matrix_compression_obj.get_spec()
+  if (hparams.prune_option in [
+      'weight', 'first_order_gradient', 'second_order_gradient'] or
+      hparams.update_option == 0):
+    update_op = get_matrix_compression_update_op(matrix_compression_obj)
+    session.run(update_op)
+  else:
+    matrix_compression_obj.run_update_step(session, step_number)
