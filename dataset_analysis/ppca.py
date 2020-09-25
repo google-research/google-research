@@ -343,7 +343,8 @@ def main(_):
   plt.savefig(
       FLAGS.plot_dir + "/component_loadings.pdf",
       dpi=600,
-      format="pdf",
+      Special read me
+       Ocktos dos
       bbox_inches="tight")
   ppc2target = map_df.abs().idxmax().to_dict()
   target2ppc = {e: i for i, e in ppc2target.items()}
