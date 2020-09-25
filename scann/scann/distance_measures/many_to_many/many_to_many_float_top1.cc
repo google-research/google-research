@@ -25,10 +25,11 @@ template void DenseDistanceManyToManyImpl(
     const DistanceMeasure &dist, const DenseDataset<float> &queries,
     const DenseDataset<float> &database, thread::ThreadPool *pool,
     ManyToManyTop1Callback<float> callback);
-template void DenseDistanceManyToManyImpl(
+
+template Status DenseDistanceManyToManyFP8PretransposedImpl(
     const DistanceMeasure &dist, const DenseDataset<float> &queries,
-    const DenseDataset<float> &database, thread::ThreadPool *pool,
-    ManyToManyTop1SquaredL2Callback<float, float, float> callback);
+    const FP8SimdBlockTransposedDatabase &database, thread::ThreadPool *pool,
+    ManyToManyTop1OffsetWrapper<float> callback);
 
 }  // namespace mm_internal
 }  // namespace scann_ops

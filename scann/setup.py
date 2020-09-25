@@ -41,7 +41,7 @@ class BinaryDistribution(setuptools.Distribution):
 
 setuptools.setup(
     name="scann",
-    version="1.0.0",
+    version="1.1.0",
     author="Google Inc.",
     author_email="opensource@google.com",
     description="Scalable Approximate Nearest Neighbor search library",

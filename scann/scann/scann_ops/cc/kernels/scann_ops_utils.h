@@ -17,9 +17,7 @@
 
 #include "absl/types/span.h"
 #include "scann/data_format/dataset.h"
-#include "tensorflow/core/example/feature_util.h"
 #include "tensorflow/core/framework/op_kernel.h"
-#include "tensorflow/core/framework/resource_mgr.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/status.h"
 
@@ -101,6 +99,31 @@ Status TensorFromDenseDataset(
   auto tensor_flat = tensor->flat<T>();
   std::copy(dataset->data().begin(), dataset->data().end(), tensor_flat.data());
   return Status::OK();
+}
+
+template <typename T>
+void TensorFromDenseDatasetRequireOk(
+    OpKernelContext* context, absl::string_view name,
+    const tensorflow::scann_ops::DenseDataset<T>* dataset) {
+  OP_REQUIRES_OK(context, TensorFromDenseDataset(context, name, dataset));
+}
+
+template <typename T>
+Status TensorFromSpan(OpKernelContext* context, absl::string_view name,
+                      tensorflow::scann_ops::ConstSpan<T> span) {
+  if (span.empty()) return EmptyTensor(context, name);
+  Tensor* tensor;
+  TF_RETURN_IF_ERROR(context->allocate_output(
+      name, TensorShape({static_cast<int64_t>(span.size())}), &tensor));
+  auto tensor_flat = tensor->flat<T>();
+  std::copy(span.begin(), span.end(), tensor_flat.data());
+  return Status::OK();
+}
+
+template <typename T>
+void TensorFromSpanRequireOk(OpKernelContext* context, absl::string_view name,
+                             tensorflow::scann_ops::ConstSpan<T> span) {
+  OP_REQUIRES_OK(context, TensorFromSpan(context, name, span));
 }
 
 template <typename T>

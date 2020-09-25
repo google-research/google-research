@@ -55,6 +55,7 @@ cc_library(
     tags = ["local"],
     deps = [
         "//scann/data_format:dataset",
+        "@com_google_absl//absl/container:inlined_vector",
         "@com_google_absl//absl/types:span",
         "@local_config_tf//:libtensorflow_framework",
         "@local_config_tf//:tf_header_lib",
@@ -69,8 +70,8 @@ cc_library(
     deps = [
         "//scann/base:search_parameters",
         "//scann/base:single_machine_base",
-        "//scann/base:single_machine_factory_no_sparse",
         "//scann/base:single_machine_factory_options",
+        "//scann/base:single_machine_factory_scann",
         "//scann/data_format:dataset",
         "//scann/oss_wrappers:scann_status",
         "//scann/partitioning:partitioner_cc_proto",
@@ -78,6 +79,7 @@ cc_library(
         "//scann/tree_x_hybrid:tree_x_params",
         "//scann/utils:io_npy",
         "//scann/utils:io_oss_wrapper",
+        "//scann/utils:scann_config_utils",
         "//scann/utils:threads",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/container:node_hash_set",

@@ -183,7 +183,7 @@ class UntypedSingleMachineSearcherBase {
   GetUntypedMutator() const = 0;
 
   virtual StatusOr<SingleMachineFactoryOptions>
-  ExtractSingleMachineFactoryOptions();
+  ExtractSingleMachineFactoryOptions() = 0;
 
  protected:
   virtual bool impl_needs_dataset() const;
@@ -263,6 +263,9 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
   bool metadata_enabled() const final { return metadata_getter_ != nullptr; }
 
   bool needs_dataset() const override;
+
+  StatusOr<SingleMachineFactoryOptions> ExtractSingleMachineFactoryOptions()
+      override;
 
   virtual Status FindNeighbors(const DatapointPtr<T>& query,
                                const SearchParameters& params,

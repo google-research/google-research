@@ -155,6 +155,10 @@ class Searcher final : public SingleMachineSearcherBase<T> {
       LookupTable* created_lookup_table_storage) const;
 
   template <typename PostprocessFunctor>
+  QueryerOptions<PostprocessFunctor> GetQueryerOptions(
+      PostprocessFunctor postprocessing_functor) const;
+
+  template <typename PostprocessFunctor>
   Status FindNeighborsTopNDispatcher(const DatapointPtr<T>& query,
                                      const SearchParameters& params,
                                      PostprocessFunctor postprocessing_functor,
@@ -210,8 +214,22 @@ class AsymmetricHashingOptionalParameters
       LookupTable precomputed_lookup_table)
       : precomputed_lookup_table_(std::move(precomputed_lookup_table)) {}
 
+  void SetIndexAndBias(DatapointIndex index, float bias) {
+    starting_dp_idx_ = index;
+    lut16_bias_ = bias;
+  }
+
+  void SetFastTopNeighbors(FastTopNeighbors<float>* top_n) { top_n_ = top_n; }
+
+  const FastTopNeighbors<float>* top_n() const { return top_n_; }
+
  private:
   LookupTable precomputed_lookup_table_;
+
+  FastTopNeighbors<float>* top_n_ = nullptr;
+
+  DatapointIndex starting_dp_idx_ = 0;
+  float lut16_bias_ = 0;
 
   template <typename U>
   friend class Searcher;

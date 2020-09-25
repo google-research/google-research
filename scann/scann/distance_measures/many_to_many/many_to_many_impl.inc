@@ -397,7 +397,6 @@ class DenseManyToManyTransposed {
         args.transposer->GetTransposedPtr0(dimensionality);
     const FloatT* transposed_ptr1 =
         args.transposer->GetTransposedPtr1(dimensionality);
-    FloatT* results = args.transposer->GetResultsPtr(dimensionality);
     CallbackT& callback = *args.callback;
 
     const FloatT* volatile query_ptrs_vol[kNumQueries];
@@ -409,10 +408,25 @@ class DenseManyToManyTransposed {
       query_ptrs[j] = query_ptrs_vol[j];
     }
 
-    DoAccumulationTransposedTemplate<kNumQueries>(
+    auto accumulators = DoAccumulationTransposedTemplate<kNumQueries>(
         transposed_ptr0, transposed_ptr1, query_ptrs, query_norms,
-        dimensionality, results);
+        dimensionality);
 
+    if constexpr (IsOptimizedCallback<CallbackT>::value) {
+      if (ABSL_PREDICT_TRUE(num_datapoints == 2 * kBlockSize)) {
+        for (size_t j : Seq(kNumQueries)) {
+          const size_t query_idx = first_q_idx + j;
+          callback.InvokeOptimized(accumulators[j * 2], accumulators[j * 2 + 1],
+                                   first_dp_idx, query_idx);
+        }
+        return;
+      }
+    }
+
+    FloatT results[accumulators.size() * kBlockSize];
+    for (size_t j : Seq(accumulators.size())) {
+      SimdFuncs::Storeu(results + j * kBlockSize, accumulators[j]);
+    }
     for (size_t j : Seq(kNumQueries)) {
       auto query_results =
           MakeMutableSpan(results + j * 2 * kBlockSize, num_datapoints);
@@ -422,22 +436,24 @@ class DenseManyToManyTransposed {
   }
 
   template <size_t kNumQueries>
-  SCANN_SIMD_INLINE static void DoAccumulationTransposedTemplate(
-      const FloatT* transposed_block0, const FloatT* transposed_block1,
-      const FloatT** query_ptrs, const FloatT* query_norms,
-      size_t dimensionality, FloatT* __restrict__ real_acc) {
-    typename SimdFuncs::Accumulator accumulators0[kNumQueries];
-    typename SimdFuncs::Accumulator accumulators1[kNumQueries];
+  SCANN_SIMD_INLINE static std::array<typename SimdFuncs::Accumulator,
+                                      2 * kNumQueries>
+  DoAccumulationTransposedTemplate(const FloatT* transposed_block0,
+                                   const FloatT* transposed_block1,
+                                   const FloatT** query_ptrs,
+                                   const FloatT* query_norms,
+                                   size_t dimensionality) {
+    std::array<typename SimdFuncs::Accumulator, 2 * kNumQueries> accumulators;
     for (size_t j : Seq(kNumQueries)) {
       if (kIsSquaredL2) {
         auto query_norm = SimdFuncs::Broadcast(&query_norms[j]);
         auto db_norms0 = SimdFuncs::Loadu(transposed_block0 - kBlockSize);
         auto db_norms1 = SimdFuncs::Loadu(transposed_block1 - kBlockSize);
-        accumulators0[j] = SimdFuncs::Add(db_norms0, query_norm);
-        accumulators1[j] = SimdFuncs::Add(db_norms1, query_norm);
+        accumulators[2 * j] = SimdFuncs::Add(db_norms0, query_norm);
+        accumulators[2 * j + 1] = SimdFuncs::Add(db_norms1, query_norm);
       } else {
-        accumulators0[j] = SimdFuncs::Zeros();
-        accumulators1[j] = SimdFuncs::Zeros();
+        accumulators[2 * j] = SimdFuncs::Zeros();
+        accumulators[2 * j + 1] = SimdFuncs::Zeros();
       }
     }
 
@@ -449,16 +465,14 @@ class DenseManyToManyTransposed {
 
       for (size_t j : Seq(kNumQueries)) {
         auto query_simd = SimdFuncs::Broadcast(query_ptrs[j] + dim);
-        SimdFuncs::Accumulate(query_simd, transposed_simd0, &accumulators0[j]);
-        SimdFuncs::Accumulate(query_simd, transposed_simd1, &accumulators1[j]);
+        SimdFuncs::Accumulate(query_simd, transposed_simd0,
+                              &accumulators[2 * j]);
+        SimdFuncs::Accumulate(query_simd, transposed_simd1,
+                              &accumulators[2 * j + 1]);
       }
     }
 
-    for (size_t j : Seq(kNumQueries)) {
-      FloatT* acc = real_acc + j * 2 * kBlockSize;
-      SimdFuncs::Storeu(acc + 0 * kBlockSize, accumulators0[j]);
-      SimdFuncs::Storeu(acc + 1 * kBlockSize, accumulators1[j]);
-    }
+    return accumulators;
   }
 
  private:

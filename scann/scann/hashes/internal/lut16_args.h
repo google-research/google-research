@@ -23,6 +23,16 @@ namespace tensorflow {
 namespace scann_ops {
 namespace asymmetric_hashing_internal {
 
+inline constexpr size_t kPrefetchBytesAhead = 768;
+
+enum class PrefetchStrategy {
+  kOff,
+
+  kSeq,
+
+  kSmart
+};
+
 template <typename DistT>
 struct LUT16ArgsBase {
   SCANN_DECLARE_COPYABLE_CLASS(LUT16ArgsBase);
@@ -32,6 +42,8 @@ struct LUT16ArgsBase {
 
   const uint8_t* packed_dataset = nullptr;
 
+  const uint8_t* next_partition = nullptr;
+
   int enable_avx512_codepath = 0;
 
   size_t num_32dp_simd_iters = 0;
@@ -40,7 +52,7 @@ struct LUT16ArgsBase {
 
   ConstSpan<const uint8_t*> lookups;
 
-  bool should_prefetch = true;
+  PrefetchStrategy prefetch_strategy = PrefetchStrategy::kSeq;
 };
 
 template <typename DistT>
@@ -92,26 +104,35 @@ struct LUT16ArgsTopN<float, TopN> : public LUT16ArgsTopNBase<float, TopN> {
   std::function<bool(DatapointIndex)> final_predicate;
 };
 
-#define SCANN_INSTANTIATE_CLASS_FOR_LUT16_BATCH_SIZES(EXTERN_KEYWORD, \
-                                                      ClassName)      \
-  EXTERN_KEYWORD template class ClassName<1, true>;                   \
-  EXTERN_KEYWORD template class ClassName<2, true>;                   \
-  EXTERN_KEYWORD template class ClassName<3, true>;                   \
-  EXTERN_KEYWORD template class ClassName<4, true>;                   \
-  EXTERN_KEYWORD template class ClassName<5, true>;                   \
-  EXTERN_KEYWORD template class ClassName<6, true>;                   \
-  EXTERN_KEYWORD template class ClassName<7, true>;                   \
-  EXTERN_KEYWORD template class ClassName<8, true>;                   \
-  EXTERN_KEYWORD template class ClassName<9, true>;                   \
-  EXTERN_KEYWORD template class ClassName<1, false>;                  \
-  EXTERN_KEYWORD template class ClassName<2, false>;                  \
-  EXTERN_KEYWORD template class ClassName<3, false>;                  \
-  EXTERN_KEYWORD template class ClassName<4, false>;                  \
-  EXTERN_KEYWORD template class ClassName<5, false>;                  \
-  EXTERN_KEYWORD template class ClassName<6, false>;                  \
-  EXTERN_KEYWORD template class ClassName<7, false>;                  \
-  EXTERN_KEYWORD template class ClassName<8, false>;                  \
-  EXTERN_KEYWORD template class ClassName<9, false>;
+#define SCANN_INSTANTIATE_CLASS_FOR_LUT16_BATCH_SIZES(EXTERN_KEYWORD,   \
+                                                      ClassName)        \
+  EXTERN_KEYWORD template class ClassName<1, PrefetchStrategy::kSmart>; \
+  EXTERN_KEYWORD template class ClassName<2, PrefetchStrategy::kSmart>; \
+  EXTERN_KEYWORD template class ClassName<3, PrefetchStrategy::kSmart>; \
+  EXTERN_KEYWORD template class ClassName<4, PrefetchStrategy::kSmart>; \
+  EXTERN_KEYWORD template class ClassName<5, PrefetchStrategy::kSmart>; \
+  EXTERN_KEYWORD template class ClassName<6, PrefetchStrategy::kSmart>; \
+  EXTERN_KEYWORD template class ClassName<7, PrefetchStrategy::kSmart>; \
+  EXTERN_KEYWORD template class ClassName<8, PrefetchStrategy::kSmart>; \
+  EXTERN_KEYWORD template class ClassName<9, PrefetchStrategy::kSmart>; \
+  EXTERN_KEYWORD template class ClassName<1, PrefetchStrategy::kSeq>;   \
+  EXTERN_KEYWORD template class ClassName<2, PrefetchStrategy::kSeq>;   \
+  EXTERN_KEYWORD template class ClassName<3, PrefetchStrategy::kSeq>;   \
+  EXTERN_KEYWORD template class ClassName<4, PrefetchStrategy::kSeq>;   \
+  EXTERN_KEYWORD template class ClassName<5, PrefetchStrategy::kSeq>;   \
+  EXTERN_KEYWORD template class ClassName<6, PrefetchStrategy::kSeq>;   \
+  EXTERN_KEYWORD template class ClassName<7, PrefetchStrategy::kSeq>;   \
+  EXTERN_KEYWORD template class ClassName<8, PrefetchStrategy::kSeq>;   \
+  EXTERN_KEYWORD template class ClassName<9, PrefetchStrategy::kSeq>;   \
+  EXTERN_KEYWORD template class ClassName<1, PrefetchStrategy::kOff>;   \
+  EXTERN_KEYWORD template class ClassName<2, PrefetchStrategy::kOff>;   \
+  EXTERN_KEYWORD template class ClassName<3, PrefetchStrategy::kOff>;   \
+  EXTERN_KEYWORD template class ClassName<4, PrefetchStrategy::kOff>;   \
+  EXTERN_KEYWORD template class ClassName<5, PrefetchStrategy::kOff>;   \
+  EXTERN_KEYWORD template class ClassName<6, PrefetchStrategy::kOff>;   \
+  EXTERN_KEYWORD template class ClassName<7, PrefetchStrategy::kOff>;   \
+  EXTERN_KEYWORD template class ClassName<8, PrefetchStrategy::kOff>;   \
+  EXTERN_KEYWORD template class ClassName<9, PrefetchStrategy::kOff>;
 
 }  // namespace asymmetric_hashing_internal
 }  // namespace scann_ops

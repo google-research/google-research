@@ -12,26 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__OSS_WRAPPERS_SCANN_COMPARATOR_H_
-#define SCANN__OSS_WRAPPERS_SCANN_COMPARATOR_H_
-
-#include <utility>
+#ifdef __x86_64__
+#include "scann/hashes/internal/lut16_avx512.inc"
 
 namespace tensorflow {
 namespace scann_ops {
-namespace internal {
+namespace asymmetric_hashing_internal {
 
-struct OrderBySecond {
-  template <typename First, typename Second>
-  bool operator()(const std::pair<First, Second>& a,
-                  const std::pair<First, Second>& b) const {
-    if (a.second < b.second) return true;
-    if (a.second > b.second) return false;
-    return a.first < b.first;
-  }
-};
+template class LUT16Avx512<{BATCH_SIZE}, PrefetchStrategy::kOff>;
 
-}  // namespace internal
+}
 }  // namespace scann_ops
 }  // namespace tensorflow
 

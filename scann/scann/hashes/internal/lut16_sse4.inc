@@ -1,17 +1,3 @@
-// Copyright 2020 The Google Research Authors.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include "scann/hashes/internal/lut16_sse4.h"
 
 #include "scann/oss_wrappers/scann_bits.h"
@@ -54,7 +40,7 @@ SCANN_INLINE array<T, size> ToLocalArray(ConstSpan<T> span) {
   return result;
 }
 
-template <size_t kNumQueries, bool kPrefetch>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_SSE4_INLINE array<Accum32Int16s, kNumQueries> Sse4LUT16BottomLoop(
     const uint8_t* data_start, array<const uint8_t*, kNumQueries> lookup_starts,
     DimensionIndex num_blocks) {
@@ -65,9 +51,9 @@ SCANN_SSE4_INLINE array<Accum32Int16s, kNumQueries> Sse4LUT16BottomLoop(
   const auto total_bias =
       M128_8Xint16::Broadcast(static_cast<int16_t>(num_blocks * 128));
   for (; num_blocks != 0; --num_blocks, data_start += 16) {
-    if (kPrefetch) {
+    if (kPrefetch != PrefetchStrategy::kOff) {
       ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
-          data_start + 768);
+          data_start + kPrefetchBytesAhead);
     }
 
     auto mask = M128_16Xuint8::Load(data_start);
@@ -119,7 +105,7 @@ MakeBottomLevelBatchLookupArray(
   return result;
 }
 
-template <size_t kNumQueries, bool kPrefetch>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_SSE4_INLINE array<Accum32Int16s, kNumQueries> Sse4LUT16MiddleLoop(
     const uint8_t* data_start, array<const uint8_t*, kNumQueries> lookup_starts,
     const DimensionIndex num_blocks) {
@@ -158,7 +144,7 @@ SCANN_SSE4_INLINE array<Accum32Int16s, kNumQueries> Sse4LUT16MiddleLoop(
   return result;
 }
 
-template <size_t kNumQueries, bool kPrefetch>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_SSE4_INLINE array<Accum32Int32s, kNumQueries> Sse4LUT16BottomLoopInt32(
     const uint8_t* data_start, array<const uint8_t*, kNumQueries> lookup_starts,
     DimensionIndex num_blocks) {
@@ -188,7 +174,7 @@ SCANN_SSE4_INLINE array<Accum32Int32s, kNumQueries> Sse4LUT16BottomLoopInt32(
 
 }  // namespace
 
-template <size_t kNumQueries, bool kPrefetch>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetInt16Distances(
     LUT16Args<int16_t> args) {
   const uint8_t* packed_dataset = args.packed_dataset;
@@ -212,7 +198,7 @@ SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetInt16Distances(
   }
 }
 
-template <size_t kNumQueries, bool kPrefetch>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetInt32Distances(
     LUT16Args<int32_t> args) {
   const uint8_t* packed_dataset = args.packed_dataset;
@@ -238,7 +224,7 @@ SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetInt32Distances(
   }
 }
 
-template <size_t kNumQueries, bool kPrefetch>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetFloatDistances(
     LUT16Args<float> args, ConstSpan<float> inv_fp_multipliers) {
   const uint8_t* packed_dataset = args.packed_dataset;
@@ -269,7 +255,7 @@ SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetFloatDistances(
 }
 
 namespace {
-template <size_t kNumQueries, bool kPrefetch, typename TopN>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch, typename TopN>
 SCANN_SSE4_INLINE void GetTopInt16DistancesImpl(
     LUT16ArgsTopN<int16_t, TopN> args) {
   const uint8_t* packed_dataset = args.packed_dataset;
@@ -348,7 +334,7 @@ SCANN_SSE4_INLINE void GetTopInt16DistancesImpl(
 }
 }  // namespace
 
-template <size_t kNumQueries, bool kPrefetch>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetTopInt16Distances(
     LUT16ArgsTopN<int16_t> args) {
   return GetTopInt16DistancesImpl<kNumQueries, kPrefetch>(std::move(args));
@@ -361,7 +347,7 @@ SCANN_SSE4_INLINE int16_t GetInt16Threshold(float float_threshold) {
 }
 
 namespace {
-template <size_t kNumQueries, bool kPrefetch, typename TopN>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch, typename TopN>
 SCANN_SSE4_INLINE void GetTopFloatDistancesImpl(
     LUT16ArgsTopN<float, TopN> args) {
   const uint8_t* packed_dataset = args.packed_dataset;
@@ -470,13 +456,11 @@ SCANN_SSE4_INLINE void GetTopFloatDistancesImpl(
 }
 }  // namespace
 
-template <size_t kNumQueries, bool kPrefetch>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetTopFloatDistances(
     LUT16ArgsTopN<float> args) {
   return GetTopFloatDistancesImpl<kNumQueries, kPrefetch>(std::move(args));
 }
-
-SCANN_INSTANTIATE_CLASS_FOR_LUT16_BATCH_SIZES(, LUT16Sse4);
 
 }  // namespace asymmetric_hashing_internal
 }  // namespace scann_ops

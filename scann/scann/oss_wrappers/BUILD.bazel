@@ -20,12 +20,6 @@ cc_library(
 )
 
 cc_library(
-    name = "scann_comparator",
-    hdrs = ["scann_comparator.h"],
-    tags = ["local"],
-)
-
-cc_library(
     name = "scann_castops",
     hdrs = ["scann_castops.h"],
     tags = ["local"],

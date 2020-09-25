@@ -23,8 +23,8 @@
 #include "google/protobuf/text_format.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
-#include "scann/base/single_machine_factory_no_sparse.h"
 #include "scann/base/single_machine_factory_options.h"
+#include "scann/base/single_machine_factory_scann.h"
 #include "scann/data_format/dataset.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/threads.h"
@@ -37,18 +37,23 @@ class ScannInterface {
   Status Initialize(ConstSpan<float> dataset,
                     ConstSpan<int32_t> datapoint_to_token,
                     ConstSpan<uint8_t> hashed_dataset,
-                    DimensionIndex dimensionality,
+                    ConstSpan<int8_t> int8_dataset,
+                    ConstSpan<float> int8_multipliers,
+                    ConstSpan<float> dp_norms, DatapointIndex n_points,
                     const std::string& artifacts_dir);
   Status Initialize(ScannConfig config, SingleMachineFactoryOptions opts,
                     ConstSpan<float> dataset,
                     ConstSpan<int32_t> datapoint_to_token,
                     ConstSpan<uint8_t> hashed_dataset,
-                    DimensionIndex dimensionality);
-  Status Initialize(ConstSpan<float> dataset, DimensionIndex dimensionality,
+                    ConstSpan<int8_t> int8_dataset,
+                    ConstSpan<float> int8_multipliers,
+                    ConstSpan<float> dp_norms, DatapointIndex n_points);
+  Status Initialize(ConstSpan<float> dataset, DatapointIndex n_points,
                     const std::string& config, int training_threads);
   Status Initialize(
-      ConstSpan<float> ds_span, DimensionIndex dimensionality,
+      shared_ptr<DenseDataset<float>> dataset,
       SingleMachineFactoryOptions opts = SingleMachineFactoryOptions());
+
   Status Search(const DatapointPtr<float> query, NNResultsVector* res,
                 int final_nn, int pre_reorder_nn, int leaves) const;
   Status SearchBatched(const DenseDataset<float>& queries,
@@ -66,6 +71,9 @@ class ScannInterface {
   template <typename T_idx>
   void ReshapeBatchedNNResult(ConstSpan<NNResultsVector> res, T_idx* indices,
                               float* distances);
+
+  bool needs_dataset() const { return scann_->needs_dataset(); }
+  const Dataset* dataset() const { return scann_->dataset(); }
 
   size_t n_points() const { return n_points_; }
   DimensionIndex dimensionality() const { return dimensionality_; }

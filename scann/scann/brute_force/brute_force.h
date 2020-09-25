@@ -91,10 +91,6 @@ class BruteForceSearcher final : public SingleMachineSearcherBase<T> {
 
   const bool supports_low_level_batching_;
 
-  const bool using_squared_db_norms_;
-
-  vector<T> squared_db_norms_;
-
   std::shared_ptr<thread::ThreadPool> pool_;
 
   mutable unique_ptr<typename BruteForceSearcher<T>::Mutator> mutator_ =

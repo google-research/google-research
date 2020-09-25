@@ -75,7 +75,8 @@ class LUT16Interface {
       ConstSpan<FastTopNeighbors<DistT>*> fast_topns) {
     LUT16ArgsTopN<DistT> args;
     args.packed_dataset = packed_dataset;
-    args.should_prefetch = should_prefetch;
+    args.prefetch_strategy =
+        should_prefetch ? PrefetchStrategy::kSeq : PrefetchStrategy::kOff;
     args.num_32dp_simd_iters = num_32dp_simd_iters;
     args.num_blocks = num_blocks;
     args.lookups = lookups;
@@ -94,7 +95,8 @@ class LUT16Interface {
       ConstSpan<float> fixed_point_multipliers) {
     LUT16ArgsTopN<float> args;
     args.packed_dataset = packed_dataset;
-    args.should_prefetch = should_prefetch;
+    args.prefetch_strategy =
+        should_prefetch ? PrefetchStrategy::kSeq : PrefetchStrategy::kOff;
     args.num_32dp_simd_iters = num_32dp_simd_iters;
     args.num_blocks = num_blocks;
     args.lookups = lookups;
@@ -188,83 +190,99 @@ class LUT16Interface {
       LOG(FATAL) << "Invalid Batch Size";                             \
   }
 
-#define SCANN_CALL_LUT16_FUNCTION(enable_avx512_codepath, batch_size,      \
-                                  should_prefetch, Function, ...)          \
-  if (should_prefetch) {                                                   \
-    if (enable_avx512_codepath && RuntimeSupportsAvx512()) {               \
-      SCANN_CALL_LUT16_FUNCTION_1(batch_size, true, LUT16Avx512, Function, \
-                                  __VA_ARGS__);                            \
-    }                                                                      \
-    if (RuntimeSupportsAvx2()) {                                           \
-      SCANN_CALL_LUT16_FUNCTION_1(batch_size, true, LUT16Avx2, Function,   \
-                                  __VA_ARGS__);                            \
-    } else {                                                               \
-      SCANN_CALL_LUT16_FUNCTION_1(batch_size, true, LUT16Sse4, Function,   \
-                                  __VA_ARGS__);                            \
-    }                                                                      \
-  } else {                                                                 \
-    if (enable_avx512_codepath && RuntimeSupportsAvx512()) {               \
-      SCANN_CALL_LUT16_FUNCTION_1(batch_size, true, LUT16Avx512, Function, \
-                                  __VA_ARGS__);                            \
-    }                                                                      \
-    if (RuntimeSupportsAvx2()) {                                           \
-      SCANN_CALL_LUT16_FUNCTION_1(batch_size, false, LUT16Avx2, Function,  \
-                                  __VA_ARGS__);                            \
-    } else {                                                               \
-      SCANN_CALL_LUT16_FUNCTION_1(batch_size, false, LUT16Sse4, Function,  \
-                                  __VA_ARGS__);                            \
-    }                                                                      \
+#define SCANN_CALL_LUT16_FUNCTION(enable_avx512_codepath, batch_size,   \
+                                  prefetch_strategy, Function, ...)     \
+  if (prefetch_strategy == PrefetchStrategy::kOff) {                    \
+    if (enable_avx512_codepath && RuntimeSupportsAvx512()) {            \
+      SCANN_CALL_LUT16_FUNCTION_1(batch_size, PrefetchStrategy::kOff,   \
+                                  LUT16Avx512, Function, __VA_ARGS__);  \
+    }                                                                   \
+    if (RuntimeSupportsAvx2()) {                                        \
+      SCANN_CALL_LUT16_FUNCTION_1(batch_size, PrefetchStrategy::kOff,   \
+                                  LUT16Avx2, Function, __VA_ARGS__);    \
+    } else {                                                            \
+      SCANN_CALL_LUT16_FUNCTION_1(batch_size, PrefetchStrategy::kOff,   \
+                                  LUT16Sse4, Function, __VA_ARGS__);    \
+    }                                                                   \
+  } else if (prefetch_strategy == PrefetchStrategy::kSeq) {             \
+    if (enable_avx512_codepath && RuntimeSupportsAvx512()) {            \
+      SCANN_CALL_LUT16_FUNCTION_1(batch_size, PrefetchStrategy::kSeq,   \
+                                  LUT16Avx512, Function, __VA_ARGS__);  \
+    }                                                                   \
+    if (RuntimeSupportsAvx2()) {                                        \
+      SCANN_CALL_LUT16_FUNCTION_1(batch_size, PrefetchStrategy::kSeq,   \
+                                  LUT16Avx2, Function, __VA_ARGS__);    \
+    } else {                                                            \
+      SCANN_CALL_LUT16_FUNCTION_1(batch_size, PrefetchStrategy::kSeq,   \
+                                  LUT16Sse4, Function, __VA_ARGS__);    \
+    }                                                                   \
+  } else {                                                              \
+    if (enable_avx512_codepath && RuntimeSupportsAvx512()) {            \
+      SCANN_CALL_LUT16_FUNCTION_1(batch_size, PrefetchStrategy::kSmart, \
+                                  LUT16Avx512, Function, __VA_ARGS__);  \
+    }                                                                   \
+    if (RuntimeSupportsAvx2()) {                                        \
+      SCANN_CALL_LUT16_FUNCTION_1(batch_size, PrefetchStrategy::kSmart, \
+                                  LUT16Avx2, Function, __VA_ARGS__);    \
+    } else {                                                            \
+      SCANN_CALL_LUT16_FUNCTION_1(batch_size, PrefetchStrategy::kSmart, \
+                                  LUT16Sse4, Function, __VA_ARGS__);    \
+    }                                                                   \
   }
 
 void LUT16Interface::GetDistances(LUT16Args<int16_t> args) {
   const size_t batch_size = args.lookups.size();
-  const bool should_prefetch = args.should_prefetch;
+  const auto prefetch_strategy = args.prefetch_strategy;
   const bool enable_avx512_codepath = args.enable_avx512_codepath;
   DCHECK_EQ(batch_size, args.distances.size());
-  SCANN_CALL_LUT16_FUNCTION(enable_avx512_codepath, batch_size, should_prefetch,
-                            GetInt16Distances, std::move(args));
+  SCANN_CALL_LUT16_FUNCTION(enable_avx512_codepath, batch_size,
+                            prefetch_strategy, GetInt16Distances,
+                            std::move(args));
 }
 
 void LUT16Interface::GetDistances(LUT16Args<int32_t> args) {
   const size_t batch_size = args.lookups.size();
-  const bool should_prefetch = args.should_prefetch;
+  const auto prefetch_strategy = args.prefetch_strategy;
   const bool enable_avx512_codepath = args.enable_avx512_codepath;
   DCHECK_EQ(batch_size, args.distances.size());
-  SCANN_CALL_LUT16_FUNCTION(enable_avx512_codepath, batch_size, should_prefetch,
-                            GetInt32Distances, std::move(args));
+  SCANN_CALL_LUT16_FUNCTION(enable_avx512_codepath, batch_size,
+                            prefetch_strategy, GetInt32Distances,
+                            std::move(args));
 }
 
 void LUT16Interface::GetFloatDistances(LUT16Args<float> args,
                                        ConstSpan<float> inv_fp_multipliers) {
   const size_t batch_size = args.lookups.size();
-  const bool should_prefetch = args.should_prefetch;
+  const auto prefetch_strategy = args.prefetch_strategy;
   const bool enable_avx512_codepath = args.enable_avx512_codepath;
   DCHECK_EQ(batch_size, args.distances.size());
   DCHECK_EQ(batch_size, inv_fp_multipliers.size());
-  SCANN_CALL_LUT16_FUNCTION(enable_avx512_codepath, batch_size, should_prefetch,
-                            GetFloatDistances, std::move(args),
-                            inv_fp_multipliers);
+  SCANN_CALL_LUT16_FUNCTION(enable_avx512_codepath, batch_size,
+                            prefetch_strategy, GetFloatDistances,
+                            std::move(args), inv_fp_multipliers);
 }
 
 template <typename TopN>
 void LUT16Interface::GetTopDistances(LUT16ArgsTopN<int16_t, TopN> args) {
   const size_t batch_size = args.lookups.size();
-  const bool should_prefetch = args.should_prefetch;
+  const auto prefetch_strategy = args.prefetch_strategy;
   const bool enable_avx512_codepath = args.enable_avx512_codepath;
   DCHECK_EQ(batch_size, args.fast_topns.size());
-  SCANN_CALL_LUT16_FUNCTION(enable_avx512_codepath, batch_size, should_prefetch,
-                            GetTopInt16Distances, std::move(args));
+  SCANN_CALL_LUT16_FUNCTION(enable_avx512_codepath, batch_size,
+                            prefetch_strategy, GetTopInt16Distances,
+                            std::move(args));
 }
 
 template <typename TopN>
 void LUT16Interface::GetTopFloatDistances(LUT16ArgsTopN<float, TopN> args) {
   const size_t batch_size = args.lookups.size();
-  const bool should_prefetch = args.should_prefetch;
+  const auto prefetch_strategy = args.prefetch_strategy;
   const bool enable_avx512_codepath = args.enable_avx512_codepath;
   DCHECK_EQ(batch_size, args.fast_topns.size());
   DCHECK_EQ(batch_size, args.biases.size());
-  SCANN_CALL_LUT16_FUNCTION(enable_avx512_codepath, batch_size, should_prefetch,
-                            GetTopFloatDistances, std::move(args));
+  SCANN_CALL_LUT16_FUNCTION(enable_avx512_codepath, batch_size,
+                            prefetch_strategy, GetTopFloatDistances,
+                            std::move(args));
 }
 
 #else

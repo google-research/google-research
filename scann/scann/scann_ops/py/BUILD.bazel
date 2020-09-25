@@ -5,12 +5,19 @@ package(
 
 py_library(
     name = "scann",
-    srcs = ["scann_builder.py"],
     tags = ["local"],
     deps = [
+        ":scann_builder",
         ":scann_ops",
         ":scann_ops_pybind",
     ],
+)
+
+py_library(
+    name = "scann_builder",
+    srcs = ["scann_builder.py"],
+    tags = ["local"],
+    deps = [],
 )
 
 py_library(
@@ -22,17 +29,19 @@ py_library(
         "//scann/scann_ops/cc:_scann_ops.so",
     ],
     tags = ["local"],
-    deps = [],
+    deps = [
+        ":scann_builder",
+    ],
 )
 
 py_test(
     name = "scann_ops_test",
-    size = "large",
+    size = "medium",
     srcs = ["scann_ops_test.py"],
     python_version = "PY3",
+    shard_count = 4,
     tags = ["local"],
     deps = [
-        ":scann",
         ":scann_ops",
     ],
 )
@@ -44,16 +53,18 @@ py_library(
         "//scann/scann_ops/cc/python:scann_pybind.so",
     ],
     tags = ["local"],
-    deps = [],
+    deps = [
+        ":scann_builder",
+    ],
 )
 
 py_test(
     name = "scann_ops_pybind_test",
     srcs = ["scann_ops_pybind_test.py"],
     python_version = "PY3",
+    shard_count = 4,
     tags = ["local"],
     deps = [
-        ":scann",
         ":scann_ops_pybind",
     ],
 )

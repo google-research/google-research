@@ -47,10 +47,6 @@ class ScannResource : public ResourceBase {
 
   void Initialize() { initialized_ = true; }
 
-  Status Serialize(const std::string& path) {
-    return ConvertStatus(scann_->Serialize(path));
-  }
-
   std::unique_ptr<tensorflow::scann_ops::ScannInterface> scann_;
 
  private:
@@ -83,7 +79,7 @@ class ScannCreateSearcherOp : public ResourceOpKernel<ScannResource> {
     auto db_span = TensorToConstSpan<float>(db_tensor);
 
     OP_REQUIRES_OK(context, ConvertStatus(resource_->scann_->Initialize(
-                                db_span, db_tensor->dim_size(1), config,
+                                db_span, db_tensor->dim_size(0), config,
                                 threads_tensor->scalar<int>()())));
     resource_->Initialize();
   }
@@ -212,6 +208,8 @@ class ScannToTensorsOp : public OpKernel {
       : OpKernel(context) {}
 
   void Compute(OpKernelContext* context) override {
+    using tensorflow::scann_ops::ConstSpan;
+
     ScannResource* scann_resource;
     OP_REQUIRES_OK(context, LookupResource(context, HandleFromInput(context, 0),
                                            &scann_resource));
@@ -220,10 +218,10 @@ class ScannToTensorsOp : public OpKernel {
     OP_REQUIRES_OK(context, ConvertStatus(options_or_status.status()));
     auto opts = options_or_status.ValueOrDie();
 
-    scann_ops::TensorFromProtoRequireOk(context, "scann_config",
-                                        scann_resource->scann_->config());
-    scann_ops::TensorFromProtoRequireOk(context, "serialized_partitioner",
-                                        opts.serialized_partitioner.get());
+    TensorFromProtoRequireOk(context, "scann_config",
+                             scann_resource->scann_->config());
+    TensorFromProtoRequireOk(context, "serialized_partitioner",
+                             opts.serialized_partitioner.get());
     if (opts.datapoints_by_token != nullptr) {
       Tensor* tensor;
       OP_REQUIRES_OK(context, context->allocate_output(
@@ -240,11 +238,39 @@ class ScannToTensorsOp : public OpKernel {
       scann_ops::EmptyTensorRequireOk(context, "datapoint_to_token");
     }
 
-    scann_ops::TensorFromProtoRequireOk(context, "ah_codebook",
-                                        opts.ah_codebook.get());
-    OP_REQUIRES_OK(
-        context, scann_ops::TensorFromDenseDataset(context, "hashed_dataset",
-                                                   opts.hashed_dataset.get()));
+    TensorFromProtoRequireOk(context, "ah_codebook", opts.ah_codebook.get());
+    TensorFromDenseDatasetRequireOk(context, "hashed_dataset",
+                                    opts.hashed_dataset.get());
+
+    tensorflow::scann_ops::DenseDataset<int8_t>* int8_dataset = nullptr;
+    ConstSpan<float> int8_mults, dp_norms;
+    auto int8_struct = opts.pre_quantized_fixed_point;
+    if (int8_struct != nullptr) {
+      if (int8_struct->fixed_point_dataset != nullptr)
+        int8_dataset = int8_struct->fixed_point_dataset.get();
+      auto mults = int8_struct->multiplier_by_dimension;
+      if (mults != nullptr)
+        int8_mults = ConstSpan<float>(mults->data(), mults->size());
+      auto norms = int8_struct->squared_l2_norm_by_datapoint;
+      if (norms != nullptr)
+        dp_norms = ConstSpan<float>(norms->data(), norms->size());
+    }
+    TensorFromDenseDatasetRequireOk(context, "int8_dataset", int8_dataset);
+    TensorFromSpanRequireOk(context, "int8_multipliers", int8_mults);
+    TensorFromSpanRequireOk(context, "dp_norms", dp_norms);
+    const tensorflow::scann_ops::DenseDataset<float>* dataset = nullptr;
+    if (scann_resource->scann_->needs_dataset()) {
+      auto dataset_untyped = scann_resource->scann_->dataset();
+      OP_REQUIRES(context, dataset_untyped != nullptr,
+                  ConvertStatus(tensorflow::scann_ops::FailedPreconditionError(
+                      "Searcher needs original dataset but none is present.")));
+      dataset = dynamic_cast<const tensorflow::scann_ops::DenseDataset<float>*>(
+          dataset_untyped);
+      OP_REQUIRES(context, dataset != nullptr,
+                  ConvertStatus(tensorflow::scann_ops::InternalError(
+                      "Failed to cast dataset to DenseDataset<float>.")));
+    }
+    TensorFromDenseDatasetRequireOk(context, "dataset", dataset);
   }
 };
 
@@ -265,6 +291,9 @@ class TensorsToScannOp : public ResourceOpKernel<ScannResource> {
     const Tensor* dp_to_token;
     const Tensor* ah_codebook;
     const Tensor* hashed_dataset;
+    const Tensor* int8_dataset;
+    const Tensor* int8_multipliers;
+    const Tensor* dp_norms;
 
     OP_REQUIRES_OK(context, context->input("x", &db_tensor));
     OP_REQUIRES_OK(context, context->input("scann_config", &config_tensor));
@@ -273,14 +302,23 @@ class TensorsToScannOp : public ResourceOpKernel<ScannResource> {
     OP_REQUIRES_OK(context, context->input("datapoint_to_token", &dp_to_token));
     OP_REQUIRES_OK(context, context->input("ah_codebook", &ah_codebook));
     OP_REQUIRES_OK(context, context->input("hashed_dataset", &hashed_dataset));
+    OP_REQUIRES_OK(context, context->input("int8_dataset", &int8_dataset));
+    OP_REQUIRES_OK(context,
+                   context->input("int8_multipliers", &int8_multipliers));
+    OP_REQUIRES_OK(context, context->input("dp_norms", &dp_norms));
 
-    OP_REQUIRES(context, db_tensor->dims() == 2,
-                errors::InvalidArgument("Dataset must be two-dimensional"));
+    uint32_t n_points = tensorflow::scann_ops::kInvalidDatapointIndex;
+    tensorflow::scann_ops::ConstSpan<float> dataset;
+    if (db_tensor->dims() != 0) {
+      OP_REQUIRES(context, db_tensor->dims() == 2,
+                  errors::InvalidArgument("Dataset must be two-dimensional"));
+      n_points = db_tensor->dim_size(0);
+      dataset = scann_ops::TensorToConstSpan<float>(db_tensor);
+    }
 
     const tstring& config_tstr = config_tensor->scalar<tstring>()();
     tensorflow::scann_ops::ScannConfig config;
     config.ParseFromArray(config_tstr.data(), config_tstr.size());
-    auto dataset = scann_ops::TensorToConstSpan<float>(db_tensor);
 
     tensorflow::scann_ops::SingleMachineFactoryOptions opts;
     if (serialized_partitioner->dims() != 0) {
@@ -300,13 +338,31 @@ class TensorsToScannOp : public ResourceOpKernel<ScannResource> {
     }
     tensorflow::scann_ops::ConstSpan<int32_t> tokenization;
     tensorflow::scann_ops::ConstSpan<uint8_t> hashed_span;
-    if (dp_to_token->dims() != 0)
+    if (dp_to_token->dims() != 0) {
+      n_points = dp_to_token->dim_size(0);
       tokenization = scann_ops::TensorToConstSpan<int32_t>(dp_to_token);
-    if (hashed_dataset->dims() != 0)
+    }
+    if (hashed_dataset->dims() != 0) {
+      n_points = hashed_dataset->dim_size(0);
       hashed_span = scann_ops::TensorToConstSpan<uint8_t>(hashed_dataset);
-    OP_REQUIRES_OK(context, ConvertStatus(resource_->scann_->Initialize(
-                                config, opts, dataset, tokenization,
-                                hashed_span, db_tensor->dim_size(1))));
+    }
+
+    tensorflow::scann_ops::ConstSpan<int8_t> int8_span;
+    tensorflow::scann_ops::ConstSpan<float> int8_multiplier_span, norm_span;
+    if (int8_dataset->dims() != 0) {
+      n_points = int8_dataset->dim_size(0);
+      int8_span = scann_ops::TensorToConstSpan<int8_t>(int8_dataset);
+    }
+    if (int8_multipliers->dims() != 0)
+      int8_multiplier_span =
+          scann_ops::TensorToConstSpan<float>(int8_multipliers);
+    if (dp_norms->dims() != 0)
+      norm_span = scann_ops::TensorToConstSpan<float>(dp_norms);
+
+    OP_REQUIRES_OK(context,
+                   ConvertStatus(resource_->scann_->Initialize(
+                       config, opts, dataset, tokenization, hashed_span,
+                       int8_span, int8_multiplier_span, norm_span, n_points)));
     resource_->Initialize();
   }
 
@@ -318,15 +374,15 @@ class TensorsToScannOp : public ResourceOpKernel<ScannResource> {
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("Addons>ScannCreateSearcher").Device(DEVICE_CPU),
+REGISTER_KERNEL_BUILDER(Name("Scann>ScannCreateSearcher").Device(DEVICE_CPU),
                         ScannCreateSearcherOp);
-REGISTER_KERNEL_BUILDER(Name("Addons>ScannSearch").Device(DEVICE_CPU),
+REGISTER_KERNEL_BUILDER(Name("Scann>ScannSearch").Device(DEVICE_CPU),
                         ScannSearchOp);
-REGISTER_KERNEL_BUILDER(Name("Addons>ScannSearchBatched").Device(DEVICE_CPU),
+REGISTER_KERNEL_BUILDER(Name("Scann>ScannSearchBatched").Device(DEVICE_CPU),
                         ScannSearchBatchedOp);
-REGISTER_KERNEL_BUILDER(Name("Addons>ScannToTensors").Device(DEVICE_CPU),
+REGISTER_KERNEL_BUILDER(Name("Scann>ScannToTensors").Device(DEVICE_CPU),
                         ScannToTensorsOp);
-REGISTER_KERNEL_BUILDER(Name("Addons>TensorsToScann").Device(DEVICE_CPU),
+REGISTER_KERNEL_BUILDER(Name("Scann>TensorsToScann").Device(DEVICE_CPU),
                         TensorsToScannOp);
 
 }  // namespace scann_ops

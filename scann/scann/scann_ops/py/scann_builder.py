@@ -14,8 +14,7 @@
 # limitations under the License.
 
 """Builder to create ScaNN searchers of various configurations."""
-from scann.scann_ops.py import scann_ops
-from scann.scann_ops.py import scann_ops_pybind
+import math
 
 
 def _factory_decorator(key):
@@ -43,12 +42,26 @@ class ScannBuilder(object):
   def __init__(self, db, num_neighbors, distance_measure):
     self.params = {}
     self.training_threads = 0
+    self.builder_lambda = None
     self.db = db
     self.num_neighbors = num_neighbors
     self.distance_measure = distance_measure
 
   def set_n_training_threads(self, threads):
     self.training_threads = threads
+    return self
+
+  def set_builder_lambda(self, builder_lambda):
+    """Sets builder_lambda, which creates a ScaNN searcher upon calling build().
+
+    Args:
+      builder_lambda: a function that takes a dataset, ScaNN config text proto,
+        number of training threads, and optional kwargs as arguments, and
+        returns a ScaNN searcher.
+    Returns:
+      The builder object itself, as expected from the builder pattern.
+    """
+    self.builder_lambda = builder_lambda
     return self
 
   @_factory_decorator("tree")
@@ -127,11 +140,16 @@ class ScannBuilder(object):
         }}
       """.format(n_dims // dimensions_per_block, dimensions_per_block, 1,
                  n_dims % dimensions_per_block)
+    num_blocks = math.ceil(n_dims / dimensions_per_block)
+    # global top-N requires LUT16, int16 accumulators, and residual quantization
+    global_topn = (hash_type == hash_types[0]) and (
+        num_blocks <= 256) and residual_quantization
     return """
       hash {{
         asymmetric_hash {{
           lookup_type: {}
           use_residual_quantization: {}
+          use_global_topn: {}
           quantization_distance {{
             distance_measure: "SquaredL2Distance"
           }}
@@ -145,9 +163,10 @@ class ScannBuilder(object):
           min_cluster_size: {}
           max_clustering_iterations: {}
         }}
-      }} """.format(lookup_type, residual_quantization, clusters_per_block,
-                    n_dims, proj_config, anisotropic_quantization_threshold,
-                    training_sample_size, min_cluster_size, training_iterations)
+      }} """.format(lookup_type, residual_quantization, global_topn,
+                    clusters_per_block, n_dims, proj_config,
+                    anisotropic_quantization_threshold, training_sample_size,
+                    min_cluster_size, training_iterations)
 
   @_factory_decorator("score_bf")
   def score_brute_force(self, quantize=False):
@@ -208,11 +227,32 @@ class ScannBuilder(object):
     return config
 
   def create_tf(self, **kwargs):
-    config = self.create_config()
-    return scann_ops.create_searcher(self.db, config, self.training_threads,
-                                     **kwargs)
+    del kwargs  # Unused, now that function has moved.
+    raise Exception(
+        "No longer supported: replace scann_builder.ScannBuilder(...)"
+        " ... .create_tf(...) with scann_ops.builder(...) ... .build(...)")
 
   def create_pybind(self):
+    raise Exception(
+        "No longer supported: replace scann_builder.ScannBuilder(...) ... "
+        ".create_pybind(...) with scann_ops_pybind.builder(...) ... .build(...)"
+    )
+
+  def build(self, **kwargs):
+    """Calls builder_lambda to return a ScaNN searcher with the built config.
+
+    The type of the returned searcher (pybind or TensorFlow) is configured
+    through builder_lambda; see builder() in scann_ops.py and
+    scann_ops_pybind.py for their respective builder_lambda's.
+
+    Args:
+      **kwargs: additional, optional parameters to pass to builder_lambda.
+    Returns:
+      The returned value from builder_lambda(), which is a ScaNN searcher.
+    Raises:
+      Exception: if no builder_lambda was set.
+    """
+    if self.builder_lambda is None:
+      raise Exception("build() called but no builder lambda was set.")
     config = self.create_config()
-    return scann_ops_pybind.create_searcher(self.db, config,
-                                            self.training_threads)
+    return self.builder_lambda(self.db, config, self.training_threads, **kwargs)

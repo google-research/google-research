@@ -69,15 +69,6 @@ void DenseDistanceManyToMany(const DistanceMeasure& dist,
                                            std::move(callback));
 }
 
-template <typename FloatT>
-void DenseDistanceManyToManyFP8Pretransposed(
-    const DistanceMeasure& dist, const DenseDataset<FloatT>& queries,
-    const FP8SimdBlockTransposedDatabase& database, thread::ThreadPool* pool,
-    ManyToManyResultsCallback<FloatT> callback) {
-  mm_internal::DenseDistanceManyToManyFP8PretransposedImpl(
-      dist, queries, database, pool, std::move(callback));
-}
-
 inline Status DenseDistanceManyToManyFP8Pretransposed(
     const DistanceMeasure& dist, const DenseDataset<float>& queries,
     const FP8SimdBlockTransposedDatabase& database,
@@ -85,11 +76,24 @@ inline Status DenseDistanceManyToManyFP8Pretransposed(
   return mm_internal::DenseDistanceManyToManyFP8PretransposedImpl(
       dist, queries, database, nullptr, std::move(callback));
 }
-
 inline Status DenseDistanceManyToManyFP8Pretransposed(
     const DistanceMeasure& dist, const DenseDataset<float>& queries,
     const FP8SimdBlockTransposedDatabase& database, thread::ThreadPool* pool,
     ManyToManyResultsCallback<float> callback) {
+  return mm_internal::DenseDistanceManyToManyFP8PretransposedImpl(
+      dist, queries, database, pool, std::move(callback));
+}
+inline Status DenseDistanceManyToManyFP8Pretransposed(
+    const DistanceMeasure& dist, const DenseDataset<float>& queries,
+    const FP8SimdBlockTransposedDatabase& database,
+    ManyToManyTop1OffsetWrapper<float> callback) {
+  return mm_internal::DenseDistanceManyToManyFP8PretransposedImpl(
+      dist, queries, database, nullptr, std::move(callback));
+}
+inline Status DenseDistanceManyToManyFP8Pretransposed(
+    const DistanceMeasure& dist, const DenseDataset<float>& queries,
+    const FP8SimdBlockTransposedDatabase& database, thread::ThreadPool* pool,
+    ManyToManyTop1OffsetWrapper<float> callback) {
   return mm_internal::DenseDistanceManyToManyFP8PretransposedImpl(
       dist, queries, database, pool, std::move(callback));
 }
@@ -116,80 +120,6 @@ vector<pair<uint32_t, FloatT>> DenseDistanceManyToManyTop1(
                  tmp_storage[i].second.load(std::memory_order_relaxed)};
   }
   return result;
-}
-
-template <typename FloatT, typename QueryNorm = FloatT,
-          typename DbNorm = FloatT>
-void DenseSquaredL2DistanceManyToMany(
-    const DenseDataset<FloatT>& queries, const DenseDataset<FloatT>& database,
-    ConstSpan<QueryNorm> squared_query_norms,
-    ConstSpan<DbNorm> squared_db_norms, thread::ThreadPool* pool,
-    ManyToManyResultsCallback<FloatT> callback) {
-  static_assert(
-      IsSameAny<FloatT, float, double>(),
-      "DenseSquaredL2DistanceManyToMany only works with float/double.");
-  DCHECK_EQ(squared_query_norms.size(), queries.size());
-  DCHECK_EQ(squared_db_norms.size(), database.size());
-  auto postprocess = [&](MutableSpan<FloatT> dists, size_t base_dp_idx,
-                         size_t query_idx) {
-    {
-      const auto squared_query_norm = squared_query_norms[query_idx];
-      FloatT* __restrict__ dists_ptr = dists.data();
-      const DbNorm* __restrict__ db_norm_ptr =
-          squared_db_norms.data() + base_dp_idx;
-      for (size_t i : IndicesOf(dists)) {
-        dists_ptr[i] = squared_query_norm + db_norm_ptr[i] +
-                       static_cast<FloatT>(2.0) * dists_ptr[i];
-      }
-    }
-    return callback(dists, base_dp_idx, query_idx);
-  };
-
-  return DenseDistanceManyToMany<FloatT>(
-      DotProductDistance(), queries, database, pool, std::move(postprocess));
-}
-
-template <typename FloatT>
-vector<pair<uint32_t, FloatT>> DenseSquaredL2DistanceManyToManyTop1(
-    const DenseDataset<FloatT>& queries, const DenseDataset<FloatT>& database,
-    ConstSpan<FloatT> squared_query_norms, ConstSpan<FloatT> squared_db_norms,
-    thread::ThreadPool* pool = nullptr) {
-  static_assert(
-      IsSameAny<FloatT, float, double>(),
-      "DenseSquaredL2DistanceManyToMany only works with float/double.");
-  DCHECK_EQ(squared_query_norms.size(), queries.size());
-  DCHECK_EQ(squared_db_norms.size(), database.size());
-
-  vector<pair<uint32_t, std::atomic<FloatT>>> tmp_storage(queries.size());
-  for (auto& elem : tmp_storage) {
-    elem.first = kInvalidDatapointIndex;
-    elem.second.store(numeric_limits<FloatT>::infinity(),
-                      std::memory_order_relaxed);
-  }
-  ManyToManyTop1SquaredL2Callback<FloatT> callback(
-      tmp_storage.data(), squared_query_norms, squared_db_norms);
-
-  mm_internal::DenseDistanceManyToManyImpl<FloatT>(
-      DotProductDistance(), queries, database, pool, std::move(callback));
-
-  vector<pair<DatapointIndex, FloatT>> result(tmp_storage.size());
-  for (size_t i : IndicesOf(result)) {
-    result[i] = {tmp_storage[i].first,
-                 tmp_storage[i].second.load(std::memory_order_relaxed)};
-  }
-  return result;
-}
-
-template <typename FloatT, typename QueryNorm = FloatT,
-          typename DbNorm = FloatT>
-void DenseSquaredL2DistanceManyToMany(
-    const DenseDataset<FloatT>& queries, const DenseDataset<FloatT>& database,
-    ConstSpan<QueryNorm> squared_query_norms,
-    ConstSpan<DbNorm> squared_db_norms,
-    ManyToManyResultsCallback<FloatT> callback) {
-  DenseSquaredL2DistanceManyToMany(queries, database, squared_query_norms,
-                                   squared_db_norms, nullptr,
-                                   std::move(callback));
 }
 
 }  // namespace scann_ops

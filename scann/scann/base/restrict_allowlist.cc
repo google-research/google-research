@@ -52,32 +52,49 @@ RestrictAllowlist::RestrictAllowlist(DatapointIndex num_points,
 }
 
 RestrictAllowlist::RestrictAllowlist(const RestrictAllowlistConstView& view)
-    : whitelist_array_(
-          view.whitelist_array_,
-          view.whitelist_array_ + DivRoundUp(view.num_points_, kBitsPerWord)),
+    : allowlist_array_(
+          view.allowlist_array_,
+          view.allowlist_array_ + DivRoundUp(view.num_points_, kBitsPerWord)),
       num_points_(view.num_points_) {}
+
+RestrictAllowlist::RestrictAllowlist(std::vector<size_t>&& allowlist_array,
+                                     DatapointIndex num_points,
+                                     bool default_whitelisted)
+    : allowlist_array_(std::move(allowlist_array)), num_points_(num_points) {
+  CHECK_EQ(allowlist_array_.size(), DivRoundUp(num_points, kBitsPerWord));
+
+  VLOG(1) << "Using recycled allowlist_array_ at " << allowlist_array_.data();
+  const size_t to_fill = default_whitelisted ? kAllOnes : 0;
+  std::fill(allowlist_array_.begin(), allowlist_array_.end(), to_fill);
+  if (default_whitelisted) {
+    ClearRemainderBits(MakeMutableSpan(allowlist_array_), num_points);
+  }
+}
+
+RestrictAllowlist::~RestrictAllowlist() {}
 
 void RestrictAllowlist::Initialize(DatapointIndex num_points,
                                    bool default_whitelisted) {
   num_points_ = num_points;
-  whitelist_array_.clear();
-  whitelist_array_.resize(DivRoundUp(num_points, kBitsPerWord),
+
+  allowlist_array_.resize(0);
+  allowlist_array_.resize(DivRoundUp(num_points, kBitsPerWord),
                           default_whitelisted ? kAllOnes : 0);
   if (default_whitelisted) {
-    ClearRemainderBits(MakeMutableSpan(whitelist_array_), num_points);
+    ClearRemainderBits(MakeMutableSpan(allowlist_array_), num_points);
   }
 }
 
 void RestrictAllowlist::Resize(size_t num_points, bool default_whitelisted) {
   if (default_whitelisted && num_points > num_points_) {
-    SetRemainderBits(MakeMutableSpan(whitelist_array_), num_points_);
+    SetRemainderBits(MakeMutableSpan(allowlist_array_), num_points_);
   }
 
   const size_t n_words =
       num_points / kBitsPerWord + (num_points % kBitsPerWord > 0);
-  whitelist_array_.resize(n_words, (default_whitelisted ? kAllOnes : 0));
+  allowlist_array_.resize(n_words, (default_whitelisted ? kAllOnes : 0));
   num_points_ = num_points;
-  ClearRemainderBits(MakeMutableSpan(whitelist_array_), num_points);
+  ClearRemainderBits(MakeMutableSpan(allowlist_array_), num_points);
 }
 
 DummyAllowlist::DummyAllowlist(DatapointIndex num_points)

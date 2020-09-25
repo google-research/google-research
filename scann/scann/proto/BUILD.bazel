@@ -16,14 +16,12 @@ proto_library(
         ":crowding_proto",
         ":disjoint_restrict_token_proto",
         ":distance_measure_proto",
-        ":evaluation_proto",
         ":exact_reordering_proto",
         ":hash_proto",
         ":input_output_proto",
         ":metadata_proto",
         ":partitioning_proto",
         ":restricts_proto",
-        ":trees_proto",
     ],
 )
 
@@ -74,16 +72,10 @@ proto_library(
     tags = ["local"],
 )
 
-proto_library(
-    name = "evaluation_proto",
-    srcs = ["evaluation.proto"],
-    tags = ["local"],
-)
-
 cc_proto_library(
-    name = "evaluation_cc_proto",
+    name = "restricts_cc_proto",
     tags = ["local"],
-    deps = [":evaluation_proto"],
+    deps = [":restricts_proto"],
 )
 
 proto_library(
@@ -219,20 +211,6 @@ cc_proto_library(
     name = "results_cc_proto",
     tags = ["local"],
     deps = [":results_proto"],
-)
-
-proto_library(
-    name = "trees_proto",
-    srcs = ["trees.proto"],
-    tags = ["local"],
-    deps = [
-    ],
-)
-
-cc_proto_library(
-    name = "trees_cc_proto",
-    tags = ["local"],
-    deps = [":trees_proto"],
 )
 
 proto_library(

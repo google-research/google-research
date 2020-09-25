@@ -33,6 +33,14 @@ message TokenNamespace {
   repeated fixed64 uint64_blacklist_tokens = 4 [packed = true];
 }
 
+message RestrictsConfig {
+  optional bool enabled = 1 [default = false];
+
+  optional int32 restrict_cache_size = 2 [default = 0];
+
+  optional V3RestrictsConfig v3_restricts = 3;
+}
+
 message V3RestrictsConfig {
   enum EmptyNamespaceMatchingMode {
     UNSPECIFIED = 0;

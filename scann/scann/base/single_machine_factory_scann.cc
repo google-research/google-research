@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "scann/base/single_machine_factory_no_sparse.h"
+#include "scann/base/single_machine_factory_scann.h"
 
 #include <functional>
 #include <memory>
+#include <type_traits>
 
 #include "absl/base/casts.h"
 #include "absl/base/optimization.h"
@@ -28,17 +29,19 @@
 #include "scann/brute_force/scalar_quantized_brute_force.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_factory.h"
-#include "scann/oss_wrappers/scann_random.h"
 #include "scann/partitioning/kmeans_tree_like_partitioner.h"
 #include "scann/partitioning/partitioner_factory.h"
 #include "scann/partitioning/partitioner_factory_base.h"
 #include "scann/partitioning/projecting_decorator.h"
 #include "scann/proto/brute_force.pb.h"
+#include "scann/proto/distance_measure.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
+#include "scann/proto/scann.pb.h"
 #include "scann/tree_x_hybrid/tree_ah_hybrid_residual.h"
 #include "scann/tree_x_hybrid/tree_x_hybrid_smmd.h"
 #include "scann/utils/factory_helpers.h"
 #include "scann/utils/hash_leaf_helpers.h"
+#include "scann/utils/scalar_quantization_helpers.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/threadpool.h"
 
@@ -128,30 +131,6 @@ StatusOrSearcherUntyped AsymmetricHasherFactory(
   }
   return internal::HashLeafHelpers<T>::AsymmetricHasherFactory(
       dataset, opts->hashed_dataset, training_results, params, pool);
-}
-
-template <typename T>
-StatusOrSearcherUntyped HashFactory(shared_ptr<TypedDataset<T>> dataset,
-                                    const ScannConfig& config,
-                                    SingleMachineFactoryOptions* opts,
-                                    const GenericSearchParameters& params) {
-  const HashConfig& hash_config = config.hash();
-  const int num_hashes =
-      hash_config.has_asymmetric_hash() + hash_config.has_bit_sampling_hash() +
-      hash_config.has_min_hash() + hash_config.has_pca_hash();
-
-  if (num_hashes != 1) {
-    return InvalidArgumentError(
-        "Exactly one hash type must be configured in HashConfig if using "
-        "SingleMachineFactory.");
-  }
-
-  if (hash_config.has_asymmetric_hash()) {
-    return AsymmetricHasherFactory(dataset, config, opts, params);
-  } else {
-    return InvalidArgumentError(
-        "Asymmetric hashing is the only supported hash type.");
-  }
 }
 
 template <typename T>
@@ -269,6 +248,21 @@ StatusOrSearcherUntyped TreeAhHybridResidualFactory<float>(
       std::move(ah_model), std::move(datapoints_by_token),
       opts->hashed_dataset.get(), opts->parallelization_pool.get()));
   opts->datapoints_by_token = nullptr;
+
+  {
+    AsymmetricHasherConfig ah_config = config.hash().asymmetric_hash();
+    if (ah_config.use_global_topn()) {
+      if (ah_config.lookup_type() != AsymmetricHasherConfig::INT8_LUT16)
+        return InvalidArgumentError("use_global_topn requires LUT16.");
+
+      if (ah_config.use_normalized_residual_quantization())
+        return InvalidArgumentError(
+            "use_global_topn can't be used in conjunction with "
+            "use_normalized_residual_quantization.");
+
+      result->AttemptEnableGlobalTopN();
+    }
+  }
   return {std::move(result)};
 }
 
@@ -282,7 +276,7 @@ std::vector<float> InverseMultiplier(PreQuantizedFixedPoint* fixed_point) {
   return inverse_multipliers;
 }
 
-void PartitonPreQuantizedFixedPoint(
+void PartitionPreQuantizedFixedPoint(
     ConstSpan<std::vector<DatapointIndex>> datapoints_by_token,
     PreQuantizedFixedPoint* whole_fp,
     vector<DenseDataset<int8_t>>* tokenized_quantized_datasets,
@@ -315,25 +309,34 @@ void PartitonPreQuantizedFixedPoint(
   }
 }
 
-StatusOrSearcherUntyped PretrainedSQTreeXHybridFactory(
-    const ScannConfig& config, const shared_ptr<TypedDataset<float>>& dataset,
-    const GenericSearchParameters& params, SingleMachineFactoryOptions* opts) {
-  TF_ASSIGN_OR_RETURN(unique_ptr<Partitioner<float>> partitioner,
-                      CreateTreeXPartitioner<float>(nullptr, config, opts));
-  DCHECK(partitioner);
+StatusOrSearcherUntyped PretrainedTreeSQFactoryFromAssets(
+    const ScannConfig& config, const GenericSearchParameters& params,
+    const vector<std::vector<DatapointIndex>>& datapoints_by_token,
+    unique_ptr<Partitioner<float>> partitioner,
+    shared_ptr<PreQuantizedFixedPoint> fp_assets) {
+  vector<DenseDataset<int8_t>> tokenized_quantized_datasets;
+  vector<std::vector<float>> tokenized_squared_l2_norms;
+  PartitionPreQuantizedFixedPoint(datapoints_by_token, fp_assets.get(),
+                                  &tokenized_quantized_datasets,
+                                  &tokenized_squared_l2_norms);
+
+  auto inverse_multipliers = InverseMultiplier(fp_assets.get());
+  if (params.pre_reordering_dist->name() == "SquaredL2Distance" &&
+      tokenized_squared_l2_norms.empty()) {
+    const auto num_tokens = tokenized_quantized_datasets.size();
+    tokenized_squared_l2_norms.reserve(num_tokens);
+    for (int i = 0; i < num_tokens; ++i) {
+      auto l2_or_error = ScalarQuantizedBruteForceSearcher::
+          ComputeSquaredL2NormsFromQuantizedDataset(
+              tokenized_quantized_datasets[i], inverse_multipliers);
+      SCANN_RETURN_IF_ERROR(l2_or_error.status());
+      tokenized_squared_l2_norms.push_back(std::move(l2_or_error.ValueOrDie()));
+    }
+  }
 
   auto searcher = make_unique<TreeXHybridSMMD<float>>(
       nullptr, nullptr, params.pre_reordering_num_neighbors,
       params.pre_reordering_epsilon);
-
-  vector<std::vector<DatapointIndex>> datapoints_by_token;
-  datapoints_by_token = std::move(*(opts->datapoints_by_token));
-  if (datapoints_by_token.size() < partitioner->n_tokens()) {
-    datapoints_by_token.resize(partitioner->n_tokens());
-  }
-
-  shared_ptr<PreQuantizedFixedPoint> fp = opts->pre_quantized_fixed_point;
-  auto inverse_multipliers = InverseMultiplier(fp.get());
 
   auto build_sq_leaf_lambda =
       [&](DenseDataset<int8_t> scalar_quantized_partition,
@@ -349,28 +352,8 @@ StatusOrSearcherUntyped PretrainedSQTreeXHybridFactory(
     return std::unique_ptr<SingleMachineSearcherBase<float>>(
         searcher.release());
   };
-
-  vector<DenseDataset<int8_t>> tokenized_quantized_datasets;
-  vector<std::vector<float>> tokenized_squared_l2_norms;
-  PartitonPreQuantizedFixedPoint(datapoints_by_token, fp.get(),
-                                 &tokenized_quantized_datasets,
-                                 &tokenized_squared_l2_norms);
-
-  if (params.pre_reordering_dist->name() == "SquaredL2Distance" &&
-      tokenized_squared_l2_norms.empty()) {
-    const auto num_tokens = tokenized_quantized_datasets.size();
-    tokenized_squared_l2_norms.reserve(num_tokens);
-    for (int i = 0; i < num_tokens; ++i) {
-      auto l2_or_error = ScalarQuantizedBruteForceSearcher::
-          ComputeSquaredL2NormsFromQuantizedDataset(
-              tokenized_quantized_datasets[i], inverse_multipliers);
-      SCANN_RETURN_IF_ERROR(l2_or_error.status());
-      tokenized_squared_l2_norms.push_back(std::move(l2_or_error.ValueOrDie()));
-    }
-  }
-
   SCANN_RETURN_IF_ERROR(
-      searcher->BuildPretrainedScalarQuanitzationLeafSearchers(
+      searcher->BuildPretrainedScalarQuantizationLeafSearchers(
           std::move(datapoints_by_token),
           std::move(tokenized_quantized_datasets),
           std::move(tokenized_squared_l2_norms), build_sq_leaf_lambda));
@@ -382,9 +365,26 @@ StatusOrSearcherUntyped PretrainedSQTreeXHybridFactory(
   searcher->set_query_tokenizer(std::move(partitioner));
 
   SCANN_RETURN_IF_ERROR(
-      searcher->set_docids(fp->fixed_point_dataset->docids()));
-  fp->fixed_point_dataset = nullptr;
+      searcher->set_docids(fp_assets->fixed_point_dataset->docids()));
+  fp_assets->fixed_point_dataset = nullptr;
   return {std::move(searcher)};
+}
+
+StatusOrSearcherUntyped PretrainedSQTreeXHybridFactory(
+    const ScannConfig& config, const shared_ptr<TypedDataset<float>>& dataset,
+    const GenericSearchParameters& params, SingleMachineFactoryOptions* opts) {
+  TF_ASSIGN_OR_RETURN(unique_ptr<Partitioner<float>> partitioner,
+                      CreateTreeXPartitioner<float>(nullptr, config, opts));
+  DCHECK(partitioner);
+
+  vector<std::vector<DatapointIndex>> datapoints_by_token;
+  datapoints_by_token = std::move(*(opts->datapoints_by_token));
+  if (datapoints_by_token.size() < partitioner->n_tokens()) {
+    datapoints_by_token.resize(partitioner->n_tokens());
+  }
+  return PretrainedTreeSQFactoryFromAssets(config, params, datapoints_by_token,
+                                           std::move(partitioner),
+                                           opts->pre_quantized_fixed_point);
 }
 
 template <typename T>
@@ -395,15 +395,11 @@ StatusOrSearcherUntyped NonResidualTreeXHybridFactory(
                       CreateTreeXPartitioner<T>(dataset, config, opts));
   DCHECK(partitioner);
 
-  auto result = make_unique<TreeXHybridSMMD<T>>(
-      dataset, opts->hashed_dataset, params.pre_reordering_num_neighbors,
-      params.pre_reordering_epsilon);
-
   bool use_serialized_per_leaf_hashers = false;
   vector<std::vector<DatapointIndex>> datapoints_by_token;
   bool using_pretokenized_database = false;
-  if (config.has_input_output() &&
-      config.input_output().has_tokenized_database_wildcard()) {
+  if (opts && opts->datapoints_by_token &&
+      !opts->datapoints_by_token->empty()) {
     using_pretokenized_database = true;
 
     datapoints_by_token = std::move(*(opts->datapoints_by_token));
@@ -418,6 +414,40 @@ StatusOrSearcherUntyped NonResidualTreeXHybridFactory(
          (config.hash().has_asymmetric_hash() &&
           config.hash().asymmetric_hash().has_centers_filename()));
   }
+
+  if constexpr (std::is_same_v<T, float>) {
+    if (config.brute_force().fixed_point().enabled()) {
+      auto dense = std::dynamic_pointer_cast<DenseDataset<float>>(dataset);
+      if (!dense) {
+        return InvalidArgumentError(
+            "Dataset must be dense for scalar-quantized brute force.");
+      }
+      auto sq_config = config.brute_force().fixed_point();
+      auto sq_result = ScalarQuantizeFloatDataset(
+          *dense, sq_config.fixed_point_multiplier_quantile(),
+          sq_config.noise_shaping_threshold());
+      auto fp_assets = make_shared<PreQuantizedFixedPoint>();
+      fp_assets->fixed_point_dataset = make_shared<DenseDataset<int8_t>>(
+          std::move(sq_result.quantized_dataset));
+      fp_assets->multiplier_by_dimension = make_shared<vector<float>>(
+          std::move(sq_result.multiplier_by_dimension));
+
+      fp_assets->squared_l2_norm_by_datapoint = make_shared<vector<float>>();
+
+      if (!using_pretokenized_database) {
+        TF_ASSIGN_OR_RETURN(datapoints_by_token,
+                            partitioner->TokenizeDatabase(
+                                *dataset, opts->parallelization_pool.get()));
+      }
+      return PretrainedTreeSQFactoryFromAssets(
+          config, params, datapoints_by_token, std::move(partitioner),
+          fp_assets);
+    }
+  }
+
+  auto result = make_unique<TreeXHybridSMMD<T>>(
+      dataset, opts->hashed_dataset, params.pre_reordering_num_neighbors,
+      params.pre_reordering_epsilon);
 
   if (config.hash().has_asymmetric_hash() &&
       !config.hash().asymmetric_hash().use_per_leaf_partition_training()) {
@@ -482,7 +512,7 @@ StatusOrSearcherUntyped NonResidualTreeXHybridFactory(
       leaf_opts.hashed_dataset = leaf_hashed_dataset;
       leaf_opts.parallelization_pool = opts->parallelization_pool;
       TF_ASSIGN_OR_RETURN(auto leaf_searcher,
-                          internal::SingleMachineFactoryLeafSearcherNoSparse<T>(
+                          internal::SingleMachineFactoryLeafSearcherScann<T>(
                               spec_config, leaf_dataset, params, &leaf_opts));
       return {unique_cast_unsafe<SingleMachineSearcherBase<T>>(
           std::move(leaf_searcher))};
@@ -612,7 +642,31 @@ StatusOrSearcherUntyped BruteForceFactory<float>(
   }
 }
 
-class NoSparseLeafSearcher {
+template <typename T>
+StatusOrSearcherUntyped HashFactory(shared_ptr<TypedDataset<T>> dataset,
+                                    const ScannConfig& config,
+                                    SingleMachineFactoryOptions* opts,
+                                    const GenericSearchParameters& params) {
+  const HashConfig& hash_config = config.hash();
+  const int num_hashes =
+      hash_config.has_asymmetric_hash() + hash_config.has_bit_sampling_hash() +
+      hash_config.has_min_hash() + hash_config.has_pca_hash();
+
+  if (num_hashes != 1) {
+    return InvalidArgumentError(
+        "Exactly one hash type must be configured in HashConfig if using "
+        "SingleMachineFactory.");
+  }
+
+  if (hash_config.has_asymmetric_hash()) {
+    return AsymmetricHasherFactory(dataset, config, opts, params);
+  } else {
+    return InvalidArgumentError(
+        "Asymmetric hashing is the only supported hash type.");
+  }
+}
+
+class ScannLeafSearcher {
  public:
   template <typename T>
   static StatusOrSearcherUntyped SingleMachineFactoryLeafSearcher(
@@ -647,36 +701,36 @@ class NoSparseLeafSearcher {
 }  // namespace
 
 template <typename T>
-StatusOr<unique_ptr<SingleMachineSearcherBase<T>>> SingleMachineFactoryNoSparse(
+StatusOr<unique_ptr<SingleMachineSearcherBase<T>>> SingleMachineFactoryScann(
     const ScannConfig& config, shared_ptr<TypedDataset<T>> dataset,
     SingleMachineFactoryOptions opts) {
   opts.type_tag = TagForType<T>();
-  TF_ASSIGN_OR_RETURN(auto searcher, SingleMachineFactoryUntypedNoSparse(
+  TF_ASSIGN_OR_RETURN(auto searcher, SingleMachineFactoryUntypedScann(
                                          config, dataset, std::move(opts)));
   return {
       unique_cast_unsafe<SingleMachineSearcherBase<T>>(std::move(searcher))};
 }
 
-StatusOrSearcherUntyped SingleMachineFactoryUntypedNoSparse(
+StatusOrSearcherUntyped SingleMachineFactoryUntypedScann(
     const ScannConfig& config, shared_ptr<Dataset> dataset,
     SingleMachineFactoryOptions opts) {
-  return internal::SingleMachineFactoryUntypedImpl<NoSparseLeafSearcher>(
+  return internal::SingleMachineFactoryUntypedImpl<ScannLeafSearcher>(
       config, dataset, opts);
 }
 
 namespace internal {
 
 template <typename T>
-StatusOrSearcherUntyped SingleMachineFactoryLeafSearcherNoSparse(
+StatusOrSearcherUntyped SingleMachineFactoryLeafSearcherScann(
     const ScannConfig& config, const shared_ptr<TypedDataset<T>>& dataset,
     const GenericSearchParameters& params, SingleMachineFactoryOptions* opts) {
-  return NoSparseLeafSearcher::SingleMachineFactoryLeafSearcher(config, dataset,
-                                                                params, opts);
+  return ScannLeafSearcher::SingleMachineFactoryLeafSearcher(config, dataset,
+                                                             params, opts);
 }
 
 }  // namespace internal
 
-SCANN_INSTANTIATE_SINGLE_MACHINE_FACTORY_NO_SPARSE();
+SCANN_INSTANTIATE_SINGLE_MACHINE_FACTORY_SCANN();
 
 }  // namespace scann_ops
 }  // namespace tensorflow

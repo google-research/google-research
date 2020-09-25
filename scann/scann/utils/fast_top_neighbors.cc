@@ -141,6 +141,7 @@ template <typename DistT, typename DatapointIndexT>
 size_t FastTopNeighbors<DistT, DatapointIndexT>::ApproxNthElement(
     size_t keep_min, size_t keep_max, size_t sz, DatapointIndexT* ii, DistT* dd,
     uint32_t* mm) {
+  DCHECK_GT(keep_min, 0);
 #ifdef __x86_64__
   if (RuntimeSupportsAvx2()) {
     return avx2::ApproxNthElementImpl(keep_min, keep_max, sz, ii, dd, mm);
@@ -203,6 +204,10 @@ template <typename DistT, typename DatapointIndexT>
 void FastTopNeighbors<DistT, DatapointIndexT>::GarbageCollect(size_t keep_min,
                                                               size_t keep_max) {
   DCHECK_LE(keep_min, keep_max);
+  if (keep_min == 0) {
+    sz_ = 0;
+    return;
+  }
   if (sz_ <= keep_max) return;
   sz_ = ApproxNthElement(keep_min, keep_max, sz_, indices_.get(),
                          distances_.get(), masks_.get());

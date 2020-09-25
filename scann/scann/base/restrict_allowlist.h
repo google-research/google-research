@@ -35,6 +35,10 @@ class RestrictAllowlist {
  public:
   RestrictAllowlist(DatapointIndex num_points, bool default_whitelisted);
   RestrictAllowlist() : RestrictAllowlist(0, false) {}
+  ~RestrictAllowlist();
+
+  RestrictAllowlist(std::vector<size_t>&& allowlist_array,
+                    DatapointIndex num_points, bool default_whitelisted);
 
   RestrictAllowlist(const RestrictAllowlist& rhs);
   RestrictAllowlist(RestrictAllowlist&& rhs) noexcept = default;
@@ -45,10 +49,13 @@ class RestrictAllowlist {
 
   void Initialize(DatapointIndex num_points, bool default_whitelisted);
 
-  RestrictAllowlist CopyWithCapacity(DatapointIndex capacity) const;
+  RestrictAllowlist CopyWithCapacity(
+      DatapointIndex capacity,
+      vector<size_t>&& backing_storage = vector<size_t>()) const;
 
-  RestrictAllowlist CopyWithSize(DatapointIndex size,
-                                 bool default_whitelisted) const;
+  RestrictAllowlist CopyWithSize(
+      DatapointIndex size, bool default_whitelisted,
+      vector<size_t>&& backing_storage = vector<size_t>()) const;
 
   void Append(bool is_whitelisted);
 
@@ -70,6 +77,11 @@ class RestrictAllowlist {
     return IsWhitelisted(dp_index);
   }
 
+  void set_allowlist_recycling_fn(
+      std::function<void(std::vector<size_t>&&)> f) {
+    allowlist_recycling_fn_ = std::move(f);
+  }
+
   DatapointIndex NumPointsWhitelisted() const;
 
   DatapointIndex num_points() const { return num_points_; }
@@ -78,14 +90,14 @@ class RestrictAllowlist {
   using Iterator = BitIterator<ConstSpan<size_t>, DatapointIndex>;
 
   Iterator WhitelistedPointIterator() const {
-    return Iterator(whitelist_array_);
+    return Iterator(allowlist_array_);
   }
 
   size_t GetWordContainingDatapoint(DatapointIndex dp_index) const {
-    return whitelist_array_[dp_index / kBitsPerWord];
+    return allowlist_array_[dp_index / kBitsPerWord];
   }
 
-  size_t* data() { return whitelist_array_.data(); }
+  size_t* data() { return allowlist_array_.data(); }
 
   static uint8_t FindLSBSetNonZeroNative(size_t word) {
     static_assert(sizeof(word) == 8 || sizeof(word) == 4, "");
@@ -113,9 +125,11 @@ class RestrictAllowlist {
   void PointwiseLogic(const RestrictAllowlistConstView& rhs, Lambda lambda,
                       bool zero_trailing);
 
-  std::vector<size_t> whitelist_array_;
+  std::vector<size_t> allowlist_array_;
 
   DatapointIndex num_points_;
+
+  std::function<void(std::vector<size_t>&&)> allowlist_recycling_fn_;
 
   friend class RestrictTokenMap;
 
@@ -160,17 +174,17 @@ class RestrictAllowlistConstView {
   RestrictAllowlistConstView() {}
 
   explicit RestrictAllowlistConstView(const RestrictAllowlist& whitelist)
-      : whitelist_array_(whitelist.whitelist_array_.data()),
+      : allowlist_array_(whitelist.allowlist_array_.data()),
         num_points_(whitelist.num_points_) {}
 
   explicit RestrictAllowlistConstView(const RestrictAllowlist* whitelist)
-      : whitelist_array_(whitelist ? whitelist->whitelist_array_.data()
+      : allowlist_array_(whitelist ? whitelist->allowlist_array_.data()
                                    : nullptr),
         num_points_(whitelist ? whitelist->num_points_ : 0) {}
 
   RestrictAllowlistConstView(ConstSpan<size_t> storage,
                              DatapointIndex num_points)
-      : whitelist_array_(storage.data()), num_points_(num_points) {
+      : allowlist_array_(storage.data()), num_points_(num_points) {
     DCHECK_EQ(storage.size(),
               DivRoundUp(num_points, RestrictAllowlist::kBitsPerWord));
   }
@@ -189,18 +203,18 @@ class RestrictAllowlistConstView {
   }
 
   size_t GetWordContainingDatapoint(DatapointIndex dp_index) const {
-    return whitelist_array_[dp_index / RestrictAllowlist::kBitsPerWord];
+    return allowlist_array_[dp_index / RestrictAllowlist::kBitsPerWord];
   }
 
-  const size_t* data() const { return whitelist_array_; }
+  const size_t* data() const { return allowlist_array_; }
   DatapointIndex num_points() const { return num_points_; }
   DatapointIndex size() const { return num_points_; }
-  bool empty() const { return !whitelist_array_; }
+  bool empty() const { return !allowlist_array_; }
 
   operator bool() const { return !empty(); }
 
  private:
-  const size_t* whitelist_array_ = nullptr;
+  const size_t* allowlist_array_ = nullptr;
   DatapointIndex num_points_ = 0;
   friend class RestrictAllowlist;
 };

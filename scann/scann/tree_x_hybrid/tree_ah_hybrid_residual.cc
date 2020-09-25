@@ -26,6 +26,7 @@
 #include "scann/distance_measures/distance_measure_factory.h"
 #include "scann/hashes/asymmetric_hashing2/indexing.h"
 #include "scann/hashes/asymmetric_hashing2/querying.h"
+#include "scann/hashes/asymmetric_hashing2/searcher.h"
 #include "scann/hashes/asymmetric_hashing2/serialization.h"
 #include "scann/hashes/asymmetric_hashing2/training.h"
 #include "scann/hashes/asymmetric_hashing2/training_options.h"
@@ -193,6 +194,31 @@ StatusOr<DenseDataset<float>> TreeAHHybridResidual::ComputeResiduals(
     return residual.ToPtr();
   };
   return ComputeResidualsImpl(dataset, get_residual, datapoints_by_token);
+}
+
+StatusOr<uint8_t> TreeAHHybridResidual::ComputeGlobalTopNShift(
+    ConstSpan<std::vector<DatapointIndex>> datapoints_by_token) {
+  size_t largest_partition_size = 0;
+  for (const auto& dps_in_partition : datapoints_by_token)
+    largest_partition_size =
+        std::max(largest_partition_size, dps_in_partition.size());
+
+  uint8_t partition_bits = 1;
+  while ((1ull << partition_bits) < datapoints_by_token.size())
+    partition_bits++;
+
+  if (partition_bits > 32) {
+    return FailedPreconditionError(
+        "Too many partitions (%d) to work with global top-N",
+        datapoints_by_token.size());
+  }
+  uint8_t global_topn_shift = 32 - partition_bits;
+  if ((1ull << global_topn_shift) < largest_partition_size)
+    return FailedPreconditionError(
+        "%d partitions and the largest has %d datapoints; too many to be "
+        "supported with global top-N.",
+        datapoints_by_token.size(), largest_partition_size);
+  return global_topn_shift;
 }
 
 StatusOr<unique_ptr<SearchParameters::UnlockedQueryPreprocessingResults>>
@@ -600,6 +626,63 @@ Status TreeAHHybridResidual::FindNeighborsInternal1(
     NNResultsVector* result) const {
   if (params.pre_reordering_crowding_enabled()) {
     return FailedPreconditionError("Crowding is not supported.");
+  } else if (enable_global_topn_) {
+    FastTopNeighbors<float> top_n(params.pre_reordering_num_neighbors(),
+                                  params.pre_reordering_epsilon());
+    DCHECK(result);
+    SearchParameters leaf_params;
+    leaf_params.set_pre_reordering_num_neighbors(
+        params.pre_reordering_num_neighbors());
+    leaf_params.set_per_crowding_attribute_pre_reordering_num_neighbors(
+        params.per_crowding_attribute_pre_reordering_num_neighbors());
+    leaf_params.set_pre_reordering_epsilon(top_n.epsilon());
+    auto query_preprocessing_results =
+        params.unlocked_query_preprocessing_results<
+            UnlockedTreeAHHybridResidualPreprocessingResults>();
+
+    shared_ptr<AsymmetricHashingOptionalParameters> leaf_specific_params;
+    if (query_preprocessing_results) {
+      DCHECK(query_preprocessing_results->lookup_table());
+      leaf_specific_params = query_preprocessing_results->lookup_table();
+    } else {
+      TF_ASSIGN_OR_RETURN(
+          auto shared_lookup_table,
+          asymmetric_queryer_->CreateLookupTable(query, lookup_type_tag_));
+      leaf_specific_params = make_shared<AsymmetricHashingOptionalParameters>(
+          std::move(shared_lookup_table));
+    }
+    leaf_specific_params->SetFastTopNeighbors(&top_n);
+    leaf_params.set_searcher_specific_optional_parameters(leaf_specific_params);
+    NNResultsVector unused_leaf_results;
+
+    float query_l2 = std::sqrt(SquaredL2Norm(query));
+    for (size_t i = 0; i < centers_to_search.size(); ++i) {
+      const uint32_t token = centers_to_search[i].node->LeafId();
+      const float distance_to_center = centers_to_search[i].distance_to_center;
+      const float partition_variance_adjustment =
+          ah_variance_adjustment_by_token_.empty()
+              ? 0.0f
+              : ah_variance_adjustment_by_token_[token] * query_l2;
+      leaf_specific_params->SetIndexAndBias(
+          token << global_topn_shift_,
+          distance_to_center - partition_variance_adjustment);
+
+      TranslateGlobalToLeafLocalWhitelist(params, datapoints_by_token_[token],
+                                          &leaf_params);
+      SCANN_RETURN_IF_ERROR(
+          leaf_searchers_[token]->FindNeighborsNoSortNoExactReorder(
+              query, leaf_params, &unused_leaf_results));
+    }
+
+    AssignResults(&top_n, result);
+
+    const uint32_t local_idx_mask = (1u << global_topn_shift_) - 1;
+    for (pair<DatapointIndex, float>& idx_dis : *result) {
+      uint32_t partition_idx = idx_dis.first >> global_topn_shift_;
+      uint32_t local_idx = idx_dis.first & local_idx_mask;
+      idx_dis.first = datapoints_by_token_[partition_idx][local_idx];
+    }
+    return OkStatus();
   } else {
     FastTopNeighbors<float> top_n(params.pre_reordering_num_neighbors(),
                                   params.pre_reordering_epsilon());
@@ -716,7 +799,7 @@ TreeAHHybridResidual::ExtractSingleMachineFactoryOptions() {
       MergeAHLeafOptions(leaf_searchers_, datapoints_by_token_, dataset_size));
   TF_ASSIGN_OR_RETURN(
       auto opts,
-      UntypedSingleMachineSearcherBase::ExtractSingleMachineFactoryOptions());
+      SingleMachineSearcherBase<float>::ExtractSingleMachineFactoryOptions());
   opts.datapoints_by_token =
       std::make_shared<vector<std::vector<DatapointIndex>>>(
           datapoints_by_token_);
@@ -728,6 +811,22 @@ TreeAHHybridResidual::ExtractSingleMachineFactoryOptions() {
     opts.hashed_dataset = leaf_opts.hashed_dataset;
   }
   return opts;
+}
+
+void TreeAHHybridResidual::AttemptEnableGlobalTopN() {
+  if (datapoints_by_token_.empty()) {
+    LOG(ERROR) << "datapoints_by_token_ is empty. EnableGlobalTopN() should be "
+                  "called after all leaves are trained and initialized.";
+    return;
+  }
+  StatusOr<uint8_t> status_or_shift =
+      ComputeGlobalTopNShift(datapoints_by_token_);
+  if (!status_or_shift.ok()) {
+    LOG(ERROR) << "Cannot enable global top-N: " << status_or_shift.status();
+    return;
+  }
+  global_topn_shift_ = status_or_shift.ValueOrDie();
+  enable_global_topn_ = true;
 }
 
 }  // namespace scann_ops

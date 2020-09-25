@@ -18,7 +18,7 @@
 namespace tensorflow {
 namespace addons {
 
-REGISTER_OP("Addons>ScannCreateSearcher")
+REGISTER_OP("Scann>ScannCreateSearcher")
     .Input("x: float32")
     .Input("scann_config: string")
     .Input("training_threads: int32")
@@ -28,7 +28,7 @@ REGISTER_OP("Addons>ScannCreateSearcher")
     .SetIsStateful()
     .SetShapeFn(shape_inference::ScalarShape);
 
-REGISTER_OP("Addons>ScannSearch")
+REGISTER_OP("Scann>ScannSearch")
     .Input("scann_handle: resource")
     .Input("queries: float32")
     .Input("final_num_neighbors: int32")
@@ -37,7 +37,7 @@ REGISTER_OP("Addons>ScannSearch")
     .Output("index: int32")
     .Output("distance: float32")
     .SetShapeFn(shape_inference::UnknownShape);
-REGISTER_OP("Addons>ScannSearchBatched")
+REGISTER_OP("Scann>ScannSearchBatched")
     .Input("scann_handle: resource")
     .Input("queries: float32")
     .Input("final_num_neighbors: int32")
@@ -48,7 +48,7 @@ REGISTER_OP("Addons>ScannSearchBatched")
     .Output("distances: float32")
     .SetShapeFn(shape_inference::UnknownShape);
 
-REGISTER_OP("Addons>ScannToTensors")
+REGISTER_OP("Scann>ScannToTensors")
     .Input("scann_handle: resource")
     .Output("scann_config: string")
 
@@ -56,9 +56,15 @@ REGISTER_OP("Addons>ScannToTensors")
     .Output("datapoint_to_token: int32")
 
     .Output("ah_codebook: string")
-    .Output("hashed_dataset: uint8");
+    .Output("hashed_dataset: uint8")
 
-REGISTER_OP("Addons>TensorsToScann")
+    .Output("int8_dataset: int8")
+    .Output("int8_multipliers: float")
+    .Output("dp_norms: float")
+
+    .Output("dataset: float");
+
+REGISTER_OP("Scann>TensorsToScann")
     .Input("x: float32")
     .Input("scann_config: string")
 
@@ -67,6 +73,10 @@ REGISTER_OP("Addons>TensorsToScann")
 
     .Input("ah_codebook: string")
     .Input("hashed_dataset: uint8")
+
+    .Input("int8_dataset: int8")
+    .Input("int8_multipliers: float")
+    .Input("dp_norms: float")
     .Attr("container: string = ''")
     .Attr("shared_name: string = ''")
     .Output("searcher_handle: resource")

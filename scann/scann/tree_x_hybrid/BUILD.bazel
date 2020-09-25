@@ -40,6 +40,7 @@ cc_library(
         "//scann/base:restrict_allowlist",
         "//scann/base:search_parameters",
         "//scann/base:single_machine_base",
+        "//scann/brute_force:scalar_quantized_brute_force",
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/hashes/asymmetric_hashing2:serialization",

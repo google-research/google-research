@@ -23,13 +23,13 @@
 #include "scann/proto/brute_force.pb.h"
 #include "scann/proto/compressed_reordering.pb.h"
 #include "scann/proto/distance_measure.pb.h"
-#include "scann/proto/evaluation.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
 #include "scann/proto/hash.pb.h"
 #include "scann/proto/input_output.pb.h"
 #include "scann/proto/metadata.pb.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/proto/projection.pb.h"
+#include "scann/proto/restricts.pb.h"
 #include "scann/proto/scann.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
@@ -40,6 +40,13 @@
 #include "tensorflow/core/lib/core/errors.h"
 
 using absl::StartsWith;
+
+ABSL_FLAG(
+    bool, training_artifacts_with_stable_basename, false,
+    "If true, guarantees that artifacts placed in preprocessed_artifacts_dir "
+    "will have a base name that is stable if preprocessed_artifacts_dir "
+    "changes.  This defaults to false for backwards compatibility reasons, but "
+    "new projects should set it to true.");
 
 namespace tensorflow {
 namespace scann_ops {
@@ -74,6 +81,25 @@ Status CanonicalizeDeprecatedFields(ScannConfig* config) {
     if (bf->has_scalar_quantization_multiplier_quantile()) {
       bf->mutable_fixed_point()->set_fixed_point_multiplier_quantile(
           bf->scalar_quantization_multiplier_quantile());
+    }
+  }
+
+  bool restrict_fields_populated = false;
+  if (config->has_restricts()) {
+    restrict_fields_populated = true;
+    if (config->restricts().has_enabled()) {
+      config->set_restricts_enabled(config->restricts().enabled());
+    }
+    if (config->restricts().has_v3_restricts()) {
+      *config->mutable_v3_restricts() = config->restricts().v3_restricts();
+    }
+  }
+  if (!restrict_fields_populated && config->restricts_enabled()) {
+    auto* restricts = config->mutable_restricts();
+    restricts->set_enabled(true);
+
+    if (config->has_v3_restricts()) {
+      *restricts->mutable_v3_restricts() = config->v3_restricts();
     }
   }
   return OkStatus();
@@ -145,7 +171,74 @@ Status CanonicalizeScannConfigForRetrieval(ScannConfig* config,
 }  // namespace
 
 Status CanonicalizeScannConfigForRetrieval(ScannConfig* config) {
-  return CanonicalizeScannConfigForRetrieval(config, false, false);
+  ScannConfig cfg2 = *config;
+  SCANN_RETURN_IF_ERROR(
+      CanonicalizeScannConfigForRetrieval(config, true, false));
+  SCANN_RETURN_IF_ERROR(
+      CanonicalizeScannConfigForRetrieval(&cfg2, false, false));
+  if (config->partitioning().partitioner_prefix().empty() &&
+      !cfg2.partitioning().partitioner_prefix().empty()) {
+    config->mutable_partitioning()->set_partitioner_prefix(
+        cfg2.partitioning().partitioner_prefix());
+  }
+  if (config->partitioning().resharded_prefix().empty() &&
+      !cfg2.partitioning().resharded_prefix().empty()) {
+    config->mutable_partitioning()->set_resharded_prefix(
+        cfg2.partitioning().resharded_prefix());
+  }
+  if (config->hash().asymmetric_hash().centers_filename().empty() &&
+      !cfg2.hash().asymmetric_hash().centers_filename().empty()) {
+    config->mutable_hash()->mutable_asymmetric_hash()->set_centers_filename(
+        cfg2.hash().asymmetric_hash().centers_filename());
+  }
+  if (config->compressed_reordering()
+          .hash()
+          .asymmetric_hash()
+          .centers_filename()
+          .empty() &&
+      !cfg2.compressed_reordering()
+           .hash()
+           .asymmetric_hash()
+           .centers_filename()
+           .empty()) {
+    config->mutable_compressed_reordering()
+        ->mutable_hash()
+        ->mutable_asymmetric_hash()
+        ->set_centers_filename(cfg2.compressed_reordering()
+                                   .hash()
+                                   .asymmetric_hash()
+                                   .centers_filename());
+  }
+  const auto& io1 = config->input_output();
+  const auto& io2 = cfg2.input_output();
+  if (io1.hashed_database_wildcard().empty() &&
+      !io2.hashed_database_wildcard().empty()) {
+    config->mutable_input_output()->set_hashed_database_wildcard(
+        io2.hashed_database_wildcard());
+  }
+  if (io1.fixed_point_database_wildcard().empty() &&
+      !io2.fixed_point_database_wildcard().empty()) {
+    config->mutable_input_output()->set_fixed_point_database_wildcard(
+        io2.fixed_point_database_wildcard());
+  }
+  if (config->exact_reordering().fixed_point().multipliers_filename().empty() &&
+      !cfg2.exact_reordering().fixed_point().multipliers_filename().empty()) {
+    config->mutable_exact_reordering()
+        ->mutable_fixed_point()
+        ->set_multipliers_filename(
+            cfg2.exact_reordering().fixed_point().multipliers_filename());
+  }
+  if (io1.tokenized_database_wildcard().empty() &&
+      !io2.tokenized_database_wildcard().empty()) {
+    config->mutable_input_output()->set_tokenized_database_wildcard(
+        io2.tokenized_database_wildcard());
+  }
+  if (io1.compressed_database_wildcard().empty() &&
+      !io2.compressed_database_wildcard().empty()) {
+    config->mutable_input_output()->set_compressed_database_wildcard(
+        io2.compressed_database_wildcard());
+  }
+  return OkStatus();
 }
 
 StatusOr<InputOutputConfig::InMemoryTypes> TagFromGFVFeatureType(

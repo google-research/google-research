@@ -80,6 +80,9 @@ struct QueryerOptions {
   const PackedDataset* lut16_packed_dataset = nullptr;
 
   PostprocessFunctor postprocessing_functor;
+
+  DatapointIndex first_dp_index = 0;
+  float lut16_bias = 0;
 };
 
 namespace ai = ::tensorflow::scann_ops::asymmetric_hashing_internal;
@@ -157,6 +160,17 @@ class AsymmetricQueryer {
   shared_ptr<const Model<T>> model() const { return model_; }
 
  private:
+  template <typename TopN, typename Functor, typename DatasetView>
+  static Status FindApproximateTopNeighborsTopNDispatch(
+      const LookupTable& lookup_table, const SearchParameters& params,
+      QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n);
+
+  template <typename DistT, typename Functor, typename DatasetView>
+  static Status FindApproximateTopNeighborsTopNDispatch(
+      const LookupTable& lookup_table, const SearchParameters& params,
+      QueryerOptions<Functor, DatasetView> querying_options,
+      FastTopNeighbors<DistT>* top_n);
+
   template <typename LookupElement, typename TopN,
             typename Functor = IdentityPostprocessFunctor,
             typename DatasetView = DefaultDenseDatasetView<uint8_t>>
@@ -323,17 +337,6 @@ template <typename TopN, typename Functor, typename DatasetView>
 Status AsymmetricQueryer<T>::FindApproximateNeighbors(
     const LookupTable& lookup_table, const SearchParameters& params,
     QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n) {
-  DCHECK(top_n);
-  static_assert(
-      std::is_same<float, decltype(top_n->approx_bottom().second)>::value,
-      "The distance type for TopN must be float for "
-      "AsymmetricQueryer::FindApproximateNeighbors.");
-  if (!top_n->empty()) {
-    return FailedPreconditionError(
-        "TopN must be empty for "
-        "AsymmetricQueryer::FindApproximateNeighbors.");
-  }
-
   if (static_cast<int>(lookup_table.float_lookup_table.empty()) +
           static_cast<int>(lookup_table.int16_lookup_table.empty()) +
           static_cast<int>(lookup_table.int8_lookup_table.empty()) !=
@@ -356,34 +359,8 @@ Status AsymmetricQueryer<T>::FindApproximateNeighbors(
     return OkStatus();
   }
 
-  const bool can_use_lut16 =
-      RuntimeSupportsSse4() && querying_options.lut16_packed_dataset &&
-      !lookup_table.int8_lookup_table.empty() &&
-      lookup_table.int8_lookup_table.size() /
-              querying_options.lut16_packed_dataset->num_blocks ==
-          16;
-
-  if (can_use_lut16) {
-    return FindApproximateNeighborsForceLUT16<TopN, Functor>(
-        lookup_table, params, querying_options, top_n);
-  } else if (querying_options.hashed_dataset) {
-    auto in_memory_ptr =
-        (!lookup_table.float_lookup_table.empty())
-            ? &FindApproximateNeighborsNoLUT16<float, TopN, Functor,
-                                               DatasetView>
-            : (!lookup_table.int8_lookup_table.empty())
-                  ? &FindApproximateNeighborsNoLUT16<uint8_t, TopN, Functor,
-                                                     DatasetView>
-                  : &FindApproximateNeighborsNoLUT16<uint16_t, TopN, Functor,
-                                                     DatasetView>;
-    return (*in_memory_ptr)(lookup_table, params, querying_options, top_n);
-  } else {
-    return InvalidArgumentError(
-        "LUT16 querying not possible.  Could not fall back to in-memory "
-        "querying because no hashed_dataset provided.");
-  }
-
-  return OkStatus();
+  return FindApproximateTopNeighborsTopNDispatch(lookup_table, params,
+                                                 querying_options, top_n);
 }
 
 namespace asymmetric_hashing2_internal {
@@ -451,6 +428,109 @@ Status FindApproxNeighborsFastTopNeighbors(
 }
 
 }  // namespace asymmetric_hashing2_internal
+
+template <typename T>
+template <typename TopN, typename Functor, typename DatasetView>
+Status AsymmetricQueryer<T>::FindApproximateTopNeighborsTopNDispatch(
+    const LookupTable& lookup_table, const SearchParameters& params,
+    QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n) {
+  DCHECK(top_n);
+  static_assert(
+      std::is_same<float, decltype(top_n->approx_bottom().second)>::value,
+      "The distance type for TopN must be float for "
+      "AsymmetricQueryer::FindApproximateNeighbors.");
+  if (!top_n->empty()) {
+    return FailedPreconditionError(
+        "TopN must be empty for "
+        "AsymmetricQueryer::FindApproximateNeighbors.");
+  }
+
+  const bool can_use_lut16 =
+      RuntimeSupportsSse4() && querying_options.lut16_packed_dataset &&
+      !lookup_table.int8_lookup_table.empty() &&
+      lookup_table.int8_lookup_table.size() /
+              querying_options.lut16_packed_dataset->num_blocks ==
+          16;
+
+  if (can_use_lut16) {
+    return FindApproximateNeighborsForceLUT16<TopN, Functor>(
+        lookup_table, params, querying_options, top_n);
+  } else if (querying_options.hashed_dataset) {
+    auto in_memory_ptr =
+        (!lookup_table.float_lookup_table.empty())
+            ? &FindApproximateNeighborsNoLUT16<float, TopN, Functor,
+                                               DatasetView>
+            : (!lookup_table.int8_lookup_table.empty())
+                  ? &FindApproximateNeighborsNoLUT16<uint8_t, TopN, Functor,
+                                                     DatasetView>
+                  : &FindApproximateNeighborsNoLUT16<uint16_t, TopN, Functor,
+                                                     DatasetView>;
+    return (*in_memory_ptr)(lookup_table, params, querying_options, top_n);
+  } else {
+    return InvalidArgumentError(
+        "LUT16 querying not possible.  Could not fall back to in-memory "
+        "querying because no hashed_dataset provided.");
+  }
+
+  return OkStatus();
+}
+
+template <typename T>
+template <typename DistT, typename Functor, typename DatasetView>
+Status AsymmetricQueryer<T>::FindApproximateTopNeighborsTopNDispatch(
+    const LookupTable& lookup_table, const SearchParameters& params,
+    QueryerOptions<Functor, DatasetView> querying_options,
+    FastTopNeighbors<DistT>* top_n) {
+  DCHECK(top_n);
+
+  static_assert(std::is_same_v<float, DistT>,
+                "The distance type for TopN must be float for "
+                "AsymmetricQueryer::FindApproximateNeighbors.");
+
+  const bool can_use_lut16 =
+      RuntimeSupportsSse4() && querying_options.lut16_packed_dataset &&
+      !lookup_table.int8_lookup_table.empty() &&
+      (lookup_table.int8_lookup_table.size() /
+       querying_options.lut16_packed_dataset->num_blocks) == 16;
+  if (!can_use_lut16)
+    return InvalidArgumentError(
+        "FastTopNeighbors+AsymmetricQueryer fast path only works with LUT16.");
+  if (!std::is_same_v<Functor, IdentityPostprocessFunctor>)
+    return InvalidArgumentError(
+        "FastTopNeighbors+AsymmetricQueryer fast path doesn't support "
+        "non-identity postprocess functors.");
+
+  if (!lookup_table.can_use_int16_accumulator)
+    return InvalidArgumentError(
+        "FastTopNeighbors+AsymmetricQueryer fast path only supports int16_t "
+        "accumulators.");
+
+  const auto& packed_dataset = *querying_options.lut16_packed_dataset;
+  array<FastTopNeighbors<float>*, 1> tops = {top_n};
+  array<const uint8_t*, 1> lookups = {lookup_table.int8_lookup_table.data()};
+  array<float, 1> multipliers = {lookup_table.fixed_point_multiplier};
+  array<float, 1> biases = {querying_options.lut16_bias};
+  array<RestrictAllowlistConstView, 1> allowlists = {
+      params.restricts_enabled()
+          ? RestrictAllowlistConstView(*params.restrict_whitelist())
+          : RestrictAllowlistConstView()};
+
+  asymmetric_hashing_internal::LUT16ArgsTopN<float> args;
+  args.packed_dataset = packed_dataset.bit_packed_data.data();
+  args.num_32dp_simd_iters = DivRoundUp(packed_dataset.num_datapoints, 32);
+  args.num_blocks = packed_dataset.num_blocks;
+  args.lookups = lookups;
+  args.fixed_point_multipliers = multipliers;
+  args.biases = biases;
+  args.first_dp_index = querying_options.first_dp_index;
+  args.num_datapoints = packed_dataset.num_datapoints;
+  args.fast_topns = tops;
+  args.restrict_whitelists = allowlists;
+  asymmetric_hashing_internal::LUT16Interface::GetTopFloatDistances(
+      std::move(args));
+
+  return OkStatus();
+}
 
 template <typename T>
 template <size_t kNumQueries, typename TopN, typename Functor,

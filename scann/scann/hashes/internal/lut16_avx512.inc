@@ -1,16 +1,4 @@
-// Copyright 2020 The Google Research Authors.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+
 
 #include "scann/hashes/internal/lut16_avx512.h"
 
@@ -20,6 +8,7 @@
 
 #ifdef __x86_64__
 
+#include "scann/hashes/internal/lut16_avx512_swizzle.h"
 #include "scann/utils/bits.h"
 #include "scann/utils/intrinsics/avx512.h"
 #include "tensorflow/core/platform/prefetch.h"
@@ -31,10 +20,11 @@ namespace lut16 {
 
 using asymmetric_hashing_internal::LUT16Args;
 using asymmetric_hashing_internal::LUT16ArgsTopN;
+using asymmetric_hashing_internal::PrefetchStrategy;
 
-template <bool kPrefetch0, bool kAlignedData0 = true>
+template <PrefetchStrategy kPrefetch0, bool kAlignedData0 = true>
 struct LUT16Tuning {
-  static constexpr bool kPrefetch = kPrefetch0;
+  static constexpr PrefetchStrategy kPrefetch = kPrefetch0;
   static constexpr bool kAlignedData = kAlignedData0;
 
   using WithoutDataAlignment = LUT16Tuning<kPrefetch, false>;
@@ -50,9 +40,9 @@ SCANN_AVX512_INLINE Avx512<uint8_t, 2> LoadDatabaseCodes(
   if constexpr (Tuning::kAlignedData) {
     DCHECK(IsCacheAligned(data_start));
   }
-  if constexpr (Tuning::kPrefetch) {
+  if constexpr (Tuning::kPrefetch != PrefetchStrategy::kOff) {
     ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-        data_start + 768);
+        data_start + asymmetric_hashing_internal::kPrefetchBytesAhead);
   }
   Avx512<uint8_t> interleaved_codes =
       Avx512<uint8_t>::Load<Tuning::kAlignedData>(data_start);
@@ -486,7 +476,7 @@ namespace asymmetric_hashing_internal {
 using avx512::lut16::GetDistancesImpl;
 using avx512::lut16::LUT16Tuning;
 
-template <size_t kNumQueries, bool kPrefetch>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_AVX512_OUTLINE void
 LUT16Avx512<kNumQueries, kPrefetch>::GetInt16Distances(
     LUT16Args<int16_t> args) {
@@ -494,7 +484,7 @@ LUT16Avx512<kNumQueries, kPrefetch>::GetInt16Distances(
   GetDistancesImpl<int16_t, kNumQueries, Tuning>(std::move(args), {});
 }
 
-template <size_t kNumQueries, bool kPrefetch>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_AVX512_OUTLINE void
 LUT16Avx512<kNumQueries, kPrefetch>::GetInt32Distances(
     LUT16Args<int32_t> args) {
@@ -502,7 +492,7 @@ LUT16Avx512<kNumQueries, kPrefetch>::GetInt32Distances(
   GetDistancesImpl<int32_t, kNumQueries, Tuning>(std::move(args), {});
 }
 
-template <size_t kNumQueries, bool kPrefetch>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_AVX512_OUTLINE void
 LUT16Avx512<kNumQueries, kPrefetch>::GetFloatDistances(
     LUT16Args<float> args, ConstSpan<float> inv_fp_multipliers) {
@@ -793,7 +783,7 @@ namespace asymmetric_hashing_internal {
 
 using avx512::lut16::GetTopDistancesImpl;
 
-template <size_t kNumQueries, bool kPrefetch>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 void LUT16Avx512<kNumQueries, kPrefetch>::GetTopInt16Distances(
     LUT16ArgsTopN<int16_t> args) {
   using Tuning = LUT16Tuning<kPrefetch>;
@@ -807,125 +797,12 @@ void LUT16Avx512<kNumQueries, kPrefetch>::GetTopInt16Distances(
   }
 }
 
-template <size_t kNumQueries, bool kPrefetch>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 void LUT16Avx512<kNumQueries, kPrefetch>::GetTopFloatDistances(
     LUT16ArgsTopN<float> args) {
   using Tuning = LUT16Tuning<kPrefetch>;
   return GetTopDistancesImpl<float, kNumQueries, Tuning>(std::move(args));
 }
-
-SCANN_AVX512_OUTLINE void Avx512Swizzle128(const uint8_t* src, uint8_t* dst) {
-  Avx512<uint8_t> orig = Avx512<uint8_t>::Load(src);
-
-  Avx512<uint8_t> low_nib_mask = Avx512<uint8_t>::Broadcast(0x0F);
-
-  Avx512<uint8_t> even_nibs = orig & low_nib_mask;
-  Avx512<uint8_t> odd_nibs =
-      Avx512<uint8_t>(Avx512<uint16_t>(orig) >> 4) & low_nib_mask;
-
-  constexpr uint64_t kAA = 0;
-  constexpr uint64_t kBB = 8;
-
-  Avx512<uint64_t> hi256_idxs = _mm512_set_epi64(
-      kBB + 7, kBB + 6, kBB + 5, kBB + 4, kAA + 7, kAA + 6, kAA + 5, kAA + 4);
-  Avx512<uint8_t> hi256_nibs =
-      _mm512_permutex2var_epi64(*even_nibs, *hi256_idxs, *odd_nibs);
-  Avx512<uint64_t> lo256_idxs =
-
-      _mm512_set_epi64(kBB + 3, kBB + 2, kBB + 1, kBB + 0, kAA + 3, kAA + 2,
-                       kAA + 1, kAA + 0);
-  Avx512<uint8_t> lo256_nibs =
-      _mm512_permutex2var_epi64(*even_nibs, *lo256_idxs, *odd_nibs);
-
-  hi256_nibs = Avx512<uint8_t>(Avx512<uint16_t>(hi256_nibs) << 4);
-
-  Avx512<uint8_t> new_bytes = hi256_nibs + lo256_nibs;
-
-  constexpr int kDDBB = 0b11'11'10'10;
-  constexpr int kCCAA = 0b01'01'00'00;
-  Avx512<uint8_t> new_bytes_ddbb = _mm512_permutex_epi64(*new_bytes, kDDBB);
-  Avx512<uint8_t> new_bytes_ccaa = _mm512_permutex_epi64(*new_bytes, kCCAA);
-
-  Avx512<uint8_t> interleaved =
-      _mm512_unpackhi_epi8(*new_bytes_ccaa, *new_bytes_ddbb);
-
-  interleaved.Store(dst);
-}
-
-SCANN_AVX512_OUTLINE void Avx512Swizzle32(const uint8_t* src, uint8_t* dst) {
-  array<uint8_t, 32> nibbles;
-  for (size_t j : Seq(16)) {
-    nibbles[2 * j + 0] = (src[j] >> 0) & 0x0F;
-    nibbles[2 * j + 1] = (src[j] >> 4) & 0x0F;
-  }
-  for (size_t j : Seq(16)) {
-    dst[j] = (nibbles[j + 0] << 0) + (nibbles[j + 16] << 4);
-  }
-}
-
-SCANN_AVX512_OUTLINE void Avx512PlatformSpecificSwizzle(uint8_t* packed_dataset,
-                                                        int num_datapoints,
-                                                        int num_codes_per_dp) {
-  size_t num_32dp_simd_iters = DivRoundUp(num_datapoints, 32);
-
-  const size_t num_256dp_simd_iters = num_32dp_simd_iters / 8;
-  num_32dp_simd_iters %= 8;
-
-  const size_t num_128dp_simd_iters = num_32dp_simd_iters / 4;
-  num_32dp_simd_iters %= 4;
-
-  using Block = array<uint8_t, 16>;
-  Block* blocks = reinterpret_cast<Block*>(packed_dataset);
-  vector<Block> transposed(8 * num_codes_per_dp);
-
-  for (auto _ : Seq(num_256dp_simd_iters)) {
-    for (size_t jj : Seq(num_codes_per_dp)) {
-      transposed[8 * jj + 0] = blocks[0 * num_codes_per_dp + jj];
-      transposed[8 * jj + 1] = blocks[1 * num_codes_per_dp + jj];
-      transposed[8 * jj + 2] = blocks[2 * num_codes_per_dp + jj];
-      transposed[8 * jj + 3] = blocks[3 * num_codes_per_dp + jj];
-      transposed[8 * jj + 4] = blocks[4 * num_codes_per_dp + jj];
-      transposed[8 * jj + 5] = blocks[5 * num_codes_per_dp + jj];
-      transposed[8 * jj + 6] = blocks[6 * num_codes_per_dp + jj];
-      transposed[8 * jj + 7] = blocks[7 * num_codes_per_dp + jj];
-    }
-
-    for (size_t jj : Seq(2 * num_codes_per_dp)) {
-      const uint8_t* src =
-          reinterpret_cast<const uint8_t*>(&transposed[4 * jj]);
-      uint8_t* dst = reinterpret_cast<uint8_t*>(&blocks[4 * jj]);
-      Avx512Swizzle128(src, dst);
-    }
-    blocks += 8 * num_codes_per_dp;
-  }
-
-  for (auto _ : Seq(num_128dp_simd_iters)) {
-    for (size_t jj : Seq(num_codes_per_dp)) {
-      transposed[4 * jj + 0] = blocks[0 * num_codes_per_dp + jj];
-      transposed[4 * jj + 1] = blocks[1 * num_codes_per_dp + jj];
-      transposed[4 * jj + 2] = blocks[2 * num_codes_per_dp + jj];
-      transposed[4 * jj + 3] = blocks[3 * num_codes_per_dp + jj];
-    }
-
-    for (size_t jj : Seq(num_codes_per_dp)) {
-      const uint8_t* src =
-          reinterpret_cast<const uint8_t*>(&transposed[4 * jj]);
-      uint8_t* dst = reinterpret_cast<uint8_t*>(&blocks[4 * jj]);
-      Avx512Swizzle128(src, dst);
-    }
-    blocks += 4 * num_codes_per_dp;
-  }
-
-  for (auto _ : Seq(num_32dp_simd_iters)) {
-    for (size_t jj : Seq(num_codes_per_dp)) {
-      uint8_t* ptr = reinterpret_cast<uint8_t*>(&blocks[1 * jj]);
-      Avx512Swizzle32(ptr, ptr);
-    }
-    blocks += 1 * num_codes_per_dp;
-  }
-}
-
-SCANN_INSTANTIATE_CLASS_FOR_LUT16_BATCH_SIZES(, LUT16Avx512);
 
 }  // namespace asymmetric_hashing_internal
 }  // namespace scann_ops

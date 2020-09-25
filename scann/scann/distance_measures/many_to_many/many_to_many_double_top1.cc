@@ -25,11 +25,7 @@ template void DenseDistanceManyToManyImpl(
     const DistanceMeasure &dist, const DenseDataset<double> &queries,
     const DenseDataset<double> &database, thread::ThreadPool *pool,
     ManyToManyTop1Callback<double> callback);
-template void DenseDistanceManyToManyImpl(
-    const DistanceMeasure &dist, const DenseDataset<double> &queries,
-    const DenseDataset<double> &database, thread::ThreadPool *pool,
-    ManyToManyTop1SquaredL2Callback<double, double, double> callback);
 
-}  // namespace mm_internal
+}
 }  // namespace scann_ops
 }  // namespace tensorflow

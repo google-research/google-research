@@ -18,12 +18,14 @@
 
 #include <limits>
 
+#include "scann/base/single_machine_factory_options.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measures.h"
 #include "scann/hashes/asymmetric_hashing2/querying.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/common.h"
+#include "scann/utils/fixed_point/pre_quantized_fixed_point.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 
@@ -57,6 +59,9 @@ class ReorderingInterface {
   virtual StatusOr<ReorderingInterface<T>::Mutator*> GetMutator() const = 0;
 
   virtual bool owns_mutation_data_structures() const = 0;
+
+  virtual void AppendDataToSingleMachineFactoryOptions(
+      SingleMachineFactoryOptions* opts) const {}
 
   virtual ~ReorderingInterface() {}
 };
@@ -217,6 +222,13 @@ class FixedPointFloatDenseDotProductReorderingHelper
 
   Status Reconstruct(DatapointIndex i, MutableSpan<float> output) const;
 
+  void AppendDataToSingleMachineFactoryOptions(
+      SingleMachineFactoryOptions* opts) const override {
+    opts->pre_quantized_fixed_point =
+        make_shared<PreQuantizedFixedPoint>(CreatePreQuantizedFixedPoint(
+            fixed_point_dataset_, inverse_multipliers_, {}, true));
+  }
+
  private:
   DenseDataset<int8_t> fixed_point_dataset_;
   std::vector<float> inverse_multipliers_;
@@ -248,6 +260,11 @@ class FixedPointFloatDenseCosineReorderingHelper
 
   StatusOr<std::pair<DatapointIndex, float>> ComputeTop1ReorderingDistance(
       const DatapointPtr<float>& query, NNResultsVector* result) const override;
+
+  void AppendDataToSingleMachineFactoryOptions(
+      SingleMachineFactoryOptions* opts) const override {
+    dot_product_helper_.AppendDataToSingleMachineFactoryOptions(opts);
+  }
 
  private:
   FixedPointFloatDenseDotProductReorderingHelper dot_product_helper_;
@@ -283,6 +300,14 @@ class FixedPointFloatDenseSquaredL2ReorderingHelper
 
   Status Reconstruct(DatapointIndex i, MutableSpan<float> output) const {
     return dot_product_helper_.Reconstruct(i, output);
+  }
+
+  void AppendDataToSingleMachineFactoryOptions(
+      SingleMachineFactoryOptions* opts) const override {
+    dot_product_helper_.AppendDataToSingleMachineFactoryOptions(opts);
+    opts->pre_quantized_fixed_point->squared_l2_norm_by_datapoint =
+        make_shared<vector<float>>(database_squared_l2_norms_->begin(),
+                                   database_squared_l2_norms_->end());
   }
 
  private:

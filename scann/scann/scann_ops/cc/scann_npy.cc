@@ -31,34 +31,60 @@ void RuntimeErrorIfNotOk(const char* prefix, const Status& status) {
   }
 }
 
+template <typename T>
+ConstSpan<T> NumpyToSpan(const np_row_major_arr<T> numpy, size_t expected_dim,
+                         const string_view name) {
+  if (numpy.ndim() != expected_dim)
+    throw std::invalid_argument(absl::StrFormat(
+        "%s should be %d-dimensional, but got %d-dimensional input", name,
+        expected_dim, numpy.ndim()));
+  return ConstSpan<T>(numpy.data(), numpy.size());
+}
+
 ScannNumpy::ScannNumpy(
-    const np_row_major_arr<float>& np_dataset,
+    std::optional<const np_row_major_arr<float>> np_dataset,
     std::optional<const np_row_major_arr<int32_t>> datapoint_to_token,
     std::optional<const np_row_major_arr<uint8_t>> hashed_dataset,
+    std::optional<const np_row_major_arr<int8_t>> int8_dataset,
+    std::optional<const np_row_major_arr<float>> int8_multipliers,
+    std::optional<const np_row_major_arr<float>> dp_norms,
     const std::string& artifacts_dir) {
-  if (np_dataset.ndim() != 2)
-    throw std::invalid_argument("Dataset input must be two-dimensional");
-  ConstSpan<float> dataset(np_dataset.data(), np_dataset.size());
+  DatapointIndex n_points = kInvalidDatapointIndex;
+  ConstSpan<float> dataset;
+  if (np_dataset) {
+    dataset = NumpyToSpan(*np_dataset, 2, "Dataset");
+    n_points = np_dataset->shape()[0];
+  }
 
   ConstSpan<int32_t> tokenization;
-  ConstSpan<uint8_t> hashed_span;
   if (datapoint_to_token) {
-    if (datapoint_to_token->ndim() != 1)
-      throw std::invalid_argument(
-          "Dataset tokenization must be one-dimensional");
-    tokenization = ConstSpan<int32_t>(datapoint_to_token->data(),
-                                      datapoint_to_token->size());
+    tokenization =
+        NumpyToSpan(*datapoint_to_token, 1, "Datapoint tokenization");
+    n_points = datapoint_to_token->shape()[0];
   }
+
+  ConstSpan<uint8_t> hashed_span;
   if (hashed_dataset) {
-    if (hashed_dataset->ndim() != 2)
-      throw std::invalid_argument(
-          "Hashed dataset input must be two-dimensional");
-    hashed_span =
-        ConstSpan<uint8_t>(hashed_dataset->data(), hashed_dataset->size());
+    hashed_span = NumpyToSpan(*hashed_dataset, 2, "Hashed dataset");
+    n_points = hashed_dataset->shape()[0];
   }
-  RuntimeErrorIfNotOk("Error initializing searcher: ",
-                      scann_.Initialize(dataset, tokenization, hashed_span,
-                                        np_dataset.shape()[1], artifacts_dir));
+
+  ConstSpan<int8_t> int8_span;
+  ConstSpan<float> mult_span, norm_span;
+  if (int8_dataset) {
+    int8_span = NumpyToSpan(*int8_dataset, 2, "Int8-quantized dataset");
+    n_points = int8_dataset->shape()[0];
+  }
+  if (int8_multipliers)
+    mult_span =
+        NumpyToSpan(*int8_multipliers, 1, "Int8 quantization multipliers");
+  if (dp_norms)
+    norm_span = NumpyToSpan(*dp_norms, 1, "Datapoint squared L2 norms");
+
+  RuntimeErrorIfNotOk(
+      "Error initializing searcher: ",
+      scann_.Initialize(dataset, tokenization, hashed_span, int8_span,
+                        mult_span, norm_span, n_points, artifacts_dir));
 }
 
 ScannNumpy::ScannNumpy(const np_row_major_arr<float>& np_dataset,
@@ -67,7 +93,7 @@ ScannNumpy::ScannNumpy(const np_row_major_arr<float>& np_dataset,
     throw std::invalid_argument("Dataset input must be two-dimensional");
   ConstSpan<float> dataset(np_dataset.data(), np_dataset.size());
   RuntimeErrorIfNotOk("Error initializing searcher: ",
-                      scann_.Initialize(dataset, np_dataset.shape()[1], config,
+                      scann_.Initialize(dataset, np_dataset.shape()[0], config,
                                         training_threads));
 }
 

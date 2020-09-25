@@ -22,6 +22,7 @@
 
 #include "absl/memory/memory.h"
 #include "scann/oss_wrappers/scann_status_builder.h"
+#include "scann/utils/fixed_point/pre_quantized_fixed_point.h"
 #include "scann/utils/scalar_quantization_helpers.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
@@ -340,6 +341,30 @@ TreeScalarQuantizationPreprocessedQueryCreator::
   return unique_ptr<SearcherSpecificOptionalParameters>(
       new TreeScalarQuantizationPreprocessedQuery(
           std::move(preprocessed_query)));
+}
+
+ConstSpan<float>
+TreeScalarQuantizationPreprocessedQueryCreator::inverse_multipliers() const {
+  return MakeConstSpan(inverse_multipliers_.data(),
+                       inverse_multipliers_.size());
+}
+
+StatusOr<SingleMachineFactoryOptions>
+ScalarQuantizedBruteForceSearcher::ExtractSingleMachineFactoryOptions() {
+  TF_ASSIGN_OR_RETURN(
+      auto opts,
+      SingleMachineSearcherBase<float>::ExtractSingleMachineFactoryOptions());
+  if (opts.pre_quantized_fixed_point != nullptr) {
+    return InvalidArgumentError(
+        "pre_quantized_fixed_point already exists. Either disable reordering "
+        "or use float32 reordering, because scalar-quantized reordering with "
+        "scalar-quantized brute force provides no benefit.");
+  }
+  opts.pre_quantized_fixed_point =
+      make_shared<PreQuantizedFixedPoint>(CreatePreQuantizedFixedPoint(
+          quantized_dataset_, inverse_multiplier_by_dimension_,
+          squared_l2_norms_, true));
+  return opts;
 }
 
 }  // namespace scann_ops

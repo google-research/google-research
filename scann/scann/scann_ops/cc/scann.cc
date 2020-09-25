@@ -23,16 +23,30 @@
 #include "scann/tree_x_hybrid/tree_x_params.h"
 #include "scann/utils/io_npy.h"
 #include "scann/utils/io_oss_wrapper.h"
+#include "scann/utils/scann_config_utils.h"
 #include "scann/utils/threads.h"
 
 namespace tensorflow {
 namespace scann_ops {
 
-Status ScannInterface::Initialize(ConstSpan<float> dataset,
-                                  ConstSpan<int32_t> datapoint_to_token,
-                                  ConstSpan<uint8_t> hashed_dataset,
-                                  DimensionIndex dimensionality,
-                                  const std::string& artifacts_dir) {
+template <typename T>
+void ParseTextProto(T* proto, const std::string& proto_str) {
+  ::google::protobuf::TextFormat::ParseFromString(proto_str, proto);
+}
+
+unique_ptr<DenseDataset<float>> InitDataset(ConstSpan<float> dataset,
+                                            DatapointIndex n_points) {
+  if (dataset.empty()) return nullptr;
+
+  vector<float> dataset_vec(dataset.data(), dataset.data() + dataset.size());
+  return absl::make_unique<DenseDataset<float>>(dataset_vec, n_points);
+}
+
+Status ScannInterface::Initialize(
+    ConstSpan<float> dataset, ConstSpan<int32_t> datapoint_to_token,
+    ConstSpan<uint8_t> hashed_dataset, ConstSpan<int8_t> int8_dataset,
+    ConstSpan<float> int8_multipliers, ConstSpan<float> dp_norms,
+    DatapointIndex n_points, const std::string& artifacts_dir) {
   ScannConfig config;
   SCANN_RETURN_IF_ERROR(
       ReadProtobufFromFile(artifacts_dir + "/scann_config.pb", &config));
@@ -49,41 +63,55 @@ Status ScannInterface::Initialize(ConstSpan<float> dataset,
                              opts.serialized_partitioner.get()));
   }
   return Initialize(config, opts, dataset, datapoint_to_token, hashed_dataset,
-                    dimensionality);
+                    int8_dataset, int8_multipliers, dp_norms, n_points);
 }
 
-Status ScannInterface::Initialize(ScannConfig config,
-                                  SingleMachineFactoryOptions opts,
-                                  ConstSpan<float> dataset,
-                                  ConstSpan<int32_t> datapoint_to_token,
-                                  ConstSpan<uint8_t> hashed_dataset,
-                                  DimensionIndex dimensionality) {
+Status ScannInterface::Initialize(
+    ScannConfig config, SingleMachineFactoryOptions opts,
+    ConstSpan<float> dataset, ConstSpan<int32_t> datapoint_to_token,
+    ConstSpan<uint8_t> hashed_dataset, ConstSpan<int8_t> int8_dataset,
+    ConstSpan<float> int8_multipliers, ConstSpan<float> dp_norms,
+    DatapointIndex n_points) {
   config_ = config;
   if (opts.ah_codebook != nullptr) {
     vector<uint8_t> hashed_db(hashed_dataset.data(),
                               hashed_dataset.data() + hashed_dataset.size());
-    int n_points = dataset.size() / dimensionality;
     opts.hashed_dataset =
         std::make_shared<DenseDataset<uint8_t>>(hashed_db, n_points);
   }
   if (opts.serialized_partitioner != nullptr) {
-    if (datapoint_to_token.size() * dimensionality != dataset.size())
+    if (datapoint_to_token.size() != n_points)
       return InvalidArgumentError(
-          "Sizes of datapoint_to_token and dataset are inconsistent");
+          absl::StrFormat("datapoint_to_token length=%d but expected %d",
+                          datapoint_to_token.size(), n_points));
     opts.datapoints_by_token =
         std::make_shared<vector<std::vector<DatapointIndex>>>(
             opts.serialized_partitioner->n_tokens());
     for (auto [dp_idx, token] : Enumerate(datapoint_to_token))
       opts.datapoints_by_token->at(token).push_back(dp_idx);
   }
-  return Initialize(dataset, dimensionality, opts);
+  if (!int8_dataset.empty()) {
+    auto int8_data = std::make_shared<PreQuantizedFixedPoint>();
+    vector<int8_t> int8_vec(int8_dataset.data(),
+                            int8_dataset.data() + int8_dataset.size());
+    int8_data->fixed_point_dataset =
+        std::make_shared<DenseDataset<int8_t>>(int8_vec, n_points);
+
+    int8_data->multiplier_by_dimension = make_shared<vector<float>>(
+        int8_multipliers.begin(), int8_multipliers.end());
+
+    int8_data->squared_l2_norm_by_datapoint =
+        make_shared<vector<float>>(dp_norms.begin(), dp_norms.end());
+    opts.pre_quantized_fixed_point = int8_data;
+  }
+  return Initialize(InitDataset(dataset, n_points), opts);
 }
 
 Status ScannInterface::Initialize(ConstSpan<float> dataset,
-                                  DimensionIndex dimensionality,
+                                  DatapointIndex n_points,
                                   const std::string& config,
                                   int training_threads) {
-  ::google::protobuf::TextFormat::ParseFromString(config, &config_);
+  ParseTextProto(&config_, config);
   if (training_threads < 0)
     return InvalidArgumentError("training_threads must be non-negative");
   if (training_threads == 0) training_threads = absl::base_internal::NumCPUs();
@@ -91,27 +119,21 @@ Status ScannInterface::Initialize(ConstSpan<float> dataset,
 
   opts.parallelization_pool =
       StartThreadPool("scann_threadpool", training_threads - 1);
-  return Initialize(dataset, dimensionality, opts);
+  return Initialize(InitDataset(dataset, n_points), opts);
 }
 
-Status ScannInterface::Initialize(ConstSpan<float> ds_span,
-                                  DimensionIndex dimensionality,
+Status ScannInterface::Initialize(shared_ptr<DenseDataset<float>> dataset,
                                   SingleMachineFactoryOptions opts) {
-  if (ds_span.empty()) return InvalidArgumentError("Dataset must be non-empty");
+  TF_ASSIGN_OR_RETURN(dimensionality_, opts.ComputeConsistentDimensionality(
+                                           config_.hash(), dataset.get()));
+  TF_ASSIGN_OR_RETURN(n_points_, opts.ComputeConsistentSize(dataset.get()));
 
-  dimensionality_ = dimensionality;
-  n_points_ = ds_span.size() / dimensionality_;
-
-  vector<float> dataset_vec(ds_span.data(), ds_span.data() + ds_span.size());
-  auto dataset = absl::make_unique<DenseDataset<float>>(dataset_vec, n_points_);
-
-  if (config_.has_partitioning() &&
+  if (dataset && config_.has_partitioning() &&
       config_.partitioning().partitioning_type() ==
           PartitioningConfig::SPHERICAL)
     dataset->set_normalization_tag(tensorflow::scann_ops::UNITL2NORM);
-  TF_ASSIGN_OR_RETURN(
-      scann_, SingleMachineFactoryNoSparse<float>(config_, std::move(dataset),
-                                                  std::move(opts)));
+  TF_ASSIGN_OR_RETURN(scann_, SingleMachineFactoryScann<float>(
+                                  config_, dataset, std::move(opts)));
 
   const std::string& distance = config_.distance_measure().distance_measure();
   const absl::node_hash_set<std::string> negated_distances{
@@ -223,6 +245,32 @@ Status ScannInterface::Serialize(std::string path) {
   if (opts.hashed_dataset != nullptr) {
     SCANN_RETURN_IF_ERROR(
         DatasetToNumpy(path + "/hashed_dataset.npy", *(opts.hashed_dataset)));
+  }
+  if (opts.pre_quantized_fixed_point != nullptr) {
+    auto fixed_point = opts.pre_quantized_fixed_point;
+    auto dataset = fixed_point->fixed_point_dataset;
+    if (dataset != nullptr) {
+      SCANN_RETURN_IF_ERROR(
+          DatasetToNumpy(path + "/int8_dataset.npy", *dataset));
+    }
+    auto multipliers = fixed_point->multiplier_by_dimension;
+    if (multipliers != nullptr) {
+      SCANN_RETURN_IF_ERROR(
+          VectorToNumpy(path + "/int8_multipliers.npy", *multipliers));
+    }
+    auto norms = fixed_point->squared_l2_norm_by_datapoint;
+    if (norms != nullptr) {
+      SCANN_RETURN_IF_ERROR(VectorToNumpy(path + "/dp_norms.npy", *norms));
+    }
+  }
+  if (scann_->needs_dataset()) {
+    if (scann_->dataset() == nullptr)
+      return InternalError(
+          "Searcher needs original dataset but none is present.");
+    auto dataset = dynamic_cast<const DenseDataset<float>*>(scann_->dataset());
+    if (dataset == nullptr)
+      return InternalError("Failed to cast dataset to DenseDataset<float>.");
+    SCANN_RETURN_IF_ERROR(DatasetToNumpy(path + "/dataset.npy", *dataset));
   }
   return OkStatus();
 }

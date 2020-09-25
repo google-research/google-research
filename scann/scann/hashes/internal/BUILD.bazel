@@ -3,6 +3,8 @@
 #   both the old, soon-to-be-deprecated API and the new, much more modular
 #   API.
 
+load(":template_sharding.bzl", "batch_size_sharder")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
@@ -74,9 +76,16 @@ cc_library(
     alwayslink = 1,
 )
 
+batch_size_sharder(
+    name = "lut16_sse4_batches",
+    max_batch_size = 9,
+    tags = ["local"],
+    template = "lut16_sse4.tpl.cc",
+)
+
 cc_library(
     name = "lut16_sse4",
-    srcs = ["lut16_sse4.cc"],
+    srcs = [":lut16_sse4_batches"],
     hdrs = ["lut16_sse4.h"],
     # We build this library at -O3 even for fastbuild and dbg
     # builds.  With inlining, functions in this library generate
@@ -86,6 +95,7 @@ cc_library(
         "-O3",
     ],
     tags = ["local"],
+    textual_hdrs = ["lut16_sse4.inc"],
     deps = [
         ":lut16_args",
         "//scann/oss_wrappers:scann_bits",
@@ -99,9 +109,16 @@ cc_library(
     ],
 )
 
+batch_size_sharder(
+    name = "lut16_avx2_batches",
+    max_batch_size = 9,
+    tags = ["local"],
+    template = "lut16_avx2.tpl.cc",
+)
+
 cc_library(
     name = "lut16_avx2",
-    srcs = ["lut16_avx2.cc"],
+    srcs = [":lut16_avx2_batches"],
     hdrs = ["lut16_avx2.h"],
     # We build this library at -O3 even for fastbuild and dbg
     # builds.  With inlining, functions in this library generate
@@ -111,6 +128,7 @@ cc_library(
         "-O3",
     ],
     tags = ["local"],
+    textual_hdrs = ["lut16_avx2.inc"],
     deps = [
         ":lut16_args",
         "//scann/oss_wrappers:scann_bits",
@@ -124,10 +142,39 @@ cc_library(
     ],
 )
 
+batch_size_sharder(
+    name = "lut16_avx512_prefetch",
+    max_batch_size = 9,
+    tags = ["local"],
+    template = "lut16_avx512_prefetch.tpl.cc",
+)
+
+batch_size_sharder(
+    name = "lut16_avx512_smart",
+    max_batch_size = 9,
+    tags = ["local"],
+    template = "lut16_avx512_smart.tpl.cc",
+)
+
+batch_size_sharder(
+    name = "lut16_avx512_noprefetch",
+    max_batch_size = 9,
+    tags = ["local"],
+    template = "lut16_avx512_noprefetch.tpl.cc",
+)
+
 cc_library(
     name = "lut16_avx512",
-    srcs = ["lut16_avx512.cc"],
-    hdrs = ["lut16_avx512.h"],
+    srcs = [
+        "lut16_avx512_swizzle.cc",
+        ":lut16_avx512_noprefetch",
+        ":lut16_avx512_prefetch",
+        ":lut16_avx512_smart",
+    ],
+    hdrs = [
+        "lut16_avx512.h",
+        "lut16_avx512_swizzle.h",
+    ],
     # We build this library at -O3 even for fastbuild and dbg
     # builds.  With inlining, functions in this library generate
     # enormous stack frames in debug mode, causing stack overflows
@@ -136,14 +183,20 @@ cc_library(
         "-O3",
     ],
     tags = ["local"],
+    textual_hdrs = ["lut16_avx512.inc"],
     deps = [
         ":lut16_args",
+        "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_bits",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/utils:bits",
         "//scann/utils:common",
         "//scann/utils:types",
         "//scann/utils/intrinsics:attributes",
         "//scann/utils/intrinsics:avx512",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
         "@local_config_tf//:libtensorflow_framework",
         "@local_config_tf//:tf_header_lib",
     ],

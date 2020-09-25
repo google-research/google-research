@@ -48,16 +48,7 @@ BruteForceSearcher<T>::BruteForceSearcher(
           (typeid(*distance) == typeid(DotProductDistance) ||
            typeid(*distance) == typeid(CosineDistance) ||
            typeid(*distance) == typeid(SquaredL2Distance)) &&
-          dataset->IsDense() && IsFloatingType<T>()),
-      using_squared_db_norms_(supports_low_level_batching_ &&
-                              typeid(*distance) == typeid(SquaredL2Distance)) {
-  if (using_squared_db_norms_) {
-    squared_db_norms_.reserve(dataset->size());
-    for (auto dptr : *dataset) {
-      squared_db_norms_.push_back(SquaredL2Norm(dptr));
-    }
-  }
-}
+          dataset->IsDense() && IsFloatingType<T>()) {}
 
 template <typename T>
 BruteForceSearcher<T>::~BruteForceSearcher() {}
@@ -241,20 +232,8 @@ BruteForceSearcher<T>::FinishBatchedSearch(
     top_n->PushBatch(result_block, base_dp_idx);
   };
 
-  if (squared_db_norms_.empty()) {
-    DCHECK(typeid(*distance_) != typeid(SquaredL2Distance));
-    DenseDistanceManyToMany<Float>(*distance_, queries, db, pool_.get(),
-                                   write_to_top_n);
-  } else {
-    vector<Float> squared_query_norms;
-    squared_query_norms.reserve(queries.size());
-    for (auto dptr : queries) {
-      squared_query_norms.push_back(SquaredL2Norm(dptr));
-    }
-    DenseSquaredL2DistanceManyToMany<Float, Float, Float>(
-        queries, db, squared_query_norms, squared_db_norms_, pool_.get(),
-        write_to_top_n);
-  }
+  DenseDistanceManyToMany<Float>(*distance_, queries, db, pool_.get(),
+                                 write_to_top_n);
   for (size_t i : IndicesOf(top_ns)) {
     results[i] = top_ns[i]->TakeUnsorted();
   }

@@ -231,19 +231,34 @@ Status Searcher<T>::FindNeighborsTopNDispatcher(
   if (params.pre_reordering_crowding_enabled()) {
     return FailedPreconditionError("Crowding is not supported.");
   } else {
-    TopNeighbors<float> top_n(params.pre_reordering_num_neighbors());
-    SCANN_RETURN_IF_ERROR(FindNeighborsQueryerDispatcher(
-        query, params, postprocessing_functor, &top_n));
-    *result = top_n.TakeUnsorted();
+    auto ah_optional_params = params.searcher_specific_optional_parameters<
+        AsymmetricHashingOptionalParameters>();
+    if (ah_optional_params && ah_optional_params->top_n() &&
+        !opts_.symmetric_queryer_) {
+      auto queryer_opts = GetQueryerOptions(postprocessing_functor);
+      queryer_opts.first_dp_index = ah_optional_params->starting_dp_idx_;
+      queryer_opts.lut16_bias = ah_optional_params->lut16_bias_;
+      LookupTable lookup_table_storage;
+      TF_ASSIGN_OR_RETURN(
+          const LookupTable* lookup_table,
+          GetOrCreateLookupTable(query, params, &lookup_table_storage));
+      SCANN_RETURN_IF_ERROR(AsymmetricQueryer<T>::FindApproximateNeighbors(
+          *lookup_table, params, std::move(queryer_opts),
+          ah_optional_params->top_n_));
+    } else {
+      TopNeighbors<float> top_n(params.pre_reordering_num_neighbors());
+      SCANN_RETURN_IF_ERROR(FindNeighborsQueryerDispatcher(
+          query, params, postprocessing_functor, &top_n));
+      *result = top_n.TakeUnsorted();
+    }
   }
   return OkStatus();
 }
 
 template <typename T>
-template <typename PostprocessFunctor, typename TopN>
-Status Searcher<T>::FindNeighborsQueryerDispatcher(
-    const DatapointPtr<T>& query, const SearchParameters& params,
-    PostprocessFunctor postprocessing_functor, TopN* result) const {
+template <typename PostprocessFunctor>
+QueryerOptions<PostprocessFunctor> Searcher<T>::GetQueryerOptions(
+    PostprocessFunctor postprocessing_functor) const {
   QueryerOptions<PostprocessFunctor> queryer_options;
   std::shared_ptr<DefaultDenseDatasetView<uint8_t>> hashed_dataset_view;
 
@@ -254,12 +269,22 @@ Status Searcher<T>::FindNeighborsQueryerDispatcher(
   queryer_options.hashed_dataset = hashed_dataset_view;
   queryer_options.postprocessing_functor = std::move(postprocessing_functor);
   if (lut16_) queryer_options.lut16_packed_dataset = &packed_dataset_;
+  return queryer_options;
+}
+
+template <typename T>
+template <typename PostprocessFunctor, typename TopN>
+Status Searcher<T>::FindNeighborsQueryerDispatcher(
+    const DatapointPtr<T>& query, const SearchParameters& params,
+    PostprocessFunctor postprocessing_functor, TopN* result) const {
+  auto queryer_options = GetQueryerOptions(postprocessing_functor);
   if (opts_.symmetric_queryer_) {
+    auto view = queryer_options.hashed_dataset.get();
     Datapoint<uint8_t> hashed_query;
     SCANN_RETURN_IF_ERROR(opts_.indexer_->Hash(query, &hashed_query));
     SCANN_RETURN_IF_ERROR(opts_.symmetric_queryer_->FindApproximateNeighbors(
-        hashed_query.ToPtr(), hashed_dataset_view.get(), params,
-        std::move(queryer_options), result));
+        hashed_query.ToPtr(), view, params, std::move(queryer_options),
+        result));
   } else {
     LookupTable lookup_table_storage;
     TF_ASSIGN_OR_RETURN(
@@ -406,7 +431,7 @@ StatusOr<SingleMachineFactoryOptions>
 Searcher<T>::ExtractSingleMachineFactoryOptions() {
   TF_ASSIGN_OR_RETURN(
       auto opts,
-      UntypedSingleMachineSearcherBase::ExtractSingleMachineFactoryOptions());
+      SingleMachineSearcherBase<T>::ExtractSingleMachineFactoryOptions());
   if (opts_.asymmetric_queryer_) {
     auto centers = opts_.asymmetric_queryer_->model()->centers();
     opts.ah_codebook = std::make_shared<CentersForAllSubspaces>();

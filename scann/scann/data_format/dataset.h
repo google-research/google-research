@@ -151,8 +151,6 @@ class Dataset : public VirtualDestructor {
 
   Status AppendDocid(string_view docid) { return docids_->Append(docid); }
 
-  void ClearDocids() { docids_->Clear(); }
-
  private:
   shared_ptr<DocidCollectionInterface> docids_;
 
@@ -276,6 +274,8 @@ class DenseDataset final : public TypedDataset<T> {
 
   void Reserve(size_t n) final;
   void ReserveImpl(size_t n);
+
+  void Resize(size_t n);
 
   template <typename Real>
   void ConvertType(DenseDataset<Real>* target) const;

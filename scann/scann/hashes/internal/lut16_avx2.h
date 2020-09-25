@@ -25,7 +25,7 @@ namespace tensorflow {
 namespace scann_ops {
 namespace asymmetric_hashing_internal {
 
-template <size_t kNumQueries, bool kPrefetch>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 class LUT16Avx2 {
  public:
   SCANN_AVX2_OUTLINE static void GetInt16Distances(LUT16Args<int16_t> args);

@@ -45,7 +45,7 @@ using StatusOrSearcherUntyped =
 namespace internal {
 
 inline int NumQueryDatabaseSearchTypesConfigured(const ScannConfig& config) {
-  return config.has_brute_force() + config.has_tree() + config.has_hash();
+  return config.has_brute_force() + config.has_hash();
 }
 
 template <typename LeafSearcherT>

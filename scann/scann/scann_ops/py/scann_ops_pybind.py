@@ -28,6 +28,7 @@ sys.path.append(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "cc/python"))
 import scann_pybind
+from scann.scann_ops.py import scann_builder
 
 
 class ScannSearcher(object):
@@ -71,18 +72,35 @@ class ScannSearcher(object):
     self.searcher.serialize(artifacts_dir)
 
 
+def builder(db, num_neighbors, distance_measure):
+  """pybind analogue of builder() in scann_ops.py; see docstring there."""
+
+  def builder_lambda(db, config, training_threads, **kwargs):
+    return create_searcher(db, config, training_threads, **kwargs)
+
+  return scann_builder.ScannBuilder(
+      db, num_neighbors, distance_measure).set_builder_lambda(builder_lambda)
+
+
 def create_searcher(db, scann_config, training_threads=0):
   return ScannSearcher(
       scann_pybind.ScannNumpy(db, scann_config, training_threads))
 
 
-def load_searcher(db, artifacts_dir):
-  tokenization_path = os.path.join(artifacts_dir, "datapoint_to_token.npy")
-  hashed_db_path = os.path.join(artifacts_dir, "hashed_dataset.npy")
+def load_searcher(artifacts_dir):
+  """Loads searcher assets from artifacts_dir and returns a ScaNN searcher."""
 
-  tokenization = np.load(tokenization_path) if os.path.isfile(
-      tokenization_path) else None
-  hashed_db = np.load(hashed_db_path) if os.path.isfile(
-      hashed_db_path) else None
+  def load_if_exists(filename):
+    path = os.path.join(artifacts_dir, filename)
+    return np.load(path) if os.path.isfile(path) else None
+
+  db = load_if_exists("dataset.npy")
+  tokenization = load_if_exists("datapoint_to_token.npy")
+  hashed_db = load_if_exists("hashed_dataset.npy")
+  int8_db = load_if_exists("int8_dataset.npy")
+  int8_multipliers = load_if_exists("int8_multipliers.npy")
+  db_norms = load_if_exists("dp_norms.npy")
+
   return ScannSearcher(
-      scann_pybind.ScannNumpy(db, tokenization, hashed_db, artifacts_dir))
+      scann_pybind.ScannNumpy(db, tokenization, hashed_db, int8_db,
+                              int8_multipliers, db_norms, artifacts_dir))

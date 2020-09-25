@@ -69,11 +69,16 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
       const DenseDataset<float>& kmeans_centers,
       ConstSpan<std::vector<DatapointIndex>> datapoints_by_token);
 
+  static StatusOr<uint8_t> ComputeGlobalTopNShift(
+      ConstSpan<std::vector<DatapointIndex>> datapoints_by_token);
+
   StatusOr<unique_ptr<SearchParameters::UnlockedQueryPreprocessingResults>>
   UnlockedPreprocessQuery(const DatapointPtr<float>& query) const final;
 
   StatusOr<SingleMachineFactoryOptions> ExtractSingleMachineFactoryOptions()
       override;
+
+  void AttemptEnableGlobalTopN();
 
  protected:
   bool impl_needs_dataset() const final { return leaf_searchers_.empty(); }
@@ -163,6 +168,10 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
       AsymmetricHasherConfig::FLOAT;
 
   bool disjoint_leaf_partitions_ = true;
+
+  bool enable_global_topn_ = false;
+
+  uint8_t global_topn_shift_ = 0;
 };
 
 }  // namespace scann_ops

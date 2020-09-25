@@ -22,7 +22,6 @@
 #include "absl/time/time.h"
 #include "scann/distance_measures/distance_measure_factory.h"
 #include "scann/oss_wrappers/scann_random.h"
-#include "scann/oss_wrappers/scann_status.h"
 #include "scann/partitioning/kmeans_tree_partitioner.pb.h"
 #include "scann/partitioning/kmeans_tree_partitioner_utils.h"
 #include "scann/partitioning/partitioner.pb.h"

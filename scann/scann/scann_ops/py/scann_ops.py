@@ -17,21 +17,23 @@
 
 import hashlib
 import os
+from scann.scann_ops.py import scann_builder
 import tensorflow as tf
 
 _scann_ops_so = tf.load_op_library(
     os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "cc/_scann_ops.so"))
-scann_create_searcher = _scann_ops_so.addons_scann_create_searcher
-scann_search = _scann_ops_so.addons_scann_search
-scann_search_batched = _scann_ops_so.addons_scann_search_batched
-scann_to_tensors = _scann_ops_so.addons_scann_to_tensors
-tensors_to_scann = _scann_ops_so.addons_tensors_to_scann
+scann_create_searcher = _scann_ops_so.scann_scann_create_searcher
+scann_search = _scann_ops_so.scann_scann_search
+scann_search_batched = _scann_ops_so.scann_scann_search_batched
+scann_to_tensors = _scann_ops_so.scann_scann_to_tensors
+tensors_to_scann = _scann_ops_so.scann_tensors_to_scann
 
 
-def searcher_from_module(module, db):
-  return ScannSearcher(module.recreate_handle(db))
+def searcher_from_module(module, db=None):
+  del db  # Unused.
+  return ScannSearcher(module.recreate_handle())
 
 
 class ScannState(tf.Module):
@@ -39,7 +41,7 @@ class ScannState(tf.Module):
 
   def __init__(self, tensors):
     super(ScannState, self).__init__()
-    scann_config, serialized_partitioner, datapoint_to_token, ah_codebook, hashed_dataset = tensors
+    scann_config, serialized_partitioner, datapoint_to_token, ah_codebook, hashed_dataset, int8_dataset, int8_multipliers, dp_norms, dataset = tensors
 
     def make_var(v):
       with tf.compat.v1.variable_scope(
@@ -51,13 +53,19 @@ class ScannState(tf.Module):
     self.datapoint_to_token = make_var(datapoint_to_token)
     self.ah_codebook = make_var(ah_codebook)
     self.hashed_dataset = make_var(hashed_dataset)
+    self.int8_dataset = make_var(int8_dataset)
+    self.int8_multipliers = make_var(int8_multipliers)
+    self.dp_norms = make_var(dp_norms)
+    self.dataset = make_var(dataset)
 
-  @tf.function(input_signature=[tf.TensorSpec([None, None], tf.float32)])
-  def recreate_handle(self, db):
+  @tf.function(input_signature=[])
+  def recreate_handle(self):
     """Creates resource handle to searcher from ScaNN searcher assets."""
-    return tensors_to_scann(db, self.scann_config, self.serialized_partitioner,
+    return tensors_to_scann(self.dataset, self.scann_config,
+                            self.serialized_partitioner,
                             self.datapoint_to_token, self.ah_codebook,
-                            self.hashed_dataset)
+                            self.hashed_dataset, self.int8_dataset,
+                            self.int8_multipliers, self.dp_norms)
 
 
 class ScannSearcher(object):
@@ -100,6 +108,28 @@ class ScannSearcher(object):
 
   def serialize_to_module(self):
     return ScannState(scann_to_tensors(self.searcher_handle))
+
+
+def builder(db, num_neighbors, distance_measure):
+  """Creates a ScannBuilder that returns a TensorFlow ScaNN searcher on build().
+
+  Args:
+    db: the dataset that ScaNN will search over; a 2d array of 32-bit floats
+      with one data point per row.
+    num_neighbors: the default # neighbors the searcher will return per query.
+    distance_measure: one of "squared_l2" or "dot_product".
+
+  Returns:
+    A ScannBuilder object, which builds the ScaNN config via calls such as
+    tree() and score_brute_force(). Calling build() on the ScannBuilder will
+    return a TensorFlow ScaNN searcher with its specified config.
+  """
+
+  def builder_lambda(db, config, training_threads, **kwargs):
+    return create_searcher(db, config, training_threads, **kwargs)
+
+  return scann_builder.ScannBuilder(
+      db, num_neighbors, distance_measure).set_builder_lambda(builder_lambda)
 
 
 def create_searcher(db,

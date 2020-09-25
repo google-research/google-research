@@ -35,8 +35,6 @@
 #include "scann/distance_measures/one_to_many/one_to_many.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
 #include "scann/oss_wrappers/scann_bits.h"
-#include "scann/oss_wrappers/scann_comparator.h"
-#include "scann/oss_wrappers/scann_status.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
@@ -45,6 +43,8 @@
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 #include "scann/utils/zip_sort.h"
+
+#include "scann/oss_wrappers/scann_status.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/gtl/top_n.h"
@@ -1098,15 +1098,16 @@ Status GmmUtils::PCAKmeansReinitialization(
         const double sign = j & (1ULL << k) ? 1.0 : -1.0;
         centroid_storage += sign * split_directions[k];
       }
-      if (spherical) {
-        centroid_storage.normalize();
-      }
+
       centroid_storage.eval();
       std::copy(centroid_storage.begin(), centroid_storage.end(),
                 override_centroid.begin());
     }
   }
 end_covariance_loop:
+  if (spherical) {
+    SCANN_RETURN_IF_ERROR(centroids->NormalizeUnitL2());
+  }
   absl::Time cov_end = absl::Now();
   if (!clusters_to_split.empty()) {
     LOG(INFO) << "Spent " << absl::ToDoubleSeconds(cov_end - cov_start)

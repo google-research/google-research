@@ -15,6 +15,8 @@
 #ifndef SCANN__BASE_SEARCH_PARAMETERS_H_
 #define SCANN__BASE_SEARCH_PARAMETERS_H_
 
+#include <cstddef>
+
 #include "scann/base/restrict_allowlist.h"
 #include "scann/data_format/features.pb.h"
 #include "scann/oss_wrappers/scann_aligned_malloc.h"
@@ -90,6 +92,11 @@ class SearchParameters {
   bool post_reordering_crowding_enabled() const {
     return post_reordering_num_neighbors_ >
            per_crowding_attribute_post_reordering_num_neighbors_;
+  }
+
+  bool crowding_enabled() const {
+    return pre_reordering_crowding_enabled() ||
+           post_reordering_crowding_enabled();
   }
 
   bool restricts_enabled() const { return false; }

@@ -22,7 +22,9 @@
 #include "scann/base/search_parameters.h"
 #include "tensorflow/core/platform/cpu_info.h"
 
+#include "absl/status/status.h"
 #include "absl/strings/match.h"
+#include "absl/strings/substitute.h"
 #include "scann/utils/factory_helpers.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
@@ -114,21 +116,6 @@ StatusOr<DatapointIndex> UntypedSingleMachineSearcherBase::DatasetSize() const {
     return FailedPreconditionError(
         "Dataset size is not known for this searcher.");
   }
-}
-
-StatusOr<SingleMachineFactoryOptions>
-UntypedSingleMachineSearcherBase::ExtractSingleMachineFactoryOptions() {
-  SingleMachineFactoryOptions opts;
-
-  opts.compressed_dataset =
-      std::const_pointer_cast<DenseDataset<uint8_t>>(compressed_dataset_);
-  opts.hashed_dataset =
-      std::const_pointer_cast<DenseDataset<uint8_t>>(hashed_dataset_);
-
-  opts.crowding_attributes = std::const_pointer_cast<vector<int64_t>>(
-      datapoint_index_to_crowding_attribute_);
-  opts.creation_timestamp = creation_timestamp_;
-  return opts;
 }
 
 bool UntypedSingleMachineSearcherBase::impl_needs_dataset() const {
@@ -266,6 +253,24 @@ bool SingleMachineSearcherBase<T>::needs_dataset() const {
          (dataset_ && mutator_outstanding_);
 }
 
+template <typename T>
+StatusOr<SingleMachineFactoryOptions>
+SingleMachineSearcherBase<T>::ExtractSingleMachineFactoryOptions() {
+  SingleMachineFactoryOptions opts;
+
+  opts.compressed_dataset =
+      std::const_pointer_cast<DenseDataset<uint8_t>>(compressed_dataset_);
+  opts.hashed_dataset =
+      std::const_pointer_cast<DenseDataset<uint8_t>>(hashed_dataset_);
+
+  opts.crowding_attributes = std::const_pointer_cast<vector<int64_t>>(
+      datapoint_index_to_crowding_attribute_);
+  opts.creation_timestamp = creation_timestamp_;
+  if (reordering_helper_)
+    reordering_helper_->AppendDataToSingleMachineFactoryOptions(&opts);
+  return opts;
+}
+
 bool UntypedSingleMachineSearcherBase::needs_hashed_dataset() const {
   return impl_needs_hashed_dataset() ||
 
@@ -301,6 +306,10 @@ Status SingleMachineSearcherBase<T>::FindNeighborsNoSortNoExactReorder(
         std::string(
             "Crowding is enabled but not supported for searchers of type ") +
         typeid(*this).name() + ".");
+  }
+  if (!this->crowding_enabled() && params.crowding_enabled()) {
+    return InvalidArgumentError(
+        "Crowding is enabled for query but not enabled in searcher.");
   }
 
   if (dataset() && !dataset()->empty() &&
@@ -360,6 +369,20 @@ Status SingleMachineSearcherBase<T>::FindNeighborsBatchedNoSortNoExactReorder(
     return InvalidArgumentError(
         "queries.size != results.size in FindNeighbors batched (%d vs. %d).",
         queries.size(), results.size());
+  }
+  for (auto [query_idx, param] : Enumerate(params)) {
+    if (!this->supports_crowding() && param.pre_reordering_crowding_enabled()) {
+      return InvalidArgumentError(
+          absl::Substitute("Crowding is enabled for query (index $0) but not "
+                           "supported for searchers of type $1.",
+                           query_idx, typeid(*this).name()));
+    }
+    if (!this->crowding_enabled() && param.crowding_enabled()) {
+      return InvalidArgumentError(
+          absl::Substitute("Crowding is enabled for query (index $0) but not "
+                           "enabled in searcher.",
+                           query_idx));
+    }
   }
 
   bool reordering_enabled =

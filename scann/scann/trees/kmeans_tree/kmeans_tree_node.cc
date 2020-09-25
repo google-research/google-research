@@ -30,9 +30,6 @@
 namespace tensorflow {
 namespace scann_ops {
 
-static const int32_t kMaxIterations = 1000;
-static const double kEpsilon = 1e-3;
-
 KMeansTreeNode::KMeansTreeNode() {}
 
 void KMeansTreeNode::Reset() {

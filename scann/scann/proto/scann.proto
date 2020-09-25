@@ -23,14 +23,12 @@ import "scann/proto/compressed_reordering.proto";
 import "scann/proto/crowding.proto";
 import "scann/proto/disjoint_restrict_token.proto";
 import "scann/proto/distance_measure.proto";
-import "scann/proto/evaluation.proto";
 import "scann/proto/exact_reordering.proto";
 import "scann/proto/hash.proto";
 import "scann/proto/input_output.proto";
 import "scann/proto/metadata.proto";
 import "scann/proto/partitioning.proto";
 import "scann/proto/restricts.proto";
-import "scann/proto/trees.proto";
 
 option java_package = "com.google.research.scann";
 
@@ -42,6 +40,8 @@ message ScannConfig {
   optional int32 num_neighbors = 3 [default = 2147483647];
 
   optional float epsilon_distance = 4 [default = inf];
+
+  optional RestrictsConfig restricts = 39;
 
   optional bool restricts_enabled = 24 [default = false];
 
@@ -61,11 +61,7 @@ message ScannConfig {
 
   optional PartitioningConfig partitioning = 8;
 
-  optional EvaluationConfig evaluation = 11;
-
   optional HashConfig hash = 13;
-
-  optional TreeConfig tree = 14;
 
   optional MetadataConfig metadata = 20;
 
@@ -75,6 +71,8 @@ message ScannConfig {
 
   optional DisjointRestrictToken disjoint_restrict_token = 31;
 
+  reserved 11;
+  reserved 14;
   reserved 15;
   reserved 19;
   reserved 26;

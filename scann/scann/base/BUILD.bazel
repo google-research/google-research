@@ -4,9 +4,9 @@ package(
 )
 
 cc_library(
-    name = "single_machine_factory_no_sparse",
-    srcs = ["single_machine_factory_no_sparse.cc"],
-    hdrs = ["single_machine_factory_no_sparse.h"],
+    name = "single_machine_factory_scann",
+    srcs = ["single_machine_factory_scann.cc"],
+    hdrs = ["single_machine_factory_scann.h"],
     tags = ["local"],
     deps = [
         ":reordering_helper_factory",
@@ -20,7 +20,6 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
-        "//scann/oss_wrappers:scann_random",
         "//scann/partitioning:kmeans_tree_like_partitioner",
         "//scann/partitioning:partitioner_factory",
         "//scann/partitioning:partitioner_factory_base",
@@ -30,17 +29,16 @@ cc_library(
         "//scann/proto:distance_measure_cc_proto",
         "//scann/proto:exact_reordering_cc_proto",
         "//scann/proto:scann_cc_proto",
-        "//scann/proto:trees_cc_proto",
         "//scann/tree_x_hybrid:tree_ah_hybrid_residual",
         "//scann/tree_x_hybrid:tree_x_hybrid_smmd",
         "//scann/utils:factory_helpers",
         "//scann/utils:hash_leaf_helpers",
+        "//scann/utils:scalar_quantization_helpers",
         "//scann/utils:types",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/memory",
-        "@com_google_absl//absl/random",
         "@local_config_tf//:libtensorflow_framework",
         "@local_config_tf//:tf_header_lib",
     ],
@@ -74,6 +72,7 @@ cc_library(
 
 cc_library(
     name = "single_machine_factory_options",
+    srcs = ["single_machine_factory_options.cc"],
     hdrs = ["single_machine_factory_options.h"],
     tags = ["local"],
     deps = [
@@ -83,6 +82,7 @@ cc_library(
         "//scann/partitioning:partitioner_cc_proto",
         "//scann/proto:centers_cc_proto",
         "//scann/trees/kmeans_tree",
+        "//scann/utils:input_data_utils",
         "//scann/utils:types",
         "//scann/utils/fixed_point:pre_quantized_fixed_point",
         "@com_google_absl//absl/base",
@@ -117,6 +117,7 @@ cc_library(
         "//scann/utils:zip_sort",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@local_config_tf//:libtensorflow_framework",
         "@local_config_tf//:tf_header_lib",

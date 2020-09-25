@@ -35,9 +35,12 @@ using np_row_major_arr =
 
 class ScannNumpy {
  public:
-  ScannNumpy(const np_row_major_arr<float>& np_dataset,
+  ScannNumpy(std::optional<const np_row_major_arr<float>> np_dataset,
              std::optional<const np_row_major_arr<int32_t>> datapoint_to_token,
              std::optional<const np_row_major_arr<uint8_t>> hashed_dataset,
+             std::optional<const np_row_major_arr<int8_t>> int8_dataset,
+             std::optional<const np_row_major_arr<float>> int8_multipliers,
+             std::optional<const np_row_major_arr<float>> dp_norms,
              const std::string& artifacts_dir);
   ScannNumpy(const np_row_major_arr<float>& np_dataset,
              const std::string& config, int training_threads);

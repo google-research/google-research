@@ -22,6 +22,7 @@
 #include "scann/base/restrict_allowlist.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
+#include "scann/brute_force/scalar_quantized_brute_force.h"
 #include "scann/hashes/asymmetric_hashing2/serialization.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
 #include "scann/partitioning/kmeans_tree_partitioner.h"
@@ -237,7 +238,7 @@ Status TreeXHybridSMMD<T>::BuildLeafSearchers(
 }
 
 template <typename T>
-Status TreeXHybridSMMD<T>::BuildPretrainedScalarQuanitzationLeafSearchers(
+Status TreeXHybridSMMD<T>::BuildPretrainedScalarQuantizationLeafSearchers(
     vector<std::vector<DatapointIndex>> datapoints_by_token,
     vector<DenseDataset<int8_t>> partitioned_datasets,
     vector<vector<float>> partitioned_squared_l2_norms,
@@ -753,13 +754,19 @@ StatusOr<SingleMachineFactoryOptions>
 TreeXHybridSMMD<T>::ExtractSingleMachineFactoryOptions() {
   TF_ASSIGN_OR_RETURN(const int dataset_size,
                       UntypedSingleMachineSearcherBase::DatasetSize());
+  auto int8_query_processor = std::dynamic_pointer_cast<
+      const TreeScalarQuantizationPreprocessedQueryCreator>(
+      leaf_searcher_optional_parameter_creator_);
+  ConstSpan<float> int8_multipliers;
+  if (int8_query_processor)
+    int8_multipliers = int8_query_processor->inverse_multipliers();
   TF_ASSIGN_OR_RETURN(
       SingleMachineFactoryOptions leaf_opts,
       MergeAHLeafOptions(leaf_searchers_, datapoints_by_token_, dataset_size));
 
   TF_ASSIGN_OR_RETURN(
       auto opts,
-      UntypedSingleMachineSearcherBase::ExtractSingleMachineFactoryOptions());
+      SingleMachineSearcherBase<T>::ExtractSingleMachineFactoryOptions());
   opts.datapoints_by_token =
       std::make_shared<vector<std::vector<DatapointIndex>>>(
           datapoints_by_token_);
@@ -769,6 +776,16 @@ TreeXHybridSMMD<T>::ExtractSingleMachineFactoryOptions() {
   if (leaf_opts.ah_codebook != nullptr) {
     opts.ah_codebook = leaf_opts.ah_codebook;
     opts.hashed_dataset = leaf_opts.hashed_dataset;
+  }
+  if (leaf_opts.pre_quantized_fixed_point && !int8_multipliers.empty()) {
+    opts.pre_quantized_fixed_point = make_shared<PreQuantizedFixedPoint>();
+    opts.pre_quantized_fixed_point = leaf_opts.pre_quantized_fixed_point;
+    opts.pre_quantized_fixed_point->multiplier_by_dimension =
+        make_shared<vector<float>>(int8_multipliers.begin(),
+                                   int8_multipliers.end());
+
+    for (float& mult : *opts.pre_quantized_fixed_point->multiplier_by_dimension)
+      mult = 1 / mult;
   }
   return opts;
 }

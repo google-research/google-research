@@ -38,6 +38,12 @@ class ScannConfig;
 struct SingleMachineFactoryOptions {
   SingleMachineFactoryOptions() {}
 
+  StatusOr<DatapointIndex> ComputeConsistentSize(
+      const Dataset* dataset = nullptr) const;
+
+  StatusOr<DimensionIndex> ComputeConsistentDimensionality(
+      const HashConfig& config, const Dataset* dataset = nullptr) const;
+
   TypeTag type_tag = kInvalidTypeTag;
 
   shared_ptr<vector<std::vector<DatapointIndex>>> datapoints_by_token;

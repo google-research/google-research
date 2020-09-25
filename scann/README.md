@@ -17,19 +17,20 @@ details on the academic description of algorithms, please see [1].
 
 Reference [1]:
 ```
-@article{
+@inproceedings{avq_2020,
   title={Accelerating Large-Scale Inference with Anisotropic Vector Quantization},
   author={Guo, Ruiqi and Sun, Philip and Lindgren, Erik and Geng, Quan and Simcha, David and Chern, Felix and Kumar, Sanjiv},
-  journal={arXiv preprint arXiv:1908.10396},
-  year={2020}
+  booktitle={International Conference on Machine Learning},
+  year={2020},
+  URL={https://arxiv.org/abs/1908.10396}
 }
 ```
 
 ## Python wheels
 
-[Python 3.5](https://storage.googleapis.com/scann/releases/1.0.0/scann-1.0.0-cp35-cp35m-linux_x86_64.whl)
-[Python 3.6](https://storage.googleapis.com/scann/releases/1.0.0/scann-1.0.0-cp36-cp36m-linux_x86_64.whl)
-[Python 3.7](https://storage.googleapis.com/scann/releases/1.0.0/scann-1.0.0-cp37-cp37m-linux_x86_64.whl)
+[Python 3.5](https://storage.googleapis.com/scann/releases/1.1.0/scann-1.1.0-cp35-cp35m-linux_x86_64.whl)
+[Python 3.6](https://storage.googleapis.com/scann/releases/1.1.0/scann-1.1.0-cp36-cp36m-linux_x86_64.whl)
+[Python 3.7](https://storage.googleapis.com/scann/releases/1.1.0/scann-1.1.0-cp37-cp37m-linux_x86_64.whl)
 
 See [docs/releases.md](docs/releases.md) for previous versions.
 
