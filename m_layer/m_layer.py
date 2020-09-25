@@ -53,7 +53,7 @@ class MLayer(tf.keras.layers.Layer):
     """
     self._dim_m = dim_m
     self._rep_to_exp_tensor = None
-    self._matrix_init = matrix_init or 'normal'
+    self._matrix_init = matrix_init or 'uniform'
     self._with_bias = with_bias
     self._matrix_bias = None
     self._matrix_squarings_exp = matrix_squarings_exp
