@@ -15,7 +15,7 @@ apt-get install python3.6 python3.6-dev
 To create a virtual environment with the necessary dependencies, run:
 
 ```
-source run.sh
+source ./learning_parameter_allocation/run.sh
 ```
 
 ## Running experiments
