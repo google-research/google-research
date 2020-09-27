@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<summary xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/summary_file.xsd">
+    <step time="0.00" loaded="26" inserted="12" running="12" waiting="14" ended="0" meanWaitingTime="0.00" meanTravelTime="-1.00" halting="0" meanSpeed="35.51" meanSpeedRelative="1.02" duration="1567638836265"/>
+    <step time="1.00" loaded="26" inserted="19" running="19" waiting="7" ended="0" meanWaitingTime="0.37" meanTravelTime="-1.00" halting="0" meanSpeed="34.51" meanSpeedRelative="0.98" duration="1567638836275"/>
+    <step time="2.00" loaded="26" inserted="23" running="23" waiting="3" ended="0" meanWaitingTime="0.65" meanTravelTime="-1.00" halting="0" meanSpeed="33.98" meanSpeedRelative="0.96" duration="1567638836277"/>
+    <step time="3.00" loaded="26" inserted="25" running="25" waiting="1" ended="0" meanWaitingTime="0.84" meanTravelTime="-1.00" halting="0" meanSpeed="33.15" meanSpeedRelative="0.94" duration="1567638836279"/>
+    <step time="4.00" loaded="29" inserted="29" running="29" waiting="0" ended="0" meanWaitingTime="0.86" meanTravelTime="-1.00" halting="0" meanSpeed="34.04" meanSpeedRelative="0.95" duration="1567638836280"/>
+    <step time="5.00" loaded="30" inserted="30" running="30" waiting="0" ended="0" meanWaitingTime="0.83" meanTravelTime="-1.00" halting="0" meanSpeed="34.16" meanSpeedRelative="0.94" duration="1567638836283"/>
+    <step time="6.00" loaded="30" inserted="30" running="30" waiting="0" ended="0" meanWaitingTime="0.83" meanTravelTime="-1.00" halting="0" meanSpeed="33.96" meanSpeedRelative="0.94" duration="1567638836286"/>
+    <step time="7.00" loaded="30" inserted="30" running="30" waiting="0" ended="0" meanWaitingTime="0.83" meanTravelTime="-1.00" halting="0" meanSpeed="33.53" meanSpeedRelative="0.92" duration="1567638836288"/>
+    <step time="8.00" loaded="33" inserted="33" running="33" waiting="0" ended="0" meanWaitingTime="0.76" meanTravelTime="-1.00" halting="0" meanSpeed="34.71" meanSpeedRelative="0.93" duration="1567638836290"/>
+    <step time="9.00" loaded="33" inserted="33" running="33" waiting="0" ended="0" meanWaitingTime="0.76" meanTravelTime="-1.00" halting="0" meanSpeed="34.18" meanSpeedRelative="0.92" duration="1567638836295"/>
+    <step time="10.00" loaded="33" inserted="33" running="33" waiting="0" ended="0" meanWaitingTime="0.76" meanTravelTime="-1.00" halting="0" meanSpeed="33.59" meanSpeedRelative="0.90" duration="1567638836298"/>
+    <step time="11.00" loaded="34" inserted="34" running="34" waiting="0" ended="0" meanWaitingTime="0.74" meanTravelTime="-1.00" halting="0" meanSpeed="33.22" meanSpeedRelative="0.88" duration="1567638836301"/>
+</summary>

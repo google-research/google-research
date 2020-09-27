@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<detector xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/det_e1_file.xsd">
+    <interval begin="6360.00" end="6420.00" id="e1Detector_10293408#4_0_2" nVehContrib="0" flow="0.00" occupancy="0.00" speed="-1.00" length="-1.00" nVehEntered="0"/>
+    <interval begin="6420.00" end="6480.00" id="e1Detector_10293408#4_0_2" nVehContrib="0" flow="0.00" occupancy="0.00" speed="-1.00" length="-1.00" nVehEntered="0"/>
+    <interval begin="6480.00" end="6540.00" id="e1Detector_10293408#4_0_2" nVehContrib="0" flow="0.00" occupancy="0.00" speed="-1.00" length="-1.00" nVehEntered="0"/>
+    <interval begin="6540.00" end="6600.00" id="e1Detector_10293408#4_0_2" nVehContrib="12" flow="720.00" occupancy="4.53" speed="22.20" length="5.00" nVehEntered="12"/>
+    <interval begin="6600.00" end="6660.00" id="e1Detector_10293408#4_0_2" nVehContrib="7" flow="420.00" occupancy="2.57" speed="22.99" length="5.00" nVehEntered="7"/>
+    <interval begin="6660.00" end="6720.00" id="e1Detector_10293408#4_0_2" nVehContrib="14" flow="840.00" occupancy="6.08" speed="19.39" length="5.00" nVehEntered="14"/>
+    <interval begin="6720.00" end="6780.00" id="e1Detector_10293408#4_0_2" nVehContrib="11" flow="660.00" occupancy="4.05" speed="22.68" length="5.00" nVehEntered="11"/>
+</detector>
