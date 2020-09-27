@@ -43,9 +43,8 @@ flags.DEFINE_list('label_list', None, 'Python list of possible label values.')
 flags.DEFINE_string('speaker_id_name', None, '`None`, or speaker ID field.')
 flags.DEFINE_string('save_model_dir', None, 'If not `None`, save sklearn '
                     'models in this directory.')
-flags.DEFINE_boolean('calculate_equal_error_rate', False,
-                     'Whether to calculate the Equal Error Rate. Only '
-                     'applicable for binary classification problems.')
+flags.DEFINE_enum('eval_metric', 'accuracy', ['accuracy', 'equal_error_rate'],
+                  'Which metric to compute and report.')
 
 FLAGS = flags.FLAGS
 
@@ -93,7 +92,7 @@ def main(unused_argv):
           'l2_normalization': l2_normalization,
           'speaker_id_name': FLAGS.speaker_id_name,
           'save_model_dir': FLAGS.save_model_dir,
-          'calculate_equal_error_rate': FLAGS.calculate_equal_error_rate,
+          'eval_metric': FLAGS.eval_metric,
       }
     exp_params.append(_params_dict(l2_normalization=True))
     exp_params.append(_params_dict(l2_normalization=False))

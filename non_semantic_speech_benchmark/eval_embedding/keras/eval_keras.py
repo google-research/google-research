@@ -22,9 +22,9 @@ from absl import app
 from absl import flags
 from absl import logging
 
-import tensorflow.compat.v2 as tf
+import tensorflow as tf
 
-from non_semantic_speech_benchmark.eval_embedding import eer_metric
+from non_semantic_speech_benchmark.eval_embedding import metrics
 from non_semantic_speech_benchmark.eval_embedding.keras import get_data
 from non_semantic_speech_benchmark.eval_embedding.keras import models
 
@@ -128,10 +128,14 @@ def eval_and_report():
                    ex_count, count,
                    time.time() - s)
     if FLAGS.calculate_equal_error_rate:
-      eer_score = eer_metric.calculate_eer(all_logits, all_real)
+      eer_score = metrics.calculate_eer(all_real, all_logits)
+    auc_score = metrics.calculate_auc(all_real, all_logits)
+    dprime_score = metrics.dprime_from_auc(auc_score)
     with writer.as_default():
       tf.summary.scalar('accuracy', acc_m.result().numpy(), step=int(step))
       tf.summary.scalar('xent_loss', xent_m.result().numpy(), step=int(step))
+      tf.summary.scalar('auc', auc_score, step=int(step))
+      tf.summary.scalar('dprime', dprime_score, step=int(step))
       if FLAGS.calculate_equal_error_rate:
         tf.summary.scalar('eer', eer_score, step=int(step))
     logging.info('Done with eval step: %s in %.2f secs.', step, time.time() - s)
@@ -147,10 +151,10 @@ def main(unused_argv):
   assert FLAGS.batch_size
   assert FLAGS.logdir
 
-  tf.compat.v2.enable_v2_behavior()
-  assert tf.executing_eagerly()
   eval_and_report()
 
 
 if __name__ == '__main__':
+  tf.compat.v2.enable_v2_behavior()
+  assert tf.executing_eagerly()
   app.run(main)

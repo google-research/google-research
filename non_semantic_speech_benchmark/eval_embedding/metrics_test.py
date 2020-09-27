@@ -14,23 +14,23 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Tests for utilities defined in eer_metric.py."""
+"""Tests for utilities defined in metrics.py."""
 
 from absl.testing import absltest
 from absl.testing import parameterized
 
-from non_semantic_speech_benchmark.eval_embedding import eer_metric
+from non_semantic_speech_benchmark.eval_embedding import metrics
 
 
-class EERMetric(parameterized.TestCase):
+class MetricsTest(parameterized.TestCase):
 
   def testCalculateEer(self):
     self.assertEqual(
-        eer_metric.calculate_eer([0.1, 0.2, 0.8, 0.9], [0, 0, 1, 1]), 0)
+        metrics.calculate_eer([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9]), 0)
     self.assertEqual(
-        eer_metric.calculate_eer([0.9, 0.8, 0.2, 0.1], [0, 0, 1, 1]), 1)
+        metrics.calculate_eer([0, 0, 1, 1], [0.9, 0.8, 0.2, 0.1]), 1)
     self.assertEqual(
-        eer_metric.calculate_eer([0.1, 0.8, 0.2, 0.9], [0, 0, 1, 1]), 0.5)
+        metrics.calculate_eer([0, 0, 1, 1], [0.1, 0.8, 0.2, 0.9]), 0.5)
 
   @parameterized.named_parameters(
       ('Perfect scores', [0.1, 0.2, 0.8, 0.9], [0, 0, 1, 1], [1, 0.5, 0, 0, 0],
@@ -41,11 +41,21 @@ class EERMetric(parameterized.TestCase):
        [0, 0, 0.5, 0.5, 1]),
   )
   def testCalculateDetCurve(self, scores, labels, expected_fpr, expected_fnr):
-    fpr, fnr = eer_metric.calculate_det_curve(scores, labels)
+    fpr, fnr = metrics.calculate_det_curve(labels, scores)
     fpr = list(fpr)
     fnr = list(fnr)
     self.assertEqual(fpr, expected_fpr)
     self.assertEqual(fnr, expected_fnr)
+
+  def testAUCSanity(self):
+    metrics.calculate_auc([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9])
+    metrics.calculate_auc([0, 0, 1, 1], [0.9, 0.8, 0.2, 0.1])
+
+  def testDPrimeSanity(self):
+    auc = metrics.calculate_auc([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9])
+    metrics.dprime_from_auc(auc)
+    auc = metrics.calculate_auc([0, 0, 1, 1], [0.9, 0.8, 0.2, 0.1])
+    metrics.dprime_from_auc(auc)
 
 
 if __name__ == '__main__':
