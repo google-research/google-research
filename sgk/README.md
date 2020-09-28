@@ -1,8 +1,8 @@
 # Sparse GPU Kernels for Deep Learning
 
-![Sparse and Dense MobileNet Throughput v. Accuracy on V100](https://github.com/google-research/google-research/tree/master/state_of_sparsity/images/sparse_mbv1.png)
+![Sparse and Dense MobileNet Throughput v. Accuracy on V100](https://github.com/google-research/google-research/blob/master/sgk/images/sparse_mbv1.png)
 
-This repo accompanies the paper [Sparse GPU Kernels For Deep Learning](https://arxiv.org/abs/2006.10901), published at SC20. It includes the code and checkpoints for the sparse MobileNetV1 and Transformer models as well as the dataset of sparse matrices from deep neural networks used for benchmarking. The kernels developed in the paper are available in [Sputnik](https://github.com/google-research/sputnik), which this repo depends on.
+This repo accompanies the paper [Sparse GPU Kernels For Deep Learning](https://arxiv.org/abs/2006.10901), published at SC'20. It includes the code and checkpoints for the sparse MobileNetV1 and Transformer models as well as the dataset of sparse matrices from deep neural networks used for benchmarking. The kernels developed in the paper are available in [Sputnik](https://github.com/google-research/sputnik), which this repo depends on.
 
 # Sparse Neural Networks
 
@@ -28,7 +28,6 @@ All throughputs measured on an Nvidia V100 GPU.
 |   1   |    0%    |      72.7%     |       2,518      |
 |  1.2  |    0%    |      73.8%     |       2,046      |
 |  1.4  |    0%    |      74.8%     |       1,729      |
-|:-----:|:--------:|:--------------:|:----------------:|
 |  1.3  |    90%   |      72.9%     |       2,874      |
 |  1.4  |    90%   |      73.3%     |       2,706      |
 |  1.5  |    90%   |      73.8%     |       2,537      |
@@ -40,7 +39,7 @@ To benchmark a model from inside the container, enter the `mbv1` directory and r
 
 ### Transformer
 
-All throughputs and memory consumption measured on an Nvidia V100 GPU. See the full paper for results on a Nvidia 1080 GPU.
+All throughputs and memory consumption measured on an Nvidia V100 GPU. See the full paper for results on an Nvidia 1080 GPU.
 
 |        Model       | Bits Per Dimension | Throughput (tokens/s) | Memory Usage (GB) |
 |:------------------:|:------------------:|:---------------------:|:-----------------:|
