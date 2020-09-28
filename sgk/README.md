@@ -1,7 +1,5 @@
 # Sparse GPU Kernels for Deep Learning
 
-![Sparse and Dense MobileNet Throughput v. Accuracy on V100](https://github.com/google-research/google-research/blob/master/sgk/images/sparse_mbv1.png)
-
 This repo accompanies the paper [Sparse GPU Kernels For Deep Learning](https://arxiv.org/abs/2006.10901), published at SC'20. It includes the code and checkpoints for the sparse MobileNetV1 and Transformer models as well as the dataset of sparse matrices from deep neural networks used for benchmarking. The kernels developed in the paper are available in [Sputnik](https://github.com/google-research/sputnik), which this repo depends on.
 
 # Sparse Neural Networks
@@ -13,8 +11,8 @@ The checkpoints for all models can downloaded [here](https://storage.googleapis.
 These models rely on custom TensorFlow operations for the kernels provided in Sputnik. We highly recommend you use Docker (w/ Nvidia Docker) to build and run them. After cloning the repository and entering the directory, run 
 
 ```
-sudo docker build -t sgk
-sudo docker run --runtime=nvidia -v /tmp/:/mount/ -it sgk
+sudo docker build . -t sgk
+sudo docker run --runtime=nvidia -v /tmp/sgk_models:/mount/sgk_models -it sgk
 ```
 
 to build the image and launch the container. We're assuming you've downloaded and un-tarred the model checkpoints under `/tmp`, which will be made available under `/mount` inside the container.
