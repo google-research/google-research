@@ -17,7 +17,7 @@
 """Get data."""
 
 import functools
-import tensorflow.compat.v2 as tf
+import tensorflow as tf
 from non_semantic_speech_benchmark import file_utils
 
 
