@@ -701,9 +701,28 @@ def insert_at_indices(keypoints, indices, insert_keypoints=None):
   return tf.gather(keypoints, indices=perm_indices, axis=-2)
 
 
-def transfer_keypoint_masks(input_keypoint_masks, input_keypoint_profile,
-                            output_keypoint_profile):
-  """Transfers keypoint masks according to a different profile."""
+def transfer_keypoint_masks(input_keypoint_masks,
+                            input_keypoint_profile,
+                            output_keypoint_profile,
+                            enforce_surjectivity=True):
+  """Transfers keypoint masks according to a different profile.
+
+  Args:
+    input_keypoint_masks: A list of tensors for input keypoint masks.
+    input_keypoint_profile: A KeypointProfile object for input keypoints.
+    output_keypoint_profile: A KeypointProfile object for output keypoints.
+    enforce_surjectivity: A boolean for whether to enforce all output keypoint
+      masks are transferred from input keypoint masks. If True and any output
+      keypoint mask does not come from some input keypoint mask, error will be
+      raised. If False, uncorresponded output keypoints will have all-one masks.
+
+  Returns:
+    A tensor for output keypoint masks.
+
+  Raises:
+    ValueError: `Enforce_surjective` is True, but mapping from input keypoint to
+      output keypoint is not surjective.
+  """
   input_keypoint_masks = tf.split(
       input_keypoint_masks,
       num_or_size_splits=input_keypoint_profile.keypoint_num,
@@ -727,4 +746,12 @@ def transfer_keypoint_masks(input_keypoint_masks, input_keypoint_profile,
           tf.stack(input_keypoint_mask_subset, axis=-1),
           axis=-1,
           keepdims=False)
+
+  for i, output_keypoint_mask in enumerate(output_keypoint_masks):
+    if output_keypoint_mask is None:
+      if enforce_surjectivity:
+        raise ValueError('Uncorresponded output keypoints: index = %d.' % i)
+      else:
+        output_keypoint_masks[i] = tf.ones_like(input_keypoint_masks[0])
+
   return tf.concat(output_keypoint_masks, axis=-1)

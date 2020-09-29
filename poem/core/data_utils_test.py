@@ -145,7 +145,7 @@ class DataUtilsTest(tf.test.TestCase):
         ],
                  dtype=np.float32))
 
-  def test_mix_pair_batch_porportionally(self):
+  def test_mix_pair_batch_proportionally(self):
     lhs_pairs = tf.constant([
         [[1.0], [2.0]],
         [[1.1], [2.1]],
@@ -217,6 +217,17 @@ class DataUtilsTest(tf.test.TestCase):
         [[10.7, 11.8], [12.0, 13.0], [14.9, 16.0], [16.0, 17.0], [19.1, 20.2]],
         [[21.3, 22.4], [22.0, 23.0], [25.5, 26.6], [26.0, 27.0], [29.7, 30.8]],
     ])
+
+  def test_merge_dict(self):
+    target_dict = {'a': 1, 'b': 2}
+    source_dict = {'c': 4}
+    data_utils.merge_dict(source_dict, target_dict)
+    self.assertDictEqual(target_dict, {'a': 1, 'b': 2, 'c': 4})
+
+    target_dict = {'a': 1, 'b': 2}
+    source_dict = {'b': 3, 'c': 4}
+    with self.assertRaisesRegexp(ValueError, 'Key conflict: `b`.'):
+      data_utils.merge_dict(source_dict, target_dict)
 
 
 if __name__ == '__main__':

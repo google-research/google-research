@@ -416,3 +416,21 @@ def update_sub_tensor(x, indices, axis, update_func):
   combined_indices = indices + complement_indices
   combined_indices = [combined_indices.index(i) for i in range(dim)]
   return tf.gather(combined_tensor, indices=combined_indices, axis=axis)
+
+
+def merge_dict(source_dict, target_dict):
+  """Merges source dictionary into target dictionary without overriding.
+
+  `Target_dict` will be updated in place.
+
+  Args:
+    source_dict: A dictionary for source elements.
+    target_dict: A dictionary for target elements.
+
+  Raises:
+    ValueError: If `source_dict` and `target_dict` have key conflict.
+  """
+  for key, value in source_dict.items():
+    if key in target_dict:
+      raise ValueError('Key conflict: `%s`.' % key)
+    target_dict[key] = value
