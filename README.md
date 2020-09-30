@@ -11,7 +11,7 @@ found in the LICENSE file.
 
 ---
 
-Because the repo is large, we recommend you download only the subdirectory of
+Because the repository is large, we recommend you download only the subdirectory of
 interest:
 
 ```
