@@ -16,7 +16,7 @@ The protein language modelling code can be found in [/google-research/protein_lm
 
 ## Notes:
 
-* Set `lax_scan_unroll=16` for both attention functions when using a GPU to provide 4x speedups due to loop unrolling optimizations on the unidirectional case.
+* Set `lax_scan_unroll=16` for both attention functions when using a GPU to provide 4x speedups due to loop unrolling optimizations in the unidirectional case.
 * The unidirectional variant uses custom gradients via Jax, in order to provide significant memory reductions.
 
 If you found this codebase useful, please consider citing the paper:
