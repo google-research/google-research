@@ -1,6 +1,6 @@
 # Performer's Fast Self Attention Module.
 
-See ["Masked Language Modeling for Proteins via Linearly Scalable Long-Context Transformers"](https://arxiv.org/abs/2006.03555) for the paper associated with this library.
+See ["Rethinking Attention with Performers"](https://arxiv.org/abs/2009.14794) for the paper associated with this library.
 
 There are two main attention variants: 
 
@@ -31,17 +31,18 @@ If you found this codebase useful, please consider citing the paper:
                Tam{\'{a}}s Sarl{\'{o}}s and
                Peter Hawkins and
                Jared Davis and
+               Afroz Mohiuddin and
+               Lukasz Kaiser and
                David Belanger and
                Lucy Colwell and
                Adrian Weller},
-  title     = {Masked Language Modeling for Proteins via Linearly Scalable Long-Context
-               Transformers},
+  title     = {Rethinking Attention with Performers},
   journal   = {CoRR},
-  volume    = {abs/2006.03555},
+  volume    = {abs/2009.14794},
   year      = {2020},
-  url       = {https://arxiv.org/abs/2006.03555},
+  url       = {https://arxiv.org/abs/2009.14794},
   archivePrefix = {arXiv},
-  eprint    = {2006.03555}
+  eprint    = {2009.14794}
 }
 ```
 
