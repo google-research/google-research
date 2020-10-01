@@ -370,11 +370,11 @@ class LossfunTest(parameterized.TestCase, tf.test.TestCase):
 
       # Uniformly distributed values in (-16, 3), quantized to the nearest
       # 0.1 and then shifted by 0.05 so that we avoid the special cases at
-      # 0 and 2 where the analytical gradient wont match finite differences.
+      # 0 and 2 where the analytical gradient won't match finite differences.
       alpha = float_dtype(
-          np.round(np.random.uniform(-16, 3, num_samples) * 10) / 10.)
+          np.round(np.random.uniform(-16, 3, num_samples) * 10) / 10.) + 0.05
 
-      # Random uniformy distributed values in [0.5, 1.5]
+      # Random uniformly distributed values in [0.5, 1.5]
       scale = float_dtype(np.random.uniform(0.5, 1.5, num_samples))
 
       # Compute the loss and its derivative with respect to all three inputs.
@@ -387,19 +387,16 @@ class LossfunTest(parameterized.TestCase, tf.test.TestCase):
             tape.gradient(tf.reduce_sum(loss), z) for z in (x, alpha, scale)
         ]
 
-      # Assert that the 95th percentile of errors is <= 1e-2.
-      def assert_percentile_close(v1, v2):
-        self.assertLessEqual(np.percentile(np.abs(v1 - v2), 95), 1e-2)
-
       step_size = float_dtype(1e-3)
       n_x = (general.lossfun(x + step_size, alpha, scale) - loss) / step_size
       n_alpha = (general.lossfun(x, alpha + step_size, scale) -
                  loss) / step_size
       n_scale = (general.lossfun(x, alpha, scale + step_size) -
                  loss) / step_size
-      assert_percentile_close(n_x, d_x)
-      assert_percentile_close(n_alpha, d_alpha)
-      assert_percentile_close(n_scale, d_scale)
+
+      self.assertAllClose(n_x, d_x, rtol=1e-2, atol=1e-2)
+      self.assertAllClose(n_alpha, d_alpha, rtol=1e-2, atol=1e-2)
+      self.assertAllClose(n_scale, d_scale, rtol=1e-2, atol=1e-2)
 
 
 if __name__ == '__main__':
