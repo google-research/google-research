@@ -25,12 +25,6 @@ def model_parameters(parser_nn):
   """MatchboxNet model parameters."""
 
   parser_nn.add_argument(
-      '--padding',
-      type=str,
-      default='same',
-      help='padding can be same or causal, causal should be used for streaming'
-  )
-  parser_nn.add_argument(
       '--activation',
       type=str,
       default='relu',
@@ -61,6 +55,12 @@ def model_parameters(parser_nn):
       help='Apply/not apply residual connection in residual block'
   )
   parser_nn.add_argument(
+      '--ds_padding',
+      type=str,
+      default="'same', 'same', 'same', 'same', 'same', 'same'",
+      help='padding can be same or causal, causal should be used for streaming'
+  )
+  parser_nn.add_argument(
       '--ds_kernel_size',
       type=str,
       default='11, 13, 15, 17, 29, 1',
@@ -78,6 +78,18 @@ def model_parameters(parser_nn):
       default='1, 1, 1, 1, 2, 1',
       help='dilation value of DepthwiseConv1D for every residual block'
   )
+  parser_nn.add_argument(
+      '--ds_pool',
+      type=str,
+      default='1, 1, 1, 1, 1, 1',
+      help='Apply pooling after every residual block: pooling size'
+  )
+  parser_nn.add_argument(
+      '--ds_scale',
+      type=int,
+      default=1,
+      help='apply scaling in batch normalization layer'
+  )
 
 
 def resnet_block(inputs,
@@ -89,7 +101,8 @@ def resnet_block(inputs,
                  residual=False,
                  padding='same',
                  dropout=0.0,
-                 activation='relu'):
+                 activation='relu',
+                 scale=True):
   """Residual block.
 
   It is based on paper
@@ -107,6 +120,7 @@ def resnet_block(inputs,
     padding: can be 'same' or 'causal'
     dropout: dropout value
     activation: type of activation function (string)
+    scale: apply scaling in batchnormalization layer
 
   Returns:
     output tensor
@@ -115,7 +129,7 @@ def resnet_block(inputs,
     ValueError: if any of input list has different length from any other;
     or if padding has invalid value
   """
-  if padding not in ('same', 'causal'):
+  if residual and (padding not in ('same', 'causal')):
     raise ValueError('padding should be same or causal')
 
   net = inputs
@@ -138,7 +152,7 @@ def resnet_block(inputs,
         pad_time_dim=padding)(
             net)
 
-    net = tf.keras.layers.BatchNormalization()(net)
+    net = tf.keras.layers.BatchNormalization(scale=scale)(net)
     net = tf.keras.layers.Activation(activation)(net)
     net = tf.keras.layers.Dropout(rate=dropout)(net)
 
@@ -159,7 +173,7 @@ def resnet_block(inputs,
           filters=filters, kernel_size=1, use_bias=False, padding='valid'),
       pad_time_dim=padding)(
           net)
-  net = tf.keras.layers.BatchNormalization()(net)
+  net = tf.keras.layers.BatchNormalization(scale=scale)(net)
 
   if residual:
     # Conv1D 1x1
@@ -168,7 +182,7 @@ def resnet_block(inputs,
             filters=filters, kernel_size=1, use_bias=False, padding='valid'),
         pad_time_dim=padding)(
             inputs)
-    net_res = tf.keras.layers.BatchNormalization()(net_res)
+    net_res = tf.keras.layers.BatchNormalization(scale=scale)(net_res)
 
     net = tf.keras.layers.Add()([net, net_res])
 
@@ -202,8 +216,11 @@ def model(flags):
   ds_stride = parse(flags.ds_stride)
   ds_dilation = parse(flags.ds_dilation)
   ds_residual = parse(flags.ds_residual)
+  ds_pool = parse(flags.ds_pool)
+  ds_padding = parse(flags.ds_padding)
 
-  for l in (ds_repeat, ds_kernel_size, ds_stride, ds_dilation, ds_residual):
+  for l in (ds_repeat, ds_kernel_size, ds_stride, ds_dilation, ds_residual,
+            ds_pool, ds_padding):
     if len(ds_filters) != len(l):
       raise ValueError('all input lists have to be the same length')
 
@@ -218,19 +235,21 @@ def model(flags):
         speech_features.SpeechFeatures.get_params(flags))(
             net)
 
-  time_size, feature_size = net.shape[1:3]
-
-  net = tf.keras.backend.expand_dims(net)
-
-  net = tf.reshape(
-      net, [-1, time_size, 1, feature_size])  # [batch, time, 1, feature]
+  # make it [batch, time, 1, feature]
+  net = tf.keras.backend.expand_dims(net, axis=2)
 
   # encoder
-  for filters, repeat, kernel_size, stride, dilation, residual in zip(
+  for filters, repeat, kernel_size, stride, dilation, residual, pool, padding in zip(
       ds_filters, ds_repeat, ds_kernel_size, ds_stride, ds_dilation,
-      ds_residual):
+      ds_residual, ds_pool, ds_padding):
     net = resnet_block(net, repeat, kernel_size, filters, dilation, stride,
-                       residual, flags.padding, flags.dropout, flags.activation)
+                       residual, padding, flags.dropout, flags.activation,
+                       flags.ds_scale)
+    if pool > 1:
+      net = tf.keras.layers.AveragePooling2D(
+          pool_size=(pool, 1),
+          strides=(pool, 1)
+          )(net)
 
   # decoder
   net = stream.Stream(
@@ -238,7 +257,7 @@ def model(flags):
           pool_size=net.shape[1:3], strides=1))(
               net)
 
-  net = tf.reshape(net, shape=(-1, net.shape[3]))
+  net = stream.Stream(cell=tf.keras.layers.Flatten())(net)
 
   net = tf.keras.layers.Dense(units=flags.label_count)(net)
 

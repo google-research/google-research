@@ -22,6 +22,7 @@ and implemented most popular KWS models:
 * [ds_cnn](https://arxiv.org/pdf/1711.07128.pdf) - depth wise convolutional neural network;
 * [svdf](https://arxiv.org/pdf/1812.02802.pdf) - singular value decomposition filter neural network (sequence of 1d depthwise conv and 1x1 conv);
 * svdf_resnet - [svdf](https://arxiv.org/pdf/1812.02802.pdf) neural network with residual connections;
+* [ds_tc_resnet] - combination of 1d depthwise convolution in time with residual blocks, based on [MatchboxNet](https://arxiv.org/abs/2004.08531)
 * [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) - combination of attention with RNN(bi directional LSTM);
 * att_mh_rnn - extended version of [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) with multihead attention;
 * [mobilenet](https://arxiv.org/abs/1704.04861) - reduced version of mobilenet vision/imagenet model, but with 1d temporal conv;

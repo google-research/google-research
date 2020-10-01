@@ -378,4 +378,30 @@ def base_parser():
       ' 0 for SparseCategoricalCrossentropy '
       ' 1 for CategoricalCrossentropy '
   )
+  parser.add_argument(
+      '--novograd_beta_1',
+      type=float,
+      default=0.95,
+      help='The exponential decay rate for the 1st moment estimates',
+  )
+  parser.add_argument(
+      '--novograd_beta_2',
+      type=float,
+      default=0.5,
+      help='The exponential decay rate for the 2nd moment estimates',
+  )
+  parser.add_argument(
+      '--novograd_weight_decay',
+      type=float,
+      default=0.001,
+      help='Weight decay for each param',
+  )
+  parser.add_argument(
+      '--novograd_grad_averaging',
+      type=int,
+      default=0,
+      help='Determines whether to use Adam style exponential moving averaging '
+      'for the first order moments',
+  )
+
   return parser

@@ -369,7 +369,7 @@ def ds_tc_resnet_params():
   """Parameters for ds_tc_resnet model based on MatchboxNet."""
   params = Params()
   params.model_name = 'ds_tc_resnet'
-  params.padding = 'same'
+  params.ds_padding = "'same','same'"
   params.activation = 'relu'
   params.dropout = 0.0
   params.ds_filters = '4, 4'
@@ -379,6 +379,8 @@ def ds_tc_resnet_params():
   params.ds_stride = '1, 1'
   params.ds_dilation = '2, 1'
   params.activation = 'relu'
+  params.ds_pool = '1,1'
+  params.ds_scale = 1
   return params
 
 
