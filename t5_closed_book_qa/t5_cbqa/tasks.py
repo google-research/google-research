@@ -193,10 +193,11 @@ TaskRegistry.add(
 MixtureRegistry.add(
     "closed_book_qa",
     [
-        ("trivia_qa_open", 87622),
-        ("natural_questions_open", 85666),
-        ("web_questions_open", 3400)
-    ]
+        "trivia_qa_open",
+        "natural_questions_open",
+        "web_questions_open"
+    ],
+    default_rate=t5.data.rate_num_examples
 )
 
 # This mixture is to be used at test time. Training happens on the combined
@@ -204,8 +205,9 @@ MixtureRegistry.add(
 MixtureRegistry.add(
     "closed_book_qa_test",
     [
-        ("trivia_qa_open_test", 98935),
-        ("natural_questions_open_test", 87925),
-        ("web_questions_open_test", 3778)
-    ]
+        "trivia_qa_open_test",
+        "natural_questions_open_test",
+        "web_questions_open_test"
+    ],
+    default_rate=t5.data.rate_num_examples
 )
