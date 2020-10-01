@@ -48,3 +48,6 @@ Once you have a copy of `m_layer`, you should be able to import the Keras layer 
 ```python3
 from m_layer import MLayer
 ```
+
+The dataset for the periodicity experiment is obtained from [datamarket.com](https://datamarket.com/data/set/2324/daily-minimum-temperatures-in-melbourne-australia-1981-1990#!ds=2324&display=line), as cited by [kaggle.com](https://www.kaggle.com/paulbrabban/daily-minimum-temperatures-in-melbourne).
+It was released under a default open license, as recorded by [archive.org](https://web.archive.org/web/20160402201520/https://datamarket.com/data/license/0/default-open-license.html).
