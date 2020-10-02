@@ -44,6 +44,7 @@ env:
     - PROJECT="hmc_swindles"
     - PROJECT="igt_optimizer"
     - PROJECT="large_margin"
+    - PROJECT="learn_to_infer"
     - PROJECT="keypose"
     - PROJECT="learnreg"
     - PROJECT="learning_parameter_allocation"
