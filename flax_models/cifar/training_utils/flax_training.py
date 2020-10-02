@@ -36,7 +36,7 @@ import jax.numpy as jnp
 import tensorflow as tf
 from tensorflow.io import gfile
 
-from flax_cifar.datasets import dataset_source as dataset_source_lib
+from flax_models.cifar.datasets import dataset_source as dataset_source_lib
 
 
 FLAGS = flags.FLAGS

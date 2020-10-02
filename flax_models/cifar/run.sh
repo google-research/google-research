@@ -16,11 +16,11 @@
 set -e
 set -x
 
-virtualenv -p python3 .
-source ./bin/activate
+virtualenv -p python3 env
+source env/bin/activate
 
-pip install -r flax_cifar/requirements.txt
-python -m flax_cifar.datasets.dataset_source_test
-python -m flax_cifar.datasets.auto_augment_test
-python -m flax_cifar.models.load_model_test
-python -m flax_cifar.training_utils.flax_training
+pip install -r flax_models/cifar/requirements.txt
+python -m flax_models.cifar.datasets.dataset_source_test
+python -m flax_models.cifar.datasets.auto_augment_test
+python -m flax_models.cifar.models.load_model_test
+python -m flax_models.cifar.training_utils.flax_training

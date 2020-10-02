@@ -50,7 +50,7 @@ from absl import flags
 from flax import nn
 from jax import numpy as jnp
 
-from flax_cifar.models import utils
+from flax_models.cifar.models import utils
 
 
 FLAGS = flags.FLAGS

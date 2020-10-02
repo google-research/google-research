@@ -43,7 +43,7 @@ from flax import nn
 import jax
 from jax import numpy as jnp
 
-from flax_cifar.models import utils
+from flax_models.cifar.models import utils
 
 
 class Shortcut(nn.Module):

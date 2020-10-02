@@ -46,7 +46,7 @@ from typing import Tuple
 from flax import nn
 import jax.numpy as jnp
 
-from flax_cifar.models import utils
+from flax_models.cifar.models import utils
 
 
 def _shortcut(x, chn_out, strides

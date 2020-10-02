@@ -20,7 +20,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 
-from flax_cifar.datasets import dataset_source
+from flax_models.cifar.datasets import dataset_source
 
 
 class DatasetSourceTest(parameterized.TestCase):

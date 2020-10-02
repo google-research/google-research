@@ -32,7 +32,7 @@ above.
 from typing import Callable, Dict, List, Tuple
 import tensorflow as tf
 
-from flax_cifar.datasets import autoaugment_utils
+from flax_models.cifar.datasets import autoaugment_utils
 
 
 # Shorthand notation for augmentation function typing.

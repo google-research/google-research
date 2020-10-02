@@ -30,8 +30,8 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow.io import gfile
 
-from flax_cifar.datasets import dataset_source
-from flax_cifar.training_utils import flax_training
+from flax_models.cifar.datasets import dataset_source
+from flax_models.cifar.training_utils import flax_training
 
 
 FLAGS = flags.FLAGS

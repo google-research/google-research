@@ -19,7 +19,7 @@
 from typing import Dict
 from absl import flags
 import tensorflow as tf
-from flax_cifar.datasets import auto_augment
+from flax_models.cifar.datasets import auto_augment
 
 
 FLAGS = flags.FLAGS

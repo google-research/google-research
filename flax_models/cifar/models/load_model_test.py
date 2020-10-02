@@ -22,7 +22,7 @@ import flax
 import jax
 import numpy as np
 
-from flax_cifar.models import load_model
+from flax_models.cifar.models import load_model
 
 
 class LoadModelTest(parameterized.TestCase):

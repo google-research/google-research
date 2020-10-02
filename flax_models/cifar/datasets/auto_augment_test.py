@@ -20,7 +20,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import tensorflow as tf
 
-from flax_cifar.datasets import auto_augment
+from flax_models.cifar.datasets import auto_augment
 
 
 class AutoAugmentTest(parameterized.TestCase):

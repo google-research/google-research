@@ -22,9 +22,9 @@ import jax
 from jax import numpy as jnp
 from jax import random
 
-from flax_cifar.models import pyramidnet
-from flax_cifar.models import wide_resnet
-from flax_cifar.models import wide_resnet_shakeshake
+from flax_models.cifar.models import pyramidnet
+from flax_models.cifar.models import wide_resnet
+from flax_models.cifar.models import wide_resnet_shakeshake
 
 
 _AVAILABLE_MODEL_NAMES = [

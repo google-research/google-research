@@ -24,7 +24,7 @@ from absl import logging
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from flax_cifar.datasets import augmentation
+from flax_models.cifar.datasets import augmentation
 
 
 FLAGS = flags.FLAGS

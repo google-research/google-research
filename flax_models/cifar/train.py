@@ -24,9 +24,9 @@ from absl import logging
 import jax
 from tensorflow.io import gfile
 
-from flax_cifar.datasets import dataset_source as dataset_source_lib
-from flax_cifar.models import load_model
-from flax_cifar.training_utils import flax_training
+from flax_models.cifar.datasets import dataset_source as dataset_source_lib
+from flax_models.cifar.models import load_model
+from flax_models.cifar.training_utils import flax_training
 
 
 FLAGS = flags.FLAGS
