@@ -529,10 +529,19 @@ class KMeansCompressionOp(compression_op.CompressionOp):
           dtype=tf.float32,
           initializer=b_matrix.astype(np.float32),
           trainable=self.matrix_compressor.get_spec().is_b_matrix_trainable)
+
+      # Use uint8 if number of k-centers is small enough.
+      if self._spec.rank <= 256:
+        c_matrix_tfvar_dtype = tf.uint8
+        c_matrix_type = np.uint8
+      else:
+        c_matrix_tfvar_dtype = tf.int32
+        c_matrix_type = np.int32
+
       self.c_matrix_tfvar = tf.get_variable(
           'c_matrix',
-          dtype=tf.int32,
-          initializer=c_matrix.astype(np.int32),
+          dtype=c_matrix_tfvar_dtype,
+          initializer=c_matrix.astype(c_matrix_type),
           trainable=self.matrix_compressor.get_spec().is_c_matrix_trainable)
       self.alpha = tf.get_variable(
           'alpha', dtype=tf.float32, trainable=False, initializer=1.0)
@@ -546,7 +555,8 @@ class KMeansCompressionOp(compression_op.CompressionOp):
 
     self.final_op = self.alpha * self.a_matrix_tfvar + (
         1 - self.alpha) * tf.reshape(
-            tf.nn.embedding_lookup(self.b_matrix_tfvar, self.c_matrix_tfvar),
+            tf.nn.embedding_lookup(self.b_matrix_tfvar,
+                                   tf.cast(self.c_matrix_tfvar, tf.int32)),
             a_matrix_tfvar.shape)
 
     self.add_compression_summaries()
