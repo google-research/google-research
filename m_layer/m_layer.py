@@ -27,9 +27,9 @@ class MLayer(tf.keras.layers.Layer):
 
   #### References
 
-  [1]: Thomas Fischbacher, Iulia M. Comsa, Krzysztof Potempa, Moritz Firsching,
-  Luca Versari, Jyrki Alakuijala "Intelligent Matrix Exponentiation", ICML 2020.
-  TODO(firsching): add link to paper.
+  [1]: [Thomas Fischbacher, Iulia M. Comsa, Krzysztof Potempa, Moritz Firsching,
+  Luca Versari, Jyrki Alakuijala "Intelligent Matrix Exponentiation",
+  arxiv:2008.03936.](https://arxiv.org/abs/2008.03936)
   """
 
   def __init__(self,
@@ -44,7 +44,7 @@ class MLayer(tf.keras.layers.Layer):
       dim_m: The matrix to be exponentiated in the M-layer has the shape (dim_m,
         dim_m).
       matrix_init: What initializer to use for the matrix. `None` defaults to
-        `normal` initalization.
+        `normal` initialization.
       with_bias: Whether a bias should be included in layer after
         exponentiation.
       matrix_squarings_exp: None to compute tf.linalg.expm(M), an integer `k` to
