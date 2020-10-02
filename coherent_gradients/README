@@ -1,0 +1,64 @@
+This code allows to reproduce experiments described in:
+https://arxiv.org/abs/2003.07422
+
+BASIC SETUP
+
+This project allows to run and analyze experiments on ImageNet dataset. It is based on PyTorch trainer that can be found here:
+https://github.com/pytorch/examples/tree/master/imagenet (synced to commit ee964a2eeb41e1712fe719b83645c79bcbd0ba1a)
+
+ImageNet should be downloaded and unpacked before running anything. We assume there is at least 1 GPU available,
+although we recommend 8 GPUs for the training to finish in reasonable time. After running the training (imagenet_main.py)
+one can analyze the results (imagenet_analyze_results.py).
+
+Example workflow:
+1) Download and unpack ImageNet dataset to a local directory (e.g. /imagenet). Training data should be inside train/ subdirectory,
+test data should be inside val/ subdirectory. See: http://www.image-net.org/
+
+2) Run the training with 50% noise in the labels. It will produce csv files tracking model performance on training sample (train_sample.csv),
+pristine examples (pristine.csv), corrupt examples (corrupt.csv) and test examples (test.csv) in /tmp/experiments/experiment_noise_0.5:
+
+python -m coherent_gradients.imagenet_main /imagenet --corrupt-fraction=0.5 --weight-decay=0.0 --output-dir=/tmp/experiments/experiment_noise_0.5
+
+3) Run analysis on your experiments. The script takes the folder with multiple experiments and produces plots for all of them.
+In particular if there is only one experiment in your directory (experiment_noise_0.5), it will be the only one present on the plots.
+The script produces 4 pdfs files showing loss and top-1 accuracy of train/test as well as pristine/corrupt. Please note
+that we add noise only to training data (and NOT test data), so performance on test can be better than on training (if enough noise is added).
+
+python -m coherent_gradients.imagenet_analyze_results /tmp/experiments
+
+
+RM3 EXPERIMENTS
+
+SGD can be replaced with RM3 optimizer by using --optimizer option in the command line. Please note that RM3 is not stable
+when combined with momentum, so one needs to explicitly disable it: 
+
+python -m coherent_gradients.imagenet_main /imagenet --corrupt-fraction=0.5 --weight-decay=0.0 --output-dir=/tmp/experiments/experiment_noise_0.5_with_rm3 --momentum=0.0 --optimizer=RM3
+
+
+EASY/HARD EXAMPLES
+
+The following steps are needed to run easy/hard examples experiments:
+
+1) Generate a list of easy and hard examples from imagenet. It can be done by running training for few epochs and writing learned examples to a csv file,
+i.e. examples that are correctly predicted by the model at that point. Our experiments show that running SGD for 2 epochs without weight decay,
+without random input augmentations and with momentum of 0.9 creates a model that correctly classifies around 600K examples, splitting ImageNet into
+two more or less equal parts. Please keep in mind that due to random initialization one may reach a model correctly classifying slightly fewer examples than
+600K (the lowest number we got was 591K), so one may need to run the training multiple times (or slightly longer than for 2 epochs) if one wants to
+achieve 500K training + 100K test easy examples.
+The following command will produce two csv files (learned.csv and not_learned.csv) in the experiment directory:
+
+python -m coherent_gradients.imagenet_main /imagenet --weight-decay=0.0 --output-dir=/tmp/experiments/experiment_easy_hard --store-learned --epochs=2
+
+2) Create another ImageNet directory that will contain only easy/hard examples. In order to avoid unnecessary coping and save disc space,
+we create hard links to the existing ImageNet files. Please note that this requires the user to have permissions in the OS to create links to these files.
+The script takes as parameters the original imagenet location, a new location where the links will be created and the generated list of easy (learned) samples.
+
+python -m coherent_gradients.imagenet_generate_subset /imagenet /tmp/easy_imagenet /tmp/experiments/experiment_easy_hard/learned_examples.csv
+
+3) Train using easy examples and evaluate on "easy" test set (by pointing the training script at /tmp/easy_imagenet instead of /imagenet)
+
+python -m coherent_gradients.imagenet_main /tmp/easy_imagenet --weight-decay=0.0 --output-dir=/tmp/experiments/experiment_easy_examples
+
+4) (Optional) Train using easy examples, but evaluate it on the original Imagenet test set:
+
+python -m coherent_gradients.imagenet_main /tmp/easy_imagenet --test-imagenet-dir=/imagenet weight-decay=0.0 --output-dir=/tmp/experiments/experiment_easy_train_but_original_test
