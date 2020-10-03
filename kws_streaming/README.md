@@ -68,7 +68,7 @@ All experiments are listed in folder "experiments". It contains:
 * [kws_experiments_paper](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_paper.md) - experiments presented in [paper](https://arxiv.org/abs/2005.06720): models trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
 * [kws_experiments_q](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_q.md) - quantized model presented in [paper](https://arxiv.org/abs/2005.06720): models trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
 * [kws_experiments_30k](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_30k.md) - models with 30k parameters, trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
-* [kws_experiments_75k_35_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_75k_35_labels.md) - models with 35K parameters trained on [data set v2](https://arxiv.org/pdf/1804.03209.pdf) with 35 labels.
+* [kws_experiments_75k_35_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_75k_35_labels.md) - models with 75K parameters trained on [data set v2](https://arxiv.org/pdf/1804.03209.pdf) with 35 labels.
 
 ### Streamable and non streamable models
 
