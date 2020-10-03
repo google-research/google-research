@@ -22,7 +22,7 @@ and implemented most popular KWS models:
 * [ds_cnn](https://arxiv.org/pdf/1711.07128.pdf) - depth wise convolutional neural network;
 * [svdf](https://arxiv.org/pdf/1812.02802.pdf) - singular value decomposition filter neural network (sequence of 1d depthwise conv and 1x1 conv);
 * svdf_resnet - [svdf](https://arxiv.org/pdf/1812.02802.pdf) neural network with residual connections;
-* [ds_tc_resnet] - combination of 1d depthwise convolution in time with residual blocks, based on [MatchboxNet](https://arxiv.org/abs/2004.08531)
+* ds_tc_resnet - combination of 1d depthwise convolution in time with residual blocks, based on [MatchboxNet](https://arxiv.org/abs/2004.08531)
 * [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) - combination of attention with RNN(bi directional LSTM);
 * att_mh_rnn - extended version of [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) with multihead attention;
 * [mobilenet](https://arxiv.org/abs/1704.04861) - reduced version of mobilenet vision/imagenet model, but with 1d temporal conv;
@@ -65,9 +65,10 @@ to streaming mode.
 ## Experimental results
 
 All experiments are listed in folder "experiments". It contains:
-* kws_experiments_paper - experiments presented in [paper](https://arxiv.org/abs/2005.06720)
-* kws_experiments_q - quantized model presented in [paper](https://arxiv.org/abs/2005.06720)
-* kws_experiments_30k - models with 30k parameters.
+* [kws_experiments_paper](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_paper.md) - experiments presented in [paper](https://arxiv.org/abs/2005.06720): models trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
+* [kws_experiments_q](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_q.md) - quantized model presented in [paper](https://arxiv.org/abs/2005.06720): models trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
+* [kws_experiments_30k](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_30k.md) - models with 30k parameters, trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
+* [kws_experiments_75k_35_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_75k_35_labels.md) - models with 35K parameters trained on [data set v2](https://arxiv.org/pdf/1804.03209.pdf) with 35 labels.
 
 ### Streamable and non streamable models
 
@@ -196,8 +197,7 @@ All states are received as inputs and after update are returned as output state
 ### Further information
 Summary about this work is presented at paper [Streaming keyword spotting on mobile devices](https://arxiv.org/abs/2005.06720)
 All experiments on KWS models presented in this paper can be reproduced by
-following the steps described in
-`kws_streaming/experiments/kws_experiments_paper.txt`.
+following the steps described in [kws_experiments_paper](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_paper.md).
 Models were trained on a desktop (Ubuntu) and tested on a Pixel4 phone.
 
 
