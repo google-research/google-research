@@ -94,7 +94,7 @@ CMD_TRAIN="python -m kws_streaming.train.model_train_eval"
 ```
 
 
-### MatchboxNet[https://arxiv.org/pdf/2004.08531.pdf] config with momentum
+### [MatchboxNet](https://arxiv.org/pdf/2004.08531.pdf) config with momentum
 
 By default 'ds_padding' set 'same' \
 For training streamable model 'ds_padding' has to be set 'causal' \
@@ -137,7 +137,7 @@ ds_tc_resnet \
 --ds_dilation '1, 1, 1, 1, 2, 1'
 ```
 
-### MatchboxNet[https://arxiv.org/pdf/2004.08531.pdf] config with novograd
+### [MatchboxNet](https://arxiv.org/pdf/2004.08531.pdf) config with novograd
 parameters: 75K \
 
 ```shell
