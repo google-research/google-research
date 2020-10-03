@@ -4,7 +4,7 @@ See ["Rethinking Attention with Performers"](https://arxiv.org/abs/2009.14794) f
 
 There are two main attention variants: 
 
-* `make_fast_softmax_attention` - An unbiased and tight approximation of regular softmax attention. Can be used in Transformer models, as well as standalone for applications involving raw attention.
+* `make_fast_softmax_attention` - An unbiased and tight approximation of regular softmax attention. Can be used in Transformer models, as well as standalone for applications involving raw softmax attention or purely just softmax.
 * `make_fast_generalized_attention` - Allows for generalized attention functions to produce different attention kernels as described in the paper.
 
 The two functions create a `attention_fn` that has the same API as `flax.nn.attention.dot_product_attention`, allowing quick replacement for a Transformer built on top of `flax.nn.attention` modules.
