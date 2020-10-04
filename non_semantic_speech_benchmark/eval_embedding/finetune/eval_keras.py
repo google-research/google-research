@@ -69,8 +69,8 @@ def eval_and_report():
   writer = tf.summary.create_file_writer(FLAGS.eval_dir)
   num_classes = len(FLAGS.label_list)
   model = models.get_keras_model(
-      num_classes, FLAGS.ubn, num_clusters=FLAGS.nc,
-      alpha_init=FLAGS.alpha_init)
+      num_classes, input_length=FLAGS.min_length, use_batchnorm=FLAGS.ubn,
+      num_clusters=FLAGS.nc, alpha_init=FLAGS.alpha_init)
   checkpoint = tf.train.Checkpoint(model=model)
 
   for ckpt in tf.train.checkpoints_iterator(

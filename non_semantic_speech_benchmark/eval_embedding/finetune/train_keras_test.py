@@ -48,11 +48,12 @@ class TrainKerasTest(parameterized.TestCase):
   )
   def test_get_model(self, num_clusters, alpha_init):
     num_classes = 4
-    batched_samples = tf.zeros([3, 32000])
+    batched_samples = tf.zeros([3, 20000])
     y_onehot = tf.one_hot([0, 1, 2], num_classes)
 
-    model = train_keras.get_model(num_classes, ubn=True, nc=num_clusters,
-                                  alpha_init=alpha_init)
+    model = train_keras.models.get_keras_model(
+        num_classes, input_length=20000, use_batchnorm=True,
+        num_clusters=num_clusters, alpha_init=alpha_init)
 
     loss_obj = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
     opt = tf.keras.optimizers.Adam()
