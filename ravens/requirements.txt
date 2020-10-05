@@ -1,0 +1,13 @@
+absl-py>=0.7.0
+numpy>=1.17.4
+pybullet>=2.8.4
+packaging>=19.2
+matplotlib>=3.1.1
+opencv-python>=4.1.2.30
+meshcat>=0.0.18
+transformations>=2020.1.1
+scikit-image>=0.17.2
+circle-fit>=0.1.3
+tensorflow>=2.2.0
+tensorflow-addons>=0.11.1
+tensorflow_hub>=0.8.0
