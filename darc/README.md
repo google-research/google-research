@@ -55,6 +55,7 @@ pip install tensorflow==2.2.0
 pip install tf_agents==0.5.0
 pip install gym==0.13.1
 pip install mujoco-py==2.0.2.10
+pip install tensorflow-probability==0.10.1
 ```
 
 ## Running Experiments
