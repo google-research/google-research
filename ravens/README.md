@@ -10,7 +10,7 @@ To mimic the challenges of the real-world, the only input information that shoul
 
 #### Download model assets.
 ```shell
-cd project-reach
+cd ravens
 wget https://storage.googleapis.com/ravens-assets/ravens_assets_2020_09_30.zip
 unzip ravens_assets_2020_09_30.zip
 ```
