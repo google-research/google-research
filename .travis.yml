@@ -69,6 +69,7 @@ env:
     - PROJECT="rl4circopt"
     - PROJECT="rllim"
     - PROJECT="robust_loss"
+    - PROJECT="routing_transformer"
     - PROJECT="scrna_benchmark"
     - PROJECT="single_view_mpi"
     - PROJECT="sm3"
