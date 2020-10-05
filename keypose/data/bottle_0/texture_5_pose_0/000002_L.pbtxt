@@ -1,0 +1,315 @@
+kp_target {
+  transform {
+    element: -0.75136465
+    element: -0.65365439
+    element: 0.090482636
+    element: 0.33658988
+    element: -0.2493511
+    element: 0.15428367
+    element: -0.95604423
+    element: 0.16231994
+    element: 0.61096252
+    element: -0.74089978
+    element: -0.27891274
+    element: 0.95454479
+    element: 0.0
+    element: 0.0
+    element: 0.0
+    element: 1.0
+  }
+  camera {
+    fx: 675.61713
+    fy: 675.61713
+    cx: 632.1181
+    cy: 338.28537
+    baseline: 0.120007
+    resx: 1280.0
+    resy: 720.0
+  }
+  keypoints {
+    u: 389.31023
+    v: 412.07937
+    x: 0.30414862
+    y: 0.57233245
+    z: 0.72462487
+    visible: 1.0
+  }
+  keypoints {
+    u: 389.59463
+    v: 483.17168
+    x: 0.3043708
+    y: 0.67107177
+    z: 0.74981074
+    visible: 1.0
+  }
+}
+proj_targets {
+  transform {
+    element: -0.81892949
+    element: -0.5620517
+    element: 0.11598437
+    element: 0.28595689
+    element: -0.23223507
+    element: 0.1397401
+    element: -0.96256926
+    element: 0.18322364
+    element: 0.52480602
+    element: -0.81521199
+    element: -0.2449654
+    element: 1.0398693
+    element: 0.0
+    element: 0.0
+    element: 0.0
+    element: 1.0
+  }
+  camera {
+    fx: 675.61713
+    fy: 675.61713
+    cx: 632.1181
+    cy: 338.28537
+    baseline: 0.120007
+    resx: 1280.0
+    resy: 720.0
+  }
+  keypoints {
+    u: 377.10256
+    v: 426.49125
+    x: 0.29461138
+    y: 0.59234896
+    z: 0.74395548
+    visible: 1.0
+  }
+  keypoints {
+    u: 374.72026
+    v: 496.46792
+    x: 0.29275021
+    y: 0.68953878
+    z: 0.76611513
+    visible: 1.0
+  }
+}
+proj_targets {
+  transform {
+    element: -0.75454066
+    element: -0.65109288
+    element: 0.082136776
+    element: 0.35567248
+    element: -0.24608562
+    element: 0.16468977
+    element: -0.95515399
+    element: 0.1592131
+    element: 0.60836688
+    element: -0.7409152
+    element: -0.28448972
+    element: 0.99051199
+    element: 0.0
+    element: 0.0
+    element: 0.0
+    element: 1.0
+  }
+  camera {
+    fx: 675.61713
+    fy: 675.61713
+    cx: 632.1181
+    cy: 338.28537
+    baseline: 0.120007
+    resx: 1280.0
+    resy: 720.0
+  }
+  keypoints {
+    u: 417.01191
+    v: 412.04999
+    x: 0.32579056
+    y: 0.57229166
+    z: 0.75923024
+    visible: 1.0
+  }
+  keypoints {
+    u: 417.13662
+    v: 479.85671
+    x: 0.32588799
+    y: 0.66646765
+    z: 0.78489091
+    visible: 1.0
+  }
+}
+proj_targets {
+  transform {
+    element: -0.73107856
+    element: -0.67551464
+    element: 0.095938024
+    element: 0.34773776
+    element: -0.2530271
+    element: 0.13784078
+    element: -0.95758927
+    element: 0.1646602
+    element: 0.6336414
+    element: -0.72434791
+    element: -0.27169595
+    element: 0.91313941
+    element: 0.0
+    element: 0.0
+    element: 0.0
+    element: 1.0
+  }
+  camera {
+    fx: 675.61713
+    fy: 675.61713
+    cx: 632.1181
+    cy: 338.28537
+    baseline: 0.120007
+    resx: 1280.0
+    resy: 720.0
+  }
+  keypoints {
+    u: 387.01836
+    v: 406.90251
+    x: 0.30235809
+    y: 0.56514237
+    z: 0.70039036
+    visible: 1.0
+  }
+  keypoints {
+    u: 386.79351
+    v: 480.7883
+    x: 0.30218243
+    y: 0.66776152
+    z: 0.72498674
+    visible: 1.0
+  }
+}
+proj_targets {
+  transform {
+    element: -0.60330416
+    element: -0.79575923
+    element: 0.052833159
+    element: 0.41353088
+    element: -0.24878056
+    element: 0.12484321
+    element: -0.9604803
+    element: 0.15593852
+    element: 0.7577152
+    element: -0.59260562
+    element: -0.27328785
+    element: 0.77383274
+    element: 0.0
+    element: 0.0
+    element: 0.0
+    element: 1.0
+  }
+  camera {
+    fx: 675.61713
+    fy: 675.61713
+    cx: 632.1181
+    cy: 338.28537
+    baseline: 0.120007
+    resx: 1280.0
+    resy: 720.0
+  }
+  keypoints {
+    u: 415.56459
+    v: 394.85817
+    x: 0.32465984
+    y: 0.54841413
+    z: 0.67390373
+    visible: 1.0
+  }
+  keypoints {
+    u: 418.2323
+    v: 472.16573
+    x: 0.32674399
+    y: 0.65578574
+    z: 0.69878785
+    visible: 1.0
+  }
+}
+proj_targets {
+  transform {
+    element: -0.43206435
+    element: -0.90166036
+    element: -0.018137986
+    element: 0.52445507
+    element: -0.39285132
+    element: 0.20627694
+    element: -0.89616832
+    element: 0.17389398
+    element: 0.8117809
+    element: -0.38007686
+    element: -0.44334337
+    element: 0.70208977
+    element: 0.0
+    element: 0.0
+    element: 0.0
+    element: 1.0
+  }
+  camera {
+    fx: 675.61713
+    fy: 675.61713
+    cx: 632.1181
+    cy: 338.28537
+    baseline: 0.120007
+    resx: 1280.0
+    resy: 720.0
+  }
+  keypoints {
+    u: 526.11764
+    v: 410.78189
+    x: 0.4110294
+    y: 0.57053041
+    z: 0.72111181
+    visible: 1.0
+  }
+  keypoints {
+    u: 532.67742
+    v: 474.75694
+    x: 0.41615423
+    y: 0.65938464
+    z: 0.7606108
+    visible: 1.0
+  }
+}
+proj_targets {
+  transform {
+    element: -0.49434112
+    element: -0.86754457
+    element: -0.054710793
+    element: 0.4845642
+    element: -0.41607468
+    element: 0.29140776
+    element: -0.86137296
+    element: 0.16108985
+    element: 0.76322259
+    element: -0.4030483
+    element: -0.50501817
+    element: 0.70122751
+    element: 0.0
+    element: 0.0
+    element: 0.0
+    element: 1.0
+  }
+  camera {
+    fx: 675.61713
+    fy: 675.61713
+    cx: 632.1181
+    cy: 338.28537
+    baseline: 0.120007
+    resx: 1280.0
+    resy: 720.0
+  }
+  keypoints {
+    u: 476.45081
+    v: 443.33109
+    x: 0.3722272
+    y: 0.61573763
+    z: 0.68617132
+    visible: 1.0
+  }
+  keypoints {
+    u: 489.87509
+    v: 504.57262
+    x: 0.38271491
+    y: 0.70079531
+    z: 0.73089753
+    visible: 1.0
+  }
+}
