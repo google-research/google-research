@@ -8,6 +8,7 @@ sh_binary(
     srcs = ["build_deps/build_pip_pkg.sh"],
     data = [
         "MANIFEST.in",
+        "README.md",
         "requirements.txt",
         "setup.py",
         "//scann/scann_ops/py:scann",

@@ -1,11 +1,8 @@
-# ScaNN Releases
+# ScaNN Release Notes
 
-Version | Date     | Python 3.5                                                                                          | Python 3.6                                                                                          | Python 3.7
-------- | -------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------
-1.0.0   | 5/2/2020 | [Link](https://storage.googleapis.com/scann/releases/1.0.0/scann-1.0.0-cp35-cp35m-linux_x86_64.whl) | [Link](https://storage.googleapis.com/scann/releases/1.0.0/scann-1.0.0-cp36-cp36m-linux_x86_64.whl) | [Link](https://storage.googleapis.com/scann/releases/1.0.0/scann-1.0.0-cp37-cp37m-linux_x86_64.whl)
-1.1.0   | 9/25/2020 | [Link](https://storage.googleapis.com/scann/releases/1.1.0/scann-1.1.0-cp35-cp35m-linux_x86_64.whl) | [Link](https://storage.googleapis.com/scann/releases/1.1.0/scann-1.1.0-cp36-cp36m-linux_x86_64.whl) | [Link](https://storage.googleapis.com/scann/releases/1.1.0/scann-1.1.0-cp37-cp37m-linux_x86_64.whl)
+### 1.1.1
 
-## Release Notes
+`manylinux2014` wheels are now available on pip, and a Python 3.8 wheel has been added. These wheels only require `libstdc++` version 3.4.19 and therefore should have greater operating system compatibility. Previous releases were not `manylinux2014` compatible and required `libstdc++` version 3.4.26 or greater.
 
 ### 1.1.0
 
@@ -22,3 +19,12 @@ Tree-AH with `dot_product` distance is 10-20% faster.
 ### 1.0.0
 
 Initial Release
+
+## ScaNN wheel archive
+
+**The latest version of ScaNN is available on pip; the following table is no longer updated and only provides outdated binaries!** Prior to version 1.1.1, ScaNN wheels were not `manylinux2014` compatible and weren't distributed through pip. These older wheels may be downloaded below.
+
+Version | Date     | Python 3.5                                                                                          | Python 3.6                                                                                          | Python 3.7
+------- | -------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------
+1.0.0   | 5/2/2020 | [Link](https://storage.googleapis.com/scann/releases/1.0.0/scann-1.0.0-cp35-cp35m-linux_x86_64.whl) | [Link](https://storage.googleapis.com/scann/releases/1.0.0/scann-1.0.0-cp36-cp36m-linux_x86_64.whl) | [Link](https://storage.googleapis.com/scann/releases/1.0.0/scann-1.0.0-cp37-cp37m-linux_x86_64.whl)
+1.1.0   | 9/25/2020 | [Link](https://storage.googleapis.com/scann/releases/1.1.0/scann-1.1.0-cp35-cp35m-linux_x86_64.whl) | [Link](https://storage.googleapis.com/scann/releases/1.1.0/scann-1.1.0-cp36-cp36m-linux_x86_64.whl) | [Link](https://storage.googleapis.com/scann/releases/1.1.0/scann-1.1.0-cp37-cp37m-linux_x86_64.whl)

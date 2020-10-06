@@ -442,7 +442,80 @@ Status GmmUtils::InitializeCenters(const Dataset& dataset,
     case Options::RANDOM_INITIALIZATION:
       return RandomInitializeCenters(dataset, subset, num_clusters,
                                      initial_centers);
+    case Options::MEAN_DISTANCE_INITIALIZATION:
+      return MeanDistanceInitializeCenters(dataset, subset, num_clusters,
+                                           initial_centers);
   }
+}
+
+Status GmmUtils::MeanDistanceInitializeCenters(
+    const Dataset& dataset, ConstSpan<DatapointIndex> subset,
+    int32_t num_clusters, DenseDataset<double>* initial_centers) {
+  SCANN_RET_CHECK(initial_centers);
+  initial_centers->clear();
+  auto impl = GmmUtilsImplInterface::Create(*distance_, dataset, subset,
+                                            opts_.parallelization_pool.get());
+  SCANN_RETURN_IF_ERROR(impl->CheckAllFinite())
+      << "Non-finite values detected in the initial dataset in "
+         "GmmUtils::InitializeCenters.";
+
+  const size_t dataset_size = impl->size();
+  if (dataset_size < num_clusters) {
+    return InvalidArgumentError(StrFormat(
+        "Number of points (%d) is less than the number of clusters (%d).",
+        dataset_size, num_clusters));
+  }
+
+  DenseDataset<double> centers;
+  centers.set_dimensionality(dataset.dimensionality());
+  centers.Reserve(num_clusters);
+
+  Datapoint<double> storage;
+  SCANN_RETURN_IF_ERROR(impl->GetCentroid(&storage));
+  DatapointPtr<double> last_center = storage.ToPtr();
+
+  vector<DatapointIndex> sample_ids;
+  vector<double> distances(dataset_size, 0.0);
+
+  impl->DistancesFromPoint(last_center, MakeMutableSpan(distances));
+  SCANN_RETURN_IF_ERROR(VerifyAllFinite(last_center.values_slice()))
+      << "(Center Number = " << centers.size() << ")";
+  double min_dist = 0.0;
+  double sum = 0.0;
+  for (size_t j : Seq(distances.size())) {
+    SCANN_RET_CHECK(!std::isnan(distances[j]))
+        << "NaN distances found (j = " << j << ").";
+    SCANN_RET_CHECK(std::isfinite(distances[j]))
+        << "Infinite distances found (j = " << j << ").";
+    min_dist = std::min(min_dist, distances[j]);
+    sum += distances[j];
+  }
+
+  if (min_dist < 0.0) {
+    VLOG(1) << "Biasing to get rid of negative distances. (min_dist = "
+            << min_dist << ")";
+    BiasDistances(-min_dist, MakeMutableSpan(distances));
+    sum += -min_dist * distances.size();
+  }
+
+  while (centers.size() < num_clusters) {
+    for (DatapointIndex idx : sample_ids) {
+      sum -= distances[idx];
+      distances[idx] = 0.0;
+    }
+
+    SCANN_RET_CHECK(!std::isnan(sum)) << "NaN distances sum found.";
+    SCANN_RET_CHECK(std::isfinite(sum)) << "Infinite distances sum found.";
+    DatapointIndex sample_id = GetSample(&random_, distances, sum, true);
+    sample_ids.push_back(sample_id);
+    last_center = impl->GetPoint(sample_id, &storage);
+    SCANN_RETURN_IF_ERROR(VerifyAllFinite(storage.values()));
+    centers.AppendOrDie(last_center, "");
+  }
+
+  centers.set_normalization_tag(dataset.normalization());
+  *initial_centers = std::move(centers);
+  return OkStatus();
 }
 
 Status GmmUtils::KMeansPPInitializeCenters(

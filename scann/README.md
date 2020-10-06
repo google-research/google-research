@@ -8,7 +8,7 @@ designed for x86 processors with AVX2 support. ScaNN achieves state-of-the-art
 performance on [ann-benchmarks.com](http://ann-benchmarks.com) as shown on the
 glove-100-angular dataset below:
 
-![glove-100-angular](docs/glove_bench.png)
+![glove-100-angular](https://github.com/google-research/google-research/raw/master/scann/docs/glove_bench.png)
 
 ScaNN can be configured to fit datasets with different sizes and distributions.
 It has both TensorFlow and Python APIs. The library shows strong performance
@@ -25,26 +25,30 @@ Reference [1]:
   URL={https://arxiv.org/abs/1908.10396}
 }
 ```
-
-## Python wheels
-
-[Python 3.5](https://storage.googleapis.com/scann/releases/1.1.0/scann-1.1.0-cp35-cp35m-linux_x86_64.whl)
-[Python 3.6](https://storage.googleapis.com/scann/releases/1.1.0/scann-1.1.0-cp36-cp36m-linux_x86_64.whl)
-[Python 3.7](https://storage.googleapis.com/scann/releases/1.1.0/scann-1.1.0-cp37-cp37m-linux_x86_64.whl)
-
-See [docs/releases.md](docs/releases.md) for previous versions.
-
 ## Installation
 
-See above for pre-built binaries compatible with Python 3.5, 3.6, and 3.7 on
-Ubuntu 16.04 or later. These binaries can be installed with `pip install <whl
-name>`. **These binaries require GLIBCXX 3.4.26 or above, which are included
-with GCC 9. Use your operating system's instructions to install GCC 9.**
+manylinux2014-compatible wheels are available on PyPI:
+
+```
+pip install scann
+```
+
+ScaNN supports Linux environments running Python versions 3.5-3.8. See
+[docs/releases.md](docs/releases.md) for release notes; the page also contains
+download links for ScaNN wheels prior to version 1.1.0, which were not released
+on PyPI.
+
+In accordance with the
+[`manylinux2014` specification](https://www.python.org/dev/peps/pep-0599/),
+ScaNN requires `libstdc++` version 3.4.19 or above from the operating system.
+See [here](https://stackoverflow.com/questions/10354636) for an example of how
+to find your system's `libstdc++` version; it can generally be upgraded by
+installing a newer version of `g++`.
 
 To build ScaNN from source, first install the build tool
 [bazel](https://bazel.build), Clang 8, and libstdc++ headers for C++17 (which
 are provided with GCC 9). Additionally, ScaNN requires a modern version of
-Python (3.5.x or later) and Tensorflow 2.1.0 installed on that version of
+Python (3.5.x or later) and Tensorflow 2.3.0 installed on that version of
 Python. Once these prerequisites are satisfied, run the following command in the
 root directory of the repository:
 
