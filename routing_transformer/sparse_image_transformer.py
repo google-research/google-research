@@ -386,6 +386,7 @@ def sparse_imagetransformer_base():
       "targets": _targets_bottom,
   }
   hparams.tpu_enable_host_call = True  # Enable summaries on TPU
+  hparams.add_hparam("use_tpu", True)
   hparams.add_hparam("add_positional_emb", True)
   hparams.add_hparam("frame_height", 32)
   hparams.add_hparam("frame_width", 32)
@@ -420,6 +421,10 @@ def sparse_imagetransformer_base():
   hparams.add_hparam("sparsity_skip_first", 0)
   hparams.add_hparam("hash_items", False)
 
+  # Clustering HParams
+  hparams.add_hparam("beta", 1e-4)
+  hparams.add_hparam("decay", 0.999)
+
   # Memory saving measures
   hparams.add_hparam("cache_padding_bias", True)
 
@@ -432,7 +437,7 @@ def sparse_imagetransformer_base():
 
   # Conditioning
   hparams.add_hparam("unconditional", True)
-
+  hparams.add_hparam("token_bias_wt_trainable", False)
   return hparams
 
 
@@ -573,12 +578,12 @@ def imagenet_local1d():
   hparams.frame_height = 64
   hparams.frame_width = 64
 
-  hparams.hidden_size = 512
+  hparams.hidden_size = 1024
   hparams.local_num_heads = 16
   hparams.num_decoder_layers = 24
-  hparams.query_shape = (512,)
-  hparams.memory_query_shape = (512,)
-  hparams.memory_flange = (512,)
+  hparams.query_shape = (256,)
+  hparams.memory_query_shape = (256,)
+  hparams.memory_flange = (256,)
   hparams.filter_size = 2048
   hparams.layer_preprocess_sequence = "none"
   hparams.layer_postprocess_sequence = "dan"
@@ -604,13 +609,12 @@ def imagenet_local_cluster():
   """Imagenet64 routing attention."""
   hparams = imagenet_local1d()
 
-  hparams.local_num_heads = 8
-  hparams.sparsity_cluster_num_heads = 8
-  hparams.sparsity_cluster_size = 12
-  hparams.num_decoder_layers = 34
+  hparams.local_num_heads = 12
+  hparams.sparsity_cluster_num_heads = 4
+  hparams.sparsity_cluster_size = 8
+  hparams.num_decoder_layers = 24
   hparams.sparsity_skip_first = 0
-  hparams.sparsity_cluster_attention_window = 1024
-  hparams.recompute_grad = True
+  hparams.sparsity_cluster_attention_window = 2048
 
   return hparams
 

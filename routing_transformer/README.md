@@ -11,6 +11,16 @@ Code-base accompanying the [paper](https://arxiv.org/abs/2003.05997).
 *   `local_num_heads`: Number of local attention heads
 *   `query_shape`: This represents the shape of the query block.
     *   For 1-d local attention with block size `b`, this would be `(b,)`
+*   `memory_query_shape`: This represents the query shape of memory antecedent
+    and is useful for encoder-decoder attention
+    * This is usually set the same as `query_shape` by default
+    * This is useful when input and targets are of different lengths
+    * E.g., if inputs are of length 4096 and targets of length 8192
+    * Plausible setting:`query_shape = (256,)`, `memory_flange = (256,)` and
+      `memory_query_shape = (128,)`
+    * This is because with block size `256`, the targets will have `32` blocks
+    * To match this in enc-dec attention, the inputs must have `32` blocks
+    * This is why we set `memory_query_shape = (4096/32,) = (128,)`
 *   `memory_flange`: This represents the overlap of the memory block
     *   For full attention, or for axial attention this would be `(0,)`
     *   Usually for local attention we set it equal to query shape

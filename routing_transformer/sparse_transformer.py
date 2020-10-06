@@ -608,6 +608,16 @@ def pg19_local_cluster8k():
 
 
 @registry.register_hparams
+def pg19_local8k():
+  """Local attention on sequence length 8k."""
+  hparams = pg19_local_cluster8k()
+  hparams.local_num_heads = 8
+  hparams.sparsity_cluster_num_heads = 0
+  hparams.num_decoder_layers = 24
+  return hparams
+
+
+@registry.register_hparams
 def meena_local2k():
   """Hparams for Meena local attention model."""
   hparams = sparse_transformer_local()
@@ -653,7 +663,6 @@ def meena_local_cluster2k():
   hparams.attention_dropout = 0.1
   hparams.relu_dropout = 0.1
   hparams.ema = True
-  hparams.recompute_grad = False
   return hparams
 
 
