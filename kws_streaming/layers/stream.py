@@ -80,6 +80,16 @@ class Stream(tf.keras.layers.Layer):
     self.ring_buffer_size_in_time_dim = ring_buffer_size_in_time_dim
     self.use_one_step = use_one_step
 
+    if not use_one_step and isinstance(
+        self.cell, (tf.keras.layers.Flatten, tf.keras.layers.GlobalMaxPooling2D,
+                    tf.keras.layers.GlobalAveragePooling2D)):
+      raise ValueError('Flatten, GlobalMaxPooling2D, GlobalAveragePooling2D '
+                       'can be used only with use_one_step = True '
+                       'because they are executed one time per inference call '
+                       'and produce only one output in time dim, whereas conv '
+                       'can produce multiple outputs in time dim, '
+                       'so conv can be used with use_one_step = False or True')
+
     if self.ring_buffer_size_in_time_dim:
       # it is a special case when ring_buffer_size_in_time_dim is specified
       # outside of the layer in this case we just build a ring buffer
@@ -123,8 +133,8 @@ class Stream(tf.keras.layers.Layer):
       self.ring_buffer_size_in_time_dim = pool_size[0]
 
     elif isinstance(
-        self.cell,
-        (tf.keras.layers.Flatten, tf.keras.layers.GlobalMaxPooling2D)):
+        self.cell, (tf.keras.layers.Flatten, tf.keras.layers.GlobalMaxPooling2D,
+                    tf.keras.layers.GlobalAveragePooling2D)):
       # effective kernel size in time dimension
       if self.state_shape:
         self.ring_buffer_size_in_time_dim = self.state_shape[1]
@@ -147,8 +157,8 @@ class Stream(tf.keras.layers.Layer):
       ] + input_shape.as_list()[2:]
     elif isinstance(
         self.cell,
-        (tf.keras.layers.Flatten,
-         tf.keras.layers.GlobalMaxPooling2D)) and not self.state_shape:
+        (tf.keras.layers.Flatten, tf.keras.layers.GlobalMaxPooling2D,
+         tf.keras.layers.GlobalAveragePooling2D)) and not self.state_shape:
       if self.mode in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE):
         # Only in the non-streaming modes we have access to the whole training
         # sequence. In the streaming mode input_shape will not be available.
@@ -251,7 +261,7 @@ class Stream(tf.keras.layers.Layer):
       with tf.control_dependencies([assign_states]):
         return self.cell(memory)
     else:
-      # # add new row [batch_size, memory_size, feature_dim, channel]
+      # add new row [batch_size, memory_size, feature_dim, channel]
       if self.ring_buffer_size_in_time_dim:
         memory = tf.keras.backend.concatenate([self.states, inputs], 1)
 
@@ -295,7 +305,8 @@ class Stream(tf.keras.layers.Layer):
     if self.pad_time_dim:
       if isinstance(
           self.cell,
-          (tf.keras.layers.Flatten, tf.keras.layers.GlobalMaxPooling2D)):
+          (tf.keras.layers.Flatten, tf.keras.layers.GlobalMaxPooling2D,
+           tf.keras.layers.GlobalAveragePooling2D)):
         raise ValueError('pad_time_dim can not be used with Flatten')
 
       # temporal padding

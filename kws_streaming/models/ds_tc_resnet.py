@@ -145,11 +145,9 @@ def resnet_block(inputs,
         pad_time_dim=padding)(
             net)
 
-    # Conv1D 1x1
-    net = stream.Stream(
-        cell=tf.keras.layers.Conv2D(
-            filters=filters, kernel_size=1, use_bias=False, padding='valid'),
-        pad_time_dim=padding)(
+    # Conv1D 1x1 - streamable by default
+    net = tf.keras.layers.Conv2D(
+        filters=filters, kernel_size=1, use_bias=False, padding='valid')(
             net)
 
     net = tf.keras.layers.BatchNormalization(scale=scale)(net)
@@ -167,20 +165,16 @@ def resnet_block(inputs,
       pad_time_dim=padding)(
           net)
 
-  # Conv1D 1x1
-  net = stream.Stream(
-      cell=tf.keras.layers.Conv2D(
-          filters=filters, kernel_size=1, use_bias=False, padding='valid'),
-      pad_time_dim=padding)(
+  # Conv1D 1x1 - streamable by default
+  net = tf.keras.layers.Conv2D(
+      filters=filters, kernel_size=1, use_bias=False, padding='valid')(
           net)
   net = tf.keras.layers.BatchNormalization(scale=scale)(net)
 
   if residual:
-    # Conv1D 1x1
-    net_res = stream.Stream(
-        cell=tf.keras.layers.Conv2D(
-            filters=filters, kernel_size=1, use_bias=False, padding='valid'),
-        pad_time_dim=padding)(
+    # Conv1D 1x1 - streamable by default
+    net_res = tf.keras.layers.Conv2D(
+        filters=filters, kernel_size=1, use_bias=False, padding='valid')(
             inputs)
     net_res = tf.keras.layers.BatchNormalization(scale=scale)(net_res)
 
@@ -252,12 +246,9 @@ def model(flags):
           )(net)
 
   # decoder
-  net = stream.Stream(
-      cell=tf.keras.layers.AveragePooling2D(
-          pool_size=net.shape[1:3], strides=1))(
-              net)
+  net = stream.Stream(cell=tf.keras.layers.GlobalAveragePooling2D())(net)
 
-  net = stream.Stream(cell=tf.keras.layers.Flatten())(net)
+  net = tf.keras.layers.Flatten()(net)
 
   net = tf.keras.layers.Dense(units=flags.label_count)(net)
 
