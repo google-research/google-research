@@ -23,7 +23,7 @@ Code-base accompanying the [paper](https://arxiv.org/abs/2003.05997).
 *   `sparsity_cluster_attention_window`: Average size of each cluster
 *   `sparsity_skip_first`: Number of initial layers to skip routing attention
     *   `sparsity_skip_first = 0` would have routing attention in every layer
-    *   `sparisty_skip_first` equalling total layers would have no routing
+    *   `sparsity_skip_first` equalling total layers would have no routing
         attention
 *   Example setting can be found in `sparse_transformer.py` under
     `pg19_local_cluster8k`

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""tensor2tensor eval incorporating Video Generation problems and models."""
+"""tensor2tensor eval incorporating sparsity problems and models."""
 
 from __future__ import absolute_import
 from __future__ import division

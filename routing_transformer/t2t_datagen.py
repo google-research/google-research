@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""tensor2tensor data generator incorporating Brain Dialog problems."""
+"""tensor2tensor data generator incorporating sparsity problems."""
 
 from __future__ import absolute_import
 from __future__ import division
