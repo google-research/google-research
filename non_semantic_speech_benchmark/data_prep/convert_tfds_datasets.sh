@@ -16,6 +16,13 @@
 #
 # bash convert_tfds_datasets.sh
 #
+# The TF-Hub models are located at:
+# https://tfhub.dev/s?q=nonsemantic-speech-benchmark
+#
+# You can also use a TensorFlow Lite version of TRILL to compute embeddings.
+# Provide the path to the `.tflite` flatbuffer as `embedding_module`, and the
+# embedding tensor index in TFLite outputs as `output_key` (usually 0).
+# NOTE: Only the distilled version of TRILL is suited for mobile conversion.
 
 OUTPUT_BASE="~/tmp/noss"
 
@@ -39,6 +46,32 @@ function convert_tfds() {
 --audio_key=audio \
 --label_key=label ${extra_args} &
 }
+
+## For TFLite
+## Note that this *only* outputs one embedding name.
+
+# function convert_tfds() {
+#   local dataset_name=$1
+#   local has_speaker_id=$2
+
+#   if [ "$has_speaker_id" = true ] ; then
+#     extra_args="--speaker_id_key=speaker_id"
+#   else
+#     extra_args=""
+#   fi
+
+#   wget "https://tfhub.dev/google/lite-model/nonsemantic-speech-benchmark/trill-distilled/1?lite-format=tflite" -O ${OUTPUT_BASE}/model.tflite
+
+#   python3 -m audio_to_embeddings_beam_main \
+# --alsologtostderr \
+# --tfds_dataset="${dataset_name}" \
+# --output_filename="${OUTPUT_BASE}/${dataset_name}" \
+# --embedding_names=trill-distilled \
+# --embedding_modules=${OUTPUT_BASE}/model.tflite \
+# --module_output_keys=0 \
+# --audio_key=audio \
+# --label_key=label ${extra_args} &
+# }
 
 convert_tfds "crema_d" true
 convert_tfds "savee" true

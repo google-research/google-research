@@ -19,6 +19,9 @@ r"""Construct a beam pipeline to map from audio to embeddings.
 This file has two modes:
 1) Map from tf.Examples of audio to tf.Examples of embeddings.
 2) Map from TFDS dataseet to tf.Examples of embeddings.
+
+It supports using a tf.hub module OR a TFLite model file to generate embeddings.
+TFLite file should have the `.tflite` extension.
 """
 
 import copy
@@ -52,11 +55,41 @@ def _tfexample_audio_to_npfloat32(ex, audio_key):
   return audio
 
 
-def _samples_to_embedding(audio_samples, sample_rate, mod, output_key):
+def _samples_to_embedding_tfhub(audio_samples, sample_rate, mod, output_key):
   """Run inference to map audio samples to an embedding."""
   tf_out = mod(tf.constant(audio_samples, tf.float32),
                tf.constant(sample_rate, tf.int32))
   return np.array(tf_out[output_key])
+
+
+def _build_tflite_interpreter(tflite_model_path):
+  model_content = None
+  with tf.io.gfile.GFile(tflite_model_path, 'rb') as model_file:
+    model_content = model_file.read()
+  interpreter = tf.lite.Interpreter(model_content=model_content)
+  interpreter.allocate_tensors()
+  return interpreter
+
+
+def _samples_to_embedding_tflite(
+    audio_samples, sample_rate, interpreter, output_key):
+  """Run TFLite inference to map audio samples to an embedding."""
+  input_details = interpreter.get_input_details()
+  output_details = interpreter.get_output_details()
+  # Resize TFLite input size based on length of sample.
+  # Ideally, we should explore if we can use fixed-size input here, and
+  # tile the sample to meet TFLite input size.
+  interpreter.resize_tensor_input(input_details[0]['index'],
+                                  [len(audio_samples)])
+  interpreter.allocate_tensors()
+  interpreter.set_tensor(input_details[0]['index'], audio_samples)
+  interpreter.set_tensor(input_details[1]['index'],
+                         np.array(sample_rate).astype(np.int32))
+
+  interpreter.invoke()
+  embedding_2d = interpreter.get_tensor(
+      output_details[int(output_key)]['index'])
+  return np.array(embedding_2d, dtype=np.float32)
 
 
 @beam.typehints.with_input_types(typing.Tuple[str, typing.Any])
@@ -67,7 +100,11 @@ class ComputeEmbeddingMapFn(beam.DoFn):
   def __init__(self, name, module, output_key, audio_key, sample_rate_key,
                sample_rate, average_over_time):
     self._name = name
+    # If TFLite should be used, `module` should point to a flatbuffer model.
     self._module = module
+    self._use_tflite = self._module.endswith('.tflite')
+    # For TFLite, `output_key` is the index of the embedding output from TFLite
+    # model (Usually 0).
     self._output_key = output_key
     self._audio_key = audio_key
     self._sample_rate_key = sample_rate_key
@@ -75,7 +112,10 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     self._average_over_time = average_over_time
 
   def setup(self):
-    self.module = hub.load(self._module)
+    if self._use_tflite:
+      self.interpreter = _build_tflite_interpreter(self._module)
+    else:
+      self.module = hub.load(self._module)
 
   def process(self, k_v):
     k, ex = k_v
@@ -107,8 +147,12 @@ class ComputeEmbeddingMapFn(beam.DoFn):
       sample_rate = 16000
 
     # Calculate the 2D embedding.
-    embedding_2d = _samples_to_embedding(
-        audio, sample_rate, self.module, self._output_key)
+    if self._use_tflite:
+      embedding_2d = _samples_to_embedding_tflite(
+          audio, sample_rate, self.interpreter, self._output_key)
+    else:
+      embedding_2d = _samples_to_embedding_tfhub(
+          audio, sample_rate, self.module, self._output_key)
     assert isinstance(embedding_2d, np.ndarray)
     assert embedding_2d.ndim == 2
     assert embedding_2d.dtype == np.float32
