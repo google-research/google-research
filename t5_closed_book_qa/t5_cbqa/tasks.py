@@ -23,6 +23,7 @@ from . import preprocessors
 
 import t5.data
 from t5.data import postprocessors as t5_postprocessors
+from t5.data import preprocessors as t5_preprocessors
 from t5.evaluation import metrics as t5_metrics
 
 MixtureRegistry = t5.data.MixtureRegistry
@@ -30,6 +31,7 @@ TaskRegistry = t5.data.TaskRegistry
 TfdsTask = t5.data.TfdsTask
 
 DEFAULT_SPM_PATH = "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"  # GCS
+
 
 # ========================== Natural Questions =================================
 
@@ -86,8 +88,8 @@ TaskRegistry.add(
     TfdsTask,
     tfds_name="natural_questions_open:1.0.0",
     splits={
-        "train": "train[:79168]",
-        "validation": "train[79168:]",
+        "train": "train[:79168]",  # ~90%, matches numbers used by ORQA
+        "validation": "train[79168:]",   # ~10%, matches numbers used by ORQA
         "test": "validation"
     },
     text_preprocessor=preprocessors.natural_questions_open,
@@ -211,3 +213,23 @@ MixtureRegistry.add(
     ],
     default_rate=t5.data.rate_num_examples
 )
+
+# ========================= Salient Span Masking ===============================
+
+TaskRegistry.add(
+    "salient_span_masked_wikipedia",
+    TfdsTask,
+    tfds_name="salient_span_wikipedia/sentences:1.0.0",
+    text_preprocessor=preprocessors.mask_salient_spans,
+    metric_fns=[])
+
+TaskRegistry.add(
+    "span_corrupted_wikipedia",
+    TfdsTask,
+    tfds_name="salient_span_wikipedia/sentences:1.0.0",
+    text_preprocessor=functools.partial(
+        t5_preprocessors.rekey,
+        key_map={"inputs": None, "targets": "text"}),
+    token_preprocessor=t5_preprocessors.span_corruption,
+    metric_fns=[])
+

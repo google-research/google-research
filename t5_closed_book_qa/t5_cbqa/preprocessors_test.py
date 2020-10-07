@@ -314,5 +314,62 @@ class PreprocessorsTest(absltest.TestCase):
         }
     )
 
+  def test_mask_salient_spans(self):
+    input_examples = [
+        {
+            'text': 'He was confident that it would be well received.',
+            'spans': {
+                'start': [],
+                'limit': [],
+            }
+        },
+        {
+            'text':
+                'The episode was filmed over three days at the end of October '
+                'and beginning of November 2002.',
+            'spans': {
+                'start': [53, 78],
+                'limit': [60, 91],
+            }
+        }
+    ]
+
+    og_dataset = tf.data.Dataset.from_generator(
+        lambda: (x for x in input_examples),
+        output_types={
+            'text': tf.string,
+            'spans': {
+                'start': tf.int64,
+                'limit': tf.int64,
+            },
+        },
+        output_shapes={
+            'text': [],
+            'spans': {
+                'start': [None],
+                'limit': [None],
+            },
+        })
+
+    dataset = preprocessors.mask_salient_spans(og_dataset)
+
+    test_utils.assert_dataset(
+        dataset,
+        [
+            {
+                'inputs':
+                    'nem: The episode was filmed over three days at the end of '
+                    '_X_ and beginning of November 2002.',
+                'targets': 'October'
+            },
+            {
+                'inputs':
+                    'nem: The episode was filmed over three days at the end of '
+                    'October and beginning of _X_.',
+                'targets': 'November 2002'
+            }
+        ]
+    )
+
 if __name__ == '__main__':
   absltest.main()
