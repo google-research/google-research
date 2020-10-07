@@ -22,8 +22,12 @@ Code-base accompanying the [paper](https://arxiv.org/abs/2003.05997).
     * To match this in enc-dec attention, the inputs must have `32` blocks
     * This is why we set `memory_query_shape = (4096/32,) = (128,)`
 *   `memory_flange`: This represents the overlap of the memory block
-    *   For full attention, or for axial attention this would be `(0,)`
-    *   Usually for local attention we set it equal to query shape
+    * Example setting: `query_shape = (b,)` and `memory_flange = (m * b, )`
+    * Masked: Each query block attends to `m` previous blocks
+    * Unmasked: Each query block attends to `m` previous & `m` subsequent blocks
+    * Setting this to `(0,)` means all the blocks are independent of each other
+    * Setting to `(0,)` is used for full attention, or for axial attention
+    * This must be a multiple of `query_shape` in every dimension
 *   Example setting can be found in `sparse_transformer.py` under `pg19_local8k`
 
 ### Routing Attention
