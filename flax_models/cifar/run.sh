@@ -23,4 +23,4 @@ pip install -r flax_models/cifar/requirements.txt
 python -m flax_models.cifar.datasets.dataset_source_test
 python -m flax_models.cifar.datasets.auto_augment_test
 python -m flax_models.cifar.models.load_model_test
-python -m flax_models.cifar.training_utils.flax_training
+python -m flax_models.cifar.training_utils.flax_training_test
