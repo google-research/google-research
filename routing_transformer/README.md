@@ -14,8 +14,8 @@ Code-base accompanying the [paper](https://arxiv.org/abs/2003.05997).
 *   `memory_query_shape`: This represents the query shape of memory antecedent
     and is useful for encoder-decoder attention
     * This is usually set the same as `query_shape` by default
-    * This is useful when input and targets are of different lengths
-    * E.g., if inputs are of length 4096 and targets of length 8192
+    * This is useful when inputs and targets are of different lengths
+    * E.g., if inputs are of length `4096` and targets of length `8192`
     * Plausible setting:`query_shape = (256,)`, `memory_flange = (256,)` and
       `memory_query_shape = (128,)`
     * This is because with block size `256`, the targets will have `32` blocks
