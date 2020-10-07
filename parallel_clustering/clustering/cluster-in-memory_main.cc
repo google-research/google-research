@@ -70,9 +70,12 @@ absl::Status GbbsGraphToInMemoryClustererGraph(InMemoryClusterer::Graph* graph,
     auto vertex = gbbs_graph.get_vertex(i);
     std::vector<std::pair<int32_t, double>> outgoing_edges(
         vertex.getOutDegree());
+    std::size_t index = 0;
     auto add_outgoing_edge = [&](gbbs::uintE, const gbbs::uintE neighbor,
                                  weight_type wgh) {
-      std::make_pair(static_cast<int32_t>(neighbor), DoubleFromWeight(wgh));
+      outgoing_edges[index] =
+          std::make_pair(static_cast<int32_t>(neighbor), DoubleFromWeight(wgh));
+      index++;
     };
     vertex.mapOutNgh(i, add_outgoing_edge, false);
     InMemoryClusterer::Graph::AdjacencyList adjacency_list{
