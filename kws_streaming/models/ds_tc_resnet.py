@@ -135,15 +135,16 @@ def resnet_block(inputs,
   net = inputs
   for _ in range(repeat-1):
     # DepthwiseConv1D
-    net = stream.Stream(
-        cell=tf.keras.layers.DepthwiseConv2D(
-            kernel_size=(kernel_size, 1),
-            strides=(stride, 1),
-            padding='valid',
-            dilation_rate=(dilation, 1),
-            use_bias=False),
-        pad_time_dim=padding)(
-            net)
+    if kernel_size > 0:
+      net = stream.Stream(
+          cell=tf.keras.layers.DepthwiseConv2D(
+              kernel_size=(kernel_size, 1),
+              strides=(stride, 1),
+              padding='valid',
+              dilation_rate=(dilation, 1),
+              use_bias=False),
+          pad_time_dim=padding)(
+              net)
 
     # Conv1D 1x1 - streamable by default
     net = tf.keras.layers.Conv2D(
@@ -155,15 +156,16 @@ def resnet_block(inputs,
     net = tf.keras.layers.Dropout(rate=dropout)(net)
 
   # DepthwiseConv1D
-  net = stream.Stream(
-      cell=tf.keras.layers.DepthwiseConv2D(
-          kernel_size=(kernel_size, 1),
-          strides=(stride, 1),
-          padding='valid',
-          dilation_rate=(dilation, 1),
-          use_bias=False),
-      pad_time_dim=padding)(
-          net)
+  if kernel_size > 0:
+    net = stream.Stream(
+        cell=tf.keras.layers.DepthwiseConv2D(
+            kernel_size=(kernel_size, 1),
+            strides=(stride, 1),
+            padding='valid',
+            dilation_rate=(dilation, 1),
+            use_bias=False),
+        pad_time_dim=padding)(
+            net)
 
   # Conv1D 1x1 - streamable by default
   net = tf.keras.layers.Conv2D(
