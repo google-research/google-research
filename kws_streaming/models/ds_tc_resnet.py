@@ -126,8 +126,7 @@ def resnet_block(inputs,
     output tensor
 
   Raises:
-    ValueError: if any of input list has different length from any other;
-    or if padding has invalid value
+    ValueError: if padding has invalid value
   """
   if residual and (padding not in ('same', 'causal')):
     raise ValueError('padding should be same or causal')

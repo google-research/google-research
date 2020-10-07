@@ -186,6 +186,22 @@ def tc_resnet_params():
   return params
 
 
+def tc_resnet_v2_params():
+  """Parameters for toy tc_resnet_v2 model."""
+  params = Params()
+  params.model_name = 'tc_resnet_v2'
+  params.tc_filters = '4, 4'
+  params.repeat_tc_convs = '1, 1'
+  params.kernel_sizes = '3, 3'
+  params.dilations = '1, 1'
+  params.residuals = '0, 1'
+  params.pool_sizes = '1, 2'
+  params.padding_in_time = 'same'
+  params.activation = 'relu'
+  params.dropout = 0.1
+  return params
+
+
 def lstm_params():
   """Parameters for toy lstm model."""
   params = Params()
@@ -395,6 +411,7 @@ HOTWORD_MODEL_PARAMS = {
     'cnn_stride': cnn_stride_params(),
     'cnn': cnn_params(),
     'tc_resnet': tc_resnet_params(),
+    'tc_resnet_v2': tc_resnet_v2_params(),
     'crnn': crnn_params(),
     'dnn': dnn_params(),
     'att_rnn': att_rnn_params(),
