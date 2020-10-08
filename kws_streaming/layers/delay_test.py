@@ -15,7 +15,6 @@
 
 # Lint as: python3
 """Tests for kws_streaming.layers.residual."""
-import random as rn
 from absl.testing import parameterized
 import numpy as np
 from kws_streaming.layers import delay
@@ -138,10 +137,7 @@ class DelayStreamTest(tf.test.TestCase, parameterized.TestCase):
 
   def setUp(self):
     super(DelayStreamTest, self).setUp()
-    seed = 123
-    np.random.seed(seed)
-    rn.seed(seed)
-    tf.random.set_seed(seed)
+    test_utils.set_seed(123)
 
   @parameterized.named_parameters([
       dict(testcase_name='causal_default', step=1, padding='causal'),

@@ -17,6 +17,7 @@
 
 import numpy as np
 from kws_streaming.layers import speech_features
+from kws_streaming.layers import test_utils
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 from kws_streaming.layers.modes import Modes
@@ -45,6 +46,10 @@ class Params(object):
     self.time_mask_max_size = 10
     self.frequency_masks_number = 2
     self.frequency_mask_max_size = 5
+    self.use_spec_cutout = 1
+    self.spec_cutout_masks_number = 3
+    self.spec_cutout_time_mask_size = 10
+    self.spec_cutout_frequency_mask_size = 5
     self.use_tf_fft = 0
     self.train = 0
     self.mode = Modes.NON_STREAM_INFERENCE
@@ -64,7 +69,7 @@ class SpeechFeaturesTest(tf.test.TestCase):
         round(self.params.sample_rate * self.params.window_stride_ms / 1000.0))
 
     # generate input signal
-    np.random.seed(1)
+    test_utils.set_seed(1)
     self.data_size = 1024
     self.signal = np.random.rand(self.inference_batch_size, self.data_size)
 

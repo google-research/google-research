@@ -371,6 +371,30 @@ def base_parser():
       help='SpecAugment parameter frequency_mask_max_size.',
   )
   parser.add_argument(
+      '--use_spec_cutout',
+      type=int,
+      default=0,
+      help='use SpecCutout',
+  )
+  parser.add_argument(
+      '--spec_cutout_masks_number',
+      type=int,
+      default=3,
+      help='SpecCutout number of masks',
+  )
+  parser.add_argument(
+      '--spec_cutout_time_mask_size',
+      type=int,
+      default=10,
+      help='SpecCutout masks size in time dim',
+  )
+  parser.add_argument(
+      '--spec_cutout_frequency_mask_size',
+      type=int,
+      default=5,
+      help='SpecCutout masks size in frequency dim',
+  )
+  parser.add_argument(
       '--return_softmax',
       type=int,
       default=0,

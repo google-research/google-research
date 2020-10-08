@@ -236,6 +236,14 @@ class TrainTest(tf.test.TestCase, parameterized.TestCase):
             5,
         'return_softmax':
             0,
+        'use_spec_cutout':
+            0,
+        'spec_cutout_masks_number':
+            3,
+        'spec_cutout_time_mask_size':
+            10,
+        'spec_cutout_frequency_mask_size':
+            5,
     }
     return DictStruct(**dummy_flags)
 

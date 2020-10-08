@@ -71,6 +71,13 @@ class BaseParserTest(tf.test.TestCase):
                      params.frequency_mask_max_size)
     self.assertEqual(FLAGS.return_softmax,
                      params.return_softmax)
+    self.assertEqual(FLAGS.use_spec_cutout, params.use_spec_cutout)
+    self.assertEqual(FLAGS.spec_cutout_masks_number,
+                     params.spec_cutout_masks_number)
+    self.assertEqual(FLAGS.spec_cutout_time_mask_size,
+                     params.spec_cutout_time_mask_size)
+    self.assertEqual(FLAGS.spec_cutout_frequency_mask_size,
+                     params.spec_cutout_frequency_mask_size)
 
 
 if __name__ == '__main__':

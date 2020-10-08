@@ -15,7 +15,6 @@
 
 # Lint as: python3
 """Tests for kws_streaming.layers.conv1d_transpose."""
-import random as rn
 from absl.testing import parameterized
 import numpy as np
 from kws_streaming.layers import conv1d_transpose
@@ -60,10 +59,7 @@ class Conv1DTransposeTest(tf.test.TestCase, parameterized.TestCase):
 
   def setUp(self):
     super(Conv1DTransposeTest, self).setUp()
-    seed = 123
-    np.random.seed(seed)
-    rn.seed(seed)
-    tf.random.set_seed(seed)
+    test_utils.set_seed(123)
 
   @parameterized.parameters(1, 2, 3, 4, 5, 6)
   def test_streaming_strides(self, stride):

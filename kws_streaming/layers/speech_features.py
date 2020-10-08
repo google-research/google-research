@@ -22,6 +22,7 @@ from kws_streaming.layers import modes
 from kws_streaming.layers import normalizer
 from kws_streaming.layers import preemphasis
 from kws_streaming.layers import spectrogram_augment
+from kws_streaming.layers import spectrogram_cutout
 from kws_streaming.layers import windowing
 from kws_streaming.layers.compat import tf
 from tensorflow.python.ops import gen_audio_ops as audio_ops  # pylint: disable=g-direct-tensorflow-import
@@ -140,6 +141,14 @@ class SpeechFeatures(tf.keras.layers.Layer):
     else:
       self.spec_augment = tf.keras.layers.Lambda(lambda x: x)
 
+    if self.params['use_spec_cutout'] and self.mode == modes.Modes.TRAINING:
+      self.spec_cutout = spectrogram_cutout.SpecCutout(
+          masks_number=self.params['spec_cutout_masks_number'],
+          time_mask_size=self.params['spec_cutout_time_mask_size'],
+          frequency_mask_size=self.params['spec_cutout_frequency_mask_size'])
+    else:
+      self.spec_cutout = tf.keras.layers.Lambda(lambda x: x)
+
   def _mfcc_tf(self, inputs):
     # MFCC implementation based on TF.
     # It is based on DFT which is computed using matmul with const weights.
@@ -153,6 +162,7 @@ class SpeechFeatures(tf.keras.layers.Layer):
     outputs = self.dct(outputs)
     outputs = self.normalizer(outputs)
     outputs = self.spec_augment(outputs)
+    outputs = self.spec_cutout(outputs)
     return outputs
 
   def _mfcc_op(self, inputs):
@@ -196,6 +206,7 @@ class SpeechFeatures(tf.keras.layers.Layer):
         dct_coefficient_count=self.params['dct_num_features'])
     # outputs: [channels/batch, frames, dct_coefficient_count]
     outputs = self.spec_augment(outputs)
+    outputs = self.spec_cutout(outputs)
     return outputs
 
   def call(self, inputs):
@@ -236,24 +247,51 @@ class SpeechFeatures(tf.keras.layers.Layer):
       dict with parameters
     """
     params = {
-        'sample_rate': flags.sample_rate,
-        'window_size_ms': flags.window_size_ms,
-        'window_stride_ms': flags.window_stride_ms,
-        'feature_type': flags.feature_type,
-        'preemph': flags.preemph,
-        'mel_lower_edge_hertz': flags.mel_lower_edge_hertz,
-        'mel_upper_edge_hertz': flags.mel_upper_edge_hertz,
-        'log_epsilon': flags.log_epsilon,
-        'dct_num_features': flags.dct_num_features,
-        'mel_non_zero_only': flags.mel_non_zero_only,
-        'fft_magnitude_squared': flags.fft_magnitude_squared,
-        'mel_num_bins': flags.mel_num_bins,
-        'window_type': flags.window_type,
-        'use_spec_augment': flags.use_spec_augment,
-        'time_masks_number': flags.time_masks_number,
-        'time_mask_max_size': flags.time_mask_max_size,
-        'frequency_masks_number': flags.frequency_masks_number,
-        'frequency_mask_max_size': flags.frequency_mask_max_size,
-        'use_tf_fft': flags.use_tf_fft,
+        'sample_rate':
+            flags.sample_rate,
+        'window_size_ms':
+            flags.window_size_ms,
+        'window_stride_ms':
+            flags.window_stride_ms,
+        'feature_type':
+            flags.feature_type,
+        'preemph':
+            flags.preemph,
+        'mel_lower_edge_hertz':
+            flags.mel_lower_edge_hertz,
+        'mel_upper_edge_hertz':
+            flags.mel_upper_edge_hertz,
+        'log_epsilon':
+            flags.log_epsilon,
+        'dct_num_features':
+            flags.dct_num_features,
+        'mel_non_zero_only':
+            flags.mel_non_zero_only,
+        'fft_magnitude_squared':
+            flags.fft_magnitude_squared,
+        'mel_num_bins':
+            flags.mel_num_bins,
+        'window_type':
+            flags.window_type,
+        'use_spec_augment':
+            flags.use_spec_augment,
+        'time_masks_number':
+            flags.time_masks_number,
+        'time_mask_max_size':
+            flags.time_mask_max_size,
+        'frequency_masks_number':
+            flags.frequency_masks_number,
+        'frequency_mask_max_size':
+            flags.frequency_mask_max_size,
+        'use_tf_fft':
+            flags.use_tf_fft,
+        'use_spec_cutout':
+            flags.use_spec_cutout,
+        'spec_cutout_masks_number':
+            flags.spec_cutout_masks_number,
+        'spec_cutout_time_mask_size':
+            flags.spec_cutout_time_mask_size,
+        'spec_cutout_frequency_mask_size':
+            flags.spec_cutout_frequency_mask_size,
     }
     return frozendict.frozendict(params)

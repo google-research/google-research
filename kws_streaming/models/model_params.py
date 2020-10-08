@@ -50,6 +50,10 @@ class Params(object):
     self.time_mask_max_size = 10
     self.frequency_masks_number = 2
     self.frequency_mask_max_size = 5
+    self.use_spec_cutout = 0
+    self.spec_cutout_masks_number = 3
+    self.spec_cutout_time_mask_size = 10
+    self.spec_cutout_frequency_mask_size = 5
     self.optimizer = 'adam'
     self.lr_schedule = 'linear'
     self.background_volume = 0.1

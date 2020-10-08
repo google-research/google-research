@@ -15,9 +15,9 @@
 
 """Tests for kws_streaming.layers.gru."""
 
-import random as rn
 import numpy as np
 from kws_streaming.layers import gru
+from kws_streaming.layers import test_utils
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 from kws_streaming.layers.modes import Modes
@@ -28,11 +28,7 @@ class GRUTest(tf.test.TestCase):
 
   def setUp(self):
     super(GRUTest, self).setUp()
-
-    seed = 123
-    np.random.seed(seed)
-    rn.seed(seed)
-    tf.random.set_seed(seed)
+    test_utils.set_seed(123)
 
     # generate input signal
     self.inference_batch_size = 1

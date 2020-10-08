@@ -14,12 +14,18 @@
 # limitations under the License.
 
 """Util functions used for testing."""
-
+import random
 import numpy as np
 from kws_streaming.layers import data_frame
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.modes import Modes
 from kws_streaming.train import model_flags
+
+
+def set_seed(seed):
+  random.seed(seed)
+  np.random.seed(seed)
+  tf.random.set_seed(seed)
 
 
 class Params(object):
@@ -126,7 +132,7 @@ class FrameTestBase(tf.test.TestCase):
     self.inference_batch_size = 1
 
     # generate input signal
-    np.random.seed(1)
+    set_seed(1)
     self.data_size = 33
     self.signal = np.random.rand(self.inference_batch_size, self.data_size)
 

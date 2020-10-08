@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """Tests for kws_streaming.layers.stream."""
-import random as rn
 from absl.testing import parameterized
 import numpy as np
 from kws_streaming.layers import stream
@@ -161,10 +160,7 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
 
   def setUp(self):
     super(StreamTest, self).setUp()
-    seed = 123
-    np.random.seed(seed)
-    rn.seed(seed)
-    tf.random.set_seed(seed)
+    test_utils.set_seed(123)
 
   def test_streaming_with_effective_tdim(self):
     time_size = 10
@@ -245,7 +241,7 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
         pad_time_dim=padding)(inputs)
     model = tf.keras.Model(inputs, net)
 
-    np.random.seed(1)
+    test_utils.set_seed(1)
     input_signal = np.random.rand(batch_size, time_dim, feature_dim)
     outputs = model.predict(input_signal)
     self.assertAllEqual(outputs.shape,
