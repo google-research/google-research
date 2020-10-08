@@ -155,7 +155,7 @@ class SpecCutout(tf.keras.layers.Layer):
       for i in range(self.masks_number):
         net = random_cutout(
             net, (self.time_mask_size, self.frequency_mask_size),
-            seed=self.seed + i)
+            seed=self.seed + i if self.seed else self.seed)
       net = tf.keras.backend.squeeze(net, axis=-1)
       return net
 
