@@ -22,6 +22,7 @@
 #include "google/protobuf/repeated_field.h"
 #include "absl/algorithm/container.h"
 #include "absl/container/node_hash_map.h"
+#include "absl/container/node_hash_set.h"
 #include "absl/memory/memory.h"
 #include "task.pb.h"
 
@@ -34,7 +35,7 @@ using ::std::equal;          // NOLINT
 using ::std::function;       // NOLINT
 using ::std::set;            // NOLINT
 using ::std::unique_ptr;     // NOLINT
-using ::std::unordered_set;  // NOLINT
+// NOLINT
 using ::std::vector;         // NOLINT
 
 vector<Op> ExtractOps(const RepeatedField<int>& ops_src) {
