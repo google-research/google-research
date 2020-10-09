@@ -23,6 +23,7 @@ r"""Exports a graph as a saved model.
 import os
 from absl import app
 from absl import flags
+from absl import logging
 import numpy as np
 
 import tensorflow as tf
@@ -132,49 +133,58 @@ class TRILLModule(tf.train.Checkpoint):
     return out_dict
 
 
-def _make_and_export_trill(savedmodel_dir, name, distilled_output_keys):
+def make_and_export_trill(savedmodel_dir, distilled_output_keys,
+                          allow_batch_dimension, fixed_length_input):
   """Make and export TRILL and TRILL distilled."""
   trill_mod = TRILLModule(savedmodel_dir, distilled_output_keys)
   for dtype in (tf.float32, tf.float64, tf.int16):
     trill_mod.__call__.get_concrete_function(
-        tf.TensorSpec([None], dtype),
+        tf.TensorSpec([fixed_length_input], dtype),
         tf.constant(16000))
-    trill_mod.__call__.get_concrete_function(
-        tf.TensorSpec([None, None], dtype),
-        tf.constant(16000))
-
-  out_dir = os.path.join(FLAGS.export_dir, name)
-  tf.saved_model.save(trill_mod, out_dir)
-
-  return out_dir
+    if allow_batch_dimension:
+      trill_mod.__call__.get_concrete_function(
+          tf.TensorSpec([None, fixed_length_input], dtype),
+          tf.constant(16000))
+  return trill_mod
 
 
-def _test_module(out_dir, allow_batchdim=False, has_variables=False):
+def construct_savedmodel_dir(export_dir, name, allow_batch_dimension,
+                             fixed_length_input):
+  bd_str = 'wbatchdim' if allow_batch_dimension else 'nobatchdim'
+  fl_str = f'fixedlen{fixed_length_input}' if fixed_length_input else 'nofixedlen'
+  return os.path.join(export_dir, f'{name}_{bd_str}_{fl_str}')
+
+
+def test_module(out_dir, allow_batch_dimension=True, fixed_length_input=None):
   """Test that the exported doesn't crash."""
   model = hub.load(out_dir)
   sr = tf.constant(16000)
-  proper_shape = tf.random.uniform([32000], -1.0, 1.0, tf.float32)
+  input_len = fixed_length_input or 320000
+  logging.info('Input length: %s', input_len)
+
+  proper_shape = tf.random.uniform([input_len], -1.0, 1.0, tf.float32)
   model(proper_shape, sr)
-  if allow_batchdim:
-    proper_shape = tf.random.uniform([5, 32000], -1.0, 1.0, tf.float32)
+  if allow_batch_dimension:
+    proper_shape = tf.random.uniform([5, input_len], -1.0, 1.0, tf.float32)
     model(proper_shape, sr)
 
-  proper_shape = tf.random.uniform([32000], -1.0, 1.0, tf.float64)
+  proper_shape = tf.random.uniform([input_len], -1.0, 1.0, tf.float64)
   model(proper_shape, sr)
-  if allow_batchdim:
-    proper_shape = tf.random.uniform([5, 32000], -1.0, 1.0, tf.float64)
+  if allow_batch_dimension:
+    proper_shape = tf.random.uniform([5, input_len], -1.0, 1.0, tf.float64)
     model(proper_shape, sr)
 
-  proper_shape = np.random.randint(0, high=10000, size=(32000), dtype=np.int16)
+  proper_shape = np.random.randint(
+      0, high=10000, size=(input_len), dtype=np.int16)
   model(proper_shape, sr)
-  if allow_batchdim:
+  if allow_batch_dimension:
     proper_shape = np.random.randint(
-        0, high=10000, size=(5, 32000), dtype=np.int16)
+        0, high=10000, size=(5, input_len), dtype=np.int16)
     model(proper_shape, sr)
 
   short_shape = np.random.randint(0, high=10000, size=(5000), dtype=np.int16)
   model(short_shape, sr)
-  if allow_batchdim:
+  if allow_batch_dimension:
     short_shape = np.random.randint(
         0, high=10000, size=(5, 5000), dtype=np.int16)
     model(short_shape, sr)
@@ -185,26 +195,39 @@ def _test_module(out_dir, allow_batchdim=False, has_variables=False):
   except tf.errors.InvalidArgumentError:
     pass
 
-  if has_variables:
-    assert model.variables
-    assert model.trainable_variables
+  # Check variables.
+  assert model.variables
+  assert model.trainable_variables
   assert not model._is_hub_module_v1   # pylint:disable=protected-access
 
 
 def main(unused_argv):
 
-  out_dir = _make_and_export_trill(
-      FLAGS.trill_model_location, 'trill',
-      distilled_output_keys=False)
-  _test_module(out_dir, allow_batchdim=True, has_variables=True)
+  # pylint: disable=line-too-long
+  model_params = [
+      # name, model location, distilled_output_keys, allow_batch_dimension, fixed_length_input
+      ('trill', FLAGS.trill_model_location, False, True, None),
+      ('trill', FLAGS.trill_model_location, False, False, 16000),
+      ('trill-distilled', FLAGS.trill_distilled_model_location, True, True, None),
+      ('trill-distilled', FLAGS.trill_distilled_model_location, True, False, 16000),
+  ]
+  # pylint: enable=line-too-long
 
-  out_dir = _make_and_export_trill(
-      FLAGS.trill_distilled_model_location, 'trill-distilled',
-      distilled_output_keys=True)
-  _test_module(out_dir, allow_batchdim=True, has_variables=True)
+  for (name, model_location, distilled_output_keys, allow_batch_dimension,
+       fixed_length_input) in model_params:
+    saved_mod = make_and_export_trill(
+        model_location,
+        distilled_output_keys,
+        allow_batch_dimension,
+        fixed_length_input)
+    out_dir = construct_savedmodel_dir(
+        FLAGS.export_dir, name, allow_batch_dimension, fixed_length_input)
+    tf.saved_model.save(saved_mod, out_dir)
+    test_module(out_dir, allow_batch_dimension, fixed_length_input)
 
 
 if __name__ == '__main__':
+  flags.mark_flag_as_required('export_dir')
   tf.compat.v2.enable_v2_behavior()
   assert tf.executing_eagerly()
   app.run(main)
