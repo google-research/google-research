@@ -64,13 +64,14 @@ Here is the code to query our best models served as TensorFlow Hub models.
 # TF1 version
 import tensorflow.compat.v1 as tf
 import tensorflow_hub as hub
+import tensorflow_text as tf_text
 ```
 
 ### MT(DE ->EN)
 
 ```
 text_generator = hub.Module(
-    'https://tfhub.dev/google/bertseq2seq/bert24_de_en/1')
+    '[https://tfhub.dev/google/bertseq2seq/bert24_de_en/1](https://tfhub.dev/google/bertseq2seq/bert24_de_en/1)')
 de_sents = ['Satz 1', 'Satz 2']
 en_sents = text_generator(en_sents)
 ```
@@ -79,7 +80,7 @@ en_sents = text_generator(en_sents)
 
 ```
 text_generator = hub.Module(
-    'https://tfhub.dev/google/bertseq2seq/bert24_en_de/1')
+    '[https://tfhub.dev/google/bertseq2seq/bert24_en_de/1](https://tfhub.dev/google/bertseq2seq/bert24_en_de/1)')
 en_sents = ['Sentence 1', 'Sentence 2']
 de_sents = text_generator(en_sents)
 ```
@@ -88,7 +89,7 @@ de_sents = text_generator(en_sents)
 
 ```
 text_generator = hub.Module(
-    'https://tfhub.dev/google/bertseq2seq/roberta24_discofuse/1')
+    '[https://tfhub.dev/google/bertseq2seq/roberta24_discofuse/1](https://tfhub.dev/google/bertseq2seq/roberta24_discofuse/1)')
 input_texts = ['Sentence 1a Sentence 1b',
                'Sentence 2a Sentence 2b Sentence 2c']
 output_sents = text_generator(input_texts)
@@ -98,7 +99,7 @@ output_sents = text_generator(input_texts)
 
 ```
 text_generator = hub.Module(
-    'https://tfhub.dev/google/bertseq2seq/roberta24_wikisplit/1')
+    '[https://tfhub.dev/google/bertseq2seq/roberta24_wikisplit/1](https://tfhub.dev/google/bertseq2seq/roberta24_wikisplit/1)')
 input_sentences = ['Long Sentence 1', 'Long Sentence 2']
 output_texts = text_generator(input_sentences)
 ```
@@ -107,7 +108,7 @@ output_texts = text_generator(input_sentences)
 
 ```
 text_generator = hub.Module(
-    'https://tfhub.dev/google/bertseq2seq/roberta24_gigaword/1')
+    '[https://tfhub.dev/google/bertseq2seq/roberta24_gigaword/1](https://tfhub.dev/google/bertseq2seq/roberta24_gigaword/1)')
 input_sents = ['This is the first sentence.', 'This is the second sentence.']
 output_summaries = text_generator(input_sents)
 ```
@@ -116,7 +117,7 @@ output_summaries = text_generator(input_sents)
 
 ```
 text_generator = hub.Module(
-    'https://tfhub.dev/google/bertseq2seq/roberta24_cnndm/1')
+    '[https://tfhub.dev/google/bertseq2seq/roberta24_cnndm/1](https://tfhub.dev/google/bertseq2seq/roberta24_cnndm/1)')
 input_documents = ['This is text from the first document.',
                    'This is text from the second document.']
 output_summaries = text_generator(input_documents)
@@ -126,11 +127,16 @@ output_summaries = text_generator(input_documents)
 
 ```
 text_generator = hub.Module(
-    'https://tfhub.dev/google/bertseq2seq/roberta24_bbc/1')
+    '[https://tfhub.dev/google/bertseq2seq/roberta24_bbc/1](https://tfhub.dev/google/bertseq2seq/roberta24_bbc/1)')
 input_documents = ['This is text from the first document.',
                    'This is text from the second document.']
 output_summaries = text_generator(input_documents)
 ```
+
+## Tokenizers
+
+* SentencePiece Tokenizer: [vocab file](https://storage.googleapis.com/berts2s-tokenizers-tacl20/vocab_gpt.vocab) and [model file](https://storage.googleapis.com/berts2s-tokenizers-tacl20/vocab_gpt.model).
+* WordPiece Tokenizer: [vocab file](https://storage.googleapis.com/berts2s-tokenizers-tacl20/vocab_wordpieces_wmt14_ende.vocab).
 
 ## Contact us
 
