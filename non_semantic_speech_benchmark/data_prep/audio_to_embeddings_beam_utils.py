@@ -111,6 +111,10 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     self._sample_rate = sample_rate
     self._average_over_time = average_over_time
 
+    # Only one of `sample_rate_key` and `sample_rate` should be not None.
+    assert (self._sample_rate_key is None) ^ (self._sample_rate is None),\
+        (self._sample_rate_key, self._sample_rate)
+
   def setup(self):
     if self._use_tflite:
       self.interpreter = _build_tflite_interpreter(self._module)
@@ -120,23 +124,27 @@ class ComputeEmbeddingMapFn(beam.DoFn):
   def process(self, k_v):
     k, ex = k_v
 
-    # Only one of `sample_rate_key` and `sample_rate` should be not None.
-    assert (self._sample_rate_key is None) ^ (self._sample_rate is None),\
-        (self._sample_rate_key, self._sample_rate)
-
     # Read the input example audio and assert input format sanity.
-    assert self._audio_key in ex.features.feature, ex.features.feature.keys()
+    if self._audio_key not in ex.features.feature:
+      raise ValueError(f'Audio key `{self._audio_key}` not found: '
+                       f'{list(ex.features.feature.keys())}')
     audio = _tfexample_audio_to_npfloat32(ex, self._audio_key)
-    assert audio.size > 0, k
+    if audio.size == 0:
+      raise ValueError(f'No audio found: {self._audio_key}, {audio.size} {k}')
     beam.metrics.Metrics.distribution(
         'computed-embedding-audio', 'length').update(audio.size)
 
     # Read the sample rate, if a key to do so has been provided.
-    sample_rate = self._sample_rate
     if self._sample_rate_key:
-      assert self._sample_rate_key in ex.features.feature
+      if self._sample_rate_key not in ex.features.feature:
+        raise ValueError(f'Sample rate key not found: {self._sample_rate_key}')
       sample_rate = ex.features.feature[
           self._sample_rate_key].int64_list.value[0]
+    else:
+      if not self._sample_rate:
+        raise ValueError('If `sample_rate_key` not provided, must provide '
+                         '`sample_rate`.')
+      sample_rate = self._sample_rate
     logging.info(
         'len(audio): %s / %s / %s', len(audio), sample_rate, self._name)
 
