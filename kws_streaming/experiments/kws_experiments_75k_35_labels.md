@@ -99,7 +99,7 @@ CMD_TRAIN="python -m kws_streaming.train.model_train_eval"
 By default 'ds_padding' set 'same' \
 For training streamable model 'ds_padding' has to be set 'causal' \
 parameters: 75K \
-accuracy 96.6
+accuracy 96.7
 ```shell
 $CMD_TRAIN \
 --batch_size 128 \
@@ -122,9 +122,9 @@ $CMD_TRAIN \
 --lr_schedule 'linear' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
---time_mask_max_size 10 \
+--time_mask_max_size 25 \
 --frequency_masks_number 2 \
---frequency_mask_max_size 5 \
+--frequency_mask_max_size 7 \
 ds_tc_resnet \
 --ds_padding "'same', 'same', 'same', 'same', 'same', 'same'" \
 --activation 'relu' \
@@ -139,19 +139,20 @@ ds_tc_resnet \
 
 ### [MatchboxNet](https://arxiv.org/pdf/2004.08531.pdf) config with novograd
 parameters: 75K \
-
+accuracy 96.8
 ```shell
 $CMD_TRAIN \
 --batch_size 128 \
 --split_data 0 \
 --novograd_beta_1 0.9 \
 --novograd_beta_2 0.99 \
+--novograd_weight_decay 0.001 \
 --wanted_words 'visual,wow,learn,backward,dog,two,left,happy,nine,go,up,bed,stop,one,zero,tree,seven,on,four,bird,right,eight,no,six,forward,house,marvin,sheila,five,off,three,down,cat,follow,yes' \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/ds_tc_resnet_novograd/ \
 --mel_upper_edge_hertz 7000 \
---how_many_training_steps 30000,30000,30000,30000,30000,30000 \
+--how_many_training_steps 20000,20000,20000,20000,20000,60000 \
 --learning_rate 0.02,0.02,0.01,0.005,0.002,0.001 \
 --window_size_ms 30.0 \
 --window_stride_ms 10.0 \
@@ -164,9 +165,9 @@ $CMD_TRAIN \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
---time_mask_max_size 10 \
+--time_mask_max_size 25 \
 --frequency_masks_number 2 \
---frequency_mask_max_size 5 \
+--frequency_mask_max_size 7 \
 ds_tc_resnet \
 --ds_padding "'same', 'same', 'same', 'same', 'same', 'same'" \
 --activation 'relu' \

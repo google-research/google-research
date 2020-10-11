@@ -1,7 +1,8 @@
 # Streaming Aware neural network models
 ======================================================================================
 
-Summary about this work is presented at paper [Streaming keyword spotting on mobile devices](https://arxiv.org/abs/2005.06720)
+Summary about this work is presented at paper [Streaming keyword spotting on mobile devices](https://arxiv.org/abs/2005.06720).
+Please cite the paper in your publications if you find the source code useful for your research.
 
 Streaming aware neural network models are important for real time response,
 high accuracy and good user experience. In this work we designed keras streaming
@@ -18,6 +19,7 @@ and implemented most popular KWS models:
 * [lstm](https://arxiv.org/pdf/1711.07128.pdf) - long short term memory model;
 * [cnn](https://arxiv.org/pdf/1711.07128.pdf) - convolutional neural network;
 * [tc_resnet](https://arxiv.org/pdf/1904.03814.pdf) - temporal convolution with sequence of residual blocks;
+* tc_resnet_v2 - temporal convolution with sequence of residual blocks
 * [crnn](https://arxiv.org/pdf/1711.07128.pdf) - combination of convolutional layers with RNNs(GRU or LSTM);
 * [ds_cnn](https://arxiv.org/pdf/1711.07128.pdf) - depth wise convolutional neural network;
 * [svdf](https://arxiv.org/pdf/1812.02802.pdf) - singular value decomposition filter neural network (sequence of 1d depthwise conv and 1x1 conv);
@@ -68,7 +70,7 @@ All experiments are listed in folder "experiments". It contains:
 * [kws_experiments_paper](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_paper.md) - experiments presented in [paper](https://arxiv.org/abs/2005.06720): models trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
 * [kws_experiments_q](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_q.md) - quantized model presented in [paper](https://arxiv.org/abs/2005.06720): models trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
 * [kws_experiments_30k](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_30k.md) - models with 30k parameters, trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
-* [kws_experiments_75k_35_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_75k_35_labels.md) - models with 75K parameters trained on [data set v2](https://arxiv.org/pdf/1804.03209.pdf) with 35 labels.
+* [kws_experiments_75k_35_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_75k_35_labels.md) - models with 75K parameters trained on [data set v2](https://arxiv.org/pdf/1804.03209.pdf) with 35 labels. It is a good example of training models on custom data
 
 ### Streamable and non streamable models
 
@@ -124,15 +126,23 @@ output = tf.keras.layers.Dense(...)(output)
 * Models which require access to the whole input sequence are not streamable, such as bidirectional RNN or attention computed over the whole sequence.
 * Any causal models including models with pooling and striding in time dimension can be supported in streaming mode: for example [test_stream_strided_convolution](https://github.com/google-research/google-research/blob/master/kws_streaming/layers/stream_test.py). For causal models we set padding='causal'. If the model is not causal, then the delay layer has to be inserted manually, as it is shown in [residual_model](https://github.com/google-research/google-research/blob/master/kws_streaming/layers/delay_test.py).
 
+### Edge cases:
+* Input data has to be aligned with striding/pooling, for example if total striding=4, input data length has to be 4. It allows us to run convs efficiently.
+* pool_size and strides in time dim has to be the same. If they are different it is still streamable but needs to be implemented.
+* Conv() in streaming mode can return a sequence, so it can be applied on any aligned sequence, for example if total striding=4, input data length can be 4, 8, etc
+* Flatten(), GlobalMaxPooling2D(), GlobalAveragePooling2D() can return only one output, so they can not be applied on any aligned sequence, for example if total striding=4, input data length has to be 4.
+* We can run biLSTM after the Flatten() layer. Flatten() can be considered as “unstreaming”.
+
+
 ## Inference
 KWS model in streaming mode is executed by steps:
 
 1. Receive sample(packet), for example audio data from microphone.
 2. Feed these data into KWS model
 3. Process these data and return detection output
-4. Go to next inference iteration to step 1 above.
+4. Go to the next inference iteration to step 1 above.
 Most of the layers are streamable by default for example activation layers:
-relu, sigmoid; or dense layer. These layers does not have any state.
+relu, sigmoid; or dense layer. These layers do not have any state.
 So we can call them stateless layers.
 
 ### State management
@@ -485,7 +495,7 @@ Description of the content of the model folder models1/dnn_1:
 ├── last_weights.index - weights of the model at last training iteration (used for debugging)
 ├── logs
 │   ├── train
-│   │   └── events.out.tfevents... - tranining loss/accuracy on every minibatch
+│   │   └── events.out.tfevents... - training loss/accuracy on every minibatch
 │   └── validation
 │       └── events.out.tfevents... - validation loss/accuracy on every eval step
 ├── model_summary.txt - model topology in non streaming mode
@@ -504,11 +514,11 @@ Description of the content of the model folder models1/dnn_1:
 │   ├── model_summary.txt
 │   ├── non_stream.tflite - quantized non streaming TFlite model
 │   └── tflite_non_stream_model_accuracy.txt  - accuracy of quantized TFlite model
-├── quantize_opt_for_size_tflite_stream_state_external - quantized streamimg TFlite model, works with options:
+├── quantize_opt_for_size_tflite_stream_state_external - quantized streaming TFlite model, works with options:
 |   |        (preprocess 'raw'; feature_type 'mfcc_op')
 |   |        (preprocess 'mfcc')
 |   |        (preprocess 'micro')
-|   |        Not all models can be streamed (check models desription above)
+|   |        Not all models can be streamed (check models description above)
 │   ├── model_summary.txt - model topology in streaming mode with external state
 │   ├── stream_state_external.tflite - quantized streaming TFlite model
 │   ├── tflite_stream_state_external_model_accuracy_reset0.txt - accuracy of TFLite streaming model
