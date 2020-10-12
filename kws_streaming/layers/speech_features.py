@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """A layer for extracting features from speech data."""
-import frozendict
 from kws_streaming.layers import data_frame
 from kws_streaming.layers import dct
 from kws_streaming.layers import magnitude_rdft_mel
@@ -294,4 +293,4 @@ class SpeechFeatures(tf.keras.layers.Layer):
         'spec_cutout_frequency_mask_size':
             flags.spec_cutout_frequency_mask_size,
     }
-    return frozendict.frozendict(params)
+    return params

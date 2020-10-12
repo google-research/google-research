@@ -44,7 +44,6 @@ pip install tensorflow_addons
 # install libs:
 pip install pydot
 pip install graphviz
-pip install frozendict
 pip install numpy
 pip install absl-py
 ```
