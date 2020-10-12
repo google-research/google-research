@@ -20,11 +20,10 @@ from . import metrics
 from . import postprocessors
 from . import preprocessors
 import t5.data
+from t5.data import get_default_vocabulary
 from t5.data import postprocessors as t5_postprocessors
 from t5.data import preprocessors as t5_preprocessors
 from t5.data.glue_utils import get_glue_postprocess_fn
-from t5.data.utils import Feature
-from t5.data.utils import get_default_vocabulary
 from t5.evaluation import metrics as t5_metrics
 import tensorflow_datasets as tfds
 
@@ -33,8 +32,8 @@ TaskRegistry = t5.data.TaskRegistry
 TfdsTask = t5.data.TfdsTask
 
 DEFAULT_OUTPUT_FEATURES = {
-    "inputs": Feature(vocabulary=get_default_vocabulary, add_eos=True),
-    "targets": Feature(vocabulary=get_default_vocabulary, add_eos=True)
+    "inputs": t5.data.Feature(vocabulary=get_default_vocabulary, add_eos=True),
+    "targets": t5.data.Feature(vocabulary=get_default_vocabulary, add_eos=True)
 }
 
 # ======================== CoS-E Corpus Task ==================================
