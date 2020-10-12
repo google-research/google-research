@@ -18,9 +18,9 @@ model.
 
 ## Planned changes
 
-- [_] Create Colab.
-- [_] Add tests.
-- [_] Add type annotations.
-- [_] Do extensive benchmarks of pre-training and fine-tuning.
-- [_] Simplify attention (use Flax attention instead of efficient_attention).
-- [_] Use [CLU](https://pypi.org/project/clu/) library for metrics reporting.
+- [ ] Create Colab.
+- [ ] Add tests.
+- [ ] Add type annotations.
+- [ ] Do extensive benchmarks of pre-training and fine-tuning.
+- [ ] Simplify attention (use Flax attention instead of efficient_attention).
+- [ ] Use [CLU](https://pypi.org/project/clu/) library for metrics reporting.
