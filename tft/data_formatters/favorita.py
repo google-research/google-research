@@ -249,7 +249,7 @@ class FavoritaFormatter(data_formatters.base.GenericDataFormatter):
 
     fixed_params = {
         'total_time_steps': 120,
-        'num_encoder_steps': 30,
+        'num_encoder_steps': 90,
         'num_epochs': 100,
         'early_stopping_patience': 5,
         'multiprocessing_workers': 5

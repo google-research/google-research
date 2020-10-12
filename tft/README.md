@@ -102,7 +102,7 @@ As an optional step, change the number of random search iterations if required:
     my_search_iterations=1000
     
     if self.experiment == 'example':
-      return my_serach_iterations
+      return my_search_iterations
     else:
       return 240 if self.experiment == 'volatility' else 60
 ```

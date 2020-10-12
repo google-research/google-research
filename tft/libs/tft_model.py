@@ -1127,7 +1127,7 @@ class TemporalFusionTransformer(object):
       print('Using cached training data')
       train_data = TFTDataCache.get('train')
     else:
-      train_data = self._batch_data(valid_df)
+      train_data = self._batch_data(train_df)
 
     if valid_df is None:
       print('Using cached validation data')
