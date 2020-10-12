@@ -84,7 +84,6 @@ class LossTest(tf.test.TestCase):
             activations, labels, 0.5, t2)
         shifted_loss = loss.bi_tempered_logistic_loss(
             activations + bias, labels, 0.5, t2)
-        self.assertEqual(actual_loss.shape, [3])
         actual_loss_out, shifted_loss_out = sess.run(
             [actual_loss, shifted_loss])
         self.assertAllClose(actual_loss_out, shifted_loss_out)
@@ -94,20 +93,21 @@ class LossTest(tf.test.TestCase):
     labels = tf.constant([[0.4, 0.3, 0.3], [0.8, 0.1, 0.1], [0.0, 0.0, 1.0],
                           [0.0, 1.0, 0.0]])
     activations = tf.random.normal(shape=[4, 3])
-    internal_loss = loss._internal_bi_tempered_logistic_loss(
-        activations, labels, 0.5, 1.5)
-    numerical_gradient = tf.gradients(internal_loss, activations)
-    actual_loss = loss.bi_tempered_logistic_loss(activations, labels, 0.5, 1.5)
-    actual_gradient = tf.gradients(actual_loss, activations)
-    with self.cached_session() as sess:
-      internal_loss_out, actual_loss_out = sess.run(
-          [internal_loss, actual_loss])
-      numerical_gradient_out, actual_gradient_out = sess.run(
-          [numerical_gradient[0], actual_gradient[0]])
-      self.assertEqual(actual_gradient_out.shape, (4, 3))
-      self.assertAllClose(actual_loss_out, internal_loss_out)
-      self.assertAllClose(
-          actual_gradient_out, numerical_gradient_out, atol=1e-5)
+    for t1, t2 in [[0.5, 1.0], [1.0, 1.5], [0.5, 1.5]]:
+      internal_loss = loss._internal_bi_tempered_logistic_loss(
+          activations, labels, t1, t2)
+      numerical_gradient = tf.gradients(internal_loss, activations)
+      actual_loss = loss.bi_tempered_logistic_loss(activations, labels, t1, t2)
+      actual_gradient = tf.gradients(actual_loss, activations)
+      with self.cached_session() as sess:
+        internal_loss_out, actual_loss_out = sess.run(
+            [internal_loss, actual_loss])
+        numerical_gradient_out, actual_gradient_out = sess.run(
+            [numerical_gradient[0], actual_gradient[0]])
+        self.assertEqual(actual_gradient_out.shape, (4, 3))
+        self.assertAllClose(actual_loss_out, internal_loss_out, atol=1e-5)
+        self.assertAllClose(
+            actual_gradient_out, numerical_gradient_out, atol=1e-4)
 
   def test_label_smoothing(self):
     """Test label smoothing."""
@@ -140,7 +140,7 @@ class LossTest(tf.test.TestCase):
         activations, labels, t1, t2, num_iters=5)
     t1_values = [1.0, 0.9, 0.8, 0.7]
     t2_values = [1.0, 1.1, 1.2, 1.3]
-    loss_values = [[0.62870466], [0.45677936], [0.34298314], [0.26295574]]
+    loss_values = [[1.6583576], [0.45677936], [0.34298314], [0.26295574]]
     loss_out = []
     with self.cached_session() as sess:
       for t1_value, t2_value in zip(t1_values, t2_values):

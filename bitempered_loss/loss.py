@@ -15,11 +15,30 @@
 
 """Robust Bi-Tempered Logistic Loss Based on Bregman Divergences.
 
-Source: https://arxiv.org/pdf/1906.03361.pdf
+Source: https://bit.ly/3jSol8T
 """
 
 import functools
 import tensorflow.compat.v1 as tf
+
+
+def for_loop(num_iters, body, initial_args):
+  """Runs a simple for-loop with given body and initial_args.
+
+  Args:
+    num_iters: Maximum number of iterations.
+    body: Body of the for-loop.
+    initial_args: Args to the body for the first iteration.
+
+  Returns:
+    Output of the final iteration.
+  """
+  for i in range(num_iters):
+    if i == 0:
+      outputs = body(*initial_args)
+    else:
+      outputs = body(*outputs)
+  return outputs
 
 
 def log_t(u, t):
@@ -58,9 +77,6 @@ def compute_normalization_fixed_point(activations, t, num_iters=5):
   normalized_activations_step_0 = activations - mu
   shape_normalized_activations = tf.shape(normalized_activations_step_0)
 
-  def iter_condition(i, unused_normalized_activations):
-    return i < num_iters
-
   def iter_body(i, normalized_activations):
     logt_partition = tf.reduce_sum(
         exp_t(normalized_activations, t), -1, keep_dims=True)
@@ -69,10 +85,8 @@ def compute_normalization_fixed_point(activations, t, num_iters=5):
         shape_normalized_activations)
     return [i + 1, normalized_activations_t]
 
-  _, normalized_activations_t = tf.while_loop(
-      iter_condition,
-      iter_body, [0, normalized_activations_step_0],
-      maximum_iterations=num_iters)
+  _, normalized_activations_t = for_loop(num_iters, iter_body,
+                                         [0, normalized_activations_step_0])
   logt_partition = tf.reduce_sum(
       exp_t(normalized_activations_t, t), -1, keep_dims=True)
   return -log_t(1.0 / logt_partition, t) + mu
@@ -100,9 +114,6 @@ def compute_normalization_binary_search(activations, t, num_iters=10):
   lower = tf.zeros(shape_partition)
   upper = -log_t(1.0 / effective_dim, t) * tf.ones(shape_partition)
 
-  def iter_condition(i, unused_lower, unused_upper):
-    return i < num_iters
-
   def iter_body(i, lower, upper):
     logt_partition = (upper + lower)/2.0
     sum_probs = tf.reduce_sum(exp_t(
@@ -114,10 +125,7 @@ def compute_normalization_binary_search(activations, t, num_iters=10):
                        shape_partition)
     return [i + 1, lower, upper]
 
-  _, lower, upper = tf.while_loop(
-      iter_condition,
-      iter_body, [0, lower, upper],
-      maximum_iterations=num_iters)
+  _, lower, upper = for_loop(num_iters, iter_body, [0, lower, upper])
   logt_partition = (upper + lower)/2.0
   return logt_partition + mu
 
@@ -156,10 +164,10 @@ def _internal_bi_tempered_logistic_loss(activations, labels, t1, t2):
         tf.reduce_sum(tf.exp(activations), -1, keep_dims=True))
     if t1 == 1.0:
       return normalization_constants + tf.reduce_sum(
-          tf.multiply(labels, tf.log(labels + 1e-10) - activations), -1,
-          keep_dims=True)
+          tf.multiply(labels, tf.log(labels + 1e-10) - activations), -1)
     else:
       shifted_activations = tf.exp(activations - normalization_constants)
+      one_minus_t1 = (1.0 - t1)
       one_minus_t2 = 1.0
   else:
     one_minus_t1 = (1.0 - t1)
@@ -174,8 +182,7 @@ def _internal_bi_tempered_logistic_loss(activations, labels, t1, t2):
         tf.multiply(
             tf.log(labels + 1e-10) -
             tf.log(tf.pow(shifted_activations, 1.0 / one_minus_t2)), labels),
-        -1,
-        keep_dims=True)
+        -1)
   else:
     beta = 1.0 + one_minus_t1
     logt_probs = (tf.pow(shifted_activations, one_minus_t1 / one_minus_t2) -
@@ -319,7 +326,8 @@ def bi_tempered_logistic_loss(activations,
 
           Args:
             d_loss: Infinitesimal change in the loss value.
-          Returns: Loss gradient.
+          Returns:
+            Loss gradient.
           """
           delta_probs = probabilities - labels
           forget_factor = tf.pow(probabilities, t2 - t1)
@@ -335,8 +343,19 @@ def bi_tempered_logistic_loss(activations,
 
         return loss_values, grad
 
-    loss_values = _custom_gradient_bi_tempered_logistic_loss(activations)
-    return tf.reduce_sum(loss_values, -1)
+    loss_values = tf.cond(tf.logical_and(tf.equal(t1, 1.0), tf.equal(t2, 1.0)),
+                          functools.partial(
+                              tf.nn.softmax_cross_entropy_with_logits,
+                              labels=labels,
+                              logits=activations),
+                          functools.partial(
+                              _custom_gradient_bi_tempered_logistic_loss,
+                              activations))
+    reduce_sum_last = lambda x: tf.reduce_sum(x, -1)
+    loss_values = tf.cond(tf.logical_and(tf.equal(t1, 1.0), tf.equal(t2, 1.0)),
+                          functools.partial(tf.identity, loss_values),
+                          functools.partial(reduce_sum_last, loss_values))
+    return loss_values
 
 
 def sparse_bi_tempered_logistic_loss(activations, labels, t1, t2, num_iters=5):
@@ -369,6 +388,7 @@ def sparse_bi_tempered_logistic_loss(activations, labels, t1, t2, num_iters=5):
       """
       with tf.name_scope('gradient_sparse_bitempered_logistic'):
         probabilities = tempered_softmax(activations, t2, num_iters)
+        # TODO(eamid): Replace one hot with gather.
         loss_values = -log_t(
             tf.reshape(
                 tf.gather_nd(probabilities,
@@ -381,7 +401,8 @@ def sparse_bi_tempered_logistic_loss(activations, labels, t1, t2, num_iters=5):
 
           Args:
             d_loss: Infinitesimal change in the loss value.
-          Returns: Loss gradient.
+          Returns:
+            Loss gradient.
           """
           delta_probs = probabilities - tf.one_hot(labels, num_classes)
           forget_factor = tf.pow(probabilities, t2 - t1)
@@ -397,5 +418,10 @@ def sparse_bi_tempered_logistic_loss(activations, labels, t1, t2, num_iters=5):
 
         return loss_values, grad
 
-    loss_values = _custom_gradient_sparse_bi_tempered_logistic_loss(activations)
+    loss_values = tf.cond(
+        tf.logical_and(tf.equal(t1, 1.0), tf.equal(t2, 1.0)),
+        functools.partial(tf.nn.sparse_softmax_cross_entropy_with_logits,
+                          labels=labels, logits=activations),
+        functools.partial(_custom_gradient_sparse_bi_tempered_logistic_loss,
+                          activations))
     return loss_values
