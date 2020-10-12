@@ -34,6 +34,7 @@ env:
     - PROJECT="extrapolation"
     - PROJECT="fat"
     - PROJECT="flax_models/cifar"
+    - PROJECT="flax_models/moco"
     - PROJECT="frequency_analysis"
     - PROJECT="generalized_rates"
     - PROJECT="genomics_ood"
