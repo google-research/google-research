@@ -73,7 +73,7 @@ def average_precision_clevr(pred, attributes, distance_threshold):
       predictions. The last dimension is expected to be the confidence of the
       prediction.
     attributes: Tensor of shape [batch_size, num_elements, dimension] containing
-      predictions.
+      ground-truth object properties.
     distance_threshold: Threshold to accept match. -1 indicates no threshold.
 
   Returns:
