@@ -57,7 +57,6 @@ TaskRegistry.add(
     },
     text_preprocessor=preprocessors.natural_questions_nocontext,
     postprocess_fn=postprocessors.natural_questions,
-    sentencepiece_model_path=DEFAULT_SPM_PATH,
     metric_fns=[
         functools.partial(
             metrics.natural_questions,
@@ -72,7 +71,6 @@ TaskRegistry.add(
     tfds_name="natural_questions:0.0.2",
     text_preprocessor=preprocessors.natural_questions_nocontext,
     postprocess_fn=postprocessors.natural_questions,
-    sentencepiece_model_path=DEFAULT_SPM_PATH,
     metric_fns=[metrics.natural_questions])
 
 
@@ -94,7 +92,6 @@ TaskRegistry.add(
     },
     text_preprocessor=preprocessors.natural_questions_open,
     postprocess_fn=t5_postprocessors.qa,
-    sentencepiece_model_path=DEFAULT_SPM_PATH,
     metric_fns=[t5_metrics.squad])
 # This is a slight variant of the previous task that selects a random answer
 # when multiple are provided instead of using the first.
@@ -111,7 +108,6 @@ TaskRegistry.add(
         preprocessors.natural_questions_open, preprocessors.sample_answer],
     supports_caching=False,  # Ensures we are sampling different answers.
     postprocess_fn=t5_postprocessors.qa,
-    sentencepiece_model_path=DEFAULT_SPM_PATH,
     metric_fns=[t5_metrics.squad])
 # This task uses full train split and reports metrics on the NQ validation split
 # (which is the test set in the open domain setting).
@@ -121,7 +117,6 @@ TaskRegistry.add(
     tfds_name="natural_questions_open:1.0.0",
     text_preprocessor=preprocessors.natural_questions_open,
     postprocess_fn=t5_postprocessors.qa,
-    sentencepiece_model_path=DEFAULT_SPM_PATH,
     metric_fns=[t5_metrics.squad])
 
 # ============================ Web Questions ===================================
@@ -137,7 +132,6 @@ TaskRegistry.add(
         "test": "test"
     },
     text_preprocessor=[preprocessors.web_questions_open],
-    sentencepiece_model_path=DEFAULT_SPM_PATH,
     postprocess_fn=t5_postprocessors.qa,
     metric_fns=[t5_metrics.squad],
 )
@@ -152,7 +146,6 @@ TaskRegistry.add(
         "validation": "test",
     },
     text_preprocessor=[preprocessors.web_questions_open],
-    sentencepiece_model_path=DEFAULT_SPM_PATH,
     postprocess_fn=t5_postprocessors.qa,
     metric_fns=[t5_metrics.squad],
 )
@@ -170,7 +163,6 @@ TaskRegistry.add(
     },
     text_preprocessor=preprocessors.trivia_qa_open,
     postprocess_fn=t5_postprocessors.qa,
-    sentencepiece_model_path=DEFAULT_SPM_PATH,
     metric_fns=[t5_metrics.trivia_qa])
 
 # This tasks trains on combined train and validation splits.
@@ -184,7 +176,6 @@ TaskRegistry.add(
         "test": "test"
     },
     postprocess_fn=t5_postprocessors.qa,
-    sentencepiece_model_path=DEFAULT_SPM_PATH,
     metric_fns=[t5_metrics.trivia_qa])
 
 
