@@ -15,6 +15,7 @@
 #ifndef PARALLEL_CLUSTERING_STATUS_MACROS_H_
 #define PARALLEL_CLUSTERING_STATUS_MACROS_H_
 
+#include "absl/status/statusor.h"
 namespace research_graph {
 namespace in_memory {
 
