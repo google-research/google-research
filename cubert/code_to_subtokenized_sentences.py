@@ -26,6 +26,7 @@ from tensor2tensor.data_generators import text_encoder
 
 from cubert import cubert_tokenizer
 from cubert import tokenizer_registry
+from cubert import unified_tokenizer
 
 FLAGS = flags.FLAGS
 
@@ -71,7 +72,7 @@ def code_to_cubert_sentences(
   # This will split the list into sublists of non-NEWLINE tokens (key is
   # False) and NEWLINE tokens (key is True).
   groups_by_endtoken = itertools.groupby(
-      tokens, key=lambda x: x == cubert_tokenizer.NEWLINE)
+      tokens, key=lambda x: x == unified_tokenizer.NEWLINE)
   # This will keep only the sublists that aren't just [NEWLINE]*, i.e., those
   # that have key False. We call these raw_sentences, because they're not
   # terminated.
@@ -81,7 +82,7 @@ def code_to_cubert_sentences(
   # Now we append a NEWLINE token after all sentences. Note that our tokenizer
   # drops any trailing \n's before tokenizing, but for the purpose of forming
   # properly terminated sentences, we always end sentences in a NEWLINE token.
-  sentences = [s + [cubert_tokenizer.NEWLINE] for s in raw_sentences
+  sentences = [s + [unified_tokenizer.NEWLINE] for s in raw_sentences
               ]  # type: List[List[Text]]
   logging.vlog(5, 'Tokens are split into sentences: >>>%s<<<.',
                sentences)

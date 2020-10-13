@@ -47,11 +47,11 @@ class PythonTokenizer(cubert_tokenizer.CuBertTokenizer):
           tokenize.INDENT,
       cubert_tokenizer.token_from_token_type(tokenize.DEDENT):
           tokenize.DEDENT,
-      cubert_tokenizer.quote_special(unified_tokenizer.TokenKind.EOS.name):
+      unified_tokenizer.quote_special(unified_tokenizer.TokenKind.EOS.name):
           tokenize.ENDMARKER,
-      cubert_tokenizer.quote_special(unified_tokenizer.TokenKind.ERROR.name):
+      unified_tokenizer.quote_special(unified_tokenizer.TokenKind.ERROR.name):
           tokenize.ERRORTOKEN,
-      cubert_tokenizer.quote_special(unified_tokenizer.TokenKind.NEWLINE.name):
+      unified_tokenizer.quote_special(unified_tokenizer.TokenKind.NEWLINE.name):
           tokenize.NEWLINE,
       cubert_tokenizer.token_from_token_type(tokenize.NL):
           tokenize.NL,
@@ -90,10 +90,10 @@ class PythonTokenizer(cubert_tokenizer.CuBertTokenizer):
       logging.warning('The tokenizer raised exception `%s` while parsing %s', e,
                       source_code)
       token_pairs = (
-          (cubert_tokenizer.quote_special(
+          (unified_tokenizer.quote_special(
               unified_tokenizer.TokenKind.ERROR.name), tokenize.ERRORTOKEN),
           ('', tokenize.ENDMARKER),
-          )
+      )
 
     agnostic_tokens: List[unified_tokenizer.AbstractToken] = []
 
@@ -116,7 +116,7 @@ class PythonTokenizer(cubert_tokenizer.CuBertTokenizer):
               indent=cubert_tokenizer.token_from_token_type(kind),
               spelling=spelling)
         elif kind == tokenize.ENDMARKER:
-          adjusted_spelling = cubert_tokenizer.quote_special(
+          adjusted_spelling = unified_tokenizer.quote_special(
               unified_tokenizer.TokenKind.EOS.name)
 
         # Map everything according to table.

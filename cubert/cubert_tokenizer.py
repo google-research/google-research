@@ -29,17 +29,6 @@ import dataclasses
 
 from cubert import unified_tokenizer
 
-# Quote string for special tokens.
-SPECIAL_QUOTE = '___'
-
-
-def quote_special(content):
-  return '{q}{t}{q}'.format(q=SPECIAL_QUOTE, t=content)
-
-ENDMARKER = 'ENDMARKER'
-
-NEWLINE = quote_special('NEWLINE')
-
 # After all splitting, the longest a token is of the following length.
 MAX_OUTPUT_TOKEN_LENGTH = 15
 
@@ -59,11 +48,11 @@ class CuBertTokenizer(abc.ABC):
     self.update_mappings({
         # By default, replace \n and \r. This is meant primarily for literals.
         '\n':
-            quote_special('NLCHAR'),
+            unified_tokenizer.quote_special('NLCHAR'),
         '\r':
-            quote_special('CR'),
+            unified_tokenizer.quote_special('CR'),
         unified_tokenizer.SENTINEL:
-            quote_special(unified_tokenizer.SENTINEL_ESCAPE),
+            unified_tokenizer.quote_special(unified_tokenizer.SENTINEL_ESCAPE),
     })
     self.max_output_token_length = max_output_token_length
 
@@ -189,11 +178,12 @@ class CuBertTokenizer(abc.ABC):
   def untokenize(self, token_list):
     """Untokenizes via `untokenize_abstract`."""
     # Untokenize agnostic.
-    if (not token_list or token_list[-1] != quote_special(
+    if (not token_list or token_list[-1] != unified_tokenizer.quote_special(
         unified_tokenizer.TokenKind.EOS.name)):
-      raise ValueError(
-          'Token list %r should end with the EOS token %r.' %
-          (token_list, quote_special(unified_tokenizer.TokenKind.EOS.name)))
+      raise ValueError('Token list %r should end with the EOS token %r.' %
+                       (token_list,
+                        unified_tokenizer.quote_special(
+                            unified_tokenizer.TokenKind.EOS.name)))
 
     whole_tokens = unified_tokenizer.reconstitute_full_unsanitary_tokens(
         token_list,
@@ -207,4 +197,4 @@ def token_from_token_type(token_type):
   """Turns a token type into a reserved token string."""
   # We use the tok_name dict from tokenize, not token. The former has
   # NL and COMMENT and such, whereas the latter doesn't.
-  return quote_special(tokenize.tok_name[token_type])
+  return unified_tokenizer.quote_special(tokenize.tok_name[token_type])

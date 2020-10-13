@@ -17,14 +17,14 @@ from typing import List
 from unittest import mock
 from absl.testing import absltest
 from absl.testing import parameterized
-from cubert import cubert_tokenizer
 from cubert import python_tokenizer
 from cubert import unified_tokenizer
 
-_EOS_NAME = cubert_tokenizer.quote_special(unified_tokenizer.TokenKind.EOS.name)
-_ERROR_NAME = cubert_tokenizer.quote_special(
+_EOS_NAME = unified_tokenizer.quote_special(
+    unified_tokenizer.TokenKind.EOS.name)
+_ERROR_NAME = unified_tokenizer.quote_special(
     unified_tokenizer.TokenKind.ERROR.name)
-_NEWLINE_NAME = cubert_tokenizer.quote_special(
+_NEWLINE_NAME = unified_tokenizer.quote_special(
     unified_tokenizer.TokenKind.NEWLINE.name)
 
 

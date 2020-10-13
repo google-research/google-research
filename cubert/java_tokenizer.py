@@ -13,60 +13,75 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""A Python tokenizer subclass of CuBertTokenizer.
+"""A Java tokenizer subclass of CuBertTokenizer.
 
-The `javalang` tokenizer only gives start position for tokens, and gives no
-whitespace tokens. This tokenizer synthetically injects NEWLINE tokens between
-tokens that differ in their start line position. For those tokens, the
-start column is an artifical, "high" column number in `_MAX_COLUMN`.
-
-In a future implementation, we'll modify the `JavaTokenizer` class to emit
-start and end positions, as well as comments.
+This tokenizer uses an extension of the tokenizer from the javalang GitHub
+repository. The extension enables the javalang tokenizer to return end positions
+as well as end-of-sequence tokens and comments.
 """
 from typing import List
 from typing import Sequence
 
 
 from absl import logging
-from javalang import tokenizer
+import dataclasses
+from javalang import tokenizer as javalang
 
 
 from cubert import cubert_tokenizer
+from cubert import extended_javalang_tokenizer
 from cubert import unified_tokenizer
-
-
-# The column number we give synthetically-generated NEWLINE tokens.
-_MAX_COLUMN = 120
 
 
 class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
   """Tokenizer that extracts Python's lexical elements preserving strings."""
   _TOKEN_TYPE_MAP = {
-      tokenizer.EndOfInput: unified_tokenizer.TokenKind.EOS,
+      javalang.EndOfInput:
+          unified_tokenizer.TokenKind.EOS,
+      javalang.Keyword:
+          unified_tokenizer.TokenKind.KEYWORD,
+      javalang.Modifier:
+          unified_tokenizer.TokenKind.KEYWORD,
+      javalang.Separator:
+          unified_tokenizer.TokenKind.PUNCTUATION,
+      javalang.Operator:
+          unified_tokenizer.TokenKind.PUNCTUATION,
+      javalang.Annotation:
+          unified_tokenizer.TokenKind.IDENTIFIER,
+      javalang.Identifier:
+          unified_tokenizer.TokenKind.IDENTIFIER,
+      javalang.BasicType:
+          unified_tokenizer.TokenKind.IDENTIFIER,
+      javalang.Integer:
+          unified_tokenizer.TokenKind.NUMBER,
+      javalang.DecimalInteger:
+          unified_tokenizer.TokenKind.NUMBER,
+      javalang.OctalInteger:
+          unified_tokenizer.TokenKind.NUMBER,
+      javalang.BinaryInteger:
+          unified_tokenizer.TokenKind.NUMBER,
+      javalang.HexInteger:
+          unified_tokenizer.TokenKind.NUMBER,
+      javalang.FloatingPoint:
+          unified_tokenizer.TokenKind.NUMBER,
+      javalang.DecimalFloatingPoint:
+          unified_tokenizer.TokenKind.NUMBER,
+      javalang.HexFloatingPoint:
+          unified_tokenizer.TokenKind.NUMBER,
+      javalang.Boolean:
+          unified_tokenizer.TokenKind.STRING,
+      javalang.Character:
+          unified_tokenizer.TokenKind.STRING,
+      javalang.String:
+          unified_tokenizer.TokenKind.STRING,
+      javalang.Null:
+          unified_tokenizer.TokenKind.STRING,
 
-      tokenizer.Keyword: unified_tokenizer.TokenKind.KEYWORD,
-      tokenizer.Modifier: unified_tokenizer.TokenKind.KEYWORD,
-
-      tokenizer.Separator: unified_tokenizer.TokenKind.PUNCTUATION,
-      tokenizer.Operator: unified_tokenizer.TokenKind.PUNCTUATION,
-
-      tokenizer.Annotation: unified_tokenizer.TokenKind.IDENTIFIER,
-      tokenizer.Identifier: unified_tokenizer.TokenKind.IDENTIFIER,
-      tokenizer.BasicType: unified_tokenizer.TokenKind.IDENTIFIER,
-
-      tokenizer.Integer: unified_tokenizer.TokenKind.NUMBER,
-      tokenizer.DecimalInteger: unified_tokenizer.TokenKind.NUMBER,
-      tokenizer.OctalInteger: unified_tokenizer.TokenKind.NUMBER,
-      tokenizer.BinaryInteger: unified_tokenizer.TokenKind.NUMBER,
-      tokenizer.HexInteger: unified_tokenizer.TokenKind.NUMBER,
-      tokenizer.FloatingPoint: unified_tokenizer.TokenKind.NUMBER,
-      tokenizer.DecimalFloatingPoint: unified_tokenizer.TokenKind.NUMBER,
-      tokenizer.HexFloatingPoint: unified_tokenizer.TokenKind.NUMBER,
-
-      tokenizer.Boolean: unified_tokenizer.TokenKind.STRING,
-      tokenizer.Character: unified_tokenizer.TokenKind.STRING,
-      tokenizer.String: unified_tokenizer.TokenKind.STRING,
-      tokenizer.Null: unified_tokenizer.TokenKind.STRING,
+      # New JavalangTokenizerExtended token kinds:
+      extended_javalang_tokenizer.Comment:
+          unified_tokenizer.TokenKind.COMMENT,
+      extended_javalang_tokenizer.Whitespace:
+          unified_tokenizer.TokenKind.WHITESPACE,
   }
 
   def tokenize_and_abstract(
@@ -74,12 +89,11 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
       source_code):
     """As per the superclass."""
     agnostic_tokens: List[unified_tokenizer.AbstractToken] = []
+    start_line = 0
+    start_column = 0
 
     try:
-      java_tokens = tokenizer.tokenize(source_code)
-
-      current_start_line = 0
-
+      java_tokens = extended_javalang_tokenizer.tokenize_extended(source_code)
       for token in java_tokens:
         # The token kind is the subclass type of the token.
         token_type = type(token)
@@ -91,16 +105,6 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
         # JavaTokenizer counts lines and columns from 1.
         start_line = token.position.line - 1
         start_column = token.position.column - 1
-        while start_line > current_start_line:
-          agnostic_tokens.append(
-              unified_tokenizer.AbstractToken(
-                  cubert_tokenizer.quote_special(
-                      unified_tokenizer.TokenKind.NEWLINE.name),
-                  unified_tokenizer.TokenKind.NEWLINE,
-                  unified_tokenizer.TokenMetadata(
-                      start=unified_tokenizer.Position(
-                          line=current_start_line, column=_MAX_COLUMN))))
-          current_start_line += 1
 
         # The tokenizer seems to take some liberties with Unicode, returning
         # invalid characters. This cleans spellings up.
@@ -111,34 +115,84 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
                 unified_tokenizer.TokenMetadata(
                     start=unified_tokenizer.Position(
                         line=start_line, column=start_column))))
-    except (tokenizer.LexerError, TypeError) as e:
+    except (javalang.LexerError, TypeError) as e:
       # Sometimes, javalang returns a TypeError when reading a number.
       # See
       # https://github.com/c2nes/javalang/blob/0664afb7f4d40254312693f2e833c1ed4ac551c7/javalang/tokenizer.py#L370
       logging.warn('The tokenizer raised exception `%r` while parsing %s', e,
                    source_code)
+
+      # We don't try to do recovery from errors quite yet. Mark the error as
+      # occurring at whatever position we are in and terminate
       agnostic_tokens.append(
           unified_tokenizer.AbstractToken(
-              cubert_tokenizer.quote_special(
+              unified_tokenizer.quote_special(
                   unified_tokenizer.TokenKind.ERROR.name),
               unified_tokenizer.TokenKind.ERROR,
-              unified_tokenizer.TokenMetadata()))
+              unified_tokenizer.TokenMetadata(
+                  start=unified_tokenizer.Position(
+                      line=start_line, column=start_column),
+                  end=unified_tokenizer.Position(
+                      line=start_line, column=start_column))))
+      agnostic_tokens.append(
+          unified_tokenizer.AbstractToken(
+              unified_tokenizer.quote_special(
+                  unified_tokenizer.TokenKind.EOS.name),
+              unified_tokenizer.TokenKind.EOS,
+              unified_tokenizer.TokenMetadata(
+                  start=unified_tokenizer.Position(
+                      line=start_line, column=start_column),
+                  end=unified_tokenizer.Position(
+                      line=start_line, column=start_column))))
 
-    # javalang doesn't seem to ever return `EndOfinput` despite there being a
-    # token type for it. We insert it here.
-    agnostic_tokens.append(
-        unified_tokenizer.AbstractToken(
-            cubert_tokenizer.quote_special(
-                unified_tokenizer.TokenKind.EOS.name),
-            unified_tokenizer.TokenKind.EOS, unified_tokenizer.TokenMetadata()))
+    # At this point, we have all the tokens, but they only have start
+    # positions. Since the extended tokenizer guarantees that tokens abut, we
+    # take a second pass, backwards, setting the end position of a token from
+    # the start position of token following it. The final token, `EOS` already
+    # has an end position, so we don't modify it.
+    eos = agnostic_tokens[-1]
+    if not eos.metadata.start:
+      # This should be there. Raise an exception
+      raise AssertionError('The end of input token is missing positioning '
+                           'information: %s' % eos)
+    later_token_start: unified_tokenizer.Position = eos.metadata.start
 
-    return agnostic_tokens
+    # The EOS token has an empty extent, so the end and the start are set to be
+    # the same.
+    filled_agnostic_tokens = [
+        dataclasses.replace(
+            eos,
+            metadata=dataclasses.replace(eos.metadata, end=eos.metadata.start))
+    ]
+    # Go backwards, from the element before `eos` to the beginning.
+    for token in (
+        agnostic_tokens[i] for i in range(len(agnostic_tokens) - 2, -1, -1)):
+      filled_token = dataclasses.replace(
+          token,
+          metadata=dataclasses.replace(token.metadata, end=later_token_start))
+      filled_agnostic_tokens.append(filled_token)
+      later_token_start = token.metadata.start
+
+    # Now we have the tokens, including end position, but they're reversed.
+    # The final step is to break down whitespace tokens into primitive
+    # WHITESPACE tokens and NEWLINE tokens.
+    with_broken_whitespace = []
+    for token in filled_agnostic_tokens[::-1]:
+      if token.kind is not unified_tokenizer.TokenKind.WHITESPACE:
+        with_broken_whitespace.append(token)
+      else:
+        # This is whitespace. Replace it with primitive tokens.
+        with_broken_whitespace.extend(
+            unified_tokenizer.fill_range_with_whitespace(
+                token.metadata.start, token.metadata.end))
+
+    return with_broken_whitespace
 
   def untokenize_abstract(self, whole_tokens):
     tokens: List[str] = []
 
     for token in whole_tokens[:-1]:  # Skip EOS. The caller checked it's there.
-      if token == cubert_tokenizer.quote_special(
+      if token == unified_tokenizer.quote_special(
           unified_tokenizer.TokenKind.NEWLINE.name):
         tokens.append('\n')
       else:

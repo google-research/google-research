@@ -15,16 +15,31 @@
 
 # Lint as: python3
 """Cross-language tokenization library."""
-
 import enum
 import token as python_token
 import tokenize
-from typing import List, Mapping, Optional, Sequence, Text, Tuple
+from typing import Iterable
+from typing import List
+from typing import Mapping
+from typing import Optional
+from typing import Sequence
+from typing import Text
+from typing import Tuple
+
 
 from absl import logging
 import dataclasses
 import regex  # Using instead of `re` because it handles Unicode classes.
 import six
+
+
+# Quote string for special tokens.
+SPECIAL_QUOTE = '___'
+
+
+def quote_special(content):
+  return '{q}{t}{q}'.format(q=SPECIAL_QUOTE, t=content)
+
 
 # Log level of pedantic messages.
 _PEDANTIC = 5
@@ -48,6 +63,9 @@ class TokenKind(enum.Enum):
   ERROR = 8
   NUMBER = 9
   WHITESPACE = 10
+
+
+NEWLINE = quote_special(TokenKind.NEWLINE.name)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -91,6 +109,59 @@ def multi_token_from_token(token):
   return AbstractMultiToken(spellings=(token.spelling,),
                             kind=token.kind,
                             metadata=token.metadata)
+
+
+# TODO(maniatis): Add a test for this one, and migrate other copies to use
+# the same implementation.
+def fill_range_with_whitespace(start,
+                               end):
+  """Yields primitive whitespace/newline tokens to fill a text range.
+
+  We translate multi-line whitespace into single-line whitespace and newlines,
+  in a *destructive* canonical fashion. Only space preceding a non-whitespace
+  token is preserved. Lines with only whitespace are replaced by a single
+  newline token.
+
+  Args:
+    start: The beginning of the range.
+    end: The end (exclusive) of the range.
+
+  Yields:
+    WHITESPACE and NEWLINE abstract tokens.
+
+  Raises:
+    ValueError: if `start` does not precede `end`.
+  """
+  if (start.line, start.column) >= (end.line, end.column):
+    raise ValueError('`start` must precede `end`, but we received start %s '
+                     'and end %s.' % (start, end))
+
+  current_column = start.column
+  current_line = start.line
+  while current_line < end.line:
+    yield AbstractToken(
+        quote_special(TokenKind.NEWLINE.name),
+        TokenKind.NEWLINE,
+        TokenMetadata(
+            # A NEWLINE starts at the colum where it occurs and ends
+            # at the first character of the next line.
+            start=Position(line=current_line, column=current_column),
+            end=Position(line=current_line + 1, column=0)))
+    current_column = 0
+    current_line += 1
+
+  # At this point, we have consumed all newlines. Add any remaining
+  # space until the next, non-whitespace token.
+  number_of_final_spaces = end.column - current_column
+  if number_of_final_spaces:
+    # Note that we canonicalize all column differences as space characters.
+    # This, for example, will discard any '\t' characters and replace them
+    # with ' '.
+    yield AbstractToken(
+        ' ' * number_of_final_spaces, TokenKind.WHITESPACE,
+        TokenMetadata(
+            start=Position(line=current_line, column=current_column),
+            end=Position(line=current_line, column=end.column)))
 
 
 _KINDS_TO_SPLIT_LIKE_WHITESPACE = (TokenKind.COMMENT, TokenKind.STRING,
