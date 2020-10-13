@@ -532,7 +532,7 @@ def _write_dataset(dataset_type, input_dir, output_dir, max_word_num,
         os.path.join(input_dir, '*.json'))
 
     all_file_path = filter_file_by_name(all_file_path)
-    assert len(all_file_path) == 26210
+    assert len(all_file_path) == 24598
 
     for file_path in sorted(all_file_path):
       shard = num_processed_files % FLAGS.num_shards
