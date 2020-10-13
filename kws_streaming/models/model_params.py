@@ -20,6 +20,7 @@ class Params(object):
   """Default parameters for data and feature settings.
 
      These parameters are compatible with command line flags
+     and discribed in /train/base_parser.py
   """
 
   def __init__(self):
@@ -37,6 +38,7 @@ class Params(object):
     self.feature_type = 'mfcc_tf'
     self.preemph = 0.0
     self.window_type = 'hann'
+    self.mel_num_bins = 40
     self.mel_lower_edge_hertz = 20.0
     self.mel_upper_edge_hertz = 7000.0
     self.log_epsilon = 1e-12
@@ -44,7 +46,6 @@ class Params(object):
     self.use_tf_fft = 0
     self.mel_non_zero_only = 1
     self.fft_magnitude_squared = False
-    self.mel_num_bins = 40
     self.use_spec_augment = 0
     self.time_masks_number = 2
     self.time_mask_max_size = 10
@@ -72,6 +73,7 @@ class Params(object):
     self.resample = 0.15
     self.volume_resample = 0.0
     self.return_softmax = 0
+    self.sp_time_shift_ms = 0.0
 
 
 def att_mh_rnn_params():

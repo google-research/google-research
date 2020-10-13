@@ -14,12 +14,14 @@
 # limitations under the License.
 
 """A layer for extracting features from speech data."""
+
 from kws_streaming.layers import data_frame
 from kws_streaming.layers import dct
 from kws_streaming.layers import magnitude_rdft_mel
 from kws_streaming.layers import modes
 from kws_streaming.layers import normalizer
 from kws_streaming.layers import preemphasis
+from kws_streaming.layers import random_shift
 from kws_streaming.layers import spectrogram_augment
 from kws_streaming.layers import spectrogram_cutout
 from kws_streaming.layers import windowing
@@ -79,6 +81,13 @@ class SpeechFeatures(tf.keras.layers.Layer):
 
   def build(self, input_shape):
     super(SpeechFeatures, self).build(input_shape)
+
+    if self.params[
+        'sp_time_shift_samples'] and self.mode == modes.Modes.TRAINING:
+      self.rand_shift = random_shift.RandomShift(
+          self.params['sp_time_shift_samples'])
+    else:
+      self.rand_shift = tf.keras.layers.Lambda(lambda x: x)
 
     self.data_frame = data_frame.DataFrame(
         mode=self.mode,
@@ -159,9 +168,6 @@ class SpeechFeatures(tf.keras.layers.Layer):
     outputs = self.mag_rdft_mel(outputs)
     outputs = self.log_max(outputs)
     outputs = self.dct(outputs)
-    outputs = self.normalizer(outputs)
-    outputs = self.spec_augment(outputs)
-    outputs = self.spec_cutout(outputs)
     return outputs
 
   def _mfcc_op(self, inputs):
@@ -184,6 +190,8 @@ class SpeechFeatures(tf.keras.layers.Layer):
     else:
       outputs = inputs
 
+    outputs = self.add_noise(outputs)
+
     # outputs has dims [batch, time]
     # but audio_spectrogram expects [time, channels/batch] so transpose it
     outputs = tf.transpose(outputs, [1, 0])
@@ -204,18 +212,26 @@ class SpeechFeatures(tf.keras.layers.Layer):
         filterbank_channel_count=self.params['mel_num_bins'],
         dct_coefficient_count=self.params['dct_num_features'])
     # outputs: [channels/batch, frames, dct_coefficient_count]
-    outputs = self.spec_augment(outputs)
-    outputs = self.spec_cutout(outputs)
     return outputs
 
   def call(self, inputs):
+
+    # apply data augmentation on audio data in time domain
+    outputs = self.rand_shift(inputs)
+
+    # extract speech features by converting audio data to mfcc spectrogram:
     if self.params['feature_type'] == 'mfcc_tf':
-      outputs = self._mfcc_tf(inputs)
+      outputs = self._mfcc_tf(outputs)
     elif self.params['feature_type'] == 'mfcc_op':
-      outputs = self._mfcc_op(inputs)
+      outputs = self._mfcc_op(outputs)
     else:
       raise ValueError('unsupported feature_type', self.params['feature_type'])
 
+    outputs = self.normalizer(outputs)
+
+    # apply spectrogram augmentation:
+    outputs = self.spec_augment(outputs)
+    outputs = self.spec_cutout(outputs)
     return outputs
 
   def get_config(self):
@@ -245,6 +261,14 @@ class SpeechFeatures(tf.keras.layers.Layer):
     Returns:
       dict with parameters
     """
+
+    if flags.time_shift_ms != 0.0 and flags.sp_time_shift_ms != 0.0:
+      raise ValueError('both time_shift_ms and sp_time_shift_ms are set '
+                       'only one parameter should be used: '
+                       'time_shift_ms is used during data reading '
+                       'sp_time_shift_ms is used in speech feature extraction '
+                       'both of them do random shifts of audio data in time')
+
     params = {
         'sample_rate':
             flags.sample_rate,
@@ -292,5 +316,7 @@ class SpeechFeatures(tf.keras.layers.Layer):
             flags.spec_cutout_time_mask_size,
         'spec_cutout_frequency_mask_size':
             flags.spec_cutout_frequency_mask_size,
+        'sp_time_shift_samples':
+            int((flags.sp_time_shift_ms * flags.sample_rate) / 1000),
     }
     return params

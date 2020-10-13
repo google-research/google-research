@@ -14,11 +14,12 @@
 # limitations under the License.
 
 """Util functions used for testing."""
+
 import random
 import numpy as np
 from kws_streaming.layers import data_frame
+from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
-from kws_streaming.layers.modes import Modes
 from kws_streaming.train import model_flags
 
 
@@ -138,7 +139,7 @@ class FrameTestBase(tf.test.TestCase):
 
     # non streaming frame extraction based on tf.signal.frame
     data_frame_tf = data_frame.DataFrame(
-        mode=Modes.TRAINING,
+        mode=modes.Modes.TRAINING,
         inference_batch_size=self.inference_batch_size,
         frame_size=self.frame_size,
         frame_step=self.frame_step)

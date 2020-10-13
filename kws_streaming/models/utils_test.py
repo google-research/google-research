@@ -17,9 +17,9 @@
 
 from absl import flags
 from absl.testing import parameterized
+from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
-from kws_streaming.layers.modes import Modes
 from kws_streaming.models import model_params
 from kws_streaming.models import models
 from kws_streaming.models import utils
@@ -51,7 +51,7 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
     # convert TF non streaming model to TFLite non streaming inference
     self.assertTrue(
         utils.model_to_tflite(self.sess, model, params,
-                              Modes.NON_STREAM_INFERENCE))
+                              modes.Modes.NON_STREAM_INFERENCE))
 
   def setUp(self):
     super(UtilsTest, self).setUp()
@@ -131,15 +131,15 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
     # convert TF non streaming model to TFLite streaming inference
     # with external states
     self.assertTrue(utils.model_to_tflite(
-        self.sess, model, params, Modes.STREAM_EXTERNAL_STATE_INFERENCE))
+        self.sess, model, params, modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE))
 
     # convert TF non streaming model to TF streaming with external states
     self.assertTrue(utils.to_streaming_inference(
-        model, params, Modes.STREAM_EXTERNAL_STATE_INFERENCE))
+        model, params, modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE))
 
     # convert TF non streaming model to TF streaming with internal states
     self.assertTrue(utils.to_streaming_inference(
-        model, params, Modes.STREAM_INTERNAL_STATE_INFERENCE))
+        model, params, modes.Modes.STREAM_INTERNAL_STATE_INFERENCE))
 
   def test_model_to_saved(self, model_name='dnn'):
     """SavedModel supports both stateless and stateful graphs."""

@@ -14,8 +14,9 @@
 # limitations under the License.
 
 """A layer which splits input speech signal into frames."""
+
+from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
-from kws_streaming.layers.modes import Modes
 
 
 class DataFrame(tf.keras.layers.Layer):
@@ -33,7 +34,7 @@ class DataFrame(tf.keras.layers.Layer):
   """
 
   def __init__(self,
-               mode=Modes.TRAINING,
+               mode=modes.Modes.TRAINING,
                inference_batch_size=1,
                frame_size=400,
                frame_step=160,
@@ -49,14 +50,14 @@ class DataFrame(tf.keras.layers.Layer):
     self.frame_size = frame_size
     self.frame_step = frame_step
 
-    if self.mode == Modes.STREAM_INTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
       # create state varaible for inference streaming with internal state
       self.states = self.add_weight(
           name='frame_states',
           shape=[self.inference_batch_size, self.frame_size],
           trainable=False,
           initializer=tf.zeros_initializer)
-    elif self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    elif self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       # in streaming mode with external state,
       # state becomes an input output placeholders
       self.input_state = tf.keras.layers.Input(
@@ -66,17 +67,17 @@ class DataFrame(tf.keras.layers.Layer):
       self.output_state = None
 
   def call(self, inputs):
-    if self.mode == Modes.STREAM_INTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
       # run streamable inference on input [batch, frame_step]
       # returns output [batch, 1, frame_size]
       return self._streaming_internal_state(inputs)
-    elif self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    elif self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       # in streaming mode with external state in addition to the output
       # we return output state
       output, self.output_state = self._streaming_external_state(
           inputs, self.input_state)
       return output
-    elif self.mode in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE):
+    elif self.mode in (modes.Modes.TRAINING, modes.Modes.NON_STREAM_INFERENCE):
       # run non streamable training or non streamable inference
       # on input [batch, time], returns output [batch, frames, frame_size]
       return self._non_streaming(inputs)
@@ -95,14 +96,14 @@ class DataFrame(tf.keras.layers.Layer):
 
   def get_input_state(self):
     # input state is used only for STREAM_EXTERNAL_STATE_INFERENCE mode
-    if self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       return self.input_state
     else:
       raise ValueError('wrong mode', self.mode)
 
   def get_output_state(self):
     # output state is used only for STREAM_EXTERNAL_STATE_INFERENCE mode
-    if self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       return self.output_state
     else:
       raise ValueError('wrong mode', self.mode)

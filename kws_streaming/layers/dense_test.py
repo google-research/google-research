@@ -15,10 +15,6 @@
 
 """Tests for kws_streaming.layers.dense."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from absl import logging
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1

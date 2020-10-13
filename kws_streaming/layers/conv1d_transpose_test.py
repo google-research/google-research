@@ -15,13 +15,14 @@
 
 # Lint as: python3
 """Tests for kws_streaming.layers.conv1d_transpose."""
+
 from absl.testing import parameterized
 import numpy as np
 from kws_streaming.layers import conv1d_transpose
+from kws_streaming.layers import modes
 from kws_streaming.layers import test_utils
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
-from kws_streaming.layers.modes import Modes
 from kws_streaming.models import utils
 from kws_streaming.train import test
 tf1.disable_eager_execution()
@@ -93,7 +94,7 @@ class Conv1DTransposeTest(tf.test.TestCase, parameterized.TestCase):
 
     # prepare streaming model
     model_stream = utils.to_streaming_inference(
-        model, params, Modes.STREAM_INTERNAL_STATE_INFERENCE)
+        model, params, modes.Modes.STREAM_INTERNAL_STATE_INFERENCE)
     model_stream.summary()
 
     # run inference
@@ -125,7 +126,7 @@ class Conv1DTransposeTest(tf.test.TestCase, parameterized.TestCase):
       # streaming model expected to fail on input data with dynamic shape
       params.data_shape = (None,)
       utils.to_streaming_inference(
-          model, params, Modes.STREAM_INTERNAL_STATE_INFERENCE)
+          model, params, modes.Modes.STREAM_INTERNAL_STATE_INFERENCE)
 
 
 if __name__ == '__main__':

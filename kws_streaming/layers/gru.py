@@ -14,8 +14,9 @@
 # limitations under the License.
 
 """GRU layer."""
+
+from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
-from kws_streaming.layers.modes import Modes
 
 
 class GRU(tf.keras.layers.Layer):
@@ -56,7 +57,7 @@ class GRU(tf.keras.layers.Layer):
 
   def __init__(self,
                units=64,
-               mode=Modes.TRAINING,
+               mode=modes.Modes.TRAINING,
                inference_batch_size=1,
                return_sequences=False,
                unroll=False,
@@ -71,20 +72,20 @@ class GRU(tf.keras.layers.Layer):
     self.return_sequences = return_sequences
     self.stateful = stateful
 
-    if mode != Modes.TRAINING:  # in any inference mode
+    if mode != modes.Modes.TRAINING:  # in any inference mode
       # let's unroll gru, so there is no symbolic loops / control flow
       unroll = True
 
     self.unroll = unroll
 
-    if self.mode in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE):
+    if self.mode in (modes.Modes.TRAINING, modes.Modes.NON_STREAM_INFERENCE):
       self.gru = tf.keras.layers.GRU(
           units=units,
           return_sequences=return_sequences,
           name='cell',
           stateful=self.stateful,
           unroll=self.unroll)
-    if self.mode == Modes.STREAM_INTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
       # create state varaible for stateful streamable inference
       self.input_state = self.add_weight(
           name='input_state',
@@ -93,7 +94,7 @@ class GRU(tf.keras.layers.Layer):
           initializer=tf.zeros_initializer)
       self.gru_cell = tf.keras.layers.GRUCell(units=units, name='cell')
       self.gru = None
-    elif self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    elif self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       # in stateless mode state becomes an input output placeholders
       self.input_state = tf.keras.layers.Input(
           shape=(units,),
@@ -107,16 +108,16 @@ class GRU(tf.keras.layers.Layer):
     if inputs.shape.rank != 3:  # [batch, time, feature]
       raise ValueError('inputs.shape.rank:%d must be 3' % inputs.shape.rank)
 
-    if self.mode == Modes.STREAM_INTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
       # run streamable inference on input [batch, 1, features]
       # returns output [batch, 1, units]
       return self._streaming_internal_state(inputs)
-    elif self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    elif self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       # in stateless mode in addition to output we return output state
       output, self.output_state = self._streaming_external_state(
           inputs, self.input_state)
       return output
-    elif self.mode in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE):
+    elif self.mode in (modes.Modes.TRAINING, modes.Modes.NON_STREAM_INFERENCE):
       # run non streamable training or non streamable inference
       # on input [batch, time, features], returns [batch, time, units]
       return self._non_streaming(inputs)
@@ -137,14 +138,14 @@ class GRU(tf.keras.layers.Layer):
 
   def get_input_state(self):
     # input state is used only for STREAM_INTERNAL_STATE_INFERENCE mode
-    if self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       return [self.input_state]
     else:
       raise ValueError('wrong mode', self.mode)
 
   def get_output_state(self):
     # output state is used only for STREAM_EXTERNAL_STATE_INFERENCE mode
-    if self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       return [self.output_state]
     else:
       raise ValueError('wrong mode', self.mode)

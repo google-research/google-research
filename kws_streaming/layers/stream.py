@@ -14,9 +14,10 @@
 # limitations under the License.
 
 """Wrapper for streaming inference."""
+
 from absl import logging
+from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
-from kws_streaming.layers.modes import Modes
 
 
 class Stream(tf.keras.layers.Layer):
@@ -64,7 +65,7 @@ class Stream(tf.keras.layers.Layer):
   def __init__(self,
                cell,
                inference_batch_size=1,
-               mode=Modes.TRAINING,
+               mode=modes.Modes.TRAINING,
                pad_time_dim=None,
                state_shape=None,
                ring_buffer_size_in_time_dim=None,
@@ -98,7 +99,8 @@ class Stream(tf.keras.layers.Layer):
     elif isinstance(cell, (tf.keras.layers.Conv1D, tf.keras.layers.Conv2D,
                            tf.keras.layers.DepthwiseConv2D)):
 
-      if self.mode not in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE):
+      if self.mode not in (modes.Modes.TRAINING,
+                           modes.Modes.NON_STREAM_INFERENCE):
         padding = cell.get_config()['padding']
         strides = cell.get_config()['strides']
         if padding != 'valid':
@@ -125,8 +127,9 @@ class Stream(tf.keras.layers.Layer):
     elif isinstance(self.cell, tf.keras.layers.AveragePooling2D):
       strides = cell.get_config()['strides']
       pool_size = cell.get_config()['pool_size']
-      if self.mode not in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE
-                          ) and strides[0] != pool_size[0]:
+      if self.mode not in (
+          modes.Modes.TRAINING,
+          modes.Modes.NON_STREAM_INFERENCE) and strides[0] != pool_size[0]:
         raise ValueError('Stride in time %d must = pool size in time %d' %
                          (strides[0], pool_size[0]))
       # effective kernel size in time dimension
@@ -159,7 +162,7 @@ class Stream(tf.keras.layers.Layer):
         self.cell,
         (tf.keras.layers.Flatten, tf.keras.layers.GlobalMaxPooling2D,
          tf.keras.layers.GlobalAveragePooling2D)) and not self.state_shape:
-      if self.mode in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE):
+      if self.mode in (modes.Modes.TRAINING, modes.Modes.NON_STREAM_INFERENCE):
         # Only in the non-streaming modes we have access to the whole training
         # sequence. In the streaming mode input_shape will not be available.
         # During streaming inference we have access to one sample at a time!
@@ -177,7 +180,7 @@ class Stream(tf.keras.layers.Layer):
           self.inference_batch_size, self.ring_buffer_size_in_time_dim
       ] + input_shape.as_list()[2:]
 
-    if self.mode == Modes.STREAM_INTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
       # Create a state varaible for streaming inference mode (internal state).
       # Where states become a weight in the layer
       if self.ring_buffer_size_in_time_dim:
@@ -187,7 +190,7 @@ class Stream(tf.keras.layers.Layer):
             trainable=False,
             initializer=tf.zeros_initializer)
 
-    elif self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    elif self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       # For streaming inference with extrnal states,
       # the states are passed in as input.
       if self.ring_buffer_size_in_time_dim:
@@ -200,17 +203,17 @@ class Stream(tf.keras.layers.Layer):
       self.output_state = None
 
   def call(self, inputs):
-    if self.mode == Modes.STREAM_INTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
       return self._streaming_internal_state(inputs)
 
-    elif self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    elif self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       # in streaming inference mode with external state
       # in addition to the output we return the output state.
       output, self.output_state = self._streaming_external_state(
           inputs, self.input_state)
       return output
 
-    elif self.mode in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE):
+    elif self.mode in (modes.Modes.TRAINING, modes.Modes.NON_STREAM_INFERENCE):
       # run non streamable training or non streamable inference
       return self._non_streaming(inputs)
 
@@ -232,14 +235,14 @@ class Stream(tf.keras.layers.Layer):
 
   def get_input_state(self):
     # input state will be used only for STREAM_EXTERNAL_STATE_INFERENCE mode
-    if self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       return self.input_state
     else:
       raise ValueError('wrong mode', self.mode)
 
   def get_output_state(self):
     # output state will be used only for STREAM_EXTERNAL_STATE_INFERENCE mode
-    if self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       return self.output_state
     else:
       raise ValueError('wrong mode', self.mode)

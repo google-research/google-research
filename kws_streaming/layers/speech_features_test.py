@@ -16,50 +16,43 @@
 """Tests for kws_streaming.layers.speech_features."""
 
 import numpy as np
+from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
 from kws_streaming.layers import test_utils
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
-from kws_streaming.layers.modes import Modes
+from kws_streaming.models import model_params
 from kws_streaming.models import utils
 tf1.disable_eager_execution()
 
 
-class Params(object):
+class Params(model_params.Params):
+  """Parameters for testing speech feature extractor.
+
+     These parameters are compatible with command line flags
+     and discribed in /train/base_parser.py
+  """
 
   def __init__(self):
-    self.sample_rate = 16000.0
+    super().__init__()
     self.window_size_ms = 25.0
     self.window_stride_ms = 10.0
-    self.feature_type = "mfcc_tf"
     self.preemph = 0.97
-    self.mel_lower_edge_hertz = 125.0
-    self.mel_upper_edge_hertz = 7600.0
-    self.log_epsilon = 1e-12
     self.dct_num_features = 13
-    self.mel_non_zero_only = 1
-    self.fft_magnitude_squared = 0
-    self.mel_num_bins = 80
-    self.window_type = "hann"
-    self.use_spec_augment = 0
-    self.time_masks_number = 2
-    self.time_mask_max_size = 10
-    self.frequency_masks_number = 2
-    self.frequency_mask_max_size = 5
+    self.use_spec_augment = 1
     self.use_spec_cutout = 1
-    self.spec_cutout_masks_number = 3
-    self.spec_cutout_time_mask_size = 10
-    self.spec_cutout_frequency_mask_size = 5
     self.use_tf_fft = 0
+    self.time_shift_ms = 0.0
+    self.sp_time_shift_ms = 100.0
     self.train = 0
-    self.mode = Modes.NON_STREAM_INFERENCE
+    self.mode = modes.Modes.NON_STREAM_INFERENCE
 
 
 class SpeechFeaturesTest(tf.test.TestCase):
   """Speech feature extractor testing."""
 
   def setUp(self):
-    super(SpeechFeaturesTest, self).setUp()
+    super().setUp()
 
     self.inference_batch_size = 1
     self.params = Params()
@@ -73,9 +66,30 @@ class SpeechFeaturesTest(tf.test.TestCase):
     self.data_size = 1024
     self.signal = np.random.rand(self.inference_batch_size, self.data_size)
 
+  def test_tf_non_streaming_train(self):
+    """Tests non stream inference with train flag."""
+    params = Params()
+    params.sp_time_shift_ms = 10.0
+    speech_params = speech_features.SpeechFeatures.get_params(params)
+    mode = modes.Modes.TRAINING
+    # TF non streaming frame extraction based on tf.signal.frame
+    mel_speech_tf = speech_features.SpeechFeatures(
+        speech_params, mode, self.inference_batch_size)
+    # it receives all data with size: data_size
+    input1 = tf.keras.layers.Input(
+        shape=(self.data_size,),
+        batch_size=self.inference_batch_size,
+        dtype=tf.float32)
+    output1 = mel_speech_tf(input1)
+    model_tf = tf.keras.models.Model(input1, output1)
+
+    # generate frames for the whole signal (no streaming here)
+    self.assertNotEmpty(model_tf.predict(self.signal))
+
   def test_tf_non_streaming_vs_streaming_inference_internal_state(self):
+    """Tests non stream inference vs stream inference with internal state."""
     speech_params = speech_features.SpeechFeatures.get_params(self.params)
-    mode = Modes.NON_STREAM_INFERENCE
+    mode = modes.Modes.NON_STREAM_INFERENCE
     # TF non streaming frame extraction based on tf.signal.frame
     mel_speech_tf = speech_features.SpeechFeatures(
         speech_params, mode, self.inference_batch_size)
@@ -92,7 +106,7 @@ class SpeechFeaturesTest(tf.test.TestCase):
 
     # streaming frame extraction
     # it receives input data incrementally with step: frame_step
-    mode = Modes.STREAM_INTERNAL_STATE_INFERENCE
+    mode = modes.Modes.STREAM_INTERNAL_STATE_INFERENCE
     mel_speech_stream = speech_features.SpeechFeatures(
         speech_params, mode, self.inference_batch_size)
     input2 = tf.keras.layers.Input(
@@ -127,14 +141,16 @@ class SpeechFeaturesTest(tf.test.TestCase):
       start = end
       end = start + self.frame_step
 
+    self.assertNotEmpty(streamed_frames)
     # compare streaming vs non streaming frames extraction
     for i in range(len(streamed_frames)):
       self.assertAllClose(
           streamed_frames[i][0][0], output_tf[0][i], rtol=1e-4, atol=1e-4)
 
   def test_tf_non_streaming_vs_streaming_inference_external_state(self):
+    """Tests non stream inference vs stream inference with external state."""
     speech_params = speech_features.SpeechFeatures.get_params(self.params)
-    mode = Modes.NON_STREAM_INFERENCE
+    mode = modes.Modes.NON_STREAM_INFERENCE
     # TF non streaming frame extraction based on tf.signal.frame
     mel_speech_tf = speech_features.SpeechFeatures(
         speech_params, mode, self.inference_batch_size)
@@ -159,7 +175,7 @@ class SpeechFeaturesTest(tf.test.TestCase):
 
     # convert non streaming trainable model to
     # streaming inference with external state
-    mode = Modes.STREAM_EXTERNAL_STATE_INFERENCE
+    mode = modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE
     model_stream = utils.convert_to_inference_model(model_tf, input_tensors,
                                                     mode)
 

@@ -13,50 +13,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test for cutout spectrogram augmentation."""
+"""Test for RandomShift data augmentation."""
 
 import numpy as np
-from kws_streaming.layers import spectrogram_cutout
+from kws_streaming.layers import random_shift
 from kws_streaming.layers import test_utils
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 tf1.disable_eager_execution()
 
 
-class CutoutTest(tf.test.TestCase):
+class RandomShiftTest(tf.test.TestCase):
 
   def setUp(self):
-    super(CutoutTest, self).setUp()
-    self.input_shape = [2, 7, 5]
+    super().setUp()
+    self.input_shape = [2, 7]  # [batch, audio_sequence]
     self.seed = 1
 
-  def test_masking(self):
+  def test_random_shift(self):
     test_utils.set_seed(self.seed)
-    spectrogram = np.ones(self.input_shape)
+    audio = np.ones(self.input_shape)
     inputs = tf.keras.layers.Input(
         shape=self.input_shape[1:],
         batch_size=self.input_shape[0],
         dtype=tf.float32)
-    outputs = spectrogram_cutout.SpecCutout(
-        masks_number=2,
-        time_mask_size=4,
-        frequency_mask_size=2,
+    outputs = random_shift.RandomShift(
+        time_shift=3,
         seed=self.seed)(
             inputs, training=True)
     model = tf.keras.models.Model(inputs, outputs)
-    prediction = model.predict(spectrogram)
-    # confirm that every mask has different rects in different batch indexes
-    target0 = np.array([[1., 1., 1., 1., 1.], [1., 1., 1., 1., 1.],
-                        [0., 1., 1., 1., 1.], [0., 1., 1., 0., 0.],
-                        [0., 1., 1., 0., 0.], [0., 1., 1., 0., 0.],
-                        [1., 1., 1., 0., 0.]])
-    self.assertAllEqual(prediction[0, :, :], target0)
+    prediction = model.predict(audio)
 
-    target1 = np.array([[1., 1., 1., 1., 1.], [0., 1., 1., 1., 1.],
-                        [0., 1., 1., 1., 1.], [0., 1., 0., 0., 1.],
-                        [0., 1., 0., 0., 1.], [1., 1., 0., 0., 1.],
-                        [1., 1., 0., 0., 1.]])
-    self.assertAllEqual(prediction[1, :, :], target1)
+    # confirm that audio sequence is shifted left
+    target0 = np.array([1., 1., 1., 1., 0., 0., 0.])
+    self.assertAllEqual(prediction[0, :], target0)
+
+    # confirm that audio sequence is shifted right
+    target1 = np.array([0., 1., 1., 1., 1., 1., 1.])
+    self.assertAllEqual(prediction[1, :], target1)
 
 
 if __name__ == "__main__":

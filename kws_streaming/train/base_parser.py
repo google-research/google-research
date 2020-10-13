@@ -15,7 +15,6 @@
 
 """Base parser with training/testing data speech features flags ."""
 
-
 import argparse
 from absl import logging
 
@@ -115,6 +114,15 @@ def base_parser():
       default=100.0,
       help="""\
       Range to randomly shift the training audio by in time.
+      It is done during audio data reading.
+      """)
+  parser.add_argument(
+      '--sp_time_shift_ms',
+      type=float,
+      default=0.0,
+      help="""\
+      Range to randomly shift the training audio by in time.
+      It is dones in speech feature extractor.
       """)
   parser.add_argument(
       '--testing_percentage',

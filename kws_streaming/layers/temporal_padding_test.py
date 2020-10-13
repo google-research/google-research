@@ -15,12 +15,13 @@
 
 # Lint as: python3
 """Tests for kws_streaming.layers.temporal_padding."""
+
 from absl.testing import parameterized
 import numpy as np
+from kws_streaming.layers import modes
 from kws_streaming.layers import temporal_padding
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
-from kws_streaming.layers.modes import Modes
 tf1.disable_eager_execution()
 
 
@@ -53,7 +54,7 @@ class TemporalPaddingTest(tf.test.TestCase, parameterized.TestCase):
     feature_dim = 3
     padding = 'same'
     padding_size = 5
-    mode = Modes.STREAM_EXTERNAL_STATE_INFERENCE
+    mode = modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE
     inputs = tf.keras.layers.Input(
         shape=(1, feature_dim), batch_size=batch_size)
     net = temporal_padding.TemporalPadding(

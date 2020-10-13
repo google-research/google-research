@@ -14,9 +14,10 @@
 # limitations under the License.
 
 """A layer which computes mel spectrum of input speech signal."""
+
+from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 import kws_streaming.layers.mel_table as mel_table
-from kws_streaming.layers.modes import Modes
 
 
 class MelSpectrogram(tf.keras.layers.Layer):
@@ -27,7 +28,7 @@ class MelSpectrogram(tf.keras.layers.Layer):
   """
 
   def __init__(self,
-               mode=Modes.TRAINING,
+               mode=modes.Modes.TRAINING,
                use_tf=True,
                num_mel_bins=40,
                lower_edge_hertz=20.0,
@@ -46,8 +47,8 @@ class MelSpectrogram(tf.keras.layers.Layer):
     super(MelSpectrogram, self).build(input_shape)
     feature_size = int(input_shape[-1])
 
-    if self.use_tf and self.mode in (Modes.TRAINING,
-                                     Modes.NON_STREAM_INFERENCE):
+    if self.use_tf and self.mode in (modes.Modes.TRAINING,
+                                     modes.Modes.NON_STREAM_INFERENCE):
       # precompute mel matrix using tf
       self.mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
           num_mel_bins=self.num_mel_bins,

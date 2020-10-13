@@ -14,10 +14,13 @@
 # limitations under the License.
 
 """Tests for spectrogram_augment."""
+
 import numpy as np
 from kws_streaming.layers import spectrogram_augment
 from kws_streaming.layers import test_utils
 from kws_streaming.layers.compat import tf
+from kws_streaming.layers.compat import tf1
+tf1.disable_eager_execution()
 
 
 class SpecAugmentTest(tf.test.TestCase):

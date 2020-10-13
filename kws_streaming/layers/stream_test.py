@@ -14,14 +14,15 @@
 # limitations under the License.
 
 """Tests for kws_streaming.layers.stream."""
+
 from absl.testing import parameterized
 import numpy as np
+from kws_streaming.layers import modes
 from kws_streaming.layers import stream
 from kws_streaming.layers import temporal_padding
 from kws_streaming.layers import test_utils
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
-from kws_streaming.layers.modes import Modes
 from kws_streaming.models import utils
 from kws_streaming.train import test
 tf1.disable_eager_execution()
@@ -175,7 +176,7 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
         batch_size=batch_size,
         name='inp_sequence')
 
-    mode = Modes.TRAINING
+    mode = modes.Modes.TRAINING
 
     # in streaming mode it will create a
     # ring buffer with time dim size ring_buffer_size_in_time_dim
@@ -186,7 +187,7 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
     model_train = tf.keras.Model(inputs, outputs)
     model_train.summary()
 
-    mode = Modes.STREAM_EXTERNAL_STATE_INFERENCE
+    mode = modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE
     input_tensors = [
         tf.keras.layers.Input(
             shape=(
@@ -235,7 +236,7 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
 
     # set it in train mode (in stream mode padding is not applied)
     net = stream.Stream(
-        mode=Modes.TRAINING,
+        mode=modes.Modes.TRAINING,
         cell=tf.keras.layers.Lambda(lambda x: x),
         ring_buffer_size_in_time_dim=kernel_size,
         pad_time_dim=padding)(inputs)
@@ -271,7 +272,7 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
 
     # prepare streaming model
     model_stream = utils.to_streaming_inference(
-        model, params, Modes.STREAM_INTERNAL_STATE_INFERENCE)
+        model, params, modes.Modes.STREAM_INTERNAL_STATE_INFERENCE)
     model_stream.summary()
 
     # run inference

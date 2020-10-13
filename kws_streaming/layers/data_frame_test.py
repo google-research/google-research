@@ -17,9 +17,9 @@
 
 import numpy as np
 from kws_streaming.layers import data_frame
+from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
-from kws_streaming.layers.modes import Modes
 import kws_streaming.layers.test_utils as tu
 from kws_streaming.models import utils
 tf1.disable_eager_execution()
@@ -30,7 +30,7 @@ class DataFrameTest(tu.FrameTestBase):
   def test_tf_non_streaming_vs_streaming_internal_state(self):
     # prepare streaming frame extraction model with internal state
     data_frame_stream = data_frame.DataFrame(
-        mode=Modes.STREAM_INTERNAL_STATE_INFERENCE,
+        mode=modes.Modes.STREAM_INTERNAL_STATE_INFERENCE,
         inference_batch_size=self.inference_batch_size,
         frame_size=self.frame_size,
         frame_step=self.frame_step)
@@ -72,7 +72,7 @@ class DataFrameTest(tu.FrameTestBase):
       self.assertAllEqual(streamed_frames[i][0][0], self.output_frames_tf[0][i])
 
   def test_tf_non_streaming_vs_streaming_external_state(self):
-    mode = Modes.STREAM_EXTERNAL_STATE_INFERENCE
+    mode = modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE
     input_tensors = [
         tf.keras.layers.Input(
             shape=(self.frame_step,), batch_size=1, name="inp1")

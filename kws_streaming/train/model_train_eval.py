@@ -101,16 +101,12 @@ bazel run tensorflow/examples/speech_commands:train --
 --data_dir /data --wanted_words up,down --split_data 0
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import json
 import os
 import sys
 from absl import logging
 import tensorflow.compat.v1 as tf
-from kws_streaming.layers.modes import Modes
+from kws_streaming.layers import modes
 import kws_streaming.models.att_mh_rnn as att_mh_rnn
 import kws_streaming.models.att_rnn as att_rnn
 import kws_streaming.models.cnn as cnn
@@ -159,10 +155,11 @@ def main(_):
     json.dump(flags.__dict__, f)
 
   # convert to SavedModel
-  test.convert_model_saved(flags, 'non_stream', Modes.NON_STREAM_INFERENCE)
+  test.convert_model_saved(flags, 'non_stream',
+                           modes.Modes.NON_STREAM_INFERENCE)
   try:
     test.convert_model_saved(flags, 'stream_state_internal',
-                             Modes.STREAM_INTERNAL_STATE_INFERENCE)
+                             modes.Modes.STREAM_INTERNAL_STATE_INFERENCE)
   except (ValueError, IndexError) as e:
     logging.info('FAILED to run TF streaming: %s', e)
 
@@ -201,7 +198,7 @@ def main(_):
 
     folder_name = opt_name + 'tflite_non_stream'
     file_name = 'non_stream.tflite'
-    mode = Modes.NON_STREAM_INFERENCE
+    mode = modes.Modes.NON_STREAM_INFERENCE
     test.convert_model_tflite(flags, folder_name, mode, file_name,
                               optimizations=optimizations)
     test.tflite_non_stream_model_accuracy(flags, folder_name, file_name)
@@ -259,7 +256,7 @@ def main(_):
         # convert model to TFlite
         folder_name = opt_name + 'tflite_stream_state_external'
         file_name = 'stream_state_external.tflite'
-        mode = Modes.STREAM_EXTERNAL_STATE_INFERENCE
+        mode = modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE
         test.convert_model_tflite(flags, folder_name, mode, file_name,
                                   optimizations=optimizations)
 

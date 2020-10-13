@@ -14,8 +14,9 @@
 # limitations under the License.
 
 """TemporalPadding layer."""
+
+from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
-from kws_streaming.layers.modes import Modes
 
 SUPPORTED_PADDINGS = ['valid', 'causal', 'same']
 
@@ -34,7 +35,7 @@ class TemporalPadding(tf.keras.layers.Layer):
   """
 
   def __init__(self,
-               mode=Modes.TRAINING,
+               mode=modes.Modes.TRAINING,
                padding_size=None,
                padding=None,
                **kwargs):
@@ -43,9 +44,9 @@ class TemporalPadding(tf.keras.layers.Layer):
     if padding not in SUPPORTED_PADDINGS:
       raise ValueError('wrong padding ', padding)
 
-    if mode not in [Modes.TRAINING, Modes.NON_STREAM_INFERENCE,
-                    Modes.STREAM_INTERNAL_STATE_INFERENCE,
-                    Modes.STREAM_EXTERNAL_STATE_INFERENCE]:
+    if mode not in [modes.Modes.TRAINING, modes.Modes.NON_STREAM_INFERENCE,
+                    modes.Modes.STREAM_INTERNAL_STATE_INFERENCE,
+                    modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE]:
       raise ValueError('wrong mode ', mode)
 
     self.mode = mode
@@ -58,8 +59,8 @@ class TemporalPadding(tf.keras.layers.Layer):
       raise ValueError('inputs.shape.rank: %d must be >= 2' % inputs.shape.rank)
 
     if self.mode in [
-        Modes.STREAM_INTERNAL_STATE_INFERENCE,
-        Modes.STREAM_EXTERNAL_STATE_INFERENCE
+        modes.Modes.STREAM_INTERNAL_STATE_INFERENCE,
+        modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE
     ] or self.padding == 'valid':
       # padding is not applied in streaming mode or on valid
       return inputs

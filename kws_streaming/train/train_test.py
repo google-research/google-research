@@ -15,10 +15,6 @@
 
 """Tests model train, based on tensorflow/examples/speech_commands."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 from absl import flags
 from absl import logging
@@ -244,6 +240,8 @@ class TrainTest(tf.test.TestCase, parameterized.TestCase):
             10,
         'spec_cutout_frequency_mask_size':
             5,
+        'sp_time_shift_ms':
+            0,
     }
     return DictStruct(**dummy_flags)
 

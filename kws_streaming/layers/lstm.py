@@ -14,9 +14,10 @@
 # limitations under the License.
 
 """LSTM layer."""
+
+from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
-from kws_streaming.layers.modes import Modes
 
 
 class LSTM(tf.keras.layers.Layer):
@@ -61,7 +62,7 @@ class LSTM(tf.keras.layers.Layer):
 
   def __init__(self,
                units=64,
-               mode=Modes.TRAINING,
+               mode=modes.Modes.TRAINING,
                inference_batch_size=1,
                return_sequences=False,
                use_peepholes=False,
@@ -80,13 +81,13 @@ class LSTM(tf.keras.layers.Layer):
     self.use_peepholes = use_peepholes
     self.stateful = stateful
 
-    if mode != Modes.TRAINING:  # in any inference mode
+    if mode != modes.Modes.TRAINING:  # in any inference mode
       # let's unroll lstm, so there is no symbolic loops / control flow
       unroll = True
 
     self.unroll = unroll
 
-    if self.mode in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE):
+    if self.mode in (modes.Modes.TRAINING, modes.Modes.NON_STREAM_INFERENCE):
       if use_peepholes:
         self.lstm_cell = tf1.nn.rnn_cell.LSTMCell(
             num_units=units, use_peepholes=True, num_proj=num_proj, name='cell')
@@ -102,7 +103,7 @@ class LSTM(tf.keras.layers.Layer):
             name='cell',
             unroll=self.unroll,
             stateful=self.stateful)
-    if self.mode == Modes.STREAM_INTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
       # create state varaible for stateful streamable inference
       self.input_state1 = self.add_weight(
           name='input_state1',
@@ -129,7 +130,7 @@ class LSTM(tf.keras.layers.Layer):
             initializer=tf.zeros_initializer)
         self.lstm_cell = tf.keras.layers.LSTMCell(units=units, name='cell')
       self.lstm = None
-    elif self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    elif self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       # in streaming mode with external state state,
       # state becomes an input output placeholders
       self.input_state1 = tf.keras.layers.Input(
@@ -157,17 +158,17 @@ class LSTM(tf.keras.layers.Layer):
     if inputs.shape.rank != 3:  # [batch, time, feature]
       raise ValueError('inputs.shape.rank:%d must be 3' % inputs.shape.rank)
 
-    if self.mode == Modes.STREAM_INTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
       # run streamable inference on input [batch, 1, features]
       # returns output [batch, 1, units]
       return self._streaming_internal_state(inputs)
-    elif self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    elif self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       # in streaming mode with external state
       # in addition to output we return output state
       output, self.output_state1, self.output_state2 = self._streaming_external_state(
           inputs, self.input_state1, self.input_state2)
       return output
-    elif self.mode in (Modes.TRAINING, Modes.NON_STREAM_INFERENCE):
+    elif self.mode in (modes.Modes.TRAINING, modes.Modes.NON_STREAM_INFERENCE):
       # run non streamable training or non streamable inference
       # on input [batch, time, features], returns [batch, time, units]
       return self._non_streaming(inputs)
@@ -190,14 +191,14 @@ class LSTM(tf.keras.layers.Layer):
 
   def get_input_state(self):
     # input state is used only for STREAM_EXTERNAL_STATE_INFERENCE mode
-    if self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       return [self.input_state1, self.input_state2]
     else:
       raise ValueError('wrong mode', self.mode)
 
   def get_output_state(self):
     # output state is used only for STREAM_EXTERNAL_STATE_INFERENCE mode
-    if self.mode == Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+    if self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
       return [self.output_state1, self.output_state2]
     else:
       raise ValueError('wrong mode', self.mode)

@@ -14,12 +14,13 @@
 # limitations under the License.
 
 """Test utility functions."""
+
 import os
 from absl import logging
 import numpy as np
 import tensorflow.compat.v1 as tf
 import kws_streaming.data.input_data as input_data
-from kws_streaming.layers.modes import Modes
+from kws_streaming.layers import modes
 from kws_streaming.models import models
 from kws_streaming.models import utils
 
@@ -252,7 +253,7 @@ def tf_stream_state_internal_model_accuracy(
   model.load_weights(weights_path).expect_partial()
 
   model_stream = utils.to_streaming_inference(
-      model, flags, Modes.STREAM_INTERNAL_STATE_INFERENCE)
+      model, flags, modes.Modes.STREAM_INTERNAL_STATE_INFERENCE)
 
   total_accuracy = 0.0
   count = 0.0
@@ -348,7 +349,7 @@ def tf_stream_state_external_model_accuracy(
   weights_path = os.path.join(flags.train_dir, weights_name)
   model.load_weights(weights_path).expect_partial()
   model_stream = utils.to_streaming_inference(
-      model, flags, Modes.STREAM_EXTERNAL_STATE_INFERENCE)
+      model, flags, modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE)
 
   logging.info('tf stream model state external with reset_state %d',
                reset_state)

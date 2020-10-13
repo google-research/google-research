@@ -16,9 +16,9 @@
 """Tests for kws_streaming.layers.flaten."""
 
 import numpy as np
+from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
-from kws_streaming.layers.modes import Modes
 from kws_streaming.layers.stream import Stream
 from kws_streaming.models import utils
 tf1.disable_eager_execution()
@@ -36,7 +36,7 @@ class FlattenTest(tf.test.TestCase):
     self.inputs = np.random.uniform(size=(self.batch_size,) + shape)
 
     # create non streamable trainable model
-    mode = Modes.TRAINING
+    mode = modes.Modes.TRAINING
     if flat_dim == "time":
       flat_tf = Stream(cell=tf.keras.layers.Flatten(), mode=mode)(input_tf)
     else:
@@ -55,7 +55,7 @@ class FlattenTest(tf.test.TestCase):
     # test on input with [batch, time, feature1, feature2]
     self.init(shape=(8, 2, 1))
     # convert non streamable trainable model to streamable with internal state
-    mode = Modes.STREAM_INTERNAL_STATE_INFERENCE
+    mode = modes.Modes.STREAM_INTERNAL_STATE_INFERENCE
     input_tensors = [
         tf.keras.layers.Input(
             shape=(
@@ -77,7 +77,7 @@ class FlattenTest(tf.test.TestCase):
     # test on input with [batch, time, feature1]
     self.init(shape=(8, 2))
     # convert non streamable trainable model to streamable with external state
-    mode = Modes.STREAM_EXTERNAL_STATE_INFERENCE
+    mode = modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE
     input_tensors = [
         tf.keras.layers.Input(
             shape=(

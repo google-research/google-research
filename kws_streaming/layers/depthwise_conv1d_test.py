@@ -15,16 +15,12 @@
 
 """Tests for kws_streaming.layers.depthwise_conv1d."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from absl import logging
 import numpy as np
 from kws_streaming.layers import depthwise_conv1d
+from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
-from kws_streaming.layers.modes import Modes
 import kws_streaming.layers.test_utils as tu
 from kws_streaming.models import utils
 tf1.disable_eager_execution()
@@ -36,7 +32,7 @@ class DepthwiseConv1DTest(tu.TestBase):
     # below model expects that input_data are already initialized in tu.TestBase
     # in setUp, by default input_data should have 3 dimensions
     # size of each dimesnion is constant and is defiend by self.weights
-    mode = Modes.TRAINING
+    mode = modes.Modes.TRAINING
     input_tf = tf.keras.layers.Input(shape=(
         None,
         self.input_data.shape[2],
@@ -63,7 +59,7 @@ class DepthwiseConv1DTest(tu.TestBase):
 
     output_non_stream_np, _ = self._run_non_stream_model()
 
-    mode = Modes.STREAM_INTERNAL_STATE_INFERENCE
+    mode = modes.Modes.STREAM_INTERNAL_STATE_INFERENCE
     input_tf = tf.keras.layers.Input(
         shape=(
             1,
@@ -98,7 +94,7 @@ class DepthwiseConv1DTest(tu.TestBase):
 
     output_non_stream_np, model_tf = self._run_non_stream_model()
 
-    mode = Modes.STREAM_EXTERNAL_STATE_INFERENCE
+    mode = modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE
     input_tensors = [
         tf.keras.layers.Input(
             shape=(
