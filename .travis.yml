@@ -33,6 +33,7 @@ env:
     - PROJECT="explaining_risk_increase"
     - PROJECT="extrapolation"
     - PROJECT="fat"
+    - PROJECT="flax_models/bert"
     - PROJECT="flax_models/cifar"
     - PROJECT="flax_models/moco"
     - PROJECT="frequency_analysis"
