@@ -21,9 +21,12 @@ from __future__ import division
 
 from __future__ import print_function
 
-import tensorflow.compat.v2 as tf
-from soft_sort import soft_quantilizer
+import itertools
 
+import tensorflow.compat.v2 as tf
+
+from soft_sort import sinkhorn
+from soft_sort import soft_quantilizer
 
 DIRECTIONS = ('ASCENDING', 'DESCENDING')
 _TARGET_WEIGHTS_ARG = 'target_weights'
@@ -64,9 +67,9 @@ def postprocess(x, transposition, shape):
   Args:
    x: Tensor<float>[batch, n]
    transposition: Tensor<int>[rank] 1D tensor representing the transposition
-    that was used to preprocess the input tensor. Since transpositions are
-    involutions, applying the same transposition brings back to the original
-    shape.
+     that was used to preprocess the input tensor. Since transpositions are
+     involutions, applying the same transposition brings back to the original
+     shape.
    shape: TensorShape of the intermediary output.
 
   Returns:
@@ -76,12 +79,11 @@ def postprocess(x, transposition, shape):
   return tf.transpose(tf.reshape(x, shape), transposition)
 
 
-def softsort(
-    x,
-    direction = 'ASCENDING',
-    axis = -1,
-    topk = None,
-    **kwargs):
+def softsort(x,
+             direction = 'ASCENDING',
+             axis = -1,
+             topk = None,
+             **kwargs):
   """Applies the softsort operator on input tensor x.
 
   This operator acts as differentiable alternative to tf.sort.
@@ -91,8 +93,8 @@ def softsort(
    direction: the direction 'ASCENDING' or 'DESCENDING'
    axis: the axis on which to operate the sort.
    topk: if not None, the number of topk sorted values that are going to be
-    computed. Using topk improves the speed of the algorithms since it solves
-    a simpler problem.
+     computed. Using topk improves the speed of the algorithms since it solves a
+     simpler problem.
    **kwargs: see SoftQuantilizer for possible parameters.
 
   Returns:
@@ -149,8 +151,12 @@ def softranks(x, direction='ASCENDING', axis=-1, zero_based=True, **kwargs):
   return postprocess(ranks, transposition, shape)
 
 
-def softquantiles(
-    x, quantiles, quantile_width=None, axis=-1, may_squeeze=True, **kwargs):
+def softquantiles(x,
+                  quantiles,
+                  quantile_width=None,
+                  axis=-1,
+                  may_squeeze=True,
+                  **kwargs):
   """Computes soft quantiles via optimal transport.
 
   This operator takes advantage of the fact that an exhaustive softsort is not
@@ -166,15 +172,15 @@ def softquantiles(
   Args:
    x: Tensor<float> of any shape.
    quantiles: list<float> the quantiles to be returned. It can also be a single
-    float.
+     float.
    quantile_width: (float) mass given to the bucket supposed to attract points
-    whose value concentrate around the desired quantile value. Bigger width
-    means that we allow the soft quantile to be a mixture of
-    more points further away from the quantile. If None, the width is set at 1/n
-    where n is the number of values considered (the size along the 'axis').
+     whose value concentrate around the desired quantile value. Bigger width
+     means that we allow the soft quantile to be a mixture of more points
+     further away from the quantile. If None, the width is set at 1/n where n is
+     the number of values considered (the size along the 'axis').
    axis: (int) the axis along which to compute the quantile.
    may_squeeze: (bool) should we squeeze the output tensor in case of a single
-    quantile.
+     quantile.
    **kwargs: see SoftQuantilizer for possible extra parameters.
 
   Returns:
@@ -228,9 +234,11 @@ def softquantiles(
 
     # Sends only the positive weights to the softsort operator.
     positive_weights = tf.boolean_mask(weights, weights > 0.0)
-    result = softsort(
+    all_quantiles = softsort(
         x,
-        direction='ASCENDING', axis=axis, target_weights=positive_weights,
+        direction='ASCENDING',
+        axis=axis,
+        target_weights=positive_weights,
         **kwargs)
 
     # Recovers the indices corresponding to the desired quantiles.
@@ -238,7 +246,7 @@ def softquantiles(
     positives = tf.cast(weights > 0.0, tf.float32)
     indices = tf.cast(tf.math.cumsum(positives) * odds, dtype=tf.int32)
     indices = tf.boolean_mask(indices, indices > 0) - 1
-    result = tf.gather(result, indices, axis=axis)
+    result = tf.gather(all_quantiles, indices, axis=axis)
 
     # In the specific case where we want a single quantile, squeezes the
     # quantile dimension.
@@ -246,6 +254,80 @@ def softquantiles(
     if tf.math.logical_and(can_squeeze, may_squeeze):
       result = tf.squeeze(result, axis=axis)
     return result
+
+
+def soft_multivariate_quantiles(x,
+                                quantiles,
+                                quantile_width=None,
+                                **kwargs):
+  """Computes soft multivariate quantiles via optimal transport.
+
+  Transport multivariate input values in x onto 2^d + 1 weighted points,
+  {0,1}^d + [0.5, ..., 0.5]. Target weights are adjusted so
+  that those values in x that are transported to the middle value in the target
+  vector correspond to those concentrating around the quantile of interest.
+
+  Args:
+   x: Tensor<float> of shape [batch, N, d]
+   quantiles: Tensor<float> of shape [r, d], r targeted quantiles of dimension d
+   quantile_width: (float) mass given to the bucket supposed to attract points
+     whose value concentrate around the desired quantile value. Bigger width
+     means that we allow the soft quantile to be a mixture of more points
+     further away from the quantile. If None, the width is set at 1/n where n is
+     the number of values considered (the size along the 'axis').
+   **kwargs: see sinkhorn.autodiff_sinkhorn for possible extra parameters.
+
+  Returns:
+    A Tensor<float> [N,r,d] of multivariate quantiles per batch.
+
+  """
+  quantiles = tf.constant(quantiles, tf.float32)
+  batch_size = x.shape[0]
+  n = tf.cast(x.shape[1], tf.float32)
+  d = x.shape[2]
+  if quantile_width is None:
+    quantile_width = 2 / n
+  num_quantiles = tf.shape(quantiles)[0]
+  hypercube_vertices = tf.constant(
+      list(itertools.product([-1, 1], repeat=d)), tf.float32)
+  # weights attached to vertices for each quantile. this is n_quantiles x 2^r
+  weights = quantiles[:, tf.newaxis, :]**(
+      0.5 * (1 - hypercube_vertices))[tf.newaxis, Ellipsis]
+  weights *= (1 - quantiles)[:, tf.newaxis, :]**(
+      0.5 * (1 + hypercube_vertices))[tf.newaxis, Ellipsis]
+
+  weights = (1 - quantile_width) * tf.reduce_prod(weights, axis=2)
+  # adding weights for quantile itself (in position 0).
+  weights = tf.concat((quantile_width * tf.ones((num_quantiles, 1)), weights),
+                      axis=1)
+  # augmenting and formating as batch_size * 2^r +1 * num_quantiles
+  weights = tf.reshape(
+      tf.tile(tf.transpose(weights), [batch_size, 1]),
+      [batch_size, 2**d + 1, num_quantiles])
+  # set target locations, by adding the point at 0 that will absorb the quantile
+  # augment it with batch_size
+  y = tf.concat((tf.zeros((1, d), dtype=tf.float32), hypercube_vertices),
+                axis=0)
+  y = tf.reshape(tf.tile(y, [batch_size, 1]), [batch_size, 2**d + 1, d])
+  # center x
+  x_mean = tf.reduce_mean(x, axis=1)
+  x = x - x_mean[:, tf.newaxis, :]
+  transports = sinkhorn.autodiff_sinkhorn(
+      x, y,
+      tf.ones([batch_size, n, num_quantiles], dtype=tf.float32) / n, weights,
+      **kwargs)
+
+  # recover convex combinations resulting from transporting to central point in
+  # in all batches and quantile variations.
+  transports = 1 / quantile_width * tf.reshape(transports[:, :, 0, :],
+                                               [batch_size, n, -1])
+  # apply these convex combinations to data points + recenter.
+  all_soft_quantiles = tf.reduce_sum(
+      transports[:, :, :, tf.newaxis] *
+      x[:, :, tf.newaxis, :],
+      axis=1) + x_mean[:, tf.newaxis, :]
+  # reshape those quantiles after having applied convex combinations.
+  return tf.reshape(all_soft_quantiles, [batch_size, num_quantiles, d])
 
 
 def soft_quantile_normalization(x, f, axis=-1, **kwargs):
@@ -268,7 +350,7 @@ def soft_quantile_normalization(x, f, axis=-1, **kwargs):
   Args:
    x: Tensor<float> of any shape.
    f: Tensor<float>[m] where m can be or not the size of x along the axis.
-    Usually it is. f should be sorted.
+     Usually it is. f should be sorted.
    axis: the axis along which the tensor x should be quantile normalized.
    **kwargs: extra parameters passed to the SoftQuantilizer.
 

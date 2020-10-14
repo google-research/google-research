@@ -211,6 +211,38 @@ class OpsTest(parameterized.TestCase, tf.test.TestCase):
     # Make sure that the values of xn and target are close.
     self.assertAllClose(tf.sort(target), tf.sort(xn), atol=1e-1)
 
+  def test_soft_multivariate_quantiles(self):
+    # check that the empirical quantiles of a uniform distribution match with
+    # those obtained with a smooth approximation.
+    x = tf.random.uniform([10, 10000, 3])
+    quantiles = tf.convert_to_tensor([[0.3, 0.6, 0.9], [0.1, 0.1, 0.1]],
+                                     tf.float32)
+    soft_quantiles = ops.soft_multivariate_quantiles(
+        x, quantiles, epsilon=0.005)
+    averaged_soft_quantiles = tf.reduce_mean(soft_quantiles, axis=0)
+    self.assertAllClose(
+        averaged_soft_quantiles, quantiles, rtol=3e-02, atol=1e-01)
+
+    # checking translation invariance
+    x = x + 10
+    soft_quantiles = ops.soft_multivariate_quantiles(
+        x, quantiles, epsilon=0.005)
+    averaged_soft_quantiles_2 = tf.reduce_mean(soft_quantiles, axis=0)
+    self.assertAllClose(
+        averaged_soft_quantiles,
+        averaged_soft_quantiles_2 - 10,
+        rtol=1e-4,
+        atol=1e-4)
+
+    # checking this works in 1D
+    x = tf.random.uniform([10, 10000, 1])
+    quantiles = tf.convert_to_tensor([[0.2], [0.5]], tf.float32)
+    soft_quantiles = ops.soft_multivariate_quantiles(
+        x, quantiles, epsilon=0.005)
+    averaged_soft_quantiles = tf.reduce_mean(soft_quantiles, axis=0)
+    self.assertAllClose(
+        averaged_soft_quantiles, quantiles, rtol=1e-02, atol=1e-02)
+
 
 if __name__ == '__main__':
   tf.enable_v2_behavior()
