@@ -82,6 +82,8 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
           unified_tokenizer.TokenKind.COMMENT,
       extended_javalang_tokenizer.Whitespace:
           unified_tokenizer.TokenKind.WHITESPACE,
+      extended_javalang_tokenizer.ErrorToken:
+          unified_tokenizer.TokenKind.ERROR,
   }
 
   def tokenize_and_abstract(
@@ -89,11 +91,42 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
       source_code):
     """As per the superclass."""
     agnostic_tokens: List[unified_tokenizer.AbstractToken] = []
-    start_line = 0
-    start_column = 0
 
     try:
-      java_tokens = extended_javalang_tokenizer.tokenize_extended(source_code)
+      java_tokens = list(
+          extended_javalang_tokenizer.tokenize_extended(source_code))
+    except (javalang.LexerError, TypeError) as e:
+      # Sometimes, javalang returns a TypeError when reading a number.
+      # See
+      # https://github.com/c2nes/javalang/blob/0664afb7f4d40254312693f2e833c1ed4ac551c7/javalang/tokenizer.py#L370
+      logging.warning('The tokenizer raised exception `%r` while parsing %s', e,
+                      source_code)
+
+      # We don't try to do recovery from errors quite yet. Mark the error as
+      # occurring at whatever position we are in and terminate
+      agnostic_tokens.append(
+          unified_tokenizer.AbstractToken(
+              unified_tokenizer.quote_special(
+                  unified_tokenizer.TokenKind.ERROR.name),
+              unified_tokenizer.TokenKind.ERROR,
+              unified_tokenizer.TokenMetadata(
+                  start=unified_tokenizer.Position(
+                      line=0, column=0),
+                  end=unified_tokenizer.Position(
+                      line=0, column=0))))
+      agnostic_tokens.append(
+          unified_tokenizer.AbstractToken(
+              unified_tokenizer.quote_special(
+                  unified_tokenizer.TokenKind.EOS.name),
+              unified_tokenizer.TokenKind.EOS,
+              unified_tokenizer.TokenMetadata(
+                  start=unified_tokenizer.Position(
+                      line=0, column=0),
+                  end=unified_tokenizer.Position(
+                      line=0, column=0))))
+    else:
+      start_line = 0
+      start_column = 0
       for token in java_tokens:
         # The token kind is the subclass type of the token.
         token_type = type(token)
@@ -115,41 +148,13 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
                 unified_tokenizer.TokenMetadata(
                     start=unified_tokenizer.Position(
                         line=start_line, column=start_column))))
-    except (javalang.LexerError, TypeError) as e:
-      # Sometimes, javalang returns a TypeError when reading a number.
-      # See
-      # https://github.com/c2nes/javalang/blob/0664afb7f4d40254312693f2e833c1ed4ac551c7/javalang/tokenizer.py#L370
-      logging.warn('The tokenizer raised exception `%r` while parsing %s', e,
-                   source_code)
 
-      # We don't try to do recovery from errors quite yet. Mark the error as
-      # occurring at whatever position we are in and terminate
-      agnostic_tokens.append(
-          unified_tokenizer.AbstractToken(
-              unified_tokenizer.quote_special(
-                  unified_tokenizer.TokenKind.ERROR.name),
-              unified_tokenizer.TokenKind.ERROR,
-              unified_tokenizer.TokenMetadata(
-                  start=unified_tokenizer.Position(
-                      line=start_line, column=start_column),
-                  end=unified_tokenizer.Position(
-                      line=start_line, column=start_column))))
-      agnostic_tokens.append(
-          unified_tokenizer.AbstractToken(
-              unified_tokenizer.quote_special(
-                  unified_tokenizer.TokenKind.EOS.name),
-              unified_tokenizer.TokenKind.EOS,
-              unified_tokenizer.TokenMetadata(
-                  start=unified_tokenizer.Position(
-                      line=start_line, column=start_column),
-                  end=unified_tokenizer.Position(
-                      line=start_line, column=start_column))))
-
-    # At this point, we have all the tokens, but they only have start
-    # positions. Since the extended tokenizer guarantees that tokens abut, we
-    # take a second pass, backwards, setting the end position of a token from
-    # the start position of token following it. The final token, `EOS` already
-    # has an end position, so we don't modify it.
+    # At this point, we have all the tokens, either as produced and abstracted,
+    # or a placeholder error and eos in case of an exception. However, the
+    # tokens only have start positions. Since the extended tokenizer guarantees
+    # that tokens abut, we take a second pass, backwards, setting the end
+    # position of a token from the start position of token following it. The
+    # final token, `EOS` already has an end position, so we don't modify it.
     eos = agnostic_tokens[-1]
     if not eos.metadata.start:
       # This should be there. Raise an exception

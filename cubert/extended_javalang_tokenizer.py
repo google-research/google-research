@@ -48,6 +48,10 @@ class Whitespace(javalang.JavaToken):
   """A whitespace token kind."""
 
 
+class ErrorToken(javalang.JavaToken):
+  """An error token for an invalid character."""
+
+
 class JavalangTokenizerExtended(javalang.JavaTokenizer):
   """Extends the javalang.JavaTokenizer to return additional information.
 
@@ -158,9 +162,15 @@ class JavalangTokenizerExtended(javalang.JavaTokenizer):
         token_type = javalang.Operator
 
       else:
-        self.error('Could not process token', c)
-        self.i = self.i + 1
-        continue
+        ########################################################################
+        # Deviation from javalang:
+        #
+        # We emit an error token if there's an unexpected character.
+        self.j = self.i + 1
+        token_type = ErrorToken
+        ########################################################################
+        # End of deviation.
+        ########################################################################
 
       position = javalang.Position(self.current_line,
                                    self.i - self.start_of_line)

@@ -91,6 +91,30 @@ TokenB TokenC""",
               (2, 0, unified_tokenizer.TokenKind.WHITESPACE),
               (2, 2, unified_tokenizer.TokenKind.IDENTIFIER),
           )),
+      (
+          'first_character_invalid',
+          'TokenA\n#TokenB',
+          (
+              (0, 0, unified_tokenizer.TokenKind.IDENTIFIER),
+              (0, 6, unified_tokenizer.TokenKind.NEWLINE),
+              (1, 0, unified_tokenizer.TokenKind.ERROR),
+              (1, 1, unified_tokenizer.TokenKind.IDENTIFIER),
+          )),
+      (
+          'middle_character_invalid',
+          'TokenA#TokenB',
+          (
+              (0, 0, unified_tokenizer.TokenKind.IDENTIFIER),
+              (0, 6, unified_tokenizer.TokenKind.ERROR),
+              (0, 7, unified_tokenizer.TokenKind.IDENTIFIER),
+          )),
+      (
+          'unterminated_string',
+          'TokenA "mystring',
+          (
+              # For any lexer errors, we just abort and return an error.
+              (0, 0, unified_tokenizer.TokenKind.ERROR),
+          )),
   )
   def test_abstraction_returns_expected(
       self, source,
