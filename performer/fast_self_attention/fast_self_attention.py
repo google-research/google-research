@@ -19,7 +19,7 @@ Implementation of the approximate fast softmax and generalized
 attention mechanism leveraging structured random feature maps [RFM] techniques
 and low rank decomposition of the attention matrix.
 """
-# pylint: disable=invalid-name, missing-function-docstring
+# pylint: disable=invalid-name, missing-function-docstring, line-too-long
 
 import abc
 from collections.abc import Iterable  # pylint: disable=g-importing-member
@@ -38,7 +38,9 @@ gin.external_configurable(jnp.cos, 'jcos')
 gin.external_configurable(jnp.sin, 'jsin')
 gin.external_configurable(jnp.tanh, 'jtanh')
 gin.external_configurable(jax.nn.sigmoid, 'jsigmoid')
-gin.external_configurable(jax.nn.relu, 'jrelu')
+gin.external_configurable(
+    lambda x: jax.nn.gelu(x, approximate=False), 'jgelu'
+)  # Needs to be exact, although might be slower. See https://github.com/google/jax/issues/4428.
 gin.external_configurable(lambda x: x * x * (x > 0.0), 'jrequ')
 gin.external_configurable(jax.nn.gelu, 'jgelu')
 gin.external_configurable(jnp.exp, 'jexp')
@@ -431,11 +433,13 @@ class FastAttention(object):
 
 
 def _numerator_fwd(z_slice_shape, precision, qs, ks, vs):
+
   def body(p, qkv):
     (q, k, v) = qkv
     p += jnp.einsum('...m,...d->...md', k, v, precision=precision)
     X_slice = jnp.einsum('...m,...md->...d', q, p, precision=precision)
     return p, X_slice
+
   init_value = jnp.zeros(z_slice_shape)
   p, W = lax.scan(body, init_value, (qs, ks, vs))
   return W, (p, qs, ks, vs)
@@ -443,6 +447,7 @@ def _numerator_fwd(z_slice_shape, precision, qs, ks, vs):
 
 def _numerator_bwd(z_slice_shape, precision, pqkv, W_ct):
   del z_slice_shape
+
   def body(carry, qkv_xct):
     p, p_ct = carry
     q, k, v, x_ct = qkv_xct
@@ -452,6 +457,7 @@ def _numerator_bwd(z_slice_shape, precision, pqkv, W_ct):
     v_ct = jnp.einsum('...md,...m->...d', p_ct, k, precision=precision)
     p -= jnp.einsum('...m,...d->...md', k, v, precision=precision)
     return (p, p_ct), (q_ct, k_ct, v_ct)
+
   p, qs, ks, vs = pqkv
   _, (qs_ct, ks_ct, vs_ct) = lax.scan(
       body, (p, jnp.zeros_like(p)), (qs, ks, vs, W_ct), reverse=True)
@@ -463,10 +469,12 @@ def _numerator(z_slice_shape, precision, qs, ks, vs):
   W, _ = _numerator_fwd(z_slice_shape, precision, qs, ks, vs)
   return W
 
+
 _numerator.defvjp(_numerator_fwd, _numerator_bwd)
 
 
 def _denominator_fwd(t_slice_shape, precision, qs, ks):
+
   def body(p, qk):
     q, k = qk
     p += k
@@ -479,6 +487,7 @@ def _denominator_fwd(t_slice_shape, precision, qs, ks):
 
 
 def _denominator_bwd(_t_slice_shape, precision, qkp, R_ct):
+
   def body(carry, qkx):
     p, p_ct = carry
     q, k, x_ct = qkx
@@ -487,9 +496,10 @@ def _denominator_bwd(_t_slice_shape, precision, qkp, R_ct):
     k_ct = p_ct
     p -= k
     return (p, p_ct), (q_ct, k_ct)
+
   qs, ks, p = qkp
-  _, (qs_ct, ks_ct) = lax.scan(body, (p, jnp.zeros_like(p)),
-                               (qs, ks, R_ct), reverse=True)
+  _, (qs_ct, ks_ct) = lax.scan(
+      body, (p, jnp.zeros_like(p)), (qs, ks, R_ct), reverse=True)
   return (qs_ct, ks_ct)
 
 
@@ -497,6 +507,7 @@ def _denominator_bwd(_t_slice_shape, precision, qkp, R_ct):
 def _denominator(t_slice_shape, precision, qs, ks):
   R, _ = _denominator_fwd(t_slice_shape, precision, qs, ks)
   return R
+
 
 _denominator.defvjp(_denominator_fwd, _denominator_bwd)
 
@@ -695,4 +706,3 @@ def _invert_perm(perm):
   for i, j in enumerate(perm):
     perm_inv[j] = i
   return tuple(perm_inv)
-
