@@ -15,7 +15,7 @@ If you want to get started quickly you can use the
 `tf-1-15-cu100` image from `deeplearning-platform-release` which comes with some of the right dependencies preinstalled. The following command starts a VM with this image and a V100 GPU on Google Cloud:
 
 ```
-VM_NAME=run_experiments
+VM_NAME=run-cfq
 gcloud beta compute instances create $VM_NAME \
   --image-project=deeplearning-platform-release \
   --image-family=tf-1-15-cu100 \
