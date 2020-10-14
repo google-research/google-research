@@ -1,0 +1,37 @@
+# Definition of the experimental settings.
+# proto-file: smith/experiment_config.proto
+# proto-message: DualEncoderConfig
+
+encoder_config {
+  model_name: "smith_dual_encoder"
+  init_checkpoint: "/tmp/data/smith_pretrain_model_ckpts/smith_wsp/model.ckpt-400000"
+  bert_config_file: "/tmp/data/config/sent_bert_4l_config.json"
+  doc_bert_config_file: "/tmp/data/config/doc_bert_3l_256h_config.json"
+  vocab_file: "/tmp/data/uncased_L-12_H-768_A-12/vocab.txt"
+  max_seq_length: 32
+  max_predictions_per_seq: 5
+  max_sent_length_by_word: 32
+  max_doc_length_by_sentence: 64
+  loop_sent_number_per_doc: 48
+  sent_bert_trainable: true
+  max_masked_sent_per_doc: 0
+  use_masked_sentence_lm_loss: false
+  num_labels: 2
+  doc_rep_combine_mode: "normal"
+  doc_rep_combine_attention_size: 256
+}
+train_eval_config {
+  input_file_for_train: "/tmp/data/gwikimatch_v2_human_neg_1.train.smith_msenl_32_mdl_64_lm_false.tfrecord"
+  input_file_for_eval: "/tmp/data/gwikimatch_v2_human_neg_1.eval_external_wdp_smith_32_64_false.tfrecord"
+  train_batch_size: 32
+  eval_batch_size: 32
+  predict_batch_size: 32
+  max_eval_steps: 54
+  save_checkpoints_steps: 10
+  iterations_per_loop: 10
+  eval_with_eval_data: true
+  neg_to_pos_example_ratio: 1.0
+}
+loss_config {
+  similarity_score_amplifier: 6.0
+}
