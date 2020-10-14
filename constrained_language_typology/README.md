@@ -6,6 +6,14 @@ typological properties of languages given a handful of observed features. The
 typological features are taken from the World Atlas of Language Structures
 ([WALS](https://wals.info/)).
 
+Technical details can be found in
+
+> Alexander Gutkin and Richard Sproat: *"NEMO: Frequentist Inference Approach to
+> Constrained Linguistic Typology Feature Prediction in SIGTYP 2020 Shared Task"*.
+> To appear in Second Workshop on Computational Research in Linguistic Typology
+> (SIGTYP 2020) at [EMNLP 2020](https://2020.emnlp.org/)
+> ([preprint](https://arxiv.org/abs/2010.05985)).
+
 ## Dependencies
 
 Please check [requirements.txt](requirements.txt) for a list of basic
