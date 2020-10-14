@@ -279,6 +279,7 @@ cc_library(
         ":instruction_cc_proto",
         "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/container:node_hash_map",
+        "@com_google_absl//absl/container:node_hash_set",
         "@com_google_absl//absl/memory",
         "@com_google_protobuf//:protobuf",
     ],
