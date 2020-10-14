@@ -30,6 +30,7 @@ gcloud beta compute instances create $VM_NAME \
 Next, get code with:
 
 ```
+sudo apt-get install subversion
 svn export https://github.com/google-research/google-research/trunk/cfq
 ```
 
