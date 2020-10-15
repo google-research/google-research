@@ -45,6 +45,7 @@ env:
     - PROJECT="grouptesting"
     - PROJECT="hmc_swindles"
     - PROJECT="igt_optimizer"
+    - PROJECT="jax_dft"
     - PROJECT="large_margin"
     - PROJECT="learn_to_infer"
     - PROJECT="keypose"
