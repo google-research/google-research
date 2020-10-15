@@ -74,6 +74,7 @@ def random_shift(inputs, time_shift, seed=None):
 
   # convert it back to [batch, time]
   outputs = tf.squeeze(outputs.stack(), axis=[2])
+  outputs.set_shape(inputs_shape)
   return outputs
 
 

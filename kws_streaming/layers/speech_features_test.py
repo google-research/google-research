@@ -44,7 +44,10 @@ class Params(model_params.Params):
     self.use_tf_fft = 0
     self.time_shift_ms = 0.0
     self.sp_time_shift_ms = 100.0
+    self.resample = 0.0
+    self.sp_resample = 0.2
     self.train = 0
+    self.batch_size = 1
     self.mode = modes.Modes.NON_STREAM_INFERENCE
 
 

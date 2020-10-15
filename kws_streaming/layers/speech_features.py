@@ -22,6 +22,7 @@ from kws_streaming.layers import modes
 from kws_streaming.layers import normalizer
 from kws_streaming.layers import preemphasis
 from kws_streaming.layers import random_shift
+from kws_streaming.layers import random_stretch_squeeze
 from kws_streaming.layers import spectrogram_augment
 from kws_streaming.layers import spectrogram_cutout
 from kws_streaming.layers import windowing
@@ -83,11 +84,18 @@ class SpeechFeatures(tf.keras.layers.Layer):
     super(SpeechFeatures, self).build(input_shape)
 
     if self.params[
-        'sp_time_shift_samples'] and self.mode == modes.Modes.TRAINING:
+        'sp_time_shift_samples'] != 0.0 and self.mode == modes.Modes.TRAINING:
       self.rand_shift = random_shift.RandomShift(
           self.params['sp_time_shift_samples'])
     else:
       self.rand_shift = tf.keras.layers.Lambda(lambda x: x)
+
+    if self.params[
+        'sp_resample'] != 0.0 and self.mode == modes.Modes.TRAINING:
+      self.rand_stretch_squeeze = random_stretch_squeeze.RandomStretchSqueeze(
+          self.params['sp_resample'])
+    else:
+      self.rand_stretch_squeeze = tf.keras.layers.Lambda(lambda x: x)
 
     self.data_frame = data_frame.DataFrame(
         mode=self.mode,
@@ -216,8 +224,9 @@ class SpeechFeatures(tf.keras.layers.Layer):
 
   def call(self, inputs):
 
-    # apply data augmentation on audio data in time domain
-    outputs = self.rand_shift(inputs)
+    # apply data augmentation on audio data in time domain:
+    outputs = self.rand_stretch_squeeze(inputs)
+    outputs = self.rand_shift(outputs)
 
     # extract speech features by converting audio data to mfcc spectrogram:
     if self.params['feature_type'] == 'mfcc_tf':
@@ -229,7 +238,7 @@ class SpeechFeatures(tf.keras.layers.Layer):
 
     outputs = self.normalizer(outputs)
 
-    # apply spectrogram augmentation:
+    # apply data augmentation on spectrogram:
     outputs = self.spec_augment(outputs)
     outputs = self.spec_cutout(outputs)
     return outputs
@@ -269,6 +278,12 @@ class SpeechFeatures(tf.keras.layers.Layer):
                        'sp_time_shift_ms is used in speech feature extraction '
                        'both of them do random shifts of audio data in time')
 
+    if flags.resample != 0.0 and flags.sp_resample != 0.0:
+      raise ValueError('both resample and sp_resample are set '
+                       'only one parameter should be used: '
+                       'resample is used during data reading '
+                       'sp_resample is used in speech feature extraction '
+                       'both of them do random audio resampling in time')
     params = {
         'sample_rate':
             flags.sample_rate,
@@ -318,5 +333,7 @@ class SpeechFeatures(tf.keras.layers.Layer):
             flags.spec_cutout_frequency_mask_size,
         'sp_time_shift_samples':
             int((flags.sp_time_shift_ms * flags.sample_rate) / 1000),
+        'sp_resample':
+            flags.sp_resample,
     }
     return params

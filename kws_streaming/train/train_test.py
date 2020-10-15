@@ -17,9 +17,9 @@
 
 import os
 from absl import flags
-from absl import logging
 from absl.testing import parameterized
 import tensorflow.compat.v1 as tf
+from kws_streaming.models import model_params
 from kws_streaming.train import model_flags
 from kws_streaming.train import train
 tf.disable_eager_execution()
@@ -112,138 +112,20 @@ class TrainTest(tf.test.TestCase, parameterized.TestCase):
     return path
 
   def _GetDefaultFlags(self, split_data):
-    dummy_flags = {
-        'data_url':
-            '',
-        'data_dir':
-            self._PrepareDummyTrainingData()
-            if split_data == 1 else self._PrepareDummyTrainingDataSplit(),
-        'wanted_words':
-            'a,b,c',
-        'sample_rate':
-            16000,
-        'clip_duration_ms':
-            1000,
-        'window_size_ms':
-            30,
-        'window_stride_ms':
-            20,
-        'preprocess':
-            'raw',
-        'split_data':
-            split_data,
-        'silence_percentage':
-            25,
-        'unknown_percentage':
-            25,
-        'validation_percentage':
-            10,
-        'testing_percentage':
-            10,
-        'summaries_dir':
-            self._PrepareDummyDir('summaries' + str(split_data)),
-        'train_dir':
-            self._PrepareDummyDir('train' + str(split_data)),
-        'time_shift_ms':
-            100,
-        'how_many_training_steps':
-            '2',
-        'learning_rate':
-            '0.01',
-        'optimizer':
-            'adam',
-        'quantize':
-            False,
-        'check_nans':
-            False,
-        'start_checkpoint':
-            '',
-        'model_params_path':
-            '',
-        'model_name':
-            'dnn',
-        'batch_size':
-            1,
-        'background_volume':
-            0.25,
-        'background_frequency':
-            0.8,
-        'eval_step_interval':
-            1,
-        'save_step_interval':
-            1,
-        'verbosity':
-            logging.INFO,
-        'optimizer_epsilon':
-            1e-08,
-        'log_epsilon':
-            1e-12,
-        'resample':
-            0.0,
-        'volume_resample':
-            0.0,
-        'use_tf_fft':
-            0,
-        'preemph':
-            0.0,
-        'window_type':
-            'hann',
-        'feature_type':
-            'mfcc_tf',
-        'mel_num_bins':
-            40,
-        'mel_lower_edge_hertz':
-            20.0,
-        'mel_upper_edge_hertz':
-            4000.0,
-        'fft_magnitude_squared':
-            0,
-        'mel_non_zero_only':
-            1,
-        'dct_num_features':
-            10,
-        'units1':
-            '32',
-        'act1':
-            "'relu'",
-        'pool_size':
-            2,
-        'strides':
-            2,
-        'dropout1':
-            0.1,
-        'units2':
-            '256,256',
-        'act2':
-            "'relu','relu'",
-        'train':
-            0,
-        'lr_schedule':
-            'linear',
-        'use_spec_augment':
-            0,
-        'time_masks_number':
-            2,
-        'time_mask_max_size':
-            10,
-        'frequency_masks_number':
-            2,
-        'frequency_mask_max_size':
-            5,
-        'return_softmax':
-            0,
-        'use_spec_cutout':
-            0,
-        'spec_cutout_masks_number':
-            3,
-        'spec_cutout_time_mask_size':
-            10,
-        'spec_cutout_frequency_mask_size':
-            5,
-        'sp_time_shift_ms':
-            0,
-    }
-    return DictStruct(**dummy_flags)
+    params = model_params.dnn_params()
+    params.data_dir = self._PrepareDummyTrainingData(
+    ) if split_data == 1 else self._PrepareDummyTrainingDataSplit()
+    params.wanted_words = 'a,b,c'
+    params.split_data = split_data
+    params.summaries_dir = self._PrepareDummyDir('summaries' + str(split_data))
+    params.train_dir = self._PrepareDummyDir('train' + str(split_data))
+    params.how_many_training_steps = '2'
+    params.learning_rate = '0.01'
+    params.eval_step_interval = 1
+    params.save_step_interval = 1
+    params.clip_duration_ms = 100
+    params.batch_size = 1
+    return params
 
   @parameterized.named_parameters([
       dict(testcase_name='default data split', split_data=1),

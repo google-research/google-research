@@ -223,6 +223,13 @@ def base_parser():
       help='Resample input signal to generate more data [0.0...0.15].',
   )
   parser.add_argument(
+      '--sp_resample',
+      type=float,
+      default=0.0,
+      help='Resample input signal to generate more data [0.0...0.15]. '
+      'It is dones in speech feature extractor. '
+  )
+  parser.add_argument(
       '--volume_resample',
       type=float,
       default=0.0,

@@ -15,6 +15,8 @@
 
 """Models parameters (with toy values, for testing)."""
 
+from absl import logging
+
 
 class Params(object):
   """Default parameters for data and feature settings.
@@ -74,6 +76,8 @@ class Params(object):
     self.volume_resample = 0.0
     self.return_softmax = 0
     self.sp_time_shift_ms = 0.0
+    self.sp_resample = 0.0
+    self.verbosity = logging.INFO
 
 
 def att_mh_rnn_params():
