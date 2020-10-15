@@ -2,7 +2,7 @@
 
 See ["Rethinking Attention with Performers"](https://arxiv.org/abs/2009.14794) for the paper associated with this library.
 
-There are two main attention variants: 
+There are two main attention variants, constructed using Fast Attention Via positive Orthogonal Random features (FAVOR+):
 
 * `make_fast_softmax_attention` - An unbiased and tight approximation of regular softmax attention. Can be used in Transformer models, as well as standalone for applications involving raw softmax attention or purely just softmax.
 * `make_fast_generalized_attention` - Allows for generalized attention functions to produce different attention kernels as described in the paper.
@@ -13,6 +13,7 @@ Their default hyperparameters are currently optimal for a variety of tasks, such
 
 The protein language modelling code can be found in [/google-research/protein_lm/](https://github.com/google-research/google-research/tree/master/protein_lm). In order to replace regular attention with our fast attention, set via gin: `FlaxModel.attention_fn = @make_fast_softmax_attention()` or `FlaxModel.attention_fn = @make_fast_generalized_attention()`.
 
+FAVOR has also been integrated into the [Reformer library](https://github.com/google/trax/blob/master/trax/layers/research/sparsity.py#L215), in order to provide additional memory gains via reversible layers.
 
 ## Notes:
 
