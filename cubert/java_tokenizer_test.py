@@ -23,6 +23,10 @@ from cubert import java_tokenizer
 from cubert import unified_tokenizer
 
 
+_NEWLINE_NAME = unified_tokenizer.quote_special(
+    unified_tokenizer.TokenKind.NEWLINE.name)
+
+
 class JavaTokenizerTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
@@ -115,6 +119,16 @@ TokenB TokenC""",
               # For any lexer errors, we just abort and return an error.
               (0, 0, unified_tokenizer.TokenKind.ERROR),
           )),
+      (
+          'concluding_comment_with_newline',
+          """  /* comment */
+ """,
+          (
+              (0, 0, unified_tokenizer.TokenKind.WHITESPACE),
+              (0, 2, unified_tokenizer.TokenKind.COMMENT),
+              (0, 15, unified_tokenizer.TokenKind.NEWLINE),
+              (1, 0, unified_tokenizer.TokenKind.WHITESPACE),
+          )),
   )
   def test_abstraction_returns_expected(
       self, source,
@@ -129,6 +143,54 @@ TokenB TokenC""",
 
     self.assertSequenceEqual(expected_starts_and_kinds,
                              actual_starts_and_kinds)
+
+  @parameterized.named_parameters(
+      ('single_line', 'package com.aye.bee.cee;',
+       ('package', ' ', 'com', '.', 'aye', '.', 'bee', '.', 'cee', ';', '')),
+      ('with_subtokenization', 'public   class CamelCase {',
+       ('public', '   ', 'class', ' ', 'Camel^', 'Case', ' ', '{', '')),
+      ('multiple_lines', """
+public class CamelCase {
+
+    private static final String SNAKE_CASE = "text string.continued";
+    /* comment */
+
+""",
+       (
+           # Line 0.
+           _NEWLINE_NAME,
+
+           # Line 1.
+           'public', ' ', 'class', ' ', 'Camel^', 'Case', ' ', '{',
+           _NEWLINE_NAME,
+
+           # Line 2.
+           _NEWLINE_NAME,  # Ignores extraneous whitespace on empty line.
+
+           # Line 3.
+           '    ', 'private', ' ', 'static', ' ', 'final', ' ', 'String', ' ',
+           'SNAKE_^', 'CASE', ' ', '=', ' ', '"^', 'text^', ' ^', 'string^',
+           '.^', 'continued^', '"', ';', _NEWLINE_NAME,
+
+           # Line 4.
+           '    ', '/*^', ' ^', 'comment^', ' ^', '*/', _NEWLINE_NAME,
+
+           # Empty line 5.
+           _NEWLINE_NAME,
+
+           # Line 6.
+           '',
+           )),
+      )
+  def test_tokenize_returns_expected(
+      self, source,
+      expected
+  ):
+    tokenizer = java_tokenizer.JavaTokenizer()
+
+    actual = tokenizer.tokenize(source)
+
+    self.assertSequenceEqual(expected, actual)
 
 
 if __name__ == '__main__':

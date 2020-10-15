@@ -59,6 +59,31 @@ class JavalangTokenizerExtended(javalang.JavaTokenizer):
   * Whitespace tokens.
   """
 
+  def consume_whitespace(self):
+    """Overrides the superclass to handle final whitespace correctly."""
+    match = self.whitespace_consumer.search(self.data, self.i + 1)
+
+    ########################################################################
+    # Deviation from javalang:
+    #
+    # We let even the final whitespace of a file go through the computation of
+    # start of line and current line, so that the positioning information for
+    # the EOS token is correct.
+    if not match:
+      i = self.length
+    else:
+      i = match.start()
+    # End of deviation.
+    ########################################################################
+
+    start_of_line = self.data.rfind('\n', self.i, i)
+
+    if start_of_line != -1:
+      self.start_of_line = start_of_line
+      self.current_line += self.data.count('\n', self.i, i)
+
+    self.i = i
+
   def tokenize(self):
     """Clones the superclass `tokenize` method, but introduces extra tokens.
 
