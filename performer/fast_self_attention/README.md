@@ -13,12 +13,11 @@ Their default hyperparameters are currently optimal for a variety of tasks, such
 
 The protein language modelling code can be found in [/google-research/protein_lm/](https://github.com/google-research/google-research/tree/master/protein_lm). In order to replace regular attention with our fast attention, set via gin: `FlaxModel.attention_fn = @make_fast_softmax_attention()` or `FlaxModel.attention_fn = @make_fast_generalized_attention()`.
 
-FAVOR has also been integrated into the [Reformer library](https://github.com/google/trax/blob/master/trax/layers/research/sparsity.py#L215), in order to provide additional memory gains via reversible layers.
-
 ## Notes:
 
 * Set `lax_scan_unroll=16` for both attention functions when using a GPU to provide 4x speedups due to loop unrolling optimizations in the unidirectional case.
 * The unidirectional variant uses custom gradients via Jax, in order to provide significant memory reductions.
+* FAVOR has also been integrated into the [Reformer library](https://github.com/google/trax/blob/master/trax/layers/research/sparsity.py#L215), in order to provide additional memory gains via reversible layers.
 
 If you found this codebase useful, please consider citing the paper:
 
