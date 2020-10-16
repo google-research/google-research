@@ -62,8 +62,10 @@ def log_mel_spectrogram(data,
   return log_mel
 
 
-def compute_frontend_features(samples, sr, overlap_seconds):
+def compute_frontend_features(samples, sr, overlap_seconds, tflite=False):
   """Compute features."""
+  if tflite:
+    raise ValueError("TFLite frontend unsupported")
   if samples.dtype == np.int16:
     samples = tf.cast(samples, np.float32) / np.iinfo(np.int16).max
   if samples.dtype == np.float64:
