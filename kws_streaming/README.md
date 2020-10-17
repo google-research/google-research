@@ -10,7 +10,7 @@ wrappers and streaming aware layers. By streaming we mean streaming inference,
 where model receives portion of the input sequence (for example 20ms of audio),
 process it incrementally and return an output(for example classification result).
 Non streaming means that model has to receive the whole sequence
-(for example 1 sec) and then return an output.
+(for example 1 sec of audio) and then return an output.
 We applied this lib for keyword spotting (KWS) problem
 and implemented most popular KWS models:
 * [dnn](https://arxiv.org/pdf/1711.07128.pdf) - deep neural network based on combination of fully connected layers;
@@ -127,7 +127,7 @@ output = tf.keras.layers.Dense(...)(output)
 * Any causal models including models with pooling and striding in time dimension can be supported in streaming mode: for example [test_stream_strided_convolution](https://github.com/google-research/google-research/blob/master/kws_streaming/layers/stream_test.py). For causal models we set padding='causal'. If the model is not causal, then the delay layer has to be inserted manually, as it is shown in [residual_model](https://github.com/google-research/google-research/blob/master/kws_streaming/layers/delay_test.py).
 
 ### Edge cases:
-* Input data has to be aligned with striding/pooling, for example if total striding=4, input data length has to be 4. It allows us to run convs efficiently.
+* Input data length has to be aligned with striding/pooling, for example if total striding=4, input data length has to be 4. It allows us to run convs efficiently.
 * pool_size and strides in time dim has to be the same. If they are different it is still streamable but needs to be implemented.
 * Conv() in streaming mode can return a sequence, so it can be applied on any aligned sequence, for example if total striding=4, input data length can be 4, 8, etc
 * Flatten(), GlobalMaxPooling2D(), GlobalAveragePooling2D() can return only one output, so they can not be applied on any aligned sequence, for example if total striding=4, input data length has to be 4.
@@ -143,10 +143,10 @@ KWS model in streaming mode is executed by steps:
 4. Go to the next inference iteration to step 1 above.
 Most of the layers are streamable by default for example activation layers:
 relu, sigmoid; or dense layer. These layers do not have any state.
-So we can call them stateless layers.
+So we can call them stateless layers. But some layers can have state, we call them stateful layers.
 
 ### State management
-Where state is some buffer with data which is going to be reused in the
+State is a buffer with data which is going to be reused in the
 next iteration of the inference.
 Examples of layers with states are LSTM, GRU.
 
@@ -192,7 +192,7 @@ We change neural net topology by introducing additional buffers/states
 into layers such as conv, lstm, etc.
 We receive audio data in streaming mode: packet by packet.
 (so we do not have access to the whole sequence).
-Inference graph is stateful, so that graph has internal states which are kept
+Inference graph is stateful, so that graph has internal states which are kept updated 
 between inference invocations.
 
 4. Streaming inference with external state
@@ -201,7 +201,7 @@ We change neural net topology by introducing additional
 input/output buffers/states into layers such as conv, lstm, etc.
 We receive audio data in streaming mode: packet by packet.
 (so we do not have access to the whole sequence).
-Inference graph is stateless, so that graph has not internal state.
+Inference graph is stateless, so that graph has no internal state.
 All states are received as inputs and after update are returned as output state
 
 ### Further information
@@ -215,10 +215,10 @@ Code directory structure:
 
 * `colab` - examples of running KWS models
 * `data` - data reading utilities
-* `experiments` - command lines for model training and evaluation
+* `experiments` - examples with description of how to do model training and evaluation
 * `layers` - streaming aware layers with speech feature extractor and layer tests
 * `models` - KWS model definitions
-* `train` - model training and evaluation
+* `train` - model training and evaluation utilities
 
 Below is an example of evaluation and training DNN model:
 
