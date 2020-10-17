@@ -564,7 +564,7 @@ class TemporalFusionTransformer(object):
     wired_embeddings = []
     for i in range(num_categorical_variables):
       if i not in self._known_categorical_input_idx \
-        and i not in self._input_obs_loc:
+        and  i + num_regular_variables  not in self._input_obs_loc:
         e = embeddings[i](categorical_inputs[:, :, i])
         wired_embeddings.append(e)
 
