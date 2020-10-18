@@ -97,7 +97,7 @@ flags.DEFINE_integer(
 
 
 def load_h36m_3d_keypoints_h5_files(input_root_dir, subjects):
-  """Load a dictionary of 3D keypoints given input directory to H5 files.
+  """Loads a dictionary of 3D keypoints given input directory to H5 files.
 
   Args:
     input_root_dir: A string for the root directory path containing H5 files
@@ -123,7 +123,7 @@ def load_h36m_3d_keypoints_h5_files(input_root_dir, subjects):
 
 
 def extend_example_with_2d_3d_keypoints(example, input_list, headers):
-  """Extend an existing tf.example with 2D and 3D keypoint information.
+  """Extends an existing tf.example with 2D and 3D keypoint information.
 
   Args:
     example: A tf.example to add keypoint information.

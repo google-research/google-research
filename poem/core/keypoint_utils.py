@@ -239,7 +239,7 @@ def standardize_points(points):
 def compute_procrustes_alignment_params(target_points,
                                         source_points,
                                         point_masks=None):
-  """Computes procrustes alignment parameters.
+  """Computes Procrustes alignment parameters.
 
   Args:
     target_points: A tensor for target points. Shape = [..., num_points,

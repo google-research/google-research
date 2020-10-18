@@ -206,7 +206,7 @@ def get_tfe_parser_fn(decoders, post_process_fn):
 
   Args:
     decoders: A dictionary for keyed tf.Example field decoders.
-    post_process_fn: A function handle for post processing decoded tensors.
+    post_process_fn: A function handle for postprocessing decoded tensors.
 
   Returns:
     parser_fn: A function handle for the parser function.
@@ -267,7 +267,7 @@ def create_tfe_parser(keypoint_names_2d=None,
             common_module=common_module))
 
   def post_process_decoded_tensors(decoded_tensors):
-    """Post processes decoded tensors."""
+    """Postprocesses decoded tensors."""
     outputs = process_decoded_image_sizes(decoded_tensors, common_module)
 
     if keypoint_names_2d:

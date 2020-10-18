@@ -479,7 +479,7 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
     with tf.device(tf.train.replica_device_setter(FLAGS.num_ps_tasks)):
 
       def create_inputs():
-        """Create pipeline and model inputs."""
+        """Creates pipeline and model inputs."""
         inputs = pipeline_utils.read_batch_from_tfe_tables(
             FLAGS.input_table,
             batch_sizes=[int(x) for x in FLAGS.batch_size],
