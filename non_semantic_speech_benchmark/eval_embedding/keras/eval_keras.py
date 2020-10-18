@@ -37,7 +37,8 @@ flags.DEFINE_string('embedding_dimension', None, 'Embedding dimension.')
 flags.DEFINE_alias('ed', 'embedding_dimension')
 flags.DEFINE_string('label_name', None, 'Name of label to use.')
 flags.DEFINE_list('label_list', None, 'List of possible label values.')
-flags.DEFINE_list('bucket_boundaries', None, 'bucket_boundaries for data.')
+flags.DEFINE_list('bucket_boundaries', ['99999'],
+                  'bucket_boundaries for data. Default is all one bucket.')
 
 flags.DEFINE_integer('batch_size', None, 'The number of images in each batch.')
 flags.DEFINE_integer('tbs', None, 'not used')

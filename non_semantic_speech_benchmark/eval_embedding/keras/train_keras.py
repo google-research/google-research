@@ -34,7 +34,8 @@ flags.DEFINE_string('embedding_dimension', None, 'Embedding dimension.')
 flags.DEFINE_alias('ed', 'embedding_dimension')
 flags.DEFINE_string('label_name', None, 'Name of label to use.')
 flags.DEFINE_list('label_list', None, 'List of possible label values.')
-flags.DEFINE_list('bucket_boundaries', None, 'bucket_boundaries for data.')
+flags.DEFINE_list('bucket_boundaries', ['99999'],
+                  'bucket_boundaries for data. Default is all one bucket.')
 
 flags.DEFINE_integer('train_batch_size', 1, 'Hyperparameter: batch size.')
 flags.DEFINE_alias('tbs', 'train_batch_size')
