@@ -33,12 +33,6 @@ from non_semantic_speech_benchmark.export_model import tf_frontend
 
 
 flags.DEFINE_string('export_dir', None, 'Location and name of SavedModel.')
-flags.DEFINE_boolean(
-    'export_tflite', False,
-    'Export models suitable for mobile inference with TensorFlow Lite. '
-    'Generates two models: use the fixed-shape version for on-device inference,'
-    ' and the other for accuracy evaluation.')
-
 flags.DEFINE_string('trill_model_location', None,
                     'Location of TRILL SavedModel, with no frontend.')
 flags.DEFINE_string('trill_distilled_model_location', None,
@@ -59,7 +53,7 @@ class TRILLModule(tf.train.Checkpoint):
 
   """
 
-  def __init__(self, savedmodel_dir, distilled_output_keys, tflite=False):
+  def __init__(self, savedmodel_dir, distilled_output_keys, tflite):
     super(TRILLModule, self).__init__()
     self.trill_module = hub.load(savedmodel_dir)
     assert len(self.trill_module.signatures.keys()) == 1
@@ -145,10 +139,22 @@ def make_and_export_trill(savedmodel_dir,
                           distilled_output_keys,
                           allow_batch_dimension,
                           fixed_length_input,
-                          tflite_only=False):
-  """Make and export TRILL or TRILL distilled."""
+                          tflite_only):
+  """Make and export TRILL or TRILL distilled.
+
+  Args:
+    savedmodel_dir: Directory with frontend-less SavedModel.
+    distilled_output_keys: Boolean. Whether exporting the distilled model.
+    allow_batch_dimension: Whether to allow batch dimensions.
+    fixed_length_input: Length of input, or `None` for variable length.
+    tflite_only: Whether to export models suitable for mobile inference with
+      TensorFlow Lite.
+
+  Returns:
+    (signatures, module)
+  """
   trill_mod = TRILLModule(
-      savedmodel_dir, distilled_output_keys, tflite=tflite_only)
+      savedmodel_dir, distilled_output_keys, tflite_only)
 
   signature = None
   if tflite_only:
@@ -156,6 +162,7 @@ def make_and_export_trill(savedmodel_dir,
     # and no batch dim.
     signature = trill_mod.__call__.get_concrete_function(
         tf.TensorSpec([fixed_length_input], tf.float32), tf.constant(16000))
+    signatures = {'inference': signature}
   else:
     for dtype in (tf.int16, tf.float32, tf.float64):
       signature = trill_mod.__call__.get_concrete_function(
@@ -164,8 +171,8 @@ def make_and_export_trill(savedmodel_dir,
         trill_mod.__call__.get_concrete_function(
             tf.TensorSpec([None, fixed_length_input], dtype),
             tf.constant(16000))
+    signatures = None
 
-  signatures = {'inference': signature}
   return signatures, trill_mod
 
 
@@ -184,16 +191,20 @@ def convert_tflite_file(model_dir):
 
   output_data = converter.convert()
   output_path = os.path.join(model_dir, 'model.tflite')
-  with open(output_path, 'wb') as f:
+  if not tf.io.gfile.exists(model_dir):
+    tf.io.gfile.makedirs(model_dir)
+  with tf.io.gfile.GFile(output_path, 'wb') as f:
     f.write(output_data)
   return output_path
 
 
-def construct_savedmodel_dir(export_dir, name, allow_batch_dimension,
-                             fixed_length_input):
+def construct_savedmodel_dir(export_dir, distilled_model, tflite,
+                             allow_batch_dimension, fixed_length_input):
+  name = 'trill-distilled' if distilled_model else 'trill'
+  suffix = '_tflite' if tflite else ''
   bd_str = 'wbatchdim' if allow_batch_dimension else 'nobatchdim'
   fl_str = f'fixedlen{fixed_length_input}' if fixed_length_input else 'nofixedlen'
-  return os.path.join(export_dir, f'{name}_{bd_str}_{fl_str}')
+  return os.path.join(export_dir, f'{name}{suffix}_{bd_str}_{fl_str}')
 
 
 def test_module(out_dir,
@@ -201,7 +212,11 @@ def test_module(out_dir,
                 fixed_length_input=None,
                 tflite_only=False):
   """Test that the exported doesn't crash."""
-  model = hub.load(out_dir)
+  if out_dir.endswith('tflite'):
+    # TODO(joelshor, srjoglekar): Load TFLite model here.
+    return
+  else:
+    model = hub.load(out_dir)
   sr = tf.constant(16000)
   input_len = fixed_length_input or 320000
   logging.info('Input length: %s', input_len)
@@ -251,46 +266,47 @@ def test_module(out_dir,
 
 def main(unused_argv):
 
-  # pylint: disable=line-too-long
-  if FLAGS.export_tflite:
-    model_params = [
-        # name, model location, distilled_output_keys, allow_batch_dimension, fixed_length_input
-        ('trill-distilled', FLAGS.trill_distilled_model_location, True, False,
-         16000),
-    ]
-  else:
-    model_params = [
-        # name, model location, distilled_output_keys, allow_batch_dimension, fixed_length_input
-        ('trill', FLAGS.trill_model_location, False, True, None),
-        ('trill', FLAGS.trill_model_location, False, False, 16000),
-        ('trill-distilled', FLAGS.trill_distilled_model_location, True, True,
-         None),
-        ('trill-distilled', FLAGS.trill_distilled_model_location, True, False,
-         16000),
-    ]
-  # pylint: enable=line-too-long
+  # pylint: disable=bad-whitespace
+  t_loc = FLAGS.trill_model_location
+  d_loc = FLAGS.trill_distilled_model_location
+  model_params = [
+      # loc,  distilled  batch dim, input len,  tflite
+      (t_loc, False,     True,      None,       False),
+      (t_loc, False,     False,     16000,      False),
+      (d_loc, True,      True,      None,       False),
+      (d_loc, True,      False,     16000,      False),
+      (d_loc, True,      True,      None,       True),
+      (d_loc, True,      False,     None,       True),
+      (d_loc, True,      False,     16000,      True),
+  ]
+  # pylint: enable=bad-whitespace
 
-  for (name, model_location, distilled_output_keys, allow_batch_dimension,
-       fixed_length_input) in model_params:
+  for (model_location, distilled_output_keys, allow_batch_dimension,
+       fixed_length_input, export_tflite) in model_params:
     signatures, saved_mod = make_and_export_trill(
         model_location,
         distilled_output_keys,
         allow_batch_dimension,
         fixed_length_input,
-        tflite_only=FLAGS.export_tflite)
-    out_dir = construct_savedmodel_dir(FLAGS.export_dir, name,
-                                       allow_batch_dimension,
-                                       fixed_length_input)
-    if FLAGS.export_tflite:
-      tf.saved_model.save(saved_mod, out_dir, signatures)
-      convert_tflite_file(out_dir)
-    else:
-      tf.saved_model.save(saved_mod, out_dir)
+        export_tflite)
+    if not export_tflite:
+      assert signatures is None, signatures
+    out_dir = construct_savedmodel_dir(
+        FLAGS.export_dir, distilled_output_keys, export_tflite,
+        allow_batch_dimension, fixed_length_input)
+    tf.saved_model.save(saved_mod, out_dir, signatures)
+    if export_tflite:
+      tflite_out_file = convert_tflite_file(out_dir)
+      test_module(
+          tflite_out_file,
+          allow_batch_dimension,
+          fixed_length_input,
+          tflite_only=True)
     test_module(
         out_dir,
         allow_batch_dimension,
         fixed_length_input,
-        tflite_only=FLAGS.export_tflite)
+        tflite_only=export_tflite)
 
 
 if __name__ == '__main__':
