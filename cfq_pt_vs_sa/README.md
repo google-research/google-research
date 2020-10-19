@@ -15,11 +15,13 @@ If you want to get started quickly you can use the
 `tf-1-15-cu100` image from `deeplearning-platform-release` which comes with some of the right dependencies preinstalled. The following command starts a VM with this image and a V100 GPU on Google Cloud:
 
 ```
+gcloud config set project ${YOUR_PROJECT}
+gcloud config set compute/zone europe-west4-a
+
 VM_NAME=run-cfq
-gcloud beta compute instances create $VM_NAME \
+gcloud compute instances create $VM_NAME \
   --image-project=deeplearning-platform-release \
   --image-family=tf-1-15-cu100 \
-  --project ${YOUR_GCP_PROJECT} \
   --machine-type=n1-standard-8 \
   --boot-disk-size=120GB \
   --maintenance-policy=TERMINATE \
@@ -27,17 +29,19 @@ gcloud beta compute instances create $VM_NAME \
   --metadata="install-nvidia-driver=True"
 ```
 
-Next, get code with:
+Next, on that machine, get code with:
 
 ```
-sudo apt-get install subversion
+sudo apt-get install subversion -y
 svn export https://github.com/google-research/google-research/trunk/cfq
 ```
 
 You can then install the necessary Python dependencies using:
 
 ```
-sudo pip3 install -r cfq/requirements.txt
+python3.7 -m pip install -r cfq/requirements.txt --user
+# Also make sure the installed binaries are in the path.
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
 ### Running the experiment
@@ -45,7 +49,7 @@ sudo pip3 install -r cfq/requirements.txt
 This command will download the dataset, preprocess it, train a model and finally evaluate it and report it's accuracy:
 
 ```
-python3 -m cfq.run_experiment \
+python3.7 -m cfq.run_experiment \
   --dataset=scan --split=mcd1 \
   --model=evolved_transformer --hparams_set=cfq_evolved_transformer \
   --train_steps=100000
