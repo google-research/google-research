@@ -1,0 +1,8 @@
+absl-py
+attr>=0.3.1
+numpy>=1.19.2
+tensorflow>=2.1
+tensorflow_addons>=0.11.2
+tensorflow-datasets>=3.1.0
+tf-models-official>=2.1
+tf-slim==1.1.0
