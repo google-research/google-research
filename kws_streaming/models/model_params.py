@@ -77,6 +77,7 @@ class Params(object):
     self.return_softmax = 0
     self.sp_time_shift_ms = 0.0
     self.sp_resample = 0.0
+    self.pick_deterministically = 0
     self.verbosity = logging.INFO
 
 

@@ -78,6 +78,8 @@ class BaseParserTest(tf.test.TestCase):
                      params.spec_cutout_time_mask_size)
     self.assertEqual(FLAGS.spec_cutout_frequency_mask_size,
                      params.spec_cutout_frequency_mask_size)
+    self.assertEqual(FLAGS.pick_deterministically,
+                     params.pick_deterministically)
 
 
 if __name__ == '__main__':

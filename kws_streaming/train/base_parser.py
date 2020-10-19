@@ -442,5 +442,11 @@ def base_parser():
       help='Determines whether to use Adam style exponential moving averaging '
       'for the first order moments',
   )
+  parser.add_argument(
+      '--pick_deterministically',
+      type=int,
+      default=0,
+      help='Pick training data in every epoch deterministically',
+  )
 
   return parser

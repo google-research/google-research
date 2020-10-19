@@ -75,6 +75,7 @@ class InputDataTest(tf.test.TestCase):
         "dct_num_features": 30,
         "split_data": 1,
         "train": 1,
+        "pick_deterministically": 0,
     }
     return DictStruct(**dummy_flags)
 

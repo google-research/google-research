@@ -122,11 +122,13 @@ def train(flags):
 
   # Training loop.
   for training_step in range(start_step, training_steps_max + 1):
+    offset = (training_step -
+              1) * flags.batch_size if flags.pick_deterministically else 0
     # Pull the audio samples we'll use for training.
     train_fingerprints, train_ground_truth = audio_processor.get_data(
-        flags.batch_size, 0, flags, flags.background_frequency,
-        flags.background_volume, time_shift_samples, 'training', flags.resample,
-        flags.volume_resample, sess)
+        flags.batch_size, offset, flags, flags.background_frequency,
+        flags.background_volume, time_shift_samples, 'training',
+        flags.resample, flags.volume_resample, sess)
 
     if flags.lr_schedule == 'exp':
       learning_rate_value = lr_init * np.exp(-exp_rate * training_step)

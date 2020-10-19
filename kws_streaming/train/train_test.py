@@ -125,7 +125,7 @@ class TrainTest(tf.test.TestCase, parameterized.TestCase):
     params.save_step_interval = 1
     params.clip_duration_ms = 100
     params.batch_size = 1
-    return params
+    return model_flags.update_flags(params)
 
   @parameterized.named_parameters([
       dict(testcase_name='default data split', split_data=1),
