@@ -1,0 +1,77 @@
+package(default_visibility = ["//visibility:public"])
+
+licenses(["notice"])
+
+cc_binary(
+    name = "sliding_window_clustering",
+    srcs = [
+        "sliding_window_clustering_main.cc",
+    ],
+    deps = [
+        ":base",
+        ":estimate_optimum_range",
+        ":io",
+        ":meyerson_algorithm",
+        ":sliding_window_framework",
+        "@com_google_absl//absl/flags:commandlineflag",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "base",
+    srcs = ["base.cc"],
+    hdrs = ["base.h"],
+    deps = [
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/random",
+    ],
+)
+
+cc_library(
+    name = "sliding_window_framework",
+    srcs = ["sliding_window_framework.cc"],
+    hdrs = ["sliding_window_framework.h"],
+    deps = [
+        ":base",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/random",
+    ],
+)
+
+cc_library(
+    name = "meyerson_algorithm",
+    hdrs = ["meyerson_algorithm.h"],
+    deps = [
+        ":base",
+        ":sliding_window_framework",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/types:optional",
+    ],
+)
+
+cc_library(
+    name = "io",
+    srcs = ["io.cc"],
+    hdrs = ["io.h"],
+    deps = [
+        ":base",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "estimate_optimum_range",
+    srcs = ["estimate_optimum_range.cc"],
+    hdrs = ["estimate_optimum_range.h"],
+    deps = [
+        ":base",
+        ":io",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/types:optional",
+    ],
+)
