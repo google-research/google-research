@@ -1,6 +1,6 @@
 # SupCon - Supervised Contrastive Learning
 
-####Authors: Prannay Khosla, Piotr Teterwak, Chen Wang, Aaron Sarna, Yonglong Tian, Phillip Isola, Aaron Maschinot, Ce Liu, Dilip Krishnan
+#### Authors: Prannay Khosla, Piotr Teterwak, Chen Wang, Aaron Sarna, Yonglong Tian, Phillip Isola, Aaron Maschinot, Ce Liu, Dilip Krishnan
 
 **Corresponding author:** Aaron Sarna (sarna@google.com)
 

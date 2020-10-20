@@ -37,4 +37,5 @@ set -x
   --stage_2_base_learning_rate=0.05 \
   --stage_2_learning_rate_decay=EXPONENTIAL \
   --stage_1_optimizer=LARS  --stage_2_optimizer=RMSPROP \
+  --stage_2_decay_rate=0.97 --stage_2_epochs_per_decay=0.5 \
   "$@"

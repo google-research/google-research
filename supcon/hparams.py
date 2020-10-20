@@ -107,6 +107,7 @@ class TrainingStage:
   epochs_per_decay = hparam.field(default=2.4, abbrev='epd')
   optimizer = hparam.field(default=enums.Optimizer.RMSPROP, abbrev='op')
   update_encoder_batch_norm = hparam.field(default=True, abbrev='ebn')
+  rmsprop_epsilon = hparam.field(default=1.0, abbrev='rep')
 
 
 @hparam.s

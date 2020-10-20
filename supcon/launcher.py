@@ -474,6 +474,7 @@ class ContrastiveTrainer:
             optimizer_type=stage_params.training.optimizer,
             lars_weight_decay=stage_params.loss.weight_decay_coeff,
             lars_exclude_from_weight_decay=lars_exclude_from_weight_decay,
+            epsilon=stage_params.training.rmsprop_epsilon,
             is_tpu=self.is_tpu,
             name=stage_name)
 

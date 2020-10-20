@@ -216,6 +216,14 @@ flags.DEFINE_bool(
     'stage_2_update_encoder_batch_norm', True,
     'Whether encoder batch norm statistics should be updated during stage 2 of '
     'training.')
+flags.DEFINE_float(
+    'stage_1_rmsprop_epsilon', 1.0,
+    'The epsilon parameter of the RMSProp optimizer. Only used if '
+    '`stage_1_optimizer` is RMSPROP.')
+flags.DEFINE_float(
+    'stage_2_rmsprop_epsilon', 0.001,
+    'The epsilon parameter of the RMSProp optimizer. Only used if '
+    '`stage_2_optimizer` is RMSPROP.')
 
 # Dataset handling
 flags.DEFINE_string('input_fn', 'imagenet', 'The input_fn to use.')
@@ -339,7 +347,8 @@ def hparams_from_flags():
               epochs_per_decay=FLAGS.stage_1_epochs_per_decay,
               optimizer=FLAGS.stage_1_optimizer,
               update_encoder_batch_norm=(
-                  FLAGS.stage_1_update_encoder_batch_norm)),
+                  FLAGS.stage_1_update_encoder_batch_norm),
+              rmsprop_epsilon=FLAGS.stage_1_rmsprop_epsilon),
           loss=hparams.LossStage(
               contrastive_weight=FLAGS.stage_1_contrastive_loss_weight,
               cross_entropy_weight=FLAGS.stage_1_cross_entropy_loss_weight,
@@ -362,7 +371,8 @@ def hparams_from_flags():
               epochs_per_decay=FLAGS.stage_2_epochs_per_decay,
               optimizer=FLAGS.stage_2_optimizer,
               update_encoder_batch_norm=(
-                  FLAGS.stage_2_update_encoder_batch_norm)),
+                  FLAGS.stage_2_update_encoder_batch_norm),
+              rmsprop_epsilon=FLAGS.stage_2_rmsprop_epsilon),
           loss=hparams.LossStage(
               contrastive_weight=FLAGS.stage_2_contrastive_loss_weight,
               cross_entropy_weight=FLAGS.stage_2_cross_entropy_loss_weight,
