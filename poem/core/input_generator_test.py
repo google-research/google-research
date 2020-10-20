@@ -287,6 +287,9 @@ class InputGeneratorTest(tf.test.TestCase):
           [1.0, 2.0, 3.0], [3.0, 4.0, 5.0], [5.0, 6.0, 7.0], [7.0, 8.0, 9.0],
           [7.0, 8.0, 9.0]]],
     ])
+    # Shape = [4, 2].
+    assignment = tf.constant([[True, True], [False, False], [True, False],
+                              [False, True]])
 
     keypoint_profile_3d = (
         keypoint_profiles.create_keypoint_profile_or_die('LEGACY_3DH36M17'))
@@ -302,7 +305,8 @@ class InputGeneratorTest(tf.test.TestCase):
         keypoint_profile_3d=keypoint_profile_3d,
         azimuth_range=(math.pi / 2.0, math.pi / 2.0),
         elevation_range=(-math.pi / 2.0, -math.pi / 2.0),
-        roll_range=(math.pi, math.pi))
+        roll_range=(math.pi, math.pi),
+        projection_mix_batch_assignment=assignment)
 
     expected_keypoints_2d = [
         [

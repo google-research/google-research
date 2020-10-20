@@ -59,7 +59,7 @@ def preprocess_keypoints_2d(keypoints_2d,
                             azimuth_range=(-math.pi, math.pi),
                             elevation_range=(-math.pi / 6.0, math.pi / 6.0),
                             roll_range=(-math.pi / 6.0, math.pi / 6.0),
-                            projection_sub_batch_ratios=(1.0, 1.0, 1.0, 1.0),
+                            projection_mix_batch_assignment=None,
                             seed=None):
   """Preprocesses input 2D keypoints.
 
@@ -84,12 +84,10 @@ def preprocess_keypoints_2d(keypoints_2d,
       randomly rotate 3D keypoints with.
     roll_range: A tuple for minimum and maximum roll angles to randomly rotate
       3D keypoints with.
-    projection_sub_batch_ratios: A tuple of four floats for sub-batch ratios for
-      mixing original and synthetic keypoints via random projection for
-      anchor/positive pairs. The four numbers conrrespond to the ratios between
-      `original/original`, `synthetic/synthetic`, `original/synthetic`, and
-      `synthetic/original`. Only used if both original input and random
-      projection are used.
+    projection_mix_batch_assignment: A tensor for assignment indicator matrix
+      for mixing batches of input/projection keypoints. Shape = [batch_size,
+      ..., num_instances]. If None, input/projection keypoints are mixed roughly
+      evenly following a uniform distribution.
     seed: An integer for random seed.
 
   Returns:
@@ -137,16 +135,12 @@ def preprocess_keypoints_2d(keypoints_2d,
             seed=seed))
     projected_keypoint_masks_2d = tf.ones(
         tf.shape(projected_keypoints_2d)[:-1], dtype=tf.float32)
-    keypoints_2d = data_utils.mix_pair_batch(
-        keypoints_2d,
-        projected_keypoints_2d,
+    keypoints_2d, keypoint_masks_2d = data_utils.mix_batch(
+        [keypoints_2d, keypoint_masks_2d],
+        [projected_keypoints_2d, projected_keypoint_masks_2d],
         axis=1,
-        sub_batch_ratios=projection_sub_batch_ratios)
-    keypoint_masks_2d = data_utils.mix_pair_batch(
-        keypoint_masks_2d,
-        projected_keypoint_masks_2d,
-        axis=1,
-        sub_batch_ratios=projection_sub_batch_ratios)
+        assignment=projection_mix_batch_assignment,
+        seed=seed)
 
   elif model_input_keypoint_type != common.MODEL_INPUT_KEYPOINT_TYPE_2D_INPUT:
     raise ValueError('Unsupported model input type: `%s`.' %

@@ -268,101 +268,143 @@ def compute_lower_percentile_means(x, axis, q=50):
           tf.math.reduce_sum(weights, axis=axis))
 
 
-def mix_pair_batch(lhs_pairs,
-                   rhs_pairs,
-                   axis,
-                   sub_batch_ratios=(1.0, 1.0, 1.0, 1.0)):
-  """Slices and mixes pair batches.
+def mix_batch(lhs_batches, rhs_batches, axis, assignment=None, seed=None):
+  """Mixes batches.
 
-  Assumes batch axis is 0. An example for the batch mixing is:
+  A pair of tensors from the same location in each list are assumed to have the
+  same shape.
 
-  # Shape = [8, 2, 1].
-  lhs_pairs = [
-    [[1.0], [2.0]],
-    [[1.1], [2.1]],
-    [[3.0], [4.0]],
-    [[3.1], [4.1]],
-    [[5.0], [6.0]],
-    [[5.1], [6.1]],
-    [[7.0], [8.0]],
-    [[7.1], [8.1]],
-  ]
-  rhs_pairs = [
-    [[11.0], [12.0]],
-    [[11.1], [12.1]],
-    [[13.0], [14.0]],
-    [[13.1], [14.1]],
-    [[15.0], [16.0]],
-    [[15.1], [16.1]],
-    [[17.0], [18.0]],
-    [[17.1], [18.1]],
-  ]
-  mixed_batch = mix_pair_batch(lhs_pairs, rhs_pairs, axis=1)
+  Example:
+    # Shape = [4, 3, 2, 1].
+    lhs_batches[0] = [[[[1.0], [1.1]], [[1.2], [1.3]], [[1.4], [1.5]]],
+                      [[[2.0], [2.1]], [[2.2], [2.3]], [[2.4], [2.5]]],
+                      [[[3.0], [3.1]], [[3.2], [3.3]], [[3.4], [3.5]]],
+                      [[[4.0], [4.1]], [[4.2], [4.3]], [[4.4], [4.5]]]]
+    rhs_batches[0] = [[[[11.0], [11.1]], [[11.2], [11.3]], [[11.4], [11.5]]],
+                      [[[12.0], [12.1]], [[12.2], [12.3]], [[12.4], [12.5]]],
+                      [[[13.0], [13.1]], [[13.2], [13.3]], [[13.4], [13.5]]],
+                      [[[14.0], [14.1]], [[14.2], [14.3]], [[14.4], [14.5]]]]
 
-  mixed_batch == [
-    [[1.0], [2.0]],
-    [[1.1], [2.1]],
-    [[13.0], [14.0]],
-    [[13.1], [14.1]],
-    [[5.0], [16.0]],
-    [[5.1], [16.1]],
-    [[17.0], [8.0]],
-    [[17.1], [8.1]],
-  ]
+    # Shape = [4, 3, 2, 2, 1].
+    lhs_batches[1] = [[[[[1.0], [10.0]], [[1.1], [10.1]]],
+                       [[[1.2], [10.2]], [[1.3], [10.3]]],
+                       [[[1.4], [10.4]], [[1.5], [10.5]]]],
+                      [[[[2.0], [20.0]], [[2.1], [20.1]]],
+                       [[[2.2], [20.2]], [[2.3], [20.3]]],
+                       [[[2.4], [20.4]], [[2.5], [20.5]]]],
+                      [[[[3.0], [30.0]], [[3.1], [30.1]]],
+                       [[[3.2], [30.2]], [[3.3], [30.3]]],
+                       [[[3.4], [30.4]], [[3.5], [30.5]]]],
+                      [[[[4.0], [40.0]], [[4.1], [40.1]]],
+                       [[[4.2], [40.2]], [[4.3], [40.3]]],
+                       [[[4.4], [40.4]], [[4.5], [40.5]]]]]
+    rhs_batches[1] = [[[[[11.0], [110.0]], [[11.1], [110.1]]],
+                       [[[11.2], [110.2]], [[11.3], [110.3]]],
+                       [[[11.4], [110.4]], [[11.5], [110.5]]]],
+                      [[[[12.0], [120.0]], [[12.1], [120.1]]],
+                       [[[12.2], [120.2]], [[12.3], [120.3]]],
+                       [[[12.4], [120.4]], [[12.5], [120.5]]]],
+                      [[[[13.0], [130.0]], [[13.1], [130.1]]],
+                       [[[13.2], [130.2]], [[13.3], [130.3]]],
+                       [[[13.4], [130.4]], [[13.5], [130.5]]]],
+                      [[[[14.0], [140.0]], [[14.1], [140.1]]],
+                       [[[14.2], [140.2]], [[14.3], [140.3]]],
+                       [[[14.4], [140.4]], [[14.5], [140.5]]]]]
+
+    # Shape = [4, 1, 2].
+    assignment = [[[True, True]], [[True, False]],
+                  [[False, True]], [[False, False]]]
+    axis = 2
+    -->
+    # Shape = [4, 3, 2, 1].
+    mixed_batches[0] = [[[[1.0], [1.1]], [[1.2], [1.3]], [[1.4], [1.5]]],
+                        [[[2.0], [12.1]], [[2.2], [12.3]], [[2.4], [12.5]]],
+                        [[[13.0], [3.1]], [[13.2], [3.3]], [[13.4], [3.5]]],
+                        [[[14.0], [14.1]], [[14.2], [14.3]], [[14.4], [14.5]]]]
+
+    # Shape = [4, 3, 2, 2, 1].
+    mixed_batches[1] = [[[[[1.0], [10.0]], [[1.1], [10.1]]],
+                         [[[1.2], [10.2]], [[1.3], [10.3]]],
+                         [[[1.4], [10.4]], [[1.5], [10.5]]]],
+                        [[[[2.0], [20.0]], [[12.1], [120.1]]],
+                         [[[2.2], [20.2]], [[12.3], [120.3]]],
+                         [[[2.4], [20.4]], [[12.5], [120.5]]]],
+                        [[[[13.0], [130.0]], [[3.1], [30.1]]],
+                         [[[13.2], [130.2]], [[3.3], [30.3]]],
+                         [[[13.4], [130.4]], [[3.5], [30.5]]]],
+                        [[[[14.0], [140.0]], [[14.1], [140.1]]],
+                         [[[14.2], [140.2]], [[14.3], [140.3]]],
+                         [[[14.4], [140.4]], [[14.5], [140.5]]]]]
 
   Args:
-    lhs_pairs: A tensor for LHS pair data. Shape = [batch_size, ..., 2, ...].
-    rhs_pairs: A tensor for RHS pair data. Shape = [batch_size, ..., 2, ...].
-    axis: An integer for the pair axis.
-    sub_batch_ratios: A tuple of four floats for the ratios between each
-      sub-batch. The first three sub-batch size will be calculated and rounded
-      to closest integers, and the last sub-batch size will be the remaining.
+    lhs_batches: A list of tensors for LHS batches. Each tensor shape =
+      [batch_size, ..., num_instances, ...].
+    rhs_batches: A list of tensors for RHS batches. Each tensor shape =
+      [batch_size, ..., num_instances, ...].
+    axis: An integer for the mixing axis (the `num_instances` dimension).
+    assignment: A tensor for assignment indicator matrix. Shape = [batch_size,
+      ..., num_instances]. A True/False value indicates element from the LHS/RHS
+      tensor will be kept at the corresponding location. For the "idle
+      dimensions" between the batch dimension (0) and the mixing axis dimension,
+      size 1 can be used to take advantage of broadcasting. If None, A uniformly
+      random assignment matrix will be created.
+    seed: An integer for random seed.
 
   Returns:
-    A tensor for the mixed pair batch.
+    mixed_batches: A list of tensors for mixed batches. Each tensor shape =
+      [batch_size, ..., num_instances, ...].
 
   Raises:
-    ValueError: Size of `sub_batch_ratios` is not 4.
+    ValueError: If `lhs_batches` and `rhs_batches` have different sizes.
+    ValueError: If `lhs_batches` or `rhs_batches` is empty.
+    ValueError: If `axis` is out of range or incompatible with `assignment`.
+
   """
-  if len(sub_batch_ratios) != 4:
-    raise ValueError('Sub-batch ratios must be of size 4: %s.' %
-                     str(sub_batch_ratios))
-  total_ratios = np.sum(sub_batch_ratios)
-  sub_batch_ratios = [x / total_ratios for x in sub_batch_ratios]
-  batch_size = tf.shape(lhs_pairs)[0]
-  float_batch_size = tf.cast(batch_size, dtype=tf.float32)
-  sub_batch_sizes = [
-      tf.cast(
-          tf.math.round(float_batch_size * sub_batch_ratios[i]), dtype=tf.int32)
-      for i in range(3)
-  ]
-  sub_batch_sizes.append(batch_size - sub_batch_sizes[0] - sub_batch_sizes[1] -
-                         sub_batch_sizes[2])
-  lhs_pairs_sub_batches = tf.split(
-      lhs_pairs, num_or_size_splits=sub_batch_sizes)
-  rhs_pairs_sub_batches = tf.split(
-      rhs_pairs, num_or_size_splits=sub_batch_sizes)
-  rhs_first_data, rhs_second_data = tf.unstack(rhs_pairs, axis=axis)
-  lhs_first_data, lhs_second_data = tf.unstack(lhs_pairs, axis=axis)
-  lhs_first_sub_batches = tf.split(
-      lhs_first_data, num_or_size_splits=sub_batch_sizes)
-  lhs_second_sub_batches = tf.split(
-      lhs_second_data, num_or_size_splits=sub_batch_sizes)
-  rhs_first_sub_batches = tf.split(
-      rhs_first_data, num_or_size_splits=sub_batch_sizes)
-  rhs_second_sub_batches = tf.split(
-      rhs_second_data, num_or_size_splits=sub_batch_sizes)
-  lhs_first_rhs_second_pairs = tf.stack(
-      [lhs_first_sub_batches[2], rhs_second_sub_batches[2]], axis=axis)
-  rhs_first_lhs_second_pairs = tf.stack(
-      [rhs_first_sub_batches[3], lhs_second_sub_batches[3]], axis=axis)
-  return tf.concat([
-      lhs_pairs_sub_batches[0],
-      rhs_pairs_sub_batches[1],
-      lhs_first_rhs_second_pairs,
-      rhs_first_lhs_second_pairs,
-  ],
-                   axis=0)
+  if len(lhs_batches) != len(rhs_batches):
+    raise ValueError(
+        '`Lhs_batches` and `rhs_batches` size disagree: %d vs. %d.' %
+        (len(lhs_batches), len(rhs_batches)))
+  if not lhs_batches:
+    raise ValueError('Tensor lists are empty.')
+
+  def get_random_assignment(batch_shape):
+    """Gets batch-compatible assignment."""
+    assignment_shape = [1] * (axis + 1)
+    assignment_shape[0] = batch_shape[0]
+    assignment_shape[axis] = batch_shape[axis]
+    assignment = tf.random.uniform(
+        assignment_shape, minval=0.0, maxval=1.0, seed=seed)
+    assignment = tf.math.greater_equal(assignment, 0.5)
+    return assignment
+
+  if assignment is None:
+    assignment = get_random_assignment(tf.shape(lhs_batches[0]))
+  else:
+    assignment_rank = len(assignment.shape.as_list())
+    if assignment_rank != axis + 1:
+      raise ValueError('`Assignment` and `axis` are incompatible: %d vs. %d.' %
+                       (assignment_rank, axis))
+
+  mixed_batches = []
+  for i, batch_pair in enumerate(zip(lhs_batches, rhs_batches)):
+    lhs_batch, rhs_batch = batch_pair
+    batch_rank = len(lhs_batch.shape.as_list())
+    if axis < 0 or batch_rank <= axis:
+      raise ValueError('Axis out of range for the %d-th tensor: %d.' %
+                       (i, axis))
+    if batch_rank != len(rhs_batch.shape.as_list()):
+      raise ValueError(
+          'The %d-th LHS/RHS tensor have different ranks: %d vs. %d.' %
+          (i, batch_rank, len(rhs_batch.shape.as_list())))
+
+    assignment_rank = axis + 1
+    if len(lhs_batch.shape.as_list()) > assignment_rank:
+      batch_assignment = recursively_expand_dims(
+          assignment, axes=[-1] * (batch_rank - assignment_rank))
+
+    mixed_batches.append(tf.where(batch_assignment, lhs_batch, rhs_batch))
+
+  return mixed_batches
 
 
 def shuffle_batches(tensors, seed=None):
