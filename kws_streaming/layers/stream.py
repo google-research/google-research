@@ -96,8 +96,10 @@ class Stream(tf.keras.layers.Layer):
       # outside of the layer in this case we just build a ring buffer
       # and do not check what is the type of the cell
       pass
-    elif isinstance(cell, (tf.keras.layers.Conv1D, tf.keras.layers.Conv2D,
-                           tf.keras.layers.DepthwiseConv2D)):
+    elif isinstance(
+        cell, (tf.keras.layers.Conv1D, tf.keras.layers.Conv2D,
+               tf.keras.layers.DepthwiseConv2D, tf.keras.layers.SeparableConv2D,
+               tf.keras.layers.SeparableConv1D)):
 
       if self.mode not in (modes.Modes.TRAINING,
                            modes.Modes.NON_STREAM_INFERENCE):
@@ -153,7 +155,8 @@ class Stream(tf.keras.layers.Layer):
     if isinstance(
         self.cell,
         (tf.keras.layers.Conv1D, tf.keras.layers.Conv2D,
-         tf.keras.layers.DepthwiseConv2D, tf.keras.layers.AveragePooling2D)):
+         tf.keras.layers.DepthwiseConv2D, tf.keras.layers.AveragePooling2D,
+         tf.keras.layers.SeparableConv2D, tf.keras.layers.SeparableConv1D)):
 
       self.state_shape = [
           self.inference_batch_size, self.ring_buffer_size_in_time_dim
