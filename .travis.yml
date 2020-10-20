@@ -69,6 +69,7 @@ env:
     - PROJECT="property_linking"
     - PROJECT="protoattend"
     - PROJECT="psycholab"
+    - PROJECT="quantum_sample_learning"
     - PROJECT="rl4circopt"
     - PROJECT="rllim"
     - PROJECT="robust_loss"
