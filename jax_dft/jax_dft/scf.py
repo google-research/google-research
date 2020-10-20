@@ -71,7 +71,7 @@ def get_kinetic_matrix(grids):
   return -0.5 * discrete_laplacian(grids.size) / (dx * dx)
 
 
-@functools.partial(jax.jit, static_argnums=(0, 2))
+@functools.partial(jax.jit, static_argnums=(0,))
 def _wavefunctions_to_density(num_electrons, wavefunctions, grids):
   """Converts wavefunctions to density."""
   # Reduce the amount of computation by removing most of the unoccupid states.
@@ -137,7 +137,7 @@ def get_gap(num_electrons, eigen_energies):
   return lumo - homo
 
 
-@functools.partial(jax.jit, static_argnums=(1, 2))
+@functools.partial(jax.jit, static_argnums=(1,))
 def _solve_noninteracting_system(external_potential, num_electrons, grids):
   """Solves noninteracting system."""
   eigen_energies, wavefunctions_transpose = jnp.linalg.eigh(
@@ -169,7 +169,7 @@ def solve_noninteracting_system(external_potential, num_electrons, grids):
   return _solve_noninteracting_system(external_potential, num_electrons, grids)
 
 
-@functools.partial(jax.jit, static_argnums=(1, 2))
+@functools.partial(jax.jit, static_argnums=(2,))
 def _get_hartree_energy(density, grids, interaction_fn):
   """Gets the Hartree energy."""
   n1 = jnp.expand_dims(density, axis=0)
@@ -197,7 +197,7 @@ def get_hartree_energy(density, grids, interaction_fn):
   return _get_hartree_energy(density, grids, interaction_fn)
 
 
-@functools.partial(jax.jit, static_argnums=(1, 2))
+@functools.partial(jax.jit, static_argnums=(2,))
 def _get_hartree_potential(density, grids, interaction_fn):
   """Gets the Hartree potential."""
   n1 = jnp.expand_dims(density, axis=0)
