@@ -12,7 +12,8 @@ found. The frame keys are in format
 `${subject}:${action}:${camera_id}:${frame_index}`. For example, frame key `S11:Directions 1:54138969:000020` corresponds to the **21st** frame in the
 video of action `Direction 1` by Subject `11` under Camera `54138969`.
 
-####Notes
+**Notes:**
+
 - The `action` strings follow those in the original dataset and may contain
 whitespace.
 - Frame index starts at 0.
@@ -25,7 +26,8 @@ found. The frame keys are in format
 example, frame key `S1:Seq1:V0:C0:003370` corresponds to the **3371st** frame in
 the video of Sequence `2` by Subject `1` under Camera `0` (Video `0`).
 
-####Notes:
+**Notes:**
+
 - We use the **training** split of the dataset only for **testing** purposes. We
 do not use MPII-3DHP for any training.
 
