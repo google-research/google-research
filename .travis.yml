@@ -21,6 +21,7 @@ env:
     - PROJECT="cell_mixer"
     - PROJECT="cfq"
     - PROJECT="cnn_quantization"
+    - PROJECT="cola"
     - PROJECT="dataset_analysis"
     - PROJECT="dense_representations_for_entity_retrieval"
     - PROJECT="depth_and_motion_learning"

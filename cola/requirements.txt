@@ -1,0 +1,3 @@
+pydub>=0.22.1
+tensorflow>=2.3.0
+tensorflow-datasets>=3.0.0
