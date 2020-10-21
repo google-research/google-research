@@ -638,7 +638,12 @@ class AudioProcessor(object):
     if how_many == -1:
       sample_count = len(candidates)
     else:
-      sample_count = max(0, min(how_many, len(candidates) - offset))
+      if flags.pick_deterministically and mode == 'training':
+        # it is a special case:
+        sample_count = how_many
+      else:
+        sample_count = max(0, min(how_many, len(candidates) - offset))
+
     # Data and labels will be populated and returned.
     input_data_shape = modes.get_input_data_shape(flags, modes.Modes.TRAINING)
     data = np.zeros((sample_count,) + input_data_shape)
