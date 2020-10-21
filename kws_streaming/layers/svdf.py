@@ -77,9 +77,9 @@ class Svdf(tf.keras.layers.Layer):
 
     if self.mode == modes.Modes.TRAINING:
       self.dropout1 = non_scaling_dropout.NonScalingDropout(
-          self.dropout, training=True)
+          self.dropout)
     else:
-      self.dropout1 = tf.keras.layers.Lambda(lambda x: x)
+      self.dropout1 = tf.keras.layers.Lambda(lambda x, training: x)
     self.dense1 = tf.keras.layers.Dense(
         units=self.units1, use_bias=self.use_bias1)
     self.depth_cnn1 = depthwise_conv1d.DepthwiseConv1D(
@@ -91,12 +91,12 @@ class Svdf(tf.keras.layers.Layer):
     if self.units2 > 0:
       self.dense2 = tf.keras.layers.Dense(units=self.units2, use_bias=True)
     else:
-      self.dense2 = tf.keras.layers.Lambda(lambda x: x)
+      self.dense2 = tf.keras.layers.Lambda(lambda x, training: x)
 
     if self.use_batch_norm:
       self.batch_norm = tf.keras.layers.BatchNormalization(scale=self.bn_scale)
     else:
-      self.batch_norm = tf.keras.layers.Lambda(lambda x: x)
+      self.batch_norm = tf.keras.layers.Lambda(lambda x, training: x)
 
   def compute_output_shape(self, input_shape):
     if input_shape.rank != 3:
@@ -110,11 +110,11 @@ class Svdf(tf.keras.layers.Layer):
     output_shape[-1] = self.units2
     return output_shape
 
-  def call(self, inputs):
-    output = self.dropout1(inputs)
+  def call(self, inputs, training=None):
+    output = self.dropout1(inputs, training=training)
     output = self.dense1(output)
     output = self.depth_cnn1(output)
-    output = self.batch_norm(output)
+    output = self.batch_norm(output, training=training)
     output = self.activation(output)
     output = self.dense2(output)
     return output

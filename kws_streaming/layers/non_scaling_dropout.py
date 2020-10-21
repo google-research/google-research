@@ -16,6 +16,9 @@
 """Dropout layer which doesn't rescale the kept elements."""
 
 from kws_streaming.layers.compat import tf
+from tensorflow.python.keras.utils import control_flow_util  # pylint: disable=g-direct-tensorflow-import
+from tensorflow.python.ops import array_ops  # pylint: disable=g-direct-tensorflow-import
+# TODO(b/171351822) migrate to tf v2 and improve imported dependency
 
 
 class NonScalingDropout(tf.keras.layers.Dropout):
@@ -26,36 +29,22 @@ class NonScalingDropout(tf.keras.layers.Dropout):
   are kept are not scaled.
   """
 
-  def __init__(self,
-               rate,
-               noise_shape=None,
-               seed=None,
-               training=False,
-               **kwargs):
-    """Initializes the layer.
+  def call(self, inputs, training=None):
 
-    Args:
-      rate: Float between 0 and 1. Fraction of the input units to drop.
-      noise_shape: 1D tensor of type `int32` representing the shape of the
-        binary dropout mask that will be multiplied with the input. For
-        instance, if your inputs have shape `[batch_size, timesteps, features]`,
-        and you want the dropout mask to be the same for all timesteps, you can
-        use `noise_shape=[batch_size, 1, features]`.
-      seed: Used to create random seeds. See `tf.set_random_seed` for behavior.
-        or in inference mode (return the input untouched).
-      training: Boolean, indicating whether the layer is created for training
-        or inference.
-      **kwargs: Keword arguments
-    """
-    super(NonScalingDropout, self).__init__(rate, noise_shape, seed, **kwargs)
-    self.training = training
-
-  def call(self, inputs):
-    if not self.training or self.rate == 0:
+    if self.rate == 0.0:
       return inputs
-    else:
-      if self.noise_shape is None:
-        self.noise_shape = tf.shape(inputs)
-      noise_mask = tf.keras.backend.random_uniform(
-          self.noise_shape, seed=self.seed) < (1 - self.rate)
-      return inputs * tf.keras.backend.cast(noise_mask, tf.float32)
+
+    if training is None:
+      training = tf.keras.backend.learning_phase()
+
+    if self.noise_shape is None:
+      self.noise_shape = tf.shape(inputs)
+
+    return control_flow_util.smart_cond(
+        training, lambda: self._non_scaling_drop_op(inputs),
+        lambda: array_ops.identity(inputs))
+
+  def _non_scaling_drop_op(self, inputs):
+    return inputs * tf.keras.backend.cast(
+        tf.keras.backend.random_uniform(self.noise_shape, seed=self.seed) <
+        (1 - self.rate), tf.float32)
