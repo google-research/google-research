@@ -93,12 +93,12 @@ CMD_TRAIN="python -m kws_streaming.train.model_train_eval"
 ```
 
 
-### [MatchboxNet](https://arxiv.org/pdf/2004.08531.pdf) config with momentum
+### [MatchboxNet](https://arxiv.org/pdf/2004.08531.pdf)
 
 By default 'ds_padding' set 'same' \
 For training streamable model 'ds_padding' has to be set 'causal' \
 parameters: 75K \
-accuracy 96.7
+accuracy 96.9
 ```shell
 $CMD_TRAIN \
 --batch_size 128 \
@@ -106,26 +106,25 @@ $CMD_TRAIN \
 --wanted_words 'visual,wow,learn,backward,dog,two,left,happy,nine,go,up,bed,stop,one,zero,tree,seven,on,four,bird,right,eight,no,six,forward,house,marvin,sheila,five,off,three,down,cat,follow,yes' \
 --data_url '' \
 --data_dir $DATA_PATH/ \
---train_dir $MODELS_PATH/ds_tc_resnet_momentum/ \
+--train_dir $MODELS_PATH/ds_tc_resnet/ \
 --mel_upper_edge_hertz 7000 \
---how_many_training_steps 20000,20000,20000,20000 \
---learning_rate 0.1,0.05,0.02,0.01 \
+--how_many_training_steps 20000,20000,20000,20000,20000,20000 \
+--learning_rate 0.01,0.005,0.002,0.001,0.0005,0.0002 \
 --window_size_ms 30.0 \
 --window_stride_ms 10.0 \
---mel_num_bins 40 \
+--mel_num_bins 80 \
 --dct_num_features 40 \
 --resample 0.15 \
 --alsologtostderr \
 --train 1 \
---optimizer 'momentum' \
---lr_schedule 'linear' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
 --time_mask_max_size 25 \
 --frequency_masks_number 2 \
 --frequency_mask_max_size 7 \
+--pick_deterministically 1 \
+--eval_step_interval 662 \
 ds_tc_resnet \
---ds_padding "'same', 'same', 'same', 'same', 'same', 'same'" \
 --activation 'relu' \
 --dropout 0.0 \
 --ds_filters '128, 64, 64, 64, 128, 128' \
@@ -136,39 +135,35 @@ ds_tc_resnet \
 --ds_dilation '1, 1, 1, 1, 2, 1'
 ```
 
-### [MatchboxNet](https://arxiv.org/pdf/2004.08531.pdf) config with novograd
+### [MatchboxNet](https://arxiv.org/pdf/2004.08531.pdf) with different learning rate schedule
 parameters: 75K \
-accuracy 96.8
+accuracy 96.9
 ```shell
 $CMD_TRAIN \
 --batch_size 128 \
 --split_data 0 \
---novograd_beta_1 0.9 \
---novograd_beta_2 0.99 \
---novograd_weight_decay 0.001 \
 --wanted_words 'visual,wow,learn,backward,dog,two,left,happy,nine,go,up,bed,stop,one,zero,tree,seven,on,four,bird,right,eight,no,six,forward,house,marvin,sheila,five,off,three,down,cat,follow,yes' \
 --data_url '' \
 --data_dir $DATA_PATH/ \
---train_dir $MODELS_PATH/ds_tc_resnet_novograd/ \
+--train_dir $MODELS_PATH/ds_tc_resnet_01/ \
 --mel_upper_edge_hertz 7000 \
---how_many_training_steps 20000,20000,20000,20000,20000,60000 \
---learning_rate 0.02,0.02,0.01,0.005,0.002,0.001 \
+--how_many_training_steps 40000,40000,20000,20000 \
+--learning_rate 0.001,0.0005,0.0002,0.0001 \
 --window_size_ms 30.0 \
 --window_stride_ms 10.0 \
---mel_num_bins 40 \
+--mel_num_bins 80 \
 --dct_num_features 40 \
 --resample 0.15 \
 --alsologtostderr \
 --train 1 \
---optimizer 'novograd' \
---lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
 --time_mask_max_size 25 \
 --frequency_masks_number 2 \
 --frequency_mask_max_size 7 \
+--pick_deterministically 1 \
+--eval_step_interval 662 \
 ds_tc_resnet \
---ds_padding "'same', 'same', 'same', 'same', 'same', 'same'" \
 --activation 'relu' \
 --dropout 0.0 \
 --ds_filters '128, 64, 64, 64, 128, 128' \
