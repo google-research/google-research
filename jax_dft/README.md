@@ -31,6 +31,8 @@ git clone https://github.com/google-research/google-research.git
 pip install -e google-research/jax_dft
 ```
 
+Please follow the installation for installation on GPU: https://github.com/google/jax#pip-installation
+
 ## Citation
 
 If you use the code in a publication, please cite the repo using the .bib,
