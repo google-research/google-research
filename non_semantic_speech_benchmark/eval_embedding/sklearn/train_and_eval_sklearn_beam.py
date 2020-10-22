@@ -43,7 +43,8 @@ flags.DEFINE_list('label_list', None, 'Python list of possible label values.')
 flags.DEFINE_string('speaker_id_name', None, '`None`, or speaker ID field.')
 flags.DEFINE_string('save_model_dir', None, 'If not `None`, save sklearn '
                     'models in this directory.')
-flags.DEFINE_enum('eval_metric', 'accuracy', ['accuracy', 'equal_error_rate'],
+flags.DEFINE_enum('eval_metric', 'accuracy',
+                  ['accuracy', 'equal_error_rate', 'unweighted_average_recall'],
                   'Which metric to compute and report.')
 
 FLAGS = flags.FLAGS

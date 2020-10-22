@@ -139,6 +139,17 @@ def _calc_eval_scores(eval_metric, d, npx_eval,
     eval_score = d.score(npx_eval, npy_eval)
     # Test.
     test_score = d.score(npx_test, npy_test)
+  elif eval_metric == 'unweighted_average_recall':
+    # The accuracy per class divided by the number of classes without
+    # considerations of instances per class.
+    def _class_scores(npx, npy):
+      class_scores = []
+      for lbl in np.unique(npy):
+        i = npy == lbl
+        class_scores.append(d.score(npx[i], npy[i]))
+      return class_scores
+    eval_score = np.mean(_class_scores(npx_eval, npy_eval))
+    test_score = np.mean(_class_scores(npx_test, npy_test))
   else:
     raise ValueError(f'`eval_metric` not recognized: {eval_metric}')
   return eval_score, test_score
