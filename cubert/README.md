@@ -1,5 +1,18 @@
 # CuBERT
 
+## Update 2020/09/29: Pre-trained Java Model
+
+We are releasing a Java pre-training corpus and pre-trained model. This model was not pre-trained on comments, but an expanded model including Javadoc and regular comments is upcoming.
+
+* Java, deduplicated, no code comments, BigQuery snapshot as of September 13, 2020.
+    * Manifest: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200913_Java_Deduplicated/github_java_manifest)
+        [`gs://cubert/20200913_Java_Deduplicated/github_java_manifest`].
+    * Vocabulary: [[UI]](https://console.cloud.google.com/storage/browser/_details/cubert/20200913_Java_Deduplicated/github_java_vocabulary.txt)
+        [`gs://cubert/20200913_Java_Deduplicated/github_java_vocabulary.txt`].
+    * Model checkpoint for length 1024, 1 epoch: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200913_Java_Deduplicated/pre_trained_model_deduplicated__epochs_1__length_1024)
+        [`gs://cubert/20200913_Java_Deduplicated/pre_trained_model_deduplicated__epochs_1__length_1024`].
+
+
 ## Introduction
 
 This is a repository for code, models and data accompanying the ICML 2020 paper
@@ -168,16 +181,3 @@ We release the following file collections:
         [`gs://cubert/20200621_Python/variable_misuse_repair_datasets`].
     * Fine-tuned Model: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/variable_misuse_repair__epochs_20__pre_trained_epochs_1)
         [`gs://cubert/20200621_Python/variable_misuse_repair__epochs_20__pre_trained_epochs_1`].
-
-
-# Update 2020/09/29: Pre-trained Java Model
-
-We are releasing a Java pre-training corpus and pre-trained model. This model was not pre-trained on comments, but an expanded model including Javadoc and regular comments is upcoming.
-
-* Java, deduplicated, no code comments, BigQuery snapshot as of September 13, 2020.
-    * Manifest: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200913_Java_Deduplicated/github_java_manifest)
-        [`gs://cubert/20200913_Java_Deduplicated/github_java_manifest`].
-    * Vocabulary: [[UI]](https://console.cloud.google.com/storage/browser/_details/cubert/20200913_Java_Deduplicated/github_java_vocabulary.txt)
-        [`gs://cubert/20200913_Java_Deduplicated/github_java_vocabulary.txt`].
-    * Model checkpoint for length 1024, 1 epoch: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200913_Java_Deduplicated/pre_trained_model_deduplicated__epochs_1__length_1024)
-        [`gs://cubert/20200913_Java_Deduplicated/pre_trained_model_deduplicated__epochs_1__length_1024`].
