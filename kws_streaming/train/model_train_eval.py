@@ -124,7 +124,6 @@ import kws_streaming.models.mobilenet_v2 as mobilenet_v2
 import kws_streaming.models.svdf as svdf
 import kws_streaming.models.svdf_resnet as svdf_resnet
 import kws_streaming.models.tc_resnet as tc_resnet
-import kws_streaming.models.tc_resnet_v2 as tc_resnet_v2
 from kws_streaming.models.utils import parse
 import kws_streaming.models.xception as xception
 from kws_streaming.train import base_parser
@@ -328,10 +327,6 @@ if __name__ == '__main__':
   # TC Resnet model settings
   parser_tc_resnet = subparsers.add_parser('tc_resnet')
   tc_resnet.model_parameters(parser_tc_resnet)
-
-  # TC Resnet v2 model settings
-  parser_tc_resnet_v2 = subparsers.add_parser('tc_resnet_v2')
-  tc_resnet_v2.model_parameters(parser_tc_resnet_v2)
 
   # Mobilenet model settings
   parser_mobilenet = subparsers.add_parser('mobilenet')

@@ -1,7 +1,7 @@
-# Models with 75k parameters.
+# Models trained on data sets speech commands v2 with 35 labels.
 ======================================================================================
 
-Below models are configured to have around 75K parameters and trained on [data sets V2 2018](https://storage.googleapis.com/download.tensorflow.org/data/speech_commands_v0.02.tar.gz) with 35 labels.
+Below models are trained on [data sets V2 2018](https://storage.googleapis.com/download.tensorflow.org/data/speech_commands_v0.02.tar.gz) with 35 labels.
 
 
 ## Set up python kws_streaming.
@@ -62,10 +62,10 @@ DATA_PATH=$KWS_PATH/data_all_v2
 
 ```shell
 # set up path for model training
-mkdir $KWS_PATH/models2_75k
+mkdir $KWS_PATH/models_data_v2_35_labels
 
 # models trained on data V2
-MODELS_PATH=$KWS_PATH/models2_75k
+MODELS_PATH=$KWS_PATH/models_data_v2_35_labels
 ```
 
 After all of these, main folder KWS_PATH should have several subfolders:
@@ -93,8 +93,7 @@ CMD_TRAIN="python -m kws_streaming.train.model_train_eval"
 ```
 
 
-### [MatchboxNet](https://arxiv.org/pdf/2004.08531.pdf)
-
+### based on [MatchboxNet](https://arxiv.org/pdf/2004.08531.pdf)
 By default 'ds_padding' set 'same' \
 For training streamable model 'ds_padding' has to be set 'causal' \
 parameters: 75K \
@@ -135,7 +134,7 @@ ds_tc_resnet \
 --ds_dilation '1, 1, 1, 1, 2, 1'
 ```
 
-### [MatchboxNet](https://arxiv.org/pdf/2004.08531.pdf) with different learning rate schedule
+### based on [MatchboxNet](https://arxiv.org/pdf/2004.08531.pdf)
 parameters: 75K \
 accuracy 96.9
 ```shell

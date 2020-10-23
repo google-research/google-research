@@ -19,7 +19,6 @@ and implemented most popular KWS models:
 * [lstm](https://arxiv.org/pdf/1711.07128.pdf) - long short term memory model;
 * [cnn](https://arxiv.org/pdf/1711.07128.pdf) - convolutional neural network;
 * [tc_resnet](https://arxiv.org/pdf/1904.03814.pdf) - temporal convolution with sequence of residual blocks;
-* tc_resnet_v2 - temporal convolution with sequence of residual blocks
 * [crnn](https://arxiv.org/pdf/1711.07128.pdf) - combination of convolutional layers with RNNs(GRU or LSTM);
 * [ds_cnn](https://arxiv.org/pdf/1711.07128.pdf) - depth wise convolutional neural network;
 * [svdf](https://arxiv.org/pdf/1812.02802.pdf) - singular value decomposition filter neural network (sequence of 1d depthwise conv and 1x1 conv);
@@ -67,10 +66,11 @@ to streaming mode.
 ## Experimental results
 
 All experiments are listed in folder "experiments". It contains:
-* [kws_experiments_paper](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_paper.md) - experiments presented in [paper](https://arxiv.org/abs/2005.06720): models trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
-* [kws_experiments_q](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_q.md) - quantized model presented in [paper](https://arxiv.org/abs/2005.06720): models trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
-* [kws_experiments_30k](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_30k.md) - models with 30k parameters, trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
-* [kws_experiments_75k_35_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_75k_35_labels.md) - models with 75K parameters trained on [data set v2](https://arxiv.org/pdf/1804.03209.pdf) with 35 labels. It is a good example of training models on custom data
+* [kws_experiments_paper_12_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_paper_12_labels.md) - experiments presented in [paper](https://arxiv.org/abs/2005.06720): models trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
+* [kws_experiments_quantized_12_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_quantized_12_labels.md) - quantized model presented in [paper](https://arxiv.org/abs/2005.06720): models trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
+* [kws_experiments_30k_12_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_30k_12_labels.md) - models with 30k parameters, trained on [data set](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels.
+* [kws_experiments_35_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_35_labels.md) - models trained on [data set v2](https://arxiv.org/pdf/1804.03209.pdf) with 35 labels. It is a good example of training models on custom data.
+* [kws_experiments_12_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md) - models trained on [data set v2](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels (latest experiments with different hyperparameters).
 
 ### Streamable and non streamable models
 

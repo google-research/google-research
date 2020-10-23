@@ -31,7 +31,6 @@ import kws_streaming.models.mobilenet_v2 as mobilenet_v2
 import kws_streaming.models.svdf as svdf
 import kws_streaming.models.svdf_resnet as svdf_resnet
 import kws_streaming.models.tc_resnet as tc_resnet
-import kws_streaming.models.tc_resnet_v2 as tc_resnet_v2
 import kws_streaming.models.xception as xception
 
 # dict with supported models
@@ -43,7 +42,6 @@ MODELS = {
     'ds_cnn': ds_cnn.model,
     'cnn': cnn.model,
     'tc_resnet': tc_resnet.model,
-    'tc_resnet_v2': tc_resnet_v2.model,
     'crnn': crnn.model,
     'gru': gru.model,
     'lstm': lstm.model,

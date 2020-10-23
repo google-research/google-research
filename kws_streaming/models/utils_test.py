@@ -156,8 +156,7 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
   @parameterized.parameters('att_mh_rnn', 'att_rnn', 'dnn', 'ds_cnn', 'cnn',
                             'tc_resnet', 'crnn', 'gru', 'lstm', 'svdf',
                             'mobilenet', 'mobilenet_v2', 'xception',
-                            'inception', 'inception_resnet', 'ds_tc_resnet',
-                            'tc_resnet_v2')
+                            'inception', 'inception_resnet', 'ds_tc_resnet')
   def testNonStreamInferenceTFandTFLite(self, model_name):
     # Validate that all models with selected preprocessing
     # can be converted to non stream inference mode.
