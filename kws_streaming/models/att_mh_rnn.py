@@ -199,6 +199,7 @@ def model(flags):
         kernel_regularizer=tf.keras.regularizers.l2(flags.l2_weight_decay),
         bias_regularizer=tf.keras.regularizers.l2(flags.l2_weight_decay))(
             net)
+  net = tf.keras.layers.Dense(units=flags.label_count)(net)
   if flags.return_softmax:
     net = tf.keras.layers.Activation('softmax')(net)
   return tf.keras.Model(input_audio, net)
