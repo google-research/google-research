@@ -20,8 +20,8 @@ import functools
 import jax
 import jax.numpy as jnp
 
-from jax_dft.jax_dft import scf
-from jax_dft.jax_dft import utils
+from jax_dft import scf
+from jax_dft import utils
 
 
 def _flip_and_average_on_center(array):

@@ -21,7 +21,7 @@ import os
 from absl import logging
 import numpy as np
 
-from jax_dft.jax_dft import scf
+from jax_dft import scf
 
 
 # pytype: disable=attribute-error

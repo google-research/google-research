@@ -24,9 +24,9 @@ from jax.experimental import stax
 import jax.numpy as jnp
 import numpy as np
 
-from jax_dft.jax_dft import neural_xc
-from jax_dft.jax_dft import scf
-from jax_dft.jax_dft import utils
+from jax_dft import neural_xc
+from jax_dft import scf
+from jax_dft import utils
 
 
 # Set the default dtype as float64

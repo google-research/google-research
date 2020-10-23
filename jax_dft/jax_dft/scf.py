@@ -23,7 +23,7 @@ from typing import Optional, Union
 import jax
 from jax import tree_util
 import jax.numpy as jnp
-from jax_dft.jax_dft import utils
+from jax_dft import utils
 
 
 ArrayLike = Union[float, bool, jnp.ndarray]

@@ -32,10 +32,10 @@ import jax.numpy as jnp
 import numpy as np
 from scipy import optimize
 
-from jax_dft.jax_dft import neural_xc
-from jax_dft.jax_dft import np_utils
-from jax_dft.jax_dft import scf
-from jax_dft.jax_dft import utils
+from jax_dft import neural_xc
+from jax_dft import np_utils
+from jax_dft import scf
+from jax_dft import utils
 
 
 # Set the default dtype as float64

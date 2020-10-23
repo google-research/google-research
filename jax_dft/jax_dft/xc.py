@@ -19,7 +19,7 @@
 from jax import tree_util
 import jax.numpy as jnp
 
-from jax_dft.jax_dft import constants
+from jax_dft import constants
 
 # NOTE(leeley): Use tree_util.Partial so the physics xc_energy_density_fn can
 # be jitted in the same way as the neural xc_energy_density_fn.

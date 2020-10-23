@@ -23,8 +23,8 @@ from jax.config import config
 import jax.numpy as jnp
 import numpy as np
 
-from jax_dft.jax_dft import constants
-from jax_dft.jax_dft import xc
+from jax_dft import constants
+from jax_dft import xc
 
 # Set the default dtype as float64
 config.update('jax_enable_x64', True)

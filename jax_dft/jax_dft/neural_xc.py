@@ -26,8 +26,8 @@ from jax.experimental import stax
 import jax.numpy as jnp
 from jax.scipy import ndimage
 
-from jax_dft.jax_dft import scf
-from jax_dft.jax_dft import utils
+from jax_dft import scf
+from jax_dft import utils
 
 
 _STAX_ACTIVATION = {

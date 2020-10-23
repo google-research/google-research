@@ -20,8 +20,8 @@ from jax import tree_util
 import numpy as np
 from scipy import special
 
-from jax_dft.jax_dft import constants
-from jax_dft.jax_dft import utils
+from jax_dft import constants
+from jax_dft import utils
 
 
 # TODO(shoyer): Remove flatten() and unflatten() after they are checked in to

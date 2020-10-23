@@ -18,7 +18,7 @@
 import jax
 import jax.numpy as jnp
 
-from jax_dft.jax_dft import constants
+from jax_dft import constants
 
 
 def shift(array, offset):
