@@ -1,6 +1,7 @@
 # Performer's Fast Self Attention Module.
 
-See ["Rethinking Attention with Performers"](https://arxiv.org/abs/2009.14794) for the paper associated with this library.
+
+See ["Rethinking Attention with Performers"](https://arxiv.org/abs/2009.14794) for the paper associated with this library, as well as the corresponding [Google AI Blog post](https://ai.googleblog.com/2020/10/rethinking-attention-with-performers.html).
 
 There are two main attention variants, constructed using Fast Attention Via positive Orthogonal Random features (FAVOR+):
 
