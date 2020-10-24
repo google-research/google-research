@@ -2,7 +2,9 @@
 
 <img src = "image/routing_attention.png" alt="Routing attention">
 
-Code-base accompanying the [paper](https://arxiv.org/abs/2003.05997).
+Code-base accompanying the [paper](https://arxiv.org/abs/2003.05997). See also
+the accompanying [slides](https://drive.google.com/file/d/1maX-UQbtnVtxQqLmHvWVN6LNYtnBaTd9/view?usp=sharing)
+for a quick overview.
 
 ## Explanation of hyperparameters
 
