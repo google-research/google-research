@@ -1,0 +1,115 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine. See: https://circleci.com/docs/2.0/configuration-reference
+version: 2.1
+
+jobs:
+  job:  # This is the job name.
+    parameters:
+      PROJECT:
+        type: string
+    docker:
+      - image: 'cimg/python:3.9.0'
+    steps:
+      - run: sudo apt-get update -qq
+      - run: pip install --upgrade pip
+      - run: pip install --upgrade virtualenv
+      - checkout
+      - run: ./<<parameters.PROJECT>>/run.sh
+
+workflows:
+  all-tests:  # This is the workflow name.
+    jobs:
+      - job:  # This matches the job name above.
+          matrix:
+            parameters:
+              PROJECT:
+                - "abps"
+                - "adaptive_learning_rate_tuner"
+                - "albert"
+                - "algae_dice"
+                - "attribution"
+                - "amortized_bo"
+                - "assemblenet"
+                - "axial"
+                - "bam"
+                - "bisimulation_aaai2020"
+                - "bitempered_loss"
+                - "cell_mixer"
+                - "cfq"
+                - "cnn_quantization"
+                - "cola"
+                - "dataset_analysis"
+                - "dense_representations_for_entity_retrieval"
+                - "depth_and_motion_learning"
+                - "depth_from_video_in_the_wild"
+                - "dql_grasping"
+                - "dreg_estimators"
+                - "dual_pixels"
+                - "dvrl"
+                - "evanet"
+                - "explaining_risk_increase"
+                - "extrapolation"
+                - "factorize_a_city"
+                - "fat"
+                - "flax_models/bert"
+                - "flax_models/cifar"
+                - "flax_models/moco"
+                - "frequency_analysis"
+                - "generalized_rates"
+                - "genomics_ood"
+                - "graph_embedding/dmon"
+                - "graph_embedding/slaq"
+                - "graph_embedding/watch_your_step"
+                - "grouptesting"
+                - "hmc_swindles"
+                - "igt_optimizer"
+                - "jax_dft"
+                - "large_margin"
+                - "learn_to_infer"
+                - "keypose"
+                - "learnreg"
+                - "learning_parameter_allocation"
+                - "local_implicit_grid"
+                - "m_theory"
+                - "meta_reward_learning/semantic_parsing"
+                - "meta_reward_learning/textworld"
+                - "moew"
+                - "moment_advice"
+                - "neutra"
+                - "neural_additive_models"
+                - "nigt_optimizer"
+                - "non_semantic_speech_benchmark"
+                - "norml"
+                - "opt_list"
+                - "poem"
+                - "protein_lm"
+                - "probabilistic_vqvae"
+                - "property_linking"
+                - "protoattend"
+                - "psycholab"
+                - "quantum_sample_learning"
+                - "rl4circopt"
+                - "rllim"
+                - "robust_loss"
+                - "robust_loss_jax"
+                - "routing_transformer"
+                - "scrna_benchmark"
+                - "single_view_mpi"
+                - "sm3"
+                - "soft_sort"
+                - "solver1d"
+                - "stacked_capsule_autoencoders"
+                - "state_of_sparsity"
+                - "stochastic_to_deterministic"
+                - "storm_optimizer"
+                - "strategic_exploration"
+                - "sufficient_input_subsets"
+                - "t5_closed_book_qa"
+                - "tabnet"
+                - "tcc"
+                - "tiny_video_nets"
+                - "towards_gan_benchmarks"
+                - "truss_decomposition"
+                - "towards_gan_benchmarks"
+                - "uflow"
+                - "wiki_split_bleu_eval"
+                - "wt5"
