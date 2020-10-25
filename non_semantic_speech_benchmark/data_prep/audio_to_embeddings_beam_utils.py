@@ -233,19 +233,21 @@ def _add_embedding_column_map_fn(k_v, original_example_key,
   return k, ex
 
 
-def _tfds_filenames(dataset_name, split_name):
+def _tfds_filenames(dataset_name, split_name, data_dir=None):
   """Returns filenames for a TFDS dataset."""
-  data_dir = tfds.builder(dataset_name).data_dir
+  data_dir = tfds.builder(dataset_name, data_dir=data_dir).data_dir
   return [os.path.join(data_dir, x) for x in
           tfds.builder(dataset_name).info.splits[split_name].filenames]
 
 
-def _tfds_sample_rate(dataset_name):
-  return tfds.builder(dataset_name).info.features['audio'].sample_rate
+def _tfds_sample_rate(dataset_name, data_dir=None):
+  return tfds.builder(dataset_name, data_dir=data_dir).info.features[
+      'audio'].sample_rate
 
 
 def read_input_glob_and_sample_rate_from_flags(
-    input_glob_flag, sample_rate_flag, tfds_dataset_flag, output_filename_flag):
+    input_glob_flag, sample_rate_flag, tfds_dataset_flag, output_filename_flag,
+    tfds_data_dir_flag):
   """Read flags for input data and sample rate.
 
   Args:
@@ -253,6 +255,7 @@ def read_input_glob_and_sample_rate_from_flags(
     sample_rate_flag: String flag. The sample rate.
     tfds_dataset_flag: String flag. The TFDS dataset.
     output_filename_flag: String flag. The output filename.
+    tfds_data_dir_flag: String flag. Optional location of local TFDS data.
 
   Returns:
     (input_filenames, output_filenames, sample_rate)
@@ -261,20 +264,23 @@ def read_input_glob_and_sample_rate_from_flags(
   """
   if input_glob_flag:
     assert file_utils.Glob(input_glob_flag), input_glob_flag
+    assert not tfds_data_dir_flag
     input_filenames = [file_utils.Glob(input_glob_flag)]
     output_filenames = [output_filename_flag]
     sample_rate = sample_rate_flag
   else:
     assert tfds_dataset_flag
     dataset_name = tfds_dataset_flag
-    tfds.load(dataset_name)  # download dataset, if necessary.
-    sample_rate = _tfds_sample_rate(dataset_name)
+    # Download dataset, if necessary.
+    tfds.load(dataset_name, data_dir=tfds_data_dir_flag)
+    sample_rate = _tfds_sample_rate(dataset_name, tfds_data_dir_flag)
     assert sample_rate, sample_rate
 
     input_filenames = []
     output_filenames = []
     for split_name in ('train', 'validation', 'test'):
-      input_filenames.append(_tfds_filenames(dataset_name, split_name))
+      input_filenames.append(
+          _tfds_filenames(dataset_name, split_name, tfds_data_dir_flag))
       output_filenames.append(output_filename_flag + f'.{split_name}')
 
     logging.info('TFDS input filenames: %s', input_filenames)
