@@ -1,3 +1,4 @@
+![teaser](https://factorize-a-city.github.io/images/teaser_still.jpg)
 # Learning to Factorize and Relight a City
 [Project Page](https://factorize-a-city.github.io/) |
 [Paper](https://arxiv.org/abs/2008.02796) 
@@ -7,6 +8,9 @@ This code accompanies the paper
 **Learning to Factorize and Relight a City** \
 Andrew Liu, Shiry Ginosar, Tinghui Zhou, Alexei A. Efros, Noah Snavely \
 ECCV 2020
+
+![weather change](https://factorize-a-city.github.io/images/weather_change.gif)
+![sun rotation](https://factorize-a-city.github.io/images/paris_rot_web.gif)
 
 *Please note that this is not an officially supported Google product.*
 
@@ -19,10 +23,15 @@ versions of libraries.
 To install using pip, run: \
 `pip3 install -r requirements.txt`
 
-## Data
+## Sample Data and Pre-trained Checkpoint
 
-We include a small sample of our NYC test stack to test our code on. To access
-the resources, run `source download_sample_resources.sh`.
+We include our pretrained network and a small sample of our NYC test stack to
+test our code on. To access, run: \
+`source download_sample_resources.sh`
+
+This will downoad and create `data` directory with sample stacks and their estimated
+alignment. It will also download and create a `ckpt` folder which contains our
+pretrained checkpoint.
 
 ## Scripts
 
