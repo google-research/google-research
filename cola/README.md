@@ -48,9 +48,12 @@ Pre-training and fine-tuning only handle tfds datasets, for simplicity. One can 
 If you use this repository, please consider citing:
 
 ```
-@article{saeed2020,
-    title={Contrastive learning of general purpose audio representations},
-    author={Aaqib Saeed and David Grangier and Neil Zeghidour},
-    year={2020},
+@misc{saeed2020contrastive,
+      title={Contrastive Learning of General-Purpose Audio Representations},
+      author={Aaqib Saeed and David Grangier and Neil Zeghidour},
+      year={2020},
+      eprint={2010.10915},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD}
 }
 ```
