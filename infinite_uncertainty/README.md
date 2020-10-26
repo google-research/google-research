@@ -1,11 +1,9 @@
-# Exploring the Uncertainty Properties of Neural Networks'
-# Implicit Priors in the Infinite-Width Limit
+# Exploring the Uncertainty Properties of Neural Networks' Implicit Priors in the Infinite-Width Limit
 
 ## Overview
-This directory contains the publicly available [Colab Notebook](https://colab.sandbox.google.com/github/google-research/google-research/infinite_uncertainty/blob/master/ess.ipynb) for the paper:
+This directory contains the publicly available [Colab Notebook](https://colab.research.google.com/github/google-research/google-research/blob/master/infinite_uncertainty/ess.ipynb) for the paper:
 
-[** Exploring the Uncertainty Properties of Neural Networks' Implicit Priors in the Infinite-Width Limit**](
-https://arxiv.org/abs/2010.07355).
+[** Exploring the Uncertainty Properties of Neural Networks' Implicit Priors in the Infinite-Width Limit **](https://arxiv.org/abs/2010.07355)
 
 Ben Adlam\*, Jaehoon Lee\*, Lechao Xiao\*, Jeffrey Pennington, and Jasper Snoek (2020).
 
