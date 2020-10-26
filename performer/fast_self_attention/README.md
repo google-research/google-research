@@ -16,7 +16,7 @@ The protein language modelling code can be found in [/google-research/protein_lm
 
 ## Notes:
 
-* Set `lax_scan_unroll=16` for both attention functions when using a GPU to provide 4x speedups due to loop unrolling optimizations in the unidirectional case.
+* Set `lax_scan_unroll=16` for both attention functions when using a GPU to provide 4x speedups due to loop unrolling optimizations in the unidirectional case. However, set `lax_scan_unroll=1` (defaulted) when using a TPU.
 * The unidirectional variant uses custom gradients via Jax, in order to provide significant memory reductions.
 * FAVOR has also been integrated into the [Reformer library](https://github.com/google/trax/blob/master/trax/layers/research/sparsity.py) as `CausalFavor`, in order to provide additional memory gains via reversible layers.
 

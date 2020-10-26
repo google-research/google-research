@@ -432,7 +432,7 @@ class FastAttention(object):
     raise NotImplementedError('Abstract method')
 
 
-def _numerator_fwd(z_slice_shape, precision, qs, ks, vs):
+def _numerator_fwd(z_slice_shape, precision, qs, ks, vs, unroll=1):
 
   def body(p, qkv):
     (q, k, v) = qkv
@@ -441,11 +441,11 @@ def _numerator_fwd(z_slice_shape, precision, qs, ks, vs):
     return p, X_slice
 
   init_value = jnp.zeros(z_slice_shape)
-  p, W = lax.scan(body, init_value, (qs, ks, vs))
+  p, W = lax.scan(body, init_value, (qs, ks, vs), unroll=unroll)
   return W, (p, qs, ks, vs)
 
 
-def _numerator_bwd(z_slice_shape, precision, pqkv, W_ct):
+def _numerator_bwd(z_slice_shape, precision, pqkv, W_ct, unroll=1):
   del z_slice_shape
 
   def body(carry, qkv_xct):
@@ -460,20 +460,22 @@ def _numerator_bwd(z_slice_shape, precision, pqkv, W_ct):
 
   p, qs, ks, vs = pqkv
   _, (qs_ct, ks_ct, vs_ct) = lax.scan(
-      body, (p, jnp.zeros_like(p)), (qs, ks, vs, W_ct), reverse=True)
+      body, (p, jnp.zeros_like(p)), (qs, ks, vs, W_ct),
+      reverse=True,
+      unroll=unroll)
   return qs_ct, ks_ct, vs_ct
 
 
-@functools.partial(jax.custom_vjp, nondiff_argnums=(0, 1))
-def _numerator(z_slice_shape, precision, qs, ks, vs):
-  W, _ = _numerator_fwd(z_slice_shape, precision, qs, ks, vs)
+@functools.partial(jax.custom_vjp, nondiff_argnums=(0, 1, 5))
+def _numerator(z_slice_shape, precision, qs, ks, vs, unroll=1):
+  W, _ = _numerator_fwd(z_slice_shape, precision, qs, ks, vs, unroll=unroll)
   return W
 
 
 _numerator.defvjp(_numerator_fwd, _numerator_bwd)
 
 
-def _denominator_fwd(t_slice_shape, precision, qs, ks):
+def _denominator_fwd(t_slice_shape, precision, qs, ks, unroll=1):
 
   def body(p, qk):
     q, k = qk
@@ -482,11 +484,11 @@ def _denominator_fwd(t_slice_shape, precision, qs, ks):
     return p, x
 
   p = jnp.zeros(t_slice_shape)
-  p, R = lax.scan(body, p, (qs, ks))
+  p, R = lax.scan(body, p, (qs, ks), unroll=unroll)
   return R, (qs, ks, p)
 
 
-def _denominator_bwd(_t_slice_shape, precision, qkp, R_ct):
+def _denominator_bwd(_t_slice_shape, precision, qkp, R_ct, unroll=1):
 
   def body(carry, qkx):
     p, p_ct = carry
@@ -499,13 +501,13 @@ def _denominator_bwd(_t_slice_shape, precision, qkp, R_ct):
 
   qs, ks, p = qkp
   _, (qs_ct, ks_ct) = lax.scan(
-      body, (p, jnp.zeros_like(p)), (qs, ks, R_ct), reverse=True)
+      body, (p, jnp.zeros_like(p)), (qs, ks, R_ct), reverse=True, unroll=unroll)
   return (qs_ct, ks_ct)
 
 
-@functools.partial(jax.custom_vjp, nondiff_argnums=(0, 1))
-def _denominator(t_slice_shape, precision, qs, ks):
-  R, _ = _denominator_fwd(t_slice_shape, precision, qs, ks)
+@functools.partial(jax.custom_vjp, nondiff_argnums=(0, 1, 4))
+def _denominator(t_slice_shape, precision, qs, ks, unroll=1):
+  R, _ = _denominator_fwd(t_slice_shape, precision, qs, ks, unroll=unroll)
   return R
 
 
@@ -613,7 +615,7 @@ class FastAttentionviaLowRankDecomposition(FastAttention):
       W = _numerator(z_slice_shape, precision,
                      jnp.moveaxis(query_prime, index, 0),
                      jnp.moveaxis(key_prime, index, 0),
-                     jnp.moveaxis(value, index, 0))
+                     jnp.moveaxis(value, index, 0), self.lax_scan_unroll)
 
       # Constructing W = (Q^{'}(K^{'})^{T})_{masked}V
       W = jnp.moveaxis(W, 0, index)
@@ -633,7 +635,8 @@ class FastAttentionviaLowRankDecomposition(FastAttention):
             key_prime.shape[-1],)
         R = _denominator(t_slice_shape, precision,
                          jnp.moveaxis(query_prime, index, 0),
-                         jnp.moveaxis(key_prime, index, 0))
+                         jnp.moveaxis(key_prime, index, 0),
+                         self.lax_scan_unroll)
 
         R = jnp.moveaxis(R, 0, index)
     else:
