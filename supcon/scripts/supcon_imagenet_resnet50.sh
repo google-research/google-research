@@ -30,8 +30,8 @@ set -x
   "${SUPCON_FLAGS[@]}" \
   --batch_size=6144 \
   --augmentation_type=AUTOAUGMENT --augmentation_magnitude=1.0 \
-  --temperature=0.07 \
-  --stage_1_weight_decay=1e-4 --stage_2_weight_decay=1e-6 \
+  --temperature=0.1 \
+  --stage_1_weight_decay=1e-3 --stage_2_weight_decay=1e-6 \
   --stage_1_epochs=350 --stage_2_epochs=90 \
   --stage_1_base_learning_rate=0.3 \
   --stage_2_base_learning_rate=0.05 \
