@@ -52,10 +52,11 @@ def select_from_sizes(values, sizes):
   Raises:
    ValueError when the size array is not one dimensional.
   """
+  values = np.asarray(values)
   dim = np.ndim(values)
   if dim > 1:
     raise ValueError(f"sizes argument has dimension {dim} > 1.")
 
   # The values are 0-indexed, but sizes are strictly positives.
   indices = np.minimum(sizes, np.size(values)) - 1
-  return np.squeeze(values[list(indices)])
+  return np.squeeze(values[indices])
