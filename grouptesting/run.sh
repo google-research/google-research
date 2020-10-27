@@ -19,5 +19,5 @@ set -x
 virtualenv -p python3 .
 source ./bin/activate
 
-pip install -r requirements.txt
-python -m run_experiment
+pip install -r grouptesting/requirements.txt
+python -m grouptesting.run_experiment
