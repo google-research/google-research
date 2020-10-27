@@ -30,6 +30,7 @@ env:
     - PROJECT="dreg_estimators"
     - PROJECT="dual_pixels"
     - PROJECT="dvrl"
+    - PROJECT="etcmodel"
     - PROJECT="evanet"
     - PROJECT="explaining_risk_increase"
     - PROJECT="extrapolation"
