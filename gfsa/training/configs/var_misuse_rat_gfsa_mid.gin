@@ -1,0 +1,139 @@
+
+# Train configs
+train_var_misuse_lib.train.padding_and_batch_sizes = [
+  ({
+      'log2_num_nodes': 6,
+      'log2_num_input_tagged_nodes': 7,
+      'log2_max_initial_transitions': 8,
+      'log2_max_in_tagged_transitions': 9,
+      'log2_max_edges': 9,
+      'log2_max_tokens': 8
+  }, 8), # 128 is feasible but not much of an improvement
+  ({
+      'log2_num_nodes': 7,
+      'log2_num_input_tagged_nodes': 8,
+      'log2_max_initial_transitions': 9,
+      'log2_max_in_tagged_transitions': 10,
+      'log2_max_edges': 10,
+      'log2_max_tokens': 9
+  }, 8), # 32 is feasible
+  ({
+      'log2_num_nodes': 8,
+      'log2_num_input_tagged_nodes': 9,
+      'log2_max_initial_transitions': 10,
+      'log2_max_in_tagged_transitions': 11,
+      'log2_max_edges': 11,
+      'log2_max_tokens': 10
+  }, 8), # 16 is feasible
+]
+train_var_misuse_lib.train.validation_example_count = 8192
+
+simple_runner.training_loop.steps_per_save = 1000
+simple_runner.training_loop.steps_per_validate = 100
+simple_runner.training_loop.steps_per_summary = 20
+simple_runner.training_loop.max_iterations = 500000
+simple_runner.training_loop.max_seconds = 86400  # 24 hours
+
+simple_runner.training_loop.learning_rate_schedule = @learning_rate_schedules.ConstantLearningRateSchedule()
+learning_rate_schedules.ConstantLearningRateSchedule.learning_rate = 0.001
+simple_runner.training_loop.max_global_norm = 200
+train_var_misuse_lib.train.profile_during_warmup = False
+
+## Core
+CHILD_INDEX_EDGE_TYPES = [
+    "CHILD_INDEX_0", "CHILD_INDEX_1", "CHILD_INDEX_2", "CHILD_INDEX_3",
+    "CHILD_INDEX_4", "CHILD_INDEX_5", "CHILD_INDEX_6", "CHILD_INDEX_7",
+    "CHILD_INDEX_8", "CHILD_INDEX_9", "CHILD_INDEX_10", "CHILD_INDEX_11",
+    "CHILD_INDEX_12", "CHILD_INDEX_13", "CHILD_INDEX_14", "CHILD_INDEX_15",
+    "CHILD_INDEX_16", "CHILD_INDEX_17", "CHILD_INDEX_18", "CHILD_INDEX_19",
+    "CHILD_INDEX_20", "CHILD_INDEX_21", "CHILD_INDEX_22", "CHILD_INDEX_23",
+    "CHILD_INDEX_24", "CHILD_INDEX_25", "CHILD_INDEX_26", "CHILD_INDEX_27",
+    "CHILD_INDEX_28", "CHILD_INDEX_29", "CHILD_INDEX_30", "CHILD_INDEX_31"
+]
+PG_EDGE_TYPES = [
+    "PG_CALLS", "PG_CFG_NEXT", "PG_COMPUTED_FROM", "PG_FORMAL_ARG_NAME",
+    "PG_LAST_LEXICAL_USE", "PG_LAST_READ", "PG_LAST_WRITE", "PG_NEXT_SYNTAX",
+    "PG_RETURNS_TO"
+]
+SCHEMA_EDGE_TYPES = [
+    "SCHEMA_args_out", "SCHEMA_args_out_all", "SCHEMA_args_out_first",
+    "SCHEMA_args_out_last", "SCHEMA_bases_out_all", "SCHEMA_bases_out_first",
+    "SCHEMA_bases_out_last", "SCHEMA_body_out", "SCHEMA_body_out_all",
+    "SCHEMA_body_out_first", "SCHEMA_body_out_last",
+    "SCHEMA_comparators_out_all", "SCHEMA_comparators_out_first",
+    "SCHEMA_comparators_out_last", "SCHEMA_context_expr_out", "SCHEMA_ctx_out",
+    "SCHEMA_decorator_list_out_all", "SCHEMA_decorator_list_out_first",
+    "SCHEMA_decorator_list_out_last", "SCHEMA_defaults_out_all",
+    "SCHEMA_defaults_out_first", "SCHEMA_defaults_out_last",
+    "SCHEMA_dims_out_all", "SCHEMA_dims_out_first", "SCHEMA_dims_out_last",
+    "SCHEMA_elt_out", "SCHEMA_elts_out_all", "SCHEMA_elts_out_first",
+    "SCHEMA_elts_out_last", "SCHEMA_exc_out", "SCHEMA_finalbody_out_all",
+    "SCHEMA_finalbody_out_first", "SCHEMA_finalbody_out_last",
+    "SCHEMA_func_out", "SCHEMA_generators_out_all",
+    "SCHEMA_generators_out_first", "SCHEMA_generators_out_last",
+    "SCHEMA_handlers_out_all", "SCHEMA_handlers_out_first",
+    "SCHEMA_handlers_out_last", "SCHEMA_ifs_out_all", "SCHEMA_ifs_out_first",
+    "SCHEMA_ifs_out_last", "SCHEMA_item_out", "SCHEMA_items_out_all",
+    "SCHEMA_items_out_first", "SCHEMA_items_out_last", "SCHEMA_iter_out",
+    "SCHEMA_key_out", "SCHEMA_keys_out_all", "SCHEMA_keys_out_first",
+    "SCHEMA_keys_out_last", "SCHEMA_keywords_out_all",
+    "SCHEMA_keywords_out_first", "SCHEMA_keywords_out_last", "SCHEMA_kwarg_out",
+    "SCHEMA_left_out", "SCHEMA_lower_out", "SCHEMA_msg_out", "SCHEMA_name_out",
+    "SCHEMA_names_out_all", "SCHEMA_names_out_first", "SCHEMA_names_out_last",
+    "SCHEMA_next_out", "SCHEMA_op_out", "SCHEMA_operand_out",
+    "SCHEMA_ops_out_all", "SCHEMA_ops_out_first", "SCHEMA_ops_out_last",
+    "SCHEMA_optional_vars_out", "SCHEMA_orelse_out", "SCHEMA_orelse_out_all",
+    "SCHEMA_orelse_out_first", "SCHEMA_orelse_out_last", "SCHEMA_parent_out",
+    "SCHEMA_prev_out", "SCHEMA_right_out", "SCHEMA_slice_out",
+    "SCHEMA_step_out", "SCHEMA_target_out", "SCHEMA_targets_out_all",
+    "SCHEMA_targets_out_first", "SCHEMA_targets_out_last", "SCHEMA_test_out",
+    "SCHEMA_type_out", "SCHEMA_upper_out", "SCHEMA_value_out",
+    "SCHEMA_values_out_all", "SCHEMA_values_out_first",
+    "SCHEMA_values_out_last", "SCHEMA_vararg_out"
+]
+var_misuse_models.var_misuse_model.head_type = "bilinear_joint_output_head"
+var_misuse_models.var_misuse_model.mask_to_candidates = True
+
+## Embeddings
+graph_layers.PositionalAndTypeNodeEmbedding.period_scale = 2048
+var_misuse_models.token_graph_model_core.node_embedding_dim = 256
+var_misuse_models.token_graph_model_core.edge_embedding_dim = 64
+graph_layers.TokenOperatorNodeEmbedding.bottleneck_dim = 128
+
+## Automaton
+automaton_layer.FiniteStateGraphAutomaton.initialization_noise_factor = 0.2
+automaton_layer.FiniteStateGraphAutomaton.legacy_initialize = False
+automaton_layer.FiniteStateGraphAutomaton.num_out_edges = 2
+automaton_layer.FiniteStateGraphAutomaton.num_intermediate_states = 2
+automaton_layer.FiniteStateGraphAutomaton.steps = 128
+end_to_end_stack.embedding_variant_automaton.num_variants = 3
+
+## Transformer
+edge_supervision_models.transformer_steps.layers = 1
+graph_layers.NodeSelfAttention.heads = 8
+graph_layers.NodeSelfAttention.query_key_dim = 32
+graph_layers.NodeSelfAttention.value_dim = 32
+
+## Template
+BASE_BLOCK = "transformer_adapter"
+graph_layers.NodeSelfAttention.like_great = False
+var_misuse_models.token_graph_model_core.components = [
+  %BASE_BLOCK,
+  %BASE_BLOCK,
+  %BASE_BLOCK,
+  %BASE_BLOCK,
+  "embedding_variant_automaton",
+  %BASE_BLOCK,
+  %BASE_BLOCK,
+  %BASE_BLOCK,
+  %BASE_BLOCK,
+]
+var_misuse_models.token_graph_model_core.forward_edge_types = [
+  %CHILD_INDEX_EDGE_TYPES,
+  %SCHEMA_EDGE_TYPES,
+  ["EXTRA_SAME_IDENTIFIER"],
+]
+var_misuse_models.token_graph_model_core.reverse_edge_types = [
+  %CHILD_INDEX_EDGE_TYPES,
+  %SCHEMA_EDGE_TYPES,
+]

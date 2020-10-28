@@ -42,6 +42,7 @@ env:
     - PROJECT="frequency_analysis"
     - PROJECT="generalized_rates"
     - PROJECT="genomics_ood"
+    - PROJECT="gfsa"
     - PROJECT="graph_embedding/dmon"
     - PROJECT="graph_embedding/slaq"
     - PROJECT="graph_embedding/watch_your_step"
