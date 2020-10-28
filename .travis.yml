@@ -99,6 +99,7 @@ env:
     - PROJECT="uflow"
     - PROJECT="wiki_split_bleu_eval"
     - PROJECT="wt5"
+    - PROJECT="yoto"
 before_script:
   - sudo apt-get update -qq
   - pip install --upgrade pip
