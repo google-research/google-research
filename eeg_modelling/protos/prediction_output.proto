@@ -18,6 +18,7 @@ package eeg_modelling.protos;
 
 import "google/protobuf/timestamp.proto";
 
+
 // Time of event. If an event does not have an end time, then only the start
 // time is filled.
 message EventTime {

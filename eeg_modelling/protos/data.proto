@@ -16,6 +16,7 @@ syntax = "proto2";
 
 package eeg_modelling.protos;
 
+
 // This message contains request parameters for waveform data and prediction
 // data.  The request will be created by the frontend and then sent to the
 // backend which will return the response specified by the request.

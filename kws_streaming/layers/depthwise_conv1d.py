@@ -123,7 +123,7 @@ class DepthwiseConv1D(tf.keras.layers.Layer):
       # returns output [batch, time, features]
       return self._non_streaming(inputs)
     else:
-      raise ValueError('wrong mode', self.mode)
+      raise ValueError(f'Encountered unexpected mode `{self.mode}`.')
 
   def get_config(self):
     config = {
@@ -145,16 +145,18 @@ class DepthwiseConv1D(tf.keras.layers.Layer):
   def get_input_state(self):
     # input state will be used only for STREAM_EXTERNAL_STATE_INFERENCE mode
     if self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
-      return self.input_state
+      return [self.input_state]
     else:
-      raise ValueError('wrong mode', self.mode)
+      raise ValueError('Expected the layer to be in external streaming mode, '
+                       f'not `{self.mode}`.')
 
   def get_output_state(self):
     # output state will be used only for STREAM_EXTERNAL_STATE_INFERENCE mode
     if self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
-      return self.output_state
+      return [self.output_state]
     else:
-      raise ValueError('wrong mode', self.mode)
+      raise ValueError('Expected the layer to be in external streaming mode, '
+                       f'not `{self.mode}`.')
 
   def _streaming_internal_state(self, inputs):
     # depthwise 1D convolution in streaming mode with internal state

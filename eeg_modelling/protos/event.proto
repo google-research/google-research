@@ -18,6 +18,7 @@ package eeg_modelling.protos;
 
 import "google/protobuf/timestamp.proto";
 
+
 // Proto for annotation/labelling.
 message Event {
   // Start time, relative to start of segment.

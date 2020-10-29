@@ -47,7 +47,7 @@ class Stream(tf.keras.layers.Layer):
   Attributes:
     cell: keras layer which has to be streamed or tf.identity
     inference_batch_size: batch size in inference mode
-    mode: mode: inference or training mode
+    mode: inference or training mode
     pad_time_dim: padding in time
     state_shape:
     ring_buffer_size_in_time_dim: size of ring buffer in time dim
@@ -202,7 +202,7 @@ class Stream(tf.keras.layers.Layer):
             batch_size=self.inference_batch_size,
             name=self.name + '/input_state')  # adding names to make it unique
       else:
-        self.input_state = []
+        self.input_state = None
       self.output_state = None
 
   def call(self, inputs):
@@ -221,7 +221,7 @@ class Stream(tf.keras.layers.Layer):
       return self._non_streaming(inputs)
 
     else:
-      raise ValueError('wrong mode', self.mode)
+      raise ValueError(f'Encountered unexpected mode `{self.mode}`.')
 
   def get_config(self):
     config = super(Stream, self).get_config()
@@ -239,16 +239,18 @@ class Stream(tf.keras.layers.Layer):
   def get_input_state(self):
     # input state will be used only for STREAM_EXTERNAL_STATE_INFERENCE mode
     if self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
-      return self.input_state
+      return [self.input_state]
     else:
-      raise ValueError('wrong mode', self.mode)
+      raise ValueError('Expected the layer to be in external streaming mode, '
+                       f'not `{self.mode}`.')
 
   def get_output_state(self):
     # output state will be used only for STREAM_EXTERNAL_STATE_INFERENCE mode
     if self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
-      return self.output_state
+      return [self.output_state]
     else:
-      raise ValueError('wrong mode', self.mode)
+      raise ValueError('Expected the layer to be in external streaming mode, '
+                       f'not `{self.mode}`.')
 
   def _streaming_internal_state(self, inputs):
     if self.use_one_step:
@@ -281,6 +283,7 @@ class Stream(tf.keras.layers.Layer):
         return inputs
 
   def _streaming_external_state(self, inputs, state):
+    state = [] if state is None else state
     if self.use_one_step:
       # The time dimenstion always has to equal 1 in streaming mode.
       if inputs.shape[1] != 1:

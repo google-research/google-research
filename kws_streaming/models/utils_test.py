@@ -17,6 +17,8 @@
 
 from absl import flags
 from absl.testing import parameterized
+import numpy as np
+
 from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
@@ -161,6 +163,34 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
     # Validate that all models with selected preprocessing
     # can be converted to non stream inference mode.
     self._testTFLite(model_name=model_name)
+
+  @parameterized.parameters(
+      'cnn_stride',
+      'cnn',
+      'crnn',
+      'dnn',
+      'ds_tc_resnet',
+      'gru',
+      'lstm',
+      'svdf',
+  )
+  def test_external_streaming_shapes(self, model_name):
+    params = model_params.HOTWORD_MODEL_PARAMS[model_name]
+    params = model_flags.update_flags(params)
+    model = models.MODELS[params.model_name](params)
+    external_model = utils.to_streaming_inference(
+        model, params, modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE)
+
+    # The first 'n' inputs correspond to the 'n' inputs that the model takes
+    # in non-streaming mode. The rest of the input tensors represent the
+    # internal states for each layer in the model.
+    inputs = [
+        np.zeros(shape, dtype=np.float32)
+        for shape in external_model.input_shapes
+    ]
+    outputs = external_model.predict(inputs)
+    for output, expected_shape in zip(outputs, external_model.output_shapes):
+      self.assertEqual(output.shape, expected_shape)
 
 
 if __name__ == '__main__':

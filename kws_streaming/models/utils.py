@@ -18,6 +18,8 @@
 
 import ast
 import os.path
+from typing import Sequence
+
 from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
@@ -119,7 +121,7 @@ def _clone_model(model, input_tensors):
       newly_created_input_layer = input_tensor._keras_history.layer
       new_input_layers[original_input_layer] = newly_created_input_layer
 
-  (model_config, created_layers) = models._clone_layers_and_model_config(
+  model_config, created_layers = models._clone_layers_and_model_config(
       model, new_input_layers, models._clone_layer)
   # pylint: enable=protected-access
 
@@ -201,6 +203,21 @@ def _copy_weights(new_model, model):
   return new_model
 
 
+def _flatten_nested_sequence(sequence):
+  """Returns a flattened list of sequence's elements."""
+  if not isinstance(sequence, Sequence):
+    return [sequence]
+  result = []
+  for value in sequence:
+    result.extend(_flatten_nested_sequence(value))
+  return result
+
+
+def _get_state_shapes(model_states):
+  """Converts a nested list of states in to a flat list of their shapes."""
+  return [state.shape for state in _flatten_nested_sequence(model_states)]
+
+
 def convert_to_inference_model(model, input_tensors, mode):
   """Convert functional `Model` instance to a streaming inference.
 
@@ -249,6 +266,8 @@ def convert_to_inference_model(model, input_tensors, mode):
     all_inputs = new_model.inputs + input_states
     all_outputs = new_model.outputs + output_states
     new_streaming_model = tf.keras.Model(all_inputs, all_outputs)
+    new_streaming_model.input_shapes = _get_state_shapes(all_inputs)
+    new_streaming_model.output_shapes = _get_state_shapes(all_outputs)
 
     # inference streaming model with external states
     # has the same number of weights with
