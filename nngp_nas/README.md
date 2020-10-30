@@ -1,7 +1,7 @@
 # Towards NNGP-guided Neural Architecture Search
 
 ## Overview
-This directory contains the publicly available [Colab Notebook](https://colab.research.google.com/github/google-research/google-research/blob/master/NNGP_on_NASBench101.ipynb) for the paper:
+This directory contains the publicly available [Colab Notebook](https://colab.research.google.com/github/google-research/google-research/blob/master/nngp_nas/NNGP_on_NASBench101.ipynb) for the paper:
 
 [**Towards NNGP-guided Neural Architecture Search**](
 https://arxiv.org/abs/2010.xxxxx).
