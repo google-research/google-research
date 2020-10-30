@@ -38,8 +38,7 @@ do not use MPII-3DHP for any training.
 - Frame index starts at 0.
 
 
-##Reference
-
+## Reference
 [1] J.J. Sun, J. Zhao, L.-C. Chen, F. Schroff, H. Adam, T. Liu. View-invariant
 probabilistic embedding for human pose. ECCV 2020.
 
