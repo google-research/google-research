@@ -17,9 +17,9 @@ for a quick overview.
 
 ## Pre-trained Checkpoint
 
-Model     | Parameters | Hparams                | Context Length | Data-set | Download
---------- | ---------- | ---------------------- | -------------- | -------- | --------
-`RT-base` | 200M       | `pg19_local_cluster8k` | 8192           | [PG-19](https://github.com/deepmind/pg19)    | [checkpoint.zip](https://storage.googleapis.com/rt-checkpoint/checkpoint.zip)
+Model     | Parameters | Hparams                | Context Length | Data-set                                  | Vocab                                                                                     | Download
+--------- | ---------- | ---------------------- | -------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------- | --------
+`RT-base` | 200M       | `pg19_local_cluster8k` | 8192           | [PG-19](https://github.com/deepmind/pg19) | [vocab98K](https://storage.googleapis.com/rt-checkpoint/vocab.pg19_length8k.32768.subwords) | [checkpoint.zip](https://storage.googleapis.com/rt-checkpoint/checkpoint.zip)
 
 ## Explanation of hyperparameters
 
