@@ -6,6 +6,20 @@ Code-base accompanying the [paper](https://arxiv.org/abs/2003.05997). See also
 the accompanying [slides](https://drive.google.com/file/d/1maX-UQbtnVtxQqLmHvWVN6LNYtnBaTd9/view?usp=sharing)
 for a quick overview.
 
+### Updates
+
+* Routing Transformer + [REALM](https://github.com/google-research/language/tree/master/language/realm)
+  is now [SOTA](https://eval.ai/web/challenges/challenge-page/689/leaderboard/1908#leaderboardrank-1)
+  on long form Question Answering (QA) on the
+  [ELI5 data-set](https://github.com/facebookresearch/ELI5) on the Knowledge
+  Intensive Language Tasks (KILT) [benchmark](https://github.com/facebookresearch/KILT)
+  from [Facebook AI](https://ai.facebook.com/blog/introducing-kilt-a-new-unified-benchmark-for-knowledge-intensive-nlp-tasks/).
+
+## Pre-trained Checkpoint
+A pre-trained Routing Transformer trained on the (PG-19)[https://github.com/deepmind/pg19]
+data-set with a context window of `8192` and corresponding to the hparam setup
+of `pg19_local_cluster8k` can be found (here)[https://storage.googleapis.com/rt-checkpoint/checkpoint.zip].
+
 ## Explanation of hyperparameters
 
 ### Local Attention
