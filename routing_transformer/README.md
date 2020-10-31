@@ -16,9 +16,10 @@ for a quick overview.
   from [Facebook AI](https://ai.facebook.com/blog/introducing-kilt-a-new-unified-benchmark-for-knowledge-intensive-nlp-tasks/).
 
 ## Pre-trained Checkpoint
-A pre-trained Routing Transformer trained on the (PG-19)[https://github.com/deepmind/pg19]
-data-set with a context window of `8192` and corresponding to the hparam setup
-of `pg19_local_cluster8k` can be found (here)[https://storage.googleapis.com/rt-checkpoint/checkpoint.zip].
+
+Model     | Parameters | Hparams                | Context Length | Data-set | Download
+--------- | ---------- | ---------------------- | -------------- | -------- | --------
+`RT-base` | 200M       | `pg19_local_cluster8k` | 8192           | [PG-19](https://github.com/deepmind/pg19)    | [checkpoint.zip](https://storage.googleapis.com/rt-checkpoint/checkpoint.zip)
 
 ## Explanation of hyperparameters
 
