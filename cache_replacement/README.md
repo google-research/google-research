@@ -12,6 +12,8 @@ Install the necessary Python3 packages, e.g., in a `virtualenv`:
 
 ```
 # Current working directory is cache_replacement
+# We use Python3.7. The below virtualenv command may need to be replaced with:
+# virtualenv -p python3.7 venv, depending on the system Python3 version.
 virtualenv -p python3 venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -211,7 +213,10 @@ python3 -m cache_replacement.policy_learning.cache_model.main \
   --experiment_name=sample_model_llc \
   --cache_configs=cache_replacement/policy_learning/cache/configs/default.json \
   --model_bindings="loss=[\"ndcg\", \"reuse_dist\"]" \
-  --dagger_schedule_bindings=["initial=0", "update_freq=1000000000000", "final=0", "num_steps=1"] \
+  --dagger_schedule_bindings="initial=0" \
+  --dagger_schedule_bindings="update_freq=1000000000000" \
+  --dagger_schedule_bindings="final=0" \
+  --dagger_schedule_bindings="num_steps=1" \
   --model_bindings="address_embedder.max_vocab_size=5000" \
   --train_memtrace=cache_replacement/policy_learning/cache/traces/sample_trace.csv \
   --valid_memtrace=cache_replacement/policy_learning/cache/traces/sample_trace.csv
