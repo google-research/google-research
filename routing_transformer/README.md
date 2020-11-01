@@ -6,7 +6,7 @@ Code-base accompanying the [paper](https://arxiv.org/abs/2003.05997). See also
 the accompanying [slides](https://drive.google.com/file/d/1maX-UQbtnVtxQqLmHvWVN6LNYtnBaTd9/view?usp=sharing)
 for a quick overview.
 
-### Updates
+## Updates
 
 * Routing Transformer + [REALM](https://github.com/google-research/language/tree/master/language/realm)
   is now [SOTA](https://eval.ai/web/challenges/challenge-page/689/leaderboard/1908#leaderboardrank-1)
