@@ -72,6 +72,19 @@ All experiments are listed in folder "experiments". It contains:
 * [kws_experiments_35_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_35_labels.md) - models trained on [data set v2](https://arxiv.org/pdf/1804.03209.pdf) with 35 labels. It is a good example of training models on custom data.
 * [kws_experiments_12_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md) - models trained on [data set v2](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels (latest experiments with different hyperparameters).
 
+The latest experiments on speech commands V2 with 12 labels are show in below table:
+|  Model name      | accuracy [%]  | # parameters |
+| ---------------- | --------------------- | --------------------- |
+|**[ds_tc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md) <br> [MatchboxNet](https://arxiv.org/abs/2004.08531) topology **| 98.0      | 75K      |
+|**[att_mh_rnn ](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md)**| 98.3  |   750K     |
+
+The latest experiments on speech commands V2 with 35 labels are show in below table:
+|  Model name      | accuracy [%]  | # parameters |
+| ---------------- | --------------------- | --------------------- |
+|**[ds_tc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_35_labels.md) <br> [MatchboxNet](https://arxiv.org/abs/2004.08531) topology **| 96.9      | 75K      |
+
+
+
 ### Streamable and non streamable models
 
 Below we plot performance of models from kws_experiments_paper, kws_experiments_q and kws_experiments_30k. It is only a subset of the models with selected parameters. In the graphs below, model size is a size of TFLite module including both speech feature extractor and neural network.
