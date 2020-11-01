@@ -70,6 +70,9 @@ Model     | Parameters | Hparams                | Context Length | Data-set     
 - [sample5](https://docs.google.com/document/d/1XvwY8jFUGGEw3S2HzNx7gBg-9nzSRWHtQVNQAyTVuAU/edit?usp=sharing)
 - [sample6](https://docs.google.com/document/d/1RZrOI8e7n7czgA_a7Mt34ePymUFwyjEYrjohZ8aoBoc/edit?usp=sharing)
 - [sample7](https://docs.google.com/document/d/1WfSqLCAEd8W3_s3dpaLPH3JwCG3ucBiK_JsoG8q0K3U/edit?usp=sharing)
+- [sample8](https://docs.google.com/document/d/1O6KdRk5E-JWnhFmcFjiJwAEMHnprtN1ADr3JUvu65EM/edit?usp=sharing)
+- [sample9](https://docs.google.com/document/d/1ZoM2-NCC7wTaB0bsuJw5W6HFslrRmczK8lJaoKsfaps/edit?usp=sharing)
+- [sample10](https://docs.google.com/document/d/1x47B8hSRYCcOCHSLCLGctsZTWeeBFYhbbpRftAsh-Bw/edit?usp=sharing)
 
 ### Document Machine Translation (sequence length 4k):
 
