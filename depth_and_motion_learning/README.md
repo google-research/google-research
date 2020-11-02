@@ -33,3 +33,16 @@ single training example expressed in this format.
 
 `MY_IMAGENET_CHECKPOINT` is a path to a pretreained ImageNet checkpoint to
 intialize the encoder of the depth prediction model.
+
+## Citation
+If you use any part of this code in your research, please cite our
+[paper](https://arxiv.org/abs/2010.16404):
+
+```
+@article{li2020unsupervised,
+  title={Unsupervised Monocular Depth Learning in Dynamic Scenes},
+  author={Li, Hanhan and Gordon, Ariel and Zhao, Hang and Casser, Vincent and Angelova, Anelia},
+  journal={arXiv preprint arXiv:2010.16404},
+  year={2020}
+}
+```

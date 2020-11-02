@@ -1,4 +1,12 @@
 # Depth from Video in the Wild: Unsupervised Monocular Depth Learning from Unknown Cameras
+
+
+---
+A newer code release is available
+[here](https://github.com/google-research/google-research/tree/master/depth_and_motion_learning), which supports learning with highly dynamic scenes without any semantic information.
+
+---
+
 This repository contains a preliminary release of code for the paper bearing the
 title above, [published at ICCV 2019](http://openaccess.thecvf.com/content_ICCV_2019/html/Gordon_Depth_From_Videos_in_the_Wild_Unsupervised_Monocular_Depth_Learning_ICCV_2019_paper.html).
 The code is based on the Struct2depth [repository]
