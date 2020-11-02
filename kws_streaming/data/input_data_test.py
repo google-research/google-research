@@ -19,7 +19,7 @@ import os
 import numpy as np
 import tensorflow.compat.v1 as tf
 from kws_streaming.data import input_data
-from kws_streaming.train import model_flags
+from kws_streaming.models import model_flags
 tf.disable_eager_execution()
 
 
