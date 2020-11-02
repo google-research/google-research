@@ -18,7 +18,7 @@ from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
 from kws_streaming.layers import svdf
 from kws_streaming.layers.compat import tf
-from kws_streaming.models import utils
+from kws_streaming.models.utils import parse
 
 
 def model_parameters(parser_nn):
@@ -155,7 +155,7 @@ def model(flags):
         speech_features.SpeechFeatures.get_params(flags))(
             net)
 
-  blocks_pool = utils.parse(flags.blocks_pool)
+  blocks_pool = parse(flags.blocks_pool)
   if len(blocks_pool) != 3:
     raise ValueError('number of pooling blocks has to be 3, but get: ',
                      len(blocks_pool))
@@ -164,14 +164,13 @@ def model(flags):
   padding = 'causal' if flags.svdf_pad else 'valid'
 
   # first residual block
-  number_of_blocks = len(utils.parse(flags.block1_units1))
+  number_of_blocks = len(parse(flags.block1_units1))
   activations = [flags.activation] * number_of_blocks
   activations[-1] = 'linear'  # last layer is linear
   residual = net
   for i, (units1, memory_size, activation) in enumerate(
-      zip(
-          utils.parse(flags.block1_units1),
-          utils.parse(flags.block1_memory_size), activations)):
+      zip(parse(flags.block1_units1), parse(flags.block1_memory_size),
+          activations)):
     # [batch, time, feature]
     net = svdf.Svdf(
         units1=units1,
@@ -187,7 +186,7 @@ def model(flags):
             net)
 
   # number of channels in the last layer
-  units1_last = utils.parse(flags.block1_units1)[-1]
+  units1_last = parse(flags.block1_units1)[-1]
 
   # equivalent to 1x1 convolution
   residual = tf.keras.layers.Dense(units1_last, use_bias=False)(residual)
@@ -202,14 +201,13 @@ def model(flags):
           net)
 
   # second residual block
-  number_of_blocks = len(utils.parse(flags.block2_units1))
+  number_of_blocks = len(parse(flags.block2_units1))
   activations = [flags.activation] * number_of_blocks
   activations[-1] = 'linear'  # last layer is linear
   residual = net
   for i, (units1, memory_size, activation) in enumerate(
-      zip(
-          utils.parse(flags.block2_units1),
-          utils.parse(flags.block2_memory_size), activations)):
+      zip(parse(flags.block2_units1), parse(flags.block2_memory_size),
+          activations)):
     # [batch, time, feature]
     net = svdf.Svdf(
         units1=units1,
@@ -225,7 +223,7 @@ def model(flags):
             net)
 
   # number of channels in the last layer
-  units1_last = utils.parse(flags.block2_units1)[-1]
+  units1_last = parse(flags.block2_units1)[-1]
 
   # equivalent to 1x1 convolution
   residual = tf.keras.layers.Dense(units1_last, use_bias=False)(residual)
@@ -240,14 +238,13 @@ def model(flags):
           net)
 
   # third residual block
-  number_of_blocks = len(utils.parse(flags.block3_units1))
+  number_of_blocks = len(parse(flags.block3_units1))
   activations = [flags.activation] * number_of_blocks
   activations[-1] = 'linear'  # last layer is linear
   residual = net
   for i, (units1, memory_size, activation) in enumerate(
-      zip(
-          utils.parse(flags.block3_units1),
-          utils.parse(flags.block3_memory_size), activations)):
+      zip(parse(flags.block3_units1), parse(flags.block3_memory_size),
+          activations)):
     net = svdf.Svdf(
         units1=units1,
         memory_size=memory_size,
@@ -262,7 +259,7 @@ def model(flags):
             net)
 
   # number of channels in the last layer
-  units1_last = utils.parse(flags.block3_units1)[-1]
+  units1_last = parse(flags.block3_units1)[-1]
 
   # equivalent to 1x1 convolution
   residual = tf.keras.layers.Dense(units1_last, use_bias=False)(residual)
@@ -285,7 +282,7 @@ def model(flags):
   # [batch, feature]
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)
 
-  for units in utils.parse(flags.units2):
+  for units in parse(flags.units2):
     net = tf.keras.layers.Dense(units=units, activation=flags.activation)(net)
 
   net = tf.keras.layers.Dense(units=flags.label_count)(net)

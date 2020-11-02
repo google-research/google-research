@@ -17,7 +17,7 @@
 from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
 from kws_streaming.layers.compat import tf
-from kws_streaming.models import utils
+from kws_streaming.models.utils import parse
 
 
 def model_parameters(parser_nn):
@@ -211,7 +211,8 @@ def model(flags):
 
   # conv block
   for kernel_size, filters in zip(
-      utils.parse(flags.cnn1_kernel_sizes), utils.parse(flags.cnn1_filters)):
+      parse(flags.cnn1_kernel_sizes),
+      parse(flags.cnn1_filters)):
     net = tf.keras.layers.Conv2D(
         filters, (kernel_size, 1),
         use_bias=False)(net)
@@ -225,24 +226,24 @@ def model(flags):
                                        padding='valid')(
                                            net)
 
-  net = block(net, utils.parse(flags.cnn2_kernel_sizes),
-              utils.parse(flags.cnn2_filters), flags.dropout, flags.bn_scale)
+  net = block(net, parse(flags.cnn2_kernel_sizes), parse(flags.cnn2_filters),
+              flags.dropout, flags.bn_scale)
   if flags.stride2 > 1:
     net = tf.keras.layers.MaxPooling2D((3, 1),
                                        strides=(flags.stride2, 1),
                                        padding='valid')(
                                            net)
 
-  net = block(net, utils.parse(flags.cnn3_kernel_sizes),
-              utils.parse(flags.cnn3_filters), flags.dropout, flags.bn_scale)
+  net = block(net, parse(flags.cnn3_kernel_sizes), parse(flags.cnn3_filters),
+              flags.dropout, flags.bn_scale)
   if flags.stride3 > 1:
     net = tf.keras.layers.MaxPooling2D((3, 1),
                                        strides=(flags.stride3, 1),
                                        padding='valid')(
                                            net)
 
-  net = block(net, utils.parse(flags.cnn4_kernel_sizes),
-              utils.parse(flags.cnn4_filters), flags.dropout, flags.bn_scale)
+  net = block(net, parse(flags.cnn4_kernel_sizes), parse(flags.cnn4_filters),
+              flags.dropout, flags.bn_scale)
   if flags.stride4 > 1:
     net = tf.keras.layers.MaxPooling2D((3, 1),
                                        strides=(flags.stride4, 1),
@@ -252,7 +253,7 @@ def model(flags):
   net = tf.keras.layers.GlobalAveragePooling2D()(net)
   # [batch, filters]
   net = tf.keras.layers.Dropout(flags.dropout)(net)
-  for units in utils.parse(flags.units2):
+  for units in parse(flags.units2):
     net = tf.keras.layers.Dense(
         units=units, activation=None, use_bias=False)(
             net)

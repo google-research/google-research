@@ -18,7 +18,7 @@ from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
 from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
-from kws_streaming.models import utils
+from kws_streaming.models.utils import parse
 
 
 def model_parameters(parser_nn):
@@ -245,15 +245,15 @@ def model(flags):
     or if padding is not supported
   """
 
-  ds_filters = utils.parse(flags.ds_filters)
-  ds_repeat = utils.parse(flags.ds_repeat)
-  ds_kernel_size = utils.parse(flags.ds_kernel_size)
-  ds_stride = utils.parse(flags.ds_stride)
-  ds_dilation = utils.parse(flags.ds_dilation)
-  ds_residual = utils.parse(flags.ds_residual)
-  ds_pool = utils.parse(flags.ds_pool)
-  ds_padding = utils.parse(flags.ds_padding)
-  ds_filter_separable = utils.parse(flags.ds_filter_separable)
+  ds_filters = parse(flags.ds_filters)
+  ds_repeat = parse(flags.ds_repeat)
+  ds_kernel_size = parse(flags.ds_kernel_size)
+  ds_stride = parse(flags.ds_stride)
+  ds_dilation = parse(flags.ds_dilation)
+  ds_residual = parse(flags.ds_residual)
+  ds_pool = parse(flags.ds_pool)
+  ds_padding = parse(flags.ds_padding)
+  ds_filter_separable = parse(flags.ds_filter_separable)
 
   for l in (ds_repeat, ds_kernel_size, ds_stride, ds_dilation, ds_residual,
             ds_pool, ds_padding, ds_filter_separable):

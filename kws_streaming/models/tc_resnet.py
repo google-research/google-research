@@ -17,7 +17,7 @@
 from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
 from kws_streaming.layers.compat import tf
-from kws_streaming.models import utils
+from kws_streaming.models.utils import parse
 
 
 def model_parameters(parser_nn):
@@ -124,7 +124,7 @@ def model(flags):
 
   time_size, feature_size = net.shape[1:3]
 
-  channels = utils.parse(flags.channels)
+  channels = parse(flags.channels)
 
   net = tf.keras.backend.expand_dims(net)
 
@@ -134,7 +134,7 @@ def model(flags):
     net = tf.reshape(
         net, [-1, time_size, 1, feature_size])  # [batch, time, 1, feature]
     first_conv_kernel = (3, 1)
-    conv_kernel = utils.parse(flags.kernel_size)
+    conv_kernel = parse(flags.kernel_size)
 
   net = tf.keras.layers.Conv2D(
       filters=channels[0],
@@ -151,9 +151,9 @@ def model(flags):
           net)
   net = tf.keras.layers.Activation('relu')(net)
 
-  if utils.parse(flags.pool_size):
+  if parse(flags.pool_size):
     net = tf.keras.layers.AveragePooling2D(
-        pool_size=utils.parse(flags.pool_size), strides=flags.pool_stride)(
+        pool_size=parse(flags.pool_size), strides=flags.pool_stride)(
             net)
 
   channels = channels[1:]

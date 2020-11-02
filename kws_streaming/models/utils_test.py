@@ -22,10 +22,10 @@ import numpy as np
 from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
-from kws_streaming.models import model_flags
 from kws_streaming.models import model_params
 from kws_streaming.models import models
 from kws_streaming.models import utils
+from kws_streaming.train import model_flags
 tf1.disable_eager_execution()
 
 FLAGS = flags.FLAGS
@@ -132,19 +132,16 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
 
     # convert TF non streaming model to TFLite streaming inference
     # with external states
-    self.assertTrue(
-        utils.model_to_tflite(self.sess, model, params,
-                              modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE))
+    self.assertTrue(utils.model_to_tflite(
+        self.sess, model, params, modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE))
 
     # convert TF non streaming model to TF streaming with external states
-    self.assertTrue(
-        utils.to_streaming_inference(
-            model, params, modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE))
+    self.assertTrue(utils.to_streaming_inference(
+        model, params, modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE))
 
     # convert TF non streaming model to TF streaming with internal states
-    self.assertTrue(
-        utils.to_streaming_inference(
-            model, params, modes.Modes.STREAM_INTERNAL_STATE_INFERENCE))
+    self.assertTrue(utils.to_streaming_inference(
+        model, params, modes.Modes.STREAM_INTERNAL_STATE_INFERENCE))
 
   def test_model_to_saved(self, model_name='dnn'):
     """SavedModel supports both stateless and stateful graphs."""
@@ -178,15 +175,21 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
       'svdf',
   )
   def test_external_streaming_shapes(self, model_name):
-    model = utils.get_model_with_default_params(
-        model_name, mode=modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE)
+    params = model_params.HOTWORD_MODEL_PARAMS[model_name]
+    params = model_flags.update_flags(params)
+    model = models.MODELS[params.model_name](params)
+    external_model = utils.to_streaming_inference(
+        model, params, modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE)
 
     # The first 'n' inputs correspond to the 'n' inputs that the model takes
     # in non-streaming mode. The rest of the input tensors represent the
     # internal states for each layer in the model.
-    inputs = [np.zeros(shape, dtype=np.float32) for shape in model.input_shapes]
-    outputs = model.predict(inputs)
-    for output, expected_shape in zip(outputs, model.output_shapes):
+    inputs = [
+        np.zeros(shape, dtype=np.float32)
+        for shape in external_model.input_shapes
+    ]
+    outputs = external_model.predict(inputs)
+    for output, expected_shape in zip(outputs, external_model.output_shapes):
       self.assertEqual(output.shape, expected_shape)
 
 

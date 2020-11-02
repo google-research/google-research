@@ -18,7 +18,7 @@ from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
 from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
-from kws_streaming.models import utils
+from kws_streaming.models.utils import parse
 
 
 def model_parameters(parser_nn):
@@ -177,11 +177,11 @@ def model(flags):
 
   net = stream.Stream(
       cell=tf.keras.layers.Conv2D(
-          kernel_size=utils.parse(flags.cnn1_kernel_size),
-          dilation_rate=utils.parse(flags.cnn1_dilation_rate),
+          kernel_size=parse(flags.cnn1_kernel_size),
+          dilation_rate=parse(flags.cnn1_dilation_rate),
           filters=flags.cnn1_filters,
           padding=flags.cnn1_padding,
-          strides=utils.parse(flags.cnn1_strides)))(
+          strides=parse(flags.cnn1_strides)))(
               net)
   net = tf.keras.layers.BatchNormalization(
       momentum=flags.bn_momentum,
@@ -192,9 +192,9 @@ def model(flags):
   net = tf.keras.layers.Activation('relu')(net)
 
   for kernel_size, dw2_act, dilation_rate, strides, filters, cnn2_act in zip(
-      utils.parse(flags.dw2_kernel_size), utils.parse(flags.dw2_act),
-      utils.parse(flags.dw2_dilation_rate), utils.parse(flags.dw2_strides),
-      utils.parse(flags.cnn2_filters), utils.parse(flags.cnn2_act)):
+      parse(flags.dw2_kernel_size), parse(flags.dw2_act),
+      parse(flags.dw2_dilation_rate), parse(flags.dw2_strides),
+      parse(flags.cnn2_filters), parse(flags.cnn2_act)):
     net = stream.Stream(
         cell=tf.keras.layers.DepthwiseConv2D(
             kernel_size=kernel_size,
