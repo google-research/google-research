@@ -19,7 +19,7 @@ from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
 from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
-from kws_streaming.models.utils import parse
+from kws_streaming.models import utils
 
 
 def model_parameters(parser_nn):
@@ -104,8 +104,8 @@ def model(flags):
             net)
 
   for units, return_sequences, num_proj in zip(
-      parse(flags.lstm_units), parse(flags.return_sequences),
-      parse(flags.num_proj)):
+      utils.parse(flags.lstm_units), utils.parse(flags.return_sequences),
+      utils.parse(flags.num_proj)):
     net = lstm.LSTM(
         units=units,
         return_sequences=return_sequences,
@@ -117,7 +117,8 @@ def model(flags):
   net = stream.Stream(cell=tf.keras.layers.Flatten())(net)
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)
 
-  for units, activation in zip(parse(flags.units1), parse(flags.act1)):
+  for units, activation in zip(
+      utils.parse(flags.units1), utils.parse(flags.act1)):
     net = tf.keras.layers.Dense(units=units, activation=activation)(net)
 
   net = tf.keras.layers.Dense(units=flags.label_count)(net)

@@ -20,7 +20,7 @@ import numpy as np
 from kws_streaming.layers import data_frame
 from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
-from kws_streaming.train import model_flags
+from kws_streaming.models import model_flags
 
 
 def set_seed(seed):

@@ -17,7 +17,7 @@
 from kws_streaming.layers import data_frame
 from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
-from kws_streaming.models.utils import parse
+from kws_streaming.models import utils
 
 
 def model_parameters(parser_nn):
@@ -90,7 +90,8 @@ def model(flags):
       frame_step=flags.window_stride_samples)(
           input_audio)
 
-  for units, activation in zip(parse(flags.units1), parse(flags.act1)):
+  for units, activation in zip(
+      utils.parse(flags.units1), utils.parse(flags.act1)):
     net = tf.keras.layers.Dense(units=units, activation=activation)(net)
 
   net = stream.Stream(cell=tf.keras.layers.Flatten())(net)
@@ -109,7 +110,8 @@ def model(flags):
 
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)
 
-  for units, activation in zip(parse(flags.units2), parse(flags.act2)):
+  for units, activation in zip(
+      utils.parse(flags.units2), utils.parse(flags.act2)):
     net = tf.keras.layers.Dense(units=units, activation=activation)(net)
 
   net = tf.keras.layers.Dense(units=flags.label_count)(net)

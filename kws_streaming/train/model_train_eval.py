@@ -107,6 +107,8 @@ import sys
 from absl import logging
 import tensorflow.compat.v1 as tf
 from kws_streaming.layers import modes
+from kws_streaming.models import model_flags
+from kws_streaming.models import utils
 import kws_streaming.models.att_mh_rnn as att_mh_rnn
 import kws_streaming.models.att_rnn as att_rnn
 import kws_streaming.models.cnn as cnn
@@ -124,10 +126,8 @@ import kws_streaming.models.mobilenet_v2 as mobilenet_v2
 import kws_streaming.models.svdf as svdf
 import kws_streaming.models.svdf_resnet as svdf_resnet
 import kws_streaming.models.tc_resnet as tc_resnet
-from kws_streaming.models.utils import parse
 import kws_streaming.models.xception as xception
 from kws_streaming.train import base_parser
-from kws_streaming.train import model_flags
 from kws_streaming.train import train
 import kws_streaming.train.test as test
 
@@ -212,14 +212,14 @@ def main(_):
     # below models can use striding in time dimension,
     # but this is currently unsupported
     elif flags.model_name == 'cnn':
-      for strides in parse(flags.cnn_strides):
+      for strides in utils.parse(flags.cnn_strides):
         if strides[0] > 1:
           model_is_streamable = False
           break
     elif flags.model_name == 'ds_cnn':
-      if parse(flags.cnn1_strides)[0] > 1:
+      if utils.parse(flags.cnn1_strides)[0] > 1:
         model_is_streamable = False
-      for strides in parse(flags.dw2_strides):
+      for strides in utils.parse(flags.dw2_strides):
         if strides[0] > 1:
           model_is_streamable = False
           break

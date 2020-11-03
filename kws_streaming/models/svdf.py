@@ -19,7 +19,7 @@ from kws_streaming.layers import speech_features
 from kws_streaming.layers import stream
 from kws_streaming.layers import svdf
 from kws_streaming.layers.compat import tf
-from kws_streaming.models.utils import parse
+from kws_streaming.models import utils
 
 
 def model_parameters(parser_nn):
@@ -111,9 +111,9 @@ def model(flags):
 
   for i, (units1, memory_size, units2, dropout, activation) in enumerate(
       zip(
-          parse(flags.svdf_units1), parse(flags.svdf_memory_size),
-          parse(flags.svdf_units2), parse(flags.svdf_dropout),
-          parse(flags.svdf_act))):
+          utils.parse(flags.svdf_units1), utils.parse(flags.svdf_memory_size),
+          utils.parse(flags.svdf_units2), utils.parse(flags.svdf_dropout),
+          utils.parse(flags.svdf_act))):
     net = svdf.Svdf(
         units1=units1,
         memory_size=memory_size,
@@ -127,7 +127,8 @@ def model(flags):
   net = stream.Stream(cell=tf.keras.layers.Flatten())(net)
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)
 
-  for units, activation in zip(parse(flags.units2), parse(flags.act2)):
+  for units, activation in zip(
+      utils.parse(flags.units2), utils.parse(flags.act2)):
     net = tf.keras.layers.Dense(units=units, activation=activation)(net)
 
   net = tf.keras.layers.Dense(units=flags.label_count)(net)
