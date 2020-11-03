@@ -35,7 +35,6 @@ Main changes:
 - Included various evaluation metrics
 - Included evaluation as part of training
 - Included sentiment-based regularization (manually defined)
-- Included entailment-based regularization (manually defined)
 - Included correlation-based regularization (based on training data)
 """
 
@@ -146,9 +145,6 @@ flags.DEFINE_string(
 flags.DEFINE_float("sentiment", 0,
                    "Regularization parameter for sentiment relations.")
 
-flags.DEFINE_float("entailment", 0,
-                   "Regularization parameter for entailment relations.")
-
 flags.DEFINE_float("correlation", 0,
                    "Regularization parameter for emotion correlations.")
 
@@ -166,9 +162,6 @@ flags.DEFINE_integer("eval_steps", None,
 
 flags.DEFINE_string("sentiment_file", "sentiment_dict.json",
                     "Dictionary of sentiment categories.")
-
-flags.DEFINE_string("entailment_file", "entailment_dict.json",
-                    "Dictionary of entailments.")
 
 flags.DEFINE_string(
     "emotion_correlations", None,
@@ -408,7 +401,7 @@ def file_based_input_fn_builder(input_file, seq_length, is_training,
 
 def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
                  labels, num_labels, multilabel, sent_rels, sentiment,
-                 entailment_rels, entailment, corr_rels, correlation):
+                 corr_rels, correlation):
   """Creates a classification model."""
   model = modeling.BertModel(
       config=bert_config,
@@ -479,14 +472,6 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
     tf.summary.scalar("sentiment_regularization", sent_reg)
     loss += sent_reg
 
-    # Entailment-based regularization
-    ent_reg = tf.multiply(
-        tf.constant(entailment),
-        tf.reduce_mean(
-            tf.multiply(dists, tf.constant(entailment_rels, dtype=tf.float32))))
-    tf.summary.scalar("entailment_regularization", ent_reg)
-    loss += ent_reg
-
     # Correlation-based regularization
     corr_reg = tf.multiply(
         tf.constant(correlation),
@@ -502,9 +487,8 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 
 def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                      num_train_steps, num_warmup_steps, multilabel, sent_rels,
-                     sentiment, entailment_rels, entailment, corr_rels,
-                     correlation, idx2emotion, sentiment_groups,
-                     intensity_groups):
+                     sentiment, corr_rels, correlation, idx2emotion,
+                     sentiment_groups):
   """Returns `model_fn` closure for Estimator."""
 
   def model_fn(features, labels, mode, params):  # pylint: disable=unused-argument
@@ -523,8 +507,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
 
     (total_loss, per_example_loss, logits, probabilities) = create_model(
         bert_config, is_training, input_ids, input_mask, segment_ids, label_ids,
-        num_labels, multilabel, sent_rels, sentiment, entailment_rels,
-        entailment, corr_rels, correlation)
+        num_labels, multilabel, sent_rels, sentiment, corr_rels, correlation)
 
     tvars = tf.trainable_variables()
     initialized_variable_names = {}
@@ -665,11 +648,6 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                                   tf.constant(sentiment_groups, dtype=tf.int64),
                                   "sentiment")
 
-        # Calculate emotion-intensity based performance
-        get_relation_based_scores(label_ids, pred_ind,
-                                  tf.constant(intensity_groups, dtype=tf.int64),
-                                  "emotion_intensity")
-
       if multilabel:
         metric_fn_multi(per_example_loss, label_ids, probabilities)
       else:
@@ -716,22 +694,6 @@ def get_sent_rels(emotions):
   return rels
 
 
-def get_entailment_rels(emotions):
-  """Entailment relations between emotions."""
-  with open(FLAGS.entailment_file) as f:
-    entailments = json.loads(f.read())
-  rels = []
-  for e1 in emotions:
-    e1_rels = []
-    for e2 in emotions:
-      if e1 in entailments and e2 in entailments[e1]:
-        e1_rels.append(1)
-      else:
-        e1_rels.append(0)
-    rels.append(e1_rels)
-  return rels
-
-
 def get_correlations(emotions):
   """Get correlations between emotions based training data."""
   corrs = pd.read_csv(FLAGS.emotion_correlations, index_col=0, sep="\t")
@@ -747,22 +709,6 @@ def get_correlations(emotions):
         else:
           e1_rels.append(corrs.loc[e1, e2])
       rels.append(e1_rels)
-  return rels
-
-
-def get_intensity_groups(emotions):
-  """Get emotion-intensity groups for evaluating intensity-based performance."""
-  with open(FLAGS.entailment_file) as f:
-    entailments = json.loads(f.read())
-  rels = []
-  for k, v in entailments.items():
-    grouped_labels = []
-    for e in emotions:
-      if e == k or e in v:
-        grouped_labels.append(1)
-      else:
-        grouped_labels.append(0)
-    rels.append(grouped_labels)
   return rels
 
 
@@ -796,7 +742,6 @@ def main(_):
   print("Multilabel: %r" % FLAGS.multilabel)
 
   sentiment = FLAGS.sentiment
-  entailment = FLAGS.entailment
   correlation = FLAGS.correlation
 
   # Create emotion distance matrix
@@ -809,12 +754,6 @@ def main(_):
     sent_rels = get_sent_rels(all_emotions)
   sent_groups = get_sentiment_groups(all_emotions)
   print(sent_rels)
-  if entailment == 0:
-    entailment_rels = empty_rels
-  else:
-    entailment_rels = get_entailment_rels(all_emotions)
-  intensity_groups = get_intensity_groups(all_emotions)
-  print(entailment_rels)
   if correlation == 0:
     corr_rels = empty_rels
   else:
@@ -868,7 +807,6 @@ def main(_):
         "num_train_epochs": FLAGS.num_train_epochs,
         "warmup_proportion": FLAGS.warmup_proportion,
         "sentiment": FLAGS.sentiment,
-        "entailment": FLAGS.entailment,
         "correlations": FLAGS.correlation,
         "batch_size": FLAGS.train_batch_size,
         "num_train_examples": len(train_examples),
@@ -892,13 +830,10 @@ def main(_):
       multilabel=FLAGS.multilabel,
       sent_rels=sent_rels,
       sentiment=sentiment,
-      entailment_rels=entailment_rels,
-      entailment=entailment,
       corr_rels=corr_rels,
       correlation=correlation,
       idx2emotion=idx2emotion,
-      sentiment_groups=sent_groups,
-      intensity_groups=intensity_groups)
+      sentiment_groups=sent_groups)
 
   estimator = tf.estimator.Estimator(
       model_fn=model_fn,
