@@ -168,11 +168,11 @@ class FSAAccuracyTest(absltest.TestCase):
 
   def test_attention_speed(self):
 
-    fast = False
-    mode = "forward"  # 'forward', 'backward'
+    fast = True
+    mode = "backward"  # 'forward', 'backward'
     jit = True
-    length = 1024
-    batch_size = 1
+    length = 256
+    batch_size = 2
     qk_dim = 64
     sample_number = 10
     num_heads = 1
