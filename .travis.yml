@@ -46,7 +46,6 @@ env:
     - PROJECT="graph_embedding/dmon"
     - PROJECT="graph_embedding/slaq"
     - PROJECT="graph_embedding/watch_your_step"
-    - PROJECT="grouptesting"
     - PROJECT="hmc_swindles"
     - PROJECT="igt_optimizer"
     - PROJECT="jax_dft"
