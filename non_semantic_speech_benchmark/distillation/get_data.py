@@ -79,6 +79,48 @@ def get_data(
 
   return ds
 
+def get_precomputed_data(
+    file_pattern,
+    output_dimension,
+    frontend_key,
+    target_key,
+    batch_size,
+    num_epochs,
+    shuffle_buffer_size):
+  """
+  Gets precomputed frontend features and targets for TRILL distillation.
+  This function is *always* stochastic.
+
+  Args:
+    file_pattern: Glob for input data.
+    output_dimension: Feature dimension of teacher output.
+    frontend_key: Name of frontend features in tf.Examples.
+    target_key: Name of targets (i.e. teacher model outputs) in tf.Examples.
+    batch_size: Batch size of data in returned tf.data.Dataset.
+    num_epochs: Number of training epochs.
+    shuffle_buffer_size: Size of dataset shuffle buffer.
+
+  Returns:
+    A tf.data.Dataset of (frontend features, regression targets).
+  """
+  def _parse_examples(record):
+    feature_description = {
+      frontend_key: tf.io.FixedLenFeature([int(96 * 64)], tf.float32),
+      target_key: tf.io.FixedLenFeature([output_dimension], tf.float32),
+    }
+    example = tf.io.parse_example(record, feature_description)
+    return tf.reshape(example['audio'], (96, 64)), example['label']
+
+  options = tf.data.Options()
+  options.experimental_deterministic = False
+  files_ds = tf.data.Dataset.list_files(file_pattern).with_options(options)
+  return tf.data.TFRecordDataset(files_ds)\
+    .map(lambda x: _parse_examples(x))\
+    .batch(batch_size, drop_remainder=True)\
+    .shuffle(shuffle_buffer_size, reshuffle_each_iteration=True)\
+    .repeat(num_epochs)\
+    .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+
 
 def tf_data_pipeline(ds, teacher_fn, samples_key, min_length, batch_size,
                      output_dimension):
