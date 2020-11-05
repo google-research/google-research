@@ -24,6 +24,8 @@ DFT calculations and the Kohn-Sham regularier is implemented with JAX-DFT.
 
 You can train a neural XC functional with Kohn-Sham regularier in this colab [demo](https://colab.research.google.com/github/google-research/google-research/blob/master/jax_dft/examples/training_neural_xc_functional.ipynb).
 
+![](http://storage.googleapis.com/gresearch/jax_dft/demo-loop.gif)
+
 ## Installation
 
 Clone this repository and install in-place:
