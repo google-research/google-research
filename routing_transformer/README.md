@@ -13,7 +13,11 @@ for a quick overview.
   on long form Question Answering (QA) on the
   [ELI5 data-set](https://github.com/facebookresearch/ELI5) on the Knowledge
   Intensive Language Tasks (KILT) [benchmark](https://github.com/facebookresearch/KILT)
-  from [Facebook AI](https://ai.facebook.com/blog/introducing-kilt-a-new-unified-benchmark-for-knowledge-intensive-nlp-tasks/).
+  from [Facebook AI](https://ai.facebook.com/blog/introducing-kilt-a-new-unified-benchmark-for-knowledge-intensive-nlp-tasks/),
+  with **significant improvements** in generation quality over [BART](https://arxiv.org/abs/1910.13461),
+  [RAG](https://ai.facebook.com/blog/retrieval-augmented-generation-streamlining-the-creation-of-intelligent-natural-language-processing-models/),
+  [T5](https://arxiv.org/abs/1910.10683), e.g., **+4.11 Rouge-L improvement** 
+  over `T5-base`.
 
 ## Pre-trained Checkpoint
 
