@@ -45,22 +45,20 @@ class L2R(BaseModel):
       self.ema = tf.train.ExponentialMovingAverage(0.999, self.global_step)
 
   def set_input(self):
-    with self.strategy.scope():
+    train_ds = self.dataset.train_dataflow.shuffle(
+        buffer_size=self.batch_size*10).repeat().batch(
+            self.batch_size, drop_remainder=True).prefetch(
+                buffer_size=tf.data.experimental.AUTOTUNE)
+    probe_ds = self.dataset.probe_dataflow.repeat().batch(
+        self.batch_size, drop_remainder=True).prefetch(
+            buffer_size=tf.data.experimental.AUTOTUNE)
+    val_ds = self.dataset.val_dataflow.batch(
+        FLAGS.val_batch_size, drop_remainder=True).prefetch(
+            buffer_size=tf.data.experimental.AUTOTUNE)
 
-      train_ds = self.dataset.train_dataflow.shuffle(
-          buffer_size=self.batch_size*10).repeat().batch(
-              self.batch_size, drop_remainder=True).prefetch(
-                  buffer_size=tf.data.experimental.AUTOTUNE)
-      probe_ds = self.dataset.probe_dataflow.repeat().batch(
-          self.batch_size, drop_remainder=True).prefetch(
-              buffer_size=tf.data.experimental.AUTOTUNE)
-      val_ds = self.dataset.val_dataflow.batch(
-          FLAGS.val_batch_size, drop_remainder=True).prefetch(
-              buffer_size=tf.data.experimental.AUTOTUNE)
-
-      joint_ds = tf.data.Dataset.zip((train_ds, probe_ds))
-      self.train_input_iterator = self.strategy.make_dataset_iterator(joint_ds)
-      self.eval_input_iterator = self.strategy.make_dataset_iterator(val_ds)
+    joint_ds = tf.data.Dataset.zip((train_ds, probe_ds))
+    self.train_input_iterator = self.strategy.make_dataset_iterator(joint_ds)
+    self.eval_input_iterator = self.strategy.make_dataset_iterator(val_ds)
 
   def set_dataset(self, dataset):
     with self.strategy.scope():
@@ -145,9 +143,9 @@ class L2R(BaseModel):
       self.sess.run([
           tf.local_variables_initializer(),
           tf.global_variables_initializer(),
-          self.train_input_iterator.initialize()
+          self.train_input_iterator.initializer
       ])
-      self.sess.run([self.eval_input_iterator.initialize()])
+      self.sess.run([self.eval_input_iterator.initializer])
       iter_epoch = self.iter_epoch
 
       self.saver = tf.train.Saver(max_to_keep=4)
@@ -156,7 +154,7 @@ class L2R(BaseModel):
         FLAGS.restore_step = self.global_step.eval()
 
       pbar = tqdm(total=(FLAGS.max_iteration - FLAGS.restore_step))
-      tf.logging.info('>>>>> Starts to train')
+      tf.logging.info('Starts to train')
       for iteration in range(FLAGS.restore_step + 1, FLAGS.max_iteration + 1):
         self.update_learning_rate(iteration)
         lr, net_loss, meta_loss, acc, meta_acc,\
@@ -251,6 +249,11 @@ class L2R(BaseModel):
         self.global_step / self.iter_epoch, tf.float32, name='epoch')
     merges.append(tf.summary.scalar('epoch', self.epoch_var))
     merges.append(tf.summary.scalar('learningrate', self.learning_rate))
+    merges.append(
+        tf.summary.scalar('acc/eval_on_train', self.eval_acc_on_train[0]))
+    merges.append(
+        tf.summary.scalar('acc/eval_on_train_top5', self.eval_acc_on_train[1]))
+    merges.append(tf.summary.scalar('acc/num_eval', self.eval_acc_on_train[2]))
     summary = tf.summary.merge(merges)
 
     return [net_loss, meta_loss, mean_acc, mean_metaacc, summary, weights]

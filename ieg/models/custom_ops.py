@@ -19,7 +19,6 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-from tensorflow import contrib
 import tensorflow.compat.v1 as tf
 
 
@@ -67,39 +66,32 @@ def zero_pad(inputs, in_filter, out_filter):
   return outputs
 
 
-@contrib.framework.add_arg_scope
 def batch_norm(inputs,
-               decay=0.999,
+               is_training,
+               decay=0.9,
                center=True,
-               scale=False,
-               epsilon=0.001,
-               is_training=True,
+               scale=True,
+               epsilon=1e-5,
                reuse=None,
                scope=None):
-  """Small wrapper around tf.contrib.layers.batch_norm."""
-  return contrib.layers.batch_norm(
+  """Small wrapper around batch_norm."""
+  return tf.layers.batch_normalization(
       inputs,
-      decay=decay,
+      momentum=decay,
       center=center,
       scale=scale,
       epsilon=epsilon,
-      activation_fn=None,
-      param_initializers=None,
-      updates_collections=tf.GraphKeys.UPDATE_OPS,
-      is_training=is_training,
+      training=is_training,
       reuse=reuse,
       trainable=True,
       fused=True,
-      data_format='NHWC',
-      zero_debias_moving_mean=False,
-      scope=scope)
+      name=scope)
 
 
 def stride_arr(stride_h, stride_w):
   return [1, stride_h, stride_w, 1]
 
 
-@contrib.framework.add_arg_scope
 def conv2d(inputs,
            num_filters_out,
            kernel_size,
@@ -142,7 +134,6 @@ def conv2d(inputs,
     return outputs
 
 
-@contrib.framework.add_arg_scope
 def fc(inputs, num_units_out, scope=None, reuse=None):
   """Creates a fully connected layer applied to `inputs`.
 
@@ -184,7 +175,6 @@ def fc(inputs, num_units_out, scope=None, reuse=None):
     return outputs
 
 
-@contrib.framework.add_arg_scope
 def avg_pool(inputs, kernel_size, stride=2, padding='VALID', scope=None):
   """Wrapper around tf.nn.avg_pool."""
   with tf.name_scope(scope, 'AvgPool', [inputs]):

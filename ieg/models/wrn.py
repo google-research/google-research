@@ -26,7 +26,6 @@ from ieg.models.custom_ops import decay_weights
 from ieg.models.networks import StrategyNetBase
 
 import numpy as np
-from tensorflow import contrib
 import tensorflow.compat.v1 as tf
 
 
@@ -34,6 +33,7 @@ def residual_block(x,
                    in_filter,
                    out_filter,
                    stride,
+                   is_training,
                    activate_before_residual=False):
   """Adds residual connection to `x` in addition to applying BN->ReLU->3x3 Conv.
 
@@ -42,6 +42,7 @@ def residual_block(x,
     in_filter: Number of filters `x` has.
     out_filter: Number of filters that the output of this layer will have.
     stride: Integer that specified what stride should be applied to `x`.
+    is_training: Bool for training mode.
     activate_before_residual: Boolean on whether a BN->ReLU should be applied to
       x before the convolution is applied.
 
@@ -52,7 +53,7 @@ def residual_block(x,
 
   if activate_before_residual:  # Pass up RELU and BN activation for resnet
     with tf.variable_scope('shared_activation'):
-      x = ops.batch_norm(x, scope='init_bn')
+      x = ops.batch_norm(x, scope='init_bn', is_training=is_training)
       x = tf.nn.relu(x)
       orig_x = x
   else:
@@ -61,14 +62,15 @@ def residual_block(x,
   block_x = x
   if not activate_before_residual:
     with tf.variable_scope('residual_only_activation'):
-      block_x = ops.batch_norm(block_x, scope='init_bn')
+      block_x = ops.batch_norm(
+          block_x, scope='init_bn', is_training=is_training)
       block_x = tf.nn.relu(block_x)
 
   with tf.variable_scope('sub1'):
     block_x = ops.conv2d(block_x, out_filter, 3, stride=stride, scope='conv1')
 
   with tf.variable_scope('sub2'):
-    block_x = ops.batch_norm(block_x, scope='bn2')
+    block_x = ops.batch_norm(block_x, scope='bn2', is_training=is_training)
     block_x = tf.nn.relu(block_x)
     block_x = ops.conv2d(block_x, out_filter, 3, stride=1, scope='conv2')
 
@@ -102,31 +104,6 @@ def _res_add(in_filter, out_filter, stride, x, orig_x):
   x = x + orig_x
   orig_x = x
   return x, orig_x
-
-
-def setup_arg_scopes(is_training):
-  """Sets up the argscopes that will be used when building an image model.
-
-  Args:
-    is_training: Is the model training or not.
-
-  Returns:
-    Arg scopes to be put around the model being constructed.
-  """
-  arg_scope = contrib.framework.arg_scope
-
-  batch_norm_decay = 0.9
-  batch_norm_epsilon = 1e-5
-  batch_norm_params = {
-      # Decay for the moving averages.
-      'decay': batch_norm_decay,
-      # epsilon to prevent 0s in variance.
-      'epsilon': batch_norm_epsilon,
-      'scale': True,
-      # collection containing the moving mean and moving variance.
-      'is_training': is_training,
-  }
-  return arg_scope([ops.batch_norm], **batch_norm_params)
 
 
 class WRN(StrategyNetBase):
@@ -170,51 +147,50 @@ class WRN(StrategyNetBase):
     ]
     strides = [1, 2, 2]  # stride for each resblock
 
-    # scopes = setup_arg_scopes(training)
-    # with contextlib.nested(*scopes):
-    with setup_arg_scopes(training):
-      with tf.variable_scope(name, reuse=reuse, custom_getter=custom_getter):
+    with tf.variable_scope(name, reuse=reuse, custom_getter=custom_getter):
 
-        # Run the first conv
-        with tf.variable_scope('init'):
-          x = images
-          output_filters = filters[0]
-          x = ops.conv2d(x, output_filters, filter_size, scope='init_conv')
+      # Run the first conv
+      with tf.variable_scope('init'):
+        x = images
+        output_filters = filters[0]
+        x = ops.conv2d(x, output_filters, filter_size, scope='init_conv')
 
-        first_x = x  # Res from the beginning
-        orig_x = x  # Res from previous block
+      first_x = x  # Res from the beginning
+      orig_x = x  # Res from previous block
 
-        for block_num in range(1, 4):
-          with tf.variable_scope('unit_{}_0'.format(block_num)):
-            activate_before_residual = True if block_num == 1 else False
+      for block_num in range(1, 4):
+        with tf.variable_scope('unit_{}_0'.format(block_num)):
+          activate_before_residual = True if block_num == 1 else False
+          x = residual_block(
+              x,
+              filters[block_num - 1],
+              filters[block_num],
+              strides[block_num - 1],
+              activate_before_residual=activate_before_residual,
+              is_training=training)
+        for i in range(1, num_blocks_per_resnet):
+          with tf.variable_scope('unit_{}_{}'.format(block_num, i)):
             x = residual_block(
                 x,
-                filters[block_num - 1],
                 filters[block_num],
-                strides[block_num - 1],
-                activate_before_residual=activate_before_residual)
-          for i in range(1, num_blocks_per_resnet):
-            with tf.variable_scope('unit_{}_{}'.format(block_num, i)):
-              x = residual_block(
-                  x,
-                  filters[block_num],
-                  filters[block_num],
-                  1,
-                  activate_before_residual=False)
-          x, orig_x = _res_add(filters[block_num - 1], filters[block_num],
-                               strides[block_num - 1], x, orig_x)
-        final_stride_val = np.prod(strides)
-        x, _ = _res_add(filters[0], filters[3], final_stride_val, x, first_x)
-        with tf.variable_scope('unit_last'):
-          x = ops.batch_norm(x, scope='final_bn')
-          x = tf.nn.relu(x)
-          x = ops.global_avg_pool(x)
-          logits = ops.fc(x, num_classes)
+                filters[block_num],
+                1,
+                activate_before_residual=False,
+                is_training=training)
+        x, orig_x = _res_add(filters[block_num - 1], filters[block_num],
+                             strides[block_num - 1], x, orig_x)
+      final_stride_val = np.prod(strides)
+      x, _ = _res_add(filters[0], filters[3], final_stride_val, x, first_x)
+      with tf.variable_scope('unit_last'):
+        x = ops.batch_norm(x, scope='final_bn', is_training=training)
+        x = tf.nn.relu(x)
+        x = ops.global_avg_pool(x)
+        logits = ops.fc(x, num_classes)
 
-        if not isinstance(reuse, bool) or not reuse:
-          self.regularization_loss = decay_weights(
-              self.wd,
-              utils.get_var(tf.trainable_variables(), name))
-          self.init(name, with_name='moving', outputs=logits)
-          self.count_parameters(name)
+      if not isinstance(reuse, bool) or not reuse:
+        self.regularization_loss = decay_weights(
+            self.wd,
+            utils.get_var(tf.trainable_variables(), name))
+        self.init(name, with_name='moving', outputs=logits)
+        self.count_parameters(name)
     return logits

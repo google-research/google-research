@@ -19,10 +19,8 @@ from __future__ import division
 from __future__ import print_function
 
 from absl import flags
-
+from ieg.models.cifar10_resnet import resnet_model_fn
 from ieg.models.networks import StrategyNetBase
-from ieg.third_party.cifar10_resnet import resnet_model_fn
-
 import tensorflow.compat.v1 as tf
 
 FLAGS = flags.FLAGS
