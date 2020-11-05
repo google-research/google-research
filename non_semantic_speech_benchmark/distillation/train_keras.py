@@ -72,6 +72,9 @@ flags.DEFINE_integer('training_steps', 1000,
 flags.DEFINE_integer('measurement_store_interval', 10,
                      'The number of steps between storing objective value in '
                      'measurements.')
+flags.DEFINE_integer('checkpoint_max_to_keep', None,
+                     'Number of previous checkpoints to save to disk.'
+                     'Default (None) is to store all checkpoints.')
 flags.DEFINE_integer('num_epochs', 50, 'Number of epochs to train for.')
 flags.DEFINE_alias('e' ,'num_epochs')
 
@@ -132,7 +135,7 @@ def train_and_report(debug=False):
   global_step = opt.iterations
   checkpoint = tf.train.Checkpoint(model=model, global_step=global_step)
   manager = tf.train.CheckpointManager(
-      checkpoint, FLAGS.logdir, max_to_keep=None)
+      checkpoint, FLAGS.logdir, max_to_keep=FLAGS.checkpoint_max_to_keep)
   logging.info('Checkpoint prefix: %s', FLAGS.logdir)
   checkpoint.restore(manager.latest_checkpoint)
 
