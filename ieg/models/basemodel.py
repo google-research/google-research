@@ -1,29 +1,16 @@
 # coding=utf-8
-# Copyright 2019 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """BaseModel that implements basics to support training pipeline."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 import os
-from absl import flags
 
+from absl import flags
 from ieg import utils
 from ieg.models import resnet
+from ieg.models import resnet50
 from ieg.models import wrn
-
 import numpy as np
 import tensorflow.compat.v1 as tf
 from tqdm import tqdm
@@ -36,7 +23,7 @@ logging = tf.logging
 def create_network(name, num_classes):
   """Creates networks."""
   net = None
-  logging.info('create network [{}] ...'.format(name))
+  logging.info('Create network [{}] ...'.format(name))
 
   if name == 'resnet29':
     net = resnet.ResNet(depth=29, num_classes=num_classes)
@@ -44,6 +31,10 @@ def create_network(name, num_classes):
     net = wrn.WRN(
         num_classes=num_classes,
         wrn_size=160)
+  elif name == 'resnet50':
+    net = resnet50.ImagenetModelv2(
+        num_classes=num_classes,
+        weight_decay_rate=0.0004)
   else:
     raise ValueError('{} net is not implemented'.format(name))
   return net
@@ -135,9 +126,11 @@ class Trainer(object):
             strategy.num_replicas_in_sync))
     FLAGS.batch_size *= strategy.num_replicas_in_sync
     self.iter_epoch = self.dataset.train_dataset_size // FLAGS.batch_size
-    self.decay_steps = [int(a) for a in FLAGS.decay_steps.split(',')]
+    if FLAGS.lr_schedule == 'cosine':
+      self.decay_steps = [self.iter_epoch]
+    else:
+      self.decay_steps = [int(a) for a in FLAGS.decay_steps.split(',')]
     FLAGS.val_batch_size *= strategy.num_replicas_in_sync
-    FLAGS.eval_freq = int(FLAGS.eval_freq / strategy.num_replicas_in_sync)
 
     logging.info('\t FLAGS.eval_freq {}'.format(FLAGS.eval_freq))
     logging.info('\t FLAGS.learning_rate {}'.format(FLAGS.learning_rate))
@@ -192,32 +185,41 @@ class BaseModel(Trainer):
       if FLAGS.use_ema:
         self.ema = tf.train.ExponentialMovingAverage(0.999, self.global_step)
 
+      # Summarized eval results calculated out of tensorflow using numpy.
+      self.eval_acc_on_train = tf.Variable(
+          [0.0, 0.0, 0.0],  # [top-1, top-5, num_evaluated]
+          trainable=False,
+          dtype=tf.float32,
+          name='eval_acc_train',
+          aggregation=tf.compat.v1.VariableAggregation.ONLY_FIRST_REPLICA)
+
   def set_input(self):
     """Set input function."""
-    with self.strategy.scope():
-      train_ds = self.dataset.train_dataflow.shuffle(
-          buffer_size=self.batch_size * 10).repeat().batch(
-              self.batch_size, drop_remainder=True).prefetch(
-                  buffer_size=tf.data.experimental.AUTOTUNE)
+    train_ds = self.dataset.train_dataflow.shuffle(
+        buffer_size=self.batch_size * 10).repeat().batch(
+            self.batch_size, drop_remainder=True).prefetch(
+                buffer_size=tf.data.experimental.AUTOTUNE)
 
-      assert FLAGS.val_batch_size < self.dataset.val_dataset_size
-      val_ds = self.dataset.val_dataflow.batch(
-          FLAGS.val_batch_size, drop_remainder=False).prefetch(
-              buffer_size=tf.data.experimental.AUTOTUNE)
-      self.train_input_iterator = (
-          self.strategy.experimental_distribute_dataset(
-              train_ds).make_initializable_iterator())
-      self.eval_input_iterator = (
-          self.strategy.experimental_distribute_dataset(
-              val_ds).make_initializable_iterator())
+    if FLAGS.val_batch_size < self.dataset.val_dataset_size:
+      raise ValueError(
+          'FLAGS.val_batch_size should smaller than dataset.val_dataset_size')
+    val_ds = self.dataset.val_dataflow.batch(
+        FLAGS.val_batch_size, drop_remainder=False).prefetch(
+            buffer_size=tf.data.experimental.AUTOTUNE)
+    self.train_input_iterator = (
+        self.strategy.experimental_distribute_dataset(
+            train_ds).make_initializable_iterator())
+    self.eval_input_iterator = (
+        self.strategy.experimental_distribute_dataset(
+            val_ds).make_initializable_iterator())
 
   def set_dataset(self, dataset):
     """Setup datasets."""
 
     with self.strategy.scope():
       self.dataset = dataset.create_loader()
-      # TODO(zizhaoz): not useful.
       if self.strategy.num_replicas_in_sync > 8:
+        # The following might not be useful.
         # If parallel more than 8 cores (when do large scale parallel training)
         # we disable auto_shard_policy
         options = tf.data.Options()
@@ -249,7 +251,7 @@ class BaseModel(Trainer):
 
     path = '{}/checkpoint.ckpt'.format(FLAGS.checkpoint_path)
     save_path = self.saver.save(self.sess, path, global_step=iteration)
-    logging.info('Save weights {} at iteration {}'.format(
+    print('Save weights {} at iteration {}'.format(
         save_path, iteration))
 
   def update_learning_rate(self, global_step):
@@ -275,9 +277,9 @@ class BaseModel(Trainer):
     with self.strategy.scope():
       self.initialize_variables()
       self.sess.run([
-          self.train_input_iterator.initialize()
+          self.train_input_iterator.initializer
       ])
-      self.sess.run([self.eval_input_iterator.initialize()])
+      self.sess.run([self.eval_input_iterator.initializer])
       self.saver = tf.train.Saver(max_to_keep=5)
 
       self.load_model()
@@ -350,7 +352,7 @@ class BaseModel(Trainer):
     self.clean_acc_history()
     labels, preds, logits = [], [], []
     with self.strategy.scope():
-      self.sess.run(self.eval_input_iterator.initialize())
+      self.sess.run(self.eval_input_iterator.initializer)
       vds, vbs = self.dataset.val_dataset_size, FLAGS.val_batch_size
       total = vds // vbs + (vds % vbs != 0)
       pbar = tqdm(total=total)
@@ -363,7 +365,7 @@ class BaseModel(Trainer):
         preds.append(np.argmax(logit, 1))
         logits.append(logit)
         pbar.update(1)
-        pbar.set_description('batch {} accuracy {:.3f} ({:.3f})'.format(
+        pbar.set_description('Batch {} accuracy {:.3f} ({:.3f})'.format(
             label.shape[0],
             float(
                 utils.topk_accuracy(
@@ -380,16 +382,21 @@ class BaseModel(Trainer):
           logits,
           labels,
           topk=1,
+          # Useful for eval imagenet on webvision mini 50 classes.
           ignore_label_above=self.dataset.num_classes,
           return_counts=True)
       top5acc = utils.topk_accuracy(
           logits, labels, topk=5, ignore_label_above=self.dataset.num_classes)
-
+      self.eval_acc_on_train.assign(
+          np.array(
+              [float(offline_accuracy),
+               float(top5acc), num_evaluated],
+              dtype=np.float32)).eval()
       self.clean_acc_history()
-      logging.info('[Evaluation] lr {:.5f} global_step {} total {} acc '
-                   '{:.3f} (top-5 {:.3f})'.format(
-                       float(lr), iteration, num_evaluated, offline_accuracy,
-                       float(top5acc)))
+      print('[Evaluation] lr {:.5f} global_step {} total {} acc '
+            '{:.3f} (top-5 {:.3f})'.format(
+                float(lr), iteration, num_evaluated, offline_accuracy,
+                float(top5acc)))
 
   def initialize_variables(self):
     """Initialize global variables."""
@@ -408,10 +415,8 @@ class BaseModel(Trainer):
       self.clean_accstate_op = [
           a.assign(0) for a in utils.get_var(tf.local_variables(), 'accuracy')
       ]
-      logging.info(
-          'Create {} clean_accstate_op for state ops: {}'.format(
-              len(self.clean_accstate_op), self.clean_accstate_op))
-
+      logging.info('Create {} clean accuracy state ops'.format(
+          len(self.clean_accstate_op)))
     self.sess.run(self.clean_accstate_op)
 
   def build_graph(self):
@@ -474,6 +479,11 @@ class BaseModel(Trainer):
     merges.append(tf.summary.scalar('loss/net', mean_loss))
     merges.append(tf.summary.scalar('epoch', self.epoch_var))
     merges.append(tf.summary.scalar('learningrate', self.learning_rate))
+    merges.append(
+        tf.summary.scalar('acc/eval_on_train', self.eval_acc_on_train[0]))
+    merges.append(
+        tf.summary.scalar('acc/eval_on_train_top5', self.eval_acc_on_train[1]))
+    merges.append(tf.summary.scalar('acc/num_eval', self.eval_acc_on_train[2]))
     summary = tf.summary.merge(merges)
 
     return [mean_loss, summary, acc]
@@ -508,8 +518,8 @@ class BaseModel(Trainer):
         return tf.identity(loss), tf.identity(acc_op),\
                tf.identity(logits), tf.identity(labels)
 
-    pr_loss, pr_acc, pr_logits, pr_labels = self.strategy.experimental_run(
-        step_fn, self.eval_input_iterator)
+    pr_loss, pr_acc, pr_logits, pr_labels = self.strategy.run(
+        step_fn, args=(next(self.eval_input_iterator),))
 
     logits = self.strategy.unwrap(pr_logits)
     logits = tf.concat(logits, axis=0)
@@ -519,8 +529,14 @@ class BaseModel(Trainer):
     mean_acc = self.strategy.reduce(tf.distribute.ReduceOp.MEAN, pr_acc)
     mean_loss = self.strategy.reduce(tf.distribute.ReduceOp.MEAN, pr_loss)
     merges = []
-    merges.append(tf.summary.scalar('acc/eval', mean_acc))
-    merges.append(tf.summary.scalar('loss/eval', mean_loss))
+    if not FLAGS.use_imagenet_as_eval:
+      # When evaluation imagenet datasets for webvision mini, disable them since
+      # it contains out-of-target classes.
+      merges.append(tf.summary.scalar('acc/eval', mean_acc))
+      merges.append(tf.summary.scalar('loss/eval', mean_loss))
+    else:
+      merges.append(tf.summary.scalar('acc/eval', tf.constant(0, tf.float32)))
+      merges.append(tf.summary.scalar('loss/eval', tf.constant(0, tf.float32)))
     summary = tf.summary.merge(merges)
 
     return [mean_acc, logits, labels, summary]

@@ -1,17 +1,4 @@
 # coding=utf-8
-# Copyright 2019 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Main function for the project."""
 
 from __future__ import absolute_import
@@ -52,11 +39,8 @@ def evaluation(model, sess):
 
 
 def main(_):
+  tf.disable_v2_behavior()
 
-  FLAGS.checkpoint_path = os.path.join(
-      FLAGS.checkpoint_path,
-      '{}_p{}'.format(FLAGS.dataset, FLAGS.probe_dataset_hold_ratio),
-      FLAGS.network_name)
   strategy = tf.distribute.MirroredStrategy()
   config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
   config.gpu_options.allow_growth = True
@@ -64,7 +48,20 @@ def main(_):
   sess = tf.Session(config=config)
 
   # Creates dataset
-  dataset = datasets.CIFAR()
+  if 'cifar' in FLAGS.dataset:
+    dataset = datasets.CIFAR()
+    FLAGS.checkpoint_path = os.path.join(
+        FLAGS.checkpoint_path, '{}_p{}'.format(FLAGS.dataset,
+                                               FLAGS.probe_dataset_hold_ratio),
+        FLAGS.network_name)
+  elif 'webvisionmini' in FLAGS.dataset:
+    # webvision mini version
+    dataset = datasets.WebVision(
+        root='./ieg/data/tensorflow_datasets/',
+        version='webvisionmini-google',
+        use_imagenet_as_eval=FLAGS.use_imagenet_as_eval)
+    FLAGS.checkpoint_path = os.path.join(FLAGS.checkpoint_path, FLAGS.dataset,
+                                         FLAGS.network_name)
 
   if FLAGS.method == 'supervised':
     model = BaseModel(sess=sess, strategy=strategy, dataset=dataset)

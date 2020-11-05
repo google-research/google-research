@@ -1,17 +1,4 @@
 # coding=utf-8
-# Copyright 2019 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """The proposed model training code."""
 
 from __future__ import absolute_import
@@ -48,36 +35,40 @@ class IEG(BaseModel):
     self.nu = 2      # K value for label guessing
 
   def set_input(self):
-    with self.strategy.scope():
-
+    if len(self.dataset.train_dataflow.output_shapes[0]) == 3:
+      # Use for cifar
       train_ds = self.dataset.train_dataflow.shuffle(
           buffer_size=self.batch_size * 10).repeat().batch(
-              self.batch_size, drop_remainder=True).map(
-                  # strong augment each batch data and expand to 5D [Bx2xHxWx3]
-                  # TODO(zizhaoz): can be faster if processing before .batch()
-                  autoaug_batch_process_map_fn,
-                  num_parallel_calls=tf.data.experimental.AUTOTUNE).prefetch(
-                      buffer_size=tf.data.experimental.AUTOTUNE)
+              self.batch_size, drop_remainder=True
+          ).map(
+              # strong augment each batch data and expand to 5D [Bx2xHxWx3]
+              autoaug_batch_process_map_fn,
+              num_parallel_calls=tf.data.experimental.AUTOTUNE).prefetch(
+                  buffer_size=tf.data.experimental.AUTOTUNE)
+    else:
+      train_ds = self.dataset.train_dataflow.shuffle(
+          buffer_size=self.batch_size * 10).repeat().batch(
+              self.batch_size, drop_remainder=True).prefetch(
+                  buffer_size=tf.data.experimental.AUTOTUNE)
+    # no shuffle for probe, so a batch is class balanced.
+    probe_ds = self.dataset.probe_dataflow.repeat().batch(
+        self.batch_size, drop_remainder=True).prefetch(
+            buffer_size=tf.data.experimental.AUTOTUNE)
 
-      # no shuffle for probe, so a batch is class balanced.
-      probe_ds = self.dataset.probe_dataflow.repeat().batch(
-          self.batch_size, drop_remainder=True).prefetch(
-              buffer_size=tf.data.experimental.AUTOTUNE)
+    val_ds = self.dataset.val_dataflow.batch(
+        FLAGS.val_batch_size, drop_remainder=False).prefetch(
+            buffer_size=tf.data.experimental.AUTOTUNE)
 
-      val_ds = self.dataset.val_dataflow.batch(
-          FLAGS.val_batch_size, drop_remainder=False).prefetch(
-              buffer_size=tf.data.experimental.AUTOTUNE)
+    self.train_input_iterator = (
+        self.strategy.experimental_distribute_dataset(
+            train_ds).make_initializable_iterator())
+    self.probe_input_iterator = (
+        self.strategy.experimental_distribute_dataset(
+            probe_ds).make_initializable_iterator())
 
-      self.train_input_iterator = (
-          self.strategy.experimental_distribute_dataset(
-              train_ds).make_initializable_iterator())
-      self.probe_input_iterator = (
-          self.strategy.experimental_distribute_dataset(
-              probe_ds).make_initializable_iterator())
-
-      self.eval_input_iterator = (
-          self.strategy.experimental_distribute_dataset(
-              val_ds).make_initializable_iterator())
+    self.eval_input_iterator = (
+        self.strategy.experimental_distribute_dataset(
+            val_ds).make_initializable_iterator())
 
   def meta_momentum_update(self, grad, var_name, optimizer):
     # Finds corresponding momentum of a var name
@@ -331,7 +322,6 @@ class IEG(BaseModel):
       Returns:
         a set of variables want to observe in Tensorboard
       """
-
       net = self.net
       (all_images, labels), (self.probe_images, self.probe_labels) = inputs
       assert len(all_images.shape) == 5
@@ -426,6 +416,11 @@ class IEG(BaseModel):
     merges.append(tf.summary.scalar('loss/net', net_loss))
     merges.append(tf.summary.scalar('loss/meta', meta_loss))
     merges.append(tf.summary.scalar('acc/meta', mean_metaacc))
+    merges.append(
+        tf.summary.scalar('acc/eval_on_train', self.eval_acc_on_train[0]))
+    merges.append(
+        tf.summary.scalar('acc/eval_on_train_top5', self.eval_acc_on_train[1]))
+    merges.append(tf.summary.scalar('acc/num_eval', self.eval_acc_on_train[2]))
 
     zw_inds = tf.squeeze(
         tf.where(tf.less_equal(weights, 0), name='zero_weight_index'))
@@ -455,12 +450,12 @@ class IEG(BaseModel):
       self.initialize_variables()
 
       self.sess.run([
-          self.train_input_iterator.initialize(),
-          self.probe_input_iterator.initialize()
+          self.train_input_iterator.initializer,
+          self.probe_input_iterator.initializer
       ])
-      self.sess.run([self.eval_input_iterator.initialize()])
+      self.sess.run([self.eval_input_iterator.initializer])
 
-      logging.info('Finishes variables initializations')
+      logging.info('Finish variable initialization')
       iter_epoch = self.iter_epoch
 
       self.saver = tf.train.Saver(max_to_keep=4)

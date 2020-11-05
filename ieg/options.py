@@ -1,17 +1,4 @@
 # coding=utf-8
-# Copyright 2019 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Define FLAGS of the model."""
 
 from __future__ import absolute_import
@@ -31,7 +18,8 @@ def define_basic_flags():
   flags.DEFINE_integer('restore_step', 0, ('Checkpoint id.'
                                            '0: load the latest step ckpt.'
                                            '>0: load the assigned step ckpt.'))
-  flags.DEFINE_enum('network_name', 'wrn28-10', ['resnet29', 'wrn28-10'],
+  flags.DEFINE_enum('network_name', 'wrn28-10',
+                    ['resnet29', 'wrn28-10', 'resnet50'],
                     'Network architecture name')
   flags.DEFINE_string('dataset', 'cifar100_uniform_0.8',
                       'Dataset schema: <dataset>_<noise-type>_<ratio>')
@@ -43,7 +31,8 @@ def define_basic_flags():
   flags.DEFINE_string('decay_steps', '500',
                       'Decay steps, format (integer[,<integer>,<integer>]')
   flags.DEFINE_float('decay_rate', 0.1, 'Decay steps')
-  flags.DEFINE_float('eval_freq', 500, 'How many steps evaluate and save model')
+  flags.DEFINE_integer('eval_freq', 500,
+                       'How many steps evaluate and save model')
   flags.DEFINE_string('checkpoint_path', '/tmp/ieg',
                       'Checkpoint saving root folder')
   flags.DEFINE_integer('warmup_epochs', 0, 'Warmup with standard training')
@@ -63,7 +52,8 @@ def define_basic_flags():
                      'Weight of KL loss (k, see paper)')
   flags.DEFINE_float(
       'probe_dataset_hold_ratio', 0.02,
-      'Probe set holdout ratio from the training set (0.02 indicates 1000 images for CIFAR datasets).'
+      'Probe set holdout ratio from the training set (0.02 indicates 1000 '
+      'images for CIFAR datasets).'
   )
   flags.DEFINE_float('grad_eps_init', 0.9, 'eps for meta learning init value')
   flags.DEFINE_enum(
@@ -73,3 +63,6 @@ def define_basic_flags():
                     'If true, apply batch augmentation.')
   flags.DEFINE_enum('mode', 'train', ['train', 'evaluation'],
                     'Train or evaluation mode.')
+  flags.DEFINE_bool('use_imagenet_as_eval', True,
+                    'Use imagenet as eval when training on webvision while use '
+                    'webvision eval when False')

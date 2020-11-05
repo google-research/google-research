@@ -2,30 +2,25 @@
 We present a holistic framework to train deep neural networks in a way that is highly invulnerable to label
 noise. Our method sets the new state of the art on various types of label noise.
 
-This code mainly conducts experiments on the CIFAR datasets.
-
 This is not an officially supported Google product.
 
 
 ## Install
-Make sure your python version is 3.5-3.7 (required by Tensorflow 1).
 
 - Use a virtual environment
-
 ```bash
 virtualenv -p python3 --system-site-packages env
 source env/bin/activate
 ```
 
 - Install packages
-
 ```bash
 pip3 install -r requirements.txt
 ```
 
 ## Run Experiments
 
-### Train
+### Train on CIFAR
 Train the model with 20%, 40, and 80% uniform noise ratios on CIFAR100.
 You can go to higher noise ratio, e.g. 95%, with the following command.
 
@@ -40,7 +35,7 @@ for ratio in 0.2 0.4 0.8; do
 done
 ```
 
-#### Key training setting choices
+#### Useful training setting options
 - CIFAR10 with uniform noise: ```--dataset=cifar10_uniform_${ratio}```.
 
 - CIFAR10 with asymmetric noise: ```--dataset=cifar10_asymmetric_${ratio}```.
@@ -76,6 +71,33 @@ ratio=0.8
 CUDA_VISIBLE_DEVICES=0 python -m ieg.main --dataset=cifar100_uniform_${ratio} --network_name=wrn28-10 --mode=evaluation --checkpoint_path=${SAVEPATH}/ieg
 ```
 
+### Train on Webvision (mini)
+
+The following scripts will train on 8 GPUs and evaluate on ImageNet val.
+
+#### Download dataset
+
+```bash
+mkdir -p data/tensorflow_datasets
+cd data/tensorflow_datasets
+wget https://storage.googleapis.com/gresearch/ieg/webvisionmini.zip
+unzip webvisionmini.zip
+```
+
+Sine we evalaute on ImageNet val, at the first time, follow the prompted guideline in the terminal to download imagenet
+`ILSVRC2012_img_[train/val].par` to the folder (`./data/tensorflow_datasets/downloads/manual/imagenet2012`) for tensorflow_datasets to prepare automatically.
+
+
+#### Train
+
+```bash
+SAVEPATH=./ieg/checkpoints
+
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python -m ieg.main --dataset=webvisionmini \
+--network_name=resnet50 --checkpoint_path=$SAVEPATH/ieg_webvisionmini \
+--ce_factor=4 --consistency_factor=8 --batch_size=8 --use_imagenet_as_eval=true \
+--val_batch_size=50 --eval_freq=10000 --max_iteration=1000000
+```
 
 ## Citation
 

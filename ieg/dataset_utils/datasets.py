@@ -1,17 +1,4 @@
 # coding=utf-8
-# Copyright 2019 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Loader for datasets."""
 
 from __future__ import absolute_import
@@ -19,14 +6,15 @@ from __future__ import division
 from __future__ import print_function
 
 import math
+import os
 
 from absl import flags
-
 from ieg.dataset_utils.utils import cifar_process
-
+from ieg.dataset_utils.utils import imagenet_preprocess_image
 import numpy as np
-import sklearn
+import sklearn.metrics as sklearn_metrics
 import tensorflow.compat.v1 as tf
+import tensorflow_datasets as tfds
 
 FLAGS = flags.FLAGS
 
@@ -97,6 +85,7 @@ def load_asymmetric(x, y, noise_ratio, n_val, random_seed=12345):
     Args:
       y_train: label numpy tensor
       n: noise ratio
+
     Returns:
       corrupted y_train.
     """
@@ -270,18 +259,17 @@ class CIFAR(object):
       y_train = np.concatenate([y_train, y_probe], axis=0)
       y_gold = np.concatenate([y_gold, y_probe], axis=0)
 
-    conf_mat = sklearn.metrics.confusion_matrix(y_gold, y_train)
+    conf_mat = sklearn_metrics.confusion_matrix(y_gold, y_train)
     conf_mat = conf_mat / np.sum(conf_mat, axis=1, keepdims=True)
     tf.logging.info('Corrupted confusion matirx\n {}'.format(conf_mat))
     x_test, y_test = shuffle_dataset(x_test, y_test)
     self.train_dataset_size = x_train.shape[0]
     self.val_dataset_size = x_test.shape[0]
     if self.split_probe:
-      self.probe_dataset_size = x_probe.shape[0]
+      self.probe_size = x_probe.shape[0]
 
     input_tuple = (x_train, y_train.squeeze())
-    self.train_dataflow = self.create_ds(
-        input_tuple, is_train=True)
+    self.train_dataflow = self.create_ds(input_tuple, is_train=True)
     self.val_dataflow = self.create_ds((x_test, y_test.squeeze()),
                                        is_train=False)
     if self.split_probe:
@@ -301,8 +289,9 @@ class CIFAR(object):
 
     Args:
       data: data in format of tuple, e.g. (data, label)
-      is_train: bool indicate train stage
-      the original copy, so the resulting tensor is 5D
+      is_train: bool indicate train stage the original copy, so the resulting
+        tensor is 5D
+
     Returns:
       An tf.data.Dataset object
     """
@@ -310,3 +299,150 @@ class CIFAR(object):
     map_fn = lambda x, y: (cifar_process(x, is_train), y)
     ds = ds.map(map_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     return ds
+
+
+class WebVision(object):
+  """Webvision dataset class."""
+
+  def __init__(self, root, version='webvisionmini', use_imagenet_as_eval=False):
+    self.version = version
+    self.num_classes = 50 if 'mini' in version else 1000
+    self.root = root
+    self.image_size = 224
+    self.use_imagenet_as_eval = use_imagenet_as_eval
+
+    default_n_per_class = 10
+    if '_' in FLAGS.dataset:
+      self.probe_size = int(FLAGS.dataset.split('_')[1]) * self.num_classes
+    else:
+      # Uses default ones, assume there is a dataset saved
+      self.probe_size = default_n_per_class * self.num_classes
+    self.probe_folder = 'probe_' + str(self.probe_size)
+
+  def wrapper_map_probe_v2(self, tfrecord):
+    """tf.data.Dataset map function for probe data v2.
+
+    Args:
+      tfrecord: serilized by tf.data.Dataset.
+
+    Returns:
+      A map function
+    """
+
+    def _extract_fn(tfrecord):
+      """Extracts the functions."""
+
+      features = {
+          'image/encoded': tf.FixedLenFeature([], tf.string),
+          'image/label': tf.FixedLenFeature([], tf.int64)
+      }
+      example = tf.parse_single_example(tfrecord, features)
+      image, label = example['image/encoded'], tf.cast(
+          example['image/label'], dtype=tf.int32)
+
+      return [image, label]
+
+    image_bytes, label = _extract_fn(tfrecord)
+    label = tf.cast(label, tf.int64)
+
+    image = imagenet_preprocess_image(
+        image_bytes, is_training=True, image_size=self.image_size)
+
+    return image, label
+
+  def wrapper_map_v2(self, train):
+    """tf.data.Dataset map function for train data v2."""
+
+    def _func(data):
+      img, label = data['image'], data['label']
+      image_bytes = tf.image.encode_jpeg(img)
+      image_1 = imagenet_preprocess_image(
+          image_bytes, is_training=train, image_size=self.image_size)
+      if train:
+        image_2 = imagenet_preprocess_image(
+            image_bytes,
+            is_training=train,
+            image_size=self.image_size,
+            autoaugment_name='v0',
+            use_cutout=True)
+        images = tf.concat(
+            [tf.expand_dims(image_1, 0),
+             tf.expand_dims(image_2, 0)], axis=0)
+      else:
+        images = image_1
+      return images, label
+
+    return _func
+
+  def create_loader(self):
+    """Creates loader."""
+
+    if self.use_imagenet_as_eval:
+      # To evaluate on webvision eval, set this to False.
+      split = ['train']
+      val_ds, imagenet_info = tfds.load(
+          name='imagenet2012',
+          download=True,
+          split='validation',
+          data_dir=self.root,
+          with_info=True)
+      val_info = imagenet_info.splits['validation']
+      tf.logging.info('WebVision: use imagenet validation')
+    else:
+      split = ['train', 'val']
+    assert tfds.__version__.startswith('2.'),\
+        'tensorflow_dataset version must be 2.x.x to use image_label_folder.'
+    ds, self.info = tfds.load(
+        'image_label_folder',
+        split=split,
+        data_dir=self.root,
+        builder_kwargs=dict(dataset_name=self.version),
+        with_info=True)
+
+    train_info = self.info.splits['train']
+
+    if len(split) == 2:
+      train_ds, val_ds = ds
+      val_info = self.info.splits['val']
+    else:
+      train_ds = ds[0]
+
+    self.train_dataset_size = train_info.num_examples
+    self.val_dataset_size = val_info.num_examples
+    self.test_dataset_size = self.val_dataset_size
+
+    train_ds = train_ds.map(
+        self.wrapper_map_v2(True),
+        num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    val_ds = val_ds.map(
+        self.wrapper_map_v2(False),
+        num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+    self.train_dataflow = train_ds
+    self.val_dataflow = val_ds
+
+    def _get_probe():
+      """Create probe data tf.data.Dataset."""
+      probe_ds = tf.data.TFRecordDataset(
+          os.path.join(self.root, self.version, self.probe_folder,
+                       'imagenet2012-probe.tfrecord-1-of-1'))
+      probe_ds = probe_ds.map(
+          self.wrapper_map_probe_v2,
+          num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+      # For single file, we need to disable auto_shard_policy for multi-workers,
+      # e.g. every worker takes the same file
+      options = tf.data.Options()
+      options.experimental_distribute.auto_shard_policy = (
+          tf.data.experimental.AutoShardPolicy.OFF)
+      probe_ds = probe_ds.with_options(options)
+
+      return probe_ds
+
+    self.probe_dataflow = _get_probe()
+
+    tf.logging.info(self.info)
+    tf.logging.info('[{}] Create {} \n train {} probe {} val {}'.format(
+        self.version, FLAGS.dataset, self.train_dataset_size,
+        self.probe_size, self.val_dataset_size))
+    return self
