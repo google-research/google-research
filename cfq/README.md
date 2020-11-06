@@ -20,12 +20,9 @@ your results onto the leaderboard.
 
 |                             | MCD-MEAN      | MCD1         | MCD2         | MCD3         |
 |-----------------------------|---------------|--------------|--------------|--------------|
-| T5-11B-mod [2]              | **42.1 +/- 9.1** | 61.6 +/- 12.4 | **31.3 +/ 12.8** | **33.3 +/- 2.3** |
+| **HPD [3]**                 | **69.0**      | **79.6**     | **59.6**     | **67.8**     |
+| T5-11B-mod [2]              | 42.1 +/- 9.1  | 61.6 +/- 12.4| 31.3 +/ 12.8 | 33.3 +/- 2.3 |
 | T5-11B [2]                  | 40.9 +/- 4.3  | 61.4 +/- 4.8 | 30.1 +/- 2.2 | 31.2 +/- 5.7 |
-| T5-3B [2]                   | 40.2 +/- 4.2  | **64.0 +/- 1.5** | 29.7 +/- 2.8 | 27.0 +/- 8.3 |
-| T5-large [2]                | 34.8 +/- 1.5  | 63.3 +/- 0.6 | 22.2 +/- 1.5 | 18.8 +/- 2.6 |
-| T5-base [2]                 | 31.2 +/ 1.3   | 57.6 +/- 1.4 | 19.5 +/- 1.0 | 16.6 +/- 1.5 |
-| T5-small [2]                | 28.0 +/- 0.6  | 54.2 +/- 0.8 | 16.0 +/- 0.3 | 13.8 +/- 0.8 |
 | Evolved Transformer [2]     | 20.8 +/- 0.7  | 42.4 +/- 1.0 | 9.3 +/- 0.8  | 10.8 +/- 0.2 |
 | Universal Transformer [1]   | 18.9 +/- 1.4  | 37.4 +/- 2.2 | 8.1 +/- 1.6  | 11.3 +/- 0.3 |
 | Transformer [1]             | 17.9 +/- 0.9  | 34.9 +/- 1.1 | 8.2 +/- 0.3  | 10.6 +/- 1.1 |
@@ -33,14 +30,16 @@ your results onto the leaderboard.
 | CGPS [2]                    | 7.1 +/- 1.8   | 13.2 +/- 3.9 | 1.6 +/- 0.8  | 6.6 +/- 0.6  |
 | Neural Shuffle Exchange [2] | 2.8 +/- 0.3   | 5.1 +/- 0.4  | 0.9 +/- 0.1  | 2.3 +/- 0.3  |
 
-[1] [Keysers, Daniel, Nathanael Schärli, Nathan Scales, Hylke Buisman, Daniel
-Furrer, Sergii Kashubin, Nikola Momchev et al. "Measuring Compositional
-Generalization: A Comprehensive Method on Realistic Data." In *International
-Conference on Learning Representations.* 2019.](https://openreview.net/forum?id=SygcCnNKwr)
+[1] Keysers, Daniel, Nathanael Schärli, Nathan Scales, Hylke Buisman, Daniel
+Furrer, Sergii Kashubin, Nikola Momchev et al. ["Measuring Compositional
+Generalization: A Comprehensive Method on Realistic Data."](https://openreview.net/forum?id=SygcCnNKwr) In *ICLR2019*.
 
-[2] [Daniel Furrer, Marc van Zee, Nathan Scales, Nathanael Schärli.
-"Compositional Generalization in Semantic Parsing: Pre-training vs. Specialized
-Architectures" In *arXiv e-prints, arXiv:2007.08970* 2020.](https://arxiv.org/abs/2007.08970)
+[2] Daniel Furrer, Marc van Zee, Nathan Scales, Nathanael Schärli.
+["Compositional Generalization in Semantic Parsing: Pre-training vs. Specialized
+Architectures"](https://arxiv.org/abs/2007.08970) In *arXiv e-prints, arXiv:2007.08970* 2020.
+
+[3] Yinuo Guo, Zeqi Lin, Jian-Guang Lou, Dongmei Zhang. ["Hierarchical Poset Decoding for Compositional Generalization in Language"](https://arxiv.org/abs/2010.07792) In *NeurIPS2020*.
+
 
 ## Requirements
 
