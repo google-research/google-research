@@ -17,14 +17,13 @@ for a quick overview.
   with **significant improvements** in generation quality over [BART](https://arxiv.org/abs/1910.13461),
   [RAG](https://ai.facebook.com/blog/retrieval-augmented-generation-streamlining-the-creation-of-intelligent-natural-language-processing-models/),
   [T5](https://arxiv.org/abs/1910.10683), e.g. **+4.11, +5.78, +9.14 Rouge-L
-  improvement** over T5, BART + DPR and RAG respectively, while having fewer
-  parameters (200M vs 220M, 406M, 626M).
+  improvement** over T5, BART + DPR and RAG respectively.
 
 ## Pre-trained Checkpoint
 
-Model     | Parameters | Hparams                | Context Length | Data-set                                  | Vocab                                                                                     | Download
---------- | ---------- | ---------------------- | -------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------- | --------
-`RT-base` | 200M       | `pg19_local_cluster8k` | 8192           | [PG-19](https://github.com/deepmind/pg19) | [vocab98K](https://storage.googleapis.com/rt-checkpoint/vocab.pg19_length8k.32768.subwords) | [checkpoint.zip](https://storage.googleapis.com/rt-checkpoint/checkpoint.zip)
+Model     | Hparams  | Context Length | Data-set | Vocab                                                                                     | Download
+--------- |  ---------------------- | -------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------- | --------
+`RT-base` | `pg19_local_cluster8k` | 8192           | [PG-19](https://github.com/deepmind/pg19) | [vocab98K](https://storage.googleapis.com/rt-checkpoint/vocab.pg19_length8k.32768.subwords) | [checkpoint.zip](https://storage.googleapis.com/rt-checkpoint/checkpoint.zip)
 
 ## Explanation of hyperparameters
 
