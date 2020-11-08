@@ -59,22 +59,21 @@ def get_keras_model(bottleneck_dimension,
       weights=None,
       pooling='avg' if avg_pool is True else None,
       dropout_rate=0.0)
+  model_out = model(feats)
   if avg_pool:
-    model_out = model(feats)
     model_out.shape.assert_is_compatible_with([None, None])
   else:
-    model_out = model(feats)
     model_out.shape.assert_is_compatible_with([None, 3, 2, None])
   if bottleneck_dimension:
     embeddings = tf.keras.layers.Flatten()(model_out)
     embeddings = tf.keras.layers.Dense(
-      bottleneck_dimension, activation=tf.nn.swish, name='distilled_output')(embeddings)
+      bottleneck_dimension, name='distilled_output')(embeddings)
   else:
     embeddings = tf.keras.layers.Flatten(name='distilled_output')(model_out)
   # TODO(joelshor): These final layers can be large. Investigate the compression
   # techniques described in
   # https://blog.tensorflow.org/2020/02/matrix-compression-operator-tensorflow.html?m=1
-  output = tf.keras.layers.Dense(output_dimension, activation=tf.nn.swish, name='embedding_to_target')(embeddings)
+  output = tf.keras.layers.Dense(output_dimension, name='embedding_to_target')(embeddings)
   return tf.keras.Model(inputs=model_in, outputs=output)
 
 
