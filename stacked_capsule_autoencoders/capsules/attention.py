@@ -92,7 +92,7 @@ class QKVAttention(snt.AbstractModule):
     routing = tf.matmul(queries, keys, transpose_b=True)
 
     if presence is not None:
-      presence = tf.to_float(tf.expand_dims(presence, -2))
+      presence = tf.cast(tf.expand_dims(presence, -2), tf.float32)
       routing -= (1. - presence) * 1e32
 
     routing = tf.nn.softmax(routing / np.sqrt(n_dim), -1)
@@ -147,7 +147,7 @@ class SelfAttention(snt.AbstractModule):
     y += x
 
     if presence is not None:
-      y *= tf.expand_dims(tf.to_float(presence), -1)
+      y *= tf.expand_dims(tf.cast(presence, tf.float32), -1)
 
     if self._layer_norm:
       y = snt.LayerNorm(axis=-1)(y)

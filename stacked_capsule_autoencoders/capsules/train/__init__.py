@@ -15,5 +15,3 @@
 
 """Training utilities."""
 from stacked_capsule_autoencoders.capsules.train.hooks import create_hooks
-
-

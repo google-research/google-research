@@ -266,7 +266,7 @@ class OrderInvariantCapsuleLikelihood(snt.AbstractModule):
       = tf.reduce_logsumexp(expanded_mixing_logits + vote_log_prob, 2)
 
     if presence is not None:
-      presence = tf.to_float(presence)
+      presence = tf.cast(presence, tf.float32)
       mixture_log_prob_per_component *= presence
 
     mixture_log_prob_per_example\
@@ -299,7 +299,7 @@ class OrderInvariantCapsuleLikelihood(snt.AbstractModule):
 
     return self.OutputTuple(
         log_prob=mixture_log_prob_per_batch,
-        vote_presence=tf.to_float(vote_presence),
+        vote_presence=tf.cast(vote_presence, tf.float32),
         winner=winning_vote,
         winner_pres=winning_pres,
         is_from_capsule=is_from_capsule,
@@ -382,7 +382,7 @@ class CapsuleLikelihood(OrderInvariantCapsuleLikelihood):
         mixing_logits + vote_log_prob, 1)
 
     if presence is not None:
-      presence = tf.to_float(presence)
+      presence = tf.cast(presence, tf.float32)
       mixture_log_prob_per_point *= presence
 
     # [B,]
@@ -436,7 +436,7 @@ class CapsuleLikelihood(OrderInvariantCapsuleLikelihood):
 
     return self.OutputTuple(
         log_prob=mixture_log_prob_per_batch,
-        vote_presence=tf.to_float(vote_presence),
+        vote_presence=tf.cast(vote_presence, tf.float32),
         winner=winning_vote,
         winner_pres=winning_pres,
         soft_winner=soft_winner,

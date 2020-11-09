@@ -31,7 +31,7 @@ from stacked_capsule_autoencoders.capsules import neural
 from stacked_capsule_autoencoders.capsules import plot
 from stacked_capsule_autoencoders.capsules import tensor_ops
 from stacked_capsule_autoencoders.capsules.eval import bipartite_match
-from stacked_capsule_autoencoders.capsules.models import Model
+from stacked_capsule_autoencoders.capsules.models.model import Model
 
 tfd = tfp.distributions
 

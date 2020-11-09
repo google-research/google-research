@@ -26,7 +26,7 @@ import sonnet as snt
 import tensorflow.compat.v1 as tf
 
 from stacked_capsule_autoencoders.capsules.tensor_ops import ensure_length
-from tensorflow.contrib import distributions as contrib_distributions
+import tensorflow_probability as tfp
 from tensorflow.contrib import resampler as contrib_resampler
 
 
@@ -113,8 +113,9 @@ def normalized_sobel_edges(img,
                            sobel_img.shape[:-2].concatenate(2 * n_channels))
 
   if subtract_median:
-    sobel_img = abs(sobel_img - contrib_distributions.percentile(
-        sobel_img, 50.0, axis=(1, 2), keep_dims=True))
+    sobel_img = abs(
+        sobel_img -
+        tfp.stats.percentile(sobel_img, 50.0, axis=(1, 2), keep_dims=True))
 
   smax = tf.reduce_max(sobel_img, (1, 2), keepdims=True)
   smin = tf.reduce_min(sobel_img, (1, 2), keepdims=True)
