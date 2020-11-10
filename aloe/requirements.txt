@@ -1,0 +1,7 @@
+torch==v1.4.0
+numpy
+tqdm
+scipy
+torch_scatter==v2.0.4
+sympy
+matplotlib
