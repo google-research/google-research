@@ -2,6 +2,11 @@
 
 [This is not an officially supported Google product.]
 
+Tensorflow 2 implementation of the paper: [
+Learning and Evaluating Representations for Deep One-class Classification
+](https://arxiv.org/abs/2011.02578) by
+Kihyuk Sohn, Chun-Liang Li, Jinsung Yoon, Minho Jin, and Tomas Pfister.
+
 This directory contains a two-stage framework for deep one-class classification
 example, which includes the self-supervised deep representation learning from
 one-class data, and a classifier using generative or discriminative models.
@@ -43,5 +48,5 @@ train_and_eval_loop.py.
 
 ## Contacts
 
-kihyuks@google.com, chunliang@google.com, jinsungyoon@google.com ,
+kihyuks@google.com, chunliang@google.com, jinsungyoon@google.com,
 minhojin@google.com, tpfister@google.com

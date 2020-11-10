@@ -51,14 +51,11 @@ flags.DEFINE_string(
     name='net_type',
     default='ResNet18',
     help='network type (see model/__init__.py)')
-flags.DEFINE_string(
-    name='normalization', default='bn', help='network normalization')
 flags.DEFINE_float(
     name='net_width', default=1, help='network width (# channnels)')
 flags.DEFINE_string(name='head_dims', default=None, help='MLP architecture')
 flags.DEFINE_integer(
     name='latent_dim', default=2, help='number of hidden units for FC layer')
-flags.DEFINE_string(name='pooling', default=None, help='pooling architecture')
 
 # optimization
 flags.DEFINE_integer(name='seed', default=0, help='random seed')
