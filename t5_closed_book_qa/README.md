@@ -95,6 +95,8 @@ SSM Models with no fine-tuning:
 | Base Model | Path |
 | :----: | :------------: |
 | T5-small | [gs://t5-data/pretrained_models/cbqa/small_ssm](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/small_ssm) |
+| T5-large | [gs://t5-data/pretrained_models/cbqa/large_ssm](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/large_ssm) |
+| T5-3B | [gs://t5-data/pretrained_models/cbqa/3b_ssm](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/3b_ssm) |
 | T5-11B | [gs://t5-data/pretrained_models/cbqa/11b_ssm](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/11b_ssm) |
 | T5.1.1-XXL | [gs://t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm) |
 
@@ -103,9 +105,13 @@ SSM models fine-tuned on Natural Questions:
 | Base Model (+SSM) |  Finetune Task | EM Score | Path |
 | :----: | :------------: | :-----------: | :------: |
 | T5-small | `natural_questions_open_test` | 25.5 | [gs://t5-data/pretrained_models/cbqa/small_ssm_nq](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/small_ssm_nq) |
+| T5-large | `natural_questions_open_test` | 30.4 | [gs://t5-data/pretrained_models/cbqa/large_ssm_nq](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/large_ssm_nq) |
+| T5-3B | `natural_questions_open_test` | 33.2  | [gs://t5-data/pretrained_models/cbqa/3b_ssm_nq](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/3b_ssm_nq) |
 | T5-11B | `natural_questions_open_test` | 36.6  | [gs://t5-data/pretrained_models/cbqa/11b_ssm_nq](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/11b_ssm_nq) |
 | T5.1.1-XL | `natural_questions_open_test` | 35.6  | [gs://t5-data/pretrained_models/cbqa/t5.1.1.xl_ssm_nq](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/t5.1.1.xl_ssm_nq) |
 | T5.1.1-XXL | `natural_questions_open_test` | 37.9  | [gs://t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm_nq](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm_nq) |
+| T5-large | `natural_questions_open` | 29.0  | [gs://t5-data/pretrained_models/cbqa/large_ssm_nqo](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/large_ssm_nqo) |
+| T5-3B | `natural_questions_open` | 31.7  | [gs://t5-data/pretrained_models/cbqa/3b_ssm_nqo](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/3b_ssm_nqo) |
 | T5-11B | `natural_questions_open` | 34.8  | [gs://t5-data/pretrained_models/cbqa/11b_ssm_nqo](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/11b_ssm_nqo) |
 | T5.1.1-XXL | `natural_questions_open` | 35.2  | [gs://t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm_nqo](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm_nqo) |
 
@@ -122,12 +128,12 @@ SSM models fine-tuned on TriviaQA:
 
 | Base Model (+SSM) |  Finetune Task | EM Score | Path |
 | :----: | :------------: | :-----------: | :------: |
-| T5-11B | `trivia_qa_open_test` | 60.5✝  | [gs://t5-data/pretrained_models/cbqa/11b_ssm_tqa](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/11b_ssm_tqa) |
-| T5.1.1-XXL | `trivia_qa_open_test` | 61.6✝ | [gs://t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm_tqa](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm_tqa) |
+| T5-11B | `trivia_qa_open_test` | 60.5*  | [gs://t5-data/pretrained_models/cbqa/11b_ssm_tqa](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/11b_ssm_tqa) |
+| T5.1.1-XXL | `trivia_qa_open_test` | 61.6* | [gs://t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm_tqa](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm_tqa) |
 | T5-11B | `trivia_qa_open` | 51.0  | [gs://t5-data/pretrained_models/cbqa/11b_ssm_tqao](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/11b_ssm_tqa) |
 | T5.1.1-XXL | `trivia_qa_open` | 51.9 | [gs://t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm_tqao](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm_tqao) |
 
-✝ Score for the private TriviaQA Wikipedia domain test set.
+* Score for the private TriviaQA Wikipedia domain test set.
 
 # How to Cite
 If you extend or use this work, please cite the [paper](https://arxiv.org/abs/2002.08910) where it was introduced:
