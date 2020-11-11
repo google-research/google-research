@@ -205,7 +205,7 @@ class CIFAR(object):
       idx_train = idx[:int(len(idx) * 0.9)]
       idx_val_neg = idx[int(len(idx) * 0.9):]
       idx_val_pos = np.random.permutation(len(
-          self.trainval_data_pos[0]))[:int(len(idx_val_pos))]
+          self.trainval_data_pos[0]))[:len(idx_val_neg)]
       train_data = [
           self.trainval_data[0][idx_train], self.trainval_data[1][idx_train],
           np.arange(len(idx_train))[:, None]
