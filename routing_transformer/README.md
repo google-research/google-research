@@ -2,8 +2,10 @@
 
 <img src = "image/routing_attention.png" alt="Routing attention">
 
-Code-base accompanying the [paper](https://arxiv.org/abs/2003.05997). See also
-the accompanying [slides](https://drive.google.com/file/d/1maX-UQbtnVtxQqLmHvWVN6LNYtnBaTd9/view?usp=sharing)
+Code-base accompanying the [paper](https://arxiv.org/abs/2003.05997) (to appear
+in [TACL](https://transacl.org/index.php/tacl)).
+See also the accompanying
+[slides](https://drive.google.com/file/d/1maX-UQbtnVtxQqLmHvWVN6LNYtnBaTd9/view?usp=sharing)
 for a quick overview.
 
 ## Updates
@@ -81,6 +83,17 @@ Model     | Hparams  | Context Length | Data-set | Vocab                        
 ### Document Machine Translation (sequence length 4k):
 
 -   [sample](https://docs.google.com/document/d/1wqKAyHx7IzJIS0nH9zFYM6KxkjR1qlnYjaECUI9YmmY/edit?usp=sharing)
+
+## Acknowledgments
+The authors would like to thank Phillip Wang and
+Aran Komatsuzaki for a [Pytorch implementation](https://github.com/lucidrains/routing-transformer)
+of Routing Transformer. The authors would also like
+to thank Yonghui Wu, Weikang Zhou and Dehao
+Chen for helpful feedback in improving the implementation of this work.
+The authors would also
+like to thank anonymous reviewers and the Action
+Editor Xavier Carreras of TACL for their constructive comments
+which helped improve the exposition of this work.
 
 ## How to Cite
 
