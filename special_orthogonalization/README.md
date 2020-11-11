@@ -69,3 +69,71 @@ def symmetric_orthogonalization(x):
   note = {To appear in}
 }
 ```
+
+
+## Experiments
+
+### Point Cloud Alignment
+This experiment evaluates symmetric orthogonalization for point cloud alignemnt.
+The code here is a TensorFlow version of the experiment described in *On the
+Continuity of Rotation Representations in Neural Networks* (Zhou et al, CVPR19,
+see also their [original PyTorch code](https://github.com/papagina/RotationContinuity)).
+
+**Modify the original test data for our TF code:**
+
+```bash
+# From google-research/
+
+# Set this to the path to the test .pts files provided with the original PyTorch
+# package.
+IN_FILES=/shapenet/data/pc_plane/points_test/*.pts
+
+# Set this to the directory where the new modifed test files will be written.
+# This directory should not contain any other .pts files.
+NEW_TEST_FILES_DIR=/shapenet/data/pc_plane/points_test_modified
+
+# This variable determines the distribution for random rotations. If True, uses
+# the same axis-angle sampling as in the PyTorch code, otherwise rotations are
+# sampled uniformly (Haar measure).
+AXANG_SAMPLING=True
+
+python -m special_orthogonalization.gen_pt_test_data --input_test_files=$IN_FILES --output_directory=$NEW_TEST_FILES_DIR --random_rotation_axang=$AXANG_SAMPLING
+```
+
+
+**Train and evaluate:**
+
+```bash
+# Set this to the location of the original training data.
+TRAIN_FILES=/shapenet/data/pc_plane/points/*.pts
+
+# NEW_TEST_FILES_DIR should be the same as used above.
+TEST_FILES=$NEW_TEST_FILES_DIR/*.pts
+
+# Specify the rotation representation method, e.g. 'svd', 'svd-inf', or 'gs'.
+METHOD=svd
+
+# Where the checkpoints, summaries, eval results, etc are stored.
+OUT_DIR=/path/to/model
+
+python -m special_orthogonalization.main_point_cloud --method=$METHOD --checkpoint_dir=$OUT_DIR --log_step_count=200 --save_summaries_steps=25000 --pt_cloud_train_files=$TRAIN_FILES --pt_cloud_test_files=$TEST_FILES --train_steps=2600000 --save_checkpoints_steps=100000 --eval_examples=39900
+```
+
+
+**Generate statistics over all test examples:**
+
+```bash
+# Mean, median, std, and percentiles will be printed.
+python -m special_orthogonalization.main_point_cloud --method=$METHOD --checkpoint_dir=$OUT_DIR --pt_cloud_test_files=$TEST_FILES --predict_all_test=True
+```
+
+### Inverse Kinematics
+In this experiment we simply replace the 3D rotation regression layer with the
+symmetric orthogonalization (SVD) layer. See the few code changes needed
+[here](https://github.com/amakadia/svd_for_pose#inverse-kinematics).
+
+
+### Single Image Depth and Pose Prediction on KITTI
+In this experiment we simply replace the 3D rotation regression layer with the
+symmetric orthogonalization (SVD) layer. See the few code changes needed
+[here](https://github.com/amakadia/svd_for_pose#single-image-depth-prediction-on-kitti).
