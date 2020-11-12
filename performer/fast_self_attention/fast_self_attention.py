@@ -42,9 +42,11 @@ gin.external_configurable(
     lambda x: jax.nn.gelu(x, approximate=False), 'jgelu'
 )  # Needs to be exact, although might be slower. See https://github.com/google/jax/issues/4428.
 gin.external_configurable(lambda x: x * x * (x > 0.0), 'jrequ')
-gin.external_configurable(jax.nn.gelu, 'jgelu')
 gin.external_configurable(jnp.exp, 'jexp')
 gin.external_configurable(lambda x: x, 'jidentity')
+gin.external_configurable(
+    lambda x: (jnp.exp(x)) * (x <= 0.0) + (x + 1.0) * (x > 0.0), 'jshiftedelu'
+)  # Nonlinearity used in "Transformers are RNNs: Fast Autoregressive Transformers with Linear Attention" (https://arxiv.org/abs/2006.16236).
 
 
 def nonnegative_softmax_kernel_feature_creator(data,
