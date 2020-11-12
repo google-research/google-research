@@ -15,6 +15,8 @@
 
 """Tests for kws_streaming.layers.data_frame."""
 
+from absl.testing import parameterized
+import dataclasses
 import numpy as np
 from kws_streaming.layers import data_frame
 from kws_streaming.layers import modes
@@ -22,10 +24,31 @@ from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 import kws_streaming.layers.test_utils as tu
 from kws_streaming.models import utils
+from kws_streaming.train import test
 tf1.disable_eager_execution()
 
 
-class DataFrameTest(tu.FrameTestBase):
+@dataclasses.dataclass
+class Params(object):
+  """Data parameters."""
+  batch_frames: int = 2  # number of frames to produce per one inference call
+  window_size_samples: int = 3  # size of sliding window
+  window_stride_samples: int = 2  # stride of sliding window
+  input_size: int = 16  # size of input data in time dim
+
+  # it is a special case to customize input data shape
+  preprocess: str = 'custom'  # method of data preprocessing
+  batch_size: int = 1  # batch size in inference mode
+
+  def __post_init__(self):
+    total_stride = self.window_stride_samples * self.batch_frames
+    self.data_shape = (total_stride,)  # input data shape in streaming mode
+
+    # desired number of samples in the input data
+    self.desired_samples = (self.input_size//total_stride) * total_stride
+
+
+class DataFrameTest(tu.FrameTestBase, parameterized.TestCase):
 
   def test_tf_non_streaming_vs_streaming_internal_state(self):
     # prepare streaming frame extraction model with internal state
@@ -75,7 +98,7 @@ class DataFrameTest(tu.FrameTestBase):
     mode = modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE
     input_tensors = [
         tf.keras.layers.Input(
-            shape=(self.frame_step,), batch_size=1, name="inp1")
+            shape=(self.frame_step,), batch_size=1, name='inp1')
     ]
 
     # convert non streaming trainable model to a streaming one
@@ -111,6 +134,69 @@ class DataFrameTest(tu.FrameTestBase):
     for i in range(0, len(self.output_frames_tf[0])):
       self.assertAllEqual(streamed_frames[i][0][0], self.output_frames_tf[0][i])
 
+  @parameterized.named_parameters(
+      {
+          'testcase_name': 'batch 1 stride 1',
+          'batch_frames': 1,
+          'window_stride_samples': 1
+      }, {
+          'testcase_name': 'batch 2 stride 1',
+          'batch_frames': 2,
+          'window_stride_samples': 1
+      }, {
+          'testcase_name': 'batch 2 stride 2',
+          'batch_frames': 2,
+          'window_stride_samples': 2
+      }, {
+          'testcase_name': 'batch 2 stride 3',
+          'batch_frames': 2,
+          'window_stride_samples': 3
+      }, {
+          'testcase_name': 'batch 4 stride 2',
+          'batch_frames': 4,
+          'window_stride_samples': 2
+      }
+      )
+  def test_stream_framing(self, batch_frames, window_stride_samples):
+    """Test DataFrame in streaming mode with different batch_frames and stride.
 
-if __name__ == "__main__":
+    Args:
+        batch_frames: number of frames produced by one call in streaming mode
+        window_stride_samples: stride of sliding window
+    """
+
+    # data parameters
+    params = Params(
+        batch_frames=batch_frames, window_stride_samples=window_stride_samples)
+
+    # prepare input data
+    input_audio = np.arange(params.desired_samples)
+    input_audio = np.expand_dims(input_audio, 0)  # add batch dim
+
+    # prepare non stream model
+    padding = 'causal'
+    inputs = tf.keras.Input(
+        shape=(params.desired_samples,), batch_size=1, dtype=tf.float32)
+    net = inputs
+    net = data_frame.DataFrame(
+        frame_size=params.window_size_samples,
+        frame_step=params.window_stride_samples,
+        use_one_step=False,
+        padding=padding)(
+            net)
+    model = tf.keras.Model(inputs, net)
+    model.summary()
+
+    # prepare streaming model
+    model_stream = utils.to_streaming_inference(
+        model, params, modes.Modes.STREAM_INTERNAL_STATE_INFERENCE)
+    model_stream.summary()
+
+    # run inference
+    non_stream_out = model.predict(input_audio)
+    stream_out = test.run_stream_inference(params, model_stream, input_audio)
+    self.assertAllClose(stream_out, non_stream_out)
+
+
+if __name__ == '__main__':
   tf.test.main()
