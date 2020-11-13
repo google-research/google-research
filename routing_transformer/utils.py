@@ -336,6 +336,59 @@ def transformer_decoder_layers(inputs,
   return layer_preprocess(x, hparams)
 
 
+def gelu(x):
+  """Gaussian Error Linear Unit.
+
+  This is a smoother version of the RELU.
+  Original paper: https://arxiv.org/abs/1606.08415
+  Args:
+    x: float Tensor to perform activation.
+
+  Returns:
+    `x` with the GELU activation applied.
+  """
+  cdf = 0.5 * (1.0 + tf.tanh(
+      (np.sqrt(2 / np.pi) * (x + 0.044715 * tf.pow(x, 3)))))
+  return x * cdf
+
+
+def geglu(inputs,
+          filter_size,
+          output_size,
+          output_activation=None,
+          dropout=0.0,
+          dropout_broadcast_dims=None,
+          name=None):
+  """GEGLU activation as in https://arxiv.org/abs/2002.05202."""
+  # layer_name is appended with "conv1" or "conv2" in this method only for
+  # historical reasons. These are in fact dense layers.
+  layer_name = "%s_{}" % name if name else "{}"
+  h = tf.layers.dense(
+      inputs,
+      filter_size,
+      use_bias=False,
+      activation=None,
+      name=layer_name.format("weight1"))
+  h = gelu(h)
+  v = tf.layers.dense(
+      inputs,
+      filter_size,
+      use_bias=False,
+      activation=None,
+      name=layer_name.format("weight2"))
+  h *= v
+  if dropout != 0.0:
+    h = dropout_with_broadcast_dims(
+        h, 1.0 - dropout, broadcast_dims=dropout_broadcast_dims)
+  o = tf.layers.dense(
+      h,
+      output_size,
+      activation=output_activation,
+      use_bias=False,
+      name=layer_name.format("weight3"))
+  return o
+
+
 def dense_relu_dense(inputs,
                      filter_size,
                      output_size,
@@ -423,6 +476,12 @@ def ffn_layer(x, hparams):
   with tf.variable_scope("ffn"):
     if hparams.ffn_layer == "none":
       return x
+    elif hparams.ffn_layer == "geglu":
+      return geglu(
+          x,
+          hparams.filter_size,
+          hparams.hidden_size,
+          dropout=hparams.relu_dropout)
     else:
       return dense_relu_dense(
           x,

@@ -383,7 +383,7 @@ def sparse_transformer_local():
   hparams.add_hparam("attention_key_channels", 0)  # Uses hidden_size
   hparams.add_hparam("attention_value_channels", 0)  # Uses hidden_size
   hparams.add_hparam("attention_dropout", 0.0)
-  hparams.add_hparam("ffn_layer", "conv_hidden_relu")
+  hparams.add_hparam("ffn_layer", "geglu")
   hparams.add_hparam("filter_size", 2048)  # Used in ffn_layer
   hparams.add_hparam("relu_dropout", 0.0)  # Used in ffn_layer
   hparams.add_hparam("input_dropout", 0.0)  # dropout on input sequences
