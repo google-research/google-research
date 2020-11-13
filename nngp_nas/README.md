@@ -4,7 +4,7 @@
 This directory contains the publicly available [Colab Notebook](https://colab.research.google.com/github/google-research/google-research/blob/master/nngp_nas/NNGP_on_NASBench101.ipynb) for the paper:
 
 [**Towards NNGP-guided Neural Architecture Search**](
-https://arxiv.org/abs/2010.xxxxx).
+https://arxiv.org/abs/2011.06006).
 
 Daniel S. Park*, Jaehoon Lee*, Daiyi Peng, Yuan Cao, Jascha Sohl-Dickstein (2020).
 
@@ -26,7 +26,12 @@ With this notebook you will be able to:
 If you find this code or paper useful, please cite:
 
 ```
-TBD
+@article{park2020towards,
+    title={Towards NNGP-guided Neural Architecture Search},
+    author={Park, Daniel S and Lee, Jaehoon and Peng, Daiyi and Cao, Yuan and Sohl-Dickstein, Jascha},
+    journal={arXiv preprint arXiv:2011.06006},
+    year={2020},
+}
 ```
 
 ## Contact
