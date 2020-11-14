@@ -18,8 +18,9 @@ for a quick overview.
   from [Facebook AI](https://ai.facebook.com/blog/introducing-kilt-a-new-unified-benchmark-for-knowledge-intensive-nlp-tasks/),
   with **significant improvements** in generation quality over [BART](https://arxiv.org/abs/1910.13461),
   [RAG](https://ai.facebook.com/blog/retrieval-augmented-generation-streamlining-the-creation-of-intelligent-natural-language-processing-models/),
-  [T5](https://arxiv.org/abs/1910.10683), e.g. **+4.11, +5.78, +9.14 Rouge-L
-  improvement** over T5, BART + DPR and RAG respectively.
+  [T5](https://arxiv.org/abs/1910.10683)/[Mesh TF](https://arxiv.org/abs/1811.02084)
+  , e.g. **+4.11, +5.78, +9.14 Rouge-L improvement** over T5/Mesh TF, BART + DPR
+  and RAG respectively.
 
 ## Pre-trained Checkpoint
 
