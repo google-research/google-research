@@ -19,13 +19,13 @@ from absl import app
 from absl import flags
 from absl import logging
 
+from clu import platform
 import jax
 from ml_collections import config_flags
 import tensorflow as tf
 
 from flax_models.bert import run_classifier  # pylint: disable=fine-too-long CHANGEME
 from flax_models.bert import run_pretraining  # pylint: disable=fine-too-long CHANGEME
-
 
 FLAGS = flags.FLAGS
 
