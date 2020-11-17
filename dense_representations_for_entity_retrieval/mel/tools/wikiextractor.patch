@@ -1,0 +1,24 @@
+diff --git a/WikiExtractor.py b/WikiExtractor.py
+index 15a62bc..22c9eb3 100755
+--- a/WikiExtractor.py
++++ b/WikiExtractor.py
+@@ -2411,13 +2411,15 @@ def replaceInternalLinks(text):
+ 
+ def makeInternalLink(title, label):
+     colon = title.find(':')
+-    if colon > 0 and title[:colon] not in options.acceptedNamespaces:
+-        return ''
++    # JAB: Deactivated namespace whitelist here
++    # if colon > 0 and title[:colon] not in options.acceptedNamespaces:
++    #     return ''
+     if colon == 0:
+         # drop also :File:
+         colon2 = title.find(':', colon + 1)
+-        if colon2 > 1 and title[colon + 1:colon2] not in options.acceptedNamespaces:
+-            return ''
++        # JAB: Deactivated namespace whitelist here.
++        # if colon2 > 1 and title[colon + 1:colon2] not in options.acceptedNamespaces:
++        #     return ''
+     if options.keepLinks:
+         return '<a href="%s">%s</a>' % (quote(title.encode('utf-8')), label)
+     else:

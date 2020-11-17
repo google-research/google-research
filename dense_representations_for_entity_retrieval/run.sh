@@ -66,3 +66,7 @@ python -m dense_representations_for_entity_retrieval.parse_wikinews \
    --tsv_dir="${TEMP_DIR}" \
    --output_dir="${TEMP_DIR}" \
    --logtostderr
+
+# Also test the nested package.
+deactivate
+bash dense_representations_for_entity_retrieval/mel/wikinews_extractor/run_test_oss.sh

@@ -1,0 +1,2 @@
+"Bugün."
+İşte Türkçe bir test cümlesi.
