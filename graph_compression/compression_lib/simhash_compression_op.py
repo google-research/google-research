@@ -1133,24 +1133,17 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
       A TensorFlow node that has compressed version of
       tf.matmul(concat, theta.wm).
     """
-    def maybe_apply_compression():
-      """Decide whether global step is within compression range.
+    def maybe_choose_compression_path():
+      """Decide whether global step is after begin compression step.
 
       Returns:
-        is_step_within_compression_range: bool.
+        is_step_after_begin_compression: bool.
       """
       with tf.compat.v1.name_scope(self._spec.name):
         global_step = theta.global_step
-        is_step_within_compression_range = tf.logical_and(
-            tf.greater_equal(
-                tf.cast(global_step, tf.int32),
-                self._spec.begin_compression_step),
-            tf.logical_or(
-                tf.less_equal(
-                    tf.cast(global_step, tf.int32),
-                    self._spec.end_compression_step),
-                tf.less(self._spec.end_compression_step, 0)))
-        return is_step_within_compression_range
+        is_step_after_begin_compression = tf.greater_equal(
+            tf.cast(global_step, tf.int32), self._spec.begin_compression_step)
+        return is_step_after_begin_compression
 
     pruning_result = tf.matmul(concat, tf.multiply(theta.wm, theta.mask))
     if self._spec.do_transpose:
@@ -1179,5 +1172,5 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
     def quantized_pruned_result_fn():
       return pruning_compression_result
 
-    return tf.cond(maybe_apply_compression(), quantized_pruned_result_fn,
+    return tf.cond(maybe_choose_compression_path(), quantized_pruned_result_fn,
                    pruning_result_fn)
