@@ -65,7 +65,15 @@ flags.DEFINE_alias('mnet', 'mobilenet_size')
 flags.DEFINE_integer('train_batch_size', 1, 'Hyperparameter: batch size.')
 flags.DEFINE_alias('tbs', 'train_batch_size')
 flags.DEFINE_integer('shuffle_buffer_size', None, 'shuffle_buffer_size')
-flags.DEFINE_float('lr', 0.001, 'Hyperparameter: learning rate.')
+
+flags.DEFINE_boolean('lr_schedule', False, 'Use an exponential decay learning rate schedule.')
+flags.DEFINE_float('lr', 0.001, 'Learning rate. '
+                   'If `lr_schedule` is True, this is the base learning rate.')
+flags.DEFINE_float('lr_decay', 0.97, 'Exponential factor for decaying learning rate.'
+                   'This flag is ignored if `precomputed_frontend_and_targets` is False.')
+flags.DEFINE_integer('lr_steps', 5000, 'Number of training steps to wait '
+                     'before decaying learning rate.'
+                     'This flag is ignored if `precomputed_frontend_and_targets` is False.')
 flags.DEFINE_string('logdir', None, 'Path to directory where to store summaries.')
 flags.DEFINE_integer('training_steps', 1000,
                      'The number of steps to run training for.')
@@ -76,8 +84,7 @@ flags.DEFINE_integer('checkpoint_max_to_keep', None,
                      'Number of previous checkpoints to save to disk.'
                      'Default (None) is to store all checkpoints.')
 flags.DEFINE_integer('num_epochs', 50, 'Number of epochs to train for.')
-flags.DEFINE_alias('e' ,'num_epochs')
-
+flags.DEFINE_alias('e', 'num_epochs')
 
 
 def train_and_report(debug=False):
@@ -124,8 +131,13 @@ def train_and_report(debug=False):
     avg_pool=FLAGS.average_pool)
   # Define loss and optimizer hyparameters.
   loss_obj = tf.keras.losses.MeanSquaredError(name='mse_loss')
+  if FLAGS.lr_schedule:
+    lr = tf.keras.optimizers.schedules.ExponentialDecay(
+        FLAGS.lr, FLAGS.lr_decay, FLAGS.lr_steps, staircase=True)
+  else:
+    lr = FLAGS.lr
   opt = tf.keras.optimizers.Adam(
-      learning_rate=FLAGS.lr, beta_1=0.9, beta_2=0.999, epsilon=1e-8)
+    learning_rate=lr, beta_1=0.9, beta_2=0.999, epsilon=1e-8)
   # Add additional metrics to track.
   train_loss = tf.keras.metrics.MeanSquaredError(name='train_loss')
   train_mae = tf.keras.metrics.MeanAbsoluteError(name='train_mae')
