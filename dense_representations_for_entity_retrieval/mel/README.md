@@ -134,8 +134,8 @@ the clean article text that serve as mention contexts.
 
 **Look for output under `./mewsli-9/output/dataset`.**
 
-For example, the cleaned text for an Spanish article with docid `es-44` would be
-in the file `./mewsli-9/output/dataset/en/text/es-44`.
+For example, the cleaned text for a Spanish article with docid `es-44` would be
+in the file `./mewsli-9/output/dataset/es/text/es-44`.
 
 ### Using the dataset
 
@@ -148,10 +148,10 @@ The helper scripts assume the following tools are installed:
 - Python 3
 - bzip2
 - git
-- wget
 - md5sum
 - pip
 - virtualenv
+- wget
 - zip
 
 See `wikinews_extractor/requirements.txt` for dependencies that will be
