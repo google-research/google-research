@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#!/usr/bin/env python
 """Miscellaneous utilities."""
 
 import cv2
@@ -103,7 +104,8 @@ def transform_pointcloud(points, transform):
     points: HxWx3 float array of transformed 3D points.
   """
   padding = ((0, 0), (0, 0), (0, 1))
-  homogen_points = np.pad(points.copy(), padding, 'constant', constant_values=1)
+  homogen_points = np.pad(points.copy(), padding,
+                          'constant', constant_values=1)
   for i in range(3):
     points[Ellipsis, i] = np.sum(transform[i, :] * homogen_points, axis=-1)
   return points
@@ -127,7 +129,7 @@ def reconstruct_heightmaps(color, depth, configs, bounds, pixel_size):
   return heightmaps, colormaps
 
 
-def pixel_to_position(pixel, height, bounds, pixel_size, skip_height=False):
+def pix_to_xyz(pixel, height, bounds, pixel_size, skip_height=False):
   """Convert from pixel location on heightmap to 3D position."""
   u, v = pixel
   x = bounds[0, 0] + v * pixel_size
@@ -139,7 +141,7 @@ def pixel_to_position(pixel, height, bounds, pixel_size, skip_height=False):
   return (x, y, z)
 
 
-def position_to_pixel(position, bounds, pixel_size):
+def xyz_to_pix(position, bounds, pixel_size):
   """Convert from 3D position to pixel location on heightmap."""
   u = int(np.round((position[1] - bounds[1, 0]) / pixel_size))
   v = int(np.round((position[0] - bounds[0, 0]) / pixel_size))
@@ -194,7 +196,8 @@ def unproject_depth_vectorized(im_depth, depth_dist,
   h, w = im_depth.shape
 
   # shape of each u_map, v_map is [H, W].
-  u_map, v_map = np.meshgrid(np.linspace(0, w - 1, w), np.linspace(0, h - 1, h))
+  u_map, v_map = np.meshgrid(np.linspace(
+      0, w - 1, w), np.linspace(0, h - 1, h))
 
   adjusted_depth = depth_dist[0] + im_depth * depth_dist[1]
 
@@ -242,7 +245,7 @@ def apply(pose, position):
   return tuple(position.reshape(position_shape))
 
 
-def get_pybullet_quaternion_from_rot(rotation):
+def eulerXYZ_to_quatXYZW(rotation):  # pylint: disable=invalid-name
   """Abstraction for converting from a 3-parameter rotation to quaterion.
 
   This will help us easily switch which rotation parameterization we use.
@@ -262,7 +265,7 @@ def get_pybullet_quaternion_from_rot(rotation):
   return quaternion_xyzw
 
 
-def get_rot_from_pybullet_quaternion(quaternion_xyzw):
+def quatXYZW_to_eulerXYZ(quaternion_xyzw):  # pylint: disable=invalid-name
   """Abstraction for converting from quaternion to a 3-parameter toation.
 
   This will help us easily switch which rotation parameterization we use.
@@ -321,15 +324,32 @@ def apply_transform(transform_to_from, points_from):
 #-----------------------------------------------------------------------------
 
 
-def preprocess_color(image, mean=0.5, std=0.225):
-  image = (image.copy() / 255 - mean) / std
-  return image
+def preprocess(img):
+  """Pre-process input (subtract mean, divide by std)."""
+  color_mean = 0.18877631
+  depth_mean = 0.00509261
+  color_std = 0.07276466
+  depth_std = 0.00903967
+  img[:, :, :3] = (img[:, :, :3] / 255 - color_mean) / color_std
+  img[:, :, 3:] = (img[:, :, 3:] - depth_mean) / depth_std
+  return img
 
 
-def preprocess_depth(image, mean=0.005, std=0.008):
-  image = (image.copy() - mean) / std
-  image = np.tile(image.reshape(image.shape[0], image.shape[1], 1), (1, 1, 3))
-  return image
+def get_fused_heightmap(obs, configs, bounds, pix_size):
+  """Reconstruct orthographic heightmaps with segmentation masks."""
+  heightmaps, colormaps = reconstruct_heightmaps(
+      obs['color'], obs['depth'], configs, bounds, pix_size)
+  colormaps = np.float32(colormaps)
+  heightmaps = np.float32(heightmaps)
+
+  # Fuse maps from different views.
+  valid = np.sum(colormaps, axis=3) > 0
+  repeat = np.sum(valid, axis=0)
+  repeat[repeat == 0] = 1
+  cmap = np.sum(colormaps, axis=0) / repeat[Ellipsis, None]
+  cmap = np.uint8(np.round(cmap))
+  hmap = np.max(heightmaps, axis=0)  # Max to handle occlusions.
+  return cmap, hmap
 
 
 def get_image_transform(theta, trans, pivot=(0, 0)):
@@ -363,13 +383,13 @@ def check_transform(image, pixel, transform):
 def get_se3_from_image_transform(theta, trans, pivot, heightmap, bounds,
                                  pixel_size):
   """Calculate SE3 from image transform."""
-  position_center = pixel_to_position(
+  position_center = pix_to_xyz(
       np.flip(np.int32(np.round(pivot))),
       heightmap,
       bounds,
       pixel_size,
       skip_height=False)
-  new_position_center = pixel_to_position(
+  new_position_center = pix_to_xyz(
       np.flip(np.int32(np.round(pivot + trans))),
       heightmap,
       bounds,
@@ -471,14 +491,14 @@ COLORS = {
 }
 
 
-def plot(fname,
+def plot(fname,  # pylint: disable=dangerous-default-value
          title,
          ylabel,
          xlabel,
          data,
-         xlim=(-np.inf, 0),
+         xlim=[-np.inf, 0],
          xticks=None,
-         ylim=(np.inf, -np.inf),
+         ylim=[np.inf, -np.inf],
          show_std=True):
   """Plot frame data."""
   # Data is a dictionary that maps experiment names to tuples with 3
@@ -526,7 +546,8 @@ def plot(fname,
     plt.xticks(ticks=range(len(xticks)), labels=xticks, fontsize=14)
   else:
     plt.xticks(fontsize=14)
-  plt.legend([name for name, _ in data.items()], loc='lower right', fontsize=14)
+  plt.legend([name for name, _ in data.items()],
+             loc='lower right', fontsize=14)
   plt.tight_layout()
   plt.savefig(fname)
   plt.clf()
@@ -616,70 +637,3 @@ def meshcat_visualize(vis, obs, act, info):
 
     vis['pointclouds/' + str(cam_index)].set_object(
         g.PointCloud(position=verts, color=colors))
-
-
-#-----------------------------------------------------------------------------
-# Daniel's misc utils
-#-----------------------------------------------------------------------------
-
-
-def round_pos(pos, dig=3):
-  """Make it a little easier to read from debug prints."""
-  pos = (round(pos[0], dig), round(pos[1], dig), round(pos[2], dig))
-  return pos
-
-
-def round_orn(orn, dig=3):
-  """Make it a little easier to read from debug prints."""
-  orn = (round(orn[0], dig), round(orn[1], dig), round(orn[2],
-                                                       dig), round(orn[3], dig))
-  return orn
-
-
-def round_pose(pose, dig=3):
-  """Make it a little easier to read from debug prints."""
-  del dig
-  return (round_pos(pose[0]), round_orn(pose[1]))
-
-
-def fit_circle(points_l, scale, debug=False):
-  """Get information about a circle from a list of points `points_l`.
-
-  This may involve fitting a circle or ellipse to a set of points?
-
-  pip install circle-fit
-  https://github.com/AlliedToasters/circle-fit
-
-  Assuing for now that points_l contains a list of (x,y,z) points, so we
-  take only (x,y) and scale according to `scale`. Both methods return a
-  tuple of four values:
-
-  xc: x-coordinate of solution center (float)
-  yc: y-coordinate of solution center (float)
-  R: Radius of solution (float)
-  variance or residual (float)
-
-  These methods should be identical if we're querying this with actual
-  circles. Returning the second one for now.
-
-  Args:
-    points_l: list of (x, y, z) points.
-    scale: scalar value.
-    debug: If True print verbose debug information.
-
-  Returns:
-    circle paramters.
-  """
-  from circle_fit import hyper_fit  # pylint: disable=g-import-not-at-top
-  from circle_fit import least_squares_circle  # pylint: disable=g-import-not-at-top
-
-  data = [(item[0] * scale, item[1] * scale) for item in points_l]
-  data = np.array(data)
-  circle_1 = hyper_fit(data)
-  circle_2 = least_squares_circle(data)
-  xc_1, yc_1, r_1, _ = circle_1
-  xc_2, yc_2, r_2, _ = circle_2
-  if debug:
-    print(f'(hyperfit) rad {r_1:0.4f}, center ({xc_1:0.4f},{yc_1:0.4f})')
-    print(f'(least-sq) rad {r_2:0.4f}, center ({xc_2:0.4f},{yc_2:0.4f})')
-  return circle_2

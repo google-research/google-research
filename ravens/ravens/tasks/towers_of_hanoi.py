@@ -15,39 +15,40 @@
 
 """Towers of Hanoi task."""
 
+import numpy as np
+
 from ravens import utils
-from ravens.tasks import Task
+from ravens.tasks.task import Task
 
 
-class Hanoi(Task):
+class TowersOfHanoi(Task):
   """Towers of Hanoi task."""
 
   def __init__(self):
     super().__init__()
-    self.ee = 'suction'
     self.max_steps = 14
-    self.metric = 'pose'
-    self.primitive = 'pick_place'
 
   def reset(self, env):
+    super().reset(env)
 
     # Add stand.
     base_size = (0.12, 0.36, 0.01)
     base_urdf = 'assets/hanoi/stand.urdf'
-    base_pose = self.random_pose(env, base_size)
-    env.add_object(base_urdf, base_pose, fixed=True)
+    base_pose = self.get_random_pose(env, base_size)
+    env.add_object(base_urdf, base_pose, 'fixed')
 
     # Rod positions in base coordinates.
-    rod_positions = ((0, -0.12, 0.03), (0, 0, 0.03), (0, 0.12, 0.03))
+    rod_pos = ((0, -0.12, 0.03), (0, 0, 0.03), (0, 0.12, 0.03))
 
     # Add disks.
-    num_disks = 3
-    for i in range(num_disks):
+    disks = []
+    n_disks = 3
+    for i in range(n_disks):
       disk_urdf = 'assets/hanoi/disk%d.urdf' % i
-      position = utils.apply(base_pose, rod_positions[0])
-      z_offset = 0.015 * (num_disks - i - 2)
-      position = (position[0], position[1], position[2] + z_offset)
-      env.add_object(disk_urdf, (position, base_pose[1]))
+      pos = utils.apply(base_pose, rod_pos[0])
+      z = 0.015 * (n_disks - i - 2)
+      pos = (pos[0], pos[1], pos[2] + z)
+      disks.append(env.add_object(disk_urdf, (pos, base_pose[1])))
 
     # Solve Hanoi sequence with dynamic programming.
     hanoi_steps = []  # [[object index, from rod, to rod], ...]
@@ -59,18 +60,13 @@ class Hanoi(Task):
       solve_hanoi(n - 1, t0, t2, t1)
       hanoi_steps.append([n, t0, t1])
       solve_hanoi(n - 1, t2, t1, t0)
+    solve_hanoi(n_disks - 1, 0, 2, 1)
 
-    solve_hanoi(num_disks - 1, 0, 2, 1)
-    self.num_steps = len(hanoi_steps)
-
-    # Construct goal sequence [{object id : (symmetry, pose)}, ...]
-    self.goal = {'places': {}, 'steps': []}
+    # Goal: pick and place disks using Hanoi sequence.
     for step in hanoi_steps:
-      object_id = env.objects[step[0]]
-      rod_position = rod_positions[step[2]]
-      place_position = utils.apply(base_pose, rod_position)
-      place_pose = (place_position,
-                    utils.get_pybullet_quaternion_from_rot((0, 0, 0)))
-      place_id = len(self.goal['places'])
-      self.goal['places'][place_id] = place_pose
-      self.goal['steps'].append({object_id: (0, [place_id])})
+      disk_id = disks[step[0]]
+      targ_pos = rod_pos[step[2]]
+      targ_pos = utils.apply(base_pose, targ_pos)
+      targ_pose = (targ_pos, (0, 0, 0, 1))
+      self.goals.append(([(disk_id, (0, None))], np.int32([[1]]), [targ_pose],
+                         False, True, 'pose', None, 1 / len(hanoi_steps)))

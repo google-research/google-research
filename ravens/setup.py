@@ -22,6 +22,6 @@ from setuptools import find_packages
 core.setup(
     name='ravens',
     version='0.0.1',
-    author='Andy Zeng, Pete Florence, Jonathan Tompson, Daniel Seita',
+    author='Andy Zeng, Pete Florence, Daniel Seita, Jonathan Tompson',
     packages=find_packages(),
 )

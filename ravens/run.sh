@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright 2020 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,14 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Ravens models package."""
-
-from ravens.models.attention import Attention
-from ravens.models.conv_mlp import ConvMLP
-from ravens.models.conv_mlp import DeepConvMLP
-from ravens.models.gt_state import MlpModel
-from ravens.models.matching import Matching
-from ravens.models.regression import Regression
-from ravens.models.transport import Transport
-from ravens.models.transport_ablation import TransportPerPixelLoss
-from ravens.models.transport_goal import TransportGoal
+python demos.py --task=block-insertion --mode=train --n=1000
+python demos.py --task=block-insertion --mode=test  --n=100
+python train.py --task=block-insertion --agent=transporter --n_demos=10
+python test.py  --task=block-insertion --agent=transporter --n_demos=10 --n_steps=10000
+python plot.py  --task=block-insertion --agent=transporter --n_demos=10

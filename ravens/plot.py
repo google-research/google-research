@@ -16,102 +16,55 @@
 #!/usr/bin/env python
 """Script to plot training results."""
 
+import argparse
 import os
+
 import pickle
-import matplotlib  # pylint: disable=unused-import
-import matplotlib.pyplot as plt  # pylint: disable=unused-import
 import numpy as np
 
 from ravens import utils
 
-# #-----------------------------------------------------------------------------
-# # Specify Training Plots
-# #-----------------------------------------------------------------------------
 
-# title = 'Transporter Nets Performance on Various Tasks'
-# # files = {'Sorting':     'sorting-transporter-1.pkl',
-# #          'Insertion':   'insertion-transporter-1.pkl',
-# #          'Hanoi':       'hanoi-transporter-1.pkl',
-# #          'Aligning':    'aligning-transporter-1.pkl',
-# #          'Stacking':    'stacking-transporter-1.pkl',
-# #          'Sweeping':    'sweeping-transporter-1.pkl',
-# #          'Pushing':     'pushing-transporter-1.pkl',
-# #          'Palletizing': 'palletizing-transporter-1.pkl',
-# #          'Kitting':     'kitting-transporter-1.pkl',
-# #          'Packing':     'packing-transporter-1.pkl'}
-# files = {'Sorting':     'sorting-transporter-10.pkl',
-#          'Insertion':   'insertion-transporter-10.pkl',
-#          'Hanoi':       'hanoi-transporter-10.pkl',
-#          'Aligning':    'aligning-transporter-10.pkl',
-#          'Stacking':    'stacking-transporter-10.pkl',
-#          'Sweeping':    'sweeping-transporter-10.pkl',
-#          # 'Pushing':     'pushing-transporter-10.pkl',
-#          'Palletizing': 'palletizing-transporter-10.pkl',
-#          'Kitting':     'kitting-transporter-10.pkl',
-#          'Packing':     'packing-transporter-10.pkl'}
-# ylabel = 'Task Success (%)'
-# xlabel = 'Training Steps'
+def main():
 
-# #-----------------------------------------------------------------------------
-# # Generate Training Plots
-# #-----------------------------------------------------------------------------
+  # Parse command line arguments.
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--disp', action='store_true')
+  parser.add_argument('--task', default='insertion')
+  parser.add_argument('--agent', default='transporter')
+  parser.add_argument('--n_demos', default=100, type=int)
+  args = parser.parse_args()
 
-# logs = {}
-# for name, file in files.items():
-#     if os.path.isfile(file):
-#         data = pickle.load(open(file, 'rb'))
-#         data = np.float32(data)
-#         x = np.sort(np.unique(data[:, 0]))
-#         y = np.float32([data[data[:, 0] == ix, 1] for ix in x])
-#         logs[name] = (x, y)
-# fname = os.path.join(os.getcwd(), 'plot.png')
-# utils.plot(fname, title, ylabel, xlabel, data=logs, ylim=[0, 1])
-# print(f'Done. Plot image saved to: {fname}')
+  name = f'{args.task}-{args.agent}-{args.n_demos}'
+  print(name)
 
-#-----------------------------------------------------------------------------
-# Specify Sample Efficiency Plots
-#-----------------------------------------------------------------------------
-
-title = 'Sample Efficiency on Various Tasks'
-agent = 'form2fit'
-files = {
-    'Sorting': f'sorting-{agent}-',
-    'Insertion': f'insertion-{agent}-',
-    'Hanoi': f'hanoi-{agent}-',
-    'Aligning': f'aligning-{agent}-',
-    'Stacking': f'stacking-{agent}-',
-    'Sweeping': f'sweeping-{agent}-',
-    'Cable': f'cable-{agent}-',
-    'Palletizing': f'palletizing-{agent}-',
-    'Kitting': f'kitting-{agent}-',
-    'Packing': f'packing-{agent}-'
-}
-ylabel = 'Task Success (%)'
-xlabel = '# of Demonstrations'
-
-#-----------------------------------------------------------------------------
-# Generate Training Plots
-#-----------------------------------------------------------------------------
-
-logs = {}
-for name, file in files.items():
-  x, y, std = [], [], []
-  for order in range(4):
-    fname = file + f'{10**order}-0.pkl'
-    if os.path.isfile(fname):
-      x.append(len(x))
+  # Load and print results to console.
+  path = os.path.join('.')
+  curve = []
+  for fname in sorted(os.listdir(path)):
+    if name in fname and '.pkl' in fname:
+      n_steps = int(fname[(fname.rfind('-') + 1):-4])
       data = pickle.load(open(fname, 'rb'))
-      data = np.float32(data)
-      ix = np.sort(np.unique(data[:, 0]))
-      iy = np.float32([data[data[:, 0] == i, 1] for i in ix])
-      imax = np.argsort(np.mean(iy, axis=1))[-5:]  # count best 5 runs
-      iy = iy[imax, :].reshape(-1)
-      std.append(np.std(iy))
-      y.append(np.mean(iy))
-      print(fname)
-      print(np.mean(iy))
-  logs[name] = (x, y, std)
-xticks = ['1', '10', '100', '1000']
-fname = os.path.join(os.getcwd(), 'plot.png')
-utils.plot(fname, title, ylabel, xlabel, data=logs, xticks=xticks, ylim=[0, 1])
-print(f'Done. Plot image saved to: {fname}')
+      rewards = []
+      for reward, _ in data:
+        rewards.append(reward)
+      rewards = np.array(rewards) * 100
+      score = np.mean(rewards)
+      std = np.std(rewards)
+      print(f'  {n_steps} steps:\t{score:.1f}%')
+      curve.append((n_steps, score, std))
+
+  # Plot results over training steps.
+  title = f'{args.agent} on {args.task} w/ {args.n_demos} demos'
+  ylabel = 'Testing Task Success (%)'
+  xlabel = '# of Training Steps'
+  if args.disp:
+    logs = {}
+    curve = np.array(curve)
+    logs[name] = (curve[:, 0], curve[:, 1], curve[:, 2])
+    fname = f'{name}-plot.png'
+    utils.plot(fname, title, ylabel, xlabel, data=logs, ylim=[0, 1])
+    print(f'Done. Plot image saved to: {fname}')
+
+if __name__ == '__main__':
+  main()

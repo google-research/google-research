@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#!/usr/bin/env python
 """Ground-truth state 2-step Agent."""
 
 import time
@@ -187,18 +188,18 @@ class GtState2StepAgent(GtStateAgent):
 
     # just go exactly to objects, from observations
     # p0_position = np.hstack((gt_obs[3:5], 0.02))
-    # p0_rotation = utils.get_pybullet_quaternion_from_rot(
+    # p0_rotation = utils.eulerXYZ_to_quatXYZW(
     #     (0, 0, -gt_obs[5]*self.theta_scale))
     # p1_position = np.hstack((gt_obs[0:2], 0.02))
-    # p1_rotation = utils.get_pybullet_quaternion_from_rot(
+    # p1_rotation = utils.eulerXYZ_to_quatXYZW(
     #     (0, 0, -gt_obs[2]*self.theta_scale))
 
     # just go exactly to objects, predicted
     p0_position = np.hstack((prediction[0:2], 0.02))
-    p0_rotation = utils.get_pybullet_quaternion_from_rot(
+    p0_rotation = utils.eulerXYZ_to_quatXYZW(
         (0, 0, -prediction[2] * self.theta_scale))
     p1_position = np.hstack((prediction[3:5], 0.02))
-    p1_rotation = utils.get_pybullet_quaternion_from_rot(
+    p1_rotation = utils.eulerXYZ_to_quatXYZW(
         (0, 0, -prediction[5] * self.theta_scale))
 
     # Select task-specific motion primitive.
@@ -436,11 +437,11 @@ class GtState3Step6DAgent(GtState6DAgent):
     place_rpz_prediction = place_rpz_prediction[0]
 
     p0_position = np.hstack((pick_prediction[0:2], 0.02))
-    p0_rotation = utils.get_pybullet_quaternion_from_rot((0, 0, 0))
+    p0_rotation = utils.eulerXYZ_to_quatXYZW((0, 0, 0))
 
     p1_position = np.hstack(
         (place_se2_prediction[0:2], place_rpz_prediction[2]))
-    p1_rotation = utils.get_pybullet_quaternion_from_rot(
+    p1_rotation = utils.eulerXYZ_to_quatXYZW(
         (place_rpz_prediction[0] * self.theta_scale,
          place_rpz_prediction[1] * self.theta_scale,
          -place_se2_prediction[2] * self.theta_scale))

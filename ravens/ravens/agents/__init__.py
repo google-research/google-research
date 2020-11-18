@@ -27,7 +27,7 @@ from ravens.agents.transporter import GoalTransporterAgent
 from ravens.agents.transporter import NoTransportTransporterAgent
 from ravens.agents.transporter import OriginalTransporterAgent
 from ravens.agents.transporter import PerPixelLossTransporterAgent
-from ravens.agents.transporter import Transporter6dAgent
+from ravens.agents.transporter_6dof import Transporter6dAgent
 
 names = {'dummy': DummyAgent,
          'transporter': OriginalTransporterAgent,

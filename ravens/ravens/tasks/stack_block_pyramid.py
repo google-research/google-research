@@ -19,27 +19,24 @@ import numpy as np
 import pybullet as p
 
 from ravens import utils
-from ravens.tasks import Task
+from ravens.tasks.task import Task
 
 
-class Stacking(Task):
+class StackBlockPyramid(Task):
   """Stacking task."""
 
   def __init__(self):
     super().__init__()
-    self.ee = 'suction'
     self.max_steps = 12
-    self.metric = 'pose'
-    self.primitive = 'pick_place'
-    self.rotation_eps = np.deg2rad(45)
 
   def reset(self, env):
+    super().reset(env)
 
     # Add base.
     base_size = (0.05, 0.15, 0.005)
     base_urdf = 'assets/stacking/stand.urdf'
-    base_pose = self.random_pose(env, base_size)
-    env.add_object(base_urdf, base_pose, fixed=True)
+    base_pose = self.get_random_pose(env, base_size)
+    env.add_object(base_urdf, base_pose, 'fixed')
 
     # Block colors.
     colors = [
@@ -48,34 +45,33 @@ class Stacking(Task):
     ]
 
     # Add blocks.
-    block_ids = []
+    objs = []
+    # sym = np.pi / 2
     block_size = (0.04, 0.04, 0.04)
     block_urdf = 'assets/stacking/block.urdf'
     for i in range(6):
-      block_pose = self.random_pose(env, block_size)
+      block_pose = self.get_random_pose(env, block_size)
       block_id = env.add_object(block_urdf, block_pose)
       p.changeVisualShape(block_id, -1, rgbaColor=colors[i] + [1])
-      block_ids.append(block_id)
+      objs.append((block_id, (np.pi / 2, None)))
 
-    # Associate placement locations.
-    self.num_steps = 6
-    self.goal = {'places': {}, 'steps': []}
-    self.goal['places'] = {
-        0: (utils.apply(base_pose, (0, -0.05, 0.03)), base_pose[1]),
-        1: (utils.apply(base_pose, (0, 0, 0.03)), base_pose[1]),
-        2: (utils.apply(base_pose, (0, 0.05, 0.03)), base_pose[1]),
-        3: (utils.apply(base_pose, (0, -0.025, 0.08)), base_pose[1]),
-        4: (utils.apply(base_pose, (0, 0.025, 0.08)), base_pose[1]),
-        5: (utils.apply(base_pose, (0, 0, 0.13)), base_pose[1])
-    }
-    block_symmetry = np.pi / 2
-    self.goal['steps'] = [{
-        block_ids[0]: (block_symmetry, [0, 1, 2]),
-        block_ids[1]: (block_symmetry, [0, 1, 2]),
-        block_ids[2]: (block_symmetry, [0, 1, 2])
-    }, {
-        block_ids[3]: (block_symmetry, [3, 4]),
-        block_ids[4]: (block_symmetry, [3, 4])
-    }, {
-        block_ids[5]: (block_symmetry, [5])
-    }]
+    # Associate placement locations for goals.
+    place_pos = [(0, -0.05, 0.03), (0, 0, 0.03),
+                 (0, 0.05, 0.03), (0, -0.025, 0.08),
+                 (0, 0.025, 0.08), (0, 0, 0.13)]
+    targs = [(utils.apply(base_pose, i), base_pose[1]) for i in place_pos]
+
+    # Goal: blocks are stacked in a pyramid (bottom row: green, blue, purple).
+    self.goals.append((objs[:3], np.ones((3, 3)), targs[:3],
+                       False, True, 'pose', None, 1 / 2))
+
+    # Goal: blocks are stacked in a pyramid (middle row: yellow, orange).
+    self.goals.append((objs[3:5], np.ones((2, 2)), targs[3:5],
+                       False, True, 'pose', None, 1 / 3))
+
+    # Goal: blocks are stacked in a pyramid (top row: red).
+    self.goals.append((objs[5:], np.ones((1, 1)), targs[5:],
+                       False, True, 'pose', None, 1 / 6))
+
+
+

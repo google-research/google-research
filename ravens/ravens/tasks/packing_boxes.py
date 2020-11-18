@@ -21,29 +21,27 @@ import numpy as np
 import pybullet as p
 
 from ravens import utils
-from ravens.tasks import Task
+from ravens.tasks.task import Task
 
 
-class Packing(Task):
+class PackingBoxes(Task):
   """Packing task."""
 
   def __init__(self):
     super().__init__()
-    self.ee = 'suction'
     self.max_steps = 20
-    self.metric = 'zone'
-    self.primitive = 'pick_place'
 
   def reset(self, env):
+    super().reset(env)
 
     # Add container box.
-    self.zone_size = self.random_size(0.05, 0.3, 0.05, 0.3, 0.05, 0.05)
-    self.zone_pose = self.random_pose(env, self.zone_size)
+    zone_size = self.get_random_size(0.05, 0.3, 0.05, 0.3, 0.05, 0.05)
+    zone_pose = self.get_random_pose(env, zone_size)
     container_template = 'assets/container/container-template.urdf'
-    half = np.float32(self.zone_size) / 2
-    replace = {'DIM': self.zone_size, 'HALF': half}
+    half = np.float32(zone_size) / 2
+    replace = {'DIM': zone_size, 'HALF': half}
     container_urdf = self.fill_template(container_template, replace)
-    env.add_object(container_urdf, self.zone_pose, fixed=True)
+    env.add_object(container_urdf, zone_pose, 'fixed')
     os.remove(container_urdf)
 
     margin = 0.01
@@ -84,53 +82,58 @@ class Packing(Task):
       KDTree(node.children[1])
 
     # Split container space with KD trees.
-    stack_size = np.array(self.zone_size)
+    stack_size = np.array(zone_size)
     stack_size[0] -= 0.01
     stack_size[1] -= 0.01
     root_size = (0.01, 0.01, 0) + tuple(stack_size)
     root = TreeNode(None, [], bbox=np.array(root_size))
     KDTree(root)
 
-    colors = [
-        utils.COLORS['purple'], utils.COLORS['blue'], utils.COLORS['green'],
-        utils.COLORS['yellow'], utils.COLORS['orange'], utils.COLORS['red'],
-        utils.COLORS['pink'], utils.COLORS['cyan'], utils.COLORS['gray']
-    ]
+    colors = [utils.COLORS[c] for c in utils.COLORS if c != 'brown']
 
     # Add objects in container.
-    self.object_points = {}
+    object_points = {}
+    object_ids = []
     bboxes = np.array(bboxes)
     object_template = 'assets/box/box-template.urdf'
     for bbox in bboxes:
       size = bbox[3:] - bbox[:3]
       position = size / 2. + bbox[:3]
-      position[0] += -self.zone_size[0] / 2
-      position[1] += -self.zone_size[1] / 2
+      position[0] += -zone_size[0] / 2
+      position[1] += -zone_size[1] / 2
       pose = (position, (0, 0, 0, 1))
-      pose = utils.multiply(self.zone_pose, pose)
+      pose = utils.multiply(zone_pose, pose)
       urdf = self.fill_template(object_template, {'DIM': size})
       box_id = env.add_object(urdf, pose)
       os.remove(urdf)
+      object_ids.append((box_id, (0, None)))
       icolor = np.random.choice(range(len(colors)), 1).squeeze()
       p.changeVisualShape(box_id, -1, rgbaColor=colors[icolor] + [1])
-      self.object_points[box_id] = self.get_object_points(box_id)
+      object_points[box_id] = self.get_object_points(box_id)
 
     # Randomly select object in box and save ground truth pose.
     object_volumes = []
-    self.goal = {'places': {}, 'steps': []}
-    for object_id in env.objects:
+    true_poses = []
+    # self.goal = {'places': {}, 'steps': []}
+    for object_id, _ in object_ids:
       true_pose = p.getBasePositionAndOrientation(object_id)
       object_size = p.getVisualShapeData(object_id)[0][3]
       object_volumes.append(np.prod(np.array(object_size) * 100))
-      pose = self.random_pose(env, object_size)
+      pose = self.get_random_pose(env, object_size)
       p.resetBasePositionAndOrientation(object_id, pose[0], pose[1])
-      self.goal['places'][object_id] = true_pose
-      symmetry = 0  # zone-evaluation: symmetry does not matter
-      self.goal['steps'].append({object_id: (symmetry, [object_id])})
-    self.total_rewards = 0
-    self.max_steps = len(self.goal['steps']) * 2
+      true_poses.append(true_pose)
+      # self.goal['places'][object_id] = true_pose
+      # symmetry = 0  # zone-evaluation: symmetry does not matter
+      # self.goal['steps'].append({object_id: (symmetry, [object_id])})
+    # self.total_rewards = 0
+    # self.max_steps = len(self.goal['steps']) * 2
 
     # Sort oracle picking order by object size.
-    self.goal['steps'] = [
-        self.goal['steps'][i] for i in np.argsort(-1 * np.array(object_volumes))
-    ]
+    # self.goal['steps'] = [
+    #     self.goal['steps'][i] for i in
+    #.    np.argsort(-1 * np.array(object_volumes))
+    # ]
+
+    self.goals.append((
+        object_ids, np.eye(len(object_ids)), true_poses, False, True, 'zone',
+        (object_points, [(zone_pose, zone_size)]), 1))

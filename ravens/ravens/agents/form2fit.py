@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#!/usr/bin/env python
 """Form-2-fit Agent (https://form2fit.github.io/)."""
 
 import os
@@ -75,13 +76,13 @@ class Form2FitAgent:
       # Get training labels from data sample.
       pose0, pose1 = act['params']['pose0'], act['params']['pose1']
       p0_position, p0_rotation = pose0[0], pose0[1]
-      p0 = utils.position_to_pixel(p0_position, self.bounds, self.pixel_size)
+      p0 = utils.xyz_to_pix(p0_position, self.bounds, self.pixel_size)
       p0_theta = -np.float32(
-          utils.get_rot_from_pybullet_quaternion(p0_rotation)[2])
+          utils.quatXYZW_to_eulerXYZ(p0_rotation)[2])
       p1_position, p1_rotation = pose1[0], pose1[1]
-      p1 = utils.position_to_pixel(p1_position, self.bounds, self.pixel_size)
+      p1 = utils.xyz_to_pix(p1_position, self.bounds, self.pixel_size)
       p1_theta = -np.float32(
-          utils.get_rot_from_pybullet_quaternion(p1_rotation)[2])
+          utils.quatXYZW_to_eulerXYZ(p1_rotation)[2])
       p1_theta = p1_theta - p0_theta
       p0_theta = 0
 
@@ -236,12 +237,12 @@ class Form2FitAgent:
     # p1_theta = ibest[2] * (2 * np.pi / self.num_rotations)
 
     # Pixels to end effector poses.
-    p0_position = utils.pixel_to_position(p0_pixel, heightmap, self.bounds,
-                                          self.pixel_size)
-    p1_position = utils.pixel_to_position(p1_pixel, heightmap, self.bounds,
-                                          self.pixel_size)
-    p0_rotation = utils.get_pybullet_quaternion_from_rot((0, 0, -p0_theta))
-    p1_rotation = utils.get_pybullet_quaternion_from_rot((0, 0, -p1_theta))
+    p0_position = utils.pix_to_xyz(p0_pixel, heightmap, self.bounds,
+                                   self.pixel_size)
+    p1_position = utils.pix_to_xyz(p1_pixel, heightmap, self.bounds,
+                                   self.pixel_size)
+    p0_rotation = utils.eulerXYZ_to_quatXYZW((0, 0, -p0_theta))
+    p1_rotation = utils.eulerXYZ_to_quatXYZW((0, 0, -p1_theta))
 
     act['primitive'] = 'pick_place'
     if self.task == 'sweeping':

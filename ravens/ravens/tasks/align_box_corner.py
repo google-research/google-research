@@ -20,25 +20,21 @@ import os
 import numpy as np
 
 from ravens import utils
-from ravens.tasks import Task
+from ravens.tasks.task import Task
 
 
-class Aligning(Task):
+class AlignBoxCorner(Task):
   """Aligning task."""
 
   def __init__(self):
     super().__init__()
-    self.ee = 'suction'
-    self.max_steps = 5
-    self.metric = 'pose'
-    self.primitive = 'pick_place'
+    self.max_steps = 3
 
   def reset(self, env):
-    self.num_steps = 1
-    self.goal = {'places': {}, 'steps': []}
+    super().reset(env)
 
     # Generate randomly shaped box.
-    box_size = self.random_size(0.05, 0.15, 0.05, 0.15, 0.01, 0.06)
+    box_size = self.get_random_size(0.05, 0.15, 0.05, 0.15, 0.01, 0.06)
 
     # Add corner.
     dimx = (box_size[0] / 2 - 0.025 + 0.0025, box_size[0] / 2 + 0.0025)
@@ -47,35 +43,31 @@ class Aligning(Task):
     replace = {'DIMX': dimx, 'DIMY': dimy}
     corner_urdf = self.fill_template(corner_template, replace)
     corner_size = (box_size[0], box_size[1], 0)
-    corner_pose = self.random_pose(env, corner_size)
-    env.add_object(corner_urdf, corner_pose, fixed=True)
+    corner_pose = self.get_random_pose(env, corner_size)
+    env.add_object(corner_urdf, corner_pose, 'fixed')
     os.remove(corner_urdf)
 
     # Add possible placing poses.
-    theta = utils.get_rot_from_pybullet_quaternion(corner_pose[1])[2]
-    flipped_rotation = utils.get_pybullet_quaternion_from_rot(
-        (0, 0, theta + np.pi))
-    flipped_pose = (corner_pose[0], flipped_rotation)
+    theta = utils.quatXYZW_to_eulerXYZ(corner_pose[1])[2]
+    fip_rot = utils.eulerXYZ_to_quatXYZW((0, 0, theta + np.pi))
+    pose1 = (corner_pose[0], fip_rot)
     alt_x = (box_size[0] / 2) - (box_size[1] / 2)
     alt_y = (box_size[1] / 2) - (box_size[0] / 2)
-    alt_position = (alt_x, alt_y, 0)
-    alt_rotation0 = utils.get_pybullet_quaternion_from_rot((0, 0, np.pi / 2))
-    alt_rotation1 = utils.get_pybullet_quaternion_from_rot(
-        (0, 0, 3 * np.pi / 2))
-    alt_pose0 = utils.multiply(corner_pose, (alt_position, alt_rotation0))
-    alt_pose1 = utils.multiply(corner_pose, (alt_position, alt_rotation1))
-    self.goal['places'] = {
-        0: corner_pose,
-        1: flipped_pose,
-        2: alt_pose0,
-        3: alt_pose1
-    }
+    alt_pos = (alt_x, alt_y, 0)
+    alt_rot0 = utils.eulerXYZ_to_quatXYZW((0, 0, np.pi / 2))
+    alt_rot1 = utils.eulerXYZ_to_quatXYZW((0, 0, 3 * np.pi / 2))
+    pose2 = utils.multiply(corner_pose, (alt_pos, alt_rot0))
+    pose3 = utils.multiply(corner_pose, (alt_pos, alt_rot1))
 
     # Add box.
     box_template = 'assets/box/box-template.urdf'
     box_urdf = self.fill_template(box_template, {'DIM': box_size})
-    box_pose = self.random_pose(env, box_size)
+    box_pose = self.get_random_pose(env, box_size)
     box_id = env.add_object(box_urdf, box_pose)
     os.remove(box_urdf)
     self.color_random_brown(box_id)
-    self.goal['steps'].append({box_id: (2 * np.pi, [0, 1, 2, 3])})
+
+    # Goal: box is aligned with corner (1 of 4 possible poses).
+    self.goals.append(([(box_id, (2 * np.pi, None))], np.int32([[1, 1, 1, 1]]),
+                       [corner_pose, pose1, pose2, pose3],
+                       False, True, 'pose', None, 1))

@@ -16,6 +16,7 @@
 """Package init."""
 
 from ravens import agents
+from ravens import models
 from ravens import tasks
 from ravens.dataset import Dataset
 from ravens.environment import Environment

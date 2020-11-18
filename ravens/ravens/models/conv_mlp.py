@@ -16,8 +16,8 @@
 """Conv MLP module."""
 
 import numpy as np
-from ravens.models import MlpModel
-from ravens.models import ResNet43_8s
+from ravens.models.gt_state import MlpModel
+from ravens.models.resnet import ResNet43_8s
 import tensorflow as tf
 tf.compat.v1.enable_eager_execution()
 from tensorflow.keras import layers  # pylint: disable=g-import-not-at-top

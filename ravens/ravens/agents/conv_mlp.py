@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#!/usr/bin/env python
 """Convoluational MLP Agent."""
 
 import os
@@ -81,7 +82,7 @@ class ConvMlpAgent:
 
     object_xy = object_position[0:2]
     object_theta = -np.float32(
-        utils.get_rot_from_pybullet_quaternion(object_quat_xyzw)
+        utils.quatXYZW_to_eulerXYZ(object_quat_xyzw)
         [2]) / self.theta_scale
     return np.hstack(
         (object_xy,
@@ -134,17 +135,6 @@ class ConvMlpAgent:
       batch_obs.append(input_image)
       batch_act.append(self.act_to_gt_act(
           act, t_worldaug_world))  # this samples pick points from surface
-
-      # import matplotlib.pyplot as plt
-      # plt.imshow(input_image)
-      # plt.scatter(p0[1], p0[0])
-      # plt.scatter(p1[1], p1[0])
-      # plt.show()
-
-      # plt.imshow(input_image)
-      # plt.scatter(p0[1], p0[0])
-      # plt.scatter(p1[1], p1[0])
-      # plt.show()
 
     batch_obs = np.array(batch_obs)
     batch_act = np.array(batch_act)
@@ -249,9 +239,9 @@ class ConvMlpAgent:
     p0_position = np.hstack((prediction[0:2], 0.02))
     p1_position = np.hstack((prediction[3:5], 0.02))
 
-    p0_rotation = utils.get_pybullet_quaternion_from_rot(
+    p0_rotation = utils.eulerXYZ_to_quatXYZW(
         (0, 0, -prediction[2] * self.theta_scale))
-    p1_rotation = utils.get_pybullet_quaternion_from_rot(
+    p1_rotation = utils.eulerXYZ_to_quatXYZW(
         (0, 0, -prediction[5] * self.theta_scale))
 
     act['primitive'] = 'pick_place'

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#!/usr/bin/env python
 """Ground-truth state Agent."""
 
 import os
@@ -100,7 +101,7 @@ class GtStateAgent:
 
     object_xy = object_position[0:2]
     object_theta = -np.float32(
-        utils.get_rot_from_pybullet_quaternion(object_quat_xyzw)
+        utils.quatXYZW_to_eulerXYZ(object_quat_xyzw)
         [2]) / self.theta_scale
     return np.hstack(
         (object_xy,
@@ -335,18 +336,18 @@ class GtStateAgent:
 
     # just go exactly to objects, from observations
     # p0_position = np.hstack((gt_obs[3:5], 0.02))
-    # p0_rotation = utils.get_pybullet_quaternion_from_rot(
+    # p0_rotation = utils.eulerXYZ_to_quatXYZW(
     #     (0, 0, -gt_obs[5] * self.theta_scale))
     # p1_position = np.hstack((gt_obs[0:2], 0.02))
-    # p1_rotation = utils.get_pybullet_quaternion_from_rot(
+    # p1_rotation = utils.eulerXYZ_to_quatXYZW(
     #     (0, 0, -gt_obs[2] * self.theta_scale))
 
     # just go exactly to objects, predicted
     p0_position = np.hstack((prediction[0:2], 0.02))
-    p0_rotation = utils.get_pybullet_quaternion_from_rot(
+    p0_rotation = utils.eulerXYZ_to_quatXYZW(
         (0, 0, -prediction[2] * self.theta_scale))
     p1_position = np.hstack((prediction[3:5], 0.02))
-    p1_rotation = utils.get_pybullet_quaternion_from_rot(
+    p1_rotation = utils.eulerXYZ_to_quatXYZW(
         (0, 0, -prediction[5] * self.theta_scale))
 
     # Select task-specific motion primitive.
@@ -410,11 +411,11 @@ class GtState6DAgent(GtStateAgent):
     prediction = prediction[0]  # unbatch
 
     p0_position = np.hstack((prediction[0:2], 0.02))
-    p0_rotation = utils.get_pybullet_quaternion_from_rot(
+    p0_rotation = utils.eulerXYZ_to_quatXYZW(
         (0, 0, -prediction[2] * self.theta_scale))
 
     p1_position = prediction[3:6]
-    p1_rotation = utils.get_pybullet_quaternion_from_rot(
+    p1_rotation = utils.eulerXYZ_to_quatXYZW(
         (prediction[6] * self.theta_scale, prediction[7] * self.theta_scale,
          -prediction[8] * self.theta_scale))
 
@@ -467,7 +468,7 @@ class GtState6DAgent(GtStateAgent):
                           object_quat_wxyz[3], object_quat_wxyz[0])
       object_position = t_worldaug_object[0:3, 3]
 
-    euler = utils.get_rot_from_pybullet_quaternion(object_quat_xyzw)
+    euler = utils.quatXYZW_to_eulerXYZ(object_quat_xyzw)
     roll = euler[0]
     pitch = euler[1]
     theta = -euler[2]
@@ -525,7 +526,7 @@ class GtState6DAgent(GtStateAgent):
     q = quatwxyz_worldnew_p1theta0
     quatxyzw_worldnew_p1theta0 = (q[1], q[2], q[3], q[0])
     p1_rotation = quatxyzw_worldnew_p1theta0
-    p1_euler = utils.get_rot_from_pybullet_quaternion(p1_rotation)
+    p1_euler = utils.quatXYZW_to_eulerXYZ(p1_rotation)
 
     roll_scaled = p1_euler[0] / self.theta_scale
     pitch_scaled = p1_euler[1] / self.theta_scale

@@ -13,70 +13,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Ravens models package."""
+"""Ravens tasks."""
 
-from ravens.tasks.aligning import Aligning
-from ravens.tasks.cable import Cable
-from ravens.tasks.defs_bags import BagAloneOpen
-from ravens.tasks.defs_bags import BagItemsEasy
-from ravens.tasks.defs_bags import BagItemsHard
-from ravens.tasks.defs_cables import CableLineNoTarget
-from ravens.tasks.defs_cables import CableRing
-from ravens.tasks.defs_cables import CableRingNoTarget
-from ravens.tasks.defs_cables import CableShape
-from ravens.tasks.defs_cables import CableShapeNoTarget
-from ravens.tasks.defs_cloths import ClothCover
-from ravens.tasks.defs_cloths import ClothFlat
-from ravens.tasks.defs_cloths import ClothFlatNoTarget
-from ravens.tasks.hanoi import Hanoi
-from ravens.tasks.insertion import Insertion
-from ravens.tasks.insertion import InsertionEasy
-from ravens.tasks.insertion import InsertionGoal
-from ravens.tasks.insertion import InsertionSixDof
-from ravens.tasks.insertion import InsertionTranslation
-from ravens.tasks.kitting import Kitting
-from ravens.tasks.kitting import KittingEasy
-from ravens.tasks.packing import Packing
-from ravens.tasks.palletizing import Palletizing
-from ravens.tasks.pushing import Pushing
-from ravens.tasks.sorting import Sorting
-from ravens.tasks.stacking import Stacking
-from ravens.tasks.sweeping import Sweeping
+from ravens.tasks.align_box_corner import AlignBoxCorner
+from ravens.tasks.assembling_kits import AssemblingKits
+from ravens.tasks.assembling_kits import AssemblingKitsEasy
+from ravens.tasks.block_insertion import BlockInsertion
+from ravens.tasks.block_insertion import BlockInsertionEasy
+from ravens.tasks.block_insertion import BlockInsertionNoFixture
+from ravens.tasks.block_insertion import BlockInsertionSixDof
+from ravens.tasks.block_insertion import BlockInsertionTranslation
+from ravens.tasks.manipulating_rope import ManipulatingRope
+from ravens.tasks.packing_boxes import PackingBoxes
+from ravens.tasks.palletizing_boxes import PalletizingBoxes
+from ravens.tasks.place_red_in_green import PlaceRedInGreen
+from ravens.tasks.stack_block_pyramid import StackBlockPyramid
+from ravens.tasks.sweeping_piles import SweepingPiles
 from ravens.tasks.task import Task
-
-# New custom tasks for "Deformable Ravens". When adding these, double check:
-#   Environment._is_new_cable_env()
-#   Environment._is_cloth_env()
-#   Environment._is_bag_env()
-# and adjust those methods as needed.
-
+from ravens.tasks.towers_of_hanoi import TowersOfHanoi
 
 names = {
-    'sorting': Sorting,
-    'insertion': Insertion,
-    'insertion-easy': InsertionEasy,
-    'insertion-translation': InsertionTranslation,
-    'insertion-sixdof': InsertionSixDof,
-    'insertion-goal': InsertionGoal,
-    'hanoi': Hanoi,
-    'aligning': Aligning,
-    'stacking': Stacking,
-    'sweeping': Sweeping,
-    'pushing': Pushing,
-    'palletizing': Palletizing,
-    'kitting': Kitting,
-    'kitting-easy': KittingEasy,
-    'packing': Packing,
-    'cable': Cable,
-    'cable-shape': CableShape,
-    'cable-shape-notarget': CableShapeNoTarget,
-    'cable-line-notarget': CableLineNoTarget,
-    'cable-ring': CableRing,
-    'cable-ring-notarget': CableRingNoTarget,
-    'cloth-flat': ClothFlat,
-    'cloth-flat-notarget': ClothFlatNoTarget,
-    'cloth-cover': ClothCover,
-    'bag-alone-open': BagAloneOpen,
-    'bag-items-easy': BagItemsEasy,
-    'bag-items-hard': BagItemsHard,
+    'align-box-corner': AlignBoxCorner,
+    'assembling-kits': AssemblingKits,
+    'assembling-kits-easy': AssemblingKitsEasy,
+    'block-insertion': BlockInsertion,
+    'block-insertion-easy': BlockInsertionEasy,
+    'block-insertion-nofixture': BlockInsertionNoFixture,
+    'block-insertion-sixdof': BlockInsertionSixDof,
+    'block-insertion-translation': BlockInsertionTranslation,
+    'manipulating-rope': ManipulatingRope,
+    'packing-boxes': PackingBoxes,
+    'palletizing-boxes': PalletizingBoxes,
+    'place-red-in-green': PlaceRedInGreen,
+    'stack-block-pyramid': StackBlockPyramid,
+    'sweeping-piles': SweepingPiles,
+    'towers-of-hanoi': TowersOfHanoi
 }
