@@ -19,6 +19,8 @@ import tensorflow as tf
 from non_semantic_speech_benchmark.export_model import tf_frontend
 from tensorflow.python.keras.applications import mobilenet_v3 as v3_util
 
+# pylint:disable=protected-access
+
 
 @tf.function
 def _sample_to_features(x):
@@ -32,8 +34,10 @@ def get_keras_model(bottleneck_dimension,
                     frontend=True,
                     avg_pool=False):
   """Make a keras student model."""
+
   def _map_fn_lambda(x):
     return tf.map_fn(_sample_to_features, x, dtype=tf.float64)
+
   def _map_mobilenet_func(mnet_size):
     mnet_size_map = {
       "tiny": MobileNetV3Tiny,
@@ -52,13 +56,14 @@ def get_keras_model(bottleneck_dimension,
     model_in = tf.keras.Input((96, 64, 1), name="log_mel_spectrogram")
     feats = model_in
   model = _map_mobilenet_func(mobilenet_size)(
-      input_shape=[96, 64, 1],
-      alpha=alpha,
-      minimalistic=False,
-      include_top=False,
-      weights=None,
-      pooling='avg' if avg_pool is True else None,
-      dropout_rate=0.0)
+    input_shape=[96, 64, 1],
+    alpha=alpha,
+    minimalistic=False,
+    include_top=False,
+    weights=None,
+    pooling='avg' if avg_pool is True else None,
+    dropout_rate=0.0,
+  )
   model_out = model(feats)
   if avg_pool:
     model_out.shape.assert_is_compatible_with([None, None])
@@ -78,15 +83,17 @@ def get_keras_model(bottleneck_dimension,
 
 
 def MobileNetV3Tiny(input_shape=None,
-                     alpha=1.0,
-                     minimalistic=False,
-                     include_top=True,
-                     weights='imagenet',
-                     input_tensor=None,
-                     classes=1000,
-                     pooling=None,
-                     dropout_rate=0.2,
-                     classifier_activation='softmax'):
+                    alpha=1.0,
+                    minimalistic=False,
+                    include_top=True,
+                    weights='imagenet',
+                    input_tensor=None,
+                    classes=1000,
+                    pooling=None,
+                    dropout_rate=0.2,
+                    classifier_activation='softmax'):
+  """Variant of MobileNetV3SMall with slightly fewer inverted residual blocks."""
+
   def stack_fn(x, kernel, activation, se_ratio):
     def depth(d):
       return v3_util._depth(d * alpha)
@@ -103,5 +110,5 @@ def MobileNetV3Tiny(input_shape=None,
     return x
 
   return v3_util.MobileNetV3(stack_fn, 512, input_shape, alpha, 'tiny', minimalistic,
-                     include_top, weights, input_tensor, classes, pooling,
-                     dropout_rate, classifier_activation)
+                             include_top, weights, input_tensor, classes, pooling,
+                             dropout_rate, classifier_activation)

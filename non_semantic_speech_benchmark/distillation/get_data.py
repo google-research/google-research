@@ -57,27 +57,28 @@ def get_data(
 
   # Audio samples are variable length.
   features = {
-      samples_key: tf.io.VarLenFeature(dtype=tf.float32),
+    samples_key: tf.io.VarLenFeature(dtype=tf.float32),
   }
 
   # Load data into a dataset of batch size 1. Then preprocess.
   ds = tf.data.experimental.make_batched_features_dataset(
-      file_pattern=file_pattern,
-      batch_size=1,
-      num_epochs=None if loop_forever else 1,
-      reader_num_threads=tf.data.experimental.AUTOTUNE,
-      parser_num_threads=tf.data.experimental.AUTOTUNE,
-      features=features,
-      reader=reader,
-      shuffle=shuffle,
-      shuffle_buffer_size=shuffle_buffer_size,
-      prefetch_buffer_size=tf.data.experimental.AUTOTUNE,
-      sloppy_ordering=True)
+    file_pattern=file_pattern,
+    batch_size=1,
+    num_epochs=None if loop_forever else 1,
+    reader_num_threads=tf.data.experimental.AUTOTUNE,
+    parser_num_threads=tf.data.experimental.AUTOTUNE,
+    features=features,
+    reader=reader,
+    shuffle=shuffle,
+    shuffle_buffer_size=shuffle_buffer_size,
+    prefetch_buffer_size=tf.data.experimental.AUTOTUNE,
+    sloppy_ordering=True)
 
   ds = tf_data_pipeline(ds, teacher_fn, samples_key, min_length, batch_size,
                         output_dimension)
 
   return ds
+
 
 def get_precomputed_data(
     file_pattern,
@@ -103,6 +104,7 @@ def get_precomputed_data(
   Returns:
     A tf.data.Dataset of (frontend features, regression targets).
   """
+
   def _parse_examples(record):
     feature_description = {
       frontend_key: tf.io.FixedLenFeature([int(96 * 64)], tf.float32),
@@ -114,17 +116,18 @@ def get_precomputed_data(
   options = tf.data.Options()
   options.experimental_deterministic = False
   files_ds = tf.data.Dataset.list_files(file_pattern).with_options(options)
-  return tf.data.TFRecordDataset(files_ds)\
-    .map(lambda x: _parse_examples(x))\
-    .batch(batch_size, drop_remainder=True)\
-    .shuffle(shuffle_buffer_size, reshuffle_each_iteration=True)\
-    .repeat(num_epochs)\
+  return tf.data.TFRecordDataset(files_ds) \
+    .map(_parse_examples) \
+    .batch(batch_size, drop_remainder=True) \
+    .shuffle(shuffle_buffer_size, reshuffle_each_iteration=True) \
+    .repeat(num_epochs) \
     .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
 
 def tf_data_pipeline(ds, teacher_fn, samples_key, min_length, batch_size,
                      output_dimension):
   """Create tf.data pipeline for reading data."""
+
   # Filter examples that are too short, crop, map labels to integers, and batch.
   @tf.function
   def _filter_fn(kv):
@@ -132,6 +135,7 @@ def tf_data_pipeline(ds, teacher_fn, samples_key, min_length, batch_size,
     one = tf.cast(1, d_shape.dtype)
     tf.debugging.assert_equal(d_shape[0], one)  # We expect batch size to be 1.
     return d_shape[1] > min_length
+
   def _crop(kv):
     samples = kv[samples_key]
     samples = tf.sparse.to_dense(samples)
@@ -140,11 +144,13 @@ def tf_data_pipeline(ds, teacher_fn, samples_key, min_length, batch_size,
     samples = tf.image.random_crop(samples, [min_length], seed=123, name='crop')
     samples.set_shape([min_length])
     return samples
+
   def _audio_to_embeddings(samples):
     teacher_embeddings = teacher_fn(samples)
     teacher_embeddings.shape.assert_has_rank(2)
     teacher_embeddings.set_shape([None, output_dimension])
     return (samples, teacher_embeddings)
+
   autotune_ = tf.data.experimental.AUTOTUNE
   ds = (ds
         .filter(_filter_fn)
@@ -163,4 +169,5 @@ def savedmodel_to_func(saved_model, output_key, sample_rate=16000):
       batch_dim = tf.shape(audio)[0]
       out = tf.reshape(out, [batch_dim, -1])
     return out
+
   return _saved_model_fn
