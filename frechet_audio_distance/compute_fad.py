@@ -22,7 +22,7 @@ from __future__ import print_function
 from absl import app
 from absl import flags
 
-from frechet_audio_distance import fad_utils
+import fad_utils
 
 flags.DEFINE_string("background_stats", None,
                     "Tf record containing the background stats (mu sigma).")

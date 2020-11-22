@@ -23,7 +23,7 @@ import collections
 from absl import app
 from absl import flags
 
-from frechet_audio_distance import create_embeddings_beam
+import create_embeddings_beam
 
 flags.DEFINE_string('input_files', None,
                     'File containing a list of all input audio files.')

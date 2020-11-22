@@ -1,0 +1,7 @@
+data
+stats
+tensorflow_models
+test_audio
+
+# intellij idea
+.idea

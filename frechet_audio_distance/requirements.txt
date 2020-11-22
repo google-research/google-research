@@ -1,5 +1,5 @@
 absl-py>=0.7.0
-apache-beam>=2.9.0
+apache-beam>=2.14.0
 astor>=0.7.1
 avro>=1.8.2
 backports.functools-lru-cache>=1.5
