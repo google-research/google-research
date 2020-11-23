@@ -23,7 +23,7 @@ can control the whole random sampling using a single seed.
 """
 
 import enum
-from typing import FrozenSet, Optional
+from typing import Optional, Tuple
 
 import dataclasses
 import gast
@@ -49,8 +49,21 @@ class ASTHoleType(enum.Enum):
 
 @dataclasses.dataclass(frozen=True)
 class ASTHoleMetadata:
-  """Context for what is valid inside this hole."""
-  names_in_scope: FrozenSet[str]
+  """Context for what is valid inside this hole.
+
+  Attributes:
+    names_in_scope: Collection of names currently in scope. Stored as a tuple to
+      ensure determinism given a seed, since iteration order for sets depends on
+      a per-process Python randomization seed (see
+      https://docs.python.org/3/using/cmdline.html#envvar-PYTHONHASHSEED)
+    inside_function: Whether this hole is inside a function (so that returning
+      is allowed).
+    inside_loop: Whether this hole is inside a loop (so that break/continue is
+      allowed)
+    op_depth: Depth of this hole in a nested expression, used to limit the
+      complexity of expressions.
+  """
+  names_in_scope: Tuple[str, Ellipsis]
   inside_function: bool
   inside_loop: bool
   op_depth: int
@@ -101,7 +114,7 @@ class NameReferenceTemplate(ASTNodeTemplate):
     return bool(hole.metadata.names_in_scope)
 
   def fill(self, hole, rng):
-    name = rng.choice(list(hole.metadata.names_in_scope))
+    name = rng.choice(hole.metadata.names_in_scope)
     return ASTWithHoles(1, [], lambda: make_name(name))
 
 
@@ -234,7 +247,7 @@ class AssignExistingTemplate(ASTNodeTemplate):
     return bool(hole.metadata.names_in_scope)
 
   def fill(self, hole, rng):
-    name = rng.choice(list(hole.metadata.names_in_scope))
+    name = rng.choice(hole.metadata.names_in_scope)
 
     def build(v):
       return gast.Assign(targets=[make_name(name)], value=v)
@@ -330,7 +343,7 @@ class ForRangeBlockTemplate(ASTNodeTemplate):
         dataclasses.replace(
             hole.metadata,
             inside_loop=True,
-            names_in_scope=hole.metadata.names_in_scope.union((fresh_name,))))
+            names_in_scope=hole.metadata.names_in_scope + (fresh_name,)))
     return ASTWithHoles(6, [number_hole, body_hole], build)
 
 
@@ -452,7 +465,7 @@ class NewAssignTemplate(ASTNodeTemplate):
         ASTHoleType.STMTS,
         dataclasses.replace(
             hole.metadata,
-            names_in_scope=hole.metadata.names_in_scope.union((fresh_name,))))
+            names_in_scope=hole.metadata.names_in_scope + (fresh_name,)))
     return ASTWithHoles(2, [number_hole, rest_hole], build)
 
 

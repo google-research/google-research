@@ -64,7 +64,7 @@ def make_ast(
     target_ast_node_count,
     rng = None,
     distribution = (
-        python_numbers_control_flow.CFG_DISTRIBUTION)
+        python_numbers_control_flow.DATAFLOW_FNS_DISTRIBUTION)
 ):
   """Generates an AST for this task.
 
@@ -99,8 +99,8 @@ def make_ast(
       holes=[
           top_down_refinement.Hole(
               python_numbers_control_flow.ASTHoleType.STMTS_NONEMPTY,
-              python_numbers_control_flow.ASTHoleMetadata(
-                  frozenset(("a", "b")), True, False, 0))
+              python_numbers_control_flow.ASTHoleMetadata(("a", "b"), True,
+                                                          False, 0))
       ],
       build=root_build)
 
@@ -136,6 +136,11 @@ class TaskExampleDistribution:
 
 
 # Constants calibrated using `padding_calibration.calibrate_padding`.
+# The distribution used for training the models in the paper was
+# "data_flow_fns", and generalization experiments were conducted on
+# "data_flow_fns_doublesize" and "data_flow_fns_halfsize".
+# The "control_flow" and "data_flow" distributions are somewhat simpler, and
+# were used for initial prototyping.
 DISTRIBUTIONS = {
     "control_flow":
         TaskExampleDistribution(

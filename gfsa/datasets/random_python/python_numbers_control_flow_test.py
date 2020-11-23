@@ -40,7 +40,7 @@ class PythonNumbersControlFlowTest(parameterized.TestCase):
     hole = top_down_refinement.Hole(
         template.fills_type,
         python_numbers_control_flow.ASTHoleMetadata(
-            names_in_scope=frozenset({"a"}),
+            names_in_scope=("a",),
             inside_function=True,
             inside_loop=True,
             op_depth=0))
