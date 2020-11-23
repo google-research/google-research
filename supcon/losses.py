@@ -330,11 +330,11 @@ def _create_tiled_masks(untiled_mask, diagonal_mask, num_views,
 def contrastive_loss(features,
                      labels=None,
                      temperature=1.0,
-                     base_temperature=0.07,
                      contrast_mode=enums.LossContrastMode.ALL_VIEWS,
                      summation_location=enums.LossSummationLocation.OUTSIDE,
                      denominator_mode=enums.LossDenominatorMode.ALL,
-                     positives_cap=-1):
+                     positives_cap=-1,
+                     scale_by_temperature=True):
   r"""Contrastive loss over features.
 
   Implemented as described in: https://arxiv.org/abs/2004.11362, Equation 2.
@@ -347,7 +347,7 @@ def contrastive_loss(features,
 
   where each L_i is computed as:
 
-    L_i = -\frac{\tau}{base_temperature} * \sum_{k \in P(i)} \log(p_{ik})    (1)
+    L_i = -\tau * \sum_{k \in P(i)} \log(p_{ik})    (1)
 
   where P(i) is the set of positives for entry i (distinct from i) and where:
 
@@ -414,7 +414,7 @@ def contrastive_loss(features,
   Also, though it is not applicable to multiview contrastive learning, this
   function will work if |features| contains only 1 view. In the high batch size
   limit, the implemented contrastive loss with only 1 view, positives_cap = 1,
-  and temperature = base_temperature = 1.0 is equivalent to the N-pairs loss
+  and temperature = 1.0 is equivalent to the N-pairs loss
   (https://papers.nips.cc/paper/6200-improved-deep-metric-learning-with-multi-class-n-pair-loss-objective.pdf)
 
   Args:
@@ -429,8 +429,6 @@ def contrastive_loss(features,
       batch size.
     temperature: Temperature at which softmax evaluation is done. Temperature
       must be a python scalar or scalar Tensor of numeric dtype.
-    base_temperature: The temperature with respect to which the loss is scaled
-      as shown in the expression above.
     contrast_mode: LossContrastMode specifying which views get used as anchors
       (f_i in the expression above)
       'ALL_VIEWS': All the views of all samples are used as anchors (f_i in the
@@ -449,6 +447,9 @@ def contrastive_loss(features,
       by selecting which positives are present in the summation, and which
       positives contribure to the denominator if denominator_mode ==
       enums.LossDenominatorMode.ALL.
+    scale_by_temperature: Boolean. Whether to scale the loss by `temperature`.
+      The loss gradient naturally has a 1/temperature scaling factor, so this
+      counteracts it.
 
   Returns:
     Scalar tensor with contrastive loss value with shape [batch_size] and dtype
@@ -566,7 +567,9 @@ def contrastive_loss(features,
     log_probs = tf.math.divide_no_nan(log_probs, num_positives_per_row)
     log_probs = tf.math.log(log_probs)
 
-  loss = -temperature / base_temperature * log_probs
+  loss = -log_probs
+  if scale_by_temperature:
+    loss *= temperature
   loss = tf.reshape(loss, [num_anchor_views, local_batch_size])
 
   if num_views != 1:

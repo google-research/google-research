@@ -61,6 +61,7 @@ class ContrastiveLoss:
   denominator_mode = hparam.field(
       default=enums.LossDenominatorMode.ALL, abbrev='dm')
   positives_cap = hparam.field(default=-1, abbrev='pc')
+  scale_by_temperature = hparam.field(default=True, abbrev='sbt')
 
 
 @hparam.s

@@ -83,14 +83,16 @@ SUPCON_FLAGS=( "${CONTRASTIVE_FLAGS[@]}"
                --use_bias_weight_decay=True
                --use_projection_batch_norm=False
                --projection_head_layers=128
-               --zero_initialize_classifier=False )
+               --zero_initialize_classifier=False
+               --scale_by_temperature=True )
 SIMCLR_FLAGS=( "${CONTRASTIVE_FLAGS[@]}"
                  --use_labels=False
                  --normalize_embedding=False
                  --use_bias_weight_decay=True
                  --use_projection_batch_norm=True
-                 --projection_head_layers="2048,128"
-                 --zero_initialize_classifier=True )
+                 --projection_head_layers="2048,2048,128"
+                 --zero_initialize_classifier=True
+                 --scale_by_temperature=False )
 
 XENT_FLAGS=( --stage_2_epochs=0
              --stage_2_warmup_epochs=0

@@ -25,7 +25,7 @@ FLAGS = flags.FLAGS
 # Train and eval batch sizes. For TPU execution, these are the total batch sizes
 # for all TPUs together, not the smaller per-TPU ones.
 flags.DEFINE_integer('batch_size', 2048, 'Train batch size')
-flags.DEFINE_integer('eval_batch_size', 2048, 'The batch size to use for eval.')
+flags.DEFINE_integer('eval_batch_size', 128, 'The batch size to use for eval.')
 
 # Architecture
 flags.DEFINE_float('resnet_width', 1., 'Width of the resnet to be'
@@ -86,6 +86,10 @@ flags.DEFINE_bool(
     'loss (SupCon), rather than acting fully self-supervised (SimCLR).')
 flags.DEFINE_float('temperature', 0.07,
                    'The temperature parameter of the contrastive loss.')
+flags.DEFINE_bool(
+    'scale_by_temperature', True,
+    'Whether the contrastive loss gets scaled by the temperature, which helps '
+    'normalize the loss gradient.')
 flags.DEFINE_enum_class(
     'contrast_mode', enums.LossContrastMode.ALL_VIEWS, enums.LossContrastMode,
     'Contrast mode: ALL (contrast all views against all other views) or ONE '
@@ -331,7 +335,8 @@ def hparams_from_flags():
               contrast_mode=FLAGS.contrast_mode,
               summation_location=FLAGS.summation_location,
               denominator_mode=FLAGS.denominator_mode,
-              positives_cap=FLAGS.positives_cap),
+              positives_cap=FLAGS.positives_cap,
+              scale_by_temperature=FLAGS.scale_by_temperature),
           cross_entropy=hparams.CrossEntropyLoss(
               label_smoothing=FLAGS.label_smoothing),
           include_bias_in_weight_decay=FLAGS.use_bias_weight_decay),

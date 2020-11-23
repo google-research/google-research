@@ -343,11 +343,11 @@ class ContrastiveTrainer:
           tf.stack([projection_view_1, projection_view_2], axis=1),
           labels=labels,
           temperature=contrastive_params.temperature,
-          base_temperature=0.07,
           contrast_mode=contrastive_params.contrast_mode,
           summation_location=contrastive_params.summation_location,
           denominator_mode=contrastive_params.denominator_mode,
-          positives_cap=contrastive_params.positives_cap)
+          positives_cap=contrastive_params.positives_cap,
+          scale_by_temperature=contrastive_params.scale_by_temperature)
 
     if self.train:
       self._add_scalar_summary('loss/contrastive_loss', contrastive_loss)

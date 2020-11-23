@@ -104,17 +104,13 @@ class LossesTest(tf.test.TestCase, parameterized.TestCase):
     features = np.array([[[0, 0, 1], [0, 1, 0]], [[1., 0., 0.], [0., -1., 0.]]])
     loss_one = tf.reduce_mean(
         losses.contrastive_loss(
-            features,
-            contrast_mode=enums.LossContrastMode.ONE_VIEW,
-            base_temperature=1.))
+            features, contrast_mode=enums.LossContrastMode.ONE_VIEW))
     self.assertFalse(np.isnan(loss_one.numpy()))
     expected_loss = 1.098612  # np.log(3.)
     self.assertAlmostEqual(np.mean(loss_one.numpy()), expected_loss, places=6)
     loss_all = tf.reduce_mean(
         losses.contrastive_loss(
-            features,
-            contrast_mode=enums.LossContrastMode.ALL_VIEWS,
-            base_temperature=1.))
+            features, contrast_mode=enums.LossContrastMode.ALL_VIEWS))
     self.assertFalse(np.isnan(loss_all.numpy()))
     self.assertNotAlmostEqual(
         np.mean(loss_all.numpy()), expected_loss, places=6)
@@ -125,7 +121,7 @@ class LossesTest(tf.test.TestCase, parameterized.TestCase):
     features = np.array([[[0, 0, 1], [0, (2. * sqrt2) / 3., -1 / 3.]],
                          [[sqrt6 / 3., -sqrt2 / 3., -1. / 3],
                           [-sqrt6 / 3., -sqrt2 / 3., -1. / 3]]])
-    loss = losses.contrastive_loss(features, base_temperature=1.)
+    loss = losses.contrastive_loss(features)
     self.assertFalse(np.isnan(loss.numpy()).any())
     expected_loss = 1.098612  # np.log(3.)
     self.assertAlmostEqual(np.mean(loss.numpy()), expected_loss, places=6)
@@ -137,7 +133,7 @@ class LossesTest(tf.test.TestCase, parameterized.TestCase):
                          [[sqrt6 / 3., -sqrt2 / 3., -1. / 3],
                           [-sqrt6 / 3., -sqrt2 / 3., -1. / 3]]])
     labels = np.eye(2, dtype=np.int32)
-    loss = losses.contrastive_loss(features, labels=labels, base_temperature=1.)
+    loss = losses.contrastive_loss(features, labels=labels)
     self.assertFalse(np.isnan(loss.numpy()).any())
     expected_loss = 1.098612  # np.log(3.)
     self.assertAlmostEqual(np.mean(loss.numpy()), expected_loss, places=6)
@@ -148,8 +144,7 @@ class LossesTest(tf.test.TestCase, parameterized.TestCase):
     labels = np.eye(3, dtype=np.int32)
     # Make the label of sample 1 and 2 the same (= label 0)
     labels[1] = labels[0]
-    loss = losses.contrastive_loss(
-        features, labels, base_temperature=1.).numpy()
+    loss = losses.contrastive_loss(features, labels).numpy()
     self.assertFalse(np.isnan(loss).any())
     expected_loss = [
         1.57149910,  # (3. * np.log(np.e + 4) - 1) / 3.
@@ -159,6 +154,29 @@ class LossesTest(tf.test.TestCase, parameterized.TestCase):
     self.assertAlmostEqual(loss[0], expected_loss[0], places=6)
     self.assertAlmostEqual(loss[1], expected_loss[1], places=6)
     self.assertAlmostEqual(loss[2], expected_loss[2], places=6)
+
+  def testLossValueWithTemp(self):
+    sqrt2 = np.sqrt(2.)
+    sqrt6 = np.sqrt(6.)
+    features = np.array([[[0, 0, 1], [0, (2. * sqrt2) / 3., -1 / 3.]],
+                         [[sqrt6 / 3., -sqrt2 / 3., -1. / 3],
+                          [-sqrt6 / 3., -sqrt2 / 3., -1. / 3]]])
+    loss = losses.contrastive_loss(features, temperature=0.1)
+    self.assertFalse(np.isnan(loss.numpy()).any())
+    expected_loss = 0.1098612  # 0.1 * np.log(3.)
+    self.assertAlmostEqual(np.mean(loss.numpy()), expected_loss, places=5)
+
+  def testLossValueWithTempNoScaleByTemp(self):
+    sqrt2 = np.sqrt(2.)
+    sqrt6 = np.sqrt(6.)
+    features = np.array([[[0, 0, 1], [0, (2. * sqrt2) / 3., -1 / 3.]],
+                         [[sqrt6 / 3., -sqrt2 / 3., -1. / 3],
+                          [-sqrt6 / 3., -sqrt2 / 3., -1. / 3]]])
+    loss = losses.contrastive_loss(
+        features, temperature=0.1, scale_by_temperature=False)
+    self.assertFalse(np.isnan(loss.numpy()).any())
+    expected_loss = 1.098612  # np.log(3.)
+    self.assertAlmostEqual(np.mean(loss.numpy()), expected_loss, places=5)
 
   @parameterized.named_parameters(('1x1 features', (10, 3, 1, 1, 64)),
                                   ('3x3 features', (10, 3, 3, 3, 8)),
@@ -178,35 +196,35 @@ class LossesTest(tf.test.TestCase, parameterized.TestCase):
       # The following values have all been manually checked to be the correct
       # outputs given the inputs in the test.
       ('out_and_all', enums.LossSummationLocation.OUTSIDE,
-       enums.LossDenominatorMode.ALL, -1, [23.936932, 25.676819, 22.638714]),
+       enums.LossDenominatorMode.ALL, -1, [1.6755852, 1.7973773, 1.58471]),
       ('out_and_one', enums.LossSummationLocation.OUTSIDE,
        enums.LossDenominatorMode.ONE_POSITIVE, -1,
-       [16.832325, 19.193565, 22.638714]),
+       [1.1782627, 1.3435497, 1.58471]),
       ('out_and_none', enums.LossSummationLocation.OUTSIDE,
        enums.LossDenominatorMode.ONLY_NEGATIVES, -1,
-       [11.378975, 14.507131, 19.327797]),
+       [0.79652834, 1.0154991, 1.3529458]),
       ('out_and_large_cap', enums.LossSummationLocation.OUTSIDE,
-       enums.LossDenominatorMode.ALL, 4, [23.936932, 25.676819, 22.638714]),
+       enums.LossDenominatorMode.ALL, 4, [1.6755852, 1.7973773, 1.58471]),
       ('out_and_small_cap', enums.LossSummationLocation.OUTSIDE,
-       enums.LossDenominatorMode.ALL, 2, [16.26471, 16.89146, 16.51060],
+       enums.LossDenominatorMode.ALL, 2, [1.1385298, 1.1824025, 1.1557417],
        (0, 0, 0)),
       ('out_and_zero_cap', enums.LossSummationLocation.OUTSIDE,
-       enums.LossDenominatorMode.ALL, 0, [19.67042, 15.408167, 22.638714]),
+       enums.LossDenominatorMode.ALL, 0, [1.3769293, 1.0785717, 1.58471]),
       ('in_and_all', enums.LossSummationLocation.INSIDE,
-       enums.LossDenominatorMode.ALL, -1, [23.366682, 24.479816, 22.638714]),
+       enums.LossDenominatorMode.ALL, -1, [1.6356678, 1.7135872, 1.58471]),
       ('in_and_one', enums.LossSummationLocation.INSIDE,
        enums.LossDenominatorMode.ONE_POSITIVE, -1,
-       [16.530962, 18.487953, 22.638714]),
+       [1.1571673, 1.2941568, 1.58471]),
       ('in_and_none', enums.LossSummationLocation.INSIDE,
        enums.LossDenominatorMode.ONLY_NEGATIVES, -1,
-       [10.808728, 13.310129, 19.327797]),
+       [0.756611, 0.93170905, 1.3529458]),
       ('in_and_large_cap', enums.LossSummationLocation.INSIDE,
-       enums.LossDenominatorMode.ALL, 4, [23.366682, 24.479816, 22.638714]),
+       enums.LossDenominatorMode.ALL, 4, [1.6356678, 1.7135872, 1.58471]),
       ('in_and_small_cap', enums.LossSummationLocation.INSIDE,
-       enums.LossDenominatorMode.ALL, 2, [15.69446, 15.69446, 15.69446],
+       enums.LossDenominatorMode.ALL, 2, [1.0986123, 1.0986123, 1.0986123],
        (0, 0, 0)),
       ('in_and_zero_cap', enums.LossSummationLocation.INSIDE,
-       enums.LossDenominatorMode.ALL, 0, [19.67042, 15.408167, 22.638714]))
+       enums.LossDenominatorMode.ALL, 0, [1.3769293, 1.0785717, 1.58471]))
   def testLossForSummationLocationsAndDenominatorModes(self,
                                                        summation_location,
                                                        denominator_mode,
@@ -242,8 +260,7 @@ class LossesTest(tf.test.TestCase, parameterized.TestCase):
     ])
     labels = np.array([[0, 1, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
                       dtype=np.int32)
-    loss = losses.contrastive_loss(
-        features, labels=labels, temperature=1.0, base_temperature=1.0)
+    loss = losses.contrastive_loss(features, labels=labels, temperature=1.0)
 
     pos0 = np.exp(np.dot(features[0, 0, :], features[1, 0, :]))
     neg0 = np.exp(np.dot(features[0, 0, :], features[2, 0, :]))

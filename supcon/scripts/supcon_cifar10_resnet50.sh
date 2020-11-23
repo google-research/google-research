@@ -34,7 +34,7 @@ set -x
   --stage_1_weight_decay=1e-4 --stage_2_weight_decay=0 \
   --stage_1_epochs=1000 --stage_2_epochs=100 \
   --stage_1_warmup_epochs=10 --stage_2_warmup_epochs=0 \
-  --stage_1_base_learning_rate=0.125 --stage_2_base_learning_rate=2.5 \
+  --stage_1_base_learning_rate=0.5 --stage_2_base_learning_rate=2.5 \
   --stage_2_learning_rate_decay=PIECEWISE_LINEAR \
   --stage_2_decay_rate=0.2 --stage_2_decay_boundary_epochs=60,75,90 \
   --stage_1_optimizer=MOMENTUM  --stage_2_optimizer=MOMENTUM \

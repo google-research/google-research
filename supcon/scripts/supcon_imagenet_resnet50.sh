@@ -33,7 +33,7 @@ set -x
   --temperature=0.1 \
   --stage_1_weight_decay=1e-3 --stage_2_weight_decay=1e-6 \
   --stage_1_epochs=350 --stage_2_epochs=90 \
-  --stage_1_base_learning_rate=0.3 \
+  --stage_1_base_learning_rate=0.4 \
   --stage_2_base_learning_rate=0.05 \
   --stage_2_learning_rate_decay=EXPONENTIAL \
   --stage_1_optimizer=LARS  --stage_2_optimizer=RMSPROP \
