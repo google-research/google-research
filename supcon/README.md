@@ -51,3 +51,6 @@ There are many hyperparameters that can be tuned. The scripts provide the values
 The code writes metrics summaries that can be visualized using [Tensorboard](https://www.tensorflow.org/tensorboard), setting the Tensorboard `--logdir` flag to the MODEL_DIR directory.
 
 
+## Pretrained Models
+
+Pretrained models trained on ImageNet are available via TF-Hub for [ResNet 50](https://tfhub.dev/google/supcon/resnet_v1_50/imagenet/classification/1), [ResNet 101](https://tfhub.dev/google/supcon/resnet_v1_101/imagenet/classification/1), and [ResNet 200](https://tfhub.dev/google/supcon/resnet_v1_200/imagenet/classification/1). See links for usage instructions.
