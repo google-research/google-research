@@ -434,3 +434,23 @@ def get_model_with_default_params(model_name, mode=None):
   if mode is not None:
     model = to_streaming_inference(model, flags=params, mode=mode)
   return model
+
+
+def traverse_graph(prev_layer, layers):
+  """Traverse keras sequential graph."""
+  for layer in layers:
+    if isinstance(layer, (tf.keras.Sequential, tf.keras.Model)):
+      prev_layer = traverse_graph(prev_layer, layer.layers)
+    else:
+      prev_layer = layer(prev_layer)
+  return prev_layer
+
+
+def sequential_to_functional(model):
+  """Converts keras sequential model to functional one."""
+  input_layer = tf.keras.Input(
+      batch_input_shape=model.layers[0].input_shape[0])
+  prev_layer = input_layer
+  prev_layer = traverse_graph(prev_layer, model.layers[1:])
+  func_model = tf.keras.Model([input_layer], [prev_layer])
+  return func_model

@@ -20,6 +20,7 @@ from absl.testing import parameterized
 import numpy as np
 
 from kws_streaming.layers import modes
+from kws_streaming.layers import test_utils
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 from kws_streaming.models import model_flags
@@ -29,6 +30,32 @@ from kws_streaming.models import utils
 tf1.disable_eager_execution()
 
 FLAGS = flags.FLAGS
+
+
+class SequentialModel(tf.keras.Model):
+  """Dummy sequential model to test conversion to functional model."""
+
+  def __init__(self,
+               num_outputs,):
+    """Initialize dummy model.
+
+    Args:
+      num_outputs: Number of outputs.
+    """
+    super().__init__()
+
+    self._model = {}
+    self._model['model1'] = tf.keras.Sequential(
+        layers=[tf.keras.layers.Dense(units=num_outputs, activation=None)],
+        name='model1')
+    self._model['model2'] = tf.keras.Sequential(
+        layers=[tf.keras.layers.GlobalMaxPooling2D()], name='model2')
+
+  def call(self, inputs):
+    net = inputs
+    net = self._model['model1'](net)
+    net = self._model['model2'](net)
+    return net
 
 
 # two models are tested with all cobinations of speech frontend
@@ -188,6 +215,25 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
     outputs = model.predict(inputs)
     for output, expected_shape in zip(outputs, model.output_shapes):
       self.assertEqual(output.shape, expected_shape)
+
+  def test_sequential_to_functional(self):
+    # prepare input data
+    test_utils.set_seed(1)
+    batch_input_shape = (1, 4, 2, 2)
+    input_data = np.random.rand(np.prod(batch_input_shape))
+    input_data = np.reshape(input_data, batch_input_shape)
+
+    # create sequential model
+    inputs = tf.keras.Input(batch_input_shape=batch_input_shape)
+    net = SequentialModel(2)(inputs)
+    model = tf.keras.Model(inputs=inputs, outputs=net)
+    model.summary()
+
+    # convert keras sequential model to functional and compare them
+    func_model = utils.sequential_to_functional(model)
+    func_model.summary()
+    self.assertAllClose(
+        model.predict(input_data), func_model.predict(input_data))
 
 
 if __name__ == '__main__':
