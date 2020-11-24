@@ -260,6 +260,13 @@ class BisimulationRainbowAgent(rainbow_agent.RainbowAgent):
   def _sync_qt_ops(self):
     return tf.no_op()
 
+  def _network_template(self, state):
+    return self.network(self.num_actions, self._num_atoms, self._support,
+                        self._get_network_type(), state)
+
+  def _create_network(self, name):
+    return tf.make_template('Online', self._network_template)
+
   def _build_networks(self):
     super(BisimulationRainbowAgent, self)._build_networks()
     self._build_all_bisimulation_parts()
