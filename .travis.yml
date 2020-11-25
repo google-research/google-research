@@ -76,6 +76,7 @@ env:
     - PROJECT="rllim"
     - PROJECT="robust_loss"
     - PROJECT="robust_loss_jax"
+    - PROJECT="robust_optim"
     - PROJECT="routing_transformer"
     - PROJECT="scrna_benchmark"
     - PROJECT="single_view_mpi"
