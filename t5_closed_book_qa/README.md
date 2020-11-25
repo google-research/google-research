@@ -130,7 +130,7 @@ SSM models fine-tuned on TriviaQA:
 | :----: | :------------: | :-----------: | :------: |
 | T5-11B | `trivia_qa_open_test` | 60.5*  | [gs://t5-data/pretrained_models/cbqa/11b_ssm_tqa](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/11b_ssm_tqa) |
 | T5.1.1-XXL | `trivia_qa_open_test` | 61.6* | [gs://t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm_tqa](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm_tqa) |
-| T5-11B | `trivia_qa_open` | 51.0  | [gs://t5-data/pretrained_models/cbqa/11b_ssm_tqao](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/11b_ssm_tqa) |
+| T5-11B | `trivia_qa_open` | 51.0  | [gs://t5-data/pretrained_models/cbqa/11b_ssm_tqao](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/11b_ssm_tqao) |
 | T5.1.1-XXL | `trivia_qa_open` | 51.9 | [gs://t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm_tqao](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/cbqa/t5.1.1.xxl_ssm_tqao) |
 
 * Score for the private TriviaQA Wikipedia domain test set.
