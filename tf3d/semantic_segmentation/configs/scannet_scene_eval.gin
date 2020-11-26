@@ -1,0 +1,58 @@
+num_classes = 41
+
+# Preprocessor
+semantic_pointcloud_preprocess.num_points_to_randomly_sample = 5000000
+semantic_pointcloud_preprocess.points_pad_or_clip_size = None
+semantic_pointcloud_preprocess.voxels_pad_or_clip_size = None
+semantic_pointcloud_preprocess.voxel_grid_cell_size = (0.02, 0.02, 0.02)
+semantic_pointcloud_preprocess.point_feature_keys = ('point_normals',)
+semantic_pointcloud_preprocess.points_key = 'mesh/vertices/positions'
+semantic_pointcloud_preprocess.normals_key = 'mesh/vertices/normals'
+semantic_pointcloud_preprocess.colors_key = None
+semantic_pointcloud_preprocess.intensities_key = None
+semantic_pointcloud_preprocess.elongations_key = None
+semantic_pointcloud_preprocess.semantic_labels_key = 'mesh/vertices/semantic_labels'
+semantic_pointcloud_preprocess.motion_labels_key = None
+semantic_pointcloud_preprocess.ignore_labels = (0, 13, 15, 17, 18, 19, 20, 21, 22, 23, 25, 26, 27, 29, 30, 31, 32, 35, 37, 38, 40, 255)
+
+
+# Dataset
+get_tf_data_dataset.dataset_name = 'scannet_scene'
+get_tf_data_dataset.split_name = 'val'
+get_tf_data_dataset.shuffle_buffer_size = 4
+get_tf_data_dataset.filenames_shuffle_buffer_size = 4
+get_tf_data_dataset.read_block_length = 1
+get_tf_data_dataset.num_readers = 16
+get_tf_data_dataset.preprocess_fn = @semantic_pointcloud_preprocess
+get_tf_data_dataset.feature_keys = ('point_positions',
+                                    'point_intensities',
+                                    'point_elongations',
+                                    'object_class_points',
+                                    'voxel_features',
+                                    'voxel_xyz_indices',
+                                    'num_valid_points',
+                                    'num_valid_voxels',
+                                    'points_to_voxel_mapping',
+                                    'point_loss_weights',
+                                    'voxel_loss_weights')
+get_tf_data_dataset.label_keys = ('object_class_voxels',)
+
+
+# 3D Network
+SparseConvUNet.conv_filter_size = 3
+SparseConvUNet.encoder_dimensions = ((64, 64), (64, 96), (96, 128), (128, 160), (160, 192), (192, 224), (224, 256))
+SparseConvUNet.bottleneck_dimensions = (256, 256)
+SparseConvUNet.decoder_dimensions = ((256, 256), (224, 224), (192, 192), (160, 160), (128, 128), (96, 96), (64, 64))
+SparseConvUNet.use_batch_norm = True
+SemanticSegmentationModel.num_classes = %num_classes
+
+
+# Evaluation
+evaluation.input_fn = @get_tf_data_dataset
+evaluation.model_class = @SemanticSegmentationModel
+evaluation.num_quantitative_examples = 300
+evaluation.num_qualitative_examples = 10
+
+CustomTensorBoard.metric_classes = [@SemanticSegmentationMetric]
+SemanticSegmentationMetric.num_classes = %num_classes
+SemanticSegmentationMetric.multi_label = False
