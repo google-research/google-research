@@ -20,16 +20,18 @@ import jax
 from jax import numpy as jnp
 
 from robust_optim.norm import norm_projection
+from robust_optim.optim import gradient_descent_line_search_step
 
 
-def find_adversarial_samples(data, dloss_dx, model_param0, normalize_f, config,
-                             rng_key):
+def find_adversarial_samples(
+    data, loss_f, dloss_dx, model_param0, normalize_f, config, rng_key):
   """Generates an adversarial example in the epsilon-ball centered at data.
 
   Args:
     data: An array of size dim x num, with input vectors as the initialization
       for the adversarial attack.
-    dloss_dx: The gradient function of the loss w.r.t. the input.
+    loss_f: Loss function for attack.
+    dloss_dx: The gradient function of the adversarial loss w.r.t. the input
     model_param0: Current model parameters.
     normalize_f: A function to normalize the weights of the model.
     config: Dictionary of hyperparameters.
@@ -76,28 +78,37 @@ def find_adversarial_samples(data, dloss_dx, model_param0, normalize_f, config,
   delta = jax.random.normal(rng_key, x0.shape)
   assert eps_iter <= eps_tot, 'eps_iter > eps_tot'
   delta = norm_projection(delta, norm_type, eps_iter)
+  options = {'bound_step': True, 'step_size': 1000.}
   for _ in range(config.niters):
     x_adv = x0 + delta
     # Untargeted attack: increases the loss for the correct label
-    grad = dloss_dx(model_param, x_adv, y)
-    # Sign grad is optimal for Linf attack, FGSM and PGD attacks use only sign
     if config.step_dir == 'sign_grad':
-      adv_step = jnp.sign(grad)
+      # Sign grad is optimal for Linf attack, FGSM and PGD attacks use only sign
+      grad = dloss_dx(model_param, x_adv, y)
+      adv_step = config.lr * jnp.sign(grad)
     elif config.step_dir == 'grad':
-      adv_step = grad
+      grad = dloss_dx(model_param, x_adv, y)
+      adv_step = config.lr * grad
+    elif config.step_dir == 'grad_ls':
+      # Line search on the negative of the loss to find the ascent direction
+      # And switch the order of w and x
+      neg_loss_f = lambda x, w, y: -loss_f(w, x, y)
+      x_adv_next, _ = gradient_descent_line_search_step(
+          (model_param, y), neg_loss_f, x_adv, options)
+      adv_step = x_adv_next - x_adv
     # - Reason for having both a per-step epsilon and a total epsilon:
     # Needed for non-linear models. Increases attack success if dL/dx at x0 is
     # huge and f(x) is correct on the entire shell of the norm-ball but wrong
     # inside the norm ball.
-    delta_i = norm_projection(config.lr * adv_step, norm_type, eps_iter)
+    delta_i = norm_projection(adv_step, norm_type, eps_iter)
     delta = norm_projection(delta + delta_i, norm_type, eps_tot)
 
   x_adv = x0 + delta
   return x_adv
 
 
-def find_adversarial_samples_multi_attack(data, dloss_dx, model_param0,
-                                          normalize_f, config, rng_key):
+def find_adversarial_samples_multi_attack(
+    data, loss_f, dloss_dx, model_param0, normalize_f, config, rng_key):
   """Generates adversarial samples with multiple attacks and returns all samples."""
   config = copy.deepcopy(config)
 
@@ -105,8 +116,8 @@ def find_adversarial_samples_multi_attack(data, dloss_dx, model_param0,
   rng_key, rng_subkey = jax.random.split(rng_key, 2)
   x_adv_multi = []
   x_adv_multi += [
-      find_adversarial_samples(data, dloss_dx, model_param0, normalize_f,
-                               config, rng_subkey)
+      find_adversarial_samples(
+          data, loss_f, dloss_dx, model_param0, normalize_f, config, rng_subkey)
   ]
 
   for pre_norm in [True, False]:
@@ -115,8 +126,9 @@ def find_adversarial_samples_multi_attack(data, dloss_dx, model_param0,
       config.pre_normalize = pre_norm
       config.step_dir = step_dir
       x_adv_multi += [
-          find_adversarial_samples(data, dloss_dx, model_param0, normalize_f,
-                                   config, rng_subkey)
+          find_adversarial_samples(
+              data, loss_f, dloss_dx, model_param0, normalize_f, config,
+              rng_subkey)
       ]
 
   # TODO(fartash): line search

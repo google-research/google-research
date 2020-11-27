@@ -79,7 +79,8 @@ def backtracking(next_candidate, stop_cond, step_size_init, options, verbose=0):
   return step_size, next_iter
 
 
-def gradient_descent_line_search_step(data, loss_f, model_param, options):
+def gradient_descent_line_search_step(
+    data, loss_f, model_param, options):
   """Gradient Descent optimization with line search step.
 
   Args:
@@ -293,9 +294,9 @@ def fista_step(data, loss_and_prox_op, model_param, options):
 
   Args:
     data: A tuple of inputs and labels passed to the loss function.
-    loss_and_prox_op: Tuple of (loss_f, prox_g) loss_f is the loss function that
-      takes in model_param, inputs, and labels. prox_g is the proximity operator
-      for g.
+    loss_and_prox_op: Tuple of (loss_f, prox_g)
+      loss_f is the loss function that takes in model_param, inputs, and labels.
+      prox_g is the proximity operator for g.
     model_param: Current model parameters to be passed to loss_f.
     options: A dictionary of optimizer specific hyper-parameters.
 

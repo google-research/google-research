@@ -64,13 +64,15 @@ def evaluate_risks(data, predict_f, loss_f, model_param):
   }
 
 
-def evaluate_adversarial_risk(data, predict_f, dloss_adv_dx, model_param,
-                              normalize_f, config, rng_key):
+def evaluate_adversarial_risk(data, predict_f, loss_adv_f, dloss_adv_dx,
+                              model_param, normalize_f, config, rng_key):
   """Evaluating adversarial risk by looping over epsilon.
 
   Args:
     data: An array of data samples for approximating the risk.
     predict_f: Function that predicts labels given input.
+    loss_adv_f: The loss function. This loss has to be specific to the model to
+      tackle gradient masking.
     dloss_adv_dx: The gradient function of the adversarial loss w.r.t. the
       input. Ideally, we will have multiple loss functions even on different
       layers of network. This loss has to be specific to the model to tackle
@@ -93,7 +95,8 @@ def evaluate_adversarial_risk(data, predict_f, dloss_adv_dx, model_param,
     config_new.eps_iter = float(eps_iter * i)
     config_new.eps_tot = float(eps_tot * i)
     x_adv_multi = adversarial.find_adversarial_samples_multi_attack(
-        data, dloss_adv_dx, model_param, normalize_f, config_new, rng_key)
+        data, loss_adv_f, dloss_adv_dx,
+        model_param, normalize_f, config_new, rng_key)
     correct_label = jnp.zeros(1)
     for x_adv in x_adv_multi:
       pred_adv = predict_f(model_param, x_adv)
@@ -139,7 +142,8 @@ def train(model_param, train_test_data, predict_f, loss_f, loss_adv_f,
       if config['optim']['adv_train']['enable']:
         # Adversarial training
         rng_key, rng_subkey = jax.random.split(rng_key)
-        x_adv = adversarial.find_adversarial_samples(train_data, dloss_adv_dx,
+        x_adv = adversarial.find_adversarial_samples(train_data, loss_adv_f,
+                                                     dloss_adv_dx,
                                                      model_param, normalize_f,
                                                      config.optim.adv_train,
                                                      rng_key)
@@ -149,10 +153,12 @@ def train(model_param, train_test_data, predict_f, loss_f, loss_adv_f,
         train_data_new = train_data
       if config['optim']['name'] == 'fista':
         model_param, optim_options = optim_step(train_data_new,
-                                                loss_and_prox_op, model_param,
+                                                loss_and_prox_op,
+                                                model_param,
                                                 optim_options)
       else:
-        model_param, optim_options = optim_step(train_data_new, loss_f,
+        model_param, optim_options = optim_step(train_data_new,
+                                                loss_f,
                                                 model_param, optim_options)
 
     # Log risks and other statistics
@@ -165,7 +171,8 @@ def train(model_param, train_test_data, predict_f, loss_f, loss_adv_f,
         for rname, rvalue in risk.items():
           summary.scalar('%s/%s' % (prefix, rname), rvalue, step=step)
         rng_key, rng_subkey = jax.random.split(rng_key)
-        risk = evaluate_adversarial_risk(data, predict_f, dloss_adv_dx,
+        risk = evaluate_adversarial_risk(data, predict_f, loss_adv_f,
+                                         dloss_adv_dx,
                                          model_param, normalize_f, config,
                                          rng_subkey)
         for rname, rvalue in risk.items():

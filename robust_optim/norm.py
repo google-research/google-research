@@ -17,6 +17,7 @@
 
 import jax
 from jax import numpy as jnp
+import numpy as np
 import scipy.linalg
 
 
@@ -124,30 +125,51 @@ def norm_projection(delta, norm_type, eps=1.):
     delta = delta * jnp.clip(eps / norm, a_min=None, a_max=1)
   elif norm_type == 'l1':
     delta = l1_unit_projection(delta / eps) * eps
+  elif norm_type == 'dftinf':
+    # transform to DFT, project using known projections, then transform back
+    dft = np.matrix(scipy.linalg.dft(delta.shape[0]) / np.sqrt(delta.shape[0]))
+    dftxdelta = dft @ delta
+    # L2 projection of each coordinate to the L2-ball in the complex plane
+    dftz = dftxdelta.reshape(1, -1)
+    dftz = jnp.concatenate((jnp.real(dftz), jnp.imag(dftz)), axis=0)
+    dftz = norm_projection(dftz, 'l2', eps)
+    dftz = (dftz[0, :] + 1j * dftz[1, :]).reshape(delta.shape)
+    # project back from DFT
+    delta = dft.getH() @ dftz
+    # Projected vector can have an imaginary part
+    delta = jnp.real(delta)
   return delta
 
 
 def l1_unit_projection(x):
-  """Euclidean projection to L1 unit ball i.e. argmin_{|v|_1<= 1} |x-v|_2."""
+  """Euclidean projection to L1 unit ball i.e. argmin_{|v|_1<= 1} |x-v|_2.
+
+  Args:
+    x: An array of size dim x num.
+
+  Returns:
+    An array of size dim x num, the projection to the unit L1 ball.
+  """
   # https://dl.acm.org/citation.cfm?id=1390191
   xshape = x.shape
   if len(x.shape) == 1:
-    x = x.reshape(1, -1)
+    x = x.reshape(-1, 1)
   eshape = x.shape
-  v = jnp.abs(x.reshape((eshape[0], -1)))
-  u = jnp.sort(v, axis=1)
-  u = u[:, ::-1]  # descending
-  arange = (1 + jnp.arange(eshape[1])).reshape((1, -1))
-  usum = (jnp.cumsum(u, axis=1) - 1) / arange
-  rho = jnp.max(((u - usum) > 0) * arange - 1, axis=1, keepdims=True)
-  thx = jnp.take_along_axis(usum, rho, axis=1)
+  v = jnp.abs(x.reshape((-1, eshape[-1])))
+  u = jnp.sort(v, axis=0)
+  u = u[::-1, :]  # descending
+  arange = (1 + jnp.arange(eshape[0])).reshape((-1, 1))
+  usum = (jnp.cumsum(u, axis=0) - 1) / arange
+  rho = jnp.max(((u - usum) > 0) * arange - 1, axis=0, keepdims=True)
+  thx = jnp.take_along_axis(usum, rho, axis=0)
   w = (v - thx).clip(a_min=0)
-  w = jnp.where(jnp.linalg.norm(v, ord=1, axis=1, keepdims=True) > 1, w, v)
+  w = jnp.where(jnp.linalg.norm(v, ord=1, axis=0, keepdims=True) > 1, w, v)
   x = w.reshape(eshape) * jnp.sign(x)
   return x.reshape(xshape)
 
 
 def get_prox_op(norm_type):
+  """Proximal operator of norm-ball projections."""
   if norm_type == 'l1':
     prox_op = lambda v, lam: jnp.sign(v) * jnp.maximum(0, jnp.abs(v) - lam)
   elif norm_type == 'l2':
@@ -156,4 +178,8 @@ def get_prox_op(norm_type):
         jnp.sum(v**2)))
   elif norm_type == 'linf':
     prox_op = lambda v, lam: v - lam * l1_unit_projection(v / lam)
+  else:
+    dual_norm = norm_type_dual(norm_type)
+    prox_op = lambda v, lam: v - lam * norm_projection(  # pylint: disable=g-long-lambda
+        v / lam, dual_norm, eps=1)
   return prox_op

@@ -348,6 +348,7 @@ def conv_linear_model_loss(w, x, y):
   return loss
 
 
+@jax.jit
 def conv_linear_model_linearize_param(params):
   """Computes the product of parameters that is the single layer linear parameters."""
   # TODO(fartash): prove that flip is not needed
@@ -383,7 +384,7 @@ def get_model_functions(rng_key, dim, arch, nlayers, regularizer, reg_coeff, r):
     if regularizer == 'none':
       loss_f = linear_model_loss
       prox_op = lambda x, _: x
-    elif re.match('w_l.*', regularizer):
+    elif re.match('w_l.*', regularizer) or re.match('w_dft.*', regularizer):
       norm_type = regularizer.split('_')[1]
       loss_f = loss_f_with_args(linear_model_loss_regularized_w_lp, reg_coeff,
                                 norm_type)
