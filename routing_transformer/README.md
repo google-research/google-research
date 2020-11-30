@@ -10,18 +10,18 @@ for a quick overview.
 
 ## Table of Contents
 
-*   [Updates](#updates)
-*   [Pre-trained PG-19 Checkpoint](#pg19)
-*   [Explanation of hyperparameters](#hparam)
+-   [Updates](#updates)
+-   [Pre-trained PG-19 Checkpoint](#pg19)
+-   [Explanation of hyperparameters](#hparam)
     *   [Local Attention](#local)
     *   [Routing Attention](#routing)
-*   [Samples](#samples)
+-   [Samples](#samples)
     *   [PG-19 (sequence length 8k)](#pg19-samples)
-      *   [Unconditional Samples](#unconditional)
-      *   [Conditional Samples](#conditional)
+      +   [Unconditional Samples](#unconditional)
+      +   [Conditional Samples](#conditional)
     *   [Document Machine Translation (sequence length 4k)](#doc-mt)
-*   [Acknowledgments](#ack)
-*   [How to Cite](#cite)
+-   [Acknowledgments](#ack)
+-   [How to Cite](#cite)
 
 ## Updates <a name="updates"></a>
 
