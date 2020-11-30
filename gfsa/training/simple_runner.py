@@ -249,6 +249,7 @@ def training_loop(
   def graceful_shutdown_handler(unused_signal_number):
     del unused_signal_number
     nonlocal shutdown_after_this_iteration
+    shutdown_after_this_iteration = True
 
   start_time = last_summary_time = time.time()
   last_summary_step = None
@@ -290,6 +291,7 @@ def training_loop(
               f"extension {ext} and not already serialized")
 
     def save_checkpoint(step):
+      logging.info("Saving a checkpoint at %d", step)
       with tf.io.gfile.GFile(
           os.path.join(checkpoints_path, f"current_at_{step}.msgpack"),
           "wb") as fp:
@@ -314,7 +316,7 @@ def training_loop(
       exit_stack.enter_context(contextlib.closing(train_metrics_file))
       exit_stack.enter_context(contextlib.closing(valid_metrics_file))
 
-    for step in range(max_iterations):
+    for step in range(1, max_iterations + 1):
 
       # Do a training step.
       cur_learning_rate = learning_rate_schedule.learning_rate_for_step(step)
@@ -369,7 +371,7 @@ def training_loop(
 
       elapsed_sec = time.time() - start_time
       metrics["elapsed_hours"] = elapsed_sec / 3600
-      if elapsed_sec > max_seconds:
+      if max_seconds is not None and elapsed_sec > max_seconds:
         logging.info("Hit max train timeout at step %d", step)
         shutdown_after_this_iteration = True
 
@@ -423,9 +425,11 @@ def training_loop(
           train_metrics_file.flush()
 
         # To log:
+        sorted_metric_names = sorted(
+            metrics.keys(), key=lambda name: (name != "loss", name))
         logging.info(
-            "%d: %s", step,
-            " ".join(f"{metric}: {value}" for metric, value in metrics.items()))
+            "%d: %s", step, " ".join(
+                f"{name}: {metrics[name]}" for name in sorted_metric_names))
 
       # Save gin config if we haven't done so yet.
       # (We do this here so that anything used during the step shows up in the
@@ -445,7 +449,6 @@ def training_loop(
           shutdown_after_this_iteration or step % steps_per_save == 0)
       # Save optimizer state.
       if should_save:
-        logging.info("Saving a checkpoint at %d", step)
         save_checkpoint(step)
         if shutdown_after_this_iteration:
           logging.warning("Shutting down by request after step %d.", step)

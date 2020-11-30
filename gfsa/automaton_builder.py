@@ -1183,55 +1183,51 @@ def unroll_chain_steps(builder,
 
 
 def aggregate_unrolled_per_node(
-    unrolled, node_index,
+    unrolled, node_index, initial_state,
     transition_matrix,
     graph_metadata):
   """Aggregate unrolled chain information to have per-node values.
 
   Transforms the output of unroll_chain_steps into a form where we have one
-  value per node, instead of one value per (node, in edge, state) tuple.
-  Useful for visualization. Also concatenates the special initial state into
-  the result.
+  value per node and state, instead of one value per (node, in edge, state)
+  tuple. Useful for visualization. Also concatenates the special initial state
+  into the result.
 
   Args:
     unrolled: Output of unroll_chain_steps.
     node_index: Initial node index where the unrolled steps started.
+    initial_state: Index of the initial state.
     transition_matrix: Transition matrix for the graph.
     graph_metadata: Metadata about the graph.
 
   Returns:
-    Dictionary of:
-      - "at_node": <float[steps+1, num_nodes]> array containing the
-        probability of being at each node at each step (including the initial
-        node as step 0).
-      - "special": <float[steps+1, num_nodes, num_special_actions]> array
-        containing the cumulative probability of having taken each special
-        action at each node.
+    NDArray <float[steps+1, num_nodes, num_states + num_special_actions]>,
+      containing the probability of being at each node in each state, where
+      special actions are treated as absorbing states.
   """
   initial_special = unrolled["initial_special"]
   in_tagged_states = unrolled["in_tagged_states"]
   in_tagged_special = unrolled["in_tagged_special"]
   steps = in_tagged_states.shape[0]
-  num_special_actions = in_tagged_special.shape[-1]
-  # Combine states and special actions across nodes
-  per_node_states = jax.ops.index_add(
-      jnp.zeros([steps, graph_metadata.num_nodes]),
-      jax.ops.index[:, transition_matrix.in_tagged_node_indices],
-      jnp.sum(in_tagged_states, axis=2))
-  per_node_special = jax.ops.index_add(
-      jnp.zeros([steps, graph_metadata.num_nodes, num_special_actions]),
-      jax.ops.index[:, transition_matrix.in_tagged_node_indices],
-      in_tagged_special)
+  num_fsm_states = in_tagged_states.shape[-1]
+
+  # Combine states and special actions
+  in_tagged_combined = jnp.concatenate([in_tagged_states, in_tagged_special],
+                                       -1)
+  num_combined = in_tagged_combined.shape[-1]
+
+  # Aggregate away the incoming edge observation
+  per_node_combined = jnp.zeros([
+      steps, graph_metadata.num_nodes, num_combined
+  ]).at[:, transition_matrix.in_tagged_node_indices, :].add(in_tagged_combined)
+
   # Add in initial special actions
-  per_node_special = jax.ops.index_add(per_node_special,
-                                       jax.ops.index[:, node_index],
-                                       initial_special[None, :])
+  per_node_combined = per_node_combined.at[:, node_index, num_fsm_states:].add(
+      initial_special[None, :])
+
   # Concatenate the initial state before the first transition
-  initial_node_state = jax.ops.index_add(
-      jnp.zeros([1, graph_metadata.num_nodes]), jax.ops.index[0, node_index],
-      1.)
+  initial_state = jnp.zeros([1, graph_metadata.num_nodes,
+                             num_combined]).at[0, node_index,
+                                               initial_state].set(1.)
 
-  at_node = jnp.concatenate([initial_node_state, per_node_states], axis=0)
-  special = jnp.pad(per_node_special, [(1, 0), (0, 0), (0, 0)], "constant")
-
-  return {"at_node": at_node, "special": special}
+  return jnp.concatenate([initial_state, per_node_combined], 0)

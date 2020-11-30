@@ -71,6 +71,32 @@ def variants_from_edges(example,
   return variant_weights
 
 
+def ground_truth_adjacency(
+    example,
+    graph_metadata,
+    target_edge_type, all_edge_types):
+  """Helper function to extract a ground-truth adjacency matrix.
+
+  Intended for visualization and debugging.
+
+  Args:
+    example: Example to run the automaton on.
+    graph_metadata: Statically-known metadata about the graph size. If
+      encoded_graph is padded, this should reflect the padded size, not the
+      original size.
+    target_edge_type: Edge type for the target output.
+    all_edge_types: List of possible edge types used in the example.
+
+  Returns:
+    <float32[num_nodes, num_nodes]> array, the target adjacency matrix.
+  """
+  return variants_from_edges(
+      example=example,
+      graph_metadata=graph_metadata,
+      variant_edge_type_indices=[all_edge_types.index(target_edge_type)],
+      num_edge_types=len(all_edge_types))[:, :, 1]
+
+
 @flax.nn.module
 @gin.configurable
 def automaton_model(example,

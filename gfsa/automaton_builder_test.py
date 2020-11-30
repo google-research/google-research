@@ -856,50 +856,37 @@ class AutomatonTest(parameterized.TestCase):
     # pylint: enable=bad-whitespace
 
     unrolled_combined = automaton_builder.aggregate_unrolled_per_node(
-        unrolled, 0, tmat, enc_meta)
+        unrolled, 0, 0, tmat, enc_meta)
 
-    expected_at_node = np.array([
-        # "Zeroth" step: at initial node
-        [1, 0, 0, 0],
-        # The other steps are sums of entries in in_tagged_states
-        [0, 0.1, 0, 0.1],
-        [0.18, 0, 0.02, 0],
-        [0, 0.01, 0, 0.01],
-        [2e-4, 0, 1.8e-3, 0],
-        [0, 1e-4, 0, 1e-4],
-        [1.8e-5, 0, 2e-6, 0],
-    ])
-    np.testing.assert_allclose(
-        unrolled_combined["at_node"], expected_at_node, atol=1e-8)
-
-    expected_special = np.array([
-        # "Zeroth" step: no specials have happened yet
-        [[0] * 3] * 4,
-        # The other steps are sums of entries in initial_special and
-        # in_tagged_special
-        [[0.1, 0.3, 0.4], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+    expected_unrolled = np.array([
+        # "Zeroth" step: at initial node, no specials have happened yet
+        [[1, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]],
+        # The other steps are either the states from above, or sums of entries
+        # in initial_special and in_tagged_special
+        [[0, 0, 0.1, 0.3, 0.4], [0.1, 0, 0, 0, 0], [0, 0, 0, 0, 0],
+         [0.1, 0, 0, 0, 0]],
         # -----------------
-        [[0.1, 0.3, 0.4], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+        [[0, 0.18, 0.1, 0.3, 0.4], [0, 0, 0, 0, 0], [0.02, 0, 0, 0, 0],
+         [0, 0, 0, 0, 0]],
         # -----------------
-        [[0.1 + 1.8e-2 + 4.5e-2, 0.3 + 2.7e-2 + 1.8e-2, 0.4 + 4.5e-2 + 2.7e-2],
-         [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+        [[0, 0, 0.163, 0.34500003, 0.472], [0.001, 0.009, 0, 0, 0],
+         [0, 0, 0, 0, 0], [0.001, 0.009, 0, 0, 0]],
         # -----------------
-        [[0.1 + 1.8e-2 + 4.5e-2, 0.3 + 2.7e-2 + 1.8e-2, 0.4 + 4.5e-2 + 2.7e-2],
-         [1.8e-3, 2.7e-3, 4.5e-3], [0, 0, 0], [4.5e-3, 1.8e-3, 2.7e-3]],
+        [[0.0002, 0, 0.163, 0.34500003, 0.472], [0, 0, 0.0018, 0.0027, 0.0045],
+         [0, 0.0018, 0, 0, 0], [0, 0, 0.0045, 0.0018, 0.0027]],
         # -----------------
-        [[0.1 + 1.8e-2 + 4.5e-2, 0.3 + 2.7e-2 + 1.8e-2, 0.4 + 4.5e-2 + 2.7e-2],
-         [1.8e-3, 2.7e-3, 4.5e-3],
-         [1.8e-4 + 4.5e-4, 2.7e-4 + 1.8e-4, 4.5e-4 + 2.7e-4],
-         [4.5e-3, 1.8e-3, 2.7e-3]],
+        [[0, 0, 0.163, 0.34500003, 0.472],
+         [1e-05, 9e-05, 0.0018, 0.0027, 0.0045],
+         [0, 0, 0.00063, 0.00045, 0.00072],
+         [1e-05, 9e-05, 0.0045, 0.0018, 0.0027]],
         # -----------------
-        [[0.1 + 1.8e-2 + 4.5e-2, 0.3 + 2.7e-2 + 1.8e-2, 0.4 + 4.5e-2 + 2.7e-2],
-         [1.8e-3 + 4.5e-5, 2.7e-3 + 1.8e-5, 4.5e-3 + 2.7e-5],
-         [1.8e-4 + 4.5e-4, 2.7e-4 + 1.8e-4, 4.5e-4 + 2.7e-4],
-         [1.8e-5 + 4.5e-3, 2.7e-5 + 1.8e-3, 4.5e-5 + 2.7e-3]],
+        [[0, 1.8e-05, 0.163, 0.34500003, 0.472],
+         [0, 0, 0.001845, 0.002718, 0.004527],
+         [2e-06, 0, 0.00063, 0.00045, 0.00072],
+         [0, 0, 0.004518, 0.001827, 0.002745]],
     ])
 
-    np.testing.assert_allclose(
-        unrolled_combined["special"], expected_special, atol=1e-8)
+    np.testing.assert_allclose(unrolled_combined, expected_unrolled, atol=1e-8)
 
 
 if __name__ == "__main__":

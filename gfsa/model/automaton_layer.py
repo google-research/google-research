@@ -69,7 +69,7 @@ class FiniteStateGraphAutomaton(flax.nn.Module):
       share_states_across_edges = True,
       backtrack_fails_prob = 0.001,
       initialization_noise_factor = 0.01,
-      legacy_initialize = True,
+      legacy_initialize = False,
       initialize_smoothing = 0.001,
       use_gate_parameterization = False,
       gate_noise = 0.2,
@@ -123,8 +123,6 @@ class FiniteStateGraphAutomaton(flax.nn.Module):
       legacy_initialize: Whether to use legacy initialization, which sets the
         log-space softmax weights as Dirichlet random samples (instead of
         setting the softmax output distribution as Dirichlet random samples).
-        Defaults to True so that we can reload old configs; new runs should use
-        False.
       initialize_smoothing: Controls how much we smooth the initial parameters
         toward a uniform distribution. For small values, this is effectively a
         lower bound of the probability we take each action. If zero, we can
@@ -134,9 +132,10 @@ class FiniteStateGraphAutomaton(flax.nn.Module):
         possible actions and `c = initialize_smoothing`.
       use_gate_parameterization: Whether to use gate parameterization instead of
         default parameterization. If so, the other initialization args are
-        ignored.
+        ignored. Not used for experiments in the paper.
       gate_noise: Logistic noise for gate parameterization.
-      logit_scaling: One of "none", "learned", "dynamic"
+      logit_scaling: One of "none", "learned", "dynamic". The "dynamic" mode
+        is experimental and was not used for experiments in the paper.
       dynamic_scaling_absolute_shift: For dynamic scaling, how much extra to
         shift logits, in an absolute sense, after shifting for mean magnitude.
       dynamic_scaling_relative_shift: For dynamic scaling, how much extra to
