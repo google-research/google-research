@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for ...threed.semantic_segmentation.model."""
+"""Tests for ...tf3d.semantic_segmentation.model."""
 
 import tensorflow as tf
 from tf3d import standard_fields

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for ...threed.instance_segmentation.metric."""
+"""Tests for ...tf3d.instance_segmentation.metric."""
 
 import tensorflow as tf
 from tf3d import standard_fields

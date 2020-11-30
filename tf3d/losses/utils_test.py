@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for ...threed.losses.utils."""
+"""Tests for ...tf3d.losses.utils."""
 
 import math
 import numpy as np

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for ...threed.object_detection.metric."""
+"""Tests for ...tf3d.object_detection.metric."""
 
 import tensorflow as tf
 from tf3d import standard_fields

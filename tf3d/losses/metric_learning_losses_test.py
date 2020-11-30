@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for research.vale.masternet.threed.instance_segmentation.losses."""
+"""Tests for ...tf3d.instance_segmentation.losses."""
 
 from __future__ import absolute_import
 from __future__ import division

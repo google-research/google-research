@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for ...threed.instance_segmentation.postprocessor."""
+"""Tests for ...tf3d.instance_segmentation.postprocessor."""
 
 import numpy as np
 import tensorflow as tf

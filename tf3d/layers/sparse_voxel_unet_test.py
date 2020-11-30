@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for ...scene_understanding.threed.models.sparse_voxel_unet."""
+"""Tests for ...tf3d.layers.sparse_voxel_unet."""
 
 import tensorflow as tf
 

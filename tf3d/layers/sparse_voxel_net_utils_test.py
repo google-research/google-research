@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for ...scene_understanding.threed.models.sparse_conv_utils."""
+"""Tests for ...tf3d.layers.sparse_conv_utils."""
 
 import numpy as np
 import tensorflow as tf

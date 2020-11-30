@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for ...threed.losses.classification_losses."""
+"""Tests for ...tf3d.losses.classification_losses."""
 import tensorflow as tf
 from tf3d import standard_fields
 from tf3d.losses import classification_losses

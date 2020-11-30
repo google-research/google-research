@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for ...threed.semantic_segmentation.preprocessor."""
+"""Tests for ...tf3d.semantic_segmentation.preprocessor."""
 
 import math
 import numpy as np
