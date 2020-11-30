@@ -8,7 +8,22 @@ See also the accompanying
 [slides](https://drive.google.com/file/d/1maX-UQbtnVtxQqLmHvWVN6LNYtnBaTd9/view?usp=sharing)
 for a quick overview.
 
-## Updates
+## Table of Contents
+
+*   [Updates](#updates)
+*   [Pre-trained PG-19 Checkpoint](#pg19)
+*   [Explanation of hyperparameters](#hparam)
+    *   [Local Attention](#local)
+    *   [Routing Attention](#routing)
+*   [Samples](#samples)
+    *   [PG-19 (sequence length 8k)](#pg19-samples)
+      *   [Unconditional Samples](#unconditional)
+      *   [Conditional Samples](#conditional)
+    *   [Document Machine Translation (sequence length 4k)](#doc-mt)
+*   [Acknowledgments](#ack)
+*   [How to Cite](#cite)
+
+## Updates <a name="updates"></a>
 
 * Routing Transformer + [REALM](https://github.com/google-research/language/tree/master/language/realm)
   is now [SOTA](https://eval.ai/web/challenges/challenge-page/689/leaderboard/1908#leaderboardrank-1)
@@ -22,15 +37,15 @@ for a quick overview.
   , e.g. **+4.11, +5.78, +9.14 Rouge-L improvement** over T5/Mesh TF, BART + DPR
   and RAG respectively.
 
-## Pre-trained Checkpoint
+## Pre-trained PG-19 Checkpoint <a name="pg19"></a>
 
 Model     | Hparams  | Context Length | Data-set | Vocab                                                                                     | Download
 --------- |  ---------------------- | -------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------- | --------
 `RT-base` | `pg19_local_cluster8k` | 8192           | [PG-19](https://github.com/deepmind/pg19) | [vocab98K](https://storage.googleapis.com/rt-checkpoint/vocab.pg19_length8k.32768.subwords) | [checkpoint.zip](https://storage.googleapis.com/rt-checkpoint/checkpoint.zip)
 
-## Explanation of hyperparameters
+## Explanation of hyperparameters <a name="hparam"></a>
 
-### Local Attention
+### Local Attention <a name="local"></a>
 
 *   `local_num_heads`: Number of local attention heads
 *   `query_shape`: This represents the shape of the query block.
@@ -54,7 +69,7 @@ Model     | Hparams  | Context Length | Data-set | Vocab                        
     * This must be a multiple of `query_shape` in every dimension
 *   Example setting can be found in `sparse_transformer.py` under `pg19_local8k`
 
-### Routing Attention
+### Routing Attention <a name="routing"></a>
 
 *   `sparsity_cluster_num_heads`: Number of routing attention heads
 *   `sparsity_cluster_size`: Number of clusters
@@ -66,26 +81,32 @@ Model     | Hparams  | Context Length | Data-set | Vocab                        
 *   Example setting can be found in `sparse_transformer.py` under
     `pg19_local_cluster8k`
 
-## Samples
+## Samples <a name="samples"></a>
 
-### PG-19 (sequence length 8k):
+### PG-19 (sequence length 8k) <a name="pg19-samples"></a>
 
-- [sample1](https://docs.google.com/document/d/1YE6644MprOr1vJkY0lJPeYswJQxncBmD_O12LQAMxIA/edit?usp=sharing)
-- [sample2](https://docs.google.com/document/d/1UwCYAbIMHOXe07X5ELMwTPa90rqrZCGiJML4jywc0yY/edit?usp=sharing)
-- [sample3](https://docs.google.com/document/d/1dC2zNExumaaxTu7BiClo88bZ0JKJMAJolJQDkcOHT70/edit?usp=sharing)
-- [sample4](https://docs.google.com/document/d/1zoYG-x_1ElNZc6TatHfGgasNKAuOEqtaBI91ygfb2jA/edit?usp=sharing)
-- [sample5](https://docs.google.com/document/d/1XvwY8jFUGGEw3S2HzNx7gBg-9nzSRWHtQVNQAyTVuAU/edit?usp=sharing)
-- [sample6](https://docs.google.com/document/d/1RZrOI8e7n7czgA_a7Mt34ePymUFwyjEYrjohZ8aoBoc/edit?usp=sharing)
-- [sample7](https://docs.google.com/document/d/1WfSqLCAEd8W3_s3dpaLPH3JwCG3ucBiK_JsoG8q0K3U/edit?usp=sharing)
-- [sample8](https://docs.google.com/document/d/1O6KdRk5E-JWnhFmcFjiJwAEMHnprtN1ADr3JUvu65EM/edit?usp=sharing)
-- [sample9](https://docs.google.com/document/d/1ZoM2-NCC7wTaB0bsuJw5W6HFslrRmczK8lJaoKsfaps/edit?usp=sharing)
-- [sample10](https://docs.google.com/document/d/1x47B8hSRYCcOCHSLCLGctsZTWeeBFYhbbpRftAsh-Bw/edit?usp=sharing)
+#### Unconditional Samples <a name="unconditional"></a>
 
-### Document Machine Translation (sequence length 4k):
+-   [sample1](https://docs.google.com/document/d/1YE6644MprOr1vJkY0lJPeYswJQxncBmD_O12LQAMxIA/edit?usp=sharing)
+-   [sample2](https://docs.google.com/document/d/1UwCYAbIMHOXe07X5ELMwTPa90rqrZCGiJML4jywc0yY/edit?usp=sharing)
+-   [sample3](https://docs.google.com/document/d/1dC2zNExumaaxTu7BiClo88bZ0JKJMAJolJQDkcOHT70/edit?usp=sharing)
+-   [sample4](https://docs.google.com/document/d/1zoYG-x_1ElNZc6TatHfGgasNKAuOEqtaBI91ygfb2jA/edit?usp=sharing)
+-   [sample5](https://docs.google.com/document/d/1XvwY8jFUGGEw3S2HzNx7gBg-9nzSRWHtQVNQAyTVuAU/edit?usp=sharing)
+-   [sample6](https://docs.google.com/document/d/1RZrOI8e7n7czgA_a7Mt34ePymUFwyjEYrjohZ8aoBoc/edit?usp=sharing)
+-   [sample7](https://docs.google.com/document/d/1WfSqLCAEd8W3_s3dpaLPH3JwCG3ucBiK_JsoG8q0K3U/edit?usp=sharing)
+-   [sample8](https://docs.google.com/document/d/1O6KdRk5E-JWnhFmcFjiJwAEMHnprtN1ADr3JUvu65EM/edit?usp=sharing)
+-   [sample9](https://docs.google.com/document/d/1ZoM2-NCC7wTaB0bsuJw5W6HFslrRmczK8lJaoKsfaps/edit?usp=sharing)
+-   [sample10](https://docs.google.com/document/d/1x47B8hSRYCcOCHSLCLGctsZTWeeBFYhbbpRftAsh-Bw/edit?usp=sharing)
+
+#### Conditional Samples <a name="conditional"></a>
+
+-   [sample](https://docs.google.com/document/d/1ldwJlKoTgc9-dxnSwf9f0LR2ZAaP5LFVuHfir4_uU6k/edit?usp=sharing)
+
+### Document Machine Translation (sequence length 4k) <a name="doc-mt"></a>
 
 -   [sample](https://docs.google.com/document/d/1wqKAyHx7IzJIS0nH9zFYM6KxkjR1qlnYjaECUI9YmmY/edit?usp=sharing)
 
-## Acknowledgments
+## Acknowledgments <a name="ack"></a>
 The authors would like to thank Phillip Wang and
 Aran Komatsuzaki for a [Pytorch implementation](https://github.com/lucidrains/routing-transformer)
 of Routing Transformer. The authors would also like
@@ -96,7 +117,7 @@ like to thank anonymous reviewers and the Action
 Editor Xavier Carreras of TACL for their constructive comments
 which helped improve the exposition of this work.
 
-## How to Cite
+## How to Cite <a name="cite"></a>
 
 If you extend or use this work, please cite the
 [paper](https://arxiv.org/abs/2003.05997) where it was introduced:
