@@ -25,8 +25,8 @@
 
 #include "graph.h"
 
+#include "absl/container/node_hash_map.h"
 
-using std::unordered_map;
 using std::unordered_set;
 using std::vector;
 
