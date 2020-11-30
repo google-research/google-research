@@ -1,0 +1,52 @@
+<mujoco model="arm3d">
+    <compiler angle="radian" coordinate="local" inertiafromgeom="true" meshdir="mesh" texturedir="textures" />
+    <option gravity="0 0 0" integrator="Euler" iterations="20" timestep="0.01" />
+
+    <default>
+        <joint armature="0.04" damping="1" limited="true" />
+        <geom conaffinity="0" condim="1" contype="0" density="10" friction=".8 .1 .1" margin="0.002" />
+    </default>
+
+    <worldbody>
+        <light diffuse=".5 .5 .5" dir="0 0 -1" pos="0 0 3" />
+
+        <geom conaffinity="1" contype="1" condim="1" name="table" pos="0 0.5 -0.325" size="10 10 0.1" type="plane" />
+
+          <geom conaffinity="1" contype="1" condim="1" rgba="0.5 0.5 0.5 1" type="box" size="2.55 0.05 0.1" pos = "0 2.5 -0.3"/>
+          <geom conaffinity="1" contype="1" condim="1" rgba="0.5 0.5 0.5 1" type="box" size="0.05 2.55 0.1" pos = "2.5 0 -0.3"/>
+          <geom conaffinity="1" contype="1" condim="1" rgba="0.5 0.5 0.5 1" type="box" size="0.05 2.55 0.1" pos = "-2.5 0 -0.3"/>
+          <geom conaffinity="1" contype="1" condim="1" rgba="0.5 0.5 0.5 1" type="box" size="2.55 0.05 0.1" pos = "0 -2.5 -0.3"/>
+
+        <body name="wrist base" pos="0. 0. -0.2630">
+            <joint axis="1 0 0" damping="0.5" name="wrist_slidex" pos="0 0 0" range="-10.3213 10.3" type="slide" />
+            <joint axis="0 1 0" damping="0.5" name="wrist_slidey" pos="0 0 0" range="-10.3213 10.3" type="slide" />
+            <joint axis="0 0 1" damping="0.5" name="wrist_hinge" pos="0 0 0" range="-10.3213 10.3" type="hinge" />
+          <body name="tips_arm" pos="0 0 0">
+            <geom conaffinity="1" rgba="0 1 0 1" contype="1" condim="1" name="tip_arml" pos="0.1 -0.1 0." size="0.01" type="sphere" />
+            <geom conaffinity="1" rgba="0 1 0 1" contype="1" condim="1" name="tip_armr" pos="0.1 0.1 0." size="0.01" type="sphere" />
+            <site name="arm" pos="0.02 0 0" size="0.001" />
+          </body>
+          <geom conaffinity="1" rgba="0 1 0 1" contype="1" condim="1" fromto="0 -0.1 0. 0.0 +0.1 0" size="0.02" type="capsule" />
+          <geom conaffinity="1" rgba="0 1 0 1" contype="1" condim="1" fromto="0 -0.1 0. 0.1 -0.1 0" size="0.02" type="capsule" />
+          <geom conaffinity="1" rgba="0 1 0 1" contype="1" condim="1" fromto="0 +0.1 0. 0.1 +0.1 0." size="0.02" type="capsule" />
+        </body>
+
+        <body name="obj1" pos="0.0 -0. -0.325">
+            <joint axis="1 0 0" damping="1.5" name="obj1_slidex" pos="0 0 0.05" range="-2 2" type="slide" />
+            <joint axis="0 1 0" damping="1.5" name="obj1_slidey" pos="0 0 0.05" range="-2 2" type="slide" />
+            <geom conaffinity="1" contype="1" pos="0 0 0.05" density="0.001" size="0.05 0.05 0.05" rgba="1 0. 0.3 1" type="box" />
+        </body>
+
+        <body name="target" pos="2. 0. -0.375">
+            <geom conaffinity="0" contype="0" pos="0 0 0.05" density="0.001" size="0.09 0.09 0.001" rgba="1. 0. 0. 1" type="box" />
+        </body>
+
+    </worldbody>
+
+    <actuator>
+        <motor ctrllimited="true" ctrlrange="-0.5 0.5" joint="wrist_slidex" />
+        <motor ctrllimited="true" ctrlrange="-0.5 0.5" joint="wrist_slidey" />
+        <motor ctrllimited="true" ctrlrange="-0.5 0.5" joint="wrist_hinge" />
+    </actuator>
+
+</mujoco>
