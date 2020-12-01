@@ -17,8 +17,6 @@ for a quick overview.
     *   [Routing Attention](#routing)
 -   [Samples](#samples)
     *   [PG-19 (sequence length 8k)](#pg19-samples)
-      +   [Unconditional Samples](#unconditional)
-      +   [Conditional Samples](#conditional)
     *   [Document Machine Translation (sequence length 4k)](#doc-mt)
 -   [Acknowledgments](#ack)
 -   [How to Cite](#cite)
@@ -87,24 +85,24 @@ Model     | Hparams  | Context Length | Data-set | Vocab                        
 
 #### Unconditional Samples <a name="unconditional"></a>
 
--   [sample1](https://docs.google.com/document/d/1YE6644MprOr1vJkY0lJPeYswJQxncBmD_O12LQAMxIA/edit?usp=sharing)
--   [sample2](https://docs.google.com/document/d/1UwCYAbIMHOXe07X5ELMwTPa90rqrZCGiJML4jywc0yY/edit?usp=sharing)
--   [sample3](https://docs.google.com/document/d/1dC2zNExumaaxTu7BiClo88bZ0JKJMAJolJQDkcOHT70/edit?usp=sharing)
--   [sample4](https://docs.google.com/document/d/1zoYG-x_1ElNZc6TatHfGgasNKAuOEqtaBI91ygfb2jA/edit?usp=sharing)
--   [sample5](https://docs.google.com/document/d/1XvwY8jFUGGEw3S2HzNx7gBg-9nzSRWHtQVNQAyTVuAU/edit?usp=sharing)
--   [sample6](https://docs.google.com/document/d/1RZrOI8e7n7czgA_a7Mt34ePymUFwyjEYrjohZ8aoBoc/edit?usp=sharing)
--   [sample7](https://docs.google.com/document/d/1WfSqLCAEd8W3_s3dpaLPH3JwCG3ucBiK_JsoG8q0K3U/edit?usp=sharing)
--   [sample8](https://docs.google.com/document/d/1O6KdRk5E-JWnhFmcFjiJwAEMHnprtN1ADr3JUvu65EM/edit?usp=sharing)
--   [sample9](https://docs.google.com/document/d/1ZoM2-NCC7wTaB0bsuJw5W6HFslrRmczK8lJaoKsfaps/edit?usp=sharing)
--   [sample10](https://docs.google.com/document/d/1x47B8hSRYCcOCHSLCLGctsZTWeeBFYhbbpRftAsh-Bw/edit?usp=sharing)
+-   [sample1](samples/pg19_sample1.txt)
+-   [sample2](samples/pg19_sample2.txt)
+-   [sample3](samples/pg19_sample3.txt)
+-   [sample4](samples/pg19_sample4.txt)
+-   [sample5](samples/pg19_sample5.txt)
+-   [sample6](samples/pg19_sample6.txt)
+-   [sample7](samples/pg19_sample7.txt)
+-   [sample8](samples/pg19_sample8.txt)
+-   [sample9](samples/pg19_sample9.txt)
+-   [sample10](samples/pg19_sample10.txt)
 
 #### Conditional Samples <a name="conditional"></a>
 
--   [sample](https://docs.google.com/document/d/1ldwJlKoTgc9-dxnSwf9f0LR2ZAaP5LFVuHfir4_uU6k/edit?usp=sharing)
+-   [sample](samples/pg19_cond_sample.txt)
 
 ### Document Machine Translation (sequence length 4k) <a name="doc-mt"></a>
 
--   [sample](https://docs.google.com/document/d/1wqKAyHx7IzJIS0nH9zFYM6KxkjR1qlnYjaECUI9YmmY/edit?usp=sharing)
+-   [sample](samples/doc_mt_sample.txt)
 
 ## Acknowledgments <a name="ack"></a>
 The authors would like to thank Phillip Wang and
