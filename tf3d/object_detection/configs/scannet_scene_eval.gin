@@ -1,0 +1,103 @@
+num_classes = 41
+
+
+# Preprocessor
+prepare_scannet_scene_dataset.valid_object_classes = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 24, 28, 33, 34, 36, 39]
+object_detection_preprocess.input_field_mapping_fn = @prepare_scannet_scene_dataset
+object_detection_preprocess.images_points_correspondence_fn = None
+object_detection_preprocess.points_pad_or_clip_size = None
+object_detection_preprocess.voxel_grid_cell_size = (0.03, 0.03, 0.03)
+object_detection_preprocess.voxels_pad_or_clip_size = None
+object_detection_preprocess.point_feature_keys = ('point_normals',)
+object_detection_preprocess.x_min_degree_rotation = None
+object_detection_preprocess.x_max_degree_rotation = None
+object_detection_preprocess.y_min_degree_rotation = None
+object_detection_preprocess.y_max_degree_rotation = None
+object_detection_preprocess.z_min_degree_rotation = None
+object_detection_preprocess.z_max_degree_rotation = None
+object_detection_preprocess.min_scale_ratio = None
+object_detection_preprocess.max_scale_ratio = None
+object_detection_preprocess.translation_range = None
+object_detection_preprocess.points_within_box_margin = 0.0
+object_detection_preprocess.min_num_points_in_objects = 5
+object_detection_preprocess.num_points_to_randomly_sample = 280000
+object_detection_preprocess.crop_points_around_random_seed_point = False
+object_detection_preprocess.fit_objects_to_instance_id_points = True
+
+
+# Dataset
+get_tf_data_dataset.dataset_name = 'scannet_scene'
+get_tf_data_dataset.split_name = 'val'
+get_tf_data_dataset.preprocess_fn = @object_detection_preprocess
+get_tf_data_dataset.feature_keys = ['point_positions',
+                                    'point_normals',
+                                    'num_valid_points',
+                                    'voxel_positions',
+                                    'voxel_features',
+                                    'voxel_xyz_indices',
+                                    'points_to_voxel_mapping',
+                                    'num_valid_voxels',
+                                    'camera_image_name']
+get_tf_data_dataset.label_keys = ['object_class_points',
+                                  'object_class_voxels',
+                                  'object_rotation_matrix_voxels',
+                                  'object_length_voxels',
+                                  'object_height_voxels',
+                                  'object_width_voxels',
+                                  'object_center_voxels',
+                                  'object_instance_id_voxels',
+                                  'objects_length',
+                                  'objects_height',
+                                  'objects_width',
+                                  'objects_rotation_matrix',
+                                  'objects_center',
+                                  'objects_class']
+get_tf_data_dataset.shuffle_buffer_size = 4
+get_tf_data_dataset.filenames_shuffle_buffer_size = 4
+get_tf_data_dataset.read_block_length = 1
+get_tf_data_dataset.num_readers = 16
+
+
+# 3D Network
+SparseConvHourGlass.num_stacked_networks = 1
+SparseConvHourGlass.conv_filter_size = 3
+SparseConvHourGlass.encoder_dimensions = ((32, 64), (64, 96), (96, 128), (128, 160), (160, 192), (192, 224), (224, 256))
+SparseConvHourGlass.bottleneck_dimensions = (256, 256)
+SparseConvHourGlass.decoder_dimensions = ((256, 256), (224, 224), (192, 192), (160, 160), (128, 128), (96, 96), (64, 64))
+SparseConvHourGlass.use_batch_norm = True
+
+
+# Model
+ObjectDetectionModel.num_classes = %num_classes
+ObjectDetectionModel.predict_rotation_x = False
+ObjectDetectionModel.predict_rotation_y = False
+ObjectDetectionModel.predict_rotation_z = False
+ObjectDetectionModel.nms_score_threshold = 0.1
+ObjectDetectionModel.nms_iou_threshold = 0.3
+ObjectDetectionModel.nms_max_num_predicted_boxes = 200
+ObjectDetectionModel.use_furthest_voxel_sampling = False
+
+
+# Evaluation
+evaluation.input_fn = @get_tf_data_dataset
+evaluation.model_class = @ObjectDetectionModel
+evaluation.num_quantitative_examples = 300
+evaluation.num_qualitative_examples = 8
+
+m1/ObjectDetectionMetric.iou_threshold = 0.25
+m1/ObjectDetectionMetric.num_classes = %num_classes
+m1/ObjectDetectionMetric.label_map_path = %label_map_path
+
+m2/ObjectDetectionMetric.iou_threshold = 0.5
+m2/ObjectDetectionMetric.num_classes = %num_classes
+m2/ObjectDetectionMetric.label_map_path = %label_map_path
+
+m3/ObjectDetectionMetric.iou_threshold = 0.7
+m3/ObjectDetectionMetric.num_classes = %num_classes
+m3/ObjectDetectionMetric.label_map_path = %label_map_path
+
+CustomTensorBoard.metric_classes = [
+    @m1/ObjectDetectionMetric,
+    @m2/ObjectDetectionMetric,
+    @m3/ObjectDetectionMetric
+]

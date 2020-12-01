@@ -129,8 +129,9 @@ def main(argv):
     logging.info('TF_CONFIG is %s', os.environ.get('TF_CONFIG', 'Empty...'))
     if flags.FLAGS.distribution_strategy == 'multi_worker_mirrored':
       # MultiWorkerMirroredStrategy for multi-worker distributed training.
+      # Using AUTO because NCCL sometimes results in seg fault(SIGSEGV).
       strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy(
-          communication=tf.distribute.experimental.CollectiveCommunication.NCCL)
+          communication=tf.distribute.experimental.CollectiveCommunication.AUTO)
       task_type = strategy.cluster_resolver.task_type
       task_id = strategy.cluster_resolver.task_id
       write_path = write_filepath(FLAGS.train_dir, task_type, task_id)
