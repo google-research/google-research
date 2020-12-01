@@ -22,6 +22,7 @@ from absl import logging
 
 import tensorflow.compat.v2 as tf
 import tensorflow_hub as hub  # pylint:disable=g-bad-import-order
+import tensorflow_model_optimization as tfmot
 
 from non_semantic_speech_benchmark.distillation import get_data
 from non_semantic_speech_benchmark.distillation import models
@@ -86,6 +87,13 @@ flags.DEFINE_integer(
 flags.DEFINE_integer('num_epochs', 50, 'Number of epochs to train for.')
 flags.DEFINE_alias('e', 'num_epochs')
 
+flags.DEFINE_boolean('quantize_aware_training', False, 'Dynamically '
+                     'quantize final layer weights during training.')
+flags.DEFINE_alias('qat', 'quantize_aware_training')
+flags.DEFINE_boolean('compression_op', False, 'Sparsify final layer during '
+                     'training.')
+flags.DEFINE_alias('cop', 'compression_op')
+
 
 def train_and_report(debug=False):
   """Trains the classifier."""
@@ -130,7 +138,9 @@ def train_and_report(debug=False):
       alpha=FLAGS.alpha,
       mobilenet_size=FLAGS.mobilenet_size,
       frontend=not FLAGS.precomputed_frontend_and_targets,
-      avg_pool=FLAGS.average_pool)
+      avg_pool=FLAGS.average_pool,
+      qat=FLAGS.qat)
+  model.summary()
   # Define loss and optimizer hyparameters.
   loss_obj = tf.keras.losses.MeanSquaredError(name='mse_loss')
   opt = tf.keras.optimizers.Adam(

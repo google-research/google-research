@@ -17,6 +17,7 @@
 """Models for distillation."""
 
 import tensorflow as tf
+import tensorflow_model_optimization as tfmot
 from non_semantic_speech_benchmark.export_model import tf_frontend
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.keras.applications import mobilenet_v3 as v3_util
@@ -33,7 +34,8 @@ def get_keras_model(bottleneck_dimension,
                     alpha=1.0,
                     mobilenet_size='small',
                     frontend=True,
-                    avg_pool=False):
+                    avg_pool=False,
+                    qat=False):
   """Make a keras student model."""
 
   def _map_fn_lambda(x):
@@ -72,14 +74,14 @@ def get_keras_model(bottleneck_dimension,
     model_out.shape.assert_is_compatible_with([None, 3, 2, None])
   if bottleneck_dimension:
     embeddings = tf.keras.layers.Flatten()(model_out)
-    embeddings = tf.keras.layers.Dense(
-        bottleneck_dimension, name='distilled_output')(
-            embeddings)
+    bottleneck = tf.keras.layers.Dense(
+      bottleneck_dimension, name='distilled_output')
+    if qat:
+      bottleneck = tfmot.quantization.keras.quantize_annotate_layer(
+        bottleneck)
+    embeddings = bottleneck(embeddings)
   else:
     embeddings = tf.keras.layers.Flatten(name='distilled_output')(model_out)
-  # TODO(joelshor): These final layers can be large. Investigate the compression
-  # techniques described in
-  # https://blog.tensorflow.org/2020/02/matrix-compression-operator-tensorflow.html?m=1
   output = tf.keras.layers.Dense(
       output_dimension, name='embedding_to_target')(
           embeddings)
