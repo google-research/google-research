@@ -284,7 +284,7 @@ class Stream(tf.keras.layers.Layer):
         with tf.control_dependencies([assign_states]):
           return self.cell(memory)
       else:
-        return inputs
+        return self.cell(inputs)
 
   def _streaming_external_state(self, inputs, state):
     state = [] if state is None else state
@@ -311,7 +311,7 @@ class Stream(tf.keras.layers.Layer):
         output = self.cell(memory)
         return output, state_update
       else:
-        return inputs, []
+        return self.cell(inputs), []
 
   def _non_streaming(self, inputs):
     # Pad inputs in time dim: causal or same
