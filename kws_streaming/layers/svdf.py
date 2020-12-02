@@ -47,6 +47,7 @@ class Svdf(tf.keras.layers.Layer):
                use_batch_norm=False,
                bn_scale=False,
                pad='causal',
+               state_name_tag='ExternalState_',
                **kwargs):
     super(Svdf, self).__init__(**kwargs)
 
@@ -71,6 +72,7 @@ class Svdf(tf.keras.layers.Layer):
     self.pad = pad
     self.use_batch_norm = use_batch_norm
     self.bn_scale = bn_scale
+    self.state_name_tag = state_name_tag
 
   def build(self, input_shape):
     super(Svdf, self).build(input_shape)
@@ -87,7 +89,8 @@ class Svdf(tf.keras.layers.Layer):
         inference_batch_size=self.inference_batch_size,
         use_bias=self.use_bias,
         mode=self.mode,
-        pad=self.pad)
+        pad=self.pad,
+        state_name_tag=self.state_name_tag)
     if self.units2 > 0:
       self.dense2 = tf.keras.layers.Dense(units=self.units2, use_bias=True)
     else:
@@ -139,6 +142,7 @@ class Svdf(tf.keras.layers.Layer):
         'pad': self.pad,
         'use_batch_norm': self.use_batch_norm,
         'bn_scale': self.bn_scale,
+        'state_name_tag': self.state_name_tag,
     }
     base_config = super(Svdf, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))

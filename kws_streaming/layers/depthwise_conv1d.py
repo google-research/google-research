@@ -48,6 +48,7 @@ class DepthwiseConv1D(tf.keras.layers.Layer):
                bias_regularizer=None,
                bias_constraint=None,
                pad='causal',
+               state_name_tag='ExternalState',
                **kwargs):
     super(DepthwiseConv1D, self).__init__(**kwargs)
     self.memory_size = memory_size
@@ -65,6 +66,7 @@ class DepthwiseConv1D(tf.keras.layers.Layer):
     self.bias_regularizer = bias_regularizer
     self.bias_constraint = bias_constraint
     self.pad = pad
+    self.state_name_tag = state_name_tag
 
   def build(self, input_shape):
     super(DepthwiseConv1D, self).build(input_shape)
@@ -86,7 +88,7 @@ class DepthwiseConv1D(tf.keras.layers.Layer):
     if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
       # create state varaible for streamable inference mode only
       self.states = self.add_weight(
-          name='states',
+          name=self.state_name_tag,
           shape=[self.inference_batch_size, self.memory_size, feature_dim],
           trainable=False,
           initializer=tf.zeros_initializer)
@@ -99,7 +101,8 @@ class DepthwiseConv1D(tf.keras.layers.Layer):
               feature_dim,
           ),
           batch_size=self.inference_batch_size,
-          name=self.name + 'input_state')  # adding names to make it unique
+          name=self.name + '/' +
+          self.state_name_tag)  # adding names to make it unique
       self.output_state = None
 
   def call(self, inputs):
@@ -138,6 +141,7 @@ class DepthwiseConv1D(tf.keras.layers.Layer):
         'bias_regularizer': self.bias_regularizer,
         'bias_constraint': self.bias_constraint,
         'pad': self.pad,
+        'state_name_tag': self.state_name_tag,
     }
     base_config = super(DepthwiseConv1D, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))

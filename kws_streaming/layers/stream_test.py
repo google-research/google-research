@@ -228,6 +228,12 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
           axis=time_dim)
       self.assertAllEqual(target, output_stream_np)
 
+    # validate name tag of model's state
+    expected_str = 'ExternalState'
+    self.assertAllEqual(
+        expected_str,
+        model_stream.inputs[1].name.split('/')[-1][:len(expected_str)])
+
   @parameterized.parameters('causal', 'same')
   def test_padding(self, padding):
     batch_size = 1

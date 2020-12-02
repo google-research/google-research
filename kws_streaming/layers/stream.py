@@ -70,6 +70,7 @@ class Stream(tf.keras.layers.Layer):
                state_shape=None,
                ring_buffer_size_in_time_dim=None,
                use_one_step=True,
+               state_name_tag='ExternalState',
                **kwargs):
     super(Stream, self).__init__(**kwargs)
 
@@ -80,6 +81,7 @@ class Stream(tf.keras.layers.Layer):
     self.state_shape = state_shape
     self.ring_buffer_size_in_time_dim = ring_buffer_size_in_time_dim
     self.use_one_step = use_one_step
+    self.state_name_tag = state_name_tag
 
     if not use_one_step and isinstance(
         self.cell, (tf.keras.layers.Flatten, tf.keras.layers.GlobalMaxPooling2D,
@@ -200,7 +202,8 @@ class Stream(tf.keras.layers.Layer):
         self.input_state = tf.keras.layers.Input(
             shape=self.state_shape[1:],
             batch_size=self.inference_batch_size,
-            name=self.name + '/input_state')  # adding names to make it unique
+            name=self.name + '/' +
+            self.state_name_tag)  # adding names to make it unique
       else:
         self.input_state = None
       self.output_state = None
@@ -233,6 +236,7 @@ class Stream(tf.keras.layers.Layer):
         'state_shape': self.state_shape,
         'ring_buffer_size_in_time_dim': self.ring_buffer_size_in_time_dim,
         'use_one_step': self.use_one_step,
+        'state_name_tag': self.state_name_tag,
     })
     return config
 
