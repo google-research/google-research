@@ -122,10 +122,12 @@ def _encode_log(namespace, time_ms, event_type, key, value, metadata):
 
 
 def _encode_log_quiet(key, value, metadata):
-  if value is None:
-    return f'{key}; {metadata}'
-  else:
-    return f'{key}: {value}; {metadata}'
+  line = str(key)
+  if value is not None:
+    line = line + ': ' + str(value)
+  if metadata is not None:
+    line = line + '; ' + str(metadata)
+  return line
 
 
 class _NumpyJSONEncoder(json.JSONEncoder):

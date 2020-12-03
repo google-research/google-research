@@ -142,6 +142,7 @@ config.parse_flags_with_absl()
 mllogger = None
 # Global Stopping Condition set by BLEU Evaluation Thread
 BLEU_THRESHOLD_REACHED = False
+START_TIME = None
 
 
 def _unbroadcast(x):
@@ -647,6 +648,7 @@ def write_predict_summary(all_predicted, all_targets, all_bs, target_encoder,
                    metadata={'first_epoch_num': epoch + 1, 'epoch_count': 1})
       if bleu_score >= 25:
         mllogger.end('run_stop', metadata={'status': 'success'})
+        logging.info('training time: %.2f seconds', time.time() - START_TIME)
         BLEU_THRESHOLD_REACHED = True
     summary_thread.submit(_write_predict_summary)
 
@@ -658,7 +660,7 @@ def init_mllogger():
 
 
 def main(argv):
-  global BLEU_THRESHOLD_REACHED
+  global BLEU_THRESHOLD_REACHED, START_TIME
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
@@ -761,6 +763,7 @@ def main(argv):
 
   rng = random.PRNGKey(seed)
   rng, init_rng = random.split(rng)
+  logging.info('initializing model')
   model, cache_def = create_model(init_rng,
                                   tuple(input_shape),
                                   tuple(target_shape),
@@ -787,6 +790,7 @@ def main(argv):
   mllogger.event('opt_adam_beta_1', beta1)
   mllogger.event('opt_adam_beta_2', beta2)
   mllogger.event('opt_adam_epsilon', epsilon)
+  logging.info('initializing optimizer')
   optimizer_def = optim.Adam(
       learning_rate,
       beta1=beta1,
@@ -952,6 +956,7 @@ def main(argv):
   mllogger.end('init_stop')
   if jax.host_id() == 0:
     mllogger.start('run_start')
+    START_TIME = time.time()
   for epoch in range(FLAGS.num_epochs):
     if jax.host_id() == 0 and not BLEU_THRESHOLD_REACHED:
       mllogger.start('block_start',
