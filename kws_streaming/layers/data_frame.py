@@ -157,6 +157,10 @@ class DataFrame(tf.keras.layers.Layer):
           (inputs.shape[0], self.inference_batch_size))
 
     if self.use_one_step:
+      # use_one_step is used only for backward compatibility
+      # it assumes that frame_size and frame_step overlap
+      # below version with tf.signal.frame is more generic
+
       # second dimension is frame_step
       if inputs.shape[1] != self.frame_step:
         raise ValueError('inputs.shape[1]:%d must be = self.frame_step:%d' %

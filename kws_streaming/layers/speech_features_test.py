@@ -49,6 +49,8 @@ class Params(model_params.Params):
     self.train = 0
     self.batch_size = 1
     self.mode = modes.Modes.NON_STREAM_INFERENCE
+    self.data_stride = 1
+    self.data_frame_padding = None
 
 
 class SpeechFeaturesTest(tf.test.TestCase):

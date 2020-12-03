@@ -116,7 +116,8 @@ def resnet_block(inputs,
                  padding='same',
                  dropout=0.0,
                  activation='relu',
-                 scale=True):
+                 scale=True,
+                 use_one_step=True):
   """Residual block.
 
   It is based on paper
@@ -136,6 +137,7 @@ def resnet_block(inputs,
     dropout: dropout value
     activation: type of activation function (string)
     scale: apply scaling in batchnormalization layer
+    use_one_step: this parameter will be used for streaming only
 
   Returns:
     output tensor
@@ -154,10 +156,11 @@ def resnet_block(inputs,
         net = stream.Stream(
             cell=tf.keras.layers.DepthwiseConv2D(
                 kernel_size=(kernel_size, 1),
-                strides=(stride, 1),
+                strides=(stride, stride),
                 padding='valid',
                 dilation_rate=(dilation, 1),
                 use_bias=False),
+            use_one_step=use_one_step,
             pad_time_dim=padding)(
                 net)
 
@@ -174,6 +177,7 @@ def resnet_block(inputs,
               padding='valid',
               activation='linear',
               use_bias=False),
+          use_one_step=use_one_step,
           pad_time_dim=padding)(
               net)
 
@@ -187,10 +191,11 @@ def resnet_block(inputs,
       net = stream.Stream(
           cell=tf.keras.layers.DepthwiseConv2D(
               kernel_size=(kernel_size, 1),
-              strides=(stride, 1),
+              strides=(stride, stride),
               padding='valid',
               dilation_rate=(dilation, 1),
               use_bias=False),
+          use_one_step=use_one_step,
           pad_time_dim=padding)(
               net)
 
@@ -207,6 +212,7 @@ def resnet_block(inputs,
             padding='valid',
             activation='linear',
             use_bias=False),
+        use_one_step=use_one_step,
         pad_time_dim=padding)(
             net)
 
@@ -280,7 +286,7 @@ def model(flags):
       ds_dilation, ds_residual, ds_pool, ds_padding):
     net = resnet_block(net, repeat, ksize, filters, dilation, stride,
                        sep, res, pad, flags.dropout,
-                       flags.activation, flags.ds_scale)
+                       flags.activation, flags.ds_scale, flags.data_stride <= 1)
     if pool > 1:
       if flags.ds_max_pool:
         net = tf.keras.layers.MaxPooling2D(

@@ -389,7 +389,6 @@ def ds_tc_resnet_params():
   params.ds_kernel_size = '3, 1'
   params.ds_stride = '1, 1'
   params.ds_dilation = '2, 1'
-  params.activation = 'relu'
   params.ds_pool = '1,1'
   params.ds_scale = 1
   params.ds_filter_separable = '1,1'

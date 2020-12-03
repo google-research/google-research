@@ -16,6 +16,8 @@
 """Util functions used for testing."""
 
 import random
+from typing import List
+import dataclasses
 import numpy as np
 from kws_streaming.layers import data_frame
 from kws_streaming.layers import modes
@@ -29,30 +31,21 @@ def set_seed(seed):
   tf.random.set_seed(seed)
 
 
+@dataclasses.dataclass
 class Params(object):
-  """Parameters for data and other settings.
+  """Parameters for data and other settings."""
 
-  Attributes:
-    cnn_strides: list of strides
-    clip_duration_ms: duration of audio clipl in ms
-    sample_rate: sample rate of the data
-    preprocess: method of preprocessing
-    data_shape: shape of the data in streaming inference mode
-    batch_size: batch size
-    desired_samples: number of samples in one sequence
-  """
+  cnn_strides: List[int]  # all strides in the model
+  clip_duration_ms: float = 16.0  # duration of audio clipl in ms
+  preprocess: str = 'custom'  # special case to customize input data shape
+  sample_rate: int = 16000  # sample rate of the data
+  data_stride: int = 1  # strides for data
+  batch_size: int = 1  # batch size
 
-  def __init__(self, cnn_strides, clip_duration_ms=16):
-    self.sample_rate = 16000
-    self.clip_duration_ms = clip_duration_ms
-
-    # it is a special case to customize input data shape
-    self.preprocess = 'custom'
-
+  def __post_init__(self):
     # defines the step of feeding input data
-    self.data_shape = (np.prod(cnn_strides),)
+    self.data_shape = (np.prod(self.cnn_strides),)
 
-    self.batch_size = 1
     self.desired_samples = int(
         self.sample_rate * self.clip_duration_ms / model_flags.MS_PER_SECOND)
 

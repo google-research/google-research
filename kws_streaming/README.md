@@ -13,24 +13,28 @@ Non streaming means that model has to receive the whole sequence
 (for example 1 sec of audio) and then return an output.
 We applied this lib for keyword spotting (KWS) problem
 and implemented most popular KWS models:
-* [dnn](https://arxiv.org/pdf/1711.07128.pdf) - deep neural network based on combination of fully connected layers;
-* dnn_raw - an example of [dnn](https://arxiv.org/pdf/1711.07128.pdf) model on raw audio features;
-* [gru](https://arxiv.org/pdf/1711.07128.pdf) - gated recurrent unit model;
-* [lstm](https://arxiv.org/pdf/1711.07128.pdf) - long short term memory model;
-* [cnn](https://arxiv.org/pdf/1711.07128.pdf) - convolutional neural network;
-* [tc_resnet](https://arxiv.org/pdf/1904.03814.pdf) - temporal convolution with sequence of residual blocks;
-* [crnn](https://arxiv.org/pdf/1711.07128.pdf) - combination of convolutional layers with RNNs(GRU or LSTM);
-* [ds_cnn](https://arxiv.org/pdf/1711.07128.pdf) - depth wise convolutional neural network;
-* [svdf](https://arxiv.org/pdf/1812.02802.pdf) - singular value decomposition filter neural network (sequence of 1d depthwise conv and 1x1 conv);
-* svdf_resnet - [svdf](https://arxiv.org/pdf/1812.02802.pdf) neural network with residual connections;
-* ds_tc_resnet - combination of 1d depthwise convolution in time with residual blocks, based on [MatchboxNet](https://arxiv.org/abs/2004.08531)
-* [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) - combination of attention with RNN(bi directional LSTM);
-* att_mh_rnn - extended version of [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) with multihead attention;
-* [mobilenet](https://arxiv.org/abs/1704.04861) - reduced version of mobilenet vision/imagenet model, but with 1d temporal conv;
-* [mobilenet_v2](https://arxiv.org/abs/1801.04381) - reduced version of mobilenet_v2 vision/imagenet model, but with 1d temporal conv;
-* [xception](https://arxiv.org/abs/1610.02357) - reduced version of xception vision/imagenet model;
-* [inception](http://arxiv.org/abs/1512.00567) - reduced version of inception vision/imagenet model;
-* [inception_resnet](https://arxiv.org/abs/1602.07261) - reduced version of inception_resnet vision/imagenet model;
+
+|  Model name      | Description  | Streamable |
+| ---------------- | --------------------- | --------------------- |
+|[dnn](https://arxiv.org/pdf/1711.07128.pdf) | deep neural network based on combination of fully connected layers      | yes      |
+| dnn_raw | an example of [dnn](https://arxiv.org/pdf/1711.07128.pdf) model on raw audio features  |   yes     |
+| [gru](https://arxiv.org/pdf/1711.07128.pdf) | gated recurrent unit model  |   yes     |
+| [lstm](https://arxiv.org/pdf/1711.07128.pdf) | long short term memory model  |   yes     |
+| [cnn](https://arxiv.org/pdf/1711.07128.pdf) | basic convolutional neural network  |   yes     |
+| [crnn](https://arxiv.org/pdf/1711.07128.pdf) | combination of convolutional layers with RNNs(GRU or LSTM)  |   yes     |
+| [ds_cnn](https://arxiv.org/pdf/1711.07128.pdf) | depth wise convolutional neural network  |   yes     |
+| [svdf](https://arxiv.org/pdf/1812.02802.pdf) | singular value decomposition filter neural network (sequence of 1d depthwise conv and 1x1 conv)  |   yes     |
+| svdf_resnet | [svdf](https://arxiv.org/pdf/1812.02802.pdf) neural network with residual connections  |   yes     |
+| ds_tc_resnet | combination of 1d depthwise convolution in time with residual blocks, based on [MatchboxNet](https://arxiv.org/abs/2004.08531)  |   yes     |
+| [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) | combination of cnn, RNN(bi directional LSTM) and attention  |   no     |
+| att_mh_rnn | extended version of [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) with multihead attention |   no     |
+| [tc_resnet](https://arxiv.org/pdf/1904.03814.pdf) | temporal convolution with sequence of residual blocks  |   not converted     |
+| [mobilenet](https://arxiv.org/abs/1704.04861) | reduced version of mobilenet vision/imagenet model, but with 1d temporal conv |   not converted     |
+| [mobilenet_v2](https://arxiv.org/abs/1801.04381) | reduced version of mobilenet_v2 vision/imagenet model, but with 1d temporal conv |   not converted     |
+| [xception](https://arxiv.org/abs/1610.02357) | reduced version of xception vision/imagenet model |   not converted     |
+| [inception](http://arxiv.org/abs/1512.00567) | reduced version of inception vision/imagenet model |   not converted     |
+| [inception_resnet](https://arxiv.org/abs/1602.07261) | reduced version of inception_resnet vision/imagenet model |   not converted     |
+
 
 They all use speech feature extractor, which is easy to configure as MFCC, LFBE
 or raw features (so user can train own speech feature extractor).

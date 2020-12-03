@@ -60,6 +60,16 @@ def update_flags(flags):
   else:
     raise ValueError('Non boolean value %d' % upd_flags.fft_magnitude_squared)
 
+  # in streaming mode by default model receives audio data enough for one frame
+  # so that it can return one output
+  upd_flags.data_stride = 1
+  # but if model has striding or pooling then data_stride should be equal to
+  # product of all pools and strides to produce several frames per call
+
+  # by default data_frame does not do use causal padding
+  # it can cause small numerical difference in streaming mode
+  upd_flags.data_frame_padding = None
+
   # summary logs for TensorBoard
   upd_flags.summaries_dir = os.path.join(flags.train_dir, 'logs/')
   return upd_flags

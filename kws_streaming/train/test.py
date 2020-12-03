@@ -68,18 +68,20 @@ def run_stream_inference_classification(flags, model_stream, inp_audio):
     last output
   """
 
+  stream_step_size = flags.window_stride_samples * flags.data_stride
   start = 0
-  end = flags.window_stride_samples
+  end = stream_step_size
   while end <= inp_audio.shape[1]:
     # get overlapped audio sequence
     stream_update = inp_audio[:, start:end]
 
+    # update indexes of streamed updates
+    start = end
+    end += stream_step_size
+
     # classification result of a current frame
     stream_output_prediction = model_stream.predict(stream_update)
 
-    # update indexes of streamed updates
-    start = end
-    end = start + flags.window_stride_samples
   return stream_output_prediction
 
 
@@ -104,15 +106,16 @@ def run_stream_inference_classification_tflite(flags, interpreter, inp_audio,
     raise ValueError('Number of inputs should be equal to the number of outputs'
                      'for the case of streaming model with external state')
 
+  stream_step_size = flags.window_stride_samples * flags.data_stride
   start = 0
-  end = flags.window_stride_samples
+  end = stream_step_size
   while end <= inp_audio.shape[1]:
     stream_update = inp_audio[:, start:end]
     stream_update = stream_update.astype(np.float32)
 
     # update indexes of streamed updates
     start = end
-    end = start + flags.window_stride_samples
+    end += stream_step_size
 
     # set input audio data (by default input data at index 0)
     interpreter.set_tensor(input_details[0]['index'], stream_update)
