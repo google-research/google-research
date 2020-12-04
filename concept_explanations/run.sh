@@ -14,7 +14,7 @@
 
 #!/bin/bash
 set -e
-set -x
+set -x pols
 
 virtualenv -p python3 .
 source ./bin/activate
