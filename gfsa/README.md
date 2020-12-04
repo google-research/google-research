@@ -19,6 +19,21 @@ year      = {2020}
 }
 ```
 
+## Interactive demo notebooks
+
+Want to see the GFSA layer in action? A good starting point is the interactive
+demo notebook, which shows how to train the GFSA layer to do a simple static
+analysis of Python code:
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)][notebook_demo]
+
+You may also be interested in the [new task guide notebook][notebook_new_task_guide],
+which describes how to use the GFSA layer for new types of graphs and graph-based
+MDPs.
+
+[notebook_demo]: https://colab.research.google.com/github/google-research/google-research/blob/master/gfsa/notebooks/demo_learning_static_analyses.ipynb
+[notebook_new_task_guide]: https://colab.research.google.com/github/google-research/google-research/blob/master/gfsa/notebooks/guide_for_new_tasks.ipynb
+
 ## Setting up the environment
 
 The code in this repository is written for Python 3.6. We recommend creating
@@ -100,9 +115,3 @@ and combined models as Flax modules.
   schedules.
 - `training/gin_util.py` defines a helper function for writing complex gin
   configurations.
-
-
-## Future updates
-
-This repository will be updated in the future with links to the datasets used
-in the paper, along with details on how to train models using the GFSA layer.
