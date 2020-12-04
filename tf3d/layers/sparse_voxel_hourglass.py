@@ -24,7 +24,7 @@ from tf3d.layers import sparse_voxel_unet
 
 @gin.configurable
 class SparseConvHourGlass(tf.keras.layers.Layer):
-  """3D UNet sparse voxel network."""
+  """3D HourGlass sparse voxel network."""
 
   def __init__(self,
                num_stacked_networks=1,
@@ -39,7 +39,7 @@ class SparseConvHourGlass(tf.keras.layers.Layer):
                use_batch_norm=True,
                network_pooling_segment_func=tf.math.unsorted_segment_max,
                normalize_sparse_conv=True):
-    """3D UNet sparse voxel network.
+    """3D HourGlass sparse voxel network.
 
     Args:
       num_stacked_networks: Number of stacked networks that build the hour-glass

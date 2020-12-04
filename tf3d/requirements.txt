@@ -1,0 +1,5 @@
+tensorflow>=2.3.0
+tensorflow_datasets>=4.1.0
+numpy>=1.18.5
+gin-config>=0.4.0
+

@@ -27,10 +27,7 @@ from tf3d.datasets import waymo_object_per_frame  # pylint: disable=g-bad-import
 
 
 _DATASET_MAP = {
-    'kitti_object': kitti_object,
-    'nuscenes_object_per_frame': nuscenes_object_per_frame,
     'rio': rio,
-    'scannet_frame': scannet_frame,
     'scannet_scene': scannet_scene,
     'waymo_object_per_frame': waymo_object_per_frame,
 }

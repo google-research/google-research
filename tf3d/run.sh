@@ -18,10 +18,9 @@ set -x
 
 virtualenv -p python3 .
 source ./bin/activate
-pip install numpy
-pip install six
-pip install "tensorflow>=2.3.1"
 
-# reserved for additional dependencies
-# pip install -r tf3d/requirements.txt
+pip install six
+# install dependencies
+pip install -r tf3d/requirements.txt
+
 python -m tf3d.base_model_test

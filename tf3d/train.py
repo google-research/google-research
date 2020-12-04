@@ -23,6 +23,7 @@ import gin
 import gin.tf
 import six
 import tensorflow as tf
+from tf3d.utils import callback_utils
 
 FLAGS = flags.FLAGS
 

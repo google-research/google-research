@@ -18,7 +18,6 @@
 import random
 import tensorflow as tf
 from tf3d import data_provider
-from tensorflow.contrib import lookup as contrib_lookup
 
 
 class DatasetsTest(tf.test.TestCase,
