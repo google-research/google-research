@@ -23,7 +23,7 @@ Example box operations that are supported:
 import numpy as np
 from tf3d.object_detection.box_utils import np_box_list
 from tf3d.object_detection.box_utils import np_box_ops
-from tensorflow_models.object_detection.utils import np_box_list_ops
+from object_detection.utils import np_box_list_ops
 
 SortOrder = np_box_list_ops.SortOrder  # pylint: disable=invalid-name
 

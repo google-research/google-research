@@ -25,6 +25,8 @@ _FILE_PATTERN = '%s-*.sstable'
 _FILE_PATTERN_TFRECORD = '%s*.tfrecords'
 DATASET_FORMAT = 'sstable'
 
+DATASET_DIR = None
+
 
 
 def _get_feature_label_keys():

@@ -95,6 +95,7 @@ def evaluation(model_class=None,
       except tf.errors.NotFoundError:
         logging.info('Restoring from checkpoint has failed. Maybe file missing.'
                      'Try again now.')
+        time.sleep(3)
         continue
     else:
       logging.info('No checkpoint found at %s, will check again 10 s later..',

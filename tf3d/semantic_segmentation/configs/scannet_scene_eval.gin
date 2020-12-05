@@ -1,4 +1,5 @@
 num_classes = 41
+label_map_path = 'tf3d/datasets/labelmaps/scannet20_labelmap.pbtxt'
 
 # Preprocessor
 semantic_pointcloud_preprocess.num_points_to_randomly_sample = 5000000
@@ -56,3 +57,4 @@ evaluation.num_qualitative_examples = 10
 CustomTensorBoard.metric_classes = [@SemanticSegmentationMetric]
 SemanticSegmentationMetric.num_classes = %num_classes
 SemanticSegmentationMetric.multi_label = False
+SemanticSegmentationMetric.label_map_path = %label_map_path

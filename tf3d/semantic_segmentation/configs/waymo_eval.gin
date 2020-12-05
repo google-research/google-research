@@ -1,4 +1,5 @@
 num_classes = 5
+label_map_path = 'tf3d/datasets/labelmaps/waymo_open_labelmap.pbtxt'
 
 # Preprocessor
 waymo_prepare_lidar_images_and_correspondences.resized_image_height = 481
@@ -62,3 +63,5 @@ evaluation.num_qualitative_examples = 10
 CustomTensorBoard.metric_classes = [@SemanticSegmentationMetric]
 SemanticSegmentationMetric.num_classes = %num_classes
 SemanticSegmentationMetric.multi_label = False
+SemanticSegmentationMetric.label_map_path = %label_map_path
+

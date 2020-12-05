@@ -405,9 +405,6 @@ class SparseConvBlock3D(tf.keras.layers.Layer):
       raise ValueError("inputs should have a length of 3.")
     voxel_features, voxel_xyz_indices, num_valid_voxels = inputs
     num_voxels = tf.shape(voxel_features)[1]
-    rules, rule_size = ops.submanifold_sparse_conv_rule(
-        voxel_xyz_indices, num_valid_voxels,
-        [self.conv_filter_size, self.conv_filter_size, self.conv_filter_size])
     net = voxel_features
     for i in range(self.num_convolutions):
       if use_external_impl:

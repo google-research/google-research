@@ -62,7 +62,8 @@ def classification_loss_fn(logits,
       raise ValueError(
           '`num_valid_voxels` cannot be None if using batched logits.')
   if logits_rank == 3:
-    if (isinstance(weights, tf.Tensor) and len(weights.shape_as_list()) == 3):
+    if (isinstance(weights, tf.Tensor) and
+        len(weights.get_shape().as_list()) == 3):
       use_weights = True
     else:
       use_weights = False

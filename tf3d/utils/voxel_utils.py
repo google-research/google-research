@@ -20,7 +20,7 @@ import gin.tf
 import tensorflow as tf
 
 from tf3d.layers import sparse_voxel_net_utils
-from tensorflow_models.object_detection.utils import shape_utils
+from object_detection.utils import shape_utils
 
 
 compute_pooled_voxel_indices = sparse_voxel_net_utils.compute_pooled_voxel_indices
@@ -400,7 +400,7 @@ def sparse_voxel_grid_to_pointcloud(voxel_features, segment_ids,
     voxel_features_i = voxel_features[i, :num_valid_voxels_i, :]
     segment_ids_i = segment_ids[i, :num_valid_points_i]
     point_features = tf.gather(voxel_features_i, segment_ids_i)
-    point_features_rank = len(point_features.shape_as_list())
+    point_features_rank = len(point_features.get_shape().as_list())
     point_features_paddings = [[0, num_points - num_valid_points_i]]
     for _ in range(point_features_rank - 1):
       point_features_paddings.append([0, 0])

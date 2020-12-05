@@ -22,9 +22,11 @@ from tf3d.datasets.specs import scannet_specs
 from tf3d.datasets.utils import example_parser
 
 _FILE_PATTERN = '%s-*.sst'
-
-
+_FILE_PATTERN_TFRECORD = '%s*.tfrecords'
 DATASET_FORMAT = 'sstable'
+
+DATASET_DIR = None
+
 
 
 def _get_feature_label_keys():
@@ -51,8 +53,13 @@ def get_label_keys():
   return _get_feature_label_keys()[1]
 
 
-def get_file_pattern(split_name, dataset_dir=DATASET_DIR):
-  return os.path.join(dataset_dir, _FILE_PATTERN % split_name)
+def get_file_pattern(split_name,
+                     dataset_dir=DATASET_DIR,
+                     dataset_format=DATASET_FORMAT):
+  if dataset_format == DATASET_FORMAT:
+    return os.path.join(dataset_dir, _FILE_PATTERN % split_name)
+  elif dataset_format == 'tfrecord':
+    return os.path.join(dataset_dir, _FILE_PATTERN_TFRECORD % split_name)
 
 
 def get_decode_fn():

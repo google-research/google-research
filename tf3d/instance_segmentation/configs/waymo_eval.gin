@@ -1,4 +1,5 @@
 num_classes = 5
+label_map_path = 'tf3d/datasets/labelmaps/waymo_open_labelmap.pbtxt'
 
 
 # Preprocessor

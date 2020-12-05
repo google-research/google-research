@@ -115,8 +115,8 @@ class CustomTensorBoard(tf.keras.callbacks.Callback):
       del self._writers['val_mesh']
 
   def _clear_mesh_event_files(self):
-    old_events = tf.io.gfile.glob(os.path.join(self._val_mesh_dir, 'event*'))
-    if old_events:
+    if tf.io.gfile.exists(self._val_mesh_dir):
+      old_events = tf.io.gfile.glob(os.path.join(self._val_mesh_dir, 'event*'))
       for event_file in old_events:
         logging.info('removing old mesh event file:%s', event_file)
         tf.io.gfile.remove(event_file)

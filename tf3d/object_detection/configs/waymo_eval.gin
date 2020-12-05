@@ -1,5 +1,5 @@
 num_classes = 5
-
+label_map_path = 'tf3d/datasets/labelmaps/waymo_open_labelmap.pbtxt'
 
 # Preprocessor
 waymo_prepare_lidar_images_and_correspondences.resized_image_height = 481

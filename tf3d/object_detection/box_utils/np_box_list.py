@@ -18,7 +18,7 @@
 import logging
 import numpy as np
 
-from tensorflow_models.object_detection.utils import np_box_list
+from object_detection.utils import np_box_list
 
 
 class BoxList3d(np_box_list.BoxList):

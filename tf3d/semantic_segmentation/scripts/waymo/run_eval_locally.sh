@@ -16,23 +16,28 @@
 
 VERSION=001
 JOB_NAME="seg_waymo_${VERSION}"
-EVAL_DIR="/home/${USER}/temp/tf3d/${JOB_NAME}"
-CKPT_DIR="PATH_TO_CKPT"
+EVAL_DIR="/tmp/tf3d_experiment/${JOB_NAME}"
+CKPT_DIR="${EVAL_DIR}/model/"
 
 NUM_STEPS_PER_EPOCH=100
 LOG_FREQ=100
 
-EVAL_GIN_CONFIG="tf3d/semantic_segmentation/configs/waymo_eval.gin"
-IMPORT_MODULE='tf3d.gin_imports'
+# Data
 DATASET_NAME='waymo_object_per_frame'
 EVAL_SPLIT='val'
+DATASET_PATH="/usr/local/google/home/${USER}/Developer/waymo_data/" # REPLACE
 
-PARAMS="get_tf_data_dataset.dataset_name = ${DATASET_NAME}
-get_tf_data_dataset.split_name = ${EVAL_SPLIT}
+# Gin config
+IMPORT_MODULE='tf3d.gin_imports'
+EVAL_GIN_CONFIG="tf3d/semantic_segmentation/configs/waymo_eval.gin"
+
+PARAMS="get_tf_data_dataset.dataset_name = '${DATASET_NAME}'
+get_tf_data_dataset.dataset_dir = '${DATASET_PATH}'
+get_tf_data_dataset.dataset_format = 'tfrecord'
+get_tf_data_dataset.split_name = '${EVAL_SPLIT}'
 "
 
-echo "Deleting EVAL_DIR at ${EVAL_DIR}..."
-rm -r "${EVAL_DIR}"
+echo "EVAL_DIR at ${EVAL_DIR}..."
 
 python -m tf3d.eval \
   --params="${PARAMS}" \

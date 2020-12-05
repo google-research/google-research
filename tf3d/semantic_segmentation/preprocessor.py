@@ -22,7 +22,7 @@ import six
 import tensorflow as tf
 from tf3d import standard_fields
 from tf3d.utils import preprocessor_utils
-from tensorflow_models.object_detection.utils import shape_utils
+from object_detection.utils import shape_utils
 
 
 def change_intensity_range(intensities,

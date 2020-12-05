@@ -21,7 +21,7 @@ import gin.tf
 import tensorflow as tf
 from tf3d import standard_fields
 from tf3d.utils import preprocessor_utils
-from tensorflow_models.object_detection.utils import shape_utils
+from object_detection.utils import shape_utils
 
 
 _OBJECT_KEYS = [
@@ -162,11 +162,11 @@ def _transfer_object_properties_to_points(inputs):
         standard_fields.InputDataFields.objects_rotation_matrix]
 
   for key, value in dic.items():
-    if len(value.shape_as_list()) == 1:
+    if len(value.get_shape().as_list()) == 1:
       paddings = [[1, 0]]
-    elif len(value.shape_as_list()) == 2:
+    elif len(value.get_shape().as_list()) == 2:
       paddings = [[1, 0], [0, 0]]
-    elif len(value.shape_as_list()) == 3:
+    elif len(value.get_shape().as_list()) == 3:
       paddings = [[1, 0], [0, 0], [0, 0]]
     else:
       raise ValueError(('Invalid shape for %s' % key))
@@ -196,7 +196,7 @@ def _pad_or_clip_point_properties(inputs, pad_or_clip_size):
       if key == standard_fields.InputDataFields.num_valid_points:
         continue
       if key in inputs:
-        tensor_rank = len(inputs[key].shape_as_list())
+        tensor_rank = len(inputs[key].get_shape().as_list())
         padding_shape = [pad_or_clip_size]
         for i in range(1, tensor_rank):
           padding_shape.append(inputs[key].get_shape().as_list()[i])

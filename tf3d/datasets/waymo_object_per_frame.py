@@ -29,6 +29,8 @@ from tf3d.utils import box_utils
 _FILE_PATTERN = '%s*.sst'
 _FILE_PATTERN_TFRECORD = '%s*.tfrecords'
 
+DATASET_DIR = None
+
 
 DATASET_FORMAT = 'sstable'
 

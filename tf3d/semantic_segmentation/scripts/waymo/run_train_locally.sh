@@ -16,24 +16,33 @@
 
 VERSION=001
 JOB_NAME="seg_waymo_${VERSION}"
-TRAIN_DIR="/home/${USER}/temp/tf3d/${JOB_NAME}"
+TRAIN_DIR="/tmp/tf3d_experiment/${JOB_NAME}"
 
-LEARNING_RATES=0.3
-BATCH_SIZE=4
+
+
 NUM_WORKERS=1
+STRATEGY="mirrored"  # set to "multi_worker_mirrored" when NUM_WORKERS > 1
 NUM_GPUS=1
+BATCH_SIZE=4
+LEARNING_RATES=0.3
 
 NUM_STEPS_PER_EPOCH=100
 NUM_EPOCHS=80
 LOG_FREQ=100
 
-TRAIN_GIN_CONFIG="tf3d/semantic_segmentation/configs/waymo_train.gin"
-IMPORT_MODULE='tf3d.gin_imports'
-DATASET_NAME='waymo_object_per_frame'
-TRAIN_SPLIT='train'
+# Data
+DATASET_NAME="waymo_object_per_frame"
+TRAIN_SPLIT="train"
+DATASET_PATH="/usr/local/google/home/${USER}/Developer/waymo_data/" # REPLACE
 
-PARAMS="get_tf_data_dataset.dataset_name = ${DATASET_NAME}
-get_tf_data_dataset.split_name = ${TRAIN_SPLIT}
+# Gin config
+IMPORT_MODULE="tf3d.gin_imports"
+TRAIN_GIN_CONFIG="tf3d/semantic_segmentation/configs/waymo_train.gin"
+
+PARAMS="get_tf_data_dataset.dataset_name = '${DATASET_NAME}'
+get_tf_data_dataset.split_name = '${TRAIN_SPLIT}'
+get_tf_data_dataset.dataset_dir = '${DATASET_PATH}'
+get_tf_data_dataset.dataset_format = 'tfrecord'
 step_decay.initial_learning_rate = ${LEARNING_RATES}
 "
 
@@ -50,6 +59,6 @@ python -m tf3d.train \
   --run_functions_eagerly=false \
   --num_steps_per_epoch="${NUM_STEPS_PER_EPOCH}" \
   --log_freq="${LOG_FREQ}" \
-  --distribution_strategy="mirrored" \
+  --distribution_strategy="${STRATEGY}" \
   --batch_size="${BATCH_SIZE}" \
   --alsologtostderr

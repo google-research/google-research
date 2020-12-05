@@ -21,7 +21,7 @@ import numpy as np
 import tensorflow as tf
 
 from tf3d import standard_fields
-from tensorflow_models.object_detection.utils import label_map_util
+from object_detection.utils import label_map_util
 
 
 @gin.configurable

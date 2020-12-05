@@ -1,0 +1,20 @@
+item {
+  name: "vehicle"
+  id: 1
+  display_name: "vehicle"
+}
+item {
+  name: "pedestrian"
+  id: 2
+  display_name: "pedestrian"
+}
+item {
+  name: "sign"
+  id: 3
+  display_name: "sign"
+}
+item {
+  name: "cyclist"
+  id: 4
+  display_name: "cyclist"
+}
