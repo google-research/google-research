@@ -2,7 +2,7 @@
 ======================================================================================
 
 To enable post training model quantization, we uses \
---feature_type 'mfcc_op' which is numerically different with 'mfcc_tf' (the last one was used in [paper](https://arxiv.org/abs/2005.06720)). We did not run hyperparameters optimization with 'mfcc_op' feature extractor, so there can be some accuracy reduction.
+--feature_type 'mfcc_op' which is numerically different with 'mfcc_tf' (the last one was used in [paper](https://arxiv.org/abs/2005.06720)). We did not run hyperparameters optimization with 'mfcc_op' feature extractor, so there can be some accuracy reduction. mfcc_op calls audio_spectrogram() and mfcc(). The last one expects squared fft magnitude, so we set fft_magnitude_squared 1.
 
 All below models are trained with \
 --feature_type 'mfcc_op' (speech mfcc feature extractor is using internal TFLite op ) and \
@@ -163,6 +163,7 @@ $CMD_TRAIN \
 --time_shift_ms 100 \
 --train 0 \
 --feature_type 'mfcc_op' \
+--fft_magnitude_squared 1 \
 svdf \
 --svdf_memory_size 4,10,10,10,10,10 \
 --svdf_units1 256,256,256,256,256,256 \
@@ -203,6 +204,7 @@ $CMD_TRAIN \
 --frequency_masks_number 2 \
 --frequency_mask_max_size 5 \
 --feature_type 'mfcc_op' \
+--fft_magnitude_squared 1 \
 lstm \
 --lstm_units 500 \
 --return_sequences 0 \
@@ -242,6 +244,7 @@ $CMD_TRAIN \
 --frequency_masks_number 2 \
 --frequency_mask_max_size 5 \
 --feature_type 'mfcc_op' \
+--fft_magnitude_squared 1 \
 crnn \
 --cnn_filters '16,16' \
 --cnn_kernel_size '(3,3),(5,3)' \
@@ -286,6 +289,7 @@ $CMD_TRAIN \
 --frequency_masks_number 2 \
 --frequency_mask_max_size 5 \
 --feature_type 'mfcc_op' \
+--fft_magnitude_squared 1 \
 crnn \
 --cnn_filters '16,16' \
 --cnn_kernel_size '(3,3),(5,3)' \
@@ -328,6 +332,7 @@ $CMD_TRAIN \
 --frequency_masks_number 2 \
 --frequency_mask_max_size 5 \
 --feature_type 'mfcc_op' \
+--fft_magnitude_squared 1 \
 dnn \
 --units1 '64,128' \
 --act1 "'relu','relu'" \
@@ -367,6 +372,7 @@ $CMD_TRAIN \
 --frequency_masks_number 2 \
 --frequency_mask_max_size 5 \
 --feature_type 'mfcc_op' \
+--fft_magnitude_squared 1 \
 att_mh_rnn \
 --cnn_filters '10,1' \
 --cnn_kernel_size '(5,1),(5,1)' \

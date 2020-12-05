@@ -75,11 +75,8 @@ class MagnitudeRDFTmel(magnitude_rdft.MagnitudeRDFT):
 
   def build(self, input_shape):
 
-    # this is the feature size of the DFT output
-    feature_size = int(input_shape[-1])
-    if self.use_tf_fft or not self.mel_non_zero_only:
-      # this is the feature size of the TF RFFT output
-      feature_size = self._compute_fft_size(feature_size) // 2 + 1
+    # output size of DFT
+    feature_size = self._compute_fft_size(int(input_shape[-1])) // 2 + 1
 
     # precompute mel matrix using np
     self.mel_weight_matrix = mel_table.SpectrogramToMelMatrix(

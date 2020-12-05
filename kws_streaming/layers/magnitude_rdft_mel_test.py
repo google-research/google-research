@@ -20,12 +20,47 @@ import numpy as np
 from kws_streaming.layers import magnitude_rdft
 from kws_streaming.layers import magnitude_rdft_mel
 from kws_streaming.layers import mel_spectrogram
+from kws_streaming.layers import test_utils
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 tf1.disable_eager_execution()
 
 
 class MagnitudeRDFTmelTest(tf.test.TestCase, parameterized.TestCase):
+  """Test DFT model in non streaming and streaming modes."""
+
+  def setUp(self):
+    super(MagnitudeRDFTmelTest, self).setUp()
+    test_utils.set_seed(123)
+
+    self.signal_size = 100
+    # input signal
+    self.signal = np.random.rand(1, self.signal_size)
+
+    # model parameters
+    self.use_tf_fft = False
+    self.magnitude_squared = False
+    self.num_mel_bins = 40
+    self.lower_edge_hertz = 20.0
+    self.upper_edge_hertz = 4000.0
+    self.sample_rate = 16000.0
+
+    # build rdft mel model and run it
+    input_signal = tf.keras.Input(shape=(self.signal_size,), batch_size=1)
+    mag_rdft = magnitude_rdft.MagnitudeRDFT(
+        use_tf_fft=self.use_tf_fft, magnitude_squared=self.magnitude_squared)(
+            input_signal)
+    mel_spectr = mel_spectrogram.MelSpectrogram(
+        use_tf=False,
+        num_mel_bins=self.num_mel_bins,
+        lower_edge_hertz=self.lower_edge_hertz,
+        upper_edge_hertz=self.upper_edge_hertz,
+        sample_rate=self.sample_rate)(
+            mag_rdft)
+    model_rdft_mel = tf.keras.Model(input_signal, mel_spectr)
+    model_rdft_mel.summary()
+    self.shape_rdft_mel = model_rdft_mel.layers[2].mel_weight_matrix.shape
+    self.rdft_mel_output = model_rdft_mel.predict(self.signal)
 
   @parameterized.named_parameters([
       dict(testcase_name='reduced rdft dim', mel_non_zero_only=True),
@@ -33,59 +68,31 @@ class MagnitudeRDFTmelTest(tf.test.TestCase, parameterized.TestCase):
   ])
   def test_rdft_mel_vs_merged_rdft_mel(self, mel_non_zero_only):
 
-    signal_size = 257
-    # input signal
-    signal = np.random.rand(1, signal_size)
-
-    # model parameters
-    use_tf_fft = False
-    magnitude_squared = False
-    num_mel_bins = 40
-    lower_edge_hertz = 20.0
-    upper_edge_hertz = 4000.0
-    sample_rate = 16000.0
-
-    # build rdft mel model and run it
-    input_signal = tf.keras.Input(shape=(signal_size,), batch_size=1)
-    mag_rdft = magnitude_rdft.MagnitudeRDFT(
-        use_tf_fft=use_tf_fft, magnitude_squared=magnitude_squared)(
-            input_signal)
-    mel_spectr = mel_spectrogram.MelSpectrogram(
-        use_tf=False,
-        num_mel_bins=num_mel_bins,
-        lower_edge_hertz=lower_edge_hertz,
-        upper_edge_hertz=upper_edge_hertz,
-        sample_rate=sample_rate)(
-            mag_rdft)
-    model_rdft_mel = tf.keras.Model(input_signal, mel_spectr)
-    model_rdft_mel.summary()
-    rdft_mel_output = model_rdft_mel.predict(signal)
-
     # build merged rdft mel model and run it
+    input_signal = tf.keras.Input(shape=(self.signal_size,), batch_size=1)
     merged_rdft_mel = magnitude_rdft_mel.MagnitudeRDFTmel(
-        use_tf_fft=use_tf_fft,
-        magnitude_squared=magnitude_squared,
-        num_mel_bins=num_mel_bins,
-        lower_edge_hertz=lower_edge_hertz,
-        upper_edge_hertz=upper_edge_hertz,
-        sample_rate=sample_rate,
+        use_tf_fft=self.use_tf_fft,
+        magnitude_squared=self.magnitude_squared,
+        num_mel_bins=self.num_mel_bins,
+        lower_edge_hertz=self.lower_edge_hertz,
+        upper_edge_hertz=self.upper_edge_hertz,
+        sample_rate=self.sample_rate,
         mel_non_zero_only=mel_non_zero_only)(
             input_signal)
     model_merged_rdft_mel = tf.keras.Model(input_signal, merged_rdft_mel)
     model_merged_rdft_mel.summary()
-    merged_rdft_mel_output = model_merged_rdft_mel.predict(signal)
+    merged_rdft_mel_output = model_merged_rdft_mel.predict(self.signal)
 
-    shape_rdft_mel = model_rdft_mel.layers[2].mel_weight_matrix.shape
     shape_rdft_melmerged = model_merged_rdft_mel.layers[
         1].mel_weight_matrix.shape
     if mel_non_zero_only:
       # shape of mel matrix with merged method is 2x smaller
-      self.assertGreater(shape_rdft_mel[0] * shape_rdft_mel[1],
+      self.assertGreater(self.shape_rdft_mel[0] * self.shape_rdft_mel[1],
                          2 * shape_rdft_melmerged[0] * shape_rdft_melmerged[1])
     else:
-      self.assertEqual(shape_rdft_mel[0] * shape_rdft_mel[1],
+      self.assertEqual(self.shape_rdft_mel[0] * self.shape_rdft_mel[1],
                        shape_rdft_melmerged[0] * shape_rdft_melmerged[1])
-    self.assertAllClose(rdft_mel_output, merged_rdft_mel_output)
+    self.assertAllClose(self.rdft_mel_output, merged_rdft_mel_output)
 
 
 if __name__ == '__main__':

@@ -125,6 +125,7 @@ $CMD_TRAIN \
 --resample 0.15 \
 --time_shift_ms 100 \
 --feature_type 'mfcc_op' \
+--fft_magnitude_squared 1 \
 --preprocess 'raw' \
 --train 1 \
 --lr_schedule 'exp' \
@@ -166,6 +167,7 @@ $CMD_TRAIN \
 --resample 0.15 \
 --time_shift_ms 100 \
 --feature_type 'mfcc_op' \
+--fft_magnitude_squared 1 \
 --preprocess 'raw' \
 --train 1 \
 --lr_schedule 'exp' \
@@ -200,6 +202,7 @@ $CMD_TRAIN \
 --time_shift_ms 100 \
 --train 1 \
 --feature_type 'mfcc_op' \
+--fft_magnitude_squared 1 \
 --preprocess 'raw' \
 mobilenet_v2 \
 --cnn1_filters 32 \
@@ -233,6 +236,7 @@ $CMD_TRAIN \
 --time_shift_ms 100 \
 --train 1 \
 --feature_type 'mfcc_op' \
+--fft_magnitude_squared 1 \
 --preprocess 'raw' \
 inception \
 --cnn1_filters '32' \
@@ -266,6 +270,7 @@ $CMD_TRAIN \
 --time_shift_ms 100 \
 --train 1 \
 --feature_type 'mfcc_op' \
+--fft_magnitude_squared 1 \
 --preprocess 'raw' \
 inception_resnet \
 --cnn1_filters '32' \
@@ -300,6 +305,7 @@ $CMD_TRAIN \
 --resample 0.15 \
 --time_shift_ms 100 \
 --feature_type 'mfcc_op' \
+--fft_magnitude_squared 1 \
 --preprocess 'raw' \
 --train 1 \
 --lr_schedule 'exp' \
@@ -336,6 +342,7 @@ $CMD_TRAIN \
 --time_shift_ms 100 \
 --train 1 \
 --feature_type 'mfcc_op' \
+--fft_magnitude_squared 1 \
 --preprocess 'raw' \
 tc_resnet \
 --kernel_size '(3,1)' \
@@ -370,6 +377,7 @@ $CMD_TRAIN \
 --time_shift_ms 100 \
 --train 1 \
 --feature_type 'mfcc_op' \
+--fft_magnitude_squared 1 \
 --preprocess 'raw' \
 xception \
 --cnn1_kernel_size '5' \
