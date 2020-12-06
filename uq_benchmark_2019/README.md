@@ -1,3 +1,7 @@
+### This codebase is no longer maintained, active development has moved to [Uncertainty Baselines](https://github.com/google/uncertainty-baselines).
+
+
+
 # Can You Trust Your Model's Uncertainty?
 ## Evaluating Predictive Uncertainty Under Dataset Shift
 
