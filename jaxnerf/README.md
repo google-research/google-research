@@ -16,76 +16,47 @@ Our JAX implementation currently supports:
 <table class="tg">
 <thead>
   <tr>
-    <th class="tg-c3ow"><span style="font-weight:bold">Platform</span></th>
-    <th class="tg-c3ow" colspan="2"><span style="font-weight:bold">Single-Host GPU</span></th>
-    <th class="tg-c3ow" colspan="2"><span style="font-weight:bold">Multi-Device TPU</span></th>
+    <th class="tg-0lax"><span style="font-weight:bold">Platform</span></th>
+    <th class="tg-0lax" colspan="2"><span style="font-weight:bold">Single-Host GPU</span></th>
+    <th class="tg-0lax" colspan="2"><span style="font-weight:bold">Multi-Device TPU</span></th>
   </tr>
 </thead>
 <tbody>
   <tr>
-    <td class="tg-c3ow"><span style="font-weight:bold">Type</span></td>
-    <td class="tg-c3ow">Single-Device</td>
-    <td class="tg-c3ow">Multi-Device</td>
-    <td class="tg-c3ow">Single-Host</td>
-    <td class="tg-c3ow">Multi-Host</td>
+    <td class="tg-0lax"><span style="font-weight:bold">Type</span></td>
+    <td class="tg-0lax">Single-Device</td>
+    <td class="tg-0lax">Multi-Device</td>
+    <td class="tg-0lax">Single-Host</td>
+    <td class="tg-0lax">Multi-Host</td>
   </tr>
   <tr>
-    <td class="tg-c3ow"><span style="font-weight:bold">Training</span></td>
-    <td class="tg-ml2k"><span style="font-weight:400;font-style:normal;color:#32CB00">✔</span></td>
-    <td class="tg-ml2k"><span style="font-weight:400;font-style:normal;color:#32CB00">✔</span></td>
-    <td class="tg-ml2k"><span style="color:#32CB00">✔</span></td>
-    <td class="tg-ml2k"><span style="color:#32CB00">✔</span></td>
+    <td class="tg-0lax"><span style="font-weight:bold">Training</span></td>
+    <td class="tg-0lax"><img src="http://storage.googleapis.com/gresearch/jaxnerf/check.png" alt="Supported" width=18px height=18px></td>
+    <td class="tg-0lax"><img src="http://storage.googleapis.com/gresearch/jaxnerf/check.png" alt="Supported" width=18px height=18px></td>
+    <td class="tg-0lax"><img src="http://storage.googleapis.com/gresearch/jaxnerf/check.png" alt="Supported" width=18px height=18px></td>
+    <td class="tg-0lax"><img src="http://storage.googleapis.com/gresearch/jaxnerf/check.png" alt="Supported" width=18px height=18px></td>
   </tr>
   <tr>
-    <td class="tg-c3ow"><span style="font-weight:bold">Evaluation</span></td>
-    <td class="tg-c3ow"><span style="color:#32CB00">✔</span></td>
-    <td class="tg-c3ow"><span style="color:#32CB00">✔</span></td>
-    <td class="tg-c3ow"><span style="color:#32CB00">✔</span></td>
-    <td class="tg-c3ow"><span style="color:#32CB00">✔</span></td>
+    <td class="tg-0lax"><span style="font-weight:bold">Evaluation</span></td>
+    <td class="tg-0lax"><img src="http://storage.googleapis.com/gresearch/jaxnerf/check.png" alt="Supported" width=18px height=18px></td>
+    <td class="tg-0lax"><img src="http://storage.googleapis.com/gresearch/jaxnerf/check.png" alt="Supported" width=18px height=18px></td>
+    <td class="tg-0lax"><img src="http://storage.googleapis.com/gresearch/jaxnerf/check.png" alt="Supported" width=18px height=18px></td>
+    <td class="tg-0lax"><img src="http://storage.googleapis.com/gresearch/jaxnerf/check.png" alt="Supported" width=18px height=18px></td>
   </tr>
 </tbody>
 </table>
 
-The training job on a JellyFishPod 8x8 TPU can be done in **2.5 hours (v.s 3 days for TF
+The training job on 128 TPUv2 cores can be done in **2.5 hours (v.s 3 days for TF
 NeRF)** for 1 million optimization steps. In other words, JaxNeRF trains to the best while trains very fast.
 
 As for inference speed, here are the statistics of rendering an image with
 800x800 resolution (numbers are averaged over 50 rendering passes):
 
-<style type="text/css">
-.tg  {border-collapse:collapse;border-spacing:0;}
-.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-1wig{font-weight:bold;text-align:left;vertical-align:top}
-.tg .tg-baqh{text-align:center;vertical-align:top}
-.tg .tg-9ewa{color:#fe0000;text-align:center;vertical-align:top}
-</style>
-<table class="tg">
-<thead>
-  <tr>
-    <th class="tg-1wig">Platform</th>
-    <th class="tg-1wig">1 x NVIDIA V100</th>
-    <th class="tg-1wig">8 x NVIDIA V100</th>
-    <th class="tg-1wig">TPU JellyFish Pod 8x8</th>
-  </tr>
-</thead>
-<tbody>
-  <tr>
-    <td class="tg-1wig">TF NeRF</td>
-    <td class="tg-baqh">27.74 secs</td>
-    <td class="tg-9ewa"><span style="font-weight:400;font-style:normal">✘</span></td>
-    <td class="tg-9ewa"><span style="font-weight:400;font-style:normal">✘</span></td>
-  </tr>
-  <tr>
-    <td class="tg-1wig">JaxNeRF</td>
-    <td class="tg-baqh">20.77 secs</td>
-    <td class="tg-baqh">2.65 secs</td>
-    <td class="tg-baqh">0.35 secs</td>
-  </tr>
-</tbody>
-</table>
+| Platform | 1 x NVIDIA V100 |                                                  8 x NVIDIA V100                                                  |                                                    128 x TPUv2                                                    |
+|----------|:---------------:|:-----------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------:|
+| TF NeRF  |    27.74 secs   | <img src="http://storage.googleapis.com/gresearch/jaxnerf/cross.png"  alt="Not Supported" width=18px height=18px> | <img src="http://storage.googleapis.com/gresearch/jaxnerf/cross.png"  alt="Not Supported" width=18px height=18px> |
+| JaxNeRF  |    20.77 secs   |                                                     2.65 secs                                                     |                                                     0.35 secs                                                     |
+
 
 The code is tested and reviewed carefully to match the
 [original TF NeRF implementation](https://github.com/bmild/nerf).
@@ -180,89 +151,18 @@ The performances (in PSNR) of our pretrained NeRF models are listed below:
 
 ### Blender
 
-<table class="tg">
-<tbody>
-  <tr>
-    <td class="tg-0pky">Scene</td>
-    <td class="tg-0pky">Chair</td>
-    <td class="tg-0pky">Durms</td>
-    <td class="tg-0pky">Ficus</td>
-    <td class="tg-0pky">Hotdog</td>
-    <td class="tg-0pky">Lego</td>
-    <td class="tg-0pky">Materials</td>
-    <td class="tg-0pky">Mic</td>
-    <td class="tg-0pky">Ship</td>
-    <td class="tg-0pky">Mean</td>
-  </tr>
-  <tr>
-    <td class="tg-0pky">TF NeRF</td>
-    <td class="tg-0pky">33.00</td>
-    <td class="tg-0pky"><span style="font-weight:bold">25.01</span></td>
-    <td class="tg-0pky"><span style="font-weight:bold">30.13</span></td>
-    <td class="tg-0pky">36.18</td>
-    <td class="tg-0pky">32.54</td>
-    <td class="tg-0pky">29.62</td>
-    <td class="tg-0pky">32.91</td>
-    <td class="tg-0pky">28.65</td>
-    <td class="tg-0pky">31.01</td>
-  </tr>
-  <tr>
-    <td class="tg-0pky">JaxNeRF</td>
-    <td class="tg-0pky"><span style="font-weight:bold">33.81</span></td>
-    <td class="tg-0pky">24.82</td>
-    <td class="tg-0pky">29.83</td>
-    <td class="tg-0pky"><span style="font-weight:bold">36.64</span></td>
-    <td class="tg-0pky"><span style="font-weight:bold">32.73</span></td>
-    <td class="tg-0pky"><span style="font-weight:bold">29.65</span></td>
-    <td class="tg-0pky"><span style="font-weight:bold">34.28</span></td>
-    <td class="tg-0pky"><span style="font-weight:bold">28.84</span></td>
-    <td class="tg-0pky"><span style="font-weight:bold">32.33</span></td>
-  </tr>
-</tbody>
-</table>
+
+| Scene   |   Chair   |   Drums   |   Ficus   |   Hotdog  |    Lego   | Materials |    Mic    |    Ship   |    Mean   |
+|---------|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|
+| TF NeRF |   33.00   | **25.01** | **30.13** |   36.18   |   32.54   |   29.62   |   32.91   |   28.65   |   31.01   |
+| JaxNeRF | **33.81** |   24.82   |   29.83   | **36.64** | **32.73** | **29.65** | **34.28** | **28.84** | **32.33** |
 
 ### LLFF
 
-<table class="tg">
-<tbody>
-  <tr>
-    <td class="tg-0pky">Scene</td>
-    <td class="tg-0pky">Room</td>
-    <td class="tg-0pky">Fern</td>
-    <td class="tg-0pky">Leaves</td>
-    <td class="tg-0pky">Fortress</td>
-    <td class="tg-0pky">Orchids</td>
-    <td class="tg-0pky">Flower</td>
-    <td class="tg-0pky">T-Rex</td>
-    <td class="tg-0pky">Horns</td>
-    <td class="tg-0pky">Mean</td>
-  </tr>
-  <tr>
-    <td class="tg-0pky">TF NeRF</td>
-    <td class="tg-0pky"><span style="font-weight:bold">32.70</span></td>
-    <td class="tg-0pky"><span style="font-weight:bold">25.17</span></td>
-    <td class="tg-0pky">20.92</td>
-    <td class="tg-0pky">31.16</td>
-    <td class="tg-0pky"><span style="font-weight:bold">20.36</span></td>
-    <td class="tg-0pky">27.40</td>
-    <td class="tg-0pky">26.80</td>
-    <td class="tg-0pky">27.45</td>
-    <td class="tg-0pky">26.50</td>
-  </tr>
-  <tr>
-    <td class="tg-0pky">JaxNeRF</td>
-    <td class="tg-0pky">32.54</td>
-    <td class="tg-0pky">25.02</td>
-    <td class="tg-0pky"><span style="font-weight:bold">21.16</span></td>
-    <td class="tg-0pky"><span style="font-weight:bold">31.73</span></td>
-    <td class="tg-0pky">20.35</td>
-    <td class="tg-0pky"><span style="font-weight:bold">27.90</span></td>
-    <td class="tg-0pky"><span style="font-weight:bold">27.11</span></td>
-    <td class="tg-0pky"><span style="font-weight:bold">27.88</span></td>
-    <td class="tg-0pky"><span style="font-weight:bold">26.71</span></td>
-  </tr>
-</tbody>
-</table>
+| Scene   |    Room   |    Fern   |   Leaves  |  Fortress |  Orchids  |   Flower  |   T-Rex   |   Horns   |    Mean   |
+|---------|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|
+| TF NeRF | **32.70** | **25.17** |   20.92   |   31.16   | **20.36** |   27.40   |   26.80   |   27.45   |   26.50   |
+| JaxNeRF |   32.54   |   25.02   | **21.16** | **31.73** |   20.35   | **27.90** | **27.11** | **27.88** | **26.71** |
 
 ## Citation
 If you use this software package, please cite it as:
