@@ -1,0 +1,9 @@
+gin-config
+gym
+gym-minigrid
+matplotlib
+numpy
+pandas
+seaborn
+sklearn
+tensorflow==1.15.0
