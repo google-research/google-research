@@ -1,0 +1,9 @@
+dataset: blender
+image_batching: false
+factor: 0
+n_samples: 64
+n_fine_samples: 128
+use_viewdirs: true
+white_bkgd: true
+batch_size: 4096
+randomized: true
