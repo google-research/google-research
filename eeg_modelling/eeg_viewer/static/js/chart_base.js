@@ -28,12 +28,12 @@ const {assert, assertInstanceof, assertObject, assertString} = goog.require('goo
 /**
  * @typedef {{
  *   annotations: (undefined|{
- *     boxStyle: {
+ *     boxStyle: (undefined|{
  *       stroke: (string|undefined),
  *       strokeWidth: (number|undefined),
  *       rx: (number|undefined),
  *       ry: (number|undefined),
- *       gradient: {
+ *       gradient: (undefined|{
  *         color1: (string|undefined),
  *         color2: (string|undefined),
  *         x1: (string|undefined),
@@ -41,15 +41,15 @@ const {assert, assertInstanceof, assertObject, assertString} = goog.require('goo
  *         x2: (string|undefined),
  *         y2: (string|undefined),
  *         useObjectBoundingBoxUnits: (boolean|undefined),
- *       },
- *     },
- *     textStyle: {
+ *       }),
+ *     }),
+ *     textStyle: (undefined|{
  *       fontSize: (number|undefined),
  *       bold: (boolean|undefined),
- *     },
+ *     }),
  *   }),
- *   chartArea: {
- *     backgroundColor: (string|{
+ *   chartArea: (undefined|{
+ *     backgroundColor: (undefined|string|{
  *       stroke: (string|undefined),
  *       strokeWidth: (number|undefined),
  *     }),
@@ -57,8 +57,8 @@ const {assert, assertInstanceof, assertObject, assertString} = goog.require('goo
  *     width: (string|undefined),
  *     top : (number|undefined),
  *     left : (number|undefined),
- *   },
- *   colors: ?Array<string>,
+ *   }),
+ *   colors: (!Array<string>|undefined),
  *   crosshair: {
  *     color: string,
  *     orientation: string,
@@ -561,7 +561,9 @@ class ChartBase {
   drawContent(store) {
     this.updateChartOptions(store);
     this.getContainer().style.height = `${this.getOption('height')}px`;
-    this.chart.draw(this.dataTable, this.chartOptions);
+    // TODO(b/161803357): Remove cast to unknown type. Found (DataTable|null),
+    // required (google.visualization.DataTable|google.visualization.DataView).
+    this.chart.draw(/** @type {?} */ (this.dataTable), this.chartOptions);
   }
 
   /**
@@ -708,7 +710,9 @@ class ChartBase {
    */
   getChartLayoutInterface() {
     assert(this.getChart());
-    const cli = this.getChart().getChartLayoutInterface();
+    // TODO(b/161803357): Remove cast to unknown type. Cannot use the IN
+    // operator with structs.
+    const cli = /** @type {?} */ (this.getChart().getChartLayoutInterface());
     assert('getXLocation' in cli);
     assertInstanceof(cli.getXLocation, Function);
     assert('getChartAreaBoundingBox' in cli);

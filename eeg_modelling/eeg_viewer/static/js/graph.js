@@ -366,7 +366,9 @@ class Graph extends ChartBase {
           // The formatted value on each cell holds the actual voltage value.
           // The value holds the value with the transformation applied.
           dataTable.setValue(row, col, transformedValue);
-          dataTable.setFormattedValue(row, col, value);
+          // TODO(b/161803357): Remove cast to unknown type. Found number,
+          // required string.
+          dataTable.setFormattedValue(row, col, /** @type {?} */ (value));
         }
       }
     }
