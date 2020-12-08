@@ -18,18 +18,18 @@ that you have access to through the alpha signup.
 
 Please run the following code directly from your VM terminal with Cloud TPUs.
 
-First set some environment variables correctly and store them in your `.bashrc`.
+We first set some environment variables correctly and store them in `.bashrc`.
 
 ```
 # Disable C++ jitting. This is due to a mismatch between `jax` and `jaxlib` and
 # will soon be fixed.
-echo "export JAX_CPP_JIT=0" >> ~/.bashrc && . ~/.bashrc
+echo "export JAX_CPP_JIT=0" >> ~/.bashrc
 
 # Include this folder in your PATH, which is not by default on the VM and gives
 # some warnings.
 echo "PATH=$PATH:/home/$USER/.local/bin" >> ~/.bashrc
 
-# Source bashrc so changes are applied to this terminal.
+# Source bashrc so changes are applied to this terminal as well.
 . ~/.bashrc
 ```
 
