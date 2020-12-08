@@ -1,0 +1,4 @@
+jax==0.2.7
+flax==0.2.2
+tensorflow==2.4.0rc0
+tensorflow-text==2.4.0rc0
