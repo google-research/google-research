@@ -42,11 +42,11 @@ import ml_collections
 from ml_collections import config_flags
 import numpy as np
 import t5
-from t5.experimental.p5x import checkpoint_importer
-from t5.experimental.p5x import input_pipeline
-from t5.experimental.p5x import models
-from t5.experimental.p5x import partitions
-from t5.experimental.p5x import train_lib
+from t5x import checkpoint_importer
+from t5x import input_pipeline
+from t5x import models
+from t5x import partitions
+from t5x import train_lib
 import tensorflow as tf
 
 # pylint:disable=g-long-lambda

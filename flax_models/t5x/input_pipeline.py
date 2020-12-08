@@ -23,7 +23,7 @@ import jax
 import ml_collections
 import numpy as np
 import t5
-from t5.experimental.p5x import train_lib
+from t5x import train_lib
 import tensorflow as tf
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE

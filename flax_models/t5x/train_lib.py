@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Train utility functions for p5x."""
+"""Train utility functions for T5X."""
 import os
 from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Tuple, Union
 
@@ -28,8 +28,8 @@ from jax import random
 import jax.numpy as jnp
 import ml_collections
 import numpy as np
-from t5.experimental.p5x import decode
-from t5.experimental.p5x import models
+from t5x import decode
+from t5x import models
 from tensorflow.io import gfile
 
 # pylint:disable=invalid-name

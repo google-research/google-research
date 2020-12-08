@@ -1,4 +1,6 @@
 jax==0.2.7
 flax==0.2.2
+ml-collections==0.1.0
+t5==0.7.1
 tensorflow==2.4.0rc0
 tensorflow-text==2.4.0rc0

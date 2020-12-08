@@ -16,20 +16,32 @@ that you have access to through the alpha signup.
 
 ## Installation
 
-We currently only support running T5X from Cloud TPU VMs, which are in alpha
-phase. Cloud TPU VMs currently require a special jaxlib build.
+Please run the following code directly from your VM terminal with Cloud TPUs.
 
-If you are an alpha user, you should have received instructions on how to
-install the right version of jaxlib.
+First set some environment variables correctly and store them in your `.bashrc`.
 
-Next, you should clone this repository and install the requirements. Below are
-all instructions.
+```
+# Disable C++ jitting. This is due to a mismatch between `jax` and `jaxlib` and
+# will soon be fixed.
+echo "export JAX_CPP_JIT=0" >> ~/.bashrc && . ~/.bashrc
+
+# Include this folder in your PATH, which is not by default on the VM and gives
+# some warnings.
+echo "PATH=$PATH:/home/$USER/.local/bin" >> ~/.bashrc
+
+# Source bashrc so changes are applied to this terminal.
+. ~/.bashrc
+```
+
+Then run the following commands to install all dependencies.
 
 ```
 # Install SVN to only download the T5X directory of Google Research.
 sudo apt install subversion
 svn export https://github.com/google-research/google-research/trunk/flax_models/t5x
 
+# Upgrade pip.
+pip install --user --upgrade pip
 
 # Install the requirements from `requirements.txt`.
 pip install --user -r t5x/requirements.txt
@@ -43,17 +55,13 @@ sudo docker cp libtpu:libtpu.so /lib
 # Install a version of `jaxlib` that supports TPU.
 PYTHON_VERSION=cp36  # Supported python versions: cp36, cp37, cp38
 pip install --upgrade --user "https://storage.googleapis.com/jax-releases/tpu/jaxlib-0.1.58+tpu20201129-${PYTHON_VERSION}-none-manylinux2010_x86_64.whl"
-
-# Disable C++ jitting. This is due to a mismatch between `jax` and `jaxlib` and
-# will soon be fixed.
-echo "export JAX_CPP_JIT=0" >> ~/.bashrc && . ~/.bashrc
 ```
 
 ## Running train
 
-The following command fine-tunes a p5x-small model on the GLUE tasks and store
-the results in the folder `p5x_data`.
+The following command fine-tunes a T5X-small model on the GLUE tasks and store
+the results in the folder `t5x_data`.
 
 ```
-python3 -m p5x.train --config=p5x/configs/t5_small_glue.py --model_dir=p5x_data
+python3 -m t5x.train --config=t5x/configs/t5_small_glue.py --model_dir=t5x_data
 ```
