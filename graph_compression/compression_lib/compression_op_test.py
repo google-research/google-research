@@ -272,5 +272,56 @@ class CompressionOpInterfaceTest(tf.test.TestCase):
             ]) > 0, [True, True, True])
 
 
+class InputCompressionOpTest(tf.test.TestCase):
+
+  def test_get_apply_matmul(self):
+    with tf.Graph().as_default():
+      with self.cached_session():
+        hparams = ("name=input_compression,"
+                   "compression_option=9,"
+                   "begin_compression_step=1000,"
+                   "end_compression_step=120000,"
+                   "compression_frequency=100,"
+                   "rank=2,"
+                   "input_block_size=4")
+        compression_op_spec = (
+            compression_op.InputCompressionOp.get_default_hparams().parse(
+                hparams))
+
+        compressor_spec = (
+            compression_op.LowRankDecompMatrixCompressor.get_default_hparams())
+        matrix_compressor = compression_op.LowRankDecompMatrixCompressor(
+            spec=compressor_spec)
+
+        global_step = tf.compat.v1.get_variable("global_step", initializer=100)
+        apply_comp = compression_op.ApplyCompression(
+            scope="default_scope",
+            compression_spec=compression_op_spec,
+            compressor=matrix_compressor,
+            global_step=global_step)
+
+        a_matrix_init = np.outer(np.array([1., 2., 3., 7., 8., 9., 1., 2.]),
+                                 np.array([4., 5., 6., 3.]))
+        a_matrix = tf.compat.v1.get_variable(
+            "a_matrix",
+            initializer=a_matrix_init.astype(np.float32),
+            dtype=tf.float32)
+        _ = apply_comp.apply_compression(
+            a_matrix, scope="compressor")
+        left_operand_init = np.array([1., 2., 3., 4., 1., 2., 3., 4.])
+        left_operand = tf.compat.v1.get_variable(
+            "left_operand",
+            initializer=left_operand_init.astype(np.float32),
+            dtype=tf.float32)
+        c = apply_comp._compression_ops[-1]
+        tf.compat.v1.global_variables_initializer().run()
+        compressed_matmul = c.get_apply_matmul(left_operand)
+        # check b and c matrices have the right shapes
+        self.assertSequenceEqual(list(c.b_matrix_tfvar.eval().shape), [4, 2])
+        self.assertSequenceEqual(list(c.c_matrix_tfvar.eval().shape), [4, 4])
+
+        # check that we get the expected output shape
+        self.assertSequenceEqual(list(compressed_matmul.eval().shape), [4,])
+
 if __name__ == "__main__":
   tf.test.main()

@@ -26,6 +26,8 @@ compression_option:
   2 - SimhashMatrixCompressor
   3 - DLMatrixCompressor (currently unavailable for Python 2);
   4 - KmeansMatrixCompressor
+  8 - KmeansAndPruningMatrixCompressor
+  9 - InputCompressor
 """
 
 from __future__ import absolute_import
@@ -34,7 +36,7 @@ from absl import logging
 from graph_compression.compression_lib import compression_op as comp_op
 from graph_compression.compression_lib import simhash_compression_op as simhash_comp_op
 
-_COMPRESSION_OPTIONS = [1, 2, 4, 8]
+_COMPRESSION_OPTIONS = [1, 2, 4, 8, 9]
 
 
 def get_apply_compression(compression_op_spec, global_step):
@@ -70,7 +72,7 @@ def get_apply_compression(compression_op_spec, global_step):
         compressor=compressor,
         global_step=global_step)
   elif compression_op_spec.compression_option == 4:
-    compressor_spec.set_hparam('is_b_matrix_trainable', False)
+    compressor_spec.set_hparam('is_b_matrix_trainable', True)
     compressor = simhash_comp_op.KmeansMatrixCompressor(spec=compressor_spec)
     apply_compression = simhash_comp_op.SimhashApplyCompression(
         scope='default_scope',
@@ -78,9 +80,18 @@ def get_apply_compression(compression_op_spec, global_step):
         compressor=compressor,
         global_step=global_step)
   elif compression_op_spec.compression_option == 8:
-    compressor_spec.set_hparam('is_b_matrix_trainable', False)
+    compressor_spec.set_hparam('is_b_matrix_trainable', True)
     compressor = simhash_comp_op.KmeansMatrixCompressor(spec=compressor_spec)
     apply_compression = simhash_comp_op.SimhashApplyCompression(
+        scope='default_scope',
+        compression_spec=compression_op_spec,
+        compressor=compressor,
+        global_step=global_step)
+  elif compression_op_spec.compression_option == 9:
+    compressor_spec.set_hparam('is_b_matrix_trainable', True)
+    compressor_spec.set_hparam('is_c_matrix_trainable', True)
+    compressor = comp_op.LowRankDecompMatrixCompressor(spec=compressor_spec)
+    apply_compression = comp_op.ApplyCompression(
         scope='default_scope',
         compression_spec=compression_op_spec,
         compressor=compressor,

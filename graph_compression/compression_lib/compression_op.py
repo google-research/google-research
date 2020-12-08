@@ -834,6 +834,242 @@ class CompressionOp(CompressionOpInterface):
         self._spec.end_compression_step, self.run_update_count)
 
 
+class InputCompressionOp(CompressionOp):
+  """Implements an input compression OP.
+
+  This op projects the input vector into a lower-dimensional space using a
+  linear transform and replaces the original weight matrix by a smaller matrix
+  as a result.
+  """
+
+  @staticmethod
+  def get_default_hparams():
+    """Get a tf.HParams object with the default values for the hyperparameters.
+
+      name: string
+        name of the compression specification. Used for adding summaries and ops
+        under a common tensorflow name_scope.
+      use_tpu: False
+        indicates whether to use TPU.
+      compression_option: integer
+        indicates what type of factorization (if any) is used.
+      rank: integer
+        indicates what type of factorization (if any) is used.
+      update_option: integer
+        indicates how the update logic is being run. More specifically:
+        0 - run the update logic in TF; needed when using GPU/TPU.
+        1 - run the update logic in regular python as opposed to TF.
+        2 - run the update logic in TF and in regular python.
+      TODO(wanxin): add doc strings for pruning hparams.
+
+    Returns:
+      tf.HParams object initialized to default values.
+
+    """
+    return contrib_training.HParams(
+        name='input_compression',
+        compression_frequency=10,
+        use_tpu=False,
+        compression_option=0,
+        begin_compression_step=1000,
+        end_compression_step=2000,
+        is_b_matrix_trainable=True,
+        is_c_matrix_trainable=True,
+        rank=4,
+        input_block_size=32)
+
+  def add_compression_summaries(self):
+    """Adds summaries."""
+    with tf.name_scope(self._spec.name + '_summaries'):
+      logging.info('add_compression_summaries scope name is %s',
+                   self._spec.name)
+      tf.summary.scalar(self.a_matrix_tfvar.op.name + '/a_matrix_norm',
+                        tf.norm(self.a_matrix_tfvar))
+      tf.summary.scalar(self.b_matrix_tfvar.op.name + '/b_matrix_norm',
+                        tf.norm(tf.reshape(self.b_matrix_tfvar, [-1]), ord=1))
+      tf.summary.scalar(self.c_matrix_tfvar.op.name + '/c_matrix_norm',
+                        tf.norm(self.c_matrix_tfvar))
+
+  def get_apply_compression_op(self,
+                               a_matrix_tfvar,
+                               matrix_compressor,
+                               scope='default_scope'):
+    """Returns compressed tensorflow operator for input compression.
+
+    Args:
+      a_matrix_tfvar: TF variable representihg a tensor variable in a model
+      matrix_compressor: MatrixCompressorInferface object to specify the
+        compression algorithm. Must return two matrices b_matrix,c_matrix in its
+        compression.
+      scope: TF scope used for creating new TF variables
+
+    Returns:
+      A TF node that has the compressed version of a_matrix_tfvar.
+    """
+    self.matrix_compressor = matrix_compressor
+    b_matrix_shape = [self._spec.input_block_size,
+                      self._spec.input_block_size // self._spec.rank]
+    c_matrix_shape = [a_matrix_tfvar.shape[0] // self._spec.rank,
+                      a_matrix_tfvar.shape[1]]
+    b_matrix = np.zeros(shape=b_matrix_shape)
+    c_matrix = np.zeros(shape=c_matrix_shape)
+    with tf.compat.v1.variable_scope(scope, use_resource=True):
+      self.alpha = tf.compat.v1.get_variable(
+          'alpha', dtype=tf.float32, trainable=False, initializer=1.0)
+      self.b_matrix_tfvar = tf.compat.v1.get_variable(
+          'b_matrix',
+          dtype=tf.float32,
+          initializer=b_matrix.astype(np.float32),
+          trainable=self.matrix_compressor.get_spec().is_b_matrix_trainable)
+      self.c_matrix_tfvar = tf.compat.v1.get_variable(
+          'c_matrix',
+          dtype=tf.float32,
+          initializer=c_matrix.astype(np.float32),
+          trainable=self.matrix_compressor.get_spec().is_c_matrix_trainable)
+      self.a_matrix_tfvar = a_matrix_tfvar
+
+    self.update_op = tf.no_op()
+    self.final_op = tf.no_op()
+
+    self.add_compression_summaries()
+    return [self.final_op, self.update_op]
+
+  def get_customized_apply_compression_op(self,
+                                          a_matrix_tfvar,
+                                          matrix_compressor,
+                                          layer_obj,
+                                          weight_params_fn,
+                                          weight_init_obj,
+                                          scope='default_scope'):
+    """Returns input compressed operator for a customized layer.
+
+    Args:
+      a_matrix_tfvar: TF variable representing a tensor variable in a model.
+      matrix_compressor: MatrixCompressorInferface object to specify the
+        compression algorithm. Must return two matrices b_matrix,c_matrix in its
+        compression.
+      layer_obj: a customeried layer object that handles variable creation.
+      weight_params_fn: functional handle to create model parameters.
+      weight_init_obj: a weight initialization object.
+      scope: TF scope used for creating new TF variables.
+
+    Returns:
+      A TF node that has the compressed version of a_matrix_tfvar.
+    """
+    self.matrix_compressor = matrix_compressor
+    with tf.variable_scope(scope) as scope:
+      b_matrix_pc = weight_params_fn([
+          self._spec.input_block_size,
+          self._spec.input_block_size // self._spec.rank
+      ], weight_init_obj.Xavier(1.0), tf.float32)
+      c_matrix_pc = weight_params_fn(
+          [a_matrix_tfvar.shape[0] // self._spec.rank, a_matrix_tfvar.shape[1]],
+          weight_init_obj.Xavier(1.0), tf.float32)
+      alpha_pc = weight_params_fn([], weight_init_obj.Constant(1.0), tf.float32)
+
+      layer_obj.CreateVariable(
+          'alpha', alpha_pc, theta_fn=None, trainable=False)
+
+      layer_obj.CreateVariable(
+          'b_matrix_tfvar',
+          b_matrix_pc,
+          theta_fn=None,
+          trainable=self.matrix_compressor.get_spec().is_b_matrix_trainable)
+      layer_obj.CreateVariable(
+          'c_matrix_tfvar',
+          c_matrix_pc,
+          theta_fn=None,
+          trainable=self.matrix_compressor.get_spec().is_c_matrix_trainable)
+
+      self.b_matrix_tfvar = layer_obj.vars.b_matrix_tfvar
+      self.c_matrix_tfvar = layer_obj.vars.c_matrix_tfvar
+      self.a_matrix_tfvar = a_matrix_tfvar
+      self.alpha = layer_obj.vars.alpha
+
+    self.final_op = tf.no_op()
+    self.add_compression_summaries()
+    self.update_op = tf.no_op()
+    return [self.final_op, self.update_op]
+
+  def run_update_step(self, session, step_number=None):
+    """Do nothing. alpha and compressor not used in input compression."""
+    logging.info('running run_update_step self._global_step is %s name is %s',
+                 self._global_step, self.a_matrix_tfvar.op.name)
+
+  def get_apply_matmul(self, left_operand):
+    """Returns input compressed TensorFlow node for matmul.
+
+    This method performs matmul (on the right) according to the compression
+    procedure.
+
+    Args:
+      left_operand: a Tensor that is the left operand in matmul.
+
+    Returns:
+      matmul_op: a TensorFlow node that performs matmul of left_operand with the
+      compressed a_matrix_tfvar.
+    """
+    if tf.rank(left_operand) == 2:
+      input_compressed_result = tf.matmul(
+          tf.reshape(
+              tf.tensordot(
+                  tf.reshape(left_operand, (-1, (tf.shape(left_operand)[1] //
+                                                 self._spec.input_block_size),
+                                            self._spec.input_block_size)),
+                  self.b_matrix_tfvar,
+                  axes=[[2], [0]]),
+              (-1, tf.shape(left_operand)[1] // self._spec.rank)),
+          self.c_matrix_tfvar)
+    else:
+      input_compressed_result = tf.einsum(
+          'n,nm->m',
+          tf.reshape(
+              tf.matmul(
+                  tf.reshape(left_operand, ((tf.shape(left_operand)[0] //
+                                             self._spec.input_block_size),
+                                            self._spec.input_block_size)),
+                  self.b_matrix_tfvar), (-1,)), self.c_matrix_tfvar)
+    return input_compressed_result
+
+  def get_mix_operator(self, theta, concat):
+    """Performs matrix multiplication on compressed input for customized layer.
+
+    This performs the input compressed equivalent of
+    tf.matmul(concat, theta.wm).
+
+    Args:
+      theta: object in customized layer that contains weight tensors, etc.
+      concat: the left operand of the matmul operation.
+
+    Returns:
+      A TensorFlow node that has input compressed version of
+      tf.matmul(concat, theta.wm).
+    """
+    if tf.rank(concat) == 2:
+      input_compressed_result = tf.matmul(
+          tf.reshape(
+              tf.tensordot(
+                  tf.reshape(
+                      concat,
+                      (-1, (tf.shape(concat)[1] // self._spec.input_block_size),
+                       self._spec.input_block_size)),
+                  theta.b_matrix_tfvar,
+                  axes=[[2], [0]]),
+              (-1, tf.shape(concat)[1] // self._spec.rank)),
+          theta.c_matrix_tfvar)
+    else:
+      input_compressed_result = tf.einsum(
+          'n,nm->m',
+          tf.reshape(
+              tf.matmul(
+                  tf.reshape(
+                      concat,
+                      ((tf.shape(concat)[0] // self._spec.input_block_size),
+                       self._spec.input_block_size)), theta.b_matrix_tfvar),
+              (-1,)), theta.c_matrix_tfvar)
+    return input_compressed_result
+
+
 class ApplyCompression(object):
   """Wrapper class.
 
@@ -880,10 +1116,14 @@ class ApplyCompression(object):
     Returns:
       TF node that represents the compressed version of a_matrix_tfvar.
     """
-    c = CompressionOp(
-        scope=scope,
-        spec=self._compression_op_spec,
-        global_step=self._global_step)
+    if self._compression_op_spec.compression_option == 9:
+      c = InputCompressionOp(
+          spec=self._compression_op_spec, global_step=self._global_step)
+    else:
+      c = CompressionOp(
+          scope=scope,
+          spec=self._compression_op_spec,
+          global_step=self._global_step)
     self._compression_ops.append(c)
     [a_matrix_compressed, a_matrix_update_op] = c.get_apply_compression_op(
         a_matrix_tfvar, self._matrix_compressor, scope=scope)
@@ -912,10 +1152,14 @@ class ApplyCompression(object):
     Returns:
       TF node that represents the compressed version of a_matrix_tfvar.
     """
-    c = CompressionOp(
-        scope=scope,
-        spec=self._compression_op_spec,
-        global_step=self._global_step)
+    if self._compression_op_spec.compression_option == 9:
+      c = InputCompressionOp(
+          spec=self._compression_op_spec, global_step=self._global_step)
+    else:
+      c = CompressionOp(
+          scope=scope,
+          spec=self._compression_op_spec,
+          global_step=self._global_step)
     self._compression_ops.append(c)
     [a_matrix_compressed,
      a_matrix_update_op] = c.get_customized_apply_compression_op(

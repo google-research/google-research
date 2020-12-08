@@ -352,7 +352,8 @@ def get_pruning_hparams():
       update_option=0,
       run_update_interval_check=1,
       pruning_fraction=0.4,
-      use_collection=True)
+      use_collection=True,
+      input_block_size=1)
 
 
 class Pruning(object):
