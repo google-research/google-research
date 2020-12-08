@@ -65,7 +65,7 @@ flags.DEFINE_string(
 flags.DEFINE_alias('bd', 'bottleneck_dimension')
 flags.DEFINE_alias('al', 'alpha')
 flags.DEFINE_alias('ap', 'average_pool')
-flags.DEFINE_alias('mnet', 'mobilenet_size')
+flags.DEFINE_alias('ms', 'mobilenet_size')
 
 # Training config flags.
 flags.DEFINE_integer('train_batch_size', 1, 'Hyperparameter: batch size.')

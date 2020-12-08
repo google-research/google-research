@@ -16,13 +16,14 @@
 """Tests for non_semantic_speech_benchmark.distillation.models."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 
 import tensorflow as tf
 
 from non_semantic_speech_benchmark.distillation import models
 
 
-class ModelsTest(absltest.TestCase):
+class ModelsTest(parameterized.TestCase):
 
   def test_model_frontend(self):
     input_tensor = tf.zeros([2, 32000], dtype=tf.float32)  # audio signal
@@ -53,13 +54,18 @@ class ModelsTest(absltest.TestCase):
     if not isinstance(exception_context.exception, AssertionError):
       self.fail()
 
-  def test_valid_mobilenet_size(self):
+  @parameterized.parameters(
+      {'mobilenet_size': 'tiny'},
+      {'mobilenet_size': 'small'},
+      {'mobilenet_size': 'large'},
+      {'mobilenet_size': 'tiny'},
+  )
+  def test_valid_mobilenet_size(self, mobilenet_size):
     input_tensor = tf.zeros([2, 32000], dtype=tf.float32)
-    for mobilenet_size in ('tiny', 'small', 'large'):
-      m = models.get_keras_model(3, 5, mobilenet_size=mobilenet_size)
-      o = m(input_tensor)
-      o.shape.assert_has_rank(2)
-      self.assertEqual(o.shape[1], 5)
+    m = models.get_keras_model(3, 5, mobilenet_size=mobilenet_size)
+    o = m(input_tensor)
+    o.shape.assert_has_rank(2)
+    self.assertEqual(o.shape[1], 5)
 
 
 if __name__ == '__main__':

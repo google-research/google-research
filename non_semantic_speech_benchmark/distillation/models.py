@@ -83,7 +83,9 @@ def get_keras_model(bottleneck_dimension,
   output = tf.keras.layers.Dense(
       output_dimension, name='embedding_to_target')(
           embeddings)
-  return tf.keras.Model(inputs=model_in, outputs=output)
+  output_model = tf.keras.Model(inputs=model_in, outputs=output)
+
+  return output_model
 
 
 def mobilenetv3_tiny(input_shape=None,
