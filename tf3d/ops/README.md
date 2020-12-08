@@ -16,12 +16,16 @@
    * `gpu`
    * `tf`
    * `configure.sh`
-   
+
    The above steps can be done with the following commands:
 
     ```bash
+    git clone https://github.com/tensorflow/tensorflow --depth=1
+    git clone https://github.com/tensorflow/custom-op --depth=1
     export TF_FOLDER="PATH_TO_TF_REPO_FOLDER"
     export CUSTOM_OP_FOLDER="PATH_TO_CUSTOM_OP_REPO_FOLDER"
+
+    mkdir -p tf3d/ops/third_party
     cp -a ${TF_FOLDER}/third_party/eigen3 ${TF_FOLDER}/third_party/mkl \
     ${TF_FOLDER}/third_party/toolchains ${TF_FOLDER}/third_party/BUILD \
     ${TF_FOLDER}/third_party/eigen.BUILD \
@@ -32,12 +36,15 @@
     cp -a ${CUSTOM_OP_FOLDER}/gpu ${CUSTOM_OP_FOLDER}/tf \
     ${CUSTOM_OP_FOLDER}/configure.sh tf3d/ops/
     ```
- 
-1. Following the [TensorFlow Custom Op repo](https://github.com/tensorflow/custom-op)'s guidance, set up the nvidia-docker.
+
+1. Following the [TensorFlow Custom Op repo](https://github.com/tensorflow/custom-op)'s guidance, set up the [nvidia-docker](https://github.com/NVIDIA/nvidia-docker) and enter the docker image `2.3.0-custom-op-gpu-ubuntu16`.
 
 1. *Within the docker image*, enter `tf3d/ops` folder and run the following to test the building:
 
    ```bash
+   # Update to a newer tensorflow version if the installed version is below 2.3.0
+   # pip3 uninstall tensorflow
+   # pip3 install tensorflow>=2.3.1
    ./configure.sh
    bazel run sparse_conv_ops_py_test  --experimental_repo_remote_exec
    ```
@@ -52,5 +59,7 @@
    ```python
    from tf3d.ops.python import sparse_conv_ops
    ```
+
+1. Exit the docker image and the `.so` library should be compatible with the `pip` version of Tensorflow.
 
 
