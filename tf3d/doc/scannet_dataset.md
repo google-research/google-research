@@ -1,6 +1,6 @@
 # [ScanNet] dataset
 
-We use [tensorflow_datasets](https://www.tensorflow.org/datasets) (tfds) API to
+We use <a href='https://www.tensorflow.org/datasets' target='_blank'>tensorflow_datasets</a> (tfds) API to
 specify our underlying tf.train.Example proto sstables/tfrecords.
 
 We export raw [ScanNet] data to [Example] protos of two different kinds:

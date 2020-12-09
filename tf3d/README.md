@@ -10,10 +10,10 @@ multiple objects in a 3D scene and assigning semantic labels to the scene compon
 Contributions to the codebase are welcome and we would love to hear back from
 you if you find this codebase useful. Finally if you use the TensorFlow 3D for a research publication, please consider citing:
 
-* [DOPS: Learning to Detect 3D Objects and Predict their 3D Shapes](https://arxiv.org/abs/2004.01170), 
+* <a href='https://arxiv.org/abs/2004.01170' target='_blank'>DOPS: Learning to Detect 3D Objects and Predict their 3D Shapes</a>,
 <em>Mahyar Najibi, Guangda Lai, Abhijit Kundu, Zhichao Lu, Vivek Rathod, Tom Funkhouser, Caroline Pantofaru, David Ross, Larry Davis, Alireza Fathi, CVPR 2020</em>
 
-* [An LSTM Approach to Temporal 3D Object Detection in LiDAR Point Clouds](https://arxiv.org/abs/2007.12392), <em>Rui Huang, Wanyue Zhang, Abhijit Kundu, Caroline Pantofaru, David A Ross, Thomas Funkhouser, Alireza Fathi, ECCV 2020</em>
+* <a href='https://arxiv.org/abs/2007.12392' target='_blank'>An LSTM Approach to Temporal 3D Object Detection in LiDAR Point Clouds</a>, <em>Rui Huang, Wanyue Zhang, Abhijit Kundu, Caroline Pantofaru, David A Ross, Thomas Funkhouser, Alireza Fathi, ECCV 2020</em>
 
 # Release Notes
 
@@ -22,21 +22,21 @@ This release includes:
 * GPU/CPU op for 3d submanifold sparse convolution.
 * A configurable 3d sparse voxel unet network that is used as the feature extractor in our models.
 * Training and evaluation code for 3D Semantic Segmentation, 3D Object Detection and 3D Instance Segmentation.
-* Data and configuration for training and evaluation on [Waymo Open Dataset](https://waymo.com/open/), [ScanNet Dataset](http://www.scan-net.org/), and [Rio Dataset](https://waldjohannau.github.io/RIO/).
+* Data and configuration for training and evaluation on <a href='https://waymo.com/open/' target='_blank'>Waymo Open Dataset</a>, <a href='http://www.scan-net.org/' target='_blank'>ScanNet Dataset</a>, and <a href='https://waldjohannau.github.io/RIO/' target='_blank'>Rio Dataset</a>.
 
 # Resources
 
-* [Requirements, Installation and Usage](doc/usage.md)
-* [Datasets](doc/tf3d_datasets.md)
-* [TensorFlow 3D Model](doc/models.md)
-* [Preparing and Compiling the Sparse Conv Op](ops/README.md)
+* <a href='doc/usage.md' target='_blank'>Requirements, Installation and Usage</a>
+* <a href='doc/tf3d_datasets.md' target='_blank'>Datasets</a>
+* <a href='doc/models.md' target='_blank'>TensorFlow 3D Model</a>
+* <a href='ops/README.md' target='_blank'>Preparing and Compiling the Sparse Conv Op</a>
 
 # Maintainers
 
-* [Rui Huang](https://sites.google.com/corp/view/ruihuang/home) ([@GitHub HRLTY](https://github.com/HRLTY))
-* [Alireza Fathi](https://www.alirezafathi.org/) ([@GitHub afathi3](https://github.com/afathi3))
+* <a href='https://sites.google.com/corp/view/ruihuang/home' target='_blank'>Rui Huang</a> (<a href='https://github.com/HRLTY' target='_blank'>@GitHub HRLTY</a>)
+* <a href='https://www.alirezafathi.org/' target='_blank'>Alireza Fathi</a> (<a href='https://github.com/afathi3' target='_blank'>@GitHub afathi3</a>)
 
 # Acknowledgement
 
-We thank [Guangda Lai](https://www.linkedin.com/in/guangda-lai-31a5ab53/?originalSubdomain=cn) and [Abhijit Kundu](https://abhijitkundu.info/) for their contributions to this code. We also like to thank [Thomas Funkhouser](https://www.cs.princeton.edu/~funk/), [David Ross](http://www.cs.toronto.edu/~dross/) and [Caroline Pantofaru](https://www.linkedin.com/in/carolinepantofaru/) for very insightful and helpful discussions throughout this project. Finally we thank [Pei Sun](https://www.linkedin.com/in/pei-sun-4a817816/) for helping us with the Waymo Open dataset, [Johanna Wald](https://scholar.google.de/citations?user=dfjN3YAAAAAJ&hl=en) for her help with the Rio dataset and [Angela Dai](https://www.3dunderstanding.org/team.html) and [Matthias Niessner](https://www.niessnerlab.org/) for their help with the ScanNet dataset.
+We thank <a href='https://www.linkedin.com/in/guangda-lai-31a5ab53/?originalSubdomain=cn' target='_blank'>Guangda Lai</a> and <a href='https://abhijitkundu.info/' target='_blank'>Abhijit Kundu</a> for their contributions to this code. We also like to thank <a href='https://www.cs.princeton.edu/~funk/' target='_blank'>Thomas Funkhouser</a>, <a href='http://www.cs.toronto.edu/~dross/' target='_blank'>David Ross</a> and <a href='https://www.linkedin.com/in/carolinepantofaru/' target='_blank'>Caroline Pantofaru</a> for very insightful and helpful discussions throughout this project. Finally we thank <a href='https://www.linkedin.com/in/pei-sun-4a817816/' target='_blank'>Pei Sun</a> for helping us with the Waymo Open dataset, <a href='https://scholar.google.de/citations?user=dfjN3YAAAAAJ&hl=en' target='_blank'>Johanna Wald</a> for her help with the Rio dataset and <a href='https://www.3dunderstanding.org/team.html' target='_blank'>Angela Dai</a> and <a href='https://www.niessnerlab.org/' target='_blank'>Matthias Niessner</a> for their help with the ScanNet dataset.
 

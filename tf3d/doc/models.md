@@ -1,7 +1,5 @@
 # TF3D Models
 
-[TOC]
-
 ## Model Definition
 
 Each pipeline has its own Model class. The model class has a call function that
@@ -42,7 +40,7 @@ in the `gin` config files.
 This network is the default for the 3d semantic and instance segmentation tasks
 currently.
 
-Please refer to the [DOPS paper](https://arxiv.org/abs/2004.01170) for more
+Please refer to the <a href='https://arxiv.org/abs/2004.01170' target='_blank'>DOPS paper</a> for more
 details.
 
 ### Hour Glass Network
