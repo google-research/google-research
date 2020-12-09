@@ -27,7 +27,7 @@ import jax
 from jax import random
 import jax.numpy as jnp
 import numpy as onp
-from performer.fast_self_attention import fast_self_attention
+from performer.fast_attention.jax import fast_attention
 
 
 def kernel_feature_creator(data,
@@ -38,7 +38,7 @@ def kernel_feature_creator(data,
                            is_query,
                            normalize_data=True):
   del is_query
-  return fast_self_attention.sincos_softmax_kernel_feature_creator(
+  return fast_attention.sincos_softmax_kernel_feature_creator(
       data, projection_matrix, attention_dims_t, batch_dims_t, precision,
       normalize_data)
 
@@ -72,16 +72,16 @@ class FSAAccuracyTest(absltest.TestCase):
     unidirectional = False
 
     unstructured_random_matrix_creator = functools.partial(
-        fast_self_attention.GaussianUnstructuredRandomMatrix,
-        nb_random_features, qk_dim)
-    ortho_random_matrix_creator = functools.partial(
-        fast_self_attention.GaussianOrthogonalRandomMatrix, nb_random_features,
+        fast_attention.GaussianUnstructuredRandomMatrix, nb_random_features,
         qk_dim)
-    fast_unstruct_rfm_dot_product_attention = fast_self_attention.FastAttentionviaLowRankDecomposition(
+    ortho_random_matrix_creator = functools.partial(
+        fast_attention.GaussianOrthogonalRandomMatrix, nb_random_features,
+        qk_dim)
+    fast_unstruct_rfm_dot_product_attention = fast_attention.FastAttentionviaLowRankDecomposition(
         unstructured_random_matrix_creator, kernel_feature_creator,
         renormalize_attention, numerical_stabilizer, redraw_features,
         unidirectional)
-    fast_ortho_rfm_dot_product_attention = fast_self_attention.FastAttentionviaLowRankDecomposition(
+    fast_ortho_rfm_dot_product_attention = fast_attention.FastAttentionviaLowRankDecomposition(
         ortho_random_matrix_creator, kernel_feature_creator,
         renormalize_attention, numerical_stabilizer, redraw_features,
         unidirectional)
@@ -137,16 +137,16 @@ class FSAAccuracyTest(absltest.TestCase):
     unidirectional = True
 
     unstructured_random_matrix_creator = functools.partial(
-        fast_self_attention.GaussianUnstructuredRandomMatrix,
-        nb_random_features, qk_dim)
-    ortho_random_matrix_creator = functools.partial(
-        fast_self_attention.GaussianOrthogonalRandomMatrix, nb_random_features,
+        fast_attention.GaussianUnstructuredRandomMatrix, nb_random_features,
         qk_dim)
-    fast_unstruct_rfm_dot_product_attention = fast_self_attention.FastAttentionviaLowRankDecomposition(
+    ortho_random_matrix_creator = functools.partial(
+        fast_attention.GaussianOrthogonalRandomMatrix, nb_random_features,
+        qk_dim)
+    fast_unstruct_rfm_dot_product_attention = fast_attention.FastAttentionviaLowRankDecomposition(
         unstructured_random_matrix_creator, kernel_feature_creator,
         renormalize_attention, numerical_stabilizer, redraw_features,
         unidirectional)
-    fast_ortho_rfm_dot_product_attention = fast_self_attention.FastAttentionviaLowRankDecomposition(
+    fast_ortho_rfm_dot_product_attention = fast_attention.FastAttentionviaLowRankDecomposition(
         ortho_random_matrix_creator, kernel_feature_creator,
         renormalize_attention, numerical_stabilizer, redraw_features,
         unidirectional)
@@ -181,7 +181,7 @@ class FSAAccuracyTest(absltest.TestCase):
     unidirectional = False
 
     if fast:
-      raw_attention_fn = fast_self_attention.make_fast_generalized_attention(
+      raw_attention_fn = fast_attention.make_fast_generalized_attention(
           qk_dim // num_heads,
           renormalize_attention=renormalize_attention,
           nb_features=nb_features,
