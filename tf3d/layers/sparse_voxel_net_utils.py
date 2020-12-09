@@ -17,11 +17,11 @@
 
 import tensorflow as tf
 
-use_external_impl = True
+ops_imported = False
 
 
-if use_external_impl:
-  from tf3d.ops.python import sparse_conv_ops as ops  # pylint: disable=g-import-not-at-top, reimported
+if not ops_imported:
+  from tf3d.ops.python import sparse_conv_ops  # pylint: disable=g-import-not-at-top
 
 
 def compute_pooled_voxel_indices(voxel_xyz_indices, pooling_size):
@@ -84,9 +84,12 @@ def pool_features_given_indices(features, indices, segment_func):
   Raises:
     ValueError: If pooling method is unknown.
   """
-  global use_external_impl
-  if use_external_impl:
+  segment_ids = None
+
+
+  if segment_ids is None:  # using external implementation
     _, segment_ids = tf.unique(indices)
+
   num_segments = tf.reduce_max(segment_ids) + 1
   # Each voxel might contain more than one point. Here we pool the point
   # features either using mean or max.
@@ -400,25 +403,32 @@ class SparseConvBlock3D(tf.keras.layers.Layer):
       convolved voxel features of size [batch_size, N, fd'] where fd' is the
         number of output channels of last convolution in the block.
     """
-    global use_external_impl
     if len(inputs) != 3:
       raise ValueError("inputs should have a length of 3.")
     voxel_features, voxel_xyz_indices, num_valid_voxels = inputs
     num_voxels = tf.shape(voxel_features)[1]
+    rules = None
+
+
     net = voxel_features
     for i in range(self.num_convolutions):
-      if use_external_impl:
-        net = ops.submanifold_sparse_conv3d(voxel_xyz_indices, num_valid_voxels,
-                                            net, self.ws[i])
+
+
+      if rules is None:  # using external implementation
+        net = sparse_conv_ops.submanifold_sparse_conv3d(voxel_xyz_indices,
+                                                        num_valid_voxels, net,
+                                                        self.ws[i])
 
       if self.normalize_sparse_conv:
         net_normalizer = tf.ones(
             tf.stack([self.batch_size, num_voxels, 1]), dtype=tf.float32)
-        if use_external_impl:
-          net_normalizer = ops.submanifold_sparse_conv3d(voxel_xyz_indices,
-                                                         num_valid_voxels,
-                                                         net_normalizer,
-                                                         self.normalizer_ws[i])
+
+
+        if rules is None:  # using external implementation
+          net_normalizer = sparse_conv_ops.submanifold_sparse_conv3d(
+              voxel_xyz_indices, num_valid_voxels, net_normalizer,
+              self.normalizer_ws[i])
+
         net = tf.math.truediv(net, 1.0 + tf.math.abs(net_normalizer))
       if self.use_batch_norm:
         net = self.batch_norm_fns[i]([net, num_valid_voxels], training)
