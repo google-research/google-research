@@ -18,20 +18,23 @@
 from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 
-SUPPORTED_PADDINGS = ['valid', 'causal', 'same']
+SUPPORTED_PADDINGS = ['valid', 'causal', 'future', 'same']
 
 
 class TemporalPadding(tf.keras.layers.Layer):
-  """Padding in time dimension of tensor with rank >= 2.
+  """Padding or cropping in time dimension of tensor with rank >= 2.
+
+  Applies padding if padding_size is positive, cropping if it is negative.
 
   It is convenient for models with streaming support: in streaming mode
-  it will disable padding; and in non streaming mode it will pad input data
-  in time dimension [batch, time, ...].
+  it will disable padding/cropping; and in non streaming mode it will pad/crop
+  input data in time dimension [batch, time, ...].
 
   Attributes:
     mode: Training or inference modes: non streaming, streaming.
-    padding: padding mode supports 'causal' or 'same'. 'valid' - not padding
-    padding_size: how much to pad
+    padding: Padding mode supports 'causal', 'future', or 'same'. 'valid' -
+      not padding.
+    padding_size: How much to pad. Negative value to crop instead.
   """
 
   def __init__(self,
@@ -61,7 +64,7 @@ class TemporalPadding(tf.keras.layers.Layer):
     if self.mode in [
         modes.Modes.STREAM_INTERNAL_STATE_INFERENCE,
         modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE
-    ] or self.padding == 'valid':
+    ] or self.padding == 'valid' or self.padding_size == 0:
       # padding is not applied in streaming mode or on valid
       return inputs
 
@@ -69,11 +72,23 @@ class TemporalPadding(tf.keras.layers.Layer):
 
     if self.padding == 'causal':
       pad[1] = [self.padding_size, 0]
+    elif self.padding == 'future':
+      pad[1] = [0, self.padding_size]
     elif self.padding == 'same':
-      half = self.padding_size // 2
-      pad[1] = [half, half]
+      half = (
+          self.padding_size // 2 if self.padding_size >= 0 else
+          (self.padding_size + 1) // 2)
+      pad[1] = [half, self.padding_size - half]
 
-    inputs = tf.pad(inputs, pad, 'constant')
+    if self.padding_size >= 0:
+      inputs = tf.pad(inputs, pad, 'constant')
+    else:  # Crop:
+      crop_left = -pad[1][0]
+      crop_right = -pad[1][1]
+      if crop_right > 0:
+        inputs = inputs[:, crop_left:-crop_right]
+      else:
+        inputs = inputs[:, crop_left:]
     return inputs
 
   def get_config(self):

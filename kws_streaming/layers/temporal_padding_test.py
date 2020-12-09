@@ -16,6 +16,7 @@
 # Lint as: python3
 """Tests for kws_streaming.layers.temporal_padding."""
 
+import itertools
 from absl.testing import parameterized
 import numpy as np
 from kws_streaming.layers import modes
@@ -27,12 +28,12 @@ tf1.disable_eager_execution()
 
 class TemporalPaddingTest(tf.test.TestCase, parameterized.TestCase):
 
-  @parameterized.parameters(5, 0)
-  def test_padding(self, padding_size):
+  @parameterized.parameters(
+      itertools.product(['causal', 'same', 'future'], [5, 0, -5]))
+  def test_padding_and_cropping(self, padding, padding_size):
     batch_size = 1
-    time_dim = 3
+    time_dim = 10
     feature_dim = 3
-    padding = 'causal'
     inputs = tf.keras.layers.Input(
         shape=(time_dim, feature_dim), batch_size=batch_size)
     net = temporal_padding.TemporalPadding(
@@ -43,17 +44,31 @@ class TemporalPaddingTest(tf.test.TestCase, parameterized.TestCase):
     np.random.seed(1)
     input_signal = np.random.rand(batch_size, time_dim, feature_dim)
     output_signal = model.predict(input_signal)
-    output_reference = tf.keras.backend.temporal_padding(
-        input_signal, padding=(padding_size, 0))
+    if padding_size >= 0:
+      reference_padding = {
+          'causal': (padding_size, 0),
+          'same': (padding_size // 2, padding_size - padding_size // 2),
+          'future': (0, padding_size),
+      }[padding]
+      output_reference = tf.keras.backend.temporal_padding(
+          input_signal, padding=reference_padding)
+    else:
+      reference_cropping = {
+          'causal': (-padding_size, 0),
+          'same': ((-padding_size) // 2, -padding_size - (-padding_size) // 2),
+          'future': (0, -padding_size),
+      }[padding]
+      output_reference = tf.keras.layers.Cropping1D(reference_cropping)(
+          input_signal)
     self.assertAllClose(output_signal, output_reference)
     self.assertAllEqual(output_signal.shape,
                         [batch_size, time_dim + padding_size, feature_dim])
 
-  def test_no_padding_in_streaming(self):
+  @parameterized.parameters(
+      itertools.product(['causal', 'same', 'future'], [5, 0, -5]))
+  def test_no_padding_or_cropping_in_streaming(self, padding, padding_size):
     batch_size = 1
     feature_dim = 3
-    padding = 'same'
-    padding_size = 5
     mode = modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE
     inputs = tf.keras.layers.Input(
         shape=(1, feature_dim), batch_size=batch_size)

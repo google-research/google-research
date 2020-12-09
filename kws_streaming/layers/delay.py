@@ -29,6 +29,8 @@ class Delay(tf.keras.layers.Layer):
     mode: Training or inference modes: non streaming, streaming.
     delay: delay value
     inference_batch_size: batch size in inference mode
+    also_in_non_streaming: Apply delay also in training and non-streaming
+      inference mode.
     **kwargs: additional layer arguments
   """
 
@@ -36,20 +38,24 @@ class Delay(tf.keras.layers.Layer):
                mode=modes.Modes.TRAINING,
                delay=0,
                inference_batch_size=1,
+               also_in_non_streaming=False,
                **kwargs):
     super(Delay, self).__init__(**kwargs)
     self.mode = mode
     self.delay = delay
     self.inference_batch_size = inference_batch_size
+    self.also_in_non_streaming = also_in_non_streaming
+
+    if delay < 0:
+      raise ValueError('delay (%d) must be non-negative' % delay)
 
   def build(self, input_shape):
     super(Delay, self).build(input_shape)
 
     if self.delay > 0:
+      self.state_shape = [self.inference_batch_size, self.delay
+                         ] + input_shape.as_list()[2:]
       if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
-        self.state_shape = [
-            self.inference_batch_size, self.delay
-        ] + input_shape.as_list()[2:]
         self.states = self.add_weight(
             name='states',
             shape=self.state_shape,
@@ -92,6 +98,7 @@ class Delay(tf.keras.layers.Layer):
         'mode': self.mode,
         'delay': self.delay,
         'inference_batch_size': self.inference_batch_size,
+        'also_in_non_streaming': self.also_in_non_streaming,
     })
     return config
 
@@ -111,7 +118,11 @@ class Delay(tf.keras.layers.Layer):
     return outputs, new_memory
 
   def _non_streaming(self, inputs):
-    return inputs
+    if self.also_in_non_streaming:
+      return tf.pad(inputs[:, :-self.delay, :],
+                    ((0, 0), (self.delay, 0), (0, 0)))
+    else:
+      return inputs
 
   def get_input_state(self):
     # input state will be used only for STREAM_EXTERNAL_STATE_INFERENCE mode

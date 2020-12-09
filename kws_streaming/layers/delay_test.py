@@ -16,6 +16,7 @@
 # Lint as: python3
 """Tests for kws_streaming.layers.residual."""
 
+import itertools
 from absl.testing import parameterized
 import numpy as np
 from kws_streaming.layers import delay
@@ -30,12 +31,13 @@ from kws_streaming.train import test
 tf1.disable_eager_execution()
 
 
-def delay_model(flags, time_delay):
+def delay_model(flags, time_delay, also_in_non_streaming):
   """Model with delay for streaming mode.
 
   Args:
       flags: model and data settings
       time_delay: delay in time dim
+      also_in_non_streaming: Apply delay also in non-streaming mode.
 
   Returns:
     Keras model
@@ -45,7 +47,9 @@ def delay_model(flags, time_delay):
       shape=(flags.desired_samples,), batch_size=flags.batch_size)
   net = input_audio
   net = tf.keras.backend.expand_dims(net)
-  net = delay.Delay(delay=time_delay)(net)
+  net = delay.Delay(
+      delay=time_delay, also_in_non_streaming=also_in_non_streaming)(
+          net)
   return tf.keras.Model(input_audio, net)
 
 
@@ -55,6 +59,7 @@ def residual_model(flags,
                    cnn_act,
                    cnn_use_bias,
                    cnn_padding,
+                   delay_also_in_non_streaming,
                    dilation=1):
   """Toy deep convolutional model with residual connections.
 
@@ -67,6 +72,7 @@ def residual_model(flags,
       cnn_act: list of activation functions in conv layer
       cnn_use_bias: list of use_bias in conv layer
       cnn_padding: list of padding in conv layer
+      delay_also_in_non_streaming: Whether to apply delay also in non-streaming.
       dilation: dilation applied on all conv layers
 
   Returns:
@@ -102,7 +108,9 @@ def residual_model(flags,
     elif padding == 'same':
       # residual connection in streaming mode needs delay with 'same' padding
       delay_val = time_buffer_size // 2
-      net_residual = delay.Delay(delay=delay_val)(net)
+      net_residual = delay.Delay(
+          delay=delay_val, also_in_non_streaming=delay_also_in_non_streaming)(
+              net)
       sum_delay += delay_val
 
     else:
@@ -111,7 +119,8 @@ def residual_model(flags,
     # it is easier to convert model to streaming mode when padding function
     # is decoupled from conv layer
     net = temporal_padding.TemporalPadding(
-        padding=padding, padding_size=time_buffer_size)(
+        padding='causal' if delay_also_in_non_streaming else padding,
+        padding_size=time_buffer_size)(
             net)
 
     # it is a ring buffer in streaming mode and lambda x during training
@@ -140,13 +149,9 @@ class DelayStreamTest(tf.test.TestCase, parameterized.TestCase):
     super(DelayStreamTest, self).setUp()
     test_utils.set_seed(123)
 
-  @parameterized.named_parameters([
-      dict(testcase_name='causal_default', step=1, padding='causal'),
-      dict(testcase_name='causal_step', step=4, padding='causal'),
-      dict(testcase_name='same_default', step=1, padding='same'),
-      dict(testcase_name='same_step', step=4, padding='same')
-  ])
-  def test_residual(self, step, padding):
+  @parameterized.parameters(
+      itertools.product([1, 4], ['causal', 'same'], [False, True]))
+  def test_residual(self, step, padding, delay_also_in_non_streaming):
     """Test residual connection in streaming mode with conv layer."""
 
     # model and data parameters
@@ -164,7 +169,8 @@ class DelayStreamTest(tf.test.TestCase, parameterized.TestCase):
 
     # prepare non stream model
     model, sum_delay = residual_model(params, cnn_filters, cnn_kernel_size,
-                                      cnn_act, cnn_use_bias, cnn_padding)
+                                      cnn_act, cnn_use_bias, cnn_padding,
+                                      delay_also_in_non_streaming)
     model.summary()
 
     # prepare streaming model
@@ -186,13 +192,18 @@ class DelayStreamTest(tf.test.TestCase, parameterized.TestCase):
     non_stream_out = non_stream_out[0:min_len]
 
     shift = 1
-    non_stream_out = non_stream_out[shift:min_len - sum_delay]
+    if delay_also_in_non_streaming:
+      # Delay was also applied in non-streaming, as well as streaming mode.
+      non_stream_out = non_stream_out[shift + sum_delay:min_len]
+    else:
+      non_stream_out = non_stream_out[shift:min_len - sum_delay]
     stream_out = stream_out[sum_delay + shift:]
 
     self.assertAllEqual(non_stream_out.shape, (31-sum_delay,))
     self.assertAllClose(stream_out, non_stream_out)
 
-  def test_delay_internal_state(self):
+  @parameterized.parameters(False, True)
+  def test_delay_internal_state(self, delay_also_in_non_streaming):
     """Test delay layer with internal state."""
 
     # model and data parameters
@@ -200,7 +211,7 @@ class DelayStreamTest(tf.test.TestCase, parameterized.TestCase):
 
     # prepare non stream model
     time_delay = 3
-    model = delay_model(params, time_delay)
+    model = delay_model(params, time_delay, delay_also_in_non_streaming)
     model.summary()
 
     # prepare streaming model
