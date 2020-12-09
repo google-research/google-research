@@ -28,22 +28,22 @@ from poem.core import keypoint_utils
 from poem.core import tfe_input_layer
 
 
-def read_batch_from_tfe_tables(input_table_patterns,
-                               batch_sizes,
-                               num_instances_per_record,
-                               shuffle,
-                               num_epochs,
-                               keypoint_names_3d=None,
-                               keypoint_names_2d=None,
-                               min_keypoint_score_2d=-1.0,
-                               shuffle_buffer_size=4096,
-                               num_shards=1,
-                               shard_index=None,
-                               common_module=common,
-                               dataset_class=tf.data.TFRecordDataset,
-                               tfe_parser_creator=None,
-                               seed=None):
-  """Reads data from tf.Example table.
+def read_batch_from_dataset_tables(input_table_patterns,
+                                   batch_sizes,
+                                   num_instances_per_record,
+                                   shuffle,
+                                   num_epochs,
+                                   keypoint_names_3d=None,
+                                   keypoint_names_2d=None,
+                                   min_keypoint_score_2d=-1.0,
+                                   shuffle_buffer_size=4096,
+                                   num_shards=1,
+                                   shard_index=None,
+                                   common_module=common,
+                                   dataset_class=tf.data.TFRecordDataset,
+                                   input_example_parser_creator=None,
+                                   seed=None):
+  """Reads data from dataset table.
 
   IMPORTANT: We assume that 2D keypoints from the input have been normalized by
   image size. This function will reads image sizes from the input and
@@ -84,7 +84,7 @@ def read_batch_from_tfe_tables(input_table_patterns,
       must be specified if `num_shards` is greater than 1.
     common_module: A Python module that defines common constants.
     dataset_class: A dataset class to use. Must match input table type.
-    tfe_parser_creator: A function handle for creating tf.Example parser
+    input_example_parser_creator: A function handle for creating parser
       function. If None, uses the default parser creator.
     seed: An integer for random seed.
 
@@ -107,10 +107,12 @@ def read_batch_from_tfe_tables(input_table_patterns,
         'include_keypoint_scores_2d': True,
     })
 
-  if tfe_parser_creator is None:
-    tfe_parser_creator = tfe_input_layer.create_tfe_parser
-  parser_fn = tfe_parser_creator(common_module=common_module, **parser_kwargs)
+  if input_example_parser_creator is None:
+    input_example_parser_creator = tfe_input_layer.create_tfe_parser
+  parser_fn = input_example_parser_creator(
+      common_module=common_module, **parser_kwargs)
 
+  # TODO(lzyuan): consider to refactor read_batch_from_batches into other file.
   outputs = tfe_input_layer.read_batch_from_tables(
       input_table_patterns,
       batch_sizes=batch_sizes,

@@ -30,11 +30,11 @@ FLAGS = flags.FLAGS
 
 class PipelineUtilsTest(tf.test.TestCase):
 
-  def test_read_batch_from_tfe_tables(self):
+  def test_read_batch_from_dataset_tables(self):
     testdata_dir = 'poem/testdata'  # Assumes $PWD == "google_research/".
     table_path = os.path.join(FLAGS.test_srcdir, testdata_dir,
                               'tfe-2.tfrecords')
-    inputs = pipeline_utils.read_batch_from_tfe_tables(
+    inputs = pipeline_utils.read_batch_from_dataset_tables(
         [table_path, table_path],
         batch_sizes=[4, 2],
         num_instances_per_record=2,

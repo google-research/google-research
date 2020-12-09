@@ -452,8 +452,8 @@ def _validate_and_setup(common_module, keypoint_profiles_module,
 
 
 def run(master, input_dataset_class, common_module, keypoint_profiles_module,
-        tfe_parser_creator, keypoint_preprocessor_3d, create_model_input_fn,
-        keypoint_distance_config_override):
+        input_example_parser_creator, keypoint_preprocessor_3d,
+        create_model_input_fn, keypoint_distance_config_override):
   """Runs training pipeline.
 
   Args:
@@ -461,7 +461,7 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
     input_dataset_class: An input dataset class that matches input table type.
     common_module: A Python module that defines common flags and constants.
     keypoint_profiles_module: A Python module that defines keypoint profiles.
-    tfe_parser_creator: A function handle for creating tf.Example parser
+    input_example_parser_creator: A function handle for creating data parser
       function. If None, uses the default parser creator.
     keypoint_preprocessor_3d: A function handle for preprocessing raw 3D
       keypoints.
@@ -480,7 +480,7 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
 
       def create_inputs():
         """Creates pipeline and model inputs."""
-        inputs = pipeline_utils.read_batch_from_tfe_tables(
+        inputs = pipeline_utils.read_batch_from_dataset_tables(
             FLAGS.input_table,
             batch_sizes=[int(x) for x in FLAGS.batch_size],
             num_instances_per_record=2,
@@ -492,7 +492,7 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
             shuffle_buffer_size=FLAGS.input_shuffle_buffer_size,
             common_module=common_module,
             dataset_class=input_dataset_class,
-            tfe_parser_creator=tfe_parser_creator)
+            input_example_parser_creator=input_example_parser_creator)
 
         (inputs[common_module.KEY_KEYPOINTS_3D],
          keypoint_preprocessor_side_outputs_3d) = keypoint_preprocessor_3d(

@@ -39,7 +39,7 @@ def main(_):
       input_dataset_class=tf.data.TFRecordDataset,
       common_module=common,
       keypoint_profiles_module=keypoint_profiles,
-      tfe_parser_creator=None,
+      input_example_parser_creator=None,
       keypoint_preprocessor_3d=input_generator.preprocess_keypoints_3d,
       create_model_input_fn=input_generator.create_model_input,
       keypoint_distance_config_override={})
