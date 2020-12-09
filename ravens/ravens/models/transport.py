@@ -49,7 +49,7 @@ class Transport:
     in_shape = tuple(in_shape)
 
     # Crop before network (default for Transporters in CoRL submission).
-    # kernel_shape = (self.crop_size, self.crop_size, in_shape[2])
+    kernel_shape = (self.crop_size, self.crop_size, in_shape[2])
 
     if not hasattr(self, 'output_dim'):
       self.output_dim = 3
@@ -58,7 +58,8 @@ class Transport:
 
     # 2 fully convolutional ResNets with 57 layers and 16-stride
     in0, out0 = ResNet43_8s(in_shape, self.output_dim, prefix='s0_')
-    in1, out1 = ResNet43_8s(in_shape, self.kernel_dim, prefix='s1_')
+    # in1, out1 = ResNet43_8s(in_shape, self.kernel_dim, prefix='s1_')
+    in1, out1 = ResNet43_8s(kernel_shape, self.kernel_dim, prefix='s1_')
     self.model = tf.keras.Model(inputs=[in0, in1], outputs=[out0, out1])
     self.optim = tf.keras.optimizers.Adam(learning_rate=1e-4)
     self.metric = tf.keras.metrics.Mean(name='loss_transport')
@@ -104,20 +105,20 @@ class Transport:
     rvecs = self.get_se2(self.n_rotations, pivot)
 
     # Crop before network (default for Transporters in CoRL submission).
-    # crop = tf.convert_to_tensor(input_data.copy(), dtype=tf.float32)
-    # crop = tf.repeat(crop, repeats=self.n_rotations, axis=0)
-    # crop = tfa.image.transform(crop, rvecs, interpolation="NEAREST")
-    # crop = crop[:, p[0]:(p[0] + self.crop_size),
-    #             p[1]:(p[1] + self.crop_size), :]
-    # logits, kernel_raw = self.model([in_tensor, crop])
-
-    # Crop after network (for receptive field, and more elegant).
-    logits, crop = self.model([in_tensor, in_tensor])
-    # crop = tf.identity(kernel_bef_crop)
+    crop = tf.convert_to_tensor(input_data.copy(), dtype=tf.float32)
     crop = tf.repeat(crop, repeats=self.n_rotations, axis=0)
     crop = tfa.image.transform(crop, rvecs, interpolation='NEAREST')
-    kernel_raw = crop[:, p[0]:(p[0] + self.crop_size),
-                      p[1]:(p[1] + self.crop_size), :]
+    crop = crop[:, p[0]:(p[0] + self.crop_size),
+                p[1]:(p[1] + self.crop_size), :]
+    logits, kernel_raw = self.model([in_tensor, crop])
+
+    # Crop after network (for receptive field, and more elegant).
+    # logits, crop = self.model([in_tensor, in_tensor])
+    # # crop = tf.identity(kernel_bef_crop)
+    # crop = tf.repeat(crop, repeats=self.n_rotations, axis=0)
+    # crop = tfa.image.transform(crop, rvecs, interpolation='NEAREST')
+    # kernel_raw = crop[:, p[0]:(p[0] + self.crop_size),
+    #                   p[1]:(p[1] + self.crop_size), :]
 
     # Obtain kernels for cross-convolution.
     kernel_paddings = tf.constant([[0, 0], [0, 1], [0, 1], [0, 0]])

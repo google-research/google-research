@@ -110,6 +110,7 @@ class Task():
       # Filter out matched objects.
       order = [i for i in order if nn_dists[i] > 0]
 
+      pick_mask = None
       for pick_i in order:
         pick_mask = np.uint8(obj_mask == objs[pick_i][0])
 
@@ -120,7 +121,7 @@ class Task():
           break
 
       # Trigger task reset if no object is visible.
-      if np.sum(pick_mask) == 0:
+      if pick_mask is None or np.sum(pick_mask) == 0:
         self.goals = []
         print('Object for pick is not visible. Skipping demonstration.')
         return

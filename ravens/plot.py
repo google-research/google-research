@@ -35,7 +35,7 @@ def main():
   parser.add_argument('--n_demos', default=100, type=int)
   args = parser.parse_args()
 
-  name = f'{args.task}-{args.agent}-{args.n_demos}'
+  name = f'{args.task}-{args.agent}-{args.n_demos}-'
   print(name)
 
   # Load and print results to console.
@@ -51,7 +51,7 @@ def main():
       rewards = np.array(rewards) * 100
       score = np.mean(rewards)
       std = np.std(rewards)
-      print(f'  {n_steps} steps:\t{score:.1f}%')
+      print(f'  {n_steps} steps:\t{score:.1f}%\t± {std:.1f}%')
       curve.append((n_steps, score, std))
 
   # Plot results over training steps.

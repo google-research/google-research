@@ -110,7 +110,7 @@ class PalletizingBoxes(Task):
                                                (obj_pose[0][1] > 0))
       if not self.steps:
         self.goals = []
-        print('Palletized boxes toppled. Skipping demonstration.')
+        print('Palletized boxes toppled. Terminating episode.')
         return
 
       if workspace_empty:

@@ -16,9 +16,9 @@ It features a Gym-like API with 10 tabletop rearrangement tasks, each with (i) a
 (i) **manipulating-rope**: rearrange a deformable rope such that it connects the two endpoints of a 3-sided square.<br>
 (j) **sweeping-piles**: push piles of small objects into a target goal zone marked on the tabletop.<br>
 
-Some tasks require generalizing to unseen objects (d,g,h), or multi-step sequencing with closed-loop feedback (c,e,f,h,i,j). 
+Some tasks require generalizing to unseen objects (d,g,h), or multi-step sequencing with closed-loop feedback (c,e,f,h,i,j).
 
-**Team:** this repository is developed and maintained by [Andy Zeng](https://andyzeng.github.io/), [Pete Florence](http://www.peteflorence.com/), [Daniel Seita](https://people.eecs.berkeley.edu/~seita/), [Jonathan Tompson](https://jonathantompson.github.io/), and (your name here)... This is the reference repository for the paper:
+**Team:** this repository is developed and maintained by [Andy Zeng](https://andyzeng.github.io/), [Pete Florence](http://www.peteflorence.com/), [Daniel Seita](https://people.eecs.berkeley.edu/~seita/), [Jonathan Tompson](https://jonathantompson.github.io/), and [Ayzaan Wahid](https://www.linkedin.com/in/ayzaan-wahid-21676148/). This is the reference repository for the paper:
 
 ### Transporter Networks: Rearranging the Visual World for Robotic Manipulation
 [Project Website](https://transporternets.github.io/)&nbsp;&nbsp;•&nbsp;&nbsp;[PDF](https://arxiv.org/pdf/2010.14406.pdf)&nbsp;&nbsp;•&nbsp;&nbsp;Conference on Robot Learning (CoRL) 2020
@@ -83,7 +83,7 @@ python train.py --task=block-insertion --agent=transporter --n_demos=10
 **Step 3.** Evaluate a Transporter Networks agent with the trained model.
 
 ```shell
-python test.py --disp --task=block-insertion --agent=transporter --n_demos=10 --n_steps=10000
+python test.py --disp --task=block-insertion --agent=transporter --n_demos=10 --n_steps=1000
 ```
 
 **Step 4.** Plot results.
@@ -98,7 +98,23 @@ python plot.py --disp --task=block-insertion --agent=transporter --n_demos=10
 python -m tensorboard.main --logdir=logs  # Open the browser to where it tells you to.
 ```
 
-## Other...
+## Datasets and Pre-Trained Models
+
+Download our generated train and test datasets and pre-trained models.
+
+```shell
+wget https://storage.googleapis.com/ravens-assets/checkpoints.zip
+wget https://storage.googleapis.com/ravens-assets/block-insertion.zip
+wget https://storage.googleapis.com/ravens-assets/place-red-in-green.zip
+wget https://storage.googleapis.com/ravens-assets/towers-of-hanoi.zip
+wget https://storage.googleapis.com/ravens-assets/align-box-corner.zip
+wget https://storage.googleapis.com/ravens-assets/stack-block-pyramid.zip
+wget https://storage.googleapis.com/ravens-assets/palletizing-boxes.zip
+wget https://storage.googleapis.com/ravens-assets/assembling-kits.zip
+wget https://storage.googleapis.com/ravens-assets/packing-boxes.zip
+wget https://storage.googleapis.com/ravens-assets/manipulating-rope.zip
+wget https://storage.googleapis.com/ravens-assets/sweeping-piles.zip
+```
 
 The MDP formulation for each task uses transitions with the following structure:
 
@@ -108,5 +124,4 @@ The MDP formulation for each task uses transitions with the following structure:
 
 **Rewards:** total sum of rewards for a successful episode should be =1.
 
-**Info:** 6D poses and colors of objects.
-
+**Info:** 6D poses, sizes, and colors of objects.
