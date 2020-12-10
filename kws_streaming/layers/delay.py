@@ -119,8 +119,8 @@ class Delay(tf.keras.layers.Layer):
 
   def _non_streaming(self, inputs):
     if self.also_in_non_streaming:
-      return tf.pad(inputs[:, :-self.delay, :],
-                    ((0, 0), (self.delay, 0), (0, 0)))
+      return tf.pad(inputs,
+                    ((0, 0), (self.delay, 0), (0, 0)))[:, :-self.delay, :]
     else:
       return inputs
 
