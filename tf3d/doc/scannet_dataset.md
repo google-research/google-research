@@ -19,7 +19,9 @@ for more details.
 
 Please follow the instructions at the
 [ScanNet Dataset Website](http://www.scan-net.org/) for registration and
-downloading of the tfrecords.
+downloading of the tfrecords. Once you have registered, there is a 
+`--tf_semantic` flag that you can use with the ScanNet download script to 
+download the tf records.
 
 [ScanNet]: http://www.scan-net.org/
 [Example]: https://www.tensorflow.org/api_docs/python/tf/train/Example

@@ -22,21 +22,21 @@ This release includes:
 * GPU/CPU op for 3d submanifold sparse convolution.
 * A configurable 3d sparse voxel unet network that is used as the feature extractor in our models.
 * Training and evaluation code for 3D Semantic Segmentation, 3D Object Detection and 3D Instance Segmentation.
-* Data and configuration for training and evaluation on <a href='https://waymo.com/open/' target='_blank'>Waymo Open Dataset</a>, <a href='http://www.scan-net.org/' target='_blank'>ScanNet Dataset</a>, and <a href='https://waldjohannau.github.io/RIO/' target='_blank'>Rio Dataset</a>.
+* Data and configuration for training and evaluation on Waymo Open Dataset, ScanNet Dataset, and Rio Dataset.
 
 # Resources
 
-* <a href='doc/usage.md' target='_blank'>Requirements, Installation and Usage</a>
+* <a href='doc/setup.md' target='_blank'>Requirements, Installation and Usage</a>
 * <a href='doc/tf3d_datasets.md' target='_blank'>Datasets</a>
 * <a href='doc/models.md' target='_blank'>TensorFlow 3D Model</a>
 * <a href='ops/README.md' target='_blank'>Preparing and Compiling the Sparse Conv Op</a>
 
 # Maintainers
 
-* <a href='https://sites.google.com/corp/view/ruihuang/home' target='_blank'>Rui Huang</a> (<a href='https://github.com/HRLTY' target='_blank'>@GitHub HRLTY</a>)
-* <a href='https://www.alirezafathi.org/' target='_blank'>Alireza Fathi</a> (<a href='https://github.com/afathi3' target='_blank'>@GitHub afathi3</a>)
+* <a href='https://sites.google.com/corp/view/ruihuang/home' target='_blank'>Rui Huang</a> (@GitHub HRLTY)
+* <a href='https://www.alirezafathi.org/' target='_blank'>Alireza Fathi</a> (@GitHub afathi3)
 
 # Acknowledgement
 
-We thank <a href='https://www.linkedin.com/in/guangda-lai-31a5ab53/?originalSubdomain=cn' target='_blank'>Guangda Lai</a> and <a href='https://abhijitkundu.info/' target='_blank'>Abhijit Kundu</a> for their contributions to this code. We also like to thank <a href='https://www.cs.princeton.edu/~funk/' target='_blank'>Thomas Funkhouser</a>, <a href='http://www.cs.toronto.edu/~dross/' target='_blank'>David Ross</a> and <a href='https://www.linkedin.com/in/carolinepantofaru/' target='_blank'>Caroline Pantofaru</a> for very insightful and helpful discussions throughout this project. Finally we thank <a href='https://www.linkedin.com/in/pei-sun-4a817816/' target='_blank'>Pei Sun</a> for helping us with the Waymo Open dataset, <a href='https://scholar.google.de/citations?user=dfjN3YAAAAAJ&hl=en' target='_blank'>Johanna Wald</a> for her help with the Rio dataset and <a href='https://www.3dunderstanding.org/team.html' target='_blank'>Angela Dai</a> and <a href='https://www.niessnerlab.org/' target='_blank'>Matthias Niessner</a> for their help with the ScanNet dataset.
+We thank Guangda Lai and Abhijit Kundu for their contributions to this code. We also like to thank Thomas Funkhouser, David Ross and Caroline Pantofaru for very insightful and helpful discussions throughout this project. Finally we thank Pei Sun for helping us with the Waymo Open dataset, Johanna Wald for her help with the Rio dataset and Angela Dai and Matthias Niessner for their help with the ScanNet dataset.
 

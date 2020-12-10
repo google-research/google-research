@@ -1,4 +1,4 @@
-# TF3D Usage
+# TF3D Setup
 
 [TOC]
 
