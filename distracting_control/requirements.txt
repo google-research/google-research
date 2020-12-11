@@ -1,0 +1,5 @@
+dm-control==0.0.322773188
+absl-py>=0.9.0
+numpy>=1.18.3
+mock>=mock-4.0
+pillow>=7.0.0
