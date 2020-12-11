@@ -18,13 +18,14 @@
 Prefix Sum Tensorflow implementation by Valerii Likhosherstov.
 """
 import math
+import numpy as np
 import tensorflow as tf
 from performer.fast_attention.tensorflow import util
 
 BIG_CONSTANT = 1e8
 
 
-def create_projection_matrix(m, d, seed=0, scaling=0):
+def create_projection_matrix(m, d, seed=0, scaling=0, struct_mode=False):
   r"""Constructs the matrix of random projections.
 
   Constructs a matrix of random orthogonal projections. Each projection vector
@@ -40,6 +41,9 @@ def create_projection_matrix(m, d, seed=0, scaling=0):
     scaling: 1 if all the random projections need to be renormalized to have
       length \sqrt{d}, 0 if the lengths of random projections should follow
       \chi(d) distribution.
+    struct_mode: if True then products of Givens rotations will be used to
+      construct random orthogonal matrix. This bypasses Gram-Schmidt
+      orthogonalization.
 
   Returns:
     The matrix of random projections of the shape [m, d].
@@ -48,16 +52,22 @@ def create_projection_matrix(m, d, seed=0, scaling=0):
   block_list = []
   current_seed = seed
   for _ in range(nb_full_blocks):
-    unstructured_block = tf.random.normal((d, d), seed=current_seed)
-    q, _ = tf.linalg.qr(unstructured_block)
-    q = tf.transpose(q)
+    if struct_mode:
+      q = create_products_of_givens_rotations(d, seed)
+    else:
+      unstructured_block = tf.random.normal((d, d), seed=current_seed)
+      q, _ = tf.linalg.qr(unstructured_block)
+      q = tf.transpose(q)
     block_list.append(q)
     current_seed += 1
   remaining_rows = m - nb_full_blocks * d
   if remaining_rows > 0:
-    unstructured_block = tf.random.normal((d, d), seed=current_seed)
-    q, _ = tf.linalg.qr(unstructured_block)
-    q = tf.transpose(q)
+    if struct_mode:
+      q = create_products_of_givens_rotations(d, seed)
+    else:
+      unstructured_block = tf.random.normal((d, d), seed=current_seed)
+      q, _ = tf.linalg.qr(unstructured_block)
+      q = tf.transpose(q)
     block_list.append(q[0:remaining_rows])
   final_matrix = tf.experimental.numpy.vstack(block_list)
   current_seed += 1
@@ -70,6 +80,39 @@ def create_projection_matrix(m, d, seed=0, scaling=0):
     raise ValueError("Scaling must be one of {0, 1}. Was %s" % scaling)
 
   return tf.linalg.matmul(tf.linalg.diag(multiplier), final_matrix)
+
+
+def create_products_of_givens_rotations(dim, seed):
+  r"""Constructs a 2D-tensor which is a product of Givens random rotations.
+
+  Constructs a 2D-tensor of the form G_1 * ... * G_k, where G_i is a Givens
+  random rotation. The resulting tensor mimics a matrix taken uniformly at
+  random form the orthogonal group.
+
+  Args:
+    dim: number of rows/columns of the resulting 2D-tensor.
+    seed: random seed.
+
+  Returns:
+    The product of Givens random rotations.
+  """
+  nb_givens_rotations = dim * int(math.ceil(math.log(float(dim))))
+  q = np.eye(dim, dim)
+  np.random.seed(seed)
+  for _ in range(nb_givens_rotations):
+    random_angle = math.pi * np.random.uniform()
+    random_indices = np.random.choice(dim, 2)
+    index_i = min(random_indices[0], random_indices[1])
+    index_j = max(random_indices[0], random_indices[1])
+    slice_i = q[index_i]
+    slice_j = q[index_j]
+    new_slice_i = math.cos(random_angle) * slice_i + math.sin(
+        random_angle) * slice_j
+    new_slice_j = -math.sin(random_angle) * slice_i + math.cos(
+        random_angle) * slice_j
+    q[index_i] = new_slice_i
+    q[index_j] = new_slice_j
+  return tf.cast(tf.constant(q), dtype=tf.float32)
 
 
 def relu_kernel_transformation(data,
