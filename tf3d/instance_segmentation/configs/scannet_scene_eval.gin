@@ -22,6 +22,7 @@ object_detection_preprocess.points_within_box_margin = 0.0
 object_detection_preprocess.min_num_points_in_objects = 5
 object_detection_preprocess.num_points_to_randomly_sample = 500000
 object_detection_preprocess.crop_points_around_random_seed_point = False
+object_detection_preprocess.fit_objects_to_instance_id_points = True
 
 
 # Dataset

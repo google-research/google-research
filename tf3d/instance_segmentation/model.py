@@ -17,6 +17,7 @@
 
 import gin
 import gin.tf
+import tensorflow as tf
 from tf3d import base_model
 from tf3d import standard_fields
 from tf3d.instance_segmentation import model_utils
@@ -43,7 +44,9 @@ class InstanceSegmentationModel(base_model.BaseModel):
                nms_score_threshold=0.1,
                nms_iou_threshold=0.3,
                num_furthest_voxel_samples=1000,
-               sampler_score_vs_distance_coef=0.5):
+               sampler_score_vs_distance_coef=0.5,
+               train_dir='/tmp/model/train',
+               summary_log_freq=100):
     """An object detection model based on 3D UNet sparse voxel network.
 
     Args:
@@ -69,11 +72,18 @@ class InstanceSegmentationModel(base_model.BaseModel):
       sampler_score_vs_distance_coef: The coefficient that balances the weight
         between furthest voxel sampling and highest score sampling in the
         postprocessor.
+      train_dir: A directory path to write tensorboard summary for losses.
+      summary_log_freq: A int of the frequency (as batches) to log summary.
 
     Returns:
       A dictionary containing tensors that contain predicted object properties.
     """
-    super().__init__()
+    super().__init__(
+        loss_names_to_functions=loss_names_to_functions,
+        loss_names_to_weights=loss_names_to_weights,
+        train_dir=train_dir,
+        summary_log_freq=summary_log_freq)
+
     self.num_classes = num_classes
     self.embedding_dims = embedding_dims
     self.embedding_similarity_strategy = embedding_similarity_strategy
@@ -96,8 +106,6 @@ class InstanceSegmentationModel(base_model.BaseModel):
     task_names_to_use_batch_norm_in_last_layer = {}
     for key in task_names_to_num_output_channels:
       task_names_to_use_batch_norm_in_last_layer[key] = False
-    self.loss_names_to_weights = loss_names_to_weights
-    self.loss_names_to_functions = loss_names_to_functions
     self.sparse_conv_unet = sparse_voxel_unet.SparseConvUNet(
         task_names_to_num_output_channels=task_names_to_num_output_channels,
         task_names_to_use_relu_last_conv=task_names_to_use_relu_last_conv,
@@ -114,6 +122,8 @@ class InstanceSegmentationModel(base_model.BaseModel):
     Returns:
       A dictionary of tensors containing semantic logits prediciton.
     """
+    inputs[standard_fields.InputDataFields.num_valid_voxels] = tf.reshape(
+        inputs[standard_fields.InputDataFields.num_valid_voxels], [-1])
     voxel_inputs = (inputs[standard_fields.InputDataFields.voxel_features],
                     inputs[standard_fields.InputDataFields.voxel_xyz_indices],
                     inputs[standard_fields.InputDataFields.num_valid_voxels])
@@ -149,5 +159,8 @@ class InstanceSegmentationModel(base_model.BaseModel):
         score_threshold=self.nms_score_threshold,
         apply_nms=self.apply_nms,
         nms_iou_threshold=self.nms_iou_threshold)
+
+    if training:
+      self.calculate_losses(inputs=inputs, outputs=outputs)
 
     return outputs

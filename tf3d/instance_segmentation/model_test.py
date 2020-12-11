@@ -46,12 +46,19 @@ class ModelTest(tf.test.TestCase):
                 minval=-100,
                 maxval=100,
                 dtype=tf.int32),
+        standard_fields.InputDataFields.object_instance_id_voxels:
+            tf.random.uniform(
+                shape=(1, num_voxels), minval=0, maxval=5, dtype=tf.int32),
+        standard_fields.InputDataFields.object_class_voxels:
+            tf.random.uniform(
+                shape=(1, num_voxels, 1), minval=0, maxval=10, dtype=tf.int32),
     }
 
   def test_call_train(self):
     loss_names_to_functions = {
         'npair_loss':
-            metric_learning_losses.npair_loss,
+            functools.partial(
+                metric_learning_losses.npair_loss, num_samples=10),
         'regularization_loss':
             metric_learning_losses.embedding_regularization_loss,
         'classification_loss':
