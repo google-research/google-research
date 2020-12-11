@@ -1,0 +1,6 @@
+{        
+    "query_embedder_path": "gs://research-brain-retrieval-during-gen-xgcp/full/embedder",
+    "text_records": "gs://research-brain-retrieval-during-gen-xgcp/full/blocks.tfr",
+    "num_block_records": 13353718,
+    "description": ""
+}

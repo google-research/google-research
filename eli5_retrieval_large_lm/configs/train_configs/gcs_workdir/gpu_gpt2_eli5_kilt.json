@@ -1,0 +1,28 @@
+{
+  "task": "train",
+  "dataset_name": "kilt_eli5",
+  "dataset_paths_root": "/workdir/gcs/research-brain-retrieval-during-gen-xgcp/",
+  "model_output_path": "gs://research-brain-retrieval-during-gen-xgcp/model_output/",
+  "output_dir": "/workdir/gcs/research-brain-retrieval-during-gen-xgcp/retrieval_during_decoding/evaluate/logs/",
+  "retriever_config_path": "/workdir/eli5_retrieval_large_lm/configs/retriever_configs/realm_configs/gcs_workdir/open_source.json",
+  "run_name": "gpt_eli5_kilt",
+  "logger_levels": "__main__:DEBUG,eli5_retrieval_large_lm.bert_utils:DEBUG,eli5_retrieval_large_lm.retrievers:DEBUG,eli5_retrieval_large_lm.scann_utils:DEBUG,eli5_retrieval_large_lm.task_specific:DEBUG,eli5_retrieval_large_lm.utils:DEBUG:tf_utils:DEBUG",
+  "hf_datasets_cache_dir": "/workdir/gcs/research-brain-retrieval-during-gen-xgcp/HuggingfaceDatasets",
+
+  "tfr_prefix": "gs://research-brain-retrieval-during-gen-xgcp/tfrecord_query_cache/good/",
+  "dataset_type": "tfr",
+
+  "use_helper_words": true,
+  "model_key": "distilgpt2",
+  "model_load_path": "/workdir/gcs/research-brain-retrieval-during-gen-xgcp/huggingface/distilgpt2",
+  "batch_size": 1,
+  "batch_split": 1,
+  "distribute_mode": "onedevicestrategy",
+
+  "retrieval_temperature": 0.03,
+  "num_retrievals": 5,
+  "approach_type": "naked_lm",
+  "learning_rate": 5E-5,
+
+  "max_length_generation": 350
+}

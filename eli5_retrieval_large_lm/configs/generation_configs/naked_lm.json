@@ -1,0 +1,9 @@
+{
+  "model_path": "gs://research-brain-retrieval-during-gen-xgcp/good_naked_lm_16x16/epoch0/",
+  "tfr_prefix": "gs://research-brain-retrieval-during-gen-xgcp/tfrecord_query_cache/good/",
+  "output_path": "gs://research-brain-retrieval-during-gen-xgcp/generations/",
+  "logger_levels": "__main__:DEBUG,utils:DEBUG,tf_utils:DEBUG,retrievers:DEBUG",
+  "approach_type": "naked_lm",
+  "batch_size": 1,
+  "generation_length_limit": 350
+}

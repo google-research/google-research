@@ -1,0 +1,9 @@
+tf-nightly-gpu
+transformers
+absl-py
+colorama
+numpy
+tqdm
+datasets
+psutil
+h5py

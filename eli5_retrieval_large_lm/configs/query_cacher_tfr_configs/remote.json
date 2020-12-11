@@ -1,0 +1,7 @@
+{
+  "batch_size": 1028,
+  "dataset_root": "/workdir/gcs/research-brain-retrieval-during-gen-xgcp/",
+  "retriever_config_path": "/workdir/eli5_retrieval_large_lm/configs/retriever_configs/realm_configs/gcs_workdir/open_source.json",
+  "logger_levels": "__main__:DEBUG,utils:DEBUG,tf_utils:DEBUG,retrievers:DEBUG",
+  "output_dir": "gs://research-brain-retrieval-during-gen-xgcp/tfrecord_query_cache/"
+}
