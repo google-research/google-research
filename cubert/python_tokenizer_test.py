@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+import tokenize
+from typing import List, Sequence, Tuple
 from unittest import mock
 from absl.testing import absltest
 from absl.testing import parameterized
 from cubert import python_tokenizer
 from cubert import unified_tokenizer
-
 _EOS_NAME = unified_tokenizer.quote_special(
     unified_tokenizer.TokenKind.EOS.name)
 _ERROR_NAME = unified_tokenizer.quote_special(
@@ -33,12 +33,111 @@ class PythonTokenizerTest(parameterized.TestCase):
   @mock.patch.object(
       unified_tokenizer,
       'code_to_tokens',
-      return_value=[(1000, 'spelling', 0, 0, 0)])
+      return_value=[
+          tokenize.TokenInfo(
+              type=1000, string='spelling', start=(0, 0), end=(0, 0), line='')
+      ])
   def test_python_tokenize_raises_on_unknown_python_token_kind(
       self, unused_function_mock):
     tokenizer = python_tokenizer.PythonTokenizer()
     with self.assertRaisesRegex(ValueError, 'While trying to turn'):
       tokenizer.tokenize('source')
+
+  @parameterized.named_parameters(
+      (
+          'nothing',
+          '',
+          (
+              (0, 0, 0, 0, unified_tokenizer.TokenKind.EOS),
+          )),
+      (
+          'same_line',
+          """TokenA TokenB""",
+          #  0     67
+          (
+              (0, 0, 0, 6, unified_tokenizer.TokenKind.IDENTIFIER),
+              (0, 7, 0, 13, unified_tokenizer.TokenKind.IDENTIFIER),
+              # Python tokenizer always puts EOS in the beginning of the line
+              # after the end of the file.
+              (1, 0, 1, 0, unified_tokenizer.TokenKind.EOS),
+          )),
+      (
+          'different_lines',
+          """TokenA TokC\nTokenB""",
+          #  0     67   11     6
+          (
+              (0, 0, 0, 6, unified_tokenizer.TokenKind.IDENTIFIER),
+              (0, 7, 0, 11, unified_tokenizer.TokenKind.IDENTIFIER),
+              (0, 11, 1, 0, unified_tokenizer.TokenKind.NEWLINE),
+              (1, 0, 1, 6, unified_tokenizer.TokenKind.IDENTIFIER),
+              (2, 0, 2, 0, unified_tokenizer.TokenKind.EOS),
+          )),
+      (
+          'nl_tokens',
+          """def f(\n): pass""",
+          #  0   45  01 3   7
+          (
+              (0, 0, 0, 3, unified_tokenizer.TokenKind.KEYWORD),
+              (0, 4, 0, 5, unified_tokenizer.TokenKind.IDENTIFIER),
+              (0, 5, 0, 6, unified_tokenizer.TokenKind.PUNCTUATION),
+              # Python's NL tokens are PUNCTUATION, not NEWLINE. However we
+              # still treat them similarly to NEWLINE tokens, in that they
+              # start at the end of a line and end at the beginning of the next
+              # line.
+              (0, 6, 1, 0, unified_tokenizer.TokenKind.PUNCTUATION),
+
+              (1, 0, 1, 1, unified_tokenizer.TokenKind.PUNCTUATION),
+              (1, 1, 1, 2, unified_tokenizer.TokenKind.PUNCTUATION),
+              (1, 3, 1, 7, unified_tokenizer.TokenKind.KEYWORD),
+              (2, 0, 2, 0, unified_tokenizer.TokenKind.EOS),
+          )),
+      (
+          'nl_character',
+          'a = "1\\n2" +  "10"',
+          #  2 4567 89 11 14
+          (
+              (0, 0, 0, 1, unified_tokenizer.TokenKind.IDENTIFIER),
+              (0, 2, 0, 3, unified_tokenizer.TokenKind.PUNCTUATION),
+              # The NL character is like any other character, but of course it
+              # counts as a single character.
+              (0, 4, 0, 10, unified_tokenizer.TokenKind.STRING),
+              (0, 11, 0, 12, unified_tokenizer.TokenKind.PUNCTUATION),
+              (0, 14, 0, 18, unified_tokenizer.TokenKind.STRING),
+              (1, 0, 1, 0, unified_tokenizer.TokenKind.EOS),
+          )),
+      (
+          'unterminated_string',
+          '"""ABC',
+          #  2 4 6 8
+          (
+              (0, 0, 0, 0, unified_tokenizer.TokenKind.ERROR),
+              (0, 0, 0, 0, unified_tokenizer.TokenKind.EOS),
+          )),
+      (
+          'mismatched_indentation',
+          """
+class A():
+  def f(): pass
+ def g(): pass
+""",
+          (
+              (0, 0, 0, 0, unified_tokenizer.TokenKind.ERROR),
+              (0, 0, 0, 0, unified_tokenizer.TokenKind.EOS),
+          )),
+  )
+  def test_python_tokenize_abstract_returns_positioning(
+      self, source,
+      expected_positions_and_kinds
+  ):
+    tokenizer = python_tokenizer.PythonTokenizer()
+
+    agnostic = tokenizer.tokenize_and_abstract(source)
+    actual_positions_and_kinds = tuple(
+        (m.metadata.start.line, m.metadata.start.column, m.metadata.end.line,
+         m.metadata.end.column, m.kind) for m in agnostic)
+
+    self.assertSequenceEqual(expected_positions_and_kinds,
+                             actual_positions_and_kinds)
 
   @parameterized.named_parameters(
       (
