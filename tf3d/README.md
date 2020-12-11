@@ -26,10 +26,11 @@ This release includes:
 
 # Resources
 
-* <a href='doc/setup.md' target='_blank'>Requirements, Installation and Usage</a>
+* <a href='ops/README.md' target='_blank'>Preparing and Compiling the Sparse Conv Op</a>
+* <a href='doc/setup.md' target='_blank'>Requirements, Installation and Setup</a>
+* <a href='doc/usage.md' target='_blank'>Usage</a>
 * <a href='doc/tf3d_datasets.md' target='_blank'>Datasets</a>
 * <a href='doc/models.md' target='_blank'>TensorFlow 3D Model</a>
-* <a href='ops/README.md' target='_blank'>Preparing and Compiling the Sparse Conv Op</a>
 
 # Maintainers
 
