@@ -61,6 +61,13 @@ SUPPORTED_INFERENCE_MODEL_INPUT_KEYPOINT_TYPES = [
     MODEL_INPUT_KEYPOINT_TYPE_2D_INPUT,
 ]
 
+# Base model types.
+# Simple baseline architecutre: Martinez, et al. A simple yet effective baseline
+# for 3d human pose estimation. ICCV 2017.
+BASE_MODEL_TYPE_SIMPLE = 'SIMPLE'
+# Supported base model types.
+SUPPORTED_BASE_MODEL_TYPES = [BASE_MODEL_TYPE_SIMPLE]
+
 # Embedding types.
 # Point embedding.
 EMBEDDING_TYPE_POINT = 'POINT'

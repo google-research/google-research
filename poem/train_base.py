@@ -24,7 +24,6 @@ import tf_slim
 from poem.core import data_utils
 from poem.core import keypoint_utils
 from poem.core import loss_utils
-from poem.core import models
 from poem.core import pipeline_utils
 
 FLAGS = flags.FLAGS
@@ -65,6 +64,9 @@ flags.DEFINE_integer(
 
 flags.DEFINE_integer('num_embedding_samples', 20,
                      'Number of samples from embedding distributions.')
+
+# See `common_module.SUPPORTED_BASE_MODEL_TYPES`.
+flags.DEFINE_string('base_model_type', 'SIMPLE', 'Type of base model.')
 
 flags.DEFINE_integer('num_fc_blocks', 2, 'Number of fully connected blocks.')
 
@@ -269,7 +271,7 @@ flags.DEFINE_integer(
 flags.DEFINE_integer('task', 0, 'Task replica identifier for training.')
 
 
-def _validate_and_setup(common_module, keypoint_profiles_module,
+def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
                         keypoint_distance_config_override):
   """Validates and sets up training configurations."""
   # Set default values for unspecified flags.
@@ -295,6 +297,7 @@ def _validate_and_setup(common_module, keypoint_profiles_module,
   validate_flag(FLAGS.model_input_keypoint_type,
                 common_module.SUPPORTED_TRAINING_MODEL_INPUT_KEYPOINT_TYPES)
   validate_flag(FLAGS.embedding_type, common_module.SUPPORTED_EMBEDDING_TYPES)
+  validate_flag(FLAGS.base_model_type, common_module.SUPPORTED_BASE_MODEL_TYPES)
   validate_flag(FLAGS.keypoint_distance_type,
                 common_module.SUPPORTED_KEYPOINT_DISTANCE_TYPES)
   validate_flag(FLAGS.triplet_distance_type,
@@ -359,14 +362,31 @@ def _validate_and_setup(common_module, keypoint_profiles_module,
         'kernel and `NEG_LOG_MEAN` or `LOWER_HALF_NEG_LOG_MEAN` parwise reducer'
         ' in pairs.')
 
+  keypoint_profile_2d = keypoint_profiles_module.create_keypoint_profile_or_die(
+      FLAGS.input_keypoint_profile_name_2d)
+
   # Set up configurations.
   configs = {
       'keypoint_profile_3d':
           keypoint_profiles_module.create_keypoint_profile_or_die(
               FLAGS.input_keypoint_profile_name_3d),
       'keypoint_profile_2d':
-          keypoint_profiles_module.create_keypoint_profile_or_die(
-              FLAGS.input_keypoint_profile_name_2d),
+          keypoint_profile_2d,
+      'embedder_fn':
+          models_module.get_embedder(
+              base_model_type=FLAGS.base_model_type,
+              embedding_type=FLAGS.embedding_type,
+              num_embedding_components=FLAGS.num_embedding_components,
+              embedding_size=FLAGS.embedding_size,
+              num_embedding_samples=FLAGS.num_embedding_samples,
+              is_training=True,
+              num_fc_blocks=FLAGS.num_fc_blocks,
+              num_fcs_per_block=FLAGS.num_fcs_per_block,
+              num_hidden_nodes=FLAGS.num_hidden_nodes,
+              num_bottleneck_nodes=FLAGS.num_bottleneck_nodes,
+              weight_max_norm=FLAGS.weight_max_norm,
+              dropout_rate=FLAGS.dropout_rate,
+              affinity_matrix=keypoint_profile_2d.keypoint_affinity_matrix),
       'triplet_embedding_keys':
           pipeline_utils.get_embedding_keys(
               FLAGS.triplet_distance_type, common_module=common_module),
@@ -452,7 +472,7 @@ def _validate_and_setup(common_module, keypoint_profiles_module,
 
 
 def run(master, input_dataset_class, common_module, keypoint_profiles_module,
-        input_example_parser_creator, keypoint_preprocessor_3d,
+        models_module, input_example_parser_creator, keypoint_preprocessor_3d,
         create_model_input_fn, keypoint_distance_config_override):
   """Runs training pipeline.
 
@@ -461,6 +481,7 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
     input_dataset_class: An input dataset class that matches input table type.
     common_module: A Python module that defines common flags and constants.
     keypoint_profiles_module: A Python module that defines keypoint profiles.
+    models_module: A Python module that defines base model architectures.
     input_example_parser_creator: A function handle for creating data parser
       function. If None, uses the default parser creator.
     keypoint_preprocessor_3d: A function handle for preprocessing raw 3D
@@ -472,6 +493,7 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
   configs = _validate_and_setup(
       common_module=common_module,
       keypoint_profiles_module=keypoint_profiles_module,
+      models_module=models_module,
       keypoint_distance_config_override=keypoint_distance_config_override)
 
   g = tf.Graph()
@@ -516,19 +538,7 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
         return inputs
 
       inputs = create_inputs()
-      outputs, _ = models.embed(
-          inputs['model_inputs'],
-          embedding_type=FLAGS.embedding_type,
-          num_embedding_components=FLAGS.num_embedding_components,
-          embedding_size=FLAGS.embedding_size,
-          num_embedding_samples=FLAGS.num_embedding_samples,
-          is_training=True,
-          num_fc_blocks=FLAGS.num_fc_blocks,
-          num_fcs_per_block=FLAGS.num_fcs_per_block,
-          num_hidden_nodes=FLAGS.num_hidden_nodes,
-          num_bottleneck_nodes=FLAGS.num_bottleneck_nodes,
-          weight_max_norm=FLAGS.weight_max_norm,
-          dropout_rate=FLAGS.dropout_rate)
+      outputs, _ = configs['embedder_fn'](inputs['model_inputs'])
       summaries = {
           'train/batch_size':
               tf.shape(outputs[common_module.KEY_EMBEDDING_MEANS])[0]

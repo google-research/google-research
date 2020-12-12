@@ -38,7 +38,7 @@ def linear(input_features, output_size, weight_max_norm, weight_initializer,
     name: A string for the name scope.
 
   Returns:
-    A tensor for the output logits.
+    A tensor for the output logits. Shape = [..., output_size].
   """
   with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
     weights = tf.get_variable(
@@ -186,22 +186,105 @@ def simple_model(input_features,
   return outputs, activations
 
 
+def create_model_helper(base_model_fn):
+  """Helper function for creating model function given base model function.
+
+  This function creates a model function that adaptively slices the input
+  features for improved running speed.
+
+  Note that the base model function is required to have interface:
+
+    outputs, activations = model_fn(input_features, output_sizes),
+
+  where `input_features` has shape [batch_size, feature_dim] or [batch_size,
+  num_instances, feature_dim].
+
+  Args:
+    base_model_fn: A function handle for base model.
+
+  Returns:
+    model_fn: A function handle for model.
+  """
+
+  def model_fn(input_features, output_sizes):
+    """Applies model to input features and produces output of given sizes."""
+    input_features_rank = len(input_features.shape.as_list())
+    if input_features_rank not in [2, 3]:
+      raise ValueError(
+          'Only supports input feature tensors of rank 2 or 3: %d.' %
+          input_features_rank)
+
+    if input_features_rank == 2:
+      return base_model_fn(input_features, output_sizes)
+
+    # The slicing below helps significantly improve training speed.
+    sub_output_list, sub_activation_list = [], []
+    for sub_features in tf.unstack(input_features, axis=1):
+      sub_outputs, sub_activations = base_model_fn(sub_features, output_sizes)
+      sub_output_list.append(sub_outputs)
+      sub_activation_list.append(sub_activations)
+
+    outputs = {}
+    for key in sub_output_list[0].keys():
+      outputs[key] = tf.stack(
+          [sub_output[key] for sub_output in sub_output_list], axis=1)
+
+    activations = {}
+    for key in sub_activation_list[0].keys():
+      activations[key] = tf.stack(
+          [sub_activations[key] for sub_activations in sub_activation_list],
+          axis=1)
+
+    return outputs, activations
+
+  return model_fn
+
+
+def get_model(base_model_type, **kwargs):
+  """Gets a base model builder function handle.
+
+  Note that the returned model function has interface:
+
+    outputs, activations = model_fn(input_features, output_sizes),
+
+  where `input_features` has shape [batch_size, feature_dim] or [batch_size,
+  num_instances, feature_dim].
+
+  Args:
+    base_model_type: An enum string for base model type. See supported base
+      model types in the `common` module.
+    **kwargs: A dictionary of additional arguments.
+
+  Returns:
+    A function handle for base model.
+
+  Raises:
+    ValueError: If base model type is not supported.
+  """
+  if base_model_type == common.BASE_MODEL_TYPE_SIMPLE:
+    base_model_fn = functools.partial(simple_model, **kwargs)
+  else:
+    raise ValueError('Unsupported base model type: `%s`.' %
+                     str(base_model_type))
+
+  return create_model_helper(base_model_fn)
+
+
 _add_prefix = lambda key, c: 'C%d/' % c + key
 
 
-def simple_point_embedder(input_features, num_embedding_components,
-                          embedding_size, is_training, **kwargs):
-  """Implements a point embedder based on `simple model`.
+def _point_embedder(input_features, base_model_fn, num_embedding_components,
+                    embedding_size):
+  """Implements a point embedder.
 
   Output tensor shapes:
     KEY_EMBEDDING_MEANS: Shape = [..., num_embedding_components, embedding_dim].
 
   Args:
     input_features: A tensor for input features. Shape = [..., feature_dim].
+    base_model_fn: A function handle for base model.
     num_embedding_components: An integer for the number of embedding components.
     embedding_size: An integer for embedding dimensionality.
-    is_training: A boolean for whether it is in training mode.
-    **kwargs: A dictionary of additional arguments passed to `simple_model`.
 
   Returns:
     outputs: A dictionary for output tensors See comment above for details.
@@ -214,8 +297,7 @@ def simple_point_embedder(input_features, num_embedding_components,
       for c in range(num_embedding_components)
   }
 
-  component_outputs, activations = simple_model(
-      input_features, output_sizes, is_training=is_training, **kwargs)
+  component_outputs, activations = base_model_fn(input_features, output_sizes)
 
   outputs = {
       common.KEY_EMBEDDING_MEANS:
@@ -228,14 +310,13 @@ def simple_point_embedder(input_features, num_embedding_components,
   return outputs, activations
 
 
-def simple_gaussian_embedder(input_features,
-                             num_embedding_components,
-                             embedding_size,
-                             num_embedding_samples,
-                             is_training,
-                             seed=None,
-                             **kwargs):
-  """Implements a Gaussian (mixture) embedder based on `simple model`.
+def _gaussian_embedder(input_features,
+                       base_model_fn,
+                       num_embedding_components,
+                       embedding_size,
+                       num_embedding_samples,
+                       seed=None):
+  """Implements a Gaussian (mixture) embedder.
 
   Output tensor shapes:
     KEY_EMBEDDING_MEANS: Shape = [..., num_embedding_components,
@@ -247,14 +328,13 @@ def simple_gaussian_embedder(input_features,
 
   Args:
     input_features: A tensor for input features. Shape = [..., feature_dim].
+    base_model_fn: A function handle for base model.
     num_embedding_components: An integer for the number of Gaussian mixture
       components.
     embedding_size: An integer for embedding dimensionality.
     num_embedding_samples: An integer for number of samples drawn Gaussian
       distributions. If non-positive, skips the sampling step.
-    is_training: A boolean for whether it is in training mode.
     seed: An integer for random seed.
-    **kwargs: A dictionary of additional arguments passed to `simple_base`.
 
   Returns:
     outputs: A dictionary for output tensors See comment above for details.
@@ -268,8 +348,7 @@ def simple_gaussian_embedder(input_features,
         _add_prefix(common.KEY_EMBEDDING_MEANS, c): embedding_size,
         _add_prefix(common.KEY_EMBEDDING_STDDEVS, c): embedding_size,
     })
-  component_outputs, activations = simple_model(
-      input_features, output_sizes, is_training=is_training, **kwargs)
+  component_outputs, activations = base_model_fn(input_features, output_sizes)
 
   for c in range(num_embedding_components):
     component_outputs[_add_prefix(common.KEY_EMBEDDING_STDDEVS, c)] = (
@@ -310,80 +389,65 @@ def simple_gaussian_embedder(input_features,
   return outputs, activations
 
 
-def create_embedder(embedding_type, num_embedding_components, embedding_size):
-  """Creates an embedding model builder function handle.
+def create_embedder_helper(base_model_fn, embedding_type,
+                           num_embedding_components, embedding_size, **kwargs):
+  """Helper function for creating an embedding model builder function handle.
 
   Args:
+    base_model_fn: An enum string for base model type. See supported base model
+      types in the `common` module.
     embedding_type: An enum string for embedding type. See supported embedding
       types in the `common` module.
     num_embedding_components: An integer for the number of embedding components.
     embedding_size: An integer for embedding dimensionality.
+    **kwargs: A dictionary of additional arguments to embedder.
 
   Returns:
     A function handle for embedding model builder.
 
   Raises:
-    ValueError: If embedding type is not supported.
+    ValueError: If base model type or embedding type is not supported.
   """
   if embedding_type == common.EMBEDDING_TYPE_POINT:
     return functools.partial(
-        simple_point_embedder,
+        _point_embedder,
+        base_model_fn=base_model_fn,
         num_embedding_components=num_embedding_components,
         embedding_size=embedding_size)
+
   if embedding_type == common.EMBEDDING_TYPE_GAUSSIAN:
     return functools.partial(
-        simple_gaussian_embedder,
+        _gaussian_embedder,
+        base_model_fn=base_model_fn,
         num_embedding_components=num_embedding_components,
-        embedding_size=embedding_size)
+        embedding_size=embedding_size,
+        num_embedding_samples=kwargs.get('num_embedding_samples'),
+        seed=kwargs.get('seed', None))
 
   raise ValueError('Unsupported embedding type: `%s`.' % str(embedding_type))
 
 
-def embed(input_features, embedding_type, num_embedding_components,
-          embedding_size, **kwargs):
-  """An embedder wrapper with input/output transformation handling.
+def get_embedder(base_model_type, embedding_type, num_embedding_components,
+                 embedding_size, **kwargs):
+  """Gets an embedding model builder function handle.
 
   Args:
-    input_features: A tensor for input features. Shape = [batch_size,
-      feature_dim] or [batch_size, num_instances, feature_dim].
+    base_model_type: An enum string for base model type. See supported base
+      model types in the `common` module.
     embedding_type: An enum string for embedding type. See supported embedding
       types in the `common` module.
     num_embedding_components: An integer for the number of embedding components.
     embedding_size: An integer for embedding dimensionality.
-    **kwargs: A dictionary for additional arguments for embedder.
+    **kwargs: A dictionary of additional arguments to pass to base model and
+      embedder.
 
   Returns:
-    outputs: A dictionary for output tensors See comment above for details.
-    activations: A dictionary of addition activation tensors for pre-output
-      model activations. Keys include 'base_activations' and optionally
-      'bottleneck_activations'.
+    A function handle for embedding model builder.
   """
-  input_features_rank = len(input_features.shape.as_list())
-  if input_features_rank not in [2, 3]:
-    raise ValueError('Only supports input feature tensors of rank 2 or 3: %d.' %
-                     input_features_rank)
-
-  embedder_fn = create_embedder(embedding_type, num_embedding_components,
-                                embedding_size)
-
-  if input_features_rank == 2:
-    return embedder_fn(input_features, **kwargs)
-
-  sub_output_list, sub_activation_list = [], []
-  for sub_features in tf.unstack(input_features, axis=1):
-    sub_outputs, sub_activations = embedder_fn(sub_features, **kwargs)
-    sub_output_list.append(sub_outputs)
-    sub_activation_list.append(sub_activations)
-
-  outputs = {}
-  for key in sub_output_list[0].keys():
-    outputs[key] = tf.stack([sub_output[key] for sub_output in sub_output_list],
-                            axis=1)
-
-  activations = {}
-  for key in sub_activation_list[0].keys():
-    activations[key] = tf.stack(
-        [sub_activations[key] for sub_activations in sub_activation_list],
-        axis=1)
-
-  return outputs, activations
+  base_model_fn = get_model(base_model_type, **kwargs)
+  return create_embedder_helper(
+      base_model_fn,
+      embedding_type,
+      num_embedding_components=num_embedding_components,
+      embedding_size=embedding_size,
+      **kwargs)

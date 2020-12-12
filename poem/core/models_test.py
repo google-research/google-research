@@ -124,46 +124,45 @@ class ModelsTest(tf.test.TestCase):
     self.assertAllClose(activations_result['base_activations'],
                         [[750.0, 750.0]])
 
-  def test_simple_gaussian_embedder(self):
-    # Shape = [4, 2, 3].
-    input_features = tf.constant([[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
-                                  [[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]],
-                                  [[13.0, 14.0, 15.0], [16.0, 17.0, 18.0]],
-                                  [[19.0, 20.0, 21.0], [22.0, 23.0, 24.0]]])
-    outputs, activations = models.simple_gaussian_embedder(
-        input_features,
-        embedding_size=16,
-        num_embedding_components=3,
-        num_embedding_samples=32,
+  def test_get_simple_model(self):
+    input_features = tf.constant([[1.0, 2.0, 3.0]])
+    output_sizes = {'a': 4}
+    model_fn = models.get_model(
+        base_model_type=common.BASE_MODEL_TYPE_SIMPLE,
         is_training=True,
-        weight_max_norm=0.0)
+        num_hidden_nodes=2,
+        weight_initializer=tf.initializers.ones(),
+        bias_initializer=tf.initializers.zeros(),
+        weight_max_norm=0.0,
+        use_batch_norm=False,
+        dropout_rate=0.0,
+        num_fcs_per_block=2,
+        num_fc_blocks=3)
+    outputs, activations = model_fn(input_features, output_sizes)
 
-    self.assertCountEqual(outputs.keys(), [
-        common.KEY_EMBEDDING_MEANS,
-        common.KEY_EMBEDDING_STDDEVS,
-        common.KEY_EMBEDDING_SAMPLES,
-    ])
-    self.assertAllEqual(outputs[common.KEY_EMBEDDING_MEANS].shape.as_list(),
-                        [4, 2, 3, 16])
-    self.assertAllEqual(outputs[common.KEY_EMBEDDING_STDDEVS].shape.as_list(),
-                        [4, 2, 3, 16])
-    self.assertAllEqual(outputs[common.KEY_EMBEDDING_SAMPLES].shape.as_list(),
-                        [4, 2, 3, 32, 16])
-    self.assertCountEqual(activations.keys(), ['base_activations'])
-    self.assertAllEqual(activations['base_activations'].shape.as_list(),
-                        [4, 2, 1024])
+    with self.session() as sess:
+      sess.run(tf.initializers.global_variables())
+      outputs_result, activations_result = sess.run([outputs, activations])
 
-  def test_create_point_embedder(self):
+    self.assertCountEqual(outputs_result.keys(), ['a'])
+    self.assertAllClose(outputs_result['a'], [[1500.0, 1500.0, 1500.0, 1500.0]])
+    self.assertCountEqual(activations_result.keys(), ['base_activations'])
+    self.assertAllClose(activations_result['base_activations'],
+                        [[750.0, 750.0]])
+
+  def test_get_simple_point_embedder(self):
     # Shape = [4, 2, 3].
     input_features = tf.constant([[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
                                   [[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]],
                                   [[13.0, 14.0, 15.0], [16.0, 17.0, 18.0]],
                                   [[19.0, 20.0, 21.0], [22.0, 23.0, 24.0]]])
-    outputs, activations = models.create_embedder(
+    embedder_fn = models.get_embedder(
+        base_model_type=common.BASE_MODEL_TYPE_SIMPLE,
         embedding_type=common.EMBEDDING_TYPE_POINT,
         num_embedding_components=3,
-        embedding_size=16)(
-            input_features, is_training=True)
+        embedding_size=16,
+        is_training=True)
+    outputs, activations = embedder_fn(input_features)
 
     self.assertCountEqual(outputs.keys(), [common.KEY_EMBEDDING_MEANS])
     self.assertAllEqual(outputs[common.KEY_EMBEDDING_MEANS].shape.as_list(),
@@ -172,17 +171,21 @@ class ModelsTest(tf.test.TestCase):
     self.assertAllEqual(activations['base_activations'].shape.as_list(),
                         [4, 2, 1024])
 
-  def test_create_gaussian_embedder(self):
+  def test_get_simple_gaussian_embedder(self):
     # Shape = [4, 2, 3].
     input_features = tf.constant([[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
                                   [[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]],
                                   [[13.0, 14.0, 15.0], [16.0, 17.0, 18.0]],
                                   [[19.0, 20.0, 21.0], [22.0, 23.0, 24.0]]])
-    outputs, activations = models.create_embedder(
+    embedder_fn = models.get_embedder(
+        base_model_type=common.BASE_MODEL_TYPE_SIMPLE,
         embedding_type=common.EMBEDDING_TYPE_GAUSSIAN,
         num_embedding_components=3,
-        embedding_size=16)(
-            input_features, num_embedding_samples=32, is_training=False)
+        embedding_size=16,
+        num_embedding_samples=32,
+        is_training=True,
+        weight_max_norm=0.0)
+    outputs, activations = embedder_fn(input_features)
 
     self.assertCountEqual(outputs.keys(), [
         common.KEY_EMBEDDING_MEANS,
