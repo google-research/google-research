@@ -368,7 +368,11 @@ def compute_keypoint_triplet_losses(
       Shape = [num_anchors, ..., num_keypoints, keypoint_dim].
     margin: A float for triplet loss margin.
     min_negative_keypoint_distance: A float for the minimum negative distance
-      threshold.
+      threshold. If negative, uses all other samples as negative matches. In
+      this case, `num_anchors` and `num_matches` are assumed to be equal. Note
+      that this option is for saving negative match computation. To support
+      different `num_anchors` and `num_matches`, setting this to 0 (without
+      saving computation).
     use_semi_hard: A boolean for whether to use semi-hard negative triplet loss
       as the final loss.
     exclude_inactive_triplet_loss: A boolean for whether to exclude inactive
@@ -413,14 +417,19 @@ def compute_keypoint_triplet_losses(
   positive_embeddings = maybe_expand_sample_dim(positive_embeddings)
   match_embeddings = maybe_expand_sample_dim(match_embeddings)
 
-  anchor_match_negative_indicator_matrix = (
-      compute_negative_indicator_matrix(
-          anchor_points=anchor_keypoints,
-          match_points=match_keypoints,
-          distance_fn=keypoint_distance_fn,
-          min_negative_distance=min_negative_keypoint_distance,
-          anchor_point_masks=anchor_keypoint_masks,
-          match_point_masks=match_keypoint_masks))
+  if min_negative_keypoint_distance >= 0.0:
+    anchor_match_negative_indicator_matrix = (
+        compute_negative_indicator_matrix(
+            anchor_points=anchor_keypoints,
+            match_points=match_keypoints,
+            distance_fn=keypoint_distance_fn,
+            min_negative_distance=min_negative_keypoint_distance,
+            anchor_point_masks=anchor_keypoint_masks,
+            match_point_masks=match_keypoint_masks))
+  else:
+    num_anchors = tf.shape(anchor_keypoints)[0]
+    anchor_match_negative_indicator_matrix = tf.math.logical_not(
+        tf.eye(num_anchors, dtype=tf.bool))
 
   anchor_positive_distances = embedding_sample_distance_fn(
       anchor_embeddings, positive_embeddings)

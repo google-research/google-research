@@ -96,7 +96,8 @@ flags.DEFINE_string(
 flags.DEFINE_float(
     'min_negative_keypoint_mpjpe', 0.1,
     'Minimum MPJPE gap for two poses to be considered as negative match. Only'
-    ' used if `keypoint_distance_type` is `MPJPE`.')
+    ' used if `keypoint_distance_type` is `MPJPE`. If negative, uses all other '
+    'samples as negative matches.')
 
 # See `common_module.SUPPORTED_DISTANCE_TYPES`.
 flags.DEFINE_string('triplet_distance_type', 'SAMPLE',
