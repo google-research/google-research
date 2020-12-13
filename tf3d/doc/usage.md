@@ -90,7 +90,12 @@ convolved_features = conv_block(voxel_features, voxel_xyz_indices, num_valid_vox
 <p align="center"><img src="img/unet.png" width=743 height=394></p>
 
 Below is the code snippet that would create a sparse voxel u-net network that is
-shown above.
+shown above. Note that a horizontal arrow takes in the voxel features and
+applies a submanifold sparse convolution to it. An arrow that is moving down
+performs a submanifold sparse pooling. An arrow that is moving up will
+gather back the pooled features, concatenate them with the features coming
+from the horizontal arrow, and perform a submanifold sparse convolution on the
+concatenated features.
 
 ```python
 from tf3d.layers import sparse_voxel_unet
