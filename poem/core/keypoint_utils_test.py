@@ -346,6 +346,7 @@ class KeypointUtilsTest(tf.test.TestCase):
         [[0.2, 0.2], [0.6, 0.4], [1.0, 0.6]],
     ])
 
+
   def test_create_rotation_matrices_3d(self):
     # Shape = [3, 2].
     azimuths = tf.constant([[0.0, math.pi / 2.0], [math.pi / 2.0, 0.0],

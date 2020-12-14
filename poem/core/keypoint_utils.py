@@ -368,6 +368,8 @@ def compute_procrustes_aligned_mpjpes(target_points,
       aligned_source_points, target_points, point_masks=point_masks)
 
 
+
+
 def normalize_points_by_image_size(points, image_sizes):
   """Normalizes point coordinates by image sizes.
 
