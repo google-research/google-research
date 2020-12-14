@@ -54,8 +54,8 @@ class BaseAPMetric(tf.keras.metrics.Metric):
     else:
       self.label_map = None
     self.eval_prefix = eval_prefix
-    if label_map is not None:
-      self.class_range = label_map.keys()
+    if self.label_map is not None:
+      self.class_range = self.label_map.keys()
     elif num_classes is not None:
       self.class_range = range(num_classes)
     else:
@@ -72,7 +72,7 @@ class BaseAPMetric(tf.keras.metrics.Metric):
   def result(self):
     metrics_dict = self.get_metric_dictionary()
     return metrics_dict[self.eval_prefix +
-                        '_IOU{}_avg/mean_AP'.format(self.iou_threshold)]
+                        '_avg/mean_AP_IOU{}'.format(self.iou_threshold)]
 
   def get_metric_dictionary(self):
     metrics_dict = {}
@@ -123,7 +123,7 @@ class BaseAPMetric(tf.keras.metrics.Metric):
     mean_ap = _non_nan_mean(ap_list)
     metrics_dict[
         self.eval_prefix +
-        '_IOU{}_AP/avg'.format(self.iou_threshold)] = mean_ap
+        '_avg/mean_AP_IOU{}'.format(self.iou_threshold)] = mean_ap
     return metrics_dict
 
   def reset_states(self):

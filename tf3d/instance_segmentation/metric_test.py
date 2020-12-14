@@ -85,7 +85,7 @@ class MetricTest(tf.test.TestCase):
     for object_name in ['car', 'bus', 'sign', 'pedestrian', 'cyclist']:
       self.assertIn('eval_IOU{}_AP/{}'.format(iou_threshold, object_name),
                     metrics_dict)
-    self.assertIn('eval_IOU{}_AP/avg'.format(iou_threshold), metrics_dict)
+    self.assertIn('eval_avg/mean_AP_IOU{}'.format(iou_threshold), metrics_dict)
 
 
 if __name__ == '__main__':
