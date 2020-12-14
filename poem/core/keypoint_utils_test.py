@@ -416,6 +416,90 @@ class KeypointUtilsTest(tf.test.TestCase):
          [[-7.0 / 11.0, 8.0 / 11.0], [-10.0 / 14.0, 11.0 / 14.0]],
          [[-13.0 / 17.0, 14.0 / 17.0], [-16.0 / 20.0, 17.0 / 20.0]]])
 
+  def test_random_rotate_and_project_temporal_3d_to_2d_without_default_camera(
+      self):
+    keypoints_3d_t1 = tf.constant([[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
+                                   [[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]],
+                                   [[13.0, 14.0, 15.0], [16.0, 17.0, 18.0]]])
+    keypoints_3d_t2 = tf.constant([[[1.2, 2.2, 3.2], [4.2, 5.2, 6.2]],
+                                   [[7.4, 8.4, 9.4], [10.4, 11.4, 12.4]],
+                                   [[13.8, 14.8, 15.8], [16.8, 17.8, 18.8]]])
+    keypoints_3d_t3 = tf.constant([[[1.5, 2.5, 3.5], [4.5, 5.5, 6.5]],
+                                   [[7.6, 8.6, 9.6], [10.6, 11.6, 12.6]],
+                                   [[13.7, 14.7, 15.7], [16.7, 17.7, 18.7]]])
+    keypoints_3d = tf.stack(
+        [keypoints_3d_t1, keypoints_3d_t2, keypoints_3d_t3],
+        axis=-3)
+    keypoints_2d = keypoint_utils.random_rotate_and_project_3d_to_2d(
+        keypoints_3d,
+        azimuth_range=(math.pi / 2.0, math.pi / 2.0),
+        elevation_range=(-math.pi / 2.0, -math.pi / 2.0),
+        roll_range=(math.pi, math.pi),
+        default_camera=False,
+        sequential_inputs=True)
+    self.assertAllClose(
+        keypoints_2d,
+        [[[[2.0 / 1.0, 3.0 / 1.0], [5.0 / 4.0, 6.0 / 4.0]],
+          [[2.2 / 1.2, 3.2 / 1.2], [5.2 / 4.2, 6.2 / 4.2]],
+          [[2.5 / 1.5, 3.5 / 1.5], [5.5 / 4.5, 6.5 / 4.5]]],
+         [[[8.0 / 7.0, 9.0 / 7.0], [11.0 / 10.0, 12.0 / 10.0]],
+          [[8.4 / 7.4, 9.4 / 7.4], [11.4 / 10.4, 12.4 / 10.4]],
+          [[8.6 / 7.6, 9.6 / 7.6], [11.6 / 10.6, 12.6 / 10.6]]],
+         [[[14.0 / 13.0, 15.0 / 13.0], [17.0 / 16.0, 18.0 / 16.0]],
+          [[14.8 / 13.8, 15.8 / 13.8], [17.8 / 16.8, 18.8 / 16.8]],
+          [[14.7 / 13.7, 15.7 / 13.7], [17.7 / 16.7, 18.7 / 16.7]]]])
+
+  def test_random_rotate_and_project_temporal_3d_to_2d_with_default_camera(
+      self):
+    keypoints_3d_t1 = tf.constant([[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
+                                   [[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]],
+                                   [[13.0, 14.0, 15.0], [16.0, 17.0, 18.0]]])
+    keypoints_3d_t2 = tf.constant([[[1.2, 2.2, 3.2], [4.2, 5.2, 6.2]],
+                                   [[7.4, 8.4, 9.4], [10.4, 11.4, 12.4]],
+                                   [[13.8, 14.8, 15.8], [16.8, 17.8, 18.8]]])
+    keypoints_3d_t3 = tf.constant([[[1.5, 2.5, 3.5], [4.5, 5.5, 6.5]],
+                                   [[7.6, 8.6, 9.6], [10.6, 11.6, 12.6]],
+                                   [[13.7, 14.7, 15.7], [16.7, 17.7, 18.7]]])
+    keypoints_3d = tf.stack(
+        [keypoints_3d_t1, keypoints_3d_t2, keypoints_3d_t3],
+        axis=-3)
+    keypoints_2d = keypoint_utils.random_rotate_and_project_3d_to_2d(
+        keypoints_3d,
+        azimuth_range=(math.pi / 2.0, math.pi / 2.0),
+        elevation_range=(-math.pi / 2.0, -math.pi / 2.0),
+        roll_range=(math.pi, math.pi),
+        default_camera=True,
+        sequential_inputs=True)
+
+    self.assertAllClose(
+        keypoints_2d,
+        [[[[-1.0 / 5.0, 2.0 / 5.0], [-4.0 / 8.0, 5.0 / 8.0]],
+          [[-1.2 / 5.2, 2.2 / 5.2], [-4.2 / 8.2, 5.2 / 8.2]],
+          [[-1.5 / 5.5, 2.5 / 5.5], [-4.5 / 8.5, 5.5 / 8.5]]],
+         [[[-7.0 / 11.0, 8.0 / 11.0], [-10.0 / 14.0, 11.0 / 14.0]],
+          [[-7.4 / 11.4, 8.4 / 11.4], [-10.4 / 14.4, 11.4 / 14.4]],
+          [[-7.6 / 11.6, 8.6 / 11.6], [-10.6 / 14.6, 11.6 / 14.6]]],
+         [[[-13.0 / 17.0, 14.0 / 17.0], [-16.0 / 20.0, 17.0 / 20.0]],
+          [[-13.8 / 17.8, 14.8 / 17.8], [-16.8 / 20.8, 17.8 / 20.8]],
+          [[-13.7 / 17.7, 14.7 / 17.7], [-16.7 / 20.7, 17.7 / 20.7]]]])
+
+  def test_create_smooth_rotation_matrices(self):
+    start_euler_angles = (-math.pi, -math.pi / 6.0, -math.pi / 6.0)
+    end_euler_angles = (math.pi, math.pi / 6.0, math.pi / 6.0)
+    metrics = keypoint_utils.create_smooth_rotation_matrices(
+        start_euler_angles, end_euler_angles, num_views=3)
+    self.assertAllClose(
+        metrics,
+        [[[-0.866, -0.25, 0.433],
+          [0., -0.866, -0.5],
+          [0.5, -0.433, 0.75]],
+         [[1.0, 0.0, 0.0],
+          [0.0, 1.0, 0.0],
+          [0.0, 0.0, 1.0]],
+         [[-0.866, -0.25, -0.433],
+          [-0.0, -0.866, 0.5],
+          [-0.5, 0.433, 0.75]]], atol=1e-04)
+
   def test_select_keypoints_by_name(self):
     input_keypoints = tf.constant([
         [0.0, 0.0, 0.0],

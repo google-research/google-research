@@ -60,6 +60,7 @@ def preprocess_keypoints_2d(keypoints_2d,
                             elevation_range=(-math.pi / 6.0, math.pi / 6.0),
                             roll_range=(-math.pi / 6.0, math.pi / 6.0),
                             projection_mix_batch_assignment=None,
+                            sequential_inputs=False,
                             seed=None):
   """Preprocesses input 2D keypoints.
 
@@ -88,6 +89,9 @@ def preprocess_keypoints_2d(keypoints_2d,
       for mixing batches of input/projection keypoints. Shape = [batch_size,
       ..., num_instances]. If None, input/projection keypoints are mixed roughly
       evenly following a uniform distribution.
+    sequential_inputs: A boolean flag indicating whether the inputs are
+      sequential. If True, the input keypoints are supposed to be in shape
+      [..., sequence_length, num_keypoints, keypoint_dim].
     seed: An integer for random seed.
 
   Returns:
@@ -114,6 +118,7 @@ def preprocess_keypoints_2d(keypoints_2d,
         elevation_range=elevation_range,
         roll_range=roll_range,
         default_camera_z=1.0 / keypoint_profile_2d.scale_unit,
+        sequential_inputs=sequential_inputs,
         seed=seed)
     keypoint_masks_2d = tf.ones(tf.shape(keypoints_2d)[:-1], dtype=tf.float32)
 
@@ -132,6 +137,7 @@ def preprocess_keypoints_2d(keypoints_2d,
             elevation_range=elevation_range,
             roll_range=roll_range,
             default_camera_z=1.0 / keypoint_profile_2d.scale_unit,
+            sequential_inputs=sequential_inputs,
             seed=seed))
     projected_keypoint_masks_2d = tf.ones(
         tf.shape(projected_keypoints_2d)[:-1], dtype=tf.float32)
@@ -159,6 +165,7 @@ def create_model_input(keypoints_2d,
                        azimuth_range=(-math.pi, math.pi),
                        elevation_range=(-math.pi / 6.0, math.pi / 6.0),
                        roll_range=(-math.pi / 6.0, math.pi / 6.0),
+                       sequential_inputs=False,
                        seed=None):
   """Creates model input features from input keypoints.
 
@@ -184,6 +191,9 @@ def create_model_input(keypoints_2d,
       randomly rotate 3D keypoints with.
     roll_range: A tuple for minimum and maximum roll angles to randomly rotate
       3D keypoints with.
+    sequential_inputs: A boolean flag indicating whether the inputs are
+      sequential. If True, the input keypoints are supposed to be in shape
+      [..., sequence_length, num_keypoints, keypoint_dim].
     seed: An integer for random seed.
 
   Returns:
@@ -207,6 +217,7 @@ def create_model_input(keypoints_2d,
           azimuth_range=azimuth_range,
           elevation_range=elevation_range,
           roll_range=roll_range,
+          sequential_inputs=sequential_inputs,
           seed=seed))
 
   side_outputs = {}
