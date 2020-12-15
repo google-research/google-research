@@ -16,6 +16,7 @@
 """Wrapper for streaming inference."""
 
 from absl import logging
+from kws_streaming.layers import average_pooling2d
 from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 
@@ -99,9 +100,10 @@ class Stream(tf.keras.layers.Layer):
       # and do not check what is the type of the cell
       pass
     elif isinstance(
-        cell, (tf.keras.layers.Conv1D, tf.keras.layers.Conv2D,
-               tf.keras.layers.DepthwiseConv2D, tf.keras.layers.SeparableConv2D,
-               tf.keras.layers.SeparableConv1D)):
+        cell,
+        (tf.keras.layers.Conv1D, tf.keras.layers.Conv2D,
+         tf.keras.layers.DepthwiseConv2D, tf.keras.layers.SeparableConv2D,
+         tf.keras.layers.SeparableConv1D, average_pooling2d.AveragePooling2D)):
       padding = cell.get_config()['padding']
       strides = cell.get_config()['strides']
 
