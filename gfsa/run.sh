@@ -20,10 +20,8 @@ set -x
 
 virtualenv -p python3.6 .venv_gfsa
 source .venv_gfsa/bin/activate
+pip install --upgrade pip
 pip install -r gfsa/requirements.txt
 
 # Run unit tests.
 find gfsa -name "*_test.py" | xargs python -m unittest
-
-# TODO(ddjohnson): Add simple training jobs with small models to ensure that we
-# can train successfully, once training data is available on GCS.
