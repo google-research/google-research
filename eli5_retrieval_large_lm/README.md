@@ -1,13 +1,34 @@
+
 # GPT2 and Retrieval
+Project realized by **Jules Gagnon-Marchand** ([Mila](mila.quebec)) while interning at Google Brain,
+
+under the supervision of **Noam Shazeer** (Brain) and **Aurko Roy** (Brain).
+
+*[jgagnonmarchand@gmail.com](jgagnonmarchand@gmail.com), [noam@google.com](noam@google.com), [aurkor@google.com](aurkor@google.com)*
+
+
 ### Description
 The objective is to test a reasonably large language model 
 (GPT2-XL, 1.5B parameters) on the [Kilt](https://ai.facebook.com/tools/kilt/) 
-version of the [ELI5](https://www.aclweb.org/anthology/P19-1346/) task when 
+version of the [ELI5](https://www.aclweb.org/anthology/P19-1346/) task when it is
 combined with a retriever ([REALM](https://arxiv.org/abs/2002.08909) in this case). 
 
-The objective is to observe whether larger causal language models can make use of the 
-retrieved reference data, as their reasoning capacities are stronger than that 
-previously tested models. 
+
+We wanted to observe whether larger causal language models can make use of the 
+retrieved contextual information, as their reasoning capacities are stronger than that 
+previously tested models. Indeed, it has been shown recently that smaller 
+language models don't make use of the retrieved text in the context of ELI5. 
+In this project we investigate whether increasing the model capacity can play a 
+role in making the models use retrievals. Models with increased capacity have 
+improved reasoning capabilities, which may help here.
+
+Once the usefulness of retrievals for larger language models would be established, 
+inspecting what kinds of retrievals are useful and why would be a next step, as 
+well as investigating the effects of the retrieval on factual consistency in 
+generation, which is a problem of major interest right now, with massive 
+financial implications, as it would allow the use of generative text models in 
+products (other than translation).
+
 
 Inspecting what kinds of retrievals are useful and why would be a next step, as 
 well as investigating the effects of the retrieval on factual consistency in 
@@ -43,11 +64,15 @@ using the REALM query embedder on the question.
 Instead of using ScaNN to do live retrievals at training and evaluation time,
 as the questions don't change, we do all the retrievals in advance with an 
 exact retriever. Each question is embedded with the REALM retriever, and 
-we save a number (100) of exact MIP nearest neighbors in an HDF5 file, as well
+we save a number (100) of exact MIP nearest neighbors in TFRecord files, as well
 as the id of the question they are associated with. We save the indices 
 of the REALM wikipedia segments DB of the MIP nearest neighbors, as well as the 
 inner products, so the inner products can be used as logits for sampling, at
-language model training time.
+language model training time. We started by using HDF5 instead of TFRecords,
+but it turns out that `tf.data` tries to load the whole file in memory,
+defeating the point of a memory mapped array (and often crashing the instance),
+and didn't allow to use `tf.distribute.TPUStrategy.experimental_distribute_dataset`
+and automatic dataset sharding per TPU. 
 
 When we train over ELI5 with GPT2, we use the indices of the current question
 to get back the indices of the entries of the REALM Wikipedia segments that are
@@ -71,9 +96,10 @@ our experience, a single V100 is enough (done in slightly over an hour).
 
 
 ### Executables:
-- **`main.py`**: Script to launch the training of one of the different approaches.
-- **`query_cacher.py`**: Script to prepare the pre-made retrievals for ELI5, 
-for the FullyCachedRetriever
+- **`main.py`**: Script to launch the distributed training of one of the different approaches.
+- **`generation.py`**: Script to launch generation from previously trained models. Also massively distributed.
+- **`query_cacher_tfrecord.py`**: Script to prepare the pre-made retrievals for ELI5, 
+for the FullyCachedRetriever, with TFRecords.
 - **`util_scripts/scann_test_recall.py`**: Tests the recall of one's desired Scann configuration
 for a certain specified datast, by comparing to exact retrieval.
 - `check_flags.py`: Tool that looks at a script to check if

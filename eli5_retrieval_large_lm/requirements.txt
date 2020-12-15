@@ -1,17 +1,14 @@
+tf-nightly
 tensor2tensor
-tensorflow
-tensorflow_datasets
-tensorflow_hub
-tensorflow_text
+# tensorflow_hub
+# tensorflow_text
 transformers
 absl-py
 colorama
 numpy
 tqdm
 datasets
-google-cloud-storage
-scann
+# google-cloud-storage
+# scann
 psutil
-h5py
-tensorflow_io
-torch
+# h5py

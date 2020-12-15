@@ -32,7 +32,6 @@ from absl import logging as absl_logging
 import colorama
 import constants
 import numpy as np
-import retrievers
 import task_specific
 import tensor2tensor.utils.adafactor
 import tensorflow as tf
@@ -46,6 +45,12 @@ import utils
 LOGGER = logging.getLogger(__name__)
 SCRIPT_DIRECTORY = os.path.realpath(os.path.dirname(__file__))
 
+LOGGER.debug(
+    "############################################################"
+    ">>>>>>>>>>>>>>> Tensorflow version: %s <<<<<<<<<<<<<<<<"
+    "############################################################",
+    str(tf.__version__)
+)
 
 ################################################################################
 # Flag Definitions
@@ -475,39 +480,41 @@ def main(argv):
   # Not currently used.
 
   retriever = None
-  if (FLAG_APPROACH_TYPE.value ==
-      constants.ApproachTypeChoices.lm_and_realm):
-    config_path = FLAG_RETRIEVER_CONFIG_PATH.value
-    realm_save = tf_utils.REALMSave(**utils.from_json_file(config_path))
+  # if (FLAG_APPROACH_TYPE.value ==
+  #     constants.ApproachTypeChoices.lm_and_realm):
+  #   raise NotImplementedError("This part needs to be tested anew.")
+    # config_path = FLAG_RETRIEVER_CONFIG_PATH.value
+    # realm_save = tf_utils.REALMSave(**utils.from_json_file(config_path))
+    #
+    # # Approx 15 min when not in dev mode, on CPU
+    # with utils.log_duration(LOGGER, "main",
+    #                         "whole of BERTScaNNRetriever.__init__",
+    #                         logging.INFO):
+    #   scann_config = retrievers.ScannConfig(
+    #       **utils.from_json_file(FLAG_SCANN_CONFIG_PATH.value))
+    #   retriever = retrievers.BERTScaNNRetriever(
+    #       retriever_module_path=realm_save.query_embedder_path,
+    #       block_records_path=realm_save.text_records,
+    #       num_block_records=realm_save.num_block_records,
+    #       mode=tf.estimator.ModeKeys.EVAL,
+    #       scann_config=scann_config)
 
-    # Approx 15 min when not in dev mode, on CPU
-    with utils.log_duration(LOGGER, "main",
-                            "whole of BERTScaNNRetriever.__init__",
-                            logging.INFO):
-      scann_config = retrievers.ScannConfig(
-          **utils.from_json_file(FLAG_SCANN_CONFIG_PATH.value))
-      retriever = retrievers.BERTScaNNRetriever(
-          retriever_module_path=realm_save.query_embedder_path,
-          block_records_path=realm_save.text_records,
-          num_block_records=realm_save.num_block_records,
-          mode=tf.estimator.ModeKeys.EVAL,
-          scann_config=scann_config)
-
-  elif (FLAG_APPROACH_TYPE.value ==
-        constants.ApproachTypeChoices.cached_realm):
-    config_path = FLAG_RETRIEVER_CONFIG_PATH.value
-    realm_save = tf_utils.REALMSave(**utils.from_json_file(config_path))
-
-    # Approx 15 min when not in dev mode, on CPU
-    with utils.log_duration(LOGGER, "main",
-                            "whole of FullyCachedRetriever.__init__",
-                            logging.INFO):
-
-      retriever = retrievers.FullyCachedRetriever(
-          db_path=FLAG_FULLYCACHED_H5_PATH.value,
-          block_records_path=realm_save.text_records,
-          num_block_records=realm_save.num_block_records,
-          )
+  # elif (FLAG_APPROACH_TYPE.value ==
+  #       constants.ApproachTypeChoices.cached_realm):
+  #   raise NotImplementedError("This part needs to be tested anew.")
+    # config_path = FLAG_RETRIEVER_CONFIG_PATH.value
+    # realm_save = tf_utils.REALMSave(**utils.from_json_file(config_path))
+    #
+    # # Approx 15 min when not in dev mode, on CPU
+    # with utils.log_duration(LOGGER, "main",
+    #                         "whole of FullyCachedRetriever.__init__",
+    #                         logging.INFO):
+    #
+    #   retriever = retrievers.FullyCachedRetriever(
+    #       db_path=FLAG_FULLYCACHED_H5_PATH.value,
+    #       block_records_path=realm_save.text_records,
+    #       num_block_records=realm_save.num_block_records,
+    #       )
 
   ##############################################################################
   # Distributed training task
