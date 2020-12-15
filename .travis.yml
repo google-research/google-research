@@ -89,6 +89,7 @@ env:
     - PROJECT="stochastic_to_deterministic"
     - PROJECT="storm_optimizer"
     - PROJECT="strategic_exploration"
+    - PROJECT="structformer"
     - PROJECT="sufficient_input_subsets"
     - PROJECT="t5_closed_book_qa"
     - PROJECT="tabnet"
