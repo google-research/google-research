@@ -273,7 +273,7 @@ flags.DEFINE_integer('task', 0, 'Task replica identifier for training.')
 
 
 def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
-                        keypoint_distance_config_override):
+                        keypoint_distance_config_override, embedder_fn_kwargs):
   """Validates and sets up training configurations."""
   # Set default values for unspecified flags.
   if FLAGS.use_normalized_embeddings_for_triplet_mining is None:
@@ -387,7 +387,7 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
               num_bottleneck_nodes=FLAGS.num_bottleneck_nodes,
               weight_max_norm=FLAGS.weight_max_norm,
               dropout_rate=FLAGS.dropout_rate,
-              affinity_matrix=keypoint_profile_2d.keypoint_affinity_matrix),
+              **embedder_fn_kwargs),
       'triplet_embedding_keys':
           pipeline_utils.get_embedding_keys(
               FLAGS.triplet_distance_type, common_module=common_module),
@@ -474,7 +474,8 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
 
 def run(master, input_dataset_class, common_module, keypoint_profiles_module,
         models_module, input_example_parser_creator, keypoint_preprocessor_3d,
-        create_model_input_fn, keypoint_distance_config_override):
+        create_model_input_fn, keypoint_distance_config_override,
+        embedder_fn_kwargs):
   """Runs training pipeline.
 
   Args:
@@ -490,12 +491,15 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
     create_model_input_fn: A function handle for creating model inputs.
     keypoint_distance_config_override: A dictionary for keypoint distance
       configuration to override the defaults. Ignored if empty.
+    embedder_fn_kwargs: A dictionary of additional kwargs for creating the
+      embedder function.
   """
   configs = _validate_and_setup(
       common_module=common_module,
       keypoint_profiles_module=keypoint_profiles_module,
       models_module=models_module,
-      keypoint_distance_config_override=keypoint_distance_config_override)
+      keypoint_distance_config_override=keypoint_distance_config_override,
+      embedder_fn_kwargs=embedder_fn_kwargs)
 
   g = tf.Graph()
   with g.as_default():
