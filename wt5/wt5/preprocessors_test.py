@@ -17,7 +17,7 @@
 import functools
 
 from absl.testing import absltest
-from t5.data import test_utils
+import t5.data
 import tensorflow.compat.v1 as tf
 
 from wt5.wt5 import preprocessors
@@ -35,7 +35,7 @@ class PreprocessorsTest(absltest.TestCase):
     }
     og_dataset = tf.data.Dataset.from_tensors(input_data)
     dataset = preprocessors.cos_e(og_dataset)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         {
             'inputs': 'explain cos_e question: Question? choice: First choice: '
@@ -55,7 +55,7 @@ class PreprocessorsTest(absltest.TestCase):
     og_dataset = tf.data.Dataset.from_tensors(input_data)
     dataset = preprocessors.cos_e(og_dataset, prefix='explain nli',
                                   question_prefix='premise:')
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         {
             'inputs': 'explain nli premise: Question? choice: First choice: '
@@ -75,7 +75,7 @@ class PreprocessorsTest(absltest.TestCase):
     og_dataset = tf.data.Dataset.from_tensors(input_data)
     dataset = functools.partial(preprocessors.cos_e, prefix='explain nli',
                                 question_prefix='premise:')(og_dataset)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         {
             'inputs': 'explain nli premise: Question? choice: First choice: '
@@ -99,7 +99,7 @@ class PreprocessorsTest(absltest.TestCase):
         question_prefix='premise:',
         choice_prefix='hypothesis:')(
             og_dataset)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset, {
             'inputs':
                 'explain nli premise: Question? hypothesis: First hypothesis: '
@@ -118,7 +118,7 @@ class PreprocessorsTest(absltest.TestCase):
     og_dataset = tf.data.Dataset.from_tensors(input_data)
     dataset = preprocessors.esnli(og_dataset)
 
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         {
             'inputs':
@@ -141,7 +141,7 @@ class PreprocessorsTest(absltest.TestCase):
         preprocessors.esnli, add_choices=True)(
             og_dataset)
 
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset, {
             'inputs':
                 ('explain nli hypothesis: It is sunny. premise: It is hot. '
@@ -163,7 +163,7 @@ class PreprocessorsTest(absltest.TestCase):
     og_dataset = tf.data.Dataset.from_tensors(input_data)
     dataset = preprocessors.esnli(og_dataset)
 
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         {
             'inputs':
@@ -187,7 +187,7 @@ class PreprocessorsTest(absltest.TestCase):
     dataset = preprocessors.esnli(
         og_dataset, prefix='nli', drop_explanations=True)
 
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         {
             'inputs': 'nli hypothesis: It is sunny. premise: It is hot.',
@@ -205,7 +205,7 @@ class PreprocessorsTest(absltest.TestCase):
     og_dataset = tf.data.Dataset.from_tensors(input_data)
 
     dataset = preprocessors.extractive_explanations(og_dataset)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         {
             'inputs': 'explain sentiment review: This was a terrible movie. '
@@ -226,7 +226,7 @@ class PreprocessorsTest(absltest.TestCase):
 
     dataset = preprocessors.extractive_explanations(
         og_dataset, drop_explanations=True)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         {
             'inputs': 'explain sentiment review: This was a terrible movie. '
@@ -248,7 +248,7 @@ class PreprocessorsTest(absltest.TestCase):
 
     dataset = preprocessors.amazon_reviews(og_dataset)
 
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         {
             'inputs': 'sentiment review: Great headphones Loved the '
@@ -258,7 +258,7 @@ class PreprocessorsTest(absltest.TestCase):
 
     dataset = preprocessors.amazon_reviews(og_dataset, binary_output=False)
 
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         {
             'inputs': 'sentiment review: Great headphones Loved the '
@@ -279,11 +279,11 @@ class PreprocessorsTest(absltest.TestCase):
 
     dataset = preprocessors.amazon_reviews(og_dataset)
 
-    test_utils.assert_dataset(dataset, [])
+    t5.data.assert_dataset(dataset, [])
 
     dataset = preprocessors.amazon_reviews(og_dataset, binary_output=False)
 
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         {
             'inputs': 'sentiment review: okay headphones the sound quality of '
@@ -309,7 +309,7 @@ class PreprocessorsTest(absltest.TestCase):
     og_dataset = tf.data.Dataset.from_tensors(input_data)
 
     dataset = preprocessors.eraser_multi_rc(og_dataset)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset, {
             'inputs':
                 'explain multirc passage: This is a multi line passage. \nIt is '
@@ -338,7 +338,7 @@ class PreprocessorsTest(absltest.TestCase):
     og_dataset = tf.data.Dataset.from_tensors(input_data)
 
     dataset = preprocessors.eraser_multi_rc(og_dataset, drop_explanations=True)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset, {
             'inputs':
                 'explain multirc passage: This is a multi line passage. \nIt is '
@@ -358,7 +358,7 @@ class PreprocessorsTest(absltest.TestCase):
 
     dataset = preprocessors.imdb_reviews(og_dataset)
 
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         [
             {'inputs': 'sentiment: great movie', 'targets': 'positive'},

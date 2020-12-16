@@ -17,7 +17,7 @@
 """Tests for T5 CBQA preprocessors."""
 
 from absl.testing import absltest
-from t5.data import test_utils
+import t5.data
 import tensorflow.compat.v1 as tf
 
 from t5_closed_book_qa.t5_cbqa import preprocessors
@@ -104,7 +104,7 @@ class PreprocessorsTest(absltest.TestCase):
         }).map(_short_ans_to_ragged)
 
     dataset = preprocessors.natural_questions_nocontext(og_dataset)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         [
             {
@@ -128,7 +128,7 @@ class PreprocessorsTest(absltest.TestCase):
 
     dataset = preprocessors.natural_questions_nocontext(
         og_dataset, drop_yes_no=True)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         [
             {
@@ -150,7 +150,7 @@ class PreprocessorsTest(absltest.TestCase):
 
     dataset = preprocessors.natural_questions_nocontext(
         og_dataset, max_tokens=2)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         [
             {
@@ -172,7 +172,7 @@ class PreprocessorsTest(absltest.TestCase):
 
     dataset = preprocessors.natural_questions_nocontext(
         og_dataset, max_answers=1)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         [
             {
@@ -194,7 +194,7 @@ class PreprocessorsTest(absltest.TestCase):
 
     dataset = preprocessors.natural_questions_nocontext(
         og_dataset, drop_yes_no=True, max_tokens=2, max_answers=1)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         [
             {
@@ -216,7 +216,7 @@ class PreprocessorsTest(absltest.TestCase):
 
     dataset = preprocessors.natural_questions_nocontext(
         og_dataset, drop_yes_no=True, max_tokens=1)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         [
             {
@@ -236,7 +236,7 @@ class PreprocessorsTest(absltest.TestCase):
     }
     og_dataset = tf.data.Dataset.from_tensors(input_data)
     dataset = preprocessors.natural_questions_open(og_dataset)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         {
             'inputs': 'nq question: What are the names of the Olsen Twins?',
@@ -258,7 +258,7 @@ class PreprocessorsTest(absltest.TestCase):
 
     dataset = preprocessors.trivia_qa_open(og_dataset)
 
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         {
             'inputs':
@@ -278,7 +278,7 @@ class PreprocessorsTest(absltest.TestCase):
 
     dataset = preprocessors.web_questions_open(og_dataset)
 
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         {
             'inputs': 'wq question: What are the names of the Olsen Twins?',
@@ -296,7 +296,7 @@ class PreprocessorsTest(absltest.TestCase):
     og_dataset = tf.data.Dataset.from_tensors(input_data)
 
     tf.set_random_seed(42)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         preprocessors.sample_answer(og_dataset),
         {
             'inputs': 'What are the names of the Olsen Twins?',
@@ -305,7 +305,7 @@ class PreprocessorsTest(absltest.TestCase):
         }
     )
     tf.set_random_seed(420)
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         preprocessors.sample_answer(og_dataset),
         {
             'inputs': ['What are the names of the Olsen Twins?'],
@@ -353,7 +353,7 @@ class PreprocessorsTest(absltest.TestCase):
 
     dataset = preprocessors.mask_salient_spans(og_dataset)
 
-    test_utils.assert_dataset(
+    t5.data.assert_dataset(
         dataset,
         [
             {
