@@ -197,7 +197,7 @@ def create_model_helper(base_model_fn):
     outputs, activations = model_fn(input_features, output_sizes),
 
   where `input_features` has shape [batch_size, feature_dim] or [batch_size,
-  num_instances, feature_dim].
+  num_instances, ..., feature_dim].
 
   Args:
     base_model_fn: A function handle for base model.
@@ -209,9 +209,9 @@ def create_model_helper(base_model_fn):
   def model_fn(input_features, output_sizes):
     """Applies model to input features and produces output of given sizes."""
     input_features_rank = len(input_features.shape.as_list())
-    if input_features_rank not in [2, 3]:
+    if input_features_rank < 2:
       raise ValueError(
-          'Only supports input feature tensors of rank 2 or 3: %d.' %
+          'Only supports input feature tensors of rank at least 2: %d.' %
           input_features_rank)
 
     if input_features_rank == 2:
@@ -248,7 +248,7 @@ def get_model(base_model_type, **kwargs):
     outputs, activations = model_fn(input_features, output_sizes),
 
   where `input_features` has shape [batch_size, feature_dim] or [batch_size,
-  num_instances, feature_dim].
+  num_instances, ..., feature_dim].
 
   Args:
     base_model_type: An enum string for base model type. See supported base
