@@ -1,0 +1,1 @@
+recursive-include tensorflow_sparse_conv_ops *.so

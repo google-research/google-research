@@ -159,7 +159,7 @@ gen_op_cclib(
 )
 
 cc_binary(
-    name = "python/_sparse_conv_ops.so",
+    name = "tensorflow_sparse_conv_ops/_sparse_conv_ops.so",
     srcs = [],
     copts = select({
         ":windows": [
@@ -226,9 +226,9 @@ cc_binary(
 py_test(
     name = "sparse_conv_ops_py_test",
     srcs = [
-        "python/sparse_conv_ops_test.py",
+        "tensorflow_sparse_conv_ops/sparse_conv_ops_test.py",
     ],
-    main = "python/sparse_conv_ops_test.py",
+    main = "tensorflow_sparse_conv_ops/sparse_conv_ops_test.py",
     srcs_version = "PY2AND3",
     deps = [
         ":sparse_conv_ops_py",
@@ -238,11 +238,22 @@ py_test(
 py_library(
     name = "sparse_conv_ops_py",
     srcs = [
-        "python/__init__.py",
-        "python/sparse_conv_ops.py",
+        "tensorflow_sparse_conv_ops/__init__.py",
+        "tensorflow_sparse_conv_ops/sparse_conv_ops.py",
     ],
     data = [
-        ":python/_sparse_conv_ops.so",
+        ":tensorflow_sparse_conv_ops/_sparse_conv_ops.so",
     ],
     srcs_version = "PY2AND3",
+)
+
+
+sh_binary(
+    name = "build_pip_pkg",
+    srcs = ["build_pip_pkg.sh"],
+    data = [
+        "MANIFEST.in",
+        "setup.py",
+        ":sparse_conv_ops_py",
+    ],
 )

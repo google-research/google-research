@@ -1,19 +1,17 @@
 # TF3D Setup
 
-[TOC]
-
 ## Requirements
 
 [![Python 3.6](https://img.shields.io/badge/Python-3.6-3776AB?logo=python)](https://www.python.org/downloads/release/python-360/)
-[![TensorFlow 2.3.0](https://img.shields.io/badge/TensorFlow-2.3-FF6F00?logo=tensorflow)](https://github.com/tensorflow/tensorflow/releases/tag/v2.3.0)
+[![TensorFlow 2.3](https://img.shields.io/badge/TensorFlow-2.3-FF6F00?logo=tensorflow)](https://github.com/tensorflow/tensorflow/releases/tag/v2.3.0)
 [![Tensorflow Datasets](https://img.shields.io/badge/TensorFlow%20Datasets-4.1.0-FF6F00?logo=tensorflow)](https://github.com/tensorflow/datasets)
 [![Numpy](https://img.shields.io/badge/Numpy-1.18.5-000000?&logo=numpy)](https://numpy.org)
 [![Gin Config](https://img.shields.io/badge/Gin%20Config-0.4.0-000000?&logo=random)](https://github.com/google/gin-config)
 
 ## Install
 
-The following steps are based on Ubuntu 18.04 on Google Cloud Platform, please
-modify it based on your settings.
+The following steps are based on a single GPU-enabled machine (node) with an Ubuntu 18.04 image on Google Cloud Platform, please
+modify it based on your settings. Please check the [GCP guide](https://cloud.google.com/ai-platform/training/docs/using-gpus) for starting an instance (with up to 8 GPUs locally). Multi-machines (nodes) distributed training is beyond this guide's scope. However, it is supported in our training code once the machines are configured with `TF_CONFIG` ([details](https://cloud.google.com/ai-platform/training/docs/distributed-training-details)) and the training `bash` script is configured accordingly.
 
 1.  Install the following packages:
 
@@ -58,10 +56,12 @@ modify it based on your settings.
     sudo apt install protobuf-compiler python3-dev
     ```
 
-1.  Follow the instructions in `tf3d/ops` folder to install the `docker` and
-    compile the custom ops.
+1.  Follow the instructions in `tf3d/ops` folder to prepare the sparse conv ops.
+
 
 ## Prepare the data
 
 Please follow the instructions in [TensorFlow 3D Datasets](tf3d_datasets.md).
+
+Now you are ready to start [training or evaluation](usage.md) or try one of our demos.
 

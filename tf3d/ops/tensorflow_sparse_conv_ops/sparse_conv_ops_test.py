@@ -18,7 +18,7 @@ import numpy as np
 import tensorflow as tf
 
 try:
-  from python import sparse_conv_ops  # pylint: disable=g-import-not-at-top
+  import tensorflow_sparse_conv_ops as sparse_conv_ops  # pylint: disable=g-import-not-at-top
 except ImportError:
   import sparse_conv_ops  # pylint: disable=g-import-not-at-top
 

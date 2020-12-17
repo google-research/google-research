@@ -21,7 +21,10 @@ ops_imported = False
 
 
 if not ops_imported:
-  from tf3d.ops.python import sparse_conv_ops  # pylint: disable=g-import-not-at-top
+  try:
+    import tensorflow_sparse_conv_ops as sparse_conv_ops  # pylint: disable=g-import-not-at-top
+  except ImportError:
+    import tf3d.ops.tensorflow_sparse_conv_ops as sparse_conv_ops  # pylint: disable=g-import-not-at-top
 
 
 def compute_pooled_voxel_indices(voxel_xyz_indices, pooling_size):
