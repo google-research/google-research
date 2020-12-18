@@ -186,7 +186,7 @@ def simple_model(input_features,
   return outputs, activations
 
 
-def create_model_helper(base_model_fn):
+def create_model_helper(base_model_fn, sequential_inputs, is_training):
   """Helper function for creating model function given base model function.
 
   This function creates a model function that adaptively slices the input
@@ -196,11 +196,14 @@ def create_model_helper(base_model_fn):
 
     outputs, activations = model_fn(input_features, output_sizes),
 
-  where `input_features` has shape [batch_size, feature_dim] or [batch_size,
-  num_instances, ..., feature_dim].
+  where `input_features` has shape [..., feature_dim] if `sequential_inputs` is
+  False, or [..., sequence_length, feature_dim] otherwise.
 
   Args:
     base_model_fn: A function handle for base model.
+    sequential_inputs: A boolean for whether the model input features are
+      sequential.
+    is_training: A boolean for whether it is in training mode.
 
   Returns:
     model_fn: A function handle for model.
@@ -208,39 +211,36 @@ def create_model_helper(base_model_fn):
 
   def model_fn(input_features, output_sizes):
     """Applies model to input features and produces output of given sizes."""
-    input_features_rank = len(input_features.shape.as_list())
-    if input_features_rank < 2:
-      raise ValueError(
-          'Only supports input feature tensors of rank at least 2: %d.' %
-          input_features_rank)
+    if is_training:
+      # Flatten all the model-irrelevant dimensions, i.e., dimensions that
+      # precede the sequence / feature channel dimensions). Note that we only do
+      # this for training, for which the batch size is known.
+      num_last_dims_to_keep = 2 if sequential_inputs else 1
+      flattened_input_features = data_utils.flatten_first_dims(
+          input_features, num_last_dims_to_keep=num_last_dims_to_keep)
+      flattened_shape = data_utils.get_shape_by_first_dims(
+          input_features, num_last_dims=num_last_dims_to_keep)
 
-    if input_features_rank == 2:
-      return base_model_fn(input_features, output_sizes)
+      outputs, activations = base_model_fn(flattened_input_features,
+                                           output_sizes)
 
-    # The slicing below helps significantly improve training speed.
-    sub_output_list, sub_activation_list = [], []
-    for sub_features in tf.unstack(input_features, axis=1):
-      sub_outputs, sub_activations = base_model_fn(sub_features, output_sizes)
-      sub_output_list.append(sub_outputs)
-      sub_activation_list.append(sub_activations)
+      # Unflatten back all the model-irrelevant dimensions.
+      for key, output in outputs.items():
+        outputs[key] = data_utils.unflatten_first_dim(
+            output, shape_to_unflatten=flattened_shape)
+      for key, activation in activations.items():
+        activations[key] = data_utils.unflatten_first_dim(
+            activation, shape_to_unflatten=flattened_shape)
 
-    outputs = {}
-    for key in sub_output_list[0].keys():
-      outputs[key] = tf.stack(
-          [sub_output[key] for sub_output in sub_output_list], axis=1)
-
-    activations = {}
-    for key in sub_activation_list[0].keys():
-      activations[key] = tf.stack(
-          [sub_activations[key] for sub_activations in sub_activation_list],
-          axis=1)
+    else:
+      outputs, activations = base_model_fn(input_features, output_sizes)
 
     return outputs, activations
 
   return model_fn
 
 
-def get_model(base_model_type, **kwargs):
+def get_model(base_model_type, is_training, **kwargs):
   """Gets a base model builder function handle.
 
   Note that the returned model function has interface:
@@ -253,6 +253,7 @@ def get_model(base_model_type, **kwargs):
   Args:
     base_model_type: An enum string for base model type. See supported base
       model types in the `common` module.
+    is_training: A boolean for whether it is in training mode.
     **kwargs: A dictionary of additional arguments.
 
   Returns:
@@ -262,12 +263,14 @@ def get_model(base_model_type, **kwargs):
     ValueError: If base model type is not supported.
   """
   if base_model_type == common.BASE_MODEL_TYPE_SIMPLE:
-    base_model_fn = functools.partial(simple_model, **kwargs)
+    base_model_fn = functools.partial(
+        simple_model, is_training=is_training, **kwargs)
   else:
     raise ValueError('Unsupported base model type: `%s`.' %
                      str(base_model_type))
 
-  return create_model_helper(base_model_fn)
+  return create_model_helper(
+      base_model_fn, sequential_inputs=False, is_training=is_training)
 
 
 _add_prefix = lambda key, c: 'C%d/' % c + key
@@ -428,7 +431,7 @@ def create_embedder_helper(base_model_fn, embedding_type,
 
 
 def get_embedder(base_model_type, embedding_type, num_embedding_components,
-                 embedding_size, **kwargs):
+                 embedding_size, is_training, **kwargs):
   """Gets an embedding model builder function handle.
 
   Args:
@@ -438,13 +441,14 @@ def get_embedder(base_model_type, embedding_type, num_embedding_components,
       types in the `common` module.
     num_embedding_components: An integer for the number of embedding components.
     embedding_size: An integer for embedding dimensionality.
+    is_training: A boolean for whether it is in training mode.
     **kwargs: A dictionary of additional arguments to pass to base model and
       embedder.
 
   Returns:
     A function handle for embedding model builder.
   """
-  base_model_fn = get_model(base_model_type, **kwargs)
+  base_model_fn = get_model(base_model_type, is_training=is_training, **kwargs)
   return create_embedder_helper(
       base_model_fn,
       embedding_type,

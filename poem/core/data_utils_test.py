@@ -44,6 +44,14 @@ class DataUtilsTest(tf.test.TestCase):
                          [[21], [22], [23], [24]], [[31], [32], [33], [34]],
                          [[41], [42], [43], [44]], [[51], [52], [53], [54]]])
 
+  def test_unflatten_first_dim(self):
+    # Shape = [6, 2].
+    x = tf.constant([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12]])
+    unflattened_x = data_utils.unflatten_first_dim(
+        x, shape_to_unflatten=tf.constant([2, 3]))
+    self.assertAllEqual(unflattened_x,
+                        [[[1, 2], [3, 4], [5, 6]], [[7, 8], [9, 10], [11, 12]]])
+
   def test_tile_first_dims(self):
     # Shape = [1, 2, 1].
     x = tf.constant([[[1], [2]]])
@@ -63,6 +71,18 @@ class DataUtilsTest(tf.test.TestCase):
     # Shape = [2, 1, 3, 1]
     expanded_x = data_utils.recursively_expand_dims(x, axes=[-1, 1])
     self.assertAllEqual(expanded_x, [[[[1], [2], [3]]], [[[4], [5], [6]]]])
+
+  def test_get_shape_by_last_dims(self):
+    # Shape = [1, 2, 3, 4, 5].
+    x = tf.zeros([1, 2, 3, 4, 5])
+    shape = data_utils.get_shape_by_last_dims(x, num_last_dims=2)
+    self.assertAllEqual(shape, [4, 5])
+
+  def test_get_shape_by_first_dims(self):
+    # Shape = [1, 2, 3, 4, 5].
+    x = tf.zeros([1, 2, 3, 4, 5])
+    shape = data_utils.get_shape_by_first_dims(x, num_last_dims=2)
+    self.assertAllEqual(shape, [1, 2, 3])
 
   def test_reshape_by_last_dims(self):
     # Shape = [2, 4, 1].

@@ -97,6 +97,25 @@ def flatten_first_dims(x, num_last_dims_to_keep):
   return tf.reshape(x, new_shape_list)
 
 
+def unflatten_first_dim(x, shape_to_unflatten):
+  """Unflattens the first dimension of a tensor.
+
+  For example:
+    x.shape.as_list() == [6, 2].
+    unflatten_first_dim(x, [2, 3]).shape.as_list() == [2, 3, 2].
+
+  Args:
+    x: A tensor to unflatten.
+    shape_to_unflatten: A list of integers to reshape the first dimension of `x`
+      into.
+
+  Returns:
+    A unflattened tensor.
+  """
+  new_shape = list(shape_to_unflatten) + x.shape.as_list()[1:]
+  return tf.reshape(x, new_shape)
+
+
 def tile_first_dims(x, first_dim_multiples):
   """Tiles the first dimensions of a tensor.
 
@@ -176,6 +195,49 @@ def recursively_expand_dims(x, axes):
   for axis in axes:
     x = tf.expand_dims(x, axis)
   return x
+
+
+def get_shape_by_last_dims(x, num_last_dims):
+  """Gets tensor shape by the last dimensions.
+
+  For example:
+    x.shape.as_list() == [1, 2, 3, 4, 5]
+    get_shape_by_last_dims(x, num_last_dims=2) == [4, 5].
+
+  Args:
+    x: A tensor to get shape of.
+    num_last_dims: An integer for the number of last dimensions to get shape of.
+
+  Returns:
+    A list for tensor shape.
+  """
+  shape = tf.shape(x)
+  output_shape = []
+  for i in range(x.shape.ndims - num_last_dims, x.shape.ndims):
+    output_shape.append(shape[i])
+  return output_shape
+
+
+def get_shape_by_first_dims(x, num_last_dims):
+  """Gets tensor shape by the first dimensions.
+
+  For example:
+    x.shape.as_list() == [1, 2, 3, 4, 5]
+    get_shape_by_first_dims(x, num_last_dims=2) == [1, 2, 3].
+
+  Args:
+    x: A tensor to get shape of.
+    num_last_dims: An integer for the number of last dimensions not to get shape
+      of.
+
+  Returns:
+    A list for tensor shape.
+  """
+  shape = tf.shape(x)
+  output_shape = []
+  for i in range(0, x.shape.ndims - num_last_dims):
+    output_shape.append(shape[i])
+  return output_shape
 
 
 def reshape_by_last_dims(x, last_dim_shape):
