@@ -137,3 +137,12 @@ symmetric orthogonalization (SVD) layer. See the few code changes needed
 In this experiment we simply replace the 3D rotation regression layer with the
 symmetric orthogonalization (SVD) layer. See the few code changes needed
 [here](https://github.com/amakadia/svd_for_pose#single-image-depth-prediction-on-kitti).
+
+
+## Colab Notebook
+
+The notebook `svd_vs_gs_simulations.ipynb` provides the code used to generate
+the simulation datasets, reconstructions, as well as the plots seen in Figure 1
+of the paper referred to at the top of this document. Additional noise models
+and plot types are also provided.
+
