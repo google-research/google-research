@@ -261,8 +261,9 @@ def reshape_by_last_dims(x, last_dim_shape):
     A reshaped tensor.
   """
   new_shape = []
-  for d in range(len(x.shape.as_list()) - len(last_dim_shape)):
-    new_shape.append(tf.shape(x)[d])
+  for i in range(len(x.shape.as_list()) - len(last_dim_shape)):
+    d = x.shape.as_list()[i]
+    new_shape.append(-1 if d is None else d)
   new_shape.extend(last_dim_shape)
   return tf.reshape(x, new_shape)
 
