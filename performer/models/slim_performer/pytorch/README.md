@@ -7,6 +7,8 @@ To reduce repository memory, the following data can be downloaded:
 * [Penn Treebank](https://github.com/wojzaremba/lstm/tree/master/data)
 * [Enwik8](http://prize.hutter1.net/)
 
+The copy task data is generated randomly.
+
 The following are the commands used to produce the experimental results in the paper.
 
 Penn Treebank commands:
