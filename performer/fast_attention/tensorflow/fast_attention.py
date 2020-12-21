@@ -169,13 +169,14 @@ def softmax_kernel_transformation(data,
   """
   data_normalizer = 1.0 / (
       tf.math.sqrt(tf.math.sqrt(tf.dtypes.cast(data.shape[-1], tf.float32))))
+  data = data_normalizer * data
   ratio = 1.0 / tf.math.sqrt(
       tf.dtypes.cast(projection_matrix.shape[0], tf.float32))
   data_dash = tf.einsum("blhd,md->blhm", data, projection_matrix)
   diag_data = tf.math.square(data)
   diag_data = tf.math.reduce_sum(
       diag_data, axis=tf.keras.backend.ndim(data) - 1)
-  diag_data = (diag_data / 2.0) * data_normalizer * data_normalizer
+  diag_data = diag_data / 2.0
   diag_data = tf.expand_dims(diag_data, axis=tf.keras.backend.ndim(data) - 1)
   if is_query:
     last_dims_t = (len(data_dash.shape) - 1,)

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Example of training the SLiMPerformer on PennTreeBank and Enwik8 data."""
+"""Example of training the SLiMPerformer on PennTreeBank and Enwik8 data, as well as the copy task."""
 import collections
 import gzip
 import os
