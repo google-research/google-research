@@ -2,15 +2,15 @@
 
 ## About the competition
 
-Welcome! At NeurIPS 2020, we run a competition aimed at furthering our understanding of generalization in deep learning. To do so, competitors are asked to submit a python function whose input is a trained neural network and its training data and output is a complexity measure or generalization predictor that quantifies how well the trained model generalizes on the test data. You can find general information of the competition at https://sites.google.com/view/pgdl2020/.
+Welcome! At NeurIPS 2020, we ran a competition aimed at furthering our understanding of generalization in deep learning. To do so, competitors were asked to submit a python function whose input is a trained neural network and its training data and output is a complexity measure or generalization predictor that quantifies how well the trained model generalizes on the test data. You can find general information on the competition at https://sites.google.com/view/pgdl2020/.
 
-This repository opensource the dataset (trained models and associated statistics) used for the competition.
+This repository open-sources the dataset (trained models and associated statistics) used for the competition.
 
 The competition data was split into several "tasks" (types of models and image dataset used), given to the competitors in three phases:
 
- * Phase 0: Public data was given to the competitors: they were able to download Task1 and Task2 to measure the performance of their metrics locally, before uploading submissions to our servers.
- * Phase 1: First online leaderboard, accessible at the beginning of the competion (also called _public leaderboard_). This leaderboard is composed of Task4 and Task5 and was used to compute the scores displayed on the leaderboard for the first phase of the competition. There was no Task3 released in this competition, but we keep the original numbering of the tasks to avoid any confusion.
- * Phase 2: Private leaderboard, only accessible in the last phase of the competition, where competitors can upload their very best metrics. Winners are determined only on their score on this leaderboard (to prevent overfitting of the public leaderboard, as usual). This phase is composed of Tasks6, Task7, Task8 and Task8.
+ * Phase 0: Public data was given to the competitors: they were able to download Task 1 and Task 2 to measure the performance of their metrics locally, before uploading submissions to our servers.
+ * Phase 1: First online leaderboard, accessible at the beginning of the competion (also called _public leaderboard_). This leaderboard is composed of Task 4 and Task 5 and was used to compute the scores displayed on the leaderboard for the first phase of the competition. There was no Task 3 released in this competition, but we keep the original numbering of the tasks to avoid any confusion.
+ * Phase 2: Private leaderboard, only accessible in the last phase of the competition, where competitors can upload their very best metrics. Winners are determined only on their score on this leaderboard (to prevent overfitting of the public leaderboard, as usual). This phase is composed of Task 6, Task 7, Task 8, and Task 9.
 
 ## In this repository
 
@@ -110,7 +110,7 @@ Identical to Task 4 but without batch normalization.
 
 ## License
 
-The trained checkpoints as well as other metadata are released under [Apache 2.0 license](https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)).
+The trained checkpoints as well as other metadata are released under the [Apache 2.0 license](https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)).
 
 To aid reproducibility, we've also included the datasets that are used to train the models
 in the zip files; these datasets retain their original licenses and terms.
