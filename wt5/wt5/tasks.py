@@ -32,8 +32,10 @@ TaskRegistry = t5.data.TaskRegistry
 TfdsTask = t5.data.TfdsTask
 
 DEFAULT_OUTPUT_FEATURES = {
-    "inputs": t5.data.Feature(vocabulary=get_default_vocabulary, add_eos=True),
-    "targets": t5.data.Feature(vocabulary=get_default_vocabulary, add_eos=True)
+    "inputs":
+        t5.data.Feature(vocabulary=get_default_vocabulary(), add_eos=True),
+    "targets":
+        t5.data.Feature(vocabulary=get_default_vocabulary(), add_eos=True)
 }
 
 # ======================== CoS-E Corpus Task ==================================
