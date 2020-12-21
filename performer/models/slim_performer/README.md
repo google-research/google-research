@@ -5,7 +5,7 @@ Code for the paper ["Sub-Linear Memory: How to Make Performers SLiM"](link), by 
 If you've found this codebase useful, please consider citing the paper:
 
 ```
-@article{performer,
+@article{slim_performer,
   author    = {Valerii Likhosherstov and
                Krzysztof Choromanski and
                Jared Davis and
