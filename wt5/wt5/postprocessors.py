@@ -103,7 +103,7 @@ def extractive_explanations(output,
 
   spans = []
   prediction_not_found_in_input = 0
-  input_text = tf.compat.as_text(example["inputs_plaintext"])
+  input_text = tf.compat.as_text(example["inputs_pretokenized"])
   input_text = input_text.replace("\n", " ")
 
   # Removing duplicates from explanations since extractive models can produce

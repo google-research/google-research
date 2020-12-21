@@ -71,8 +71,8 @@ class PostprocessorsTest(absltest.TestCase):
         postprocessors.abstractive_explanations(
             "entailment explanation: this is correct.",
             example={
-                "inputs_plaintext": b"This is incorrect",
-                "targets_plaintext": b"Incorrect answer."
+                "inputs_pretokenized": b"This is incorrect",
+                "targets_pretokenized": b"Incorrect answer."
             },
             is_target=True),
         {
@@ -124,7 +124,7 @@ class PostprocessorsTest(absltest.TestCase):
         postprocessors.extractive_explanations(
             answer,
             separator=" explanation: ",
-            example={"inputs_plaintext": inputs},
+            example={"inputs_pretokenized": inputs},
             tokenizer_fn=list,
         ),
         {
@@ -146,7 +146,7 @@ class PostprocessorsTest(absltest.TestCase):
         postprocessors.extractive_explanations(
             answer,
             separator=" explanation: ",
-            example={"inputs_plaintext": inputs},
+            example={"inputs_pretokenized": inputs},
             tokenizer_fn=list,
         ),
         {
@@ -172,7 +172,7 @@ class PostprocessorsTest(absltest.TestCase):
         postprocessors.extractive_explanations(
             answer,
             separator=" explanation: ",
-            example={"inputs_plaintext": inputs},
+            example={"inputs_pretokenized": inputs},
             tokenizer_fn=list,
         ),
         {

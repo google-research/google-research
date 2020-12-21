@@ -4,6 +4,8 @@
 more robust open-source release soon. Please do not rely on it if you need a
 stable codebase. We are currently not accepting Pull Requests.
 
+Note: this code is compatible only with version 0.7.1 of the 't5' package.
+
 ## JAX on Cloud TPU
 
 This code is not intended to work with the "JAX Cloud TPU Preview" that uses
