@@ -41,8 +41,10 @@ _COMPRESSION_OPTIONS = [1, 2, 3, 4, 8, 9]
 def get_apply_compression(compression_op_spec, global_step):
   """Returns apply_compression operation matching compression_option input."""
   compressor_spec = comp_op.LowRankDecompMatrixCompressor.get_default_hparams()
-  compressor_spec.set_hparam('rank', compression_op_spec.rank)
-  compressor_spec.set_hparam('block_size', compression_op_spec.block_size)
+  if compression_op_spec.__contains__('rank'):
+    compressor_spec.set_hparam('rank', compression_op_spec.rank)
+  if compression_op_spec.__contains__('block_size'):
+    compressor_spec.set_hparam('block_size', compression_op_spec.block_size)
   logging.info('Compressor spec %s', compressor_spec.to_json())
   logging.info('Compression operator spec %s', compression_op_spec.to_json())
 

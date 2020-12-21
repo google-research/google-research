@@ -25,89 +25,47 @@ from absl import flags
 
 import tensorflow.compat.v2 as tf
 from graph_compression.compression_lib import compression_op as compression
+from graph_compression.compression_lib import compression_wrapper
+from graph_compression.compression_lib.keras_layers import layers as compression_layers
 
+flags.DEFINE_boolean('use_lennet', True, 'If set use lennet model')
 FLAGS = flags.FLAGS
 
 
-class CompressedLinearLayer(tf.keras.layers.Layer):
-  """A Compressed linear layer with the compression op.
-
-  In a CompressedLinearLayer, the W matrix is replaced by the compressed version
-  of W, where specific form of the compressed version of W is determined by the
-  compressor. For example, if compressor is
-  compression_op.LowRankDecompMatrixCompressor, then W is replaced by
-  alpha * W + (1 - alpha) * tf.matmul(B, C), see compression_op.py for more
-  details.
-  """
-
-  def __init__(self, input_dim, num_hidden_nodes, compressor):
-    """Initializer.
-
-    Args:
-      input_dim: int
-      num_hidden_nodes: int
-      compressor: a matrix compressor object (instance of a subclass of
-        compression_op.MatrixCompressorInferface)
-    """
-    super(CompressedLinearLayer, self).__init__()
-    self.num_hidden_nodes = num_hidden_nodes
-    self.compressor = compressor
-    self.w = self.add_weight(
-        shape=(input_dim, self.num_hidden_nodes),
-        initializer='random_normal',
-        trainable=True)
-    self.b = self.add_weight(
-        shape=(self.num_hidden_nodes,),
-        initializer='random_normal',
-        trainable=True)
-
-  def set_up_variables(self):
-    """Set up variables used by compression_op."""
-    self.compression_op = compression.CompressionOpEager()
-    self.compression_op.set_up_variables(self.w, self.compressor)
-
-  @tf.function
-  def call(self, inputs):
-    self.compressed_w = self.compression_op.get_apply_compression()
-    return tf.matmul(inputs, self.compressed_w) + self.b
-
-  def run_alpha_update(self, step_number):
-    """Run alpha update for the alpha parameter in compression_op.
-
-    Args:
-      step_number: step number in the training process.
-    Note: This method should only be called during training.
-    """
-    self.compression_op.run_update_step(step_number)
-
-
-class CompressedModel(tf.keras.Model):
+class CompressedModelV2(tf.keras.Model):
   """A two layer compressed model that consists of two CompressedLinearLayer."""
 
-  def __init__(self, input_dim, num_hidden_nodes, num_classes, compressor):
+  def __init__(self, num_hidden_nodes, num_classes, compression_obj,
+               compression_flag=True):
     """Initializer.
 
     Args:
-      input_dim: int
       num_hidden_nodes: int
       num_classes: int
-      compressor: a matrix compressor object (instance of a subclass of
-        compression_op.MatrixCompressorInferface)
+      compression_obj: a matrix compression object obtained by calling
+          compression_wrapper
+      compression_flag: if True compressed model will be used
     """
-    super(CompressedModel, self).__init__()
-    self.layer_1 = CompressedLinearLayer(input_dim, num_hidden_nodes,
-                                         compressor)
-    self.layer_1.set_up_variables()
-    self.activation_1 = tf.keras.layers.ReLU()
+    super().__init__()
+    self.num_hidden_nodes = num_hidden_nodes
+    self.num_classes = num_classes
+    self.compression_obj = compression_obj
 
-    self.layer_2 = CompressedLinearLayer(num_hidden_nodes, num_classes,
-                                         compressor)
-    self.layer_2.set_up_variables()
+    compression_flag = True
+
+    if compression_flag:
+      self.layer_1 = compression_layers.CompressedDense(
+          num_hidden_nodes, compression_obj=compression_obj, activation='relu')
+      self.layer_2 = compression_layers.CompressedDense(
+          num_classes, compression_obj=compression_obj)
+    else:
+      self.layer_1 = tf.keras.layers.Dense(num_hidden_nodes, activation='relu')
+      self.layer_2 = tf.keras.layers.Dense(num_classes)
 
     self.softmax = tf.keras.layers.Softmax()
 
   def call(self, inputs):
-    x = self.activation_1(self.layer_1(inputs))
+    x = self.layer_1(inputs)
     x = self.softmax(self.layer_2(x))
     return x
 
@@ -121,6 +79,72 @@ class CompressedModel(tf.keras.Model):
     self.layer_2.run_alpha_update(step_number)
 
 
+def compressed_lenet5(input_shape, num_classes, compression_obj):
+  """Builds Compressed version of LeNet5."""
+  inputs = tf.keras.layers.Input(shape=input_shape)
+  conv1 = compression_layers.CompressedConv2D(
+      6,
+      kernel_size=5,
+      padding='SAME',
+      activation='relu',
+      compression_obj=compression_obj)(
+          inputs)
+  pool1 = tf.keras.layers.MaxPooling2D(
+      pool_size=[2, 2], strides=[2, 2], padding='SAME')(
+          conv1)
+  conv2 = compression_layers.CompressedConv2D(
+      16,
+      kernel_size=5,
+      padding='SAME',
+      activation='relu',
+      compression_obj=compression_obj)(
+          pool1)
+  pool2 = tf.keras.layers.MaxPooling2D(
+      pool_size=[2, 2], strides=[2, 2], padding='SAME')(
+          conv2)
+  conv3 = compression_layers.CompressedConv2D(
+      120,
+      kernel_size=5,
+      padding='SAME',
+      activation=tf.nn.relu,
+      compression_obj=compression_obj)(
+          pool2)
+  flatten = tf.keras.layers.Flatten()(conv3)
+  dense1 = compression_layers.CompressedDense(
+      84, activation=tf.nn.relu, compression_obj=compression_obj)(
+          flatten)
+  logits = tf.keras.layers.Dense(num_classes)(dense1)
+  outputs = tf.keras.layers.Softmax()(logits)
+
+  return tf.keras.Model(inputs=inputs, outputs=outputs)
+
+
+def lenet5(input_shape, num_classes):
+  """Builds LeNet5."""
+  inputs = tf.keras.layers.Input(shape=input_shape)
+  conv1 = tf.keras.layers.Conv2D(
+      6, kernel_size=5, padding='SAME', activation='relu')(
+          inputs)
+  pool1 = tf.keras.layers.MaxPooling2D(
+      pool_size=[2, 2], strides=[2, 2], padding='SAME')(
+          conv1)
+  conv2 = tf.keras.layers.Conv2D(
+      16, kernel_size=5, padding='SAME', activation='relu')(
+          pool1)
+  pool2 = tf.keras.layers.MaxPooling2D(
+      pool_size=[2, 2], strides=[2, 2], padding='SAME')(
+          conv2)
+  conv3 = tf.keras.layers.Conv2D(
+      120, kernel_size=5, padding='SAME', activation=tf.nn.relu)(
+          pool2)
+  flatten = tf.keras.layers.Flatten()(conv3)
+  dense1 = tf.keras.layers.Dense(84, activation=tf.nn.relu)(flatten)
+  logits = tf.keras.layers.Dense(num_classes)(dense1)
+  outputs = tf.keras.layers.Softmax()(logits)
+
+  return tf.keras.Model(inputs=inputs, outputs=outputs)
+
+
 def main(argv):
   del argv  # unused
 
@@ -130,20 +154,35 @@ def main(argv):
   mnist = tf.keras.datasets.mnist
   (x_train, y_train), (_, _) = mnist.load_data()
   x_train = x_train / 255.0
-  x_train = x_train.reshape(60000, 784).astype('float32')
+
+  if not FLAGS.use_lennet:
+    x_train = x_train.reshape(60000, 784).astype('float32')
 
   train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
   train_dataset = train_dataset.shuffle(buffer_size=1024).batch(64)
 
   # Define model.
-  input_dim = 28 * 28
-  num_hidden_nodes = 50
+
+  num_hidden_nodes = 64
   num_classes = 10
 
-  lowrank_compressor = compression.LowRankDecompMatrixCompressor(
-      compression.LowRankDecompMatrixCompressor.get_default_hparams())
-  compressed_model = CompressedModel(input_dim, num_hidden_nodes, num_classes,
-                                     lowrank_compressor)
+  hparams = ('name=mnist_compression,'
+             'prune_option=compression,'
+             'input_block_size=20,'
+             'rank=2,'
+             'compression_option=9')
+
+  compression_hparams = compression.InputCompressionOp.get_default_hparams(
+  ).parse(hparams)
+  compression_obj = compression_wrapper.get_apply_compression(
+      compression_hparams, global_step=0)
+
+  if not FLAGS.use_lennet:
+    compressed_model = CompressedModelV2(num_hidden_nodes, num_classes,
+                                         compression_obj)
+  else:
+    compressed_model = compressed_lenet5([28, 28, 1], num_classes,
+                                         compression_obj)
 
   optimizer = tf.keras.optimizers.SGD(learning_rate=1e-3)
   loss = tf.keras.losses.SparseCategoricalCrossentropy()
@@ -158,7 +197,7 @@ def main(argv):
       optimizer.apply_gradients(
           zip(grads, compressed_model.trainable_variables))
 
-      compressed_model.run_alpha_update(step_number)
+      # compressed_model.run_alpha_update(step_number)
 
       step_number += 1
     print('Training loss at epoch {} is {}.'.format(epoch, loss_value))

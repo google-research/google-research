@@ -21,6 +21,8 @@ from __future__ import division
 import numpy as np
 import tensorflow.compat.v1 as tf
 from graph_compression.compression_lib import compression_op
+from graph_compression.compression_lib import compression_wrapper
+from graph_compression.compression_lib.keras_layers import layers as compression_layers
 
 tf.enable_v2_behavior()
 
@@ -322,6 +324,51 @@ class InputCompressionOpTest(tf.test.TestCase):
 
         # check that we get the expected output shape
         self.assertSequenceEqual(list(compressed_matmul.eval().shape), [4,])
+
+
+class CompressionLayersTest(tf.test.TestCase):
+
+  def testCompressedDenseLayer(self):
+    hparams = ("name=mnist_compression,"
+               "input_block_size=16,"
+               "rank=4,"
+               "compression_option=9")
+
+    compression_hparams = compression_op.InputCompressionOp.get_default_hparams(
+    ).parse(hparams)
+    # compression_hparams = pruning.get_pruning_hparams().parse(hparams)
+    # Create a compression object using the compression hyperparameters
+    compression_obj = compression_wrapper.get_apply_compression(
+        compression_hparams, global_step=0)
+    val = np.random.random((10, 48))
+    x = tf.Variable(val, dtype=tf.float32)
+    y_compressed = compression_layers.CompressedDense(
+        20, compression_obj=compression_obj)(x)
+    y = tf.keras.layers.Dense(
+        20)(x)
+
+    self.assertAllEqual(y.shape.as_list(), y_compressed.shape.as_list())
+
+  def testCompressedConv2DLayer(self):
+    hparams = ("name=mnist_compression,"
+               "input_block_size=16,"
+               "rank=2,"
+               "compression_option=9")
+
+    compression_hparams = compression_op.InputCompressionOp.get_default_hparams(
+    ).parse(hparams)
+    compression_obj = compression_wrapper.get_apply_compression(
+        compression_hparams, global_step=0)
+
+    val = np.random.random((10, 4, 10, 10))
+    x = tf.Variable(val, dtype=tf.float32)
+    y_compressed = compression_layers.CompressedConv2D(
+        20, 3, padding="valid", data_format="channels_last",
+        compression_obj=compression_obj)(x)
+    y = tf.keras.layers.Conv2D(
+        20, 3, padding="valid", data_format="channels_last")(x)
+
+    self.assertAllEqual(y.shape.as_list(), y_compressed.shape.as_list())
 
 if __name__ == "__main__":
   tf.test.main()
