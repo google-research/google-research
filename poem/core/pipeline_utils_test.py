@@ -59,7 +59,12 @@ class PipelineUtilsTest(tf.test.TestCase):
   def test_add_moving_average(self):
     inputs = tf.zeros([4, 2, 3])
     output_sizes = {'a': 8, 'b': 4}
-    models.simple_model(inputs, output_sizes, is_training=True, name='M')
+    models.simple_model(
+        inputs,
+        output_sizes,
+        sequential_inputs=False,
+        is_training=True,
+        name='M')
     pipeline_utils.add_moving_average(decay=0.9999)
 
     expected_global_variable_shapes = {
@@ -146,7 +151,12 @@ class PipelineUtilsTest(tf.test.TestCase):
   def test_get_moving_average_variables_to_restore(self):
     inputs = tf.zeros([4, 2, 3])
     output_sizes = {'a': 8, 'b': 4}
-    models.simple_model(inputs, output_sizes, is_training=False, name='M')
+    models.simple_model(
+        inputs,
+        output_sizes,
+        sequential_inputs=False,
+        is_training=False,
+        name='M')
     variables_to_restore = (
         pipeline_utils.get_moving_average_variables_to_restore())
 

@@ -32,7 +32,11 @@ class ModelsTest(tf.test.TestCase):
                                   [[19.0, 20.0, 21.0], [22.0, 23.0, 24.0]]])
     output_sizes = {'a': 8, 'b': [4, 3]}
     outputs, activations = models.simple_model(
-        input_features, output_sizes, is_training=True, num_bottleneck_nodes=16)
+        input_features,
+        output_sizes,
+        sequential_inputs=False,
+        is_training=True,
+        num_bottleneck_nodes=16)
 
     expected_global_variable_shapes = {
         'SimpleModel/InputFC/Linear/weight:0': ([3, 1024]),
@@ -104,6 +108,7 @@ class ModelsTest(tf.test.TestCase):
     outputs, activations = models.simple_model(
         input_features,
         output_sizes,
+        sequential_inputs=False,
         is_training=True,
         num_hidden_nodes=2,
         weight_initializer=tf.initializers.ones(),

@@ -54,7 +54,11 @@ def linear(input_features, output_size, weight_max_norm, weight_initializer,
   return tf.linalg.matmul(input_features, weights) + bias
 
 
-def simple_base(input_features, is_training, name='SimpleModel', **kwargs):
+def simple_base(input_features,
+                sequential_inputs,
+                is_training,
+                name='SimpleModel',
+                **kwargs):
   """Implements `simple baseline` model base architecture.
 
   Note that the code differs from the original architecture by disabling dropout
@@ -66,6 +70,9 @@ def simple_base(input_features, is_training, name='SimpleModel', **kwargs):
 
   Args:
     input_features: A tensor for input features. Shape = [..., feature_dim].
+    sequential_inputs: A boolean flag indicating whether the input_features are
+      sequential. If True, the input are supposed to be in shape
+      [...,  sequence_length, feature_dim].
     is_training: A boolean for whether it is in training mode.
     name: A string for the name scope.
     **kwargs: A dictionary for additional arguments. Supported arguments include
@@ -76,6 +83,9 @@ def simple_base(input_features, is_training, name='SimpleModel', **kwargs):
   Returns:
     A tensor for output activations. Shape = [..., output_dim].
   """
+  if sequential_inputs:
+    input_features = data_utils.flatten_last_dims(
+        input_features, num_last_dims=2)
 
   def fully_connected(input_features, is_training, name):
     """Builds a fully connected layer."""
@@ -122,6 +132,7 @@ def simple_base(input_features, is_training, name='SimpleModel', **kwargs):
 
 def simple_model(input_features,
                  output_sizes,
+                 sequential_inputs,
                  is_training,
                  name='SimpleModel',
                  num_bottleneck_nodes=0,
@@ -135,6 +146,9 @@ def simple_model(input_features,
     input_features: A tensor for input features. Shape = [..., feature_dim].
     output_sizes: A dictionary for output sizes in the format {output_name:
       output_size}, where `output_size` can be an integer or a list.
+    sequential_inputs: A boolean flag indicating whether the input_features are
+      sequential. If True, the input are supposed to be in shape
+      [...,  sequence_length, feature_dim].
     is_training: A boolean for whether it is in training mode.
     name: A string for the name scope.
     num_bottleneck_nodes: An integer for size of the bottleneck layer to be
@@ -150,7 +164,11 @@ def simple_model(input_features,
       'bottleneck_activations'.
   """
   net = simple_base(
-      input_features, is_training=is_training, name=name, **kwargs)
+      input_features,
+      sequential_inputs=sequential_inputs,
+      is_training=is_training,
+      name=name,
+      **kwargs)
   activations = {'base_activations': net}
 
   if num_bottleneck_nodes > 0:
@@ -264,7 +282,10 @@ def get_model(base_model_type, is_training, **kwargs):
   """
   if base_model_type == common.BASE_MODEL_TYPE_SIMPLE:
     base_model_fn = functools.partial(
-        simple_model, is_training=is_training, **kwargs)
+        simple_model,
+        sequential_inputs=False,
+        is_training=is_training,
+        **kwargs)
   else:
     raise ValueError('Unsupported base model type: `%s`.' %
                      str(base_model_type))

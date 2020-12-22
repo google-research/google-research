@@ -62,7 +62,7 @@ SUPPORTED_INFERENCE_MODEL_INPUT_KEYPOINT_TYPES = [
 ]
 
 # Base model types.
-# Simple baseline architecutre: Martinez, et al. A simple yet effective baseline
+# Simple Baseline architecutre: Martinez, et al. A simple yet effective baseline
 # for 3d human pose estimation. ICCV 2017.
 BASE_MODEL_TYPE_SIMPLE = 'SIMPLE'
 # Supported base model types.
