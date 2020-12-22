@@ -13,10 +13,11 @@ If you've found this codebase useful, please consider citing the paper:
                Adrian Weller},
   title     = {Sub-Linear Memory: How to Make Performers SLiM},
   journal   = {CoRR},
-  volume    = {},
+  volume    = {abs/2012.11346},
   year      = {2020},
-  url       = {},
+  url       = {https://arxiv.org/abs/2012.11346},
   archivePrefix = {arXiv},
-  eprint    = {}
+  eprint    = {2012.11346}
 }
 ```
+
