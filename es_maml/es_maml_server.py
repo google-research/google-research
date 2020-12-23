@@ -26,7 +26,6 @@ from absl import flags
 from absl import logging
 
 import grpc
-from grpc import loas2
 import numpy as np
 
 import tensorflow.compat.v1 as tf
@@ -40,7 +39,8 @@ tf.disable_v2_behavior()
 # Server Setup
 flags.DEFINE_integer("server_id", 0, "The id of the server.")
 flags.DEFINE_integer("port", 20000, "Port number.")
-flags.DEFINE_string("current_time_string", "NA", "current time string")
+flags.DEFINE_string("current_time_string", "NA",
+                    "Current time string for naming logging folders.")
 
 FLAGS = flags.FLAGS
 
@@ -48,19 +48,16 @@ _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
 
 def main(unused_argv):
-  base_config = config_util.get_config(urdf_root=FLAGS.urdf_data_path)
+  base_config = config_util.get_config()
   config = config_util.generate_config(
       base_config, current_time_string=FLAGS.current_time_string)
-  servers = []
-  server_creds = loas2.loas2_server_credentials()
+
   port = FLAGS.port
-  if not config.run_on_borg:
+  if config.run_locally:
     port = 20000 + FLAGS.server_id
-  server = grpc.server(
-      futures.ThreadPoolExecutor(max_workers=100), ports=(port,))
+  server = grpc.server(futures.ThreadPoolExecutor(max_workers=100))
 
   blackbox_object = config.blackbox_object_fn()
-
   np.random.seed(FLAGS.server_id)
 
   if config.algorithm == "zero_order":
@@ -90,8 +87,7 @@ def main(unused_argv):
         FLAGS.server_id, blackbox_object=blackbox_object, tasks=tasks)
     first_order_pb2_grpc.add_EvaluationServicer_to_server(servicer, server)
 
-  server.add_secure_port("[::]:{}".format(port), server_creds)
-  servers.append(server)
+  server.add_insecure_port("[::]:{}".format(port))
   server.start()
   logging.info("Start server %d", FLAGS.server_id)
 
@@ -100,8 +96,7 @@ def main(unused_argv):
     while True:
       time.sleep(_ONE_DAY_IN_SECONDS)
   except KeyboardInterrupt:
-    for server in servers:
-      server.stop(0)
+    server.stop(0)
 
 
 if __name__ == "__main__":

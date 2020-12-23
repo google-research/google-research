@@ -24,7 +24,6 @@ from absl import flags
 from absl import logging
 
 import grpc
-from grpc import loas2
 import numpy as np
 
 import tensorflow.compat.v1 as tf
@@ -39,13 +38,14 @@ from es_maml.zero_order import zero_order_pb2_grpc
 tf.disable_v2_behavior()
 
 flags.DEFINE_string("server_address", "127.0.0.1", "The address of the server.")
-flags.DEFINE_string("current_time_string", "NA", "current time string")
+flags.DEFINE_string("current_time_string", "NA",
+                    "Current time string for naming logging folders.")
 
 FLAGS = flags.FLAGS
 
 
 def main(unused_argv):
-  base_config = config_util.get_config(urdf_root=FLAGS.urdf_data_path)
+  base_config = config_util.get_config()
   config = config_util.generate_config(
       base_config, current_time_string=FLAGS.current_time_string)
   blackbox_object = config.blackbox_object_fn()
@@ -59,8 +59,7 @@ def main(unused_argv):
   num_servers = config.num_servers
   logging.info("Number of Servers: %d", num_servers)
 
-  channel_creds = loas2.loas2_channel_credentials()
-  if config.run_on_borg:
+  if not config.run_locally:
     servers = [
         "{}.{}".format(i, FLAGS.server_address) for i in range(num_servers)
     ]
@@ -70,7 +69,7 @@ def main(unused_argv):
   logging.info(servers)
   stubs = []
   for server in servers:
-    channel = grpc.secure_channel(server, channel_creds)
+    channel = grpc.insecure_channel(server)
     grpc.channel_ready_future(channel).result()
     if config.algorithm == "zero_order":
       stubs.append(zero_order_pb2_grpc.EvaluationStub(channel))

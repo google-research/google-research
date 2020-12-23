@@ -47,7 +47,7 @@ def get_config(**kwargs):
   config = Config(**kwargs)
 
   config.folder_name = "./es_maml_logs/"
-  config.run_on_borg = True
+  config.run_locally = False
   config.num_queries = 20
   config.task_batch_size = 1
   config.train_set_size = 50
