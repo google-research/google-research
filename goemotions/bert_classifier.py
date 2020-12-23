@@ -58,11 +58,11 @@ flags = tf.flags
 FLAGS = flags.FLAGS
 
 ## Required parameters
-flags.DEFINE_string("emotion_file", "data/emotions.txt",
+flags.DEFINE_string("emotion_file", "goemotions/data/emotions.txt",
                     "File containing a list of emotions.")
 
 flags.DEFINE_string(
-    "data_dir", "data",
+    "data_dir", "goemotions/data",
     "The input data dir. Should contain the .tsv files (or other data files) "
     "for the task.")
 
@@ -164,7 +164,7 @@ flags.DEFINE_integer("iterations_per_loop", 1000,
 flags.DEFINE_integer("eval_steps", None,
                      "How many steps to take to go over the eval set.")
 
-flags.DEFINE_string("sentiment_file", "sentiment_dict.json",
+flags.DEFINE_string("sentiment_file", "goemotions/data/sentiment_dict.json",
                     "Dictionary of sentiment categories.")
 
 flags.DEFINE_string(
