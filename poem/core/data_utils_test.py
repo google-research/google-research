@@ -91,6 +91,31 @@ class DataUtilsTest(tf.test.TestCase):
     reshaped_x = data_utils.reshape_by_last_dims(x, last_dim_shape=[2, 2])
     self.assertAllEqual(reshaped_x, [[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
 
+  def test_swap_axes(self):
+    # Shape = [2, 4, 1, 3].
+    x = tf.constant([[[[1, 2, 3]], [[4, 5, 6]], [[7, 8, 9]], [[10, 11, 12]]],
+                     [[[13, 14, 15]], [[16, 17, 18]], [[19, 20, 21]],
+                      [[22, 23, 24]]]])
+    # Shape = [2, 3, 1, 4].
+    permuted_x = data_utils.swap_axes(x, lhs_axis=-3, rhs_axis=-1)
+    self.assertAllEqual(
+        permuted_x,
+        [[[[1, 4, 7, 10]], [[2, 5, 8, 11]], [[3, 6, 9, 12]]],
+         [[[13, 16, 19, 22]], [[14, 17, 20, 23]], [[15, 18, 21, 24]]]])
+
+  def test_move_axis(self):
+    # Shape = [1, 2, 3, 4, 1].
+    x = tf.constant([[[[[1], [2], [3], [4]], [[5], [6], [7], [8]],
+                       [[9], [10], [11], [12]]],
+                      [[[13], [14], [15], [16]], [[17], [18], [19], [20]],
+                       [[21], [22], [23], [24]]]]])
+    # Shape = [1, 3, 4, 2, 1].
+    permuted_x = data_utils.move_axis(x, input_axis=1, output_axis=-2)
+    self.assertAllEqual(
+        permuted_x, [[[[[1], [13]], [[2], [14]], [[3], [15]], [[4], [16]]],
+                      [[[5], [17]], [[6], [18]], [[7], [19]], [[8], [20]]],
+                      [[[9], [21]], [[10], [22]], [[11], [23]], [[12], [24]]]]])
+
   def test_reduce_mean(self):
     # Shape = [2, 3, 2].
     tensor = tf.constant([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]],

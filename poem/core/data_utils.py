@@ -268,6 +268,47 @@ def reshape_by_last_dims(x, last_dim_shape):
   return tf.reshape(x, new_shape)
 
 
+def swap_axes(x, lhs_axis, rhs_axis):
+  """Permutes a tensor by swapping two axes.
+
+  Args:
+    x: A tensor to permute.
+    lhs_axis: An integer for one of the axes to swap.
+    rhs_axis: An integer for one of the axes to swap.
+
+  Returns:
+    A permuted tensor.
+  """
+  permutation = list(range(x.shape.ndims))
+  permutation[lhs_axis], permutation[rhs_axis] = (permutation[rhs_axis],
+                                                  permutation[lhs_axis])
+  return tf.transpose(x, permutation)
+
+
+def move_axis(x, input_axis, output_axis):
+  """Permutes a tensor such that an axis is moved to the destination axis.
+
+  Example:
+    x.shape.as_list() == [1, 2, 3, 4, 5].
+    x = move_axis(x, input_axis=1, output_axis=-2)
+    x.shape.as_list() == [1, 3, 4, 2, 5].
+
+  Args:
+    x: A tensor to permute.
+    input_axis: An integer for the axis to move.
+    output_axis: An integer for the destination to move the input axis to.
+
+  Returns:
+    A permuted tensor.
+  """
+  permutation = list(range(x.shape.ndims))
+  if output_axis < 0:
+    output_axis += len(permutation)
+  axis_index = permutation.pop(input_axis)
+  permutation.insert(output_axis, axis_index)
+  return tf.transpose(x, permutation)
+
+
 def reduce_weighted_mean(tensor, weights, axis=None, keepdims=False):
   """Reduces weighted means.
 
