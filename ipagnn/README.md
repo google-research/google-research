@@ -6,6 +6,7 @@ Graph Neural Networks (IPA-GNN) architecture from the paper [Learning to Execute
 
 ## Citation
 
+```
 @misc{bieber2020learning,
   title={Learning to Execute Programs with Instruction Pointer Attention Graph Neural Networks},
   author={David Bieber and Charles Sutton and Hugo Larochelle and Daniel Tarlow},
@@ -14,3 +15,4 @@ Graph Neural Networks (IPA-GNN) architecture from the paper [Learning to Execute
   archivePrefix={arXiv},
   primaryClass={cs.LG}
 }
+```
