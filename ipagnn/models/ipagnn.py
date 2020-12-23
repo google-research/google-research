@@ -134,10 +134,10 @@ class IPAGNN(nn.Module):
       # false_indexes: num_nodes
       p_true = branch_decisions[:, 0]
       p_false = branch_decisions[:, 1]
-      true_contributions = jax.ops.scatter.segment_sum(
+      true_contributions = jax.ops.segment_sum(
           p_true * instruction_pointer, true_indexes,
           num_segments=num_nodes)
-      false_contributions = jax.ops.scatter.segment_sum(
+      false_contributions = jax.ops.segment_sum(
           p_false * instruction_pointer, false_indexes,
           num_segments=num_nodes)
       return true_contributions + false_contributions
@@ -161,10 +161,10 @@ class IPAGNN(nn.Module):
         # h.shape: num_nodes
         # p_true.shape: num_nodes
         # instruction_pointer.shape: num_nodes
-        true_contributions = jax.ops.scatter.segment_sum(
+        true_contributions = jax.ops.segment_sum(
             h * p_true * instruction_pointer, true_indexes,
             num_segments=num_nodes)
-        false_contributions = jax.ops.scatter.segment_sum(
+        false_contributions = jax.ops.segment_sum(
             h * p_false * instruction_pointer, false_indexes,
             num_segments=num_nodes)
         # *_contributions.shape: num_nodes, hidden_size

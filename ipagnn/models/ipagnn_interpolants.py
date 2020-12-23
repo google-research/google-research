@@ -137,10 +137,10 @@ class IPAGNNInterpolant(nn.Module):
         p_false = jnp.ones_like(p_false)
       if not config.model.interpolant.use_p:
         instruction_pointer = jnp.ones_like(instruction_pointer)
-      true_contributions = jax.ops.scatter.segment_sum(
+      true_contributions = jax.ops.segment_sum(
           p_true * instruction_pointer, true_indexes,
           num_segments=num_nodes)
-      false_contributions = jax.ops.scatter.segment_sum(
+      false_contributions = jax.ops.segment_sum(
           p_false * instruction_pointer, false_indexes,
           num_segments=num_nodes)
       return true_contributions + false_contributions
@@ -171,10 +171,10 @@ class IPAGNNInterpolant(nn.Module):
         # h.shape: num_nodes
         # p_true.shape: num_nodes
         # instruction_pointer.shape: num_nodes
-        true_contributions = jax.ops.scatter.segment_sum(
+        true_contributions = jax.ops.segment_sum(
             h * p_true * instruction_pointer, true_indexes,
             num_segments=num_nodes)
-        false_contributions = jax.ops.scatter.segment_sum(
+        false_contributions = jax.ops.segment_sum(
             h * p_false * instruction_pointer, false_indexes,
             num_segments=num_nodes)
         # *_contributions.shape: num_nodes, hidden_size
@@ -236,11 +236,11 @@ class IPAGNNInterpolant(nn.Module):
         normalization = jnp.sqrt(
             2 + (  # Each node has a true and false child.
                 # jnp.bincount(true_indexes, minlength=num_nodes)
-                jax.ops.scatter.segment_sum(
+                jax.ops.segment_sum(
                     jnp.ones_like(true_indexes), true_indexes,
                     num_segments=num_nodes)
                 # + jnp.bincount(false_indexes, minlength=num_nodes)
-                + jax.ops.scatter.segment_sum(
+                + jax.ops.segment_sum(
                     jnp.ones_like(false_indexes), false_indexes,
                     num_segments=num_nodes)
             )
@@ -248,9 +248,9 @@ class IPAGNNInterpolant(nn.Module):
         # normalization.shape: num_nodes,
         def aggregate_parent_and_child_contributions(p1, p2, c3, c4):
           return (
-              jax.ops.scatter.segment_sum(
+              jax.ops.segment_sum(
                   p1, true_indexes, num_segments=num_nodes)
-              + jax.ops.scatter.segment_sum(
+              + jax.ops.segment_sum(
                   p2, false_indexes, num_segments=num_nodes)
               + c3[true_indexes]
               + c4[false_indexes]
