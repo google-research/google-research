@@ -4,7 +4,7 @@ See ["ES-MAML: Simple Hessian-Free Meta Learning"](https://arxiv.org/abs/1910.01
 
 In order to run the algorithm, you must launch both the binaries `es_maml_client` (which produces the central 'aggregator') and multiple launches of `es_maml_server` (which produces the 'workers').
 
-This depends on your particular distributed communication infrastructure, but we by default use GRPC. In order to use the default GRPC method of client-server communication, you must first create the proper `pb2.py` and `pb2_grpc.py` libraries from the `.proto`s for both `zero_order` and `first_order`. This can be done via the commands (see [discussion](https://github.com/google-research/google-research/issues/499)):
+This depends on your particular distributed communication infrastructure, but we by default use GRPC. In order to use the default GRPC method of client-server communication, you must first create the proper `pb2.py` and `pb2_grpc.py` libraries from the `.proto`'s for both `zero_order` and `first_order`. This can be done via the commands (see [discussion](https://github.com/google-research/google-research/issues/499)):
 
 ```
 $ pip install protobuf
@@ -15,6 +15,7 @@ $ python -m grpc_tools.protoc --proto_path=. --python_out=. --grpc_python_out=. 
 $ python -m grpc_tools.protoc --proto_path=. --python_out=. --grpc_python_out=. zero_order.proto
 ```
 
+## Algorithms
 
 The hyperparameters are all contained in `config.py`.
 
@@ -23,13 +24,13 @@ There are two algorithms:
 1.  Zero Order
 2.  First Order
 
-## Zero Order:
+### Zero Order:
 
 1. Uses custom adaptation operators, built using blackbox algorithms such as MCBlackboxOptimizer, DPP sampling, and Hill-Climbing.
 
 2. Collects state normalization data from all workers.
 
-## First Order:
+### First Order:
 
 1.  Uses local-worker state normalization.
 
