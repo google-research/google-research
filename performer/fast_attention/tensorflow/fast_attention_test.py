@@ -70,10 +70,10 @@ class TransformerLayersTest(tf.test.TestCase):
 
   def test_softmax_noncausal_attention_block_output(self):
     batch_size = 1
-    length = 2
+    length = 10000
     num_heads = 1
     dim = 8
-    num_random_features = 30000
+    num_random_features = 1000
     query = tf.random.normal([batch_size, length, num_heads, dim])
     key = tf.random.normal([batch_size, length, num_heads, dim])
     value = tf.random.normal([batch_size, length, num_heads, dim])
@@ -88,11 +88,9 @@ class TransformerLayersTest(tf.test.TestCase):
     attention_scores = tf.nn.softmax(attention_scores, axis=2)
     exact_attention_block_output = tf.einsum("BXYH,BYHD->BXHD",
                                              attention_scores, value)
-    max_error = 2.0
-    error = tf.math.abs(
-        (exact_attention_block_output - attention_block_output) /
-        exact_attention_block_output)
-    self.assertLess(tf.math.reduce_max(tf.math.abs(error)), max_error)
+    max_error = 0.5
+    error = tf.math.abs(exact_attention_block_output - attention_block_output)
+    self.assertLess(tf.math.reduce_max(error), max_error)
 
   def test_fast_attention(self):
     hidden_size = 64
