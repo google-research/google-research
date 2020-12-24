@@ -64,7 +64,7 @@ class NerfModel(nn.Module):
       lindisp: bool, sampling linearly in disparity rather than depth if true.
 
     Returns:
-      ret: list, [(rgb, disp, acc), (rgb_coarse, disp_coarse, acc_coarse)]
+      ret: list, [(rgb_coarse, disp_coarse, acc_coarse), (rgb, disp, acc)]
     """
     # Extract viewdirs from the ray array
     if rays.shape[-1] > 6:  # viewdirs different from rays_d
