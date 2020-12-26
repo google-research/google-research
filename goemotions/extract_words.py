@@ -188,6 +188,9 @@ def main(_):
       if c < 11:
         print("%s (%.2f)" % (k, v))
     print("--------")
+    
+  if not os.path.isdir(FLAGS.output):
+    os.makedirs(FLAGS.output)
 
   emotion_words_df = pd.DataFrame(dicts)
   emotion_words_df.to_csv(FLAGS.output, index=False, encoding="utf-8")
