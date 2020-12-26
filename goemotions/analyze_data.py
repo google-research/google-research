@@ -87,7 +87,9 @@ def main(_):
   data = pd.concat(dfs)
   print("%d Examples" % (len(set(data["id"]))))
   print("%d Annotations" % len(data))
-  os.makedirs(FLAGS.plot_dir)
+  
+  if not os.path.isdir(FLAGS.plot_dir):
+    os.makedirs(FLAGS.plot_dir)
 
   with open(FLAGS.emotion_file, "r") as f:
     all_emotions = f.read().splitlines()
