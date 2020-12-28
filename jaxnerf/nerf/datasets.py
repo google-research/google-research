@@ -141,6 +141,8 @@ class Blender(Dataset):
 
   def _load_renderings(self, args):
     """Load images from disk."""
+    if args.render_path:
+      raise ValueError("render_path cannot be used for the blender dataset.")
     with utils.open_file(
         path.join(args.data_dir, "transforms_{}.json".format(self.split)),
         "r") as fp:

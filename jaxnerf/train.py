@@ -172,16 +172,22 @@ def main(unused_argv):
         summary_writer.image("target", test_case["pixels"], step)
     if jax.host_id() != 0:  # Only log via host 0.
       continue
-    if step % 100 == 0:
-      steps_per_sec = 100. / (time.time() - t_loop_start)
+    if step % FLAGS.print_every == 0:
+      steps_per_sec = FLAGS.print_every / (time.time() - t_loop_start)
       t_loop_start = time.time()
+      rays_per_sec = FLAGS.batch_size * steps_per_sec
       summary_writer.scalar("loss", stats[0].loss[0], step)
       summary_writer.scalar("psnr", stats[0].psnr[0], step)
       summary_writer.scalar("learning_rate", lr, step)
       if len(stats) > 1:
         summary_writer.scalar("loss_coarse", stats[1].loss[0], step)
         summary_writer.scalar("psnr_coarse", stats[1].psnr[0], step)
-      summary_writer.scalar("step/sec", steps_per_sec, step)
+      summary_writer.scalar("steps_per_sec", steps_per_sec, step)
+      summary_writer.scalar("rays_per_sec", rays_per_sec, step)
+      precision = int(np.ceil(np.log10(FLAGS.max_steps))) + 1
+      print(("{:" + "{:d}".format(precision) + "d}").format(step) +
+            f"/{FLAGS.max_steps:d}: " + f"loss={stats[0].loss[0]:0.5f}, " +
+            f"{rays_per_sec:0.3f} rays/sec")
     if step % FLAGS.save_every == 0:
       state_to_save = jax.device_get(jax.tree_map(lambda x: x[0], state))
       checkpoints.save_checkpoint(

@@ -1,7 +1,7 @@
 dataset: llff
 image_batching: true
-n_samples: 64
-n_fine_samples: 128
+num_coarse_samples: 64
+num_fine_samples: 128
 use_viewdirs: true
 white_bkgd: false
 batch_size: 4096

@@ -45,14 +45,14 @@ class MLP(nn.Module):
             net_width=256,
             net_depth_condition=1,
             net_width_condition=128,
-            activation=nn.relu,
+            net_activation=nn.relu,
             skip_layer=4,
-            alpha_channel=1,
-            rgb_channel=3):
+            num_rgb_channels=3,
+            num_sigma_channels=1):
     """Multi-layer perception for nerf.
 
     Args:
-      x: jnp.ndarray(float32), [batch, n_samples, feature], points.
+      x: jnp.ndarray(float32), [batch, num_samples, feature], points.
       condition: jnp.ndarray(float32), [batch, feature], if not None, this
         variable will be part of the input to the second part of the MLP
         concatenated with the output vector of the first part of the MLP. If
@@ -62,17 +62,20 @@ class MLP(nn.Module):
       net_width: int, the width of the first part of MLP.
       net_depth_condition: int, the depth of the second part of MLP.
       net_width_condition: int, the width of the second part of MLP.
-      activation: function, the activation function used in the MLP.
+      net_activation: function, the activation function used in the MLP.
       skip_layer: int, add a skip connection to the output vector of every
         skip_layer layers.
-      alpha_channel: int, the number of alpha_channels.
-      rgb_channel: int, the number of rgb_channels.
+      num_rgb_channels: int, the number of RGB channels.
+      num_sigma_channels: int, the number of density channels.
 
     Returns:
-      raw: jnp.ndarray(float32), [batch, n_samples, rgb_channel+alpha_channel].
+      raw_rgb: jnp.ndarray(float32), with a shape of
+           [batch, num_samples, num_rgb_channels].
+      raw_sigma: jnp.ndarray(float32), with a shape of
+           [batch, num_samples, num_sigma_channels].
     """
     feature_dim = x.shape[-1]
-    n_samples = x.shape[1]
+    num_samples = x.shape[1]
     x = x.reshape([-1, feature_dim])
     dense_layer = functools.partial(
         nn.Dense, kernel_init=jax.nn.initializers.glorot_uniform())
@@ -80,51 +83,52 @@ class MLP(nn.Module):
     inputs = x
     for i in range(net_depth):
       x = dense_layer(x, net_width)
-      x = activation(x)
+      x = net_activation(x)
       if i % skip_layer == 0 and i > 0:
         x = jnp.concatenate([x, inputs], axis=-1)
-    sigma = dense_layer(x, alpha_channel)
+    raw_sigma = dense_layer(x, num_sigma_channels).reshape(
+        [-1, num_samples, num_sigma_channels])
     if condition is not None:
       # Output of the first part of MLP.
       bottleneck = dense_layer(x, net_width)
       # Broadcast condition from [batch, feature] to
-      # [batch, n_samples, feature] since all the samples along the same ray
+      # [batch, num_samples, feature] since all the samples along the same ray
       # has the same viewdir.
-      condition = jnp.tile(condition[:, None, :], (1, n_samples, 1))
-      # Collapse the [batch, n_samples, feature] tensor to
-      # [batch * n_samples, feature] so that it can be feed into nn.Dense.
+      condition = jnp.tile(condition[:, None, :], (1, num_samples, 1))
+      # Collapse the [batch, num_samples, feature] tensor to
+      # [batch * num_samples, feature] so that it can be feed into nn.Dense.
       condition = condition.reshape([-1, condition.shape[-1]])
       x = jnp.concatenate([bottleneck, condition], axis=-1)
       # Here use 1 extra layer to align with the original nerf model.
       for i in range(net_depth_condition):
         x = dense_layer(x, net_width_condition)
-        x = activation(x)
-    rgb = dense_layer(x, rgb_channel)
-    return (jnp.concatenate([rgb, sigma], axis=-1).reshape(
-        [-1, n_samples, rgb_channel + alpha_channel]))
+        x = net_activation(x)
+    raw_rgb = dense_layer(x, num_rgb_channels).reshape(
+        [-1, num_samples, num_rgb_channels])
+    return raw_rgb, raw_sigma
 
 
-def sample_along_rays(key, rays, n_samples, near, far, randomized, lindisp):
+def sample_along_rays(key, rays, num_samples, near, far, randomized, lindisp):
   """Stratified sampling along the rays.
 
   Args:
     key: jnp.ndarray, random generator key.
     rays: jnp.ndarray(float32), [batch_size, 6].
-    n_samples: int.
+    num_samples: int.
     near: float, near clip.
     far: float, far clip.
     randomized: bool, use randomized stratified sampling.
     lindisp: bool, sampling linearly in disparity rather than depth.
 
   Returns:
-    z_vals: jnp.ndarray, [batch_size, n_samples], sampled z values.
-    points: jnp.ndarray, [batch_size, n_samples, 3], sampled points.
+    z_vals: jnp.ndarray, [batch_size, num_samples], sampled z values.
+    points: jnp.ndarray, [batch_size, num_samples, 3], sampled points.
   """
   origins = rays[Ellipsis, 0:3]
   directions = rays[Ellipsis, 3:6]
   batch_size = origins.shape[0]
 
-  t_vals = jnp.linspace(0., 1., n_samples)
+  t_vals = jnp.linspace(0., 1., num_samples)
   if not lindisp:
     z_vals = near * (1. - t_vals) + far * t_vals
   else:
@@ -133,18 +137,18 @@ def sample_along_rays(key, rays, n_samples, near, far, randomized, lindisp):
     mids = .5 * (z_vals[Ellipsis, 1:] + z_vals[Ellipsis, :-1])
     upper = jnp.concatenate([mids, z_vals[Ellipsis, -1:]], -1)
     lower = jnp.concatenate([z_vals[Ellipsis, :1], mids], -1)
-    t_rand = random.uniform(key, [batch_size, n_samples])
+    t_rand = random.uniform(key, [batch_size, num_samples])
     z_vals = lower + (upper - lower) * t_rand
   else:
     # Broadcast z_vals to make the returned shape consistent.
-    z_vals = jnp.broadcast_to(z_vals[None, Ellipsis], [batch_size, n_samples])
+    z_vals = jnp.broadcast_to(z_vals[None, Ellipsis], [batch_size, num_samples])
 
   return (z_vals, (origins[Ellipsis, None, :] +
                    z_vals[Ellipsis, :, None] * directions[Ellipsis, None, :]))
 
 
 def posenc(x, deg):
-  """Positional Encoding.
+  """Concatenate `x` with a positional encoding of `x` with degree `deg`.
 
   Args:
     x: jnp.ndarray, variables to be encoded. Note that x should be in [-pi, pi].
@@ -155,71 +159,75 @@ def posenc(x, deg):
   """
   if deg == 0:
     return x
-  # Vectorize the computation of the high-frequency (sin, cos) terms.
-  # We use the trigonometric identity: cos(x) = sin(x + pi/2)
-  cos_to_sin_shift = jnp.pi / 2
-  pre_sin_terms = functools.reduce(
-      operator.iconcat,
-      [[2**i * x, 2**i * x + cos_to_sin_shift] for i in range(deg)], [])
-  pre_sin_array = jnp.concatenate(pre_sin_terms, axis=-1)
-  encoded = jnp.concatenate([x] + [jnp.sin(pre_sin_array)], axis=-1)
+  # Instead of computing [sin(x), cos(x)], we use the trig identity
+  # cos(x) = sin(x + pi/2) and do one vectorized call to sin([x, x+pi/2]).
+  half_pi = jnp.pi / 2
+  pos_enc = jnp.sin(
+      jnp.concatenate(
+          functools.reduce(operator.iconcat,
+                           [[2**i * x, 2**i * x + half_pi] for i in range(deg)],
+                           []),
+          axis=-1))
+  encoded = jnp.concatenate([x] + [pos_enc], axis=-1)
   return encoded
 
 
-def volumetric_rendering(raw, z_vals, dirs, white_bkgd):
+def volumetric_rendering(rgb, sigma, z_vals, dirs, white_bkgd):
   """Volumetric Rendering Function.
 
   Args:
-    raw: jnp.ndarray(float32), [batch_size, n_samples, 4].
-    z_vals: jnp.ndarray(float32), [batch_size, n_samples].
+    rgb: jnp.ndarray(float32), color, [batch_size, num_samples, 3]
+    sigma: jnp.ndarray(float32), density, [batch_size, num_samples, 1].
+    z_vals: jnp.ndarray(float32), [batch_size, num_samples].
     dirs: jnp.ndarray(float32), [batch_size, 3].
     white_bkgd: bool.
 
   Returns:
-    rgb: jnp.ndarray(float32), [batch_size, 3].
+    comp_rgb: jnp.ndarray(float32), [batch_size, 3].
     disp: jnp.ndarray(float32), [batch_size].
     acc: jnp.ndarray(float32), [batch_size].
-    weights: jnp.ndarray(float32), [batch_size, n_samples]
+    weights: jnp.ndarray(float32), [batch_size, num_samples]
   """
   eps = 1e-10
-  rgb = nn.sigmoid(raw[Ellipsis, :3])
-  sigma = nn.relu(raw[Ellipsis, 3])
   dists = jnp.concatenate([
       z_vals[Ellipsis, 1:] - z_vals[Ellipsis, :-1],
       jnp.broadcast_to([1e10], z_vals[Ellipsis, :1].shape)
   ], -1)
   dists = dists * jnp.linalg.norm(dirs[Ellipsis, None, :], axis=-1)
-  alpha = 1.0 - jnp.exp(-sigma * dists)
+  # Note that we're quietly turning sigma from [..., 0] to [...].
+  alpha = 1.0 - jnp.exp(-sigma[Ellipsis, 0] * dists)
   accum_prod = jnp.concatenate([
-      jnp.full_like(alpha[Ellipsis, :1], 1., alpha.dtype),
+      jnp.ones_like(alpha[Ellipsis, :1], alpha.dtype),
       jnp.cumprod(1.0 - alpha[Ellipsis, :-1] + eps, axis=-1)
   ],
                                axis=-1)
   weights = alpha * accum_prod
 
-  rgb = (weights[Ellipsis, None] * rgb).sum(axis=-2)
+  comp_rgb = (weights[Ellipsis, None] * rgb).sum(axis=-2)
   depth = (weights * z_vals).sum(axis=-1)
-  sum_weights = weights.sum(axis=-1)
-  disp = 1. / jnp.maximum(eps,
-                          jnp.where(sum_weights > eps, depth / sum_weights, 0.))
   acc = weights.sum(axis=-1)
+  # Equivalent to (but slightly more efficient and stable than):
+  #  disp = 1 / max(eps, where(acc > eps, depth / acc, 0))
+  inv_eps = 1 / eps
+  disp = acc / depth
+  disp = jnp.where((disp > 0) & (disp < inv_eps) & (acc > eps), disp, inv_eps)
   if white_bkgd:
-    rgb = rgb + (1. - acc[Ellipsis, None])
-  return rgb, disp, acc, weights
+    comp_rgb = comp_rgb + (1. - acc[Ellipsis, None])
+  return comp_rgb, disp, acc, weights
 
 
-def piecewise_constant_pdf(key, bins, weights, n_samples, randomized):
+def piecewise_constant_pdf(key, bins, weights, num_samples, randomized):
   """Piecewise-Constant PDF sampling.
 
   Args:
     key: jnp.ndarray(float32), [2,], random number generator.
-    bins: jnp.ndarray(float32), [batch_size, n_bins + 1].
-    weights: jnp.ndarray(float32), [batch_size, n_bins].
-    n_samples: int, the number of samples.
+    bins: jnp.ndarray(float32), [batch_size, num_bins + 1].
+    weights: jnp.ndarray(float32), [batch_size, num_bins].
+    num_samples: int, the number of samples.
     randomized: bool, use randomized samples.
 
   Returns:
-    z_samples: jnp.ndarray(float32), [batch_size, n_samples].
+    z_samples: jnp.ndarray(float32), [batch_size, num_samples].
   """
   eps = 1e-5
 
@@ -231,10 +239,10 @@ def piecewise_constant_pdf(key, bins, weights, n_samples, randomized):
 
   # Take uniform samples
   if randomized:
-    u = random.uniform(key, list(cdf.shape[:-1]) + [n_samples])
+    u = random.uniform(key, list(cdf.shape[:-1]) + [num_samples])
   else:
-    u = jnp.linspace(0., 1., n_samples)
-    u = jnp.broadcast_to(u, list(cdf.shape[:-1]) + [n_samples])
+    u = jnp.linspace(0., 1., num_samples)
+    u = jnp.broadcast_to(u, list(cdf.shape[:-1]) + [num_samples])
 
   # Invert CDF. This takes advantage of the fact that `bins` is sorted.
   mask = (u[Ellipsis, None, :] >= cdf[Ellipsis, :, None])
@@ -258,25 +266,26 @@ def piecewise_constant_pdf(key, bins, weights, n_samples, randomized):
   return lax.stop_gradient(z_samples)
 
 
-def sample_pdf(key, bins, weights, rays, z_vals, n_samples, randomized):
+def sample_pdf(key, bins, weights, rays, z_vals, num_samples, randomized):
   """Hierarchical sampling.
 
   Args:
     key: jnp.ndarray(float32), [2,], random number generator.
-    bins: jnp.ndarray(float32), [batch_size, n_bins + 1].
-    weights: jnp.ndarray(float32), [batch_size, n_bins].
+    bins: jnp.ndarray(float32), [batch_size, num_bins + 1].
+    weights: jnp.ndarray(float32), [batch_size, num_bins].
     rays: jnp.ndarray(float32), [batch_size, 6].
-    z_vals: jnp.ndarray(float32), [batch_size, n_coarse_samples].
-    n_samples: int, the number of samples.
+    z_vals: jnp.ndarray(float32), [batch_size, num_coarse_samples].
+    num_samples: int, the number of samples.
     randomized: bool, use randomized samples.
 
   Returns:
     z_vals: jnp.ndarray(float32),
-      [batch_size, n_coarse_samples + n_fine_samples].
+      [batch_size, num_coarse_samples + num_fine_samples].
     points: jnp.ndarray(float32),
-      [batch_size, n_coarse_samples + n_fine_samples, 3].
+      [batch_size, num_coarse_samples + num_fine_samples, 3].
   """
-  z_samples = piecewise_constant_pdf(key, bins, weights, n_samples, randomized)
+  z_samples = piecewise_constant_pdf(key, bins, weights, num_samples,
+                                     randomized)
   origins = rays[Ellipsis, 0:3]
   directions = rays[Ellipsis, 3:6]
   # Compute united z_vals and sample points
@@ -285,20 +294,19 @@ def sample_pdf(key, bins, weights, rays, z_vals, n_samples, randomized):
       origins[Ellipsis, None, :] + z_vals[Ellipsis, None] * directions[Ellipsis, None, :])
 
 
-def noise_regularize(key, raw, noise_std, randomized):
-  """Regularize the density prediction by adding gaussian noise.
+def add_gaussian_noise(key, raw, noise_std, randomized):
+  """Adds gaussian noise to `raw`. Used to regularize "raw" density.
 
   Args:
     key: jnp.ndarray(float32), [2,], random number generator.
-    raw: jnp.ndarray(float32), [batch_size, n_samples, 4].
-    noise_std: float, std dev of noise added to regularize sigma output.
-    randomized: bool, add noises if randomized is True.
+    raw: jnp.ndarray(float32), arbitrary shape.
+    noise_std: float, The standard deviation of the noise to be added.
+    randomized: bool, add noise if randomized is True.
 
   Returns:
-    raw: jnp.ndarray(float32), [batch_size, n_samples, 4], updated raw.
+    raw + noise: jnp.ndarray(float32), with the same shape as `raw`.
   """
   if (noise_std is not None) and randomized:
-    unused_key, key = random.split(key)
-    noise = random.normal(key, raw[Ellipsis, 3:4].shape, dtype=raw.dtype) * noise_std
-    raw = jnp.concatenate([raw[Ellipsis, :3], raw[Ellipsis, 3:4] + noise], axis=-1)
-  return raw
+    return raw + random.normal(key, raw.shape, dtype=raw.dtype) * noise_std
+  else:
+    return raw

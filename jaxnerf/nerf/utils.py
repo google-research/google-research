@@ -56,8 +56,8 @@ def define_flags():
       "(used in the blender dataset only)")
   flags.DEFINE_integer("batch_size", 1024,
                        "the number of rays in a mini-batch (for training).")
-  flags.DEFINE_integer(
-      "factor", 4, "the downsample factor of images, 0 for no downsample.")
+  flags.DEFINE_integer("factor", 4,
+                       "the downsample factor of images, 0 for no downsample.")
   flags.DEFINE_bool("spherify", False, "set for spherical 360 scenes.")
   flags.DEFINE_bool(
       "render_path", False, "render generated path if set true."
@@ -77,21 +77,21 @@ def define_flags():
                        "depth of the second part of MLP.")
   flags.DEFINE_integer("net_width_condition", 128,
                        "width of the second part of MLP.")
-  flags.DEFINE_enum("activation", "relu", [
-      "relu",
-  ], "activation function used in MLP.")
   flags.DEFINE_integer(
       "skip_layer", 4, "add a skip connection to the output vector of every"
       "skip_layer layers.")
-  flags.DEFINE_integer("alpha_channel", 1, "the number of alpha channels.")
-  flags.DEFINE_integer("rgb_channel", 3, "the number of rgb channels.")
+  flags.DEFINE_integer("num_rgb_channels", 3, "the number of RGB channels.")
+  flags.DEFINE_integer("num_sigma_channels", 1,
+                       "the number of density channels.")
   flags.DEFINE_bool("randomized", True, "use randomized stratified sampling.")
   flags.DEFINE_integer("deg_point", 10,
                        "Degree of positional encoding for points.")
   flags.DEFINE_integer("deg_view", 4,
                        "degree of positional encoding for viewdirs.")
-  flags.DEFINE_integer("n_samples", 64, "the number of samples on each ray.")
-  flags.DEFINE_integer("n_fine_samples", 128,
+  flags.DEFINE_integer(
+      "num_coarse_samples", 64,
+      "the number of samples on each ray for the coarse model.")
+  flags.DEFINE_integer("num_fine_samples", 128,
                        "the number of samples on each ray for the fine model.")
   flags.DEFINE_bool("use_viewdirs", True, "use view directions as a condition.")
   flags.DEFINE_float(
@@ -99,6 +99,12 @@ def define_flags():
       "(used in the llff dataset only)")
   flags.DEFINE_bool("lindisp", False,
                     "sampling linearly in disparity rather than depth.")
+  flags.DEFINE_string("net_activation", "relu",
+                      "activation function used within the MLP.")
+  flags.DEFINE_string("rgb_activation", "sigmoid",
+                      "activation function used to produce RGB.")
+  flags.DEFINE_string("sigma_activation", "relu",
+                      "activation function used to produce density.")
 
   # Train Flags
   flags.DEFINE_float("lr", 5e-4, "Learning rate for training.")
@@ -109,6 +115,8 @@ def define_flags():
                        "the number of optimization steps.")
   flags.DEFINE_integer("save_every", 10000,
                        "the number of steps to save a checkpoint.")
+  flags.DEFINE_integer("print_every", 100,
+                       "the number of steps between reports to tensorboard.")
   flags.DEFINE_integer(
       "render_every", 5000, "the number of steps to render a test image,"
       "better to be x00 for accurate step time record.")
@@ -187,6 +195,7 @@ def render_image(state, data, render_fn, rng, chunk=8192):
   acc = []
   with nn.stateful(model_state, mutable=False):
     for i in range(0, rays.shape[0], chunk):
+      print("  " + "X" * int((i / rays.shape[0]) * 78), end="\r")
       chunk_rays = rays[i:i + chunk]
       remainder = chunk_rays.shape[0] % jax.device_count()
       if remainder != 0:
@@ -204,6 +213,7 @@ def render_image(state, data, render_fn, rng, chunk=8192):
       rgb.append(unshard(ret[-1][0][0], padding))
       disp.append(unshard(ret[-1][1][0], padding))
       acc.append(unshard(ret[-1][2][0], padding))
+    print("")
   rgb = jnp.concatenate(rgb, axis=0)
   disp = jnp.concatenate(disp, axis=0)
   # Normalize disp for visualization for ndc_rays in llff front-facing scenes.
@@ -231,7 +241,7 @@ def save_img(img, pth):
 
   Args:
     img: jnp.ndarry, [height, width, channels], img will be clipped to [0, 1]
-         before saved to pth.
+      before saved to pth.
     pth: string, path to save the image to.
   """
   with open_file(pth, "wb") as imgout:

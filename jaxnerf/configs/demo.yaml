@@ -1,8 +1,8 @@
 dataset: blender
 image_batching: false
 factor: 0
-n_samples: 64
-n_fine_samples: 128
+num_coarse_samples: 64
+num_fine_samples: 128
 use_viewdirs: true
 white_bkgd: true
 batch_size: 1024

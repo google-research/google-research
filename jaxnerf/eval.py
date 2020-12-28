@@ -80,6 +80,7 @@ def main(unused_argv):
     if not FLAGS.eval_once:
       showcase_index = np.random.randint(0, dataset.size)
     for idx in range(dataset.size):
+      print(f"Evaluating {idx+1}/{dataset.size}")
       batch = next(dataset)
       pred_color, pred_disp, pred_acc = utils.render_image(
           state, batch, render_fn, rng, chunk=FLAGS.chunk)
@@ -95,7 +96,7 @@ def main(unused_argv):
         sq_diff = ((pred_color - batch["pixels"])**2).mean()
         psnr = utils.compute_psnr(sq_diff)
         sum_psnr = sum_psnr + float(psnr)
-        print("Test example {0:03d}: \n\tpsnr={1:.4f}".format(idx, psnr))
+        print(f"  PSNR = {psnr:.4f}")
       if FLAGS.save_output:
         utils.save_img(pred_color, path.join(out_dir, "{:03d}.png".format(idx)))
         utils.save_img(pred_disp[Ellipsis, 0],
