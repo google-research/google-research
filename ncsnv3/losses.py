@@ -167,7 +167,7 @@ def ncsn_loss(rng,
   else:
     model_ema = state.optimizer.target.replace(params=state.params_ema)
     if loss_per_sigma:
-      loss, _, losses = loss_fn(model_ema)
+      loss, _, losses = loss_fn(model_ema)  # pytype: disable=bad-unpacking
     else:
       loss, *_ = loss_fn(model_ema)
 
