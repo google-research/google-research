@@ -51,15 +51,21 @@ def main(unused_argv):
   init_model, init_state = models.get_model(key, FLAGS)
   optimizer_def = optim.Adam(FLAGS.lr)
   optimizer = optimizer_def.create(init_model)
-  render_fn = jax.pmap(
-      # Note rng_keys are useless in eval mode since there's no randomness.
-      # pylint: disable=g-long-lambda
-      lambda key_0, key_1, model, rays: jax.lax.all_gather(
-          model(key_0, key_1, rays), axis_name="batch"),
-      in_axes=(None, None, None, 0),  # Only distribute the data input.
+
+  def render_fn(key_0, key_1, model, rays):
+    # Note rng_keys are useless in eval mode since there's no randomness.
+    return jax.lax.all_gather(
+        model(key_0, key_1, rays.origins, rays.directions, rays.viewdirs),
+        axis_name="batch")
+
+  # pmap over only the data input.
+  render_pfn = jax.pmap(
+      render_fn,
+      in_axes=(None, None, None, 0),
       donate_argnums=3,
       axis_name="batch",
   )
+
   state = model_utils.TrainState(
       step=0, optimizer=optimizer, model_state=init_state)
   del init_model, init_state
@@ -76,14 +82,19 @@ def main(unused_argv):
       continue
     if FLAGS.save_output and (not utils.isdir(out_dir)):
       utils.makedirs(out_dir)
-    sum_psnr = 0.
+    psnrs = []
     if not FLAGS.eval_once:
       showcase_index = np.random.randint(0, dataset.size)
     for idx in range(dataset.size):
       print(f"Evaluating {idx+1}/{dataset.size}")
       batch = next(dataset)
       pred_color, pred_disp, pred_acc = utils.render_image(
-          state, batch, render_fn, rng, chunk=FLAGS.chunk)
+          state,
+          batch["rays"],
+          render_pfn,
+          rng,
+          FLAGS.dataset == "llff",
+          chunk=FLAGS.chunk)
       if jax.host_id() != 0:  # Only record via host 0.
         continue
       if not FLAGS.eval_once and idx == showcase_index:
@@ -93,10 +104,9 @@ def main(unused_argv):
         if not FLAGS.render_path:
           showcase_gt = batch["pixels"]
       if not FLAGS.render_path:
-        sq_diff = ((pred_color - batch["pixels"])**2).mean()
-        psnr = utils.compute_psnr(sq_diff)
-        sum_psnr = sum_psnr + float(psnr)
+        psnr = utils.compute_psnr(((pred_color - batch["pixels"])**2).mean())
         print(f"  PSNR = {psnr:.4f}")
+        psnrs.append(float(psnr))
       if FLAGS.save_output:
         utils.save_img(pred_color, path.join(out_dir, "{:03d}.png".format(idx)))
         utils.save_img(pred_disp[Ellipsis, 0],
@@ -106,11 +116,11 @@ def main(unused_argv):
       summary_writer.image("pred_disp", showcase_disp, state.step)
       summary_writer.image("pred_acc", showcase_acc, state.step)
       if not FLAGS.render_path:
-        summary_writer.scalar("psnr", sum_psnr / dataset.size, state.step)
+        summary_writer.scalar("psnr", np.mean(np.array(psnrs)), state.step)
         summary_writer.image("target", showcase_gt, state.step)
     if FLAGS.save_output and (not FLAGS.render_path) and (jax.host_id() == 0):
       with utils.open_file(path.join(out_dir, "psnr.txt"), "w") as pout:
-        pout.write("{}".format(sum_psnr / dataset.size))
+        pout.write("{}".format(np.mean(np.array(psnrs))))
     if FLAGS.eval_once:
       break
     if int(state.step) >= FLAGS.max_steps:

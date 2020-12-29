@@ -29,22 +29,22 @@ def get_model(key, args):
 class NerfModel(nn.Module):
   """Nerf NN Model with both coarse and fine MLPs."""
 
-  def apply(self, rng_0, rng_1, rays, num_coarse_samples, num_fine_samples,
-            use_viewdirs, near, far, noise_std, net_depth, net_width,
-            net_depth_condition, net_width_condition, net_activation,
-            skip_layer, num_rgb_channels, num_sigma_channels, randomized,
-            white_bkgd, deg_point, deg_view, lindisp, rgb_activation,
-            sigma_activation):
+  def apply(self, rng_0, rng_1, origins, directions, viewdirs,
+            num_coarse_samples, num_fine_samples, use_viewdirs, near, far,
+            noise_std, net_depth, net_width, net_depth_condition,
+            net_width_condition, net_activation, skip_layer, num_rgb_channels,
+            num_sigma_channels, randomized, white_bkgd, deg_point, deg_view,
+            lindisp, rgb_activation, sigma_activation):
     """Nerf Model.
 
     Args:
       rng_0: jnp.ndarray, random number generator for coarse model sampling.
       rng_1: jnp.ndarray, random number generator for fine model sampling.
-      rays: jnp.ndarray(float32), [batch_size, 6/9], each ray is a 6-d vector
-        where the first 3 dimensions represent the ray origin and the last 3
-        dimensions represent the unormalized ray direction. Note that if ndc
-        rays are used, rays are 9-d where the extra 3-dimensional vector is the
-        view direction before transformed to ndc rays.
+      origins: jnp.ndarray(float32), [batch_size, 3], each ray origin.
+      directions: jnp.ndarray(float32), [batch_size, 3], each ray direction.
+      viewdirs: jnp.ndarray(float32), [batch_size, 3], the viewing direction for
+        each ray. This is only used if NDC rays are used, as otherwise
+        `directions` is equal to viewdirs.
       num_coarse_samples: int, the number of samples for coarse nerf.
       num_fine_samples: int, the number of samples for fine nerf.
       use_viewdirs: bool, use viewdirs as a condition.
@@ -71,26 +71,20 @@ class NerfModel(nn.Module):
     Returns:
       ret: list, [(rgb_coarse, disp_coarse, acc_coarse), (rgb, disp, acc)]
     """
-    # Extract viewdirs from the ray array
-    if rays.shape[-1] > 6:  # viewdirs different from rays_d
-      viewdirs = rays[Ellipsis, -3:]
-      rays = rays[Ellipsis, :-3]
-    else:  # viewdirs are normalized rays_d
-      viewdirs = rays[Ellipsis, 3:6]
     # Stratified sampling along rays
     key, rng_0 = random.split(rng_0)
-    z_vals, samples = model_utils.sample_along_rays(key, rays,
+    z_vals, samples = model_utils.sample_along_rays(key, origins, directions,
                                                     num_coarse_samples, near,
                                                     far, randomized, lindisp)
-    samples = model_utils.posenc(samples, deg_point)
+    samples_enc = model_utils.posenc(samples, deg_point)
     # Point attribute predictions
     if use_viewdirs:
-      norms = jnp.linalg.norm(viewdirs, axis=-1, keepdims=True)
-      viewdirs = viewdirs / norms
-      viewdirs = model_utils.posenc(viewdirs, deg_view)
+      viewdirs_enc = model_utils.posenc(
+          viewdirs / jnp.linalg.norm(viewdirs, axis=-1, keepdims=True),
+          deg_view)
       raw_rgb, raw_sigma = model_utils.MLP(
-          samples,
-          viewdirs,
+          samples_enc,
+          viewdirs_enc,
           net_depth=net_depth,
           net_width=net_width,
           net_depth_condition=net_depth_condition,
@@ -102,7 +96,7 @@ class NerfModel(nn.Module):
       )
     else:
       raw_rgb, raw_sigma = model_utils.MLP(
-          samples,
+          samples_enc,
           net_depth=net_depth,
           net_width=net_width,
           net_depth_condition=net_depth_condition,
@@ -123,7 +117,7 @@ class NerfModel(nn.Module):
         rgb,
         sigma,
         z_vals,
-        rays[Ellipsis, 3:6],
+        directions,
         white_bkgd=white_bkgd,
     )
     ret = [
@@ -137,16 +131,17 @@ class NerfModel(nn.Module):
           key,
           z_vals_mid,
           weights[Ellipsis, 1:-1],
-          rays,
+          origins,
+          directions,
           z_vals,
           num_fine_samples,
           randomized,
       )
-      samples = model_utils.posenc(samples, deg_point)
+      samples_enc = model_utils.posenc(samples, deg_point)
       if use_viewdirs:
-        raw_rgb, raw_sigma = model_utils.MLP(samples, viewdirs)
+        raw_rgb, raw_sigma = model_utils.MLP(samples_enc, viewdirs_enc)
       else:
-        raw_rgb, raw_sigma = model_utils.MLP(samples)
+        raw_rgb, raw_sigma = model_utils.MLP(samples_enc)
       key, rng_1 = random.split(rng_1)
       raw_sigma = model_utils.add_gaussian_noise(key, raw_sigma, noise_std,
                                                  randomized)
@@ -156,7 +151,7 @@ class NerfModel(nn.Module):
           rgb,
           sigma,
           z_vals,
-          rays[Ellipsis, 3:6],
+          directions,
           white_bkgd=white_bkgd,
       )
       ret.append((comp_rgb, disp, acc))
@@ -214,7 +209,6 @@ def nerf(key, args):
         "Choice of sigma_activation `{}` produces negative densities".format(
             args.sigma_activation))
 
-  ray_shape = (args.batch_size, 6 if args.dataset != "llff" else 9)
   model_fn = NerfModel.partial(
       num_coarse_samples=num_coarse_samples,
       num_fine_samples=num_fine_samples,
@@ -237,13 +231,18 @@ def nerf(key, args):
       lindisp=lindisp,
       rgb_activation=rgb_activation,
       sigma_activation=sigma_activation)
+  origin_shape = (args.batch_size, 3)
+  direction_shape = (args.batch_size, 3)
+  viewdir_shape = (args.batch_size, 3)
   with nn.stateful() as init_state:
     unused_outspec, init_params = model_fn.init_by_shape(
         key,
         [
             (key.shape, key.dtype),
             (key.shape, key.dtype),
-            (ray_shape, jnp.float32),
+            (origin_shape, jnp.float32),
+            (direction_shape, jnp.float32),
+            (viewdir_shape, jnp.float32),
         ],
     )
     model = nn.Model(model_fn, init_params)

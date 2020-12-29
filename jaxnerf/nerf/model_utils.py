@@ -108,12 +108,14 @@ class MLP(nn.Module):
     return raw_rgb, raw_sigma
 
 
-def sample_along_rays(key, rays, num_samples, near, far, randomized, lindisp):
+def sample_along_rays(key, origins, directions, num_samples, near, far,
+                      randomized, lindisp):
   """Stratified sampling along the rays.
 
   Args:
     key: jnp.ndarray, random generator key.
-    rays: jnp.ndarray(float32), [batch_size, 6].
+    origins: jnp.ndarray(float32), [batch_size, 3], ray origins.
+    directions: jnp.ndarray(float32), [batch_size, 3], ray directions.
     num_samples: int.
     near: float, near clip.
     far: float, far clip.
@@ -124,8 +126,6 @@ def sample_along_rays(key, rays, num_samples, near, far, randomized, lindisp):
     z_vals: jnp.ndarray, [batch_size, num_samples], sampled z values.
     points: jnp.ndarray, [batch_size, num_samples, 3], sampled points.
   """
-  origins = rays[Ellipsis, 0:3]
-  directions = rays[Ellipsis, 3:6]
   batch_size = origins.shape[0]
 
   t_vals = jnp.linspace(0., 1., num_samples)
@@ -266,14 +266,16 @@ def piecewise_constant_pdf(key, bins, weights, num_samples, randomized):
   return lax.stop_gradient(z_samples)
 
 
-def sample_pdf(key, bins, weights, rays, z_vals, num_samples, randomized):
+def sample_pdf(key, bins, weights, origins, directions, z_vals, num_samples,
+               randomized):
   """Hierarchical sampling.
 
   Args:
     key: jnp.ndarray(float32), [2,], random number generator.
     bins: jnp.ndarray(float32), [batch_size, num_bins + 1].
     weights: jnp.ndarray(float32), [batch_size, num_bins].
-    rays: jnp.ndarray(float32), [batch_size, 6].
+    origins: jnp.ndarray(float32), [batch_size, 3], ray origins.
+    directions: jnp.ndarray(float32), [batch_size, 3], ray directions.
     z_vals: jnp.ndarray(float32), [batch_size, num_coarse_samples].
     num_samples: int, the number of samples.
     randomized: bool, use randomized samples.
@@ -286,8 +288,6 @@ def sample_pdf(key, bins, weights, rays, z_vals, num_samples, randomized):
   """
   z_samples = piecewise_constant_pdf(key, bins, weights, num_samples,
                                      randomized)
-  origins = rays[Ellipsis, 0:3]
-  directions = rays[Ellipsis, 3:6]
   # Compute united z_vals and sample points
   z_vals = jnp.sort(jnp.concatenate([z_vals, z_samples], axis=-1), axis=-1)
   return z_vals, (

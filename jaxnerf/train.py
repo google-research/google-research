@@ -60,7 +60,8 @@ def train_step(rng_key, state, batch, lr):
 
   def loss_fn(model):
     with nn.stateful(state.model_state) as new_model_state:
-      ret = model(key_0, key_1, batch["rays"])
+      rays = batch["rays"]
+      ret = model(key_0, key_1, rays.origins, rays.directions, rays.viewdirs)
     if len(ret) not in (1, 2):
       raise ValueError(
           "ret should contain either 1 set of output (coarse only), or 2 sets"
@@ -114,7 +115,8 @@ def main(unused_argv):
       # Note rng_keys are useless in eval mode since there's no randomness.
       # pylint: disable=g-long-lambda
       lambda key_0, key_1, model, rays: jax.lax.all_gather(
-          model(key_0, key_1, rays), axis_name="batch"),
+          model(key_0, key_1, rays.origins, rays.directions, rays.viewdirs),
+          axis_name="batch"),
       in_axes=(None, None, None, 0),  # Only distribute the data input.
       donate_argnums=3,
       axis_name="batch",
@@ -164,7 +166,12 @@ def main(unused_argv):
       state_to_eval = jax.device_get(jax.tree_map(lambda x: x[0], state))
       test_case = next(test_dataset)
       pred_color, pred_disp, pred_acc = utils.render_image(
-          state_to_eval, test_case, test_render_fn, keys[0], FLAGS.chunk)
+          state_to_eval,
+          test_case["rays"],
+          test_render_fn,
+          keys[0],
+          FLAGS.dataset == "llff",
+          chunk=FLAGS.chunk)
       if jax.host_id() == 0:
         summary_writer.image("pred_color", pred_color, step)
         summary_writer.image("pred_disp", pred_disp, step)

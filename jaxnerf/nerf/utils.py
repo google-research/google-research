@@ -168,14 +168,15 @@ def makedirs(pth):
     os.makedirs(pth)
 
 
-def render_image(state, data, render_fn, rng, chunk=8192):
+def render_image(state, rays, render_fn, rng, normalize_disp, chunk=8192):
   """Render all the pixels of an image (in test mode).
 
   Args:
     state: model_utils.TrainState.
-    data: dict, test example.
+    rays: a `Rays` namedtuple, the rays to be rendered.
     render_fn: function, jit-ed render function.
     rng: jnp.ndarray, random number generator (used in training mode only).
+    normalize_disp: bool, if true then normalize `disp` to [0, 1].
     chunk: int, the size of chunks to render sequentially.
 
   Returns:
@@ -183,45 +184,44 @@ def render_image(state, data, render_fn, rng, chunk=8192):
     disp: jnp.ndarray, rendered disparity image.
     acc: jnp.ndarray, rendered accumulated weights per pixel.
   """
-  rays = data["rays"]
-  h, w = rays.shape[:2]
-  rays = rays.reshape((h * w, -1))
+  height, width = rays[0].shape[:2]
+  num_rays = height * width
+  rays = datasets.ray_fn(lambda r: r.reshape((num_rays, -1)), rays)
+
   unused_rng, key_0, key_1 = jax.random.split(rng, 3)
   model = state.optimizer.target
   model_state = state.model_state
   host_id = jax.host_id()
-  rgb = []
-  disp = []
-  acc = []
+  results = []
   with nn.stateful(model_state, mutable=False):
-    for i in range(0, rays.shape[0], chunk):
-      print("  " + "X" * int((i / rays.shape[0]) * 78), end="\r")
-      chunk_rays = rays[i:i + chunk]
-      remainder = chunk_rays.shape[0] % jax.device_count()
-      if remainder != 0:
-        padding = jax.device_count() - remainder
-        chunk_rays = jnp.pad(chunk_rays, ((0, padding), (0, 0)), mode="edge")
+    for i in range(0, num_rays, chunk):
+      # pylint: disable=cell-var-from-loop
+      print("  " + "X" * int((i / num_rays) * 78), end="\r")
+      chunk_rays = datasets.ray_fn(lambda r: r[i:i + chunk], rays)
+      chunk_size = chunk_rays[0].shape[0]
+      rays_remaining = chunk_size % jax.device_count()
+      rays_per_host = chunk_size // jax.host_count()
+      if rays_remaining != 0:
+        padding = jax.device_count() - rays_remaining
+        chunk_rays = datasets.ray_fn(
+            lambda r: jnp.pad(r, ((0, padding), (0, 0)), mode="edge"),
+            chunk_rays)
       else:
         padding = 0
       # After padding the number of chunk_rays is always divisible by
       # host_count.
-      per_host_rays = chunk_rays.shape[0] // jax.host_count()
-      chunk_rays = chunk_rays[(host_id * per_host_rays):
-                              ((host_id + 1) * per_host_rays)]
-      chunk_rays = shard(chunk_rays)
-      ret = render_fn(key_0, key_1, model, chunk_rays)
-      rgb.append(unshard(ret[-1][0][0], padding))
-      disp.append(unshard(ret[-1][1][0], padding))
-      acc.append(unshard(ret[-1][2][0], padding))
+      start, stop = host_id * rays_per_host, (host_id + 1) * rays_per_host
+      chunk_rays = datasets.ray_fn(lambda r: shard(r[start:stop]), chunk_rays)
+      chunk_results = render_fn(key_0, key_1, model, chunk_rays)[-1]
+      results.append([unshard(x, padding) for x in chunk_results])
+      # pylint: enable=cell-var-from-loop
     print("")
-  rgb = jnp.concatenate(rgb, axis=0)
-  disp = jnp.concatenate(disp, axis=0)
+  rgb, disp, acc = [jnp.concatenate(r, axis=1)[0] for r in zip(*results)]
   # Normalize disp for visualization for ndc_rays in llff front-facing scenes.
-  if rays.shape[-1] > 6:
+  if normalize_disp:
     disp = (disp - disp.min()) / (disp.max() - disp.min())
-  acc = jnp.concatenate(acc, axis=0)
-  return (rgb.reshape((h, w, -1)), disp.reshape(
-      (h, w, -1)), acc.reshape((h, w, -1)))
+  return (rgb.reshape((height, width, -1)), disp.reshape(
+      (height, width, -1)), acc.reshape((height, width, -1)))
 
 
 def compute_psnr(mse):
@@ -283,7 +283,7 @@ def to_device(xs):
 
 def unshard(x, padding=0):
   """Collect the sharded tensor to the shape before sharding."""
+  y = x.reshape([x.shape[0] * x.shape[1]] + list(x.shape[2:]))
   if padding > 0:
-    return x.reshape([x.shape[0] * x.shape[1]] + list(x.shape[2:]))[:-padding]
-  else:
-    return x.reshape([x.shape[0] * x.shape[1]] + list(x.shape[2:]))
+    y = y[:-padding]
+  return y
