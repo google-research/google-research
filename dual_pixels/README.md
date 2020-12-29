@@ -78,7 +78,7 @@ The images are captured with a white level of 1023 (10 bits), but the app
 linearly scales them to have white level 65535. That is, the pixels are
 initially in the range \[0, 1023\], but are scaled to the range \[0, 65535\].
 These images are in linear space. That is, they have not been gamma-encoded. The
-black level is typically around 64 before scaling and 1024 after scaling. The
+black level is typically around 64 before scaling and 4096 after scaling. The
 exact black level can be obtained via [SENSOR_DYNAMIC_BLACK_LEVEL](https://developer.android.com/reference/android/hardware/camera2/CaptureResult.html#SENSOR_DYNAMIC_BLACK_LEVEL) in the CaptureResult.
 
 This app only saves the dual-pixel images. It is also possible to save files in
