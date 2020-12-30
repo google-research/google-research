@@ -22,8 +22,8 @@ import jax.numpy as jnp
 from jaxnerf.nerf import model_utils
 
 
-def get_model(key, args):
-  return model_dict[args.model](key, args)
+def get_model(key, example_batch, args):
+  return model_dict[args.model](key, example_batch, args)
 
 
 class NerfModel(nn.Module):
@@ -158,36 +158,18 @@ class NerfModel(nn.Module):
     return ret
 
 
-def nerf(key, args):
+def nerf(key, example_batch, args):
   """Neural Randiance Field.
 
   Args:
     key: jnp.ndarray. Random number generator.
+    example_batch: dict, an example of a batch of data.
     args: FLAGS class. Hyperparameters of nerf.
 
   Returns:
     model: nn.Model. Nerf model with parameters.
     state: flax.Module.state. Nerf model state for stateful parameters.
   """
-  deg_point = args.deg_point
-  deg_view = args.deg_view
-  num_coarse_samples = args.num_coarse_samples
-  num_fine_samples = args.num_fine_samples
-  use_viewdirs = args.use_viewdirs
-  near = args.near
-  far = args.far
-  noise_std = args.noise_std
-  randomized = args.randomized
-  white_bkgd = args.white_bkgd
-  net_depth = args.net_depth
-  net_width = args.net_width
-  net_depth_condition = args.net_depth_condition
-  net_width_condition = args.net_width_condition
-  skip_layer = args.skip_layer
-  num_rgb_channels = args.num_rgb_channels
-  num_sigma_channels = args.num_sigma_channels
-  lindisp = args.lindisp
-
   net_activation = getattr(nn, str(args.net_activation))
   rgb_activation = getattr(nn, str(args.rgb_activation))
   sigma_activation = getattr(nn, str(args.sigma_activation))
@@ -210,41 +192,34 @@ def nerf(key, args):
             args.sigma_activation))
 
   model_fn = NerfModel.partial(
-      num_coarse_samples=num_coarse_samples,
-      num_fine_samples=num_fine_samples,
-      use_viewdirs=use_viewdirs,
-      near=near,
-      far=far,
-      noise_std=noise_std,
-      net_depth=net_depth,
-      net_width=net_width,
-      net_depth_condition=net_depth_condition,
-      net_width_condition=net_width_condition,
+      deg_point=args.deg_point,
+      deg_view=args.deg_view,
+      num_coarse_samples=args.num_coarse_samples,
+      num_fine_samples=args.num_fine_samples,
+      use_viewdirs=args.use_viewdirs,
+      near=args.near,
+      far=args.far,
+      noise_std=args.noise_std,
+      randomized=args.randomized,
+      white_bkgd=args.white_bkgd,
+      net_depth=args.net_depth,
+      net_width=args.net_width,
+      net_depth_condition=args.net_depth_condition,
+      net_width_condition=args.net_width_condition,
+      skip_layer=args.skip_layer,
+      num_rgb_channels=args.num_rgb_channels,
+      num_sigma_channels=args.num_sigma_channels,
+      lindisp=args.lindisp,
       net_activation=net_activation,
-      skip_layer=skip_layer,
-      num_rgb_channels=num_rgb_channels,
-      num_sigma_channels=num_sigma_channels,
-      randomized=randomized,
-      white_bkgd=white_bkgd,
-      deg_point=deg_point,
-      deg_view=deg_view,
-      lindisp=lindisp,
       rgb_activation=rgb_activation,
       sigma_activation=sigma_activation)
-  origin_shape = (args.batch_size, 3)
-  direction_shape = (args.batch_size, 3)
-  viewdir_shape = (args.batch_size, 3)
   with nn.stateful() as init_state:
-    unused_outspec, init_params = model_fn.init_by_shape(
-        key,
-        [
-            (key.shape, key.dtype),
-            (key.shape, key.dtype),
-            (origin_shape, jnp.float32),
-            (direction_shape, jnp.float32),
-            (viewdir_shape, jnp.float32),
-        ],
-    )
+    rays = example_batch["rays"]
+    key1, key2, key3 = random.split(key, num=3)
+    # TODO(barron): Determine why the rays have an unused first dimension.
+    _, init_params = model_fn.init(key1, key2, key3, rays.origins[0],
+                                   rays.directions[0], rays.viewdirs[0])
+
     model = nn.Model(model_fn, init_params)
   return model, init_state
 

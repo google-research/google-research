@@ -48,7 +48,7 @@ def main(unused_argv):
   FLAGS.randomized = False
   dataset = datasets.get_dataset("test", FLAGS)
   rng, key = random.split(rng)
-  init_model, init_state = models.get_model(key, FLAGS)
+  init_model, init_state = models.get_model(key, dataset.peek(), FLAGS)
   optimizer_def = optim.Adam(FLAGS.lr)
   optimizer = optimizer_def.create(init_model)
 

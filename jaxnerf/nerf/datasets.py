@@ -66,15 +66,28 @@ class Dataset(threading.Thread):
     return self
 
   def __next__(self):
-    """Get next training batch/test example.
+    """Get the next training batch or test example.
 
     Returns:
       batch: dict, has "pixels" and "rays".
     """
+    x = self.queue.get()
     if self.split == "train":
-      return utils.shard(self.queue.get())
+      return utils.shard(x)
     else:
-      return utils.to_device(self.queue.get())
+      return utils.to_device(x)
+
+  def peek(self):
+    """Peek at the next training batch or test example without dequeuing it.
+
+    Returns:
+      batch: dict, has "pixels" and "rays".
+    """
+    x = self.queue.queue[0].copy()  # Make a copy of the front of the queue.
+    if self.split == "train":
+      return utils.shard(x)
+    else:
+      return utils.to_device(x)
 
   def run(self):
     if self.split == "train":

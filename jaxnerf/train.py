@@ -122,7 +122,7 @@ def main(unused_argv):
       axis_name="batch",
   )
   rng, key = random.split(rng)
-  init_model, init_state = models.get_model(key, FLAGS)
+  init_model, init_state = models.get_model(key, dataset.peek(), FLAGS)
   optimizer_def = optim.Adam(FLAGS.lr)
   optimizer = optimizer_def.create(init_model)
   state = model_utils.TrainState(
