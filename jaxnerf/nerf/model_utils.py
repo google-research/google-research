@@ -17,7 +17,6 @@
 """Helper functions/classes for model definition."""
 
 import functools
-import operator
 
 import flax
 from flax import nn
@@ -152,23 +151,20 @@ def posenc(x, deg):
 
   Args:
     x: jnp.ndarray, variables to be encoded. Note that x should be in [-pi, pi].
-    deg: int the degree of encoding.
+    deg: int, the degree of the encoding.
 
   Returns:
     encoded: jnp.ndarray, encoded variables.
   """
   if deg == 0:
     return x
+  x_scaled = x[Ellipsis, None, :] * jnp.array([2**i for i in range(deg)])[:, None]
   # Instead of computing [sin(x), cos(x)], we use the trig identity
   # cos(x) = sin(x + pi/2) and do one vectorized call to sin([x, x+pi/2]).
-  half_pi = jnp.pi / 2
-  pos_enc = jnp.sin(
-      jnp.concatenate(
-          functools.reduce(operator.iconcat,
-                           [[2**i * x, 2**i * x + half_pi] for i in range(deg)],
-                           []),
-          axis=-1))
-  encoded = jnp.concatenate([x] + [pos_enc], axis=-1)
+  fourier_features = jnp.reshape(
+      jnp.sin(jnp.stack([x_scaled, x_scaled + 0.5 * jnp.pi], -2)),
+      list(x.shape[:-1]) + [-1])
+  encoded = jnp.concatenate([x] + [fourier_features], axis=-1)
   return encoded
 
 
