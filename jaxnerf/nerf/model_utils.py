@@ -147,6 +147,20 @@ def sample_along_rays(key, origins, directions, num_samples, near, far,
                    z_vals[Ellipsis, :, None] * directions[Ellipsis, None, :]))
 
 
+def generate_posenc_basis(deg, num_dims):
+  """Generates a posenc "basis" of degree `deg` for `num_dims` dimensions."""
+  return jnp.concatenate([2**i * jnp.eye(num_dims) for i in range(deg)], 1)
+
+
+def encode_coordinate(x, basis):
+  """Concatenate `x` with Fourier features of `x` projected onto `basis`."""
+  xb = x @ basis
+  # Instead of computing [sin(x), cos(x)], we use the trig identity
+  # cos(x) = sin(x + pi/2) and do one vectorized call to sin([x, x+pi/2]).
+  four_feat = jnp.sin(jnp.concatenate([xb, xb + 0.5 * jnp.pi], axis=-1))
+  return jnp.concatenate([x] + [four_feat], axis=-1)
+
+
 def posenc(x, deg):
   """Concatenate `x` with a positional encoding of `x` with degree `deg`.
 
@@ -157,16 +171,7 @@ def posenc(x, deg):
   Returns:
     encoded: jnp.ndarray, encoded variables.
   """
-  if deg == 0:
-    return x
-  x_scaled = x[Ellipsis, None, :] * jnp.array([2**i for i in range(deg)])[:, None]
-  # Instead of computing [sin(x), cos(x)], we use the trig identity
-  # cos(x) = sin(x + pi/2) and do one vectorized call to sin([x, x+pi/2]).
-  fourier_features = jnp.reshape(
-      jnp.sin(jnp.stack([x_scaled, x_scaled + 0.5 * jnp.pi], -2)),
-      list(x.shape[:-1]) + [-1])
-  encoded = jnp.concatenate([x] + [fourier_features], axis=-1)
-  return encoded
+  return encode_coordinate(x, generate_posenc_basis(deg, x.shape[-1]))
 
 
 def volumetric_rendering(rgb, sigma, z_vals, dirs, white_bkgd):
@@ -292,7 +297,7 @@ def sample_pdf(key, bins, weights, origins, directions, z_vals, num_samples,
 
 
 def add_gaussian_noise(key, raw, noise_std, randomized):
-  """Adds gaussian noise to `raw`. Used to regularize "raw" density.
+  """Adds gaussian noise to `raw`, which can used to regularize it.
 
   Args:
     key: jnp.ndarray(float32), [2,], random number generator.
