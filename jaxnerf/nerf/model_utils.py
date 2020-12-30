@@ -128,10 +128,11 @@ def sample_along_rays(key, origins, directions, num_samples, near, far,
   batch_size = origins.shape[0]
 
   t_vals = jnp.linspace(0., 1., num_samples)
-  if not lindisp:
-    z_vals = near * (1. - t_vals) + far * t_vals
-  else:
+  if lindisp:
     z_vals = 1. / (1. / near * (1. - t_vals) + 1. / far * t_vals)
+  else:
+    z_vals = near * (1. - t_vals) + far * t_vals
+
   if randomized:
     mids = .5 * (z_vals[Ellipsis, 1:] + z_vals[Ellipsis, :-1])
     upper = jnp.concatenate([mids, z_vals[Ellipsis, -1:]], -1)
