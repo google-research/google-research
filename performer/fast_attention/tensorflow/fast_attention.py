@@ -178,14 +178,16 @@ def softmax_kernel_transformation(data,
       diag_data, axis=tf.keras.backend.ndim(data) - 1)
   diag_data = diag_data / 2.0
   diag_data = tf.expand_dims(diag_data, axis=tf.keras.backend.ndim(data) - 1)
+  last_dims_t = (len(data_dash.shape) - 1,)
+  attention_dims_t = (len(data_dash.shape) - 3,)
   if is_query:
-    last_dims_t = (len(data_dash.shape) - 1,)
     data_dash = ratio * (
         tf.math.exp(data_dash - diag_data - tf.math.reduce_max(
             data_dash, axis=last_dims_t, keepdims=True)) + numerical_stabilizer)
   else:
     data_dash = ratio * (
-        tf.math.exp(data_dash - diag_data - tf.math.reduce_max(data_dash)) +
+        tf.math.exp(data_dash - diag_data - tf.math.reduce_max(
+            data_dash, axis=last_dims_t + attention_dims_t, keepdims=True)) +
         numerical_stabilizer)
 
   return data_dash

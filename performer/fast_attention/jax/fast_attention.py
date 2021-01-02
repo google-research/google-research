@@ -74,7 +74,7 @@ def nonnegative_softmax_kernel_feature_creator(data,
   Returns:
     Random features for fast softmax attention.
   """
-  del attention_dims_t
+
   if normalize_data:
     # We have e^{qk^T/sqrt{d}} = e^{q_norm k_norm^T}, where
     # w_norm = w * data_normalizer for w in {q,k}.
@@ -97,14 +97,16 @@ def nonnegative_softmax_kernel_feature_creator(data,
   diag_data = (diag_data / 2.0) * data_normalizer * data_normalizer
   diag_data = jnp.expand_dims(diag_data, axis=data.ndim - 1)
 
+  last_dims_t = (len(data_dash.shape) - 1,)
   if is_query:
-    last_dims_t = (len(data_dash.shape) - 1,)
     data_dash = ratio * (
         jnp.exp(data_dash - diag_data -
                 jnp.max(data_dash, axis=last_dims_t, keepdims=True)) + eps)
   else:
     data_dash = ratio * (
-        jnp.exp(data_dash - diag_data - jnp.max(data_dash)) + eps)
+        jnp.exp(data_dash - diag_data - jnp.max(
+            data_dash, axis=last_dims_t + attention_dims_t, keepdims=True)) +
+        eps)
 
   return data_dash
 
