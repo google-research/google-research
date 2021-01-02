@@ -60,12 +60,11 @@ npair_loss.is_intermediate = False
 embedding_regularization_loss.lambda_coef = 0.00001
 embedding_regularization_loss.regularization_type = 'unit_length'
 
-thresholded_classification_loss.num_samples = 1000
-thresholded_classification_loss.max_instance_id = 300
-thresholded_classification_loss.similarity_strategy = 'distance'
-thresholded_classification_loss.iou_threshold = 0.7
-thresholded_classification_loss.is_balanced = True
-thresholded_classification_loss.is_intermediate = False
+classification_loss_using_mask_iou.num_samples = 1000
+classification_loss_using_mask_iou.max_instance_id = 300
+classification_loss_using_mask_iou.similarity_strategy = 'distance'
+classification_loss_using_mask_iou.is_balanced = True
+classification_loss_using_mask_iou.is_intermediate = False
 
 
 # Model
@@ -76,12 +75,12 @@ InstanceSegmentationModel.embedding_similarity_threshold = 0.5
 InstanceSegmentationModel.loss_names_to_functions = {
     'npair_loss': @npair_loss,
     'embedding_regularization_loss': @embedding_regularization_loss,
-    'thresholded_classification_loss': @thresholded_classification_loss,
+    'classification_loss_using_mask_iou': @classification_loss_using_mask_iou,
 }
 InstanceSegmentationModel.loss_names_to_weights = {
     'npair_loss': 10.0,
     'embedding_regularization_loss': 10.0,
-    'thresholded_classification_loss': 1.0,
+    'classification_loss_using_mask_iou': 1.0,
 }
 
 
