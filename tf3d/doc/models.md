@@ -17,8 +17,8 @@ for each voxel. In the post-processing steps, these predictions are aggregated
 and a set of objects are proposed.
 
 We currently support two types of deep networks, the
-[UNet Network](## UNet Network) and the
-[HourGlass Network](## Hour Glass Network).
+[UNet Network](###unet-network) and the
+[HourGlass Network](###hourglass-network).
 
 ### UNet Network
 
@@ -43,10 +43,9 @@ currently.
 Please refer to the <a href='https://arxiv.org/abs/2004.01170' target='_blank'>DOPS paper</a> for more
 details.
 
-### Hour Glass Network
+### HourGlass Network
 
-This Hour Glass Network (`tf3d/layers/sparse_voxel_hourglass.py`) builds on top
-of the UNet Network.
+The HourGlass Network (`tf3d/layers/sparse_voxel_hourglass.py`) is one or multiple stacked UNet Networks.
 
 This network is used by the 3d object detection task currently.
 
