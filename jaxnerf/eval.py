@@ -54,9 +54,7 @@ def main(unused_argv):
 
   def render_fn(key_0, key_1, model, rays):
     # Note rng_keys are useless in eval mode since there's no randomness.
-    return jax.lax.all_gather(
-        model(key_0, key_1, rays.origins, rays.directions, rays.viewdirs),
-        axis_name="batch")
+    return jax.lax.all_gather(model(key_0, key_1, *rays), axis_name="batch")
 
   # pmap over only the data input.
   render_pfn = jax.pmap(

@@ -61,7 +61,7 @@ def train_step(rng_key, state, batch, lr):
   def loss_fn(model):
     with nn.stateful(state.model_state) as new_model_state:
       rays = batch["rays"]
-      ret = model(key_0, key_1, rays.origins, rays.directions, rays.viewdirs)
+      ret = model(key_0, key_1, *rays)
     if len(ret) not in (1, 2):
       raise ValueError(
           "ret should contain either 1 set of output (coarse only), or 2 sets"
@@ -115,8 +115,7 @@ def main(unused_argv):
       # Note rng_keys are useless in eval mode since there's no randomness.
       # pylint: disable=g-long-lambda
       lambda key_0, key_1, model, rays: jax.lax.all_gather(
-          model(key_0, key_1, rays.origins, rays.directions, rays.viewdirs),
-          axis_name="batch"),
+          model(key_0, key_1, *rays), axis_name="batch"),
       in_axes=(None, None, None, 0),  # Only distribute the data input.
       donate_argnums=3,
       axis_name="batch",
@@ -150,9 +149,12 @@ def main(unused_argv):
   rng = rng + jax.host_id()  # Make random seed separate across hosts.
   keys = random.split(rng, n_local_deices)  # For pmapping RNG keys.
   gc.disable()  # Disable automatic garbage collection for efficiency.
+  stats_trace = []
   for step, batch in zip(range(offset, FLAGS.max_steps + 1), pdataset):
     lr = learning_rate_fn(step)
     state, stats, keys = ptrain_step(keys, state, batch, lr)
+    if jax.host_id() == 0:
+      stats_trace.append(stats[0])
     if step % FLAGS.gc_every == 0:
       gc.collect()
     # --- Train logs start ---
@@ -173,28 +175,36 @@ def main(unused_argv):
           FLAGS.dataset == "llff",
           chunk=FLAGS.chunk)
       if jax.host_id() == 0:
-        summary_writer.image("pred_color", pred_color, step)
-        summary_writer.image("pred_disp", pred_disp, step)
-        summary_writer.image("pred_acc", pred_acc, step)
-        summary_writer.image("target", test_case["pixels"], step)
+        psnr = utils.compute_psnr(
+            ((pred_color - test_case["pixels"])**2).mean())
+        summary_writer.scalar("test_psnr", psnr, step)
+        summary_writer.image("test_pred_color", pred_color, step)
+        summary_writer.image("test_pred_disp", pred_disp, step)
+        summary_writer.image("test_pred_acc", pred_acc, step)
+        summary_writer.image("test_target", test_case["pixels"], step)
     if jax.host_id() != 0:  # Only log via host 0.
       continue
     if step % FLAGS.print_every == 0:
+      summary_writer.scalar("train_loss", stats[0].loss[0], step)
+      summary_writer.scalar("train_psnr", stats[0].psnr[0], step)
+      if len(stats) > 1:
+        summary_writer.scalar("train_loss_coarse", stats[1].loss[0], step)
+        summary_writer.scalar("train_psnr_coarse", stats[1].psnr[0], step)
+      avg_loss = np.mean(np.concatenate([s.loss for s in stats_trace]))
+      avg_psnr = np.mean(np.concatenate([s.psnr for s in stats_trace]))
+      stats_trace = []
+      summary_writer.scalar("train_avg_loss", avg_loss, step)
+      summary_writer.scalar("train_avg_psnr", avg_psnr, step)
+      summary_writer.scalar("learning_rate", lr, step)
       steps_per_sec = FLAGS.print_every / (time.time() - t_loop_start)
       t_loop_start = time.time()
       rays_per_sec = FLAGS.batch_size * steps_per_sec
-      summary_writer.scalar("loss", stats[0].loss[0], step)
-      summary_writer.scalar("psnr", stats[0].psnr[0], step)
-      summary_writer.scalar("learning_rate", lr, step)
-      if len(stats) > 1:
-        summary_writer.scalar("loss_coarse", stats[1].loss[0], step)
-        summary_writer.scalar("psnr_coarse", stats[1].psnr[0], step)
       summary_writer.scalar("steps_per_sec", steps_per_sec, step)
       summary_writer.scalar("rays_per_sec", rays_per_sec, step)
       precision = int(np.ceil(np.log10(FLAGS.max_steps))) + 1
       print(("{:" + "{:d}".format(precision) + "d}").format(step) +
-            f"/{FLAGS.max_steps:d}: " + f"loss={stats[0].loss[0]:0.5f}, " +
-            f"{rays_per_sec:0.3f} rays/sec")
+            f"/{FLAGS.max_steps:d}: " + f"i_loss={stats[0].loss[0]:0.5f} | " +
+            f"avg_loss={avg_loss:0.5f}, " + f"{rays_per_sec:0.3f} rays/sec")
     if step % FLAGS.save_every == 0:
       state_to_save = jax.device_get(jax.tree_map(lambda x: x[0], state))
       checkpoints.save_checkpoint(
