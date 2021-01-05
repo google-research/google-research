@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2020 The Google Research Authors.
+# Copyright 2021 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,11 +24,11 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+from typing import Any, Text, List
 
 import numpy as np
 import six
 import tensorflow.compat.v1 as tf
-from typing import Any, Text, List
 
 from structured_multihashing.smh import virtual_variable
 
