@@ -213,10 +213,10 @@ def render_image(state, rays, render_fn, rng, normalize_disp, chunk=8192):
       start, stop = host_id * rays_per_host, (host_id + 1) * rays_per_host
       chunk_rays = datasets.ray_fn(lambda r: shard(r[start:stop]), chunk_rays)
       chunk_results = render_fn(key_0, key_1, model, chunk_rays)[-1]
-      results.append([unshard(x, padding) for x in chunk_results])
+      results.append([unshard(x[0], padding) for x in chunk_results])
       # pylint: enable=cell-var-from-loop
     print("")
-  rgb, disp, acc = [jnp.concatenate(r, axis=1)[0] for r in zip(*results)]
+  rgb, disp, acc = [jnp.concatenate(r, axis=0) for r in zip(*results)]
   # Normalize disp for visualization for ndc_rays in llff front-facing scenes.
   if normalize_disp:
     disp = (disp - disp.min()) / (disp.max() - disp.min())
