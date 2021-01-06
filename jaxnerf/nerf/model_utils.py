@@ -231,11 +231,16 @@ def piecewise_constant_pdf(key, bins, weights, num_samples, randomized):
   Returns:
     z_samples: jnp.ndarray(float32), [batch_size, num_samples].
   """
+  # Pad each weight vector (only if necessary) to bring its sum to `eps`. This
+  # avoids NaNs when the input is zeros or small, but has no effect otherwise.
   eps = 1e-5
+  weight_sum = jnp.sum(weights, axis=-1, keepdims=True)
+  padding = jnp.maximum(0, eps - weight_sum)
+  weights += padding / weights.shape[-1]
+  weight_sum += padding
 
-  # Get pdf
-  weights += eps  # prevent nans
-  pdf = weights / weights.sum(axis=-1, keepdims=True)
+  # Compute the PDF and CDF for each weight vector.
+  pdf = weights / weight_sum
   cdf = jnp.cumsum(pdf, axis=-1)
   cdf = jnp.concatenate([jnp.zeros(list(cdf.shape[:-1]) + [1]), cdf], axis=-1)
 
@@ -259,13 +264,11 @@ def piecewise_constant_pdf(key, bins, weights, num_samples, randomized):
   bins_g0, bins_g1 = minmax(bins)
   cdf_g0, cdf_g1 = minmax(cdf)
 
-  denom = (cdf_g1 - cdf_g0)
-  denom = jnp.where(denom < eps, 1., denom)
-  t = (u - cdf_g0) / denom
-  z_samples = bins_g0 + t * (bins_g1 - bins_g0)
+  t = jnp.clip(jnp.nan_to_num((u - cdf_g0) / (cdf_g1 - cdf_g0), 0), 0, 1)
+  samples = bins_g0 + t * (bins_g1 - bins_g0)
 
-  # Prevent gradient from backprop-ing through samples
-  return lax.stop_gradient(z_samples)
+  # Prevent gradient from backprop-ing through `samples`.
+  return lax.stop_gradient(samples)
 
 
 def sample_pdf(key, bins, weights, origins, directions, z_vals, num_samples,
