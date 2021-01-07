@@ -65,12 +65,14 @@ def size_and_flatten(image, ref_height, ref_width):
   return tf.reshape(image, [-1]).numpy()
 
 
-def blend_to_background(alpha, image, dimmed_background):
+def blend_to_background(alpha, image, background):
   if alpha == 1.0:
     return image
+  elif alpha == 0.0:
+    return background
   else:
-    alpha_img = alpha * image.astype(np.float32)
-    return (dimmed_background + alpha_img).astype(np.uint8)
+    return (alpha * image.astype(np.float32)
+            + (1. - alpha) * background.astype(np.float32)).astype(np.uint8)
 
 
 class DistractingBackgroundEnv(control.Environment):
@@ -144,11 +146,20 @@ class DistractingBackgroundEnv(control.Environment):
       self._env.physics.named.model.mat_rgba['grid',
                                              'a'] = self._ground_plane_alpha
 
-    if self._video_paths:
+    # For some reason the height of the skybox is set to 4800 by default,
+    # which does not work with new textures.
+    self._env.physics.model.tex_height[SKY_TEXTURE_INDEX] = 800
 
-      # For some reason the height of the skybox is set to 4800 by default,
-      # which does not work wtih new textures.
-      self._env.physics.model.tex_height[SKY_TEXTURE_INDEX] = 800
+    # Set the sky texture reference.
+    sky_height = self._env.physics.model.tex_height[SKY_TEXTURE_INDEX]
+    sky_width = self._env.physics.model.tex_width[SKY_TEXTURE_INDEX]
+    sky_size = sky_height * sky_width * 3
+    sky_address = self._env.physics.model.tex_adr[SKY_TEXTURE_INDEX]
+
+    sky_texture = self._env.physics.model.tex_rgb[sky_address:sky_address +
+                                                  sky_size].astype(np.float32)
+
+    if self._video_paths:
 
       if self._shuffle_buffer_size:
         # Shuffle images from all videos together to get background frames.
@@ -176,17 +187,6 @@ class DistractingBackgroundEnv(control.Environment):
 
       # Prepare images in the texture format by resizing and flattening.
 
-      # Set the sky texture reference.
-      sky_height = self._env.physics.model.tex_height[SKY_TEXTURE_INDEX]
-      sky_width = self._env.physics.model.tex_width[SKY_TEXTURE_INDEX]
-      sky_size = sky_height * sky_width * 3
-      sky_address = self._env.physics.model.tex_adr[SKY_TEXTURE_INDEX]
-
-      sky_texture = self._env.physics.model.tex_rgb[sky_address:sky_address +
-                                                    sky_size].astype(np.float32)
-      if self._video_alpha < 1.0:
-        sky_texture = (1. - self._video_alpha) * sky_texture
-
       # Generate image textures.
       texturized_images = []
       for image in images:
@@ -195,8 +195,13 @@ class DistractingBackgroundEnv(control.Environment):
                                           sky_texture)
         texturized_images.append(new_texture)
 
-      self._background = Texture(sky_size, sky_address, texturized_images)
-      self._apply()
+    else:
+
+      self._current_img_index = 0
+      texturized_images = [sky_texture]
+
+    self._background = Texture(sky_size, sky_address, texturized_images)
+    self._apply()
 
   def step(self, action):
     time_step = self._env.step(action)
@@ -218,7 +223,7 @@ class DistractingBackgroundEnv(control.Environment):
         self._current_img_index = len(self._background.textures) - 1
         self._step_direction = -abs(self._step_direction)
 
-    self._apply()
+      self._apply()
     return time_step
 
   def _apply(self):
