@@ -42,7 +42,7 @@ flags.DEFINE_string('embs_path', None, 'Path to '
                     'embeddings. Can be regex.')
 flags.DEFINE_boolean('use_dtw', False, 'Use dynamic time warping.')
 flags.DEFINE_integer('reference_video', 0, 'Reference video.')
-flags.DEFINE_integer('switch_video', 10, 'Reference video.')
+flags.DEFINE_integer('switch_video', 10, 'Switch video.')
 flags.DEFINE_integer('candidate_video', None, 'Target video.')
 flags.DEFINE_boolean(
     'normalize_embeddings', False, 'If True, L2 normalizes the embeddings '
@@ -92,7 +92,7 @@ def align(query_feats, candidate_feats, use_dtw):
 
 def create_video(embs, frames, video_path, use_dtw, query, candidate, interval):
   """Create aligned videos."""
-  # If candiidate is not None implies alignment is being calculated between
+  # If candidate is not None implies alignment is being calculated between
   # 2 videos only.
   if (candidate is not None) or (len(embs) < 4):
     fig, ax = plt.subplots(ncols=2, figsize=(10, 10), tight_layout=True)

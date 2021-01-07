@@ -34,8 +34,8 @@ cp tcc/configs/demo.yml /tmp/alignment_logs/config.yml
 # Runs training for 10 iterations on the Pouring dataset.
 python -m tcc.train --alsologtostderr --debug
 # Evaluates all tasks by embedding 4 videos.
-python -m tcc.evaluate --alsologtostderr --max_embs 2 --nocontinuous_eval --visualize
+python -m tcc.evaluate --alsologtostderr --max_embs 4 -nocontinuous_eval
 # Extracts embeddings of 4 videos in the val set.
 python -m tcc.extract_embeddings --alsologtostderr --logdir /tmp/alignment_logs --dataset pouring --split val --max_embs 4 --keep_data
 # Aligns videos using extracted embeddings.
-python -m tcc.visualize_alignment --alsologtostderr --video_path /tmp/aligned.gif  --embs_path /tmp/embeddings.npy
+python -m tcc.visualize_alignment --alsologtostderr --video_path /tmp/aligned.gif --embs_path /tmp/embeddings.npy

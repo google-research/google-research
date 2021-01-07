@@ -23,8 +23,17 @@ import numpy as np
 
 
 def regression_labels_for_class(labels, class_idx):
-  # Assumes labels are ordered. Find the last occurrence of particular class.
-  transition_frame = np.argwhere(labels == class_idx)[-1, 0]
+  # Assumes labels are ordered. Find the last occurrence of particular class,
+  # or the first occurrence of the next class
+  transition_frame = len(labels)-1   # last index, used if no match is found
+  for i in range(1,len(labels)):
+      if labels[i] > class_idx:
+          if labels[i-1] == class_idx:
+              transition_frame = i-1
+          else:
+              transition_frame = i
+          break
+
   return (np.arange(float(len(labels))) - transition_frame) / len(labels)
 
 

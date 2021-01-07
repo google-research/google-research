@@ -91,7 +91,7 @@ def get_example(name, seq, seq_label=None, label_string=None,
     # Store as a single string as all context features should be Features or
     # FeatureLists. Cannot combine types for now.
     labels_string = ','.join(frame_labels_string)
-    context_features_dict['framelabels_string'] = bytes_feature([labels_string])
+    context_features_dict['framelabels_string'] = bytes_feature([labels_string.encode()])
   context_features = tf.train.Features(feature=context_features_dict)
 
   # Create SequenceExample.
