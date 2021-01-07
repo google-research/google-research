@@ -196,7 +196,6 @@ def render_image(state, rays, render_fn, rng, normalize_disp, chunk=8192):
   with nn.stateful(model_state, mutable=False):
     for i in range(0, num_rays, chunk):
       # pylint: disable=cell-var-from-loop
-      print("  " + "X" * int((i / num_rays) * 78), end="\r")
       chunk_rays = datasets.ray_fn(lambda r: r[i:i + chunk], rays)
       chunk_size = chunk_rays[0].shape[0]
       rays_remaining = chunk_size % jax.device_count()
@@ -215,7 +214,6 @@ def render_image(state, rays, render_fn, rng, normalize_disp, chunk=8192):
       chunk_results = render_fn(key_0, key_1, model, chunk_rays)[-1]
       results.append([unshard(x[0], padding) for x in chunk_results])
       # pylint: enable=cell-var-from-loop
-    print("")
   rgb, disp, acc = [jnp.concatenate(r, axis=0) for r in zip(*results)]
   # Normalize disp for visualization for ndc_rays in llff front-facing scenes.
   if normalize_disp:
