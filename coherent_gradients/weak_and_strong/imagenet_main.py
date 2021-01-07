@@ -59,10 +59,12 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 import torchvision.transforms as transforms
 
-from coherent_gradients.datasets.dataset_with_corruption import VisionDatasetWithCorruption
-from coherent_gradients.datasets.dataset_with_indices import VisionDatasetWithIndices
-from coherent_gradients.datasets.dataset_with_selection import VisionDatasetWithSelection
-from coherent_gradients.optimizers.rm3 import RM3
+from coherent_gradients.weak_and_strong.datasets.dataset_with_corruption import VisionDatasetWithCorruption
+from coherent_gradients.weak_and_strong.datasets.dataset_with_indices import VisionDatasetWithIndices
+from coherent_gradients.weak_and_strong.datasets.dataset_with_selection import VisionDatasetWithSelection
+from coherent_gradients.weak_and_strong.optimizers.rm3 import M3
+from coherent_gradients.weak_and_strong.optimizers.rm3 import RA3
+from coherent_gradients.weak_and_strong.optimizers.rm3 import RM3
 
 model_names = ['resnet18', 'vgg13_bn', 'inception_v3']
 
@@ -239,8 +241,20 @@ def main_worker(gpu, ngpus, args):
           'Momentum causes instability with RM3, current momentum value: {}'
           .format(args.momentum))
     optimizer = RM3(model.parameters(), args.lr, weight_decay=args.weight_decay)
+  elif args.optimizer == 'RA3':
+    if args.momentum != 0:
+      raise ValueError(
+          'Momentum causes instability with RA3, current momentum value: {}'
+          .format(args.momentum))
+    optimizer = RA3(model.parameters(), args.lr, weight_decay=args.weight_decay)
+  elif args.optimizer == 'M3':
+    if args.momentum != 0:
+      raise ValueError(
+          'Momentum causes instability with M3, current momentum value: {}'
+          .format(args.momentum))
+    optimizer = M3(model.parameters(), args.lr, weight_decay=args.weight_decay)
   else:
-    raise ValueError('Unknown optimizer')
+    raise ValueError('Unknown optimizer ' + args.optimizer)
 
   lr_scheduler = get_lr_scheduler(args.arch, optimizer, args.epochs)
 
