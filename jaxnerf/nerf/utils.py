@@ -107,10 +107,14 @@ def define_flags():
                       "activation function used to produce density.")
 
   # Train Flags
-  flags.DEFINE_float("lr", 5e-4, "Learning rate for training.")
+  flags.DEFINE_float("lr_init", 5e-4, "The initial learning rate.")
+  flags.DEFINE_float("lr_final", 5e-6, "The final learning rate.")
   flags.DEFINE_integer(
-      "lr_decay", 500, "the number of steps (in 1000s) for exponential"
-      "learning rate decay.")
+      "lr_delay_steps", 0, "The number of steps at the beginning of "
+      "training to reduce the learning rate by lr_delay_mult")
+  flags.DEFINE_float(
+      "lr_delay_mult", 1., "A multiplier on the learning rate when the step "
+      "is < lr_delay_steps")
   flags.DEFINE_integer("max_steps", 1000000,
                        "the number of optimization steps.")
   flags.DEFINE_integer("save_every", 10000,
@@ -247,25 +251,41 @@ def save_img(img, pth):
         (np.clip(img, 0., 1.) * 255.).astype(jnp.uint8))).save(imgout, "PNG")
 
 
-def learning_rate_decay(step, init_lr=5e-4, decay_steps=100000, decay_rate=0.1):
+def learning_rate_decay(step,
+                        lr_init,
+                        lr_final,
+                        max_steps,
+                        lr_delay_steps=0,
+                        lr_delay_mult=1):
   """Continuous learning rate decay function.
 
-  The computation for learning rate is lr = (init_lr * decay_rate**(step /
-  decay_steps))
+  The returned rate is lr_init when step=0 and lr_final when step=max_steps, and
+  is log-linearly interpolated elsewhere (equivalent to exponential decay).
+  If lr_delay_steps>0 then the learning rate will be scaled by some smooth
+  function of lr_delay_mult, such that the initial learning rate is
+  lr_init*lr_delay_mult at the beginning of optimization but will be eased back
+  to the normal learning rate when steps>lr_delay_steps.
 
   Args:
-    step: int, the global optimization step.
-    init_lr: float, the initial learning rate.
-    decay_steps: int, the decay steps, please see the learning rate computation
-      above.
-    decay_rate: float, the decay rate, please see the learning rate computation
-      above.
+    step: int, the current optimization step.
+    lr_init: float, the initial learning rate.
+    lr_final: float, the final learning rate.
+    max_steps: int, the number of steps during optimization.
+    lr_delay_steps: int, the number of steps to delay the full learning rate.
+    lr_delay_mult: float, the multiplier on the rate when delaying it.
 
   Returns:
-    lr: the learning for global step 'step'.
+    lr: the learning for current step 'step'.
   """
-  power = step / decay_steps
-  return init_lr * (decay_rate**power)
+  if lr_delay_steps > 0:
+    # A kind of reverse cosine decay.
+    delay_rate = lr_delay_mult + (1 - lr_delay_mult) * np.sin(
+        0.5 * np.pi * np.clip(step / lr_delay_steps, 0, 1))
+  else:
+    delay_rate = 1.
+  t = np.clip(step / max_steps, 0, 1)
+  log_lerp = np.exp(np.log(lr_init) * (1 - t) + np.log(lr_final) * t)
+  return delay_rate * log_lerp
 
 
 def shard(xs):

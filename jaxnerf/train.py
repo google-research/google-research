@@ -122,7 +122,7 @@ def main(unused_argv):
   )
   rng, key = random.split(rng)
   init_model, init_state = models.get_model(key, dataset.peek(), FLAGS)
-  optimizer_def = optim.Adam(FLAGS.lr)
+  optimizer_def = optim.Adam(FLAGS.lr_init)
   optimizer = optimizer_def.create(init_model)
   state = model_utils.TrainState(
       step=0, optimizer=optimizer, model_state=init_state)
@@ -138,9 +138,12 @@ def main(unused_argv):
   t_loop_start = time.time()
   learning_rate_fn = functools.partial(
       utils.learning_rate_decay,
-      init_lr=FLAGS.lr,
-      decay_steps=FLAGS.lr_decay * 1000,
-      decay_rate=0.1)
+      lr_init=FLAGS.lr_init,
+      lr_final=FLAGS.lr_final,
+      max_steps=FLAGS.max_steps,
+      lr_delay_steps=FLAGS.lr_delay_steps,
+      lr_delay_mult=FLAGS.lr_delay_mult)
+
   ptrain_step = jax.pmap(
       train_step, axis_name="batch", in_axes=(0, 0, 0, None), donate_argnums=2)
   # Prefetch_buffer_size = 3 x batch_size
@@ -203,8 +206,9 @@ def main(unused_argv):
       summary_writer.scalar("rays_per_sec", rays_per_sec, step)
       precision = int(np.ceil(np.log10(FLAGS.max_steps))) + 1
       print(("{:" + "{:d}".format(precision) + "d}").format(step) +
-            f"/{FLAGS.max_steps:d}: " + f"i_loss={stats[0].loss[0]:0.5f} | " +
-            f"avg_loss={avg_loss:0.5f}, " + f"{rays_per_sec:0.3f} rays/sec")
+            f"/{FLAGS.max_steps:d}: " + f"i_loss={stats[0].loss[0]:0.5f}, " +
+            f"avg_loss={avg_loss:0.5f}, " + f"lr={lr:0.2e}, " +
+            f"{rays_per_sec:0.3f} rays/sec")
     if step % FLAGS.save_every == 0:
       state_to_save = jax.device_get(jax.tree_map(lambda x: x[0], state))
       checkpoints.save_checkpoint(
