@@ -16,8 +16,7 @@
 
 #include "scann/proto/projection.pb.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
     const Dataset* dataset, const DenseDataset<uint8_t>* hashed_dataset,
@@ -129,5 +128,4 @@ StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
   return dims;
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

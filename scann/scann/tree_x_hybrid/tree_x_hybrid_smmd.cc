@@ -19,6 +19,11 @@
 #include <algorithm>
 #include <unordered_set>
 
+#include "absl/base/casts.h"
+#include "absl/memory/memory.h"
+#include "absl/synchronization/mutex.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "scann/base/restrict_allowlist.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
@@ -28,18 +33,11 @@
 #include "scann/partitioning/kmeans_tree_partitioner.h"
 #include "scann/tree_x_hybrid/internal/utils.h"
 #include "scann/tree_x_hybrid/tree_x_params.h"
-
-#include "absl/base/casts.h"
-#include "absl/memory/memory.h"
-#include "absl/synchronization/mutex.h"
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
 #include "scann/utils/parallel_for.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 TreeXHybridSMMD<T>::TreeXHybridSMMD(
@@ -88,7 +86,7 @@ Status TreeXHybridSMMD<T>::BuildLeafSearchers(
         shared_ptr<DenseDataset<uint8_t>> hashed_dataset_partition,
         int32_t token)>
         leaf_searcher_builder,
-    shared_ptr<thread::ThreadPool> thread_pool) {
+    shared_ptr<ThreadPool> thread_pool) {
   if (!leaf_searchers_.empty()) {
     return FailedPreconditionError(
         "BuildLeafSearchers must not be called more than once per instance.");
@@ -802,5 +800,4 @@ TreeXHybridSMMD<T>::UnlockedPreprocessQuery(
 
 SCANN_INSTANTIATE_TREE_X_HYBRID_SMMD();
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

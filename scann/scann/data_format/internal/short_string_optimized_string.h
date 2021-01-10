@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__DATA_FORMAT_INTERNAL_SHORT_STRING_OPTIMIZED_STRING_H_
-#define SCANN__DATA_FORMAT_INTERNAL_SHORT_STRING_OPTIMIZED_STRING_H_
+#ifndef SCANN_DATA_FORMAT_INTERNAL_SHORT_STRING_OPTIMIZED_STRING_H_
+#define SCANN_DATA_FORMAT_INTERNAL_SHORT_STRING_OPTIMIZED_STRING_H_
 
 #include <cstdlib>
 
@@ -23,8 +23,7 @@
 #include "scann/oss_wrappers/scann_malloc_extension.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class ShortStringOptimizedString {
  public:
@@ -136,7 +135,6 @@ class ShortStringOptimizedString {
 
 static_assert(sizeof(ShortStringOptimizedString) == sizeof(string_view), "");
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

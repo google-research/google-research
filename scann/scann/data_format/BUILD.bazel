@@ -129,6 +129,8 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:scann_serialize",
+        "//scann/utils:common",
         "//scann/utils:memory_logging",
         "//scann/utils:types",
         "//scann/utils:util_functions",

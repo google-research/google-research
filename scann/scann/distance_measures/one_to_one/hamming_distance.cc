@@ -14,8 +14,7 @@
 
 #include "scann/distance_measures/one_to_one/hamming_distance.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(GeneralHammingDistance, 32)
 SCANN_REGISTER_DISTANCE_MEASURE(GeneralHammingDistance)
@@ -27,5 +26,4 @@ double BinaryHammingDistance::GetDistanceDense(
 
 SCANN_REGISTER_DISTANCE_MEASURE(BinaryHammingDistance);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

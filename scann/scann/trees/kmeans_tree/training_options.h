@@ -14,16 +14,15 @@
 
 
 
-#ifndef SCANN__TREES_KMEANS_TREE_TRAINING_OPTIONS_H_
-#define SCANN__TREES_KMEANS_TREE_TRAINING_OPTIONS_H_
+#ifndef SCANN_TREES_KMEANS_TREE_TRAINING_OPTIONS_H_
+#define SCANN_TREES_KMEANS_TREE_TRAINING_OPTIONS_H_
 
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/utils/gmm_utils.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/threadpool.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 struct KMeansTreeTrainingOptions {
   KMeansTreeTrainingOptions();
@@ -42,7 +41,7 @@ struct KMeansTreeTrainingOptions {
   GmmUtils::Options::CenterInitializationType center_initialization_type =
       GmmUtils::Options::KMEANS_PLUS_PLUS;
 
-  shared_ptr<thread::ThreadPool> training_parallelization_pool = nullptr;
+  shared_ptr<ThreadPool> training_parallelization_pool = nullptr;
 
   int32_t max_num_levels = 1;
 
@@ -57,6 +56,8 @@ struct KMeansTreeTrainingOptions {
 
   int32_t max_iterations = 10;
 
+  absl::Duration max_iteration_duration = absl::InfiniteDuration();
+
   double convergence_epsilon = 1e-5;
 
   int32_t min_cluster_size = 1;
@@ -68,7 +69,6 @@ struct KMeansTreeTrainingOptions {
   double residual_stdev_min_value = 1e-5;
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

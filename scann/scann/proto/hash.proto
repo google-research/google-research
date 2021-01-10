@@ -14,7 +14,7 @@
 
 syntax = "proto2";
 
-package tensorflow.scann_ops;
+package research_scann;
 
 import "scann/proto/distance_measure.proto";
 import "scann/proto/projection.proto";
@@ -136,11 +136,12 @@ message AsymmetricHasherConfig {
   optional StackedQuantizersConfig stacked_quantizers_config = 24;
 
   optional float partition_level_confidence_interval_stdevs = 26
-      [default = 0.0];
+      [default = 0.0, deprecated = true];
 
-  optional bool use_single_machine_trainer = 8 [default = false];
+  optional bool use_single_machine_trainer = 8
+      [default = false, deprecated = true];
 
-  optional int32 min_number_machines = 7;
+  optional int32 min_number_machines = 7 [deprecated = true];
 
   optional int32 max_sample_size = 3 [default = 2147483647];
 }

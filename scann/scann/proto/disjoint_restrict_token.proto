@@ -16,7 +16,7 @@
 
 syntax = "proto2";
 
-package tensorflow.scann_ops;
+package research_scann;
 
 message DisjointRestrictToken {
   optional int32 low_bar_for_brute_force = 1 [default = 1000];

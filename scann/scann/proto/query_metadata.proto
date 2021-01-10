@@ -14,7 +14,7 @@
 
 syntax = "proto2";
 
-package tensorflow.scann_ops;
+package research_scann;
 
 message NeighborSelectionOverride {
   optional int32 num_neighbors = 2 [default = 2147483647];

@@ -16,8 +16,7 @@
 
 #include "scann/base/restrict_allowlist.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 Status SearchParameters::Validate(bool reordering_enabled) const {
   if (pre_reordering_num_neighbors() <= 0) {
@@ -78,5 +77,4 @@ void SearchParameters::SetUnspecifiedParametersFrom(
   }
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

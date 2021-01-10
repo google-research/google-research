@@ -13,8 +13,8 @@
 // limitations under the License.
 
 
-#ifndef SCANN__UTILS_REORDERING_HELPER_H_
-#define SCANN__UTILS_REORDERING_HELPER_H_
+#ifndef SCANN_UTILS_REORDERING_HELPER_H_
+#define SCANN_UTILS_REORDERING_HELPER_H_
 
 #include <limits>
 
@@ -29,8 +29,7 @@
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 class ReorderingInterface {
@@ -345,7 +344,6 @@ SCANN_INSTANTIATE_TYPED_CLASS(extern, ExactReorderingHelper);
 SCANN_INSTANTIATE_TYPED_CLASS(extern, CompressedReorderingHelper);
 SCANN_INSTANTIATE_TYPED_CLASS(extern, CompressedResidualReorderingHelper);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

@@ -17,8 +17,7 @@
 
 #include "scann/utils/intrinsics/sse4.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace l1_internal {
 
 SCANN_SSE4_OUTLINE double DenseL1NormSse4(const DatapointPtr<float>& a,
@@ -139,7 +138,6 @@ SCANN_SSE4_OUTLINE double DenseL1NormSse4(const DatapointPtr<double>& a,
 }
 
 }  // namespace l1_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

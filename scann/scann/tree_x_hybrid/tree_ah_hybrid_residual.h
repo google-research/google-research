@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__TREE_X_HYBRID_TREE_AH_HYBRID_RESIDUAL_H_
-#define SCANN__TREE_X_HYBRID_TREE_AH_HYBRID_RESIDUAL_H_
+#ifndef SCANN_TREE_X_HYBRID_TREE_AH_HYBRID_RESIDUAL_H_
+#define SCANN_TREE_X_HYBRID_TREE_AH_HYBRID_RESIDUAL_H_
 
 #include <functional>
 
@@ -31,8 +31,7 @@
 #include "scann/trees/kmeans_tree/kmeans_tree.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
  public:
@@ -48,8 +47,7 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
       unique_ptr<KMeansTreeLikePartitioner<float>> partitioner,
       shared_ptr<const asymmetric_hashing2::Model<float>> ah_model,
       vector<std::vector<DatapointIndex>> datapoints_by_token,
-      const DenseDataset<uint8_t>* hashed_dataset,
-      thread::ThreadPool* pool = nullptr);
+      const DenseDataset<uint8_t>* hashed_dataset, ThreadPool* pool = nullptr);
 
   void set_database_tokenizer(
       shared_ptr<const KMeansTreeLikePartitioner<float>> database_tokenizer) {
@@ -160,8 +158,6 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
 
   DatapointIndex num_datapoints_ = 0;
 
-  vector<float> ah_variance_adjustment_by_token_;
-
   vector<uint32_t> leaf_tokens_by_norm_;
 
   AsymmetricHasherConfig::LookupType lookup_type_tag_ =
@@ -174,7 +170,6 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
   uint8_t global_topn_shift_ = 0;
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__DISTANCE_MEASURES_ONE_TO_ONE_DOT_PRODUCT_AVX2_H_
-#define SCANN__DISTANCE_MEASURES_ONE_TO_ONE_DOT_PRODUCT_AVX2_H_
+#ifndef SCANN_DISTANCE_MEASURES_ONE_TO_ONE_DOT_PRODUCT_AVX2_H_
+#define SCANN_DISTANCE_MEASURES_ONE_TO_ONE_DOT_PRODUCT_AVX2_H_
 #ifdef __x86_64__
 
 #include "scann/data_format/datapoint.h"
 #include "scann/utils/intrinsics/attributes.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace dp_internal {
 
 SCANN_AVX2_OUTLINE double DenseDotProductAvx2(const DatapointPtr<int8_t>& a,
@@ -35,8 +34,7 @@ SCANN_AVX2_OUTLINE double DenseDotProductAvx2(const DatapointPtr<int8_t>& a,
                                               const DatapointPtr<float>& c);
 
 }  // namespace dp_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif
 #endif

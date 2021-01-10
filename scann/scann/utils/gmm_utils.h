@@ -14,25 +14,25 @@
 
 
 
-#ifndef SCANN__UTILS_GMM_UTILS_H_
-#define SCANN__UTILS_GMM_UTILS_H_
+#ifndef SCANN_UTILS_GMM_UTILS_H_
+#define SCANN_UTILS_GMM_UTILS_H_
 
 #include <limits>
 
+#include "absl/time/time.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/distance_measures.h"
 #include "scann/oss_wrappers/scann_random.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/utils/parallel_for.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/threadpool.h"
 #include "tensorflow/core/platform/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class GmmUtilsImplInterface;
 
@@ -45,13 +45,15 @@ class GmmUtils {
 
     double epsilon = 1e-5;
 
+    absl::Duration max_iteration_duration = absl::InfiniteDuration();
+
     int32_t min_cluster_size = 1;
 
     int32_t max_cluster_size = std::numeric_limits<int32_t>::max();
 
     double perturbation = 1e-7;
 
-    shared_ptr<thread::ThreadPool> parallelization_pool;
+    shared_ptr<ThreadPool> parallelization_pool;
 
     enum PartitionAssignmentType {
       UNBALANCED,
@@ -126,51 +128,22 @@ class GmmUtils {
       GmmUtilsImplInterface* impl, ConstSpan<uint32_t> partition_sizes,
       bool spherical, DenseDataset<double>* centroids) const;
 
-  Status ComputeSpillingThreshold(
-      const Dataset& dataset, ConstSpan<DatapointIndex> subset,
-      const DenseDataset<double>& centers,
-      const DatabaseSpillingConfig::SpillingType spilling_type,
-      const float total_spill_factor, const uint32_t max_centers,
-      double* result) {
-    DCHECK(result);
-    TF_ASSIGN_OR_RETURN(*result, ComputeSpillingThreshold(
-                                     dataset, subset, centers, spilling_type,
-                                     total_spill_factor, max_centers));
-    return OkStatus();
-  }
-
   Status InitializeCenters(const Dataset& dataset,
                            ConstSpan<DatapointIndex> subset,
                            int32_t num_clusters,
                            DenseDataset<double>* initial_centers);
 
-  void set_parallelization_pool(shared_ptr<thread::ThreadPool> pool) {
-    opts_.parallelization_pool = std::move(pool);
-  }
-
-  Status SphericalKmeans(const Dataset& dataset,
-                         ConstSpan<DatapointIndex> subset,
-                         const DenseDataset<double>& initial_centers,
-                         DenseDataset<double>* final_centers,
-                         vector<vector<DatapointIndex>>* final_partitions);
-
-  Status GenericKmeans(const Dataset& dataset, ConstSpan<DatapointIndex> subset,
-                       const DenseDataset<double>& initial_centers,
-                       DenseDataset<double>* final_centers,
-                       vector<vector<DatapointIndex>>* final_partitions);
-
   using PartitionAssignmentFn =
       std::function<vector<pair<DatapointIndex, double>>(
           GmmUtilsImplInterface* impl, const DistanceMeasure& distance,
-          const DenseDataset<double>& center, thread::ThreadPool* pool)>;
+          const DenseDataset<double>& center, ThreadPool* pool)>;
 
  private:
   SCANN_OUTLINE Status KMeansImpl(
       bool spherical, const Dataset& dataset, ConstSpan<DatapointIndex> subset,
       int32_t num_clusters, PartitionAssignmentFn partition_assignment_fn,
       DenseDataset<double>* final_centers,
-      vector<vector<DatapointIndex>>* final_partitions,
-      bool preinitialized_centers = false);
+      vector<vector<DatapointIndex>>* final_partitions);
 
   Status RandomReinitializeCenters(
       ConstSpan<pair<uint32_t, double>> top1_results,
@@ -208,7 +181,6 @@ class GmmUtils {
   MTRandom random_;
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

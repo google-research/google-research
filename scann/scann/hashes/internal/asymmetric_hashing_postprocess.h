@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__HASHES_INTERNAL_ASYMMETRIC_HASHING_POSTPROCESS_H_
-#define SCANN__HASHES_INTERNAL_ASYMMETRIC_HASHING_POSTPROCESS_H_
+#ifndef SCANN_HASHES_INTERNAL_ASYMMETRIC_HASHING_POSTPROCESS_H_
+#define SCANN_HASHES_INTERNAL_ASYMMETRIC_HASHING_POSTPROCESS_H_
 
 #include <algorithm>
 #include <cmath>
@@ -22,8 +22,7 @@
 #include "scann/utils/types.h"
 #include "tensorflow/core/platform/prefetch.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 namespace asymmetric_hashing_internal {
 
@@ -94,7 +93,6 @@ class ConvertToFloatAndPostprocess {
 };
 
 }  // namespace asymmetric_hashing_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

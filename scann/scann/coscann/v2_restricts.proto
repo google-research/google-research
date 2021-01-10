@@ -14,7 +14,7 @@
 
 syntax = "proto2";
 
-package tensorflow.scann_ops.coscann;
+package research_scann.coscann;
 
 option cc_enable_arenas = true;
 

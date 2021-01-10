@@ -24,8 +24,7 @@
 #include "scann/proto/distance_measure.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 namespace {
 
@@ -41,7 +40,7 @@ float ComputeSamplingFraction(const PartitioningConfig& config,
 template <typename T>
 StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryNoProjection(
     const TypedDataset<T>* dataset, const PartitioningConfig& config,
-    shared_ptr<thread::ThreadPool> pool) {
+    shared_ptr<ThreadPool> pool) {
   const TypedDataset<T>* sampled;
   unique_ptr<TypedDataset<T>> sampled_mutable;
 
@@ -78,7 +77,7 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryNoProjection(
 template <typename T>
 StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryWithProjection(
     const TypedDataset<T>* dataset, const PartitioningConfig& config,
-    shared_ptr<thread::ThreadPool> pool) {
+    shared_ptr<ThreadPool> pool) {
   const TypedDataset<float>* sampled;
   unique_ptr<TypedDataset<float>> sampled_mutable;
   MTRandom rng(kDeterministicSeed + 1);
@@ -124,7 +123,7 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryWithProjection(
 template <typename T>
 StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactory(
     const TypedDataset<T>* dataset, const PartitioningConfig& config,
-    shared_ptr<thread::ThreadPool> pool) {
+    shared_ptr<ThreadPool> pool) {
   auto fp = (config.has_projection()) ? (&PartitionerFactoryWithProjection<T>)
                                       : (&PartitionerFactoryNoProjection<T>);
   return (*fp)(dataset, config, pool);
@@ -133,7 +132,7 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactory(
 template <typename T>
 StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryPreSampledAndProjected(
     const TypedDataset<T>* dataset, const PartitioningConfig& config,
-    shared_ptr<thread::ThreadPool> training_parallelization_pool) {
+    shared_ptr<ThreadPool> training_parallelization_pool) {
   if (config.tree_type() == PartitioningConfig::KMEANS_TREE) {
     return KMeansTreePartitionerFactoryPreSampledAndProjected(
         dataset, config, training_parallelization_pool);
@@ -153,5 +152,4 @@ SCANN_INSTANTIATE_PARTITIONER_FACTORY(, uint64_t);
 SCANN_INSTANTIATE_PARTITIONER_FACTORY(, float);
 SCANN_INSTANTIATE_PARTITIONER_FACTORY(, double);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

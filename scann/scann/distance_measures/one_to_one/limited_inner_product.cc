@@ -14,12 +14,10 @@
 
 #include "scann/distance_measures/one_to_one/limited_inner_product.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(LimitedInnerProductDistance,
                                               kEarlyStoppingNotSupported);
 SCANN_REGISTER_DISTANCE_MEASURE(LimitedInnerProductDistance);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

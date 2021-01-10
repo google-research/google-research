@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__UTILS_TOP_N_AMORTIZED_CONSTANT_H_
-#define SCANN__UTILS_TOP_N_AMORTIZED_CONSTANT_H_
+#ifndef SCANN_UTILS_TOP_N_AMORTIZED_CONSTANT_H_
+#define SCANN_UTILS_TOP_N_AMORTIZED_CONSTANT_H_
 
 #include <algorithm>
 #include <functional>
@@ -24,8 +24,7 @@
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <class T, class Cmp = std::greater<T>>
 class TopNAmortizedConstant {
@@ -85,9 +84,6 @@ class TopNAmortizedConstant {
     elements_.clear();
     return result;
   }
-
-  std::vector<T> Extract() { return Take(); }
-  std::vector<T> ExtractUnsorted() { return TakeUnsorted(); }
 
   const T& approx_bottom() const {
     DCHECK(!elements_.empty());
@@ -192,7 +188,6 @@ class TopNeighbors final
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, TopNeighbors);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

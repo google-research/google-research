@@ -1,253 +1,322 @@
 
 
-#include "absl/memory/memory.h"
-#include "tensorflow/core/platform/logging.h"
-template <typename SimdFuncs, size_t kBlockSize, bool kIsSquaredL2,
-          typename CallbackT, typename FloatT>
-class DenseManyToManyTransposed {
-  class Transposer {
-   public:
-    static unique_ptr<Transposer> New(const size_t dimensionality,
-                                      const size_t result_entries) {
-      const size_t transposed_entries =
-          (dimensionality + kIsSquaredL2) * kBlockSize;
-      const size_t total_entries = 2 * transposed_entries + result_entries;
+template <typename T>
+SCANN_SIMD_INLINE T FusedMultiplyAdd(T a, T b, T acc) {
+  if constexpr (IsSame<T, Avx2<float>>()) {
+    return _mm256_fmadd_ps(*a, *b, *acc);
+  }
+  if constexpr (IsSame<T, Avx2<double>>()) {
+    return _mm256_fmadd_pd(*a, *b, *acc);
+  }
+  if constexpr (IsSame<T, Avx512<float>>()) {
+    return _mm512_fmadd_ps(*a, *b, *acc);
+  }
+  if constexpr (IsSame<T, Avx512<double>>()) {
+    return _mm512_fmadd_pd(*a, *b, *acc);
+  }
 
-      constexpr size_t kCacheLineBytes = 64;
-      FloatT* storage = static_cast<FloatT*>(
-          aligned_malloc(total_entries * sizeof(FloatT), kCacheLineBytes));
-      std::fill(storage, storage + total_entries,
-                numeric_limits<FloatT>::quiet_NaN());
-      return absl::WrapUnique(reinterpret_cast<Transposer*>(storage));
+  return acc + (a * b);
+}
+
+template <typename T>
+SCANN_SIMD_INLINE void FusedMultiplyAdd(T a, T b, T* acc) {
+  *acc = FusedMultiplyAdd(a, b, *acc);
+}
+
+template <typename T>
+SCANN_SIMD_INLINE T FusedMultiplySubtract(T a, T b, T acc) {
+  if constexpr (IsSame<T, Avx2<float>>()) {
+    return _mm256_fnmadd_ps(*a, *b, *acc);
+  }
+  if constexpr (IsSame<T, Avx2<double>>()) {
+    return _mm256_fnmadd_pd(*a, *b, *acc);
+  }
+  if constexpr (IsSame<T, Avx512<float>>()) {
+    return _mm512_fnmadd_ps(*a, *b, *acc);
+  }
+  if constexpr (IsSame<T, Avx512<double>>()) {
+    return _mm512_fnmadd_pd(*a, *b, *acc);
+  }
+
+  return acc - (a * b);
+}
+
+template <typename T>
+SCANN_SIMD_INLINE void FusedMultiplySubtract(T a, T b, T* acc) {
+  *acc = FusedMultiplySubtract(a, b, *acc);
+}
+
+template <typename T, size_t... kNumElements>
+SCANN_SIMD_INLINE Simd<T, index_sequence_sum_v<kNumElements...>> SimdConcat(
+    const Simd<T, kNumElements>&... inputs) {
+  Simd<T, index_sequence_sum_v<kNumElements...>> ret;
+
+  size_t idx = 0;
+  auto assign_one_input = [&](auto input) SCANN_SIMD_INLINE_LAMBDA {
+    for (size_t jj : Seq(decltype(input)::kNumElements)) {
+      ret[idx++] = input[jj];
     }
-
-    static void operator delete(void* ptr) { aligned_free(ptr); }
-
-    FloatT* __restrict__ GetTransposedPtr0(const size_t dimensionality) {
-      const size_t transposed_sz = (dimensionality + kIsSquaredL2) * kBlockSize;
-      FloatT* storage = &first_buffer_entry_;
-      return storage + 0 * transposed_sz + (kIsSquaredL2 ? kBlockSize : 0);
-    }
-
-    FloatT* __restrict__ GetTransposedPtr1(const size_t dimensionality) {
-      const size_t transposed_sz = (dimensionality + kIsSquaredL2) * kBlockSize;
-      FloatT* storage = &first_buffer_entry_;
-      return storage + 1 * transposed_sz + (kIsSquaredL2 ? kBlockSize : 0);
-    }
-
-    FloatT* __restrict__ GetResultsPtr(const size_t dimensionality) {
-      const size_t transposed_sz = (dimensionality + kIsSquaredL2) * kBlockSize;
-      FloatT* storage = &first_buffer_entry_;
-      return storage + 2 * transposed_sz;
-    }
-
-    SCANN_SIMD_INLINE void TransposeDatabaseBlock(const size_t dimensionality,
-                                                  const FloatT* database,
-                                                  size_t first_dp_idx,
-                                                  size_t n_to_transpose) {
-      FloatT* __restrict__ transposed_ptr0 = GetTransposedPtr0(dimensionality);
-      FloatT* __restrict__ transposed_ptr1 = GetTransposedPtr1(dimensionality);
-
-      if (ABSL_PREDICT_FALSE(n_to_transpose <= kBlockSize)) {
-        TransposeDatabaseBlockImpl(dimensionality, database, first_dp_idx,
-                                   n_to_transpose, transposed_ptr0);
-      } else {
-        TransposeDatabaseBlockImpl(dimensionality, database, first_dp_idx,
-                                   kBlockSize, transposed_ptr0);
-        TransposeDatabaseBlockImpl(
-            dimensionality, database, first_dp_idx + kBlockSize,
-            n_to_transpose - kBlockSize, transposed_ptr1);
-      }
-      if constexpr (kIsSquaredL2) {
-        AugmentWithL2Norms(transposed_ptr0, transposed_ptr1, dimensionality);
-      }
-    }
-
-    SCANN_SIMD_INLINE static void TransposeDatabaseBlockImpl(
-        const size_t dimensionality, const FloatT* database,
-        size_t first_dp_idx, size_t n_to_transpose,
-        FloatT* __restrict__ transposed_storage) {
-      DCHECK_LE(n_to_transpose, kBlockSize);
-      size_t j = 0;
-      for (; j + 4 <= n_to_transpose; j += 4) {
-        const FloatT* database_ptr =
-            database + (first_dp_idx + j) * dimensionality;
-        FloatT* __restrict__ dest = transposed_storage + j;
-
-        constexpr size_t kCacheLineElements = 64 / sizeof(FloatT);
-        const FloatT* prefetch = database_ptr + 0 * dimensionality;
-        const FloatT* prefetch_end = database_ptr + 4 * dimensionality;
-        for (; prefetch < prefetch_end; prefetch += kCacheLineElements) {
-          ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-              prefetch);
-        }
-
-        const FloatT* ptr_begin = database_ptr + 1 * dimensionality;
-        const FloatT* ptr_end = database_ptr + 2 * dimensionality;
-        for (const FloatT* ptr = ptr_begin; ptr != ptr_end;
-             ++ptr, dest += kBlockSize) {
-          dest[0] = ptr[-1 * dimensionality];
-          dest[1] = ptr[0 * dimensionality];
-          dest[2] = ptr[1 * dimensionality];
-          dest[3] = ptr[2 * dimensionality];
-        }
-      }
-      for (; j < n_to_transpose; ++j) {
-        const FloatT* untransposed0 =
-            database + (first_dp_idx + j) * dimensionality;
-        FloatT* dest = transposed_storage + j;
-        for (size_t dim_idx = 0; dim_idx < dimensionality;
-             ++dim_idx, dest += kBlockSize) {
-          dest[0] = untransposed0[dim_idx];
-        }
-      }
-      DCHECK_EQ(j, n_to_transpose);
-    }
-
-    SCANN_SIMD_INLINE void ExpandPretransposedFP8Block(
-        const FP8SimdBlockTransposedDatabase& fp8_db, size_t first_dp_idx,
-        size_t n_to_transpose) {
-      DCHECK_EQ(kBlockSize, fp8_db.simd_block_size());
-      const size_t dimensionality = fp8_db.dimensionality();
-      const size_t first_block_idx = first_dp_idx / kBlockSize;
-      FloatT* __restrict__ transposed_ptr0 = GetTransposedPtr0(dimensionality);
-      FloatT* __restrict__ transposed_ptr1 = GetTransposedPtr1(dimensionality);
-      if (ABSL_PREDICT_FALSE(n_to_transpose <= kBlockSize)) {
-        ExpandPretransposedFP8BlockImpl(
-            fp8_db.GetBlock(first_block_idx), dimensionality, n_to_transpose,
-            fp8_db.inverse_fp8_multipliers().data(), transposed_ptr0);
-      } else {
-        ExpandPretransposedFP8BlockImpl(
-            fp8_db.GetBlock(first_block_idx), dimensionality, kBlockSize,
-            fp8_db.inverse_fp8_multipliers().data(), transposed_ptr0);
-        ExpandPretransposedFP8BlockImpl(
-            fp8_db.GetBlock(first_block_idx + 1), dimensionality,
-            n_to_transpose - kBlockSize,
-            fp8_db.inverse_fp8_multipliers().data(), transposed_ptr1);
-      }
-      if constexpr (kIsSquaredL2) {
-        AugmentWithL2Norms(transposed_ptr0, transposed_ptr1, dimensionality);
-      }
-    }
-
-    SCANN_SIMD_INLINE void ExpandPretransposedFP8BlockImpl(
-        ConstSpan<int8_t> block, size_t dimensionality, size_t n_to_transpose,
-        const float* __restrict__ inverse_multipliers_or_null,
-        FloatT* __restrict__ transposed_storage) {
-      DCHECK_EQ(n_to_transpose * dimensionality, block.size());
-      if (n_to_transpose == kBlockSize && !inverse_multipliers_or_null) {
-#ifdef __clang__
-#pragma clang loop vectorize_width(SCANN_FP8_EXPAND_WIDTH)
-#endif
-        for (size_t i : Seq(kBlockSize * dimensionality)) {
-          transposed_storage[i] = static_cast<float>(block[i]);
-        }
-        return;
-      }
-
-      if (n_to_transpose == kBlockSize) {
-        const int8_t* __restrict__ src = block.data();
-
-#if defined(__x86_64__) && SCANN_FP8_EXPAND_WIDTH == 8
-        if constexpr (std::is_same<FloatT, float>::value) {
-          static_assert(kBlockSize == 8);
-          for (size_t dim_idx : Seq(dimensionality)) {
-            __m256 inv_multiplier_simd = _mm256_broadcast_ss((
-
-                inverse_multipliers_or_null + dim_idx));
-            __m128i int8s = _mm_loadl_pi(_mm_setzero_si128(),
-                                         reinterpret_cast<const __m64*>(src));
-            __m256i int32s = _mm256_cvtepi8_epi32(int8s);
-            __m256 floats = _mm256_cvtepi32_ps(int32s) * inv_multiplier_simd;
-
-            _mm256_store_ps(transposed_storage, floats);
-            transposed_storage += kBlockSize;
-            src += kBlockSize;
-          }
-          return;
-        }
-#elif defined(__x86_64__) && SCANN_FP8_EXPAND_WIDTH == 16
-        if constexpr (std::is_same<FloatT, float>::value) {
-          static_assert(kBlockSize == 16);
-          for (size_t dim_idx : Seq(dimensionality)) {
-            __m512 inv_multiplier_simd = _mm512_broadcast_f32x8(
-                _mm256_broadcast_ss(inverse_multipliers_or_null + dim_idx));
-            __m128i int8s =
-                _mm_loadu_si128(reinterpret_cast<const __m128i*>(src));
-            __m512i int32s = _mm512_cvtepi8_epi32(int8s);
-            __m512 floats = _mm512_cvtepi32_ps(int32s) * inv_multiplier_simd;
-            _mm512_store_ps(transposed_storage, floats);
-            transposed_storage += kBlockSize;
-            src += kBlockSize;
-          }
-          return;
-        }
-#endif
-        for (size_t dim_idx : Seq(dimensionality)) {
-          const float inv_multiplier = inverse_multipliers_or_null[dim_idx];
-          for (size_t dp_idx : Seq(kBlockSize)) {
-            transposed_storage[dp_idx] = src[dp_idx] * inv_multiplier;
-          }
-          transposed_storage += kBlockSize;
-          src += kBlockSize;
-        }
-        return;
-      }
-
-      const int8_t* __restrict__ src = block.data();
-      for (size_t dim_idx : Seq(dimensionality)) {
-        const float inv_multiplier = inverse_multipliers_or_null
-                                         ? inverse_multipliers_or_null[dim_idx]
-                                         : 1.0f;
-        for (size_t dp_idx : Seq(n_to_transpose)) {
-          transposed_storage[dp_idx] = src[dp_idx] * inv_multiplier;
-        }
-        transposed_storage += kBlockSize;
-        src += n_to_transpose;
-      }
-    }
-
-   private:
-    SCANN_SIMD_INLINE static void AugmentWithL2Norms(
-        FloatT* __restrict__ transposed_ptr0,
-        FloatT* __restrict__ transposed_ptr1, size_t dimensionality) {
-      auto norm0 = SimdFuncs::Zeros();
-      auto norm1 = SimdFuncs::Zeros();
-      FloatT scalar_two = 2.0;
-      auto two = SimdFuncs::Broadcast(&scalar_two);
-      for (size_t dim : Seq(dimensionality)) {
-        auto transposed_simd0 =
-            SimdFuncs::Loadu(transposed_ptr0 + dim * kBlockSize);
-        auto transposed_simd1 =
-            SimdFuncs::Loadu(transposed_ptr1 + dim * kBlockSize);
-        SimdFuncs::Accumulate(transposed_simd0, transposed_simd0, &norm0);
-        SimdFuncs::Accumulate(transposed_simd1, transposed_simd1, &norm1);
-        SimdFuncs::Storeu(transposed_ptr0 + dim * kBlockSize,
-                          SimdFuncs::Multiply(two, transposed_simd0));
-        SimdFuncs::Storeu(transposed_ptr1 + dim * kBlockSize,
-                          SimdFuncs::Multiply(two, transposed_simd1));
-      }
-      FloatT scalar_neg1 = -1.0;
-      auto neg1 = SimdFuncs::Broadcast(&scalar_neg1);
-      SimdFuncs::Storeu(transposed_ptr0 - kBlockSize,
-                        SimdFuncs::Multiply(norm0, neg1));
-      SimdFuncs::Storeu(transposed_ptr1 - kBlockSize,
-                        SimdFuncs::Multiply(norm1, neg1));
-    }
-
-    struct alignas(kBlockSize * sizeof(FloatT)) {
-      FloatT first_buffer_entry_;
-    };
   };
+  (assign_one_input(inputs), ...);
 
+  return ret;
+}
+
+template <typename FloatT>
+SCANN_SIMD_INLINE void ExpandPretransposedFP8BlockImpl(
+    ConstSpan<int8_t> block, size_t dimensionality, size_t n_to_transpose,
+    const float* __restrict__ inverse_multipliers_or_null,
+    FloatT* __restrict__ transposed_storage) {
+  constexpr size_t kElementsPerRegister = Simd<FloatT>::kElementsPerRegister;
+  DCHECK_EQ(n_to_transpose * dimensionality, block.size());
+  if (n_to_transpose == kElementsPerRegister && !inverse_multipliers_or_null) {
+#pragma clang loop vectorize_width(kElementsPerRegister)
+    for (size_t i : Seq(kElementsPerRegister * dimensionality)) {
+      transposed_storage[i] = static_cast<float>(block[i]);
+    }
+    return;
+  }
+
+  if (n_to_transpose == kElementsPerRegister) {
+    const int8_t* __restrict__ src = block.data();
+
+#ifdef __x86_64__
+
+    if constexpr (IsSame<Simd<FloatT>, Avx2<float>>()) {
+      static_assert(kElementsPerRegister == 8);
+      for (size_t dim_idx : Seq(dimensionality)) {
+        __m256 inv_multiplier_simd = _mm256_broadcast_ss((
+
+            inverse_multipliers_or_null + dim_idx));
+        __m128i int8s = _mm_loadl_pi(_mm_setzero_si128(),
+                                     reinterpret_cast<const __m64*>(src));
+        __m256i int32s = _mm256_cvtepi8_epi32(int8s);
+        __m256 floats = _mm256_cvtepi32_ps(int32s) * inv_multiplier_simd;
+
+        _mm256_store_ps(transposed_storage, floats);
+        transposed_storage += kElementsPerRegister;
+        src += kElementsPerRegister;
+      }
+      return;
+    }
+    if constexpr (IsSame<Simd<FloatT>, Avx512<float>>()) {
+      static_assert(kElementsPerRegister == 16);
+      for (size_t dim_idx : Seq(dimensionality)) {
+        __m512 inv_multiplier_simd = _mm512_broadcast_f32x8(
+            _mm256_broadcast_ss(inverse_multipliers_or_null + dim_idx));
+        __m128i int8s = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src));
+        __m512i int32s = _mm512_cvtepi8_epi32(int8s);
+        __m512 floats = _mm512_cvtepi32_ps(int32s) * inv_multiplier_simd;
+        _mm512_store_ps(transposed_storage, floats);
+        transposed_storage += kElementsPerRegister;
+        src += kElementsPerRegister;
+      }
+      return;
+    }
+#endif
+
+    for (size_t dim_idx : Seq(dimensionality)) {
+      const float inv_multiplier = inverse_multipliers_or_null[dim_idx];
+      for (size_t dp_idx : Seq(kElementsPerRegister)) {
+        transposed_storage[dp_idx] = src[dp_idx] * inv_multiplier;
+      }
+      transposed_storage += kElementsPerRegister;
+      src += kElementsPerRegister;
+    }
+    return;
+  }
+
+  const int8_t* __restrict__ src = block.data();
+  for (size_t dim_idx : Seq(dimensionality)) {
+    const float inv_multiplier = inverse_multipliers_or_null
+                                     ? inverse_multipliers_or_null[dim_idx]
+                                     : 1.0f;
+    for (size_t dp_idx : Seq(n_to_transpose)) {
+      transposed_storage[dp_idx] = src[dp_idx] * inv_multiplier;
+    }
+    transposed_storage += kElementsPerRegister;
+    src += n_to_transpose;
+  }
+}
+
+template <bool kIsSquaredL2, typename FloatT>
+class M2MTransposer {
  public:
+  static constexpr size_t kElementsPerRegister =
+      Simd<FloatT>::kElementsPerRegister;
+
+  static unique_ptr<M2MTransposer> New(const size_t dimensionality,
+                                       const size_t result_entries) {
+    const size_t transposed_entries =
+        (dimensionality + kIsSquaredL2) * kElementsPerRegister;
+    const size_t total_entries = 2 * transposed_entries + result_entries;
+
+    constexpr size_t kCacheLineBytes = 64;
+    FloatT* storage = static_cast<FloatT*>(
+        aligned_malloc(total_entries * sizeof(FloatT), kCacheLineBytes));
+    std::fill(storage, storage + total_entries,
+              numeric_limits<FloatT>::quiet_NaN());
+    return absl::WrapUnique(reinterpret_cast<M2MTransposer*>(storage));
+  }
+
+  static void operator delete(void* ptr) { aligned_free(ptr); }
+
+  FloatT* __restrict__ GetTransposedPtr0(const size_t dimensionality) {
+    const size_t transposed_sz =
+        (dimensionality + kIsSquaredL2) * kElementsPerRegister;
+    FloatT* storage = &first_buffer_entry_;
+    return storage + 0 * transposed_sz +
+           (kIsSquaredL2 ? kElementsPerRegister : 0);
+  }
+
+  FloatT* __restrict__ GetTransposedPtr1(const size_t dimensionality) {
+    const size_t transposed_sz =
+        (dimensionality + kIsSquaredL2) * kElementsPerRegister;
+    FloatT* storage = &first_buffer_entry_;
+    return storage + 1 * transposed_sz +
+           (kIsSquaredL2 ? kElementsPerRegister : 0);
+  }
+
+  FloatT* __restrict__ GetResultsPtr(const size_t dimensionality) {
+    const size_t transposed_sz =
+        (dimensionality + kIsSquaredL2) * kElementsPerRegister;
+    FloatT* storage = &first_buffer_entry_;
+    return storage + 2 * transposed_sz;
+  }
+
+  SCANN_SIMD_INLINE void TransposeDatabaseBlock(const size_t dimensionality,
+                                                const FloatT* database,
+                                                size_t first_dp_idx,
+                                                size_t n_to_transpose) {
+    FloatT* __restrict__ transposed_ptr0 = GetTransposedPtr0(dimensionality);
+    FloatT* __restrict__ transposed_ptr1 = GetTransposedPtr1(dimensionality);
+
+    if (ABSL_PREDICT_FALSE(n_to_transpose <= kElementsPerRegister)) {
+      TransposeDatabaseBlockImpl(dimensionality, database, first_dp_idx,
+                                 n_to_transpose, transposed_ptr0);
+    } else {
+      TransposeDatabaseBlockImpl(dimensionality, database, first_dp_idx,
+                                 kElementsPerRegister, transposed_ptr0);
+      TransposeDatabaseBlockImpl(
+          dimensionality, database, first_dp_idx + kElementsPerRegister,
+          n_to_transpose - kElementsPerRegister, transposed_ptr1);
+    }
+    if constexpr (kIsSquaredL2) {
+      AugmentWithL2Norms(transposed_ptr0, transposed_ptr1, dimensionality);
+    }
+  }
+
+  SCANN_SIMD_INLINE static void TransposeDatabaseBlockImpl(
+      const size_t dimensionality, const FloatT* database, size_t first_dp_idx,
+      size_t n_to_transpose, FloatT* __restrict__ transposed_storage) {
+    DCHECK_LE(n_to_transpose, kElementsPerRegister);
+    size_t j = 0;
+    for (; j + 4 <= n_to_transpose; j += 4) {
+      const FloatT* database_ptr =
+          database + (first_dp_idx + j) * dimensionality;
+      FloatT* __restrict__ dest = transposed_storage + j;
+
+      constexpr size_t kCacheLineElements = 64 / sizeof(FloatT);
+      const FloatT* prefetch = database_ptr + 0 * dimensionality;
+      const FloatT* prefetch_end = database_ptr + 4 * dimensionality;
+      for (; prefetch < prefetch_end; prefetch += kCacheLineElements) {
+        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
+            prefetch);
+      }
+
+      const FloatT* ptr_begin = database_ptr + 1 * dimensionality;
+      const FloatT* ptr_end = database_ptr + 2 * dimensionality;
+      for (const FloatT* ptr = ptr_begin; ptr != ptr_end;
+           ++ptr, dest += kElementsPerRegister) {
+        dest[0] = ptr[-1 * dimensionality];
+        dest[1] = ptr[0 * dimensionality];
+        dest[2] = ptr[1 * dimensionality];
+        dest[3] = ptr[2 * dimensionality];
+      }
+    }
+    for (; j < n_to_transpose; ++j) {
+      const FloatT* untransposed0 =
+          database + (first_dp_idx + j) * dimensionality;
+      FloatT* dest = transposed_storage + j;
+      for (size_t dim_idx = 0; dim_idx < dimensionality;
+           ++dim_idx, dest += kElementsPerRegister) {
+        dest[0] = untransposed0[dim_idx];
+      }
+    }
+    DCHECK_EQ(j, n_to_transpose);
+  }
+
+  SCANN_SIMD_INLINE void ExpandPretransposedFP8Block(
+      const FP8SimdBlockTransposedDatabase& fp8_db, size_t first_dp_idx,
+      size_t n_to_transpose) {
+    DCHECK_EQ(kElementsPerRegister, fp8_db.simd_block_size());
+    const size_t dimensionality = fp8_db.dimensionality();
+    const size_t first_block_idx = first_dp_idx / kElementsPerRegister;
+    FloatT* __restrict__ transposed_ptr0 = GetTransposedPtr0(dimensionality);
+    FloatT* __restrict__ transposed_ptr1 = GetTransposedPtr1(dimensionality);
+    if (ABSL_PREDICT_FALSE(n_to_transpose <= kElementsPerRegister)) {
+      ExpandPretransposedFP8BlockImpl(
+          fp8_db.GetBlock(first_block_idx), dimensionality, n_to_transpose,
+          fp8_db.inverse_fp8_multipliers().data(), transposed_ptr0);
+    } else {
+      ExpandPretransposedFP8BlockImpl(fp8_db.GetBlock(first_block_idx),
+                                      dimensionality, kElementsPerRegister,
+                                      fp8_db.inverse_fp8_multipliers().data(),
+                                      transposed_ptr0);
+      ExpandPretransposedFP8BlockImpl(
+          fp8_db.GetBlock(first_block_idx + 1), dimensionality,
+          n_to_transpose - kElementsPerRegister,
+          fp8_db.inverse_fp8_multipliers().data(), transposed_ptr1);
+    }
+    if constexpr (kIsSquaredL2) {
+      AugmentWithL2Norms(transposed_ptr0, transposed_ptr1, dimensionality);
+    }
+  }
+
+ private:
+  SCANN_SIMD_INLINE static void AugmentWithL2Norms(
+      FloatT* __restrict__ transposed_ptr0,
+      FloatT* __restrict__ transposed_ptr1, size_t dimensionality) {
+    Simd<FloatT> norm0 = Zeros();
+    Simd<FloatT> norm1 = Zeros();
+    Simd<FloatT> two = 2.0;
+    for (size_t dim : Seq(dimensionality)) {
+      auto transposed_simd0 =
+          Simd<FloatT>::Load(transposed_ptr0 + dim * kElementsPerRegister);
+      auto transposed_simd1 =
+          Simd<FloatT>::Load(transposed_ptr1 + dim * kElementsPerRegister);
+      FusedMultiplySubtract(transposed_simd0, transposed_simd0, &norm0);
+      FusedMultiplySubtract(transposed_simd1, transposed_simd1, &norm1);
+      (transposed_simd0 * two)
+          .Store(transposed_ptr0 + dim * kElementsPerRegister);
+      (transposed_simd1 * two)
+          .Store(transposed_ptr1 + dim * kElementsPerRegister);
+    }
+    auto neg1 = Simd<FloatT>::Broadcast(-1.0);
+    (norm0 * neg1).Store(transposed_ptr0 - kElementsPerRegister);
+    (norm1 * neg1).Store(transposed_ptr1 - kElementsPerRegister);
+  }
+
+  struct alignas(kElementsPerRegister * sizeof(FloatT)) {
+    FloatT first_buffer_entry_;
+  };
+};
+
+template <bool kIsSquaredL2, bool kIsPretransposedFixed8, typename CallbackT,
+          typename FloatT>
+class DenseManyToManyTransposed {
+ public:
+  using Transposer = M2MTransposer<kIsSquaredL2, FloatT>;
+
+  static constexpr size_t kElementsPerRegister =
+      Simd<FloatT>::kElementsPerRegister;
   constexpr static size_t kSmallQueryStride = 6;
-  constexpr static size_t kResultsSize = 2 * kSmallQueryStride * kBlockSize;
+  constexpr static size_t kResultsSize =
+      2 * kSmallQueryStride * kElementsPerRegister;
 
   SCANN_INLINE DenseManyToManyTransposed(const DenseDataset<FloatT>& queries,
                                          const DenseDataset<FloatT>& database,
-                                         thread::ThreadPool* pool,
-                                         CallbackT callback)
+                                         ThreadPool* pool, CallbackT callback)
       : dimensionality_(queries.dimensionality()),
         queries_(queries[0].values()),
         num_queries_(queries.size()),
@@ -255,6 +324,7 @@ class DenseManyToManyTransposed {
         num_datapoints_(database.size()),
         pool_(pool),
         callback_(std::move(callback)) {
+    static_assert(kIsPretransposedFixed8 == false);
     CHECK_EQ(queries.dimensionality(), database.dimensionality());
     DCHECK_GE(num_queries_, 1);
     if (num_queries_ >= 2) {
@@ -268,7 +338,7 @@ class DenseManyToManyTransposed {
 
   SCANN_INLINE DenseManyToManyTransposed(
       const DenseDataset<FloatT>& queries,
-      const FP8SimdBlockTransposedDatabase* database, thread::ThreadPool* pool,
+      const FP8SimdBlockTransposedDatabase* database, ThreadPool* pool,
       CallbackT callback)
       : dimensionality_(queries.dimensionality()),
         queries_(queries[0].values()),
@@ -277,6 +347,7 @@ class DenseManyToManyTransposed {
         num_datapoints_(database->size()),
         pool_(pool),
         callback_(std::move(callback)) {
+    static_assert(kIsPretransposedFixed8 == true);
     CHECK_EQ(queries.dimensionality(), database->dimensionality());
     DCHECK_GE(num_queries_, 1);
     if (num_queries_ >= 2) {
@@ -290,7 +361,7 @@ class DenseManyToManyTransposed {
     const FloatT* queries = queries_;
     const size_t num_queries = num_queries_;
     const size_t num_datapoints = num_datapoints_;
-    thread::ThreadPool* pool = pool_;
+    ThreadPool* pool = pool_;
 
     if (kIsSquaredL2) {
       query_norms_.reset(new FloatT[num_queries]);
@@ -312,7 +383,7 @@ class DenseManyToManyTransposed {
     for (size_t q_idx = 0; q_idx < num_queries; q_idx += q_stride) {
       const size_t q_batch_size = std::min(q_stride, num_queries - q_idx);
 
-      constexpr size_t kDatabaseStride = 2 * kBlockSize;
+      constexpr size_t kDatabaseStride = 2 * kElementsPerRegister;
       const size_t num_db_blocks = DivRoundUp(num_datapoints, kDatabaseStride);
       ParallelFor<16>(Seq(num_db_blocks), pool, [&](size_t block_idx) {
         const size_t first_dp_idx = block_idx * kDatabaseStride;
@@ -336,16 +407,16 @@ class DenseManyToManyTransposed {
       transposer_storage = Transposer::New(dimensionality, kResultsSize);
       allocated_dimensionality = dimensionality;
     }
-    Transposer* transposer = transposer_storage.get();
 
-    if (float_database_) {
-      DCHECK(!fp8_database_);
-      transposer->TransposeDatabaseBlock(dimensionality, float_database_,
-                                         first_dp_idx, num_datapoints);
-    } else if constexpr (std::is_same_v<FloatT, float>) {
+    Transposer* transposer = transposer_storage.get();
+    if constexpr (kIsPretransposedFixed8) {
       DCHECK(fp8_database_);
       transposer->ExpandPretransposedFP8Block(*fp8_database_, first_dp_idx,
                                               num_datapoints);
+    } else {
+      DCHECK(float_database_);
+      transposer->TransposeDatabaseBlock(dimensionality, float_database_,
+                                         first_dp_idx, num_datapoints);
     }
 
     BottomLevelBatchArgs args;
@@ -413,62 +484,57 @@ class DenseManyToManyTransposed {
         dimensionality);
 
     if constexpr (IsOptimizedCallback<CallbackT>::value) {
-      if (ABSL_PREDICT_TRUE(num_datapoints == 2 * kBlockSize)) {
+      if (ABSL_PREDICT_TRUE(num_datapoints == 2 * kElementsPerRegister)) {
         for (size_t j : Seq(kNumQueries)) {
           const size_t query_idx = first_q_idx + j;
-          callback.InvokeOptimized(accumulators[j * 2], accumulators[j * 2 + 1],
-                                   first_dp_idx, query_idx);
+          callback.InvokeOptimized(accumulators[j], first_dp_idx, query_idx);
         }
         return;
       }
     }
 
-    FloatT results[accumulators.size() * kBlockSize];
-    for (size_t j : Seq(accumulators.size())) {
-      SimdFuncs::Storeu(results + j * kBlockSize, accumulators[j]);
-    }
+    auto results = accumulators.Store();
     for (size_t j : Seq(kNumQueries)) {
-      auto query_results =
-          MakeMutableSpan(results + j * 2 * kBlockSize, num_datapoints);
+      auto query_results = MakeMutableSpan(results[j].data(), num_datapoints);
       const size_t query_idx = first_q_idx + j;
       callback(query_results, first_dp_idx, query_idx);
     }
   }
 
   template <size_t kNumQueries>
-  SCANN_SIMD_INLINE static std::array<typename SimdFuncs::Accumulator,
-                                      2 * kNumQueries>
+  SCANN_SIMD_INLINE static Simd<FloatT, kNumQueries, 2>
   DoAccumulationTransposedTemplate(const FloatT* transposed_block0,
                                    const FloatT* transposed_block1,
                                    const FloatT** query_ptrs,
                                    const FloatT* query_norms,
                                    size_t dimensionality) {
-    std::array<typename SimdFuncs::Accumulator, 2 * kNumQueries> accumulators;
+    Simd<FloatT, kNumQueries, 2> accumulators;
     for (size_t j : Seq(kNumQueries)) {
-      if (kIsSquaredL2) {
-        auto query_norm = SimdFuncs::Broadcast(&query_norms[j]);
-        auto db_norms0 = SimdFuncs::Loadu(transposed_block0 - kBlockSize);
-        auto db_norms1 = SimdFuncs::Loadu(transposed_block1 - kBlockSize);
-        accumulators[2 * j] = SimdFuncs::Add(db_norms0, query_norm);
-        accumulators[2 * j + 1] = SimdFuncs::Add(db_norms1, query_norm);
+      if constexpr (kIsSquaredL2) {
+        auto query_norm = Simd<FloatT>::Broadcast(query_norms[j]);
+        auto db_norms0 =
+            Simd<FloatT>::Load(transposed_block0 - kElementsPerRegister);
+        auto db_norms1 =
+            Simd<FloatT>::Load(transposed_block1 - kElementsPerRegister);
+        accumulators[j][0] = db_norms0 + query_norm;
+        accumulators[j][1] = db_norms1 + query_norm;
       } else {
-        accumulators[2 * j] = SimdFuncs::Zeros();
-        accumulators[2 * j + 1] = SimdFuncs::Zeros();
+        accumulators[j] = Zeros();
       }
     }
 
     for (size_t dim : Seq(dimensionality)) {
       auto transposed_simd0 =
-          SimdFuncs::Loadu(transposed_block0 + dim * kBlockSize);
+          Simd<FloatT>::Load(transposed_block0 + dim * kElementsPerRegister);
       auto transposed_simd1 =
-          SimdFuncs::Loadu(transposed_block1 + dim * kBlockSize);
+          Simd<FloatT>::Load(transposed_block1 + dim * kElementsPerRegister);
 
       for (size_t j : Seq(kNumQueries)) {
-        auto query_simd = SimdFuncs::Broadcast(query_ptrs[j] + dim);
-        SimdFuncs::Accumulate(query_simd, transposed_simd0,
-                              &accumulators[2 * j]);
-        SimdFuncs::Accumulate(query_simd, transposed_simd1,
-                              &accumulators[2 * j + 1]);
+        Simd<FloatT> query_simd = query_ptrs[j][dim];
+        FusedMultiplySubtract(query_simd, transposed_simd0,
+                              &accumulators[j][0]);
+        FusedMultiplySubtract(query_simd, transposed_simd1,
+                              &accumulators[j][1]);
       }
     }
 
@@ -487,47 +553,42 @@ class DenseManyToManyTransposed {
 
   unique_ptr<FloatT[]> query_norms_;
 
-  thread::ThreadPool* pool_;
+  ThreadPool* pool_;
   CallbackT callback_;
 };
 
-template <typename SimdFuncs, bool kIsSquaredL2, typename CallbackT,
-          typename FloatT>
+template <bool kIsSquaredL2, typename CallbackT, typename FloatT>
 SCANN_INLINE void DenseManyToManyTransposedImpl(
     const DenseDataset<FloatT>& queries, const DenseDataset<FloatT>& database,
-    thread::ThreadPool* pool, CallbackT callback) {
-  DenseManyToManyTransposed<SimdFuncs, SimdFuncs::kBlockSize, kIsSquaredL2,
-                            CallbackT, FloatT>(queries, database, pool,
-                                               std::move(callback))
+    ThreadPool* pool, CallbackT callback) {
+  DenseManyToManyTransposed<kIsSquaredL2, false, CallbackT, FloatT>(
+      queries, database, pool, std::move(callback))
       .TopLevelBatch();
 }
 
 template <typename CallbackT>
 SCANN_INLINE void DenseManyToManyFP8PretransposedImpl(
     const DistanceMeasure& dist, const DenseDataset<float>& queries,
-    const FP8SimdBlockTransposedDatabase& database, thread::ThreadPool* pool,
+    const FP8SimdBlockTransposedDatabase& database, ThreadPool* pool,
     CallbackT callback) {
   const bool is_squared_l2 =
       (DistanceMeasure::SQUARED_L2 == dist.specially_optimized_distance_tag());
-  using DotProductFns = DotProductDistanceFunctions<float>;
-  using SquaredL2Fns = SquaredL2DistanceFunctions<float>;
   if (is_squared_l2) {
-    DenseManyToManyTransposed<DotProductFns, SquaredL2Fns::kBlockSize, true,
-                              CallbackT, float>(queries, &database, pool,
-                                                std::move(callback))
+    DenseManyToManyTransposed<true, true, CallbackT, float>(
+        queries, &database, pool, std::move(callback))
         .TopLevelBatch();
   } else {
-    DenseManyToManyTransposed<DotProductFns, DotProductFns::kBlockSize, false,
-                              CallbackT, float>(queries, &database, pool,
-                                                std::move(callback))
+    DenseManyToManyTransposed<false, true, CallbackT, float>(
+        queries, &database, pool, std::move(callback))
         .TopLevelBatch();
   }
 }
 
-template <typename SimdFuncs, typename CallbackT, typename FloatT>
+template <bool kIsSquaredL2, typename CallbackT, typename FloatT>
 class DenseManyToManyUntransposed {
  public:
-  constexpr static size_t kBlockSize = SimdFuncs::kBlockSize;
+  constexpr static size_t kElementsPerRegister =
+      Simd<FloatT>::kElementsPerRegister;
 
   constexpr static size_t kFloatDivisor = sizeof(FloatT) / sizeof(float);
 
@@ -537,8 +598,7 @@ class DenseManyToManyUntransposed {
 
   SCANN_INLINE DenseManyToManyUntransposed(const DenseDataset<FloatT>& queries,
                                            const DenseDataset<FloatT>& database,
-                                           thread::ThreadPool* pool,
-                                           CallbackT callback)
+                                           ThreadPool* pool, CallbackT callback)
       : dimensionality_(queries.dimensionality()),
         queries_(queries[0].values()),
         num_queries_(queries.size()),
@@ -569,7 +629,7 @@ class DenseManyToManyUntransposed {
   SCANN_INLINE void TopLevelBatchImpl() {
     const size_t num_queries = num_queries_;
     const size_t num_datapoints = num_datapoints_;
-    thread::ThreadPool* pool = pool_;
+    ThreadPool* pool = pool_;
 
     constexpr size_t kBigQueryStride = 256 / kFloatDivisor;
     const size_t num_query_blocks = DivRoundUp(num_queries, kBigQueryStride);
@@ -685,41 +745,46 @@ class DenseManyToManyUntransposed {
     }
   }
 
+  template <typename T>
+  SCANN_SIMD_INLINE static void Accumulate(T a, T b, T* acc) {
+    if constexpr (kIsSquaredL2) {
+      const T diff = a - b;
+      FusedMultiplyAdd(diff, diff, acc);
+    } else {
+      FusedMultiplySubtract(a, b, acc);
+    }
+  }
+
   template <size_t kNumQueries>
   SCANN_SIMD_INLINE static void DoAccumulationUntransposedTemplate(
       size_t dimensionality, const FloatT** query_ptrs, const FloatT* dp0,
       const FloatT* dp1, FloatT* __restrict__* __restrict__ result_ptrs) {
-    size_t n_blocks = dimensionality / kBlockSize;
+    size_t n_blocks = dimensionality / kElementsPerRegister;
     size_t dim_idx = 0;
     if (n_blocks) {
-      typename SimdFuncs::Accumulator accumulators0[kNumQueries];
-      typename SimdFuncs::Accumulator accumulators1[kNumQueries];
-      for (size_t j : Seq(kNumQueries)) {
-        accumulators0[j] = SimdFuncs::Zeros();
-        accumulators1[j] = SimdFuncs::Zeros();
-      }
+      Simd<FloatT, kNumQueries> accumulators0 = Zeros();
+      Simd<FloatT, kNumQueries> accumulators1 = Zeros();
 
-      for (; n_blocks > 0; --n_blocks, dim_idx += kBlockSize) {
-        auto dp0_simd = SimdFuncs::Loadu(dp0 + dim_idx);
-        auto dp1_simd = SimdFuncs::Loadu(dp1 + dim_idx);
+      for (; n_blocks > 0; --n_blocks, dim_idx += kElementsPerRegister) {
+        auto dp0_simd = Simd<FloatT>::Load(dp0 + dim_idx);
+        auto dp1_simd = Simd<FloatT>::Load(dp1 + dim_idx);
         for (size_t j : Seq(kNumQueries)) {
-          auto query_simd = SimdFuncs::Loadu(query_ptrs[j] + dim_idx);
-          SimdFuncs::Accumulate(query_simd, dp0_simd, &accumulators0[j]);
-          SimdFuncs::Accumulate(query_simd, dp1_simd, &accumulators1[j]);
+          auto query_simd = Simd<FloatT>::Load(query_ptrs[j] + dim_idx);
+          Accumulate(query_simd, dp0_simd, &accumulators0[j]);
+          Accumulate(query_simd, dp1_simd, &accumulators1[j]);
         }
       }
 
       for (size_t j = 0; j < kNumQueries;) {
         if (j + 1 < kNumQueries) {
-          SimdFuncs::Postprocess4SimdRegisters(
-              accumulators0[j], accumulators1[j], accumulators0[j + 1],
-              accumulators1[j + 1], &result_ptrs[j][0], &result_ptrs[j][1],
-              &result_ptrs[j + 1][0], &result_ptrs[j + 1][1]);
+          HorizontalSum4X(accumulators0[j + 0], accumulators1[j + 0],
+                          accumulators0[j + 1], accumulators1[j + 1],
+                          &result_ptrs[j + 0][0], &result_ptrs[j + 0][1],
+                          &result_ptrs[j + 1][0], &result_ptrs[j + 1][1]);
           j += 2;
         } else {
-          SimdFuncs::Postprocess2SimdRegisters(
-              accumulators0[j], accumulators1[j], &result_ptrs[j][0],
-              &result_ptrs[j][1]);
+          HorizontalSum2X(accumulators0[j], accumulators1[j],
+                          &result_ptrs[j][0], &result_ptrs[j][1]);
           break;
         }
       }
@@ -735,8 +800,8 @@ class DenseManyToManyUntransposed {
       const FloatT dp1_val = dp1[dim_idx];
       for (size_t j : Seq(kNumQueries)) {
         const FloatT query_val = query_ptrs[j][dim_idx];
-        SimdFuncs::Accumulate(dp0_val, query_val, &result_ptrs[j][0]);
-        SimdFuncs::Accumulate(dp1_val, query_val, &result_ptrs[j][1]);
+        Accumulate(dp0_val, query_val, &result_ptrs[j][0]);
+        Accumulate(dp1_val, query_val, &result_ptrs[j][1]);
       }
     }
   }
@@ -750,31 +815,28 @@ class DenseManyToManyUntransposed {
   const FloatT* database_;
   const size_t num_datapoints_;
 
-  thread::ThreadPool* pool_;
+  ThreadPool* pool_;
   CallbackT callback_;
 };
 
-template <typename SimdFuncs, typename CallbackT, typename FloatT>
+template <bool kIsSquaredL2, typename CallbackT, typename FloatT>
 SCANN_INLINE void DenseManyToManyUntransposedImpl(
     const DenseDataset<FloatT>& queries, const DenseDataset<FloatT>& database,
-    thread::ThreadPool* pool, CallbackT callback) {
+    ThreadPool* pool, CallbackT callback) {
   static_assert(IsSameAny<FloatT, float, double>(), "");
-  DenseManyToManyUntransposed<SimdFuncs, CallbackT, FloatT>(
+  DenseManyToManyUntransposed<kIsSquaredL2, CallbackT, FloatT>(
       queries, database, pool, std::move(callback))
       .TopLevelBatch();
 }
 
 template <typename FloatT>
-bool ShouldTranspose(const DenseDataset<FloatT>& queries,
-                     const DenseDataset<FloatT>& database,
-                     size_t simd_block_size) {
-  const size_t n_dims = queries.dimensionality();
+constexpr bool ShouldTranspose(size_t n_queries, size_t dimensionality) {
+  const size_t n_dims = dimensionality;
 
-  constexpr size_t kDoubleDivisor = IsSame<FloatT, double>() ? 2 : 1;
+  constexpr size_t kDoubleDivisor = sizeof(FloatT) / sizeof(float);
 
   constexpr size_t kMaxMidLevelQueryBatchSize = 256 / kDoubleDivisor;
 
-  const size_t n_queries = queries.size();
   const size_t n_mid_level_batches =
       DivRoundUp(n_queries, kMaxMidLevelQueryBatchSize);
 
@@ -786,9 +848,9 @@ bool ShouldTranspose(const DenseDataset<FloatT>& queries,
 
   constexpr float kRemainderCostPerQuery = 2.0;
 
-  const float transposed_cost_per_dp = n_dims * n_mid_level_batches;
+  const float transposed_cost_per_dp = dimensionality * n_mid_level_batches;
 
-  const bool has_remainder = (n_dims % simd_block_size) != 0;
+  const bool has_remainder = (n_dims % Simd<FloatT>::kElementsPerRegister) != 0;
   const float untransposed_postprocess_cost_per_dp =
       n_queries * kUntransposedCostPerQuery +
       n_queries * n_dims * kUntransposedCostPerDimPerQuery +
@@ -798,34 +860,42 @@ bool ShouldTranspose(const DenseDataset<FloatT>& queries,
   return transposed_cost_per_dp < untransposed_postprocess_cost_per_dp;
 }
 
+static_assert(kPlatformGeneration != kSkylakeAvx512 ||
+              ShouldTranspose<float>(3, 128) == false);
+static_assert(kPlatformGeneration != kSkylakeAvx512 ||
+              ShouldTranspose<float>(24, 128) == false);
+static_assert(kPlatformGeneration != kSkylakeAvx512 ||
+              ShouldTranspose<float>(25, 128) == true);
+static_assert(kPlatformGeneration != kSkylakeAvx512 ||
+              ShouldTranspose<float>(300, 128) == true);
+
 template <typename FloatT, typename CallbackT>
 SCANN_INLINE void DenseDistanceManyToManyImpl(
     const DistanceMeasure& dist, const DenseDataset<FloatT>& queries,
-    const DenseDataset<FloatT>& database, thread::ThreadPool* pool,
+    const DenseDataset<FloatT>& database, ThreadPool* pool,
     CallbackT callback) {
   static_assert(IsSameAny<FloatT, float, double>(),
                 "DenseDistanceManyToMany only works with float and double.");
   const bool is_squared_l2 =
       (DistanceMeasure::SQUARED_L2 == dist.specially_optimized_distance_tag());
-  using DotProductFns = DotProductDistanceFunctions<FloatT>;
-  using SquaredL2Fns = SquaredL2DistanceFunctions<FloatT>;
-  constexpr size_t kBlockSize = DotProductFns::kBlockSize;
-  const bool should_transpose = ShouldTranspose(queries, database, kBlockSize);
-  if (kBlockSize > 1 && should_transpose) {
-    if (is_squared_l2) {
-      return DenseManyToManyTransposedImpl<DotProductFns, true>(
-          queries, database, pool, std::move(callback));
-    } else {
-      return DenseManyToManyTransposedImpl<DotProductFns, false>(
-          queries, database, pool, std::move(callback));
+
+  if constexpr (Simd<FloatT>::kElementsPerRegister > 1) {
+    if (ShouldTranspose<FloatT>(queries.size(), queries.dimensionality())) {
+      if (is_squared_l2) {
+        return DenseManyToManyTransposedImpl<true>(queries, database, pool,
+                                                   std::move(callback));
+      } else {
+        return DenseManyToManyTransposedImpl<false>(queries, database, pool,
+                                                    std::move(callback));
+      }
     }
+  }
+
+  if (is_squared_l2) {
+    return DenseManyToManyUntransposedImpl<true>(queries, database, pool,
+                                                 std::move(callback));
   } else {
-    if (is_squared_l2) {
-      return DenseManyToManyUntransposedImpl<SquaredL2Fns>(
-          queries, database, pool, std::move(callback));
-    } else {
-      return DenseManyToManyUntransposedImpl<DotProductFns>(
-          queries, database, pool, std::move(callback));
-    }
+    return DenseManyToManyUntransposedImpl<false>(queries, database, pool,
+                                                  std::move(callback));
   }
 }

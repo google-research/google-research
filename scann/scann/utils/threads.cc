@@ -16,21 +16,19 @@
 
 #include "absl/time/time.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
-unique_ptr<thread::ThreadPool> StartThreadPool(const std::string& pool_name,
-                                               ssize_t num_threads) {
+unique_ptr<ThreadPool> StartThreadPool(const std::string& pool_name,
+                                       ssize_t num_threads) {
   if (num_threads <= 0) {
     return nullptr;
   }
 
-  ThreadOptions options;
+  tensorflow::ThreadOptions options;
   options.stack_size = 1048576;
-  auto pool = make_unique<thread::ThreadPool>(Env::Default(), options,
-                                              pool_name, num_threads);
+  auto pool = make_unique<ThreadPool>(tensorflow::Env::Default(), options,
+                                      pool_name, num_threads);
   return pool;
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

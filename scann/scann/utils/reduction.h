@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__UTILS_REDUCTION_H_
-#define SCANN__UTILS_REDUCTION_H_
+#ifndef SCANN_UTILS_REDUCTION_H_
+#define SCANN_UTILS_REDUCTION_H_
 
 #include <sys/types.h>
 
@@ -24,8 +24,7 @@
 #include "scann/utils/types.h"
 #include "tensorflow/core/platform/prefetch.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T, typename U, typename Reduce>
 auto DensePairAccumulate(T* a, U* b, size_t size, Reduce reduce)
@@ -392,7 +391,6 @@ struct DoNothingReduce {
   bool IsNoop() { return true; }
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__UTILS_DATAPOINT_UTILS_H_
-#define SCANN__UTILS_DATAPOINT_UTILS_H_
+#ifndef SCANN_UTILS_DATAPOINT_UTILS_H_
+#define SCANN_UTILS_DATAPOINT_UTILS_H_
 
 #include "scann/data_format/datapoint.h"
 #include "scann/distance_measures/distance_measures.h"
@@ -25,8 +25,7 @@
 #include "scann/utils/reduction.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 inline T RoundIfFixedPoint(float num) {
@@ -831,7 +830,6 @@ bool PointerIsBinary(const DatapointPtr<T>& pointer) {
                            : SparsePointerIsBinary(pointer);
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

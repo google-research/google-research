@@ -17,8 +17,7 @@
 
 #include "scann/utils/intrinsics/sse4.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace l2_internal {
 
 template <typename Byte, typename SseFuncs>
@@ -264,7 +263,6 @@ SCANN_SSE4_OUTLINE double DenseSquaredL2DistanceSse4(
 }
 
 }  // namespace l2_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

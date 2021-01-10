@@ -16,8 +16,7 @@
 
 #include "scann/oss_wrappers/scann_bits.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(GeneralJaccardDistance,
                                               kEarlyStoppingNotSupported);
@@ -107,5 +106,4 @@ double BinaryJaccardDistance::GetDistanceSparse(
 
 SCANN_REGISTER_DISTANCE_MEASURE(BinaryJaccardDistance)
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

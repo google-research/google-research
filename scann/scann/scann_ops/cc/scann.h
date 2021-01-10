@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__SCANN_OPS_CC_SCANN_H_
-#define SCANN__SCANN_OPS_CC_SCANN_H_
+#ifndef SCANN_SCANN_OPS_CC_SCANN_H_
+#define SCANN_SCANN_OPS_CC_SCANN_H_
 
 #include <limits>
 
@@ -29,8 +29,7 @@
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/threads.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class ScannInterface {
  public:
@@ -86,6 +85,8 @@ class ScannInterface {
   ScannConfig config_;
 
   float result_multiplier_;
+
+  size_t min_batch_size_;
 };
 
 template <typename T_idx>
@@ -108,7 +109,6 @@ void ScannInterface::ReshapeBatchedNNResult(ConstSpan<NNResultsVector> res,
   }
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

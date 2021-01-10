@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__TREES_KMEANS_TREE_KMEANS_TREE_H_
-#define SCANN__TREES_KMEANS_TREE_KMEANS_TREE_H_
+#ifndef SCANN_TREES_KMEANS_TREE_KMEANS_TREE_H_
+#define SCANN_TREES_KMEANS_TREE_KMEANS_TREE_H_
 
 #include <cmath>
 
@@ -23,6 +23,7 @@
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/trees/kmeans_tree/kmeans_tree.pb.h"
 #include "scann/trees/kmeans_tree/kmeans_tree_node.h"
@@ -30,10 +31,8 @@
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/threadpool.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 struct KMeansTreeSearchResult {
   const KMeansTreeNode* node;
@@ -186,21 +185,21 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
       std::vector<KMeansTreeSearchResult>* results) const;
 
  private:
-  template <typename QueryType, typename CentersType>
-  Status TokenizeImpl(const DatapointPtr<QueryType>& query,
+  template <typename CentersType>
+  Status TokenizeImpl(const DatapointPtr<float>& query,
                       const DistanceMeasure& dist,
                       const TokenizationOptions& opts,
                       std::vector<KMeansTreeSearchResult>* result) const;
 
-  template <typename QueryType, typename CentersType>
+  template <typename CentersType>
   Status TokenizeWithoutSpillingImpl(
-      const DatapointPtr<QueryType>& query, const DistanceMeasure& dist,
+      const DatapointPtr<float>& query, const DistanceMeasure& dist,
       const KMeansTreeNode* root, KMeansTreeSearchResult* result,
       bool populate_residual_stdev = false) const;
 
-  template <typename QueryType, typename CentersType>
+  template <typename CentersType>
   Status TokenizeWithSpillingImpl(
-      const DatapointPtr<QueryType>& query, const DistanceMeasure& dist,
+      const DatapointPtr<float>& query, const DistanceMeasure& dist,
       QuerySpillingConfig::SpillingType spilling_type,
       double spilling_threshold, int32_t max_centers,
       const KMeansTreeNode* current_node,
@@ -309,9 +308,9 @@ Status KMeansTree::Tokenize(const DatapointPtr<T>& query,
   Datapoint<float> converted_values;
   const DatapointPtr<float> query_float = ToFloat(query, &converted_values);
   if (opts.tokenization_type == FLOAT) {
-    status = TokenizeImpl<float, float>(query_float, dist, opts, result);
+    status = TokenizeImpl<float>(query_float, dist, opts, result);
   } else if (opts.tokenization_type == FIXED_POINT_INT8) {
-    status = TokenizeImpl<float, int8_t>(query_float, dist, opts, result);
+    status = TokenizeImpl<int8_t>(query_float, dist, opts, result);
   } else {
     return InternalError(
         absl::StrCat("Invalid tokenization type:  ", opts.tokenization_type));
@@ -321,25 +320,25 @@ Status KMeansTree::Tokenize(const DatapointPtr<T>& query,
   return status;
 }
 
-template <typename QueryType, typename CentersType>
+template <typename CentersType>
 Status KMeansTree::TokenizeImpl(
-    const DatapointPtr<QueryType>& query, const DistanceMeasure& dist,
+    const DatapointPtr<float>& query, const DistanceMeasure& dist,
     const TokenizationOptions& opts,
     std::vector<KMeansTreeSearchResult>* result) const {
   switch (opts.spilling_type) {
     case TokenizationOptions::NONE:
       result->resize(1);
-      return TokenizeWithoutSpillingImpl<QueryType, CentersType>(
+      return TokenizeWithoutSpillingImpl<CentersType>(
           query, dist, &root_, result->data(), opts.populate_residual_stdev);
     case TokenizationOptions::LEARNED:
-      return TokenizeWithSpillingImpl<QueryType, CentersType>(
+      return TokenizeWithSpillingImpl<CentersType>(
           query, dist,
           static_cast<QuerySpillingConfig::SpillingType>(
               learned_spilling_type_),
           NAN, max_spill_centers_, &root_, result,
           opts.populate_residual_stdev);
     case TokenizationOptions::USER_SPECIFIED:
-      return TokenizeWithSpillingImpl<QueryType, CentersType>(
+      return TokenizeWithSpillingImpl<CentersType>(
           query, dist, opts.user_specified_spilling_type,
           opts.spilling_threshold, opts.max_spilling_centers, &root_, result,
           opts.populate_residual_stdev);
@@ -357,9 +356,9 @@ Status KMeansTree::TokenizeWithLearnedSpillingThresholds(
                   results);
 }
 
-template <typename QueryType, typename CentersType>
+template <typename CentersType>
 Status KMeansTree::TokenizeWithoutSpillingImpl(
-    const DatapointPtr<QueryType>& query, const DistanceMeasure& dist,
+    const DatapointPtr<float>& query, const DistanceMeasure& dist,
     const KMeansTreeNode* root, KMeansTreeSearchResult* result,
     bool populate_residual_stdev) const {
   CHECK(result);
@@ -375,7 +374,8 @@ Status KMeansTree::TokenizeWithoutSpillingImpl(
       root->GetCentersByTemplateType<CentersType>();
   std::vector<double> distances(centers.size());
   SCANN_RETURN_IF_ERROR(kmeans_tree_internal::GetAllDistances(
-      dist, query, centers, root->fixed_point_multiplier_, &distances));
+      dist, query, centers, root->center_squared_l2_norms_,
+      root->inv_int8_multipliers_, &distances));
   auto min_it = std::min_element(distances.begin(), distances.end());
   nearest_center_distance = *min_it;
   nearest_center_index = min_it - distances.begin();
@@ -393,13 +393,13 @@ Status KMeansTree::TokenizeWithoutSpillingImpl(
     return OkStatus();
   }
 
-  return TokenizeWithoutSpillingImpl<QueryType, CentersType>(
+  return TokenizeWithoutSpillingImpl<CentersType>(
       query, dist, &root->Children()[nearest_center_index], result);
 }
 
-template <typename QueryType, typename CentersType>
+template <typename CentersType>
 Status KMeansTree::TokenizeWithSpillingImpl(
-    const DatapointPtr<QueryType>& query, const DistanceMeasure& dist,
+    const DatapointPtr<float>& query, const DistanceMeasure& dist,
     QuerySpillingConfig::SpillingType spilling_type, double spilling_threshold,
     int32_t max_centers, const KMeansTreeNode* current_node,
     std::vector<KMeansTreeSearchResult>* results,
@@ -424,10 +424,11 @@ Status KMeansTree::TokenizeWithSpillingImpl(
   const DenseDataset<CentersType>& current_node_centers =
       current_node->GetCentersByTemplateType<CentersType>();
   Status status =
-      kmeans_tree_internal::FindChildrenWithSpilling<QueryType, CentersType>(
+      kmeans_tree_internal::FindChildrenWithSpilling<float, CentersType>(
           query, spilling_type, possibly_learned_spilling_threshold,
           max_centers, dist, current_node_centers,
-          current_node->fixed_point_multiplier_, &children_to_search);
+          current_node->center_squared_l2_norms_,
+          current_node->inv_int8_multipliers_, &children_to_search);
   if (!status.ok()) return status;
   for (const auto& elem : children_to_search) {
     const int32_t child_index = elem.first;
@@ -444,7 +445,7 @@ Status KMeansTree::TokenizeWithSpillingImpl(
               : 1.0;
       results->push_back(result);
     } else {
-      status = TokenizeWithSpillingImpl<QueryType, CentersType>(
+      status = TokenizeWithSpillingImpl<CentersType>(
           query, dist, spilling_type, spilling_threshold, max_centers,
           &current_node->Children()[child_index], results,
           populate_residual_stdev);
@@ -456,7 +457,6 @@ Status KMeansTree::TokenizeWithSpillingImpl(
   return OkStatus();
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

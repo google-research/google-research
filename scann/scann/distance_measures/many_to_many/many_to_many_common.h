@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__DISTANCE_MEASURES_MANY_TO_MANY_MANY_TO_MANY_COMMON_H_
-#define SCANN__DISTANCE_MEASURES_MANY_TO_MANY_MANY_TO_MANY_COMMON_H_
+#ifndef SCANN_DISTANCE_MEASURES_MANY_TO_MANY_MANY_TO_MANY_COMMON_H_
+#define SCANN_DISTANCE_MEASURES_MANY_TO_MANY_MANY_TO_MANY_COMMON_H_
 
 #include <array>
 #include <atomic>
@@ -23,21 +23,12 @@
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measures.h"
-#include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/threadpool.h"
-
-#ifdef __x86_64__
-#include <immintrin.h>
-
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/common.h"
-#include "scann/utils/intrinsics/attributes.h"
-#include "scann/utils/intrinsics/avx1.h"
-#include "scann/utils/intrinsics/avx2.h"
-#include "scann/utils/intrinsics/avx512.h"
-#endif
+#include "scann/utils/intrinsics/simd.h"
+#include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename FloatT>
 using ManyToManyResultsCallback =
@@ -62,71 +53,50 @@ class ManyToManyTop1Callback {
 
 #ifdef __x86_64__
 
-  SCANN_AVX512_INLINE void InvokeOptimized(Avx512<float> block1,
-                                           Avx512<float> block2,
+  SCANN_AVX512_INLINE void InvokeOptimized(Avx512<float, 2> simd_dists,
                                            size_t first_dp_idx,
                                            size_t query_idx) {
     auto& top1 = top1_result_by_query_[query_idx];
     float best_dist = top1.second.load(std::memory_order_relaxed);
 
-    Avx512<float> simd_threshold(best_dist);
-    uint16_t result1 = (block1 < simd_threshold)[0];
-    uint16_t result2 = (block2 < simd_threshold)[0];
-    if (ABSL_PREDICT_TRUE(_kortestz_mask16_u8(result1, result2))) return;
+    auto cmp = (simd_dists < Avx512<float>::Broadcast(best_dist));
+    if (ABSL_PREDICT_TRUE(_kortestz_mask16_u8(cmp[0], cmp[1]))) return;
 
-    constexpr size_t kSlotsPerRegister = Avx512<float>::kSlotsPerRegister;
-    FloatT candidates[kSlotsPerRegister * 2];
-    block1.Store(candidates);
-    block2.Store(candidates + kSlotsPerRegister);
-    InvokeSlowPath(MakeMutableSpan(candidates, kSlotsPerRegister * 2),
-                   first_dp_idx, query_idx);
+    auto dists = simd_dists.Store();
+    InvokeSlowPath(MakeMutableSpan(dists), first_dp_idx, query_idx);
   }
 
-  SCANN_AVX1_INLINE void InvokeOptimized(avx1::Simd<float> block1,
-                                         avx1::Simd<float> block2,
+  SCANN_AVX1_INLINE void InvokeOptimized(Avx1<float, 2> simd_dists,
                                          size_t first_dp_idx,
                                          size_t query_idx) {
     auto& top1 = top1_result_by_query_[query_idx];
     float best_dist = top1.second.load(std::memory_order_relaxed);
 
-    avx1::Simd<float> simd_threshold = avx1::Simd<float>::Broadcast(best_dist);
-    avx1::Simd<float> result =
-        ((block1 < simd_threshold) | (block2 < simd_threshold));
-    if (ABSL_PREDICT_TRUE(result.MaskFromHighBits() == 0)) return;
+    auto cmp = (simd_dists < Avx1<float>::Broadcast(best_dist));
+    if (ABSL_PREDICT_TRUE((cmp[0] | cmp[1]).MaskFromHighBits() == 0)) return;
 
-    constexpr size_t kSlotsPerRegister = avx1::Simd<float>::BlockSize();
-    FloatT candidates[kSlotsPerRegister * 2];
-    block1.Store(candidates);
-    block2.Store(candidates + kSlotsPerRegister);
-    InvokeSlowPath(MakeMutableSpan(candidates, kSlotsPerRegister * 2),
-                   first_dp_idx, query_idx);
+    auto dists = simd_dists.Store();
+    InvokeSlowPath(MakeMutableSpan(dists), first_dp_idx, query_idx);
   }
 
-  SCANN_SSE4_INLINE void InvokeOptimized(sse4::Simd<float> block1,
-                                         sse4::Simd<float> block2,
+  SCANN_SSE4_INLINE void InvokeOptimized(Sse4<float, 2> simd_dists,
                                          size_t first_dp_idx,
                                          size_t query_idx) {
     auto& top1 = top1_result_by_query_[query_idx];
     float best_dist = top1.second.load(std::memory_order_relaxed);
 
-    sse4::Simd<float> simd_threshold = sse4::Simd<float>::Broadcast(best_dist);
-    sse4::Simd<float> result =
-        ((block1 < simd_threshold) | (block2 < simd_threshold));
-    if (ABSL_PREDICT_TRUE(result.MaskFromHighBits() == 0)) return;
+    auto cmp = (simd_dists < Sse4<float>::Broadcast(best_dist));
+    if (ABSL_PREDICT_TRUE((cmp[0] | cmp[1]).MaskFromHighBits() == 0)) return;
 
-    constexpr size_t kSlotsPerRegister = sse4::Simd<float>::BlockSize();
-    FloatT candidates[kSlotsPerRegister * 2];
-    block1.Store(candidates);
-    block2.Store(candidates + kSlotsPerRegister);
-    InvokeSlowPath(MakeMutableSpan(candidates, kSlotsPerRegister * 2),
-                   first_dp_idx, query_idx);
+    auto dists = simd_dists.Store();
+    InvokeSlowPath(MakeMutableSpan(dists), first_dp_idx, query_idx);
   }
 
 #endif
 
-  SCANN_INLINE void InvokeOptimized(float block1, float block2,
+  SCANN_INLINE void InvokeOptimized(fallback::Simd<float, 2> dists,
                                     size_t first_dp_idx, size_t query_idx) {
-    FloatT candidates[] = {block1, block2};
+    FloatT candidates[] = {dists[0].Unwrap(), dists[1].Unwrap()};
     Invoke(MakeMutableSpan(candidates, 2), first_dp_idx, query_idx);
   }
 
@@ -192,35 +162,32 @@ class ManyToManyTop1OffsetWrapper {
 
 #ifdef __x86_64__
 
-  SCANN_AVX512_INLINE void InvokeOptimized(Avx512<float> block1,
-                                           Avx512<float> block2,
+  SCANN_AVX512_INLINE void InvokeOptimized(Avx512<float, 2> simd_dists,
                                            size_t first_dp_idx,
                                            size_t query_idx) {
-    base_.InvokeOptimized(block1, block2, first_dp_idx + dp_idx_offset_,
+    base_.InvokeOptimized(simd_dists, first_dp_idx + dp_idx_offset_,
                           query_idx_table_[query_idx]);
   }
 
-  SCANN_AVX1_INLINE void InvokeOptimized(avx1::Simd<float> block1,
-                                         avx1::Simd<float> block2,
+  SCANN_AVX1_INLINE void InvokeOptimized(Avx1<float, 2> simd_dists,
                                          size_t first_dp_idx,
                                          size_t query_idx) {
-    base_.InvokeOptimized(block1, block2, first_dp_idx + dp_idx_offset_,
+    base_.InvokeOptimized(simd_dists, first_dp_idx + dp_idx_offset_,
                           query_idx_table_[query_idx]);
   }
 
-  SCANN_SSE4_INLINE void InvokeOptimized(sse4::Simd<float> block1,
-                                         sse4::Simd<float> block2,
+  SCANN_SSE4_INLINE void InvokeOptimized(Sse4<float, 2> simd_dists,
                                          size_t first_dp_idx,
                                          size_t query_idx) {
-    base_.InvokeOptimized(block1, block2, first_dp_idx + dp_idx_offset_,
+    base_.InvokeOptimized(simd_dists, first_dp_idx + dp_idx_offset_,
                           query_idx_table_[query_idx]);
   }
 
 #endif
 
-  SCANN_INLINE void InvokeOptimized(float block1, float block2,
+  SCANN_INLINE void InvokeOptimized(fallback::Simd<float, 2> dists,
                                     size_t first_dp_idx, size_t query_idx) {
-    base_.InvokeOptimized(block1, block2, first_dp_idx + dp_idx_offset_,
+    base_.InvokeOptimized(dists, first_dp_idx + dp_idx_offset_,
                           query_idx_table_[query_idx]);
   }
 
@@ -253,7 +220,7 @@ struct ManyToManyArgs {
   const FloatT* database_norms = nullptr;
   size_t num_datapoints;
 
-  thread::ThreadPool* pool = nullptr;
+  ThreadPool* pool = nullptr;
 };
 
 template <typename CallbackT>
@@ -270,8 +237,7 @@ struct IsOptimizedCallback<ManyToManyTop1Callback<FloatT>> {
                                          CALLBACK)                          \
   EXTERN_OR_NOTHING template void METHOD_NAME(                              \
       const DistanceMeasure& dist, const DenseDataset<T>& queries,          \
-      const DenseDataset<T>& database, thread::ThreadPool* pool,            \
-      CALLBACK callback);
+      const DenseDataset<T>& database, ThreadPool* pool, CALLBACK callback);
 
 #define SCANN_INSTANTIATE_MANY_TO_MANY_1(EXTERN_OR_NOTHING, METHOD_NAME, T) \
   SCANN_INSTANTIATE_MANY_TO_MANY_2(EXTERN_OR_NOTHING, METHOD_NAME, T,       \
@@ -287,8 +253,8 @@ struct IsOptimizedCallback<ManyToManyTop1Callback<FloatT>> {
                                              CALLBACK)                       \
   EXTERN_OR_NOTHING template Status METHOD_NAME(                             \
       const DistanceMeasure& dist, const DenseDataset<float>& queries,       \
-      const FP8SimdBlockTransposedDatabase& database,                        \
-      thread::ThreadPool* pool, CALLBACK callback);
+      const FP8SimdBlockTransposedDatabase& database, ThreadPool* pool,      \
+      CALLBACK callback);
 
 #define SCANN_INSTANTIATE_MANY_TO_MANY_FP8(EXTERN_OR_NOTHING, METHOD_NAME) \
   SCANN_INSTANTIATE_MANY_TO_MANY_FP8_1(EXTERN_OR_NOTHING, METHOD_NAME,     \
@@ -296,7 +262,6 @@ struct IsOptimizedCallback<ManyToManyTop1Callback<FloatT>> {
   SCANN_INSTANTIATE_MANY_TO_MANY_FP8_1(EXTERN_OR_NOTHING, METHOD_NAME,     \
                                        ManyToManyTop1OffsetWrapper<float>);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

@@ -20,6 +20,7 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:scann_threadpool",
         "//scann/partitioning:kmeans_tree_like_partitioner",
         "//scann/partitioning:partitioner_factory",
         "//scann/partitioning:partitioner_factory_base",

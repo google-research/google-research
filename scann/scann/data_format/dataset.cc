@@ -31,8 +31,7 @@
 #include "scann/utils/zip_sort.h"
 #include "tensorflow/core/platform/prefetch.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 void Dataset::UnusedKeyMethod() {}
 
@@ -321,7 +320,7 @@ void TypedDataset<T>::GetDatapoint(size_t index,
 
 template <typename T>
 void DenseDataset<T>::set_dimensionality(DimensionIndex dimensionality) {
-  if (this->size() == 0) {
+  if (this->empty()) {
     this->set_dimensionality_no_checks(dimensionality);
     SetStride();
   } else {
@@ -509,7 +508,7 @@ StatusOr<typename TypedDataset<T>::Mutator*> DenseDataset<T>::GetMutator()
 
 template <typename T>
 void SparseDataset<T>::set_dimensionality(DimensionIndex dimensionality) {
-  if (this->size() == 0) {
+  if (this->empty()) {
     this->set_dimensionality_no_checks(dimensionality);
   } else {
     DCHECK_EQ(this->dimensionality(), dimensionality)
@@ -602,7 +601,7 @@ Status SparseDataset<T>::AppendImpl(const GenericFeatureVector& gfv,
         "parameter.");
   }
 
-  if (this->size() == 0) {
+  if (this->empty()) {
     this->set_is_binary(gfv_is_binary);
   }
 
@@ -736,5 +735,4 @@ SCANN_INSTANTIATE_TYPED_CLASS(, TypedDataset);
 SCANN_INSTANTIATE_TYPED_CLASS(, SparseDataset);
 SCANN_INSTANTIATE_TYPED_CLASS(, DenseDataset);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

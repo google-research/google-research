@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__UTILS_SCALAR_QUANTIZATION_HELPERS_H_
-#define SCANN__UTILS_SCALAR_QUANTIZATION_HELPERS_H_
+#ifndef SCANN_UTILS_SCALAR_QUANTIZATION_HELPERS_H_
+#define SCANN_UTILS_SCALAR_QUANTIZATION_HELPERS_H_
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 struct ScalarQuantizationResults {
   DenseDataset<int8_t> quantized_dataset;
@@ -80,7 +79,6 @@ unique_ptr<float[]> PrepareForAsymmetricScalarQuantizedDotProduct(
     const DatapointPtr<float>& dptr,
     ConstSpan<float> inverse_multiplier_by_dimension);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

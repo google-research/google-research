@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__UTILS_IO_NPY_H_
-#define SCANN__UTILS_IO_NPY_H_
+#ifndef SCANN_UTILS_IO_NPY_H_
+#define SCANN_UTILS_IO_NPY_H_
 
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"
 #include "scann/data_format/dataset.h"
 #include "scann/utils/io_oss_wrapper.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 std::string numpy_type_name();
@@ -74,7 +73,6 @@ Status DatasetToNumpy(absl::string_view filename, const DenseDataset<T>& data) {
   return SpanToNumpy(filename, data.data(), {data.size()});
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

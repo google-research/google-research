@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__PARTITIONING_PARTITIONER_FACTORY_BASE_H_
-#define SCANN__PARTITIONING_PARTITIONER_FACTORY_BASE_H_
+#ifndef SCANN_PARTITIONING_PARTITIONER_FACTORY_BASE_H_
+#define SCANN_PARTITIONING_PARTITIONER_FACTORY_BASE_H_
 
 #include "scann/data_format/dataset.h"
 #include "scann/partitioning/kmeans_tree_partitioner_utils.h"
@@ -27,18 +27,17 @@
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactory(
     const TypedDataset<T>* dataset, const PartitioningConfig& config,
-    shared_ptr<thread::ThreadPool> pool = nullptr);
+    shared_ptr<ThreadPool> pool = nullptr);
 
 template <typename T>
 StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryPreSampledAndProjected(
     const TypedDataset<T>* dataset, const PartitioningConfig& config,
-    shared_ptr<thread::ThreadPool> training_parallelization_pool = nullptr);
+    shared_ptr<ThreadPool> training_parallelization_pool = nullptr);
 
 template <typename T, typename ProjectionType = double>
 unique_ptr<Partitioner<T>> MakeProjectingDecorator(
@@ -62,11 +61,11 @@ unique_ptr<Partitioner<T>> MakeProjectingDecorator(
   extern_or_nothing template StatusOr<unique_ptr<Partitioner<type>>>       \
   PartitionerFactory<type>(                                                \
       const TypedDataset<type>* dataset, const PartitioningConfig& config, \
-      shared_ptr<thread::ThreadPool> training_parallelization_pool);       \
+      shared_ptr<ThreadPool> training_parallelization_pool);               \
   extern_or_nothing template StatusOr<unique_ptr<Partitioner<type>>>       \
   PartitionerFactoryPreSampledAndProjected<type>(                          \
       const TypedDataset<type>* dataset, const PartitioningConfig& config, \
-      shared_ptr<thread::ThreadPool> training_parallelization_pool);
+      shared_ptr<ThreadPool> training_parallelization_pool);
 
 SCANN_INSTANTIATE_PARTITIONER_FACTORY(extern, int8_t);
 SCANN_INSTANTIATE_PARTITIONER_FACTORY(extern, uint8_t);
@@ -79,7 +78,6 @@ SCANN_INSTANTIATE_PARTITIONER_FACTORY(extern, uint64_t);
 SCANN_INSTANTIATE_PARTITIONER_FACTORY(extern, float);
 SCANN_INSTANTIATE_PARTITIONER_FACTORY(extern, double);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

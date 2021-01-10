@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__HASHES_ASYMMETRIC_HASHING2_QUERYING_H_
-#define SCANN__HASHES_ASYMMETRIC_HASHING2_QUERYING_H_
+#ifndef SCANN_HASHES_ASYMMETRIC_HASHING2_QUERYING_H_
+#define SCANN_HASHES_ASYMMETRIC_HASHING2_QUERYING_H_
 
 #include <math.h>
 
@@ -40,8 +40,7 @@
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing2 {
 
 struct LookupTable {
@@ -85,7 +84,7 @@ struct QueryerOptions {
   float lut16_bias = 0;
 };
 
-namespace ai = ::tensorflow::scann_ops::asymmetric_hashing_internal;
+namespace ai = ::research_scann::asymmetric_hashing_internal;
 
 template <typename T>
 class AsymmetricQueryer {
@@ -1025,7 +1024,6 @@ SCANN_INSTANTIATE_TYPED_CLASS(extern, AsymmetricQueryer);
 SCANN_INSTANTIATE_TYPED_CLASS(extern, SymmetricQueryer);
 
 }  // namespace asymmetric_hashing2
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

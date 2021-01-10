@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__PARTITIONING_PROJECTING_DECORATOR_H_
-#define SCANN__PARTITIONING_PROJECTING_DECORATOR_H_
+#ifndef SCANN_PARTITIONING_PROJECTING_DECORATOR_H_
+#define SCANN_PARTITIONING_PROJECTING_DECORATOR_H_
 
 #include <type_traits>
 
@@ -25,8 +25,7 @@
 #include "scann/partitioning/projecting_decorator.h"
 #include "scann/projection/projection_base.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename Base, typename T, typename ProjectionType>
 class ProjectingDecoratorBase : public Base {
@@ -156,7 +155,6 @@ class KMeansTreeProjectingDecorator final
       bool normalize_residual_by_cluster_stdev) const final;
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

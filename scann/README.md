@@ -33,7 +33,7 @@ manylinux2014-compatible wheels are available on PyPI:
 pip install scann
 ```
 
-ScaNN supports Linux environments running Python versions 3.5-3.8. See
+ScaNN supports Linux environments running Python versions 3.6-3.8. See
 [docs/releases.md](docs/releases.md) for release notes; the page also contains
 download links for ScaNN wheels prior to version 1.1.0, which were not released
 on PyPI.
@@ -45,16 +45,18 @@ See [here](https://stackoverflow.com/questions/10354636) for an example of how
 to find your system's `libstdc++` version; it can generally be upgraded by
 installing a newer version of `g++`.
 
+## Building from source
+
 To build ScaNN from source, first install the build tool
 [bazel](https://bazel.build), Clang 8, and libstdc++ headers for C++17 (which
 are provided with GCC 9). Additionally, ScaNN requires a modern version of
-Python (3.5.x or later) and Tensorflow 2.3.0 installed on that version of
-Python. Once these prerequisites are satisfied, run the following command in the
-root directory of the repository:
+Python (3.6.x or later) and Tensorflow 2.3+ installed on that version of Python.
+Once these prerequisites are satisfied, run the following command in the root
+directory of the repository:
 
 ```
 python configure.py
-CC=clang-8 bazel build -c opt --copt=-mavx2 --copt=-mfma --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" --cxxopt="-std=c++17" --copt=-fsized-deallocation --copt=-w :build_pip_pkg
+CC=clang-8 bazel build -c opt --features=thin_lto --copt=-mavx2 --copt=-mfma --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" --cxxopt="-std=c++17" --copt=-fsized-deallocation --copt=-w :build_pip_pkg
 ./bazel-bin/build_pip_pkg
 ```
 

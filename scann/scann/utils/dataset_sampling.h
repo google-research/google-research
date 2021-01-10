@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__UTILS_DATASET_SAMPLING_H_
-#define SCANN__UTILS_DATASET_SAMPLING_H_
+#ifndef SCANN_UTILS_DATASET_SAMPLING_H_
+#define SCANN_UTILS_DATASET_SAMPLING_H_
 
 #include <type_traits>
 
@@ -25,8 +25,7 @@
 #include "scann/utils/sampled_index_list.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 enum class SubsamplingStrategy { kWithReplacement, kWithoutReplacement };
 
@@ -171,7 +170,6 @@ StatusOr<shared_ptr<TypedDataset<T>>> SubsampleDataset(
   return SubsampleDataset(dataset, seed, fraction, 0, dataset.size());
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

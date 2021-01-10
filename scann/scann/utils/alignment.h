@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__UTILS_ALIGNMENT_H_
-#define SCANN__UTILS_ALIGNMENT_H_
+#ifndef SCANN_UTILS_ALIGNMENT_H_
+#define SCANN_UTILS_ALIGNMENT_H_
 
 #include "scann/utils/common.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 struct AlignedBuffer {
   unique_ptr<uint8_t[]> storage;
@@ -27,7 +26,6 @@ struct AlignedBuffer {
 
 AlignedBuffer MakeCacheAlignedCopy(ConstSpan<uint8_t> span);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

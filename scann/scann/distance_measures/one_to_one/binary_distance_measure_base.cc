@@ -14,8 +14,7 @@
 
 #include "scann/distance_measures/one_to_one/binary_distance_measure_base.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 #define LOG_FATAL_CRASH_OK LOG(FATAL)
 
@@ -52,5 +51,4 @@ SCANN_DEFINE_BINARY_DISTANCE_METHODS_UNIMPLEMENTED(uint64_t);
 SCANN_DEFINE_BINARY_DISTANCE_METHODS_UNIMPLEMENTED(float);
 SCANN_DEFINE_BINARY_DISTANCE_METHODS_UNIMPLEMENTED(double);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

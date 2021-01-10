@@ -18,8 +18,7 @@
 #include "scann/utils/common.h"
 #include "scann/utils/intrinsics/avx512.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing_internal {
 
 SCANN_AVX512_OUTLINE void Avx512Swizzle128(const uint8_t* src, uint8_t* dst) {
@@ -134,7 +133,6 @@ SCANN_AVX512_OUTLINE void Avx512PlatformSpecificSwizzle(uint8_t* packed_dataset,
 }
 
 }  // namespace asymmetric_hashing_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

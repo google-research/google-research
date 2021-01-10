@@ -19,8 +19,7 @@
 
 ABSL_RETIRED_FLAG(bool, use_branch_optimized_top_n, , );
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename Distance>
 void TopNeighbors<Distance>::PartitionElements(vector<Neighbor>* elements,
@@ -32,5 +31,4 @@ void TopNeighbors<Distance>::PartitionElements(vector<Neighbor>* elements,
 
 SCANN_INSTANTIATE_TYPED_CLASS(, TopNeighbors);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

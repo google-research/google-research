@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__DATA_FORMAT_DATAPOINT_H_
-#define SCANN__DATA_FORMAT_DATAPOINT_H_
+#ifndef SCANN_DATA_FORMAT_DATAPOINT_H_
+#define SCANN_DATA_FORMAT_DATAPOINT_H_
 
 #include "scann/data_format/features.pb.h"
 #include "scann/data_format/gfv_conversion.h"
@@ -23,8 +23,7 @@
 #include "scann/utils/infinite_one_array.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 class DatapointPtr;
@@ -58,6 +57,7 @@ class DatapointPtr<NoValue> final {
   bool IsDense() const { return false; }
   bool IsSparse() const { return true; }
   bool IsAllOnes() const { return true; }
+  bool IsFinite() const { return true; }
   DimensionIndex nonzero_entries() const { return nonzero_entries_; }
   DatapointPtr<NoValue> ToSparseBinary() const { return *this; }
 
@@ -106,6 +106,15 @@ class DatapointPtr final {
   bool IsAllOnes() const {
     return std::all_of(values_slice().begin(), values_slice().end(),
                        [](T val) { return val == 1; });
+  }
+
+  bool IsFinite() const {
+    if constexpr (IsFloatingType<T>()) {
+      for (T val : values_slice()) {
+        if (!std::isfinite(val)) return false;
+      }
+    }
+    return true;
   }
 
   bool HasNonzero(DimensionIndex dimension_index) const;
@@ -402,7 +411,6 @@ inline GenericFeatureVector DatapointPtr<double>::ToGfv() const {
 SCANN_INSTANTIATE_TYPED_CLASS(extern, DatapointPtr);
 SCANN_INSTANTIATE_TYPED_CLASS(extern, Datapoint);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

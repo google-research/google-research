@@ -17,8 +17,7 @@
 #include "absl/strings/str_cat.h"
 #include "scann/oss_wrappers/scann_malloc_extension.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 size_t GfvStorage(const GenericFeatureVector& gfv) {
   size_t result = sizeof(gfv);
@@ -61,5 +60,4 @@ std::string GetTcMallocLogString() {
                       "MB.");
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

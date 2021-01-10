@@ -14,8 +14,7 @@
 
 #include "scann/oss_wrappers/scann_status_builder.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 StatusBuilder::StatusBuilder(const Status& status) : status_(status) {}
 
@@ -84,5 +83,4 @@ StatusBuilder UnimplementedErrorBuilder() {
 }
 StatusBuilder UnknownErrorBuilder() { return StatusBuilder(error::UNKNOWN); }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

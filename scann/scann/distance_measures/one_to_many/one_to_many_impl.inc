@@ -22,8 +22,8 @@ SCANN_SIMD_INLINE void DenseDotProductDistanceOneToManyInt8FloatImpl(
     const size_t idx =
         kHasIndices
             ? indices[i]
-            : ::tensorflow::scann_ops::one_to_many_low_level::GetDatapointIndex(
-                  result, i);
+            : ::research_scann::one_to_many_low_level::GetDatapointIndex(result,
+                                                                         i);
     callback->prefetch(idx);
     return dataset_view->GetPtr(idx);
   };
@@ -64,12 +64,12 @@ SCANN_SIMD_INLINE void DenseDotProductDistanceOneToManyInt8FloatImpl(
               p2 + j);
         }
 
-        a0 = AvxFuncs::MultiplyAdd(q, AvxFuncs::Int8ToFloatLower(v0), a0);
-        a1 = AvxFuncs::MultiplyAdd(q, AvxFuncs::Int8ToFloatLower(v1), a1);
-        a2 = AvxFuncs::MultiplyAdd(q, AvxFuncs::Int8ToFloatLower(v2), a2);
-        a0 = AvxFuncs::MultiplyAdd(q2, AvxFuncs::Int8ToFloatUpper(v0), a0);
-        a1 = AvxFuncs::MultiplyAdd(q2, AvxFuncs::Int8ToFloatUpper(v1), a1);
-        a2 = AvxFuncs::MultiplyAdd(q2, AvxFuncs::Int8ToFloatUpper(v2), a2);
+        a0 = AvxFuncs::MultiplySub(q, AvxFuncs::Int8ToFloatLower(v0), a0);
+        a1 = AvxFuncs::MultiplySub(q, AvxFuncs::Int8ToFloatLower(v1), a1);
+        a2 = AvxFuncs::MultiplySub(q, AvxFuncs::Int8ToFloatLower(v2), a2);
+        a0 = AvxFuncs::MultiplySub(q2, AvxFuncs::Int8ToFloatUpper(v0), a0);
+        a1 = AvxFuncs::MultiplySub(q2, AvxFuncs::Int8ToFloatUpper(v1), a1);
+        a2 = AvxFuncs::MultiplySub(q2, AvxFuncs::Int8ToFloatUpper(v2), a2);
       }
     }
 
@@ -78,9 +78,9 @@ SCANN_SIMD_INLINE void DenseDotProductDistanceOneToManyInt8FloatImpl(
       __m128i v0 = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(i0 + j));
       __m128i v1 = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(i1 + j));
       __m128i v2 = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(i2 + j));
-      a0 = AvxFuncs::MultiplyAdd(q, AvxFuncs::Int8ToFloatLower(v0), a0);
-      a1 = AvxFuncs::MultiplyAdd(q, AvxFuncs::Int8ToFloatLower(v1), a1);
-      a2 = AvxFuncs::MultiplyAdd(q, AvxFuncs::Int8ToFloatLower(v2), a2);
+      a0 = AvxFuncs::MultiplySub(q, AvxFuncs::Int8ToFloatLower(v0), a0);
+      a1 = AvxFuncs::MultiplySub(q, AvxFuncs::Int8ToFloatLower(v1), a1);
+      a2 = AvxFuncs::MultiplySub(q, AvxFuncs::Int8ToFloatLower(v2), a2);
       j += 8;
     }
 
@@ -92,11 +92,11 @@ SCANN_SIMD_INLINE void DenseDotProductDistanceOneToManyInt8FloatImpl(
           _mm_cvtsi32_si128(*reinterpret_cast<const int*>(i1 + j)));
       __m128i v2 = _mm_cvtepi8_epi32(
           _mm_cvtsi32_si128(*reinterpret_cast<const int*>(i2 + j)));
-      a0 = _mm256_add_ps(
+      a0 = _mm256_sub_ps(
           a0, AvxFuncs::SseToAvx(_mm_mul_ps(q, _mm_cvtepi32_ps(v0))));
-      a1 = _mm256_add_ps(
+      a1 = _mm256_sub_ps(
           a1, AvxFuncs::SseToAvx(_mm_mul_ps(q, _mm_cvtepi32_ps(v1))));
-      a2 = _mm256_add_ps(
+      a2 = _mm256_sub_ps(
           a2, AvxFuncs::SseToAvx(_mm_mul_ps(q, _mm_cvtepi32_ps(v2))));
       j += 4;
     }
@@ -105,14 +105,14 @@ SCANN_SIMD_INLINE void DenseDotProductDistanceOneToManyInt8FloatImpl(
     float result1 = AvxFuncs::Sum8(a1);
     float result2 = AvxFuncs::Sum8(a2);
     for (; j < dims; ++j) {
-      result0 += query[j] * i0[j];
-      result1 += query[j] * i1[j];
-      result2 += query[j] * i2[j];
+      result0 -= query[j] * i0[j];
+      result1 -= query[j] * i1[j];
+      result2 -= query[j] * i2[j];
     }
 
-    callback->invoke(i, -result0);
-    callback->invoke(i + num_outer_iters, -result1);
-    callback->invoke(i + 2 * num_outer_iters, -result2);
+    callback->invoke(i, result0);
+    callback->invoke(i + num_outer_iters, result1);
+    callback->invoke(i + 2 * num_outer_iters, result2);
   }
 }
 

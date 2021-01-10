@@ -14,13 +14,12 @@
 
 #include "scann/brute_force/scalar_quantized_brute_force.h"
 
+#include "absl/memory/memory.h"
 #include "scann/base/restrict_allowlist.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
-
-#include "absl/memory/memory.h"
 #include "scann/oss_wrappers/scann_status_builder.h"
 #include "scann/utils/fixed_point/pre_quantized_fixed_point.h"
 #include "scann/utils/scalar_quantization_helpers.h"
@@ -29,8 +28,7 @@
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 Status CheckValidDistanceTag(
     AbsDotProductDistance::SpeciallyOptimizedDistanceTag distance_tag) {
@@ -282,7 +280,7 @@ Status ScalarQuantizedBruteForceSearcher::PostprocessDistancesImpl(
     TopNeighbors<float> top_n(params.pre_reordering_num_neighbors());
     SCANN_RETURN_IF_ERROR(PostprocessTopNImpl(query, params, dot_products,
                                               distance_functor, &top_n));
-    *result = top_n.ExtractUnsorted();
+    *result = top_n.TakeUnsorted();
   }
   return OkStatus();
 }
@@ -367,5 +365,4 @@ ScalarQuantizedBruteForceSearcher::ExtractSingleMachineFactoryOptions() {
   return opts;
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

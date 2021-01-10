@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__UTILS_ZIP_SORT_IMPL_H_
-#define SCANN__UTILS_ZIP_SORT_IMPL_H_
+#ifndef SCANN_UTILS_ZIP_SORT_IMPL_H_
+#define SCANN_UTILS_ZIP_SORT_IMPL_H_
 
 #include <algorithm>
 #include <array>
@@ -26,8 +26,7 @@
 #include "scann/utils/types.h"
 #include "tensorflow/core/platform/prefetch.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace zip_sort_internal {
 
 enum : size_t { kInsertionSortSize = 20, kSelectionSortSize = 15 };
@@ -525,7 +524,6 @@ size_t ZipPartition(Predicate pred, T begin, T end, U... rest) {
   return less_iter - begin;
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

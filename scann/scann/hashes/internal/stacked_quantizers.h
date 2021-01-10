@@ -14,19 +14,18 @@
 
 
 
-#ifndef SCANN__HASHES_INTERNAL_STACKED_QUANTIZERS_H_
-#define SCANN__HASHES_INTERNAL_STACKED_QUANTIZERS_H_
+#ifndef SCANN_HASHES_INTERNAL_STACKED_QUANTIZERS_H_
+#define SCANN_HASHES_INTERNAL_STACKED_QUANTIZERS_H_
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/hashes/asymmetric_hashing2/training_options_base.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/threadpool.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing_internal {
 
 class CodesList;
@@ -61,9 +60,9 @@ class StackedQuantizers {
                           CodebookListView<FloatT> codebook_list,
                           MutableSpan<FloatingTypeFor<T>> output);
 
-  static StatusOr<CodebookList<FloatT>> Train(
-      const DenseDataset<T>& dataset, const TrainingOptions& opts,
-      shared_ptr<thread::ThreadPool> pool);
+  static StatusOr<CodebookList<FloatT>> Train(const DenseDataset<T>& dataset,
+                                              const TrainingOptions& opts,
+                                              shared_ptr<ThreadPool> pool);
 
  private:
   static StatusOr<const DenseDataset<double>*> SampledDataset(
@@ -72,7 +71,7 @@ class StackedQuantizers {
 
   static StatusOr<CodebookList<double>> HierarchicalKMeans(
       const DenseDataset<double>& dataset, const TrainingOptions& opts,
-      int num_codebooks, shared_ptr<thread::ThreadPool> pool);
+      int num_codebooks, shared_ptr<ThreadPool> pool);
 
   template <typename U>
   static void GreedilyAssignCodes(const DatapointPtr<U>& input,
@@ -91,13 +90,12 @@ class StackedQuantizers {
                                 CodebookListView<double> codebook_list,
                                 CodesList* codes_list,
                                 DenseDataset<double>* residual,
-                                thread::ThreadPool* pool);
+                                ThreadPool* pool);
 };
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, StackedQuantizers);
 
 }  // namespace asymmetric_hashing_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

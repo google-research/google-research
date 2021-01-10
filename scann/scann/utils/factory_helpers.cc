@@ -20,8 +20,7 @@
 #include "scann/proto/exact_reordering.pb.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 Status GenericSearchParameters::PopulateValuesFromScannConfig(
     const ScannConfig& config) {
@@ -131,5 +130,4 @@ Status GenericSearchParameters::PopulateValuesFromScannConfig(
   return OkStatus();
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__DISTANCE_MEASURES_DISTANCE_MEASURE_FACTORY_H_
-#define SCANN__DISTANCE_MEASURES_DISTANCE_MEASURE_FACTORY_H_
+#ifndef SCANN_DISTANCE_MEASURES_DISTANCE_MEASURE_FACTORY_H_
+#define SCANN_DISTANCE_MEASURES_DISTANCE_MEASURE_FACTORY_H_
 
 #include "scann/data_format/datapoint.h"
 #include "scann/distance_measures/distance_measure_base.h"
@@ -21,14 +21,12 @@
 #include "scann/proto/distance_measure.pb.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 StatusOr<shared_ptr<DistanceMeasure>> GetDistanceMeasure(string_view name);
 StatusOr<shared_ptr<DistanceMeasure>> GetDistanceMeasure(
     const DistanceMeasureConfig& config);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

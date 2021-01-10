@@ -34,16 +34,17 @@ ABSL_FLAG(bool, ignore_avx, false,
 
 ABSL_RETIRED_FLAG(bool, ignore_sse4, false, "Ignore SSE4");
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace flags_internal {
 
-bool should_use_sse4 = port::TestCPUFeature(port::SSE4_2);
-bool should_use_avx1 = port::TestCPUFeature(port::AVX);
-bool should_use_avx2 = port::TestCPUFeature(port::AVX2);
-bool should_use_avx512 = port::TestCPUFeature(port::AVX512F) &&
-                         port::TestCPUFeature(port::AVX512DQ) &&
-                         port::TestCPUFeature(port::AVX512BW);
+bool should_use_sse4 =
+    tensorflow::port::TestCPUFeature(tensorflow::port::SSE4_2);
+bool should_use_avx1 = tensorflow::port::TestCPUFeature(tensorflow::port::AVX);
+bool should_use_avx2 = tensorflow::port::TestCPUFeature(tensorflow::port::AVX2);
+bool should_use_avx512 =
+    tensorflow::port::TestCPUFeature(tensorflow::port::AVX512F) &&
+    tensorflow::port::TestCPUFeature(tensorflow::port::AVX512DQ) &&
+    tensorflow::port::TestCPUFeature(tensorflow::port::AVX512BW);
 
 }  // namespace flags_internal
 
@@ -90,20 +91,23 @@ ScopedPlatformOverride::~ScopedPlatformOverride() {
 
 bool ScopedPlatformOverride::IsSupported() {
   if (flags_internal::should_use_avx512 &&
-      !(port::TestCPUFeature(port::AVX512F) &&
-        port::TestCPUFeature(port::AVX512DQ))) {
+      !(tensorflow::port::TestCPUFeature(tensorflow::port::AVX512F) &&
+        tensorflow::port::TestCPUFeature(tensorflow::port::AVX512DQ))) {
     LOG(WARNING) << "The CPU lacks AVX512 support! (skipping some tests)";
     return false;
   }
-  if (flags_internal::should_use_avx2 && !port::TestCPUFeature(port::AVX2)) {
+  if (flags_internal::should_use_avx2 &&
+      !tensorflow::port::TestCPUFeature(tensorflow::port::AVX2)) {
     LOG(WARNING) << "The CPU lacks AVX2 support! (skipping some tests)";
     return false;
   }
-  if (flags_internal::should_use_avx1 && !port::TestCPUFeature(port::AVX)) {
+  if (flags_internal::should_use_avx1 &&
+      !tensorflow::port::TestCPUFeature(tensorflow::port::AVX)) {
     LOG(WARNING) << "The CPU lacks AVX1 support! (skipping some tests)";
     return false;
   }
-  if (flags_internal::should_use_sse4 && !port::TestCPUFeature(port::SSE4_2)) {
+  if (flags_internal::should_use_sse4 &&
+      !tensorflow::port::TestCPUFeature(tensorflow::port::SSE4_2)) {
     LOG(WARNING) << "This CPU lacks SSE4.2 support! (skipping some tests)";
   }
   return true;
@@ -113,5 +117,4 @@ ScopedPlatformOverride TestHookOverridePlatform(PlatformGeneration generation) {
   return ScopedPlatformOverride(generation);
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

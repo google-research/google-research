@@ -16,6 +16,9 @@
 
 #include <string>
 
+#include "absl/strings/match.h"
+#include "absl/strings/str_format.h"
+#include "absl/strings/substitute.h"
 #include "scann/data_format/features.pb.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/distance_measure_factory.h"
@@ -33,10 +36,6 @@
 #include "scann/proto/scann.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
-
-#include "absl/strings/match.h"
-#include "absl/strings/str_format.h"
-#include "absl/strings/substitute.h"
 #include "tensorflow/core/lib/core/errors.h"
 
 using absl::StartsWith;
@@ -48,8 +47,7 @@ ABSL_FLAG(
     "changes.  This defaults to false for backwards compatibility reasons, but "
     "new projects should set it to true.");
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 namespace {
 
@@ -112,6 +110,10 @@ Status CanonicalizeScannConfigImpl(ScannConfig* config,
   SCANN_RETURN_IF_ERROR(CanonicalizeDeprecatedFields(config));
   SCANN_RETURN_IF_ERROR(EnsureCorrectNormalizationForDistanceMeasure(config));
   auto io = config->mutable_input_output();
+
+  const bool with_fingerprint_postfix =
+      config->input_output().artifacts_naming_option() ==
+      InputOutputConfig::HASHED;
 
   if (io->preprocessed_artifacts_dir().empty()) {
     return CanonicalizeRecallCurves(config);
@@ -392,5 +394,4 @@ Status EnsureCorrectNormalizationForDistanceMeasure(ScannConfig* config) {
   return OkStatus();
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

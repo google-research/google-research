@@ -14,14 +14,13 @@
 
 
 
-#ifndef SCANN__TREE_X_HYBRID_TREE_X_PARAMS_H_
-#define SCANN__TREE_X_HYBRID_TREE_X_PARAMS_H_
+#ifndef SCANN_TREE_X_HYBRID_TREE_X_PARAMS_H_
+#define SCANN_TREE_X_HYBRID_TREE_X_PARAMS_H_
 
 #include "scann/base/search_parameters.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class TreeXOptionalParameters final
     : public SearcherSpecificOptionalParameters {
@@ -86,7 +85,6 @@ class TreeXOptionalParameters final
       all_leaf_optional_params_;
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

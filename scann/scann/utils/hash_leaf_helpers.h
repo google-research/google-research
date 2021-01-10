@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__UTILS_HASH_LEAF_HELPERS_H_
-#define SCANN__UTILS_HASH_LEAF_HELPERS_H_
+#ifndef SCANN_UTILS_HASH_LEAF_HELPERS_H_
+#define SCANN_UTILS_HASH_LEAF_HELPERS_H_
 
 #include <memory>
 
@@ -24,8 +24,7 @@
 #include "scann/utils/factory_helpers.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 namespace internal {
 
@@ -46,21 +45,19 @@ struct HashLeafHelpers {
   TrainAsymmetricHashingModel(shared_ptr<TypedDataset<T>> dataset,
                               const AsymmetricHasherConfig& config,
                               const GenericSearchParameters& params,
-                              shared_ptr<thread::ThreadPool> pool);
+                              shared_ptr<ThreadPool> pool);
 
   static StatusOr<unique_ptr<SingleMachineSearcherBase<T>>>
   AsymmetricHasherFactory(
       shared_ptr<TypedDataset<T>> dataset,
       shared_ptr<DenseDataset<uint8_t>> hashed_dataset,
       const TrainedAsymmetricHashingResults<T>& training_results,
-      const GenericSearchParameters& params,
-      shared_ptr<thread::ThreadPool> pool);
+      const GenericSearchParameters& params, shared_ptr<ThreadPool> pool);
 
   static StatusOr<TrainedAsymmetricHashingResults<T>>
   LoadAsymmetricHashingModel(
       const AsymmetricHasherConfig& config,
-      const GenericSearchParameters& params,
-      shared_ptr<thread::ThreadPool> pool,
+      const GenericSearchParameters& params, shared_ptr<ThreadPool> pool,
       CentersForAllSubspaces* preloaded_codebook = nullptr);
 };
 
@@ -68,7 +65,6 @@ SCANN_INSTANTIATE_TYPED_CLASS(extern, TrainedAsymmetricHashingResults);
 SCANN_INSTANTIATE_TYPED_CLASS(extern, HashLeafHelpers);
 
 }  // namespace internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

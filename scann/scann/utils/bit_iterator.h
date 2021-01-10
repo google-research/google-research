@@ -14,14 +14,13 @@
 
 
 
-#ifndef SCANN__UTILS_BIT_ITERATOR_H_
-#define SCANN__UTILS_BIT_ITERATOR_H_
+#ifndef SCANN_UTILS_BIT_ITERATOR_H_
+#define SCANN_UTILS_BIT_ITERATOR_H_
 
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename StorageT, typename PositionT = uint32_t>
 class BitIterator {
@@ -97,7 +96,6 @@ void BitIterator<StorageT, PositionT>::NextNonzeroWord() {
   }
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

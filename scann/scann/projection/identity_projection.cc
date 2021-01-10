@@ -16,8 +16,7 @@
 
 #include "scann/projection/identity_projection.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 template <typename FloatT>
@@ -48,5 +47,4 @@ Status IdentityProjection<T>::ProjectInputImpl(
 DEFINE_PROJECT_INPUT_OVERRIDES(IdentityProjection);
 SCANN_INSTANTIATE_TYPED_CLASS(, IdentityProjection);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

@@ -14,11 +14,9 @@
 
 #include "scann/distance_measures/one_to_one/l2_distance.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(L2Distance, 32);
 SCANN_REGISTER_DISTANCE_MEASURE(L2Distance);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

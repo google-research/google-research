@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__HASHES_ASYMMETRIC_HASHING2_SEARCHER_H_
-#define SCANN__HASHES_ASYMMETRIC_HASHING2_SEARCHER_H_
+#ifndef SCANN_HASHES_ASYMMETRIC_HASHING2_SEARCHER_H_
+#define SCANN_HASHES_ASYMMETRIC_HASHING2_SEARCHER_H_
 
 #include <utility>
 
@@ -34,8 +34,7 @@
 #include "scann/utils/util_functions.h"
 #include "tensorflow/core/platform/macros.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class TreeAHHybridResidual;
 
@@ -202,7 +201,7 @@ class Searcher final : public SingleMachineSearcherBase<T> {
 
   mutable unique_ptr<typename Searcher<T>::Mutator> mutator_ = nullptr;
 
-  friend class ::tensorflow::scann_ops::TreeAHHybridResidual;
+  friend class ::research_scann::TreeAHHybridResidual;
 
   TF_DISALLOW_COPY_AND_ASSIGN(Searcher);
 };
@@ -266,7 +265,6 @@ SCANN_INSTANTIATE_TYPED_CLASS(extern, Searcher);
 SCANN_INSTANTIATE_TYPED_CLASS(extern, PrecomputedAsymmetricLookupTableCreator);
 
 }  // namespace asymmetric_hashing2
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

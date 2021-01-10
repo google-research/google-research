@@ -16,7 +16,7 @@
 
 syntax = "proto2";
 
-package tensorflow.scann_ops;
+package research_scann;
 
 import "scann/data_format/features.proto";
 import "scann/proto/hash.proto";

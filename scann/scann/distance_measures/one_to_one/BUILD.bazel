@@ -107,8 +107,8 @@ cc_library(
 
 cc_library(
     name = "dot_product_impl",
-    hdrs = ["dot_product_impl.h"],
     tags = ["local"],
+    textual_hdrs = ["dot_product_impl.inc"],
     deps = ["//scann/data_format:datapoint"],
     alwayslink = 1,
 )

@@ -20,18 +20,17 @@
 #include "scann/utils/types.h"
 #include "scann/utils/zip_sort.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 UntypedPartitioner::~UntypedPartitioner() {}
 
 void UntypedPartitioner::set_training_parallelization_pool(
-    shared_ptr<thread::ThreadPool> pool) {}
+    shared_ptr<ThreadPool> pool) {}
 
 template <typename T>
 Status Partitioner<T>::TokenForDatapointBatched(const TypedDataset<T>& queries,
                                                 vector<int32_t>* results,
-                                                thread::ThreadPool*) const {
+                                                ThreadPool*) const {
   DCHECK(results);
   results->resize(queries.size());
   for (DatapointIndex i = 0; i < queries.size(); ++i) {
@@ -61,7 +60,7 @@ Status Partitioner<T>::TokensForDatapointWithSpillingBatched(
 
 template <typename T>
 StatusOr<vector<std::vector<DatapointIndex>>> Partitioner<T>::TokenizeDatabase(
-    const TypedDataset<T>& database, thread::ThreadPool* pool_or_null) const {
+    const TypedDataset<T>& database, ThreadPool* pool_or_null) const {
   if (tokenization_mode() != DATABASE) {
     return FailedPreconditionError(
         "Cannot run TokenizeDatabase when not in database tokenization mode.");
@@ -111,5 +110,4 @@ StatusOr<vector<std::vector<DatapointIndex>>> Partitioner<T>::TokenizeDatabase(
 
 SCANN_INSTANTIATE_TYPED_CLASS(, Partitioner);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

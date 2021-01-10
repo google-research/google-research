@@ -16,8 +16,7 @@
 
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 string_view GfvFeatureTypeName(int gfv_feature_type) {
   switch (gfv_feature_type) {
@@ -125,5 +124,4 @@ bool IsGfvDenseOrDie(const GenericFeatureVector& gfv) {
   return ValueOrDie(IsGfvDense(gfv));
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

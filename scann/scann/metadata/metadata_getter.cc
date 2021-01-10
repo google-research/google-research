@@ -15,10 +15,10 @@
 
 
 #include "scann/metadata/metadata_getter.h"
+
 #include "tensorflow/core/lib/core/errors.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 Status UntypedMetadataGetter::AppendMetadata(const GenericFeatureVector& gfv) {
   return OkStatus();
@@ -37,5 +37,4 @@ Status UntypedMetadataGetter::RemoveMetadata(DatapointIndex removed_idx) {
 
 UntypedMetadataGetter::~UntypedMetadataGetter() {}
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

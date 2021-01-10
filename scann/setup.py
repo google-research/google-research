@@ -64,7 +64,7 @@ def get_long_description():
 
 setuptools.setup(
     name="scann",
-    version="1.1.1",
+    version="1.2.0",
     author="Google Inc.",
     url="https://github.com/google-research/google-research/tree/master/scann",
     author_email="opensource@google.com",
@@ -83,7 +83,6 @@ setuptools.setup(
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",

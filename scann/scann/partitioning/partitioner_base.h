@@ -14,21 +14,20 @@
 
 
 
-#ifndef SCANN__PARTITIONING_PARTITIONER_BASE_H_
-#define SCANN__PARTITIONING_PARTITIONER_BASE_H_
+#ifndef SCANN_PARTITIONING_PARTITIONER_BASE_H_
+#define SCANN_PARTITIONING_PARTITIONER_BASE_H_
 
 #include <algorithm>
 #include <hash_set>
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
-#include "tensorflow/core/lib/core/threadpool.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class UntypedPartitioner {
  public:
@@ -55,8 +54,7 @@ class UntypedPartitioner {
 
   virtual int8_t TypeTag() const = 0;
 
-  virtual void set_training_parallelization_pool(
-      shared_ptr<thread::ThreadPool> pool);
+  virtual void set_training_parallelization_pool(shared_ptr<ThreadPool> pool);
 
  protected:
   virtual void OnSetTokenizationMode() {}
@@ -80,23 +78,22 @@ class Partitioner : public UntypedPartitioner {
   virtual Status TokensForDatapointWithSpilling(
       const DatapointPtr<T>& query, std::vector<int32_t>* result) const = 0;
 
-  virtual Status TokenForDatapointBatched(
-      const TypedDataset<T>& queries, std::vector<int32_t>* results,
-      thread::ThreadPool* pool = nullptr) const;
+  virtual Status TokenForDatapointBatched(const TypedDataset<T>& queries,
+                                          std::vector<int32_t>* results,
+                                          ThreadPool* pool = nullptr) const;
 
   virtual Status TokensForDatapointWithSpillingBatched(
       const TypedDataset<T>& queries,
       MutableSpan<std::vector<int32_t>> results) const;
 
   virtual StatusOr<vector<std::vector<DatapointIndex>>> TokenizeDatabase(
-      const TypedDataset<T>& database, thread::ThreadPool* pool_or_null) const;
+      const TypedDataset<T>& database, ThreadPool* pool_or_null) const;
 
   int8_t TypeTag() const final { return TagForType<T>(); }
 };
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, Partitioner);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

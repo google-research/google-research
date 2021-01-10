@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__DATA_FORMAT_DOCID_COLLECTION_INTERFACE_H_
-#define SCANN__DATA_FORMAT_DOCID_COLLECTION_INTERFACE_H_
+#ifndef SCANN_DATA_FORMAT_DOCID_COLLECTION_INTERFACE_H_
+#define SCANN_DATA_FORMAT_DOCID_COLLECTION_INTERFACE_H_
 
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class DocidCollectionInterface {
  public:
@@ -63,7 +62,6 @@ class DocidCollectionInterface {
   virtual StatusOr<Mutator*> GetMutator() const = 0;
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

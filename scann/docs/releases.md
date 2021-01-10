@@ -1,5 +1,14 @@
 # ScaNN Release Notes
 
+### 1.2.0
+Python 3.5 support has been dropped, allowing ScaNN to use f-strings and other Python 3.6+ features in its code.
+
+Wheels are now built against TensorFlow 2.4.0. **These wheels are incompatible with TensorFlow 2.3.x**; continue using ScaNN 1.1.1 or compile ScaNN yourself if you need to use ScaNN with TensorFlow 2.3.x.
+
+Errors now include more debugging information and context.
+
+Passing `quantize=True` to the `tree(...)` of ScaNN builder now works with squared L2 distance; it previously only supported dot products.
+
 ### 1.1.1
 
 `manylinux2014` wheels are now available on pip, and a Python 3.8 wheel has been added. These wheels only require `libstdc++` version 3.4.19 and therefore should have greater operating system compatibility. Previous releases were not `manylinux2014` compatible and required `libstdc++` version 3.4.26 or greater.

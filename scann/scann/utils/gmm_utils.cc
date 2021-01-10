@@ -35,22 +35,20 @@
 #include "scann/distance_measures/one_to_many/one_to_many.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
 #include "scann/oss_wrappers/scann_bits.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/parallel_for.h"
+#include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 #include "scann/utils/zip_sort.h"
-
-#include "scann/oss_wrappers/scann_status.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
-#include "tensorflow/core/lib/gtl/top_n.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 GmmUtils::GmmUtils(shared_ptr<const DistanceMeasure> distance, Options opts)
     : distance_(std::move(distance)), opts_(opts), random_(opts_.seed) {}
@@ -118,8 +116,7 @@ class GmmUtilsImplInterface : public VirtualDestructor {
  public:
   static unique_ptr<GmmUtilsImplInterface> Create(
       const DistanceMeasure& distance, const Dataset& dataset,
-      ConstSpan<DatapointIndex> subset,
-      thread::ThreadPool* parallelization_pool);
+      ConstSpan<DatapointIndex> subset, ThreadPool* parallelization_pool);
 
   virtual size_t size() const = 0;
 
@@ -132,7 +129,7 @@ class GmmUtilsImplInterface : public VirtualDestructor {
 
   using IterateDatasetCallback = std::function<void(
       size_t offset, const DenseDataset<double>& dataset_batch)>;
-  virtual void IterateDataset(thread::ThreadPool* parallelization_pool,
+  virtual void IterateDataset(ThreadPool* parallelization_pool,
                               const IterateDatasetCallback& callback) const = 0;
 
   void DistancesFromPoint(DatapointPtr<double> center,
@@ -192,11 +189,10 @@ class GmmUtilsImplInterface : public VirtualDestructor {
   template <typename T>
   static unique_ptr<GmmUtilsImplInterface> CreateTyped(
       const DistanceMeasure& distance, const Dataset& dataset,
-      ConstSpan<DatapointIndex> subset,
-      thread::ThreadPool* parallelization_pool);
+      ConstSpan<DatapointIndex> subset, ThreadPool* parallelization_pool);
 
   const DistanceMeasure* distance_;
-  thread::ThreadPool* parallelization_pool_;
+  ThreadPool* parallelization_pool_;
 };
 
 class GenericDatasetWithSubset : public GmmUtilsImplInterface {
@@ -218,7 +214,7 @@ class GenericDatasetWithSubset : public GmmUtilsImplInterface {
     return storage->ToPtr();
   }
 
-  void IterateDataset(thread::ThreadPool* parallelization_pool,
+  void IterateDataset(ThreadPool* parallelization_pool,
                       const IterateDatasetCallback& callback) const final {
     constexpr size_t kBatchSize = 128;
     ParallelFor<1>(
@@ -263,7 +259,7 @@ class DenseDatasetWrapper : public GmmUtilsImplInterface {
     return MaybeConvertDatapoint(dataset_[idx], storage);
   }
 
-  void IterateDataset(thread::ThreadPool* parallelization_pool,
+  void IterateDataset(ThreadPool* parallelization_pool,
                       const IterateDatasetCallback& callback) const final {
     if (IsSame<T, double>()) {
       callback(0, reinterpret_cast<const DenseDataset<double>&>(dataset_));
@@ -295,8 +291,7 @@ class DenseDatasetWrapper : public GmmUtilsImplInterface {
 template <typename T>
 unique_ptr<GmmUtilsImplInterface> GmmUtilsImplInterface::CreateTyped(
     const DistanceMeasure& distance, const Dataset& dataset,
-    ConstSpan<DatapointIndex> subset,
-    thread::ThreadPool* parallelization_pool) {
+    ConstSpan<DatapointIndex> subset, ThreadPool* parallelization_pool) {
   DCHECK(subset.empty());
   auto* dense_dataset = dynamic_cast<const DenseDataset<T>*>(&dataset);
   CHECK(dense_dataset);
@@ -305,8 +300,7 @@ unique_ptr<GmmUtilsImplInterface> GmmUtilsImplInterface::CreateTyped(
 
 unique_ptr<GmmUtilsImplInterface> GmmUtilsImplInterface::Create(
     const DistanceMeasure& distance, const Dataset& dataset,
-    ConstSpan<DatapointIndex> subset,
-    thread::ThreadPool* parallelization_pool) {
+    ConstSpan<DatapointIndex> subset, ThreadPool* parallelization_pool) {
   unique_ptr<GmmUtilsImplInterface> impl;
   if (dataset.IsDense() && subset.empty()) {
     impl = SCANN_CALL_FUNCTION_BY_TAG(
@@ -324,7 +318,7 @@ namespace {
 
 vector<pair<DatapointIndex, double>> UnbalancedPartitionAssignment(
     GmmUtilsImplInterface* impl, const DistanceMeasure& distance,
-    const DenseDataset<double>& centers, thread::ThreadPool* pool) {
+    const DenseDataset<double>& centers, ThreadPool* pool) {
   vector<pair<DatapointIndex, double>> top1_results(impl->size());
 
   impl->IterateDataset(
@@ -350,13 +344,13 @@ vector<pair<DatapointIndex, double>> UnbalancedPartitionAssignment(
 
 vector<pair<DatapointIndex, double>> MinCostMaxFlowPartitionAssignment(
     GmmUtilsImplInterface* impl, const DistanceMeasure& distance,
-    const DenseDataset<double>& centers, thread::ThreadPool* pool) {
+    const DenseDataset<double>& centers, ThreadPool* pool) {
   LOG(ERROR) << "Min-cost max-flow based assignment not supported.";
 }
 
 vector<pair<DatapointIndex, double>> GreedyBalancedPartitionAssignment(
     GmmUtilsImplInterface* impl, const DistanceMeasure& distance,
-    const DenseDataset<double>& centers, thread::ThreadPool* pool) {
+    const DenseDataset<double>& centers, ThreadPool* pool) {
   LOG(ERROR) << "Greedy partition balancing not supported.";
 }
 
@@ -408,27 +402,6 @@ Status GmmUtils::SphericalKmeans(
   return KMeansImpl(true, dataset, subset, num_clusters,
                     GetPartitionAssignmentFn(opts_.partition_assignment_type),
                     final_centers, final_partitions);
-}
-
-Status GmmUtils::SphericalKmeans(
-    const Dataset& dataset, ConstSpan<DatapointIndex> subset,
-    const DenseDataset<double>& initial_centers,
-    DenseDataset<double>* final_centers,
-    vector<vector<DatapointIndex>>* final_partitions) {
-  *final_centers = initial_centers.Copy();
-  return KMeansImpl(true, dataset, subset, initial_centers.size(),
-                    GetPartitionAssignmentFn(opts_.partition_assignment_type),
-                    final_centers, final_partitions, true);
-}
-Status GmmUtils::GenericKmeans(
-    const Dataset& dataset, ConstSpan<DatapointIndex> subset,
-    const DenseDataset<double>& initial_centers,
-    DenseDataset<double>* final_centers,
-    vector<vector<DatapointIndex>>* final_partitions) {
-  *final_centers = initial_centers.Copy();
-  return KMeansImpl(false, dataset, subset, initial_centers.size(),
-                    GetPartitionAssignmentFn(opts_.partition_assignment_type),
-                    final_centers, final_partitions, true);
 }
 
 Status GmmUtils::InitializeCenters(const Dataset& dataset,
@@ -640,20 +613,15 @@ SCANN_OUTLINE Status GmmUtils::KMeansImpl(
     bool spherical, const Dataset& dataset, ConstSpan<DatapointIndex> subset,
     int32_t num_clusters, PartitionAssignmentFn partition_assignment_fn,
     DenseDataset<double>* final_centers,
-    vector<vector<DatapointIndex>>* final_partitions,
-    bool preinitialized_centers) {
+    vector<vector<DatapointIndex>>* final_partitions) {
   DCHECK(final_centers);
   if (dataset.IsDense() && subset.size() == dataset.size() &&
       IsStdIota(subset)) {
     subset = ConstSpan<DatapointIndex>();
   }
   DenseDataset<double> centers;
-  if (preinitialized_centers) {
-    centers = std::move(*final_centers);
-  } else {
-    SCANN_RETURN_IF_ERROR(
-        InitializeCenters(dataset, subset, num_clusters, &centers));
-  }
+  SCANN_RETURN_IF_ERROR(
+      InitializeCenters(dataset, subset, num_clusters, &centers));
   SCANN_RETURN_IF_ERROR(VerifyAllFinite(centers.data()))
       << "Initial centers contain NaN/infinity.";
 
@@ -702,7 +670,8 @@ SCANN_OUTLINE Status GmmUtils::KMeansImpl(
   vector<uint32_t> partition_sizes(num_clusters);
   vector<pair<uint32_t, double>> top1_results;
 
-  thread::ThreadPool* pool = opts_.parallelization_pool.get();
+  ThreadPool* pool = opts_.parallelization_pool.get();
+  const absl::Time deadline = absl::Now() + opts_.max_iteration_duration;
   for (size_t iteration : Seq(opts_.max_iterations + 1)) {
     top1_results =
         partition_assignment_fn(impl.get(), *distance_, centers, pool);
@@ -737,7 +706,7 @@ SCANN_OUTLINE Status GmmUtils::KMeansImpl(
       VLOG(1) << StrFormat("Converged in %d iterations.", iteration);
       break;
     }
-    if (iteration == opts_.max_iterations) {
+    if (iteration == opts_.max_iterations || absl::Now() > deadline) {
       VLOG(1) << StrFormat("Exiting without converging after %d iterations.",
                            iteration);
       break;
@@ -844,12 +813,12 @@ StatusOr<double> GmmUtils::ComputeSpillingThreshold(
     DenseDistanceOneToMany(*distance_, impl->GetPoint(j, &storage), centers,
                            MakeMutableSpan(distances),
                            opts_.parallelization_pool.get());
-    gtl::TopN<double, std::less<double>> top_n(max_neighbors);
+    TopNAmortizedConstant<double, std::less<double>> top_n(max_neighbors);
     top_n.reserve(max_neighbors + 1);
     for (double dist : distances) {
       top_n.push(dist);
     }
-    auto top_items = *top_n.Extract();
+    auto top_items = top_n.Take();
 
     if (spilling_type == DatabaseSpillingConfig::ADDITIVE) {
       for (uint32_t k : Seq(1, max_neighbors)) {
@@ -1249,5 +1218,4 @@ Status GmmUtils::RecomputeCentroidsWithParallelCostMultiplier(
   return OkStatus();
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

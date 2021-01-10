@@ -1,10 +1,8 @@
 
 
 #include "scann/hashes/internal/lut16_avx512.h"
-
-#include "scann/utils/common.h"
-
 #include "scann/oss_wrappers/scann_bits.h"
+#include "scann/utils/common.h"
 
 #ifdef __x86_64__
 
@@ -13,8 +11,7 @@
 #include "scann/utils/intrinsics/avx512.h"
 #include "tensorflow/core/platform/prefetch.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace avx512 {
 namespace lut16 {
 
@@ -63,10 +60,10 @@ SCANN_AVX512_INLINE Avx512<uint8_t> LoadLUT(const uint8_t* lookup_ptr) {
     return Avx512<uint8_t>::Load(lookup_ptr);
   }
   if constexpr (kNumCodesPerIter == 2) {
-    return _mm512_broadcast_i64x4(M256_32Xuint8::Load(lookup_ptr).val());
+    return _mm512_broadcast_i64x4(*Avx2<uint8_t>::Load(lookup_ptr));
   }
   if constexpr (kNumCodesPerIter == 1) {
-    return _mm512_broadcast_i64x2(M128_16Xuint8::Load(lookup_ptr).val());
+    return _mm512_broadcast_i64x2(*Sse4<uint8_t>::Load(lookup_ptr));
   }
 }
 
@@ -609,12 +606,9 @@ SCANN_AVX512_OUTLINE void GetTopDistancesImpl(LUT16ArgsTopN<T, TopN> args) {
           Avx512For<int16_t, kNumDatapoints>::kNumRegisters / 2;
 
       auto compute_push_mask = [&](size_t mm) SCANN_AVX512_INLINE_LAMBDA {
-        array<uint32_t, 2> mask;
-        _store_mask32(&mask[0],
-                      (int16_dists[j][2 * mm + 0] < simd_thresholds[j])[0]);
-        _store_mask32(&mask[1],
-                      (int16_dists[j][2 * mm + 1] < simd_thresholds[j])[0]);
-        return *reinterpret_cast<uint64_t*>(&mask);
+        Avx512For<int16_t, 64> dists = Avx512Concat(int16_dists[j][2 * mm + 0],
+                                                    int16_dists[j][2 * mm + 1]);
+        return GetComparisonMask(dists < simd_thresholds[j]);
       };
 
       auto handle_push_mask = [&](size_t mm) SCANN_AVX512_INLINE_LAMBDA {
@@ -678,12 +672,9 @@ SCANN_AVX512_OUTLINE void GetTopDistancesImpl(LUT16ArgsTopN<T, TopN> args) {
           Avx512For<int16_t, kNumDatapoints>::kNumRegisters / 2;
 
       auto compute_push_mask = [&](size_t mm) SCANN_AVX512_INLINE_LAMBDA {
-        array<uint32_t, 2> mask;
-        _store_mask32(&mask[0],
-                      (int16_dists[j][2 * mm + 0] < simd_thresholds[j])[0]);
-        _store_mask32(&mask[1],
-                      (int16_dists[j][2 * mm + 1] < simd_thresholds[j])[0]);
-        return *reinterpret_cast<uint64_t*>(&mask);
+        Avx512For<int16_t, 64> dists = Avx512Concat(int16_dists[j][2 * mm + 0],
+                                                    int16_dists[j][2 * mm + 1]);
+        return GetComparisonMask(dists < simd_thresholds[j]);
       };
 
       auto handle_push_mask = [&](size_t mm) SCANN_AVX512_INLINE_LAMBDA {
@@ -732,9 +723,7 @@ SCANN_AVX512_OUTLINE void GetTopDistancesImpl(LUT16ArgsTopN<T, TopN> args) {
 
     for (size_t j : Seq(kNumQueries)) {
       auto compute_push_mask = [&]() SCANN_AVX512_INLINE_LAMBDA {
-        static_assert(std::decay_t<decltype(int16_dists[j])>::kNumRegisters ==
-                      1);
-        return _cvtmask32_u32((int16_dists[j] < simd_thresholds[j])[0]);
+        return GetComparisonMask(int16_dists[j] < simd_thresholds[j]);
       };
       uint32_t push_mask = compute_push_mask();
 
@@ -805,7 +794,6 @@ void LUT16Avx512<kNumQueries, kPrefetch>::GetTopFloatDistances(
 }
 
 }  // namespace asymmetric_hashing_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

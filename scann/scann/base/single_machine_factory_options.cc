@@ -16,8 +16,7 @@
 
 #include "scann/utils/input_data_utils.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 StatusOr<DatapointIndex> SingleMachineFactoryOptions::ComputeConsistentSize(
     const Dataset* dataset) const {
@@ -34,5 +33,4 @@ SingleMachineFactoryOptions::ComputeConsistentDimensionality(
       compressed_dataset.get());
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

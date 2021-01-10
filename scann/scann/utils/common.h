@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__UTILS_COMMON_H_
-#define SCANN__UTILS_COMMON_H_
+#ifndef SCANN_UTILS_COMMON_H_
+#define SCANN_UTILS_COMMON_H_
 
 #include <stddef.h>
 
@@ -45,8 +45,7 @@
 #include "tensorflow/core/platform/prefetch.h"
 #include "tensorflow/core/platform/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 using ::std::array;
 using ::std::make_shared;
@@ -81,6 +80,7 @@ using ::absl::Mutex;
 using ::absl::MutexLock;
 using ::absl::ReaderMutexLock;
 
+using ::tensorflow::Status;
 using OkStatus = Status;
 using internal::StatusOr;
 
@@ -534,7 +534,6 @@ static_assert(IsSame<pair<int, float>,
                      RecursivelyRemoveCV<pair<const int, volatile float>>>(),
               "");
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

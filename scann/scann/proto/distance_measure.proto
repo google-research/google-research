@@ -14,7 +14,7 @@
 
 syntax = "proto2";
 
-package tensorflow.scann_ops;
+package research_scann;
 
 message DistanceMeasureConfig {
   optional string distance_measure = 1 [default = "SquaredL2Distance"];

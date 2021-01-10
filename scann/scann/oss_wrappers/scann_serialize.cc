@@ -17,8 +17,7 @@
 #include "absl/base/casts.h"
 #include "absl/base/internal/endian.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace strings {
 namespace {
 
@@ -93,5 +92,4 @@ float KeyToFloat(absl::string_view key) {
 }
 
 }  // namespace strings
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

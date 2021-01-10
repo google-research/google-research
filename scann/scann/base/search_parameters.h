@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__BASE_SEARCH_PARAMETERS_H_
-#define SCANN__BASE_SEARCH_PARAMETERS_H_
+#ifndef SCANN_BASE_SEARCH_PARAMETERS_H_
+#define SCANN_BASE_SEARCH_PARAMETERS_H_
 
 #include <cstddef>
 
@@ -23,8 +23,7 @@
 #include "scann/utils/types.h"
 #include "tensorflow/core/platform/prefetch.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class SearcherSpecificOptionalParameters : public VirtualDestructor {};
 
@@ -158,7 +157,6 @@ class SearchParameters {
       unlocked_query_preprocessing_results_;
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

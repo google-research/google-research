@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__HASHES_INTERNAL_ASYMMETRIC_HASHING_LUT16_H_
-#define SCANN__HASHES_INTERNAL_ASYMMETRIC_HASHING_LUT16_H_
+#ifndef SCANN_HASHES_INTERNAL_ASYMMETRIC_HASHING_LUT16_H_
+#define SCANN_HASHES_INTERNAL_ASYMMETRIC_HASHING_LUT16_H_
 
 #include "scann/base/restrict_allowlist.h"
 #include "scann/data_format/dataset.h"
@@ -25,8 +25,7 @@
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing_internal {
 
 using TopFixedPointNeighbors = TopNeighbors<int32_t>;
@@ -192,7 +191,6 @@ void GetNeighborsViaAsymmetricDistanceLUT16WithInt32AccumulatorBatched2(
 }
 
 }  // namespace asymmetric_hashing_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

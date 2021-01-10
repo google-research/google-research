@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__DISTANCE_MEASURES_ONE_TO_ONE_BINARY_DISTANCE_MEASURE_BASE_H_
-#define SCANN__DISTANCE_MEASURES_ONE_TO_ONE_BINARY_DISTANCE_MEASURE_BASE_H_
+#ifndef SCANN_DISTANCE_MEASURES_ONE_TO_ONE_BINARY_DISTANCE_MEASURE_BASE_H_
+#define SCANN_DISTANCE_MEASURES_ONE_TO_ONE_BINARY_DISTANCE_MEASURE_BASE_H_
 
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/one_to_one/common.h"
 #include "scann/oss_wrappers/scann_bits.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class BinaryDistanceMeasureBase : public DistanceMeasure {
  public:
@@ -80,7 +79,6 @@ inline DimensionIndex DenseBinaryMergeAndPopcnt(const DatapointPtr<uint8_t>& v1,
   return result;
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

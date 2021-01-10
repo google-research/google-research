@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__HASHES_INTERNAL_LUT16_AVX512_SWIZZLE_H_
-#define SCANN__HASHES_INTERNAL_LUT16_AVX512_SWIZZLE_H_
+#ifndef SCANN_HASHES_INTERNAL_LUT16_AVX512_SWIZZLE_H_
+#define SCANN_HASHES_INTERNAL_LUT16_AVX512_SWIZZLE_H_
 #ifdef __x86_64__
 
 #include "scann/utils/intrinsics/attributes.h"
 #include "tensorflow/core/platform/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing_internal {
 
 void Avx512Swizzle128(const uint8_t* src, uint8_t* dst);
@@ -31,8 +30,7 @@ void Avx512PlatformSpecificSwizzle(uint8_t* packed_dataset, int num_datapoints,
                                    int num_codes_per_dp);
 
 }  // namespace asymmetric_hashing_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif
 #endif

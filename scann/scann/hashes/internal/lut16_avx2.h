@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__HASHES_INTERNAL_LUT16_AVX2_H_
-#define SCANN__HASHES_INTERNAL_LUT16_AVX2_H_
+#ifndef SCANN_HASHES_INTERNAL_LUT16_AVX2_H_
+#define SCANN_HASHES_INTERNAL_LUT16_AVX2_H_
 
 #ifdef __x86_64__
 
@@ -21,8 +21,7 @@
 #include "scann/utils/intrinsics/attributes.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing_internal {
 
 template <size_t kNumQueries, PrefetchStrategy kPrefetch>
@@ -43,8 +42,7 @@ class LUT16Avx2 {
 SCANN_INSTANTIATE_CLASS_FOR_LUT16_BATCH_SIZES(extern, LUT16Avx2);
 
 }  // namespace asymmetric_hashing_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif
 #endif

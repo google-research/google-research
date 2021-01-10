@@ -16,7 +16,7 @@
 
 syntax = "proto2";
 
-package tensorflow.scann_ops;
+package research_scann;
 
 import "scann/proto/brute_force.proto";
 import "scann/proto/compressed_reordering.proto";
@@ -29,8 +29,6 @@ import "scann/proto/input_output.proto";
 import "scann/proto/metadata.proto";
 import "scann/proto/partitioning.proto";
 import "scann/proto/restricts.proto";
-
-option java_package = "com.google.research.scann";
 
 message ScannConfig {
   extensions 1000 to max;

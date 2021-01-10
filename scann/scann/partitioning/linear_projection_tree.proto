@@ -14,7 +14,7 @@
 
 syntax = "proto2";
 
-package tensorflow.scann_ops;
+package research_scann;
 
 message SerializedLinearProjectionTree {
   message Node {

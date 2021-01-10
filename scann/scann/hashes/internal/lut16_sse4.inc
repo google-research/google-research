@@ -1,5 +1,4 @@
 #include "scann/hashes/internal/lut16_sse4.h"
-
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/common.h"
 
@@ -9,28 +8,9 @@
 #include "scann/utils/intrinsics/sse4.h"
 #include "tensorflow/core/platform/prefetch.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing_internal {
 namespace {
-
-struct Accum32Int16s {
-  M128_8Xint16 acc00 = _mm_setzero_si128();
-  M128_8Xint16 acc08 = _mm_setzero_si128();
-  M128_8Xint16 acc16 = _mm_setzero_si128();
-  M128_8Xint16 acc24 = _mm_setzero_si128();
-};
-
-struct Accum32Int32s {
-  M128_4Xint32 acc00 = _mm_setzero_si128();
-  M128_4Xint32 acc04 = _mm_setzero_si128();
-  M128_4Xint32 acc08 = _mm_setzero_si128();
-  M128_4Xint32 acc12 = _mm_setzero_si128();
-  M128_4Xint32 acc16 = _mm_setzero_si128();
-  M128_4Xint32 acc20 = _mm_setzero_si128();
-  M128_4Xint32 acc24 = _mm_setzero_si128();
-  M128_4Xint32 acc28 = _mm_setzero_si128();
-};
 
 template <size_t size, typename T>
 SCANN_INLINE array<T, size> ToLocalArray(ConstSpan<T> span) {
@@ -41,56 +21,48 @@ SCANN_INLINE array<T, size> ToLocalArray(ConstSpan<T> span) {
 }
 
 template <size_t kNumQueries, PrefetchStrategy kPrefetch>
-SCANN_SSE4_INLINE array<Accum32Int16s, kNumQueries> Sse4LUT16BottomLoop(
+SCANN_SSE4_INLINE Sse4<int16_t, kNumQueries, 4> Sse4LUT16BottomLoop(
     const uint8_t* data_start, array<const uint8_t*, kNumQueries> lookup_starts,
     DimensionIndex num_blocks) {
   static_assert(kNumQueries <= 3,
                 "Register spilling happens when kNumQueries > 3");
-  array<Accum32Int16s, kNumQueries> result;
-  auto sign7 = M128_16Xuint8::Broadcast(0x0f);
-  const auto total_bias =
-      M128_8Xint16::Broadcast(static_cast<int16_t>(num_blocks * 128));
+  Sse4<int16_t, kNumQueries, 4> int16_accums = sse4::Zeros();
+  const Sse4<uint8_t> sign7 = 0x0F;
+  const Sse4<int16_t> total_bias = num_blocks * 128;
   for (; num_blocks != 0; --num_blocks, data_start += 16) {
     if (kPrefetch != PrefetchStrategy::kOff) {
       ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
           data_start + kPrefetchBytesAhead);
     }
 
-    auto mask = M128_16Xuint8::Load(data_start);
-    M128_16Xuint8 mask1 =
-        M128_16Xuint8((M128_8Xuint16(mask.val()) >> 4).val()) & sign7;
-    M128_16Xuint8 mask0 = mask & sign7;
+    auto mask = Sse4<uint8_t>::Load(data_start);
+    Sse4<uint8_t> mask0 = mask & sign7;
+    Sse4<uint8_t> mask1 = Sse4<uint8_t>((Sse4<uint16_t>(mask) >> 4)) & sign7;
     for (size_t j : Seq(kNumQueries)) {
-      const M128_16Xuint8 dict = M128_16Xuint8::Load(lookup_starts[j]);
+      const Sse4<uint8_t> dict = Sse4<uint8_t>::Load(lookup_starts[j]);
       lookup_starts[j] += 16;
-      const M128_16Xuint8 res0 = dict.Perform16LUT16Lookups(mask0);
-      const M128_16Xuint8 res1 = dict.Perform16LUT16Lookups(mask1);
+      const Sse4<uint8_t> res0 = _mm_shuffle_epi8(*dict, *mask0);
+      const Sse4<uint8_t> res1 = _mm_shuffle_epi8(*dict, *mask1);
 
-      result[j].acc00 += M128_8Xint16(res0.val());
-      result[j].acc08 += res0.ExtractOddAsInt16s();
-      result[j].acc16 += M128_8Xint16(res1.val());
-      result[j].acc24 += res1.ExtractOddAsInt16s();
+      int16_accums[j][0] += Sse4<int16_t>(Sse4<uint16_t>(res0));
+      int16_accums[j][1] += Sse4<int16_t>(Sse4<uint16_t>(res0) >> 8);
+      int16_accums[j][2] += Sse4<int16_t>(Sse4<uint16_t>(res1));
+      int16_accums[j][3] += Sse4<int16_t>(Sse4<uint16_t>(res1) >> 8);
     }
   }
 
   for (size_t j : Seq(kNumQueries)) {
-    result[j].acc00 -= result[j].acc08 << 8;
-    result[j].acc16 -= result[j].acc24 << 8;
-    auto bottom0 = result[j].acc00.InterleaveBottom(result[j].acc08);
-    auto top0 = result[j].acc00.InterleaveTop(result[j].acc08);
-    bottom0 -= total_bias;
-    top0 -= total_bias;
-    result[j].acc00 = bottom0;
-    result[j].acc08 = top0;
-    auto bottom1 = result[j].acc16.InterleaveBottom(result[j].acc24);
-    auto top1 = result[j].acc16.InterleaveTop(result[j].acc24);
-    bottom1 -= total_bias;
-    top1 -= total_bias;
-    result[j].acc16 = bottom1;
-    result[j].acc24 = top1;
+    Sse4<int16_t, 4> copy = int16_accums[j];
+    copy[0] -= (copy[1] << 8);
+    copy[2] -= (copy[3] << 8);
+    int16_accums[j][0] = _mm_unpacklo_epi16(*copy[0], *copy[1]);
+    int16_accums[j][1] = _mm_unpackhi_epi16(*copy[0], *copy[1]);
+    int16_accums[j][2] = _mm_unpacklo_epi16(*copy[2], *copy[3]);
+    int16_accums[j][3] = _mm_unpackhi_epi16(*copy[2], *copy[3]);
+    int16_accums[j] -= total_bias;
   }
 
-  return result;
+  return int16_accums;
 }
 
 template <size_t kBottomLevelBatchSize, size_t kNumQueries>
@@ -106,7 +78,7 @@ MakeBottomLevelBatchLookupArray(
 }
 
 template <size_t kNumQueries, PrefetchStrategy kPrefetch>
-SCANN_SSE4_INLINE array<Accum32Int16s, kNumQueries> Sse4LUT16MiddleLoop(
+SCANN_SSE4_INLINE Sse4<int16_t, kNumQueries, 4> Sse4LUT16MiddleLoop(
     const uint8_t* data_start, array<const uint8_t*, kNumQueries> lookup_starts,
     const DimensionIndex num_blocks) {
   constexpr size_t kSizeB = (kNumQueries == 1) ? 1 : 2;
@@ -119,7 +91,7 @@ SCANN_SSE4_INLINE array<Accum32Int16s, kNumQueries> Sse4LUT16MiddleLoop(
   constexpr size_t kSizeA = 3;
   constexpr size_t kNumA = kRemaining / 3;
 
-  array<Accum32Int16s, kNumQueries> result;
+  Sse4<int16_t, kNumQueries, 4> result;
   for (size_t j : Seq(kNumA)) {
     const size_t start = j * kSizeA;
     auto bottom_level_lookups =
@@ -145,31 +117,22 @@ SCANN_SSE4_INLINE array<Accum32Int16s, kNumQueries> Sse4LUT16MiddleLoop(
 }
 
 template <size_t kNumQueries, PrefetchStrategy kPrefetch>
-SCANN_SSE4_INLINE array<Accum32Int32s, kNumQueries> Sse4LUT16BottomLoopInt32(
+SCANN_SSE4_INLINE Sse4<int32_t, kNumQueries, 8> Sse4LUT16BottomLoopInt32(
     const uint8_t* data_start, array<const uint8_t*, kNumQueries> lookup_starts,
     DimensionIndex num_blocks) {
-  array<Accum32Int32s, kNumQueries> int32_accumulators;
+  Sse4<int32_t, kNumQueries, 8> int32_accums = sse4::Zeros();
   for (DimensionIndex k = 0; k < num_blocks;) {
     DimensionIndex reaccumulate_limit = std::min(num_blocks - k, uint64_t{256});
     k += reaccumulate_limit;
-    auto int16_accumulators = Sse4LUT16MiddleLoop<kNumQueries, kPrefetch>(
+    auto int16_accums = Sse4LUT16MiddleLoop<kNumQueries, kPrefetch>(
         data_start, lookup_starts, reaccumulate_limit);
     data_start += 16 * reaccumulate_limit;
     for (size_t j : Seq(kNumQueries)) {
+      int32_accums[j] += int16_accums[j].template ExpandTo<int32_t>();
       lookup_starts[j] += 16 * reaccumulate_limit;
-      const auto& int16_accums = int16_accumulators[j];
-      auto& int32_accums = int32_accumulators[j];
-      int32_accums.acc00 += int16_accums.acc00.ExtractBotAsInt32s();
-      int32_accums.acc04 += int16_accums.acc00.ExtractTopAsInt32s();
-      int32_accums.acc08 += int16_accums.acc08.ExtractBotAsInt32s();
-      int32_accums.acc12 += int16_accums.acc08.ExtractTopAsInt32s();
-      int32_accums.acc16 += int16_accums.acc16.ExtractBotAsInt32s();
-      int32_accums.acc20 += int16_accums.acc16.ExtractTopAsInt32s();
-      int32_accums.acc24 += int16_accums.acc24.ExtractBotAsInt32s();
-      int32_accums.acc28 += int16_accums.acc24.ExtractTopAsInt32s();
     }
   }
-  return int32_accumulators;
+  return int32_accums;
 }
 
 }  // namespace
@@ -186,14 +149,10 @@ SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetInt16Distances(
     const size_t dp_idx = k * 32;
 
     const uint8_t* data_start = packed_dataset + dp_idx * num_blocks / 2;
-    auto int16_accumulators = Sse4LUT16MiddleLoop<kNumQueries, kPrefetch>(
+    auto int16_accums = Sse4LUT16MiddleLoop<kNumQueries, kPrefetch>(
         data_start, lookups, num_blocks);
     for (size_t j : Seq(kNumQueries)) {
-      auto int16_accums = int16_accumulators[j];
-      int16_accums.acc00.Store(distances[j] + dp_idx);
-      int16_accums.acc08.Store(distances[j] + dp_idx + 8);
-      int16_accums.acc16.Store(distances[j] + dp_idx + 16);
-      int16_accums.acc24.Store(distances[j] + dp_idx + 24);
+      int16_accums[j].Store(distances[j] + dp_idx);
     }
   }
 }
@@ -208,18 +167,11 @@ SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetInt32Distances(
   auto distances = ToLocalArray<kNumQueries>(args.distances);
   for (DatapointIndex k = 0; k < num_32dp_simd_iters; k++) {
     const uint8_t* data_start = packed_dataset + k * 16 * num_blocks;
-    auto int32_accumulators = Sse4LUT16BottomLoopInt32<kNumQueries, kPrefetch>(
-        data_start, lookups, num_blocks);
+    Sse4For<int32_t, kNumQueries, 32> int32_accums =
+        Sse4LUT16BottomLoopInt32<kNumQueries, kPrefetch>(data_start, lookups,
+                                                         num_blocks);
     for (size_t j : Seq(kNumQueries)) {
-      const auto& int32_accums = int32_accumulators[j];
-      int32_accums.acc00.Store(distances[j] + 32 * k);
-      int32_accums.acc04.Store(distances[j] + 32 * k + 4);
-      int32_accums.acc08.Store(distances[j] + 32 * k + 8);
-      int32_accums.acc12.Store(distances[j] + 32 * k + 12);
-      int32_accums.acc16.Store(distances[j] + 32 * k + 16);
-      int32_accums.acc20.Store(distances[j] + 32 * k + 20);
-      int32_accums.acc24.Store(distances[j] + 32 * k + 24);
-      int32_accums.acc28.Store(distances[j] + 32 * k + 28);
+      int32_accums[j].Store(distances[j] + 32 * k);
     }
   }
 }
@@ -236,20 +188,11 @@ SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetFloatDistances(
 
   for (DatapointIndex k = 0; k < num_32dp_simd_iters; k++) {
     const uint8_t* data_start = packed_dataset + k * 16 * num_blocks;
-    auto int32_accumulators = Sse4LUT16BottomLoopInt32<kNumQueries, kPrefetch>(
+    auto int32_accums = Sse4LUT16BottomLoopInt32<kNumQueries, kPrefetch>(
         data_start, lookups, num_blocks);
     for (size_t j : Seq(kNumQueries)) {
-      const auto& int32_accums = int32_accumulators[j];
-      float* d = distances[j];
-      const M128_4Xfloat mult = M128_4Xfloat::Broadcast(mults[j]);
-      (int32_accums.acc00.ConvertToFloat() * mult).Store(d + 32 * k + 0);
-      (int32_accums.acc04.ConvertToFloat() * mult).Store(d + 32 * k + 4);
-      (int32_accums.acc08.ConvertToFloat() * mult).Store(d + 32 * k + 8);
-      (int32_accums.acc12.ConvertToFloat() * mult).Store(d + 32 * k + 12);
-      (int32_accums.acc16.ConvertToFloat() * mult).Store(d + 32 * k + 16);
-      (int32_accums.acc20.ConvertToFloat() * mult).Store(d + 32 * k + 20);
-      (int32_accums.acc24.ConvertToFloat() * mult).Store(d + 32 * k + 24);
-      (int32_accums.acc28.ConvertToFloat() * mult).Store(d + 32 * k + 28);
+      (int32_accums[j].template ConvertTo<float>() * Sse4<float>(mults[j]))
+          .Store(distances[j] + 32 * k);
     }
   }
 }
@@ -266,10 +209,10 @@ SCANN_SSE4_INLINE void GetTopInt16DistancesImpl(
   const uint32_t final_mask = GetFinalMask32(args.num_datapoints);
   DCHECK_EQ(num_32dp_simd_iters, DivRoundUp(args.num_datapoints, 32));
 
-  M128_8Xint16 simd_thresholds[kNumQueries];
+  Sse4<int16_t> simd_thresholds[kNumQueries];
   for (size_t j : Seq(kNumQueries)) {
     const int16_t int16_threshold = args.fast_topns[j]->epsilon();
-    simd_thresholds[j] = M128_8Xint16::Broadcast(int16_threshold);
+    simd_thresholds[j] = int16_threshold;
   }
 
   typename TopN::Mutator topn_mutators[kNumQueries];
@@ -282,26 +225,17 @@ SCANN_SSE4_INLINE void GetTopInt16DistancesImpl(
       args.template GetRestrictWhitelistPtrs<kNumQueries>();
   for (DatapointIndex k : Seq(num_32dp_simd_iters)) {
     const uint8_t* data_start = packed_dataset + k * 16 * num_blocks;
-    auto int16_accumulators = Sse4LUT16MiddleLoop<kNumQueries, kPrefetch>(
+    auto int16_accums = Sse4LUT16MiddleLoop<kNumQueries, kPrefetch>(
         data_start, lookups, num_blocks);
     for (size_t j : Seq(kNumQueries)) {
-      auto& int16_accums = int16_accumulators[j];
-
       auto compute_push_mask = [&]() SCANN_INLINE_LAMBDA {
-        auto cmp00 = (int16_accums.acc00 < simd_thresholds[j]);
-        auto cmp08 = (int16_accums.acc08 < simd_thresholds[j]);
-        auto cmp16 = (int16_accums.acc16 < simd_thresholds[j]);
-        auto cmp24 = (int16_accums.acc24 < simd_thresholds[j]);
-        return MaskFromHighBits(cmp00, cmp08, cmp16, cmp24);
+        return GetComparisonMask(int16_accums[j] < simd_thresholds[j]);
       };
       uint32_t push_mask = compute_push_mask();
 
       if (!push_mask) continue;
 
-      int16_accums.acc00.Store(distances_buffer + 0);
-      int16_accums.acc08.Store(distances_buffer + 8);
-      int16_accums.acc16.Store(distances_buffer + 16);
-      int16_accums.acc24.Store(distances_buffer + 24);
+      int16_accums[j].Store(distances_buffer);
 
       if (k == num_32dp_simd_iters - 1) {
         push_mask &= final_mask;
@@ -323,8 +257,7 @@ SCANN_SSE4_INLINE void GetTopInt16DistancesImpl(
         if (ABSL_PREDICT_FALSE(needs_collection)) {
           topn_mutators[j].GarbageCollect();
 
-          simd_thresholds[j] =
-              M128_8Xint16::Broadcast(topn_mutators[j].epsilon());
+          simd_thresholds[j] = topn_mutators[j].epsilon();
 
           push_mask &= compute_push_mask();
         }
@@ -359,23 +292,23 @@ SCANN_SSE4_INLINE void GetTopFloatDistancesImpl(
   DCHECK_EQ(num_32dp_simd_iters, DivRoundUp(args.num_datapoints, 32));
 
   auto biases = ToLocalArray<kNumQueries>(args.biases);
-  M128_4Xfloat simd_biases[kNumQueries];
+  Sse4<float> simd_biases[kNumQueries];
   for (size_t j : Seq(kNumQueries)) {
-    simd_biases[j] = M128_4Xfloat::Broadcast(biases[j]);
+    simd_biases[j] = biases[j];
   }
 
   auto mults = ToLocalArray<kNumQueries>(args.fixed_point_multipliers);
-  M128_4Xfloat inv_mults[kNumQueries];
+  Sse4<float> inv_mults[kNumQueries];
   for (size_t j : Seq(kNumQueries)) {
-    inv_mults[j] = M128_4Xfloat::Broadcast(1.0 / mults[j]);
+    inv_mults[j] = 1.0 / mults[j];
   }
 
-  M128_8Xint16 simd_thresholds[kNumQueries];
+  Sse4<int16_t> simd_thresholds[kNumQueries];
   for (size_t j : Seq(kNumQueries)) {
     const float epsilon = args.fast_topns[j]->epsilon();
     const float float_threshold = (epsilon - biases[j]) * mults[j];
     const int16_t int16_threshold = GetInt16Threshold(float_threshold);
-    simd_thresholds[j] = M128_8Xint16::Broadcast(int16_threshold);
+    simd_thresholds[j] = int16_threshold;
   }
 
   typename TopN::Mutator topn_mutators[kNumQueries];
@@ -388,38 +321,20 @@ SCANN_SSE4_INLINE void GetTopFloatDistancesImpl(
       args.template GetRestrictWhitelistPtrs<kNumQueries>();
   for (DatapointIndex k : Seq(num_32dp_simd_iters)) {
     const uint8_t* data_start = packed_dataset + k * 16 * num_blocks;
-    auto int16_accumulators = Sse4LUT16MiddleLoop<kNumQueries, kPrefetch>(
+    auto int16_accums = Sse4LUT16MiddleLoop<kNumQueries, kPrefetch>(
         data_start, lookups, num_blocks);
     for (size_t j : Seq(kNumQueries)) {
-      auto& int16_accums = int16_accumulators[j];
-
       auto compute_push_mask = [&]() SCANN_INLINE_LAMBDA {
-        auto cmp00 = (int16_accums.acc00 < simd_thresholds[j]);
-        auto cmp08 = (int16_accums.acc08 < simd_thresholds[j]);
-        auto cmp16 = (int16_accums.acc16 < simd_thresholds[j]);
-        auto cmp24 = (int16_accums.acc24 < simd_thresholds[j]);
-        return MaskFromHighBits(cmp00, cmp08, cmp16, cmp24);
+        return GetComparisonMask(int16_accums[j] < simd_thresholds[j]);
       };
       uint32_t push_mask = compute_push_mask();
 
       if (!push_mask) continue;
 
-      auto fvals00 = int16_accums.acc00.ExtractBotAsInt32s().ConvertToFloat();
-      auto fvals04 = int16_accums.acc00.ExtractTopAsInt32s().ConvertToFloat();
-      auto fvals08 = int16_accums.acc08.ExtractBotAsInt32s().ConvertToFloat();
-      auto fvals12 = int16_accums.acc08.ExtractTopAsInt32s().ConvertToFloat();
-      auto fvals16 = int16_accums.acc16.ExtractBotAsInt32s().ConvertToFloat();
-      auto fvals20 = int16_accums.acc16.ExtractTopAsInt32s().ConvertToFloat();
-      auto fvals24 = int16_accums.acc24.ExtractBotAsInt32s().ConvertToFloat();
-      auto fvals28 = int16_accums.acc24.ExtractTopAsInt32s().ConvertToFloat();
-      (inv_mults[j] * fvals00 + simd_biases[j]).Store(distances_buffer + 0);
-      (inv_mults[j] * fvals04 + simd_biases[j]).Store(distances_buffer + 4);
-      (inv_mults[j] * fvals08 + simd_biases[j]).Store(distances_buffer + 8);
-      (inv_mults[j] * fvals12 + simd_biases[j]).Store(distances_buffer + 12);
-      (inv_mults[j] * fvals16 + simd_biases[j]).Store(distances_buffer + 16);
-      (inv_mults[j] * fvals20 + simd_biases[j]).Store(distances_buffer + 20);
-      (inv_mults[j] * fvals24 + simd_biases[j]).Store(distances_buffer + 24);
-      (inv_mults[j] * fvals28 + simd_biases[j]).Store(distances_buffer + 28);
+      auto fvals = int16_accums[j]
+                       .template ExpandTo<int32_t>()
+                       .template ConvertTo<float>();
+      (fvals * inv_mults[j] + simd_biases[j]).Store(distances_buffer);
 
       if (k == num_32dp_simd_iters - 1) {
         push_mask &= final_mask;
@@ -446,7 +361,7 @@ SCANN_SSE4_INLINE void GetTopFloatDistancesImpl(
           const float new_epsilon = topn_mutators[j].epsilon();
           const float float_threshold = (new_epsilon - biases[j]) * mults[j];
           const int16_t int16_threshold = GetInt16Threshold(float_threshold);
-          simd_thresholds[j] = M128_8Xint16::Broadcast(int16_threshold);
+          simd_thresholds[j] = int16_threshold;
 
           push_mask &= compute_push_mask();
         }
@@ -463,7 +378,6 @@ SCANN_SSE4_OUTLINE void LUT16Sse4<kNumQueries, kPrefetch>::GetTopFloatDistances(
 }
 
 }  // namespace asymmetric_hashing_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

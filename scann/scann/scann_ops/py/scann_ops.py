@@ -15,8 +15,8 @@
 
 """Python API for ScaNN - single machine, dense vector similarity search."""
 
-import hashlib
 import os
+import uuid
 from scann.scann_ops.py import scann_builder
 import tensorflow as tf
 
@@ -139,8 +139,7 @@ def create_searcher(db,
                     shared_name=None):
   """Create a ScaNN searcher given a dataset and text config proto."""
   if shared_name is None:
-    config_hash = hashlib.sha256(scann_config.encode("utf-8")).hexdigest()
-    shared_name = "scann-" + config_hash[:16]
+    shared_name = f"scann-{uuid.uuid4()}"
   return ScannSearcher(
       scann_create_searcher(
           x=db,

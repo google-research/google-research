@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__BRUTE_FORCE_BRUTE_FORCE_H_
-#define SCANN__BRUTE_FORCE_BRUTE_FORCE_H_
+#ifndef SCANN_BRUTE_FORCE_BRUTE_FORCE_H_
+#define SCANN_BRUTE_FORCE_BRUTE_FORCE_H_
 
 #include <utility>
 
@@ -26,8 +26,7 @@
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 class BruteForceSearcher final : public SingleMachineSearcherBase<T> {
@@ -45,9 +44,7 @@ class BruteForceSearcher final : public SingleMachineSearcherBase<T> {
     return supports_low_level_batching_ ? 128 : 1;
   }
 
-  void set_thread_pool(std::shared_ptr<thread::ThreadPool> p) {
-    pool_ = std::move(p);
-  }
+  void set_thread_pool(std::shared_ptr<ThreadPool> p) { pool_ = std::move(p); }
 
   using MutationMetadata = UntypedSingleMachineSearcherBase::MutationMetadata;
 
@@ -91,7 +88,7 @@ class BruteForceSearcher final : public SingleMachineSearcherBase<T> {
 
   const bool supports_low_level_batching_;
 
-  std::shared_ptr<thread::ThreadPool> pool_;
+  std::shared_ptr<ThreadPool> pool_;
 
   mutable unique_ptr<typename BruteForceSearcher<T>::Mutator> mutator_ =
       nullptr;
@@ -99,7 +96,6 @@ class BruteForceSearcher final : public SingleMachineSearcherBase<T> {
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, BruteForceSearcher);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

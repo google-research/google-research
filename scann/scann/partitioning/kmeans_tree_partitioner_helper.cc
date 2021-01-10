@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "scann/base/single_machine_base.h"
+#include "scann/brute_force/brute_force.h"
 #include "scann/hashes/asymmetric_hashing2/indexing.h"
 #include "scann/hashes/asymmetric_hashing2/querying.h"
 #include "scann/hashes/asymmetric_hashing2/searcher.h"
 #include "scann/hashes/asymmetric_hashing2/training.h"
 #include "scann/hashes/asymmetric_hashing2/training_options.h"
 #include "scann/partitioning/kmeans_tree_partitioner.h"
-
-#include "scann/base/single_machine_base.h"
-#include "scann/brute_force/brute_force.h"
 #include "scann/proto/distance_measure.pb.h"
 #include "scann/proto/hash.pb.h"
 #include "scann/utils/datapoint_utils.h"
@@ -28,8 +27,7 @@
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/errors.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 namespace internal {
 
@@ -38,8 +36,7 @@ CreateRecommendedAsymmetricSearcher(
     shared_ptr<DenseDataset<float>> dataset,
     shared_ptr<const DistanceMeasure> quantization_distance,
     int32_t num_neighbors, float epsilon = numeric_limits<float>::infinity(),
-    bool with_exact_reordering = true,
-    shared_ptr<thread::ThreadPool> pool = nullptr,
+    bool with_exact_reordering = true, shared_ptr<ThreadPool> pool = nullptr,
     int num_clusters_per_block = 16, int num_dimension_per_block = 2) {
   DCHECK(dataset);
 
@@ -108,5 +105,4 @@ CreateRecommendedAsymmetricSearcher(
 }
 
 }  // namespace internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

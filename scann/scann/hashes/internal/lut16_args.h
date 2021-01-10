@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__HASHES_INTERNAL_LUT16_ARGS_H_
-#define SCANN__HASHES_INTERNAL_LUT16_ARGS_H_
+#ifndef SCANN_HASHES_INTERNAL_LUT16_ARGS_H_
+#define SCANN_HASHES_INTERNAL_LUT16_ARGS_H_
 
 #include "scann/base/restrict_allowlist.h"
 #include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing_internal {
 
 inline constexpr size_t kPrefetchBytesAhead = 768;
@@ -135,7 +134,6 @@ struct LUT16ArgsTopN<float, TopN> : public LUT16ArgsTopNBase<float, TopN> {
   EXTERN_KEYWORD template class ClassName<9, PrefetchStrategy::kOff>;
 
 }  // namespace asymmetric_hashing_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

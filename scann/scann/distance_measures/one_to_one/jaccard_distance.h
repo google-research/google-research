@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__DISTANCE_MEASURES_ONE_TO_ONE_JACCARD_DISTANCE_H_
-#define SCANN__DISTANCE_MEASURES_ONE_TO_ONE_JACCARD_DISTANCE_H_
+#ifndef SCANN_DISTANCE_MEASURES_ONE_TO_ONE_JACCARD_DISTANCE_H_
+#define SCANN_DISTANCE_MEASURES_ONE_TO_ONE_JACCARD_DISTANCE_H_
 
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/one_to_one/binary_distance_measure_base.h"
@@ -21,8 +21,7 @@
 #include "scann/utils/reduction.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class GeneralJaccardDistance final : public DistanceMeasure {
  public:
@@ -126,7 +125,6 @@ double GeneralJaccardDistance::GetDistanceSparseImpl(
   return 1.0 - ratio;
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

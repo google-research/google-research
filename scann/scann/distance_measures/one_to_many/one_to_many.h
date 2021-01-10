@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__DISTANCE_MEASURES_ONE_TO_MANY_ONE_TO_MANY_H_
-#define SCANN__DISTANCE_MEASURES_ONE_TO_MANY_ONE_TO_MANY_H_
+#ifndef SCANN_DISTANCE_MEASURES_ONE_TO_MANY_ONE_TO_MANY_H_
+#define SCANN_DISTANCE_MEASURES_ONE_TO_MANY_ONE_TO_MANY_H_
 
 #include <atomic>
 #include <cmath>
@@ -28,16 +28,11 @@
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measures.h"
 #include "scann/utils/common.h"
-#include "scann/utils/intrinsics/flags.h"
+#include "scann/utils/intrinsics/simd.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/platform/prefetch.h"
 
-#ifdef __SSE3__
-#include <pmmintrin.h>
-#endif
-
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 #ifdef __SSE3__
 
@@ -58,33 +53,33 @@ void DenseDistanceOneToMany(const DistanceMeasure& dist,
                             const DatapointPtr<T>& query,
                             const DenseDataset<T>& database,
                             MutableSpan<ResultElem> result,
-                            thread::ThreadPool* pool = nullptr);
+                            ThreadPool* pool = nullptr);
 
 template <typename T, typename U, typename ResultElem>
 std::pair<DatapointIndex, U> DenseDistanceOneToManyTop1(
     const DistanceMeasure& dist, const DatapointPtr<T>& query,
     const DenseDataset<T>& database, MutableSpan<ResultElem> result,
-    thread::ThreadPool* pool = nullptr);
+    ThreadPool* pool = nullptr);
 
 template <typename T, typename ResultElem, typename DatasetView>
 void DenseDistanceOneToMany(const DistanceMeasure& dist,
                             const DatapointPtr<T>& query,
                             const DatasetView* __restrict__ database,
                             MutableSpan<ResultElem> result,
-                            thread::ThreadPool* pool = nullptr);
+                            ThreadPool* pool = nullptr);
 
 template <typename T, typename ResultElem>
 void DenseDotProductDistanceOneToMany(const DatapointPtr<T>& query,
                                       const DenseDataset<T>& database,
                                       MutableSpan<ResultElem> result,
-                                      thread::ThreadPool* pool = nullptr);
+                                      ThreadPool* pool = nullptr);
 template <typename T, typename ResultElem, typename DatasetView,
           typename CallbackFunctor>
 void DenseDotProductDistanceOneToMany(const DatapointPtr<T>& query,
                                       const DatasetView* __restrict__ database,
                                       MutableSpan<ResultElem> result,
                                       CallbackFunctor* __restrict__ callback,
-                                      thread::ThreadPool* pool = nullptr);
+                                      ThreadPool* pool = nullptr);
 
 void DenseDotProductDistanceOneToManyInt8Float(
     const DatapointPtr<float>& query, const DenseDataset<int8_t>& database,
@@ -114,76 +109,77 @@ template <typename T, typename ResultElem>
 void DenseAbsDotProductDistanceOneToMany(const DatapointPtr<T>& query,
                                          const DenseDataset<T>& database,
                                          MutableSpan<ResultElem> result,
-                                         thread::ThreadPool* pool = nullptr);
+                                         ThreadPool* pool = nullptr);
 template <typename T, typename ResultElem, typename DatasetView,
           typename CallbackFunctor>
 void DenseAbsDotProductDistanceOneToMany(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     MutableSpan<ResultElem> result, CallbackFunctor* __restrict__ callback,
-    thread::ThreadPool* pool = nullptr);
+    ThreadPool* pool = nullptr);
 
 template <typename T, typename ResultElem>
 void DenseCosineDistanceOneToMany(const DatapointPtr<T>& query,
                                   const DenseDataset<T>& database,
                                   MutableSpan<ResultElem> result,
-                                  thread::ThreadPool* pool = nullptr);
+                                  ThreadPool* pool = nullptr);
 template <typename T, typename ResultElem, typename DatasetView,
           typename CallbackFunctor>
 void DenseCosineDistanceOneToMany(const DatapointPtr<T>& query,
                                   const DatasetView* __restrict__ database,
                                   MutableSpan<ResultElem> result,
                                   CallbackFunctor* __restrict__ callback,
-                                  thread::ThreadPool* pool = nullptr);
+                                  ThreadPool* pool = nullptr);
 
 template <typename T, typename ResultElem>
 void DenseSquaredL2DistanceOneToMany(const DatapointPtr<T>& query,
                                      const DenseDataset<T>& database,
                                      MutableSpan<ResultElem> result,
-                                     thread::ThreadPool* pool = nullptr);
+                                     ThreadPool* pool = nullptr);
 template <typename T, typename ResultElem, typename DatasetView,
           typename CallbackFunctor>
 void DenseSquaredL2DistanceOneToMany(const DatapointPtr<T>& query,
                                      const DatasetView* __restrict__ database,
                                      MutableSpan<ResultElem> result,
                                      CallbackFunctor* __restrict__ callback,
-                                     thread::ThreadPool* pool = nullptr);
+                                     ThreadPool* pool = nullptr);
 
 template <typename T, typename ResultElem>
 void DenseL2DistanceOneToMany(const DatapointPtr<T>& query,
                               const DenseDataset<T>& database,
                               MutableSpan<ResultElem> result,
-                              thread::ThreadPool* pool = nullptr);
+                              ThreadPool* pool = nullptr);
 template <typename T, typename ResultElem, typename DatasetView,
           typename CallbackFunctor>
 void DenseL2DistanceOneToMany(const DatapointPtr<T>& query,
                               const DatasetView* __restrict__ database,
                               MutableSpan<ResultElem> result,
                               CallbackFunctor* __restrict__ callback,
-                              thread::ThreadPool* pool = nullptr);
+                              ThreadPool* pool = nullptr);
 
 template <typename T, typename ResultElem>
 void DenseL1DistanceOneToMany(const DatapointPtr<T>& query,
                               const DenseDataset<T>& database,
                               MutableSpan<ResultElem> result,
-                              thread::ThreadPool* pool = nullptr);
+                              ThreadPool* pool = nullptr);
 template <typename T, typename ResultElem, typename DatasetView,
           typename CallbackFunctor>
 void DenseL1DistanceOneToMany(const DatapointPtr<T>& query,
                               const DatasetView* __restrict__ database,
                               MutableSpan<ResultElem> result,
                               CallbackFunctor* __restrict__ callback,
-                              thread::ThreadPool* pool = nullptr);
+                              ThreadPool* pool = nullptr);
 
 template <typename T, typename ResultElem>
-void DenseLimitedInnerProductDistanceOneToMany(
-    const DatapointPtr<T>& query, const DenseDataset<T>& database,
-    MutableSpan<ResultElem> result, thread::ThreadPool* pool = nullptr);
+void DenseLimitedInnerProductDistanceOneToMany(const DatapointPtr<T>& query,
+                                               const DenseDataset<T>& database,
+                                               MutableSpan<ResultElem> result,
+                                               ThreadPool* pool = nullptr);
 template <typename T, typename ResultElem, typename DatasetView,
           typename CallbackFunctor>
 void DenseLimitedInnerProductDistanceOneToMany(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     MutableSpan<ResultElem> result, CallbackFunctor* __restrict__ callback,
-    thread::ThreadPool* pool = nullptr);
+    ThreadPool* pool = nullptr);
 
 template <typename T, typename ResultElem, typename DatasetView,
           typename CallbackFunctor>
@@ -193,7 +189,7 @@ DenseGeneralHammingDistanceOneToMany(const DatapointPtr<T>& query,
                                      const DatasetView* __restrict__ database,
                                      MutableSpan<ResultElem> result,
                                      CallbackFunctor* __restrict__ callback,
-                                     thread::ThreadPool* pool);
+                                     ThreadPool* pool);
 template <typename T, typename ResultElem, typename DatasetView,
           typename CallbackFunctor>
 enable_if_t<!IsIntegerType<T>() || sizeof(T) != 4 ||
@@ -203,12 +199,12 @@ DenseGeneralHammingDistanceOneToMany(const DatapointPtr<T>& query,
                                      const DatasetView* __restrict__ database,
                                      MutableSpan<ResultElem> result,
                                      CallbackFunctor* __restrict__ callback,
-                                     thread::ThreadPool* pool);
+                                     ThreadPool* pool);
 template <typename T, typename ResultElem>
 void DenseGeneralHammingDistanceOneToMany(const DatapointPtr<T>& query,
                                           const DenseDataset<T>& database,
                                           MutableSpan<ResultElem> result,
-                                          thread::ThreadPool* pool);
+                                          ThreadPool* pool);
 
 namespace one_to_many_low_level {
 
@@ -318,7 +314,7 @@ enable_if_t<IsIntegerType<T>() || !kSimd, void>
 DenseAccumulatingDistanceMeasureOneToMany(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     const Lambdas& lambdas, MutableSpan<ResultElem> result,
-    CallbackFunctor* __restrict__ callback, thread::ThreadPool* pool) {
+    CallbackFunctor* __restrict__ callback, ThreadPool* pool) {
   for (size_t i = 0; i < result.size(); ++i) {
     callback->invoke(
         i, lambdas.VectorVector(
@@ -334,7 +330,7 @@ enable_if_t<IsIntegerType<T>() || !kSimd, void>
 DenseAccumulatingDistanceMeasureOneToManyNoFma(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     const Lambdas& lambdas, MutableSpan<ResultElem> result,
-    CallbackFunctor* __restrict__ callback, thread::ThreadPool* pool) {
+    CallbackFunctor* __restrict__ callback, ThreadPool* pool) {
   return DenseAccumulatingDistanceMeasureOneToMany<T, DatasetView, Lambdas,
                                                    ResultElem>(
       query, database, lambdas, result, callback, pool);
@@ -348,7 +344,7 @@ enable_if_t<std::is_same<T, float>::value, void> SCANN_OUTLINE
 DenseAccumulatingDistanceMeasureOneToManyInternal(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     const Lambdas& lambdas, MutableSpan<ResultElem> result,
-    CallbackFunctor* __restrict__ callback, thread::ThreadPool* pool) {
+    CallbackFunctor* __restrict__ callback, ThreadPool* pool) {
   if (result.empty()) return;
   DCHECK(!pool || !kShouldPrefetch);
   const size_t dims = query.dimensionality();
@@ -470,7 +466,7 @@ enable_if_t<std::is_same<T, float>::value, void> SCANN_AVX1_OUTLINE
 DenseAccumulatingDistanceMeasureOneToManyInternalAvx1(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     const Lambdas& lambdas, MutableSpan<ResultElem> result,
-    CallbackFunctor* __restrict__ callback, thread::ThreadPool* pool) {
+    CallbackFunctor* __restrict__ callback, ThreadPool* pool) {
   if (result.empty()) return;
   DCHECK(!pool || !kShouldPrefetch);
   const size_t dims = query.dimensionality();
@@ -502,102 +498,99 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx1(
     return x[0] + x[1];
   };
 
-  ParallelFor<8>(
-      Seq(num_outer_iters), pool, [&](size_t i) SCANN_AVX1_ATTRIBUTE {
-        const float* f0 = get_db_ptr(i);
-        const float* f1 = get_db_ptr(i + num_outer_iters);
-        const float* f2 = get_db_ptr(i + 2 * num_outer_iters);
-        const float *p0 = nullptr, *p1 = nullptr, *p2 = nullptr;
+  ParallelFor<8>(Seq(num_outer_iters), pool, [&](size_t i) SCANN_AVX1 {
+    const float* f0 = get_db_ptr(i);
+    const float* f1 = get_db_ptr(i + num_outer_iters);
+    const float* f2 = get_db_ptr(i + 2 * num_outer_iters);
+    const float *p0 = nullptr, *p1 = nullptr, *p2 = nullptr;
 
-        if (kShouldPrefetch && i + num_prefetch_datapoints < num_outer_iters) {
-          p0 = get_db_ptr(i + num_prefetch_datapoints);
-          p1 = get_db_ptr(i + num_outer_iters + num_prefetch_datapoints);
-          p2 = get_db_ptr(i + 2 * num_outer_iters + num_prefetch_datapoints);
-        }
+    if (kShouldPrefetch && i + num_prefetch_datapoints < num_outer_iters) {
+      p0 = get_db_ptr(i + num_prefetch_datapoints);
+      p1 = get_db_ptr(i + num_outer_iters + num_prefetch_datapoints);
+      p2 = get_db_ptr(i + 2 * num_outer_iters + num_prefetch_datapoints);
+    }
 
-        __m256 a0_256 = _mm256_setzero_ps();
-        __m256 a1_256 = _mm256_setzero_ps();
-        __m256 a2_256 = _mm256_setzero_ps();
-        size_t j = 0;
+    __m256 a0_256 = _mm256_setzero_ps();
+    __m256 a1_256 = _mm256_setzero_ps();
+    __m256 a2_256 = _mm256_setzero_ps();
+    size_t j = 0;
 
-        for (; j + 8 <= dims; j += 8) {
-          __m256 q = _mm256_loadu_ps(query.values() + j);
-          __m256 v0 = _mm256_loadu_ps(f0 + j);
-          __m256 v1 = _mm256_loadu_ps(f1 + j);
-          __m256 v2 = _mm256_loadu_ps(f2 + j);
+    for (; j + 8 <= dims; j += 8) {
+      __m256 q = _mm256_loadu_ps(query.values() + j);
+      __m256 v0 = _mm256_loadu_ps(f0 + j);
+      __m256 v1 = _mm256_loadu_ps(f1 + j);
+      __m256 v2 = _mm256_loadu_ps(f2 + j);
 
-          if (kShouldPrefetch) {
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p0 + j);
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p1 + j);
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p2 + j);
-          }
+      if (kShouldPrefetch) {
+        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
+                                                                           j);
+        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
+                                                                           j);
+        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p2 +
+                                                                           j);
+      }
 
-          a0_256 = _mm256_add_ps(a0_256, lambdas_vec[0].GetTerm(q, v0));
-          a1_256 = _mm256_add_ps(a1_256, lambdas_vec[1].GetTerm(q, v1));
-          a2_256 = _mm256_add_ps(a2_256, lambdas_vec[2].GetTerm(q, v2));
-        }
+      a0_256 = _mm256_add_ps(a0_256, lambdas_vec[0].GetTerm(q, v0));
+      a1_256 = _mm256_add_ps(a1_256, lambdas_vec[1].GetTerm(q, v1));
+      a2_256 = _mm256_add_ps(a2_256, lambdas_vec[2].GetTerm(q, v2));
+    }
 
-        __m128 a0 = SumTopBottomAvx(a0_256);
-        __m128 a1 = SumTopBottomAvx(a1_256);
-        __m128 a2 = SumTopBottomAvx(a2_256);
+    __m128 a0 = SumTopBottomAvx(a0_256);
+    __m128 a1 = SumTopBottomAvx(a1_256);
+    __m128 a2 = SumTopBottomAvx(a2_256);
 
-        if (j + 4 <= dims) {
-          __m128 q = _mm_loadu_ps(query.values() + j);
-          __m128 v0 = _mm_loadu_ps(f0 + j);
-          __m128 v1 = _mm_loadu_ps(f1 + j);
-          __m128 v2 = _mm_loadu_ps(f2 + j);
+    if (j + 4 <= dims) {
+      __m128 q = _mm_loadu_ps(query.values() + j);
+      __m128 v0 = _mm_loadu_ps(f0 + j);
+      __m128 v1 = _mm_loadu_ps(f1 + j);
+      __m128 v2 = _mm_loadu_ps(f2 + j);
 
-          if (kShouldPrefetch) {
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p0 + j);
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p1 + j);
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p2 + j);
-          }
+      if (kShouldPrefetch) {
+        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
+                                                                           j);
+        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
+                                                                           j);
+        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p2 +
+                                                                           j);
+      }
 
-          a0 = _mm_add_ps(a0, lambdas_vec[0].GetTerm(q, v0));
-          a1 = _mm_add_ps(a1, lambdas_vec[1].GetTerm(q, v1));
-          a2 = _mm_add_ps(a2, lambdas_vec[2].GetTerm(q, v2));
-          j += 4;
-        }
+      a0 = _mm_add_ps(a0, lambdas_vec[0].GetTerm(q, v0));
+      a1 = _mm_add_ps(a1, lambdas_vec[1].GetTerm(q, v1));
+      a2 = _mm_add_ps(a2, lambdas_vec[2].GetTerm(q, v2));
+      j += 4;
+    }
 
-        if (j + 2 <= dims) {
-          __m128 q = _mm_setzero_ps();
-          __m128 v0 = _mm_setzero_ps();
-          __m128 v1 = _mm_setzero_ps();
-          __m128 v2 = _mm_setzero_ps();
-          q = _mm_loadh_pi(q,
-                           reinterpret_cast<const __m64*>(query.values() + j));
-          v0 = _mm_loadh_pi(v0, reinterpret_cast<const __m64*>(f0 + j));
-          v1 = _mm_loadh_pi(v1, reinterpret_cast<const __m64*>(f1 + j));
-          v2 = _mm_loadh_pi(v2, reinterpret_cast<const __m64*>(f2 + j));
-          a0 = _mm_add_ps(a0, lambdas_vec[0].GetTerm(q, v0));
-          a1 = _mm_add_ps(a1, lambdas_vec[1].GetTerm(q, v1));
-          a2 = _mm_add_ps(a2, lambdas_vec[2].GetTerm(q, v2));
-          j += 2;
-        }
+    if (j + 2 <= dims) {
+      __m128 q = _mm_setzero_ps();
+      __m128 v0 = _mm_setzero_ps();
+      __m128 v1 = _mm_setzero_ps();
+      __m128 v2 = _mm_setzero_ps();
+      q = _mm_loadh_pi(q, reinterpret_cast<const __m64*>(query.values() + j));
+      v0 = _mm_loadh_pi(v0, reinterpret_cast<const __m64*>(f0 + j));
+      v1 = _mm_loadh_pi(v1, reinterpret_cast<const __m64*>(f1 + j));
+      v2 = _mm_loadh_pi(v2, reinterpret_cast<const __m64*>(f2 + j));
+      a0 = _mm_add_ps(a0, lambdas_vec[0].GetTerm(q, v0));
+      a1 = _mm_add_ps(a1, lambdas_vec[1].GetTerm(q, v1));
+      a2 = _mm_add_ps(a2, lambdas_vec[2].GetTerm(q, v2));
+      j += 2;
+    }
 
-        float result0 = sum4(a0);
-        float result1 = sum4(a1);
-        float result2 = sum4(a2);
+    float result0 = sum4(a0);
+    float result1 = sum4(a1);
+    float result2 = sum4(a2);
 
-        if (j < dims) {
-          DCHECK_EQ(j + 1, dims);
-          result0 += lambdas_vec[0].GetTerm(query.values()[j], f0[j]);
-          result1 += lambdas_vec[1].GetTerm(query.values()[j], f1[j]);
-          result2 += lambdas_vec[2].GetTerm(query.values()[j], f2[j]);
-        }
+    if (j < dims) {
+      DCHECK_EQ(j + 1, dims);
+      result0 += lambdas_vec[0].GetTerm(query.values()[j], f0[j]);
+      result1 += lambdas_vec[1].GetTerm(query.values()[j], f1[j]);
+      result2 += lambdas_vec[2].GetTerm(query.values()[j], f2[j]);
+    }
 
-        callback->invoke(i, lambdas_vec[0].Postprocess(result0));
-        callback->invoke(i + num_outer_iters,
-                         lambdas_vec[1].Postprocess(result1));
-        callback->invoke(i + 2 * num_outer_iters,
-                         lambdas_vec[2].Postprocess(result2));
-      });
+    callback->invoke(i, lambdas_vec[0].Postprocess(result0));
+    callback->invoke(i + num_outer_iters, lambdas_vec[1].Postprocess(result1));
+    callback->invoke(i + 2 * num_outer_iters,
+                     lambdas_vec[2].Postprocess(result2));
+  });
 
   size_t i = parallel_end;
   for (; i < result.size(); ++i) {
@@ -613,7 +606,7 @@ enable_if_t<std::is_same<T, float>::value, void> SCANN_AVX2_OUTLINE
 DenseAccumulatingDistanceMeasureOneToManyInternalAvx2(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     const Lambdas& lambdas, MutableSpan<ResultElem> result,
-    CallbackFunctor* __restrict__ callback, thread::ThreadPool* pool) {
+    CallbackFunctor* __restrict__ callback, ThreadPool* pool) {
   if (result.empty()) return;
   DCHECK(!pool || !kShouldPrefetch);
   const size_t dims = query.dimensionality();
@@ -643,102 +636,99 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx2(
     return x[0] + x[1];
   };
 
-  ParallelFor<8>(
-      Seq(num_outer_iters), pool, [&](size_t i) SCANN_AVX2_ATTRIBUTE {
-        const float* f0 = get_db_ptr(i);
-        const float* f1 = get_db_ptr(i + num_outer_iters);
-        const float* f2 = get_db_ptr(i + 2 * num_outer_iters);
-        const float *p0 = nullptr, *p1 = nullptr, *p2 = nullptr;
+  ParallelFor<8>(Seq(num_outer_iters), pool, [&](size_t i) SCANN_AVX2 {
+    const float* f0 = get_db_ptr(i);
+    const float* f1 = get_db_ptr(i + num_outer_iters);
+    const float* f2 = get_db_ptr(i + 2 * num_outer_iters);
+    const float *p0 = nullptr, *p1 = nullptr, *p2 = nullptr;
 
-        if (kShouldPrefetch && i + num_prefetch_datapoints < num_outer_iters) {
-          p0 = get_db_ptr(i + num_prefetch_datapoints);
-          p1 = get_db_ptr(i + num_outer_iters + num_prefetch_datapoints);
-          p2 = get_db_ptr(i + 2 * num_outer_iters + num_prefetch_datapoints);
-        }
+    if (kShouldPrefetch && i + num_prefetch_datapoints < num_outer_iters) {
+      p0 = get_db_ptr(i + num_prefetch_datapoints);
+      p1 = get_db_ptr(i + num_outer_iters + num_prefetch_datapoints);
+      p2 = get_db_ptr(i + 2 * num_outer_iters + num_prefetch_datapoints);
+    }
 
-        __m256 a0_256 = _mm256_setzero_ps();
-        __m256 a1_256 = _mm256_setzero_ps();
-        __m256 a2_256 = _mm256_setzero_ps();
-        size_t j = 0;
+    __m256 a0_256 = _mm256_setzero_ps();
+    __m256 a1_256 = _mm256_setzero_ps();
+    __m256 a2_256 = _mm256_setzero_ps();
+    size_t j = 0;
 
-        for (; j + 8 <= dims; j += 8) {
-          __m256 q = _mm256_loadu_ps(query.values() + j);
-          __m256 v0 = _mm256_loadu_ps(f0 + j);
-          __m256 v1 = _mm256_loadu_ps(f1 + j);
-          __m256 v2 = _mm256_loadu_ps(f2 + j);
+    for (; j + 8 <= dims; j += 8) {
+      __m256 q = _mm256_loadu_ps(query.values() + j);
+      __m256 v0 = _mm256_loadu_ps(f0 + j);
+      __m256 v1 = _mm256_loadu_ps(f1 + j);
+      __m256 v2 = _mm256_loadu_ps(f2 + j);
 
-          if (kShouldPrefetch) {
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p0 + j);
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p1 + j);
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p2 + j);
-          }
+      if (kShouldPrefetch) {
+        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
+                                                                           j);
+        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
+                                                                           j);
+        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p2 +
+                                                                           j);
+      }
 
-          a0_256 = lambdas_vec[0].FmaTerm(a0_256, q, v0);
-          a1_256 = lambdas_vec[1].FmaTerm(a1_256, q, v1);
-          a2_256 = lambdas_vec[2].FmaTerm(a2_256, q, v2);
-        }
+      a0_256 = lambdas_vec[0].FmaTerm(a0_256, q, v0);
+      a1_256 = lambdas_vec[1].FmaTerm(a1_256, q, v1);
+      a2_256 = lambdas_vec[2].FmaTerm(a2_256, q, v2);
+    }
 
-        __m128 a0 = SumTopBottomAvx(a0_256);
-        __m128 a1 = SumTopBottomAvx(a1_256);
-        __m128 a2 = SumTopBottomAvx(a2_256);
+    __m128 a0 = SumTopBottomAvx(a0_256);
+    __m128 a1 = SumTopBottomAvx(a1_256);
+    __m128 a2 = SumTopBottomAvx(a2_256);
 
-        if (j + 4 <= dims) {
-          __m128 q = _mm_loadu_ps(query.values() + j);
-          __m128 v0 = _mm_loadu_ps(f0 + j);
-          __m128 v1 = _mm_loadu_ps(f1 + j);
-          __m128 v2 = _mm_loadu_ps(f2 + j);
+    if (j + 4 <= dims) {
+      __m128 q = _mm_loadu_ps(query.values() + j);
+      __m128 v0 = _mm_loadu_ps(f0 + j);
+      __m128 v1 = _mm_loadu_ps(f1 + j);
+      __m128 v2 = _mm_loadu_ps(f2 + j);
 
-          if (kShouldPrefetch) {
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p0 + j);
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p1 + j);
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p2 + j);
-          }
+      if (kShouldPrefetch) {
+        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
+                                                                           j);
+        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
+                                                                           j);
+        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p2 +
+                                                                           j);
+      }
 
-          a0 = lambdas_vec[0].FmaTerm(a0, q, v0);
-          a1 = lambdas_vec[1].FmaTerm(a1, q, v1);
-          a2 = lambdas_vec[2].FmaTerm(a2, q, v2);
-          j += 4;
-        }
+      a0 = lambdas_vec[0].FmaTerm(a0, q, v0);
+      a1 = lambdas_vec[1].FmaTerm(a1, q, v1);
+      a2 = lambdas_vec[2].FmaTerm(a2, q, v2);
+      j += 4;
+    }
 
-        if (j + 2 <= dims) {
-          __m128 q = _mm_setzero_ps();
-          __m128 v0 = _mm_setzero_ps();
-          __m128 v1 = _mm_setzero_ps();
-          __m128 v2 = _mm_setzero_ps();
-          q = _mm_loadh_pi(q,
-                           reinterpret_cast<const __m64*>(query.values() + j));
-          v0 = _mm_loadh_pi(v0, reinterpret_cast<const __m64*>(f0 + j));
-          v1 = _mm_loadh_pi(v1, reinterpret_cast<const __m64*>(f1 + j));
-          v2 = _mm_loadh_pi(v2, reinterpret_cast<const __m64*>(f2 + j));
-          a0 = lambdas_vec[0].FmaTerm(a0, q, v0);
-          a1 = lambdas_vec[1].FmaTerm(a1, q, v1);
-          a2 = lambdas_vec[2].FmaTerm(a2, q, v2);
-          j += 2;
-        }
+    if (j + 2 <= dims) {
+      __m128 q = _mm_setzero_ps();
+      __m128 v0 = _mm_setzero_ps();
+      __m128 v1 = _mm_setzero_ps();
+      __m128 v2 = _mm_setzero_ps();
+      q = _mm_loadh_pi(q, reinterpret_cast<const __m64*>(query.values() + j));
+      v0 = _mm_loadh_pi(v0, reinterpret_cast<const __m64*>(f0 + j));
+      v1 = _mm_loadh_pi(v1, reinterpret_cast<const __m64*>(f1 + j));
+      v2 = _mm_loadh_pi(v2, reinterpret_cast<const __m64*>(f2 + j));
+      a0 = lambdas_vec[0].FmaTerm(a0, q, v0);
+      a1 = lambdas_vec[1].FmaTerm(a1, q, v1);
+      a2 = lambdas_vec[2].FmaTerm(a2, q, v2);
+      j += 2;
+    }
 
-        float result0 = sum4(a0);
-        float result1 = sum4(a1);
-        float result2 = sum4(a2);
+    float result0 = sum4(a0);
+    float result1 = sum4(a1);
+    float result2 = sum4(a2);
 
-        if (j < dims) {
-          DCHECK_EQ(j + 1, dims);
-          result0 += lambdas_vec[0].GetTerm(query.values()[j], f0[j]);
-          result1 += lambdas_vec[1].GetTerm(query.values()[j], f1[j]);
-          result2 += lambdas_vec[2].GetTerm(query.values()[j], f2[j]);
-        }
+    if (j < dims) {
+      DCHECK_EQ(j + 1, dims);
+      result0 += lambdas_vec[0].GetTerm(query.values()[j], f0[j]);
+      result1 += lambdas_vec[1].GetTerm(query.values()[j], f1[j]);
+      result2 += lambdas_vec[2].GetTerm(query.values()[j], f2[j]);
+    }
 
-        callback->invoke(i, lambdas_vec[0].Postprocess(result0));
-        callback->invoke(i + num_outer_iters,
-                         lambdas_vec[1].Postprocess(result1));
-        callback->invoke(i + 2 * num_outer_iters,
-                         lambdas_vec[2].Postprocess(result2));
-      });
+    callback->invoke(i, lambdas_vec[0].Postprocess(result0));
+    callback->invoke(i + num_outer_iters, lambdas_vec[1].Postprocess(result1));
+    callback->invoke(i + 2 * num_outer_iters,
+                     lambdas_vec[2].Postprocess(result2));
+  });
 
   size_t i = parallel_end;
   for (; i < result.size(); ++i) {
@@ -754,7 +744,7 @@ enable_if_t<std::is_same<T, float>::value, void>
 DenseAccumulatingDistanceMeasureOneToManyNoFma(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     const Lambdas& lambdas, MutableSpan<ResultElem> result,
-    CallbackFunctor* __restrict__ callback, thread::ThreadPool* pool) {
+    CallbackFunctor* __restrict__ callback, ThreadPool* pool) {
   constexpr size_t kMinPrefetchAheadDims =
       (IsFloatingType<ResultElem>()) ? 8 : 4;
   constexpr size_t kMaxPrefetchAheadDims = 512;
@@ -791,7 +781,7 @@ enable_if_t<std::is_same<T, float>::value, void>
 DenseAccumulatingDistanceMeasureOneToMany(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     const Lambdas& lambdas, MutableSpan<ResultElem> result,
-    CallbackFunctor* __restrict__ callback, thread::ThreadPool* pool) {
+    CallbackFunctor* __restrict__ callback, ThreadPool* pool) {
   constexpr size_t kMinPrefetchAheadDims =
       (IsFloatingType<ResultElem>()) ? 8 : 4;
   constexpr size_t kMaxPrefetchAheadDims = 512;
@@ -821,7 +811,7 @@ enable_if_t<std::is_same<T, double>::value, void>
 DenseAccumulatingDistanceMeasureOneToManyInternal(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     const Lambdas& lambdas, MutableSpan<ResultElem> result,
-    CallbackFunctor* __restrict__ callback, thread::ThreadPool* pool) {
+    CallbackFunctor* __restrict__ callback, ThreadPool* pool) {
   if (result.empty()) return;
   const size_t dims = query.dimensionality();
 
@@ -914,7 +904,7 @@ enable_if_t<std::is_same<T, double>::value, void>
 DenseAccumulatingDistanceMeasureOneToMany(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     const Lambdas& lambdas, MutableSpan<ResultElem> result,
-    CallbackFunctor* __restrict__ callback, thread::ThreadPool* pool) {
+    CallbackFunctor* __restrict__ callback, ThreadPool* pool) {
   constexpr size_t kMinPrefetchAheadDims =
       (IsFloatingType<ResultElem>()) ? 4 : 2;
   constexpr size_t kMaxPrefetchAheadDims = 256;
@@ -936,7 +926,7 @@ SCANN_INLINE enable_if_t<std::is_same<T, double>::value, void>
 DenseAccumulatingDistanceMeasureOneToManyNoFma(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     const Lambdas& lambdas, MutableSpan<ResultElem> result,
-    CallbackFunctor* __restrict__ callback, thread::ThreadPool* pool) {
+    CallbackFunctor* __restrict__ callback, ThreadPool* pool) {
   return DenseAccumulatingDistanceMeasureOneToMany<T, DatasetView, Lambdas,
                                                    ResultElem>(
       query, database, lambdas, result, callback, pool);
@@ -947,7 +937,7 @@ template <typename T, typename DatasetView, typename ResultElem,
 void DenseGeneralHammingDistanceMeasureOneToManyInternal(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     MutableSpan<ResultElem> result, CallbackFunctor* __restrict__ callback,
-    thread::ThreadPool* pool) {
+    ThreadPool* pool) {
   DCHECK(!pool || !kShouldPrefetch);
   const size_t dims = query.dimensionality();
 
@@ -1064,27 +1054,27 @@ template <typename T>
 class DotProductDistanceLambdas {
  public:
 #ifdef __SSE3__
-  static __m128 GetTerm(__m128 a, __m128 b) { return _mm_mul_ps(a, b); }
+  static __m128 GetTerm(__m128 a, __m128 b) { return -_mm_mul_ps(a, b); }
 
   static SCANN_AVX1_INLINE __m256 GetTerm(__m256 a, __m256 b) {
-    return _mm256_mul_ps(a, b);
+    return -_mm256_mul_ps(a, b);
   }
 
   static SCANN_AVX2_INLINE __m256 FmaTerm(__m256 acc, __m256 a, __m256 b) {
-    return _mm256_fmadd_ps(a, b, acc);
+    return _mm256_fnmadd_ps(a, b, acc);
   }
 
   static SCANN_AVX2_INLINE __m128 FmaTerm(__m128 acc, __m128 a, __m128 b) {
-    return _mm_fmadd_ps(a, b, acc);
+    return _mm_fnmadd_ps(a, b, acc);
   }
 
-  static __m128d GetTerm(__m128d a, __m128d b) { return _mm_mul_pd(a, b); }
+  static __m128d GetTerm(__m128d a, __m128d b) { return -_mm_mul_pd(a, b); }
 #endif
 
-  static float GetTerm(float a, float b) { return a * b; }
-  static double GetTerm(double a, double b) { return a * b; }
-  static float Postprocess(float val) { return -val; }
-  static double Postprocess(double val) { return -val; }
+  static float GetTerm(float a, float b) { return -a * b; }
+  static double GetTerm(double a, double b) { return -a * b; }
+  static float Postprocess(float val) { return val; }
+  static double Postprocess(double val) { return val; }
 
   double VectorVector(const DatapointPtr<T>& a,
                       const DatapointPtr<T>& b) const {
@@ -1103,7 +1093,7 @@ void DenseDotProductDistanceOneToMany(const DatapointPtr<T>& query,
                                       const DatasetView* __restrict__ database,
                                       MutableSpan<ResultElem> result,
                                       CallbackFunctor* __restrict__ callback,
-                                      thread::ThreadPool* pool) {
+                                      ThreadPool* pool) {
   one_to_many_low_level::DotProductDistanceLambdas<T> lambdas;
   return one_to_many_low_level::DenseAccumulatingDistanceMeasureOneToMany(
       query, database, lambdas, result, callback, pool);
@@ -1113,7 +1103,7 @@ template <typename T, typename ResultElem>
 void DenseDotProductDistanceOneToMany(const DatapointPtr<T>& query,
                                       const DenseDataset<T>& database,
                                       MutableSpan<ResultElem> result,
-                                      thread::ThreadPool* pool) {
+                                      ThreadPool* pool) {
   one_to_many_low_level::DotProductDistanceLambdas<T> lambdas;
   auto view = DefaultDenseDatasetView<T>(database);
   one_to_many_low_level::SetDistanceFunctor<ResultElem> set_distance_functor(
@@ -1127,7 +1117,7 @@ template <typename T, typename ResultElem, typename DatasetView,
 void DenseAbsDotProductDistanceOneToMany(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     MutableSpan<ResultElem> result, CallbackFunctor* __restrict__ callback,
-    thread::ThreadPool* pool) {
+    ThreadPool* pool) {
   class DotProductDistanceLambdas {
    public:
 #ifdef __SSE3__
@@ -1171,7 +1161,7 @@ template <typename T, typename ResultElem>
 void DenseAbsDotProductDistanceOneToMany(const DatapointPtr<T>& query,
                                          const DenseDataset<T>& database,
                                          MutableSpan<ResultElem> result,
-                                         thread::ThreadPool* pool) {
+                                         ThreadPool* pool) {
   auto view = DefaultDenseDatasetView<T>(database);
   one_to_many_low_level::SetDistanceFunctor<ResultElem> set_distance_functor(
       result);
@@ -1185,7 +1175,7 @@ void DenseCosineDistanceOneToMany(const DatapointPtr<T>& query,
                                   const DatasetView* __restrict__ database,
                                   MutableSpan<ResultElem> result,
                                   CallbackFunctor* __restrict__ callback,
-                                  thread::ThreadPool* pool) {
+                                  ThreadPool* pool) {
   class CosineDistanceLambdas {
    public:
 #ifdef __SSE3__
@@ -1229,7 +1219,7 @@ template <typename T, typename ResultElem>
 void DenseCosineDistanceOneToMany(const DatapointPtr<T>& query,
                                   const DenseDataset<T>& database,
                                   MutableSpan<ResultElem> result,
-                                  thread::ThreadPool* pool) {
+                                  ThreadPool* pool) {
   auto view = DefaultDenseDatasetView<T>(database);
   one_to_many_low_level::SetDistanceFunctor<ResultElem> set_distance_functor(
       result);
@@ -1243,7 +1233,7 @@ void DenseSquaredL2DistanceOneToMany(const DatapointPtr<T>& query,
                                      const DatasetView* __restrict__ database,
                                      MutableSpan<ResultElem> result,
                                      CallbackFunctor* __restrict__ callback,
-                                     thread::ThreadPool* pool) {
+                                     ThreadPool* pool) {
   class SquaredL2DistanceLambdas {
    public:
 #ifdef __SSE3__
@@ -1304,7 +1294,7 @@ template <typename T, typename ResultElem>
 void DenseSquaredL2DistanceOneToMany(const DatapointPtr<T>& query,
                                      const DenseDataset<T>& database,
                                      MutableSpan<ResultElem> result,
-                                     thread::ThreadPool* pool) {
+                                     ThreadPool* pool) {
   auto view = DefaultDenseDatasetView<T>(database);
   one_to_many_low_level::SetDistanceFunctor<ResultElem> set_distance_functor(
       result);
@@ -1318,7 +1308,7 @@ void DenseL2DistanceOneToMany(const DatapointPtr<T>& query,
                               const DatasetView* __restrict__ database,
                               MutableSpan<ResultElem> result,
                               CallbackFunctor* __restrict__ callback,
-                              thread::ThreadPool* pool) {
+                              ThreadPool* pool) {
   class L2DistanceLambdas {
    public:
 #ifdef __SSE3__
@@ -1379,7 +1369,7 @@ template <typename T, typename ResultElem>
 void DenseL2DistanceOneToMany(const DatapointPtr<T>& query,
                               const DenseDataset<T>& database,
                               MutableSpan<ResultElem> result,
-                              thread::ThreadPool* pool) {
+                              ThreadPool* pool) {
   auto view = DefaultDenseDatasetView<T>(database);
   one_to_many_low_level::SetDistanceFunctor<ResultElem> set_distance_functor(
       result);
@@ -1392,7 +1382,7 @@ void DenseL1DistanceOneToMany(const DatapointPtr<T>& query,
                               const DatasetView* __restrict__ database,
                               MutableSpan<ResultElem> result,
                               CallbackFunctor* __restrict__ callback,
-                              thread::ThreadPool* pool) {
+                              ThreadPool* pool) {
 #ifdef __SSE3__
 
   static constexpr int32_t kAbsMaskScalar = 0x7FFFFFFF;
@@ -1460,7 +1450,7 @@ template <typename T, typename ResultElem>
 void DenseL1DistanceOneToMany(const DatapointPtr<T>& query,
                               const DenseDataset<T>& database,
                               MutableSpan<ResultElem> result,
-                              thread::ThreadPool* pool) {
+                              ThreadPool* pool) {
   auto view = DefaultDenseDatasetView<T>(database);
   one_to_many_low_level::SetDistanceFunctor<ResultElem> set_distance_functor(
       result);
@@ -1472,7 +1462,7 @@ template <typename T, typename ResultElem, typename DatasetView,
 void DenseLimitedInnerProductDistanceOneToMany(
     const DatapointPtr<T>& query, const DatasetView* __restrict__ database,
     MutableSpan<ResultElem> result, CallbackFunctor* __restrict__ callback,
-    thread::ThreadPool* pool) {
+    ThreadPool* pool) {
   class LimitedInnerProductDistanceLambdas {
    public:
     explicit LimitedInnerProductDistanceLambdas(double norm_query2)
@@ -1569,7 +1559,7 @@ template <typename T, typename ResultElem>
 void DenseLimitedInnerProductDistanceOneToMany(const DatapointPtr<T>& query,
                                                const DenseDataset<T>& database,
                                                MutableSpan<ResultElem> result,
-                                               thread::ThreadPool* pool) {
+                                               ThreadPool* pool) {
   auto view = DefaultDenseDatasetView<T>(database);
   one_to_many_low_level::SetDistanceFunctor<ResultElem> set_distance_functor(
       result);
@@ -1587,7 +1577,7 @@ DenseGeneralHammingDistanceOneToMany(const DatapointPtr<T>& query,
                                      const DatasetView* __restrict__ database,
                                      MutableSpan<ResultElem> result,
                                      CallbackFunctor* __restrict__ callback,
-                                     thread::ThreadPool* pool) {
+                                     ThreadPool* pool) {
   constexpr size_t kMinPrefetchAheadDims =
       (IsFloatingType<ResultElem>()) ? 8 : 4;
   constexpr size_t kMaxPrefetchAheadDims = 512;
@@ -1616,7 +1606,7 @@ DenseGeneralHammingDistanceOneToMany(const DatapointPtr<T>& query,
                                      const DatasetView* __restrict__ database,
                                      MutableSpan<ResultElem> result,
                                      CallbackFunctor* __restrict__ callback,
-                                     thread::ThreadPool* pool) {
+                                     ThreadPool* pool) {
   GeneralHammingDistance dist;
   const size_t dim = database->dimensionality();
   ParallelFor<1>(Seq(result.size()), pool, [&](size_t i) {
@@ -1631,7 +1621,7 @@ template <typename T, typename ResultElem>
 void DenseGeneralHammingDistanceOneToMany(const DatapointPtr<T>& query,
                                           const DenseDataset<T>& database,
                                           MutableSpan<ResultElem> result,
-                                          thread::ThreadPool* pool) {
+                                          ThreadPool* pool) {
   auto view = DefaultDenseDatasetView<T>(database);
   one_to_many_low_level::SetDistanceFunctor<ResultElem> set_distance_functor(
       result);
@@ -1644,7 +1634,7 @@ SCANN_INLINE void DenseDistanceOneToMany(const DistanceMeasure& dist,
                                          const DatapointPtr<T>& query,
                                          const DenseDataset<T>& database,
                                          MutableSpan<ResultElem> result,
-                                         thread::ThreadPool* pool) {
+                                         ThreadPool* pool) {
   auto view = DefaultDenseDatasetView<T>(database);
   one_to_many_low_level::SetDistanceFunctor<ResultElem> set_distance_functor(
       result);
@@ -1656,7 +1646,7 @@ template <typename T, typename U, typename ResultElem>
 std::pair<DatapointIndex, U> DenseDistanceOneToManyTop1(
     const DistanceMeasure& dist, const DatapointPtr<T>& query,
     const DenseDataset<T>& database, MutableSpan<ResultElem> result,
-    thread::ThreadPool* pool) {
+    ThreadPool* pool) {
   auto view = DefaultDenseDatasetView<T>(database);
   one_to_many_low_level::SetTop1Functor<ResultElem, U> set_top1_functor;
   DenseDistanceOneToMany(dist, query, &view, result, &set_top1_functor, pool);
@@ -1670,7 +1660,7 @@ void DenseDistanceOneToMany(const DistanceMeasure& dist,
                             const DatasetView* __restrict__ database,
                             MutableSpan<ResultElem> result,
                             CallbackFunctor* __restrict__ callback,
-                            thread::ThreadPool* pool) {
+                            ThreadPool* pool) {
   switch (dist.specially_optimized_distance_tag()) {
     case DistanceMeasure::L1:
       return DenseL1DistanceOneToMany<T>(query, database, result, callback,
@@ -1710,7 +1700,6 @@ void DenseDistanceOneToMany(const DistanceMeasure& dist,
   }
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

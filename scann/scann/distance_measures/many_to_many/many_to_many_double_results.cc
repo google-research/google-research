@@ -17,15 +17,13 @@
 #include "scann/distance_measures/many_to_many/many_to_many.h"
 #include "scann/distance_measures/many_to_many/many_to_many_templates.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace mm_internal {
 
 template void DenseDistanceManyToManyImpl(
     const DistanceMeasure &dist, const DenseDataset<double> &queries,
-    const DenseDataset<double> &database, thread::ThreadPool *pool,
+    const DenseDataset<double> &database, ThreadPool *pool,
     ManyToManyResultsCallback<double> callback);
 
 }
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

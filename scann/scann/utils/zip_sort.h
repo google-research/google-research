@@ -14,13 +14,12 @@
 
 
 
-#ifndef SCANN__UTILS_ZIP_SORT_H_
-#define SCANN__UTILS_ZIP_SORT_H_
+#ifndef SCANN_UTILS_ZIP_SORT_H_
+#define SCANN_UTILS_ZIP_SORT_H_
 
 #include "scann/utils/zip_sort_impl.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename Predicate, typename T, typename... U>
 size_t ZipPartition(Predicate pred, T begin, T end, U... rest);
@@ -88,7 +87,30 @@ void SortBranchOptimized(Iter begin, Iter end) {
   ZipSortBranchOptimized(std::less<T>(), begin, end);
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+class NanAwareGreater {
+ public:
+  template <typename T>
+  bool operator()(const T& a, const T& b) const {
+    if constexpr (std::is_floating_point_v<T>) {
+      if (std::isnan(a)) return false;
+      if (std::isnan(b)) return true;
+    }
+    return a > b;
+  }
+};
+
+class NanAwareLess {
+ public:
+  template <typename T>
+  bool operator()(const T& a, const T& b) const {
+    if constexpr (std::is_floating_point_v<T>) {
+      if (std::isnan(a)) return false;
+      if (std::isnan(b)) return true;
+    }
+    return a < b;
+  }
+};
+
+}  // namespace research_scann
 
 #endif

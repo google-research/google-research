@@ -14,8 +14,7 @@
 
 #include "scann/oss_wrappers/scann_bits.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace bits {
 
 #if (defined(__i386__) || defined(__x86_64__)) && defined(__GNUC__)
@@ -112,5 +111,4 @@ int Log2Ceiling64(uint64_t n) {
 }
 
 }  // namespace bits
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

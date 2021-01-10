@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__BASE_RESTRICT_ALLOWLIST_H_
-#define SCANN__BASE_RESTRICT_ALLOWLIST_H_
+#ifndef SCANN_BASE_RESTRICT_ALLOWLIST_H_
+#define SCANN_BASE_RESTRICT_ALLOWLIST_H_
 
 #include <limits>
 
@@ -25,8 +25,7 @@
 #include "scann/utils/types.h"
 #include "tensorflow/core/platform/macros.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class RestrictTokenMap;
 class RestrictAllowlistConstView;
@@ -219,7 +218,6 @@ class RestrictAllowlistConstView {
   friend class RestrictAllowlist;
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

@@ -16,8 +16,7 @@
 
 #include "scann/oss_wrappers/scann_bits.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 double BinaryCosineDistance::GetDistanceDense(
     const DatapointPtr<uint8_t>& a, const DatapointPtr<uint8_t>& b) const {
@@ -64,5 +63,4 @@ double BinaryCosineDistance::GetDistanceHybrid(
 
 SCANN_REGISTER_DISTANCE_MEASURE(BinaryCosineDistance)
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

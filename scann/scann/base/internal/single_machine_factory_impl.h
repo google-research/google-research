@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__BASE_INTERNAL_SINGLE_MACHINE_FACTORY_IMPL_H_
-#define SCANN__BASE_INTERNAL_SINGLE_MACHINE_FACTORY_IMPL_H_
+#ifndef SCANN_BASE_INTERNAL_SINGLE_MACHINE_FACTORY_IMPL_H_
+#define SCANN_BASE_INTERNAL_SINGLE_MACHINE_FACTORY_IMPL_H_
 
 #include <memory>
 
@@ -29,8 +29,7 @@
 #include "scann/utils/scann_config_utils.h"
 #include "tensorflow/core/lib/core/errors.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 class DenseDataset;
@@ -130,7 +129,6 @@ StatusOrSearcherUntyped SingleMachineFactoryUntypedImpl(
 }
 
 }  // namespace internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

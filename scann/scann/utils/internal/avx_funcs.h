@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__UTILS_INTERNAL_AVX_FUNCS_H_
-#define SCANN__UTILS_INTERNAL_AVX_FUNCS_H_
+#ifndef SCANN_UTILS_INTERNAL_AVX_FUNCS_H_
+#define SCANN_UTILS_INTERNAL_AVX_FUNCS_H_
 #ifdef __x86_64__
 
 #include "scann/utils/intrinsics/avx1.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class AvxFunctionsAvx {
  public:
@@ -49,6 +48,11 @@ class AvxFunctionsAvx {
     return _mm_add_pd(add, _mm_mul_pd(mul1, mul2));
   }
 
+  SCANN_AVX1_INLINE static __m256 MultiplySub(__m256 mul1, __m256 mul2,
+                                              __m256 base) {
+    return _mm256_sub_ps(base, _mm256_mul_ps(mul1, mul2));
+  }
+
   SCANN_AVX1_INLINE static __m256 SseToAvx(__m128 x) {
     return _mm256_insertf128_ps(_mm256_setzero_ps(), x, 0);
   }
@@ -63,8 +67,7 @@ class AvxFunctionsAvx {
   }
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif
 #endif

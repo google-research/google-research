@@ -14,15 +14,14 @@
 
 
 
-#ifndef SCANN__PROJECTION_IDENTITY_PROJECTION_H_
-#define SCANN__PROJECTION_IDENTITY_PROJECTION_H_
+#ifndef SCANN_PROJECTION_IDENTITY_PROJECTION_H_
+#define SCANN_PROJECTION_IDENTITY_PROJECTION_H_
 
 #include "scann/data_format/datapoint.h"
 #include "scann/projection/projection_base.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 class IdentityProjection : public Projection<T> {
@@ -44,7 +43,6 @@ class IdentityProjection : public Projection<T> {
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, IdentityProjection);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

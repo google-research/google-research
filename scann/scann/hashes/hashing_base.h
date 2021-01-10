@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__HASHES_HASHING_BASE_H_
-#define SCANN__HASHES_HASHING_BASE_H_
+#ifndef SCANN_HASHES_HASHING_BASE_H_
+#define SCANN_HASHES_HASHING_BASE_H_
 
 #include <utility>
 
@@ -24,8 +24,7 @@
 #include "scann/proto/hashed.pb.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class UntypedHashing {
  public:
@@ -61,7 +60,6 @@ class Hashing : public UntypedHashing {
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, Hashing);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

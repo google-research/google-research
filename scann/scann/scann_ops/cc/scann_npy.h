@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__SCANN_OPS_CC_SCANN_NPY_H_
-#define SCANN__SCANN_OPS_CC_SCANN_NPY_H_
+#ifndef SCANN_SCANN_OPS_CC_SCANN_NPY_H_
+#define SCANN_SCANN_OPS_CC_SCANN_NPY_H_
 
 #include <limits>
 #include <optional>
@@ -26,8 +26,7 @@
 #include "scann/data_format/dataset.h"
 #include "scann/scann_ops/cc/scann.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 using np_row_major_arr =
@@ -56,7 +55,6 @@ class ScannNumpy {
   ScannInterface scann_;
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

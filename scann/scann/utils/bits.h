@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__UTILS_BITS_H_
-#define SCANN__UTILS_BITS_H_
+#ifndef SCANN_UTILS_BITS_H_
+#define SCANN_UTILS_BITS_H_
 
 #include <cstddef>
 
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 inline uint32_t NextPowerOfTwo32(uint32_t x) {
   return (x & (x - 1)) ? 1UL << (32 - bits::CountLeadingZeros32(x)) : x;
@@ -46,7 +45,6 @@ SCANN_INLINE uint32_t GetFinalMask32(size_t num_datapoints) {
   return remainder_bits ? (1u << remainder_bits) - 1 : 0xFFFFFFFF;
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

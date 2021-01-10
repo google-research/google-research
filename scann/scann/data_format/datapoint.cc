@@ -18,8 +18,7 @@
 #include "scann/utils/types.h"
 #include "scann/utils/zip_sort.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 bool DatapointPtr<T>::HasNonzero(DimensionIndex dimension_index) const {
@@ -168,8 +167,8 @@ bool Datapoint<T>::IndicesSorted() const {
 
 template <typename T>
 void Datapoint<T>::SortIndices() {
-  if (indices().size() == 0) return;
-  if (values().size() == 0) {
+  if (indices().empty()) return;
+  if (values().empty()) {
     ZipSortBranchOptimized(std::less<DimensionIndex>(), indices_.begin(),
                            indices_.end());
   } else if (values().size() == indices().size()) {
@@ -202,5 +201,4 @@ void Datapoint<T>::RemoveExplicitZeroesFromSparseVector() {
 SCANN_INSTANTIATE_TYPED_CLASS(, DatapointPtr);
 SCANN_INSTANTIATE_TYPED_CLASS(, Datapoint);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

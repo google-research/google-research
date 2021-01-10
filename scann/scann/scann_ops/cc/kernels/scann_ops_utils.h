@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__SCANN_OPS_CC_KERNELS_SCANN_OPS_UTILS_H_
-#define SCANN__SCANN_OPS_CC_KERNELS_SCANN_OPS_UTILS_H_
+#ifndef SCANN_SCANN_OPS_CC_KERNELS_SCANN_OPS_UTILS_H_
+#define SCANN_SCANN_OPS_CC_KERNELS_SCANN_OPS_UTILS_H_
 
 #include "absl/types/span.h"
 #include "scann/data_format/dataset.h"
@@ -36,32 +36,30 @@ void EmptyTensorRequireOk(OpKernelContext* context, absl::string_view name);
 Status ConvertStatus(const Status& status);
 
 template <typename T>
-Status PopulateDatapointFromTensor(
-    const Tensor& tensor, tensorflow::scann_ops::DatapointPtr<T>* datapoint);
+Status PopulateDatapointFromTensor(const Tensor& tensor,
+                                   research_scann::DatapointPtr<T>* datapoint);
 
 template <typename DstType, typename SrcType = DstType>
 Status PopulateDenseDatasetFromTensor(
-    const Tensor& tensor,
-    tensorflow::scann_ops::DenseDataset<DstType>* dataset);
+    const Tensor& tensor, research_scann::DenseDataset<DstType>* dataset);
 
 template <typename T>
-Status PopulateDatapointFromTensor(
-    const Tensor& tensor, tensorflow::scann_ops::DatapointPtr<T>* datapoint) {
+Status PopulateDatapointFromTensor(const Tensor& tensor,
+                                   research_scann::DatapointPtr<T>* datapoint) {
   if (tensor.dims() != 1) {
     return errors::InvalidArgument("Dataset must be 1-dimensional",
                                    tensor.DebugString());
   }
   auto tensor_flat = tensor.flat<T>();
   int dims = tensor.NumElements();
-  *datapoint = tensorflow::scann_ops::DatapointPtr<T>(
-      nullptr, tensor_flat.data(), dims, dims);
+  *datapoint =
+      research_scann::DatapointPtr<T>(nullptr, tensor_flat.data(), dims, dims);
   return Status::OK();
 }
 
 template <typename DstType, typename SrcType>
 Status PopulateDenseDatasetFromTensor(
-    const Tensor& tensor,
-    tensorflow::scann_ops::DenseDataset<DstType>* dataset) {
+    const Tensor& tensor, research_scann::DenseDataset<DstType>* dataset) {
   if (tensor.dims() != 2) {
     return errors::InvalidArgument("Dataset must be 2-dimensional",
                                    tensor.DebugString());
@@ -77,7 +75,7 @@ Status PopulateDenseDatasetFromTensor(
   dataset->Reserve(num_datapoint);
 
   for (int i = 0; i < num_datapoint; ++i) {
-    const tensorflow::scann_ops::DatapointPtr<DstType> dptr(
+    const research_scann::DatapointPtr<DstType> dptr(
         nullptr, reinterpret_cast<const DstType*>(&tensor_t(i, 0)), num_dim,
         num_dim);
     TF_RETURN_IF_ERROR(ConvertStatus(dataset->Append(dptr, "")));
@@ -86,9 +84,8 @@ Status PopulateDenseDatasetFromTensor(
 }
 
 template <typename T>
-Status TensorFromDenseDataset(
-    OpKernelContext* context, absl::string_view name,
-    const tensorflow::scann_ops::DenseDataset<T>* dataset) {
+Status TensorFromDenseDataset(OpKernelContext* context, absl::string_view name,
+                              const research_scann::DenseDataset<T>* dataset) {
   if (dataset == nullptr) return EmptyTensor(context, name);
   Tensor* tensor;
   TF_RETURN_IF_ERROR(context->allocate_output(
@@ -104,13 +101,13 @@ Status TensorFromDenseDataset(
 template <typename T>
 void TensorFromDenseDatasetRequireOk(
     OpKernelContext* context, absl::string_view name,
-    const tensorflow::scann_ops::DenseDataset<T>* dataset) {
+    const research_scann::DenseDataset<T>* dataset) {
   OP_REQUIRES_OK(context, TensorFromDenseDataset(context, name, dataset));
 }
 
 template <typename T>
 Status TensorFromSpan(OpKernelContext* context, absl::string_view name,
-                      tensorflow::scann_ops::ConstSpan<T> span) {
+                      research_scann::ConstSpan<T> span) {
   if (span.empty()) return EmptyTensor(context, name);
   Tensor* tensor;
   TF_RETURN_IF_ERROR(context->allocate_output(
@@ -122,17 +119,17 @@ Status TensorFromSpan(OpKernelContext* context, absl::string_view name,
 
 template <typename T>
 void TensorFromSpanRequireOk(OpKernelContext* context, absl::string_view name,
-                             tensorflow::scann_ops::ConstSpan<T> span) {
+                             research_scann::ConstSpan<T> span) {
   OP_REQUIRES_OK(context, TensorFromSpan(context, name, span));
 }
 
 template <typename T>
-tensorflow::scann_ops::ConstSpan<T> TensorToConstSpan(const Tensor* t) {
+research_scann::ConstSpan<T> TensorToConstSpan(const Tensor* t) {
   return absl::MakeConstSpan(t->flat<T>().data(), t->NumElements());
 }
 
 template <typename T>
-tensorflow::scann_ops::MutableSpan<T> TensorToMutableSpan(const Tensor* t) {
+research_scann::MutableSpan<T> TensorToMutableSpan(const Tensor* t) {
   return absl::MakeSpan(t->flat<T>().data(), t->NumElements());
 }
 

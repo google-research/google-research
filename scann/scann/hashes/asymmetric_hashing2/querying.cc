@@ -19,8 +19,7 @@
 
 using std::shared_ptr;
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing2 {
 
 PackedDataset CreatePackedDataset(
@@ -30,7 +29,7 @@ PackedDataset CreatePackedDataset(
       asymmetric_hashing_internal::CreatePackedDataset(hashed_database);
   result.num_datapoints = hashed_database.size();
   result.num_blocks =
-      (hashed_database.size() > 0) ? (hashed_database[0].nonzero_entries()) : 0;
+      (!hashed_database.empty()) ? (hashed_database[0].nonzero_entries()) : 0;
   return result;
 }
 
@@ -163,5 +162,4 @@ SCANN_INSTANTIATE_TYPED_CLASS(, AsymmetricQueryer);
 SCANN_INSTANTIATE_TYPED_CLASS(, SymmetricQueryer);
 
 }  // namespace asymmetric_hashing2
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

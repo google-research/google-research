@@ -14,7 +14,7 @@
 
 syntax = "proto2";
 
-package tensorflow.scann_ops;
+package research_scann;
 
 import "scann/proto/incremental_updates.proto";
 
@@ -51,6 +51,14 @@ message InputOutputConfig {
   optional string output_sstable_wildcard = 11;
 
   optional string preprocessed_artifacts_dir = 18;
+
+  enum ArtifactsNamingOption {
+    HASHED = 0;
+
+    NO_HASH = 1;
+  }
+  optional ArtifactsNamingOption artifacts_naming_option = 23
+      [default = HASHED];
 
   message PureDynamicConfig {
     optional int32 num_shards = 1 [default = 1];

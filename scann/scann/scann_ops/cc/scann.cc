@@ -26,8 +26,12 @@
 #include "scann/utils/scann_config_utils.h"
 #include "scann/utils/threads.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
+namespace {
+
+int GetNumCPUs() { return std::max(absl::base_internal::NumCPUs(), 1); }
+
+}  // namespace
 
 template <typename T>
 void ParseTextProto(T* proto, const std::string& proto_str) {
@@ -114,7 +118,7 @@ Status ScannInterface::Initialize(ConstSpan<float> dataset,
   ParseTextProto(&config_, config);
   if (training_threads < 0)
     return InvalidArgumentError("training_threads must be non-negative");
-  if (training_threads == 0) training_threads = absl::base_internal::NumCPUs();
+  if (training_threads == 0) training_threads = GetNumCPUs();
   SingleMachineFactoryOptions opts;
 
   opts.parallelization_pool =
@@ -131,7 +135,7 @@ Status ScannInterface::Initialize(shared_ptr<DenseDataset<float>> dataset,
   if (dataset && config_.has_partitioning() &&
       config_.partitioning().partitioning_type() ==
           PartitioningConfig::SPHERICAL)
-    dataset->set_normalization_tag(tensorflow::scann_ops::UNITL2NORM);
+    dataset->set_normalization_tag(research_scann::UNITL2NORM);
   TF_ASSIGN_OR_RETURN(scann_, SingleMachineFactoryScann<float>(
                                   config_, dataset, std::move(opts)));
 
@@ -141,6 +145,15 @@ Status ScannInterface::Initialize(shared_ptr<DenseDataset<float>> dataset,
       "LimitedInnerProductDistance"};
   result_multiplier_ =
       negated_distances.find(distance) == negated_distances.end() ? 1 : -1;
+
+  if (config_.has_partitioning()) {
+    min_batch_size_ = 1;
+  } else {
+    if (config_.has_hash())
+      min_batch_size_ = 16;
+    else
+      min_batch_size_ = 256;
+  }
   return OkStatus();
 }
 
@@ -187,7 +200,7 @@ Status ScannInterface::SearchBatched(const DenseDataset<float>& queries,
     pre_reorder_nn = final_nn;
 
   std::vector<SearchParameters> params(queries.size());
-  std::shared_ptr<tensorflow::scann_ops::TreeXOptionalParameters> tree_params;
+  std::shared_ptr<research_scann::TreeXOptionalParameters> tree_params;
   if (leaves > 0) {
     tree_params = std::make_shared<TreeXOptionalParameters>();
     tree_params->set_num_partitions_to_search_override(leaves);
@@ -208,8 +221,11 @@ Status ScannInterface::SearchBatchedParallel(const DenseDataset<float>& queries,
                                              int final_nn, int pre_reorder_nn,
                                              int leaves) const {
   const size_t numQueries = queries.size();
-  const size_t kBatchSize = 256;
-  auto pool = StartThreadPool("pool", absl::base_internal::NumCPUs() - 1);
+  const size_t numCPUs = GetNumCPUs();
+
+  const size_t kBatchSize = std::min(
+      std::max(min_batch_size_, DivRoundUp(numQueries, numCPUs)), 256ul);
+  auto pool = StartThreadPool("pool", numCPUs - 1);
   return ParallelForWithStatus<1>(
       Seq(DivRoundUp(numQueries, kBatchSize)), pool.get(), [&](size_t i) {
         size_t begin = kBatchSize * i;
@@ -279,5 +295,4 @@ StatusOr<SingleMachineFactoryOptions> ScannInterface::ExtractOptions() {
   return scann_->ExtractSingleMachineFactoryOptions();
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

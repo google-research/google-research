@@ -14,15 +14,14 @@
 
 
 
-#ifndef SCANN__PROJECTION_PROJECTION_BASE_H_
-#define SCANN__PROJECTION_PROJECTION_BASE_H_
+#ifndef SCANN_PROJECTION_PROJECTION_BASE_H_
+#define SCANN_PROJECTION_PROJECTION_BASE_H_
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class UntypedProjection : public VirtualDestructor {
  public:
@@ -56,7 +55,6 @@ class Projection : public UntypedProjection {
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, Projection);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

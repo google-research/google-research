@@ -19,21 +19,19 @@
 #include <typeinfo>
 
 #include "absl/flags/flag.h"
-#include "scann/base/search_parameters.h"
-#include "tensorflow/core/platform/cpu_info.h"
-
 #include "absl/status/status.h"
 #include "absl/strings/match.h"
 #include "absl/strings/substitute.h"
+#include "scann/base/search_parameters.h"
 #include "scann/utils/factory_helpers.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 #include "scann/utils/zip_sort.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/cpu_info.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 UntypedSingleMachineSearcherBase::~UntypedSingleMachineSearcherBase() {}
 
@@ -281,6 +279,8 @@ template <typename T>
 Status SingleMachineSearcherBase<T>::FindNeighbors(
     const DatapointPtr<T>& query, const SearchParameters& params,
     NNResultsVector* result) const {
+  SCANN_RET_CHECK(query.IsFinite())
+      << "Cannot query ScaNN with vectors that contain NaNs or infinity.";
   DCHECK(result);
   DCHECK_LE((compressed_reordering_enabled() + exact_reordering_enabled()), 1);
   SCANN_RETURN_IF_ERROR(
@@ -732,5 +732,4 @@ bool SingleMachineSearcherBase<T>::fixed_point_reordering_enabled() const {
 
 SCANN_INSTANTIATE_TYPED_CLASS(, SingleMachineSearcherBase);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

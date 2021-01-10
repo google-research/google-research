@@ -16,12 +16,10 @@
 
 #include "scann/hashes/internal/asymmetric_hashing_impl.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing_internal {
 
 SCANN_INSTANTIATE_AH_FUNCTION();
 
 }
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

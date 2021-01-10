@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__PARTITIONING_KMEANS_TREE_LIKE_PARTITIONER_H_
-#define SCANN__PARTITIONING_KMEANS_TREE_LIKE_PARTITIONER_H_
+#ifndef SCANN_PARTITIONING_KMEANS_TREE_LIKE_PARTITIONER_H_
+#define SCANN_PARTITIONING_KMEANS_TREE_LIKE_PARTITIONER_H_
 
 #include "scann/data_format/datapoint.h"
 #include "scann/distance_measures/distance_measure_base.h"
@@ -23,8 +23,7 @@
 #include "scann/trees/kmeans_tree/kmeans_tree.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 class KMeansTreeLikePartitioner : public Partitioner<T> {
@@ -61,7 +60,6 @@ class KMeansTreeLikePartitioner : public Partitioner<T> {
   }
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

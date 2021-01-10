@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__PROJECTION_CHUNKING_PROJECTION_H_
-#define SCANN__PROJECTION_CHUNKING_PROJECTION_H_
+#ifndef SCANN_PROJECTION_CHUNKING_PROJECTION_H_
+#define SCANN_PROJECTION_CHUNKING_PROJECTION_H_
 
 #include <memory>
 #include <utility>
@@ -25,8 +25,7 @@
 #include "scann/proto/projection.pb.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 class ChunkingProjection;
@@ -159,7 +158,6 @@ class ChunkingProjection : public ChunkingProjectionUntyped {
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, ChunkingProjection);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

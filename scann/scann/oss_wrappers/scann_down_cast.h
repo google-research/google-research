@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__OSS_WRAPPERS_SCANN_DOWN_CAST_H_
-#define SCANN__OSS_WRAPPERS_SCANN_DOWN_CAST_H_
+#ifndef SCANN_OSS_WRAPPERS_SCANN_DOWN_CAST_H_
+#define SCANN_OSS_WRAPPERS_SCANN_DOWN_CAST_H_
 
 #include <assert.h>
 

@@ -1,7 +1,5 @@
 
 
-#include "scann/oss_wrappers/scann_bits.h"
-#include "tensorflow/core/platform/logging.h"
 template <bool kIsEquality, typename DistT>
 SCANN_SIMD_INLINE size_t CalculateSwapMasks(const DistT* values,
                                             uint32_t* masks, size_t n_masks,
@@ -9,22 +7,12 @@ SCANN_SIMD_INLINE size_t CalculateSwapMasks(const DistT* values,
                                             DistT threshold) {
   const auto simd_threshold = Simd<DistT>::Broadcast(threshold);
 
-  constexpr size_t kBlockSize = Simd<DistT>::BlockSize();
-  constexpr size_t kNumSimd = 32 / Simd<DistT>::BlockSize();
-  Simd<DistT> cmp[kNumSimd];
-
   size_t n_kept = 0;
   for (size_t j : Seq(n_masks)) {
-    for (size_t jj : Seq(kNumSimd)) {
-      const Simd<DistT> vals =
-          Simd<DistT>::Load(values + 32 * j + kBlockSize * jj);
-      if (kIsEquality) {
-        cmp[jj] = (vals == simd_threshold);
-      } else {
-        cmp[jj] = (vals < simd_threshold);
-      }
-    }
-    const uint32_t mask = MaskFromHighBits(cmp);
+    auto vals = SimdFor<DistT, 32>::Load(values + 32 * j);
+    const uint32_t mask = kIsEquality
+                              ? GetComparisonMask(vals == simd_threshold)
+                              : GetComparisonMask(vals < simd_threshold);
     n_kept += bits::CountOnes(mask);
     masks[j] = mask;
   }
@@ -247,6 +235,16 @@ SCANN_SIMD_INLINE DistT UseMasksToFindNewMedian(DistT* values,
   return vals[0];
 }
 
+template <typename DistT>
+SCANN_SIMD_INLINE DistT DecrementThreshold(DistT threshold) {
+  if (IsFloatingType<DistT>()) {
+    constexpr DistT kNegativeInfinity = -numeric_limits<DistT>::infinity();
+    return std::nextafter(threshold, kNegativeInfinity);
+  } else {
+    return threshold - 1;
+  }
+}
+
 template <typename DistT, typename DatapointIndexT>
 SCANN_SIMD_OUTLINE size_t ApproxNthElementImpl(size_t keep_min, size_t keep_max,
                                                size_t sz,
@@ -255,33 +253,37 @@ SCANN_SIMD_OUTLINE size_t ApproxNthElementImpl(size_t keep_min, size_t keep_max,
   DCHECK_LE(keep_min, keep_max);
   DCHECK_LT(keep_max, sz);
 
-  bool needs_pivot = true;
   DistT threshold_value;
   size_t n_already_kept = 0;
+  bool skip_threshold_selection = false;
 
   for (;;) {
-    DCHECK_GT(sz, keep_min);
-    DCHECK_GT(sz, keep_max);
-    DCHECK_LE(keep_min, keep_max);
-    if (ABSL_PREDICT_FALSE(sz <= 3)) {
-      const size_t final_size = n_already_kept + keep_min;
-      SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
-          "SelectionSort for range:[%d,%d) = %d; will return idx %d",
-          n_already_kept, final_size, sz, keep_min);
-      SelectionSort(indices, values, sz);
+    if (!skip_threshold_selection) {
+      DCHECK_GT(sz, keep_min);
+      DCHECK_GT(sz, keep_max);
+      DCHECK_LE(keep_min, keep_max);
+      if (ABSL_PREDICT_FALSE(sz <= 3)) {
+        const size_t final_size = n_already_kept + keep_min;
+        SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
+            "SelectionSort for range:[%d,%d) = %d; will return idx %d",
+            n_already_kept, final_size, sz, keep_min);
+        SelectionSort(indices, values, sz);
 
-      values[keep_min] = values[keep_min - 1];
-      indices[keep_min] = indices[keep_min - 1];
-      return final_size;
-    }
+        values[keep_min] = values[keep_min - 1];
+        indices[keep_min] = indices[keep_min - 1];
+        return final_size;
+      }
 
-    if (needs_pivot) {
       threshold_value =
           FastMedianOf3(values[0], values[sz / 2], values[sz - 1]);
+      if (ABSL_PREDICT_FALSE(std::isnan(threshold_value))) {
+        LOG(FATAL) << "Pushing NaN values to Top-K is expressly forbidden.";
+      }
     }
-    const size_t n_masks = DivRoundUp(sz, 32);
+    skip_threshold_selection = false;
 
     const uint32_t final_mask = GetFinalMask32(sz);
+    const size_t n_masks = DivRoundUp(sz, 32);
     size_t n_kept = CalculateLtSwapMasks(values, masks, n_masks, final_mask,
                                          threshold_value);
     SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
@@ -291,8 +293,17 @@ SCANN_SIMD_OUTLINE size_t ApproxNthElementImpl(size_t keep_min, size_t keep_max,
     SCANN_LOG_NOOP(INFO, kShouldLog)
         << DebugLogArrayContents(indices, values, masks, sz);
 
-    auto handle_overly_selective_pivot = [&]() SCANN_SIMD_INLINE_LAMBDA {
-      if (n_kept >= sz * 3 / 4) {
+    auto handle_overly_picky_pivot = [&]() SCANN_SIMD_INLINE_LAMBDA {
+      if (n_kept < sz * 3 / 4) {
+        SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
+            "UseMasksToFindNewMedian; range:[%d,%d) = %d; masks=%d << "
+            "goal=%d",
+            n_already_kept, n_already_kept + sz, sz, n_kept, keep_min);
+        uint32_t* eq_masks = masks + n_masks;
+        threshold_value =
+            UseMasksToFindNewMedian(values, masks, eq_masks, n_masks);
+        skip_threshold_selection = true;
+      } else {
         SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
             "UseMasksToPartition; range:[%d,%d) = %d; masks=%d < goal=%d;",
             n_already_kept, n_already_kept + sz, sz, n_kept, keep_min);
@@ -306,20 +317,11 @@ SCANN_SIMD_OUTLINE size_t ApproxNthElementImpl(size_t keep_min, size_t keep_max,
         sz -= n_kept;
         indices += n_kept;
         values += n_kept;
-        needs_pivot = true;
-      } else {
-        SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
-            "UseMasksToFindNewMedian; range:[%d,%d) = %d; masks=%d << "
-            "goal=%d",
-            n_already_kept, n_already_kept + sz, sz, n_kept, keep_min);
-        uint32_t* eq_masks = masks + n_masks;
-        threshold_value =
-            UseMasksToFindNewMedian(values, masks, eq_masks, n_masks);
-        needs_pivot = false;
       }
     };
 
-    if (n_kept < keep_min) {
+    const bool compute_eq_masks = n_kept < keep_min;
+    if (compute_eq_masks) {
       const size_t n_needed = keep_min - n_kept;
       size_t n_found;
       uint32_t* eq_masks = masks + n_masks;
@@ -331,33 +333,32 @@ SCANN_SIMD_OUTLINE size_t ApproxNthElementImpl(size_t keep_min, size_t keep_max,
           absl::StrCat(threshold_value), n_found, sz, n_needed, final_mask);
 
       if (n_found < n_needed) {
-        handle_overly_selective_pivot();
+        handle_overly_picky_pivot();
         continue;
       }
+
       DatapointIndexT* scratch = indices + 32 * n_masks + 64;
       const size_t sz = UseMasksToSelect(scratch, indices, eq_masks, n_masks);
       DCHECK_EQ(sz, n_found);
-      if (n_found > n_needed) {
+
+      if (ABSL_PREDICT_TRUE(n_found > n_needed)) {
         ZipNthElementBranchOptimized(std::less<DatapointIndexT>(), n_needed - 1,
-                                     scratch, scratch + sz);
+                                     scratch, scratch + n_found);
       }
     }
 
     SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
         "UseMasksToCompact; range:[%d,%d) = %d; masks=%d >= goal=%d;",
         n_already_kept, n_already_kept + sz, sz, n_kept, keep_min);
-    const size_t compacted_sz =
-        UseMasksToCompact(indices, values, masks, n_masks);
-    DCHECK_EQ(compacted_sz, n_kept);
+    sz = UseMasksToCompact(indices, values, masks, n_masks);
+    DCHECK_EQ(sz, n_kept);
 
     if (n_kept > keep_max) {
-      sz = n_kept;
-      needs_pivot = true;
       continue;
     }
 
     DatapointIndexT tiebreaker_idx = numeric_limits<DatapointIndexT>::max();
-    if (n_kept < keep_min) {
+    if (compute_eq_masks) {
       const size_t n_needed = keep_min - n_kept;
       SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
           "RecoverPivotElement(s); %f x %d", threshold_value, n_needed);
@@ -367,12 +368,7 @@ SCANN_SIMD_OUTLINE size_t ApproxNthElementImpl(size_t keep_min, size_t keep_max,
       n_kept = keep_min;
       tiebreaker_idx = scratch[n_needed - 1];
     } else {
-      if (IsFloatingType<DistT>()) {
-        threshold_value =
-            std::nextafter(threshold_value, -numeric_limits<DistT>::infinity());
-      } else {
-        threshold_value -= 1;
-      }
+      threshold_value = DecrementThreshold(threshold_value);
     }
 
     DCHECK_GE(n_kept, keep_min);

@@ -14,8 +14,7 @@
 
 #include "scann/utils/io_oss_wrapper.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 OpenSourceableFileWriter::OpenSourceableFileWriter(absl::string_view filename)
     : fout_(std::string(filename), std::ofstream::binary) {}
@@ -45,5 +44,4 @@ Status ReadProtobufFromFile(absl::string_view filename,
   return OkStatus();
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

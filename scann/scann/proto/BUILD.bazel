@@ -161,6 +161,7 @@ proto_library(
         ":exact_reordering_proto",
         ":input_output_proto",
         ":projection_proto",
+        "@com_google_protobuf//:duration_proto",
     ],
 )
 

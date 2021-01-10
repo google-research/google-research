@@ -14,14 +14,13 @@
 
 
 
-#ifndef SCANN__DATA_FORMAT_GFV_PROPERTIES_H_
-#define SCANN__DATA_FORMAT_GFV_PROPERTIES_H_
+#ifndef SCANN_DATA_FORMAT_GFV_PROPERTIES_H_
+#define SCANN_DATA_FORMAT_GFV_PROPERTIES_H_
 
 #include "scann/data_format/features.pb.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 inline int GfvFeatureType() {
@@ -71,7 +70,6 @@ bool IsGfvSparseOrDie(const GenericFeatureVector& gfv);
 
 bool IsGfvDenseOrDie(const GenericFeatureVector& gfv);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

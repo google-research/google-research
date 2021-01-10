@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__HASHES_ASYMMETRIC_HASHING2_SERIALIZATION_H_
-#define SCANN__HASHES_ASYMMETRIC_HASHING2_SERIALIZATION_H_
+#ifndef SCANN_HASHES_ASYMMETRIC_HASHING2_SERIALIZATION_H_
+#define SCANN_HASHES_ASYMMETRIC_HASHING2_SERIALIZATION_H_
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/proto/centers.pb.h"
 #include "scann/proto/hash.pb.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing2 {
 
 template <typename T>
@@ -41,7 +40,6 @@ CentersForAllSubspaces DatasetSpanToCentersProto(
 }
 
 }  // namespace asymmetric_hashing2
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

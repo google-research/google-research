@@ -14,12 +14,10 @@
 
 #include "scann/hashes/asymmetric_hashing2/training_options_base.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing2 {
 
 SCANN_INSTANTIATE_TYPED_CLASS(, TrainingOptionsTyped);
 
 }
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

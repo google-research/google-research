@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__TREE_X_HYBRID_INTERNAL_UTILS_H_
-#define SCANN__TREE_X_HYBRID_INTERNAL_UTILS_H_
+#ifndef SCANN_TREE_X_HYBRID_INTERNAL_UTILS_H_
+#define SCANN_TREE_X_HYBRID_INTERNAL_UTILS_H_
 
 #include "scann/base/restrict_allowlist.h"
 #include "scann/base/search_parameters.h"
@@ -22,8 +22,7 @@
 #include "scann/utils/types.h"
 #include "tensorflow/core/platform/logging.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 inline void TranslateGlobalToLeafLocalWhitelist(
     const SearchParameters& params,
@@ -156,7 +155,6 @@ StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
   return opts;
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

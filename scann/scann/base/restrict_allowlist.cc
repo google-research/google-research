@@ -19,8 +19,7 @@
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/common.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace {
 
 void ClearRemainderBits(MutableSpan<size_t> whitelist_array,
@@ -103,5 +102,4 @@ DummyAllowlist::DummyAllowlist(DatapointIndex num_points)
 DummyAllowlist::Iterator::Iterator(DatapointIndex num_points)
     : value_(0), num_points_(num_points) {}
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

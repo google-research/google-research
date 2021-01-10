@@ -28,8 +28,7 @@
 
 using std::move;
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 using StatusOrHelper = StatusOr<unique_ptr<ReorderingInterface<T>>>;
@@ -155,5 +154,4 @@ ReorderingHelperFactory<T>::Build(
 
 SCANN_INSTANTIATE_TYPED_CLASS(, ReorderingHelperFactory);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

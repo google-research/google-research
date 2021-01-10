@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__BASE_REORDERING_HELPER_FACTORY_H_
-#define SCANN__BASE_REORDERING_HELPER_FACTORY_H_
+#ifndef SCANN_BASE_REORDERING_HELPER_FACTORY_H_
+#define SCANN_BASE_REORDERING_HELPER_FACTORY_H_
 
 #include "scann/base/single_machine_factory_options.h"
 #include "scann/data_format/dataset.h"
@@ -21,8 +21,7 @@
 #include "scann/utils/reordering_helper.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 class ReorderingHelperFactory {
@@ -35,7 +34,6 @@ class ReorderingHelperFactory {
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, ReorderingHelperFactory)
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

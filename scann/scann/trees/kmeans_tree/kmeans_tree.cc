@@ -20,8 +20,7 @@
 #include "scann/utils/zip_sort.h"
 #include "tensorflow/core/platform/prefetch.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 namespace {
 
@@ -82,5 +81,4 @@ void KMeansTree::SerializeWithoutIndices(SerializedKMeansTree* result) const {
   root_.CopyToProto(result->mutable_root(), false);
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

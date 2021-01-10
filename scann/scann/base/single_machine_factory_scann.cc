@@ -29,6 +29,7 @@
 #include "scann/brute_force/scalar_quantized_brute_force.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_factory.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/partitioning/kmeans_tree_like_partitioner.h"
 #include "scann/partitioning/partitioner_factory.h"
 #include "scann/partitioning/partitioner_factory_base.h"
@@ -43,12 +44,10 @@
 #include "scann/utils/hash_leaf_helpers.h"
 #include "scann/utils/scalar_quantization_helpers.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/threadpool.h"
 
 using std::dynamic_pointer_cast;
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace {
 
 template <typename T>
@@ -93,7 +92,7 @@ StatusOrSearcherUntyped AsymmetricHasherFactory(
     SingleMachineFactoryOptions* opts, const GenericSearchParameters& params) {
   const auto& ah_config = config.hash().asymmetric_hash();
   shared_ptr<const DistanceMeasure> quantization_distance;
-  std::shared_ptr<thread::ThreadPool> pool = opts->parallelization_pool;
+  std::shared_ptr<ThreadPool> pool = opts->parallelization_pool;
   if (ah_config.has_quantization_distance()) {
     TF_ASSIGN_OR_RETURN(quantization_distance,
                         GetDistanceMeasure(ah_config.quantization_distance()));
@@ -732,5 +731,4 @@ StatusOrSearcherUntyped SingleMachineFactoryLeafSearcherScann(
 
 SCANN_INSTANTIATE_SINGLE_MACHINE_FACTORY_SCANN();
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

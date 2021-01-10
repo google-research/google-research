@@ -14,24 +14,22 @@
 
 
 
-#ifndef SCANN__HASHES_ASYMMETRIC_HASHING2_TRAINING_OPTIONS_H_
-#define SCANN__HASHES_ASYMMETRIC_HASHING2_TRAINING_OPTIONS_H_
+#ifndef SCANN_HASHES_ASYMMETRIC_HASHING2_TRAINING_OPTIONS_H_
+#define SCANN_HASHES_ASYMMETRIC_HASHING2_TRAINING_OPTIONS_H_
 
 #include <limits>
 #include <type_traits>
 #include <utility>
 
-#include "scann/hashes/asymmetric_hashing2/training_options_base.h"
-
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
+#include "scann/hashes/asymmetric_hashing2/training_options_base.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/projection/chunking_projection.h"
 #include "scann/proto/hash.pb.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/threadpool.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing2 {
 
 template <typename T>
@@ -54,7 +52,6 @@ class TrainingOptions : public TrainingOptionsTyped<T> {
 SCANN_INSTANTIATE_TYPED_CLASS(extern, TrainingOptions);
 
 }  // namespace asymmetric_hashing2
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

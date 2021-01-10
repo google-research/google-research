@@ -167,7 +167,7 @@ class TestEagerMode(tf.test.TestCase):
 
     idx, dis = searcher.search_batched(queries)
     idx_parallel, dis_parallel = searcher.search_batched_parallel(queries)
-    self.assertAllEqual(dis, dis_parallel)
+    self.assertAllClose(dis, dis_parallel)
     self.assertAllEqual(idx, idx_parallel)
 
   def test_reordering_shapes(self):

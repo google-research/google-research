@@ -16,28 +16,23 @@
 
 #include "scann/utils/internal/avx2_funcs.h"
 #include "scann/utils/internal/avx_funcs.h"
-#include "scann/utils/intrinsics/flags.h"
+#include "scann/utils/intrinsics/simd.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace one_to_many_low_level {
 
 #ifdef __x86_64__
 
-#define SCANN_SIMD_INLINE SCANN_SIMD_ATTRIBUTE SCANN_INLINE
-#define SCANN_SIMD_INLINE_LAMBDA SCANN_SIMD_ATTRIBUTE SCANN_INLINE_LAMBDA
-#define SCANN_SIMD_OUTLINE SCANN_SIMD_ATTRIBUTE SCANN_OUTLINE
-
 namespace avx1 {
-using AvxFuncs = ::tensorflow::scann_ops::AvxFunctionsAvx;
-#define SCANN_SIMD_ATTRIBUTE SCANN_AVX1_ATTRIBUTE
+using AvxFuncs = ::research_scann::AvxFunctionsAvx;
+#define SCANN_SIMD_ATTRIBUTE SCANN_AVX1
 #include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
 #undef SCANN_SIMD_ATTRIBUTE
 }  // namespace avx1
 
 namespace avx2 {
-using AvxFuncs = ::tensorflow::scann_ops::AvxFunctionsAvx2Fma;
-#define SCANN_SIMD_ATTRIBUTE SCANN_AVX2_ATTRIBUTE
+using AvxFuncs = ::research_scann::AvxFunctionsAvx2Fma;
+#define SCANN_SIMD_ATTRIBUTE SCANN_AVX2
 #include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
 #undef SCANN_SIMD_ATTRIBUTE
 }  // namespace avx2
@@ -121,5 +116,4 @@ void DenseDotProductDistanceOneToManyInt8Float(
       true>(query, database, indices.data(), result);
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

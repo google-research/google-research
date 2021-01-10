@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__UTILS_IO_OSS_WRAPPER_H_
-#define SCANN__UTILS_IO_OSS_WRAPPER_H_
+#ifndef SCANN_UTILS_IO_OSS_WRAPPER_H_
+#define SCANN_UTILS_IO_OSS_WRAPPER_H_
 
 #include <fstream>
+
 #include "google/protobuf/message.h"
 #include "scann/utils/common.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class OpenSourceableFileWriter {
  public:
@@ -36,7 +36,6 @@ Status WriteProtobufToFile(absl::string_view filename,
 Status ReadProtobufFromFile(absl::string_view filename,
                             google::protobuf::Message* message);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

@@ -12,19 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__OSS_WRAPPERS_SCANN_RANDOM_H_
-#define SCANN__OSS_WRAPPERS_SCANN_RANDOM_H_
+#ifndef SCANN_OSS_WRAPPERS_SCANN_RANDOM_H_
+#define SCANN_OSS_WRAPPERS_SCANN_RANDOM_H_
 
 #include <random>
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 using MTRandom = std::mt19937;
 using ACMRandom = std::minstd_rand0;
 const int kDeterministicSeed = 301;
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

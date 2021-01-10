@@ -19,11 +19,10 @@ cc_library(
     deps = [
         "//scann/data_format:dataset",
         "//scann/distance_measures",
+        "//scann/oss_wrappers:scann_threadpool",
         "//scann/projection:chunking_projection",
         "//scann/proto:hash_cc_proto",
         "//scann/utils:types",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -36,13 +35,12 @@ cc_library(
         ":training_options_base",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
+        "//scann/oss_wrappers:scann_threadpool",
         "//scann/projection:chunking_projection",
         "//scann/projection:projection_factory",
         "//scann/proto:hash_cc_proto",
         "//scann/proto:projection_cc_proto",
         "//scann/utils:types",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -73,6 +71,7 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:scann_threadpool",
         "//scann/utils:types",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",

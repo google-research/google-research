@@ -14,10 +14,9 @@
 
 syntax = "proto2";
 
-package tensorflow.scann_ops;
+package research_scann;
 
 option cc_enable_arenas = true;
-option java_package = "com.google.research.scann";
 
 message V3Restrict {
   repeated TokenNamespace namespaces = 1;

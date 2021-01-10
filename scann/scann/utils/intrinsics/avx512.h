@@ -12,36 +12,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__UTILS_INTRINSICS_AVX512_H_
-#define SCANN__UTILS_INTRINSICS_AVX512_H_
+#ifndef SCANN_UTILS_INTRINSICS_AVX512_H_
+#define SCANN_UTILS_INTRINSICS_AVX512_H_
 
+#include "scann/utils/index_sequence.h"
 #include "scann/utils/intrinsics/attributes.h"
 #include "scann/utils/intrinsics/avx2.h"
+#include "scann/utils/intrinsics/flags.h"
 #include "scann/utils/types.h"
 
 #ifdef __x86_64__
 
 #include <x86intrin.h>
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace avx512 {
+
+static constexpr PlatformGeneration kPlatformGeneration = kSkylakeAvx512;
 
 template <typename T, size_t kNumElementsRequired>
 constexpr size_t InferNumRegisters() {
   constexpr size_t kRegisterBytes = 64;
-  constexpr size_t kSlotsPerRegister = kRegisterBytes / sizeof(T);
+  constexpr size_t kElementsPerRegister = kRegisterBytes / sizeof(T);
 
   static_assert(kNumElementsRequired > 0);
-  static_assert(IsDivisibleBy(kNumElementsRequired, kSlotsPerRegister));
+  static_assert(IsDivisibleBy(kNumElementsRequired, kElementsPerRegister));
 
-  return kNumElementsRequired / kSlotsPerRegister;
+  return kNumElementsRequired / kElementsPerRegister;
 }
 
 }  // namespace avx512
 
-template <typename T = void, size_t kNumRegisters = 1,
-          size_t... kTensorNumRegisters>
+template <typename T, size_t kNumRegisters = 1, size_t... kTensorNumRegisters>
 class Avx512;
 
 struct Avx512Zeros {};
@@ -54,11 +56,11 @@ class Avx512<T, kNumRegistersInferred> {
   static_assert(IsSameAny<T, float, double, int8_t, int16_t, int32_t, int64_t,
                           uint8_t, uint16_t, uint32_t, uint64_t>());
 
-  static constexpr size_t kNumRegisters = kNumRegistersInferred;
   static constexpr size_t kRegisterBits = 512;
   static constexpr size_t kRegisterBytes = 64;
-  static constexpr size_t kSlotsPerRegister = kRegisterBytes / sizeof(T);
-  static constexpr size_t kNumElements = kNumRegisters * kSlotsPerRegister;
+  static constexpr size_t kNumRegisters = kNumRegistersInferred;
+  static constexpr size_t kElementsPerRegister = kRegisterBytes / sizeof(T);
+  static constexpr size_t kNumElements = kNumRegisters * kElementsPerRegister;
 
   static auto InferIntelType() {
     if constexpr (std::is_same_v<T, float>) {
@@ -221,7 +223,7 @@ class Avx512<T, kNumRegistersInferred> {
   SCANN_AVX512_INLINE static Avx512 Load(const T* address) {
     Avx512 ret;
     for (size_t j : Seq(kNumRegisters)) {
-      ret[j] = LoadOneRegister<kAligned>(address + j * kSlotsPerRegister);
+      ret[j] = LoadOneRegister<kAligned>(address + j * kElementsPerRegister);
     }
     return ret;
   }
@@ -239,8 +241,14 @@ class Avx512<T, kNumRegistersInferred> {
   SCANN_AVX512_INLINE void Store(T* address) const {
     const Avx512& me = *this;
     for (size_t j : Seq(kNumRegisters)) {
-      StoreOneRegister(address + j * kSlotsPerRegister, *me[j]);
+      StoreOneRegister(address + j * kElementsPerRegister, *me[j]);
     }
+  }
+
+  SCANN_AVX512_INLINE array<T, kNumElements> Store() const {
+    array<T, kNumElements> ret;
+    Store(ret.data());
+    return ret;
   }
 
   template <size_t kOther, typename Op,
@@ -368,7 +376,17 @@ class Avx512<T, kNumRegistersInferred> {
   }
 
   static SCANN_AVX512_INLINE auto BitwiseAnd(IntelType a, IntelType b) {
-    return a & b;
+    if constexpr (IsSame<T, float>()) {
+      return _mm512_and_ps(a, b);
+    }
+    if constexpr (IsSame<T, double>()) {
+      return _mm512_and_pd(a, b);
+    }
+    if constexpr (IsSameAny<T, int8_t, uint8_t, int16_t, uint16_t, int32_t,
+                            uint32_t, int64_t, uint64_t>()) {
+      return _mm512_and_si512(a, b);
+    }
+    LOG(FATAL) << "Undefined";
   }
 
   template <size_t kOther>
@@ -377,7 +395,17 @@ class Avx512<T, kNumRegistersInferred> {
   }
 
   static SCANN_AVX512_INLINE auto BitwiseOr(IntelType a, IntelType b) {
-    return a | b;
+    if constexpr (IsSame<T, float>()) {
+      return _mm512_or_ps(a, b);
+    }
+    if constexpr (IsSame<T, double>()) {
+      return _mm512_or_pd(a, b);
+    }
+    if constexpr (IsSameAny<T, int8_t, uint8_t, int16_t, uint16_t, int32_t,
+                            uint32_t, int64_t, uint64_t>()) {
+      return _mm512_or_si512(a, b);
+    }
+    LOG(FATAL) << "Undefined";
   }
 
   template <size_t kOther>
@@ -533,10 +561,10 @@ class Avx512<T, kNumRegistersInferred> {
 
   static SCANN_AVX512_INLINE auto LessThan(IntelType a, IntelType b) {
     if constexpr (IsSameAny<T, float>()) {
-      return _mm512_cmplt_ps_mask(a, b);
+      return _mm512_cmp_ps_mask(a, b, _CMP_LT_OS);
     }
     if constexpr (IsSameAny<T, double>()) {
-      return _mm512_cmplt_pd_mask(a, b);
+      return _mm512_cmp_pd_mask(a, b, _CMP_LT_OS);
     }
 
     if constexpr (IsSameAny<T, int8_t>()) {
@@ -572,12 +600,53 @@ class Avx512<T, kNumRegistersInferred> {
     return ComparisonOperatorImpl(*this, other, &LessThan);
   }
 
-  static SCANN_AVX512_INLINE auto Equals(IntelType a, IntelType b) {
+  static SCANN_AVX512_INLINE auto LessOrEquals(IntelType a, IntelType b) {
     if constexpr (IsSameAny<T, float>()) {
-      return _mm512_cmpeq_ps_mask(a, b);
+      return _mm512_cmp_ps_mask(a, b, _CMP_LE_OS);
     }
     if constexpr (IsSameAny<T, double>()) {
-      return _mm512_cmpeq_pd_mask(a, b);
+      return _mm512_cmp_pd_mask(a, b, _CMP_LE_OS);
+    }
+
+    if constexpr (IsSameAny<T, int8_t>()) {
+      return _mm512_cmple_epi8_mask(a, b);
+    }
+    if constexpr (IsSameAny<T, int16_t>()) {
+      return _mm512_cmple_epi16_mask(a, b);
+    }
+    if constexpr (IsSameAny<T, int32_t>()) {
+      return _mm512_cmple_epi32_mask(a, b);
+    }
+    if constexpr (IsSameAny<T, int64_t>()) {
+      return _mm512_cmple_epi64_mask(a, b);
+    }
+
+    if constexpr (IsSameAny<T, uint8_t>()) {
+      return _mm512_cmple_epu8_mask(a, b);
+    }
+    if constexpr (IsSameAny<T, uint16_t>()) {
+      return _mm512_cmple_epu16_mask(a, b);
+    }
+    if constexpr (IsSameAny<T, uint32_t>()) {
+      return _mm512_cmple_epu32_mask(a, b);
+    }
+    if constexpr (IsSameAny<T, uint64_t>()) {
+      return _mm512_cmple_epu64_mask(a, b);
+    }
+    LOG(FATAL) << "Undefined";
+  }
+
+  template <size_t kOther = kNumRegisters>
+  SCANN_AVX512_INLINE auto operator<=(const Avx512<T, kOther>& other) const {
+    return ComparisonOperatorImpl(*this, other, &LessOrEquals);
+  }
+
+  static SCANN_AVX512_INLINE auto Equals(IntelType a, IntelType b) {
+    if constexpr (IsSameAny<T, float>()) {
+      return _mm512_cmp_ps_mask(a, b, _CMP_EQ_OS);
+    }
+    if constexpr (IsSameAny<T, double>()) {
+      return _mm512_cmp_pd_mask(a, b, _CMP_EQ_OS);
     }
 
     if constexpr (IsSameAny<T, int8_t, uint8_t>()) {
@@ -600,9 +669,54 @@ class Avx512<T, kNumRegistersInferred> {
     return ComparisonOperatorImpl(*this, other, &Equals);
   }
 
+  static SCANN_AVX512_INLINE auto GreaterOrEquals(IntelType a, IntelType b) {
+    if constexpr (IsSameAny<T, float>()) {
+      return _mm512_cmp_ps_mask(a, b, _CMP_GE_OS);
+    }
+    if constexpr (IsSameAny<T, double>()) {
+      return _mm512_cmp_pd_mask(a, b, _CMP_GE_OS);
+    }
+
+    if constexpr (IsSameAny<T, int8_t>()) {
+      return _mm512_cmpge_epi8_mask(a, b);
+    }
+    if constexpr (IsSameAny<T, int16_t>()) {
+      return _mm512_cmpge_epi16_mask(a, b);
+    }
+    if constexpr (IsSameAny<T, int32_t>()) {
+      return _mm512_cmpge_epi32_mask(a, b);
+    }
+    if constexpr (IsSameAny<T, int64_t>()) {
+      return _mm512_cmpge_epi64_mask(a, b);
+    }
+
+    if constexpr (IsSameAny<T, uint8_t>()) {
+      return _mm512_cmpge_epu8_mask(a, b);
+    }
+    if constexpr (IsSameAny<T, uint16_t>()) {
+      return _mm512_cmpge_epu16_mask(a, b);
+    }
+    if constexpr (IsSameAny<T, uint32_t>()) {
+      return _mm512_cmpge_epu32_mask(a, b);
+    }
+    if constexpr (IsSameAny<T, uint64_t>()) {
+      return _mm512_cmpge_epu64_mask(a, b);
+    }
+    LOG(FATAL) << "Undefined";
+  }
+
+  template <size_t kOther = kNumRegisters>
+  SCANN_AVX512_INLINE auto operator>=(const Avx512<T, kOther>& other) const {
+    return ComparisonOperatorImpl(*this, other, &GreaterOrEquals);
+  }
+
   static SCANN_AVX512_INLINE auto GreaterThan(IntelType a, IntelType b) {
-    static_assert(!IsSameAny<T, float, double>(),
-                  "There's no floating point '>' instruction.");
+    if constexpr (IsSameAny<T, float>()) {
+      return _mm512_cmp_ps_mask(a, b, _CMP_GT_OS);
+    }
+    if constexpr (IsSameAny<T, double>()) {
+      return _mm512_cmp_pd_mask(a, b, _CMP_GT_OS);
+    }
 
     if constexpr (IsSameAny<T, int8_t>()) {
       return _mm512_cmpgt_epi8_mask(a, b);
@@ -614,7 +728,7 @@ class Avx512<T, kNumRegistersInferred> {
       return _mm512_cmpgt_epi32_mask(a, b);
     }
     if constexpr (IsSameAny<T, int64_t>()) {
-      return _mm512_cmpgt_epi64(a, b);
+      return _mm512_cmpgt_epi64_mask(a, b);
     }
 
     if constexpr (IsSameAny<T, uint8_t>()) {
@@ -627,7 +741,7 @@ class Avx512<T, kNumRegistersInferred> {
       return _mm512_cmpgt_epu32_mask(a, b);
     }
     if constexpr (IsSameAny<T, uint64_t>()) {
-      return _mm512_cmpgt_epu64(a, b);
+      return _mm512_cmpgt_epu64_mask(a, b);
     }
     LOG(FATAL) << "Undefined";
   }
@@ -635,6 +749,29 @@ class Avx512<T, kNumRegistersInferred> {
   template <size_t kOther = kNumRegisters>
   SCANN_AVX512_INLINE auto operator>(const Avx512<T, kOther>& other) const {
     return ComparisonOperatorImpl(*this, other, &GreaterThan);
+  }
+
+  SCANN_AVX512_INLINE T GetLowElement() const {
+    static_assert(kNumRegisters == 1);
+    const auto& me = *this;
+
+    if constexpr (IsSameAny<T, float, double>()) {
+      return (*me[0])[0];
+    }
+
+    if constexpr (IsSameAny<T, int8_t, uint8_t>()) {
+      return _mm_extract_epi8(_mm512_castsi512_si128(*me[0]), 0);
+    }
+    if constexpr (IsSameAny<T, int16_t, uint16_t>()) {
+      return _mm_extract_epi16(_mm512_castsi512_si128(*me[0]), 0);
+    }
+    if constexpr (IsSameAny<T, int32_t, uint32_t>()) {
+      return _mm512_cvtsi512_si32(*me[0]);
+    }
+    if constexpr (IsSameAny<T, int64_t, uint64_t>()) {
+      return (*me[0])[0];
+    }
+    LOG(FATAL) << "Undefined";
   }
 
   template <typename U>
@@ -664,7 +801,7 @@ class Avx512<T, kNumRegistersInferred> {
       return double();
     }
     if constexpr (IsSame<T, double>()) {
-      return void();
+      return double();
     }
 
     if constexpr (IsSame<T, int8_t>()) {
@@ -677,7 +814,7 @@ class Avx512<T, kNumRegistersInferred> {
       return int64_t();
     }
     if constexpr (IsSame<T, int64_t>()) {
-      return void();
+      return int64_t();
     }
 
     if constexpr (IsSame<T, uint8_t>()) {
@@ -690,7 +827,7 @@ class Avx512<T, kNumRegistersInferred> {
       return uint64_t();
     }
     if constexpr (IsSame<T, uint64_t>()) {
-      return void();
+      return uint64_t();
     }
   }
   using ExpansionType = decltype(InferExpansionType());
@@ -758,27 +895,11 @@ class Avx512<T, kNumRegistersInferred> {
   friend class Avx512;
 };
 
-template <size_t kNumRegisters>
-class Avx512<void, kNumRegisters> {
- public:
-  static constexpr size_t kRegisterBits = 512;
-  static constexpr size_t kRegisterBytes = 64;
-
-  using IntelType = __m512i;
-
-  static constexpr Avx512Zeros Zeros() { return {}; }
-
-  static constexpr Avx512Uninitialized Uninitialized() { return {}; }
-
- private:
-  Avx512() {}
-};
-
 template <typename T, size_t kTensorNumRegisters0,
           size_t... kTensorNumRegisters>
 class Avx512 {
  public:
-  using Avx512SubArray = Avx512<T, kTensorNumRegisters...>;
+  using SimdSubArray = Avx512<T, kTensorNumRegisters...>;
 
   Avx512(Avx512Uninitialized) {}
   Avx512() : Avx512(Avx512Uninitialized()) {}
@@ -789,22 +910,37 @@ class Avx512 {
     }
   }
 
-  SCANN_AVX512_INLINE Avx512SubArray& operator[](size_t idx) {
+  SCANN_AVX512_INLINE SimdSubArray& operator[](size_t idx) {
     DCHECK_LT(idx, kTensorNumRegisters0);
     return tensor_[idx];
   }
 
-  SCANN_AVX512_INLINE const Avx512SubArray& operator[](size_t idx) const {
+  SCANN_AVX512_INLINE const SimdSubArray& operator[](size_t idx) const {
     DCHECK_LT(idx, kTensorNumRegisters0);
     return tensor_[idx];
+  }
+
+  SCANN_AVX512_INLINE void Store(T* address) const {
+    constexpr size_t kStride =
+        sizeof(decltype(SimdSubArray().Store())) / sizeof(T);
+    for (size_t j : Seq(kTensorNumRegisters0)) {
+      tensor_[j].Store(address + j * kStride);
+    }
+  }
+
+  using StoreResultType =
+      array<decltype(SimdSubArray().Store()), kTensorNumRegisters0>;
+  SCANN_AVX512_INLINE StoreResultType Store() const {
+    StoreResultType ret;
+    for (size_t j : Seq(kTensorNumRegisters0)) {
+      ret[j] = tensor_[j].Store();
+    }
+    return ret;
   }
 
  private:
-  Avx512SubArray tensor_[kTensorNumRegisters0];
+  SimdSubArray tensor_[kTensorNumRegisters0];
 };
-
-template <size_t... kInts>
-constexpr size_t index_sequence_sum_v = (kInts + ...);
 
 template <typename T, size_t... kNumRegisters>
 SCANN_AVX512_INLINE Avx512<T, index_sequence_sum_v<kNumRegisters...>>
@@ -822,56 +958,19 @@ Avx512Concat(const Avx512<T, kNumRegisters>&... inputs) {
   return ret;
 }
 
-template <size_t... kInts>
-constexpr size_t index_sequence_last_v = (kInts, ...);
-
-template <typename Seq0, typename Seq1>
-struct index_sequence_minus_last_impl;
-
-template <size_t... kFirst, size_t kMiddle, size_t... kLast>
-struct index_sequence_minus_last_impl<std::index_sequence<kFirst...>,
-                                      std::index_sequence<kMiddle, kLast...>> {
-  using type = typename index_sequence_minus_last_impl<
-      std::index_sequence<kFirst..., kMiddle>,
-      std::index_sequence<kLast...>>::type;
-};
-
-template <size_t... kFirst, size_t kLast>
-struct index_sequence_minus_last_impl<std::index_sequence<kFirst...>,
-                                      std::index_sequence<kLast>> {
-  using type = std::index_sequence<kFirst...>;
-};
-
-template <size_t... kInts>
-using index_sequence_minus_last_t = typename index_sequence_minus_last_impl<
-    std::index_sequence<>, std::index_sequence<kInts...>>::type;
-
-static_assert(
-    IsSame<index_sequence_minus_last_t<1, 2, 3>, std::index_sequence<1, 2>>());
-
-static_assert(IsSame<index_sequence_minus_last_t<3, 5, 4, 7>,
-                     std::index_sequence<3, 5, 4>>());
-
-template <typename T = void, size_t kNumRegisters0 = 1,
-          size_t... kTensorNumRegisters>
-using Avx512Array = Avx512<T, kNumRegisters0, kTensorNumRegisters...>;
-
-template <typename T, typename TensorSeq, size_t kTensorNumRegisters9>
+template <typename T, typename AllButLastSeq, size_t kLast>
 struct Avx512ForImpl;
 
-template <typename T, size_t... kTensorNumRegisters,
-          size_t kTensorNumRegisters9>
-struct Avx512ForImpl<T, std::index_sequence<kTensorNumRegisters...>,
-                     kTensorNumRegisters9> {
-  using type = Avx512<T, kTensorNumRegisters...,
-                      avx512::InferNumRegisters<T, kTensorNumRegisters9>()>;
+template <typename T, size_t... kAllButLast, size_t kLast>
+struct Avx512ForImpl<T, index_sequence<kAllButLast...>, kLast> {
+  using type = Avx512<T, kAllButLast..., avx512::InferNumRegisters<T, kLast>()>;
 };
 
-template <typename T, size_t... kTensorNumRegisters>
+template <typename T, size_t... kTensorNumElements>
 using Avx512For =
     typename Avx512ForImpl<T,
-                           index_sequence_minus_last_t<kTensorNumRegisters...>,
-                           index_sequence_last_v<kTensorNumRegisters...>>::type;
+                           index_sequence_all_but_last_t<kTensorNumElements...>,
+                           index_sequence_last_v<kTensorNumElements...>>::type;
 
 static_assert(IsSame<Avx512For<uint8_t, 64>, Avx512<uint8_t>>());
 static_assert(IsSame<Avx512For<uint8_t, 64>, Avx512<uint8_t, 1>>());
@@ -895,17 +994,59 @@ SCANN_AVX512_INLINE __m512i fake_mm512_permutex2var_epi256(
        2 * lane_idxs[1] + 1});
 }
 
+SCANN_AVX512_INLINE uint32_t GetComparisonMask(array<__mmask32, 1> cmp) {
+  return cmp[0];
+}
+
+SCANN_AVX512_INLINE uint32_t GetComparisonMask(array<__mmask16, 2> cmp) {
+  return *reinterpret_cast<uint32_t*>(&cmp);
+}
+
+SCANN_AVX512_INLINE uint32_t GetComparisonMask(array<__mmask8, 4> cmp) {
+  return *reinterpret_cast<uint32_t*>(&cmp);
+}
+
+SCANN_AVX512_INLINE uint64_t GetComparisonMask(array<__mmask64, 1> cmp) {
+  return cmp[0];
+}
+
+SCANN_AVX512_INLINE uint64_t GetComparisonMask(array<__mmask32, 2> cmp) {
+  return *reinterpret_cast<uint64_t*>(&cmp);
+}
+
+SCANN_AVX512_INLINE uint64_t GetComparisonMask(array<__mmask16, 4> cmp) {
+  return *reinterpret_cast<uint64_t*>(&cmp);
+}
+
+SCANN_AVX512_INLINE uint64_t GetComparisonMask(array<__mmask8, 8> cmp) {
+  return *reinterpret_cast<uint64_t*>(&cmp);
+}
+
 namespace avx512 {
 
-template <typename T>
-using Simd = Avx512<T>;
+SCANN_INLINE string_view SimdName() { return "AVX-512"; }
+SCANN_INLINE bool RuntimeSupportsSimd() { return RuntimeSupportsAvx512(); }
+
+template <typename T, size_t... kTensorNumRegisters>
+using Simd = Avx512<T, kTensorNumRegisters...>;
+
+template <typename T, size_t kTensorNumElements0, size_t... kTensorNumElements>
+using SimdFor = Avx512For<T, kTensorNumElements0, kTensorNumElements...>;
 
 using Zeros = Avx512Zeros;
 using Uninitialized = Avx512Uninitialized;
 
 }  // namespace avx512
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
+
+#else
+
+namespace research_scann {
+
+template <typename T, size_t... kTensorNumRegisters>
+struct Avx512;
+
+}
 
 #endif
 #endif

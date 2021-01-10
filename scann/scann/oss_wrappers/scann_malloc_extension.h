@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__OSS_WRAPPERS_SCANN_MALLOC_EXTENSION_H_
-#define SCANN__OSS_WRAPPERS_SCANN_MALLOC_EXTENSION_H_
+#ifndef SCANN_OSS_WRAPPERS_SCANN_MALLOC_EXTENSION_H_
+#define SCANN_OSS_WRAPPERS_SCANN_MALLOC_EXTENSION_H_
 
 #include <stddef.h>
 
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class MallocExtension {
  public:
@@ -35,7 +34,6 @@ class MallocExtension {
   static size_t GetAllocatedSize(const void* p) { return 0; }
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

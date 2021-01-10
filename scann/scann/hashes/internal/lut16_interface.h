@@ -12,22 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__HASHES_INTERNAL_LUT16_INTERFACE_H_
-#define SCANN__HASHES_INTERNAL_LUT16_INTERFACE_H_
+#ifndef SCANN_HASHES_INTERNAL_LUT16_INTERFACE_H_
+#define SCANN_HASHES_INTERNAL_LUT16_INTERFACE_H_
 
 #include "scann/hashes/internal/lut16_args.h"
 #include "scann/hashes/internal/lut16_avx2.h"
 #include "scann/hashes/internal/lut16_avx512.h"
 #include "scann/hashes/internal/lut16_sse4.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/alignment.h"
 #include "scann/utils/common.h"
 #include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/intrinsics/flags.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/threadpool.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing_internal {
 
 class LUT16Interface {
@@ -313,7 +312,6 @@ void LUT16Interface::GetTopFloatDistances(LUT16ArgsTopN<float, TopN> args) {
 #endif
 
 }  // namespace asymmetric_hashing_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

@@ -12,28 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "absl/types/optional.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
 #include "scann/scann_ops/cc/scann_npy.h"
 
-#include "absl/types/optional.h"
-
 PYBIND11_MODULE(scann_pybind, py_module) {
   py_module.doc() = "pybind11 wrapper for ScaNN";
-  pybind11::class_<tensorflow::scann_ops::ScannNumpy>(py_module, "ScannNumpy")
+  pybind11::class_<research_scann::ScannNumpy>(py_module, "ScannNumpy")
       .def(pybind11::init<
-           std::optional<const tensorflow::scann_ops::np_row_major_arr<float>>,
-           std::optional<
-               const tensorflow::scann_ops::np_row_major_arr<uint32_t>>,
-           std::optional<
-               const tensorflow::scann_ops::np_row_major_arr<uint8_t>>,
-           std::optional<const tensorflow::scann_ops::np_row_major_arr<int8_t>>,
-           std::optional<const tensorflow::scann_ops::np_row_major_arr<float>>,
-           std::optional<const tensorflow::scann_ops::np_row_major_arr<float>>,
+           std::optional<const research_scann::np_row_major_arr<float>>,
+           std::optional<const research_scann::np_row_major_arr<uint32_t>>,
+           std::optional<const research_scann::np_row_major_arr<uint8_t>>,
+           std::optional<const research_scann::np_row_major_arr<int8_t>>,
+           std::optional<const research_scann::np_row_major_arr<float>>,
+           std::optional<const research_scann::np_row_major_arr<float>>,
            const std::string&>())
-      .def(pybind11::init<const tensorflow::scann_ops::np_row_major_arr<float>&,
+      .def(pybind11::init<const research_scann::np_row_major_arr<float>&,
                           const std::string&, int>())
-      .def("search", &tensorflow::scann_ops::ScannNumpy::Search)
-      .def("search_batched", &tensorflow::scann_ops::ScannNumpy::SearchBatched)
-      .def("serialize", &tensorflow::scann_ops::ScannNumpy::Serialize);
+      .def("search", &research_scann::ScannNumpy::Search)
+      .def("search_batched", &research_scann::ScannNumpy::SearchBatched)
+      .def("serialize", &research_scann::ScannNumpy::Serialize);
 }

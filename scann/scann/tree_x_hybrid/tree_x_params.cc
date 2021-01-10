@@ -15,11 +15,11 @@
 
 
 #include "scann/tree_x_hybrid/tree_x_params.h"
+
 #include "scann/base/search_parameters.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 TreeXOptionalParameters::TreeXOptionalParameters() {}
 TreeXOptionalParameters::~TreeXOptionalParameters() {}
@@ -69,5 +69,4 @@ Status TreeXOptionalParameters::EnablePreTokenization(
   return OkStatus();
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

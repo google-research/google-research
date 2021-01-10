@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__UTILS_SCANN_CONFIG_UTILS_H_
-#define SCANN__UTILS_SCANN_CONFIG_UTILS_H_
+#ifndef SCANN_UTILS_SCANN_CONFIG_UTILS_H_
+#define SCANN_UTILS_SCANN_CONFIG_UTILS_H_
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/features.pb.h"
@@ -22,8 +22,7 @@
 #include "scann/proto/scann.pb.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 Status CanonicalizeScannConfigForRetrieval(ScannConfig* config);
 
@@ -56,7 +55,6 @@ std::string GetPossiblyPartitionedWildcard(const ScannConfig& config);
 int GetNumPartitionedShards(const std::string& partitioner_prefix,
                             int32_t n_epochs);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

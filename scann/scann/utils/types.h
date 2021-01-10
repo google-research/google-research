@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__UTILS_TYPES_H_
-#define SCANN__UTILS_TYPES_H_
+#ifndef SCANN_UTILS_TYPES_H_
+#define SCANN_UTILS_TYPES_H_
 
 #include <limits>
 #include <type_traits>
@@ -23,8 +23,7 @@
 #include "scann/proto/input_output.pb.h"
 #include "scann/utils/common.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 #define DCHECK_OK(val) DCHECK_EQ(OkStatus(), (val))
 
@@ -248,140 +247,140 @@ T NonFpTagErrorOrCrash(uint8_t tag) {
 
 #ifndef SCANN_DISABLE_UNCOMMON_TYPES
 
-#define SCANN_CALL_FUNCTION_BY_TAG(tag, function, ...)                        \
-  [&] {                                                                       \
-    using ReturnT = decltype(function<float>(__VA_ARGS__));                   \
-    switch (tag) {                                                            \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT8:                  \
-        return function<int8_t>(__VA_ARGS__);                                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT8:                 \
-        return function<uint8_t>(__VA_ARGS__);                                \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT16:                 \
-        return function<int16_t>(__VA_ARGS__);                                \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT16:                \
-        return function<uint16_t>(__VA_ARGS__);                               \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT32:                 \
-        return function<int32_t>(__VA_ARGS__);                                \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT32:                \
-        return function<uint32_t>(__VA_ARGS__);                               \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT64:                 \
-        return function<int64_t>(__VA_ARGS__);                                \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT64:                \
-        return function<uint64_t>(__VA_ARGS__);                               \
-      case ::tensorflow::scann_ops::InputOutputConfig::FLOAT:                 \
-        return function<float>(__VA_ARGS__);                                  \
-      case ::tensorflow::scann_ops::InputOutputConfig::DOUBLE:                \
-        return function<double>(__VA_ARGS__);                                 \
-      default:                                                                \
-        return ::tensorflow::scann_ops::InvalidTagErrorOrCrash<ReturnT>(tag); \
-    }                                                                         \
+#define SCANN_CALL_FUNCTION_BY_TAG(tag, function, ...)                 \
+  [&] {                                                                \
+    using ReturnT = decltype(function<float>(__VA_ARGS__));            \
+    switch (tag) {                                                     \
+      case ::research_scann::InputOutputConfig::INT8:                  \
+        return function<int8_t>(__VA_ARGS__);                          \
+      case ::research_scann::InputOutputConfig::UINT8:                 \
+        return function<uint8_t>(__VA_ARGS__);                         \
+      case ::research_scann::InputOutputConfig::INT16:                 \
+        return function<int16_t>(__VA_ARGS__);                         \
+      case ::research_scann::InputOutputConfig::UINT16:                \
+        return function<uint16_t>(__VA_ARGS__);                        \
+      case ::research_scann::InputOutputConfig::INT32:                 \
+        return function<int32_t>(__VA_ARGS__);                         \
+      case ::research_scann::InputOutputConfig::UINT32:                \
+        return function<uint32_t>(__VA_ARGS__);                        \
+      case ::research_scann::InputOutputConfig::INT64:                 \
+        return function<int64_t>(__VA_ARGS__);                         \
+      case ::research_scann::InputOutputConfig::UINT64:                \
+        return function<uint64_t>(__VA_ARGS__);                        \
+      case ::research_scann::InputOutputConfig::FLOAT:                 \
+        return function<float>(__VA_ARGS__);                           \
+      case ::research_scann::InputOutputConfig::DOUBLE:                \
+        return function<double>(__VA_ARGS__);                          \
+      default:                                                         \
+        return ::research_scann::InvalidTagErrorOrCrash<ReturnT>(tag); \
+    }                                                                  \
   }()
 
-#define SCANN_CALL_FUNCTION_BY_TAG_NV(tag, function, ...)                     \
-  [&] {                                                                       \
-    using ReturnT = decltype(function<float>(__VA_ARGS__));                   \
-    switch (tag) {                                                            \
-      case ::tensorflow::scann_ops::InputOutputConfig::                       \
-          IN_MEMORY_DATA_TYPE_NOT_SPECIFIED:                                  \
-        return function<NoValue>(__VA_ARGS__);                                \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT8:                  \
-        return function<int8_t>(__VA_ARGS__);                                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT8:                 \
-        return function<uint8_t>(__VA_ARGS__);                                \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT16:                 \
-        return function<int16_t>(__VA_ARGS__);                                \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT16:                \
-        return function<uint16_t>(__VA_ARGS__);                               \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT32:                 \
-        return function<int32_t>(__VA_ARGS__);                                \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT32:                \
-        return function<uint32_t>(__VA_ARGS__);                               \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT64:                 \
-        return function<int64_t>(__VA_ARGS__);                                \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT64:                \
-        return function<uint64_t>(__VA_ARGS__);                               \
-      case ::tensorflow::scann_ops::InputOutputConfig::FLOAT:                 \
-        return function<float>(__VA_ARGS__);                                  \
-      case ::tensorflow::scann_ops::InputOutputConfig::DOUBLE:                \
-        return function<double>(__VA_ARGS__);                                 \
-      default:                                                                \
-        return ::tensorflow::scann_ops::InvalidTagErrorOrCrash<ReturnT>(tag); \
-    }                                                                         \
+#define SCANN_CALL_FUNCTION_BY_TAG_NV(tag, function, ...)              \
+  [&] {                                                                \
+    using ReturnT = decltype(function<float>(__VA_ARGS__));            \
+    switch (tag) {                                                     \
+      case ::research_scann::InputOutputConfig::                       \
+          IN_MEMORY_DATA_TYPE_NOT_SPECIFIED:                           \
+        return function<NoValue>(__VA_ARGS__);                         \
+      case ::research_scann::InputOutputConfig::INT8:                  \
+        return function<int8_t>(__VA_ARGS__);                          \
+      case ::research_scann::InputOutputConfig::UINT8:                 \
+        return function<uint8_t>(__VA_ARGS__);                         \
+      case ::research_scann::InputOutputConfig::INT16:                 \
+        return function<int16_t>(__VA_ARGS__);                         \
+      case ::research_scann::InputOutputConfig::UINT16:                \
+        return function<uint16_t>(__VA_ARGS__);                        \
+      case ::research_scann::InputOutputConfig::INT32:                 \
+        return function<int32_t>(__VA_ARGS__);                         \
+      case ::research_scann::InputOutputConfig::UINT32:                \
+        return function<uint32_t>(__VA_ARGS__);                        \
+      case ::research_scann::InputOutputConfig::INT64:                 \
+        return function<int64_t>(__VA_ARGS__);                         \
+      case ::research_scann::InputOutputConfig::UINT64:                \
+        return function<uint64_t>(__VA_ARGS__);                        \
+      case ::research_scann::InputOutputConfig::FLOAT:                 \
+        return function<float>(__VA_ARGS__);                           \
+      case ::research_scann::InputOutputConfig::DOUBLE:                \
+        return function<double>(__VA_ARGS__);                          \
+      default:                                                         \
+        return ::research_scann::InvalidTagErrorOrCrash<ReturnT>(tag); \
+    }                                                                  \
   }()
 
 #else
 
-#define SCANN_CALL_FUNCTION_BY_TAG(tag, function, ...)                         \
-  [&] {                                                                        \
-    using ReturnT = decltype(function<float>(__VA_ARGS__));                    \
-    switch (tag) {                                                             \
-      case ::tensorflow::scann_ops::InputOutputConfig::FLOAT:                  \
-        return function<float>(__VA_ARGS__);                                   \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT8:                  \
-        return function<uint8_t>(__VA_ARGS__);                                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT8:                   \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT16:                  \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT16:                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT32:                  \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT32:                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT64:                  \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT64:                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::DOUBLE:                 \
-        return ::tensorflow::scann_ops::DisabledTagErrorOrCrash<ReturnT>(tag); \
-      default:                                                                 \
-        return ::tensorflow::scann_ops::InvalidTagErrorOrCrash<ReturnT>(tag);  \
-    }                                                                          \
+#define SCANN_CALL_FUNCTION_BY_TAG(tag, function, ...)                  \
+  [&] {                                                                 \
+    using ReturnT = decltype(function<float>(__VA_ARGS__));             \
+    switch (tag) {                                                      \
+      case ::research_scann::InputOutputConfig::FLOAT:                  \
+        return function<float>(__VA_ARGS__);                            \
+      case ::research_scann::InputOutputConfig::UINT8:                  \
+        return function<uint8_t>(__VA_ARGS__);                          \
+      case ::research_scann::InputOutputConfig::INT8:                   \
+      case ::research_scann::InputOutputConfig::INT16:                  \
+      case ::research_scann::InputOutputConfig::UINT16:                 \
+      case ::research_scann::InputOutputConfig::INT32:                  \
+      case ::research_scann::InputOutputConfig::UINT32:                 \
+      case ::research_scann::InputOutputConfig::INT64:                  \
+      case ::research_scann::InputOutputConfig::UINT64:                 \
+      case ::research_scann::InputOutputConfig::DOUBLE:                 \
+        return ::research_scann::DisabledTagErrorOrCrash<ReturnT>(tag); \
+      default:                                                          \
+        return ::research_scann::InvalidTagErrorOrCrash<ReturnT>(tag);  \
+    }                                                                   \
   }()
 
-#define SCANN_CALL_FUNCTION_BY_TAG_NV(tag, function, ...)                      \
-  [&] {                                                                        \
-    using ReturnT = decltype(function<float>(__VA_ARGS__));                    \
-    switch (tag) {                                                             \
-      case ::tensorflow::scann_ops::InputOutputConfig::                        \
-          IN_MEMORY_DATA_TYPE_NOT_SPECIFIED:                                   \
-        return function<NoValue>(__VA_ARGS__);                                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::FLOAT:                  \
-        return function<float>(__VA_ARGS__);                                   \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT8:                  \
-        return function<uint8_t>(__VA_ARGS__);                                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT8:                   \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT16:                  \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT16:                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT32:                  \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT32:                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT64:                  \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT64:                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::DOUBLE:                 \
-        return ::tensorflow::scann_ops::DisabledTagErrorOrCrash<ReturnT>(tag); \
-      default:                                                                 \
-        return ::tensorflow::scann_ops::InvalidTagErrorOrCrash<ReturnT>(tag);  \
-    }                                                                          \
+#define SCANN_CALL_FUNCTION_BY_TAG_NV(tag, function, ...)               \
+  [&] {                                                                 \
+    using ReturnT = decltype(function<float>(__VA_ARGS__));             \
+    switch (tag) {                                                      \
+      case ::research_scann::InputOutputConfig::                        \
+          IN_MEMORY_DATA_TYPE_NOT_SPECIFIED:                            \
+        return function<NoValue>(__VA_ARGS__);                          \
+      case ::research_scann::InputOutputConfig::FLOAT:                  \
+        return function<float>(__VA_ARGS__);                            \
+      case ::research_scann::InputOutputConfig::UINT8:                  \
+        return function<uint8_t>(__VA_ARGS__);                          \
+      case ::research_scann::InputOutputConfig::INT8:                   \
+      case ::research_scann::InputOutputConfig::INT16:                  \
+      case ::research_scann::InputOutputConfig::UINT16:                 \
+      case ::research_scann::InputOutputConfig::INT32:                  \
+      case ::research_scann::InputOutputConfig::UINT32:                 \
+      case ::research_scann::InputOutputConfig::INT64:                  \
+      case ::research_scann::InputOutputConfig::UINT64:                 \
+      case ::research_scann::InputOutputConfig::DOUBLE:                 \
+        return ::research_scann::DisabledTagErrorOrCrash<ReturnT>(tag); \
+      default:                                                          \
+        return ::research_scann::InvalidTagErrorOrCrash<ReturnT>(tag);  \
+    }                                                                   \
   }()
 
 #endif
 
-#define SCANN_CALL_FUNCTION_BY_FPTAG(tag, function, ...)                      \
-  [&] {                                                                       \
-    using ReturnT = decltype(function<float>(__VA_ARGS__));                   \
-    switch (tag) {                                                            \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT8:                  \
-        return function<int8_t>(__VA_ARGS__);                                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT8:                 \
-        return function<uint8_t>(__VA_ARGS__);                                \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT16:                 \
-        return function<int16_t>(__VA_ARGS__);                                \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT16:                \
-        return function<uint16_t>(__VA_ARGS__);                               \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT32:                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT32:                \
-      case ::tensorflow::scann_ops::InputOutputConfig::INT64:                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::UINT64:                \
-      case ::tensorflow::scann_ops::InputOutputConfig::FLOAT:                 \
-      case ::tensorflow::scann_ops::InputOutputConfig::DOUBLE:                \
-        return ::tensorflow::scann_ops::NonFpTagErrorOrCrash<ReturnT>(tag);   \
-      default:                                                                \
-        return ::tensorflow::scann_ops::InvalidTagErrorOrCrash<ReturnT>(tag); \
-    }                                                                         \
+#define SCANN_CALL_FUNCTION_BY_FPTAG(tag, function, ...)               \
+  [&] {                                                                \
+    using ReturnT = decltype(function<float>(__VA_ARGS__));            \
+    switch (tag) {                                                     \
+      case ::research_scann::InputOutputConfig::INT8:                  \
+        return function<int8_t>(__VA_ARGS__);                          \
+      case ::research_scann::InputOutputConfig::UINT8:                 \
+        return function<uint8_t>(__VA_ARGS__);                         \
+      case ::research_scann::InputOutputConfig::INT16:                 \
+        return function<int16_t>(__VA_ARGS__);                         \
+      case ::research_scann::InputOutputConfig::UINT16:                \
+        return function<uint16_t>(__VA_ARGS__);                        \
+      case ::research_scann::InputOutputConfig::INT32:                 \
+      case ::research_scann::InputOutputConfig::UINT32:                \
+      case ::research_scann::InputOutputConfig::INT64:                 \
+      case ::research_scann::InputOutputConfig::UINT64:                \
+      case ::research_scann::InputOutputConfig::FLOAT:                 \
+      case ::research_scann::InputOutputConfig::DOUBLE:                \
+        return ::research_scann::NonFpTagErrorOrCrash<ReturnT>(tag);   \
+      default:                                                         \
+        return ::research_scann::InvalidTagErrorOrCrash<ReturnT>(tag); \
+    }                                                                  \
   }()
 
 #define SCANN_INSTANTIATE_TYPED_CLASS(EXTERN_KEYWORD, ClassName) \
@@ -454,7 +453,6 @@ constexpr T MaxOrInfinity() {
   }
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

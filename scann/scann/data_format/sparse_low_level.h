@@ -14,13 +14,12 @@
 
 
 
-#ifndef SCANN__DATA_FORMAT_SPARSE_LOW_LEVEL_H_
-#define SCANN__DATA_FORMAT_SPARSE_LOW_LEVEL_H_
+#ifndef SCANN_DATA_FORMAT_SPARSE_LOW_LEVEL_H_
+#define SCANN_DATA_FORMAT_SPARSE_LOW_LEVEL_H_
 
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename IndexT, typename ValueT>
 struct SparseLowLevelDatapoint {
@@ -145,7 +144,6 @@ class SparseDatasetLowLevel {
   std::vector<StartOffsetT> start_offsets_ = {0};
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

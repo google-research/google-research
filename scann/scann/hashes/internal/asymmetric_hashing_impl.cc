@@ -29,8 +29,7 @@
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing_internal {
 
 class ParallelPerpendicularDistance : public DistanceMeasure {
@@ -102,7 +101,7 @@ double ComputeNormBiasCorrection(const DenseDataset<double>& db,
 template <typename T>
 StatusOr<vector<DenseDataset<double>>> AhImpl<T>::TrainAsymmetricHashing(
     const TypedDataset<T>& dataset, const TrainingOptionsT& opts,
-    shared_ptr<thread::ThreadPool> pool) {
+    shared_ptr<ThreadPool> pool) {
   if (dataset.empty()) {
     return InvalidArgumentError("Cannot train AH on an empty dataset.");
   }
@@ -760,5 +759,4 @@ template class PopulateDistancesIterator<6, LimitedInnerFunctor>;
 SCANN_INSTANTIATE_TYPED_CLASS(, AhImpl);
 
 }  // namespace asymmetric_hashing_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

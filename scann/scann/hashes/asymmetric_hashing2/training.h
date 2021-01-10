@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__HASHES_ASYMMETRIC_HASHING2_TRAINING_H_
-#define SCANN__HASHES_ASYMMETRIC_HASHING2_TRAINING_H_
+#ifndef SCANN_HASHES_ASYMMETRIC_HASHING2_TRAINING_H_
+#define SCANN_HASHES_ASYMMETRIC_HASHING2_TRAINING_H_
 
 #include <utility>
 
@@ -25,17 +25,16 @@
 #include "scann/hashes/internal/asymmetric_hashing_impl.h"
 #include "scann/hashes/internal/stacked_quantizers.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/threadpool.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing2 {
 
 template <typename T>
 StatusOr<unique_ptr<Model<T>>> TrainSingleMachine(
     const TypedDataset<T>& dataset, const TrainingOptions<T>& params,
-    shared_ptr<thread::ThreadPool> pool = nullptr) {
+    shared_ptr<ThreadPool> pool = nullptr) {
   if (params.config().quantization_scheme() ==
       AsymmetricHasherConfig::STACKED) {
     if (!dataset.IsDense())
@@ -44,7 +43,7 @@ StatusOr<unique_ptr<Model<T>>> TrainSingleMachine(
     const auto& dense = down_cast<const DenseDataset<T>&>(dataset);
     TF_ASSIGN_OR_RETURN(
         auto centers,
-        ::tensorflow::scann_ops::asymmetric_hashing_internal::StackedQuantizers<
+        ::research_scann::asymmetric_hashing_internal::StackedQuantizers<
             T>::Train(dense, params, pool));
     return Model<T>::FromCenters(std::move(centers),
                                  params.config().quantization_scheme());
@@ -62,16 +61,17 @@ StatusOr<unique_ptr<Model<T>>> TrainSingleMachine(
 
     TF_ASSIGN_OR_RETURN(
         auto centers,
-        ::tensorflow::scann_ops::asymmetric_hashing_internal::
-            TrainAsymmetricHashing(dataset_no_bias, params, pool));
+        ::research_scann::asymmetric_hashing_internal::TrainAsymmetricHashing(
+            dataset_no_bias, params, pool));
     auto converted = asymmetric_hashing_internal::ConvertCentersIfNecessary<T>(
         std::move(centers));
     return Model<T>::FromCenters(std::move(converted),
                                  params.config().quantization_scheme());
   } else {
-    TF_ASSIGN_OR_RETURN(auto centers,
-                        ::tensorflow::scann_ops::asymmetric_hashing_internal::
-                            TrainAsymmetricHashing(dataset, params, pool));
+    TF_ASSIGN_OR_RETURN(
+        auto centers,
+        ::research_scann::asymmetric_hashing_internal::TrainAsymmetricHashing(
+            dataset, params, pool));
     auto converted = asymmetric_hashing_internal::ConvertCentersIfNecessary<T>(
         std::move(centers));
     return Model<T>::FromCenters(std::move(converted),
@@ -80,7 +80,6 @@ StatusOr<unique_ptr<Model<T>>> TrainSingleMachine(
 }
 
 }  // namespace asymmetric_hashing2
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

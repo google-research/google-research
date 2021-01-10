@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__HASHES_INTERNAL_ASYMMETRIC_HASHING_IMPL_H_
-#define SCANN__HASHES_INTERNAL_ASYMMETRIC_HASHING_IMPL_H_
+#ifndef SCANN_HASHES_INTERNAL_ASYMMETRIC_HASHING_IMPL_H_
+#define SCANN_HASHES_INTERNAL_ASYMMETRIC_HASHING_IMPL_H_
 
 #include <cmath>
 
@@ -26,14 +26,12 @@
 #include "scann/hashes/internal/asymmetric_hashing_postprocess.h"
 #include "scann/oss_wrappers/scann_aligned_malloc.h"
 #include "scann/utils/common.h"
-#include "tensorflow/core/platform/prefetch.h"
-
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
+#include "tensorflow/core/platform/prefetch.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing_internal {
 
 template <typename T>
@@ -60,7 +58,7 @@ struct AhImpl {
 
   static StatusOr<std::vector<DenseDataset<double>>> TrainAsymmetricHashing(
       const TypedDataset<T>& dataset, const TrainingOptionsT& opts,
-      shared_ptr<thread::ThreadPool> pool);
+      shared_ptr<ThreadPool> pool);
 
   static Status IndexDatapoint(const DatapointPtr<T>& input,
                                const ChunkingProjection<T>& projection,
@@ -93,7 +91,7 @@ template <typename T>
 StatusOr<std::vector<DenseDataset<double>>> TrainAsymmetricHashing(
     const TypedDataset<T>& dataset,
     const asymmetric_hashing2::TrainingOptionsTyped<T>& opts,
-    shared_ptr<thread::ThreadPool> pool) {
+    shared_ptr<ThreadPool> pool) {
   return AhImpl<T>::TrainAsymmetricHashing(dataset, opts, std::move(pool));
 }
 
@@ -380,21 +378,33 @@ GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters(
     const LookupElement* cur_lookup_row =
         lookup.data() + num_centers * (num_blocks - 1);
     ssize_t j = num_blocks - 1;
+    DCHECK_LT(hashed_database_point0[j], num_centers);
     UnsignedDist sum0 = cur_lookup_row[hashed_database_point0[j]];
+    DCHECK_LT(hashed_database_point1[j], num_centers);
     UnsignedDist sum1 = cur_lookup_row[hashed_database_point1[j]];
+    DCHECK_LT(hashed_database_point2[j], num_centers);
     UnsignedDist sum2 = cur_lookup_row[hashed_database_point2[j]];
+    DCHECK_LT(hashed_database_point3[j], num_centers);
     UnsignedDist sum3 = cur_lookup_row[hashed_database_point3[j]];
+    DCHECK_LT(hashed_database_point4[j], num_centers);
     UnsignedDist sum4 = cur_lookup_row[hashed_database_point4[j]];
+    DCHECK_LT(hashed_database_point5[j], num_centers);
     UnsignedDist sum5 = cur_lookup_row[hashed_database_point5[j]];
     cur_lookup_row -= num_centers;
     --j;
 
     for (; j >= 0; --j) {
+      DCHECK_LT(hashed_database_point0[j], num_centers);
       sum0 += cur_lookup_row[hashed_database_point0[j]];
+      DCHECK_LT(hashed_database_point1[j], num_centers);
       sum1 += cur_lookup_row[hashed_database_point1[j]];
+      DCHECK_LT(hashed_database_point2[j], num_centers);
       sum2 += cur_lookup_row[hashed_database_point2[j]];
+      DCHECK_LT(hashed_database_point3[j], num_centers);
       sum3 += cur_lookup_row[hashed_database_point3[j]];
+      DCHECK_LT(hashed_database_point4[j], num_centers);
       sum4 += cur_lookup_row[hashed_database_point4[j]];
+      DCHECK_LT(hashed_database_point5[j], num_centers);
       sum5 += cur_lookup_row[hashed_database_point5[j]];
       cur_lookup_row -= num_centers;
     }
@@ -411,9 +421,11 @@ GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters(
     const LookupElement* cur_lookup_row = lookup.data();
     const uint8_t* hashed_database_point =
         hashed_database->GetPtr(it.GetOffsetIndex(offset));
+    DCHECK_LT(hashed_database_point[0], num_centers);
     UnsignedDist sum = cur_lookup_row[hashed_database_point[0]];
     cur_lookup_row += num_centers;
     for (size_t j = 1; j < num_blocks; ++j) {
+      DCHECK_LT(hashed_database_point[j], num_centers);
       sum += cur_lookup_row[hashed_database_point[j]];
       cur_lookup_row += num_centers;
     }
@@ -522,7 +534,6 @@ extern template class PopulateDistancesIterator<6, AddBiasFunctor>;
 extern template class PopulateDistancesIterator<6, LimitedInnerFunctor>;
 
 }  // namespace asymmetric_hashing_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

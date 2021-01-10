@@ -14,8 +14,7 @@
 
 #include "scann/scann_ops/cc/scann_npy.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 inline pybind11::array_t<T> VectorToNumpy2D(const std::vector<T>& v,
@@ -152,5 +151,4 @@ void ScannNumpy::Serialize(std::string path) {
                       status);
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

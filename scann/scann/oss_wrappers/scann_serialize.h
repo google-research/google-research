@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__OSS_WRAPPERS_SCANN_SERIALIZE_H_
-#define SCANN__OSS_WRAPPERS_SCANN_SERIALIZE_H_
+#ifndef SCANN_OSS_WRAPPERS_SCANN_SERIALIZE_H_
+#define SCANN_OSS_WRAPPERS_SCANN_SERIALIZE_H_
 
 #include <string>
 
 #include "absl/strings/string_view.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace strings {
 
 std::string Uint32ToKey(uint32_t u32);
@@ -34,7 +33,6 @@ void KeyFromFloat(float x, std::string* key);
 std::string FloatToKey(float x);
 
 }  // namespace strings
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

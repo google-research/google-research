@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__DISTANCE_MEASURES_ONE_TO_ONE_L2_DISTANCE_SSE4_H_
-#define SCANN__DISTANCE_MEASURES_ONE_TO_ONE_L2_DISTANCE_SSE4_H_
+#ifndef SCANN_DISTANCE_MEASURES_ONE_TO_ONE_L2_DISTANCE_SSE4_H_
+#define SCANN_DISTANCE_MEASURES_ONE_TO_ONE_L2_DISTANCE_SSE4_H_
 #ifdef __x86_64__
 
 #include "scann/data_format/datapoint.h"
 #include "scann/utils/intrinsics/attributes.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace l2_internal {
 
 SCANN_SSE4_OUTLINE double DenseSquaredL2DistanceSse4(
@@ -33,8 +32,7 @@ SCANN_SSE4_OUTLINE double DenseSquaredL2DistanceSse4(
     const DatapointPtr<double>& a, const DatapointPtr<double>& b);
 
 }  // namespace l2_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif
 #endif

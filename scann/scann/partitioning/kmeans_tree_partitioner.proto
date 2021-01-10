@@ -14,7 +14,7 @@
 
 syntax = "proto2";
 
-package tensorflow.scann_ops;
+package research_scann;
 
 import "scann/trees/kmeans_tree/kmeans_tree.proto";
 

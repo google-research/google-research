@@ -14,14 +14,13 @@
 
 
 
-#ifndef SCANN__DISTANCE_MEASURES_MANY_TO_MANY_FP8_TRANSPOSED_H_
-#define SCANN__DISTANCE_MEASURES_MANY_TO_MANY_FP8_TRANSPOSED_H_
+#ifndef SCANN_DISTANCE_MEASURES_MANY_TO_MANY_FP8_TRANSPOSED_H_
+#define SCANN_DISTANCE_MEASURES_MANY_TO_MANY_FP8_TRANSPOSED_H_
 
 #include "scann/data_format/dataset.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 class FP8SimdBlockTransposedDatabase {
  public:
@@ -72,7 +71,6 @@ class FP8SimdBlockTransposedDatabase {
   uint8_t simd_block_size_ : 5;
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

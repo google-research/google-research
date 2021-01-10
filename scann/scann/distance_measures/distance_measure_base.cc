@@ -14,10 +14,8 @@
 
 #include "scann/distance_measures/distance_measure_base.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 void DistanceMeasure::UnusedKeyMethod() {}
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

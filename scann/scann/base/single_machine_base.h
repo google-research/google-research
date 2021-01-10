@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__BASE_SINGLE_MACHINE_BASE_H_
-#define SCANN__BASE_SINGLE_MACHINE_BASE_H_
+#ifndef SCANN_BASE_SINGLE_MACHINE_BASE_H_
+#define SCANN_BASE_SINGLE_MACHINE_BASE_H_
 
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_factory_options.h"
@@ -32,8 +32,7 @@
 #include "scann/utils/util_functions.h"
 #include "tensorflow/core/lib/core/errors.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 class SingleMachineSearcherBase;
@@ -44,7 +43,7 @@ class UntypedSingleMachineSearcherBase {
 
   virtual ~UntypedSingleMachineSearcherBase();
 
-  virtual tensorflow::scann_ops::TypeTag TypeTag() const = 0;
+  virtual research_scann::TypeTag TypeTag() const = 0;
 
   virtual const Dataset* dataset() const = 0;
 
@@ -303,9 +302,7 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
                                     const DatapointPtr<T>& query,
                                     NearestNeighbors::Neighbor* result) const;
 
-  tensorflow::scann_ops::TypeTag TypeTag() const final {
-    return TagForType<T>();
-  }
+  research_scann::TypeTag TypeTag() const final { return TagForType<T>(); }
 
   const TypedDataset<T>* dataset() const final { return dataset_.get(); }
 
@@ -504,7 +501,6 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, SingleMachineSearcherBase);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

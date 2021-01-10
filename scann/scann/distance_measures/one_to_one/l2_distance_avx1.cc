@@ -17,8 +17,7 @@
 
 #include "scann/utils/intrinsics/avx1.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace l2_internal {
 
 SCANN_AVX1_INLINE __m256d AddTerms256(__m256d accumulator, const double* aptr,
@@ -78,7 +77,6 @@ SCANN_AVX1_OUTLINE double DenseSquaredL2DistanceAvx1(
 }
 
 }  // namespace l2_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

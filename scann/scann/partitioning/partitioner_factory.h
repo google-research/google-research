@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__PARTITIONING_PARTITIONER_FACTORY_H_
-#define SCANN__PARTITIONING_PARTITIONER_FACTORY_H_
+#ifndef SCANN_PARTITIONING_PARTITIONER_FACTORY_H_
+#define SCANN_PARTITIONING_PARTITIONER_FACTORY_H_
 
 #include <memory>
 
@@ -29,8 +29,7 @@
 #include "scann/utils/util_functions.h"
 #include "tensorflow/core/lib/core/errors.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 StatusOr<unique_ptr<Partitioner<T>>> PartitionerFromSerialized(
@@ -114,7 +113,6 @@ SCANN_INSTANTIATE_SERIALIZED_PARTITIONER_FACTORY(extern, uint64_t);
 SCANN_INSTANTIATE_SERIALIZED_PARTITIONER_FACTORY(extern, float);
 SCANN_INSTANTIATE_SERIALIZED_PARTITIONER_FACTORY(extern, double);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

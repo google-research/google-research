@@ -21,8 +21,7 @@
 #include "absl/random/random.h"
 #include "scann/utils/datapoint_utils.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 RandomOrthogonalProjection<T>::RandomOrthogonalProjection(
@@ -89,5 +88,4 @@ Status RandomOrthogonalProjection<T>::ProjectInputImpl(
 DEFINE_PROJECT_INPUT_OVERRIDES(RandomOrthogonalProjection);
 SCANN_INSTANTIATE_TYPED_CLASS(, RandomOrthogonalProjection);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

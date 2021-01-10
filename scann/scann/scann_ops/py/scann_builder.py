@@ -25,7 +25,7 @@ def _factory_decorator(key):
 
     def inner(self, *args, **kwargs):
       if key in self.params:
-        raise Exception("{} has already been configured".format(key))
+        raise Exception(f"{key} has already been configured")
       kwargs.update(zip(f.__code__.co_varnames[1:], args))
       self.params[key] = kwargs
       return self
@@ -77,27 +77,24 @@ class ScannBuilder(object):
       # the following are set automatically
       distance_measure=None):
     """Configure partitioning. If not called, no partitioning is performed."""
-    return """
+    return f"""
       partitioning {{
-        num_children: {}
-        min_cluster_size: {}
-        max_clustering_iterations: {}
+        num_children: {num_leaves}
+        min_cluster_size: {min_partition_size}
+        max_clustering_iterations: {training_iterations}
         partitioning_distance {{
           distance_measure: "SquaredL2Distance"
         }}
         query_spilling {{
           spilling_type: FIXED_NUMBER_OF_CENTERS
-          max_spill_centers: {}
+          max_spill_centers: {num_leaves_to_search}
         }}
-        expected_sample_size: {}
-        query_tokenization_distance_override {}
-        partitioning_type: {}
-        query_tokenization_type: {}
+        expected_sample_size: {training_sample_size}
+        query_tokenization_distance_override {distance_measure}
+        partitioning_type: {"SPHERICAL" if spherical else "GENERIC"}
+        query_tokenization_type: {"FIXED_POINT_INT8" if quantize_centroids else "FLOAT"}
       }}
-    """.format(num_leaves, min_partition_size, training_iterations,
-               num_leaves_to_search, training_sample_size, distance_measure,
-               "SPHERICAL" if spherical else "GENERIC",
-               "FIXED_POINT_INT8" if quantize_centroids else "FLOAT")
+    """
 
   @_factory_decorator("score_ah")
   def score_ah(
@@ -120,74 +117,70 @@ class ScannBuilder(object):
       clusters_per_block = 256
       lookup_type = "INT8"
     else:
-      raise ValueError("hash_type must be one of {}".format(hash_types))
+      raise ValueError(f"hash_type must be one of {hash_types}")
     if n_dims % dimensions_per_block == 0:
-      proj_config = """
+      proj_config = f"""
         projection_type: CHUNK
-        num_blocks: {}
-        num_dims_per_block: {}
-      """.format(n_dims // dimensions_per_block, dimensions_per_block)
+        num_blocks: {n_dims // dimensions_per_block}
+        num_dims_per_block: {dimensions_per_block}
+      """
     else:
-      proj_config = """
+      proj_config = f"""
         projection_type: VARIABLE_CHUNK
         variable_blocks {{
-          num_blocks: {}
-          num_dims_per_block: {}
+          num_blocks: {n_dims // dimensions_per_block}
+          num_dims_per_block: {dimensions_per_block}
         }}
         variable_blocks {{
-          num_blocks: {}
-          num_dims_per_block: {}
+          num_blocks: {1}
+          num_dims_per_block: {n_dims % dimensions_per_block}
         }}
-      """.format(n_dims // dimensions_per_block, dimensions_per_block, 1,
-                 n_dims % dimensions_per_block)
-    num_blocks = math.ceil(n_dims / dimensions_per_block)
+      """
+    num_blocks = math.ceil(int(n_dims) / dimensions_per_block)
     # global top-N requires LUT16, int16 accumulators, and residual quantization
     global_topn = (hash_type == hash_types[0]) and (
         num_blocks <= 256) and residual_quantization
-    return """
+    return f"""
       hash {{
         asymmetric_hash {{
-          lookup_type: {}
-          use_residual_quantization: {}
-          use_global_topn: {}
+          lookup_type: {lookup_type}
+          use_residual_quantization: {residual_quantization}
+          use_global_topn: {global_topn}
           quantization_distance {{
             distance_measure: "SquaredL2Distance"
           }}
-          num_clusters_per_block: {}
+          num_clusters_per_block: {clusters_per_block}
           projection {{
-            input_dim: {}
-            {}
+            input_dim: {n_dims}
+            {proj_config}
           }}
-          noise_shaping_threshold: {}
-          expected_sample_size: {}
-          min_cluster_size: {}
-          max_clustering_iterations: {}
+          noise_shaping_threshold: {anisotropic_quantization_threshold}
+          expected_sample_size: {training_sample_size}
+          min_cluster_size: {min_cluster_size}
+          max_clustering_iterations: {training_iterations}
         }}
-      }} """.format(lookup_type, residual_quantization, global_topn,
-                    clusters_per_block, n_dims, proj_config,
-                    anisotropic_quantization_threshold, training_sample_size,
-                    min_cluster_size, training_iterations)
+      }} """
 
   @_factory_decorator("score_bf")
   def score_brute_force(self, quantize=False):
-    return """
+    return f"""
       brute_force {{
         fixed_point {{
-          enabled: {}
+          enabled: {quantize}
         }}
       }}
-    """.format(quantize)
+    """
 
   @_factory_decorator("reorder")
   def reorder(self, reordering_num_neighbors, quantize=False):
-    return """
+    return f"""
       exact_reordering {{
-        approx_num_neighbors: {}
+        approx_num_neighbors: {reordering_num_neighbors}
         fixed_point {{
-          enabled: {}
+          enabled: {quantize}
         }}
       }}
-    """.format(reordering_num_neighbors, quantize)
+    """
 
   def create_config(self):
     """Returns a text ScaNN config matching the specification in self.params."""
@@ -197,12 +190,12 @@ class ScannBuilder(object):
     }
     distance_measure = allowed_measures.get(self.distance_measure)
     if distance_measure is None:
-      raise ValueError("distance_measure must be one of {}".format(
-          list(allowed_measures.keys())))
-    config = """
-      num_neighbors: {}
-      distance_measure {}
-    """.format(self.num_neighbors, distance_measure)
+      raise ValueError(
+          f"distance_measure must be one of {list(allowed_measures.keys())}")
+    config = f"""
+      num_neighbors: {self.num_neighbors}
+      distance_measure {distance_measure}
+    """
 
     tree_params = self.params.get("tree")
     if tree_params is not None:

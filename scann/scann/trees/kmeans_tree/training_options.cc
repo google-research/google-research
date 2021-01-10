@@ -19,8 +19,7 @@
 #include "scann/proto/partitioning.pb.h"
 #include "scann/utils/gmm_utils.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 KMeansTreeTrainingOptions::KMeansTreeTrainingOptions() {}
 
@@ -66,5 +65,4 @@ KMeansTreeTrainingOptions::KMeansTreeTrainingOptions(
   }
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__DISTANCE_MEASURES_ONE_TO_ONE_COMMON_H_
-#define SCANN__DISTANCE_MEASURES_ONE_TO_ONE_COMMON_H_
+#ifndef SCANN_DISTANCE_MEASURES_ONE_TO_ONE_COMMON_H_
+#define SCANN_DISTANCE_MEASURES_ONE_TO_ONE_COMMON_H_
 
 #include "scann/data_format/datapoint.h"
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T, typename U>
 inline double SparseDenseDispatch(
@@ -195,7 +194,6 @@ SCANN_INLINE double GetDistanceDenseEarlyStopping(const DistanceT& dist,
 #define SCANN_REGISTER_DISTANCE_MEASURE(CLASS) \
   string_view CLASS::name() const { return #CLASS; }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

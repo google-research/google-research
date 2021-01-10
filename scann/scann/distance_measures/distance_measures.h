@@ -12,25 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__DISTANCE_MEASURES_DISTANCE_MEASURES_H_
-#define SCANN__DISTANCE_MEASURES_DISTANCE_MEASURES_H_
+#ifndef SCANN_DISTANCE_MEASURES_DISTANCE_MEASURES_H_
+#define SCANN_DISTANCE_MEASURES_DISTANCE_MEASURES_H_
 
 #include "scann/distance_measures/distance_measure_base.h"
-
-#include "scann/distance_measures/one_to_one/dot_product.h"
-
-#include "scann/distance_measures/one_to_one/l2_distance.h"
-
-#include "scann/distance_measures/one_to_one/l1_distance.h"
-
 #include "scann/distance_measures/one_to_one/cosine_distance.h"
-
-#include "scann/distance_measures/one_to_one/jaccard_distance.h"
-
-#include "scann/distance_measures/one_to_one/limited_inner_product.h"
-
+#include "scann/distance_measures/one_to_one/dot_product.h"
 #include "scann/distance_measures/one_to_one/hamming_distance.h"
-
+#include "scann/distance_measures/one_to_one/jaccard_distance.h"
+#include "scann/distance_measures/one_to_one/l1_distance.h"
+#include "scann/distance_measures/one_to_one/l2_distance.h"
+#include "scann/distance_measures/one_to_one/limited_inner_product.h"
 #include "scann/distance_measures/one_to_one/nonzero_intersect_distance.h"
 
 #endif

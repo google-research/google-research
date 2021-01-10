@@ -19,13 +19,13 @@
 #include <numeric>
 
 #include "absl/base/internal/sysinfo.h"
+#include "absl/container/node_hash_map.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/platform/cpu_info.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 #ifdef __SSE3__
 
@@ -89,8 +89,8 @@ void RemoveNeighborsPastLimit(DatapointIndex num_neighbors,
 namespace {
 
 struct PartiallyConsumedNeighborList {
-  protobuf::RepeatedPtrField<NearestNeighbors::Neighbor>* neighbor_list =
-      nullptr;
+  google::protobuf::RepeatedPtrField<NearestNeighbors::Neighbor>*
+      neighbor_list = nullptr;
 
   int pos = 0;
 };
@@ -105,8 +105,8 @@ class PartiallyConsumedNeighborListComparator {
 };
 
 void ReleaseAllNeighbors(
-    protobuf::RepeatedPtrField<NearestNeighbors::Neighbor>* list) {
-  while (list->size()) {
+    google::protobuf::RepeatedPtrField<NearestNeighbors::Neighbor>* list) {
+  while (!list->empty()) {
     list->ReleaseLast();
   }
 }
@@ -142,7 +142,7 @@ inline NearestNeighbors MergeNeighborListsImpl(
   }
 
   result.mutable_docid()->swap(*neighbor_lists[0].mutable_docid());
-  if (heap.size() == 0) {
+  if (heap.empty()) {
     return result;
   }
 
@@ -223,7 +223,7 @@ void MergeNeighborListsSwapImpl(MutableSpan<NearestNeighbors*> neighbor_lists,
   }
 
   result->mutable_docid()->swap(*neighbor_lists[0]->mutable_docid());
-  if (heap.size() == 0) {
+  if (heap.empty()) {
     return;
   }
 
@@ -307,7 +307,7 @@ void MergeNeighborListsSwap(MutableSpan<NearestNeighbors*> neighbor_lists,
 void MergeNeighborListsWithCrowdingSwap(
     MutableSpan<NearestNeighbors*> neighbor_lists, int num_neighbors,
     int per_crowding_attribute_num_neighbors, NearestNeighbors* result) {
-  std::unordered_map<int64_t, int> crowding_counts;
+  absl::node_hash_map<int64_t, int> crowding_counts;
   auto is_crowded_out = [&crowding_counts,
                          per_crowding_attribute_num_neighbors](
                             const NearestNeighbors::Neighbor* nn) {
@@ -320,11 +320,13 @@ void MergeNeighborListsWithCrowdingSwap(
 
 void LogCPUInfo() {
   LOG(INFO) << "CPU Info:\n"
-            << "Model number:  " << port::CPUModelNum() << "\n"
-            << "Clock speed:  " << port::NominalCPUFrequency() / 1.0e9
-            << " GHz\n"
-            << "Num logical CPU cores:  " << port::NumTotalCPUs() << "\n"
-            << "Num hyperthreads per core:  " << port::CPUIDNumSMT();
+            << "Model number:  " << tensorflow::port::CPUModelNum() << "\n"
+            << "Clock speed:  "
+            << tensorflow::port::NominalCPUFrequency() / 1.0e9 << " GHz\n"
+            << "Num logical CPU cores:  " << tensorflow::port::NumTotalCPUs()
+            << "\n"
+            << "Num hyperthreads per core:  "
+            << tensorflow::port::CPUIDNumSMT();
 }
 
 void PackNibblesDatapoint(const DatapointPtr<uint8_t>& hash,
@@ -371,5 +373,4 @@ void UnpackNibblesDatapoint(ConstSpan<uint8_t> packed,
   }
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

@@ -16,13 +16,12 @@
 
 syntax = "proto2";
 
-package tensorflow.scann_ops;
+package research_scann;
 
 import "google/protobuf/timestamp.proto";
 import "scann/coscann/v2_restricts.proto";
 import "scann/proto/restricts.proto";
 
-option java_package = "com.google.research.scann";
 option cc_enable_arenas = true;
 
 message GenericFeatureVector {
@@ -74,9 +73,9 @@ message GenericFeatureVector {
     repeated int64 blacklist_token = 3 [packed = true];
 
     oneof v2_restricts {
-      tensorflow.scann_ops.coscann.EasyRestrictDefinition easy_definition = 6;
-      tensorflow.scann_ops.coscann.RestrictTokensV2 tokens = 5;
-      tensorflow.scann_ops.coscann.RestrictDefinition definition = 4;
+      research_scann.coscann.EasyRestrictDefinition easy_definition = 6;
+      research_scann.coscann.RestrictTokensV2 tokens = 5;
+      research_scann.coscann.RestrictDefinition definition = 4;
     }
 
     optional string v3_compatible_namespace = 8;
@@ -93,8 +92,9 @@ message GenericFeatureVector {
 
   optional google.protobuf.Timestamp expiration_timestamp = 20;
 
-  optional uint64 feature_dim = 10 [default = 0xFFFFFFFFFFFFFFFF];
+  optional uint64 feature_dim = 10
+      [default = 0xFFFFFFFFFFFFFFFF, deprecated = true];
 
-  optional float weight = 8;
+  optional float weight = 8 [deprecated = true];
   repeated int32 tokens = 14 [packed = true, deprecated = true];
 }

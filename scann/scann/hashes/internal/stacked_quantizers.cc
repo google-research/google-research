@@ -27,8 +27,7 @@
 #include "scann/utils/gmm_utils.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing_internal {
 
 namespace {
@@ -211,7 +210,7 @@ StatusOr<
     typename StackedQuantizers<T>::template CodebookList<FloatingTypeFor<T>>>
 StackedQuantizers<T>::Train(const DenseDataset<T>& dataset,
                             const TrainingOptions& opts,
-                            shared_ptr<thread::ThreadPool> pool) {
+                            shared_ptr<ThreadPool> pool) {
   const auto num_datapoints = dataset.size();
   const auto num_codebooks = opts.projector()->num_blocks();
   const auto num_centers = opts.config().num_clusters_per_block();
@@ -330,7 +329,7 @@ StatusOr<typename StackedQuantizers<T>::template CodebookList<double>>
 StackedQuantizers<T>::HierarchicalKMeans(const DenseDataset<double>& dataset,
                                          const TrainingOptions& opts,
                                          int num_codebooks,
-                                         shared_ptr<thread::ThreadPool> pool) {
+                                         shared_ptr<ThreadPool> pool) {
   const auto num_centers = opts.config().num_clusters_per_block();
 
   GmmUtils::Options gmm_opts;
@@ -432,7 +431,7 @@ Status StackedQuantizers<T>::InitializeCodes(
     const DenseDataset<double>& dataset,
     const DistanceMeasure& quantization_distance,
     CodebookListView<double> codebook_list, CodesList* codes_list,
-    DenseDataset<double>* residual, thread::ThreadPool* pool) {
+    DenseDataset<double>* residual, ThreadPool* pool) {
   DCHECK(codes_list && residual);
   const auto dataset_size = dataset.size();
   const auto num_codebooks = codebook_list.size();
@@ -464,5 +463,4 @@ Status StackedQuantizers<T>::InitializeCodes(
 SCANN_INSTANTIATE_TYPED_CLASS(, StackedQuantizers);
 
 }  // namespace asymmetric_hashing_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

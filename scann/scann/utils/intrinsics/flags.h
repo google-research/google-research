@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__UTILS_INTRINSICS_FLAGS_H_
-#define SCANN__UTILS_INTRINSICS_FLAGS_H_
+#ifndef SCANN_UTILS_INTRINSICS_FLAGS_H_
+#define SCANN_UTILS_INTRINSICS_FLAGS_H_
 
 #include "absl/flags/flag.h"
 #include "scann/utils/types.h"
@@ -24,8 +24,7 @@ ABSL_DECLARE_FLAG(bool, ignore_avx2);
 
 ABSL_DECLARE_FLAG(bool, ignore_avx);
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace flags_internal {
 
 extern bool should_use_avx1;
@@ -90,7 +89,6 @@ class ScopedPlatformOverride {
 
 ScopedPlatformOverride TestHookOverridePlatform(PlatformGeneration generation);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

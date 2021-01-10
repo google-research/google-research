@@ -17,8 +17,7 @@
 #include "scann/utils/intrinsics/flags.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 namespace {
 uint8_t SimdBlockSize() {
@@ -77,5 +76,4 @@ void FP8SimdBlockTransposedDatabase::TransposeOneBlock(const int8_t* src,
   }
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

@@ -14,8 +14,7 @@
 
 #include "scann/distance_measures/distance_measure_factory.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 StatusOr<shared_ptr<DistanceMeasure>> GetDistanceMeasure(
     const DistanceMeasureConfig& config) {
@@ -60,5 +59,4 @@ StatusOr<shared_ptr<DistanceMeasure>> GetDistanceMeasure(string_view name) {
   return InvalidArgumentError("Invalid distance_measure: '%s'", name);
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

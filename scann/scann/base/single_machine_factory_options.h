@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__BASE_SINGLE_MACHINE_FACTORY_OPTIONS_H_
-#define SCANN__BASE_SINGLE_MACHINE_FACTORY_OPTIONS_H_
+#ifndef SCANN_BASE_SINGLE_MACHINE_FACTORY_OPTIONS_H_
+#define SCANN_BASE_SINGLE_MACHINE_FACTORY_OPTIONS_H_
 
 #include <memory>
 #include <vector>
@@ -25,8 +25,7 @@
 #include "scann/utils/types.h"
 #include "tensorflow/core/platform/macros.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 template <typename T>
 class DenseDataset;
 template <typename T>
@@ -66,12 +65,11 @@ struct SingleMachineFactoryOptions {
 
   shared_ptr<vector<int64_t>> crowding_attributes;
 
-  shared_ptr<thread::ThreadPool> parallelization_pool;
+  shared_ptr<ThreadPool> parallelization_pool;
 
   int64_t creation_timestamp = numeric_limits<int64_t>::max();
 };
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

@@ -15,14 +15,12 @@
 #ifdef __x86_64__
 #include "scann/hashes/internal/lut16_avx512.inc"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing_internal {
 
 template class LUT16Avx512<{BATCH_SIZE}, PrefetchStrategy::kSmart>;
 
 }
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

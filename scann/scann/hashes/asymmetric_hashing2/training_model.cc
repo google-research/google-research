@@ -18,8 +18,7 @@
 #include "scann/proto/hash.pb.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing2 {
 
 using QuantizationScheme = AsymmetricHasherConfig::QuantizationScheme;
@@ -30,7 +29,7 @@ StatusOrPtr<Model<T>> Model<T>::FromCenters(
     QuantizationScheme quantization_scheme) {
   if (centers.empty()) {
     return InvalidArgumentError("Cannot construct a Model from empty centers.");
-  } else if (centers[0].size() < 1 || centers[0].size() > 256) {
+  } else if (centers[0].empty() || centers[0].size() > 256) {
     return InvalidArgumentError(absl::StrCat(
         "Each asymmetric hashing block must contain between 1 and 256 centers, "
         "not ",
@@ -120,5 +119,4 @@ bool Model<T>::CentersEqual(const Model& rhs) const {
 SCANN_INSTANTIATE_TYPED_CLASS(, Model);
 
 }  // namespace asymmetric_hashing2
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

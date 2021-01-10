@@ -28,15 +28,13 @@
 #include "scann/hashes/asymmetric_hashing2/querying.h"
 #include "scann/hashes/asymmetric_hashing2/serialization.h"
 #include "scann/hashes/internal/asymmetric_hashing_postprocess.h"
-#include "tensorflow/core/platform/cpu_info.h"
-
 #include "scann/oss_wrappers/scann_serialize.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/platform/cpu_info.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing2 {
 namespace {
 
@@ -97,7 +95,7 @@ Searcher<T>::Searcher(shared_ptr<TypedDataset<T>> dataset,
 
   if (lut16_) {
     packed_dataset_ =
-        ::tensorflow::scann_ops::asymmetric_hashing2::CreatePackedDataset(
+        ::research_scann::asymmetric_hashing2::CreatePackedDataset(
             *this->hashed_dataset());
 
     const size_t l2_cache_bytes = 256 * 1024;
@@ -411,7 +409,7 @@ Status Searcher<T>::FindOneLowLevelBatchOfNeighbors(
       lookup_ptrs, cur_batch_params, queryer_options, top_ns));
   for (size_t batch_idx = 0; batch_idx < kNumQueries; ++batch_idx) {
     results[low_level_batch_start + batch_idx] =
-        top_ns_storage[batch_idx].ExtractUnsorted();
+        top_ns_storage[batch_idx].TakeUnsorted();
   }
   return OkStatus();
 }
@@ -457,5 +455,4 @@ SCANN_INSTANTIATE_TYPED_CLASS(, Searcher);
 SCANN_INSTANTIATE_TYPED_CLASS(, PrecomputedAsymmetricLookupTableCreator);
 
 }  // namespace asymmetric_hashing2
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

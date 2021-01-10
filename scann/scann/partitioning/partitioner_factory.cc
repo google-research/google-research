@@ -34,8 +34,7 @@
 #include "scann/utils/weak_ptr_cache.h"
 #include "tensorflow/core/lib/core/errors.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename T>
 StatusOr<unique_ptr<Partitioner<T>>> PartitionerFromSerializedImpl(
@@ -135,7 +134,7 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFromKMeansTree(
     SCANN_RETURN_IF_ERROR(
         km->CreateAsymmetricHashingSearcherForQueryTokenization());
     km->SetQueryTokenizationType(
-        tensorflow::scann_ops::KMeansTreePartitioner<T>::ASYMMETRIC_HASHING);
+        research_scann::KMeansTreePartitioner<T>::ASYMMETRIC_HASHING);
   }
 
   if (config.database_tokenization_type() == PartitioningConfig::FLOAT) {
@@ -148,7 +147,7 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFromKMeansTree(
     SCANN_RETURN_IF_ERROR(
         km->CreateAsymmetricHashingSearcherForDatabaseTokenization());
     km->SetDatabaseTokenizationType(
-        tensorflow::scann_ops::KMeansTreePartitioner<T>::ASYMMETRIC_HASHING);
+        research_scann::KMeansTreePartitioner<T>::ASYMMETRIC_HASHING);
   }
 
   if (config.compute_residual_stdev()) {
@@ -169,5 +168,4 @@ SCANN_INSTANTIATE_SERIALIZED_PARTITIONER_FACTORY(, uint64_t);
 SCANN_INSTANTIATE_SERIALIZED_PARTITIONER_FACTORY(, float);
 SCANN_INSTANTIATE_SERIALIZED_PARTITIONER_FACTORY(, double);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

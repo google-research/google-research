@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__HASHES_INTERNAL_WRITE_DISTANCES_TO_TOPN_H_
-#define SCANN__HASHES_INTERNAL_WRITE_DISTANCES_TO_TOPN_H_
+#ifndef SCANN_HASHES_INTERNAL_WRITE_DISTANCES_TO_TOPN_H_
+#define SCANN_HASHES_INTERNAL_WRITE_DISTANCES_TO_TOPN_H_
 
 #include "scann/base/restrict_allowlist.h"
 #include "scann/hashes/internal/asymmetric_hashing_postprocess.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace asymmetric_hashing_internal {
 
 using TopFixedPointNeighbors = TopNeighbors<int32_t>;
@@ -99,7 +98,6 @@ void WriteDistancesToTopN(const RestrictAllowlist* whitelist_or_null,
 #endif
 
 }  // namespace asymmetric_hashing_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

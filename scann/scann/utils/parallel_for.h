@@ -12,20 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__UTILS_PARALLEL_FOR_H_
-#define SCANN__UTILS_PARALLEL_FOR_H_
+#ifndef SCANN_UTILS_PARALLEL_FOR_H_
+#define SCANN_UTILS_PARALLEL_FOR_H_
 
 #include <algorithm>
 #include <atomic>
 #include <cstdlib>
 #include <limits>
 
+#include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/threadpool.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 enum : size_t {
   kDynamicBatchSize = numeric_limits<size_t>::max(),
@@ -37,13 +37,13 @@ struct ParallelForOptions {
 
 template <size_t kItersPerBatch = kDynamicBatchSize, typename SeqT,
           typename Function>
-SCANN_INLINE void ParallelFor(SeqT seq, thread::ThreadPool* pool, Function func,
+SCANN_INLINE void ParallelFor(SeqT seq, ThreadPool* pool, Function func,
                               ParallelForOptions opts = ParallelForOptions());
 
 template <size_t kItersPerBatch = kDynamicBatchSize, typename SeqT,
           typename Function>
 SCANN_INLINE Status
-ParallelForWithStatus(SeqT seq, thread::ThreadPool* pool, Function Func,
+ParallelForWithStatus(SeqT seq, ThreadPool* pool, Function Func,
                       ParallelForOptions opts = ParallelForOptions()) {
   Status finite_check_status = OkStatus();
 
@@ -78,8 +78,7 @@ class ParallelForClosure : public std::function<void()> {
         range_end_(*seq.end()),
         reference_count_(1) {}
 
-  SCANN_INLINE void RunParallel(thread::ThreadPool* pool,
-                                size_t desired_threads) {
+  SCANN_INLINE void RunParallel(ThreadPool* pool, size_t desired_threads) {
     DCHECK(pool);
 
     size_t n_threads =
@@ -147,7 +146,7 @@ class ParallelForClosure : public std::function<void()> {
 }  // namespace parallel_for_internal
 
 template <size_t kItersPerBatch, typename SeqT, typename Function>
-SCANN_INLINE void ParallelFor(SeqT seq, thread::ThreadPool* pool, Function func,
+SCANN_INLINE void ParallelFor(SeqT seq, ThreadPool* pool, Function func,
                               ParallelForOptions opts) {
   constexpr size_t kMinItersPerBatch =
       kItersPerBatch == kDynamicBatchSize ? 1 : kItersPerBatch;
@@ -168,7 +167,6 @@ SCANN_INLINE void ParallelFor(SeqT seq, thread::ThreadPool* pool, Function func,
   closure->RunParallel(pool, desired_threads);
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

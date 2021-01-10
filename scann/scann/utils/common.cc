@@ -14,13 +14,11 @@
 
 #include "scann/utils/common.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 const std::string& EmptyString() {
   static const std::string* kEmptyString = new std::string("");
   return *kEmptyString;
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

@@ -14,12 +14,10 @@
 
 #include "scann/distance_measures/one_to_one/cosine_distance.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(CosineDistance,
                                               kEarlyStoppingNotSupported);
 SCANN_REGISTER_DISTANCE_MEASURE(CosineDistance);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann

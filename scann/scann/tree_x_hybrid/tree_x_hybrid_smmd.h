@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__TREE_X_HYBRID_TREE_X_HYBRID_SMMD_H_
-#define SCANN__TREE_X_HYBRID_TREE_X_HYBRID_SMMD_H_
+#ifndef SCANN_TREE_X_HYBRID_TREE_X_HYBRID_SMMD_H_
+#define SCANN_TREE_X_HYBRID_TREE_X_HYBRID_SMMD_H_
 
 #include <functional>
 
@@ -28,8 +28,7 @@
 #include "scann/tree_x_hybrid/leaf_searcher_optional_parameter_creator.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 template <typename U>
 class DisjointRestrictTokenSearcher;
@@ -64,7 +63,7 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
           shared_ptr<DenseDataset<uint8_t>> hashed_dataset_partition,
           int32_t token)>
           leaf_searcher_builder,
-      shared_ptr<thread::ThreadPool> thread_pool);
+      shared_ptr<ThreadPool> thread_pool);
 
   Status BuildLeafSearchers(
       vector<std::vector<DatapointIndex>> datapoints_by_token,
@@ -210,7 +209,6 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
 
 SCANN_INSTANTIATE_TREE_X_HYBRID_SMMD(extern);
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

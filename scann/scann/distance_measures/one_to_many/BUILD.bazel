@@ -17,7 +17,7 @@ cc_library(
         "//scann/utils:types",
         "//scann/utils/internal:avx2_funcs",
         "//scann/utils/internal:avx_funcs",
-        "//scann/utils/intrinsics:flags",
+        "//scann/utils/intrinsics:simd",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/synchronization",
         "@local_config_tf//:libtensorflow_framework",

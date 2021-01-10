@@ -14,8 +14,8 @@
 
 
 
-#ifndef SCANN__UTILS_MEMORY_LOGGING_H_
-#define SCANN__UTILS_MEMORY_LOGGING_H_
+#ifndef SCANN_UTILS_MEMORY_LOGGING_H_
+#define SCANN_UTILS_MEMORY_LOGGING_H_
 
 #include <hash_set>
 #include <type_traits>
@@ -25,8 +25,7 @@
 #include "scann/data_format/datapoint.h"
 #include "scann/utils/types.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 
 static const double bytes_in_mb = 1024.0 * 1024.0;
 
@@ -38,7 +37,7 @@ size_t VectorStorage(const vector<T>& vec) {
 }
 
 template <typename T>
-size_t HashSetStorage(const std::unordered_set<T>& set) {
+size_t HashSetStorage(const absl::node_hash_set<T>& set) {
   return sizeof(set) + set.bucket_count() * sizeof(void*) +
          set.size() * sizeof(pair<T, void*>);
 }
@@ -98,7 +97,6 @@ inline void LogTcMalloc(int verbosity_level = 0) {
   VLOG(verbosity_level) << GetTcMallocLogString();
 }
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

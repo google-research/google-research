@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__OSS_WRAPPERS_SCANN_CASTOPS_H_
-#define SCANN__OSS_WRAPPERS_SCANN_CASTOPS_H_
+#ifndef SCANN_OSS_WRAPPERS_SCANN_CASTOPS_H_
+#define SCANN_OSS_WRAPPERS_SCANN_CASTOPS_H_
 
 #include <limits>
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace cast_ops {
 
 inline float DoubleToFloat(double value) {
@@ -40,7 +39,6 @@ inline float DoubleToFiniteFloat(double value) {
 }
 
 }  // namespace cast_ops
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

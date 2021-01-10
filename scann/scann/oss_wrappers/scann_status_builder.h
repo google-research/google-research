@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN__OSS_WRAPPERS_SCANN_STATUS_BUILDER_H_
-#define SCANN__OSS_WRAPPERS_SCANN_STATUS_BUILDER_H_
+#ifndef SCANN_OSS_WRAPPERS_SCANN_STATUS_BUILDER_H_
+#define SCANN_OSS_WRAPPERS_SCANN_STATUS_BUILDER_H_
 
 #include <sstream>
 
@@ -22,13 +22,16 @@
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/stream_executor/lib/statusor.h"
 
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace internal {
 
 using ::stream_executor::port::StatusOr;
 
 }
+
+using tensorflow::Status;
+namespace error = tensorflow::error;
+namespace errors = tensorflow::errors;
 
 class ABSL_MUST_USE_RESULT StatusBuilder {
  public:
@@ -101,7 +104,6 @@ StatusBuilder UnavailableErrorBuilder();
 StatusBuilder UnimplementedErrorBuilder();
 StatusBuilder UnknownErrorBuilder();
 
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif

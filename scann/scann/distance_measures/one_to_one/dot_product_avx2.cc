@@ -13,18 +13,19 @@
 // limitations under the License.
 
 #include "scann/distance_measures/one_to_one/dot_product_avx2.h"
+
 #ifdef __x86_64__
 
 #include "scann/data_format/datapoint.h"
 #include "scann/utils/internal/avx2_funcs.h"
 #include "scann/utils/intrinsics/avx2.h"
 
-#define SCANN_SIMD_INLINE SCANN_AVX2_INLINE
-#include "scann/distance_measures/one_to_one/dot_product_impl.h"
-
-namespace tensorflow {
-namespace scann_ops {
+namespace research_scann {
 namespace dp_internal {
+
+#define SCANN_SIMD_ATTRIBUTE SCANN_AVX2
+#include "scann/distance_measures/one_to_one/dot_product_impl.inc"
+#undef SCANN_SIMD_ATTRIBUTE
 
 SCANN_AVX2_OUTLINE double DenseDotProductAvx2(const DatapointPtr<int8_t>& a,
                                               const DatapointPtr<float>& b) {
@@ -60,7 +61,6 @@ SCANN_AVX2_OUTLINE double DenseDotProductAvx2(const DatapointPtr<int8_t>& a,
 }
 
 }  // namespace dp_internal
-}  // namespace scann_ops
-}  // namespace tensorflow
+}  // namespace research_scann
 
 #endif
