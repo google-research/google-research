@@ -19,6 +19,7 @@
 import tensorflow as tf
 import tensorflow_model_optimization as tfmot
 from non_semantic_speech_benchmark.export_model import tf_frontend
+from non_semantic_speech_benchmark.distillation.layers import CompressedDense
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.keras.applications import mobilenet_v3 as v3_util
 # pylint: enable=g-direct-tensorflow-import
@@ -29,65 +30,90 @@ def _sample_to_features(x):
   return tf_frontend.compute_frontend_features(x, 16000, overlap_seconds=79)
 
 
-def get_keras_model(bottleneck_dimension,
-                    output_dimension,
-                    alpha=1.0,
-                    mobilenet_size='small',
-                    frontend=True,
-                    avg_pool=False,
-                    qat=False):
-  """Make a keras student model."""
+def _map_fn_lambda(x):
+  return tf.map_fn(_sample_to_features, x, dtype=tf.float64)
 
-  def _map_fn_lambda(x):
-    return tf.map_fn(_sample_to_features, x, dtype=tf.float64)
 
-  def _map_mobilenet_func(mnet_size):
-    mnet_size_map = {
-        'tiny': mobilenetv3_tiny,
-        'small': tf.keras.applications.MobileNetV3Small,
-        'large': tf.keras.applications.MobileNetV3Large,
-    }
-    assert mnet_size in mnet_size_map
-    return mnet_size_map[mnet_size.lower()]
+def _make_bottleneck_block(bottleneck_dim, qat=False, compressor=None):
+  if bottleneck_dim:
+    if compressor is not None:
+      bottleneck = CompressedDense(
+        bottleneck_dim, compression_obj=compressor, name='distilled_output')
+    else:
+      bottleneck = tf.keras.layers.Dense(
+        bottleneck_dim, name='distilled_output')
+      if qat:
+        bottleneck = tfmot.quantization.keras.\
+          quantize_annotate_layer(bottleneck)
+    return bottleneck
+  # pass through
+  return tf.keras.activations.linear(name='distilled_output')
 
-  if frontend:
-    model_in = tf.keras.Input((None,), name='audio_samples')
-    feats = tf.keras.layers.Lambda(_map_fn_lambda)(model_in)
-    feats.shape.assert_is_compatible_with([None, None, 96, 64])
-    feats = tf.transpose(feats, [0, 2, 1, 3])
-    feats = tf.reshape(feats, [-1, 96, 64, 1])
-  else:
-    model_in = tf.keras.Input((96, 64, 1), name='log_mel_spectrogram')
-    feats = model_in
-  model = _map_mobilenet_func(mobilenet_size)(
-      input_shape=[96, 64, 1],
-      alpha=alpha,
-      minimalistic=False,
-      include_top=False,
-      weights=None,
-      pooling='avg' if avg_pool else None,
-      dropout_rate=0.0)
-  model_out = model(feats)
-  if avg_pool:
-    model_out.shape.assert_is_compatible_with([None, None])
-  else:
-    model_out.shape.assert_is_compatible_with([None, 3, 2, None])
-  if bottleneck_dimension:
-    embeddings = tf.keras.layers.Flatten()(model_out)
-    bottleneck = tf.keras.layers.Dense(
-      bottleneck_dimension, name='distilled_output')
-    if qat:
-      bottleneck = tfmot.quantization.keras.quantize_annotate_layer(
-        bottleneck)
-    embeddings = bottleneck(embeddings)
-  else:
-    embeddings = tf.keras.layers.Flatten(name='distilled_output')(model_out)
-  output = tf.keras.layers.Dense(
-      output_dimension, name='embedding_to_target')(
-          embeddings)
-  output_model = tf.keras.Model(inputs=model_in, outputs=output)
 
-  return output_model
+def _make_mobilenet_block(mnet_size, alpha, avg_pool):
+  mnet_size_map = {
+      'tiny': mobilenetv3_tiny,
+      'small': v3_util.MobileNetV3Small,
+      'large': v3_util.MobileNetV3Large,
+  }
+  assert mnet_size in mnet_size_map
+  return mnet_size_map[mnet_size.lower()](
+    input_shape=[96, 64, 1],
+    alpha=alpha,
+    minimalistic=False,
+    include_top=False,
+    weights=None,
+    pooling='avg' if avg_pool else None,
+    dropout_rate=0.0)
+
+
+class TrillJr(tf.keras.Model):
+  """ Make a student model """
+
+  def __init__(self,
+               bottleneck_dimension,
+               output_dimension,
+               alpha=1.0,
+               mobilenet_size='small',
+               frontend=True,
+               avg_pool=False,
+               compressor=None,
+               qat=False):
+    super(TrillJr, self).__init__()
+
+    self._frontend = frontend
+    self._avg_pool = avg_pool
+    self._compressor = compressor
+    self._qat = qat
+
+    self.bottleneck_dim = bottleneck_dimension
+    self.flatten = tf.keras.layers.Flatten()
+    self.mobilenet = _make_mobilenet_block(
+      mobilenet_size, alpha, avg_pool)
+    self.bottleneck = _make_bottleneck_block(
+      bottleneck_dimension, qat=qat, compressor=compressor)
+    self.out_layer = tf.keras.layers.Dense(
+      output_dimension, name='embedding_to_target')
+
+  @tf.function
+  def call(self, inputs, training=False):
+    if self._frontend:
+      x = tf.keras.layers.Lambda(_map_fn_lambda)(inputs)
+      x.shape.assert_is_compatible_with([None, None, 96, 64])
+      x = tf.transpose(x, [0, 2, 1, 3])
+    else:
+      x = inputs
+    x = tf.reshape(x, [-1, 96, 64, 1])
+    x.shape.assert_is_compatible_with([None, 96, 64, 1])
+    x = self.mobilenet(x)
+    if self._avg_pool:
+      x.shape.assert_is_compatible_with([None, None])
+    else:
+      x.shape.assert_is_compatible_with([None, 3, 2, None])
+    x = self.flatten(x)
+    x = self.bottleneck(x)
+    x = self.out_layer(x)
+    return x
 
 
 def mobilenetv3_tiny(input_shape=None,
