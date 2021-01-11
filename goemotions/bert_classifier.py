@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2021 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,11 +58,11 @@ flags = tf.flags
 FLAGS = flags.FLAGS
 
 ## Required parameters
-flags.DEFINE_string("emotion_file", "data/emotions.txt",
+flags.DEFINE_string("emotion_file", "goemotions/data/emotions.txt",
                     "File containing a list of emotions.")
 
 flags.DEFINE_string(
-    "data_dir", "data",
+    "data_dir", "goemotions/data",
     "The input data dir. Should contain the .tsv files (or other data files) "
     "for the task.")
 
@@ -115,6 +115,10 @@ flags.DEFINE_bool(
     "do_predict", True,
     "Whether to run the model in inference mode on the test set.")
 
+flags.DEFINE_bool(
+    "do_export", False,
+    "Whether to export the model to SavedModel format.")
+
 flags.DEFINE_integer("train_batch_size", 16, "Total batch size for training.")
 
 flags.DEFINE_float("learning_rate", 5e-5, "The initial learning rate for Adam.")
@@ -160,7 +164,7 @@ flags.DEFINE_integer("iterations_per_loop", 1000,
 flags.DEFINE_integer("eval_steps", None,
                      "How many steps to take to go over the eval set.")
 
-flags.DEFINE_string("sentiment_file", "sentiment_dict.json",
+flags.DEFINE_string("sentiment_file", "goemotions/data/sentiment_dict.json",
                     "Dictionary of sentiment categories.")
 
 flags.DEFINE_string(
@@ -765,8 +769,10 @@ def main(_):
   tokenization.validate_case_matches_checkpoint(FLAGS.do_lower_case,
                                                 FLAGS.init_checkpoint)
 
-  if not FLAGS.do_train and not FLAGS.do_predict:
-    raise ValueError("At least one of `do_train` or `do_predict' must be True.")
+  if not FLAGS.do_train and not FLAGS.do_predict and not FLAGS.do_export:
+    raise ValueError(
+        "At least one of `do_train`, `do_predict', or `do_export` must be True."
+    )
 
   bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
 
@@ -963,6 +969,19 @@ def main(_):
                         "\n")
           num_written_lines += 1
     assert num_written_lines == num_actual_predict_examples
+
+  if FLAGS.do_export:
+    tf.logging.info("***** Exporting to SavedModel *****")
+    feature_spec = {
+        "input_ids": tf.FixedLenFeature([FLAGS.max_seq_length], tf.int64),
+        "input_mask": tf.FixedLenFeature([FLAGS.max_seq_length], tf.int64),
+        "segment_ids": tf.FixedLenFeature([FLAGS.max_seq_length], tf.int64),
+        "label_ids": tf.FixedLenFeature([num_labels], tf.int64)
+    }
+    input_receiver = (
+        tf.estimator.export.build_parsing_serving_input_receiver_fn(
+            feature_spec))
+    estimator.export_saved_model(FLAGS.output_dir, input_receiver)
 
 
 if __name__ == "__main__":
