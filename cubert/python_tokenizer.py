@@ -70,12 +70,6 @@ class PythonTokenizer(cubert_tokenizer.CuBertTokenizer):
       tokenize.NEWLINE, tokenize.DEDENT, tokenize.NL
   ]
 
-  def __init__(self, *args, **kwargs):
-    super(PythonTokenizer, self).__init__(*args, **kwargs)
-
-    # By default, we drop COMMENT tokens.
-    self.update_types_to_skip([unified_tokenizer.TokenKind.COMMENT])
-
   def tokenize_and_abstract(
       self,
       source_code):

@@ -174,14 +174,8 @@ class A():
           ['a', '=', 'b', _NEWLINE_NAME, '___NL___', 'c', '=', 'd', _EOS_NAME],
       ),
       (
-          'comments_are_skipped_by_default',
-          None,
-          'a = b\n#comment\nc = d',
-          ['a', '=', 'b', _NEWLINE_NAME, '___NL___', 'c', '=', 'd', _EOS_NAME],
-      ),
-      (
           'comments_are_not_skipped_when_desired',
-          [],
+          (),
           '# Comment.',
           # This NL token is preserved as ___NL___ and not replaced by
           # ___NLCHAR___ because it's introduced by the Python lexer for
@@ -347,7 +341,7 @@ class A(object):
           '  # My comment\n'
           '  pass',
           'def f ():\n'
-          '\n'
+          '# My comment\n'  # Preserved
           '  pass ',
       ),
       (

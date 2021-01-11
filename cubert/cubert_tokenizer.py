@@ -17,9 +17,9 @@
 
 import abc
 import tokenize
+from typing import Collection
 from typing import Dict
 from typing import Iterable
-from typing import List
 from typing import Mapping
 from typing import Sequence
 from typing import Text
@@ -42,7 +42,7 @@ class CuBertTokenizer(abc.ABC):
 
   def __init__(self, max_output_token_length = MAX_OUTPUT_TOKEN_LENGTH,
                reserved = ()):
-    self.types_to_skip = []
+    self.types_to_skip = ()
     self.reserved = reserved
     self.mappings: Dict[str, str]
     self.update_mappings({
@@ -87,14 +87,15 @@ class CuBertTokenizer(abc.ABC):
     """
 
   def update_types_to_skip(
-      self, types_to_skip):
+      self, types_to_skip
+  ):
     """Replaces the set of token types that are ignored.
 
     Each tokenizer may provide different semantics with respect to this list,
     and may ignore it altogether.
 
     Args:
-      types_to_skip: List of types (from the constants in the `token` module) or
+      types_to_skip: Types (from the constants in the `token` module) or
         `unified_tokenizer.TokenKind`. Note that some of those constants are
         actually defined in the `tokenize` module.
     """
