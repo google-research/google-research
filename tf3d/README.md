@@ -2,6 +2,8 @@
 [![TensorFlow 2.3](https://img.shields.io/badge/TensorFlow-2.3-FF6F00?logo=tensorflow)](https://github.com/tensorflow/tensorflow/releases/tag/v2.3.0)
 [![Python 3.6](https://img.shields.io/badge/Python-3.6-3776AB)](https://www.python.org/downloads/release/python-360/)
 
+<p align="center"><img src="doc/img/tf3d_icon.png" width=168 height=146></p>
+
 Creating accurate machine learning models capable of localizing and identifying
 multiple objects in a 3D scene and assigning semantic labels to the scene components is a core challenge in computer vision with applications in robotics and autonomous driving. The TensorFlow 3D codebase is an open source framework built on top of TensorFlow 2 and Keras that makes it easy to construct, train and deploy 3D Object Detection, 3D Semantic Segmentation and 3D Instance Segmentation models. At Google we’ve certainly found this codebase to be useful for our computer vision needs, and we hope that you will as well.
 
