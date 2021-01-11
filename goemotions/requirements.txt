@@ -27,5 +27,6 @@ seaborn>=0.9.0
 six>=1.12.0
 sklearn>=0.0
 statsmodels>=0.10.1
+tf-slim>=1.1.0
 toolz>=0.10.0
 zipp>=0.6.0
