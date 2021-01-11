@@ -47,7 +47,7 @@ def _make_bottleneck_block(bottleneck_dim, qat=False, compressor=None):
           quantize_annotate_layer(bottleneck)
     return bottleneck
   # pass through
-  return tf.keras.activations.linear(name='distilled_output')
+  return tf.keras.layers.Activation(None, name='distilled_output')
 
 
 def _make_mobilenet_block(mnet_size, alpha, avg_pool):
