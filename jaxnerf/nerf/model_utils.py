@@ -239,30 +239,38 @@ def piecewise_constant_pdf(key, bins, weights, num_samples, randomized):
   weights += padding / weights.shape[-1]
   weight_sum += padding
 
-  # Compute the PDF and CDF for each weight vector.
+  # Compute the PDF and CDF for each weight vector, while ensuring that the CDF
+  # starts with exactly 0 and ends with exactly 1.
   pdf = weights / weight_sum
-  cdf = jnp.cumsum(pdf, axis=-1)
-  cdf = jnp.concatenate([jnp.zeros(list(cdf.shape[:-1]) + [1]), cdf], axis=-1)
+  cdf = jnp.minimum(1, jnp.cumsum(pdf[Ellipsis, :-1], axis=-1))
+  cdf = jnp.concatenate([
+      jnp.zeros(list(cdf.shape[:-1]) + [1]), cdf,
+      jnp.ones(list(cdf.shape[:-1]) + [1])
+  ],
+                        axis=-1)
 
-  # Take uniform samples
+  # Draw uniform samples.
   if randomized:
+    # Note that `u` is in [0, 1) --- it can be zero, but it can never be 1.
     u = random.uniform(key, list(cdf.shape[:-1]) + [num_samples])
   else:
-    u = jnp.linspace(0., 1., num_samples)
+    # Match the behavior of random.uniform() by spanning [0, 1-eps].
+    u = jnp.linspace(0., 1. - jnp.finfo('float32').eps, num_samples)
     u = jnp.broadcast_to(u, list(cdf.shape[:-1]) + [num_samples])
 
-  # Invert CDF. This takes advantage of the fact that `bins` is sorted.
-  mask = (u[Ellipsis, None, :] >= cdf[Ellipsis, :, None])
+  # Identify the location in `cdf` that corresponds to a random sample.
+  # The final `True` index in `mask` will be the start of the sampled interval.
+  mask = u[Ellipsis, None, :] >= cdf[Ellipsis, :, None]
 
-  def minmax(x):
+  def find_interval(x):
+    # Grab the value where `mask` switches from True to False, and vice versa.
+    # This approach takes advantage of the fact that `x` is sorted.
     x0 = jnp.max(jnp.where(mask, x[Ellipsis, None], x[Ellipsis, :1, None]), -2)
     x1 = jnp.min(jnp.where(~mask, x[Ellipsis, None], x[Ellipsis, -1:, None]), -2)
-    x0 = jnp.minimum(x0, x[Ellipsis, -2:-1])
-    x1 = jnp.maximum(x1, x[Ellipsis, 1:2])
     return x0, x1
 
-  bins_g0, bins_g1 = minmax(bins)
-  cdf_g0, cdf_g1 = minmax(cdf)
+  bins_g0, bins_g1 = find_interval(bins)
+  cdf_g0, cdf_g1 = find_interval(cdf)
 
   t = jnp.clip(jnp.nan_to_num((u - cdf_g0) / (cdf_g1 - cdf_g0), 0), 0, 1)
   samples = bins_g0 + t * (bins_g1 - bins_g0)
