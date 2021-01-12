@@ -1473,7 +1473,7 @@ def main(_):
         subfolder,
         input_arrays=["input_ids", "input_mask", "segment_ids"],
         output_arrays=["start_logits", "end_logits"])
-    converter._experimental_new_quantizer = True  # pylint: disable=protected-access
+    converter.experimental_new_quantizer = True
     float_model = converter.convert()
     tflite_file = os.path.join(FLAGS.export_dir, "model_float.tflite")
     with tf.gfile.GFile(tflite_file, "wb") as f:
@@ -1481,7 +1481,7 @@ def main(_):
 
     if FLAGS.use_post_quantization:
       converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_LATENCY]
-      converter._experimental_new_quantizer = True  # pylint: disable=protected-access
+      converter.experimental_new_quantizer = True
       if FLAGS.activation_quantization:
         train_examples = read_squad_examples(
             input_file=FLAGS.train_file, is_training=True)
