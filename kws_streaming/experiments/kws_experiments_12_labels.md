@@ -103,7 +103,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/ds_tc_resnet/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 40000,40000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0002,0.0001 \
 --window_size_ms 30.0 \
@@ -132,14 +132,14 @@ ds_tc_resnet \
 
 ### att_mh_rnn
 parameters: 750K \
-float accuracy 98.3 \
+float accuracy 98.4 \
 
 ```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/att_mh_rnn/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 40000,40000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0002,0.0001 \
 --window_size_ms 30.0 \

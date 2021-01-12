@@ -80,13 +80,13 @@ The latest experiments on speech commands V2 with 12 labels are show in below ta
 |  Model name      | accuracy [%]  | # parameters |
 | ---------------- | --------------------- | --------------------- |
 |[ds_tc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md) with <br> [MatchboxNet](https://arxiv.org/abs/2004.08531) topology | 98.0      | 75K      |
-|[att_mh_rnn ](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md)| 98.3  |   750K     |
+|[att_mh_rnn ](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md)| 98.4  |   750K     |
 
 The latest experiments on speech commands V2 with 35 labels are show in below table:
 |  Model name      | accuracy [%]  | # parameters |
 | ---------------- | --------------------- | --------------------- |
 |[ds_tc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_35_labels.md) with <br> [MatchboxNet](https://arxiv.org/abs/2004.08531) topology | 96.9      | 75K      |
-
+|[att_mh_rnn ](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_35_labels.md)| 97.2  |   750K     |
 
 
 ### Streamable and non streamable models
