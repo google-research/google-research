@@ -34,7 +34,7 @@ class NerfModel(nn.Module):
             noise_std, net_depth, net_width, net_depth_condition,
             net_width_condition, net_activation, skip_layer, num_rgb_channels,
             num_sigma_channels, randomized, white_bkgd, deg_point, deg_view,
-            lindisp, rgb_activation, sigma_activation):
+            lindisp, rgb_activation, sigma_activation, tf_posenc_order):
     """Nerf Model.
 
     Args:
@@ -67,6 +67,7 @@ class NerfModel(nn.Module):
       lindisp: bool, sampling linearly in disparity rather than depth if true.
       rgb_activation: function, the activation used to generate RGB.
       sigma_activation: function, the activation used to generate density.
+      tf_posenc_order: bool, keep the same ordering as the original tf code.
 
     Returns:
       ret: list, [(rgb_coarse, disp_coarse, acc_coarse), (rgb, disp, acc)]
@@ -76,12 +77,12 @@ class NerfModel(nn.Module):
     z_vals, samples = model_utils.sample_along_rays(key, origins, directions,
                                                     num_coarse_samples, near,
                                                     far, randomized, lindisp)
-    samples_enc = model_utils.posenc(samples, deg_point)
+    samples_enc = model_utils.posenc(samples, deg_point, tf_posenc_order)
     # Point attribute predictions
     if use_viewdirs:
       viewdirs_enc = model_utils.posenc(
           viewdirs / jnp.linalg.norm(viewdirs, axis=-1, keepdims=True),
-          deg_view)
+          deg_view, tf_posenc_order)
       raw_rgb, raw_sigma = model_utils.MLP(
           samples_enc,
           viewdirs_enc,
@@ -137,7 +138,7 @@ class NerfModel(nn.Module):
           num_fine_samples,
           randomized,
       )
-      samples_enc = model_utils.posenc(samples, deg_point)
+      samples_enc = model_utils.posenc(samples, deg_point, tf_posenc_order)
       if use_viewdirs:
         raw_rgb, raw_sigma = model_utils.MLP(samples_enc, viewdirs_enc)
       else:
@@ -212,7 +213,8 @@ def nerf(key, example_batch, args):
       lindisp=args.lindisp,
       net_activation=net_activation,
       rgb_activation=rgb_activation,
-      sigma_activation=sigma_activation)
+      sigma_activation=sigma_activation,
+      tf_posenc_order=args.tf_posenc_order)
   with nn.stateful() as init_state:
     rays = example_batch["rays"]
     key1, key2, key3 = random.split(key, num=3)

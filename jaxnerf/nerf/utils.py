@@ -105,6 +105,10 @@ def define_flags():
                       "activation function used to produce RGB.")
   flags.DEFINE_string("sigma_activation", "relu",
                       "activation function used to produce density.")
+  flags.DEFINE_bool(
+      "legacy_posenc_order", False,
+      "If True, revert the positional encoding feature order to an older version of this codebase."
+  )
 
   # Train Flags
   flags.DEFINE_float("lr_init", 5e-4, "The initial learning rate.")

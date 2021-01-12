@@ -152,26 +152,35 @@ def generate_posenc_basis(deg, num_dims):
   return jnp.concatenate([2**i * jnp.eye(num_dims) for i in range(deg)], 1)
 
 
-def encode_coordinate(x, basis):
+def encode_coordinate(x, basis, legacy_posenc_order=False):
   """Concatenate `x` with Fourier features of `x` projected onto `basis`."""
   xb = x @ basis
   # Instead of computing [sin(x), cos(x)], we use the trig identity
   # cos(x) = sin(x + pi/2) and do one vectorized call to sin([x, x+pi/2]).
   four_feat = jnp.sin(jnp.concatenate([xb, xb + 0.5 * jnp.pi], axis=-1))
+  # TODO(bydeng): remove this re-ordering when a new batch of pre-trained
+  # models is ready.
+  if legacy_posenc_order:
+    four_feat = jnp.moveaxis(
+        jnp.reshape(four_feat,
+                    list(four_feat.shape[:-1]) + [2, -1, x.shape[-1]]), -3, -2)
+    four_feat = jnp.reshape(four_feat, list(four_feat.shape[:-3]) + [-1])
   return jnp.concatenate([x] + [four_feat], axis=-1)
 
 
-def posenc(x, deg):
+def posenc(x, deg, legacy_posenc_order=False):
   """Concatenate `x` with a positional encoding of `x` with degree `deg`.
 
   Args:
     x: jnp.ndarray, variables to be encoded. Note that x should be in [-pi, pi].
     deg: int, the degree of the encoding.
+    legacy_posenc_order: bool, keep the same ordering as the original tf code.
 
   Returns:
     encoded: jnp.ndarray, encoded variables.
   """
-  return encode_coordinate(x, generate_posenc_basis(deg, x.shape[-1]))
+  return encode_coordinate(x, generate_posenc_basis(deg, x.shape[-1]),
+                           legacy_posenc_order)
 
 
 def volumetric_rendering(rgb, sigma, z_vals, dirs, white_bkgd):

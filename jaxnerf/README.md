@@ -147,6 +147,7 @@ reported in the [paper](https://arxiv.org/abs/2003.08934). Actually, ours are
 slightly better overall because we trained for more iterations (while still
 being much faster!). You can find our pretrained models
 [here](http://storage.googleapis.com/gresearch/jaxnerf/jaxnerf_models.zip).
+**Remember to set `legacy_posenc_order=True` when you use these models** because they are trained with the old TF positional encoding order.
 The performances (in PSNR) of our pretrained NeRF models are listed below:
 
 ### Blender
