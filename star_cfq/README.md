@@ -3,7 +3,7 @@
 This repository contains code for training and evaluating ML
 architectures on the *-CFQ dataset.
 
-The dataset is coming soon and will be downloadable from the following URL:
+The dataset can be downloaded from the following URL:
 
 [Download the *-CFQ dataset](https://storage.cloud.google.com/star_cfq_dataset/)
 
