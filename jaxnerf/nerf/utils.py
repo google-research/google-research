@@ -46,6 +46,7 @@ def define_flags():
                       "using config files to set hyperparameters.")
 
   # Dataset Flags
+  # TODO(pratuls): rename to dataset_loader and consider cleaning up
   flags.DEFINE_enum("dataset", "blender",
                     list(k for k in datasets.dataset_dict.keys()),
                     "The type of dataset feed to nerf.")
@@ -212,7 +213,6 @@ def render_image(state, rays, render_fn, rng, normalize_disp, chunk=8192):
       chunk_rays = datasets.ray_fn(lambda r: r[i:i + chunk], rays)
       chunk_size = chunk_rays[0].shape[0]
       rays_remaining = chunk_size % jax.device_count()
-      rays_per_host = chunk_size // jax.host_count()
       if rays_remaining != 0:
         padding = jax.device_count() - rays_remaining
         chunk_rays = datasets.ray_fn(
@@ -222,6 +222,7 @@ def render_image(state, rays, render_fn, rng, normalize_disp, chunk=8192):
         padding = 0
       # After padding the number of chunk_rays is always divisible by
       # host_count.
+      rays_per_host = chunk_rays[0].shape[0] // jax.host_count()
       start, stop = host_id * rays_per_host, (host_id + 1) * rays_per_host
       chunk_rays = datasets.ray_fn(lambda r: shard(r[start:stop]), chunk_rays)
       chunk_results = render_fn(key_0, key_1, model, chunk_rays)[-1]

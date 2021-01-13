@@ -1,0 +1,15 @@
+dataset: llff
+image_batching: true
+num_coarse_samples: 256
+num_fine_samples: 512
+use_viewdirs: true
+white_bkgd: false
+batch_size: 4096
+randomized: true
+near: 0.2
+far: 100.
+factor: 8
+llffhold: 8
+noise_std: 1.
+spherify: True
+lindisp: True

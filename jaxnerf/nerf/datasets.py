@@ -269,7 +269,10 @@ class LLFF(Dataset):
     # Generate a spiral/spherical ray path for rendering videos.
     if args.spherify:
       poses = self._generate_spherical_poses(poses, bds)
-    elif self.split == "test":
+      self.spherify = True
+    else:
+      self.spherify = False
+    if not args.spherify and self.split == "test":
       self._generate_spiral_poses(poses, bds)
 
     # Select the split.
@@ -302,31 +305,33 @@ class LLFF(Dataset):
 
     super()._generate_rays()
 
-    origins = self.rays.origins
-    directions = self.rays.directions
-    viewdirs = directions
-    near = 1.
+    if not self.spherify:
+      origins = self.rays.origins
+      directions = self.rays.directions
+      viewdirs = directions
+      near = 1.
 
-    # Shift ray origins to near plane
-    t = -(near + origins[Ellipsis, 2]) / directions[Ellipsis, 2]
-    origins = origins + t[Ellipsis, None] * directions
+      # Shift ray origins to near plane
+      t = -(near + origins[Ellipsis, 2]) / directions[Ellipsis, 2]
+      origins = origins + t[Ellipsis, None] * directions
 
-    # Projection
-    o0 = -1. * ((2. * self.focal) / self.w) * origins[Ellipsis, 0] / origins[Ellipsis, 2]
-    o1 = -1. * ((2. * self.focal) / self.h) * origins[Ellipsis, 1] / origins[Ellipsis, 2]
-    o2 = 1. + 2. * near / origins[Ellipsis, 2]
+      dx, dy, dz = tuple(np.moveaxis(directions, -1, 0))
+      ox, oy, oz = tuple(np.moveaxis(origins, -1, 0))
 
-    d0 = (-1. * ((2. * self.focal) / self.w) *
-          (directions[Ellipsis, 0] / directions[Ellipsis, 2] -
-           origins[Ellipsis, 0] / origins[Ellipsis, 2]))
-    d1 = (-1. * ((2. * self.focal) / self.h) *
-          (directions[Ellipsis, 1] / directions[Ellipsis, 2] -
-           origins[Ellipsis, 1] / origins[Ellipsis, 2]))
-    d2 = -2. * near / origins[Ellipsis, 2]
+      # Projection
+      o0 = -1. * ((2. * self.focal) / self.w) * ox / oz
+      o1 = -1. * ((2. * self.focal) / self.h) * oy / oz
+      o2 = 1. + 2. * near / oz
 
-    origins = np.stack([o0, o1, o2], -1)
-    directions = np.stack([d0, d1, d2], -1)
-    self.rays = Rays(origins=origins, directions=directions, viewdirs=viewdirs)
+      d0 = (-1. * ((2. * self.focal) / self.w) * (dx / dz - ox / oz))
+      d1 = (-1. * ((2. * self.focal) / self.h) * (dy / dz - oy / oz))
+      d2 = -2. * near / oz
+
+      origins = np.stack([o0, o1, o2], -1)
+      directions = np.stack([d0, d1, d2], -1)
+      self.rays = Rays(origins=origins,
+                       directions=directions,
+                       viewdirs=viewdirs)
 
     # Split poses from the dataset and generated poses
     if self.split == "test":
