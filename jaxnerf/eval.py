@@ -45,7 +45,9 @@ def main(unused_argv):
     raise ValueError("train_dir must be set. None set now.")
   if FLAGS.data_dir is None:
     raise ValueError("data_dir must be set. None set now.")
-  FLAGS.randomized = False
+  # Force rendering to be deterministic even if training was randomized, as this
+  # eliminates "speckle" artifacts.
+  FLAGS.__dict__["randomized"] = False
   dataset = datasets.get_dataset("test", FLAGS)
   rng, key = random.split(rng)
   init_model, init_state = models.get_model(key, dataset.peek(), FLAGS)
