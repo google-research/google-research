@@ -17,6 +17,8 @@
 #ifndef SLIDING_WINDOW_CLUSTERING_BASE_H_
 #define SLIDING_WINDOW_CLUSTERING_BASE_H_
 
+// Forcing the asserts to be checked in release mode.
+#undef NDEBUG
 #include <algorithm>
 #include <cassert>
 #include <cmath>

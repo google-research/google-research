@@ -47,16 +47,23 @@ ABSL_FLAG(
     "Path to the output text file with statistics on the experiment. The "
     "file will contain one line for every solution computed (i.e., one "
     "every output_every_n points). Each line contains in order the following "
-    "tab separated numerical fields: position in the stream; number of dist "
+    "tab-separated numerical fields: position in the stream; number of dist "
     "calls for one update, number of items stored, cost of the solution of our "
     "algorithm; cost of the baseline algorithm storing the entire window; cost "
     "of the baseline algorithm storing the same number of points of our "
-    "algorithm");
-ABSL_FLAG(int32_t, window_size, 10000, "The size of the sliding window");
-ABSL_FLAG(int32_t, output_every_n, 100, "print solution every n steps");
+    "algorithm.");
+ABSL_FLAG(
+    string, output_centers_file, "",
+    "(Optional) Path to the output text file with the centers computed by our "
+    "algorithm. If the path is non-empty, the file will contain one line for "
+    "every solution computed (i.e., one every output_every_n points). Each line"
+    " contains at most k comma-separated vectors. Each vector is a sequence of "
+    "d tab-separated numbers.");
+ABSL_FLAG(int32_t, window_size, 10000, "The size of the sliding window.");
+ABSL_FLAG(int32_t, output_every_n, 100, "print solution every n steps.");
 ABSL_FLAG(double, delta_grid, 0.2,
           "The delta parameter used int the grid for guessing the optimum.");
-ABSL_FLAG(int32_t, k, 10, "the number of centers");
+ABSL_FLAG(int32_t, k, 10, "the number of centers.");
 
 namespace sliding_window {
 
@@ -92,6 +99,12 @@ void Main() {
             << upper_bound << "]" << std::endl;
 
   std::ofstream output_file(absl::GetFlag(FLAGS_output_file), std::ios::out);
+
+  absl::optional<std::ofstream> output_centers_file;
+  if (!absl::GetFlag(FLAGS_output_centers_file).empty()) {
+    output_centers_file.emplace(absl::GetFlag(FLAGS_output_centers_file),
+                                std::ios::out);
+  }
 
   // Solution found
   std::vector<TimePointPair> centers;
@@ -132,6 +145,26 @@ void Main() {
       // Estimate of the cost of the solution.
       double cost_estimate = 0;
       framework.solution(&centers, &cost_estimate);
+
+      // If the path is passed, output the solution.
+      if (output_centers_file.has_value()) {
+        CHECK(output_centers_file.value().is_open());
+        CHECK(!centers.empty());
+        string centers_output;
+        for (int i = 0; i < centers.size(); i++) {
+          for (int j = 0; j < centers[i].second.size(); j++) {
+            absl::StrAppend(&centers_output, centers[i].second[j]);
+            if (j < centers[i].second.size() - 1) {
+              absl::StrAppend(&centers_output, "\t");
+            }
+          }
+          if (i < centers.size() - 1) {
+            absl::StrAppend(&centers_output, ",");
+          }
+        }
+        output_centers_file.value() << centers_output << "\n";
+      }
+
       // Get the actual points in the window.
       const auto& points_window = baseline.points_window();
 
@@ -166,6 +199,9 @@ void Main() {
   }
 
   output_file.close();
+  if (output_centers_file.has_value()) {
+    output_centers_file.value().close();
+  }
 }
 
 }  // namespace sliding_window

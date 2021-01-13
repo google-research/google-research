@@ -42,7 +42,8 @@ bazel run -c opt :sliding_window_clustering -- \
  --k=10
 
 To turn on the debug output use '-c dbg' instead (notice that this will make the
-code significantly slower).
+code significantly slower). Notice that it is possible to monitor the progress
+of the program on the standard output.
 
 Citing
 ------
