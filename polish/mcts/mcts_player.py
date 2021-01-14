@@ -14,9 +14,6 @@
 # limitations under the License.
 
 """Monte Carlo Tree Search (MCTS) player implementation."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import random
 import time
 from absl import logging

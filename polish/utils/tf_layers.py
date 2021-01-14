@@ -14,9 +14,6 @@
 # limitations under the License.
 
 """Wrappers for TF layers."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import tensorflow.compat.v1 as tf
 from polish.utils import tf_initializers
 

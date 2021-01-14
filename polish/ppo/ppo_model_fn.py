@@ -17,9 +17,6 @@
 
 For the PPO algorithm, see https://arxiv.org/abs/1707.06347.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from absl import logging
 import gin
 import numpy as np

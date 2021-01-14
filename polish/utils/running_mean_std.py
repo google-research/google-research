@@ -14,9 +14,6 @@
 # limitations under the License.
 
 """Calculate running mean and std for an array."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import numpy as np
 
 

@@ -20,9 +20,6 @@ multiple training steps. This input_fn is a subclass of tf.train.SessionRunHook
 that enables us to extend calls to MonitoredSession.run() with
 user-defined functions.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import collections
 import functools
 import os
