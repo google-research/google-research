@@ -71,9 +71,10 @@ class ScannBuilder(object):
       num_leaves_to_search,
       training_sample_size=100000,
       min_partition_size=50,
-      training_iterations=10,
+      training_iterations=12,
       spherical=False,
       quantize_centroids=False,
+      random_init=True,
       # the following are set automatically
       distance_measure=None):
     """Configure partitioning. If not called, no partitioning is performed."""
@@ -82,6 +83,9 @@ class ScannBuilder(object):
         num_children: {num_leaves}
         min_cluster_size: {min_partition_size}
         max_clustering_iterations: {training_iterations}
+        single_machine_center_initialization: {
+            "RANDOM_INITIALIZATION" if random_init else "DEFAULT_KMEANS_PLUS_PLUS"
+        }
         partitioning_distance {{
           distance_measure: "SquaredL2Distance"
         }}

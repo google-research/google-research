@@ -1,5 +1,8 @@
 # ScaNN Release Notes
 
+### 1.2.1
+Improved default parameters to the `tree()` method of `scann_builder`.
+
 ### 1.2.0
 Python 3.5 support has been dropped, allowing ScaNN to use f-strings and other Python 3.6+ features in its code.
 
