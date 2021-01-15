@@ -1,8 +1,8 @@
 # ES-ENAS: Evolutionary Strategies (ES) optimization combined with Efficient Neural Architecture Search (ENAS) for Reinforcement Learning Policies.
 
-In order to run the algorithm, the user must launch both the binaries `client.py` (which produces the central 'aggregator') and multiple launches of `server.py` (which produces the 'workers'). The user must also implement their own client-server communication (see `client.py` and `server.py` for more details). GRPC may be used, for instance.
+In order to run the algorithm, the user must launch both the binaries `client.py` (which produces the central 'aggregator') and multiple launches of `server.py` (which produces the 'workers'). The user must also implement their own client-server communication (see `client.py` and `server.py` for more details). gRPC may be used, for instance; see the [open-sourced version of ES-MAML](https://github.com/google-research/google-research/tree/master/es_maml) on how to use gRPC.
 
-In addition to the normal ES setup, the client contains a PyGlove controller, which will suggest "topologies" (currently edges or partitions) to all workers, and collect back the reward each worker received in a weight sharing optimization process.
+In addition to the normal ES setup, the client contains a [PyGlove](https://proceedings.neurips.cc/paper/2020/hash/012a91467f210472fab4e11359bbfef6-Abstract.html) controller, which will suggest "topologies" (currently edges or partitions) to all workers, and collect back the reward each worker received in a weight sharing optimization process. Currently, PyGlove is not open-sourced yet, but will be in the future. The code can be treated as a template for performing the ES-ENAS algorithm.
 
 There are essentially two modes, with subclasses:
 
