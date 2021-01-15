@@ -29,6 +29,7 @@ from flax.training import checkpoints
 import jax
 from jax import config
 from jax import random
+import jax.numpy as jnp
 import numpy as np
 
 from jaxnerf.nerf import datasets
@@ -70,18 +71,28 @@ def train_step(rng_key, state, batch, lr):
     rgb, unused_disp, unused_acc = ret[-1]
     loss = ((rgb - batch["pixels"][Ellipsis, :3])**2).mean()
     psnr = utils.compute_psnr(loss)
-    stats = [utils.Stats(loss=loss, psnr=psnr)]
     if len(ret) > 1:
       # If there are both coarse and fine predictions, we compuate the loss for
       # the coarse prediction (ret[0]) as well.
       rgb_c, unused_disp_c, unused_acc_c = ret[0]
       loss_c = ((rgb_c - batch["pixels"][Ellipsis, :3])**2).mean()
       psnr_c = utils.compute_psnr(loss_c)
-      stats.append(utils.Stats(loss=loss_c, psnr=psnr_c))
     else:
       loss_c = 0.
       psnr_c = 0.
-    return loss + loss_c, (new_model_state, stats)
+
+    def tree_sum_fn(fn):
+      return jax.tree_util.tree_reduce(
+          lambda x, y: x + fn(y), model.params, initializer=0)
+
+    weight_l2 = (
+        tree_sum_fn(lambda z: jnp.sum(z**2)) /
+        tree_sum_fn(lambda z: jnp.prod(jnp.array(z.shape))))
+
+    stats = utils.Stats(
+        loss=loss, psnr=psnr, loss_c=loss_c, psnr_c=psnr_c, weight_l2=weight_l2)
+    return loss + loss_c + FLAGS.weight_decay_mult * weight_l2, (
+        new_model_state, stats)
 
   step = state.step
   optimizer = state.optimizer
@@ -157,7 +168,7 @@ def main(unused_argv):
     lr = learning_rate_fn(step)
     state, stats, keys = ptrain_step(keys, state, batch, lr)
     if jax.host_id() == 0:
-      stats_trace.append(stats[0])
+      stats_trace.append(stats)
     if step % FLAGS.gc_every == 0:
       gc.collect()
     # --- Train logs start ---
@@ -188,11 +199,11 @@ def main(unused_argv):
     if jax.host_id() != 0:  # Only log via host 0.
       continue
     if step % FLAGS.print_every == 0:
-      summary_writer.scalar("train_loss", stats[0].loss[0], step)
-      summary_writer.scalar("train_psnr", stats[0].psnr[0], step)
-      if len(stats) > 1:
-        summary_writer.scalar("train_loss_coarse", stats[1].loss[0], step)
-        summary_writer.scalar("train_psnr_coarse", stats[1].psnr[0], step)
+      summary_writer.scalar("train_loss", stats.loss[0], step)
+      summary_writer.scalar("train_psnr", stats.psnr[0], step)
+      summary_writer.scalar("train_loss_coarse", stats.loss_c[0], step)
+      summary_writer.scalar("train_psnr_coarse", stats.psnr_c[0], step)
+      summary_writer.scalar("weight_l2", stats.weight_l2[0], step)
       avg_loss = np.mean(np.concatenate([s.loss for s in stats_trace]))
       avg_psnr = np.mean(np.concatenate([s.psnr for s in stats_trace]))
       stats_trace = []
@@ -206,8 +217,9 @@ def main(unused_argv):
       summary_writer.scalar("rays_per_sec", rays_per_sec, step)
       precision = int(np.ceil(np.log10(FLAGS.max_steps))) + 1
       print(("{:" + "{:d}".format(precision) + "d}").format(step) +
-            f"/{FLAGS.max_steps:d}: " + f"i_loss={stats[0].loss[0]:0.5f}, " +
-            f"avg_loss={avg_loss:0.5f}, " + f"lr={lr:0.2e}, " +
+            f"/{FLAGS.max_steps:d}: " + f"i_loss={stats.loss[0]:0.5f}, " +
+            f"avg_loss={avg_loss:0.5f}, " +
+            f"weight_l2={stats.weight_l2[0]:0.2e}, " + f"lr={lr:0.2e}, " +
             f"{rays_per_sec:0.3f} rays/sec")
     if step % FLAGS.save_every == 0:
       state_to_save = jax.device_get(jax.tree_map(lambda x: x[0], state))

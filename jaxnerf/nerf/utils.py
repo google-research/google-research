@@ -36,6 +36,9 @@ INTERNAL = False
 class Stats:
   loss: float
   psnr: float
+  loss_c: float
+  psnr_c: float
+  weight_l2: float
 
 
 def define_flags():
@@ -78,6 +81,7 @@ def define_flags():
                        "depth of the second part of MLP.")
   flags.DEFINE_integer("net_width_condition", 128,
                        "width of the second part of MLP.")
+  flags.DEFINE_float("weight_decay_mult", 0, "The multiplier on weight decay")
   flags.DEFINE_integer(
       "skip_layer", 4, "add a skip connection to the output vector of every"
       "skip_layer layers.")
