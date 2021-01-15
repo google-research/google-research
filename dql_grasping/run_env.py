@@ -49,7 +49,7 @@ def encode_image_array_as_png_str(image):
   return png_string
 
 
-@gin.configurable(blacklist=['task', 'num_episodes', 'global_step', 'tag'])
+@gin.configurable(denylist=['task', 'num_episodes', 'global_step', 'tag'])
 def run_env(env,
             policy=None,
             explore_schedule=None,
