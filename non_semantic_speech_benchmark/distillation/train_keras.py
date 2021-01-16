@@ -171,7 +171,7 @@ def train_and_report(debug=False):
       .get_default_hparams().parse(custom_params)
     compressor = compression_wrapper.get_apply_compression(
       compression_params, global_step=global_step)
-  model = models.TrillJr(
+  model = models.get_keras_model(
       bottleneck_dimension=FLAGS.bottleneck_dimension,
       output_dimension=output_dimension,
       alpha=FLAGS.alpha,
@@ -180,6 +180,7 @@ def train_and_report(debug=False):
       avg_pool=FLAGS.average_pool,
       compressor=compressor,
       qat=FLAGS.qat)
+  model.summary()
   # Add additional metrics to track.
   train_loss = tf.keras.metrics.MeanSquaredError(name='train_loss')
   train_mae = tf.keras.metrics.MeanAbsoluteError(name='train_mae')
@@ -237,7 +238,6 @@ def get_train_step(model, loss_obj, opt, train_loss, train_mae, summary_writer):
       tf.summary.scalar('mse_loss', loss_value, step=step)
       tf.summary.scalar('mse_loss_smoothed', train_loss.result(), step=step)
       tf.summary.scalar('mae', train_mae.result(), step=step)
-      tf.summary.scalar('compression/alpha', model.bottleneck.alpha, step=step)
   return train_step
 
 
