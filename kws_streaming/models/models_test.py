@@ -75,6 +75,7 @@ class DsTcResnetTest(tf.test.TestCase):
     # overide input data shape for streaming model with stride/pool
     self.params.data_stride = total_stride
     self.params.data_frame_padding = 'causal'
+    self.params.data_shape = (total_stride * self.params.window_stride_samples,)
 
     # set desired number of frames in model
     frames_number = 16
