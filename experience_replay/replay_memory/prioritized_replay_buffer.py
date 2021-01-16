@@ -283,8 +283,8 @@ class OutOfGraphPrioritizedReplayBuffer(
     return parent_transition_type + probablilities_type
 
 
-@gin.configurable(blacklist=['observation_shape', 'stack_size',
-                             'update_horizon', 'gamma'])
+@gin.configurable(
+    denylist=['observation_shape', 'stack_size', 'update_horizon', 'gamma'])
 class WrappedPrioritizedReplayBuffer(
     circular_replay_buffer.WrappedReplayBuffer):
   """Wrapper of OutOfGraphPrioritizedReplayBuffer with in-graph sampling.

@@ -250,7 +250,7 @@ class ResidualModel(LinearModel):
     return x_input, x
 
 
-@gin.configurable(whitelist=['network_class'])
+@gin.configurable(allowlist=['network_class'])
 def build_model(num_input_sentences,
                 embedding_matrix=None,
                 embedding_dim=None,

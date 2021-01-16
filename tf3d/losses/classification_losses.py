@@ -90,7 +90,7 @@ def classification_loss_fn(logits,
   return tf.reduce_mean(losses * tf.reshape(weights, [-1]))
 
 
-@gin.configurable('classification_loss', blacklist=['inputs', 'outputs'])
+@gin.configurable('classification_loss', denylist=['inputs', 'outputs'])
 def classification_loss(inputs, outputs):
   """Applies categorical crossentropy loss to voxel predictions.
 

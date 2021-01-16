@@ -24,7 +24,7 @@ from polish.mcts import mcts_node as m_node
 from polish.utils import performance
 
 
-@gin.configurable(blacklist=['call_policy'])
+@gin.configurable(denylist=['call_policy'])
 class MCTSPlayer(object):
   """Monte Carlo Tree Search (MCTS) player class.
 

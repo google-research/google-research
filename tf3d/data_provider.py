@@ -231,7 +231,7 @@ def get_tf_data_decoder(dataset_format,
 
 
 
-@gin.configurable(blacklist=['batch_size', 'is_training'])
+@gin.configurable(denylist=['batch_size', 'is_training'])
 def get_tf_data_dataset(dataset_name,
                         split_name,
                         batch_size,

@@ -87,7 +87,7 @@ def npair_loss_func(embeddings,
   return tf.math.reduce_mean(losses)
 
 
-@gin.configurable('npair_loss', blacklist=['inputs', 'outputs'])
+@gin.configurable('npair_loss', denylist=['inputs', 'outputs'])
 def npair_loss(inputs,
                outputs,
                num_samples,
