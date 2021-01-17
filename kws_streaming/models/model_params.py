@@ -79,6 +79,7 @@ class Params(object):
     self.sp_resample = 0.0
     self.pick_deterministically = 0
     self.verbosity = logging.INFO
+    self.causal_data_frame_padding = 0
 
 
 def att_mh_rnn_params():

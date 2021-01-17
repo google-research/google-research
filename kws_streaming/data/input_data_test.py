@@ -76,6 +76,7 @@ class InputDataTest(tf.test.TestCase):
         "split_data": 1,
         "train": 1,
         "pick_deterministically": 0,
+        "causal_data_frame_padding": 0,
     }
     return DictStruct(**dummy_flags)
 

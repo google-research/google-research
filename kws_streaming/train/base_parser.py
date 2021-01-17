@@ -448,5 +448,11 @@ def base_parser():
       default=0,
       help='Pick training data in every epoch deterministically',
   )
+  parser.add_argument(
+      '--causal_data_frame_padding',
+      type=int,
+      default=0,
+      help='Apply causal padding on DataFrame layer',
+  )
 
   return parser

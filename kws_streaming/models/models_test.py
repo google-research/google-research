@@ -43,8 +43,9 @@ class DsTcResnetTest(tf.test.TestCase):
     # model parameters
     model_name = 'ds_tc_resnet'
     self.params = model_params.HOTWORD_MODEL_PARAMS[model_name]
+    self.params.causal_data_frame_padding = 1  # causal padding on DataFrame
     self.params.clip_duration_ms = 160
-    self.params.window_size_ms = 4.0
+    self.params.window_size_ms = 5.0
     self.params.window_stride_ms = 2.0
     self.params.wanted_words = 'a,b,c'
     self.params.ds_padding = "'causal','causal','causal'"
@@ -74,7 +75,6 @@ class DsTcResnetTest(tf.test.TestCase):
 
     # overide input data shape for streaming model with stride/pool
     self.params.data_stride = total_stride
-    self.params.data_frame_padding = 'causal'
     self.params.data_shape = (total_stride * self.params.window_stride_samples,)
 
     # set desired number of frames in model

@@ -68,7 +68,10 @@ def update_flags(flags):
 
   # by default data_frame does not do use causal padding
   # it can cause small numerical difference in streaming mode
-  upd_flags.data_frame_padding = None
+  if flags.causal_data_frame_padding:
+    upd_flags.data_frame_padding = 'causal'
+  else:
+    upd_flags.data_frame_padding = None
 
   # summary logs for TensorBoard
   upd_flags.summaries_dir = os.path.join(flags.train_dir, 'logs/')
