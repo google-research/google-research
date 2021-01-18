@@ -19,17 +19,20 @@ import os
 from os import path
 from absl import flags
 import flax
-from flax import nn
 import jax
 import jax.numpy as jnp
 import numpy as np
 from PIL import Image
 import yaml
 from jaxnerf.nerf import datasets
-from jaxnerf.nerf import models
 
 BASE_DIR = "jaxnerf"
 INTERNAL = False
+
+
+@flax.struct.dataclass
+class TrainState:
+  optimizer: flax.optim.Optimizer
 
 
 @flax.struct.dataclass
@@ -71,8 +74,7 @@ def define_flags():
       "(used in the llff dataset only)")
 
   # Model Flags
-  flags.DEFINE_enum("model", "nerf", list(k for k in models.model_dict.keys()),
-                    "name of model to use.")
+  flags.DEFINE_string("model", "nerf", "name of model to use.")
   flags.DEFINE_float("near", 2., "near clip of volumetric rendering.")
   flags.DEFINE_float("far", 6., "far clip of volumentric rendering.")
   flags.DEFINE_integer("net_depth", 8, "depth of the first part of MLP.")
@@ -186,13 +188,12 @@ def makedirs(pth):
     os.makedirs(pth)
 
 
-def render_image(state, rays, render_fn, rng, normalize_disp, chunk=8192):
+def render_image(render_fn, rays, rng, normalize_disp, chunk=8192):
   """Render all the pixels of an image (in test mode).
 
   Args:
-    state: model_utils.TrainState.
-    rays: a `Rays` namedtuple, the rays to be rendered.
     render_fn: function, jit-ed render function.
+    rays: a `Rays` namedtuple, the rays to be rendered.
     rng: jnp.ndarray, random number generator (used in training mode only).
     normalize_disp: bool, if true then normalize `disp` to [0, 1].
     chunk: int, the size of chunks to render sequentially.
@@ -207,31 +208,27 @@ def render_image(state, rays, render_fn, rng, normalize_disp, chunk=8192):
   rays = datasets.ray_fn(lambda r: r.reshape((num_rays, -1)), rays)
 
   unused_rng, key_0, key_1 = jax.random.split(rng, 3)
-  model = state.optimizer.target
-  model_state = state.model_state
   host_id = jax.host_id()
   results = []
-  with nn.stateful(model_state, mutable=False):
-    for i in range(0, num_rays, chunk):
-      # pylint: disable=cell-var-from-loop
-      chunk_rays = datasets.ray_fn(lambda r: r[i:i + chunk], rays)
-      chunk_size = chunk_rays[0].shape[0]
-      rays_remaining = chunk_size % jax.device_count()
-      if rays_remaining != 0:
-        padding = jax.device_count() - rays_remaining
-        chunk_rays = datasets.ray_fn(
-            lambda r: jnp.pad(r, ((0, padding), (0, 0)), mode="edge"),
-            chunk_rays)
-      else:
-        padding = 0
-      # After padding the number of chunk_rays is always divisible by
-      # host_count.
-      rays_per_host = chunk_rays[0].shape[0] // jax.host_count()
-      start, stop = host_id * rays_per_host, (host_id + 1) * rays_per_host
-      chunk_rays = datasets.ray_fn(lambda r: shard(r[start:stop]), chunk_rays)
-      chunk_results = render_fn(key_0, key_1, model, chunk_rays)[-1]
-      results.append([unshard(x[0], padding) for x in chunk_results])
-      # pylint: enable=cell-var-from-loop
+  for i in range(0, num_rays, chunk):
+    # pylint: disable=cell-var-from-loop
+    chunk_rays = datasets.ray_fn(lambda r: r[i:i + chunk], rays)
+    chunk_size = chunk_rays[0].shape[0]
+    rays_remaining = chunk_size % jax.device_count()
+    if rays_remaining != 0:
+      padding = jax.device_count() - rays_remaining
+      chunk_rays = datasets.ray_fn(
+          lambda r: jnp.pad(r, ((0, padding), (0, 0)), mode="edge"), chunk_rays)
+    else:
+      padding = 0
+    # After padding the number of chunk_rays is always divisible by
+    # host_count.
+    rays_per_host = chunk_rays[0].shape[0] // jax.host_count()
+    start, stop = host_id * rays_per_host, (host_id + 1) * rays_per_host
+    chunk_rays = datasets.ray_fn(lambda r: shard(r[start:stop]), chunk_rays)
+    chunk_results = render_fn(key_0, key_1, chunk_rays)[-1]
+    results.append([unshard(x[0], padding) for x in chunk_results])
+    # pylint: enable=cell-var-from-loop
   rgb, disp, acc = [jnp.concatenate(r, axis=0) for r in zip(*results)]
   # Normalize disp for visualization for ndc_rays in llff front-facing scenes.
   if normalize_disp:

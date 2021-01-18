@@ -15,8 +15,8 @@
 
 # Lint as: python3
 """Different model implementation plus a general port for all the models."""
-import functools
-from flax import nn
+from typing import Any, Callable
+from flax import linen as nn
 from jax import random
 import jax.numpy as jnp
 
@@ -24,18 +24,39 @@ from jaxnerf.nerf import model_utils
 
 
 def get_model(key, example_batch, args):
+  """A helper function that wraps around a 'model zoo'."""
+  model_dict = {
+      "nerf": construct_nerf,
+  }
   return model_dict[args.model](key, example_batch, args)
 
 
 class NerfModel(nn.Module):
   """Nerf NN Model with both coarse and fine MLPs."""
+  num_coarse_samples: int  # The number of samples for the coarse nerf.
+  num_fine_samples: int  # The number of samples for the fine nerf.
+  use_viewdirs: bool  # If True, use viewdirs as an input.
+  near: float  # The distance to the near plane
+  far: float  # The distance to the far plane
+  noise_std: float  # The std dev of noise added to raw sigma.
+  net_depth: int  # The depth of the first part of MLP.
+  net_width: int  # The width of the first part of MLP.
+  net_depth_condition: int  # The depth of the second part of MLP.
+  net_width_condition: int  # The width of the second part of MLP.
+  net_activation: Callable[Ellipsis, Any]  # MLP activation
+  skip_layer: int  # How often to add skip connections.
+  num_rgb_channels: int  # The number of RGB channels.
+  num_sigma_channels: int  # The number of density channels.
+  white_bkgd: bool  # If True, use a white background.
+  deg_point: int  # The degree of positional encoding for positions.
+  deg_view: int  # The degree of positional encoding for viewdirs.
+  lindisp: bool  # If True, sample linearly in disparity rather than in depth.
+  rgb_activation: Callable[Ellipsis, Any]  # Output RGB activation.
+  sigma_activation: Callable[Ellipsis, Any]  # Output sigma activation.
+  legacy_posenc_order: bool  # Keep the same ordering as the original tf code.
 
-  def apply(self, rng_0, rng_1, origins, directions, viewdirs,
-            num_coarse_samples, num_fine_samples, use_viewdirs, near, far,
-            noise_std, net_depth, net_width, net_depth_condition,
-            net_width_condition, net_activation, skip_layer, num_rgb_channels,
-            num_sigma_channels, randomized, white_bkgd, deg_point, deg_view,
-            lindisp, rgb_activation, sigma_activation, legacy_posenc_order):
+  @nn.compact
+  def __call__(self, rng_0, rng_1, origins, directions, viewdirs, randomized):
     """Nerf Model.
 
     Args:
@@ -46,76 +67,58 @@ class NerfModel(nn.Module):
       viewdirs: jnp.ndarray(float32), [batch_size, 3], the viewing direction for
         each ray. This is only used if NDC rays are used, as otherwise
         `directions` is equal to viewdirs.
-      num_coarse_samples: int, the number of samples for coarse nerf.
-      num_fine_samples: int, the number of samples for fine nerf.
-      use_viewdirs: bool, use viewdirs as a condition.
-      near: float, near clip.
-      far: float, far clip.
-      noise_std: float, std dev of noise added to regularize sigma output.
-      net_depth: int, the depth of the first part of MLP.
-      net_width: int, the width of the first part of MLP.
-      net_depth_condition: int, the depth of the second part of MLP.
-      net_width_condition: int, the width of the second part of MLP.
-      net_activation: function, the activation function used within the MLP.
-      skip_layer: int, add a skip connection to the output vector of every
-        skip_layer layers.
-      num_rgb_channels: int, the number of RGB channels.
-      num_sigma_channels: int, the number of density channels.
       randomized: bool, use randomized stratified sampling.
-      white_bkgd: bool, use white background.
-      deg_point: degree of positional encoding for positions.
-      deg_view: degree of positional encoding for viewdirs.
-      lindisp: bool, sampling linearly in disparity rather than depth if true.
-      rgb_activation: function, the activation used to generate RGB.
-      sigma_activation: function, the activation used to generate density.
-      legacy_posenc_order: bool, keep the same ordering as the original tf code.
 
     Returns:
       ret: list, [(rgb_coarse, disp_coarse, acc_coarse), (rgb, disp, acc)]
     """
-    mlp_fn = functools.partial(
-        model_utils.MLP,
-        net_depth=net_depth,
-        net_width=net_width,
-        net_depth_condition=net_depth_condition,
-        net_width_condition=net_width_condition,
-        net_activation=net_activation,
-        skip_layer=skip_layer,
-        num_rgb_channels=num_rgb_channels,
-        num_sigma_channels=num_sigma_channels)
     # Stratified sampling along rays
     key, rng_0 = random.split(rng_0)
     z_vals, samples = model_utils.sample_along_rays(key, origins, directions,
-                                                    num_coarse_samples, near,
-                                                    far, randomized, lindisp)
-    samples_enc = model_utils.posenc(samples, deg_point, legacy_posenc_order)
+                                                    self.num_coarse_samples,
+                                                    self.near, self.far,
+                                                    randomized, self.lindisp)
+    samples_enc = model_utils.posenc(samples, self.deg_point,
+                                     self.legacy_posenc_order)
+
+    # Construct the "coarse" MLP.
+    coarse_mlp = model_utils.MLP(
+        net_depth=self.net_depth,
+        net_width=self.net_width,
+        net_depth_condition=self.net_depth_condition,
+        net_width_condition=self.net_width_condition,
+        net_activation=self.net_activation,
+        skip_layer=self.skip_layer,
+        num_rgb_channels=self.num_rgb_channels,
+        num_sigma_channels=self.num_sigma_channels)
+
     # Point attribute predictions
-    if use_viewdirs:
+    if self.use_viewdirs:
       viewdirs_enc = model_utils.posenc(
           viewdirs / jnp.linalg.norm(viewdirs, axis=-1, keepdims=True),
-          deg_view, legacy_posenc_order)
-      raw_rgb, raw_sigma = mlp_fn(samples_enc, viewdirs_enc)
+          self.deg_view, self.legacy_posenc_order)
+      raw_rgb, raw_sigma = coarse_mlp(samples_enc, viewdirs_enc)
     else:
-      raw_rgb, raw_sigma = mlp_fn(samples_enc)
+      raw_rgb, raw_sigma = coarse_mlp(samples_enc)
     # Add noises to regularize the density predictions if needed
     key, rng_0 = random.split(rng_0)
-    raw_sigma = model_utils.add_gaussian_noise(key, raw_sigma, noise_std,
+    raw_sigma = model_utils.add_gaussian_noise(key, raw_sigma, self.noise_std,
                                                randomized)
-    rgb = rgb_activation(raw_rgb)
-    sigma = sigma_activation(raw_sigma)
+    rgb = self.rgb_activation(raw_rgb)
+    sigma = self.sigma_activation(raw_sigma)
     # Volumetric rendering.
     comp_rgb, disp, acc, weights = model_utils.volumetric_rendering(
         rgb,
         sigma,
         z_vals,
         directions,
-        white_bkgd=white_bkgd,
+        white_bkgd=self.white_bkgd,
     )
     ret = [
         (comp_rgb, disp, acc),
     ]
     # Hierarchical sampling based on coarse predictions
-    if num_fine_samples > 0:
+    if self.num_fine_samples > 0:
       z_vals_mid = .5 * (z_vals[Ellipsis, 1:] + z_vals[Ellipsis, :-1])
       key, rng_1 = random.split(rng_1)
       z_vals, samples = model_utils.sample_pdf(
@@ -125,32 +128,45 @@ class NerfModel(nn.Module):
           origins,
           directions,
           z_vals,
-          num_fine_samples,
+          self.num_fine_samples,
           randomized,
       )
-      samples_enc = model_utils.posenc(samples, deg_point, legacy_posenc_order)
-      if use_viewdirs:
-        raw_rgb, raw_sigma = mlp_fn(samples_enc, viewdirs_enc)
+      samples_enc = model_utils.posenc(samples, self.deg_point,
+                                       self.legacy_posenc_order)
+
+      # Construct the "fine" MLP.
+      fine_mlp = model_utils.MLP(
+          net_depth=self.net_depth,
+          net_width=self.net_width,
+          net_depth_condition=self.net_depth_condition,
+          net_width_condition=self.net_width_condition,
+          net_activation=self.net_activation,
+          skip_layer=self.skip_layer,
+          num_rgb_channels=self.num_rgb_channels,
+          num_sigma_channels=self.num_sigma_channels)
+
+      if self.use_viewdirs:
+        raw_rgb, raw_sigma = fine_mlp(samples_enc, viewdirs_enc)
       else:
-        raw_rgb, raw_sigma = mlp_fn(samples_enc)
+        raw_rgb, raw_sigma = fine_mlp(samples_enc)
       key, rng_1 = random.split(rng_1)
-      raw_sigma = model_utils.add_gaussian_noise(key, raw_sigma, noise_std,
+      raw_sigma = model_utils.add_gaussian_noise(key, raw_sigma, self.noise_std,
                                                  randomized)
-      rgb = rgb_activation(raw_rgb)
-      sigma = sigma_activation(raw_sigma)
+      rgb = self.rgb_activation(raw_rgb)
+      sigma = self.sigma_activation(raw_sigma)
       comp_rgb, disp, acc, unused_weights = model_utils.volumetric_rendering(
           rgb,
           sigma,
           z_vals,
           directions,
-          white_bkgd=white_bkgd,
+          white_bkgd=self.white_bkgd,
       )
       ret.append((comp_rgb, disp, acc))
     return ret
 
 
-def nerf(key, example_batch, args):
-  """Neural Randiance Field.
+def construct_nerf(key, example_batch, args):
+  """Construct a Neural Radiance Field.
 
   Args:
     key: jnp.ndarray. Random number generator.
@@ -182,7 +198,7 @@ def nerf(key, example_batch, args):
         "Choice of sigma_activation `{}` produces negative densities".format(
             args.sigma_activation))
 
-  model_fn = NerfModel.partial(
+  model = NerfModel(
       deg_point=args.deg_point,
       deg_view=args.deg_view,
       num_coarse_samples=args.num_coarse_samples,
@@ -191,7 +207,6 @@ def nerf(key, example_batch, args):
       near=args.near,
       far=args.far,
       noise_std=args.noise_std,
-      randomized=args.randomized,
       white_bkgd=args.white_bkgd,
       net_depth=args.net_depth,
       net_width=args.net_width,
@@ -205,17 +220,16 @@ def nerf(key, example_batch, args):
       rgb_activation=rgb_activation,
       sigma_activation=sigma_activation,
       legacy_posenc_order=args.legacy_posenc_order)
-  with nn.stateful() as init_state:
-    rays = example_batch["rays"]
-    key1, key2, key3 = random.split(key, num=3)
-    # TODO(barron): Determine why the rays have an unused first dimension.
-    _, init_params = model_fn.init(key1, key2, key3, rays.origins[0],
-                                   rays.directions[0], rays.viewdirs[0])
+  rays = example_batch["rays"]
+  key1, key2, key3 = random.split(key, num=3)
 
-    model = nn.Model(model_fn, init_params)
-  return model, init_state
+  init_variables = model.init(
+      key1,
+      rng_0=key2,
+      rng_1=key3,
+      origins=rays.origins[0],
+      directions=rays.directions[0],
+      viewdirs=rays.viewdirs[0],
+      randomized=args.randomized)
 
-
-model_dict = {
-    "nerf": nerf,
-}
+  return model, init_variables

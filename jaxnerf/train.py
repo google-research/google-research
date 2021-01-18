@@ -21,9 +21,7 @@ import gc
 import time
 from absl import app
 from absl import flags
-from flax import jax_utils
-from flax import nn
-from flax import optim
+import flax
 from flax.metrics import tensorboard
 from flax.training import checkpoints
 import jax
@@ -33,7 +31,6 @@ import jax.numpy as jnp
 import numpy as np
 
 from jaxnerf.nerf import datasets
-from jaxnerf.nerf import model_utils
 from jaxnerf.nerf import models
 from jaxnerf.nerf import utils
 
@@ -43,26 +40,26 @@ utils.define_flags()
 config.parse_flags_with_absl()
 
 
-def train_step(rng_key, state, batch, lr):
+def train_step(model, rng, state, batch, lr):
   """One optimization step.
 
   Args:
-    rng_key: jnp.ndarray, random number generator.
-    state: modle_utils.TrainState, state of model and optimizer.
-    batch: dict. A mini-batch of data for training.
+    model: The linen model.
+    rng: jnp.ndarray, random number generator.
+    state: utils.TrainState, state of the model/optimizer.
+    batch: dict, a mini-batch of data for training.
     lr: float, real-time learning rate.
 
   Returns:
-    new_state: model_utils.TrainState, new training state.
+    new_state: utils.TrainState, new training state.
     stats: list. [(loss, psnr), (loss_coarse, psnr_coarse)].
-    rng_key: jnp.ndarray, updated random number generator.
+    rng: jnp.ndarray, updated random number generator.
   """
-  rng_key, key_0, key_1 = random.split(rng_key, 3)
+  rng, key_0, key_1 = random.split(rng, 3)
 
-  def loss_fn(model):
-    with nn.stateful(state.model_state) as new_model_state:
-      rays = batch["rays"]
-      ret = model(key_0, key_1, *rays)
+  def loss_fn(variables):
+    rays = batch["rays"]
+    ret = model.apply(variables, key_0, key_1, *rays, FLAGS.randomized)
     if len(ret) not in (1, 2):
       raise ValueError(
           "ret should contain either 1 set of output (coarse only), or 2 sets"
@@ -72,7 +69,7 @@ def train_step(rng_key, state, batch, lr):
     loss = ((rgb - batch["pixels"][Ellipsis, :3])**2).mean()
     psnr = utils.compute_psnr(loss)
     if len(ret) > 1:
-      # If there are both coarse and fine predictions, we compuate the loss for
+      # If there are both coarse and fine predictions, we compute the loss for
       # the coarse prediction (ret[0]) as well.
       rgb_c, unused_disp_c, unused_acc_c = ret[0]
       loss_c = ((rgb_c - batch["pixels"][Ellipsis, :3])**2).mean()
@@ -83,7 +80,7 @@ def train_step(rng_key, state, batch, lr):
 
     def tree_sum_fn(fn):
       return jax.tree_util.tree_reduce(
-          lambda x, y: x + fn(y), model.params, initializer=0)
+          lambda x, y: x + fn(y), variables, initializer=0)
 
     weight_l2 = (
         tree_sum_fn(lambda z: jnp.sum(z**2)) /
@@ -91,19 +88,15 @@ def train_step(rng_key, state, batch, lr):
 
     stats = utils.Stats(
         loss=loss, psnr=psnr, loss_c=loss_c, psnr_c=psnr_c, weight_l2=weight_l2)
-    return loss + loss_c + FLAGS.weight_decay_mult * weight_l2, (
-        new_model_state, stats)
+    return loss + loss_c + FLAGS.weight_decay_mult * weight_l2, stats
 
-  step = state.step
-  optimizer = state.optimizer
-  grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
-  (unused_loss, (new_model_state, stats)), grad = grad_fn(optimizer.target)
+  (_, stats), grad = (
+      jax.value_and_grad(loss_fn, has_aux=True)(state.optimizer.target))
   grad = jax.lax.pmean(grad, axis_name="batch")
   stats = jax.lax.pmean(stats, axis_name="batch")
-  new_optimizer = optimizer.apply_gradient(grad, learning_rate=lr)
-  new_state = state.replace(
-      step=step + 1, optimizer=new_optimizer, model_state=new_model_state)
-  return new_state, stats, rng_key
+  new_optimizer = state.optimizer.apply_gradient(grad, learning_rate=lr)
+  new_state = state.replace(optimizer=new_optimizer)
+  return new_state, stats, rng
 
 
 def main(unused_argv):
@@ -122,31 +115,13 @@ def main(unused_argv):
     raise ValueError("data_dir must be set. None set now.")
   dataset = datasets.get_dataset("train", FLAGS)
   test_dataset = datasets.get_dataset("test", FLAGS)
-  test_render_fn = jax.pmap(
-      # Note rng_keys are useless in eval mode since there's no randomness.
-      # pylint: disable=g-long-lambda
-      lambda key_0, key_1, model, rays: jax.lax.all_gather(
-          model(key_0, key_1, *rays), axis_name="batch"),
-      in_axes=(None, None, None, 0),  # Only distribute the data input.
-      donate_argnums=3,
-      axis_name="batch",
-  )
-  rng, key = random.split(rng)
-  init_model, init_state = models.get_model(key, dataset.peek(), FLAGS)
-  optimizer_def = optim.Adam(FLAGS.lr_init)
-  optimizer = optimizer_def.create(init_model)
-  state = model_utils.TrainState(
-      step=0, optimizer=optimizer, model_state=init_state)
-  if not utils.isdir(FLAGS.train_dir):
-    utils.makedirs(FLAGS.train_dir)
-  state = checkpoints.restore_checkpoint(FLAGS.train_dir, state)
-  offset = state.step + 1
-  state = jax_utils.replicate(state)
-  del init_model, init_state
 
-  if jax.host_id() == 0:
-    summary_writer = tensorboard.SummaryWriter(FLAGS.train_dir)
-  t_loop_start = time.time()
+  rng, key = random.split(rng)
+  model, variables = models.get_model(key, dataset.peek(), FLAGS)
+  optimizer = flax.optim.Adam(FLAGS.lr_init).create(variables)
+  state = utils.TrainState(optimizer=optimizer)
+  del optimizer, variables
+
   learning_rate_fn = functools.partial(
       utils.learning_rate_decay,
       lr_init=FLAGS.lr_init,
@@ -155,18 +130,45 @@ def main(unused_argv):
       lr_delay_steps=FLAGS.lr_delay_steps,
       lr_delay_mult=FLAGS.lr_delay_mult)
 
-  ptrain_step = jax.pmap(
-      train_step, axis_name="batch", in_axes=(0, 0, 0, None), donate_argnums=2)
+  train_pstep = jax.pmap(
+      functools.partial(train_step, model),
+      axis_name="batch",
+      in_axes=(0, 0, 0, None),
+      donate_argnums=(2,))
+
+  def render_fn(variables, key_0, key_1, rays):
+    return jax.lax.all_gather(
+        model.apply(variables, key_0, key_1, *rays, FLAGS.randomized),
+        axis_name="batch")
+
+  render_pfn = jax.pmap(
+      render_fn,
+      in_axes=(None, None, None, 0),  # Only distribute the data input.
+      donate_argnums=(3,),
+      axis_name="batch",
+  )
+
+  if not utils.isdir(FLAGS.train_dir):
+    utils.makedirs(FLAGS.train_dir)
+  state = checkpoints.restore_checkpoint(FLAGS.train_dir, state)
+  # Resume training a the step of the last checkpoint.
+  init_step = state.optimizer.state.step + 1
+  state = flax.jax_utils.replicate(state)
+
+  if jax.host_id() == 0:
+    summary_writer = tensorboard.SummaryWriter(FLAGS.train_dir)
+  t_loop_start = time.time()
+
   # Prefetch_buffer_size = 3 x batch_size
-  pdataset = jax_utils.prefetch_to_device(dataset, 3)
+  pdataset = flax.jax_utils.prefetch_to_device(dataset, 3)
   n_local_deices = jax.local_device_count()
   rng = rng + jax.host_id()  # Make random seed separate across hosts.
   keys = random.split(rng, n_local_deices)  # For pmapping RNG keys.
   gc.disable()  # Disable automatic garbage collection for efficiency.
   stats_trace = []
-  for step, batch in zip(range(offset, FLAGS.max_steps + 1), pdataset):
+  for step, batch in zip(range(init_step, FLAGS.max_steps + 1), pdataset):
     lr = learning_rate_fn(step)
-    state, stats, keys = ptrain_step(keys, state, batch, lr)
+    state, stats, keys = train_pstep(keys, state, batch, lr)
     if jax.host_id() == 0:
       stats_trace.append(stats)
     if step % FLAGS.gc_every == 0:
@@ -179,12 +181,12 @@ def main(unused_argv):
       # We reuse the same random number generator from the optimization step
       # here on purpose so that the visualization matches what happened in
       # training.
-      state_to_eval = jax.device_get(jax.tree_map(lambda x: x[0], state))
+      eval_variables = jax.device_get(jax.tree_map(lambda x: x[0],
+                                                   state)).optimizer.target
       test_case = next(test_dataset)
       pred_color, pred_disp, pred_acc = utils.render_image(
-          state_to_eval,
+          functools.partial(render_pfn, eval_variables),
           test_case["rays"],
-          test_render_fn,
           keys[0],
           FLAGS.dataset == "llff",
           chunk=FLAGS.chunk)
@@ -224,13 +226,13 @@ def main(unused_argv):
     if step % FLAGS.save_every == 0:
       state_to_save = jax.device_get(jax.tree_map(lambda x: x[0], state))
       checkpoints.save_checkpoint(
-          FLAGS.train_dir, state_to_save, state_to_save.step, keep=100)
+          FLAGS.train_dir, state_to_save, int(step), keep=100)
     # --- Train logs end ---
 
   if FLAGS.max_steps % FLAGS.save_every != 0:
     state = jax.device_get(jax.tree_map(lambda x: x[0], state))
     checkpoints.save_checkpoint(
-        FLAGS.train_dir, state, int(state.step), keep=100)
+        FLAGS.train_dir, state, int(FLAGS.max_steps), keep=100)
 
 
 if __name__ == "__main__":

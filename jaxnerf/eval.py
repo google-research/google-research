@@ -15,11 +15,12 @@
 
 # Lint as: python3
 """Evaluation script for Nerf."""
+import functools
 from os import path
 
 from absl import app
 from absl import flags
-from flax import optim
+import flax
 from flax.metrics import tensorboard
 from flax.training import checkpoints
 import jax
@@ -27,7 +28,6 @@ from jax import random
 import numpy as np
 
 from jaxnerf.nerf import datasets
-from jaxnerf.nerf import model_utils
 from jaxnerf.nerf import models
 from jaxnerf.nerf import utils
 
@@ -45,18 +45,19 @@ def main(unused_argv):
     raise ValueError("train_dir must be set. None set now.")
   if FLAGS.data_dir is None:
     raise ValueError("data_dir must be set. None set now.")
-  # Force rendering to be deterministic even if training was randomized, as this
-  # eliminates "speckle" artifacts.
-  FLAGS.__dict__["randomized"] = False
+
   dataset = datasets.get_dataset("test", FLAGS)
   rng, key = random.split(rng)
-  init_model, init_state = models.get_model(key, dataset.peek(), FLAGS)
-  optimizer_def = optim.Adam(FLAGS.lr_init)
-  optimizer = optimizer_def.create(init_model)
+  model, init_variables = models.get_model(key, dataset.peek(), FLAGS)
+  optimizer = flax.optim.Adam(FLAGS.lr_init).create(init_variables)
+  state = utils.TrainState(optimizer=optimizer)
+  del optimizer, init_variables
 
-  def render_fn(key_0, key_1, model, rays):
-    # Note rng_keys are useless in eval mode since there's no randomness.
-    return jax.lax.all_gather(model(key_0, key_1, *rays), axis_name="batch")
+  # Rendering is forced to be deterministic even if training was randomized, as
+  # this eliminates "speckle" artifacts.
+  def render_fn(variables, key_0, key_1, rays):
+    return jax.lax.all_gather(
+        model.apply(variables, key_0, key_1, *rays, False), axis_name="batch")
 
   # pmap over only the data input.
   render_pfn = jax.pmap(
@@ -66,10 +67,6 @@ def main(unused_argv):
       axis_name="batch",
   )
 
-  state = model_utils.TrainState(
-      step=0, optimizer=optimizer, model_state=init_state)
-  del init_model, init_state
-
   last_step = 0
   out_dir = path.join(FLAGS.train_dir,
                       "path_renders" if FLAGS.render_path else "test_preds")
@@ -78,7 +75,8 @@ def main(unused_argv):
         path.join(FLAGS.train_dir, "eval"))
   while True:
     state = checkpoints.restore_checkpoint(FLAGS.train_dir, state)
-    if state.step <= last_step:
+    step = int(state.optimizer.state.step)
+    if step <= last_step:
       continue
     if FLAGS.save_output and (not utils.isdir(out_dir)):
       utils.makedirs(out_dir)
@@ -89,9 +87,8 @@ def main(unused_argv):
       print(f"Evaluating {idx+1}/{dataset.size}")
       batch = next(dataset)
       pred_color, pred_disp, pred_acc = utils.render_image(
-          state,
+          functools.partial(render_pfn, state.optimizer.target),
           batch["rays"],
-          render_pfn,
           rng,
           FLAGS.dataset == "llff",
           chunk=FLAGS.chunk)
@@ -112,20 +109,20 @@ def main(unused_argv):
         utils.save_img(pred_disp[Ellipsis, 0],
                        path.join(out_dir, "disp_{:03d}.png".format(idx)))
     if (not FLAGS.eval_once) and (jax.host_id() == 0):
-      summary_writer.image("pred_color", showcase_color, state.step)
-      summary_writer.image("pred_disp", showcase_disp, state.step)
-      summary_writer.image("pred_acc", showcase_acc, state.step)
+      summary_writer.image("pred_color", showcase_color, step)
+      summary_writer.image("pred_disp", showcase_disp, step)
+      summary_writer.image("pred_acc", showcase_acc, step)
       if not FLAGS.render_path:
-        summary_writer.scalar("psnr", np.mean(np.array(psnrs)), state.step)
-        summary_writer.image("target", showcase_gt, state.step)
+        summary_writer.scalar("psnr", np.mean(np.array(psnrs)), step)
+        summary_writer.image("target", showcase_gt, step)
     if FLAGS.save_output and (not FLAGS.render_path) and (jax.host_id() == 0):
       with utils.open_file(path.join(out_dir, "psnr.txt"), "w") as pout:
         pout.write("{}".format(np.mean(np.array(psnrs))))
     if FLAGS.eval_once:
       break
-    if int(state.step) >= FLAGS.max_steps:
+    if int(step) >= FLAGS.max_steps:
       break
-    last_step = state.step
+    last_step = step
 
 
 if __name__ == "__main__":
