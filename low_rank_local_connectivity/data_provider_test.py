@@ -28,6 +28,7 @@ _IMAGE_SHAPE_DICT = {
     "mnist": (28, 28, 1),
     "cifar10": (32, 32, 3),
     "celeba32": (32, 32, 3),
+    "trans_celeba48": (48, 48, 3),
 }
 
 
