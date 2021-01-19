@@ -148,6 +148,10 @@ def main(unused_argv):
       axis_name="batch",
   )
 
+  # Compiling to the CPU because it's faster and more accurate.
+  ssim_fn = jax.jit(
+      functools.partial(utils.compute_ssim, max_val=1.), backend="cpu")
+
   if not utils.isdir(FLAGS.train_dir):
     utils.makedirs(FLAGS.train_dir)
   state = checkpoints.restore_checkpoint(FLAGS.train_dir, state)
@@ -193,7 +197,9 @@ def main(unused_argv):
       if jax.host_id() == 0:
         psnr = utils.compute_psnr(
             ((pred_color - test_case["pixels"])**2).mean())
+        ssim = ssim_fn(pred_color, test_case["pixels"])
         summary_writer.scalar("test_psnr", psnr, step)
+        summary_writer.scalar("test_ssim", ssim, step)
         summary_writer.image("test_pred_color", pred_color, step)
         summary_writer.image("test_pred_disp", pred_disp, step)
         summary_writer.image("test_pred_acc", pred_acc, step)

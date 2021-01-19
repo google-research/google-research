@@ -67,6 +67,10 @@ def main(unused_argv):
       axis_name="batch",
   )
 
+  # Compiling to the CPU because it's faster and more accurate.
+  ssim_fn = jax.jit(
+      functools.partial(utils.compute_ssim, max_val=1.), backend="cpu")
+
   last_step = 0
   out_dir = path.join(FLAGS.train_dir,
                       "path_renders" if FLAGS.render_path else "test_preds")
@@ -81,6 +85,7 @@ def main(unused_argv):
     if FLAGS.save_output and (not utils.isdir(out_dir)):
       utils.makedirs(out_dir)
     psnrs = []
+    ssims = []
     if not FLAGS.eval_once:
       showcase_index = np.random.randint(0, dataset.size)
     for idx in range(dataset.size):
@@ -102,8 +107,10 @@ def main(unused_argv):
           showcase_gt = batch["pixels"]
       if not FLAGS.render_path:
         psnr = utils.compute_psnr(((pred_color - batch["pixels"])**2).mean())
-        print(f"  PSNR = {psnr:.4f}")
+        ssim = ssim_fn(pred_color, batch["pixels"])
+        print(f"PSNR = {psnr:.4f}, SSIM = {ssim:.4f}")
         psnrs.append(float(psnr))
+        ssims.append(float(ssim))
       if FLAGS.save_output:
         utils.save_img(pred_color, path.join(out_dir, "{:03d}.png".format(idx)))
         utils.save_img(pred_disp[Ellipsis, 0],
@@ -114,10 +121,13 @@ def main(unused_argv):
       summary_writer.image("pred_acc", showcase_acc, step)
       if not FLAGS.render_path:
         summary_writer.scalar("psnr", np.mean(np.array(psnrs)), step)
+        summary_writer.scalar("ssim", np.mean(np.array(ssims)), step)
         summary_writer.image("target", showcase_gt, step)
     if FLAGS.save_output and (not FLAGS.render_path) and (jax.host_id() == 0):
       with utils.open_file(path.join(out_dir, "psnr.txt"), "w") as pout:
         pout.write("{}".format(np.mean(np.array(psnrs))))
+      with utils.open_file(path.join(out_dir, "ssim.txt"), "w") as pout:
+        pout.write("{}".format(np.mean(np.array(ssims))))
     if FLAGS.eval_once:
       break
     if int(step) >= FLAGS.max_steps:
