@@ -26,6 +26,9 @@ import tensorflow_hub as hub  # pylint:disable=g-bad-import-order
 from non_semantic_speech_benchmark.distillation import get_data
 from non_semantic_speech_benchmark.distillation import models
 
+from non_semantic_speech_benchmark.distillation.compression_lib import compression_op as compression
+from non_semantic_speech_benchmark.distillation.compression_lib import compression_wrapper
+
 FLAGS = flags.FLAGS
 
 # Data config flags.
@@ -86,6 +89,28 @@ flags.DEFINE_integer(
 flags.DEFINE_integer('num_epochs', 50, 'Number of epochs to train for.')
 flags.DEFINE_alias('e', 'num_epochs')
 
+# Quantization
+flags.DEFINE_boolean('quantize_aware_training', False, 'Dynamically '
+                     'quantize final layer weights during training.')
+flags.DEFINE_alias('qat', 'quantize_aware_training')
+
+# Compression
+flags.DEFINE_boolean('compression_op', False, 'Compress pre-bottleneck '
+                     'layer dynamically during training using SVD.')
+flags.DEFINE_alias('cop', 'compression_op')
+flags.DEFINE_integer('comp_rank', 100, 'Inner dimension of '
+                     'compressed matrices.')
+flags.DEFINE_integer('comp_freq', 10,
+                     'Compressed matrix update frequency')
+flags.DEFINE_integer('comp_begin_step', 0,
+                     'Training step to begin compression.')
+flags.DEFINE_integer('comp_end_step', -1,
+                     'Training step to end compression. '
+                     '-1 means compression never ends.')
+flags.DEFINE_float('alpha_step_size', 0.01,
+                   'Amount to decrement alpha each time '
+                   'a compression op takes place.')
+
 
 def train_and_report(debug=False):
   """Trains the classifier."""
@@ -122,26 +147,46 @@ def train_and_report(debug=False):
     ds.element_spec[1].shape.assert_has_rank(2)  # teacher embeddings
   output_dimension = ds.element_spec[1].shape[1]
   assert output_dimension == FLAGS.output_dimension
-
+  # Define loss and optimizer hyparameters.
+  loss_obj = tf.keras.losses.MeanSquaredError(name='mse_loss')
+  opt = tf.keras.optimizers.Adam(
+      learning_rate=FLAGS.lr, beta_1=0.9, beta_2=0.999, epsilon=1e-8)
+  global_step = opt.iterations
   # Create model, loss, and other objects.
+  compressor = None
+  if FLAGS.compression_op:
+    custom_params = ','.join([
+      "compression_frequency=%d",
+      "rank=%d",
+      "begin_compression_step=%d",
+      "end_compression_step=%d",
+      "alpha_decrement_value=%d",
+    ]) % (
+      FLAGS.comp_freq,
+      FLAGS.comp_rank,
+      FLAGS.comp_begin_step,
+      FLAGS.comp_end_step,
+      FLAGS.alpha_step_size)
+    compression_params = compression.CompressionOp\
+      .get_default_hparams().parse(custom_params)
+    compressor = compression_wrapper.get_apply_compression(
+      compression_params, global_step=global_step)
   model = models.get_keras_model(
       bottleneck_dimension=FLAGS.bottleneck_dimension,
       output_dimension=output_dimension,
       alpha=FLAGS.alpha,
       mobilenet_size=FLAGS.mobilenet_size,
       frontend=not FLAGS.precomputed_frontend_and_targets,
-      avg_pool=FLAGS.average_pool)
-  # Define loss and optimizer hyparameters.
-  loss_obj = tf.keras.losses.MeanSquaredError(name='mse_loss')
-  opt = tf.keras.optimizers.Adam(
-      learning_rate=FLAGS.lr, beta_1=0.9, beta_2=0.999, epsilon=1e-8)
+      avg_pool=FLAGS.average_pool,
+      compressor=compressor,
+      qat=FLAGS.qat)
+  model.summary()
   # Add additional metrics to track.
   train_loss = tf.keras.metrics.MeanSquaredError(name='train_loss')
   train_mae = tf.keras.metrics.MeanAbsoluteError(name='train_mae')
   summary_writer = tf.summary.create_file_writer(FLAGS.logdir)
   train_step = get_train_step(
       model, loss_obj, opt, train_loss, train_mae, summary_writer)
-  global_step = opt.iterations
   checkpoint = tf.train.Checkpoint(model=model, global_step=global_step)
   manager = tf.train.CheckpointManager(
       checkpoint, FLAGS.logdir, max_to_keep=FLAGS.checkpoint_max_to_keep)
@@ -174,7 +219,6 @@ def train_and_report(debug=False):
 
 def get_train_step(model, loss_obj, opt, train_loss, train_mae, summary_writer):
   """Returns a function for train step."""
-  @tf.function
   def train_step(wav_samples, targets, step):
     with tf.GradientTape() as tape:
       logits = model(wav_samples, training=True)
@@ -194,7 +238,6 @@ def get_train_step(model, loss_obj, opt, train_loss, train_mae, summary_writer):
       tf.summary.scalar('mse_loss', loss_value, step=step)
       tf.summary.scalar('mse_loss_smoothed', train_loss.result(), step=step)
       tf.summary.scalar('mae', train_mae.result(), step=step)
-
   return train_step
 
 
@@ -212,6 +255,9 @@ def main(unused_argv):
     assert FLAGS.teacher_model_hub
     assert FLAGS.output_key
     assert FLAGS.samples_key
+
+  # incompatible tools
+  assert not (FLAGS.quantize_aware_training and FLAGS.compression_op)
 
   tf.enable_v2_behavior()
   assert tf.executing_eagerly()
