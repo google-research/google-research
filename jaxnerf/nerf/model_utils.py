@@ -38,7 +38,7 @@ class MLP(nn.Module):
   num_sigma_channels: int = 1  # The number of sigma channels.
 
   @nn.compact
-  def __call__(self, x, condition):
+  def __call__(self, x, condition=None):
     """Evaluate the MLP.
 
     Args:
