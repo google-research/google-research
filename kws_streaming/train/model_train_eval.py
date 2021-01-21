@@ -224,6 +224,10 @@ def main(_):
           model_is_streamable = False
           break
 
+    # set input data shape for testing inference in streaming mode
+    flags.data_shape = modes.get_input_data_shape(
+        flags, modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE)
+
     # if model can be streamed, then run conversion/evaluation in streaming mode
     if model_is_streamable:
       # ---------------- TF streaming model accuracy evaluation ----------------
