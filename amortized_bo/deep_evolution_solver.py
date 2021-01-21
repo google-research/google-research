@@ -462,7 +462,7 @@ class JaxMutationPredictor(object):
         learning_rate)
 
     self.loss_fn = functools.partial(loss_fn, run_model_fn=self.run_model)
-    self.loss_grad_fn = jax.jit(jax.grad(self.loss_fn))
+    self.loss_grad_fn = jax.grad(self.loss_fn)
 
     # Track steps of optimization so far.
     self._step_idx = 0
