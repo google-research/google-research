@@ -49,9 +49,9 @@ class ModelsTest(parameterized.TestCase):
 
   def test_invalid_mobilenet_size(self):
     invalid_mobilenet_size = 'huuuge'
-    with self.assertRaises(AssertionError) as exception_context:
+    with self.assertRaises(ValueError) as exception_context:
       models.get_keras_model(3, 5, mobilenet_size=invalid_mobilenet_size)
-    if not isinstance(exception_context.exception, AssertionError):
+    if not isinstance(exception_context.exception, ValueError):
       self.fail()
 
   @parameterized.parameters(
