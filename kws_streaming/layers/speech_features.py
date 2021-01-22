@@ -188,6 +188,9 @@ class SpeechFeatures(tf.keras.layers.Layer):
     if self.params['mel_num_bins'] <= 0:
       raise ValueError('mel_num_bins for mfcc_op has to be > 0')
 
+    if not self.params['use_one_step']:
+      raise ValueError('_mfcc_op supports only use_one_step=True')
+
     # MFCC implementation based on TF custom op (supported by TFLite)
     # It reduces model size in comparison to _mfcc_tf
     if (self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE or

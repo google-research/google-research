@@ -220,12 +220,15 @@ class Stream(tf.keras.layers.Layer):
       return self._streaming_internal_state(inputs)
 
     elif self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
-      # in streaming inference mode with external state
-      # in addition to the output we return the output state.
-      output, self.output_state = self._streaming_external_state(
-          inputs, self.input_state)
+      if self.ring_buffer_size_in_time_dim:
+        # in streaming inference mode with external state
+        # in addition to the output we return the output state.
+        output, self.output_state = self._streaming_external_state(
+            inputs, self.input_state)
+      else:
+        # if there is no ring buffer then the input_state isn't needed.
+        output = self.cell(inputs)
       return output
-
     elif self.mode in (modes.Modes.TRAINING, modes.Modes.NON_STREAM_INFERENCE):
       # run non streamable training or non streamable inference
       return self._non_streaming(inputs)
@@ -310,15 +313,12 @@ class Stream(tf.keras.layers.Layer):
       return output, memory
     else:
       # add new row [batch_size, memory_size, feature_dim, channel]
-      if self.ring_buffer_size_in_time_dim:
-        memory = tf.keras.backend.concatenate([state, inputs], 1)
+      memory = tf.keras.backend.concatenate([state, inputs], 1)
 
-        state_update = memory[:, -self.ring_buffer_size_in_time_dim:, :]  # pylint: disable=invalid-unary-operand-type
+      state_update = memory[:, -self.ring_buffer_size_in_time_dim:, :]  # pylint: disable=invalid-unary-operand-type
 
-        output = self.cell(memory)
-        return output, state_update
-      else:
-        return self.cell(inputs), []
+      output = self.cell(memory)
+      return output, state_update
 
   def _non_streaming(self, inputs):
     # Pad inputs in time dim: causal or same

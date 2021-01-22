@@ -105,8 +105,12 @@ def _get_input_output_states(model):
     config = model.layers[i].get_config()
     # input output states exist only in layers with property 'mode'
     if 'mode' in config:
-      input_states.append(model.layers[i].get_input_state())
-      output_states.append(model.layers[i].get_output_state())
+      input_state = model.layers[i].get_input_state()
+      if input_state not in ([], [None]):
+        input_states.append(model.layers[i].get_input_state())
+      output_state = model.layers[i].get_output_state()
+      if output_state not in ([], [None]):
+        output_states.append(output_state)
   return input_states, output_states
 
 
@@ -347,7 +351,9 @@ def model_to_tflite(sess,
   converter.inference_type = tf1.lite.constants.FLOAT
 
   # this will enable audio_spectrogram and mfcc in TFLite
-  converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS]
+  converter.target_spec.supported_ops = [
+      tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS
+  ]
   converter.allow_custom_ops = True
   if optimizations:
     converter.optimizations = optimizations
