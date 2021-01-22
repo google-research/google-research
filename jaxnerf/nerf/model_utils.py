@@ -89,6 +89,10 @@ class MLP(nn.Module):
     return raw_rgb, raw_sigma
 
 
+def cast_rays(z_vals, origins, directions):
+  return origins[Ellipsis, None, :] + z_vals[Ellipsis, None] * directions[Ellipsis, None, :]
+
+
 def sample_along_rays(key, origins, directions, num_samples, near, far,
                       randomized, lindisp):
   """Stratified sampling along the rays.
@@ -125,8 +129,8 @@ def sample_along_rays(key, origins, directions, num_samples, near, far,
     # Broadcast z_vals to make the returned shape consistent.
     z_vals = jnp.broadcast_to(z_vals[None, Ellipsis], [batch_size, num_samples])
 
-  return (z_vals, (origins[Ellipsis, None, :] +
-                   z_vals[Ellipsis, :, None] * directions[Ellipsis, None, :]))
+  coords = cast_rays(z_vals, origins, directions)
+  return z_vals, coords
 
 
 def generate_posenc_basis(deg, num_dims):
@@ -294,8 +298,8 @@ def sample_pdf(key, bins, weights, origins, directions, z_vals, num_samples,
                                      randomized)
   # Compute united z_vals and sample points
   z_vals = jnp.sort(jnp.concatenate([z_vals, z_samples], axis=-1), axis=-1)
-  return z_vals, (
-      origins[Ellipsis, None, :] + z_vals[Ellipsis, None] * directions[Ellipsis, None, :])
+  coords = cast_rays(z_vals, origins, directions)
+  return z_vals, coords
 
 
 def add_gaussian_noise(key, raw, noise_std, randomized):

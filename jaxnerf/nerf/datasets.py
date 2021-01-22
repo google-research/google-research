@@ -41,6 +41,29 @@ def get_dataset(split, args):
   return dataset_dict[args.dataset](split, args)
 
 
+def convert_to_ndc(origins, directions, focal, w, h, near=1.):
+  """Convert a set of rays to NDC coordinates."""
+  # Shift ray origins to near plane
+  t = -(near + origins[Ellipsis, 2]) / directions[Ellipsis, 2]
+  origins = origins + t[Ellipsis, None] * directions
+
+  dx, dy, dz = tuple(np.moveaxis(directions, -1, 0))
+  ox, oy, oz = tuple(np.moveaxis(origins, -1, 0))
+
+  # Projection
+  o0 = -((2 * focal) / w) * (ox / oz)
+  o1 = -((2 * focal) / h) * (oy / oz)
+  o2 = 1 + 2 * near / oz
+
+  d0 = -((2 * focal) / w) * (dx / dz - ox / oz)
+  d1 = -((2 * focal) / h) * (dy / dz - oy / oz)
+  d2 = -2 * near / oz
+
+  origins = np.stack([o0, o1, o2], -1)
+  directions = np.stack([d0, d1, d2], -1)
+  return origins, directions
+
+
 class Dataset(threading.Thread):
   """Dataset Base Class."""
 
@@ -156,16 +179,15 @@ class Dataset(threading.Thread):
         np.arange(self.w, dtype=np.float32),  # X-Axis (columns)
         np.arange(self.h, dtype=np.float32),  # Y-Axis (rows)
         indexing="xy")
-    dirs = np.stack([(x - self.w * 0.5) / self.focal,
-                     -(y - self.h * 0.5) / self.focal, -np.ones_like(x)],
-                    axis=-1)
-    directions = ((dirs[None, Ellipsis, None, :] *
+    camera_dirs = np.stack([(x - self.w * 0.5) / self.focal,
+                            -(y - self.h * 0.5) / self.focal, -np.ones_like(x)],
+                           axis=-1)
+    directions = ((camera_dirs[None, Ellipsis, None, :] *
                    self.camtoworlds[:, None, None, :3, :3]).sum(axis=-1))
     origins = np.broadcast_to(self.camtoworlds[:, None, None, :3, -1],
                               directions.shape)
-    # TODO(barron): Avoid the extra memory overhead wasted here on `viewdirs`.
-    self.rays = Rays(
-        origins=origins, directions=directions, viewdirs=directions)
+    viewdirs = directions / np.linalg.norm(directions, axis=-1, keepdims=True)
+    self.rays = Rays(origins=origins, directions=directions, viewdirs=viewdirs)
 
 
 class Blender(Dataset):
@@ -306,32 +328,13 @@ class LLFF(Dataset):
     super()._generate_rays()
 
     if not self.spherify:
-      origins = self.rays.origins
-      directions = self.rays.directions
-      viewdirs = directions
-      near = 1.
-
-      # Shift ray origins to near plane
-      t = -(near + origins[Ellipsis, 2]) / directions[Ellipsis, 2]
-      origins = origins + t[Ellipsis, None] * directions
-
-      dx, dy, dz = tuple(np.moveaxis(directions, -1, 0))
-      ox, oy, oz = tuple(np.moveaxis(origins, -1, 0))
-
-      # Projection
-      o0 = -1. * ((2. * self.focal) / self.w) * ox / oz
-      o1 = -1. * ((2. * self.focal) / self.h) * oy / oz
-      o2 = 1. + 2. * near / oz
-
-      d0 = (-1. * ((2. * self.focal) / self.w) * (dx / dz - ox / oz))
-      d1 = (-1. * ((2. * self.focal) / self.h) * (dy / dz - oy / oz))
-      d2 = -2. * near / oz
-
-      origins = np.stack([o0, o1, o2], -1)
-      directions = np.stack([d0, d1, d2], -1)
-      self.rays = Rays(origins=origins,
-                       directions=directions,
-                       viewdirs=viewdirs)
+      ndc_origins, ndc_directions = convert_to_ndc(self.rays.origins,
+                                                   self.rays.directions,
+                                                   self.focal, self.w, self.h)
+      self.rays = Rays(
+          origins=ndc_origins,
+          directions=ndc_directions,
+          viewdirs=self.rays.viewdirs)
 
     # Split poses from the dataset and generated poses
     if self.split == "test":

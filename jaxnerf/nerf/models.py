@@ -65,8 +65,7 @@ class NerfModel(nn.Module):
       origins: jnp.ndarray(float32), [batch_size, 3], each ray origin.
       directions: jnp.ndarray(float32), [batch_size, 3], each ray direction.
       viewdirs: jnp.ndarray(float32), [batch_size, 3], the viewing direction for
-        each ray. This is only used if NDC rays are used, as otherwise
-        `directions` is equal to viewdirs.
+        each ray.
       randomized: bool, use randomized stratified sampling.
 
     Returns:
@@ -94,9 +93,8 @@ class NerfModel(nn.Module):
 
     # Point attribute predictions
     if self.use_viewdirs:
-      viewdirs_enc = model_utils.posenc(
-          viewdirs / jnp.linalg.norm(viewdirs, axis=-1, keepdims=True),
-          self.deg_view, self.legacy_posenc_order)
+      viewdirs_enc = model_utils.posenc(viewdirs, self.deg_view,
+                                        self.legacy_posenc_order)
       raw_rgb, raw_sigma = coarse_mlp(samples_enc, viewdirs_enc)
     else:
       raw_rgb, raw_sigma = coarse_mlp(samples_enc)
