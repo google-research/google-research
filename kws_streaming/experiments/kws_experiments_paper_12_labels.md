@@ -73,25 +73,17 @@ DATA_PATH=$KWS_PATH/data2
 
 ```
 
-## Set pre trained models:
+## Set path to models:
 
 ```shell
-# download and set up path to models trained and evaluated on data sets V1
-wget https://storage.googleapis.com/kws_models/models1.zip
-unzip ./models1.zip
+# set up path for model training
+mkdir $KWS_PATH/models2
 
-# download and set up path to models trained and evaluated on data sets V2
-wget https://storage.googleapis.com/kws_models/models2.zip
-unzip ./models2.zip
-
-# select pretrained models trained on data V1 or data V2
-# by setting models path
-# he we select models trained on data V2
+# models trained on data V2
 MODELS_PATH=$KWS_PATH/models2
-
-# models trained on data V1
-#MODELS_PATH=$KWS_PATH/models1
 ```
+
+
 Note that DATA_PATH and MODELS_PATH have to point to the same version of data and models accordingly.
 
 After all of these, main folder KWS_PATH should have several subfolders:
@@ -145,7 +137,7 @@ adb shell chmod +x /data/local/tmp/benchmark_model_plus_flex
 
 ## Models training and evaluation:
 
-Now we can run below commands with "--train 0" which will evaluate the model and produce accuracy report with TFLite modules. If you would like to re-train model from scratch then you should: set "--train 0" and remove model subfolder inside of $MODELS_PATH
+If your model is already trained then you can specify "--train 0" which will evaluate the model and produce an accuracy report with TFLite modules. If you would like to re-train model from scratch then you should: set "--train 1" and remove model subfolder inside of $MODELS_PATH
 
 There are two options of running python script. One with bazel and another by calling python directly shown below:
 ```shell
@@ -161,7 +153,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/ds_cnn_stride/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 20000,20000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
@@ -170,7 +162,7 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
@@ -213,7 +205,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/ds_cnn_stream/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 20000,20000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
@@ -222,7 +214,7 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
@@ -272,7 +264,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/svdf/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 20000,20000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
@@ -282,7 +274,7 @@ $CMD_TRAIN \
 --resample 0.15 \
 --alsologtostderr \
 --time_shift_ms 100 \
---train 0 \
+--train 1 \
 svdf \
 --svdf_memory_size 4,10,10,10,10,10 \
 --svdf_units1 256,256,256,256,256,256 \
@@ -317,7 +309,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/lstm_peep/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 20000,20000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
@@ -326,7 +318,7 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
@@ -366,7 +358,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/gru/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 20000,20000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
@@ -375,7 +367,7 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
@@ -413,7 +405,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/gru_state/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 20000,20000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
@@ -422,7 +414,7 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
@@ -461,7 +453,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/cnn/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 20000,20000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
@@ -470,7 +462,7 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
@@ -510,7 +502,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/cnn_stride/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 20000,20000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
@@ -519,7 +511,7 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
@@ -552,7 +544,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/crnn/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 20000,20000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
@@ -561,7 +553,7 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
@@ -605,7 +597,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/crnn_state/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 20000,20000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
@@ -614,7 +606,7 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
@@ -643,7 +635,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/dnn/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 20000,20000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
@@ -652,7 +644,7 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
@@ -692,7 +684,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/att_rnn/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 20000,20000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
@@ -740,7 +732,7 @@ $CMD_TRAIN \
 --dct_num_features 20 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
 --time_masks_number 2 \
@@ -777,7 +769,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/tc_resnet/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 20000,20000,20000,20000 \
 --learning_rate 0.1,0.05,0.02,0.01 \
 --window_size_ms 40.0 \
@@ -786,7 +778,7 @@ $CMD_TRAIN \
 --dct_num_features 40 \
 --resample 0.15 \
 --alsologtostderr \
---train 0 \
+--train 1 \
 --optimizer 'momentum' \
 --lr_schedule 'exp' \
 --use_spec_augment 1 \
@@ -821,7 +813,7 @@ $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
 --train_dir $MODELS_PATH/dnn_raw/ \
---mel_upper_edge_hertz 7000 \
+--mel_upper_edge_hertz 7600 \
 --how_many_training_steps 20000,20000,20000,20000 \
 --learning_rate 0.001,0.0005,0.0001,0.00002 \
 --window_size_ms 40.0 \
