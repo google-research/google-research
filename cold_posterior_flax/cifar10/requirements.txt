@@ -1,0 +1,7 @@
+flax
+jaxlib
+tensorflow
+tensorflow-datasets
+clu
+ml_collections
+numpy
