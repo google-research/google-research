@@ -15,35 +15,52 @@
 
 """Emulate downcasting float32/bfloat16 to custom floating-point formats."""
 
-from typing import Callable, Tuple
+import functools
+from typing import Tuple
+
+import dataclasses
 import jax
 import jax.numpy as jnp
 
 
-@jax.custom_gradient
-def downcast_sat_ftz_with_gradient(
-    x,
-    exp_min,
-    exp_max,
-    sig_bits,
-):
-  """Downcast with Straight-Through-Estimator gradient (see downcast_sat_ftz).
+@dataclasses.dataclass
+class FloatingPointBounds:
+  """Dataclass representing the bounds for a floating-point type.
+
+  The type is presumed to have 'flush to zero' semantics.
+
+  Attributes:
+    flush_to_zero_bound: The magnitude of the smallest representable value. If a
+      logical value with an absolute value less than this is cast to this type,
+      it is flushed to zero.
+    saturation_bound: The magnitude of the largest representable value. If a
+      logical value with an absolute value greater than this is cast to this
+      type, it is clipped to this value.
+  """
+
+  flush_to_zero_bound: float
+  saturation_bound: float
+
+
+def get_bounds(exp_min, exp_max,
+               sig_bits):
+  """Returns the clipping bounds for a giving floating-point specification.
 
   Args:
-    x: The argument to be converted.
     exp_min: The denormal exponent of the target format.
     exp_max: Maximum exponent of the target format (no support for infs & nans)
-    sig_bits: The number of significant bits in the target format (excluding
-      the hidden bit).
+    sig_bits: The number of significant bits in the target format (excluding the
+      hidden bit).
 
   Returns:
-    Nested tuple (f, (df/dx, df/d{exp_min}, df/d{exp_max}, df/d{sig_bits}),
-    where f is the downcast_sat_ftz operation.
+    A FloatingPointBounds dataclass.
   """
-  return (downcast_sat_ftz(x, exp_min, exp_max, sig_bits),
-          lambda dx: (dx * jnp.ones_like(x), 0., 0., 0.))
+  return FloatingPointBounds(
+      flush_to_zero_bound=2**exp_min,
+      saturation_bound=2**exp_max * (2 - 2**-sig_bits))
 
 
+@functools.partial(jax.custom_jvp, nondiff_argnums=(1, 2, 3))
 def downcast_sat_ftz(
     x,
     exp_min,
@@ -87,8 +104,6 @@ def downcast_sat_ftz(
   one = 0x3f800000
   # Mask for mantissa bits (lower 23-bits) of fp32 representation.
   mant_mask = 0x007fffff
-  ftz_bound = 2**exp_min
-  sat_bound = 2**exp_max * (2 - 2**-sig_bits)
   xf = x.astype(jnp.float32)
   xi = xf.view(jnp.int32)
   exp = xi & exp_mask
@@ -100,8 +115,62 @@ def downcast_sat_ftz(
   xf_one_rnd = (xi_one.view(jnp.float32) + offset) - offset
   # Scale back to the original binade.
   xf_rnd = xf_one_rnd * exp.view(jnp.float32)
-  xf_rnd_sat = jnp.minimum(xf_rnd, sat_bound)
+  bounds = get_bounds(exp_min=exp_min, exp_max=exp_max, sig_bits=sig_bits)
+  xf_rnd_sat = jnp.minimum(xf_rnd, bounds.saturation_bound)
   # Flush denormals to zero and recover sign.
-  xf_rnd_sat_ftz = jnp.sign(xf) * xf_rnd_sat * (xf_rnd_sat >= ftz_bound)
+  xf_rnd_sat_ftz = jnp.sign(xf) * xf_rnd_sat * (
+      xf_rnd_sat >= bounds.flush_to_zero_bound)
   xf_rnd_sat_ftz = jnp.where(exp >= specials_bound, xf, xf_rnd_sat_ftz)
   return xf_rnd_sat_ftz.astype(x.dtype)
+
+
+@downcast_sat_ftz.defjvp
+def _downcast_sat_ftz_jvp(
+    exp_min, exp_max, sig_bits, primals,
+    tangents):
+  """Computes the straight-through-estimator gradient of downcast_sat_ftz.
+
+  This defines the approximate gradient of the `downcast_sat_ftz` function.
+  Because that function is discontinuous, this defines the gradient of an
+  approximate continuous version of that function. Specifically, it defines the
+  gradient of:
+
+  x = jnp.where(jnp.abs(x) < flush_to_zero_bound, 0, x)
+  x = jnp.where(x > saturdation_bound, saturation_bound, x)
+  x = jnp.where(x < -saturdation_bound, -saturation_bound, x)
+
+  This ignores the rounding operations in the significand that occur in
+  `downcast_sat_ftz`, and thus implements the straight-through estimator.
+
+  Args:
+    exp_min: The denormal exponent of the target format.
+    exp_max: Maximum exponent of the target format (no support for infs & nans)
+    sig_bits: The number of significant bits in the target format (excluding the
+      hidden bit).
+    primals: Primal value of the downcast_sat_ftz input. It should be a tuple
+      with a single value.
+    tangents: Tangent value of downcast_sat_ftz inputs evaluated at 'primals'.
+      It should be a tuple with a single value.
+
+  Returns:
+    A tuple consisting of the primal output of downcast_sat_ftz and the
+    corresponding tangent tensor.
+
+  Raises:
+    ValueError: `primals` or `tangents` is the wrong length.
+  """
+  if len(primals) != 1 or len(tangents) != 1:
+    raise ValueError(
+        'The primal and tangent tuples should only have one element each. '
+        'This element corresponds to the one differentiable input to '
+        'downcast_sat_ftz.')
+  x = primals[0]
+  x_tangent = tangents[0]
+  output = downcast_sat_ftz(
+      x, exp_min=exp_min, exp_max=exp_max, sig_bits=sig_bits)
+  x_abs = jnp.abs(x)
+  bounds = get_bounds(exp_min=exp_min, exp_max=exp_max, sig_bits=sig_bits)
+  output_tangent = jnp.where(
+      (x_abs < bounds.flush_to_zero_bound) | (x_abs > bounds.saturation_bound),
+      0.0, x_tangent).astype(x.dtype)
+  return output, output_tangent

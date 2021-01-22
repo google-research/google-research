@@ -17,6 +17,7 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
+import jax
 from jax.config import config
 import jax.numpy as jnp
 import numpy as onp
@@ -128,6 +129,50 @@ def test_data(dtype):
   )
 
 
+def gradient_test_data(sig_bits):
+  fp_format = dict(exp_min=-11, exp_max=4, sig_bits=sig_bits)
+  bounds = fp_cast.get_bounds(**fp_format)
+
+  # Approximate float32 eps at bounds.flush_to_zero_bound
+  eps_flush_to_zero = 1e-7
+  # Approximate float32 eps at bounds.saturation_bound
+  eps_saturation = 1e-5
+
+  # Construct a list of pairs where the first element is the primal value
+  # and the second element is the expected gradient of the floating-point
+  # quantization function evaluated at that value.
+  testcases = [
+      # Test values below the flush-to-zero bound. Gradient should be zero since
+      # these values are flushed to zero during quantization.
+      (2.11e-15, 0),
+      (-2.11e-15, 0),
+      (bounds.flush_to_zero_bound - eps_flush_to_zero, 0),
+      (-bounds.flush_to_zero_bound + eps_flush_to_zero, 0),
+
+      # Test values above the saturation bound. Gradient should be zero since
+      # these values are clipped to the saturation threshold during
+      # quantization.
+      (2.11e10, 0),
+      (2.11e10, 0),
+      (bounds.saturation_bound + eps_saturation, 0),
+      (-bounds.saturation_bound - eps_saturation, 0),
+
+      # Test values within the range of the fp format. The gradient should be 1
+      # since values in this range use the straight-through estimator.
+      (1.0, 1),
+      (-1.0, 1),
+      (2.11, 1),
+      (-2.11, 1),
+      (bounds.flush_to_zero_bound + eps_flush_to_zero, 1),
+      (-bounds.flush_to_zero_bound - eps_flush_to_zero, 1),
+      (bounds.saturation_bound - eps_saturation, 1),
+      (-bounds.saturation_bound + eps_saturation, 1)
+  ]
+  return [{
+      'primal': testcase[0], 'expected_grad': testcase[1], **fp_format
+  } for testcase in testcases]
+
+
 class FpCastTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
@@ -164,6 +209,25 @@ class FpCastTest(parameterized.TestCase):
     yf32 = fp_cast.downcast_sat_ftz(
         xf32, exp_min=-11, exp_max=4, sig_bits=3)
     self.assertEqual(xf32.dtype, yf32.dtype)
+
+  def test_sig_bits_zero(self):
+    x = jnp.array(2.11111)
+    y = fp_cast.downcast_sat_ftz(x, exp_min=-11, exp_max=4, sig_bits=0)
+    self.assertEqual(y.item(), 2.0)
+
+  @parameterized.parameters(*gradient_test_data(sig_bits=3),
+                            *gradient_test_data(sig_bits=0))
+  def test_grad(self, primal, expected_grad, sig_bits, exp_min, exp_max):
+    # We use a 'sum' here so that each element of the gradient of the sum
+    # corresponds to the partial derivative of output of `downcast_sat_ftz`
+    # with respect to the corresponding input.
+    def downcast_and_sum(x):
+      return jnp.sum(
+          fp_cast.downcast_sat_ftz(
+              x, sig_bits=sig_bits, exp_min=exp_min, exp_max=exp_max))
+
+    x_grad = jax.grad(downcast_and_sum)(jnp.array(primal))
+    onp.testing.assert_equal(onp.array(x_grad), expected_grad)
 
 
 if __name__ == '__main__':
