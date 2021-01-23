@@ -14,7 +14,8 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Non-differentiable utility functions."""
+"""Utility functions."""
+import collections
 import os
 from os import path
 from absl import flags
@@ -43,6 +44,14 @@ class Stats:
   loss_c: float
   psnr_c: float
   weight_l2: float
+
+
+Rays = collections.namedtuple("Rays", ("origins", "directions", "viewdirs"))
+
+
+def namedtuple_map(fn, tup):
+  """Apply `fn` to each element of `tup` and cast to `tup`'s namedtuple."""
+  return type(tup)(*map(fn, tup))
 
 
 def define_flags():
@@ -206,19 +215,19 @@ def render_image(render_fn, rays, rng, normalize_disp, chunk=8192):
   """
   height, width = rays[0].shape[:2]
   num_rays = height * width
-  rays = datasets.ray_fn(lambda r: r.reshape((num_rays, -1)), rays)
+  rays = namedtuple_map(lambda r: r.reshape((num_rays, -1)), rays)
 
   unused_rng, key_0, key_1 = jax.random.split(rng, 3)
   host_id = jax.host_id()
   results = []
   for i in range(0, num_rays, chunk):
     # pylint: disable=cell-var-from-loop
-    chunk_rays = datasets.ray_fn(lambda r: r[i:i + chunk], rays)
+    chunk_rays = namedtuple_map(lambda r: r[i:i + chunk], rays)
     chunk_size = chunk_rays[0].shape[0]
     rays_remaining = chunk_size % jax.device_count()
     if rays_remaining != 0:
       padding = jax.device_count() - rays_remaining
-      chunk_rays = datasets.ray_fn(
+      chunk_rays = namedtuple_map(
           lambda r: jnp.pad(r, ((0, padding), (0, 0)), mode="edge"), chunk_rays)
     else:
       padding = 0
@@ -226,7 +235,7 @@ def render_image(render_fn, rays, rng, normalize_disp, chunk=8192):
     # host_count.
     rays_per_host = chunk_rays[0].shape[0] // jax.host_count()
     start, stop = host_id * rays_per_host, (host_id + 1) * rays_per_host
-    chunk_rays = datasets.ray_fn(lambda r: shard(r[start:stop]), chunk_rays)
+    chunk_rays = namedtuple_map(lambda r: shard(r[start:stop]), chunk_rays)
     chunk_results = render_fn(key_0, key_1, chunk_rays)[-1]
     results.append([unshard(x[0], padding) for x in chunk_results])
     # pylint: enable=cell-var-from-loop

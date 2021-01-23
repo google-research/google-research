@@ -57,7 +57,7 @@ def main(unused_argv):
   # this eliminates "speckle" artifacts.
   def render_fn(variables, key_0, key_1, rays):
     return jax.lax.all_gather(
-        model.apply(variables, key_0, key_1, *rays, False), axis_name="batch")
+        model.apply(variables, key_0, key_1, rays, False), axis_name="batch")
 
   # pmap over only the data input.
   render_pfn = jax.pmap(
