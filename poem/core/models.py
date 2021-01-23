@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """Defines model architectures."""
-
 import functools
 
 import numpy as np
@@ -54,6 +53,107 @@ def linear(input_features, output_size, weight_max_norm, weight_initializer,
   return tf.linalg.matmul(input_features, weights) + bias
 
 
+def fully_connected(input_features, is_training, name, **kwargs):
+  """Builds a fully connected layer.
+
+  Args:
+    input_features: A tensor for input features. Shape = [..., feature_dim].
+    is_training: A boolean indicator for whether in training mode.
+    name: A string for the name scope.
+    **kwargs: A dictionary for additional arguments. Supported arguments include
+      `num_hidden_nodes`, `weight_initializer`, `bias_initializer`,
+      `weight_max_norm`, `use_batch_norm`, `dropout_rate`, `num_fcs_per_block`,
+      and `num_fc_blocks`.
+
+  Returns:
+    net: A tensor for output features. Shape = [..., output_dims].
+  """
+  net = linear(
+      input_features,
+      output_size=kwargs.get('num_hidden_nodes', 1024),
+      weight_max_norm=kwargs.get('weight_max_norm', 0.0),
+      weight_initializer=kwargs.get('weight_initializer',
+                                    tf.initializers.he_normal()),
+      bias_initializer=kwargs.get('bias_initializer',
+                                  tf.initializers.he_normal()),
+      name=name + '/Linear')
+
+  if kwargs.get('use_batch_norm', True):
+    net = tf.layers.batch_normalization(
+        net,
+        training=is_training,
+        name=name + '/BatchNorm',
+        reuse=tf.AUTO_REUSE)
+
+  net = tf.nn.relu(net, name=name + '/Relu')
+
+  dropout_rate = kwargs.get('dropout_rate', 0.0)
+  if is_training and dropout_rate > 0.0:
+    net = tf.nn.dropout(net, rate=dropout_rate, name=name + '/Dropout')
+  return net
+
+
+def fully_connected_block(input_features, is_training, name, **kwargs):
+  """Builds a fully connected layer block.
+
+  Args:
+    input_features: A tensor for input features. Shape = [..., feature_dim].
+    is_training: A boolean indicator for whether in training mode.
+    name: A string for the name scope.
+    **kwargs: A dictionary for additional arguments. Supported arguments include
+      `num_hidden_nodes`, `weight_initializer`, `bias_initializer`,
+      `weight_max_norm`, `use_batch_norm`, `dropout_rate`, `num_fcs_per_block`,
+      and `num_fc_blocks`.
+
+  Returns:
+    net: A tensor for output features. Shape = [..., output_dims].
+  """
+  net = input_features
+  for i in range(kwargs.get('num_fcs_per_block', 2)):
+    net = fully_connected(
+        net, is_training=is_training, name=name + '/FC_%d' % i, **kwargs)
+  net += input_features
+  return net
+
+
+def multi_head_logits(input_features, output_sizes, name, **kwargs):
+  """Builds a multi-head logit layer with potential bottleneck layer.
+
+  Args:
+    input_features: A tensor for input features. Shape =
+      [..., sequence_length, feature_dim].
+    output_sizes: A dictionary for output sizes in the format {output_name:
+      output_size}, where `output_size` can be an integer or a list.
+    name: A string for the name scope.
+    **kwargs: A dictionary for additional arguments. Supported arguments include
+      `num_hidden_nodes`, `weight_initializer`, `bias_initializer`,
+      `weight_max_norm`, `use_batch_norm`, `dropout_rate`, `num_fcs_per_block`,
+      and `num_fc_blocks`.
+
+  Returns:
+    outputs: A dictionary for the output logits.
+  """
+  outputs = {}
+  for output_name, output_size in output_sizes.items():
+    if isinstance(output_size, int):
+      output_size = [output_size]
+    outputs[output_name] = linear(
+        input_features,
+        output_size=np.prod(output_size),
+        weight_max_norm=kwargs.get('weight_max_norm', 0.0),
+        weight_initializer=kwargs.get('weight_initializer',
+                                      tf.initializers.he_normal()),
+        bias_initializer=kwargs.get('bias_initializer',
+                                    tf.initializers.he_normal()),
+        name=name + '/OutputLogits/' + output_name)
+    if len(output_size) > 1:
+      outputs[output_name] = data_utils.recursively_expand_dims(
+          outputs[output_name], axes=[-1] * (len(output_size) - 1))
+      outputs[output_name] = data_utils.reshape_by_last_dims(
+          outputs[output_name], last_dim_shape=output_size)
+  return outputs
+
+
 def simple_base(input_features,
                 sequential_inputs,
                 is_training,
@@ -87,46 +187,12 @@ def simple_base(input_features,
     input_features = data_utils.flatten_last_dims(
         input_features, num_last_dims=2)
 
-  def fully_connected(input_features, is_training, name):
-    """Builds a fully connected layer."""
-    net = linear(
-        input_features,
-        output_size=kwargs.get('num_hidden_nodes', 1024),
-        weight_max_norm=kwargs.get('weight_max_norm', 0.0),
-        weight_initializer=kwargs.get('weight_initializer',
-                                      tf.initializers.he_normal()),
-        bias_initializer=kwargs.get('bias_initializer',
-                                    tf.initializers.he_normal()),
-        name=name + '/Linear')
-
-    if kwargs.get('use_batch_norm', True):
-      net = tf.layers.batch_normalization(
-          net,
-          training=is_training,
-          name=name + '/BatchNorm',
-          reuse=tf.AUTO_REUSE)
-
-    net = tf.nn.relu(net, name=name + '/Relu')
-
-    dropout_rate = kwargs.get('dropout_rate', 0.0)
-    if is_training and dropout_rate > 0.0:
-      net = tf.nn.dropout(net, rate=dropout_rate, name=name + '/Dropout')
-    return net
-
-  def fully_connected_block(input_features, is_training, name):
-    """Builds a fully connected layer block."""
-    net = input_features
-    for i in range(kwargs.get('num_fcs_per_block', 2)):
-      net = fully_connected(
-          net, is_training=is_training, name=name + '/FC_%d' % i)
-    net += input_features
-    return net
-
   net = fully_connected(
-      input_features, is_training=is_training, name=name + '/InputFC')
+      input_features, is_training=is_training, name=name + '/InputFC', **kwargs)
   for i in range(kwargs.get('num_fc_blocks', 2)):
     net = fully_connected_block(
-        net, is_training, name=name + '/FullyConnectedBlock_%d' % i)
+        net, is_training, name=name + '/FullyConnectedBlock_%d' % i,
+        **kwargs)
   return net
 
 
@@ -183,24 +249,11 @@ def simple_model(input_features,
         name=name + '/BottleneckLogits')
     activations['bottleneck_activations'] = net
 
-  outputs = {}
-  for output_name, output_size in output_sizes.items():
-    if isinstance(output_size, int):
-      output_size = [output_size]
-    outputs[output_name] = linear(
-        net,
-        output_size=np.prod(output_size),
-        weight_max_norm=kwargs.get('weight_max_norm', 0.0),
-        weight_initializer=kwargs.get('weight_initializer',
-                                      tf.initializers.he_normal()),
-        bias_initializer=kwargs.get('bias_initializer',
-                                    tf.initializers.he_normal()),
-        name=name + '/OutputLogits/' + output_name)
-    if len(output_size) > 1:
-      outputs[output_name] = data_utils.recursively_expand_dims(
-          outputs[output_name], axes=[-1] * (len(output_size) - 1))
-      outputs[output_name] = data_utils.reshape_by_last_dims(
-          outputs[output_name], last_dim_shape=output_size)
+  outputs = multi_head_logits(
+      net,
+      output_sizes=output_sizes,
+      name=name,
+      **kwargs)
   return outputs, activations
 
 

@@ -24,6 +24,30 @@ tf.disable_v2_behavior()
 
 class ModelsTest(tf.test.TestCase):
 
+  def test_fully_connected_shapes(self):
+    input_features = tf.ones([4, 2, 8])
+    output_features = models.fully_connected(
+        input_features, num_hidden_nodes=32, is_training=True, name='test')
+    self.assertAllEqual(output_features.shape.as_list(), [4, 2, 32])
+
+  def test_fully_connected_block_shapes(self):
+    input_features = tf.ones([4, 2, 8])
+    output_features = models.fully_connected(
+        input_features, num_hidden_nodes=8, is_training=True, name='test')
+    self.assertAllEqual(output_features.shape.as_list(), [4, 2, 8])
+
+  def test_multi_head_logits_shapes(self):
+    input_features = tf.ones([4, 2, 32])
+    output_sizes = {'a': 8, 'b': [4, 3]}
+    output_features = models.multi_head_logits(
+        input_features,
+        output_sizes=output_sizes,
+        is_training=True,
+        name='test')
+    self.assertCountEqual(output_features.keys(), ['a', 'b'])
+    self.assertAllEqual(output_features['a'].shape.as_list(), [4, 2, 8])
+    self.assertAllEqual(output_features['b'].shape.as_list(), [4, 2, 4, 3])
+
   def test_simple_model_shapes(self):
     # Shape = [4, 2, 3].
     input_features = tf.constant([[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
