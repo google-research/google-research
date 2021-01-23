@@ -44,10 +44,15 @@ class InputGeneratorTest(tf.test.TestCase):
         preprocessed_keypoints_3d,
         [[0.0, 0.0, 0.0], [1.0 / sqrt_3, 1.0 / sqrt_3, 1.0 / sqrt_3],
          [2.0 / sqrt_3, 2.0 / sqrt_3, 2.0 / sqrt_3]])
-    self.assertCountEqual(side_outputs,
-                          ['offset_points_3d', 'scale_distances_3d'])
+    self.assertCountEqual(
+        side_outputs,
+        ['offset_points_3d', 'scale_distances_3d', 'preprocessed_keypoints_3d'])
     self.assertAllClose(side_outputs['offset_points_3d'], [[1.0, 2.0, 3.0]])
     self.assertAllClose(side_outputs['scale_distances_3d'], [[3.0 * sqrt_3]])
+    self.assertAllClose(
+        side_outputs['preprocessed_keypoints_3d'],
+        [[0.0, 0.0, 0.0], [1.0 / sqrt_3, 1.0 / sqrt_3, 1.0 / sqrt_3],
+         [2.0 / sqrt_3, 2.0 / sqrt_3, 2.0 / sqrt_3]])
 
   def test_preprocess_keypoints_2d_with_projection(self):
     # Shape = [4, 2, 17, 3].

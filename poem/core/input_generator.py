@@ -29,6 +29,10 @@ def preprocess_keypoints_3d(keypoints_3d,
                             normalize_keypoints_3d=True):
   """Preprocesses 3D keypoints.
 
+  IMPORTANT: The returned `keypoints_3d` is meant for groundtruth computation.
+  Tensor `side_outputs[common.KEY_PREPROCESSED_KEYPOINTS_3D]` is meant for
+  generating model input.
+
   Args:
     keypoints_3d: A tensor for input 3D keyopints. Shape = [..., num_keypoints,
       3].
@@ -47,6 +51,8 @@ def preprocess_keypoints_3d(keypoints_3d,
     (keypoints_3d, side_outputs[common.KEY_OFFSET_POINTS_3D],
      side_outputs[common.KEY_SCALE_DISTANCES_3D]) = (
          keypoint_profile_3d.normalize(keypoints_3d))
+
+  side_outputs[common.KEY_PREPROCESSED_KEYPOINTS_3D] = keypoints_3d
   return keypoints_3d, side_outputs
 
 

@@ -531,7 +531,7 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
         inputs['model_inputs'], side_inputs = create_model_input_fn(
             inputs[common_module.KEY_KEYPOINTS_2D],
             inputs[common_module.KEY_KEYPOINT_MASKS_2D],
-            inputs[common_module.KEY_KEYPOINTS_3D],
+            inputs[common_module.KEY_PREPROCESSED_KEYPOINTS_3D],
             model_input_keypoint_type=FLAGS.model_input_keypoint_type,
             normalize_keypoints_2d=True,
             keypoint_profile_2d=configs['keypoint_profile_2d'],
