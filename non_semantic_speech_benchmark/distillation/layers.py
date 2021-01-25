@@ -17,6 +17,7 @@
 
 from absl import logging
 import tensorflow as tf
+from tensorflow.keras import backend as K
 
 
 class CompressedDense(tf.keras.layers.Dense):
@@ -86,7 +87,10 @@ class CompressedDense(tf.keras.layers.Dense):
         self.compression_op.b_matrix_tfvar.shape,
         self.compression_op.c_matrix_tfvar.shape)
 
-  def call(self, inputs, training=True):
-    self.compression_op.maybe_run_update_step()
+  def call(self, inputs, training=None):
+    if training is None:
+      training = K.learning_phase()
+    if training:
+      self.compression_op.maybe_run_update_step()
     return self.activation(
-        self.compression_op.compressed_matmul_keras(inputs) + self.bias)
+        self.compression_op.compressed_matmul_keras(inputs, training=training) + self.bias)

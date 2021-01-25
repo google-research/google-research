@@ -348,10 +348,13 @@ class CompressionOp(CompressionOpInterface):
     self.a_matrix_tfvar = a_matrix_tfvar
     self.layer.alpha = self.alpha
 
-  def compressed_matmul_keras(self, inputs):
+  def compressed_matmul_keras(self, inputs, training=False):
     """Matmul with a convex combination of original and compressed weights."""
-    compressed_mat = self.alpha * self.a_matrix_tfvar + (
-        1 - self.alpha) * tf.matmul(self.b_matrix_tfvar, self.c_matrix_tfvar)
+    if training:
+      compressed_mat = self.alpha * self.a_matrix_tfvar + (
+          1 - self.alpha) * tf.matmul(self.b_matrix_tfvar, self.c_matrix_tfvar)
+    else:
+      compressed_mat = tf.matmul(self.b_matrix_tfvar, self.c_matrix_tfvar)
     return tf.matmul(inputs, compressed_mat)
 
   def maybe_run_update_step(self):
