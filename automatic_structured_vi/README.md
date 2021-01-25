@@ -6,6 +6,10 @@ which proposes a fully automated method for constructing a structured surrogate
 posterior for VI in a way that incorporates the graphical structure of the
 prior distribution.
 
+These experiments make use of the TensorFlow Probability implementation of ASVI,
+which is provided as [`tfp.experimental.vi.build_asvi_surrogate_posterior`](https://www.tensorflow.org/probability/api_docs/python/tfp/experimental/vi/build_asvi_surrogate_posterior)
+(see also the [example notebook](https://www.tensorflow.org/probability/examples/TFP_Release_Notebook_0_12_1#build_asvi_surrogate_posterior)).
+
 ## How to Launch the Code
 ### Create a new virtual environment.
 ```

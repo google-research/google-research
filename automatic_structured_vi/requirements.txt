@@ -1,4 +1,5 @@
 tensorflow>=2.4.0
-tensorflow_probability>=0.12.1
-inference_gym >= 0.0.4
+tensorflow-datasets>=4.2.0
+tensorflow-probability>=0.12.1
+inference-gym>=0.0.4
 matplotlib
