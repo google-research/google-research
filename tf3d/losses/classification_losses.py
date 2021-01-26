@@ -467,7 +467,7 @@ def classification_loss_using_mask_iou_func(embeddings,
 
 
 @gin.configurable(
-    'classification_loss_using_mask_iou', blacklist=['inputs', 'outputs'])
+    'classification_loss_using_mask_iou', denylist=['inputs', 'outputs'])
 def classification_loss_using_mask_iou(inputs,
                                        outputs,
                                        num_samples,

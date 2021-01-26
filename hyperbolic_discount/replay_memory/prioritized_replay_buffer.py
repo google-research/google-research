@@ -246,7 +246,7 @@ class OutOfGraphPrioritizedReplayBuffer(
 
 
 @gin.configurable(
-    blacklist=['observation_shape', 'stack_size', 'update_horizon'])
+    denylist=['observation_shape', 'stack_size', 'update_horizon'])
 class WrappedPrioritizedReplayBuffer(
     circular_replay_buffer.WrappedReplayBuffer):
   """Wrapper of OutOfGraphPrioritizedReplayBuffer with in-graph sampling.

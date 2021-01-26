@@ -393,7 +393,7 @@ def pad_or_clip(mesh_inputs, view_indices_2d_inputs, pad_or_clip_size):
 
 @gin.configurable(
     'semantic_pointcloud_preprocess',
-    blacklist=['inputs', 'output_keys', 'is_training'])
+    denylist=['inputs', 'output_keys', 'is_training'])
 def preprocess(inputs,
                output_keys=None,
                is_training=False,

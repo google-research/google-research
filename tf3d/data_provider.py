@@ -136,7 +136,7 @@ def tfrecord_read_fn(filename):
 
 
 @gin.configurable(
-    'get_tf_data_decoder', blacklist=['batch_size', 'is_training'])
+    'get_tf_data_decoder', denylist=['batch_size', 'is_training'])
 def get_tf_data_decoder(dataset_format,
                         decode_fn,
                         file_pattern,

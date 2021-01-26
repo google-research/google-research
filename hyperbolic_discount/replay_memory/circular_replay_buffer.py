@@ -641,7 +641,7 @@ class OutOfGraphReplayBuffer(object):
 
 
 @gin.configurable(
-    blacklist=['observation_shape', 'stack_size', 'update_horizon'])
+    denylist=['observation_shape', 'stack_size', 'update_horizon'])
 class WrappedReplayBuffer(object):
   """Wrapper of OutOfGraphReplayBuffer with an in graph sampling mechanism.
 

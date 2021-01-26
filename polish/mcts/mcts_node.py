@@ -60,7 +60,7 @@ class DummyNode(object):
 
 
 @gin.configurable(
-    blacklist=['num_steps', 'reward', 'move', 'parent', 'mask', 'done'])
+    denylist=['num_steps', 'reward', 'move', 'parent', 'mask', 'done'])
 class MCTSNode(object):
   """A node of a MCTS search tree.
 
