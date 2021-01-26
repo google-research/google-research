@@ -454,5 +454,11 @@ def base_parser():
       default=0,
       help='Apply causal padding on DataFrame layer',
   )
+  parser.add_argument(
+      '--wav',
+      type=int,
+      default=1,
+      help='Use data in wav format, otherwise use numpy',
+  )
 
   return parser

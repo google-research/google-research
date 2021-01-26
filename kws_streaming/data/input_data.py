@@ -166,6 +166,16 @@ def save_wav_file(filename, wav_data, sample_rate):
         })
 
 
+def np_load(x):
+  return np.load(x)
+
+
+@tf.function(input_signature=[tf.TensorSpec(None, tf.string)])
+def tf_np_load(inputs):
+  y = tf.numpy_function(np_load, [inputs], tf.float32)
+  return y
+
+
 class AudioProcessor(object):
   """Handles loading, partitioning, and preparing audio training data.
 
@@ -468,9 +478,13 @@ class AudioProcessor(object):
       desired_samples = flags.desired_samples
       self.wav_filename_placeholder_ = tf.placeholder(
           tf.string, [], name='wav_filename')
-      wav_loader = io_ops.read_file(self.wav_filename_placeholder_)
-      wav_decoder = tf.audio.decode_wav(
-          wav_loader, desired_channels=1, desired_samples=desired_samples)
+      if flags.wav:
+        wav_loader = io_ops.read_file(self.wav_filename_placeholder_)
+        wav_decoder = tf.audio.decode_wav(
+            wav_loader, desired_channels=1, desired_samples=desired_samples)
+        wav_data = wav_decoder.audio
+      else:
+        wav_data = tf_np_load(self.wav_filename_placeholder_)
 
       # Allow the audio sample's volume to be adjusted.
       self.foreground_volume_placeholder_ = tf.placeholder(
@@ -480,9 +494,9 @@ class AudioProcessor(object):
       self.foreground_resampling_placeholder_ = tf.placeholder(tf.float32, [])
 
       if self.foreground_resampling_placeholder_ != 1.0:
-        image = tf.expand_dims(wav_decoder.audio, 0)
+        image = tf.expand_dims(wav_data, 0)
         image = tf.expand_dims(image, 2)
-        shape = tf.shape(wav_decoder.audio)
+        shape = tf.shape(wav_data)
         image_resized = tf.image.resize(
             images=image,
             size=(tf.cast((tf.cast(shape[0], tf.float32) *
@@ -498,7 +512,7 @@ class AudioProcessor(object):
         scaled_foreground = tf.multiply(image_resized_cropped,
                                         self.foreground_volume_placeholder_)
       else:
-        scaled_foreground = tf.multiply(wav_decoder.audio,
+        scaled_foreground = tf.multiply(wav_data,
                                         self.foreground_volume_placeholder_)
       # Shift the sample's start position, and pad any gaps with zeros.
       self.time_shift_padding_placeholder_ = tf.placeholder(
