@@ -23,9 +23,9 @@
 #include <utility>
 #include <vector>
 
-#include "glog/logging.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "glog/logging.h"
 #include "third_party/array/array.h"
 
 namespace npy_array {
