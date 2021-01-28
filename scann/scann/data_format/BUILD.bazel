@@ -41,11 +41,10 @@ cc_library(
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:scann_status",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:types",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -58,13 +57,12 @@ cc_library(
         ":features_cc_proto",
         ":gfv_conversion",
         ":gfv_properties",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/proto:hashed_cc_proto",
         "//scann/utils:infinite_one_array",
         "//scann/utils:types",
         "//scann/utils:zip_sort",
         "@com_google_absl//absl/strings",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -87,6 +85,7 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/proto:hashed_cc_proto",
         "//scann/utils:common",
         "//scann/utils:datapoint_utils",
@@ -100,8 +99,6 @@ cc_library(
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -111,10 +108,9 @@ cc_library(
     tags = ["local"],
     deps = [
         "//scann/oss_wrappers:scann_serialize",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:types",
         "@com_google_absl//absl/strings",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -130,6 +126,7 @@ cc_library(
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:scann_serialize",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:common",
         "//scann/utils:memory_logging",
         "//scann/utils:types",
@@ -137,8 +134,6 @@ cc_library(
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/time",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -152,11 +147,10 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:types",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 

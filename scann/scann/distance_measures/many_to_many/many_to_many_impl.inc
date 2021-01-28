@@ -373,7 +373,8 @@ class DenseManyToManyTransposed {
       });
     }
 
-    const size_t q_stride_est1 = (1 << 19) / (dimensionality * sizeof(FloatT));
+    const size_t q_stride_est1 =
+        std::max<size_t>(1, (1 << 19) / (dimensionality * sizeof(FloatT)));
 
     const size_t q_stride_est2 =
         num_queries / DivRoundUp(num_queries, q_stride_est1);

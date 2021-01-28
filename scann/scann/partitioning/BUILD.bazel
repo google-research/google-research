@@ -25,13 +25,12 @@ cc_library(
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:scann_threadpool",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:types",
         "//scann/utils:util_functions",
         "//scann/utils:zip_sort",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -73,6 +72,7 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/proto:distance_measure_cc_proto",
         "//scann/proto:hash_cc_proto",
         "//scann/proto:partitioning_cc_proto",
@@ -86,8 +86,6 @@ cc_library(
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/synchronization",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -99,9 +97,8 @@ cc_library(
         ":kmeans_tree_partitioner",
         ":partitioner_base",
         "//scann/distance_measures",
+        "//scann/oss_wrappers:tf_dependency",
         "@com_google_absl//absl/synchronization",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -113,11 +110,10 @@ cc_library(
     deps = [
         ":kmeans_tree_like_partitioner",
         ":partitioner_base",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/projection:projection_base",
         "//scann/utils:datapoint_utils",
         "@com_google_absl//absl/memory",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -132,6 +128,7 @@ cc_library(
         ":projecting_decorator",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/projection:projection_base",
         "//scann/projection:projection_factory",
         "//scann/proto:distance_measure_cc_proto",
@@ -141,8 +138,6 @@ cc_library(
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/time",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -162,6 +157,7 @@ cc_library(
         "//scann/distance_measures",
         "//scann/oss_wrappers:scann_random",
         "//scann/oss_wrappers:scann_status",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/projection:projection_base",
         "//scann/projection:projection_factory",
         "//scann/proto:distance_measure_cc_proto",
@@ -174,8 +170,6 @@ cc_library(
         "@com_google_absl//absl/numeric:int128",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/time",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 

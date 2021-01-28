@@ -27,14 +27,13 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:common",
         "//scann/utils:datapoint_utils",
         "//scann/utils:top_n_amortized_constant",
         "//scann/utils:types",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -56,6 +55,7 @@ cc_library(
         "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:scann_random",
         "//scann/oss_wrappers:scann_status",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/projection:chunking_projection",
         "//scann/utils:common",
         "//scann/utils:datapoint_utils",
@@ -67,8 +67,6 @@ cc_library(
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/random:distributions",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
     # The linker gets confused by explicitly instantiated templates  This
     # probably shouldn't be needed but is empirically necessary to get
@@ -99,13 +97,12 @@ cc_library(
     deps = [
         ":lut16_args",
         "//scann/oss_wrappers:scann_bits",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:bits",
         "//scann/utils:common",
         "//scann/utils:types",
         "//scann/utils/intrinsics:attributes",
         "//scann/utils/intrinsics:sse4",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -132,13 +129,12 @@ cc_library(
     deps = [
         ":lut16_args",
         "//scann/oss_wrappers:scann_bits",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:bits",
         "//scann/utils:common",
         "//scann/utils:types",
         "//scann/utils/intrinsics:attributes",
         "//scann/utils/intrinsics:avx2",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -190,6 +186,7 @@ cc_library(
         "//scann/oss_wrappers:scann_bits",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:bits",
         "//scann/utils:common",
         "//scann/utils:types",
@@ -197,8 +194,6 @@ cc_library(
         "//scann/utils/intrinsics:avx512",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -239,11 +234,10 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:types",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
