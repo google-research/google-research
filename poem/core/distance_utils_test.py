@@ -52,8 +52,26 @@ class DistanceUtilsTest(tf.test.TestCase):
     inner_distances = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
     matching_probabilities = distance_utils.compute_sigmoid_matching_probabilities(
         inner_distances,
-        a_initializer=tf.initializers.constant(-4.60517018599),
+        raw_a_initializer=tf.initializers.constant(-4.60517018599),
         b_initializer=tf.initializers.ones())
+
+    with self.session() as sess:
+      sess.run(tf.global_variables_initializer())
+      matching_probabilities_result = sess.run(matching_probabilities)
+
+    self.assertAllClose(matching_probabilities_result,
+                        [[0.70617913, 0.704397395, 0.702607548],
+                         [0.700809625, 0.69900366, 0.697189692]])
+
+  def test_compute_sigmoid_matching_probabilities_with_clamping(self):
+    inner_distances = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
+    matching_probabilities = (
+        distance_utils.compute_sigmoid_matching_probabilities(
+            inner_distances,
+            raw_a_initializer=tf.initializers.constant(10.0),
+            b_initializer=tf.initializers.constant(0.0),
+            a_range=(None, 0.01),
+            b_range=(1.0, None)))
 
     with self.session() as sess:
       sess.run(tf.global_variables_initializer())
@@ -67,7 +85,7 @@ class DistanceUtilsTest(tf.test.TestCase):
     inner_distances = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
     matching_distances = distance_utils.compute_sigmoid_matching_distances(
         inner_distances,
-        a_initializer=tf.initializers.constant(-4.60517018599),
+        raw_a_initializer=tf.initializers.constant(-4.60517018599),
         b_initializer=tf.initializers.ones())
 
     with self.session() as sess:

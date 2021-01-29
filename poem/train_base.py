@@ -22,6 +22,7 @@ import tensorflow.compat.v1 as tf
 import tf_slim
 
 from poem.core import data_utils
+from poem.core import distance_utils
 from poem.core import keypoint_utils
 from poem.core import loss_utils
 from poem.core import pipeline_utils
@@ -217,6 +218,17 @@ flags.DEFINE_integer(
     'input_shuffle_buffer_size', 2097152,
     'Input shuffle buffer size. A large number beneifts shuffling quality.')
 
+flags.DEFINE_float(
+    'sigmoid_raw_a_initial', -0.65,
+    'Initial value of sigmoid `raw_a` parameter. We initialize the sigmoid '
+    'parameters to a constant to avoid model being stuck in a `dead zone` at '
+    'the beginning of training. The actual value of `a` will be ELU(raw_a) + '
+    '1.')
+
+flags.DEFINE_float(
+    'sigmoid_a_max', -1.0,
+    'Maximum value of sigmoid `a` parameter. Ignored if None or non-positive.')
+
 flags.DEFINE_list(
     'random_projection_azimuth_range', ['-180.0', '180.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
@@ -404,10 +416,11 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
               componentwise_reduction=FLAGS.triplet_componentwise_reduction,
               # We initialize the sigmoid parameters to avoid model being stuck
               # in a `dead zone` at the beginning of training.
-              L2_SIGMOID_MATCHING_PROB_a_initializer=(
-                  tf.initializers.constant(-0.65)),
+              L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
+                  tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
               L2_SIGMOID_MATCHING_PROB_b_initializer=(
                   tf.initializers.constant(-0.5)),
+              L2_SIGMOID_MATCHING_PROB_a_range=(None, FLAGS.sigmoid_a_max),
               EXPECTED_LIKELIHOOD_min_stddev=0.1,
               EXPECTED_LIKELIHOOD_max_squared_mahalanobis_distance=100.0),
       'positive_pairwise_embedding_keys':
@@ -423,8 +436,8 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
                   FLAGS.positive_pairwise_componentwise_reduction),
               # We initialize the sigmoid parameters to avoid model being stuck
               # in a `dead zone` at the beginning of training.
-              L2_SIGMOID_MATCHING_PROB_a_initializer=(
-                  tf.initializers.constant(-0.65)),
+              L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
+                  tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
               L2_SIGMOID_MATCHING_PROB_b_initializer=(
                   tf.initializers.constant(-0.5)),
               EXPECTED_LIKELIHOOD_min_stddev=0.1,
@@ -668,11 +681,18 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
 
       if configs['summarize_matching_sigmoid_vars']:
         # Summarize variables used in matching sigmoid.
-        with tf.variable_scope('MatchingSigmoid', reuse=True):
-          summaries['train/MatchingSigmoid/a'] = tf.get_variable('a')
-          summaries['train/MatchingSigmoid/a_plus'] = (
-              tf.nn.elu(tf.get_variable('a')) + 1.0)
-          summaries['train/MatchingSigmoid/b'] = tf.get_variable('b')
+        raw_a, a, b = distance_utils.get_sigmoid_parameters(
+            name='MatchingSigmoid',
+            reuse=True,
+            a_range=(None, FLAGS.sigmoid_a_max))
+        # TODO(liuti): Currently the variable for `raw_a` is named `a` in
+        # checkpoints, and true `a` may be referred to as `a_plus` for historic
+        # reasons. Consolidate the naming.
+        summaries.update({
+            'train/MatchingSigmoid/a': raw_a,
+            'train/MatchingSigmoid/a_plus': a,
+            'train/MatchingSigmoid/b': b,
+        })
 
       if FLAGS.use_moving_average:
         pipeline_utils.add_moving_average(FLAGS.moving_average_decay)

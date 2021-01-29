@@ -40,9 +40,67 @@ def compute_l2_distances(lhs, rhs, squared=False, keepdims=False):
   return squared_l2_distances if squared else tf.math.sqrt(squared_l2_distances)
 
 
+def get_sigmoid_parameters(name,
+                           reuse,
+                           raw_a_initializer=None,
+                           b_initializer=None,
+                           a_range=(None, None),
+                           b_range=(None, None)):
+  """Gets sigmoid parameter variables.
+
+  Args:
+    name: A string for the variable scope name.
+    reuse: Type of variable reuse.
+    raw_a_initializer: A function handle for initializer of raw `a` parameter.
+      Final `a` is ELU(raw_a) + 1. Use None for default initializer.
+    b_initializer: A function handle for initializer of `b` parameter. Use None
+      for default initializer.
+    a_range: A tuple of (min, max) range of `a` parameter. Uses None or
+      non-positive value to indicate unspecified boundaries.
+    b_range: A tuple of (min, max) range of `b` parameter. Uses None to indicate
+      unspecified boundaries. Does NOT use non-positive value to indicate
+      unspecified boundaries.
+
+  Returns:
+    raw_a: A variable for `raw_a` parameter.
+    a: A tensor for `a` parameter.
+    b: A tensor for `b` parameter.
+
+  Raises:
+    ValueError: If `a_range` or `b_range` is invalid.
+  """
+
+  def maybe_clamp(x, x_range, ignored_if_non_positive):
+    """Clamps `x` to `x_range`."""
+    x_min, x_max = x_range
+    if x_min is not None and x_max is not None and x_min > x_max:
+      raise ValueError('Invalid range: %s.' % str(x_range))
+    if (x_min is not None) and (not ignored_if_non_positive or x_min > 0.0):
+      x = tf.math.maximum(x_min, x)
+    if (x_max is not None) and (not ignored_if_non_positive or x_max > 0.0):
+      x = tf.math.minimum(x_max, x)
+    return x
+
+  with tf.variable_scope(name, reuse=reuse):
+    # TODO(liuti): Currently the variable for `raw_a` is named `a` in
+    # checkpoints for historic reasons. Consolidate the naming.
+    raw_a = tf.get_variable(
+        'a', shape=[], dtype=tf.float32, initializer=raw_a_initializer)
+    a = tf.nn.elu(raw_a) + 1.0
+    a = maybe_clamp(a, a_range, ignored_if_non_positive=True)
+
+    b = tf.get_variable(
+        'b', shape=[], dtype=tf.float32, initializer=b_initializer)
+    b = maybe_clamp(b, b_range, ignored_if_non_positive=False)
+
+  return raw_a, a, b
+
+
 def compute_sigmoid_matching_probabilities(inner_distances,
-                                           a_initializer=None,
+                                           raw_a_initializer=None,
                                            b_initializer=None,
+                                           a_range=(None, None),
+                                           b_range=(None, None),
                                            smoothing=0.1,
                                            name='MatchingSigmoid'):
   """Computes sigmoid matching probabilities.
@@ -56,29 +114,37 @@ def compute_sigmoid_matching_probabilities(inner_distances,
 
   Args:
     inner_distances: A tensor for inner distances. Shape = [...].
-    a_initializer: A function handle for initializer of `a` parameter. Use None
-      for default initializer.
+    raw_a_initializer: A function handle for initializer of raw `a` parameter.
+      Final `a` is ELU(raw_a) + 1. Use None for default initializer.
     b_initializer: A function handle for initializer of `b` parameter. Use None
       for default initializer.
+    a_range: A tuple of (min, max) range of `a` parameter. Uses None or
+      non-positive value to indicate unspecified boundaries.
+    b_range: A tuple of (min, max) range of `b` parameter. Uses None to indicate
+      unspecified boundaries. Does NOT use non-positive value to indicate
+      unspecified boundaries.
     smoothing: A float for label smoothing constant.
     name: A string for the variable scope name.
 
   Returns:
     A tensor for matching probabilities. Shape = [...].
   """
-  with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-    a = tf.get_variable(
-        'a', shape=[], dtype=tf.float32, initializer=a_initializer)
-    a = tf.nn.elu(a) + 1.0
-    b = tf.get_variable(
-        'b', shape=[], dtype=tf.float32, initializer=b_initializer)
+  _, a, b = get_sigmoid_parameters(
+      name=name,
+      reuse=tf.AUTO_REUSE,
+      raw_a_initializer=raw_a_initializer,
+      b_initializer=b_initializer,
+      a_range=a_range,
+      b_range=b_range)
   p = tf.math.sigmoid(-a * inner_distances + b)
   return (1.0 - smoothing) * p + smoothing / 2.0
 
 
 def compute_sigmoid_matching_distances(inner_distances,
-                                       a_initializer=None,
+                                       raw_a_initializer=None,
                                        b_initializer=None,
+                                       a_range=(None, None),
+                                       b_range=(None, None),
                                        smoothing=0.1,
                                        name='MatchingSigmoid'):
   """Computes sigmoid matching distances.
@@ -91,10 +157,15 @@ def compute_sigmoid_matching_distances(inner_distances,
 
   Args:
     inner_distances: A tensor for inner distances. Shape = [...].
-    a_initializer: A function handle for initializer of `a` parameter. Use None
-      for default initializer.
+    raw_a_initializer: A function handle for initializer of raw `a` parameter.
+      Final `a` is ELU(raw_a) + 1. Use None for default initializer.
     b_initializer: A function handle for initializer of `b` parameter. Use None
       for default initializer.
+    a_range: A tuple of (min, max) range of `a` parameter. Uses None or
+      non-positive value to indicate unspecified boundaries.
+    b_range: A tuple of (min, max) range of `b` parameter. Uses None to indicate
+      unspecified boundaries. Does NOT use non-positive value to indicate
+      unspecified boundaries.
     smoothing: A float for label smoothing constant.
     name: A string for the variable scope name.
 
@@ -103,8 +174,10 @@ def compute_sigmoid_matching_distances(inner_distances,
   """
   p = compute_sigmoid_matching_probabilities(
       inner_distances,
-      a_initializer=a_initializer,
+      raw_a_initializer=raw_a_initializer,
       b_initializer=b_initializer,
+      a_range=a_range,
+      b_range=b_range,
       smoothing=smoothing,
       name=name)
   return -tf.math.log(p)

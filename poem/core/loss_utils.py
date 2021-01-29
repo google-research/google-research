@@ -71,8 +71,8 @@ def create_sample_distance_fn(
         inner_distances = l2_distance_computer(lhs, rhs, squared=False)
         return distance_utils.compute_sigmoid_matching_probabilities(
             inner_distances,
-            a_initializer=distance_kernel_kwargs.get(
-                (distance_kernel + '_a_initializer'), None),
+            raw_a_initializer=distance_kernel_kwargs.get(
+                (distance_kernel + '_raw_a_initializer'), None),
             b_initializer=distance_kernel_kwargs.get(
                 (distance_kernel + '_b_initializer'), None),
             name=distance_kernel_kwargs.get((distance_kernel + '_name'),
