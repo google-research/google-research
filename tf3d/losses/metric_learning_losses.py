@@ -152,7 +152,7 @@ def npair_loss(inputs,
 
 
 @gin.configurable(
-    'embedding_regularization_loss', blacklist=['inputs', 'outputs'])
+    'embedding_regularization_loss', denylist=['inputs', 'outputs'])
 def embedding_regularization_loss(inputs,
                                   outputs,
                                   lambda_coef=0.0001,

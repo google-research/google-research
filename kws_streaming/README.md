@@ -43,6 +43,12 @@ on mobile phone and demonstrated that models outperform previously reported accu
 This lib also can be applied on other sequence problems
 such as speech noise reduction, sound detection, text classification...
 
+## Quick onboarding with toy demo:
+Step by step demo is shown in [colabs](https://github.com/google-research/google-research/tree/master/kws_streaming/colab):
+1. Download the data and check its properties [00_check_data.ipynb](https://github.com/google-research/google-research/blob/master/kws_streaming/colab/00_check_data.ipynb)
+2. Train toy svdf or ds_tc_resnet models [01_train.ipynb](https://github.com/google-research/google-research/blob/master/kws_streaming/colab/01_train.ipynb)
+3. Run inference in streaming and non streaming modes [02_inference.ipynb](https://github.com/google-research/google-research/blob/master/kws_streaming/colab/02_inference.ipynb)
+
 ## Experimentation steps
 NN model conversion from non streaming mode (which is frequently
 used during training) to streaming can require manual model rewriting.

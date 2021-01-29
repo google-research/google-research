@@ -62,6 +62,7 @@ cc_library(
         "//scann/oss_wrappers:scann_bits",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils/intrinsics:avx2",
         "//scann/utils/intrinsics:flags",
         "//scann/utils/intrinsics:sse4",
@@ -69,8 +70,6 @@ cc_library(
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/numeric:int128",
         "@com_google_absl//absl/strings",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -103,6 +102,7 @@ cc_library(
         "//scann/oss_wrappers:scann_random",
         "//scann/oss_wrappers:scann_status",
         "//scann/oss_wrappers:scann_threadpool",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/partitioning:partitioner_cc_proto",
         "//scann/proto:partitioning_cc_proto",
         "@com_google_absl//absl/base",
@@ -111,8 +111,6 @@ cc_library(
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/random:distributions",
         "@com_google_absl//absl/time",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -149,10 +147,9 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:tf_dependency",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -170,6 +167,7 @@ cc_library(
         "//scann/data_format:datapoint",
         "//scann/data_format:features_cc_proto",
         "//scann/data_format/internal:short_string_optimized_string",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/partitioning:partitioner_cc_proto",
         "//scann/proto:exact_reordering_cc_proto",
         "//scann/proto:input_output_cc_proto",
@@ -177,8 +175,6 @@ cc_library(
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/container:node_hash_map",
         "@com_google_protobuf//:protobuf",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -194,6 +190,7 @@ cc_library(
         "//scann/data_format:features_cc_proto",
         "//scann/distance_measures",
         "//scann/oss_wrappers:scann_status",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/partitioning:partitioner_cc_proto",
         "//scann/proto:brute_force_cc_proto",
         "//scann/proto:compressed_reordering_cc_proto",
@@ -209,8 +206,6 @@ cc_library(
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -237,12 +232,11 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:tf_dependency",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/container:node_hash_set",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/strings",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -277,6 +271,7 @@ cc_library(
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:scann_status",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils/fixed_point:pre_quantized_fixed_point",
         "//scann/utils/internal:avx2_funcs",
         "//scann/utils/internal:avx_funcs",
@@ -284,8 +279,6 @@ cc_library(
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings:str_format",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -374,8 +367,7 @@ cc_library(
         ":types",
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_bits",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
+        "//scann/oss_wrappers:tf_dependency",
     ],
 )
 
@@ -391,10 +383,9 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:tf_dependency",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -408,12 +399,11 @@ cc_library(
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:scann_threadpool",
+        "//scann/oss_wrappers:tf_dependency",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/synchronization",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -431,13 +421,12 @@ cc_library(
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:scann_random",
+        "//scann/oss_wrappers:tf_dependency",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:variant",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -485,6 +474,7 @@ cc_library(
         "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:scann_serialize",
         "//scann/oss_wrappers:scann_status",
+        "//scann/oss_wrappers:tf_dependency",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -496,8 +486,6 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 

@@ -59,7 +59,7 @@ def train_step(model, rng, state, batch, lr):
 
   def loss_fn(variables):
     rays = batch["rays"]
-    ret = model.apply(variables, key_0, key_1, *rays, FLAGS.randomized)
+    ret = model.apply(variables, key_0, key_1, rays, FLAGS.randomized)
     if len(ret) not in (1, 2):
       raise ValueError(
           "ret should contain either 1 set of output (coarse only), or 2 sets"
@@ -138,7 +138,7 @@ def main(unused_argv):
 
   def render_fn(variables, key_0, key_1, rays):
     return jax.lax.all_gather(
-        model.apply(variables, key_0, key_1, *rays, FLAGS.randomized),
+        model.apply(variables, key_0, key_1, rays, FLAGS.randomized),
         axis_name="batch")
 
   render_pfn = jax.pmap(

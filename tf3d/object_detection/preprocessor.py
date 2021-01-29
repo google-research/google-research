@@ -298,7 +298,7 @@ def split_inputs(inputs,
 
 @gin.configurable(
     'object_detection_preprocess',
-    blacklist=['inputs', 'output_keys', 'is_training'])
+    denylist=['inputs', 'output_keys', 'is_training'])
 def preprocess(inputs,
                output_keys=None,
                is_training=False,

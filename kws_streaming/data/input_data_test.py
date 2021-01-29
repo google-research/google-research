@@ -77,6 +77,7 @@ class InputDataTest(tf.test.TestCase):
         "train": 1,
         "pick_deterministically": 0,
         "causal_data_frame_padding": 0,
+        "wav": 1,
     }
     return DictStruct(**dummy_flags)
 

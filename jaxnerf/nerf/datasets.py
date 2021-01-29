@@ -16,7 +16,6 @@
 # Lint as: python3
 """Different datasets implementation plus a general port for all the datasets."""
 INTERNAL = False  # pylint: disable=g-statement-before-imports
-import collections
 import json
 import os
 from os import path
@@ -28,13 +27,6 @@ import jax
 import numpy as np
 from PIL import Image
 from jaxnerf.nerf import utils
-
-Rays = collections.namedtuple("Rays", ["origins", "directions", "viewdirs"])
-
-
-def ray_fn(fn, rays):
-  """Applies `fn` to each element of `rays`, and cast to a `Rays` namedtuple."""
-  return Rays(*[fn(r) for r in rays])
 
 
 def get_dataset(split, args):
@@ -132,10 +124,11 @@ class Dataset(threading.Thread):
     if args.image_batching:
       # flatten the ray and image dimension together.
       self.images = self.images.reshape([-1, 3])
-      self.rays = ray_fn(lambda r: r.reshape([-1, r.shape[-1]]), self.rays)
+      self.rays = utils.namedtuple_map(lambda r: r.reshape([-1, r.shape[-1]]),
+                                       self.rays)
     else:
       self.images = self.images.reshape([-1, self.resolution, 3])
-      self.rays = ray_fn(
+      self.rays = utils.namedtuple_map(
           lambda r: r.reshape([-1, self.resolution, r.shape[-1]]), self.rays)
 
   def _test_init(self, args):
@@ -150,13 +143,14 @@ class Dataset(threading.Thread):
       ray_indices = np.random.randint(0, self.rays[0].shape[0],
                                       (self.batch_size,))
       batch_pixels = self.images[ray_indices]
-      batch_rays = ray_fn(lambda r: r[ray_indices], self.rays)
+      batch_rays = utils.namedtuple_map(lambda r: r[ray_indices], self.rays)
     else:
       image_index = np.random.randint(0, self.n_examples, ())
       ray_indices = np.random.randint(0, self.rays[0][0].shape[0],
                                       (self.batch_size,))
       batch_pixels = self.images[image_index][ray_indices]
-      batch_rays = ray_fn(lambda r: r[image_index][ray_indices], self.rays)
+      batch_rays = utils.namedtuple_map(lambda r: r[image_index][ray_indices],
+                                        self.rays)
     return {"pixels": batch_pixels, "rays": batch_rays}
 
   def _next_test(self):
@@ -165,11 +159,11 @@ class Dataset(threading.Thread):
     self.it = (self.it + 1) % self.n_examples
 
     if self.render_path:
-      return {"rays": ray_fn(lambda r: r[idx], self.render_rays)}
+      return {"rays": utils.namedtuple_map(lambda r: r[idx], self.render_rays)}
     else:
       return {
           "pixels": self.images[idx],
-          "rays": ray_fn(lambda r: r[idx], self.rays)
+          "rays": utils.namedtuple_map(lambda r: r[idx], self.rays)
       }
 
   # TODO(bydeng): Swap this function with a more flexible camera model.
@@ -187,7 +181,8 @@ class Dataset(threading.Thread):
     origins = np.broadcast_to(self.camtoworlds[:, None, None, :3, -1],
                               directions.shape)
     viewdirs = directions / np.linalg.norm(directions, axis=-1, keepdims=True)
-    self.rays = Rays(origins=origins, directions=directions, viewdirs=viewdirs)
+    self.rays = utils.Rays(
+        origins=origins, directions=directions, viewdirs=viewdirs)
 
 
 class Blender(Dataset):
@@ -331,7 +326,7 @@ class LLFF(Dataset):
       ndc_origins, ndc_directions = convert_to_ndc(self.rays.origins,
                                                    self.rays.directions,
                                                    self.focal, self.w, self.h)
-      self.rays = Rays(
+      self.rays = utils.Rays(
           origins=ndc_origins,
           directions=ndc_directions,
           viewdirs=self.rays.viewdirs)
@@ -341,8 +336,8 @@ class LLFF(Dataset):
       self.camtoworlds = self.camtoworlds[n_render_poses:]
       split = [np.split(r, [n_render_poses], 0) for r in self.rays]
       split0, split1 = zip(*split)
-      self.render_rays = Rays(*split0)
-      self.rays = Rays(*split1)
+      self.render_rays = utils.Rays(*split0)
+      self.rays = utils.Rays(*split1)
 
   def _recenter_poses(self, poses):
     """Recenter poses according to the original NeRF code."""

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if GOOGLE_CUDA
 #include <cusparse.h>
 
 #include <unordered_map>
@@ -46,3 +47,4 @@ cusparseHandle_t GetHandleForStream(cudaStream_t stream) {
 }
 
 }  // namespace sgk
+#endif  // GOOGLE_CUDA

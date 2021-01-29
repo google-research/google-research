@@ -25,6 +25,7 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:common",
         "//scann/utils:fast_top_neighbors",
         "//scann/utils:top_n_amortized_constant",
@@ -33,8 +34,6 @@ cc_library(
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/synchronization",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )
 
@@ -54,13 +53,12 @@ cc_library(
         "//scann/distance_measures",
         "//scann/distance_measures/one_to_many",
         "//scann/oss_wrappers:scann_status",
+        "//scann/oss_wrappers:tf_dependency",
         "//scann/tree_x_hybrid:leaf_searcher_optional_parameter_creator",
         "//scann/utils:scalar_quantization_helpers",
         "//scann/utils:top_n_amortized_constant",
         "//scann/utils:types",
         "//scann/utils/fixed_point:pre_quantized_fixed_point",
         "@com_google_absl//absl/memory",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
     ],
 )

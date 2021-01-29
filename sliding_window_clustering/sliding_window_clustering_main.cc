@@ -37,13 +37,13 @@ using std::vector;
 #include "meyerson_algorithm.h"
 #include "sliding_window_framework.h"
 
-ABSL_FLAG(string, input_file, "",
+ABSL_FLAG(std::string, input_file, "",
           "Path to the input file containing the stream of the points. The "
           "file format is a text file where each line is a point (in order of "
           "the stream). Each line contains d floating point numbers seprated "
           "by tab character defining the d dimensions of the point.");
 ABSL_FLAG(
-    string, output_file, "",
+    std::string, output_file, "",
     "Path to the output text file with statistics on the experiment. The "
     "file will contain one line for every solution computed (i.e., one "
     "every output_every_n points). Each line contains in order the following "
@@ -53,7 +53,7 @@ ABSL_FLAG(
     "of the baseline algorithm storing the same number of points of our "
     "algorithm.");
 ABSL_FLAG(
-    string, output_centers_file, "",
+    std::string, output_centers_file, "",
     "(Optional) Path to the output text file with the centers computed by our "
     "algorithm. If the path is non-empty, the file will contain one line for "
     "every solution computed (i.e., one every output_every_n points). Each line"

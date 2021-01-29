@@ -14,6 +14,7 @@ env:
     - PROJECT="attribution"
     - PROJECT="amortized_bo"
     - PROJECT="assemblenet"
+    - PROJECT="automatic_structured_vi"
     - PROJECT="axial"
     - PROJECT="bam"
     - PROJECT="bisimulation_aaai2020"

@@ -23,7 +23,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "third_party/array/array.h"
+#include "array/array.h"
 
 namespace npy_array {
 namespace {

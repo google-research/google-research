@@ -166,6 +166,16 @@ def save_wav_file(filename, wav_data, sample_rate):
         })
 
 
+def np_load(x):
+  return np.load(x)
+
+
+@tf.function(input_signature=[tf.TensorSpec(None, tf.string)])
+def tf_np_load(inputs):
+  y = tf.numpy_function(np_load, [inputs], tf.float32)
+  return y
+
+
 class AudioProcessor(object):
   """Handles loading, partitioning, and preparing audio training data.
 
@@ -175,6 +185,10 @@ class AudioProcessor(object):
 
   def __init__(self, flags):
     wanted_words = flags.wanted_words.split(',')
+    if flags.wav:
+      file_ext = '*.wav'
+    else:
+      file_ext = '*.npy'
     if flags.data_dir:
       self.data_dir = flags.data_dir
       if flags.split_data:
@@ -182,9 +196,10 @@ class AudioProcessor(object):
         self.prepare_data_index(flags.silence_percentage,
                                 flags.unknown_percentage, wanted_words,
                                 flags.validation_percentage,
-                                flags.testing_percentage, flags.split_data)
+                                flags.testing_percentage, flags.split_data,
+                                file_ext)
       else:
-        self.prepare_split_data_index(wanted_words, flags.split_data)
+        self.prepare_split_data_index(wanted_words, flags.split_data, file_ext)
 
       self.prepare_background_data()
     self.prepare_processing_graph(flags)
@@ -232,7 +247,7 @@ class AudioProcessor(object):
 
   def prepare_data_index(self, silence_percentage, unknown_percentage,
                          wanted_words, validation_percentage,
-                         testing_percentage, split_data):
+                         testing_percentage, split_data, file_ext):
     """Prepares a list of the samples organized by set and label.
 
     The training loop needs a list of all the available data, organized by
@@ -249,6 +264,7 @@ class AudioProcessor(object):
       validation_percentage: How much of the data set to use for validation.
       testing_percentage: How much of the data set to use for testing.
       split_data: True - split data automatically; False - user splits the data
+      file_ext: extension of files wav or numpy
 
     Returns:
       Dictionary containing a list of file information for each set partition,
@@ -266,7 +282,7 @@ class AudioProcessor(object):
     unknown_index = {'validation': [], 'testing': [], 'training': []}
     all_words = {}
     # Look through all the subfolders to find audio samples
-    search_path = os.path.join(self.data_dir, '*', '*.wav')
+    search_path = os.path.join(self.data_dir, '*', file_ext)
     for wav_path in gfile.Glob(search_path):
       _, word = os.path.split(os.path.dirname(wav_path))
       word = word.lower()
@@ -323,7 +339,7 @@ class AudioProcessor(object):
       if not os.path.isdir(sub_dir_name):
         raise IOError('Directory is not found ' + sub_dir_name)
 
-  def prepare_split_data_index(self, wanted_words, split_data):
+  def prepare_split_data_index(self, wanted_words, split_data, file_ext):
     """Prepares a list of the samples organized by set and label.
 
     The training loop needs a list of all the available data, organized by
@@ -339,6 +355,7 @@ class AudioProcessor(object):
     Args:
       wanted_words: Labels of the classes we want to be able to recognize.
       split_data: True - split data automatically; False - user splits the data
+      file_ext: extension of files wav or numpy
 
     Returns:
       Dictionary containing a list of file information for each set partition,
@@ -365,8 +382,9 @@ class AudioProcessor(object):
     for set_index in dirs:
       all_words = {}
       # Look through all the subfolders in set_index to find audio samples
+
       search_path = os.path.join(
-          os.path.join(self.data_dir, set_index), '*', '*.wav')
+          os.path.join(self.data_dir, set_index), '*', file_ext)
       for wav_path in gfile.Glob(search_path):
         _, word = os.path.split(os.path.dirname(wav_path))
         word = word.lower()
@@ -468,9 +486,13 @@ class AudioProcessor(object):
       desired_samples = flags.desired_samples
       self.wav_filename_placeholder_ = tf.placeholder(
           tf.string, [], name='wav_filename')
-      wav_loader = io_ops.read_file(self.wav_filename_placeholder_)
-      wav_decoder = tf.audio.decode_wav(
-          wav_loader, desired_channels=1, desired_samples=desired_samples)
+      if flags.wav:
+        wav_loader = io_ops.read_file(self.wav_filename_placeholder_)
+        wav_decoder = tf.audio.decode_wav(
+            wav_loader, desired_channels=1, desired_samples=desired_samples)
+        wav_data = wav_decoder.audio
+      else:
+        wav_data = tf_np_load(self.wav_filename_placeholder_)
 
       # Allow the audio sample's volume to be adjusted.
       self.foreground_volume_placeholder_ = tf.placeholder(
@@ -480,9 +502,9 @@ class AudioProcessor(object):
       self.foreground_resampling_placeholder_ = tf.placeholder(tf.float32, [])
 
       if self.foreground_resampling_placeholder_ != 1.0:
-        image = tf.expand_dims(wav_decoder.audio, 0)
+        image = tf.expand_dims(wav_data, 0)
         image = tf.expand_dims(image, 2)
-        shape = tf.shape(wav_decoder.audio)
+        shape = tf.shape(wav_data)
         image_resized = tf.image.resize(
             images=image,
             size=(tf.cast((tf.cast(shape[0], tf.float32) *
@@ -498,7 +520,7 @@ class AudioProcessor(object):
         scaled_foreground = tf.multiply(image_resized_cropped,
                                         self.foreground_volume_placeholder_)
       else:
-        scaled_foreground = tf.multiply(wav_decoder.audio,
+        scaled_foreground = tf.multiply(wav_data,
                                         self.foreground_volume_placeholder_)
       # Shift the sample's start position, and pad any gaps with zeros.
       self.time_shift_padding_placeholder_ = tf.placeholder(

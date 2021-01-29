@@ -21,6 +21,7 @@ from jax import random
 import jax.numpy as jnp
 
 from jaxnerf.nerf import model_utils
+from jaxnerf.nerf import utils
 
 
 def get_model(key, example_batch, args):
@@ -56,16 +57,13 @@ class NerfModel(nn.Module):
   legacy_posenc_order: bool  # Keep the same ordering as the original tf code.
 
   @nn.compact
-  def __call__(self, rng_0, rng_1, origins, directions, viewdirs, randomized):
+  def __call__(self, rng_0, rng_1, rays, randomized):
     """Nerf Model.
 
     Args:
       rng_0: jnp.ndarray, random number generator for coarse model sampling.
       rng_1: jnp.ndarray, random number generator for fine model sampling.
-      origins: jnp.ndarray(float32), [batch_size, 3], each ray origin.
-      directions: jnp.ndarray(float32), [batch_size, 3], each ray direction.
-      viewdirs: jnp.ndarray(float32), [batch_size, 3], the viewing direction for
-        each ray.
+      rays: util.Rays, a namedtuple of ray origins, directions, and viewdirs.
       randomized: bool, use randomized stratified sampling.
 
     Returns:
@@ -73,12 +71,21 @@ class NerfModel(nn.Module):
     """
     # Stratified sampling along rays
     key, rng_0 = random.split(rng_0)
-    z_vals, samples = model_utils.sample_along_rays(key, origins, directions,
-                                                    self.num_coarse_samples,
-                                                    self.near, self.far,
-                                                    randomized, self.lindisp)
-    samples_enc = model_utils.posenc(samples, self.deg_point,
-                                     self.legacy_posenc_order)
+    z_vals, samples = model_utils.sample_along_rays(
+        key,
+        rays.origins,
+        rays.directions,
+        self.num_coarse_samples,
+        self.near,
+        self.far,
+        randomized,
+        self.lindisp,
+    )
+    samples_enc = model_utils.posenc(
+        samples,
+        self.deg_point,
+        self.legacy_posenc_order,
+    )
 
     # Construct the "coarse" MLP.
     coarse_mlp = model_utils.MLP(
@@ -93,15 +100,22 @@ class NerfModel(nn.Module):
 
     # Point attribute predictions
     if self.use_viewdirs:
-      viewdirs_enc = model_utils.posenc(viewdirs, self.deg_view,
-                                        self.legacy_posenc_order)
+      viewdirs_enc = model_utils.posenc(
+          rays.viewdirs,
+          self.deg_view,
+          self.legacy_posenc_order,
+      )
       raw_rgb, raw_sigma = coarse_mlp(samples_enc, viewdirs_enc)
     else:
       raw_rgb, raw_sigma = coarse_mlp(samples_enc)
     # Add noises to regularize the density predictions if needed
     key, rng_0 = random.split(rng_0)
-    raw_sigma = model_utils.add_gaussian_noise(key, raw_sigma, self.noise_std,
-                                               randomized)
+    raw_sigma = model_utils.add_gaussian_noise(
+        key,
+        raw_sigma,
+        self.noise_std,
+        randomized,
+    )
     rgb = self.rgb_activation(raw_rgb)
     sigma = self.sigma_activation(raw_sigma)
     # Volumetric rendering.
@@ -109,7 +123,7 @@ class NerfModel(nn.Module):
         rgb,
         sigma,
         z_vals,
-        directions,
+        rays.directions,
         white_bkgd=self.white_bkgd,
     )
     ret = [
@@ -123,14 +137,17 @@ class NerfModel(nn.Module):
           key,
           z_vals_mid,
           weights[Ellipsis, 1:-1],
-          origins,
-          directions,
+          rays.origins,
+          rays.directions,
           z_vals,
           self.num_fine_samples,
           randomized,
       )
-      samples_enc = model_utils.posenc(samples, self.deg_point,
-                                       self.legacy_posenc_order)
+      samples_enc = model_utils.posenc(
+          samples,
+          self.deg_point,
+          self.legacy_posenc_order,
+      )
 
       # Construct the "fine" MLP.
       fine_mlp = model_utils.MLP(
@@ -148,15 +165,19 @@ class NerfModel(nn.Module):
       else:
         raw_rgb, raw_sigma = fine_mlp(samples_enc)
       key, rng_1 = random.split(rng_1)
-      raw_sigma = model_utils.add_gaussian_noise(key, raw_sigma, self.noise_std,
-                                                 randomized)
+      raw_sigma = model_utils.add_gaussian_noise(
+          key,
+          raw_sigma,
+          self.noise_std,
+          randomized,
+      )
       rgb = self.rgb_activation(raw_rgb)
       sigma = self.sigma_activation(raw_sigma)
       comp_rgb, disp, acc, unused_weights = model_utils.volumetric_rendering(
           rgb,
           sigma,
           z_vals,
-          directions,
+          rays.directions,
           white_bkgd=self.white_bkgd,
       )
       ret.append((comp_rgb, disp, acc))
@@ -225,9 +246,7 @@ def construct_nerf(key, example_batch, args):
       key1,
       rng_0=key2,
       rng_1=key3,
-      origins=rays.origins[0],
-      directions=rays.directions[0],
-      viewdirs=rays.viewdirs[0],
+      rays=utils.namedtuple_map(lambda x: x[0], rays),
       randomized=args.randomized)
 
   return model, init_variables
