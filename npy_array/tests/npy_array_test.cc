@@ -21,9 +21,9 @@
 #include <random>
 #include <string>
 
+#include "array/array.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "array/array.h"
 
 namespace npy_array {
 namespace {

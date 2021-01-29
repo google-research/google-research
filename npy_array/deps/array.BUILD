@@ -6,6 +6,6 @@ cc_library(
         "image.h",
         "matrix.h",
     ],
-    include_prefix = "third_party/array",
+    include_prefix = "array",
     visibility = ["//visibility:public"],
 )
