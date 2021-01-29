@@ -16,6 +16,11 @@ This library provides two functions:
 
 ## Build and test
 
+```
+# The WORKSPACE root is `npy_array`.
+cd .../google-research/npy_array
+```
+
 ### Bazel
 ```
 bazel build //:npy_array
