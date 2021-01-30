@@ -11,6 +11,12 @@ where model receives portion of the input sequence (for example 20ms of audio),
 process it incrementally and return an output(for example classification result).
 Non streaming means that model has to receive the whole sequence
 (for example 1 sec of audio) and then return an output.
+
+During training we use one neural network architecture (called non streaming) and during inference we will use another neural network architecture called streaming.
+This kind of neural network can be considered dynamic: model topology is different in training and inference modes.
+One solution of such problem can be [subclassing](https://www.tensorflow.org/guide/keras/functional#mix-and-match_api_styles), which supports dynamic architectures.
+In this lib we choose keras functional API because of its [advantages](https://www.tensorflow.org/guide/keras/functional#it_does_not_support_dynamic_architectures), but it [does not support dynamic architectures](https://www.tensorflow.org/guide/keras/functional#it_does_not_support_dynamic_architectures). We solved it by using a cloning function, which can automatically convert non streamable model to streamable one (if model is based on streaming aware layers).
+
 We applied this lib for keyword spotting (KWS) problem
 and implemented most popular KWS models:
 
