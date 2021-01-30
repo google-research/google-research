@@ -66,21 +66,31 @@ def code_to_cubert_sentences(
   #
   # We call these raw_sentences, because they're not terminated.
   raw_sentences: List[List[str]] = []
-  for k, v in groups_by_endtoken:
+  for i, (k, v) in enumerate(groups_by_endtoken):
     tokens = list(v)
     if k:
-      # True means this was a NEWLINE group.
-      if len(tokens) == 1:
-        # This is just a terminator of the previous sentence. Just throw it out.
-        continue
-      elif len(tokens) > 1:
-        # This is a chain of NEWLINE tokens. The first we throw out, but we
-        # add empty sentences for the rest.
-        raw_sentences.extend([[]] * (len(tokens) - 1))
+      # True `k` means this was a NEWLINE group.
+      if i == 0:
+        # This was the first group, and a NEWLINE group. There was no group of
+        # non-NEWLINE tokens before it, therefore we turn all NEWLINE tokens
+        # into empty sentences.
+        raw_sentences.extend([[]] * len(tokens))
       else:
-        # We shouldn't have a group of empty tokens. This should not happen.
-        raise AssertionError('itertools.groupby seems to have returned an '
-                             'empty group: %r' % tokens)
+        # This wasn't the first group. The non-NEWLINE group that preceded this
+        # one consumes one of the NEWLINEs in this group, as its terminator.
+        # The rest of the NEWLINEs, if any remain, turn into empty sentences.
+        if len(tokens) == 1:
+          # This is just a terminator of the previous sentence. Just throw it
+          # out.
+          continue
+        elif len(tokens) > 1:
+          # This is a chain of NEWLINE tokens. We throw out the first, but we
+          # add empty sentences for the rest.
+          raw_sentences.extend([[]] * (len(tokens) - 1))
+        else:
+          # We shouldn't have a group of empty tokens. This should not happen.
+          raise AssertionError('itertools.groupby seems to have returned an '
+                               'empty group: %r' % tokens)
     else:
       # False means this was a non-NEWLINE group. Create a single raw sentence
       # out of it.
