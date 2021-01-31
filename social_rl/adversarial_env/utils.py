@@ -176,8 +176,7 @@ def combine_existing_transfer_data(transfer_dir, after_date=None,
           get_unique_combos_in_df(file_df, ['name', 'metric']))
 
     key_names = ['name', 'xm_id', 'seed', 'env', 'checkpoint', 'agent_id', 'n',
-                 'domain_rand_comparable_checkpoint', 'metric', 'adv_id',
-                 'adv_agent_id']
+                 'domain_rand_comparable_checkpoint', 'metric']
 
     # Merge in new rows
     deduped_file_df = drop_duplicates_but_alert(
@@ -207,7 +206,7 @@ def combine_existing_transfer_data(transfer_dir, after_date=None,
   return df
 
 
-def sort_files_by_date(files, after_date=None):
+def sort_files_by_date(files, after_date=None, check_str='transfer'):
   """Sorts files by date, assuming the date is the last part of the filename.
 
   Will discard files with a date before the after_date.
@@ -215,6 +214,7 @@ def sort_files_by_date(files, after_date=None):
     files: A list of string filenames with the date as the last part of the
       string before the extension.
     after_date: A date such that any file dating after this date should be kept.
+    check_str: Each file must contain this string or it will be skipped.
   Returns:
     A list of filenames in sorted order and with dates that are too early
     discarded.
@@ -226,7 +226,11 @@ def sort_files_by_date(files, after_date=None):
   trimmed_files = []
   datetimes = []
   for f in files:
-    if f == 'transfer_results.csv' or 'transfer' not in f:
+    if f == 'transfer_results.csv':
+      continue
+
+    # Skip files not containing check_str
+    if check_str not in f:
       continue
 
     end_idx = f.find('.csv')
