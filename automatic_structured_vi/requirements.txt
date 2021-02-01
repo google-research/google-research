@@ -5,3 +5,4 @@ tensorflow-datasets==4.2.0
 tfp-nightly==0.13.0.dev20210126
 inference-gym==0.0.4
 matplotlib
+pandas
