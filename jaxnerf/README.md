@@ -140,14 +140,20 @@ small values are fine, only a bit slow.
 
 You can also define your own configurations by passing command line flags. Please refer to the `define_flags` function in `nerf/utils.py` for all the flags and their meanings.
 
+**Note**: For the ficus scene in the blender dataset, we noticed that it's sensible to different initializations,
+e.g. using different random seeds, if using the original learning rate schedule in the paper.
+Therefore, we provide a simple tweak (turned off by default) for more stable trainings: using `lr_delay_steps` and `lr_delay_mult`.
+This allows the training to start from a smaller learning rate (`lr_init` * `lr_delay_mult`) in the first `lr_delay_steps`.
+We didn't use them for our pretrained models
+but we tested `lr_delay_steps=5000` with `lr_delay_mult=0.2` and it works quite smoothly.
+
 ## Pretrained Models
 
 We provide a collection of pretrained NeRF models that match the numbers
 reported in the [paper](https://arxiv.org/abs/2003.08934). Actually, ours are
 slightly better overall because we trained for more iterations (while still
 being much faster!). You can find our pretrained models
-[here](http://storage.googleapis.com/gresearch/jaxnerf/jaxnerf_models.zip).
-**Remember to set `legacy_posenc_order=True` when you use these models** because they are trained with the old TF positional encoding order.
+[here](http://storage.googleapis.com/gresearch/jaxnerf/jaxnerf_pretrained_models.zip).
 The performances (in PSNR) of our pretrained NeRF models are listed below:
 
 ### Blender
@@ -155,15 +161,15 @@ The performances (in PSNR) of our pretrained NeRF models are listed below:
 
 | Scene   |   Chair   |   Drums   |   Ficus   |   Hotdog  |    Lego   | Materials |    Mic    |    Ship   |    Mean   |
 |---------|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|
-| TF NeRF |   33.00   | **25.01** | **30.13** |   36.18   |   32.54   |   29.62   |   32.91   |   28.65   |   31.01   |
-| JaxNeRF | **33.81** |   24.82   |   29.83   | **36.64** | **32.73** | **29.65** | **34.28** | **28.84** | **32.33** |
+| TF NeRF |   33.00   |   25.01   |   30.13   |   36.18   |   32.54   |   29.62   |   32.91   |   28.65   |   31.01   |
+| JaxNeRF | **34.08** | **25.03** | **30.43** | **36.92** | **33.28** | **29.91** | **34.53** | **29.36** | **31.69** |
 
 ### LLFF
 
 | Scene   |    Room   |    Fern   |   Leaves  |  Fortress |  Orchids  |   Flower  |   T-Rex   |   Horns   |    Mean   |
 |---------|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|
-| TF NeRF | **32.70** | **25.17** |   20.92   |   31.16   | **20.36** |   27.40   |   26.80   |   27.45   |   26.50   |
-| JaxNeRF |   32.54   |   25.02   | **21.16** | **31.73** |   20.35   | **27.90** | **27.11** | **27.88** | **26.71** |
+| TF NeRF |   32.70   | **25.17** |   20.92   |   31.16   | **20.36** |   27.40   |   26.80   |   27.45   |   26.50   |
+| JaxNeRF | **33.04** |   24.83   | **21.23** | **31.76** |   20.27   | **28.07** | **27.42** | **28.10** | **26.84** |
 
 ## Citation
 If you use this software package, please cite it as:
