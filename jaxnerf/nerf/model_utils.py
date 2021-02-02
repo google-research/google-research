@@ -133,23 +133,24 @@ def sample_along_rays(key, origins, directions, num_samples, near, far,
   return z_vals, coords
 
 
-def posenc(x, deg, legacy_posenc_order=False):
-  """Concatenate `x` with a positional encoding of `x` with degree `deg`.
+def posenc(x, min_deg, max_deg, legacy_posenc_order=False):
+  """Cat x with a positional encoding of x with scales 2^[min_deg, max_deg-1].
 
   Instead of computing [sin(x), cos(x)], we use the trig identity
   cos(x) = sin(x + pi/2) and do one vectorized call to sin([x, x+pi/2]).
 
   Args:
     x: jnp.ndarray, variables to be encoded. Note that x should be in [-pi, pi].
-    deg: int, the degree of the encoding.
+    min_deg: int, the minimum (inclusive) degree of the encoding.
+    max_deg: int, the maximum (exclusive) degree of the encoding.
     legacy_posenc_order: bool, keep the same ordering as the original tf code.
 
   Returns:
     encoded: jnp.ndarray, encoded variables.
   """
-  if deg == 0:
+  if min_deg == max_deg:
     return x
-  scales = jnp.array([2**i for i in range(deg)])
+  scales = jnp.array([2**i for i in range(min_deg, max_deg)])
   if legacy_posenc_order:
     xb = x[Ellipsis, None, :] * scales[:, None]
     four_feat = jnp.reshape(

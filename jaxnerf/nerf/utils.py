@@ -101,10 +101,12 @@ def define_flags():
   flags.DEFINE_integer("num_sigma_channels", 1,
                        "the number of density channels.")
   flags.DEFINE_bool("randomized", True, "use randomized stratified sampling.")
-  flags.DEFINE_integer("deg_point", 10,
-                       "Degree of positional encoding for points.")
+  flags.DEFINE_integer("min_deg_point", 0,
+                       "Minimum degree of positional encoding for points.")
+  flags.DEFINE_integer("max_deg_point", 10,
+                       "Maximum degree of positional encoding for points.")
   flags.DEFINE_integer("deg_view", 4,
-                       "degree of positional encoding for viewdirs.")
+                       "Degree of positional encoding for viewdirs.")
   flags.DEFINE_integer(
       "num_coarse_samples", 64,
       "the number of samples on each ray for the coarse model.")

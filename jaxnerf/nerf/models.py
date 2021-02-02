@@ -49,7 +49,8 @@ class NerfModel(nn.Module):
   num_rgb_channels: int  # The number of RGB channels.
   num_sigma_channels: int  # The number of density channels.
   white_bkgd: bool  # If True, use a white background.
-  deg_point: int  # The degree of positional encoding for positions.
+  min_deg_point: int  # The minimum degree of positional encoding for positions.
+  max_deg_point: int  # The maximum degree of positional encoding for positions.
   deg_view: int  # The degree of positional encoding for viewdirs.
   lindisp: bool  # If True, sample linearly in disparity rather than in depth.
   rgb_activation: Callable[Ellipsis, Any]  # Output RGB activation.
@@ -83,7 +84,8 @@ class NerfModel(nn.Module):
     )
     samples_enc = model_utils.posenc(
         samples,
-        self.deg_point,
+        self.min_deg_point,
+        self.max_deg_point,
         self.legacy_posenc_order,
     )
 
@@ -102,6 +104,7 @@ class NerfModel(nn.Module):
     if self.use_viewdirs:
       viewdirs_enc = model_utils.posenc(
           rays.viewdirs,
+          0,
           self.deg_view,
           self.legacy_posenc_order,
       )
@@ -145,7 +148,8 @@ class NerfModel(nn.Module):
       )
       samples_enc = model_utils.posenc(
           samples,
-          self.deg_point,
+          self.min_deg_point,
+          self.max_deg_point,
           self.legacy_posenc_order,
       )
 
@@ -218,7 +222,8 @@ def construct_nerf(key, example_batch, args):
             args.sigma_activation))
 
   model = NerfModel(
-      deg_point=args.deg_point,
+      min_deg_point=args.min_deg_point,
+      max_deg_point=args.max_deg_point,
       deg_view=args.deg_view,
       num_coarse_samples=args.num_coarse_samples,
       num_fine_samples=args.num_fine_samples,
