@@ -226,6 +226,12 @@ flags.DEFINE_float(
     '1.')
 
 flags.DEFINE_float(
+    'sigmoid_b_initial', -0.5,
+    'Initial value of sigmoid `b` parameter. We initialize the sigmoid '
+    'parameters to a constant to avoid model being stuck in a `dead zone` at '
+    'the beginning of training.')
+
+flags.DEFINE_float(
     'sigmoid_a_max', -1.0,
     'Maximum value of sigmoid `a` parameter. Ignored if None or non-positive.')
 
@@ -419,7 +425,7 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
               L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
                   tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
               L2_SIGMOID_MATCHING_PROB_b_initializer=(
-                  tf.initializers.constant(-0.5)),
+                  tf.initializers.constant(FLAGS.sigmoid_b_initial)),
               L2_SIGMOID_MATCHING_PROB_a_range=(None, FLAGS.sigmoid_a_max),
               EXPECTED_LIKELIHOOD_min_stddev=0.1,
               EXPECTED_LIKELIHOOD_max_squared_mahalanobis_distance=100.0),
@@ -439,7 +445,7 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
               L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
                   tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
               L2_SIGMOID_MATCHING_PROB_b_initializer=(
-                  tf.initializers.constant(-0.5)),
+                  tf.initializers.constant(FLAGS.sigmoid_b_initial)),
               EXPECTED_LIKELIHOOD_min_stddev=0.1,
               EXPECTED_LIKELIHOOD_max_squared_mahalanobis_distance=100.0),
       'summarize_matching_sigmoid_vars':

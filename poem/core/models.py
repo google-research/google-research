@@ -387,6 +387,18 @@ def _point_embedder(input_features, base_model_fn, num_embedding_components,
   return outputs, activations
 
 
+def _stddev_activation(x):
+  """Activation function for standard deviation logits.
+
+  Args:
+    x: A tensor for standard deviation logits.
+
+  Returns:
+    A tensor for non-negative standard deviations.
+  """
+  return tf.nn.elu(x) + 1.0
+
+
 def _gaussian_embedder(input_features,
                        base_model_fn,
                        num_embedding_components,
@@ -428,17 +440,16 @@ def _gaussian_embedder(input_features,
   component_outputs, activations = base_model_fn(input_features, output_sizes)
 
   for c in range(num_embedding_components):
-    component_outputs[_add_prefix(common.KEY_EMBEDDING_STDDEVS, c)] = (
-        tf.nn.elu(component_outputs[_add_prefix(common.KEY_EMBEDDING_STDDEVS,
-                                                c)]) + 1.0)
+    embedding_stddev_key = _add_prefix(common.KEY_EMBEDDING_STDDEVS, c)
+    component_outputs[embedding_stddev_key] = _stddev_activation(
+        component_outputs[embedding_stddev_key])
 
     if num_embedding_samples > 0:
       component_outputs[_add_prefix(common.KEY_EMBEDDING_SAMPLES, c)] = (
           data_utils.sample_gaussians(
               means=component_outputs[_add_prefix(common.KEY_EMBEDDING_MEANS,
                                                   c)],
-              stddevs=component_outputs[_add_prefix(
-                  common.KEY_EMBEDDING_STDDEVS, c)],
+              stddevs=component_outputs[embedding_stddev_key],
               num_samples=num_embedding_samples,
               seed=seed))
 
