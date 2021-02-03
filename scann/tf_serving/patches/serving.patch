@@ -1,0 +1,28 @@
+diff --git a/tensorflow_serving/model_servers/BUILD b/tensorflow_serving/model_servers/BUILD
+index 0b9ecadc..6eebf094 100644
+--- a/tensorflow_serving/model_servers/BUILD
++++ b/tensorflow_serving/model_servers/BUILD
+@@ -319,6 +319,7 @@ SUPPORTED_TENSORFLOW_OPS = if_v2([]) + if_not_v2([
+     "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
+ ]) + [
+     "@org_tensorflow_text//tensorflow_text:ops_lib",
++    "@com_google_scann//scann/scann_ops/cc:scann_ops_static",
+ ]
+ 
+ cc_library(
+diff --git a/tensorflow_serving/workspace.bzl b/tensorflow_serving/workspace.bzl
+index d56b3bf7..35af97df 100644
+--- a/tensorflow_serving/workspace.bzl
++++ b/tensorflow_serving/workspace.bzl
+@@ -80,3 +80,11 @@ def tf_serving_workspace():
+             "https://github.com/google/glog/archive/028d37889a1e80e8a07da1b8945ac706259e5fd8.tar.gz",
+         ],
+     )
++
++    http_archive(
++        name = "com_google_scann",
++        strip_prefix = "google-research-d0a536f48b1d1da721a41a83702d0d2c79fe2ae4/scann",
++        url = "https://github.com/google-research/google-research/archive/d0a536f48b1d1da721a41a83702d0d2c79fe2ae4.zip",
++        patches = ["@//third_party/scann:tf_serving.patch"],
++        patch_args = ["-p1"],
++    )

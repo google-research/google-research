@@ -1,0 +1,52 @@
+diff --git a/scann/oss_wrappers/BUILD.bazel b/scann/oss_wrappers/BUILD.bazel
+index 834e80b..ac0d048 100644
+--- a/scann/oss_wrappers/BUILD.bazel
++++ b/scann/oss_wrappers/BUILD.bazel
+@@ -7,8 +7,7 @@ cc_library(
+     name = "tf_dependency",
+     tags = ["local"],
+     deps = [
+-        "@local_config_tf//:libtensorflow_framework",
+-        "@local_config_tf//:tf_header_lib",
++        "@org_tensorflow//tensorflow/core:tensorflow_opensource",
+     ],
+ )
+ 
+diff --git a/scann/scann_ops/cc/BUILD.bazel b/scann/scann_ops/cc/BUILD.bazel
+index 1bc9ac0..c525fee 100644
+--- a/scann/scann_ops/cc/BUILD.bazel
++++ b/scann/scann_ops/cc/BUILD.bazel
+@@ -1,10 +1,17 @@
+-load("@pybind11_bazel//:build_defs.bzl", "pybind_library")
+-
+ package(
+     default_visibility = ["//visibility:public"],
+     licenses = ["notice"],
+ )
+ 
++cc_library(
++    name = "scann_ops_static",
++    alwayslink = 1,
++    deps = [
++        ":scann_ops",
++        ":scann_ops_kernels",
++    ]
++)
++
+ cc_binary(
+     name = "_scann_ops.so",
+     copts = [
+@@ -87,13 +94,3 @@ cc_library(
+         "@com_google_protobuf//:protobuf",
+     ],
+ )
+-
+-pybind_library(
+-    name = "scann_npy",
+-    srcs = ["scann_npy.cc"],
+-    hdrs = ["scann_npy.h"],
+-    tags = ["local"],
+-    deps = [
+-        ":scann",
+-    ],
+-)
