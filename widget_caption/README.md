@@ -10,3 +10,5 @@ This repository will contain the model code and the data pipelines for "Widget C
   url = {https://arxiv.org/abs/2010.04295},
 }
 ```
+
+Please contact the authors for questions regarding the code and the dataset.
