@@ -25,7 +25,7 @@ mv google-research/kws_streaming .
 
 ## Install tensorflow with deps.
 ```shell
-# set up virtual env
+# set up virtual env with python3
 pip install virtualenv
 virtualenv --system-site-packages -p python3 ./venv3
 source ./venv3/bin/activate
@@ -51,8 +51,9 @@ We divided data into training validation and testing data using all 35 categorie
 
 ```shell
 # download and set up path to custom split of data set V2
-wget https://storage.googleapis.com/kws_models/data_all_v2.zip
-unzip ./data_all_v2.zip
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies 'https://docs.google.com/uc?export=download&id=1OAN3h4uffi5HS7eb7goklWeI2XPm1jCS' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1OAN3h4uffi5HS7eb7goklWeI2XPm1jCS" -O data_all_v2.zip && rm -rf /tmp/cookies.txt
+
+unzip ./data_all_v2.zip -d ./data_all_v2
 
 # path to data sets V2
 DATA_PATH=$KWS_PATH/data_all_v2
@@ -79,7 +80,7 @@ After all of these, main folder KWS_PATH should have several subfolders:
     _background_noise_/
     bed/
     ...
-  models2_75k/
+  models_data_v2_35_labels/
     ...
 </code></pre>
 

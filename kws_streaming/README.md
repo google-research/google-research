@@ -307,7 +307,7 @@ cd ../
 ### Run only model evaluation:
 
 ```shell
-python -m kws_streaming.train.model_train_eval \
+python3 -m kws_streaming.train.model_train_eval \
 --data_url '' \
 --data_dir ./data1/ \
 --train_dir ./models1/dnn/ \
@@ -334,7 +334,7 @@ dnn \
 ### Re-train dnn model from scratch on data set V1 and run evaluation:
 
 ```shell
-python -m kws_streaming.train.model_train_eval \
+python3 -m kws_streaming.train.model_train_eval \
 --data_url '' \
 --data_dir ./data1/ \
 --train_dir ./models1/dnn_1/ \
@@ -373,7 +373,7 @@ evaluated in unquantized and quantized form (only post training quantization is 
 
 
 ```shell
-python -m kws_streaming.train.model_train_eval \
+python3 -m kws_streaming.train.model_train_eval \
 --data_url '' \
 --data_dir ./data1/ \
 --train_dir ./models1/dnn_1/ \
@@ -435,6 +435,9 @@ If speech feature extractor is part of the model then it is convenient for deplo
 
 
 ### Training on custom data
+
+A detailed example of model training on custom data shown in [link](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_35_labels.md) with short overview below.
+
 If you prefer to train on your own data, you'll need to create .wavs with your
 recordings, all at a consistent length, and then arrange them into subfolders
 organized by label. For example, here's a possible file structure:
@@ -459,7 +462,7 @@ the audio in the 'other' folder would be used to train an 'unknown' category.
 To pull this all together, you'd run:
 
 ```shell
-python -m kws_streaming.train.model_train_eval \
+python3 -m kws_streaming.train.model_train_eval \
 --data_dir ./data \
 --wanted_words up,down \
 dnn
@@ -500,7 +503,7 @@ data >
 To pull this all together, you'd run:
 
 ```shell
-python -m kws_streaming.train.model_train_eval \
+python3 -m kws_streaming.train.model_train_eval \
 --data_dir ./data \
 --split_data 0 \
 --wanted_words up,down \
