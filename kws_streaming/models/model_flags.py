@@ -16,7 +16,7 @@
 """Model/data settings manipulation."""
 
 import os
-from kws_streaming.data import input_data
+import kws_streaming.data.input_data_utils as du
 
 MS_PER_SECOND = 1000  # milliseconds in 1 second
 
@@ -35,8 +35,7 @@ def update_flags(flags):
   """
 
   label_count = len(
-      input_data.prepare_words_list(
-          flags.wanted_words.split(','), flags.split_data))
+      du.prepare_words_list(flags.wanted_words.split(','), flags.split_data))
   desired_samples = int(flags.sample_rate * flags.clip_duration_ms /
                         MS_PER_SECOND)
   window_size_samples = int(flags.sample_rate * flags.window_size_ms /

@@ -19,6 +19,7 @@ import os
 import numpy as np
 import tensorflow.compat.v1 as tf
 from kws_streaming.data import input_data
+import kws_streaming.data.input_data_utils as du
 from kws_streaming.models import model_flags
 tf.disable_eager_execution()
 
@@ -109,16 +110,16 @@ class InputDataTest(tf.test.TestCase):
   def testPrepareWordsList(self):
     words_list = ["a", "b"]
     self.assertGreater(
-        len(input_data.prepare_words_list(words_list, split_data=True)),
+        len(du.prepare_words_list(words_list, split_data=True)),
         len(words_list))
 
   def testWhichSet(self):
     self.assertEqual(
-        input_data.which_set("foo.wav", 10, 10),
-        input_data.which_set("foo.wav", 10, 10))
+        du.which_set("foo.wav", 10, 10),
+        du.which_set("foo.wav", 10, 10))
     self.assertEqual(
-        input_data.which_set("foo_nohash_0.wav", 10, 10),
-        input_data.which_set("foo_nohash_1.wav", 10, 10))
+        du.which_set("foo_nohash_0.wav", 10, 10),
+        du.which_set("foo_nohash_1.wav", 10, 10))
 
   def testPrepareDataIndex(self):
     tmp_dir = self.get_temp_dir()
@@ -132,7 +133,7 @@ class InputDataTest(tf.test.TestCase):
     self.assertIn("training", audio_processor.data_index)
     self.assertIn("validation", audio_processor.data_index)
     self.assertIn("testing", audio_processor.data_index)
-    self.assertEqual(input_data.UNKNOWN_WORD_INDEX,
+    self.assertEqual(du.UNKNOWN_WORD_INDEX,
                      audio_processor.word_to_index["c"])
 
   def testPrepareDataIndexEmpty(self):

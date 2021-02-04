@@ -14,12 +14,9 @@
 # limitations under the License.
 
 """Data reader, based on tensorflow/examples/speech_commands."""
-
-import hashlib
 import math
 import os.path
 import random
-import re
 import sys
 import tarfile
 from absl import logging
@@ -27,6 +24,7 @@ import numpy as np
 from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow.compat.v1 as tf
+import kws_streaming.data.input_data_utils as du
 from kws_streaming.layers import modes
 
 # pylint: disable=g-direct-tensorflow-import
@@ -36,7 +34,6 @@ from kws_streaming.layers import modes
 from tensorflow.python.ops import gen_audio_ops as audio_ops
 from tensorflow.python.ops import io_ops
 from tensorflow.python.platform import gfile
-from tensorflow.python.util import compat
 
 tf.disable_eager_execution()
 
@@ -47,81 +44,6 @@ try:
 except ImportError:
   frontend_op = None
 # pylint: enable=g-direct-tensorflow-import
-
-MAX_NUM_WAVS_PER_CLASS = 2**27 - 1  # ~134M
-SILENCE_LABEL = '_silence_'
-SILENCE_INDEX = 0
-UNKNOWN_WORD_LABEL = '_unknown_'
-UNKNOWN_WORD_INDEX = 1
-BACKGROUND_NOISE_DIR_NAME = '_background_noise_'
-RANDOM_SEED = 59185
-MAX_ABS_INT16 = 32768
-
-
-def prepare_words_list(wanted_words, split_data):
-  """Prepends common tokens to the custom word list.
-
-  Args:
-    wanted_words: List of strings containing the custom words.
-    split_data: True - split data automatically; False - user splits the data
-
-  Returns:
-    List with the standard silence and unknown tokens added.
-  """
-  if split_data:
-    # with automatic data split we append two more labels
-    return [SILENCE_LABEL, UNKNOWN_WORD_LABEL] + wanted_words
-  else:
-    # data already split by user, no need to add other labels
-    return wanted_words
-
-
-def which_set(filename, validation_percentage, testing_percentage):
-  """Determines which data partition the file should belong to.
-
-  We want to keep files in the same training, validation, or testing sets even
-  if new ones are added over time. This makes it less likely that testing
-  samples will accidentally be reused in training when long runs are restarted
-  for example. To keep this stability, a hash of the filename is taken and used
-  to determine which set it should belong to. This determination only depends on
-  the name and the set proportions, so it won't change as other files are added.
-
-  It's also useful to associate particular files as related (for example words
-  spoken by the same person), so anything after '_nohash_' in a filename is
-  ignored for set determination. This ensures that 'bobby_nohash_0.wav' and
-  'bobby_nohash_1.wav' are always in the same set, for example.
-
-  Args:
-    filename: File path of the data sample.
-    validation_percentage: How much of the data set to use for validation.
-    testing_percentage: How much of the data set to use for testing.
-
-  Returns:
-    String, one of 'training', 'validation', or 'testing'.
-  """
-  base_name = os.path.basename(filename)
-  # We want to ignore anything after '_nohash_' in the file name when
-  # deciding which set to put a wav in, so the data set creator has a way of
-  # grouping wavs that are close variations of each other.
-  hash_name = re.sub(r'_nohash_.*$', '', base_name)
-  # This looks a bit magical, but we need to decide whether this file should
-  # go into the training, testing, or validation sets, and we want to keep
-  # existing files in the same set even if more files are subsequently
-  # added.
-  # To do that, we need a stable way of deciding based on just the file name
-  # itself, so we do a hash of that and then use that to generate a
-  # probability value that we use to assign it.
-  hash_name_hashed = hashlib.sha1(compat.as_bytes(hash_name)).hexdigest()
-  percentage_hash = ((int(hash_name_hashed, 16) %
-                      (MAX_NUM_WAVS_PER_CLASS + 1)) *
-                     (100.0 / MAX_NUM_WAVS_PER_CLASS))
-  if percentage_hash < validation_percentage:
-    result = 'validation'
-  elif percentage_hash < (testing_percentage + validation_percentage):
-    result = 'testing'
-  else:
-    result = 'training'
-  return result
 
 
 def load_wav_file(filename):
@@ -274,7 +196,7 @@ class AudioProcessor(object):
       Exception: If expected files are not found.
     """
     # Make sure the shuffling and picking of unknowns is deterministic.
-    random.seed(RANDOM_SEED)
+    random.seed(du.RANDOM_SEED)
     wanted_words_index = {}
     for index, wanted_word in enumerate(wanted_words):
       wanted_words_index[wanted_word] = index + 2
@@ -288,10 +210,11 @@ class AudioProcessor(object):
       word = word.lower()
       # Treat the '_background_noise_' folder as a special case, since we expect
       # it to contain long audio samples we mix in to improve training.
-      if word == BACKGROUND_NOISE_DIR_NAME:
+      if word == du.BACKGROUND_NOISE_DIR_NAME:
         continue
       all_words[word] = True
-      set_index = which_set(wav_path, validation_percentage, testing_percentage)
+      set_index = du.which_set(wav_path, validation_percentage,
+                               testing_percentage)
       # If it's a known class, store its detail, otherwise add it to the list
       # we'll use to train the unknown label.
       if word in wanted_words_index:
@@ -313,7 +236,7 @@ class AudioProcessor(object):
       silence_size = int(math.ceil(set_size * silence_percentage / 100))
       for _ in range(silence_size):
         self.data_index[set_index].append({
-            'label': SILENCE_LABEL,
+            'label': du.SILENCE_LABEL,
             'file': silence_wav_path
         })
       # Pick some unknowns to add to each partition of the data set.
@@ -324,17 +247,17 @@ class AudioProcessor(object):
     for set_index in ['validation', 'testing', 'training']:
       random.shuffle(self.data_index[set_index])
     # Prepare the rest of the result data structure.
-    self.words_list = prepare_words_list(wanted_words, split_data)
+    self.words_list = du.prepare_words_list(wanted_words, split_data)
     self.word_to_index = {}
     for word in all_words:
       if word in wanted_words_index:
         self.word_to_index[word] = wanted_words_index[word]
       else:
-        self.word_to_index[word] = UNKNOWN_WORD_INDEX
-    self.word_to_index[SILENCE_LABEL] = SILENCE_INDEX
+        self.word_to_index[word] = du.UNKNOWN_WORD_INDEX
+    self.word_to_index[du.SILENCE_LABEL] = du.SILENCE_INDEX
 
   def validate_dir_structure(self, data_dir, dirs):
-    for dir_name in dirs + [BACKGROUND_NOISE_DIR_NAME]:
+    for dir_name in dirs + [du.BACKGROUND_NOISE_DIR_NAME]:
       sub_dir_name = os.path.join(data_dir, dir_name)
       if not os.path.isdir(sub_dir_name):
         raise IOError('Directory is not found ' + sub_dir_name)
@@ -365,7 +288,7 @@ class AudioProcessor(object):
       Exception: If expected files are not found.
     """
     # Make sure the shuffling and picking of unknowns is deterministic.
-    random.seed(RANDOM_SEED)
+    random.seed(du.RANDOM_SEED)
 
     dirs = ['testing', 'training', 'validation']
 
@@ -375,7 +298,7 @@ class AudioProcessor(object):
     for index, wanted_word in enumerate(wanted_words):
       wanted_words_index[wanted_word] = index
 
-    self.words_list = prepare_words_list(wanted_words, split_data)
+    self.words_list = du.prepare_words_list(wanted_words, split_data)
 
     self.data_index = {'validation': [], 'testing': [], 'training': []}
 
@@ -390,7 +313,7 @@ class AudioProcessor(object):
         word = word.lower()
         # Treat the '_background_noise_' folder as a special case,
         # it contains long audio samples we mix in to improve training.
-        if word == BACKGROUND_NOISE_DIR_NAME:
+        if word == du.BACKGROUND_NOISE_DIR_NAME:
           continue
         all_words[word] = True
 
@@ -439,14 +362,14 @@ class AudioProcessor(object):
       Exception: If files aren't found in the folder.
     """
     self.background_data = []
-    background_dir = os.path.join(self.data_dir, BACKGROUND_NOISE_DIR_NAME)
+    background_dir = os.path.join(self.data_dir, du.BACKGROUND_NOISE_DIR_NAME)
     if not os.path.exists(background_dir):
       return self.background_data
     with tf.Session(graph=tf.Graph()) as sess:
       wav_filename_placeholder = tf.placeholder(tf.string, [])
       wav_loader = io_ops.read_file(wav_filename_placeholder)
       wav_decoder = tf.audio.decode_wav(wav_loader, desired_channels=1)
-      search_path = os.path.join(self.data_dir, BACKGROUND_NOISE_DIR_NAME,
+      search_path = os.path.join(self.data_dir, du.BACKGROUND_NOISE_DIR_NAME,
                                  '*.wav')
       for wav_path in gfile.Glob(search_path):
         wav_data = sess.run(
@@ -584,7 +507,7 @@ class AudioProcessor(object):
               ' TensorFlow directly from Python, you need to build and run'
               ' through Bazel')
         int16_input = tf.cast(
-            tf.multiply(background_clamp, MAX_ABS_INT16), tf.int16)
+            tf.multiply(background_clamp, du.MAX_ABS_INT16), tf.int16)
         # audio_microfrontend does:
         # 1. A slicing window function of raw audio
         # 2. Short-time FFTs
@@ -732,7 +655,7 @@ class AudioProcessor(object):
       input_dict[self.background_data_placeholder_] = background_reshaped
       input_dict[self.background_volume_placeholder_] = background_volume
       # If we want silence, mute out the main sample but leave the background.
-      if sample['label'] == SILENCE_LABEL:
+      if sample['label'] == du.SILENCE_LABEL:
         input_dict[self.foreground_volume_placeholder_] = 0
       else:
         foreground_volume = 1.0  # multiplier of audio signal
@@ -816,7 +739,7 @@ class AudioProcessor(object):
           sample_index = np.random.randint(len(candidates))
         sample = candidates[sample_index]
         input_dict = {wav_filename_placeholder: sample['file']}
-        if sample['label'] == SILENCE_LABEL:
+        if sample['label'] == du.SILENCE_LABEL:
           input_dict[foreground_volume_placeholder] = 0
         else:
           input_dict[foreground_volume_placeholder] = 1
