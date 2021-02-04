@@ -1,0 +1,5 @@
+tensorflow~=2.4.0
+numpy
+absl-py==0.10.0
+tensorflow_datasets
+ml_collections
