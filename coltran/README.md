@@ -105,6 +105,8 @@ We release [pre-trained checkpoints](https://console.cloud.google.com/storage/br
 * Color Upsampler - [Link](https://console.cloud.google.com/storage/browser/gresearch/coltran/color_upsampler)
 * Spatial Upsampler - [Link](https://console.cloud.google.com/storage/browser/gresearch/coltran/spatial_upsampler)
 
+To sample, download these to a local directory and run the sampling script with the `logdir` flag set to the local path.
+
 ## Reference Tensorboards
 
 Summaries of our train runs are publicly available via [tensorboard.dev](https://tensorboard.dev/#get-started)
