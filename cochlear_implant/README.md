@@ -19,6 +19,9 @@ Sample audio files for cihackathon are available for at [https://cihackathon.com
 
 At the moment these notebooks are for reference only and may not be runnable.
 
+### speech_enhancement_inference.ipynb
+This notebook loads a pre-trained model that separates speech from other non-speech sounds (e.g. noise, music).
+
 ### yamnet_speech_enhancement_mixing.ipynb
 Because speech enhanced audio often removes portions of music (i.e. music is often treated as noise-to-be-removed), this notebook uses [YAMNet](https://www.tensorflow.org/hub/tutorials/yamnet) to determine the predicted music content and causally mix the original and speech enhanced audio. Also included is a baseline mixing strategy which mixes a fixed fraction of noise (music) with speech enhanced audio without using YAMNet.
 
