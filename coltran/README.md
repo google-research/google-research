@@ -1,16 +1,29 @@
-# ColTran
+# Colorization Transformer
 
 Source code accompanying the paper [Colorization Transformer](https://openreview.net/forum?id=5NA1PinlGFu) to be presented at
-ICLR 2021. Work by Manoj Kumar, Dirk Weissenborn and Nal Kalchbrenner.
+ICLR 2021.
+Work by Manoj Kumar, Dirk Weissenborn and Nal Kalchbrenner.
 
 
-<img src="coltran.png" alt="Model figure" width="600"/>
+<img src="coltran_images.png" alt="Model images" width="1000"/>
 
-<img src="coltran_images.png" alt="Model images" width="600"/>
+## Paper summary
 
-ColTran consists of three components, a `colorizer`, `color upsampler` and the `spatial upsampler`.
 
-The results in the paper were reported after training each of these individual components on `4x4 TPUv2` chips. Configurations used to train models in the paper are available in the directory `configs`. Configs for extremely small models are provided at `test_configs` for testing that the model build quickly. Set the flag `--steps_per_summaries=100` to output logs quickly. Please adjust the model / batch-size while training using fewer resources.
+ColTran consists of three components, a `colorizer`, `color upsampler` and `spatial upsampler`.
+
+<img src="coltran.png" alt="Model figure" width="800"/>
+
+* The `colorizer` is an autoregressive, self-attention based architecture comprised of conditional transformer layers. It coarsely colorizes low resolution `64x64` grayscale images pixel-by-pixel.
+* The `color upsampler` is a parallel, deterministic self-attention based network. It refines a coarse low resolution image
+into a `64x64` RGB image.
+* The architecture of the `spatial upsampler` is similar to the `color upsampler`. It superesolves the low resolution RGB image into the final output.
+* The `colorizer` has an auxiliary parallel color prediction model composed of a single linear layer.
+
+We report results after training each of these individual components on `4x4 TPUv2` chips. Please adjust the model size and batch-size while training using fewer resources. Our results on training these components using lower resources are available in the [appendix](https://openreview.net/pdf?id=5NA1PinlGFu).
+
+Full configurations used to train models in the paper are available in the directory `configs`. Configs for extremely small models are provided at `test_configs` to test that the model build quickly. Set the flag `--steps_per_summaries=100` to output logs quickly. When sampling, set `config.sample.log_dir` to an
+appropriate write directory.
 
 ## Requirements
 
@@ -45,12 +58,12 @@ Sampling high resolution images is a three step procedure. On a P100 GPU, the co
 
 Sampling configurations for each model are described by `config.sample` ConfigDict at `configs/.py`
 
-* **sample.num_outputs** - Number of grayscale images
+* **sample.num_outputs** - Total number of grayscale images
 * **sample.logdir** - Sample write directory.
-* **sample.gen_data_dir** - Path to where the previous samples are stored.
+* **sample.gen_data_dir** - Path to where the samples from the previous step are stored.
 * **sample.skip_batches** - The first `skip_batches*batch_size` images from the public imagenet TF-Datasets are skipped.
 
-Please ensure that ``num_outputs`` and ``skip_batches`` are the same across all three models.
+Please ensure that ``num_outputs`` and ``skip_batches`` are the same across all three components.
 The generated samples are written as TFRecords to `$logdir/${config.sample.logdir}`
 
 #### Colorizer
@@ -83,7 +96,21 @@ python -m coltran.sample --config=coltran/configs/spatial_upsampler.py --mode=sa
 
 ### Multi GPU Sampling
 
-When multiple GPU's are used, parallelizing sampling a the batch-level can be done easily by setting `config.sample.skip_batches` appropriately. For example, when using 2 machines and 100 images in each machine with a batch-size of 20, set `config.sample.skip_batches` of the first and second machine to 0 and 5 respectively.
+Sampling can be parallelized across batches in a multi-GPU setup with the flag `config.sample.skip_batches`. For e.g, in a setup with 2 machines and a batch-size of 20, to colorize 100 grayscale images per-machine set `config.sample.skip_batches` of the first and second machine to 0 and 5 respectively.
+
+## Pre-trained checkpoints
+
+We release [pre-trained checkpoints](https://console.cloud.google.com/storage/browser/gresearch/coltran) on ImageNet at the following URL's
+* Colorizer - [Link](https://console.cloud.google.com/storage/browser/gresearch/coltran/colorizer)
+* Color Upsampler - [Link](https://console.cloud.google.com/storage/browser/gresearch/coltran/color_upsampler)
+* Spatial Upsampler - [Link](https://console.cloud.google.com/storage/browser/gresearch/coltran/spatial_upsampler)
+
+## Reference Tensorboards
+
+Summaries of our train runs are publicly available via [tensorboard.dev](https://tensorboard.dev/#get-started)
+* Colorizer - [Link](https://tensorboard.dev/experiment/oe0d8Wk9R4C7x7C0zSoL7A/#scalars&_smoothingWeight=0)
+* Color Upsampler - [Link](https://tensorboard.dev/experiment/fyYzGwJ0QqCKn4PMKmX2rw/#scalars&_smoothingWeight=0)
+* Spatial Upsampler - [Link](https://tensorboard.dev/experiment/Kca7mg9PQUKAR2mEebWUdA/#scalars&_smoothingWeight=0)
 
 ## Parsing TFRecords
 
