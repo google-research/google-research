@@ -27,6 +27,7 @@ env:
     - PROJECT="dense_representations_for_entity_retrieval"
     - PROJECT="depth_and_motion_learning"
     - PROJECT="depth_from_video_in_the_wild"
+    - PROJECT="docent"
     - PROJECT="dql_grasping"
     - PROJECT="dreg_estimators"
     - PROJECT="dual_pixels"
