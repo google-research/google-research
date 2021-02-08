@@ -21,7 +21,7 @@ import gin.tf
 import tensorflow as tf
 from tf3d import standard_fields
 from tf3d.utils import preprocessor_utils
-from object_detection.utils import shape_utils
+from tf3d.utils import shape_utils
 
 
 _OBJECT_KEYS = [

@@ -18,10 +18,8 @@
 import logging
 import numpy as np
 
-from object_detection.utils import np_box_list
 
-
-class BoxList3d(np_box_list.BoxList):
+class BoxList3d(object):
   """Box collection.
 
   BoxList represents a list of bounding boxes. Additional fields can be added to
@@ -153,6 +151,40 @@ class BoxList3d(np_box_list.BoxList):
   def num_boxes(self):
     """Return number of boxes held in collections."""
     return self.get_length().shape[0]
+
+  def has_field(self, field):
+    return field in self.data
+
+  def add_field(self, field, field_data):
+    """Add data to a specified field.
+
+    Args:
+      field: a string parameter used to speficy a related field to be accessed.
+      field_data: a numpy array of [N, ...] representing the data associated
+          with the field.
+    Raises:
+      ValueError: if the field is already exist or the dimension of the field
+          data does not matches the number of boxes.
+    """
+    if self.has_field(field):
+      raise ValueError('Field ' + field + 'already exists')
+    if len(field_data.shape) < 1 or field_data.shape[0] != self.num_boxes():
+      raise ValueError('Invalid dimensions for field data')
+    self.data[field] = field_data
+
+  def get_field(self, field):
+    """Accesses data associated with the specified field in the box collection.
+
+    Args:
+      field: a string parameter used to specify a related field to be accessed.
+    Returns:
+      a numpy 1-d array representing data of an associated field
+    Raises:
+      ValueError: if invalid field
+    """
+    if not self.has_field(field):
+      raise ValueError('field {} does not exist'.format(field))
+    return self.data[field]
 
   def get(self):
     raise ValueError('Get function should not be called for this class.')

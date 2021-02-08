@@ -23,9 +23,17 @@ Example box operations that are supported:
 import numpy as np
 from tf3d.object_detection.box_utils import np_box_list
 from tf3d.object_detection.box_utils import np_box_ops
-from object_detection.utils import np_box_list_ops
 
-SortOrder = np_box_list_ops.SortOrder  # pylint: disable=invalid-name
+
+class SortOrder(object):
+  """Enum class for sort order.
+
+  Attributes:
+    ascend: ascend order.
+    descend: descend order.
+  """
+  ASCEND = 1
+  DESCEND = 2
 
 
 def copy_boxlist(boxlist, indices=None):

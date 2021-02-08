@@ -20,7 +20,7 @@ import gin.tf
 import tensorflow as tf
 
 from tf3d.layers import sparse_voxel_net_utils
-from object_detection.utils import shape_utils
+from tf3d.utils import shape_utils
 
 
 compute_pooled_voxel_indices = sparse_voxel_net_utils.compute_pooled_voxel_indices
