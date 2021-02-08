@@ -505,6 +505,8 @@ def mix_batch(lhs_batches, rhs_batches, axis, assignment=None, seed=None):
     if len(lhs_batch.shape.as_list()) > assignment_rank:
       batch_assignment = recursively_expand_dims(
           assignment, axes=[-1] * (batch_rank - assignment_rank))
+    else:
+      batch_assignment = assignment
 
     mixed_batches.append(tf.where(batch_assignment, lhs_batch, rhs_batch))
 
