@@ -23,6 +23,7 @@ from absl import logging
 import tensorflow.compat.v2 as tf
 import tensorflow_hub as hub  # pylint:disable=g-bad-import-order
 
+
 from non_semantic_speech_benchmark.distillation import get_data
 from non_semantic_speech_benchmark.distillation import models
 
@@ -88,6 +89,7 @@ flags.DEFINE_integer(
     'Default (None) is to store all checkpoints.')
 flags.DEFINE_integer('num_epochs', 50, 'Number of epochs to train for.')
 flags.DEFINE_alias('e', 'num_epochs')
+
 
 # Quantization
 flags.DEFINE_boolean(

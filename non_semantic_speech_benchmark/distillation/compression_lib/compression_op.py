@@ -353,9 +353,12 @@ class CompressionOp(CompressionOpInterface):
     if training:
       compressed_mat = self.alpha * self.a_matrix_tfvar + (
           1 - self.alpha) * tf.matmul(self.b_matrix_tfvar, self.c_matrix_tfvar)
+      return tf.matmul(inputs, compressed_mat)
     else:
-      compressed_mat = tf.matmul(self.b_matrix_tfvar, self.c_matrix_tfvar)
-    return tf.matmul(inputs, compressed_mat)
+      # This prevents the TFLite converter from constant-folding the product of
+      # B & C matrices.
+      intermediate = tf.matmul(inputs, self.b_matrix_tfvar)
+      return tf.matmul(intermediate, self.c_matrix_tfvar)
 
   def maybe_run_update_step(self):
     """Creates TensorFlow update op for compression."""

@@ -37,7 +37,8 @@ def get_keras_model(bottleneck_dimension,
                     frontend=True,
                     avg_pool=False,
                     compressor=None,
-                    qat=False):
+                    qat=False,
+                    tflite=False):
   """Make a Keras student model."""
 
   def _map_fn_lambda(x):
@@ -53,6 +54,9 @@ def get_keras_model(bottleneck_dimension,
       raise ValueError('Unknown MobileNet size %s.' % mnet_size)
     return mnet_size_map[mnet_size.lower()]
 
+  # TFLite use-cases usually use non-batched inference, and this also enables
+  # hardware acceleration.
+  num_batches = 1 if tflite else None
   if frontend:
     model_in = tf.keras.Input((None,), name='audio_samples')
     feats = tf.keras.layers.Lambda(_map_fn_lambda)(model_in)
@@ -60,7 +64,9 @@ def get_keras_model(bottleneck_dimension,
     feats = tf.transpose(feats, [0, 2, 1, 3])
     feats = tf.reshape(feats, [-1, 96, 64, 1])
   else:
-    model_in = tf.keras.Input((96, 64, 1), name='log_mel_spectrogram')
+    model_in = tf.keras.Input((96, 64, 1),
+                              name='log_mel_spectrogram',
+                              batch_size=num_batches)
     feats = model_in
   model = _map_mobilenet_func(mobilenet_size)(
       input_shape=[96, 64, 1],
@@ -89,6 +95,17 @@ def get_keras_model(bottleneck_dimension,
           quantize_annotate_layer(bottleneck)
     embeddings = tf.keras.layers.Flatten()(model_out)
     embeddings = bottleneck(embeddings)
+
+    if tflite:
+      # We generate TFLite models just for the embeddings.
+      output_model = tf.keras.Model(inputs=model_in, outputs=embeddings)
+      if compressor is not None:
+        # If model employs compression, this ensures that the TFLite model
+        # just uses the smaller matrices for inference.
+        output_model.get_layer('distilled_output').kernel = None
+        output_model.get_layer(
+            'distilled_output').compression_op.a_matrix_tfvar = None
+      return output_model
   else:
     embeddings = tf.keras.layers.Flatten(name='distilled_output')(model_out)
   output = tf.keras.layers.Dense(

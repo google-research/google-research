@@ -21,6 +21,8 @@ from absl.testing import parameterized
 import tensorflow as tf
 
 from non_semantic_speech_benchmark.distillation import models
+from non_semantic_speech_benchmark.distillation.compression_lib import compression_op as compression
+from non_semantic_speech_benchmark.distillation.compression_lib import compression_wrapper
 
 
 class ModelsTest(parameterized.TestCase):
@@ -66,6 +68,35 @@ class ModelsTest(parameterized.TestCase):
     o = m(input_tensor)
     o.shape.assert_has_rank(2)
     self.assertEqual(o.shape[1], 5)
+
+  @parameterized.parameters({'add_compression': True},
+                            {'add_compression': False})
+  def test_tflite_model(self, add_compression):
+    compressor = None
+    bottleneck_dimension = 3
+    if add_compression:
+      compression_params = compression.CompressionOp\
+        .get_default_hparams().parse('')
+      compressor = compression_wrapper.get_apply_compression(
+          compression_params, global_step=0)
+    m = models.get_keras_model(
+        bottleneck_dimension,
+        5,
+        frontend=False,
+        mobilenet_size='small',
+        compressor=compressor,
+        tflite=True)
+
+    input_tensor = tf.zeros([1, 96, 64, 1], dtype=tf.float32)
+    o = m(input_tensor)
+    o.shape.assert_has_rank(2)
+    self.assertEqual(o.shape[0], 1)
+    self.assertEqual(o.shape[1], bottleneck_dimension)
+
+    if add_compression:
+      self.assertIsNone(m.get_layer('distilled_output').kernel)
+      self.assertIsNone(
+          m.get_layer('distilled_output').compression_op.a_matrix_tfvar)
 
 
 if __name__ == '__main__':
