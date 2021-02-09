@@ -45,6 +45,13 @@ See [here](https://stackoverflow.com/questions/10354636) for an example of how
 to find your system's `libstdc++` version; it can generally be upgraded by
 installing a newer version of `g++`.
 
+### Integration with TensorFlow Serving
+
+We provide custom Docker images of
+[TF Serving](https://github.com/tensorflow/serving) that are linked to the ScaNN
+TF ops. See the [`tf_serving` directory](tf_serving/README.md) for further
+information.
+
 ## Building from source
 
 To build ScaNN from source, first install the build tool

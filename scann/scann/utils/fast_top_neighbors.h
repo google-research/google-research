@@ -193,7 +193,7 @@ class FastTopNeighbors<DistT, DatapointIndexT>::Mutator {
 
   SCANN_INLINE bool Push(DatapointIndexT dp_idx, DistT distance) {
     DCHECK_LE(distance, epsilon());
-    DCHECK(std::isfinite(distance));
+    DCHECK(!std::isnan(distance));
     SCANN_LOG_NOOP(1) << StrFormat("Pushing {%d, %f}", dp_idx,
                                    static_cast<double>(distance));
     DCHECK_LT(pushes_remaining_negated_, 0);
