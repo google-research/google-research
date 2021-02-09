@@ -23,6 +23,7 @@ from __future__ import print_function
 from model_pruning.python.layers.rnn_cells import MaskedBasicLSTMCell
 from model_pruning.python.layers.rnn_cells import MaskedLSTMCell
 from model_pruning.python.pruning import apply_mask
+from model_pruning.python.pruning import apply_mask_with_group
 from model_pruning.python.pruning import get_masked_weights
 from model_pruning.python.pruning import get_masks
 from model_pruning.python.pruning import get_pruning_hparams

@@ -69,6 +69,18 @@
   # An object of the pruning also accepts externally defined sparsity:
   sparsity = tf.Variable(0.5, name = "ConstantSparsity")
   p = pruning.Pruning(pruning_hparams, sparsity=sparsity)
+
+  # Group pruning.
+  # Use apply_mask_with_group() instead of apply_mask(), and
+  # set group_pruning to be True in pruning_hparams.
+
+  var1 = tf.Variable(tf.random.normal(shape=(16, 16)), name='var1')
+  var2 = tf.Variable(tf.random.normal(shape=(32, 16)), name='var2')
+  var3 = tf.Variable(tf.random.normal(shape=(48, 8)), name='var3')
+
+  _ = apply_mask_with_group(var1, group_name='group1')
+  _ = apply_mask_with_group(var2, group_name='group1')
+  _ = apply_mask_with_group(var3, group_name='group2')
 """
 # pylint: disable=missing-docstring
 from __future__ import absolute_import
@@ -92,6 +104,59 @@ MASKED_WEIGHT_NAME = 'weights/masked_weight'
 WEIGHT_GRADIENT_COLLECTION = 'gradient_weights'
 OLD_WEIGHT_COLLECTION = 'old_weights'
 OLD_OLD_WEIGHT_COLLECTION = 'old_old_weights'
+# Group name for 'ungrouped' weights.
+UNGROUPED_GROUP_NAME = 'ungrouped'
+
+
+def attach_group_suffix(collection_name, group_name=None, separator='_'):
+  if group_name is None:
+    return collection_name
+  return collection_name + separator + group_name
+
+
+def add_to_pruning_collections(mask,
+                               threshold,
+                               weight,
+                               masked_weight,
+                               gradient=None,
+                               old_weight=None,
+                               old_old_weight=None,
+                               group_name=None):
+  """Add mask, threshold, weight, masked_weight tensors to collections.
+
+  Args:
+    mask: mask tensor, a tf.Tensor object.
+    threshold: threshold tensor, a tf.Tensor object.
+    weight: weight tensor, a tf.Tensor object.
+    masked_weight: masked weight tensor, a tf.Tensor object.
+    gradient: gradient tensor, a tf.Tensor object or None (default).
+    old_weight: weight tensor at the last pruning step, a tf.Tensor object or
+      None (default).
+    old_old_weight: weight tensor 2 steps before, a tf.Tensor object or None
+      (default).
+    group_name: group name, a Python str object or None (default).
+  """
+  mask_collection = attach_group_suffix(MASK_COLLECTION, group_name)
+  threshold_collection = attach_group_suffix(THRESHOLD_COLLECTION, group_name)
+  weight_collection = attach_group_suffix(WEIGHT_COLLECTION, group_name)
+  masked_weight_collection = attach_group_suffix(MASKED_WEIGHT_COLLECTION,
+                                                 group_name)
+  gradient_collection = attach_group_suffix(WEIGHT_GRADIENT_COLLECTION,
+                                            group_name)
+  old_weight_collection = attach_group_suffix(OLD_WEIGHT_COLLECTION, group_name)
+  old_old_weight_collection = attach_group_suffix(OLD_OLD_WEIGHT_COLLECTION,
+                                                  group_name)
+
+  for var, collection in zip([
+      mask, threshold, weight, masked_weight, gradient, old_weight,
+      old_old_weight
+  ], [
+      mask_collection, threshold_collection, weight_collection,
+      masked_weight_collection, gradient_collection, old_weight_collection,
+      old_old_weight_collection
+  ]):
+    if var is not None:
+      tf.add_to_collection(collection, var)
 
 
 def apply_mask(x, scope='', prune_option='weight'):
@@ -108,6 +173,28 @@ def apply_mask(x, scope='', prune_option='weight'):
   Returns:
     Tensor representing masked_weights
   """
+  return apply_mask_with_group(x, scope, prune_option, group_name=None)
+
+
+def apply_mask_with_group(x,
+                          scope='',
+                          prune_option='weight',
+                          group_name=UNGROUPED_GROUP_NAME):
+  """Apply mask to a given weight tensor.
+
+  Args:
+    x: Input weight tensor
+    scope: The current variable scope. Defaults to "".
+    prune_option: pruning option. Defaults to 'weight'. option =
+      'first_order_gradient' means using |weight| * |first order gradient| for
+      pruning. option = 'second_order_gradient' means using |weight| * |second
+      order gradient| for pruning.
+    group_name: group name for this weight tensor, str. Defaults to
+      UNGROUPED_GROUP_NAME.
+
+  Returns:
+    Tensor representing masked_weights
+  """
 
   mask = pruning_utils.weight_mask_variable(x, scope)
   threshold = pruning_utils.weight_threshold_variable(x, scope)
@@ -115,6 +202,9 @@ def apply_mask(x, scope='', prune_option='weight'):
   # for the quantization library to add quant ops.
   masked_weights = tf.multiply(mask, x, MASKED_WEIGHT_NAME)
 
+  gradient = None
+  old_weight = None
+  old_old_weight = None
   if prune_option in ('first_order_gradient', 'second_order_gradient'):
     # absolute value of gradients for gradient based pruning
     gradient = pruning_utils.weight_gradient_variable(x, scope)
@@ -125,14 +215,18 @@ def apply_mask(x, scope='', prune_option='weight'):
   # collection. This is particularly important when applying mask to RNN's
   # weight variables
   if mask not in tf.get_collection_ref(MASK_COLLECTION):
-    tf.add_to_collection(THRESHOLD_COLLECTION, threshold)
-    tf.add_to_collection(MASK_COLLECTION, mask)
-    tf.add_to_collection(MASKED_WEIGHT_COLLECTION, masked_weights)
-    tf.add_to_collection(WEIGHT_COLLECTION, x)
-    if prune_option in ('first_order_gradient', 'second_order_gradient'):
-      tf.add_to_collection(WEIGHT_GRADIENT_COLLECTION, gradient)
-      tf.add_to_collection(OLD_WEIGHT_COLLECTION, old_weight)
-      tf.add_to_collection(OLD_OLD_WEIGHT_COLLECTION, old_old_weight)
+    add_to_pruning_collections(mask, threshold, x, masked_weights, gradient,
+                               old_weight, old_old_weight)
+    if group_name is not None:
+      add_to_pruning_collections(
+          mask,
+          threshold,
+          x,
+          masked_weights,
+          gradient,
+          old_weight,
+          old_old_weight,
+          group_name=group_name)
   return masked_weights
 
 
@@ -179,31 +273,50 @@ def apply_mask_and_return(x, scope='', prune_option='weight'):
   return [masked_weights, mask]
 
 
-def get_masked_weights():
+def get_masked_weights(group_name=None):
+  if group_name:
+    return tf.get_collection(
+        attach_group_suffix(MASKED_WEIGHT_COLLECTION, group_name))
   return tf.get_collection(MASKED_WEIGHT_COLLECTION)
 
 
-def get_masks():
+def get_masks(group_name=None):
+  if group_name:
+    return tf.get_collection(attach_group_suffix(MASK_COLLECTION, group_name))
   return tf.get_collection(MASK_COLLECTION)
 
 
-def get_thresholds():
+def get_thresholds(group_name=None):
+  if group_name:
+    return tf.get_collection(
+        attach_group_suffix(THRESHOLD_COLLECTION, group_name))
   return tf.get_collection(THRESHOLD_COLLECTION)
 
 
-def get_weights():
+def get_weights(group_name=None):
+  if group_name:
+    return tf.get_collection(attach_group_suffix(WEIGHT_COLLECTION, group_name))
   return tf.get_collection(WEIGHT_COLLECTION)
 
 
-def get_gradients():
+def get_gradients(group_name=None):
+  if group_name:
+    return tf.get_collection(
+        attach_group_suffix(WEIGHT_GRADIENT_COLLECTION, group_name))
   return tf.get_collection(WEIGHT_GRADIENT_COLLECTION)
 
 
-def get_old_weights():
+def get_old_weights(group_name=None):
+  if group_name:
+    return tf.get_collection(
+        attach_group_suffix(OLD_WEIGHT_COLLECTION, group_name))
   return tf.get_collection(OLD_WEIGHT_COLLECTION)
 
 
-def get_old_old_weights():
+def get_old_old_weights(group_name=None):
+  if group_name:
+    return tf.get_collection(
+        attach_group_suffix(OLD_OLD_WEIGHT_COLLECTION, group_name))
   return tf.get_collection(OLD_OLD_WEIGHT_COLLECTION)
 
 
@@ -307,7 +420,18 @@ def get_pruning_hparams():
                     otherwise update_ops are obtained from
                     matrix_compression_obj.all_update_op() directly. Default is
                     True.
-
+    group_pruning: perform group pruning if True. Default is False.
+    group_sparsity_map: list of strings
+      comma separated list of {group_name:target sparsity} or
+      {regex:target sparsity} pairs.
+      For groups not in this list, sparsity as specified by the
+      target_sparsity hyperparameter is used.
+      Eg. [conv1:0.9, conv2/kernel:0.8, .*dense:0.5]
+    group_block_dims_map: comma separated list of
+      {group_name:block_height x block_width} or
+      {regex:block_height x block_width} pairs. For any groups not in this list,
+      the block_height, block_width hyperparameters are used.
+      Eg. [dense1:4x4,dense2:1x16,dense3:1x1].
 
     We use the following sparsity function:
 
@@ -328,6 +452,8 @@ def get_pruning_hparams():
       end_pruning_step=-1,
       weight_sparsity_map=[''],
       block_dims_map=[''],
+      group_sparsity_map=[''],
+      group_block_dims_map=[''],
       threshold_decay=0.0,
       pruning_frequency=10,
       nbins=256,
@@ -353,7 +479,8 @@ def get_pruning_hparams():
       run_update_interval_check=1,
       pruning_fraction=0.4,
       use_collection=True,
-      input_block_size=1)
+      input_block_size=1,
+      group_pruning=False)
 
 
 class Pruning(object):
@@ -375,6 +502,8 @@ class Pruning(object):
 
     # Pruning specification
     self._spec = spec if spec else get_pruning_hparams()
+    if spec:
+      self._spec = self._normalize_spec(self._spec)
     tf.logging.vlog(0, 'Pruning spec...')
     self.print_hparams()
 
@@ -418,6 +547,33 @@ class Pruning(object):
 
     # Mapping of weight names and target sparsity
     self._weight_sparsity_map = self._get_weight_sparsity_map()
+
+    # Group pruning.
+    self._group_pruning = self._spec.group_pruning
+    self._group_sparsity_map = self._get_group_sparsity_map()
+    self._group_sparsity_map_raw = self._get_group_sparsity_map_raw()
+    self._group_block_dims_map = self._get_group_block_dims_map()
+
+  def _normalize_spec(self, spec):
+    """Normalize the HParams spec.
+
+    Compare `spec` with default spec from `get_pruning_hparams()` and add
+    missing fields. This ensures that old specs still works when we add new
+    key:value pairs.
+
+    Args:
+      spec: Pruning spec, a tf.contrib.training.HParams object.
+
+    Returns:
+      Normalized pruning spec, a tf.contrib.training.HParam object.
+    """
+    spec_dict = spec.values()
+    default_spec_dict = get_pruning_hparams().values()
+    for k in default_spec_dict:
+      if k not in spec_dict:
+        spec_dict[k] = default_spec_dict[k]
+        spec.add_hparam(name=k, value=default_spec_dict[k])
+    return spec
 
   def _validate_spec(self):
     spec = self._spec
@@ -556,6 +712,53 @@ class Pruning(object):
 
     return weight_sparsity_map
 
+  def _get_group_sparsity_map(self):
+    """Returns the map of group_name:sparsity parsed from the hparams."""
+    group_sparsity_map = {}
+    val_list = self._spec.group_sparsity_map
+    filtered_val_list = [l for l in val_list if l]
+    for val in filtered_val_list:
+      group_name, sparsity = val.split(':')
+      if float(sparsity) >= 1.0:
+        raise ValueError('Weight sparsity can not exceed 1.0')
+      group_sparsity_map[re.compile(group_name)] = float(sparsity)
+    if UNGROUPED_GROUP_NAME not in group_sparsity_map:
+      group_sparsity_map[UNGROUPED_GROUP_NAME] = float(
+          self._spec.target_sparsity)
+
+    return group_sparsity_map
+
+  def _get_group_sparsity_map_raw(self):
+    """Returns the map of group_name:sparsity parsed from the hparams."""
+    group_sparsity_map = {}
+    val_list = self._spec.group_sparsity_map
+    filtered_val_list = [l for l in val_list if l]
+    for val in filtered_val_list:
+      group_name, sparsity = val.split(':')
+      if float(sparsity) >= 1.0:
+        raise ValueError('Weight sparsity can not exceed 1.0')
+      group_sparsity_map[group_name] = float(sparsity)
+    if UNGROUPED_GROUP_NAME not in group_sparsity_map:
+      group_sparsity_map[UNGROUPED_GROUP_NAME] = float(
+          self._spec.target_sparsity)
+
+    return group_sparsity_map
+
+  def _get_group_block_dims_map(self):
+    block_dims_map = {}
+    val_list = self._spec.group_block_dims_map
+    filtered_val_list = [l for l in val_list if l]
+    for val in filtered_val_list:
+      group_name, block_dims_str = val.split(':')
+      block_dims_str = block_dims_str.split('x')
+      if len(block_dims_str) != 2:
+        raise ValueError('Expected 2 values for block dim for %s, got %s' %
+                         (group_name, block_dims_str))
+      block_dims = [int(block_dims_str[0]), int(block_dims_str[1])]
+      block_dims_map[group_name] = block_dims
+
+    return block_dims_map
+
   def _get_sparsity(self, weight_name):
     """Returns target sparsity for the given layer/weight name."""
     target_sparsity = [
@@ -572,6 +775,35 @@ class Pruning(object):
     # to handle other cases as well.
     return tf.multiply(self._sparsity,
                        tf.div(target_sparsity[0], self._spec.target_sparsity))
+
+  def _get_group_sparsity(self, group_name):
+    """Returns target sparsity for the given group name."""
+    target_sparsity = [
+        sparsity for regexp, sparsity in self._group_sparsity_map.items()
+        if regexp.search(group_name)
+    ]
+    if not target_sparsity:
+      return self._sparsity
+
+    if len(target_sparsity) > 1:
+      raise ValueError('Multiple matches in group_sparsity_map for group %s' %
+                       group_name)
+    # TODO(suyoggupta): This will work when initial_sparsity = 0. Generalize
+    # to handle other cases as well.
+    return tf.multiply(self._sparsity,
+                       tf.div(target_sparsity[0], self._spec.target_sparsity))
+
+  def _get_group_sparsity_raw(self, group_name):
+    target_sparsity = self._group_sparsity_map_raw.get(group_name)
+
+    if not target_sparsity:
+      return self._sparsity
+
+    return tf.multiply(self._sparsity,
+                       tf.div(target_sparsity, self._spec.target_sparsity))
+
+  def _get_group_block_dims(self, group_name):
+    return self._group_block_dims_map.get(group_name, self._block_dims)
 
   def _update_mask(self, weights, threshold, gradients):  # pylint: disable=unused-argument
     """Updates the mask for a given weight tensor.
@@ -895,6 +1127,194 @@ class Pruning(object):
           pruning_utils.partitioned_variable_assign(mask, new_mask)
           if is_partitioned else pruning_utils.variable_assign(mask, new_mask))
 
+  def use_gradient(self):
+    return self._spec.prune_option in ('first_order_gradient',
+                                       'second_order_gradient')
+
+  def _update_group_masks(self, weights, gradients, group_name, sparsity):
+    if self.use_gradient() and not gradients:
+      raise ValueError('Gradient is not available.')
+    # TODO(wanxin): check if the random uniform tie-breaker is necessary.
+    # Create a single flat tensor containing all the tensors in the group.
+    with tf.name_scope(group_name + '_pruning_ops'):
+      tf.logging.info('Applying option %s pruning', self._spec.prune_option)
+
+      flattened_weight = tf.concat(
+          [tf.reshape(weight, [-1]) for weight in weights], axis=0)
+      flattened_gradient = None
+      if self.use_gradient():
+        flattened_gradient = tf.concat(
+            [tf.reshape(gradient, [-1]) for gradient in gradients], axis=0)
+
+      if self._spec.prune_option == 'weight':
+        importance_score = tf.abs(flattened_weight)
+      elif self.use_gradient():
+        importance_score = tf.multiply(
+            tf.abs(flattened_weight), flattened_gradient)
+      else:
+        raise ValueError('Undefined option.')
+
+      k = tf.cast(
+          tf.round(
+              tf.cast(tf.size(importance_score), tf.float32) * (1 - sparsity)),
+          tf.int32)
+      # Shuffle and find the threshold.
+      shuffling = tf.random_shuffle(tf.range(tf.size(importance_score)))
+      shuffling = tf.reshape(shuffling, [-1, 1])
+
+      importance_score = tf.scatter_nd(shuffling, importance_score,
+                                       tf.shape(importance_score))
+
+      _, indices = tf.math.top_k(importance_score, k=tf.size(importance_score))
+
+      mask_staging = tf.range(tf.size(importance_score))
+      mask_staging = tf.cast(tf.less(mask_staging, k), tf.float32)
+
+      indices = tf.reshape(indices, [-1, 1])
+      new_mask = tf.scatter_nd(indices, mask_staging, tf.shape(mask_staging))
+
+      new_mask = tf.reshape(
+          tf.gather_nd(new_mask, shuffling), tf.shape(importance_score))
+
+      group_masks = tf.split(new_mask, [tf.size(weight) for weight in weights])
+      masks = [
+          tf.reshape(mask, weight.shape)
+          for mask, weight in zip(group_masks, weights)
+      ]
+    return tf.constant(0, tf.float32), masks
+
+  def _maybe_update_block_group_mask(self, weights, gradients, group_name,
+                                     sparsity, block_dims):
+    """Update masks for all the weights in the group."""
+    if block_dims == [1, 1]:
+      return self._update_group_masks(weights, gradients, group_name, sparsity)
+    if self.use_gradient() and not gradients:
+      raise ValueError('Gradients are not available.')
+    if self._block_pooling_function not in ['AVG', 'MAX']:
+      raise ValueError('Unknown pooling function for block sparsity: %s' %
+                       self._block_pooling_function)
+
+    with tf.name_scope(group_name + '_pruning_ops'):
+      # Create pooled_weights and pooled_gradients.
+      pooled_weights = []
+      pooled_gradients = []
+      for index, weight in enumerate(weights):
+        pool_window = block_dims
+        pool_fn = pruning_utils.factorized_pool
+        squeeze_axis = None
+
+        abs_weight = tf.abs(tf.squeeze(weight))
+        if self.use_gradient():
+          abs_gradient = tf.abs(tf.squeeze(gradients[index]))
+        if not self._spec.use_tpu:
+          pool_fn = tf.nn.pool
+          abs_weight = tf.reshape(
+              abs_weight,
+              [1, abs_weight.get_shape()[0],
+               abs_weight.get_shape()[1], 1])
+          if self.use_gradient():
+            abs_gradient = tf.reshape(abs_gradient, [
+                1,
+                abs_gradient.get_shape()[0],
+                abs_gradient.get_shape()[1], 1
+            ])
+          squeeze_axis = [0, 3]
+        pooled_weight = pool_fn(
+            abs_weight,
+            window_shape=pool_window,
+            pooling_type=self._block_pooling_function,
+            strides=pool_window,
+            padding='SAME',
+            name=weight.op.name + '_pooled')
+        if pooled_weight.get_shape().ndims != 2:
+          pooled_weight = tf.squeeze(pooled_weight, axis=squeeze_axis)
+        pooled_weights.append(pooled_weight)
+        pooled_gradient = None
+        if self.use_gradient():
+          pooled_gradient = pool_fn(
+              abs_gradient,
+              window_shape=pool_window,
+              pooling_type=self._block_pooling_function,
+              strides=pool_window,
+              padding='SAME',
+              name=abs_gradient.op.name + '_pooled')
+          if pooled_gradient.get_shape().ndims != 2:
+            pooled_gradient = tf.squeeze(pooled_gradient, axis=squeeze_axis)
+          pooled_gradients.append(pooled_gradient)
+      smoothed_group_threshold, new_masks = self._update_group_masks(
+          pooled_weights, pooled_gradients, group_name, sparsity)
+
+      updated_masks = [
+          pruning_utils.expand_tensor(mask, block_dims) for mask in new_masks
+      ]
+      sliced_masks = []
+      for idx, mask in enumerate(updated_masks):
+        squeezed_weight = tf.squeeze(weights[idx])
+        sliced_masks.append(
+            tf.reshape(
+                tf.slice(mask, [0, 0], [
+                    squeezed_weight.get_shape()[0],
+                    squeezed_weight.get_shape()[1]
+                ]), weights[idx].shape))
+    return smoothed_group_threshold, sliced_masks
+
+  def _get_group_mask_assign_ops(self):
+    if not self._group_pruning:
+      raise ValueError('Group pruning is not enabled.')
+
+    for group_name in self._group_sparsity_map_raw:
+      masks = get_masks(group_name)
+      weights = get_weights(group_name)
+      thresholds = get_thresholds(group_name)
+      gradients = get_gradients(group_name)
+
+      if len(masks) != len(thresholds):
+        raise ValueError(
+            'Number of masks %s and number of thresholds %s mismatch' %
+            (len(masks), len(thresholds)))
+
+      if not masks:
+        continue
+
+      group_weights = []
+      for index, weight in enumerate(weights):
+        is_partitioned = isinstance(weight, variables.PartitionedVariable)
+        if is_partitioned:
+          weight = weight.as_tensor()
+        group_weights.append(weight)
+
+      if group_name != UNGROUPED_GROUP_NAME:
+        block_dims = self._get_group_block_dims(group_name)
+        sparsity = self._get_group_sparsity_raw(group_name)
+        new_threshold, new_masks = self._maybe_update_block_group_mask(
+            group_weights, gradients, group_name, sparsity, block_dims)
+        for idx, weight in enumerate(weights):
+          is_partitioned = isinstance(weight, variables.PartitionedVariable)
+          self._assign_ops.append(
+              pruning_utils.variable_assign(thresholds[idx], new_threshold))
+          self._assign_ops.append(
+              pruning_utils.partitioned_variable_assign(
+                  masks[idx], new_masks[idx]) if is_partitioned else
+              pruning_utils.variable_assign(masks[idx], new_masks[idx]))
+      else:
+        for idx, weight in enumerate(weights):
+          is_partitioned = isinstance(weight, variables.PartitionedVariable)
+          if is_partitioned:
+            weight = weight.as_tensor()
+          threshold = thresholds[idx]
+          mask = masks[idx]
+          gradient = None
+          if self.use_gradient():
+            gradient = gradients[idx]
+          new_threshold, new_mask = self._maybe_update_block_mask(
+              weight, threshold, gradient)
+          self._assign_ops.append(
+              pruning_utils.variable_assign(threshold, new_threshold))
+
+          self._assign_ops.append(
+              pruning_utils.partitioned_variable_assign(mask, new_mask) if
+              is_partitioned else pruning_utils.variable_assign(mask, new_mask))
+
   def old_weight_update_op(self):
     with tf.name_scope(self._spec.name):
       if self._spec.prune_option not in ('first_order_gradient',
@@ -956,7 +1376,10 @@ class Pruning(object):
   def mask_update_op(self):
     with tf.name_scope(self._spec.name):
       if not self._assign_ops:
-        self._get_mask_assign_ops()
+        if self._group_pruning:
+          self._get_group_mask_assign_ops()
+        else:
+          self._get_mask_assign_ops()
 
       grad_update_ops = self.gradient_update_op()
       old_weight_update_ops = self.old_weight_update_op()

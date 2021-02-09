@@ -37,6 +37,7 @@ import numpy as np
 import tensorflow.compat.v1 as tf
 
 from model_pruning.python import pruning
+from model_pruning.python import pruning_utils
 
 
 class PruningHParamsTest(tf.test.TestCase):
@@ -435,6 +436,88 @@ class PruningTest(tf.test.TestCase):
 
       self.assertAllClose(
           session.run(pruning.get_weight_sparsity()), [0.5])
+
+  def testGroupSpecificSparsity(self):
+    param_list = [
+        "begin_pruning_step=1", "pruning_frequency=1", "end_pruning_step=100",
+        "target_sparsity=0.5",
+        "group_sparsity_map=[group1:0.6,group2:0.75]",
+        "threshold_decay=0.0",
+        "group_pruning=True",
+    ]
+    test_spec = ",".join(param_list)
+    pruning_hparams = pruning.get_pruning_hparams().parse(test_spec)
+
+    with tf.variable_scope("layer1"):
+      w1 = tf.Variable(tf.linspace(1.0, 100.0, 100), name="weights")
+      _ = pruning.apply_mask_with_group(w1, group_name="group1")
+    with tf.variable_scope("layer2"):
+      w2 = tf.Variable(tf.linspace(1.0, 100.0, 100), name="weights")
+      _ = pruning.apply_mask_with_group(w2, group_name="group2")
+    with tf.variable_scope("layer3"):
+      w3 = tf.Variable(tf.linspace(1.0, 100.0, 100), name="kernel")
+      _ = pruning.apply_mask_with_group(w3, group_name="group2")
+    with tf.variable_scope("layer4"):
+      w4 = tf.Variable(tf.linspace(1.0, 200.0, 100), name="kernel")
+      _ = pruning.apply_mask_with_group(w4, group_name="group2")
+
+    p = pruning.Pruning(pruning_hparams)
+    mask_update_op = p.conditional_mask_update_op()
+    increment_global_step = tf.assign_add(self.global_step, 1)
+
+    with self.cached_session() as session:
+      tf.global_variables_initializer().run()
+      for _ in range(110):
+        session.run(mask_update_op)
+        session.run(increment_global_step)
+
+      self.assertAllClose(
+          session.run(pruning.get_weight_sparsity()), [0.6, 0.9, 0.9, 0.45])
+
+  def testGroupSpecificBlockSparsity(self):
+    param_list = [
+        "begin_pruning_step=1", "pruning_frequency=1", "end_pruning_step=100",
+        "target_sparsity=0.5",
+        "group_sparsity_map=[group1:0.6,group2:0.75]",
+        "group_block_dims_map=[group1:2x2,group2:2x4]",
+        "threshold_decay=0.0",
+        "group_pruning=True",
+    ]
+    test_spec = ",".join(param_list)
+    pruning_hparams = pruning.get_pruning_hparams().parse(test_spec)
+
+    stacked_tensor_1 = pruning_utils.expand_tensor(
+        tf.reshape(tf.linspace(1.0, 100.0, 100), [1, 100]), [2, 2])
+    stacked_tensor_2 = pruning_utils.expand_tensor(
+        tf.reshape(tf.linspace(1.0, 100.0, 100), [1, 100]), [2, 4])
+    stacked_tensor_3 = pruning_utils.expand_tensor(
+        tf.reshape(tf.linspace(1.0, 200.0, 100), [1, 100]), [2, 4])
+
+    with tf.variable_scope("layer1"):
+      w1 = tf.Variable(stacked_tensor_1, name="weights")
+      _ = pruning.apply_mask_with_group(w1, group_name="group1")
+    with tf.variable_scope("layer2"):
+      w2 = tf.Variable(stacked_tensor_2, name="weights")
+      _ = pruning.apply_mask_with_group(w2, group_name="group2")
+    with tf.variable_scope("layer3"):
+      w3 = tf.Variable(stacked_tensor_2, name="kernel")
+      _ = pruning.apply_mask_with_group(w3, group_name="group2")
+    with tf.variable_scope("layer4"):
+      w4 = tf.Variable(stacked_tensor_3, name="kernel")
+      _ = pruning.apply_mask_with_group(w4, group_name="group2")
+
+    p = pruning.Pruning(pruning_hparams)
+    mask_update_op = p.conditional_mask_update_op()
+    increment_global_step = tf.assign_add(self.global_step, 1)
+
+    with self.cached_session() as session:
+      tf.global_variables_initializer().run()
+      for _ in range(110):
+        session.run(mask_update_op)
+        session.run(increment_global_step)
+
+      self.assertAllClose(
+          session.run(pruning.get_weight_sparsity()), [0.6, 0.9, 0.9, 0.45])
 
 
 if __name__ == "__main__":
