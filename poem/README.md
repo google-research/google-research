@@ -32,6 +32,7 @@ include the **"[POEM]"** prefix in the issue title.
 ## Contact
 - [Ting Liu](https://github.com/tingliu)
 - [Jennifer J. Sun](https://github.com/jenjsun)
+- [Liangzhe Yuan](https://github.com/yuanliangzhe)
 
 ## Updates
 - `10/21/2020`: Added cross-view pose retrieval evaluation frame keys.
