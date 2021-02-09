@@ -372,7 +372,8 @@ def compute_lower_percentile_means(x, axis, q=50):
           tf.math.reduce_sum(weights, axis=axis))
 
 
-def mix_batch(lhs_batches, rhs_batches, axis, assignment=None, seed=None):
+def mix_batch(lhs_batches, rhs_batches, axis, assignment=None,
+              keep_lhs_prob=0.5, seed=None):
   """Mixes batches.
 
   A pair of tensors from the same location in each list are assumed to have the
@@ -452,6 +453,8 @@ def mix_batch(lhs_batches, rhs_batches, axis, assignment=None, seed=None):
       dimensions" between the batch dimension (0) and the mixing axis dimension,
       size 1 can be used to take advantage of broadcasting. If None, A uniformly
       random assignment matrix will be created.
+    keep_lhs_prob: A float indicates the probability to randomly keep
+      lhs_batches along axis. This is only useful when `assignment` is None.
     seed: An integer for random seed.
 
   Returns:
@@ -478,7 +481,7 @@ def mix_batch(lhs_batches, rhs_batches, axis, assignment=None, seed=None):
     assignment_shape[axis] = batch_shape[axis]
     assignment = tf.random.uniform(
         assignment_shape, minval=0.0, maxval=1.0, seed=seed)
-    assignment = tf.math.greater_equal(assignment, 0.5)
+    assignment = tf.math.greater_equal(assignment, keep_lhs_prob)
     return assignment
 
   if assignment is None:
