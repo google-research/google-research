@@ -138,6 +138,11 @@ def define_flags():
   flags.DEFINE_float(
       "lr_delay_mult", 1., "A multiplier on the learning rate when the step "
       "is < lr_delay_steps")
+  flags.DEFINE_float("grad_max_norm", 0.,
+                     "The gradient clipping magnitude (disabled if == 0).")
+  flags.DEFINE_float("grad_max_val", 0.,
+                     "The gradient clipping value (disabled if == 0).")
+
   flags.DEFINE_integer("max_steps", 1000000,
                        "the number of optimization steps.")
   flags.DEFINE_integer("save_every", 10000,

@@ -94,6 +94,20 @@ def train_step(model, rng, state, batch, lr):
       jax.value_and_grad(loss_fn, has_aux=True)(state.optimizer.target))
   grad = jax.lax.pmean(grad, axis_name="batch")
   stats = jax.lax.pmean(stats, axis_name="batch")
+
+  # Clip the gradient by value.
+  if FLAGS.grad_max_val > 0:
+    clip_fn = lambda z: jnp.clip(z, -FLAGS.grad_max_val, FLAGS.grad_max_val)
+    grad = jax.tree_util.tree_map(clip_fn, grad)
+
+  # Clip the (possibly value-clipped) gradient by norm.
+  if FLAGS.grad_max_norm > 0:
+    grad_norm = jnp.sqrt(
+        jax.tree_util.tree_reduce(
+            lambda x, y: x + jnp.sum(y**2), grad, initializer=0))
+    mult = jnp.minimum(1, FLAGS.grad_max_norm / (1e-7 + grad_norm))
+    grad = jax.tree_util.tree_map(lambda z: mult * z, grad)
+
   new_optimizer = state.optimizer.apply_gradient(grad, learning_rate=lr)
   new_state = state.replace(optimizer=new_optimizer)
   return new_state, stats, rng
