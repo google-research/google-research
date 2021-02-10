@@ -1,5 +1,5 @@
 dataset: blender
-image_batching: false
+batching: single_image
 factor: 0
 num_coarse_samples: 64
 num_fine_samples: 128

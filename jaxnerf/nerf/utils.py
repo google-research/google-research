@@ -66,8 +66,11 @@ def define_flags():
   flags.DEFINE_enum("dataset", "blender",
                     list(k for k in datasets.dataset_dict.keys()),
                     "The type of dataset feed to nerf.")
-  flags.DEFINE_bool("image_batching", False,
-                    "sample rays in a batch from different images.")
+  flags.DEFINE_enum(
+      "batching", "single_image", ["single_image", "all_images"],
+      "source of ray sampling when collecting training batch,"
+      "single_image for sampling from only one image in a batch,"
+      "all_images for sampling from all the training images.")
   flags.DEFINE_bool(
       "white_bkgd", True, "using white color as default background."
       "(used in the blender dataset only)")

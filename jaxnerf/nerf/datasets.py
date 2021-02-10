@@ -73,7 +73,7 @@ class Dataset(threading.Thread):
           "the split argument should be either \"train\" or \"test\", set"
           "to {} here.".format(split))
     self.batch_size = args.batch_size // jax.host_count()
-    self.image_batching = args.image_batching
+    self.batching = args.batching
     self.render_path = args.render_path
     self.start()
 
@@ -121,15 +121,18 @@ class Dataset(threading.Thread):
     self._load_renderings(args)
     self._generate_rays()
 
-    if args.image_batching:
+    if args.batching == "all_images":
       # flatten the ray and image dimension together.
       self.images = self.images.reshape([-1, 3])
       self.rays = utils.namedtuple_map(lambda r: r.reshape([-1, r.shape[-1]]),
                                        self.rays)
-    else:
+    elif args.batching == "single_image":
       self.images = self.images.reshape([-1, self.resolution, 3])
       self.rays = utils.namedtuple_map(
           lambda r: r.reshape([-1, self.resolution, r.shape[-1]]), self.rays)
+    else:
+      raise NotImplementedError(
+          f"{args.batching} batching strategy is not implemented.")
 
   def _test_init(self, args):
     self._load_renderings(args)
@@ -139,18 +142,21 @@ class Dataset(threading.Thread):
   def _next_train(self):
     """Sample next training batch."""
 
-    if self.image_batching:
+    if self.batching == "all_images":
       ray_indices = np.random.randint(0, self.rays[0].shape[0],
                                       (self.batch_size,))
       batch_pixels = self.images[ray_indices]
       batch_rays = utils.namedtuple_map(lambda r: r[ray_indices], self.rays)
-    else:
+    elif self.batching == "single_image":
       image_index = np.random.randint(0, self.n_examples, ())
       ray_indices = np.random.randint(0, self.rays[0][0].shape[0],
                                       (self.batch_size,))
       batch_pixels = self.images[image_index][ray_indices]
       batch_rays = utils.namedtuple_map(lambda r: r[image_index][ray_indices],
                                         self.rays)
+    else:
+      raise NotImplementedError(
+          f"{self.batching} batching strategy is not implemented.")
     return {"pixels": batch_pixels, "rays": batch_rays}
 
   def _next_test(self):
