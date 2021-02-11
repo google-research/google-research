@@ -197,7 +197,7 @@ struct GraphT {
                          const std::string &backing_file,
                          mmapped_vector<std::pair<node_t, node_t>> *adj_pairs) {
     // Fingerprint.
-    unsigned long long_t fingerprint = ReadBinaryOrDie<unsigned long long_t>(f);
+    uint64_t fingerprint = ReadBinaryOrDie<uint64_t>(f);
     CHECK(fingerprint == kFingerprint);
     // Number of nodes.
     size_t N = ReadBinaryOrDie<node_t>(f);
@@ -228,7 +228,7 @@ struct GraphT {
       FILE *f, bool forward_only, const std::string &backing_file,
       mmapped_vector<std::pair<node_t, node_t>> *adj_pairs) {
     // Fingerprint.
-    unsigned long long_t fingerprint = ReadBinaryOrDie<unsigned long long_t>(f);
+    uint64_t fingerprint = ReadBinaryOrDie<uint64_t>(f);
     CHECK(fingerprint == kFingerprintStreamed);
     // Number of nodes.
     size_t N = ReadBinaryOrDie<node_t>(f);

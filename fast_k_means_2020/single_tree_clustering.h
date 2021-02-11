@@ -37,7 +37,7 @@ class SingleTreeClustering {
 
   // Returns the benefit of opening center with optional flag to open.
   // It returns the points and their new cost.
-  vector<pair<int, unsigned long long_t>> ComputeCostAndOpen(int center, bool open_center);
+  vector<pair<int, uint64_t>> ComputeCostAndOpen(int center, bool open_center);
 
   // Keeps the id of the closest center of each point.
   vector<int> closets_open_center;

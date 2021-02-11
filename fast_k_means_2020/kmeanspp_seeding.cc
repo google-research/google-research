@@ -27,8 +27,8 @@ using std::vector;
 int KMeansPPSeeding::ReturnD2Sample(const vector<vector<double>>& input) {
   double total_prob = 0;
   for (int i = 0; i < input.size(); i++) total_prob += distance[i];
-  unsigned long long_t rand_ll_int =
-      RandomHandler::eng() % static_cast<unsigned long long_t>(total_prob);
+  uint64_t rand_ll_int =
+      RandomHandler::eng() % static_cast<uint64_t>(total_prob);
   double rand_ll = static_cast<double>(rand_ll_int);
   int picked_center = input.size() - 1;
   for (int i = 0; i < input.size(); i++) {

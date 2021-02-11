@@ -24,7 +24,7 @@
 namespace sketch {
 
 typedef unsigned int uint;
-typedef unsigned long long ULONG;
+typedef uint64 ULONG;
 typedef std::pair<uint, float> IntFloatPair;
 
 inline constexpr int HL = 31;

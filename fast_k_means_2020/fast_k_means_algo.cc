@@ -25,11 +25,11 @@ void FastKMeansAlgo::RunAlgorithm(const vector<vector<double>>& input, int k,
                                   int number_greedy_rounds) {
   multi_trees_.InitializeTree(input, number_of_trees, scaling_factor);
   for (int i = 0; i < k; i++) {
-    pair<int, unsigned long long_t> best_center_and_improvement (0, 0);
+    pair<int, uint64_t> best_center_and_improvement (0, 0);
     for (int j = 0; j < number_greedy_rounds; j++) {
       int next_center = multi_trees_.SampleAPoint();
       if (next_center == -1) break;
-      unsigned long long_t improvement =
+      uint64_t improvement =
           multi_trees_.ComputeCostAndOpen(next_center, false);
       // For the case of i = 0, it is important to have equality here.
       if (improvement >= best_center_and_improvement.second) {

@@ -25,7 +25,7 @@
 #include "intersect_edges.h"  // NOLINT
 #include "mmapped_vector.h"   // NOLINT
 
-using edge_t = unsigned long long_t;
+using edge_t = uint64_t;
 using node_t = uint32_t;
 
 using Graph = GraphT<node_t, edge_t>;

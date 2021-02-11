@@ -111,7 +111,7 @@ std::string NpyDataTypeString<uint32_t>() {
 }
 
 template <>
-std::string NpyDataTypeString<unsigned long long_t>() {
+std::string NpyDataTypeString<uint64_t>() {
   return "u";
 }
 

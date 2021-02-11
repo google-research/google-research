@@ -35,7 +35,7 @@ class MultiTreeClustering {
                       double scaling_factor);
 
   // Returns the benefit of opening center with optional flag to open.
-  unsigned long long_t ComputeCostAndOpen(int center, bool open_center);
+  uint64_t ComputeCostAndOpen(int center, bool open_center);
 
   // Samples a point according to distances in the tree.
   // The correct distance are D^2.
@@ -46,22 +46,22 @@ class MultiTreeClustering {
   vector<int> closets_open_center;
 
   // The distance of each point to the closest open center.
-  vector<unsigned long long_t> distance_to_center;
+  vector<uint64_t> distance_to_center;
 
  private:
-  void UpdateDistance(pair<int, unsigned long long_t> update, int left, int right,
+  void UpdateDistance(pair<int, uint64_t> update, int left, int right,
                       int binary_tree_id);
 
   // Recursive function to sample points based on binary trees.
   // Improves the runtime to log n.
-  int SampleAPointRecurse(unsigned long long_t chosen_prob, int left, int right,
+  int SampleAPointRecurse(uint64_t chosen_prob, int left, int right,
                           int binary_tree_id);
 
   // Single trees that we use for computing the distances.
   vector<SingleTreeClustering> single_trees_;
 
   // The distances kept in binary tree so could be easily sampled.
-  vector<unsigned long long_t> binary_tree_value_;
+  vector<uint64_t> binary_tree_value_;
 
   // The size of the binary tree, e.g., the number points that we sample from.
   // Some point might be empty size the input size might not be a power of two.

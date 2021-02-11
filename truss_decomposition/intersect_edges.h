@@ -20,8 +20,8 @@
 #include <cstdlib>
 
 template <typename Graph, typename CB>
-void IntersectEdgesSmaller(Graph *__restrict__ g, unsigned long long_t start1,
-                           unsigned long long_t end1, unsigned long long_t start2, unsigned long long_t end2,
+void IntersectEdgesSmaller(Graph *__restrict__ g, uint64_t start1,
+                           uint64_t end1, uint64_t start2, uint64_t end2,
                            const CB &cb) {
   size_t k2 = start2;
   for (size_t k1 = start1; k1 < end1; k1++) {
@@ -70,8 +70,8 @@ void IntersectEdgesSmaller(Graph *__restrict__ g, unsigned long long_t start1,
 // significantly different, calls IntersectEdgesSmaller. Otherwise, uses SIMD to
 // quickly compute the intersection of the lists.
 template <typename Graph, typename CB>
-void IntersectEdges(Graph *__restrict__ g, unsigned long long_t start1, unsigned long long_t end1,
-                    unsigned long long_t start2, unsigned long long_t end2, const CB &cb) {
+void IntersectEdges(Graph *__restrict__ g, uint64_t start1, uint64_t end1,
+                    uint64_t start2, uint64_t end2, const CB &cb) {
   size_t factor = 2;
   if (factor * (end1 - start1) < end2 - start2) {
     return IntersectEdgesSmaller(g, start1, end1, start2, end2, cb);
@@ -79,10 +79,10 @@ void IntersectEdges(Graph *__restrict__ g, unsigned long long_t start1, unsigned
   if (end1 - start1 > factor * (end2 - start2)) {
     return IntersectEdgesSmaller(
         g, start2, end2, start1, end1,
-        [&cb](unsigned long long_t k2, unsigned long long_t k1) { return cb(k1, k2); });
+        [&cb](uint64_t k2, uint64_t k1) { return cb(k1, k2); });
   }
-  unsigned long long_t k1 = start1;
-  unsigned long long_t k2 = start2;
+  uint64_t k1 = start1;
+  uint64_t k2 = start2;
   // Execute SSE-accelerated version if SSE4.1 is available. If not, run the
   // fall-back code for the last N % 4 elements of the list on the full list.
 #ifdef __SSE4_1__
@@ -148,11 +148,11 @@ void IntersectEdges(Graph *__restrict__ g, unsigned long long_t start1, unsigned
   if (end1 - k1 > factor * (end2 - k2)) {
     return IntersectEdgesSmaller(
         g, k2, end2, k1, end1,
-        [&cb](unsigned long long_t k2, unsigned long long_t k1) { return cb(k1, k2); });
+        [&cb](uint64_t k2, uint64_t k1) { return cb(k1, k2); });
   }
   while (k1 < end1 && k2 < end2) {
-    unsigned long long_t a = g->adj[k1];
-    unsigned long long_t b = g->adj[k2];
+    uint64_t a = g->adj[k1];
+    uint64_t b = g->adj[k2];
     if (a < b) {
       k1++;
     } else if (a > b) {

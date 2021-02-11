@@ -34,7 +34,7 @@ void RejectionSamplingLSH::RunAlgorithm(const vector<vector<double>>& input,
   multi_trees_.InitializeTree(input, number_of_trees, scaling_factor);
   double max_prob = 0.0;
   while (centers.size() < k) {
-    pair<int, unsigned long long_t> best_center_and_improvement(0, 0);
+    pair<int, uint64_t> best_center_and_improvement(0, 0);
     // Number of the times that we successfully sample.
     int number_sampled = 0;
     while (number_sampled < number_greedy_rounds) {
@@ -49,9 +49,9 @@ void RejectionSamplingLSH::RunAlgorithm(const vector<vector<double>>& input,
         max_prob = std::max(prob, max_prob);
       }
       if (static_cast<double>(RandomHandler::eng() /
-                              std::numeric_limits<unsigned long long_t>::max()) > prob)
+                              std::numeric_limits<uint64_t>::max()) > prob)
         continue;
-      unsigned long long_t improvement =
+      uint64_t improvement =
           multi_trees_.ComputeCostAndOpen(next_center, false);
       if (improvement >= best_center_and_improvement.second) {
         best_center_and_improvement.first = next_center;

@@ -44,7 +44,7 @@ void PreProcessInputPoints::RandomShiftSpace(
     int max_coordinate = 0;
     for (int i = 0; i < input_points->size(); i++)
       max_coordinate = max(max_coordinate, (*input_points)[i][j]);
-    unsigned long long_t shift =
+    uint64_t shift =
         fast_k_means::RandomHandler::eng() % max(1, max_coordinate);
     for (int i = 0; i < input_points->size(); i++)
       (*input_points)[i][j] += shift;
