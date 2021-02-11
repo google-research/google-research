@@ -334,7 +334,7 @@ def evaluate(logdir, subset):
           if k % 10 == 0:
             logging.info('Step: %d', (i + k + 1))
           eval_step(data_iterator)
-        except tf.errors.OutOfRangeError:
+        except (StopIteration, tf.errors.OutOfRangeError):
           done = True
           break
       if done:

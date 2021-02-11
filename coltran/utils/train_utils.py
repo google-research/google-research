@@ -62,7 +62,7 @@ def wait_for_checkpoint(observe_dirs, prev_path=None, max_wait=-1):
         return latest_ckpt
     if max_wait > 0 and (time.time() - start_time) > max_wait:
       return None
-    tf.logging.info('Sleeping 60s, waiting for checkpoint.')
+    logging.info('Sleeping 60s, waiting for checkpoint.')
     time.sleep(60)
 
 
@@ -98,15 +98,15 @@ def setup_strategy(config, master, devices_per_worker, mode, accelerator_type):
     cluster = tf.distribute.cluster_resolver.TPUClusterResolver(
         tpu=master)
     tf.config.experimental_connect_to_cluster(cluster)
-    tf.tpu.experimental.initialize_tpu_system(cluster)
+    topology = tf.tpu.experimental.initialize_tpu_system(cluster)
     strategy = tf.distribute.experimental.TPUStrategy(cluster)
-    logging.info('Training on TPUs')
+    num_cores = topology.num_tasks * topology.num_tpus_per_task
   else:
     for gpu in tf.config.experimental.list_physical_devices('GPU'):
       tf.config.experimental.set_memory_growth(gpu, True)
     strategy = None
+    num_cores = devices_per_worker
 
-  num_cores = devices_per_worker
   tpu_batch_size = config.get('eval_batch_size', 0)
   if mode.startswith('train') or not tpu_batch_size:
     tpu_batch_size = config.batch_size
