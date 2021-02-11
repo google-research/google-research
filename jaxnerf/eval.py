@@ -124,10 +124,14 @@ def main(unused_argv):
         summary_writer.scalar("ssim", np.mean(np.array(ssims)), step)
         summary_writer.image("target", showcase_gt, step)
     if FLAGS.save_output and (not FLAGS.render_path) and (jax.host_id() == 0):
-      with utils.open_file(path.join(out_dir, "psnr.txt"), "w") as pout:
-        pout.write("{}".format(np.mean(np.array(psnrs))))
-      with utils.open_file(path.join(out_dir, "ssim.txt"), "w") as pout:
-        pout.write("{}".format(np.mean(np.array(ssims))))
+      with utils.open_file(path.join(out_dir, f"psnrs_{step}.txt"), "w") as f:
+        f.write(" ".join([str(v) for v in psnrs]))
+      with utils.open_file(path.join(out_dir, f"ssims_{step}.txt"), "w") as f:
+        f.write(" ".join([str(v) for v in ssims]))
+      with utils.open_file(path.join(out_dir, "psnr.txt"), "w") as f:
+        f.write("{}".format(np.mean(np.array(psnrs))))
+      with utils.open_file(path.join(out_dir, "ssim.txt"), "w") as f:
+        f.write("{}".format(np.mean(np.array(ssims))))
     if FLAGS.eval_once:
       break
     if int(step) >= FLAGS.max_steps:
