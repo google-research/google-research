@@ -39,43 +39,45 @@ from social_rl.multiagent_tfagents import multigrid_networks
 class MultiagentPPO(tf_agent.TFAgent):
   """A PPO Agent implementing the clipped probability ratios."""
 
-  def __init__(self,
-               time_step_spec,
-               action_spec,
-               # Specific to multi-agent case
-               n_agents,
-               learning_rate=1e-4,
-               # Specific to multi-grid agents
-               actor_fc_layers=(32, 32),
-               value_fc_layers=(32, 32),
-               lstm_size=(128,),
-               conv_filters=8,
-               conv_kernel=3,
-               direction_fc=5,
-               # Modifying agents
-               inactive_agent_ids=None,
-               # PPO Clip agent params
-               importance_ratio_clipping=0.0,
-               lambda_value=0.95,
-               discount_factor=0.99,
-               entropy_regularization=0.05,
-               policy_l2_reg=0.0,
-               value_function_l2_reg=0.0,
-               shared_vars_l2_reg=0.0,
-               value_pred_loss_coef=0.5,
-               num_epochs=25,
-               use_gae=False,
-               use_td_lambda_return=False,
-               normalize_rewards=True,
-               reward_norm_clipping=10.0,
-               normalize_observations=True,
-               log_prob_clipping=0.0,
-               gradient_clipping=None,
-               check_numerics=False,
-               debug_summaries=False,
-               summarize_grads_and_vars=False,
-               train_step_counter=None,
-               name='MultiagentPPO'):
+  def __init__(
+      self,
+      time_step_spec,
+      action_spec,
+      # Specific to multi-agent case
+      n_agents,
+      learning_rate=1e-4,
+      # Specific to multi-grid agents
+      actor_fc_layers=(32, 32),
+      value_fc_layers=(32, 32),
+      lstm_size=(128,),
+      conv_filters=8,
+      conv_kernel=3,
+      direction_fc=5,
+      # Modifying agents
+      inactive_agent_ids=tuple(),
+      non_learning_agents=tuple(),
+      # PPO Clip agent params
+      importance_ratio_clipping=0.0,
+      lambda_value=0.95,
+      discount_factor=0.99,
+      entropy_regularization=0.05,
+      policy_l2_reg=0.0,
+      value_function_l2_reg=0.0,
+      shared_vars_l2_reg=0.0,
+      value_pred_loss_coef=0.5,
+      num_epochs=25,
+      use_gae=False,
+      use_td_lambda_return=False,
+      normalize_rewards=True,
+      reward_norm_clipping=10.0,
+      normalize_observations=True,
+      log_prob_clipping=0.0,
+      gradient_clipping=None,
+      check_numerics=False,
+      debug_summaries=False,
+      summarize_grads_and_vars=False,
+      train_step_counter=None,
+      name='MultiagentPPO'):
     """Creates a centralized controller agent that creates several PPO Agents.
 
     Note that all architecture params apply to each of the sub-agents created.
@@ -94,6 +96,8 @@ class MultiagentPPO(tf_agent.TFAgent):
         direction to the main LSTM.
       inactive_agent_ids: Integer IDs of agents who will not train or act in the
         environment, but will simply return a no-op action.
+      non_learning_agents: Integer IDs of agents who will not train, but still
+        act in the environment.
       importance_ratio_clipping: Epsilon in clipped, surrogate PPO objective.
         For more detail, see explanation at the top of the doc.
       lambda_value: Lambda parameter for TD-lambda computation.
@@ -136,6 +140,7 @@ class MultiagentPPO(tf_agent.TFAgent):
     """
     self.n_agents = n_agents
     self.inactive_agent_ids = inactive_agent_ids
+    self.non_learning_agents = non_learning_agents
 
     # Get single-agent specs
     (single_obs_spec, single_time_step_spec,
@@ -283,7 +288,10 @@ class MultiagentPPO(tf_agent.TFAgent):
     agent_losses = []
     for a in range(self.n_agents):
       # Fixed agents do not train
-      if self.inactive_agent_ids and a in self.inactive_agent_ids:
+      if a in self.inactive_agent_ids:
+        continue
+      if a in self.non_learning_agents:
+        agent_losses.append(tf_agent.LossInfo(loss=0, extra=None))
         continue
 
       agent_experience = self.extract_single_agent_trajectory(a, experience)

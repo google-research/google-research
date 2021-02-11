@@ -87,8 +87,8 @@ flags.DEFINE_integer('conv_filters', 16, '')
 flags.DEFINE_integer('conv_kernel', 3, '')
 flags.DEFINE_integer(
     'direction_fc', 5,
-    'Number of fully-connected neurons connecting the one-hot direction to the main LSTM.'
-)
+    'Number of fully-connected neurons connecting the one-hot'
+    'direction to the main LSTM.')
 flags.DEFINE_integer('actor_fc_layers_size', 32, '')
 flags.DEFINE_integer('value_fc_layers_size', 32, '')
 flags.DEFINE_integer('lstm_size', 256, '')
@@ -96,6 +96,8 @@ flags.DEFINE_integer('lstm_size', 256, '')
 flags.DEFINE_boolean('debug', False, 'Turn on debugging and tf functions off.')
 flags.DEFINE_list('inactive_agent_ids', None,
                   'List of agent IDs to fix and not train')
+flags.DEFINE_integer('random_seed', 0, 'Random seed for policy and env.')
+flags.DEFINE_string('reinit_checkpoint_dir', None, 'Checkpoint for reinit.')
 FLAGS = flags.FLAGS
 
 # Loss value that is considered too high and training will be terminated.
@@ -113,15 +115,15 @@ def train_eval(
     env_load_fn=multiagent_gym_suite.load,
     random_seed=None,
     # Architecture params
-    actor_fc_layers=(32, 32),
-    value_fc_layers=(32, 32),
-    lstm_size=(128,),
-    conv_filters=8,
+    actor_fc_layers=(64, 64),
+    value_fc_layers=(64, 64),
+    lstm_size=(64,),
+    conv_filters=64,
     conv_kernel=3,
     direction_fc=5,
     entropy_regularization=0.,
     # Specialized agents
-    inactive_agent_ids=None,
+    inactive_agent_ids=tuple(),
     # Params for collect
     num_environment_steps=25000000,
     collect_episodes_per_iteration=30,
@@ -143,6 +145,7 @@ def train_eval(
     debug_summaries=True,
     summarize_grads_and_vars=True,
     eval_metrics_callback=None,
+    reinit_checkpoint_dir=None,
     debug=True):
   """A simple train and eval for PPO."""
   tf.compat.v1.enable_v2_behavior()
@@ -154,9 +157,8 @@ def train_eval(
     logging.info('In debug mode, turning tf_functions off')
     use_tf_functions = False
 
-  if inactive_agent_ids:
-    for a in inactive_agent_ids:
-      logging.info('Fixing and not training agent %d', a)
+  for a in inactive_agent_ids:
+    logging.info('Fixing and not training agent %d', a)
 
   # Load multiagent gym environment and determine number of agents
   gym_env = env_load_fn(env_name)
@@ -226,7 +228,6 @@ def train_eval(
         train_step_counter=global_step,
         inactive_agent_ids=inactive_agent_ids)
     tf_agent.initialize()
-
     eval_policy = tf_agent.policy
     collect_policy = tf_agent.collect_policy
 
@@ -237,13 +238,54 @@ def train_eval(
         max_length=replay_buffer_capacity)
     logging.info('RB capacity: %i', replay_buffer.capacity)
 
+    # If reinit_checkpoint_dir is provided, the last agent in the checkpoint is
+    # reinitialized. The other agents are novices.
+    # Otherwise, all agents are reinitialized from train_dir.
+    if reinit_checkpoint_dir:
+      reinit_checkpointer = common.Checkpointer(
+          ckpt_dir=reinit_checkpoint_dir,
+          agent=tf_agent,
+      )
+      reinit_checkpointer.initialize_or_restore()
+      temp_dir = os.path.join(train_dir, 'tmp')
+      agent_checkpointer = common.Checkpointer(
+          ckpt_dir=temp_dir,
+          agent=tf_agent.agents[:-1],
+      )
+      agent_checkpointer.save(global_step=0)
+      tf_agent = multiagent_ppo.MultiagentPPO(
+          tf_env.time_step_spec(),
+          tf_env.action_spec(),
+          n_agents=n_agents,
+          learning_rate=learning_rate,
+          actor_fc_layers=actor_fc_layers,
+          value_fc_layers=value_fc_layers,
+          lstm_size=lstm_size,
+          conv_filters=conv_filters,
+          conv_kernel=conv_kernel,
+          direction_fc=direction_fc,
+          entropy_regularization=entropy_regularization,
+          num_epochs=num_epochs,
+          debug_summaries=debug_summaries,
+          summarize_grads_and_vars=summarize_grads_and_vars,
+          train_step_counter=global_step,
+          inactive_agent_ids=inactive_agent_ids,
+          non_learning_agents=list(range(n_agents - 1)))
+      agent_checkpointer = common.Checkpointer(
+          ckpt_dir=temp_dir, agent=tf_agent.agents[:-1])
+      agent_checkpointer.initialize_or_restore()
+      tf.io.gfile.rmtree(temp_dir)
+      eval_policy = tf_agent.policy
+      collect_policy = tf_agent.collect_policy
+
     train_checkpointer = common.Checkpointer(
         ckpt_dir=train_dir,
         agent=tf_agent,
         global_step=global_step,
         metrics=multiagent_metrics.MultiagentMetricsGroup(
             train_metrics, 'train_metrics'))
-    train_checkpointer.initialize_or_restore()
+    if not reinit_checkpoint_dir:
+      train_checkpointer.initialize_or_restore()
     logging.info('Successfully initialized train checkpointer')
 
     policy_checkpointer = common.Checkpointer(
@@ -386,7 +428,7 @@ def train_eval(
 
 def main(_):
   logging.set_verbosity(logging.INFO)
-  inactive_agent_ids = None
+  inactive_agent_ids = tuple()
   if FLAGS.inactive_agent_ids:
     inactive_agent_ids = [int(fid) for fid in FLAGS.inactive_agent_ids]
   train_eval(
@@ -409,7 +451,9 @@ def main(_):
       conv_kernel=FLAGS.conv_kernel,
       direction_fc=FLAGS.direction_fc,
       debug=FLAGS.debug,
-      inactive_agent_ids=inactive_agent_ids)
+      inactive_agent_ids=inactive_agent_ids,
+      random_seed=FLAGS.random_seed,
+      reinit_checkpoint_dir=FLAGS.reinit_checkpoint_dir)
 
 
 if __name__ == '__main__':
