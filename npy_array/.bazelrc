@@ -1,0 +1,2 @@
+build --cxxopt=-std=c++17 --cxxopt=-stdlib=libc++
+test --cxxopt=-std=c++17 --cxxopt=-stdlib=libc++
