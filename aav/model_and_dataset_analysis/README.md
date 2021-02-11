@@ -7,18 +7,17 @@ Jupyter notebooks that reproduce the paper results:
 * Figure 3 notebook (also includes SI Tables)
 * Figure 4 notebook
 
-Data for reproducing results:
-* AAV2 capsid sequences (allseqs_20191230.csv.zip)
+[Data](https://github.com/alibashir/aav) for reproducing results:
+* AAV2 capsid sequences ([allseqs_20191230.csv.zip](https://github.com/alibashir/aav/blob/main/allseqs_20191230.csv.zip))
   - Capsid packaging assay results for 297k capsid sequences
   - Model training and validation datasets
   - Baseline additive and random datasets
   - Model-designed sequences
   - Model-selected sequences
-* Subsampled model-designed sequence partitions (subsampled.tar.gz)
+* Subsampled model-designed sequence partitions ([subsampled.tar.gz](https://github.com/alibashir/aav/blob/main/subsampled.tar.gz))
   - Used to normalize sequence subset sizes prior to clustering
-* Clustering of all (viable + non-viable) model-designed sequences (clusters.tar.gz)
-* Clustering of viable-only model-designed sequences (viable_clusters.tar.gz)
-
+* Clustering of all (viable + non-viable) model-designed sequences ([clusters.tar.gz](https://github.com/alibashir/aav/blob/main/clusters.tar.gz))
+* Clustering of viable-only model-designed sequences ([viable_clusters.tar.gz](https://github.com/alibashir/aav/blob/main/viable_clusters.tar.gz))
 
 ## Setup Python environment
 
