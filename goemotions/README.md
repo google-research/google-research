@@ -81,18 +81,18 @@ The data we used for training the models includes examples where there is agreem
 
 See each script for more documentation and descriptive command line flags.
 
-*   `python3 -m goemotions.analyze_data`: get high-level statistics of the
+*   `python3 -m analyze_data`: get high-level statistics of the
     data and correlation among emotion ratings.
-*   `python3 -m goemotions.extract_words`: get the words that are significantly
+*   `python3 -m extract_words`: get the words that are significantly
     associated with each emotion, in contrast to the other emotions, based on
     their log odds ratio.
-*   `python3 -m goemotions.ppca`: run PPCA
+*   `python3 -m ppca`: run PPCA
     [(Cowen et al., 2019)](https://www.nature.com/articles/s41562-019-0533-6) on
     the data and generate plots.
 
 ## Training and Evaluating Models
 
-Run `python -m goemotions.bert_classifier` to perform fine-tuning on top of
+Run `python -m bert_classifier` to perform fine-tuning on top of
 BERT, with added regularization. See the script and the paper for detailed
 description of the flags and parameters.
 

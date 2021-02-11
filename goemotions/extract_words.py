@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # coding=utf-8
-# Copyright 2019 The Google Research Authors.
+# Copyright 2021 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -188,6 +188,9 @@ def main(_):
       if c < 11:
         print("%s (%.2f)" % (k, v))
     print("--------")
+
+  if not os.path.isdir(FLAGS.output):
+    os.makedirs(FLAGS.output)
 
   emotion_words_df = pd.DataFrame(dicts)
   emotion_words_df.to_csv(FLAGS.output, index=False, encoding="utf-8")
