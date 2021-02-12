@@ -62,7 +62,6 @@ class StagHuntEnv(multigrid.MultiGridEnv):
                n_plants=2,
                n_clutter=0,
                penalty=1.0,
-               agent_view_size=5,
                max_steps=250,
                **kwargs):
     """Constructor for multi-agent gridworld environment generator.
@@ -74,7 +73,6 @@ class StagHuntEnv(multigrid.MultiGridEnv):
       n_plants: The number of plants in the environment.
       n_clutter: The number of blocking objects in the environment.
       penalty: Penalty for collecting a stag alone.
-      agent_view_size: Unused in this environment.
       max_steps: Number of environment steps before the episode end (max episode
         length).
       **kwargs: See superclass.
@@ -92,7 +90,7 @@ class StagHuntEnv(multigrid.MultiGridEnv):
         grid_size=size,
         max_steps=max_steps,
         n_agents=n_agents,
-        agent_view_size=size,
+        fully_observed=True,
         **kwargs)
     self.metrics = {'good_stag': 0, 'bad_stag': 0, 'plant': 0}
 

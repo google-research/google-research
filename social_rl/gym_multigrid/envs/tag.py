@@ -33,7 +33,6 @@ class TagEnv(multigrid.MultiGridEnv):
                hide_agents=1,
                seek_agents=1,
                n_clutter=25,
-               agent_view_size=5,
                max_steps=250,
                **kwargs):
     """Constructor for multi-agent gridworld environment generator.
@@ -43,7 +42,6 @@ class TagEnv(multigrid.MultiGridEnv):
       hide_agents: The number of agents hiding.
       seek_agents: The number of agents seeking.
       n_clutter: The number of blocking objects in the environment.
-      agent_view_size: Unused in this environment.
       max_steps: Number of environment steps before the episode end (max episode
         length).
       **kwargs: See superclass.
@@ -55,7 +53,7 @@ class TagEnv(multigrid.MultiGridEnv):
         grid_size=size,
         max_steps=max_steps,
         n_agents=hide_agents + seek_agents,
-        agent_view_size=size,
+        fully_observed=True,
         **kwargs)
 
   def _gen_grid(self, width, height):

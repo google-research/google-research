@@ -49,7 +49,6 @@ class CoinGameEnv(multigrid.MultiGridEnv):
                n_goals=3,
                n_clutter=0,
                n_colors=3,
-               agent_view_size=5,
                max_steps=20,
                **kwargs):
     """Constructor for multi-agent gridworld environment generator.
@@ -60,7 +59,6 @@ class CoinGameEnv(multigrid.MultiGridEnv):
       n_goals: The number of coins in the environment.
       n_clutter: The number of blocking objects in the environment.
       n_colors: The number of different coin colors.
-      agent_view_size: Unused in this environment.
       max_steps: Number of environment steps before the episode end (max episode
         length).
       **kwargs: See superclass.
@@ -80,7 +78,7 @@ class CoinGameEnv(multigrid.MultiGridEnv):
         grid_size=size,
         max_steps=max_steps,
         n_agents=n_agents,
-        agent_view_size=size,
+        fully_observed=True,
         **kwargs)
     if self.minigrid_mode:
       self.position_obs_space = gym.spaces.Box(

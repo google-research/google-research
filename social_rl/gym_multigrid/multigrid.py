@@ -334,7 +334,8 @@ class MultiGridEnv(minigrid.MiniGridEnv):
       n_agents=3,
       competitive=False,
       fixed_environment=False,
-      minigrid_mode=False
+      minigrid_mode=False,
+      fully_observed=False
   ):
     """Constructor for multi-agent gridworld environment generator.
 
@@ -358,7 +359,12 @@ class MultiGridEnv(minigrid.MiniGridEnv):
         environment each time.
       minigrid_mode: Set to True to maintain backwards compatibility with
         minigrid in the single agent case.
+      fully_observed: If True, each agent will receive an observation of the
+        full environment state, rather than a partially observed, ego-centric
+        observation.
     """
+    self.fully_observed = fully_observed
+
     # Can't set both grid_size and width/height
     if grid_size:
       assert width is None and height is None
@@ -379,6 +385,8 @@ class MultiGridEnv(minigrid.MiniGridEnv):
 
     # Number of cells (width and height) in the agent view
     self.agent_view_size = agent_view_size
+    if self.fully_observed:
+      self.agent_view_size = grid_size
 
     # Range of possible rewards
     self.reward_range = (0, 1)
@@ -994,10 +1002,16 @@ class MultiGridEnv(minigrid.MiniGridEnv):
     """Generate the stacked observation for all agents."""
     images = []
     dirs = []
+    positions = []
     for a in range(self.n_agents):
-      image, direction = self.gen_agent_obs(a)
+      if self.fully_observed:
+        image = self.grid.encode()
+        direction = self.agent_dir[a]
+      else:
+        image, direction = self.gen_agent_obs(a)
       images.append(image)
       dirs.append(direction)
+      positions.append(self.agent_pos[a])
 
     # Backwards compatibility: if there is a single agent do not return an array
     if self.minigrid_mode:
@@ -1011,6 +1025,8 @@ class MultiGridEnv(minigrid.MiniGridEnv):
         'image': images,
         'direction': dirs
     }
+    if self.fully_observed:
+      obs['positions'] = positions
 
     return obs
 

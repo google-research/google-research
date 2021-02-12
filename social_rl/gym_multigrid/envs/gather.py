@@ -34,7 +34,6 @@ class GatherEnv(multigrid.MultiGridEnv):
                n_clutter=0,
                n_colors=1,
                random_colors=False,
-               agent_view_size=5,
                max_steps=250,
                **kwargs):
     """Constructor for multi-agent gridworld environment generator.
@@ -46,7 +45,6 @@ class GatherEnv(multigrid.MultiGridEnv):
       n_clutter: The number of blocking objects in the environment.
       n_colors: The number of different object colors.
       random_colors: If true, each color has a random number of coins assigned.
-      agent_view_size: Unused in this environment.
       max_steps: Number of environment steps before the episode end (max episode
         length).
       **kwargs: See superclass.
@@ -63,7 +61,7 @@ class GatherEnv(multigrid.MultiGridEnv):
         grid_size=size,
         max_steps=max_steps,
         n_agents=n_agents,
-        agent_view_size=size,
+        fully_observed=True,
         **kwargs)
     self.metrics = {'max_gathered': 0, 'other_gathered': 0}
 

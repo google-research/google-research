@@ -32,7 +32,6 @@ class MeetupEnv(multigrid.MultiGridEnv):
                n_agents=3,
                n_goals=3,
                n_clutter=0,
-               agent_view_size=5,
                max_steps=250,
                **kwargs):
     """Constructor for multi-agent gridworld environment generator.
@@ -42,7 +41,6 @@ class MeetupEnv(multigrid.MultiGridEnv):
       n_agents: The number of agents playing in the world.
       n_goals: The number of goals in the environment.
       n_clutter: The number of blocking objects in the environment.
-      agent_view_size: Unused in this environment.
       max_steps: Number of environment steps before the episode end (max episode
         length).
       **kwargs: See superclass.
@@ -55,9 +53,9 @@ class MeetupEnv(multigrid.MultiGridEnv):
         grid_size=size,
         max_steps=max_steps,
         n_agents=n_agents,
-        agent_view_size=size,
+        fully_observed=True,
         **kwargs)
-    self.metrics['reached_goal'] = 0
+    self.metrics = {'reached_goal': 0}
 
   def reset(self):
     obs = super(MeetupEnv, self).reset()
