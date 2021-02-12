@@ -216,7 +216,7 @@ class Blender(Dataset):
         elif args.factor > 0:
           raise ValueError("Blender dataset only supports factor=0 or 2, {} "
                            "set.".format(args.factor))
-      cams.append(frame["transform_matrix"])
+      cams.append(np.array(frame["transform_matrix"], dtype=np.float32))
       images.append(image)
     self.images = np.stack(images, axis=0)
     if args.white_bkgd:
