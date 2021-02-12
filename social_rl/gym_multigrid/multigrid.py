@@ -424,9 +424,15 @@ class MultiGridEnv(minigrid.MiniGridEnv):
 
     # Observations are dictionaries containing an encoding of the grid and the
     # agent's direction
-    self.observation_space = gym.spaces.Dict(
-        {'image': self.image_obs_space,
-         'direction': self.direction_obs_space})
+    observation_space = {'image': self.image_obs_space,
+                         'direction': self.direction_obs_space}
+    if self.fully_observed:
+      self.position_obs_space = gym.spaces.Box(low=0,
+                                               high=max(width, height),
+                                               shape=(self.n_agents, 2),
+                                               dtype='uint8')
+      observation_space['position'] = self.position_obs_space
+    self.observation_space = gym.spaces.Dict(observation_space)
 
     # Window to use for human rendering mode
     self.window = None
@@ -1026,7 +1032,7 @@ class MultiGridEnv(minigrid.MiniGridEnv):
         'direction': dirs
     }
     if self.fully_observed:
-      obs['positions'] = positions
+      obs['position'] = positions
 
     return obs
 
