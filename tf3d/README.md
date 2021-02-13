@@ -10,7 +10,7 @@ multiple objects in a 3D scene and assigning semantic labels to the scene compon
 <p align="center"><img src="doc/img/tf3d.png" width=676 height=254></p>
 
 Contributions to the codebase are welcome and we would love to hear back from
-you if you find this codebase useful. Finally if you use the TensorFlow 3D for a research publication, please consider citing:
+you if you find this codebase useful. Finally if you use TensorFlow 3D for a research publication, please consider citing:
 
 * <a href='https://arxiv.org/abs/2004.01170' target='_blank'>DOPS: Learning to Detect 3D Objects and Predict their 3D Shapes</a>,
 <em>Mahyar Najibi, Guangda Lai, Abhijit Kundu, Zhichao Lu, Vivek Rathod, Tom Funkhouser, Caroline Pantofaru, David Ross, Larry Davis, Alireza Fathi, CVPR 2020</em>
