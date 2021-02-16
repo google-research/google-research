@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Tests for robust_learning_model."""
+"""Tests for adversarial_reweighting_model."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -25,14 +25,14 @@ import tempfile
 from absl.testing import absltest
 import tensorflow.compat.v1 as tf
 
-from group_agnostic_fairness import robust_learning_model
+from group_agnostic_fairness import adversarial_reweighting_model
 from group_agnostic_fairness.data_utils.uci_adult_input import UCIAdultInput
 
 
-class RobustLearningModelTest(tf.test.TestCase, absltest.TestCase):
+class AdversarialReweightingModelTest(tf.test.TestCase, absltest.TestCase):
 
   def setUp(self):
-    super(RobustLearningModelTest, self).setUp()
+    super(AdversarialReweightingModelTest, self).setUp()
     self.model_dir = tempfile.mkdtemp()
     self.primary_hidden_units = [16, 4]
     self.batch_size = 8
@@ -76,11 +76,11 @@ class RobustLearningModelTest(tf.test.TestCase, absltest.TestCase):
         mode=tf.estimator.ModeKeys.EVAL, batch_size=self.batch_size)
     return train_input_fn, test_input_fn
 
-  def test_eval_results_robust_model(self):
+  def test_eval_results_adversarial_reweighting_model(self):
     config = tf.estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=2)
     feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=True)  # pylint: disable=line-too-long
-    estimator = robust_learning_model.get_estimator(
+    estimator = adversarial_reweighting_model.get_estimator(
         feature_columns=feature_columns,
         label_column_name=label_column_name,
         config=config,
@@ -101,11 +101,11 @@ class RobustLearningModelTest(tf.test.TestCase, absltest.TestCase):
     self.assertIn('tp', eval_results)
     self.assertIn('tn', eval_results)
 
-  def test_global_steps_robust_model(self):
+  def test_global_steps_adversarial_reweighting_model(self):
     config = tf.estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=2)
     feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=True)  # pylint: disable=line-too-long
-    estimator = robust_learning_model.get_estimator(
+    estimator = adversarial_reweighting_model.get_estimator(
         feature_columns=feature_columns,
         label_column_name=label_column_name,
         config=config,
@@ -119,16 +119,17 @@ class RobustLearningModelTest(tf.test.TestCase, absltest.TestCase):
     eval_results = estimator.evaluate(input_fn=test_input_fn,
                                       steps=self.test_steps)
     # Checks if global step has reached specified number of train_steps
-    # # As a artifact of the way train_ops is defined in _RobustEstimator.
+    # # As a artifact of the way train_ops is defined in
+    # _AdversarialReweightingEstimator.
     # # Training stops two steps after the specified number of train_steps.
     self.assertIn('global_step', eval_results)
     self.assertEqual(eval_results['global_step'], self.train_steps+2)
 
-  def test_create_robust_estimator_with_demographics(self):
+  def test_create_adversarial_reweighting_estimator_with_demographics(self):
     config = tf.estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=2)
     feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=True)  # pylint: disable=line-too-long
-    estimator = robust_learning_model.get_estimator(
+    estimator = adversarial_reweighting_model.get_estimator(
         feature_columns=feature_columns,
         label_column_name=label_column_name,
         config=config,
@@ -145,11 +146,11 @@ class RobustLearningModelTest(tf.test.TestCase, absltest.TestCase):
         upweight_positive_instance_only=False)
     self.assertIsInstance(estimator, tf.estimator.Estimator)
 
-  def test_create_robust_estimator_with_hinge_loss(self):
+  def test_create_adversarial_reweighting_estimator_with_hinge_loss(self):
     config = tf.estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=2)
     feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=True)  # pylint: disable=line-too-long
-    estimator = robust_learning_model.get_estimator(
+    estimator = adversarial_reweighting_model.get_estimator(
         feature_columns=feature_columns,
         label_column_name=label_column_name,
         config=config,
@@ -166,11 +167,12 @@ class RobustLearningModelTest(tf.test.TestCase, absltest.TestCase):
         upweight_positive_instance_only=False)
     self.assertIsInstance(estimator, tf.estimator.Estimator)
 
-  def test_create_robust_estimator_with_crossentropy_loss(self):
+  def test_create_adversarial_reweighting_estimator_with_crossentropy_loss(
+      self):
     config = tf.estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=2)
     feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=True)  # pylint: disable=line-too-long
-    estimator = robust_learning_model.get_estimator(
+    estimator = adversarial_reweighting_model.get_estimator(
         feature_columns=feature_columns,
         label_column_name=label_column_name,
         config=config,
@@ -187,11 +189,11 @@ class RobustLearningModelTest(tf.test.TestCase, absltest.TestCase):
         upweight_positive_instance_only=False)
     self.assertIsInstance(estimator, tf.estimator.Estimator)
 
-  def test_create_robust_estimator_without_label(self):
+  def test_create_adversarial_reweighting_estimator_without_label(self):
     config = tf.estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=2)
     feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=True)  # pylint: disable=line-too-long
-    estimator = robust_learning_model.get_estimator(
+    estimator = adversarial_reweighting_model.get_estimator(
         feature_columns=feature_columns,
         label_column_name=label_column_name,
         config=config,
@@ -208,11 +210,11 @@ class RobustLearningModelTest(tf.test.TestCase, absltest.TestCase):
         upweight_positive_instance_only=False)
     self.assertIsInstance(estimator, tf.estimator.Estimator)
 
-  def test_create_robust_estimator_without_demographics(self):
+  def test_create_adversarial_reweighting_estimator_without_demographics(self):
     config = tf.estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=2)
     feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=False)  # pylint: disable=line-too-long
-    estimator = robust_learning_model.get_estimator(
+    estimator = adversarial_reweighting_model.get_estimator(
         feature_columns=feature_columns,
         label_column_name=label_column_name,
         config=config,

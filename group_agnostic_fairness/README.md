@@ -44,7 +44,7 @@ To generate various synthetic datasets used in the paper run './group_agnostic_f
 
 ## Training and Inference
 
-Training and evaluation for the adversarial robust learning model can be run as:
+Training and evaluation for the adversarial reweighting model can be run as:
 
 ```bash
 python -m group_agnostic_fairness/main_trainer
@@ -52,3 +52,25 @@ python -m group_agnostic_fairness/main_trainer
 Refer to the test cases in <model_name>_model_test.py files to understand the workflow.
 
 *Disclaimer: This is not an official Google product.*
+
+## Hyper-parameter Settings
+
+The following hyperparameters were used to generate the results reported in the paper:
+
+| Dataset | Model |	Batch Size | Primary Learning Rate | Adversarial Learning Rate |
+| ---- | ---- | ---- | ---- | ---- |
+| UCI Adult |	Baseline |	256 |	0.01 |	NA |
+| UCI Adult |	Adversarial Reweighting |	512 |	0.01 | 2 |
+| UCI Adult |	IPW(S+Y) |	512 |	0.01 |	NA |
+| UCI Adult |	IPW(S) |	64 |	0.001 |	NA |
+| LAW SCHOOL |	Baseline |	128 |	0.1 |	NA |
+| LAW SCHOOL | Adversarial Reweighting | 256 | 1 | 0.001 |
+| LAW SCHOOL |	IPW(S+Y) |	512 |	0.1 |	NA |
+| LAW SCHOOL |	IPW(S) |	512 |	0.1 |	NA |
+| COMPAS |	Baseline |	512 |	0.01 |	NA |
+| COMPAS |	Adversarial Reweighting |	512 |	0.01 |	0.001 |
+| COMPAS |	IPW(S+Y) |	128 |	0.001 |	NA |
+| COMPAS |	IPW(S) |	64 |	0.001 |	NA |
+
+For the other hyperparameters including train steps, test steps, hidden units,
+etc., the default values as specified in `main_trainer.py` were used.

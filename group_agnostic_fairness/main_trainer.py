@@ -17,14 +17,11 @@
 """Main model trainer from which a number of robust-learning models can be trained.
 
 Currently we support the following robust-learning approaches:
-  - robust_learning: proposed adversarial re-weighting robust learning approach
+  - adversarial_reweighting: proposed adversarial reweighting learning approach.
   - baseline: a simple baseline model, which implements a fully connected
     feedforward network with standard ERM objective.
   - inverse_propensity_weighting: a naive re-weighting baseline using
     inverse_propensity_weighting.
-  - adversarial_subgroup_reweighting: (modified) version of our proposed
-    approach wherein adversary has access only to protected features,
-    and learner has access to all features.
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -38,10 +35,9 @@ from absl import flags
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-from group_agnostic_fairness import adversarial_subgroup_reweighting_model
+from group_agnostic_fairness import adversarial_reweighting_model
 from group_agnostic_fairness import baseline_model
 from group_agnostic_fairness import ips_reweighting_model
-from group_agnostic_fairness import robust_learning_model
 from group_agnostic_fairness.data_utils.compas_input import CompasInput
 from group_agnostic_fairness.data_utils.law_school_input import LawSchoolInput
 from group_agnostic_fairness.data_utils.uci_adult_input import UCIAdultInput
@@ -49,14 +45,14 @@ from group_agnostic_fairness.fairness_metrics import RobustFairnessMetrics
 
 FLAGS = flags.FLAGS
 
-MODEL_KEYS = ["baseline",
-              "inverse_propensity_weighting",
-              "robust_learning",
-              "adversarial_subgroup_reweighting"]
+MODEL_KEYS = [
+    "baseline", "inverse_propensity_weighting", "adversarial_reweighting"
+]
 
 # pylint: disable=line-too-long
 # Flags for creating and running a model
-flags.DEFINE_string("model_name", "robust_learning", "Name of the model to run")
+flags.DEFINE_string("model_name", "adversarial_reweighting",
+                    "Name of the model to run")
 flags.DEFINE_string("base_dir", "/tmp", "Base directory for output.")
 flags.DEFINE_string("model_dir", None, "Model directory for output.")
 flags.DEFINE_string("output_file_name", "results.txt",
@@ -64,9 +60,9 @@ flags.DEFINE_string("output_file_name", "results.txt",
 flags.DEFINE_string("print_dir", None, "directory for tf.print output_stream.")
 
 # Flags for training and evaluation
-flags.DEFINE_integer("train_steps", 20, "Number of training steps.")
-flags.DEFINE_integer("test_steps", 5, "Number of evaluation steps.")
-flags.DEFINE_integer("min_eval_frequency", 100,
+flags.DEFINE_integer("total_train_steps", 1280000, "Number of training steps.")
+flags.DEFINE_integer("test_steps", 1000, "Number of evaluation steps.")
+flags.DEFINE_integer("min_eval_frequency", 1000,
                      "How often (steps) to run evaluation.")
 
 # Flags for loading dataset
@@ -92,17 +88,19 @@ flags.DEFINE_string("optimizer", "Adagrad", "Name of the optimizer to use.")
 flags.DEFINE_string("activation", "relu", "Name of the activation to use.")
 
 # # Flags for approaches that have an adversary
-# # Currently only for ''robust_learning'' Model and ''adversarial_subgroup_reweighting'' Model.
+# # Currently only for ''adversarial_reweighting'' Model.
 flags.DEFINE_multi_integer("adversary_hidden_units", [32],
                            "Hidden layer sizes of adversary.")
 flags.DEFINE_float("adversary_learning_rate", 0.001,
                    "learning rate for adversary.")
 
-# # Flags for robust_learning model
+# # Flags for adversarial_reweighting model
 flags.DEFINE_string("adversary_loss_type", "ce_loss",
                     "Type of adversary loss function to be used. Takes values in [``ce_loss'',''hinge_loss'']. ``ce loss`` stands for cross-entropy loss")
-flags.DEFINE_bool("upweight_positive_instance_only", False,
-                  "Set the flag to weight only positive examples if in adversarial loss. Only used when adversary_loss_type parameter of robust_learning model is set to hinge_loss")
+flags.DEFINE_bool(
+    "upweight_positive_instance_only", False,
+    "Set the flag to weight only positive examples if in adversarial loss. Only used when adversary_loss_type parameter of adversarial_reweighting model is set to hinge_loss"
+)
 flags.DEFINE_bool(
     "adversary_include_label", True,
     "Set the flag to add label as a feature to adversary in the model.")
@@ -121,7 +119,6 @@ tf.logging.set_verbosity(tf.logging.INFO)
 def get_estimator(model_dir,
                   model_name,
                   feature_columns,
-                  protected_groups,
                   label_column_name):
   """Instantiates and returns a model estimator.
 
@@ -131,7 +128,6 @@ def get_estimator(model_dir,
         to continue training a previously saved model.
     model_name: (string) name of the estimator to instantiate.
     feature_columns: list of feature_columns.
-    protected_groups: list of protected_groups. For example, ["sex","race"].
     label_column_name: (string) name of the target variable.
 
   Returns:
@@ -174,20 +170,11 @@ def get_estimator(model_dir,
         hidden_units=FLAGS.primary_hidden_units,
         learning_rate=FLAGS.primary_learning_rate,
         **kwargs)
-  elif model_name == "robust_learning":
-    estimator = robust_learning_model.get_estimator(
+  elif model_name == "adversarial_reweighting":
+    estimator = adversarial_reweighting_model.get_estimator(
         adversary_loss_type=FLAGS.adversary_loss_type,
         adversary_include_label=FLAGS.adversary_include_label,
         upweight_positive_instance_only=FLAGS.upweight_positive_instance_only,
-        pretrain_steps=FLAGS.pretrain_steps,
-        primary_hidden_units=FLAGS.primary_hidden_units,
-        adversary_hidden_units=FLAGS.adversary_hidden_units,
-        primary_learning_rate=FLAGS.primary_learning_rate,
-        adversary_learning_rate=FLAGS.adversary_learning_rate,
-        **kwargs)
-  elif model_name == "adversarial_subgroup_reweighting":
-    estimator = adversarial_subgroup_reweighting_model.get_estimator(
-        protected_column_names=protected_groups,
         pretrain_steps=FLAGS.pretrain_steps,
         primary_hidden_units=FLAGS.primary_hidden_units,
         adversary_hidden_units=FLAGS.adversary_hidden_units,
@@ -232,14 +219,10 @@ def _initialize_model_dir():
                                              FLAGS.reweighting_type,
                                              str(FLAGS.batch_size),
                                              str(FLAGS.primary_learning_rate))
-    elif model_name == "robust_learning":
+    elif model_name == "adversarial_reweighting":
       setting_name = "{}/{}/{}_{}_{}_{}_{}".format(
           FLAGS.dataset, model_name, FLAGS.adversary_loss_type,
           FLAGS.adversary_include_label, str(FLAGS.batch_size),
-          str(FLAGS.primary_learning_rate), str(FLAGS.adversary_learning_rate))
-    elif model_name == "adversarial_subgroup_reweighting":
-      setting_name = "{}/{}/{}_{}_{}".format(
-          FLAGS.dataset, model_name, str(FLAGS.batch_size),
           str(FLAGS.primary_learning_rate), str(FLAGS.adversary_learning_rate))
     elif model_name == "baseline":
       setting_name = "{}/{}/{}_{}".format(
@@ -255,7 +238,8 @@ def _initialize_model_dir():
   # Creates a printing directory. This argument is passed to the "output_steam" option of tf.print".
   # # Each tensorflow variable with a corresponding tf.print op will be saved in a seprate file in the print_dir directory.
   # # If print_dir set to None, no variables are saved to directory.
-  if (FLAGS.print_dir is not None and FLAGS.model_name == "robust_learning"):
+  if (FLAGS.print_dir is not None and
+      FLAGS.model_name == "adversarial_reweighting"):
     print_dir = FLAGS.print_dir
     if tf.gfile.Exists(print_dir):
       tf.gfile.DeleteRecursively(print_dir)
@@ -314,14 +298,15 @@ def run_model():
   # # For example, if the dataset has two (binary) protected_groups. The dataset has 2^2 = 4 subgroups, which we enumerate as [0, 1, 2, 3].
   # # If the  dataset has two protected features ["race","sex"] that are cast as binary features race=["White"(0), "Black"(1)], and sex=["Male"(0), "Female"(1)].
   # # We call their catesian product ["White Male" (00), "White Female" (01), "Black Male"(10), "Black Female"(11)] as subgroups  which are enumerated as [0, 1, 2, 3].
-  subgroups = np.arange(len(protected_groups))
+  subgroups = np.arange(
+      len(protected_groups) *
+      2)  # Assumes each protected_group has two possible values.
 
   # Instantiates tf.estimator.Estimator object
   estimator = get_estimator(
       model_dir,
       model_name,
       feature_columns=feature_columns,
-      protected_groups=protected_groups,
       label_column_name=label_column_name)
 
   # Adds additional fairness metrics
@@ -334,8 +319,9 @@ def run_model():
   estimator = tf.estimator.add_metrics(estimator, eval_metrics_fn)
 
   # Creates training and evaluation specifications
+  train_steps = int(FLAGS.total_train_steps / FLAGS.batch_size)
   train_spec = tf.estimator.TrainSpec(
-      input_fn=train_input_fn, max_steps=FLAGS.train_steps)
+      input_fn=train_input_fn, max_steps=train_steps)
   eval_spec = tf.estimator.EvalSpec(
       input_fn=test_input_fn, steps=FLAGS.test_steps)
 

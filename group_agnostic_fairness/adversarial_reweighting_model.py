@@ -15,7 +15,7 @@
 
 # Lint as: python3
 # pylint: disable=dangerous-default-value
-"""A custom estimator for adversarial robust learning."""
+"""A custom estimator for adversarial reweighting model."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -27,12 +27,13 @@ from tensorflow.contrib import layers as contrib_layers
 from tensorflow.contrib import metrics as contrib_metrics
 
 
-class _RobustModel():
-  """TensorFlow RobustModel base class.
+class _AdversarialReweightingModel():
+  """TensorFlow AdversarialReweightingModel base class.
 
-  RobustModel class can be used to define a robust estimator.
+  AdversarialReweightingModel class can be used to define an adversarial
+  reweighting estimator.
 
-  Robust estimator can be used to train a robust model with two DNNs:
+  Adversarial reweighting estimator can be used to train a model with two DNNs:
   A primary DNN that trains for the main task.
   A adversarial DNN that aims to assign weights to examples based on the
   primary's example loss.
@@ -59,21 +60,21 @@ class _RobustModel():
       upweight_positive_instance_only=False,
       pretrain_steps=5000
       ):
-    """Initializes a robust estimator.
+    """Initializes an adversarial reweighting estimator.
 
     Args:
       feature_columns: list of feature_columns.
       label_column_name: (string) name of the target variable.
       config: `RunConfig` object to configure the runtime settings.
       model_dir: Directory to save model parameters, graph and etc. This can
-        also be used to load checkpoints from the directory into an estimator
-        to continue training a previously saved model.
+        also be used to load checkpoints from the directory into an estimator to
+        continue training a previously saved model.
       primary_hidden_units: List with number of hidden units per layer for the
-        shared bottom.  All layers are fully connected.
-        Ex. `[64, 32]` means first layer has 64 nodes and second one has 32.
+        shared bottom.  All layers are fully connected. Ex. `[64, 32]` means
+        first layer has 64 nodes and second one has 32.
       adversary_hidden_units: List with number of hidden units per layer for the
-        shared bottom.  All layers are fully connected.
-        Ex. `[32]` means first layer has 32 nodes.
+        shared bottom.  All layers are fully connected. Ex. `[32]` means first
+        layer has 32 nodes.
       batch_size: (int) batch size.
       primary_learning_rate: learning rate of primary DNN.
       adversary_learning_rate: learning rate of adversary DNN.
@@ -241,7 +242,7 @@ class _RobustModel():
     """Method that gets a model_fn for creating an `Estimator` Object."""
 
     def model_fn(features, labels, mode):
-      """robustModel model_fn.
+      """AdversarialReweightingModel model_fn.
 
       Args:
         features: `Tensor` or `dict` of `Tensor`.
@@ -398,13 +399,13 @@ class _RobustModel():
     return model_fn
 
 
-class _RobustEstimator(tf.estimator.Estimator):
+class _AdversarialReweightingEstimator(tf.estimator.Estimator):
   """An estimator based on the core estimator."""
 
   def __init__(self, *args, **kwargs):
     """Initializes the estimator."""
-    self.model = _RobustModel(*args, **kwargs)
-    super(_RobustEstimator, self).__init__(
+    self.model = _AdversarialReweightingModel(*args, **kwargs)
+    super(_AdversarialReweightingEstimator, self).__init__(
         model_fn=self.model._get_model_fn(),  # pylint: disable=protected-access
         model_dir=self.model._model_dir,  # pylint: disable=protected-access
         config=self.model._config  # pylint: disable=protected-access
@@ -412,4 +413,4 @@ class _RobustEstimator(tf.estimator.Estimator):
 
 
 def get_estimator(*args, **kwargs):
-  return _RobustEstimator(*args, **kwargs)
+  return _AdversarialReweightingEstimator(*args, **kwargs)

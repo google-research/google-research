@@ -40,12 +40,12 @@ def run_experiment(model_name, dataset):
   FLAGS.train_file = [os.path.join(os.path.dirname(__file__), 'data/toy_data/train.csv')]
   FLAGS.test_file = [os.path.join(os.path.dirname(__file__), 'data/toy_data/test.csv')]
   FLAGS.dataset = dataset
-  FLAGS.primary_hidden_units = [16, 4]
-  FLAGS.adversary_hidden_units = [4]
-  FLAGS.batch_size = 8
+  FLAGS.primary_hidden_units = [4, 2]
+  FLAGS.adversary_hidden_units = [2]
+  FLAGS.batch_size = 2
   FLAGS.base_dir = tempfile.mkdtemp()
-  FLAGS.train_steps = 10
-  FLAGS.test_steps = 10
+  FLAGS.total_train_steps = 8
+  FLAGS.test_steps = 4
   main_trainer.run_model()
 
 
@@ -62,22 +62,23 @@ class RunModelTest(tf.test.TestCase, absltest.TestCase):
     self._dataset = 'uci_adult'
     run_experiment(model_name=self._model_name, dataset=self._dataset)
 
-  # Test cases for whole training on various settings of robust learning model
-  def test_run_robust_learning_model_with_demographics(self):
-    """Tests if robust_learning_model training can run end-to-end."""
-    self._model_name = 'robust_learning'
+  # Test cases for whole training on various settings of adversarial reweighting
+  # model.
+  def test_run_adversarial_reweighting_model_with_demographics(self):
+    """Tests if adversarial_reweighting_model training can run end-to-end."""
+    self._model_name = 'adversarial_reweighting'
     FLAGS.include_sensitive_columns = True
     run_experiment(model_name=self._model_name, dataset=self._dataset)
 
-  def test_run_robust_learning_model_without_demographics(self):
-    """Tests if robust_learning_model training can run end-to-end."""
-    self._model_name = 'robust_learning'
+  def test_run_adversarial_reweighting_model_without_demographics(self):
+    """Tests if adversarial_reweighting_model training can run end-to-end."""
+    self._model_name = 'adversarial_reweighting'
     FLAGS.include_sensitive_columns = False
     run_experiment(model_name=self._model_name, dataset=self._dataset)
 
-  def test_run_robust_learning_model_with_label(self):
-    """Tests if robust_learning_model training can run end-to-end."""
-    self._model_name = 'robust_learning'
+  def test_run_adversarial_reweighting_model_with_label(self):
+    """Tests if adversarial_reweighting_model training can run end-to-end."""
+    self._model_name = 'adversarial_reweighting'
     FLAGS.adversary_include_label = True
     run_experiment(model_name=self._model_name, dataset=self._dataset)
 
@@ -99,26 +100,12 @@ class RunModelTest(tf.test.TestCase, absltest.TestCase):
     FLAGS.reweighting_type = 'IPS_with_label'
     run_experiment(model_name=self._model_name, dataset=self._dataset)
 
-  def test_run_adversarial_subgroup_reweighting_model(self):
-    """Tests if adversarial_subgroup_reweighting model training can run end-to-end."""
-    self._model_name = 'adversarial_subgroup_reweighting'
-    FLAGS.include_sensitive_columns = True
-    run_experiment(model_name=self._model_name, dataset=self._dataset)
-
-  # Test cases that break various robust learning models due to incompatable flag settings
+  # Test cases that break various models due to incompatable flag settings
   def test_run_ips_model_on_not_implemented_weighing_scheme(self):
     """Tests if inverse_propensity_weighting model training can run end-to-end."""
     with self.assertRaises(ValueError):
       self._model_name = 'inverse_propensity_weighting'
       FLAGS.reweighting_type = 'not_implemented'
-      run_experiment(model_name=self._model_name, dataset=self._dataset)
-
-  def test_run_adversarial_subgroup_reweighting_without_protected_features(
-      self):
-    """Shoud raise ValueError as protected_columns are not included."""
-    with self.assertRaises(ValueError):
-      self._model_name = 'adversarial_subgroup_reweighting'
-      FLAGS.include_sensitive_columns = False
       run_experiment(model_name=self._model_name, dataset=self._dataset)
 
   def test_run_not_implemented_model(self):
