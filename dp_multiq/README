@@ -1,0 +1,18 @@
+First download the Goodreads dataset from Kaggle:
+https://www.kaggle.com/jealousleopard/goodreadsbooks.
+Save it as "books.csv" in this directory. Then use
+
+> cd ..
+> python -m dp_multiq.run_experiment
+
+to run a small number of trials for each of the four data regimes described in
+the paper. This will produce and save plots with names eps_1_error_[data].png
+and eps_1_times_[data].png.
+
+To fully replicate the experiments from the paper, change the default parameters
+in the experiment() function to
+
+num_samples=1000
+num_quantiles_range=range(1, 30)
+est_num_trials=20
+ts_num_trials=5
