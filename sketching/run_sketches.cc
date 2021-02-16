@@ -27,6 +27,7 @@
 #include <gflags/gflags.h>
 
 #include "absl/algorithm/container.h"
+#include "absl/flags/flag.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/str_format.h"
 #include "countmin.h"
@@ -83,7 +84,7 @@ void TestSketch(float threshold, const std::vector<IntFloatPair>& data,
   stats->size = sketch->Size();
   double error_sum = 0;
   double error_sq_sum = 0;
-  uint stream_range = 1 << FLAGS_lg_stream_range;
+  uint stream_range = 1 << absl::GetFlag(FLAGS_lg_stream_range);
   start = std::chrono::high_resolution_clock::now();
   for (int i = 0; i < stream_range; ++i) {
     float err = sketch->Estimate(i) - counts[i];
@@ -138,116 +139,124 @@ int DetermineSketchParam(uint max_sketch_size,
 }
 
 void TestCounts() {
-  auto [data, counts] =
-      CreateStream(FLAGS_stream_size, FLAGS_lg_stream_range, FLAGS_zipf_param);
-  const float threshold = FLAGS_epsilon * FLAGS_stream_size + 1e-6;
+  auto [data, counts] = CreateStream(absl::GetFlag(FLAGS_stream_size),
+                                     absl::GetFlag(FLAGS_lg_stream_range),
+                                     absl::GetFlag(FLAGS_zipf_param));
+  const float threshold =
+      absl::GetFlag(FLAGS_epsilon) * absl::GetFlag(FLAGS_stream_size) + 1e-6;
   int heavy_hitters = absl::c_count_if(counts, [&](float c) {
     return c > threshold;
   });
-  absl::PrintF("\nStream size: %d, Stream range: 2^%d\n", FLAGS_stream_size,
-               FLAGS_lg_stream_range);
+  absl::PrintF("\nStream size: %d, Stream range: 2^%d\n",
+               absl::GetFlag(FLAGS_stream_size),
+               absl::GetFlag(FLAGS_lg_stream_range));
   absl::PrintF("There were %d elements above threshold %0.2f, for e = %f\n\n",
-               heavy_hitters, FLAGS_epsilon * FLAGS_stream_size, FLAGS_epsilon);
+               heavy_hitters,
+               absl::GetFlag(FLAGS_epsilon) * absl::GetFlag(FLAGS_stream_size),
+               absl::GetFlag(FLAGS_epsilon));
 
   std::vector<std::pair<std::string, std::unique_ptr<Sketch>>> sketches;
 
   const uint cm_hash_size = DetermineSketchParam(
-      FLAGS_sketch_size,
-      [](uint val) -> uint {
-        return CountMin(FLAGS_hash_count, val).Size();
+      absl::GetFlag(FLAGS_sketch_size), [](uint val) -> uint {
+        return CountMin(absl::GetFlag(FLAGS_hash_count), val).Size();
       });
   std::cout << "CM params: hash_size " << cm_hash_size << std::endl;
   sketches.emplace_back(
       "CM", absl::make_unique<CountMin>(
-          CountMin(FLAGS_hash_count, cm_hash_size)));
+                CountMin(absl::GetFlag(FLAGS_hash_count), cm_hash_size)));
 
   const uint cmcu_hash_size = DetermineSketchParam(
-      FLAGS_sketch_size,
-      [](uint val) -> uint {
-        return CountMinCU(FLAGS_hash_count, val).Size();
+      absl::GetFlag(FLAGS_sketch_size), [](uint val) -> uint {
+        return CountMinCU(absl::GetFlag(FLAGS_hash_count), val).Size();
       });
   std::cout << "CM_CU params: hash_size " << cmcu_hash_size << std::endl;
-  sketches.emplace_back(
-      "CM_CU", absl::make_unique<CountMinCU>(
-          CountMinCU(FLAGS_hash_count, cmcu_hash_size)));
+  sketches.emplace_back("CM_CU",
+                        absl::make_unique<CountMinCU>(CountMinCU(
+                            absl::GetFlag(FLAGS_hash_count), cmcu_hash_size)));
 
   const uint cmh_hash_size = DetermineSketchParam(
-      FLAGS_sketch_size,
-      [](uint val) -> uint {
-        return CountMinHierarchical(FLAGS_hash_count, val,
-                                    FLAGS_lg_stream_range).Size();
+      absl::GetFlag(FLAGS_sketch_size), [](uint val) -> uint {
+        return CountMinHierarchical(absl::GetFlag(FLAGS_hash_count), val,
+                                    absl::GetFlag(FLAGS_lg_stream_range))
+            .Size();
       });
   std::cout << "CMH params: hash_size " << cmh_hash_size << std::endl;
   sketches.emplace_back(
       "CMH", absl::make_unique<CountMinHierarchical>(CountMinHierarchical(
-          FLAGS_hash_count, cmh_hash_size, FLAGS_lg_stream_range)));
+                 absl::GetFlag(FLAGS_hash_count), cmh_hash_size,
+                 absl::GetFlag(FLAGS_lg_stream_range))));
 
   const uint cmhcu_hash_size = DetermineSketchParam(
-      FLAGS_sketch_size,
-      [](uint val) -> uint {
-        return CountMinHierarchicalCU(FLAGS_hash_count, val,
-                                      FLAGS_lg_stream_range).Size();
+      absl::GetFlag(FLAGS_sketch_size), [](uint val) -> uint {
+        return CountMinHierarchicalCU(absl::GetFlag(FLAGS_hash_count), val,
+                                      absl::GetFlag(FLAGS_lg_stream_range))
+            .Size();
       });
   std::cout << "CMH_CU params: hash_size " << cmhcu_hash_size << std::endl;
   sketches.emplace_back(
-      "CMH_CU", absl::make_unique<CountMinHierarchicalCU>(
-          CountMinHierarchicalCU(
-              FLAGS_hash_count, cmhcu_hash_size, FLAGS_lg_stream_range)));
+      "CMH_CU",
+      absl::make_unique<CountMinHierarchicalCU>(CountMinHierarchicalCU(
+          absl::GetFlag(FLAGS_hash_count), cmhcu_hash_size,
+          absl::GetFlag(FLAGS_lg_stream_range))));
 
   const uint fb_hash_size = DetermineSketchParam(
-      static_cast<uint>(FLAGS_sketch_size * FLAGS_fallback_fraction),
+      static_cast<uint>(absl::GetFlag(FLAGS_sketch_size) *
+                        absl::GetFlag(FLAGS_fallback_fraction)),
       [](uint val) -> uint {
-        return CountMinCU(FLAGS_hash_count, val).Size();
+        return CountMinCU(absl::GetFlag(FLAGS_hash_count), val).Size();
       });
 
   const uint lc_window = DetermineSketchParam(
-      FLAGS_sketch_size,
+      absl::GetFlag(FLAGS_sketch_size),
       [](uint val) -> uint { return LossyCount(val).Size(); });
   std::cout << "LC params: window_size " << lc_window << std::endl;
   sketches.emplace_back(
       "LC", absl::make_unique<LossyCount>(LossyCount(lc_window)));
 
   const uint lcfb_window = DetermineSketchParam(
-      FLAGS_sketch_size,
-      [fb_hash_size](uint val) -> uint {
-        return LossyCountFallback(val, FLAGS_hash_count,
-                                   fb_hash_size).Size();
+      absl::GetFlag(FLAGS_sketch_size), [fb_hash_size](uint val) -> uint {
+        return LossyCountFallback(val, absl::GetFlag(FLAGS_hash_count),
+                                  fb_hash_size)
+            .Size();
       });
   std::cout << "LC_FB params: window_size " << lcfb_window
             << " fallback_hashsize " << fb_hash_size << std::endl;
   sketches.emplace_back(
       "LC_FB",
       absl::make_unique<LossyCountFallback>(LossyCountFallback(
-          lcfb_window, FLAGS_hash_count, fb_hash_size)));
+          lcfb_window, absl::GetFlag(FLAGS_hash_count), fb_hash_size)));
 
   const uint lw_size = DetermineSketchParam(
-      FLAGS_sketch_size,
-      [fb_hash_size](uint val) -> uint {
-        return LossyWeight(val, FLAGS_hash_count, fb_hash_size).Size();
+      absl::GetFlag(FLAGS_sketch_size), [fb_hash_size](uint val) -> uint {
+        return LossyWeight(val, absl::GetFlag(FLAGS_hash_count), fb_hash_size)
+            .Size();
       });
   std::cout << "LW params: storage_size " << lw_size
             << " fallback_hashsize " << fb_hash_size << std::endl;
   sketches.emplace_back(
       "LW", absl::make_unique<LossyWeight>(LossyWeight(
-          lw_size, FLAGS_hash_count, fb_hash_size)));
+                lw_size, absl::GetFlag(FLAGS_hash_count), fb_hash_size)));
 
   const uint freq_size = DetermineSketchParam(
-      FLAGS_sketch_size,
+      absl::GetFlag(FLAGS_sketch_size),
       [](uint val) -> uint { return Frequent(val).Size(); });
   std::cout << "Freq params: store_size " << freq_size << std::endl;
   sketches.emplace_back(
       "Freq", absl::make_unique<Frequent>(Frequent(freq_size)));
 
   const uint freqfb_size = DetermineSketchParam(
-      FLAGS_sketch_size,
-      [fb_hash_size](uint val) -> uint {
-        return FrequentFallback(val, FLAGS_hash_count, fb_hash_size).Size();
+      absl::GetFlag(FLAGS_sketch_size), [fb_hash_size](uint val) -> uint {
+        return FrequentFallback(val, absl::GetFlag(FLAGS_hash_count),
+                                fb_hash_size)
+            .Size();
       });
   std::cout << "Freq_FB params: store_size " << freqfb_size
             << " fallback_hashsize " << fb_hash_size << std::endl;
   sketches.emplace_back(
-      "Freq_FB", absl::make_unique<FrequentFallback>(FrequentFallback(
-      freqfb_size, FLAGS_hash_count, fb_hash_size)));
+      "Freq_FB",
+      absl::make_unique<FrequentFallback>(FrequentFallback(
+          freqfb_size, absl::GetFlag(FLAGS_hash_count), fb_hash_size)));
 
   std::cout << std::endl;
   std::vector<SketchStats> sketch_stats;

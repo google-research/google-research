@@ -33,6 +33,7 @@
 #include <gflags/gflags.h>
 
 #include "glog/logging.h"
+#include "absl/flags/flag.h"
 #include "third_party/sumo/sumo_1_6_0/src/libsumo/Simulation.h"
 #include "third_party/sumo/sumo_1_6_0/src/libsumo/Vehicle.h"
 
@@ -45,7 +46,7 @@ DEFINE_int64(num_steps, 0, "Number of steps.");
 namespace research {
 namespace simulation {
 int Main(int argc, char** argv) {
-  std::vector<std::string> args = {FLAGS_config_file};
+  std::vector<std::string> args = {absl::GetFlag(FLAGS_config_file)};
   // The following line will crash (throw an exception) if the args are invalid.
   libsumo::Simulation::load(args);
 
@@ -55,7 +56,7 @@ int Main(int argc, char** argv) {
   // Second, we call the Vehicle API directly without a subscription to retrieve
   // current vehicles and their speeds.
   libsumo::Simulation::subscribe({0x7a}, 0, 10000);
-  for (int i = 0; i < FLAGS_num_steps; ++i) {
+  for (int i = 0; i < absl::GetFlag(FLAGS_num_steps); ++i) {
     libsumo::Simulation::step();
     const auto results = libsumo::Simulation::getSubscriptionResults();
     for (const auto& pair : results) {
