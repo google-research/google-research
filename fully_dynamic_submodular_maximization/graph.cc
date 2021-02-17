@@ -35,7 +35,7 @@ Graph::Graph(const std::string& name) : name_(name) {
   // but this breaks a crucial line in getGraph.
 
   // Update this part with the file name.
-  static const  unordered_map<std::string, std::string> name_to_filename =
+  static const absl::node_hash_map<std::string, std::string> name_to_filename =
       {{"amazon", "../datasets/amazon/graph-relabeled-big-amazon.txt"},
        {"enron", "../datasets/enron/Email-Enron.txt"},
        {"twitter", "../datasets/twitter/graph-relabel-twitter.txt"},
