@@ -26,8 +26,8 @@
 #include "graph.h"
 
 #include "absl/container/node_hash_map.h"
+#include "absl/container/node_hash_set.h"
 
-using std::unordered_set;
 using std::vector;
 
 Graph::Graph(const std::string& name) : name_(name) {
