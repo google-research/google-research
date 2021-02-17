@@ -1,0 +1,3 @@
+numpy>=1.16.4
+jax>=0.2.7
+tensorflow>=2.3.1
