@@ -1,0 +1,4 @@
+tf-nightly==2.5.0.dev20210114
+tensorflow-text==2.4.3
+frozendict==1.2
+tf-models-official==2.4.0
