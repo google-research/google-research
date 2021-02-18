@@ -255,7 +255,7 @@ def temperature_sample(prompt,
                                  sampling_loop_init_state)
   else:
     final_state = sampling_loop_init_state
-    while sampling_loop_cond_fn:
+    while sampling_loop_cond_fn(final_state):
       final_state = sampling_loop_body_fn(final_state)
 
   final_sequences = final_state[1]
