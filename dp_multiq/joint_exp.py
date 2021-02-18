@@ -83,7 +83,7 @@ def compute_log_phi(data_intervals, qs, eps, swap):
                                                                 np.newaxis]
   # Compute log_phi[i1, i2, j] for j = num_quantiles.
   diffs = np.abs(
-      np.arange(num_data_intervals, 0, -1) -
+      np.arange(original_data_size, -1, -1) -
       ((1 - qs[-1]) * original_data_size))
   log_phi[:, -1, num_quantiles] = eps_term * diffs
   return log_phi
