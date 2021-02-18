@@ -27,8 +27,8 @@ import tensorflow.compat.v1 as tf
 from graph_compression.compression_lib import compression_op
 from graph_compression.compression_lib import decompose_matrix
 from graph_compression.compression_lib import kmeans_quantize
+from model_pruning.python import hparam
 from model_pruning.python import pruning
-from tensorflow.contrib.training.python.training import hparam
 
 
 class SimhashMatrixCompressor(compression_op.LowRankDecompMatrixCompressor):

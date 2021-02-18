@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 # pylint: disable=unused-import
+from model_pruning.python.hparam import HParams
 from model_pruning.python.layers.rnn_cells import MaskedBasicLSTMCell
 from model_pruning.python.layers.rnn_cells import MaskedLSTMCell
 from model_pruning.python.pruning import apply_mask
