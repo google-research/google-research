@@ -28,6 +28,7 @@
 #include "absl/container/node_hash_map.h"
 #include "absl/container/node_hash_set.h"
 
+using std::unordered_set;
 using std::vector;
 
 Graph::Graph(const std::string& name) : name_(name) {
@@ -35,7 +36,7 @@ Graph::Graph(const std::string& name) : name_(name) {
   // but this breaks a crucial line in getGraph.
 
   // Update this part with the file name.
-  static const absl::node_hash_map<std::string, std::string> name_to_filename =
+  static const  unordered_map<std::string, std::string> name_to_filename =
       {{"amazon", "../datasets/amazon/graph-relabeled-big-amazon.txt"},
        {"enron", "../datasets/enron/Email-Enron.txt"},
        {"twitter", "../datasets/twitter/graph-relabel-twitter.txt"},
@@ -59,7 +60,7 @@ Graph::Graph(const std::string& name) : name_(name) {
   numEdges_ = 0;
   const bool is_dblp = (name_ == "dblp");
   int64_t first_endpoint, second_endpoint;
-  unordered_set<int> leftVertices, rightVertices;
+  absl::node_hash_set<int> leftVertices, rightVertices;
   while (input >> first_endpoint >> second_endpoint) {
     if (!renumber.count(first_endpoint)) {
       renumber[first_endpoint] = numVertices_;
