@@ -83,18 +83,7 @@ be included in the report.
 ## Usage
 -  Ensure that your TFEvent files are saved in a directory in one of the following structures:
 
-### All TFEvents files stored in top-level directory
-```bash
-├── <model_dir>
-│   ├── events.out.tfevents.[...]
-│   ├── events.out.tfevents.[...]
-│   ├── events.out.tfevents.[...]
-│   ├── ...
-│   └── other files or dirs, non tfevent files will be ignored.
-
-```
-
-### OR: Subdirectories for each dataset
+### A: Subdirectories for each dataset
 ```bash
 ├── <model_dir>
 │   ├── <train_ds_dir>
@@ -112,6 +101,17 @@ be included in the report.
 
 ```
 
+### B: All TFEvents files stored in top-level directory
+```bash
+├── <model_dir>
+│   ├── events.out.tfevents.[...]
+│   ├── events.out.tfevents.[...]
+│   ├── events.out.tfevents.[...]
+│   ├── ...
+│   └── other files or dirs, non tfevent files will be ignored.
+
+```
+
 ### Report Creation
 
 After training has completed, call `report_utils.create_end_of_training_report()`.
@@ -124,7 +124,7 @@ Please refer to the docstrings for more details on the arguments.
     This can be useful when you modify your model / data during training, and you only
     want to consider the model after some modification (e.g. quantization).
 
-    The following example command simulates early stopping based on when the `loss`
+    The following example A command simulates early stopping based on when the `loss`
     (`early_stop_attr='loss'`) in the `eval_ds1` subdirectory (`early_stop_ds_dir='eval_ds1'`) is minimized (`early_stop_agg=report_utils.MinOrMax.MIN`), considering only steps after 20000 (`start_step=20000`).
 
 -   **Tags to include:** When you use the tensorflow summary writer, you can save values
@@ -143,6 +143,7 @@ Please refer to the docstrings for more details on the arguments.
 -   **Additional experiment details:** Optionally, you can include experiment_name,
     user_name, launch_time, tensorboard_id in your report.
 
+### Example A: If your TfEvent files are stored in subdirectories corresponding to different datasets
 
 ```python
 report = report_utils.create_end_of_training_report_oss(
@@ -203,6 +204,62 @@ The resulting report dataclass would look like this:
                                   'loss': 1.590
                                   'l2_loss':5.122},
                          }
+ 'user_name': 'lisa'}
+
+```
+
+### Example B: if your TFEvent files are stored in top-level model_dir, without sub-directories
+```python
+report = report_utils.create_end_of_training_report_oss(
+            model_dir='/lisa/test_experiment',
+            early_stop_attr='eval1_loss',
+            early_stop_agg=report_utils.MinOrMax.MIN,
+            tags_to_include=['train_loss', 'train_acc', 'eval1_loss', 'eval1_acc'],
+            smoothing_kernel=report_utils.SmoothingKernel.TRIANGULAR,
+            eval_freq=1087,
+            window_size_in_steps=6000,
+            start_step=20000,
+            num_train_steps=200000,
+            experiment_name='test_experiment',
+            user_name='lisa',
+            launch_time='20210216T071237'.
+            tensorboard_id='<tensorboard_dev_url>'
+         )
+```
+
+The resulting report dataclass would look like this:
+
+```
+{
+ 'early_stop_step': 179355,
+ 'eval_freq': 1087,
+ 'experiment_name': 'test_experiment',
+ 'first_nan_step': None,
+ 'launch_time': '20210216T071237',
+ 'model_dir': '/lisa/test_experiment',
+ 'num_train_steps': 200000,
+ 'report_query_args': {'early_stop_agg': 'MIN',
+                       'early_stop_attr': 'eval1_loss',
+                       'early_stop_ds_dir': None,
+                       'other_ds_dirs': None,
+                       'smoothing_kernel': 'TRIANGULAR',
+                       'start_step': 20000,
+                       'tags_to_include': ['train_loss',
+                                           'train_acc',
+                                           'eval1_loss',
+                                           'eval1_acc'],
+                       'window_size_in_steps': 6000},
+ 'tensorboard_id': '8773780292699030478',
+ 'metrics': {'eval1_loss': 1.387,
+             'eval1_acc': 0.576,
+             'train_loss': 1.591,
+             'train_acc': 0.624
+             }
+ 'unsmoothed_metrics': {'eval1_loss': 1.390,
+                        'eval1_acc': 0.675,
+                        'train_loss': 1.590,
+                        'train_acc': 0.625
+                       }
  'user_name': 'lisa'}
 
 ```
