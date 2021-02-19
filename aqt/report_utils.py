@@ -22,6 +22,7 @@ import enum
 import functools
 import json
 import os
+import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import dataclasses
@@ -168,7 +169,7 @@ class ExperimentReport:
   # Human-readable experiment name.
   experiment_name: Optional[str] = None
 
-  # Name or LDAP of user who launched the experiment.
+  # Name of user who launched the experiment.
   user_name: Optional[str] = None
 
   # When experiment was launched, formatted as '%Y%m%dT%H%M%S'.

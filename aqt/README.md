@@ -1,5 +1,7 @@
 # Accurate Quantized Training
-======================================================================================
+
+This directory contains libraries we have written for running and analyzing
+neural network quantization experiments.
 
 ## Installation
 ```
@@ -21,6 +23,7 @@ pip install --user -r aqt/requirements.txt
 After a training run has completed, the reporting tool in
 `report_utils.py` allows you to generate a concise experiment report with aggregated metrics,
 and metadata. It parses TFEvent files saved during training e.g. via `tf.summary.SummaryWriter` and simulates early stopping.
+The logic to parse TFEvent files directly is implemented in `tfevent_utils.py`.
 
 ### Main Features
 
@@ -31,7 +34,7 @@ and metadata. It parses TFEvent files saved during training e.g. via `tf.summary
   tables/dataframes for comparing experiments at scale.
 
 -   **Lightweight:** Gathers raw metrics directly from TFEvents files written to
-    a directory during training. (TFEvent file parsing is implemented in `tfevent_utils.py`).
+    a directory during training.
 
 -   **Fast scalable analysis:** Since reports are usually generated at the end
     of training, loading existing reports is fast and no aggregation needs to be
@@ -91,7 +94,7 @@ be included in the report.
 
 ```
 
-#### OR: Subdirectories for each dataset
+### OR: Subdirectories for each dataset
 ```bash
 ├── <model_dir>
 │   ├── <train_ds_dir>
