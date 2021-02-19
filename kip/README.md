@@ -1,7 +1,7 @@
 # Dataset Metalearning from Kernel Ridge-Regression
 
 ## Overview
-This directory contains the publicly available [Colab Notebook](https://colab.research.google.com/github/google-research/google-research/blob/master/kip/KIP_open_source.ipynb) for the paper
+This directory contains the publicly available [Colab Notebook](https://colab.research.google.com/github/google-research/google-research/blob/master/kip/KIP.ipynb) for the paper
 
 [**Dataset Metalearning from Kernel Ridge-Regression**](https://arxiv.org/abs/2011.00050)
 
