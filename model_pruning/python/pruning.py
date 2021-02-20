@@ -479,6 +479,7 @@ def get_pruning_hparams():
       run_update_interval_check=1,
       pruning_fraction=0.4,
       use_collection=True,
+      do_transpose=False,
       input_block_size=1,
       group_pruning=False)
 

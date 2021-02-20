@@ -34,6 +34,8 @@ from model_pruning.python.pruning import get_weights
 from model_pruning.python.pruning import Pruning
 from model_pruning.python.pruning_hook import ModelPruningHook
 from model_pruning.python.pruning_hook import ModelPruningListener
+from model_pruning.python.pruning_interface import add_compression_summaries
+from model_pruning.python.pruning_interface import apply_customized_lstm_matrix_compression
 from model_pruning.python.pruning_interface import apply_matrix_compression
 from model_pruning.python.pruning_interface import apply_pruning
 from model_pruning.python.pruning_interface import get_matrix_compression_object

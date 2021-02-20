@@ -99,6 +99,9 @@ class PruningSpeechUtilsTest(tf.test.TestCase):
     self.pruning_obj = pruning.Pruning(
         self.pruning_hparams, global_step=self.global_step)
 
+    self.compression_obj = pruning_interface.get_matrix_compression_object(
+        self.pruning_hparams, global_step=self.global_step)
+
     def MockWeightParamsFn(shape, init=None, dtype=None):
       if init is None:
         init = MockWeightInit.Constant(0.0)
@@ -124,6 +127,16 @@ class PruningSpeechUtilsTest(tf.test.TestCase):
     mask_update_op = pruning_interface.get_matrix_compression_update_op(
         self.pruning_obj)
     self.assertNotEqual(mask_update_op, tf.no_op())
+
+  def testApplyCustomizedLSTMMatrixCompression(self):
+    pruning_interface.apply_customized_lstm_matrix_compression(
+        self.compression_obj,
+        self.mock_weight_params_fn,
+        MockWeightInit,
+        self.mock_lstmobj,
+        self.wm_pc.shape, tf.float32)
+
+    self.assertGreater(len(tf.get_collection_ref(pruning.MASK_COLLECTION)), 0)
 
 
 if __name__ == "__main__":

@@ -702,8 +702,11 @@ class CompressionOp(CompressionOpInterface):
     """Method to create a complete update op.
 
     Args:
-        update_ops_list: list of individual update ops.
-        scope: tf scope for creating update op.
+      update_ops_list: list of individual update ops.
+      scope: tf scope for creating update op.
+
+    Returns:
+      A TensorFlow op that updates the compression related variables.
     """
     with tf.compat.v1.name_scope(scope):
       with tf.control_dependencies(update_ops_list):
@@ -832,6 +835,9 @@ class CompressionOp(CompressionOpInterface):
         'step_number is %s, begin, end  and update_count are: %s %s %s ',
         step_number, self._spec.begin_compression_step,
         self._spec.end_compression_step, self.run_update_count)
+
+  def get_update_op(self):
+    return self.update_op
 
   def run_update_step_keras(self, step_number):
     """Keras version of run_update_step.
