@@ -55,7 +55,7 @@ Graph::Graph(const std::string& name) : name_(name) {
     Fail("graph file does not exist");
   }
   // renumber[x] = new number of x
-  unordered_map<int64_t, int> renumber;
+  absl::node_hash_map<int64_t, int> renumber;
   numVertices_ = 0;
   numEdges_ = 0;
   const bool is_dblp = (name_ == "dblp");
