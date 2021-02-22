@@ -26,6 +26,8 @@ from flax.training import checkpoints
 import jax
 from jax import random
 import numpy as np
+import tensorflow as tf
+import tensorflow_hub as tf_hub
 
 from jaxnerf.nerf import datasets
 from jaxnerf.nerf import models
@@ -35,8 +37,23 @@ FLAGS = flags.FLAGS
 
 utils.define_flags()
 
+LPIPS_TFHUB_PATH = "@neural-rendering/lpips/distance/1"
+
+
+def compute_lpips(image1, image2, model):
+  """Compute the LPIPS metric."""
+  # The LPIPS model expects a batch dimension.
+  return model(
+      tf.convert_to_tensor(image1[None, Ellipsis]),
+      tf.convert_to_tensor(image2[None, Ellipsis]))[0]
+
 
 def main(unused_argv):
+  # Hide the GPUs and TPUs from TF so it does not reserve memory on them for
+  # LPIPS computation or dataset loading.
+  tf.config.experimental.set_visible_devices([], "GPU")
+  tf.config.experimental.set_visible_devices([], "TPU")
+
   rng = random.PRNGKey(20200823)
 
   if FLAGS.config is not None:
@@ -52,6 +69,8 @@ def main(unused_argv):
   optimizer = flax.optim.Adam(FLAGS.lr_init).create(init_variables)
   state = utils.TrainState(optimizer=optimizer)
   del optimizer, init_variables
+
+  lpips_model = tf_hub.load(LPIPS_TFHUB_PATH)
 
   # Rendering is forced to be deterministic even if training was randomized, as
   # this eliminates "speckle" artifacts.
@@ -84,8 +103,9 @@ def main(unused_argv):
       continue
     if FLAGS.save_output and (not utils.isdir(out_dir)):
       utils.makedirs(out_dir)
-    psnrs = []
-    ssims = []
+    psnr_values = []
+    ssim_values = []
+    lpips_values = []
     if not FLAGS.eval_once:
       showcase_index = np.random.randint(0, dataset.size)
     for idx in range(dataset.size):
@@ -108,9 +128,11 @@ def main(unused_argv):
       if not FLAGS.render_path:
         psnr = utils.compute_psnr(((pred_color - batch["pixels"])**2).mean())
         ssim = ssim_fn(pred_color, batch["pixels"])
+        lpips = compute_lpips(pred_color, batch["pixels"], lpips_model)
         print(f"PSNR = {psnr:.4f}, SSIM = {ssim:.4f}")
-        psnrs.append(float(psnr))
-        ssims.append(float(ssim))
+        psnr_values.append(float(psnr))
+        ssim_values.append(float(ssim))
+        lpips_values.append(float(lpips))
       if FLAGS.save_output:
         utils.save_img(pred_color, path.join(out_dir, "{:03d}.png".format(idx)))
         utils.save_img(pred_disp[Ellipsis, 0],
@@ -120,18 +142,23 @@ def main(unused_argv):
       summary_writer.image("pred_disp", showcase_disp, step)
       summary_writer.image("pred_acc", showcase_acc, step)
       if not FLAGS.render_path:
-        summary_writer.scalar("psnr", np.mean(np.array(psnrs)), step)
-        summary_writer.scalar("ssim", np.mean(np.array(ssims)), step)
+        summary_writer.scalar("psnr", np.mean(np.array(psnr_values)), step)
+        summary_writer.scalar("ssim", np.mean(np.array(ssim_values)), step)
+        summary_writer.scalar("lpips", np.mean(np.array(lpips_values)), step)
         summary_writer.image("target", showcase_gt, step)
     if FLAGS.save_output and (not FLAGS.render_path) and (jax.host_id() == 0):
       with utils.open_file(path.join(out_dir, f"psnrs_{step}.txt"), "w") as f:
-        f.write(" ".join([str(v) for v in psnrs]))
+        f.write(" ".join([str(v) for v in psnr_values]))
       with utils.open_file(path.join(out_dir, f"ssims_{step}.txt"), "w") as f:
-        f.write(" ".join([str(v) for v in ssims]))
+        f.write(" ".join([str(v) for v in ssim_values]))
+      with utils.open_file(path.join(out_dir, f"lpips_{step}.txt"), "w") as f:
+        f.write(" ".join([str(v) for v in lpips_values]))
       with utils.open_file(path.join(out_dir, "psnr.txt"), "w") as f:
-        f.write("{}".format(np.mean(np.array(psnrs))))
+        f.write("{}".format(np.mean(np.array(psnr_values))))
       with utils.open_file(path.join(out_dir, "ssim.txt"), "w") as f:
-        f.write("{}".format(np.mean(np.array(ssims))))
+        f.write("{}".format(np.mean(np.array(ssim_values))))
+      with utils.open_file(path.join(out_dir, "lpips.txt"), "w") as f:
+        f.write("{}".format(np.mean(np.array(lpips_values))))
     if FLAGS.eval_once:
       break
     if int(step) >= FLAGS.max_steps:
