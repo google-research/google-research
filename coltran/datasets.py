@@ -101,7 +101,7 @@ def get_dataset(name,
     name: imagenet
     config: dict
     batch_size: batch size.
-    subset: 'train', 'valid' or 'test'.
+    subset: 'train', 'eval_train', 'valid' or 'test'.
   Returns:
    dataset: TF Dataset.
   """
@@ -111,16 +111,18 @@ def get_dataset(name,
   downsample_res = config.get('downsample_res', 64)
   downsample_method = config.get('downsample_method', 'area')
   num_epochs = config.get('num_epochs', -1)
+
+  train = subset == 'train'
+  num_val_examples = 0 if subset == 'eval_train' else 10000
   assert name == 'imagenet'
   auto = tf.data.AUTOTUNE
 
-  train = subset == 'train'
   if subset == 'test':
     ds = tfds.load('imagenet2012', split='validation', shuffle_files=False)
   else:
     # split 10000 samples from the imagenet dataset for validation.
     ds, info = tfds.load('imagenet2012', split='train', with_info=True)
-    num_train = info.splits['train'].num_examples - 10000
+    num_train = info.splits['train'].num_examples - num_val_examples
     if train:
       ds = ds.take(num_train)
     elif subset == 'valid':

@@ -44,7 +44,7 @@ from coltran.utils import train_utils
 # pylint: disable=g-long-lambda
 
 flags.DEFINE_enum('mode', 'sample_test', [
-    'sample', 'sample_test'], 'Operation mode.')
+    'sample_valid', 'sample_test', 'sample_train'], 'Operation mode.')
 
 flags.DEFINE_string('logdir', '/tmp/svt', 'Main directory for logs.')
 flags.DEFINE_string('master', 'local',
@@ -242,12 +242,15 @@ def sample(logdir, subset):
 
 def main(_):
   logging.info('Logging to %s.', FLAGS.logdir)
-  if FLAGS.mode == 'sample':
+  if FLAGS.mode == 'sample_valid':
     logging.info('[main] I am the sampler.')
     sample(FLAGS.logdir, subset='valid')
-  if FLAGS.mode == 'sample_test':
+  elif FLAGS.mode == 'sample_test':
     logging.info('[main] I am the sampler test.')
     sample(FLAGS.logdir, subset='test')
+  elif FLAGS.mode == 'sample_train':
+    logging.info('[main] I am the sampler train.')
+    sample(FLAGS.logdir, subset='eval_train')
   else:
     raise ValueError(
         'Unknown mode {}. '
