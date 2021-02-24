@@ -20,19 +20,20 @@
 #include <unordered_set>
 #include <vector>
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "absl/container/node_hash_set.h"
+#include "absl/strings/str_cat.h"
+#include "Eigen/Core"
 #include "algorithm.h"
-#include "task.h"
-#include "task.pb.h"
 #include "definitions.h"
 #include "executor.h"
 #include "generator.h"
 #include "memory.h"
 #include "random_generator.h"
+#include "task.h"
+#include "task.pb.h"
 #include "test_util.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-#include "absl/strings/str_cat.h"
-#include "Eigen/Core"
 
 namespace automl_zero {
 
@@ -44,7 +45,6 @@ using ::std::make_pair;  // NOLINT
 using ::std::pair;  // NOLINT
 using ::std::vector;  // NOLINT
 using ::std::unique_ptr;  // NOLINT
-using ::std::unordered_set;  // NOLINT
 using ::testing::Test;
 using test_only::GenerateTask;
 
