@@ -274,20 +274,24 @@ class CompressionOpInterfaceTest(tf.test.TestCase):
             ]) > 0, [True, True, True])
 
 
-class InputCompressionOpTest(tf.test.TestCase):
+class InputOutputCompressionOpTest(tf.test.TestCase):
 
   def test_get_apply_matmul(self):
     with tf.Graph().as_default():
       with self.cached_session():
-        hparams = ("name=input_compression,"
+        hparams = ("name=input_output_compression,"
                    "compression_option=9,"
                    "begin_compression_step=1000,"
                    "end_compression_step=120000,"
                    "compression_frequency=100,"
-                   "rank=2,"
-                   "input_block_size=4")
+                   "compress_input=True,"
+                   "compress_output=True,"
+                   "input_compression_factor=2,"
+                   "input_block_size=4,"
+                   "output_compression_factor=2,"
+                   "output_block_size=4,")
         compression_op_spec = (
-            compression_op.InputCompressionOp.get_default_hparams().parse(
+            compression_op.InputOutputCompressionOp.get_default_hparams().parse(
                 hparams))
 
         compressor_spec = (
@@ -302,15 +306,19 @@ class InputCompressionOpTest(tf.test.TestCase):
             compressor=matrix_compressor,
             global_step=global_step)
 
-        a_matrix_init = np.outer(np.array([1., 2., 3., 7., 8., 9., 1., 2.]),
-                                 np.array([4., 5., 6., 3.]))
+        # outer product - creates an 12x8 matrix
+        a_matrix_init = np.outer(
+            np.array([1., 2., 3., 7., 8., 9., 1., 2., 5., -2., -7., -1.]),
+            np.array([4., 5., 6., 3., 1., 8., 3., 2.]))
         a_matrix = tf.compat.v1.get_variable(
             "a_matrix",
             initializer=a_matrix_init.astype(np.float32),
             dtype=tf.float32)
         _ = apply_comp.apply_compression(
             a_matrix, scope="compressor")
-        left_operand_init = np.array([1., 2., 3., 4., 1., 2., 3., 4.])
+        # input is 1x12 vector
+        left_operand_init = np.array(
+            [1., 2., 3., 4., 1., 2., 3., 4., 1., 2., 3., 4.])
         left_operand = tf.compat.v1.get_variable(
             "left_operand",
             initializer=left_operand_init.astype(np.float32),
@@ -318,23 +326,25 @@ class InputCompressionOpTest(tf.test.TestCase):
         c = apply_comp._compression_ops[-1]
         tf.compat.v1.global_variables_initializer().run()
         compressed_matmul = c.get_apply_matmul(left_operand)
-        # check b and c matrices have the right shapes
+        # check b, c and d matrices have the right shapes
         self.assertSequenceEqual(list(c.b_matrix_tfvar.eval().shape), [4, 2])
-        self.assertSequenceEqual(list(c.c_matrix_tfvar.eval().shape), [4, 4])
+        self.assertSequenceEqual(list(c.c_matrix_tfvar.eval().shape), [6, 4])
+        self.assertSequenceEqual(list(c.d_matrix_tfvar.eval().shape), [2, 4])
 
         # check that we get the expected output shape
-        self.assertSequenceEqual(list(compressed_matmul.eval().shape), [4,])
+        self.assertSequenceEqual(list(compressed_matmul.eval().shape), [8,])
 
 
 class CompressionLayersTest(tf.test.TestCase):
 
   def testCompressedDenseLayer(self):
     hparams = ("name=mnist_compression,"
+               "compress_input=True,"
                "input_block_size=16,"
-               "rank=4,"
+               "input_compression_factor=4,"
                "compression_option=9")
 
-    compression_hparams = compression_op.InputCompressionOp.get_default_hparams(
+    compression_hparams = compression_op.InputOutputCompressionOp.get_default_hparams(
     ).parse(hparams)
     # compression_hparams = pruning.get_pruning_hparams().parse(hparams)
     # Create a compression object using the compression hyperparameters
@@ -351,11 +361,12 @@ class CompressionLayersTest(tf.test.TestCase):
 
   def testCompressedConv2DLayer(self):
     hparams = ("name=mnist_compression,"
+               "compress_input=True,"
                "input_block_size=16,"
-               "rank=2,"
+               "input_compression_factor=2,"
                "compression_option=9")
 
-    compression_hparams = compression_op.InputCompressionOp.get_default_hparams(
+    compression_hparams = compression_op.InputOutputCompressionOp.get_default_hparams(
     ).parse(hparams)
     compression_obj = compression_wrapper.get_apply_compression(
         compression_hparams, global_step=0)

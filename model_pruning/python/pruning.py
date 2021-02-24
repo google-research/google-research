@@ -420,6 +420,19 @@ def get_pruning_hparams():
                     otherwise update_ops are obtained from
                     matrix_compression_obj.all_update_op() directly. Default is
                     True.
+    compress_input: boolean flag indicating whether to compress input.
+                    only used when prune_option is 'compression' and compression
+                    option is 9.
+    compress_output: boolean flag indicating whether to compress output.
+                     only used when prune_option is 'compression' and
+                     compression option is 9.
+    input_compression_factor: ratio of the size of original input to compressed
+                              input. currently only support positive integers.
+    output_compression_factor: ratio of the size of original output to
+                               compressed output. currently only support
+                               positive integers.
+    input_block_size: size of input blocks for input compression.
+    output_block_size: size of output blocks for input compression.
     group_pruning: perform group pruning if True. Default is False.
     group_sparsity_map: list of strings
       comma separated list of {group_name:target sparsity} or
@@ -480,7 +493,12 @@ def get_pruning_hparams():
       pruning_fraction=0.4,
       use_collection=True,
       do_transpose=False,
+      compress_input=True,
+      input_compression_factor=1,
       input_block_size=1,
+      compress_output=False,
+      output_compression_factor=1,
+      output_block_size=1,
       group_pruning=False)
 
 

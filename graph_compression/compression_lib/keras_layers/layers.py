@@ -157,7 +157,7 @@ class CompressedDense(tf.keras.layers.Dense):
   @tf.function
   def call(self, inputs, training=True):
     return self.activation(
-        self.compression_op.get_apply_matmul_keras(inputs) + self.bias)
+        self.compression_op.get_apply_matmul(inputs) + self.bias)
 
 
 class CompressedConv2D(tf.keras.layers.Conv2D):

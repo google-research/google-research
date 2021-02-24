@@ -25,7 +25,7 @@ compression_option:
   3 - DLMatrixCompressor
   4 - KmeansMatrixCompressor
   8 - KmeansAndPruningMatrixCompressor
-  9 - InputCompressor
+  9 - InputOutputCompressor
 """
 
 from __future__ import absolute_import
@@ -101,6 +101,7 @@ def get_apply_compression(compression_op_spec, global_step):
   elif compression_op_spec.compression_option == 9:
     compressor_spec.set_hparam('is_b_matrix_trainable', True)
     compressor_spec.set_hparam('is_c_matrix_trainable', True)
+    compressor_spec.set_hparam('is_d_matrix_trainable', True)
     compressor = comp_op.LowRankDecompMatrixCompressor(spec=compressor_spec)
     apply_compression = comp_op.ApplyCompression(
         scope='default_scope',
