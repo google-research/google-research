@@ -134,6 +134,7 @@ class PruningSpeechUtilsTest(tf.test.TestCase):
         self.mock_weight_params_fn,
         MockWeightInit,
         self.mock_lstmobj,
+        "wm",
         self.wm_pc.shape, tf.float32)
 
     self.assertGreater(len(tf.get_collection_ref(pruning.MASK_COLLECTION)), 0)
