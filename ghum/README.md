@@ -39,11 +39,11 @@ body scans of humans, captured in various poses, together with additional closeu
 
 ## Model Download
 
-[GHUM/GHUM-L request form](https://docs.google.com/forms/d/e/1FAIpQLSduGNoQUQxaIwna944hdgsX7m9bSM4aqh2YDXD02V2VfNnP9g/viewform) 
+[GHUM/GHUM-L request form](https://docs.google.com/forms/d/e/1FAIpQLSduGNoQUQxaIwna944hdgsX7m9bSM4aqh2YDXD02V2VfNnP9g/viewform)
 
 ## Citations
 If you use this model or code for your publication, please cite the following papers [1](http://openaccess.thecvf.com/content_CVPR_2020/papers/Xu_GHUM__GHUML_Generative_3D_Human_Shape_and_Articulated_Pose_CVPR_2020_paper.pdf)
-, [2](https://arxiv.org/abs/2003.10350):
+, [2](https://www.ecva.net/papers/eccv_2020/papers_ECCV/papers/123510460.pdf):
 ```
 @inproceedings{xu2020ghum,
   title={GHUM \& GHUML: Generative 3D Human Shape and Articulated Pose Models},
@@ -54,11 +54,12 @@ If you use this model or code for your publication, please cite the following pa
 }
 ```
 ```
-@article{zanfir2020weakly,
+@inproceedings{zanfir2020weakly,
   title={Weakly Supervised 3D Human Pose and Shape Reconstruction with Normalizing Flows},
-  author={Zanfir, Andrei and Bazavan, Eduard Gabriel and Xu, Hongyi and Freeman, Bill and Sukthankar, Rahul and Sminchisescu, Cristian},
-  journal={arXiv preprint arXiv:2003.10350},
-  year={2020}
+  author={Zanfir, Andrei and Bazavan, Eduard Gabriel and Xu, Hongyi and Freeman, William T. and Sukthankar, Rahul and Sminchisescu, Cristian},
+  booktitle={Computer Vision -- ECCV 2020},
+  pages={465--481},
+  year={2020},
 }
 ```
 
