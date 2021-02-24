@@ -27,7 +27,14 @@ Noah Snavely, Angjoo Kanazawa
 
 *Please note that this is not an officially supported Google product.*
 
-## Instructions to setup the environment
+
+## Colab example
+The notebook `infinite_nature_demo.ipynb`
+[[click to open in Google Colab](https://colab.research.google.com/github/google-research/google-research/blob/master/infinite_nature/infinite_nature_demo.ipynb)]
+shows how to setup and run our trained model, and includes a demo
+with an interactive HTML frontend.
+
+## Instructions for running locally
 ### Python Environment
 
 The following code base was successfully run with Python 3.8.7. We suggest
