@@ -1,0 +1,3 @@
+# -*-Python-*-
+
+DenseReluDense.activation = "softplus"

@@ -1,0 +1,10 @@
+# -*-Python-*-
+
+# Mixture of softmaxes.
+
+import mesh_tensorflow.transformer
+import mesh_tensorflow.transformer.vocab_embeddings
+
+transformer.get_vocab_embedding_cls.cls = @vocab_embeddings.MixtureOfSoftmaxes
+
+vocab_embeddings.MixtureOfSoftmaxes.num_softmaxes = 15

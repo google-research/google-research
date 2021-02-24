@@ -1,0 +1,27 @@
+# -*-Python-*-
+
+# vanilla_transformer with block sharing and factorized vocab embedding.
+
+import mesh_tensorflow.transformer.vocab_embeddings
+
+dropout_rate = 0.0
+Unitransformer.shared_embedding_and_softmax_weights = True
+
+transformer.get_vocab_embedding_cls.cls = @vocab_embeddings.FactorizedVocabEmbedding
+vocab_embeddings.FactorizedVocabEmbedding.inner_dimension_size = 128
+
+encoder/make_layer_stack.block_scope = False
+encoder/make_layer_stack.layers = \
+    [('self_attention',
+      @mesh_tensorflow.transformer.transformer_layers.SelfAttention),
+     ('dense_relu_dense',
+      @mesh_tensorflow.transformer.transformer_layers.DenseReluDense)]
+
+decoder/make_layer_stack.block_scope = False
+decoder/make_layer_stack.layers = \
+    [('self_attention',
+      @mesh_tensorflow.transformer.transformer_layers.SelfAttention),
+     ('enc_dec_attention',
+      @mesh_tensorflow.transformer.transformer_layers.EncDecAttention),
+     ('dense_relu_dense',
+      @mesh_tensorflow.transformer.transformer_layers.DenseReluDense)]

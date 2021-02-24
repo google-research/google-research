@@ -1,0 +1,5 @@
+# -*-Python-*-
+
+transformer.Unitransformer.shared_embedding_and_softmax_weights = False
+transformer.Bitransformer.shared_embedding = False
+

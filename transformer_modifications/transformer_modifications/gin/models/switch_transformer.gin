@@ -1,0 +1,53 @@
+# -*-Python-*-
+# Top-1 sparse model FLOP-matched to the AT5 baseline
+import mesh_tensorflow.transformer.moe
+
+
+# Top-1 gating parameters
+MoE1D.moe_gating = "rand_1"
+MoE1D.rand_1_policy_train = "input_jitter"
+MoE1D.rand_1_policy_eval = "input_jitter"
+MoE1D.rand_1_jitter = 1e-2
+
+# MoE parameters
+MoE1D.num_experts = 32
+MoE1D.activation = ["relu"]
+MoE1D.hidden_size = %d_ff
+MoE1D.dropout_rate = %dropout_rate
+
+# Construct new layers
+num_layers = 3
+
+encoder/transformer.make_layer_stack.layers = [
+  @mesh_tensorflow.transformer.transformer_layers.SelfAttention,
+  @mesh_tensorflow.transformer.transformer_layers.DenseReluDense,
+  @mesh_tensorflow.transformer.transformer_layers.SelfAttention,
+  @mesh_tensorflow.transformer.transformer_layers.DenseReluDense,
+  @mesh_tensorflow.transformer.transformer_layers.SelfAttention,
+  @mesh_tensorflow.transformer.transformer_layers.DenseReluDense,
+  @mesh_tensorflow.transformer.transformer_layers.SelfAttention,
+  @mesh_tensorflow.transformer.moe.MoE1D,
+]
+
+decoder/transformer.make_layer_stack.layers = [
+  @mesh_tensorflow.transformer.transformer_layers.SelfAttention,
+  @mesh_tensorflow.transformer.transformer_layers.EncDecAttention,
+  @mesh_tensorflow.transformer.transformer_layers.DenseReluDense,
+  @mesh_tensorflow.transformer.transformer_layers.SelfAttention,
+  @mesh_tensorflow.transformer.transformer_layers.EncDecAttention,
+  @mesh_tensorflow.transformer.transformer_layers.DenseReluDense,
+  @mesh_tensorflow.transformer.transformer_layers.SelfAttention,
+  @mesh_tensorflow.transformer.transformer_layers.EncDecAttention,
+  @mesh_tensorflow.transformer.transformer_layers.DenseReluDense,
+  @mesh_tensorflow.transformer.transformer_layers.SelfAttention,
+  @mesh_tensorflow.transformer.transformer_layers.EncDecAttention,
+  @mesh_tensorflow.transformer.moe.MoE1D,
+]
+
+VarianceScalingInitializer.scale = 0.1
+encoder/MoE1D.capacity_factor_train = 1.2
+deccoder/MoE1D.capacity_factor_train = 1.2
+encoder/MoE1D.capacity_factor_eval = 1.2
+deccoder/MoE1D.capacity_factor_eval = 1.2
+
+utils.get_variable_dtype.activation_dtype = "bfloat16"

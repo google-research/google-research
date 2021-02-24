@@ -1,0 +1,6 @@
+# -*-Python-*-
+# this model is also known as t5.1.1.base.gin
+
+# GEGLU activation
+d_ff = 2048
+DenseReluDense.activation = ["gelu", "linear"]

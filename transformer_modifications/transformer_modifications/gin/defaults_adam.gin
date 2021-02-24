@@ -1,0 +1,10 @@
+# Adam optimizer instead of AdaFactor. Must use learning_rate_schedule = Adam in
+# learning/brain/research/at5/gin/learning_rate_schedules
+utils.run.optimizer = @optimize.AdamWeightDecayOptimizer
+
+# Scale embedding and softmax weights similar to other layers.
+VocabEmbedding.scale_variable_like_classifier_weights = True
+
+# Don't perform scaling in the initializer which is needed for Adafactor.
+SelfAttention.fold_scaling_into_initializer = False
+Synthesizer.fold_scaling_into_initializer = False

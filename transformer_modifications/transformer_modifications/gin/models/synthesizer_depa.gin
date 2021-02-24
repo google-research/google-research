@@ -1,0 +1,21 @@
+# -*-Python-*-
+
+# Minor "improvement" on t5.1.0.base:
+#  - no dropout on training
+
+
+dropout_rate = 0.0
+
+transformer_layers.Synthesizer.synthesize_mode="dense_plus_alpha"
+transformer_layers.Synthesizer.relative_attention_type = "bias_shared"
+
+decoder/transformer.make_layer_stack.layers = [
+    @mesh_tensorflow.transformer.transformer_layers.Synthesizer,
+    @mesh_tensorflow.transformer.transformer_layers.EncDecAttention,
+    @mesh_tensorflow.transformer.transformer_layers.DenseReluDense,
+]
+
+encoder/transformer.make_layer_stack.layers = [
+    @mesh_tensorflow.transformer.transformer_layers.Synthesizer,
+    @mesh_tensorflow.transformer.transformer_layers.DenseReluDense,
+]

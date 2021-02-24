@@ -1,0 +1,11 @@
+# -*-Python-*-
+
+# See b/149538844.
+# Simplification of relative attention which just adds a learned bias value
+# which depends on the relative position and the attention head. Unique biases
+# are learned per layer.
+
+import mesh_tensorflow.transformer.transformer
+import mesh_tensorflow.transformer.transformer_layers
+
+transformer_layers.SelfAttention.relative_attention_type = "bias"

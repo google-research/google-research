@@ -1,0 +1,5 @@
+# -*-Python-*-
+
+# GLU activation
+d_ff = 2048
+DenseReluDense.activation = ["sigmoid", "linear"]

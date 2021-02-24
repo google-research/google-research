@@ -1,0 +1,22 @@
+# -*-Python-*-
+include 'vocab_embeddings/adaptive_softmax.gin'
+
+# Same as adaptive_softmax but all emebedding sizes are d_model.
+
+# Going by frequency in text, approximately 80% of tokens would be in the first
+# cluster and 10% would be in each of the next two clusters. The final cluster
+# consists solely of sentinel tokens.
+adaptive_softmax.AdaptiveSoftmaxVocabEmbedding.clusters = [
+        {
+          "token_count": 2500,
+        }, {
+          "token_count": 6000,
+          "length_projection_factor": 0.25,
+        }, {
+          "token_count": 23500,
+          "length_projection_factor": 0.25,
+        }, {
+          "token_count": 128,
+          "length_projection_factor": 0.25, # noise_density + 0.1 for safety.
+        },
+       ]

@@ -1,0 +1,16 @@
+# -*-Python-*-
+# Using bias on dense feedforward layers.
+
+transformer.LayerStack.sublayers_per_layer = [
+    @transformer.sublayer_mask_padding,
+    @transformer.sublayer_rms_norm_subsampled,
+    @transformer.sublayer_call_layer,
+    @transformer.sublayer_dropout,
+    @transformer.sublayer_residual]
+
+transformer.LayerStack.sublayers_final = [
+    @transformer.sublayer_rms_norm_subsampled,
+    @transformer.sublayer_dropout,
+    @transformer.sublayer_mask_padding]
+
+transformer.sublayer_rms_norm_subsampled.percentage = 6.75

@@ -1,0 +1,10 @@
+# -*-Python-*-
+
+# Relative attention (a function of the context)
+# https://arxiv.org/abs/1803.02155. Unique relative position embedding are
+# learned per layer.
+
+import mesh_tensorflow.transformer.transformer
+import mesh_tensorflow.transformer.transformer_layers
+
+transformer_layers.SelfAttention.relative_attention_type = "contextual"

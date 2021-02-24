@@ -1,0 +1,5 @@
+# -*-Python-*-
+# Xsum sequence length file with 512 input tokens. This is used for models with
+# positional embeddings since the pretraining sequence length should match the
+# finetuning sequence length.
+utils.run.sequence_length = {'inputs': 512, 'targets': 178}

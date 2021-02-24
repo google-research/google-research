@@ -1,0 +1,5 @@
+# -*-Python-*-
+
+# SwiGLU activation
+d_ff = 2048
+DenseReluDense.activation = ["swish", "linear"]

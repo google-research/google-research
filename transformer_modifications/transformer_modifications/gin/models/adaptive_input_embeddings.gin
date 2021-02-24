@@ -1,0 +1,22 @@
+# -*-Python-*-
+import mesh_tensorflow.transformer
+import mesh_tensorflow.transformer.vocab_embeddings
+
+transformer.get_vocab_embedding_cls.cls = @vocab_embeddings.AdaptiveVocabEmbedding
+
+# Same as adaptive_softmax but doesn't use adaptive softmax.
+
+# Going by frequency in text, approximately 80% of tokens would be in the first
+# cluster and 10% would be in each of the next two clusters.
+vocab_embeddings.AdaptiveVocabEmbedding.clusters = [
+        {
+          "token_count": 2500,
+          "embedding_size": 768,
+        }, {
+          "token_count": 6000,
+          "embedding_size": 256,
+        }, {
+          "token_count": 23628,
+          "embedding_size": 64,
+        },
+       ]

@@ -1,0 +1,14 @@
+# -*-Python-*-
+
+transformer.LayerStack.sublayers_per_layer = [
+    @transformer.sublayer_mask_padding,
+    @transformer.sublayer_true_layer_norm,
+    @transformer.sublayer_call_layer,
+    @transformer.sublayer_dropout,
+    @transformer.sublayer_rezero,
+    @transformer.sublayer_residual]
+
+transformer.LayerStack.sublayers_final = [
+    @transformer.sublayer_true_layer_norm,
+    @transformer.sublayer_dropout,
+    @transformer.sublayer_mask_padding]

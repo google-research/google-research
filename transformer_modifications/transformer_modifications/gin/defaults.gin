@@ -1,0 +1,5 @@
+# Default parameters for pretraining models in AT5.
+
+# Set dropout to zero for pretraining.
+dropout_rate = 0.0
+

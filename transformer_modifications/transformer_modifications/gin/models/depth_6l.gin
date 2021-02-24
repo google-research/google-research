@@ -1,0 +1,5 @@
+# -*-Python-*-
+
+num_layers = 6
+d_ff = 6144
+num_heads = 24

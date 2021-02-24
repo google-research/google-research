@@ -1,0 +1,4 @@
+# -*-Python-*-
+
+transformer.Bitransformer.shared_embedding = False
+
