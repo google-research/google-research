@@ -1,0 +1,4 @@
+tensorflow==2.2.0
+tensorflow-addons==0.10.0
+imageio==2.9.0
+numpy==1.19.5
