@@ -1,11 +1,12 @@
 # Do Transformer Modifications Transfer Across Implementations and Applications?
 
 This repository contains the code for reproducing the experiments in
-Do Transformer Modifications Transfer Across Implementations and Applications?
+[Do Transformer Modifications Transfer Across Implementations and Applications?](https://arxiv.org/abs/2102.11972)
 
 ## Table of Contents
 
 * [Usage](#usage)
+* [How to cite](#how-to-cite)
 
 ## Usage
 
@@ -22,7 +23,8 @@ export ZONE=yourzone
 export BUCKET=yourbucket
 export TPU=yourtpu
 
-ctpu up   --name=$TPU   --project=$PROJECT  --zone=$ZONE   --tpu-size=v3-8   --tpu-only   --noconf
+ctpu up   --name=$TPU   --project=$PROJECT  --zone=$ZONE   --tpu-size=v3-8 \
+   --tf-version=2.3 --tpu-only   --noconf
 
 TASK=c4_v231_unsupervised_en32k
 BASE_MODEL_NAME="vanilla_transformer_rel_bias_shared"
@@ -130,4 +132,18 @@ t5_mesh_transformer \
   --gin_param="dropout_rate = 0.1" \
   --gin_param="utils.run.learning_rate_schedule=[@learning_rate_schedules.constant_learning_rate,@learning_rate_schedules.linear_warmup]" \
   --gin_param="constant_learning_rate.learning_rate=0.0005" \
+```
+# How to Cite
+
+If you extend or use this work, please cite the [paper](https://arxiv.org/abs/2004.14546) where it was introduced:
+
+```
+@misc{narang2021transformer,
+      title={Do Transformer Modifications Transfer Across Implementations and Applications?},
+      author={Sharan Narang and Hyung Won Chung and Yi Tay and William Fedus and Thibault Fevry and Michael Matena and Karishma Malkan and Noah Fiedel and Noam Shazeer and Zhenzhong Lan and Yanqi Zhou and Wei Li and Nan Ding and Jake Marcus and Adam Roberts and Colin Raffel},
+      year={2021},
+      eprint={2102.11972},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
+}
 ```
