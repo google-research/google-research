@@ -1063,9 +1063,8 @@ class InputOutputCompressionOp(CompressionOp):
       # are turned on.
       c_matrix_pc = weight_params_fn([
           a_matrix_tfvar.shape[0] // self._spec.input_compression_factor,
-          a_matrix_tfvar.shape[1]
-      ] // self._spec.output_compression_factor, weight_init_obj.Xavier(1.0),
-                                     tf.float32)
+          a_matrix_tfvar.shape[1] // self._spec.output_compression_factor
+      ], weight_init_obj.Xavier(1.0), tf.float32)
 
       # create the TF variables using babelfish variable creation function
       if self._spec.compress_input:
