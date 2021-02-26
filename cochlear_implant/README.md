@@ -4,20 +4,18 @@ This directory contains Python Colab notebooks for taking input audio (wav files
 
 These were developed as a submission for [https://cihackathon.com/](https://cihackathon.com/).
 
-To listen to the audio corresponding to the electrodograms, you will need to a vocoder simulation (e.g., the one provided by cihackathon organizers [here](https://github.com/jabeim/AB-Generic-Python-Toolbox)).
+To listen to the audio corresponding to the electrodograms, you will need to use a vocoder simulation (e.g., the one provided by cihackathon organizers [here](https://github.com/jabeim/AB-Generic-Python-Toolbox)).
 
 ## Input data
 
-To run the notebooks, you need:
+To run the notebooks, you need a set of audio waveform files to process. Sample audio files for cihackathon are available for at [https://cihackathon.com/](https://cihackathon.com/).
 
-1. A set of audio waveform files to process.
-
-Sample audio files for cihackathon are available for at [https://cihackathon.com/](https://cihackathon.com/).
+Store these audio files in a folder in your Google Drive. The default folder in notebooks is `cihack_audio`.
 
 
 ## Running the notebooks
 
-At the moment these notebooks are for reference only and may not be runnable.
+These notebooks read and write audio to/from Google Drive. Make sure you update the paths in the notebooks.
 
 ### speech_enhancement_inference.ipynb
 This notebook loads a pre-trained model that separates speech from other non-speech sounds (e.g. noise, music).
