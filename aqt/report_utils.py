@@ -425,7 +425,8 @@ def create_end_of_training_report_oss(
     smoothing_kernel: Which kernel to use for smoothing. See SmoothingKernel
       class for enum options.
     early_stop_ds_dir: The events subdir in model_dir to use to find
-      early_stop_step if model_dir has subdirs. early_stop_attr is minimized.
+      early_stop_step if model_dir has subdirs. The early_stop_attr within
+      early_stop_ds_dir will be used to find the early_stop_step.
     other_ds_dirs: List of other subdirs in model_dir with events to report.
     tags_to_include: List of event tags that should be included.
     window_size_in_steps: Number of steps to average over. Should be multiple of
