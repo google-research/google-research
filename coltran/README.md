@@ -101,18 +101,18 @@ Sampling can be parallelized across batches in a multi-GPU setup with the flag `
 ## Pre-trained checkpoints
 
 We release [pre-trained checkpoints](https://console.cloud.google.com/storage/browser/gresearch/coltran) on ImageNet at the following URL's
-* Colorizer - [Link](https://console.cloud.google.com/storage/browser/gresearch/coltran/colorizer)
-* Color Upsampler - [Link](https://console.cloud.google.com/storage/browser/gresearch/coltran/color_upsampler)
-* Spatial Upsampler - [Link](https://console.cloud.google.com/storage/browser/gresearch/coltran/spatial_upsampler)
+* Colorizer - [Link](https://console.cloud.google.com/storage/browser/gresearch/coltran/colorizer_v2)
+* Color Upsampler - [Link](https://console.cloud.google.com/storage/browser/gresearch/coltran/color_upsampler_v2)
+* Spatial Upsampler - [Link](https://console.cloud.google.com/storage/browser/gresearch/coltran/spatial_upsampler_v2)
 
 To sample, download these to a local directory and run the sampling script with the `logdir` flag set to the local path.
 
 ## Reference Tensorboards
 
 Summaries of our train runs are publicly available via [tensorboard.dev](https://tensorboard.dev/#get-started)
-* Colorizer - [Link](https://tensorboard.dev/experiment/oe0d8Wk9R4C7x7C0zSoL7A/#scalars&_smoothingWeight=0)
-* Color Upsampler - [Link](https://tensorboard.dev/experiment/fyYzGwJ0QqCKn4PMKmX2rw/#scalars&_smoothingWeight=0)
-* Spatial Upsampler - [Link](https://tensorboard.dev/experiment/Kca7mg9PQUKAR2mEebWUdA/#scalars&_smoothingWeight=0)
+* Colorizer - [Link](https://tensorboard.dev/experiment/jrf7Og9oTeGEL2KrArQu6Q/#scalars&_smoothingWeight=0)
+* Color Upsampler - [Link](https://tensorboard.dev/experiment/H1djRZFXSbmmRMx5eG7hoA/#scalars&_smoothingWeight=0)
+* Spatial Upsampler - [Link](https://tensorboard.dev/experiment/eZAzlXyESA2lmjmR5hDWNQ/#scalars&_smoothingWeight=0)
 
 ## Parsing TFRecords
 
