@@ -1,7 +1,5 @@
 <br>
-<video autoplay loop muted playsinline width="100%">
-  <source src="https://infinite-nature.github.io/teaser_loop.mp4" type="video/mp4">
-</video>
+![TeaserGif](https://infinite-nature.github.io/teaser.gif)
 
 # Infinite Nature
 [Project Page](https://infinite-nature.github.io/) |
@@ -13,18 +11,6 @@ This code accompanies the paper
 Andrew Liu, Richard Tucker, Varun Jumpani, Ameesh Makadia,
 Noah Snavely, Angjoo Kanazawa
 
-<div align="center">
-  <video autoplay loop muted playsinline controls width="32%">
-    <source src="https://infinite-nature.github.io/animation0.mp4" type="video/mp4">
-  </video>
-  <video autoplay loop muted playsinline controls width="32%">
-    <source src="https://infinite-nature.github.io/animation1.mp4" type="video/mp4">
-  </video>
-  <video autoplay loop muted playsinline controls width="32%">
-    <source src="https://infinite-nature.github.io/animation4.mp4" type="video/mp4">
-  </video>
-</div>
-
 *Please note that this is not an officially supported Google product.*
 
 
@@ -33,6 +19,8 @@ The notebook `infinite_nature_demo.ipynb`
 [[click to open in Google Colab](https://colab.research.google.com/github/google-research/google-research/blob/master/infinite_nature/infinite_nature_demo.ipynb)]
 shows how to setup and run our trained model, and includes a demo
 with an interactive HTML frontend.
+
+![DemoGif](https://infinite-nature.github.io/demo_4x.gif)
 
 ## Instructions for running locally
 ### Python Environment
@@ -65,10 +53,15 @@ wget https://storage.googleapis.com/gresearch/infinite_nature_public/ckpt.tar.gz
 tar xvf ckpt.tar.gz
 ```
 
-Sample autocruise inputs can be obtained by running: \
-`wget https://storage.googleapis.com/gresearch/infinite_nature_public/autocruise_input1.pkl`
+Sample autocruise inputs can be obtained by running:
 
-Inside this pickle file is a dictionary with the following entries:\
+```
+wget https://storage.googleapis.com/gresearch/infinite_nature_public/autocruise_input1.pkl
+wget https://storage.googleapis.com/gresearch/infinite_nature_public/autocruise_input2.pkl
+wget https://storage.googleapis.com/gresearch/infinite_nature_public/autocruise_input3.pkl
+```
+
+Inside a pickle file is a dictionary with the following entries:\
 -`input_rgbd` A sample nature scene and its disparity predicted by
 [MiDaS](https://github.com/intel-isl/MiDaS). Its shape is [160, 256, 4] and
 values lie between [0, 1].\
