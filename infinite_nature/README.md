@@ -1,4 +1,3 @@
-<br>
 ![TeaserGif](https://infinite-nature.github.io/teaser.gif)
 
 # Infinite Nature
