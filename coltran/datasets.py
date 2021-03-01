@@ -87,7 +87,8 @@ def get_gen_dataset(data_dir, batch_size):
 def get_dataset(name,
                 config,
                 batch_size,
-                subset):
+                subset,
+                read_config=None):
   """Wrapper around TF-Datasets.
 
   * Setting `config.random_channel to be True` adds
@@ -102,6 +103,8 @@ def get_dataset(name,
     config: dict
     batch_size: batch size.
     subset: 'train', 'eval_train', 'valid' or 'test'.
+    read_config: optional, tfds.ReadConfg instance. This is used for sharding
+                 across multiple workers.
   Returns:
    dataset: TF Dataset.
   """
@@ -121,7 +124,8 @@ def get_dataset(name,
     ds = tfds.load('imagenet2012', split='validation', shuffle_files=False)
   else:
     # split 10000 samples from the imagenet dataset for validation.
-    ds, info = tfds.load('imagenet2012', split='train', with_info=True)
+    ds, info = tfds.load('imagenet2012', split='train', with_info=True,
+                         shuffle_files=train, read_config=read_config)
     num_train = info.splits['train'].num_examples - num_val_examples
     if train:
       ds = ds.take(num_train)

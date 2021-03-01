@@ -30,6 +30,7 @@ from absl import logging
 
 from ml_collections import config_flags
 import tensorflow as tf
+import tensorflow_datasets as tfds
 
 from coltran import datasets
 from coltran.models import colorizer
@@ -167,12 +168,17 @@ def train(logdir):
       config, FLAGS.master,
       FLAGS.devices_per_worker, FLAGS.mode, FLAGS.accelerator_type)
 
-  def input_fn(_=None):
+  def input_fn(input_context=None):
+    read_config = None
+    if input_context is not None:
+      read_config = tfds.ReadConfig(input_context=input_context)
+
     dataset = datasets.get_dataset(
         name=config.dataset,
         config=config,
         batch_size=config.batch_size,
-        subset='train')
+        subset='train',
+        read_config=read_config)
     return dataset
 
   # DATASET CREATION.
