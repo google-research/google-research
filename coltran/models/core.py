@@ -217,7 +217,7 @@ class OuterDecoder(layers.Layer):
       else:
         output = layer(inputs)
 
-      if 'dense' in layer.name:
+      if 'dense' in layer.name and self.cond_mlp:
         curr_cond_layer = self.cmlp_layers[cond_layer_ind]
         output = cond_with_context(output, curr_cond_layer, channel_context,
                                    self.cond_mlp, self.cond_mlp_act)
@@ -367,7 +367,7 @@ class InnerDecoder(layers.Layer):
         output = layer(inputs)
 
       # Conditional MLP.
-      if 'dense' in layer.name:
+      if 'dense' in layer.name and self.cond_mlp:
         curr_cond_layer = self.cmlp_layers[cond_layer_ind]
         output = cond_with_context(output, curr_cond_layer, all_context,
                                    self.cond_mlp, self.cond_mlp_act)

@@ -117,12 +117,13 @@ class ColTranCore(tf.keras.Model):
 
   def image_loss(self, logits, labels):
     """Cross-entropy between the logits and labels."""
+    height, width = labels.shape[1:3]
     logits = tf.squeeze(logits, axis=-2)
     loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
         labels=labels, logits=logits)
     loss = tf.reduce_mean(loss, axis=0)
     loss = base_utils.nats_to_bits(tf.reduce_sum(loss))
-    return loss / (64.0 * 64.0)
+    return loss / (height * width)
 
   def loss(self, targets, logits, train_config, training, aux_output=None):
     """Converts targets to coarse colors and computes log-likelihood."""

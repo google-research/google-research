@@ -164,12 +164,12 @@ class ColorUpsampler(tf.keras.Model):
     else:
       labels = targets['targets']
 
-    num_channels = labels.shape[-1]
+    height, width, num_channels = labels.shape[1:4]
     loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
         labels=labels, logits=logits)
     loss = tf.reduce_mean(loss, axis=0)
     loss = base_utils.nats_to_bits(tf.reduce_sum(loss))
-    loss = loss / (64.0 * 64.0 * num_channels)
+    loss = loss / (height * width * num_channels)
     return loss, {}
 
 
@@ -281,7 +281,7 @@ class SpatialUpsampler(tf.keras.Model):
         labels=labels, logits=logits)
     loss = tf.reduce_mean(loss, axis=0)
     loss = base_utils.nats_to_bits(tf.reduce_sum(loss))
-    loss = loss / (float(height) * width * num_channels)
+    loss = loss / (height * width * num_channels)
     return loss, {}
 
   def get_logits(self, inputs_dict, train_config, training):
