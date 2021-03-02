@@ -54,7 +54,8 @@ python -m coltran.run --config=coltran/configs/colorizer.py --mode=eval_valid --
 
 ### Single GPU Sampling
 
-Sampling high resolution images is a three step procedure. On a P100 GPU, the colorizer samples a batch of 20 images in 3-5 minutes, while the color and spatial upsampler sample in the order of milliseconds.
+Sampling high resolution images is a three step procedure. On a P100 GPU, the colorizer samples a batch of 20 images around 3.5 minutes while on a V100
+GPU, the time taken is approximately 90 seconds. The color and spatial upsampler sample in the order of milliseconds.
 
 Sampling configurations for each model are described by `config.sample` ConfigDict at `configs/.py`
 
