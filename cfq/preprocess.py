@@ -63,11 +63,13 @@ def get_dataset_from_tfds(dataset, split):
   """Load dataset from TFDS and do some basic preprocessing."""
   logging.info('Loading dataset via TFDS.')
   allsplits = tfds.load(dataset + '/' + split, as_supervised=True)
-  split_names = {'train': 'train', 'dev': 'validation', 'test': 'test'}
-  if dataset == 'scan':
-    # scan has 'train' and 'test' sets only. We simply output the test set as
-    # both dev and test. We only really use the dev set but t2t-datagen expects
-    # all three.
+  if 'validation' in allsplits:
+    # CFQ and divergence splits of StarCFQ have all three sets.
+    split_names = {'train': 'train', 'dev': 'validation', 'test': 'test'}
+  else:
+    # Scan and non-divergence splits of StarCFQ have 'train' and 'test' sets
+    # only. We simply output the test set as both dev and test. We only really
+    # use the dev set but t2t-datagen expects all three.
     split_names = {'train': 'train', 'dev': 'test', 'test': 'test'}
 
   dataset = collections.defaultdict(list)
