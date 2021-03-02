@@ -1,0 +1,7 @@
+absl-py
+gin-config
+gym
+matplotlib
+numpy
+seaborn
+tensorflow==1.15.0
