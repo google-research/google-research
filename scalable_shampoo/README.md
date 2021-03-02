@@ -150,6 +150,31 @@ def polynomial_learning_rate_fn(base_lr, warmup_steps, train_steps):
   return step_fn
 ```
 
+## How to use?
+
+```
+    optimizer_def = shampoo.Shampoo(
+        learning_rate=learning_rate,
+        beta1=0.9,
+        beta2=0.99,
+        diagonal_epsilon=0.0,
+        matrix_epsilon=1e-5,
+        exponent_override=4,
+        weight_decay=1e-4,
+        start_preconditioning_step=25,
+        preconditioning_compute_steps=1,
+        statistics_compute_steps=1,
+        no_preconditioning_for_layers_with_dim_gt=8192,
+        best_effort_shape_interpretation=True,
+        block_size=128,
+        graft_type=shampoo.LayerwiseGrafting.SGD,
+        nesterov=True,
+        # Axis name for your pmap.
+        batch_axis_name='batch')
+
+```
+
+
 ## References
 
 [1] "Shampoo: Preconditioned Stochastic Tensor Optimization",
