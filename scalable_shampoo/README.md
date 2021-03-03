@@ -55,13 +55,13 @@ with the same benchmarking hardware CloudTPU-v3-256 (256 cores).
 
 ## Why is this even interesting?
 
-*   We are demonstrating improvements are both in steps to result, as well as wall-clock with a second-order method on a highly tuned baseline i.e practioners believe SGD-M variants are very strong baselines for ResNets with BatchNorm.
-*   We speculatively may be able to further extend the linear scaling regime to
+*   Here we are demonstrating improvements both in steps to result, as well as wall-clock with a second-order method on a highly tuned baseline i.e practioners believe SGD-M variants are very strong baselines for ResNets with BatchNorm.
+*   We speculatively maybe able to further extend the linear scaling regime to
     even larger batches, which we will do shortly.
 *   At larger batch sizes the overhead of computing inverse pth root will
     reduce further for fixed hardware allowing us to realize most of the gains
     from improved steps to convergence!
-*   Evidence that Shampoo works on both ResNet like models as well as Transformers.
+*   Presenting evidence that Shampoo works on both ResNet like models as well as Transformers.
 *   A working implementation of the procedure -- we noticed several
     reimplementations on GitHub that had issues with numerics or how algorithm
     is implemented, making them unlikely to work.
@@ -100,11 +100,11 @@ both wall-clock time as well steps to results.
     be reshaped into \[9, 128, 128\] before computing the Shampooo
     preconditioners allowing us to improve the resolution of the second moments
     that are computed.
-8.  Hardwork done by JAX, TensorFlow, XLA and TPU teams
-    in making infrastructure improvements that all this written ontop of that we
+8.  Hard work done by JAX, TensorFlow, XLA and TPU teams
+    in making infrastructure improvements ontop of which all of this is written that we
     take for granted.
 9.  Nado and Gilmer et al 2021 [4] demonstrated that tuning is crucial, and also
-    how to tune -- Hence, we follow in their foot steps, and tune distributed
+    how to tune effectively -- Hence, we follow in their foot steps, and tune distributed
     Shampoo similarly.
 
 ## To reproduce
