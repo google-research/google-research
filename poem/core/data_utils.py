@@ -366,7 +366,7 @@ def compute_lower_percentile_means(x, axis, q=50):
     A tensor for means of elements less or equal to the 1 percentiles. Shape =
       [...].
   """
-  percentiles = tfp.stats.percentile(x, q=q, axis=axis, keep_dims=True)
+  percentiles = tfp.stats.percentile(x, q=q, axis=axis, keepdims=True)
   weights = tf.cast(x <= percentiles, dtype=tf.float32)
   return (tf.math.reduce_sum(x * weights, axis=axis) /
           tf.math.reduce_sum(weights, axis=axis))
