@@ -50,6 +50,7 @@ from __future__ import division
 from __future__ import print_function
 
 from lingvo.core import py_utils
+from lingvo.core import symbolic
 import tensorflow.compat.v1 as tf
 
 from graph_compression.compression_lib import compression_wrapper_py2 as compression_wrapper
@@ -59,7 +60,7 @@ from model_pruning.python import pruning
 UPDATE_OP_COLLECTION = 'update_op'
 
 
-def get_matrix_compression_object(hparams,
+def get_matrix_compression_object(hparams,  # pylint:disable=invalid-name
                                   global_step=None,
                                   sparsity=None):
   """Returns a pruning/compression object.
@@ -83,7 +84,7 @@ def get_matrix_compression_object(hparams,
                                                      global_step=global_step)
 
 
-def apply_matrix_compression(matrix_compression_obj,
+def apply_matrix_compression(matrix_compression_obj,  # pylint:disable=invalid-name
                              weight,
                              scope=''):
   """Apply pruning/compression to a weight tensor.
@@ -114,7 +115,7 @@ def apply_matrix_compression(matrix_compression_obj,
     return compressed_matrix
 
 
-def apply_customized_lstm_matrix_compression(matrix_compression_obj,
+def apply_customized_lstm_matrix_compression(matrix_compression_obj,  # pylint:disable=invalid-name
                                              weight_params_fn,
                                              weight_init_obj,
                                              layer_obj,
@@ -185,7 +186,7 @@ def apply_customized_lstm_matrix_compression(matrix_compression_obj,
                            matrix_compression_obj.all_update_op())
 
 
-def apply_pruning(pruning_obj,
+def apply_pruning(pruning_obj,  # pylint:disable=invalid-name
                   pruning_hparams,
                   weight_params_fn, weight_init_obj, lstmobj,
                   wm_pc, dtype):
@@ -222,7 +223,7 @@ def apply_pruning(pruning_obj,
     return pruning_obj
 
 
-def get_pruning_update(pruning_obj, pruning_hparams):
+def get_pruning_update(pruning_obj, pruning_hparams):  # pylint:disable=invalid-name
   """Return pruning mask update op.
 
   Note: clients are encouraged to use get_matrix_compression_update_op instead,
@@ -248,7 +249,7 @@ def get_pruning_update(pruning_obj, pruning_hparams):
     raise NotImplementedError()
 
 
-def get_matrix_compression_update_op(matrix_compression_obj):
+def get_matrix_compression_update_op(matrix_compression_obj):  # pylint:disable=invalid-name
   """Return pruning/compression update op.
 
   For pruning, this returns a contional_mask_update_op; for compression, this
@@ -290,7 +291,7 @@ def get_matrix_compression_update_op(matrix_compression_obj):
     raise NotImplementedError()
 
 
-def run_update_step(matrix_compression_obj, session, step_number=None):
+def run_update_step(matrix_compression_obj, session, step_number=None):  # pylint:disable=invalid-name
   """This the update step that needs to be called periodically."""
 
   hparams = matrix_compression_obj.get_spec()
@@ -303,7 +304,7 @@ def run_update_step(matrix_compression_obj, session, step_number=None):
     matrix_compression_obj.run_update_step(session, step_number)
 
 
-def add_compression_summaries(matrix_compression_obj):
+def add_compression_summaries(matrix_compression_obj):  # pylint:disable=invalid-name
   """Add compression summaries.
 
   Args:
@@ -384,9 +385,154 @@ class PruningOp(object):
           concat,
           lstmobj.QWeight(tf.multiply(theta.wm, theta.mask, 'masked_weight')))
     elif cls._pruning_obj:
-      return cls._pruning_obj.get_mix_operator(theta, concat)
+      return lstmobj.compression_op.get_mix_operator(theta, concat)
     else:
       raise NotImplementedError()
+
+  @classmethod
+  def GetMatmulResult(cls,
+                      a,
+                      b,
+                      softmaxlayerobj,
+                      transpose_a=False,
+                      transpose_b=False):  # pylint:disable=invalid-name
+    """Compute the compressed result of matmul(a,b).
+
+    Args:
+      a: a tensor of rank 2;
+      b: a tensor of rank 2;
+      softmaxlayerobj: a SimpleFullSoftmax layer object;
+      transpose_a: whether to transpose a before matmul;
+      transpose_b: whether to transpose b before matmul.
+
+    Returns:
+      result Tensor.
+
+    Raises:
+      NotImplementedError if prune_option is not 'weight',
+      'first_order_gradient', or 'second_order_gradient'
+      and pruning_obj is None.
+    """
+    if cls._pruning_obj:
+      # current implementation works for num_shards = 1 in SimpleFullSoftmax.
+      return softmaxlayerobj.compression_ops[-1].get_matmul_operator(
+          a, b, transpose_a, transpose_b)
+    else:
+      raise NotImplementedError()
+
+  @classmethod
+  def GetEinSumResult(cls, inputs, weight, equation, proj_obj):
+    """Compute the einsum result.
+
+    Args:
+      inputs: the left operand of the matmul operation.
+      weight: the right operand of the matmul operator. a rank 2 tensor.
+      equation: the equation for the einsum operation.
+      proj_obj: the ProjectionLayer object from where get_einsum_operator
+                is called.
+
+    Returns:
+      result Tensor.
+
+    Raises:
+      NotImplementedError if pruning_obj is None.
+    """
+    if cls._pruning_obj:
+      return proj_obj.compression_op.get_einsum_operator(
+          inputs, weight, equation, proj_obj)
+    else:
+      raise NotImplementedError()
+
+  @classmethod
+  def GetProjectLastDim(cls, inputs, weight, input_dim, output_dim, proj_obj):
+    """Linear projection on the last dim of the input tensor along with pruning.
+
+    This is a TPU efficient implementation to avoid reshaping inputs to Rank-2
+    tensor by using Einsum for the compute.
+
+    Args:
+      inputs: An input Tensor, the last dimension of which is input_dim.
+      weight: A weight matrix with shape [input_dim, output_dim].
+      input_dim: An integer or a symbolic dim, the last dimension of the inputs.
+      output_dim: An integer or a symbolic dim, the last dimension of the
+                  outputs.
+      proj_obj: a ProjectionLayer object.
+
+    Returns:
+      An output Tensor of the same rank as inputs, the last dimension is
+      output_dim.
+    """
+    theta = proj_obj.theta
+    p = proj_obj.params
+    input_dim = int(
+        symbolic.ToStatic(input_dim) if symbolic.IsExpr(input_dim
+                                                       ) else input_dim)
+    output_dim = int(
+        symbolic.ToStatic(output_dim) if symbolic.IsExpr(output_dim
+                                                        ) else output_dim)
+    if (py_utils.use_tpu() and inputs.shape is not None and
+        inputs.shape.rank is not None and inputs.shape.rank < 26):
+      # Avoids reshape if feasible and uses Einsum.
+      if inputs.shape.rank == 2:
+        outputs = tf.matmul(inputs, weight)
+      else:
+        s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
+        r = inputs.shape.rank
+        outputs = cls.GetEinSumResult(inputs, weight,
+                                      '{0}y,yz->{0}z'.format(s[:r - 1]),
+                                      proj_obj)
+    else:
+      if p.pruning_hparams_dict['compress_input']:
+        blocked_inputs = tf.reshape(
+            inputs,
+            py_utils.ToStaticShape(
+                [-1, p.pruning_hparams_dict['input_block_size']]))
+        compressed_inputs = tf.reshape(
+            py_utils.Matmul(blocked_inputs, theta.b_matrix_tfvar),
+            py_utils.ToStaticShape([
+                -1, input_dim //
+                p.pruning_hparams_dict['input_compression_factor']
+            ]))
+      else:
+        compressed_inputs = tf.reshape(inputs,
+                                       py_utils.ToStaticShape([-1, input_dim]))
+
+      intermediate_result = py_utils.Matmul(compressed_inputs,
+                                            theta.c_matrix_tfvar)
+
+      if p.pruning_hparams_dict['compress_output']:
+        blocked_intermediate_result = tf.reshape(
+            intermediate_result,
+            py_utils.ToStaticShape([
+                -1, p.pruning_hparams_dict['output_block_size'] //
+                p.pruning_hparams_dict['output_compression_factor']
+            ]))
+        outputs = py_utils.Matmul(blocked_intermediate_result,
+                                  theta.d_matrix_tfvar)
+      else:
+        outputs = intermediate_result
+
+      outputs = tf.reshape(
+          outputs,
+          tf.concat([
+              tf.cast(py_utils.GetShape(inputs)[:-1], tf.int32),
+              py_utils.ToStaticShape([output_dim])
+          ],
+                    axis=0))
+
+    return outputs
+
+  @classmethod
+  def GetLastCompressionOp(cls):
+    if not cls._pruning_obj:
+      raise NotImplementedError()
+    elif cls._pruning_hparams.prune_option in [
+        'weight', 'first_order_gradient', 'second_order_gradient'
+    ]:
+      # choosing pruning instead of compression.
+      return None
+    else:
+      return cls._pruning_obj.get_last_compression_op()
 
   @classmethod
   def GetPruningUpdate(cls):  # pylint:disable=invalid-name

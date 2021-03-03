@@ -1323,6 +1323,145 @@ class InputOutputCompressionOp(CompressionOp):
       compressed_result = intermediate_result
     return compressed_result
 
+  def get_matmul_operator(self,
+                          inputs,
+                          wm,
+                          transpose_a=False,
+                          transpose_b=False):
+    """Performs matrix multiplication on compressed input for customized Softmax layers.
+
+    This performs the input (and/or) output compressed equivalent of
+    tf.matmul(inputs, wm).
+
+    Args:
+      inputs: the left operand of the matmul operation. a rank 2 tensor.
+      wm: the right operand of the matmul operator. a rank 2 tensor.
+      transpose_a: whether inputs tensor needs to be transposed before matmul.
+      transpose_b: whether wm tensor needs to be transposed before matmul.
+
+    Returns:
+      A TensorFlow node that has compressed version of
+      tf.matmul(inputs, wm).
+    """
+    if transpose_a:
+      inputs = tf.transpose(inputs)
+    if transpose_b:
+      wm = tf.transpose(wm)
+    if self._spec.compress_input:
+      # block inputs into blocks of size input_block_size.
+      blocked_inputs = tf.reshape(inputs, [
+          -1,
+          tf.shape(inputs)[1] // self._spec.input_block_size,
+          self._spec.input_block_size
+      ])
+      # project blocked_inputs down using b.
+      projected_blocked_inputs = tf.einsum(
+          'abc,cd->abd', blocked_inputs,
+          self.b_matrix_tfvar)
+      # flatten the block dimension in projected_blocked_inputs.
+      compressed_inputs = tf.reshape(
+          projected_blocked_inputs,
+          [tf.shape(inputs)[0], -1])
+    else:
+      compressed_inputs = inputs
+
+    # multiply compressed inputs with c.
+    intermediate_result = tf.matmul(compressed_inputs, self.c_matrix_tfvar)
+
+    if self._spec.compress_output:
+      # block intermediate_result into blocks
+      block_size = self._spec.output_block_size // self._spec.output_compression_factor
+      blocked_intermediate_result = tf.reshape(
+          intermediate_result,
+          [tf.shape(intermediate_result)[0], -1, block_size])
+      # project blocked_intermediate_result up using d.
+      projected_intermediate_result = tf.einsum(
+          'abc,cd->abd', blocked_intermediate_result,
+          self.d_matrix_tfvar)
+      # flatten the block dimension
+      compressed_result = tf.reshape(
+          projected_intermediate_result,
+          [tf.shape(projected_intermediate_result)[0], -1])
+    else:
+      compressed_result = intermediate_result
+    return compressed_result
+
+  def get_einsum_operator(self,
+                          inputs,
+                          layerobj):
+    """Performs compressed matrix multiplication for customized ProjectionLayer.
+
+    This performs the input (and/or) output compressed equivalent of
+    tf.matmul(inputs, weight).
+
+    Args:
+      inputs: the left operand of the matmul operation.
+      layerobj: the ProjectionLayer object from where get_einsum_operator
+                is called.
+
+    Returns:
+      A TensorFlow node that has compressed version of
+      tf.matmul(inputs, wm).
+    """
+    theta = layerobj.theta
+    s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
+    if self._spec.compress_input:
+      # block inputs into blocks of size input_block_size.
+      blocked_inputs = tf.reshape(
+          inputs,
+          tf.concat([
+              tf.shape(inputs)[:-1],
+              [tf.shape(inputs)[-1] // self._spec.input_block_size],
+              [self._spec.input_block_size]
+          ],
+                    axis=0))
+      # project blocked_inputs down using b.
+      projected_blocked_inputs = tf.einsum(
+          '{0}y,yz->{0}z'.format(s[:inputs.shape.rank]), blocked_inputs,
+          theta.b_matrix_tfvar)
+      # flatten the block dimension in projected_blocked_concat.
+      compressed_inputs = tf.reshape(
+          projected_blocked_inputs,
+          tf.concat([
+              tf.shape(inputs)[:-1],
+              [tf.shape(inputs)[-1] // self._spec.input_compression_factor]
+          ], axis=0))
+    else:
+      compressed_inputs = inputs
+
+    # multiply compressed inputs with c.
+    intermediate_result = tf.einsum(
+        '{0}y,yz->{0}z'.format(s[:inputs.shape.rank - 1]),
+        compressed_inputs, theta.c_matrix_tfvar)
+
+    if self._spec.compress_output:
+      # block intermediate_result into blocks
+      block_size = self._spec.output_block_size // self._spec.output_compression_factor
+      blocked_intermediate_result = tf.reshape(
+          intermediate_result,
+          tf.concat([
+              tf.shape(intermediate_result)[:-1],
+              [tf.shape(intermediate_result)[-1] // block_size], [block_size]
+          ],
+                    axis=0))
+      # project blocked_intermediate_result up using d.
+      projected_intermediate_result = tf.einsum(
+          '{0}y,yz->{0}z'.format(s[:inputs.shape.rank]),
+          blocked_intermediate_result, theta.d_matrix_tfvar)
+      # flatten the block dimension
+      compressed_result = tf.reshape(
+          projected_intermediate_result,
+          tf.concat([
+              tf.shape(intermediate_result)[:-1],
+              [
+                  tf.shape(intermediate_result)[-1] *
+                  self._spec.output_compression_factor
+              ]
+          ], axis=0))
+    else:
+      compressed_result = intermediate_result
+    return compressed_result
+
 
 class ApplyCompression(object):
   """Wrapper class.
@@ -1475,6 +1614,19 @@ class ApplyCompression(object):
 
   def get_mix_operator(self, theta, concat):
     return self._compression_ops[-1].get_mix_operator(theta, concat)
+
+  def get_matmul_operator(self,
+                          a,
+                          b,
+                          lstmobj,
+                          transpose_a=False,
+                          transpose_b=False):
+    return self._compression_ops[-1].get_matmul_operator(
+        a, b, lstmobj, transpose_a, transpose_b)
+
+  def get_einsum_operator(self, inputs, weight, equation, layerobj):
+    return self._compression_ops[-1].get_einsum_operator(
+        inputs, weight, equation, layerobj)
 
   def all_update_op(self):
     """Returns the combine update tf OP."""
