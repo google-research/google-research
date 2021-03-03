@@ -133,7 +133,7 @@ class BlockPartitioner:
   def __init__(self, param, hps):
     self._shape = param.shape
     self._splits = []
-    self._split_sizes = []
+    split_sizes = []
     # We split params into smaller blocks. Here we store the metadata to make
     # that split.
     for i, d in enumerate(param.shape):
@@ -144,18 +144,19 @@ class BlockPartitioner:
         sizes = onp.ones(nsplit + 1, dtype=onp.int32) * hps.block_size
         sizes[-1] = d - indices[-1]
         self._splits.append((i, indices))
-        self._split_sizes.append(sizes)
+        split_sizes.append(sizes)
       else:
-        self._split_sizes.append(onp.array([d], dtype=onp.int32))
+        split_sizes.append(onp.array([d], dtype=onp.int32))
+    self._num_splits = len(split_sizes)
     self._preconditioner_shapes = []
-    for t in itertools.product(*self._split_sizes):
+    for t in itertools.product(*split_sizes):
       self._preconditioner_shapes.extend([[d, d] for d in t])
 
   def shapes_for_preconditioners(self):
     return self._preconditioner_shapes
 
   def num_splits(self):
-    return len(self._split_sizes)
+    return self._num_splits
 
   def partition(self, tensor):
     """Partition tensor into blocks."""
@@ -185,6 +186,35 @@ class BlockPartitioner:
     return partitions[0]
 
 
+def _merge_small_dims(shape_to_merge, max_dim):
+  """Merge small dimensions.
+
+  If there are some small dimensions, we collapse them:
+  e.g. [1, 2, 512, 1, 2048, 1, 3, 4] --> [1024, 2048, 12] if block = 1024
+       [1, 2, 768, 1, 2048] --> [2, 768, 2048]
+
+  Args:
+    shape_to_merge: Shape of
+    max_dim: Maximal dimension to use.
+
+  Returns:
+    Merged dimensions.
+
+  """
+  resulting_shape = []
+  product = 1
+  for d in shape_to_merge:
+    if product * d <= max_dim:
+      product *= d
+    else:
+      if product > 1:
+        resulting_shape.append(product)
+      product = d
+  if product > 1:
+    resulting_shape.append(product)
+  return resulting_shape
+
+
 class Preconditioner:
   """Compute statistics/shape from gradients for preconditioning."""
 
@@ -193,27 +223,21 @@ class Preconditioner:
     self._original_shape = param.shape
     self._transformed_shape = param.shape
     if hps.best_effort_shape_interpretation:
-      self._transformed_shape = []
-      # if there are some small dimensions, collapse them:
-      # e.g. [1, 2, 512, 1, 2048, 1, 3, 4] --> [1024, 2048, 12] if block = 1024
-      # [1, 2, 768, 1, 2048] --> [2, 768, 2048]
-      product = 1
-      for d in self._original_shape:
-        if product * d <= hps.block_size:
-          product *= d
-        else:
-          if product > 1: self._transformed_shape.append(product)
-          product = d
-      if product > 1:
-        self._transformed_shape.append(product)
-      print('Shampoo: changing shape from: to:', self._original_shape,
-            self._transformed_shape)
+      self._transformed_shape = _merge_small_dims(
+          self._original_shape, hps.block_size)
 
     reshaped_param = jnp.reshape(param, self._transformed_shape)
     self._partitioner = BlockPartitioner(reshaped_param, hps)
 
   def statistics_from_grad(self, grad):
-    """Compute statistics from gradients."""
+    """Compute statistics from gradients.
+
+    Args:
+      grad: Gradient to compute statistics from.
+
+    Returns:
+      A list of gradient statistics for each partition.
+    """
     reshaped_grad = jnp.reshape(grad, self._transformed_shape)
     partitioned_grads = self._partitioner.partition(reshaped_grad)
     stats = []
@@ -228,14 +252,23 @@ class Preconditioner:
     return stats
 
   def shapes_for_preconditioners(self):
-    """Compute shape from statistics."""
+    """Returns shape from statistics."""
     return self._partitioner.shapes_for_preconditioners()
 
   def exponent_for_preconditioner(self):
+    """Returns exponent to use for inverse-pth root M^{-1/p}."""
     return 2 * len(self._transformed_shape)
 
   def preconditioned_grad(self, grad, preconditioners):
-    """Precondition the gradient with the given preconditioners."""
+    """Precondition the gradient.
+
+    Args:
+      grad: A gradient tensor to precondition.
+      preconditioners: A list of preconditioners to apply.
+
+    Returns:
+      A preconditioned gradient.
+    """
 
     reshaped_grad = jnp.reshape(grad, self._transformed_shape)
     partitioned_grads = self._partitioner.partition(reshaped_grad)
@@ -532,7 +565,6 @@ class Shampoo(OptimizerDef):
 
   def compute_shampoo_statistics(self, step, hps, param, state, grad):
     """Compute statistics."""
-    logging.info(param.shape)
     preconditioner = Preconditioner(param, hps)
     assert hps.learning_rate is not None, 'no learning rate provided.'
     new_statistics = [[]] * len(state.statistics)

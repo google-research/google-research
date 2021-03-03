@@ -158,7 +158,7 @@ class ShampooTest(absltest.TestCase):
       if e < 7:
         self.assertLess(error, 0.1)
       else:
-        # No gaurantees to succeed after e >= 7
+        # No guarantee of success after e >= 7
         pass
 
 if __name__ == '__main__':
