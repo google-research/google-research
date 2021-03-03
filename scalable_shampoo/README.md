@@ -35,8 +35,7 @@ https://openreview.net/forum?id=Sc8cY4Jpi3s (To be updated).
 The MLPerf training benchmark for ResNet-50 v1.5 on ImageNet [5] aims to reach
 75.9% validation accuracy in the shortest possible wall-clock time. MLPerf is a
 trademark of MLCommons.org, more information here: https://mlperf.org/training-overview .
-The competition had found the LARS optimizer [6], a first order method to work really well for training time improvement at
-very large batch sizes.
+The competition had found the LARS optimizer [6], a first order method to work really well for training time improvement at very large batch sizes.
 
 Very recently, Nado and Gilmer et al 2021 [4] did a comprehensive evaluation of several first order
 methods on this task and provided strong baselines results for SGD with Nesterov
@@ -46,7 +45,7 @@ at batch sizes of 32,768.
 This work releases distributed Shampoo implementation in JAX [7] that improves
 over the current state of the art by reaching **75.9% validation accuracy** in
 **1729 steps**. It also achieves faster overall wall-clock time of **284 seconds**
-with the same bechmarking hardware CloudTPU-v3-256 (256 cores).
+with the same benchmarking hardware CloudTPU-v3-256 (256 cores).
 
 |      Optimizer      | Steps to reach 75.9 validation accuracy | Wall clock time |
 |:-------------------:|-----------------------------------------|-----------------|
@@ -56,7 +55,7 @@ with the same bechmarking hardware CloudTPU-v3-256 (256 cores).
 
 ## Why is this even interesting?
 
-*   We are demonstrating improvements are in both steps to result, as well as wall-clock with a second-order method on a highly tuned baseline i.e practioners believe SGD-M variants are very strong baselines for ResNets with BatchNorm.
+*   We are demonstrating improvements are both in steps to result, as well as wall-clock with a second-order method on a highly tuned baseline i.e practioners believe SGD-M variants are very strong baselines for ResNets with BatchNorm.
 *   We speculatively may be able to further extend the linear scaling regime to
     even larger batches, which we will do shortly.
 *   At larger batch sizes the overhead of computing inverse pth root will
@@ -82,9 +81,10 @@ both wall-clock time as well steps to results.
     https://openreview.net/forum?id=Sc8cY4Jpi3s - This reduces the computational
     complexity significantly.
 2.  We use f32 (instead of f64) for ResNets, and search for matrix epsilon
-    between \[1e-6, 1e-1\]. Adding epsilon (1e-6) identity to the statistic
-    matrix bounds the condition number to be 10^6. This is roughly at the limit of
-    condition number that can be correctly inverted with f32 precision.
+    between \[1e-6, 1e-1\]. Normalizing the statistics to have maximal eigen
+    value of 1.0, and adding epsilon (1e-6) identity to the statistic
+    matrix bounds the condition number to be atmost 10^6. This is roughly at the
+    limit of condition number that can be correctly inverted with f32 precision.
 3.  We run the inverse pth root computation every step. Moreover, computation
     is distributed across all TPU cores -- This is by mixing in optimizer level
     parallelism with-in data parallel mode of training.
@@ -104,12 +104,12 @@ both wall-clock time as well steps to results.
     in making infrastructure improvements that all this written ontop of that we
     take for granted.
 9.  Nado and Gilmer et al 2021 [4] demonstrated that tuning is crucial, and also
-    how to tune -- Hence, follow in the foot steps, and tune distributed
+    how to tune -- Hence, we follow in their foot steps, and tune distributed
     Shampoo similarly.
 
 ## To reproduce
 
-Firstly, we following the procedure from Nado and Gilmer et al 2021 to measure success.
+Firstly, we are following the procedure from Nado and Gilmer et al 2021 [4] to measure success.
 Specifically, we measure the median validation accuracy over 50 training
 seeds with a fixed budget of 1,729 training steps at a batch size of 32,768. Code used for training is in [8].
 
