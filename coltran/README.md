@@ -101,12 +101,10 @@ Sampling can be parallelized across batches in a multi-GPU setup with the flag `
 
 ## Pre-trained checkpoints
 
-We release [pre-trained checkpoints](https://console.cloud.google.com/storage/browser/gresearch/coltran) on ImageNet at the following URL's
-* Colorizer - [Link](https://console.cloud.google.com/storage/browser/gresearch/coltran/colorizer_v2)
-* Color Upsampler - [Link](https://console.cloud.google.com/storage/browser/gresearch/coltran/color_upsampler_v2)
-* Spatial Upsampler - [Link](https://console.cloud.google.com/storage/browser/gresearch/coltran/spatial_upsampler_v2)
+We release zip-compressed [pre-trained checkpoints](https://console.cloud.google.com/storage/browser/gresearch/coltran) on ImageNet in the following [zip file](https://storage.cloud.google.com/gresearch/coltran/coltran.zip). Unzip this file to a local directory.
+The checkpoints for the colorizer, color upsampler and spatial upsampler are present in the corresponding sub-directories.
 
-To sample, download these to a local directory and run the sampling script with the `logdir` flag set to the local path.
+To sample, run the sampling script with the `logdir` flag set to the local path.
 
 ## Reference Tensorboards
 
