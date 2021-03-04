@@ -51,7 +51,7 @@ with the same benchmarking hardware CloudTPU-v3-256 (256 cores).
 |:-------------------:|-----------------------------------------|-----------------|
 |         LARS        |                   2512                  | ~309-311 seconds    |
 |       Nesterov      |                   2512                  | ~309-311 seconds    |
-| **Distributed Shampoo (this work)** |         **1729 (31.17 % reduction)**        | **~284-287 seconds**  |
+| **Distributed Shampoo (this work)** |         **1729 (31.17 % reduction)**        | **~269-272 seconds**  |
 
 ## Why is this even interesting?
 

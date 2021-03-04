@@ -410,8 +410,9 @@ def matrix_inverse_pth_root(mat_g,
   def _iter_condition(state):
     (i, unused_mat_m, unused_mat_h, unused_old_mat_h, error,
      run_step) = state
-    return jnp.logical_and(i < iter_count,
-                           jnp.logical_or(error > error_tolerance, run_step))
+    error_above_threshold = jnp.logical_and(
+        error > error_tolerance, run_step)
+    return jnp.logical_and(i < iter_count, error_above_threshold)
 
   def _iter_body(state):
     (i, mat_m, mat_h, unused_old_mat_h, error, unused_run_step) = state
