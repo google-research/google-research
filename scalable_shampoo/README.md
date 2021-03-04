@@ -34,8 +34,7 @@ https://openreview.net/forum?id=Sc8cY4Jpi3s (To be updated).
 
 The MLPerf training benchmark for ResNet-50 v1.5 on ImageNet [5] aims to reach
 75.9% validation accuracy in the shortest possible wall-clock time. MLPerf is a
-trademark of MLCommons.org, more information here: https://mlperf.org/training-overview .
-The competition had found the LARS optimizer [6], a first order method to work really well for training time improvement at very large batch sizes.
+trademark of MLCommons.org, more information here: https://mlperf.org/training-overview . The competition had found the LARS optimizer [6], a first order method to work really well for training time improvement at very large batch sizes.
 
 Very recently, Nado and Gilmer et al 2021 [4] did a comprehensive evaluation of several first order
 methods on this task and provided strong baselines results for SGD with Nesterov
@@ -44,7 +43,7 @@ at batch sizes of 32,768.
 
 This work releases distributed Shampoo implementation in JAX [7] that improves
 over the current state of the art by reaching **75.9% validation accuracy** in
-**1729 steps**. It also achieves faster overall wall-clock time of **284 seconds**
+**1729 steps**. It also achieves faster overall wall-clock time of **269 seconds**
 with the same benchmarking hardware CloudTPU-v3-256 (256 cores).
 
 |      Optimizer      | Steps to reach 75.9 validation accuracy | Wall clock time |
@@ -109,9 +108,7 @@ both wall-clock time as well steps to results.
 
 ## To reproduce
 
-Firstly, we are following the procedure from Nado and Gilmer et al 2021 [4] to measure success.
-Specifically, we measure the median validation accuracy over 50 training
-seeds with a fixed budget of 1,729 training steps at a batch size of 32,768. Code used for training is in [8].
+Firstly, we are following the procedure from Nado and Gilmer et al 2021 [4] to measure success. Specifically, we measure the median validation accuracy over 50 training seeds with a fixed budget of 1,729 training steps at a batch size of 32,768. Code used for training is in [8].
 
 Hyperparameters for variables except bias and batch normalization variables.
 
