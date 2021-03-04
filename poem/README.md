@@ -35,6 +35,7 @@ include the **"[POEM]"** prefix in the issue title.
 - [Liangzhe Yuan](https://github.com/yuanliangzhe)
 
 ## Updates
+- `03/04/2021`: Added a program for running model inference.
 - `10/21/2020`: Added cross-view pose retrieval evaluation frame keys.
 - `10/15/2020`: Added training TFRecords generation program.
 - `07/02/2020`: First release. Included core TensorFlow code for model training.
