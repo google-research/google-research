@@ -83,6 +83,7 @@ env:
     - PROJECT="scrna_benchmark"
     - PROJECT="single_view_mpi"
     - PROJECT="sm3"
+    - PROJECT="smug_saliency"
     - PROJECT="social_rl"
     - PROJECT="soft_sort"
     - PROJECT="solver1d"
