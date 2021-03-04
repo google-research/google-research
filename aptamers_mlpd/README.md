@@ -297,7 +297,9 @@ turned into venn diagrams and pie charts in Figure 2.
 The inputs are csvs, where each row is an aptamer and columns indicate the
 sequencing counts within each particle display subexperiment.
 
-Inputs: pd_clustered_input_data_manuscript.csv, mlpd_input_data_manuscript
+Inputs: 
+-   [pd_clustered_input_data_manuscript.csv](https://storage.googleapis.com/gresearch/aptamers_mlpd/pd_clustered_input_data_manuscript.csv)
+-   [mlpd_input_data_manuscript.csv](https://storage.googleapis.com/gresearch/aptamers_mlpd/mlpd_input_data_manuscript.csv)
 
 #### Figure 3
 
@@ -308,7 +310,7 @@ plots) for experimental seeds (Figure 3A) and different walking strategies
 The input is a csv where each row is an aptamer and columns indicate the
 sequencing counts each MLPD subexperiment.
 
-Inputs: mlpd_input_data_manuscript.csv
+Input: [mlpd_input_data_manuscript.csv](https://storage.googleapis.com/gresearch/aptamers_mlpd/mlpd_input_data_manuscript.csv)
 
 #### Figure 4
 
@@ -316,4 +318,4 @@ This notebook loads in all the simulated truncations (with model scores) as well
 as the experimentally tested subset of truncations. It then creates a plot
 showing the distribution of model scores for each tested truncation.
 
-Input: truncation_option_seed_scores_manuscript.csv
+Input: [truncation_option_seed_scores_manuscript.csv](https://storage.googleapis.com/gresearch/aptamers_mlpd/[truncation_option_seed_scores_manuscript.csv)
