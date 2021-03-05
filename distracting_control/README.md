@@ -12,7 +12,7 @@ Details and experimental results can be found in our
 * Follow the instructions and install
 [dm_control](https://github.com/deepmind/dm_control#requirements-and-installation). Make sure you setup your MuJoCo keys correctly.
 * Download the [DAVIS 2017
-  dataset](https://davischallenge.org/davis2017/code.html).
+  dataset](https://davischallenge.org/davis2017/code.html). Make sure to select the 2017 TrainVal - Images and Annotations (480p). The training images will be used as distracting backgrounds.
 
 ## Instructions
 
