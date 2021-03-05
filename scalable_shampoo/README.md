@@ -11,7 +11,7 @@ second order statistics of the data, are far less prevalent despite strong
 theoretical properties, due to their prohibitive computation, memory and
 communication costs.
 
-Here we present a scalable implementation of a second-order preconditioned
+Here we present a scalable implementation of a second-order preconditioning
 method (concretely, a variant of full-matrix Adagrad) that provides significant
 convergence and wall-clock time improvements compared to conventional
 first-order methods on state-of-the-art deep models.
@@ -34,14 +34,16 @@ https://openreview.net/forum?id=Sc8cY4Jpi3s (To be updated).
 
 The MLPerf training benchmark for ResNet-50 v1.5 on ImageNet [5] aims to reach
 75.9% validation accuracy in the shortest possible wall-clock time. MLPerf is a
-trademark of MLCommons.org, more information here: https://mlperf.org/training-overview . The competition had found the LARS optimizer [6], a first order method to work really well for training time improvement at very large batch sizes.
+trademark of MLCommons.org, more information here: https://mlperf.org/training-overview .
+The competition had found the LARS optimizer [6], a first order method, to work
+really well for training time improvement at very large batch sizes.
 
 Very recently, Nado and Gilmer et al 2021 [4] did a comprehensive evaluation of several first order
 methods on this task and provided strong baselines results for SGD with Nesterov
 momentum matching previous best LARS of 2512 steps to 75.9% validation accuracy
 at batch sizes of 32,768.
 
-This work releases distributed Shampoo implementation in JAX [7] that improves
+This work releases a distributed Shampoo implementation in JAX [7] that improves
 over the current state of the art by reaching **75.9% validation accuracy** in
 **1729 steps**. It also achieves faster overall wall-clock time of **269 seconds**
 with the same benchmarking hardware CloudTPU-v3-256 (256 cores).
@@ -54,63 +56,65 @@ with the same benchmarking hardware CloudTPU-v3-256 (256 cores).
 
 ## Why is this even interesting?
 
-*   Here we are demonstrating improvements both in steps to result, as well as wall-clock with a second-order method on a highly tuned baseline i.e practioners believe SGD-M variants are very strong baselines for ResNets with BatchNorm.
-*   We speculatively maybe able to further extend the linear scaling regime to
+*   We demonstrate improvements both in steps to result, as well as
+    wall-time with a second-order method on a highly tuned baseline i.e
+    practioners believe SGD-M variants are very strong baselines for ResNets with BatchNorm.
+*   We may be able to further extend the linear scaling regime to
     even larger batches, which we will do shortly.
-*   At larger batch sizes the overhead of computing inverse pth root will
-    reduce further for fixed hardware allowing us to realize most of the gains
-    from improved steps to convergence!
-*   Presenting evidence that Shampoo works on both ResNet like models as well as Transformers.
-*   A working implementation of the procedure -- we noticed several
+*   At larger batch sizes the overhead of computing inverse pth roots will
+    reduce further. Thus the wall-time gains will mirror the improved steps to
+    convergence.
+*   We present evidence that Shampoo works on both ResNet like models as well as Transformers.
+*   We present a working implementation of Shampoo -- we noticed several
     reimplementations on GitHub that had issues with numerics or how algorithm
     is implemented, making them unlikely to work.
 
 ## How?
 
-We were focussing on much larger scale benchmarks before this. We knew Shampoo
+Our focus so far was on larger scale benchmarks. We knew Shampoo
 was useful but demonstrating it required many things to come together. Moreover,
-the engineering effort alone was large to get it working well on
-smaller benchmarks such as ResNet-50. We recently started exploring
+a large engineering effort alone was needed to get it to work well on
+smaller benchmarks such as ResNet-50. We recently started
 reimplementing the method in several frameworks, which made us revisit some
 earlier decisions. We finally list the details that helped with improving
 both wall-clock time as well steps to results.
 
 1.  We split large tensors into smaller tensors with atmost dimension 128
     (allowing faster inverse pth root), described in:
-    https://openreview.net/forum?id=Sc8cY4Jpi3s - This reduces the computational
+    https://openreview.net/forum?id=Sc8cY4Jpi3s -- this reduces the computational
     complexity significantly.
-2.  We use f32 (instead of f64) for ResNets, and search for matrix epsilon
-    between \[1e-6, 1e-1\]. Normalizing the statistics to have maximal eigen
-    value of 1.0, and adding epsilon (1e-6) identity to the statistic
+2.  We use fp32 (instead of fp64) for ResNets, and search for matrix epsilon
+    between \[1e-6, 1e-1\]. Normalizing the statistics to have maximal 
+    eigenvalue of 1.0, and adding epsilon (1e-6) identity to the statistic
     matrix bounds the condition number to be atmost 10^6. This is roughly at the
-    limit of condition number that can be correctly inverted with f32 precision.
+    limit of condition number that can be correctly inverted with fp32 precision.
 3.  We run the inverse pth root computation every step. Moreover, computation
-    is distributed across all TPU cores -- This is by mixing in optimizer level
-    parallelism with-in data parallel mode of training.
-4.  We added several stability fixes to matrix pth root as its finicky to
-    get right, and crucial.
-5.  We let the exponent be a tunable parameter. Default choice in the algorithm
+    is distributed across all TPU cores -- this is done by mixing in optimizer level
+    parallelism within the data parallel mode of training.
+4.  We added several stability fixes to matrix pth root that were crucial for convergence.
+5.  We let the exponent be a tunable parameter. The default choice in the algorithm
     is 1/(2 x rank). Overriding this exponent can mean that the approximation
-    is for either, full matrix AdaGrad, Online Newton Step or something else.
+    is for either full matrix AdaGrad, Online Newton Step or something else.
 6.  We implement Grafting to SGD to fix the per layer scale of Shampoo update
-    and combine it with Nesterov Momentum. We find in practice the implict
-    schedule from Shampoo update to not work well.
+    and combine it with Nesterov Momentum. We find that in practice the implict
+    schedule from the Shampoo update does not work well.
 7.  We further group smaller dimensions together for eg: \[3, 3, 128, 128\] will
     be reshaped into \[9, 128, 128\] before computing the Shampooo
-    preconditioners allowing us to improve the resolution of the second moments
-    that are computed.
-8.  Hard work done by JAX, TensorFlow, XLA and TPU teams
-    in making infrastructure improvements ontop of which all of this is written that we
-    take for granted.
+    preconditioners allowing us to compute more correlations.
+8.  The hard work done by JAX, TensorFlow, XLA and TPU teams in making
+    infrastructure improvements helped speed up computation and tuning.
 9.  Nado and Gilmer et al 2021 [4] demonstrated that tuning is crucial, and also
-    how to tune effectively -- Hence, we follow in their foot steps, and tune distributed
+    how to tune effectively -- we follow in their foot steps, and tune distributed
     Shampoo similarly.
 
 ## To reproduce
 
-Firstly, we are following the procedure from Nado and Gilmer et al 2021 [4] to measure success. Specifically, we measure the median validation accuracy over 50 training seeds with a fixed budget of 1,729 training steps at a batch size of 32,768. Code used for training is in [8].
+We are following the procedure from Nado and Gilmer et al 2021 [4] to measure success. 
+Specifically, we measure the median validation accuracy over 50 training seeds 
+with a fixed budget of 1,729 training steps at a batch size of 32,768. The code
+used for training is in [8].
 
-Hyperparameters for variables except bias and batch normalization variables.
+Hyperparameters for variables except bias and batch normalization variables:
 
 ```
 _ShampooHyperParams(
@@ -126,7 +130,9 @@ _ShampooHyperParams(
 ```
 
 Weight decay is not applied to bias and batch normalization variables, other
-hyperparameters are identical. Effect of this difference was minor -- but we loved the 1729 step number [9] and did not want to extend it further (likely by less than a hundred steps).
+hyperparameters are identical. This has
+a small effect, but we loved the 1729 step number [9] and did not want to change it
+further (possibly by less than a hundred steps).
 
 Learning rate schedule:
 
@@ -205,4 +211,4 @@ def polynomial_learning_rate_fn(base_lr, warmup_steps, train_steps):
 [8] "Jax implementation of ResNet-50 Model for MlPerf v0.7"
   [Link to code](https://github.com/mlperf/training_results_v0.7/blob/master/Google/benchmarks/resnet/implementations/resnet-research-JAX-tpu-v3-8192/train.py)
 
-[9] "Ramanujam number", [https://en.wikipedia.org/wiki/1729](https://en.wikipedia.org/wiki/1729_(number))
+[9] "Ramanujan number", [https://en.wikipedia.org/wiki/1729](https://en.wikipedia.org/wiki/1729_(number))
