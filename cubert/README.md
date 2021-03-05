@@ -17,7 +17,7 @@ What happened in practice was the following:
 
 1. Step #1 brought in some duplicate files from GitHub, due to cloning (same content digest but different repository and path).
 2. Step #2 removed from the results of Step #1 all files similar to ETH Py150 Open, as intended. That included all clones of such files.
-3. Step #3 didn't remove all identical files from its input. The reason for this was that Step #3 is essentially an O(N^2) process, and N was roughly 14M. To speed the process up, we performed Step #3 in independent batches. As a result, if a file had a clone in another batch, they might both be individually kept by their corresponding batches. That problem did not affect Step #2, because all GitHub files were compared to all ETH Py150 Open files. Therefore, Step #2 was not affected.
+3. Step #3 didn't remove all identical files from its input. The reason for this was that Step #3 is essentially an O(N^2) process, and N was roughly 14M. To speed the process up, we performed Step #3 in semi-independent batches. As a result, if a file had a clone in another batch, they might both be individually kept by their corresponding batches. That problem did not affect Step #2, because all GitHub files were compared to all ETH Py150 Open files. Therefore, Step #2 was not affected.
 
 Out of the ~7M files in our pre-training corpus, only ~4M files are indeed unique. Consequently, the manifest contains multiple entries for some GitHub SHA1 digests. In practice, this causes a small skew in our pre-training process, but it does not affect the validity of using ETH Py150 Open as our fine-tuning corpus, or our results.
 
