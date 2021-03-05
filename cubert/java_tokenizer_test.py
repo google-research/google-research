@@ -25,6 +25,8 @@ from cubert import unified_tokenizer
 
 _NEWLINE_NAME = unified_tokenizer.quote_special(
     unified_tokenizer.TokenKind.NEWLINE.name)
+_EOS_NAME = unified_tokenizer.quote_special(
+    unified_tokenizer.TokenKind.EOS.name)
 
 
 class JavaTokenizerTest(parameterized.TestCase):
@@ -146,9 +148,10 @@ TokenB TokenC""",
 
   @parameterized.named_parameters(
       ('single_line', 'package com.aye.bee.cee;',
-       ('package', ' ', 'com', '.', 'aye', '.', 'bee', '.', 'cee', ';', '')),
+       ('package', ' ', 'com', '.', 'aye', '.', 'bee', '.', 'cee', ';',
+        _EOS_NAME)),
       ('with_subtokenization', 'public   class CamelCase {',
-       ('public', '   ', 'class', ' ', 'Camel^', 'Case', ' ', '{', '')),
+       ('public', '   ', 'class', ' ', 'Camel^', 'Case', ' ', '{', _EOS_NAME)),
       ('multiple_lines', """
 public class CamelCase {
 
@@ -179,7 +182,7 @@ public class CamelCase {
            _NEWLINE_NAME,
 
            # Line 6.
-           '',
+           _EOS_NAME,
            )),
       )
   def test_tokenize_returns_expected(
