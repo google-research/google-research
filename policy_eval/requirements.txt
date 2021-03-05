@@ -1,0 +1,9 @@
+gym>=0.17.0
+mujoco-py~=1.50.1.68
+numpy~=1.19.2
+tqdm>=4.36.1
+tensorflow>=2.4.0
+tensorflow-addons
+tensorflow-probability>=0.9.0
+tf-agents>=0.6.0
+git+git://github.com/rail-berkeley/d4rl@master#egg=d4rl
