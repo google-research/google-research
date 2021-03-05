@@ -35,7 +35,6 @@
 import enum
 import itertools
 
-from absl import logging
 from flax import struct
 from flax.optim.base import OptimizerDef
 from flax.optim.base import OptimizerState
@@ -190,16 +189,15 @@ def _merge_small_dims(shape_to_merge, max_dim):
   """Merge small dimensions.
 
   If there are some small dimensions, we collapse them:
-  e.g. [1, 2, 512, 1, 2048, 1, 3, 4] --> [1024, 2048, 12] if block = 1024
+  e.g. [1, 2, 512, 1, 2048, 1, 3, 4] --> [1024, 2048, 12] if max_dim = 1024
        [1, 2, 768, 1, 2048] --> [2, 768, 2048]
 
   Args:
-    shape_to_merge: Shape of
-    max_dim: Maximal dimension to use.
+    shape_to_merge: Shape to merge small dimensions.
+    max_dim: Maximal dimension of output shape used in merging.
 
   Returns:
-    Merged dimensions.
-
+    Merged shape.
   """
   resulting_shape = []
   product = 1
@@ -530,7 +528,8 @@ class Shampoo(OptimizerDef):
   def init_param_state(self, param):
     """Initialize parameter state."""
     rank = len(param.shape)
-    preconditioner = Preconditioner(param, self.hyper_params)
+    hps = self.hyper_params
+    preconditioner = Preconditioner(param, hps)
     statistics = []
     preconditioners = []
     if rank >= 1:
@@ -540,12 +539,13 @@ class Shampoo(OptimizerDef):
       ]
       preconditioners = [jnp.eye(s[0]) for s in shapes]
 
-    return _ShampooDefaultParamState(
-        jnp.zeros_like(param),
-        statistics,
-        preconditioners,
-        jnp.zeros_like(param),
-        jnp.zeros_like(param))
+    adagrad_statistics = []
+    if hps.graft_type == LayerwiseGrafting.ADAGRAD:
+      adagrad_statistics = jnp.zeros_like(param)
+
+    return _ShampooDefaultParamState(adagrad_statistics, statistics,
+                                     preconditioners, jnp.zeros_like(param),
+                                     jnp.zeros_like(param))
 
   def _skip_preconditioning(self, param, hps):
     return len(param.shape) < 1
@@ -758,14 +758,14 @@ class Shampoo(OptimizerDef):
 
   def apply_per_param_gradient(self, step, hps, param, state, grad):
     """Apply per-parameter gradients."""
-    logging.info(param.shape)
     preconditioner = Preconditioner(param, hps)
     assert hps.learning_rate is not None, 'no learning rate provided.'
-    new_diagonal_statistics = state.diagonal_statistics + jnp.square(grad)
-    adagrad_update = grad / (
-        jnp.sqrt(new_diagonal_statistics) + hps.diagonal_eps)
     sgd_update = grad
+    new_diagonal_statistics = state.diagonal_statistics
     if hps.graft_type == LayerwiseGrafting.ADAGRAD:
+      new_diagonal_statistics = state.diagonal_statistics + jnp.square(grad)
+      adagrad_update = grad / (
+          jnp.sqrt(new_diagonal_statistics) + hps.diagonal_eps)
       grafting_update = adagrad_update
     else:
       grafting_update = sgd_update

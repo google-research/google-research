@@ -69,8 +69,8 @@ class ShampooTest(absltest.TestCase):
     zeros_like_param = np.zeros((1,))
     expected_state = optim.OptimizerState(
         0,
-        shampoo._ShampooDefaultParamState(zeros_like_param, [], [],
-                                          zeros_like_param, zeros_like_param))
+        shampoo._ShampooDefaultParamState([], [], [], zeros_like_param,
+                                          zeros_like_param))
     self.assertEqual(state, expected_state)
 
     params = np.zeros((8,))

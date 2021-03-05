@@ -45,14 +45,14 @@ at batch sizes of 32,768.
 
 This work releases a distributed Shampoo implementation in JAX [7] that improves
 over the current state of the art by reaching **75.9% validation accuracy** in
-**1729 steps**. It also achieves faster overall wall-clock time of **269 seconds**
+**1729 steps**. It also achieves faster overall wall-clock time of **267 seconds**
 with the same benchmarking hardware CloudTPU-v3-256 (256 cores).
 
 |      Optimizer      | Steps to reach 75.9 validation accuracy | Wall clock time |
 |:-------------------:|-----------------------------------------|-----------------|
 |         LARS        |                   2512                  | ~309-311 seconds    |
 |       Nesterov      |                   2512                  | ~309-311 seconds    |
-| **Distributed Shampoo (this work)** |         **1729 (31.17 % reduction)**        | **~269-272 seconds**  |
+| **Distributed Shampoo (this work)** |         **1729 (31.17 % reduction)**        | **~267-269 seconds**  |
 
 ## Why is this even interesting?
 
@@ -99,10 +99,10 @@ both wall-clock time as well steps to results.
     and combine it with Nesterov Momentum. We find that in practice the implict
     schedule from the Shampoo update does not work well.
 7.  We further group smaller dimensions together for eg: \[3, 3, 128, 128\] will
-    be reshaped into \[9, 128, 128\] before computing the Shampooo
+    be reshaped into \[9, 128, 128\] before computing the Shampoo
     preconditioners allowing us to compute more correlations.
 8.  The hard work done by JAX, TensorFlow, XLA and TPU teams in making
-    infrastructure improvements helped speed up computation and tuning.
+    infrastructure improvements that makes this optimizer possible.
 9.  Nado and Gilmer et al 2021 [4] demonstrated that tuning is crucial, and also
     how to tune effectively -- we follow in their foot steps, and tune distributed
     Shampoo similarly.
