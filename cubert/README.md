@@ -19,7 +19,7 @@ What happened in practice was the following:
 2. Step #2 removed from the results of Step #1 all files similar to ETH Py150 Open, as intended. That included all clones of such files.
 3. Step #3 didn't remove all identical files from its input. The reason for this was that Step #3 is essentially an O(N^2) process, and N was roughly 14M. To speed the process up, we performed Step #3 in semi-independent batches. As a result, if a file had a clone in another batch, they might both be individually kept by their corresponding batches. That problem did not affect Step #2, because all GitHub files were compared to all ETH Py150 Open files. Therefore, Step #2 was not affected.
 
-Out of the ~7M files in our pre-training corpus, only ~4M files are indeed unique. Consequently, the manifest contains multiple entries for some GitHub SHA1 digests. In practice, this causes a small skew in our pre-training process, but it does not affect the validity of using ETH Py150 Open as our fine-tuning corpus, or our results.
+Out of the ~7M files in our pre-training corpus, only ~4M files are indeed unique. Consequently, the manifest contains multiple entries for some GitHub SHA1 digests. In practice, this causes a small skew in our pre-training process. Note, however, that this does not affect the validity of using ETH Py150 Open as our fine-tuning corpus, or our results, because there is still no "information leak" between the pre-training and fine-tuning corpora.
 
 We are indebted to David Gros (@DNGros) for discovering this in our datasets, and bringing it to our attention.
 
@@ -67,6 +67,12 @@ select * from github_source_snapshot;
 ```
 
 Note that this corrects for the error described in the previous subsection.
+
+The original query, used for the pre-training corpus in the paper, did not have
+the ID-based deduplication done by views `unique_full_path` and
+`unique_github_files_at_head`. Specifically, view `github_provenances` was
+reading from `github_files_at_head` in its `from` clause, rather than from
+`unique_github_files_at_head`.
 
 
 ## Update 2020/11/16: Pre-trained Java Model with Code Comments
