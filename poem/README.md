@@ -25,6 +25,11 @@ Please refer to [`requirements.txt`](https://github.com/google-research/google-r
 [`run.sh`](https://github.com/google-research/google-research/blob/master/poem/run.sh)
 for how to install the required packages.
 
+**Note:** The [`run.sh`](https://github.com/google-research/google-research/blob/master/poem/run.sh) script only provides a sample
+command for how to launch a training job on a small dummy data table. Running it
+as is does NOT launch training job on any real datasets or generate any
+meaningful model checkpoints.
+
 ## Getting Help
 Please report issues related to this repository to the [tracker](https://github.com/google-research/google-research/issues) and make sure to
 include the **"[POEM]"** prefix in the issue title.

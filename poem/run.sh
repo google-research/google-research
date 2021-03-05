@@ -13,6 +13,11 @@
 # limitations under the License.
 
 #!/bin/bash
+#
+# Note: This script serves for testing purposes. It also provides a sample
+# command for how to launch a training job on a small dummy data table. Running
+# it as is does NOT launch training job on any real datasets or generate any
+# meaningful model checkpoints.
 
 set -e
 set -x
