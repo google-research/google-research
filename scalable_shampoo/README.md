@@ -17,16 +17,16 @@ convergence and wall-clock time improvements compared to conventional
 first-order methods on state-of-the-art deep models.
 
 
-Paper preprints:
-https://arxiv.org/abs/2002.09018
-https://openreview.net/forum?id=Sc8cY4Jpi3s (To be updated).
+Paper preprints: https://arxiv.org/abs/2002.09018
 
 ```
-@article{anil2020second,
-  title={Second order optimization made practical},
-  author={Anil, Rohan and Gupta, Vineet and Koren, Tomer and Regan, Kevin and Singer, Yoram},
-  journal={arXiv preprint arXiv:2002.09018},
-  year={2020}
+@misc{anil2021scalable,
+      title={Scalable Second Order Optimization for Deep Learning},
+      author={Rohan Anil and Vineet Gupta and Tomer Koren and Kevin Regan and Yoram Singer},
+      year={2021},
+      eprint={2002.09018},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
 }
 ```
 
@@ -81,7 +81,7 @@ both wall-clock time as well steps to results.
 
 1.  We split large tensors into smaller tensors with atmost dimension 128
     (allowing faster inverse pth root), described in:
-    https://openreview.net/forum?id=Sc8cY4Jpi3s -- this reduces the computational
+    https://arxiv.org/abs/2002.09018 -- this reduces the computational
     complexity significantly.
 2.  We use fp32 (instead of fp64) for ResNets, and search for matrix epsilon
     between \[1e-6, 1e-1\]. Normalizing the statistics to have maximal 
