@@ -945,6 +945,11 @@ class InputOutputCompressionOp(CompressionOp):
       tf.summary.scalar(self.c_matrix_tfvar.op.name + '/c_matrix_norm',
                         tf.norm(self.c_matrix_tfvar))
 
+  # Overriding this function from CompressionOp since last_alpha_update_step is
+  # not needed from InputOutputCompressionOp.
+  def _setup_last_alpha_update_step(self):
+    return -1
+
   def get_apply_compression_op(self,
                                a_matrix_tfvar,
                                matrix_compressor,
