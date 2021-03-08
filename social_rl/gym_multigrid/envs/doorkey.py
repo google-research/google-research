@@ -28,9 +28,9 @@ from social_rl.gym_multigrid.register import register
 class DoorKeyEnv(multigrid.MultiGridEnv):
   """Environment with a door and key, sparse reward."""
 
-  def __init__(self, size=8, n_agents=3):
+  def __init__(self, size=8, n_agents=3, **kwargs):
     super().__init__(
-        grid_size=size, max_steps=10 * size * size, n_agents=n_agents)
+        grid_size=size, max_steps=10 * size * size, n_agents=n_agents, **kwargs)
 
   def _gen_grid(self, width, height):
     self.height = height
@@ -89,38 +89,38 @@ class DoorKeyEnv(multigrid.MultiGridEnv):
 
 class DoorKeyEnv6x6(DoorKeyEnv):
 
-  def __init__(self):
-    super().__init__(size=6, n_agents=2)
+  def __init__(self, **kwargs):
+    super().__init__(size=6, n_agents=2, **kwargs)
 
 
 class DoorKeyEnv16x16(DoorKeyEnv):
 
-  def __init__(self):
-    super().__init__(size=16, n_agents=5)
+  def __init__(self, **kwargs):
+    super().__init__(size=16, n_agents=5, **kwargs)
 
 
 class DoorKeyEnv5x5Single(DoorKeyEnv):
 
-  def __init__(self):
-    super().__init__(size=5, n_agents=1)
+  def __init__(self, **kwargs):
+    super().__init__(size=5, n_agents=1, **kwargs)
 
 
 class DoorKeyEnv6x6Single(DoorKeyEnv):
 
-  def __init__(self):
-    super().__init__(size=6, n_agents=1)
+  def __init__(self, **kwargs):
+    super().__init__(size=6, n_agents=1, **kwargs)
 
 
 class DoorKeyEnv8x8Single(DoorKeyEnv):
 
-  def __init__(self):
-    super().__init__(size=8, n_agents=1)
+  def __init__(self, **kwargs):
+    super().__init__(size=8, n_agents=1, **kwargs)
 
 
 class DoorKeyEnv16x16Single(DoorKeyEnv):
 
-  def __init__(self):
-    super().__init__(size=16, n_agents=1)
+  def __init__(self, **kwargs):
+    super().__init__(size=16, n_agents=1, **kwargs)
 
 if hasattr(__loader__, 'name'):
   module_path = __loader__.name

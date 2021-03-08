@@ -63,5 +63,36 @@ class MultiagentTest(tf.test.TestCase, parameterized.TestCase):
         os.path.join(root_dir, 'policy_saved_model'))
     self.assertGreaterEqual(len(saved_policies), 1)
 
+  def test_attention(self):
+    root_dir = '/tmp/attention/'
+    if tf.io.gfile.exists(root_dir):
+      tf.compat.v1.gfile.DeleteRecursively(root_dir)
+    multiagent_train_eval.train_eval(
+        root_dir=root_dir,
+        env_name='MultiGrid-Meetup-Empty-6x6-v0',
+        num_environment_steps=1,
+        num_epochs=2,
+        replay_buffer_capacity=401,
+        collect_episodes_per_iteration=2,
+        train_checkpoint_interval=500,
+        policy_checkpoint_interval=500,
+        log_interval=1500,
+        summary_interval=500,
+        num_parallel_environments=2,
+        num_eval_episodes=1,
+        actor_fc_layers=(2,),
+        value_fc_layers=(2,),
+        lstm_size=(2,),
+        conv_filters=2,
+        conv_kernel=2,
+        direction_fc=2,
+        use_attention_networks=True)
+    train_exists = tf.io.gfile.exists(os.path.join(root_dir, 'train'))
+    self.assertTrue(train_exists)
+    saved_policies = tf.io.gfile.listdir(
+        os.path.join(root_dir, 'policy_saved_model'))
+    self.assertGreaterEqual(len(saved_policies), 1)
+
+
 if __name__ == '__main__':
   system_multiprocessing.handle_test_main(tf.test.main)

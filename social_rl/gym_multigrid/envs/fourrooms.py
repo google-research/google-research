@@ -32,7 +32,8 @@ class FourRoomsEnv(multigrid.MultiGridEnv):
   """
 
   def __init__(self, agent_pos=None, goal_pos=None, n_agents=5, grid_size=19,
-               agent_view_size=7, two_rooms=False, minigrid_mode=False):
+               agent_view_size=7, two_rooms=False, minigrid_mode=False,
+               **kwargs):
     """Constructor.
 
     Args:
@@ -44,13 +45,14 @@ class FourRoomsEnv(multigrid.MultiGridEnv):
         two_rooms: If True, will only build the vertical wall.
         minigrid_mode: If True, observations come back without the multi-agent
           dimension.
+        **kwargs: See superclass.
     """
     self._agent_default_pos = agent_pos
     self._goal_default_pos = goal_pos
     self.two_rooms = two_rooms
     super().__init__(grid_size=grid_size, max_steps=100, n_agents=n_agents,
                      agent_view_size=agent_view_size,
-                     minigrid_mode=minigrid_mode)
+                     minigrid_mode=minigrid_mode, **kwargs)
 
   def _gen_grid(self, width, height):
     # Create the grid
@@ -116,42 +118,42 @@ class FourRoomsEnv(multigrid.MultiGridEnv):
 
 class FourRoomsEnv15x15(FourRoomsEnv):
 
-  def __init__(self):
-    super().__init__(grid_size=15, agent_view_size=5, n_agents=3)
+  def __init__(self, **kwargs):
+    super().__init__(grid_size=15, agent_view_size=5, n_agents=3, **kwargs)
 
 
 class FourRoomsEnvSingle(FourRoomsEnv):
 
-  def __init__(self):
-    super().__init__(n_agents=1)
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=1, **kwargs)
 
 
 class TwoRoomsEnvMinigrid(FourRoomsEnv):
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     super().__init__(n_agents=1, minigrid_mode=True, agent_view_size=5,
-                     grid_size=15, two_rooms=True)
+                     grid_size=15, two_rooms=True, **kwargs)
 
 
 class FourRoomsEnvMinigrid(FourRoomsEnv):
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     super().__init__(grid_size=15, agent_view_size=5, minigrid_mode=True,
-                     n_agents=1)
+                     n_agents=1, **kwargs)
 
 
 class MiniTwoRoomsEnvMinigrid(FourRoomsEnv):
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     super().__init__(n_agents=1, minigrid_mode=True, agent_view_size=5,
-                     grid_size=6, two_rooms=True)
+                     grid_size=6, two_rooms=True, **kwargs)
 
 
 class MiniFourRoomsEnvMinigrid(FourRoomsEnv):
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     super().__init__(grid_size=6, agent_view_size=5, minigrid_mode=True,
-                     n_agents=1)
+                     n_agents=1, **kwargs)
 
 if hasattr(__loader__, 'name'):
   module_path = __loader__.name

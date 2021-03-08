@@ -30,7 +30,7 @@ class EmptyEnv(multigrid.MultiGridEnv):
   """Empty grid environment, no obstacles, sparse reward."""
 
   def __init__(self, n_agents=2, size=5, agent_start='fixed', agent_view_size=5,
-               randomize_goal=False, minigrid_mode=False):
+               randomize_goal=False, minigrid_mode=False, **kwargs):
     self.randomize_goal = randomize_goal
     if agent_start == 'fixed':
       assert n_agents < size - 2, "Can't fit so many agents in fixed position"
@@ -48,7 +48,8 @@ class EmptyEnv(multigrid.MultiGridEnv):
         max_steps=2*size*size,
         see_through_walls=True,  # Set this to True for maximum speed
         fixed_environment=fixed_environment,
-        minigrid_mode=minigrid_mode
+        minigrid_mode=minigrid_mode,
+        **kwargs
     )
 
   def _gen_grid(self, width, height):
@@ -111,51 +112,51 @@ class EmptyEnv(multigrid.MultiGridEnv):
 
 class EmptyRandomEnv5x5(EmptyEnv):
 
-  def __init__(self):
-    super().__init__(agent_start='random')
+  def __init__(self, **kwargs):
+    super().__init__(agent_start='random', **kwargs)
 
 
 class EmptyEnv8x8(EmptyEnv):
 
-  def __init__(self):
-    super().__init__(n_agents=3, size=8)
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=3, size=8, **kwargs)
 
 
 class EmptyRandomEnv8x8(EmptyEnv):
 
-  def __init__(self):
-    super().__init__(n_agents=3, size=8, agent_start='random')
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=3, size=8, agent_start='random', **kwargs)
 
 
 class EmptyEnv16x16(EmptyEnv):
 
-  def __init__(self):
-    super().__init__(n_agents=5, size=16)
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=5, size=16, **kwargs)
 
 
 class EmptyRandomEnv6x6(EmptyEnv):
 
-  def __init__(self):
-    super().__init__(n_agents=5, size=16, agent_start='random')
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=5, size=16, agent_start='random', **kwargs)
 
 
 class EmptyEnv5x5Single(EmptyEnv):
 
-  def __init__(self):
-    super().__init__(n_agents=1)
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=1, **kwargs)
 
 
 class EmptyRandomEnv6x6Minigrid(EmptyEnv):
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     super().__init__(n_agents=1, size=6, agent_view_size=5,
                      agent_start='random', randomize_goal=True,
-                     minigrid_mode=True)
+                     minigrid_mode=True, **kwargs)
 
 
 class EmptyRandomEnv15x15Minigrid(EmptyEnv):
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     super().__init__(n_agents=1, size=15, agent_view_size=5,
                      agent_start='random', randomize_goal=True,
                      minigrid_mode=True)

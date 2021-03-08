@@ -29,6 +29,7 @@ from tf_agents.drivers import tf_driver
 from tf_agents.metrics import tf_metric
 from tf_agents.metrics.tf_metrics import TFDeque
 from tf_agents.utils import common
+from social_rl.multiagent_tfagents import utils
 
 
 def zero_out_new_episodes(trajectory, return_accumulator):
@@ -182,7 +183,8 @@ def eager_compute(metrics,
                   train_step=None,
                   summary_writer=None,
                   summary_prefix='',
-                  use_function=True):
+                  use_function=True,
+                  use_attention_networks=False):
   """Compute metrics using `policy` on the `environment`.
 
   *NOTE*: Because placeholders are not compatible with Eager mode we can not use
@@ -200,6 +202,8 @@ def eager_compute(metrics,
     summary_prefix: An optional prefix scope for metric summaries.
     use_function: Option to enable use of `tf.function` when collecting the
       metrics.
+    use_attention_networks: Option to use attention network architecture in the
+    agent. This architecture requires observations from the previous time step.
   Returns:
     A dictionary of results {metric_name: metric_value}
   """
@@ -208,16 +212,29 @@ def eager_compute(metrics,
 
   multiagent_metrics = [m for m in metrics if 'Multiagent' in m.name]
 
-  driver = tf_driver.TFDriver(
-      environment,
-      policy,
-      observers=metrics,
-      max_episodes=num_episodes,
-      disable_tf_function=not use_function
-      )
+  if use_attention_networks:
+    driver = utils.StateTFDriver(
+        environment,
+        policy,
+        observers=metrics,
+        max_episodes=num_episodes,
+        disable_tf_function=not use_function,
+    )
+  else:
+    driver = tf_driver.TFDriver(
+        environment,
+        policy,
+        observers=metrics,
+        max_episodes=num_episodes,
+        disable_tf_function=not use_function)
+
   def run_driver():
     time_step = environment.reset()
     policy_state = policy.get_initial_state(environment.batch_size)
+    if use_attention_networks:
+      time_step.observation['policy_state'] = (
+          policy_state['actor_network_state'][0],
+          policy_state['actor_network_state'][1])
     driver.run(time_step, policy_state)
 
   if use_function:

@@ -28,7 +28,7 @@ multiagent_train_eval.train_eval.debug = False
 multiagent_train_eval.train_eval.actor_fc_layers = (64, 64)
 multiagent_train_eval.train_eval.value_fc_layers=(64, 64)
 multiagent_train_eval.train_eval.lstm_size=(64,)
-multiagent_train_eval.train_eval.conv_filters=16
+multiagent_train_eval.train_eval.conv_filters=64
 multiagent_train_eval.train_eval.conv_kernel=3
 multiagent_train_eval.train_eval.direction_fc=5
 

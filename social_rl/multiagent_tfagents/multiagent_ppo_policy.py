@@ -19,8 +19,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
-
 import gin
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -28,6 +26,7 @@ from tf_agents.agents.ppo import ppo_utils
 from tf_agents.distributions import reparameterized_sampling
 from tf_agents.policies import greedy_policy
 from tf_agents.policies import tf_policy
+from tf_agents.specs import tensor_spec
 from tf_agents.trajectories import policy_step
 from tf_agents.trajectories import time_step as ts_library
 
@@ -106,14 +105,21 @@ class MultiagentPPOPolicy(tf_policy.TFPolicy):
       info_spec = ()
 
     # Make multi-agent policy_state spec
-    multi_policy_state_spec = []
-    for p in agent_policies:
-      if collect:
-        multi_policy_state_spec.append(p._actor_network.state_spec)
-      else:
-        multi_policy_state_spec.append(
-            p._wrapped_policy._actor_network.state_spec)
+    # All policies must have the same state spec.
+    n_agents = len(agent_policies)
 
+    def make_multi_policy_state_spec(spec):
+      new_shape = (n_agents,) + spec.shape
+      return tensor_spec.TensorSpec(shape=new_shape, dtype=spec.dtype,
+                                    name=spec.name)
+
+    if collect:
+      single_policy_state_spec = agent_policies[0]._actor_network.state_spec
+    else:
+      single_policy_state_spec = agent_policies[
+          0]._wrapped_policy._actor_network.state_spec
+    multi_policy_state_spec = tf.nest.map_structure(
+        make_multi_policy_state_spec, single_policy_state_spec)
     multi_policy_state_spec = {'actor_network_state': multi_policy_state_spec}
 
     super(MultiagentPPOPolicy, self).__init__(
@@ -140,18 +146,32 @@ class MultiagentPPOPolicy(tf_policy.TFPolicy):
       agent_time_step = self._get_obs_for_agent(time_step, agent_id)
       if isinstance(policy, greedy_policy.GreedyPolicy):
         policy = policy._wrapped_policy
+      agent_policy_state = [
+          state[:, agent_id] for state in policy_states['actor_network_state']
+      ]
       actions[agent_id], new_states['actor_network_state'][agent_id] = \
           policy._apply_actor_network(
               agent_time_step,
-              policy_states['actor_network_state'][agent_id], training)
+              agent_policy_state, training)
+    new_states = {
+        'actor_network_state': [
+            tf.stack(i, axis=1)
+            for i in list(zip(*new_states['actor_network_state']))
+        ]
+    }
     return actions, new_states
 
   def _get_obs_for_agent(self, time_step, agent_id):
     """Pull out the observation of a particular agent."""
-    single_obs = collections.OrderedDict()
-    single_obs['direction'] = tf.reshape(
-        time_step.observation['direction'][:, agent_id], (-1, 1))
-    single_obs['image'] = time_step.observation['image'][:, agent_id, :, :, :]
+
+    def get_single_obs(observation):
+      if len(observation.shape) == 2:
+        # Need at least one additional dim besides batch
+        return tf.expand_dims(observation[:, agent_id], -1)
+      else:
+        return observation[:, agent_id]
+
+    single_obs = tf.nest.map_structure(get_single_obs, time_step.observation)
 
     return ts_library.TimeStep(
         time_step.step_type, time_step.reward, time_step.discount, single_obs)

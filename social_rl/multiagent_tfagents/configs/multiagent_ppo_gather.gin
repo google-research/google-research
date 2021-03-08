@@ -9,7 +9,7 @@ import tf_agents.agents.ppo.ppo_agent
 xm_train.train_eval = @multiagent_train_eval.train_eval
 
 # Environment
-multiagent_train_eval.train_eval.env_name = 'MultiGrid-Gather-Random-6x6-v0'
+multiagent_train_eval.train_eval.env_name = 'MultiGrid-Gather-Random-8x8-v0'
 
 # Training params
 multiagent_train_eval.train_eval.num_environment_steps=1000000000
@@ -25,10 +25,10 @@ multiagent_train_eval.train_eval.num_eval_episodes = 10
 multiagent_train_eval.train_eval.debug = False
 
 # Architecture params
-multiagent_train_eval.train_eval.actor_fc_layers = (32, 32)
-multiagent_train_eval.train_eval.value_fc_layers=(32, 32)
-multiagent_train_eval.train_eval.lstm_size=(256,)
-multiagent_train_eval.train_eval.conv_filters=16
+multiagent_train_eval.train_eval.actor_fc_layers = (64, 64)
+multiagent_train_eval.train_eval.value_fc_layers=(64, 64)
+multiagent_train_eval.train_eval.lstm_size=(64,)
+multiagent_train_eval.train_eval.conv_filters=64
 multiagent_train_eval.train_eval.conv_kernel=3
 multiagent_train_eval.train_eval.direction_fc=5
 

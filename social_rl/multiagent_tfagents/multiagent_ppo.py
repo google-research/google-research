@@ -19,8 +19,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
-
 from absl import logging
 import gin
 import numpy as np
@@ -77,6 +75,7 @@ class MultiagentPPO(tf_agent.TFAgent):
       debug_summaries=False,
       summarize_grads_and_vars=False,
       train_step_counter=None,
+      use_attention_networks=False,
       name='MultiagentPPO'):
     """Creates a centralized controller agent that creates several PPO Agents.
 
@@ -106,7 +105,7 @@ class MultiagentPPO(tf_agent.TFAgent):
       policy_l2_reg: Coefficient for l2 regularization of unshared policy
         weights.
       value_function_l2_reg: Coefficient for l2 regularization of unshared value
-       function weights.
+        function weights.
       shared_vars_l2_reg: Coefficient for l2 regularization of weights shared
         between the policy and value functions.
       value_pred_loss_coef: Multiplier for value prediction loss to balance with
@@ -132,6 +131,9 @@ class MultiagentPPO(tf_agent.TFAgent):
       summarize_grads_and_vars: If true, gradient summaries will be written.
       train_step_counter: An optional counter to increment every time the train
         op is run.  Defaults to the global_step.
+      use_attention_networks: Option to use attention network architecture in
+        the agent. This architecture requires observations from the previous
+        time step.
       name: The name of this agent. All variables in this module will fall under
         that name. Defaults to the class name.
 
@@ -155,12 +157,20 @@ class MultiagentPPO(tf_agent.TFAgent):
         self.optimizers[agent_id] = tf.compat.v1.train.AdamOptimizer(
             learning_rate=learning_rate)
 
+        if use_attention_networks:
+          network_build_fn = multigrid_networks.construct_attention_networks
+        else:
+          network_build_fn = multigrid_networks.construct_multigrid_networks
         # Build actor and critic networks
-        actor_net, value_net = multigrid_networks.construct_multigrid_networks(
-            single_obs_spec, single_action_spec,
-            actor_fc_layers=actor_fc_layers, value_fc_layers=value_fc_layers,
-            lstm_size=lstm_size, conv_filters=conv_filters,
-            conv_kernel=conv_kernel, scalar_fc=direction_fc)
+        actor_net, value_net = network_build_fn(
+            single_obs_spec,
+            single_action_spec,
+            actor_fc_layers=actor_fc_layers,
+            value_fc_layers=value_fc_layers,
+            lstm_size=lstm_size,
+            conv_filters=conv_filters,
+            conv_kernel=conv_kernel,
+            scalar_fc=direction_fc)
 
         logging.info('Creating agent %d...', agent_id)
         self.agents[agent_id] = ppo_clip_agent.PPOClipAgent(
@@ -192,8 +202,9 @@ class MultiagentPPO(tf_agent.TFAgent):
           collect=False,
           inactive_agent_ids=inactive_agent_ids)
 
-      self._collect_policies = [self.agents[a].collect_policy
-                                for a in range(self.n_agents)]
+      self._collect_policies = [
+          self.agents[a].collect_policy for a in range(self.n_agents)
+      ]
       collect_policy = multiagent_ppo_policy.MultiagentPPOPolicy(
           self._collect_policies,
           time_step_spec=time_step_spec,
@@ -216,27 +227,27 @@ class MultiagentPPO(tf_agent.TFAgent):
 
   def get_single_agent_specs(self, time_step_spec, action_spec):
     """Get single agent version of environment specs to feed to baby agents."""
-    single_obs_spec = collections.OrderedDict()
-    for k in time_step_spec.observation.keys():
-      if k == 'direction':
-        shape = [1]
-      elif k == 'image':
-        # Remove agent dimension
-        shape = time_step_spec.observation[k].shape[1:]
+
+    def make_single_agent_spec(spec):
+      if len(spec.shape) == 1:
+        shape = 1
       else:
-        # Additional control fields like 'reward', and 'done' should not be sent
-        # to individual agents
-        continue
-      single_obs_spec[k] = tensor_spec.BoundedTensorSpec(
-          shape=shape, name=time_step_spec.observation[k].name,
-          minimum=time_step_spec.observation[k].minimum,
-          maximum=time_step_spec.observation[k].maximum,
-          dtype=time_step_spec.observation[k].dtype)
+        shape = spec.shape[1:]
+      return tensor_spec.BoundedTensorSpec(
+          shape=shape,
+          name=spec.name,
+          minimum=spec.minimum,
+          maximum=spec.maximum,
+          dtype=spec.dtype)
+
+    single_obs_spec = tf.nest.map_structure(make_single_agent_spec,
+                                            time_step_spec.observation)
     single_reward_spec = tensor_spec.TensorSpec(
         shape=(), dtype=time_step_spec.reward.dtype, name='reward')
-    single_time_step_spec = ts_lib.TimeStep(
-        time_step_spec.step_type, single_reward_spec,
-        time_step_spec.discount, single_obs_spec)
+    single_time_step_spec = ts_lib.TimeStep(time_step_spec.step_type,
+                                            single_reward_spec,
+                                            time_step_spec.discount,
+                                            single_obs_spec)
     single_action_spec = action_spec[0]
     return single_obs_spec, single_time_step_spec, single_action_spec
 
@@ -263,14 +274,15 @@ class MultiagentPPO(tf_agent.TFAgent):
     reward = trajectory.reward[:, :, agent_id]
     policy_info = trajectory.policy_info[agent_id]
 
-    # Remake observation while discarding reward, done, and active
-    observation = collections.OrderedDict()
-    observation['image'] = \
-        trajectory.observation['image'][:, :, agent_id, :, :, :]
-    # Expand dims is needed here because tf-agents cannot allow an observation
-    # component to have shape=()
-    observation['direction'] = tf.expand_dims(
-        trajectory.observation['direction'][:, :, agent_id], 2)
+    def get_single_observation(observation):
+      if len(observation.shape) == 3:
+        # Need at least one additional dim besides batch
+        return tf.expand_dims(observation[:, :, agent_id], 2)
+      else:
+        return observation[:, :, agent_id]
+
+    observation = tf.nest.map_structure(get_single_observation,
+                                        trajectory.observation)
 
     agent_trajectory = traj_lib.Trajectory(
         step_type=trajectory.step_type,

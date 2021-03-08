@@ -29,7 +29,7 @@ class MazeEnv(multigrid.MultiGridEnv):
   """Single-agent maze environment specified via a bit map."""
 
   def __init__(self, agent_view_size=5, minigrid_mode=True, max_steps=None,
-               bit_map=None, start_pos=None, goal_pos=None, size=15):
+               bit_map=None, start_pos=None, goal_pos=None, size=15, **kwargs):
     default_agent_start_x = 7
     default_agent_start_y = 1
     default_goal_start_x = 7
@@ -75,7 +75,8 @@ class MazeEnv(multigrid.MultiGridEnv):
         agent_view_size=agent_view_size,
         max_steps=max_steps,
         see_through_walls=True,  # Set this to True for maximum speed
-        minigrid_mode=minigrid_mode
+        minigrid_mode=minigrid_mode,
+        **kwargs
     )
 
   def _gen_grid(self, width, height):
@@ -102,7 +103,7 @@ class MazeEnv(multigrid.MultiGridEnv):
 class HorizontalMazeEnv(MazeEnv):
   """A short but non-optimal path is 80 moves."""
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     # positions go col, row
     start_pos = np.array([1, 7])
     goal_pos = np.array([13, 5])
@@ -122,13 +123,13 @@ class HorizontalMazeEnv(MazeEnv):
         [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0]
     ])
     super().__init__(size=15, bit_map=bit_map, start_pos=start_pos,
-                     goal_pos=goal_pos)
+                     goal_pos=goal_pos, **kwargs)
 
 
 class Maze3Env(MazeEnv):
   """A short but non-optimal path is 80 moves."""
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     # positions go col, row and indexing starts at 1
     start_pos = np.array([4, 1])
     goal_pos = np.array([13, 7])
@@ -148,13 +149,13 @@ class Maze3Env(MazeEnv):
         [0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
     ])
     super().__init__(size=15, bit_map=bit_map, start_pos=start_pos,
-                     goal_pos=goal_pos)
+                     goal_pos=goal_pos, **kwargs)
 
 
 class LabyrinthEnv(MazeEnv):
   """A short but non-optimal path is 118 moves."""
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     # positions go col, row
     start_pos = np.array([1, 13])
     goal_pos = np.array([7, 7])
@@ -174,13 +175,13 @@ class LabyrinthEnv(MazeEnv):
         [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
     ])
     super().__init__(size=15, bit_map=bit_map, start_pos=start_pos,
-                     goal_pos=goal_pos)
+                     goal_pos=goal_pos, **kwargs)
 
 
 class Labyrinth2Env(MazeEnv):
   """A short but non-optimal path is 118 moves."""
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     # positions go col, row
     start_pos = np.array([1, 1])
     goal_pos = np.array([7, 7])
@@ -200,13 +201,13 @@ class Labyrinth2Env(MazeEnv):
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     ])
     super().__init__(size=15, bit_map=bit_map, start_pos=start_pos,
-                     goal_pos=goal_pos)
+                     goal_pos=goal_pos, **kwargs)
 
 
 class NineRoomsEnv(MazeEnv):
   """Can be completed in 27 moves."""
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     # positions go col, row
     start_pos = np.array([2, 2])
     goal_pos = np.array([12, 12])
@@ -226,13 +227,13 @@ class NineRoomsEnv(MazeEnv):
         [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0]
     ])
     super().__init__(size=15, bit_map=bit_map, start_pos=start_pos,
-                     goal_pos=goal_pos)
+                     goal_pos=goal_pos, **kwargs)
 
 
 class NineRoomsFewerDoorsEnv(MazeEnv):
   """Can be completed in 27 moves."""
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     # positions go col, row
     start_pos = np.array([2, 2])
     goal_pos = np.array([12, 12])
@@ -252,13 +253,13 @@ class NineRoomsFewerDoorsEnv(MazeEnv):
         [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0]
     ])
     super().__init__(size=15, bit_map=bit_map, start_pos=start_pos,
-                     goal_pos=goal_pos)
+                     goal_pos=goal_pos, **kwargs)
 
 
 class SixteenRoomsEnv(MazeEnv):
   """Can be completed in 16 moves."""
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     # positions go col, row
     start_pos = np.array([2, 2])
     goal_pos = np.array([12, 12])
@@ -278,13 +279,13 @@ class SixteenRoomsEnv(MazeEnv):
         [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0]
     ])
     super().__init__(size=15, bit_map=bit_map, start_pos=start_pos,
-                     goal_pos=goal_pos)
+                     goal_pos=goal_pos, **kwargs)
 
 
 class SixteenRoomsFewerDoorsEnv(MazeEnv):
   """Can be completed in 16 moves."""
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     # positions go col, row
     start_pos = np.array([2, 2])
     goal_pos = np.array([12, 12])
@@ -304,13 +305,13 @@ class SixteenRoomsFewerDoorsEnv(MazeEnv):
         [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]
     ])
     super().__init__(size=15, bit_map=bit_map, start_pos=start_pos,
-                     goal_pos=goal_pos)
+                     goal_pos=goal_pos, **kwargs)
 
 
 class MiniMazeEnv(MazeEnv):
   """A smaller maze for debugging."""
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     start_pos = np.array([1, 1])
     goal_pos = np.array([1, 3])
     bit_map = np.array([
@@ -320,13 +321,13 @@ class MiniMazeEnv(MazeEnv):
         [0, 0, 0, 1],
     ])
     super().__init__(size=6, bit_map=bit_map, start_pos=start_pos,
-                     goal_pos=goal_pos)
+                     goal_pos=goal_pos, **kwargs)
 
 
 class MediumMazeEnv(MazeEnv):
   """A 10x10 Maze environment."""
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     start_pos = np.array([5, 1])
     goal_pos = np.array([3, 8])
     bit_map = np.array([
@@ -340,7 +341,7 @@ class MediumMazeEnv(MazeEnv):
         [0, 0, 0, 1, 0, 0, 0, 0],
     ])
     super().__init__(size=10, bit_map=bit_map, start_pos=start_pos,
-                     goal_pos=goal_pos)
+                     goal_pos=goal_pos, **kwargs)
 
 if hasattr(__loader__, 'name'):
   module_path = __loader__.name

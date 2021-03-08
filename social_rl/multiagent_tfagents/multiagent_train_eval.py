@@ -32,6 +32,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
 import math
 import os
 import time
@@ -57,6 +58,7 @@ from social_rl import gym_multigrid
 from social_rl.multiagent_tfagents import multiagent_gym_suite
 from social_rl.multiagent_tfagents import multiagent_metrics
 from social_rl.multiagent_tfagents import multiagent_ppo
+from social_rl.multiagent_tfagents import utils
 
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
                     'Root directory for writing logs/summaries/checkpoints.')
@@ -92,6 +94,8 @@ flags.DEFINE_integer(
 flags.DEFINE_integer('actor_fc_layers_size', 32, '')
 flags.DEFINE_integer('value_fc_layers_size', 32, '')
 flags.DEFINE_integer('lstm_size', 256, '')
+flags.DEFINE_boolean('use_attention_networks', False,
+                     'Use attention network architecture in agent')
 
 flags.DEFINE_boolean('debug', False, 'Turn on debugging and tf functions off.')
 flags.DEFINE_list('inactive_agent_ids', None,
@@ -113,7 +117,7 @@ def train_eval(
     root_dir,
     env_name='MultiGrid-Empty-5x5-v0',
     env_load_fn=multiagent_gym_suite.load,
-    random_seed=None,
+    random_seed=0,
     # Architecture params
     actor_fc_layers=(64, 64),
     value_fc_layers=(64, 64),
@@ -122,6 +126,7 @@ def train_eval(
     conv_kernel=3,
     direction_fc=5,
     entropy_regularization=0.,
+    use_attention_networks=False,
     # Specialized agents
     inactive_agent_ids=tuple(),
     # Params for collect
@@ -189,10 +194,23 @@ def train_eval(
       tf.compat.v1.set_random_seed(random_seed)
 
     logging.info('Creating %d environments...', num_parallel_environments)
-    eval_tf_env = tf_py_environment.TFPyEnvironment(gym_env)
+    wrappers = []
+    if use_attention_networks:
+      wrappers = [lambda env: utils.LSTMStateWrapper(env, lstm_size=lstm_size)]
+
+    eval_tf_env = tf_py_environment.TFPyEnvironment(
+        env_load_fn(
+            env_name,
+            gym_kwargs=dict(seed=random_seed),
+            gym_env_wrappers=wrappers))
+    # pylint: disable=g-complex-comprehension
     tf_env = tf_py_environment.TFPyEnvironment(
-        parallel_py_environment.ParallelPyEnvironment(
-            [lambda: env_load_fn(env_name)] * num_parallel_environments))
+        parallel_py_environment.ParallelPyEnvironment([
+            functools.partial(env_load_fn, environment_name=env_name,
+                              gym_env_wrappers=wrappers,
+                              gym_kwargs=dict(seed=random_seed * 1234 + i))
+            for i in range(num_parallel_environments)
+        ]))
 
 
     logging.info('Preparing to train...')
@@ -226,7 +244,8 @@ def train_eval(
         debug_summaries=debug_summaries,
         summarize_grads_and_vars=summarize_grads_and_vars,
         train_step_counter=global_step,
-        inactive_agent_ids=inactive_agent_ids)
+        inactive_agent_ids=inactive_agent_ids,
+        use_attention_networks=use_attention_networks)
     tf_agent.initialize()
     eval_policy = tf_agent.policy
     collect_policy = tf_agent.collect_policy
@@ -270,7 +289,8 @@ def train_eval(
           summarize_grads_and_vars=summarize_grads_and_vars,
           train_step_counter=global_step,
           inactive_agent_ids=inactive_agent_ids,
-          non_learning_agents=list(range(n_agents - 1)))
+          non_learning_agents=list(range(n_agents - 1)),
+          use_attention_networks=use_attention_networks)
       agent_checkpointer = common.Checkpointer(
           ckpt_dir=temp_dir, agent=tf_agent.agents[:-1])
       agent_checkpointer.initialize_or_restore()
@@ -296,12 +316,20 @@ def train_eval(
     logging.info('Successfully initialized policy saver.')
 
     print('Using TFDriver')
-    collect_driver = tf_driver.TFDriver(
-        tf_env,
-        collect_policy,
-        observers=[replay_buffer.add_batch] + train_metrics,
-        max_episodes=collect_episodes_per_iteration,
-        disable_tf_function=not use_tf_functions)
+    if use_attention_networks:
+      collect_driver = utils.StateTFDriver(
+          tf_env,
+          collect_policy,
+          observers=[replay_buffer.add_batch] + train_metrics,
+          max_episodes=collect_episodes_per_iteration,
+          disable_tf_function=not use_tf_functions)
+    else:
+      collect_driver = tf_driver.TFDriver(
+          tf_env,
+          collect_policy,
+          observers=[replay_buffer.add_batch] + train_metrics,
+          max_episodes=collect_episodes_per_iteration,
+          disable_tf_function=not use_tf_functions)
 
     def train_step():
       trajectories = replay_buffer.gather_all()
@@ -343,6 +371,7 @@ def train_eval(
             summary_writer=eval_summary_writer,
             summary_prefix='Metrics',
             use_function=use_tf_functions,
+            use_attention_networks=use_attention_networks
         )
         if eval_metrics_callback is not None:
           eval_metrics_callback(results, global_step.numpy())
@@ -354,6 +383,12 @@ def train_eval(
       start_time = time.time()
       time_step = tf_env.reset()
       policy_state = collect_policy.get_initial_state(tf_env.batch_size)
+      if use_attention_networks:
+        # Attention networks require previous policy state to compute attention
+        # weights.
+        time_step.observation['policy_state'] = (
+            policy_state['actor_network_state'][0],
+            policy_state['actor_network_state'][1])
       collect_driver.run(time_step, policy_state)
       collect_time += time.time() - start_time
 
@@ -420,6 +455,7 @@ def train_eval(
         summary_writer=eval_summary_writer,
         summary_prefix='Metrics',
         use_function=use_tf_functions,
+        use_attention_networks=use_attention_networks
     )
     if eval_metrics_callback is not None:
       eval_metrics_callback(results, global_step.numpy())
@@ -453,7 +489,8 @@ def main(_):
       debug=FLAGS.debug,
       inactive_agent_ids=inactive_agent_ids,
       random_seed=FLAGS.random_seed,
-      reinit_checkpoint_dir=FLAGS.reinit_checkpoint_dir)
+      reinit_checkpoint_dir=FLAGS.reinit_checkpoint_dir,
+      use_attention_networks=FLAGS.use_attention_networks)
 
 
 if __name__ == '__main__':

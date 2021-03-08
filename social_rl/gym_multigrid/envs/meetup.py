@@ -105,25 +105,15 @@ class EmptyMeetupEnv6x6(MeetupEnv):
 class SingleTargetMeetupEnv6x6Minigrid(MeetupEnv):
 
   def __init__(self, **kwargs):
-    super().__init__(
-        size=6,
-        n_agents=1,
-        n_goals=1,
-        n_clutter=0,
-        minigrid_mode=True,
-        **kwargs)
+    super().__init__(size=6, n_agents=1, n_goals=1, n_clutter=0,
+                     minigrid_mode=True, **kwargs)
 
 
 class EmptyMeetupEnv6x6Minigrid(MeetupEnv):
 
   def __init__(self, **kwargs):
-    super().__init__(
-        size=6,
-        n_agents=1,
-        n_goals=3,
-        n_clutter=0,
-        minigrid_mode=True,
-        **kwargs)
+    super().__init__(size=6, n_agents=1, n_goals=3, n_clutter=0,
+                     minigrid_mode=True, **kwargs)
 
 
 class SingleMeetupEnv6x6(MeetupEnv):
@@ -141,13 +131,8 @@ class RandomMeetupEnv8x8(MeetupEnv):
 class RandomMeetupEnv8x8Minigrid(MeetupEnv):
 
   def __init__(self, **kwargs):
-    super().__init__(
-        size=8,
-        n_agents=1,
-        n_goals=3,
-        n_clutter=5,
-        minigrid_mode=True,
-        **kwargs)
+    super().__init__(size=8, n_agents=1, n_goals=3, n_clutter=5,
+                     minigrid_mode=True, **kwargs)
 
 
 class SingleMeetupEnv8x8(MeetupEnv):

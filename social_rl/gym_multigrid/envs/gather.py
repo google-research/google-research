@@ -156,14 +156,8 @@ class EmptyColorGatherEnv12x12(GatherEnv):
 class RandomCountsColorGatherEnv12x12(GatherEnv):
 
   def __init__(self, **kwargs):
-    super().__init__(
-        size=12,
-        n_agents=3,
-        n_goals=9,
-        n_clutter=0,
-        n_colors=3,
-        random_colors=True,
-        **kwargs)
+    super().__init__(size=12, n_agents=3, n_goals=9, n_clutter=0, n_colors=3,
+                     random_colors=True, **kwargs)
 
 
 class EmptyColorGatherEnv15x15(GatherEnv):

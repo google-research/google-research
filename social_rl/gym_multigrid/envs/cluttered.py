@@ -58,84 +58,89 @@ class ClutteredMultiGrid(multigrid.MultiGridEnv):
 
 class ClutteredMultiGridSingle6x6(ClutteredMultiGrid):
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     super().__init__(n_agents=1, size=6, n_clutter=5, randomize_goal=True,
-                     agent_view_size=5, max_steps=50)
+                     agent_view_size=5, max_steps=50, **kwargs)
 
 
 class ClutteredMultiGridSingle(ClutteredMultiGrid):
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     super().__init__(n_agents=1, size=15, n_clutter=25, randomize_goal=True,
-                     agent_view_size=5, max_steps=250)
+                     agent_view_size=5, max_steps=250, **kwargs)
 
 
 class Cluttered40Minigrid(ClutteredMultiGrid):
 
-  def __init__(self):
-    super().__init__(n_agents=1, n_clutter=40, minigrid_mode=True)
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=1, n_clutter=40, minigrid_mode=True, **kwargs)
 
 
 class Cluttered10Minigrid(ClutteredMultiGrid):
 
-  def __init__(self):
-    super().__init__(n_agents=1, n_clutter=10, minigrid_mode=True)
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=1, n_clutter=10, minigrid_mode=True, **kwargs)
 
 
 class Cluttered50Minigrid(ClutteredMultiGrid):
 
-  def __init__(self):
-    super().__init__(n_agents=1, n_clutter=50, minigrid_mode=True)
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=1, n_clutter=50, minigrid_mode=True, **kwargs)
 
 
 class Cluttered5Minigrid(ClutteredMultiGrid):
 
-  def __init__(self):
-    super().__init__(n_agents=1, n_clutter=5, minigrid_mode=True)
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=1, n_clutter=5, minigrid_mode=True, **kwargs)
 
 
 class Cluttered1MinigridMini(ClutteredMultiGrid):
 
-  def __init__(self):
-    super().__init__(n_agents=1, n_clutter=1, minigrid_mode=True, size=6)
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=1, n_clutter=1, minigrid_mode=True, size=6,
+                     **kwargs)
 
 
 class Cluttered6MinigridMini(ClutteredMultiGrid):
 
-  def __init__(self):
-    super().__init__(n_agents=1, n_clutter=6, minigrid_mode=True, size=6)
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=1, n_clutter=6, minigrid_mode=True, size=6,
+                     **kwargs)
 
 
 class Cluttered7MinigridMini(ClutteredMultiGrid):
 
-  def __init__(self):
-    super().__init__(n_agents=1, n_clutter=7, minigrid_mode=True, size=6)
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=1, n_clutter=7, minigrid_mode=True, size=6,
+                     **kwargs)
 
 
 class ClutteredMinigridLava(ClutteredMultiGrid):
 
-  def __init__(self):
-    super().__init__(n_agents=1, walls_are_lava=True, minigrid_mode=True)
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=1, walls_are_lava=True, minigrid_mode=True,
+                     **kwargs)
 
 
 class ClutteredMinigridLavaMini(ClutteredMultiGrid):
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     super().__init__(n_agents=1, n_clutter=4, walls_are_lava=True, size=6,
-                     minigrid_mode=True)
+                     minigrid_mode=True, **kwargs)
 
 
 class ClutteredMinigridLavaMedium(ClutteredMultiGrid):
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     super().__init__(n_agents=1, n_clutter=15, walls_are_lava=True, size=10,
-                     minigrid_mode=True)
+                     minigrid_mode=True, **kwargs)
 
 
 class Cluttered15MinigridMedium(ClutteredMultiGrid):
 
-  def __init__(self):
-    super().__init__(n_agents=1, n_clutter=15, minigrid_mode=True, size=10)
+  def __init__(self, **kwargs):
+    super().__init__(n_agents=1, n_clutter=15, minigrid_mode=True, size=10,
+                     **kwargs)
 
 if hasattr(__loader__, 'name'):
   module_path = __loader__.name

@@ -29,6 +29,7 @@ from tf_agents.networks import actor_distribution_network
 from tf_agents.networks import actor_distribution_rnn_network
 from tf_agents.networks import value_network
 from tf_agents.networks import value_rnn_network
+from tf_agents.utils import nest_utils
 
 
 def one_hot_layer(class_dim=None):
@@ -47,6 +48,7 @@ def one_hot_layer(class_dim=None):
 
 
 def cast_and_scale(scale_by=10.0):
+
   def _cast_and_scale(x):
     x = tf.keras.backend.cast(x, 'float32')
     return x / scale_by
@@ -54,12 +56,19 @@ def cast_and_scale(scale_by=10.0):
   return tf.keras.layers.Lambda(_cast_and_scale)
 
 
-def construct_multigrid_networks(observation_spec, action_spec, use_rnns=True,
+def construct_multigrid_networks(observation_spec,
+                                 action_spec,
+                                 use_rnns=True,
                                  actor_fc_layers=(200, 100),
-                                 value_fc_layers=(200, 100), lstm_size=(128,),
-                                 conv_filters=8, conv_kernel=3, scalar_fc=5,
-                                 scalar_name='direction', scalar_dim=4,
-                                 random_z=False, xy_dim=None):
+                                 value_fc_layers=(200, 100),
+                                 lstm_size=(128,),
+                                 conv_filters=8,
+                                 conv_kernel=3,
+                                 scalar_fc=5,
+                                 scalar_name='direction',
+                                 scalar_dim=4,
+                                 random_z=False,
+                                 xy_dim=None):
   """Creates an actor and critic network designed for use with MultiGrid.
 
   A convolution layer processes the image and a dense layer processes the
@@ -75,8 +84,8 @@ def construct_multigrid_networks(observation_spec, action_spec, use_rnns=True,
     lstm_size: Number of cells in each LSTM layers.
     conv_filters: Number of convolution filters.
     conv_kernel: Size of the convolution kernel.
-    scalar_fc: Number of neurons in the fully connected layer processing
-      the scalar input.
+    scalar_fc: Number of neurons in the fully connected layer processing the
+      scalar input.
     scalar_name: Name of the scalar input.
     scalar_dim: Highest possible value for the scalar input. Used to convert to
       one-hot representation.
@@ -91,14 +100,22 @@ def construct_multigrid_networks(observation_spec, action_spec, use_rnns=True,
     for the critic.
   """
   preprocessing_layers = {
-      'image': tf.keras.models.Sequential(
-          [cast_and_scale(),
-           tf.keras.layers.Conv2D(conv_filters, conv_kernel),
-           tf.keras.layers.Flatten()]),
-      scalar_name: tf.keras.models.Sequential(
-          [one_hot_layer(scalar_dim),
-           tf.keras.layers.Dense(scalar_fc)])
-      }
+      'image':
+          tf.keras.models.Sequential([
+              cast_and_scale(),
+              tf.keras.layers.Conv2D(conv_filters, conv_kernel),
+              tf.keras.layers.ReLU(),
+              tf.keras.layers.Flatten()
+          ]),
+  }
+  if scalar_name in observation_spec:
+    preprocessing_layers[scalar_name] = tf.keras.models.Sequential(
+        [one_hot_layer(scalar_dim),
+         tf.keras.layers.Dense(scalar_fc)])
+  if 'position' in observation_spec:
+    preprocessing_layers['position'] = tf.keras.models.Sequential(
+        [cast_and_scale(), tf.keras.layers.Dense(scalar_fc)])
+
   if random_z:
     preprocessing_layers['random_z'] = tf.keras.models.Sequential(
         [tf.keras.layers.Lambda(lambda x: x)])  # Identity layer
@@ -124,8 +141,7 @@ def construct_multigrid_networks(observation_spec, action_spec, use_rnns=True,
         preprocessing_layers=preprocessing_layers,
         preprocessing_combiner=preprocessing_combiner,
         input_fc_layer_params=value_fc_layers,
-        output_fc_layer_params=None,
-        lstm_size=lstm_size)
+        output_fc_layer_params=None)
   else:
     actor_net = actor_distribution_network.ActorDistributionNetwork(
         observation_spec,
@@ -143,3 +159,153 @@ def construct_multigrid_networks(observation_spec, action_spec, use_rnns=True,
 
   return actor_net, value_net
 
+
+class AttentionCombiner(tf.keras.layers.Layer):
+  """Combiner that applies attention to input images."""
+
+  def __init__(self,
+               image_index_flat,
+               network_state_index_flat,
+               image_shape,
+               conv_filters=128):
+    super(AttentionCombiner, self).__init__(trainable=True)
+    self.combiner = tf.keras.layers.Concatenate(axis=-1)
+    self.image_index_flat = image_index_flat
+    self.network_state_index_flat = network_state_index_flat
+    self.image_shape = image_shape
+    self.attention_network = tf.keras.models.Sequential([
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Softmax(),
+        tf.keras.layers.Reshape((image_shape[0], image_shape[1]))
+    ])
+    self.q = tf.keras.layers.Dense(conv_filters)
+    self.k = tf.keras.layers.Conv2D(conv_filters, 1, padding='same')
+    self.v = tf.keras.layers.Conv2D(conv_filters, 1, padding='same')
+
+  def build(self, input_shape):
+    self.attention_network.build(input_shape)
+    super(AttentionCombiner, self).build(input_shape)
+
+  def __call__(self, obs):
+    input_copy = obs.copy()
+    image_features = input_copy[self.image_index_flat]
+    network_state = self.combiner(input_copy[self.network_state_index_flat])
+    query = self.q(network_state)[:, tf.newaxis, tf.newaxis, :]
+    keys = self.k(image_features)
+    values = self.v(image_features)
+    attention_weights = tf.reduce_sum(query * keys, axis=-1)
+    attention_weights = self.attention_network(attention_weights)[:, :, :,
+                                                                  tf.newaxis]
+    weighted_image_features = attention_weights * values
+    input_copy[self.image_index_flat] = tf.reduce_sum(weighted_image_features,
+                                                      (1, 2))
+    input_copy.pop(self.network_state_index_flat)
+    return self.combiner(input_copy)
+
+  def get_config(self):
+    return {
+        'image_index_flat': self.image_index_flat,
+        'network_state_index_flat': self.network_state_index_flat,
+        'image_shape': self.image_shape
+    }
+
+
+def construct_attention_networks(observation_spec,
+                                 action_spec,
+                                 use_rnns=True,
+                                 actor_fc_layers=(200, 100),
+                                 value_fc_layers=(200, 100),
+                                 lstm_size=(128,),
+                                 conv_filters=8,
+                                 conv_kernel=3,
+                                 scalar_fc=5,
+                                 scalar_name='direction',
+                                 scalar_dim=4):
+  """Creates an actor and critic network designed for use with MultiGrid.
+
+  A convolution layer processes the image and a dense layer processes the
+  direction the agent is facing. These are fed into some fully connected layers
+  and an LSTM.
+
+  Args:
+    observation_spec: A tf-agents observation spec.
+    action_spec: A tf-agents action spec.
+    use_rnns: If True, will construct RNN networks.
+    actor_fc_layers: Dimension and number of fully connected layers in actor.
+    value_fc_layers: Dimension and number of fully connected layers in critic.
+    lstm_size: Number of cells in each LSTM layers.
+    conv_filters: Number of convolution filters.
+    conv_kernel: Size of the convolution kernel.
+    scalar_fc: Number of neurons in the fully connected layer processing the
+      scalar input.
+    scalar_name: Name of the scalar input.
+    scalar_dim: Highest possible value for the scalar input. Used to convert to
+      one-hot representation.
+
+  Returns:
+    A tf-agents ActorDistributionRnnNetwork for the actor, and a ValueRnnNetwork
+    for the critic.
+  """
+  preprocessing_layers = {
+      'image':
+          tf.keras.models.Sequential([
+              cast_and_scale(),
+              tf.keras.layers.Conv2D(conv_filters, conv_kernel, padding='same'),
+              tf.keras.layers.ReLU(),
+          ]),
+      'policy_state':
+          tf.keras.layers.Lambda(lambda x: x)
+  }
+  if scalar_name in observation_spec:
+    preprocessing_layers[scalar_name] = tf.keras.models.Sequential(
+        [one_hot_layer(scalar_dim),
+         tf.keras.layers.Dense(scalar_fc)])
+  if 'position' in observation_spec:
+    preprocessing_layers['position'] = tf.keras.models.Sequential(
+        [cast_and_scale(), tf.keras.layers.Dense(scalar_fc)])
+
+  preprocessing_nest = tf.nest.map_structure(lambda l: None,
+                                             preprocessing_layers)
+  flat_observation_spec = nest_utils.flatten_up_to(
+      preprocessing_nest,
+      observation_spec,
+  )
+  image_index_flat = flat_observation_spec.index(observation_spec['image'])
+  network_state_index_flat = flat_observation_spec.index(
+      observation_spec['policy_state'])
+  image_shape = observation_spec['image'].shape  # N x H x W x D
+  preprocessing_combiner = AttentionCombiner(image_index_flat,
+                                             network_state_index_flat,
+                                             image_shape)
+
+  if use_rnns:
+    actor_net = actor_distribution_rnn_network.ActorDistributionRnnNetwork(
+        observation_spec,
+        action_spec,
+        preprocessing_layers=preprocessing_layers,
+        preprocessing_combiner=preprocessing_combiner,
+        input_fc_layer_params=actor_fc_layers,
+        output_fc_layer_params=None,
+        lstm_size=lstm_size)
+    value_net = value_rnn_network.ValueRnnNetwork(
+        observation_spec,
+        preprocessing_layers=preprocessing_layers,
+        preprocessing_combiner=preprocessing_combiner,
+        input_fc_layer_params=value_fc_layers,
+        output_fc_layer_params=None)
+  else:
+    actor_net = actor_distribution_network.ActorDistributionNetwork(
+        observation_spec,
+        action_spec,
+        preprocessing_layers=preprocessing_layers,
+        preprocessing_combiner=preprocessing_combiner,
+        fc_layer_params=actor_fc_layers,
+        activation_fn=tf.keras.activations.tanh)
+    value_net = value_network.ValueNetwork(
+        observation_spec,
+        preprocessing_layers=preprocessing_layers,
+        preprocessing_combiner=preprocessing_combiner,
+        fc_layer_params=value_fc_layers,
+        activation_fn=tf.keras.activations.tanh)
+
+  return actor_net, value_net
