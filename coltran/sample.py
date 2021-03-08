@@ -64,12 +64,16 @@ config_flags.DEFINE_config_file(
 FLAGS = flags.FLAGS
 
 
-def array_to_tf_example(array):
+def array_to_tf_example(array, label):
   """Converts array to a serialized TFExample."""
   array = np.ravel(array)
   x_list = tf.train.Int64List(value=array)
-  x_feat = tf.train.Feature(int64_list=x_list)
-  x_feats = tf.train.Features(feature={'image': x_feat})
+  label_list = tf.train.Int64List(value=np.array([label]))
+  feature_dict = {
+      'image': tf.train.Feature(int64_list=x_list),
+      'label': tf.train.Feature(int64_list=label_list),
+  }
+  x_feats = tf.train.Features(feature=feature_dict)
   example = tf.train.Example(features=x_feats)
   return example.SerializeToString()
 
@@ -148,6 +152,7 @@ def store_samples(data, config, logdir, gen_dataset=None):
   logging.info(gen_dataset)
   for batch_ind in range(num_outputs // batch_size):
     next_data = data.next()
+    labels = next_data['label'].numpy()
 
     if gen_dataset is not None:
       next_gen_data = gen_dataset.next()
@@ -197,8 +202,8 @@ def store_samples(data, config, logdir, gen_dataset=None):
       if ('sample' in out_key or 'argmax' in out_key):
         save_str = f'Saving {(batch_ind + 1) * batch_size} samples'
         logging.info(save_str)
-        for single_ex in curr_out_val:
-          serialized = array_to_tf_example(single_ex)
+        for single_ex, label in zip(curr_out_val, labels):
+          serialized = array_to_tf_example(single_ex, label)
           writer.write(serialized)
 
   writer.close()

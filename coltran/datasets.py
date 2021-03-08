@@ -49,6 +49,7 @@ def preprocess(example, train=True, resolution=256):
   example_copy = dict()
   example_copy['image'] = image
   example_copy['targets'] = image
+  example_copy['label'] = example['label']
   return example_copy
 
 
