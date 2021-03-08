@@ -14,19 +14,19 @@ configurations, run the following commands (with `$SEED` varying from 1 to 100):
 
 ```
 # Launch command for the "wide" grid
-python jumping_task.train -- --training_epochs 2000  --seed $SEED \
+python -m jumping_task.train --training_epochs 2000  --seed $SEED \
 --soft_coupling_temperature 0.01 --alpha 5.0 --temperature 0.5 \
 --learning_rate 0.0026 --no_validation --rand_conv
 
 # Launch command for the "narrow" grid:
-python jumping_task.train -- --training_epochs 2000 --seed $SEED \
+python -m jumping_task.train --training_epochs 2000 --seed $SEED \
 --min_obstacle_position 28 --max_obstacle_position 38 --min_floor_height 13 \
 --max_floor_height 17 --positions_train_diff 2 --heights_train_diff 2 \
 --soft_coupling_temperature 0.01 --alpha 5.0 --temperature 0.5 \
 --learning_rate 0.0026 --no_validation --rand_conv
 
 # Launch command for the random grid:
-python jumping_task.train -- --training_epochs 2000 --seed $SEED \
+python -m jumping_task.train --training_epochs 2000 --seed $SEED \
 --soft_coupling_temperature 0.01 --alpha 5.0 --temperature 0.5 \
 --learning_rate 0.0026 --no_validation --rand_conv --random_tasks
 ```
@@ -35,7 +35,7 @@ To reproduce the results for `PSEs` on jumping task with colored obstacles,
 run the command (with `$SEED` varying from 1 to 100):
 
 ```
-python jumping_task.train -- --training_epochs 2000 --seed $SEED \
+python -m jumping_task.train --training_epochs 2000 --seed $SEED \
 --soft_coupling_temperature 0.01 --alpha 5 --l2_reg 0.00007 \
 --learning_rate 0.006 --temperature 0.5 --no_validation --use_colors
 ```
