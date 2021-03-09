@@ -386,7 +386,7 @@ class MultiGridEnv(minigrid.MiniGridEnv):
     # Number of cells (width and height) in the agent view
     self.agent_view_size = agent_view_size
     if self.fully_observed:
-      self.agent_view_size = grid_size
+      self.agent_view_size = max(width, height)
 
     # Range of possible rewards
     self.reward_range = (0, 1)
@@ -398,6 +398,11 @@ class MultiGridEnv(minigrid.MiniGridEnv):
 
     # Maintain for backwards compatibility with minigrid.
     self.minigrid_mode = minigrid_mode
+    if self.fully_observed:
+      obs_image_shape = (width, height, 3)
+    else:
+      obs_image_shape = (self.agent_view_size, self.agent_view_size, 3)
+
     if self.minigrid_mode:
       msg = 'Backwards compatibility with minigrid only possible with 1 agent'
       assert self.n_agents == 1, msg
@@ -409,7 +414,7 @@ class MultiGridEnv(minigrid.MiniGridEnv):
       self.image_obs_space = gym.spaces.Box(
           low=0,
           high=255,
-          shape=(self.agent_view_size, self.agent_view_size, 3),
+          shape=obs_image_shape,
           dtype='uint8')
     else:
       # First dimension of all observations is the agent ID
@@ -419,7 +424,7 @@ class MultiGridEnv(minigrid.MiniGridEnv):
       self.image_obs_space = gym.spaces.Box(
           low=0,
           high=255,
-          shape=(self.n_agents, self.agent_view_size, self.agent_view_size, 3),
+          shape=(self.n_agents,) + obs_image_shape,
           dtype='uint8')
 
     # Observations are dictionaries containing an encoding of the grid and the
