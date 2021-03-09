@@ -22,6 +22,7 @@ import mock
 import numpy as np
 import tensorflow.compat.v2 as tf
 from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_utils
+from non_semantic_speech_benchmark.export_model import tf_frontend
 
 
 BASE_SHAPE_ = (15, 5)
@@ -107,6 +108,10 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
 
     old_k = 'oldkey'
 
+    def _feature_fn(x, s):
+      return tf.expand_dims(
+          tf_frontend.compute_frontend_features(x, s, overlap_seconds=79),
+          axis=-1).numpy().astype(np.float32)
     do_fn = audio_to_embeddings_beam_utils.ComputeEmbeddingMapFn(
         name='module_name',
         module='file.tflite',
@@ -114,7 +119,8 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
         audio_key=audio_key,
         sample_rate_key=sample_rate_key,
         sample_rate=sample_rate,
-        average_over_time=average_over_time)
+        average_over_time=average_over_time,
+        feature_fn=_feature_fn)
     do_fn.setup()
     new_k, new_v = next(do_fn.process((old_k, ex)))
 

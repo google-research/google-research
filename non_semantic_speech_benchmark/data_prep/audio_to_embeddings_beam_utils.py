@@ -55,10 +55,10 @@ def _tfexample_audio_to_npfloat32(ex, audio_key):
   return audio
 
 
-def _samples_to_embedding_tfhub(audio_samples, sample_rate, mod, output_key):
+def _samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
   """Run inference to map audio samples to an embedding."""
-  tf_out = mod(tf.constant(audio_samples, tf.float32),
-               tf.constant(sample_rate, tf.int32))
+  tf_out = mod(
+      tf.constant(model_input, tf.float32), tf.constant(sample_rate, tf.int32))
   return np.array(tf_out[output_key])
 
 
@@ -71,18 +71,17 @@ def _build_tflite_interpreter(tflite_model_path):
   return interpreter
 
 
-def _samples_to_embedding_tflite(
-    audio_samples, sample_rate, interpreter, output_key):
+def _samples_to_embedding_tflite(model_input, sample_rate, interpreter,
+                                 output_key):
   """Run TFLite inference to map audio samples to an embedding."""
   input_details = interpreter.get_input_details()
   output_details = interpreter.get_output_details()
   # Resize TFLite input size based on length of sample.
   # Ideally, we should explore if we can use fixed-size input here, and
   # tile the sample to meet TFLite input size.
-  interpreter.resize_tensor_input(input_details[0]['index'],
-                                  [len(audio_samples)])
+  interpreter.resize_tensor_input(input_details[0]['index'], model_input.shape)
   interpreter.allocate_tensors()
-  interpreter.set_tensor(input_details[0]['index'], audio_samples)
+  interpreter.set_tensor(input_details[0]['index'], model_input)
   interpreter.set_tensor(input_details[1]['index'],
                          np.array(sample_rate).astype(np.int32))
 
@@ -97,8 +96,15 @@ def _samples_to_embedding_tflite(
 class ComputeEmbeddingMapFn(beam.DoFn):
   """Computes an embedding (key, tf.Example) from audio (key, tf.Example)."""
 
-  def __init__(self, name, module, output_key, audio_key, sample_rate_key,
-               sample_rate, average_over_time):
+  def __init__(self,
+               name,
+               module,
+               output_key,
+               audio_key,
+               sample_rate_key,
+               sample_rate,
+               average_over_time,
+               feature_fn=None):
     self._name = name
     # If TFLite should be used, `module` should point to a flatbuffer model.
     self._module = module
@@ -110,6 +116,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     self._sample_rate_key = sample_rate_key
     self._sample_rate = sample_rate
     self._average_over_time = average_over_time
+    self._feature_fn = feature_fn
 
     # Only one of `sample_rate_key` and `sample_rate` should be not None.
     assert (self._sample_rate_key is None) ^ (self._sample_rate is None),\
@@ -154,13 +161,24 @@ class ComputeEmbeddingMapFn(beam.DoFn):
           audio, orig_sr=sample_rate, target_sr=16000, res_type='kaiser_best')
       sample_rate = 16000
 
+    # Convert audio to features, if required.
+    if self._feature_fn:
+      model_input = self._feature_fn(audio, sample_rate)
+      if not isinstance(model_input, np.ndarray):
+        raise ValueError(f'Expected ndarray, got {type(model_input)}')
+      if model_input.dtype != np.float32:
+        raise ValueError(f'Should be float32, was: {model_input.dtype}')
+      logging.info('Audio shape is now: %s', model_input.shape)
+    else:
+      model_input = audio
+
     # Calculate the 2D embedding.
     if self._use_tflite:
       embedding_2d = _samples_to_embedding_tflite(
           audio, sample_rate, self.interpreter, self._output_key)
     else:
-      embedding_2d = _samples_to_embedding_tfhub(
-          audio, sample_rate, self.module, self._output_key)
+      embedding_2d = _samples_to_embedding_tfhub(model_input, sample_rate,
+                                                 self.module, self._output_key)
     assert isinstance(embedding_2d, np.ndarray)
     assert embedding_2d.ndim == 2
     assert embedding_2d.dtype == np.float32
@@ -314,7 +332,7 @@ def validate_inputs(
   assert len(embedding_names) == len(embedding_modules),\
          (embedding_names, embedding_modules)
   assert len(embedding_modules) == len(module_output_keys),\
-         (embedding_modules, module_output_keys)
+         (len(embedding_modules), len(module_output_keys))
   # Shortnames must be unique.
   assert len(set(embedding_names)) == len(embedding_names), embedding_names
 
