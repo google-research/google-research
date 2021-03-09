@@ -23,6 +23,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
+
 import tensorflow.compat.v2 as tf
 
 from tf_agents.networks import actor_distribution_network
@@ -160,45 +162,74 @@ def construct_multigrid_networks(observation_spec,
   return actor_net, value_net
 
 
-class AttentionCombiner(tf.keras.layers.Layer):
+def get_spatial_basis(h, w, d):
+  """Gets a sinusoidal position encoding for image attention."""
+  half_d = d // 2
+  basis = np.zeros((h, w, d), dtype=np.float32)
+  div = np.exp(
+      np.arange(0, half_d, 2, dtype=np.float32) * -np.log(100.0) / half_d)
+  h_grid = np.expand_dims(np.arange(0, h, dtype=np.float32), 1)
+  w_grid = np.expand_dims(np.arange(0, w, dtype=np.float32), 1)
+  basis[:, :, 0:half_d:2] = np.sin(h_grid * div)[:, np.newaxis, :]
+  basis[:, :, 1:half_d:2] = np.cos(h_grid * div)[:, np.newaxis, :]
+  basis[:, :, half_d::2] = np.sin(w_grid * div)[np.newaxis, :, :]
+  basis[:, :, half_d + 1::2] = np.cos(w_grid * div)[np.newaxis, :, :]
+  return basis
+
+
+class AttentionCombinerConv(tf.keras.layers.Layer):
   """Combiner that applies attention to input images."""
 
   def __init__(self,
                image_index_flat,
                network_state_index_flat,
                image_shape,
-               conv_filters=128):
-    super(AttentionCombiner, self).__init__(trainable=True)
+               conv_filters=64,
+               n_heads=8,
+               basis_dim=8):
+    super(AttentionCombinerConv, self).__init__(trainable=True)
     self.combiner = tf.keras.layers.Concatenate(axis=-1)
     self.image_index_flat = image_index_flat
     self.network_state_index_flat = network_state_index_flat
     self.image_shape = image_shape
-    self.attention_network = tf.keras.models.Sequential([
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Softmax(),
-        tf.keras.layers.Reshape((image_shape[0], image_shape[1]))
+    self.conv_filters = conv_filters
+    self.n_heads = n_heads
+    self.basis_dim = basis_dim
+    self.attention_network = tf.keras.Sequential([
+        tf.keras.layers.Reshape((image_shape[0] * image_shape[1], n_heads)),
+        tf.keras.layers.Softmax(axis=1)
     ])
     self.q = tf.keras.layers.Dense(conv_filters)
     self.k = tf.keras.layers.Conv2D(conv_filters, 1, padding='same')
     self.v = tf.keras.layers.Conv2D(conv_filters, 1, padding='same')
-
-  def build(self, input_shape):
-    self.attention_network.build(input_shape)
-    super(AttentionCombiner, self).build(input_shape)
+    self.spatial_basis = tf.constant(
+        get_spatial_basis(image_shape[0], image_shape[1],
+                          basis_dim)[np.newaxis, :, :, :])
 
   def __call__(self, obs):
+    h, w, _ = self.image_shape
     input_copy = obs.copy()
-    image_features = input_copy[self.image_index_flat]
+    batch_size = tf.shape(input_copy[self.image_index_flat])[0]
+    spatial_basis_tiled = tf.tile(self.spatial_basis, (batch_size, 1, 1, 1))
+    image_features = tf.concat(
+        (input_copy[self.image_index_flat], spatial_basis_tiled), axis=-1)
     network_state = self.combiner(input_copy[self.network_state_index_flat])
-    query = self.q(network_state)[:, tf.newaxis, tf.newaxis, :]
+    query = self.q(network_state)
     keys = self.k(image_features)
     values = self.v(image_features)
-    attention_weights = tf.reduce_sum(query * keys, axis=-1)
-    attention_weights = self.attention_network(attention_weights)[:, :, :,
-                                                                  tf.newaxis]
-    weighted_image_features = attention_weights * values
-    input_copy[self.image_index_flat] = tf.reduce_sum(weighted_image_features,
-                                                      (1, 2))
+
+    depth_per_head = self.conv_filters // self.n_heads
+    q_heads = tf.reshape(query, (-1, 1, 1, self.n_heads, depth_per_head))
+    k_heads = tf.reshape(keys, (-1, h, w, self.n_heads, depth_per_head))
+    v_heads = tf.reshape(values, (-1, h * w, self.n_heads, depth_per_head))
+
+    attention_weights = tf.reduce_sum(q_heads * k_heads, axis=-1)
+    attention_weights = self.attention_network(attention_weights)
+    weighted_features = tf.reshape(
+        attention_weights[:, :, :, tf.newaxis] * v_heads,
+        (-1, h * w, self.conv_filters))
+    input_copy[self.image_index_flat] = tf.reduce_sum(weighted_features, axis=1)
+
     input_copy.pop(self.network_state_index_flat)
     return self.combiner(input_copy)
 
@@ -206,7 +237,10 @@ class AttentionCombiner(tf.keras.layers.Layer):
     return {
         'image_index_flat': self.image_index_flat,
         'network_state_index_flat': self.network_state_index_flat,
-        'image_shape': self.image_shape
+        'image_shape': self.image_shape,
+        'conv_filters': self.conv_filters,
+        'n_heads': self.n_heads,
+        'basis_dim': self.basis_dim
     }
 
 
@@ -274,9 +308,9 @@ def construct_attention_networks(observation_spec,
   network_state_index_flat = flat_observation_spec.index(
       observation_spec['policy_state'])
   image_shape = observation_spec['image'].shape  # N x H x W x D
-  preprocessing_combiner = AttentionCombiner(image_index_flat,
-                                             network_state_index_flat,
-                                             image_shape)
+  preprocessing_combiner = AttentionCombinerConv(image_index_flat,
+                                                 network_state_index_flat,
+                                                 image_shape)
 
   if use_rnns:
     actor_net = actor_distribution_rnn_network.ActorDistributionRnnNetwork(
