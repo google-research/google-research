@@ -16,7 +16,11 @@ You will also need to install Mujoco and use a valid license. Follow the install
 instructions [here](https://github.com/openai/mujoco-py).
 
 # Expert demonstrations
-We are working on making expert demonstrations available.
+PWIL demonstrations are available in a GCS bucket.
+
+    DEMO_DIR=/tmp/demonstrations
+    mkdir $DEMO_DIR
+    gsutil cp -r gs://gresearch/pwil/* $DEMO_DIR
 
 # Run PWIL
 
