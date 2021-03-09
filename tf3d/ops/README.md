@@ -1,7 +1,7 @@
 # Preparing the 3D Sparse Convolution Op
-  You should be able to use the pre-compiled package if you have the following settings. Otherwise, please compile the op as a shared library imported by Python, and/or as a `wheel` package.
+<!--   You should be able to use the pre-compiled package if you have the following settings. Otherwise, please compile the op as a shared library imported by Python, and/or as a `wheel` package. -->
   
-## Using the pre-compiled package
+<!-- ## Using the pre-compiled package
    If your environment is `Python 3.6` or `3.7` and `manylinux2010_x86_64` platform, you may install the `wheel` package in `tf3d/ops/packages` folder.
    
 ```bash
@@ -10,8 +10,8 @@
    pip3 install tf3d/ops/packages/tensorflow_sparse_conv_ops-0.0.1-cp36-cp36m-linux_x86_64.whl
    # for python 3.7
    pip3 install tf3d/ops/packages/tensorflow_sparse_conv_ops-0.0.1-cp37-cp37m-linux_x86_64.whl   
-```
-   
+``` -->
+
 ## Compile the ops within a docker image
 
 1. Download the [Tensorflow repo](https://github.com/tensorflow/tensorflow) to a local folder `tensorflow`.
