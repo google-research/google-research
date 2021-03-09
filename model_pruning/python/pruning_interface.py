@@ -421,13 +421,11 @@ class PruningOp(object):
       raise NotImplementedError()
 
   @classmethod
-  def GetEinSumResult(cls, inputs, weight, equation, proj_obj):
+  def GetEinSumResult(cls, inputs, proj_obj):
     """Compute the einsum result.
 
     Args:
       inputs: the left operand of the matmul operation.
-      weight: the right operand of the matmul operator. a rank 2 tensor.
-      equation: the equation for the einsum operation.
       proj_obj: the ProjectionLayer object from where get_einsum_operator
                 is called.
 
@@ -439,7 +437,7 @@ class PruningOp(object):
     """
     if cls._pruning_obj:
       return proj_obj.compression_op.get_einsum_operator(
-          inputs, weight, equation, proj_obj)
+          inputs, proj_obj)
     else:
       raise NotImplementedError()
 
@@ -476,11 +474,7 @@ class PruningOp(object):
       if inputs.shape.rank == 2:
         outputs = tf.matmul(inputs, weight)
       else:
-        s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
-        r = inputs.shape.rank
-        outputs = cls.GetEinSumResult(inputs, weight,
-                                      '{0}y,yz->{0}z'.format(s[:r - 1]),
-                                      proj_obj)
+        outputs = cls.GetEinSumResult(inputs, proj_obj)
     else:
       if p.pruning_hparams_dict['compress_input']:
         blocked_inputs = tf.reshape(

@@ -954,7 +954,7 @@ class InputOutputCompressionOp(CompressionOp):
                                a_matrix_tfvar,
                                matrix_compressor,
                                scope='default_scope'):
-    """Returns compressed tensorflow operator for input compression.
+    """Returns compressed tensorflow operator for input/output compression.
 
     Args:
       a_matrix_tfvar: TF variable representihg a tensor variable in a model
