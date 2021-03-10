@@ -86,7 +86,8 @@ def get_matrix_compression_object(hparams,  # pylint:disable=invalid-name
 
 def apply_matrix_compression(matrix_compression_obj,  # pylint:disable=invalid-name
                              weight,
-                             scope=''):
+                             scope='',
+                             spec=None):
   """Apply pruning/compression to a weight tensor.
 
   For pruning, this is equivalent to apply_mask; for compression, this is
@@ -97,6 +98,7 @@ def apply_matrix_compression(matrix_compression_obj,  # pylint:disable=invalid-n
       compression_lib.compression_op.ApplyCompression object;
     weight: input weight tensor;
     scope: the current variable scope. Defaults to ''.
+    spec: spec to use for the compression op.
 
   Returns:
     A TF node that represents the masked weight tensor if pruning_indicator is
@@ -107,7 +109,8 @@ def apply_matrix_compression(matrix_compression_obj,  # pylint:disable=invalid-n
     prune_option = matrix_compression_obj.matrix_compression_spec.prune_option
     return pruning.apply_mask(x=weight, scope=scope, prune_option=prune_option)
   else:
-    compressed_matrix = matrix_compression_obj.apply_compression(weight, scope)
+    compressed_matrix = matrix_compression_obj.apply_compression(
+        weight, scope, spec)
     hparams = matrix_compression_obj.get_spec()
     if hparams.use_collection:
       tf.add_to_collection(UPDATE_OP_COLLECTION,
@@ -122,7 +125,8 @@ def apply_customized_lstm_matrix_compression(matrix_compression_obj,  # pylint:d
                                              weight_name,
                                              weight_shape,
                                              weight_dtype,
-                                             scope_name='pruning_interface'):
+                                             scope_name='pruning_interface',
+                                             spec=None):
   """Apply pruning or compression to a LSTM layer.
 
   This provides a unified interface to perform pruning or compression for a
@@ -139,6 +143,7 @@ def apply_customized_lstm_matrix_compression(matrix_compression_obj,  # pylint:d
     weight_shape: shape of the weight matrix;
     weight_dtype: data type of the weight matrix;
     scope_name: TensorFlow scope for creating relavant variables.
+    spec: spec to use for the compression op.
 
   Returns:
     None.
@@ -179,7 +184,7 @@ def apply_customized_lstm_matrix_compression(matrix_compression_obj,  # pylint:d
   else:
     _ = matrix_compression_obj.customized_apply_compression(
         getattr(layer_obj.vars, weight_name), layer_obj, weight_params_fn,
-        weight_init_obj, scope_name)
+        weight_init_obj, scope_name, spec)
     hparams = matrix_compression_obj.get_spec()
     if hparams.use_collection:
       tf.add_to_collection(UPDATE_OP_COLLECTION,
@@ -356,11 +361,14 @@ class PruningOp(object):
                    dtype, scope):
     if not cls._pruning_obj:
       cls.Setup(pruning_hparams_dict, global_step=py_utils.GetGlobalStep())
+    compression_op_spec = pruning.get_pruning_hparams().override_from_dict(
+        pruning_hparams_dict)
     return apply_customized_lstm_matrix_compression(cls._pruning_obj,
                                                     py_utils.WeightParams,
                                                     py_utils.WeightInit,
                                                     lstmobj, weight_name,
-                                                    wm_pc.shape, dtype, scope)
+                                                    wm_pc.shape, dtype, scope,
+                                                    compression_op_spec)
 
   @classmethod
   def GetMixResult(cls, theta, concat, lstmobj):  # pylint:disable=invalid-name

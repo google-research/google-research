@@ -1504,23 +1504,26 @@ class ApplyCompression(object):
     self.uncompressed_size = 0
     self.compressed_size = 0
 
-  def apply_compression(self, a_matrix_tfvar, scope='default_scope'):
+  def apply_compression(self, a_matrix_tfvar, scope='default_scope', spec=None):
     """Applies matrix compression OP on a_matrix_tfvar as specified in spec.
 
     Args:
       a_matrix_tfvar: TF variable representing a tensor variable in a model.
       scope: TF scope used for creating new TF variables.
+      spec: spec to be used for the compression op. this is optional. if
+            not provided, self._compression_op_spec is used.
 
     Returns:
       TF node that represents the compressed version of a_matrix_tfvar.
     """
-    if self._compression_op_spec.compression_option == 9:
+    compression_op_spec = spec if spec else self._compression_op_spec
+    if compression_op_spec.compression_option == 9:
       c = InputOutputCompressionOp(
-          spec=self._compression_op_spec, global_step=self._global_step)
+          spec=compression_op_spec, global_step=self._global_step)
     else:
       c = CompressionOp(
           scope=scope,
-          spec=self._compression_op_spec,
+          spec=compression_op_spec,
           global_step=self._global_step)
     self._compression_ops.append(c)
     [a_matrix_compressed, a_matrix_update_op] = c.get_apply_compression_op(
@@ -1537,7 +1540,8 @@ class ApplyCompression(object):
                                    layer_obj,
                                    weight_params_fn,
                                    weight_init_obj,
-                                   scope='default_scope'):
+                                   scope='default_scope',
+                                   spec=None):
     """Applies matrix compression OP on a_matrix_tfvar as specified in spec.
 
     Args:
@@ -1546,17 +1550,20 @@ class ApplyCompression(object):
       weight_params_fn: functional handle to create model parameters.
       weight_init_obj: a weight initialization object.
       scope: TF scope used for creating new TF variables.
+      spec: spec to be used for the compression op. this is optional.
+            if not provided, self._compression_op_spec is used.
 
     Returns:
       TF node that represents the compressed version of a_matrix_tfvar.
     """
-    if self._compression_op_spec.compression_option == 9:
+    compression_op_spec = spec if spec else self._compression_op_spec
+    if compression_op_spec.compression_option == 9:
       c = InputOutputCompressionOp(
-          spec=self._compression_op_spec, global_step=self._global_step)
+          spec=compression_op_spec, global_step=self._global_step)
     else:
       c = CompressionOp(
           scope=scope,
-          spec=self._compression_op_spec,
+          spec=compression_op_spec,
           global_step=self._global_step)
     self._compression_ops.append(c)
     [a_matrix_compressed,
@@ -1577,7 +1584,8 @@ class ApplyCompression(object):
   def apply_compression_keras(self,
                               a_matrix_tfvar,
                               scope='default_scope',
-                              layer=None):
+                              layer=None,
+                              spec=None):
     """keras version of apply_compression.
 
     Applies matrix compression OP on
@@ -1588,19 +1596,22 @@ class ApplyCompression(object):
       scope: TF scope used for creating new TF variables.
       layer: keras layer object calling this function. Must support an
          add_weight method.
+      spec: spec to be used for the compression op. this is optional.
+            if not provided, self._compression_op_spec is used.
 
     Returns:
       TF node that represents the compressed version of a_matrix_tfvar.
     """
-    if self._compression_op_spec.compression_option == 9:
+    compression_op_spec = spec if spec else self._compression_op_spec
+    if compression_op_spec.compression_option == 9:
       print('************here in option 9')
       c = InputOutputCompressionOp(
-          spec=self._compression_op_spec, global_step=self._global_step)
+          spec=compression_op_spec, global_step=self._global_step)
     else:
       print('************here not in option 9')
       c = CompressionOp(
           scope=scope,
-          spec=self._compression_op_spec,
+          spec=compression_op_spec,
           global_step=self._global_step)
 
     self._compression_ops.append(c)
