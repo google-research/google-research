@@ -135,9 +135,7 @@ def _downcast_sat_ftz_jvp(
   approximate continuous version of that function. Specifically, it defines the
   gradient of:
 
-  x = jnp.where(jnp.abs(x) < flush_to_zero_bound, 0, x)
-  x = jnp.where(x > saturdation_bound, saturation_bound, x)
-  x = jnp.where(x < -saturdation_bound, -saturation_bound, x)
+  x = jnp.clip(x, -saturation_bound, saturation_bound)
 
   This ignores the rounding operations in the significand that occur in
   `downcast_sat_ftz`, and thus implements the straight-through estimator.
@@ -164,13 +162,13 @@ def _downcast_sat_ftz_jvp(
         'The primal and tangent tuples should only have one element each. '
         'This element corresponds to the one differentiable input to '
         'downcast_sat_ftz.')
-  x = primals[0]
-  x_tangent = tangents[0]
-  output = downcast_sat_ftz(
+  (x,), (x_dot,) = primals, tangents
+  y = downcast_sat_ftz(
       x, exp_min=exp_min, exp_max=exp_max, sig_bits=sig_bits)
-  x_abs = jnp.abs(x)
-  bounds = get_bounds(exp_min=exp_min, exp_max=exp_max, sig_bits=sig_bits)
-  output_tangent = jnp.where(
-      (x_abs < bounds.flush_to_zero_bound) | (x_abs > bounds.saturation_bound),
-      0.0, x_tangent).astype(x.dtype)
-  return output, output_tangent
+  # Differentiable approximation to downcast_sat_ftz whose gradient is used as a
+  # straight-through-estimator for the downcasting operation.
+  def differentiable_downcast(x):
+    bounds = get_bounds(exp_min, exp_max, sig_bits)
+    return jnp.clip(x, -bounds.saturation_bound, bounds.saturation_bound)
+  _, y_tangent = jax.jvp(differentiable_downcast, (x,), (x_dot,))
+  return y, y_tangent

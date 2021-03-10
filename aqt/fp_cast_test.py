@@ -142,12 +142,6 @@ def gradient_test_data(sig_bits):
   # and the second element is the expected gradient of the floating-point
   # quantization function evaluated at that value.
   testcases = [
-      # Test values below the flush-to-zero bound. Gradient should be zero since
-      # these values are flushed to zero during quantization.
-      (2.11e-15, 0),
-      (-2.11e-15, 0),
-      (bounds.flush_to_zero_bound - eps_flush_to_zero, 0),
-      (-bounds.flush_to_zero_bound + eps_flush_to_zero, 0),
 
       # Test values above the saturation bound. Gradient should be zero since
       # these values are clipped to the saturation threshold during
