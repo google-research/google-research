@@ -62,7 +62,6 @@ def normalize_probs(samples, smoothing=1e-8):
   return new_samples
 
 
-# pylint: disable=old-style-class
 @six.add_metaclass(abc.ABCMeta)
 class ReplayBuffer():
 
@@ -73,9 +72,6 @@ class ReplayBuffer():
   @abc.abstractmethod
   def replay(self, envs):
     raise NotImplementedError
-
-
-# pylint: enable=old-style-class
 
 
 class AllGoodReplayBuffer(ReplayBuffer):

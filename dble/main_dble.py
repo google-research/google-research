@@ -780,7 +780,6 @@ def get_pwc_learning_rate(global_step, flags):
 class ModelLoader:
   """The class definition for the evaluation module."""
 
-  # pylint: disable=old-style-class
   def __init__(self, model_path, batch_size, train_dataset, test_dataset):
     self.train_batch_size = batch_size
     self.test_batch_size = batch_size

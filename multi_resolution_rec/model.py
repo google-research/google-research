@@ -21,7 +21,7 @@ import tensorflow.compat.v1 as tf
 
 from multi_resolution_rec import modules
 
-class Model():  # pylint: disable=old-style-class
+class Model():
   """Model."""
 
   def __init__(self,
