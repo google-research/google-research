@@ -70,8 +70,7 @@ def preprocess_keypoints_2d(keypoints_2d,
                             seed=None):
   """Preprocesses input 2D keypoints.
 
-  Note that this function does NOT normalize 3D keypoints before random
-  projection or normalize any 2D keypoints at the end.
+  Note that this function does not normalize 2D keypoints at the end.
 
   Args:
     keypoints_2d: A tensor for input 2D keyopints. Shape = [..., num_keypoints,
