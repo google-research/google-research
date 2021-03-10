@@ -123,7 +123,8 @@ def compute_sigmoid_matching_probabilities(inner_distances,
     b_range: A tuple of (min, max) range of `b` parameter. Uses None to indicate
       unspecified boundaries. Does NOT use non-positive value to indicate
       unspecified boundaries.
-    smoothing: A float for label smoothing constant.
+    smoothing: A float for probability smoothing constant. Ignored if
+      non-positive.
     name: A string for the variable scope name.
 
   Returns:
@@ -137,7 +138,9 @@ def compute_sigmoid_matching_probabilities(inner_distances,
       a_range=a_range,
       b_range=b_range)
   p = tf.math.sigmoid(-a * inner_distances + b)
-  return (1.0 - smoothing) * p + smoothing / 2.0
+  if smoothing > 0.0:
+    p = (1.0 - smoothing) * p + smoothing / 2.0
+  return p
 
 
 def compute_sigmoid_matching_distances(inner_distances,
@@ -166,7 +169,8 @@ def compute_sigmoid_matching_distances(inner_distances,
     b_range: A tuple of (min, max) range of `b` parameter. Uses None to indicate
       unspecified boundaries. Does NOT use non-positive value to indicate
       unspecified boundaries.
-    smoothing: A float for label smoothing constant.
+    smoothing: A float for probability smoothing constant. Ignored if
+      non-positive.
     name: A string for the variable scope name.
 
   Returns:
@@ -245,7 +249,8 @@ def compute_gaussian_likelihoods(
     max_squared_mahalanobis_distance: A float for maximum inner squared
       mahalanobis distance to use. Larger distances will be clipped. Ignored if
       non-positive.
-    smoothing: A float for label smoothing constant. Ignored if non-positive.
+    smoothing: A float for probability smoothing constant. Ignored if
+      non-positive.
 
   Returns:
     A tensor for sample likelihoods. Shape = [..., num_samples].

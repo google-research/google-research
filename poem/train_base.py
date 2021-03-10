@@ -337,10 +337,7 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
                 common_module.SUPPORTED_COMPONENTWISE_DISTANCE_REDUCTIONS)
 
   if FLAGS.embedding_type == common_module.EMBEDDING_TYPE_POINT:
-    if FLAGS.triplet_distance_type in [
-        common_module.DISTANCE_TYPE_SAMPLE,
-        common_module.DISTANCE_TYPE_CENTER_AND_SAMPLE
-    ]:
+    if FLAGS.triplet_distance_type != common_module.DISTANCE_TYPE_CENTER:
       raise ValueError(
           'No support for triplet distance type `%s` for embedding type `%s`.' %
           (FLAGS.triplet_distance_type, FLAGS.embedding_type))
@@ -351,10 +348,8 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
 
   if ((FLAGS.triplet_distance_type in [
       common_module.DISTANCE_TYPE_SAMPLE,
-      common_module.DISTANCE_TYPE_CENTER_AND_SAMPLE
   ] or FLAGS.positive_pairwise_distance_type in [
       common_module.DISTANCE_TYPE_SAMPLE,
-      common_module.DISTANCE_TYPE_CENTER_AND_SAMPLE
   ]) and FLAGS.num_embedding_samples <= 0):
     raise ValueError(
         'Must specify positive `num_embedding_samples` to use `%s` '
@@ -363,14 +358,16 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
 
   if (((FLAGS.triplet_distance_kernel in [
       common_module.DISTANCE_KERNEL_L2_SIGMOID_MATCHING_PROB,
-      common_module.DISTANCE_KERNEL_EXPECTED_LIKELIHOOD
+      common_module.DISTANCE_KERNEL_SQUARED_L2_SIGMOID_MATCHING_PROB,
+      common_module.DISTANCE_KERNEL_EXPECTED_LIKELIHOOD,
   ]) != (FLAGS.triplet_pairwise_reduction in [
       common_module.DISTANCE_REDUCTION_NEG_LOG_MEAN,
       common_module.DISTANCE_REDUCTION_LOWER_HALF_NEG_LOG_MEAN,
       common_module.DISTANCE_REDUCTION_ONE_MINUS_MEAN
   ])) or ((FLAGS.positive_pairwise_distance_kernel in [
       common_module.DISTANCE_KERNEL_L2_SIGMOID_MATCHING_PROB,
-      common_module.DISTANCE_KERNEL_EXPECTED_LIKELIHOOD
+      common_module.DISTANCE_KERNEL_SQUARED_L2_SIGMOID_MATCHING_PROB,
+      common_module.DISTANCE_KERNEL_EXPECTED_LIKELIHOOD,
   ]) != (FLAGS.positive_pairwise_pairwise_reduction in [
       common_module.DISTANCE_REDUCTION_NEG_LOG_MEAN,
       common_module.DISTANCE_REDUCTION_LOWER_HALF_NEG_LOG_MEAN,
@@ -424,9 +421,15 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
               # in a `dead zone` at the beginning of training.
               L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
                   tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
-              L2_SIGMOID_MATCHING_PROB_b_initializer=(
-                  tf.initializers.constant(FLAGS.sigmoid_b_initial)),
+              L2_SIGMOID_MATCHING_PROB_b_initializer=(tf.initializers.constant(
+                  FLAGS.sigmoid_b_initial)),
               L2_SIGMOID_MATCHING_PROB_a_range=(None, FLAGS.sigmoid_a_max),
+              SQUARED_L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
+                  tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
+              SQUARED_L2_SIGMOID_MATCHING_PROB_b_initializer=(
+                  tf.initializers.constant(FLAGS.sigmoid_b_initial)),
+              SQUARED_L2_SIGMOID_MATCHING_PROB_a_range=(None,
+                                                        FLAGS.sigmoid_a_max),
               EXPECTED_LIKELIHOOD_min_stddev=0.1,
               EXPECTED_LIKELIHOOD_max_squared_mahalanobis_distance=100.0),
       'positive_pairwise_embedding_keys':
@@ -444,13 +447,21 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
               # in a `dead zone` at the beginning of training.
               L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
                   tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
-              L2_SIGMOID_MATCHING_PROB_b_initializer=(
+              L2_SIGMOID_MATCHING_PROB_b_initializer=(tf.initializers.constant(
+                  FLAGS.sigmoid_b_initial)),
+              SQUARED_L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
+                  tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
+              SQUARED_L2_SIGMOID_MATCHING_PROB_b_initializer=(
                   tf.initializers.constant(FLAGS.sigmoid_b_initial)),
+              SQUARED_L2_SIGMOID_MATCHING_PROB_a_range=(None,
+                                                        FLAGS.sigmoid_a_max),
               EXPECTED_LIKELIHOOD_min_stddev=0.1,
               EXPECTED_LIKELIHOOD_max_squared_mahalanobis_distance=100.0),
       'summarize_matching_sigmoid_vars':
-          FLAGS.triplet_distance_kernel in
-          [common_module.DISTANCE_KERNEL_L2_SIGMOID_MATCHING_PROB],
+          FLAGS.triplet_distance_kernel in [
+              common_module.DISTANCE_KERNEL_L2_SIGMOID_MATCHING_PROB,
+              common_module.DISTANCE_KERNEL_SQUARED_L2_SIGMOID_MATCHING_PROB
+          ],
       'random_projection_azimuth_range': [
           float(x) / 180.0 * math.pi
           for x in FLAGS.random_projection_azimuth_range

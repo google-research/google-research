@@ -59,7 +59,8 @@ def create_sample_distance_fn(
     if pair_type == common.DISTANCE_PAIR_TYPE_ALL_PAIRS:
       l2_distance_computer = distance_utils.compute_all_pair_l2_distances
     elif pair_type == common.DISTANCE_PAIR_TYPE_CORRESPONDING_PAIRS:
-      l2_distance_computer = distance_utils.compute_corresponding_pair_l2_distances
+      l2_distance_computer = (
+          distance_utils.compute_corresponding_pair_l2_distances)
 
     if distance_kernel == common.DISTANCE_KERNEL_SQUARED_L2:
       return functools.partial(l2_distance_computer, squared=True)
@@ -79,6 +80,23 @@ def create_sample_distance_fn(
                                             'MatchingSigmoid'))
 
       return compute_l2_sigmoid_matching_distances
+
+    if (distance_kernel ==
+        common.DISTANCE_KERNEL_SQUARED_L2_SIGMOID_MATCHING_PROB):
+
+      def compute_squared_l2_sigmoid_matching_distances(lhs, rhs):
+        """Computes squared L2 sigmoid matching probability distances."""
+        inner_distances = l2_distance_computer(lhs, rhs, squared=True)
+        return distance_utils.compute_sigmoid_matching_probabilities(
+            inner_distances,
+            raw_a_initializer=distance_kernel_kwargs.get(
+                (distance_kernel + '_raw_a_initializer'), None),
+            b_initializer=distance_kernel_kwargs.get(
+                (distance_kernel + '_b_initializer'), None),
+            name=distance_kernel_kwargs.get((distance_kernel + '_name'),
+                                            'MatchingSigmoid'))
+
+      return compute_squared_l2_sigmoid_matching_distances
 
     if distance_kernel == common.DISTANCE_KERNEL_EXPECTED_LIKELIHOOD:
 

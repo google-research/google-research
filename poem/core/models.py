@@ -403,6 +403,7 @@ def _gaussian_embedder(input_features,
                        base_model_fn,
                        num_embedding_components,
                        embedding_size,
+                       scalar_stddev,
                        num_embedding_samples,
                        seed=None):
   """Implements a Gaussian (mixture) embedder.
@@ -421,6 +422,7 @@ def _gaussian_embedder(input_features,
     num_embedding_components: An integer for the number of Gaussian mixture
       components.
     embedding_size: An integer for embedding dimensionality.
+    scalar_stddev: A boolean for whether to predict scalar standard deviations.
     num_embedding_samples: An integer for number of samples drawn Gaussian
       distributions. If non-positive, skips the sampling step.
     seed: An integer for random seed.
@@ -434,8 +436,10 @@ def _gaussian_embedder(input_features,
   output_sizes = {}
   for c in range(num_embedding_components):
     output_sizes.update({
-        _add_prefix(common.KEY_EMBEDDING_MEANS, c): embedding_size,
-        _add_prefix(common.KEY_EMBEDDING_STDDEVS, c): embedding_size,
+        _add_prefix(common.KEY_EMBEDDING_MEANS, c):
+            embedding_size,
+        _add_prefix(common.KEY_EMBEDDING_STDDEVS, c):
+            1 if scalar_stddev else embedding_size,
     })
   component_outputs, activations = base_model_fn(input_features, output_sizes)
 
@@ -509,6 +513,17 @@ def create_embedder_helper(base_model_fn, embedding_type,
         base_model_fn=base_model_fn,
         num_embedding_components=num_embedding_components,
         embedding_size=embedding_size,
+        scalar_stddev=False,
+        num_embedding_samples=kwargs.get('num_embedding_samples'),
+        seed=kwargs.get('seed', None))
+
+  if embedding_type == common.EMBEDDING_TYPE_GAUSSIAN_SCALAR_VAR:
+    return functools.partial(
+        _gaussian_embedder,
+        base_model_fn=base_model_fn,
+        num_embedding_components=num_embedding_components,
+        embedding_size=embedding_size,
+        scalar_stddev=True,
         num_embedding_samples=kwargs.get('num_embedding_samples'),
         seed=kwargs.get('seed', None))
 
