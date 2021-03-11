@@ -1586,10 +1586,9 @@ class ApplyCompression(object):
                               scope='default_scope',
                               layer=None,
                               spec=None):
-    """keras version of apply_compression.
+    """Keras version of the `apply_compression` method.
 
-    Applies matrix compression OP on
-    a_matrix_tfvar as specified in spec.
+    Applies the matrix compression OP on `a_matrix_tfvar` as specified in spec.
 
     Args:
       a_matrix_tfvar: TF variable representing a tensor variable in a model.
@@ -1600,15 +1599,13 @@ class ApplyCompression(object):
             if not provided, self._compression_op_spec is used.
 
     Returns:
-      TF node that represents the compressed version of a_matrix_tfvar.
+      TF node that represents the compressed version of `a_matrix_tfvar`.
     """
     compression_op_spec = spec if spec else self._compression_op_spec
     if compression_op_spec.compression_option == 9:
-      print('************here in option 9')
       c = InputOutputCompressionOp(
           spec=compression_op_spec, global_step=self._global_step)
     else:
-      print('************here not in option 9')
       c = CompressionOp(
           scope=scope,
           spec=compression_op_spec,
