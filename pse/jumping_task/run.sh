@@ -23,4 +23,4 @@ git clone https://github.com/Maluuba/jumping-task.git
 pip install -e jumping-task/gym-jumping-task
 
 pip install -r pse/jumping_task/requirements.txt
-python3 -m pse.jumping_task.train
+python3 -m pse.jumping_task.train --train_dir pse --training_epochs 125 --rand_conv

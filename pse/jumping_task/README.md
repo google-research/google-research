@@ -3,10 +3,12 @@ for generalization in reinforcement learning](https://agarwl.github.io/pse/), pu
 
 <img src="https://i.imgur.com/3uY9ZXK.png" width="95%" alt="Jumping Task" >
 
-To run:
+To test whether the code runs correctly, go to the base `google_research` directory
+and run: `bash pse/jumping_task/run.sh`.
 
+To run (from inside the `pse` directory):
 ```
-python -m jumping_task.train
+python -m jumping_task.train --train_dir {TRAIN_DIR} --training_epochs {EPOCHS}
 ```
 
 To reproduce the main results for `RandConv + PSEs` on different grid

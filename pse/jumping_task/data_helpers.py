@@ -16,12 +16,18 @@
 # Lint as: python3
 """Helpers for creating imitation data."""
 
+import enum
+
 from absl import logging
 import gym_jumping_task
 import numpy as np
 
 from pse.jumping_task import gym_helpers
-OBSTACLE_COLORS = gym_jumping_task.COLORS
+
+
+class OBSTACLE_COLORS(enum.Enum):  # pylint: disable=invalid-name
+  RED = 0
+  GREEN = 1
 JUMP_DISTANCE = 13
 
 

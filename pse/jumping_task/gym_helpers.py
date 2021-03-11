@@ -42,8 +42,6 @@ def create_gym_environment(environment_name=None, version='v0', **kwargs):
   assert environment_name is not None
   full_game_name = '{}-{}'.format(environment_name, version)
   env = gym.make(full_game_name, **kwargs)
-  # Strip out the TimeLimit wrapper from Gym, which caps us at 200 steps.
-  env = env.env
   # Wrap the returned environment in a class which conforms to the API expected
   # by Dopamine.
   env = GymPreprocessing(env)

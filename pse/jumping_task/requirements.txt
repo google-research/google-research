@@ -4,4 +4,4 @@ gym
 matplotlib
 numpy
 seaborn
-tensorflow==1.15.0
+tensorflow>=2.0.0
