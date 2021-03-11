@@ -169,7 +169,7 @@ class ActorPolicy(actor_policy.ActorPolicy):
           self.variables()[:len(policy_vars)],
           tau=tau,
           tau_non_trainable=None,
-          sort_variables_by_name=False)
+          sort_variables_by_name=True)
     else:
       return tf.no_op()
 

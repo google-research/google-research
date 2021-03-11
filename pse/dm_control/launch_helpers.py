@@ -27,11 +27,17 @@ def get_camera_kwargs(domain_name, scale, dynamic=True):
   return suite_utils.get_camera_kwargs(domain_name, scale, dynamic)
 
 
+def prefix_result_dict(f, prefix):
+  def call_prefix_result_dict(*args, **kwargs):
+    d = f(*args, **kwargs)
+    return {f'{prefix}{k}': v for k, v in d.items()}
+  return call_prefix_result_dict
+
+
 def get_default_kwargs(domain_name, scale=0.0):
-  default_kwargs = get_camera_kwargs(domain_name, scale=scale)
+  get_camera_kwargs_prefixed = prefix_result_dict(get_camera_kwargs, 'camera_')
+  default_kwargs = get_camera_kwargs_prefixed(domain_name, scale=scale)
   default_kwargs.update({
-      'background_sky': True,
-      'background_grid': False,
-      'background_grid_alpha': 0.3,
+      'background_ground_plane_alpha': 0.3,
   })
   return default_kwargs
