@@ -253,6 +253,11 @@ Below is an example of evaluation and training DNN model:
 
 ## Evaluation and training a DNN model.
 
+Create models folder
+```shell
+mkdir models1
+```
+
 ### Set up data sets:
 
 Download and set up path to data set V1 and set it up
@@ -280,56 +285,6 @@ cd ../
 We would suggest to explore training, validation and testing data
 in colab 'kws_streaming/colab/check-data.ipynb'
 
-### Set up models:
-
-Download and set up path to models trained and evaluated on data sets V1
-
-```shell
-wget https://storage.googleapis.com/kws_models/models1.zip
-mkdir models1
-mv ./models1.zip ./models1
-cd ./models1
-unzip ./models1.zip
-cd ../
-```
-
-Download and set up path to models trained and evaluated on data sets V2
-
-```shell
-wget https://storage.googleapis.com/kws_models/models2.zip
-mkdir models2
-mv ./models2.zip ./models2
-cd ./models2
-unzip ./models2.zip
-cd ../
-```
-
-### Run only model evaluation:
-
-```shell
-python3 -m kws_streaming.train.model_train_eval \
---data_url '' \
---data_dir ./data1/ \
---train_dir ./models1/dnn/ \
---mel_upper_edge_hertz 7000 \
---how_many_training_steps 10000,10000,10000 \
---learning_rate 0.0005,0.0001,0.00002 \
---window_size_ms 40.0 \
---window_stride_ms 20.0 \
---mel_num_bins 40 \
---dct_num_features 20 \
---resample 0.15 \
---alsologtostderr \
---train 0 \
-dnn \
---units1 '64,128' \
---act1 "'relu','relu'" \
---pool_size 2 \
---strides 2 \
---dropout1 0.1 \
---units2 '128,256' \
---act2 "'linear','relu'"
-```
 
 ### Re-train dnn model from scratch on data set V1 and run evaluation:
 
