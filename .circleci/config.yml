@@ -85,6 +85,7 @@ workflows:
                 - "probabilistic_vqvae"
                 - "property_linking"
                 - "protoattend"
+                - "pse/jumping_task"
                 - "psycholab"
                 - "quantum_sample_learning"
                 - "rl4circopt"
