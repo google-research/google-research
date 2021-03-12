@@ -14,13 +14,15 @@
 # limitations under the License.
 
 """Collection of commonly used convenience functions for experiment analysis."""
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import dataclasses
 import pandas as pd
 import tree
 
+from aqt import pandas_utils
 from aqt import report_utils
+
 
 
 def flatten_with_joined_string_paths(

@@ -18,6 +18,8 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 
+import pandas as pd
+
 from aqt import analysis_utils
 from aqt import report_utils
 
