@@ -39,6 +39,7 @@ env:
     - PROJECT="extrapolation"
     - PROJECT="factorize_a_city"
     - PROJECT="fat"
+    - PROJECT="fisher_brc"
     - PROJECT="flax_models/bert"
     - PROJECT="flax_models/cifar"
     - PROJECT="flax_models/moco"
