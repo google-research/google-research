@@ -43,15 +43,6 @@ modify it based on your settings. Please check the [GCP guide](https://cloud.goo
 
     ```bash
     pip install -r tf3d/requirements.txt
-    ```
-
-1.  Install the
-    <a href='https://github.com/tensorflow/models/tree/master/research/object_detection#tensorflow-2x'>Tensorflow
-    Object Detection API</a>.
-
-    For Ubuntu 18.04, you may need these dependent packages:
-
-    ```bash
     sudo apt update
     sudo apt install protobuf-compiler python3-dev
     ```

@@ -20,7 +20,7 @@ child class.
 """
 import tensorflow as tf
 
-from object_detection.utils import label_map_util
+from tf3d.utils import label_map_util
 
 
 class BaseAPMetric(tf.keras.metrics.Metric):
