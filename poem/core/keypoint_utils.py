@@ -15,8 +15,6 @@
 
 """Keypoint utility functions."""
 
-import math
-
 import tensorflow as tf
 
 from poem.core import data_utils
@@ -408,192 +406,6 @@ def denormalize_points_by_image_size(points, image_sizes):
       tf.cast(image_sizes, dtype=points.dtype), axis=-2)
 
 
-def create_rotation_matrices_3d(azimuths, elevations, rolls):
-  """Creates rotation matrices given rotation angles.
-
-  Note that the created rotations are to be applied on points with layout (y, x,
-  z).
-
-  Args:
-    azimuths: A tensor for azimuths angles. Shape = [...].
-    elevations: A tensor for elevation angles. Shape = [...].
-    rolls: A tensor for roll angles. Shape = [...].
-
-  Returns:
-    A tensor for rotation matrices. Shape = [..., 3, 3].
-  """
-  azi_cos = tf.math.cos(azimuths)
-  azi_sin = tf.math.sin(azimuths)
-  ele_cos = tf.math.cos(elevations)
-  ele_sin = tf.math.sin(elevations)
-  rol_cos = tf.math.cos(rolls)
-  rol_sin = tf.math.sin(rolls)
-  rotations_00 = azi_cos * ele_cos
-  rotations_01 = azi_cos * ele_sin * rol_sin - azi_sin * rol_cos
-  rotations_02 = azi_cos * ele_sin * rol_cos + azi_sin * rol_sin
-  rotations_10 = azi_sin * ele_cos
-  rotations_11 = azi_sin * ele_sin * rol_sin + azi_cos * rol_cos
-  rotations_12 = azi_sin * ele_sin * rol_cos - azi_cos * rol_sin
-  rotations_20 = -ele_sin
-  rotations_21 = ele_cos * rol_sin
-  rotations_22 = ele_cos * rol_cos
-  rotations_0 = tf.stack([rotations_00, rotations_10, rotations_20], axis=-1)
-  rotations_1 = tf.stack([rotations_01, rotations_11, rotations_21], axis=-1)
-  rotations_2 = tf.stack([rotations_02, rotations_12, rotations_22], axis=-1)
-  return tf.stack([rotations_0, rotations_1, rotations_2], axis=-1)
-
-
-def rotate_points(rotation_matrices, points):
-  """Applies rotation matrices to points.
-
-  Assumes input points are centralized.
-
-  Args:
-    rotation_matrices: A tensor for rotation matrices. Shape = [..., point_dim,
-      point_dim].
-    points: A tensor for points to rotate. Shape = [..., point_dim].
-
-  Returns:
-   A tensor for rotated points. Shape = [..., point_dim].
-  """
-  operator = tf.linalg.LinearOperatorFullMatrix(rotation_matrices)
-  rotated_points = operator.matvec(points)
-  return rotated_points
-
-
-def create_smooth_rotation_matrices(start_euler_angles, end_euler_angles,
-                                    num_views):
-  """Creates parameters to generate smooth rotation trajectories.
-
-  Args:
-    start_euler_angles: A tuple of start euler angles including
-      (azimuths, elevations, rolls). Each euler angle tensor in the tuple is in
-      shape [...].
-    end_euler_angles: A tuple of end euler angles including
-      (azimuths, elevations, rolls). Each euler angle tensor in the tuple is in
-      shape [...].
-    num_views: An integer of number of views to be rotated.
-
-  Returns:
-    rotations: A rotation metrics of shape [..., num_views, 3, 3].
-
-  Raises:
-    ValueError: Minimal number of views needs to be larger than 2.
-  """
-  if num_views < 2:
-    raise ValueError('Minimal number of views needs to be larger than 2.')
-
-  division = num_views - 1
-  start_azimuths, start_elevations, start_rolls = start_euler_angles
-  end_azimuths, end_elevations, end_rolls = end_euler_angles
-  delta_azimuths = (end_azimuths - start_azimuths) / division
-  delta_elevations = (end_elevations - start_elevations) / division
-  delta_rolls = (end_rolls - start_rolls) / division
-
-  rotations = []
-  for i in range(num_views):
-    azimuths = start_azimuths + delta_azimuths * i
-    elevations = start_elevations + delta_elevations * i
-    rolls = start_rolls + delta_rolls * i
-    rotations.append(create_rotation_matrices_3d(azimuths, elevations, rolls))
-  rotations = tf.stack(rotations, axis=-3)
-  return rotations
-
-
-def random_rotate_and_project_3d_to_2d(keypoints_3d,
-                                       azimuth_range=(-math.pi, math.pi),
-                                       elevation_range=(-math.pi / 6.0,
-                                                        math.pi / 6.0),
-                                       roll_range=(0.0, 0.0),
-                                       default_camera=True,
-                                       default_camera_z=2.0,
-                                       sequential_inputs=False,
-                                       seed=None):
-  """Randomly rotates and projects 3D keypoints to 2D.
-
-  Args:
-    keypoints_3d: A tensor for 3D keypoints. Shape = [..., num_keypoints, 3].
-    azimuth_range: A tuple for minimum and maximum azimuth angles to randomly
-      rotate 3D keypoints with.
-    elevation_range: A tuple for minimum and maximum elevation angles to
-      randomly rotate 3D keypoints with.
-    roll_range: A tuple for minimum and maximum roll angles to randomly rotate
-      3D keypoints with.
-    default_camera: Whether we want to transform to default camera view.
-    default_camera_z: A float for depth of default camera position.
-    sequential_inputs: A boolean flag indicating whether the inputs are
-      sequential. If True, the input keypoints are supposed to be in shape
-      [..., sequence_length, num_keypoints, 3].
-    seed: An integer for random seed.
-
-  Returns:
-    keypoints_2d: A tensor for projected 2D keypoints from randomly rotated 3D
-      keypoints.
-  """
-  if not sequential_inputs:
-    azimuths = tf.random.uniform(
-        tf.shape(keypoints_3d)[:-2],
-        minval=azimuth_range[0],
-        maxval=azimuth_range[1],
-        seed=seed)
-    elevations = tf.random.uniform(
-        tf.shape(keypoints_3d)[:-2],
-        minval=elevation_range[0],
-        maxval=elevation_range[1],
-        seed=seed)
-    rolls = tf.random.uniform(
-        tf.shape(keypoints_3d)[:-2],
-        minval=roll_range[0],
-        maxval=roll_range[1],
-        seed=seed)
-    rotation_matrices = create_rotation_matrices_3d(azimuths, elevations, rolls)
-  else:
-    def create_random_euler_angles():
-      azimuths = tf.random.uniform(
-          tf.shape(keypoints_3d)[:-3],
-          minval=azimuth_range[0],
-          maxval=azimuth_range[1],
-          seed=seed)
-      elevations = tf.random.uniform(
-          tf.shape(keypoints_3d)[:-3],
-          minval=elevation_range[0],
-          maxval=elevation_range[1],
-          seed=seed)
-      rolls = tf.random.uniform(
-          tf.shape(keypoints_3d)[:-3],
-          minval=roll_range[0],
-          maxval=roll_range[1],
-          seed=seed)
-      return (azimuths, elevations, rolls)
-
-    num_views = keypoints_3d.shape.as_list()[-3]
-    start_euler_angles = create_random_euler_angles()
-    end_euler_angles = create_random_euler_angles()
-    rotation_matrices = create_smooth_rotation_matrices(
-        start_euler_angles, end_euler_angles, num_views=num_views)
-
-  # TODO(liuti): Reconcile this with `rotate_points`.
-  keypoints_3d = tf.linalg.matrix_transpose(
-      tf.matmul(rotation_matrices, keypoints_3d, transpose_b=True))
-  if default_camera:
-
-    def transform_to_default_camera(points):
-      default_rotation_to_camera = tf.constant([
-          [0.0, 0.0, -1.0],
-          [1.0, 0.0, 0.0],
-          [0.0, 1.0, 0.0],
-      ])
-      default_center = tf.constant([0.0, 0.0, default_camera_z])
-      rotated_points = rotate_points(default_rotation_to_camera, points)
-      transformed_points = rotated_points + default_center
-      return transformed_points
-
-    keypoints_3d = transform_to_default_camera(keypoints_3d)
-  keypoints_2d = (
-      keypoints_3d[Ellipsis, :-1] / tf.math.maximum(1e-12, keypoints_3d[Ellipsis, -1:]))
-  return keypoints_2d
-
-
 def select_keypoints_by_name(keypoints,
                              input_keypoint_names,
                              output_keypoint_names,
@@ -631,20 +443,225 @@ def select_keypoints_by_name(keypoints,
   return output_keypoints, output_keypoint_masks
 
 
-def random_project_and_select_keypoints(keypoints_3d,
-                                        keypoint_profile_3d,
-                                        output_keypoint_names,
-                                        azimuth_range,
-                                        elevation_range,
-                                        roll_range,
-                                        keypoint_masks_3d=None,
-                                        default_camera_z=2.0,
-                                        sequential_inputs=False,
-                                        seed=None):
+def create_rotation_matrices_3d(azimuths, elevations, rolls):
+  """Creates rotation matrices given rotation angles.
+
+  Note that the created rotations are to be applied on points with layout (x, y,
+  z).
+
+  Args:
+    azimuths: A tensor for azimuths angles. Shape = [...].
+    elevations: A tensor for elevation angles. Shape = [...].
+    rolls: A tensor for roll angles. Shape = [...].
+
+  Returns:
+    A tensor for rotation matrices. Shape = [..., 3, 3].
+  """
+  azi_cos = tf.math.cos(azimuths)
+  azi_sin = tf.math.sin(azimuths)
+  ele_cos = tf.math.cos(elevations)
+  ele_sin = tf.math.sin(elevations)
+  rol_cos = tf.math.cos(rolls)
+  rol_sin = tf.math.sin(rolls)
+  rotations_00 = azi_cos * ele_cos
+  rotations_01 = azi_cos * ele_sin * rol_sin - azi_sin * rol_cos
+  rotations_02 = azi_cos * ele_sin * rol_cos + azi_sin * rol_sin
+  rotations_10 = azi_sin * ele_cos
+  rotations_11 = azi_sin * ele_sin * rol_sin + azi_cos * rol_cos
+  rotations_12 = azi_sin * ele_sin * rol_cos - azi_cos * rol_sin
+  rotations_20 = -ele_sin
+  rotations_21 = ele_cos * rol_sin
+  rotations_22 = ele_cos * rol_cos
+  rotations_0 = tf.stack([rotations_00, rotations_10, rotations_20], axis=-1)
+  rotations_1 = tf.stack([rotations_01, rotations_11, rotations_21], axis=-1)
+  rotations_2 = tf.stack([rotations_02, rotations_12, rotations_22], axis=-1)
+  return tf.stack([rotations_0, rotations_1, rotations_2], axis=-1)
+
+
+def create_interpolated_rotation_matrix_sequences(start_euler_angles,
+                                                  end_euler_angles,
+                                                  sequence_length):
+  """Creates parameters to generate interpolated rotation trajectories.
+
+  Args:
+    start_euler_angles: A tuple for start Euler angles including (azimuths,
+      elevations, rolls). Each euler angle tensor in the tuple is in shape
+      [...].
+    end_euler_angles: A tuple for end Euler angles including (azimuths,
+      elevations, rolls). Each euler angle tensor in the tuple is in shape
+      [...].
+    sequence_length: An integer for length of sequence to rotate.
+
+  Returns:
+    rotations: A rotation metrics of shape [..., sequence_length, 3, 3].
+
+  Raises:
+    ValueError: Sequence length is smaller than 2.
+  """
+  if sequence_length < 2:
+    raise ValueError('Minimal number of views needs to be at least 2.')
+
+  division = sequence_length - 1
+  start_azimuths, start_elevations, start_rolls = start_euler_angles
+  end_azimuths, end_elevations, end_rolls = end_euler_angles
+  delta_azimuths = (end_azimuths - start_azimuths) / division
+  delta_elevations = (end_elevations - start_elevations) / division
+  delta_rolls = (end_rolls - start_rolls) / division
+
+  rotations = []
+  for i in range(sequence_length):
+    azimuths = start_azimuths + delta_azimuths * i
+    elevations = start_elevations + delta_elevations * i
+    rolls = start_rolls + delta_rolls * i
+    rotations.append(create_rotation_matrices_3d(azimuths, elevations, rolls))
+  rotations = tf.stack(rotations, axis=-3)
+  return rotations
+
+
+def randomly_rotate_3d(keypoints_3d,
+                       azimuth_range,
+                       elevation_range,
+                       roll_range,
+                       sequential_inputs=False,
+                       seed=None):
+  """Randomly rotates 3D keypoints.
+
+  Args:
+    keypoints_3d: A tensor for 3D keypoints. Shape = [..., num_keypoints, 3].
+    azimuth_range: A 2-tuple for minimum and maximum azimuth angles to randomly
+      rotate 3D keypoints with.
+    elevation_range: A 2-tuple for minimum and maximum elevation angles to
+      randomly rotate 3D keypoints with.
+    roll_range: A 2-tuple for minimum and maximum roll angles to randomly rotate
+      3D keypoints with.
+    sequential_inputs: A boolean flag indicating whether the inputs are
+      sequential. If True, the input keypoints are supposed to be in shape [...,
+      sequence_length, num_keypoints, 3].
+    seed: An integer for random seed.
+
+  Returns:
+    keypoints_3d: A tensor for rotated 3D keypoints.
+  """
+  if not sequential_inputs:
+    azimuths = tf.random.uniform(
+        tf.shape(keypoints_3d)[:-2],
+        minval=azimuth_range[0],
+        maxval=azimuth_range[1],
+        seed=seed)
+    elevations = tf.random.uniform(
+        tf.shape(keypoints_3d)[:-2],
+        minval=elevation_range[0],
+        maxval=elevation_range[1],
+        seed=seed)
+    rolls = tf.random.uniform(
+        tf.shape(keypoints_3d)[:-2],
+        minval=roll_range[0],
+        maxval=roll_range[1],
+        seed=seed)
+    rotation_matrices = create_rotation_matrices_3d(azimuths, elevations, rolls)
+  else:
+
+    def create_random_euler_angles():
+      azimuths = tf.random.uniform(
+          tf.shape(keypoints_3d)[:-3],
+          minval=azimuth_range[0],
+          maxval=azimuth_range[1],
+          seed=seed)
+      elevations = tf.random.uniform(
+          tf.shape(keypoints_3d)[:-3],
+          minval=elevation_range[0],
+          maxval=elevation_range[1],
+          seed=seed)
+      rolls = tf.random.uniform(
+          tf.shape(keypoints_3d)[:-3],
+          minval=roll_range[0],
+          maxval=roll_range[1],
+          seed=seed)
+      return (azimuths, elevations, rolls)
+
+    sequence_length = keypoints_3d.shape.as_list()[-3]
+    start_euler_angles = create_random_euler_angles()
+    end_euler_angles = create_random_euler_angles()
+    rotation_matrices = create_interpolated_rotation_matrix_sequences(
+        start_euler_angles, end_euler_angles, sequence_length=sequence_length)
+
+  return tf.linalg.matrix_transpose(
+      tf.matmul(rotation_matrices, keypoints_3d, transpose_b=True))
+
+
+def randomly_rotate_and_project_3d_to_2d(keypoints_3d,
+                                         azimuth_range,
+                                         elevation_range,
+                                         roll_range,
+                                         default_camera_z,
+                                         sequential_inputs=False,
+                                         seed=None):
+  """Randomly rotates and projects 3D keypoints to 2D.
+
+  Note that the default camera z will be added to the keypoint depths before
+  projection, which underlyingly assumes the input 3D keypoints are centered at
+  camera origin. This function, however, does not normalize the input 3D
+  keypoints.
+
+  Args:
+    keypoints_3d: A tensor for 3D keypoints. Shape = [..., num_keypoints, 3].
+    azimuth_range: A tuple for minimum and maximum azimuth angles to randomly
+      rotate 3D keypoints with.
+    elevation_range: A tuple for minimum and maximum elevation angles to
+      randomly rotate 3D keypoints with.
+    roll_range: A tuple for minimum and maximum roll angles to randomly rotate
+      3D keypoints with.
+    default_camera_z: A float for depth of default camera position.
+    sequential_inputs: A boolean flag indicating whether the inputs are
+      sequential. If True, the input keypoints are supposed to be in shape [...,
+      sequence_length, num_keypoints, 3].
+    seed: An integer for random seed.
+
+  Returns:
+    keypoints_2d: A tensor for projected 2D keypoints from randomly rotated 3D
+      keypoints.
+  """
+  keypoints_3d = randomly_rotate_3d(
+      keypoints_3d,
+      azimuth_range=azimuth_range,
+      elevation_range=elevation_range,
+      roll_range=roll_range,
+      sequential_inputs=sequential_inputs,
+      seed=seed)
+
+  # Transform to default camera.
+  default_rotation_to_camera = tf.constant([
+      [0.0, 0.0, -1.0],
+      [1.0, 0.0, 0.0],
+      [0.0, 1.0, 0.0],
+  ])
+  default_center = tf.constant([0.0, 0.0, default_camera_z])
+  operator = tf.linalg.LinearOperatorFullMatrix(default_rotation_to_camera)
+  keypoints_3d = operator.matvec(keypoints_3d) + default_center
+
+  # Project to 2D.
+  return keypoints_3d[Ellipsis, :-1] / tf.math.maximum(1e-12, keypoints_3d[Ellipsis, -1:])
+
+
+def randomly_project_and_select_keypoints(keypoints_3d,
+                                          keypoint_profile_3d,
+                                          output_keypoint_names,
+                                          azimuth_range,
+                                          elevation_range,
+                                          roll_range,
+                                          default_camera_z,
+                                          keypoint_masks_3d=None,
+                                          normalize_before_projection=True,
+                                          sequential_inputs=False,
+                                          seed=None):
   """Generates 2D keypoints from random 3D keypoint projection.
 
-  Note that the compatible 3D keypoint names (if specified during 2D keypoint
-  profile initialization) will be used for the 2D keypoint profile.
+  Notes:
+  1. The default camera z will be added to the keypoint depths before
+     projection, which underlyingly assumes the input 3D keypoints are centered
+     at camera origin (`normalize_before_projection` defaults to True).
+  2. The compatible 3D keypoint names (if specified during 2D keypoint profile
+     initialization) will be used for the 2D keypoint profile.
 
   Args:
     keypoints_3d: A tensor for input 3D keypoints. Shape = [...,
@@ -658,12 +675,14 @@ def random_project_and_select_keypoints(keypoints_3d,
       randomly rotate 3D keypoints with.
     roll_range: A tuple for minimum and maximum roll angles to randomly rotate
       3D keypoints with.
+    default_camera_z: A float for depth of default camera position.
     keypoint_masks_3d: A tensor for input 3D keypoint masks. Shape = [...,
       num_keypoints_3d]. Ignored if None.
-    default_camera_z: A float for depth of default camera position.
+    normalize_before_projection: A boolean for whether to normalize 3D poses
+      before projection.
     sequential_inputs: A boolean flag indicating whether the inputs are
       sequential, if true, the input keypoints are supposed to be in shape
-      [..., num_views, num_keypoints, 3].
+      [..., sequence_length, num_keypoints, 3].
     seed: An integer for random seed.
 
   Returns:
@@ -679,24 +698,24 @@ def random_project_and_select_keypoints(keypoints_3d,
     raise ValueError('Unsupported input keypoint dimension: %d.' %
                      keypoint_profile_3d.keypoint_dim)
 
-  # First project 3D keypoints to 2D, then select/convert them to 2D profile.
-  # TODO(liuti): Figure out why selecting keypoints first is an issue.
-  keypoints_3d, _, _ = (
-      keypoint_profile_3d.normalize(keypoints_3d, keypoint_masks_3d))
-  keypoints_2d = random_rotate_and_project_3d_to_2d(
+  if normalize_before_projection:
+    keypoints_3d, _, _ = (
+        keypoint_profile_3d.normalize(keypoints_3d, keypoint_masks_3d))
+
+  # Keep 3D keypoint masks as 2D masks.
+  keypoints_3d, keypoint_masks_2d = select_keypoints_by_name(
+      keypoints_3d,
+      input_keypoint_names=keypoint_profile_3d.keypoint_names,
+      output_keypoint_names=output_keypoint_names,
+      keypoint_masks=keypoint_masks_3d)
+  keypoints_2d = randomly_rotate_and_project_3d_to_2d(
       keypoints_3d,
       azimuth_range=azimuth_range,
       elevation_range=elevation_range,
       roll_range=roll_range,
-      default_camera=True,
       default_camera_z=default_camera_z,
       sequential_inputs=sequential_inputs,
       seed=seed)
-  keypoints_2d, keypoint_masks_2d = select_keypoints_by_name(
-      keypoints_2d,
-      input_keypoint_names=keypoint_profile_3d.keypoint_names,
-      output_keypoint_names=output_keypoint_names,
-      keypoint_masks=keypoint_masks_3d)
   return keypoints_2d, keypoint_masks_2d
 
 

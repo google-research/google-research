@@ -114,7 +114,7 @@ def preprocess_keypoints_2d(keypoints_2d,
       common.MODEL_INPUT_KEYPOINT_TYPE_3D_PROJECTION):
     if keypoints_3d is None:
       raise ValueError('3D keypoints are not specified for random projection.')
-    keypoints_2d, _ = keypoint_utils.random_project_and_select_keypoints(
+    keypoints_2d, _ = keypoint_utils.randomly_project_and_select_keypoints(
         keypoints_3d,
         keypoint_profile_3d=keypoint_profile_3d,
         output_keypoint_names=(
@@ -133,7 +133,7 @@ def preprocess_keypoints_2d(keypoints_2d,
     if keypoints_3d is None:
       raise ValueError('3D keypoints are not specified for random projection.')
     projected_keypoints_2d, _ = (
-        keypoint_utils.random_project_and_select_keypoints(
+        keypoint_utils.randomly_project_and_select_keypoints(
             keypoints_3d,
             keypoint_profile_3d=keypoint_profile_3d,
             output_keypoint_names=(

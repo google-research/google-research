@@ -115,6 +115,9 @@ class InputGeneratorTest(tf.test.TestCase):
         elevation_range=(-math.pi / 2.0, -math.pi / 2.0),
         roll_range=(math.pi, math.pi))
 
+    # Note that the results here were copied from test output; this test is
+    # mainly meant for protecting the executability testing batch mixing. The
+    # actual projection accuracy is tested separately.
     expected_keypoints_2d = [
         [
             [[-0.08777856, 0.08777854], [0.0, 0.0], [-0.08777856, 0.08777854],
@@ -313,6 +316,9 @@ class InputGeneratorTest(tf.test.TestCase):
         roll_range=(math.pi, math.pi),
         projection_mix_batch_assignment=assignment)
 
+    # Note that the results here were copied from test output; this test is
+    # mainly meant for protecting the executability testing batch mixing. The
+    # actual projection accuracy is tested separately.
     expected_keypoints_2d = [
         [
             [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0], [1.0, 2.0],
