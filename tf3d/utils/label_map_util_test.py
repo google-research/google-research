@@ -16,7 +16,7 @@
 """Tests for tf3d.utils.label_map_util."""
 import os
 import tensorflow as tf
-from object_detection.utils import label_map_util
+from tf3d.utils import label_map_util
 
 
 class LabelMapUtilTest(tf.test.TestCase):
