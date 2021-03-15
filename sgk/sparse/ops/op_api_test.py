@@ -52,7 +52,7 @@ tf.disable_v2_behavior()
 class SpmmTest(op_test.TestCase):
 
   @parameterized.parameters(*_BINARY_ARGUMENTS)
-  def testSpmm(self, m, k, n, sparsity, use_gpu):
+  def testSpmm(self, m, k, n, sparsity, force_gpu):
     # Helpers to set up the matrices.
     connector = connectors.Uniform(sparsity)
     initializer = initializers.Uniform()
@@ -67,13 +67,13 @@ class SpmmTest(op_test.TestCase):
     output = ops.spmm(lhs, rhs)
 
     # Execute the op and compare the results.
-    with self.test_session(use_gpu=use_gpu) as sess:
+    with self.test_session(force_gpu=force_gpu) as sess:
       sess.run(tf.global_variables_initializer())
       self.assertAllClose(
           sess.run(output), np.dot(lhs_np, rhs_np), atol=1e-03, rtol=1e-05)
 
   @parameterized.parameters(*_BINARY_GRADIENT_ARGUMENTS)
-  def testSpmmGradient(self, m, k, n, sparsity, use_gpu):
+  def testSpmmGradient(self, m, k, n, sparsity, force_gpu):
     # Helpers to set up the matrices.
     connector = connectors.Uniform(sparsity)
     initializer = initializers.Uniform()
@@ -86,7 +86,7 @@ class SpmmTest(op_test.TestCase):
     rhs = tf.Variable(rhs_np, dtype=tf.float32)
     output = ops.spmm(lhs, rhs)
 
-    with self.test_session(use_gpu=use_gpu) as sess:
+    with self.test_session(force_gpu=force_gpu) as sess:
       sess.run(tf.global_variables_initializer())
       error = tf.test.compute_gradient_error(
           [lhs.values, rhs], [lhs.values.shape.as_list(), [k, n]], output,
@@ -96,7 +96,7 @@ class SpmmTest(op_test.TestCase):
   @parameterized.parameters((2, 4, 4, 4, 0.0, True), (2, 4, 4, 4, 0.0, False),
                             (8, 512, 512, 512, 0.8, True),
                             (8, 512, 512, 512, 0.8, False))
-  def testSpmm_Replicated(self, r, m, k, n, sparsity, use_gpu):
+  def testSpmm_Replicated(self, r, m, k, n, sparsity, force_gpu):
     # Helpers to set up the matrices.
     connector = connectors.Uniform(sparsity, round_to=4)
     initializer = initializers.Uniform()
@@ -115,7 +115,7 @@ class SpmmTest(op_test.TestCase):
     output = ops.replicated_spmm(lhs, topology, rhs)
 
     # Execute the op and compare the results.
-    with self.test_session(use_gpu=use_gpu) as sess:
+    with self.test_session(force_gpu=force_gpu) as sess:
       sess.run(tf.global_variables_initializer())
       out = sess.run(output)
       for i in range(r):
@@ -123,7 +123,7 @@ class SpmmTest(op_test.TestCase):
         self.assertAllClose(out[i, :], expected_out, atol=1e-03, rtol=1e-05)
 
   @parameterized.parameters(*_BINARY_ARGUMENTS)
-  def testSpmm_Fused(self, m, k, n, sparsity, use_gpu):
+  def testSpmm_Fused(self, m, k, n, sparsity, force_gpu):
     # Helpers to set up the matrices.
     connector = connectors.Uniform(sparsity)
     initializer = initializers.Uniform()
@@ -140,7 +140,7 @@ class SpmmTest(op_test.TestCase):
     output = ops.fused_spmm(lhs, rhs, bias)
 
     # Execute the op and compare the results.
-    with self.test_session(use_gpu=use_gpu) as sess:
+    with self.test_session(force_gpu=force_gpu) as sess:
       sess.run(tf.global_variables_initializer())
       self.assertAllClose(
           sess.run(output),
@@ -152,7 +152,7 @@ class SpmmTest(op_test.TestCase):
 class SddmmTest(op_test.TestCase):
 
   @parameterized.parameters(*_BINARY_ARGUMENTS)
-  def testSddmm(self, m, k, n, sparsity, use_gpu):
+  def testSddmm(self, m, k, n, sparsity, force_gpu):
     # Helpers to set up the matrices.
     connector = connectors.Uniform(sparsity)
     initializer = initializers.Uniform()
@@ -169,7 +169,7 @@ class SddmmTest(op_test.TestCase):
     output = ops.sddmm(lhs, rhs, output_topology, transpose_rhs=True)
 
     # Execute the op and compare the results.
-    with self.test_session(use_gpu=use_gpu) as sess:
+    with self.test_session(force_gpu=force_gpu) as sess:
       sess.run(tf.global_variables_initializer())
       expected_output = self.dense_to_scipy(
           output_np * np.dot(lhs_np, np.transpose(rhs_np)))
@@ -183,7 +183,7 @@ class SddmmTest(op_test.TestCase):
   @parameterized.parameters((2, 4, 4, 4, 0.0, True), (2, 4, 4, 4, 0.0, False),
                             (8, 512, 512, 512, 0.8, True),
                             (8, 512, 512, 512, 0.8, False))
-  def testSddmm_Replicated(self, r, m, k, n, sparsity, use_gpu):
+  def testSddmm_Replicated(self, r, m, k, n, sparsity, force_gpu):
     # Helpers to set up the matrices.
     connector = connectors.Uniform(sparsity)
     initializer = initializers.Uniform()
@@ -201,7 +201,7 @@ class SddmmTest(op_test.TestCase):
     output = ops.replicated_sddmm(lhs, rhs, output_topology, transpose_rhs=True)
 
     # Execute the op and compare the results.
-    with self.test_session(use_gpu=use_gpu) as sess:
+    with self.test_session(force_gpu=force_gpu) as sess:
       sess.run(tf.global_variables_initializer())
 
       # Run the replicated sddmm.
@@ -217,7 +217,7 @@ class SddmmTest(op_test.TestCase):
             actual_output, expected_output, atol=1e-03, rtol=1e-05)
 
   @parameterized.parameters(*_BINARY_GRADIENT_ARGUMENTS)
-  def testSddmmGradient(self, m, k, n, sparsity, use_gpu):
+  def testSddmmGradient(self, m, k, n, sparsity, force_gpu):
     # Helpers to set up the matrices.
     connector = connectors.Uniform(sparsity)
     initializer = initializers.Uniform()
@@ -234,7 +234,7 @@ class SddmmTest(op_test.TestCase):
     output = ops.sddmm(lhs, rhs, output_topology, transpose_rhs=True)
 
     # Execute the op and compare the results.
-    with self.test_session(use_gpu=use_gpu) as sess:
+    with self.test_session(force_gpu=force_gpu) as sess:
       sess.run(tf.global_variables_initializer())
       error = tf.test.compute_gradient_error([lhs, rhs], [[m, k], [n, k]],
                                              output.values,
@@ -245,7 +245,7 @@ class SddmmTest(op_test.TestCase):
 @parameterized.parameters(*_UNARY_ARGUMENTS)
 class TransposeTest(op_test.TestCase):
 
-  def testTranspose(self, m, n, sparsity, use_gpu):
+  def testTranspose(self, m, n, sparsity, force_gpu):
     # Helpers to set up the matrices.
     connector = connectors.Uniform(sparsity)
     initializer = initializers.Uniform()
@@ -258,7 +258,7 @@ class TransposeTest(op_test.TestCase):
     output = ops.transpose(matrix)
 
     # Execute the op and compare the results.
-    with self.test_session(use_gpu=use_gpu) as sess:
+    with self.test_session(force_gpu=force_gpu) as sess:
       sess.run(tf.global_variables_initializer())
       expected_output = self.dense_to_scipy(np.transpose(matrix_np))
       actual_output = self.sparse_to_scipy(
@@ -272,7 +272,7 @@ class TransposeTest(op_test.TestCase):
 @parameterized.parameters(*_UNARY_ARGUMENTS)
 class Csr2IdxTest(op_test.TestCase):
 
-  def testCsr2Idx(self, m, n, sparsity, use_gpu):
+  def testCsr2Idx(self, m, n, sparsity, force_gpu):
     # Helpers to set up the matrices.
     connector = connectors.Uniform(sparsity)
     initializer = initializers.Uniform()
@@ -285,7 +285,7 @@ class Csr2IdxTest(op_test.TestCase):
     output = ops.csr2idx(matrix)
 
     # Execute the op and compare the results.
-    with self.test_session(use_gpu=use_gpu) as sess:
+    with self.test_session(force_gpu=force_gpu) as sess:
       sess.run(tf.global_variables_initializer())
 
       # Calculate the linear indices in numpy.
@@ -310,7 +310,7 @@ class SparseSoftmax(op_test.TestCase):
     matrix = sparse_matrix.SparseMatrix("input", matrix=matrix_np)
     output = ops.sparse_softmax(matrix)
 
-    with self.test_session(use_gpu=True) as sess:
+    with self.test_session(force_gpu=True) as sess:
       sess.run(tf.global_variables_initializer())
 
       # Zero terms should not contribute to the softmax.
@@ -347,7 +347,7 @@ class SparseSoftmax(op_test.TestCase):
         np.reshape(matrix_np[matrix_np != 0], [r, -1]), dtype=tf.float32)
     output = ops.replicated_sparse_softmax(values, topology)
 
-    with self.test_session(use_gpu=True) as sess:
+    with self.test_session(force_gpu=True) as sess:
       sess.run(tf.global_variables_initializer())
       v, ro, ci = sess.run(
           [output, topology.row_offsets, topology.column_indices])
@@ -384,7 +384,7 @@ class FusedSoftmax(op_test.TestCase):
     matrix = tf.Variable(matrix_np, dtype=tf.float32)
     output = ops.fused_softmax(matrix)
 
-    with self.test_session(use_gpu=True) as sess:
+    with self.test_session(force_gpu=True) as sess:
       sess.run(tf.global_variables_initializer())
 
       def softmax(x):
@@ -421,7 +421,7 @@ class DepthwiseConv2dTest(op_test.TestCase):
         data_format="NCHW")
 
     # Execute the op and compare the results.
-    with self.test_session(use_gpu=True) as sess:
+    with self.test_session(force_gpu=True) as sess:
       sess.run(tf.global_variables_initializer())
       out_np, expected_out_np = sess.run([out, expected_out])
       self.assertAllClose(out_np, expected_out_np)
@@ -449,7 +449,7 @@ class DepthwiseConv2dTest(op_test.TestCase):
     expected_out = tf.nn.relu(expected_out)
 
     # Execute the op and compare the results.
-    with self.test_session(use_gpu=True) as sess:
+    with self.test_session(force_gpu=True) as sess:
       sess.run(tf.global_variables_initializer())
       out_np, expected_out_np = sess.run([out, expected_out])
       self.assertAllClose(out_np, expected_out_np)
