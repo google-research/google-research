@@ -104,8 +104,8 @@ class Delay(tf.keras.layers.Layer):
 
   def _streaming_internal_state(self, inputs):
     memory = tf.keras.backend.concatenate([self.states, inputs], 1)
-    outputs = memory[:, 0:inputs.shape.as_list()[1], :]
-    new_memory = memory[:, -self.delay:, :]
+    outputs = memory[:, :inputs.shape.as_list()[1]]
+    new_memory = memory[:, -self.delay:]
     assign_states = self.states.assign(new_memory)
 
     with tf.control_dependencies([assign_states]):
@@ -113,14 +113,14 @@ class Delay(tf.keras.layers.Layer):
 
   def _streaming_external_state(self, inputs, states):
     memory = tf.keras.backend.concatenate([states, inputs], 1)
-    outputs = memory[:, 0:inputs.shape.as_list()[1], :]
-    new_memory = memory[:, -self.delay:, :]
+    outputs = memory[:, :inputs.shape.as_list()[1]]
+    new_memory = memory[:, -self.delay:]
     return outputs, new_memory
 
   def _non_streaming(self, inputs):
     if self.also_in_non_streaming:
-      return tf.pad(inputs,
-                    ((0, 0), (self.delay, 0), (0, 0)))[:, :-self.delay, :]
+      return tf.pad(inputs, ((0, 0), (self.delay, 0)) + ((0, 0),) *
+                    (inputs.shape.rank - 2))[:, :-self.delay]
     else:
       return inputs
 
