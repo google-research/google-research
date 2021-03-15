@@ -68,14 +68,14 @@ class SemanticSegmentationModel(base_model.BaseModel):
         task_names_to_num_output_channels=task_names_to_num_output_channels)
 
   def call(self, inputs, training=True):
-    """Runs the model and returns the semantic logits prediciton.
+    """Runs the model and returns the semantic logits prediction.
 
     Args:
       inputs: A dictionary of tensors containing inputs for the model.
       training: Whether the model runs in training mode.
 
     Returns:
-      A dictionary of tensors containing semantic logits prediciton.
+      A dictionary of tensors containing semantic logits prediction.
     """
     # when not using custom train step, this field becomes 2 dim.
     inputs[standard_fields.InputDataFields.num_valid_voxels] = tf.reshape(

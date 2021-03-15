@@ -1,7 +1,7 @@
 # Training and Evaluation of the Pipelines
 
 TensorFlow 3D provides training and evaluation pipelines for 3d semantic
-segmentation, 3d instance segmentation and 3d object deteciton.
+segmentation, 3d instance segmentation and 3d object detection.
 
 ## Train
 

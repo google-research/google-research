@@ -183,7 +183,7 @@ def get_tf_data_decoder(dataset_format,
       this to -1, automatically tunes this value for you.
 
   Returns:
-    Return a tf.data.dataset where each element is a ditctionary with features
+    Return a tf.data.dataset where each element is a dictionary with features
     and labels; if not executing eagerly i.e. under tf1 environment, returns a
     dictionary with features and labels instead.
   """
@@ -279,7 +279,7 @@ def get_tf_data_dataset(dataset_name,
     'sstable' or 'recordio'.
 
   Returns:
-    Return a tf.data.dataset where each element is a ditctionary with features
+    Return a tf.data.dataset where each element is a dictionary with features
     and labels; if not executing eagerly i.e. under tf1 environment, returns a
     dictionary with features and labels instead.
   """

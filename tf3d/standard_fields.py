@@ -211,7 +211,7 @@ class DetectionResultFields(object):
     objects_center: A tf.float32 tensor of shape [N, 3] containing the
       center of the detected objects.
     objects_shape_embedding: A tf.float32 of size [N_objects,
-      embedding_dim] containing the embedding vector prediceted for each object.
+      embedding_dim] containing the embedding vector predicted for each object.
 
     *** ANCHOR FIELDS ***
     anchors_length: A tf.float32 tensor of shape [N, 1] containing the length of

@@ -308,7 +308,7 @@ def pointcloud_to_sparse_voxel_grid(points, features, num_valid_points,
   """Converts a pointcloud into a voxel grid.
 
   This function calls the `pointcloud_to_sparse_voxel_grid_unbatched`
-  function avove in a while loop to map a batch of points to a batch of voxels.
+  function above in a while loop to map a batch of points to a batch of voxels.
 
   Args:
     points: A tf.float32 tensor of size [batch_size, N, 3].

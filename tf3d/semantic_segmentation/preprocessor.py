@@ -460,7 +460,7 @@ def preprocess(inputs,
       coordinate.
     image_preprocess_fn_dic: Image preprocessing function. Maps view names to
       their image preprocessing functions. Set it to None, if there are no
-      images to preprocess or you are not interested in preprocesing images.
+      images to preprocess or you are not interested in preprocessing images.
     images_points_correspondence_fn: The function that computes correspondence
       between images and points.
     compute_semantic_labels_fn: If not None, semantic labels will be computed
@@ -484,11 +484,11 @@ def preprocess(inputs,
     num_points_to_randomly_sample: Number of points to randomly sample. If None,
       it will keep the original points and does not perform sampling.
     x_min_degree_rotation: Min degree of rotation around the x axis.
-    x_max_degree_rotation: Max degree of ratation around the x axis.
+    x_max_degree_rotation: Max degree of rotation around the x axis.
     y_min_degree_rotation: Min degree of rotation around the y axis.
-    y_max_degree_rotation: Max degree of ratation around the y axis.
+    y_max_degree_rotation: Max degree of rotation around the y axis.
     z_min_degree_rotation: Min degree of rotation around the z axis.
-    z_max_degree_rotation: Max degree of ratation around the z axis.
+    z_max_degree_rotation: Max degree of rotation around the z axis.
     points_pad_or_clip_size: Number of target points to pad or clip to. If None,
       it will not perform the point padding.
     voxels_pad_or_clip_size: Number of target voxels to pad or clip to. If None,

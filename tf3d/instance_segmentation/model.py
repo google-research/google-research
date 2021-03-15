@@ -113,14 +113,14 @@ class InstanceSegmentationModel(base_model.BaseModel):
             task_names_to_use_batch_norm_in_last_layer))
 
   def __call__(self, inputs, training=True):
-    """Runs the model and returns the semantic logits prediciton.
+    """Runs the model and returns the semantic logits prediction.
 
     Args:
       inputs: A dictionary of tensors containing inputs for the model.
       training: Whether the model runs in training mode.
 
     Returns:
-      A dictionary of tensors containing semantic logits prediciton.
+      A dictionary of tensors containing semantic logits prediction.
     """
     inputs[standard_fields.InputDataFields.num_valid_voxels] = tf.reshape(
         inputs[standard_fields.InputDataFields.num_valid_voxels], [-1])

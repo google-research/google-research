@@ -35,7 +35,7 @@ def diagonal_length(length, height, width):
     width: Numpy array with shape [N].
 
   Returns:
-    A Numpy array with shape [N] representing the length of the diagon of
+    A Numpy array with shape [N] representing the length of the diagonal of
     each box.
   """
   return np.sqrt(np.square(length) + np.square(height) + np.square(width)) / 2

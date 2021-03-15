@@ -91,11 +91,11 @@ def _randomly_transform_points_boxes(
     mesh_inputs: A dictionary containing mesh input tensors.
     object_inputs: A dictionary containing object input tensors.
     x_min_degree_rotation: Min degree of rotation around the x axis.
-    x_max_degree_rotation: Max degree of ratation around the x axis.
+    x_max_degree_rotation: Max degree of rotation around the x axis.
     y_min_degree_rotation: Min degree of rotation around the y axis.
-    y_max_degree_rotation: Max degree of ratation around the y axis.
+    y_max_degree_rotation: Max degree of rotation around the y axis.
     z_min_degree_rotation: Min degree of rotation around the z axis.
-    z_max_degree_rotation: Max degree of ratation around the z axis.
+    z_max_degree_rotation: Max degree of rotation around the z axis.
     rotation_center: A 3d point that points are rotated around that.
     min_scale_ratio: Minimum scale ratio.
     max_scale_ratio: Maximum scale ratio.
@@ -345,7 +345,7 @@ def preprocess(inputs,
       fields expected by object detection pipeline.
     image_preprocess_fn_dic: Image preprocessing function. Maps view names to
       their image preprocessing functions. Set it to None, if there are no
-      images to preprocess or you are not interested in preprocesing images.
+      images to preprocess or you are not interested in preprocessing images.
     images_points_correspondence_fn: The function that computes correspondence
       between images and points.
     points_pad_or_clip_size: Number of target points to pad or clip to. If None,
@@ -361,11 +361,11 @@ def preprocess(inputs,
     point_to_voxel_segment_func: The function used to aggregate the features
       of the points that fall in the same voxel.
     x_min_degree_rotation: Min degree of rotation around the x axis.
-    x_max_degree_rotation: Max degree of ratation around the x axis.
+    x_max_degree_rotation: Max degree of rotation around the x axis.
     y_min_degree_rotation: Min degree of rotation around the y axis.
-    y_max_degree_rotation: Max degree of ratation around the y axis.
+    y_max_degree_rotation: Max degree of rotation around the y axis.
     z_min_degree_rotation: Min degree of rotation around the z axis.
-    z_max_degree_rotation: Max degree of ratation around the z axis.
+    z_max_degree_rotation: Max degree of rotation around the z axis.
     rotation_center: Center of rotation.
     min_scale_ratio: Minimum scale ratio.
     max_scale_ratio: Maximum scale ratio.

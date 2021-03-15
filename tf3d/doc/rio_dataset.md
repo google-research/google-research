@@ -5,7 +5,7 @@ specify our underlying tf.train.Example proto sstables/tfrecords.
 
 We export raw [Rio] data to [Example] protos of two different kinds:
 
-*   `frame`: Each [Example] proto contains frame level data like color and dpeth
+*   `frame`: Each [Example] proto contains frame level data like color and depth
     camera image, camera intrinsics, groundtruth semantic and instance
     segmentations annotations.
 *   `scene`: Here each [Example] proto contains pointcloud/mesh data of a whole

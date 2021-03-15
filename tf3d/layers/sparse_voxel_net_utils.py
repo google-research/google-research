@@ -331,8 +331,8 @@ class SparseConvBlock3D(tf.keras.layers.Layer):
       num_convolution_channels_list: A list that contains the number of output
         channels of the convolutions in the block. The length of
         the list identifies the number of convolutions in the block.
-      conv_filter_size: The 3d convultion filter size. The 3d sparse convolution
-        op is highly optimized for a filter of size 3.
+      conv_filter_size: The 3d convolution filter size. The 3d sparse
+        convolution op is highly optimized for a filter of size 3.
       use_batch_norm: If True, it will train with batch norm.
       dropout_prob: Dropout probability.
       apply_relu_to_last_conv: If True, will apply relu to the last convolution

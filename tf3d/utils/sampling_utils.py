@@ -88,7 +88,7 @@ def balanced_sample(features,
   Args:
     features: A tf.float32 tensor of size [batch_size, n, f].
     instance_ids: A tf.int32 tensor of size [batch_size, n].
-    num_samples: An int determinig the number of samples.
+    num_samples: An int determining the number of samples.
     valid_mask: A tf.bool tensor of size [batch_size, n] that is True when an
       element is valid and False if it needs to be ignored. By default the value
       is None which means it is not applied.

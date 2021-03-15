@@ -400,7 +400,7 @@ def compute_motion_labels(scene,
 def transform_pointcloud_to_another_frame(scene, point_positions,
                                           frame_source_index,
                                           frame_target_index):
-  """transform each point in target_frame to source_frame coordinate based on their relative transformation.
+  """transform each point in target_frame to source_frame coordinate.
 
   Args:
     scene: dict of tensor containing scene.
@@ -409,7 +409,7 @@ def transform_pointcloud_to_another_frame(scene, point_positions,
     frame_target_index: target frame index.
 
   Returns:
-    A point cloud from frame_target warpped, of [N, 3] shape.
+    A point cloud of size [N, 3] warped from frame_target.
 
   """
   world_rotation_frame0 = scene['frames/pose/R'][frame_source_index]

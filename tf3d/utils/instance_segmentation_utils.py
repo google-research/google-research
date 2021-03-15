@@ -381,7 +381,7 @@ def instance_non_maximum_suppression_2d_scores(masks,
                        classes that have an iou larger than threshold.
 
   Returns:
-    Masks, scores and classes after non max supperssion.
+    Masks, scores and classes after non max suppression.
   """
   if not is_class_agnostic:
     new_masks = []

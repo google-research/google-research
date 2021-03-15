@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Seed point sampling algorithgms."""
+"""Seed point sampling algorithms."""
 import sys
 import tensorflow as tf
 

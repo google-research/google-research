@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Runs trainining given a model and losses."""
+"""Runs training given a model and losses."""
 import os
 
 from absl import app
@@ -44,7 +44,7 @@ flags.DEFINE_enum('distribution_strategy', None,
                   'The Distribution Strategy to use.')
 
 flags.DEFINE_bool('run_functions_eagerly', False,
-                  'Run function eargerly for easy debugging.')
+                  'Run function eagerly for easy debugging.')
 
 flags.DEFINE_integer(
     'num_steps_per_epoch', 1000,

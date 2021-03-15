@@ -35,7 +35,7 @@ def npair_loss_func(embeddings,
   Args:
     embeddings: A tf.float32 tensor of size [batch_size, n, f].
     instance_ids: A tf.int32 tensor of size [batch_size, n].
-    num_samples: An int determinig the number of samples.
+    num_samples: An int determining the number of samples.
     valid_mask: A tf.bool tensor of size [batch_size, n] that is True when an
       element is valid and False if it needs to be ignored. By default the value
       is None which means it is not applied.
@@ -105,7 +105,7 @@ def npair_loss(inputs,
         value is None which means it is not applied.
     outputs: A dictionary that contains
       embeddings - A tf.float32 tensor of size [batch_size, n, f].
-    num_samples: An int determinig the number of samples.
+    num_samples: An int determining the number of samples.
     max_instance_id: If set, instance ids larger than that value will be
       ignored. If not set, it will be computed from instance_ids tensor.
     similarity_strategy: Defines the method for computing similarity between
@@ -164,7 +164,7 @@ def embedding_regularization_loss(inputs,
     inputs: A dictionary that contains
       num_valid_voxels - A tf.int32 tensor of size [batch_size].
       instance_ids - A tf.int32 tensor of size [batch_size, n].
-    outputs: A dictionart that contains
+    outputs: A dictionary that contains
       embeddings - A tf.float32 tensor of size [batch_size, n, f].
     lambda_coef: Regularization loss coefficient.
     regularization_type: Regularization loss type. Supported values are 'msq'

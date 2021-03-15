@@ -46,7 +46,7 @@ flags.DEFINE_multi_string('params', None,
                           'Newline separated list of Gin parameter bindings.')
 
 flags.DEFINE_bool('run_functions_eagerly', False,
-                  'Run function eargerly for easy debugging.')
+                  'Run function eagerly for easy debugging.')
 
 flags.DEFINE_integer(
     'num_steps_per_epoch', 1000,

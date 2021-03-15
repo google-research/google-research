@@ -873,7 +873,7 @@ def voxelize_point_features(inputs, voxels_pad_or_clip_size,
                             voxel_grid_cell_size, point_feature_keys,
                             point_to_voxel_segment_func,
                             num_frame_to_load=1):
-  """Voxelizes the point feautres.
+  """Voxelizes the point features.
 
   Args:
     inputs: A dictionary containing input tensors.
@@ -885,7 +885,7 @@ def voxelize_point_features(inputs, voxels_pad_or_clip_size,
     point_to_voxel_segment_func: The function used to aggregate the features of
       the points that fall in the same voxel.
     num_frame_to_load: If greater than 1, offset multiframe point cloud point
-      features accroding to point frame index.
+      features according to point frame index.
   """
   if len(point_feature_keys) == 1:
     point_features = tf.cast(inputs[point_feature_keys[0]], dtype=tf.float32)

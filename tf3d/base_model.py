@@ -104,7 +104,7 @@ class BaseModel(tf.keras.Model):
 
     This method is overridden to support custom training logic.
     This method is called by `Model.make_train_function`.
-    This method should contain the mathemetical logic for one step of training.
+    This method should contain the mathematical logic for one step of training.
     This typically includes the forward pass, loss calculation, backpropagation,
     and metric updates.
     Configuration details for *how* this logic is run (e.g. `tf.function` and

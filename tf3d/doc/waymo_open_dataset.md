@@ -26,7 +26,7 @@ a local directory.
 
 *   Register with your gmail account to use the
     [Waymo Open Dataset](https://waymo.com/open/). Please <b>Note</b> that you 
-    will not be able to download the tfreocrds without having registered to the 
+    will not be able to download the tfrecords without having registered to the 
     Waymo Open Dataset.
 *   Python 2 or 3
 *   gsutil (command line tool to download files from google cloud. Follow this

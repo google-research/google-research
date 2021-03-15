@@ -410,7 +410,7 @@ def classification_loss_using_mask_iou_func(embeddings,
     instance_ids: A tf.int32 tensor of size [batch_size, n].
     class_labels: A tf.int32 tensor of size [batch_size, n]. It is assumed
       that the background voxels are assigned to class 0.
-    num_samples: An int determinig the number of samples.
+    num_samples: An int determining the number of samples.
     valid_mask: A tf.bool tensor of size [batch_size, n] that is True when an
       element is valid and False if it needs to be ignored. By default the value
       is None which means it is not applied.
@@ -487,7 +487,7 @@ def classification_loss_using_mask_iou(inputs,
       embeddings - A tf.float32 tensor of size [batch_size, n, f].
       logits - A tf.float32 tensor of size [batch_size, n, num_classes]. It is
         assumed that background is class 0.
-    num_samples: An int determinig the number of samples.
+    num_samples: An int determining the number of samples.
     max_instance_id: If set, instance ids larger than that value will be
       ignored. If not set, it will be computed from instance_ids tensor.
     similarity_strategy: Defines the method for computing similarity between

@@ -24,7 +24,7 @@ def point_features_to_box_features(points, point_features, num_bins_per_axis,
   """Creates box features from the feature of the points inside each box.
 
   Given a set of points and their features, and a set of oriented
-  boxes (paremeterized as dimension + rotation + translation), this function
+  boxes (parameterized as dimension + rotation + translation), this function
   computes a feature for each box.
 
   Args:
@@ -103,7 +103,7 @@ def map_points_to_boxes(points, boxes_length, boxes_height, boxes_width,
                         boxes_rotation_matrix, boxes_center, box_margin):
   """Given pointcloud and oriented 3D boxes computes per point box id.
 
-  Given a set of points, and a set of oriented boxes (paremeterized as dimension
+  Given a set of points, and a set of oriented boxes (parameterized as dimension
   + rotation + translation), this function computes for each point, the box
   index it belongs to. If a point is not contained in any box a -1 value
   is stored. if a point is contained in multiple boxes, output box_indices will
