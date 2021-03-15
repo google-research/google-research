@@ -39,8 +39,8 @@ import enum
 import math
 import random
 import typing
-import graph_tool.generation as generation
-import graph_tool.Graph
+from graph_tool import generation
+from graph_tool import Graph
 import numpy as np
 
 # Types
@@ -51,33 +51,23 @@ List = typing.List
 Set = typing.Set
 Text = typing.Text
 
-# Constants
-MEMBERSHIPS_FILENAME = "memberships.txt"
-MEMBERSHIPS_SSTABLE = "memberships"
-GRAPH_FILENAME = "graph.txt"
-SHARDED_GRAPH_FILENAME = "graph@20"
-
 
 class MatchType(Enum):
-  """Indicates type of graph membership matching to do.
+  """Indicates type of feature/graph membership matching to do.
 
-    RANDOM: memberships are generated randomly.
-    NESTED: for k >= number of memberships in g_memberships (fails if this is
-      not true). Each cluster is a sub-cluster of a cluster in g_memberships.
-      Multiplicity of sub-clusters per g_membership cluster is kept as uniform
-      as possible.
-    GROUPED: for k <= number of memberships in g_memberships (fails if this is
-      not true). Each cluster is a super-cluster of a cluster in g_memberships.
-      Multiplicity of graph sub-clusters per feature cluster is kept as uniform
-      as possible.
+    RANDOM: feature memberships are generated randomly.
+    NESTED: for # feature groups >= # graph groups. Each feature cluster is a
+      sub-cluster of a graph cluster. Multiplicity of sub-clusters per
+      graph cluster is kept as uniform as possible.
+    GROUPED: for # feature groups <= # graph groups. Each graph cluster is a
+      sub-cluster of a feature cluster. Multiplicity of sub-clusters per
+      feature cluster is kept as uniform as possible.
   """
   RANDOM = 1
   NESTED = 2
   GROUPED = 3
 
 
-# TODO(palowitch): add tests for this class
-# TODO(palowitch): remove single-char variable names
 # TODO(palowitch): ensure feature generators are not called before making graph
 class SbmSimulator(object):
   """Generates stochastic block model graphs."""
@@ -100,6 +90,7 @@ class SbmSimulator(object):
     Arguments:
       large_k: (int) size of the larger group set
       small_k: (int) size of the smaller group set
+
     Returns:
       nesting_map: (dict) map from larger group set indices to lists of
         smaller group set indices
@@ -117,80 +108,85 @@ class SbmSimulator(object):
 
   def _GenerateFeatureMemberships(
       self,
-      n,
-      g_memberships = None,
-      k = None,
+      graph_memberships = None,
+      num_groups = None,
       match_type = MatchType.RANDOM):
     """Generates a feature membership assignment.
 
     Args:
-      n: (int) number of samples
-      g_memberships: (list) the integer memberships for the graph SBM
-      k: (int) number of groups. If None, defaults to number of groups in
-        g_memberships.
+      graph_memberships: (list) the integer memberships for the graph SBM
+      num_groups: (int) number of groups. If None, defaults to number of unique
+        values in graph_memberships.
       match_type: (MatchType) see the enum class description.
+
     Returns:
       memberships: a int list - index i contains feature group of node i.
     """
     # Parameter checks
-    if k is not None and k == 0:
-      raise ValueError("argument k must be None or positive")
-    graph_k = len(set(g_memberships))
-    if k is None:
-      k = graph_k
+    if num_groups is not None and num_groups == 0:
+      raise ValueError("argument num_groups must be None or positive")
+    graph_num_groups = len(set(graph_memberships))
+    if num_groups is None:
+      num_groups = graph_num_groups
 
     # Simulate memberships
     memberships = []
     if match_type == MatchType.GROUPED:
-      if k > graph_k:
-        raise ValueError("for match type GROUPED, must have k <= graph_k")
-      nesting_map = self._GetNestingMap(graph_k, k)
+      if num_groups > graph_num_groups:
+        raise ValueError(
+            "for match type GROUPED, must have num_groups <= graph_num_groups")
+      nesting_map = self._GetNestingMap(graph_num_groups, num_groups)
       reverse_nesting_map = {}
-      for feature_c, graph_c_list in nesting_map.items():
-        for c in graph_c_list:
-          reverse_nesting_map[c] = feature_c
-      for c in g_memberships:
-        memberships.append(reverse_nesting_map[c])
+      for feature_cluster, graph_cluster_list in nesting_map.items():
+        for cluster in graph_cluster_list:
+          reverse_nesting_map[cluster] = feature_cluster
+      for cluster in graph_memberships:
+        memberships.append(reverse_nesting_map[cluster])
     elif match_type == MatchType.NESTED:
-      if k < graph_k:
-        raise ValueError("for match type NESTED, must have k >= graph_k")
-      nesting_map = self._GetNestingMap(k, graph_k)
-      for c in g_memberships:
-        memberships.append(random.choice(nesting_map[c]))
+      if num_groups < graph_num_groups:
+        raise ValueError(
+            "for match type NESTED, must have num_groups >= graph_num_groups")
+      nesting_map = self._GetNestingMap(num_groups, graph_num_groups)
+      for cluster in graph_memberships:
+        memberships.append(random.choice(nesting_map[cluster]))
     else:  # MatchType.RANDOM
-      memberships = random.choices(range(k), k=n)
+      memberships = random.choices(range(num_groups), k=len(graph_memberships))
     return memberships
 
-  def _ComputeExpectedEdgeCounts(self, m, n, pi,
+  def _ComputeExpectedEdgeCounts(self, num_edges, num_vertices,
+                                 pi,
                                  prop_mat):
     """Computes expected edge counts within and between communities.
 
     Args:
-      m: expected number of edges in the graph.
-      n: number of nodes in the graph
+      num_edges: expected number of edges in the graph.
+      num_vertices: number of nodes in the graph
       pi: interable of non-zero community size proportions. Must sum to 1.0, but
         this check is left to the caller of this internal function.
       prop_mat: square, symmetric matrix of community edge count rates. Entries
         must be non-negative, but this check is left to the caller.
+
     Returns:
       symmetric matrix with shape prop_mat.shape giving expected edge counts.
     """
-    alpha = m / (np.matmul(pi, np.matmul(prop_mat, pi)) * n**2)
-    prob_mat = prop_mat * alpha
-    return np.outer(pi, pi) * prob_mat * n**2
+    scale = np.matmul(pi, np.matmul(prop_mat, pi)) * num_vertices**2
+    prob_mat = prop_mat * num_edges / scale
+    return np.outer(pi, pi) * prob_mat * num_vertices**2
 
-  def _GenerateNodeMemberships(self, n, pi):
+  def _GenerateNodeMemberships(self, num_vertices,
+                               pi):
     """Gets node memberships for sbm.
 
     Args:
-      n: number of nodes in graph.
+      num_vertices: number of nodes in graph.
       pi: interable of non-zero community size proportions. Must sum to 1.0, but
         this check is left to the caller of this internal function.
+
     Returns:
       np vector of ints representing community indices.
     """
-    community_sizes = np.random.multinomial(n, pi / np.sum(pi))
-    memberships = np.zeros(n, dtype=int)
+    community_sizes = np.random.multinomial(num_vertices, pi / np.sum(pi))
+    memberships = np.zeros(num_vertices, dtype=int)
     node = 0
     for i in range(community_sizes.shape[0]):
       memberships[range(node, node + community_sizes[i])] = i
@@ -198,19 +194,19 @@ class SbmSimulator(object):
     return memberships
 
   def SimulateSbm(self,
-                  n,
-                  m,
+                  num_vertices,
+                  num_edges,
                   pi,
                   prop_mat,
                   out_degs = None):
     """Generates a stochastic block model.
 
-    This function uses graph_tool.generation.generate_sbm. Refer to that
+    This function uses graph_tool.generate_sbm. Refer to that
     documentation for more information on the model and parameters.
 
     Args:
-      n: (int) number of nodes in the graph.
-      m: (int) expected number of edges in the graph.
+      num_vertices: (int) number of nodes in the graph.
+      num_edges: (int) expected number of edges in the graph.
       pi: interable of non-zero community size proportions. Must sum to 1.0.
       prop_mat: square, symmetric matrix of community edge count rates.
       out_degs: Out-degree propensity for each node. If not provided, a constant
@@ -222,77 +218,80 @@ class SbmSimulator(object):
       raise ValueError("entries of pi must sum to 1.0")
     if prop_mat.shape[0] != len(pi) or prop_mat.shape[1] != len(pi):
       raise ValueError("prop_mat must be k x k where k = len(pi)")
-    self.memberships = self._GenerateNodeMemberships(n, pi)
-    edge_counts = self._ComputeExpectedEdgeCounts(m, n, pi, prop_mat)
+    self.memberships = self._GenerateNodeMemberships(num_vertices, pi)
+    edge_counts = self._ComputeExpectedEdgeCounts(num_edges,
+                                                  num_vertices, pi, prop_mat)
     self.graph = generation.generate_sbm(self.memberships, edge_counts,
                                          out_degs)
 
   def SimulateFeatures(self,
                        center_var,
-                       d,
-                       k,
+                       feature_dim,
+                       num_groups,
                        match_type = MatchType.RANDOM,
                        cluster_var = 1.0):
-    """Generates a multivariate d-normal with k randomly-generated centers.
+    """Generates a multi-Normal mixture model with randomly-generated centers.
 
     Feature data is stored as a member variable named 'features'.
 
     Args:
       center_var: (float) variance of feature cluster centers. When this is 0.0,
-        the classical "signal-to-noise ratio" is 0.0. When equal to cluster_var,
-        the SNR is 1.0.
-      d: (int) dimension of the multivariate normal.
-      k: (int) number of centers. Generated by a multivariate d-normal with mean
-         zero and covariance matrix cluster_var * I_d.
+        the signal-to-noise ratio is 0.0. When equal to cluster_var, SNR is 1.0.
+      feature_dim: (int) dimension of the multivariate normal.
+     num_groups: (int) number of centers. Generated by a multivariate d-normal
+         with mean zero and covariance matrix cluster_var * I_{feature_dim}.
       match_type: (MatchType) see the enum class description.
       cluster_var: (float) variance of feature clusters around their centers.
     Returns: (None)
     """
     # Get memberships
     self.feature_memberships = self._GenerateFeatureMemberships(
-        n=self.graph.num_vertices(),
-        g_memberships=self.memberships,
-        k=k,
+        graph_memberships=self.memberships,
+        num_groups=num_groups,
         match_type=match_type)
 
     # Get centers
     centers = []
-    center_cov = np.identity(d) * center_var
-    cluster_cov = np.identity(d) * cluster_var
-    for _ in range(k):
-      centers.append(
-          np.random.multivariate_normal(np.zeros(d), center_cov, 1)[0])
+    center_cov = np.identity(feature_dim) * center_var
+    cluster_cov = np.identity(feature_dim) * cluster_var
+    for _ in range(num_groups):
+      center = np.random.multivariate_normal(
+          np.zeros(feature_dim), center_cov, 1)[0]
+      centers.append(center)
     self.features = []
-    for c in self.feature_memberships:
-      self.features.append(
-          np.random.multivariate_normal(centers[c], cluster_cov, 1)[0])
+    for cluster_index in self.feature_memberships:
+      feature = np.random.multivariate_normal(
+          centers[cluster_index], cluster_cov, 1)[0]
+      self.features.append(feature)
 
   def SimulateEdgeFeatures(self,
-                           d,
-                           x = 0.0,
-                           cluster_var = 1.0):
+                           feature_dim,
+                           center_distance = 0.0,
+                           cluster_variance = 1.0):
     """Generates edge feature distribution via inter-class vs intra-class.
 
     Edge feature data is stored as a member variable named 'edge_features', a
     dict from 2-tuples of node IDs to numpy vectors.
 
-    Edge features have two centers: one at (0, 0, ....) and one at (x, x, ....)
-    for inter-class and intra-class edges (respectively). They are generated
-    from a multivariate normal with covariance matrix = cluster_var * I_d.
+    Edge features have two centers: one at (0, 0, ....) and one at
+    (center_distance, center_distance, ....) for inter-class and intra-class
+    edges (respectively). They are generated from a multivariate normal with
+    covariance matrix = cluster_variance * I_d.
 
     Args:
-      d: (int) dimension of the multivariate normal.
-      x: (float) per-dimension distance between the intra-class and inter-class
-         means. Increasing this makes the edge feature signal stronger.
-      cluster_var: (float) variance of clusters around their centers.
+      feature_dim: (int) dimension of the multivariate normal.
+      center_distance: (float) per-dimension distance between the intra-class
+        and inter-class means. Increasing this makes the edge feature signal
+        stronger.
+      cluster_variance: (float) variance of clusters around their centers.
     """
     if not hasattr(self, "graph"):
       self.edge_features = None
       return None
     self.edge_features = {}
-    center0 = np.zeros(shape=(d,))
-    center1 = np.ones(shape=(d,)) * x
-    covariance = np.identity(d) * cluster_var
+    center0 = np.zeros(shape=(feature_dim,))
+    center1 = np.ones(shape=(feature_dim,)) * center_distance
+    covariance = np.identity(feature_dim) * cluster_variance
     for edge in self.graph.edges():
       vertex1 = int(edge.source())
       vertex2 = int(edge.target())
@@ -303,4 +302,3 @@ class SbmSimulator(object):
         center = center0
       self.edge_features[edge_tuple] = np.random.multivariate_normal(
           center, covariance, 1)[0]
-
