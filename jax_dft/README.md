@@ -14,7 +14,10 @@ this library to build hybrid ML-DFT model for electronic structure research.
 ## Kohn-Sham equations as regularizer: building prior knowledge into machine-learned physics
 
 Li Li, Stephan Hoyer, Ryan Pederson, Ruoxi Sun, Ekin D. Cubuk, Patrick Riley, Kieron Burke
-https://arxiv.org/abs/2009.08551
+
+Phys. Rev. Lett. **126**, 036401 (2021)
+
+https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.126.036401
 
 ![](ks_1_column.png)
 
@@ -43,10 +46,17 @@ If you use the code in a publication, please cite the repo using the .bib,
 
 ```
 @article{li2020kohn,
-  title={Kohn-Sham equations as regularizer: building prior knowledge into machine-learned physics},
-  author={Li, Li and Hoyer, Stephan and Pederson, Ryan and Sun, Ruoxi and Cubuk, Ekin D and Riley, Patrick and Burke, Kieron},
-  journal={arXiv preprint arXiv:2009.08551},
-  year={2020},
-  url={https://arxiv.org/abs/2009.08551}
+  title = {Kohn-Sham Equations as Regularizer: Building Prior Knowledge into Machine-Learned Physics},
+  author = {Li, Li and Hoyer, Stephan and Pederson, Ryan and Sun, Ruoxi and Cubuk, Ekin D and Riley, Patrick and Burke, Kieron},
+  journal = {Phys. Rev. Lett.},
+  volume = {126},
+  issue = {3},
+  pages = {036401},
+  numpages = {7},
+  year = {2021},
+  month = {Jan},
+  publisher = {American Physical Society},
+  doi = {10.1103/PhysRevLett.126.036401},
+  url = {https://link.aps.org/doi/10.1103/PhysRevLett.126.036401}
 }
 ```
