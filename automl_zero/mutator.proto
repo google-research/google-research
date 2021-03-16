@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// ProtoBestPractices: ignore
 
 syntax = "proto2";
 
 package automl_zero;
+
+import "devtools/staticanalysis/pipeline/analyzers/proto_best_practices/proto/optouts.proto";
+
+option (proto_best_practices.suppress_all_findings) = true;
 
 enum MutationType {
   // Modifies a single parameter within one instruction. Does not change the op.
@@ -42,7 +45,7 @@ enum MutationType {
 
   // Randomizes all component functions.
   RANDOMIZE_ALGORITHM_MUTATION_TYPE = 7;
-};
+}
 
 message MutationTypeList {
   // Must be non-empty.

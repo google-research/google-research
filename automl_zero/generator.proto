@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// ProtoBestPractices: ignore
 
 syntax = "proto2";
 
 package automl_zero;
+
+import "devtools/staticanalysis/pipeline/analyzers/proto_best_practices/proto/optouts.proto";
+
+option (proto_best_practices.suppress_all_findings) = true;
 
 enum HardcodedAlgorithmID {
   // The no-op model (see NoOp function).
@@ -35,4 +38,4 @@ enum HardcodedAlgorithmID {
 
   // A damaged NeuralNet Algorithm used in nonlinear test in integration tests.
   INTEGRATION_TEST_DAMAGED_NEURAL_NET_ALGORITHM = 4;
-};
+}
