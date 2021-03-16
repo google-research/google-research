@@ -16,9 +16,9 @@
 """Distributed Shampoo Implementation."""
 # An implementation of distributed Shampoo optimizer from:
 #
-#  Towards Practical Second Order Optimization for Deep Learning
+#  Scalable Second Order Optimization for Deep Learning
 #  Rohan Anil, Vineet Gupta, Tomer Koren, Kevin Regan, Yoram Singer
-#  Preprint Paper: https://openreview.net/forum?id=Sc8cY4Jpi3s
+#  Preprint Paper: https://arxiv.org/abs/2002.09018
 #
 # This implementation moves computation of inverse pth root back to the
 # accelerator (if higher precision is available). We will present the details
@@ -165,7 +165,7 @@ class BlockPartitioner:
     for (i, indices) in self._splits:
       tensors_local = []
       for t in tensors:
-        tensors_local.extend(jnp.split(t, indices, axis=i))
+        tensors_local.extend(jnp.split(t, indices_or_sections=indices, axis=i))
       tensors = tensors_local
     return tensors
 
@@ -449,10 +449,10 @@ def matrix_inverse_pth_root(mat_g,
 class Shampoo(OptimizerDef):
   """Shampoo optimizer.
 
-    Towards Practical Second Order Optimization for Deep Learning
-    Rohan Anil, Vineet Gupta, Tomer Koren, Kevin Regan, Yoram Singer, Preprint
+    Scalable Second Order Optimization for Deep Learning,
+    Rohan Anil, Vineet Gupta, Tomer Koren, Kevin Regan, Yoram Singer
 
-    Paper: https://openreview.net/forum?id=Sc8cY4Jpi3s
+    Preprint: https://arxiv.org/abs/2002.09018
   """
 
   def __init__(self,
@@ -670,9 +670,15 @@ class Shampoo(OptimizerDef):
     def _unbatch(batched_values):
       b1, b2 = batched_values.shape[0], batched_values.shape[1]
       results = []
-      for v_array in jnp.split(batched_values, b1, 0):
-        for v in jnp.split(jnp.squeeze(v_array), b2, 0):
-          results.append(jnp.squeeze(v))
+      for v_array in jnp.split(batched_values, indices_or_sections=b1, axis=0):
+        v_array = jnp.squeeze(v_array)
+        # b2 = batches (number of preconditioner computation) per core.
+        if b2 > 1:
+          for v in jnp.split(v_array, indices_or_sections=b2, axis=0):
+            results.append(jnp.squeeze(v))
+        else:
+          results.append(v_array)
+
       return results
 
     all_statistics, all_exponents = _batch(packed_statistics, exponents,
