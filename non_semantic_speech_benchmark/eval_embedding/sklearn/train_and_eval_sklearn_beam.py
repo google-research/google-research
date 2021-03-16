@@ -46,6 +46,8 @@ flags.DEFINE_string('save_model_dir', None, 'If not `None`, save sklearn '
 flags.DEFINE_enum('eval_metric', 'accuracy',
                   ['accuracy', 'equal_error_rate', 'unweighted_average_recall'],
                   'Which metric to compute and report.')
+flags.DEFINE_bool('fast_write', True,
+                  'Whether to write output to 1 text shard or many.')
 
 FLAGS = flags.FLAGS
 
@@ -109,7 +111,8 @@ def main(unused_argv):
              lambda d: (d, train_and_eval_sklearn.train_and_get_score(**d)))
          | 'FormatText' >> beam.Map(format_text_line)
          | 'Reshuffle' >> beam.Reshuffle()
-         | 'WriteOutput' >> beam.io.WriteToText(FLAGS.output_file, num_shards=1)
+         | 'WriteOutput' >> beam.io.WriteToText(
+             FLAGS.output_file, num_shards=1 if FLAGS.fast_write else 0)
         )
 
 
