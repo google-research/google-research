@@ -585,8 +585,12 @@ def randomly_rotate_3d(keypoints_3d,
     rotation_matrices = create_interpolated_rotation_matrix_sequences(
         start_euler_angles, end_euler_angles, sequence_length=sequence_length)
 
-  return tf.linalg.matrix_transpose(
+  # The 3D keypoints are in (y, x, z)-order, so we need to swap the x and y
+  # dimension before rotation and swap back aftwerwards.
+  keypoints_3d = swap_x_y(keypoints_3d)
+  keypoints_3d = tf.linalg.matrix_transpose(
       tf.matmul(rotation_matrices, keypoints_3d, transpose_b=True))
+  return swap_x_y(keypoints_3d)
 
 
 def randomly_rotate_and_project_3d_to_2d(keypoints_3d,
@@ -632,7 +636,7 @@ def randomly_rotate_and_project_3d_to_2d(keypoints_3d,
   # Transform to default camera.
   default_rotation_to_camera = tf.constant([
       [0.0, 0.0, -1.0],
-      [1.0, 0.0, 0.0],
+      [-1.0, 0.0, 0.0],
       [0.0, 1.0, 0.0],
   ])
   default_center = tf.constant([0.0, 0.0, default_camera_z])

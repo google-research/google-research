@@ -421,10 +421,46 @@ class KeypointUtilsTest(tf.test.TestCase):
          [[-0.866, -0.25, -0.433], [-0.0, -0.866, 0.5], [-0.5, 0.433, 0.75]]],
         atol=1e-04)
 
+  def test_rotate_by_azimuth_3d(self):
+    keypoints_3d = tf.constant([[[2.0, 1.0, 3.0]]])
+    keypoints_3d = keypoint_utils.randomly_rotate_3d(
+        keypoints_3d,
+        azimuth_range=(math.pi / 2.0, math.pi / 2.0),
+        elevation_range=(0.0, 0.0),
+        roll_range=(0.0, 0.0))
+    self.assertAllClose(keypoints_3d, [[[1.0, -2.0, 3.0]]])
+
+  def test_rotate_by_elevation_3d(self):
+    keypoints_3d = tf.constant([[[2.0, 1.0, 3.0]]])
+    keypoints_3d = keypoint_utils.randomly_rotate_3d(
+        keypoints_3d,
+        azimuth_range=(0.0, 0.0),
+        elevation_range=(math.pi / 2.0, math.pi / 2.0),
+        roll_range=(0.0, 0.0))
+    self.assertAllClose(keypoints_3d, [[[2.0, 3.0, -1.0]]])
+
+  def test_rotate_by_roll_3d(self):
+    keypoints_3d = tf.constant([[[2.0, 1.0, 3.0]]])
+    keypoints_3d = keypoint_utils.randomly_rotate_3d(
+        keypoints_3d,
+        azimuth_range=(0.0, 0.0),
+        elevation_range=(0.0, 0.0),
+        roll_range=(math.pi / 2.0, math.pi / 2.0))
+    self.assertAllClose(keypoints_3d, [[[-3.0, 1.0, 2.0]]])
+
+  def test_full_rotation_3d(self):
+    keypoints_3d = tf.constant([[[2.0, 1.0, 3.0]]])
+    keypoints_3d = keypoint_utils.randomly_rotate_3d(
+        keypoints_3d,
+        azimuth_range=(math.pi / 2.0, math.pi / 2.0),
+        elevation_range=(-math.pi / 2.0, -math.pi / 2.0),
+        roll_range=(math.pi, math.pi))
+    self.assertAllClose(keypoints_3d, [[[3.0, 2.0, 1.0]]])
+
   def test_randomly_rotate_and_project_3d_to_2d(self):
-    keypoints_3d = tf.constant([[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
-                                [[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]],
-                                [[13.0, 14.0, 15.0], [16.0, 17.0, 18.0]]])
+    keypoints_3d = tf.constant([[[2.0, 1.0, 3.0], [5.0, 4.0, 6.0]],
+                                [[8.0, 7.0, 9.0], [11.0, 10.0, 12.0]],
+                                [[14.0, 13.0, 15.0], [17.0, 16.0, 18.0]]])
     keypoints_2d = keypoint_utils.randomly_rotate_and_project_3d_to_2d(
         keypoints_3d,
         azimuth_range=(math.pi / 2.0, math.pi / 2.0),
@@ -433,23 +469,17 @@ class KeypointUtilsTest(tf.test.TestCase):
         default_camera_z=2.0)
     self.assertAllClose(
         keypoints_2d,
-        [[[-1.0 / 5.0, 2.0 / 5.0], [-4.0 / 8.0, 5.0 / 8.0]],
-         [[-7.0 / 11.0, 8.0 / 11.0], [-10.0 / 14.0, 11.0 / 14.0]],
-         [[-13.0 / 17.0, 14.0 / 17.0], [-16.0 / 20.0, 17.0 / 20.0]]])
+        [[[-1.0 / 4.0, -3.0 / 4.0], [-4.0 / 7.0, -6.0 / 7.0]],
+         [[-7.0 / 10.0, -9.0 / 10.0], [-10.0 / 13.0, -12.0 / 13.0]],
+         [[-13.0 / 16.0, -15.0 / 16.0], [-16.0 / 19.0, -18.0 / 19.0]]])
 
   def test_randomly_rotate_and_project_sequences_3d_to_2d(self):
-    keypoints_3d_t1 = tf.constant([[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
-                                   [[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]],
-                                   [[13.0, 14.0, 15.0], [16.0, 17.0, 18.0]]])
-    keypoints_3d_t2 = tf.constant([[[1.2, 2.2, 3.2], [4.2, 5.2, 6.2]],
-                                   [[7.4, 8.4, 9.4], [10.4, 11.4, 12.4]],
-                                   [[13.8, 14.8, 15.8], [16.8, 17.8, 18.8]]])
-    keypoints_3d_t3 = tf.constant([[[1.5, 2.5, 3.5], [4.5, 5.5, 6.5]],
-                                   [[7.6, 8.6, 9.6], [10.6, 11.6, 12.6]],
-                                   [[13.7, 14.7, 15.7], [16.7, 17.7, 18.7]]])
-    keypoints_3d = tf.stack(
-        [keypoints_3d_t1, keypoints_3d_t2, keypoints_3d_t3],
-        axis=-3)
+    # Shape = [1, 4, 2, 3].
+    keypoints_3d = tf.constant([[[[2.0, 1.0, 3.0], [5.0, 4.0, 6.0]],
+                                 [[2.1, 1.1, 3.1], [5.1, 4.1, 6.1]],
+                                 [[2.2, 1.2, 3.2], [5.2, 4.2, 6.2]],
+                                 [[2.3, 1.3, 3.3], [5.3, 4.3, 6.3]]]])
+    # Shape = [1, 4, 2, 2].
     keypoints_2d = keypoint_utils.randomly_rotate_and_project_3d_to_2d(
         keypoints_3d,
         azimuth_range=(math.pi / 2.0, math.pi / 2.0),
@@ -457,69 +487,62 @@ class KeypointUtilsTest(tf.test.TestCase):
         roll_range=(math.pi, math.pi),
         default_camera_z=2.0,
         sequential_inputs=True)
-
     self.assertAllClose(
-        keypoints_2d,
-        [[[[-1.0 / 5.0, 2.0 / 5.0], [-4.0 / 8.0, 5.0 / 8.0]],
-          [[-1.2 / 5.2, 2.2 / 5.2], [-4.2 / 8.2, 5.2 / 8.2]],
-          [[-1.5 / 5.5, 2.5 / 5.5], [-4.5 / 8.5, 5.5 / 8.5]]],
-         [[[-7.0 / 11.0, 8.0 / 11.0], [-10.0 / 14.0, 11.0 / 14.0]],
-          [[-7.4 / 11.4, 8.4 / 11.4], [-10.4 / 14.4, 11.4 / 14.4]],
-          [[-7.6 / 11.6, 8.6 / 11.6], [-10.6 / 14.6, 11.6 / 14.6]]],
-         [[[-13.0 / 17.0, 14.0 / 17.0], [-16.0 / 20.0, 17.0 / 20.0]],
-          [[-13.8 / 17.8, 14.8 / 17.8], [-16.8 / 20.8, 17.8 / 20.8]],
-          [[-13.7 / 17.7, 14.7 / 17.7], [-16.7 / 20.7, 17.7 / 20.7]]]])
+        keypoints_2d, [[[[-1.0 / 4.0, -3.0 / 4.0], [-4.0 / 7.0, -6.0 / 7.0]],
+                        [[-1.1 / 4.1, -3.1 / 4.1], [-4.1 / 7.1, -6.1 / 7.1]],
+                        [[-1.2 / 4.2, -3.2 / 4.2], [-4.2 / 7.2, -6.2 / 7.2]],
+                        [[-1.3 / 4.3, -3.3 / 4.3], [-4.3 / 7.3, -6.3 / 7.3]]]])
 
   def test_randomly_project_and_select_keypoints(self):
     keypoints_3d = tf.constant([
-        [0.0, 0.0, 0.0],
-        [1.0, 1.0, 1.0],
-        [2.0, 2.0, 2.0],
-        [3.0, 3.0, 3.0],
-        [4.0, 4.0, 4.0],
-        [5.0, 5.0, 5.0],
-        [6.0, 6.0, 6.0],
-        [7.0, 7.0, 7.0],
-        [8.0, 8.0, 8.0],
-        [9.0, 9.0, 9.0],
-        [10.0, 10.0, 10.0],
-        [11.0, 11.0, 11.0],
-        [12.0, 12.0, 12.0],
-        [13.0, 13.0, 13.0],
-        [14.0, 14.0, 14.0],
-        [15.0, 15.0, 15.0],
-        [16.0, 16.0, 16.0],
+        [2.0, 1.0, 3.0],  # HEAD.
+        [2.01, 1.01, 3.01],  # NECK.
+        [2.02, 1.02, 3.02],  # LEFT_SHOULDER.
+        [2.03, 1.03, 3.03],  # RIGHT_SHOULDER.
+        [2.04, 1.04, 3.04],  # LEFT_ELBOW.
+        [2.05, 1.05, 3.05],  # RIGHT_ELBOW.
+        [2.06, 1.06, 3.06],  # LEFT_WRIST.
+        [2.07, 1.07, 3.07],  # RIGHT_WRIST.
+        [2.08, 1.08, 3.08],  # SPINE.
+        [2.09, 1.09, 3.09],  # PELVIS.
+        [2.10, 1.10, 3.10],  # LEFT_HIP.
+        [2.11, 1.11, 3.11],  # RIGHT_HIP.
+        [2.12, 1.12, 3.12],  # LEFT_KNEE.
+        [2.13, 1.13, 3.13],  # RIGHT_KNEE.
+        [2.14, 1.14, 3.14],  # LEFT_ANKLE.
+        [2.15, 1.15, 3.15],  # RIGHT_ANKLE.
     ])
     keypoint_profile_3d = (
-        keypoint_profiles.create_keypoint_profile_or_die('LEGACY_3DH36M17'))
+        keypoint_profiles.create_keypoint_profile_or_die('3DSTD16'))
     keypoint_profile_2d = (
-        keypoint_profiles.create_keypoint_profile_or_die('LEGACY_2DCOCO13'))
+        keypoint_profiles.create_keypoint_profile_or_die('2DSTD13'))
     keypoints_2d, _ = keypoint_utils.randomly_project_and_select_keypoints(
         keypoints_3d,
         keypoint_profile_3d=keypoint_profile_3d,
         output_keypoint_names=(
-            keypoint_profile_2d.compatible_keypoint_name_dict['LEGACY_3DH36M17']
-        ),
+            keypoint_profile_2d.compatible_keypoint_name_dict['3DSTD16']),
         azimuth_range=(math.pi / 2.0, math.pi / 2.0),
-        elevation_range=(math.pi / 2.0, math.pi / 2.0),
-        roll_range=(-math.pi / 2.0, -math.pi / 2.0),
-        default_camera_z=2.0)
-    keypoints_2d, _, _ = keypoint_profile_2d.normalize(keypoints_2d)
-    self.assertAllClose(keypoints_2d, [
-        [-0.4356161, 0.4356161],
-        [-0.32822642, 0.32822642],
-        [-0.2897728, 0.28977284],
-        [-0.24986516, 0.24986516],
-        [-0.2084193, 0.2084193],
-        [-0.16534455, 0.16534461],
-        [-0.12054307, 0.1205431],
-        [-0.025327, 0.025327],
-        [0.025327, -0.025327],
-        [0.07818867, -0.07818867],
-        [0.13340548, -0.13340548],
-        [0.19113854, -0.19113848],
-        [0.2515637, -0.25156358],
-    ])
+        elevation_range=(-math.pi / 2.0, -math.pi / 2.0),
+        roll_range=(math.pi, math.pi),
+        default_camera_z=2.0,
+        normalize_before_projection=False)
+    self.assertAllClose(
+        keypoints_2d,
+        [
+            [-1.0 / 4.0, -3.0 / 4.0],  # NOSE_TIP
+            [-1.02 / 4.02, -3.02 / 4.02],  # LEFT_SHOULDER.
+            [-1.03 / 4.03, -3.03 / 4.03],  # RIGHT_SHOULDER.
+            [-1.04 / 4.04, -3.04 / 4.04],  # LEFT_ELBOW.
+            [-1.05 / 4.05, -3.05 / 4.05],  # RIGHT_ELBOW.
+            [-1.06 / 4.06, -3.06 / 4.06],  # LEFT_WRIST.
+            [-1.07 / 4.07, -3.07 / 4.07],  # RIGHT_WRIST.
+            [-1.10 / 4.10, -3.10 / 4.10],  # LEFT_HIP.
+            [-1.11 / 4.11, -3.11 / 4.11],  # RIGHT_HIP.
+            [-1.12 / 4.12, -3.12 / 4.12],  # LEFT_KNEE.
+            [-1.13 / 4.13, -3.13 / 4.13],  # RIGHT_KNEE.
+            [-1.14 / 4.14, -3.14 / 4.14],  # LEFT_ANKLE.
+            [-1.15 / 4.15, -3.15 / 4.15],  # RIGHT_ANKLE.
+        ])
 
   def test_remove_at_indices(self):
     keypoints = tf.constant([[[1.0, 2.0], [7.0, 8.0], [3.0, 4.0], [5.0, 6.0],
