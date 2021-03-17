@@ -49,6 +49,13 @@ modify it based on your settings. Please check the [GCP guide](https://cloud.goo
 
 1.  Follow the instructions in `tf3d/ops` folder to prepare the sparse conv ops.
 
+1.  Compile the protos
+    ```bash
+    cd tf3d/utils/protos
+    protoc *.proto --python_out=.
+    ```
+
+
 
 ## Prepare the data
 
