@@ -40,6 +40,7 @@ include the **"[POEM]"** prefix in the issue title.
 - [Liangzhe Yuan](https://github.com/yuanliangzhe)
 
 ## Updates
+- `03/17/2021`: Fixed an [issue](https://github.com/google-research/google-research/issues/636) in camera augmentation.
 - `03/04/2021`: Added a program for running model inference.
 - `10/21/2020`: Added cross-view pose retrieval evaluation frame keys.
 - `10/15/2020`: Added training TFRecords generation program.
