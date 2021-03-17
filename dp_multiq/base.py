@@ -59,8 +59,8 @@ def quantiles_error(sorted_data, qs, true_quantiles, est_quantiles):
   total_missed = 0
   for q_idx in range(len(qs)):
     total_missed += np.abs(
-        np.argmax(sorted_data > true_quantiles[q_idx]) -
-        np.argmax(sorted_data > est_quantiles[q_idx]))
+        np.sum(sorted_data > true_quantiles[q_idx]) -
+        np.sum(sorted_data > est_quantiles[q_idx]))
   return total_missed
 
 
