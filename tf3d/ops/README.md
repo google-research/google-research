@@ -14,7 +14,7 @@
 
 ## Compile the ops within a docker image
 
-1. Download the [Tensorflow repo](https://github.com/tensorflow/tensorflow) to a local folder `tensorflow`.
+1. Download the [Tensorflow repo *version 2.3.0*](https://github.com/tensorflow/tensorflow/tree/v2.3.0) to a local folder `tensorflow`.
 1. Create a folder at `tf3d/ops/third_party`, and copy the following files / folder from `tensorflow/third_party` folder:
    * `eigen3`
    * `mkl`
@@ -34,7 +34,10 @@
    The above steps can be done with the following commands:
 
     ```bash
-    git clone https://github.com/tensorflow/tensorflow --depth=1
+    # Or download directly from https://github.com/tensorflow/tensorflow/archive/v2.3.0.zip and unzip.
+    git clone https://github.com/tensorflow/tensorflow
+    cd tensorflow && git checkout v2.3.0 && cd ..
+
     git clone https://github.com/tensorflow/custom-op --depth=1
     export TF_FOLDER="PATH_TO_TF_REPO_FOLDER"
     export CUSTOM_OP_FOLDER="PATH_TO_CUSTOM_OP_REPO_FOLDER"
@@ -63,11 +66,13 @@
 1. *Within the docker image*, enter `tf3d/ops` folder and run the following to test the building:
 
    ```bash
-   # Change the tensorflow version to 2.3.0
+   # Change the tensorflow version to 2.3.0 if not already.
    pip3 uninstall tensorflow
    pip3 install tensorflow==2.3.0
    ./configure.sh
-   bazel run sparse_conv_ops_py_test  --experimental_repo_remote_exec
+   bazel run sparse_conv_ops_py_test  --experimental_repo_remote_exec --verbose_failures
+   # For CPU only compiling, please select tensorflow CPU during running configure.sh.
+   # If  configure.sh replaces tensorflow with tensorflow-cpu, please install again tensorflow==2.3.0 before proceeding to the bazel command, to avoid missing header files.
    ```
 
 1. After the test succeeds, copy the shared library to `tf3d/ops/tensorflow_sparse_conv_ops` folder:
@@ -83,7 +88,7 @@
    ```bash
    chmod +x build_pip_pkg.sh
    # modify build_pip_pkg if you want a wheel for a specific python3 version.
-   bazel build :build_pip_pkg   --experimental_repo_remote_exec
+   bazel build :build_pip_pkg  --experimental_repo_remote_exec --verbose_failures
    bazel-bin/build_pip_pkg artifacts
    # The wheel file is generated at
    # artifacts/tensorflow_sparse_conv_ops-0.0.1-cp36-cp36m-linux_x86_64.whl
