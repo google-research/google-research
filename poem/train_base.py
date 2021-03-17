@@ -239,19 +239,25 @@ flags.DEFINE_list(
     'random_projection_azimuth_range', ['-180.0', '180.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random azimuth rotations on 3D poses before projection for '
-    'keypoint augmentation.')
+    'camera augmentation.')
 
 flags.DEFINE_list(
     'random_projection_elevation_range', ['-30.0', '30.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random elevation rotations on 3D poses before projection for '
-    'keypoint augmentation.')
+    'camera augmentation.')
 
 flags.DEFINE_list(
     'random_projection_roll_range', ['-30.0', '30.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
-    'performing random roll rotations on 3D poses before projection for '
-    'keypoint augmentation.')
+    'performing random roll rotations on 3D poses before projection for camera '
+    'augmentation.')
+
+flags.DEFINE_list(
+    'random_projection_camera_depth_range', [],
+    'CSV of 2-tuple depth limit (lower_limit, upper_limit) for performing '
+    'random camera positioning from 3D poses before projection for camera '
+    'augmentation.')
 
 flags.DEFINE_bool('profile_only', False,
                   'Whether to profile the training graph and exit.')
@@ -473,6 +479,9 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
       'random_projection_roll_range': [
           float(x) / 180.0 * math.pi for x in FLAGS.random_projection_roll_range
       ],
+      'random_projection_camera_depth_range': [
+          float(x) for x in FLAGS.random_projection_camera_depth_range
+      ],
   }
 
   if FLAGS.keypoint_distance_type == common_module.KEYPOINT_DISTANCE_TYPE_MPJPE:
@@ -568,7 +577,9 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
             keypoint_profile_3d=configs['keypoint_profile_3d'],
             azimuth_range=configs['random_projection_azimuth_range'],
             elevation_range=configs['random_projection_elevation_range'],
-            roll_range=configs['random_projection_roll_range'])
+            roll_range=configs['random_projection_roll_range'],
+            normalized_camera_depth_range=(
+                configs['random_projection_camera_depth_range']))
         data_utils.merge_dict(side_inputs, inputs)
         return inputs
 

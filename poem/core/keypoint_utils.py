@@ -597,7 +597,7 @@ def randomly_rotate_and_project_3d_to_2d(keypoints_3d,
                                          azimuth_range,
                                          elevation_range,
                                          roll_range,
-                                         default_camera_z,
+                                         normalized_camera_depth_range,
                                          sequential_inputs=False,
                                          seed=None):
   """Randomly rotates and projects 3D keypoints to 2D.
@@ -615,7 +615,8 @@ def randomly_rotate_and_project_3d_to_2d(keypoints_3d,
       randomly rotate 3D keypoints with.
     roll_range: A tuple for minimum and maximum roll angles to randomly rotate
       3D keypoints with.
-    default_camera_z: A float for depth of default camera position.
+    normalized_camera_depth_range: A tuple for minimum and maximum normalized
+      camera depth for random camera augmentation.
     sequential_inputs: A boolean flag indicating whether the inputs are
       sequential. If True, the input keypoints are supposed to be in shape [...,
       sequence_length, num_keypoints, 3].
@@ -633,15 +634,41 @@ def randomly_rotate_and_project_3d_to_2d(keypoints_3d,
       sequential_inputs=sequential_inputs,
       seed=seed)
 
-  # Transform to default camera.
+  # Transform to default camera coordinate.
   default_rotation_to_camera = tf.constant([
       [0.0, 0.0, -1.0],
       [-1.0, 0.0, 0.0],
       [0.0, 1.0, 0.0],
   ])
-  default_center = tf.constant([0.0, 0.0, default_camera_z])
   operator = tf.linalg.LinearOperatorFullMatrix(default_rotation_to_camera)
-  keypoints_3d = operator.matvec(keypoints_3d) + default_center
+  keypoints_3d = operator.matvec(keypoints_3d)
+
+  # Move to default depth.
+  if sequential_inputs:
+    # Currently we only support sequence-level const depth.
+    # TODO(liuti): Support varying depth for a sequence.
+    normalized_camera_depths = tf.random.uniform(
+        tf.shape(keypoints_3d)[:-3],
+        minval=normalized_camera_depth_range[0],
+        maxval=normalized_camera_depth_range[1],
+        seed=seed)
+    normalized_camera_depths = data_utils.recursively_expand_dims(
+        normalized_camera_depths, axes=[-1, -1])
+  else:
+    normalized_camera_depths = tf.random.uniform(
+        tf.shape(keypoints_3d)[:-2],
+        minval=normalized_camera_depth_range[0],
+        maxval=normalized_camera_depth_range[1],
+        seed=seed)
+    normalized_camera_depths = tf.expand_dims(normalized_camera_depths, axis=-1)
+
+  default_centers = tf.stack([
+      tf.zeros_like(normalized_camera_depths),
+      tf.zeros_like(normalized_camera_depths),
+      normalized_camera_depths,
+  ],
+                             axis=-1)
+  keypoints_3d += default_centers
 
   # Project to 2D.
   return keypoints_3d[Ellipsis, :-1] / tf.math.maximum(1e-12, keypoints_3d[Ellipsis, -1:])
@@ -653,7 +680,7 @@ def randomly_project_and_select_keypoints(keypoints_3d,
                                           azimuth_range,
                                           elevation_range,
                                           roll_range,
-                                          default_camera_z,
+                                          normalized_camera_depth_range,
                                           keypoint_masks_3d=None,
                                           normalize_before_projection=True,
                                           sequential_inputs=False,
@@ -679,14 +706,15 @@ def randomly_project_and_select_keypoints(keypoints_3d,
       randomly rotate 3D keypoints with.
     roll_range: A tuple for minimum and maximum roll angles to randomly rotate
       3D keypoints with.
-    default_camera_z: A float for depth of default camera position.
+    normalized_camera_depth_range: A tuple for minimum and maximum normalized
+      camera depth for random camera augmentation.
     keypoint_masks_3d: A tensor for input 3D keypoint masks. Shape = [...,
       num_keypoints_3d]. Ignored if None.
     normalize_before_projection: A boolean for whether to normalize 3D poses
       before projection.
     sequential_inputs: A boolean flag indicating whether the inputs are
-      sequential, if true, the input keypoints are supposed to be in shape
-      [..., sequence_length, num_keypoints, 3].
+      sequential, if true, the input keypoints are supposed to be in shape [...,
+      sequence_length, num_keypoints, 3].
     seed: An integer for random seed.
 
   Returns:
@@ -717,7 +745,7 @@ def randomly_project_and_select_keypoints(keypoints_3d,
       azimuth_range=azimuth_range,
       elevation_range=elevation_range,
       roll_range=roll_range,
-      default_camera_z=default_camera_z,
+      normalized_camera_depth_range=normalized_camera_depth_range,
       sequential_inputs=sequential_inputs,
       seed=seed)
   return keypoints_2d, keypoint_masks_2d

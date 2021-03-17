@@ -65,6 +65,7 @@ def preprocess_keypoints_2d(keypoints_2d,
                             azimuth_range=(-math.pi, math.pi),
                             elevation_range=(-math.pi / 6.0, math.pi / 6.0),
                             roll_range=(-math.pi / 6.0, math.pi / 6.0),
+                            normalized_camera_depth_range=(),
                             projection_mix_batch_assignment=None,
                             sequential_inputs=False,
                             seed=None):
@@ -91,6 +92,9 @@ def preprocess_keypoints_2d(keypoints_2d,
       randomly rotate 3D keypoints with.
     roll_range: A tuple for minimum and maximum roll angles to randomly rotate
       3D keypoints with.
+    normalized_camera_depth_range: A tuple for minimum and maximum normalized
+      camera depth for random camera augmentation. If empty, uses constant depth
+      as 1 over the 2D pose normalization scale unit.
     projection_mix_batch_assignment: A tensor for assignment indicator matrix
       for mixing batches of input/projection keypoints. Shape = [batch_size,
       ..., num_instances]. If None, input/projection keypoints are mixed roughly
@@ -114,6 +118,10 @@ def preprocess_keypoints_2d(keypoints_2d,
       common.MODEL_INPUT_KEYPOINT_TYPE_3D_PROJECTION):
     if keypoints_3d is None:
       raise ValueError('3D keypoints are not specified for random projection.')
+
+    if not normalized_camera_depth_range:
+      normalized_camera_depth_range = (1.0 / keypoint_profile_2d.scale_unit,
+                                       1.0 / keypoint_profile_2d.scale_unit)
     keypoints_2d, _ = keypoint_utils.randomly_project_and_select_keypoints(
         keypoints_3d,
         keypoint_profile_3d=keypoint_profile_3d,
@@ -123,7 +131,7 @@ def preprocess_keypoints_2d(keypoints_2d,
         azimuth_range=azimuth_range,
         elevation_range=elevation_range,
         roll_range=roll_range,
-        default_camera_z=1.0 / keypoint_profile_2d.scale_unit,
+        normalized_camera_depth_range=normalized_camera_depth_range,
         sequential_inputs=sequential_inputs,
         seed=seed)
     keypoint_masks_2d = tf.ones(tf.shape(keypoints_2d)[:-1], dtype=tf.float32)
@@ -132,6 +140,10 @@ def preprocess_keypoints_2d(keypoints_2d,
         common.MODEL_INPUT_KEYPOINT_TYPE_2D_INPUT_AND_3D_PROJECTION):
     if keypoints_3d is None:
       raise ValueError('3D keypoints are not specified for random projection.')
+
+    if not normalized_camera_depth_range:
+      normalized_camera_depth_range = (1.0 / keypoint_profile_2d.scale_unit,
+                                       1.0 / keypoint_profile_2d.scale_unit)
     projected_keypoints_2d, _ = (
         keypoint_utils.randomly_project_and_select_keypoints(
             keypoints_3d,
@@ -142,11 +154,12 @@ def preprocess_keypoints_2d(keypoints_2d,
             azimuth_range=azimuth_range,
             elevation_range=elevation_range,
             roll_range=roll_range,
-            default_camera_z=1.0 / keypoint_profile_2d.scale_unit,
+            normalized_camera_depth_range=normalized_camera_depth_range,
             sequential_inputs=sequential_inputs,
             seed=seed))
     projected_keypoint_masks_2d = tf.ones(
         tf.shape(projected_keypoints_2d)[:-1], dtype=tf.float32)
+
     keypoints_2d, keypoint_masks_2d = data_utils.mix_batch(
         [keypoints_2d, keypoint_masks_2d],
         [projected_keypoints_2d, projected_keypoint_masks_2d],
@@ -171,6 +184,7 @@ def create_model_input(keypoints_2d,
                        azimuth_range=(-math.pi, math.pi),
                        elevation_range=(-math.pi / 6.0, math.pi / 6.0),
                        roll_range=(-math.pi / 6.0, math.pi / 6.0),
+                       normalized_camera_depth_range=(),
                        sequential_inputs=False,
                        seed=None):
   """Creates model input features from input keypoints.
@@ -197,6 +211,9 @@ def create_model_input(keypoints_2d,
       randomly rotate 3D keypoints with.
     roll_range: A tuple for minimum and maximum roll angles to randomly rotate
       3D keypoints with.
+    normalized_camera_depth_range: A tuple for minimum and maximum normalized
+      camera depth for random camera augmentation. If empty, uses constant depth
+      as 1 over the 2D pose normalization scale unit.
     sequential_inputs: A boolean flag indicating whether the inputs are
       sequential. If True, the input keypoints are supposed to be in shape
       [..., sequence_length, num_keypoints, keypoint_dim].
@@ -223,6 +240,7 @@ def create_model_input(keypoints_2d,
           azimuth_range=azimuth_range,
           elevation_range=elevation_range,
           roll_range=roll_range,
+          normalized_camera_depth_range=normalized_camera_depth_range,
           sequential_inputs=sequential_inputs,
           seed=seed))
 

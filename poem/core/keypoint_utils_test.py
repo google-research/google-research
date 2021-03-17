@@ -466,7 +466,7 @@ class KeypointUtilsTest(tf.test.TestCase):
         azimuth_range=(math.pi / 2.0, math.pi / 2.0),
         elevation_range=(-math.pi / 2.0, -math.pi / 2.0),
         roll_range=(math.pi, math.pi),
-        default_camera_z=2.0)
+        normalized_camera_depth_range=(2.0, 2.0))
     self.assertAllClose(
         keypoints_2d,
         [[[-1.0 / 4.0, -3.0 / 4.0], [-4.0 / 7.0, -6.0 / 7.0]],
@@ -485,7 +485,7 @@ class KeypointUtilsTest(tf.test.TestCase):
         azimuth_range=(math.pi / 2.0, math.pi / 2.0),
         elevation_range=(-math.pi / 2.0, -math.pi / 2.0),
         roll_range=(math.pi, math.pi),
-        default_camera_z=2.0,
+        normalized_camera_depth_range=(2.0, 2.0),
         sequential_inputs=True)
     self.assertAllClose(
         keypoints_2d, [[[[-1.0 / 4.0, -3.0 / 4.0], [-4.0 / 7.0, -6.0 / 7.0]],
@@ -524,7 +524,7 @@ class KeypointUtilsTest(tf.test.TestCase):
         azimuth_range=(math.pi / 2.0, math.pi / 2.0),
         elevation_range=(-math.pi / 2.0, -math.pi / 2.0),
         roll_range=(math.pi, math.pi),
-        default_camera_z=2.0,
+        normalized_camera_depth_range=(2.0, 2.0),
         normalize_before_projection=False)
     self.assertAllClose(
         keypoints_2d,
