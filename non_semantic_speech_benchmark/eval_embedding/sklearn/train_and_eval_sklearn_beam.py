@@ -65,6 +65,7 @@ def format_text_line(k_v):
       f'Speaker normalization: {p["speaker_id_name"] is not None}',
       '\n'
   ])
+  logging.info('Finished formatting: %s', cur_elem)
   return cur_elem
 
 
