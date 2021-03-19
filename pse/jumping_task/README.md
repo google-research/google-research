@@ -1,5 +1,5 @@
 Code for the jumping task experiments in [Contrastive behavioral similarity embeddings
-for generalization in reinforcement learning](https://agarwl.github.io/pse/), published in ICLR 2021.
+for generalization in reinforcement learning](https://agarwl.github.io/pse/), published at ICLR 2021.
 
 <img src="https://i.imgur.com/3uY9ZXK.png" width="95%" alt="Jumping Task" >
 
