@@ -145,8 +145,16 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     if self._sample_rate_key:
       if self._sample_rate_key not in ex.features.feature:
         raise ValueError(f'Sample rate key not found: {self._sample_rate_key}')
-      sample_rate = ex.features.feature[
-          self._sample_rate_key].int64_list.value[0]
+      sr_feat = ex.features.feature[self._sample_rate_key]
+      # Use `sample_rate` in `float_list` or `int64_list`. Either way, convert
+      # to an integer for downstream use.
+      if not len(sr_feat.float_list.value) ^ len(sr_feat.int64_list.value):
+        raise ValueError(
+            f'Expected exactly one of `float_list` and `int64_list`: {sr_feat}')
+      if sr_feat.float_list.value:
+        sample_rate = int(sr_feat.float_list.value[0])
+      else:
+        sample_rate = sr_feat.int64_list.value[0]
     else:
       if not self._sample_rate:
         raise ValueError('If `sample_rate_key` not provided, must provide '
