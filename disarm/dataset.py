@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Dataset for ARM++ experiments."""
+# Lint as: python3
+"""Dataset for DisARM experiments."""
 import scipy.io
 import tensorflow as tf
 import tensorflow_datasets as tfds
@@ -25,6 +26,34 @@ tfd = tfp.distributions
 
 default_omniglot_url = (
     "https://github.com/yburda/iwae/raw/master/datasets/OMNIGLOT/chardata.mat")
+
+
+def get_binarized_mnist_batch(batch_size):
+  """Get MNIST that is binarized by tf.cast(x > .5, tf.float32)."""
+  def _preprocess(x):
+    return tf.cast(
+        (tf.cast(x["image"], tf.float32) / 255.) > 0.5,
+        tf.float32)
+
+  train, valid, test = tfds.load(
+      "mnist:3.*.*",
+      split=["train[:50000]", "train[50000:]", "test"],
+      shuffle_files=False)
+
+  train = (train.map(_preprocess)
+           .repeat()
+           .shuffle(1024)
+           .batch(batch_size)
+           .prefetch(tf.data.experimental.AUTOTUNE))
+  valid = (valid.map(_preprocess)
+           .shuffle(1024)
+           .batch(batch_size)
+           .prefetch(tf.data.experimental.AUTOTUNE))
+  test = (test.map(_preprocess)
+          .shuffle(1024)
+          .batch(batch_size)
+          .prefetch(tf.data.experimental.AUTOTUNE))
+  return train, valid, test
 
 
 def get_dynamic_mnist_batch(batch_size, fashion_mnist=False):
@@ -122,6 +151,3 @@ def get_mean_from_iterator(train_ds, batch_size, dataset_size):
     batch_mean = tf.reduce_mean(current_batch, axis=0)
     mean_xs = (i * mean_xs + batch_mean)/(i+1)
   return mean_xs
-
-
-

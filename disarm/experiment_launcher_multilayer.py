@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Python binary for running the DisARM experiments."""
+# Lint as: python3
+"""Binary for the DisARM experiments on VAE with multiple stochastic layers."""
 
 import os
 
@@ -21,16 +22,17 @@ from absl import app
 from absl import flags
 from absl import logging
 
-import dataset
-import networks
 import tensorflow as tf
 import tensorflow_probability as tfp
+from disarm import dataset
+from disarm import networks
 
 tfd = tfp.distributions
 
 layers = tf.keras.layers
 
-flags.DEFINE_enum('dataset', 'static_mnist',
+
+flags.DEFINE_enum('dataset', 'dynamic_mnist',
                   ['static_mnist', 'dynamic_mnist',
                    'fashion_mnist', 'omniglot'],
                   'Dataset to use.')
@@ -41,30 +43,18 @@ flags.DEFINE_float('infnet_lr', 1e-4,
 flags.DEFINE_float('prior_lr', 1e-2,
                    'Learning rate for prior variables.')
 flags.DEFINE_integer('batch_size', 50, 'Training batch size.')
-flags.DEFINE_integer('num_pairs', 1,
-                     ('Number of samples pairs used gradient estimators.'
-                      'For VIMCO, there are 2 x num_pairs independent '
-                      'samples. For ARM++, there are num_pairs of '
-                      'antithetic pairs.'))
 flags.DEFINE_integer('num_steps', int(1e6), 'Number of training steps.')
-flags.DEFINE_string('encoder_type', 'linear',
-                    'Choice supported: linear, nonlinear')
-flags.DEFINE_string('grad_type', 'arm',
-                    'Choice supported: arm, disarm, reinforce')
+flags.DEFINE_enum('grad_type', 'disarm',
+                  ['arm', 'disarm', 'reinforce_loo', 'relax'],
+                  'Choice of gradient estimator.')
 flags.DEFINE_string('logdir', '/tmp/disarm',
                     'Directory for storing logs.')
 flags.DEFINE_bool('verbose', False,
                   'Whether to turn on training result logging.')
-flags.DEFINE_integer('repeat_idx', 0,
-                     'Dummy flag to label the experiments in repeats.')
-flags.DEFINE_bool('half_p_trick', False, 'Enforce the p range is [0., 0.5]')
-flags.DEFINE_float('epsilon', 0.,
-                   'Additive float to prevent numerical underflow in log(x).')
 flags.DEFINE_float('temperature', None,
                    'Temperature for RELAX estimator.')
 flags.DEFINE_float('scaling_factor', None,
                    'Scaling factor for RELAX estimator.')
-flags.DEFINE_bool('eager', False, 'Enable eager execution.')
 flags.DEFINE_bool('bias_check', False,
                   'Carry out bias check for RELAX and baseline')
 flags.DEFINE_bool('demean_input', False,
@@ -73,16 +63,14 @@ flags.DEFINE_bool('initialize_with_bias', False,
                   'Initialize the final layer bias of decoder '
                   'with dataset mean.')
 flags.DEFINE_integer('seed', 1, 'Global random seed.')
-flags.DEFINE_bool('symmetrized', False,
-                  'Symmetrize the training objective for b and b_tilde.')
 flags.DEFINE_bool('estimate_grad_basket', False,
                   'Estimate gradients for multiple estimators.')
-flags.DEFINE_integer('num_eval_samples', None,
-                     'Number of samples for evaluation, default to None, '
-                     'when the num_pairs will be used.')
-flags.DEFINE_integer('num_train_samples', None,
-                     'Number of samples for evaluation, default to None, '
-                     'when the num_pairs will be used.')
+flags.DEFINE_integer('num_eval_samples', 100,
+                     'Number of samples for evaluation')
+flags.DEFINE_integer('num_train_samples', 1,
+                     'Number of samples for evaluation')
+flags.DEFINE_bool('shared_randomness', False,
+                  'Whether to use shared randomness in multilayer setting.')
 flags.DEFINE_bool('debug', False, 'Turn on debugging mode.')
 FLAGS = flags.FLAGS
 
@@ -97,40 +85,12 @@ def initialize_grad_variables(target_variable_list):
   return [tf.Variable(tf.zeros(shape=i.shape)) for i in target_variable_list]
 
 
-def estimate_gradients(input_batch, bvae_model, gradient_type, sample_size=1):
+def estimate_gradients(input_batch, bvae_model, gradient_type):
   """Estimate gradient for inference and generation networks."""
-  if gradient_type == 'vimco':
-    with tf.GradientTape(persistent=True) as tape:
-      genmo_loss, infnet_loss = bvae_model.get_vimco_losses(
-          input_batch, sample_size)
-
-    genmo_grads = tape.gradient(genmo_loss, bvae_model.decoder_vars)
-    prior_grads = tape.gradient(genmo_loss, bvae_model.prior_vars)
-    infnet_grads = tape.gradient(infnet_loss, bvae_model.encoder_vars)
-
-  elif gradient_type == 'local-disarm':
-    # num_samples indicates the number of antithetic pairs
-    with tf.GradientTape(persistent=True) as tape:
-      genmo_loss, infnet_loss = (
-          bvae_model.get_local_disarm_losses(input_batch, sample_size,
-                                             symmetrized=FLAGS.symmetrized))
-
-    genmo_grads = tape.gradient(genmo_loss, bvae_model.decoder_vars)
-    prior_grads = tape.gradient(genmo_loss, bvae_model.prior_vars)
-
-    infnet_vars = bvae_model.encoder_vars
-    infnet_grads_1 = tape.gradient(genmo_loss, infnet_vars)
-    infnet_grads_2 = tape.gradient(infnet_loss, infnet_vars)
-    # infnet_grads_1/2 are list of tf.Tensors.
-    infnet_grads = [infnet_grads_1[i] + infnet_grads_2[i]
-                    for i in range(len(infnet_vars))]
-
-  elif gradient_type == 'relax':
-    if sample_size > 1:
-      raise ValueError('Relax only supports 1 sample case.')
+  if gradient_type == 'relax':
     with tf.GradientTape(persistent=True) as tape:
       genmo_loss, reparam_loss, learning_signal, log_q = (
-          bvae_model.get_relax_loss(
+          bvae_model.get_multilayer_relax_loss(
               input_batch,
               temperature=FLAGS.temperature,
               scaling_factor=FLAGS.scaling_factor))
@@ -138,32 +98,38 @@ def estimate_gradients(input_batch, bvae_model, gradient_type, sample_size=1):
     genmo_grads = tape.gradient(genmo_loss, bvae_model.decoder_vars)
     prior_grads = tape.gradient(genmo_loss, bvae_model.prior_vars)
 
-    infnet_vars = bvae_model.encoder_vars
-    infnet_grads_1 = tape.gradient(log_q, infnet_vars,
-                                   output_gradients=learning_signal)
-    infnet_grads_2 = tape.gradient(reparam_loss, infnet_vars)
-    # infnet_grads_1/2 are list of tf.Tensors.
-    infnet_grads = [infnet_grads_1[i] + infnet_grads_2[i]
-                    for i in range(len(infnet_vars))]
+    infnet_grads = []
+    for i in range(len(bvae_model.encoder_list)):
+      log_q_i = log_q[i]
+      learning_signal_i = learning_signal[i]
+      reparam_loss_i = reparam_loss[i]
 
-  elif gradient_type == 'multisample':
-    with tf.GradientTape(persistent=True) as tape:
-      genmo_loss, infnet_loss = bvae_model.get_multisample_baseline_loss(
-          input_batch, sample_size)
-    genmo_grads = tape.gradient(genmo_loss, bvae_model.decoder_vars)
-    prior_grads = tape.gradient(genmo_loss, bvae_model.prior_vars)
-    infnet_grads = tape.gradient(infnet_loss, bvae_model.encoder_vars)
+      infnet_vars_i = bvae_model.encoder_list[i].trainable_variables
+      infnet_grads_1_i = tape.gradient(log_q_i, infnet_vars_i,
+                                       output_gradients=learning_signal_i)
+      infnet_grads_2_i = tape.gradient(reparam_loss_i, infnet_vars_i)
+      # infnet_grads_1/2 are list of tf.Tensors.
+      infnet_grads_i = [infnet_grads_1_i[j] + infnet_grads_2_i[j]
+                        for j in range(len(infnet_vars_i))]
+      infnet_grads.extend(infnet_grads_i)
 
   else:
     with tf.GradientTape(persistent=True) as tape:
-      elbo, _, infnet_logits, _ = bvae_model(input_batch)
+      elbo, sample_list, infnet_logits, _ = bvae_model(input_batch)
       genmo_loss = -1. * tf.reduce_mean(elbo)
 
     genmo_grads = tape.gradient(genmo_loss, bvae_model.decoder_vars)
     prior_grads = tape.gradient(genmo_loss, bvae_model.prior_vars)
 
-    infnet_grad_multiplier = -1. * bvae_model.get_layer_grad_estimation(
-        input_batch)
+    batched_infnet_grad = []
+    uniform_sample_list = bvae_model.get_multilayer_uniform_sample(
+        batch_shape=input_batch.shape[:1])
+    for l in range(bvae_model.num_layers):
+      grad_layer_l = bvae_model.get_multilayer_grad_estimation(
+          sample_list, uniform_sample_list,
+          grad_type=gradient_type, start_layer=l)
+      batched_infnet_grad.append(grad_layer_l)
+    infnet_grad_multiplier = -1. * tf.concat(batched_infnet_grad, axis=-1)
     infnet_grads = tape.gradient(
         infnet_logits,
         bvae_model.encoder_vars,
@@ -188,15 +154,11 @@ def train_one_step(
   """Train Discrete VAE for 1 step."""
   metrics = {}
   input_batch = process_batch_input(train_batch_i)
-  if FLAGS.grad_type in ['vimco', 'multisample']:
-    num_samples = FLAGS.num_pairs * 2
-  else:
-    num_samples = FLAGS.num_pairs
 
   if FLAGS.grad_type == 'relax':
     with tf.GradientTape(persistent=True) as theta_tape:
       (genmo_grads, prior_grads, infnet_grads, genmo_loss) = estimate_gradients(
-          input_batch, bvae_model, FLAGS.grad_type, num_samples)
+          input_batch, bvae_model, FLAGS.grad_type)
 
       # Update generative model
       genmo_vars = bvae_model.decoder_vars
@@ -224,7 +186,7 @@ def train_one_step(
 
   else:
     (genmo_grads, prior_grads, infnet_grads, genmo_loss) = estimate_gradients(
-        input_batch, bvae_model, FLAGS.grad_type, num_samples)
+        input_batch, bvae_model, FLAGS.grad_type)
 
     genmo_vars = bvae_model.decoder_vars
     genmo_optimizer.apply_gradients(list(zip(genmo_grads, genmo_vars)))
@@ -243,13 +205,8 @@ def train_one_step(
   if grad_variable_dict is not None:
     variance_dict = dict()
     for k in grad_variable_dict.keys():
-      if k in  ['vimco', 'local-disarm']:
-        sample_size = 2 * FLAGS.num_pairs
-      else:
-        sample_size = 1
       encoder_grads = estimate_gradients(
-          input_batch, bvae_model,
-          gradient_type=k, sample_size=sample_size)[2]
+          input_batch, bvae_model, gradient_type=k)[2]
       variance_dict['var/' + k] = bvae_model.compute_grad_variance(
           grad_variable_dict[k], grad_sq_variable_dict[k],
           encoder_grads) / batch_size_sq
@@ -266,10 +223,9 @@ def evaluate(model, tf_dataset, max_step=1000, num_eval_samples=None):
     num_samples = num_eval_samples
   elif FLAGS.num_eval_samples:
     num_samples = FLAGS.num_eval_samples
-  elif FLAGS.grad_type in ['vimco', 'local-disarm']:
-    num_samples = FLAGS.num_pairs * 2
   else:
-    num_samples = FLAGS.num_pairs
+    num_samples = 1
+  tf.print('Evaluate with samples: ', num_samples)
   loss = 0.
   n = 0.
   for batch in tf_dataset.map(process_batch_input):
@@ -313,16 +269,15 @@ def run_bias_check(model, batch, target_type, baseline_type):
 def run_bias_check_step(
     train_batch_i,
     bvae_model,
-    target_type='local-disarm',
-    baseline_type='vimco'):
+    target_type='disarm',
+    baseline_type='reinforce_loo'):
   """Run bias check for 1 batch."""
   input_batch = process_batch_input(train_batch_i)
-  sample_size = FLAGS.num_pairs
 
   infnet_grads = estimate_gradients(
-      input_batch, bvae_model, target_type, sample_size)[2]
+      input_batch, bvae_model, target_type)[2]
   baseline_infnet_grads = estimate_gradients(
-      input_batch, bvae_model, baseline_type, sample_size)[2]
+      input_batch, bvae_model, baseline_type)[2]
 
   diff = tf.concat([tf.reshape(x - y, [-1])
                     for x, y in zip(infnet_grads, baseline_infnet_grads)],
@@ -331,16 +286,11 @@ def run_bias_check_step(
 
 
 def main(_):
-
   tf.random.set_seed(FLAGS.seed)
 
   logdir = FLAGS.logdir
 
-  if not os.path.exists(logdir):
-    os.makedirs(logdir)
-
-  if FLAGS.eager:
-    tf.config.experimental_run_functions_eagerly(FLAGS.eager)
+  os.makedirs(logdir, exist_ok=True)
 
   genmo_lr = tf.constant(FLAGS.genmo_lr)
   infnet_lr = tf.constant(FLAGS.infnet_lr)
@@ -374,62 +324,71 @@ def main(_):
 
   if FLAGS.initialize_with_bias:
     bias_value = -tf.math.log(
-        1./tf.clip_by_value(train_ds_mean, 0.001, 0.999) - 1.).numpy()
+        1./tf.clip_by_value(train_ds_mean, 0.001, 0.999) - 1.)
     bias_initializer = tf.keras.initializers.Constant(bias_value)
   else:
     bias_initializer = 'zeros'
 
-  if FLAGS.encoder_type == 'linear':
-    encoder_hidden_sizes = [200]
-    encoder_activations = ['linear']
-    decoder_hidden_sizes = [784]
-    decoder_activations = ['linear']
-  elif FLAGS.encoder_type == 'nonlinear':
-    encoder_hidden_sizes = [200, 200, 200]
-    encoder_activations = [
-        layers.LeakyReLU(alpha=0.3),
-        layers.LeakyReLU(alpha=0.3),
-        'linear']
-    decoder_hidden_sizes = [200, 200, 784]
-    decoder_activations = [
-        layers.LeakyReLU(alpha=0.3),
-        layers.LeakyReLU(alpha=0.3),
-        'linear']
-  else:
-    raise NotImplementedError
-
-  encoder = networks.BinaryNetwork(
-      encoder_hidden_sizes,
-      encoder_activations,
-      mean_xs=train_ds_mean,
-      demean_input=FLAGS.demean_input,
-      name='bvae_encoder')
-  decoder = networks.BinaryNetwork(
-      decoder_hidden_sizes,
-      decoder_activations,
-      demean_input=FLAGS.demean_input,
-      final_layer_bias_initializer=bias_initializer,
-      name='bvae_decoder')
+  encoder = [
+      networks.BinaryNetwork(
+          [200],
+          ['linear'],
+          mean_xs=train_ds_mean,
+          demean_input=FLAGS.demean_input,
+          name='bvae_encoder1'),
+      networks.BinaryNetwork(
+          [200],
+          ['linear'],
+          name='bvae_encoder2'),
+      networks.BinaryNetwork(
+          [200],
+          ['linear'],
+          name='bvae_encoder3'),
+      networks.BinaryNetwork(
+          [200],
+          ['linear'],
+          name='bvae_encoder4')]
+  decoder = [
+      networks.BinaryNetwork(
+          [200],
+          ['linear'],
+          name='bvae_decoder1'),
+      networks.BinaryNetwork(
+          [200],
+          ['linear'],
+          name='bvae_decoder2'),
+      networks.BinaryNetwork(
+          [200],
+          ['linear'],
+          name='bvae_decoder3'),
+      networks.BinaryNetwork(
+          [784],
+          ['linear'],
+          demean_input=FLAGS.demean_input,
+          final_layer_bias_initializer=bias_initializer,
+          name='bvae_decoder4')]
 
   prior_logit = tf.Variable(tf.zeros([200], tf.float32))
 
   if FLAGS.grad_type == 'relax':
-    control_network = tf.keras.Sequential()
-    control_network.add(
-        layers.Dense(137, activation=layers.LeakyReLU(alpha=0.3)))
-    control_network.add(
-        layers.Dense(1))
+    control_network = []
+    for _ in range(len(encoder)):
+      control_network_i = tf.keras.Sequential()
+      control_network_i.add(
+          layers.Dense(137, activation=layers.LeakyReLU(alpha=0.3)))
+      control_network_i.add(
+          layers.Dense(1))
+      control_network.append(control_network_i)
   else:
     control_network = None
 
-  bvae_model = networks.SingleLayerDiscreteVAE(
+  bvae_model = networks.DiscreteVAE(
       encoder,
       decoder,
       prior_logit,
       grad_type=FLAGS.grad_type,
-      half_p_trick=FLAGS.half_p_trick,
-      epsilon=FLAGS.epsilon,
-      control_nn=control_network)
+      control_nn=control_network,
+      shared_randomness=FLAGS.shared_randomness)
 
   bvae_model.build(input_shape=(None, 784))
 
@@ -441,11 +400,8 @@ def main(_):
   encoder_grad_sq_variable = initialize_grad_variables(bvae_model.encoder_vars)
 
   if FLAGS.estimate_grad_basket:
-    if FLAGS.grad_type in ['vimco', 'local-disarm']:
-      grad_basket = ['vimco', 'local-disarm']
-    elif FLAGS.grad_type == 'reinforce_loo_baseline':
-      grad_basket = ['reinforce_loo_baseline', 'reinforce',
-                     'arm', 'armp', 'disarm', 'relax']
+    if FLAGS.grad_type == 'reinforce_loo':
+      grad_basket = ['arm', 'disarm', 'reinforce_loo', 'relax']
     else:
       raise NotImplementedError
 
@@ -545,12 +501,10 @@ def main(_):
                    step_i, ckpt_save_path)
 
   if FLAGS.bias_check:
-    if FLAGS.grad_type == 'local-disarm':
-      baseline_type = 'vimco'
-    elif FLAGS.grad_type == 'vimco':
-      baseline_type = 'multisample'
+    if FLAGS.grad_type == 'reinforce_loo':
+      baseline_type = 'disarm'
     else:
-      baseline_type = 'reinforce_loo_baseline'
+      baseline_type = 'reinforce_loo'
     run_bias_check(bvae_model,
                    train_iter.next(),
                    FLAGS.grad_type,
