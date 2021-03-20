@@ -176,9 +176,9 @@ class ComputeEmbeddingMapFn(beam.DoFn):
         raise ValueError(f'Expected ndarray, got {type(model_input)}')
       if model_input.dtype != np.float32:
         raise ValueError(f'Should be float32, was: {model_input.dtype}')
-      logging.info('Audio shape is now: %s', model_input.shape)
     else:
       model_input = audio
+    logging.info('`model_input` shape is: %s', model_input.shape)
 
     # Calculate the 2D embedding.
     if self._use_tflite:
