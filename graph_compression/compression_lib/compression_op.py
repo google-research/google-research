@@ -1914,6 +1914,8 @@ class ApplyCompression(object):
          weight_init_obj,
          scope=scope)
     self._update_ops.append(a_matrix_update_op)
+    if compression_op_spec.compression_option == 9:
+      self._update_ops = []
 
     self.uncompressed_size = self.uncompressed_size + c.uncompressed_size
     self.compressed_size = self.compressed_size + c.compressed_size
@@ -1985,6 +1987,8 @@ class ApplyCompression(object):
 
   def all_update_op(self):
     """Returns the combine update tf OP."""
+    if self._compression_op_spec.compression_option == 9:
+      self._update_ops = []
     self._all_update_op = CompressionOp.all_update_op(self._update_ops,
                                                       self._scope)
     return self._all_update_op
