@@ -1468,6 +1468,339 @@ class InputOutputCompressionOp(CompressionOp):
     return compressed_result
 
 
+class BlockCompressionOp(CompressionOp):
+  """Implements a block diagonal compression OP.
+
+  Replaces the weight matrix with a block-diagonal matrix. This produces an
+  effect similar to input/output compression but without the need to reshape
+  the input vector.
+
+
+  block_method: string.
+    "mask" creates block diagonal matrices by masking out entries outside of the
+    diagonal blocks.
+    "loop" stores the blocks in a rank 3 tensor and loops through them during
+    the multiplication step.
+  block_compression_factor: integer.
+    Factor by which number of (non-zero) parameters in weight matrix is reduced
+    by.
+  """
+
+  @staticmethod
+  def get_default_hparams():
+    """Get a tf.HParams object with the default values for the hyperparameters.
+
+      name: string
+        name of the compression specification. Used for adding summaries and ops
+        under a common tensorflow name_scope.
+      use_tpu: False
+        indicates whether to use TPU.
+      compression_option: integer
+        indicates what type of factorization (if any) is used.
+      rank: integer
+        indicates what type of factorization (if any) is used.
+      update_option: integer
+        indicates how the update logic is being run. More specifically:
+        0 - run the update logic in TF; needed when using GPU/TPU.
+        1 - run the update logic in regular python as opposed to TF.
+        2 - run the update logic in TF and in regular python.
+      TODO(wanxin): add doc strings for pruning hparams.
+
+    Returns:
+      tf.HParams object initialized to default values.
+
+    """
+    return contrib_hparam.HParams(
+        name='block_compression',
+        compression_frequency=10,
+        use_tpu=False,
+        compression_option=10,
+        begin_compression_step=1000,
+        end_compression_step=2000,
+        is_c_matrix_trainable=True,
+        compress_input=False,
+        compress_output=False,
+        input_compression_factor=1,
+        output_compression_factor=1,
+        block_compression_factor=1,
+        block_method='loop')
+
+  def add_compression_summaries(self):
+    """Adds summaries."""
+    with tf.name_scope(self._spec.name + '_summaries'):
+      logging.info('add_compression_summaries scope name is %s',
+                   self._spec.name)
+      tf.summary.scalar(self.a_matrix_tfvar.op.name + '/a_matrix_norm',
+                        tf.norm(self.a_matrix_tfvar))
+      tf.summary.scalar(self.c_matrix_tfvar.op.name + '/c_matrix_norm',
+                        tf.norm(self.c_matrix_tfvar))
+
+  # Overriding this function from CompressionOp since last_alpha_update_step is
+  # not needed for BlockCompressionOp.
+  def _setup_last_alpha_update_step(self):
+    return -1
+
+  def get_apply_compression_op(self,
+                               a_matrix_tfvar,
+                               matrix_compressor,
+                               scope='default_scope'):
+    """Returns compressed tensorflow operator for block diagonal compression.
+
+    Args:
+      a_matrix_tfvar: TF variable representihg a tensor variable in a model
+      matrix_compressor: MatrixCompressorInferface object to specify the
+        compression algorithm. Must return two matrices b_matrix,c_matrix in its
+        compression.
+      scope: TF scope used for creating new TF variables
+
+    Returns:
+      A TF node that has the compressed version of a_matrix_tfvar.
+    """
+    self.matrix_compressor = matrix_compressor
+    if self._spec.block_method == 'mask':
+      # create c_matrix
+      c_limit = np.sqrt(3.0 * (1 / np.max(
+          [1., (a_matrix_tfvar.shape[0] + a_matrix_tfvar.shape[1]) / 2.])))
+      c_matrix = np.random.uniform(-c_limit, c_limit, size=a_matrix_tfvar.shape)
+
+      # create block diagonal mask for c_matrix
+      num_blocks = self._spec.block_compression_factor
+      num_rows, num_cols = a_matrix_tfvar.shape.as_list()
+      r_block, c_block = num_rows // num_blocks, num_cols // num_blocks
+      c_mask = np.array([[
+          float(j // c_block == i // r_block) for j in range(num_cols)
+      ] for i in range(num_rows)])
+    elif self._spec.block_method == 'loop':
+      # create c_matrix, which is a rank 3 tensor
+      c_limit = np.sqrt(3.0 * (1 / np.max(
+          [1., (a_matrix_tfvar.shape[0] + a_matrix_tfvar.shape[1]) / 2.])))
+      num_blocks = self._spec.block_compression_factor
+      c_matrix_shape = [
+          num_blocks, a_matrix_tfvar.shape[0] // 2, a_matrix_tfvar.shape[1] // 2
+      ]
+      c_matrix = np.random.uniform(-c_limit, c_limit, size=c_matrix_shape)
+    # convert c_matrix and c_mask from numpy arrays to tf tensors
+    with tf.compat.v1.variable_scope(scope, use_resource=True):
+      self.c_matrix_tfvar = tf.compat.v1.get_variable(
+          'c_matrix',
+          dtype=tf.float32,
+          initializer=c_matrix.astype(np.float32),
+          trainable=self.matrix_compressor.get_spec().is_c_matrix_trainable)
+      self.a_matrix_tfvar = a_matrix_tfvar
+      if self._spec.block_method == 'mask':
+        self.c_mask_tfvar = tf.compat.v1.get_variable(
+            'c_mask',
+            dtype=tf.float32,
+            initializer=c_mask.astype(np.float32),
+            trainable=False)
+
+    # update_op and final_op not necessary for BlockCompressionOp.
+    self.update_op = tf.no_op()
+    self.final_op = tf.no_op()
+
+    self.add_compression_summaries()
+    return [self.final_op, self.update_op]
+
+  def get_customized_apply_compression_op(self,
+                                          a_matrix_tfvar,
+                                          matrix_compressor,
+                                          layer_obj,
+                                          weight_params_fn,
+                                          weight_init_obj,
+                                          scope='default_scope'):
+    """Returns compressed operator for block diagonal compression.
+
+    Args:
+      a_matrix_tfvar: TF variable representing a tensor variable in a model.
+      matrix_compressor: MatrixCompressorInferface object to specify the
+        compression algorithm. Must return two matrices b_matrix,c_matrix in its
+        compression.
+      layer_obj: a customized layer object that handles variable creation.
+      weight_params_fn: functional handle to create model parameters.
+      weight_init_obj: a weight initialization object.
+      scope: TF scope used for creating new TF variables.
+
+    Returns:
+      A TF node that has the compressed version of a_matrix_tfvar.
+    """
+    self.matrix_compressor = matrix_compressor
+    with tf.variable_scope(scope) as scope:
+      if self._spec.block_method == 'mask':
+        # c_matrix has same shape as a_matrix
+        c_matrix_pc = weight_params_fn(a_matrix_tfvar.shape,
+                                       weight_init_obj.Xavier(1.0),
+                                       layer_obj.params.dtype)
+        # create block diagonal mask for c_matrix
+        num_blocks = self._spec.block_compression_factor
+        num_rows, num_cols = a_matrix_tfvar.shape.as_list()
+        r_block, c_block = num_rows // num_blocks, num_cols // num_blocks
+        c_mask = np.array(
+            [[float(j // c_block == i // r_block)
+              for j in range(num_cols)]
+             for i in range(num_rows)])
+        c_mask_pc = weight_params_fn(a_matrix_tfvar.shape,
+                                     weight_init_obj.Constant(c_mask),
+                                     layer_obj.params.dtype)
+      elif self._spec.block_method == 'loop':
+        # c_matrix is a rank 3 tensor consisting of num_blocks blocks
+        num_blocks = self._spec.block_compression_factor
+        c_matrix_pc = weight_params_fn([
+            num_blocks, a_matrix_tfvar.shape[0] // num_blocks,
+            a_matrix_tfvar.shape[1] // num_blocks
+        ], weight_init_obj.Xavier(1.0), layer_obj.params.dtype)
+
+      # create the c_matrix and c_mask variables
+      layer_obj.CreateVariable(
+          'c_matrix_tfvar',
+          c_matrix_pc,
+          theta_fn=None,
+          trainable=self.matrix_compressor.get_spec().is_c_matrix_trainable)
+      if self._spec.block_method == 'mask':
+        layer_obj.CreateVariable(
+            'c_mask_tfvar', c_mask_pc, theta_fn=None, trainable=False)
+
+      self.c_matrix_tfvar = layer_obj.vars.c_matrix_tfvar
+      self.a_matrix_tfvar = a_matrix_tfvar
+      if self._spec.block_method == 'mask':
+        self.c_mask_tfvar = layer_obj.vars.c_mask_tfvar
+
+    self.final_op = tf.no_op()
+    self.add_compression_summaries()
+    self.update_op = tf.no_op()
+    return [self.final_op, self.update_op]
+
+  def run_update_step(self, session, step_number=None):
+    """Do nothing. alpha and compressor not used in block compression."""
+    logging.info('running run_update_step self._global_step is %s name is %s',
+                 self._global_step, self.a_matrix_tfvar.op.name)
+
+  def get_apply_matmul(self, left_operand):
+    """Returns block diagonal compressed TensorFlow node for matmul.
+
+    This method performs matmul according to the compression
+    procedure.
+
+    Args:
+      left_operand: a Tensor that is the left operand in matmul.
+
+    Returns:
+      matmul_op: a TensorFlow node that performs matmul of left_operand with the
+      compressed a_matrix_tfvar.
+    """
+    s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
+    if self._spec.block_method == 'mask':
+      return tf.einsum('{0}y,yz->{0}z'.format(s[:left_operand.shape.rank - 1]),
+                       left_operand,
+                       tf.multiply(self.c_matrix_tfvar, self.c_mask_tfvar))
+    elif self._spec.block_method == 'loop':
+      num_blocks = self._spec.block_compression_factor
+      input_splitted = tf.split(left_operand, num_blocks, axis=-1)
+      output_splitted = []
+      for i, input_i in enumerate(input_splitted):
+        output_splitted.append(
+            tf.einsum('{0}y,yz->{0}z'.format(s[:input_i.shape.rank - 1]),
+                      input_i, self.c_matrix_tfvar[i, :, :]))
+      return tf.concat(output_splitted, axis=-1)
+
+  def get_mix_operator(self, theta, concat):
+    """Performs matrix multiplication on customized LSTM layers.
+
+    This performs the block diagonal compressed equivalent of
+    tf.matmul(concat, theta.wm).
+
+    Args:
+      theta: object in customized layer that contains weight tensors, etc.
+      concat: the left operand of the matmul operation. a rank 2 tensor.
+
+    Returns:
+      A TensorFlow node that has compressed version of
+      tf.matmul(concat, theta.wm).
+    """
+    # concat rank of 2 is enforced in the babelfish library where this function
+    # will be called from.
+    concat_rank = 2
+    s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
+    if self._spec.block_method == 'mask':
+      return tf.einsum('{0}y,yz->{0}z'.format(s[:concat_rank - 1]), concat,
+                       tf.multiply(theta.c_matrix_tfvar, theta.c_mask_tfvar))
+    elif self._spec.block_method == 'loop':
+      num_blocks = self._spec.block_compression_factor
+      input_splitted = tf.split(concat, num_blocks, axis=-1)
+      output_splitted = []
+      for i, input_i in enumerate(input_splitted):
+        output_splitted.append(
+            tf.matmul(input_i, theta.c_matrix_tfvar[i, :, :]))
+      return tf.concat(output_splitted, axis=-1)
+
+  def get_matmul_operator(self,
+                          inputs,
+                          wm,
+                          transpose_a=False,
+                          transpose_b=False):
+    """Performs matrix multiplication for customized Softmax layers.
+
+    This performs the block diagonal compressed equivalent of
+    tf.matmul(inputs, wm).
+
+    Args:
+      inputs: the left operand of the matmul operation. a rank 2 tensor.
+      wm: the right operand of the matmul operator. a rank 2 tensor.
+      transpose_a: whether inputs tensor needs to be transposed before matmul.
+      transpose_b: whether wm tensor needs to be transposed before matmul.
+
+    Returns:
+      A TensorFlow node that has compressed version of
+      tf.matmul(inputs, wm).
+    """
+    if transpose_a:
+      inputs = tf.transpose(inputs)
+    if transpose_b:
+      wm = tf.transpose(wm)
+
+    if self._spec.block_method == 'mask':
+      return tf.matmul(inputs,
+                       tf.multiply(self.c_matrix_tfvar, self.c_mask_tfvar))
+    elif self._spec.block_method == 'loop':
+      num_blocks = self._spec.block_compression_factor
+      input_splitted = tf.split(inputs, num_blocks, axis=-1)
+      output_splitted = []
+      for i, input_i in enumerate(input_splitted):
+        output_splitted.append(
+            tf.matmul(input_i, self.c_matrix_tfvar[i, :, :]))
+      return tf.concat(output_splitted, axis=-1)
+
+  def get_einsum_operator(self, inputs, layerobj):
+    """Performs compressed matrix multiplication for customized ProjectionLayer.
+
+    This performs the block diagonal compressed equivalent of
+    tf.matmul(inputs, weight).
+
+    Args:
+      inputs: the left operand of the matmul operation.
+      layerobj: the ProjectionLayer object from where get_einsum_operator is
+        called.
+
+    Returns:
+      A TensorFlow node that has compressed version of
+      tf.matmul(inputs, wm).
+    """
+    theta = layerobj.theta
+    s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
+    if self._spec.block_method == 'mask':
+      return tf.einsum(
+          '{0}y,yz->{0}z'.format(s[:inputs.shape.rank - 1]),
+          inputs, tf.multiply(theta.c_matrix_tfvar, theta.c_mask_tfvar))
+    elif self._spec.block_method == 'loop':
+      num_blocks = self._spec.block_compression_factor
+      input_splitted = tf.split(inputs, num_blocks, axis=-1)
+      output_splitted = []
+      for i, input_i in enumerate(input_splitted):
+        output_splitted.append(
+            tf.einsum('{0}y,yz->{0}z'.format(s[:input_i.shape.rank - 1]),
+                      input_i, self.c_matrix_tfvar[i, :, :]))
+      return tf.concat(output_splitted, axis=-1)
+
+
 class ApplyCompression(object):
   """Wrapper class.
 
@@ -1520,6 +1853,9 @@ class ApplyCompression(object):
     if compression_op_spec.compression_option == 9:
       c = InputOutputCompressionOp(
           spec=compression_op_spec, global_step=self._global_step)
+    elif compression_op_spec.compression_option == 10:
+      c = BlockCompressionOp(
+          spec=compression_op_spec, global_step=self._global_step)
     else:
       c = CompressionOp(
           scope=scope,
@@ -1559,6 +1895,9 @@ class ApplyCompression(object):
     compression_op_spec = spec if spec else self._compression_op_spec
     if compression_op_spec.compression_option == 9:
       c = InputOutputCompressionOp(
+          spec=compression_op_spec, global_step=self._global_step)
+    elif compression_op_spec.compression_option == 10:
+      c = BlockCompressionOp(
           spec=compression_op_spec, global_step=self._global_step)
     else:
       c = CompressionOp(
@@ -1604,6 +1943,9 @@ class ApplyCompression(object):
     compression_op_spec = spec if spec else self._compression_op_spec
     if compression_op_spec.compression_option == 9:
       c = InputOutputCompressionOp(
+          spec=compression_op_spec, global_step=self._global_step)
+    elif compression_op_spec.compression_option == 10:
+      c = BlockCompressionOp(
           spec=compression_op_spec, global_step=self._global_step)
     else:
       c = CompressionOp(

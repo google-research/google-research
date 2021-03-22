@@ -433,6 +433,14 @@ def get_pruning_hparams():
                                positive integers.
     input_block_size: size of input blocks for input compression.
     output_block_size: size of output blocks for input compression.
+    block_method: string.
+                  option = "mask" implements block compression using a mask.
+                  option = 'loop' stores the blocks as a rank 3 tensor and loops
+                           through them.
+    block_compression_factor: ratio of size of original weight matrix to
+                              (nonzero entries in) compressed matrix for block
+                              compression. Equivalently, number of blocks on
+                              diagonal.
     group_pruning: perform group pruning if True. Default is False.
     group_sparsity_map: list of strings
       comma separated list of {group_name:target sparsity} or
@@ -499,6 +507,8 @@ def get_pruning_hparams():
       compress_output=False,
       output_compression_factor=1,
       output_block_size=1,
+      block_method='loop',
+      block_compression_factor=1,
       group_pruning=False)
 
 
