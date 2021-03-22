@@ -83,7 +83,7 @@ def vector_decoding_function(A, b, optimization_parameters, loss_function):
   regularization_parameter.value = optimization_parameters
   problem = cp.Problem(
       cp.Minimize(loss_function(A, b, x, regularization_parameter)))
-  problem.solve()
+  problem.solve(solver=cp.ECOS)
   result = x.value
   res_list = []
   for i in range(n):
