@@ -44,7 +44,8 @@ flags.DEFINE_string('speaker_id_name', None, '`None`, or speaker ID field.')
 flags.DEFINE_string('save_model_dir', None, 'If not `None`, save sklearn '
                     'models in this directory.')
 flags.DEFINE_enum('eval_metric', 'accuracy',
-                  ['accuracy', 'equal_error_rate', 'unweighted_average_recall'],
+                  ['accuracy', 'balanced_accuracy', 'equal_error_rate',
+                   'unweighted_average_recall'],
                   'Which metric to compute and report.')
 flags.DEFINE_bool('fast_write', True,
                   'Writes to multiple shards if `True`, otherwise just one.')
@@ -82,7 +83,8 @@ def main(unused_argv):
   exp_params = []
   model_names = models.get_sklearn_models().keys()
   for elem in itertools.product(*[FLAGS.embedding_list, model_names]):
-    def _params_dict(l2_normalization, elem=elem):
+    def _params_dict(
+        l2_normalization, speaker_id_name=FLAGS.speaker_id_name, elem=elem):
       return {
           'embedding_name': elem[0],
           'model_name': elem[1],
@@ -91,15 +93,18 @@ def main(unused_argv):
           'train_glob': FLAGS.train_glob,
           'eval_glob': FLAGS.eval_glob,
           'test_glob': FLAGS.test_glob,
-          # Either L2 normalization or speaker normalization. You could try both
-          # if you wanted.
           'l2_normalization': l2_normalization,
-          'speaker_id_name': FLAGS.speaker_id_name,
+          'speaker_id_name': speaker_id_name,
           'save_model_dir': FLAGS.save_model_dir,
           'eval_metric': FLAGS.eval_metric,
       }
     exp_params.append(_params_dict(l2_normalization=True))
     exp_params.append(_params_dict(l2_normalization=False))
+    if FLAGS.speaker_id_name is not None:
+      exp_params.append(
+          _params_dict(l2_normalization=True, speaker_id_name=None))
+      exp_params.append(
+          _params_dict(l2_normalization=False, speaker_id_name=None))
 
   # Make and run beam pipeline.
   beam_options = None

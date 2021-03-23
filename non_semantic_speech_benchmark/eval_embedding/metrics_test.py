@@ -57,6 +57,9 @@ class MetricsTest(parameterized.TestCase):
     auc = metrics.calculate_auc([0, 0, 1, 1], [0.9, 0.8, 0.2, 0.1])
     metrics.dprime_from_auc(auc)
 
+  def testBalancedAccuracySanity(self):
+    metrics.balanced_accuracy([0, 0, 1, 1, 0], [0, 1, 0, 1, 1])
+
 
 if __name__ == '__main__':
   absltest.main()

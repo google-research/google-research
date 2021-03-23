@@ -141,6 +141,13 @@ def _calc_eval_scores(eval_metric, d, npx_eval,
     eval_score = d.score(npx_eval, npy_eval)
     # Test.
     test_score = d.score(npx_test, npy_test)
+  elif eval_metric == 'balanced_accuracy':
+    # Eval.
+    pred_eval = d.predict(npx_eval)
+    eval_score = metrics.balanced_accuracy(npy_eval, pred_eval)
+    # Test.
+    pred_test = d.predict(npx_test)
+    test_score = metrics.balanced_accuracy(npy_test, pred_test)
   elif eval_metric == 'unweighted_average_recall':
     # The accuracy per class divided by the number of classes without
     # considerations of instances per class.

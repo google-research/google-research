@@ -19,6 +19,7 @@
 1) Equal Error Rate (EER) metric.
 2) D-Prime.
 3) AUC.
+4) Balanced accuracy.
 """
 
 import math
@@ -108,3 +109,8 @@ def dprime_from_auc(auc):
     cumulative distribution function of the normal distribution.
   """
   return math.sqrt(2) * scipy.stats.norm.ppf(auc)
+
+
+def balanced_accuracy(labels,
+                      predictions):
+  return skmetrics.balanced_accuracy_score(y_true=labels, y_pred=predictions)
