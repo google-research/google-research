@@ -24,4 +24,6 @@ pip3 install -r social_rl/requirements.txt
 
 python3 -m social_rl.multiagent_tfagents.test_multiagent
 
+python3 -m social_rl.multiagent_tfagents.joint_attention.test_attention
+
 python3 -m social_rl.adversarial_env.test_adversarial_env

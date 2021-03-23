@@ -13,12 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for Social RL, including multi-agent and adversarial environment."""
+"""Tests for joint attention training."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
 import os
 
 from absl.testing import parameterized
@@ -26,6 +27,7 @@ import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 
 from tf_agents.system import system_multiprocessing
 from social_rl.multiagent_tfagents import multiagent_train_eval
+from social_rl.multiagent_tfagents.joint_attention import attention_ppo_agent
 
 
 class MultiagentTest(tf.test.TestCase, parameterized.TestCase):
@@ -34,13 +36,16 @@ class MultiagentTest(tf.test.TestCase, parameterized.TestCase):
   def test_import(self):
     self.assertIsNotNone(multiagent_train_eval)
 
-  def test_multiagent(self):
-    root_dir = '/tmp/multiagent/'
+  def test_attention(self):
+    agent_class = functools.partial(attention_ppo_agent.MultiagentAttentionPPO,
+                                    attention_bonus_type='kld')
+    root_dir = '/tmp/attention/'
     if tf.io.gfile.exists(root_dir):
       tf.compat.v1.gfile.DeleteRecursively(root_dir)
     multiagent_train_eval.train_eval(
         root_dir=root_dir,
-        env_name='MultiGrid-DoorKey-6x6-v0',
+        agent_class=agent_class,
+        env_name='MultiGrid-Meetup-Empty-6x6-v0',
         num_environment_steps=1,
         num_epochs=2,
         replay_buffer_capacity=401,
@@ -56,12 +61,14 @@ class MultiagentTest(tf.test.TestCase, parameterized.TestCase):
         lstm_size=(2,),
         conv_filters=2,
         conv_kernel=2,
-        direction_fc=2)
+        direction_fc=2,
+        use_attention_networks=True)
     train_exists = tf.io.gfile.exists(os.path.join(root_dir, 'train'))
     self.assertTrue(train_exists)
     saved_policies = tf.io.gfile.listdir(
         os.path.join(root_dir, 'policy_saved_model'))
     self.assertGreaterEqual(len(saved_policies), 1)
+
 
 if __name__ == '__main__':
   system_multiprocessing.handle_test_main(tf.test.main)

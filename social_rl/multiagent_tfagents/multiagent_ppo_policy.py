@@ -96,13 +96,9 @@ class MultiagentPPOPolicy(tf_policy.TFPolicy):
         raise ValueError('Trying to create an eval meta-agent policy with '
                          'collecting agents')
 
-    # Make multi-agent info spec
-    if collect:
-      info_spec = []
-      for p in agent_policies:
-        info_spec.append(p.info_spec)
-    else:
-      info_spec = ()
+    self._collect = collect
+
+    info_spec = self._make_info_spec(time_step_spec)
 
     # Make multi-agent policy_state spec
     # All policies must have the same state spec.
@@ -129,8 +125,16 @@ class MultiagentPPOPolicy(tf_policy.TFPolicy):
         info_spec=info_spec,
         clip=clip)
 
-    self._collect = collect
     self._action_fn = self._action  # Necessary to override _action in child
+
+  def _make_info_spec(self, time_step_spec):
+    # Make multi-agent info spec
+    if self._collect:
+      info_spec = [p.info_spec for p in self._agent_policies]
+    else:
+      info_spec = ()
+
+    return info_spec
 
   def _apply_actor_network(self, time_step, policy_states, training=False):
     actions = [None] * self.n_agents
@@ -201,9 +205,7 @@ class MultiagentPPOPolicy(tf_policy.TFPolicy):
 
     # Prepare policy_info.
     if self._collect:
-      policy_info = ppo_utils.get_distribution_params(
-          distributions,
-          )
+      policy_info = ppo_utils.get_distribution_params(distributions, False)
 
       # Wrap policy info to be comptabile with new spec
       for a in range(len(policy_info)):

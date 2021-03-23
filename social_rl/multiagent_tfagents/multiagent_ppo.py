@@ -20,13 +20,14 @@ from __future__ import division
 from __future__ import print_function
 
 from absl import logging
+
 import gin
 import numpy as np
 import tensorflow as tf  # pylint:disable=g-explicit-tensorflow-version-import
 from tf_agents.agents import tf_agent
 from tf_agents.agents.ppo import ppo_clip_agent
 from tf_agents.specs import tensor_spec
-from tf_agents.trajectories import time_step as ts_lib
+from tf_agents.trajectories import time_step as ts
 from tf_agents.trajectories import trajectory as traj_lib
 
 from social_rl.multiagent_tfagents import multiagent_ppo_policy
@@ -75,7 +76,9 @@ class MultiagentPPO(tf_agent.TFAgent):
       debug_summaries=False,
       summarize_grads_and_vars=False,
       train_step_counter=None,
-      use_attention_networks=False,
+      network_build_fn=multigrid_networks.construct_multigrid_networks,
+      policy_class=multiagent_ppo_policy.MultiagentPPOPolicy,
+      agent_class=ppo_clip_agent.PPOClipAgent,
       name='MultiagentPPO'):
     """Creates a centralized controller agent that creates several PPO Agents.
 
@@ -131,9 +134,9 @@ class MultiagentPPO(tf_agent.TFAgent):
       summarize_grads_and_vars: If true, gradient summaries will be written.
       train_step_counter: An optional counter to increment every time the train
         op is run.  Defaults to the global_step.
-      use_attention_networks: Option to use attention network architecture in
-        the agent. This architecture requires observations from the previous
-        time step.
+      network_build_fn: Function for constructing agent encoding architecture.
+      policy_class: Function for creating individual agent policies.
+      agent_class: Function for creating individual agents.
       name: The name of this agent. All variables in this module will fall under
         that name. Defaults to the class name.
 
@@ -157,10 +160,6 @@ class MultiagentPPO(tf_agent.TFAgent):
         self.optimizers[agent_id] = tf.compat.v1.train.AdamOptimizer(
             learning_rate=learning_rate)
 
-        if use_attention_networks:
-          network_build_fn = multigrid_networks.construct_attention_networks
-        else:
-          network_build_fn = multigrid_networks.construct_multigrid_networks
         # Build actor and critic networks
         actor_net, value_net = network_build_fn(
             single_obs_spec,
@@ -173,7 +172,7 @@ class MultiagentPPO(tf_agent.TFAgent):
             scalar_fc=direction_fc)
 
         logging.info('Creating agent %d...', agent_id)
-        self.agents[agent_id] = ppo_clip_agent.PPOClipAgent(
+        self.agents[agent_id] = agent_class(
             single_time_step_spec,
             single_action_spec,
             self.optimizers[agent_id],
@@ -194,7 +193,7 @@ class MultiagentPPO(tf_agent.TFAgent):
     with tf.name_scope('meta_agent'):
       # Initialize policies
       self._policies = [self.agents[a].policy for a in range(self.n_agents)]
-      policy = multiagent_ppo_policy.MultiagentPPOPolicy(
+      policy = policy_class(
           self._policies,
           time_step_spec=time_step_spec,
           action_spec=action_spec,
@@ -205,7 +204,7 @@ class MultiagentPPO(tf_agent.TFAgent):
       self._collect_policies = [
           self.agents[a].collect_policy for a in range(self.n_agents)
       ]
-      collect_policy = multiagent_ppo_policy.MultiagentPPOPolicy(
+      collect_policy = policy_class(
           self._collect_policies,
           time_step_spec=time_step_spec,
           action_spec=action_spec,
@@ -223,6 +222,7 @@ class MultiagentPPO(tf_agent.TFAgent):
           summarize_grads_and_vars=summarize_grads_and_vars,
           train_step_counter=train_step_counter)
 
+    self._global_step = train_step_counter
     print('Finished constructing multi-agent PPO')
 
   def get_single_agent_specs(self, time_step_spec, action_spec):
@@ -244,10 +244,10 @@ class MultiagentPPO(tf_agent.TFAgent):
                                             time_step_spec.observation)
     single_reward_spec = tensor_spec.TensorSpec(
         shape=(), dtype=time_step_spec.reward.dtype, name='reward')
-    single_time_step_spec = ts_lib.TimeStep(time_step_spec.step_type,
-                                            single_reward_spec,
-                                            time_step_spec.discount,
-                                            single_obs_spec)
+    single_time_step_spec = ts.TimeStep(time_step_spec.step_type,
+                                        single_reward_spec,
+                                        time_step_spec.discount,
+                                        single_obs_spec)
     single_action_spec = action_spec[0]
     return single_obs_spec, single_time_step_spec, single_action_spec
 

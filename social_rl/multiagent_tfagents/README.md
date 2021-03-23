@@ -34,4 +34,3 @@ To train a single agent, use:
 python -m single_agent_train_eval.py --debug --root_dir=/tmp/single_cluttered/ \
 --env_name='MultiGrid-Cluttered-Single-6x6-v0' 
 ```
-

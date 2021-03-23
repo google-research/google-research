@@ -164,6 +164,38 @@ class AverageReturnMetric(tf_metric.TFStepMetric):
     return summaries
 
 
+@gin.configurable
+class MultiagentScalar(tf_metric.TFStepMetric):
+  """Metric to compute average of simple scalars like number of obstacles."""
+
+  def __init__(self,
+               n_agents,
+               name,
+               prefix='Metrics',
+               dtype=tf.float32,
+               buffer_size=10):
+    super(MultiagentScalar, self).__init__(name=name, prefix=prefix)
+    self._buffers = [TFDeque(buffer_size, dtype) for _ in range(n_agents)]
+    self._n_agents = n_agents
+    self._dtype = dtype
+
+  @common.function(autograph=True)
+  def call(self, new_scalar_vals, agent_id):
+    self._buffers[agent_id].add(tf.reduce_mean(new_scalar_vals))
+    return new_scalar_vals
+
+  def result(self):
+    return tf.reduce_mean([buffer.mean() for buffer in self._buffers])
+
+  def result_for_agent(self, agent_id):
+    return self._buffers[agent_id].mean()
+
+  @common.function
+  def reset(self):
+    for buffer in self._buffers:
+      buffer.clear()
+
+
 def log_metrics(metrics, prefix=''):
   log = []
   for m in metrics:

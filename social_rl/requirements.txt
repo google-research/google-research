@@ -5,4 +5,4 @@ gym-minigrid==1.0.1
 networkx==2.5
 numpy>=1.16.4
 pandas>=1.0.5
-tf-agents==0.6.0
+tf-agents==0.7.1
