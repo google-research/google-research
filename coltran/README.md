@@ -7,6 +7,10 @@ Work by Manoj Kumar, Dirk Weissenborn and Nal Kalchbrenner.
 
 <img src="coltran_images.png" alt="Model images" width="1000"/>
 
+### Update: 23 March 2021
+
+* Custom colorization script over [here](https://github.com/google-research/google-research/blob/master/coltran/custom_colorize.py)
+
 ## Paper summary
 
 
@@ -30,6 +34,14 @@ appropriate write directory.
 ```
 pip install -r requirements.txt
 ```
+
+## Custom Colorization Script.
+
+A script to colorize or recolorize custom images is included at
+[colorization script](https://github.com/google-research/google-research/blob/master/coltran/custom_colorize.py).
+Instructions to run the script are present [at the top of the file](https://github.com/google-research/google-research/blob/master/coltran/custom_colorize.py).
+On colorizing images from ImageNet, we recommend to use the [sampling script](https://github.com/google-research/google-research/tree/master/coltran#sampling).
+
 
 ## Training
 
