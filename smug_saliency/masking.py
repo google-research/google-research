@@ -24,13 +24,16 @@ the final layer.
 """
 
 import collections
+import math
 import time
+
 import numpy as np
 from saliency import integrated_gradients
 from saliency import xrai
 import scipy.ndimage as scipy_ndimage
 import tensorflow.compat.v1 as tf
 import z3
+
 from smug_saliency import utils
 
 tf.disable_eager_execution()
@@ -40,7 +43,7 @@ class RunParams(
     collections.namedtuple(
         '_RunParams', [
             'model_type', 'model_path', 'image_placeholder_shape', 'padding',
-            'strides', 'tensor_names', 'activations'
+            'strides', 'tensor_names', 'activations', 'pixel_range'
         ])):
   """Run parameters for a particular dataset and neural network model pair.
 
@@ -69,10 +72,13 @@ class RunParams(
       all the hidden layers and the final layer. Each activation takes a
       one of the following values {'relu', 'linear'}. The default value of
       activations is set to None.
+    pixel_range: (images only) tuple of length 2, takes the form (a, b) where a
+      and b represent minimum and maximum values each pixel should take. This is
+      specific to the neural network model.
   """
 
 
-def _encode_input(image, z3_mask, window_size):
+def _encode_input(image, z3_mask):
   """Encodes the image pixels by multiplying them with masking variables.
 
   Converts the pixels into z3.ExprRef by multiplying them with their
@@ -84,7 +90,6 @@ def _encode_input(image, z3_mask, window_size):
         (image_edge_length, image_edge_length, image_channels), image.
     z3_mask: list of z3.ExprRef with length (edge_length // window_size) ** 2,
         unique masking variables.
-    window_size: int, side length of the square mask.
 
   Returns:
     list of list of list of z3.ExprRef with dimensions
@@ -98,10 +103,7 @@ def _encode_input(image, z3_mask, window_size):
     for image_row in range(image_edge_length):
       encoded_input_row = []
       for image_column in range(image_edge_length):
-        index = utils.convert_pixel_to_mask_index(
-            edge_length=image_edge_length,
-            window_size=window_size,
-            flattened_pixel_index=image_row * image_edge_length + image_column)
+        index = image_row * image_edge_length + image_column
         encoded_input_row.append(
             z3.ToReal(z3_mask[index]) * image[image_row][image_column][channel])
       encoded_input_per_channel.append(encoded_input_row)
@@ -175,8 +177,8 @@ def _formulate_smt_constraints_convolution_layer(
     kernels: numpy array with shape
         (output_channels, kernel_size, kernel_size, input_channels),
         weights of the convolution layer.
-    biases: numpy array with shape (output_channels,), biases of the
-        convolution layer.
+    biases: None if biases are missing else numpy array with shape
+        (output_channels,), biases of the convolution layer.
     padding: tuple, number of layers 0 padded vectors on top/left side of the
         image.
     strides: int, number of pixel shifts over the input matrix.
@@ -204,7 +206,10 @@ def _formulate_smt_constraints_convolution_layer(
          num_rows=output_activation_map_shape[0],
          num_columns=output_activation_map_shape[1])
     # Perform convolution
-    smt_equation = biases[hidden_node_channel]
+    if biases is None:
+      smt_equation = 0
+    else:
+      smt_equation = biases[hidden_node_channel]
     # kernels.shape[-1] represents the number of input channels in the kernel.
     for image_channel in range(kernels.shape[-1]):
       smt_equation += utils.dot_product(
@@ -394,7 +399,8 @@ def find_mask_full_encoding(image,
                             label_index,
                             delta=0,
                             timeout=600,
-                            num_unique_solutions=1):
+                            num_unique_solutions=1,
+                            session=None):
   """Finds a binary mask for a given image and a trained Neural Network.
 
   Args:
@@ -415,6 +421,8 @@ def find_mask_full_encoding(image,
         constrain_final_layer is True.
     timeout: int, solver timeout in seconds.
     num_unique_solutions: int, number of unique solutions you want to sample.
+    session: tf.Session, (default None) tensorflow session with the loaded
+        neural network.
 
   Returns:
     result: dictionary,
@@ -449,10 +457,23 @@ def find_mask_full_encoding(image,
   # z3's timeout is in milliseconds
   z3.set_option('timeout', timeout * 1000)
   image_edge_length, _, _ = image.shape
-  num_masks_along_row = image_edge_length // window_size
-  session = utils.restore_model(run_params.model_path)
+  num_masks_along_row = math.ceil(image_edge_length / window_size)
+  if not session:
+    session = utils.restore_model(run_params.model_path)
 
-  z3_mask = [z3.Int('mask_%d' % i) for i in range(num_masks_along_row ** 2)]
+  z3_mask = []
+  mask_id_to_var = {}
+  for row in range(image_edge_length):
+    for column in range(image_edge_length):
+      mask_id = (
+          num_masks_along_row * (row // window_size)) + (column // window_size)
+      if mask_id in mask_id_to_var.keys():
+        z3_var = mask_id_to_var[mask_id]
+      else:
+        mask_name = f'mask_{mask_id}'
+        z3_var = z3.Int(mask_name)
+        mask_id_to_var[mask_name] = z3_var
+      z3_mask.append(z3_var)
 
   unmasked_predictions = session.run(
       tensor_names,
@@ -462,8 +483,7 @@ def find_mask_full_encoding(image,
   smt_output, _ = utils.smt_forward(
       features=utils.flatten_nested_lists(_encode_input(
           image=image,
-          z3_mask=z3_mask,
-          window_size=window_size)),
+          z3_mask=z3_mask)),
       weights=weights,
       biases=biases,
       activations=run_params.activations)
@@ -558,7 +578,7 @@ def _get_activation_map_shape(activation_maps_shape, model_type):
 
 
 def get_no_minimization_mask(image, label_index, top_k, run_params,
-                             sum_attributions=False):
+                             sum_attributions=False, session=None, graph=None):
   """Generates a no minimization mask for a given image.
 
   Args:
@@ -577,11 +597,16 @@ def get_no_minimization_mask(image, label_index, top_k, run_params,
         all the attributions of the equations in which the masking variable
         appears. Otherwise, it is the max of all the attributions of the
         equations in which the masking variable appears.
+    session: tf.Session, (default None) tensorflow session with the loaded
+        neural network.
+    graph: (default None) tensorflow graph corresponding to the tensorflow
+        session.
 
   Returns:
     float numpy array with shape (num_rows, num_cols), no minimization mask.
   """
-  session = utils.restore_model(run_params.model_path)
+  if not session:
+    session = utils.restore_model(run_params.model_path)
   unmasked_predictions = session.run(
       run_params.tensor_names,
       feed_dict={run_params.tensor_names['input']: image.reshape(
@@ -591,12 +616,14 @@ def get_no_minimization_mask(image, label_index, top_k, run_params,
       unmasked_predictions=unmasked_predictions,
       score_method='integrated_gradients',
       session=session,
+      graph=graph,
       image=image,
       run_params=run_params,
       label_index=label_index)
 
   scores = _reorder(get_saliency_map(
       session=session,
+      graph=graph,
       features=_remove_batch_axis(
           unmasked_predictions['first_layer_relu']),
       saliency_method='integrated_gradients',
@@ -711,7 +738,7 @@ def _reshape_kernels(kernels, model_type):
 
 
 def get_saliency_map(session, features, saliency_method, label,
-                     input_tensor_name, output_tensor_name):
+                     input_tensor_name, output_tensor_name, graph=None):
   """Generates a saliency map for the input features.
 
   Args:
@@ -725,12 +752,18 @@ def get_saliency_map(session, features, saliency_method, label,
         associated with the image in the final layer.
     input_tensor_name: str, name of input tensor in tf graph.
     output_tensor_name: str, name of the output tensor in the tf graph.
+    graph: (default None) tensorflow graph corresponding to the tensorflow
+        session.
 
   Returns:
     A saliency map.
   """
-  graph = tf.get_default_graph()
-  label_placeholder = tf.placeholder(tf.int32)
+  if graph is None:
+    graph = tf.get_default_graph()
+    label_placeholder = tf.placeholder(tf.int32)
+  else:
+    with graph.as_default():
+      label_placeholder = tf.placeholder(tf.int32)
   output_tensor = graph.get_tensor_by_name(
       output_tensor_name)[0][label_placeholder]
   input_tensor = graph.get_tensor_by_name(input_tensor_name)
@@ -808,7 +841,7 @@ def _apply_blurring(image, sigma):
 
 
 def _sort_indices(session, image, label_index, run_params, unmasked_predictions,
-                  score_method):
+                  score_method, graph=None):
   """Sorts the indices of the first layer on the basis of priority.
 
   First, the function assigns a score to the hidden activations using
@@ -859,6 +892,8 @@ def _sort_indices(session, image, label_index, run_params, unmasked_predictions,
         top_k scores are chosen. Takes a value -
         {'activations', 'blurred_gradients', 'gradients',
         'integrated_gradients', 'integrated_gradients_black_white_baselines'}.
+    graph: (default None) tensorflow graph corresponding to the tensorflow
+        session.
 
   Returns:
     int numpy array with shape (num_first_layer_activations,), sorted indices
@@ -872,6 +907,7 @@ def _sort_indices(session, image, label_index, run_params, unmasked_predictions,
     first_layer_priority = _reorder(
         get_saliency_map(
             session=session,
+            graph=graph,
             features=_remove_batch_axis(
                 unmasked_predictions['first_layer_relu']),
             saliency_method='integrated_gradients',
@@ -909,17 +945,19 @@ def _sort_indices(session, image, label_index, run_params, unmasked_predictions,
   return first_layer_priority.argsort()
 
 
-def _process_image(image, run_params, window_size):
+def _process_image(image, run_params, window_size, session=None):
   """Generates the masked input and does a forward pass of the image.
 
   Args:
     image: float numpy array with shape (image_edge_length,
-          image_edge_length, image_channels), image to be masked. For MNIST,
-          the pixel values are between [0, 1] and for Imagenet, the pixel
-          values are between [-117, 138].
+        image_edge_length, image_channels), image to be masked. For MNIST,
+        the pixel values are between [0, 1] and for Imagenet, the pixel
+        values are between [-117, 138].
     run_params: RunParams with model_type, model_path, image_placeholder_shape,
         activations, tensor_names, input, first_layer, logits.
     window_size: int, side length of the square mask.
+    session: tf.Session, (default None) tensorflow session with the loaded
+        neural network.
 
   Returns:
     masked_input: nested list of z3.ExprRef with dimensions
@@ -933,17 +971,31 @@ def _process_image(image, run_params, window_size):
       * logits: str, the logits tensor in the neural network.
       * softmax: float numpy array, the softmax tensor in the neural network.
       * weights_layer_1: float numpy array, the first layer fc / conv weights.
-      * biases_layer_1: float numpy array, the first layer fc / conv biases.
+      * biases_layer_1: (optional for cnn) float numpy array, the first layer
+          fc / conv biases.
     session: tf.Session, tensorflow session with the loaded neural network.
     optimizer: utils.ImageOptimizer, z3 optimizer for image.
   """
   _verify_image_dimensions(image)
   image_edge_length, _, _ = image.shape
-  num_masks_along_row = image_edge_length // window_size
+  num_masks_along_row = math.ceil(image_edge_length / window_size)
   # We always find a 2d mask irrespective of the number of image channels.
-  z3_mask = [z3.Int('mask_%d' % i) for i in range(num_masks_along_row ** 2)]
+  z3_mask = []
+  mask_id_to_var = {}
+  for row in range(image_edge_length):
+    for column in range(image_edge_length):
+      mask_id = (
+          num_masks_along_row * (row // window_size)) + (column // window_size)
+      if mask_id in mask_id_to_var.keys():
+        z3_var = mask_id_to_var[mask_id]
+      else:
+        mask_name = f'mask_{mask_id}'
+        z3_var = z3.Int(mask_name)
+        mask_id_to_var[mask_name] = z3_var
+      z3_mask.append(z3_var)
 
-  session = utils.restore_model(run_params.model_path)
+  if not session:
+    session = utils.restore_model(run_params.model_path)
   unmasked_predictions = session.run(
       run_params.tensor_names,
       feed_dict={run_params.tensor_names['input']: image.reshape(
@@ -951,19 +1003,21 @@ def _process_image(image, run_params, window_size):
 
   # _encode_input generates a masked_input with a shape
   # (image_channels, image_edge_length, image_edge_length)
-  return (_encode_input(image=image, z3_mask=z3_mask, window_size=window_size),
+  return (_encode_input(image=image, z3_mask=z3_mask),
           unmasked_predictions, session,
           utils.ImageOptimizer(z3_mask=z3_mask, window_size=window_size,
                                edge_length=image_edge_length))
 
 
-def _process_text(image, run_params):
+def _process_text(image, run_params, session=None):
   """Generates the masked embedding and does a forward pass of the image.
 
   Args:
     image: float numpy array with shape (num_words,), text to be masked.
     run_params: RunParams with model_type, model_path, image_placeholder_shape,
         activations, tensor_names, input, first_layer, logits.
+    session: tf.Session, (default None) tensorflow session with the loaded
+        neural network.
 
   Returns:
     masked_input: nested list of z3.ExprRef with dimensions
@@ -988,7 +1042,8 @@ def _process_text(image, run_params):
   if image.ndim != 1:
     raise ValueError('The text input should be a 1D numpy array. '
                      'Shape of the received input: %s' % str(image.shape))
-  session = utils.restore_model(run_params.model_path)
+  if not session:
+    session = utils.restore_model(run_params.model_path)
   unmasked_predictions = session.run(
       run_params.tensor_names, feed_dict={
           run_params.tensor_names['input']: image.reshape(
@@ -1015,7 +1070,9 @@ def find_mask_first_layer(image,
                           top_k=None,
                           gamma=None,
                           timeout=600,
-                          num_unique_solutions=1):
+                          num_unique_solutions=1,
+                          session=None,
+                          graph=None):
   """Finds a binary mask for a given image and a trained Neural Network.
 
   Args:
@@ -1025,7 +1082,8 @@ def find_mask_first_layer(image,
           the pixel values are between [0, 1] and for Imagenet, the pixel
           values are between [-117, 138].
       * text: float numpy array with shape (num_words,), text to be masked.
-    label_index: int, index of the label of the training image.
+    label_index: int, index of the logit in the softmax layer corresponding to
+        the input image.
     run_params: RunParams with model_type, model_path, image_placeholder_shape,
         padding, strides, tensor_names.
     window_size: int, side length of the square mask.
@@ -1039,6 +1097,10 @@ def find_mask_first_layer(image,
         activation. Its value is always between [0,1).
     timeout: int, solver timeout in seconds.
     num_unique_solutions: int, number of unique solutions you want to sample.
+    session: tf.Session, (default None) tensorflow session with the loaded
+        neural network.
+    graph: (default None) tensorflow graph corresponding to the tensorflow
+        session.
 
   Returns:
     result: dictionary,
@@ -1072,11 +1134,15 @@ def find_mask_first_layer(image,
 
   if model_type == 'text_cnn':
     # For text data, window size is always 1 i.e. 1 masking variable per word.
+    # Else, _process_text and utils.ImageOptimizer.generate_mask have to be
+    # modified.
+    if window_size != 1:
+      raise ValueError('window_size must be equal to 1.')
     masked_input, unmasked_predictions, session, z3_optimizer = _process_text(
-        image, run_params)
+        image, run_params, session)
   else:
     masked_input, unmasked_predictions, session, z3_optimizer = _process_image(
-        image, run_params, window_size)
+        image, run_params, window_size, session)
 
   if model_type == 'fully_connected':
     _, smt_hidden_input = utils.smt_forward(
@@ -1096,16 +1162,20 @@ def find_mask_first_layer(image,
         unmasked_predictions=unmasked_predictions,
         score_method=score_method,
         session=session,
+        graph=graph,
         image=image,
         run_params=run_params,
         label_index=label_index)
     result.update({'chosen_indices': chosen_indices})
+    biases = None
+    if 'biases_layer_1' in unmasked_predictions.keys():
+      biases = unmasked_predictions['biases_layer_1']
     z3_optimizer = _formulate_smt_constraints_convolution_layer(
         z3_optimizer=z3_optimizer,
         kernels=_reshape_kernels(
             kernels=unmasked_predictions['weights_layer_1'],
             model_type=model_type),
-        biases=unmasked_predictions['biases_layer_1'],
+        biases=biases,
         chosen_indices=chosen_indices[-top_k:],  # pylint: disable=invalid-unary-operand-type
         # unmasked_predictions['first_layer'] has the shape
         # (batch_size, output_activation_map_size, output_activation_map_size,

@@ -30,10 +30,10 @@ FLAGS = flags.FLAGS
 tf.disable_eager_execution()
 
 
-def _construct_optimizer(z3_mask, optimizer_type):
+def _construct_optimizer(z3_mask, optimizer_type, window_size=1, edge_length=2):
   if optimizer_type == 'image':
     return utils.ImageOptimizer(
-        z3_mask=z3_mask, window_size=1, edge_length=2)
+        z3_mask=z3_mask, window_size=window_size, edge_length=edge_length)
   else:
     return utils.TextOptimizer(z3_mask=z3_mask)
 
@@ -57,6 +57,25 @@ class UtilsTest(parameterized.TestCase):
 
     self.assertEqual(result, 'sat')
     np.testing.assert_allclose(learnt_mask.reshape(-1), [1., 0., 0., 1.])
+
+  def test_optimizer_sat_2(self):
+    # Here we test if the smt solver can find a solution to the equation-
+    # 2*mask_0 - mask_1 - mask_2 + 2*mask_3 > 3.
+    # With binary masking variables, there exists only one solution
+    # where mask_0, mask_3 = 1 and mask_2, mask_3 = 0
+    z3_mask = [z3.Int('mask_0'), z3.Int('mask_1'),
+               z3.Int('mask_2'), z3.Int('mask_3')]
+    optimizer_instance = _construct_optimizer(
+        z3_mask=z3_mask, optimizer_type='image', window_size=2, edge_length=3)
+
+    optimizer_instance.solver.add(
+        2 * z3_mask[0] - z3_mask[1] - z3_mask[2] + 2 * z3_mask[3] > 3)
+    learnt_mask, result = optimizer_instance.generate_mask()
+
+    self.assertEqual(result, 'sat')
+    np.testing.assert_allclose(learnt_mask.reshape(-1), [1., 1., 0.,
+                                                         1., 1., 0.,
+                                                         0., 0., 1.])
 
   @parameterized.parameters('image', 'text')
   def test_optimizer_unsat(self, optimizer_type):
@@ -475,11 +494,13 @@ class UtilsTest(parameterized.TestCase):
   def test_calculate_saliency_score_valid(self):
     mock_session = mock.MagicMock()
     mock_session.run.return_value = {'softmax': (np.ones(2), np.ones(2))}
+    mock_run_params = mock.MagicMock()
+    mock_run_params.pixel_range = (0, 1)
     with mock.patch.object(
         utils, 'restore_model', return_value=mock_session):
       output = utils.calculate_saliency_score(
-          run_params=mock.MagicMock(),
-          image=np.ones((2, 2, 2)).astype(np.float),
+          run_params=mock_run_params,
+          image=np.random.random((2, 2, 2)),
           saliency_map=np.random.rand(2, 2),
           area_threshold=0.05)
     self.assertCountEqual(
@@ -502,12 +523,15 @@ class UtilsTest(parameterized.TestCase):
   def test_brute_force_fast_saliency_evaluate_masks(self):
     mock_session = mock.MagicMock()
     mock_session.run.return_value = {'softmax': (np.ones(2), np.ones(2))}
+    mock_run_params = mock.MagicMock()
+    mock_run_params.pixel_range = (0, 1)
+    mock_run_params.image_placeholder_shape = (1, 2, 2, 3)
 
     with mock.patch.object(
         utils, 'restore_model', return_value=mock_session):
       output = utils.brute_force_fast_saliency_evaluate_masks(
-          run_params=mock.MagicMock(),
-          image=np.ones((2, 2, 3)),
+          run_params=mock_run_params,
+          image=np.random.random((2, 2, 3)),
           grid_size=2,
           area_threshold=0.05)
 
@@ -521,6 +545,7 @@ class UtilsTest(parameterized.TestCase):
     mock_session.run.return_value = {'softmax': (np.ones(2), np.ones(2))}
     mock_run_params = mock.MagicMock()
     mock_run_params.model_type = 'cnn'
+    mock_run_params.pixel_range = (0, 1)
 
     output = utils._evaluate_cropped_image(
         session=mock_session,
@@ -644,6 +669,14 @@ class SmtConvolutionTest(parameterized.TestCase, tf.test.TestCase):
     self.assertEqual(data['image_ids'][0], 0)
     self.assertLessEqual(np.max(data['images'][0]), 1.0)
     self.assertGreaterEqual(np.min(data['images'][0]), 0.0)
+
+  def test_process_model_input(self):
+    np.testing.assert_almost_equal(
+        utils.process_model_input(np.asarray([[0, 0.5],
+                                              [0.5, 1]]),
+                                  pixel_range=(-1, 1)),
+        np.asarray([[-1, 0],
+                    [0, 1]]))
 
 if __name__ == '__main__':
   absltest.main()

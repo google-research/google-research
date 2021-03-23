@@ -160,8 +160,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
     # (image_channels, image_edge_length, image_edge_length)
     encoded_image = masking._encode_input(
         image=image,
-        z3_mask=[z3_var for _ in range(image_edge_length ** 2)],
-        window_size=1)
+        z3_mask=[z3_var for _ in range(image_edge_length ** 2)])
     solver = z3.Solver()
     solver.add(z3_var == 1)
     # Swap the axes of the image so that it has the same dimensions as the
@@ -200,11 +199,23 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
         feed_dict={
             tensor_names['input']: image.reshape(
                 (1, image_edge_length, image_edge_length, image_channels))})
-    z3_mask = [_get_z3_var(index=i) for i in range(image_edge_length ** 2)]
+
+    z3_mask = []
+    mask_id_to_var = {}
+    for row in range(image_edge_length):
+      for column in range(image_edge_length):
+        mask_id = image_edge_length * row + column
+        if mask_id in mask_id_to_var.keys():
+          z3_var = mask_id_to_var[mask_id]
+        else:
+          mask_name = f'mask_{mask_id}'
+          z3_var = z3.Int(mask_name)
+          mask_id_to_var[mask_name] = z3_var
+        z3_mask.append(z3_var)
+
     first_layer_activations = masking._reorder(masking._remove_batch_axis(
         cnn_predictions['first_layer'])).reshape(-1)
-    masked_input = masking._encode_input(
-        image=image, z3_mask=z3_mask, window_size=1)
+    masked_input = masking._encode_input(image=image, z3_mask=z3_mask)
 
     z3_optimizer = masking._formulate_smt_constraints_convolution_layer(
         z3_optimizer=utils.ImageOptimizer(
@@ -352,6 +363,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
                 'padding': (0, 0),
                 'strides': 0,
                 'activations': None,
+                'pixel_range': (0, 1),
             }),
         label_index=0,
         score_method='activations',
@@ -401,6 +413,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
             'padding': (0, 0),
             'strides': 0,
             'activations': ['relu', 'linear'],
+            'pixel_range': (0, 1),
         }),
         window_size=1,
         label_index=0,
@@ -448,6 +461,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
                 'padding': (0, 0),
                 'strides': 1,
                 'activations': None,
+                'pixel_range': (0, 1),
             }),
         window_size=1,
         label_index=0,
@@ -496,6 +510,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
                 'padding': (0, 1),
                 'strides': 1,
                 'activations': None,
+                'pixel_range': (0, 1),
             }),
         window_size=1,
         label_index=0,

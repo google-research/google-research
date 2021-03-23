@@ -6,4 +6,6 @@ scipy>=1.6.0
 tensorflow>=2.4.1
 tensorflow-datasets>=4.2.0
 tensorflow-estimator>=2.4.0
-z3-solver>=4.8.10.0
+tensorflow-hub>=0.11.0
+z3-solver==4.8.8
+tf_slim>=1.1.0

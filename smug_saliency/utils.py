@@ -22,6 +22,7 @@ learn a mask for the inputs given the weights.
 """
 import collections
 import io
+import math
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
@@ -165,20 +166,18 @@ class ImageOptimizer(OptimizerBase):
     """
     z3_mask, result = self._optimize()
     mask = np.zeros((self.edge_length, self.edge_length))
-    for i in range(self.edge_length**2):
-      row_index, column_index = convert_pixel_to_2d_indices(
-          edge_length=self.edge_length,
-          flattened_pixel_index=i)
-      index = convert_pixel_to_mask_index(
-          edge_length=self.edge_length,
-          window_size=self.window_size,
-          flattened_pixel_index=i)
-      mask[row_index][column_index] = z3_mask[index]
+    num_masks_along_row = math.ceil(self.edge_length / self.window_size)
+    for row in range(self.edge_length):
+      for column in range(self.edge_length):
+        mask_id = (
+            num_masks_along_row * (row // self.window_size)) + (
+                column // self.window_size)
+        mask[row][column] = z3_mask[mask_id]
     return mask, result
 
 
 def restore_model(model_path):
-  """Restores a tensorflow model into a tf session and returns it.
+  """Restores a frozen tensorflow model into a tf session and returns it.
 
   Args:
     model_path: string, path to a tensorflow frozen graph.
@@ -576,7 +575,7 @@ def get_mnist_dataset(num_datapoints, split='test'):
       * image_ids: list of int, the serial number of each image serialised
           accoriding to its position in the dataset.
       * labels: list of int, inception logit indices of each image.
-      * images: list of float numpy array with shape (224, 224, 1),
+      * images: list of float numpy array with shape (28, 28, 1),
           MNIST images with values between [0, 1].
   """
   builder = tfds.builder('mnist')
@@ -667,7 +666,7 @@ def _check_dimensions(image, saliency_map, model_type):
 
 
 def calculate_saliency_score(
-    run_params, image, saliency_map, area_threshold=0.05):
+    run_params, image, saliency_map, area_threshold=0.05, session=None):
   """Computes the score for an image using the saliency metric.
 
   For a continuous valued saliency map, tighest bounding box is found at
@@ -681,12 +680,13 @@ def calculate_saliency_score(
   Args:
     run_params: RunParams with model_path, model_type and tensor_names.
     image: If model_type = 'cnn', float numpy array with shape (rows, columns,
-      channels), image. Otherwise, float numpy array with shape
-      (num_zero_padded_words,), text.
+      channels) with pixel values between [0, 255], image. Otherwise, float
+      numpy array with shape (num_zero_padded_words,), text.
     saliency_map: If model_type = 'cnn', float numpy array with shape (rows,
       columns, channels). Otherwise, float numpy array with shape
       (num_zero_padded_words,), saliency_map.
     area_threshold: float, area_threshold used in the metric.
+    session: (default: None) tensorflow session.
 
   Returns:
     if a the saliency_map has all 0s returns None
@@ -706,7 +706,8 @@ def calculate_saliency_score(
   """
   _check_dimensions(image=image, saliency_map=saliency_map,
                     model_type=run_params.model_type)
-  session = restore_model(run_params.model_path)
+  if session is None:
+    session = restore_model(run_params.model_path)
   # Sometimes the saliency map consists of all 1s. Hence, a threshold = 0
   # should be present.
   thresholds = np.append(0, np.unique(saliency_map))
@@ -744,8 +745,8 @@ def _crop_and_process_image(image, saliency_map, threshold, model_type):
 
   Args:
     image: If model_type = 'cnn', float numpy array with shape (rows, columns,
-      channels), image. Otherwise, float numpy array with shape
-      (num_zero_padded_words,), text.
+      channels) with pixel values between [0, 255], image. Otherwise, float
+      numpy array with shape (num_zero_padded_words,), text.
     saliency_map: If model_type = 'cnn', float numpy array with shape (rows,
       columns, channels). Otherwise, float numpy array with shape
       (num_zero_padded_words,), saliency_map.
@@ -766,13 +767,23 @@ def _crop_and_process_image(image, saliency_map, threshold, model_type):
     crop_mask = (saliency_map > threshold).astype(int)
     return crop_mask, saliency_map * crop_mask
   else:
+    image_shape_original = (image.shape[0], image.shape[1])
     crop_params, crop_mask = _get_tightest_crop(saliency_map=saliency_map,
                                                 threshold=threshold)
     cropped_image = image[crop_params['top']:crop_params['bottom'],
                           crop_params['left']:crop_params['right'], :]
     return crop_mask, np.array(
-        Image.fromarray((cropped_image + 117.0).astype(np.uint8)).resize(
-            (224, 224), resample=Image.BILINEAR)) - 117.0
+        Image.fromarray(cropped_image.astype(np.uint8)).resize(
+            image_shape_original, resample=Image.BILINEAR))
+
+
+def process_model_input(image, pixel_range):
+  """Scales the input image's pixels to make it within pixel_range."""
+  # pixel values are between [0, 1]
+  image = normalize_array(image, percentile=100)
+  min_pixel_value, max_pixel_value = pixel_range
+  # pixel values are within pixel_range
+  return image * (max_pixel_value - min_pixel_value) + min_pixel_value
 
 
 def _evaluate_cropped_image(session, run_params, crop_mask, image,
@@ -781,12 +792,12 @@ def _evaluate_cropped_image(session, run_params, crop_mask, image,
 
   Args:
     session: tf.Session, tensorflow session.
-    run_params: RunParams with tensor_names.
+    run_params: RunParams with tensor_names and pixel_range.
     crop_mask: int numpy array with shape (rows, columns), the values within the
       bounding set to 1.
     image: If model_type = 'cnn', float numpy array with shape (rows, columns,
-      channels), image. Otherwise, float numpy array with shape
-      (num_zero_padded_words,), text.
+      channels) with pixel values between [0, 255], image. Otherwise, float
+      numpy array with shape (num_zero_padded_words,), text.
     processed_image: float numpy array with shape (cropped_rows,
         cropped_columns, channels), cropped image.
     saliency_map:
@@ -811,11 +822,15 @@ def _evaluate_cropped_image(session, run_params, crop_mask, image,
       * image: float numpy array with shape (rows, columns), image.
       * saliency_score: float, saliency score.
   """
+  if run_params.model_type == 'cnn':
+    image = process_model_input(image, run_params.pixel_range)
+    processed_image = process_model_input(processed_image,
+                                          run_params.pixel_range)
   true_softmax, cropped_softmax = session.run(
       run_params.tensor_names,
       feed_dict={
-          run_params.tensor_names['input']: [
-              image, processed_image]})['softmax']
+          run_params.tensor_names['input']: [image, processed_image]}
+      )['softmax']
   true_label = np.argmax(true_softmax)
   cropped_confidence = cropped_softmax[true_label]
   if run_params.model_type == 'text_cnn':
@@ -851,14 +866,15 @@ def _generate_cropped_image(image, grid_size):
     image: float numpy array with shape (cropped_rows, cropped_columns,
         channels), cropped image.
   """
-  scale = image.shape[0] / grid_size
+  image_edge_length = image.shape[0]
+  scale = image_edge_length / grid_size
   for row_top in range(grid_size):
     for column_left in range(grid_size):
       for row_bottom in range(row_top + 2, grid_size + 1):
         # row_bottom starts from row_top + 2 so that while slicing, we don't
         # end up with a null array.
         for column_right in range(column_left + 2, grid_size + 1):
-          crop_mask = np.zeros((224, 224))
+          crop_mask = np.zeros((image_edge_length, image_edge_length))
           row_slice = slice(int(scale * row_top), int(scale * row_bottom))
           column_slice = slice(int(scale * column_left),
                                int(scale * column_right))
@@ -869,7 +885,8 @@ def _generate_cropped_image(image, grid_size):
 def brute_force_fast_saliency_evaluate_masks(run_params,
                                              image,
                                              grid_size=10,
-                                             area_threshold=0.05):
+                                             area_threshold=0.05,
+                                             session=None):
   """Finds the best bounding box in an image that optimizes the saliency metric.
 
   Divides the image into (grid_size x grid_size) grid. Then evaluates all
@@ -878,9 +895,12 @@ def brute_force_fast_saliency_evaluate_masks(run_params,
 
   Args:
     run_params: RunParams with model_path and tensor_names.
-    image: float numpy array with shape (rows, columns, channels), image.
+    image: float numpy array with shape (rows, columns, channels) and pixel
+        values between [0, 255], image.
     grid_size: int, size of the grid.
     area_threshold: float, area_threshold used in the saliency metric.
+    session: tf.Session, (default None) tensorflow session with the loaded
+        neural network.
 
   Returns:
     dict,
@@ -896,7 +916,8 @@ def brute_force_fast_saliency_evaluate_masks(run_params,
       * image: float numpy array with shape (rows, columns), image.
       * saliency_score: float, saliency score.
   """
-  session = restore_model(run_params.model_path)
+  if session is None:
+    session = restore_model(run_params.model_path)
   min_score = None
   for crop_mask, cropped_image in _generate_cropped_image(image, grid_size):
     eval_record = _evaluate_cropped_image(
@@ -905,8 +926,9 @@ def brute_force_fast_saliency_evaluate_masks(run_params,
         crop_mask=crop_mask,
         image=image,
         processed_image=np.array(
-            Image.fromarray((cropped_image + 117.0).astype(np.uint8)).resize(
-                (224, 224), resample=Image.BILINEAR)) - 117.0,
+            Image.fromarray(cropped_image.astype(np.uint8)).resize(
+                run_params.image_placeholder_shape[1:-1],
+                resample=Image.BILINEAR)),
         saliency_map=None,
         area_threshold=area_threshold)
     if min_score is None or eval_record['saliency_score'] < min_score:
@@ -994,12 +1016,15 @@ def scale_saliency_map(saliency_map, method):
     numpy array with shape (rows, columns), the normalized saliency map.
   """
   _verify_saliency_map_shape(saliency_map)
+  saliency_map = normalize_array(saliency_map)
   if 'smug' in method:
-    saliency_map = normalize_array(saliency_map)
+    # For better visualization, the smug_saliency_map and the
+    # no_minimization_saliency_map are scaled between [0.5, 1] instead of the
+    # usual [0, 1]. Note that doing such a scaling doesn't affect the
+    # saliency score in any way as the relative ordering between the pixels
+    # is preserved.
     saliency_map[saliency_map > 0] = 0.5 + 0.5 * saliency_map[saliency_map > 0]
-    return saliency_map
-  else:
-    return normalize_array(saliency_map)
+  return saliency_map
 
 
 def visualize_saliency_map(saliency_map, title=''):
