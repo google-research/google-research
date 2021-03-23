@@ -9,8 +9,9 @@ This repository contains the implementation of the SMUG saliency method as propo
 
 # Dependencies
 * python>=3.5
+* ipykernel>=5.5.0
 * numpy>=1.19.4
-* saliency>=0.0.5
+* saliency==0.0.6
 * scikit-image>=0.18.1
 * scikit-learn>=0.24.1
 * scipy>=1.6.0
@@ -23,15 +24,24 @@ This repository contains the implementation of the SMUG saliency method as propo
 > **_NOTE:_**  Avoid later versions of z3-solver as we observe performance issues with them.
 
 # Usage
-1. Download the repository.
-  * `git clone --depth 1  --filter=blob:none  --sparse  https://github.com/google-research/google-research.git`
-  * `cd google-research`
-  * `git sparse-checkout init --cone`
-  * `git sparse-checkout set smug_saliency`
-2. Run the following commands to ensure that all the tests pass -
-  * `chmod+x smug_saliency/run.sh`
-  * `./smug_saliency/run.sh`
-3. Notebook examples.
-  * [**image_saliency.ipynb**] (image_saliency.ipynb) shows how to run SMUG on CNN models for image saliency. In the notebook we demonstrate how to load an [inception model (v1 and v3)](https://github.com/tensorflow/models/tree/master/research/slim), configure hyperparameters for SMUG, and generate saliency maps. Our paper used a slightly different variant of the inception v1 model (without batch norm), so visualizations and results may differ.
 
-  * [**text_saliency.ipynb**] (text_saliency.ipynb) shows how to run SMUG on text models for text saliency. In the notebook we train a 1D CNN model on [beer reviews dataset](http://people.csail.mit.edu/taolei/beer/), configure hyperparameters for SMUG, and generate saliency maps.
+1. Download the repository.
+   * `git clone --depth 1 --filter=blob:none  --sparse https://github.com/google-research/google-research.git`
+   * `cd google-research`
+   * `git sparse-checkout init --cone`
+   * `git sparse-checkout set smug_saliency`
+
+2. Run the following commands to create a virtual environment called `smug` inside `smug_saliency`, install the dependencies, and ensure that all the tests pass.
+   * `chmod +x smug_saliency/run.sh`
+   * `./smug_saliency/run.sh`
+
+3. Notebook examples.
+   * Run the following commands to add `smug` kernel to jupyter notebook's list of kernels and launch jupyter notebook. 
+      * `cd smug_saliency`
+      * `source smug/bin/activate`
+      * `ipython kernel install --user --name=smug`
+      * `jupyter notebook`
+
+   * [**image_saliency.ipynb**](https://github.com/google-research/google-research/blob/master/smug_saliency/image_saliency.ipynb) shows how to run SMUG on CNN models for image saliency. In the notebook we demonstrate how to load an [inception model (v1 and v3)](https://github.com/tensorflow/models/tree/master/research/slim), configure hyperparameters for SMUG, and generate saliency maps. Our paper used a slightly different variant of the inception v1 model (without batch norm), so visualizations and results may differ.
+
+   * [**text_saliency.ipynb**](https://github.com/google-research/google-research/blob/master/smug_saliency/text_saliency.ipynb) shows how to run SMUG on text models for text saliency. In the notebook we train a 1D CNN model on [beer reviews dataset](http://people.csail.mit.edu/taolei/beer/), configure hyperparameters for SMUG, and generate saliency maps.

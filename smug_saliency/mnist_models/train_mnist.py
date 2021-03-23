@@ -28,7 +28,7 @@ import tensorflow.compat.v1 as tf
 from tensorflow.compat.v1 import gfile
 import tensorflow_datasets as tfds
 
-from smug_saliency.models import mnist_constants
+from smug_saliency.mnist_models import mnist_constants
 
 tf.compat.v1.enable_eager_execution()
 

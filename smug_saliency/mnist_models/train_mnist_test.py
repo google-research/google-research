@@ -23,7 +23,7 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 from tensorflow.compat.v1 import gfile
 
-from smug_saliency.models import train_mnist
+from smug_saliency.mnist_models import train_mnist
 
 FLAGS = flags.FLAGS
 
