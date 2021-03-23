@@ -65,7 +65,7 @@ def tfexamples_to_nps(path, embedding_name, label_name, label_list,
     embeddings.append(cur_emb)
 
     # Read labels.
-    assert label_name in feats, feats.keys()
+    assert label_name in feats, (label_name, feats.keys())
     cur_lbl = feats[label_name].bytes_list.value[0]
     assert isinstance(cur_lbl, bytes)
     labels.append(label_list.index(cur_lbl.decode('utf-8')))
