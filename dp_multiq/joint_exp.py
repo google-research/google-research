@@ -16,6 +16,8 @@
 """JointExp method for computing multiple dp quantiles."""
 
 import numpy as np
+from numpy.fft import irfft
+from numpy.fft import rfft
 from scipy import special
 
 from dp_multiq import ind_exp
@@ -41,7 +43,7 @@ def compute_intervals(sorted_data, data_low, data_high):
 
 
 def compute_log_phi(data_intervals, qs, eps, swap):
-  """Computes multi-dimensional array log_phi.
+  """Computes two-dimensional array log_phi.
 
   Args:
     data_intervals: Array of intervals of adjacent points from
@@ -51,14 +53,10 @@ def compute_log_phi(data_intervals, qs, eps, swap):
     swap: If true, uses swap dp sensitivity, otherwise uses add-remove.
 
   Returns:
-    Array log_phi[a,b,c] where a and b index over intervals and c indexes over
-    quantiles.
+    Array log_phi where log_phi[i-i',j] = log(phi(i, i', j)).
   """
   num_data_intervals = len(data_intervals)
   original_data_size = num_data_intervals - 1
-  num_quantiles = len(qs)
-  log_phi = np.zeros(
-      [num_data_intervals, num_data_intervals, num_quantiles + 1])
   if swap:
     sensitivity = 2.0
   else:
@@ -67,48 +65,38 @@ def compute_log_phi(data_intervals, qs, eps, swap):
     else:
       sensitivity = 2.0 * (1 - np.min(qs[1:] - qs[:-1]))
   eps_term = -(eps / (2.0 * sensitivity))
-  data_intervals_log_sizes = np.log(data_intervals[:, 1] - data_intervals[:, 0])
-  # Compute log_phi[i1, i2, j] for i1, j = 0.
-  diffs = np.abs(np.arange(num_data_intervals) - (qs[0] * original_data_size))
-  log_phi[0, :, 0] = (eps_term * diffs) + data_intervals_log_sizes
-  # Compute log_phi[i1, i2, j] for 1 <= j < num_quantiles.
-  diffs = np.fromfunction(lambda i, j, k: np.maximum(j - i, 0),
-                          (num_data_intervals, num_data_intervals, 1))
-  diffs = np.abs(diffs - (qs[1:] - qs[:-1]) * original_data_size)
-  diffs += np.tril(
-      np.full((num_data_intervals, num_data_intervals), np.inf),
-      k=-1)[:, :, np.newaxis]
-  log_phi[:, :,
-          1:-1] = (eps_term * diffs) + data_intervals_log_sizes[np.newaxis, :,
-                                                                np.newaxis]
-  # Compute log_phi[i1, i2, j] for j = num_quantiles.
-  diffs = np.abs(
-      np.arange(original_data_size, -1, -1) -
-      ((1 - qs[-1]) * original_data_size))
-  log_phi[:, -1, num_quantiles] = eps_term * diffs
-  return log_phi
+  gaps = np.arange(num_data_intervals)
+  target_ns = (np.block([qs, 1]) - np.block([0, qs])) * original_data_size
+  return eps_term * np.abs(gaps.reshape(-1, 1) - target_ns)
 
 
-def logdotexp(a, b):
-  """Multiplies probabilities using two matrices of log probabilities.
+def logdotexp_toeplitz_lt(c, x):
+  """Multiplies a log-space vector by a lower triangular Toeplitz matrix.
 
   Args:
-    a: Matrix of log probabilities.
-    b: Matrix of log probabilities.
+    c: First column of the Toeplitz matrix (in log space).
+    x: Vector to be multiplied (in log space).
 
   Returns:
-    For a_ij = log(p_{a, ij}) and b_ij = log(p_{b, ij}) where p denotes a
-    probability, returns matrix m where m_ij = log(p_{a, ij} * p_{b, ij})
-    without leaving logspace for numerical stability.
+    Let T denote the lower triangular Toeplitz matrix whose first column is
+    given by exp(c); then the vector returned by this function is log(T *
+    exp(x)). The multiplication is done using FFTs for efficiency, and care is
+    taken to avoid overflow during exponentiation.
   """
-  max_a, max_b = np.max(a), np.max(b)
-  exp_a, exp_b = a - max_a, b - max_b
-  np.exp(exp_a, out=exp_a)
-  np.exp(exp_b, out=exp_b)
-  c = np.dot(exp_a, exp_b)
-  np.log(c, out=c)
-  c += max_a + max_b
-  return c
+  max_c, max_x = np.max(c), np.max(x)
+  exp_c, exp_x = c - max_c, x - max_x
+  np.exp(exp_c, out=exp_c)
+  np.exp(exp_x, out=exp_x)
+  n = len(x)
+  # Choose the next power of two.
+  p = np.power(2, np.ceil(np.log2(2 * n - 1))).astype(int)
+  fft_exp_c = rfft(exp_c, n=p)
+  fft_exp_x = rfft(exp_x, n=p)
+  y = irfft(fft_exp_c * fft_exp_x)[:n]
+  np.maximum(0, y, out=y)
+  np.log(y, out=y)
+  y += max_c + max_x
+  return y
 
 
 def compute_log_alpha(data_intervals, log_phi, qs):
@@ -126,16 +114,20 @@ def compute_log_alpha(data_intervals, log_phi, qs):
   """
   num_intervals = len(data_intervals)
   num_quantiles = len(qs)
+  data_intervals_log_sizes = np.log(data_intervals[:, 1] - data_intervals[:, 0])
   log_alpha = np.log(np.zeros([num_quantiles, num_intervals, num_quantiles]))
-  log_alpha[0, :, 0] = log_phi[0, :, 0]
+  log_alpha[0, :, 0] = log_phi[:, 0] + data_intervals_log_sizes
+  # A handy mask for log_phi.
+  disallow_repeat = np.zeros(num_intervals)
+  disallow_repeat[0] = -np.inf
   for j in range(1, num_quantiles):
     log_hat_alpha = special.logsumexp(log_alpha[j - 1, :, :], axis=1)
-    log_alpha[j, :, 0] = logdotexp(
-        log_hat_alpha,
-        log_phi[:, :, j] + np.diag(np.log(np.zeros(num_intervals))))
-    log_alpha[j, :,
-              1:j + 1] = np.diag(log_phi[:, :, j])[:, np.newaxis] + log_alpha[
-                  j - 1, :, 0:j] - np.log(np.arange(1, j + 1) + 1)
+    log_alpha[j, :, 0] = data_intervals_log_sizes + logdotexp_toeplitz_lt(
+        log_phi[:, j] + disallow_repeat, log_hat_alpha)
+    log_alpha[j, 0, 0] = -np.inf  # Correct possible numerical error.
+    log_alpha[j, :, 1:j+1] = \
+      (log_phi[0, j] + data_intervals_log_sizes)[:, np.newaxis] \
+      + log_alpha[j-1, :, 0:j] - np.log(np.arange(1, j+1) + 1)
   return log_alpha
 
 
@@ -156,16 +148,17 @@ def sample_joint_exp(log_alpha, data_intervals, log_phi, qs):
   num_intervals = len(data_intervals)
   num_quantiles = len(qs)
   outputs = np.zeros(num_quantiles)
-  last_i = -1
+  last_i = num_intervals - 1
   j = num_quantiles - 1
   repeats = 0
   while j >= 0:
-    log_dist = log_alpha[j, :, :] + log_phi[:, last_i, j + 1][:, np.newaxis]
+    log_dist = log_alpha[j, :last_i + 1, :] + log_phi[:last_i + 1,
+                                                      j + 1][::-1, np.newaxis]
     # Prevent repeats unless it's the first round.
     if j < num_quantiles - 1:
       log_dist[last_i, :] = -np.inf
     i, k = np.unravel_index(
-        ind_exp.racing_sample(log_dist), [num_intervals, num_quantiles])
+        ind_exp.racing_sample(log_dist), [last_i + 1, num_quantiles])
     repeats += k
     k += 1
     for j2 in range(j - k + 1, j + 1):
@@ -173,7 +166,7 @@ def sample_joint_exp(log_alpha, data_intervals, log_phi, qs):
                                                                            1])
     j -= k
     last_i = i
-  return outputs
+  return np.sort(outputs)
 
 
 def joint_exp(sorted_data, data_low, data_high, qs, eps, swap):
