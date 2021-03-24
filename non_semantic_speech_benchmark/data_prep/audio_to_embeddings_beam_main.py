@@ -80,6 +80,9 @@ flags.DEFINE_bool(
     'delete_audio_from_output', True,
     'If true, remove audio from the output table. Can be '
     'helpful in keeping output tables small.')
+flags.DEFINE_bool(
+    'split_embeddings_into_separate_tables', False,
+    'If true, write each embedding to a separate table.')
 flags.DEFINE_bool('debug', False, 'If True, run in debug model.')
 
 FLAGS = flags.FLAGS
@@ -125,6 +128,7 @@ def main(unused_argv):
           FLAGS.average_over_time,
           FLAGS.delete_audio_from_output,
           output_filename,
+          split_embeddings_into_separate_tables=FLAGS.split_embeddings_into_separate_tables,  # pylint:disable=line-too-long
           input_format=input_format,
           output_format=output_format,
           suffix=i)

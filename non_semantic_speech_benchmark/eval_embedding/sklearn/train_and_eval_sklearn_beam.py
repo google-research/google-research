@@ -47,8 +47,6 @@ flags.DEFINE_enum('eval_metric', 'accuracy',
                   ['accuracy', 'balanced_accuracy', 'equal_error_rate',
                    'unweighted_average_recall'],
                   'Which metric to compute and report.')
-flags.DEFINE_bool('fast_write', True,
-                  'Writes to multiple shards if `True`, otherwise just one.')
 
 FLAGS = flags.FLAGS
 
@@ -111,16 +109,15 @@ def main(unused_argv):
 
   logging.info('Starting to create flume pipeline...')
   with beam.Pipeline(beam_options) as root:
-    score = (root
-             | 'MakeCollection' >> beam.Create(exp_params)
-             | 'CalcScores' >> beam.Map(
-                 lambda d: (d, train_and_eval_sklearn.train_and_get_score(**d)))
-             | 'FormatText' >> beam.Map(format_text_line)
-            )
-    if not FLAGS.fast_write:
-      score = score | 'Reshuffle' >> beam.Reshuffle()
-    _ = score | 'WriteOutput' >> beam.io.WriteToText(
-        FLAGS.output_file, num_shards=0 if FLAGS.fast_write else 1)
+    _ = (root
+         | 'MakeCollection' >> beam.Create(exp_params)
+         | 'CalcScores' >> beam.Map(
+             lambda d: (d, train_and_eval_sklearn.train_and_get_score(**d)))
+         | 'FormatText' >> beam.Map(format_text_line)
+         | 'Reshuffle' >> beam.Reshuffle()
+         | 'WriteOutput' >> beam.io.WriteToText(
+             FLAGS.output_file, num_shards=1)
+        )
 
 
 if __name__ == '__main__':

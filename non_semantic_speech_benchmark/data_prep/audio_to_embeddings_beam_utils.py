@@ -390,8 +390,8 @@ def make_beam_pipeline(
     root, input_filenames, sample_rate, debug, embedding_names,
     embedding_modules, module_output_keys, audio_key, sample_rate_key,
     label_key, speaker_id_key, average_over_time, delete_audio_from_output,
-    output_filename, input_format='tfrecord', output_format='tfrecord',
-    suffix='Main'):
+    output_filename, split_embeddings_into_separate_tables=False,
+    input_format='tfrecord', output_format='tfrecord', suffix='Main'):
   """Construct beam pipeline for mapping from audio to embeddings.
 
   Args:
@@ -412,6 +412,8 @@ def make_beam_pipeline(
     delete_audio_from_output: Python bool. Whether to remove audio fromm
       outputs.
     output_filename: Python string. Output filename.
+    split_embeddings_into_separate_tables: Python bool. If true, write each
+      embedding to a separate table.
     input_format: Python string. Must correspond to a function in
       `reader_functions`.
     output_format: Python string. Must correspond to a function
@@ -452,18 +454,34 @@ def make_beam_pipeline(
   embedding_tables[tf_examples_key_] = input_examples
   logging.info('embedding_tables: %s', embedding_tables)
 
-  # Combine embeddings and tf.train.Example, using the common key.
-  combined_tbl = (
-      embedding_tables
-      | f'CombineEmbeddingTables-{s}' >> beam.CoGroupByKey()
-      | f'AddEmbeddings-{s}' >> beam.Map(
-          _add_embedding_column_map_fn,
-          original_example_key=tf_examples_key_,
-          delete_audio_from_output=delete_audio_from_output,
-          audio_key=audio_key,
-          label_key=label_key,
-          speaker_id_key=speaker_id_key))
+  # Either write to one table with all embeddings, or one table per embedding.
+  if split_embeddings_into_separate_tables:
+    output_table_dicts = [
+        (k, {k: v, tf_examples_key_: input_examples}) for
+        k, v in embedding_tables.items() if k != tf_examples_key_]
+  else:
+    output_table_dicts = [('all', embedding_tables)]
 
-  output_filename = f'{output_filename}@*'
-  logging.info('Writing to %s', output_filename)
-  writer_functions[output_format](combined_tbl, output_filename, s)
+  # Combine embeddings and tf.train.Example, using the common key.
+  writer_function = writer_functions[output_format]
+  for name, embedding_tables in output_table_dicts:
+    if split_embeddings_into_separate_tables:
+      cur_s = f'{name}-{s}'
+      # Add `name` as a subdir.
+      dirname, basename = os.path.split(output_filename)
+      cur_output_filename = os.path.join(dirname, name, f'{basename}@*')
+    else:
+      cur_s = s
+      cur_output_filename = f'{output_filename}@*'
+    combined_tbl = (
+        embedding_tables
+        | f'CombineEmbeddingTables-{cur_s}' >> beam.CoGroupByKey()
+        | f'AddEmbeddings-{cur_s}' >> beam.Map(
+            _add_embedding_column_map_fn,
+            original_example_key=tf_examples_key_,
+            delete_audio_from_output=delete_audio_from_output,
+            audio_key=audio_key,
+            label_key=label_key,
+            speaker_id_key=speaker_id_key))
+    logging.info('Writing to %s', cur_output_filename)
+    writer_function(combined_tbl, cur_output_filename, cur_s)
