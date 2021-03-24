@@ -178,9 +178,9 @@ def main(unused_argv):
 
   # Prefetch_buffer_size = 3 x batch_size
   pdataset = flax.jax_utils.prefetch_to_device(dataset, 3)
-  n_local_deices = jax.local_device_count()
+  n_local_devices = jax.local_device_count()
   rng = rng + jax.host_id()  # Make random seed separate across hosts.
-  keys = random.split(rng, n_local_deices)  # For pmapping RNG keys.
+  keys = random.split(rng, n_local_devices)  # For pmapping RNG keys.
   gc.disable()  # Disable automatic garbage collection for efficiency.
   stats_trace = []
   reset_timer = True
