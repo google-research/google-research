@@ -22,6 +22,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
+import numpy as np
 import tensorflow as tf
 
 from non_semantic_speech_benchmark.eval_embedding import metrics
@@ -109,7 +110,7 @@ def eval_and_report():
 
     logging.info('Starting the ds loop...')
     count, ex_count = 0, 0
-    all_logits, all_real = [], []
+    all_logits, all_real, balanced_acc_scores = [], [], []
     s = time.time()
     for emb, y_onehot in ds:
       emb.shape.assert_has_rank(3)
@@ -120,6 +121,8 @@ def eval_and_report():
       logits = model(emb, training=False)
       all_logits.extend(logits.numpy()[:, 1])
       all_real.extend(y_onehot.numpy()[:, 1])
+      balanced_acc_scores.append(metrics.balanced_accuracy(
+          np.argmax(y_onehot.numpy(), 1), np.argmax(logits.numpy(), 1)))
       acc_m.update_state(y_true=tf.argmax(y_onehot, 1),
                          y_pred=tf.argmax(logits, 1))
       xent_m.update_state(y_true=y_onehot, y_pred=logits)
@@ -134,6 +137,8 @@ def eval_and_report():
     dprime_score = metrics.dprime_from_auc(auc_score)
     with writer.as_default():
       tf.summary.scalar('accuracy', acc_m.result().numpy(), step=int(step))
+      tf.summary.scalar('balanced_accuracy', np.mean(balanced_acc_scores),
+                        step=int(step))
       tf.summary.scalar('xent_loss', xent_m.result().numpy(), step=int(step))
       tf.summary.scalar('auc', auc_score, step=int(step))
       tf.summary.scalar('dprime', dprime_score, step=int(step))
