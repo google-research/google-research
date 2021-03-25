@@ -25,7 +25,6 @@ import json
 import os
 import pickle
 
-from caltrain.run_calibration import calibrate
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -40,6 +39,7 @@ from caltrain.glm_modeling import Folds
 from caltrain.glm_modeling import glm_fit_data
 from caltrain.glm_modeling import GLMModels
 from caltrain.glm_modeling import Guo_et_al_data
+from caltrain.run_calibration import calibrate
 
 
 def get_glm_fit_data(n=50):
