@@ -171,13 +171,15 @@ def main(_):
   @tf.function
   def get_target_actions(states):
     return actor(
-        behavior_dataset.unnormalize_states(states),
+        tf.cast(behavior_dataset.unnormalize_states(states),
+                env.observation_spec().dtype),
         std=FLAGS.target_policy_std)[1]
 
   @tf.function
   def get_target_logprobs(states, actions):
     log_probs = actor(
-        behavior_dataset.unnormalize_states(states),
+        tf.cast(behavior_dataset.unnormalize_states(states),
+                env.observation_spec().dtype),
         actions=actions,
         std=FLAGS.target_policy_std)[2]
     if tf.rank(log_probs) > 1:
