@@ -30,7 +30,6 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from gfsa import automaton_builder
 from gfsa import jax_util
 from gfsa.datasets import data_loading
 from gfsa.datasets import graph_bundle
