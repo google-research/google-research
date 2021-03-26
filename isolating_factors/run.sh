@@ -19,5 +19,5 @@ set -x
 python3 -m virtualenv .
 source ./bin/activate
 
-pip install -r requirements.txt
-python -m shapes3d.train --num_latent_dims 3 --num_iters 10
+pip install -r isolating_factors/requirements.txt
+python -m isolating_factors.shapes3d.train --num_latent_dims 3 --num_iters 10

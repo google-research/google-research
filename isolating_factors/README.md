@@ -3,10 +3,8 @@
 
 This code accompanies the paper
 
-**There and back again: Cycle consistency across sets for isolating factors of isolation** \
+[**There and back again: Cycle consistency across sets for isolating factors of isolation**](https://arxiv.org/abs/2103.03240) \
 Kieran A. Murphy, Varun Jampani, Srikumar Ramalingam, Ameesh Makadia
-
-[arXiv link available soon]
 
 ## Repository Contents
 - `shapes3d/` Trains a model from scratch to isolate generative factors from
