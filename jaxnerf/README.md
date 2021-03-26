@@ -47,7 +47,7 @@ Our JAX implementation currently supports:
 </table>
 
 The training job on 128 TPUv2 cores can be done in **2.5 hours (v.s 3 days for TF
-NeRF)** for 1 million optimization steps. In other words, JaxNeRF trains to the best while trains very fast.
+NeRF)** for 1 million optimization steps. In other words, JaxNeRF trains to the best while training very fast.
 
 As for inference speed, here are the statistics of rendering an image with
 800x800 resolution (numbers are averaged over 50 rendering passes):
