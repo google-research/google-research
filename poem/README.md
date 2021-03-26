@@ -16,11 +16,11 @@ code useful:
   year={2020}
 }
 
-@inproceedings{zhao2020learning,
+@inproceedings{zhao2021learning,
   title={Learning View-Disentangled Human Pose Representation by Contrastive Cross-View Mutual Information Maximization},
   author={Zhao, Long and Wang, Yuxiao and Zhao, Jiaping and Yuan, Liangzhe and Sun, Jennifer J and Schroff, Florian and Adam, Hartwig and Peng, Xi and Metaxas, Dimitris and Liu, Ting},
   booktitle={CVPR},
-  year={2020}
+  year={2021}
 }
 ```
 
