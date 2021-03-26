@@ -26,13 +26,13 @@ virtualenv -p python3 env
 source env/bin/activate
 pip3 install -r poem/requirements.txt
 
-TRAIN_DIR="/tmp/e3d/train"
+PR_VIPE_TRAIN_DIR="/tmp/e3d/pr_vipe/train"
 
-mkdir -p "${TRAIN_DIR}"
-python3 -m poem.train \
+mkdir -p "${PR_VIPE_TRAIN_DIR}"
+python3 -m poem.pr_vipe.train \
   --alsologtostderr \
   --input_table="poem/testdata/tfe-2.tfrecords" \
-  --train_log_dir="${TRAIN_DIR}" \
+  --train_log_dir="${PR_VIPE_TRAIN_DIR}" \
   --batch_size=4 \
   --num_steps=5 \
   --input_shuffle_buffer_size=10 \
@@ -45,10 +45,10 @@ assert_file_exists() {
   fi
 }
 
-assert_file_exists "${TRAIN_DIR}/all_flags.train.json"
-assert_file_exists "${TRAIN_DIR}/graph.pbtxt"
-assert_file_exists "${TRAIN_DIR}/model.ckpt-00000005.data-00000-of-00001"
-assert_file_exists "${TRAIN_DIR}/model.ckpt-00000005.meta"
-assert_file_exists "${TRAIN_DIR}/model.ckpt-00000005.index"
+assert_file_exists "${PR_VIPE_TRAIN_DIR}/all_flags.train.json"
+assert_file_exists "${PR_VIPE_TRAIN_DIR}/graph.pbtxt"
+assert_file_exists "${PR_VIPE_TRAIN_DIR}/model.ckpt-00000005.data-00000-of-00001"
+assert_file_exists "${PR_VIPE_TRAIN_DIR}/model.ckpt-00000005.meta"
+assert_file_exists "${PR_VIPE_TRAIN_DIR}/model.ckpt-00000005.index"
 
 echo "PASS"

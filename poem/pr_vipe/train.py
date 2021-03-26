@@ -18,12 +18,12 @@
 from absl import app
 from absl import flags
 import tensorflow.compat.v1 as tf
-
-from poem import train_base
 from poem.core import common
 from poem.core import input_generator
 from poem.core import keypoint_profiles
 from poem.core import models
+from poem.pr_vipe import train_base
+
 tf.disable_v2_behavior()
 
 FLAGS = flags.FLAGS
