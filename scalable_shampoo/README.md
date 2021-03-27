@@ -46,7 +46,8 @@ at batch sizes of 32,768.
 This work releases a distributed Shampoo implementation in JAX [7] that improves
 over the current state of the art by reaching **75.9% validation accuracy** in
 **1729 steps**. It also achieves faster overall wall-clock time of **267 seconds**
-with the same benchmarking hardware CloudTPU-v3-256 (256 cores).
+with the same benchmarking hardware CloudTPU-v3-256 (256 cores). Moreover, when
+trained to 90 epochs, Distributed Shampoo reaches 77.8% accuracy.
 
 |      Optimizer      | Steps to reach 75.9 validation accuracy | Wall clock time |
 |:-------------------:|-----------------------------------------|-----------------|
