@@ -75,7 +75,11 @@ def get_matrix_compression_object(hparams,  # pylint:disable=invalid-name
     A Pruning or compression_lib.compression_op.ApplyCompression object.
   """
   if global_step is None:
-    global_step = tf.cast(tf.train.get_global_step(), tf.int32)
+    train_global_step = tf.train.get_global_step()
+    if train_global_step is None:
+      global_step = 0
+    else:
+      global_step = tf.cast(train_global_step, tf.int32)
   if hparams.prune_option in [
       'weight', 'first_order_gradient', 'second_order_gradient']:
     return pruning.Pruning(hparams, global_step, sparsity)
@@ -323,6 +327,34 @@ def add_compression_summaries(matrix_compression_obj):  # pylint:disable=invalid
     matrix_compression_obj.add_pruning_summaries()
 
 
+def flat_embedding_lookup(emb_table, flat_ids, vocab_size,  # pylint:disable=invalid-name
+                          matmul_axis=1,
+                          fprop_mode='matmul'):
+  """Performs embedding lookup operation.
+
+  Args:
+    emb_table: tf.Tensor containing the embedding vectors.
+    flat_ids: tf.Tensor of shape (number_ids,).
+    vocab_size: vocabulary size of the embedding table, int.
+    matmul_axis: the axis of flat_ids that is used for matmul, int.
+    fprop_mode: embedding lookup option, should be 'matmul' or 'gather'.
+
+  Returns:
+    Embedding lookup result.
+  """
+  if fprop_mode == 'matmul':
+    lhs = tf.equal(
+        tf.expand_dims(flat_ids, matmul_axis),
+        tf.range(vocab_size, dtype=flat_ids.dtype))
+    return tf.matmul(tf.cast(lhs, emb_table.dtype), emb_table)
+  elif fprop_mode == 'gather':
+    return tf.nn.embedding_lookup(emb_table, flat_ids)
+  else:
+    raise ValueError(
+        'flat_embedding_lookup(): fprop_mode {} is not supported.'.format(
+            fprop_mode))
+
+
 class PruningOp(object):
   """A pruning op object.
 
@@ -360,7 +392,10 @@ class PruningOp(object):
   def ApplyPruning(cls, pruning_hparams_dict, lstmobj, weight_name, wm_pc,  # pylint:disable=invalid-name
                    dtype, scope):
     if not cls._pruning_obj:
-      cls.Setup(pruning_hparams_dict, global_step=py_utils.GetGlobalStep())
+      train_global_step = py_utils.GetGlobalStep()
+      if train_global_step is None:
+        train_global_step = 0
+      cls.Setup(pruning_hparams_dict, global_step=train_global_step)
     compression_op_spec = pruning.get_pruning_hparams().override_from_dict(
         pruning_hparams_dict)
     return apply_customized_lstm_matrix_compression(cls._pruning_obj,
@@ -535,6 +570,25 @@ class PruningOp(object):
       return None
     else:
       return cls._pruning_obj.get_last_compression_op()
+
+  @classmethod
+  def GetEmbeddingLookupResult(cls, theta, flat_ids,
+                               fprop_mode='gather',
+                               layer_obj=None):
+    if cls._pruning_hparams.prune_option in [
+        'weight', 'first_order_gradient', 'second_order_gradient'
+    ]:
+      return flat_embedding_lookup(
+          emb_table=tf.multiply(theta.wm, theta.mask),
+          flat_ids=flat_ids,
+          vocab_size=theta.wm.shape[0],
+          fprop_mode=fprop_mode)
+    elif cls._pruning_obj:
+      assert layer_obj
+      return layer_obj.compression_op.get_embedding_lookup_operator(
+          theta, flat_ids, fprop_mode)
+    else:
+      raise NotImplementedError()
 
   @classmethod
   def GetPruningUpdate(cls):  # pylint:disable=invalid-name

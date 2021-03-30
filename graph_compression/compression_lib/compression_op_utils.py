@@ -19,6 +19,7 @@ from __future__ import division
 
 import math
 import numpy as np
+import tensorflow.compat.v1 as tf
 
 
 def compute_compressed_rank_from_matrix_shape(matrix_shape, rank_factor):
@@ -39,3 +40,17 @@ def compute_compressed_rank_from_matrix_shape(matrix_shape, rank_factor):
   # If matrix dimension is smaller than rank specified then adjust rank
   rank = np.min(matrix_shape + (rank,))
   return int(rank)
+
+
+def flatten_last_dims(x, ndims=1):
+  """Flatten the last `ndims` dimension of the input tensor.
+
+  Args:
+    x: a tf.Tensor.
+    ndims: number of dimensions to flatten.
+
+  Returns:
+    x with last `ndims` dimensions flattened.
+  """
+  newshape = tf.concat([tf.shape(x)[:-ndims], [-1]], axis=0)
+  return tf.reshape(x, shape=newshape)

@@ -25,6 +25,7 @@ import numpy as np
 import tensorflow.compat.v1 as tf
 
 from graph_compression.compression_lib import compression_op
+from graph_compression.compression_lib import compression_op_utils
 from graph_compression.compression_lib import decompose_matrix
 from graph_compression.compression_lib import kmeans_quantize
 from model_pruning.python import hparam
@@ -373,7 +374,8 @@ class SimhashApplyCompression(compression_op.ApplyCompression):
                                    layer_obj,
                                    weight_params_fn,
                                    weight_init_obj,
-                                   scope='default_scope'):
+                                   scope='default_scope',
+                                   spec=None):
     """Applies matrix compression OP on a_matrix_tfvar as specified in spec.
 
     Args:
@@ -382,20 +384,22 @@ class SimhashApplyCompression(compression_op.ApplyCompression):
       weight_params_fn: functional handle to create model parameters.
       weight_init_obj: a weight initialization object.
       scope: TF scope used for creating new TF variables.
+      spec: spec to be used for the compression op. this is optional.
+            if not provided, self._compression_op_spec is used.
 
     Returns:
       A TF node that represents the compressed version of a_matrix_tfvar.
     """
-
-    if self._compression_op_spec.compression_option == 4:
+    compression_op_spec = spec if spec else self._compression_op_spec
+    if compression_op_spec.compression_option == 4:
       c = KMeansCompressionOp(
-          spec=self._compression_op_spec, global_step=self._global_step)
-    elif self._compression_op_spec.compression_option == 8:
+          spec=compression_op_spec, global_step=self._global_step)
+    elif compression_op_spec.compression_option == 8:
       c = KMeansPruningCompressionOp(
-          spec=self._compression_op_spec, global_step=self._global_step)
+          spec=compression_op_spec, global_step=self._global_step)
     else:
       c = SimhashCompressionOp(
-          spec=self._compression_op_spec, global_step=self._global_step)
+          spec=compression_op_spec, global_step=self._global_step)
 
     self._compression_ops.append(c)
     [a_matrix_compressed,
@@ -406,24 +410,6 @@ class SimhashApplyCompression(compression_op.ApplyCompression):
          weight_params_fn,
          weight_init_obj,
          scope=scope)
-    if self._compression_op_spec.compression_option == 8:
-      [a_matrix_compressed,
-       a_matrix_update_op] = c.get_customized_apply_compression_op(  # pylint: disable=unexpected-keyword-arg
-           a_matrix_tfvar,
-           self._matrix_compressor,
-           layer_obj,
-           weight_params_fn,
-           weight_init_obj,
-           scope=scope)
-    else:
-      [a_matrix_compressed,
-       a_matrix_update_op] = c.get_customized_apply_compression_op(
-           a_matrix_tfvar,
-           self._matrix_compressor,
-           layer_obj,
-           weight_params_fn,
-           weight_init_obj,
-           scope=scope)
     self._update_ops.append(a_matrix_update_op)
 
     self.uncompressed_size += c.uncompressed_size
@@ -507,7 +493,7 @@ class KMeansCompressionOp(compression_op.CompressionOp):
       tf.summary.scalar(self.alpha.op.name + '/alpha', self.alpha)
       tf.summary.scalar(self.a_matrix_tfvar.op.name + '/a_matrix_norm',
                         tf.norm(self.a_matrix_tfvar))
-      tf.summary.scalar(self.b_matrix_tfvar.op.name + '/d_matrix_norm',
+      tf.summary.scalar(self.b_matrix_tfvar.op.name + '/b_matrix_norm',
                         tf.norm(tf.reshape(self.b_matrix_tfvar, [-1]), ord=1))
       tf.summary.scalar(self.c_matrix_tfvar.op.name + '/c_matrix_norm',
                         tf.reduce_sum(self.c_matrix_tfvar))
@@ -609,12 +595,18 @@ class KMeansCompressionOp(compression_op.CompressionOp):
     self.uncompressed_size = matrix_compressor.uncompressed_size
     self.compressed_size = matrix_compressor.compressed_size
 
+    # Use uint8 if number of k-centers is small enough.
+    c_matrix_tfvar_dtype = tf.int32
+    if self._spec.rank <= 256:
+      c_matrix_tfvar_dtype = tf.uint8
+
     p = layer_obj.params
     with tf.variable_scope(scope) as scope:
       b_matrix_pc = weight_params_fn(b_matrix.shape,
                                      weight_init_obj.Constant(1.0), p.dtype)
       c_matrix_pc = weight_params_fn(c_matrix.shape,
-                                     weight_init_obj.Constant(1.0), tf.int32)
+                                     weight_init_obj.Constant(1),
+                                     c_matrix_tfvar_dtype)
       alpha_pc = weight_params_fn([], weight_init_obj.Constant(1.0), tf.float32)
 
       layer_obj.CreateVariable(
@@ -638,11 +630,9 @@ class KMeansCompressionOp(compression_op.CompressionOp):
       if self._spec.update_option == 0:
         self.update_op = self._create_update_op()
       else:
-        self.update_op = self.setup_update_explicit()
+        self.update_op = tf.no_op()
 
-    self.final_op = self.alpha * self.a_matrix_tfvar + (
-        1 - self.alpha) * tf.nn.embedding_lookup(self.b_matrix_tfvar,
-                                                 self.c_matrix_tfvar)
+    self.final_op = self.a_matrix_tfvar
 
     self.add_compression_summaries()
     return [self.final_op, self.update_op]
@@ -664,7 +654,55 @@ class KMeansCompressionOp(compression_op.CompressionOp):
         theta.alpha * tf.matmul(concat, theta.wm) +
         (1 - theta.alpha) * tf.matmul(
             concat,
-            tf.nn.embedding_lookup(theta.b_matrix_tfvar, theta.c_matrix_tfvar)))
+            tf.nn.embedding_lookup(theta.b_matrix_tfvar,
+                                   tf.cast(theta.c_matrix_tfvar, tf.int32))))
+
+  def flat_embedding_lookup(self, emb_table, flat_ids, vocab_size,
+                            matmul_axis=1,
+                            fprop_type='matmul'):
+    if fprop_type == 'matmul':
+      lhs = tf.equal(
+          tf.expand_dims(flat_ids, matmul_axis),
+          tf.cast(tf.range(vocab_size, dtype=tf.int32), flat_ids.dtype))
+      if emb_table.dtype == tf.uint8:
+        return tf.cast(
+            tf.matmul(tf.cast(lhs, tf.int32), tf.cast(emb_table, tf.int32)),
+            tf.uint8)
+      else:
+        return tf.matmul(tf.cast(lhs, emb_table.dtype), emb_table)
+    else:
+      return tf.nn.embedding_lookup(emb_table, tf.cast(flat_ids, tf.int32))
+
+  def get_embedding_lookup_operator(self, theta, flat_ids, fprop_type='matmul'):
+    """Perform gather based embedding lookup.
+
+    Args:
+      theta: layer parameter class, theta should have an attribute theta.wm
+        which is the embedding table.
+      flat_ids: one dimensional tensor of ids, tf.Tensor of tf.int32 type.
+      fprop_type: embedding lookup type: should be 'matmul' or  'gather'.
+
+    Returns:
+      Compressed version of tf.nn.embedding_lookup(theta.wm, flat_ids).
+    """
+    single_emb_result = self.flat_embedding_lookup(theta.wm, flat_ids,
+                                                   theta.wm.shape[0],
+                                                   matmul_axis=1,
+                                                   fprop_type=fprop_type)
+    double_emb_result = self.flat_embedding_lookup(
+        theta.b_matrix_tfvar,
+        self.flat_embedding_lookup(theta.c_matrix_tfvar, flat_ids,
+                                   theta.c_matrix_tfvar.shape[0],
+                                   matmul_axis=1,
+                                   fprop_type=fprop_type),
+        256,
+        matmul_axis=2,
+        fprop_type=fprop_type)
+    double_emb_result = compression_op_utils.flatten_last_dims(
+        double_emb_result, ndims=2)
+
+    return (theta.alpha * single_emb_result +
+            (1 - theta.alpha) * double_emb_result)
 
 
 class KMeansPruningCompressionOp(compression_op.CompressionOp):
