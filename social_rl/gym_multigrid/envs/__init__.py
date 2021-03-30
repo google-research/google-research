@@ -32,3 +32,4 @@ from social_rl.gym_multigrid.envs.maze import *
 from social_rl.gym_multigrid.envs.meetup import *
 from social_rl.gym_multigrid.envs.stag_hunt import *
 from social_rl.gym_multigrid.envs.tag import *
+from social_rl.gym_multigrid.envs.tasklist import *

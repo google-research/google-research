@@ -864,9 +864,6 @@ class MultiGridEnv(minigrid.MiniGridEnv):
     # Get the position in front of the agent
     fwd_pos = self.front_pos[agent_id]
 
-    # Get the contents of the cell in front of the agent
-    fwd_cell = self.grid.get(*fwd_pos)
-
     # Rotate left
     if action == self.actions.left:
       self.agent_dir[agent_id] -= 1
@@ -881,50 +878,22 @@ class MultiGridEnv(minigrid.MiniGridEnv):
 
     # Move forward
     elif action == self.actions.forward:
-      # Make sure agents can't walk into each other
-      agent_blocking = False
-      for a in range(self.n_agents):
-        if a != agent_id and np.array_equal(self.agent_pos[a], fwd_pos):
-          agent_blocking = True
-
-      # Deal with object interactions
-      if not agent_blocking:
-        if fwd_cell is not None and fwd_cell.type == 'goal':
-          self.agent_is_done(agent_id)
-          reward = self._reward()
-        elif fwd_cell is not None and fwd_cell.type == 'lava':
-          self.agent_is_done(agent_id)
-        elif fwd_cell is None or fwd_cell.can_overlap():
-          self.move_agent(agent_id, fwd_pos)
+      successful_forward = self._forward(agent_id, fwd_pos)
+      fwd_cell = self.grid.get(*fwd_pos)
+      if successful_forward and fwd_cell is not None and fwd_cell.type == 'goal':
+        reward = self._reward()
 
     # Pick up an object
     elif action == self.actions.pickup:
-      if fwd_cell and fwd_cell.can_pickup():
-        if self.carrying[agent_id] is None:
-          self.carrying[agent_id] = fwd_cell
-          self.carrying[agent_id].cur_pos = np.array([-1, -1])
-          self.grid.set(fwd_pos[0], fwd_pos[1], None)
-          a_pos = self.agent_pos[agent_id]
-          agent_obj = self.grid.get(a_pos[0], a_pos[1])
-          agent_obj.contains = fwd_cell
+      self._pickup(agent_id, fwd_pos)
 
     # Drop an object
     elif action == self.actions.drop:
-      if not fwd_cell and self.carrying[agent_id]:
-        self.grid.set(fwd_pos[0], fwd_pos[1], self.carrying[agent_id])
-        self.carrying[agent_id].cur_pos = fwd_pos
-        self.carrying[agent_id] = None
-        a_pos = self.agent_pos[agent_id]
-        agent_obj = self.grid.get(a_pos[0], a_pos[1])
-        agent_obj.contains = None
+      self._drop(agent_id, fwd_pos)
 
     # Toggle/activate an object
     elif action == self.actions.toggle:
-      if fwd_cell:
-        if fwd_cell.type == 'door':
-          fwd_cell.toggle(self, fwd_pos, self.carrying[agent_id])
-        else:
-          fwd_cell.toggle(self, fwd_pos)
+      self._toggle(agent_id, fwd_pos)
 
     # Done action -- by default acts as no-op.
     elif action == self.actions.done:
@@ -934,6 +903,63 @@ class MultiGridEnv(minigrid.MiniGridEnv):
       assert False, 'unknown action'
 
     return reward
+
+  def _forward(self, agent_id, fwd_pos):
+    """Attempts to move the forward one cell, returns True if successful."""
+    fwd_cell = self.grid.get(*fwd_pos)
+    # Make sure agents can't walk into each other
+    agent_blocking = False
+    for a in range(self.n_agents):
+      if a != agent_id and np.array_equal(self.agent_pos[a], fwd_pos):
+        agent_blocking = True
+
+    # Deal with object interactions
+    if not agent_blocking:
+      if fwd_cell is not None and fwd_cell.type == 'goal':
+        self.agent_is_done(agent_id)
+      elif fwd_cell is not None and fwd_cell.type == 'lava':
+        self.agent_is_done(agent_id)
+      elif fwd_cell is None or fwd_cell.can_overlap():
+        self.move_agent(agent_id, fwd_pos)
+      return True
+    return False
+
+  def _pickup(self, agent_id, fwd_pos):
+    """Attempts to pick up object, returns True if successful."""
+    fwd_cell = self.grid.get(*fwd_pos)
+    if fwd_cell and fwd_cell.can_pickup():
+      if self.carrying[agent_id] is None:
+        self.carrying[agent_id] = fwd_cell
+        self.carrying[agent_id].cur_pos = np.array([-1, -1])
+        self.grid.set(fwd_pos[0], fwd_pos[1], None)
+        a_pos = self.agent_pos[agent_id]
+        agent_obj = self.grid.get(a_pos[0], a_pos[1])
+        agent_obj.contains = fwd_cell
+        return True
+    return False
+
+  def _drop(self, agent_id, fwd_pos):
+    """Attempts to drop object, returns True if successful."""
+    fwd_cell = self.grid.get(*fwd_pos)
+    if not fwd_cell and self.carrying[agent_id]:
+      self.grid.set(fwd_pos[0], fwd_pos[1], self.carrying[agent_id])
+      self.carrying[agent_id].cur_pos = fwd_pos
+      self.carrying[agent_id] = None
+      a_pos = self.agent_pos[agent_id]
+      agent_obj = self.grid.get(a_pos[0], a_pos[1])
+      agent_obj.contains = None
+      return True
+    return False
+
+  def _toggle(self, agent_id, fwd_pos):
+    """Attempts to toggle object, returns True if successful."""
+    fwd_cell = self.grid.get(*fwd_pos)
+    if fwd_cell:
+      if fwd_cell.type == 'door':
+        return fwd_cell.toggle(self, fwd_pos, self.carrying[agent_id])
+      else:
+        return fwd_cell.toggle(self, fwd_pos)
+    return False
 
   def step(self, actions):
     # Maintain backwards compatibility with MiniGrid when there is one agent
