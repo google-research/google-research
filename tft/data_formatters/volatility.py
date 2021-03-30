@@ -78,7 +78,7 @@ class VolatilityFormatter(GenericDataFormatter):
     index = df['year']
     train = df.loc[index < valid_boundary]
     valid = df.loc[(index >= valid_boundary) & (index < test_boundary)]
-    test = df.loc[index >= test_boundary]
+    test = df.loc[(index >= test_boundary) & (df.index <= '2019-06-28')]
 
     self.set_scalers(train)
 
