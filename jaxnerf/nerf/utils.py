@@ -85,6 +85,12 @@ def define_flags():
   flags.DEFINE_integer(
       "llffhold", 8, "will take every 1/N images as LLFF test set."
       "(used in the llff dataset only)")
+  flags.DEFINE_bool(
+      "use_pixel_centers", False,
+      "If True, generate rays through the center of each pixel. Note: While "
+      "this is the correct way to handle rays, it is not the way rays are "
+      "handled in the original NeRF paper. Setting this TRUE yields ~ +1 PSNR "
+      "compared to Vanilla NeRF.")
 
   # Model Flags
   flags.DEFINE_string("model", "nerf", "name of model to use.")

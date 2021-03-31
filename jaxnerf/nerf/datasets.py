@@ -63,6 +63,7 @@ class Dataset(threading.Thread):
     super(Dataset, self).__init__()
     self.queue = queue.Queue(3)  # Set prefetch buffer to 3 batches.
     self.daemon = True
+    self.use_pixel_centers = args.use_pixel_centers
     self.split = split
     if split == "train":
       self._train_init(args)
@@ -175,9 +176,10 @@ class Dataset(threading.Thread):
   # TODO(bydeng): Swap this function with a more flexible camera model.
   def _generate_rays(self):
     """Generating rays for all images."""
+    pixel_center = 0.5 if self.use_pixel_centers else 0.0
     x, y = np.meshgrid(  # pylint: disable=unbalanced-tuple-unpacking
-        np.arange(self.w, dtype=np.float32),  # X-Axis (columns)
-        np.arange(self.h, dtype=np.float32),  # Y-Axis (rows)
+        np.arange(self.w, dtype=np.float32) + pixel_center,  # X-Axis (columns)
+        np.arange(self.h, dtype=np.float32) + pixel_center,  # Y-Axis (rows)
         indexing="xy")
     camera_dirs = np.stack([(x - self.w * 0.5) / self.focal,
                             -(y - self.h * 0.5) / self.focal, -np.ones_like(x)],
