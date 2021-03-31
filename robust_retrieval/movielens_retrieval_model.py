@@ -24,8 +24,8 @@ class EmbeddingModel(tf.keras.Model):
   """Defines the user/item embedding model."""
 
   def __init__(self,
-               feature_columns,
                hidden_dims,
+               feature_columns=None,
                final_layer_l2norm=False,
                kernel_l2=1e-4,
                bias_l2=None,
@@ -34,9 +34,9 @@ class EmbeddingModel(tf.keras.Model):
     """Embedding model for user/item input features.
 
     Args:
-      feature_columns: A list of feature columns.
       hidden_dims: A list of integers where the i-th entry represents the number
         of units in the i-th layer.
+      feature_columns: None or A list of feature columns.
       final_layer_l2norm: A bool, if True will L2-normalize the last layer
         output.
       kernel_l2: L2-regularization for kernel.
@@ -46,7 +46,8 @@ class EmbeddingModel(tf.keras.Model):
     """
     super().__init__()
     self.embed_model = tf.keras.Sequential(name=name)
-    self.embed_model.add(tf.keras.layers.DenseFeatures(feature_columns))
+    if feature_columns:
+      self.embed_model.add(tf.keras.layers.DenseFeatures(feature_columns))
 
     self._kernel_l2 = tf.keras.regularizers.l2(kernel_l2)
     self._bias_l2 = bias_l2
@@ -64,7 +65,7 @@ class EmbeddingModel(tf.keras.Model):
         tf.keras.layers.Dense(
             hidden_dims[-1],
             kernel_regularizer=self._kernel_l2,
-            bias_regularizer=self.bias_l2_reg))
+            bias_regularizer=self._bias_l2))
 
     # Add L2-normalization on the output of the final layer.
     if final_layer_l2norm:
