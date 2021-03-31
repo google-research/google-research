@@ -279,25 +279,17 @@ def attend(
 
 def permute_via_gather(val, permutation, inverse_permutation, axis=0):
   """Permutation helper for LSH attention."""
-  # It is *not* safe to use jax.custom_vjp here. The most likely cause is that
-  # it can't close over values: https://github.com/google/jax/issues/2676
-  # The error only occurs in some configurations (e.g. use_python_loop = True,
-  # num_parallel_heads = 1) but not others.
-  permutation = jax.lax.stop_gradient(permutation)
-  inverse_permutation = jax.lax.stop_gradient(inverse_permutation)
-  def permute_impl(val):
-    return jnp.take(val, permutation, axis=axis)
-  def permute_vjp(val):
-    permuted = permute_impl(jax.lax.stop_gradient(val))
-    def vjpfun(permuted_grad):
-      # JAX autodiff would synthesize a scatter operation because it doesn't
-      # know that the indices are a permutatation. However on TPU, gathers are
-      # faster than scatters (at least in the regime the LSH attention uses).
-      return (jnp.take(permuted_grad, inverse_permutation, axis=axis),)
-    return permuted, vjpfun
-  permute = jax.custom_transforms(permute_impl)
-  jax.defvjp_all(permute, permute_vjp)
-  return permute(val)
+  def permute_impl(p, unused_ip, val):
+    return jnp.take(val, p, axis=axis)
+  def permute_fwd(p, ip, val):
+    return jnp.take(val, p, axis=axis), ip
+  def permute_bwd(ip, permuted_grad):
+    # JAX autodiff would synthesize a scatter operation because it doesn't
+    # know that the indices are a permutation. However on TPU, gathers are
+    # faster than scatters (at least in the regime the LSH attention uses).
+    return (None, None, jnp.take(permuted_grad, ip, axis=axis))
+  permute = jax.custom_vjp(permute_impl, permute_fwd, permute_bwd)
+  return permute(permutation, inverse_permutation, val)
 
 
 class MyDense(nn.Module):
