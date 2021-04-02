@@ -41,12 +41,12 @@ https://nickduffield.net/download/papers/priority.pdf
 """
 
 import abc
+import collections
 import math
 import random
 
-from collections import defaultdict
-
 import numpy as np
+
 
 class SamplingMethod(abc.ABC):
   """Functions to compute score and inclusion probability for a sampling method.
@@ -148,7 +148,7 @@ class AlwaysIncludeSamplingMethod(SamplingMethod):
   @staticmethod
   def sampling_score(weight):
     return -1.0 * math.inf
-  
+
   @staticmethod
   def inclusion_prob(weight, threshold):
     return 1.0
@@ -168,7 +168,9 @@ class ThresholdSample(object):
   the dataset.
   """
 
-  def __init__(self, threshold, sampling_method=PpsworSamplingMethod,
+  def __init__(self,
+               threshold,
+               sampling_method=PpsworSamplingMethod,
                func_of_freq=lambda x: x):
     """Initializes an empty sample.
 
@@ -202,7 +204,8 @@ class ThresholdSample(object):
     if score < self.threshold:
       self.elements[key] = freq
 
-  def estimate_statistics(self, key_coeff=lambda x: 1,
+  def estimate_statistics(self,
+                          key_coeff=lambda x: 1,
                           func_of_freq_to_estimate=None):
     """Estimates statistics using the frequencies of the keys.
 
@@ -231,8 +234,9 @@ class ThresholdSample(object):
     sum_estimate = 0.0
     for key, freq in self.elements.items():
       sampling_weight = self.func_of_freq(freq)
-      sum_estimate += key_coeff(key) * (func_of_freq_to_estimate(freq) /
-                                        self.sampling_method.inclusion_prob(sampling_weight, self.threshold))
+      sum_estimate += key_coeff(key) * (
+          func_of_freq_to_estimate(freq) /
+          self.sampling_method.inclusion_prob(sampling_weight, self.threshold))
     return sum_estimate
 
 
@@ -371,8 +375,8 @@ class PrivateThresholdSampleKeysOnly(object):
     while cur_freq < freq:
       cur_freq += 1
       cur_prob = min(
-          self.sampling_method.inclusion_prob(self.func_of_freq(cur_freq),
-                                              self.threshold),
+          self.sampling_method.inclusion_prob(
+              self.func_of_freq(cur_freq), self.threshold),
           math.exp(self.eps) * cur_prob + self.delta,
           1.0 + math.exp(-1.0 * self.eps) * (cur_prob + self.delta - 1))
       if cur_freq == len(self._inclusion_prob) * self._store_every:
@@ -448,7 +452,7 @@ class PrivateThresholdSampleWithFrequencies(object):
     # self._reported_weight_dist[i][j].
     # We use a defaultdict to save space since self._reported_weight_dist[i][j]
     # is 0 for many values of j.
-    self._reported_weight_dist = [defaultdict(float)]
+    self._reported_weight_dist = [collections.defaultdict(float)]
     self._reported_weight_dist[0][0] = 1.0
 
     # Stores the estimators used to estimate statistics to avoid recomputation.
@@ -520,7 +524,7 @@ class PrivateThresholdSampleWithFrequencies(object):
       cur_freq: The frequency
       cur_dist: The distribution of reported frequency for a key with frequency
         cur_freq
-    
+
     Returns:
       The distribution of reported frequency for a key with frequency
       cur_freq + 1.
@@ -530,21 +534,25 @@ class PrivateThresholdSampleWithFrequencies(object):
     cur_freq += 1
     # Updates the inclusion probability.
     cur_prob = min(
-        self.sampling_method.inclusion_prob(self.func_of_freq(cur_freq),
-                                            self.threshold),
+        self.sampling_method.inclusion_prob(
+            self.func_of_freq(cur_freq), self.threshold),
         math.exp(self.eps) * cur_prob + self.delta,
         1.0 + math.exp(-1.0 * self.eps) * (cur_prob + self.delta - 1))
     prev_dist = cur_dist
     # Computes the new distribution of reported frequency.
-    cur_dist = defaultdict(float)
+    cur_dist = collections.defaultdict(float)
     cur_dist[0] = 1.0 - cur_prob
     prev_cumulative = 0.0
     cur_cumulative = 0.0
-    diff_in_inclusion_prob = max(0, math.exp(-1.0 * self.eps) * prev_dist[0] - cur_dist[0])
+    diff_in_inclusion_prob = max(
+        0,
+        math.exp(-1.0 * self.eps) * prev_dist[0] - cur_dist[0])
     # Possible optimization: for j in sorted(prev_dist.keys())
     for j in range(1, cur_freq):
       prev_cumulative += prev_dist[j]
-      new_val_j = math.exp(-1.0 * self.eps) * (prev_cumulative - self.delta) - cur_cumulative + diff_in_inclusion_prob
+      new_val_j = math.exp(-1.0 * self.eps) * (
+          prev_cumulative -
+          self.delta) - cur_cumulative + diff_in_inclusion_prob
       if new_val_j > 0.0:
         cur_dist[j] = new_val_j
         cur_cumulative += cur_dist[j]
@@ -623,10 +631,13 @@ class PrivateThresholdSampleWithFrequencies(object):
       sum_lower = 0.0
       for j, prob in dist_i.items():
         if j < reported_freq:
-          sum_lower += self.biased_down_estimator(j, func_of_freq_to_estimate) * prob
+          sum_lower += self.biased_down_estimator(
+              j, func_of_freq_to_estimate) * prob
           prob_lower += prob
-      est = min(est, (func_of_freq_to_estimate(i) - sum_lower) / (1.0 - prob_lower))
-      if i + 1 % self._store_every == 0 and i + 1 < len(self._reported_weight_dist) * self._store_every:
+      est = min(est,
+                (func_of_freq_to_estimate(i) - sum_lower) / (1.0 - prob_lower))
+      if i + 1 % self._store_every == 0 and i + 1 < len(
+          self._reported_weight_dist) * self._store_every:
         dist_i = self.compute_reported_frequency_dist(i + 1)
       else:
         dist_i = self._compute_next_reported_frequency_dist(i, dist_i)
@@ -660,7 +671,8 @@ class PrivateThresholdSampleWithFrequencies(object):
       if dist_i[reported_freq] > max_prob_to_report_freq:
         max_prob_to_report_freq = dist_i[reported_freq]
         est = func_of_freq_to_estimate(i) / (1.0 - dist_i[0])
-      if i + 1 % self._store_every == 0 and i + 1 < len(self._reported_weight_dist) * self._store_every:
+      if i + 1 % self._store_every == 0 and i + 1 < len(
+          self._reported_weight_dist) * self._store_every:
         dist_i = self.compute_reported_frequency_dist(i + 1)
       else:
         dist_i = self._compute_next_reported_frequency_dist(i, dist_i)
@@ -685,8 +697,10 @@ class PrivateThresholdSampleWithFrequencies(object):
       The estimator for the function of the frequency of the key.
     """
     return self.mle_estimator(reported_freq, func_of_freq_to_estimate)
-  
-  def bias_and_mean_square_error(self, freq, estimator_func,
+
+  def bias_and_mean_square_error(self,
+                                 freq,
+                                 estimator_func,
                                  func_of_freq_to_estimate=None):
     """Computes the bias and mean square error of the estimator.
 
@@ -695,11 +709,11 @@ class PrivateThresholdSampleWithFrequencies(object):
       estimator_func: The function that is used to compute the estimator
       func_of_freq_to_estimate: The function of frequency we are trying to
         estimate. If None, the function used for sampling will be used.
-    
+
     Returns:
       A tuple (bias, MSE)
     """
-    # TODO: check that estimator_func is a member of self?
+    # TODO(ofirg): check that estimator_func is a member of self?
     if func_of_freq_to_estimate is None:
       func_of_freq_to_estimate = self.func_of_freq
     reported_freq_dist = self.compute_reported_frequency_dist(freq)
@@ -707,7 +721,8 @@ class PrivateThresholdSampleWithFrequencies(object):
     mse = 0.0
     for reported_freq, prob in reported_freq_dist.items():
       bias += prob * estimator_func(reported_freq, func_of_freq_to_estimate)
-      mse += prob * ((estimator_func(reported_freq, func_of_freq_to_estimate) - func_of_freq_to_estimate(freq)) ** 2)
+      mse += prob * ((estimator_func(reported_freq, func_of_freq_to_estimate) -
+                      func_of_freq_to_estimate(freq))**2)
     return bias, mse
 
   def process(self, key, freq):
@@ -731,7 +746,8 @@ class PrivateThresholdSampleWithFrequencies(object):
           self.elements[key] = reported_freq
         return
 
-  def estimate_statistics(self, key_coeff=lambda x: 1,
+  def estimate_statistics(self,
+                          key_coeff=lambda x: 1,
                           func_of_freq_to_estimate=None):
     """Estimates statistics using the frequencies of the keys.
 
@@ -792,6 +808,8 @@ class PrivateHistogramAndSample(ThresholdSample):
   def process(self, key, weight):
     # Computes the private weight (i.e., the weight in the histogram), then
     # calls the base class (to sample).
-    private_weight = weight + np.random.default_rng().laplace(scale=1.0 / self.eps)
-    if private_weight >= (1.0 / self.eps) * math.log(1.0 / self.delta, math.e) + 1:
+    private_weight = weight + np.random.default_rng().laplace(scale=1.0 /
+                                                              self.eps)
+    if private_weight >= (1.0 / self.eps) * math.log(1.0 / self.delta,
+                                                     math.e) + 1:
       super().process(key, private_weight)
