@@ -166,15 +166,15 @@ class ThresholdSampleTest(absltest.TestCase):
     s.process("a", 1.0 / FAILURE_PROBABILITY_INVERSE)
     self.assertEmpty(s.elements)
 
-  def test_estimate_full_statistics_ppswor(self):
+  def test_estimate_statistics_ppswor(self):
     """Checks the estimate for the full statistics (using PPSWOR).
 
-    We check that the function that estimates the full statistics on a dataset
-    that contains one element which is sampled with probability 1-1/10000000
-    (as in test_samples_high_weight_elements_ppswor). We compare the output of
-    estimate_full_statistics with the estimate we should get when the element is
-    sampled. Therefore, the test should fail with probability 1/10000000 (when
-    the element is not sampled).
+    We check that the function that estimates the full statistics (sum of all
+    weights) on a dataset that contains one element which is sampled with
+    probability 1-1/10000000 (as in test_samples_high_weight_elements_ppswor).
+    We compare the output of estimate_statistics with the estimate we should
+    get when the element is sampled. Therefore, the test should fail with
+    probability 1/10000000 (when the element is not sampled).
     """
     s = private_sampling.ThresholdSample(1.0,
                                          private_sampling.PpsworSamplingMethod)
@@ -182,15 +182,16 @@ class ThresholdSampleTest(absltest.TestCase):
     s.process("a", element_weight)
     sampling_probability = (FAILURE_PROBABILITY_INVERSE -
                             1) / FAILURE_PROBABILITY_INVERSE
-    self.assertEqual(s.estimate_full_statistics(),
+    self.assertEqual(s.estimate_statistics(),
                      element_weight / sampling_probability)
 
-  def test_estimate_full_statistics_priority(self):
+  def test_estimate_statistics_priority(self):
     """Checks the estimate for the full statistics (using priority sampling).
 
-    We check the function that estimates the full statistics on a dataset where
-    all the elements are sampled with probability 1.0. As a result, the estimate
-    for the statistics should be exactly accurate.
+    We check the function that estimates the full statistics (sum of all
+    weights) on a dataset where all the elements are sampled with probability
+    1.0. As a result, the estimate for the statistics should be exactly
+    accurate.
 
     As in test_samples_high_weight_elements_priority, the elements are sampled
     since for threshold t, an element with weight at least 1/t will always be
@@ -200,7 +201,7 @@ class ThresholdSampleTest(absltest.TestCase):
         0.5, private_sampling.PrioritySamplingMethod)
     s.process("a", 2.0)
     s.process("b", 3.0)
-    self.assertEqual(s.estimate_full_statistics(), 5.0)
+    self.assertEqual(s.estimate_statistics(), 5.0)
 
 
 class PrivateThresholdSampleTest(parameterized.TestCase):
@@ -346,8 +347,8 @@ class PrivateThresholdSampleTest(parameterized.TestCase):
         s.compute_reported_frequency_dist(i) for i in range(100, 1001, 100)
     ]
     for dist in freq_dists:
-      self.assertAlmostEqual(sum(dist), 1.0)
-      for x in dist:
+      self.assertAlmostEqual(sum(dist.values()), 1.0)
+      for x in dist.values():
         self.assertGreaterEqual(x, 0.0)
 
 
