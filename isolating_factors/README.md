@@ -13,7 +13,6 @@ the [Shapes3D dataset](https://github.com/deepmind/3d-shapes)
 after training on images grouped by digit class
 - `pose_estimation/` Evaluates trained pose estimation models from
 Section 4.3 of the paper in both the dictionary lookup and regression scenarios
-- `run.sh` runs a minimal example of the Shapes3D experiment for testing
 
 ## Python environment
 The code was run successfully with Python 3.6.12.  The necessary libraries may
