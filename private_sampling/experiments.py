@@ -657,23 +657,9 @@ def main_plot_nrmse_on_dist_by_threshold():
       output_name = "nrmse_on_%s_e%s.pdf" % (dataset_filename, eps)
       plot_nrmse_on_freq_vector(dist, eps, DELTA, THRESHOLDS_BY_EPS[eps], output_name, dataset_name, SAMPLING_METHOD, DEFAULT_DIR_FOR_PRECOMPUTED)
 
-def main_zipf_plots():
-  """Experiments on real-world datasets."""
-  REAL_WORLD_DATASETS = [
-    ("ABC", list(map(int, open("abcnews_freq_vec.txt", "r")))),
-    ("SO", list(map(int, open("stackoverflow_freq_vec.txt", "r")))),
-  ]
-  for dataset_name, freq_vec in REAL_WORLD_DATASETS:
-    plot_gains_by_delta(dataset_name, freq_vec, 0.1, [0.1**i for i in range(9)], "gains_%s.pdf" % dataset_name)
-    plot_gains_by_tau(dataset_name, freq_vec, 0.1, 0.001, "gains_with_ppswor_%s.pdf" % dataset_name, [0.1**power for power in range(-1, 4)])
-  plot_gain_ratio_by_delta(REAL_WORLD_DATASETS, 0.1, [0.1**i for i in range(9)], "real_world_datasets_gain_ratio.pdf")
-  plot_gain_ratio_by_tau(REAL_WORLD_DATASETS, 0.1, 0.001, "real_world_gain_with_sampling_01_3.pdf", [0.1**power for power in range(-1, 5)])
-  plot_gain_ratio_by_tau(REAL_WORLD_DATASETS, 0.1, 0.1**5, "real_world_gain_with_sampling_01_5.pdf", [0.1**power for power in range(-1, 5)])
-
 if __name__ == "__main__":
   main_precompute()
   main_plot_bias_using_precompute()
   main_plot_variance()
   main_plot_nrmse_on_dist_by_threshold()
   main_plot_inclusion_probability()
-  main_zipf_plots()
