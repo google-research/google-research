@@ -95,7 +95,7 @@ def opt_comp_calculator(overall_eps, overall_delta, num_comps):
   return max_eps
 
 
-def ind_exp(sorted_data, data_low, data_high, qs, swap, divided_eps):
+def ind_exp(sorted_data, data_low, data_high, qs, divided_eps, swap):
   """Returns eps-differentially private collection of quantile estimates for qs.
 
   Args:
@@ -103,10 +103,10 @@ def ind_exp(sorted_data, data_low, data_high, qs, swap, divided_eps):
     data_low: Lower limit for any differentially private quantile output value.
     data_high: Upper limit for any differentially private quantile output value.
     qs: Increasing array of quantiles in [0,1].
-    swap: If true, uses swap dp sensitivity, otherwise uses add-remove.
     divided_eps: Privacy parameter epsilon for each estimated quantile. Assumes
       that divided_eps has been computed to ensure the desired overall privacy
       guarantee.
+    swap: If true, uses swap dp sensitivity, otherwise uses add-remove.
   """
   num_quantiles = len(qs)
   outputs = np.empty(num_quantiles)

@@ -15,7 +15,6 @@
 
 """Script for running experiments and saving the resulting plots."""
 
-
 import warnings
 
 from dp_multiq import experiment
@@ -25,5 +24,10 @@ from dp_multiq import experiment
 # produce -numpy.inf, which our code handles appropriately.
 warnings.simplefilter("ignore", category=RuntimeWarning)
 
-experiment.experiment()
-
+experiment.experiment(methods=[
+    experiment.QuantilesEstimationMethod.JOINT_EXP, experiment
+    .QuantilesEstimationMethod.IND_EXP, experiment.QuantilesEstimationMethod
+    .APP_IND_EXP, experiment.QuantilesEstimationMethod.SMOOTH,
+    experiment.QuantilesEstimationMethod.CSMOOTH,
+    experiment.QuantilesEstimationMethod.LAP_TREE
+])

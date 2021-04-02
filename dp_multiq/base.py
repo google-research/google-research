@@ -43,25 +43,35 @@ def quantiles(data, qs):
   return np.quantile(data, qs, interpolation='lower')
 
 
-def quantiles_error(sorted_data, qs, true_quantiles, est_quantiles):
-  """Returns the number of data points between true_quantiles and est_quantiles.
+def misclassified_points_error(sorted_data, true_quantiles, est_quantiles):
+  """Returns the average number of data points between true and est quantiles.
 
   Args:
     sorted_data: A dataset sorted in increasing order.
-    qs: Increasing array of quantiles in [0,1].
-    true_quantiles: Quantile estimates for qs to be used as ground truth.
-    est_quantiles: Quantile estimates for qs for comparison to true_quantiles.
+    true_quantiles: Ground truth quantiles.
+    est_quantiles: Estimated quantiles.
 
   Returns:
-    The sum of the number of data points strictly between true_quantiles[j] and
-    est_quantiles[j], summed over all j.
+    The number of data points strictly between true_quantiles[j] and
+    est_quantiles[j], averaged over all j.
   """
   total_missed = 0
-  for q_idx in range(len(qs)):
+  num_quantiles = len(true_quantiles)
+  for q_idx in range(num_quantiles):
     total_missed += np.abs(
         np.sum(sorted_data > true_quantiles[q_idx]) -
         np.sum(sorted_data > est_quantiles[q_idx]))
-  return total_missed
+  return total_missed / num_quantiles
+
+
+def distance_error(true_quantiles, est_quantiles):
+  """Returns the mean distance between the true and estimated quantiles.
+
+  Args:
+    true_quantiles: Ground truth quantiles.
+    est_quantiles: Estimated quantiles.
+  """
+  return np.mean(np.abs(true_quantiles - est_quantiles))
 
 
 def gen_gaussian(num_samples, mean, stddev):
