@@ -509,6 +509,7 @@ def get_pruning_hparams():
       output_block_size=1,
       block_method='loop',
       block_compression_factor=1,
+      add_summary=True,
       group_pruning=False)
 
 

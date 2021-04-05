@@ -221,7 +221,8 @@ class SimhashCompressionOp(compression_op.CompressionOp):
     else:
       self.setup_update_explicit()
 
-    self.add_compression_summaries()
+    if self._spec.add_summary:
+      self.add_compression_summaries()
     return [self.final_op, self.update_op]
 
   def get_customized_apply_compression_op(self,
@@ -281,7 +282,8 @@ class SimhashCompressionOp(compression_op.CompressionOp):
     else:
       self.setup_update_explicit()
 
-    self.add_compression_summaries()
+    if self._spec.add_summary:
+      self.add_compression_summaries()
     return [self.final_op, self.update_op]
 
   def get_mix_operator(self, theta, concat):
@@ -560,7 +562,8 @@ class KMeansCompressionOp(compression_op.CompressionOp):
                                    tf.cast(self.c_matrix_tfvar, tf.int32)),
             a_matrix_tfvar.shape)
 
-    self.add_compression_summaries()
+    if self._spec.add_summary:
+      self.add_compression_summaries()
     return [self.final_op, self.update_op]
 
   def get_customized_apply_compression_op(self,
@@ -634,7 +637,8 @@ class KMeansCompressionOp(compression_op.CompressionOp):
 
     self.final_op = self.a_matrix_tfvar
 
-    self.add_compression_summaries()
+    if self._spec.add_summary:
+      self.add_compression_summaries()
     return [self.final_op, self.update_op]
 
   def get_mix_operator(self, theta, concat):
@@ -892,7 +896,8 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
     self.final_op = tf.cond(maybe_apply_compression(),
                             quantized_pruned_a_matrix_fn, pruned_a_matrix_fn)
 
-    self.add_compression_summaries()
+    if self._spec.add_summary:
+      self.add_compression_summaries()
     self.pruning_obj.add_pruning_summaries()
     self.mask_update_op = self.pruning_obj.conditional_mask_update_op()
     self.update_op = self.mask_update_op
@@ -1063,7 +1068,8 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
     self.final_op = tf.cond(maybe_apply_compression(),
                             quantized_pruned_a_matrix_fn, pruned_a_matrix_fn)
 
-    self.add_compression_summaries()
+    if self._spec.add_summary:
+      self.add_compression_summaries()
     self.pruning_obj.add_pruning_summaries()
     self.update_op = tf.no_op()
     return [self.final_op, self.update_op]

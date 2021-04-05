@@ -363,7 +363,8 @@ class CompressionOp(CompressionOpInterface):
         sparsity_function_end_step=100,
         sparsity_function_exponent=3.0,
         gradient_decay_rate=0.99,
-        prune_option='weight')
+        prune_option='weight',
+        add_summary=True)
 
   def add_compression_summaries(self):
     """Adds summaries of alpha value, new variables, and last update step."""
@@ -553,7 +554,8 @@ class CompressionOp(CompressionOpInterface):
     self.final_op = self.alpha * self.a_matrix_tfvar + (
         1 - self.alpha) * tf.matmul(self.b_matrix_tfvar, self.c_matrix_tfvar)
 
-    self.add_compression_summaries()
+    if self._spec.add_summary:
+      self.add_compression_summaries()
     return [self.final_op, self.update_op]
 
   def get_customized_apply_compression_op(self,
@@ -621,7 +623,8 @@ class CompressionOp(CompressionOpInterface):
     self.final_op = self.alpha * self.a_matrix_tfvar + (
         1 - self.alpha) * tf.matmul(self.b_matrix_tfvar, self.c_matrix_tfvar)
 
-    self.add_compression_summaries()
+    if self._spec.add_summary:
+      self.add_compression_summaries()
     return [self.final_op, self.update_op]
 
   def get_mix_operator(self, theta, concat):
@@ -927,7 +930,8 @@ class InputOutputCompressionOp(CompressionOp):
         input_compression_factor=1,
         input_block_size=32,
         output_compression_factor=1,
-        output_block_size=1)
+        output_block_size=1,
+        add_summary=True)
 
   def add_compression_summaries(self):
     """Adds summaries."""
@@ -1023,7 +1027,8 @@ class InputOutputCompressionOp(CompressionOp):
     self.update_op = tf.no_op()
     self.final_op = tf.no_op()
 
-    self.add_compression_summaries()
+    if self._spec.add_summary:
+      self.add_compression_summaries()
     return [self.final_op, self.update_op]
 
   def get_customized_apply_compression_op(self,
@@ -1098,7 +1103,8 @@ class InputOutputCompressionOp(CompressionOp):
       self.a_matrix_tfvar = a_matrix_tfvar
 
     self.final_op = tf.no_op()
-    self.add_compression_summaries()
+    if self._spec.add_summary:
+      self.add_compression_summaries()
     self.update_op = tf.no_op()
     return [self.final_op, self.update_op]
 
@@ -1523,7 +1529,8 @@ class BlockCompressionOp(CompressionOp):
         input_compression_factor=1,
         output_compression_factor=1,
         block_compression_factor=1,
-        block_method='loop')
+        block_method='loop',
+        add_summary=True)
 
   def add_compression_summaries(self):
     """Adds summaries."""
@@ -1598,7 +1605,8 @@ class BlockCompressionOp(CompressionOp):
     self.update_op = tf.no_op()
     self.final_op = tf.no_op()
 
-    self.add_compression_summaries()
+    if self._spec.add_summary:
+      self.add_compression_summaries()
     return [self.final_op, self.update_op]
 
   def get_customized_apply_compression_op(self,
@@ -1665,7 +1673,8 @@ class BlockCompressionOp(CompressionOp):
         self.c_mask_tfvar = layer_obj.vars.c_mask_tfvar
 
     self.final_op = tf.no_op()
-    self.add_compression_summaries()
+    if self._spec.add_summary:
+      self.add_compression_summaries()
     self.update_op = tf.no_op()
     return [self.final_op, self.update_op]
 
@@ -1894,9 +1903,13 @@ class ApplyCompression(object):
     """
     compression_op_spec = spec if spec else self._compression_op_spec
     if compression_op_spec.compression_option == 9:
+      # TODO(wanxin): remove this line when summary is switched to v2.summary.
+      compression_op_spec.set_hparam('add_summary', False)
       c = InputOutputCompressionOp(
           spec=compression_op_spec, global_step=self._global_step)
     elif compression_op_spec.compression_option == 10:
+      # TODO(wanxin): remove this line when summary is switched to v2.summary.
+      compression_op_spec.set_hparam('add_summary', False)
       c = BlockCompressionOp(
           spec=compression_op_spec, global_step=self._global_step)
     else:

@@ -103,6 +103,7 @@ def get_apply_compression(compression_op_spec, global_step):
     compressor_spec.set_hparam('is_b_matrix_trainable', True)
     compressor_spec.set_hparam('is_c_matrix_trainable', True)
     compressor_spec.set_hparam('is_d_matrix_trainable', True)
+    compression_op_spec.set_hparam('add_summary', False)
     compressor = comp_op.LowRankDecompMatrixCompressor(spec=compressor_spec)
     apply_compression = comp_op.ApplyCompression(
         scope='default_scope',
@@ -111,6 +112,7 @@ def get_apply_compression(compression_op_spec, global_step):
         global_step=global_step)
   elif compression_op_spec.compression_option == 10:
     compressor_spec.set_hparam('is_c_matrix_trainable', True)
+    compression_op_spec.set_hparam('add_summary', False)
     compressor = comp_op.LowRankDecompMatrixCompressor(spec=compressor_spec)
     apply_compression = comp_op.ApplyCompression(
         scope='default_scope',
