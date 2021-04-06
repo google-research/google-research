@@ -21,10 +21,10 @@ We release the dataset used in this study under the name "Small CNN Zoo dataset"
 
 We trained 30k instances of this network on each of the four mentioned datasets, each one with different hyperparameters. We trained for a total of 86 epochs, and collected intermediate checkpoints at epoch 0 (initialization), 1, 2, 3, 20, 40, 60, 80 and 86 (end of training). For each of these 9 checkpoints, we take all the parameters of the network and flatten it to obtain a vector of length 4970. We then concatenate these into a large matrix (one per dataset), which we provide here in Numpy Matrix Format. Since a small number of training processes crashed/got stuck, we don’t have the full (30k * 9) rows in these matrices. The exact sizes are:
 
-[Cifar10](https://storage.cloud.google.com/smallcnnzoo-dataset/cifar10.tar.xz): 270000 samples
-[Fashion-MNIST](https://storage.cloud.google.com/smallcnnzoo-dataset/fashion_mnist.tar.xz): 270000 samples
-[MNIST](https://storage.cloud.google.com/smallcnnzoo-dataset/mnist.tar.xz): 269973 samples
-[SVHN](https://storage.cloud.google.com/smallcnnzoo-dataset/svhn_cropped.tar.xz): 269892 samples
+* [Cifar10](https://storage.cloud.google.com/gresearch/smallcnnzoo-dataset/cifar10.tar.xz): 270000 samples
+* [Fashion-MNIST](https://storage.cloud.google.com/gresearch/smallcnnzoo-dataset/fashion_mnist.tar.xz): 270000 samples
+* [MNIST](https://storage.cloud.google.com/gresearch/smallcnnzoo-dataset/mnist.tar.xz): 269973 samples
+* [SVHN](https://storage.cloud.google.com/gresearch/smallcnnzoo-dataset/svhn_cropped.tar.xz): 269892 samples
 
 
 For each of these matrices, we also have a “metrics.csv.gz” file that contains some annotation. Concretely, it contains the following columns:
