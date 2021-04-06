@@ -30,7 +30,7 @@ def main(_):
 
   np.random.seed(0)
 
-  # Pretrained checkpoints only works with the dictionary used for training.
+  # Pretrained checkpoints only work with the dictionary used for training.
   if not tf.io.gfile.exists(os.path.join(_DATA_PATH, 'A_250_500.npy')):
     dictionary = np.random.normal(
         scale=1.0 / np.sqrt(250), size=(250, 500)).astype(np.float32)
