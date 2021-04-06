@@ -15,6 +15,7 @@
 
 """TensorFlow-based trainer for graph embedding with GloVe model."""
 
+# pylint: disable=use-symbolic-message-instead
 # pylint: disable=missing-docstring
 # pylint: disable=invalid-name
 # pylint: disable=C6120,C6113
@@ -26,7 +27,7 @@ import os
 import struct
 import glove_util
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 METRICS_TO_PRINT = {

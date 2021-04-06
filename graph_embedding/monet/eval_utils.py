@@ -30,9 +30,3 @@ def load_numpy_matrix(path):
       return numpy.loadtxt(f)
   else:
     return None
-
-
-def load_embeddings(save_dir, name, tokens):
-  with open(os.path.join(save_dir, "%s_embeddings.txt" % name)) as f:
-    weights = numpy.loadtxt(f)
-  return {t: weights for (t, weights) in zip(tokens, weights)}

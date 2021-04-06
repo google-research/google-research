@@ -15,6 +15,7 @@
 
 """Runs eval metrics for the shilling attack experiment in Section 4."""
 
+# pylint: disable=use-symbolic-message-instead
 # pylint: disable=missing-docstring
 # pylint: disable=redefined-outer-name
 # pylint: disable=dangerous-default-value

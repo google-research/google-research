@@ -12,8 +12,6 @@ cycler==0.10.0
 docutils==0.15.2
 enum34==1.1.6
 funcsigs==1.0.2
-functools32==3.2.3.post2
-futures==3.3.0
 gast==0.2.2
 gensim==3.8.1
 google-pasta==0.1.8
@@ -25,7 +23,7 @@ Keras-Applications==1.0.8
 Keras-Preprocessing==1.1.0
 kiwisolver==1.1.0
 Markdown==3.1.1
-matplotlib==2.2.5
+matplotlib==3.3.0
 mock==3.0.5
 numpy==1.16.1
 opt-einsum==2.3.2

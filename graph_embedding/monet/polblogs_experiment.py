@@ -89,25 +89,54 @@ def load_polblogs_graph(filepath):
   return graph, node_set
 
 
-# Deepwalk next-node random walk sampler
-def sample_next_node(graph, n):
+def sample_next_node(graph, n, metadata=None):
+  """A one line summary of the module or program, terminated by a period.
+
+  Implements:
+    DeepWalk (https://dl.acm.org/doi/abs/10.1145/2623330.2623732)
+    FairWalk (https://yangzhangalmo.github.io/papers/IJCAI19.pdf)
+
+  Args:
+    graph: a dict with edgelists keyed by node id
+    n: the node id
+    metadata: a dict with categorical node metadata labels, keyed by node id.
+      If None (default), this function does standard DeepWalk sampling.
+  Returns:
+    next node id in the random walk
+  """
   d = graph[n]
   v_list = list(d.keys())
   num = len(v_list)
   if num > 0:
-    random_value = numpy.random.choice(num)
-    return v_list[random_value]
+    if metadata is not None:
+      # Algorithm 1 from Fairwalk paper
+      Z_u = set()
+      Z_u_dict = collections.defaultdict(list)
+      for v in v_list:
+        z_v = metadata[v]
+        Z_u.add(z_v)
+        Z_u_dict[z_v].append(v)
+      z = numpy.random.choice(list(Z_u))
+      return numpy.random.choice(Z_u_dict[z])
+    else:
+      random_value = numpy.random.choice(num)
+      return v_list[random_value]
   else:
     return n
 
 
 # Deepwalk random walk sampler
-def generage_random_walks(graph, walks_per_node, walk_length):
+# If metadata is not None, do metadata-informed sampling to do fairwalk.
+# See https://yangzhangalmo.github.io/papers/IJCAI19.pdf for details
+# Only applicable to categorical metadata. See code below for proper
+# metadata formatting.
+def generate_random_walks(graph, walks_per_node, walk_length,
+                          metadata=None):
   for n in graph.keys():
     for _ in range(walks_per_node):
       walk = [n]
       for _ in range(walk_length):
-        walk.append(sample_next_node(graph, walk[-1]))
+        walk.append(sample_next_node(graph, walk[-1], metadata))
       yield walk
 
 
@@ -330,12 +359,22 @@ for i, node in enumerate(tokens):
 
 # Get random walks
 walks = list(
-    generage_random_walks(
+    generate_random_walks(
         G, walks_per_node=WALKS_PER_NODE, walk_length=WALK_LENGTH))
 random.shuffle(walks)
 walks_fn = os.path.join(SAVE_DIR, 'walks')
 with open(walks_fn, 'w') as f:
   f.write(json.dumps(walks))
+
+# Get fair random walks
+fairwalks = list(
+    generate_random_walks(
+        G, walks_per_node=WALKS_PER_NODE, walk_length=WALK_LENGTH,
+        metadata=memships))
+random.shuffle(fairwalks)
+fairwalks_fn = os.path.join(SAVE_DIR, 'fairwalks')
+with open(fairwalks_fn, 'w') as f:
+  f.write(json.dumps(fairwalks))
 
 
 class EpochLogger(CallbackAny2Vec):
@@ -467,7 +506,8 @@ adv_labels = {
 }
 
 # Set up training & scoring
-methods = ['adv1', 'deepwalk', 'glove', 'monet', 'monet0', 'random']
+methods = ['adv1', 'deepwalk', 'glove', 'monet', 'monet0', 'random',
+           'deepwalk_fairwalks', 'glove_fairwalks']
 embeddings = {name: None for name in methods}
 score_dict = {name: None for name in methods}
 score_dicts = []
@@ -501,6 +541,24 @@ for i in range(NUM_RUNS):
   else:
     embeddings['deepwalk'] = load_weights_object(method_save_path)
 
+  # Run DeepWalk with fairwalks
+  method_save_path = os.path.join(rep_save_path, 'deepwalk_fairwalks')
+  if not os.path.isfile(method_save_path) or OVERWRITE_EMBEDDINGS:
+    embeddings_were_run = True
+    t0 = time.time()
+    weight_dict_deepwalk_fairwalks = DeepWalkPolblogs(
+        fairwalks,
+        embedding_dim=VECTOR_SIZE,
+        iterations=NUM_ITERATIONS,
+        window=WINDOW_SIZE)
+    time_dict['deepwalk_fairwalks'].append(time.time() - t0)
+    embeddings['deepwalk_fairwalks'] = {
+        'W': extract_weights(weight_dict_deepwalk_fairwalks, tokens)
+    }
+    save_weights_object(method_save_path, embeddings['deepwalk_fairwalks'])
+  else:
+    embeddings['deepwalk_fairwalks'] = load_weights_object(method_save_path)
+
   # #@title Run standard GloVe
   method_save_path = os.path.join(rep_save_path, 'glove')
   if not os.path.isfile(method_save_path) or OVERWRITE_EMBEDDINGS:
@@ -521,6 +579,28 @@ for i in range(NUM_RUNS):
     save_weights_object(method_save_path, embeddings['glove'])
   else:
     embeddings['glove'] = load_weights_object(method_save_path)
+
+  # Run standard GloVe with FairWalks
+  method_save_path = os.path.join(rep_save_path, 'glove_fairwalks')
+  if not os.path.isfile(method_save_path) or OVERWRITE_EMBEDDINGS:
+    embeddings_were_run = True
+    t0 = time.time()
+    with tf.Graph().as_default(), tf.Session() as session:
+      with tf.device('/cpu:0'):
+        weight_dict_glove_fairwalks = GloVe(
+            fairwalks,
+            session,
+            vector_size=VECTOR_SIZE,
+            window_size=WINDOW_SIZE,
+            iters=NUM_ITERATIONS,
+            batch_size=BATCH_SIZE,
+            random_seed=RANDOM_SEED + i)
+    time_dict['glove_fairwalks'].append(time.time() - t0)
+    embeddings['glove_fairwalks'] = extract_all_weights(
+        weight_dict_glove_fairwalks, tokens)
+    save_weights_object(method_save_path, embeddings['glove_fairwalks'])
+  else:
+    embeddings['glove_fairwalks'] = load_weights_object(method_save_path)
 
   # #@title Run GloVe with naive MONET (no SVD residualization)
   method_save_path = os.path.join(rep_save_path, 'monet0')

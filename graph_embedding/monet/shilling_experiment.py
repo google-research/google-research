@@ -33,7 +33,7 @@ import numpy
 from scipy.stats import pearsonr
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import scale
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 # User-defined hyperparameters for the experiment.
 DATA_FILE = 'movielens/ml-100k/u.data'

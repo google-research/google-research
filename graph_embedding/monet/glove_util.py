@@ -67,7 +67,7 @@ def count_cooccurrences(walks, window_size, vocab_index_lookup=None):
   tokenized_cooccurrences = copy.deepcopy(cooccurrence_dict)
 
   # Remove empty cooccurrence dicts
-  for node in cooccurrence_dict.iterkeys():
+  for node in list(cooccurrence_dict.keys()):  # pylint: disable=g-builtin-op
     if not cooccurrence_dict[node]:
       del cooccurrence_dict[node]
 
@@ -80,7 +80,7 @@ def count_cooccurrences(walks, window_size, vocab_index_lookup=None):
         (target, score) in cooccurrence_dict[node].items()]
   print('Flattening co-occurrences...')
   cooccurrence_list = []
-  for cooccurrence in cooccurrence_dict.itervalues():
+  for cooccurrence in cooccurrence_dict.values():
     for c in cooccurrence:
       cooccurrence_list.append(c)
   print('Shuffling co-occurrences...')

@@ -15,9 +15,12 @@
 
 """Runs eval metrics for the political blogs experiment in Section 4."""
 
+# pylint: disable=use-symbolic-message-instead
 # pylint: disable=C6204
 
+import collections
 import copy
+import functools
 import json
 import operator
 import os
@@ -36,6 +39,8 @@ from sklearn.decomposition import PCA
 DATA_DIR = 'polblogs'
 SAVE_DIR = 'experiment_data/polblogs'
 NUM_RUNS = 10
+PLOT_LINE_WIDTH = 5.0
+PLOT_MARKER_SIZE = 17.0
 ################################################################################
 
 EVAL_SAVE_DIR = os.path.join(SAVE_DIR, 'exp_results')
@@ -43,7 +48,7 @@ if not os.path.isdir(EVAL_SAVE_DIR):
   os.mkdir(EVAL_SAVE_DIR)
 
 # Load and save metadata leakages & importances
-leakage_dicts = [None] * NUM_RUNS
+leakage_dict = collections.defaultdict(list)
 monet_importances = [None] * NUM_RUNS
 monet0_importances = [None] * NUM_RUNS
 for exp_no in range(NUM_RUNS):
@@ -53,15 +58,24 @@ for exp_no in range(NUM_RUNS):
   monet0_importances[exp_no] = load_numpy_matrix(
       os.path.join(exp_save_path, 'monet0_importances'))
   with open(os.path.join(exp_save_path, 'leakage_dict')) as f:
-    leakage_dicts[exp_no] = json.loads(f.read())
+    for k, v in json.loads(f.read()).items():
+      leakage_dict[k].append(v)
 
 with open(os.path.join(EVAL_SAVE_DIR, 'metadata_importances'), 'w') as f:
-  print >> f, '# monet0 importance mean/std'
-  numpy.savetxt(f, numpy.mean(monet0_importances, axis=0))
-  numpy.savetxt(f, numpy.std(monet0_importances, axis=0))
-  print >> f, '# monet importance mean/std'
-  numpy.savetxt(f, numpy.mean(monet_importances, axis=0))
-  numpy.savetxt(f, numpy.std(monet_importances, axis=0))
+  pr = functools.partial(print, file=f)
+  pr('# monet0 importance mean/std')
+  pr(numpy.array2string(numpy.mean(monet0_importances, axis=0)))
+  pr(numpy.array2string(numpy.std(monet0_importances, axis=0)))
+  pr('# monet importance mean/std')
+  pr(numpy.array2string(numpy.mean(monet_importances, axis=0)))
+  pr(numpy.array2string(numpy.std(monet_importances, axis=0)))
+
+with open(os.path.join(EVAL_SAVE_DIR, 'leakages'), 'w') as f:
+  for method, metrics in leakage_dict.items():
+    print_str = '%s & %0.0f $\pm$ %0.0f\n'  # pylint: disable=anomalous-backslash-in-string
+    if method == 'monet':
+      print_str = '%s & %0.3f $\pm$ %0.3f\n'  # pylint: disable=anomalous-backslash-in-string
+    f.write(print_str % (method, numpy.mean(metrics), numpy.std(metrics)))
 
 # Prep eval curves display
 lin_data = []
@@ -72,7 +86,8 @@ for rep in range(NUM_RUNS):
   with open(score_dict_path) as f:
     score_dict = json.loads(f.read())
   for method in score_dict:
-    if score_dict[method] is not None and method != 'monet_dw':
+    if (score_dict[method] is not None and method != 'monet_dw' and
+        method != 'glove_fairwalks'):
       for i, v in enumerate(score_dict[method]['linear']):
         lin_data.append({
             'Method': method,
@@ -98,35 +113,41 @@ def replace_method_column(df, input_replace_dict):
 
 
 replace_dict = {
-    'adv1': 'Adversary',
+    'adv1': 'Adversarial Debiasing',
     'deepwalk': 'DeepWalk',
     'monet0': 'GloVe_meta',
     'monet': 'MONET_G',
     'random': 'Random',
-    'glove': 'GloVe'
+    'glove': 'GloVe',
+    'deepwalk_fairwalks': 'FairWalk'
 }
 
 lin_df = replace_method_column(lin_df, replace_dict)
 rbf_df = replace_method_column(rbf_df, replace_dict)
 
-acceptable_points = ['^', 'o', 'v', 's', 'p', 'X', 'D', '*']
-acceptable_lines = [(1, 0), (1, 1), (3, 3), (2, 2, 1, 2), (3, 1, 1, 1), (2, 4),
-                    (2, 4, 1, 4, 1, 4), (1, 4)]
+acceptable_points = ['^', 's', 'v', 'o', 'p', 'D', 'X', '*']
+acceptable_lines = [(1, 0), (1, 1), (2, 2), (2, 2, 1, 2), (2, 1, 1, 1), (2, 4),
+                    (2, 2, 1, 2, 1, 2), (1, 3)]
 acceptable_colors = sns.color_palette()
 sorted_names = sorted(replace_dict.values())
 colors_palette = {n: acceptable_colors[i] for i, n in enumerate(sorted_names)}
 points_palette = {n: acceptable_points[i] for i, n in enumerate(sorted_names)}
 lines_palette = {n: acceptable_lines[i] for i, n in enumerate(sorted_names)}
 
+colors_palette['GloVe'] = (0.99609375, 0.83984375, 0.)
 colors_palette['GloVe_meta'] = colors_palette['MONET_G']
-lines_palette['Adversary'] = lines_palette['MONET_G']
+lines_palette['Adversarial Debiasing'] = lines_palette['MONET_G']
 lines_palette['MONET_G'] = ''
 colors_palette['MONET_G'] = [i / float(255.0) for i in [225, 0, 0]]
 colors_palette['Random'] = [0.0, 0.0, 0.0]
 
+ORDER = [0, 7, 2, 3, 5, 6, 4, 1]
+ORDER_RBF = [0, 6, 2, 3, 4, 5, 1]
+
 
 def results_lineplot(df,
                      cpalette,
+                     mpalette,
                      title,
                      input_lines_palette=None,
                      figsize=(10, 10),
@@ -134,10 +155,12 @@ def results_lineplot(df,
                      y_var='Avg Accuracy',
                      x_title='Size of training set (%)',
                      y_title='Avg Accuracy\n Debias Target: 0.5',
-                     linewidth=4.0,
+                     linewidth=2.0,
+                     markersize=20,
                      title_size=25.0,
                      ax_label_size=20.0,
                      ax_tick_size=18.0,
+                     order=None,
                      legend_text_size=15.0,
                      xlim=(0, 100),
                      ylim=(0.4, 1.0),
@@ -147,6 +170,7 @@ def results_lineplot(df,
   Args:
     df: dataframe
     cpalette: color palette
+    mpalette: marker palette
     title: plot title
     input_lines_palette: lines palette
     figsize: figure size
@@ -154,10 +178,12 @@ def results_lineplot(df,
     y_var: column lookup name for y variable in df
     x_title: x axis display name
     y_title: y axis display name
-    linewidth: linewidth
+    linewidth: line width
+    markersize: marker size
     title_size: title size
     ax_label_size: axis label size
     ax_tick_size: axis tick size
+    order: list giving order of hues in legend
     legend_text_size: legend text size
     xlim: x axis plot limits
     ylim: y axis plot limits
@@ -174,57 +200,75 @@ def results_lineplot(df,
   plt.ylim(ylim)
   plt.title(' ')
   dashes_order, dashes_values = zip(*input_lines_palette.items())
-  sns.lineplot(
+  ax = sns.lineplot(
       x=x_var,
       y=y_var,
       hue='Method',
       palette=cpalette,
       data=df,
       lw=linewidth,
+      markers=mpalette,
       style='Method',
       style_order=dashes_order,
-      dashes=dashes_values)
+      dashes=dashes_values,
+      markersize=markersize)
   plt.xlabel(x_title)
   plt.ylabel(y_title)
-  leg = plt.legend(loc=0, bbox_to_anchor=(1, 1))
-  for legobj in leg.legendHandles:
+  if order is None:
+    leg = plt.legend(loc=0, bbox_to_anchor=(1, 1), markerscale=3)
+    handles = leg.legendHandles
+  else:
+    ax = plt.gca()
+    handles, labels = ax.get_legend_handles_labels()
+    assert len(handles) == len(order)
+    handles = [handles[order[i]] for i in range(len(order))]
+    labels = [labels[order[i]] for i in range(len(order))]
+    ax.legend(handles=handles, labels=labels,
+              loc=0, bbox_to_anchor=(1, 1), markerscale=3)
+  for legobj in handles:
     legobj.set_linewidth(linewidth)
+    legobj.set_markersize(markersize)
   plt.suptitle(title, fontsize=title_size)
   plt.title(' ')
   if filename is not None:
     plt.savefig(filename, bbox_inches='tight')
 
-
 sns.set_style('whitegrid')
 results_lineplot(
     lin_df,
     colors_palette,
+    points_palette,
     'Blog Affiliation - Linear SVM',
     lines_palette,
     y_title='Avg Accuracy',
     ylim=(0.4, 1.0),
     figsize=(13, 10),
     title_size=40,
+    order=ORDER,
     ax_tick_size=26,
     ax_label_size=28,
     legend_text_size=26,
-    linewidth=10.0,
+    linewidth=PLOT_LINE_WIDTH,
+    markersize=PLOT_MARKER_SIZE,
     filename=os.path.join(EVAL_SAVE_DIR, 'polblogs_lin_svm.png'))
 
 sns.set_style('whitegrid')
 results_lineplot(
     rbf_df[~rbf_df.Method.isin(['Random'])],
     {n: p for n, p in colors_palette.items() if n != 'Random'},
+    {n: p for n, p in points_palette.items() if n != 'Random'},
     'Blog Affiliation - RBF SVM',
     {n: p for n, p in lines_palette.items() if n != 'Random'},
     y_title='Avg Accuracy',
     ylim=(0.8, 1.0),
     figsize=(13, 10),
     title_size=40,
+    order=ORDER_RBF,
     ax_tick_size=26,
     ax_label_size=28,
     legend_text_size=26,
-    linewidth=10.0,
+    linewidth=PLOT_LINE_WIDTH,
+    markersize=PLOT_MARKER_SIZE,
     filename=os.path.join(EVAL_SAVE_DIR, 'polblogs_rbf_svm.png'))
 
 
