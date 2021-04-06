@@ -91,8 +91,8 @@ def get_keras_model(bottleneck_dimension,
       bottleneck = tf.keras.layers.Dense(
           bottleneck_dimension, name='distilled_output')
       if qat:
-        bottleneck = tfmot.quantization.keras.\
-          quantize_annotate_layer(bottleneck)
+        bottleneck = tfmot.quantization.keras.quantize_annotate_layer(
+            bottleneck)
     embeddings = tf.keras.layers.Flatten()(model_out)
     embeddings = bottleneck(embeddings)
 
@@ -108,9 +108,11 @@ def get_keras_model(bottleneck_dimension,
       return output_model
   else:
     embeddings = tf.keras.layers.Flatten(name='distilled_output')(model_out)
-  output = tf.keras.layers.Dense(
-      output_dimension, name='embedding_to_target')(
-          embeddings)
+  if output_dimension:
+    output = tf.keras.layers.Dense(
+        output_dimension, name='embedding_to_target')(embeddings)
+  else:
+    output = embeddings
   output_model = tf.keras.Model(inputs=model_in, outputs=output)
   return output_model
 

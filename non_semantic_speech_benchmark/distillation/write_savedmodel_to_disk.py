@@ -19,6 +19,7 @@ r"""Loads a graph and checkpoint, and writes to disk as a savedmodel.
 
 from absl import app
 from absl import flags
+from absl import logging
 
 import tensorflow as tf
 
@@ -28,21 +29,25 @@ from non_semantic_speech_benchmark.distillation import models
 flags.DEFINE_string('logdir', None, 'Dataset location.')
 flags.DEFINE_string('checkpoint_filename', None, 'Optional.')
 flags.DEFINE_string('output_directory', None, 'Place to write savedmodel.')
+flags.DEFINE_bool('frontend', False, 'Whether to add the frontend.')
 
 # Controls the model.
 flags.DEFINE_integer('bottleneck_dimension', None, 'Dimension of bottleneck.')
-flags.DEFINE_integer('output_dimension', None, 'Dimension of targets.')
 flags.DEFINE_float('alpha', 1.0, 'Alpha controlling model size.')
+flags.DEFINE_string('mobilenet_size', 'small', 'Size of mobilenet')
+flags.DEFINE_bool('avg_pool', False, 'Whether to use average pool.')
+flags.DEFINE_string('compressor', None,
+                    'Whether to use bottleneck compression.')
+flags.DEFINE_bool('qat', False, 'Whether to use quantization-aware training.')
 
 FLAGS = flags.FLAGS
 
 
-def load_and_write_model(logdir, checkpoint_filename, output_directory):
-  model = models.get_keras_model(
-      FLAGS.bottleneck_dimension, FLAGS.output_dimension, alpha=FLAGS.alpha)
+def load_and_write_model(keras_model_args, checkpoint_to_load,
+                         output_directory):
+  model = models.get_keras_model(**keras_model_args)
   checkpoint = tf.train.Checkpoint(model=model)
-  checkpoint_to_load = tf.train.latest_checkpoint(logdir, checkpoint_filename)
-  checkpoint.restore(checkpoint_to_load)
+  checkpoint.restore(checkpoint_to_load).expect_partial()
   tf.keras.models.save_model(model, output_directory)
 
 
@@ -51,11 +56,24 @@ def main(unused_argv):
   assert tf.executing_eagerly()
   if FLAGS.checkpoint_filename:
     raise ValueError('Implement me.')
+  else:
+    checkpoint_to_load = tf.train.latest_checkpoint(FLAGS.logdir)
   assert FLAGS.logdir
-  load_and_write_model(
-      FLAGS.logdir,
-      FLAGS.checkpoint_filename,
-      FLAGS.output_directory)
+  keras_model_args = {
+      'bottleneck_dimension': FLAGS.bottleneck_dimension,
+      'output_dimension': None,
+      'alpha': FLAGS.alpha,
+      'mobilenet_size': FLAGS.mobilenet_size,
+      'frontend': FLAGS.frontend,
+      'avg_pool': FLAGS.avg_pool,
+      'compressor': FLAGS.compressor,
+      'qat': FLAGS.qat,
+      'tflite': False,
+  }
+  load_and_write_model(keras_model_args, checkpoint_to_load,
+                       FLAGS.output_directory)
+  assert tf.io.gfile.exists(FLAGS.output_directory)
+  logging.info('Successfully wrote to: %s', FLAGS.output_directory)
 
 
 if __name__ == '__main__':
