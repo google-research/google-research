@@ -14,6 +14,9 @@
 
 #!/bin/bash -e
 
+# Install gflags development files if not already present.
+[ -d /usr/include/gflags/ ] || apt install libgflags-dev
+
 cd "$(readlink -f "$(dirname "$0")")"
 
 echo "Compiling..."
