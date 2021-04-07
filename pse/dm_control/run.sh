@@ -20,9 +20,10 @@ source ./bin/activate
 # Install tf-agents
 pip install --user tf-agents[reverb]
 
-git clone https://github.com/google_research/distracting_control.git
+git clone https://github.com/google-research/google-research.git
+cd google-research
 pip install -e distracting_control
-pip install -r pse.dm_control.requirements.txt
+pip install -r pse/dm_control/requirements.txt
 
 python -m pse.dm_control.run_train_eval --trial_id=1 --seed 0\
  --env_name=cartpole-swingup --root_dir=/tmp/drq --num_train_steps=10000 \
