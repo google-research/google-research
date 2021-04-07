@@ -1,0 +1,30 @@
+# Default parameters
+# Stereo, regression uvd
+batch_size: 32
+learning_rate: [20000, 70000, 0.001, 0.0005, 0.0005, 0.0001, 0.00001, 0.000005]
+steps: 80000
+model_params:
+  batchnorm: [0.999, 1.0e-8, False]  # decay, epsilon, scale
+  filter_size: 3
+  loss_prob: 0.001
+  loss_onscreen: 0.0
+  loss_kp: 1.0
+  loss_kp_step: [0, 200]
+  loss_proj: 2.5
+  loss_proj_step: [5000, 10000]
+  loss_reg: 0.01
+  num_filters: 48
+  noise: 4.0
+  gamma: [0.8, 1.2]
+  motion: [0, 0, 0, 0]
+  blur: [1.0, 4.0]
+  occ_fraction: 0.2
+  rot: [5, 0, 0]
+  shear: []
+  scale: []
+  max_dilation: 32
+  sym: [0]
+  use_regress: True
+  use_stereo: True
+  dilation_rep: 1
+  crop: [180, 120, 30]

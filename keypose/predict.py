@@ -85,13 +85,17 @@ def predict(model_dir, image_dir, params, camera, camera_input, mesh_file=None):
     # Read in and resize images if necessary.
     print(fname)
     im_l = utils.read_image(fname)
-    kps_pb = utils.read_keys_pb(fname.replace('_L.png', '_L.pbtxt'))
-    im_l = utils.resize_image(im_l, camera, camera_input, kps_pb)
+    targs_pb = utils.read_target_pb(fname.replace('_L.png', '_L.pbtxt'))
+    kps_pb = targs_pb.kp_target
+    im_l = utils.resize_image(im_l, camera, camera_input,
+                              targs_pb)  # NB: changes targs_pb.
     keys_uvd_l, to_world_l, visible_l = utils.get_keypoints(kps_pb)
 
     im_r = utils.read_image(fname.replace('_L.png', '_R.png'))
-    kps_pb = utils.read_keys_pb(fname.replace('_L.png', '_R.pbtxt'))
-    im_r = utils.resize_image(im_r, camera, camera_input, kps_pb)
+    targs_pb = utils.read_target_pb(fname.replace('_L.png', '_R.pbtxt'))
+    kps_pb = targs_pb.kp_target
+    im_r = utils.resize_image(im_r, camera, camera_input,
+                              targs_pb)  # NB: changes kps_pb.
     keys_uvd_r, _, _ = utils.get_keypoints(kps_pb)
 
     # Do cropping if called out in mparams.

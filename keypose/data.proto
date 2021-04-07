@@ -13,6 +13,7 @@
 // limitations under the License.
 
 syntax = "proto2";
+
 package keypose;
 
 // 4x4 transform matrix, row major order.
@@ -42,7 +43,7 @@ message Target {
   message KeyPoint {
     optional float u = 1;  // Image coords (pixels) of kp.
     optional float v = 2;
-    optional float x = 3;  // Normalized image coords of kp.
+    optional float x = 3;  // x,y are normalized image coords of kp, NOT 3D x,y.
     optional float y = 4;  // Normalized coords are in [0, 1].
     optional float z = 5;  // Distance from camera (m) of kp.
     optional float visible = 6 [default = 1.0];  // 1.0 if kp is onscreen.
@@ -66,4 +67,17 @@ message DataParams {
   optional int32 resy = 2;
   optional int32 num_kp = 3;
   optional keypose.Camera camera = 4;
+}
+
+// TFRecord sets for training and evaluation
+message TfSet {
+  optional string name = 1;  // Output will be in keypose/tfrecords/<name>.
+  optional string common_dir = 2;  // Directory prefix common to all files,
+                                   // e.g. keypose/data/bottle_0.
+  repeated string train = 3;  // Training tfrecord dirs (e.g. */756x424_fl400).
+  repeated string val = 4;    // Val tfrecord dirs (texture_5_*/756x424_fl400).
+                              // Note: val dirs are excluded from train dirs.
+  repeated string exclude = 5;     // Exclude these dirs from train/val.
+  optional string image_size = 6;  // Resized image, e.g., 756x424_fl400.
+                                   // fl400 means focal length 400 pixels.
 }

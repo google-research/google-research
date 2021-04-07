@@ -15,22 +15,32 @@
 
 """Utilities for reading images, parsing protobufs, etc."""
 
+import math
 import os
+import random
 
+from google.protobuf import text_format
 import matplotlib as plt
 import matplotlib.cm  # pylint: disable=unused-import
 import numpy as np
+from skimage.draw import ellipse
+from skimage.exposure import adjust_gamma
+from skimage.filters import gaussian
+from skimage.transform import ProjectiveTransform
 from skimage.transform import resize
+from skimage.transform import warp
 import tensorflow as tf
 import yaml
 
-from google.protobuf import text_format
 from keypose import data_pb2 as pb
 
 try:
   import cv2  # pylint: disable=g-import-not-at-top
 except ImportError as e:
   print(e)
+
+# Top level keypose directory.
+KEYPOSE_PATH = os.path.join(os.getcwd(), 'keypose')
 
 
 # Read image, including .exr images.
@@ -43,6 +53,41 @@ def read_image(fname):
     image = cv2.imread(fname)
   assert image is not None, 'Cannot open %s' % fname
   return image
+
+
+# Camera array to camera protobuf
+def cam_array_to_pb(cam):
+  cam_pb = pb.Camera()
+  cam_pb.fx = cam[0]
+  cam_pb.fy = cam[1]
+  cam_pb.cx = cam[2]
+  cam_pb.cy = cam[3]
+  cam_pb.baseline = cam[4]
+  cam_pb.resx = cam[5]
+  cam_pb.resy = cam[6]
+  return cam_pb
+
+
+# Camera protobuf to camera array
+def cam_pb_to_array(cam_pb):
+  return [
+      cam_pb.fx, cam_pb.fy, cam_pb.cx, cam_pb.cy, cam_pb.baseline, cam_pb.resx,
+      cam_pb.resy
+  ]
+
+
+# Dummy transform that always produces 0 vector as result.
+def dummy_to_uvd():
+  to_uvd = np.zeros((4, 4))
+  to_uvd[3, 3] = 1.0
+  return to_uvd
+
+
+# Zero uvd stack.
+def dummy_keys_uvd(num):
+  uvd = np.zeros(4)
+  uvd[3] = 1.0
+  return [uvd for _ in range(num)]
 
 
 def k_matrix_from_camera(camera):
@@ -129,9 +174,34 @@ def read_keys_pb(path):
   return target_pb.kp_target
 
 
+# Returns a dict of the filename strings in a TfSet.
+def read_tfset(path):
+  data_pb = pb.TfSet()
+  read_from_text_file(path, data_pb)
+  return data_pb
+
+
+def make_tfset(train_names, val_names, name):
+  tfset_pb = pb.TfSet()
+  tfset_pb.train[:] = train_names
+  tfset_pb.val[:] = val_names
+  tfset_pb.name = name
+  return tfset_pb
+
+
 # Read the contents of a target protobuf.
 def read_contents_pb(path):
   return get_contents_pb(read_target_pb(path).kp_target)
+
+
+# Make a DataParams protobuf.
+def make_data_params(resx, resy, num_kp, cam):
+  data_pb = pb.DataParams()
+  data_pb.camera.CopyFrom(cam)
+  data_pb.resx = resx
+  data_pb.resy = resy
+  data_pb.num_kp = num_kp
+  return data_pb
 
 
 # Read contents of a camera protobuf.
@@ -140,6 +210,11 @@ def read_data_params(path):
   read_from_text_file(path, data_pb)
   cam = data_pb.camera
   return data_pb.resx, data_pb.resy, data_pb.num_kp, cam
+
+
+def write_to_text_file(path, proto):
+  with open(path, 'w') as file:
+    file.write(str(proto))
 
 
 def project_np(mat, vec):
@@ -154,33 +229,91 @@ def project_np(mat, vec):
   return p
 
 
-def get_params(param_file=None, cam_file=None, cam_image_file=None):
+# Maximum number of projection frames for losses.
+MAX_TARGET_FRAMES = 5
+
+# Standard image input parameters for the model.
+DEFAULT_PARAMS = """
+batch_size: 32
+dset_dir: ''
+model_dir: ''
+steps: 80000
+
+model_params:
+model_params:
+  use_regress: True  # Use regression or integration.
+  batchnorm: [0.999, 1.0e-8, False]
+  num_filters: 48  # Number of filters across DCNN.
+  filter_size: 3
+  max_dilation: 32
+  dilation_rep: 1
+  dropout: 0.0
+  disp_default: 30
+  sym: [0]
+  input_sym: [0]  # Mix up symmetric ground truth values.
+  use_stereo: true
+  visible: true  # Use only samples with visible keypoints.
+
+  crop: [180, 120, 30]  # Crop patch size, WxH, plus disp offset.
+  dither: 20.0  # Amount to dither the crop, in pixels.
+
+  loss_kp: 1.0
+  loss_kp_step: [0, 200]
+  loss_prob: 0.001
+  loss_proj: 2.5
+  loss_proj_step: [10000, 20000]
+  loss_reg: 0.01
+  loss_dispmap: 1.0
+  loss_dispmap_step: [5000, 10000]
+
+  noise: 4.0
+  occ_fraction: 0.2
+  kp_occ_radius: 0.0   # Radius for occlusion for real-world keypoints.
+  blur: [1.0, 4.0]  # Min, max in pixels.
+  motion: [0, 0, 0, 0]   # Motion blur, min/max in pixels, min/max in angle (deg).
+  gamma: [0.8, 1.2]
+
+  rot: [0.0, 0.0, 0.0]  # In degrees, [X-axis, Y-axis, Z-axis]
+
+  # Homography parameters [X-axis, Y-axis]
+  shear: []  # Use X-axis only for stereo [10,0].
+  scale: []  # [min, max] applied only on the Y axis.
+  flip: []   # Use Y-axis only for stereo [False,True].
+"""
+
+
+def get_params(param_file=None,
+               cam_file=None,
+               cam_image_file=None,
+               defaults=DEFAULT_PARAMS):
   """Returns default or overridden user-specified parameters, and cam params."""
 
   # param_file points to a yaml string.
   # cam_file points to a camera pbtxt.
   # cam_image_file points to a camera pbtxt.
 
-  params = ConfigParams()
+  params = ConfigParams(defaults)
   if param_file:
     params.merge_yaml(param_file)
   mparams = params.model_params
 
+  cam = None
   if cam_file:
     print('Model camera params file name is: %s' % cam_file)
     resx, resy, _, cam = read_data_params(cam_file)
 
-  mparams.resx = resx
-  mparams.resy = resy
-  mparams.modelx = resx
-  mparams.modely = resy
+    mparams.resx = resx
+    mparams.resy = resy
+    mparams.modelx = resx
+    mparams.modely = resy
 
   if mparams.crop:
     mparams.modelx = int(mparams.crop[0])
     mparams.modely = int(mparams.crop[1])
 
-  mparams.disp_default /= resx  # Convert to fraction of image.
+  mparams.disp_default /= mparams.resx  # Convert to fraction of image.
 
+  cam_image = None
   if cam_image_file:
     print('Image camera params file name is: %s' % cam_image_file)
     _, _, _, cam_image = read_data_params(cam_image_file)
@@ -216,10 +349,25 @@ class ConfigParams:
         ret[k] = val
     return ret
 
+  def read_yaml(self, fname):
+    with open(fname, 'r') as f:
+      ret = self.merge_yaml(f)
+    return ret
+
+  def write_yaml(self, fname):
+    with open(fname, 'w') as f:
+      yaml.dump(self.make_dict(), f, default_flow_style=None)
+
   def merge_dict(self, p_dict):
     """Merges a dictionary into this params."""
     for k in p_dict:
       val = p_dict[k]
+      if k == 'default_file':
+        print('Default file:', val)
+        fname = os.path.join(KEYPOSE_PATH, val + '.yaml')
+        print('Default file fname:', fname)
+        self.read_yaml(fname)
+        continue
       if isinstance(val, dict):
         if getattr(self, k, None):
           sub_params = getattr(self, k)
@@ -275,21 +423,17 @@ class ConfigParams:
     return s.replace(' ', '')
 
 
-DEFAULT_PARAMS = """
-model_params:
-  disp_default: 30  # Default offset in disparity.
-  sym: [0]  # Symmetry in the loss function.
-  input_sym: [0]  # Mix up symmetric ground truth values.
-  use_stereo: true  # Use stereo input.
-  visible: true  # Use only samples with visible keypoints.
-  crop: [180, 120, 30]  # Crop patch size, WxH, plus disp offset.
-  dither: 0.0  # Amount to dither the crop, in pixels.
-  gamma: []
-"""
+# uint8 image [0,255] to float [0,1]
+def image_uint8_to_float(image):
+  if image.dtype == np.float32:
+    return image
+  image = image.astype(np.float32) * (1.0 / 255.0)
+  image_np = np.clip(image, 0.0, 1.0)
+  return image_np
 
 
-def resize_image(image, cam, cam_image, kps_pb):
-  """Resize an image using scaling and cropping."""
+def resize_image(image, cam, cam_image, targs_pb):
+  """Resize an image using scaling and cropping; changes kps_pb to correspond."""
   resx, resy = int(cam_image.resx), int(cam_image.resy)
   nxs, nys = int(cam.resx), int(cam.resy)
   fx = cam_image.fx
@@ -317,7 +461,7 @@ def resize_image(image, cam, cam_image, kps_pb):
     cam_pb.resy = nys
 
   def resize_target(targ_pb):
-    scale_cam(kps_pb.camera)
+    scale_cam(targ_pb.camera)
     for kp in targ_pb.keypoints:
       kp.u = (kp.u - cropx) / scale
       kp.v = (kp.v - cropy) / scale
@@ -326,8 +470,437 @@ def resize_image(image, cam, cam_image, kps_pb):
       if kp.u < 0 or kp.u >= nxs or kp.v < 0 or kp.v >= nys:
         kp.visible = 0.0
 
-  resize_target(kps_pb)
+  resize_target(targs_pb.kp_target)
+  for targ_pb in targs_pb.proj_targets:
+    resize_target(targ_pb)
+
   return image
+
+
+def rotation_transform(x_rot, y_rot, z_rot):
+  """Creates a rotation transform with rotations around the three axes.
+
+  Args:
+    x_rot: rotate around X axis (degrees).
+    y_rot: rotate around Y axis (degrees).
+    z_rot: rotate around Z axis (degrees).
+
+  Returns:
+    4x4 transform.
+  """
+  x_rot = np.pi * x_rot / 180.0
+  xt = np.array([[1.0, 0, 0, 0], [0, np.cos(x_rot), -np.sin(x_rot), 0.0],
+                 [0, np.sin(x_rot), np.cos(x_rot), 0.0], [0, 0, 0, 1]])
+  y_rot = np.pi * y_rot / 180.0
+  yt = np.array([[np.cos(y_rot), 0, np.sin(y_rot), 0], [0, 1, 0, 0],
+                 [-np.sin(y_rot), 0, np.cos(y_rot), 0], [0, 0, 0, 1]])
+  z_rot = np.pi * z_rot / 180.0
+  zt = np.array([[np.cos(z_rot), -np.sin(z_rot), 0, 0],
+                 [np.sin(z_rot), np.cos(z_rot), 0, 0], [0, 0, 1, 0],
+                 [0, 0, 0, 1]])
+  return xt.dot(yt).dot(zt)
+
+
+# rotation of the camera
+def rotate_camera(rotation, image, camera, transform, key_pts):
+  """Rotates a camera around its optical axis.
+
+  Args:
+    rotation: 4x4 rotation transform, c'_R_c
+    image: Camera image, h x w x 4 (or 3).
+    camera: 7-element camera parameters (fx, fy, cx, cy, baseline, resx, resy)
+    transform: 4x4 transform matrix, w_T_c (camera-to-world).
+    key_pts: Nx4 u,v,d,w image keypoints, in pixel coordinates.
+
+  Returns:
+    Rotated image, zero-filled
+    Updated transform w_T_c' = w_T_c * P * c_R_c' * Q
+    updated keypoints u,v,d,w, Nx4
+    visibility vector for keypoint, N
+
+  Keypoints are converted by P * c'_R_c * Q
+  """
+
+  def in_bounds(pt, bounds):
+    if (pt[0] >= 0 and pt[0] <= bounds[0] and pt[1] >= 0 and
+        pt[1] <= bounds[1]):
+      return 1.0
+    else:
+      return 0.0
+
+  cam_pb = cam_array_to_pb(camera)
+  pmat = p_matrix_from_camera(cam_pb)
+  qmat = q_matrix_from_camera(cam_pb)
+  tp = np.dot(transform, np.dot(pmat, np.dot(np.linalg.inv(rotation), qmat)))
+  key_pts_p = project_np(
+      np.dot(pmat, np.dot(rotation, qmat)), np.transpose(key_pts))
+  kmat = k_matrix_from_camera(cam_pb)
+  hmat = kmat.dot(rotation[:3, :3].transpose()).dot(np.linalg.inv(kmat))
+  image_np = np.clip(image, 0.0, 0.9999)
+  warped = warp(image_np, ProjectiveTransform(matrix=hmat))
+  visible = np.array([
+      in_bounds(key_pts_p[:2, i], camera[5:7]) for i in range(key_pts.shape[0])
+  ])
+  return warped, tp, key_pts_p.transpose(), visible
+
+
+def warp_homography(res, scale, shear, flip):
+  """Returns a homography for image scaling, shear and flip.
+
+  Args:
+    res: resolution of the image, [x_res, y_res].
+    scale: scale factor [x_scale, y_scale].
+    shear: shear in [x_deg, y_deg].
+    flip: boolean [x_flip, y_flip].
+  """
+  center_mat = np.eye(3)
+  center_mat[0, 2] = -res[0] / 2.0
+  center_mat[1, 2] = -res[1] / 2.0
+  cmat_inv = np.linalg.inv(center_mat)
+
+  flip_mat = np.eye(3)
+  if flip[0]:
+    flip_mat[0, 0] = -1
+  if flip[1]:
+    flip_mat[1, 1] = -1
+
+  shear_mat = np.eye(3)
+  shear_mat[0, 1] = math.tan(math.radians(shear[0]))
+  shear_mat[1, 0] = math.tan(math.radians(shear[1]))
+
+  scale_mat = np.eye(3)
+  scale_mat[0, 0] = scale[0]
+  scale_mat[1, 1] = scale[1]
+
+  return cmat_inv.dot(scale_mat.dot(shear_mat.dot(flip_mat.dot(center_mat))))
+
+
+def do_rotation(image, image2, transform, camera, key_pts, visible, rotation):
+  """Add a random rotation about the camera centerpoint.
+
+  Args:
+    image: HxWx4 image, left image if stereo; can be uint8 or float.
+    image2: HxWx4 image, right image if stereo, or None
+    transform: 4x4 to_world transform.
+    camera: 7-element camera parameters.
+    key_pts: Nx4 uvdw keypoints.
+    visible: Visibility prediate for keypoints.
+    rotation: Rotation as 3-tuple, XYZ axes.
+
+  Returns:
+    image: Warped by random rotation, float32.
+    transform: Updated to_world transform.
+    key_pts: updated uvdw keypoints.
+    visible: visibility vector for the keypoints.
+  """
+  image = image_uint8_to_float(image)
+  image2 = image_uint8_to_float(image2)
+  area, _ = get_area(image)
+  if area < 10:  # Something is wrong here.
+    return image, image2, transform, key_pts, visible
+
+  rotation = (float(rotation[0]), float(rotation[1]), float(rotation[2]))
+  while True:
+    rot = rotation_transform(
+        random.uniform(-rotation[0], rotation[0]),
+        random.uniform(-rotation[1], rotation[1]),
+        random.uniform(-rotation[2], rotation[2]))
+    image_p, transform_p, key_pts_p, visible_p = rotate_camera(
+        rot, image, camera, transform, key_pts)
+    area_p, _ = get_area(image)
+    if float(area_p) / area > 0.6:
+      if image2 is not None:
+        image2_p, _, _, _ = rotate_camera(rot, image2, camera, transform,
+                                          key_pts)
+      else:
+        image2_p = image_p
+      break
+
+  # Warp function converts images to float64, this converts back.
+  return (image_p.astype(np.float32), image2_p.astype(np.float32),
+          transform_p.astype(np.float32), key_pts_p.astype(np.float32),
+          visible_p.astype(np.float32))
+
+
+def do_2d_homography(image, image2, scale, shear, flip, mirrored, split):
+  """Add random 2D transforms to input images.
+
+  Images are warped according to the 2D transforms of scaling,
+  shear and flip.  The 2D homogenous transform inverse is returned,
+  so that keypoints can be adjusted after they are predicted.
+  Transforms that preserve horizontal epipolar lines are vertical flip,
+  X-axis shear, mirroring, and scaling.
+  TODO: visibility analysis.
+
+  Args:
+    image: HxWx4 image, left image if stereo; can be uint8 or float.
+    image2: HxWx4 image, right image if stereo, or None
+    scale: floating point bounds, uniform random scale, e.g., [0.8, 1.2].
+    shear: x,y shear max bounds for uniform random shear, in degrees.
+    flip: [True, True] if images are randomly flipped horizontal, vertical.
+    mirrored: True if images are mirrored.
+    split: train / eval split.
+
+  Returns:
+    image: Warped by random transform, float32.
+    image2: Warped by same random transform, float32.
+    homography: 3x3 homography matrix for the warp.
+  """
+  if (not mirrored) and not (split == 'train' and (scale or shear or flip)):
+    return image, image2, np.eye(3, dtype=np.float32)
+
+  if not scale:
+    scale = [1.0, 1.0]
+  if not shear:
+    shear = [0.0, 0.0]
+  if not flip:
+    flip = [False, False]
+  image = image_uint8_to_float(image)
+  image2 = image_uint8_to_float(image2)
+  if mirrored:
+    flip = [False, True]
+  else:
+    flip = [random.choice([False, flip[0]]), random.choice([False, flip[1]])]
+  hom = warp_homography((image.shape[1], image.shape[0]), [
+      1.0, random.uniform(scale[0], scale[1])
+  ], [random.uniform(-shear[0], shear[0]),
+      random.uniform(-shear[1], shear[1])], flip)
+  if np.allclose(hom, np.eye(3)):
+    return image, image2, np.eye(3, dtype=np.float32)
+  hom_inv = np.linalg.inv(hom)
+  image_p = warp_2d(image, hom_inv)
+  image2_p = warp_2d(image2, hom_inv)
+  # Warp function converts images to float64, this converts back.
+  return (image_p.astype(np.float32), image2_p.astype(np.float32),
+          hom_inv.astype(np.float32))
+
+
+def warp_2d(image, hom):
+  image_np = np.clip(image, 0.0, 0.9999)
+  warped = warp(image_np, ProjectiveTransform(matrix=hom))
+  return warped
+
+
+# Returns a 2D gaussian centered on mean (pix coords, float) with
+# variance var (pixels, float).
+def gauss2d(mean, var, size):
+  x = np.arange(0, size[0])
+  y = np.arange(0, size[1])
+  x, y = np.meshgrid(x, y)
+  mx, my = mean
+  vx, vy = var
+  return np.float32(1. / (2. * np.pi * vx * vy) *
+                    np.exp(-((x - mx)**2. / (2. * vx**2.) + (y - my)**2. /
+                             (2. * vy**2.))))
+
+
+# Normalize so the peak is 1.0.
+def norm_gauss2d(mean, var, size):
+  g2d = gauss2d(mean, var, size)
+  m = np.max(g2d)
+  if m <= 0.0:
+    return g2d
+  return g2d * (1.0 / np.max(g2d))
+
+
+# Make an inverse gaussian for exclusion of a prob field.
+def inv_gauss(mean, var, size):
+  g = gauss2d(mean, var, size)
+  m = np.max(g)
+  g_inv = (m - g) * (1.0 / m)
+  return g_inv
+
+
+def project_uvd(mat, uvd, offset):
+  uvw = np.array([uvd[0] - offset[0], uvd[1] - offset[1], 1.0])
+  uvwt = mat.dot(uvw)
+  return uvwt[:2] / (uvwt[2] + 1e-10)
+
+
+def do_vertical_flip(image, image2, mirrored):
+  """Flip image vertically.
+
+  The 2D homogenous transform inverse is returned,
+  so that keypoints can be adjusted after they are predicted.
+
+  Args:
+    image: HxWx4 image, left image if stereo; can be uint8 or float.
+    image2: HxWx4 image, right image if stereo, or None.
+    mirrored: True if image is mirrored.
+
+  Returns:
+    image: flipped vertically.
+    image2: flipped vertically.
+    homography: 3x3 homography matrix for vertical flip.
+  """
+  if not mirrored:
+    return image, image2, np.eye(3, dtype=np.float32)
+  image = image_uint8_to_float(image)
+  image2 = image_uint8_to_float(image2)
+  image_p = np.flipud(image)
+  image2_p = np.flipud(image2)
+  hom = warp_homography(
+      (image.shape[1], image.shape[0]),
+      [1.0, 1.0],  # Scale (none).
+      [0.0, 0.0],  # Shear (none).
+      [False, True])
+  return image_p, image2_p, np.linalg.inv(hom).astype(np.float32)
+
+
+# Returns gaussian 2Ds with shape [num_kpts, h, w].
+# keys_uvd has shape [num_kps, 4]
+def do_spatial_prob(keys_uvd, hom, offset, var, size):
+  hom_inv = np.linalg.inv(hom)
+  uvs = [project_uvd(hom_inv, uvd, offset) for uvd in keys_uvd]
+  probs = [inv_gauss(uv, [var, var], size) for uv in uvs]
+  return np.array(probs, dtype=np.float32)
+
+
+# Largest fraction of object that can be occluded.
+def do_occlude(image, image2, occ_fraction=0.0):
+  """Add an elliptical occlusion to the RGBA image.
+
+  Args:
+    image: RGBA images with A channel @ 255 for valid object.
+    image2: RGBA images, right stereo.
+    occ_fraction: fraction of image to be occluded.
+
+  Returns:
+    Modified image.
+    Modifies image in place.
+  """
+  area, inds = get_area(image)
+  if area < 50:
+    return image, image2
+  radius = 2.0 * np.sqrt(area / np.pi) * occ_fraction
+
+  for _ in range(0, 1):
+    i = random.randint(0, area - 1)
+    ind = (inds[0][i], inds[1][i])
+    rr, cc = ellipse(
+        ind[0],
+        ind[1],
+        random.uniform(1.0, radius),
+        random.uniform(1.0, radius),
+        shape=image.shape[0:2],
+        rotation=random.uniform(-1.0, 1.0) * np.pi)
+    image[rr, cc, 3] = 0
+    image2[rr, cc, 3] = 0
+
+  return image, image2
+
+
+def do_motion_blur(image, distance, angle):
+  """Random fake motion blur by compositing in the x,y plane of the image.
+
+  Args:
+    image: tensor of images, floating point [0,1], 3 or 4 channels.
+    distance: how far to move, in pixels <min, max>.
+    angle: how much to rotate, in degrees <min, max>.
+
+  Returns:
+    Updated image with motion blur.
+  """
+  if not distance[1]:  # No blur.
+    return image
+  dist = random.uniform(*distance) * 0.5
+  ang = math.radians(random.uniform(*angle))
+  x, y = dist * math.cos(ang), dist * math.sin(ang)
+  rows, cols = image.shape[:2]
+  im = np.array([[1, 0, x], [0, 1, y]])
+  im1 = cv2.warpAffine(image, im, (cols, rows))
+  im = np.array([[1, 0, 2 * x], [0, 1, 2 * y]])
+  im2 = cv2.warpAffine(image, im, (cols, rows))
+  im = np.array([[1, 0, -x], [0, 1, -y]])
+  im3 = cv2.warpAffine(image, im, (cols, rows))
+  im = np.array([[1, 0, -2 * x], [0, 1, -2 * y]])
+  im4 = cv2.warpAffine(image, im, (cols, rows))
+  im = (image + im1 + im2 + im3 + im4) * 0.2
+  np.clip(im, 0.0, 1.0, im)
+  return im
+
+
+def do_composite(image, bg_fname, sigma, motion, noise, gamma):
+  """Composite a background image onto the foreground.
+
+  Args:
+    image: original image, floating point [0,1].
+    bg_fname: background image file name, None or empty string if none.
+    sigma: blur in pixels; single value or range.
+    motion: 4-tuple <min_pix_move, max_pix_move, min_deg_angle, max_deg angle>.
+    noise: pixel noise in the range 0-255, either single value or range.
+    gamma: gamma correction to be applied to image, 0 for none.
+
+  Returns:
+    Updated image.
+  """
+
+  def make_random(x):
+    # Arg x can be list, tuple, numpy.ndarray
+    if isinstance(x, list) or isinstance(x, tuple):
+      x = np.array(x)
+    assert isinstance(
+        x, np.ndarray), 'Argument to do_composite must be list or array'
+    if x.size == 0:
+      return None
+    elif x.size == 1:
+      return x[0]
+    else:
+      return random.uniform(x[0], x[1])
+
+  if motion[1]:
+    image = do_motion_blur(image, motion[:2], motion[2:])
+
+  ys, xs, _ = image.shape
+  if bg_fname:
+    scene = read_image(bg_fname) * (1.0 / 255.0)
+    if random.choice([True, False]):
+      scene = np.flipud(scene)
+    if random.choice([True, False]):
+      scene = np.fliplr(scene)
+    yss, xss = scene.shape[0], scene.shape[1]
+    assert yss > ys, 'Background image must be larger than training image'
+    assert xss > xs, 'Background image must be larger than training image'
+
+  # Adjust gamma of image.
+  gamma = make_random(gamma)
+  if gamma is not None:
+    image[:, :, :3] = adjust_gamma(image[:, :, :3], gamma)
+  # Add noise to object.
+  noise = make_random(noise)
+  if noise is not None:
+    image[:, :, :3] += np.random.randn(ys, xs, 3) * noise * 0.5 / 255.
+  np.clip(image, 0.0, 1.0, image)
+
+  # Cut out ellipse where image alpha is 0.
+  if bg_fname:
+    ul_y = random.randint(0, yss - ys - 1)
+    ul_x = random.randint(0, xss - xs - 1)
+    scene_crop = scene[ul_y:ul_y + ys, ul_x:ul_x + xs, :]
+    mask = image[:, :, 3]
+    rgbmask = np.stack([mask, mask, mask], axis=2)
+    image[:, :, :3] = scene_crop * (1.0 - rgbmask) + image[:, :, :3] * rgbmask
+  else:
+    image[image[:, :, 3] == 0, 0:3] = 0.5
+
+  # Add gaussian blur and noise.
+  sigma = make_random(sigma)
+  im = np.copy(image[:, :, :3])  # Need copy to preserve float32
+  gaussian(image[:, :, :3], sigma, multichannel=True, output=im)
+  # Add noise to whole scene, after blur.
+  if noise is not None:
+    im[:, :, :3] += np.random.randn(ys, xs, 3) * noise * 0.5 / 255.
+  np.clip(im, 0.0, 1.0, im)
+
+  return im
+
+
+# Returns area in pixels.
+# Works for both uint8 and float32 images.
+def get_area(image):
+  inds = np.nonzero(image[:, :, 3] > 0)
+  area = inds[0].shape[0]
+  return area, inds
 
 
 def do_occlude_crop(image,
@@ -338,9 +911,27 @@ def do_occlude_crop(image,
                     visible,
                     dither,
                     var_offset=False):
-  """Crop area around the object."""
-  # Crop is [W, H, R]', where 'R' is right-disparity offset; or else [].
-  # Images can be either floating-point or uint8.
+  """Crop area around the object.
+
+  Crop is [W, H, R]', where 'R' is right-disparity offset; or else [].
+  Images can be either floating-point or uint8.
+
+  Args:
+    image: left image.
+    image2: right image.
+    key_pts: left keypoints.
+    key_pts_r: right keypoints.
+    crop: crop is [W, H, R]', where 'R' is right-disparity offset; or else [].
+    visible: visibility status of keypoints, modified by function.
+    dither: amount to dither the crop.
+    var_offset: vary the offset between left and right images.
+
+  Returns:
+    image: cropped left image.
+    image2: cropped right image.
+    offset: offset of the crop in the original image.
+    visible: visibility status of the keypoints.
+  """
 
   offset = np.array([0, 0, 0], dtype=np.float32)
   crop = np.array(crop)
@@ -387,9 +978,10 @@ def farthest_point_sampling(point_set, k):
   np.delete(rest_indices, start_idx)
 
   for _ in range(k - 1):
-    dist = np.sum(np.square(existing_set), axis=1, keepdims=True) + \
-           np.sum(np.square(rest_set.T), axis=0, keepdims=True) - \
-           np.dot(existing_set, rest_set.T) * 2
+    dist = (
+        np.sum(np.square(existing_set), axis=1, keepdims=True) +
+        np.sum(np.square(rest_set.T), axis=0, keepdims=True) -
+        np.dot(existing_set, rest_set.T) * 2)
     min_dist = dist.min(axis=0)
     max_idx = min_dist.argmax()
     existing_set = np.concatenate(
