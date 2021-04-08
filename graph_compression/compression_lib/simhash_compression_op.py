@@ -137,13 +137,13 @@ class SimhashCompressionOp(compression_op.CompressionOp):
   def add_compression_summaries(self):
     """Adds summaries of alpha value and last update step."""
     with tf.compat.v1.name_scope(self._spec.name + '_summaries'):
-      tf.compat.v1.summary.scalar('last_alpha_update_step',
+      tf.compat.v2.summary.scalar('last_alpha_update_step',
                                   self._last_alpha_update_step)
-      tf.compat.v1.summary.scalar(self.alpha.op.name + '/alpha', self.alpha)
-      tf.compat.v1.summary.scalar(
+      tf.compat.v2.summary.scalar(self.alpha.op.name + '/alpha', self.alpha)
+      tf.compat.v2.summary.scalar(
           self.a_matrix_tfvar.op.name + '/a_matrix_norm',
           tf.norm(tensor=self.a_matrix_tfvar))
-      tf.compat.v1.summary.scalar(
+      tf.compat.v2.summary.scalar(
           self.b_matrix_tfvar.op.name + '/b_matrix_norm',
           tf.norm(tensor=self.b_matrix_tfvar))
 
@@ -492,13 +492,16 @@ class KMeansCompressionOp(compression_op.CompressionOp):
     with tf.name_scope(self._spec.name + '_summaries'):
       logging.info('add_compression_summaries scope name is %s',
                    self._spec.name)
-      tf.summary.scalar(self.alpha.op.name + '/alpha', self.alpha)
-      tf.summary.scalar(self.a_matrix_tfvar.op.name + '/a_matrix_norm',
-                        tf.norm(self.a_matrix_tfvar))
-      tf.summary.scalar(self.b_matrix_tfvar.op.name + '/b_matrix_norm',
-                        tf.norm(tf.reshape(self.b_matrix_tfvar, [-1]), ord=1))
-      tf.summary.scalar(self.c_matrix_tfvar.op.name + '/c_matrix_norm',
-                        tf.reduce_sum(self.c_matrix_tfvar))
+      tf.compat.v2.summary.scalar(self.alpha.op.name + '/alpha', self.alpha)
+      tf.compat.v2.summary.scalar(
+          self.a_matrix_tfvar.op.name + '/a_matrix_norm',
+          tf.norm(self.a_matrix_tfvar))
+      tf.compat.v2.summary.scalar(
+          self.b_matrix_tfvar.op.name + '/b_matrix_norm',
+          tf.norm(tf.reshape(self.b_matrix_tfvar, [-1]), ord=1))
+      tf.compat.v2.summary.scalar(
+          self.c_matrix_tfvar.op.name + '/c_matrix_norm',
+          tf.reduce_sum(self.c_matrix_tfvar))
 
   def get_apply_compression_op(self,
                                a_matrix_tfvar,
@@ -791,13 +794,16 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
     with tf.name_scope(self._spec.name + '_summaries'):
       logging.info('add_compression_summaries scope name is %s',
                    self._spec.name)
-      tf.summary.scalar(self.alpha.op.name + '/alpha', self.alpha)
-      tf.summary.scalar(self.a_matrix_tfvar.op.name + '/a_matrix_norm',
-                        tf.norm(self.a_matrix_tfvar))
-      tf.summary.scalar(self.b_matrix_tfvar.op.name + '/d_matrix_norm',
-                        tf.norm(tf.reshape(self.b_matrix_tfvar, [-1]), ord=1))
-      tf.summary.scalar(self.c_matrix_tfvar.op.name + '/c_matrix_norm',
-                        tf.reduce_sum(self.c_matrix_tfvar))
+      tf.compat.v2.summary.scalar(self.alpha.op.name + '/alpha', self.alpha)
+      tf.compat.v2.summary.scalar(
+          self.a_matrix_tfvar.op.name + '/a_matrix_norm',
+          tf.norm(self.a_matrix_tfvar))
+      tf.compat.v2.summary.scalar(
+          self.b_matrix_tfvar.op.name + '/d_matrix_norm',
+          tf.norm(tf.reshape(self.b_matrix_tfvar, [-1]), ord=1))
+      tf.compat.v2.summary.scalar(
+          self.c_matrix_tfvar.op.name + '/c_matrix_norm',
+          tf.reduce_sum(self.c_matrix_tfvar))
 
   def get_apply_compression_op(self,
                                a_matrix_tfvar,

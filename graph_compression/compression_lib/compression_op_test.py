@@ -259,13 +259,13 @@ class CompressionOpInterfaceTest(tf.test.TestCase):
                 np.linalg.norm(c.c_matrix_tfvar.eval())
             ]) > 0, [True, True, True])
 
-        tf.compat.v1.assign(global_step, 2000).eval()
+        tf.compat.v1.assign(global_step, 2001).eval()
         apply_comp._all_update_op.run()
         _ = a_matrix_compressed.eval()
-        self.assertEqual(c._global_step.eval(), 2000)
+        self.assertEqual(c._global_step.eval(), 2001)
         self.assertAlmostEqual(c.alpha.eval(), 0.98)
         self.assertAlmostEqual(c2.alpha.eval(), 0.98)
-        self.assertEqual(c._last_alpha_update_step.eval(), 2000)
+        self.assertEqual(c._last_alpha_update_step.eval(), 2001)
         self.assertAllEqual(
             np.array([
                 np.linalg.norm(c.a_matrix_tfvar.eval()),
