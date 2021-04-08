@@ -18,10 +18,14 @@ for a quick overview.
 -   [Samples](#samples)
     *   [PG-19 (sequence length 8k)](#pg19-samples)
     *   [Document Machine Translation (sequence length 4k)](#doc-mt)
+    *   [ELI5 (sequence length 8k)](#eli-5)
 -   [Acknowledgments](#ack)
 -   [How to Cite](#cite)
 
 ## Updates <a name="updates"></a>
+
+* Follow-up paper [Hurdles to Progress in Long-Form Question Answering](https://arxiv.org/abs/2103.06332)
+  to appear in NAACL 2021. See generated [samples](samples/eli5_samples).
 
 * Routing Transformer + [REALM](https://github.com/google-research/language/tree/master/language/realm)
   is now [SOTA](https://eval.ai/web/challenges/challenge-page/689/leaderboard/1908#leaderboardrank-1)
@@ -103,6 +107,10 @@ Model     | Hparams  | Context Length | Data-set | Vocab                        
 ### Document Machine Translation (sequence length 4k) <a name="doc-mt"></a>
 
 -   [sample](samples/doc_mt_sample.txt)
+
+### ELI5 (sequence length 8k) <a name="eli5"></a>
+
+-   [sample](samples/eli5_samples/)
 
 ## Acknowledgments <a name="ack"></a>
 The authors would like to thank Phillip Wang and
