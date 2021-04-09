@@ -30,17 +30,17 @@ from grow_bert.lowcost.config import config_encoder as ecfg
 from grow_bert.lowcost.models import bert_pretrain_model as small_pretrainer
 from grow_bert.lowcost.models import pretrain_dataloader as small_dataloader
 from grow_bert.lowcost.models import transformer_encoder as small_encoder_lib
-from tensorflow_models.official.core import task_factory
-from tensorflow_models.official.modeling import optimization
-from tensorflow_models.official.modeling import tf_utils
-from tensorflow_models.official.modeling.hyperparams import base_config
-from tensorflow_models.official.modeling.hyperparams import config_definitions as cfg
-from tensorflow_models.official.modeling.progressive import policies
-from tensorflow_models.official.nlp.configs import bert
-from tensorflow_models.official.nlp.configs import encoders
-from tensorflow_models.official.nlp.data import pretrain_dataloader
-from tensorflow_models.official.nlp.modeling import layers
-from tensorflow_models.official.nlp.tasks import masked_lm
+from official.core import task_factory
+from official.modeling import optimization
+from official.modeling import tf_utils
+from official.modeling.hyperparams import base_config
+from official.modeling.hyperparams import config_definitions as cfg
+from official.modeling.progressive import policies
+from official.nlp.configs import bert
+from official.nlp.configs import encoders
+from official.nlp.data import pretrain_dataloader
+from official.nlp.modeling import layers
+from official.nlp.tasks import masked_lm
 
 
 @dataclasses.dataclass

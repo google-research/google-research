@@ -16,7 +16,7 @@
 """Masked language model network."""
 import tensorflow as tf
 
-from tensorflow_models.official.modeling import tf_utils
+from official.modeling import tf_utils
 
 
 class MaskedLMLayer(tf.keras.layers.Layer):

@@ -18,8 +18,8 @@
 from typing import Optional
 import dataclasses
 
-from tensorflow_models.official.modeling.hyperparams import base_config
-from tensorflow_models.official.nlp.configs import encoders
+from official.modeling.hyperparams import base_config
+from official.nlp.configs import encoders
 
 
 @dataclasses.dataclass

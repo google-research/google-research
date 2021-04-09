@@ -16,7 +16,7 @@
 """Pooling layer to reduce input sequence length."""
 
 import tensorflow as tf
-from tensorflow_models.official.modeling import tf_utils
+from official.modeling import tf_utils
 
 
 class MaskPoolLayer(tf.keras.layers.Layer):

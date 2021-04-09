@@ -19,8 +19,8 @@
 import pprint
 from absl import logging
 
-from tensorflow_models.official.core import train_utils
-from tensorflow_models.official.modeling import hyperparams
+from official.core import train_utils
+from official.modeling import hyperparams
 
 
 def config_override(params, flags_obj):

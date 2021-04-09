@@ -21,9 +21,9 @@ import tensorflow as tf
 from grow_bert.lowcost.layers import position_embedding
 from grow_bert.lowcost.layers import resolution_layer
 from grow_bert.lowcost.layers import transformer_layer
-from tensorflow_models.official.modeling import activations
-from tensorflow_models.official.modeling import tf_utils
-from tensorflow_models.official.nlp.modeling import layers
+from official.modeling import activations
+from official.modeling import tf_utils
+from official.nlp.modeling import layers
 
 
 class TransformerEncoder(tf.keras.Model):

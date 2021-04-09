@@ -17,7 +17,7 @@
 
 import tensorflow as tf
 
-from tensorflow_models.official.modeling import tf_utils
+from official.modeling import tf_utils
 
 
 class PositionEmbedding(tf.keras.layers.Layer):

@@ -18,8 +18,8 @@ from typing import Mapping, Optional
 
 import tensorflow as tf
 
-from tensorflow_models.official.core import input_reader
-from tensorflow_models.official.nlp.data import data_loader
+from official.core import input_reader
+from official.nlp.data import data_loader
 
 
 class PretrainDataLoader(data_loader.DataLoader):

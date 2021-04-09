@@ -22,7 +22,7 @@ import numpy as np
 import tensorflow as tf
 
 from grow_bert.progressive import run_masked_lm
-from tensorflow_models.official.common import flags as tfm_flags
+from official.common import flags as tfm_flags
 
 tfm_flags.define_flags()
 
