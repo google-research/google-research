@@ -41,6 +41,57 @@ from tf_agents.utils import nest_utils
 from social_rl.multiagent_tfagents import multigrid_networks
 
 
+class _Stack(tf.keras.layers.Layer):
+  """Stack of pooling and convolutional blocks with residual connections."""
+
+  def __init__(self, num_ch, num_blocks, **kwargs):
+    # pylint: disable=g-complex-comprehension
+    super(_Stack, self).__init__(**kwargs)
+    self.num_ch = num_ch
+    self.num_blocks = num_blocks
+    self._conv = tf.keras.layers.Conv2D(
+        num_ch, 3, strides=1, padding="same", kernel_initializer="lecun_normal")
+    self._max_pool = tf.keras.layers.MaxPool2D(
+        pool_size=3, padding="same", strides=2)
+
+    self._res_convs0 = [
+        tf.keras.layers.Conv2D(
+            num_ch, 3, strides=1, padding="same", name="res_%d/conv2d_0" % i,
+            kernel_initializer="lecun_normal")
+        for i in range(num_blocks)
+    ]
+    self._res_convs1 = [
+        tf.keras.layers.Conv2D(
+            num_ch, 3, strides=1, padding="same", name="res_%d/conv2d_1" % i,
+            kernel_initializer="lecun_normal")
+        for i in range(num_blocks)
+    ]
+
+  def __call__(self, conv_out, training=False):
+    # Downscale.
+    conv_out = self._conv(conv_out)
+    conv_out = self._max_pool(conv_out)
+
+    # Residual block(s).
+    for (res_conv0, res_conv1) in zip(self._res_convs0, self._res_convs1):
+      block_input = conv_out
+      conv_out = tf.nn.relu(conv_out)
+      conv_out = res_conv0(conv_out)
+      conv_out = tf.nn.relu(conv_out)
+      conv_out = res_conv1(conv_out)
+      conv_out += block_input
+
+    return conv_out
+
+  def get_config(self):
+    config = super().get_config().copy()
+    config.update({
+        "num_ch": self.num_ch,
+        "num_blocks": self.num_blocks
+    })
+    return config
+
+
 def get_spatial_basis(h, w, d):
   """Gets a sinusoidal position encoding for image attention."""
   half_d = d // 2
@@ -125,6 +176,7 @@ class AttentionCombinerConv(tf.keras.layers.Layer):
     }
 
 
+@gin.configurable
 def construct_attention_networks(observation_spec,
                                  action_spec,
                                  use_rnns=True,
@@ -135,7 +187,9 @@ def construct_attention_networks(observation_spec,
                                  conv_kernel=3,
                                  scalar_fc=5,
                                  scalar_name="direction",
-                                 scalar_dim=4):
+                                 scalar_dim=4,
+                                 use_stacks=False
+                                 ):
   """Creates an actor and critic network designed for use with MultiGrid.
 
   A convolution layer processes the image and a dense layer processes the
@@ -156,21 +210,30 @@ def construct_attention_networks(observation_spec,
     scalar_name: Name of the scalar input.
     scalar_dim: Highest possible value for the scalar input. Used to convert to
       one-hot representation.
+    use_stacks: Use ResNet stacks (compresses the image).
 
   Returns:
     A tf-agents ActorDistributionRnnNetwork for the actor, and a ValueRnnNetwork
     for the critic.
   """
+
   preprocessing_layers = {
-      "image":
-          tf.keras.models.Sequential([
-              multigrid_networks.cast_and_scale(),
-              tf.keras.layers.Conv2D(conv_filters, conv_kernel, padding="same"),
-              tf.keras.layers.ReLU(),
-          ]),
       "policy_state":
           tf.keras.layers.Lambda(lambda x: x)
   }
+  if use_stacks:
+    preprocessing_layers["image"] = tf.keras.models.Sequential([
+        multigrid_networks.cast_and_scale(),
+        _Stack(conv_filters // 2, 2),
+        _Stack(conv_filters, 2),
+        tf.keras.layers.ReLU(),
+    ])
+  else:
+    preprocessing_layers["image"] = tf.keras.models.Sequential([
+        multigrid_networks.cast_and_scale(),
+        tf.keras.layers.Conv2D(conv_filters, conv_kernel, padding="same"),
+        tf.keras.layers.ReLU(),
+    ])
   if scalar_name in observation_spec:
     preprocessing_layers[scalar_name] = tf.keras.models.Sequential(
         [multigrid_networks.one_hot_layer(scalar_dim),
@@ -188,40 +251,45 @@ def construct_attention_networks(observation_spec,
   image_index_flat = flat_observation_spec.index(observation_spec["image"])
   network_state_index_flat = flat_observation_spec.index(
       observation_spec["policy_state"])
-  image_shape = observation_spec["image"].shape  # N x H x W x D
+  if use_stacks:
+    image_shape = [i // 4 for i in observation_spec["image"].shape]  # H x W x D
+  else:
+    image_shape = observation_spec["image"].shape
   preprocessing_combiner = AttentionCombinerConv(image_index_flat,
                                                  network_state_index_flat,
                                                  image_shape)
 
-  if use_rnns:
-    actor_net = AttentionActorDistributionRnnNetwork(
-        observation_spec,
-        action_spec,
-        preprocessing_layers=preprocessing_layers,
-        preprocessing_combiner=preprocessing_combiner,
-        input_fc_layer_params=actor_fc_layers,
-        output_fc_layer_params=None,
-        lstm_size=lstm_size)
-    value_net = AttentionValueRnnNetwork(
-        observation_spec,
-        preprocessing_layers=preprocessing_layers,
-        preprocessing_combiner=preprocessing_combiner,
-        input_fc_layer_params=value_fc_layers,
-        output_fc_layer_params=None)
-  else:
-    actor_net = actor_distribution_network.ActorDistributionNetwork(
-        observation_spec,
-        action_spec,
-        preprocessing_layers=preprocessing_layers,
-        preprocessing_combiner=preprocessing_combiner,
-        fc_layer_params=actor_fc_layers,
-        activation_fn=tf.keras.activations.tanh)
-    value_net = value_network.ValueNetwork(
-        observation_spec,
-        preprocessing_layers=preprocessing_layers,
-        preprocessing_combiner=preprocessing_combiner,
-        fc_layer_params=value_fc_layers,
-        activation_fn=tf.keras.activations.tanh)
+  custom_objects = {"_Stack": _Stack}
+  with tf.keras.utils.custom_object_scope(custom_objects):
+    if use_rnns:
+      actor_net = AttentionActorDistributionRnnNetwork(
+          observation_spec,
+          action_spec,
+          preprocessing_layers=preprocessing_layers,
+          preprocessing_combiner=preprocessing_combiner,
+          input_fc_layer_params=actor_fc_layers,
+          output_fc_layer_params=None,
+          lstm_size=lstm_size)
+      value_net = AttentionValueRnnNetwork(
+          observation_spec,
+          preprocessing_layers=preprocessing_layers,
+          preprocessing_combiner=preprocessing_combiner,
+          input_fc_layer_params=value_fc_layers,
+          output_fc_layer_params=None)
+    else:
+      actor_net = actor_distribution_network.ActorDistributionNetwork(
+          observation_spec,
+          action_spec,
+          preprocessing_layers=preprocessing_layers,
+          preprocessing_combiner=preprocessing_combiner,
+          fc_layer_params=actor_fc_layers,
+          activation_fn=tf.keras.activations.tanh)
+      value_net = value_network.ValueNetwork(
+          observation_spec,
+          preprocessing_layers=preprocessing_layers,
+          preprocessing_combiner=preprocessing_combiner,
+          fc_layer_params=value_fc_layers,
+          activation_fn=tf.keras.activations.tanh)
 
   return actor_net, value_net
 

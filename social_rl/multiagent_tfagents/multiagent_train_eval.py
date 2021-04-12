@@ -55,6 +55,7 @@ from tf_agents.utils import common
 
 # Import needed to trigger env registration, so pylint: disable=unused-import
 from social_rl import gym_multigrid
+from social_rl.multiagent_tfagents import football_gym_env
 from social_rl.multiagent_tfagents import multiagent_gym_suite
 from social_rl.multiagent_tfagents import multiagent_metrics
 from social_rl.multiagent_tfagents import multiagent_ppo
@@ -482,8 +483,13 @@ def main(_):
   inactive_agent_ids = tuple()
   if FLAGS.inactive_agent_ids:
     inactive_agent_ids = [int(fid) for fid in FLAGS.inactive_agent_ids]
+  if 'academy' in FLAGS.env_name:
+    env_load_fn = football_gym_env.load
+  else:
+    env_load_fn = multiagent_gym_suite.load
   train_eval(
       FLAGS.root_dir,
+      env_load_fn=env_load_fn,
       env_name=FLAGS.env_name,
       num_environment_steps=FLAGS.num_environment_steps,
       collect_episodes_per_iteration=FLAGS.collect_episodes_per_iteration,

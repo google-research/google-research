@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import gin
 import tensorflow as tf
 import tensorflow_probability as tfp
 from tf_agents.agents.ppo import ppo_policy
@@ -85,18 +86,39 @@ class AttentionPPOPolicy(ppo_policy.PPOPolicy):
     return policy_step.PolicyStep(distributions, new_policy_state, policy_info)
 
 
+@gin.configurable
 class AttentionMultiagentPPOPolicy(multiagent_ppo_policy.MultiagentPPOPolicy):
   """A modification of MultiagentPPOPolicy that returns attention info."""
 
-  # Building policy out of sub-policies, so pylint:disable=protected-access
+  def __init__(
+      self,
+      *args,
+      use_stacks=False,
+      **kwargs,
+  ):
+    """Creates a centralized controller agent that uses joint attention.
 
+    Args:
+      *args: See superclass.
+      use_stacks: Use ResNet stacks in image encoder (compresses the image).
+      **kwargs: See superclass.
+    """
+    self.use_stacks = use_stacks
+    super(AttentionMultiagentPPOPolicy, self).__init__(*args, **kwargs)
+
+  # Building policy out of sub-policies, so pylint:disable=protected-access
   def _make_info_spec(self, time_step_spec):
     # Make multi-agent info spec
     if self._collect:
       info_spec = []
       for p in self._agent_policies:
         agent_info_spec = p.info_spec
-        image_shape = time_step_spec.observation['image'].shape[1:3]
+        if self.use_stacks:
+          image_shape = [
+              i // 4 for i in time_step_spec.observation['image'].shape[1:3]
+          ]
+        else:
+          image_shape = time_step_spec.observation['image'].shape[1:3]
         state_spec = tensor_spec.BoundedTensorSpec(
             image_shape, dtype=tf.float32, minimum=0, maximum=1)
         agent_info_spec['attention_weights'] = state_spec
@@ -115,8 +137,8 @@ class AttentionMultiagentPPOPolicy(multiagent_ppo_policy.MultiagentPPOPolicy):
       # Fixed agents do not act. Used for debugging
       if self.inactive_agent_ids and agent_id in self.inactive_agent_ids:
         actions[agent_id] = tf.ones_like(time_step.discount, dtype=tf.int64) * 6
-        new_states['actor_network_state'][agent_id] = \
-            policy_states['actor_network_state'][agent_id]
+        new_states['actor_network_state'][agent_id] = policy_states[
+            'actor_network_state'][agent_id]
         continue
 
       agent_time_step = self._get_obs_for_agent(time_step, agent_id)
@@ -125,10 +147,9 @@ class AttentionMultiagentPPOPolicy(multiagent_ppo_policy.MultiagentPPOPolicy):
       agent_policy_state = [
           state[:, agent_id] for state in policy_states['actor_network_state']
       ]
-      actions[agent_id], new_states['actor_network_state'][agent_id], attention_weights[agent_id] = \
-          policy._apply_actor_network(
-              agent_time_step,
-              agent_policy_state, training)
+      actions[agent_id], new_states['actor_network_state'][
+          agent_id], attention_weights[agent_id] = policy._apply_actor_network(
+              agent_time_step, agent_policy_state, training)
     actions = tuple(actions)
     new_states = {
         'actor_network_state': [
