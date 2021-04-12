@@ -46,7 +46,7 @@ def code_to_cubert_sentences(
   Returns:
     A list of sentences.
   """
-  tokens = initial_tokenizer.tokenize(code)[:-1]  # type: List[Text]
+  tokens = initial_tokenizer.tokenize(code)[:-1]  # type: List[Text]  # pytype: disable=annotation-type-mismatch
   logging.vlog(5, 'Code >>>%s<<< is tokenized into >>>%s<<<.', code, tokens)
 
   # This will split the list into sublists of non-NEWLINE tokens (key is
