@@ -14,90 +14,57 @@
 # limitations under the License.
 
 """Utlity functions for multigrid environments."""
-from typing import Tuple
-
-import gym
-import numpy as np
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
-from tf_agents.drivers import tf_driver
-from tf_agents.trajectories import time_step as ts
-from tf_agents.trajectories import trajectory
-from tf_agents.typing import types
+from tf_agents.metrics import py_metrics
+from tf_agents.specs import tensor_spec
+from tf_agents.train import ppo_learner
+from tf_agents.utils import common
+from tf_agents.utils import nest_utils
+
+from social_rl.multiagent_tfagents import multiagent_metrics
 
 
-class LSTMStateWrapper(gym.ObservationWrapper):
-  """Wrapper to add LSTM state to observation dicts."""
+class MultiagentPPOLearner(ppo_learner.PPOLearner):
+  """A modified PPOLearner for multiagent training.
 
-  def __init__(self, env, lstm_size):
-    super(LSTMStateWrapper, self).__init__(env)
-    self.lstm_size = lstm_size
-    observation_space_dict = self.env.observation_space.spaces.copy()
-    multiagent = len(observation_space_dict['image'].shape) == 4
-    if multiagent:
-      n_agents = observation_space_dict['image'].shape[0]
-      self.policy_state_shape = (n_agents,) + self.lstm_size
-    else:
-      self.policy_state_shape = (self.lstm_size)
-    observation_space_dict['policy_state'] = gym.spaces.Tuple(
-        (gym.spaces.Box(
-            low=-np.inf,
-            high=np.inf,
-            shape=self.policy_state_shape,
-            dtype='float32'),
-         gym.spaces.Box(
-             low=-np.inf,
-             high=np.inf,
-             shape=self.policy_state_shape,
-             dtype='float32')))
-    self.observation_space = gym.spaces.Dict(observation_space_dict)
-
-  def observation(self, observation):
-    observation['policy_state'] = (np.zeros(
-        self.policy_state_shape,
-        dtype=np.float32), np.zeros(self.policy_state_shape, dtype=np.float32))
-    return observation
-
-
-class StateTFDriver(tf_driver.TFDriver):
-  """A TFDriver that adds policy state to observations.
-
-  These policy states are used to compute attention weights in the attention
-  architecture.
+  Currently disables normalizer updates, since we don't have normalizers
+  implemented and our policy info is formatted differently.
   """
 
-  def run(
-      self, time_step, policy_state = ()
-  ):
-    """Run policy in environment given initial time_step and policy_state.
+  @common.function(autograph=True)
+  def _update_normalizers(self, iterator):
+    """Update the normalizers and count the total number of frames."""
 
-    Args:
-      time_step: The initial time_step.
-      policy_state: The initial policy_state.
+    reward_spec = tensor_spec.TensorSpec(shape=[None], dtype=tf.float32)
+    def _update(traj):
+      if traj.reward.shape:
 
-    Returns:
-      A tuple (final time_step, final policy_state).
-    """
-    num_steps = tf.constant(0.0)
-    num_episodes = tf.constant(0.0)
+        outer_shape = nest_utils.get_outer_shape(traj.reward, reward_spec)
+        batch_size = outer_shape[0]
+        if len(outer_shape) > 1:
+          batch_size *= outer_shape[1]
+      else:
+        batch_size = 1
+      return batch_size
 
-    while num_steps < self._max_steps and num_episodes < self._max_episodes:
-      action_step = self.policy.action(time_step, policy_state)
-      next_time_step = self.env.step(action_step.action)
-      next_time_step.observation['policy_state'] = (
-          policy_state['actor_network_state'][0],
-          policy_state['actor_network_state'][1])
+    num_frames = 0
+    traj, _ = next(iterator)
+    num_frames += _update(traj)
 
-      traj = trajectory.from_transition(time_step, action_step, next_time_step)
-      for observer in self._transition_observers:
-        observer((time_step, action_step, next_time_step))
-      for observer in self.observers:
-        observer(traj)
+    for _ in tf.range(1, self._num_batches):
+      traj, _ = next(iterator)
+      num_frames += _update(traj)
 
-      num_episodes += tf.math.reduce_sum(
-          tf.cast(traj.is_boundary(), tf.float32))
-      num_steps += tf.math.reduce_sum(tf.cast(~traj.is_boundary(), tf.float32))
+    return num_frames
 
-      time_step = next_time_step
-      policy_state = action_step.state
 
-    return time_step, policy_state
+def collect_metrics(buffer_size, n_agents):
+  """Utility to create metrics often used during data collection."""
+  metrics = [
+      py_metrics.NumberOfEpisodes(),
+      py_metrics.EnvironmentSteps(),
+      multiagent_metrics.AverageReturnPyMetric(n_agents=n_agents,
+                                               buffer_size=buffer_size),
+      py_metrics.AverageEpisodeLengthMetric(buffer_size=buffer_size),
+  ]
+  return metrics

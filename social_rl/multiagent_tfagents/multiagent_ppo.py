@@ -223,6 +223,7 @@ class MultiagentPPO(tf_agent.TFAgent):
           train_step_counter=train_step_counter)
 
     self._global_step = train_step_counter
+    self.update_normalizers_in_train = False
     print('Finished constructing multi-agent PPO')
 
   def get_single_agent_specs(self, time_step_spec, action_spec):

@@ -58,7 +58,9 @@ from social_rl import gym_multigrid
 from social_rl.multiagent_tfagents import multiagent_gym_suite
 from social_rl.multiagent_tfagents import multiagent_metrics
 from social_rl.multiagent_tfagents import multiagent_ppo
+from social_rl.multiagent_tfagents.joint_attention import drivers
 from social_rl.multiagent_tfagents.joint_attention import utils
+
 
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
                     'Root directory for writing logs/summaries/checkpoints.')
@@ -325,7 +327,7 @@ def train_eval(
 
     print('Using TFDriver')
     if use_attention_networks:
-      collect_driver = utils.StateTFDriver(
+      collect_driver = drivers.StateTFDriver(
           tf_env,
           collect_policy,
           observers=[replay_buffer.add_batch] + train_metrics,

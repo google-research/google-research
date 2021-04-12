@@ -57,7 +57,7 @@ class MultiagentGymWrapper(gym_wrapper.GymWrapper):
     single_action_spec = BoundedTensorSpec(
         shape=(), dtype=self._action_spec.dtype, name=self._action_spec.name,
         minimum=self._action_spec.minimum, maximum=self._action_spec.maximum)
-    self._action_spec = [single_action_spec] * n_agents
+    self._action_spec = (single_action_spec,) * n_agents
 
   def reward_spec(self):
     """Defines a vector reward based on the number of agents.

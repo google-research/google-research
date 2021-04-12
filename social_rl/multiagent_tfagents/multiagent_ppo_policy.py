@@ -130,7 +130,7 @@ class MultiagentPPOPolicy(tf_policy.TFPolicy):
   def _make_info_spec(self, time_step_spec):
     # Make multi-agent info spec
     if self._collect:
-      info_spec = [p.info_spec for p in self._agent_policies]
+      info_spec = tuple([p.info_spec for p in self._agent_policies])
     else:
       info_spec = ()
 
@@ -157,6 +157,7 @@ class MultiagentPPOPolicy(tf_policy.TFPolicy):
           policy._apply_actor_network(
               agent_time_step,
               agent_policy_state, training)
+    actions = tuple(actions)
     new_states = {
         'actor_network_state': [
             tf.stack(i, axis=1)
@@ -206,7 +207,7 @@ class MultiagentPPOPolicy(tf_policy.TFPolicy):
     # Prepare policy_info.
     if self._collect:
       policy_info = ppo_utils.get_distribution_params(distributions, False)
-
+      policy_info = list(policy_info)
       # Wrap policy info to be comptabile with new spec
       for a in range(len(policy_info)):
         if not self.inactive_agent_ids or a not in self.inactive_agent_ids:
@@ -217,6 +218,7 @@ class MultiagentPPOPolicy(tf_policy.TFPolicy):
         for a in self.inactive_agent_ids:
           policy_info[a] = {'dist_params': {'logits': tf.zeros_like(
               policy_info[self.learning_agents[0]]['dist_params']['logits'])}}
+      policy_info = tuple(policy_info)
 
       # PolicyStep has actions, state, info
       step_result = policy_step.PolicyStep(distributions, policy_state,

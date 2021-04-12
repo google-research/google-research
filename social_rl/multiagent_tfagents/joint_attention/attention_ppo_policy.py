@@ -101,6 +101,7 @@ class AttentionMultiagentPPOPolicy(multiagent_ppo_policy.MultiagentPPOPolicy):
             image_shape, dtype=tf.float32, minimum=0, maximum=1)
         agent_info_spec['attention_weights'] = state_spec
         info_spec.append(agent_info_spec)
+      info_spec = tuple(info_spec)
     else:
       info_spec = ()
 
@@ -128,6 +129,7 @@ class AttentionMultiagentPPOPolicy(multiagent_ppo_policy.MultiagentPPOPolicy):
           policy._apply_actor_network(
               agent_time_step,
               agent_policy_state, training)
+    actions = tuple(actions)
     new_states = {
         'actor_network_state': [
             tf.stack(i, axis=1)
@@ -159,6 +161,7 @@ class AttentionMultiagentPPOPolicy(multiagent_ppo_policy.MultiagentPPOPolicy):
       )
 
       # Wrap policy info to be comptabile with new spec
+      policy_info = list(policy_info)
       for a in range(len(policy_info)):
         if not self.inactive_agent_ids or a not in self.inactive_agent_ids:
           policy_info[a] = {'dist_params': policy_info[a]}
@@ -174,6 +177,7 @@ class AttentionMultiagentPPOPolicy(multiagent_ppo_policy.MultiagentPPOPolicy):
                                     ['dist_params']['logits'])
               }
           }
+      policy_info = tuple(policy_info)
 
       # PolicyStep has actions, state, info
       step_result = policy_step.PolicyStep(distributions, policy_state,
