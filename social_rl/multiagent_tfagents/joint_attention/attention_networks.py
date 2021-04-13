@@ -27,6 +27,7 @@ from six.moves import zip
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 from tf_agents.keras_layers import dynamic_unroll_layer
 from tf_agents.networks import actor_distribution_network
+from tf_agents.networks import actor_distribution_rnn_network
 from tf_agents.networks import categorical_projection_network
 from tf_agents.networks import encoding_network
 from tf_agents.networks import lstm_encoding_network
@@ -34,6 +35,7 @@ from tf_agents.networks import network
 from tf_agents.networks import normal_projection_network
 from tf_agents.networks import utils
 from tf_agents.networks import value_network
+from tf_agents.networks import value_rnn_network
 from tf_agents.specs import tensor_spec
 from tf_agents.trajectories import time_step
 from tf_agents.utils import nest_utils
@@ -115,8 +117,8 @@ class AttentionCombinerConv(tf.keras.layers.Layer):
                network_state_index_flat,
                image_shape,
                conv_filters=64,
-               n_heads=8,
-               basis_dim=8):
+               n_heads=4,
+               basis_dim=16):
     super(AttentionCombinerConv, self).__init__(trainable=True)
     self.combiner = tf.keras.layers.Concatenate(axis=-1)
     self.image_index_flat = image_index_flat
@@ -188,7 +190,7 @@ def construct_attention_networks(observation_spec,
                                  scalar_fc=5,
                                  scalar_name="direction",
                                  scalar_dim=4,
-                                 use_stacks=False
+                                 use_stacks=False,
                                  ):
   """Creates an actor and critic network designed for use with MultiGrid.
 
@@ -199,7 +201,8 @@ def construct_attention_networks(observation_spec,
   Args:
     observation_spec: A tf-agents observation spec.
     action_spec: A tf-agents action spec.
-    use_rnns: If True, will construct RNN networks.
+    use_rnns: If True, will construct RNN networks. Non-recurrent networks are
+      not supported currently.
     actor_fc_layers: Dimension and number of fully connected layers in actor.
     value_fc_layers: Dimension and number of fully connected layers in critic.
     lstm_size: Number of cells in each LSTM layers.
@@ -216,7 +219,9 @@ def construct_attention_networks(observation_spec,
     A tf-agents ActorDistributionRnnNetwork for the actor, and a ValueRnnNetwork
     for the critic.
   """
-
+  if not use_rnns:
+    raise NotImplementedError(
+        "Non-recurrent attention networks are not suppported.")
   preprocessing_layers = {
       "policy_state":
           tf.keras.layers.Lambda(lambda x: x)
@@ -261,8 +266,98 @@ def construct_attention_networks(observation_spec,
 
   custom_objects = {"_Stack": _Stack}
   with tf.keras.utils.custom_object_scope(custom_objects):
+    actor_net = AttentionActorDistributionRnnNetwork(
+        observation_spec,
+        action_spec,
+        preprocessing_layers=preprocessing_layers,
+        preprocessing_combiner=preprocessing_combiner,
+        input_fc_layer_params=actor_fc_layers,
+        output_fc_layer_params=None,
+        lstm_size=lstm_size)
+    value_net = AttentionValueRnnNetwork(
+        observation_spec,
+        preprocessing_layers=preprocessing_layers,
+        preprocessing_combiner=preprocessing_combiner,
+        input_fc_layer_params=value_fc_layers,
+        output_fc_layer_params=None)
+
+  return actor_net, value_net
+
+
+@gin.configurable
+def construct_multigrid_networks(observation_spec,
+                                 action_spec,
+                                 use_rnns=True,
+                                 actor_fc_layers=(200, 100),
+                                 value_fc_layers=(200, 100),
+                                 lstm_size=(128,),
+                                 conv_filters=8,
+                                 conv_kernel=3,
+                                 scalar_fc=5,
+                                 scalar_name="direction",
+                                 scalar_dim=4,
+                                 use_stacks=False,
+                                 ):
+  """Creates an actor and critic network designed for use with MultiGrid.
+
+  A convolution layer processes the image and a dense layer processes the
+  direction the agent is facing. These are fed into some fully connected layers
+  and an LSTM.
+
+  Args:
+    observation_spec: A tf-agents observation spec.
+    action_spec: A tf-agents action spec.
+    use_rnns: If True, will construct RNN networks.
+    actor_fc_layers: Dimension and number of fully connected layers in actor.
+    value_fc_layers: Dimension and number of fully connected layers in critic.
+    lstm_size: Number of cells in each LSTM layers.
+    conv_filters: Number of convolution filters.
+    conv_kernel: Size of the convolution kernel.
+    scalar_fc: Number of neurons in the fully connected layer processing the
+      scalar input.
+    scalar_name: Name of the scalar input.
+    scalar_dim: Highest possible value for the scalar input. Used to convert to
+      one-hot representation.
+    use_stacks: Use ResNet stacks (compresses the image).
+
+  Returns:
+    A tf-agents ActorDistributionRnnNetwork for the actor, and a ValueRnnNetwork
+    for the critic.
+  """
+
+  preprocessing_layers = {
+      "policy_state":
+          tf.keras.layers.Lambda(lambda x: x)
+  }
+  if use_stacks:
+    preprocessing_layers["image"] = tf.keras.models.Sequential([
+        multigrid_networks.cast_and_scale(),
+        _Stack(conv_filters // 2, 2),
+        _Stack(conv_filters, 2),
+        tf.keras.layers.ReLU(),
+        tf.keras.layers.Flatten()
+    ])
+  else:
+    preprocessing_layers["image"] = tf.keras.models.Sequential([
+        multigrid_networks.cast_and_scale(),
+        tf.keras.layers.Conv2D(conv_filters, conv_kernel, padding="same"),
+        tf.keras.layers.ReLU(),
+        tf.keras.layers.Flatten()
+    ])
+  if scalar_name in observation_spec:
+    preprocessing_layers[scalar_name] = tf.keras.models.Sequential(
+        [multigrid_networks.one_hot_layer(scalar_dim),
+         tf.keras.layers.Dense(scalar_fc)])
+  if "position" in observation_spec:
+    preprocessing_layers["position"] = tf.keras.models.Sequential(
+        [multigrid_networks.cast_and_scale(), tf.keras.layers.Dense(scalar_fc)])
+
+  preprocessing_combiner = tf.keras.layers.Concatenate(axis=-1)
+
+  custom_objects = {"_Stack": _Stack}
+  with tf.keras.utils.custom_object_scope(custom_objects):
     if use_rnns:
-      actor_net = AttentionActorDistributionRnnNetwork(
+      actor_net = actor_distribution_rnn_network.ActorDistributionRnnNetwork(
           observation_spec,
           action_spec,
           preprocessing_layers=preprocessing_layers,
@@ -270,7 +365,7 @@ def construct_attention_networks(observation_spec,
           input_fc_layer_params=actor_fc_layers,
           output_fc_layer_params=None,
           lstm_size=lstm_size)
-      value_net = AttentionValueRnnNetwork(
+      value_net = value_rnn_network.ValueRnnNetwork(
           observation_spec,
           preprocessing_layers=preprocessing_layers,
           preprocessing_combiner=preprocessing_combiner,
