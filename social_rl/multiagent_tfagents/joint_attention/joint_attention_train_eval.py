@@ -54,6 +54,9 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string('attention_bonus_type', 'kld',
                     'Method for computing attention bonuses.')
+flags.DEFINE_float('bonus_ratio', 0.00, 'Final multiplier for bonus rewards.')
+flags.DEFINE_integer('bonus_timescale', int(1e6),
+                     'Attention bonuses scale linearly until this point.')
 
 
 def main(_):
@@ -61,7 +64,10 @@ def main(_):
 
   agent_class = functools.partial(
       attention_ppo_agent.MultiagentAttentionPPO,
-      attention_bonus_type=FLAGS.attention_bonus_type)
+      attention_bonus_type=FLAGS.attention_bonus_type,
+      bonus_ratio=FLAGS.bonus_ratio,
+      bonus_timescale=FLAGS.bonus_timescale
+      )
 
   if 'academy' in FLAGS.env_name:
     env_load_fn = football_gym_env.load
