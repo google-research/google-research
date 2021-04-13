@@ -460,5 +460,11 @@ def base_parser():
       default=1,
       help='Use data in wav format, otherwise use numpy',
   )
+  parser.add_argument(
+      '--quantize',
+      type=int,
+      default=0,
+      help='Apply quantization aware training',
+  )
 
   return parser

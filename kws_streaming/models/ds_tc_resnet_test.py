@@ -25,7 +25,6 @@ from kws_streaming.models import model_params
 from kws_streaming.models import utils
 import kws_streaming.models.ds_tc_resnet as ds_tc_resnet
 from kws_streaming.train import test
-tf1.disable_eager_execution()
 
 
 class DsTcResnetTest(tf.test.TestCase, parameterized.TestCase):
@@ -139,4 +138,5 @@ class DsTcResnetTest(tf.test.TestCase, parameterized.TestCase):
 
 
 if __name__ == '__main__':
+  tf1.disable_eager_execution()
   tf.test.main()

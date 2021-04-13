@@ -81,6 +81,8 @@ class Params(object):
     self.verbosity = logging.INFO
     self.causal_data_frame_padding = 0
     self.wav = 1
+    self.data_stride = 1
+    self.quantize = 0
 
 
 def att_mh_rnn_params():
@@ -164,6 +166,7 @@ def cnn_stride_params():
   params.dropout1 = 0.5
   params.units2 = '4,4'
   params.act2 = "'linear','relu'"
+  params.data_stride = 2
   return params
 
 
@@ -249,6 +252,7 @@ def ds_cnn_params():
   params.cnn2_filters = '4,4'
   params.cnn2_act = "'relu','relu'"
   params.dropout1 = 0.2
+  params.data_stride = 2
   return params
 
 
@@ -296,6 +300,7 @@ def mobilenet_v2_params():
   params.cnn_expansions = '1.5,1.5'
   params.dropout = 0.2
   params.bn_scale = 0
+  params.data_stride = 2
   return params
 
 

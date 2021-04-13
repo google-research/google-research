@@ -27,9 +27,10 @@ from kws_streaming.models import model_flags
 from kws_streaming.models import model_params
 from kws_streaming.models import models as kws_models
 # pylint: disable=g-direct-tensorflow-import
-from tensorflow.python.keras import models
+from tensorflow.python.keras import models as models_utils
 from tensorflow.python.keras.engine import functional
 # pylint: enable=g-direct-tensorflow-import
+from tensorflow_model_optimization.python.core.quantization.keras import quantize
 
 
 def conv2d_bn(x,
@@ -128,8 +129,8 @@ def _clone_model(model, input_tensors):
       newly_created_input_layer = input_tensor._keras_history.layer
       new_input_layers[original_input_layer] = newly_created_input_layer
 
-  model_config, created_layers = models._clone_layers_and_model_config(
-      model, new_input_layers, models._clone_layer)
+  model_config, created_layers = models_utils._clone_layers_and_model_config(
+      model, new_input_layers, models_utils._clone_layer)
   # pylint: enable=protected-access
 
   # Reconstruct model from the config, using the cloned layers.
@@ -306,8 +307,10 @@ def to_streaming_inference(model_non_stream, flags, mode):
       tf.keras.layers.Input(
           shape=input_data_shape, batch_size=1, name='input_audio')
   ]
-  model_inference = convert_to_inference_model(model_non_stream, input_tensors,
-                                               mode)
+  quantize_stream_scope = quantize.quantize_scope()
+  with quantize_stream_scope:
+    model_inference = convert_to_inference_model(model_non_stream,
+                                                 input_tensors, mode)
   return model_inference
 
 
@@ -316,7 +319,10 @@ def model_to_tflite(sess,
                     flags,
                     mode=modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE,
                     save_model_path=None,
-                    optimizations=None):
+                    optimizations=None,
+                    inference_type=tf1.lite.constants.FLOAT,
+                    experimental_new_quantizer=True,
+                    representative_dataset=None):
   """Convert non streaming model to tflite inference model.
 
   In this case inference graph will be stateless.
@@ -331,6 +337,10 @@ def model_to_tflite(sess,
       streaming
     save_model_path: path to save intermediate model summary
     optimizations: list of optimization options
+    inference_type: inference type, can be float or int8
+    experimental_new_quantizer: enable new quantizer
+    representative_dataset: function generating representative data sets
+      for calibation post training quantizer
 
   Returns:
     tflite model
@@ -348,7 +358,10 @@ def model_to_tflite(sess,
   # convert Keras inference model to tflite inference model
   converter = tf1.lite.TFLiteConverter.from_session(
       sess, model_stateless_stream.inputs, model_stateless_stream.outputs)
-  converter.inference_type = tf1.lite.constants.FLOAT
+  converter.inference_type = inference_type
+  converter.experimental_new_quantizer = experimental_new_quantizer
+  if representative_dataset is not None:
+    converter.representative_dataset = representative_dataset
 
   # this will enable audio_spectrogram and mfcc in TFLite
   converter.target_spec.supported_ops = [
@@ -435,8 +448,11 @@ def get_model_with_default_params(model_name, mode=None):
         "Expected 'model_name' to be one of "
         f"{model_params.HOTWORD_MODEL_PARAMS.keys} but got '{model_name}'.")
   params = model_params.HOTWORD_MODEL_PARAMS[model_name]
+  data_stride = params.data_stride
   params = model_flags.update_flags(params)
+  params.data_stride = data_stride
   model = kws_models.MODELS[params.model_name](params)
+  model.summary()
   if mode is not None:
     model = to_streaming_inference(model, flags=params, mode=mode)
   return model
