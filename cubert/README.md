@@ -104,7 +104,7 @@ We are releasing a Java pre-training corpus and pre-trained model. This model wa
 ## Introduction
 
 This is a repository for code, models and data accompanying the ICML 2020 paper
-[Learning and Evaluating Contextual Embedding of Source Code](https://proceedings.icml.cc/static/paper_files/icml/2020/5401-Paper.pdf). In addition to the Python artifacts described in the paper, we are also
+[Learning and Evaluating Contextual Embedding of Source Code](http://proceedings.mlr.press/v119/kanade20a.html). In addition to the Python artifacts described in the paper, we are also
 releasing the pre-training corpus and CuBERT models for other languages.
 
 If you use the code, models or data released through this repository, please
