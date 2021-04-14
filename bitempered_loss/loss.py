@@ -19,7 +19,7 @@ Source: https://bit.ly/3jSol8T
 """
 
 import functools
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 
 def for_loop(num_iters, body, initial_args):
@@ -48,7 +48,7 @@ def log_t(u, t):
     return (u**(1.0 - t) - 1.0) / (1.0 - t)
 
   return tf.cond(
-      tf.equal(t, 1.0), lambda: tf.log(u),
+      tf.equal(t, 1.0), lambda: tf.math.log(u),
       functools.partial(_internal_log_t, u, t))
 
 
@@ -59,7 +59,7 @@ def exp_t(u, t):
     return tf.nn.relu(1.0 + (1.0 - t) * u)**(1.0 / (1.0 - t))
 
   return tf.cond(
-      tf.equal(t, 1.0), lambda: tf.exp(u),
+      tf.equal(t, 1.0), lambda: tf.math.exp(u),
       functools.partial(_internal_exp_t, u, t))
 
 
@@ -73,13 +73,13 @@ def compute_normalization_fixed_point(activations, t, num_iters=5):
   Return: A tensor of same rank as activation with the last dimension being 1.
   """
 
-  mu = tf.reduce_max(activations, -1, keep_dims=True)
+  mu = tf.reduce_max(activations, -1, True)
   normalized_activations_step_0 = activations - mu
   shape_normalized_activations = tf.shape(normalized_activations_step_0)
 
   def iter_body(i, normalized_activations):
     logt_partition = tf.reduce_sum(
-        exp_t(normalized_activations, t), -1, keep_dims=True)
+        exp_t(normalized_activations, t), -1, True)
     normalized_activations_t = tf.reshape(
         normalized_activations_step_0 * tf.pow(logt_partition, 1.0 - t),
         shape_normalized_activations)
@@ -88,7 +88,7 @@ def compute_normalization_fixed_point(activations, t, num_iters=5):
   _, normalized_activations_t = for_loop(num_iters, iter_body,
                                          [0, normalized_activations_step_0])
   logt_partition = tf.reduce_sum(
-      exp_t(normalized_activations_t, t), -1, keep_dims=True)
+      exp_t(normalized_activations_t, t), -1, True)
   return -log_t(1.0 / logt_partition, t) + mu
 
 
@@ -101,7 +101,7 @@ def compute_normalization_binary_search(activations, t, num_iters=10):
     num_iters: Number of iterations to run the method.
   Return: A tensor of same rank as activation with the last dimension being 1.
   """
-  mu = tf.reduce_max(activations, -1, keep_dims=True)
+  mu = tf.reduce_max(activations, -1, True)
   normalized_activations = activations - mu
   shape_activations = tf.shape(activations)
   effective_dim = tf.cast(
@@ -109,7 +109,7 @@ def compute_normalization_binary_search(activations, t, num_iters=10):
           tf.cast(
               tf.greater(normalized_activations, -1.0 / (1.0 - t)), tf.int32),
           -1,
-          keep_dims=True), tf.float32)
+          True), tf.float32)
   shape_partition = tf.concat([shape_activations[:-1], [1]], 0)
   lower = tf.zeros(shape_partition)
   upper = -log_t(1.0 / effective_dim, t) * tf.ones(shape_partition)
@@ -117,7 +117,7 @@ def compute_normalization_binary_search(activations, t, num_iters=10):
   def iter_body(i, lower, upper):
     logt_partition = (upper + lower)/2.0
     sum_probs = tf.reduce_sum(exp_t(
-        normalized_activations - logt_partition, t), -1, keep_dims=True)
+        normalized_activations - logt_partition, t), -1, True)
     update = tf.cast(tf.less(sum_probs, 1.0), tf.float32)
     lower = tf.reshape(lower * update + (1.0 - update) * logt_partition,
                        shape_partition)
@@ -160,13 +160,13 @@ def _internal_bi_tempered_logistic_loss(activations, labels, t1, t2):
     A loss tensor for robust loss.
   """
   if t2 == 1.0:
-    normalization_constants = tf.log(
-        tf.reduce_sum(tf.exp(activations), -1, keep_dims=True))
+    normalization_constants = tf.math.log(
+        tf.reduce_sum(tf.math.exp(activations), -1, True))
     if t1 == 1.0:
       return normalization_constants + tf.reduce_sum(
-          tf.multiply(labels, tf.log(labels + 1e-10) - activations), -1)
+          tf.multiply(labels, tf.math.log(labels + 1e-10) - activations), -1)
     else:
-      shifted_activations = tf.exp(activations - normalization_constants)
+      shifted_activations = tf.math.exp(activations - normalization_constants)
       one_minus_t1 = (1.0 - t1)
       one_minus_t2 = 1.0
   else:
@@ -180,9 +180,9 @@ def _internal_bi_tempered_logistic_loss(activations, labels, t1, t2):
   if t1 == 1.0:
     return tf.reduce_sum(
         tf.multiply(
-            tf.log(labels + 1e-10) -
-            tf.log(tf.pow(shifted_activations, 1.0 / one_minus_t2)), labels),
-        -1)
+            tf.math.log(labels + 1e-10) -
+            tf.math.log(tf.pow(shifted_activations, 1.0 / one_minus_t2)),
+            labels), -1)
   else:
     beta = 1.0 + one_minus_t1
     logt_probs = (tf.pow(shifted_activations, one_minus_t1 / one_minus_t2) -
@@ -212,8 +212,8 @@ def tempered_sigmoid(activations, t, num_iters=5):
   normalization_constants = tf.cond(
       # pylint: disable=g-long-lambda
       tf.equal(t, 1.0),
-      lambda: tf.log(
-          tf.reduce_sum(tf.exp(internal_activations), -1, keep_dims=True)),
+      lambda: tf.math.log(
+          tf.reduce_sum(tf.math.exp(internal_activations), -1, True)),
       functools.partial(compute_normalization, internal_activations, t,
                         num_iters))
   internal_probabilities = exp_t(internal_activations - normalization_constants,
@@ -236,7 +236,7 @@ def tempered_softmax(activations, t, num_iters=5):
   t = tf.convert_to_tensor(t)
   normalization_constants = tf.cond(
       tf.equal(t, 1.0),
-      lambda: tf.log(tf.reduce_sum(tf.exp(activations), -1, keep_dims=True)),
+      lambda: tf.math.log(tf.reduce_sum(tf.math.exp(activations), -1, True)),
       functools.partial(compute_normalization, activations, t, num_iters))
   return exp_t(activations - normalization_constants, t)
 
@@ -334,27 +334,25 @@ def bi_tempered_logistic_loss(activations,
           delta_probs_times_forget_factor = tf.multiply(delta_probs,
                                                         forget_factor)
           delta_forget_sum = tf.reduce_sum(
-              delta_probs_times_forget_factor, -1, keep_dims=True)
+              delta_probs_times_forget_factor, -1, True)
           escorts = tf.pow(probabilities, t2)
-          escorts = escorts / tf.reduce_sum(escorts, -1, keep_dims=True)
+          escorts = escorts / tf.reduce_sum(escorts, -1, True)
           derivative = delta_probs_times_forget_factor - tf.multiply(
               escorts, delta_forget_sum)
           return tf.multiply(d_loss, derivative)
 
         return loss_values, grad
 
-    loss_values = tf.cond(tf.logical_and(tf.equal(t1, 1.0), tf.equal(t2, 1.0)),
-                          functools.partial(
-                              tf.nn.softmax_cross_entropy_with_logits,
-                              labels=labels,
-                              logits=activations),
-                          functools.partial(
-                              _custom_gradient_bi_tempered_logistic_loss,
-                              activations))
-    reduce_sum_last = lambda x: tf.reduce_sum(x, -1)
-    loss_values = tf.cond(tf.logical_and(tf.equal(t1, 1.0), tf.equal(t2, 1.0)),
-                          functools.partial(tf.identity, loss_values),
-                          functools.partial(reduce_sum_last, loss_values))
+    def reduced_loss(activations):
+      return tf.reduce_sum(
+          _custom_gradient_bi_tempered_logistic_loss(activations), -1)
+
+    loss_values = tf.cond(
+        tf.math.logical_and(tf.equal(t1, 1.0), tf.equal(t2, 1.0)),
+        functools.partial(
+            tf.nn.softmax_cross_entropy_with_logits,
+            labels=labels,
+            logits=activations), functools.partial(reduced_loss, activations))
     return loss_values
 
 
@@ -409,9 +407,9 @@ def sparse_bi_tempered_logistic_loss(activations, labels, t1, t2, num_iters=5):
           delta_probs_times_forget_factor = tf.multiply(delta_probs,
                                                         forget_factor)
           delta_forget_sum = tf.reduce_sum(
-              delta_probs_times_forget_factor, -1, keep_dims=True)
+              delta_probs_times_forget_factor, -1, True)
           escorts = tf.pow(probabilities, t2)
-          escorts = escorts / tf.reduce_sum(escorts, -1, keep_dims=True)
+          escorts = escorts / tf.reduce_sum(escorts, -1, True)
           derivative = delta_probs_times_forget_factor - tf.multiply(
               escorts, delta_forget_sum)
           return tf.multiply(d_loss, derivative)
@@ -419,7 +417,7 @@ def sparse_bi_tempered_logistic_loss(activations, labels, t1, t2, num_iters=5):
         return loss_values, grad
 
     loss_values = tf.cond(
-        tf.logical_and(tf.equal(t1, 1.0), tf.equal(t2, 1.0)),
+        tf.math.logical_and(tf.equal(t1, 1.0), tf.equal(t2, 1.0)),
         functools.partial(tf.nn.sparse_softmax_cross_entropy_with_logits,
                           labels=labels, logits=activations),
         functools.partial(_custom_gradient_sparse_bi_tempered_logistic_loss,
