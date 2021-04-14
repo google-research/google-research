@@ -52,8 +52,9 @@ class TasksTest(parameterized.TestCase):
   @parameterized.parameters(((name,) for name in _TASKS))
   def test_task(self, name):
     task = TaskRegistry.get(name)
-    logging.info("task=%s", name)
-    ds = task.get_dataset(_SEQUENCE_LENGTH, "train")
+    split = "train" if "train" in task.splits else "validation"
+    logging.info("task=%s, split=%s", name, split)
+    ds = task.get_dataset(_SEQUENCE_LENGTH, split)
     for d in ds:
       logging.info(d)
       break
