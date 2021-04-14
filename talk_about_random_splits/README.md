@@ -4,6 +4,12 @@ This is the supplementary source code for the paper:
 [We Need to Talk About Random Splits](https://arxiv.org/abs/2005.00636).
 
 
+## How to Run our Code
+
+Our binaries contain example calls in their docstring. For all parameters a
+script supports, please refer to the documentation in the code. Alternatively or
+to see a full list of supported parameters you can run any binary with `--help`.
+
 ## How to Cite
 
 ```bibtex

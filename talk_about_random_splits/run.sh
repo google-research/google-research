@@ -18,3 +18,6 @@ set -x
 
 virtualenv -p python3 .
 source ./bin/activate
+
+# Most scripts contain an example call in their docstring, which shows how it's
+# called.
