@@ -19,34 +19,19 @@ SimulateSbm, SimulateFeatures, and SimulateEdgeFeatures are top-level library
 functions used by GenerateStochasticBlockModel in simulations.py. You can call
 these separately to generate various parts of an SBM with features.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 import enum
 import math
 import random
-import typing
+from typing import Dict, Sequence, List, Tuple
 
-from dataclasses import dataclass
+import dataclasses
+from graph_tool.src import graph_tool
 from graph_tool import generation
-from graph_tool import Graph
-from graph_tool import stats
 import numpy as np
 
-# Types
-Any = typing.Any
-Dict = typing.Dict
-Enum = enum.Enum
-List = typing.List
-Set = typing.Set
-Text = typing.Text
-Tuple = typing.Tuple
 
-
-class MatchType(Enum):
+class MatchType(enum.Enum):
   """Indicates type of feature/graph membership matching to do.
 
     RANDOM: feature memberships are generated randomly.
@@ -62,7 +47,7 @@ class MatchType(Enum):
   GROUPED = 3
 
 
-@dataclass
+@dataclasses.dataclass
 class StochasticBlockModel:
   """Stores data for stochastic block model graphs with features.
 
@@ -74,11 +59,11 @@ class StochasticBlockModel:
     edge_features: map from edge tuple to numpy array. Only stores undirected
       edges, i.e. (0, 1) will be in the map, but (1, 0) will not be.
   """
-  graph: Graph = None
-  graph_memberships: List[int] = None
-  node_features: np.ndarray = None
-  feature_memberships: List[int] = None
-  edge_features: Dict[Tuple[int, int], np.ndarray] = None
+  graph: graph_tool.Graph = Ellipsis
+  graph_memberships: np.ndarray = Ellipsis
+  node_features: np.ndarray = Ellipsis
+  feature_memberships: np.ndarray = Ellipsis
+  edge_features: Dict[Tuple[int, int], np.ndarray] = Ellipsis
 
 
 def _GetNestingMap(large_k, small_k):
@@ -117,7 +102,7 @@ def _GetNestingMap(large_k, small_k):
 
 
 def _GenerateFeatureMemberships(
-    graph_memberships = None,
+    graph_memberships,
     num_groups = None,
     match_type = MatchType.RANDOM):
   """Generates a feature membership assignment.
@@ -168,8 +153,7 @@ def _GenerateFeatureMemberships(
           [i == graph_cluster_id for i in graph_memberships])
       sub_memberships = _GenerateNodeMemberships(num_graph_cluster_nodes,
                                                  feature_pi)
-      sub_memberships = [
-          sorted_feature_cluster_ids[i] for i in sub_memberships]
+      sub_memberships = [sorted_feature_cluster_ids[i] for i in sub_memberships]
       memberships.extend(sub_memberships)
   else:  # MatchType.RANDOM
     memberships = random.choices(range(num_groups), k=len(graph_memberships))
@@ -211,10 +195,10 @@ def _ComputeCommunitySizes(num_vertices, pi):
       group sizes as balanced as possible (i.e. increasing smallest groups by
       1 or decreasing largest groups by 1 if needed).
   """
-  community_sizes = [int(x) for x in np.array(pi) * num_vertices]
-  if np.sum(community_sizes) != num_vertices:
+  community_sizes = [int(x * num_vertices) for x in pi]
+  if sum(community_sizes) != num_vertices:
     size_order = np.argsort(community_sizes)
-    delta = np.sum(community_sizes) - num_vertices
+    delta = sum(community_sizes) - num_vertices
     adjustment = np.sign(delta)
     if adjustment == 1:
       size_order = np.flip(size_order)
@@ -223,7 +207,8 @@ def _ComputeCommunitySizes(num_vertices, pi):
   return community_sizes
 
 
-def _GenerateNodeMemberships(num_vertices, pi):
+def _GenerateNodeMemberships(num_vertices,
+                             pi):
   """Gets node memberships for sbm.
 
   Args:
@@ -258,7 +243,7 @@ def SimulateSbm(sbm_data,
     sbm_data: StochasticBlockModel dataclass to store result data.
     num_vertices: (int) number of nodes in the graph.
     num_edges: (int) expected number of edges in the graph.
-    pi: interable of non-zero community size proportions. Must sum to 1.0.
+    pi: iterable of non-zero community size proportions. Must sum to 1.0.
     prop_mat: square, symmetric matrix of community edge count rates.
     out_degs: Out-degree propensity for each node. If not provided, a constant
       value will be used. Note that the values will be normalized inside each
@@ -274,8 +259,8 @@ def SimulateSbm(sbm_data,
                                            prop_mat)
   sbm_data.graph = generation.generate_sbm(sbm_data.graph_memberships,
                                            edge_counts, out_degs)
-  stats.remove_self_loops(sbm_data.graph)
-  stats.remove_parallel_edges(sbm_data.graph)
+  graph_tool.stats.remove_self_loops(sbm_data.graph)
+  graph_tool.stats.remove_parallel_edges(sbm_data.graph)
   sbm_data.graph.reindex_edges()
 
 
@@ -325,8 +310,8 @@ def SimulateFeatures(sbm_data,
     centers.append(center)
   features = []
   for cluster_index in sbm_data.feature_memberships:
-    feature = np.random.multivariate_normal(centers[cluster_index],
-                                            cluster_cov, 1)[0]
+    feature = np.random.multivariate_normal(centers[cluster_index], cluster_cov,
+                                            1)[0]
     features.append(feature)
   sbm_data.node_features = np.array(features)
 
@@ -351,9 +336,8 @@ def SimulateEdgeFeatures(sbm_data,
   Args:
     sbm_data: StochasticBlockModel dataclass to store result data.
     feature_dim: (int) dimension of the multivariate normal.
-    center_distance: (float) per-dimension distance between the intra-class
-      and inter-class means. Increasing this makes the edge feature signal
-      stronger.
+    center_distance: (float) per-dimension distance between the intra-class and
+      inter-class means. Increasing this makes the edge feature signal stronger.
     cluster_variance: (float) variance of clusters around their centers.
 
   Raises:

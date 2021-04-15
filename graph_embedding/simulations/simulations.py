@@ -48,7 +48,7 @@ def GenerateStochasticBlockModelWithFeatures(
     prop_mat,
     out_degs = None,
     feature_center_distance = 0.0,
-    feature_dim = 0.0,
+    feature_dim = 0,
     num_feature_groups = 1,
     feature_group_match_type = MatchType.RANDOM,
     feature_cluster_variance = 1.0,
