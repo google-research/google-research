@@ -362,7 +362,7 @@ def matrix_inverse_pth_root(mat_g,
   mat_g_size = mat_g.shape[0]
   alpha = jnp.asarray(-1.0 / p, _INVERSE_PTH_ROOT_DATA_TYPE)
   identity = jnp.eye(mat_g_size, dtype=_INVERSE_PTH_ROOT_DATA_TYPE)
-  _, max_ev, _ = power_iter(mat_g, mat_g.shape[0], 100)
+  _, max_ev, _ = power_iter(mat_g)
   ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, 1e-16)
 
   def _unrolled_mat_pow_1(mat_m):
@@ -430,7 +430,6 @@ def matrix_inverse_pth_root(mat_g,
     error = 0
   else:
     damped_mat_g = mat_g + ridge_epsilon * identity
-
     z = (1 + p) / (2 * jnp.linalg.norm(damped_mat_g))
     new_mat_m_0 = damped_mat_g * z
     new_error = jnp.max(jnp.abs(new_mat_m_0 - identity))
