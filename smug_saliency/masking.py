@@ -28,8 +28,8 @@ import math
 import time
 
 import numpy as np
-from saliency import integrated_gradients
-from saliency import xrai
+from saliency.tf1 import integrated_gradients
+from saliency.tf1 import xrai
 import scipy.ndimage as scipy_ndimage
 import tensorflow.compat.v1 as tf
 import z3
