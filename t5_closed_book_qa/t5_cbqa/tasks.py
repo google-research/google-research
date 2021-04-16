@@ -31,6 +31,12 @@ TaskRegistry = t5.data.TaskRegistry
 TfdsTask = t5.data.TfdsTask
 
 DEFAULT_SPM_PATH = "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"  # GCS
+NQ_TRAIN_SPLIT_START = 7830
+NQ_TRAIN_SPLIT_END = 79168
+NQO_TRAIN_SPLIT_END = 79168
+WQ_TRAIN_SPLIT_END = 3417
+TQA_TRAIN_SPLIT_END = 78785
+
 
 
 # ========================== Natural Questions =================================
@@ -51,8 +57,8 @@ TaskRegistry.add(
     TfdsTask,
     tfds_name="natural_questions:0.0.2",
     splits={
-        "train": "train[7830:79168]",
-        "validation": "train[:7830]",
+        "train": f"train[{NQ_TRAIN_SPLIT_START}:{NQ_TRAIN_SPLIT_END}]",
+        "validation": f"train[:{NQ_TRAIN_SPLIT_START}]",
         "test": "validation"
     },
     text_preprocessor=preprocessors.natural_questions_nocontext,
@@ -86,8 +92,10 @@ TaskRegistry.add(
     TfdsTask,
     tfds_name="natural_questions_open:1.0.0",
     splits={
-        "train": "train[:79168]",  # ~90%, matches numbers used by ORQA
-        "validation": "train[79168:]",   # ~10%, matches numbers used by ORQA
+        # ~90%, matches numbers used by ORQA
+        "train": f"train[:{NQO_TRAIN_SPLIT_END}]",
+        # ~10%, matches numbers used by ORQA
+        "validation": f"train[{NQO_TRAIN_SPLIT_END}:]",
         "test": "validation"
     },
     text_preprocessor=preprocessors.natural_questions_open,
@@ -100,12 +108,13 @@ TaskRegistry.add(
     TfdsTask,
     tfds_name="natural_questions_open:1.0.0",
     splits={
-        "train": "train[79168:]",
-        "validation": "train[:79168]",
+        "train": f"train[:{NQO_TRAIN_SPLIT_END}]",
+        "validation": f"train[{NQO_TRAIN_SPLIT_END}:]",
         "test": "validation"
     },
     text_preprocessor=[
-        preprocessors.natural_questions_open, preprocessors.sample_answer],
+        preprocessors.natural_questions_open, preprocessors.sample_answer
+    ],
     supports_caching=False,  # Ensures we are sampling different answers.
     postprocess_fn=t5_postprocessors.qa,
     metric_fns=[t5_metrics.squad])
@@ -127,8 +136,10 @@ TaskRegistry.add(
     TfdsTask,
     tfds_name="web_questions:1.0.0",
     splits={
-        "train": "train[:3417]",  # ~90%, matches numbers used by ORQA
-        "validation": "train[3417:]",  # ~10%, matches numbers used by ORQA
+        # ~90%, matches numbers used by ORQA
+        "train": f"train[:{WQ_TRAIN_SPLIT_END}]",
+        # ~10%, matches numbers used by ORQA
+        "validation": f"train[{WQ_TRAIN_SPLIT_END}:]",
         "test": "test"
     },
     text_preprocessor=[preprocessors.web_questions_open],
@@ -157,8 +168,10 @@ TaskRegistry.add(
     TfdsTask,
     tfds_name="trivia_qa/unfiltered.nocontext:1.1.0",
     splits={
-        "train": "train[:78785]",  # ~90%, matches numbers used by ORQA
-        "validation": "train[78785:]",  # ~10%, matches numbers used by ORQA
+        # ~90%, matches numbers used by ORQA
+        "train": f"train[:{TQA_TRAIN_SPLIT_END}]",
+        # ~10%, matches numbers used by ORQA
+        "validation": f"train[{TQA_TRAIN_SPLIT_END}:]",
         "test": "validation"
     },
     text_preprocessor=preprocessors.trivia_qa_open,
@@ -223,4 +236,3 @@ TaskRegistry.add(
         key_map={"inputs": None, "targets": "text"}),
     token_preprocessor=t5_preprocessors.span_corruption,
     metric_fns=[])
-
