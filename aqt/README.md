@@ -1,7 +1,10 @@
 # Accurate Quantized Training
 
-This directory contains libraries we have written for running and analyzing
-neural network quantization experiments.
+This directory contains libraries for running and analyzing
+neural network quantization experiments in JAX and flax.
+
+Contributors: Shivani Agrawal, Lisa Wang, Jonathan Malmaud, Lukasz Lew,
+Pouya Dormiani, Phoenix Meadowlark, Oleg Rybakov.
 
 ## Installation
 ```
@@ -17,6 +20,11 @@ pip install --user --upgrade pip
 # Install the requirements from `requirements.txt`
 pip install --user -r aqt/requirements.txt
 ```
+
+## AQT Quantization Library
+
+`Jax` and `Flax` quantization libraries provides `what you serve is what you train`
+quantization for convolution and matmul. See [this README.md](./jax/README.md).
 
 ## Reporting Tool
 
