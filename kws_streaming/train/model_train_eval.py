@@ -184,7 +184,7 @@ def main(_):
 
   name2opt = {
       '': None,
-      'quantize_opt_for_size_': [tf.lite.Optimize.OPTIMIZE_FOR_SIZE],
+      'quantize_opt_for_size_': [tf.lite.Optimize.DEFAULT],
   }
 
   for opt_name, optimizations in name2opt.items():
