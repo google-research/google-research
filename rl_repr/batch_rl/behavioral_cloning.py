@@ -83,7 +83,11 @@ class BehavioralCloning(object):
     states, actions, rewards, _, _ = next(dataset_iter)
 
     trainable_variables = self.policy.trainable_variables
+    if self.embed_model and self.finetune:
+      trainable_variables += self.embed_model.trainable_variables
     with tf.GradientTape(watch_accessed_variables=False) as tape:
+      tape.watch(trainable_variables)
+
       if self.embed_model:
         states = self.embed_model(
             states, actions, rewards, stop_gradient=(not self.finetune))
@@ -91,9 +95,7 @@ class BehavioralCloning(object):
                    'ctx_length') and self.embed_model.ctx_length:
           assert (len(actions.shape) == 3)
           actions = actions[:, self.embed_model.ctx_length - 1, :]
-        trainable_variables += self.embed_model.trainable_variables
 
-      tape.watch(trainable_variables)
       data_log_probs = self.policy.log_probs(states, actions)
       _, log_probs = self.policy(states, sample=True, with_log_probs=True)
       alpha = tf.math.exp(self.log_alpha)
