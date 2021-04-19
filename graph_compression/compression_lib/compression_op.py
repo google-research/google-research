@@ -1201,7 +1201,6 @@ class InputOutputCompressionOp(CompressionOp):
       matmul_op: a TensorFlow node that performs matmul of left_operand with the
       compressed a_matrix_tfvar.
     """
-    s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
     if self._spec.compress_input:
       # block the left operand into blocks of size input_block_size.
       blocked_left_operand = tf.reshape(
@@ -1212,9 +1211,8 @@ class InputOutputCompressionOp(CompressionOp):
               [self._spec.input_block_size]
           ], axis=0))
       # project blocked_left_operand down using b.
-      projected_blocked_left_operand = tf.einsum(
-          '{0}y,yz->{0}z'.format(s[:left_operand.shape.rank]),
-          blocked_left_operand, self.b_matrix_tfvar)
+      projected_blocked_left_operand = tf.matmul(blocked_left_operand,
+                                                 self.b_matrix_tfvar)
       # flatten the block dimension in projected_blocked_left_operand.
       compressed_left_operand = tf.reshape(
           projected_blocked_left_operand,
@@ -1230,9 +1228,8 @@ class InputOutputCompressionOp(CompressionOp):
       compressed_left_operand = left_operand
 
     # multiply compressed_left_operand with c.
-    intermediate_result = tf.einsum(
-        '{0}y,yz->{0}z'.format(s[:compressed_left_operand.shape.rank - 1]),
-        compressed_left_operand, self.c_matrix_tfvar)
+    intermediate_result = tf.matmul(compressed_left_operand,
+                                    self.c_matrix_tfvar)
 
     if self._spec.compress_output:
       # block intermediate_result
@@ -1245,8 +1242,7 @@ class InputOutputCompressionOp(CompressionOp):
               [block_size]
           ], axis=0))
       # project blocked_intermediate_result up using d.
-      projected_blocked_intermediate_result = tf.einsum(
-          '{0}y,yz->{0}z'.format(s[:intermediate_result.shape.rank]),
+      projected_blocked_intermediate_result = tf.matmul(
           blocked_intermediate_result, self.d_matrix_tfvar)
       # flatten block dimension in projected_blocked_intermediate_result.
       compressed_result = tf.reshape(
@@ -1277,10 +1273,6 @@ class InputOutputCompressionOp(CompressionOp):
       A TensorFlow node that has compressed version of
       tf.matmul(concat, theta.wm).
     """
-    # concat rank of 2 is enforced in the babelfish library where this function
-    # will be called from.
-    concat_rank = 2
-    s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
     if self._spec.compress_input:
       # block concat into blocks of size input_block_size.
       blocked_concat = tf.reshape(
@@ -1292,9 +1284,7 @@ class InputOutputCompressionOp(CompressionOp):
           ],
                     axis=0))
       # project blocked_left_operand down using b.
-      projected_blocked_concat = tf.einsum(
-          '{0}y,yz->{0}z'.format(s[:concat_rank]), blocked_concat,
-          theta.b_matrix_tfvar)
+      projected_blocked_concat = tf.matmul(blocked_concat, theta.b_matrix_tfvar)
       # flatten the block dimension in projected_blocked_concat.
       compressed_concat = tf.reshape(
           projected_blocked_concat,
@@ -1306,9 +1296,7 @@ class InputOutputCompressionOp(CompressionOp):
       compressed_concat = concat
 
     # multiply compressed concat with c.
-    intermediate_result = tf.einsum(
-        '{0}y,yz->{0}z'.format(s[:concat_rank - 1]),
-        compressed_concat, theta.c_matrix_tfvar)
+    intermediate_result = tf.matmul(compressed_concat, theta.c_matrix_tfvar)
 
     if self._spec.compress_output:
       # block intermediate_result into blocks
@@ -1321,9 +1309,8 @@ class InputOutputCompressionOp(CompressionOp):
           ],
                     axis=0))
       # project blocked_intermediate_result up using d.
-      projected_intermediate_result = tf.einsum(
-          '{0}y,yz->{0}z'.format(s[:concat_rank]), blocked_intermediate_result,
-          theta.d_matrix_tfvar)
+      projected_intermediate_result = tf.matmul(blocked_intermediate_result,
+                                                theta.d_matrix_tfvar)
       # flatten the block dimension
       compressed_result = tf.reshape(
           projected_intermediate_result,
@@ -1370,9 +1357,7 @@ class InputOutputCompressionOp(CompressionOp):
           self._spec.input_block_size
       ])
       # project blocked_inputs down using b.
-      projected_blocked_inputs = tf.einsum(
-          'abc,cd->abd', blocked_inputs,
-          self.b_matrix_tfvar)
+      projected_blocked_inputs = tf.matmul(blocked_inputs, self.b_matrix_tfvar)
       # flatten the block dimension in projected_blocked_inputs.
       compressed_inputs = tf.reshape(
           projected_blocked_inputs,
@@ -1390,9 +1375,8 @@ class InputOutputCompressionOp(CompressionOp):
           intermediate_result,
           [tf.shape(intermediate_result)[0], -1, block_size])
       # project blocked_intermediate_result up using d.
-      projected_intermediate_result = tf.einsum(
-          'abc,cd->abd', blocked_intermediate_result,
-          self.d_matrix_tfvar)
+      projected_intermediate_result = tf.matmul(blocked_intermediate_result,
+                                                self.d_matrix_tfvar)
       # flatten the block dimension
       compressed_result = tf.reshape(
           projected_intermediate_result,
@@ -1419,7 +1403,6 @@ class InputOutputCompressionOp(CompressionOp):
       tf.matmul(inputs, wm).
     """
     theta = layerobj.theta
-    s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
     if self._spec.compress_input:
       # block inputs into blocks of size input_block_size.
       blocked_inputs = tf.reshape(
@@ -1431,9 +1414,7 @@ class InputOutputCompressionOp(CompressionOp):
           ],
                     axis=0))
       # project blocked_inputs down using b.
-      projected_blocked_inputs = tf.einsum(
-          '{0}y,yz->{0}z'.format(s[:inputs.shape.rank]), blocked_inputs,
-          theta.b_matrix_tfvar)
+      projected_blocked_inputs = tf.matmul(blocked_inputs, theta.b_matrix_tfvar)
       # flatten the block dimension in projected_blocked_concat.
       compressed_inputs = tf.reshape(
           projected_blocked_inputs,
@@ -1445,9 +1426,7 @@ class InputOutputCompressionOp(CompressionOp):
       compressed_inputs = inputs
 
     # multiply compressed inputs with c.
-    intermediate_result = tf.einsum(
-        '{0}y,yz->{0}z'.format(s[:inputs.shape.rank - 1]),
-        compressed_inputs, theta.c_matrix_tfvar)
+    intermediate_result = tf.matmul(compressed_inputs, theta.c_matrix_tfvar)
 
     if self._spec.compress_output:
       # block intermediate_result into blocks
@@ -1460,9 +1439,8 @@ class InputOutputCompressionOp(CompressionOp):
           ],
                     axis=0))
       # project blocked_intermediate_result up using d.
-      projected_intermediate_result = tf.einsum(
-          '{0}y,yz->{0}z'.format(s[:inputs.shape.rank]),
-          blocked_intermediate_result, theta.d_matrix_tfvar)
+      projected_intermediate_result = tf.matmul(blocked_intermediate_result,
+                                                theta.d_matrix_tfvar)
       # flatten the block dimension
       compressed_result = tf.reshape(
           projected_intermediate_result,
@@ -1702,19 +1680,15 @@ class BlockCompressionOp(CompressionOp):
       matmul_op: a TensorFlow node that performs matmul of left_operand with the
       compressed a_matrix_tfvar.
     """
-    s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
     if self._spec.block_method == 'mask':
-      return tf.einsum('{0}y,yz->{0}z'.format(s[:left_operand.shape.rank - 1]),
-                       left_operand,
+      return tf.matmul(left_operand,
                        tf.multiply(self.c_matrix_tfvar, self.c_mask_tfvar))
     elif self._spec.block_method == 'loop':
       num_blocks = self._spec.block_compression_factor
       input_splitted = tf.split(left_operand, num_blocks, axis=-1)
       output_splitted = []
       for i, input_i in enumerate(input_splitted):
-        output_splitted.append(
-            tf.einsum('{0}y,yz->{0}z'.format(s[:input_i.shape.rank - 1]),
-                      input_i, self.c_matrix_tfvar[i, :, :]))
+        output_splitted.append(tf.matmul(input_i, self.c_matrix_tfvar[i, :, :]))
       return tf.concat(output_splitted, axis=-1)
 
   def get_mix_operator(self, theta, concat):
@@ -1731,12 +1705,8 @@ class BlockCompressionOp(CompressionOp):
       A TensorFlow node that has compressed version of
       tf.matmul(concat, theta.wm).
     """
-    # concat rank of 2 is enforced in the babelfish library where this function
-    # will be called from.
-    concat_rank = 2
-    s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
     if self._spec.block_method == 'mask':
-      return tf.einsum('{0}y,yz->{0}z'.format(s[:concat_rank - 1]), concat,
+      return tf.matmul(concat,
                        tf.multiply(theta.c_matrix_tfvar, theta.c_mask_tfvar))
     elif self._spec.block_method == 'loop':
       num_blocks = self._spec.block_compression_factor
@@ -1800,19 +1770,15 @@ class BlockCompressionOp(CompressionOp):
       tf.matmul(inputs, wm).
     """
     theta = layerobj.theta
-    s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
     if self._spec.block_method == 'mask':
-      return tf.einsum(
-          '{0}y,yz->{0}z'.format(s[:inputs.shape.rank - 1]),
-          inputs, tf.multiply(theta.c_matrix_tfvar, theta.c_mask_tfvar))
+      return tf.matmul(inputs,
+                       tf.multiply(theta.c_matrix_tfvar, theta.c_mask_tfvar))
     elif self._spec.block_method == 'loop':
       num_blocks = self._spec.block_compression_factor
       input_splitted = tf.split(inputs, num_blocks, axis=-1)
       output_splitted = []
       for i, input_i in enumerate(input_splitted):
-        output_splitted.append(
-            tf.einsum('{0}y,yz->{0}z'.format(s[:input_i.shape.rank - 1]),
-                      input_i, self.c_matrix_tfvar[i, :, :]))
+        output_splitted.append(tf.matmul(input_i, self.c_matrix_tfvar[i, :, :]))
       return tf.concat(output_splitted, axis=-1)
 
 

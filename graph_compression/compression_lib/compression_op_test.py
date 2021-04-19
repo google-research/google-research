@@ -317,8 +317,8 @@ class InputOutputCompressionOpTest(tf.test.TestCase):
         _ = apply_comp.apply_compression(
             a_matrix, scope="compressor")
         # input is 1x12 vector
-        left_operand_init = np.array(
-            [1., 2., 3., 4., 1., 2., 3., 4., 1., 2., 3., 4.])
+        left_operand_init = np.expand_dims(
+            np.array([1., 2., 3., 4., 1., 2., 3., 4., 1., 2., 3., 4.]), axis=0)
         left_operand = tf.compat.v1.get_variable(
             "left_operand",
             initializer=left_operand_init.astype(np.float32),
@@ -332,7 +332,7 @@ class InputOutputCompressionOpTest(tf.test.TestCase):
         self.assertSequenceEqual(list(c.d_matrix_tfvar.eval().shape), [2, 4])
 
         # check that we get the expected output shape
-        self.assertSequenceEqual(list(compressed_matmul.eval().shape), [8,])
+        self.assertSequenceEqual(list(compressed_matmul.eval().shape), [1, 8])
 
 
 class BlockCompressionOpTest(tf.test.TestCase):
@@ -374,8 +374,8 @@ class BlockCompressionOpTest(tf.test.TestCase):
         _ = apply_comp.apply_compression(
             a_matrix, scope="compressor")
         # input is 1x12 vector
-        left_operand_init = np.array(
-            [1., 2., 3., 4., 1., 2., 3., 4., 1., 2., 3., 4.])
+        left_operand_init = np.expand_dims(
+            np.array([1., 2., 3., 4., 1., 2., 3., 4., 1., 2., 3., 4.]), axis=0)
         left_operand = tf.compat.v1.get_variable(
             "left_operand",
             initializer=left_operand_init.astype(np.float32),
@@ -389,7 +389,7 @@ class BlockCompressionOpTest(tf.test.TestCase):
         # check we get the correct number of nonzero entries in the mask
         self.assertEqual(np.count_nonzero(c.c_mask_tfvar.eval()), 48)
         # check that we get the expected output shape
-        self.assertSequenceEqual(list(compressed_matmul.eval().shape), [8,])
+        self.assertSequenceEqual(list(compressed_matmul.eval().shape), [1, 8])
 
 
 class CompressionLayersTest(tf.test.TestCase):
