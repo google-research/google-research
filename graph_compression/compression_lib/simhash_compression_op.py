@@ -337,12 +337,17 @@ class SimhashApplyCompression(compression_op.ApplyCompression):
         global_step=global_step)
     self._compression_op_spec_orig = copy.deepcopy(self._compression_op_spec)
 
-  def apply_compression(self, a_matrix_tfvar, scope='default_scope'):
+  def apply_compression(self,
+                        a_matrix_tfvar,
+                        scope='default_scope',
+                        spec=None):
     """Applies matrix compression OP on a_matrix_tfvar as specified in spec.
 
     Args:
       a_matrix_tfvar: TF variable representing a tensor variable in a model.
       scope: TF scope used for creating new TF variables.
+      spec: spec to be used for the compression op. this is optional.
+            if not provided, self._compression_op_spec is used.
 
     Returns:
       A TF node that represents the compressed version of a_matrix_tfvar.
@@ -350,16 +355,17 @@ class SimhashApplyCompression(compression_op.ApplyCompression):
     logging.info('New and old begin_compression_step are: %s, %s',
                  self._compression_op_spec.begin_compression_step,
                  self._compression_op_spec_orig.begin_compression_step)
+    compression_op_spec = spec if spec else self._compression_op_spec
 
-    if self._compression_op_spec.compression_option == 4:
+    if compression_op_spec.compression_option == 4:
       c = KMeansCompressionOp(
-          spec=self._compression_op_spec, global_step=self._global_step)
-    elif self._compression_op_spec.compression_option == 8:
+          spec=compression_op_spec, global_step=self._global_step)
+    elif compression_op_spec.compression_option == 8:
       c = KMeansPruningCompressionOp(
           spec=self._compression_op_spec, global_step=self._global_step)
     else:
       c = SimhashCompressionOp(
-          spec=self._compression_op_spec, global_step=self._global_step)
+          spec=compression_op_spec, global_step=self._global_step)
 
     self._compression_ops.append(c)
     [a_matrix_compressed, a_matrix_update_op] = c.get_apply_compression_op(
