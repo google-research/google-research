@@ -54,6 +54,13 @@ python -m dual_pixels.eval.script --test_dir=test --prediction_dir=model_predict
 ```
 This has been tested with Python 3.
 
+## Continuous-valued Depth Maps
+
+The depth maps used in the paper and shared above are computed using plane sweep algorithm with 256 planes. Hence, the resulting depth maps are quantized to 256 levels. We also share continuous-valued depth maps corresponding to the [train](https://storage.googleapis.com/iccv2019-data/train_continuous_depth.tgz) and [test](https://storage.googleapis.com/iccv2019-data/test_continuous_depth.tgz) datasets. They use the same depth sampling as described in the [README](https://storage.googleapis.com/iccv2019-data/README.pdf) but are stored as floating point EXR images in the range \[0, 1\]. These depth maps are computed by the algorithm described in [Taniai et. al., Continuous 3D Label Stereo Matching using
+Local Expansion Moves](https://taniai.space/projects/stereo/) where the matching cost is computed using VGG features as described in [Guo et. al., The Relightables:
+Volumetric Performance Capture of Humans with Realistic Relighting](https://augmentedperception.github.io/therelightables/).
+
+
 ## Android App to Capture Dual-pixel Data
 
 The app has been tested on the Google Pixel 3, Pixel 3 XL, Pixel 4 and Pixel 4 XL.
