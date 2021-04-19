@@ -1480,7 +1480,7 @@ def main(_):
       f.write(float_model)
 
     if FLAGS.use_post_quantization:
-      converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_LATENCY]
+      converter.optimizations = [tf.lite.Optimize.DEFAULT]
       converter.experimental_new_quantizer = True
       if FLAGS.activation_quantization:
         train_examples = read_squad_examples(
