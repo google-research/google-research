@@ -30,9 +30,15 @@ This should complete quickly without any errors.
 
 
 #### 3. Downloading CIFAR-10/100 long-tail datasets
-Download the CIFAR-10/100 long-tail datasets using the provided links and put
-the `.tfrecord` files in the `logit_adjustment/data/` directory. These datasets
-were created with the EXP-100 profile as detailed in the paper.
+Download the CIFAR-10/100 long-tail datasets using the links provided below and
+put the `.tfrecord` files in the `logit_adjustment/data/` directory. The train
+datasets were created with the EXP-100 profile as detailed in the paper, the
+test datasets are the same as the standard CIFAR-10/100 test datasets.
+
+Links: [cifar10-lt_train.tfrecord](http://storage.googleapis.com/gresearch/logit_adjustment/cifar10-lt_train.tfrecord),
+[cifar10_test.tfrecord](http://storage.googleapis.com/gresearch/logit_adjustment/cifar10_test.tfrecord),
+[cifar100-lt_train.tfrecord](http://storage.googleapis.com/gresearch/logit_adjustment/cifar100-lt_train.tfrecord),
+[cifar100_test.tfrecord](http://storage.googleapis.com/gresearch/logit_adjustment/cifar100_test.tfrecord).
 
 
 #### 4. Running the code on CIFAR-10/100 long-tail datasets
