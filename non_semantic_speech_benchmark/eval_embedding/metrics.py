@@ -20,10 +20,11 @@
 2) D-Prime.
 3) AUC.
 4) Balanced accuracy.
+5) F1 score.
 """
 
 import math
-from typing import Any, Iterable, Tuple, Optional
+from typing import Any, Iterable, Tuple, Optional, Text
 
 import numpy as np
 import scipy.stats
@@ -87,9 +88,10 @@ def calculate_det_curve(labels,
 
 def calculate_auc(labels,
                   predictions,
-                  sample_weight = None):
+                  sample_weight = None,
+                  multi_class = None):
   return skmetrics.roc_auc_score(
-      labels, predictions, sample_weight=sample_weight)
+      labels, predictions, sample_weight=sample_weight, multi_class=multi_class)
 
 
 def dprime_from_auc(auc):
@@ -114,3 +116,9 @@ def dprime_from_auc(auc):
 def balanced_accuracy(labels,
                       predictions):
   return skmetrics.balanced_accuracy_score(y_true=labels, y_pred=predictions)
+
+
+def f1_score(labels,
+             predictions):
+  return skmetrics.f1_score(y_true=labels, y_pred=predictions,
+                            average='weighted')
