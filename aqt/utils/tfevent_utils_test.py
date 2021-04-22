@@ -25,7 +25,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import numpy as onp
 
-from aqt import tfevent_utils
+from aqt.utils import tfevent_utils
 
 
 class TfEventUtilsTest(parameterized.TestCase):

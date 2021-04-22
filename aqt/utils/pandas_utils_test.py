@@ -20,7 +20,7 @@ from absl.testing import parameterized
 
 import pandas as pd
 
-from aqt import pandas_utils
+from aqt.utils import pandas_utils
 
 
 class PandasUtilsTest(parameterized.TestCase):

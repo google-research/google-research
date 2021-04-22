@@ -20,8 +20,8 @@ from absl.testing import parameterized
 import jax.numpy as jnp
 import numpy as np
 
-from aqt import summary_utils
 from aqt.jax.stats import Stats
+from aqt.utils import summary_utils
 
 
 class SummaryUtilsTest(parameterized.TestCase):

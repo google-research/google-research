@@ -28,7 +28,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import dataclasses
 import numpy as onp
 
-from aqt import tfevent_utils
+from aqt.utils import tfevent_utils
 
 
 EventSeries = tfevent_utils.EventSeries

@@ -20,8 +20,8 @@ import dataclasses
 import pandas as pd
 import tree
 
-from aqt import pandas_utils
-from aqt import report_utils
+from aqt.utils import pandas_utils
+from aqt.utils import report_utils
 
 
 

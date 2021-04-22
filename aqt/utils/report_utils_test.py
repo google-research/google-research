@@ -17,7 +17,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 import numpy as onp
-from aqt import report_utils
+from aqt.utils import report_utils
 
 EventSeries = report_utils.EventSeries
 

@@ -20,8 +20,8 @@ from absl.testing import parameterized
 
 import pandas as pd
 
-from aqt import analysis_utils
-from aqt import report_utils
+from aqt.utils import analysis_utils
+from aqt.utils import report_utils
 
 
 class AnalysisUtilsTest(parameterized.TestCase):
