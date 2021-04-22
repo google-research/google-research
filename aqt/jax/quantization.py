@@ -29,7 +29,7 @@ import jax
 from jax import lax
 import jax.numpy as jnp
 
-from aqt import fp_cast
+from aqt.jax import fp_cast
 from aqt.jax import get_bounds
 from aqt.jax import primitives
 from aqt.jax import shape_utils

@@ -21,7 +21,7 @@ import jax
 from jax.config import config
 import jax.numpy as jnp
 import numpy as onp
-from aqt import fp_cast
+from aqt.jax import fp_cast
 
 
 config.update('jax_numpy_rank_promotion', 'raise')
