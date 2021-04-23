@@ -80,7 +80,7 @@ def get_keras_model(bottleneck_dimension,
   if avg_pool:
     model_out.shape.assert_is_compatible_with([None, None])
   else:
-    model_out.shape.assert_is_compatible_with([None, 3, 2, None])
+    model_out.shape.assert_is_compatible_with([None, 1, 1, None])
   if bottleneck_dimension:
     if compressor is not None:
       bottleneck = CompressedDense(
