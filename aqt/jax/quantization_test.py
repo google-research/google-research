@@ -566,17 +566,22 @@ class AQTTest(parameterized.TestCase):
         f'and {distribution} distribution.')
 
   @parameterized.parameters(
-      dict(act_distribution='symmetric', prefer_int8_to_int32_dot=True),
-      dict(act_distribution='positive', prefer_int8_to_int32_dot=True),
-      dict(act_distribution='symmetric', prefer_int8_to_int32_dot=False))
+      dict(act_distribution='symmetric', prefer_int8_to_int32_dot=True, prec=4),
+      dict(act_distribution='symmetric', prefer_int8_to_int32_dot=True, prec=8),
+      dict(act_distribution='positive', prefer_int8_to_int32_dot=True, prec=4),
+      dict(act_distribution='positive', prefer_int8_to_int32_dot=True, prec=8),
+      dict(
+          act_distribution='symmetric', prefer_int8_to_int32_dot=False, prec=4))
   @mock.patch.object(jax.lax, 'dot_general')
-  def test_lax_dot_has_integer_inputs_in_quantized_dot(
-      self, mock_dot_general, act_distribution, prefer_int8_to_int32_dot):
-    weight_params = QuantOps.WeightParams(prec=4, axis=(0,))
+  def test_lax_dot_has_integer_inputs_in_quantized_dot(self, mock_dot_general,
+                                                       act_distribution,
+                                                       prefer_int8_to_int32_dot,
+                                                       prec):
+    weight_params = QuantOps.WeightParams(prec=prec, axis=(0,))
     act_params = QuantOps.ActHParams(
         input_distribution=act_distribution,
         bounds=jnp.array([[3.0, 1.5]]),
-        prec=4)
+        prec=prec)
     act = self.lhs
     if act_distribution == 'positive':
       act = jnp.abs(act)
@@ -599,10 +604,11 @@ class AQTTest(parameterized.TestCase):
           prefer_int8_to_int32_dot=prefer_int8_to_int32_dot)
     act_inputs, weight_inputs = mock_dot_general.call_args[0]
     self.assert_is_integer_in_range(
-        act_inputs, prec=4, distribution=act_distribution)
+        act_inputs, prec=prec, distribution=act_distribution)
     self.assert_is_integer_in_range(
-        weight_inputs, prec=4, distribution='symmetric')
-    if prefer_int8_to_int32_dot:
+        weight_inputs, prec=prec, distribution='symmetric')
+    if prefer_int8_to_int32_dot and not (act_distribution == 'positive' and
+                                         prec == 8):
       expected_input_dtype = jnp.int8
     else:
       expected_input_dtype = jnp.float32

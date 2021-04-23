@@ -743,21 +743,32 @@ def quantized_dot(*,
       weight_scale = jnp.array(1.0, dtype=SCALE_DTYPE)
 
     # Use metadata context to annotate op metadata with quantization info
-    lhs_prec = None if act_hparams is None else act_hparams.prec
-    rhs_prec = None if weight_params is None else weight_params.prec
+    act_prec = None if act_hparams is None else act_hparams.prec
+    act_has_symm_distribution = act_hparams is not None and (
+        act_hparams.input_distribution
+        == QuantOps.ActHParams.InputDistribution.symmetric)
+    weight_prec = None if weight_params is None else weight_params.prec
 
     # To decide whether to use an integer-domain dot operation, we first check
     # if the static quantization parameters are compatible with it by seeing if
     # they request that both inputs be quantized 8bits or less. Then check if
     # the dynamic parameters are compatible with it. ie, in a training run with
     # quantization enabled, are we past the activation start step yet.
-    if lhs_prec is None or rhs_prec is None or lhs_prec > 8 or rhs_prec > 8:
-      use_int8_to_int32_dot = False
-    else:
-      # is_act_quantized might be an instance of a Jax tracer instead of a
-      # Python boolean since it is generally computed from a dynamic input to a
-      # JITted Jax function. Thus we use '&' instead of 'and'.
-      use_int8_to_int32_dot = prefer_int8_to_int32_dot & is_weight_quantized & is_act_quantized
+
+    # We also do not use int8_to_int32_dot if activation has positive
+    # distribution and prec=8, since we would not be able to fit uint8 range in
+    # int8.
+    # TODO(shivaniagrawal): A proper solution for this would be to have mixed
+    # dot(uint8, int8) -> int32 in XLA.
+    weight_fits_in_int8 = is_weight_quantized and (weight_prec is not None and
+                                                   weight_prec <= 8)
+    # is_act_quantized might be an instance of a Jax tracer instead of a
+    # Python boolean since it is generally computed from a dynamic input to a
+    # JITted Jax function. Thus we use '&' instead of 'and'.
+    act_prec_fits_int8 = act_prec is not None and (
+        (act_prec == 8 and act_has_symm_distribution) or (act_prec < 8))
+    act_fits_in_int8 = is_act_quantized & act_prec_fits_int8
+    use_int8_to_int32_dot = prefer_int8_to_int32_dot & weight_fits_in_int8 & act_fits_in_int8
 
     metadata_context = contextlib.suppress()
     with metadata_context:
