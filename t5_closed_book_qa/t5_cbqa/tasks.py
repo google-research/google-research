@@ -21,14 +21,13 @@ from . import metrics
 from . import postprocessors
 from . import preprocessors
 
-import t5.data
+import seqio
 from t5.data import postprocessors as t5_postprocessors
 from t5.data import preprocessors as t5_preprocessors
 from t5.evaluation import metrics as t5_metrics
 
-MixtureRegistry = t5.data.MixtureRegistry
-TaskRegistry = t5.data.TaskRegistry
-TfdsTask = t5.data.TfdsTask
+MixtureRegistry = seqio.MixtureRegistry
+TaskRegistry = seqio.TaskRegistry
 
 DEFAULT_SPM_PATH = "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"  # GCS
 NQ_TRAIN_SPLIT_START = 7830
@@ -37,6 +36,17 @@ NQO_TRAIN_SPLIT_END = 79168
 WQ_TRAIN_SPLIT_END = 3417
 TQA_TRAIN_SPLIT_END = 78785
 
+
+DEFAULT_OUTPUT_FEATURES = {
+    "inputs":
+        seqio.Feature(
+            vocabulary=seqio.SentencePieceVocabulary(DEFAULT_SPM_PATH),
+            add_eos=True),
+    "targets":
+        seqio.Feature(
+            vocabulary=seqio.SentencePieceVocabulary(DEFAULT_SPM_PATH),
+            add_eos=True)
+}
 
 
 # ========================== Natural Questions =================================
@@ -54,14 +64,20 @@ TQA_TRAIN_SPLIT_END = 78785
 # This task uses a portion of the train set for validation.
 TaskRegistry.add(
     "natural_questions_nocontext",
-    TfdsTask,
-    tfds_name="natural_questions:0.0.2",
-    splits={
-        "train": f"train[{NQ_TRAIN_SPLIT_START}:{NQ_TRAIN_SPLIT_END}]",
-        "validation": f"train[:{NQ_TRAIN_SPLIT_START}]",
-        "test": "validation"
-    },
-    text_preprocessor=preprocessors.natural_questions_nocontext,
+    source=seqio.TfdsDataSource(
+        tfds_name="natural_questions:0.0.2",
+        splits={
+            "train": f"train[{NQ_TRAIN_SPLIT_START}:{NQ_TRAIN_SPLIT_END}]",
+            "validation": f"train[:{NQ_TRAIN_SPLIT_START}]",
+            "test": "validation"
+        }),
+    preprocessors=[
+        preprocessors.natural_questions_nocontext,
+        seqio.preprocessors.tokenize,
+        seqio.CacheDatasetPlaceholder(),
+        seqio.preprocessors.append_eos_after_trim,
+    ],
+    output_features=DEFAULT_OUTPUT_FEATURES,
     postprocess_fn=postprocessors.natural_questions,
     metric_fns=[
         functools.partial(
@@ -73,9 +89,14 @@ TaskRegistry.add(
 # (which is the test set in the open domain setting).
 TaskRegistry.add(
     "natural_questions_nocontext_test",
-    TfdsTask,
-    tfds_name="natural_questions:0.0.2",
-    text_preprocessor=preprocessors.natural_questions_nocontext,
+    source=seqio.TfdsDataSource(tfds_name="natural_questions:0.0.2"),
+    preprocessors=[
+        preprocessors.natural_questions_nocontext,
+        seqio.preprocessors.tokenize,
+        seqio.CacheDatasetPlaceholder(),
+        seqio.preprocessors.append_eos_after_trim,
+    ],
+    output_features=DEFAULT_OUTPUT_FEATURES,
     postprocess_fn=postprocessors.natural_questions,
     metric_fns=[metrics.natural_questions])
 
@@ -89,42 +110,57 @@ TaskRegistry.add(
 # This task uses a portion of the train split for validation.
 TaskRegistry.add(
     "natural_questions_open",
-    TfdsTask,
-    tfds_name="natural_questions_open:1.0.0",
-    splits={
-        # ~90%, matches numbers used by ORQA
-        "train": f"train[:{NQO_TRAIN_SPLIT_END}]",
-        # ~10%, matches numbers used by ORQA
-        "validation": f"train[{NQO_TRAIN_SPLIT_END}:]",
-        "test": "validation"
-    },
-    text_preprocessor=preprocessors.natural_questions_open,
+    source=seqio.TfdsDataSource(
+        tfds_name="natural_questions_open:1.0.0",
+        splits={
+            # ~90%, matches numbers used by ORQA
+            "train": f"train[:{NQO_TRAIN_SPLIT_END}]",
+            # ~10%, matches numbers used by ORQA
+            "validation": f"train[{NQO_TRAIN_SPLIT_END}:]",
+            "test": "validation"
+        }),
+    preprocessors=[
+        preprocessors.natural_questions_open,
+        seqio.preprocessors.tokenize,
+        seqio.CacheDatasetPlaceholder(),
+        seqio.preprocessors.append_eos_after_trim,
+    ],
+    output_features=DEFAULT_OUTPUT_FEATURES,
     postprocess_fn=t5_postprocessors.qa,
     metric_fns=[t5_metrics.squad])
 # This is a slight variant of the previous task that selects a random answer
 # when multiple are provided instead of using the first.
 TaskRegistry.add(
     "natural_questions_open_randanswer",
-    TfdsTask,
-    tfds_name="natural_questions_open:1.0.0",
-    splits={
-        "train": f"train[:{NQO_TRAIN_SPLIT_END}]",
-        "validation": f"train[{NQO_TRAIN_SPLIT_END}:]",
-        "test": "validation"
-    },
-    text_preprocessor=[
-        preprocessors.natural_questions_open, preprocessors.sample_answer
+    source=seqio.TfdsDataSource(
+        tfds_name="natural_questions_open:1.0.0",
+        splits={
+            "train": f"train[:{NQO_TRAIN_SPLIT_END}]",
+            "validation": f"train[{NQO_TRAIN_SPLIT_END}:]",
+            "test": "validation"
+        }),
+    preprocessors=[
+        preprocessors.natural_questions_open,
+        preprocessors.sample_answer,
+        seqio.preprocessors.tokenize,
+        # Do not cache - ensures we are sampling different answers.
+        seqio.preprocessors.append_eos_after_trim,
     ],
-    supports_caching=False,  # Ensures we are sampling different answers.
+    output_features=DEFAULT_OUTPUT_FEATURES,
     postprocess_fn=t5_postprocessors.qa,
     metric_fns=[t5_metrics.squad])
 # This task uses full train split and reports metrics on the NQ validation split
 # (which is the test set in the open domain setting).
 TaskRegistry.add(
     "natural_questions_open_test",
-    TfdsTask,
-    tfds_name="natural_questions_open:1.0.0",
-    text_preprocessor=preprocessors.natural_questions_open,
+    source=seqio.TfdsDataSource(tfds_name="natural_questions_open:1.0.0"),
+    preprocessors=[
+        preprocessors.natural_questions_open,
+        seqio.preprocessors.tokenize,
+        seqio.CacheDatasetPlaceholder(),
+        seqio.preprocessors.append_eos_after_trim,
+    ],
+    output_features=DEFAULT_OUTPUT_FEATURES,
     postprocess_fn=t5_postprocessors.qa,
     metric_fns=[t5_metrics.squad])
 
@@ -133,16 +169,22 @@ TaskRegistry.add(
 # This task uses 10% of the train split for validation.
 TaskRegistry.add(
     "web_questions_open",
-    TfdsTask,
-    tfds_name="web_questions:1.0.0",
-    splits={
-        # ~90%, matches numbers used by ORQA
-        "train": f"train[:{WQ_TRAIN_SPLIT_END}]",
-        # ~10%, matches numbers used by ORQA
-        "validation": f"train[{WQ_TRAIN_SPLIT_END}:]",
-        "test": "test"
-    },
-    text_preprocessor=[preprocessors.web_questions_open],
+    source=seqio.TfdsDataSource(
+        tfds_name="web_questions:1.0.0",
+        splits={
+            # ~90%, matches numbers used by ORQA
+            "train": f"train[:{WQ_TRAIN_SPLIT_END}]",
+            # ~10%, matches numbers used by ORQA
+            "validation": f"train[{WQ_TRAIN_SPLIT_END}:]",
+            "test": "test"
+        }),
+    preprocessors=[
+        preprocessors.web_questions_open,
+        seqio.preprocessors.tokenize,
+        seqio.CacheDatasetPlaceholder(),
+        seqio.preprocessors.append_eos_after_trim,
+    ],
+    output_features=DEFAULT_OUTPUT_FEATURES,
     postprocess_fn=t5_postprocessors.qa,
     metric_fns=[t5_metrics.squad],
 )
@@ -150,13 +192,19 @@ TaskRegistry.add(
 # This tasks trains on the full train split.
 TaskRegistry.add(
     "web_questions_open_test",
-    TfdsTask,
-    tfds_name="web_questions:1.0.0",
-    splits={
-        "train": "train",
-        "validation": "test",
-    },
-    text_preprocessor=[preprocessors.web_questions_open],
+    source=seqio.TfdsDataSource(
+        tfds_name="web_questions:1.0.0",
+        splits={
+            "train": "train",
+            "validation": "test",
+        }),
+    preprocessors=[
+        preprocessors.web_questions_open,
+        seqio.preprocessors.tokenize,
+        seqio.CacheDatasetPlaceholder(),
+        seqio.preprocessors.append_eos_after_trim,
+    ],
+    output_features=DEFAULT_OUTPUT_FEATURES,
     postprocess_fn=t5_postprocessors.qa,
     metric_fns=[t5_metrics.squad],
 )
@@ -165,29 +213,41 @@ TaskRegistry.add(
 
 TaskRegistry.add(
     "trivia_qa_open",
-    TfdsTask,
-    tfds_name="trivia_qa/unfiltered.nocontext:1.1.0",
-    splits={
-        # ~90%, matches numbers used by ORQA
-        "train": f"train[:{TQA_TRAIN_SPLIT_END}]",
-        # ~10%, matches numbers used by ORQA
-        "validation": f"train[{TQA_TRAIN_SPLIT_END}:]",
-        "test": "validation"
-    },
-    text_preprocessor=preprocessors.trivia_qa_open,
+    source=seqio.TfdsDataSource(
+        tfds_name="trivia_qa/unfiltered.nocontext:1.1.0",
+        splits={
+            # ~90%, matches numbers used by ORQA
+            "train": f"train[:{TQA_TRAIN_SPLIT_END}]",
+            # ~10%, matches numbers used by ORQA
+            "validation": f"train[{TQA_TRAIN_SPLIT_END}:]",
+            "test": "validation"
+        }),
+    preprocessors=[
+        preprocessors.trivia_qa_open,
+        seqio.preprocessors.tokenize,
+        seqio.CacheDatasetPlaceholder(),
+        seqio.preprocessors.append_eos_after_trim,
+    ],
+    output_features=DEFAULT_OUTPUT_FEATURES,
     postprocess_fn=t5_postprocessors.qa,
     metric_fns=[t5_metrics.trivia_qa])
 
 # This tasks trains on combined train and validation splits.
 TaskRegistry.add(
     "trivia_qa_open_test",
-    TfdsTask,
-    tfds_name="trivia_qa/unfiltered.nocontext:1.1.0",
-    text_preprocessor=preprocessors.trivia_qa_open,
-    splits={
-        "train": "train+validation",
-        "test": "test"
-    },
+    source=seqio.TfdsDataSource(
+        tfds_name="trivia_qa/unfiltered.nocontext:1.1.0",
+        splits={
+            "train": "train+validation",
+            "test": "test"
+        }),
+    preprocessors=[
+        preprocessors.trivia_qa_open,
+        seqio.preprocessors.tokenize,
+        seqio.CacheDatasetPlaceholder(),
+        seqio.preprocessors.append_eos_after_trim,
+    ],
+    output_features=DEFAULT_OUTPUT_FEATURES,
     postprocess_fn=t5_postprocessors.qa,
     metric_fns=[t5_metrics.trivia_qa])
 
@@ -203,7 +263,7 @@ MixtureRegistry.add(
         "natural_questions_open",
         "web_questions_open"
     ],
-    default_rate=t5.data.rate_num_examples
+    default_rate=seqio.mixing_rate_num_examples
 )
 
 # This mixture is to be used at test time. Training happens on the combined
@@ -215,24 +275,38 @@ MixtureRegistry.add(
         "natural_questions_open_test",
         "web_questions_open_test"
     ],
-    default_rate=t5.data.rate_num_examples
+    default_rate=seqio.mixing_rate_num_examples
 )
 
 # ========================= Salient Span Masking ===============================
 
 TaskRegistry.add(
     "salient_span_masked_wikipedia",
-    TfdsTask,
-    tfds_name="salient_span_wikipedia/sentences:1.0.0",
-    text_preprocessor=preprocessors.mask_salient_spans,
+    source=seqio.TfdsDataSource(
+        tfds_name="salient_span_wikipedia/sentences:1.0.0"),
+    preprocessors=[
+        preprocessors.mask_salient_spans,
+        seqio.preprocessors.tokenize,
+        seqio.CacheDatasetPlaceholder(),
+        seqio.preprocessors.append_eos_after_trim,
+    ],
+    output_features=DEFAULT_OUTPUT_FEATURES,
     metric_fns=[])
 
 TaskRegistry.add(
     "span_corrupted_wikipedia",
-    TfdsTask,
-    tfds_name="salient_span_wikipedia/sentences:1.0.0",
-    text_preprocessor=functools.partial(
-        t5_preprocessors.rekey,
-        key_map={"inputs": None, "targets": "text"}),
-    token_preprocessor=t5_preprocessors.span_corruption,
+    source=seqio.TfdsDataSource(
+        tfds_name="salient_span_wikipedia/sentences:1.0.0"),
+    preprocessors=[
+        functools.partial(
+            t5_preprocessors.rekey, key_map={
+                "inputs": None,
+                "targets": "text"
+            }),
+        seqio.preprocessors.tokenize,
+        seqio.CacheDatasetPlaceholder(),
+        t5_preprocessors.span_corruption,
+        seqio.preprocessors.append_eos_after_trim,
+    ],
+    output_features=DEFAULT_OUTPUT_FEATURES,
     metric_fns=[])
