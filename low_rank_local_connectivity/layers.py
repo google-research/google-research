@@ -29,7 +29,6 @@ from __future__ import print_function
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-from tensorflow.python.keras.engine.input_spec import InputSpec
 from tensorflow.python.keras.utils import conv_utils
 from tensorflow.python.keras.utils import tf_utils
 
@@ -543,9 +542,11 @@ class LowRankLocallyConnected2D(tf.keras.layers.LocallyConnected2D):
     self.bias = tf.math.add(self.bias_spatial, self.bias_channels, name='bias')
 
     if self.data_format == 'channels_last':
-      self.input_spec = InputSpec(ndim=4, axes={-1: input_filter})
+      self.input_spec = tf.keras.layers.InputSpec(
+          ndim=4, axes={-1: input_filter})
     else:
-      self.input_spec = InputSpec(ndim=4, axes={1: input_filter})
+      self.input_spec = tf.keras.layers.InputSpec(
+          ndim=4, axes={1: input_filter})
 
     self.built = True
 
