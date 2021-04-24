@@ -103,9 +103,6 @@ class _ShampooHyperParams:
   # How often to compute statistics.
   statistics_compute_steps: int
 
-  # Whether to even try preconditioning large layers.
-  no_preconditioning_for_layers_with_dim_gt: int
-
   # Block size for large layers (if > 0).
   block_size: int
 
@@ -464,7 +461,6 @@ class Shampoo(OptimizerDef):
                start_preconditioning_step=1,
                preconditioning_compute_steps=1,
                statistics_compute_steps=1,
-               no_preconditioning_for_layers_with_dim_gt=8192,
                block_size=128,
                best_effort_shape_interpretation=True,
                graft_type=LayerwiseGrafting.SGD,
@@ -491,8 +487,6 @@ class Shampoo(OptimizerDef):
         Performance tuning params for controlling memory and compute
         requirements. Ideally set both params to 1.
       statistics_compute_steps: How often to compute statistics.
-      no_preconditioning_for_layers_with_dim_gt: Run diagonal method for if any
-        of the dim is larger than this value.
       block_size: Block size for large layers (if > 0). Preconditioning compute
         operation is cubic in the dimension of the tensor. Block size allows us
         to chunk the layers into sub-layers of maximal dimension dictated by
@@ -514,7 +508,6 @@ class Shampoo(OptimizerDef):
         start_preconditioning_step,
         preconditioning_compute_steps,
         statistics_compute_steps,
-        no_preconditioning_for_layers_with_dim_gt,
         block_size,
         best_effort_shape_interpretation,
         graft_type=graft_type,
@@ -592,7 +585,7 @@ class Shampoo(OptimizerDef):
                                           state.momentum)
     return new_state
 
-  def compute_preconditioners_from_statistics(self, states, hps, step):
+  def compute_preconditioners_from_statistics(self, states, params, hps, step):
     """Compute preconditioners for statistics."""
     statistics = []
     num_statistics_per_state = []
@@ -600,14 +593,15 @@ class Shampoo(OptimizerDef):
     exponents = []
     max_size = 0
     prev_preconditioners = []
-    for state in states:
+    for state, param in zip(states, params):
+      preconditioner = Preconditioner(param, hps)
       num_statistics = len(state.statistics)
       num_statistics_per_state.append(num_statistics)
       original_shapes_for_state = []
       if num_statistics > 0:
         for statistic in state.statistics:
-          exponents.append(2 * num_statistics if hps.exponent_override ==
-                           0 else hps.exponent_override)
+          exponents.append(preconditioner.exponent_for_preconditioner() if hps
+                           .exponent_override == 0 else hps.exponent_override)
           original_shapes_for_state.append(statistic.shape)
           max_size = max(max_size, statistic.shape[0])
         statistics.extend(state.statistics)
@@ -843,7 +837,7 @@ class Shampoo(OptimizerDef):
     ]
 
     new_states_flat = self.compute_preconditioners_from_statistics(
-        new_states_flat, hyper_params, step)
+        new_states_flat, params_flat, hyper_params, step)
 
     out = [
         self.apply_per_param_gradient(step, hyper_params, param, state, grad)
