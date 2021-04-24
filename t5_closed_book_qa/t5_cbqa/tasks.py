@@ -22,6 +22,7 @@ from . import postprocessors
 from . import preprocessors
 
 import seqio
+from t5.data import get_default_vocabulary
 from t5.data import postprocessors as t5_postprocessors
 from t5.data import preprocessors as t5_preprocessors
 from t5.evaluation import metrics as t5_metrics
@@ -30,6 +31,7 @@ MixtureRegistry = seqio.MixtureRegistry
 TaskRegistry = seqio.TaskRegistry
 
 DEFAULT_SPM_PATH = "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"  # GCS
+DEFAULT_EXTRA_IDS = 100
 NQ_TRAIN_SPLIT_START = 7830
 NQ_TRAIN_SPLIT_END = 79168
 NQO_TRAIN_SPLIT_END = 79168
@@ -38,14 +40,8 @@ TQA_TRAIN_SPLIT_END = 78785
 
 
 DEFAULT_OUTPUT_FEATURES = {
-    "inputs":
-        seqio.Feature(
-            vocabulary=seqio.SentencePieceVocabulary(DEFAULT_SPM_PATH),
-            add_eos=True),
-    "targets":
-        seqio.Feature(
-            vocabulary=seqio.SentencePieceVocabulary(DEFAULT_SPM_PATH),
-            add_eos=True)
+    "inputs": seqio.Feature(vocabulary=get_default_vocabulary(), add_eos=True),
+    "targets": seqio.Feature(vocabulary=get_default_vocabulary(), add_eos=True)
 }
 
 
