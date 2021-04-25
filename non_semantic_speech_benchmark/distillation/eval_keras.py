@@ -71,7 +71,7 @@ flags.DEFINE_float('lr', None, 'not used')
 
 # Not used.
 flags.DEFINE_float('qat', None, 'not used')
-flags.DEFINE_float('compression_op', None, 'not used')
+flags.DEFINE_float('cop', None, 'not used')
 
 flags.DEFINE_string('logdir', None,
                     'Directory where the model was written to.')

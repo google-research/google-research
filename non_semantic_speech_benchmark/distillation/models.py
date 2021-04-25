@@ -37,7 +37,7 @@ def get_keras_model(bottleneck_dimension,
                     frontend=True,
                     avg_pool=False,
                     compressor=None,
-                    qat=False,
+                    quantize_aware_training=False,
                     tflite=False):
   """Make a Keras student model."""
 
@@ -90,7 +90,7 @@ def get_keras_model(bottleneck_dimension,
     else:
       bottleneck = tf.keras.layers.Dense(
           bottleneck_dimension, name='distilled_output')
-      if qat:
+      if quantize_aware_training:
         bottleneck = tfmot.quantization.keras.quantize_annotate_layer(
             bottleneck)
     embeddings = tf.keras.layers.Flatten()(model_out)

@@ -67,7 +67,7 @@ def main(unused_argv):
       'frontend': FLAGS.frontend,
       'avg_pool': FLAGS.avg_pool,
       'compressor': FLAGS.compressor,
-      'qat': FLAGS.qat,
+      'quantize_aware_training': FLAGS.qat,
       'tflite': False,
   }
   load_and_write_model(keras_model_args, checkpoint_to_load,

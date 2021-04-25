@@ -166,8 +166,8 @@ def train_and_report(debug=False):
         'alpha_decrement_value=%d',
     ]) % (FLAGS.comp_freq, FLAGS.comp_rank, FLAGS.comp_begin_step,
           FLAGS.comp_end_step, FLAGS.alpha_step_size)
-    compression_params = compression.CompressionOp\
-      .get_default_hparams().parse(custom_params)
+    compression_params = compression.CompressionOp.get_default_hparams().parse(
+        custom_params)
     compressor = compression_wrapper.get_apply_compression(
         compression_params, global_step=global_step)
   model = models.get_keras_model(
@@ -178,7 +178,7 @@ def train_and_report(debug=False):
       frontend=not FLAGS.precomputed_frontend_and_targets,
       avg_pool=FLAGS.average_pool,
       compressor=compressor,
-      qat=FLAGS.qat)
+      quantize_aware_training=FLAGS.quantize_aware_training)
   model.summary()
   # Add additional metrics to track.
   train_loss = tf.keras.metrics.MeanSquaredError(name='train_loss')
