@@ -65,7 +65,7 @@ _INVERSE_PTH_ROOT_PRECISION = lax.Precision.HIGHEST
 # https://arxiv.org/pdf/2002.11803.pdf studies this in detail. Moreover this
 # allows us to plugin the Shampoo optimizer into settings where SGD/AdaGrad
 # is already well tuned.
-class LayerwiseGrafting(enum.Enum):
+class LayerwiseGrafting(enum.IntEnum):
   SGD = 1
   ADAGRAD = 2
 
