@@ -200,7 +200,7 @@ class GenericDataFormatter(abc.ABC):
         'category_counts':
             self.num_classes_per_cat_input,
         'input_obs_loc':
-            _get_locations({InputTypes.TARGET}, column_definition),
+            _get_locations({InputTypes.TARGET, InputTypes.OBSERVED_INPUT}, column_definition),
         'static_input_loc':
             _get_locations({InputTypes.STATIC_INPUT}, column_definition),
         'known_regular_inputs':
