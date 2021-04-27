@@ -30,6 +30,7 @@ import jax
 from jax import lax
 import jax.numpy as jnp
 
+from aqt.jax import compute_cost_utils
 from aqt.jax import get_bounds
 from aqt.jax import quant_config
 from aqt.jax import quantization
@@ -39,7 +40,6 @@ from aqt.jax import utils
 from aqt.jax.flax import struct as flax_struct
 from aqt.jax.quantization import QuantOps
 from aqt.jax.quantization import QuantType
-
 
 FLAGS = flags.FLAGS
 
@@ -318,6 +318,12 @@ class ConvAqt(nn.Module):
     # Convolution
     dimension_numbers = flax.nn.linear._conv_dimension_numbers(inputs.shape)  # pylint: disable=protected-access
     metadata_context = contextlib.suppress()
+    # Use metadata context to annotate op metadata with quantization info
+    act_prec = None if hparams.quant_act is None else hparams.quant_act.prec
+
+    if flags.FLAGS.metadata_enabled:
+      metadata_context = compute_cost_utils.ConvMetadataMonkeyPatch(
+          weight_prec=hparams.weight_prec, act_prec=act_prec)
     with metadata_context:
       y = lax.conv_general_dilated(
           inputs,

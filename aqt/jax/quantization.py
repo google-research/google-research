@@ -29,13 +29,13 @@ import jax
 from jax import lax
 import jax.numpy as jnp
 
+from aqt.jax import compute_cost_utils
 from aqt.jax import fp_cast
 from aqt.jax import get_bounds
 from aqt.jax import primitives
 from aqt.jax import shape_utils
 from aqt.jax import utils
 from aqt.jax.flax import struct as flax_struct
-
 
 # Global bool to control the use of epsilon in the denominator of the scaling
 # methods signed_int_scale and unsigned_int_scale. Epsilon is added to avoid
@@ -771,6 +771,9 @@ def quantized_dot(*,
     use_int8_to_int32_dot = prefer_int8_to_int32_dot & weight_fits_in_int8 & act_fits_in_int8
 
     metadata_context = contextlib.suppress()
+    if flags.FLAGS.metadata_enabled:
+      metadata_context = compute_cost_utils.DotMetadataMonkeyPatch(
+          lhs_prec=act_prec, rhs_prec=weight_prec, rhs_is_weight=True)
     with metadata_context:
       # Calculate matmul(...)
       out_quantized = dot_general_aqt(
@@ -815,6 +818,13 @@ def quantized_dot(*,
           act, hparams=act_hparams, get_bounds_params=get_bounds_params)
 
     metadata_context = contextlib.suppress()
+    # Use metadata context to annotate op metadata with quantization info
+    act_prec = None if act_hparams is None else act_hparams.prec
+    weight_prec = None if weight_params is None else weight_params.prec
+
+    if flags.FLAGS.metadata_enabled:
+      metadata_context = compute_cost_utils.DotMetadataMonkeyPatch(
+          lhs_prec=act_prec, rhs_prec=weight_prec, rhs_is_weight=True)
     with metadata_context:
       out_quantized = lax.dot_general(
           act,
@@ -954,6 +964,13 @@ def quantized_dynamic_dot_general(
         rhs_act, rhs_act_hparams, rhs_get_bounds_params)
 
     metadata_context = contextlib.suppress()
+    # Use metadata context to annotate op metadata with quantization info
+    lhs_prec = None if lhs_act_hparams is None else lhs_act_hparams.prec
+    rhs_prec = None if rhs_act_hparams is None else rhs_act_hparams.prec
+
+    if flags.FLAGS.metadata_enabled:
+      metadata_context = compute_cost_utils.DotMetadataMonkeyPatch(
+          lhs_prec=lhs_prec, rhs_prec=rhs_prec, rhs_is_weight=False)
     with metadata_context:
       out_quantized = lax.dot_general(
           lhs_quantized,
@@ -985,6 +1002,13 @@ def quantized_dynamic_dot_general(
           get_bounds_params=rhs_get_bounds_params)
 
     metadata_context = contextlib.suppress()
+    # Use metadata context to annotate op metadata with quantization info
+    lhs_prec = None if lhs_act_hparams is None else lhs_act_hparams.prec
+    rhs_prec = None if rhs_act_hparams is None else rhs_act_hparams.prec
+
+    if flags.FLAGS.metadata_enabled:
+      metadata_context = compute_cost_utils.DotMetadataMonkeyPatch(
+          lhs_prec=lhs_prec, rhs_prec=rhs_prec, rhs_is_weight=False)
     with metadata_context:
       out = lax.dot_general(
           lhs_act,
