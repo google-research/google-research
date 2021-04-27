@@ -17,10 +17,6 @@ syntax = "proto2";
 
 package automl_zero;
 
-import "devtools/staticanalysis/pipeline/analyzers/proto_best_practices/proto/optouts.proto";
-
-option (proto_best_practices.suppress_all_findings) = true;
-
 enum HardcodedAlgorithmID {
   // The no-op model (see NoOp function).
   NO_OP_ALGORITHM = 0;

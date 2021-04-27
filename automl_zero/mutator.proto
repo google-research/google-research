@@ -17,10 +17,6 @@ syntax = "proto2";
 
 package automl_zero;
 
-import "devtools/staticanalysis/pipeline/analyzers/proto_best_practices/proto/optouts.proto";
-
-option (proto_best_practices.suppress_all_findings) = true;
-
 enum MutationType {
   // Modifies a single parameter within one instruction. Does not change the op.
   ALTER_PARAM_MUTATION_TYPE = 0;
