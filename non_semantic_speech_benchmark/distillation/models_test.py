@@ -27,25 +27,25 @@ from non_semantic_speech_benchmark.distillation.compression_lib import compressi
 
 class ModelsTest(parameterized.TestCase):
 
-  def test_model_frontend(self):
-    input_tensor = tf.zeros([2, 32000], dtype=tf.float32)  # audio signal
-    m = models.get_keras_model(3, 5)
-    o = m(input_tensor)
-    o.shape.assert_has_rank(2)
-    self.assertEqual(o.shape[1], 5)
+  @parameterized.parameters(
+      {'use_frontend': True, 'bottleneck': 3},
+      {'use_frontend': False, 'bottleneck': 3},
+      {'use_frontend': True, 'bottleneck': 0},
+  )
+  def test_model_frontend(self, use_frontend, bottleneck):
+    if use_frontend:
+      input_tensor_shape = [2, 32000]  # audio signal
+    else:
+      input_tensor_shape = [1, 96, 64, 1]  # log Mel spectrogram
+    input_tensor = tf.zeros(input_tensor_shape, dtype=tf.float32)
 
-  def test_model_no_frontend(self):
-    input_tensor = tf.zeros([1, 96, 64, 1],
-                            dtype=tf.float32)  # log Mel spectrogram
-    m = models.get_keras_model(3, 5, frontend=False)
-    o = m(input_tensor)
-    o.shape.assert_has_rank(2)
-    self.assertEqual(o.shape[1], 5)
+    m = models.get_keras_model(bottleneck, 5, frontend=use_frontend)
+    o_dict = m(input_tensor)
+    emb, o = o_dict['embedding'], o_dict['embedding_to_target']
 
-  def test_model_no_bottleneck(self):
-    input_tensor = tf.zeros([2, 32000], dtype=tf.float32)
-    m = models.get_keras_model(0, 5)
-    o = m(input_tensor)
+    emb.shape.assert_has_rank(2)
+    if bottleneck:
+      self.assertEqual(emb.shape[1], bottleneck)
     o.shape.assert_has_rank(2)
     self.assertEqual(o.shape[1], 5)
 
@@ -65,7 +65,11 @@ class ModelsTest(parameterized.TestCase):
   def test_valid_mobilenet_size(self, mobilenet_size):
     input_tensor = tf.zeros([2, 32000], dtype=tf.float32)
     m = models.get_keras_model(3, 5, mobilenet_size=mobilenet_size)
-    o = m(input_tensor)
+    o_dict = m(input_tensor)
+    emb, o = o_dict['embedding'], o_dict['embedding_to_target']
+
+    emb.shape.assert_has_rank(2)
+    self.assertEqual(emb.shape[1], 3)
     o.shape.assert_has_rank(2)
     self.assertEqual(o.shape[1], 5)
 
@@ -75,8 +79,8 @@ class ModelsTest(parameterized.TestCase):
     compressor = None
     bottleneck_dimension = 3
     if add_compression:
-      compression_params = compression.CompressionOp\
-        .get_default_hparams().parse('')
+      compression_params = compression.CompressionOp.get_default_hparams(
+          ).parse('')
       compressor = compression_wrapper.get_apply_compression(
           compression_params, global_step=0)
     m = models.get_keras_model(
@@ -88,10 +92,15 @@ class ModelsTest(parameterized.TestCase):
         tflite=True)
 
     input_tensor = tf.zeros([1, 96, 64, 1], dtype=tf.float32)
-    o = m(input_tensor)
+    o_dict = m(input_tensor)
+    emb, o = o_dict['embedding'], o_dict['embedding_to_target']
+
+    emb.shape.assert_has_rank(2)
+    self.assertEqual(emb.shape[0], 1)
+    self.assertEqual(emb.shape[1], bottleneck_dimension)
     o.shape.assert_has_rank(2)
     self.assertEqual(o.shape[0], 1)
-    self.assertEqual(o.shape[1], bottleneck_dimension)
+    self.assertEqual(o.shape[1], 5)
 
     if add_compression:
       self.assertIsNone(m.get_layer('distilled_output').kernel)

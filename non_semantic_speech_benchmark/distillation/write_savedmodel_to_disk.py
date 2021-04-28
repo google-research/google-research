@@ -30,6 +30,7 @@ flags.DEFINE_string('logdir', None, 'Dataset location.')
 flags.DEFINE_string('checkpoint_filename', None, 'Optional.')
 flags.DEFINE_string('output_directory', None, 'Place to write savedmodel.')
 flags.DEFINE_bool('frontend', False, 'Whether to add the frontend.')
+flags.DEFINE_bool('tflite', False, 'Whether to make a TFLite model.')
 
 # Controls the model.
 flags.DEFINE_integer('bottleneck_dimension', None, 'Dimension of bottleneck.')
@@ -55,10 +56,11 @@ def main(unused_argv):
   tf.compat.v2.enable_v2_behavior()
   assert tf.executing_eagerly()
   if FLAGS.checkpoint_filename:
-    raise ValueError('Implement me.')
+    assert tf.train.load_checkpoint(FLAGS.checkpoint_filename)
+    checkpoint_to_load = FLAGS.checkpoint_filename
   else:
+    assert FLAGS.logdir
     checkpoint_to_load = tf.train.latest_checkpoint(FLAGS.logdir)
-  assert FLAGS.logdir
   keras_model_args = {
       'bottleneck_dimension': FLAGS.bottleneck_dimension,
       'output_dimension': None,
@@ -68,14 +70,15 @@ def main(unused_argv):
       'avg_pool': FLAGS.avg_pool,
       'compressor': FLAGS.compressor,
       'quantize_aware_training': FLAGS.qat,
-      'tflite': False,
+      'tflite': FLAGS.tflite,
   }
-  load_and_write_model(keras_model_args, checkpoint_to_load,
-                       FLAGS.output_directory)
+  load_and_write_model(
+      keras_model_args, checkpoint_to_load, FLAGS.output_directory)
   assert tf.io.gfile.exists(FLAGS.output_directory)
   logging.info('Successfully wrote to: %s', FLAGS.output_directory)
 
 
 if __name__ == '__main__':
-  flags.mark_flags_as_required(['logdir', 'output_directory'])
+  flags.mark_flags_as_required(['output_directory'])
+  flags.mark_flags_as_mutual_exclusive(['logdir', 'checkpoint_filename'])
   app.run(main)

@@ -26,8 +26,16 @@ from tensorflow.python.keras.applications import mobilenet_v3 as v3_util
 
 
 @tf.function
-def _sample_to_features(x):
-  return tf_frontend.compute_frontend_features(x, 16000, overlap_seconds=79)
+def _sample_to_features(x, tflite):
+  return tf_frontend.compute_frontend_features(
+      x, 16000, overlap_seconds=79, tflite=tflite)
+
+
+def _get_feats_map_fn(tflite):
+  def feats_map_fn(x):
+    return tf.map_fn(
+        lambda y: _sample_to_features(y, tflite), x, dtype=tf.float64)
+  return feats_map_fn
 
 
 def get_keras_model(bottleneck_dimension,
@@ -40,9 +48,7 @@ def get_keras_model(bottleneck_dimension,
                     quantize_aware_training=False,
                     tflite=False):
   """Make a Keras student model."""
-
-  def _map_fn_lambda(x):
-    return tf.map_fn(_sample_to_features, x, dtype=tf.float64)
+  output_dict = {}  # Dictionary of model outputs.
 
   def _map_mobilenet_func(mnet_size):
     mnet_size_map = {
@@ -59,7 +65,7 @@ def get_keras_model(bottleneck_dimension,
   num_batches = 1 if tflite else None
   if frontend:
     model_in = tf.keras.Input((None,), name='audio_samples')
-    feats = tf.keras.layers.Lambda(_map_fn_lambda)(model_in)
+    feats = tf.keras.layers.Lambda(_get_feats_map_fn(tflite))(model_in)
     feats.shape.assert_is_compatible_with([None, None, 96, 64])
     feats = tf.transpose(feats, [0, 2, 1, 3])
     feats = tf.reshape(feats, [-1, 96, 64, 1])
@@ -95,25 +101,26 @@ def get_keras_model(bottleneck_dimension,
             bottleneck)
     embeddings = tf.keras.layers.Flatten()(model_out)
     embeddings = bottleneck(embeddings)
-
-    if tflite:
-      # We generate TFLite models just for the embeddings.
-      output_model = tf.keras.Model(inputs=model_in, outputs=embeddings)
-      if compressor is not None:
-        # If model employs compression, this ensures that the TFLite model
-        # just uses the smaller matrices for inference.
-        output_model.get_layer('distilled_output').kernel = None
-        output_model.get_layer(
-            'distilled_output').compression_op.a_matrix_tfvar = None
-      return output_model
   else:
     embeddings = tf.keras.layers.Flatten(name='distilled_output')(model_out)
+
+  # Construct optional final layer, and create output dictionary.
+  output_dict['embedding'] = embeddings
   if output_dimension:
     output = tf.keras.layers.Dense(
         output_dimension, name='embedding_to_target')(embeddings)
-  else:
-    output = embeddings
-  output_model = tf.keras.Model(inputs=model_in, outputs=output)
+    output_dict['embedding_to_target'] = output
+  output_model = tf.keras.Model(inputs=model_in, outputs=output_dict)
+
+  # Optional modifications to the model for TFLite.
+  if tflite:
+    if compressor is not None:
+      # If model employs compression, this ensures that the TFLite model
+      # just uses the smaller matrices for inference.
+      output_model.get_layer('distilled_output').kernel = None
+      output_model.get_layer(
+          'distilled_output').compression_op.a_matrix_tfvar = None
+
   return output_model
 
 

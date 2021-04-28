@@ -220,7 +220,7 @@ def get_train_step(model, loss_obj, opt, train_loss, train_mae, summary_writer):
   """Returns a function for train step."""
   def train_step(wav_samples, targets, step):
     with tf.GradientTape() as tape:
-      logits = model(wav_samples, training=True)
+      logits = model(wav_samples, training=True)['embedding_to_target']
       assert model.trainable_variables
       logits.shape.assert_is_compatible_with(targets.shape)
       loss_value = loss_obj(y_true=targets, y_pred=logits)

@@ -135,7 +135,7 @@ def eval_and_report():
       wav_samples.shape.assert_is_compatible_with([None, FLAGS.min_length])
       targets.shape.assert_is_compatible_with([None, FLAGS.output_dimension])
 
-      logits = model(wav_samples, training=False)
+      logits = model(wav_samples, training=False)['embedding_to_target']
       logits.shape.assert_is_compatible_with(targets.shape)
 
       mse_m.update_state(y_true=targets, y_pred=logits)
