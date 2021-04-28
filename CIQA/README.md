@@ -4,19 +4,19 @@
 ## Overview
 
 The CIQA dataset is an open-sourced collection of labels to the popular
-[Aesthetic Visual Analysis (AVA)] (https://paperswithcode.com/dataset/aesthetic-visual-analysis)
+[Aesthetic Visual Analysis (AVA)](https://paperswithcode.com/dataset/aesthetic-visual-analysis)
 dataset. Images from AVA were sampled, compressed to different JPEG quality
 factors using the Tensorflow tf.image.adjust_jpeg_quality method and rated by
 human raters in a forced choice pairwise comparison study.
 This dataset is the result of the work in [Deep Perceptual Image Quality
-Assessment for Compression] (https://arxiv.org/abs/2103.01114)
+Assessment for Compression](https://arxiv.org/abs/2103.01114)
 
 ## AVA Image Sampling
 
-The [Aesthetic Visual Analysis dataset (AVA)] (https://ieeexplore.ieee.org/document/6247954)
+The [Aesthetic Visual Analysis dataset (AVA)](https://ieeexplore.ieee.org/document/6247954)
 is well suited for deep learning applied to aesthetic Image Quality Assessment
 (IQA) proven by its successful implementation in the
-[NIMA] (https://arxiv.org/abs/1709.05424) model.
+[NIMA](https://arxiv.org/abs/1709.05424) model.
 AVA contains ∼ 255,000 images rated based on aesthetic qualities by amateur
 photographers. Because these images are stored using JPEG compression, only the
 subset of images with a JPEG quality factor, Q, of 99 or more (near lossless)
