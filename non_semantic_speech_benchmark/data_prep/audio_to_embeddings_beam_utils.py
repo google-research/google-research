@@ -37,6 +37,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 import tensorflow_hub as hub
 from non_semantic_speech_benchmark import file_utils
+from non_semantic_speech_benchmark.export_model import tf_frontend
 
 
 def _tfexample_audio_to_npfloat32(ex, audio_key):
@@ -69,6 +70,12 @@ def _build_tflite_interpreter(tflite_model_path):
   interpreter = tf.lite.Interpreter(model_content=model_content)
   interpreter.allocate_tensors()
   return interpreter
+
+
+def _default_feature_fn(x, s):
+  return tf.expand_dims(
+      tf_frontend.compute_frontend_features(x, s, overlap_seconds=79),
+      axis=-1).numpy().astype(np.float32)
 
 
 def _samples_to_embedding_tflite(model_input, sample_rate, interpreter,
@@ -391,7 +398,8 @@ def make_beam_pipeline(
     embedding_modules, module_output_keys, audio_key, sample_rate_key,
     label_key, speaker_id_key, average_over_time, delete_audio_from_output,
     output_filename, split_embeddings_into_separate_tables=False,
-    input_format='tfrecord', output_format='tfrecord', suffix='Main'):
+    use_frontend_fn=False, input_format='tfrecord', output_format='tfrecord',
+    suffix='Main'):
   """Construct beam pipeline for mapping from audio to embeddings.
 
   Args:
@@ -414,6 +422,8 @@ def make_beam_pipeline(
     output_filename: Python string. Output filename.
     split_embeddings_into_separate_tables: Python bool. If true, write each
       embedding to a separate table.
+    use_frontend_fn: If `true`, call frontend fn on audio before passing to the
+      model.
     input_format: Python string. Must correspond to a function in
       `reader_functions`.
     output_format: Python string. Must correspond to a function
@@ -448,7 +458,8 @@ def make_beam_pipeline(
             audio_key=audio_key,
             sample_rate_key=sample_rate_key,
             sample_rate=sample_rate,
-            average_over_time=average_over_time))
+            average_over_time=average_over_time,
+            feature_fn=_default_feature_fn if use_frontend_fn else None))
     embedding_tables[name] = tbl
   assert tf_examples_key_ not in embedding_tables
   embedding_tables[tf_examples_key_] = input_examples

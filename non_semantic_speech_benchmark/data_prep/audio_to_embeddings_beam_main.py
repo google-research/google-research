@@ -83,6 +83,9 @@ flags.DEFINE_bool(
 flags.DEFINE_bool(
     'split_embeddings_into_separate_tables', False,
     'If true, write each embedding to a separate table.')
+flags.DEFINE_bool(
+    'use_frontend_fn', False,
+    'If `true`, call frontend fn on audio before passing to the model.')
 flags.DEFINE_bool('debug', False, 'If True, run in debug model.')
 
 FLAGS = flags.FLAGS
@@ -129,6 +132,7 @@ def main(unused_argv):
           FLAGS.delete_audio_from_output,
           output_filename,
           split_embeddings_into_separate_tables=FLAGS.split_embeddings_into_separate_tables,  # pylint:disable=line-too-long
+          use_frontend_fn=FLAGS.use_frontend_fn,
           input_format=input_format,
           output_format=output_format,
           suffix=i)
