@@ -1,0 +1,4 @@
+absl-py>=0.11.0
+dataclasses>=0.7; python_version < '3.7'
+numpy>=1.16.4
+pandas>=1.1.5

@@ -104,6 +104,7 @@ env:
     - PROJECT="truss_decomposition"
     - PROJECT="towards_gan_benchmarks"
     - PROJECT="uflow"
+    - PROJECT="visual_relationship"
     - PROJECT="wiki_split_bleu_eval"
     - PROJECT="wt5"
     - PROJECT="yoto"
