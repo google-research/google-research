@@ -345,7 +345,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
       # accessing tensors by name.
       _create_temporary_tf_graph_fully_connected(self.test_model_path)
     result = masking.find_mask_first_layer(
-        image=np.zeros((2, 2, 1)),
+        image=np.random.random((2, 2, 1)),
         run_params=masking.RunParams(
             **{
                 'model_path': self.test_model_path,
@@ -492,7 +492,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
       # accessing tensors by name.
       _create_temporary_tf_graph_cnn(self.test_model_path)
     result = masking.find_mask_first_layer(
-        image=np.zeros((4, 4, 3)),
+        image=np.random.random((4, 4, 3)),
         run_params=masking.RunParams(
             **{
                 'model_path': self.test_model_path,
@@ -746,6 +746,8 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
     mock_run_params.padding = (1, 1)
     mock_run_params.image_placeholder_shape = (4, 4)
     mock_run_params.model_type = 'cnn'
+    mock_run_params.pixel_range = (0, 1)
+
     with mock.patch.object(
         utils, 'restore_model',
         return_value=mock_session), mock.patch.object(
