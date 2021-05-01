@@ -32,9 +32,14 @@ def _sample_to_features(x, tflite):
 
 
 def _get_feats_map_fn(tflite):
-  def feats_map_fn(x):
-    return tf.map_fn(
-        lambda y: _sample_to_features(y, tflite), x, dtype=tf.float64)
+  """Returns a function mapping audio to features, suitable for keras Lambda."""
+  if tflite:
+    def feats_map_fn(x):
+      return _sample_to_features(x, tflite=True)
+  else:
+    def feats_map_fn(x):
+      return tf.map_fn(
+          lambda y: _sample_to_features(y, tflite=False), x, dtype=tf.float64)
   return feats_map_fn
 
 
@@ -64,7 +69,8 @@ def get_keras_model(bottleneck_dimension,
   # hardware acceleration.
   num_batches = 1 if tflite else None
   if frontend:
-    model_in = tf.keras.Input((None,), name='audio_samples')
+    model_in = tf.keras.Input((None,), name='audio_samples',
+                              batch_size=num_batches)
     feats = tf.keras.layers.Lambda(_get_feats_map_fn(tflite))(model_in)
     feats.shape.assert_is_compatible_with([None, None, 96, 64])
     feats = tf.transpose(feats, [0, 2, 1, 3])
@@ -74,6 +80,8 @@ def get_keras_model(bottleneck_dimension,
                               name='log_mel_spectrogram',
                               batch_size=num_batches)
     feats = model_in
+  inputs = [model_in]
+
   model = _map_mobilenet_func(mobilenet_size)(
       input_shape=[96, 64, 1],
       alpha=alpha,
@@ -110,7 +118,7 @@ def get_keras_model(bottleneck_dimension,
     output = tf.keras.layers.Dense(
         output_dimension, name='embedding_to_target')(embeddings)
     output_dict['embedding_to_target'] = output
-  output_model = tf.keras.Model(inputs=model_in, outputs=output_dict)
+  output_model = tf.keras.Model(inputs=inputs, outputs=output_dict)
 
   # Optional modifications to the model for TFLite.
   if tflite:
