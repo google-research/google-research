@@ -72,9 +72,10 @@ def _build_tflite_interpreter(tflite_model_path):
   return interpreter
 
 
-def _default_feature_fn(x, s):
+def _default_feature_fn(samples, sample_rate):
   return tf.expand_dims(
-      tf_frontend.compute_frontend_features(x, s, overlap_seconds=79),
+      tf_frontend.compute_frontend_features(
+          samples, sample_rate, overlap_seconds=79),
       axis=-1).numpy().astype(np.float32)
 
 
@@ -86,11 +87,16 @@ def _samples_to_embedding_tflite(model_input, sample_rate, interpreter,
   # Resize TFLite input size based on length of sample.
   # Ideally, we should explore if we can use fixed-size input here, and
   # tile the sample to meet TFLite input size.
+  logging.info('TFLite input, actual vs expected: %s vs %s', model_input.shape,
+               input_details[0]['shape'])
   interpreter.resize_tensor_input(input_details[0]['index'], model_input.shape)
   interpreter.allocate_tensors()
   interpreter.set_tensor(input_details[0]['index'], model_input)
-  interpreter.set_tensor(input_details[1]['index'],
-                         np.array(sample_rate).astype(np.int32))
+  # TODO(joelshor): When `sample_rate` gets added to the TFLite API, add it
+  # here.
+  del sample_rate
+  # interpreter.set_tensor(input_details[1]['index'],
+  #                        np.array(sample_rate).astype(np.int32))
 
   interpreter.invoke()
   embedding_2d = interpreter.get_tensor(
@@ -143,6 +149,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
       raise ValueError(f'Audio key `{self._audio_key}` not found: '
                        f'{list(ex.features.feature.keys())}')
     audio = _tfexample_audio_to_npfloat32(ex, self._audio_key)
+    assert audio.ndim == 1, audio.ndim
     if audio.size == 0:
       raise ValueError(f'No audio found: {self._audio_key}, {audio.size} {k}')
     beam.metrics.Metrics.distribution(

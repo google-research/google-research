@@ -77,8 +77,7 @@ def get_keras_model(bottleneck_dimension,
     feats = tf.reshape(feats, [-1, 96, 64, 1])
   else:
     model_in = tf.keras.Input((96, 64, 1),
-                              name='log_mel_spectrogram',
-                              batch_size=num_batches)
+                              name='log_mel_spectrogram')
     feats = model_in
   inputs = [model_in]
 

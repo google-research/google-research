@@ -16,6 +16,7 @@
 # Lint as: python3
 """Tests for NOSS data prep."""
 
+import os
 from absl.testing import absltest
 from absl.testing import parameterized
 import mock
@@ -23,7 +24,6 @@ import numpy as np
 import tensorflow.compat.v2 as tf
 from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_utils
 from non_semantic_speech_benchmark.export_model import tf_frontend
-
 
 BASE_SHAPE_ = (15, 5)
 
@@ -127,6 +127,32 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
     self.assertEqual(new_k, old_k)
     expected_shape = (1, BASE_SHAPE_[1]) if average_over_time else BASE_SHAPE_
     self.assertEqual(new_v.shape, expected_shape)
+
+  @parameterized.parameters(
+      {'feature_inputs': True},
+      # TODO(joelshor): Make a small model for this test.
+      # {'feature_inputs': False},
+  )
+  def test_tflite_inference(self, feature_inputs):
+    test_dir = 'non_semantic_speech_benchmark/data_prep/testdata'
+    if feature_inputs:
+      test_file = 'model1_woutfrontend.tflite'
+    else:
+      test_file = 'model1_wfrontend.tflite'
+    tflite_model_path = os.path.join(
+        absltest.get_default_test_srcdir(), test_dir, test_file)
+    output_key = '0'
+    interpreter = audio_to_embeddings_beam_utils._build_tflite_interpreter(
+        tflite_model_path=tflite_model_path)
+
+    model_input = np.zeros([32000], dtype=np.float32)
+    sample_rate = 16000
+    if feature_inputs:
+      model_input = audio_to_embeddings_beam_utils._default_feature_fn(
+          model_input, sample_rate)
+
+    audio_to_embeddings_beam_utils._samples_to_embedding_tflite(
+        model_input, sample_rate, interpreter, output_key)
 
   @parameterized.parameters(
       {'dataset_name': 'crema_d'},
