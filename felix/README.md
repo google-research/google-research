@@ -14,7 +14,7 @@ A detailed method description and evaluation can be found in our EMNLP2020 findi
 
 Felix is built on Python 3, Tensorflow 2 and
 [BERT](https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/3). It works with CPU, GPU, and
-Cloud TPU. Currently the codebase only support the Full Felix model, not FelixInsert or FelixPoint.
+Cloud TPU.
 
 ## Usage Instructions
 
