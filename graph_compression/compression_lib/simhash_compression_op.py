@@ -471,16 +471,41 @@ class KmeansMatrixCompressor(compression_op.LowRankDecompMatrixCompressor):
     self._spec.is_c_matrix_trainable = False
     self._seed = 42
 
-  def static_matrix_compressor(self, a_matrix):
-    """K-means decomposition of a_matrix.
+  def _get_factor_shapes(self, a_matrix):
+    """Returns shapes of the matrix factors.
 
     Args:
       a_matrix: input matrix
 
     Returns:
+      codebook_shape: tuple of int, representing codebook's shape.
+      encoding_shape: tuple of int, representing encoding's shape.
+    """
+    codebook_shape = (self._spec.rank, self._spec.block_size)
+    encoding_shape = (a_matrix.shape[0],
+                      a_matrix.shape[1] // self._spec.block_size)
+    return codebook_shape, encoding_shape
+
+  def static_matrix_compressor(self, a_matrix, skip_decomp=False):
+    """K-means decomposition of a_matrix.
+
+    If `skip_decomp` is True, no decomposition is performed and random factor
+    matrices are returned.
+
+    Args:
+      a_matrix: input matrix.
+      skip_decomp: skip decomposition and return random factor matrices if True.
+
+    Returns:
       [codebook, a_matrix_encoding]: rows of codebook are centroid vectors, and
       a_matrix_encoding is an array of centroid indices for blocks in a_matrix.
     """
+    if skip_decomp:
+      codebook_shape, encoding_shape = self._get_factor_shapes(a_matrix)
+      codebook_init = np.random.normal(size=codebook_shape)
+      encoding_init = np.random.randint(low=0, high=self._spec.rank,
+                                        size=encoding_shape)
+      return [codebook_init, encoding_init]
     [codebook, a_matrix_encoding] = kmeans_quantize.kmeans_quantize_block(
         a_matrix,
         levels=self._spec.rank,
@@ -602,7 +627,8 @@ class KMeansCompressionOp(compression_op.CompressionOp):
     """
     self.matrix_compressor = matrix_compressor
     a_matrix = np.zeros(shape=a_matrix_tfvar.shape)
-    [b_matrix, c_matrix] = matrix_compressor.static_matrix_compressor(a_matrix)
+    [b_matrix, c_matrix] = matrix_compressor.static_matrix_compressor(
+        a_matrix, skip_decomp=True)
 
     self.uncompressed_size = matrix_compressor.uncompressed_size
     self.compressed_size = matrix_compressor.compressed_size
@@ -834,7 +860,8 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
     a_matrix = np.zeros(shape=a_matrix_tfvar.shape)
     if getattr(self._spec, 'do_transpose', False):
       a_matrix = np.transpose(a_matrix)
-    [b_matrix, c_matrix] = matrix_compressor.static_matrix_compressor(a_matrix)
+    [b_matrix, c_matrix] = matrix_compressor.static_matrix_compressor(
+        a_matrix, skip_decomp=True)
 
     self.uncompressed_size = matrix_compressor.uncompressed_size
     self.compressed_size = matrix_compressor.compressed_size
@@ -951,7 +978,8 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
     a_matrix = np.zeros(shape=a_matrix_tfvar.shape)
     if getattr(self._spec, 'do_transpose', False):
       a_matrix = np.transpose(a_matrix)
-    [b_matrix, c_matrix] = matrix_compressor.static_matrix_compressor(a_matrix)
+    [b_matrix, c_matrix] = matrix_compressor.static_matrix_compressor(
+        a_matrix, skip_decomp=True)
 
     self.uncompressed_size = matrix_compressor.uncompressed_size
     self.compressed_size = matrix_compressor.compressed_size
