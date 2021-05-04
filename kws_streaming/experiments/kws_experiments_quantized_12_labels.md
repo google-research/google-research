@@ -39,6 +39,7 @@ source ./venv3/bin/activate
 pip install --upgrade pip
 pip install tf_nightly==2.4.0-dev20200917
 pip install tensorflow_addons
+pip install tensorflow_model_optimization
 # was tested on tf_nightly-2.3.0.dev20200515-cp36-cp36m-manylinux2010_x86_64.whl
 
 # install libs:
