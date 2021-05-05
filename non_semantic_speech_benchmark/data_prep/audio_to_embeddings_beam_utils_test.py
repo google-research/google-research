@@ -150,6 +150,8 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
     if feature_inputs:
       model_input = audio_to_embeddings_beam_utils._default_feature_fn(
           model_input, sample_rate)
+    else:
+      model_input = np.expand_dims(model_input, axis=0)
 
     audio_to_embeddings_beam_utils._samples_to_embedding_tflite(
         model_input, sample_rate, interpreter, output_key)

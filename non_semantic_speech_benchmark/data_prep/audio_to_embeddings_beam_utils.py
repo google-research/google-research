@@ -192,15 +192,17 @@ class ComputeEmbeddingMapFn(beam.DoFn):
         raise ValueError(f'Should be float32, was: {model_input.dtype}')
     else:
       model_input = audio
+      if self._use_tflite:
+        model_input = np.expand_dims(model_input, axis=0)
     logging.info('`model_input` shape is: %s', model_input.shape)
 
     # Calculate the 2D embedding.
     if self._use_tflite:
       embedding_2d = _samples_to_embedding_tflite(
-          audio, sample_rate, self.interpreter, self._output_key)
+          model_input, sample_rate, self.interpreter, self._output_key)
     else:
-      embedding_2d = _samples_to_embedding_tfhub(model_input, sample_rate,
-                                                 self.module, self._output_key)
+      embedding_2d = _samples_to_embedding_tfhub(
+          model_input, sample_rate, self.module, self._output_key)
     assert isinstance(embedding_2d, np.ndarray)
     assert embedding_2d.ndim == 2
     assert embedding_2d.dtype == np.float32
