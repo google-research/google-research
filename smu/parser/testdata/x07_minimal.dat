@@ -1,0 +1,140 @@
+================================================================================
+ 5733   14     x07_c4o2fh7.619740.003
+   nstat1   nstatc   nstatv   nstatt   nsvato   nsvnsb   nsvnlb   nsvele
+        1        1        1        1        1        1        1        1
+   nsvego   nsveh3   nsveh4   nsvec3   nsvexc   nsveca   nsvmr1   nsvmr2
+        1        1        1        1        1        1      306        1
+   nsvvib   nsvor1   nsvor2   nsvrot   nsvnsp   nsvnlp   nsvg09   nsvho1
+        1        1        1        1        1        1        0        1
+   nsvho2   nsvho3   nsvneg
+        1        1        1
+     001010200000010100010
+     2212000
+FOCCOC=C
+x07_c4o2fh7
+ID  619740       3
+Stage 1  Host IP:   XXX.YYY.000.025
+Stage 1  Cluster:   google-docker
+Stage 1  Cores:         2
+Stage 1  CPU type:      2
+Stage 2  Host IP:   XXX.YYY.000.025
+Stage 2  Cluster:   google-docker
+Stage 2  Cores:         2
+Stage 2  CPU type:      2
+          Geo  Force   MP2   CC   Polar  Elec  NMRs  NMRl  Exci  IP
+TIMINGS    54    62   232   421    97     5    50   175   125    87
+BOND    1    4     TYPE  661330
+BOND    1    6     TYPE  681310
+BOND    2    3     TYPE  662220
+BOND    3    6     TYPE  681310
+BOND    4    5     TYPE  681310
+BOND    5    7     TYPE  891100
+BOND    1    8     TYPE  611300
+BOND    1    9     TYPE  611300
+BOND    2   10     TYPE  611300
+BOND    2   11     TYPE  611300
+BOND    3   12     TYPE  611300
+BOND    4   13     TYPE  611300
+BOND    4   14     TYPE  611300
+E_ini/G_norm         -406.415341    0.041677
+E_opt/G_norm         -406.419423    0.000074
+Initial Coords       6    2.851786   -0.925777   -0.766473
+Initial Coords       6    3.162646   -3.212534    4.156075
+Initial Coords       6    1.011570   -2.850463    2.878998
+Initial Coords       6    2.039581    0.162139   -3.302485
+Initial Coords       8    0.828078    2.533556   -2.924162
+Initial Coords       8    0.655357   -1.796563    0.551422
+Initial Coords       9    0.160249    3.638101   -5.271013
+Initial Coords       1    3.800239    0.535926    0.354513
+Initial Coords       1    4.128296   -2.522973   -1.096797
+Initial Coords       1    3.111812   -4.086155    6.011975
+Initial Coords       1    5.000216   -2.670183    3.438168
+Initial Coords       1   -0.806157   -3.409444    3.648494
+Initial Coords       1    3.687612    0.476967   -4.510398
+Initial Coords       1    0.709781   -1.093207   -4.267946
+Optimized Coords     6    2.822032   -0.926004   -0.754881
+Optimized Coords     6    3.153187   -3.158733    4.055489
+Optimized Coords     6    0.991317   -2.804384    2.817477
+Optimized Coords     6    2.045879    0.154611   -3.272517
+Optimized Coords     8    0.861248    2.483275   -2.747581
+Optimized Coords     8    0.641300   -1.763848    0.517120
+Optimized Coords     9    0.174274    3.454874   -5.150475
+Optimized Coords     1    3.818472    0.503624    0.370594
+Optimized Coords     1    4.123046   -2.510045   -1.082853
+Optimized Coords     1    3.099179   -4.032719    5.904253
+Optimized Coords     1    4.989419   -2.615900    3.331586
+Optimized Coords     1   -0.819756   -3.363783    3.601386
+Optimized Coords     1    3.715149    0.472653   -4.455369
+Optimized Coords     1    0.726320   -1.114231   -4.233861
+Rotational constants (MHz)              1001.032            1035.908           10303.612
+Symmetry used in calculation    no
+================================================================================
+ 5734   14     x07_c4o2fh7.619740.013
+   nstat1   nstatc   nstatv   nstatt   nsvato   nsvnsb   nsvnlb   nsvele
+        1        1        1        1        1        1        1        1
+   nsvego   nsveh3   nsveh4   nsvec3   nsvexc   nsveca   nsvmr1   nsvmr2
+        1        1        1        1        1        1      306        1
+   nsvvib   nsvor1   nsvor2   nsvrot   nsvnsp   nsvnlp   nsvg09   nsvho1
+        1        1        1        1        1        1        0        1
+   nsvho2   nsvho3   nsvneg
+        1        1        1
+     001010200000010100010
+     2212000
+FOCCOC=C
+x07_c4o2fh7
+ID  619740      13
+Stage 1  Host IP:   XXX.YYY.000.029
+Stage 1  Cluster:   google-docker
+Stage 1  Cores:         2
+Stage 1  CPU type:      2
+Stage 2  Host IP:   XXX.YYY.000.029
+Stage 2  Cluster:   google-docker
+Stage 2  Cores:         2
+Stage 2  CPU type:      2
+          Geo  Force   MP2   CC   Polar  Elec  NMRs  NMRl  Exci  IP
+TIMINGS    49    53   196   342    83     5    43   162   101    56
+BOND    1    4     TYPE  661330
+BOND    1    6     TYPE  681310
+BOND    2    3     TYPE  662220
+BOND    3    6     TYPE  681310
+BOND    4    5     TYPE  681310
+BOND    5    7     TYPE  891100
+BOND    1    8     TYPE  611300
+BOND    1    9     TYPE  611300
+BOND    2   10     TYPE  611300
+BOND    2   11     TYPE  611300
+BOND    3   12     TYPE  611300
+BOND    4   13     TYPE  611300
+BOND    4   14     TYPE  611300
+E_ini/G_norm         -406.410834    0.046291
+E_opt/G_norm         -406.415003    0.000058
+Initial Coords       6    1.041428   -1.888025   -1.556567
+Initial Coords       6    2.627664   -2.990870    4.909886
+Initial Coords       6    2.551508   -3.111812    2.394472
+Initial Coords       6   -0.049511    0.378512   -2.950429
+Initial Coords       8    1.918639    2.121407   -3.519237
+Initial Coords       8    1.649920   -1.149520    0.977366
+Initial Coords       9    0.969429    4.188956   -4.932941
+Initial Coords       1    2.755977   -2.554910   -2.511257
+Initial Coords       1   -0.371142   -3.403208   -1.501954
+Initial Coords       1    3.368059   -4.544224    6.021235
+Initial Coords       1    1.957189   -1.325643    5.900859
+Initial Coords       1    3.230109   -4.734331    1.351532
+Initial Coords       1   -0.903100   -0.219208   -4.736032
+Initial Coords       1   -1.465672    1.356823   -1.804877
+Optimized Coords     6    0.862629   -1.921136   -1.549479
+Optimized Coords     6    2.647107   -2.936380    4.870614
+Optimized Coords     6    2.590085   -3.010688    2.365821
+Optimized Coords     6   -0.046706    0.378482   -2.962924
+Optimized Coords     8    2.101100    1.906555   -3.354527
+Optimized Coords     8    1.393792   -1.231226    0.965451
+Optimized Coords     9    1.181084    4.052566   -4.672048
+Optimized Coords     1    2.549092   -2.698205   -2.478153
+Optimized Coords     1   -0.632095   -3.359925   -1.615593
+Optimized Coords     1    3.706331   -4.342661    5.911245
+Optimized Coords     1    1.680599   -1.459027    5.909794
+Optimized Coords     1    3.553980   -4.479376    1.287999
+Optimized Coords     1   -0.851467   -0.177369   -4.787878
+Optimized Coords     1   -1.455032    1.402337   -1.848268
+Rotational constants (MHz)               956.625            1011.304            8893.669
+Symmetry used in calculation    no

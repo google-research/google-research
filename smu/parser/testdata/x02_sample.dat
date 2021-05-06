@@ -1,0 +1,293 @@
+================================================================================
+    1    4     x02_c2h2.000020.001
+   nstat1   nstatc   nstatv   nstatt   nsvato   nsvnsb   nsvnlb   nsvele
+        1        1        1        1        1        1        1        1
+   nsvego   nsveh3   nsveh4   nsvec3   nsvexc   nsveca   nsvmr1   nsvmr2
+        1        1        1        1        1        1        1        1
+   nsvvib   nsvor1   nsvor2   nsvrot   nsvnsp   nsvnlp   nsvg09   nsvho1
+        1        1        1        1        1        1        1        1
+   nsvho2   nsvho3   nsvneg
+        3        5        1
+     3
+     11
+C#C
+x02_c2h2
+ID      20       1
+Stage 1  Host IP:   XXX.YYY.200.108
+Stage 1  Cluster:   alchemy      
+Stage 1  Cores:        24
+Stage 1  CPU type:     23
+Stage 2  Host IP:   XXX.YYY.200.108
+Stage 2  Cluster:   alchemy      
+Stage 2  Cores:        24
+Stage 2  CPU type:     23
+          Geo  Force   MP2   CC   Polar  Elec  NMRs  NMRl  Exci  IP
+TIMINGS     0     0     1     3     1     0     0     2     1     2
+BOND    1    2     TYPE  663110
+BOND    1    3     TYPE  611300
+BOND    2    4     TYPE  611300
+E_ini/G_norm          -77.240567    0.000003
+E_opt/G_norm          -77.240567    0.000000
+Initial Coords       6    1.795729    0.186894   -0.027023
+Initial Coords       6   -0.470464    0.186894   -0.027023
+Initial Coords       1    3.809866    0.186894   -0.027023
+Initial Coords       1   -2.484601    0.186894   -0.027023
+Optimized Coords     6    0.000000    0.000000    1.133096
+Optimized Coords     6    0.000000    0.000000   -1.133096
+Optimized Coords     1    0.000000    0.000000    3.147236
+Optimized Coords     1    0.000000    0.000000   -3.147236
+Rotational constants (MHz)                 0.000           35519.086           35519.086
+Symmetry used in calculation   yes
+Frequencies and intensities
+    0.0    0.0    0.0    0.0    0.0  586.0  586.0  764.4  764.4 2080.1
+ 3426.7 3532.0
+    0.0    0.0    0.0    0.0    0.0    0.0    0.0  102.9  102.9    0.0
+   72.7    0.0
+Gaussian sanity check for FREQ/ELSTAT calculation
+Dev. Energy PBE0/6-311G*            0.000020
+Max. Force                          0.000010
+Max. and Avg Dev. Frequencies       0.463700      0.144060
+Max. and Avg Dev. Intensities       0.031650      0.009350
+Dev. Energy HF/6-31G*               0.000000
+Max. Dev. Dipole Components         0.000000
+Max. Dev. Quadrup. Components       0.000020
+Max. Dev. Octupole Components       0.000000
+Normal modes
+Mode   1
+ -0.1212  0.0162  0.0000  0.3447  0.0345  0.0000 -0.5354  0.0000  0.0000  0.7588
+  0.0508  0.0000
+Mode   2
+  0.5476 -0.0245  0.0000  0.2899 -0.0521  0.0000  0.7767  0.0000  0.0000  0.0609
+ -0.0765  0.0000
+Mode   3
+  0.0650  0.2517  0.0000 -0.0175  0.5349  0.0000  0.1383  0.0000  0.0000 -0.0908
+  0.7866  0.0000
+Mode   4
+  0.0000 -0.3585  0.0000  0.0000  0.1049  0.0000  0.0000 -0.7703  0.0000  0.0000
+  0.5168  0.0000
+Mode   5
+  0.0000  0.0000  0.5000  0.0000  0.0000  0.5000  0.0000  0.0000  0.5000  0.0000
+  0.0000  0.5000
+Mode   6
+  0.0000 -0.1605  0.0000  0.0000  0.1605  0.0000  0.0000  0.6886  0.0000  0.0000
+ -0.6886  0.0000
+Mode   7
+ -0.1605  0.0000  0.0000  0.1605  0.0000  0.0000  0.6886  0.0000  0.0000 -0.6886
+  0.0000  0.0000
+Mode   8
+  0.0000  0.0591  0.0000  0.0000  0.0591  0.0000  0.0000 -0.7046  0.0000  0.0000
+ -0.7046  0.0000
+Mode   9
+  0.0591  0.0000  0.0000  0.0591  0.0000  0.0000 -0.7046  0.0000  0.0000 -0.7046
+  0.0000  0.0000
+Mode  10
+  0.0000  0.0000  0.3537  0.0000  0.0000 -0.3537  0.0000  0.0000  0.6123  0.0000
+  0.0000 -0.6123
+Mode  11
+  0.0000  0.0000  0.0591  0.0000  0.0000  0.0591  0.0000  0.0000 -0.7046  0.0000
+  0.0000 -0.7046
+Mode  12
+  0.0000  0.0000  0.1017  0.0000  0.0000 -0.1017  0.0000  0.0000 -0.6998  0.0000
+  0.0000  0.6998
+PBE0D3/6-311Gd         -77.240567
+PBE0/6-311Gd           -77.240381
+PBE0/6-311GdMRCC       -77.240383
+PBE0/6-311GdORCA       -77.240406
+PBE0/6-311Gd(CAT)      -76.826347
+PBE0/6-311Gd(CAT)MRCC  -76.826349
+PBE0/6-311Gd(CAT)ORCA  -76.826369
+PBE0/aug-pc-1          -77.214243
+HF/6-31Gd              -76.816771
+B3LYP/6-31++Gdp        -77.335370
+B3LYP/aug-pcS-1        -77.318288
+PBE0/6-31++Gdp         -77.230045
+PBE0/aug-pcS-1         -77.210928
+HF/TZVP                -76.848336
+MP2/TZVP               -77.116989
+CC2/TZVP               -77.121727
+HF/3                   -76.849605
+MP2/3                  -77.158885
+HF/4                   -76.854631
+MP2/4                  -77.183272
+HF/(34)                -76.855856
+MP2/(34)               -77.200552
+HF/CVTZ                -76.850294
+MP2ful/CVTZ            -77.256863
+HF/2sp                 -76.797184
+MP2/2sp                -76.978537
+CCSD/2sp               -76.992779
+CCSD(T)/2sp            -76.998762
+HF/2sd                 -76.818314
+MP2/2sd                -77.063771
+CCSD/2sd               -77.080489
+CCSD(T)/2sd            -77.090890
+HF/3Psd                -76.832088
+MP2/3Psd               -77.107773
+CCSD/3Psd              -77.120977
+NUCREP                  24.805948
+NUM_OPT                  1
+NIMAG                    0
+ZPE_unscaled            16.78
+D1DIAG    D1(CCSD/2sp)   0.024900  D1(CCSD/2sd)  -1.000000  D1(CCSD/3Psd) -1.000000
+T1DIAG    T1(CCSD/2sp)   0.012300  T1(CCSD/2sd)   0.012200  T1(CCSD/3Psd)  0.012900
+AT2_BSR_LEFT         molecule
+AT2_BSR_RIGHT        1  HC#CH
+AT2_T1mol                0.0122
+AT2_T1exc                0.0000
+AT2_ZPE                 16.43       16.48        0.13
+AT2_ENE_B5             -77.321445
+AT2_ENE_B6             -77.320541
+AT2_ENE_ECCSD          -77.208870
+AT2_BSE_B5              -0.01       -0.01        0.00
+AT2_BSE_B6              -0.01       -0.01        0.00
+AT2_BSE_ECCSD           -0.00       -0.00        0.00
+AT2_AEe_B5             404.95      405.03        0.17
+AT2_AEe_B6             404.95      405.03        0.17
+AT2_AEe_ECCSD          404.96      405.04        0.17
+AT2_AE0_B5             388.52      388.55        0.21
+AT2_AE0_B6             388.52      388.55        0.21
+AT2_AE0_ECCSD          388.53      388.56        0.21
+AT2_HF0_B5              54.80       54.77        0.21
+AT2_HF0_B6              54.80       54.77        0.21
+AT2_HF0_ECCSD           54.79       54.77        0.21
+AT2_HF298_B5            54.69       54.66        0.25
+AT2_HF298_B6            54.69       54.66        0.25
+AT2_HF298_ECCSD         54.68       54.65        0.25
+HOMO/LUMO  PBE0/6-311Gd      -0.30522    0.04568
+HOMO/LUMO  PBE0/aug-pc-1     -0.31149    0.00855
+HOMO/LUMO  HF/6-31Gd         -0.40116    0.21804
+HOMO/LUMO  B3LYP/6-31++Gdp   -0.29821    0.00469
+HOMO/LUMO  B3LYP/aug-pcS-1   -0.30232    0.00096
+HOMO/LUMO  PBE0/6-31++Gdp    -0.30783    0.01280
+HOMO/LUMO  PBE0/aug-pcS-1    -0.31136    0.00849
+HOMO/LUMO  HF/TZVP           -0.41163    0.15655
+HOMO/LUMO  HF/3              -0.41042    0.15097
+HOMO/LUMO  HF/4              -0.41143    0.12938
+HOMO/LUMO  HF/CVTZ           -0.41049    0.15049
+Excitation energies and length rep. osc. strengths at CC2/TZVP             
+    1           0.27967         0.00000
+    2           0.29250         0.00000
+    3           0.29250         0.00000
+    4           0.35517         0.00000
+    5           0.35517         0.00000
+NMR isotropic shieldings (ppm): B3LYP/6-31++Gdp
+    1    6    130.2528   +/-    0.0064
+    2    6    130.2528   +/-    0.0064
+    3    1     30.3504   +/-    0.0016
+    4    1     30.3504   +/-    0.0016
+NMR isotropic shieldings (ppm): B3LYP/aug-pcS-1
+    1    6    107.5648   +/-    0.0064
+    2    6    107.5648   +/-    0.0064
+    3    1     30.3392   +/-    0.0016
+    4    1     30.3392   +/-    0.0016
+NMR isotropic shieldings (ppm): PBE0/6-31++Gdp 
+    1    6    130.8096   +/-    0.0064
+    2    6    130.8096   +/-    0.0064
+    3    1     30.2304   +/-    0.0016
+    4    1     30.2304   +/-    0.0016
+NMR isotropic shieldings (ppm): PBE0/aug-pcS-1 
+    1    6    110.2848   +/-    0.0064
+    2    6    110.2848   +/-    0.0064
+    3    1     30.1856   +/-    0.0016
+    4    1     30.1856   +/-    0.0016
+Partial charges (e): MUL-PBE0/aug-pc-1 
+    1    6     -0.2548   +/-    0.0001
+    2    6     -0.2548   +/-    0.0001
+    3    1      0.2548   +/-    0.0001
+    4    1      0.2548   +/-    0.0001
+Partial charges (e): LOE-PBE0/aug-pc-1 
+    1    6     -0.0028   +/-    0.0001
+    2    6     -0.0028   +/-    0.0001
+    3    1      0.0028   +/-    0.0001
+    4    1      0.0028   +/-    0.0001
+Partial charges (e): NAT-PBE0/aug-pc-1 
+    1    6     -0.2355   +/-    0.0001
+    2    6     -0.2355   +/-    0.0001
+    3    1      0.2355   +/-    0.0001
+    4    1      0.2355   +/-    0.0001
+Partial charges (e): PON-PBE0/aug-pc-1 
+    1    6     -0.0185   +/-    0.0001
+    2    6     -0.0185   +/-    0.0001
+    3    1      0.0185   +/-    0.0001
+    4    1      0.0185   +/-    0.0001
+Partial charges (e): ESP-PBE0/aug-pc-1 
+    1    6     -0.2870   +/-    0.0001
+    2    6     -0.2870   +/-    0.0001
+    3    1      0.2870   +/-    0.0001
+    4    1      0.2870   +/-    0.0001
+Partial charges (e): MUL-HF/6-31Gd     
+    1    6     -0.2816   +/-    0.0001
+    2    6     -0.2816   +/-    0.0001
+    3    1      0.2816   +/-    0.0001
+    4    1      0.2816   +/-    0.0001
+Partial charges (e): LOE-HF/6-31Gd     
+    1    6     -0.1779   +/-    0.0001
+    2    6     -0.1779   +/-    0.0001
+    3    1      0.1779   +/-    0.0001
+    4    1      0.1779   +/-    0.0001
+Partial charges (e): NAT-HF/6-31Gd     
+    1    6     -0.2429   +/-    0.0001
+    2    6     -0.2429   +/-    0.0001
+    3    1      0.2429   +/-    0.0001
+    4    1      0.2429   +/-    0.0001
+Partial charges (e): PON-HF/6-31Gd     
+    1    6     -0.1275   +/-    0.0001
+    2    6     -0.1275   +/-    0.0001
+    3    1      0.1275   +/-    0.0001
+    4    1      0.1275   +/-    0.0001
+Partial charges (e): ESP-HF/6-31Gd     
+    1    6     -0.2984   +/-    0.0001
+    2    6     -0.2984   +/-    0.0001
+    3    1      0.2984   +/-    0.0001
+    4    1      0.2984   +/-    0.0001
+Polarizability (au):    PBE0/aug-pc-1
+    xx      19.22399
+    yy      19.22399
+    zz      30.93730
+    xy      -0.10019
+    xz       0.60725
+    yz       0.37824
+Dipole moment (au):     PBE0/aug-pc-1
+     x      -0.00000
+     y       0.00000
+     z       0.00000
+Quadrupole moment (au): PBE0/aug-pc-1
+    xx     -10.25411
+    yy     -10.25411
+    zz      -5.22335
+    xy       0.00000
+    xz       0.00000
+    yz       0.00000
+Octopole moment (au):   PBE0/aug-pc-1
+   xxx      -0.00000
+   yyy      -0.00000
+   zzz      -0.00000
+   xxy      -0.00000
+   xxz      -0.00000
+   xyy      -0.00000
+   yyz       0.00000
+   xzz       0.00000
+   yzz       0.00000
+   xyz      -0.00000
+Dipole moment (au):     HF/6-31Gd    
+     x      -0.00000
+     y      -0.00000
+     z      -0.00000
+Quadrupole moment (au): HF/6-31Gd    
+    xx      -9.97016
+    yy      -9.97016
+    zz      -4.83733
+    xy       0.00000
+    xz      -0.00000
+    yz      -0.00000
+Octopole moment (au):   HF/6-31Gd    
+   xxx      -0.00000
+   yyy      -0.00000
+   zzz      -0.00000
+   xxy      -0.00000
+   xxz      -0.00000
+   xyy      -0.00000
+   yyz      -0.00000
+   xzz      -0.00000
+   yzz      -0.00000
+   xyz       0.00000
