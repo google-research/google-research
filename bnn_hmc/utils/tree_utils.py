@@ -13,6 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2021 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Utility functions for jax pytree manipulations."""
 
 import jax
@@ -51,14 +64,13 @@ def get_first_elem_in_sharded_tree(tree):
 
 
 def tree_norm(a):
-  return float(jnp.sqrt(sum([jnp.sum(p_a ** 2) for p_a in jax.tree_leaves(a)])))
+  return float(jnp.sqrt(sum([jnp.sum(p_a**2) for p_a in jax.tree_leaves(a)])))
 
 
 def normal_like_tree(a, key):
   treedef = jax.tree_structure(a)
   num_vars = len(jax.tree_leaves(a))
   all_keys = jax.random.split(key, num=(num_vars + 1))
-  noise = jax.tree_multimap(
-      lambda p, k: jax.random.normal(k, shape=p.shape),
-      a, jax.tree_unflatten(treedef, all_keys[1:]))
+  noise = jax.tree_multimap(lambda p, k: jax.random.normal(k, shape=p.shape), a,
+                            jax.tree_unflatten(treedef, all_keys[1:]))
   return noise, all_keys[0]

@@ -1,6 +1,22 @@
+# coding=utf-8
+# Copyright 2021 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """numpy implementations of prediction quality metrics.
 
-Partly adapted from https://github.com/wjmaddox/swa_gaussian/blob/master/experiments/uncertainty/uncertainty.py
+Partly adapted from
+https://github.com/wjmaddox/swa_gaussian/blob/master/experiments/uncertainty/uncertainty.py
 """
 
 import numpy as onp
@@ -70,19 +86,20 @@ def calibration_curve(outputs, labels, num_bins=20):
   bin_confidences, bin_accuracies, bin_proportions = map(
       lambda lst: onp.array(lst),
       (bin_confidences, bin_accuracies, bin_proportions))
-  
+
   return {
       "confidence": bin_confidences,
       "accuracy": bin_accuracies,
       "proportions": bin_proportions,
-      "ece": ece}
+      "ece": ece
+  }
 
 
 def mse(predictions, targets, y_scale=1.):
   mus, sigmas = onp.split(predictions, [1], axis=-1)
   assert mus.shape == targets.shape, (
-    "Predictions and targets should have the same shape, "
-    "got {} and {}".format(mus.shape, targets.shape))
+      "Predictions and targets should have the same shape, "
+      "got {} and {}".format(mus.shape, targets.shape))
   return ((mus - targets)**2).mean() * y_scale**2
 
 
@@ -93,7 +110,7 @@ def rmse(predictions, targets, y_scale=1.):
 def regression_nll(predictions, targets, y_scale=1.):
   #ToDo: check
   mus, sigmas = onp.split(predictions, [1], axis=-1)
-  se = (mus - targets) ** 2
+  se = (mus - targets)**2
   nll = 0.5 * (se / sigmas**2 + onp.log(2 * onp.pi * sigmas**2)).mean()
   nll += onp.log(y_scale)
   return nll
