@@ -36,6 +36,9 @@ DatasetSample = collections.namedtuple('DatasetSample', ['structure', 'reward'])
 
 def dataset_to_population(population_or_tf_dataset):
   """Converts a TF dataset to a Population if it is not already a Population."""
+  if not isinstance(population_or_tf_dataset, tf.data.Dataset) and not isinstance(population_or_tf_dataset, Population):
+      raise ValueError("Valid parameter includes either Population or tf.data.Dataset")
+      
   if isinstance(population_or_tf_dataset, Population):
     return population_or_tf_dataset
   else:
@@ -332,7 +335,7 @@ def parse_tf_example(example_proto):
   Args:
     example_proto: A raw tf.Example proto.
   Returns:
-    A dict of Tensors with fields structure, reward, and batch_index.
+    A dict of Tensors containing fields structure, reward, and batch_index.
   """
 
   feature_description = dict(
