@@ -27,7 +27,8 @@
 syntax = "proto3";
 
 
-// import "google/protobuf/descriptor.proto";
+import "google/protobuf/descriptor.proto";
+
 
 ///////////// Custom options
 // The dataset is released in two forms
@@ -52,7 +53,7 @@ enum AvailabilityEnum {
   COMPLETE = 3;
 }
 
-extend proto2.FieldOptions {
+extend google.protobuf.FieldOptions {
   optional AvailabilityEnum availability = 336921174;
 }
 
