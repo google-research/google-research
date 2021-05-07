@@ -335,7 +335,7 @@ def parse_tf_example(example_proto):
   Args:
     example_proto: A raw tf.Example proto.
   Returns:
-    A dict of Tensors containing fields structure, reward, and batch_index.
+    A dict of Tensors with fields structure, reward, and batch_index.
   """
 
   feature_description = dict(
