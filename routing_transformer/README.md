@@ -39,7 +39,8 @@ for a quick overview.
 
 Model     | Hparams  | Context Length | Data-set | Vocab                                                                                     | Download
 --------- |  ---------------------- | -------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------- | --------
-`RT-base` | `pg19_local_cluster8k` | 8192           | [PG-19](https://github.com/deepmind/pg19) | [vocab98K](https://storage.googleapis.com/rt-checkpoint/vocab.pg19_length8k.32768.subwords) | [checkpoint.zip](https://storage.googleapis.com/rt-checkpoint/checkpoint.zip)
+`Local-base` | `pg19_local8k`         | 8192           | [PG-19](https://github.com/deepmind/pg19) | [vocab98K](https://storage.googleapis.com/rt-checkpoint/vocab.pg19_length8k.32768.subwords) | [checkpoint.zip](https://storage.googleapis.com/rt-checkpoint/pg19_local.zip)
+`RT-base`    | `pg19_local_cluster8k` | 8192           | [PG-19](https://github.com/deepmind/pg19) | [vocab98K](https://storage.googleapis.com/rt-checkpoint/vocab.pg19_length8k.32768.subwords) | [checkpoint.zip](https://storage.googleapis.com/rt-checkpoint/checkpoint.zip)
 
 ## Explanation of hyperparameters <a name="hparam"></a>
 
