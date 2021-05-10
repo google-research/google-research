@@ -10,6 +10,7 @@ env:
     - PROJECT="abps"
     - PROJECT="adaptive_learning_rate_tuner"
     - PROJECT="albert"
+    - PROJECT="after_kernel"
     - PROJECT="attribution"
     - PROJECT="amortized_bo"
     - PROJECT="assemblenet"
