@@ -209,7 +209,7 @@ Here we describe the 6 Python benchmarks we created. All 6 benchmarks were deriv
 
 1. **Function-docstring classification**. Combinations of functions with their correct or incorrect documentation string, used to train a classifier that can tell which pairs go together. The JSON fields are:
      * `function`: string, the source code of a function as text
-     * `docstring`: string, the documentation string for that function
+     * `docstring`: string, the documentation string for that function. Note that the string is unquoted. To be able to properly tokenize it with the CuBERT tokenizers, you have to wrap it in quotes first. For example, in Python, use `string_to_tokenize = f'"""{docstring}"""'`.
      * `label`: string, one of (“Incorrect”, “Correct”), the label of the example.
      * `info`: string, an unformatted description of how the example was constructed, including the source dataset (always “ETHPy150Open”), the repository and filepath, the function name and, for “Incorrect” examples, the function whose docstring was substituted.
 1. **Exception classification**. Combinations of functions where one exception type has been masked, along with a label indicating the masked exception type. The JSON fields are:
