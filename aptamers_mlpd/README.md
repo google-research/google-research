@@ -318,4 +318,4 @@ This notebook loads in all the simulated truncations (with model scores) as well
 as the experimentally tested subset of truncations. It then creates a plot
 showing the distribution of model scores for each tested truncation.
 
-Input: [truncation_option_seed_scores_manuscript.csv](https://storage.googleapis.com/gresearch/aptamers_mlpd/[truncation_option_seed_scores_manuscript.csv)
+Input: [truncation_option_seed_scores_manuscript.csv](https://storage.googleapis.com/gresearch/aptamers_mlpd/truncation_option_seed_scores_manuscript.csv)
