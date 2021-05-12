@@ -176,8 +176,8 @@ class CuBertTokenizer(abc.ABC):
     subtokens = unified_tokenizer.flatten_subtoken_lists(multi_tokens)
     return subtokens
 
-  def untokenize(self, token_list):
-    """Untokenizes via `untokenize_abstract`."""
+  def untokenize_agnostic(self, token_list):
+    """Turns CuBERT subtokens into whole tokens."""
     # Untokenize agnostic.
     if (not token_list or token_list[-1] != unified_tokenizer.quote_special(
         unified_tokenizer.TokenKind.EOS.name)):
@@ -190,7 +190,11 @@ class CuBertTokenizer(abc.ABC):
         token_list,
         sanitization_mapping=self.mappings,
         sentinel=unified_tokenizer.SENTINEL)
+    return whole_tokens
 
+  def untokenize(self, token_list):
+    """Untokenizes via `untokenize_abstract`."""
+    whole_tokens = self.untokenize_agnostic(token_list)
     return self.untokenize_abstract(whole_tokens)
 
 
