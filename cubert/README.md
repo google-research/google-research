@@ -143,6 +143,21 @@ produce output similar to that illustrated in the
 with TensorFlow models, the `decode_list` logic from
 `code_to_subtokenized_sentences.py` can be skipped.
 
+It is possible to configure CuBERT tokenizers to skip emitting tokens of some
+kinds. For our fine-tuning tasks presented below, we skip comment and whitespace
+tokens. After initializing a tokenizer, this will configure it to skip
+those kinds of tokens:
+```
+from cubert import unified_tokenizer
+from cubert import python_tokenizer
+...
+tokenizer = python_tokenizer.PythonTokenizer()
+tokenizer.update_types_to_skip((
+      unified_tokenizer.TokenKind.COMMENT,
+      unified_tokenizer.TokenKind.WHITESPACE,
+  ))
+```
+
 ## The Multi-Headed Pointer Model
 
 The `finetune_varmisuse_pointer_lib.py` file provides an implementation of the
