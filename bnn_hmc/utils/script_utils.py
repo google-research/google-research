@@ -26,6 +26,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# coding=utf-8
 """Implementation of utilities used in the training scripts."""
 
 import os
@@ -37,14 +38,14 @@ import tensorflow.compat.v2 as tf
 
 from collections import OrderedDict
 
-from bnn_hmc.utils import models
-from bnn_hmc.utils import data_utils
-from bnn_hmc.utils import train_utils
-from bnn_hmc.utils import precision_utils
-from bnn_hmc.utils import losses
-from bnn_hmc.utils import checkpoint_utils
-from bnn_hmc.utils import cmd_args_utils
-from bnn_hmc.utils import tree_utils
+from utils import checkpoint_utils
+from utils import cmd_args_utils
+from utils import data_utils
+from utils import losses
+from utils import models
+from utils import precision_utils
+from utils import train_utils
+from utils import tree_utils
 
 
 def print_visible_devices():
@@ -60,8 +61,12 @@ def prepare_logging(subdirname, args):
   return dirname, tf_writer
 
 
+def get_dtype(args):
+  return jnp.float64 if args.use_float64 else jnp.float32
+
+
 def get_data_model_fns(args):
-  dtype = jnp.float64 if args.use_float64 else jnp.float32
+  dtype = get_dtype(args)
   train_set, test_set, task, data_info = data_utils.make_ds_pmap_fullbatch(
       args.dataset_name, dtype, truncate_to=args.subset_train_to)
 

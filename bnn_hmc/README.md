@@ -1,35 +1,45 @@
 # What Are Bayesian Neural Network Posteriors Really Like?
 
-This repository contains the code to reproduce the experiments 
-in the paper
+This repository contains the code to reproduce the experiments in the paper
 
-_What Are Bayesian Neural Network Posteriors Really Like?_
+[_What Are Bayesian Neural Network Posteriors Really Like?_](https://arxiv.org/abs/2104.14421)
 
 by Pavel Izmailov, Sharad Vikram, Matthew D. Hoffman and Andrew Gordon Wilson.
 
+
 ## Introduction
 
-In the paper, we use full-batch Hamiltonian Monte Carlo (HMC) to investigate 
+In the paper, we use full-batch Hamiltonian Monte Carlo (HMC) to investigate
 foundational questions in Bayesian deep learning.
 We show that
-- BNNs can achieve significant performance gains over standard training and 
-  deep ensembles; 
-- a single long HMC chain can provide a comparable representation of the 
-  posterior to multiple shorter chains; 
-- in contrast to recent studies, we find posterior tempering is not needed for 
-  near-optimal performance, with little evidence for a ``cold posterior'' 
-  effect, which we show is largely an artifact of data augmentation; 
+- BNNs can achieve significant performance gains over standard training and
+  deep ensembles;
+- a single long HMC chain can provide a comparable representation of the
+  posterior to multiple shorter chains;
+- in contrast to recent studies, we find posterior tempering is not needed for
+  near-optimal performance, with little evidence for a ``cold posterior''
+  effect, which we show is largely an artifact of data augmentation;
 - BMA performance is robust to the choice of prior scale, and relatively similar
   for diagonal Gaussian, mixture of Gaussian, and logistic priors;
-- Bayesian neural networks show surprisingly poor generalization under domain 
+- Bayesian neural networks show surprisingly poor generalization under domain
   shift;
-- while cheaper alternatives such as deep ensembles and SGMCMC can provide good 
-  generalization, they provide distinct predictive 
-distributions from HMC. Notably, deep ensemble predictive distributions are 
+- while cheaper alternatives such as deep ensembles and SGMCMC can provide good
+  generalization, they provide distinct predictive
+distributions from HMC. Notably, deep ensemble predictive distributions are
   similarly close to HMC as standard SGLD, and closer than standard variational
   inference.
-  
+
 In this repository we provide JAX code for reproducing results in the paper.
+
+Please cite our work if you find it useful in your research:
+```bibtex
+@article{izmailov2021bayesian,
+  title={What Are Bayesian Neural Network Posteriors Really Like?},
+  author={Izmailov, Pavel and Vikram, Sharad and Hoffman, Matthew D and Wilson, Andrew Gordon},
+  journal={arXiv preprint arXiv:2104.14421},
+  year={2021}
+}
+```
 
 ## Requirements
 
@@ -89,17 +99,17 @@ instructions on how to install JAX on your hardware.
 Common command line arguments:
 
 * `seed` &mdash; random seed
-* `dir` &mdash; training directory for saving the checkpoints and 
+* `dir` &mdash; training directory for saving the checkpoints and
 tensorboard logs
-* `dataset_name` &mdash; name of the dataset, e.g. `cifar10`, `cifar100`, 
-  `imdb`; 
-  for the UCI datasets, the name is specified as 
+* `dataset_name` &mdash; name of the dataset, e.g. `cifar10`, `cifar100`,
+  `imdb`;
+  for the UCI datasets, the name is specified as
   `<UCI dataset name>_<random seed>`, e.g. `yacht_2`, where the seed determines
   the train-test split
 * `subset_train_to` &mdash; number of datapoints to use from the dataset;
   by default, the full dataset is used
-* `model_name` &mdash; name of the neural network architecture, e.g. `lenet`, 
-  `resnet20_frn_swish`, `cnn_lstm`, `mlp_regression_small` 
+* `model_name` &mdash; name of the neural network architecture, e.g. `lenet`,
+  `resnet20_frn_swish`, `cnn_lstm`, `mlp_regression_small`
 * `weight_decay` &mdash; weight decay; for Bayesian methods, weight decay
 determines the prior variance (`prior_var = 1 / weight_decay`)
 * `temperature` &mdash; posterior temperature (default: `1`)
@@ -116,13 +126,13 @@ To run HMC, you can use the `run_hmc.py` training script. Arguments:
 * `step_size` &mdash; HMC step size
 * `trajectory_len` &mdash; HMC trajectory length
 * `num_iterations` &mdash; Total number of HMC iterations
-* `max_num_leapfrog_steps` &mdash; Maximum number of leapfrog steps allowed; 
-  meant as a sanity check and should be greater than 
+* `max_num_leapfrog_steps` &mdash; Maximum number of leapfrog steps allowed;
+  meant as a sanity check and should be greater than
   `trajectory_len / step_size`
 * `num_burn_in_iterations` &mdash; Number of burn-in iterations (default: `0`)
 
 #### Examples
-CNN-LSTM on IMDB: 
+CNN-LSTM on IMDB:
 ```bash
 # Temperature = 1
 python3 run_hmc.py --seed=1 --weight_decay=40. --temperature=1. \
@@ -135,7 +145,7 @@ python3 run_hmc.py --seed=1 --weight_decay=40. --temperature=0.3 \
   --dir=runs/hmc/imdb/ --dataset_name=imdb --model_name=cnn_lstm \
   --use_float64 --step_size=3e-6 --trajectory_len=0.136 \
   --max_num_leapfrog_steps=46000
- 
+
 # Temperature = 0.1
 python3 run_hmc.py --seed=1 --weight_decay=40. --temperature=0.1 \
   --dir=runs/hmc/imdb/ --dataset_name=imdb --model_name=cnn_lstm \
@@ -154,7 +164,7 @@ MLP on a subset of 160 datapoints from MNIST:
 ```bash
 python3 run_hmc.py --seed=0 --weight_decay=1. --temperature=1. \
   --dir=runs/hmc/mnist_subset160 --dataset_name=mnist \
-  --model_name=mlp_classification --step_size=3.e-5 --trajectory_len=1.5 \ 
+  --model_name=mlp_classification --step_size=3.e-5 --trajectory_len=1.5 \
   --num_iterations=100 --max_num_leapfrog_steps=50000 \
   --num_burn_in_iterations=10 --subset_train_to=160
 ```
@@ -205,24 +215,24 @@ random seeds.
 ### Running SGMCMC
 
 To run SGMCMC variations, you can use the `run_sgmcmc.py` training script.
-It shares command line arguments with SGD, but also introduces the 
+It shares command line arguments with SGD, but also introduces the
 following arguments:
 
-* `preconditioner` &mdash; choice of preconditioner (`None` or `RMSprop`; 
+* `preconditioner` &mdash; choice of preconditioner (`None` or `RMSprop`;
   default: `None`)
 * `step_size_schedule` &mdash; choice step size schedule
   (`constant` or `cyclical`); constant sets the step size to `final_step_size`
-  after a cosine burn-in for `num_burnin_epochs` epochs. `cyclical` uses a 
-  constant burn-in for `num_burnin_epochs` epochs and then a cosine cyclical 
+  after a cosine burn-in for `num_burnin_epochs` epochs. `cyclical` uses a
+  constant burn-in for `num_burnin_epochs` epochs and then a cosine cyclical
   schedule (default: `constant`)
 * `num_burnin_epochs` &mdash; number of epochs before final lr is reached
-* `final_step_size` &mdash; final step size (used only with constant schedule; 
+* `final_step_size` &mdash; final step size (used only with constant schedule;
   default: `init_step_size`)
-* `step_size_cycle_length_epochs` &mdash; cycle length 
+* `step_size_cycle_length_epochs` &mdash; cycle length
   (epochs; used only with cyclic schedule; default: `50`)
 
 * `save_all_ensembled` &mdash; save all the networks that are ensembled
-* `ensemble_freq` &mdash; frequency of ensembling the iterates 
+* `ensemble_freq` &mdash; frequency of ensembling the iterates
   (epochs; default: `10`)
 
 #### Examples
@@ -236,7 +246,7 @@ python3 run_sgmcmc.py --seed=1 --weight_decay=5. --dir=runs/sgmcmc/cifar10/ \
   --final_step_size=1e-6 --num_epochs=10000 --num_burnin_epochs=1000 \
   --eval_freq=10 --batch_size=80 --save_freq=10 --momentum=0. \
   --subset_train_to=40960
-  
+
 # SGHMC
 python3 run_sgmcmc.py --seed=1 --weight_decay=5 --dir=runs/sgmcmc/cifar10/ \
   --dataset_name=cifar10 --model_name=resnet20_frn_swish --init_step_size=3e-7 \
@@ -251,7 +261,7 @@ python3 run_sgmcmc.py --seed=1 --weight_decay=5 --dir=runs/sgmcmc/cifar10/ \
   --step_size_cycle_length_epochs=50 --ensemble_freq=50 --eval_freq=10 \
   --batch_size=80 --save_freq=1000 --subset_train_to=40960 \
   --preconditioner=None --momentum=0.95 --eval_freq=10 --save_all_ensembled
-  
+
 # SGHMC-CLR-Prec
 python3 run_sgmcmc.py --seed=1 --weight_decay=5 --dir=runs/sghmc/cifar10/ \
   --dataset_name=cifar10 --model_name=resnet20_frn_swish --init_step_size=3e-5 \
@@ -263,18 +273,18 @@ python3 run_sgmcmc.py --seed=1 --weight_decay=5 --dir=runs/sghmc/cifar10/ \
 
 ### Running MFVI
 
-To run mean field variational inference (MFVI), you can use the `run_mfvi.py` 
-training script. It shares command line arguments with SGD, but also introduces 
+To run mean field variational inference (MFVI), you can use the `run_mfvi.py`
+training script. It shares command line arguments with SGD, but also introduces
 the following arguments:
 
 * `optimizer` &mdash; choice of optimizer (`SGD` or `Adam`; default: SGD)
-* `vi_sigma_init` &mdash; initial value of the standard deviation over the 
+* `vi_sigma_init` &mdash; initial value of the standard deviation over the
   weights in MFVI (default: 1e-3)
-* `vi_ensemble_size` &mdash; size of the ensemble sampled in the VI evaluation 
+* `vi_ensemble_size` &mdash; size of the ensemble sampled in the VI evaluation
   (default: 20)
-* `mean_init_checkpoint` &mdash; SGD checkpoint to use for initialization of 
+* `mean_init_checkpoint` &mdash; SGD checkpoint to use for initialization of
   the mean of the MFVI approximation
-  
+
 #### Examples
 
 ResNet-20-FRN on CIFAR-10 or CIFAR-100:
@@ -302,13 +312,13 @@ You can produce posterior density visualizations similar to the ones
 presented in the paper using the `makemake_posterior_surface_plot.py`
 script. Arguments:
 
-* `limit_bottom` &mdash; limit of the loss surface visualization along the 
+* `limit_bottom` &mdash; limit of the loss surface visualization along the
   vertical direction at the bottom (defaul: `-0.25`)
-* `limit_top` &mdash; limit of the loss surface visualization along the 
+* `limit_top` &mdash; limit of the loss surface visualization along the
   vertical direction at the top (defaul: `-0.25`)
-* `limit_left` &mdash; limit of the loss surface visualization along the 
+* `limit_left` &mdash; limit of the loss surface visualization along the
   horizontal direction on the left (defaul: `1.25`)
-* `limit_right` &mdash; limit of the loss surface visualization along the 
+* `limit_right` &mdash; limit of the loss surface visualization along the
   horizontal direction on the right (defaul: `1.25`)
 * `grid_size` &mdash; number of grid points in each direction (default: `20`)
 * `checkpoint1` &mdash; path to the first checkpoint
@@ -316,7 +326,7 @@ script. Arguments:
 * `checkpoint3` &mdash; path to the third checkpoint
 
 The script visualizes the posterior log-density, log-likelihood and log-prior
-in the plane containing the three provided checkpoints. 
+in the plane containing the three provided checkpoints.
 
 ### Example
 
@@ -324,7 +334,7 @@ CNN-LSTM on IMDB:
 ```bash
 python3 make_posterior_surface_plot.py --weight_decay=40 --temperature=1. \
   --dir=runs/surface_plots/imdb/ --model_name=cnn_lstm --dataset_name=imdb \
-  --checkpoint1=<ckpt1> --checkpoint2=<ckpt2> --checkpoint3=<ckpt3> 
+  --checkpoint1=<ckpt1> --checkpoint2=<ckpt2> --checkpoint3=<ckpt3>
   --limit_bottom=-0.75 --limit_left=-0.75 --limit_right=1.75 --limit_top=1.75 \
   --grid_size=50
 ```
