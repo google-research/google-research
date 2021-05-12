@@ -14,9 +14,9 @@
 # limitations under the License.
 
 """SVDF layer."""
-from kws_streaming.layers import depthwise_conv1d
 from kws_streaming.layers import modes
 from kws_streaming.layers import non_scaling_dropout
+from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
 
 
@@ -84,13 +84,17 @@ class Svdf(tf.keras.layers.Layer):
       self.dropout1 = tf.keras.layers.Lambda(lambda x, training: x)
     self.dense1 = tf.keras.layers.Dense(
         units=self.units1, use_bias=self.use_bias1)
-    self.depth_cnn1 = depthwise_conv1d.DepthwiseConv1D(
-        memory_size=self.memory_size,
+    self.depth_cnn1 = stream.Stream(
+        cell=tf.keras.layers.DepthwiseConv2D(
+            kernel_size=(self.memory_size, 1),
+            strides=(1, 1),
+            padding='valid',
+            dilation_rate=(1, 1),
+            use_bias=self.use_bias),
         inference_batch_size=self.inference_batch_size,
-        use_bias=self.use_bias,
         mode=self.mode,
-        pad=self.pad,
-        state_name_tag=self.state_name_tag)
+        use_one_step=False,
+        pad_time_dim=self.pad)
     if self.units2 > 0:
       self.dense2 = tf.keras.layers.Dense(units=self.units2, use_bias=True)
     else:
@@ -114,13 +118,22 @@ class Svdf(tf.keras.layers.Layer):
     return output_shape
 
   def call(self, inputs, training=None):
-    output = self.dropout1(inputs, training=training)
-    output = self.dense1(output)
-    output = self.depth_cnn1(output)
-    output = self.batch_norm(output, training=training)
-    output = self.activation(output)
-    output = self.dense2(output)
-    return output
+    net = inputs
+
+    # add fake dim [batch, time, 1, feature]
+    net = tf.keras.backend.expand_dims(net, axis=2)
+
+    net = self.dropout1(net, training=training)
+    net = self.dense1(net)
+    net = self.depth_cnn1(net)
+    net = self.batch_norm(net, training=training)
+    net = self.activation(net)
+    net = self.dense2(net)
+
+    # [batch, time, feature]
+    net = tf.squeeze(net, [2])
+
+    return net
 
   def get_config(self):
     config = {
