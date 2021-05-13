@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-r"""Loads a graph and checkpoint, and writes to disk as a savedmodel.
+r"""Loads a distilled Keras model and writes to disk as a savedmodel.
 
 """
 
@@ -35,7 +35,8 @@ flags.DEFINE_bool('tflite', False, 'Whether to make a TFLite model.')
 # Controls the model.
 flags.DEFINE_integer('bottleneck_dimension', None, 'Dimension of bottleneck.')
 flags.DEFINE_float('alpha', 1.0, 'Alpha controlling model size.')
-flags.DEFINE_string('mobilenet_size', 'small', 'Size of mobilenet')
+flags.DEFINE_enum('mobilenet_size', 'small', ['tiny', 'small', 'large'],
+                  'Size of mobilenet')
 flags.DEFINE_bool('avg_pool', False, 'Whether to use average pool.')
 flags.DEFINE_string('compressor', None,
                     'Whether to use bottleneck compression.')
@@ -72,6 +73,8 @@ def main(unused_argv):
       'quantize_aware_training': FLAGS.qat,
       'tflite': FLAGS.tflite,
   }
+  if not tf.io.gfile.exists(FLAGS.output_directory):
+    tf.io.gfile.makedirs(FLAGS.output_directory)
   load_and_write_model(
       keras_model_args, checkpoint_to_load, FLAGS.output_directory)
   assert tf.io.gfile.exists(FLAGS.output_directory)

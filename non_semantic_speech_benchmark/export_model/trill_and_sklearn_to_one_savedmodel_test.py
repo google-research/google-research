@@ -20,7 +20,7 @@ import numpy as np
 from sklearn import linear_model
 import tensorflow as tf
 
-from non_semantic_speech_benchmark.eval_embedding.sklearn import sklearn_to_savedmodel
+from non_semantic_speech_benchmark.export_model import trill_and_sklearn_to_one_savedmodel
 
 
 class SklearnToSavedmodelTest(absltest.TestCase):
@@ -30,7 +30,8 @@ class SklearnToSavedmodelTest(absltest.TestCase):
       m = linear_model.LogisticRegression()
       n_samples, n_features = 10, 2048
       m.fit(np.random.rand(n_samples, n_features), [1] * 5 + [0] * 5)
-      k = sklearn_to_savedmodel.sklearn_logistic_regression_to_keras(m)
+      k = trill_and_sklearn_to_one_savedmodel.sklearn_logistic_regression_to_keras(
+          m)
 
       for j in range(20):
         rng = np.random.RandomState(i * j)
