@@ -130,8 +130,7 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
 
   @parameterized.parameters(
       {'feature_inputs': True},
-      # TODO(joelshor): Make a small model for this test.
-      # {'feature_inputs': False},
+      {'feature_inputs': False},
   )
   def test_tflite_inference(self, feature_inputs):
     test_dir = 'non_semantic_speech_benchmark/data_prep/testdata'
