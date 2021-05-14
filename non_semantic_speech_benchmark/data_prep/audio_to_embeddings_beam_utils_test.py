@@ -34,7 +34,7 @@ def _s2e(audio_samples, sample_rate, module_location, output_key):
   return np.zeros(BASE_SHAPE_, dtype=np.float32)
 
 
-def _build_tflite_interpreter_dummy(tflite_model_path):
+def build_tflite_interpreter_dummy(tflite_model_path):
   del tflite_model_path
   return None
 
@@ -88,11 +88,11 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
   )
   @mock.patch.object(
       audio_to_embeddings_beam_utils,
-      '_build_tflite_interpreter',
-      new=_build_tflite_interpreter_dummy)
+      'build_tflite_interpreter',
+      new=build_tflite_interpreter_dummy)
   @mock.patch.object(
       audio_to_embeddings_beam_utils,
-      '_samples_to_embedding_tflite',
+      'samples_to_embedding_tflite',
       new=_s2e)
   def test_compute_embedding_map_fn_tflite(
       self, average_over_time, sample_rate_key, sample_rate):
@@ -141,7 +141,7 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
     tflite_model_path = os.path.join(
         absltest.get_default_test_srcdir(), test_dir, test_file)
     output_key = '0'
-    interpreter = audio_to_embeddings_beam_utils._build_tflite_interpreter(
+    interpreter = audio_to_embeddings_beam_utils.build_tflite_interpreter(
         tflite_model_path=tflite_model_path)
 
     model_input = np.zeros([32000], dtype=np.float32)
@@ -152,7 +152,7 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
     else:
       model_input = np.expand_dims(model_input, axis=0)
 
-    audio_to_embeddings_beam_utils._samples_to_embedding_tflite(
+    audio_to_embeddings_beam_utils.samples_to_embedding_tflite(
         model_input, sample_rate, interpreter, output_key)
 
   @parameterized.parameters(

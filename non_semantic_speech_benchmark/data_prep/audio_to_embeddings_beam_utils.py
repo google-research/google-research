@@ -66,7 +66,7 @@ def _samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
   return np.array(tf_out[output_key])
 
 
-def _build_tflite_interpreter(tflite_model_path):
+def build_tflite_interpreter(tflite_model_path):
   model_content = None
   with tf.io.gfile.GFile(tflite_model_path, 'rb') as model_file:
     model_content = model_file.read()
@@ -82,8 +82,8 @@ def _default_feature_fn(samples, sample_rate):
       axis=-1).numpy().astype(np.float32)
 
 
-def _samples_to_embedding_tflite(model_input, sample_rate, interpreter,
-                                 output_key):
+def samples_to_embedding_tflite(model_input, sample_rate, interpreter,
+                                output_key):
   """Run TFLite inference to map audio samples to an embedding."""
   input_details = interpreter.get_input_details()
   output_details = interpreter.get_output_details()
@@ -139,7 +139,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
 
   def setup(self):
     if self._use_tflite:
-      self.interpreter = _build_tflite_interpreter(self._module)
+      self.interpreter = build_tflite_interpreter(self._module)
     else:
       self.module = hub.load(self._module)
 
@@ -200,7 +200,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
 
     # Calculate the 2D embedding.
     if self._use_tflite:
-      embedding_2d = _samples_to_embedding_tflite(
+      embedding_2d = samples_to_embedding_tflite(
           model_input, sample_rate, self.interpreter, self._output_key)
     else:
       embedding_2d = _samples_to_embedding_tfhub(

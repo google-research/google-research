@@ -28,9 +28,12 @@ import os
 
 from absl import app
 from absl import flags
+from absl import logging
 
+import numpy as np
 import tensorflow as tf
 
+from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_utils
 from non_semantic_speech_benchmark.distillation import models
 from non_semantic_speech_benchmark.distillation.compression_lib import compression_op as compression
 from non_semantic_speech_benchmark.distillation.compression_lib import compression_wrapper
@@ -146,7 +149,7 @@ def main(_):
   experiment_dir_to_model = {}
   i = 0
   for experiment_dir in experiment_dirs:
-    print('Working on hyperparams: ' + experiment_dir)
+    logging.info('Working on hyperparams: %s', experiment_dir)
     i += 1
     params = get_params(experiment_dir)
     experiment_dir_to_params[experiment_dir] = params
@@ -161,15 +164,30 @@ def main(_):
         checkpoint_number=FLAGS.checkpoint_number,
         include_frontend=FLAGS.include_frontend)
     quantize = params['qat']
-    tflite_model = os.path.join(FLAGS.output_dir, 'model_{}.tflite'.format(i))
+    model_path = os.path.join(FLAGS.output_dir, 'model_{}.tflite'.format(i))
     convert_tflite_model(
-        static_model, quantize=quantize, model_path=tflite_model)
-    experiment_dir_to_model[experiment_dir] = tflite_model
+        static_model, quantize=quantize, model_path=model_path)
+    experiment_dir_to_model[experiment_dir] = model_path
     if quantize:
-      print('Exported INT8 TFLite model')
+      logging.info('Exported INT8 TFLite model')
     else:
-      print('Exported FP32 TFLite model')
-  print('Total TFLite models generated: {}'.format(i))
+      logging.info('Exported FP32 TFLite model')
+
+    logging.info('Sanity checking...')
+    interpreter = audio_to_embeddings_beam_utils.build_tflite_interpreter(
+        model_path)
+    if FLAGS.include_frontend:
+      model_input = np.zeros([1, 32000], dtype=np.float32)
+      expected_output_shape = (7, params['bd'])
+    else:
+      model_input = np.zeros([1, 96, 64, 1], dtype=np.float32)
+      expected_output_shape = (1, params['bd'])
+    output = audio_to_embeddings_beam_utils.samples_to_embedding_tflite(
+        model_input, sample_rate=16000, interpreter=interpreter, output_key='0')
+    np.testing.assert_array_equal(output.shape, expected_output_shape)
+    logging.info('Model "%s" worked.', model_path)
+
+  logging.info('Total TFLite models generated: %i', i)
 
 
 if __name__ == '__main__':
