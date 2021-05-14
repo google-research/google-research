@@ -28,18 +28,22 @@ from non_semantic_speech_benchmark.distillation.compression_lib import compressi
 class ModelsTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      {'use_frontend': True, 'bottleneck': 3},
-      {'use_frontend': False, 'bottleneck': 3},
-      {'use_frontend': True, 'bottleneck': 0},
+      {'frontend': True, 'bottleneck': 3, 'tflite': True},
+      {'frontend': False, 'bottleneck': 3, 'tflite': True},
+      {'frontend': True, 'bottleneck': 3, 'tflite': False},
+      {'frontend': False, 'bottleneck': 3, 'tflite': False},
+      {'frontend': True, 'bottleneck': 0, 'tflite': False},
   )
-  def test_model_frontend(self, use_frontend, bottleneck):
-    if use_frontend:
-      input_tensor_shape = [2, 32000]  # audio signal
+  def test_model_frontend(self, frontend, bottleneck, tflite):
+    if frontend:
+      input_tensor_shape = [1 if tflite else 2, 32000]  # audio signal.
     else:
-      input_tensor_shape = [1, 96, 64, 1]  # log Mel spectrogram
+      input_tensor_shape = [3, 96, 64, 1]  # log Mel spectrogram.
     input_tensor = tf.zeros(input_tensor_shape, dtype=tf.float32)
+    output_dimension = 5
 
-    m = models.get_keras_model(bottleneck, 5, frontend=use_frontend)
+    m = models.get_keras_model(
+        bottleneck, output_dimension, frontend=frontend, tflite=tflite)
     o_dict = m(input_tensor)
     emb, o = o_dict['embedding'], o_dict['embedding_to_target']
 
