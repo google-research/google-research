@@ -198,7 +198,7 @@ class MapVisualizer(object):
         vmin=plot_min_speed, vmax=plot_max_speed,
         c=vehicle_to_trajectory[vehicle_id][metric],  # m/s
         cmap=pylab.plt.cm.get_cmap('RdYlGn'),
-        edgecolor='', s=18)
+        edgecolors=None, s=18)
     cbar = pylab.plt.colorbar(image)
     if metric == 'speed':
       cbar.ax.set_ylabel('speed [m/s]')
@@ -268,7 +268,7 @@ class MapVisualizer(object):
         vmin=plot_min_speed, vmax=plot_max_speed,
         c=values,
         cmap=pylab.plt.cm.get_cmap('RdYlGn'),
-        edgecolor='', s=1)
+        edgecolors=None, s=1)
     cbar = pylab.plt.colorbar(image)
     if key == 'speed':
       cbar.ax.set_ylabel('speed [m/s]')
@@ -437,7 +437,7 @@ class MapVisualizer(object):
         vmin=plot_min_speed, vmax=plot_max_speed,
         c=values,  # m/s
         cmap=pylab.plt.cm.get_cmap('RdYlGn'),
-        edgecolor='', s=1)
+        edgecolors=None, s=1)
     cbar = pylab.plt.colorbar(image)
     cbar.ax.set_ylabel('speed [m/s]')
     ax.autoscale_view(True, True, True)
@@ -894,4 +894,3 @@ class MapVisualizer(object):
     area1 = cls._calculate_area_under_cummulative_curve(x1, y1)
     area2 = cls._calculate_area_under_cummulative_curve(x2, y2)
     return np.abs(area1 - area2)
-
