@@ -25,6 +25,7 @@ import contextlib
 import functools
 import json
 
+from typing import Any, Callable, Dict, Text, Union
 from absl import flags
 from absl import logging
 import gin
@@ -32,7 +33,6 @@ import numpy as np
 import simplejson
 import tensorflow.compat.v2 as tf
 import tensorflow_probability as tfp
-from typing import Any, Callable, Dict, Text
 import yaml
 
 # pylint: disable=g-import-not-at-top
