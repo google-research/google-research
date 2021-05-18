@@ -36,9 +36,10 @@ import tensorflow_probability as tfp
 import yaml
 
 # pylint: disable=g-import-not-at-top
-USE_LOCAL_FUN_MCMC = True
-if USE_LOCAL_FUN_MCMC:
-  from discussion import fun_mcmc  # pylint: disable=reimported
+USE_LOCAL_FUN_MC = True
+
+if USE_LOCAL_FUN_MC:
+  from fun_mc import using_tensorflow as fun_mc  # pylint: disable=reimported
 
 tfd = tfp.distributions
 tfb = tfp.bijectors
@@ -238,15 +239,15 @@ def SanitizedAutoCorrelationMean(x, axis, reduce_axis, max_lags=None, **kwargs):
   mean_shape = shape_arr[axes]
   if max_lags is not None:
     mean_shape[axis] = max_lags + 1
-  mean_state = fun_mcmc.running_mean_init(mean_shape, x.dtype)
+  mean_state = fun_mc.running_mean_init(mean_shape, x.dtype)
   new_order = list(range(len(shape_arr)))
   new_order[0] = new_order[reduce_axis]
   new_order[reduce_axis] = 0
   x = tf.transpose(x, new_order)
   x_arr = tf.TensorArray(x.dtype, x.shape[0]).unstack(x)
-  mean_state, _ = fun_mcmc.trace(
+  mean_state, _ = fun_mc.trace(
       state=mean_state,
-      fn=lambda state: fun_mcmc.running_mean_step(  # pylint: disable=g-long-lambda
+      fn=lambda state: fun_mc.running_mean_step(  # pylint: disable=g-long-lambda
           state,
           SanitizedAutoCorrelation(
               x_arr.read(state.num_points), axis, max_lags=max_lags, **kwargs)),
