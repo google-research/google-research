@@ -237,10 +237,31 @@ We receive audio data in streaming mode: packet by packet.
 Inference graph is stateless, so that graph has no internal state.
 All states are received as inputs and after update are returned as output state
 
-### Further information
+
+## Model quantization
+
+Two options are supported: post training quantization and quantization aware training described below.
+
+### Post training quantization
+
+Post training quantization will be done by [TFLite](https://www.tensorflow.org/lite/performance/post_training_quantization) in evaluation [script](https://github.com/google-research/google-research/blob/master/kws_streaming/train/model_train_eval.py#L187).
+If calibration data are not provided then [hybrid quantization](https://www.tensorflow.org/lite/performance/post_training_quant) will be applied: part of the model will use int operations and remaining part float (there can be still significant inference latency reduction).
+With calibration data set model will be [fully quantized](https://www.tensorflow.org/lite/performance/post_training_integer_quant): model will use only int operations.
+
+### Quantization aware training
+
+Quantization aware training is done with [tensorflow-model-optimization](https://www.tensorflow.org/model_optimization/guide/quantization/training_comprehensive_guide).
+
+#### Quantization aware training with functional api
+Example with functional api is shown in [cnn_test](https://github.com/google-research/google-research/blob/master/kws_streaming/models/cnn_test.py): because we use custom keras layers for streaming aware design, layers quantization annotation has to be done manually, as show in [cnn](https://github.com/google-research/google-research/blob/master/kws_streaming/models/cnn.py) model. We demonstrated how convolutional and batch-norm layers have to be annotated, so that they are trained in quantization aware manner and later can be fused by TFlite.
+
+#### Quantization aware training with sub class api
+Example with subclass api is shown in [conv_model_test](https://github.com/google-research/google-research/blob/master/kws_streaming/models_sub/conv_model_test.py). We use [conv_model](https://github.com/google-research/google-research/blob/master/kws_streaming/models_sub/conv_model.py).
+
+## Further information
 Summary about this work is presented at paper [Streaming keyword spotting on mobile devices](https://arxiv.org/abs/2005.06720)
 All experiments on KWS models presented in this paper can be reproduced by
-following the steps described in [kws_experiments_paper](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_paper.md).
+following the steps described in [kws_experiments_paper_12_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_paper_12_labels.md).
 Models were trained on a desktop (Ubuntu) and tested on a Pixel4 phone.
 
 
@@ -327,7 +348,7 @@ feature extractor is based on TFLite custom operations. This kind of feature ext
 functionally is the same with mfcc_tf, but all DFT, DCT are executed using FFT,
 so it will be faster and model size will be defined by neural net only.
 If you specify --feature_type 'mfcc_op', then model will be trained and
-evaluated in unquantized and quantized form (only post training quantization is supported). With mfcc_op we observed insignificant accuracy reduction of quantized models.
+evaluated in unquantized and quantized form (here post training quantization is applied). With mfcc_op we observed insignificant accuracy reduction of quantized models.
 
 
 

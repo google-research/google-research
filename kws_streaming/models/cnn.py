@@ -19,7 +19,7 @@ from kws_streaming.layers import quantize
 from kws_streaming.layers import speech_features
 from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
-from kws_streaming.models import utils
+import kws_streaming.models.model_utils as utils
 from tensorflow_model_optimization.python.core.quantization.keras import quantize_layer
 from tensorflow_model_optimization.python.core.quantization.keras.default_8bit import default_8bit_quantize_configs
 from tensorflow_model_optimization.python.core.quantization.keras.quantizers import AllValuesQuantizer

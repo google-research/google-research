@@ -15,11 +15,8 @@
 
 # Lint as: python3
 """Utility functions for operations on Model."""
-
-import ast
 import os.path
 from typing import Sequence
-
 from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
@@ -31,40 +28,6 @@ from tensorflow.python.keras import models as models_utils
 from tensorflow.python.keras.engine import functional
 # pylint: enable=g-direct-tensorflow-import
 from tensorflow_model_optimization.python.core.quantization.keras import quantize
-
-
-def conv2d_bn(x,
-              filters,
-              kernel_size,
-              padding='same',
-              strides=(1, 1),
-              activation='relu',
-              use_bias=False,
-              scale=False):
-  """Utility function to apply conv + BN.
-
-  Arguments:
-    x: input tensor.
-    filters: filters in `Conv2D`.
-    kernel_size: size of convolution kernel.
-    padding: padding mode in `Conv2D`.
-    strides: strides in `Conv2D`.
-    activation: activation function applied in the end.
-    use_bias: use bias for convolution.
-    scale: scale batch normalization.
-
-  Returns:
-    Output tensor after applying `Conv2D` and `BatchNormalization`.
-  """
-
-  x = tf.keras.layers.Conv2D(
-      filters, kernel_size,
-      strides=strides,
-      padding=padding,
-      use_bias=use_bias)(x)
-  x = tf.keras.layers.BatchNormalization(scale=scale)(x)
-  x = tf.keras.layers.Activation(activation)(x)
-  return x
 
 
 def save_model_summary(model, path, file_name='model_summary.txt'):
@@ -409,24 +372,6 @@ def model_to_saved(model_non_stream,
 
   save_model_summary(model, save_model_path)
   model.save(save_model_path, include_optimizer=False, save_format='tf')
-
-
-def parse(text):
-  """Parse model parameters.
-
-  Args:
-    text: string with layer parameters: '128,128' or "'relu','relu'".
-
-  Returns:
-    list of parsed parameters
-  """
-  if not text:
-    return []
-  res = ast.literal_eval(text)
-  if isinstance(res, tuple):
-    return res
-  else:
-    return [res]
 
 
 def next_power_of_two(x):

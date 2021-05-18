@@ -17,7 +17,7 @@
 from kws_streaming.layers import data_frame
 from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
-from kws_streaming.models import utils
+import kws_streaming.models.model_utils as utils
 
 
 def model_parameters(parser_nn):

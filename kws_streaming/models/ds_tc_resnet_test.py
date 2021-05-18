@@ -22,6 +22,7 @@ from kws_streaming.layers.compat import tf1
 from kws_streaming.layers.modes import Modes
 from kws_streaming.models import model_flags
 from kws_streaming.models import model_params
+from kws_streaming.models import model_utils
 from kws_streaming.models import utils
 import kws_streaming.models.ds_tc_resnet as ds_tc_resnet
 from kws_streaming.train import test
@@ -64,8 +65,8 @@ class DsTcResnetTest(tf.test.TestCase, parameterized.TestCase):
     self.params = model_flags.update_flags(self.params)
 
     # compute total stride
-    pools = utils.parse(self.params.ds_pool)
-    strides = utils.parse(self.params.ds_stride)
+    pools = model_utils.parse(self.params.ds_pool)
+    strides = model_utils.parse(self.params.ds_stride)
     time_stride = [1]
     for pool in pools:
       if pool > 1:

@@ -18,7 +18,7 @@ from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
 from kws_streaming.layers import svdf
 from kws_streaming.layers.compat import tf
-from kws_streaming.models import utils
+import kws_streaming.models.model_utils as utils
 
 
 def model_parameters(parser_nn):

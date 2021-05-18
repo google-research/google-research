@@ -108,7 +108,7 @@ from absl import logging
 import tensorflow.compat.v1 as tf
 from kws_streaming.layers import modes
 from kws_streaming.models import model_flags
-from kws_streaming.models import utils
+from kws_streaming.models import model_utils
 import kws_streaming.models.att_mh_rnn as att_mh_rnn
 import kws_streaming.models.att_rnn as att_rnn
 import kws_streaming.models.cnn as cnn
@@ -212,14 +212,14 @@ def main(_):
     # below models can use striding in time dimension,
     # but this is currently unsupported
     elif flags.model_name == 'cnn':
-      for strides in utils.parse(flags.cnn_strides):
+      for strides in model_utils.parse(flags.cnn_strides):
         if strides[0] > 1:
           model_is_streamable = False
           break
     elif flags.model_name == 'ds_cnn':
-      if utils.parse(flags.cnn1_strides)[0] > 1:
+      if model_utils.parse(flags.cnn1_strides)[0] > 1:
         model_is_streamable = False
-      for strides in utils.parse(flags.dw2_strides):
+      for strides in model_utils.parse(flags.dw2_strides):
         if strides[0] > 1:
           model_is_streamable = False
           break
