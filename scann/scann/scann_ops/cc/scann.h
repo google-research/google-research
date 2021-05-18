@@ -15,6 +15,7 @@
 #ifndef SCANN_SCANN_OPS_CC_SCANN_H_
 #define SCANN_SCANN_OPS_CC_SCANN_H_
 
+#include <cstdint>
 #include <limits>
 
 #include "absl/memory/memory.h"

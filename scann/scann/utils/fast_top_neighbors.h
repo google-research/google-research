@@ -15,6 +15,7 @@
 #ifndef SCANN_UTILS_FAST_TOP_NEIGHBORS_H_
 #define SCANN_UTILS_FAST_TOP_NEIGHBORS_H_
 
+#include <cstdint>
 #include <string>
 
 #include "absl/numeric/int128.h"

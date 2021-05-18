@@ -18,6 +18,7 @@
 #define SCANN_HASHES_INTERNAL_ASYMMETRIC_HASHING_IMPL_H_
 
 #include <cmath>
+#include <cstdint>
 
 #include "scann/base/restrict_allowlist.h"
 #include "scann/data_format/datapoint.h"

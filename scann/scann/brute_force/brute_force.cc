@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cstdint>
 
 #include "absl/synchronization/mutex.h"
 #include "scann/base/restrict_allowlist.h"
@@ -60,10 +61,6 @@ Status BruteForceSearcher<T>::EnableCrowdingImpl(
         "number of datapoints.  (",
         datapoint_index_to_crowding_attribute.size(), " vs. ",
         this->dataset()->size(), "."));
-  } else if (mutator_) {
-    return FailedPreconditionError(
-        "Mutation and crowding may not yet be used simultaneously on a single "
-        "BruteForceSearcher instance.");
   }
   return OkStatus();
 }

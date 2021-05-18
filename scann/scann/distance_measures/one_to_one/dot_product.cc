@@ -14,6 +14,8 @@
 
 #include "scann/distance_measures/one_to_one/dot_product.h"
 
+#include <cstdint>
+
 namespace research_scann {
 
 double BinaryDotProductDistance::GetDistanceDense(

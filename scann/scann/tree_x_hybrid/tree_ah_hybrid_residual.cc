@@ -17,6 +17,7 @@
 #include "scann/tree_x_hybrid/tree_ah_hybrid_residual.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <numeric>
 #include <unordered_set>
 
@@ -38,6 +39,7 @@
 #include "scann/projection/projection_factory.h"
 #include "scann/proto/centers.pb.h"
 #include "scann/proto/distance_measure.pb.h"
+#include "scann/tree_x_hybrid/internal/batching.h"
 #include "scann/tree_x_hybrid/internal/utils.h"
 #include "scann/tree_x_hybrid/tree_x_params.h"
 #include "scann/utils/fast_top_neighbors.h"
@@ -68,6 +70,12 @@ Status TreeAHHybridResidual::EnableCrowdingImpl(
     }
   }
   return OkStatus();
+}
+
+void TreeAHHybridResidual::DisableCrowdingImpl() {
+  for (auto& ls : leaf_searchers_) {
+    ls->DisableCrowding();
+  }
 }
 
 Status TreeAHHybridResidual::CheckBuildLeafSearchersPreconditions(
@@ -212,17 +220,27 @@ StatusOr<uint8_t> TreeAHHybridResidual::ComputeGlobalTopNShift(
   return global_topn_shift;
 }
 
-StatusOr<unique_ptr<SearchParameters::UnlockedQueryPreprocessingResults>>
-TreeAHHybridResidual::UnlockedPreprocessQuery(
-    const DatapointPtr<float>& query) const {
+Status TreeAHHybridResidual::PreprocessQueryIntoParamsUnlocked(
+    const DatapointPtr<float>& query, SearchParameters& search_params) const {
+  const auto& params =
+      search_params
+          .searcher_specific_optional_parameters<TreeXOptionalParameters>();
+  int32_t max_centers_override = 0;
+
+  if (params)
+    max_centers_override = params->num_partitions_to_search_override();
+
   vector<KMeansTreeSearchResult> centers_to_search;
   SCANN_RETURN_IF_ERROR(query_tokenizer_->TokensForDatapointWithSpilling(
-      query, 0, &centers_to_search));
+      query, max_centers_override, &centers_to_search));
+
   TF_ASSIGN_OR_RETURN(
       auto shared_lookup_table,
       asymmetric_queryer_->CreateLookupTable(query, lookup_type_tag_));
-  return {make_unique<UnlockedTreeAHHybridResidualPreprocessingResults>(
-      std::move(centers_to_search), std::move(shared_lookup_table))};
+  search_params.set_unlocked_query_preprocessing_results(
+      {make_unique<UnlockedTreeAHHybridResidualPreprocessingResults>(
+          std::move(centers_to_search), std::move(shared_lookup_table))});
+  return OkStatus();
 }
 
 Status TreeAHHybridResidual::BuildLeafSearchers(
@@ -323,10 +341,10 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
         return;
       }
     }
-    asymmetric_hashing2::SearcherOptions<float> opts;
+    asymmetric_hashing2::SearcherOptions<float> opts(asymmetric_queryer_,
+                                                     indexer);
     opts.set_asymmetric_lookup_type(lookup_type_tag_);
     opts.set_noise_shaping_threshold(config.noise_shaping_threshold());
-    opts.EnableAsymmetricQuerying(asymmetric_queryer_, indexer);
     leaf_searchers_[token] = make_unique<asymmetric_hashing2::Searcher<float>>(
         nullptr, std::move(hashed_partition), std::move(opts),
         default_pre_reordering_num_neighbors(),
@@ -383,26 +401,7 @@ Status TreeAHHybridResidual::FindNeighborsImpl(const DatapointPtr<float>& query,
 }
 
 namespace {
-
-bool SupportsLowLevelBatching(const TypedDataset<float>& queries,
-                              ConstSpan<SearchParameters> params) {
-  if (!queries.IsDense()) return false;
-  for (const SearchParameters& p : params) {
-    if (p.pre_reordering_crowding_enabled() || p.restricts_enabled()) {
-      return false;
-    }
-  }
-  return true;
-}
-
-struct QueryForLeaf {
-  QueryForLeaf() {}
-  QueryForLeaf(DatapointIndex query_index, float distance_to_center)
-      : query_index(query_index), distance_to_center(distance_to_center) {}
-
-  DatapointIndex query_index = 0;
-  float distance_to_center = NAN;
-};
+using QueryForLeaf = tree_x_internal::QueryForResidualLeaf;
 
 vector<std::vector<QueryForLeaf>> InvertCentersToSearch(
     ConstSpan<vector<KMeansTreeSearchResult>> centers_to_search,
@@ -417,48 +416,6 @@ vector<std::vector<QueryForLeaf>> InvertCentersToSearch(
     }
   }
   return result;
-}
-
-vector<SearchParameters> CreateParamsSubsetForLeaf(
-    ConstSpan<SearchParameters> params,
-    ConstSpan<FastTopNeighbors<float>::Mutator> mutators,
-    ConstSpan<
-        shared_ptr<asymmetric_hashing2::AsymmetricHashingOptionalParameters>>
-        lookup_tables,
-    ConstSpan<QueryForLeaf> queries_for_leaf) {
-  vector<SearchParameters> result;
-  result.reserve(queries_for_leaf.size());
-  for (const QueryForLeaf& q : queries_for_leaf) {
-    SearchParameters leaf_params;
-    leaf_params.set_pre_reordering_num_neighbors(
-        params[q.query_index].pre_reordering_num_neighbors());
-    leaf_params.set_pre_reordering_epsilon(mutators[q.query_index].epsilon() -
-                                           q.distance_to_center);
-    leaf_params.set_searcher_specific_optional_parameters(
-        lookup_tables[q.query_index]);
-    result.emplace_back(std::move(leaf_params));
-  }
-  return result;
-}
-
-template <typename Mutator>
-void AddLeafResultsToTopN(ConstSpan<DatapointIndex> local_to_global_index,
-                          const float distance_to_center,
-                          const float cluster_stdev_adjustment,
-                          ConstSpan<pair<DatapointIndex, float>> leaf_results,
-                          Mutator* mutator) {
-  float epsilon = mutator->epsilon();
-  for (const auto& result : leaf_results) {
-    const float dist =
-        result.second * cluster_stdev_adjustment + distance_to_center;
-    if (dist < epsilon) {
-      if (ABSL_PREDICT_FALSE(
-              mutator->Push(local_to_global_index[result.first], dist))) {
-        mutator->GarbageCollect();
-        epsilon = mutator->epsilon();
-      }
-    }
-  }
 }
 
 template <typename TopN>
@@ -495,7 +452,7 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
     SCANN_RETURN_IF_ERROR(
         query_tokenizer_->TokensForDatapointWithSpillingBatched(
             queries, vector<int32_t>(), MakeMutableSpan(centers_to_search)));
-  if (!SupportsLowLevelBatching(queries, params) ||
+  if (!tree_x_internal::SupportsLowLevelBatching(queries, params) ||
       !leaf_searchers_[0]->lut16_ ||
       leaf_searchers_[0]->opts_.quantization_scheme() ==
           AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
@@ -507,9 +464,9 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
   }
   auto queries_by_leaf =
       InvertCentersToSearch(centers_to_search, query_tokenizer_->n_tokens());
-  vector<shared_ptr<AsymmetricHashingOptionalParameters>> lookup_tables(
+  vector<shared_ptr<const SearcherSpecificOptionalParameters>> lookup_tables(
       queries.size());
-  for (size_t i = 0; i < queries.size(); ++i) {
+  for (size_t i : IndicesOf(queries)) {
     TF_ASSIGN_OR_RETURN(auto lut, asymmetric_queryer_->CreateLookupTable(
                                       queries[i], lookup_type_tag_));
     lookup_tables[i] =
@@ -527,8 +484,9 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
   for (size_t leaf_token : leaf_tokens_by_norm_) {
     ConstSpan<QueryForLeaf> queries_for_cur_leaf = queries_by_leaf[leaf_token];
     if (queries_for_cur_leaf.empty()) continue;
-    vector<SearchParameters> leaf_params = CreateParamsSubsetForLeaf(
-        params, mutators, lookup_tables, queries_for_cur_leaf);
+    vector<SearchParameters> leaf_params =
+        tree_x_internal::CreateParamsSubsetForLeaf<QueryForLeaf>(
+            params, mutators, lookup_tables, queries_for_cur_leaf);
     auto get_query = [&queries, &queries_for_cur_leaf](DatapointIndex i) {
       return queries[queries_for_cur_leaf[i].query_index];
     };
@@ -552,7 +510,7 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
     for (size_t j = 0; j < queries_for_cur_leaf.size(); ++j) {
       const DatapointIndex cur_query_index =
           queries_for_cur_leaf[j].query_index;
-      AddLeafResultsToTopN(
+      tree_x_internal::AddLeafResultsToTopN(
           local_to_global_index, queries_for_cur_leaf[j].distance_to_center,
           partition_stdev, leaf_results[j], &mutators[cur_query_index]);
     }
@@ -669,8 +627,9 @@ Status TreeAHHybridResidual::FindNeighborsInternal2(
         leaf_searchers_[token]->FindNeighborsNoSortNoExactReorder(
             query, leaf_params, &leaf_results));
     float cluster_stdev_adjustment = centers_to_search[i].residual_stdev;
-    AddLeafResultsToTopN(datapoints_by_token_[token], distance_to_center,
-                         cluster_stdev_adjustment, leaf_results, &mutator);
+    tree_x_internal::AddLeafResultsToTopN(
+        datapoints_by_token_[token], distance_to_center,
+        cluster_stdev_adjustment, leaf_results, &mutator);
   }
   mutator.Release();
 

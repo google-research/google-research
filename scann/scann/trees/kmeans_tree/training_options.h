@@ -17,6 +17,8 @@
 #ifndef SCANN_TREES_KMEANS_TREE_TRAINING_OPTIONS_H_
 #define SCANN_TREES_KMEANS_TREE_TRAINING_OPTIONS_H_
 
+#include <cstdint>
+
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/utils/gmm_utils.h"

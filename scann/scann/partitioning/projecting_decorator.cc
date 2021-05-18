@@ -16,6 +16,8 @@
 
 #include "scann/partitioning/projecting_decorator.h"
 
+#include <cstdint>
+
 #include "scann/utils/datapoint_utils.h"
 #include "tensorflow/core/lib/core/errors.h"
 

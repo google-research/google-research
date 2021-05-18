@@ -17,6 +17,7 @@
 #ifndef SCANN_DATA_FORMAT_INTERNAL_SHORT_STRING_OPTIMIZED_STRING_H_
 #define SCANN_DATA_FORMAT_INTERNAL_SHORT_STRING_OPTIMIZED_STRING_H_
 
+#include <cstdint>
 #include <cstdlib>
 
 #include "absl/types/optional.h"

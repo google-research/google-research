@@ -18,6 +18,7 @@
 #include <stddef.h>
 
 #include <array>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -52,6 +53,7 @@ using ::std::make_shared;
 using ::std::numeric_limits;
 using ::std::pair;
 using ::std::shared_ptr;
+using ::std::string;
 using ::std::tuple;
 using ::std::unique_ptr;
 using ::std::vector;

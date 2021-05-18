@@ -15,6 +15,7 @@
 #ifndef SCANN_SCANN_OPS_CC_SCANN_NPY_H_
 #define SCANN_SCANN_OPS_CC_SCANN_NPY_H_
 
+#include <cstdint>
 #include <limits>
 #include <optional>
 #include <stdexcept>

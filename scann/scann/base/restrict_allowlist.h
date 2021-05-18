@@ -17,6 +17,7 @@
 #ifndef SCANN_BASE_RESTRICT_ALLOWLIST_H_
 #define SCANN_BASE_RESTRICT_ALLOWLIST_H_
 
+#include <cstdint>
 #include <limits>
 
 #include "gtest/gtest_prod.h"

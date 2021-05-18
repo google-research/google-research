@@ -17,6 +17,8 @@
 #ifndef SCANN_DATA_FORMAT_DATAPOINT_H_
 #define SCANN_DATA_FORMAT_DATAPOINT_H_
 
+#include <cstdint>
+
 #include "scann/data_format/features.pb.h"
 #include "scann/data_format/gfv_conversion.h"
 #include "scann/proto/hashed.pb.h"

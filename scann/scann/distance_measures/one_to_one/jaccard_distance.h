@@ -15,6 +15,8 @@
 #ifndef SCANN_DISTANCE_MEASURES_ONE_TO_ONE_JACCARD_DISTANCE_H_
 #define SCANN_DISTANCE_MEASURES_ONE_TO_ONE_JACCARD_DISTANCE_H_
 
+#include <cstdint>
+
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/one_to_one/binary_distance_measure_base.h"
 #include "scann/distance_measures/one_to_one/common.h"

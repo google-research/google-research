@@ -12,22 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN_UTILS_ALIGNMENT_H_
-#define SCANN_UTILS_ALIGNMENT_H_
+#include "scann/distance_measures/many_to_many/many_to_many_flags.h"
 
-#include <cstdint>
-
-#include "scann/utils/common.h"
-
-namespace research_scann {
-
-struct AlignedBuffer {
-  unique_ptr<uint8_t[]> storage;
-  uint8_t* ptr;
-};
-
-AlignedBuffer MakeCacheAlignedCopy(ConstSpan<uint8_t> span);
-
-}  // namespace research_scann
-
-#endif
+ABSL_FLAG(bool, enable_scann_brute_force_determinism, false, "");

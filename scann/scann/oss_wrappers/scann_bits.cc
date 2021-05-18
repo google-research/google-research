@@ -14,6 +14,8 @@
 
 #include "scann/oss_wrappers/scann_bits.h"
 
+#include <cstdint>
+
 namespace research_scann {
 namespace bits {
 

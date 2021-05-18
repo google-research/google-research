@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
 #ifdef __x86_64__
 #include "scann/hashes/internal/lut16_avx512_swizzle.h"
-
 #include "scann/utils/common.h"
 #include "scann/utils/intrinsics/avx512.h"
 

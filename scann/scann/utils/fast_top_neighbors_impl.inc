@@ -1,5 +1,6 @@
 
 
+#include <cstdint>
 template <bool kIsEquality, typename DistT>
 SCANN_SIMD_INLINE size_t CalculateSwapMasks(const DistT* values,
                                             uint32_t* masks, size_t n_masks,

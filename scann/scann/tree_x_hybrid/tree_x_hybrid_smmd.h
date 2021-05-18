@@ -17,9 +17,11 @@
 #ifndef SCANN_TREE_X_HYBRID_TREE_X_HYBRID_SMMD_H_
 #define SCANN_TREE_X_HYBRID_TREE_X_HYBRID_SMMD_H_
 
+#include <cstdint>
 #include <functional>
 
 #include "absl/synchronization/mutex.h"
+#include "gtest/gtest_prod.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/data_format/datapoint.h"
@@ -113,8 +115,9 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
 
   bool supports_crowding() const final { return true; }
 
-  StatusOr<unique_ptr<SearchParameters::UnlockedQueryPreprocessingResults>>
-  UnlockedPreprocessQuery(const DatapointPtr<T>& query) const final;
+  Status PreprocessQueryIntoParamsUnlocked(
+      const DatapointPtr<T>& query,
+      SearchParameters& search_params) const final;
 
   StatusOr<SingleMachineFactoryOptions> ExtractSingleMachineFactoryOptions()
       override;
@@ -128,6 +131,7 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
 
   Status EnableCrowdingImpl(
       ConstSpan<int64_t> datapoint_index_to_crowding_attribute) final;
+  void DisableCrowdingImpl() final;
 
   Status FindNeighborsImpl(const DatapointPtr<T>& query,
                            const SearchParameters& params,
@@ -161,11 +165,25 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
                                        TopN top_n,
                                        NNResultsVector* results) const;
 
+  Status FindNeighborsPreTokenizedBatchedGenericImpl(
+      const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
+      ConstSpan<ConstSpan<int32_t>> query_tokens,
+      MutableSpan<NNResultsVector> results) const;
+
+  Status FindNeighborsPreTokenizedBatchedOptimizedImpl(
+      const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
+      ConstSpan<ConstSpan<int32_t>> query_tokens,
+      MutableSpan<NNResultsVector> results) const;
+
   StatusOr<pair<int32_t, DatapointPtr<T>>> TokenizeAndMaybeResidualize(
       const DatapointPtr<T>& dptr, Datapoint<T>*);
 
   StatusOr<vector<pair<int32_t, DatapointPtr<T>>>> TokenizeAndMaybeResidualize(
       const TypedDataset<T>& dps, MutableSpan<Datapoint<T>*>);
+
+  StatusOr<shared_ptr<const SearcherSpecificOptionalParameters>>
+  CreateLeafOptionalParameters(const DatapointPtr<T>& query,
+                               const SearchParameters& top_level_params) const;
 
   vector<unique_ptr<SingleMachineSearcherBase<T>>> leaf_searchers_;
 

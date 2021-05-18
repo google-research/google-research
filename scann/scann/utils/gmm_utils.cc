@@ -15,6 +15,7 @@
 #include "scann/utils/gmm_utils.h"
 
 #include <cfloat>
+#include <cstdint>
 #include <limits>
 
 #include "Eigen/Dense"
@@ -23,6 +24,7 @@
 #include "Eigen/src/Core/util/Constants.h"
 #include "Eigen/src/Core/util/Memory.h"
 #include "Eigen/src/SVD/JacobiSVD.h"
+#include "absl/base/internal/endian.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/random/distributions.h"
 #include "absl/time/time.h"
@@ -555,7 +557,12 @@ Status GmmUtils::KMeansPPInitializeCenters(
     sample_ids.push_back(sample_id);
     last_center = impl->GetPoint(sample_id, &storage);
     SCANN_RETURN_IF_ERROR(VerifyAllFinite(storage.values()));
-    centers.AppendOrDie(last_center, "");
+
+    uint32_t big_endian_sample_id = absl::ghtonl(sample_id);
+    std::string docid;
+    docid.resize(sizeof(big_endian_sample_id));
+    memcpy(docid.data(), &big_endian_sample_id, sizeof(big_endian_sample_id));
+    centers.AppendOrDie(last_center, docid);
   }
 
   centers.set_normalization_tag(dataset.normalization());

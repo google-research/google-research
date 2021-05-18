@@ -15,6 +15,8 @@
 #ifndef SCANN_DISTANCE_MEASURES_ONE_TO_ONE_BINARY_DISTANCE_MEASURE_BASE_H_
 #define SCANN_DISTANCE_MEASURES_ONE_TO_ONE_BINARY_DISTANCE_MEASURE_BASE_H_
 
+#include <cstdint>
+
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/one_to_one/common.h"
 #include "scann/oss_wrappers/scann_bits.h"

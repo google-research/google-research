@@ -17,9 +17,12 @@
 #include "scann/tree_x_hybrid/tree_x_hybrid_smmd.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <unordered_set>
 
 #include "absl/base/casts.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/container/node_hash_map.h"
 #include "absl/memory/memory.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
@@ -28,11 +31,14 @@
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/brute_force/scalar_quantized_brute_force.h"
+#include "scann/data_format/dataset.h"
 #include "scann/hashes/asymmetric_hashing2/serialization.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
 #include "scann/partitioning/kmeans_tree_partitioner.h"
+#include "scann/tree_x_hybrid/internal/batching.h"
 #include "scann/tree_x_hybrid/internal/utils.h"
 #include "scann/tree_x_hybrid/tree_x_params.h"
+#include "scann/utils/common.h"
 #include "scann/utils/parallel_for.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
@@ -294,7 +300,7 @@ void MergeLeafResultsWithDuplicates(ConstSpan<NNResultsVector> to_merge,
   DCHECK(result);
   DCHECK(top_n.empty());
 
-  std::unordered_map<DatapointIndex, pair<float, int32_t>> duplicates_merged;
+  absl::node_hash_map<DatapointIndex, pair<float, int32_t>> duplicates_merged;
   for (const auto& v : to_merge) {
     for (const auto& neighbor : v) {
       pair<float, int32_t>& val = duplicates_merged[neighbor.first];
@@ -342,6 +348,13 @@ Status TreeXHybridSMMD<T>::EnableCrowdingImpl(
     }
   }
   return OkStatus();
+}
+
+template <typename T>
+void TreeXHybridSMMD<T>::DisableCrowdingImpl() {
+  for (auto& ls : leaf_searchers_) {
+    ls->DisableCrowding();
+  }
 }
 
 template <typename T>
@@ -472,8 +485,7 @@ Status TreeXHybridSMMD<T>::FindNeighborsBatchedImpl(
       if (!kmeans_tokenizer)
         return InvalidArgumentError(
             "num_partitions_to_search_override is > 0, but the tokenizer is "
-            "not"
-            " a KMeansTreePartitioner.");
+            "not a KMeansTreePartitioner.");
 
       SCANN_RETURN_IF_ERROR(
           kmeans_tokenizer->TokensForDatapointWithSpillingBatchedAndOverride(
@@ -490,7 +502,26 @@ Status TreeXHybridSMMD<T>::FindNeighborsBatchedImpl(
     }
   }
 
-  for (DatapointIndex i = 0; i < queries.size(); ++i) {
+  if (!disjoint_leaf_partitions_ ||
+      !tree_x_internal::SupportsLowLevelBatching(queries, params) ||
+      tree_x_internal::RecursiveSize(query_tokens) < leaf_searchers_.size()) {
+    return FindNeighborsPreTokenizedBatchedGenericImpl(queries, params,
+                                                       query_tokens, results);
+  } else {
+    return FindNeighborsPreTokenizedBatchedOptimizedImpl(queries, params,
+                                                         query_tokens, results);
+  }
+}
+
+template <typename T>
+Status TreeXHybridSMMD<T>::FindNeighborsPreTokenizedBatchedGenericImpl(
+    const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
+    ConstSpan<ConstSpan<int32_t>> query_tokens,
+    MutableSpan<NNResultsVector> results) const {
+  DCHECK_EQ(queries.size(), params.size());
+  DCHECK_EQ(queries.size(), query_tokens.size());
+  DCHECK_EQ(queries.size(), results.size());
+  for (DatapointIndex i : IndicesOf(queries)) {
     if (params[i].pre_reordering_crowding_enabled()) {
       return FailedPreconditionError("Crowding is not supported.");
     } else {
@@ -500,7 +531,101 @@ Status TreeXHybridSMMD<T>::FindNeighborsBatchedImpl(
           &results[i]));
     }
   }
+  return OkStatus();
+}
 
+namespace {
+
+vector<std::vector<DatapointIndex>> InvertQueryTokens(
+    ConstSpan<ConstSpan<int32_t>> query_tokens, size_t num_tokens) {
+  vector<std::vector<DatapointIndex>> result(num_tokens);
+  for (DatapointIndex query_index : IndicesOf(query_tokens)) {
+    ConstSpan<int32_t> cur_query_tokens = query_tokens[query_index];
+    for (int32_t qt : cur_query_tokens) {
+      result[qt].push_back(query_index);
+    }
+  }
+  return result;
+}
+
+size_t MaxQueriesPerPartition(
+    ConstSpan<std::vector<DatapointIndex>> queries_by_partition) {
+  size_t result = 0;
+  for (auto& vec : queries_by_partition) {
+    result = std::max(result, vec.size());
+  }
+  return result;
+}
+
+}  // namespace
+
+template <typename T>
+Status TreeXHybridSMMD<T>::FindNeighborsPreTokenizedBatchedOptimizedImpl(
+    const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
+    ConstSpan<ConstSpan<int32_t>> query_tokens,
+    MutableSpan<NNResultsVector> results) const {
+  DCHECK(disjoint_leaf_partitions_);
+  DCHECK(queries.IsDense());
+
+  vector<std::vector<DatapointIndex>> queries_by_partition =
+      InvertQueryTokens(query_tokens, leaf_searchers_.size());
+  const size_t max_queries_per_partition =
+      MaxQueriesPerPartition(queries_by_partition);
+  vector<T> backing_storage;
+  backing_storage.reserve(queries.dimensionality() * max_queries_per_partition);
+
+  auto make_leaf_query_dataset =
+      [&backing_storage, &queries](ConstSpan<DatapointIndex> query_idxs) {
+        backing_storage.resize(0);
+        for (DatapointIndex qi : query_idxs) {
+          ConstSpan<T> values = queries[qi].values_slice();
+          backing_storage.insert(backing_storage.end(), values.begin(),
+                                 values.end());
+        }
+        return DenseDataset<T>(std::move(backing_storage), query_idxs.size());
+      };
+
+  vector<FastTopNeighbors<float>> top_ns;
+  vector<FastTopNeighbors<float>::Mutator> mutators(params.size());
+  top_ns.reserve(params.size());
+  vector<shared_ptr<const SearcherSpecificOptionalParameters>>
+      leaf_optional_params(queries.size());
+
+  for (const auto& [query_idx, p] : Enumerate(params)) {
+    top_ns.emplace_back(p.pre_reordering_num_neighbors(),
+                        p.pre_reordering_epsilon());
+    top_ns[query_idx].AcquireMutator(&mutators[query_idx]);
+    TF_ASSIGN_OR_RETURN(
+        leaf_optional_params[query_idx],
+        CreateLeafOptionalParameters(queries[query_idx], params[query_idx]));
+  }
+
+  vector<NNResultsVector> leaf_results;
+  leaf_results.reserve(max_queries_per_partition);
+  for (auto [leaf_idx, query_idxs] : Enumerate(queries_by_partition)) {
+    if (query_idxs.empty()) continue;
+    DenseDataset<T> leaf_dataset = make_leaf_query_dataset(query_idxs);
+    vector<SearchParameters> leaf_params =
+        tree_x_internal::CreateParamsSubsetForLeaf<DatapointIndex>(
+            params, mutators, leaf_optional_params, query_idxs);
+    leaf_results.resize(0);
+    leaf_results.resize(leaf_params.size());
+    SCANN_RETURN_IF_ERROR(
+        leaf_searchers_[leaf_idx]->FindNeighborsBatchedNoSortNoExactReorder(
+            leaf_dataset, leaf_params, MakeMutableSpan(leaf_results)));
+    backing_storage = leaf_dataset.ClearRecyclingDataVector();
+
+    for (auto [local_query_idx, global_query_idx] : Enumerate(query_idxs)) {
+      tree_x_internal::AddLeafResultsToTopN(
+          datapoints_by_token_[leaf_idx], 0.0f, 1.0f,
+          leaf_results[local_query_idx], &mutators[global_query_idx]);
+    }
+  }
+
+  mutators.clear();
+  for (size_t i : IndicesOf(top_ns)) {
+    top_ns[i].FinishUnsorted(&results[i]);
+  }
   return OkStatus();
 }
 
@@ -526,7 +651,7 @@ Status TreeXHybridSMMD<T>::CheckReadyToQuery(
 template <typename T>
 Status TreeXHybridSMMD<T>::ValidateTokenList(ConstSpan<int32_t> token_list,
                                              bool check_oob) const {
-  std::unordered_set<int32_t> duplicate_checker;
+  absl::flat_hash_set<int32_t> duplicate_checker;
 
   for (int32_t token : token_list) {
     if (duplicate_checker.find(token) == duplicate_checker.end()) {
@@ -556,6 +681,32 @@ Status TreeXHybridSMMD<T>::ValidateTokenList(ConstSpan<int32_t> token_list,
   }
 
   return OkStatus();
+}
+
+template <typename T>
+StatusOr<shared_ptr<const SearcherSpecificOptionalParameters>>
+TreeXHybridSMMD<T>::CreateLeafOptionalParameters(
+    const DatapointPtr<T>& query,
+    const SearchParameters& top_level_params) const {
+  auto tree_x_params =
+      top_level_params
+          .searcher_specific_optional_parameters<TreeXOptionalParameters>();
+  const bool have_external_leaf_optional_params =
+      tree_x_params && tree_x_params->all_leaf_optional_params();
+  if (leaf_searcher_optional_parameter_creator_ &&
+      have_external_leaf_optional_params) {
+    return InvalidArgumentError(
+        "Conflicting leaf searcher optional parameters.  Cannot have both "
+        "external parameters from TreeXOptionalParameters and a "
+        "LeafSearcherOptionalParameterCreator.");
+  } else if (leaf_searcher_optional_parameter_creator_) {
+    return leaf_searcher_optional_parameter_creator_
+        ->CreateLeafSearcherOptionalParameters(query);
+  } else if (have_external_leaf_optional_params) {
+    return tree_x_params->all_leaf_optional_params();
+  } else {
+    return shared_ptr<const SearcherSpecificOptionalParameters>(nullptr);
+  }
 }
 
 template <typename T>
@@ -597,52 +748,15 @@ Status TreeXHybridSMMD<T>::FindNeighborsPreTokenizedImpl(
                       tree_x_params->leaf_tokens_to_search().begin()));
   }
 
-  const bool have_external_leaf_optional_params =
-      tree_x_params && (tree_x_params->all_leaf_optional_params() ||
-                        !tree_x_params->leaf_params_by_token().empty());
-  shared_ptr<const SearcherSpecificOptionalParameters>
-      internal_all_leaf_optional_parameters = nullptr;
-  if (leaf_searcher_optional_parameter_creator_) {
-    if (have_external_leaf_optional_params) {
-      return InvalidArgumentError(
-          "Conflicting leaf searcher optional parameters.  Cannot have both "
-          "external parameters from TreeXOptionalParameters and a "
-          "LeafSearcherOptionalParameterCreator.");
-    }
-
-    TF_ASSIGN_OR_RETURN(internal_all_leaf_optional_parameters,
-                        leaf_searcher_optional_parameter_creator_
-                            ->CreateLeafSearcherOptionalParameters(query));
-  }
-
-  auto set_leaf_optional_params = [&](size_t query_token_index,
-                                      SearchParameters* leaf_params) -> void {
-    DCHECK(leaf_params);
-    if (have_external_leaf_optional_params) {
-      if (tree_x_params->all_leaf_optional_params()) {
-        DCHECK(tree_x_params->leaf_params_by_token().empty());
-        leaf_params->set_searcher_specific_optional_parameters(
-            tree_x_params->all_leaf_optional_params());
-      } else {
-        DCHECK(PreTokenizationEnabled(tree_x_params));
-        DCHECK(!tree_x_params->leaf_params_by_token().empty());
-        leaf_params->set_searcher_specific_optional_parameters(
-            tree_x_params->leaf_params_by_token()[query_token_index]);
-      }
-    } else if (internal_all_leaf_optional_parameters) {
-      leaf_params->set_searcher_specific_optional_parameters(
-          internal_all_leaf_optional_parameters);
-    } else {
-      leaf_params->set_searcher_specific_optional_parameters(nullptr);
-    }
-  };
-
   SearchParameters leaf_params;
+  TF_ASSIGN_OR_RETURN(auto leaf_optional_params,
+                      CreateLeafOptionalParameters(query, params));
   leaf_params.set_pre_reordering_num_neighbors(
       params.pre_reordering_num_neighbors());
   leaf_params.set_pre_reordering_epsilon(params.pre_reordering_epsilon());
   leaf_params.set_per_crowding_attribute_pre_reordering_num_neighbors(
       params.per_crowding_attribute_pre_reordering_num_neighbors());
+  leaf_params.set_searcher_specific_optional_parameters(leaf_optional_params);
 
   if (query_tokens.size() == 1) {
     const auto token = query_tokens.front();
@@ -653,7 +767,6 @@ Status TreeXHybridSMMD<T>::FindNeighborsPreTokenizedImpl(
       return OkStatus();
     }
 
-    set_leaf_optional_params(0, &leaf_params);
     TranslateGlobalToLeafLocalWhitelist(params, datapoints_by_token_[token],
                                         &leaf_params);
     Status status = leaf_searchers_[token]->FindNeighborsNoSortNoExactReorder(
@@ -674,7 +787,6 @@ Status TreeXHybridSMMD<T>::FindNeighborsPreTokenizedImpl(
         continue;
       }
 
-      set_leaf_optional_params(i, &leaf_params);
       TranslateGlobalToLeafLocalWhitelist(params, datapoints_by_token_[token],
                                           &leaf_params);
       NNResultsVector leaf_results;
@@ -704,7 +816,6 @@ Status TreeXHybridSMMD<T>::FindNeighborsPreTokenizedImpl(
         continue;
       }
 
-      set_leaf_optional_params(i, &leaf_params);
       TranslateGlobalToLeafLocalWhitelist(params, datapoints_by_token_[token],
                                           &leaf_params);
       Status status = leaf_searchers_[token]->FindNeighborsNoSortNoExactReorder(
@@ -724,6 +835,7 @@ template <typename T>
 StatusOr<pair<int32_t, DatapointPtr<T>>>
 TreeXHybridSMMD<T>::TokenizeAndMaybeResidualize(const DatapointPtr<T>& dptr,
                                                 Datapoint<T>*) {
+  DCHECK(database_tokenizer_);
   vector<int32_t> tokens_storage;
   SCANN_RETURN_IF_ERROR(database_tokenizer_->TokensForDatapointWithSpilling(
       dptr, &tokens_storage));
@@ -789,13 +901,32 @@ TreeXHybridSMMD<T>::ExtractSingleMachineFactoryOptions() {
 }
 
 template <typename T>
-StatusOr<unique_ptr<SearchParameters::UnlockedQueryPreprocessingResults>>
-TreeXHybridSMMD<T>::UnlockedPreprocessQuery(
-    const DatapointPtr<T>& query) const {
+Status TreeXHybridSMMD<T>::PreprocessQueryIntoParamsUnlocked(
+    const DatapointPtr<T>& query, SearchParameters& search_params) const {
+  const auto& params =
+      search_params
+          .searcher_specific_optional_parameters<TreeXOptionalParameters>();
   vector<int32_t> centers_to_search;
-  SCANN_RETURN_IF_ERROR(query_tokenizer_->TokensForDatapointWithSpilling(
-      query, &centers_to_search));
-  return {make_unique<CentersToSearch>(std::move(centers_to_search))};
+  if (params) {
+    const auto* kmeans_tokenizer =
+        down_cast<const KMeansTreePartitioner<T>*>(query_tokenizer_.get());
+    if (!kmeans_tokenizer)
+      return InvalidArgumentError(
+          "num_partitions_to_search_override is > 0, but the tokenizer is "
+          "not a KMeansTreePartitioner.");
+
+    int max_centers_override = params->num_partitions_to_search_override();
+    SCANN_RETURN_IF_ERROR(
+        kmeans_tokenizer->TokensForDatapointWithSpillingAndOverride(
+            query, max_centers_override, &centers_to_search));
+  } else {
+    SCANN_RETURN_IF_ERROR(query_tokenizer_->TokensForDatapointWithSpilling(
+        query, &centers_to_search));
+  }
+
+  search_params.set_unlocked_query_preprocessing_results(
+      {make_unique<CentersToSearch>(std::move(centers_to_search))});
+  return OkStatus();
 }
 
 SCANN_INSTANTIATE_TREE_X_HYBRID_SMMD();

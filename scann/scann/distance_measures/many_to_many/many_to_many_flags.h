@@ -12,18 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef SCANN_DISTANCE_MEASURES_MANY_TO_MANY_MANY_TO_MANY_FLAGS_H_
+#define SCANN_DISTANCE_MEASURES_MANY_TO_MANY_MANY_TO_MANY_FLAGS_H_
 
+#include "absl/flags/declare.h"
+#include "absl/flags/flag.h"
 
-syntax = "proto2";
+ABSL_DECLARE_FLAG(bool, enable_scann_brute_force_determinism);
 
-package research_scann;
-
-import "scann/proto/hash.proto";
-
-message CompressedReordering {
-  optional int32 approx_num_neighbors = 1;
-
-  optional float approx_epsilon_distance = 2;
-
-  optional HashConfig hash = 3;
-}
+#endif

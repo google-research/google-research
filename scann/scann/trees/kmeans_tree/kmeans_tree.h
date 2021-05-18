@@ -18,6 +18,7 @@
 #define SCANN_TREES_KMEANS_TREE_KMEANS_TREE_H_
 
 #include <cmath>
+#include <cstdint>
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"

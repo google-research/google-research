@@ -17,6 +17,7 @@
 #ifndef SCANN_HASHES_ASYMMETRIC_HASHING2_INDEXING_H_
 #define SCANN_HASHES_ASYMMETRIC_HASHING2_INDEXING_H_
 
+#include <cstdint>
 #include <memory>
 #include <type_traits>
 #include <utility>

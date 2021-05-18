@@ -14,6 +14,7 @@
 
 #include "scann/base/single_machine_factory_scann.h"
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <type_traits>
@@ -285,7 +286,9 @@ void PartitionPreQuantizedFixedPoint(
   tokenized_quantized_datasets->clear();
   tokenized_quantized_datasets->resize(datapoints_by_token.size());
   tokenized_squared_l2_norms->clear();
-  tokenized_squared_l2_norms->resize(datapoints_by_token.size());
+
+  if (!original_l2.empty())
+    tokenized_squared_l2_norms->resize(datapoints_by_token.size());
 
   for (size_t token : IndicesOf(datapoints_by_token)) {
     const auto& subset = datapoints_by_token[token];
@@ -294,12 +297,12 @@ void PartitionPreQuantizedFixedPoint(
     tokenized.set_dimensionality(original.dimensionality());
     tokenized.Reserve(subset.size());
 
-    auto& tokenized_l2 = (*tokenized_squared_l2_norms)[token];
-    tokenized_l2.reserve(subset.size());
     for (const DatapointIndex i : subset) {
       tokenized.AppendOrDie(original[i], "");
     }
     if (!original_l2.empty()) {
+      auto& tokenized_l2 = (*tokenized_squared_l2_norms)[token];
+      tokenized_l2.reserve(subset.size());
       for (const DatapointIndex i : subset) {
         tokenized_l2.push_back(original_l2[i]);
       }
@@ -320,18 +323,6 @@ StatusOrSearcherUntyped PretrainedTreeSQFactoryFromAssets(
                                   &tokenized_squared_l2_norms);
 
   auto inverse_multipliers = InverseMultiplier(fp_assets.get());
-  if (params.pre_reordering_dist->name() == "SquaredL2Distance" &&
-      tokenized_squared_l2_norms.empty()) {
-    const auto num_tokens = tokenized_quantized_datasets.size();
-    tokenized_squared_l2_norms.reserve(num_tokens);
-    for (int i = 0; i < num_tokens; ++i) {
-      auto l2_or_error = ScalarQuantizedBruteForceSearcher::
-          ComputeSquaredL2NormsFromQuantizedDataset(
-              tokenized_quantized_datasets[i], inverse_multipliers);
-      SCANN_RETURN_IF_ERROR(l2_or_error.status());
-      tokenized_squared_l2_norms.push_back(std::move(l2_or_error.ValueOrDie()));
-    }
-  }
 
   auto searcher = make_unique<TreeXHybridSMMD<float>>(
       nullptr, nullptr, params.pre_reordering_num_neighbors,
@@ -344,7 +335,7 @@ StatusOrSearcherUntyped PretrainedTreeSQFactoryFromAssets(
     auto searcher_or_error = ScalarQuantizedBruteForceSearcher::
         CreateFromQuantizedDatasetAndInverseMultipliers(
             params.pre_reordering_dist, std::move(scalar_quantized_partition),
-            std::vector<float>(), std::move(squared_l2_norms),
+            inverse_multipliers, std::move(squared_l2_norms),
             params.pre_reordering_num_neighbors, params.pre_reordering_epsilon);
     if (!searcher_or_error.ok()) return searcher_or_error.status();
     auto searcher = std::move(searcher_or_error.ValueOrDie());
@@ -569,6 +560,8 @@ template <typename T>
 StatusOrSearcherUntyped BruteForceFactory(
     const BruteForceConfig& config, const shared_ptr<TypedDataset<T>>& dataset,
     const GenericSearchParameters& params) {
+  SCANN_RET_CHECK(dataset);
+
   if (config.fixed_point().enabled()) {
     return InvalidArgumentError(
         "Scalar-quantized brute force only works with float data.");
@@ -607,6 +600,8 @@ StatusOrSearcherUntyped BruteForceFactory<float>(
     const BruteForceConfig& config,
     const shared_ptr<TypedDataset<float>>& dataset,
     const GenericSearchParameters& params) {
+  SCANN_RET_CHECK(dataset);
+
   if (config.fixed_point().enabled()) {
     const auto tag =
         params.pre_reordering_dist->specially_optimized_distance_tag();

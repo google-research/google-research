@@ -14,11 +14,13 @@
 
 
 
-#include "scann/data_format/dataset.h"
-#include "scann/utils/types.h"
-
 #ifndef SCANN_UTILS_FIXED_POINT_PRE_QUANTIZED_FIXED_POINT_H_
 #define SCANN_UTILS_FIXED_POINT_PRE_QUANTIZED_FIXED_POINT_H_
+
+#include <cstdint>
+
+#include "scann/data_format/dataset.h"
+#include "scann/utils/types.h"
 
 namespace research_scann {
 
@@ -34,9 +36,7 @@ inline PreQuantizedFixedPoint CreatePreQuantizedFixedPoint(
     const DenseDataset<int8_t>& dataset, const vector<float>& multipliers,
     const vector<float>& norms, bool reciprocate = false) {
   PreQuantizedFixedPoint res;
-  res.fixed_point_dataset = make_shared<DenseDataset<int8_t>>(
-      vector<int8_t>(dataset.data().begin(), dataset.data().end()),
-      dataset.docids()->Copy());
+  res.fixed_point_dataset = make_shared<DenseDataset<int8_t>>(dataset.Copy());
   res.multiplier_by_dimension =
       make_shared<vector<float>>(multipliers.begin(), multipliers.end());
   res.squared_l2_norm_by_datapoint =

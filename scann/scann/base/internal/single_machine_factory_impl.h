@@ -75,12 +75,6 @@ class SingleMachineFactoryImplClass {
     typed_searcher->EnableReordering(std::move(reordering_helper),
                                      params.post_reordering_num_neighbors,
                                      params.post_reordering_epsilon);
-    if (config.has_compressed_reordering()) {
-      DCHECK(!typed_searcher->needs_dataset());
-      typed_searcher->ReleaseDatasetAndDocids();
-      typed_searcher->set_compressed_dataset(opts->compressed_dataset);
-    }
-
     return {std::move(searcher)};
   }
 };

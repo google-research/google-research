@@ -17,6 +17,7 @@
 #ifndef SCANN_UTILS_TYPES_H_
 #define SCANN_UTILS_TYPES_H_
 
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 

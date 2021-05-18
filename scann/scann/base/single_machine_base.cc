@@ -16,6 +16,7 @@
 
 #include "scann/base/single_machine_base.h"
 
+#include <cstdint>
 #include <typeinfo>
 
 #include "absl/flags/flag.h"
@@ -23,6 +24,8 @@
 #include "absl/strings/match.h"
 #include "absl/strings/substitute.h"
 #include "scann/base/search_parameters.h"
+#include "scann/base/single_machine_factory_options.h"
+#include "scann/utils/common.h"
 #include "scann/utils/factory_helpers.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
@@ -87,25 +90,23 @@ Status UntypedSingleMachineSearcherBase::EnableCrowding(
 
 Status UntypedSingleMachineSearcherBase::EnableCrowding(
     shared_ptr<vector<int64_t>> datapoint_index_to_crowding_attribute) {
+  SCANN_RET_CHECK(datapoint_index_to_crowding_attribute);
   if (!supports_crowding()) {
     return UnimplementedError("Crowding not supported for this searcher.");
   }
-  if (crowding_enabled_) {
+  if (crowding_enabled()) {
     return FailedPreconditionError("Crowding already enabled.");
   }
   SCANN_RETURN_IF_ERROR(
       EnableCrowdingImpl(*datapoint_index_to_crowding_attribute));
   datapoint_index_to_crowding_attribute_ =
       std::move(datapoint_index_to_crowding_attribute);
-  crowding_enabled_ = true;
   return OkStatus();
 }
 
 StatusOr<DatapointIndex> UntypedSingleMachineSearcherBase::DatasetSize() const {
   if (dataset()) {
     return dataset()->size();
-  } else if (compressed_dataset()) {
-    return compressed_dataset()->size();
   } else if (hashed_dataset()) {
     return hashed_dataset()->size();
   } else if (docids_) {
@@ -256,8 +257,6 @@ StatusOr<SingleMachineFactoryOptions>
 SingleMachineSearcherBase<T>::ExtractSingleMachineFactoryOptions() {
   SingleMachineFactoryOptions opts;
 
-  opts.compressed_dataset =
-      std::const_pointer_cast<DenseDataset<uint8_t>>(compressed_dataset_);
   opts.hashed_dataset =
       std::const_pointer_cast<DenseDataset<uint8_t>>(hashed_dataset_);
 
@@ -282,7 +281,6 @@ Status SingleMachineSearcherBase<T>::FindNeighbors(
   SCANN_RET_CHECK(query.IsFinite())
       << "Cannot query ScaNN with vectors that contain NaNs or infinity.";
   DCHECK(result);
-  DCHECK_LE((compressed_reordering_enabled() + exact_reordering_enabled()), 1);
   SCANN_RETURN_IF_ERROR(
       FindNeighborsNoSortNoExactReorder(query, params, result));
 
@@ -298,8 +296,7 @@ Status SingleMachineSearcherBase<T>::FindNeighborsNoSortNoExactReorder(
     const DatapointPtr<T>& query, const SearchParameters& params,
     NNResultsVector* result) const {
   DCHECK(result);
-  bool reordering_enabled =
-      compressed_reordering_enabled() || exact_reordering_enabled();
+  bool reordering_enabled = exact_reordering_enabled();
   SCANN_RETURN_IF_ERROR(params.Validate(reordering_enabled));
   if (!this->supports_crowding() && params.pre_reordering_crowding_enabled()) {
     return InvalidArgumentError(
@@ -338,7 +335,6 @@ template <typename T>
 Status SingleMachineSearcherBase<T>::FindNeighborsBatched(
     const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
     MutableSpan<NNResultsVector> results) const {
-  DCHECK_LE((compressed_reordering_enabled() + exact_reordering_enabled()), 1);
   SCANN_RETURN_IF_ERROR(
       FindNeighborsBatchedNoSortNoExactReorder(queries, params, results));
 
@@ -385,8 +381,7 @@ Status SingleMachineSearcherBase<T>::FindNeighborsBatchedNoSortNoExactReorder(
     }
   }
 
-  bool reordering_enabled =
-      compressed_reordering_enabled() || exact_reordering_enabled();
+  bool reordering_enabled = exact_reordering_enabled();
   for (const SearchParameters& p : params) {
     SCANN_RETURN_IF_ERROR(p.Validate(reordering_enabled));
   }
@@ -450,12 +445,6 @@ void SingleMachineSearcherBase<T>::ReleaseDataset() {
 template <typename T>
 void SingleMachineSearcherBase<T>::ReleaseHashedDataset() {
   if (!hashed_dataset_) return;
-
-  if (!dataset() && compressed_dataset_) {
-    DCHECK_EQ(docids_.get(), hashed_dataset_->docids().get());
-    docids_ = compressed_dataset_->docids();
-  }
-
   hashed_dataset_.reset();
 }
 
@@ -536,192 +525,6 @@ Status SingleMachineSearcherBase<T>::SortAndDropResults(
                            result->end());
   }
   return OkStatus();
-}
-
-namespace {
-
-template <typename T>
-bool SameDocidsInstance(
-    const shared_ptr<const DocidCollectionInterface>& docids,
-    const TypedDataset<T>* dataset) {
-  if (!dataset) return false;
-  return docids == dataset->docids();
-}
-
-}  // namespace
-
-template <typename T>
-Status SingleMachineSearcherBase<T>::Mutator::PrepareForBaseMutation(
-    SingleMachineSearcherBase<T>* searcher) {
-  searcher_ = searcher;
-  searcher_->mutator_outstanding_ = true;
-  if (searcher->dataset_) {
-    TF_ASSIGN_OR_RETURN(dataset_mutator_, searcher->dataset_->GetMutator());
-  }
-  if (searcher->hashed_dataset_) {
-    TF_ASSIGN_OR_RETURN(hashed_dataset_mutator_,
-                        searcher->hashed_dataset_->GetMutator());
-  }
-  if (searcher_->reordering_helper_ &&
-      searcher_->reordering_helper_->owns_mutation_data_structures()) {
-    TF_ASSIGN_OR_RETURN(reordering_mutator_,
-                        searcher->reordering_helper_->GetMutator());
-  }
-  if (searcher->docids_ &&
-      !SameDocidsInstance(searcher->docids_, searcher->dataset_.get()) &&
-      !SameDocidsInstance(searcher->docids_, searcher->hashed_dataset_.get())) {
-    TF_ASSIGN_OR_RETURN(docid_mutator_, searcher->docids_->GetMutator());
-  }
-  return OkStatus();
-}
-
-template <typename T>
-StatusOr<DatapointIndex>
-SingleMachineSearcherBase<T>::Mutator::GetNextDatapointIndex() const {
-  DatapointIndex result = kInvalidDatapointIndex;
-  if (searcher_->dataset_) {
-    result = searcher_->dataset_->size();
-
-    if (searcher_->docids_)
-      SCANN_RET_CHECK_EQ(result, searcher_->docids_->size());
-    if (searcher_->hashed_dataset_) {
-      SCANN_RET_CHECK_EQ(result, searcher_->hashed_dataset_->size());
-    }
-  } else if (searcher_->hashed_dataset_) {
-    result = searcher_->hashed_dataset()->size();
-    if (searcher_->docids_)
-      SCANN_RET_CHECK_EQ(result, searcher_->docids_->size());
-  } else if (searcher_->docids_) {
-    result = searcher_->docids_->size();
-  }
-  return result;
-}
-
-template <typename T>
-StatusOr<DatapointIndex>
-SingleMachineSearcherBase<T>::Mutator::AddDatapointToBase(
-    const DatapointPtr<T>& dptr, const DatapointPtr<uint8_t>& hashed,
-    string_view docid) {
-  TF_ASSIGN_OR_RETURN(const DatapointIndex result, GetNextDatapointIndex());
-  if (dataset_mutator_) {
-    SCANN_RETURN_IF_ERROR(dataset_mutator_->AddDatapoint(dptr, docid));
-  }
-  if (hashed_dataset_mutator_) {
-    SCANN_RETURN_IF_ERROR(hashed_dataset_mutator_->AddDatapoint(hashed, docid));
-  }
-  if (docid_mutator_) {
-    SCANN_RETURN_IF_ERROR(docid_mutator_->AddDatapoint(docid));
-  }
-  if (reordering_mutator_) {
-    TF_ASSIGN_OR_RETURN(auto idx, reordering_mutator_->AddDatapoint(dptr));
-    SCANN_RET_CHECK_EQ(result, idx);
-  }
-  return result;
-}
-
-template <typename T>
-Status SingleMachineSearcherBase<T>::Mutator::UpdateDatapointInBase(
-    const DatapointPtr<T>& dptr, const DatapointPtr<uint8_t>& hashed,
-    DatapointIndex idx) {
-  if (dataset_mutator_) {
-    SCANN_RETURN_IF_ERROR(dataset_mutator_->UpdateDatapoint(dptr, idx));
-  }
-  if (hashed_dataset_mutator_) {
-    SCANN_RETURN_IF_ERROR(
-        hashed_dataset_mutator_->UpdateDatapoint(hashed, idx));
-  }
-  if (reordering_mutator_) {
-    SCANN_RETURN_IF_ERROR(reordering_mutator_->UpdateDatapoint(dptr, idx));
-  }
-  return OkStatus();
-}
-
-template <typename T>
-StatusOr<DatapointIndex>
-SingleMachineSearcherBase<T>::Mutator::RemoveDatapointFromBase(
-    DatapointIndex idx) {
-  SCANN_RETURN_IF_ERROR(GetNextDatapointIndex().status());
-
-  DatapointIndex result = kInvalidDatapointIndex;
-  if (dataset_mutator_) {
-    SCANN_RETURN_IF_ERROR(dataset_mutator_->RemoveDatapoint(idx));
-    result = searcher_->dataset_->size();
-  }
-  if (hashed_dataset_mutator_) {
-    SCANN_RETURN_IF_ERROR(hashed_dataset_mutator_->RemoveDatapoint(idx));
-    result = searcher_->hashed_dataset_->size();
-  }
-  if (docid_mutator_) {
-    SCANN_RETURN_IF_ERROR(docid_mutator_->RemoveDatapoint(idx));
-    result = searcher_->docids_->size();
-  }
-  if (reordering_mutator_) {
-    TF_ASSIGN_OR_RETURN(auto swapped_from,
-                        reordering_mutator_->RemoveDatapoint(idx));
-    if (result != kInvalidDatapointIndex) {
-      SCANN_RET_CHECK_EQ(swapped_from, result);
-    }
-  }
-  return result;
-}
-
-template <typename T>
-void SingleMachineSearcherBase<T>::Mutator::ReserveInBase(
-    DatapointIndex num_datapoints) {
-  if (dataset_mutator_) dataset_mutator_->Reserve(num_datapoints);
-  if (hashed_dataset_mutator_) hashed_dataset_mutator_->Reserve(num_datapoints);
-  if (reordering_mutator_) reordering_mutator_->Reserve(num_datapoints);
-  if (docid_mutator_) docid_mutator_->Reserve(num_datapoints);
-}
-
-template <typename T>
-StatusOr<DatapointIndex>
-SingleMachineSearcherBase<T>::Mutator::AddDatapointWithMetadata(
-    const DatapointPtr<T>& dptr, const GenericFeatureVector& gfv,
-    MutationMetadata* md) {
-  if (searcher_->metadata_enabled()) {
-    SCANN_RETURN_IF_ERROR(searcher_->metadata_getter_->AppendMetadata(gfv));
-  }
-  return AddDatapoint(dptr, gfv.data_id_str(), md);
-}
-
-template <typename T>
-StatusOr<DatapointIndex>
-SingleMachineSearcherBase<T>::Mutator::UpdateDatapointWithMetadata(
-    const DatapointPtr<T>& dptr, const GenericFeatureVector& gfv,
-    DatapointIndex idx, MutationMetadata* md) {
-  if (searcher_->metadata_enabled()) {
-    SCANN_RETURN_IF_ERROR(
-        searcher_->metadata_getter_->UpdateMetadata(idx, gfv));
-  }
-  TF_ASSIGN_OR_RETURN(const DatapointIndex new_idx,
-                      UpdateDatapoint(dptr, idx, md));
-  SCANN_RET_CHECK_EQ(idx, new_idx)
-      << "Datapoint indices should not change when "
-         "updating a datapoint in place.";
-  return idx;
-}
-
-template <typename T>
-Status SingleMachineSearcherBase<T>::Mutator::RemoveDatapointWithMetadata(
-    DatapointIndex idx) {
-  if (searcher_->metadata_enabled()) {
-    SCANN_RETURN_IF_ERROR(searcher_->metadata_getter_->RemoveMetadata(idx));
-  }
-  return RemoveDatapoint(idx);
-}
-
-template <typename T>
-bool SingleMachineSearcherBase<T>::Mutator::LookupDatapointIndex(
-    string_view docid, DatapointIndex* index) const {
-  if (dataset_mutator_) {
-    return dataset_mutator_->LookupDatapointIndex(docid, index);
-  }
-  if (hashed_dataset_mutator_) {
-    return hashed_dataset_mutator_->LookupDatapointIndex(docid, index);
-  }
-  if (docid_mutator_) return docid_mutator_->LookupDatapointIndex(docid, index);
-  return false;
 }
 
 template <typename T>

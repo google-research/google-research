@@ -15,6 +15,7 @@
 #ifndef SCANN_UTILS_HASH_LEAF_HELPERS_H_
 #define SCANN_UTILS_HASH_LEAF_HELPERS_H_
 
+#include <cstdint>
 #include <memory>
 
 #include "scann/base/single_machine_base.h"

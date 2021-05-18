@@ -17,6 +17,7 @@
 #ifndef SCANN_PROJECTION_CHUNKING_PROJECTION_H_
 #define SCANN_PROJECTION_CHUNKING_PROJECTION_H_
 
+#include <cstdint>
 #include <memory>
 #include <utility>
 

@@ -17,6 +17,7 @@
 #ifndef SCANN_DATA_FORMAT_GFV_CONVERSION_H_
 #define SCANN_DATA_FORMAT_GFV_CONVERSION_H_
 
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 

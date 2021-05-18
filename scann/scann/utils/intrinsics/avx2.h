@@ -15,6 +15,8 @@
 #ifndef SCANN_UTILS_INTRINSICS_AVX2_H_
 #define SCANN_UTILS_INTRINSICS_AVX2_H_
 
+#include <cstdint>
+
 #include "scann/utils/index_sequence.h"
 #include "scann/utils/intrinsics/attributes.h"
 #include "scann/utils/intrinsics/avx1.h"

@@ -42,6 +42,10 @@ message IncrementalUpdateConfig {
     optional bool publish_rpc_updates = 5 [default = true];
 
     optional string filter = 6;
+
+    optional bool use_mod_term_filter = 7 [default = false];
+
+    optional string mod_term_filter_signature = 8 [default = "fprint"];
   }
 
   oneof DurabilityReplication {
@@ -51,6 +55,9 @@ message IncrementalUpdateConfig {
   optional string sharder = 6 [default = ""];
 
   optional google.protobuf.Duration startup_catchup_threshold = 7;
+
+  optional uint32 num_updates_between_garbage_collections = 8
+      [default = 100000];
 }
 
 message IncrementalUpdateMetadata {

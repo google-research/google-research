@@ -255,6 +255,8 @@ class DenseDataset final : public TypedDataset<T> {
   DenseDataset<T> Copy() const {
     auto result = DenseDataset<T>(data_, this->docids()->Copy());
     result.set_normalization_tag(this->normalization());
+
+    result.set_dimensionality(this->dimensionality());
     return result;
   }
 
@@ -284,6 +286,12 @@ class DenseDataset final : public TypedDataset<T> {
   MutableSpan<T> mutable_data() { return MakeMutableSpan(data_); }
   MutableSpan<T> mutable_data(size_t index) {
     return MakeMutableSpan(data_.data() + index * stride_, stride_);
+  }
+
+  vector<T> ClearRecyclingDataVector() {
+    vector<T> result = std::move(data_);
+    this->clear();
+    return result;
   }
 
   void clear() final;

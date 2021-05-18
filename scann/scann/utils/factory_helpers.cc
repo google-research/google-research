@@ -14,8 +14,9 @@
 
 #include "scann/utils/factory_helpers.h"
 
+#include <cstdint>
+
 #include "scann/distance_measures/distance_measure_factory.h"
-#include "scann/proto/compressed_reordering.pb.h"
 #include "scann/proto/distance_measure.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
 #include "scann/utils/types.h"
@@ -59,26 +60,6 @@ Status GenericSearchParameters::PopulateValuesFromScannConfig(
   TF_ASSIGN_OR_RETURN(reordering_dist,
                       GetDistanceMeasure(config.distance_measure()));
 
-  if (config.has_compressed_reordering()) {
-    const auto& cr = config.compressed_reordering();
-    if (!cr.has_approx_num_neighbors() && !cr.has_approx_epsilon_distance()) {
-      return InvalidArgumentError(
-          "Must specify approx_num_neighbors and/or approx_epsilon if "
-          "performing compressed reordering.");
-    }
-
-    pre_reordering_num_neighbors = cr.has_approx_num_neighbors()
-                                       ? cr.approx_num_neighbors()
-                                       : numeric_limits<int32_t>::max();
-    if (pre_reordering_num_neighbors <= 0) {
-      return InvalidArgumentError("approx_num_neighbors must be > 0.");
-    }
-
-    pre_reordering_epsilon = cr.has_approx_epsilon_distance()
-                                 ? cr.approx_epsilon_distance()
-                                 : numeric_limits<float>::infinity();
-  }
-
   if (config.has_exact_reordering()) {
     const auto& er = config.exact_reordering();
     if (er.has_approx_distance_measure()) {
@@ -104,23 +85,6 @@ Status GenericSearchParameters::PopulateValuesFromScannConfig(
     pre_reordering_epsilon = er.has_approx_epsilon_distance()
                                  ? er.approx_epsilon_distance()
                                  : numeric_limits<float>::infinity();
-  } else if (config.has_compressed_reordering()) {
-    const auto& cr = config.compressed_reordering();
-    if (!cr.has_approx_num_neighbors() && !cr.has_approx_epsilon_distance()) {
-      return InvalidArgumentError(
-          "Must specify approx_num_neighbors and/or approx_epsilon if "
-          "performing compressed reordering.");
-    }
-    pre_reordering_num_neighbors = cr.has_approx_num_neighbors()
-                                       ? cr.approx_num_neighbors()
-                                       : numeric_limits<int32_t>::max();
-    if (pre_reordering_num_neighbors <= 0) {
-      return InvalidArgumentError("approx_num_neighbors must be > 0.");
-    }
-    pre_reordering_epsilon = cr.has_approx_epsilon_distance()
-                                 ? cr.approx_epsilon_distance()
-                                 : numeric_limits<float>::infinity();
-    pre_reordering_dist = reordering_dist;
   } else {
     pre_reordering_dist = reordering_dist;
     pre_reordering_num_neighbors = post_reordering_num_neighbors;

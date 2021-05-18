@@ -17,6 +17,7 @@
 #ifndef SCANN_PARTITIONING_PARTITIONER_FACTORY_H_
 #define SCANN_PARTITIONING_PARTITIONER_FACTORY_H_
 
+#include <cstdint>
 #include <memory>
 
 #include "scann/data_format/dataset.h"

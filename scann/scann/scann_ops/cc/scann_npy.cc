@@ -14,6 +14,8 @@
 
 #include "scann/scann_ops/cc/scann_npy.h"
 
+#include <cstdint>
+
 namespace research_scann {
 
 template <typename T>

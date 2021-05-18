@@ -17,12 +17,13 @@ from __future__ import print_function
 
 import tempfile
 from absl.testing import absltest
+from absl.testing import parameterized
 import numpy as np
 
 from scann.scann_ops.py import scann_ops_pybind
 
 
-class ScannTest(absltest.TestCase):
+class ScannTest(parameterized.TestCase):
 
   def verify_serialization(self, searcher, n_dims, n_queries):
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -90,35 +91,30 @@ class ScannTest(absltest.TestCase):
       np.testing.assert_allclose(dis, selected_distances, rtol=1e-6)
       np.testing.assert_allclose(dis, batch_dis[i], rtol=1e-6)
 
-  def test_tree_ah(self):
+  @parameterized.parameters(("squared_l2", True), ("squared_l2", False),
+                            ("dot_product", True), ("dot_product", False))
+  def test_tree_ah(self, dist, quantize_tree):
     n_dims = 50
-    n_points = 10000
-    ds = np.random.rand(n_points, n_dims).astype(np.float)
-    s = scann_ops_pybind.builder(ds, 10, "dot_product").tree(
-        300, 30, min_partition_size=10).score_ah(2).build()
-    self.verify_serialization(s, n_dims, 5)
-
-  def test_tree_ah_quantized(self):
-    n_dims = 50
-    n_points = 10000
-    ds = np.random.rand(n_points, n_dims).astype(np.float)
-    s = scann_ops_pybind.builder(ds, 10, "dot_product").tree(
+    ds = np.random.rand(12345, n_dims).astype(np.float)
+    s = scann_ops_pybind.builder(ds, 10, dist).tree(
         300, 30, min_partition_size=10,
-        quantize_centroids=True).score_ah(2).build()
+        quantize_centroids=quantize_tree).score_ah(2).build()
     self.verify_serialization(s, n_dims, 5)
 
-  def test_pure_ah(self):
+  @parameterized.parameters(("squared_l2",), ("dot_product",))
+  def test_pure_ah(self, dist):
     n_dims = 50
-    n_points = 10000
-    ds = np.random.rand(n_points, n_dims).astype(np.float)
-    s = scann_ops_pybind.builder(ds, 10, "dot_product").score_ah(2).build()
+    ds = np.random.rand(12345, n_dims).astype(np.float)
+    s = scann_ops_pybind.builder(ds, 10, dist).score_ah(2).build()
     self.verify_serialization(s, n_dims, 5)
 
-  def test_tree_brute_force(self):
+  @parameterized.parameters(("squared_l2",), ("dot_product",))
+  def test_tree_brute_force_int8(self, dist):
     n_dims = 100
     ds = np.random.rand(12345, n_dims).astype(np.float)
-    s = scann_ops_pybind.builder(ds, 10, "dot_product").tree(
-        100, 10).score_brute_force(True).build()
+    s = scann_ops_pybind.builder(ds, 10,
+                                 dist).tree(100,
+                                            10).score_brute_force(True).build()
     self.verify_serialization(s, n_dims, 5)
 
   def test_empty_partitions(self):
@@ -130,32 +126,20 @@ class ScannTest(absltest.TestCase):
         200, 10, min_partition_size=5).score_ah(1).build()
     self.verify_serialization(s, n_dims, 5)
 
-  def test_brute_force_int8(self):
+  @parameterized.parameters(("squared_l2",), ("dot_product",))
+  def test_brute_force_int8(self, dist):
     n_dims = 100
     ds = np.random.rand(12345, n_dims).astype(np.float)
-    s = scann_ops_pybind.builder(ds, 10,
-                                 "dot_product").score_brute_force(True).build()
+    s = scann_ops_pybind.builder(ds, 10, dist).score_brute_force(True).build()
     self.verify_serialization(s, n_dims, 5)
 
-  def test_brute_force_int8_squared_l2(self):
+  @parameterized.parameters(("squared_l2", True), ("squared_l2", False),
+                            ("dot_product", True), ("dot_product", False))
+  def test_reordering(self, dist, int8_reordering):
     n_dims = 100
     ds = np.random.rand(12345, n_dims).astype(np.float)
-    s = scann_ops_pybind.builder(ds, 10,
-                                 "squared_l2").score_brute_force(True).build()
-    self.verify_serialization(s, n_dims, 5)
-
-  def test_reordering_quantized(self):
-    n_dims = 100
-    ds = np.random.rand(12345, n_dims).astype(np.float)
-    s = scann_ops_pybind.builder(ds, 10, "dot_product").score_ah(2).reorder(
-        20, True).build()
-    self.verify_serialization(s, n_dims, 5)
-
-  def test_reordering_quantized_l2(self):
-    n_dims = 100
-    ds = np.random.rand(12345, n_dims).astype(np.float)
-    s = scann_ops_pybind.builder(ds, 10, "squared_l2").score_ah(2).reorder(
-        20, True).build()
+    s = scann_ops_pybind.builder(ds, 10, dist).score_ah(2).reorder(
+        20, int8_reordering).build()
     self.verify_serialization(s, n_dims, 5)
 
   def test_shapes(self):
@@ -219,8 +203,8 @@ class ScannTest(absltest.TestCase):
                                  "squared_l2").tree(80, 10).score_ah(2).build()
     idx, dis = s.search_batched(qs)
     idx_parallel, dis_parallel = s.search_batched_parallel(qs)
-    np.testing.assert_array_equal(idx, idx_parallel)
-    np.testing.assert_array_equal(dis, dis_parallel)
+    self.assertLess(np.mean(idx != idx_parallel), 1e-3)
+    np.testing.assert_allclose(dis, dis_parallel, rtol=1e-5)
 
   # make sure spherical partitioning proto is valid and doesn't crash
   def test_spherical_kmeans(self):

@@ -14,6 +14,8 @@
 
 #include "scann/partitioning/kmeans_tree_partitioner.h"
 
+#include <cstdint>
+
 #include "absl/base/internal/spinlock.h"
 #include "absl/synchronization/mutex.h"
 #include "scann/base/search_parameters.h"
@@ -119,17 +121,9 @@ Status KMeansTreePartitioner<T>::TokenForDatapoint(
         "Cannot query a KMeansTreePartitioner before training.");
   }
 
-  TokenizationType cur_type;
+  const TokenizationType cur_type = cur_tokenization_type();
   const bool is_query_mode =
       this->tokenization_mode() == UntypedPartitioner::QUERY;
-  if (is_query_mode)
-    cur_type = query_tokenization_type_;
-  else if (this->tokenization_mode() == UntypedPartitioner::DATABASE)
-    cur_type = database_tokenization_type_;
-  else
-    return InternalError(absl::StrCat("Invalid tokenization mode:  ",
-                                      this->tokenization_mode()));
-
   if (cur_type == ASYMMETRIC_HASHING) {
     int pre_reordering_num_neighbors =
         TokenizationSearcher()->reordering_enabled() ? kAhMultiplierNoSpilling
@@ -155,7 +149,7 @@ template <typename T>
 Status KMeansTreePartitioner<T>::TokenForDatapointBatched(
     const TypedDataset<T>& queries, vector<int32_t>* results,
     ThreadPool* pool) const {
-  if (query_tokenization_type_ != FLOAT || queries.IsSparse() ||
+  if (cur_tokenization_type() != FLOAT || queries.IsSparse() ||
       !is_one_level_tree_) {
     return Partitioner<T>::TokenForDatapointBatched(queries, results);
   }

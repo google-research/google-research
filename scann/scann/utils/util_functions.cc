@@ -16,10 +16,12 @@
 
 #include "scann/utils/util_functions.h"
 
+#include <cstdint>
 #include <numeric>
 
 #include "absl/base/internal/sysinfo.h"
-#include "absl/container/node_hash_map.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/node_hash_set.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
 #include "scann/utils/types.h"
@@ -104,13 +106,6 @@ class PartiallyConsumedNeighborListComparator {
   }
 };
 
-void ReleaseAllNeighbors(
-    google::protobuf::RepeatedPtrField<NearestNeighbors::Neighbor>* list) {
-  while (!list->empty()) {
-    list->ReleaseLast();
-  }
-}
-
 template <typename Lambda>
 inline NearestNeighbors MergeNeighborListsImpl(
     MutableSpan<NearestNeighbors> neighbor_lists, int num_neighbors,
@@ -158,13 +153,15 @@ inline NearestNeighbors MergeNeighborListsImpl(
     if (should_drop(next_neighbor)) {
       delete next_neighbor;
     } else {
-      result.mutable_neighbor()->AddAllocated(next_neighbor);
+      result.mutable_neighbor()->UnsafeArenaAddAllocated(next_neighbor);
     }
 
     if (merge_from->pos < merge_from->neighbor_list->size()) {
       std::push_heap(heap.begin(), heap.end(), comp);
     } else {
-      ReleaseAllNeighbors(heap.back().neighbor_list);
+      while (!heap.back().neighbor_list->empty()) {
+        heap.back().neighbor_list->UnsafeArenaReleaseLast();
+      }
       heap.pop_back();
     }
   }
@@ -177,7 +174,7 @@ inline NearestNeighbors MergeNeighborListsImpl(
     if (should_drop(next_neighbor)) {
       delete next_neighbor;
     } else {
-      result.mutable_neighbor()->AddAllocated(next_neighbor);
+      result.mutable_neighbor()->UnsafeArenaAddAllocated(next_neighbor);
     }
   }
 
@@ -186,7 +183,9 @@ inline NearestNeighbors MergeNeighborListsImpl(
       list.neighbor_list->RemoveLast();
     }
 
-    ReleaseAllNeighbors(list.neighbor_list);
+    while (!list.neighbor_list->empty()) {
+      list.neighbor_list->UnsafeArenaReleaseLast();
+    }
   }
 
   for (auto& list : neighbor_lists) {
@@ -270,7 +269,7 @@ NearestNeighbors MergeNeighborLists(
 NearestNeighbors MergeNeighborListsWithCrowding(
     MutableSpan<NearestNeighbors> neighbor_lists, int num_neighbors,
     int per_crowding_attribute_num_neighbors) {
-  std::unordered_map<int64_t, int> crowding_counts;
+  absl::flat_hash_map<int64_t, int> crowding_counts;
   auto is_crowded_out = [&crowding_counts,
                          per_crowding_attribute_num_neighbors](
                             const NearestNeighbors::Neighbor* nn) {
@@ -283,7 +282,7 @@ NearestNeighbors MergeNeighborListsWithCrowding(
 
 NearestNeighbors MergeNeighborListsRemoveDuplicateDocids(
     MutableSpan<NearestNeighbors> neighbor_lists, int num_neighbors) {
-  std::unordered_set<std::string> prev_docids;
+  absl::node_hash_set<std::string> prev_docids;
   auto docid_seen = [&prev_docids](const NearestNeighbors::Neighbor* nn) {
     auto iter = prev_docids.find(nn->docid());
     if (iter == prev_docids.end()) {
@@ -307,7 +306,7 @@ void MergeNeighborListsSwap(MutableSpan<NearestNeighbors*> neighbor_lists,
 void MergeNeighborListsWithCrowdingSwap(
     MutableSpan<NearestNeighbors*> neighbor_lists, int num_neighbors,
     int per_crowding_attribute_num_neighbors, NearestNeighbors* result) {
-  absl::node_hash_map<int64_t, int> crowding_counts;
+  absl::flat_hash_map<int64_t, int> crowding_counts;
   auto is_crowded_out = [&crowding_counts,
                          per_crowding_attribute_num_neighbors](
                             const NearestNeighbors::Neighbor* nn) {
@@ -316,17 +315,6 @@ void MergeNeighborListsWithCrowdingSwap(
   };
   MergeNeighborListsSwapImpl(neighbor_lists, num_neighbors, is_crowded_out,
                              result);
-}
-
-void LogCPUInfo() {
-  LOG(INFO) << "CPU Info:\n"
-            << "Model number:  " << tensorflow::port::CPUModelNum() << "\n"
-            << "Clock speed:  "
-            << tensorflow::port::NominalCPUFrequency() / 1.0e9 << " GHz\n"
-            << "Num logical CPU cores:  " << tensorflow::port::NumTotalCPUs()
-            << "\n"
-            << "Num hyperthreads per core:  "
-            << tensorflow::port::CPUIDNumSMT();
 }
 
 void PackNibblesDatapoint(const DatapointPtr<uint8_t>& hash,

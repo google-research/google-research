@@ -14,6 +14,8 @@
 
 #include "scann/brute_force/scalar_quantized_brute_force.h"
 
+#include <cstdint>
+
 #include "absl/memory/memory.h"
 #include "scann/base/restrict_allowlist.h"
 #include "scann/base/search_parameters.h"

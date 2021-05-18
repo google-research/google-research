@@ -14,6 +14,7 @@
 
 #include "scann/scann_ops/cc/scann.h"
 
+#include <cstdint>
 #include <fstream>
 
 #include "absl/base/internal/sysinfo.h"
@@ -34,8 +35,9 @@ int GetNumCPUs() { return std::max(absl::base_internal::NumCPUs(), 1); }
 }  // namespace
 
 template <typename T>
-void ParseTextProto(T* proto, const std::string& proto_str) {
+Status ParseTextProto(T* proto, const std::string& proto_str) {
   ::google::protobuf::TextFormat::ParseFromString(proto_str, proto);
+  return OkStatus();
 }
 
 unique_ptr<DenseDataset<float>> InitDataset(ConstSpan<float> dataset,
@@ -115,7 +117,7 @@ Status ScannInterface::Initialize(ConstSpan<float> dataset,
                                   DatapointIndex n_points,
                                   const std::string& config,
                                   int training_threads) {
-  ParseTextProto(&config_, config);
+  SCANN_RETURN_IF_ERROR(ParseTextProto(&config_, config));
   if (training_threads < 0)
     return InvalidArgumentError("training_threads must be non-negative");
   if (training_threads == 0) training_threads = GetNumCPUs();
@@ -162,8 +164,7 @@ Status ScannInterface::Search(const DatapointPtr<float> query,
                               int pre_reorder_nn, int leaves) const {
   if (query.dimensionality() != dimensionality_)
     return InvalidArgumentError("Query doesn't match dataset dimsensionality");
-  bool has_reordering =
-      config_.has_exact_reordering() || config_.has_compressed_reordering();
+  bool has_reordering = config_.has_exact_reordering();
   int post_reorder_nn = -1;
   if (has_reordering)
     post_reorder_nn = final_nn;
@@ -191,8 +192,7 @@ Status ScannInterface::SearchBatched(const DenseDataset<float>& queries,
   if (!std::isinf(scann_->default_pre_reordering_epsilon()) ||
       !std::isinf(scann_->default_post_reordering_epsilon()))
     return InvalidArgumentError("Batch querying isn't supported with epsilon");
-  bool has_reordering =
-      config_.has_exact_reordering() || config_.has_compressed_reordering();
+  bool has_reordering = config_.has_exact_reordering();
   int post_reorder_nn = -1;
   if (has_reordering)
     post_reorder_nn = final_nn;

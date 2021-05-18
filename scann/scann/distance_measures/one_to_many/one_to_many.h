@@ -19,6 +19,7 @@
 
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 
@@ -398,7 +399,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternal(
           __m128 v1 = _mm_loadu_ps(f1 + j);
           __m128 v2 = _mm_loadu_ps(f2 + j);
 
-          if (kShouldPrefetch) {
+          if (kShouldPrefetch && p0) {
             ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
                 p0 + j);
             ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
@@ -521,7 +522,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx1(
       __m256 v1 = _mm256_loadu_ps(f1 + j);
       __m256 v2 = _mm256_loadu_ps(f2 + j);
 
-      if (kShouldPrefetch) {
+      if (kShouldPrefetch && p0) {
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
                                                                            j);
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
@@ -545,7 +546,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx1(
       __m128 v1 = _mm_loadu_ps(f1 + j);
       __m128 v2 = _mm_loadu_ps(f2 + j);
 
-      if (kShouldPrefetch) {
+      if (kShouldPrefetch && p0) {
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
                                                                            j);
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
@@ -659,7 +660,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx2(
       __m256 v1 = _mm256_loadu_ps(f1 + j);
       __m256 v2 = _mm256_loadu_ps(f2 + j);
 
-      if (kShouldPrefetch) {
+      if (kShouldPrefetch && p0) {
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
                                                                            j);
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
@@ -683,7 +684,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx2(
       __m128 v1 = _mm_loadu_ps(f1 + j);
       __m128 v2 = _mm_loadu_ps(f2 + j);
 
-      if (kShouldPrefetch) {
+      if (kShouldPrefetch && p0) {
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
                                                                            j);
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
@@ -858,7 +859,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternal(
           __m128d v1 = _mm_loadu_pd(f1 + j);
           __m128d v2 = _mm_loadu_pd(f2 + j);
 
-          if (kShouldPrefetch) {
+          if (kShouldPrefetch && p0) {
             ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
                 p0 + j);
             ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
@@ -994,7 +995,7 @@ void DenseGeneralHammingDistanceMeasureOneToManyInternal(
           __m128i v2 =
               _mm_loadu_si128(reinterpret_cast<const __m128i*>(i2 + j));
 
-          if (kShouldPrefetch) {
+          if (kShouldPrefetch && p0) {
             ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
                 p0 + j);
             ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(

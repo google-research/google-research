@@ -1,5 +1,6 @@
 
 
+#include <cstdint>
 template <typename DatasetView, bool kShouldPrefetch, bool kHasIndices,
           typename IndexT, typename ResultElemT, typename CallbackLambda>
 SCANN_SIMD_INLINE void DenseDotProductDistanceOneToManyInt8FloatImpl(
@@ -55,7 +56,7 @@ SCANN_SIMD_INLINE void DenseDotProductDistanceOneToManyInt8FloatImpl(
         __m128i v1 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(i1 + j));
         __m128i v2 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(i2 + j));
 
-        if (kShouldPrefetch) {
+        if (kShouldPrefetch && p0) {
           ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
               p0 + j);
           ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(

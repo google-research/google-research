@@ -17,6 +17,7 @@
 #ifndef SCANN_TREE_X_HYBRID_TREE_AH_HYBRID_RESIDUAL_H_
 #define SCANN_TREE_X_HYBRID_TREE_AH_HYBRID_RESIDUAL_H_
 
+#include <cstdint>
 #include <functional>
 
 #include "scann/base/search_parameters.h"
@@ -70,8 +71,9 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
   static StatusOr<uint8_t> ComputeGlobalTopNShift(
       ConstSpan<std::vector<DatapointIndex>> datapoints_by_token);
 
-  StatusOr<unique_ptr<SearchParameters::UnlockedQueryPreprocessingResults>>
-  UnlockedPreprocessQuery(const DatapointPtr<float>& query) const final;
+  Status PreprocessQueryIntoParamsUnlocked(
+      const DatapointPtr<float>& query,
+      SearchParameters& search_params) const final;
 
   StatusOr<SingleMachineFactoryOptions> ExtractSingleMachineFactoryOptions()
       override;
@@ -95,6 +97,7 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
 
   Status EnableCrowdingImpl(
       ConstSpan<int64_t> datapoint_index_to_crowding_attribute) final;
+  void DisableCrowdingImpl() final;
 
  private:
   class UnlockedTreeAHHybridResidualPreprocessingResults
@@ -168,6 +171,8 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
   bool enable_global_topn_ = false;
 
   uint8_t global_topn_shift_ = 0;
+
+  FRIEND_TEST(TreeAHHybridResidualTest, CrowdingMutation);
 };
 
 }  // namespace research_scann

@@ -15,6 +15,8 @@
 #ifndef SCANN_DISTANCE_MEASURES_MANY_TO_MANY_MANY_TO_MANY_TEMPLATES_H_
 #define SCANN_DISTANCE_MEASURES_MANY_TO_MANY_MANY_TO_MANY_TEMPLATES_H_
 
+#include <cstdint>
+
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/many_to_many/many_to_many.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
@@ -202,7 +204,8 @@ void DenseDistanceManyToManyImpl(const DistanceMeasure& dist,
                                  ThreadPool* pool, CallbackT callback) {
   static_assert(IsSameAny<FloatT, float, double>(),
                 "DenseDistanceManyToMany only works with float/double.");
-  if (queries.empty()) return;
+
+  if (database.empty() || queries.empty()) return;
 
   if (queries.size() == 1 || !IsSupportedDistanceMeasure(dist)) {
     return CallOneToManyDistance(dist, queries, database, pool,

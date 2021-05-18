@@ -17,6 +17,8 @@
 #ifndef SCANN_TREE_X_HYBRID_TREE_X_PARAMS_H_
 #define SCANN_TREE_X_HYBRID_TREE_X_PARAMS_H_
 
+#include <cstdint>
+
 #include "scann/base/search_parameters.h"
 #include "scann/utils/types.h"
 
@@ -30,15 +32,7 @@ class TreeXOptionalParameters final
 
   Status EnablePreTokenization(vector<int32_t> leaf_tokens_to_search);
 
-  Status EnablePreTokenization(
-      vector<int32_t> leaf_tokens_to_search,
-      vector<shared_ptr<const SearcherSpecificOptionalParameters>>
-          leaf_params_by_token);
-
-  void DisableTreeXPreTokenization() {
-    leaf_tokens_to_search_.clear();
-    leaf_params_by_token_.clear();
-  }
+  void DisableTreeXPreTokenization() { leaf_tokens_to_search_.clear(); }
 
   bool pre_tokenization_enabled() const {
     return !leaf_tokens_to_search_.empty();
@@ -48,11 +42,6 @@ class TreeXOptionalParameters final
     return leaf_tokens_to_search_;
   }
 
-  ConstSpan<shared_ptr<const SearcherSpecificOptionalParameters>>
-  leaf_params_by_token() const {
-    return leaf_params_by_token_;
-  }
-
   shared_ptr<const SearcherSpecificOptionalParameters>
   all_leaf_optional_params() const {
     return all_leaf_optional_params_;
@@ -60,7 +49,6 @@ class TreeXOptionalParameters final
 
   void set_all_leaf_optional_params(
       shared_ptr<const SearcherSpecificOptionalParameters> val) {
-    leaf_params_by_token_.clear();
     all_leaf_optional_params_ = std::move(val);
   }
 
@@ -77,9 +65,6 @@ class TreeXOptionalParameters final
   vector<int32_t> leaf_tokens_to_search_ = {};
 
   int32_t num_partitions_to_search_override_ = 0;
-
-  vector<shared_ptr<const SearcherSpecificOptionalParameters>>
-      leaf_params_by_token_;
 
   shared_ptr<const SearcherSpecificOptionalParameters>
       all_leaf_optional_params_;

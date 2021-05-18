@@ -14,6 +14,7 @@
 
 #ifndef SCANN_DISTANCE_MEASURES_ONE_TO_ONE_DOT_PRODUCT_AVX1_H_
 #define SCANN_DISTANCE_MEASURES_ONE_TO_ONE_DOT_PRODUCT_AVX1_H_
+#include <cstdint>
 #ifdef __x86_64__
 
 #include "scann/data_format/datapoint.h"

@@ -17,6 +17,7 @@
 #ifndef SCANN_BRUTE_FORCE_BRUTE_FORCE_H_
 #define SCANN_BRUTE_FORCE_BRUTE_FORCE_H_
 
+#include <cstdint>
 #include <utility>
 
 #include "scann/base/search_parameters.h"
@@ -46,7 +47,8 @@ class BruteForceSearcher final : public SingleMachineSearcherBase<T> {
 
   void set_thread_pool(std::shared_ptr<ThreadPool> p) { pool_ = std::move(p); }
 
-  using MutationMetadata = UntypedSingleMachineSearcherBase::MutationMetadata;
+  using PrecomputedMutationArtifacts =
+      UntypedSingleMachineSearcherBase::PrecomputedMutationArtifacts;
 
  protected:
   Status FindNeighborsImpl(const DatapointPtr<T>& query,
@@ -89,9 +91,6 @@ class BruteForceSearcher final : public SingleMachineSearcherBase<T> {
   const bool supports_low_level_batching_;
 
   std::shared_ptr<ThreadPool> pool_;
-
-  mutable unique_ptr<typename BruteForceSearcher<T>::Mutator> mutator_ =
-      nullptr;
 };
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, BruteForceSearcher);

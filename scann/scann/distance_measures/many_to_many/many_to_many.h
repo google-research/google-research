@@ -18,6 +18,7 @@
 #define SCANN_DISTANCE_MEASURES_MANY_TO_MANY_MANY_TO_MANY_H_
 
 #include <atomic>
+#include <cstdint>
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
@@ -25,6 +26,8 @@
 #include "scann/distance_measures/many_to_many/fp8_transposed.h"
 #include "scann/distance_measures/many_to_many/many_to_many_common.h"
 #include "scann/utils/types.h"
+
+ABSL_DECLARE_FLAG(bool, enable_scann_brute_force_determinism);
 
 namespace research_scann {
 

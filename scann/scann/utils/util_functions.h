@@ -18,6 +18,7 @@
 #define SCANN_UTILS_UTIL_FUNCTIONS_H_
 
 #include <cmath>
+#include <cstdint>
 #include <stack>
 #include <unordered_map>
 
@@ -159,8 +160,6 @@ void MergeNeighborListsWithCrowdingSwap(
 
 NearestNeighbors MergeNeighborListsRemoveDuplicateDocids(
     MutableSpan<NearestNeighbors> neighbor_lists, int num_neighbors);
-
-void LogCPUInfo();
 
 template <typename T>
 inline const google::protobuf::RepeatedField<T>& GfvValues(

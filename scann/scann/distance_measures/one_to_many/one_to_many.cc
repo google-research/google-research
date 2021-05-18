@@ -14,6 +14,8 @@
 
 #include "scann/distance_measures/one_to_many/one_to_many.h"
 
+#include <cstdint>
+
 #include "scann/utils/internal/avx2_funcs.h"
 #include "scann/utils/internal/avx_funcs.h"
 #include "scann/utils/intrinsics/simd.h"

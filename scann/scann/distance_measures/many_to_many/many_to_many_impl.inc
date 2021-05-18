@@ -228,7 +228,7 @@ class M2MTransposer {
       const FloatT* ptr_end = database_ptr + 2 * dimensionality;
       for (const FloatT* ptr = ptr_begin; ptr != ptr_end;
            ++ptr, dest += kElementsPerRegister) {
-        dest[0] = ptr[-1 * dimensionality];
+        dest[0] = *(ptr - dimensionality);
         dest[1] = ptr[0 * dimensionality];
         dest[2] = ptr[1 * dimensionality];
         dest[3] = ptr[2 * dimensionality];
@@ -881,7 +881,15 @@ SCANN_INLINE void DenseDistanceManyToManyImpl(
       (DistanceMeasure::SQUARED_L2 == dist.specially_optimized_distance_tag());
 
   if constexpr (Simd<FloatT>::kElementsPerRegister > 1) {
-    if (ShouldTranspose<FloatT>(queries.size(), queries.dimensionality())) {
+    bool should_transpose;
+    if (absl::GetFlag(FLAGS_enable_scann_brute_force_determinism)) {
+      should_transpose = true;
+    } else {
+      should_transpose =
+          ShouldTranspose<FloatT>(queries.size(), queries.dimensionality());
+    }
+
+    if (should_transpose) {
       if (is_squared_l2) {
         return DenseManyToManyTransposedImpl<true>(queries, database, pool,
                                                    std::move(callback));

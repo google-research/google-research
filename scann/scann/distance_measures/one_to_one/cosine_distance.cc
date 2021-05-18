@@ -14,6 +14,8 @@
 
 #include "scann/distance_measures/one_to_one/cosine_distance.h"
 
+#include <cstdint>
+
 #include "scann/oss_wrappers/scann_bits.h"
 
 namespace research_scann {

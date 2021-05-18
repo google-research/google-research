@@ -15,6 +15,7 @@
 #ifndef SCANN_BASE_SINGLE_MACHINE_FACTORY_OPTIONS_H_
 #define SCANN_BASE_SINGLE_MACHINE_FACTORY_OPTIONS_H_
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -47,15 +48,11 @@ struct SingleMachineFactoryOptions {
 
   shared_ptr<vector<std::vector<DatapointIndex>>> datapoints_by_token;
 
-  shared_ptr<DenseDataset<uint8_t>> compressed_dataset;
-
   shared_ptr<PreQuantizedFixedPoint> pre_quantized_fixed_point;
 
   shared_ptr<DenseDataset<uint8_t>> hashed_dataset;
 
   std::shared_ptr<CentersForAllSubspaces> ah_codebook;
-
-  std::shared_ptr<CentersForAllSubspaces> reordering_ah_codebook;
 
   std::shared_ptr<SerializedPartitioner> serialized_partitioner;
 

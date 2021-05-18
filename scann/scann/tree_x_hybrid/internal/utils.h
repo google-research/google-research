@@ -15,6 +15,8 @@
 #ifndef SCANN_TREE_X_HYBRID_INTERNAL_UTILS_H_
 #define SCANN_TREE_X_HYBRID_INTERNAL_UTILS_H_
 
+#include <cstdint>
+
 #include "scann/base/restrict_allowlist.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
@@ -37,7 +39,7 @@ StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
   const int n_leaves = leaf_searchers.size();
   auto leaf_opts = std::vector<SingleMachineFactoryOptions>(n_leaves);
 
-  int hash_ct = 0, codebook_ct = 0, total_hashed = 0, hash_dim = -1;
+  ssize_t hash_ct = 0, codebook_ct = 0, total_hashed = 0, hash_dim = -1;
 
   ssize_t int8_ct = 0, total_int8 = 0, int8_dim = -1;
   bool int8_has_norms = false;

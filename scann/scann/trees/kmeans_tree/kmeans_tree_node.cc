@@ -18,8 +18,10 @@
 
 #include <math.h>
 
+#include <cstdint>
 #include <hash_set>
 
+#include "absl/container/flat_hash_set.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
 #include "scann/oss_wrappers/scann_random.h"
 #include "scann/utils/gmm_utils.h"
@@ -42,7 +44,7 @@ void KMeansTreeNode::Reset() {
 
 void KMeansTreeNode::UnionIndices(vector<DatapointIndex>* result) const {
   CHECK(result);
-  std::unordered_set<DatapointIndex> union_hash;
+  absl::flat_hash_set<DatapointIndex> union_hash;
   UnionIndicesImpl(&union_hash);
   result->clear();
   for (DatapointIndex elem : union_hash) {
@@ -309,7 +311,7 @@ void KMeansTreeNode::CopyToProto(SerializedKMeansTree::Node* proto,
 }
 
 void KMeansTreeNode::UnionIndicesImpl(
-    std::unordered_set<DatapointIndex>* union_hash) const {
+    absl::flat_hash_set<DatapointIndex>* union_hash) const {
   CHECK(union_hash);
   if (IsLeaf()) {
     for (auto index : indices_) {

@@ -15,8 +15,10 @@
 #ifndef SCANN_TREES_KMEANS_TREE_KMEANS_TREE_NODE_H_
 #define SCANN_TREES_KMEANS_TREE_KMEANS_TREE_NODE_H_
 
+#include <cstdint>
 #include <type_traits>
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/flags/flag.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
@@ -85,7 +87,7 @@ class KMeansTreeNode {
   template <typename Real>
   const DenseDataset<Real>& GetCentersByTemplateType() const;
 
-  void UnionIndicesImpl(std::unordered_set<DatapointIndex>* union_hash) const;
+  void UnionIndicesImpl(absl::flat_hash_set<DatapointIndex>* union_hash) const;
 
   DenseDataset<float> float_centers_;
 

@@ -119,11 +119,13 @@ message InputOutputConfig {
 
   optional string hashed_database_wildcard = 12;
   optional string fixed_point_database_wildcard = 17;
-  optional string compressed_database_wildcard = 13;
   optional string tokenized_database_wildcard = 14;
+  optional string memory_consumption_estimate_filename = 24;
 
   reserved 1;
   reserved "input_handler";
   optional bool saturate = 10 [default = false, deprecated = true];
   optional uint64 dimensionality = 4 [deprecated = true];
+
+  reserved 13;
 }

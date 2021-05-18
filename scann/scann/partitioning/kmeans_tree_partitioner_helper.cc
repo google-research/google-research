@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
+
 #include "scann/base/single_machine_base.h"
 #include "scann/brute_force/brute_force.h"
 #include "scann/hashes/asymmetric_hashing2/indexing.h"
@@ -84,9 +86,8 @@ CreateRecommendedAsymmetricSearcher(
 
   auto queryer = make_unique<asymmetric_hashing2::AsymmetricQueryer<float>>(
       training_opts.projector(), quantization_distance, model);
-  asymmetric_hashing2::SearcherOptions<float> searcher_opts;
+  asymmetric_hashing2::SearcherOptions<float> searcher_opts(std::move(queryer));
   searcher_opts.set_asymmetric_lookup_type(hasher_config.lookup_type());
-  searcher_opts.EnableAsymmetricQuerying(std::move(queryer));
   unique_ptr<SingleMachineSearcherBase<float>> ah_searcher(
       new asymmetric_hashing2::Searcher<float>(
           std::move(dataset), std::move(hashed_dataset), searcher_opts,

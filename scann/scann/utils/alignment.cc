@@ -14,6 +14,8 @@
 
 #include "scann/utils/alignment.h"
 
+#include <cstdint>
+
 #include "scann/utils/common.h"
 
 namespace research_scann {

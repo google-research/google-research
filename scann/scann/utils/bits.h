@@ -16,6 +16,7 @@
 #define SCANN_UTILS_BITS_H_
 
 #include <cstddef>
+#include <cstdint>
 
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/types.h"

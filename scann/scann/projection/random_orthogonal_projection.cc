@@ -16,6 +16,8 @@
 
 #include "scann/projection/random_orthogonal_projection.h"
 
+#include <cstdint>
+
 #include "Eigen/Core"
 #include "Eigen/QR"
 #include "absl/random/random.h"

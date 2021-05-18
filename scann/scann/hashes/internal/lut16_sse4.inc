@@ -1,3 +1,5 @@
+#include <cstdint>
+
 #include "scann/hashes/internal/lut16_sse4.h"
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/common.h"
@@ -346,11 +348,14 @@ SCANN_SSE4_INLINE void GetTopFloatDistancesImpl(
       while (push_mask) {
         const int offset = bits::FindLSBSetNonZero(push_mask);
         push_mask &= (push_mask - 1);
-        const DatapointIndex dp_idx = first_dp_index + 32 * k + offset;
+        DatapointIndex dp_idx = first_dp_index + 32 * k + offset;
         DCHECK(
             !restrict_whitelist_ptrs[j] ||
             args.restrict_whitelists[j].IsWhitelisted(dp_idx - first_dp_index))
             << dp_idx;
+        if (args.datapoint_translation_predicate) {
+          dp_idx = args.datapoint_translation_predicate(dp_idx);
+        }
         if (args.final_predicate && !args.final_predicate(dp_idx)) continue;
 
         const bool needs_gc =
