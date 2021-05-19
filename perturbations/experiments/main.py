@@ -27,22 +27,21 @@ from perturbations.experiments import training_loop
 
 
 flags.DEFINE_string('base_dir', None, 'Directory to save trained model in.')
-flags.DEFINE_integer('run_number', None, 'Id of the run.')
+flags.DEFINE_integer('seed', None, 'Id of the run.')
 flags.DEFINE_multi_string(
     'gin_config', [], 'List of paths to the config files.')
 flags.DEFINE_multi_string(
     'gin_bindings', [], 'Newline separated list of Gin parameter bindings.')
+flags.DEFINE_string('config_dir', '', 'Where to find the config files.')
 
 FLAGS = flags.FLAGS
-ROOT = 'third_party/google_research/google_research/perturbations/'
-CONFIGS_PATH = os.path.join(ROOT, 'experiments/configs/')
 
 
 def main(unused_argv):
   tf.enable_v2_behavior()
-  filenames = [os.path.join(CONFIGS_PATH, name) for name in FLAGS.gin_config]
+  filenames = [os.path.join(FLAGS.config_dir, cfg) for cfg in FLAGS.gin_config]
   gin.parse_config_files_and_bindings(filenames, FLAGS.gin_bindings)
-  tf.random.set_seed(FLAGS.run_number)
+  tf.random.set_seed(FLAGS.seed)
   training_loop.TrainingLoop(FLAGS.base_dir).run()
 
 
