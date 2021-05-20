@@ -622,10 +622,27 @@ class LayerNormAqt(nn.Module):
       def to_quantized(x):
         return quant_ops.to_quantized(x, dtype=dtype)
 
+      # If epsilon is too small to represent in the quantized format, we set it
+      # to the minimal representative non-zero value to avoid the possibility of
+      # dividing by zero.
+      fp_bounds = quantization.fp_cast.get_bounds(prec.exp_min, prec.exp_max,
+                                                  prec.sig_bits)
+      epsilon = max(self.epsilon, fp_bounds.flush_to_zero_bound)
+      quantized_epsilon = to_quantized(jnp.array(epsilon, dtype=dtype))
+
+      # If the reciprocal of the quantized number of features is too small to
+      # represent in the quantized format, we set it to the minimal
+      # representative nonzero value so that the mean and variance are not
+      # trivially 0.
       num_features_quantized = to_quantized(
           jnp.array(num_features, dtype=dtype))
       num_features_recip_quantized = to_quantized(
           jnp.reciprocal(num_features_quantized))
+      num_features_recip_quantized = jax.lax.cond(
+          jax.lax.eq(num_features_recip_quantized,
+                     0.0), lambda _: quantized_epsilon,
+          lambda _: num_features_recip_quantized, None)
+
       x_quantized = to_quantized(x)
       x_sum_quantized_reduction = quantization.quantized_sum(
           x_quantized,
@@ -643,14 +660,7 @@ class LayerNormAqt(nn.Module):
           prec=hparams.quant_hparams.reduction_prec)
       x_sq_sum = to_quantized(x_sq_sum_quantized_reduction)
       var = to_quantized(x_sq_sum * num_features_recip_quantized)
-      # If epsilon is too small to represent in the quantized format, we set it
-      # to the minimal representative non-zero value to avoid the possibility of
-      # dividing by zero.
-      fp_bounds = quantization.fp_cast.get_bounds(prec.exp_min, prec.exp_max,
-                                                  prec.sig_bits)
-      epsilon = max(self.epsilon, fp_bounds.flush_to_zero_bound)
-      quantized_epsilon = to_quantized(jnp.array(epsilon, dtype=dtype))
-
+      # Prevent division by zero.
       var_plus_epsilon = to_quantized(var + quantized_epsilon)
       mul = to_quantized(lax.rsqrt(var_plus_epsilon))
       if self.use_scale:
