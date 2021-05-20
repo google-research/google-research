@@ -85,9 +85,10 @@ def train_step(model, state, batch, hparams, update_bounds, learning_rate_fn):
 
   def loss_fn(params):
     """loss function used for training."""
-    variables = {'params': params, **state.model_state}
+    variables = {'params': params}
+    variables.update(state.model_state)
     logits, new_model_state = model.apply(
-        variables, batch['image'], mutable=True)
+        variables, batch['image'], mutable=['batch_stats', 'get_bounds'])
     loss = cross_entropy_loss(logits, batch['label'])
     weight_penalty_params = jax.tree_leaves(variables['params'])
     weight_decay = hparams.weight_decay
@@ -95,7 +96,6 @@ def train_step(model, state, batch, hparams, update_bounds, learning_rate_fn):
         [jnp.sum(x**2) for x in weight_penalty_params if x.ndim > 1])
     weight_penalty = weight_decay * 0.5 * weight_l2
     loss = loss + weight_penalty
-    new_model_state, _ = new_model_state.pop('params')
     return loss, (new_model_state, logits)
 
   step = state.step
