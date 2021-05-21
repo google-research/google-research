@@ -64,18 +64,6 @@ void BiasDistances(double bias, MutableSpan<double> distances) {
   }
 }
 
-void OffsetNegativeDistances(MutableSpan<double> distances) {
-  double min_dist = 0.0;
-  for (double d : distances) {
-    min_dist = std::min(min_dist, d);
-  }
-  if (min_dist >= 0.0) return;
-  const double bias = -min_dist;
-  for (size_t j : Seq(distances.size())) {
-    distances[j] += bias;
-  }
-}
-
 DatapointIndex GetSample(MTRandom* random, ConstSpan<double> distances,
                          double distances_sum, bool is_first) {
   if (distances_sum <= 0.0 || std::isnan(distances_sum)) {
