@@ -103,6 +103,45 @@ def add_decoder_keypoints_3d(keypoint_names_3d,
   return decoders
 
 
+def add_decoder_features(feature_dim, instance_shape, common_module=common):
+  """Adds decoder for pre-computed features.
+
+  Args:
+    feature_dim: An integer for size of feature vectors.
+    instance_shape: A list of integers for the shape (layout) of instances for
+      each record.
+    common_module: A Python module that defines common constants.
+
+  Returns:
+    A dictionary for decoder.
+  """
+  feature_shape = list(instance_shape) + [feature_dim]
+  return {
+      common_module.TFE_KEY_FEATURE:
+          tf.io.FixedLenFeature(feature_shape, dtype=tf.float32)
+  }
+
+
+def add_decoder_class_labels(common_module=common):
+  """Adds decoders for class label ids and confidences.
+
+  IMPORTANT: Note that we assume there is one copy of label ids and confidences
+  in each record and they apply to all the objects in the record.
+
+  Args:
+    common_module: A Python module that defines common constants.
+
+  Returns:
+    A dictionary for decoders.
+  """
+  return {
+      common_module.TFE_KEY_CLASS_LABEL_ID:
+          tf.io.VarLenFeature(dtype=tf.int64),
+      common_module.TFE_KEY_CLASS_LABEL_CONFIDENCE:
+          tf.io.VarLenFeature(dtype=tf.float32)
+  }
+
+
 def process_decoded_image_sizes(decoded_tensors, common_module=common):
   """Processes decoded image sizes.
 
@@ -201,6 +240,113 @@ def process_decoded_keypoints_3d(decoded_tensors,
   return outputs
 
 
+def process_decoded_features(decoded_tensors, common_module=common):
+  """Processes decoded features.
+
+  Args:
+    decoded_tensors: A dictionary for decoded tensors.
+    common_module: A Python module that defines common constants.
+
+  Returns:
+    A dictionary for processed 2D keypoint tensors.
+  """
+  return {
+      common_module.KEY_FEATURES: decoded_tensors[common_module.TFE_KEY_FEATURE]
+  }
+
+
+def generate_class_targets(label_ids,
+                           label_confidences,
+                           num_classes,
+                           positive_label_confidence_threshold=0.5):
+  """Generates class targets and weights from label ids and confidences.
+
+  Note that we use `class_targets` to represent if a label is positive or
+  negative, and use `class_weights` to represent if a label exists in the input
+  or not.
+
+  Example usage:
+    num_classes = 5
+    label_ids = [0, 1, 3]
+    label_confidences = [0.9, 0.3, 0.7]
+    positive_label_confidence_threshold = 0.5
+    -->
+    class_targets = [1, 0, 0, 1, 0]
+    class_weights = [1.0, 1.0, 0.0, 1.0, 0.0]
+
+  Args:
+    label_ids: A tensor for label ids. Shape = [num_classes].
+    label_confidences: A tensor for label confidences. Shape = [num_classes].
+    num_classes: An integer for total number of classes.
+    positive_label_confidence_threshold: A float for the threshold to determine
+      class target for label ids. If the confidence of a label id is greater
+      than this value, it has positive class target (1), otherwise negative
+      target (0).
+
+  Returns:
+    class_targets: A int64 tensor for class targets. Shape = [num_classes].
+    class_weights: A float32 tensor for class weights. Shape = [num_classes].
+
+  Raises:
+    ValueError: If `label_ids` or `label_confidences` is not 1D tensor.
+  """
+  if len(label_ids.shape.as_list()) != 1:
+    raise ValueError('Label id tensor must be 1D: %d.' %
+                     len(label_ids.shape.as_list()))
+  if len(label_confidences.shape.as_list()) != 1:
+    raise ValueError('Label confidence tensor must be 1D: %d.' %
+                     len(label_confidences.shape.as_list()))
+
+  if isinstance(label_ids, tf.SparseTensor):
+    label_ids = tf.sparse.to_dense(label_ids)
+  if isinstance(label_confidences, tf.SparseTensor):
+    label_confidences = tf.sparse.to_dense(label_confidences)
+  positive_label_id_masks = tf.math.greater(
+      label_confidences, positive_label_confidence_threshold)
+  positive_label_ids = tf.boolean_mask(label_ids, mask=positive_label_id_masks)
+  class_targets = tf.math.reduce_sum(
+      tf.one_hot(positive_label_ids, num_classes, dtype=tf.int64), axis=0)
+  class_weights = tf.math.reduce_sum(
+      tf.one_hot(label_ids, num_classes, dtype=tf.float32), axis=0)
+  return class_targets, class_weights
+
+
+def process_class_labels(decoded_tensors,
+                         num_classes,
+                         num_objects,
+                         common_module=common):
+  """Processes decoded class labels and confidences into targets and weights.
+
+  IMPORTANT: Note that we assume there is one copy of label ids and confidences
+  in each record and they apply to all the objects in the record.
+
+  Args:
+    decoded_tensors: A dictionary for decoded tensors.
+    num_classes: An integer for total number of classification label classes to
+      read labels for.
+    num_objects: An integer for the number of objects each example has.
+    common_module: A Python module that defines common constants.
+
+  Returns:
+    outputs: A dictionary for processed 2D keypoint tensors.
+  """
+  class_targets, class_weights = (
+      generate_class_targets(
+          decoded_tensors[common_module.TFE_KEY_CLASS_LABEL_ID],
+          decoded_tensors[common_module.TFE_KEY_CLASS_LABEL_CONFIDENCE],
+          num_classes=num_classes))
+
+  # Stack the same class targets and weights for multiple objects.
+  class_targets = tf.stack([class_targets for i in range(num_objects)], axis=0)
+  class_weights = tf.stack([class_weights for i in range(num_objects)], axis=0)
+
+  outputs = {
+      common_module.KEY_CLASS_TARGETS: class_targets,
+      common_module.KEY_CLASS_WEIGHTS: class_weights,
+  }
+  return outputs
+
+
 def get_tfe_parser_fn(decoders, post_process_fn):
   """Creates a tf.Example parser function.
 
@@ -228,9 +374,16 @@ def create_tfe_parser(keypoint_names_2d=None,
                       keypoint_names_3d=None,
                       include_keypoint_scores_2d=True,
                       include_keypoint_scores_3d=False,
+                      feature_dim=None,
+                      num_classes=None,
                       num_objects=1,
+                      sequence_length=None,
                       common_module=common):
-  """Creates default tf.Example parser function.
+  """Creates tf.Example parser function.
+
+  IMPORTANT: Currently only supports all objects having the same class label
+  information, and the class label related fields in tf.Examples are expected to
+  only have values for one object.
 
   Args:
     keypoint_names_2d: A list of strings for 2D keypoint names. Use None to skip
@@ -241,21 +394,30 @@ def create_tfe_parser(keypoint_names_2d=None,
       scores. Only used if `keypoint_names_2d` is specified.
     include_keypoint_scores_3d: A boolean for whether to read 3D keypoint
       scores. Only used if `keypoint_names_3d` is specified.
+    feature_dim: An integer for size of pre-computed feature vectors. Only reads
+      features if specified.
+    num_classes: An integer for the number of classification label classes to
+      read labels for. Only reads labels if specified.
     num_objects: An integer for the number of objects each example has.
+    sequence_length: An integer for the length of sequence per object each
+      example has. Skips adding the sequence dimension if None.
     common_module: A Python module that defines common constants.
 
   Returns:
     parser_fn: A function handle for the parser.
   """
+  instance_shape = ([num_objects] if sequence_length is None else
+                    [num_objects, sequence_length])
+
   decoders = add_decoder_image_sizes(
-      instance_shape=[num_objects], common_module=common_module)
+      instance_shape=instance_shape, common_module=common_module)
 
   if keypoint_names_2d:
     decoders.update(
         add_decoder_keypoints_2d(
             keypoint_names_2d,
             include_keypoint_scores_2d=include_keypoint_scores_2d,
-            instance_shape=[num_objects],
+            instance_shape=instance_shape,
             common_module=common_module))
 
   if keypoint_names_3d:
@@ -263,8 +425,18 @@ def create_tfe_parser(keypoint_names_2d=None,
         add_decoder_keypoints_3d(
             keypoint_names_3d,
             include_keypoint_scores_3d=include_keypoint_scores_3d,
-            instance_shape=[num_objects],
+            instance_shape=instance_shape,
             common_module=common_module))
+
+  if feature_dim:
+    decoders.update(
+        add_decoder_features(
+            feature_dim=feature_dim,
+            instance_shape=instance_shape,
+            common_module=common_module))
+
+  if num_classes:
+    decoders.update(add_decoder_class_labels(common_module=common_module))
 
   def post_process_decoded_tensors(decoded_tensors):
     """Postprocesses decoded tensors."""
@@ -284,6 +456,19 @@ def create_tfe_parser(keypoint_names_2d=None,
               decoded_tensors,
               keypoint_names_3d=keypoint_names_3d,
               include_keypoint_scores_3d=include_keypoint_scores_3d,
+              common_module=common_module))
+
+    if feature_dim:
+      outputs.update(
+          process_decoded_features(
+              decoded_tensors, common_module=common_module))
+
+    if num_classes:
+      outputs.update(
+          process_class_labels(
+              decoded_tensors,
+              num_classes=num_classes,
+              num_objects=num_objects,
               common_module=common_module))
 
     return outputs

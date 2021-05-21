@@ -23,6 +23,9 @@ TFE_KEY_SUFFIX_KEYPOINT_2D = ['/center/y', '/center/x']
 TFE_KEY_PREFIX_KEYPOINT_3D = 'image/object/part_3d/'
 TFE_KEY_SUFFIX_KEYPOINT_3D = ['/center/y', '/center/x', '/center/z']
 TFE_KEY_SUFFIX_KEYPOINT_SCORE = '/score'
+TFE_KEY_FEATURE = 'feature/data'
+TFE_KEY_CLASS_LABEL_ID = 'image/class/label'
+TFE_KEY_CLASS_LABEL_CONFIDENCE = 'image/class/confidence'
 
 # Input keys.
 KEY_IMAGE_SIZES = 'image_sizes'
@@ -42,6 +45,9 @@ KEY_EMBEDDING_STDDEVS = 'embedding_stddevs'
 KEY_EMBEDDING_SAMPLES = 'unnormalized_embedding_samples'
 KEY_PREDICTED_KEYPOINTS_3D = 'predicted_keypoints_3d'
 KEY_ALL_PREDICTED_KEYPOINTS_3D = 'all_predicted_keypoints_3d'
+KEY_FEATURES = 'features'
+KEY_CLASS_TARGETS = 'class_targets'
+KEY_CLASS_WEIGHTS = 'class_weights'
 
 # Model input keypoint types.
 # 2D keypoints from input tables.
