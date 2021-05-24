@@ -35,6 +35,8 @@ appropriate write directory.
 pip install -r requirements.txt
 ```
 
+In particular, ensure that the version of TensorFlow is >= 2.6.0
+
 ## Custom Colorization Script.
 
 A script to colorize or recolorize custom images is included at
