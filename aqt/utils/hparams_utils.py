@@ -25,6 +25,7 @@ import dataclasses
 import jax
 import ml_collections
 
+
 from aqt.jax import quant_config
 from aqt.jax import quantization
 from aqt.jax.flax import struct as flax_struct
@@ -68,11 +69,20 @@ def save_dataclass_to_disk(data, path):
 
 def write_hparams_to_file_with_host_id_check(hparams,
                                              output_dir):
+  """Writes hparams to file for master host.
+
+  Args:
+    hparams: Hparams.
+    output_dir: Output directory to save hparams to, saves as output_dir /
+      'hparams_config.json.
+  """
   if jax.host_id() == 0 and output_dir is not None:
     # The directory is usually created automatically by the time we reach here,
     # but on some training runs it appears not to be.
     # MakeDirs will create the directory if it doesn't already exist and is a
     # no-op if it already exists.
+
+
     os.makedirs(output_dir, exist_ok=True)
     save_dataclass_to_disk(hparams,
                            os.path.join(output_dir, 'hparams_config.json'))

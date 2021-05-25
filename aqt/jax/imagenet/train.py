@@ -42,6 +42,7 @@ import jax.numpy as jnp
 from ml_collections import config_flags
 import tensorflow.compat.v2 as tf
 
+
 from aqt.jax import compute_cost_utils
 from aqt.jax import hlo_utils
 from aqt.jax import train_utils
@@ -49,8 +50,10 @@ from aqt.jax.imagenet import hparams_config
 from aqt.jax.imagenet import input_pipeline
 from aqt.jax.imagenet import models
 from aqt.jax.imagenet import train_utils as imagenet_train_utils
-from aqt.utils import hparams_utils
+from aqt.utils import hparams_utils as os_hparams_utils
+from aqt.utils import report_utils
 from aqt.utils import summary_utils
+
 
 FLAGS = flags.FLAGS
 
@@ -75,16 +78,6 @@ flags.DEFINE_bool('cache', default=False, help=('If True, cache the dataset.'))
 flags.DEFINE_integer(
     'num_epochs', default=250, help=('Number of training epochs.'))
 
-flags.DEFINE_string(
-    'compute_memory_cost_filename',
-    default='compute_memory_cost.json',
-    help=('File to store compute/memory cost.'))
-
-flags.DEFINE_string(
-    'report_dir',
-    default=None,
-    help=('Directory to save experiment report to after training has '
-          'completed. '))
 
 flags.DEFINE_enum_class(
     'lr_scheduler',
@@ -192,7 +185,8 @@ def estimate_compute_and_memory_cost(image_size, model_dir, hparams):
   cost_dict.update(memory_cost_dict)
   FLAGS.metadata_enabled = False
 
-  path = os.path.join(model_dir, FLAGS.compute_memory_cost_filename)
+
+  path = os.path.join(model_dir, COMPUTE_MEMORY_COST_FILENAME)
   with open(path, 'w') as file:
     json.dump(cost_dict, file, indent=2)
   logging.info('Estimated compute and memory costs and wrote to file')
@@ -216,6 +210,7 @@ def _get_state_dict_keys_from_flags():
   if FLAGS.visualize_acts_bound:
     state_dict_keys.append('bounds')
   return state_dict_keys
+
 
 
 def main(argv):
@@ -267,13 +262,13 @@ def main(argv):
 
   # Create the hyperparameter object
   if FLAGS.hparams_config_dict is not None:
-    hparams = hparams_utils.load_hparams_from_config_dict(
+    hparams = os_hparams_utils.load_hparams_from_config_dict(
         hparams_config.TrainingHParams, models.ResNet.HParams,
         FLAGS.hparams_config_dict)
   else:
     raise ValueError('Please provide a base config dict.')
 
-  hparams_utils.write_hparams_to_file_with_host_id_check(
+  os_hparams_utils.write_hparams_to_file_with_host_id_check(
       hparams, FLAGS.model_dir)
 
   # Estimate compute / memory costs
@@ -377,6 +372,7 @@ def main(argv):
     if (step + 1) % steps_per_checkpoint == 0 or step + 1 == num_steps:
       state = imagenet_train_utils.sync_batch_stats(state)
       save_checkpoint(state)
+
 
   # Wait until computations are done before exiting
   jax.random.normal(jax.random.PRNGKey(0), ()).block_until_ready()
