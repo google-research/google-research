@@ -635,7 +635,7 @@ def quantized_dot(*,
   dot_dimension_numbers = (((act.ndim - 1,), (0,)), ((), ()))
   if quant_type == QuantType.aqt:
     # Let 's' be activation scales and 't' be weight scales. We implement
-    # matmul(RoundAndClip(w*s), RoundAndClip(s^-1 * w * t)) *t^-1. In the
+    # matmul(RoundAndClip(act*s), RoundAndClip(s^-1 * w * t)) *t^-1. In the
     # comments below, we refer to this terminology.
     # lax.dot accepts any combination of 1d and 2d arguments for its lhs and rhs
     # input. To simplify the AQT implementation, we only accept 2d arguments for
