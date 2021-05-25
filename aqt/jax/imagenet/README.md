@@ -11,6 +11,7 @@ This example uses linear learning rate warmup and cosine learning rate schedule.
 ### Requirements
 * TensorFlow dataset `imagenet2012:5.*.*`
 * `≈180GB` of RAM if you want to cache the dataset in memory for faster IO
+* Install package `dacite`. 
 
 ### Supported setups
 
