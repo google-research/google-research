@@ -180,6 +180,7 @@ def preprocess_for_eval(image_bytes, dtype=tf.float32, image_size=IMAGE_SIZE):
 
 def load_split(batch_size,
                train,
+               data_dir,
                dtype=tf.float32,
                image_size=IMAGE_SIZE,
                cache=False):
@@ -210,9 +211,12 @@ def load_split(batch_size,
       image = preprocess_for_eval(example['image'], dtype, image_size)
     return {'image': image, 'label': example['label']}
 
-  ds = tfds.load('imagenet2012:5.*.*', split=split, decoders={
-      'image': tfds.decode.SkipDecoding(),
-  })
+  ds = tfds.load(
+    'imagenet2012:5.*.*',
+    split=split,
+    data_dir = data_dir,
+    decoders={'image': tfds.decode.SkipDecoding(),}
+  )
   options = tf.data.Options()
   options.experimental_threading.private_threadpool_size = 48
   ds = ds.with_options(options)
