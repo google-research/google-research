@@ -95,6 +95,7 @@ env:
     - PROJECT="storm_optimizer"
     - PROJECT="strategic_exploration"
     - PROJECT="structformer"
+    - PROJECT="student_mentor_data_cleaning"
     - PROJECT="sufficient_input_subsets"
     - PROJECT="t5_closed_book_qa"
     - PROJECT="tabnet"
