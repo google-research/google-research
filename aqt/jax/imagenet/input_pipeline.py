@@ -188,6 +188,7 @@ def load_split(batch_size,
 
   Args:
     batch_size: the batch size returned by the data pipeline.
+    data_dir: directory where imagenet data is stored.
     train: Whether to load the train or evaluation split.
     dtype: data type of the image.
     image_size: The target size of the images.
