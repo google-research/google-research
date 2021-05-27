@@ -23,7 +23,7 @@ import collections
 import enum
 import math
 import random
-from typing import Dict, Sequence, List, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import dataclasses
 from graph_tool.src import graph_tool

@@ -23,6 +23,7 @@ from __future__ import print_function
 import collections
 import copy
 import time
+from typing import Optional
 
 import gin
 import numpy as np

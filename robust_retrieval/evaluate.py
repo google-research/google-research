@@ -20,7 +20,7 @@
 import array
 import collections
 
-from typing import Dict, List, Text, Tuple
+from typing import Dict, List, Optional, Text, Tuple
 
 import numpy as np
 import tensorflow as tf

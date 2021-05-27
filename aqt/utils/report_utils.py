@@ -112,8 +112,9 @@ class SmoothingKernel(enum.Enum):
       raise ValueError('window_size_in_steps has to be >= 1.')
     return max(0.0, window_size_in_steps / 2 - abs(x))
 
-  def get_func(self,
-               window_size_in_steps = None):
+  def get_func(
+      self,
+      window_size_in_steps = None):
     """Returns function associated with enum option. See parent class."""
     if self == SmoothingKernel.RECTANGULAR:
       if window_size_in_steps is None:

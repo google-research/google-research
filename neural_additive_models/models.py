@@ -16,7 +16,7 @@
 # Lint as: python3
 """Neural net models for tabular datasets."""
 
-from typing import Union, List
+from typing import List, Optional, Union
 import numpy as np
 import tensorflow as tf
 
