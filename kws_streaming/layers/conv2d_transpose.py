@@ -13,14 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Conv1DTranspose streaming aware layer on 2D data."""
+"""Conv2DTranspose streaming aware layer."""
 
 from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 
 
-class Conv1DTransposeOn2D(tf.keras.layers.Conv2DTranspose):
-  """Streaming aware Conv1DTranspose layer applied on 2D data.
+class Conv2DTranspose(tf.keras.layers.Conv2DTranspose):
+  """Streaming aware Conv2DTranspose layer.
 
   It is an alternative to Conv1DTranspose.
   For context Conv1DTranspose processes input data with dims
@@ -33,6 +33,13 @@ class Conv1DTransposeOn2D(tf.keras.layers.Conv2DTranspose):
   In above example (for simplicity) we assumed that input and output channels
   are the same, but in general they are different as shown in
   conv1d_transpose_on_2d_test.py.
+  So to emulate Conv1DTranspose we need to set parameters for example:
+    kernel_size=(3, 1),
+    strides=(3, 1). And use input data with dims [batch, time dim, 1, channels]
+
+  This layer also can be used for 2D transposed convolution with dims:
+  [batch, time dim, features, channels],
+  here time dim will be used for streaming - only one dimension can be streamed.
 
   Attributes:
     mode: Training or inference modes: non streaming, streaming.
@@ -49,7 +56,7 @@ class Conv1DTransposeOn2D(tf.keras.layers.Conv2DTranspose):
                state_shape=None,
                crop_output=True,
                **kwargs):
-    super(Conv1DTransposeOn2D, self).__init__(**kwargs)
+    super(Conv2DTranspose, self).__init__(**kwargs)
 
     if (kwargs.get('activation') not in [None, 'linear']) and self.use_bias:
       raise ValueError('activation should be disabled because we need to '
@@ -59,14 +66,8 @@ class Conv1DTransposeOn2D(tf.keras.layers.Conv2DTranspose):
     if len(self.kernel_size) != 2:
       raise ValueError('len(kernel_size):%d must be 2' % len(self.kernel_size))
 
-    if self.kernel_size[1] != 1:
-      raise ValueError('kernel_size[1]:%d must be 1' % self.kernel_size[1])
-
     if len(self.strides) != 2:
       raise ValueError('len(strides):%d must be 2' % len(self.strides))
-
-    if self.strides[1] != 1:
-      raise ValueError('strides[1]:%d must be 1' % self.strides[1])
 
     self.mode = mode
     self.inference_batch_size = inference_batch_size
@@ -89,7 +90,7 @@ class Conv1DTransposeOn2D(tf.keras.layers.Conv2DTranspose):
           kwargs['padding'])
 
   def build(self, input_shape):
-    super(Conv1DTransposeOn2D, self).build(input_shape)
+    super(Conv2DTranspose, self).build(input_shape)
 
     if input_shape.rank != 4:
       raise ValueError('input_shape.rank:%d must 4' % input_shape.rank)
@@ -104,10 +105,15 @@ class Conv1DTransposeOn2D(tf.keras.layers.Conv2DTranspose):
 
       self.output_time_dim = input_shape.as_list()[1] * self.strides[0]
 
-      # TODO(rybakov) extend it to 2D for STFT by setting state_shape =
-      # input_shape[2] * strides[1] + max(0, strides[1] - kernel_size[1])
+      # here we do not take into account padding, because it is always valid
+      # only pad_time_dim can be applied and it does not impact feature dim
+      output_feature_size = (input_shape[2] -
+                             1) * self.strides[1] + self.kernel_size[1]
+
+      # [batch, time dim(streaming dim), output_feature_size, channels/filters]
       self.state_shape = [
-          self.inference_batch_size, self.overlap, 1, self.filters
+          self.inference_batch_size, self.overlap, output_feature_size,
+          self.filters
       ]
 
       if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
@@ -149,7 +155,7 @@ class Conv1DTransposeOn2D(tf.keras.layers.Conv2DTranspose):
       raise ValueError(f'Encountered unexpected mode `{self.mode}`.')
 
   def get_config(self):
-    config = super(Conv1DTransposeOn2D, self).get_config()
+    config = super(Conv2DTranspose, self).get_config()
     # only variables which are listed in constructor can be updated here
     # because they will be used to construct the class from config
     config.update({
@@ -162,7 +168,7 @@ class Conv1DTransposeOn2D(tf.keras.layers.Conv2DTranspose):
     return config
 
   def _streaming_internal_state(self, inputs):
-    outputs = super(Conv1DTransposeOn2D, self).call(inputs)
+    outputs = super(Conv2DTranspose, self).call(inputs)
 
     if self.overlap == 0:
       if self.crop_output:
@@ -180,7 +186,7 @@ class Conv1DTransposeOn2D(tf.keras.layers.Conv2DTranspose):
         [self.states, tf.zeros(output_shape, tf.float32)], 1)
     outputs = outputs + padded_remainder
 
-    # extract remainder state and substruct bias if it is used:
+    # extract remainder state and subtract bias if it is used:
     # bias will be added in the next iteration again and remainder
     # should have only convolution part, so that bias is not added twice
     if self.use_bias:
@@ -196,7 +202,7 @@ class Conv1DTransposeOn2D(tf.keras.layers.Conv2DTranspose):
         return tf.identity(outputs)
 
   def _streaming_external_state(self, inputs, states):
-    outputs = super(Conv1DTransposeOn2D, self).call(inputs)
+    outputs = super(Conv2DTranspose, self).call(inputs)
 
     if self.overlap == 0:
       if self.crop_output:
@@ -220,7 +226,7 @@ class Conv1DTransposeOn2D(tf.keras.layers.Conv2DTranspose):
     return outputs, new_state
 
   def _non_streaming(self, inputs):
-    outputs = super(Conv1DTransposeOn2D, self).call(inputs)
+    outputs = super(Conv2DTranspose, self).call(inputs)
     # during training or non streaming inference, input shape can be dynamic
     output_time_dim = tf.shape(inputs)[1] * self.strides[0]
     if self.crop_output:

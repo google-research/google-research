@@ -14,11 +14,11 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Tests for kws_streaming.layers.conv1d_transpose_on_2d."""
+"""Tests for kws_streaming.layers.conv2d_transpose."""
 
 from absl.testing import parameterized
 import numpy as np
-from kws_streaming.layers import conv1d_transpose_on_2d
+from kws_streaming.layers import conv2d_transpose
 from kws_streaming.layers import modes
 from kws_streaming.layers import test_utils
 from kws_streaming.layers.compat import tf
@@ -28,31 +28,34 @@ from kws_streaming.train import test
 tf1.disable_eager_execution()
 
 
-def conv1d_on_2d_transpose_model(flags,
-                                 filters,
-                                 kernel_size,
-                                 stride,
-                                 channels=1):
-  """Toy model to up-scale input data with Conv1DTransposeOn2D.
+def conv2d_transpose_model(flags,
+                           filters,
+                           kernel_size,
+                           strides,
+                           features=1,
+                           channels=1):
+  """Toy model to up-scale input data with Conv2DTranspose.
 
   It can be used for speech enhancement.
 
   Args:
       flags: model and data settings
       filters: number of filters (output channels)
-      kernel_size: kernel_size of Conv1DTranspose layer
-      stride: stride of Conv1DTranspose layer
+      kernel_size: 2d kernel_size of Conv2DTranspose layer
+      strides: 2d strides of Conv2DTranspose layer
+      features: feature size in the input data
       channels: number of channels in the input data
   Returns:
     Keras model
   """
   input_audio = tf.keras.layers.Input(
-      shape=(flags.desired_samples, 1, channels), batch_size=flags.batch_size)
+      shape=(flags.desired_samples, features, channels),
+      batch_size=flags.batch_size)
   net = input_audio
-  net = conv1d_transpose_on_2d.Conv1DTransposeOn2D(
+  net = conv2d_transpose.Conv2DTranspose(
       filters=filters,
-      kernel_size=(kernel_size, 1),
-      strides=(stride, 1),
+      kernel_size=kernel_size,
+      strides=strides,
       use_bias=True,
       crop_output=True)(
           net)
@@ -60,16 +63,16 @@ def conv1d_on_2d_transpose_model(flags,
   return tf.keras.Model(input_audio, net)
 
 
-class Conv1DTransposeOn2DTest(tf.test.TestCase, parameterized.TestCase):
+class Conv2DTransposeTest(tf.test.TestCase, parameterized.TestCase):
 
   def setUp(self):
-    super(Conv1DTransposeOn2DTest, self).setUp()
+    super(Conv2DTransposeTest, self).setUp()
     test_utils.set_seed(123)
     self.input_channels = 2
 
-  @parameterized.parameters(1, 2, 3, 4, 5, 6)
-  def test_streaming_strides(self, stride):
-    """Test Conv1DTranspose layer in streaming mode with different strides.
+  @parameterized.parameters(1, 2, 3)
+  def test_streaming_on_1d_data_strides(self, stride):
+    """Tests Conv2DTranspose on 1d in streaming mode with different strides.
 
     Args:
         stride: controls the upscaling factor
@@ -90,17 +93,17 @@ class Conv1DTransposeOn2DTest(tf.test.TestCase, parameterized.TestCase):
     inp_audio = x
 
     # prepare non-streaming model
-    model = conv1d_on_2d_transpose_model(
+    model = conv2d_transpose_model(
         params,
         filters=1,
-        kernel_size=3,
-        stride=stride,
+        kernel_size=(3, 1),
+        strides=(stride, 1),
         channels=self.input_channels)
     model.summary()
 
     # set weights with bias
     for layer in model.layers:
-      if isinstance(layer, tf.keras.layers.Conv1DTranspose):
+      if isinstance(layer, tf.keras.layers.Conv2DTranspose):
         layer.set_weights([
             np.ones(layer.weights[0].shape),
             np.zeros(layer.weights[1].shape) + 0.5
@@ -141,6 +144,61 @@ class Conv1DTransposeOn2DTest(tf.test.TestCase, parameterized.TestCase):
     # compare streaming TFLite with external-state vs TF non-streaming
     self.assertAllClose(stream_out_tflite_external_st, non_stream_out)
 
+  @parameterized.parameters(1, 2, 3)
+  def test_streaming_on_2d_data_strides(self, stride):
+    """Tests Conv2DTranspose on 2d in streaming mode with different strides.
+
+    Args:
+        stride: controls the upscaling factor
+    """
+
+    tf1.reset_default_graph()
+    config = tf1.ConfigProto()
+    config.gpu_options.allow_growth = True
+    sess = tf1.Session(config=config)
+    tf1.keras.backend.set_session(sess)
+
+    # model and data parameters
+    step = 1  # amount of data fed into streaming model on every iteration
+    params = test_utils.Params([step], clip_duration_ms=0.25)
+
+    input_features = 3
+    # prepare input data: [batch, time, features, channels]
+    x = np.random.rand(1, params.desired_samples, input_features,
+                       self.input_channels)
+    inp_audio = x
+
+    # prepare non-streaming model
+    model = conv2d_transpose_model(
+        params,
+        filters=1,
+        kernel_size=(3, 3),
+        strides=(stride, stride),
+        features=input_features,
+        channels=self.input_channels)
+    model.summary()
+
+    # set weights with bias
+    for layer in model.layers:
+      if isinstance(layer, tf.keras.layers.Conv2DTranspose):
+        layer.set_weights([
+            np.ones(layer.weights[0].shape),
+            np.zeros(layer.weights[1].shape) + 0.5
+        ])
+
+    params.data_shape = (1, input_features, self.input_channels)
+
+    # prepare streaming model
+    model_stream = utils.to_streaming_inference(
+        model, params, modes.Modes.STREAM_INTERNAL_STATE_INFERENCE)
+    model_stream.summary()
+
+    # run inference
+    non_stream_out = model.predict(inp_audio)
+    stream_out = test.run_stream_inference(params, model_stream, inp_audio)
+
+    self.assertAllClose(stream_out, non_stream_out)
+
   def test_dynamic_shape(self):
     # model and data parameters
     params = test_utils.Params([1], clip_duration_ms=0.25)
@@ -151,11 +209,11 @@ class Conv1DTransposeOn2DTest(tf.test.TestCase, parameterized.TestCase):
 
     # prepare non stream model
     params.desired_samples = None
-    model = conv1d_on_2d_transpose_model(
+    model = conv2d_transpose_model(
         params,
         filters=1,
-        kernel_size=3,
-        stride=1,
+        kernel_size=(3, 1),
+        strides=(1, 1),
         channels=self.input_channels)
     model.summary()
 
