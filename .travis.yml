@@ -63,6 +63,7 @@ env:
     - PROJECT="meta_reward_learning/textworld"
     - PROJECT="moew"
     - PROJECT="moment_advice"
+    - PROJECT="muzero"
     - PROJECT="neutra"
     - PROJECT="neural_additive_models"
     - PROJECT="nigt_optimizer"
