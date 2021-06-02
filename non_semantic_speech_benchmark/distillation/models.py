@@ -14,7 +14,9 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Models for distillation."""
+"""Models for distillation.
+
+"""
 
 import tensorflow as tf
 import tensorflow_model_optimization as tfmot
