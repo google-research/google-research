@@ -86,11 +86,11 @@ def main(unused_argv):
   model = tf.saved_model.load(FLAGS.output_directory)
 
   if FLAGS.frontend:
-    input_np = np.zeros([1, 32000], dtype=np.float32)
-    expected_output_shape = (7, 2048)
+    input_np = np.zeros([2, 32000], dtype=np.float32)
+    expected_output_shape = (14, 2048)
   else:
-    input_np = np.zeros([1, 96, 64, 1], dtype=np.float32)
-    expected_output_shape = (1, 2048)
+    input_np = np.zeros([7, 96, 64, 1], dtype=np.float32)
+    expected_output_shape = (7, 2048)
 
   np.testing.assert_array_equal(
       model(input_np)['embedding'].numpy().shape,
