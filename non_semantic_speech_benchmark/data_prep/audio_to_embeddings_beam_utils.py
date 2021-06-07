@@ -57,13 +57,27 @@ def _tfexample_audio_to_npfloat32(ex, audio_key):
 
 
 def _samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
-  """Run inference to map audio samples to an embedding."""
-  # Models either take 2 args (input, sample_rate) or 1 arg (input). Try both.
-  try:
-    tf_out = mod(model_input, sample_rate)
-  except ValueError:
-    tf_out = mod(model_input)
-  return np.array(tf_out[output_key])
+  """Run inference to map a single audio sample to an embedding."""
+  # Models either take 2 args (input, sample_rate) or 1 arg (input).
+  # The first argument is either 1 dimensional (samples) or 2 dimensional
+  # (batch, samples).
+  # Try all. Order here matters. We must try "2 args" before "1 arg", otherwise
+  # models that use sample rate might ignore it.
+  for num_args, add_batch_dim in [(2, False), (1, False), (2, True), (1, True)]:
+    cur_model_input = (np.expand_dims(model_input, 0) if add_batch_dim
+                       else model_input)
+    func_args = ((cur_model_input,) if num_args == 1 else
+                 (cur_model_input, sample_rate))
+    try:
+      tf_out = mod(*func_args)
+    except ValueError:
+      continue
+    break
+  ret = np.array(tf_out[output_key])
+  if ret.ndim > 2:
+    # Batch-flatten in numpy.
+    ret = np.reshape(ret, [ret.shape[0], -1])
+  return ret
 
 
 def build_tflite_interpreter(tflite_model_path):
