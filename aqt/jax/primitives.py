@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Primitives for neural network quantization implemented in jax.
-"""
+"""Primitives for neural network quantization implemented in jax."""
 from typing import Any, Iterable, Optional, TypeVar
 
 import jax
@@ -36,40 +35,6 @@ jnp_dtype = Any  # type of jax dtype; b/164524367 use more specific type.
 DISABLE_EPSILON_IN_SCALE_FUN_FOR_TESTING = False
 
 
-def clip_to_signed_int(x, *, prec,
-                       dtype):
-  """Clip x to range [-2**(prec - 1) + 1, 2**(prec - 1) - 1].
-
-  Args:
-    x: Argument to be clipped.
-    prec: Precision of two's complement number.
-    dtype: Desired type of the result.
-
-  Returns:
-    Result.
-  """
-  lbound = -2**(prec - 1) + 1
-  ubound = 2**(prec - 1) - 1
-  return jnp.clip(x, a_min=lbound, a_max=ubound).astype(dtype)
-
-
-def clip_to_unsigned_int(x, *, prec,
-                         dtype):
-  """Clip x to range of unsigned int interval with the given precision.
-
-  Args:
-    x: Argument to be clipped.
-    prec: The target precision for quantization.
-    dtype: Desired type of the result.
-
-  Returns:
-    Result.
-  """
-  lbound = 0
-  ubound = 2**prec - 1
-  return jnp.clip(x, a_min=lbound, a_max=ubound).astype(dtype)
-
-
 def add_straight_through_estimator(jax_function):
   """Defines the gradient of a function to be the straight-through-estimator.
 
@@ -82,6 +47,7 @@ def add_straight_through_estimator(jax_function):
     jax_function: A Jax function that has been decorated with @jax.custom_vjp.
       It is expected to take in and return one positional argument.
   """
+
   # See
   # https://jax.readthedocs.io/en/latest/notebooks/Custom_derivative_rules_for_Python_code.html
   def ste(primals, tangents):
@@ -108,8 +74,11 @@ def round_with_gradient(x):
 add_straight_through_estimator(round_with_gradient)
 
 
-def round_and_clip_to_signed_int(x, *, prec,
-                                 dtype):
+def round_and_clip_to_signed_int(x,
+                                 *,
+                                 prec,
+                                 dtype,
+                                 half_shift = False):
   """Round and clip x to range of signed type with precision 'prec'.
 
   Requires prec <= 24.
@@ -118,15 +87,35 @@ def round_and_clip_to_signed_int(x, *, prec,
     x: The argument to be quantized.
     prec: The target precision for quantization.
     dtype: Desired type of the result.
+    half_shift: Uses all available values in a given integer type and makes them
+      symmetric by adding 0.5. E.g. instead of to [-1, 0, 1] we will round to
+      [-1.5, -0.5, 0.5, 1.5].
 
   Returns:
     Result.
   """
-  return clip_to_signed_int(round_with_gradient(x), prec=prec, dtype=dtype)
+
+  # epsilon has to be big enough so that its subtraction in bound computation is
+  # not rounded down to zero. It has to be small enough so it has no ML effect.
+  epsilon = 2**(-7)
+  if half_shift:
+    bound = 2.0**(prec - 1) - epsilon
+    x = jnp.clip(x, a_min=-bound, a_max=bound).astype(dtype)
+    x = floor_with_gradient(x) + 0.5
+  else:
+    # TODO(lew): Use the formula for better gradients. Needs a sweep though.
+    # bound = 2**(prec - 1) - 0.5 - epsilon
+    bound = 2**(prec - 1) - 1
+    x = jnp.clip(x, a_min=-bound, a_max=bound).astype(dtype)
+    x = round_with_gradient(x)
+  return x
 
 
-def floor_and_clip_to_unsigned_int(x, *, prec,
-                                   dtype):
+def floor_and_clip_to_unsigned_int(x,
+                                   *,
+                                   prec,
+                                   dtype,
+                                   half_shift = False):
   """Floor-and-clip x to range of unsigned type with precision 'prec'.
 
   Requires prec <= 24.
@@ -135,11 +124,16 @@ def floor_and_clip_to_unsigned_int(x, *, prec,
     x: The argument to be quantized.
     prec: The target precision for quantization.
     dtype: Desired type of the result.
+    half_shift: Needs to be false.
 
   Returns:
     Result.
   """
-  return clip_to_unsigned_int(floor_with_gradient(x), prec=prec, dtype=dtype)
+  assert not half_shift
+  x = floor_with_gradient(x)
+  # TODO(lew): should be (a_max=2**prec - epsilon) for a better gradient.
+  x = jnp.clip(x, a_min=0, a_max=2**prec - 1).astype(dtype)
+  return x
 
 
 def signed_int_bound(prec):

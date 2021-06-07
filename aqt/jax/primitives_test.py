@@ -71,6 +71,41 @@ class PrimitivesTest(parameterized.TestCase):
     onp.testing.assert_allclose(
         y, onp.clip(onp.floor(np_x + 0.5), a_min=lbound, a_max=ubound))
 
+  def test_round_and_clip_to_signed_int_half_shift(self):
+    # centers_2bit = [-1.5, -0.5, 0.5, 1.5]
+    q_inp = [-2.1, -1.9, -1.1, -0.9, -0.1, +0.1, +0.9, +1.1, +1.9, +2.1]
+    q2bit = [-1.5, -1.5, -1.5, -0.5, -0.5, +0.5, +0.5, +1.5, +1.5, +1.5]
+    q1bit = [-0.5, -0.5, -0.5, -0.5, -0.5, +0.5, +0.5, +0.5, +0.5, +0.5]
+    q2gra = [+0.0, +1.0, +1.0, +1.0, +1.0, +1.0, +1.0, +1.0, +1.0, +0.0]
+    q1gra = [+0.0, +0.0, +0.0, +1.0, +1.0, +1.0, +1.0, +0.0, +0.0, +0.0]
+    q_inp = jnp.array(q_inp)
+    q2bit = jnp.array(q2bit)
+    q1bit = jnp.array(q1bit)
+    q2gra = jnp.array(q2gra)
+    q1gra = jnp.array(q1gra)
+
+    def quantize1bit(x):
+      return primitives.round_and_clip_to_signed_int(
+          x, prec=1, half_shift=True, dtype=jnp.float32)
+
+    def quantize2bit(x):
+      return primitives.round_and_clip_to_signed_int(
+          x, prec=2, half_shift=True, dtype=jnp.float32)
+
+    quantize1bit_grad = jax.vmap(jax.grad(quantize1bit))
+    quantize2bit_grad = jax.vmap(jax.grad(quantize2bit))
+
+    # TODO(lew): Resolve the error and use self.assertEqual instead.
+    # ValueError: The truth value of an array with more than one element is
+    # ambiguous. Use a.any() or a.all()
+    def assert_equal(a, b):
+      self.assertEqual(jnp.sum(jnp.abs(a - b)), 0.0)
+
+    assert_equal(quantize1bit(q_inp), q1bit)
+    assert_equal(quantize2bit(q_inp), q2bit)
+    assert_equal(quantize1bit_grad(q_inp), q1gra)
+    assert_equal(quantize2bit_grad(q_inp), q2gra)
+
   @parameterized.named_parameters(
       dict(
           testcase_name='uint8_scale_grow_range',
