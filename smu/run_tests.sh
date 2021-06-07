@@ -26,3 +26,5 @@ do
     echo "Executing ${TESTFN}"
     python $TESTFN
 done
+
+echo "ALL TESTS PASSED"
