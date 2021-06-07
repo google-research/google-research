@@ -15,9 +15,6 @@ export PYTHONPATH=${PYTHONPATH}:${ROOTDIR}
 
 set -u
 
-echo "PP: ${PYTHONPATH}"
-echo "VE: ${VIRTUAL_ENV}"
-
 for TESTFN in $(find $SMUDIR -name *_test.py) 
 do
     if [[ $TESTFN == *"$VENV"* ]]; then
