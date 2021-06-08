@@ -18,6 +18,7 @@
 from absl import app
 from absl import flags
 import tensorflow.compat.v1 as tf
+
 from poem.core import common
 from poem.core import input_generator
 from poem.core import keypoint_profiles
