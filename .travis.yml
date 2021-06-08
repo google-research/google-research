@@ -51,6 +51,7 @@ env:
     - PROJECT="graph_embedding/watch_your_step"
     - PROJECT="hmc_swindles"
     - PROJECT="igt_optimizer"
+    - PROJECT="implicit_pdf"
     - PROJECT="jax_dft"
     - PROJECT="large_margin"
     - PROJECT="learn_to_infer"
