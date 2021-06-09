@@ -40,6 +40,7 @@ def train_and_get_score(embedding_name,
                         l2_normalization,
                         speaker_id_name=None,
                         save_model_dir=None,
+                        save_predictions_dir=None,
                         eval_metric='accuracy'):
   """Train and eval sklearn models on data.
 
@@ -54,6 +55,8 @@ def train_and_get_score(embedding_name,
     l2_normalization: Python bool. If `True`, normalize embeddings by L2 norm.
     speaker_id_name: `None`, or name of speaker ID field.
     save_model_dir: If not `None`, write sklearn models to this directory.
+    save_predictions_dir: If not `None`, write numpy array of predictions on
+      train, eval, and test into this directory.
     eval_metric: String name of the desired evaluation metric.
 
   Returns:
@@ -121,6 +124,21 @@ def train_and_get_score(embedding_name,
     model_filename = os.path.join(save_model_dir, f'{model_name}.pickle')
     with file_utils.Open(model_filename, 'wb') as f:
       pickle.dump(d, f)
+
+  if save_predictions_dir:
+    file_utils.MaybeMakeDirs(save_predictions_dir)
+    for dat_name, dat_x, dat_y in [('train', npx_train, npy_train),
+                                   ('eval', npx_eval, npy_eval),
+                                   ('test', npx_test, npy_test)]:
+      pred_filename = os.path.join(save_predictions_dir,
+                                   f'{model_name}_{dat_name}_pred.npz')
+      pred_y = d.predict(dat_x)
+      with file_utils.Open(pred_filename, 'wb') as f:
+        np.save(f, pred_y)
+      y_filename = os.path.join(save_predictions_dir,
+                                f'{model_name}_{dat_name}_y.npz')
+      with file_utils.Open(y_filename, 'wb') as f:
+        np.save(f, dat_y)
 
   return (eval_score, test_score)
 
