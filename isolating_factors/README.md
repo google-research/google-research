@@ -44,7 +44,7 @@ process uses `tf.data.Dataset.filter` to run through the Shapes3D dataset, which
 requires searching through more of the dataset to find each training set when
 there are more inactive factors of variation.
 
-<img src="https://kieranamurphy.com/s/pca_only.png" width=669 height=246/>
+<img src="https://kieranamurphy.com/s/pca_abc.png" width=669 height=246/>
 
 The resulting embeddings tend to be relatively low dimensional, so visualization via PCA (as above) is informative.  We also include functionality to estimate the mutual information between the learned embeddings and each of the generative factors.
 
@@ -60,7 +60,7 @@ Training progress can be monitored with Tensorboard.
 
 ## Fast digit style isolation on MNIST
 
-<img src="https://storage.googleapis.com/gresearch/isolating-factors/mnist.gif" width="400"/>
+<img src="https://kieranamurphy.com/s/abc_mnist.gif" width="450"/>
 
 The [iPython notebook](mnist.ipynb) partitions the MNIST training set into 10 different tf.data.Datasets,
 with the option to withhold one digit for test time (as in the paper).
