@@ -188,8 +188,10 @@ def load_split(batch_size,
 
   Args:
     batch_size: the batch size returned by the data pipeline.
-    data_dir: directory where imagenet data is stored.
     train: Whether to load the train or evaluation split.
+    data_dir: str, directory to read/write data. Defaults to the value of the
+      environment variable TFDS_DATA_DIR, if set, otherwise falls back to
+      '~/tensorflow_datasets'.
     dtype: data type of the image.
     image_size: The target size of the images.
     cache: Whether to cache the dataset.
@@ -213,11 +215,12 @@ def load_split(batch_size,
     return {'image': image, 'label': example['label']}
 
   ds = tfds.load(
-    'imagenet2012:5.*.*',
-    split=split,
-    data_dir = data_dir,
-    decoders={'image': tfds.decode.SkipDecoding(),}
-  )
+      'imagenet2012:5.*.*',
+      split=split,
+      data_dir=data_dir,
+      decoders={
+          'image': tfds.decode.SkipDecoding(),
+      })
   options = tf.data.Options()
   options.experimental_threading.private_threadpool_size = 48
   ds = ds.with_options(options)
