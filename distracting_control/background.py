@@ -21,8 +21,9 @@ from PIL import Image
 import collections
 from dm_control.rl import control
 import numpy as np
+import cv2
+from pathlib import Path
 
-import tensorflow as tf
 from dm_control.mujoco.wrapper import mjbindings
 
 DAVIS17_TRAINING_VIDEOS = [
@@ -61,8 +62,8 @@ def size_and_flatten(image, ref_height, ref_width):
   image_height, image_width = image.shape[:2]
 
   if image_height != ref_height or image_width != ref_width:
-    image = tf.cast(tf.image.resize(image, [ref_height, ref_width]), tf.uint8)
-  return tf.reshape(image, [-1]).numpy()
+    image = cv2.resize(np.array(image), (ref_height, ref_width))
+  return np.array(image).reshape(-1)
 
 
 def blend_to_background(alpha, image, background):
@@ -112,7 +113,8 @@ class DistractingBackgroundEnv(control.Environment):
     else:
       # Use all videos if no specific ones were passed.
       if not dataset_videos:
-        dataset_videos = sorted(tf.io.gfile.listdir(dataset_path))
+        dataset_videos = sorted(Path(dataset_path).glob('*/'))
+        dataset_videos = [x.stem for x in dataset_videos]
       # Replace video placeholders 'train'/'val' with the list of videos.
       elif dataset_videos in ['train', 'training']:
         dataset_videos = DAVIS17_TRAINING_VIDEOS
@@ -164,9 +166,9 @@ class DistractingBackgroundEnv(control.Environment):
       if self._shuffle_buffer_size:
         # Shuffle images from all videos together to get background frames.
         file_names = [
-            os.path.join(path, fn)
+            os.path.join(path, fn.name)
             for path in self._video_paths
-            for fn in tf.io.gfile.listdir(path)
+            for fn in Path(path).glob('*/')
         ]
         self._random_state.shuffle(file_names)
         # Load only the first n images for performance reasons.
@@ -175,7 +177,8 @@ class DistractingBackgroundEnv(control.Environment):
       else:
         # Randomly pick a video and load all images.
         video_path = self._random_state.choice(self._video_paths)
-        file_names = tf.io.gfile.listdir(video_path)
+        file_names = list(Path(video_path).glob('*/'))
+        file_names = [x.name for x in file_names]
         if not self._dynamic:
           # Randomly pick a single static frame.
           file_names = [self._random_state.choice(file_names)]
