@@ -155,9 +155,14 @@ def prepare_tf_data(xs):
   return jax.tree_map(_prepare, xs)
 
 
-def create_input_iter(batch_size, image_size, dtype, train, cache):
+def create_input_iter(batch_size, data_dir, image_size, dtype, train, cache):
   ds = input_pipeline.load_split(
-      batch_size, image_size=image_size, dtype=dtype, train=train, cache=cache)
+      batch_size, 
+      data_dir = data_dir, 
+      image_size=image_size, 
+      dtype=dtype, 
+      train=train, 
+      cache=cache)
   it = map(prepare_tf_data, ds)
   it = jax_utils.prefetch_to_device(it, 2)
   return it
