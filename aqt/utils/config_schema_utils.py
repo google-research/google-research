@@ -119,9 +119,10 @@ def get_dense_config(
     parent_config):
   """Creates a ConfigDict corresponding to aqt.flax_layers.DenseAqt.HParams."""
   config = ml_collections.ConfigDict()
-  set_default_reference(
-      config, parent_config,
-      ["weight_prec", "weight_quant_granularity", "quant_type", "quant_act"])
+  set_default_reference(config, parent_config, [
+      "weight_prec", "weight_quant_granularity", "quant_type", "quant_act",
+      "weight_half_shift"
+  ])
   config.lock()
   return config
 
@@ -130,9 +131,10 @@ def get_conv_config(
     parent_config):
   """Creates a ConfigDict corresponding to aqt.flax_layers.ConvAqt.HParams."""
   config = ml_collections.ConfigDict()
-  set_default_reference(
-      config, parent_config,
-      ["weight_prec", "weight_quant_granularity", "quant_type", "quant_act"])
+  set_default_reference(config, parent_config, [
+      "weight_prec", "weight_quant_granularity", "quant_type", "quant_act",
+      "weight_half_shift"
+  ])
   config.lock()
   return config
 
@@ -165,6 +167,7 @@ def get_base_config(use_auto_acts):
       "activation_bound_update_freq": int_ph(),
       "activation_bound_start_step": int_ph(),
       "prec": int_ph(),
+      "half_shift": bool_ph(),
       "quant_type": str_ph(),
       "quant_act": {
           "bounds": bounds,
@@ -174,11 +177,14 @@ def get_base_config(use_auto_acts):
           # field and then delete this.
           "input_distribution": "symmetric"
       },
-      "weight_quant_granularity": str_ph()
+      "weight_quant_granularity": str_ph(),
   })
 
   set_default_reference(
       base_config, base_config, "weight_prec", parent_field="prec")
   set_default_reference(base_config.quant_act, base_config, "prec")
+  set_default_reference(
+      base_config, base_config, "weight_half_shift", parent_field="half_shift")
+  set_default_reference(base_config.quant_act, base_config, "half_shift")
 
   return base_config

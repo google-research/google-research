@@ -132,9 +132,14 @@ class BaseConfigTest(parameterized.TestCase):
 
     # Set the global precision to 4 bits.
     config.prec = 4
+    # Set the global half_shift flag to False
+    config.half_shift = False
     # Test that this sets the weight and activation to 4 as well.
     self.assertEqual(config.weight_prec, 4)
     self.assertEqual(config.quant_act.prec, 4)
+    # Test that this sets the weight_half_shift and act half_shift to False
+    self.assertEqual(config.weight_half_shift, False)
+    self.assertEqual(config.quant_act.half_shift, False)
 
   def test_auto_acts_parameter(self):
     # If use_auto_acts is False, then the bounds should be a single scalar that
@@ -176,12 +181,14 @@ class BaseConfigTest(parameterized.TestCase):
           },
           'input_distribution': None,
           'prec': None,
+          'half_shift': None,
       }
     else:
       quant_act_schema = {
           'bounds': None,
           'input_distribution': None,
           'prec': None,
+          'half_shift': None,
       }
 
     expected_top_level_schema = {
@@ -197,6 +204,8 @@ class BaseConfigTest(parameterized.TestCase):
         'quant_type': None,
         'quant_act': quant_act_schema,
         'weight_quant_granularity': None,
+        'half_shift': None,
+        'weight_half_shift': None,
     }
 
     config = config_schema_utils.get_base_config(use_auto_acts=use_auto_acts)

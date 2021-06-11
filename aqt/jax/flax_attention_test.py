@@ -223,7 +223,8 @@ class AttentionTest(parameterized.TestCase):
         weight_prec=weight_prec,
         quant_act=None,
         quant_type=QuantType.fake_quant,
-        weight_quant_granularity=quant_config.QuantGranularity.per_channel)
+        weight_quant_granularity=quant_config.QuantGranularity.per_channel,
+        weight_half_shift=False)
     return flax_attention.MultiHeadDotProductAttentionAqt.HParams(
         dense_kqv=dense,
         dense_out=dense,
@@ -464,17 +465,20 @@ class AttentionTest(parameterized.TestCase):
         input_distribution=flax_layers.QuantOps.ActHParams.InputDistribution
         .symmetric,
         prec=8,
-        bounds=bounds)
+        bounds=bounds,
+        half_shift=False)
     attn_quant_act = flax_layers.QuantOps.ActHParams(
         input_distribution=flax_layers.QuantOps.ActHParams.InputDistribution
         .positive,
         prec=8,
-        bounds=1.0)
+        bounds=1.0,
+        half_shift=False)
     dense_hparams = flax_layers.DenseAqt.HParams(
         quant_type=flax_layers.QuantType.fake_quant,
         weight_prec=8,
         quant_act=quant_act,
-        weight_quant_granularity=quant_config.QuantGranularity.per_channel)
+        weight_quant_granularity=quant_config.QuantGranularity.per_channel,
+        weight_half_shift=False)
     dotproduct_attn_hparams = flax_attention.DotProductAttnHParams(
         attn_act_q=quant_act,
         attn_act_k=quant_act,
@@ -532,7 +536,8 @@ class AttnActsMatmulQuantTest(parameterized.TestCase):
         weight_prec=None,
         quant_act=None,
         quant_type=QuantType.fake_quant,
-        weight_quant_granularity=quant_config.QuantGranularity.per_channel)
+        weight_quant_granularity=quant_config.QuantGranularity.per_channel,
+        weight_half_shift=False)
     return flax_attention.MultiHeadDotProductAttentionAqt.HParams(
         dense_kqv=dense,
         dense_out=dense,
@@ -560,7 +565,8 @@ class AttnActsMatmulQuantTest(parameterized.TestCase):
               input_distribution=QuantOps.ActHParams.InputDistribution
               .symmetric,
               prec=8,
-              bounds=1),
+              bounds=1,
+              half_shift=False),
           attn_act_k=None,
           attn_act_probs=None,
           attn_act_v=None,
@@ -575,7 +581,8 @@ class AttnActsMatmulQuantTest(parameterized.TestCase):
               input_distribution=QuantOps.ActHParams.InputDistribution
               .symmetric,
               prec=8,
-              bounds=1.0),
+              bounds=1.0,
+              half_shift=False),
           attn_act_v=None,
           update_bounds=False,
           paxis_name='batch',
@@ -587,7 +594,8 @@ class AttnActsMatmulQuantTest(parameterized.TestCase):
               input_distribution=QuantOps.ActHParams.InputDistribution
               .symmetric,
               prec=4,
-              bounds=2),
+              bounds=2,
+              half_shift=False),
           attn_act_probs=None,
           attn_act_v=None,
           update_bounds=False,
@@ -602,7 +610,8 @@ class AttnActsMatmulQuantTest(parameterized.TestCase):
               input_distribution=QuantOps.ActHParams.InputDistribution
               .symmetric,
               prec=2,
-              bounds=3),
+              bounds=3,
+              half_shift=False),
           update_bounds=True,
           paxis_name='batch',
           train=False),
@@ -612,22 +621,26 @@ class AttnActsMatmulQuantTest(parameterized.TestCase):
               input_distribution=QuantOps.ActHParams.InputDistribution
               .symmetric,
               prec=8,
-              bounds=1),
+              bounds=1,
+              half_shift=False),
           attn_act_k=QuantOps.ActHParams(
               input_distribution=QuantOps.ActHParams.InputDistribution
               .symmetric,
               prec=4,
-              bounds=2),
+              bounds=2,
+              half_shift=False),
           attn_act_probs=QuantOps.ActHParams(
               input_distribution=QuantOps.ActHParams.InputDistribution
               .symmetric,
               prec=8,
-              bounds=1.0),
+              bounds=1.0,
+              half_shift=False),
           attn_act_v=QuantOps.ActHParams(
               input_distribution=QuantOps.ActHParams.InputDistribution
               .symmetric,
               prec=2,
-              bounds=3),
+              bounds=3,
+              half_shift=False),
           update_bounds=True,
           paxis_name=None,
           train=True),

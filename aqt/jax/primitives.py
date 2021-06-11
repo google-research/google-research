@@ -78,7 +78,7 @@ def round_and_clip_to_signed_int(x,
                                  *,
                                  prec,
                                  dtype,
-                                 half_shift = False):
+                                 half_shift):
   """Round and clip x to range of signed type with precision 'prec'.
 
   Requires prec <= 24.
@@ -115,7 +115,7 @@ def floor_and_clip_to_unsigned_int(x,
                                    *,
                                    prec,
                                    dtype,
-                                   half_shift = False):
+                                   half_shift):
   """Floor-and-clip x to range of unsigned type with precision 'prec'.
 
   Requires prec <= 24.
