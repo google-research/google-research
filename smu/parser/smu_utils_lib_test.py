@@ -783,31 +783,31 @@ class FilterConformerByAvailabilityTest(absltest.TestCase):
     self.conformer = dataset_pb2.Conformer()
     properties = self.conformer.properties
     # A STANDARD field
-    properties.single_point_energy_pbe0d3_6_311gd.value = 1.23
+    properties.initial_geometry_energy.value = 1.23
     # A COMPLETE field
-    properties.homo_pbe0_aug_pc_1.value = 1.23
+    properties.zpe_unscaled.value = 1.23
     # An INTERNAL_ONLY field
-    properties.nuclear_repulsion_energy.value = 1.23
+    properties.compute_cluster_info = "some value"
 
   def test_standard(self):
     smu_utils_lib.filter_conformer_by_availability(self.conformer,
                                                    [dataset_pb2.STANDARD])
     self.assertTrue(
         self.conformer.properties.HasField(
-            'single_point_energy_pbe0d3_6_311gd'))
-    self.assertFalse(self.conformer.properties.HasField('homo_pbe0_aug_pc_1'))
+            'initial_geometry_energy'))
+    self.assertFalse(self.conformer.properties.HasField('zpe_unscaled'))
     self.assertFalse(
-        self.conformer.properties.HasField('nuclear_repulsion_energy'))
+        self.conformer.properties.HasField('compute_cluster_info'))
 
   def test_complete_and_internal_only(self):
     smu_utils_lib.filter_conformer_by_availability(
         self.conformer, [dataset_pb2.COMPLETE, dataset_pb2.INTERNAL_ONLY])
     self.assertFalse(
         self.conformer.properties.HasField(
-            'single_point_energy_pbe0d3_6_311gd'))
-    self.assertTrue(self.conformer.properties.HasField('homo_pbe0_aug_pc_1'))
+            'initial_geometry_energy'))
+    self.assertTrue(self.conformer.properties.HasField('zpe_unscaled'))
     self.assertTrue(
-        self.conformer.properties.HasField('nuclear_repulsion_energy'))
+        self.conformer.properties.HasField('compute_cluster_info'))
 
 
 class ConformerToStandardTest(absltest.TestCase):
@@ -820,15 +820,15 @@ class ConformerToStandardTest(absltest.TestCase):
   def test_field_filtering(self):
     # Check that the field which should be filtered starts out set
     self.assertTrue(self.conformer.properties.HasField(
-        'single_point_energy_hf_6_31gd'))
+        'optimized_geometry_energy'))
 
     got = smu_utils_lib.conformer_to_standard(self.conformer)
     # Check for a field that was originally in self.conformer and should be
     # filtered and a field which should still be present.
     self.assertTrue(got.properties.HasField(
-        'single_point_energy_pbe0d3_6_311gd'))
+        'optimized_geometry_energy'))
     self.assertFalse(
-        got.properties.HasField('single_point_energy_hf_6_31gd'))
+        got.properties.HasField('zpe_unscaled'))
 
   def test_remove_error_conformer(self):
     self.conformer.properties.errors.error_frequencies = 123
