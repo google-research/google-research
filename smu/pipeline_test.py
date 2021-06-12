@@ -68,6 +68,16 @@ class FunctionalTest(absltest.TestCase):
     self.assertLen(got.initial_geometries, 1)
     self.assertEqual(got.initial_geometries[0].atom_positions[0].x, 1)
 
+  def test_extract_bond_lengths(self):
+    conf = dataset_pb2.Conformer(conformer_id=123000)
+    bt = conf.bond_topologies.add()
+    bt.atoms.extend([dataset_pb2.BondTopology.ATOM_C,
+                     dataset_pb2.BondTopology.ATOM_N,
+                     dataset_pb2.BondTopology.ATOM_O,
+                     dataset_pb2.BondTopology.ATOM_H])
+    conf.initial_geometries.add()
+    conf.initial_geometries[0].atom_positions.add(x=1, y=2, z=3)
+
 
 class IntegrationTest(absltest.TestCase):
 

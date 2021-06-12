@@ -272,6 +272,21 @@ class MergeConformersFn(beam.DoFn):
           MergeConformersFn.OUTPUT_TAG_MERGE_CONFLICT, c)
 
 
+def extract_bond_lengths(conformer):
+  """Yields quantized bond lengths.
+
+  Args:
+    * conformer: dataset_pb2.Conformer
+    * bin_width: float, unit of quantization. TODO(pfr): describe me better
+
+  output atom types are single charecters, sorted lexographically.
+
+  Yields:
+    (atom type 1, atom type 2, quantized dist)
+  """
+  pass
+
+
 class UpdateConformerFn(beam.DoFn):
   """DoFn that performs several updates to fields in Conformer.
 
