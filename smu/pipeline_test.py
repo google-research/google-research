@@ -69,14 +69,60 @@ class FunctionalTest(absltest.TestCase):
     self.assertEqual(got.initial_geometries[0].atom_positions[0].x, 1)
 
   def test_extract_bond_lengths(self):
+    # This conformer does not obery valence rules, but it's fine for this test.
+    conf = dataset_pb2.Conformer(conformer_id=123000)
+    bt = conf.bond_topologies.add()
+    bt.atoms.extend([dataset_pb2.BondTopology.ATOM_ONEG,
+                     dataset_pb2.BondTopology.ATOM_NPOS,
+                     dataset_pb2.BondTopology.ATOM_C,
+                     dataset_pb2.BondTopology.ATOM_H])
+    bt.bonds.add(atom_a=0, atom_b=1,
+                 bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
+    bt.bonds.add(atom_a=0, atom_b=2,
+                 bond_type=dataset_pb2.BondTopology.BOND_DOUBLE)
+    bt.bonds.add(atom_a=0, atom_b=3,
+                 bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
+    conf.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
+    conf.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
+    conf.optimized_geometry.atom_positions.add(x=0, y=2, z=0)
+    conf.optimized_geometry.atom_positions.add(x=111, y=222, z=333)
+
+    got = list(pipeline.extract_bond_lengths(
+      conf, dist_sig_digits=2, unbonded_max=2.0))
+    # Note that these are *not* rounded, but truncated to this many digits.
+    self.assertEqual(got, [
+      # 1 bohr -> 0.529177249 angstroms
+      ('n', 'o', dataset_pb2.BondTopology.BOND_SINGLE, '0.52'),
+      # 2 bohr -> 2 * 0.529177249 angstroms
+      ('c', 'o', dataset_pb2.BondTopology.BOND_DOUBLE, '1.05'),
+      # sqrt(1**2 + 2**2) bohr -> 2.23606 * 0.529177249 angstroms
+      ('c', 'n', dataset_pb2.BondTopology.BOND_UNDEFINED, '1.18')])
+
+  def test_extract_bond_lengths_max_unbonded(self):
+    # This conformer does not obery valence rules, but it's fine for this test.
     conf = dataset_pb2.Conformer(conformer_id=123000)
     bt = conf.bond_topologies.add()
     bt.atoms.extend([dataset_pb2.BondTopology.ATOM_C,
                      dataset_pb2.BondTopology.ATOM_N,
-                     dataset_pb2.BondTopology.ATOM_O,
-                     dataset_pb2.BondTopology.ATOM_H])
-    conf.initial_geometries.add()
-    conf.initial_geometries[0].atom_positions.add(x=1, y=2, z=3)
+                     dataset_pb2.BondTopology.ATOM_O])
+    bt.bonds.add(atom_a=0, atom_b=1,
+                 bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
+    bt.bonds.add(atom_a=0, atom_b=2,
+                 bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
+    conf.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
+    conf.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
+    conf.optimized_geometry.atom_positions.add(x=100, y=2, z=0)
+
+    got = list(pipeline.extract_bond_lengths(
+      conf, dist_sig_digits=2, unbonded_max=2.0))
+    # Note that these are *not* rounded, but truncated to this many digits.
+    self.assertEqual(got, [
+      # 1 bohr -> 0.529177249 angstroms
+      ('c', 'n', dataset_pb2.BondTopology.BOND_SINGLE, '0.52'),
+      # It seems like this should be 52.91 but it looks like some numerical noise
+      # in np.linalg.norm.
+      ('c', 'o', dataset_pb2.BondTopology.BOND_SINGLE, '52.92')])
+    # Note that the N-O distance is not reported while the C-O is.
 
 
 class IntegrationTest(absltest.TestCase):

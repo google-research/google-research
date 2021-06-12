@@ -22,7 +22,9 @@ checking to produce the final outputs.
 
 import copy
 import functools
+import itertools
 import logging as stdlogging
+import numpy as np
 
 from absl import app
 from absl import flags
@@ -272,19 +274,63 @@ class MergeConformersFn(beam.DoFn):
           MergeConformersFn.OUTPUT_TAG_MERGE_CONFLICT, c)
 
 
-def extract_bond_lengths(conformer):
+def extract_bond_lengths(conformer, dist_sig_digits, unbonded_max):
   """Yields quantized bond lengths.
 
   Args:
     * conformer: dataset_pb2.Conformer
-    * bin_width: float, unit of quantization. TODO(pfr): describe me better
+    * dist_sig_digits: number of digits after decimal point to keep
+    * unbonded_max: maximum distance to report for unbonded pairs
 
   output atom types are single charecters, sorted lexographically.
+  bond_type is dataset_pb2.BondTopology.BondType
+  dist_sig_digits is a string (to avoid vagaries of floating point compares)
 
   Yields:
-    (atom type 1, atom type 2, quantized dist)
+    (atom type 1, atom type 2, bond type, quantized dist)
   """
-  pass
+  bt = conformer.bond_topologies[0]
+  format_str = '{:.%df}' % dist_sig_digits
+
+  for atom_idx0, atom_idx1 in itertools.combinations(
+      range(len(bt.atoms)), r=2):
+
+    if (bt.atoms[atom_idx0] == dataset_pb2.BondTopology.ATOM_H or
+        bt.atoms[atom_idx1] == dataset_pb2.BondTopology.ATOM_H):
+      continue
+
+    bond_type = dataset_pb2.BondTopology.BOND_UNDEFINED
+    for bond in bt.bonds:
+      if ((bond.atom_a == atom_idx0 and bond.atom_b == atom_idx1) or
+          (bond.atom_a == atom_idx1 and bond.atom_b == atom_idx2)):
+        bond_type = bond.bond_type
+        break
+
+    geom = conformer.optimized_geometry
+    atom_pos0 = np.array([
+      geom.atom_positions[atom_idx0].x,
+      geom.atom_positions[atom_idx0].y,
+      geom.atom_positions[atom_idx0].z],
+                         dtype=np.double)
+    atom_pos1 = np.array([
+      geom.atom_positions[atom_idx1].x,
+      geom.atom_positions[atom_idx1].y,
+      geom.atom_positions[atom_idx1].z],
+                         dtype=np.double)
+    # The intention is the buckets are the left edge of an empricial CDF.
+    dist = (np.floor(smu_utils_lib.bohr_to_angstroms(
+      np.linalg.norm(atom_pos0 - atom_pos1)) * 10**dist_sig_digits)
+            / 10**dist_sig_digits)
+    if (bond_type == dataset_pb2.BondTopology.BOND_UNDEFINED and
+        dist > unbonded_max):
+      continue
+
+    atom_char0 = smu_utils_lib.ATOM_TYPE_TO_CHAR[bt.atoms[atom_idx0]]
+    atom_char1 = smu_utils_lib.ATOM_TYPE_TO_CHAR[bt.atoms[atom_idx1]]
+    if atom_char0 > atom_char1:
+      atom_char0, atom_char1 = atom_char1, atom_char0
+
+    yield atom_char0, atom_char1, bond_type, format_str.format(dist)
 
 
 class UpdateConformerFn(beam.DoFn):
