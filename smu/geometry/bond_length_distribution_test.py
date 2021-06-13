@@ -322,6 +322,41 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
     self.assertAlmostEqual(
         all_dists.pdf_length_given_type(carbon, nitrogen, triple, 1.5), 0.0)
 
+  def test_add_from_sparse_dataframe(self):
+    df = pd.DataFrame.from_records(
+      [('c', 'c', 1, '1.0', 10),
+       ('c', 'c', 1, '1.2', 30),
+       ('n', 'o', 2, '1.0', 50),
+       ('n', 'o', 2, '1.5', 50),
+       ('n', 'n', 0, '1.5', 100),
+       ('n', 'n', 0, '1.8', 100),
+      ],
+      columns=['atom_char_0', 'atom_char_1', 'bond_type', 'length_str', 'count'])
+    all_dists = bond_length_distribution.AllAtomPairLengthDistributions()
+    all_dists.add_from_sparse_dataframe(df, sig_digits=1,
+                                        unbonded_right_tail_mass=0.8)
+
+    carbon = dataset_pb2.BondTopology.AtomType.ATOM_C
+    nitrogen = dataset_pb2.BondTopology.AtomType.ATOM_N
+    oxygen = dataset_pb2.BondTopology.AtomType.ATOM_O
+    unbonded = dataset_pb2.BondTopology.BondType.BOND_UNDEFINED
+    single = dataset_pb2.BondTopology.BondType.BOND_SINGLE
+    double = dataset_pb2.BondTopology.BondType.BOND_DOUBLE
+
+    self.assertAlmostEqual(
+        all_dists.pdf_length_given_type(carbon, carbon, single, 1.05), 2.5)
+    self.assertAlmostEqual(
+        all_dists.pdf_length_given_type(carbon, carbon, single, 999), 0.0)
+    self.assertAlmostEqual(
+        all_dists.pdf_length_given_type(nitrogen, oxygen, double, 1.55), 5.0)
+    self.assertAlmostEqual(
+        all_dists.pdf_length_given_type(nitrogen, nitrogen, unbonded, 1.85), 1.0)
+    # This makes sure the right tail mass was included
+    self.assertGreater(
+        all_dists.pdf_length_given_type(nitrogen, nitrogen, unbonded, 2.0), 0.0)
+    self.assertGreater(
+        all_dists.pdf_length_given_type(nitrogen, nitrogen, unbonded, 3.0), 0.0)
+
 
 class SparseDataframFromRecordsTest(absltest.TestCase):
 

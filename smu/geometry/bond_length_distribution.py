@@ -220,7 +220,9 @@ class EmpiricalLengthDistribution(LengthDistribution):
     bucket_size = np.float_power(10, -sig_digits)
     input_lengths = df_input['length_str'].astype(np.double)
     lengths = np.arange(np.min(input_lengths),
-                        np.max(input_lengths) + bucket_size,
+                        # bucket_size / 2 avoids numerical imprecision to make
+                        # sure that the max is the last bucket
+                        np.max(input_lengths) + bucket_size / 2,
                         bucket_size)
     df_lengths = pd.DataFrame.from_dict({'length': lengths})
 
@@ -412,6 +414,38 @@ class AllAtomPairLengthDistributions:
 
       self.add(atom_a, atom_b, bond_type,
                EmpiricalLengthDistribution.from_file(fname, right_tail_mass))
+
+  def add_from_sparse_dataframe(self, df_input,
+                                unbonded_right_tail_mass, sig_digits):
+    """Adds distributions from a sparse dataframe.
+
+    See sparse_dataframe_from_records for a description of the expected input
+    format.
+
+    Args:
+      df_input: pd.DataFrame
+      unbonded_right_tail_mass: right_tail_mass (as described in
+        EmpiricalLengthDistribution) for the unbonded cases.
+      sig_digits: number of significant digits after the decimal point
+    """
+    avail_pairs = set(df_input.apply(
+      lambda row: (row['atom_char_0'], row['atom_char_1'], row['bond_type']),
+      axis=1))
+    for atom_char_0, atom_char_1, bond_type in avail_pairs:
+      atom_0 = smu_utils_lib.ATOM_CHAR_TO_TYPE[atom_char_0]
+      atom_1 = smu_utils_lib.ATOM_CHAR_TO_TYPE[atom_char_1]
+      df = df_input[(df_input['atom_char_0'] == atom_char_0) &
+                    (df_input['atom_char_1'] == atom_char_1) &
+                    (df_input['bond_type'] == bond_type)]
+
+      right_tail_mass = None
+      if bond_type == dataset_pb2.BondTopology.BOND_UNDEFINED:
+        right_tail_mass = unbonded_right_tail_mass
+
+      self.add(atom_0, atom_1, bond_type,
+               EmpiricalLengthDistribution.from_sparse_dataframe(
+                 df, right_tail_mass, sig_digits))
+    pass
 
   def pdf_length_given_type(self, atom_a,
                             atom_b,
