@@ -34,6 +34,7 @@ from tensorflow.io import gfile
 
 from google.protobuf import json_format
 from smu import dataset_pb2
+from smu.geometry import bond_length_distribution
 from smu.parser import smu_parser_lib
 from smu.parser import smu_utils_lib
 from smu.parser import smu_writer_lib
@@ -302,7 +303,7 @@ def extract_bond_lengths(conformer, dist_sig_digits, unbonded_max):
     bond_type = dataset_pb2.BondTopology.BOND_UNDEFINED
     for bond in bt.bonds:
       if ((bond.atom_a == atom_idx0 and bond.atom_b == atom_idx1) or
-          (bond.atom_a == atom_idx1 and bond.atom_b == atom_idx2)):
+          (bond.atom_a == atom_idx1 and bond.atom_b == atom_idx0)):
         bond_type = bond.bond_type
         break
 
@@ -331,6 +332,22 @@ def extract_bond_lengths(conformer, dist_sig_digits, unbonded_max):
       atom_char0, atom_char1 = atom_char1, atom_char0
 
     yield atom_char0, atom_char1, bond_type, format_str.format(dist)
+
+
+def write_bond_lengths(records, filename):
+  """DoFn foro writing the bond lengths.
+
+  We write directly to filename because the entire pcollection
+  shoul have been combined to a single entry.
+
+  Args:
+  * records: records as expected by
+      bond_length_distribution.sparse_dataframe_from_records
+  * filename: file to write to
+  """
+  with gfile.GFile(filename, 'w') as f:
+    df = bond_length_distribution.sparse_dataframe_from_records(records)
+    df.to_csv(f, index=False)
 
 
 class UpdateConformerFn(beam.DoFn):
@@ -715,6 +732,16 @@ def pipeline(root):
           header=csv_format(smu_utils_lib.MERGE_CONFLICT_FIELDS),
           num_shards=1,
           file_name_suffix='.csv'))
+
+  # Get the bond length distributions
+  bond_length_dists_pcoll = (
+    merged_conformers
+    | 'ExtractBondLengths'
+    >> beam.FlatMap(extract_bond_lengths, dist_sig_digits=3, unbonded_max=2.0)
+    | 'CountBondLengths' >> beam.combiners.Count.PerElement()                                                                                                               | 'ToListBondLengths' >> beam.combiners.ToList()
+    | 'WriteBondLengths' >> beam.ParDo(
+        write_bond_lengths,
+        filename=f'{FLAGS.output_stem}_bond_lengths.csv'))
 
   # Various per conformer processing
   update_results = (

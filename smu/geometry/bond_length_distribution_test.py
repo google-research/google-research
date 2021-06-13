@@ -15,6 +15,7 @@
 
 """Tests for the BondLengthDistribution(s) classes."""
 
+import numpy as np
 import os
 
 from absl.testing import absltest
@@ -299,6 +300,22 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
         all_dists.pdf_length_given_type(carbon, nitrogen, double, 1.5), 0.0)
     self.assertAlmostEqual(
         all_dists.pdf_length_given_type(carbon, nitrogen, triple, 1.5), 0.0)
+
+
+class SparseDataframFromRecordsTest(absltest.TestCase):
+
+  def test_simple(self):
+    input = [(('n', 'o', 1, '3.456'), 30),
+             (('c', 'c', 2, '2.345'), 20),
+             (('c', 'c', 1, '1.234'), 10),
+             ]
+    got = bond_length_distribution.sparse_dataframe_from_records(input)
+    self.assertCountEqual(got.columns, ['atom_char_0', 'atom_char_1', 'bond_type', 'length_str', 'count'])
+    np.testing.assert_array_equal(got['atom_char_0'], ['c', 'c', 'n'])
+    np.testing.assert_array_equal(got['atom_char_1'], ['c', 'c', 'o'])
+    np.testing.assert_array_equal(got['bond_type'], [1, 2, 1])
+    np.testing.assert_array_equal(got['length_str'], ['1.234', '2.345', '3.456'])
+    np.testing.assert_array_equal(got['count'], [10, 20, 30])
 
 
 if __name__ == "__main__":

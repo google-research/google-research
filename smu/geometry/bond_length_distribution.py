@@ -401,3 +401,26 @@ class AllAtomPairLengthDistributions:
     """
     return self._atom_pair_dict[(atom_a,
                                  atom_b)].probability_of_bond_types(length)
+
+
+def sparse_dataframe_from_records(records):
+  """Builds a dataframe with emprical buckets for many atom pairs.
+
+  The strange grouping in records is because this is what comes from the beam
+  pipeline easily.
+
+  Args:
+  * records: iterables of [(atom char 0, atom char 1, bond type, length), count]
+    where atom char is one of 'cnofh', bond type is an int in [0, 3], length
+    is a string, count is an integer
+
+  Returns:
+    pd.DataFrame with columns:
+      atom_char_0, atom_char_1, bond_type, length_str, count
+  """
+  reformatted = []
+  for (a0, a1, bt, length), count in records:
+    reformatted.append((a0, a1, bt, length, count))
+  df = pd.DataFrame.from_records(
+    reformatted, columns=['atom_char_0', 'atom_char_1', 'bond_type', 'length_str', 'count'])
+  return df.sort_values(['atom_char_0', 'atom_char_1', 'bond_type', 'length_str'])

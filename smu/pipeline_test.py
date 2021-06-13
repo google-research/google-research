@@ -208,6 +208,14 @@ class IntegrationTest(absltest.TestCase):
       # This is a bond topology with 2 conformers
       self.assertIn('618451,2,0,0,0,2,0,0,2,0,0\n', bt_summary_lines)
 
+    # Check the bond lengths file
+    with gfile.GFile(output_stem + '_bond_lengths.csv') as f:
+      bond_length_lines = f.readlines()
+      self.assertEqual('atom_char_0,atom_char_1,bond_type,length_str,count\n',
+                       bond_length_lines[0])
+      self.assertIn('c,c,1,1.379,1\n', bond_length_lines)
+      self.assertIn('c,o,1,1.422,2\n', bond_length_lines)
+
     # For the gzip files below, we check >100 because even an empty gzip file
     # has non-zero length. 100 is kind of arbitrary to be bigger than the
     # expected header of 20.
