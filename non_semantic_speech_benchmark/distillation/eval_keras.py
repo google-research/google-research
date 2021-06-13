@@ -126,12 +126,11 @@ def eval_and_report():
         reader=reader,
         samples_key=FLAGS.samples_key,
         min_length=FLAGS.min_length,
-        batch_size=FLAGS.train_batch_size,
+        batch_size=FLAGS.batch_size,
         loop_forever=False,
         shuffle=False,
         teacher_fn=teacher_fn,
-        target_key=target_key,
-        shuffle_buffer_size=FLAGS.shuffle_buffer_size)
+        target_key=target_key)
     logging.info('Got dataset for eval step: %s.', step)
     if FLAGS.take_fixed_data:
       ds = ds.take(FLAGS.take_fixed_data)
@@ -164,12 +163,19 @@ def eval_and_report():
 
 def main(unused_argv):
   assert FLAGS.file_pattern
-  assert FLAGS.teacher_model_hub
   assert FLAGS.output_dimension
-  assert FLAGS.output_key
-  assert FLAGS.bottleneck_dimension
-  assert FLAGS.samples_key
+  assert FLAGS.bottleneck_dimension >= 0
   assert FLAGS.logdir
+  assert FLAGS.samples_key
+
+  if FLAGS.precomputed_targets:
+    assert FLAGS.teacher_model_hub is None
+    assert FLAGS.output_key is None
+    assert FLAGS.target_key
+  else:
+    assert FLAGS.teacher_model_hub
+    assert FLAGS.output_key
+    assert FLAGS.target_key is None
 
   tf.compat.v2.enable_v2_behavior()
   assert tf.executing_eagerly()

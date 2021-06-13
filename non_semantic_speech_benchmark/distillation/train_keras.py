@@ -14,7 +14,8 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Trains on embeddings using Keras."""
+"""Trains on embeddings using Keras.
+"""
 
 from absl import app
 from absl import flags
@@ -120,6 +121,7 @@ def train_and_report(debug=False):
   if FLAGS.precomputed_targets:
     teacher_fn = None
     assert target_key is not None
+    assert FLAGS.output_key is None
   else:
     teacher_fn = get_data.savedmodel_to_func(
         hub.load(FLAGS.teacher_model_hub), FLAGS.output_key)
@@ -235,16 +237,15 @@ def main(unused_argv):
   assert FLAGS.bottleneck_dimension >= 0
   assert FLAGS.shuffle_buffer_size
   assert FLAGS.logdir
+  assert FLAGS.samples_key
 
   if FLAGS.precomputed_targets:
     assert FLAGS.teacher_model_hub is None
     assert FLAGS.output_key is None
-    assert FLAGS.samples_key is None
     assert FLAGS.target_key
   else:
     assert FLAGS.teacher_model_hub
     assert FLAGS.output_key
-    assert FLAGS.samples_key
     assert FLAGS.target_key is None
 
   # Incompatible tools.
