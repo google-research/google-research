@@ -736,6 +736,8 @@ def pipeline(root):
   # Get the bond length distributions
   bond_length_dists_pcoll = (
     merged_conformers
+    | 'FitlerForBondLengths'
+    >> beam.Filter(smu_utils_lib.should_include_in_standard)
     | 'ExtractBondLengths'
     >> beam.FlatMap(extract_bond_lengths, dist_sig_digits=3, unbonded_max=2.0)
     | 'CountBondLengths' >> beam.combiners.Count.PerElement()                                                                                                               | 'ToListBondLengths' >> beam.combiners.ToList()

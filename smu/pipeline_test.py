@@ -213,7 +213,7 @@ class IntegrationTest(absltest.TestCase):
       bond_length_lines = f.readlines()
       self.assertEqual('atom_char_0,atom_char_1,bond_type,length_str,count\n',
                        bond_length_lines[0])
-      self.assertIn('c,c,1,1.379,1\n', bond_length_lines)
+      self.assertIn('c,c,2,1.336,1\n', bond_length_lines)
       self.assertIn('c,o,1,1.422,2\n', bond_length_lines)
 
     # For the gzip files below, we check >100 because even an empty gzip file
