@@ -120,22 +120,24 @@ def train_and_get_score(embedding_name,
   #   m = pickle.load(f)
   # ```
   if save_model_dir:
-    file_utils.MaybeMakeDirs(save_model_dir)
-    model_filename = os.path.join(save_model_dir, f'{model_name}.pickle')
+    cur_models_dir = os.path.join(save_model_dir, embedding_name)
+    file_utils.MaybeMakeDirs(cur_models_dir)
+    model_filename = os.path.join(cur_models_dir, f'{model_name}.pickle')
     with file_utils.Open(model_filename, 'wb') as f:
       pickle.dump(d, f)
 
   if save_predictions_dir:
-    file_utils.MaybeMakeDirs(save_predictions_dir)
+    cur_preds_dir = os.path.join(save_predictions_dir, embedding_name)
+    file_utils.MaybeMakeDirs(cur_preds_dir)
     for dat_name, dat_x, dat_y in [('train', npx_train, npy_train),
                                    ('eval', npx_eval, npy_eval),
                                    ('test', npx_test, npy_test)]:
-      pred_filename = os.path.join(save_predictions_dir,
+      pred_filename = os.path.join(cur_preds_dir,
                                    f'{model_name}_{dat_name}_pred.npz')
       pred_y = d.predict(dat_x)
       with file_utils.Open(pred_filename, 'wb') as f:
         np.save(f, pred_y)
-      y_filename = os.path.join(save_predictions_dir,
+      y_filename = os.path.join(cur_preds_dir,
                                 f'{model_name}_{dat_name}_y.npz')
       with file_utils.Open(y_filename, 'wb') as f:
         np.save(f, dat_y)
