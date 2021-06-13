@@ -188,7 +188,7 @@ class EmpiricalLengthDistribution(LengthDistribution):
 
     Args:
       filename: file to read
-      right_tail_mass: probability mass added part the right side of the buckets
+      right_tail_mass: probability mass added past the right side of the buckets
         (see class documentation)
 
     Returns:
@@ -196,9 +196,46 @@ class EmpiricalLengthDistribution(LengthDistribution):
     """
     with gfile.GFile(filename) as f:
       df = pd.read_csv(
-          f, header=None, names=['length', 'count'], dtype=np.float)
+          f, header=None, names=['length', 'count'], dtype=float)
 
     return EmpiricalLengthDistribution(df, right_tail_mass)
+
+  @classmethod
+  def from_sparse_dataframe(cls, df_input, right_tail_mass, sig_digits):
+    """Creates EmpiricalLengthDistribution from a sparse dataframe.
+
+    "sparse" means that not every bucket is listed explictly. The main work
+    in this function to to fill in the implicit values expected in the
+    contructor.
+
+    Args:
+    * df_input: pd.DataFrame with columns ['length_str', 'count']
+    * right_tail_mass: probability mass added past the right side of the buckets
+        (see class documentation)
+    * sig_digits: number of significant digits after the decimal point
+
+    Returns:
+      EmpiricalLengthDistribution
+    """
+    bucket_size = np.float_power(10, -sig_digits)
+    input_lengths = df_input['length_str'].astype(np.double)
+    lengths = np.arange(np.min(input_lengths),
+                        np.max(input_lengths) + bucket_size,
+                        bucket_size)
+    df_lengths = pd.DataFrame.from_dict({'length': lengths})
+
+    format_str = '{:.%df}' % sig_digits
+    df_lengths['length_str'] = df_lengths['length'].apply(
+      lambda x: format_str.format(x))
+
+    df = df_lengths.merge(df_input, how='outer', on='length_str')
+    if len(df) != len(df_lengths):
+      raise ValueError('Unexpected length_str values in input: {}'.format(
+        set(df_input['length_str']).difference(df_lengths['length_str'])))
+
+    df['count'].fillna(0, inplace=True)
+
+    return EmpiricalLengthDistribution(df, right_tail_mass=right_tail_mass)
 
   @classmethod
   def from_arrays(cls, lengths, counts,
@@ -210,7 +247,7 @@ class EmpiricalLengthDistribution(LengthDistribution):
         (same length as counts)
       sequence of left edge of length buckets
       counts: sequence of counts observed in each bucket
-      right_tail_mass: probability mass added part the right side of the buckets
+      right_tail_mass: probability mass added past the right side of the buckets
         (see class documentation)
 
     Returns:
@@ -405,6 +442,9 @@ class AllAtomPairLengthDistributions:
 
 def sparse_dataframe_from_records(records):
   """Builds a dataframe with emprical buckets for many atom pairs.
+
+  The "sparse" refers to the fact that not every bucket will be explicitly
+  represented.
 
   The strange grouping in records is because this is what comes from the beam
   pipeline easily.

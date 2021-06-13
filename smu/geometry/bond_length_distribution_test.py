@@ -17,6 +17,7 @@
 
 import numpy as np
 import os
+import pandas as pd
 
 from absl.testing import absltest
 
@@ -63,7 +64,27 @@ class EmpiricalLengthDistributionTest(absltest.TestCase):
     self.assertAlmostEqual(dist.pdf(1.2001), 3.0)
     self.assertAlmostEqual(dist.pdf(1.3001), 4.0)
 
-    # Check a value to make sure the distribution read at all.
+  def test_from_sparse_dataframe(self):
+    df_input = pd.DataFrame.from_dict({
+      'length_str': ['1.234', '1.235', '1.239'],
+      'count': [2, 3, 5]})
+    got = (bond_length_distribution.EmpiricalLengthDistribution
+           .from_sparse_dataframe(df_input, right_tail_mass=0, sig_digits=3))
+    self.assertAlmostEqual(got.pdf(1.2335), 0.0)
+    self.assertAlmostEqual(got.pdf(1.2345), 200)
+    self.assertAlmostEqual(got.pdf(1.2355), 300)
+    # this is the internal implicit 0 count
+    self.assertAlmostEqual(got.pdf(1.2365), 0.0)
+    self.assertAlmostEqual(got.pdf(1.2395), 500)
+    self.assertAlmostEqual(got.pdf(1.2405), 0.0)
+
+  def test_from_sparse_dataframe_sig_digit_error(self):
+    df_input = pd.DataFrame.from_dict({
+      'length_str': ['1.234', '1.235'],
+      'count': [2, 3]})
+    with self.assertRaisesRegex(ValueError, 'Unexpected length_str'):
+      _ = (bond_length_distribution.EmpiricalLengthDistribution
+           .from_sparse_dataframe(df_input, right_tail_mass=0, sig_digits=2))
 
   def test_from_arrays(self):
     dist = bond_length_distribution.EmpiricalLengthDistribution.from_arrays(
