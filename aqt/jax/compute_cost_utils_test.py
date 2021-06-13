@@ -127,13 +127,11 @@ class ComputeCostUtilsTest(parameterized.TestCase):
       lhs_act_hparams = QuantOps.ActHParams(
           input_distribution='symmetric',
           bounds=get_bounds_hyper,
-          prec=lhs_prec,
-          half_shift=False)
+          prec=lhs_prec)
       rhs_act_hparams = QuantOps.ActHParams(
           input_distribution='symmetric',
           bounds=get_bounds_hyper,
-          prec=rhs_prec,
-          half_shift=False)
+          prec=rhs_prec)
       lhs_get_bounds_params = get_bounds.GetBounds.Params(
           update_stats=False, update_bounds=False, module_name='lhs')
       rhs_get_bounds_params = get_bounds.GetBounds.Params(
@@ -161,8 +159,7 @@ class ComputeCostUtilsTest(parameterized.TestCase):
                   weight_prec=None,
                   quant_type=QuantType.fake_quant,
                   quant_act=None,
-                  weight_quant_granularity=quant_config.QuantGranularity.per_channel,
-                  weight_half_shift=False
+                  weight_quant_granularity=quant_config.QuantGranularity.per_channel
               ),
           },
           expected_compute_cost=8 * 2 * (16 * 16),
@@ -185,10 +182,8 @@ class ComputeCostUtilsTest(parameterized.TestCase):
                       input_distribution=QuantOps.ActHParams.InputDistribution.positive,
                       prec=8,
                       bounds=1.0,
-                      half_shift=False,
                   ),
-                  weight_quant_granularity=quant_config.QuantGranularity.per_channel,
-                  weight_half_shift=False
+                  weight_quant_granularity=quant_config.QuantGranularity.per_channel
               ),
           },
           expected_compute_cost=8 * 2 * (8 * 8),
@@ -212,7 +207,6 @@ class ComputeCostUtilsTest(parameterized.TestCase):
                   weight_prec=None,
                   quant_type=QuantType.fake_quant,
                   quant_act=None,
-                  weight_half_shift=False,
               ),
           },
           expected_compute_cost=(3 * 3) * (8 * 8) * 3 * 16 * (16 * 16),
@@ -234,7 +228,6 @@ class ComputeCostUtilsTest(parameterized.TestCase):
                   weight_prec=None,
                   quant_type=QuantType.fake_quant,
                   quant_act=None,
-                  weight_half_shift=False,
               ),
           },
           expected_compute_cost=(3 * 3) * ((8 / 4) * (8 / 2)) * 3 * 16 * (16 * 16),
@@ -256,7 +249,6 @@ class ComputeCostUtilsTest(parameterized.TestCase):
                   weight_prec=None,
                   quant_type=QuantType.fake_quant,
                   quant_act=None,
-                  weight_half_shift=False,
               ),
           },
           expected_compute_cost=(3 * 3 * 3) * (8 * 8 * 8) * 3 * 16 * (16 * 16),
@@ -281,9 +273,7 @@ class ComputeCostUtilsTest(parameterized.TestCase):
                       input_distribution=QuantOps.ActHParams.InputDistribution.positive,
                       prec=2,
                       bounds=1.0,
-                      half_shift=False,
                   ),
-                  weight_half_shift=False,
               ),
           },
           expected_compute_cost=(3 * 3) * (8 * 8) * 3 * 16 * (4 * 2),
@@ -380,8 +370,7 @@ class ComputeCostUtilsTest(parameterized.TestCase):
                       quant_act=None,
                       quant_type=QuantType.fake_quant,
                       weight_quant_granularity=quant_config.QuantGranularity
-                      .per_channel,
-                      weight_half_shift=False)
+                      .per_channel)
           },
       ),
       # TestModelWith1Conv
@@ -399,7 +388,6 @@ class ComputeCostUtilsTest(parameterized.TestCase):
                       weight_prec=None,
                       quant_act=None,
                       quant_type=QuantType.fake_quant,
-                      weight_half_shift=False,
                   )
           },
       ),
@@ -460,8 +448,7 @@ class ComputeCostUtilsTest(parameterized.TestCase):
     quant_act = quantization.QuantOps.ActHParams(
         input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
         prec=acts_prec,
-        bounds=1.0,
-        half_shift=False)
+        bounds=1.0)
     input_shape = (1, 8, 8, 3)
     module_no_annotation = aqt_flax_layers.ConvAqt(
         features=4,
@@ -473,8 +460,7 @@ class ComputeCostUtilsTest(parameterized.TestCase):
         hparams=aqt_flax_layers.ConvAqt.HParams(
             weight_prec=weight_prec,
             quant_act=quant_act,
-            quant_type=QuantType.fake_quant,
-            weight_half_shift=False),
+            quant_type=QuantType.fake_quant),
         kernel_init=initializers.ones,
         bias_init=initializers.ones,
         dtype=jnp.float32)
@@ -499,8 +485,7 @@ class ComputeCostUtilsTest(parameterized.TestCase):
         hparams=aqt_flax_layers.ConvAqt.HParams(
             weight_prec=weight_prec,
             quant_act=quant_act,
-            quant_type=QuantType.fake_quant,
-            weight_half_shift=False),
+            quant_type=QuantType.fake_quant),
         kernel_init=initializers.ones,
         bias_init=initializers.ones,
         dtype=jnp.float32)
@@ -545,8 +530,7 @@ class ComputeCostUtilsTest(parameterized.TestCase):
     quant_act = quantization.QuantOps.ActHParams(
         input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
         prec=acts_prec,
-        bounds=1.0,
-        half_shift=False)
+        bounds=1.0)
     input_shape = (1, 16)
     module_no_annotation = aqt_flax_layers.DenseAqt(
         features=4,
@@ -559,8 +543,7 @@ class ComputeCostUtilsTest(parameterized.TestCase):
             weight_prec=weight_prec,
             quant_act=quant_act,
             quant_type=QuantType.fake_quant,
-            weight_quant_granularity=quant_config.QuantGranularity.per_channel,
-            weight_half_shift=False),
+            weight_quant_granularity=quant_config.QuantGranularity.per_channel),
         dtype=jnp.float32)
 
     init_state = module_no_annotation.init(
@@ -585,8 +568,7 @@ class ComputeCostUtilsTest(parameterized.TestCase):
             weight_prec=weight_prec,
             quant_act=quant_act,
             quant_type=QuantType.fake_quant,
-            weight_quant_granularity=quant_config.QuantGranularity.per_channel,
-            weight_half_shift=False),
+            weight_quant_granularity=quant_config.QuantGranularity.per_channel),
     )
 
     init_state = module_w_annotation.init(

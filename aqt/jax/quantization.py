@@ -148,8 +148,6 @@ class QuantOps:
   class WeightParams:
     """Parameters for weight quantization."""
     prec: _PrecT  # expected precision for weight quantization.
-    # enable all available values during quantization
-    half_shift: bool
     # Axis along which to quantize weights (the non-feature axis).
     axis: Optional[Iterable[int]]
     # expected scale shape for weights quantization. Defaults to None.
@@ -169,11 +167,9 @@ class QuantOps:
     # float means fixed bound. '-1' means no quantization.
     bounds: ActsBoundT
     prec: _PrecT
-    half_shift: bool
 
-  def __init__(self, *, prec,
-               scale, symmetric,
-               bounds, half_shift):
+  def __init__(self, *, prec, scale,
+               symmetric, bounds):
     """Default constructor, use of named constructors is strongly encoraged.
 
     Args:
@@ -181,10 +177,8 @@ class QuantOps:
       scale: scaling factor to scale the input to quantized precision range
       symmetric: whether the input to quantize is symmetric
       bounds: Optional. The clipping bounds used for calculating scale factors.
-      half_shift: Symmetric quantization with all available values enabled
     """
     self._prec = prec
-    self._half_shift = half_shift
     if scale is None:
       self._scale = None
     else:
@@ -218,12 +212,7 @@ class QuantOps:
       if fp_quant.is_scaled:
         raise ValueError(
             'bounds can only be None if fp_quant.is_scaled is False.')
-      return cls(
-          prec=fp_quant,
-          scale=None,
-          symmetric=True,
-          bounds=None,
-          half_shift=False)  # disable half_shift for fp quantization
+      return cls(prec=fp_quant, scale=None, symmetric=True, bounds=None)
     else:
       initial_bounds = bounds
       bounds = jnp.asarray(bounds, SCALE_DTYPE)
@@ -236,21 +225,16 @@ class QuantOps:
       scale = lax.stop_gradient(scale)
 
       return cls(
-          prec=fp_quant,
-          scale=scale,
-          symmetric=True,
-          bounds=initial_bounds,
-          half_shift=False)  # disable half_shift for fp quantization
+          prec=fp_quant, scale=scale, symmetric=True, bounds=initial_bounds)
 
   @classmethod
-  def create_symmetric(cls, *, bounds, prec,
-                       half_shift):
+  def create_symmetric(cls, *, bounds,
+                       prec):
     """Create QuantOps for symmetric activations clipped to [-bounds, bounds].
 
     Args:
       bounds: The upper (and absolute lower) bound to clip the inputs.
       prec: Signed int precision for the QuantOps.
-      half_shift: Symmetric quantization with all available values enabled
 
     Returns:
       QuantOps for quantizing/dequantizing signed activations.
@@ -264,12 +248,7 @@ class QuantOps:
     # when scale is not a constant, but computed as a function of activations or
     # weights.
     scale = lax.stop_gradient(scale)
-    return cls(
-        prec=prec,
-        scale=scale,
-        symmetric=True,
-        bounds=initial_bounds,
-        half_shift=half_shift)
+    return cls(prec=prec, scale=scale, symmetric=True, bounds=initial_bounds)
 
   @classmethod
   def create_positive(cls, *, bounds,
@@ -291,12 +270,7 @@ class QuantOps:
     # NOTE: stop_gradient is needed here to prevent gradient flow through scale
     # when scale is not a constant, but computed as a function of activations.
     scale = lax.stop_gradient(scale)
-    return cls(
-        prec=prec,
-        scale=scale,
-        symmetric=False,
-        bounds=initial_bounds,
-        half_shift=False)  # disable half_shift for positive distribution
+    return cls(prec=prec, scale=scale, symmetric=False, bounds=initial_bounds)
 
   def assert_scale_shape_is(self, *, shape):
     # TODO(shivaniagrawal): add option for float scale for fixed bound acts
@@ -340,8 +314,7 @@ class QuantOps:
       else:
         quantize = primitives.floor_and_clip_to_unsigned_int
       scaled_x = jnp.multiply(x, self._scale)
-      return quantize(
-          scaled_x, prec=self._prec, dtype=dtype, half_shift=self._half_shift)
+      return quantize(scaled_x, prec=self._prec, dtype=dtype)
 
   # Same as to_quantized but it just "downscales" using the same scale.
   def from_quantized(self, x, *,
@@ -392,12 +365,10 @@ class QuantOps:
     """
     weight_bounds = primitives.max_abs_weights(w, axis=weight_params.axis)
     prec = weight_params.prec
-    half_shift = weight_params.half_shift
     if isinstance(prec, _FloatQuant):
       ops = cls.create_symmetric_fp(bounds=weight_bounds, fp_quant=prec)
     else:
-      ops = cls.create_symmetric(
-          bounds=weight_bounds, prec=prec, half_shift=half_shift)
+      ops = cls.create_symmetric(bounds=weight_bounds, prec=prec)
     if weight_params.expected_scale_shape is not None:
       # NOTE: We set keepdim to True when computing weights scale, as a result
       # the axes which are reduced are left in the result as dimensions with
@@ -496,8 +467,7 @@ class QuantOps:
     if isinstance(hparams.prec, _FloatQuant):
       ops = cls.create_symmetric_fp(bounds=clip_bounds, fp_quant=hparams.prec)
     elif hparams.input_distribution == cls.ActHParams.InputDistribution.symmetric:
-      ops = cls.create_symmetric(
-          bounds=clip_bounds, prec=hparams.prec, half_shift=hparams.half_shift)
+      ops = cls.create_symmetric(bounds=clip_bounds, prec=hparams.prec)
     elif hparams.input_distribution == cls.ActHParams.InputDistribution.positive:
       ops = cls.create_positive(bounds=clip_bounds, prec=hparams.prec)
     else:

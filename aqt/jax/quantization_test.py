@@ -74,8 +74,7 @@ class QuantOpsTest(parameterized.TestCase):
   )
   def test_attributes_create_symmetric(self, bounds, prec):
     bounds = jnp.array(bounds)
-    act_signed = QuantOps.create_symmetric(
-        bounds=bounds, prec=prec, half_shift=False)
+    act_signed = QuantOps.create_symmetric(bounds=bounds, prec=prec)
     onp.testing.assert_array_equal(act_signed._scale,
                                    (2**(prec - 1) - 1) / bounds)
     self.assertEqual(act_signed._symmetric, True)
@@ -120,8 +119,7 @@ class QuantOpsTest(parameterized.TestCase):
     axis = None if weight_shape[1] == 1 else 0
     weights_quant_op = QuantOps.create_weights_ops(
         w=weights,
-        weight_params=QuantOps.WeightParams(
-            prec=fp_quant, axis=axis, half_shift=False))
+        weight_params=QuantOps.WeightParams(prec=fp_quant, axis=axis))
     max_weight = onp.max(abs(weights), axis=0)
     onp.testing.assert_array_equal(
         jnp.squeeze(weights_quant_op._scale),
@@ -181,9 +179,7 @@ class QuantOpsTest(parameterized.TestCase):
                 weight_range[0], weight_range[1], size=weight_shape)))
     axis = 0 if weight_shape[1] != 1 else None
     weights_quant = QuantOps.create_weights_ops(
-        w=weights,
-        weight_params=QuantOps.WeightParams(
-            prec=prec, axis=axis, half_shift=False))
+        w=weights, weight_params=QuantOps.WeightParams(prec=prec, axis=axis))
     max_weight = onp.max(abs(weights), axis=0)
     onp.testing.assert_array_equal(
         jnp.squeeze(weights_quant._scale), (2**(prec - 1) - 1) / max_weight)
@@ -205,10 +201,7 @@ class QuantOpsTest(parameterized.TestCase):
     _ = QuantOps.create_weights_fake_quant(
         w=weights,
         weight_params=QuantOps.WeightParams(
-            prec=8.0,
-            axis=axis,
-            expected_scale_shape=expected_scale_shape,
-            half_shift=False))
+            prec=8.0, axis=axis, expected_scale_shape=expected_scale_shape))
 
   def test_inputs_scale_shape_is_expected(self):
     # Inputs quantization
@@ -221,8 +214,7 @@ class QuantOpsTest(parameterized.TestCase):
         hparams=QuantOps.ActHParams(
             input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
             bounds=bounds,
-            prec=8.0,
-            half_shift=False),
+            prec=8.0),
         get_bounds_params=GetBounds.Params(
             update_stats=False,
             update_bounds=False,
@@ -254,7 +246,7 @@ class QuantOpsTest(parameterized.TestCase):
     # Activation values less than -upper_bound get clipped to -upper_bound, and
     # values greater than upper_bound get clipped to upper_bound
     act_quant = QuantOps.create_symmetric(
-        bounds=jnp.array([[6.0, 8.0]]), prec=prec, half_shift=False)
+        bounds=jnp.array([[6.0, 8.0]]), prec=prec)
     activation = jnp.array(fp32([[-7, -8.9], [6.2, 9.4], [0, 0.]]))
     quantized_activations = act_quant.to_quantized(
         activation, dtype=SCALE_DTYPE)
@@ -288,8 +280,7 @@ class QuantOpsTest(parameterized.TestCase):
         hparams=QuantOps.ActHParams(
             input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
             bounds=bounds,
-            prec=prec,
-            half_shift=False))
+            prec=prec))
 
     scaled_activations = QuantOps.create_inputs_fake_quant(
         inputs=scaled_activations,
@@ -298,8 +289,7 @@ class QuantOpsTest(parameterized.TestCase):
         hparams=QuantOps.ActHParams(
             input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
             bounds=bounds * act_scale,
-            prec=prec,
-            half_shift=False))
+            prec=prec))
     onp.testing.assert_array_equal(activations * act_scale, scaled_activations)
 
   @parameterized.named_parameters(
@@ -345,8 +335,7 @@ class QuantOpsTest(parameterized.TestCase):
         hparams=QuantOps.ActHParams(
             input_distribution=QuantOps.ActHParams.InputDistribution.positive,
             bounds=upper_bound,
-            prec=prec,
-            half_shift=False))
+            prec=prec))
     onp.testing.assert_array_equal(activations, rescaled_activations)
 
   @parameterized.named_parameters(
@@ -366,8 +355,7 @@ class QuantOpsTest(parameterized.TestCase):
         hparams=QuantOps.ActHParams(
             input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
             bounds=bounds,
-            prec=prec,
-            half_shift=False))
+            prec=prec))
 
     onp.testing.assert_array_equal(activations, rescaled_activations)
 
@@ -379,9 +367,7 @@ class QuantOpsTest(parameterized.TestCase):
     # weights.
     weights = jnp.array(fp32(2.0 * onp.random.uniform(0, 1.0, size=(10, 1))))
     rescaled_weights = QuantOps.create_weights_fake_quant(
-        w=weights,
-        weight_params=QuantOps.WeightParams(
-            prec=prec, axis=None, half_shift=False))
+        w=weights, weight_params=QuantOps.WeightParams(prec=prec, axis=None))
     test_utils.assert_all_close_prec(weights, rescaled_weights, prec=prec)
 
   @parameterized.named_parameters(
@@ -397,9 +383,7 @@ class QuantOpsTest(parameterized.TestCase):
     weights = random.randint(random.PRNGKey(0), (10, 1), minval, maxval + 1)
     weights = jax.ops.index_update(weights, jax.ops.index[0, :], maxval)
     weight_quant = QuantOps.create_weights_ops(
-        w=weights,
-        weight_params=QuantOps.WeightParams(
-            prec=prec, axis=None, half_shift=False))
+        w=weights, weight_params=QuantOps.WeightParams(prec=prec, axis=None))
     quantized_weights = weight_quant.to_quantized(weights, dtype=SCALE_DTYPE)
     onp.testing.assert_array_equal(quantized_weights[0],
                                    (2**(prec - 1.0) - 1.0))
@@ -418,14 +402,11 @@ class QuantOpsTest(parameterized.TestCase):
     scaled_weights = weights * weight_scale
 
     weights = QuantOps.create_weights_fake_quant(
-        w=weights,
-        weight_params=QuantOps.WeightParams(
-            prec=prec, axis=None, half_shift=False))
+        w=weights, weight_params=QuantOps.WeightParams(prec=prec, axis=None))
 
     scaled_weights = QuantOps.create_weights_fake_quant(
         w=scaled_weights,
-        weight_params=QuantOps.WeightParams(
-            prec=prec, axis=None, half_shift=False))
+        weight_params=QuantOps.WeightParams(prec=prec, axis=None))
 
     onp.testing.assert_array_equal(weights * weight_scale, scaled_weights)
 
@@ -442,14 +423,11 @@ class QuantOpsTest(parameterized.TestCase):
     scaled_weights = weights * weight_scale
 
     weights = quantization.QuantOps.create_weights_fake_quant(
-        w=weights,
-        weight_params=QuantOps.WeightParams(
-            prec=prec, axis=0, half_shift=False))
+        w=weights, weight_params=QuantOps.WeightParams(prec=prec, axis=0))
 
     scaled_weights = quantization.QuantOps.create_weights_fake_quant(
         w=scaled_weights,
-        weight_params=QuantOps.WeightParams(
-            prec=prec, axis=0, half_shift=False))
+        weight_params=QuantOps.WeightParams(prec=prec, axis=0))
 
     onp.testing.assert_array_equal(weights * weight_scale, scaled_weights)
 
@@ -467,7 +445,7 @@ class QuantOpsTest(parameterized.TestCase):
         use_cams=False,
         granularity=quant_config.QuantGranularity.per_tensor)
     hparams = quantization.QuantOps.ActHParams(
-        input_distribution='symmetric', bounds=bounds, prec=4, half_shift=False)
+        input_distribution='symmetric', bounds=bounds, prec=4)
 
     # The call to create_inputs_fake_quant has to occur from within a Flax
     # module since it calls GetBounds, which is itself a Flax module.
@@ -547,17 +525,13 @@ class AQTTest(parameterized.TestCase):
   def test_quantized_dot_aqt(self, act_bounds, weight_prec, weight_axis):
     # With a high enough precision, we expect results from fakequant and AQT to
     # be very similar.
-    weight_params = QuantOps.WeightParams(
-        prec=weight_prec, axis=weight_axis, half_shift=False)
+    weight_params = QuantOps.WeightParams(prec=weight_prec, axis=weight_axis)
 
     if act_bounds is None:
       act_params = None
     else:
       act_params = QuantOps.ActHParams(
-          input_distribution='symmetric',
-          bounds=jnp.array(act_bounds),
-          prec=16,
-          half_shift=False)
+          input_distribution='symmetric', bounds=jnp.array(act_bounds), prec=16)
 
     def quantized_matmul(quant_type):
       return quantization.quantized_dot(
@@ -580,10 +554,10 @@ class AQTTest(parameterized.TestCase):
   def assert_is_integer_in_range(self, x, *, prec, distribution):
     if distribution == 'symmetric':
       x_clipped = primitives.round_and_clip_to_signed_int(
-          x, prec=prec, dtype=x.dtype, half_shift=False)
+          x, prec=prec, dtype=x.dtype)
     elif distribution == 'positive':
       x_clipped = primitives.floor_and_clip_to_unsigned_int(
-          x, prec=prec, dtype=x.dtype, half_shift=False)
+          x, prec=prec, dtype=x.dtype)
     else:
       raise ValueError(f'Invalid distribution {distribution}')
     onp.testing.assert_array_equal(
@@ -603,13 +577,11 @@ class AQTTest(parameterized.TestCase):
                                                        act_distribution,
                                                        prefer_int8_to_int32_dot,
                                                        prec):
-    weight_params = QuantOps.WeightParams(
-        prec=prec, axis=(0,), half_shift=False)
+    weight_params = QuantOps.WeightParams(prec=prec, axis=(0,))
     act_params = QuantOps.ActHParams(
         input_distribution=act_distribution,
         bounds=jnp.array([[3.0, 1.5]]),
-        prec=prec,
-        half_shift=False)
+        prec=prec)
     act = self.lhs
     if act_distribution == 'positive':
       act = jnp.abs(act)
@@ -649,12 +621,11 @@ class AQTTest(parameterized.TestCase):
           (quantization.QuantType.aqt, quantization.QuantType.fake_quant)))
   def test_quantized_dot_has_correct_dtype(self, input_dtype, act_prec,
                                            quant_type):
-    weight_params = QuantOps.WeightParams(prec=4, axis=(0,), half_shift=False)
+    weight_params = QuantOps.WeightParams(prec=4, axis=(0,))
     act_params = QuantOps.ActHParams(
         input_distribution='symmetric',
         bounds=jnp.array([[3.0, 1.5]]),
-        prec=act_prec,
-        half_shift=False)
+        prec=act_prec)
     act = self.lhs.astype(input_dtype)
     w = self.rhs.astype(input_dtype)
     output = quantization.quantized_dot(
@@ -671,12 +642,9 @@ class AQTTest(parameterized.TestCase):
       dict(quant_type=quantization.QuantType.aqt),
       dict(quant_type=quantization.QuantType.fake_quant))
   def test_quantized_dot_raises_with_mixed_dtype(self, quant_type):
-    weight_params = QuantOps.WeightParams(prec=4, axis=(0,), half_shift=False)
+    weight_params = QuantOps.WeightParams(prec=4, axis=(0,))
     act_params = QuantOps.ActHParams(
-        input_distribution='symmetric',
-        bounds=jnp.array([[3.0, 1.5]]),
-        prec=4,
-        half_shift=False)
+        input_distribution='symmetric', bounds=jnp.array([[3.0, 1.5]]), prec=4)
     act = self.lhs.astype(jnp.bfloat16)
     w = self.rhs.astype(jnp.float32)
     with self.assertRaises(TypeError):
@@ -696,15 +664,9 @@ class AQTTest(parameterized.TestCase):
   def test_dynamic_quantized_dot_general_has_correct_dtype(
       self, input_dtype, act_prec, quant_type):
     lhs_params = QuantOps.ActHParams(
-        input_distribution='symmetric',
-        bounds=2.0,
-        prec=act_prec,
-        half_shift=False)
+        input_distribution='symmetric', bounds=2.0, prec=act_prec)
     rhs_params = QuantOps.ActHParams(
-        input_distribution='symmetric',
-        bounds=1.5,
-        prec=act_prec,
-        half_shift=False)
+        input_distribution='symmetric', bounds=1.5, prec=act_prec)
     lhs_act = self.lhs.astype(input_dtype)
     rhs_act = self.rhs.astype(input_dtype)
     output = quantization.quantized_dynamic_dot_general(
@@ -720,9 +682,9 @@ class AQTTest(parameterized.TestCase):
 
   def test_dynamic_quantized_dot_general_raises_with_mixed_dtype(self):
     lhs_params = QuantOps.ActHParams(
-        input_distribution='symmetric', bounds=2.0, prec=4, half_shift=False)
+        input_distribution='symmetric', bounds=2.0, prec=4)
     rhs_params = QuantOps.ActHParams(
-        input_distribution='symmetric', bounds=1.5, prec=4, half_shift=False)
+        input_distribution='symmetric', bounds=1.5, prec=4)
     lhs_act = self.lhs.astype(jnp.bfloat16)
     rhs_act = self.rhs.astype(jnp.float32)
     with self.assertRaises(TypeError):
@@ -743,15 +705,9 @@ class AQTTest(parameterized.TestCase):
     lhs_bounds = 2.0
     rhs_bounds = 1.5
     lhs_params = QuantOps.ActHParams(
-        input_distribution='symmetric',
-        bounds=lhs_bounds,
-        prec=lhs_prec,
-        half_shift=False)
+        input_distribution='symmetric', bounds=lhs_bounds, prec=lhs_prec)
     rhs_params = QuantOps.ActHParams(
-        input_distribution='symmetric',
-        bounds=rhs_bounds,
-        prec=rhs_prec,
-        half_shift=False)
+        input_distribution='symmetric', bounds=rhs_bounds, prec=rhs_prec)
 
     def quantized_matmul(quant_type):
       return quantization.quantized_dynamic_dot_general(
@@ -791,15 +747,9 @@ class AQTTest(parameterized.TestCase):
             mix_coeff=0,
             granularity=quant_config.QuantGranularity.per_tensor)
         lhs_params = QuantOps.ActHParams(
-            input_distribution='symmetric',
-            bounds=lhs_get_bounds,
-            prec=8,
-            half_shift=False)
+            input_distribution='symmetric', bounds=lhs_get_bounds, prec=8)
         rhs_params = QuantOps.ActHParams(
-            input_distribution='symmetric',
-            bounds=rhs_get_bounds,
-            prec=8,
-            half_shift=False)
+            input_distribution='symmetric', bounds=rhs_get_bounds, prec=8)
         lhs_get_bounds_params = get_bounds.GetBounds.Params(
             update_stats=True, update_bounds=False, module_name='lhs')
         rhs_get_bounds_params = get_bounds.GetBounds.Params(
@@ -835,15 +785,9 @@ class AQTTest(parameterized.TestCase):
   def test_lax_dot_has_integer_inputs_in_dynamic_dot_general(
       self, mock_dot_general, lhs_distribution, rhs_distribution):
     lhs_params = QuantOps.ActHParams(
-        input_distribution=lhs_distribution,
-        bounds=2.0,
-        prec=4,
-        half_shift=False)
+        input_distribution=lhs_distribution, bounds=2.0, prec=4)
     rhs_params = QuantOps.ActHParams(
-        input_distribution=rhs_distribution,
-        bounds=1.5,
-        prec=4,
-        half_shift=False)
+        input_distribution=rhs_distribution, bounds=1.5, prec=4)
     lhs_act = self.lhs
     if lhs_distribution == 'positive':
       lhs_act = jnp.abs(lhs_act)
@@ -867,8 +811,8 @@ class AQTTest(parameterized.TestCase):
 
   def test_quantized_dot_no_quant(self):
     act_hparams = QuantOps.ActHParams(
-        input_distribution='symmetric', bounds=-1.0, prec=4, half_shift=False)
-    weight_params = QuantOps.WeightParams(prec=4, axis=(0,), half_shift=False)
+        input_distribution='symmetric', bounds=-1.0, prec=4)
+    weight_params = QuantOps.WeightParams(prec=4, axis=(0,))
     act = jnp.array([[-5.0]])
     w = jnp.array([[-4.99]])
     res = quantization.quantized_dot(
@@ -883,7 +827,7 @@ class AQTTest(parameterized.TestCase):
 
   def test_quantized_dynamic_dot_general_no_quant(self):
     act_hparams = QuantOps.ActHParams(
-        input_distribution='symmetric', bounds=-1.0, prec=4, half_shift=False)
+        input_distribution='symmetric', bounds=-1.0, prec=4)
     lhs_act = jnp.array([[-5.0]])
     rhs_act = jnp.array([[-4.99]])
     res = quantization.quantized_dynamic_dot_general(
@@ -928,13 +872,12 @@ class QuantizedDotFakeQuantTest(parameterized.TestCase):
     mock_w_fq.side_effect = lambda inputs, **_: inputs
     mock_act_fq.side_effect = lambda inputs, **_: inputs
 
-    weight_params = QuantOps.WeightParams(
-        prec=weight_prec, axis=None, half_shift=False)
+    weight_params = QuantOps.WeightParams(prec=weight_prec, axis=None)
     act_hparams = QuantOps.ActHParams(  # pylint: disable=g-long-ternary
         bounds=6.,
         prec=act_prec,
-        input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
-        half_shift=False) if act_prec else None
+        input_distribution=QuantOps.ActHParams.InputDistribution.symmetric
+    ) if act_prec else None
     get_bounds_params = GetBounds.Params(
         update_stats=False, update_bounds=False)
 
@@ -995,13 +938,13 @@ class QuantizedDynamicDotGeneralTest(parameterized.TestCase):
     lhs_act_hparams = QuantOps.ActHParams(
         bounds=6.,
         prec=lhs_act_prec,
-        input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
-        half_shift=False) if lhs_act_prec else None
+        input_distribution=QuantOps.ActHParams.InputDistribution.symmetric
+    ) if lhs_act_prec else None
     rhs_act_hparams = QuantOps.ActHParams(
         bounds=6.,
         prec=rhs_act_prec,
-        input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
-        half_shift=False) if rhs_act_prec else None
+        input_distribution=QuantOps.ActHParams.InputDistribution.symmetric
+    ) if rhs_act_prec else None
     # pylint: enable=g-long-ternary
 
     get_bounds_params = GetBounds.Params(
@@ -1021,7 +964,7 @@ class QuantizedDynamicDotGeneralTest(parameterized.TestCase):
     for prec in [lhs_act_prec, rhs_act_prec]:
       if prec is not None:
         act_hparams = QuantOps.ActHParams(
-            bounds=6., prec=prec, input_distribution=mock.ANY, half_shift=False)
+            bounds=6., prec=prec, input_distribution=mock.ANY)
         calls.append(
             mock.call(
                 mock.ANY,

@@ -118,7 +118,6 @@ def get_base_config(imagenet_type, quant_target):
           idx].conv_1.quant_act.input_distribution = "positive"
 
   config.model_hparams.filter_multiplier = 1.
-  config.half_shift = False
 
   return config
 

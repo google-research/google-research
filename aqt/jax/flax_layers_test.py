@@ -85,8 +85,7 @@ class ConvAqtTest(parameterized.TestCase):
                               kernel_size,
                               kernel_init=flax_layers.default_kernel_init,
                               weight_prec=None,
-                              quant_act=None,
-                              weight_half_shift=False):
+                              quant_act=None):
     """Create and initialize a flax model with a single ConvAqt layer."""
     layer_kwargs = {
         'kernel_init': kernel_init,
@@ -103,7 +102,6 @@ class ConvAqtTest(parameterized.TestCase):
         weight_prec=weight_prec,
         quant_act=quant_act,
         quant_type=QuantType.fake_quant,
-        weight_half_shift=weight_half_shift,
     )
     conv_module = layer_class(**layer_kwargs)
     initial_state = conv_module.init(self.rng_key, jnp.zeros(inputs.shape))
@@ -129,8 +127,7 @@ class ConvAqtTest(parameterized.TestCase):
         hparams=flax_layers.ConvAqt.HParams(
             weight_prec=weight_prec,
             quant_act=None,
-            quant_type=QuantType.fake_quant,
-            weight_half_shift=False),
+            quant_type=QuantType.fake_quant),
         kernel_init=initializers.ones,
         bias_init=initializers.ones,
         dtype=jnp.float32)
@@ -159,8 +156,7 @@ class ConvAqtTest(parameterized.TestCase):
         hparams=flax_layers.ConvAqt.HParams(
             weight_prec=weight_prec,
             quant_act=None,
-            quant_type=QuantType.fake_quant,
-            weight_half_shift=False),
+            quant_type=QuantType.fake_quant),
         kernel_init=initializers.ones,
         bias_init=initializers.ones,
         dtype=jnp.float32)
@@ -292,11 +288,7 @@ class ConvAqtTest(parameterized.TestCase):
     inputs = random.uniform(self.rng_key, shape=(1, 16, 16, input_dim))
     kernel_size = (3, 3)
     model, state = self.init_model_with_1_layer(
-        inputs,
-        4,
-        kernel_size,
-        weight_prec=weight_prec,
-        weight_half_shift=False)
+        inputs, 4, kernel_size, weight_prec=weight_prec)
 
     weights = random.uniform(
         self.rng_key, shape=kernel_size + (input_dim, num_features))
@@ -388,8 +380,7 @@ class ConvAqtTest(parameterized.TestCase):
     quant_act = quantization.QuantOps.ActHParams(
         input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
         prec=acts_prec,
-        bounds=bounds,
-        half_shift=False)
+        bounds=bounds)
     num_features = 4
     input_dim = 3
     inputs = jnp.ones((1, 32, 32, input_dim), dtype=jnp.float32)
@@ -399,8 +390,7 @@ class ConvAqtTest(parameterized.TestCase):
         num_features,
         kernel_size,
         weight_prec=weight_prec,
-        quant_act=quant_act,
-        weight_half_shift=False)
+        quant_act=quant_act)
 
     round_with_gradient.reset_mock()
     floor_with_gradient.reset_mock()
@@ -446,8 +436,7 @@ class DenseAqtTest(parameterized.TestCase):
                               num_features,
                               kernel_init=flax_layers.default_kernel_init,
                               weight_prec=None,
-                              quant_act=None,
-                              weight_half_shift=False):
+                              quant_act=None):
     """Create and initialize a flax model with a single DenseAqt layer."""
     quant_context = quant_config.QuantContext(
         update_bounds=False, collect_acts_stats=False)
@@ -464,8 +453,7 @@ class DenseAqtTest(parameterized.TestCase):
         weight_prec=weight_prec,
         quant_act=quant_act,
         quant_type=QuantType.fake_quant,
-        weight_quant_granularity=quant_config.QuantGranularity.per_channel,
-        weight_half_shift=weight_half_shift)
+        weight_quant_granularity=quant_config.QuantGranularity.per_channel)
 
     dense_module = flax_layers.DenseAqt(**layer_kwargs)
     initial_state = dense_module.init(
@@ -487,14 +475,12 @@ class DenseAqtTest(parameterized.TestCase):
         input_distribution=flax_layers.QuantOps.ActHParams.InputDistribution
         .symmetric,
         prec=8,
-        bounds=bounds,
-        half_shift=False)
+        bounds=bounds)
     hparams = flax_layers.DenseAqt.HParams(
         quant_type=flax_layers.QuantType.fake_quant,
         weight_prec=8,
         quant_act=quant_act,
-        weight_quant_granularity=quant_config.QuantGranularity.per_channel,
-        weight_half_shift=False)
+        weight_quant_granularity=quant_config.QuantGranularity.per_channel)
     module = flax_layers.DenseAqt(
         hparams=hparams,
         features=1,
@@ -555,8 +541,7 @@ class DenseAqtTest(parameterized.TestCase):
         inputs,
         num_features=4,
         kernel_init=initializers.ones,
-        weight_prec=weight_prec,
-        weight_half_shift=False)
+        weight_prec=weight_prec)
     outputs = model.apply(state, inputs, padding_mask=None)
     exp_outputs = jnp.matmul(inputs, state['params']['kernel'])
     onp.testing.assert_array_equal(outputs, exp_outputs)
@@ -575,7 +560,7 @@ class DenseAqtTest(parameterized.TestCase):
     input_dim = 1024
     inputs = random.uniform(self.rng_key, shape=(2, input_dim))
     model, state = self.init_model_with_1_layer(
-        inputs, num_features, weight_prec=weight_prec, weight_half_shift=False)
+        inputs, num_features, weight_prec=weight_prec)
     minval = -2**(weight_prec - 1) + 1
     maxval = 2**(weight_prec - 1) - 1
 
@@ -799,16 +784,11 @@ class DenseAqtTest(parameterized.TestCase):
     quant_act = quantization.QuantOps.ActHParams(
         input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
         prec=acts_prec,
-        bounds=bounds,
-        half_shift=False)
+        bounds=bounds)
     num_features = 4
     inputs = jnp.ones((2, 3), dtype=jnp.float32)
     model, state = self.init_model_with_1_layer(
-        inputs,
-        num_features,
-        weight_prec=weight_prec,
-        quant_act=quant_act,
-        weight_half_shift=False)
+        inputs, num_features, weight_prec=weight_prec, quant_act=quant_act)
 
     round_with_gradient.assert_called_with(mock.ANY)
     self.assertEqual(round_with_gradient.call_count, 1)
@@ -866,15 +846,10 @@ class DenseAqtTest(parameterized.TestCase):
     quant_act = quantization.QuantOps.ActHParams(
         input_distribution=QuantOps.ActHParams.InputDistribution.positive,
         prec=pos_inputs_prec,
-        bounds=bounds,
-        half_shift=False)
+        bounds=bounds)
     inputs = jnp.ones((2, 3), dtype=jnp.float32)
     model, init_state = self.init_model_with_1_layer(
-        inputs,
-        num_features=4,
-        weight_prec=None,
-        quant_act=quant_act,
-        weight_half_shift=False)
+        inputs, num_features=4, weight_prec=None, quant_act=quant_act)
     floor_with_gradient.assert_called_with(mock.ANY)
     self.assertEqual(floor_with_gradient.call_count, 1)
     round_with_gradient.assert_not_called()
@@ -911,15 +886,10 @@ class DenseAqtTest(parameterized.TestCase):
     quant_act = quantization.QuantOps.ActHParams(
         input_distribution=QuantOps.ActHParams.InputDistribution.positive,
         prec=inputs_prec,
-        bounds=bounds,
-        half_shift=False)
+        bounds=bounds)
     inputs = jnp.ones((2, 3), dtype=jnp.float32)
     model, init_state = self.init_model_with_1_layer(
-        inputs,
-        num_features=4,
-        weight_prec=None,
-        quant_act=quant_act,
-        weight_half_shift=False)
+        inputs, num_features=4, weight_prec=None, quant_act=quant_act)
     downcast_mock.assert_called_once_with(
         mock.ANY,
         inputs_prec.fp_spec.exp_min,
@@ -960,8 +930,7 @@ class DenseAqtTest(parameterized.TestCase):
         weight_prec=8,
         quant_act=None,
         quant_type=quantization.QuantType.fake_quant,
-        weight_quant_granularity=granularity,
-        weight_half_shift=False)
+        weight_quant_granularity=granularity)
     layer = flax_layers.DenseAqt(
         features=2,
         hparams=hparams,
@@ -1012,8 +981,7 @@ class EmbedLayerTest(parameterized.TestCase):
         hparams=flax_layers.EmbedAqt.HParams(
             weight_prec=weight_prec,
             quant_act=None,
-            quant_type=QuantType.fake_quant,
-            weight_half_shift=False),
+            quant_type=QuantType.fake_quant),
         embedding_init=lambda _rng, _shape: dummy_embedding,
         train=False,
         paxis_name=None,
@@ -1051,8 +1019,7 @@ class EmbedLayerTest(parameterized.TestCase):
         hparams=flax_layers.EmbedAqt.HParams(
             weight_prec=weight_prec,
             quant_act=None,
-            quant_type=QuantType.fake_quant,
-            weight_half_shift=False),
+            quant_type=QuantType.fake_quant),
         embedding_init=lambda _rng, _shape: dummy_embedding,
         train=False,
         quant_context=quant_config.QuantContext(update_bounds=False),
@@ -1120,8 +1087,7 @@ class EmbedLayerTest(parameterized.TestCase):
     quant_act = quantization.QuantOps.ActHParams(
         input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
         prec=acts_prec,
-        bounds=bounds,
-        half_shift=False)
+        bounds=bounds)
     rng = random.PRNGKey(0)
     x = jnp.ones((1, 3))
 
@@ -1132,8 +1098,7 @@ class EmbedLayerTest(parameterized.TestCase):
         hparams=flax_layers.EmbedAqt.HParams(
             weight_prec=weight_prec,
             quant_act=quant_act,
-            quant_type=QuantType.fake_quant,
-            weight_half_shift=False),
+            quant_type=QuantType.fake_quant),
         quant_context=quant_config.QuantContext(update_bounds=False),
         paxis_name=None,
         train=False)

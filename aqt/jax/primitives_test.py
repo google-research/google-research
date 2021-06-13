@@ -49,8 +49,7 @@ class PrimitivesTest(parameterized.TestCase):
   )
   def test_floor_and_clip_to_unsigned_int(self, prec):
     x = jnp.array(fp32(2.0**5 * onp.random.uniform(0, 1.0, size=(10, 1))))
-    y = primitives.floor_and_clip_to_unsigned_int(
-        x, prec=prec, dtype=x.dtype, half_shift=False)
+    y = primitives.floor_and_clip_to_unsigned_int(x, prec=prec, dtype=x.dtype)
     self.assertGreaterEqual(onp.min(y), 0.0)
     self.assertLessEqual(onp.max(y), fp32(2**prec - 1))
     onp.testing.assert_allclose(y, onp.around(y))
@@ -63,8 +62,7 @@ class PrimitivesTest(parameterized.TestCase):
   def test_round_and_clip_to_signed_int(self, prec):
     np_x = fp32(2.0**5 * onp.random.uniform(-1.0, 1.0, size=(10, 1)))
     x = jnp.array(np_x)
-    y = primitives.round_and_clip_to_signed_int(
-        x, prec=prec, dtype=x.dtype, half_shift=False)
+    y = primitives.round_and_clip_to_signed_int(x, prec=prec, dtype=x.dtype)
     ubound = fp32(2.0**(prec - 1) - 1)
     lbound = fp32(-2.0**(prec - 1) + 1)
     self.assertGreaterEqual(onp.min(y), lbound)
@@ -283,8 +281,7 @@ class PrimitivesTest(parameterized.TestCase):
     @jax.grad
     def grad_fn(x):
       return jnp.sum(
-          primitives.round_and_clip_to_signed_int(
-              x, prec=8, dtype=x.dtype, half_shift=False))
+          primitives.round_and_clip_to_signed_int(x, prec=8, dtype=x.dtype))
 
     onp.testing.assert_array_equal(grad_fn(x), [0.0, 1.0, 0.0])
 
@@ -296,8 +293,7 @@ class PrimitivesTest(parameterized.TestCase):
     @jax.grad
     def grad_fn(x):
       return jnp.sum(
-          primitives.floor_and_clip_to_unsigned_int(
-              x, prec=8, dtype=x.dtype, half_shift=False))
+          primitives.floor_and_clip_to_unsigned_int(x, prec=8, dtype=x.dtype))
 
     onp.testing.assert_array_equal(grad_fn(x), [0.0, 1.0, 0.0])
 
