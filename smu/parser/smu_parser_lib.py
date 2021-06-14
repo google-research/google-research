@@ -26,8 +26,9 @@ import enum
 import math
 import re
 import traceback
-from absl import logging
 
+from absl import logging
+import numpy as np
 from tensorflow.io import gfile
 
 from smu import dataset_pb2
@@ -822,6 +823,17 @@ class SmuParser:
     for line in section:
       label, rest = str(line[:20]).strip(), line[20:]
       field_name, field_type = ATOMIC_LABEL_FIELDS[label]
+
+      # Special case for AT2_T1mol. This same value is written in two places
+      # in the .dat file. We verify that the value already there (if there is
+      # one) is the same as what we have here.
+      if label == 'AT2_T1mol' and properties.HasField('diagnostics_t1_ccsd_2sd'):
+        new_val = float(rest)
+        if not np.isclose(new_val, properties.diagnostics_t1_ccsd_2sd.value,
+                          atol=.00015):
+          raise ValueError(
+            'Atomic block AT2_T1mol ({:f}) differs from current value ({:f})'
+            .format(new_val, properties.diagnostics_t1_ccsd_2sd.value))
       if field_type == Atomic2FieldTypes.STRING:
         getattr(properties, field_name).value = str(rest)
       elif field_type == Atomic2FieldTypes.SCALAR:
