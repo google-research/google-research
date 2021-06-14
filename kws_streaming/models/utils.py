@@ -17,16 +17,15 @@
 """Utility functions for operations on Model."""
 import os.path
 from typing import Sequence
+from keras import models as models_utils
+from keras.engine import functional
+
 from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 from kws_streaming.models import model_flags
 from kws_streaming.models import model_params
 from kws_streaming.models import models as kws_models
-# pylint: disable=g-direct-tensorflow-import
-from tensorflow.python.keras import models as models_utils
-from tensorflow.python.keras.engine import functional
-# pylint: enable=g-direct-tensorflow-import
 from tensorflow_model_optimization.python.core.quantization.keras import quantize
 
 
