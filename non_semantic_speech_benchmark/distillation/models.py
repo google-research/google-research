@@ -18,6 +18,7 @@
 
 """
 
+from absl import logging
 import tensorflow as tf
 import tensorflow_model_optimization as tfmot
 from non_semantic_speech_benchmark.distillation.layers import CompressedDense
@@ -61,6 +62,16 @@ def get_keras_model(bottleneck_dimension,
                     quantize_aware_training=False,
                     tflite=False):
   """Make a Keras student model."""
+  # For debugging, log hyperparameter values.
+  logging.info('bottleneck_dimension: %i', bottleneck_dimension)
+  logging.info('output_dimension: %i', output_dimension)
+  logging.info('alpha: %s', alpha)
+  logging.info('frontend: %s', frontend)
+  logging.info('avg_pool: %s', avg_pool)
+  logging.info('compressor: %s', compressor)
+  logging.info('quantize_aware_training: %s', quantize_aware_training)
+  logging.info('tflite: %s', tflite)
+
   output_dict = {}  # Dictionary of model outputs.
 
   def _map_mobilenet_func(mnet_size):
