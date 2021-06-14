@@ -121,8 +121,7 @@ def get_keras_model(bottleneck_dimension,
   output_dict['embedding'] = embeddings
   if output_dimension:
     output = tf.keras.layers.Dense(
-        output_dimension, name='embedding_to_target')(
-            embeddings)
+        output_dimension, name='embedding_to_target')(embeddings)
     output_dict['embedding_to_target'] = output
   output_model = tf.keras.Model(inputs=inputs, outputs=output_dict)
 

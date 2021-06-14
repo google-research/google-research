@@ -118,10 +118,10 @@ def get_data(file_pattern,
         .prefetch(2))
 
   assert len(ds.element_spec) == 2, ds.element_spec
-  ds.element_spec[0].shape.assert_has_rank(2)  # audio samples
-  ds.element_spec[1].shape.assert_has_rank(2)  # teacher embeddings
-  assert tuple(ds.element_spec[0].shape) == (None, min_length)
-  assert tuple(ds.element_spec[1].shape) == (None, output_dimension)
+  ds.element_spec[0].shape.assert_is_compatible_with(
+      [None, min_length])  # audio samples
+  ds.element_spec[1].shape.assert_is_compatible_with(
+      [None, output_dimension])  # teacher embeddings
 
   return ds
 
