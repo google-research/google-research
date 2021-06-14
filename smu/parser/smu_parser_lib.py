@@ -834,6 +834,7 @@ class SmuParser:
           raise ValueError(
             'Atomic block AT2_T1mol ({:f}) differs from current value ({:f})'
             .format(new_val, properties.diagnostics_t1_ccsd_2sd.value))
+
       if field_type == Atomic2FieldTypes.STRING:
         getattr(properties, field_name).value = str(rest)
       elif field_type == Atomic2FieldTypes.SCALAR:
