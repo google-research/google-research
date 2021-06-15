@@ -160,9 +160,6 @@ class ComputeEmbeddingMapFn(beam.DoFn):
 
   def process(self, k_v):
     k, ex = k_v
-    if isinstance(k, bytes):
-      k = k.decode('utf-8')
-    assert isinstance(k, str)
 
     # Read the input example audio and assert input format sanity.
     if self._audio_key not in ex.features.feature:
