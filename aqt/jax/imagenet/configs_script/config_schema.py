@@ -30,7 +30,8 @@ bool_ph = config_schema_utils.bool_ph
 
 def get_base_config(use_auto_acts):
   """Base ConfigDict for resnet, does not yet have fields for individual layers."""
-  base_config = config_schema_utils.get_base_config(use_auto_acts)
+  base_config = config_schema_utils.get_base_config(
+      use_auto_acts, fp_quant=False)
   base_config.update({
       "base_learning_rate": float_ph(),
       "momentum": float_ph(),

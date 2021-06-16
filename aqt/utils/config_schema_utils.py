@@ -137,9 +137,29 @@ def get_conv_config(
   return config
 
 
+def get_fp_quant_config():
+  config = ml_collections.ConfigDict({
+      "fp_spec": get_fp_config(),
+      "is_scaled": bool_ph(),
+  })
+  config.lock()
+  return config
+
+
+def get_fp_config():
+  config = ml_collections.ConfigDict({
+      "exp_min": int_ph(),
+      "exp_max": int_ph(),
+      "sig_bits": int_ph()
+  })
+  config.lock()
+  return config
+
+
 # TODO(shivaniagrawal): base config should be more generic and only model
 # specific configs should be updated.
-def get_base_config(use_auto_acts):
+def get_base_config(use_auto_acts,
+                    fp_quant):
   """Return a base ConfigDict for AQT; does not have model specific fields."""
   if use_auto_acts:
     bounds = ml_collections.ConfigDict({
@@ -156,6 +176,10 @@ def get_base_config(use_auto_acts):
     })
   else:
     bounds = float_ph()
+  if fp_quant:
+    prec = get_fp_quant_config()
+  else:
+    prec = int_ph()
   base_config = ml_collections.ConfigDict({
       "metadata": {
           "description": "Base configuration",
@@ -164,7 +188,7 @@ def get_base_config(use_auto_acts):
       "weight_decay": float_ph(),
       "activation_bound_update_freq": int_ph(),
       "activation_bound_start_step": int_ph(),
-      "prec": int_ph(),
+      "prec": prec,
       "quant_type": str_ph(),
       "quant_act": {
           "bounds": bounds,
