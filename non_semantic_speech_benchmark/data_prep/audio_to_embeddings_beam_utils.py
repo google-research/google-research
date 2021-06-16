@@ -104,8 +104,9 @@ def samples_to_embedding_tflite(model_input, sample_rate, interpreter,
   # Resize TFLite input size based on length of sample.
   # Ideally, we should explore if we can use fixed-size input here, and
   # tile the sample to meet TFLite input size.
-  logging.info('TFLite input, actual vs expected: %s vs %s', model_input.shape,
-               input_details[0]['shape'])
+  if not np.array_equal(model_input.shape, input_details[0]['shape']):
+    logging.info('TFLite input, actual vs expected: %s vs %s',
+                 model_input.shape, input_details[0]['shape'])
   interpreter.resize_tensor_input(input_details[0]['index'], model_input.shape)
   interpreter.allocate_tensors()
   interpreter.set_tensor(input_details[0]['index'], model_input)
