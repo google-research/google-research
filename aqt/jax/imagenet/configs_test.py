@@ -19,12 +19,12 @@ from absl.testing import absltest
 from absl.testing import parameterized
 
 from aqt.jax.imagenet.configs import resnet101_bfloat16
-from aqt.jax.imagenet.configs import resnet50_bfloat16
 from aqt.jax.imagenet.configs import resnet50_w4
 from aqt.jax.imagenet.configs import resnet50_w4_a2_fixed
-from aqt.jax.imagenet.configs import resnet50_w4_a4_auto
 from aqt.jax.imagenet.configs import resnet50_w8
 from aqt.jax.imagenet.configs import resnet50_w8_a8_fixed
+from aqt.jax.imagenet.configs.paper import resnet50_bfloat16
+from aqt.jax.imagenet.configs.paper import resnet50_w4_a4_auto
 
 
 class ConfigsTest(parameterized.TestCase):
