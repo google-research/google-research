@@ -43,6 +43,7 @@ env:
     - PROJECT="flax_models/bert"
     - PROJECT="flax_models/cifar"
     - PROJECT="flax_models/moco"
+    - PROJECT="f_net"
     - PROJECT="generalized_rates"
     - PROJECT="genomics_ood"
     - PROJECT="gfsa"
