@@ -31,7 +31,7 @@ from tensorflow.python.keras.applications import mobilenet_v3 as v3_util
 @tf.function
 def _sample_to_features(x, tflite):
   return tf_frontend.compute_frontend_features(
-      x, 16000, overlap_seconds=79, tflite=tflite)
+      x, 16000, frame_hop=17, tflite=tflite)
 
 
 def _get_feats_map_fn(tflite):

@@ -91,8 +91,7 @@ def build_tflite_interpreter(tflite_model_path):
 
 def _default_feature_fn(samples, sample_rate):
   return tf.expand_dims(
-      tf_frontend.compute_frontend_features(
-          samples, sample_rate, overlap_seconds=79),
+      tf_frontend.compute_frontend_features(samples, sample_rate, frame_hop=17),
       axis=-1).numpy().astype(np.float32)
 
 

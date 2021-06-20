@@ -27,6 +27,7 @@ def stabilized_log(data, additive_offset, floor):
 
 def log_mel_spectrogram(data,
                         audio_sample_rate,
+                        num_mel_bins=64,
                         log_additive_offset=0.001,
                         log_floor=1e-12,
                         window_length_secs=0.025,
@@ -49,7 +50,7 @@ def log_mel_spectrogram(data,
   )
 
   to_mel = tf.signal.linear_to_mel_weight_matrix(
-      num_mel_bins=64,
+      num_mel_bins=num_mel_bins,
       num_spectrogram_bins=fft_length // 2 + 1,
       sample_rate=audio_sample_rate,
       lower_edge_hertz=125.0,
@@ -62,7 +63,12 @@ def log_mel_spectrogram(data,
   return log_mel
 
 
-def compute_frontend_features(samples, sr, overlap_seconds, tflite=False):
+def compute_frontend_features(samples,
+                              sr,
+                              frame_hop,
+                              tflite=False,
+                              num_mel_bins=64,
+                              frame_width=96):
   """Compute features."""
   if tflite:
     raise ValueError("TFLite frontend unsupported")
@@ -78,8 +84,7 @@ def compute_frontend_features(samples, sr, overlap_seconds, tflite=False):
       lambda: tf.pad(samples, [(0, n_required - n)]),
       lambda: samples
   )
-  mel = log_mel_spectrogram(samples, sr)
-  # Frame to ~.96 seconds per chunk (96 frames) with ~.0.793 second overlap.
-  step = 96 - overlap_seconds
-  mel = tf.signal.frame(mel, frame_length=96, frame_step=step, axis=0)
+  mel = log_mel_spectrogram(samples, sr, num_mel_bins=num_mel_bins)
+  mel = tf.signal.frame(
+      mel, frame_length=frame_width, frame_step=frame_hop, axis=0)
   return mel

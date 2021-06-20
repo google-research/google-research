@@ -45,7 +45,7 @@ FLAGS = flags.FLAGS
 @tf.function
 def _sample_to_features(x, export_tflite=False):
   return tf_frontend.compute_frontend_features(
-      x, 16000, overlap_seconds=79, tflite=export_tflite)
+      x, 16000, frame_hop=17, tflite=export_tflite)
 
 
 class TRILLModule(tf.train.Checkpoint):
