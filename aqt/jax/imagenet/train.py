@@ -74,6 +74,13 @@ config_flags.DEFINE_config_file('hparams_config_dict', None,
                                 'Path to file defining a config dict.')
 
 flags.DEFINE_integer(
+    'config_idx',
+    default=None,
+    help=(
+        'Identifies which config within the sweep this training run should use.'
+    ))
+
+flags.DEFINE_integer(
     'batch_size', default=128, help=('Batch size for training.'))
 
 flags.DEFINE_bool('cache', default=False, help=('If True, cache the dataset.'))
@@ -274,10 +281,16 @@ def main(argv):
   num_steps = steps_per_epoch * num_epochs
 
   # Create the hyperparameter object
-  if FLAGS.hparams_config_dict is not None:
+  if FLAGS.hparams_config_dict:
+    # In this case, there are multiple training configs defined in the config
+    # dict, so we pull out the one this training run should use.
+    if 'configs' in FLAGS.hparams_config_dict:
+      hparams_config_dict = FLAGS.hparams_config_dict.configs[FLAGS.config_idx]
+    else:
+      hparams_config_dict = FLAGS.hparams_config_dict
     hparams = os_hparams_utils.load_hparams_from_config_dict(
         hparams_config.TrainingHParams, models.ResNet.HParams,
-        FLAGS.hparams_config_dict)
+        hparams_config_dict)
   else:
     raise ValueError('Please provide a base config dict.')
 
