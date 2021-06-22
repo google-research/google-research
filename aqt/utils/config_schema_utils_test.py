@@ -132,9 +132,14 @@ class BaseConfigTest(parameterized.TestCase):
 
     # Set the global precision to 4 bits.
     config.prec = 4
+    # Set the global half_shift flag to False
+    config.half_shift = False
     # Test that this sets the weight and activation to 4 as well.
     self.assertEqual(config.weight_prec, 4)
     self.assertEqual(config.quant_act.prec, 4)
+    # Test that this sets the weight_half_shift and act half_shift to False
+    self.assertEqual(config.weight_half_shift, False)
+    self.assertEqual(config.quant_act.half_shift, False)
 
   @parameterized.parameters(dict(use_auto_acts=True), dict(use_auto_acts=False))
   def test_fp_precision_propagates(self, use_auto_acts):
@@ -213,12 +218,14 @@ class BaseConfigTest(parameterized.TestCase):
           },
           'input_distribution': None,
           'prec': prec,
+          'half_shift': None,
       }
     else:
       quant_act_schema = {
           'bounds': None,
           'input_distribution': None,
           'prec': prec,
+          'half_shift': None,
       }
 
     expected_top_level_schema = {
@@ -230,7 +237,9 @@ class BaseConfigTest(parameterized.TestCase):
         'activation_bound_update_freq': None,
         'activation_bound_start_step': None,
         'prec': prec,
+        'half_shift': None,
         'weight_prec': prec,
+        'weight_half_shift': None,
         'quant_type': None,
         'quant_act': quant_act_schema,
         'weight_quant_granularity': None,
