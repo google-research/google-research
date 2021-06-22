@@ -32,8 +32,8 @@ from smu.parser import smu_utils_lib
 
 MAIN_DAT_FILE = 'x07_sample.dat'
 STAGE1_DAT_FILE = 'x07_stage1.dat'
-TESTDATA_PATH =  os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                              'testdata')
+TESTDATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             'testdata')
 
 
 def str_to_bond_topology(s):
