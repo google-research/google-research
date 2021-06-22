@@ -2,8 +2,6 @@
 <p align="center"> Hongyi Xu, &nbsp; Eduard Gabriel Bazavan, &nbsp; Andrei Zanfir, &nbsp; William T. Freeman,&nbsp;  Rahul Sukthankar, &nbsp; Cristian Sminchisescu </p>
 <p align="center"> <strong>Google Research</strong> </p>
 
-[![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/bukotsunikki.svg?style=social&label=Follow us on Twitter)](https://twitter.com/CSminchisescu)
-
 ## Introduction
 
 <img src='figures/GHUM_samples.png' width="500" align="right"/><p align="justify">We present a statistical, articulated 3D human shape modeling pipeline, within a fully trainable, modular, deep learning framework. Given high-resolution complete 3D
