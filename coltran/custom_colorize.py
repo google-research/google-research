@@ -31,7 +31,7 @@ https://storage.cloud.google.com/gresearch/coltran/coltran.zip
 2. Run the colorizer to get a coarsely colorized image. Set as follows:
 
 python -m coltran.custom_colorize -- --config=configs/colorizer.py \
---logdir=$LOGDIR --img_dir=$IMG_DIR --store_dir=$STORE_DIR \
+--logdir=$LOGDIR/colorizer --img_dir=$IMG_DIR --store_dir=$STORE_DIR \
 --mode=$MODE
 
 The generated images will be stored in $STORE_DIR/stage1
@@ -39,7 +39,7 @@ The generated images will be stored in $STORE_DIR/stage1
 3. Run the color upsampler to upsample the coarsely colored image.
 
 python -m coltran.custom_colorize -- --config=configs/color_upsampler.py \
---logdir=$LOGDIR --img_dir=$IMG_DIR --store_dir=$STORE_DIR \
+--logdir=$LOGDIR/color_upsampler --img_dir=$IMG_DIR --store_dir=$STORE_DIR \
 --gen_data_dir=$STORE_DIR/stage1 --mode=$MODE
 
 The generated images will be stored in $STORE_DIR/stage2
@@ -47,7 +47,7 @@ The generated images will be stored in $STORE_DIR/stage2
 4. Run the spatial upsampler to super-resolve into the final output.
 
 python -m coltran.custom_colorize -- --config=configs/spatial_upsampler.py \
---logdir=$LOGDIR --img_dir=$IMG_DIR --store_dir=$STORE_DIR \
+--logdir=$LOGDIR/spatial_upsampler --img_dir=$IMG_DIR --store_dir=$STORE_DIR \
 --gen_data_dir=$STORE_DIR/stage2 --mode=$MODE
 
 Notes
