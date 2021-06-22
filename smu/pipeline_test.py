@@ -27,7 +27,8 @@ from smu import dataset_pb2
 from smu import pipeline
 
 
-TESTDATA_PATH = 'testdata'
+TESTDATA_PATH =  os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              'testdata')
 
 
 class FunctionalTest(absltest.TestCase):
