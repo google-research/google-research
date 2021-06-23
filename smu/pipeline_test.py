@@ -21,6 +21,7 @@ from absl import logging
 from absl.testing import absltest
 from absl.testing import flagsaver
 import apache_beam as beam
+import tensorflow as tf
 from tensorflow.io import gfile
 
 from smu import dataset_pb2
@@ -94,7 +95,7 @@ class IntegrationTest(absltest.TestCase):
         pipeline.pipeline(root)
 
     logging.info('Files in output: %s',
-                 '\n'.join(gfile.glob(os.path.join(test_subdirectory, '/*'))))
+                 '\n'.join(gfile.glob(os.path.join(test_subdirectory, '*'))))
     for stage in ['stage1', 'stage2']:
       self.assertTrue(
           gfile.exists(output_stem + '_' + stage +
@@ -165,6 +166,35 @@ class IntegrationTest(absltest.TestCase):
     self.assertGreater(
         gfile.stat(output_stem +
                    '_standard_json-00000-of-00001.json.gz').length, 100)
+
+    # Check that the generated TFRecord files contain some expected outputs
+    standard_dataset = tf.data.TFRecordDataset(
+        output_stem + '_standard_tfrecord-00000-of-00001')
+    standard_output = [dataset_pb2.Conformer.FromString(raw)
+                       for raw in standard_dataset.as_numpy_iterator()]
+    self.assertCountEqual([c.conformer_id for c in standard_output],
+                          [618451001, 618451123])
+    # Check that fields are filtered the way we expect
+    self.assertFalse(standard_output[0].properties.HasField(
+        'compute_cluster_info'))
+    self.assertFalse(standard_output[0].properties.HasField(
+        'homo_pbe0_aug_pc_1'))
+    self.assertTrue(standard_output[0].properties.HasField(
+        'rotational_constants'))
+
+    complete_dataset = tf.data.TFRecordDataset(
+        output_stem + '_complete_tfrecord-00000-of-00001')
+    complete_output = [dataset_pb2.Conformer.FromString(raw)
+                       for raw in complete_dataset.as_numpy_iterator()]
+    self.assertCountEqual([c.conformer_id for c in complete_output],
+                          [618451001, 618451123, 620517002, 79593005])
+    # Check that fields are filtered the way we expect
+    self.assertFalse(complete_output[0].properties.HasField(
+        'compute_cluster_info'))
+    self.assertTrue(complete_output[0].properties.HasField(
+        'homo_pbe0_aug_pc_1'))
+    self.assertTrue(complete_output[0].properties.HasField(
+        'rotational_constants'))
 
 
 
