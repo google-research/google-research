@@ -35,7 +35,6 @@ STAGE1_DAT_FILE = 'x07_stage1.dat'
 TESTDATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              'testdata')
 
-
 def str_to_bond_topology(s):
   bt = dataset_pb2.BondTopology()
   text_format.Parse(s, bt)
