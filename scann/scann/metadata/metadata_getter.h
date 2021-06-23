@@ -41,14 +41,6 @@ class UntypedMetadataGetter {
 
   virtual research_scann::TypeTag TypeTag() const = 0;
 
-  virtual StatusOr<std::string> GetByDatapointIndex(
-      DatapointIndex dp_idx) const {
-    return UnimplementedError(
-        StrCat("Cannot get metadata by datapoint index for "
-               "metadata getter type ",
-               typeid(*this).name(), "."));
-  }
-
   virtual ~UntypedMetadataGetter();
 
  private:
@@ -66,6 +58,14 @@ class MetadataGetter : public UntypedMetadataGetter {
                              const DatapointPtr<T>& query,
                              DatapointIndex neighbor_index,
                              std::string* result) const = 0;
+
+  virtual StatusOr<std::string> GetByDatapointIndex(
+      const TypedDataset<T>* dataset, DatapointIndex dp_idx) const {
+    return UnimplementedError(
+        StrCat("Cannot get metadata by datapoint index for "
+               "metadata getter type ",
+               typeid(*this).name(), "."));
+  }
 
  private:
   TF_DISALLOW_COPY_AND_ASSIGN(MetadataGetter);

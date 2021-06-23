@@ -67,8 +67,18 @@ class LRScheduler(enum.Enum):
 flags.DEFINE_string(
     'model_dir', default=None, help=('Directory to store model data.'))
 
+flags.DEFINE_string(
+    'data_dir', default=None, help=('Directory where imagenet data is stored.'))
+
 config_flags.DEFINE_config_file('hparams_config_dict', None,
                                 'Path to file defining a config dict.')
+
+flags.DEFINE_integer(
+    'config_idx',
+    default=None,
+    help=(
+        'Identifies which config within the sweep this training run should use.'
+    ))
 
 flags.DEFINE_integer(
     'batch_size', default=128, help=('Batch size for training.'))
@@ -250,9 +260,19 @@ def main(argv):
     input_dtype = tf.float32
 
   train_iter = imagenet_train_utils.create_input_iter(
-      local_batch_size, image_size, input_dtype, train=True, cache=FLAGS.cache)
+      local_batch_size,
+      FLAGS.data_dir,
+      image_size,
+      input_dtype,
+      train=True,
+      cache=FLAGS.cache)
   eval_iter = imagenet_train_utils.create_input_iter(
-      local_batch_size, image_size, input_dtype, train=False, cache=FLAGS.cache)
+      local_batch_size,
+      FLAGS.data_dir,
+      image_size,
+      input_dtype,
+      train=False,
+      cache=FLAGS.cache)
 
   num_epochs = FLAGS.num_epochs
   steps_per_epoch = input_pipeline.TRAIN_IMAGES // batch_size
@@ -261,10 +281,16 @@ def main(argv):
   num_steps = steps_per_epoch * num_epochs
 
   # Create the hyperparameter object
-  if FLAGS.hparams_config_dict is not None:
+  if FLAGS.hparams_config_dict:
+    # In this case, there are multiple training configs defined in the config
+    # dict, so we pull out the one this training run should use.
+    if 'configs' in FLAGS.hparams_config_dict:
+      hparams_config_dict = FLAGS.hparams_config_dict.configs[FLAGS.config_idx]
+    else:
+      hparams_config_dict = FLAGS.hparams_config_dict
     hparams = os_hparams_utils.load_hparams_from_config_dict(
         hparams_config.TrainingHParams, models.ResNet.HParams,
-        FLAGS.hparams_config_dict)
+        hparams_config_dict)
   else:
     raise ValueError('Please provide a base config dict.')
 

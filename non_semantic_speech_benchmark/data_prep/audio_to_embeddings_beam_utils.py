@@ -57,13 +57,27 @@ def _tfexample_audio_to_npfloat32(ex, audio_key):
 
 
 def _samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
-  """Run inference to map audio samples to an embedding."""
-  # Models either take 2 args (input, sample_rate) or 1 arg (input). Try both.
-  try:
-    tf_out = mod(model_input, sample_rate)
-  except ValueError:
-    tf_out = mod(model_input)
-  return np.array(tf_out[output_key])
+  """Run inference to map a single audio sample to an embedding."""
+  # Models either take 2 args (input, sample_rate) or 1 arg (input).
+  # The first argument is either 1 dimensional (samples) or 2 dimensional
+  # (batch, samples).
+  # Try all. Order here matters. We must try "2 args" before "1 arg", otherwise
+  # models that use sample rate might ignore it.
+  for num_args, add_batch_dim in [(2, False), (1, False), (2, True), (1, True)]:
+    cur_model_input = (np.expand_dims(model_input, 0) if add_batch_dim
+                       else model_input)
+    func_args = ((cur_model_input,) if num_args == 1 else
+                 (cur_model_input, sample_rate))
+    try:
+      tf_out = mod(*func_args)
+    except ValueError:
+      continue
+    break
+  ret = np.array(tf_out[output_key])
+  if ret.ndim > 2:
+    # Batch-flatten in numpy.
+    ret = np.reshape(ret, [ret.shape[0], -1])
+  return ret
 
 
 def build_tflite_interpreter(tflite_model_path):
@@ -77,8 +91,7 @@ def build_tflite_interpreter(tflite_model_path):
 
 def _default_feature_fn(samples, sample_rate):
   return tf.expand_dims(
-      tf_frontend.compute_frontend_features(
-          samples, sample_rate, overlap_seconds=79),
+      tf_frontend.compute_frontend_features(samples, sample_rate, frame_hop=17),
       axis=-1).numpy().astype(np.float32)
 
 
@@ -90,8 +103,9 @@ def samples_to_embedding_tflite(model_input, sample_rate, interpreter,
   # Resize TFLite input size based on length of sample.
   # Ideally, we should explore if we can use fixed-size input here, and
   # tile the sample to meet TFLite input size.
-  logging.info('TFLite input, actual vs expected: %s vs %s', model_input.shape,
-               input_details[0]['shape'])
+  if not np.array_equal(model_input.shape, input_details[0]['shape']):
+    logging.info('TFLite input, actual vs expected: %s vs %s',
+                 model_input.shape, input_details[0]['shape'])
   interpreter.resize_tensor_input(input_details[0]['index'], model_input.shape)
   interpreter.allocate_tensors()
   interpreter.set_tensor(input_details[0]['index'], model_input)
@@ -106,7 +120,8 @@ def samples_to_embedding_tflite(model_input, sample_rate, interpreter,
   return np.array(embedding_2d, dtype=np.float32)
 
 
-@beam.typehints.with_input_types(typing.Tuple[str, typing.Any])
+@beam.typehints.with_input_types(typing.Tuple[typing.Union[bytes, str],
+                                              typing.Any])
 @beam.typehints.with_output_types(typing.Tuple[str, typing.Any])
 class ComputeEmbeddingMapFn(beam.DoFn):
   """Computes an embedding (key, tf.Example) from audio (key, tf.Example)."""

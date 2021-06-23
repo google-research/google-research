@@ -119,6 +119,18 @@ def convert_tflite_model(model, quantize, model_path):
     model_path: Path for TFLite file.
   """
   converter = tf.lite.TFLiteConverter.from_keras_model(model)
+  converter.target_spec.supported_ops = [
+      tf.lite.OpsSet.TFLITE_BUILTINS,  # enable TensorFlow Lite ops.
+      # There is a GatherV2 op in the frontend that isn't supported by TFLite
+      # as a builtin op. (It works as a TFLite builtin only if the sample size
+      # to the frontend is a constant)
+      # However, TFLite supports importing some relevant operators from TF,
+      # at the cost of binary size (~ a few MB).
+      # See: https://www.tensorflow.org/lite/guide/ops_select
+      # NOTE: This has no effect on the model/binary size if the graph does not
+      # required the extra TF ops (for example, for no-frontend versio
+      tf.lite.OpsSet.SELECT_TF_OPS  # enable TensorFlow ops.
+  ]
   if quantize:
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
   tflite_buffer = converter.convert()

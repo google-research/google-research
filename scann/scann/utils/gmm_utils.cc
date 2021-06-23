@@ -18,12 +18,10 @@
 #include <cstdint>
 #include <limits>
 
+#include "Eigen/Core"
 #include "Eigen/Dense"
+#include "Eigen/SVD"
 #include "Eigen/StdVector"
-#include "Eigen/src/Core/Matrix.h"
-#include "Eigen/src/Core/util/Constants.h"
-#include "Eigen/src/Core/util/Memory.h"
-#include "Eigen/src/SVD/JacobiSVD.h"
 #include "absl/base/internal/endian.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/random/distributions.h"

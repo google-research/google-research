@@ -1,0 +1,10 @@
+clu
+jax>=0.2.13
+flax>=0.3.4
+numpy>=1.19.2
+scipy>=1.6.2
+sentencepiece>=0.1.95
+tensorflow>=2.4.1
+tensorflow_text>=2.5.0
+tensorflow-datasets>=4.3.0
+transformers>=4.6.1

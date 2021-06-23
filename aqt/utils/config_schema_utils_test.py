@@ -128,22 +128,49 @@ class BaseConfigTest(parameterized.TestCase):
 
   @parameterized.parameters(dict(use_auto_acts=True), dict(use_auto_acts=False))
   def test_precision_propagates(self, use_auto_acts):
-    config = config_schema_utils.get_base_config(use_auto_acts)
+    config = config_schema_utils.get_base_config(use_auto_acts, fp_quant=False)
 
     # Set the global precision to 4 bits.
     config.prec = 4
+    # Set the global half_shift flag to False
+    config.half_shift = False
     # Test that this sets the weight and activation to 4 as well.
     self.assertEqual(config.weight_prec, 4)
     self.assertEqual(config.quant_act.prec, 4)
+    # Test that this sets the weight_half_shift and act half_shift to False
+    self.assertEqual(config.weight_half_shift, False)
+    self.assertEqual(config.quant_act.half_shift, False)
+
+  @parameterized.parameters(dict(use_auto_acts=True), dict(use_auto_acts=False))
+  def test_fp_precision_propagates(self, use_auto_acts):
+    config = config_schema_utils.get_base_config(use_auto_acts, fp_quant=True)
+
+    config.prec.is_scaled = False
+    # Set the global precision to 4 bits.
+    config.prec.fp_spec.update({'exp_min': -3, 'exp_max': 5, 'sig_bits': 2})
+
+    expected_prec_dict = {
+        'is_scaled': False,
+        'fp_spec': {
+            'exp_min': -3,
+            'exp_max': 5,
+            'sig_bits': 2
+        }
+    }
+    # Test that this sets the weight and activation to 4 as well.
+    self.assertEqual(config.weight_prec.to_dict(), expected_prec_dict)
+    self.assertEqual(config.quant_act.prec.to_dict(), expected_prec_dict)
 
   def test_auto_acts_parameter(self):
     # If use_auto_acts is False, then the bounds should be a single scalar that
     # specifies the fixed bound; 'None' by default.
-    config = config_schema_utils.get_base_config(use_auto_acts=False)
+    config = config_schema_utils.get_base_config(
+        use_auto_acts=False, fp_quant=False)
     self.assertIsNone(config.quant_act.bounds)
     # If use_auto_acts is True, it should have the same structure as the
     # GetBounds.Hyper dataclass.
-    config = config_schema_utils.get_base_config(use_auto_acts=True)
+    config = config_schema_utils.get_base_config(
+        use_auto_acts=True, fp_quant=False)
     self.assertIn('initial_bound', config.quant_act.bounds)
 
     # Because the config dict is locked, it shouldn't be possible to change it
@@ -151,14 +178,29 @@ class BaseConfigTest(parameterized.TestCase):
     with self.assertRaises(TypeError):
       config.quant_act.bounds = 1.0
 
-  @parameterized.parameters(dict(use_auto_acts=True), dict(use_auto_acts=False))
-  def test_schema_matches_expected(self, use_auto_acts):
+  @parameterized.parameters(
+      dict(use_auto_acts=True, fp_quant=False),
+      dict(use_auto_acts=False, fp_quant=False),
+      dict(use_auto_acts=False, fp_quant=True))
+  def test_schema_matches_expected(self, use_auto_acts, fp_quant):
     # This tests that the schema of the configdict returned by 'base_config',
     # once all references are resolved, matches an expected schema. 'Schema'
     # here means the names and structure of fields at each level of the
     # configuration hierarchy. A value of 'None' in the expected schemas defined
     # below indicates a real configuration would have a concrete scalar value
     # there.
+
+    if fp_quant:
+      prec = {
+          'fp_spec': {
+              'exp_min': None,
+              'exp_max': None,
+              'sig_bits': None,
+          },
+          'is_scaled': None,
+      }
+    else:
+      prec = None
 
     if use_auto_acts:
       quant_act_schema = {
@@ -175,13 +217,15 @@ class BaseConfigTest(parameterized.TestCase):
               'granularity': None
           },
           'input_distribution': None,
-          'prec': None,
+          'prec': prec,
+          'half_shift': None,
       }
     else:
       quant_act_schema = {
           'bounds': None,
           'input_distribution': None,
-          'prec': None,
+          'prec': prec,
+          'half_shift': None,
       }
 
     expected_top_level_schema = {
@@ -192,14 +236,17 @@ class BaseConfigTest(parameterized.TestCase):
         'weight_decay': None,
         'activation_bound_update_freq': None,
         'activation_bound_start_step': None,
-        'prec': None,
-        'weight_prec': None,
+        'prec': prec,
+        'half_shift': None,
+        'weight_prec': prec,
+        'weight_half_shift': None,
         'quant_type': None,
         'quant_act': quant_act_schema,
         'weight_quant_granularity': None,
     }
 
-    config = config_schema_utils.get_base_config(use_auto_acts=use_auto_acts)
+    config = config_schema_utils.get_base_config(
+        use_auto_acts=use_auto_acts, fp_quant=fp_quant)
     # This round-trip conversion from JSON forces all references to resolve to
     # concrete values.
     config_reified = json.loads(config.to_json())

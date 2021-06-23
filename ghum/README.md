@@ -2,6 +2,10 @@
 <p align="center"> Hongyi Xu, &nbsp; Eduard Gabriel Bazavan, &nbsp; Andrei Zanfir, &nbsp; William T. Freeman,&nbsp;  Rahul Sukthankar, &nbsp; Cristian Sminchisescu </p>
 <p align="center"> <strong>Google Research</strong> </p>
 
+<p align="left">
+  <a href="https://twitter.com/CSminchisescu"><img src='figures/FollowTwitter.svg' width="120"/></a>
+</p>
+
 ## Introduction
 
 <img src='figures/GHUM_samples.png' width="500" align="right"/><p align="justify">We present a statistical, articulated 3D human shape modeling pipeline, within a fully trainable, modular, deep learning framework. Given high-resolution complete 3D
@@ -15,19 +19,19 @@ body scans of humans, captured in various poses, together with additional closeu
 
 <table>
   <tr>
-    <td><img src="figures/shape_eval.png" width="1500"> </td> 
+    <td><img src="figures/shape_eval.png" width="1500"> </td>
     <td align="left">16-dimensional body shape latent spaces, represented as both linear PCA bases and nonlinear variational autoencoders. We provide low-dimensional gender-neutral shape spaces, as well as gender-specific ones, trained based on 4,329 male and female body shape scans. </td>
   </tr>
   <tr>
-    <td><img src="figures/head_eval.png" width="1500"> </td> 
+    <td><img src="figures/head_eval.png" width="1500"> </td>
     <td align="left">20-dimensional facial expressions latent spaces, with options for both linear/PCA bases and nonlinear variational autoencoders.  </td>
   </tr>
   <tr>
-    <td><img src="figures/pose_eval.png" width="1500"> </td> 
+    <td><img src="figures/pose_eval.png" width="1500"> </td>
     <td align="left">Articulated full body representations (including head and hands) with optimized blend skinning, joint centers, and  pose-space deformation,  in the context of minimal human skeleton parameterizations (63 joints, 124 DOFs) with anatomical joint angle limit constraints. The dynamic shape (posing) model component is constrained by over 60,000 dynamic full body and closeup face and hand scans from 60 people (exhibiting a variety of body poses, hand gestures, and facial action units/FACS). </td>
   </tr>
   <tr>
-    <td><img src="figures/ghum_retarget_mocap.gif" width="1500"> </td> 
+    <td><img src="figures/ghum_retarget_mocap.gif" width="1500"> </td>
     <td align="left">Normalizing-flow based kinematic priors for both body and hands, obtained by retargeting over 2 million configurations of body mocap raw (optimizing skeleton, shape and marker placement) and over 4.8K hand configurations.   Our model supports posing using both Euler angles and 6D rotation representations, and we release posing support and kinematic priors for both. </td>
   </tr>
 </table>

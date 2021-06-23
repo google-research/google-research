@@ -370,7 +370,7 @@ class CLearningAgent(tf_agent.TFAgent):
                   gamma = 1.0,
                   weights = None,
                   training = False,
-                  w_clipping = None,
+                  w_clipping = 20.0,
                   self_normalized = False,
                   lambda_fix = False,
                   ):

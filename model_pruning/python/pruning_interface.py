@@ -519,7 +519,9 @@ class PruningOp(object):
       else:
         outputs = cls.GetEinSumResult(inputs, proj_obj)
     else:
-      if p.pruning_hparams_dict['compress_input']:
+      if p.pruning_hparams_dict[
+          'compression_option'] == 9 and p.pruning_hparams_dict[
+              'compress_input']:
         blocked_inputs = tf.reshape(
             inputs,
             py_utils.ToStaticShape(
@@ -534,10 +536,26 @@ class PruningOp(object):
         compressed_inputs = tf.reshape(inputs,
                                        py_utils.ToStaticShape([-1, input_dim]))
 
-      intermediate_result = py_utils.Matmul(compressed_inputs,
-                                            theta.c_matrix_tfvar)
+      if p.pruning_hparams_dict['compression_option'] == 10:
+        if p.pruning_hparams_dict['block_method'] == 'mask':
+          intermediate_result = py_utils.Matmul(
+              compressed_inputs,
+              tf.multiply(theta.c_matrix_tfvar, theta.c_mask_tfvar))
+        elif p.pruning_hparams_dict['block_method'] == 'loop':
+          num_blocks = p.pruning_hparams_dict['block_compression_factor']
+          input_splitted = tf.split(compressed_inputs, num_blocks, axis=-1)
+          output_splitted = []
+          for i, input_i in enumerate(input_splitted):
+            output_splitted.append(
+                py_utils.Matmul(input_i, theta.c_matrix_tfvar[i, :, :]))
+          intermediate_result = tf.concat(output_splitted, axis=-1)
+      else:
+        intermediate_result = py_utils.Matmul(compressed_inputs,
+                                              theta.c_matrix_tfvar)
 
-      if p.pruning_hparams_dict['compress_output']:
+      if p.pruning_hparams_dict[
+          'compression_option'] == 9 and p.pruning_hparams_dict[
+              'compress_output']:
         blocked_intermediate_result = tf.reshape(
             intermediate_result,
             py_utils.ToStaticShape([

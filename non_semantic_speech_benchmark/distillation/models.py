@@ -14,8 +14,11 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Models for distillation."""
+"""Models for distillation.
 
+"""
+
+from absl import logging
 import tensorflow as tf
 import tensorflow_model_optimization as tfmot
 from non_semantic_speech_benchmark.distillation.layers import CompressedDense
@@ -28,18 +31,24 @@ from tensorflow.python.keras.applications import mobilenet_v3 as v3_util
 @tf.function
 def _sample_to_features(x, tflite):
   return tf_frontend.compute_frontend_features(
-      x, 16000, overlap_seconds=79, tflite=tflite)
+      x, 16000, frame_hop=17, tflite=tflite)
 
 
 def _get_feats_map_fn(tflite):
   """Returns a function mapping audio to features, suitable for keras Lambda."""
   if tflite:
     def feats_map_fn(x):
+      # Keras Input needs a batch (which we statically fix to 1), but that
+      # causes unexpected shapes in the frontend graph. So we squeeze out that
+      # dim here.
+      x = tf.squeeze(x)
       return _sample_to_features(x, tflite=True)
   else:
+
     def feats_map_fn(x):
       return tf.map_fn(
           lambda y: _sample_to_features(y, tflite=False), x, dtype=tf.float64)
+
   return feats_map_fn
 
 
@@ -53,6 +62,16 @@ def get_keras_model(bottleneck_dimension,
                     quantize_aware_training=False,
                     tflite=False):
   """Make a Keras student model."""
+  # For debugging, log hyperparameter values.
+  logging.info('bottleneck_dimension: %i', bottleneck_dimension)
+  logging.info('output_dimension: %i', output_dimension)
+  logging.info('alpha: %s', alpha)
+  logging.info('frontend: %s', frontend)
+  logging.info('avg_pool: %s', avg_pool)
+  logging.info('compressor: %s', compressor)
+  logging.info('quantize_aware_training: %s', quantize_aware_training)
+  logging.info('tflite: %s', tflite)
+
   output_dict = {}  # Dictionary of model outputs.
 
   def _map_mobilenet_func(mnet_size):
@@ -69,15 +88,13 @@ def get_keras_model(bottleneck_dimension,
   # hardware acceleration.
   num_batches = 1 if tflite else None
   if frontend:
-    model_in = tf.keras.Input((None,), name='audio_samples',
+    model_in = tf.keras.Input((None,),
+                              name='audio_samples',
                               batch_size=num_batches)
     feats = tf.keras.layers.Lambda(_get_feats_map_fn(tflite))(model_in)
-    feats.shape.assert_is_compatible_with([None, None, 96, 64])
-    feats = tf.transpose(feats, [0, 2, 1, 3])
     feats = tf.reshape(feats, [-1, 96, 64, 1])
   else:
-    model_in = tf.keras.Input((96, 64, 1),
-                              name='log_mel_spectrogram')
+    model_in = tf.keras.Input((96, 64, 1), name='log_mel_spectrogram')
     feats = model_in
   inputs = [model_in]
 

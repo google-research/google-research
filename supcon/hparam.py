@@ -344,7 +344,7 @@ def field(abbrev, default):
     kwargs['factory'] = lambda: copy.copy(default)
   else:
     kwargs['default'] = default
-  return attr.ib(**kwargs)
+  return attr.ib(**kwargs)  # pytype: disable=duplicate-keyword-argument
 
 
 def nest(nested_class,
