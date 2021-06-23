@@ -90,9 +90,10 @@ def build_tflite_interpreter(tflite_model_path):
 
 
 def _default_feature_fn(samples, sample_rate):
-  return tf.expand_dims(
-      tf_frontend.compute_frontend_features(samples, sample_rate, frame_hop=17),
-      axis=-1).numpy().astype(np.float32)
+  frontend_args = tf_frontend.frontend_args_from_flags()
+  feats = tf_frontend.compute_frontend_features(
+      samples, sample_rate, **frontend_args)
+  return tf.expand_dims(feats, axis=-1).numpy().astype(np.float32)
 
 
 def samples_to_embedding_tflite(model_input, sample_rate, interpreter,
@@ -420,11 +421,24 @@ writer_functions = {
 
 
 def make_beam_pipeline(
-    root, input_filenames, sample_rate, debug, embedding_names,
-    embedding_modules, module_output_keys, audio_key, sample_rate_key,
-    label_key, speaker_id_key, average_over_time, delete_audio_from_output,
-    output_filename, split_embeddings_into_separate_tables=False,
-    use_frontend_fn=False, input_format='tfrecord', output_format='tfrecord',
+    root,
+    input_filenames,
+    sample_rate,
+    debug,
+    embedding_names,
+    embedding_modules,
+    module_output_keys,
+    audio_key,
+    sample_rate_key,
+    label_key,
+    speaker_id_key,
+    average_over_time,
+    delete_audio_from_output,
+    output_filename,
+    split_embeddings_into_separate_tables=False,
+    use_frontend_fn=False,
+    input_format='tfrecord',
+    output_format='tfrecord',
     suffix='Main'):
   """Construct beam pipeline for mapping from audio to embeddings.
 

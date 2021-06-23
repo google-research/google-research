@@ -16,8 +16,15 @@
 # Lint as: python3
 """Tensorflow code for frontend functions in frontend.py."""
 
+from absl import flags
 import numpy as np
 import tensorflow as tf
+
+# Add flags here even though it's not a binary, for convenience.
+flags.DEFINE_integer('frame_hop', 17, 'Frontend fn arg: frame_hop.')
+flags.DEFINE_integer('n_required', 16000, 'Frontend fn arg: n_require.')
+flags.DEFINE_integer('num_mel_bins', 64, 'Frontend fn arg: num_mel_bins.')
+flags.DEFINE_integer('frame_width', 96, 'Frontend fn arg: frame_width.')
 
 
 def stabilized_log(data, additive_offset, floor):
@@ -67,18 +74,18 @@ def compute_frontend_features(samples,
                               sr,
                               frame_hop,
                               tflite=False,
+                              n_required=16000,
                               num_mel_bins=64,
                               frame_width=96):
   """Compute features."""
   if tflite:
-    raise ValueError("TFLite frontend unsupported")
+    raise ValueError('TFLite frontend unsupported.')
   if samples.dtype == np.int16:
     samples = tf.cast(samples, np.float32) / np.iinfo(np.int16).max
   if samples.dtype == np.float64:
     samples = tf.cast(samples, np.float32)
   assert samples.dtype == np.float32, samples.dtype
   n = tf.size(samples)
-  n_required = 16000
   samples = tf.cond(
       n < n_required,
       lambda: tf.pad(samples, [(0, n_required - n)]),
@@ -88,3 +95,13 @@ def compute_frontend_features(samples,
   mel = tf.signal.frame(
       mel, frame_length=frame_width, frame_step=frame_hop, axis=0)
   return mel
+
+
+def frontend_args_from_flags():
+  """Return a dictionary of frontend fn args from, parsed from flags."""
+  return {
+      'frame_hop': flags.FLAGS.frame_hop,
+      'n_required': flags.FLAGS.n_required,
+      'num_mel_bins': flags.FLAGS.num_mel_bins,
+      'frame_width': flags.FLAGS.frame_width,
+  }

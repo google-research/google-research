@@ -29,25 +29,35 @@ from tensorflow.python.keras.applications import mobilenet_v3 as v3_util
 
 
 @tf.function
-def _sample_to_features(x, tflite):
+def _sample_to_features(x, frontend_args, tflite):
+  if frontend_args is None:
+    frontend_args = {}
   return tf_frontend.compute_frontend_features(
-      x, 16000, frame_hop=17, tflite=tflite)
+      x, 16000, tflite=tflite, **frontend_args)
 
 
-def _get_feats_map_fn(tflite):
-  """Returns a function mapping audio to features, suitable for keras Lambda."""
+def _get_feats_map_fn(tflite, frontend_args):
+  """Returns a function mapping audio to features, suitable for keras Lambda.
+
+  Args:
+    tflite: A boolean whether the frontend should be suitable for tflite.
+    frontend_args: A dictionary of key-value pairs for the frontend. Keys
+      should be arguments to `tf_frontend.compute_frontend_features`.
+
+  Returns:
+    A python function mapping samples to features.
+  """
   if tflite:
     def feats_map_fn(x):
       # Keras Input needs a batch (which we statically fix to 1), but that
       # causes unexpected shapes in the frontend graph. So we squeeze out that
       # dim here.
       x = tf.squeeze(x)
-      return _sample_to_features(x, tflite=True)
+      return _sample_to_features(x, frontend_args, tflite=True)
   else:
-
     def feats_map_fn(x):
-      return tf.map_fn(
-          lambda y: _sample_to_features(y, tflite=False), x, dtype=tf.float64)
+      map_fn = lambda y: _sample_to_features(y, frontend_args, tflite=False)
+      return tf.map_fn(map_fn, x, dtype=tf.float64)
 
   return feats_map_fn
 
@@ -88,10 +98,13 @@ def get_keras_model(bottleneck_dimension,
   # hardware acceleration.
   num_batches = 1 if tflite else None
   if frontend:
+    frontend_args = tf_frontend.frontend_args_from_flags()
+    logging.info('frontend_args: %s', frontend_args)
     model_in = tf.keras.Input((None,),
                               name='audio_samples',
                               batch_size=num_batches)
-    feats = tf.keras.layers.Lambda(_get_feats_map_fn(tflite))(model_in)
+    frontend_fn = _get_feats_map_fn(tflite, frontend_args)
+    feats = tf.keras.layers.Lambda(frontend_fn)(model_in)
     feats = tf.reshape(feats, [-1, 96, 64, 1])
   else:
     model_in = tf.keras.Input((96, 64, 1), name='log_mel_spectrogram')
