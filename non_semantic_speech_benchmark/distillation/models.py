@@ -28,12 +28,20 @@ from tensorflow.python.keras.applications import mobilenet_v3 as v3_util
 # pylint: enable=g-direct-tensorflow-import
 
 
+# TODO(joelshor): Tracing might not work when passing a python dictionary as an
+# arg.
 @tf.function
 def _sample_to_features(x, frontend_args, tflite):
   if frontend_args is None:
     frontend_args = {}
   return tf_frontend.compute_frontend_features(
       x, 16000, tflite=tflite, **frontend_args)
+
+
+def _get_frontend_output_shape():
+  frontend_args = tf_frontend.frontend_args_from_flags()
+  x = tf.zeros([frontend_args['n_required']], dtype=tf.float32)
+  return _sample_to_features(x, frontend_args, tflite=False).shape
 
 
 def _get_feats_map_fn(tflite, frontend_args):
@@ -97,22 +105,33 @@ def get_keras_model(bottleneck_dimension,
   # TFLite use-cases usually use non-batched inference, and this also enables
   # hardware acceleration.
   num_batches = 1 if tflite else None
+  frontend_args = tf_frontend.frontend_args_from_flags()
+  feats_inner_dim = _get_frontend_output_shape()[0]
   if frontend:
-    frontend_args = tf_frontend.frontend_args_from_flags()
     logging.info('frontend_args: %s', frontend_args)
     model_in = tf.keras.Input((None,),
                               name='audio_samples',
                               batch_size=num_batches)
     frontend_fn = _get_feats_map_fn(tflite, frontend_args)
     feats = tf.keras.layers.Lambda(frontend_fn)(model_in)
-    feats = tf.reshape(feats, [-1, 96, 64, 1])
+    feats.shape.assert_is_compatible_with(
+        [num_batches, feats_inner_dim, frontend_args['frame_width'],
+         frontend_args['num_mel_bins']])
+    feats = tf.reshape(
+        feats, [-1, feats_inner_dim * frontend_args['frame_width'],
+                frontend_args['num_mel_bins'], 1])
   else:
-    model_in = tf.keras.Input((96, 64, 1), name='log_mel_spectrogram')
+    model_in = tf.keras.Input(
+        (feats_inner_dim * frontend_args['frame_width'],
+         frontend_args['num_mel_bins'], 1),
+        batch_size=num_batches,
+        name='log_mel_spectrogram')
     feats = model_in
   inputs = [model_in]
 
   model = _map_mobilenet_func(mobilenet_size)(
-      input_shape=[96, 64, 1],
+      input_shape=(feats_inner_dim * frontend_args['frame_width'],
+                   frontend_args['num_mel_bins'], 1),
       alpha=alpha,
       minimalistic=False,
       include_top=False,

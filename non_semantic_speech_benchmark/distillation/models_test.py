@@ -60,6 +60,9 @@ class ModelsTest(parameterized.TestCase):
     if not isinstance(exception_context.exception, ValueError):
       self.fail()
 
+  def test_default_shape(self):
+    self.assertEqual(models._get_frontend_output_shape(), [1, 96, 64])
+
   @parameterized.parameters(
       {'mobilenet_size': 'tiny'},
       {'mobilenet_size': 'small'},
