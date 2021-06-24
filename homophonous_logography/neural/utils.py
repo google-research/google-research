@@ -26,12 +26,12 @@ import sys
 class DualLogger(object):
   """Log to file and terminal: https://stackoverflow.com/questions/14906764."""
 
-  def __init__(self, filename, mode="w"):
+  def __init__(self, filename, mode="wt"):
     directory = os.path.dirname(filename)
     if not os.path.exists(directory):
       os.makedirs(directory)
     self.terminal = sys.stdout
-    self.log = open(filename, mode)
+    self.log = open(filename, mode, encoding="utf-8")
 
   def _flush(self):
     self.terminal.flush()

@@ -201,7 +201,7 @@ class Corpus(object):
     return (np.array(written_values, dtype=np.int32),
             np.array(pronounce_values, dtype=np.int32))
 
-  # TODO(rws): This code is a hack and needs to be rewritten.
+  # TODO(rws): This is a horrible piece of code and needs to be rewritten.
   def sparse_windowed_vectors(self, key, target=(-1, None), window=3):
     """Returns tuple representing (windowed) written and phonemic sides."""
     extended = [[[], []]] * window + self._table[key] + [[[], []]] * window
@@ -262,7 +262,8 @@ class Corpus(object):
 
 
 def read_corpus(language, max_rows=-1, max_length=1000000, lower=False,
-                datasets_dir=None):
+                datasets_dir=None,
+                raw_path=None):
   """Loads corpora."""
   # The "max_length" argument is the maximum sentence length (by tokens)
   # that we want to allow.
@@ -271,10 +272,13 @@ def read_corpus(language, max_rows=-1, max_length=1000000, lower=False,
   # something more akin to the form that the scribes would have used (hence
   # only on the written side).
   source = "https://rws.xoba.com/.corpora/%s.tsv" % language
-  if datasets_dir:
+  if raw_path:
+    source = raw_path
+  elif datasets_dir:
     source = os.path.join(datasets_dir, language + ".tsv")
   print("Reading corpus from \"{}\" ...".format(source))
-  data = pd.read_csv(source, sep="\t", header=None, dtype=str)
+  with open(source, mode="r", encoding="utf-8") as f:
+    data = pd.read_csv(f, sep="\t", header=None, dtype=str)
   print("Number of original verses in file: {}".format(data.shape[0]))
   table = {}
   nrows = 0
@@ -290,7 +294,7 @@ def read_corpus(language, max_rows=-1, max_length=1000000, lower=False,
           w, p = wp
           if lower:
             w = w.lower()
-          if "_" in p:  # Our output for the CMU dict.
+          if "_" in p:  # Our output for the CMU dict
             p = p.split("_")
           else:
             p = list(p)
@@ -317,13 +321,16 @@ def decode_index_array(array, symbols, joiner, skip_symbols):
 
 
 def batchify(corpus, batch_size=64, direction="pronounce", typ="train",
-             window=-1):
+             window=-1, shuffle=True):
   """Batching."""
   batch = 0
   written_batch = []
   pronounce_batch = []
 
-  for key in corpus.table:
+  keys = [*corpus.table]
+  if shuffle:
+    random.shuffle(keys)
+  for key in keys:
     if key.startswith("{}_".format(typ)) and (window > 0 or
                                               not key.endswith("_NULLPRON")):
       for i in range(len(corpus.table[key])):
@@ -352,19 +359,23 @@ def batchify(corpus, batch_size=64, direction="pronounce", typ="train",
 
 def num_batches(corpus, batch_size, direction="pronounce", typ="train",
                 window=-1):
+  """Estimates number of batches. Will throw if not enough data."""
   batches = batchify(corpus, batch_size, direction=direction, typ=typ,
-                     window=window)
+                     window=window, shuffle=False)
   batch, (_, _) = next(batches)
+  last_batch = None
   while batch != -1:
     last_batch = batch
     batch, (_, _) = next(batches)
+  if not last_batch:
+    raise ValueError("Canot batch the inputs. Sequence length too short?")
   return last_batch
 
 
 def test_examples(corpus, direction="pronounce", window=-1):
   """Returns test examples."""
   test_batches = batchify(corpus, batch_size=1, direction=direction, typ="test",
-                          window=window)
+                          window=window, shuffle=False)
   return [(i[0], o[0]) for (b, (i, o)) in test_batches if o is not None]
 
 

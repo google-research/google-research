@@ -33,9 +33,11 @@ from absl import flags
 
 import tensorflow.compat.v1 as tf  # tf
 
+import homophonous_logography.neural.cnn_model as cnn_model_lib
 import homophonous_logography.neural.corpus as data
-import homophonous_logography.neural.eval as evaluate
-import homophonous_logography.neural.model as model_lib
+import homophonous_logography.neural.eval as eval_lib
+import homophonous_logography.neural.rnn_model as rnn_model_lib
+import homophonous_logography.neural.transformer_model as trf_model_lib
 import homophonous_logography.neural.utils as utils
 
 flags.DEFINE_bool("train", True,
@@ -50,15 +52,15 @@ flags.DEFINE_bool("deviation_only_for_correct", True,
                   "In evaluation, compute the deviation only for the correctly "
                   "predicted outputs.")
 
-flags.DEFINE_bool("report_type_stats", False,
-                  "Average S value over types, not tokens")
-
 flags.DEFINE_list("languages", ["middle_persian"],
                   "Comma-separated list of language names.")
 
 flags.DEFINE_string("languages_file", "",
                     ("Specifies the list of languages as a newline-separated "
                      "list in a file, rather than in a command line."))
+
+flags.DEFINE_bool("report_type_stats", False,
+                  "Average S value over types, not tokens.")
 
 flags.DEFINE_string("direction", "written",
                     "Direction: written (p2g) or pronounced (g2p).")
@@ -67,6 +69,10 @@ flags.DEFINE_string("datasets_dir", None,
                     ("By default, the datasets are fetched remotely. If "
                      "specified, the datasets will be read from the specified "
                      "directory instead."))
+
+flags.DEFINE_string("raw_path", None,
+                    ("Overrides everything else: just reads data from "
+                     "named path."))
 
 flags.DEFINE_integer("num_epochs", 40,
                      "Number of training epochs.")
@@ -92,32 +98,56 @@ flags.DEFINE_integer("window", -1,
                      "from a window of input words.  "
                      "Note that this includes a space token.")
 
+flags.DEFINE_string("model_type", "RNN",
+                    ("Type of the model. Can be either: \"RNN\", \"CNN\", or "
+                     "\"TRANFORMER\"."))
+
+flags.DEFINE_string("attention_type", "BAHDANAU",
+                    ("Attention mechanism to use. May be one of: "
+                     "\"BAHDANAU\", \"LUONG\"."))
+
+flags.DEFINE_string("rnn_cell_type", "GRU",
+                    ("Type of the RNN cell. May be one of: "
+                     "\"GRU\", \"LSTM\", \"BiGRU\", \"BiLSTM\"."))
+
+flags.DEFINE_string("multihead_retrieval_strategy", "AVERAGE",
+                    ("Strategy for handling the multiple attention heads for "
+                     "transformers. One of: \"AVERAGE\", \"MAX\"."))
+
+flags.DEFINE_string("multilayer_retrieval_strategy", "AVERAGE",
+                    ("Strategy for handling the multiple attention layers for "
+                     "CNNs. One of: \"AVERAGE\", \"MAX\", \"TOP\", "
+                     "\"BOTTOM\" or \"JOINT\"."))
+
+flags.DEFINE_bool("use_residuals", True,
+                  "Use residual connections in the CNN-based architecture.")
+
 FLAGS = flags.FLAGS
 
 tf.enable_eager_execution()
 
 # Note that with setting N_TEST for Finnish to 400 or more we get a NaN result
-# for the ratio: presumably there is one bad test item somewhere ?
+# for the ratio: presumably there is one bad test item somewhere?
 # Check out np.nansum().
 
-_PRINT_PREDICTIONS = True
-_COMPUTE_DEVIATION = True
-_DEVIATION_MASK_SIGMA = 0.3
-_SIMPLE_SKEW = True
-_PRINT_ATTENTION = False
-_LOWER = False  # Middle Persian only.
-_FIGSIZE = (30, 75)
+PRINT_PREDICTIONS = True
+COMPUTE_DEVIATION = True
+DEVIATION_MASK_SIGMA = 0.3
+SIMPLE_SKEW = True
+PRINT_ATTENTION = False
+LOWER = False  ## Middle Persian only
+FIGSIZE = (30, 75)
 
 
 # These were determined via trial and error to be reasonable limits in the
-# Colab. These can be overridden here by setting --max_sentence_len.
-_LSPEC_LENGTHS = {
+# Colab. These can be overridden here by setting `--max_sentence_len`.
+LSPEC_LENGTHS = {
     "english": 30,
     "french": 30,
     "chinese": 30,
     "chinese-cangjie": 30,
     "chinese-tok": 20,
-    "chinese-tok-cangjie": 17,  # 20, but this takes way too long.
+    "chinese-tok-cangjie": 17,  # 20, but this takes way too long
     "finnish": 20,
     "hebrew": 20,
     "japanese": 37,
@@ -134,12 +164,13 @@ def _get_corpus_and_model(language):
     if FLAGS.max_sentence_len > -1:
       max_sen_len = FLAGS.max_sentence_len
     else:
-      max_sen_len = _LSPEC_LENGTHS[language]
+      max_sen_len = LSPEC_LENGTHS[language]
   except KeyError:
     max_sen_len = 15
   corpus = data.Corpus(data.read_corpus(
-      language, lower=_LOWER, max_length=max_sen_len,
-      datasets_dir=FLAGS.datasets_dir))
+      language, lower=LOWER, max_length=max_sen_len,
+      datasets_dir=FLAGS.datasets_dir,
+      raw_path=FLAGS.raw_path))
   input_symbols = (corpus.pronounce_symbol_table
                    if FLAGS.direction == "written"
                    else corpus.written_symbol_table)
@@ -152,14 +183,45 @@ def _get_corpus_and_model(language):
     short_direction = "p2g"
   else:
     short_direction = "g2p"
-  model = model_lib.Seq2SeqModel(
-      batch_size=FLAGS.batch_size,
-      input_symbols=input_symbols,
-      output_symbols=output_symbols,
-      model_dir=FLAGS.model_dir,
-      name="{}_{}".format(language, short_direction))
+
+  if FLAGS.model_type == "RNN":
+    model = rnn_model_lib.Seq2SeqRnnModel(
+        batch_size=FLAGS.batch_size,
+        attention_type=FLAGS.attention_type,
+        rnn_cell_type=FLAGS.rnn_cell_type,
+        input_symbols=input_symbols,
+        output_symbols=output_symbols,
+        model_dir=FLAGS.model_dir,
+        name="{}_{}".format(language, short_direction))
+  elif FLAGS.model_type == "TRANSFORMER":
+    model = trf_model_lib.Seq2SeqTransformerModel(
+        batch_size=FLAGS.batch_size,
+        multihead_retrieval_strategy=FLAGS.multihead_retrieval_strategy,
+        input_symbols=input_symbols,
+        output_symbols=output_symbols,
+        model_dir=FLAGS.model_dir,
+        name="{}_{}".format(language, short_direction))
+  elif FLAGS.model_type == "CNN":
+    model = cnn_model_lib.Seq2SeqCnnModel(
+        batch_size=FLAGS.batch_size,
+        multilayer_retrieval_strategy=FLAGS.multilayer_retrieval_strategy,
+        input_symbols=input_symbols,
+        output_symbols=output_symbols,
+        use_residuals=FLAGS.use_residuals,
+        model_dir=FLAGS.model_dir,
+        name="{}_{}".format(language, short_direction))
+  else:
+    raise ValueError("Unknown model type: {}".format(FLAGS.model_type))
 
   return corpus, model
+
+
+def _eval_file_prefix(model):
+  if FLAGS.report_type_stats:
+    prefix = "eval_types%s" % model.eval_mode
+  else:
+    prefix = "eval_tokens%s" % model.eval_mode
+  return prefix
 
 
 def _test_language(language, corpus, model,
@@ -171,7 +233,8 @@ def _test_language(language, corpus, model,
   """Runs model evaluation."""
   # Create test log that also redirects to stdout.
   stdout_file = sys.stdout
-  logfile = os.path.join(model.checkpoint_dir, "eval.log")
+  log_name = "%s.log" % _eval_file_prefix(model)
+  logfile = os.path.join(model.checkpoint_dir, log_name)
   print("Test log: {}".format(logfile))
   sys.stdout = utils.DualLogger(logfile)
 
@@ -180,23 +243,30 @@ def _test_language(language, corpus, model,
   test_examples = data.test_examples(corpus, FLAGS.direction,
                                      window=FLAGS.window)
   indices = data.random_test_indices(test_examples, k=FLAGS.ntest)
-  tot, cor, rat, nrat = evaluate.eval_and_plot(
+  tot, cor, rat, nrat = eval_lib.eval_and_plot(
       model, test_examples, indices,
       show_plots=show_plots,
       print_predictions=print_predictions,
-      print_attention=_PRINT_ATTENTION,
+      print_attention=PRINT_ATTENTION,
       compute_deviation=compute_deviation,
-      deviation_mask_sigma=_DEVIATION_MASK_SIGMA,
+      deviation_mask_sigma=DEVIATION_MASK_SIGMA,
       deviation_only_for_correct=deviation_only_for_correct,
       simple_skew=simple_skew,
       report_type_stats=FLAGS.report_type_stats,
-      figsize=_FIGSIZE)
-  print("*" * 80)
-  print("Language: {}".format(language))
-  print("Total non-trivial predictions: {}".format(tot))
-  print("Accuracy: {}".format(cor))
-  print("Ratio: {}".format(rat))
-  print("tf.reduce_max'ed normalized ratio: {}".format(nrat))
+      figsize=FIGSIZE)
+
+  # Write results to the log, stdout and the dedicated file.
+  results = ["*" * 80,
+             "Language: {}".format(language),
+             "Total non-trivial predictions: {}".format(tot),
+             "Accuracy: {}".format(cor),
+             "Ratio: {}".format(rat),
+             "tf.reduce_max'ed normalized ratio: {}".format(nrat)]
+  print("\n".join(results))
+  results_file = "%s_results.txt" % _eval_file_prefix(model)
+  with open(os.path.join(model.checkpoint_dir, results_file),
+            encoding="utf-8", mode="wt") as f:
+    f.write("\n".join(results) + "\n")
 
   # Restore stdout.
   sys.stdout = stdout_file
@@ -220,10 +290,10 @@ def _train_and_test(language):
         language, model.checkpoint_dir))
     _test_language(language, corpus, model,
                    show_plots=FLAGS.show_plots,
-                   print_predictions=_PRINT_PREDICTIONS,
-                   compute_deviation=_COMPUTE_DEVIATION,
+                   print_predictions=PRINT_PREDICTIONS,
+                   compute_deviation=COMPUTE_DEVIATION,
                    deviation_only_for_correct=FLAGS.deviation_only_for_correct,
-                   simple_skew=_SIMPLE_SKEW)
+                   simple_skew=SIMPLE_SKEW)
 
 
 def _language_list():

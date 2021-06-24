@@ -15,10 +15,17 @@ a virtual environment:
 
 ## Examples
 
+In what follows, we assume that the preprocessed Bible datasets are stored in
+directory `$BIBLES_DIR`. The datasets are cloned from their github
+[repo](https://github.com/christos-c/bible-corpus) and preprocessed as described
+in the paper.
+
 1.  Training only:
 
     ```shell
     > python3 -m homophonous_logography.neural.train_or_eval_main \
+      --datasets_dir ${BIBLES_DIR} \
+      --model_type RNN \
       --noeval --languages finnish --model_dir /tmp/logo-models --logtostderr
     ```
 
@@ -26,6 +33,8 @@ a virtual environment:
 
     ```shell
     > python3 -m homophonous_logography.neural.train_or_eval_main \
+      --datasets_dir ${BIBLES_DIR} \
+      --model_type RNN \
       --eval --notrain --languages finnish --model_dir /tmp/logo-models \
       --logtostderr
     ```
@@ -34,6 +43,7 @@ a virtual environment:
 
     ```shell
     > python3 -m homophonous_logography.neural.train_or_eval_main \
+      --datasets_dir ${BIBLES_DIR} \
       --eval --languages finnish --model_dir /tmp/logo-models --logtostderr
     ```
 
@@ -41,6 +51,8 @@ a virtual environment:
 
     ```shell
     > python3 -m homophonous_logography.neural.train_or_eval_main \
+      --datasets_dir ${BIBLES_DIR} \
+      --model_type RNN \
       --eval --train \
       --languages english,chinese,finnish --model_dir /tmp/logo-models \
       --logtostderr
