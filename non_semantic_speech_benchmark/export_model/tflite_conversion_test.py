@@ -39,7 +39,8 @@ class TfliteConversionTest(parameterized.TestCase):
     flags.FLAGS.experiment_dir = os.path.join(
         absltest.get_default_test_srcdir(), TESTDIR)
     flags.FLAGS.checkpoint_number = '1000'
-    flags.FLAGS.output_dir = absltest.get_default_test_tmpdir()
+    flags.FLAGS.output_dir = os.path.join(
+        absltest.get_default_test_tmpdir(), str(include_frontend))
     flags.FLAGS.include_frontend = include_frontend
 
     tflite_conversion.main(None)

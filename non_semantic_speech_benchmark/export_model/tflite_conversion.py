@@ -141,7 +141,11 @@ def convert_tflite_model(model, quantize, model_path):
 
 def main(_):
   tf.compat.v2.enable_v2_behavior()
-  if not tf.io.gfile.exists(FLAGS.output_dir):
+  if tf.io.gfile.glob(os.path.join(FLAGS.output_dir, 'model_*.tflite')):
+    existing_files = tf.io.gfile.glob(os.path.join(
+        FLAGS.output_dir, 'model_*.tflite'))
+    raise ValueError(f'Models cant already exist: {existing_files}')
+  else:
     tf.io.gfile.makedirs(FLAGS.output_dir)
 
   # Get experiment dirs names.
