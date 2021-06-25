@@ -17,7 +17,6 @@
 from typing import Any, Iterable, Optional, TypeVar
 
 import jax
-from jax import lax
 from jax.interpreters.xla import DeviceArray
 import jax.numpy as jnp
 
@@ -158,32 +157,6 @@ def max_abs_weights(x,
   return abs_max_x
 
 
-def signed_int_scale(x,
-                     *,
-                     prec,
-                     axis = None):
-  """Computes a scale s, s.t.
-
-  -2**(prec - 1) + 1 <= s * x <= 2**(prec - 1) - 1.
-
-  Does not propagate gradients.
-
-  Args:
-    x: The input to be scaled.
-    prec: Signed int precision of the scaled result.
-    axis: Dimensions of input to consider for scaling.
-
-  Returns:
-    The scaling value.
-  """
-  abs_max_x = max_abs_weights(x, axis=axis)
-  if not DISABLE_EPSILON_IN_SCALE_FUN_FOR_TESTING:
-    abs_max_x += jnp.finfo(jnp.float32).eps  # to avoid div by 0
-  scale = signed_int_bound(prec) / abs_max_x
-  scale = lax.stop_gradient(scale)
-  return scale
-
-
 def unsigned_int_bound(prec):
   """Computes bound value for scaling unsigned input with precision 'prec'."""
   # NOTE: it's computing 2**prec, which is above the largest unsigned
@@ -193,29 +166,3 @@ def unsigned_int_bound(prec):
     raise ValueError('prec value should be >= 0.')
 
   return 2**prec
-
-
-def unsigned_int_scale(x,
-                       *,
-                       prec,
-                       axis = None):
-  """Computes a scale s, s.t.
-
-  0 <= s * x <= 2**prec, where min(x) >= 0.
-  Does not propagate gradients.
-
-  Args:
-    x: The input to be scaled.
-    prec: Unsigned int precision of the scaled result.
-    axis: Dimensions of input to consider for scaling.
-
-  Returns:
-    The scaling value.
-  """
-  max_x = jnp.max(x, axis=axis, keepdims=True)
-  if not DISABLE_EPSILON_IN_SCALE_FUN_FOR_TESTING:
-    max_x += jnp.finfo(jnp.float32).eps  # to avoid div by 0
-
-  scale = unsigned_int_bound(prec) / max_x
-  scale = lax.stop_gradient(scale)
-  return scale
