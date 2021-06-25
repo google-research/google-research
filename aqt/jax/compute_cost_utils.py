@@ -393,7 +393,7 @@ def estimate_memory_cost(hlo_proto):
     _, rhs_prec, rhs_is_weight = _extract_quant_info(instr)
 
     if rhs_prec > 16:
-      raise ValueError(f'Unexpected rhs precision {rhs_prec}.')
+      raise ValueError('Unexpected rhs precision {rhs_prec}.')
 
     if rhs_is_weight:
       memory_cost += weight_count * rhs_prec
