@@ -818,19 +818,6 @@ def pipeline(root):
             coder=beam.coders.ProtoCoder(dataset_pb2.Conformer),
             num_shards=FLAGS.output_shards))
 
-
-  # Write the complete and standard conformers as binary protobuf in TFRecord.
-  for id_str, collection in [
-      ['complete', complete_conformers],
-      ['standard', standard_conformers]]:
-    _ = (
-        collection
-        | ('TFRecordReshuffle_' + id_str) >> beam.Reshuffle()
-        | ('WriteTFRecord_' + id_str) >> beam.io.tfrecordio.WriteToTFRecord(
-            f'{FLAGS.output_stem}_{id_str}_tfrecord',
-            coder=beam.coders.ProtoCoder(dataset_pb2.Conformer),
-            num_shards=FLAGS.output_shards))
-
   # Write the complete and standard conformers as JSON.
   # Bit of a hack here: the slowest part of the whole pipeline is writing out
   # the JSON for the complete conformers. So we just hard code a tripling of the
