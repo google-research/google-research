@@ -244,20 +244,20 @@ def apply_filter_drop_rename_operations(
     A pandas dataframe.
 
   """
-  for column_name, value in row_filter_args:
+  for column_name, value in row_filter_args or []:
     df = select_rows_by_column_values(df, column_name=column_name, values=value)
 
-  for column_name, regex in row_regex_filter_args:
+  for column_name, regex in row_regex_filter_args or []:
     df = select_rows_by_regex(df, column_name=column_name, regex_str=regex)
 
-  for column_name, pattern, repl in rename_row_value_args:
+  for column_name, pattern, repl in rename_row_value_args or []:
     df = rename_values_in_column(
         df, column_name=column_name, pattern=pattern, repl=repl)
 
-  for regex in drop_columns_by_regex_args:
+  for regex in drop_columns_by_regex_args or []:
     df = drop_columns_by_regex(df, column_regex=regex)
 
-  for pattern, repl in rename_column_name_args:
+  for pattern, repl in rename_column_name_args or []:
     df = rename_column_headers(df, pattern=pattern, repl=repl)
 
   if sort_by_args is not None:

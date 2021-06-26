@@ -350,7 +350,8 @@ def ConvHierPriorPost(images=None,
         #bijectors.append(tfb.Reshape([num_flat_dims], tf.shape(q_mean)[1:]))
         # Do the shift/scale explicitly, so that we can use bijector to map the
         # distribution to the standard normal, which is helpful for HMC.
-        bijectors.append(tfb.AffineScalar(shift=q_mean, scale=tf.nn.softplus(q_raw_scale)))
+        bijectors.append(tfb.Shift(shift=q_mean))
+        bijectors.append(tfb.Scale(scale=tf.nn.softplus(q_raw_scale)))
 
         bijector = tfb.Chain(bijectors)
 
@@ -651,7 +652,7 @@ def IndependentDiscreteLogistic3D(locations,
                                   scales):
   dist = tfd.TransformedDistribution(
       distribution=tfd.Logistic(loc=locations, scale=scales),
-      bijector=tfb.AffineScalar(scale=255.0))
+      bijector=tfb.Scale(scale=255.0))
 
   dist = tfd.QuantizedDistribution(distribution=dist, low=0., high=255.0)
 
@@ -1016,7 +1017,8 @@ def ConvIAF(
   elif sigma_activation == "softplus":
     sigma = tf.nn.softplus(encoding_parts[1])
 
-  bijectors.append(tfb.AffineScalar(shift=mu, scale=sigma))
+  bijectors.append(tfb.Shift(shift=mu))
+  bijectors.append(tfb.Scale(scale=sigma))
   bijector = tfb.Chain(bijectors)
 
   mvn = tfd.Independent(
@@ -1055,7 +1057,7 @@ def ConvShiftScale(
   elif sigma_activation == "softplus":
     sigma = tf.nn.softplus(encoding_parts[1])
 
-  bijector = tfb.AffineScalar(shift=mu, scale=sigma)
+  bijector = tfb.Chain([tfb.Shift(shift=mu), tfb.Scale(scale=sigma)])
 
   mvn = tfd.Independent(
       tfd.Normal(loc=tf.zeros_like(mu), scale=tf.ones_like(sigma)),

@@ -30,7 +30,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('file_pattern', None, 'Dataset location.')
 flags.DEFINE_string('embedding_name', None, 'Embedding name.')
 flags.DEFINE_alias('en', 'embedding_name')
-flags.DEFINE_string('embedding_dimension', None, 'Embedding dimension.')
+flags.DEFINE_integer('embedding_dimension', None, 'Embedding dimension.')
 flags.DEFINE_alias('ed', 'embedding_dimension')
 flags.DEFINE_string('label_name', None, 'Name of label to use.')
 flags.DEFINE_list('label_list', None, 'List of possible label values.')

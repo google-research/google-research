@@ -74,7 +74,7 @@ def MakeHeadTailBijectorFn(num_dims,
     )
     x = tf.reshape(x, shape=tf.concat([input_shape, [2]], axis=0))
     shift, log_scale = tf.unstack(x, num=2, axis=-1)
-    return tfb.AffineScalar(shift=shift, log_scale=log_scale)
+    return tfb.Chain([tfb.Shift(shift=shift), tfb.Scale(log_scale=log_scale)])
 
   @utils.MakeTFTemplate
   def head_to_tail_bijector_fn(x, _):
@@ -89,7 +89,8 @@ def MakeHeadTailBijectorFn(num_dims,
         activation=None,
         kernel_initializer=utils.L2HMCInitializer(factor=0.01),
     )(x,)
-    return tfb.AffineScalar(shift=shift, log_scale=tf.Variable(0.))
+    return tfb.Chain(
+        [tfb.Shift(shift=shift), tfb.Scale(log_scale=tf.Variable(0.))])
 
   @utils.MakeTFTemplate
   def tail_to_head_bijector_fn(x, _):
@@ -97,8 +98,9 @@ def MakeHeadTailBijectorFn(num_dims,
     for units in head_layers:
       x = tfkl.Dense(units=units, activation=activation)(x)
     shift = tfkl.Dense(units=head_dims, activation=None)(x)
-    return tfb.AffineScalar(
-        shift=shift, log_scale=tf.Variable(tf.zeros(head_dims)))
+    return tfb.Chain(
+        [tfb.Shift(shift=shift),
+         tfb.Scale(log_scale=tf.Variable(tf.zeros(head_dims)))])
 
   b = tfb.Identity()
 
@@ -124,7 +126,7 @@ def MakeHeadTailBijectorFn(num_dims,
   b = tfb.Blockwise(
       [
           tfb.Identity(),
-          tfb.AffineScalar(shift=tf.Variable(tf.zeros([tail_dims])))
+          tfb.Shift(shift=tf.Variable(tf.zeros([tail_dims])))
       ],
       [head_dims, tail_dims],
   )(b,)
@@ -234,7 +236,7 @@ def MakeIAFBijectorFn(
   if learn_scale:
     scale = tf.nn.softplus(
         tf.Variable(tfp.math.softplus_inverse(scale), name="isp_global_scale"))
-  bijectors.append(tfb.AffineScalar(scale=scale))
+  bijectors.append(tfb.Scale(scale=scale))
 
   bijector = tfb.Chain(bijectors)
 

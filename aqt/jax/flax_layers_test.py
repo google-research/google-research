@@ -85,7 +85,8 @@ class ConvAqtTest(parameterized.TestCase):
                               kernel_size,
                               kernel_init=flax_layers.default_kernel_init,
                               weight_prec=None,
-                              quant_act=None):
+                              quant_act=None,
+                              weight_half_shift=False):
     """Create and initialize a flax model with a single ConvAqt layer."""
     layer_kwargs = {
         'kernel_init': kernel_init,
@@ -102,6 +103,7 @@ class ConvAqtTest(parameterized.TestCase):
         weight_prec=weight_prec,
         quant_act=quant_act,
         quant_type=QuantType.fake_quant,
+        weight_half_shift=weight_half_shift,
     )
     conv_module = layer_class(**layer_kwargs)
     initial_state = conv_module.init(self.rng_key, jnp.zeros(inputs.shape))
@@ -127,7 +129,8 @@ class ConvAqtTest(parameterized.TestCase):
         hparams=flax_layers.ConvAqt.HParams(
             weight_prec=weight_prec,
             quant_act=None,
-            quant_type=QuantType.fake_quant),
+            quant_type=QuantType.fake_quant,
+            weight_half_shift=False),
         kernel_init=initializers.ones,
         bias_init=initializers.ones,
         dtype=jnp.float32)
@@ -156,7 +159,8 @@ class ConvAqtTest(parameterized.TestCase):
         hparams=flax_layers.ConvAqt.HParams(
             weight_prec=weight_prec,
             quant_act=None,
-            quant_type=QuantType.fake_quant),
+            quant_type=QuantType.fake_quant,
+            weight_half_shift=False),
         kernel_init=initializers.ones,
         bias_init=initializers.ones,
         dtype=jnp.float32)
@@ -288,7 +292,11 @@ class ConvAqtTest(parameterized.TestCase):
     inputs = random.uniform(self.rng_key, shape=(1, 16, 16, input_dim))
     kernel_size = (3, 3)
     model, state = self.init_model_with_1_layer(
-        inputs, 4, kernel_size, weight_prec=weight_prec)
+        inputs,
+        4,
+        kernel_size,
+        weight_prec=weight_prec,
+        weight_half_shift=False)
 
     weights = random.uniform(
         self.rng_key, shape=kernel_size + (input_dim, num_features))
@@ -359,14 +367,12 @@ class ConvAqtTest(parameterized.TestCase):
           acts_prec=2,
           fixed_bounds=True),
   )
-  @mock.patch.object(primitives, 'clip_to_signed_int')
   @mock.patch.object(primitives, 'round_with_gradient')
   @mock.patch.object(primitives, 'floor_with_gradient')
   def test_quantized_weights_and_symmetrics_acts_should_call_clip_and_round(
-      self, floor_with_gradient, round_with_gradient, clip_to_signed_int,
-      weight_prec, acts_prec, fixed_bounds):
+      self, floor_with_gradient, round_with_gradient, weight_prec, acts_prec,
+      fixed_bounds):
 
-    clip_to_signed_int.side_effect = lambda x, prec, dtype: x
     round_with_gradient.side_effect = lambda x: x
     floor_with_gradient.side_effect = lambda x: x
 
@@ -382,7 +388,8 @@ class ConvAqtTest(parameterized.TestCase):
     quant_act = quantization.QuantOps.ActHParams(
         input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
         prec=acts_prec,
-        bounds=bounds)
+        bounds=bounds,
+        half_shift=False)
     num_features = 4
     input_dim = 3
     inputs = jnp.ones((1, 32, 32, input_dim), dtype=jnp.float32)
@@ -392,11 +399,9 @@ class ConvAqtTest(parameterized.TestCase):
         num_features,
         kernel_size,
         weight_prec=weight_prec,
-        quant_act=quant_act)
+        quant_act=quant_act,
+        weight_half_shift=False)
 
-    prec = weight_prec if weight_prec else acts_prec
-
-    clip_to_signed_int.reset_mock()
     round_with_gradient.reset_mock()
     floor_with_gradient.reset_mock()
 
@@ -405,30 +410,20 @@ class ConvAqtTest(parameterized.TestCase):
     self.assertEqual(
         outputs.shape,
         (inputs.shape[0], inputs.shape[1], inputs.shape[2], num_features))
-    clip_to_signed_int.assert_called_with(
-        mock.ANY, prec=prec, dtype=jnp.float32)
-    self.assertEqual(clip_to_signed_int.call_count, 1)
     round_with_gradient.assert_called_with(mock.ANY)
     self.assertEqual(round_with_gradient.call_count, 1)
     floor_with_gradient.assert_not_called()
 
-  @mock.patch.object(primitives, 'clip_to_signed_int')
-  @mock.patch.object(primitives, 'clip_to_unsigned_int')
   @mock.patch.object(primitives, 'round_with_gradient')
   @mock.patch.object(primitives, 'floor_with_gradient')
   def test_without_quantized_weights_should_not_call_quantization_ops(
-      self, floor_with_gradient, round_with_gradient, clip_to_unsigned_int,
-      clip_to_signed_int):
+      self, floor_with_gradient, round_with_gradient):
 
-    clip_to_signed_int.side_effect = lambda x, prec, dtype: x
-    clip_to_unsigned_int.side_effect = lambda x, prec, dtype: x
     round_with_gradient.side_effect = lambda x: x
     floor_with_gradient.side_effect = lambda x: x
     inputs = jnp.ones((1, 32, 32, 3), dtype=jnp.float32)
     model, state = self.init_model_with_1_layer(inputs, 4, (3, 3))
     _ = model.apply(state, inputs)
-    clip_to_signed_int.assert_not_called()
-    clip_to_unsigned_int.assert_not_called()
     round_with_gradient.assert_not_called()
     floor_with_gradient.assert_not_called()
 
@@ -451,14 +446,16 @@ class DenseAqtTest(parameterized.TestCase):
                               num_features,
                               kernel_init=flax_layers.default_kernel_init,
                               weight_prec=None,
-                              quant_act=None):
+                              quant_act=None,
+                              weight_half_shift=False):
     """Create and initialize a flax model with a single DenseAqt layer."""
+    quant_context = quant_config.QuantContext(
+        update_bounds=False, collect_acts_stats=False)
     layer_kwargs = {
         'kernel_init': kernel_init,
         'features': num_features,
         'use_bias': False,
-        'quant_context': quant_config.QuantContext(
-            update_bounds=False, collect_acts_stats=False),
+        'quant_context': quant_context,
         'paxis_name': 'batch',
         'train': False,
         'dtype': jnp.float32
@@ -467,7 +464,8 @@ class DenseAqtTest(parameterized.TestCase):
         weight_prec=weight_prec,
         quant_act=quant_act,
         quant_type=QuantType.fake_quant,
-        weight_quant_granularity=quant_config.QuantGranularity.per_channel)
+        weight_quant_granularity=quant_config.QuantGranularity.per_channel,
+        weight_half_shift=weight_half_shift)
 
     dense_module = flax_layers.DenseAqt(**layer_kwargs)
     initial_state = dense_module.init(
@@ -489,12 +487,14 @@ class DenseAqtTest(parameterized.TestCase):
         input_distribution=flax_layers.QuantOps.ActHParams.InputDistribution
         .symmetric,
         prec=8,
-        bounds=bounds)
+        bounds=bounds,
+        half_shift=False)
     hparams = flax_layers.DenseAqt.HParams(
         quant_type=flax_layers.QuantType.fake_quant,
         weight_prec=8,
         quant_act=quant_act,
-        weight_quant_granularity=quant_config.QuantGranularity.per_channel)
+        weight_quant_granularity=quant_config.QuantGranularity.per_channel,
+        weight_half_shift=False)
     module = flax_layers.DenseAqt(
         hparams=hparams,
         features=1,
@@ -555,7 +555,8 @@ class DenseAqtTest(parameterized.TestCase):
         inputs,
         num_features=4,
         kernel_init=initializers.ones,
-        weight_prec=weight_prec)
+        weight_prec=weight_prec,
+        weight_half_shift=False)
     outputs = model.apply(state, inputs, padding_mask=None)
     exp_outputs = jnp.matmul(inputs, state['params']['kernel'])
     onp.testing.assert_array_equal(outputs, exp_outputs)
@@ -574,7 +575,7 @@ class DenseAqtTest(parameterized.TestCase):
     input_dim = 1024
     inputs = random.uniform(self.rng_key, shape=(2, input_dim))
     model, state = self.init_model_with_1_layer(
-        inputs, num_features, weight_prec=weight_prec)
+        inputs, num_features, weight_prec=weight_prec, weight_half_shift=False)
     minval = -2**(weight_prec - 1) + 1
     maxval = 2**(weight_prec - 1) - 1
 
@@ -777,14 +778,12 @@ class DenseAqtTest(parameterized.TestCase):
           acts_prec=2,
           fixed_bounds=True),
   )
-  @mock.patch.object(primitives, 'clip_to_signed_int')
   @mock.patch.object(primitives, 'round_with_gradient')
   @mock.patch.object(primitives, 'floor_with_gradient')
   def test_quantized_weights_and_symmetrics_acts_should_call_clip_and_round(
-      self, floor_with_gradient, round_with_gradient, clip_to_signed_int,
-      weight_prec, acts_prec, fixed_bounds):
+      self, floor_with_gradient, round_with_gradient, weight_prec, acts_prec,
+      fixed_bounds):
 
-    clip_to_signed_int.side_effect = lambda x, prec, dtype: x
     round_with_gradient.side_effect = lambda x: x
     floor_with_gradient.side_effect = lambda x: x
 
@@ -800,30 +799,27 @@ class DenseAqtTest(parameterized.TestCase):
     quant_act = quantization.QuantOps.ActHParams(
         input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
         prec=acts_prec,
-        bounds=bounds)
+        bounds=bounds,
+        half_shift=False)
     num_features = 4
     inputs = jnp.ones((2, 3), dtype=jnp.float32)
     model, state = self.init_model_with_1_layer(
-        inputs, num_features, weight_prec=weight_prec, quant_act=quant_act)
-    prec = weight_prec if weight_prec else acts_prec
-    clip_to_signed_int.assert_called_with(
-        mock.ANY, prec=prec, dtype=jnp.float32)
+        inputs,
+        num_features,
+        weight_prec=weight_prec,
+        quant_act=quant_act,
+        weight_half_shift=False)
 
-    self.assertEqual(clip_to_signed_int.call_count, 1)
     round_with_gradient.assert_called_with(mock.ANY)
     self.assertEqual(round_with_gradient.call_count, 1)
     floor_with_gradient.assert_not_called()
 
-    clip_to_signed_int.reset_mock()
     round_with_gradient.reset_mock()
     floor_with_gradient.reset_mock()
 
     outputs = model.apply(state, inputs, padding_mask=None)
 
     self.assertEqual(outputs.shape, (inputs.shape[0], num_features))
-    clip_to_signed_int.assert_called_with(
-        mock.ANY, prec=prec, dtype=jnp.float32)
-    self.assertEqual(clip_to_signed_int.call_count, 1)
     round_with_gradient.assert_called_with(mock.ANY)
     self.assertEqual(round_with_gradient.call_count, 1)
     floor_with_gradient.assert_not_called()
@@ -848,16 +844,14 @@ class DenseAqtTest(parameterized.TestCase):
           pos_inputs_prec=4,
           fixed_bounds=False),
   )
-  @mock.patch.object(primitives, 'clip_to_signed_int')
-  @mock.patch.object(primitives, 'clip_to_unsigned_int')
   @mock.patch.object(primitives, 'round_with_gradient')
   @mock.patch.object(primitives, 'floor_with_gradient')
-  def test_quantized_inputs_should_call_clip_and_round(
-      self, floor_with_gradient, round_with_gradient, clip_to_unsigned_int,
-      clip_to_signed_int, pos_inputs_prec, fixed_bounds):
+  def test_quantized_inputs_should_call_clip_and_round(self,
+                                                       floor_with_gradient,
+                                                       round_with_gradient,
+                                                       pos_inputs_prec,
+                                                       fixed_bounds):
 
-    clip_to_signed_int.side_effect = lambda x, prec, dtype: x
-    clip_to_unsigned_int.side_effect = lambda x, prec, dtype: x
     round_with_gradient.side_effect = lambda x: x
     floor_with_gradient.side_effect = lambda x: x
     if fixed_bounds:
@@ -872,29 +866,24 @@ class DenseAqtTest(parameterized.TestCase):
     quant_act = quantization.QuantOps.ActHParams(
         input_distribution=QuantOps.ActHParams.InputDistribution.positive,
         prec=pos_inputs_prec,
-        bounds=bounds)
+        bounds=bounds,
+        half_shift=False)
     inputs = jnp.ones((2, 3), dtype=jnp.float32)
     model, init_state = self.init_model_with_1_layer(
-        inputs, num_features=4, weight_prec=None, quant_act=quant_act)
-    clip_to_unsigned_int.assert_called_with(
-        mock.ANY, prec=pos_inputs_prec, dtype=jnp.float32)
-    clip_to_signed_int.assert_not_called()
-    self.assertEqual(clip_to_unsigned_int.call_count, 1)
+        inputs,
+        num_features=4,
+        weight_prec=None,
+        quant_act=quant_act,
+        weight_half_shift=False)
     floor_with_gradient.assert_called_with(mock.ANY)
     self.assertEqual(floor_with_gradient.call_count, 1)
     round_with_gradient.assert_not_called()
 
-    clip_to_unsigned_int.reset_mock()
-    clip_to_signed_int.reset_mock()
     round_with_gradient.reset_mock()
     floor_with_gradient.reset_mock()
 
     model.apply(init_state, inputs, padding_mask=None)
 
-    clip_to_unsigned_int.assert_called_with(
-        mock.ANY, prec=pos_inputs_prec, dtype=jnp.float32)
-    clip_to_signed_int.assert_not_called()
-    self.assertEqual(clip_to_unsigned_int.call_count, 1)
     floor_with_gradient.assert_called_with(mock.ANY)
     self.assertEqual(floor_with_gradient.call_count, 1)
     round_with_gradient.assert_not_called()
@@ -922,10 +911,15 @@ class DenseAqtTest(parameterized.TestCase):
     quant_act = quantization.QuantOps.ActHParams(
         input_distribution=QuantOps.ActHParams.InputDistribution.positive,
         prec=inputs_prec,
-        bounds=bounds)
+        bounds=bounds,
+        half_shift=False)
     inputs = jnp.ones((2, 3), dtype=jnp.float32)
     model, init_state = self.init_model_with_1_layer(
-        inputs, num_features=4, weight_prec=None, quant_act=quant_act)
+        inputs,
+        num_features=4,
+        weight_prec=None,
+        quant_act=quant_act,
+        weight_half_shift=False)
     downcast_mock.assert_called_once_with(
         mock.ANY,
         inputs_prec.fp_spec.exp_min,
@@ -943,23 +937,16 @@ class DenseAqtTest(parameterized.TestCase):
         inputs_prec.fp_spec.sig_bits,
     )
 
-  @mock.patch.object(primitives, 'clip_to_signed_int')
-  @mock.patch.object(primitives, 'clip_to_unsigned_int')
   @mock.patch.object(primitives, 'round_with_gradient')
   @mock.patch.object(primitives, 'floor_with_gradient')
   def test_without_quantized_weights_should_not_call_quantization_ops(
-      self, floor_with_gradient, round_with_gradient, clip_to_unsigned_int,
-      clip_to_signed_int):
+      self, floor_with_gradient, round_with_gradient):
 
-    clip_to_signed_int.side_effect = lambda x, prec, dtype: x
-    clip_to_unsigned_int.side_effect = lambda x, prec, dtype: x
     round_with_gradient.side_effect = lambda x: x
     floor_with_gradient.side_effect = lambda x: x
     inputs = jnp.ones((2, 3), dtype=jnp.float32)
     model, state = self.init_model_with_1_layer(inputs, num_features=4)
     _ = model.apply(state, inputs, padding_mask=None)
-    clip_to_signed_int.assert_not_called()
-    clip_to_unsigned_int.assert_not_called()
     round_with_gradient.assert_not_called()
     floor_with_gradient.assert_not_called()
 
@@ -973,7 +960,8 @@ class DenseAqtTest(parameterized.TestCase):
         weight_prec=8,
         quant_act=None,
         quant_type=quantization.QuantType.fake_quant,
-        weight_quant_granularity=granularity)
+        weight_quant_granularity=granularity,
+        weight_half_shift=False)
     layer = flax_layers.DenseAqt(
         features=2,
         hparams=hparams,
@@ -1024,7 +1012,8 @@ class EmbedLayerTest(parameterized.TestCase):
         hparams=flax_layers.EmbedAqt.HParams(
             weight_prec=weight_prec,
             quant_act=None,
-            quant_type=QuantType.fake_quant),
+            quant_type=QuantType.fake_quant,
+            weight_half_shift=False),
         embedding_init=lambda _rng, _shape: dummy_embedding,
         train=False,
         paxis_name=None,
@@ -1062,7 +1051,8 @@ class EmbedLayerTest(parameterized.TestCase):
         hparams=flax_layers.EmbedAqt.HParams(
             weight_prec=weight_prec,
             quant_act=None,
-            quant_type=QuantType.fake_quant),
+            quant_type=QuantType.fake_quant,
+            weight_half_shift=False),
         embedding_init=lambda _rng, _shape: dummy_embedding,
         train=False,
         quant_context=quant_config.QuantContext(update_bounds=False),
@@ -1109,15 +1099,12 @@ class EmbedLayerTest(parameterized.TestCase):
           acts_prec=4,
           fixed_bounds=False),
   )
-  @mock.patch.object(primitives, 'clip_to_signed_int')
   @mock.patch.object(primitives, 'round_with_gradient')
   @mock.patch.object(primitives, 'floor_with_gradient')
   def test_embed_should_call_clip_and_round(self, floor_with_gradient,
-                                            round_with_gradient,
-                                            clip_to_signed_int, weight_prec,
+                                            round_with_gradient, weight_prec,
                                             acts_prec, fixed_bounds):
 
-    clip_to_signed_int.side_effect = lambda x, prec, dtype: x
     round_with_gradient.side_effect = lambda x: x
     floor_with_gradient.side_effect = lambda x: x
 
@@ -1133,7 +1120,8 @@ class EmbedLayerTest(parameterized.TestCase):
     quant_act = quantization.QuantOps.ActHParams(
         input_distribution=QuantOps.ActHParams.InputDistribution.symmetric,
         prec=acts_prec,
-        bounds=bounds)
+        bounds=bounds,
+        half_shift=False)
     rng = random.PRNGKey(0)
     x = jnp.ones((1, 3))
 
@@ -1144,21 +1132,17 @@ class EmbedLayerTest(parameterized.TestCase):
         hparams=flax_layers.EmbedAqt.HParams(
             weight_prec=weight_prec,
             quant_act=quant_act,
-            quant_type=QuantType.fake_quant),
+            quant_type=QuantType.fake_quant,
+            weight_half_shift=False),
         quant_context=quant_config.QuantContext(update_bounds=False),
         paxis_name=None,
         train=False)
     init_state = embed_module.init(
         rng, x, method=embed_module.attend, padding_mask=None)
-    clip_to_signed_int.reset_mock()
     round_with_gradient.reset_mock()
     floor_with_gradient.reset_mock()
-    prec = weight_prec if weight_prec else acts_prec
     embed_module.apply(
         init_state, x, padding_mask=None, method=embed_module.attend)
-    clip_to_signed_int.assert_called_with(
-        mock.ANY, prec=prec, dtype=jnp.float32)
-    self.assertEqual(clip_to_signed_int.call_count, 1)
     round_with_gradient.assert_called_with(mock.ANY)
     self.assertEqual(round_with_gradient.call_count, 1)
     floor_with_gradient.assert_not_called()

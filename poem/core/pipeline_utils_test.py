@@ -31,7 +31,7 @@ FLAGS = flags.FLAGS
 class PipelineUtilsTest(tf.test.TestCase):
 
   def test_read_batch_from_dataset_tables(self):
-    testdata_dir = 'poem/testdata'  # Assumes $PWD == "google_research/".
+    testdata_dir = 'poem/testdata'  # Assume $PWD == "google_research/".
     table_path = os.path.join(FLAGS.test_srcdir, testdata_dir,
                               'tfe-2.tfrecords')
     inputs = pipeline_utils.read_batch_from_dataset_tables(

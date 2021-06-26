@@ -55,6 +55,7 @@ include the **"`[POEM]`"** prefix in the issue title.
 - [Liangzhe Yuan](https://github.com/yuanliangzhe)
 
 ## Updates
+- `06/08/2021`: Added [**`CV-MIM`**](https://github.com/google-research/google-research/tree/master/poem/cv_mim) code for the CVPR 2021 [paper](https://arxiv.org/abs/2012.01405).
 - `03/25/2021`: Moved **`Pr-VIPE`** code into a [subfolder](https://github.com/google-research/google-research/tree/master/poem/pr_vipe). Added **`CV-MIM`** [subfolder](https://github.com/google-research/google-research/tree/master/poem/cv_mim) and updated documentations.
 - `03/17/2021`: Fixed an [issue](https://github.com/google-research/google-research/issues/636) in camera augmentation.
 - `03/04/2021`: Added a program for running model inference.

@@ -48,8 +48,12 @@ def should_update_bounds(activation_bound_update_freq,
 
 
 def get_quant_context_for_step(
-    *, activation_bound_update_freq, activation_bound_start_step,
-    step, collect_acts_stats):
+    *,
+    activation_bound_update_freq,
+    activation_bound_start_step,
+    step,
+    collect_acts_stats,
+    prefer_int8_to_int32_dot):
   """Returns correct quantization context for a given step.
 
   Args:
@@ -60,6 +64,8 @@ def get_quant_context_for_step(
       indicates to never update bounds.
     step: The current training step.
     collect_acts_stats: Whether to collect activation statistics.
+    prefer_int8_to_int32_dot: Whether to feed lax.dot inputs with an int8 dtype
+      and accumulate to int32.
 
   Returns:
     A quant_config.QuantContext instance.
@@ -72,4 +78,6 @@ def get_quant_context_for_step(
   return quant_config.QuantContext(
       update_bounds=update_bounds,
       quantize_acts=quantize_acts,
-      collect_acts_stats=collect_acts_stats)  # prefer_int8_to_int32_dot = True
+      collect_acts_stats=collect_acts_stats,
+      prefer_int8_to_int32_dot=prefer_int8_to_int32_dot,
+  )

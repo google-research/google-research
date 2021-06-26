@@ -110,7 +110,7 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
 
     def _feature_fn(x, s):
       return tf.expand_dims(
-          tf_frontend.compute_frontend_features(x, s, overlap_seconds=79),
+          tf_frontend.compute_frontend_features(x, s, frame_hop=17),
           axis=-1).numpy().astype(np.float32)
     do_fn = audio_to_embeddings_beam_utils.ComputeEmbeddingMapFn(
         name='module_name',

@@ -25,10 +25,10 @@ import numpy as onp
 from aqt.jax.imagenet import hparams_config
 from aqt.jax.imagenet import models
 from aqt.jax.imagenet import train_utils
-from aqt.jax.imagenet.configs import resnet50_bfloat16
 from aqt.jax.imagenet.configs import resnet50_w4
-from aqt.jax.imagenet.configs import resnet50_w4_a4_auto
 from aqt.jax.imagenet.configs import resnet50_w4_a4_fixed
+from aqt.jax.imagenet.configs.paper import resnet50_bfloat16
+from aqt.jax.imagenet.configs.paper import resnet50_w4_a4_auto
 from aqt.utils import hparams_utils
 
 

@@ -26,13 +26,13 @@ from aqt.jax import hlo_utils
 from aqt.jax.imagenet import hparams_config
 from aqt.jax.imagenet import models
 from aqt.jax.imagenet.configs import resnet101_bfloat16
-from aqt.jax.imagenet.configs import resnet50_bfloat16
 from aqt.jax.imagenet.configs import resnet50_w4
-from aqt.jax.imagenet.configs import resnet50_w4_a4_auto
 from aqt.jax.imagenet.configs import resnet50_w4_a4_fixed
 from aqt.jax.imagenet.configs import resnet50_w8
-from aqt.jax.imagenet.configs import resnet50_w8_a8_auto
 from aqt.jax.imagenet.configs import resnet50_w8_a8_fixed
+from aqt.jax.imagenet.configs.paper import resnet50_bfloat16
+from aqt.jax.imagenet.configs.paper import resnet50_w4_a4_auto
+from aqt.jax.imagenet.configs.paper import resnet50_w8_a8_auto
 from aqt.jax.imagenet.train_utils import create_model
 from aqt.utils import hparams_utils
 

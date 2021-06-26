@@ -49,7 +49,8 @@ class PrimitivesTest(parameterized.TestCase):
   )
   def test_floor_and_clip_to_unsigned_int(self, prec):
     x = jnp.array(fp32(2.0**5 * onp.random.uniform(0, 1.0, size=(10, 1))))
-    y = primitives.floor_and_clip_to_unsigned_int(x, prec=prec, dtype=x.dtype)
+    y = primitives.floor_and_clip_to_unsigned_int(
+        x, prec=prec, dtype=x.dtype, half_shift=False)
     self.assertGreaterEqual(onp.min(y), 0.0)
     self.assertLessEqual(onp.max(y), fp32(2**prec - 1))
     onp.testing.assert_allclose(y, onp.around(y))
@@ -62,7 +63,8 @@ class PrimitivesTest(parameterized.TestCase):
   def test_round_and_clip_to_signed_int(self, prec):
     np_x = fp32(2.0**5 * onp.random.uniform(-1.0, 1.0, size=(10, 1)))
     x = jnp.array(np_x)
-    y = primitives.round_and_clip_to_signed_int(x, prec=prec, dtype=x.dtype)
+    y = primitives.round_and_clip_to_signed_int(
+        x, prec=prec, dtype=x.dtype, half_shift=False)
     ubound = fp32(2.0**(prec - 1) - 1)
     lbound = fp32(-2.0**(prec - 1) + 1)
     self.assertGreaterEqual(onp.min(y), lbound)
@@ -71,164 +73,40 @@ class PrimitivesTest(parameterized.TestCase):
     onp.testing.assert_allclose(
         y, onp.clip(onp.floor(np_x + 0.5), a_min=lbound, a_max=ubound))
 
-  @parameterized.named_parameters(
-      dict(
-          testcase_name='uint8_scale_grow_range',
-          prec=8,
-          x_shape=(10, 1),
-          x_min=3.0,
-          x_max=10.0,
-          axis=None,
-      ),
-      dict(
-          testcase_name='uint8_scale_shrink_range',
-          prec=8,
-          x_shape=(10, 1),
-          x_min=2.0,
-          x_max=1000.0,
-          axis=None,
-      ),
-      dict(
-          testcase_name='uint8_scale_grow_range_per_ch',
-          prec=8,
-          x_shape=(2, 3, 3, 2),
-          x_min=2.0,
-          x_max=10.0,
-          axis=(0, 1, 2),
-      ),
-      dict(
-          testcase_name='uint4_input_all_zeros',
-          prec=4,
-          x_shape=(10, 1),
-          x_min=0.0,
-          x_max=0.0,
-          axis=None,
-      ),
-      dict(
-          testcase_name='uint1',
-          prec=1,
-          x_shape=(10, 1),
-          x_min=2.0,
-          x_max=10.0,
-          axis=None,
-      ),
-  )
-  def test_unsigned_int_scale(self, prec, x_shape, x_min, x_max, axis):
-    x = jnp.array(fp32(onp.random.uniform(x_min, x_max, size=x_shape)))
-    scale = primitives.unsigned_int_scale(x, prec=prec, axis=axis)
-    scaled_x = jnp.multiply(x, scale)
-    ubound = fp32(2.0**prec)
-    if jnp.max(x) == 0:
-      self.assertEqual(jnp.max(scaled_x), 0)
-    else:
-      if axis is None:
-        self.assertAlmostEqual(jnp.max(scaled_x), ubound, places=3)
-      else:  # TODO(wanglisa): confirm equiv of onp.testing.assert_allclose
-        max_values = jnp.max(scaled_x, axis=axis)
-        onp.testing.assert_allclose(max_values,
-                                    ubound * jnp.ones(max_values.shape))
+  def test_round_and_clip_to_signed_int_half_shift(self):
+    # centers_2bit = [-1.5, -0.5, 0.5, 1.5]
+    q_inp = [-2.1, -1.9, -1.1, -0.9, -0.1, +0.1, +0.9, +1.1, +1.9, +2.1]
+    q2bit = [-1.5, -1.5, -1.5, -0.5, -0.5, +0.5, +0.5, +1.5, +1.5, +1.5]
+    q1bit = [-0.5, -0.5, -0.5, -0.5, -0.5, +0.5, +0.5, +0.5, +0.5, +0.5]
+    q2gra = [+0.0, +1.0, +1.0, +1.0, +1.0, +1.0, +1.0, +1.0, +1.0, +0.0]
+    q1gra = [+0.0, +0.0, +0.0, +1.0, +1.0, +1.0, +1.0, +0.0, +0.0, +0.0]
+    q_inp = jnp.array(q_inp)
+    q2bit = jnp.array(q2bit)
+    q1bit = jnp.array(q1bit)
+    q2gra = jnp.array(q2gra)
+    q1gra = jnp.array(q1gra)
 
-  @parameterized.named_parameters(
-      dict(
-          testcase_name='sint8_scale_grow_pos_range',
-          prec=8,
-          x_shape=(10, 1),
-          x_min=0.0,
-          x_max=10.0,
-          cnstr=jnp.max,
-          axis=None,
-          bound=fp32(2.0**7 - 1),
-      ),
-      dict(
-          testcase_name='sint8_scale_shrink_pos_range',
-          prec=8,
-          x_shape=(10, 1),
-          x_min=0.0,
-          x_max=1000.0,
-          cnstr=jnp.max,
-          axis=None,
-          bound=fp32(2.0**7 - 1),
-      ),
-      dict(
-          testcase_name='sint8_scale_grow_neg_range',
-          prec=8,
-          x_shape=(10, 1),
-          x_min=-10.0,
-          x_max=0.0,
-          cnstr=jnp.min,
-          axis=None,
-          bound=fp32(-2.0**7 + 1),
-      ),
-      dict(
-          testcase_name='sint8_scale_shrink_neg_range',
-          prec=8,
-          x_shape=(10, 1),
-          x_min=-1000.0,
-          x_max=0.0,
-          cnstr=jnp.min,
-          axis=None,
-          bound=fp32(-2.0**7 + 1),
-      ),
-      dict(
-          testcase_name='sint4_scale_shrink_neg_range_per_ch',
-          prec=4,
-          x_shape=(2, 3, 3, 2),
-          x_min=-1000.0,
-          x_max=0.0,
-          cnstr=jnp.min,
-          axis=(0, 1, 2),
-          bound=fp32(-2.0**3 + 1),
-      ),
-      dict(
-          testcase_name='sint4_scale_input_all_zeros',
-          prec=4,
-          x_shape=(2, 3, 3, 2),
-          x_min=0.0,
-          x_max=0.0,
-          cnstr=jnp.min,
-          axis=(0, 1, 2),
-          bound=fp32(0.0),
-      ),
-      dict(
-          testcase_name='sint1_pos',
-          prec=1,
-          x_shape=(10, 1),
-          x_min=2.0,
-          x_max=10.0,
-          cnstr=jnp.max,
-          axis=None,
-          bound=fp32(0.25),
-      ),
-      dict(
-          testcase_name='sint1_neg',
-          prec=1,
-          x_shape=(10, 1),
-          x_min=-10.0,
-          x_max=2.0,
-          cnstr=jnp.min,
-          axis=None,
-          bound=fp32(-0.25),
-      ),
-  )
-  def test_signed_int_scale(self, prec, x_shape, x_min, x_max, cnstr, axis,
-                            bound):
-    x = jnp.array(fp32(onp.random.uniform(x_min, x_max, size=x_shape)))
-    scale = primitives.signed_int_scale(x, prec=prec, axis=axis)
-    scaled_x = jnp.multiply(x, scale)
-    if jnp.max(abs(x)) == 0:
-      self.assertEqual(jnp.max(abs(scaled_x)), 0)
-    else:
-      if axis is None:
-        self.assertAlmostEqual(cnstr(scaled_x), bound, places=4)
-      else:  # TODO(wanglisa): confirm equiv of onp.testing.assert_allclose
-        x_cnstr = cnstr(scaled_x, axis=axis)
-        onp.testing.assert_allclose(x_cnstr, bound * jnp.ones(x_cnstr.shape))
+    def quantize1bit(x):
+      return primitives.round_and_clip_to_signed_int(
+          x, prec=1, half_shift=True, dtype=jnp.float32)
 
-  def test_signed_int_scale_missing_named_arg(self):
-    x = jnp.ones((2, 1))
-    prec = 4
-    with self.assertRaises(TypeError):
-      _ = primitives.signed_int_scale(x, prec, axis=None)
+    def quantize2bit(x):
+      return primitives.round_and_clip_to_signed_int(
+          x, prec=2, half_shift=True, dtype=jnp.float32)
+
+    quantize1bit_grad = jax.vmap(jax.grad(quantize1bit))
+    quantize2bit_grad = jax.vmap(jax.grad(quantize2bit))
+
+    # TODO(lew): Resolve the error and use self.assertEqual instead.
+    # ValueError: The truth value of an array with more than one element is
+    # ambiguous. Use a.any() or a.all()
+    def assert_equal(a, b):
+      self.assertEqual(jnp.sum(jnp.abs(a - b)), 0.0)
+
+    assert_equal(quantize1bit(q_inp), q1bit)
+    assert_equal(quantize2bit(q_inp), q2bit)
+    assert_equal(quantize1bit_grad(q_inp), q1gra)
+    assert_equal(quantize2bit_grad(q_inp), q2gra)
 
   @parameterized.named_parameters(
       dict(testcase_name='round', op_with_ste=primitives.round_with_gradient),
@@ -246,7 +124,8 @@ class PrimitivesTest(parameterized.TestCase):
     @jax.grad
     def grad_fn(x):
       return jnp.sum(
-          primitives.round_and_clip_to_signed_int(x, prec=8, dtype=x.dtype))
+          primitives.round_and_clip_to_signed_int(
+              x, prec=8, dtype=x.dtype, half_shift=False))
 
     onp.testing.assert_array_equal(grad_fn(x), [0.0, 1.0, 0.0])
 
@@ -258,7 +137,8 @@ class PrimitivesTest(parameterized.TestCase):
     @jax.grad
     def grad_fn(x):
       return jnp.sum(
-          primitives.floor_and_clip_to_unsigned_int(x, prec=8, dtype=x.dtype))
+          primitives.floor_and_clip_to_unsigned_int(
+              x, prec=8, dtype=x.dtype, half_shift=False))
 
     onp.testing.assert_array_equal(grad_fn(x), [0.0, 1.0, 0.0])
 

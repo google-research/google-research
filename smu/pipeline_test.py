@@ -21,6 +21,7 @@ from absl import logging
 from absl.testing import absltest
 from absl.testing import flagsaver
 import apache_beam as beam
+import tensorflow as tf
 from tensorflow.io import gfile
 import tensorflow as tf
 
@@ -28,8 +29,8 @@ from smu import dataset_pb2
 from smu import pipeline
 
 
-TESTDATA_PATH =  os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                              'testdata')
+TESTDATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             'testdata')
 
 
 class FunctionalTest(absltest.TestCase):
@@ -195,6 +196,7 @@ class IntegrationTest(absltest.TestCase):
         'homo_pbe0_aug_pc_1'))
     self.assertTrue(complete_output[0].properties.HasField(
         'rotational_constants'))
+
 
 
 if __name__ == '__main__':

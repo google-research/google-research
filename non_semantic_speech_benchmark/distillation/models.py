@@ -14,8 +14,11 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Models for distillation."""
+"""Models for distillation.
 
+"""
+
+from absl import logging
 import tensorflow as tf
 import tensorflow_model_optimization as tfmot
 from non_semantic_speech_benchmark.distillation.layers import CompressedDense
@@ -25,21 +28,45 @@ from tensorflow.python.keras.applications import mobilenet_v3 as v3_util
 # pylint: enable=g-direct-tensorflow-import
 
 
+# TODO(joelshor): Tracing might not work when passing a python dictionary as an
+# arg.
 @tf.function
-def _sample_to_features(x, tflite):
+def _sample_to_features(x, frontend_args, tflite):
+  if frontend_args is None:
+    frontend_args = {}
   return tf_frontend.compute_frontend_features(
-      x, 16000, overlap_seconds=79, tflite=tflite)
+      x, 16000, tflite=tflite, **frontend_args)
 
 
-def _get_feats_map_fn(tflite):
-  """Returns a function mapping audio to features, suitable for keras Lambda."""
+def _get_frontend_output_shape():
+  frontend_args = tf_frontend.frontend_args_from_flags()
+  x = tf.zeros([frontend_args['n_required']], dtype=tf.float32)
+  return _sample_to_features(x, frontend_args, tflite=False).shape
+
+
+def _get_feats_map_fn(tflite, frontend_args):
+  """Returns a function mapping audio to features, suitable for keras Lambda.
+
+  Args:
+    tflite: A boolean whether the frontend should be suitable for tflite.
+    frontend_args: A dictionary of key-value pairs for the frontend. Keys
+      should be arguments to `tf_frontend.compute_frontend_features`.
+
+  Returns:
+    A python function mapping samples to features.
+  """
   if tflite:
     def feats_map_fn(x):
-      return _sample_to_features(x, tflite=True)
+      # Keras Input needs a batch (which we statically fix to 1), but that
+      # causes unexpected shapes in the frontend graph. So we squeeze out that
+      # dim here.
+      x = tf.squeeze(x)
+      return _sample_to_features(x, frontend_args, tflite=True)
   else:
     def feats_map_fn(x):
-      return tf.map_fn(
-          lambda y: _sample_to_features(y, tflite=False), x, dtype=tf.float64)
+      map_fn = lambda y: _sample_to_features(y, frontend_args, tflite=False)
+      return tf.map_fn(map_fn, x, dtype=tf.float64)
+
   return feats_map_fn
 
 
@@ -53,6 +80,16 @@ def get_keras_model(bottleneck_dimension,
                     quantize_aware_training=False,
                     tflite=False):
   """Make a Keras student model."""
+  # For debugging, log hyperparameter values.
+  logging.info('bottleneck_dimension: %i', bottleneck_dimension)
+  logging.info('output_dimension: %i', output_dimension)
+  logging.info('alpha: %s', alpha)
+  logging.info('frontend: %s', frontend)
+  logging.info('avg_pool: %s', avg_pool)
+  logging.info('compressor: %s', compressor)
+  logging.info('quantize_aware_training: %s', quantize_aware_training)
+  logging.info('tflite: %s', tflite)
+
   output_dict = {}  # Dictionary of model outputs.
 
   def _map_mobilenet_func(mnet_size):
@@ -68,21 +105,33 @@ def get_keras_model(bottleneck_dimension,
   # TFLite use-cases usually use non-batched inference, and this also enables
   # hardware acceleration.
   num_batches = 1 if tflite else None
+  frontend_args = tf_frontend.frontend_args_from_flags()
+  feats_inner_dim = _get_frontend_output_shape()[0]
   if frontend:
-    model_in = tf.keras.Input((None,), name='audio_samples',
+    logging.info('frontend_args: %s', frontend_args)
+    model_in = tf.keras.Input((None,),
+                              name='audio_samples',
                               batch_size=num_batches)
-    feats = tf.keras.layers.Lambda(_get_feats_map_fn(tflite))(model_in)
-    feats.shape.assert_is_compatible_with([None, None, 96, 64])
-    feats = tf.transpose(feats, [0, 2, 1, 3])
-    feats = tf.reshape(feats, [-1, 96, 64, 1])
+    frontend_fn = _get_feats_map_fn(tflite, frontend_args)
+    feats = tf.keras.layers.Lambda(frontend_fn)(model_in)
+    feats.shape.assert_is_compatible_with(
+        [num_batches, feats_inner_dim, frontend_args['frame_width'],
+         frontend_args['num_mel_bins']])
+    feats = tf.reshape(
+        feats, [-1, feats_inner_dim * frontend_args['frame_width'],
+                frontend_args['num_mel_bins'], 1])
   else:
-    model_in = tf.keras.Input((96, 64, 1),
-                              name='log_mel_spectrogram')
+    model_in = tf.keras.Input(
+        (feats_inner_dim * frontend_args['frame_width'],
+         frontend_args['num_mel_bins'], 1),
+        batch_size=num_batches,
+        name='log_mel_spectrogram')
     feats = model_in
   inputs = [model_in]
 
   model = _map_mobilenet_func(mobilenet_size)(
-      input_shape=[96, 64, 1],
+      input_shape=(feats_inner_dim * frontend_args['frame_width'],
+                   frontend_args['num_mel_bins'], 1),
       alpha=alpha,
       minimalistic=False,
       include_top=False,

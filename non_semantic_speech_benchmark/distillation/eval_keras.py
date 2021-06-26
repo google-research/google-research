@@ -37,12 +37,14 @@ flags.DEFINE_integer('ml', 16000, 'Minimum length.')
 flags.DEFINE_alias('min_length', 'ml')
 
 flags.DEFINE_boolean(
-    'precomputed_frontend_and_targets', False,
-    'Flag to enable training with precomputed frontend and targets. '
-    'If True, `file_pattern` must point to tf_records of tf.Examples. '
-    'See get_data.get_precomputed_data for details about tf.Example formatting. '
-    'If True, `teacher_model_hub`, `output_key`, `samples_key` '
-    'and `min_length` flags are ignored.')
+    'precomputed_targets', False,
+    'Flag to enable training with precomputed targets. '
+    'If True, `file_pattern` must point to precomputed targets, and '
+    '`target_key` must be supplied.')
+flags.DEFINE_string(
+    'target_key', None, 'Teacher embedding key in precomputed tf.Examples. '
+    'This flag is ignored if `precomputed_targets` is False.')
+
 
 # Teacher / student network flags.
 flags.DEFINE_string('teacher_model_hub', None, 'Hub teacher model.')
@@ -95,7 +97,7 @@ def eval_and_report():
       output_dimension=FLAGS.output_dimension,
       alpha=FLAGS.alpha,
       mobilenet_size=FLAGS.mobilenet_size,
-      frontend=not FLAGS.precomputed_frontend_and_targets,
+      frontend=True,
       avg_pool=FLAGS.average_pool)
   checkpoint = tf.train.Checkpoint(model=model)
 
@@ -110,17 +112,25 @@ def eval_and_report():
     logging.info('Loaded weights for eval step: %s.', step)
 
     reader = tf.data.TFRecordDataset
+    target_key = FLAGS.target_key
+    if FLAGS.precomputed_targets:
+      teacher_fn = None
+      assert target_key is not None
+    else:
+      teacher_fn = get_data.savedmodel_to_func(
+          hub.load(FLAGS.teacher_model_hub), FLAGS.output_key)
+      assert target_key is None
     ds = get_data.get_data(
         file_pattern=FLAGS.file_pattern,
-        teacher_fn=get_data.savedmodel_to_func(
-            hub.load(FLAGS.teacher_model_hub), FLAGS.output_key),
         output_dimension=FLAGS.output_dimension,
         reader=reader,
         samples_key=FLAGS.samples_key,
         min_length=FLAGS.min_length,
         batch_size=FLAGS.batch_size,
         loop_forever=False,
-        shuffle=False)
+        shuffle=False,
+        teacher_fn=teacher_fn,
+        target_key=target_key)
     logging.info('Got dataset for eval step: %s.', step)
     if FLAGS.take_fixed_data:
       ds = ds.take(FLAGS.take_fixed_data)
@@ -153,12 +163,19 @@ def eval_and_report():
 
 def main(unused_argv):
   assert FLAGS.file_pattern
-  assert FLAGS.teacher_model_hub
   assert FLAGS.output_dimension
-  assert FLAGS.output_key
-  assert FLAGS.bottleneck_dimension
-  assert FLAGS.samples_key
+  assert FLAGS.bottleneck_dimension >= 0
   assert FLAGS.logdir
+  assert FLAGS.samples_key
+
+  if FLAGS.precomputed_targets:
+    assert FLAGS.teacher_model_hub is None
+    assert FLAGS.output_key is None
+    assert FLAGS.target_key
+  else:
+    assert FLAGS.teacher_model_hub
+    assert FLAGS.output_key
+    assert FLAGS.target_key is None
 
   tf.compat.v2.enable_v2_behavior()
   assert tf.executing_eagerly()
