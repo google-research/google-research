@@ -254,6 +254,7 @@ class IntegrationTest(absltest.TestCase):
     self.assertCountEqual([c.conformer_id for c in complete_output],
                           [618451001, 618451123, 620517002, 79593005])
     # Check that fields are filtered the way we expect
+
     # The DirectRunner randomizes the order of output so we need to make sure
     # that we get a full record.
     complete_entry = [c for c in complete_output
