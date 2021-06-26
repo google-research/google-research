@@ -84,7 +84,7 @@ def main(argv):
   conformer_count = 0
   outcome_counts = collections.Counter()
 
-  for filepath in gfile.Glob(FLAGS.input_glob):
+  for filepath in gfile.glob(FLAGS.input_glob):
     logging.info('Processing file %s', filepath)
     file_count += 1
     smu_parser = smu_parser_lib.SmuParser(filepath)
