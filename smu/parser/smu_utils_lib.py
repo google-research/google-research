@@ -89,6 +89,13 @@ BOND_TYPE_TO_RDKIT = {
     dataset_pb2.BondTopology.BondType.BOND_TRIPLE: Chem.rdchem.BondType.TRIPLE,
 }
 
+INTEGER_TO_BOND_TYPE = [
+  dataset_pb2.BondTopology.BondType.BOND_UNDEFINED,
+  dataset_pb2.BondTopology.BondType.BOND_SINGLE,
+  dataset_pb2.BondTopology.BondType.BOND_DOUBLE,
+  dataset_pb2.BondTopology.BondType.BOND_TRIPLE,
+]
+
 ERROR_CODES = collections.OrderedDict([
     # TODO(pfr): give the ones with just error codes better names
     ('nstat1', 'error_nstat1'),
@@ -131,6 +138,8 @@ SPECIAL_ID_CASES = [
     (999996, 899652, 'C', 4),
 ]
 
+# Conversion constant from Bohr to Angstroms
+BOHR_TO_ANGSTROMS = 0.529177249
 
 def special_case_bt_id_from_dat_id(dat_id, smiles):
   """Determines if dat_id is a special case.
@@ -188,7 +197,7 @@ def bohr_to_angstroms(length):
   Returns:
     float
   """
-  return length * 0.529177249
+  return length * BOHR_TO_ANGSTROMS
 
 
 def get_composition(topology):
@@ -633,7 +642,7 @@ def conformer_to_molecules(conformer,
       yield mol
 
 
-def compute_smiles_for_bond_topology(bond_topology, include_hs):
+def compute_smiles_for_bond_topology(bond_topology, include_hs, labeled_atoms=False):
   """Calculate a canonical smiles for the given bond_topology.
 
   The bond topology may have the smiles field filled in but this method ignores
@@ -642,12 +651,13 @@ def compute_smiles_for_bond_topology(bond_topology, include_hs):
   Args:
     bond_topology: dataset_pb2.BondTopology
     include_hs: whether to include hs in the smiles string
+    labeled_atoms: whether or not to apply atom number labels.
 
   Returns:
     string
   """
   return compute_smiles_for_molecule(
-      bond_topology_to_molecule(bond_topology), include_hs)
+      bond_topology_to_molecule(bond_topology), include_hs, labeled_atoms=labeled_atoms)
 
 
 def compute_smiles_for_molecule(mol, include_hs, labeled_atoms = False):
