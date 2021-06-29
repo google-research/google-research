@@ -48,7 +48,7 @@ class PrimitivesTest(parameterized.TestCase):
       ),
   )
   def test_floor_and_clip_to_unsigned_int(self, prec):
-    x = jnp.array(fp32(2.0**5 * onp.random.uniform(0, 1.0, size=(10, 1))))
+    x = jnp.array(fp32(2.0**5 * onp.random.uniform(0, 1.0, size=(1024, 1))))
     y = primitives.floor_and_clip_to_unsigned_int(
         x, prec=prec, dtype=x.dtype, half_shift=False)
     self.assertGreaterEqual(onp.min(y), 0.0)
@@ -61,7 +61,7 @@ class PrimitivesTest(parameterized.TestCase):
       dict(testcase_name='round_clip_sint8', prec=8),
       dict(testcase_name='round_clip_sint16', prec=16))
   def test_round_and_clip_to_signed_int(self, prec):
-    np_x = fp32(2.0**5 * onp.random.uniform(-1.0, 1.0, size=(10, 1)))
+    np_x = fp32(2.0**5 * onp.random.uniform(-1.0, 1.0, size=(1024, 1)))
     x = jnp.array(np_x)
     y = primitives.round_and_clip_to_signed_int(
         x, prec=prec, dtype=x.dtype, half_shift=False)
@@ -72,6 +72,28 @@ class PrimitivesTest(parameterized.TestCase):
     onp.testing.assert_allclose(y, onp.around(y))
     onp.testing.assert_allclose(
         y, onp.clip(onp.floor(np_x + 0.5), a_min=lbound, a_max=ubound))
+
+  @parameterized.named_parameters(
+      dict(testcase_name='round_clip_sint1_half_shift', prec=1),
+      dict(testcase_name='round_clip_sint4_half_shift', prec=4),
+      dict(testcase_name='round_clip_sint8_half_shift', prec=8),
+      dict(testcase_name='round_clip_sint16_half_shift', prec=16))
+  def test_round_and_clip_to_signed_int_bound_half_shift(self, prec):
+    np_x = fp32(2.0**5 * onp.random.uniform(-1.0, 1.0, size=(1024, 1)))
+    x = jnp.array(np_x)
+    y = primitives.round_and_clip_to_signed_int(
+        x, prec=prec, dtype=x.dtype, half_shift=True)
+    ubound = fp32(2.0**(prec - 1))
+    lbound = fp32(-2.0**(prec - 1))
+    self.assertGreaterEqual(onp.min(y), lbound)
+    self.assertLessEqual(onp.max(y), ubound)
+    onp.testing.assert_allclose(y, onp.floor(y) + 0.5)
+    epsilon = 2**(-7)  # epsilon prevents flooring values to 1 (expect -1/0)
+    onp.testing.assert_allclose(
+        y,
+        onp.floor(
+            onp.clip(np_x, a_min=lbound + epsilon, a_max=ubound - epsilon)) +
+        0.5)
 
   def test_round_and_clip_to_signed_int_half_shift(self):
     # centers_2bit = [-1.5, -0.5, 0.5, 1.5]

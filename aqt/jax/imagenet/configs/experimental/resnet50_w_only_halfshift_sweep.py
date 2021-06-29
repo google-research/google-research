@@ -33,12 +33,13 @@ def get_config():
   configs = []
 
   for half_shift in [False, True]:
-    for prec in [1, 2, 3]:
+    for prec in [1, 2, 3, 4]:
       config = copy.deepcopy(base_config_dict)
       config.weight_prec = prec
       config.model_hparams.conv_init.weight_prec = 8
       config.model_hparams.dense_layer.weight_prec = 8
       config.half_shift = half_shift
+      config.metadata.hyper_str = f"resnet50_w_only_halfshift_sweep_halfshift_{half_shift}_prec_{prec}"
       configs.append(config)
 
   sweep_config.configs = configs
