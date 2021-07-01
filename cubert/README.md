@@ -283,3 +283,24 @@ We release the following file collections:
         [`gs://cubert/20200621_Python/variable_misuse_repair_datasets`].
     * Fine-tuned Model: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/variable_misuse_repair__epochs_20__pre_trained_epochs_1)
         [`gs://cubert/20200621_Python/variable_misuse_repair__epochs_20__pre_trained_epochs_1`].
+
+## Evaluating and Training the Models
+
+A `run_classifier.py` script (forked from the original BERT version) is provided to use the finetuned
+models for the classification tasks above.
+To use it, you first need to download the relevant files above (i.e., the corresponding vocabulary,
+dataset, and model checkpoint) and then need to create a BERT configuration file matching the
+chosen model.
+Assuming the downloaded data is stored in `$DATA_DIR`, you can then use the following command line
+to evaluate a model (note that it requires access to the `bert` module in your python library path):
+```
+python cubert/run_classifier.py
+  --do_train=False
+  --bert_config_file=$DATA_DIR/bert_large_config.json
+  --vocab_file=$DATA_DIR/github_python_minus_ethpy150open_deduplicated_vocabulary.txt
+  --task_name=exception
+  --init_checkpoint=$DATA_DIR/exception__epochs_20__pre_trained_epochs_1/model.ckpt-378
+  --data_dir=$DATA_DIR/exception_datasets
+  --output_dir=exception_results
+  --do_eval=True
+```
