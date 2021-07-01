@@ -38,7 +38,7 @@ def _sample_to_features(x, frontend_args, tflite):
       x, 16000, tflite=tflite, **frontend_args)
 
 
-def _get_frontend_output_shape():
+def get_frontend_output_shape():
   frontend_args = tf_frontend.frontend_args_from_flags()
   x = tf.zeros([frontend_args['n_required']], dtype=tf.float32)
   return _sample_to_features(x, frontend_args, tflite=False).shape
@@ -106,7 +106,7 @@ def get_keras_model(bottleneck_dimension,
   # hardware acceleration.
   num_batches = 1 if tflite else None
   frontend_args = tf_frontend.frontend_args_from_flags()
-  feats_inner_dim = _get_frontend_output_shape()[0]
+  feats_inner_dim = get_frontend_output_shape()[0]
   if frontend:
     logging.info('frontend_args: %s', frontend_args)
     model_in = tf.keras.Input((None,),
