@@ -934,6 +934,32 @@ class SmuWriter:
     return ''.join(contents)
 
 
+
+class AtomicInputWriter:
+  """From conformer, produces the input file for the (fortran) atomic2 code."""
+
+  def __init__(self):
+    self._smu_writer = SmuWriter(annotate=False)
+
+  def get_filename_for_atomic_input(self, conformer):
+    """Returns the expected filename for an atomic input."""
+    return '{}.{:06d}.{:03d}.inp'.format(
+      smu_utils_lib.get_composition(conformer.bond_topologies[0]),
+      conformer.conformer_id // 1000,
+      conformer.conformer_id % 1000)
+
+  def process(self, conformer):
+    """Creates the atomic input file for conformer."""
+    contents = []
+    contents.append(conformer.bond_topologies[0].smiles + '\n')
+    contents.append('{}.{:06d}.{:03d}\n'.format(
+      smu_utils_lib.get_composition(conformer.bond_topologies[0]),
+      conformer.conformer_id // 1000,
+      conformer.conformer_id % 1000))
+
+    return ''.join(contents)
+
+
 NEGATIVE_ZERO_RE = re.compile(r'-(0\.0+)\b')
 
 
