@@ -141,6 +141,13 @@ class BaseConfigTest(parameterized.TestCase):
     self.assertEqual(config.weight_half_shift, False)
     self.assertEqual(config.quant_act.half_shift, False)
 
+    # Set the global precision to None, checks whether referencing to None
+    # works well.
+    config.prec = None
+    # Test that this sets the weight and activation to None as well.
+    self.assertIsNone(config.weight_prec, None)
+    self.assertIsNone(config.quant_act.prec, None)
+
   @parameterized.parameters(dict(use_auto_acts=True), dict(use_auto_acts=False))
   def test_fp_precision_propagates(self, use_auto_acts):
     config = config_schema_utils.get_base_config(use_auto_acts, fp_quant=True)
