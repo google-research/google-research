@@ -529,11 +529,17 @@ def randomly_rotate_3d(keypoints_3d,
   Args:
     keypoints_3d: A tensor for 3D keypoints. Shape = [..., num_keypoints, 3].
     azimuth_range: A 2-tuple for minimum and maximum azimuth angles to randomly
-      rotate 3D keypoints with.
+      rotate 3D keypoints with. For sequential inputs, also supports 4-tuple for
+      minimum/maximum angles as well as minimum/maximum angle deltas between
+      starting and ending angles.
     elevation_range: A 2-tuple for minimum and maximum elevation angles to
-      randomly rotate 3D keypoints with.
+      randomly rotate 3D keypoints with. For sequential inputs, also supports
+      4-tuple for minimum/maximum angles as well as minimum/maximum angle deltas
+      between starting and ending angles.
     roll_range: A 2-tuple for minimum and maximum roll angles to randomly rotate
-      3D keypoints with.
+      3D keypoints with. For sequential inputs, also supports 4-tuple for
+      minimum/maximum angles as well as minimum/maximum angle deltas between
+      starting and ending angles.
     sequential_inputs: A boolean flag indicating whether the inputs are
       sequential. If True, the input keypoints are supposed to be in shape [...,
       sequence_length, num_keypoints, 3].
@@ -561,27 +567,37 @@ def randomly_rotate_3d(keypoints_3d,
     rotation_matrices = create_rotation_matrices_3d(azimuths, elevations, rolls)
   else:
 
-    def create_random_euler_angles():
-      azimuths = tf.random.uniform(
-          tf.shape(keypoints_3d)[:-3],
-          minval=azimuth_range[0],
-          maxval=azimuth_range[1],
-          seed=seed)
-      elevations = tf.random.uniform(
-          tf.shape(keypoints_3d)[:-3],
-          minval=elevation_range[0],
-          maxval=elevation_range[1],
-          seed=seed)
-      rolls = tf.random.uniform(
-          tf.shape(keypoints_3d)[:-3],
-          minval=roll_range[0],
-          maxval=roll_range[1],
-          seed=seed)
-      return (azimuths, elevations, rolls)
+    def create_random_angles(angle_range):
+      """Creates random starting and ending camera angles."""
+      if len(angle_range) == 2:
+        start_angles = tf.random.uniform(
+            tf.shape(keypoints_3d)[:-3],
+            minval=angle_range[0],
+            maxval=angle_range[1],
+            seed=seed)
+        end_angles = start_angles
+      elif len(angle_range) == 4:
+        start_angles = tf.random.uniform(
+            tf.shape(keypoints_3d)[:-3],
+            minval=angle_range[0],
+            maxval=angle_range[1],
+            seed=seed)
+        angle_deltas = tf.random.uniform(
+            tf.shape(keypoints_3d)[:-3],
+            minval=angle_range[2],
+            maxval=angle_range[3])
+        end_angles = start_angles + angle_deltas
+      else:
+        raise ValueError('Unsupported angle range: `%s`.' % str(angle_range))
+
+      return start_angles, end_angles
 
     sequence_length = keypoints_3d.shape.as_list()[-3]
-    start_euler_angles = create_random_euler_angles()
-    end_euler_angles = create_random_euler_angles()
+    start_azimuths, end_azimuths = create_random_angles(azimuth_range)
+    start_elevations, end_elevations = create_random_angles(elevation_range)
+    start_rolls, end_rolls = create_random_angles(roll_range)
+    start_euler_angles = (start_azimuths, start_elevations, start_rolls)
+    end_euler_angles = (end_azimuths, end_elevations, end_rolls)
     rotation_matrices = create_interpolated_rotation_matrix_sequences(
         start_euler_angles, end_euler_angles, sequence_length=sequence_length)
 
@@ -609,12 +625,18 @@ def randomly_rotate_and_project_3d_to_2d(keypoints_3d,
 
   Args:
     keypoints_3d: A tensor for 3D keypoints. Shape = [..., num_keypoints, 3].
-    azimuth_range: A tuple for minimum and maximum azimuth angles to randomly
-      rotate 3D keypoints with.
-    elevation_range: A tuple for minimum and maximum elevation angles to
-      randomly rotate 3D keypoints with.
-    roll_range: A tuple for minimum and maximum roll angles to randomly rotate
-      3D keypoints with.
+    azimuth_range: A 2-tuple for minimum and maximum azimuth angles to randomly
+      rotate 3D keypoints with. For sequential inputs, also supports 4-tuple for
+      minimum/maximum angles as well as minimum/maximum angle deltas between
+      starting and ending angles.
+    elevation_range: A 2-tuple for minimum and maximum elevation angles to
+      randomly rotate 3D keypoints with. For sequential inputs, also supports
+      4-tuple for minimum/maximum angles as well as minimum/maximum angle deltas
+      between starting and ending angles.
+    roll_range: A 2-tuple for minimum and maximum roll angles to randomly rotate
+      3D keypoints with. For sequential inputs, also supports 4-tuple for
+      minimum/maximum angles as well as minimum/maximum angle deltas between
+      starting and ending angles.
     normalized_camera_depth_range: A tuple for minimum and maximum normalized
       camera depth for random camera augmentation.
     sequential_inputs: A boolean flag indicating whether the inputs are
@@ -700,12 +722,18 @@ def randomly_project_and_select_keypoints(keypoints_3d,
     keypoint_profile_3d: A KeypointProfile3D object for input keypoints.
     output_keypoint_names: A list of keypoint names to select 2D projection
       with. Must be a subset of the 3D keypoint names.
-    azimuth_range: A tuple for minimum and maximum azimuth angles to randomly
-      rotate 3D keypoints with.
-    elevation_range: A tuple for minimum and maximum elevation angles to
-      randomly rotate 3D keypoints with.
-    roll_range: A tuple for minimum and maximum roll angles to randomly rotate
-      3D keypoints with.
+    azimuth_range: A 2-tuple for minimum and maximum azimuth angles to randomly
+      rotate 3D keypoints with. For sequential inputs, also supports 4-tuple for
+      minimum/maximum angles as well as minimum/maximum angle deltas between
+      starting and ending angles.
+    elevation_range: A 2-tuple for minimum and maximum elevation angles to
+      randomly rotate 3D keypoints with. For sequential inputs, also supports
+      4-tuple for minimum/maximum angles as well as minimum/maximum angle deltas
+      between starting and ending angles.
+    roll_range: A 2-tuple for minimum and maximum roll angles to randomly rotate
+      3D keypoints with. For sequential inputs, also supports 4-tuple for
+      minimum/maximum angles as well as minimum/maximum angle deltas between
+      starting and ending angles.
     normalized_camera_depth_range: A tuple for minimum and maximum normalized
       camera depth for random camera augmentation.
     keypoint_masks_3d: A tensor for input 3D keypoint masks. Shape = [...,
