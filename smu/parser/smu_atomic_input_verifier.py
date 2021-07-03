@@ -82,7 +82,6 @@ def main(argv):
               atomic_writer.get_filename_for_atomic_input(conformer)),
                            'w') as f:
             f.write(actual_contents)
-        break  # SMURF
 
   status_str = ('COMPLETE: Read %d files, %d conformers, %d mismatches\n' %
                 (file_count, conformer_count, mismatches))
