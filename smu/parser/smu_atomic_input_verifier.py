@@ -36,6 +36,9 @@ flags.DEFINE_string(
     'atomic_input_dir', None,
     'Directory containing .inp files named like x07_c2n2f3h3.253852.001.inp  '
     'These are the desired outputs')
+flags.DEFINE_string(
+    'output_dir', None,
+    'If given, given to write files with mismatches')
 
 flags.mark_flag_as_required('input_glob')
 flags.mark_flag_as_required('atomic_input_dir')
@@ -73,8 +76,13 @@ def main(argv):
       except smu_writer_lib.DatFormatMismatchError as e:
         mismatches += 1
         print(e)
+        if FLAGS.output_dir:
+          with gfile.GFile(os.path.join(
+              FLAGS.output_dir,
+              atomic_writer.get_filename_for_atomic_input(conformer)),
+                           'w') as f:
+            f.write(actual_contents)
         break  # SMURF
-
 
   status_str = ('COMPLETE: Read %d files, %d conformers, %d mismatches\n' %
                 (file_count, conformer_count, mismatches))

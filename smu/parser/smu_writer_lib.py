@@ -948,6 +948,97 @@ class AtomicInputWriter:
       conformer.conformer_id // 1000,
       conformer.conformer_id % 1000)
 
+  def get_mol_block(self, conformer):
+    """Returns the MOL file block with atoms and bonds.
+
+    Args:
+      conformer: dataset_pb2.Conformer
+
+    Returns:
+      list of strings
+    """
+    contents = []
+    return contents
+
+  def get_energies(self, conformer):
+    """Returns the $energies block.
+
+    Args:
+      conformer: dataset_pb2.Conformer
+
+    Returns:
+      list of strings
+    """
+    contents = []
+    contents.append('$energies\n')
+    contents.append('#              HF              MP2          '
+                    'CCSD         CCSD(T)        T1 diag\n')
+
+    def format_field(field_name):
+      return '{:15.7f}'.format(getattr(conformer.properties, field_name).value)
+
+    contents.append('{:7s}'.format('3') +
+                    format_field('single_point_energy_hf_3') +
+                    format_field('single_point_energy_mp2_3') +
+                    '\n')
+    contents.append('{:7s}'.format('4') +
+                    format_field('single_point_energy_hf_4') +
+                    format_field('single_point_energy_mp2_4') +
+                    '\n')
+    contents.append('{:7s}'.format('2sp') +
+                    format_field('single_point_energy_hf_2sp') +
+                    format_field('single_point_energy_mp2_2sp') +
+                    format_field('single_point_energy_ccsd_2sp') +
+                    format_field('single_point_energy_ccsd_t_2sp') +
+                    '\n')
+    contents.append('{:7s}'.format('2sd') +
+                    format_field('single_point_energy_hf_2sd') +
+                    format_field('single_point_energy_mp2_2sd') +
+                    format_field('single_point_energy_ccsd_2sd') +
+                    format_field('single_point_energy_ccsd_t_2sd') +
+                    format_field('diagnostics_t1_ccsd_2sd') +
+                    '\n')
+    contents.append('{:7s}'.format('3Psd') +
+                    format_field('single_point_energy_hf_3psd') +
+                    format_field('single_point_energy_mp2_3psd') +
+                    format_field('single_point_energy_ccsd_3psd') +
+                    '\n')
+    contents.append('{:7s}'.format('C3') +
+                    format_field('single_point_energy_hf_cvtz') +
+                    format_field('single_point_energy_mp2ful_cvtz') +
+                    '\n')
+    contents.append('{:7s}'.format('(34)') +
+                    format_field('single_point_energy_hf_34') +
+                    format_field('single_point_energy_mp2_34') +
+                    '\n')
+
+    return contents
+
+  def get_frequencies(self, conformer):
+    """Returns the $frequencies block.
+
+    Args:
+      conformer: dataset_pb2.Conformer
+
+    Returns:
+      list of strings
+    """
+    contents = []
+    # Note that we strip the first 6 frequencies because they are always 0.
+    contents.append('$frequencies{:5d}{:5d}{:5d}\n'.format(
+      len(conformer.properties.harmonic_frequencies.value) - 6,
+      0, 0))
+    line = ''
+    for i, freq in enumerate(
+        conformer.properties.harmonic_frequencies.value[6:]):
+      line += '{:8.2f}'.format(freq)
+      if i % 10 == 9:
+        contents.append(line + '\n')
+        line = ''
+    if line:
+      contents.append(line + '\n')
+    return contents
+
   def process(self, conformer):
     """Creates the atomic input file for conformer."""
     contents = []
@@ -956,6 +1047,11 @@ class AtomicInputWriter:
       smu_utils_lib.get_composition(conformer.bond_topologies[0]),
       conformer.conformer_id // 1000,
       conformer.conformer_id % 1000))
+
+    contents.extend(self.get_mol_block(conformer))
+    contents.extend(self.get_energies(conformer))
+    contents.extend(self.get_frequencies(conformer))
+    contents.append('$end\n')
 
     return ''.join(contents)
 
