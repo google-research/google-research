@@ -958,6 +958,22 @@ class AtomicInputWriter:
       list of strings
     """
     contents = []
+    contents.append('\n')
+    contents.append('{:3d}{:3d}  0  0  0  0  0  0  0  0999 V2000\n'.format(
+      len(conformer.bond_topologies[0].atoms),
+      len(conformer.bond_topologies[0].bonds)))
+    for atom_type, coords in zip(conformer.bond_topologies[0].atoms,
+                                 conformer.optimized_geometry.atom_positions):
+      contents.append(
+        '{:10.4f}{:10.4f}{:10.4f} {:s}   0  0  0  0  0  0  0  0  0  0  0  0\n'
+        .format(smu_utils_lib.bohr_to_angstroms(coords.x),
+                smu_utils_lib.bohr_to_angstroms(coords.y),
+                smu_utils_lib.bohr_to_angstroms(coords.z),
+                smu_utils_lib.ATOM_TYPE_TO_RDKIT[atom_type][0]))
+    for bond in conformer.bond_topologies[0].bonds:
+      contents.append('{:3d}{:3d}{:3d}  0\n'.format(
+        bond.atom_a + 1, bond.atom_b + 1, bond.bond_type))
+
     return contents
 
   def get_energies(self, conformer):
