@@ -939,7 +939,7 @@ class AtomicInputWriter:
   """From conformer, produces the input file for the (fortran) atomic2 code."""
 
   def __init__(self):
-    self._smu_writer = SmuWriter(annotate=False)
+    pass
 
   def get_filename_for_atomic_input(self, conformer):
     """Returns the expected filename for an atomic input."""
