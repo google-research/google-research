@@ -1,7 +1,7 @@
 ## Introduction
 
 This is a repository for code and data accompanying the ICML 2021 paper
-[SPREADSHEETCODER: Formula Prediction from Semi-structured Context](TBD).
+[SPREADSHEETCODER: Formula Prediction from Semi-structured Context](https://arxiv.org/abs/2106.15339).
 
 If you use the code or data released through this repository, please
 cite the following paper:
@@ -16,7 +16,7 @@ author    = {Chen, Xinyun  and
              Zhou, Denny },
 title     = {SPREADSHEETCODER: Formula Prediction from Semi-structured Context},
 booktitle = {Proceedings of the 38th International Conference on Machine Learning,
-               {ICML} 2021, 12-18 July 2021},
+               {ICML} 2021, 18-24 July 2021},
 series    = {Proceedings of Machine Learning Research},
 publisher = {{PMLR}},
 year      = {2021},
