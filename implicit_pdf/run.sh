@@ -20,7 +20,7 @@ python3 -m virtualenv .
 source ./bin/activate
 
 pip install -r implicit_pdf/requirements.txt
-python -m implicit_pdf.train --symsol_shapes tetX \
+python -m implicit_pdf.train --mock --symsol_shapes tetX \
 --number_training_iterations 2 --batch_size 2 --head_network_specs 16 \
 --number_train_queries 100 --number_eval_queries 100 --eval_every 100 \
---number_fourier_components 0 --save_models False
+--number_fourier_components 0 --nosave_models

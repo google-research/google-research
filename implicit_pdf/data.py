@@ -32,7 +32,7 @@ SHAPE_NAMES = [
 ]
 
 
-def load_symsol(shapes, mode='train', downsample_continuous_gt=0):
+def load_symsol(shapes, mode='train', downsample_continuous_gt=0, mock=False):
   """Loads the symmetric_solids dataset.
 
   Args:
@@ -42,6 +42,7 @@ def load_symsol(shapes, mode='train', downsample_continuous_gt=0):
       continuous symmetry ground truths, if any.  The gt rotations for the cone
       and cyl have been discretized to 1 degree increments, but this can be
       overkill for evaluation during training. If 0, use the full annotation.
+    mock: Make random data to avoid downloading it.
 
   Returns:
     tf.data.Dataset of images with the associated rotation matrices.
@@ -49,7 +50,11 @@ def load_symsol(shapes, mode='train', downsample_continuous_gt=0):
   shape_inds = [SHAPE_NAMES.index(shape) for shape in shapes]
   dataset_loaded = False
   if not dataset_loaded:
-    dataset = tfds.load('symmetric_solids', split=mode)
+    if mock:
+      with tfds.testing.mock_data(num_examples=100):
+        dataset = tfds.load('symmetric_solids', split=mode)
+    else:
+      dataset = tfds.load('symmetric_solids', split=mode)
 
   # Filter the dataset by shape index, and use the full set of equivalent
   # rotations only if mode == test
