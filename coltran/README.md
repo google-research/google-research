@@ -7,6 +7,14 @@ Work by Manoj Kumar, Dirk Weissenborn and Nal Kalchbrenner.
 
 <img src="coltran_images.png" alt="Model images" width="1000"/>
 
+### Important: Note on Evaluation:
+
+Colorization is a multi-modal problem, where a given object can have multiple plausible colors.
+On recolorizing a RGB image, a single random sample represents another plausible colorization. It
+is unlikely to have the same colors as the ground-truth RGB image. So while evaluating the Colorization Transformer,
+one should use distribution-level metrics such as the FID and NOT per-image metrics such as LPIPS or SSIM.
+
+
 ### Update: 23 March 2021
 
 * Custom colorization script over [here](https://github.com/google-research/google-research/blob/master/coltran/custom_colorize.py)
