@@ -3,7 +3,7 @@
 <img src="https://implicit-pdf.github.io/ipdf_files/cube.gif" width="800"/>
 
 [Project Page](https://implicit-pdf.github.io/) |
-[Paper](arxiv.org)
+[Paper](https://arxiv.org/abs/2106.05965)
 
 This code accompanies the paper
 
@@ -11,7 +11,7 @@ This code accompanies the paper
 
 Kieran Murphy*, Carlos Esteves*, Varun Jampani, Srikumar Ramalingam, Ameesh Makadia
 
-ICML 2021 ([arxiv]())
+ICML 2021 ([arxiv](https://arxiv.org/abs/2106.05965))
 
 
 ## Repository Contents
