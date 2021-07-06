@@ -194,7 +194,7 @@ def main(argv):
         outputter.write(c)
     if FLAGS.random_fraction:
       for conformer in db:
-        if conformer.fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_ERROR and random.random() < FLAGS.random_fraction:
+        if conformer.fate == dataset_pb2.Conformer.FATE_SUCCESS and random.random() < FLAGS.random_fraction:
           outputter.write(conformer)
 
 
