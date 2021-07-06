@@ -49,6 +49,7 @@ flags.DEFINE_string('checkpoint_number', None, 'Optional checkpoint number to '
 flags.DEFINE_boolean('quantize', False,
                      'Whether to quantize converted models if possible.')
 flags.DEFINE_boolean('include_frontend', False, 'Whether to include frontend.')
+flags.DEFINE_boolean('sanity_checks', True, 'Whether to run inference checks.')
 
 FLAGS = flags.FLAGS
 
@@ -197,6 +198,8 @@ def main(_):
     else:
       logging.info('Exported FP32 TFLite model to %s.', model_path)
 
+    if not FLAGS.sanity_checks:
+      continue
     logging.info('Sanity checking...')
     if FLAGS.include_frontend:
       input_shape = (1, 2 * FLAGS.n_required)
