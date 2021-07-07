@@ -122,26 +122,26 @@ def apply_matrix_compression(matrix_compression_obj,  # pylint:disable=invalid-n
     return compressed_matrix
 
 
-def apply_customized_matrix_compression(matrix_compression_obj,  # pylint:disable=invalid-name
-                                        weight_params_fn,
-                                        weight_init_obj,
-                                        layer_obj,
-                                        weight_name,
-                                        weight_shape,
-                                        weight_dtype,
-                                        scope_name='pruning_interface',
-                                        spec=None):
-  """Apply pruning or compression to a lingvo layer.
+def apply_customized_lstm_matrix_compression(matrix_compression_obj,  # pylint:disable=invalid-name
+                                             weight_params_fn,
+                                             weight_init_obj,
+                                             layer_obj,
+                                             weight_name,
+                                             weight_shape,
+                                             weight_dtype,
+                                             scope_name='pruning_interface',
+                                             spec=None):
+  """Apply pruning or compression to a LSTM layer.
 
   This provides a unified interface to perform pruning or compression for a
-  lingvo layer.
+  lingvo LSTM layer.
 
   Args:
     matrix_compression_obj: A Pruning or
       compression_lib.lingvo_compression_op.ApplyCompression object;
     weight_params_fn: functional handle to create model parameters;
     weight_init_obj: a weight initialization object;
-    layer_obj: a layer object in the lingvo package, weight matrix of this
+    layer_obj: a LSTM cell object in the lingvo package, weight matrix of this
       layer is pruned or compressed;
     weight_name: name of the tensor that is compressed, str;
     weight_shape: shape of the weight matrix;
@@ -197,16 +197,16 @@ def apply_customized_matrix_compression(matrix_compression_obj,  # pylint:disabl
 
 def apply_pruning(pruning_obj,  # pylint:disable=invalid-name
                   pruning_hparams,
-                  weight_params_fn, weight_init_obj, layerobj,
+                  weight_params_fn, weight_init_obj, lstmobj,
                   wm_pc, dtype):
-  """Apply pruning to an lingvo layer.
+  """Apply pruning to an LSTM cell.
 
   Args:
     pruning_obj: a Pruning object;
     pruning_hparams: a Pruning hparams object;
     weight_params_fn: functional handle to create model parameters;
     weight_init_obj: a weight initialization object;
-    layerobj: a layer object in the lingvo package;
+    lstmobj: a LSTM cell object in the lingvo package;
     wm_pc: weight matrix;
     dtype: data type of the weight matrix.
 
@@ -220,14 +220,13 @@ def apply_pruning(pruning_obj,  # pylint:disable=invalid-name
                                dtype)
     threshold_pc = weight_params_fn([], weight_init_obj.Constant(0.0),
                                     tf.float32)
-    layerobj.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
-    layerobj.CreateVariable(
+    lstmobj.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
+    lstmobj.CreateVariable(
         'threshold', threshold_pc, theta_fn=None, trainable=False)
-    if layerobj.vars.mask not in tf.get_collection(pruning.MASK_COLLECTION):
-      tf.add_to_collection(pruning.WEIGHT_COLLECTION, layerobj.vars.wm)
-      tf.add_to_collection(pruning.MASK_COLLECTION, layerobj.vars.mask)
-      tf.add_to_collection(pruning.THRESHOLD_COLLECTION,
-                           layerobj.vars.threshold)
+    if lstmobj.vars.mask not in tf.get_collection(pruning.MASK_COLLECTION):
+      tf.add_to_collection(pruning.WEIGHT_COLLECTION, lstmobj.vars.wm)
+      tf.add_to_collection(pruning.MASK_COLLECTION, lstmobj.vars.mask)
+      tf.add_to_collection(pruning.THRESHOLD_COLLECTION, lstmobj.vars.threshold)
     return pruning_obj
   else:  # TODO(wanxin): add model_compression options.
     return pruning_obj
@@ -390,7 +389,7 @@ class PruningOp(object):
     add_compression_summaries(cls._pruning_obj)
 
   @classmethod
-  def ApplyPruning(cls, pruning_hparams_dict, layerobj, weight_name, wm_pc,  # pylint:disable=invalid-name
+  def ApplyPruning(cls, pruning_hparams_dict, lstmobj, weight_name, wm_pc,  # pylint:disable=invalid-name
                    dtype, scope):
     if not cls._pruning_obj:
       train_global_step = py_utils.GetGlobalStep()
@@ -399,12 +398,12 @@ class PruningOp(object):
       cls.Setup(pruning_hparams_dict, global_step=train_global_step)
     compression_op_spec = pruning.get_pruning_hparams().override_from_dict(
         pruning_hparams_dict)
-    return apply_customized_matrix_compression(cls._pruning_obj,
-                                               py_utils.WeightParams,
-                                               py_utils.WeightInit,
-                                               layerobj, weight_name,
-                                               wm_pc.shape, dtype, scope,
-                                               compression_op_spec)
+    return apply_customized_lstm_matrix_compression(cls._pruning_obj,
+                                                    py_utils.WeightParams,
+                                                    py_utils.WeightInit,
+                                                    lstmobj, weight_name,
+                                                    wm_pc.shape, dtype, scope,
+                                                    compression_op_spec)
 
   @classmethod
   def GetMixResult(cls, theta, concat, lstmobj):  # pylint:disable=invalid-name
