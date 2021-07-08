@@ -37,7 +37,7 @@ from absl import logging
 from graph_compression.compression_lib import compression_op as comp_op
 from graph_compression.compression_lib import simhash_compression_op as simhash_comp_op
 
-_COMPRESSION_OPTIONS = [1, 2, 4, 8, 9, 10, 11]
+_COMPRESSION_OPTIONS = [1, 2, 4, 8, 9, 10]
 
 
 def get_apply_compression(compression_op_spec, global_step):
@@ -100,15 +100,6 @@ def get_apply_compression(compression_op_spec, global_step):
         compressor=compressor,
         global_step=global_step)
   elif compression_op_spec.compression_option == 10:
-    compressor_spec.set_hparam('is_c_matrix_trainable', True)
-    compression_op_spec.set_hparam('add_summary', False)
-    compressor = comp_op.LowRankDecompMatrixCompressor(spec=compressor_spec)
-    apply_compression = comp_op.ApplyCompression(
-        scope='default_scope',
-        compression_spec=compression_op_spec,
-        compressor=compressor,
-        global_step=global_step)
-  elif compression_op_spec.compression_option == 11:
     compressor_spec.set_hparam('is_c_matrix_trainable', True)
     compression_op_spec.set_hparam('add_summary', False)
     compressor = comp_op.LowRankDecompMatrixCompressor(spec=compressor_spec)

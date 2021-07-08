@@ -18,7 +18,6 @@
 from __future__ import absolute_import
 from __future__ import division
 
-from absl.testing import parameterized
 import numpy as np
 import tensorflow.compat.v1 as tf
 from graph_compression.compression_lib import compression_op
@@ -391,74 +390,6 @@ class BlockCompressionOpTest(tf.test.TestCase):
         self.assertEqual(np.count_nonzero(c.c_mask_tfvar.eval()), 48)
         # check that we get the expected output shape
         self.assertSequenceEqual(list(compressed_matmul.eval().shape), [1, 8])
-
-
-class AllBlockCompressionOpTest(parameterized.TestCase, tf.test.TestCase):
-
-  @parameterized.named_parameters(
-      ("_1", 1000.0, 1.0),   #
-      ("_2", 5.5, 0.996),    #
-      ("_3", -5.5, 0.004),   #
-      ("_4", -1000.0, 0.0))
-  def test_get_apply_matmul(self, logits_init, expected_percent_on):
-    with tf.Graph().as_default():
-      with self.cached_session():
-        hparams = ("name=all_block_compression,"
-                   "compression_option=11,"
-                   "begin_compression_step=1000,"
-                   "end_compression_step=120000,"
-                   "compression_frequency=100,"
-                   "block_method=mask,"
-                   "num_blocks_on_diagonal=2,"
-                   f"log_odds_ratio={logits_init},"
-                   "figs_temperature=0.01,"
-                   "figs_threshold=0.5")
-        compression_op_spec = (
-            compression_op.AllBlockCompressionOp.get_default_hparams().parse(
-                hparams))
-
-        compressor_spec = (
-            compression_op.LowRankDecompMatrixCompressor.get_default_hparams())
-        matrix_compressor = compression_op.LowRankDecompMatrixCompressor(
-            spec=compressor_spec)
-
-        global_step = tf.compat.v1.get_variable("global_step", initializer=100)
-        apply_comp = compression_op.ApplyCompression(
-            scope="default_scope",
-            compression_spec=compression_op_spec,
-            compressor=matrix_compressor,
-            global_step=global_step)
-
-        # outer product - creates an 12x8 matrix
-        a_matrix_init = np.outer(
-            np.array([1., 2., 3., 7., 8., 9., 1., 2., 5., -2., -7., -1.]),
-            np.array([4., 5., 6., 3., 1., 8., 3., 2.]))
-        a_matrix = tf.compat.v1.get_variable(
-            "a_matrix",
-            initializer=a_matrix_init.astype(np.float32),
-            dtype=tf.float32)
-        _ = apply_comp.apply_compression(
-            a_matrix, scope="compressor")
-        # input is 1x12 vector
-        left_operand_init = np.expand_dims(
-            np.array([1., 2., 3., 4., 1., 2., 3., 4., 1., 2., 3., 4.]), axis=0)
-        left_operand = tf.compat.v1.get_variable(
-            "left_operand",
-            initializer=left_operand_init.astype(np.float32),
-            dtype=tf.float32)
-        c = apply_comp._compression_ops[-1]
-        tf.compat.v1.global_variables_initializer().run()
-        compressed_matmul = c.get_apply_matmul(left_operand)
-
-        # check c, c_mask matrices have the right shapes
-        self.assertSequenceEqual(list(c.c_matrix_tfvar.eval().shape), [12, 8])
-        self.assertSequenceEqual(list(c.c_mask.eval().shape), [12, 8])
-        # check that we get the expected output shape
-        self.assertSequenceEqual(list(compressed_matmul.eval().shape), [1, 8])
-
-        # check we get the correct percentage of zeros
-        avg_mask = np.average(c.c_mask.eval())
-        self.assertAlmostEqual(avg_mask, expected_percent_on, delta=0.07)
 
 
 class CompressionLayersTest(tf.test.TestCase):
