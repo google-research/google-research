@@ -47,6 +47,7 @@ import copy
 from absl import logging
 import numpy as np
 import tensorflow.compat.v1 as tf
+import tensorflow_probability as tfp
 from graph_compression.compression_lib import compression_op_utils as comp_op_utils
 from model_pruning.python import hparam as contrib_hparam
 
@@ -223,7 +224,11 @@ class CompressionOpInterface(object):
   """
 
   @abc.abstractmethod
-  def __init__(self, scope='default_scope', spec=None, global_step=None):
+  def __init__(self,
+               is_train=False,
+               scope='default_scope',
+               spec=None,
+               global_step=None):
     pass
 
   def get_apply_compression_op(self,
@@ -255,6 +260,14 @@ class CompressionOpInterface(object):
     """
     raise NotImplementedError()
 
+  def get_loss(self):
+    """Returns a loss for the compression op.
+
+    Returns:
+      By default returns 0.
+    """
+    return 0
+
 
 class CompressionOp(CompressionOpInterface):
   """Implements a compression OP.
@@ -265,10 +278,16 @@ class CompressionOp(CompressionOpInterface):
   details.
   """
 
-  def __init__(self, scope='default_scope', spec=None, global_step=None):
+  def __init__(self,
+               is_train=False,
+               scope='default_scope',
+               spec=None,
+               global_step=None):
     """Initializer.
 
     Args:
+      is_train: Boolean indicating whether we are invoking compression during
+                model train or eval.
       scope: TF scope used for creating new TF variables.
       spec: compression hyper parameters default value given by
         self.get_default_hparams().
@@ -279,6 +298,8 @@ class CompressionOp(CompressionOpInterface):
     self._spec = spec if spec else self.get_default_hparams()
     logging.info('Compression spec in init CompressionOp is: ')
     self.print_hparams()
+
+    self.is_train = is_train
 
     # Sanity check for compression hparams
     self._validate_spec()
@@ -717,6 +738,22 @@ class CompressionOp(CompressionOpInterface):
         logging.info('Updating all compression_ops.')
         return tf.no_op('update_all_compression_ops')
 
+  @staticmethod
+  def all_loss_op(loss_ops_list, scope='default_scope'):
+    """Method to create a complete loss op.
+
+    Args:
+      loss_ops_list: list of individual loss ops.
+      scope: tf scope for creating loss op.
+
+    Returns:
+      A TensorFlow op that updates the compression loss variables.
+    """
+    with tf.compat.v1.name_scope(scope):
+      with tf.control_dependencies(loss_ops_list):
+        logging.info('Updating all compression loss ops.')
+        return tf.no_op('update_all_compression_loss_ops')
+
   def _validate_spec(self):
     spec = self._spec
     if spec.begin_compression_step < 0:
@@ -918,7 +955,7 @@ class InputOutputCompressionOp(CompressionOp):
         name='input_compression',
         compression_frequency=10,
         use_tpu=False,
-        compression_option=0,
+        compression_option=9,
         begin_compression_step=1000,
         end_compression_step=2000,
         is_b_matrix_trainable=True,
@@ -1042,7 +1079,7 @@ class InputOutputCompressionOp(CompressionOp):
                                           weight_params_fn,
                                           weight_init_obj,
                                           scope='default_scope'):
-    """Returns input (and) or output compressed operator for a babelfish layer.
+    """Returns input (and) or output compressed operator for a lingvo layer.
 
     Args:
       a_matrix_tfvar: TF variable representing a tensor variable in a model.
@@ -1080,7 +1117,7 @@ class InputOutputCompressionOp(CompressionOp):
           a_matrix_tfvar.shape[1] // self._spec.output_compression_factor
       ], weight_init_obj.Xavier(1.0), tf.float32)
 
-      # create the TF variables using babelfish variable creation function
+      # create the TF variables using lingvo variable creation function
       if self._spec.compress_input:
         layer_obj.CreateVariable(
             'b_matrix_tfvar',
@@ -1260,7 +1297,7 @@ class InputOutputCompressionOp(CompressionOp):
     return compressed_result
 
   def get_mix_operator(self, theta, concat):
-    """Performs matrix multiplication on compressed input for Babelfish LSTM layers.
+    """Performs matrix multiplication on compressed input for lingvo LSTM layers.
 
     This performs the input (and/or) output compressed equivalent of
     tf.matmul(concat, theta.wm).
@@ -1782,6 +1819,371 @@ class BlockCompressionOp(CompressionOp):
       return tf.concat(output_splitted, axis=-1)
 
 
+class AllBlockCompressionOp(CompressionOp):
+  """Implements an all-blocks compression OP (with FiGS).
+
+  Replaces the weight matrix with a block-masked matrix, in which some of the
+  blocks are masked out.
+
+
+  block_method: string.
+    "mask" creates block diagonal matrices by masking out entries outside of the
+    diagonal blocks.
+    "loop" stores the blocks in a rank 3 tensor and loops through them during
+    the multiplication step.
+  num_blocks_on_diagonal: integer.
+    The matrix is divided into num_blocks_on_diagonal x num_blocks_on_diagonal
+    blocks, which effectively determines the compression resolution.
+  """
+
+  @staticmethod
+  def get_default_hparams():
+    """Get a tf.HParams object with the default values for the hyperparameters.
+
+      name: string
+        name of the compression specification. Used for adding summaries and ops
+        under a common tensorflow name_scope.
+      use_tpu: False
+        indicates whether to use TPU.
+      compression_option: integer
+        indicates what type of factorization (if any) is used.
+      rank: integer
+        indicates what type of factorization (if any) is used.
+      update_option: integer
+        indicates how the update logic is being run. More specifically:
+        0 - run the update logic in TF; needed when using GPU/TPU.
+        1 - run the update logic in regular python as opposed to TF.
+        2 - run the update logic in TF and in regular python.
+      TODO(wanxin): add doc strings for pruning hparams.
+
+    Returns:
+      tf.HParams object initialized to default values.
+
+    """
+    return contrib_hparam.HParams(
+        name='all_block_compression',
+        compression_frequency=1,
+        use_tpu=False,
+        compression_option=11,
+        begin_compression_step=1000,
+        end_compression_step=2000,
+        is_c_matrix_trainable=True,
+        compress_input=True,
+        compress_output=True,
+        input_compression_factor=1,
+        output_compression_factor=1,
+        num_blocks_on_diagonal=10,
+        block_method='mask',
+        log_odds_ratio=2.5,
+        figs_temperature=0.01,
+        figs_threshold=0.5,
+        figs_reg_strength=1e-5,
+        add_summary=True)
+
+  def add_compression_summaries(self):
+    """Adds summaries."""
+    with tf.name_scope(self._spec.name + '_summaries'):
+      logging.info('add_compression_summaries scope name is %s',
+                   self._spec.name)
+      tf.compat.v2.summary.scalar(
+          self.c_matrix_tfvar.op.name + '/c_matrix_norm',
+          tf.norm(self.c_matrix_tfvar))
+      tf.compat.v2.summary.scalar(
+          self.c_mask.op.name + '/c_mask',
+          tf.norm(self.c_mask))
+      tf.compat.v2.summary.scalar(
+          'num_alive',
+          tf.reduce_sum(
+              tf.cast(
+                  tf.nn.sigmoid(self.blockwise_logits) >
+                  self._spec.figs_threshold,
+                  dtype=self.blockwise_logits.dtype)))
+      # TODO(danama): Add loss
+
+  # Overriding this function from CompressionOp since last_alpha_update_step is
+  # not needed for AllBlockCompressionOp.
+  def _setup_last_alpha_update_step(self):
+    return -1
+
+  def create_blockwise_logits(self,
+                              lingvo=False,
+                              layer_obj=None,
+                              weight_params_fn=None,
+                              weight_init_obj=None,
+                              scope='default_scope'):
+    """Define blockwise FiGS logits.
+
+    Args:
+      lingvo: Boolean representing whether the logit variable is created
+        under lingvo.
+      layer_obj: a customized layer object that handles variable creation. Only
+        needed for lingvo.
+      weight_params_fn: functional handle to create model parameters. Only
+        needed for lingvo.
+      weight_init_obj: a weight initialization object. Only needed for
+        lingvo.
+      scope: TF scope used for creating new TF variables.
+
+    Returns:
+      A blockwise_logits variable.
+    """
+    if lingvo:
+      with tf.variable_scope(scope) as scope:
+        logits_array = np.ones([
+            self._spec.num_blocks_on_diagonal, self._spec.num_blocks_on_diagonal
+        ])
+        logits_array *= self._spec.log_odds_ratio
+        logits_init = weight_params_fn(logits_array.shape,
+                                       weight_init_obj.Constant(logits_array),
+                                       layer_obj.params.dtype)
+        layer_obj.CreateVariable(
+            'blockwise_logits', logits_init, theta_fn=None, trainable=True)
+        return layer_obj.vars.blockwise_logits
+    else:
+      return tf.get_variable(
+          'blockwise_logits', [
+              self._spec.num_blocks_on_diagonal,
+              self._spec.num_blocks_on_diagonal
+          ],
+          initializer=tf.constant_initializer(self._spec.log_odds_ratio),
+          trainable=True)
+
+  def get_apply_compression_core(self,
+                                 a_matrix_tfvar,
+                                 matrix_compressor,
+                                 lingvo=False,
+                                 layer_obj=None,
+                                 weight_params_fn=None,
+                                 weight_init_obj=None,
+                                 scope='default_scope'):
+    """Core method for creating FiGS-based all-block compression.
+
+    Args:
+      a_matrix_tfvar: TF variable representing a tensor variable in a model.
+      matrix_compressor: MatrixCompressorInferface object to specify the
+        compression algorithm. Must return two matrices b_matrix,c_matrix in its
+        compression.
+      lingvo: Boolean representing whether the logit variable is created
+        under lingvo.
+      layer_obj: a customized layer object that handles variable creation. Only
+        needed for lingvo.
+      weight_params_fn: functional handle to create model parameters. Only
+        needed for lingvo.
+      weight_init_obj: a weight initialization object. Only needed for
+        lingvo.
+      scope: TF scope used for creating new TF variables.
+
+    Returns:
+        A TF node that has the compressed version of a_matrix_tfvar.
+    """
+    self.matrix_compressor = matrix_compressor
+    if self._spec.block_method == 'mask':
+      # Define blockwise FiGS logits
+      self.blockwise_logits = self.create_blockwise_logits(
+          lingvo=lingvo,
+          layer_obj=layer_obj,
+          weight_params_fn=weight_params_fn,
+          weight_init_obj=weight_init_obj,
+          scope=scope)
+
+      if self.is_train:
+        # During training, sample from the logistic distribution.
+        logistic_dist = tfp.distributions.Logistic(loc=0.0, scale=1.0)
+        blockwise_logistic_sample = logistic_dist.sample(
+            self.blockwise_logits.shape.as_list())
+        self.blockwise_mask = tf.nn.sigmoid(
+            (self.blockwise_logits + blockwise_logistic_sample) /
+            self._spec.figs_temperature)
+      else:
+        # During eval, use a threshold instead of sampling, for stability.
+        self.blockwise_mask = tf.cast(
+            tf.nn.sigmoid(self.blockwise_logits) > self._spec.figs_threshold,
+            dtype=self.blockwise_logits.dtype)
+
+      # Use the mask.
+      self.blockwise_mask = tf.expand_dims(self.blockwise_mask, -1)
+
+      # create block diagonal mask for c_matrix
+      num_rows, num_cols = a_matrix_tfvar.shape.as_list()
+      self.c_mask = tf.image.resize(
+          self.blockwise_mask, size=(num_rows, num_cols), method='nearest')
+      self.c_mask = tf.squeeze(self.c_mask)
+
+      self.c_matrix_tfvar = a_matrix_tfvar
+    elif self._spec.block_method == 'loop':
+      raise NotImplementedError()
+
+    # update_op and final_op not necessary for BlockCompressionOp.
+    self.update_op = tf.no_op()
+    self.final_op = tf.no_op()
+
+    if self._spec.add_summary:
+      self.add_compression_summaries()
+    return [self.final_op, self.update_op]
+
+  def get_apply_compression_op(self,
+                               a_matrix_tfvar,
+                               matrix_compressor,
+                               scope='default_scope'):
+    """Returns compressed tensorflow operator for all-block compression.
+
+    Args:
+      a_matrix_tfvar: TF variable representihg a tensor variable in a model
+      matrix_compressor: MatrixCompressorInferface object to specify the
+        compression algorithm. Must return two matrices b_matrix,c_matrix in its
+        compression.
+      scope: TF scope used for creating new TF variables
+
+    Returns:
+      A TF node that has the compressed version of a_matrix_tfvar.
+    """
+    return self.get_apply_compression_core(
+        a_matrix_tfvar=a_matrix_tfvar,
+        matrix_compressor=matrix_compressor,
+        lingvo=False)
+
+  def get_customized_apply_compression_op(self,
+                                          a_matrix_tfvar,
+                                          matrix_compressor,
+                                          layer_obj,
+                                          weight_params_fn,
+                                          weight_init_obj,
+                                          scope='default_scope'):
+    """Returns compressed tensorflow operator for all-block compression.
+
+    Used for lingvo. Cannot use tf.get_variable.
+
+    Args:
+      a_matrix_tfvar: TF variable representing a tensor variable in a model.
+      matrix_compressor: MatrixCompressorInferface object to specify the
+        compression algorithm. Must return two matrices b_matrix,c_matrix in its
+        compression.
+      layer_obj: a customized layer object that handles variable creation.
+      weight_params_fn: functional handle to create model parameters.
+      weight_init_obj: a weight initialization object.
+      scope: TF scope used for creating new TF variables.
+
+    Returns:
+      A TF node that has the compressed version of a_matrix_tfvar.
+    """
+    return self.get_apply_compression_core(
+        a_matrix_tfvar=a_matrix_tfvar,
+        matrix_compressor=matrix_compressor,
+        lingvo=True,
+        layer_obj=layer_obj,
+        weight_params_fn=weight_params_fn,
+        weight_init_obj=weight_init_obj,
+        scope=scope)
+
+  def run_update_step(self, session, step_number=None):
+    """Do nothing. alpha and compressor not used in block compression."""
+    logging.info('running run_update_step self._global_step is %s name is %s',
+                 self._global_step, self.a_matrix_tfvar.op.name)
+
+  def get_apply_matmul(self, left_operand):
+    """Returns block diagonal compressed TensorFlow node for matmul.
+
+    This method performs matmul according to the compression
+    procedure.
+
+    Args:
+      left_operand: a Tensor that is the left operand in matmul.
+
+    Returns:
+      matmul_op: a TensorFlow node that performs matmul of left_operand with the
+      compressed a_matrix_tfvar.
+    """
+    if self._spec.block_method == 'mask':
+      return tf.matmul(left_operand,
+                       tf.multiply(self.c_matrix_tfvar, self.c_mask))
+    elif self._spec.block_method == 'loop':
+      raise NotImplementedError()
+
+  def get_mix_operator(self, theta, concat):
+    """Performs matrix multiplication on customized LSTM layers.
+
+    Used for lingvo.
+
+    This performs the block diagonal compressed equivalent of
+    tf.matmul(concat, theta.wm).
+
+    Args:
+      theta: object in customized layer that contains weight tensors, etc.
+      concat: the left operand of the matmul operation. a rank 2 tensor.
+
+    Returns:
+      A TensorFlow node that has compressed version of
+      tf.matmul(concat, theta.wm).
+    """
+    if self._spec.block_method == 'mask':
+      return tf.matmul(concat,
+                       tf.multiply(theta.c_matrix_tfvar, theta.c_mask))
+    elif self._spec.block_method == 'loop':
+      raise NotImplementedError()
+
+  def get_matmul_operator(self,
+                          inputs,
+                          wm,
+                          transpose_a=False,
+                          transpose_b=False):
+    """Performs matrix multiplication for customized Softmax layers.
+
+    This performs the block diagonal compressed equivalent of
+    tf.matmul(inputs, wm).
+
+    Args:
+      inputs: the left operand of the matmul operation. a rank 2 tensor.
+      wm: the right operand of the matmul operator. a rank 2 tensor.
+      transpose_a: whether inputs tensor needs to be transposed before matmul.
+      transpose_b: whether wm tensor needs to be transposed before matmul.
+
+    Returns:
+      A TensorFlow node that has compressed version of
+      tf.matmul(inputs, wm).
+    """
+    if transpose_a:
+      inputs = tf.transpose(inputs)
+    if transpose_b:
+      wm = tf.transpose(wm)
+
+    if self._spec.block_method == 'mask':
+      return tf.matmul(inputs,
+                       tf.multiply(self.c_matrix_tfvar, self.c_mask))
+    elif self._spec.block_method == 'loop':
+      raise NotImplementedError()
+
+  def get_einsum_operator(self, inputs, layerobj):
+    """Performs compressed matrix multiplication for customized ProjectionLayer.
+
+    This performs the block diagonal compressed equivalent of
+    tf.matmul(inputs, weight).
+
+    Args:
+      inputs: the left operand of the matmul operation.
+      layerobj: the ProjectionLayer object from where get_einsum_operator is
+        called.
+
+    Returns:
+      A TensorFlow node that has compressed version of
+      tf.matmul(inputs, wm).
+    """
+    theta = layerobj.theta
+    if self._spec.block_method == 'mask':
+      return tf.matmul(inputs,
+                       tf.multiply(theta.c_matrix_tfvar, theta.c_mask))
+    elif self._spec.block_method == 'loop':
+      raise NotImplementedError()
+
+  def get_loss(self):
+    """Returns a loss for the compression op.
+
+    The loss is the sum of the probabilities modulated by regularization
+    strength.
+    """
+    return tf.reduce_sum(tf.nn.sigmoid(
+        self.blockwise_logits)) * self._spec.figs_reg_strength
+
+
 class ApplyCompression(object):
   """Wrapper class.
 
@@ -1814,15 +2216,23 @@ class ApplyCompression(object):
     self._compression_ops = []
     self._update_ops = []
     self._all_update_op = None
+    self._loss_ops = []
+    self._all_loss_op = None
 
     self.uncompressed_size = 0
     self.compressed_size = 0
 
-  def apply_compression(self, a_matrix_tfvar, scope='default_scope', spec=None):
+  def apply_compression(self,
+                        a_matrix_tfvar,
+                        is_train=False,
+                        scope='default_scope',
+                        spec=None):
     """Applies matrix compression OP on a_matrix_tfvar as specified in spec.
 
     Args:
       a_matrix_tfvar: TF variable representing a tensor variable in a model.
+      is_train: Boolean indicating whether we are invoking compression during
+                model train or eval.
       scope: TF scope used for creating new TF variables.
       spec: spec to be used for the compression op. this is optional. if
             not provided, self._compression_op_spec is used.
@@ -1833,12 +2243,22 @@ class ApplyCompression(object):
     compression_op_spec = spec if spec else self._compression_op_spec
     if compression_op_spec.compression_option == 9:
       c = InputOutputCompressionOp(
-          spec=compression_op_spec, global_step=self._global_step)
+          is_train=is_train,
+          spec=compression_op_spec,
+          global_step=self._global_step)
     elif compression_op_spec.compression_option == 10:
       c = BlockCompressionOp(
-          spec=compression_op_spec, global_step=self._global_step)
+          is_train=is_train,
+          spec=compression_op_spec,
+          global_step=self._global_step)
+    elif compression_op_spec.compression_option == 11:
+      c = AllBlockCompressionOp(
+          is_train=is_train,
+          spec=compression_op_spec,
+          global_step=self._global_step)
     else:
       c = CompressionOp(
+          is_train=is_train,
           scope=scope,
           spec=compression_op_spec,
           global_step=self._global_step)
@@ -1857,6 +2277,7 @@ class ApplyCompression(object):
                                    layer_obj,
                                    weight_params_fn,
                                    weight_init_obj,
+                                   is_train=False,
                                    scope='default_scope',
                                    spec=None):
     """Applies matrix compression OP on a_matrix_tfvar as specified in spec.
@@ -1866,6 +2287,8 @@ class ApplyCompression(object):
       layer_obj: a customized layer object that handles variable creation.
       weight_params_fn: functional handle to create model parameters.
       weight_init_obj: a weight initialization object.
+      is_train: Boolean indicating whether we are invoking compression during
+                model train or eval.
       scope: TF scope used for creating new TF variables.
       spec: spec to be used for the compression op. this is optional.
             if not provided, self._compression_op_spec is used.
@@ -1878,14 +2301,26 @@ class ApplyCompression(object):
       # TODO(wanxin): remove this line when summary is switched to v2.summary.
       compression_op_spec.set_hparam('add_summary', False)
       c = InputOutputCompressionOp(
-          spec=compression_op_spec, global_step=self._global_step)
+          is_train=is_train,
+          spec=compression_op_spec,
+          global_step=self._global_step)
     elif compression_op_spec.compression_option == 10:
       # TODO(wanxin): remove this line when summary is switched to v2.summary.
       compression_op_spec.set_hparam('add_summary', False)
       c = BlockCompressionOp(
-          spec=compression_op_spec, global_step=self._global_step)
+          is_train=is_train,
+          spec=compression_op_spec,
+          global_step=self._global_step)
+    elif compression_op_spec.compression_option == 11:
+      # TODO(wanxin): remove this line when summary is switched to v2.summary.
+      compression_op_spec.set_hparam('add_summary', False)
+      c = AllBlockCompressionOp(
+          is_train=is_train,
+          spec=compression_op_spec,
+          global_step=self._global_step)
     else:
       c = CompressionOp(
+          is_train=is_train,
           scope=scope,
           spec=compression_op_spec,
           global_step=self._global_step)
@@ -1971,12 +2406,24 @@ class ApplyCompression(object):
         inputs, weight, equation, layerobj)
 
   def all_update_op(self):
-    """Returns the combine update tf OP."""
+    """Returns the combined update tf OP."""
     if self._compression_op_spec.compression_option == 9:
       self._update_ops = []
     self._all_update_op = CompressionOp.all_update_op(self._update_ops,
                                                       self._scope)
     return self._all_update_op
+
+  def all_loss_op(self):
+    """Returns the combined loss tf OP."""
+    self._all_loss_op = CompressionOp.all_loss_op(self._loss_ops,
+                                                  self._scope)
+    return self._all_loss_op
+
+  def add_loss_op(self, compression_op):
+    """Appends the compression op loss."""
+    c_loss = compression_op.get_loss()
+    if c_loss:
+      self._loss_ops.append(c_loss)
 
   def run_update_step(self, session=None, step_number=None):
     """Returns the combine update tf OP."""
