@@ -84,6 +84,10 @@ class Params(object):
     self.data_stride = 1
     self.quantize = 0
 
+    # will be updated by update_flags()
+    self.window_stride_samples = None
+    self.window_size_samples = None
+
 
 def att_mh_rnn_params():
   """Parameters for toy multihead attention model."""
