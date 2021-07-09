@@ -401,6 +401,7 @@ def _read_from_tfrecord(root, input_filenames, suffix):
 
 
 
+
 def _write_to_tfrecord(combined_tbl, output_filename, suffix):
   _ = (combined_tbl
        | f'RemoveKey{suffix}' >> beam.Map(lambda k_v: k_v[1])
