@@ -18,6 +18,7 @@
 import os
 
 from absl.testing import absltest
+from tensorflow.io import gfile
 
 from smu.parser import smu_parser_lib
 from smu.parser import smu_writer_lib
@@ -29,6 +30,7 @@ STAGE1_DAT_FILE = 'x07_stage1.dat'
 SMU1_STAGE1_DAT_FILE = 'x01_stage1.dat'
 MINIMAL_DAT_FILE = 'x07_minimal.dat'
 GOLDEN_PROTO_FILE = 'x07_sample.pbtxt'
+ATOMIC_INPUT = 'x07_first_atomic_input.inp'
 TESTDATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              'testdata')
 
@@ -117,6 +119,22 @@ class ParseLongIdentifierTest(absltest.TestCase):
     with self.assertRaises(ValueError):
       smu_parser_lib.parse_long_identifier(
           'Im a little teapot, short and stout')
+
+
+class AtomicInputTest(absltest.TestCase):
+
+  def test_simple(self):
+    parser = smu_parser_lib.SmuParser(
+        os.path.join(TESTDATA_PATH, MAIN_DAT_FILE))
+    conformer, _ = next(parser.process_stage2())
+
+    with gfile.GFile(os.path.join(TESTDATA_PATH, ATOMIC_INPUT)) as f:
+      expected = f.readlines()
+    writer = smu_writer_lib.AtomicInputWriter()
+
+    smu_writer_lib.check_dat_formats_match(
+      expected,
+      writer.process(conformer).splitlines())
 
 
 if __name__ == '__main__':
