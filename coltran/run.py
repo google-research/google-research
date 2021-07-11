@@ -52,10 +52,11 @@ flags.DEFINE_string('master', 'local',
                     'BNS name of the TensorFlow master to use.')
 flags.DEFINE_enum('accelerator_type', 'GPU', ['CPU', 'GPU', 'TPU'],
                   'Hardware type.')
-flags.DEFINE_enum('dataset', 'imagenet', ['imagenet', 'custom'],
-                  'Dataset')
+flags.DEFINE_enum('dataset', 'imagenet', ['imagenet', 'custom'], 'Dataset')
 flags.DEFINE_string('data_dir', None, 'Data directory for custom images.')
 flags.DEFINE_string('tpu_worker_name', 'tpu_worker', 'Name of the TPU worker.')
+flags.DEFINE_string(
+    'pretrain_dir', None, 'Finetune from a pretrained checkpoint.')
 flags.DEFINE_string('summaries_log_dir', 'summaries', 'Summaries parent.')
 flags.DEFINE_integer('steps_per_summaries', 100, 'Steps per summaries.')
 flags.DEFINE_integer('devices_per_worker', 1, 'Number of devices per worker.')
@@ -66,6 +67,22 @@ config_flags.DEFINE_config_file(
     help_string='Training configuration file.')
 
 FLAGS = flags.FLAGS
+
+
+def restore_checkpoint(model, ema, strategy, latest_ckpt=None, optimizer=None):
+  if optimizer is None:
+    ckpt_func = functools.partial(
+        train_utils.create_checkpoint, models=model, ema=ema)
+  else:
+    ckpt_func = functools.partial(
+        train_utils.create_checkpoint, models=model, ema=ema,
+        optimizer=optimizer)
+
+  checkpoint = train_utils.with_strategy(ckpt_func, strategy)
+  if latest_ckpt:
+    logging.info('Restoring from pretrained directory: %s', latest_ckpt)
+    train_utils.with_strategy(lambda: checkpoint.restore(latest_ckpt), strategy)
+  return checkpoint
 
 
 def is_tpu():
@@ -206,15 +223,20 @@ def train(logdir):
     metrics[metric_key] = curr_metric
 
   # CHECKPOINTING LOGIC.
-  latest_checkpoint = tf.train.latest_checkpoint(logdir)
-  ckpt_func = functools.partial(
-      train_utils.create_checkpoint, models=model, optimizer=optimizer,
-      ema=ema)
-  checkpoint = train_utils.with_strategy(ckpt_func, strategy)
-  if latest_checkpoint:
-    train_utils.with_strategy(
-        lambda: checkpoint.restore(latest_checkpoint), strategy)
-    logging.info('Loaded checkpoint %s', latest_checkpoint)
+  if FLAGS.pretrain_dir is not None:
+    pretrain_ckpt = tf.train.latest_checkpoint(FLAGS.pretrain_dir)
+    assert pretrain_ckpt
+
+    # Load the entire model without the optimizer from the checkpoints.
+    restore_checkpoint(model, ema, strategy, pretrain_ckpt, optimizer=None)
+    # New tf.train.Checkpoint instance with a reset optimizer.
+    checkpoint = restore_checkpoint(
+        model, ema, strategy, latest_ckpt=None, optimizer=optimizer)
+  else:
+    latest_ckpt = tf.train.latest_checkpoint(logdir)
+    checkpoint = restore_checkpoint(
+        model, ema, strategy, latest_ckpt, optimizer=optimizer)
+
   checkpoint = tf.train.CheckpointManager(
       checkpoint, directory=logdir, checkpoint_name='model', max_to_keep=10)
   if optimizer.iterations.numpy() == 0:
