@@ -52,6 +52,9 @@ flags.DEFINE_string('master', 'local',
                     'BNS name of the TensorFlow master to use.')
 flags.DEFINE_enum('accelerator_type', 'GPU', ['CPU', 'GPU', 'TPU'],
                   'Hardware type.')
+flags.DEFINE_enum('dataset', 'imagenet', ['imagenet', 'custom'],
+                  'Dataset')
+flags.DEFINE_string('data_dir', None, 'Data directory for custom images.')
 flags.DEFINE_string('tpu_worker_name', 'tpu_worker', 'Name of the TPU worker.')
 flags.DEFINE_string('summaries_log_dir', 'summaries', 'Summaries parent.')
 flags.DEFINE_integer('steps_per_summaries', 100, 'Steps per summaries.')
@@ -174,11 +177,12 @@ def train(logdir):
       read_config = tfds.ReadConfig(input_context=input_context)
 
     dataset = datasets.get_dataset(
-        name=config.dataset,
+        name=FLAGS.dataset,
         config=config,
         batch_size=config.batch_size,
         subset='train',
-        read_config=read_config)
+        read_config=read_config,
+        data_dir=FLAGS.data_dir)
     return dataset
 
   # DATASET CREATION.
