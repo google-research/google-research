@@ -96,15 +96,17 @@ def round_and_clip_to_signed_int(x,
 
   # epsilon has to be big enough so that its subtraction in bound computation is
   # not rounded down to zero. It has to be small enough so it has no ML effect.
+  # epsilon is necessary for half_shift when prec=1 so that values get floored
+  # to -1/0 (not -1/0/1) after clipping to bound.
   epsilon = 2**(-7)
+  bound = signed_int_bound(prec=prec, half_shift=half_shift)
   if half_shift:
-    bound = 2.0**(prec - 1) - epsilon
+    bound -= epsilon
     x = jnp.clip(x, a_min=-bound, a_max=bound).astype(dtype)
     x = floor_with_gradient(x) + 0.5
   else:
     # TODO(lew): Use the formula for better gradients. Needs a sweep though.
     # bound = 2**(prec - 1) - 0.5 - epsilon
-    bound = 2**(prec - 1) - 1
     x = jnp.clip(x, a_min=-bound, a_max=bound).astype(dtype)
     x = round_with_gradient(x)
   return x
@@ -135,16 +137,19 @@ def floor_and_clip_to_unsigned_int(x,
   return x
 
 
-def signed_int_bound(prec):
+def signed_int_bound(prec, half_shift):
   """Computes the bound value for scaling signed input with precision 'prec'."""
-  if prec == 1:
-    # since after scaling we have rounding [-0.25, 0.25] interval guarantees
-    # all x will be rounded to zero and avoids division by zero
-    return 0.25
-  elif prec > 1:
-    # TODO(lew): run an experiment with 2bit rounding with 2**(prec-1) - 0.5
+  if prec >= 1:
     # bound
-    return 2**(prec - 1.0) - 1.0
+    if half_shift:
+      return 2**(prec - 1.0)
+    else:
+      # TODO(lew): run an experiment with 2bit rounding with 2**(prec-1) - 0.5
+      # When prec=1 and half_shift is turned off, a zero bound will make the
+      # scaling factor zero. This causes division by zero problem when dividing
+      # the scaling factor back. So we need to return a nonzero value that
+      # makes inputs rounded to zero.
+      return 2**(prec - 1.0) - 1.0 if prec > 1 else 0.25
   else:  # prec < 1
     raise ValueError('prec value should be >= 1.')
 

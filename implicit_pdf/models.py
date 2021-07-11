@@ -41,17 +41,18 @@ tfkl = tf.keras.layers
 eps = 1e-9
 
 
-def create_vision_model(image_dims=(224, 224, 3)):
+def create_vision_model(image_dims=(224, 224, 3), weights='imagenet'):
   """Loads a pre-trained resnet for the vision model.
 
   Args:
     image_dims: The input shape.
+    weights: Source of weights to be loaded.
 
   Returns:
     The vision model and the length of the visual description vector.
   """
   base_model = tf.keras.applications.ResNet101V2(
-      weights='imagenet', include_top=False, input_shape=image_dims)
+      weights=weights, include_top=False, input_shape=image_dims)
   inp = tf.keras.layers.Input(shape=image_dims)
   x = base_model(inp)
   x = tfkl.GlobalAveragePooling2D()(x)

@@ -160,6 +160,10 @@ KEYPOINT_DISTANCE_TYPE_MPJPE = 'MPJPE'
 # Supported 3D keypoint distance measurement type.
 SUPPORTED_KEYPOINT_DISTANCE_TYPES = [KEYPOINT_DISTANCE_TYPE_MPJPE]
 
+# Activation function names.
+ACTIVATION_FN_NONE = 'NONE'
+ACTIVATION_FN_RELU = 'RELU'
+
 
 def validate(value, supported_values):
   """Validates if value is supported.

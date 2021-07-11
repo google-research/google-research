@@ -49,6 +49,7 @@ flags.DEFINE_string('checkpoint_number', None, 'Optional checkpoint number to '
 flags.DEFINE_boolean('quantize', False,
                      'Whether to quantize converted models if possible.')
 flags.DEFINE_boolean('include_frontend', False, 'Whether to include frontend.')
+flags.DEFINE_boolean('sanity_checks', True, 'Whether to run inference checks.')
 
 FLAGS = flags.FLAGS
 
@@ -88,6 +89,14 @@ def get_tflite_friendly_model(checkpoint_folder_path, params,
   compressor = None
   if params['cop']:
     compressor = get_default_compressor()
+  # Optionally override frontend flags from
+  # `non_semantic_speech_benchmark/export_model/tf_frontend.py`
+  override_flag_names = ['frame_hop', 'n_required', 'num_mel_bins',
+                         'frame_width']
+  for flag_name in override_flag_names:
+    if flag_name in params:
+      setattr(FLAGS, flag_name, params[flag_name])
+
   static_model = models.get_keras_model(
       bottleneck_dimension=params['bd'],
       output_dimension=0,  # Don't include the unnecessary final layer.
@@ -185,19 +194,29 @@ def main(_):
         static_model, quantize=quantize, model_path=model_path)
     experiment_dir_to_model[experiment_dir] = model_path
     if quantize:
-      logging.info('Exported INT8 TFLite model')
+      logging.info('Exported INT8 TFLite model to %s.', model_path)
     else:
-      logging.info('Exported FP32 TFLite model')
+      logging.info('Exported FP32 TFLite model to %s.', model_path)
 
+    if not FLAGS.sanity_checks:
+      continue
     logging.info('Sanity checking...')
-    interpreter = audio_to_embeddings_beam_utils.build_tflite_interpreter(
-        model_path)
     if FLAGS.include_frontend:
-      model_input = np.zeros([1, 32000], dtype=np.float32)
+      input_shape = (1, 2 * FLAGS.n_required)
       expected_output_shape = (7, params['bd'])
     else:
-      model_input = np.zeros([1, 96, 64, 1], dtype=np.float32)
+      feats_inner_dim = (models.get_frontend_output_shape()[0] *
+                         FLAGS.frame_width)
+      input_shape = (1, feats_inner_dim, FLAGS.num_mel_bins, 1)
       expected_output_shape = (1, params['bd'])
+    logging.info('Input shape: %s. Expected output shape: %s', input_shape,
+                 expected_output_shape)
+    model_input = np.zeros(input_shape, dtype=np.float32)
+
+    logging.info('Building tflite interpreter...')
+    interpreter = audio_to_embeddings_beam_utils.build_tflite_interpreter(
+        model_path)
+    logging.info('Running inference...')
     output = audio_to_embeddings_beam_utils.samples_to_embedding_tflite(
         model_input, sample_rate=16000, interpreter=interpreter, output_key='0')
     np.testing.assert_array_equal(output.shape, expected_output_shape)

@@ -24,8 +24,7 @@ from kws_streaming.layers import test_utils
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 from kws_streaming.models import utils
-from kws_streaming.train import test
-tf1.disable_eager_execution()
+from kws_streaming.train import inference
 
 
 def conv2d_transpose_model(flags,
@@ -118,7 +117,7 @@ class Conv2DTransposeTest(tf.test.TestCase, parameterized.TestCase):
 
     # run inference
     non_stream_out = model.predict(inp_audio)
-    stream_out = test.run_stream_inference(params, model_stream, inp_audio)
+    stream_out = inference.run_stream_inference(params, model_stream, inp_audio)
 
     self.assertAllClose(stream_out, non_stream_out)
 
@@ -138,7 +137,7 @@ class Conv2DTransposeTest(tf.test.TestCase, parameterized.TestCase):
     for s in range(len(input_details)):
       input_states.append(np.zeros(input_details[s]['shape'], dtype=np.float32))
 
-    stream_out_tflite_external_st = test.run_stream_inference_tflite(
+    stream_out_tflite_external_st = inference.run_stream_inference_tflite(
         params, interpreter, inp_audio, input_states, concat=True)
 
     # compare streaming TFLite with external-state vs TF non-streaming
@@ -195,7 +194,7 @@ class Conv2DTransposeTest(tf.test.TestCase, parameterized.TestCase):
 
     # run inference
     non_stream_out = model.predict(inp_audio)
-    stream_out = test.run_stream_inference(params, model_stream, inp_audio)
+    stream_out = inference.run_stream_inference(params, model_stream, inp_audio)
 
     self.assertAllClose(stream_out, non_stream_out)
 
@@ -230,4 +229,5 @@ class Conv2DTransposeTest(tf.test.TestCase, parameterized.TestCase):
 
 
 if __name__ == '__main__':
+  tf1.disable_eager_execution()
   tf.test.main()

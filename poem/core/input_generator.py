@@ -87,11 +87,26 @@ def preprocess_keypoints_2d(keypoints_2d,
     keypoint_profile_3d: A KeypointProfile3D object for input 3D keypoints. Only
       used when 3D-to-2D projection is involved.
     azimuth_range: A tuple for minimum and maximum azimuth angles to randomly
-      rotate 3D keypoints with.
+      rotate 3D keypoints with. For non-sequential inputs, a 2-tuple for
+      (minimum angle, maximum angle) is expected. For sequence inputs, uses
+      2-tuple to independently sample starting and ending camera angles, or
+      uses 4-tuple for (minimum starting angle, maximum starting angle,
+      minimum angle increment, maximum angle increment) to first sample starting
+      angles and add random delta angles to them as ending angles.
     elevation_range: A tuple for minimum and maximum elevation angles to
-      randomly rotate 3D keypoints with.
+      randomly rotate 3D keypoints with. For non-sequential inputs, a 2-tuple
+      for (minimum angle, maximum angle) is expected. For sequence inputs, uses
+      2-tuple to independently sample starting and ending camera angles, or
+      uses 4-tuple for (minimum starting angle, maximum starting angle,
+      minimum angle increment, maximum angle increment) to first sample starting
+      angles and add random delta angles to them as ending angles.
     roll_range: A tuple for minimum and maximum roll angles to randomly rotate
-      3D keypoints with.
+      3D keypoints with. For non-sequential inputs, a 2-tuple for (minimum
+      angle, maximum angle) is expected. For sequence inputs, uses
+      2-tuple to independently sample starting and ending camera angles, or
+      uses 4-tuple for (minimum starting angle, maximum starting angle,
+      minimum angle increment, maximum angle increment) to first sample starting
+      angles and add random delta angles to them as ending angles.
     normalized_camera_depth_range: A tuple for minimum and maximum normalized
       camera depth for random camera augmentation. If empty, uses constant depth
       as 1 over the 2D pose normalization scale unit.
@@ -206,11 +221,26 @@ def create_model_input(keypoints_2d,
     keypoint_profile_3d: A KeypointProfile3D object for input 3D keypoints. Only
       used when 3D-to-2D projection is involved.
     azimuth_range: A tuple for minimum and maximum azimuth angles to randomly
-      rotate 3D keypoints with.
+      rotate 3D keypoints with. For non-sequential inputs, a 2-tuple for
+      (minimum angle, maximum angle) is expected. For sequence inputs, uses
+      2-tuple to independently sample starting and ending camera angles, or
+      uses 4-tuple for (minimum starting angle, maximum starting angle,
+      minimum angle increment, maximum angle increment) to first sample starting
+      angles and add random delta angles to them as ending angles.
     elevation_range: A tuple for minimum and maximum elevation angles to
-      randomly rotate 3D keypoints with.
+      randomly rotate 3D keypoints with. For non-sequential inputs, a 2-tuple
+      for (minimum angle, maximum angle) is expected. For sequence inputs, uses
+      2-tuple to independently sample starting and ending camera angles, or
+      uses 4-tuple for (minimum starting angle, maximum starting angle,
+      minimum angle increment, maximum angle increment) to first sample starting
+      angles and add random delta angles to them as ending angles.
     roll_range: A tuple for minimum and maximum roll angles to randomly rotate
-      3D keypoints with.
+      3D keypoints with. For non-sequential inputs, a 2-tuple for (minimum
+      angle, maximum angle) is expected. For sequence inputs, uses
+      2-tuple to independently sample starting and ending camera angles, or
+      uses 4-tuple for (minimum starting angle, maximum starting angle,
+      minimum angle increment, maximum angle increment) to first sample starting
+      angles and add random delta angles to them as ending angles.
     normalized_camera_depth_range: A tuple for minimum and maximum normalized
       camera depth for random camera augmentation. If empty, uses constant depth
       as 1 over the 2D pose normalization scale unit.

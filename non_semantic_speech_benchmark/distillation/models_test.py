@@ -61,7 +61,7 @@ class ModelsTest(parameterized.TestCase):
       self.fail()
 
   def test_default_shape(self):
-    self.assertEqual(models._get_frontend_output_shape(), [1, 96, 64])
+    self.assertEqual(models.get_frontend_output_shape(), [1, 96, 64])
 
   @parameterized.parameters(
       {'mobilenet_size': 'tiny'},

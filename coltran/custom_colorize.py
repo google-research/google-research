@@ -135,20 +135,6 @@ def create_grayscale_dataset_from_images(image_dir, batch_size):
   return dataset.batch(batch_size=batch_size)
 
 
-def create_gen_dataset_from_images(image_dir, batch_size):
-  """Creates a dataset from the generated images directory."""
-  def load_image(path):
-    image_str = tf.io.read_file(path)
-    return tf.image.decode_image(image_str, channels=3)
-
-  child_files = tf.io.gfile.listdir(image_dir)
-  files = [os.path.join(image_dir, file) for file in child_files]
-  files = tf.convert_to_tensor(files, dtype=tf.string)
-  dataset = tf.data.Dataset.from_tensor_slices((files))
-  dataset = dataset.map(load_image)
-  return dataset.batch(batch_size=batch_size)
-
-
 def build_model(config):
   """Builds model."""
   name = config.model.name
@@ -206,7 +192,8 @@ def main(_):
 
   if needs_gen:
     assert gen_data_dir is not None
-    gen_dataset = create_gen_dataset_from_images(gen_data_dir, batch_size)
+    gen_dataset = datasets.create_gen_dataset_from_images(gen_data_dir)
+    gen_dataset = gen_dataset.batch(batch_size)
     gen_dataset_iter = iter(gen_dataset)
 
   dataset = create_grayscale_dataset_from_images(FLAGS.img_dir, batch_size)

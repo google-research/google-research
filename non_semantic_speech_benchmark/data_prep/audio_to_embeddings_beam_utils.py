@@ -134,7 +134,8 @@ class ComputeEmbeddingMapFn(beam.DoFn):
                sample_rate_key,
                sample_rate,
                average_over_time,
-               feature_fn=None):
+               feature_fn=None,
+               model_input_min_length=None):
     self._name = name
     # If TFLite should be used, `module` should point to a flatbuffer model.
     self._module = module
@@ -147,6 +148,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     self._sample_rate = sample_rate
     self._average_over_time = average_over_time
     self._feature_fn = feature_fn
+    self._model_input_min_length = model_input_min_length
 
     # Only one of `sample_rate_key` and `sample_rate` should be not None.
     assert (self._sample_rate_key is None) ^ (self._sample_rate is None),\
@@ -209,6 +211,9 @@ class ComputeEmbeddingMapFn(beam.DoFn):
         raise ValueError(f'Should be float32, was: {model_input.dtype}')
     else:
       model_input = audio
+      if self._model_input_min_length and model_input.size < self._model_input_min_length:
+        delta = self._model_input_min_length - model_input.size
+        model_input = np.pad(model_input, [0, delta], mode='constant')
       if self._use_tflite:
         model_input = np.expand_dims(model_input, axis=0)
     logging.info('`model_input` shape is: %s', model_input.shape)
@@ -396,6 +401,7 @@ def _read_from_tfrecord(root, input_filenames, suffix):
 
 
 
+
 def _write_to_tfrecord(combined_tbl, output_filename, suffix):
   _ = (combined_tbl
        | f'RemoveKey{suffix}' >> beam.Map(lambda k_v: k_v[1])
@@ -436,6 +442,7 @@ def make_beam_pipeline(
     output_filename,
     split_embeddings_into_separate_tables=False,
     use_frontend_fn=False,
+    model_input_min_length=None,
     input_format='tfrecord',
     output_format='tfrecord',
     suffix='Main'):
@@ -463,6 +470,9 @@ def make_beam_pipeline(
       embedding to a separate table.
     use_frontend_fn: If `true`, call frontend fn on audio before passing to the
       model.
+    model_input_min_length: Min length to the model, or `None`. 0-pad inputs to
+      this length, if necessary. Note that frontends usually contain their own
+      length logic, unless the model is in TFLite format.
     input_format: Python string. Must correspond to a function in
       `reader_functions`.
     output_format: Python string. Must correspond to a function
@@ -498,7 +508,8 @@ def make_beam_pipeline(
             sample_rate_key=sample_rate_key,
             sample_rate=sample_rate,
             average_over_time=average_over_time,
-            feature_fn=_default_feature_fn if use_frontend_fn else None))
+            feature_fn=_default_feature_fn if use_frontend_fn else None,
+            model_input_min_length=model_input_min_length))
     embedding_tables[name] = tbl
   assert tf_examples_key_ not in embedding_tables
   embedding_tables[tf_examples_key_] = input_examples

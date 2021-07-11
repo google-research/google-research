@@ -85,6 +85,10 @@ flags.DEFINE_bool('skip_spread_evaluation', False, 'Whether to skip the '
 ################################################################################
 ################################################################################
 
+flags.DEFINE_bool('mock', False,
+                  'Skip download of dataset and pre-trained weights. '
+                  'Useful for testing.')
+
 
 def main(_):
 
@@ -103,7 +107,8 @@ def main(_):
   if 'symsol1' in symsol_shapes:
     symsol_shapes = data.SHAPE_NAMES[:5]
   ######################   Create the models   ###############################
-  vision_model, len_visual_description = models.create_vision_model()
+  vision_model, len_visual_description = models.create_vision_model(
+      weights=None if FLAGS.mock else 'imagenet')
 
   model_head = models.ImplicitSO3(len_visual_description,
                                   FLAGS.number_fourier_components,
@@ -112,7 +117,7 @@ def main(_):
                                   FLAGS.number_train_queries,
                                   FLAGS.number_eval_queries)
   ######################   Load the datasets   ###############################
-  dset_train = data.load_symsol(symsol_shapes, mode='train')
+  dset_train = data.load_symsol(symsol_shapes, mode='train', mock=FLAGS.mock)
   dset_train = dset_train.repeat().shuffle(1000).batch(FLAGS.batch_size)
 
   dset_val_list = []
@@ -121,7 +126,8 @@ def main(_):
         data.load_symsol(
             [symsol_shape],
             mode='test',
-            downsample_continuous_gt=FLAGS.downsample_continuous_gt))
+            downsample_continuous_gt=FLAGS.downsample_continuous_gt,
+            mock=FLAGS.mock))
   dset_val_tags = symsol_shapes
 
   visualization_images, visualization_rotations_gt = [[], []]

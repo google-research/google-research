@@ -21,7 +21,7 @@ from kws_streaming.layers.compat import tf1
 from kws_streaming.layers.modes import Modes
 from kws_streaming.models import utils
 import kws_streaming.models.cnn as cnn
-from kws_streaming.train import test
+from kws_streaming.train import inference
 from tensorflow_model_optimization.python.core.quantization.keras import quantize
 
 
@@ -164,7 +164,7 @@ class CNNTest(tf.test.TestCase):
     input_states = []
     for detail in interpreter.get_input_details():
       input_states.append(np.zeros(detail['shape'], dtype=np.float32))
-    stream_out_tflite = test.run_stream_inference_classification_tflite(
+    stream_out_tflite = inference.run_stream_inference_classification_tflite(
         params, interpreter, train_image, input_states)
     self.assertAllClose(stream_out_tflite, non_stream_output_tf, atol=0.001)
 

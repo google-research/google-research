@@ -239,19 +239,25 @@ flags.DEFINE_list(
     'random_projection_azimuth_range', ['-180.0', '180.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random azimuth rotations on 3D poses before projection for '
-    'camera augmentation.')
+    'camera augmentation. For sequential inputs, also supports CSV of 4-tuple '
+    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
+    'delta_upper_limit).')
 
 flags.DEFINE_list(
     'random_projection_elevation_range', ['-30.0', '30.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random elevation rotations on 3D poses before projection for '
-    'camera augmentation.')
+    'camera augmentation. For sequential inputs, also supports CSV of 4-tuple '
+    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
+    'delta_upper_limit).')
 
 flags.DEFINE_list(
     'random_projection_roll_range', ['-30.0', '30.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random roll rotations on 3D poses before projection for camera '
-    'augmentation.')
+    'augmentation. For sequential inputs, also supports CSV of 4-tuple '
+    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
+    'delta_upper_limit).')
 
 flags.DEFINE_list(
     'random_projection_camera_depth_range', [],

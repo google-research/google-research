@@ -128,8 +128,8 @@ class PruningSpeechUtilsTest(tf.test.TestCase):
         self.pruning_obj)
     self.assertNotEqual(mask_update_op, tf.no_op())
 
-  def testApplyCustomizedLSTMMatrixCompression(self):
-    pruning_interface.apply_customized_lstm_matrix_compression(
+  def testApplyCustomizedMatrixCompression(self):
+    pruning_interface.apply_customized_matrix_compression(
         self.compression_obj,
         self.mock_weight_params_fn,
         MockWeightInit,

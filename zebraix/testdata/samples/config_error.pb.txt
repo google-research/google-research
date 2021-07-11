@@ -1,0 +1,36 @@
+# proto-file: third_party/google_research/google_research/zebraix/base/zebraix_graph.proto
+# proto-message: ZebraixGraph
+
+base_node {
+  distance: 125.0
+}
+
+nodes {
+  prime_rank: 0
+  obverse_rank: 0
+  label_text: "Unfit"
+}
+
+nodes {
+  prime_rank: 1
+  obverse_rank: 4
+  label_text: "Config-error"
+}
+
+nodes {
+  prime_rank: 2
+  obverse_rank: 1
+  label_text: "Config"
+}
+
+nodes {
+  prime_rank: 3
+  obverse_rank: 3
+  label_text: "Error"
+}
+
+nodes {
+  prime_rank: 4
+  obverse_rank: 2
+  label_text: "Fit"
+}
