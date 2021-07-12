@@ -40,19 +40,23 @@ from non_semantic_speech_benchmark import file_utils
 from non_semantic_speech_benchmark.export_model import tf_frontend
 
 
-def _tfexample_audio_to_npfloat32(ex, audio_key):
+def tfexample_audio_to_npfloat32(ex, audio_key, normalize_to_pm_one):
   """Extract audio from tf.Example and convert it to np.float32."""
   audio_feats = ex.features.feature[audio_key]
+  iinfo = np.iinfo(np.int16)
   if audio_feats.int64_list.value:
     audio = np.array(audio_feats.int64_list.value)
     # Even though the data is in an int64 container, the data is actually int16.
-    iinfo = np.iinfo(np.int16)
     assert np.logical_and(audio >= iinfo.min, audio <= iinfo.max).all(),\
         (np.min(audio), np.max(audio), iinfo.min, iinfo.max)
-    audio = audio.astype(np.float32) / iinfo.max
+    audio = audio.astype(np.float32)
+    if normalize_to_pm_one:
+      audio /= iinfo.max
   else:
     assert audio_feats.float_list.value
     audio = np.array(audio_feats.float_list.value, dtype=np.float32)
+    if not normalize_to_pm_one:
+      audio *= iinfo.max
   return audio
 
 
@@ -135,7 +139,8 @@ class ComputeEmbeddingMapFn(beam.DoFn):
                sample_rate,
                average_over_time,
                feature_fn=None,
-               model_input_min_length=None):
+               model_input_min_length=None,
+               target_sample_rate=16000):
     self._name = name
     # If TFLite should be used, `module` should point to a flatbuffer model.
     self._module = module
@@ -149,6 +154,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     self._average_over_time = average_over_time
     self._feature_fn = feature_fn
     self._model_input_min_length = model_input_min_length
+    self._target_sample_rate = target_sample_rate
 
     # Only one of `sample_rate_key` and `sample_rate` should be not None.
     assert (self._sample_rate_key is None) ^ (self._sample_rate is None),\
@@ -160,21 +166,23 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     else:
       self.module = hub.load(self._module)
 
-  def process(self, k_v):
-    k, ex = k_v
-
-    # Read the input example audio and assert input format sanity.
+  def read_audio_from_tfexample(self, ex, k, normalize_to_pm_one=True):
+    """Reads the audio samples from a tf.Example, and assert input sanity."""
     if self._audio_key not in ex.features.feature:
       raise ValueError(f'Audio key `{self._audio_key}` not found: '
                        f'{list(ex.features.feature.keys())}')
-    audio = _tfexample_audio_to_npfloat32(ex, self._audio_key)
+    audio = tfexample_audio_to_npfloat32(ex, self._audio_key,
+                                         normalize_to_pm_one)
     assert audio.ndim == 1, audio.ndim
     if audio.size == 0:
       raise ValueError(f'No audio found: {self._audio_key}, {audio.size} {k}')
     beam.metrics.Metrics.distribution(
         'computed-embedding-audio', 'length').update(audio.size)
 
-    # Read the sample rate, if a key to do so has been provided.
+    return audio
+
+  def read_sample_rate_from_tfexample(self, ex):
+    """Reads the sample rate from a tf.Example."""
     if self._sample_rate_key:
       if self._sample_rate_key not in ex.features.feature:
         raise ValueError(f'Sample rate key not found: {self._sample_rate_key}')
@@ -193,16 +201,16 @@ class ComputeEmbeddingMapFn(beam.DoFn):
         raise ValueError('If `sample_rate_key` not provided, must provide '
                          '`sample_rate`.')
       sample_rate = self._sample_rate
-    logging.info(
-        'len(audio): %s / %s / %s', len(audio), sample_rate, self._name)
 
-    # Resample, if necessary.
-    if sample_rate != 16000:
-      audio = librosa.core.resample(
-          audio, orig_sr=sample_rate, target_sr=16000, res_type='kaiser_best')
-      sample_rate = 16000
+    return sample_rate
 
-    # Convert audio to features, if required.
+  def resample(self, audio, sample_rate, target_sr):
+    """Resample audio to target."""
+    return librosa.core.resample(
+        audio, orig_sr=sample_rate, target_sr=target_sr, res_type='kaiser_best')
+
+  def audio_to_features(self, audio, sample_rate):
+    """Convert audio to features, if required."""
     if self._feature_fn:
       model_input = self._feature_fn(audio, sample_rate)
       if not isinstance(model_input, np.ndarray):
@@ -217,6 +225,29 @@ class ComputeEmbeddingMapFn(beam.DoFn):
       if self._use_tflite:
         model_input = np.expand_dims(model_input, axis=0)
     logging.info('`model_input` shape is: %s', model_input.shape)
+
+    return model_input
+
+  def process(self, k_v):
+    k, ex = k_v
+
+    # Read the input example audio and assert input format sanity.
+    audio = self.read_audio_from_tfexample(ex, k)
+
+    # Read the sample rate, if a key to do so has been provided.
+    sample_rate = self.read_sample_rate_from_tfexample(ex)
+
+    logging.info('len(audio): %s / %s / %s', len(audio), sample_rate,
+                 self._name)
+
+    # Resample, if necessary.
+    if sample_rate != self._target_sample_rate:
+      audio = self.resample(
+          audio, sample_rate, target_sr=self._target_sample_rate)
+      sample_rate = self._target_sample_rate
+
+    # Convert audio to features, if required.
+    model_input = self.audio_to_features(audio, sample_rate)
 
     # Calculate the 2D embedding.
     if self._use_tflite:
