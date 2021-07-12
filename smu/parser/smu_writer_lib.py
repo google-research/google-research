@@ -1033,20 +1033,36 @@ class AtomicInputWriter:
   def get_frequencies(self, conformer):
     """Returns the $frequencies block.
 
+    Note that the only non-zero frequencies are shown. Generally, each
+    conformer will have 6 zero frequencies for the euclidean degrees of freedom
+    but some will only have 5. Any other number is considered an error.
+
     Args:
       conformer: dataset_pb2.Conformer
 
     Returns:
       list of strings
+
+    Raises:
+      ValueError: if number of zero frequencies is other than 5 or 6
     """
     contents = []
-    # Note that we strip the first 6 frequencies because they are always 0.
+
+    num_zero_frequencies = 0
+    for val in conformer.properties.harmonic_frequencies.value:
+      if val == 0.0:
+        num_zero_frequencies += 1
+      else:
+        break
+
     contents.append('$frequencies{:5d}{:5d}{:5d}\n'.format(
-      len(conformer.properties.harmonic_frequencies.value) - 6,
+      len(conformer.properties.harmonic_frequencies.value)
+      - num_zero_frequencies,
       0, 0))
     line = ''
     for i, freq in enumerate(
-        conformer.properties.harmonic_frequencies.value[6:]):
+        conformer.properties.harmonic_frequencies.value[
+          num_zero_frequencies:]):
       line += '{:8.2f}'.format(freq)
       if i % 10 == 9:
         contents.append(line + '\n')
