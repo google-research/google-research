@@ -14,10 +14,10 @@
 # limitations under the License.
 
 """Contains model definitions for the US."""
-from typing import Dict, List, Optional, Set, Tuple
+# from typing import Dict, List, Optional, Set, Tuple
 
 import numpy as np
-import pandas as pd
+# import pandas as pd
 import tensorflow as tf
 
 from covid_epidemiology.src import constants
@@ -28,9 +28,9 @@ from covid_epidemiology.src.models import generic_seir_specs_county
 from covid_epidemiology.src.models import generic_seir_specs_state
 from covid_epidemiology.src.models import generic_seir_state_model_constructor
 from covid_epidemiology.src.models.definitions import compartmental_model_definitions
-from covid_epidemiology.src.models.shared import model_spec as model_spec_lib
+# from covid_epidemiology.src.models.shared import model_spec as model_spec_lib
 from covid_epidemiology.src.models.shared import model_utils
-from covid_epidemiology.src.models.shared import typedefs
+# from covid_epidemiology.src.models.shared import typedefs
 
 
 class CountyModelDefinition(
