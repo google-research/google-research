@@ -118,7 +118,7 @@ def model(flags):
   rnn_types = {'lstm': tf.keras.layers.LSTM, 'gru': tf.keras.layers.GRU}
 
   if flags.rnn_type not in rnn_types:
-    ValueError('not supported RNN type ', flags.rnn_type)
+    raise ValueError('not supported RNN type ', flags.rnn_type)
   rnn = rnn_types[flags.rnn_type]
 
   input_audio = tf.keras.layers.Input(
