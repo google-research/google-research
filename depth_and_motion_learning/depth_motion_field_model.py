@@ -339,7 +339,7 @@ def input_fn(params):
   # Add data augmentation
   if params.image_preprocessing.data_augmentation:
     if params.learn_intrinsics.per_video:
-      raise ('Data augemnation together with learn_intrinsics.per_video is not '
+      raise ValueError('Data augmentation together with learn_intrinsics.per_video is not '
              'yet supported.')
 
     def random_crop_and_resize_fn(endpoints):
