@@ -15,7 +15,8 @@
 
 """Model constructor for Tensorflow models."""
 import abc
-from typing import Dict, List, Optional
+# from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from dataclasses import dataclass
 import feature_preprocessing
