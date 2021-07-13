@@ -67,7 +67,7 @@ class CheckpointInfo(
     """
     m = re.match(cls.CHECKPOINT_REGEX, checkpoint)
     if m is None:
-      RuntimeError(f"Invalid checkpoint format: {checkpoint}")
+      raise RuntimeError(f"Invalid checkpoint format: {checkpoint}")
     d = m.groupdict()  # pytype: disable=attribute-error
     return cls(d["prefix"], int(d["number"]))
 
