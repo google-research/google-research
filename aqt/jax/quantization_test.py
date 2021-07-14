@@ -148,6 +148,87 @@ class QuantOpsTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
       dict(
+          testcase_name='fp_act_symmetric',
+          act_distribution='symmetric',
+          use_hparams_bounds=False,
+      ),
+      # TODO(b/193561347): FP quantization with positive input distribution is
+      # not supported yet
+      dict(
+          testcase_name='fp_act_positive',
+          act_distribution='positive',
+          use_hparams_bounds=False,
+      ),
+      dict(
+          testcase_name='fp_act_symmetric_hyper_bounds',
+          act_distribution='symmetric',
+          use_hparams_bounds=True,
+      ),
+      dict(
+          testcase_name='fp_act_positive_hyper_bounds',
+          act_distribution='positive',
+          use_hparams_bounds=True,
+      ),
+  )
+  def test_attributes_create_acts_op_fp(
+      self,
+      act_distribution,
+      use_hparams_bounds,
+  ):
+    inputs = jnp.array(fp32(2.0 * onp.random.uniform(0, 1.0, size=(10, 4))))
+    fp_quant = QuantOps.FloatQuant(
+        is_scaled=True,
+        fp_spec=QuantOps.FloatQuant.FloatPrec(
+            exp_min=-15,
+            exp_max=15,
+            sig_bits=2,
+        ),
+    )
+    if use_hparams_bounds:
+      bounds = get_bounds.GetBounds.Hyper(
+          initial_bound=6.0,
+          stddev_coeff=1,
+          absdev_coeff=0,
+          mix_coeff=1,
+          reset_stats=True,
+          ema_coeff=None,
+          use_cams=False,
+          granularity=quant_config.QuantGranularity.per_tensor)
+    else:
+      bounds = 6.0
+
+    hparams = QuantOps.ActHParams(
+        input_distribution=act_distribution, bounds=bounds, prec=fp_quant,
+        half_shift=False)
+
+    class TestModule(nn.Module):
+      hparams: QuantOps.ActHParams
+
+      @nn.compact
+      def __call__(self, inputs):
+        return QuantOps.create_input_ops(
+            inputs,
+            hparams=hparams,
+            get_bounds_params=GetBounds.Params(
+                update_stats=False,
+                update_bounds=False))
+
+    test_module = TestModule(hparams=hparams)
+    state = test_module.init(jax.random.PRNGKey(0), inputs=inputs)
+    act_quant_op = test_module.apply(state, inputs=inputs)
+
+    act_scaled = (inputs * act_quant_op._scale).astype(inputs.dtype)
+    act_quant_expected = fp_cast.downcast_sat_ftz(
+        act_scaled,
+        fp_quant.fp_spec.exp_min,
+        fp_quant.fp_spec.exp_max,
+        fp_quant.fp_spec.sig_bits,
+    )
+    act_quant_calculated = act_quant_op.to_quantized(inputs, dtype=SCALE_DTYPE)
+    onp.testing.assert_array_equal(act_quant_expected, act_quant_calculated)
+
+  @parameterized.named_parameters(
+      dict(
           testcase_name='pos_weight_prec_2',
           weight_range=[2.0, 10.0],
           weight_shape=(10, 1),
