@@ -534,7 +534,35 @@ class QuantOpsTest(parameterized.TestCase):
 
     onp.testing.assert_array_equal(weights * weight_scale, scaled_weights)
 
-  def test_no_quantization(self):
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='fp_prec_scaled',
+          prec=QuantOps.FloatQuant(
+              is_scaled=True,
+              fp_spec=QuantOps.FloatQuant.FloatPrec(
+                  exp_min=-11,
+                  exp_max=4,
+                  sig_bits=3,
+              ),
+          ),
+      ),
+      dict(
+          testcase_name='fp_prec_unscaled',
+          prec=QuantOps.FloatQuant(
+              is_scaled=False,
+              fp_spec=QuantOps.FloatQuant.FloatPrec(
+                  exp_min=-11,
+                  exp_max=4,
+                  sig_bits=3,
+              ),
+          ),
+      ),
+      dict(
+          testcase_name='int_prec',
+          prec=4.0,
+      ),
+  )
+  def test_no_quantization(self, prec):
     # If initial_bound==-1 when using GetBounds, then create_inputs_fake_quant
     # should be a no-op.
     inputs = jnp.array([[.3, 1.4], [-5.2, 4.0]])
@@ -548,7 +576,10 @@ class QuantOpsTest(parameterized.TestCase):
         use_cams=False,
         granularity=quant_config.QuantGranularity.per_tensor)
     hparams = quantization.QuantOps.ActHParams(
-        input_distribution='symmetric', bounds=bounds, prec=4, half_shift=False)
+        input_distribution='symmetric',
+        bounds=bounds,
+        prec=prec,
+        half_shift=False)
 
     # The call to create_inputs_fake_quant has to occur from within a Flax
     # module since it calls GetBounds, which is itself a Flax module.

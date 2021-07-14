@@ -228,14 +228,19 @@ class QuantOps:
           half_shift=False)  # disable half_shift for fp quantization
     else:
       initial_bounds = bounds
-      bounds = jnp.asarray(bounds, SCALE_DTYPE)
-      if not DISABLE_EPSILON_IN_SCALE_FUN_FOR_TESTING:
-        bounds += jnp.finfo(SCALE_DTYPE).eps  # to avoid log2(0)
-      scale = jnp.exp2(-jnp.floor(jnp.log2(bounds)))  # Scale to unit binade.
-      # NOTE: stop_gradient is needed here to prevent gradient flow through
-      # scale when scale is not a constant, but computed as a function of
-      # activations or weights.
-      scale = lax.stop_gradient(scale)
+      # We set bounds = -1 to indicate no quantization.
+      # TODO(shivaniagrawal): Move away from the hack of setting bound as -1.
+      if jnp.any(bounds < 0):
+        scale = jnp.array(1.0, dtype=SCALE_DTYPE)
+      else:
+        bounds = jnp.asarray(bounds, SCALE_DTYPE)
+        if not DISABLE_EPSILON_IN_SCALE_FUN_FOR_TESTING:
+          bounds += jnp.finfo(SCALE_DTYPE).eps  # to avoid log2(0)
+        scale = jnp.exp2(-jnp.floor(jnp.log2(bounds)))  # Scale to unit binade.
+        # NOTE: stop_gradient is needed here to prevent gradient flow through
+        # scale when scale is not a constant, but computed as a function of
+        # activations or weights.
+        scale = lax.stop_gradient(scale)
 
       return cls(
           prec=fp_quant,
