@@ -14,10 +14,12 @@
 # limitations under the License.
 
 from unittest import mock
+
 import numpy as np
 import pandas as pd
 from pandas_gbq import gbq
 import tensorflow as tf
+
 from covid_epidemiology.src.models.shared import feature_utils
 from covid_epidemiology.src.models.shared import model_spec
 
