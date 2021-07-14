@@ -188,7 +188,7 @@ def apply_customized_matrix_compression(matrix_compression_obj,  # pylint:disabl
   else:
     _ = matrix_compression_obj.customized_apply_compression(
         getattr(layer_obj.vars, weight_name), layer_obj, weight_params_fn,
-        weight_init_obj, scope_name, spec)
+        weight_init_obj, scope=scope_name, spec=spec)
     hparams = matrix_compression_obj.get_spec()
     if hparams.use_collection:
       tf.add_to_collection(UPDATE_OP_COLLECTION,

@@ -54,6 +54,25 @@ class SbmSimulatorTest(absltest.TestCase):
                     sorted(group_counts.items())]
     self.assertSameStructure(expected_sizes, actual_sizes)
 
+  # This test fails if the precision at sbm_simulator.SimulateSbm is >= 16. It
+  # is currently hard-coded at 12 to cover all conceivable realistic ways to
+  # programmatically construct a simplex vector (e.g. `pi` below).
+  def test_simulate_sbm_community_sizes_seven_groups(self):
+    simulation = sbm_simulator.StochasticBlockModel()
+    num_communities = 7
+    community_size_slope = 0.5
+    pi = (np.array(range(num_communities)) * community_size_slope +
+          np.ones(num_communities))
+    pi /= np.sum(pi)
+    sbm_simulator.SimulateSbm(
+        simulation, num_vertices=500, num_edges=10000, pi=pi,
+        prop_mat=np.ones(shape=(num_communities, num_communities)))
+    expected_sizes = [29, 43, 58, 71, 85, 100, 114]
+    group_counts = collections.Counter(simulation.graph_memberships)
+    actual_sizes = [count for cluster_id, count in
+                    sorted(group_counts.items())]
+    self.assertEqual(expected_sizes, actual_sizes)
+
   def test_simulate_features_dimensions(self):
     sbm_simulator.SimulateFeatures(
         self.simulation_with_graph,
