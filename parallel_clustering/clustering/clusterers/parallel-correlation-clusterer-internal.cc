@@ -351,10 +351,13 @@ absl::StatusOr<GraphWithWeights> CompressGraph(
   auto edge_aggregation_func = [](double w1, double w2) { return w1 + w2; };
   auto is_valid_func = [](ClusteringHelper::ClusterId a,
                           ClusteringHelper::ClusterId b) { return true; };
+  auto scale_func = [](std::tuple<gbbs::uintE, gbbs::uintE, double> v) {
+    return std::get<2>(v);
+  };
 
   OffsetsEdges offsets_edges = ComputeInterClusterEdgesSort(
       original_graph, cluster_ids, num_compressed_vertices,
-      edge_aggregation_func, is_valid_func);
+      edge_aggregation_func, is_valid_func, scale_func);
   std::vector<gbbs::uintE> offsets = offsets_edges.offsets;
   std::size_t num_edges = offsets_edges.num_edges;
   std::unique_ptr<std::tuple<gbbs::uintE, float>[]> edges =

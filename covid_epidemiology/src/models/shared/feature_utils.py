@@ -24,6 +24,7 @@ import re
 import time
 # from typing import Dict, Iterable, List, Tuple
 import warnings
+
 import numpy as np
 import pandas as pd
 from pandas_gbq import gbq
@@ -32,6 +33,7 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.multioutput import MultiOutputRegressor
 import tensorflow as tf
 import xgboost
+
 from covid_epidemiology.src import constants
 from covid_epidemiology.src.models.shared import model_spec as model_spec_lib
 
@@ -323,9 +325,9 @@ def forecast_features(
       continue
     # Use constant extrapolation on very short time series that are used for
     # testing
-    elif (
-        covariate_spec.forecast_method == model_spec_lib.ForecastMethod.CONSTANT
-        or max_train_timepoints < 7):
+    elif (covariate_spec.forecast_method
+          == model_spec_lib.ForecastMethod.CONSTANT or
+          max_train_timepoints < 7):
       forecasted_features[i, Ellipsis] = input_covariates[:, -1:]
     elif covariate_spec.forecast_method == model_spec_lib.ForecastMethod.PERIODIC_WEEKLY:
       periodic_forecast(input_covariates, forecasted_features[i, Ellipsis], period=7)

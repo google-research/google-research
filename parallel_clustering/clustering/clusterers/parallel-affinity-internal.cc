@@ -239,11 +239,10 @@ absl::StatusOr<std::vector<gbbs::uintE>> NearestNeighborLinkage(
   return labels_vector;
 }
 
-absl::StatusOr<
-    std::unique_ptr<gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, float>>>
-CompressGraph(
+absl::StatusOr<GraphWithWeights> CompressGraph(
     gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, float>& original_graph,
-    std::vector<gbbs::uintE>& cluster_ids,
+    const std::vector<double>& original_node_weights,
+    const std::vector<gbbs::uintE>& cluster_ids,
     const AffinityClustererConfig& affinity_config) {
   const auto edge_aggregation = affinity_config.edge_aggregation_function();
   // TODO(jeshi): Support percentile edge aggregation
@@ -251,39 +250,86 @@ CompressGraph(
     return absl::UnimplementedError(
         "PERCENTILE aggregation for parallel affinity clusterer is "
         "unimplemented.");
+  if (edge_aggregation == AffinityClustererConfig::EXPLICIT_AVERAGE)
+    return absl::UnimplementedError(
+        "EXPLICIT_AVERAGE aggregation for parallel affinity clusterer is "
+        "unimplemented.");
   std::size_t n = original_graph.n;
   // Obtain the number of vertices in the new graph
   gbbs::uintE num_compressed_vertices =
-      1 + parallel::Reduce<gbbs::uintE>(
-              absl::Span<gbbs::uintE>(cluster_ids.data(), cluster_ids.size()),
-              [&](gbbs::uintE reduce, gbbs::uintE a) {
-                return (reduce == UINT_E_MAX)
-                           ? a
-                           : (a == UINT_E_MAX ? reduce : std::max(reduce, a));
-              },
-              UINT_E_MAX);
+      1 +
+      parallel::Reduce<gbbs::uintE>(
+          absl::Span<const gbbs::uintE>(cluster_ids.data(), cluster_ids.size()),
+          [&](gbbs::uintE reduce, gbbs::uintE a) {
+            return (reduce == UINT_E_MAX)
+                       ? a
+                       : (a == UINT_E_MAX ? reduce : std::max(reduce, a));
+          },
+          UINT_E_MAX);
 
   // Retrieve node weights
-  std::vector<gbbs::uintE> node_weights(num_compressed_vertices,
-                                        gbbs::uintE{0});
+  std::vector<double> node_weights(num_compressed_vertices, double{0});
   // TODO(jeshi): This could be made parallel, although perhaps it would be
   // too much overhead.
   for (std::size_t i = 0; i < n; ++i) {
-    if (cluster_ids[i] != UINT_E_MAX) ++node_weights[cluster_ids[i]];
+    if (cluster_ids[i] != UINT_E_MAX)
+      node_weights[cluster_ids[i]] +=
+          original_node_weights.empty() ? 1 : original_node_weights[i];
   }
 
   // Compute new inter cluster edges using sorting
   // TODO(jeshi): Allow optionality to choose between aggregation methods
   std::function<float(float, float)> edge_aggregation_func;
-  if (edge_aggregation == AffinityClustererConfig::MAX) {
-    edge_aggregation_func = [](float w1, float w2) { return std::max(w1, w2); };
-  } else {
-    edge_aggregation_func = [](float w1, float w2) { return w1 + w2; };
+  // scale_func is applied to each edge weight prior to aggregation. This
+  // is used in the average and cut sparsity aggregation methods, in which
+  // aggregating new edges with previously compressed edges is not
+  // straightforward. In more detail, these methods are functions f that do
+  // not satisfy the property that f(x, y, z) = f(f(x, y), z) for edge weights
+  // x, y, and z. Thus, in order to properly aggregate new edges with previously
+  // compressed edges, we must first scale the edge weight by the node weights
+  // of its endpoints, sum the resulting edge weights, and finally reapply
+  // a scaling factor.
+  std::function<float(std::tuple<gbbs::uintE, gbbs::uintE, float>)> scale_func =
+      [](std::tuple<gbbs::uintE, gbbs::uintE, float> v) {
+        return std::get<2>(v);
+      };
+  switch (edge_aggregation) {
+    case AffinityClustererConfig::MAX:
+      edge_aggregation_func = [](float w1, float w2) {
+        return std::max(w1, w2);
+      };
+      break;
+    case AffinityClustererConfig::SUM:
+      edge_aggregation_func = [](float w1, float w2) { return w1 + w2; };
+      break;
+    case AffinityClustererConfig::DEFAULT_AVERAGE:
+      edge_aggregation_func = [](float w1, float w2) { return w1 + w2; };
+      if (!original_node_weights.empty()) {
+        scale_func = [&original_node_weights](
+                         std::tuple<gbbs::uintE, gbbs::uintE, float> v) {
+          float scaling_factor = original_node_weights[std::get<0>(v)] *
+                                 original_node_weights[std::get<1>(v)];
+          return std::get<2>(v) * scaling_factor;
+        };
+      }
+      break;
+    case AffinityClustererConfig::CUT_SPARSITY:
+      edge_aggregation_func = [](float w1, float w2) { return w1 + w2; };
+      if (!original_node_weights.empty()) {
+        scale_func = [&original_node_weights](
+                         std::tuple<gbbs::uintE, gbbs::uintE, float> v) {
+          float scaling_factor =
+              std::min(original_node_weights[std::get<0>(v)],
+                       original_node_weights[std::get<1>(v)]);
+          return std::get<2>(v) * scaling_factor;
+        };
+      }
+      break;
   }
 
   OffsetsEdges offsets_edges = ComputeInterClusterEdgesSort(
       original_graph, cluster_ids, num_compressed_vertices,
-      edge_aggregation_func, std::not_equal_to<gbbs::uintE>());
+      edge_aggregation_func, std::not_equal_to<gbbs::uintE>(), scale_func);
   std::vector<gbbs::uintE> offsets = offsets_edges.offsets;
   std::size_t num_edges = offsets_edges.num_edges;
   std::unique_ptr<std::tuple<gbbs::uintE, float>[]> edges =
@@ -291,9 +337,16 @@ CompressGraph(
 
   if (edge_aggregation == AffinityClustererConfig::SUM ||
       edge_aggregation == AffinityClustererConfig::MAX) {
-    return MakeGbbsGraph<float>(offsets, num_compressed_vertices,
-                                std::move(edges), num_edges);
+    return GraphWithWeights(
+        MakeGbbsGraph<float>(offsets, num_compressed_vertices, std::move(edges),
+                             num_edges),
+        node_weights);
   }
+
+  if (edge_aggregation == AffinityClustererConfig::DEFAULT_AVERAGE ||
+      edge_aggregation == AffinityClustererConfig::CUT_SPARSITY)
+    return absl::UnimplementedError(
+        "Invalid aggregation for parallel affinity clusterer.");
 
   // Scale edge weights
   pbbs::parallel_for(0, num_compressed_vertices, [&](std::size_t i) {
@@ -313,8 +366,9 @@ CompressGraph(
     }
   });
 
-  return MakeGbbsGraph<float>(offsets, num_compressed_vertices,
-                              std::move(edges), num_edges);
+  return GraphWithWeights(MakeGbbsGraph<float>(offsets, num_compressed_vertices,
+                                               std::move(edges), num_edges),
+                          node_weights);
 }
 
 InMemoryClusterer::Clustering ComputeClusters(
@@ -336,7 +390,8 @@ InMemoryClusterer::Clustering ComputeClusters(
 InMemoryClusterer::Clustering FindFinishedClusters(
     gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, float>& G,
     const AffinityClustererConfig& affinity_config,
-    std::vector<gbbs::uintE>& cluster_ids) {
+    std::vector<gbbs::uintE>& cluster_ids,
+    std::vector<gbbs::uintE>& compressed_cluster_ids) {
   if (affinity_config.active_cluster_conditions().empty())
     return InMemoryClusterer::Clustering();
   std::size_t n = G.n;
@@ -391,6 +446,13 @@ InMemoryClusterer::Clustering FindFinishedClusters(
   pbbs::parallel_for(0, n, [&](size_t i) {
     if (cluster_ids[i] != UINT_E_MAX && finished[cluster_ids[i]])
       cluster_ids[i] = UINT_E_MAX;
+  });
+
+  pbbs::parallel_for(0, compressed_cluster_ids.size(), [&](size_t i) {
+    if (compressed_cluster_ids[i] != UINT_E_MAX &&
+        finished[compressed_cluster_ids[i]]) {
+      compressed_cluster_ids[i] = UINT_E_MAX;
+    }
   });
 
   return finished_clusters;

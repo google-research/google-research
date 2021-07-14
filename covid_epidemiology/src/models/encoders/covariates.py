@@ -19,10 +19,14 @@
 import tensorflow as tf
 
 
-def mask_covariate_weights_for_timestep(
-    covariate_weights, timestep, num_known_steps,
-    is_training, covariate_feature_time_offset, active_window_size,
-    use_fixed_covariate_mask=True, seed=None):
+def mask_covariate_weights_for_timestep(covariate_weights,
+                                        timestep,
+                                        num_known_steps,
+                                        is_training,
+                                        covariate_feature_time_offset,
+                                        active_window_size,
+                                        use_fixed_covariate_mask=True,
+                                        seed=None):
   """Returns a tensor with masked weights for the covariates at a given time.
 
   Args:
@@ -44,8 +48,7 @@ def mask_covariate_weights_for_timestep(
   forecast_window_size = num_temporal_weights - active_window_size
 
   if use_fixed_covariate_mask:
-    desired_offset = tf.constant(
-        covariate_feature_time_offset, dtype=tf.int64)
+    desired_offset = tf.constant(covariate_feature_time_offset, dtype=tf.int64)
   else:
     # Offset should not be less than:
     # - Covariate_feature_time_offset
@@ -74,8 +77,8 @@ def mask_covariate_weights_for_timestep(
         desired_offset = minval
 
   if desired_offset >= 0:  # Non-negative desired offsets indicate a valid mask.
-    active_indices = tf.range(
-        desired_offset, desired_offset + active_window_size)
+    active_indices = tf.range(desired_offset,
+                              desired_offset + active_window_size)
     one_d_mask = tf.scatter_nd(
         indices=tf.expand_dims(active_indices, axis=1),
         updates=tf.ones_like(active_indices),

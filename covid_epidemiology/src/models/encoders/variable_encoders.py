@@ -60,8 +60,10 @@ class VariableEncoder(abc.ABC):
 class StaticEncoder(VariableEncoder):
   """Static encoder with fixed parameters."""
 
-  def encode(self, time_series_input,
-             timestep, is_training = False):
+  def encode(self,
+             time_series_input,
+             timestep,
+             is_training = False):
     del timestep, is_training  # Unused.
     return time_series_input[-1]
 

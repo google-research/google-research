@@ -16,6 +16,8 @@ syntax = "proto2";
 
 package research_graph.in_memory;
 
+import 'clustering/util/dynamic_weight_threshold.proto';
+
 message AffinityClustererConfig {
   // Number of times we perform single-linkage clustering. If num_iterations =
   // 0, produces a clustering in which each node is in its own cluster. Note
@@ -23,9 +25,24 @@ message AffinityClustererConfig {
   // parameter of distributed affinity clustering to k-1.
   optional int32 num_iterations = 1 [default = 1];
 
-  // Edges of weight smaller than the threshold are ignored by single-linkage
-  // clustering.
-  optional double weight_threshold = 2;
+  message WeightThresholdsSequence {
+    repeated double thresholds = 1 [packed = true];
+  }
+
+  // Specifies the edge weight threshold in each iteration of the clustering.
+  // In each iteration, edges of weight smaller than the threshold are ignored.
+  oneof weight_threshold_config {
+    // A fixed threshold in each round.
+    double weight_threshold = 2;
+
+    // A fixed sequence of the thresholds.
+    // NOTE: If num_iterations > length of the list, then the last threshold
+    // specified is used for all iterations beyond the length of the list.
+    WeightThresholdsSequence per_iteration_weight_thresholds = 7;
+
+    // Dynamically change the weight threshold in each iteration.
+    DynamicWeightThresholdConfig dynamic_weight_threshold_config = 8;
+  }
 
   // Specifies how edge weights are aggregated when computing a compressed graph
   // for subsequent iterations. Let S = set of edge weights between two
@@ -43,6 +60,8 @@ message AffinityClustererConfig {
     // Let s_0, ..., s_{|S|-1} be a nondecreasing ordering of S. Then,
     // pick edge weight s_N such that N is percentile_linkage_value * (|S|-1).
     PERCENTILE = 4;
+    // sum(S) / count(S)
+    EXPLICIT_AVERAGE = 5;
   }
   optional EdgeAggregationFunction edge_aggregation_function = 3;
 

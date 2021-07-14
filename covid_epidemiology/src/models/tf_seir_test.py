@@ -345,8 +345,8 @@ class TFSEIRTestCase(unittest.TestCase):
       time_horizon = i - train_window_size + 1
       confirmed_prediction = window_predictions_all.metric_to_predictions[
           "confirmed"][i]
-      death_prediction = window_predictions_all.metric_to_predictions[
-          "death"][i]
+      death_prediction = (
+          window_predictions_all.metric_to_predictions["death"][i])
       recovered_prediction = window_predictions_all.metric_to_predictions[
           "recovered_documented"][i]
       infected_prediction = window_predictions_all.metric_to_predictions[

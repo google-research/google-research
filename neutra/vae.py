@@ -713,7 +713,7 @@ def DenseRecognition(images, encoder, z=None, sigma_activation="exp"
   elif sigma_activation == "softplus":
     sigma = tf.nn.softplus(encoding_parts[1])
 
-  bijector = tfb.Affine(shift=mu, scale_diag=sigma)
+  bijector = tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma))
 
   mvn = tfd.MultivariateNormalDiag(
       loc=tf.zeros_like(mu), scale_diag=tf.ones_like(sigma))
@@ -736,7 +736,7 @@ def DenseRecognitionAffine(images, encoder, z=None,
   tril_raw = tfp.math.fill_triangular(encoding[:, z_dims:])
   sigma = tf.nn.softplus(tf.matrix_diag_part(tril_raw))
   tril = tf.linalg.set_diag(tril_raw, sigma)
-  bijector = tfb.Affine(shift=mu, scale_tril=tril)
+  bijector = tfb.Shift(shift=mu)(tfb.ScaleMatvecTriL(tril))
 
   mvn = tfd.MultivariateNormalDiag(
       loc=tf.zeros_like(mu), scale_diag=tf.ones_like(sigma))
@@ -760,8 +760,10 @@ def DenseRecognitionAffineLR(images, encoder, z=None,
   perturb = tf.reshape(perturb, [-1, z_dims, rank])
 
   sigma = tf.nn.softplus(sigma)
-  bijector = tfb.Affine(shift=mu, scale_diag=sigma,
-                        scale_perturb_factor=perturb)
+  op = tf.linalg.LinearOperatorLowRankUpdate(
+      tf.linalg.LinearOperatorDiag(sigma),
+      u=perturb)
+  bijector = tfb.Shift(shift=mu)(tfb.ScaleMatvecLinearOperator(op))
 
   mvn = tfd.MultivariateNormalDiag(
       loc=tf.zeros_like(mu), scale_diag=tf.ones_like(sigma))
@@ -831,7 +833,7 @@ def DenseRecognitionRNVP(
   elif sigma_activation == "softplus":
     sigma = tf.nn.softplus(encoding_parts[1])
 
-  bijectors.append(tfb.Affine(shift=mu, scale_diag=sigma))
+  bijectors.append(tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma)))
   bijector = tfb.Chain(bijectors)
 
   mvn = tfd.MultivariateNormalDiag(
@@ -905,7 +907,7 @@ def DenseRecognitionIAF(
   elif sigma_activation == "softplus":
     sigma = tf.nn.softplus(encoding_parts[1])
 
-  bijectors.append(tfb.Affine(shift=mu, scale_diag=sigma))
+  bijectors.append(tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma)))
   bijector = tfb.Chain(bijectors)
 
   mvn = tfd.MultivariateNormalDiag(

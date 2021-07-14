@@ -23,7 +23,6 @@ compartmental model.
 from covid_epidemiology.src import constants
 from covid_epidemiology.src.models.shared import model_spec as model_spec_lib
 
-
 # Static feature candidates
 density = model_spec_lib.FeatureSpec(name=constants.DENSITY, initializer=None)
 ages_0_to_14 = model_spec_lib.FeatureSpec(
@@ -91,7 +90,6 @@ wellness = [
     h1n1, alcohol, bmi_male_average, bmi_female_average, smokers_male,
     smokers_female
 ]
-
 
 # Time-varying feature candidates
 confirmed_preprocessed = model_spec_lib.FeatureSpec(
@@ -234,7 +232,6 @@ def get_model_spec_time_varying_with_covariates(covariate_delay):
           "train_crps_weight": 0.75,
           "valid_crps_weight": 0.75
       },
-
       encoder_specs=[
           model_spec_lib.EncoderSpec(
               encoder_name="first_dose_vaccine_ratio_per_day",

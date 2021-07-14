@@ -27,6 +27,7 @@ from covid_epidemiology.src import constants
 from covid_epidemiology.src import feature_preprocessing as preprocessing
 
 
+
 def get_gt_source_features(location_granularity, gt_source):
     """Return 2-tuple of gt feature keys for deaths and confirmed cases.
 
@@ -179,6 +180,145 @@ def splice_data(from_df, to_df, feature_map, date_list, location_list):
 US_GT_SOURCES = frozenset(
     (constants.GT_SOURCE_JHU, constants.GT_SOURCE_NYT, constants.GT_SOURCE_USAFACTS)
 )
+
+def get_gt_source_features(location_granularity,
+                           gt_source):
+  """Return 2-tuple of gt feature keys for deaths and confirmed cases.
+
+  Note that the keys point to features that have the keyword 'state' in them.
+  This is by design - the features were named such that they could be used
+  interchangeably.
+
+  Args:
+    location_granularity: string. Geographic resolution, from
+      `constants.LOCATION_GRANULARITY_LIST` (ex. "STATE").
+    gt_source: string. Source of ground truth, from one of
+      `constants.GT_SOURCE_LIST` (ex. "JHU").
+
+  Returns:
+    2-tuple of type string, containing the death feature key and confirmed cases
+    features key, in that order.
+  """
+  if location_granularity not in constants.LOCATION_GRANULARITY_LIST:
+    raise ValueError(
+        "`location_granularity` should be one of "
+        f"{constants.LOCATION_GRANULARITY_LIST}: {location_granularity}")
+  if gt_source not in constants.GT_SOURCE_LIST:
+    raise ValueError(
+        f"`gt_source` should be one of {constants.GT_SOURCE_LIST}: {gt_source}")
+
+  gt_source = gt_source.upper()
+  location = location_granularity.lower()
+  if gt_source == constants.GT_SOURCE_JHU:
+    gt_keys = (constants.JHU_DEATH_FEATURE_KEY.replace("state", location),
+               constants.JHU_CONFIRMED_FEATURE_KEY.replace("state", location))
+  elif gt_source == constants.GT_SOURCE_NYT:
+    gt_keys = (constants.NYT_DEATH_FEATURE_KEY.replace("state", location),
+               constants.NYT_CONFIRMED_FEATURE_KEY.replace("state", location))
+  elif gt_source == constants.GT_SOURCE_USAFACTS:
+    gt_keys = (constants.USAFACTS_DEATH_FEATURE_KEY,
+               constants.USAFACTS_CONFIRMED_FEATURE_KEY)
+  elif gt_source == constants.GT_SOURCE_JAPAN:
+    gt_keys = (constants.JAPAN_PREFECTURE_DEATH_FEATURE_KEY,
+               constants.JAPAN_PREFECTURE_CONFIRMED_FEATURE_KEY)
+  else:
+    raise ValueError(
+        "Unknown ground truth source {}.".format(gt_source),
+        "Must be one of ('" + constants.GT_SOURCE_JHU + "', '" +
+        constants.GT_SOURCE_NYT + "','" + constants.GT_SOURCE_USAFACTS +
+        "', '" + constants.GT_SOURCE_JAPAN + "').")
+
+  return gt_keys
+
+
+def filter_to_location(data, location,
+                       location_granularity):
+  if location_granularity == constants.LOCATION_GRANULARITY_COUNTRY:
+    return data[data[constants.COUNTRY_COLUMN] == location]
+  else:
+    return data[data[constants.GEO_ID_COLUMN] == location]
+
+
+def splice_data(from_df, to_df,
+                feature_map, date_list,
+                location_list):
+  """Splice a subset of one dataframe into another.
+
+  Copy a subset of one dataframe into another, overwriting any existing
+  features.
+
+  Args:
+    from_df: Pandas dataframe containing source data
+    to_df: Pandas dataframe, optional. Datadframe where the data is to be
+      spliced into, in the same schema as 'from_df'.
+    feature_map: Dictionary. Map of old features to new features.
+    date_list: List, optional. List of times for which feature values are to be
+      copied.
+    location_list: List, optional. List of locations for which feature values
+      are to be copied.
+
+  Returns:
+    Pandas dataframe that contains the target dataframe with data replaced with
+    the spliced data.
+
+  Raises:
+    AssertionError if all source features are not in source dataframe.
+    AssertionError if all target features are not in target dataframe.
+  """
+
+  logger = logging.getLogger(__name__)
+  logger.setLevel(logging.NOTSET)  # inherit level from root logger
+
+  if to_df is None:
+    to_df = from_df.copy()
+
+  # checks
+  from_df_features = from_df[constants.FEATURE_NAME_COLUMN].unique().tolist()
+  assert all(e in from_df_features for e in feature_map.keys()), (
+      "All {} source features not in {} ".format(feature_map.keys(),
+                                                 from_df_features))
+  to_df_features = to_df[constants.FEATURE_NAME_COLUMN].unique().tolist()
+  assert all(e in to_df_features for e in feature_map.values()), (
+      "All {} target features not in {} ".format(feature_map.values(),
+                                                 to_df_features))
+
+  logging.info("Splicing data by mapping features.")
+
+  # define masks to isolate source and target features
+  from_df_mask = from_df[constants.FEATURE_NAME_COLUMN].isin(feature_map.keys())
+  to_df_mask = to_df[constants.FEATURE_NAME_COLUMN].isin(feature_map.values())
+  if location_list is not None:
+    from_df_loc_mask = from_df[constants.GEO_ID_COLUMN].isin(location_list)
+    to_df_loc_mask = to_df[constants.GEO_ID_COLUMN].isin(location_list)
+  else:
+    from_df_loc_mask = True
+    to_df_loc_mask = True
+  if date_list is not None:
+    from_df_date_mask = from_df[constants.DATE_COLUMN].isin(date_list)
+    to_df_date_mask = to_df[constants.DATE_COLUMN].isin(date_list)
+  else:
+    from_df_date_mask = True
+    to_df_date_mask = True
+
+  # drop target features
+  to_df = to_df.drop(to_df[to_df_mask & to_df_loc_mask & to_df_date_mask].index)
+
+  # then pull out and append source features
+  slice_df = from_df[from_df_mask & from_df_loc_mask & from_df_date_mask].copy()
+  slice_df[constants.FEATURE_NAME_COLUMN] = slice_df[
+      constants.FEATURE_NAME_COLUMN].map(feature_map).fillna(
+          slice_df[constants.FEATURE_NAME_COLUMN])
+  to_df = to_df.append(slice_df)
+  return to_df.sort_values([
+      constants.GEO_ID_COLUMN, constants.DATE_COLUMN,
+      constants.FEATURE_NAME_COLUMN
+  ],
+                           axis=0).reset_index(drop=True)
+
+
+US_GT_SOURCES = frozenset((constants.GT_SOURCE_JHU, constants.GT_SOURCE_NYT,
+                           constants.GT_SOURCE_USAFACTS))
+
 
 
 def overwrite_counties_gt(

@@ -42,17 +42,20 @@ std::vector<gbbs::uintE> GetOffsets(
     gbbs::uintE num_keys, std::size_t n);
 
 // Using parallel sorting, compute inter cluster edges given a set of
-// cluster_ids that form the vertices of the new graph. Uses aggregate_func
-// to combine multiple edges on the same cluster ids. Returns sorted
-// edges and offsets array in edges and offsets respectively.
-// The number of compressed vertices should be 1 + the maximum cluster id
-// in cluster_ids.
+// cluster_ids that form the vertices of the new graph. Uses scale_func to first
+// scale edge weights, and then uses aggregate_func to combine multiple edges on
+// the same cluster ids. Note that aggregate_func must be commutative and
+// associative, with 0 as its identity. Returns sorted edges and offsets array
+// in edges and offsets respectively. The number of compressed vertices should
+// be 1 + the maximum cluster id in cluster_ids.
 OffsetsEdges ComputeInterClusterEdgesSort(
     gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, float>& original_graph,
     const std::vector<gbbs::uintE>& cluster_ids,
     std::size_t num_compressed_vertices,
     const std::function<float(float, float)>& aggregate_func,
-    const std::function<bool(gbbs::uintE, gbbs::uintE)>& is_valid_func);
+    const std::function<bool(gbbs::uintE, gbbs::uintE)>& is_valid_func,
+    const std::function<float(std::tuple<gbbs::uintE, gbbs::uintE, float>)>&
+        scale_func);
 
 // Given an array of edges (given by a tuple consisting of the second endpoint
 // and a weight if the edges are weighted) and the offsets marking the index
@@ -89,6 +92,19 @@ MakeGbbsGraph(
 std::vector<gbbs::uintE> FlattenClustering(
     const std::vector<gbbs::uintE>& cluster_ids,
     const std::vector<gbbs::uintE>& compressed_cluster_ids);
+
+// Holds a GBBS graph and a corresponding node weights
+struct GraphWithWeights {
+  GraphWithWeights() {}
+  GraphWithWeights(
+      std::unique_ptr<gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, float>>
+          graph_,
+      std::vector<double> node_weights_)
+      : graph(std::move(graph_)), node_weights(std::move(node_weights_)) {}
+  std::unique_ptr<gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, float>>
+      graph;
+  std::vector<double> node_weights;
+};
 
 }  // namespace research_graph
 
