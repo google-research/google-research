@@ -61,7 +61,7 @@ def tfexamples_to_nps(path, embedding_name, label_name, label_list,
 
     # Read embeddings.
     cur_emb = feats[f'embedding/{embedding_name}'].float_list.value
-    assert cur_emb, (f'embedding/{embedding_name}', feats.keys())
+    assert cur_emb, (f'embedding/{embedding_name}', path)
     embeddings.append(cur_emb)
 
     # Read labels.
