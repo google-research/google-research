@@ -1048,21 +1048,14 @@ class AtomicInputWriter:
     """
     contents = []
 
-    num_zero_frequencies = 0
-    for val in conformer.properties.harmonic_frequencies.value:
-      if val == 0.0:
-        num_zero_frequencies += 1
-      else:
-        break
+    trimmed_frequencies = [
+      v for v in conformer.properties.harmonic_frequencies.value
+      if v != 0.0]
 
     contents.append('$frequencies{:5d}{:5d}{:5d}\n'.format(
-      len(conformer.properties.harmonic_frequencies.value)
-      - num_zero_frequencies,
-      0, 0))
+      len(trimmed_frequencies), 0, 0))
     line = ''
-    for i, freq in enumerate(
-        conformer.properties.harmonic_frequencies.value[
-          num_zero_frequencies:]):
+    for i, freq in enumerate(trimmed_frequencies):
       line += '{:8.2f}'.format(freq)
       if i % 10 == 9:
         contents.append(line + '\n')
