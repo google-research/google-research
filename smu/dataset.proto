@@ -122,6 +122,63 @@ message Properties {
   // TODO(pfr): this proto will undergo a major revision with next round of
   // data.
   message Errors {
+    // status is a summary of all the error conditions encountered.
+    // 0 indicates no errors and larger values indicate increasingly serious
+    // errors.
+    int32 status = 29;
+
+    // All of the warn_ fields are categories of errors encountered.
+    // 0 means no errors and larger values are increasingly serious.
+
+    // T1(2sd) diagnostics 1: > 0.02, 2: > 0.04, 3: > 0.06, 4: > 0.08
+    int32 warn_t1 = 30;
+    // Excess T1(2sd) diagnostics 1: > 0.015, 2: > 0.03, 3: > 0.05, 4: > 0.07
+    int32 warn_t1_excess = 31;
+    // Ratio between
+    // a) usigned difference in B6 and B5 BSEs
+    // b) given uncertainty of B6 BSEs
+    // 1: > 0.5, 2: > 1, 3: > 1.5, 4: > 2.0
+    int32 warn_bse_b5_b6 = 32;
+    // Ratio between
+    // a) unsigned difference in E_CCSD and B5 BSEs
+    // b) given uncertainty of E_CCSD BSEs
+    // 1: > 0.5, 2: > 1,
+    int32 warn_bse_cccsd_b5 = 33;
+    // Lowest excitation energy 1: < 1.0, 2: < 0.5, 3: < 0.0, 4: < -0.5 (eV)
+    int32 warn_exc_lowest_excitation = 34;
+    // Smallest oscillator strength 1: < -0.001
+    // (i.e. negative value, certain to be not due to numerical inaccuracy)
+    int32 warn_exc_smallest_oscillator = 35;
+    // Largest unsigned oscillator strength 1: > 1.0, 2: > 2.0
+    int32 warn_exc_largest_oscillator = 36;
+    // Disagreement between geometry analysis and QM program claim about
+    // linearity of the molecule.
+    // 1: QM claims non-linear, molecule seems to be linear
+    // 2: QM claims linear, molecule seems to be non-linear
+    // (note: value of 2 apparently not found for SMU1-7)
+    // Warning indicates that computed heats of formation for 298.15 K
+    // may be wrong)
+    int32 warn_vib_linearity = 37;
+    // Imaginary frequencies found.
+    // 1: At least one imaginary frequency found, all imaginary
+    // frequencies are between 0 and 30i cm-1. In this case any
+    // imaginary frequency is assumed to be due to numerical
+    // imprecision, and we set it to a small real value (1 cm-1) for
+    // thermochemical analysis.
+    // 2: At least one imaginary frequency found, at least one of
+    // which is larger than 30i cm-1. In this case we assume that the
+    // geometry really corresponds to a transition state or
+    // higher-order saddle point. Imaginary frequencies are skipped in
+    // the calculation of ZPEs and enthalpies of formation for 298 K
+    // are left out.
+    int32 warn_vib_imaginary = 38;
+    // This is simply information about how many of the bonds are
+    // classified as those that need an empirical correction in the
+    // thermochemical analysis to correct for the occurrence of
+    // negatively charged BSR prototype molecules.
+    int32 warn_num_neg = 39;
+
+
     // Computation error for frequencies.
     // Original error code: nstatv
     int32 error_frequencies = 2;
@@ -703,9 +760,11 @@ message Properties {
   // Diagnostics D1(CCSD/2sp).
   ScalarMolecularProperty diagnostics_d1_ccsd_2sp = 113
       [(availability) = COMPLETE];
+  // DEPRECATED
   // Diagnostics D1(CCSD/2sd).
   ScalarMolecularProperty diagnostics_d1_ccsd_2sd = 114
       [(availability) = INTERNAL_ONLY];
+  // DEPRECATED
   // Diagnostics D1(CCSD/3Psd).
   ScalarMolecularProperty diagnostics_d1_ccsd_3psd = 115
       [(availability) = INTERNAL_ONLY];
@@ -843,6 +902,10 @@ message Conformer {
     FATE_SUCCESS = 9;
   }
   FateCategory fate = 9;
+
+  // Specifies which database (STANDARD or COMPLETE) this Conformer
+  // will be in. Note that everything in STANDARD is also included in COMPLETE.
+  AvailabilityEnum which_database = 10;
 }
 
 ///////////// MultipleConformers

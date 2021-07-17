@@ -140,33 +140,50 @@ class SmuWriter:
             6, '0'), str(conformer.conformer_id % 1000).rjust(3, '0')))
     return result
 
-  def get_error_codes(self, properties):
-    """Returns a section of error codes (as defined by Uni Basel).
-
-    All error codes are integers. Note that '1' means ok and a non-1 value is
-    an error specific to meaning for that code.
+  def get_database(self, conformer):
+    """Returns the line indicating which database this conformer goes to.
 
     Args:
       properties: A Properties protocol buffer message.
 
     Returns:
-      A multiline string representation of the labeled binary error codes.
+      String
+    """
+    if conformer.which_database == dataset_pb2.STANDARD:
+      return 'Database   standard\n'
+    elif conformer.which_database == dataset_pb2.COMPLETE:
+      return 'Database   complete\n'
+    raise ValueError('Bad which_database: {}'.format(conformer.which_database))
+
+  def get_error_codes(self, properties):
+    """Returns a section of error/warning codes (as defined by Uni Basel).
+
+    Args:
+      properties: A Properties protocol buffer message.
+
+    Returns:
+      A multiline string representation
     """
     result = ''
     if self.annotate:
       result += '# From errors\n'
-    items_per_line = 8
 
-    keys = list(smu_utils_lib.ERROR_CODES.keys())
-    for i in range(0, len(smu_utils_lib.ERROR_CODES), items_per_line):
-      result += ''.join([code.rjust(9) for code in keys[i:i + items_per_line]])
-      result += '\n'
-      for code in keys[i:i + items_per_line]:
-        default_value = '        0' if code == 'nsvg09' else '        1'
-        result += default_value if not smu_utils_lib.ERROR_CODES[code] else str(
-            getattr(properties.errors,
-                    smu_utils_lib.ERROR_CODES[code])).rjust(9)
-      result += '\n'
+    result += 'Status     {:4d}\n'.format(properties.errors.status)
+    result += 'Warn_T1    {:4d}{:4d}\n'.format(
+      properties.errors.warn_t1,
+      properties.errors.warn_t1_excess)
+    result += 'Warn_BSE   {:4d}{:4d}\n'.format(
+      properties.errors.warn_bse_b5_b6,
+      properties.errors.warn_bse_cccsd_b5)
+    result += 'Warn_EXC   {:4d}{:4d}{:4d}\n'.format(
+      properties.errors.warn_exc_lowest_excitation,
+      properties.errors.warn_exc_smallest_oscillator,
+      properties.errors.warn_exc_largest_oscillator)
+    result += 'Warn_VIB   {:4d}{:4d}\n'.format(
+      properties.errors.warn_vib_linearity,
+      properties.errors.warn_vib_imaginary)
+    result += 'Warn_NEG   {:4d}\n'.format(properties.errors.warn_num_neg)
+
     return result
 
   def get_adjacency_code_and_hydrogens(self, topology):
@@ -306,10 +323,6 @@ class SmuWriter:
     Returns:
       A multiline string representation of bond atom pairs and bond types.
     """
-    # The BOND section comes from the ATOMIC analysis, so if it fails, there
-    # will be no bond section.
-    if properties.errors.error_atomic_analysis != 1:
-      return ''
     adjacency_matrix = smu_utils_lib.compute_adjacency_matrix(topology)
     bonds = []
     for bond in topology.bonds:
@@ -569,10 +582,7 @@ class SmuWriter:
 
     return result
 
-  _D1_DIAGNOSTICS_FIELDS = [
-      'diagnostics_d1_ccsd_2sp', 'diagnostics_d1_ccsd_2sd',
-      'diagnostics_d1_ccsd_3psd'
-  ]
+
   _T1_DIAGNOSTICS_FIELDS = [
       'diagnostics_t1_ccsd_2sp', 'diagnostics_t1_ccsd_2sd',
       'diagnostics_t1_ccsd_3psd'
@@ -589,13 +599,12 @@ class SmuWriter:
     """
     result = ''
 
-    if properties.HasField(self._D1_DIAGNOSTICS_FIELDS[0]):
+    if properties.HasField('diagnostics_d1_ccsd_2sp'):
       if self.annotate:
-        result += '# From %s\n' % ', '.join(self._D1_DIAGNOSTICS_FIELDS)
+        result += '# From diagnostics_d1_ccsd_2sp\n'
       result += (
-          'D1DIAG    D1(CCSD/2sp) %s  D1(CCSD/2sd) %s  D1(CCSD/3Psd)%s\n' %
-          tuple('{:.6f}'.format(getattr(properties, field).value).rjust(10)
-                for field in self._D1_DIAGNOSTICS_FIELDS))
+          'D1DIAG    D1(CCSD/2sp) {:10.6f}\n'.format(
+            properties.diagnostics_d1_ccsd_2sp.value))
 
     if properties.HasField(self._T1_DIAGNOSTICS_FIELDS[0]):
       if self.annotate:
@@ -902,6 +911,7 @@ class SmuWriter:
     identifier = smu_utils_lib.get_composition(conformer.bond_topologies[0])
     properties = conformer.properties
     contents.append(self.get_stage2_header(conformer, identifier))
+    contents.append(self.get_database(conformer))
     contents.append(self.get_error_codes(properties))
     contents.append(
         self.get_adjacency_code_and_hydrogens(conformer.bond_topologies[0]))
