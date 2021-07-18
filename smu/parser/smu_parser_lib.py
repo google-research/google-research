@@ -665,6 +665,8 @@ class SmuParser:
 
   def parse_rotational_constants(self):
     """Parses rotational constants vector (MHz)."""
+    if not self._next_line_startswith('Rotational constants'):
+      return
     constants = self.parse(ParseModes.RAW, num_lines=1)[0]
     values = str(constants).strip().split()[-3:]
     rotational_constants = self._conformer.properties.rotational_constants
@@ -674,6 +676,8 @@ class SmuParser:
 
   def parse_symmetry_used(self):
     """Parses whether or not symmetry was used in the computation."""
+    if not self._next_line_startswith('Symmetry used in calculation'):
+      return
     symmetry = self.parse(ParseModes.RAW, num_lines=1)[0]
     self._conformer.properties.symmetry_used_in_calculation = str(
         symmetry).strip().split()[-1] != 'no'

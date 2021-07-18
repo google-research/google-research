@@ -879,9 +879,10 @@ def merge_conformer(conf1, conf2):
       has_conflict = True
 
     for field in STAGE1_ERROR_FIELDS:
-      if (getattr(conf1.properties.errors, field) !=
-          getattr(conf2.properties.errors, field)):
-        has_conflict = True
+      # Only stage1 uses these old style error fields, so we just copy them
+      # over
+      setattr(conf2.properties.errors, field,
+              getattr(conf1.properties.errors, field))
 
     for field, atol in [
         ('initial_geometry_energy', 2e-6),

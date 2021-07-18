@@ -178,12 +178,20 @@ message Properties {
     // negatively charged BSR prototype molecules.
     int32 warn_num_neg = 39;
 
-
+    // These four errors (nstat1, nstatc, nstatt, frequencies) are only from
+    // the stage1 files and are only useful for internal debugging.
+    int32 error_nstat1 = 24;
+    int32 error_nstatc = 25;
+    int32 error_nstatt = 26;
     // Computation error for frequencies.
     // Original error code: nstatv
     int32 error_frequencies = 2;
-    // ATOMIC analysis of the molecule.
-    // Original error code: nsvato
+
+    // All errors below here are deprecated and were only used in
+    // earlier versions of the dataset.
+
+    // ATOMIC analysis of the
+    // molecule.  Original error code: nsvato
     int32 error_atomic_analysis = 3;
     // Failed to compute NMR values with B3LYP small basis set (6-31++G**).
     // Original error code: nsvnsb
@@ -239,9 +247,6 @@ message Properties {
     int32 error_nsvho2 = 21;
     int32 error_nsvho3 = 22;
     int32 error_nsvneg = 23;
-    int32 error_nstat1 = 24;
-    int32 error_nstatc = 25;
-    int32 error_nstatt = 26;
     int32 error_nsvego = 27;
     int32 error_nsvg09 = 28;
 

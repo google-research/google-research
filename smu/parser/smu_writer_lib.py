@@ -323,6 +323,8 @@ class SmuWriter:
     Returns:
       A multiline string representation of bond atom pairs and bond types.
     """
+    if properties.errors.status >= 4:
+      return ''
     adjacency_matrix = smu_utils_lib.compute_adjacency_matrix(topology)
     bonds = []
     for bond in topology.bonds:
@@ -431,6 +433,8 @@ class SmuWriter:
     Returns:
       A string representation of the rotational constants vector.
     """
+    if not properties.HasField('rotational_constants'):
+      return ''
     result = ''
     if self.annotate:
       result += '# From rotational_constants\n'
