@@ -180,7 +180,8 @@ class IntegrationTest(absltest.TestCase):
     # Check a couple of the stats.
     with gfile.GFile(output_stem + '_stats-00000-of-00001.csv') as f:
       stats_lines = f.readlines()
-      self.assertIn('error_nsvg09,0,4\n', stats_lines)
+      self.assertIn('errors.status,0,3\n', stats_lines)
+      self.assertIn('errors.warn_t1,0,4\n', stats_lines)
       self.assertIn('fate,FATE_SUCCESS,2\n', stats_lines)
       self.assertIn('fate,FATE_DUPLICATE_DIFFERENT_TOPOLOGY,1\n', stats_lines)
       self.assertIn('num_initial_geometries,1,4\n', stats_lines)
