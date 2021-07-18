@@ -49,33 +49,6 @@ conformers {
   }
   properties {
     errors {
-      error_frequencies: 1
-      error_atomic_analysis: 1
-      error_nmr_analysis_b3lyp_small_basis: 1
-      error_nmr_analysis_b3lyp_large_basis: 1
-      error_nmr_analysis_pbe0_small_basis: 1
-      error_nmr_analysis_pbe0_large_basis: 1
-      error_charge_analysis: 1
-      error_energies_orbitals_pvtz: 1
-      error_energies_orbitals_pvqz: 1
-      error_energies_orbitals_pcvtz: 1
-      error_excitation_energies: 1
-      error_single_point_energies: 1
-      error_inconsistent_molecule_energy_turbomole_mrcc: 1
-      error_inconsistent_cation_energy_turbomole_mrcc: 1
-      error_inconsistent_molecule_energy_turbomole_orca: 1
-      error_inconsistent_cation_energy_turbomole_orca: 1
-      error_normal_modes: 1
-      error_rotational_modes: 1
-      error_nsvho1: 5
-      error_nsvho2: 5
-      error_nsvho3: 5
-      error_nsvneg: 1
-      error_nstat1: 1
-      error_nstatc: 1
-      error_nstatt: 1
-      error_nsvego: 1
-      error_nsvg09: 1
     }
     harmonic_intensities {
       value: 0.0
@@ -430,8 +403,8 @@ conformers {
       matrix_values: 15.21574
       matrix_values: 13.59549
       matrix_values: -0.57441
-      matrix_values: -0.26387
-      matrix_values: 0.74564
+      matrix_values: -0.02639
+      matrix_values: 0.07456
     }
     dipole_moment_pbe0_aug_pc_1 {
       x: 0.19879
@@ -510,12 +483,6 @@ conformers {
     diagnostics_d1_ccsd_2sp {
       value: 0.0101
     }
-    diagnostics_d1_ccsd_2sd {
-      value: -1.0
-    }
-    diagnostics_d1_ccsd_3psd {
-      value: -1.0
-    }
     diagnostics_t1_ccsd_2sp {
       value: 0.006
     }
@@ -569,7 +536,6 @@ conformers {
       value: -56.498168
     }
     diagnostics_t1_ccsd_2sp_excess {
-      value: nan
     }
     bond_separation_reaction_left {
       value: " molecule"
@@ -711,17 +677,6 @@ conformers {
     }
     zpe_atomic_um_ci {
       value: 0.3
-    }
-    gaussian_sanity_check {
-      energy_pbe0_6_311gd_diff: 1e-05
-      max_force: 1e-05
-      max_frequencies_diff: 0.3908
-      mean_frequencies_diff: 0.2318
-      max_intensities_diff: 0.04596
-      mean_intensities_diff: 0.0108
-      max_dipole_components_diff: 1e-05
-      max_quadropole_components_diff: 3e-05
-      max_octopole_components_diff: 7e-05
     }
     harmonic_frequencies {
       value: 0.0
@@ -1018,4 +973,5 @@ conformers {
     smiles: "N"
     bond_topology_id: 899651
   }
+  which_database: STANDARD
 }

@@ -1,24 +1,23 @@
 ================================================================================
     1    4     x02_c2h2.000020.001
-   nstat1   nstatc   nstatv   nstatt   nsvato   nsvnsb   nsvnlb   nsvele
-        1        1        1        1        1        1        1        1
-   nsvego   nsveh3   nsveh4   nsvec3   nsvexc   nsveca   nsvmr1   nsvmr2
-        1        1        1        1        1        1        1        1
-   nsvvib   nsvor1   nsvor2   nsvrot   nsvnsp   nsvnlp   nsvg09   nsvho1
-        1        1        1        1        1        1        1        1
-   nsvho2   nsvho3   nsvneg
-        3        5        1
+Database   standard
+Status        0
+Warn_T1       0   0
+Warn_BSE      0   0
+Warn_EXC      0   0   0
+Warn_VIB      0   0
+Warn_NEG      0
      3
      11
 C#C
 x02_c2h2
 ID      20       1
 Stage 1  Host IP:   XXX.YYY.200.108
-Stage 1  Cluster:   alchemy      
+Stage 1  Cluster:   alchemy
 Stage 1  Cores:        24
 Stage 1  CPU type:     23
 Stage 2  Host IP:   XXX.YYY.200.108
-Stage 2  Cluster:   alchemy      
+Stage 2  Cluster:   alchemy
 Stage 2  Cores:        24
 Stage 2  CPU type:     23
           Geo  Force   MP2   CC   Polar  Elec  NMRs  NMRl  Exci  IP
@@ -43,15 +42,6 @@ Frequencies and intensities
  3426.7 3532.0
     0.0    0.0    0.0    0.0    0.0    0.0    0.0  102.9  102.9    0.0
    72.7    0.0
-Gaussian sanity check for FREQ/ELSTAT calculation
-Dev. Energy PBE0/6-311G*            0.000020
-Max. Force                          0.000010
-Max. and Avg Dev. Frequencies       0.463700      0.144060
-Max. and Avg Dev. Intensities       0.031650      0.009350
-Dev. Energy HF/6-31G*               0.000000
-Max. Dev. Dipole Components         0.000000
-Max. Dev. Quadrup. Components       0.000020
-Max. Dev. Octupole Components       0.000000
 Normal modes
 Mode   1
  -0.1212  0.0162  0.0000  0.3447  0.0345  0.0000 -0.5354  0.0000  0.0000  0.7588
@@ -128,7 +118,7 @@ NUCREP                  24.805948
 NUM_OPT                  1
 NIMAG                    0
 ZPE_unscaled            16.78
-D1DIAG    D1(CCSD/2sp)   0.024900  D1(CCSD/2sd)  -1.000000  D1(CCSD/3Psd) -1.000000
+D1DIAG    D1(CCSD/2sp)   0.024900
 T1DIAG    T1(CCSD/2sp)   0.012300  T1(CCSD/2sd)   0.012200  T1(CCSD/3Psd)  0.012900
 AT2_BSR_LEFT         molecule
 AT2_BSR_RIGHT        1  HC#CH
@@ -164,7 +154,7 @@ HOMO/LUMO  HF/TZVP           -0.41163    0.15655
 HOMO/LUMO  HF/3              -0.41042    0.15097
 HOMO/LUMO  HF/4              -0.41143    0.12938
 HOMO/LUMO  HF/CVTZ           -0.41049    0.15049
-Excitation energies and length rep. osc. strengths at CC2/TZVP             
+Excitation energies and length rep. osc. strengths at CC2/TZVP
     1           0.27967         0.00000
     2           0.29250         0.00000
     3           0.29250         0.00000
@@ -180,62 +170,62 @@ NMR isotropic shieldings (ppm): B3LYP/aug-pcS-1
     2    6    107.5648   +/-    0.0064
     3    1     30.3392   +/-    0.0016
     4    1     30.3392   +/-    0.0016
-NMR isotropic shieldings (ppm): PBE0/6-31++Gdp 
+NMR isotropic shieldings (ppm): PBE0/6-31++Gdp
     1    6    130.8096   +/-    0.0064
     2    6    130.8096   +/-    0.0064
     3    1     30.2304   +/-    0.0016
     4    1     30.2304   +/-    0.0016
-NMR isotropic shieldings (ppm): PBE0/aug-pcS-1 
+NMR isotropic shieldings (ppm): PBE0/aug-pcS-1
     1    6    110.2848   +/-    0.0064
     2    6    110.2848   +/-    0.0064
     3    1     30.1856   +/-    0.0016
     4    1     30.1856   +/-    0.0016
-Partial charges (e): MUL-PBE0/aug-pc-1 
+Partial charges (e): MUL-PBE0/aug-pc-1
     1    6     -0.2548   +/-    0.0001
     2    6     -0.2548   +/-    0.0001
     3    1      0.2548   +/-    0.0001
     4    1      0.2548   +/-    0.0001
-Partial charges (e): LOE-PBE0/aug-pc-1 
+Partial charges (e): LOE-PBE0/aug-pc-1
     1    6     -0.0028   +/-    0.0001
     2    6     -0.0028   +/-    0.0001
     3    1      0.0028   +/-    0.0001
     4    1      0.0028   +/-    0.0001
-Partial charges (e): NAT-PBE0/aug-pc-1 
+Partial charges (e): NAT-PBE0/aug-pc-1
     1    6     -0.2355   +/-    0.0001
     2    6     -0.2355   +/-    0.0001
     3    1      0.2355   +/-    0.0001
     4    1      0.2355   +/-    0.0001
-Partial charges (e): PON-PBE0/aug-pc-1 
+Partial charges (e): PON-PBE0/aug-pc-1
     1    6     -0.0185   +/-    0.0001
     2    6     -0.0185   +/-    0.0001
     3    1      0.0185   +/-    0.0001
     4    1      0.0185   +/-    0.0001
-Partial charges (e): ESP-PBE0/aug-pc-1 
+Partial charges (e): ESP-PBE0/aug-pc-1
     1    6     -0.2870   +/-    0.0001
     2    6     -0.2870   +/-    0.0001
     3    1      0.2870   +/-    0.0001
     4    1      0.2870   +/-    0.0001
-Partial charges (e): MUL-HF/6-31Gd     
+Partial charges (e): MUL-HF/6-31Gd
     1    6     -0.2816   +/-    0.0001
     2    6     -0.2816   +/-    0.0001
     3    1      0.2816   +/-    0.0001
     4    1      0.2816   +/-    0.0001
-Partial charges (e): LOE-HF/6-31Gd     
+Partial charges (e): LOE-HF/6-31Gd
     1    6     -0.1779   +/-    0.0001
     2    6     -0.1779   +/-    0.0001
     3    1      0.1779   +/-    0.0001
     4    1      0.1779   +/-    0.0001
-Partial charges (e): NAT-HF/6-31Gd     
+Partial charges (e): NAT-HF/6-31Gd
     1    6     -0.2429   +/-    0.0001
     2    6     -0.2429   +/-    0.0001
     3    1      0.2429   +/-    0.0001
     4    1      0.2429   +/-    0.0001
-Partial charges (e): PON-HF/6-31Gd     
+Partial charges (e): PON-HF/6-31Gd
     1    6     -0.1275   +/-    0.0001
     2    6     -0.1275   +/-    0.0001
     3    1      0.1275   +/-    0.0001
     4    1      0.1275   +/-    0.0001
-Partial charges (e): ESP-HF/6-31Gd     
+Partial charges (e): ESP-HF/6-31Gd
     1    6     -0.2984   +/-    0.0001
     2    6     -0.2984   +/-    0.0001
     3    1      0.2984   +/-    0.0001
@@ -244,9 +234,9 @@ Polarizability (au):    PBE0/aug-pc-1
     xx      19.22399
     yy      19.22399
     zz      30.93730
-    xy      -0.10019
-    xz       0.60725
-    yz       0.37824
+    xy      -0.00000
+    xz       0.00000
+    yz       0.00000
 Dipole moment (au):     PBE0/aug-pc-1
      x      -0.00000
      y       0.00000
@@ -269,18 +259,18 @@ Octopole moment (au):   PBE0/aug-pc-1
    xzz       0.00000
    yzz       0.00000
    xyz      -0.00000
-Dipole moment (au):     HF/6-31Gd    
+Dipole moment (au):     HF/6-31Gd
      x      -0.00000
      y      -0.00000
      z      -0.00000
-Quadrupole moment (au): HF/6-31Gd    
+Quadrupole moment (au): HF/6-31Gd
     xx      -9.97016
     yy      -9.97016
     zz      -4.83733
     xy       0.00000
     xz      -0.00000
     yz      -0.00000
-Octopole moment (au):   HF/6-31Gd    
+Octopole moment (au):   HF/6-31Gd
    xxx      -0.00000
    yyy      -0.00000
    zzz      -0.00000

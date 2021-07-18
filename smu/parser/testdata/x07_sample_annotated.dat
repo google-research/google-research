@@ -1,15 +1,14 @@
 ================================================================================
 # From original_conformer_index, topology, bond_topology_id, conformer_id
-    1   14     x07_c4o2fh7.618451.001
+    3   14     x07_c4o2fh7.618451.001
+Database   standard
 # From errors
-   nstat1   nstatc   nstatv   nstatt   nsvato   nsvnsb   nsvnlb   nsvele
-        1        1        1        1        1        1        1        1
-   nsvego   nsveh3   nsveh4   nsvec3   nsvexc   nsveca   nsvmr1   nsvmr2
-        1        1        1        1        1        1        1        1
-   nsvvib   nsvor1   nsvor2   nsvrot   nsvnsp   nsvnlp   nsvg09   nsvho1
-        1        1        1        1        1        1        0        1
-   nsvho2   nsvho3   nsvneg
-        1        1        1
+Status        0
+Warn_T1       0   0
+Warn_BSE      0   0
+Warn_EXC      0   0   0
+Warn_VIB      0   0
+Warn_NEG      0
 # From topology
      000010001002001110000
      3310000
@@ -428,8 +427,8 @@ NUM_OPT                  1
 NIMAG                    0
 # From zpe_unscaled
 ZPE_unscaled            69.83
-# From diagnostics_d1_ccsd_2sp, diagnostics_d1_ccsd_2sd, diagnostics_d1_ccsd_3psd
-D1DIAG    D1(CCSD/2sp)   0.048600  D1(CCSD/2sd)  -1.000000  D1(CCSD/3Psd) -1.000000
+# From diagnostics_d1_ccsd_2sp
+D1DIAG    D1(CCSD/2sp)   0.048600
 # From diagnostics_t1_ccsd_2sp, diagnostics_t1_ccsd_2sd, diagnostics_t1_ccsd_3psd
 T1DIAG    T1(CCSD/2sp)   0.012100  T1(CCSD/2sd)   0.012400  T1(CCSD/3Psd)  0.013000
 # From bond_separation_reaction_left
@@ -791,16 +790,15 @@ Octopole moment (au):   HF/6-31Gd
    xyz      -3.30141
 ================================================================================
 # From original_conformer_index, topology, bond_topology_id, conformer_id
-    9   14     x07_c4o2fh7.618451.123
+    4   14     x07_c4o2fh7.618451.123
+Database   standard
 # From errors
-   nstat1   nstatc   nstatv   nstatt   nsvato   nsvnsb   nsvnlb   nsvele
-        1        1        1        1        1        1        1        1
-   nsvego   nsveh3   nsveh4   nsvec3   nsvexc   nsveca   nsvmr1   nsvmr2
-        1        1        1        1        1        1        1        1
-   nsvvib   nsvor1   nsvor2   nsvrot   nsvnsp   nsvnlp   nsvg09   nsvho1
-        1        1        1        1        1        1        0        1
-   nsvho2   nsvho3   nsvneg
-        1        1        1
+Status        0
+Warn_T1       0   0
+Warn_BSE      0   0
+Warn_EXC      0   0   0
+Warn_VIB      0   0
+Warn_NEG      0
 # From topology
      000010001002001110000
      3310000
@@ -1219,8 +1217,8 @@ NUM_OPT                  1
 NIMAG                    0
 # From zpe_unscaled
 ZPE_unscaled            69.95
-# From diagnostics_d1_ccsd_2sp, diagnostics_d1_ccsd_2sd, diagnostics_d1_ccsd_3psd
-D1DIAG    D1(CCSD/2sp)   0.048200  D1(CCSD/2sd)  -1.000000  D1(CCSD/3Psd) -1.000000
+# From diagnostics_d1_ccsd_2sp
+D1DIAG    D1(CCSD/2sp)   0.048200
 # From diagnostics_t1_ccsd_2sp, diagnostics_t1_ccsd_2sd, diagnostics_t1_ccsd_3psd
 T1DIAG    T1(CCSD/2sp)   0.012000  T1(CCSD/2sd)   0.012300  T1(CCSD/3Psd)  0.012900
 # From bond_separation_reaction_left

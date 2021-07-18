@@ -900,10 +900,14 @@ message Conformer {
     FATE_DISCARDED_OTHER = 6;
     // Calculation results are missing. Should not be present in final dataset.
     FATE_NO_CALCULATION_RESULTS = 7;
-    // Some calculation results had serious errors.
-    // TODO(pfr): comment using the new error fields
-    FATE_CALCULATION_WITH_ERROR = 8;
-    // Calculations were successful with only minor errors.
+    // Some calculation results had serious/major/moderate errors.
+    FATE_CALCULATION_WITH_SERIOUS_ERROR = 8;
+    FATE_CALCULATION_WITH_MAJOR_ERROR = 10;
+    FATE_CALCULATION_WITH_MODERATE_ERROR = 11;
+    // Some calculations had only minor errors with some warnings.
+    FATE_CALCULATION_WITH_WARNING_SERIOUS = 12;
+    FATE_CALCULATION_WITH_WARNING_VIBRATIONAL = 13;
+    // Calculations were successful with only minor errors/warnings
     FATE_SUCCESS = 9;
   }
   FateCategory fate = 9;
