@@ -838,6 +838,7 @@ def pipeline(root):
         | ('ToJSON_' + id_str) >> beam.Map(conformer_to_json)
         | ('WriteJSON_' + id_str) >> beam.io.WriteToText(
             f'{FLAGS.output_stem}_{id_str}_json',
+            compression_type='gzip',
             num_shards=num_shards,
             file_name_suffix='.json.gz'))
 
