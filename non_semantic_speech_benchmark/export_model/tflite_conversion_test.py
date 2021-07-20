@@ -45,7 +45,7 @@ class TfliteConversionTest(parameterized.TestCase):
 
     tflite_conversion.main(None)
 
-    tflite_model = os.path.join(flags.FLAGS.output_dir, 'model_1.tflite')
+    tflite_model = os.path.join(flags.FLAGS.output_dir, 'model_0.tflite')
     self.assertTrue(tf.io.gfile.exists(tflite_model))
 
     # Check that input signature is as expected.
