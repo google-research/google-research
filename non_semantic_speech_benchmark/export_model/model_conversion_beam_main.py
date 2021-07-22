@@ -48,7 +48,8 @@ def main(unused_argv):
                                          FLAGS.output_dir,
                                          FLAGS.conversion_types)
   if not metadata:
-    raise ValueError(f'No data found: {FLAGS.experiment_dir}, {FLAGS.xids}')
+    raise ValueError(
+        f'No data found: {FLAGS.base_experiment_dir}, {FLAGS.xids}')
   logging.info('%i models in %i xids.', len(metadata), len(FLAGS.xids))
 
   # Check that models don't already exist, and create directories if necessary.

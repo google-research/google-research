@@ -45,7 +45,8 @@ def get_experiment_dirs(experiment_dir):
   """
   if not tf.io.gfile.exists(experiment_dir):
     raise ValueError(f'Experiment dir doesn\'t exist: {experiment_dir}')
-  experiment_dirs = tf.io.gfile.listdir(experiment_dir)
+  experiment_dirs = [f for f in tf.io.gfile.listdir(experiment_dir)
+                     if tf.io.gfile.isdir(os.path.join(experiment_dir, f))]
   return experiment_dirs
 
 
@@ -62,7 +63,10 @@ def get_params(experiment_dir_str):
   parsed_params = {}
   start_idx = experiment_dir_str.find('-') + 1
   for kv in experiment_dir_str[start_idx:].split(','):
-    key, value = kv.split('=')
+    cur_split = kv.split('=')
+    if len(cur_split) != 2:
+      raise ValueError(f'Folder doesn\'t split properly: {kv}')
+    key, value = cur_split
     try:
       value = eval(value)  # pylint: disable=eval-used
     except:  # pylint: disable=bare-except
