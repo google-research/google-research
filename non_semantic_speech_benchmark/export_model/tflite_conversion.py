@@ -65,6 +65,8 @@ def main(_):
   # Get experiment dirs names, params, and output location.
   metadata = []
   exp_names = model_export_utils.get_experiment_dirs(FLAGS.experiment_dir)
+  if not exp_names:
+    raise ValueError(f'No experiments found: {FLAGS.experiment_dir}')
   for i, exp_name in enumerate(exp_names):
     cur_metadata = Metadata(
         exp_name,
@@ -72,6 +74,7 @@ def main(_):
         os.path.join(FLAGS.experiment_dir, exp_name),
         os.path.join(FLAGS.output_dir, f'model_{i}.tflite'))
     metadata.append(cur_metadata)
+  logging.info('Number of metadata: %i', len(metadata))
 
   for m in metadata:
     logging.info('Working on experiment dir: %s', m.param_str)

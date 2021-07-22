@@ -25,7 +25,7 @@ import tensorflow as tf
 
 from non_semantic_speech_benchmark.export_model import tflite_conversion
 
-TESTDIR = 'non_semantic_speech_benchmark/export_model/testdata'
+TESTDIR = 'non_semantic_speech_benchmark/export_model/testdata/12321'
 
 
 class TfliteConversionTest(parameterized.TestCase):

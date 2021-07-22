@@ -20,7 +20,7 @@ from absl.testing import absltest
 from non_semantic_speech_benchmark.export_model import model_export_utils
 
 
-TEST_DIR = 'non_semantic_speech_benchmark/data_prep/testdata'
+TEST_DIR = 'non_semantic_speech_benchmark/data_prep/testdata/12321'
 
 
 class ModelExportUtilsTest(absltest.TestCase):
@@ -28,7 +28,6 @@ class ModelExportUtilsTest(absltest.TestCase):
   def setUp(self):
     super(ModelExportUtilsTest, self).setUp()
     self.exp_dir = os.path.join(absltest.get_default_test_srcdir(), TEST_DIR)
-    print(f'self.exp_dir: {self.exp_dir}')
 
   def test_get_experiment_dirs(self):
     dirs = model_export_utils.get_experiment_dirs(self.exp_dir)

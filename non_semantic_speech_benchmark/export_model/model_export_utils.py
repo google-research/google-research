@@ -45,11 +45,7 @@ def get_experiment_dirs(experiment_dir):
   """
   if not tf.io.gfile.exists(experiment_dir):
     raise ValueError(f'Experiment dir doesn\'t exist: {experiment_dir}')
-  subdirs = tf.io.gfile.walk(experiment_dir)
-  for subdir in subdirs:
-    if subdir[0] == experiment_dir:
-      experiment_dirs = subdir[1]
-      break
+  experiment_dirs = tf.io.gfile.listdir(experiment_dir)
   return experiment_dirs
 
 
@@ -82,12 +78,11 @@ def get_default_compressor():
   return compressor
 
 
-def get_model(
-    checkpoint_folder_path,
-    params,
-    tflite_friendly,
-    checkpoint_number = None,
-    include_frontend = False):
+def get_model(checkpoint_folder_path,
+              params,
+              tflite_friendly,
+              checkpoint_number = None,
+              include_frontend = False):
   """Given folder & training params, exports SavedModel without frontend."""
   compressor = None
   if params['cop']:
@@ -121,7 +116,8 @@ def get_model(
   return static_model
 
 
-def convert_tflite_model(model, quantize, model_path):
+def convert_tflite_model(model, quantize,
+                         model_path):
   """Uses TFLiteConverter to convert a Keras Model.
 
   Args:
@@ -161,10 +157,9 @@ def sanity_check(
     frame_width = None,
     num_mel_bins = None):
   """Sanity check model by running dummy inference."""
-  # Frontend flags.
-  n_required = flags.FLAGS.n_required
-  frame_width = flags.FLAGS.frame_width
-  num_mel_bins = flags.FLAGS.num_mel_bins
+  n_required = n_required or flags.FLAGS.n_required
+  frame_width = frame_width or flags.FLAGS.frame_width
+  num_mel_bins = num_mel_bins or flags.FLAGS.num_mel_bins
 
   if include_frontend:
     input_shape = (1, 2 * n_required)
@@ -185,6 +180,7 @@ def sanity_check(
     output = audio_to_embeddings_beam_utils.samples_to_embedding_tflite(
         model_input, sample_rate=16000, interpreter=interpreter, output_key='0')
   else:
+    logging.info('Loading and running inference with SavedModel...')
     model = tf.saved_model.load(model_path)
     output = model(model_input)['embedding'].numpy()
   np.testing.assert_array_equal(output.shape, expected_output_shape)
