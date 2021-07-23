@@ -65,6 +65,9 @@
 .mqm-neutral {
   background: lightgray;
 }
+.mqm-val {
+  max-width: 200px;
+}
 .mqm-val:hover {
   cursor: pointer;
 }
@@ -85,6 +88,7 @@
   border-left: 1px solid gray;
   padding: 4px;
   vertical-align: top;
+  word-wrap: break-word;
 }
 .mqm-table th {
   border-bottom: 1px solid gray;
