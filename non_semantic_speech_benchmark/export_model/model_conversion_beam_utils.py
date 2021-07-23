@@ -27,7 +27,7 @@ from non_semantic_speech_benchmark.export_model import model_export_utils
 
 Metadata = collections.namedtuple('Metadata', [
     'xid', 'model_num', 'experiment_dir', 'output_filename', 'params',
-    'conversion_type'
+    'conversion_type',
 ])
 # Valid conversion types.
 TFLITE_ = 'tflite'
@@ -51,7 +51,7 @@ def get_pipeline_metadata(base_experiment_dir, xids,
       output_filename = os.path.join(output_dir, f'frillsson_{xid}',
                                      f'model_{i}')
       for conversion_type in conversion_types:
-        suffix = '.tflite' if conversion_type == TFLITE_ else ''
+        suffix = '.tflite' if conversion_type == TFLITE_ else '_savedmodel'
         cur_metadata = Metadata(
             xid=xid,
             model_num=i,
@@ -62,6 +62,17 @@ def get_pipeline_metadata(base_experiment_dir, xids,
         )
         metadata.append(cur_metadata)
   return metadata
+
+
+def sanity_check_output_filename(output_filename,
+                                 strict_check = False):
+  """Check that models don't already exist, create directories if necessary."""
+  if tf.io.gfile.exists(output_filename):
+    if strict_check:
+      raise ValueError(
+          f'Models cant already exist: {output_filename}')
+  else:
+    tf.io.gfile.makedirs(os.path.dirname(output_filename))
 
 
 def convert_and_write_model(m, include_frontend,

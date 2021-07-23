@@ -19,8 +19,6 @@ r"""Beam job for model conversion.
 """
 # pylint:enable=line-too-long
 
-import os
-
 from typing import Sequence
 
 from absl import app
@@ -54,10 +52,7 @@ def main(unused_argv):
 
   # Check that models don't already exist, and create directories if necessary.
   for m in metadata:
-    if tf.io.gfile.exists(m.output_filename):
-      raise ValueError(f'Models cant already exist: {m.output_filename}')
-    else:
-      tf.io.gfile.makedirs(os.path.dirname(m.output_filename))
+    utils.sanity_check_output_filename(m.output_filename)
 
   logging.info('Starting to create flume pipeline...')
   # Make and run beam pipeline.
