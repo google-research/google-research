@@ -51,6 +51,9 @@ let mqmClauseCat;
 let mqmClauseAddAnd;
 let mqmClauseAddOr;
 
+/** A distinctive name used as the key for aggregate stats. */
+const mqmTotal = '_MQM_TOTAL_';
+
 /**
  * Listener for changes to the input field that specifies the limit on
  * the number of rows shown.
@@ -466,7 +469,8 @@ function mqmShowSegmentStats(id, title, stats) {
   keys.sort((k1, k2) => aggregates[k1].score - aggregates[k2].score);
   for (let k of keys) {
     const segs = stats[k];
-    let rowHTML = `<tr><td>${k}</td><td>${segs.length}</td>` +
+    const k_disp = (k == mqmTotal) ? 'Total' : k;
+    let rowHTML = `<tr><td>${k_disp}</td><td>${segs.length}</td>` +
         `<td>${ratings[k]}</td>`;
     if (!segs || !segs.length || !ratings[k]) {
       for (let i = 0; i < 8; i++) {
@@ -487,20 +491,47 @@ function mqmShowSegmentStats(id, title, stats) {
 }
 
 /**
- * Shows details of category-wise scores (in the stats object) in the table
- * with the given id.
- * @param {string} id
- * @param {!Object} stats
+ * Shows details of category-wise scores (from the mqmStatsByCategory object)
+ * in the categories table.
  */
-function mqmShowCategoryStats(id, stats) {
-  const tbody = document.getElementById(id);
+function mqmShowCategoryStats() {
+  const stats = mqmStatsByCategory;
+  const systems = {};
+  for (let category in stats) {
+    for (let system in stats[category]) {
+      systems[system] = true;
+    }
+  }
+  const systems_list = Object.keys(systems);
+  const colspan = systems_list.length || 1;
+  const th_list = document.getElementsByClassName('mqm-cat-stats-th');
+  for (let i = 0; i < th_list.length; i++) {
+    th_list[i].colSpan = colspan;
+  }
+  systems_list.sort();
+  const tbody = document.getElementById('mqm-cat-stats-tbody');
+
+  let rowHTML = '<tr><td></td>';
+  for (let i = 0; i < 3; i++) {
+    rowHTML += '<td></td>';
+    for (let system of systems_list) {
+      rowHTML += `<td><b>${system == mqmTotal ? 'Total' : system}</b></td>`;
+    }
+  }
+  rowHTML += '</tr>\n';
+  tbody.insertAdjacentHTML('beforeend', rowHTML);
+
   const keys = Object.keys(stats);
-  keys.sort((k1, k2) => stats[k2][0] - stats[k1][0]);
+  keys.sort((k1, k2) => stats[k2][mqmTotal][0] - stats[k1][mqmTotal][0]);
   for (let k of keys) {
     const row = stats[k];
     let rowHTML = `<tr><td>${k}</td>`;
     for (let i = 0; i < 3; i++) {
-      rowHTML += `<td>${row[i]}</td>`;
+      rowHTML += '<td></td>';
+      for (let system of systems_list) {
+        const val = row.hasOwnProperty(system) ? row[system][i] : '';
+        rowHTML += `<td>${val ? val : ''}</td>`;
+      }
     }
     rowHTML += '</tr>\n';
     tbody.insertAdjacentHTML('beforeend', rowHTML);
@@ -514,27 +545,36 @@ function mqmShowStats() {
   mqmShowSegmentStats('mqm-stats-tbody', '', mqmStats);
   mqmShowSegmentStats('mqm-stats-tbody', 'By system', mqmStatsBySystem);
   mqmShowSegmentStats('mqm-stats-tbody', 'By rater', mqmStatsByRater);
-  mqmShowCategoryStats('mqm-cat-stats-tbody', mqmStatsByCategory);
+  mqmShowCategoryStats();
 }
 
 /**
- * Updates statsArray[category], which is an array with 3 entries:
+ * Updates statsArray[category][system] and statsArray[category][mqmTotal],
+ * which are both arrays with 3 entries:
  *   total errors, major errors, minor errors.
  * @param {!Object} statsArray
+ * @param {string} system
  * @param {string} category
  * @param {string} severity
  */
-function mqmAddCategoryStats(statsArray, category, severity) {
+function mqmAddCategoryStats(statsArray, system, category, severity) {
   if (!statsArray.hasOwnProperty(category)) {
-    statsArray[category] = [0,0,0];
+    statsArray[category] = {};
+    statsArray[category][mqmTotal] = [0,0,0];
   }
-  statsArray[category][0]++;
+  if (!statsArray[category].hasOwnProperty(system)) {
+    statsArray[category][system] = [0,0,0];
+  }
+  statsArray[category][mqmTotal][0]++;
+  statsArray[category][system][0]++;
 
   const lsev = severity.toLowerCase();
   if (lsev == 'major') {
-    statsArray[category][1]++;
+    statsArray[category][mqmTotal][1]++;
+    statsArray[category][system][1]++;
   } else if (lsev == 'minor') {
-    statsArray[category][2]++;
+    statsArray[category][mqmTotal][2]++;
+    statsArray[category][system][2]++;
   }
 }
 
@@ -618,13 +658,14 @@ function mqmShow() {
 
   /**
    * The following mqmStats* objects are all keyed by something from:
-   * ({'Total'} or {system} or {rater}). Each keyed object is an array with
+   * ({mqmTotal} or {system} or {rater}). Each keyed object is an array with
    * one entry per segment. Each entry for a segment is itself an array, one
    * entry per rater. Each  entry for a rater is an object with the following
    * properties: rater, major, majorA, majorNT, majorF, minor, minorA, minorF,
    * minorPunct, score.
    */
-  mqmStats = {'Total': []};
+  mqmStats = {};
+  mqmStats[mqmTotal] = [];
   mqmStatsBySystem = {};
   mqmStatsByRater = {};
 
@@ -660,8 +701,8 @@ function mqmShow() {
       (parts[3] == lastRow[3]);
 
     if (!sameAsLast) {
-      mqmStats['Total'].push([]);
-      currSegStats = mqmArrayLast(mqmStats['Total']);
+      mqmStats[mqmTotal].push([]);
+      currSegStats = mqmArrayLast(mqmStats[mqmTotal]);
       if (!mqmStatsBySystem.hasOwnProperty(system)) {
         mqmStatsBySystem[system] = [];
       }
@@ -684,7 +725,7 @@ function mqmShow() {
     mqmAddErrorStats(mqmArrayLast(currSegStatsBySys), parts[7], parts[8]);
     mqmAddErrorStats(mqmArrayLast(currSegStatsByRater), parts[7], parts[8]);
 
-    mqmAddCategoryStats(mqmStatsByCategory, parts[7], parts[8]);
+    mqmAddCategoryStats(mqmStatsByCategory, system, parts[7], parts[8]);
 
     lastRow = parts;
 
@@ -991,9 +1032,14 @@ function createMQMViewer(elt, tsvData=null) {
       <thead>
         <tr>
           <th title="Error category"><b>Category</b></th>
-          <th title="Total errors count"><b>Count</b></th>
-          <th title="Major errors count"><b>Major count</b></th>
-          <th title="Minor errors count"><b>Minor count</b></th>
+          <th> </th>
+          <th class="mqm-cat-stats-th" title="Total errors count"><b>Count</b></th>
+          <th> </th>
+          <th class="mqm-cat-stats-th"
+              title="Major errors count"><b>Major count</b></th>
+          <th> </th>
+          <th class="mqm-cat-stats-th"
+              title="Minor errors count"><b>Minor count</b></th>
         </tr>
       </thead>
       <tbody id="mqm-cat-stats-tbody">
