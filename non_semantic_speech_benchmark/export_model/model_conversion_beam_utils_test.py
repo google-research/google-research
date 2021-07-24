@@ -73,15 +73,5 @@ class ModelConversionBeamUtilsTest(absltest.TestCase):
     all_output_filenames = [m.output_filename for m in metadata]
     self.assertEqual(len(set(all_output_filenames)), len(all_output_filenames))
 
-  def test_metadata_sanity(self):
-    # Get metadata.
-    metadata = model_conversion_beam_utils.get_pipeline_metadata(
-        self.base_experiment_dir, self.xids, self.output_dir,
-        self.conversion_types)
-
-    for m in metadata:
-      model_conversion_beam_utils.sanity_check_output_filename(
-          m.output_filename, strict_check=True)
-
 if __name__ == '__main__':
   absltest.main()
