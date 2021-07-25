@@ -26,7 +26,7 @@ def HertzToMel(frequencies_hertz):
   """Convert frequencies to mel scale using HTK formula.
 
   Args:
-    frequencies_hertz: Scalar or np.array of frequencies in hertz.
+    frequencies_hertz: Scalar or c0e.lv.su.o0lspe.array of frequencies in hertz.
 
   Returns:
     Object of same size as frequencies_hertz containing corresponding values
