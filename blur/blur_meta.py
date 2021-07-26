@@ -36,7 +36,7 @@ def init_first_state(
 ):
   """Initialize the very first state of the graph."""
   if create_synapses_fn is None:
-    create_synapses_fn = blur.create_synapses
+    create_synapses_fn = synapse_util.create_synapses
 
   if callable(genome):
     num_neuron_states = genome(0).synapse.transform.pre.shape[-1]
@@ -52,11 +52,11 @@ def init_first_state(
   synapses = create_synapses_fn(layers, synapse_initializer)
   if network_spec.symmetric_in_out_synapses:
     for i in range(len(synapses)):
-      synapses[i] = blur.sync_in_and_out_synapse(
+      synapses[i] = synapse_util.sync_in_and_out_synapse(
           synapses[i], layers[i].shape[-2], env)
   if network_spec.symmetric_states_synapses:
     for i in range(len(synapses)):
-      synapses[i] = blur.sync_states_synapse(synapses[i], env)
+      synapses[i] = synapse_util.sync_states_synapse(synapses[i], env)
   num_updatable_units = len(hidden_layers) + 1
   ground_truth = tf.zeros((*batch_dims, num_outputs))
 

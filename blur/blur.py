@@ -14,9 +14,9 @@
 # limitations under the License.
 
 """Specfies the behaviour of a single state."""
+import dataclasses as dc
 import functools as ft
 from typing import Any, Callable, List, Optional, Text, Tuple, Union
-import dataclasses as dc
 
 import jax.numpy as jp
 import numpy as np
@@ -114,14 +114,12 @@ class FeedbackFn(Protocol):
   def __call__(self,
                final_layer,
                ground_truth,
-               env = None):
+               env = blur_env.tf_env):
     """Computes a feedback function from the last layer and the ground truth."""
 
 
 def concat_groundtruth_in(final_layer, ground_truth,
-                          env = None):
-  if env is None:
-    env = blur_env.tf_env
+                          env = blur_env.tf_env):
   return env.concat(
       [final_layer[Ellipsis, 0:1], ground_truth[Ellipsis, None],
        env.zeros_like(final_layer[Ellipsis, 2:])], axis=-1)
@@ -206,7 +204,7 @@ def network_step(state,
                  network_spec = None,
                  debug_hidden_states = None,
                  step = None,
-                 env):
+                 env = blur_env.tf_env):
   """Given the current state of the network produces new state."""
   if network_spec is None:
     network_spec = default_network_spec(env)
