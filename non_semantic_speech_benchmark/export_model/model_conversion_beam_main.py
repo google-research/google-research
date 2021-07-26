@@ -36,6 +36,7 @@ flags.DEFINE_string('output_dir', None, 'Base output dir.')
 flags.DEFINE_bool('include_frontend', False, 'Whether to export with frontend.')
 flags.DEFINE_list('conversion_types', ['tflite', 'savedmodel'],
                   'Type of conversions.')
+flags.DEFINE_bool('sanity_check', False, 'Whether to run sanity check.')
 
 FLAGS = flags.FLAGS
 
@@ -54,8 +55,8 @@ def main(unused_argv):
   # Make and run beam pipeline.
   beam_options = None
   def _convert_and_write_model(m):
-    utils.convert_and_write_model(
-        m, include_frontend=FLAGS.include_frontend, sanity_check=True)
+    utils.convert_and_write_model(m, include_frontend=FLAGS.include_frontend,
+                                  sanity_check=FLAGS.sanity_check)
     return m
 
   with beam.Pipeline(beam_options) as root:
