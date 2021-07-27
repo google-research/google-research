@@ -64,6 +64,14 @@ def get_pipeline_metadata(base_experiment_dir, xids,
   return metadata
 
 
+def sanity_check_output_filename(output_filename):
+  """Check that models don't already exist, create directories if necessary."""
+  if tf.io.gfile.exists(output_filename):
+    raise ValueError(f'Models cant already exist: {output_filename}')
+  else:
+    tf.io.gfile.makedirs(os.path.dirname(output_filename))
+
+
 def convert_and_write_model(m, include_frontend,
                             sanity_check):
   """Convert model and write to disk for data prep."""
@@ -77,9 +85,9 @@ def convert_and_write_model(m, include_frontend,
       tflite_friendly=tflite_friendly,
       checkpoint_number=None,
       include_frontend=include_frontend)
-  if tf.io.gfile.exists(m.output_filename):
-    raise ValueError(f'Model already exists: {m.output_filename}')
-  tf.io.gfile.makedirs(os.path.dirname(m.output_filename))
+  if not tf.io.gfile.exists(os.path.dirname(m.output_filename)):
+    raise ValueError(
+        f'Existing dir didn\'t exist: {os.path.dirname(m.output_filename)}')
   if tflite_friendly:
     model_export_utils.convert_tflite_model(
         model, quantize=m.params['qat'], model_path=m.output_filename)

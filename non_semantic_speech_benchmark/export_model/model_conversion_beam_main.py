@@ -42,6 +42,8 @@ FLAGS = flags.FLAGS
 
 
 def main(unused_argv):
+  beam_options = None
+
   # Get metadata for conversion.
   metadata = utils.get_pipeline_metadata(FLAGS.base_experiment_dir, FLAGS.xids,
                                          FLAGS.output_dir,
@@ -51,9 +53,12 @@ def main(unused_argv):
         f'No data found: {FLAGS.base_experiment_dir}, {FLAGS.xids}')
   logging.info('%i models in %i xids.', len(metadata), len(FLAGS.xids))
 
+  # Check that models don't already exist, and create directories if necessary.
+  for m in metadata:
+    utils.sanity_check_output_filename(m.output_filename)
+
   logging.info('Starting to create flume pipeline...')
   # Make and run beam pipeline.
-  beam_options = None
   def _convert_and_write_model(m):
     utils.convert_and_write_model(m, include_frontend=FLAGS.include_frontend,
                                   sanity_check=FLAGS.sanity_check)
