@@ -122,7 +122,12 @@ class BaseConfigTest(parameterized.TestCase):
             'use_cams': None,
             'exclude_zeros': None,
             'use_mean_of_max': None,
-            'granularity': None
+            'granularity': None,
+            'fixed_bound': None,
+            'cams_coeff': None,
+            'cams_stddev_coeff': None,
+            'mean_of_max_coeff': None,
+            'use_old_code': None,
         },
         'input_distribution': None,
         'prec': None,
@@ -150,6 +155,10 @@ class BaseConfigTest(parameterized.TestCase):
         'conv_1': conv_schema,
         'conv_2': conv_schema,
         'conv_3': conv_schema,
+        'act_function': None,
+        'shortcut_ch_expand_method': None,
+        'shortcut_ch_shrink_method': None,
+        'shortcut_spatial_method': None,
     }
 
     expected_top_level_schema = {
@@ -169,6 +178,22 @@ class BaseConfigTest(parameterized.TestCase):
         'quant_type': None,
         'quant_act': quant_act_schema,
         'weight_quant_granularity': None,
+        'early_stop_steps': None,
+        'act_function': None,
+        'shortcut_ch_shrink_method': None,
+        'shortcut_ch_expand_method': None,
+        'shortcut_spatial_method': None,
+        'lr_scheduler': {
+            'warmup_epochs': None,
+            'cooldown_epochs': None,
+            'scheduler': None,
+            'num_epochs': None,
+        },
+        'optimizer': None,
+        'adam': {
+            'beta1': None,
+            'beta2': None,
+        },
         'dense_layer': dense_schema,
         'conv': conv_schema,
         'residual': residual_block_schema,
@@ -177,6 +202,7 @@ class BaseConfigTest(parameterized.TestCase):
             'conv_init': conv_schema,
             'residual_blocks': [residual_block_schema] * num_blocks,
             'filter_multiplier': None,
+            'act_function': None,
         },
     }
 
