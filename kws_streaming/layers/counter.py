@@ -45,7 +45,7 @@ class Counter(tf.keras.layers.Layer):
     if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
       # create state variable for streamable inference mode only
       self.state = self.add_weight(
-          shape=[1, 1],
+          shape=[1, 1, 1],
           name='counter',
           trainable=False,
           initializer=tf.zeros_initializer)
@@ -53,7 +53,7 @@ class Counter(tf.keras.layers.Layer):
       # in streaming mode with external state,
       # state becomes an input output placeholder
       self.input_state = tf.keras.layers.Input(
-          shape=(1,),
+          shape=(1, 1),
           batch_size=1,
           name=self.name + '/' +
           self.state_name_tag)  # adding names to make it unique
@@ -100,23 +100,23 @@ class Counter(tf.keras.layers.Layer):
 
   def _streaming_internal_state(self, inputs):
 
-    new_state = tf.cond(self.state[0][0] <= self.max_counter,
+    new_state = tf.cond(self.state[0][0][0] <= self.max_counter,
                         lambda: self.state + 1, lambda: self.state)
 
     assign_state = self.state.assign(new_state)
 
     with tf.control_dependencies([assign_state]):
-      outputs = tf.cond(self.state[0][0] > self.max_counter, lambda: inputs,
+      outputs = tf.cond(self.state[0][0][0] > self.max_counter, lambda: inputs,
                         lambda: tf.zeros_like(inputs))
       return outputs
 
   def _streaming_external_state(self, inputs, state):
 
     state_one = state + 1
-    new_state = tf.cond(state[0][0] <= self.max_counter,
+    new_state = tf.cond(state[0][0][0] <= self.max_counter,
                         lambda: state_one, lambda: state)
 
     with tf.control_dependencies([new_state]):
-      outputs = tf.cond(new_state[0][0] > self.max_counter, lambda: inputs,
+      outputs = tf.cond(new_state[0][0][0] > self.max_counter, lambda: inputs,
                         lambda: tf.zeros_like(inputs))
       return outputs, new_state
