@@ -589,23 +589,17 @@ class QuantOps:
     if not allow_per_channel_scales:
       raise ValueError('Scale is not per-layer since it has shape '
                        f'{scale.shape}.')
-    # If 'scale' is two-dimensional, then the only allowed shape for 'scale'
-    # that is currently compatible with AQT is [1, num_channels]. If instead it
-    # had a shape like [N, 1] or [N, num_channels], that would correspond to
-    # per-row scale factors, which our AQT implementation does not currently
-    # handle.
-    if scale.ndim == 2:
-      if scale.shape[0] != 1:
-        raise ValueError(
-            'Scale has per-row scaling factors, which is not '
-            f'currently compatible with AQT. Scale has shape {scale.shape}, but '
-            'a 1 is expected as the shape of the first dimension.')
-      return scale
-    else:
+    # If 'scale' is not scalar, then the only allowed shape for 'scale'
+    # that is currently compatible with AQT is [1,..., 1, num_channels]. If
+    # instead it had a shape like [N, 1] or [N, num_channels], that would
+    # correspond to per-row scale factors, which our AQT implementation does
+    # not currently handle.
+    if any(x != 1 for x in scale.shape[:-1]):
       raise ValueError(
-          'Scale has more than two dimensions, which is not '
-          'currently compatible with AQT. AQT currently only handles multiplying '
-          f'2D arrays, but has shape {scale.shape}.')
+          'Scale has per-row scaling factors, which is not currently '
+          f'compatible with AQT. Scale has shape {scale.shape}, but '
+          'a 1 is expected as the shape of the first n-1 dimension.')
+    return scale
 
 
 PrecisionType = typing.Any
@@ -669,6 +663,69 @@ def quantized_dot(*,
     raise ValueError('Incompatible shapes for dot: got {} and {}.'.format(
         act.shape, w.shape))
   dot_dimension_numbers = (((act.ndim - 1,), (0,)), ((), ()))
+  return quantized_dot_general(
+      w=w,
+      act=act,
+      quant_type=quant_type,
+      weight_params=weight_params,
+      act_hparams=act_hparams,
+      get_bounds_params=get_bounds_params,
+      prefer_int8_to_int32_dot=prefer_int8_to_int32_dot,
+      dimension_numbers=dot_dimension_numbers,
+      dot_precision=dot_precision)
+
+
+# TODO(shivaniagrawal): extend it for generic dot_dimenson_numbers
+def quantized_dot_general(
+    *,
+    w,
+    act,
+    quant_type,
+    weight_params,
+    act_hparams,
+    get_bounds_params,
+    prefer_int8_to_int32_dot,
+    dimension_numbers,
+    dot_precision = None):
+  """LAX dot general with optionally quantized weights and activations.
+
+  Wraps LAX's `Dot General
+  <https://jax.readthedocs.io/en/latest/_autosummary/jax.lax.dot_general.html.
+
+  Args:
+    w: an array representing weights
+    act: an array representing activations
+    quant_type: quantization strategy
+    weight_params: QuantOps.WeighstParams instance for describing weights
+      quantization.
+    act_hparams: Optional activation quantization hyperparamers; instance of
+      QuantOps.ActHParams. None would mean no activation quantization.
+    get_bounds_params: Optional get bounds params for auto activation
+      quantization; instance of GetBounds.Params.
+    prefer_int8_to_int32_dot:  Whether to feed lax.dot inputs with an int8 dtype
+      and accumulate to int32 dtype if quantizing to 8bits or 4bits. If False,
+      inputs are always foating-point.
+    dimension_numbers: a tuple of tuples of the form `((lhs_contracting_dims,
+      rhs_contracting_dims), (lhs_batch_dims, rhs_batch_dims))`.
+    dot_precision: Optional. Either ``None``, which means the default precision
+      for the backend, or a ``lax.Precision`` enum value (``Precision.DEFAULT``,
+      ``Precision.HIGH`` or ``Precision.HIGHEST``).
+
+  Returns:
+    An array containing the result with the same dtype as 'w' and 'act'.
+
+  Raises:
+    RuntimeError: 'quant_type' had an unrecognized value.
+    TypeError: 'act' and 'w' has different input types.
+    ValueError: Shapes of 'act' and 'w' not compatible with quant_type.
+  """
+  supported_contracting_dims = ((act.ndim - 1,), (0,))
+  # (lhs_contracting_dims, rhs_contracting_dims)
+  if dimension_numbers != (supported_contracting_dims,
+                           ((), ())):  # (lhs_batch_dims, rhs_batch_dims)):
+    raise ValueError(
+        'Quantization is only supported for contracting dimension to be last '
+        'dimension of lhs and first dimension of rhs.')
   if quant_type == QuantType.aqt:
     # Let 's' be activation scales and 't' be weight scales. We implement
     # matmul(RoundAndClip(act*s), RoundAndClip(s^-1 * w * t)) *t^-1. In the
@@ -676,10 +733,10 @@ def quantized_dot(*,
     # lax.dot accepts any combination of 1d and 2d arguments for its lhs and rhs
     # input. To simplify the AQT implementation, we only accept 2d arguments for
     # now.
-    if w.ndim != 2 or act.ndim != 2:
+    if w.ndim != 2 or act.shape[-1] != w.shape[0]:
       raise ValueError(
           'AQT is currently only implemented for matrix*matrix operations')
-    num_input_channels = act.shape[1]
+    num_input_channels = act.shape[-1]
     num_output_channels = w.shape[1]
 
     # The ValueError raised in the guard at the beginning of this function
@@ -723,14 +780,15 @@ def quantized_dot(*,
       # matrix.
       act_scale = act_op.get_scale_for_aqt(allow_per_channel_scales=True)
       # act_scale should either be a scalar, corresponding to per-layer
-      # quantization, or a matrix with shape (1, num_input_channels),
+      # quantization, or a matrix with shape (1,.., 1, num_input_channels),
       # corresponding to per-activation-channel scale factors.
       if act_scale.ndim != 0:
         shape_utils.assert_shapes_equal(act_scale.shape,
-                                        (1, num_input_channels))
+                                        (1,) * (act_scale.ndim - 1) +
+                                        (num_input_channels,))
         # 'w' has one row per column of 'act_scale'. To scale each row of 'w' by
         # the inverse of the corresponding column in 'act_scale', we first have
-        # to reshape 'act_scale' from (1, num_input_channels) to
+        # to reshape 'act_scale' from (1, ...,  num_input_channels) to
         # (num_input_channels, 1) so the scale factors will broadcast
         # appropriately across the columns of 'w'.
         act_scale = act_scale.reshape(num_input_channels, 1)
@@ -768,6 +826,9 @@ def quantized_dot(*,
       if weight_scale.ndim != 0:
         shape_utils.assert_shapes_equal(weight_scale.shape,
                                         (1, num_output_channels))
+        if act.ndim != 0:
+          weight_scale_shape = (1,) * (act.ndim - 1) + (num_output_channels,)
+          weight_scale = weight_scale.reshape(weight_scale_shape)
 
       # Quantize weight matrix by calculating RoundAndClip(s^-1 * w * t)
       # TODO(malmaud): See comment on 'act_op.to_quantized' above, which applies
@@ -815,7 +876,7 @@ def quantized_dot(*,
       out_quantized = dot_general_aqt(
           act_quantized,
           weight_quantized,
-          dimension_numbers=dot_dimension_numbers,
+          dimension_numbers=dimension_numbers,
           dot_precision=dot_precision,
           use_int8_to_int32_dot=use_int8_to_int32_dot)
 
@@ -829,6 +890,7 @@ def quantized_dot(*,
     # bf16, 'weight_scale' will still fp32 and so multipying out_quantized by
     # (1/weight_scale) will result in a fp32 tensor. We want to convert that
     # back to bf16.
+
     return (out_quantized * (1 / weight_scale)).astype(input_dtype)
 
   elif quant_type in (QuantType.fake_quant, QuantType.fake_quant_with_int):
@@ -863,10 +925,7 @@ def quantized_dot(*,
           lhs_prec=act_prec, rhs_prec=weight_prec, rhs_is_weight=True)
     with metadata_context:
       out_quantized = lax.dot_general(
-          act,
-          w,
-          dimension_numbers=dot_dimension_numbers,
-          precision=dot_precision)
+          act, w, dimension_numbers=dimension_numbers, precision=dot_precision)
     return out_quantized
   else:
     raise RuntimeError(f'Unsupported quant_type {quant_type}')

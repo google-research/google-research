@@ -689,6 +689,89 @@ class AQTTest(parameterized.TestCase):
         rtol=1e-2,
         err_msg='AQT and fakequant significantly disagree')
 
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='per_layer_act_per_column_weight',
+          act_bounds=4.0,
+          weight_prec=16,
+          weight_axis=(0,),
+      ),
+      dict(
+          testcase_name='per_column_act_per_column_weight',
+          act_bounds=[[[3.0, 4.0]]],
+          weight_prec=16,
+          weight_axis=(0,)),
+      dict(
+          testcase_name='per_layer_act_per_layer_weight',
+          act_bounds=4.0,
+          weight_prec=16,
+          weight_axis=None),
+      dict(
+          testcase_name='per_column_act_per_layer_weight',
+          act_bounds=[[[3.0, 4.0]]],
+          weight_prec=16,
+          weight_axis=None),
+      dict(
+          testcase_name='per_layer_act_no_weight_quant',
+          act_bounds=4.0,
+          weight_prec=None,
+          weight_axis=None),
+      dict(
+          testcase_name='per_column_act_no_weight_quant',
+          act_bounds=[[[3.0, 4.0]]],
+          weight_prec=None,
+          weight_axis=None),
+      dict(
+          testcase_name='no_act_quant_per_column_weight',
+          act_bounds=None,
+          weight_prec=16,
+          weight_axis=(0,)),
+      dict(
+          testcase_name='no_act_quant_no_weight_quant',
+          act_bounds=None,
+          weight_prec=None,
+          weight_axis=None),
+  )
+  def test_quantized_dot_general_aqt(self, act_bounds, weight_prec,
+                                     weight_axis):
+    # With a high enough precision, we expect results from fakequant and AQT to
+    # be very similar.
+    weight_params = QuantOps.WeightParams(
+        prec=weight_prec, axis=weight_axis, half_shift=False)
+
+    if act_bounds is None:
+      act_params = None
+    else:
+      act_params = QuantOps.ActHParams(
+          input_distribution='symmetric',
+          bounds=jnp.array(act_bounds),
+          prec=16,
+          half_shift=False)
+
+    lhs_ndims_3 = jnp.array(
+        fp32(2.0 * onp.random.uniform(0, 1.0, size=(4, 3, 2))))
+
+    def quantized_matmul(quant_type):
+      return quantization.quantized_dot_general(
+          w=self.rhs,
+          act=lhs_ndims_3,
+          weight_params=weight_params,
+          act_hparams=act_params,
+          get_bounds_params=None,
+          quant_type=quant_type,
+          dimension_numbers=(((lhs_ndims_3.ndim - 1,), (0,)), ((), ())),
+          prefer_int8_to_int32_dot=True)
+
+    aqt_result = quantized_matmul(QuantType.aqt)
+    self.assertEqual(aqt_result.shape, (4, 3, 4))
+
+    fakequant_result = quantized_matmul(QuantType.fake_quant)
+    onp.testing.assert_allclose(
+        aqt_result,
+        fakequant_result,
+        rtol=1e-2,
+        err_msg='AQT and fakequant significantly disagree')
+
   def assert_is_integer_in_range(self, x, *, prec, distribution):
     if distribution == 'symmetric':
       x_clipped = primitives.round_and_clip_to_signed_int(

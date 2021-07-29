@@ -953,9 +953,10 @@ class DenseAqtTest(parameterized.TestCase):
   @parameterized.parameters(
       dict(granularity=quant_config.QuantGranularity.per_channel, axis=(0,)),
       dict(granularity=quant_config.QuantGranularity.per_tensor, axis=None))
-  @mock.patch.object(quantization, 'quantized_dot')
+  @mock.patch.object(quantization, 'quantized_dot_general')
   @mock.patch.object(shape_utils, 'assert_shapes_equal')
-  def test_quant_granularity(self, _, mock_quantized_dot, granularity, axis):
+  def test_quant_granularity(self, _, mock_quantized_dot_general, granularity,
+                             axis):
     hparams = flax_layers.DenseAqt.HParams(
         weight_prec=8,
         quant_act=None,
@@ -973,7 +974,7 @@ class DenseAqtTest(parameterized.TestCase):
     x = jnp.ones((2, 2))
     state = layer.init(self.rng_key, x, padding_mask=None)
     layer.apply(state, x, padding_mask=None)
-    weight_params = mock_quantized_dot.call_args[1]['weight_params']
+    weight_params = mock_quantized_dot_general.call_args[1]['weight_params']
     self.assertEqual(weight_params.axis, axis)
 
 
