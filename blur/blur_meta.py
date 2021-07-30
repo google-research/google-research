@@ -15,6 +15,7 @@
 
 """Functions for setting up meta-learning graph."""
 
+import dataclasses as dc
 from typing import List, Optional, Sequence, Callable, Tuple
 
 import tensorflow.compat.v1 as tf
@@ -25,6 +26,11 @@ from blur import genome_util
 from blur import synapse_util
 
 
+def freeze_network_state(state, sess):
+  layers, synapses = sess.run([state.layers, state.synapses])
+  return dc.replace(state, layers=layers, synapses=synapses)
+
+
 def init_first_state(
     genome,
     data,
@@ -32,8 +38,7 @@ def init_first_state(
     synapse_initializer,
     create_synapses_fn = synapse_util.create_synapses,
     network_spec = blur.NetworkSpec(),
-    env = blur_env.tf_env
-):
+    env = blur_env.tf_env):
   """Initialize the very first state of the graph."""
   if create_synapses_fn is None:
     create_synapses_fn = synapse_util.create_synapses
@@ -61,7 +66,8 @@ def init_first_state(
   ground_truth = tf.zeros((*batch_dims, num_outputs))
 
   return blur.NetworkState(
-      layers=layers, synapses=synapses,
+      layers=layers,
+      synapses=synapses,
       ground_truth=ground_truth,
       updatable=[False] + [True] * num_updatable_units)
 
@@ -77,20 +83,17 @@ def build_graph(
     input_fn = None,
     out_intermediate_states = None,
     network_spec = None,
-    ):
+):
   """Builds a tensorflow graph with given number of unroll steps."""
   if network_spec is None:
     network_spec = blur.default_network_spec(env=blur_env.tf_env)
-  state = init_first_state(genome,
-                           data,
-                           hidden_layers,
-                           synapse_initializer,
-                           create_synapses_fn,
-                           network_spec)
+  state = init_first_state(genome, data, hidden_layers, synapse_initializer,
+                           create_synapses_fn, network_spec)
   if input_fn is None:
     input_fn = tf.data.make_one_shot_iterator(data).get_next
   return unroll_graph(
-      genome=genome, initial_state=state,
+      genome=genome,
+      initial_state=state,
       unroll_steps=unroll_steps,
       input_fn=input_fn,
       network_spec=network_spec,
@@ -98,7 +101,10 @@ def build_graph(
 
 
 def unroll_graph(
-    genome, initial_state, unroll_steps, input_fn,
+    genome,
+    initial_state,
+    unroll_steps,
+    input_fn,
     network_spec=None,
     out_intermediate_states = None
 ):
@@ -123,6 +129,33 @@ def unroll_graph(
   return states
 
 
+def get_accuracy(final_layer,
+                 ground_truth,
+                 onehot=False,
+                 inverted=False):
+  """Computes accuracy for the tensor."""
+  batch_size = final_layer.shape[-3]
+  if onehot:
+    if inverted:
+      pred = tf.argmin(final_layer[Ellipsis, 0], axis=-1)
+    else:
+      pred = tf.argmax(final_layer[Ellipsis, 0], axis=-1)
+    gt = tf.argmax(ground_truth, axis=-1)
+  else:
+    assert final_layer.shape[-2] == 1
+    pred = final_layer[Ellipsis, 0, 0] > 0
+    if inverted:
+      pred = tf.logical_not(pred)
+    gt = ground_truth[Ellipsis, 0] > 0
+
+  agreed = tf.cast(tf.equal(pred, gt), tf.float32)
+  # all this acrobatics is because tf1 uses Dimension for shape, while tf2
+  # uses tuples.
+  batch_size = tf.cast(tf.convert_to_tensor(batch_size), tf.float32)
+  accuracy = tf.reduce_sum(agreed, axis=-1) / batch_size
+  return accuracy
+
+
 def l2_score_per_species(states, weights=None):
   """Returns l2_score (-l2_loss) per species.
 
@@ -137,7 +170,9 @@ def l2_score_per_species(states, weights=None):
   return l2_score(states, weights=weights, average_replicas=True)
 
 
-def l2_score(states, average_replicas=False, average_batch=True,
+def l2_score(states,
+             average_replicas=False,
+             average_batch=True,
              weights=None):
   """Returns l2_score (-l2_loss) per species.
 
@@ -145,8 +180,9 @@ def l2_score(states, average_replicas=False, average_batch=True,
     states: Sequence[blur.NetworkState]
     average_replicas: whether to average across replicas dimension
     average_batch: whether to average across batch dimension.
-    weights: weights to scale the score. Should be broadcastable onto
-             last layer.
+    weights: weights to scale the score. Should be broadcastable onto last
+      layer.
+
   Returns:
     tf.Tensor
   """
@@ -167,3 +203,32 @@ def l2_score(states, average_replicas=False, average_batch=True,
     axis.append(-3)
 
   return -tf.reduce_mean(diff, axis=axis)
+
+
+def get_backprop_network_spec():
+  state = blur.NetworkSpec()
+  state.backward_update = 'multiplicative_second_state'
+  state.symmetric_in_out_synapses = True
+  state.symmetric_states_synapses = True
+  return state
+
+
+def compute_weight_by_frequency(labels):
+  """Computes weights to keep positive/negative labels in balance.
+
+   For instance if labels contains 1 positive out of 9 negative, the positive
+   one will have weight 0.9, while negative will have weight 0.1
+
+  Args:
+    labels: +1/-1 tensor of shape [..., num_channels]
+
+  Returns:
+    tensor of the same shape as labels.
+  """
+  p = tf.greater(labels, 0)
+  pf = tf.to_float(p)
+  positives = tf.reduce_sum(pf, axis=-1, keepdims=True) + tf.zeros_like(pf)
+  negatives = tf.reduce_sum(1 - pf, axis=-1, keepdims=True) + tf.zeros_like(pf)
+  total = positives + negatives
+  weights = tf.where(p, negatives / total, positives / total)
+  return weights
