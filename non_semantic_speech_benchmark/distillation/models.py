@@ -23,9 +23,6 @@ import tensorflow as tf
 import tensorflow_model_optimization as tfmot
 from non_semantic_speech_benchmark.distillation.layers import CompressedDense
 from non_semantic_speech_benchmark.export_model import tf_frontend
-# pylint: disable=g-direct-tensorflow-import
-from tensorflow.python.keras.applications import mobilenet_v3 as v3_util
-# pylint: enable=g-direct-tensorflow-import
 
 
 # TODO(joelshor): Tracing might not work when passing a python dictionary as an
@@ -70,6 +67,25 @@ def _get_feats_map_fn(tflite, frontend_args):
   return feats_map_fn
 
 
+def _map_mobilenet_func(mnet_size):
+  return {
+      'small': tf.keras.applications.MobileNetV3Small,
+      'large': tf.keras.applications.MobileNetV3Large,
+      'debug': _debug_net,
+  }[mnet_size.lower()]
+
+
+def _debug_net(pooling, *args, **kwargs):
+  """Small net for debugging."""
+  del args, kwargs
+  final_shape = [-1, 1] if pooling else [-1, 1, 1, 1]
+  layers = [
+      tf.keras.layers.Lambda(lambda x: tf.reshape(  # pylint: disable=g-long-lambda
+          tf.reduce_mean(x, axis=[1, 2, 3]), final_shape)),
+  ]
+  return tf.keras.Sequential(layers)
+
+
 def get_keras_model(bottleneck_dimension,
                     output_dimension,
                     alpha=1.0,
@@ -91,16 +107,6 @@ def get_keras_model(bottleneck_dimension,
   logging.info('tflite: %s', tflite)
 
   output_dict = {}  # Dictionary of model outputs.
-
-  def _map_mobilenet_func(mnet_size):
-    mnet_size_map = {
-        'tiny': mobilenetv3_tiny,
-        'small': tf.keras.applications.MobileNetV3Small,
-        'large': tf.keras.applications.MobileNetV3Large,
-    }
-    if mnet_size.lower() not in mnet_size_map:
-      raise ValueError('Unknown MobileNet size %s.' % mnet_size)
-    return mnet_size_map[mnet_size.lower()]
 
   # TFLite use-cases usually use non-batched inference, and this also enables
   # hardware acceleration.
@@ -178,49 +184,3 @@ def get_keras_model(bottleneck_dimension,
           'distilled_output').compression_op.a_matrix_tfvar = None
 
   return output_model
-
-
-def mobilenetv3_tiny(input_shape=None,
-                     alpha=1.0,
-                     minimalistic=False,
-                     include_top=True,
-                     weights='imagenet',
-                     input_tensor=None,
-                     classes=1000,
-                     pooling=None,
-                     dropout_rate=0.2,
-                     classifier_activation='softmax'):
-  """Makes MobileNetV3 model."""
-
-  def stack_fn(x, kernel, activation, se_ratio):
-
-    # Using blocks from MobileNetV3 saves a lot of code duplication.
-    # pylint: disable=protected-access
-    def depth(d):
-      return v3_util._depth(d * alpha)
-
-    x = v3_util._inverted_res_block(x, 1, depth(16), 3, 2, se_ratio,
-                                    v3_util.relu, 0)
-    x = v3_util._inverted_res_block(x, 72. / 16, depth(24), 3, 2, None,
-                                    v3_util.relu, 1)
-    x = v3_util._inverted_res_block(x, 88. / 24, depth(24), 3, 1, None,
-                                    v3_util.relu, 2)
-    x = v3_util._inverted_res_block(x, 4, depth(40), kernel, 2, se_ratio,
-                                    activation, 3)
-    x = v3_util._inverted_res_block(x, 6, depth(40), kernel, 1, se_ratio,
-                                    activation, 4)
-    x = v3_util._inverted_res_block(x, 6, depth(40), kernel, 1, se_ratio,
-                                    activation, 5)
-    x = v3_util._inverted_res_block(x, 3, depth(48), kernel, 1, se_ratio,
-                                    activation, 6)
-    x = v3_util._inverted_res_block(x, 6, depth(96), kernel, 2, se_ratio,
-                                    activation, 8)
-    x = v3_util._inverted_res_block(x, 6, depth(96), kernel, 1, se_ratio,
-                                    activation, 9)
-    # pylint: enable=protected-access
-    return x
-
-  return v3_util.MobileNetV3(stack_fn, 512, input_shape, alpha, 'tiny',
-                             minimalistic, include_top, weights, input_tensor,
-                             classes, pooling, dropout_rate,
-                             classifier_activation)

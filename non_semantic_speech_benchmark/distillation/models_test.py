@@ -55,19 +55,17 @@ class ModelsTest(parameterized.TestCase):
 
   def test_invalid_mobilenet_size(self):
     invalid_mobilenet_size = 'huuuge'
-    with self.assertRaises(ValueError) as exception_context:
+    with self.assertRaises(KeyError) as exception_context:
       models.get_keras_model(3, 5, mobilenet_size=invalid_mobilenet_size)
-    if not isinstance(exception_context.exception, ValueError):
+    if not isinstance(exception_context.exception, KeyError):
       self.fail()
 
   def test_default_shape(self):
     self.assertEqual(models.get_frontend_output_shape(), [1, 96, 64])
 
   @parameterized.parameters(
-      {'mobilenet_size': 'tiny'},
       {'mobilenet_size': 'small'},
-      {'mobilenet_size': 'large'},
-      {'mobilenet_size': 'tiny'},
+      {'mobilenet_size': 'debug'},
   )
   def test_valid_mobilenet_size(self, mobilenet_size):
     input_tensor = tf.zeros([2, 32000], dtype=tf.float32)
@@ -94,7 +92,7 @@ class ModelsTest(parameterized.TestCase):
         bottleneck_dimension,
         5,
         frontend=False,
-        mobilenet_size='small',
+        mobilenet_size='debug',
         compressor=compressor,
         tflite=True)
 

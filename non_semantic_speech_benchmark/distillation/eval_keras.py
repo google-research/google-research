@@ -56,10 +56,9 @@ flags.DEFINE_float('al', 1.0, 'Alpha controlling model size.')
 flags.DEFINE_alias('alpha', 'al')
 flags.DEFINE_boolean('average_pool', False, 'Average pool MobileNet output.')
 flags.DEFINE_alias('ap', 'average_pool')
-flags.DEFINE_string(
-    'mobilenet_size', 'small',
-    'Size specification for MobileNet in student model. '
-    'valid entries are `tiny`, `small`, and `large`.')
+flags.DEFINE_enum(
+    'mobilenet_size', 'small', ['small', 'large', 'debug'],
+    'Size specification for MobileNet in student model.')
 flags.DEFINE_alias('ms', 'mobilenet_size')
 
 flags.DEFINE_integer('batch_size', None, 'The number of images in each batch.')

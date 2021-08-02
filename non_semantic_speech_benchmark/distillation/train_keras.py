@@ -58,10 +58,9 @@ flags.DEFINE_integer(
     'If 0, bottleneck layer is excluded.')
 flags.DEFINE_float('alpha', 1.0, 'Alpha controlling MobileNet width.')
 flags.DEFINE_boolean('average_pool', False, 'Average pool MobileNet output.')
-flags.DEFINE_string(
-    'mobilenet_size', 'small',
-    'Size specification for MobileNet in student model. '
-    'valid entries are `tiny`, `small`, and `large`.')
+flags.DEFINE_enum(
+    'mobilenet_size', 'small', ['small', 'large', 'debug'],
+    'Size specification for MobileNet in student model.')
 flags.DEFINE_alias('bd', 'bottleneck_dimension')
 flags.DEFINE_alias('al', 'alpha')
 flags.DEFINE_alias('ap', 'average_pool')
