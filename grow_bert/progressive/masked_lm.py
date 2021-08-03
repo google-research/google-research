@@ -16,11 +16,11 @@
 """Masked language task with progressive training."""
 # Lint as: python3
 import copy
+import dataclasses
 import os
 from typing import List, Optional
 
 from absl import logging
-import dataclasses
 import numpy
 import orbit
 import tensorflow as tf
@@ -33,9 +33,9 @@ from grow_bert.lowcost.models import transformer_encoder as small_encoder_lib
 from official.core import task_factory
 from official.modeling import optimization
 from official.modeling import tf_utils
+from official.modeling.fast_training.progressive import policies
 from official.modeling.hyperparams import base_config
 from official.modeling.hyperparams import config_definitions as cfg
-from official.modeling.progressive import policies
 from official.nlp.configs import bert
 from official.nlp.configs import encoders
 from official.nlp.data import pretrain_dataloader
