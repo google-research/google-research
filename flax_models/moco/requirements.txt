@@ -1,4 +1,0 @@
-absl-py
-flax>=0.2.2
-jaxlib
-tensorflow-datasets
