@@ -1,5 +1,0 @@
-flax
-jaxlib
-tensorflow
-tensorflow-addons
-tensorflow-datasets
