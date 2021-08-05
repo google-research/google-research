@@ -15,10 +15,9 @@
 
 """Tests for distance utility functions."""
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 from poem.core import distance_utils
-tf.disable_v2_behavior()
 
 
 class DistanceUtilsTest(tf.test.TestCase):
@@ -49,50 +48,21 @@ class DistanceUtilsTest(tf.test.TestCase):
     self.assertAllClose(distances, [[[0.01, 0.25]], [[0.16, 0.25]]])
 
   def test_compute_sigmoid_matching_probabilities(self):
-    inner_distances = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
-    matching_probabilities = distance_utils.compute_sigmoid_matching_probabilities(
-        inner_distances,
-        raw_a_initializer=tf.initializers.constant(-4.60517018599),
-        b_initializer=tf.initializers.ones())
-
-    with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
-      matching_probabilities_result = sess.run(matching_probabilities)
-
-    self.assertAllClose(matching_probabilities_result,
-                        [[0.70617913, 0.704397395, 0.702607548],
-                         [0.700809625, 0.69900366, 0.697189692]])
-
-  def test_compute_sigmoid_matching_probabilities_with_clamping(self):
-    inner_distances = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
+    inner_distances = tf.constant([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     matching_probabilities = (
         distance_utils.compute_sigmoid_matching_probabilities(
-            inner_distances,
-            raw_a_initializer=tf.initializers.constant(10.0),
-            b_initializer=tf.initializers.constant(0.0),
-            a_range=(None, 0.01),
-            b_range=(1.0, None)))
+            inner_distances, a=0.01, b=1.0))
 
-    with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
-      matching_probabilities_result = sess.run(matching_probabilities)
-
-    self.assertAllClose(matching_probabilities_result,
+    self.assertAllClose(matching_probabilities,
                         [[0.70617913, 0.704397395, 0.702607548],
                          [0.700809625, 0.69900366, 0.697189692]])
 
   def test_compute_sigmoid_matching_distances(self):
-    inner_distances = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
+    inner_distances = tf.constant([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     matching_distances = distance_utils.compute_sigmoid_matching_distances(
-        inner_distances,
-        raw_a_initializer=tf.initializers.constant(-4.60517018599),
-        b_initializer=tf.initializers.ones())
+        inner_distances, a=0.01, b=1.0)
 
-    with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
-      matching_distances_result = sess.run(matching_distances)
-
-    self.assertAllClose(matching_distances_result,
+    self.assertAllClose(matching_distances,
                         [[0.347886348, 0.350412601, 0.352956796],
                          [0.355519006, 0.3580993, 0.360697751]])
 
@@ -175,10 +145,7 @@ class DistanceUtilsTest(tf.test.TestCase):
         start_point_masks=start_point_masks,
         end_point_masks=end_point_masks)
 
-    with self.session() as sess:
-      distance_matrix_result = sess.run(distance_matrix)
-
-    self.assertAllClose(distance_matrix_result,
+    self.assertAllClose(distance_matrix,
                         [[28.0, 15.0, 60.0], [15.0, 18.0, 44.0]])
 
   def test_compute_distance_matrix_with_start_masks(self):
@@ -207,10 +174,7 @@ class DistanceUtilsTest(tf.test.TestCase):
         distance_fn=masked_add,
         start_point_masks=start_point_masks)
 
-    with self.session() as sess:
-      distance_matrix_result = sess.run(distance_matrix)
-
-    self.assertAllClose(distance_matrix_result,
+    self.assertAllClose(distance_matrix,
                         [[42.0, 51.0, 60.0], [32.0, 38.0, 44.0]])
 
   def test_compute_distance_matrix_with_end_masks(self):
@@ -240,22 +204,16 @@ class DistanceUtilsTest(tf.test.TestCase):
         distance_fn=masked_add,
         end_point_masks=end_point_masks)
 
-    with self.session() as sess:
-      distance_matrix_result = sess.run(distance_matrix)
-
-    self.assertAllClose(distance_matrix_result,
+    self.assertAllClose(distance_matrix,
                         [[28.0, 15.0, 60.0], [34.0, 18.0, 69.0]])
 
   def test_compute_gaussian_kl_divergence_unit_univariate(self):
-    lhs_means = [0.0]
-    lhs_stddevs = [1.0]
+    lhs_means = tf.constant([[0.0]])
+    lhs_stddevs = tf.constant([[1.0]])
     kl_divergence = distance_utils.compute_gaussian_kl_divergence(
         lhs_means, lhs_stddevs, rhs_means=0.0, rhs_stddevs=1.0)
 
-    with self.session() as sess:
-      kl_divergence_result = sess.run(kl_divergence)
-
-    self.assertAlmostEqual(kl_divergence_result, 0.0)
+    self.assertAllClose(kl_divergence, [0.0])
 
   def test_compute_gaussian_kl_divergence_unit_multivariate_to_univariate(self):
     lhs_means = tf.constant([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
@@ -263,10 +221,7 @@ class DistanceUtilsTest(tf.test.TestCase):
     kl_divergence = distance_utils.compute_gaussian_kl_divergence(
         lhs_means, lhs_stddevs, rhs_means=0.0, rhs_stddevs=1.0)
 
-    with self.session() as sess:
-      kl_divergence_result = sess.run(kl_divergence)
-
-    self.assertAllClose(kl_divergence_result, [0.0, 0.0])
+    self.assertAllClose(kl_divergence, [0.0, 0.0])
 
   def test_compute_gaussian_kl_divergence_multivariate_to_multivariate(self):
     lhs_means = tf.constant([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
@@ -276,10 +231,7 @@ class DistanceUtilsTest(tf.test.TestCase):
     kl_divergence = distance_utils.compute_gaussian_kl_divergence(
         lhs_means, lhs_stddevs, rhs_means=rhs_means, rhs_stddevs=rhs_stddevs)
 
-    with self.session() as sess:
-      kl_divergence_result = sess.run(kl_divergence)
-
-    self.assertAllClose(kl_divergence_result, [31.198712171, 2.429343385])
+    self.assertAllClose(kl_divergence, [31.198712171, 2.429343385])
 
 
 if __name__ == '__main__':
