@@ -164,12 +164,10 @@ def train_and_report(debug=False):
     compressor = compression_wrapper.get_apply_compression(
         compression_params, global_step=global_step)
   model = models.get_keras_model(
+      f'mobilenet_{FLAGS.mobilenet_size}_{FLAGS.alpha}_{FLAGS.average_pool}',
       bottleneck_dimension=FLAGS.bottleneck_dimension,
       output_dimension=output_dimension,
-      alpha=FLAGS.alpha,
-      mobilenet_size=FLAGS.mobilenet_size,
       frontend=True,
-      avg_pool=FLAGS.average_pool,
       compressor=compressor,
       quantize_aware_training=FLAGS.quantize_aware_training)
   model.summary()

@@ -92,12 +92,10 @@ def eval_and_report():
 
   writer = tf.summary.create_file_writer(FLAGS.eval_dir)
   model = models.get_keras_model(
+      f'mobilenet_{FLAGS.mobilenet_size}_{FLAGS.alpha}_{FLAGS.average_pool}',
       bottleneck_dimension=FLAGS.bottleneck_dimension,
       output_dimension=FLAGS.output_dimension,
-      alpha=FLAGS.alpha,
-      mobilenet_size=FLAGS.mobilenet_size,
-      frontend=True,
-      avg_pool=FLAGS.average_pool)
+      frontend=True)
   checkpoint = tf.train.Checkpoint(model=model)
 
   for ckpt in tf.train.checkpoints_iterator(

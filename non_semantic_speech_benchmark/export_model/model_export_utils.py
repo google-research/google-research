@@ -100,12 +100,10 @@ def get_model(checkpoint_folder_path,
       setattr(flags.FLAGS, flag_name, params[flag_name])
 
   static_model = models.get_keras_model(
+      f'mobilenet_{params["ms"]}_{params["al"]}_{params["ap"]}',
       bottleneck_dimension=params['bd'],
       output_dimension=0,  # Don't include the unnecessary final layer.
-      alpha=params['al'],
-      mobilenet_size=params['ms'],
       frontend=include_frontend,
-      avg_pool=params['ap'],
       compressor=compressor,
       quantize_aware_training=params['qat'],
       tflite=tflite_friendly)

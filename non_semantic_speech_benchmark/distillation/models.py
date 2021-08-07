@@ -86,22 +86,19 @@ def _debug_net(pooling, *args, **kwargs):
   return tf.keras.Sequential(layers)
 
 
-def get_keras_model(bottleneck_dimension,
+def get_keras_model(model_type,
+                    bottleneck_dimension,
                     output_dimension,
-                    alpha=1.0,
-                    mobilenet_size='small',
                     frontend=True,
-                    avg_pool=False,
                     compressor=None,
                     quantize_aware_training=False,
                     tflite=False):
   """Make a Keras student model."""
   # For debugging, log hyperparameter values.
+  logging.info('model name: %s', model_type)
   logging.info('bottleneck_dimension: %i', bottleneck_dimension)
   logging.info('output_dimension: %i', output_dimension)
-  logging.info('alpha: %s', alpha)
   logging.info('frontend: %s', frontend)
-  logging.info('avg_pool: %s', avg_pool)
   logging.info('compressor: %s', compressor)
   logging.info('quantize_aware_training: %s', quantize_aware_training)
   logging.info('tflite: %s', tflite)
@@ -135,20 +132,31 @@ def get_keras_model(bottleneck_dimension,
     feats = model_in
   inputs = [model_in]
 
-  model = _map_mobilenet_func(mobilenet_size)(
-      input_shape=(feats_inner_dim * frontend_args['frame_width'],
-                   frontend_args['num_mel_bins'], 1),
-      alpha=alpha,
-      minimalistic=False,
-      include_top=False,
-      weights=None,
-      pooling='avg' if avg_pool else None,
-      dropout_rate=0.0)
-  model_out = model(feats)
-  if avg_pool:
-    model_out.shape.assert_is_compatible_with([None, None])
+  # Build network.
+  if model_type.startswith('mobilenet_'):
+    # Format is "mobilenet_{size}_{alpha}_{avg_pool}"
+    _, mobilenet_size, alpha, avg_pool = model_type.split('_')
+    alpha = float(alpha)
+    avg_pool = bool(avg_pool)
+    logging.info('mobilenet_size: %s', mobilenet_size)
+    logging.info('alpha: %f', alpha)
+    logging.info('avg_pool: %s', avg_pool)
+    model = _map_mobilenet_func(mobilenet_size)(
+        input_shape=(feats_inner_dim * frontend_args['frame_width'],
+                     frontend_args['num_mel_bins'], 1),
+        alpha=alpha,
+        minimalistic=False,
+        include_top=False,
+        weights=None,
+        pooling='avg' if avg_pool else None,
+        dropout_rate=0.0)
+    expected_output_shape = [None, None] if avg_pool else [None, 1, 1, None]
   else:
-    model_out.shape.assert_is_compatible_with([None, 1, 1, None])
+    raise ValueError(f'`model_type` not recognized: {model_type}')
+
+  model_out = model(feats)
+  model_out.shape.assert_is_compatible_with(expected_output_shape)
+
   if bottleneck_dimension:
     if compressor is not None:
       bottleneck = CompressedDense(

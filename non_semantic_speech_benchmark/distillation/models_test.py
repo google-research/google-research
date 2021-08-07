@@ -43,7 +43,8 @@ class ModelsTest(parameterized.TestCase):
     output_dimension = 5
 
     m = models.get_keras_model(
-        bottleneck, output_dimension, frontend=frontend, tflite=tflite)
+        'mobilenet_debug_1.0_False', bottleneck, output_dimension,
+        frontend=frontend, tflite=tflite)
     o_dict = m(input_tensor)
     emb, o = o_dict['embedding'], o_dict['embedding_to_target']
 
@@ -56,7 +57,8 @@ class ModelsTest(parameterized.TestCase):
   def test_invalid_mobilenet_size(self):
     invalid_mobilenet_size = 'huuuge'
     with self.assertRaises(KeyError) as exception_context:
-      models.get_keras_model(3, 5, mobilenet_size=invalid_mobilenet_size)
+      models.get_keras_model(
+          f'mobilenet_{invalid_mobilenet_size}_1.0_False', 3, 5)
     if not isinstance(exception_context.exception, KeyError):
       self.fail()
 
@@ -69,7 +71,8 @@ class ModelsTest(parameterized.TestCase):
   )
   def test_valid_mobilenet_size(self, mobilenet_size):
     input_tensor = tf.zeros([2, 32000], dtype=tf.float32)
-    m = models.get_keras_model(3, 5, mobilenet_size=mobilenet_size)
+    m = models.get_keras_model(
+        f'mobilenet_{mobilenet_size}_1.0_False', 3, 5)
     o_dict = m(input_tensor)
     emb, o = o_dict['embedding'], o_dict['embedding_to_target']
 
@@ -89,10 +92,10 @@ class ModelsTest(parameterized.TestCase):
       compressor = compression_wrapper.get_apply_compression(
           compression_params, global_step=0)
     m = models.get_keras_model(
+        'mobilenet_debug_1.0_False',
         bottleneck_dimension,
         5,
         frontend=False,
-        mobilenet_size='debug',
         compressor=compressor,
         tflite=True)
 
