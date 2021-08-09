@@ -60,7 +60,7 @@ def tfexample_audio_to_npfloat32(ex, audio_key, normalize_to_pm_one):
   return audio
 
 
-def _samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
+def samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
   """Run inference to map a single audio sample to an embedding."""
   # Models either take 2 args (input, sample_rate) or 1 arg (input).
   # The first argument is either 1 dimensional (samples) or 2 dimensional
@@ -140,7 +140,8 @@ class ComputeEmbeddingMapFn(beam.DoFn):
                average_over_time,
                feature_fn=None,
                model_input_min_length=None,
-               target_sample_rate=16000):
+               target_sample_rate=16000,
+               module_call_fn=samples_to_embedding_tfhub):
     self._name = name
     # If TFLite should be used, `module` should point to a flatbuffer model.
     self._module = module
@@ -155,6 +156,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     self._feature_fn = feature_fn
     self._model_input_min_length = model_input_min_length
     self._target_sample_rate = target_sample_rate
+    self._mod_call_fn = module_call_fn
 
     # Only one of `sample_rate_key` and `sample_rate` should be not None.
     assert (self._sample_rate_key is None) ^ (self._sample_rate is None),\
@@ -254,8 +256,11 @@ class ComputeEmbeddingMapFn(beam.DoFn):
       embedding_2d = samples_to_embedding_tflite(
           model_input, sample_rate, self.interpreter, self._output_key)
     else:
-      embedding_2d = _samples_to_embedding_tfhub(
-          model_input, sample_rate, self.module, self._output_key)
+      # A custom call function with the same input and output signature as
+      # _sample_to_embedding_tfhub can be used
+      # (_sample_to_embedding_tfhub is default).
+      embedding_2d = self._mod_call_fn(model_input, sample_rate, self.module,
+                                       self._output_key)
     assert isinstance(embedding_2d, np.ndarray)
     assert embedding_2d.ndim == 2
     assert embedding_2d.dtype == np.float32
