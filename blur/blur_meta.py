@@ -47,9 +47,9 @@ def init_first_state(
     num_neuron_states = genome(0).synapse.transform.pre.shape[-1]
   else:
     num_neuron_states = genome.synapse.transform.pre.shape[-1]
-  output_shape = data.element_spec[1].shape
+  output_shape = data.element_spec['support'][1].shape
   num_outputs = output_shape[-1]
-  num_inputs = data.element_spec[0].shape[-1]
+  num_inputs = data.element_spec['support'][0].shape[-1]
   batch_dims = output_shape[:-1]
 
   layer_sizes = (num_inputs, *hidden_layers, num_outputs)
@@ -72,6 +72,33 @@ def init_first_state(
       updatable=[False] + [True] * num_updatable_units)
 
 
+def episode_data_fn_split(input_fn, fixed_batches=False):
+  """Split episodic input data function into support tna query data functions.
+
+  Args:
+    input_fn: input function that returns joint episodic data.
+    fixed_batches: whether to return same fixed batch during learning. If True
+      same batch would be returned for each function invocation.
+  Returns:
+    A tuple of two functions: one for support and query data.
+  """
+  if fixed_batches:
+    data_dict = input_fn()
+    data_support_fn = lambda: data_dict['support']
+    if 'query' in data_dict:
+      data_query_fn = lambda: data_dict['query']
+    else:
+      query_data_dict = input_fn()
+      data_query_fn = lambda: query_data_dict['support']
+  else:
+    def map_data_fn(data_fn):
+      data_dict = data_fn()
+      return data_dict['support']
+    data_support_fn = lambda: map_data_fn(input_fn)
+    data_query_fn = lambda: map_data_fn(input_fn)
+  return data_support_fn, data_query_fn
+
+
 def build_graph(
     genome,
     unroll_steps=5,
@@ -91,13 +118,27 @@ def build_graph(
                            create_synapses_fn, network_spec)
   if input_fn is None:
     input_fn = tf.data.make_one_shot_iterator(data).get_next
-  return unroll_graph(
+
+  data_support_fn, data_query_fn = episode_data_fn_split(
+      input_fn, fixed_batches=network_spec.fixed_batches)
+  training_states = unroll_graph(
       genome=genome,
       initial_state=state,
       unroll_steps=unroll_steps,
-      input_fn=input_fn,
+      input_fn=data_support_fn,
       network_spec=network_spec,
       out_intermediate_states=out_intermediate_states)
+
+  final_state = training_states[-1]
+  validation_state = blur.network_step(
+      final_state,
+      genome=genome,
+      input_fn=data_query_fn,
+      backward_pass_neurons=False,
+      backward_pass_synapses=False,
+      network_spec=network_spec,
+      env=blur_env.tf_env)
+  return training_states, validation_state
 
 
 def unroll_graph(
@@ -156,29 +197,29 @@ def get_accuracy(final_layer,
   return accuracy
 
 
-def l2_score_per_species(states, weights=None):
+def l2_score_per_species(validation_state, weights=None):
   """Returns l2_score (-l2_loss) per species.
 
   Result is averaged over replicas/batch/channels but not species.
   Args:
-    states: Sequence[blur.NetworkState]
+    validation_state: state with synapses from training run on validation data.
     weights: Should be broadcastable into last layer of states[-1].
 
   Returns:
     tf.Tensor
   """
-  return l2_score(states, weights=weights, average_replicas=True)
+  return l2_score(validation_state, weights=weights, average_replicas=True)
 
 
-def l2_score(states,
+def l2_score(validation_state,
              average_replicas=False,
              average_batch=True,
              weights=None):
   """Returns l2_score (-l2_loss) per species.
 
   Args:
-    states: Sequence[blur.NetworkState]
-    average_replicas: whether to average across replicas dimension
+    validation_state: state with synapses from training run on validation data.
+    average_replicas: whether to average across replicas dimension.
     average_batch: whether to average across batch dimension.
     weights: weights to scale the score. Should be broadcastable onto last
       layer.
@@ -187,8 +228,8 @@ def l2_score(states,
     tf.Tensor
   """
   # Summing over channels and batch and replicas.
-  prediction = states[-1].layers[-1][Ellipsis, 0]
-  ground_truth = states[-1].ground_truth
+  prediction = validation_state.layers[-1][Ellipsis, 0]
+  ground_truth = validation_state.ground_truth
   # species x replicas x batch_size x channel x state
   # Can add support here for optional species/replicas.
   diff = (prediction - ground_truth)**2
@@ -199,7 +240,7 @@ def l2_score(states,
     axis.append(-2)
 
   if average_replicas:
-    assert len(states[-1].layers[-1].shape) >= 4
+    assert len(validation_state.layers[-1].shape) >= 4
     axis.append(-3)
 
   return -tf.reduce_mean(diff, axis=axis)

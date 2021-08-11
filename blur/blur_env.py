@@ -18,15 +18,17 @@
 import contextlib
 import dataclasses as dc
 from typing import Any
-from typing import Callable, Union
+from typing import Callable, Union, Tuple, Dict, Text
 
 import jax
 import jax.numpy as jp
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-
 Tensor = Union[tf.Tensor, np.ndarray, jp.array]
+
+# Data comes as a dict with values containing a tuple of images and labels.
+DataInputType = Dict[Text, Tuple[tf.Tensor, tf.Tensor]]
 NP_FLOATING_TYPE = np.float32
 
 
@@ -128,7 +130,6 @@ jp_env = Env(
     sum=jp.sum,
     sqrt=jp.sqrt,
     name_scope=ctx_name_scope)
-
 
 tf_env = Env(
     atanh=tf.math.atanh,

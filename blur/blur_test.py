@@ -35,12 +35,14 @@ def sigmoid_with_grad(x):
 
 def random_dataset():
   n = 1000
-  ds = tf.data.Dataset.from_tensor_slices((
-      np.random.normal(0, 255, size=(0, 1, 1, n,
-                                     784)).astype(blur_env.NP_FLOATING_TYPE),
-      np.random.randint(0, 10,
-                        size=(0, 1, 1, n, 2)).astype(blur_env.NP_FLOATING_TYPE),
-  ))
+  ds = tf.data.Dataset.from_tensor_slices({
+      'support': (
+          np.random.normal(0, 255,
+                           size=(0, 1, 1, n,
+                                 784)).astype(blur_env.NP_FLOATING_TYPE),
+          np.random.randint(0, 10, size=(0, 1, 1, n,
+                                         2)).astype(blur_env.NP_FLOATING_TYPE),
+      )})
   return ds
 
 
@@ -249,11 +251,10 @@ class BlurTest(tf.test.TestCase):
         synapse_initializer=initializer,
         data=data,
         hidden_layers=[256, 128])
+    input_fn = data.make_one_shot_iterator().get_next
+    data_support_fn, _ = blur_meta.episode_data_fn_split(input_fn)
     blur.network_step(
-        state, genome,
-        data.make_one_shot_iterator().get_next,
-        network_spec=spec,
-        env=blur_env.tf_env)
+        state, genome, data_support_fn, network_spec=spec, env=blur_env.tf_env)
     g = tf.get_default_graph()
 
     synapse_pre = g.get_operation_by_name(
@@ -276,8 +277,12 @@ class BlurTest(tf.test.TestCase):
         synapse_initializer=initializer,
         data=data,
         hidden_layers=[256, 128])
+    input_fn = data.make_one_shot_iterator().get_next
+    data_support_fn, _ = blur_meta.episode_data_fn_split(input_fn)
     blur.network_step(
-        state, genome,
+        state,
+        genome,
+        data_support_fn,
         data.make_one_shot_iterator().get_next,
         network_spec=spec,
         env=blur_env.tf_env)

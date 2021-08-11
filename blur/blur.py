@@ -149,7 +149,7 @@ class NetworkSpec:
   forward_synapse_update: bool = False
   supervised_every: Optional[int] = None
   synapse_transform_fn: Optional[SynapseTransformFn] = None
-
+  fixed_batches: bool = False
   # Synapse saturation mechanism and parameters
   synapse_saturation_eps: Optional[float] = None
   synapse_saturation_type: Optional[str] = None
