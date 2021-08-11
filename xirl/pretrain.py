@@ -39,7 +39,7 @@ flags.DEFINE_boolean("resume", False, "Whether to resume training.")
 
 config_flags.DEFINE_config_file(
     "config",
-    "configs/pretraining.py",
+    "configs/pretraining/default.py",
     "File path to the training hyperparameter configuration.",
     lock_config=True,
 )

@@ -30,7 +30,7 @@ flags.DEFINE_boolean("debug", False, "Debug mode.")
 
 config_flags.DEFINE_config_file(
     "config",
-    "xirl/config.py",
+    "configs/pretraining/default.py",
     "File path to the training hyperparameter configuration.",
     lock_config=True,
 )
