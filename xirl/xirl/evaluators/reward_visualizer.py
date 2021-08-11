@@ -44,6 +44,11 @@ class RewardVisualizer(Evaluator):
       raise ValueError(
           "{} is not a supported distance metric.".format(distance))
 
+    # For plotting, we don't want to display squared euclidean distances so we'll
+    # override to `euclidean` if it was selected.
+    if distance == "sqeuclidean":
+      distance = "euclidean"
+
     self.distance = distance
     self.num_plots = num_plots
 
