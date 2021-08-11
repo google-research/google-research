@@ -35,16 +35,25 @@ from xirl.types import SequenceType
 TRANSFORMS = {
     "random_resized_crop":
         functools.partial(
-            alb.RandomResizedCrop, scale=(0.6, 1.0), ratio=(0.75, 1.333),
+            alb.RandomResizedCrop, scale=(0.8, 1.0), ratio=(0.75, 1.333),
             p=1.0),
     "center_crop":
         functools.partial(alb.CenterCrop, p=1.0),
     "global_resize":
         functools.partial(alb.Resize, p=1.0),
+    "grayscale":
+        functools.partial(alb.ToGray, p=0.2),
     "vertical_flip":
         functools.partial(alb.VerticalFlip, p=0.5),
     "horizontal_flip":
         functools.partial(alb.HorizontalFlip, p=0.5),
+    "gaussian_blur":
+        functools.partial(
+            alb.GaussianBlur,
+            blur_limit=(13, 13),
+            sigma_limit=(1.0, 2.0),
+            p=0.2,
+        ),
     "color_jitter":
         functools.partial(
             alb.ColorJitter,
@@ -56,15 +65,6 @@ TRANSFORMS = {
         ),
     "rotate":
         functools.partial(alb.Rotate, limit=(-5, 5), border_mode=0, p=0.5),
-    "dropout":
-        functools.partial(
-            alb.CoarseDropout,
-            max_holes=1,
-            max_height=70,
-            max_width=70,
-            fill_value=128,
-            p=0.5,
-        ),
     "normalize":
         functools.partial(
             alb.Normalize,

@@ -38,7 +38,7 @@ def get_config():
   # Number of steps between tensorboard logging.
   config.LOGGING_FREQUENCY = 100
   # Number of steps between consecutive checkpoints.
-  config.CHECKPOINTING_FREQUENCY = 500
+  config.CHECKPOINTING_FREQUENCY = 200
 
   # ============================================== #
   # Dataset params.
@@ -103,13 +103,15 @@ def get_config():
   config.DATA_AUGMENTATION = ml_collections.ConfigDict()
 
   # The image resolution to train on.
-  config.DATA_AUGMENTATION.IMAGE_SIZE = (224, 224)
+  config.DATA_AUGMENTATION.IMAGE_SIZE = (112, 112)
   # A list of image augmentations to apply to the training dataset. Note that
   # the order matters, e.g. normalize should be done last if you decide to
   # turn it on.
   config.DATA_AUGMENTATION.TRAIN_TRANSFORMS = [
       "random_resized_crop",
       "color_jitter",
+      "grayscale",
+      "gaussian_blur",
       # "normalize",
   ]
   # A list of image augmentations to apply to the evaluation dataset.
@@ -201,9 +203,9 @@ def get_config():
   # ============================================== #
   config.OPTIM = ml_collections.ConfigDict()
 
-  config.OPTIM.TRAIN_MAX_ITERS = 8_000
+  config.OPTIM.TRAIN_MAX_ITERS = 4_000
   # L2 regularization.
-  config.OPTIM.WEIGHT_DECAY = 1e-5
+  config.OPTIM.WEIGHT_DECAY = 1e-4
   # Learning rate.
   config.OPTIM.LR = 1e-5
 
