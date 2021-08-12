@@ -288,4 +288,4 @@ class WindowSampler(SingleVideoFrameSampler):
       range_min = random.randrange(vid_len - self._num_frames)
       range_max = range_min + self._num_frames
       return list(range(range_min, range_max))
-    return list(range(vid_len))
+    return list(range(0, self._num_frames))
