@@ -36,6 +36,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("experiment_name", None, "Experiment name.")
 flags.DEFINE_boolean("resume", False, "Whether to resume training.")
+flags.DEFINE_boolean("raw_imagenet", False, "")
 
 config_flags.DEFINE_config_file(
     "config",
@@ -75,6 +76,11 @@ def setup_experiment(exp_dir):
 def main(_):
   exp_dir = osp.join(FLAGS.config.ROOT_DIR, FLAGS.experiment_name)
   setup_experiment(exp_dir)
+
+  # No need to do any pretraining if we're loading the raw pretrained
+  # ImageNet baseline.
+  if FLAGS.raw_imagenet:
+    return
 
   # Set RNG seeds.
   if FLAGS.config.SEED is not None:

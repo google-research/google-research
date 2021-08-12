@@ -31,6 +31,7 @@ ALGO_TO_CONFIG = {
     "lifs": "configs/pretraining/lifs.py",
     "tcn": "configs/pretraining/tcn.py",
     "goal_classifier": "configs/pretraining/classifier.py",
+    "raw_imagenet": "configs/pretraining/imagenet.py",
 }
 # We want to pretrain on the entire demonstrations.
 MAX_DEMONSTRATIONS = -1
@@ -47,22 +48,21 @@ def main(_):
         FLAGS.algo, embodiment, MAX_DEMONSTRATIONS, int(random.random() * 1e9))
     print(f"Experiment name: {experiment_name}")
 
-    # The 'raw_imagenet' baseline does not need to do any pretraining.
-    if FLAGS.algo != "raw_imagenet":
-      subprocess.call([
-          "python",
-          "pretrain.py",
-          "--experiment_name",
-          experiment_name,
-          "--config",
-          f"{ALGO_TO_CONFIG[FLAGS.algo]}",
-          "--config.DATA.PRETRAIN_ACTION_CLASS",
-          f"({repr(embodiment)},)",
-          "--config.DATA.DOWNSTREAM_ACTION_CLASS",
-          f"({repr(embodiment)},)",
-          "--config.DATA.MAX_VIDS_PER_CLASS",
-          f"{MAX_DEMONSTRATIONS}",
-      ])
+    subprocess.call([
+        "python",
+        "pretrain.py",
+        "--experiment_name",
+        experiment_name,
+        "--raw_imagenet" if FLAGS.algo == "raw_imagenet" else '',
+        "--config",
+        f"{ALGO_TO_CONFIG[FLAGS.algo]}",
+        "--config.DATA.PRETRAIN_ACTION_CLASS",
+        f"({repr(embodiment)},)",
+        "--config.DATA.DOWNSTREAM_ACTION_CLASS",
+        f"({repr(embodiment)},)",
+        "--config.DATA.MAX_VIDS_PER_CLASS",
+        f"{MAX_DEMONSTRATIONS}",
+    ])
 
     # The 'goal_classifier' baseline does not need to compute a goal embedding.
     if FLAGS.algo != "goal_classifier":
