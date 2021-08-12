@@ -24,10 +24,10 @@ def get_config():
   config = _get_config()
 
   config.ALGORITHM = "tcc"
-  config.OPTIM.TRAIN_MAX_ITERS = 8_000
+  config.OPTIM.TRAIN_MAX_ITERS = 4_000
   config.FRAME_SAMPLER.STRATEGY = "uniform"
   config.FRAME_SAMPLER.UNIFORM_SAMPLER.OFFSET = 0
-  config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE = 15
+  config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE = 40
   config.MODEL.MODEL_TYPE = "resnet18_linear"
   config.MODEL.EMBEDDING_SIZE = 32
   config.MODEL.NORMALIZE_EMBEDDINGS = False
@@ -35,6 +35,6 @@ def get_config():
   config.LOSS.TCC.STOCHASTIC_MATCHING = False
   config.LOSS.TCC.LOSS_TYPE = "regression_mse"
   config.LOSS.TCC.SIMILARITY_TYPE = "l2"
-  config.LOSS.TCC.SOFTMAX_TEMPERATURE = 0.1
+  config.LOSS.TCC.SOFTMAX_TEMPERATURE = 1.0
 
   return config
