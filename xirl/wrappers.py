@@ -174,8 +174,8 @@ class GoalClassifierVisualReward(gym.Wrapper):
   def _get_reward_from_image(self, image):
     """Forward the pixels through the model and compute the reward."""
     image_tensor = self._to_tensor(image)
-    prob = self._model.infer(image_tensor).numpy().embs  # Shape: (1, 1).
-    return prob[0, 0]
+    prob = torch.sigmoid(self._model.infer(image_tensor).embs)
+    return prob.item()
 
   def step(self, action):
     obs, env_reward, done, info = self.env.step(action)
