@@ -3,4 +3,5 @@ torchvision==0.8.2
 ml-collections==0.1.0
 albumentations==0.5.2
 scikit-learn==0.24.1
+tensorflow-cpu==2.6.0  # Without this, I get weird tensorflow has no attribute io.
 git+https://github.com/kevinzakka/torchkit.git
