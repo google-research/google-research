@@ -24,7 +24,7 @@ from absl import flags
 # The supported pretraining algorithms.
 ALGORITHMS = ["xirl", "tcn", "lifs", "goal_classifier", "raw_imagenet"]
 # The embodiment classes in the dataset.
-EMBODIMENTS = ["gripper", "shortstick", "mediumstick", "longstick"]
+EMBODIMENTS = ["longstick", "mediumstick", "shortstick", "gripper"]
 # Mapping from pretraining algorithm to config file.
 ALGO_TO_CONFIG = {
     "xirl": "configs/pretraining/tcc.py",
@@ -32,8 +32,8 @@ ALGO_TO_CONFIG = {
     "tcn": "configs/pretraining/tcn.py",
     "goal_classifier": "configs/pretraining/classifier.py",
 }
-# We want to pretrain on the entire 1k demonstrations.
-MAX_DEMONSTRATIONS = 1_000
+# We want to pretrain on the entire demonstrations.
+MAX_DEMONSTRATIONS = -1
 
 FLAGS = flags.FLAGS
 flags.DEFINE_enum("algo", None, ALGORITHMS, "The pretraining algorithm to use.")
@@ -43,8 +43,8 @@ flags.mark_flag_as_required("algo")
 def main(_):
   for embodiment in EMBODIMENTS:
     # Generate a unique experiment name.
-    experiment_name = "exp1_trainon={}_maxdemosperemb={}_uid={}".format(
-        embodiment, MAX_DEMONSTRATIONS, int(random.random() * 1e9))
+    experiment_name = "exp1_algo={}_trainon={}_maxdemosperemb={}_uid={}".format(
+        FLAGS.algo, embodiment, MAX_DEMONSTRATIONS, int(random.random() * 1e9))
     print(f"Experiment name: {experiment_name}")
 
     # The 'raw_imagenet' baseline does not need to do any pretraining.
