@@ -28,7 +28,6 @@ from xirl import transforms
 from xirl import video_samplers
 from xirl.dataset import VideoDataset
 from xirl.file_utils import get_subdirs
-from xirl.types import ImageTransformationType
 from xirl.types import SequenceType
 
 # Supported image transformations with default args.
@@ -157,6 +156,7 @@ def model_from_config(config):
 
 def optim_from_config(config, model):
   """Create an optimizer from a config."""
+  # TODO(kevin): Add SGD and AdamW support.
   return torch.optim.Adam(
       model.parameters(),
       lr=config.OPTIM.LR,
@@ -168,10 +168,8 @@ def create_transform(name, *args, **kwargs):
   """Create an image augmentation from its name and args."""
   # pylint: disable=invalid-name
   if "::" in name:
+    # e.g., `rotate::{'limit': (-45, 45)}`
     name, __kwargs = name.split("::")
-    # Ensure the transformation we've been provided is supported.
-    if name not in ImageTransformationType._value2member_map_:  # pylint: disable=protected-access
-      raise ValueError(f"{name} is not a supported ImageTransformationType.")
     _kwargs = eval(__kwargs)  # pylint: disable=eval-used
   else:
     _kwargs = {}
