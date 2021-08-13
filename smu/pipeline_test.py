@@ -23,6 +23,7 @@ from absl.testing import flagsaver
 import apache_beam as beam
 import tensorflow as tf
 from tensorflow.io import gfile
+import tensorflow as tf
 
 from smu import dataset_pb2
 from smu import pipeline
@@ -67,6 +68,62 @@ class FunctionalTest(absltest.TestCase):
     # TODO(pfr, ianwatson): implement correct copying of initial geometry
     self.assertLen(got.initial_geometries, 1)
     self.assertEqual(got.initial_geometries[0].atom_positions[0].x, 1)
+
+  def test_extract_bond_lengths(self):
+    # This conformer does not obery valence rules, but it's fine for this test.
+    conf = dataset_pb2.Conformer(conformer_id=123000)
+    bt = conf.bond_topologies.add()
+    bt.atoms.extend([dataset_pb2.BondTopology.ATOM_ONEG,
+                     dataset_pb2.BondTopology.ATOM_NPOS,
+                     dataset_pb2.BondTopology.ATOM_C,
+                     dataset_pb2.BondTopology.ATOM_H])
+    bt.bonds.add(atom_a=0, atom_b=1,
+                 bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
+    bt.bonds.add(atom_a=0, atom_b=2,
+                 bond_type=dataset_pb2.BondTopology.BOND_DOUBLE)
+    bt.bonds.add(atom_a=0, atom_b=3,
+                 bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
+    conf.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
+    conf.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
+    conf.optimized_geometry.atom_positions.add(x=0, y=2, z=0)
+    conf.optimized_geometry.atom_positions.add(x=111, y=222, z=333)
+
+    got = list(pipeline.extract_bond_lengths(
+      conf, dist_sig_digits=2, unbonded_max=2.0))
+    # Note that these are *not* rounded, but truncated to this many digits.
+    self.assertEqual(got, [
+      # 1 bohr -> 0.529177249 angstroms
+      ('n', 'o', dataset_pb2.BondTopology.BOND_SINGLE, '0.52'),
+      # 2 bohr -> 2 * 0.529177249 angstroms
+      ('c', 'o', dataset_pb2.BondTopology.BOND_DOUBLE, '1.05'),
+      # sqrt(1**2 + 2**2) bohr -> 2.23606 * 0.529177249 angstroms
+      ('c', 'n', dataset_pb2.BondTopology.BOND_UNDEFINED, '1.18')])
+
+  def test_extract_bond_lengths_max_unbonded(self):
+    # This conformer does not obery valence rules, but it's fine for this test.
+    conf = dataset_pb2.Conformer(conformer_id=123000)
+    bt = conf.bond_topologies.add()
+    bt.atoms.extend([dataset_pb2.BondTopology.ATOM_C,
+                     dataset_pb2.BondTopology.ATOM_N,
+                     dataset_pb2.BondTopology.ATOM_O])
+    bt.bonds.add(atom_a=0, atom_b=1,
+                 bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
+    bt.bonds.add(atom_a=0, atom_b=2,
+                 bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
+    conf.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
+    conf.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
+    conf.optimized_geometry.atom_positions.add(x=100, y=2, z=0)
+
+    got = list(pipeline.extract_bond_lengths(
+      conf, dist_sig_digits=2, unbonded_max=2.0))
+    # Note that these are *not* rounded, but truncated to this many digits.
+    self.assertEqual(got, [
+      # 1 bohr -> 0.529177249 angstroms
+      ('c', 'n', dataset_pb2.BondTopology.BOND_SINGLE, '0.52'),
+      # It seems like this should be 52.91 but it looks like some numerical noise
+      # in np.linalg.norm.
+      ('c', 'o', dataset_pb2.BondTopology.BOND_SINGLE, '52.92')])
+    # Note that the N-O distance is not reported while the C-O is.
 
 
 class IntegrationTest(absltest.TestCase):
@@ -151,6 +208,14 @@ class IntegrationTest(absltest.TestCase):
       self.assertIn('620517,1,0,0,0,1,0,1,0,0,0\n', bt_summary_lines)
       # This is a bond topology with 2 conformers
       self.assertIn('618451,2,0,0,0,2,0,0,2,0,0\n', bt_summary_lines)
+
+    # Check the bond lengths file
+    with gfile.GFile(output_stem + '_bond_lengths.csv') as f:
+      bond_length_lines = f.readlines()
+      self.assertEqual('atom_char_0,atom_char_1,bond_type,length_str,count\n',
+                       bond_length_lines[0])
+      self.assertIn('c,c,2,1.336,1\n', bond_length_lines)
+      self.assertIn('c,o,1,1.422,2\n', bond_length_lines)
 
     # For the gzip files below, we check >100 because even an empty gzip file
     # has non-zero length. 100 is kind of arbitrary to be bigger than the

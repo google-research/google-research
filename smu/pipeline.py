@@ -22,7 +22,9 @@ checking to produce the final outputs.
 
 import copy
 import functools
+import itertools
 import logging as stdlogging
+import numpy as np
 
 from absl import app
 from absl import flags
@@ -32,6 +34,7 @@ from tensorflow.io import gfile
 
 from google.protobuf import json_format
 from smu import dataset_pb2
+from smu.geometry import bond_length_distribution
 from smu.parser import smu_parser_lib
 from smu.parser import smu_utils_lib
 from smu.parser import smu_writer_lib
@@ -270,6 +273,81 @@ class MergeConformersFn(beam.DoFn):
     for c in conflicts:
       yield beam.pvalue.TaggedOutput(
           MergeConformersFn.OUTPUT_TAG_MERGE_CONFLICT, c)
+
+
+def extract_bond_lengths(conformer, dist_sig_digits, unbonded_max):
+  """Yields quantized bond lengths.
+
+  Args:
+    * conformer: dataset_pb2.Conformer
+    * dist_sig_digits: number of digits after decimal point to keep
+    * unbonded_max: maximum distance to report for unbonded pairs
+
+  output atom types are single charecters, sorted lexographically.
+  bond_type is dataset_pb2.BondTopology.BondType
+  dist_sig_digits is a string (to avoid vagaries of floating point compares)
+
+  Yields:
+    (atom type 1, atom type 2, bond type, quantized dist)
+  """
+  bt = conformer.bond_topologies[0]
+  format_str = '{:.%df}' % dist_sig_digits
+
+  for atom_idx0, atom_idx1 in itertools.combinations(
+      range(len(bt.atoms)), r=2):
+
+    if (bt.atoms[atom_idx0] == dataset_pb2.BondTopology.ATOM_H or
+        bt.atoms[atom_idx1] == dataset_pb2.BondTopology.ATOM_H):
+      continue
+
+    bond_type = dataset_pb2.BondTopology.BOND_UNDEFINED
+    for bond in bt.bonds:
+      if ((bond.atom_a == atom_idx0 and bond.atom_b == atom_idx1) or
+          (bond.atom_a == atom_idx1 and bond.atom_b == atom_idx0)):
+        bond_type = bond.bond_type
+        break
+
+    geom = conformer.optimized_geometry
+    atom_pos0 = np.array([
+      geom.atom_positions[atom_idx0].x,
+      geom.atom_positions[atom_idx0].y,
+      geom.atom_positions[atom_idx0].z],
+                         dtype=np.double)
+    atom_pos1 = np.array([
+      geom.atom_positions[atom_idx1].x,
+      geom.atom_positions[atom_idx1].y,
+      geom.atom_positions[atom_idx1].z],
+                         dtype=np.double)
+    # The intention is the buckets are the left edge of an empricial CDF.
+    dist = (np.floor(smu_utils_lib.bohr_to_angstroms(
+      np.linalg.norm(atom_pos0 - atom_pos1)) * 10**dist_sig_digits)
+            / 10**dist_sig_digits)
+    if (bond_type == dataset_pb2.BondTopology.BOND_UNDEFINED and
+        dist > unbonded_max):
+      continue
+
+    atom_char0 = smu_utils_lib.ATOM_TYPE_TO_CHAR[bt.atoms[atom_idx0]]
+    atom_char1 = smu_utils_lib.ATOM_TYPE_TO_CHAR[bt.atoms[atom_idx1]]
+    if atom_char0 > atom_char1:
+      atom_char0, atom_char1 = atom_char1, atom_char0
+
+    yield atom_char0, atom_char1, bond_type, format_str.format(dist)
+
+
+def write_bond_lengths(records, filename):
+  """DoFn foro writing the bond lengths.
+
+  We write directly to filename because the entire pcollection
+  shoul have been combined to a single entry.
+
+  Args:
+  * records: records as expected by
+      bond_length_distribution.sparse_dataframe_from_records
+  * filename: file to write to
+  """
+  with gfile.GFile(filename, 'w') as f:
+    df = bond_length_distribution.sparse_dataframe_from_records(records)
+    df.to_csv(f, index=False)
 
 
 class UpdateConformerFn(beam.DoFn):
@@ -655,6 +733,18 @@ def pipeline(root):
           num_shards=1,
           file_name_suffix='.csv'))
 
+  # Get the bond length distributions
+  bond_length_dists_pcoll = (
+    merged_conformers
+    | 'FitlerForBondLengths'
+    >> beam.Filter(smu_utils_lib.should_include_in_standard)
+    | 'ExtractBondLengths'
+    >> beam.FlatMap(extract_bond_lengths, dist_sig_digits=3, unbonded_max=2.0)
+    | 'CountBondLengths' >> beam.combiners.Count.PerElement()                                                                                                               | 'ToListBondLengths' >> beam.combiners.ToList()
+    | 'WriteBondLengths' >> beam.ParDo(
+        write_bond_lengths,
+        filename=f'{FLAGS.output_stem}_bond_lengths.csv'))
+
   # Various per conformer processing
   update_results = (
       merged_conformers
@@ -728,6 +818,18 @@ def pipeline(root):
             coder=beam.coders.ProtoCoder(dataset_pb2.Conformer),
             num_shards=FLAGS.output_shards))
 
+
+  # Write the complete and standard conformers as binary protobuf in TFRecord.
+  for id_str, collection in [
+      ['complete', complete_conformers],
+      ['standard', standard_conformers]]:
+    _ = (
+        collection
+        | ('TFRecordReshuffle_' + id_str) >> beam.Reshuffle()
+        | ('WriteTFRecord_' + id_str) >> beam.io.tfrecordio.WriteToTFRecord(
+            f'{FLAGS.output_stem}_{id_str}_tfrecord',
+            coder=beam.coders.ProtoCoder(dataset_pb2.Conformer),
+            num_shards=FLAGS.output_shards))
 
   # Write the complete and standard conformers as JSON.
   # Bit of a hack here: the slowest part of the whole pipeline is writing out

@@ -66,6 +66,13 @@ ATOM_TYPE_TO_CHAR = {
     dataset_pb2.BondTopology.AtomType.ATOM_F: 'f',
     dataset_pb2.BondTopology.AtomType.ATOM_H: 'h'
 }
+ATOM_CHAR_TO_TYPE = {
+  'c': dataset_pb2.BondTopology.AtomType.ATOM_C,
+  'n': dataset_pb2.BondTopology.AtomType.ATOM_N,
+  'o': dataset_pb2.BondTopology.AtomType.ATOM_O,
+  'f': dataset_pb2.BondTopology.AtomType.ATOM_F,
+  'h': dataset_pb2.BondTopology.AtomType.ATOM_H,
+}
 ATOM_TYPE_TO_ATOMIC_NUMBER = {
     dataset_pb2.BondTopology.AtomType.ATOM_C: 6,
     dataset_pb2.BondTopology.AtomType.ATOM_N: 7,
@@ -371,17 +378,11 @@ def create_bond_topology(atoms, connectivity_matrix_string, hydrogens_string):
 
   # Add the heavy atoms
   for atom_type in atoms.lower():
-    if atom_type == 'c':
-      bond_topology.atoms.append(dataset_pb2.BondTopology.AtomType.ATOM_C)
-    elif atom_type == 'n':
-      bond_topology.atoms.append(dataset_pb2.BondTopology.AtomType.ATOM_N)
-    elif atom_type == 'o':
-      bond_topology.atoms.append(dataset_pb2.BondTopology.AtomType.ATOM_O)
-    elif atom_type == 'f':
-      bond_topology.atoms.append(dataset_pb2.BondTopology.AtomType.ATOM_F)
-    elif atom_type == 'h':
-      pass
-    else:
+    if atom_type == 'h':
+      continue
+    try:
+      bond_topology.atoms.append(ATOM_CHAR_TO_TYPE[atom_type])
+    except KeyError:
       raise ValueError('Unknown atom type: {}'.format(atom_type))
 
   num_heavy_atoms = len(bond_topology.atoms)
@@ -981,6 +982,23 @@ def filter_conformer_by_availability(conformer, allowed):
       conformer.properties.ClearField(descriptor.name)
 
 
+def should_include_in_standard(conformer):
+  """Returns whether this conformer should be included in the Standard form.
+
+  Args:
+    conformer: dataset_pb2.Conformer
+
+  Returns:
+    boolean
+  """
+  # TODO(pfr): this logic needs to be rewritten on the next verison of the
+  # dataset
+  if conformer_has_calculation_errors(conformer):
+    return False
+  if conformer.duplicated_by > 0:
+    return False
+  return True
+
 def conformer_to_standard(conformer):
   """Converts a Conformer from internal to 'Standard' form.
 
@@ -997,8 +1015,7 @@ def conformer_to_standard(conformer):
     dataset_pb2.Conformer or None (meaning that this conformer should be
       filtered)
   """
-  if (conformer_has_calculation_errors(conformer) or
-      conformer.duplicated_by > 0):
+  if not should_include_in_standard(conformer):
     return None
 
   filter_conformer_by_availability(conformer, [dataset_pb2.STANDARD])

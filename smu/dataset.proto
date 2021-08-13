@@ -307,13 +307,13 @@ message Properties {
   // Single point energy PBE0D3/6-311Gd computed with ORCA.
   ScalarMolecularProperty single_point_energy_pbe0_6_311gd_orca = 9
       [(availability) = COMPLETE];
-  // Single point energy PBE0/6-311Gd(CAT).
+  // Single point cation energy PBE0/6-311Gd(CAT) computed with Turbomole.
   ScalarMolecularProperty single_point_energy_pbe0_6_311gd_cat = 10
       [(availability) = COMPLETE];
-  // Single point energy PBE0/6-311Gd(CAT) computed with MRCC.
+  // Single point cation energy PBE0/6-311Gd(CAT) computed with MRCC.
   ScalarMolecularProperty single_point_energy_pbe0_6_311gd_cat_mrcc = 11
       [(availability) = COMPLETE];
-  // Single point energy PBE0/6-311Gd(CAT) computed with ORCA.
+  // Single point cation energy PBE0/6-311Gd(CAT) computed with ORCA.
   ScalarMolecularProperty single_point_energy_pbe0_6_311gd_cat_orca = 12
       [(availability) = COMPLETE];
   // Single point energy PBE0/aug-pc-1.
@@ -913,4 +913,3 @@ message BondTopologySummary {
   int32 count_detected_match_with_error = 10;
   int32 count_detected_match_success = 11;
 }
-
