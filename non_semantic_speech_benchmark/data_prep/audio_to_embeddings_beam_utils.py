@@ -77,7 +77,8 @@ def samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
     except ValueError:
       continue
     break
-  ret = np.array(tf_out[output_key])
+  ret = tf_out[output_key] if isinstance(tf_out, dict) else tf_out
+  ret = np.array(ret)
   if ret.ndim > 2:
     # Batch-flatten in numpy.
     ret = np.reshape(ret, [ret.shape[0], -1])
