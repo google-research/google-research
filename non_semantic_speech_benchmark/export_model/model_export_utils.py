@@ -26,6 +26,7 @@ import numpy as np
 import tensorflow as tf
 
 from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_utils
+from non_semantic_speech_benchmark.distillation import frontend_lib
 from non_semantic_speech_benchmark.distillation import models
 from non_semantic_speech_benchmark.distillation.compression_lib import compression_op as compression
 from non_semantic_speech_benchmark.distillation.compression_lib import compression_wrapper
@@ -167,7 +168,7 @@ def sanity_check(
     input_shape = (1, 2 * n_required)
     expected_output_shape = (7, embedding_dim)
   else:
-    feats_inner_dim = models.get_frontend_output_shape()[0] * frame_width
+    feats_inner_dim = frontend_lib.get_frontend_output_shape()[0] * frame_width
     input_shape = (1, feats_inner_dim, num_mel_bins, 1)
     expected_output_shape = (1, embedding_dim)
   logging.info('Input shape: %s. Expected output shape: %s', input_shape,

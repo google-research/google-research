@@ -15,6 +15,8 @@
 
 """Tests for non_semantic_speech_benchmark.distillation.models."""
 
+import os
+
 from absl.testing import absltest
 from absl.testing import parameterized
 
@@ -26,6 +28,7 @@ from non_semantic_speech_benchmark.distillation.compression_lib import compressi
 
 
 class ModelsTest(parameterized.TestCase):
+
 
   @parameterized.parameters(
       {'frontend': True, 'bottleneck': 3, 'tflite': True},
@@ -54,7 +57,7 @@ class ModelsTest(parameterized.TestCase):
     o.shape.assert_has_rank(2)
     self.assertEqual(o.shape[1], 5)
 
-  def test_invalid_mobilenet_size(self):
+  def test_invalid_model(self):
     invalid_mobilenet_size = 'huuuge'
     with self.assertRaises(KeyError) as exception_context:
       models.get_keras_model(
@@ -62,17 +65,13 @@ class ModelsTest(parameterized.TestCase):
     if not isinstance(exception_context.exception, KeyError):
       self.fail()
 
-  def test_default_shape(self):
-    self.assertEqual(models.get_frontend_output_shape(), [1, 96, 64])
-
   @parameterized.parameters(
-      {'mobilenet_size': 'small'},
-      {'mobilenet_size': 'debug'},
+      {'model_type': 'mobilenet_small_1.0_False'},
+      {'model_type': 'mobilenet_debug_1.0_False'},
   )
-  def test_valid_mobilenet_size(self, mobilenet_size):
+  def test_valid_model_type(self, model_type):
     input_tensor = tf.zeros([2, 32000], dtype=tf.float32)
-    m = models.get_keras_model(
-        f'mobilenet_{mobilenet_size}_1.0_False', 3, 5)
+    m = models.get_keras_model(model_type, 3, 5)
     o_dict = m(input_tensor)
     emb, o = o_dict['embedding'], o_dict['embedding_to_target']
 
