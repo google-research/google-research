@@ -119,9 +119,10 @@ def get_dense_config(
     parent_config):
   """Creates a ConfigDict corresponding to aqt.flax_layers.DenseAqt.HParams."""
   config = ml_collections.ConfigDict()
-  set_default_reference(
-      config, parent_config,
-      ["weight_prec", "weight_quant_granularity", "quant_type", "quant_act"])
+  set_default_reference(config, parent_config, [
+      "weight_prec", "weight_quant_granularity", "quant_type", "quant_act",
+      "weight_half_shift"
+  ])
   config.lock()
   return config
 
@@ -130,16 +131,37 @@ def get_conv_config(
     parent_config):
   """Creates a ConfigDict corresponding to aqt.flax_layers.ConvAqt.HParams."""
   config = ml_collections.ConfigDict()
-  set_default_reference(
-      config, parent_config,
-      ["weight_prec", "weight_quant_granularity", "quant_type", "quant_act"])
+  set_default_reference(config, parent_config, [
+      "weight_prec", "weight_quant_granularity", "quant_type", "quant_act",
+      "weight_half_shift"
+  ])
+  config.lock()
+  return config
+
+
+def get_fp_quant_config():
+  config = ml_collections.ConfigDict({
+      "fp_spec": get_fp_config(),
+      "is_scaled": bool_ph(),
+  })
+  config.lock()
+  return config
+
+
+def get_fp_config():
+  config = ml_collections.ConfigDict({
+      "exp_min": int_ph(),
+      "exp_max": int_ph(),
+      "sig_bits": int_ph()
+  })
   config.lock()
   return config
 
 
 # TODO(shivaniagrawal): base config should be more generic and only model
 # specific configs should be updated.
-def get_base_config(use_auto_acts):
+def get_base_config(use_auto_acts,
+                    fp_quant):
   """Return a base ConfigDict for AQT; does not have model specific fields."""
   if use_auto_acts:
     bounds = ml_collections.ConfigDict({
@@ -156,6 +178,10 @@ def get_base_config(use_auto_acts):
     })
   else:
     bounds = float_ph()
+  if fp_quant:
+    prec = get_fp_quant_config()
+  else:
+    prec = int_ph()
   base_config = ml_collections.ConfigDict({
       "metadata": {
           "description": "Base configuration",
@@ -164,7 +190,8 @@ def get_base_config(use_auto_acts):
       "weight_decay": float_ph(),
       "activation_bound_update_freq": int_ph(),
       "activation_bound_start_step": int_ph(),
-      "prec": int_ph(),
+      "prec": prec,
+      "half_shift": bool_ph(),
       "quant_type": str_ph(),
       "quant_act": {
           "bounds": bounds,
@@ -180,5 +207,8 @@ def get_base_config(use_auto_acts):
   set_default_reference(
       base_config, base_config, "weight_prec", parent_field="prec")
   set_default_reference(base_config.quant_act, base_config, "prec")
+  set_default_reference(
+      base_config, base_config, "weight_half_shift", parent_field="half_shift")
+  set_default_reference(base_config.quant_act, base_config, "half_shift")
 
   return base_config

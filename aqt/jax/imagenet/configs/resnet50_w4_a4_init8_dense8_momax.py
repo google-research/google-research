@@ -21,8 +21,8 @@ from aqt.jax.imagenet.configs import base_config
 def get_config(quant_target=base_config.QuantTarget.weights_and_auto_acts):
   """Gets Resnet50 config for 4 bits weights and auto activation quantization.
 
-  conv_init and last dense layer not quantized as these are the most
-  sensitive layers in the model.
+  conv_init and last dense layer quantized to higher precision (8 bits) as these
+  are the most sensitive layers in the model.
 
   Args:
    quant_target: quantization target, of type QuantTarget.

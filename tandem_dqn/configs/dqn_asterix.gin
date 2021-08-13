@@ -1,0 +1,34 @@
+# Hyperparameters for a simple DQN-style Minatar agent. The hyperparameters
+# chosen achieve reasonable performance.
+import dopamine.discrete_domains.gym_lib
+import dopamine.discrete_domains.run_experiment
+import dopamine.jax.agents.dqn.dqn_agent
+import dopamine.jax.networks
+import dopamine.replay_memory.circular_replay_buffer
+import flax
+import tandem_dqn.minatar_env
+
+JaxDQNAgent.observation_shape = %minatar_env.ASTERIX_SHAPE
+JaxDQNAgent.observation_dtype = %minatar_env.DTYPE
+JaxDQNAgent.stack_size = 1
+JaxDQNAgent.network = @minatar_env.MinatarDQNNetwork
+JaxDQNAgent.gamma = 0.99
+JaxDQNAgent.update_horizon = 3
+JaxDQNAgent.min_replay_history = 1000
+JaxDQNAgent.update_period = 4
+JaxDQNAgent.target_update_period = 1000
+JaxDQNAgent.optimizer = 'adam'
+create_optimizer.learning_rate = 0.0001
+create_optimizer.eps = 0.001
+
+create_minatar_env.game_name  = 'asterix'
+TrainRunner.create_environment_fn =  @minatar_env.create_minatar_env
+create_runner.schedule = 'continuous_train'
+create_agent.agent_name = 'jax_dqn'
+create_agent.debug_mode = True
+Runner.num_iterations = 10
+Runner.training_steps = 1000000
+Runner.max_steps_per_episode = 100000000
+
+OutOfGraphReplayBuffer.replay_capacity = 100000
+OutOfGraphReplayBuffer.batch_size = 32

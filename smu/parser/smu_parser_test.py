@@ -29,8 +29,8 @@ STAGE1_DAT_FILE = 'x07_stage1.dat'
 SMU1_STAGE1_DAT_FILE = 'x01_stage1.dat'
 MINIMAL_DAT_FILE = 'x07_minimal.dat'
 GOLDEN_PROTO_FILE = 'x07_sample.pbtxt'
-TESTDATA_PATH =  os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                              'testdata')
+TESTDATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             'testdata')
 
 
 class SmuParserTest(absltest.TestCase):

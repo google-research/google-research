@@ -27,6 +27,7 @@
 #include "external/gbbs/gbbs/graph.h"
 #include "external/gbbs/gbbs/vertex_subset.h"
 #include "clustering/in-memory-clusterer.h"
+#include "parallel/parallel-graph-utils.h"
 
 namespace research_graph {
 namespace in_memory {
@@ -140,19 +141,6 @@ class ClusteringHelper {
   // Initialize cluster_ids_ and cluster_sizes_ given an initial clustering.
   // If clustering is empty, initialize singleton clusters.
   void SetClustering(const InMemoryClusterer::Clustering& clustering);
-};
-
-// Holds a GBBS graph and a corresponding node weights
-struct GraphWithWeights {
-  GraphWithWeights() {}
-  GraphWithWeights(
-      std::unique_ptr<gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, float>>
-          graph_,
-      std::vector<double> node_weights_)
-      : graph(std::move(graph_)), node_weights(std::move(node_weights_)) {}
-  std::unique_ptr<gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, float>>
-      graph;
-  std::vector<double> node_weights;
 };
 
 // Given cluster ids and a graph, compress the graph such that the new

@@ -142,7 +142,7 @@ BestMovesForVertexSubset(
           });
   auto edge_map = CorrelationClustererEdgeMap{};
   auto new_moved_subset =
-      gbbs::edgeMap(*current_graph, *(local_moved_subset.get()), edge_map);
+      gbbs::edgeMap(*current_graph, *(local_moved_subset), edge_map);
   return std::unique_ptr<gbbs::vertexSubset, void (*)(gbbs::vertexSubset*)>(
       new gbbs::vertexSubset(std::move(new_moved_subset)),
       [](gbbs::vertexSubset* subset) {

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Functions to compute the cycle consistency loss."""
+"""Functions to compute the correspondence loss."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -131,16 +131,17 @@ def get_scaled_similarity(embeddings1,
 
 
 @tf.function
-def quantify_unambiguous_cycles(embeddings1,
-                                embeddings2,
-                                similarity_type,
-                                temperature):
-  """Map from the first set of embeddings to the second and come back.
+def correspondence_loss(embeddings1,
+                        embeddings2,
+                        similarity_type,
+                        temperature):
+  """Evaluate the approximate bijective correspondence loss.
 
-  Finds the soft nearest neighbor for each point in embeddings1, in embeddings2,
-  according to the method of similarity and the temperature.  Then this soft
-  nearest neighbor is compared by the same means to all elements of embeddings1,
-  with the label being the identity (unambiguous cyclic consistency).
+  Finds the soft nearest neighbor for each point in embeddings1, out of the
+  points of embeddings2, according to the method of similarity and the
+  temperature.  Then this soft nearest neighbor is used with the original point
+  as a positive pair in an infoNCE loss, comparing against all the other points
+  in embeddings1.
 
   Args:
     embeddings1: [N, d] float tensor of embeddings.
@@ -151,11 +152,7 @@ def quantify_unambiguous_cycles(embeddings1,
       scale for the similarity values.  Should be positive.
 
   Returns:
-    logits: [N, N] tensor of cycle consistency values, used as logits in a
-      cross entropy loss, where the [i, j] component is the scaled similarity
-      between the soft nearest neighbor of the ith vector in embeddings1 and the
-      jth vector in embeddings1.
-    labels: [N, N] tensor of one-hot labels for the cycle consistency.
+    loss: The loss averaged over all such pairs.
   """
   stack_size1 = tf.shape(embeddings1)[0]
   similarity12 = get_scaled_similarity(embeddings1, embeddings2,
@@ -164,30 +161,7 @@ def quantify_unambiguous_cycles(embeddings1,
   nn_embeddings1 = tf.matmul(softmaxed_similarity12, embeddings2)
   similarity121 = get_scaled_similarity(nn_embeddings1, embeddings1,
                                         similarity_type, temperature)
-  logits = similarity121
-  labels = tf.one_hot(tf.range(stack_size1), stack_size1)
-  return logits, labels
-
-
-def classification_loss(logits, labels, top_k_num=0):
-  """Computes the cross-entropy loss, possibly only including the best k losses.
-
-  Args:
-    logits: [N, N] tensor of logits.
-    labels: [N, N] tensor of one-hot classification labels.
-    top_k_num: An optional integer which averages over only the top-k values of
-      the loss (top meaning best, so the smallest k values).
-
-  Returns:
-    loss: Float tensor of the losses averaged over the stack.
-  """
-
-  labels = tf.stop_gradient(labels)
-  losses = tf.keras.losses.categorical_crossentropy(y_true=labels,
-                                                    y_pred=logits,
-                                                    from_logits=True)
-  if top_k_num:
-    loss = tf.reduce_mean(-tf.math.top_k(-losses, k=top_k_num)[0])
-  else:
-    loss = tf.reduce_mean(losses)
-  return loss
+  loss = tf.keras.losses.sparse_categorical_crossentropy(tf.range(stack_size1),
+                                                         similarity121,
+                                                         from_logits=True)
+  return tf.reduce_mean(loss)

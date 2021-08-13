@@ -83,9 +83,16 @@ flags.DEFINE_bool(
 flags.DEFINE_bool(
     'split_embeddings_into_separate_tables', False,
     'If true, write each embedding to a separate table.')
+# Do not use `use_frontend_fn` and `model_input_min_length > 0`.
 flags.DEFINE_bool(
     'use_frontend_fn', False,
-    'If `true`, call frontend fn on audio before passing to the model.')
+    'If `true`, call frontend fn on audio before passing to the model. Do not '
+    'use if `model_input_min_length` is not `None`.')
+flags.DEFINE_integer(
+    'model_input_min_length', None, 'Min length to the model. 0-pad inputs to '
+    'this length, if necessary. Note that frontends usually contain their own '
+    'length logic, unless the model is in TFLite format. Do not use if '
+    '`use_frontend_fn` is `True`.')
 flags.DEFINE_bool('debug', False, 'If True, run in debug model.')
 
 FLAGS = flags.FLAGS
@@ -133,10 +140,19 @@ def main(unused_argv):
           output_filename,
           split_embeddings_into_separate_tables=FLAGS.split_embeddings_into_separate_tables,  # pylint:disable=line-too-long
           use_frontend_fn=FLAGS.use_frontend_fn,
+          model_input_min_length=FLAGS.model_input_min_length,
           input_format=input_format,
           output_format=output_format,
           suffix=i)
 
+
+@flags.multi_flags_validator(
+    ['use_frontend_fn', 'model_input_min_length'],
+    message='Use only one of `use_frontend_fn` and `model_input_min_length`.'
+)
+def no_min_input_length_with_frontend_fn(flags_dict):
+  return (not flags_dict['use_frontend_fn'] or
+          not flags_dict['model_input_min_length'])
 
 if __name__ == '__main__':
   flags.mark_flags_as_required([

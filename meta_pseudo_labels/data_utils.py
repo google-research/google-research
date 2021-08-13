@@ -420,7 +420,6 @@ def _optimize_dataset(dataset):
   options = tf.data.Options()
   options.experimental_optimization.parallel_batch = True
   options.experimental_optimization.map_fusion = True
-  options.experimental_optimization.map_vectorization.enabled = True
   options.experimental_optimization.map_parallelization = True
   dataset = dataset.with_options(options)
   dataset = dataset.prefetch(1)

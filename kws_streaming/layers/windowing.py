@@ -68,6 +68,8 @@ class Windowing(tf.keras.layers.Layer):
       self.window = _hann_offset_window_generator(self.window_size, np.float32)
     elif self.window_type == 'hann':
       self.window = _hann_window_generator(self.window_size, np.float32)
+    elif self.window_type == 'hann_tf':
+      self.window = tf.signal.hann_window(self.window_size)
     else:
       raise ValueError('unsupported window_type:%s' % self.window_type)
 

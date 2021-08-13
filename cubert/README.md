@@ -1,6 +1,23 @@
 # CuBERT
 
 
+## Update 2021/7/11: Fresh Pre-trained Python Models
+
+We are releasing a fresh set of Python pre-training corpus and models, drawn from the BigQuery version of GitHub as of July 11, 2021. This pre-training corpus was deduplicated with the updated process described in [Collection Query](https://github.com/google-research/google-research/tree/master/cubert#collection-query) below. The pre-trained models were BERT Large, and trained for 2 epochs.
+
+* Python, deduplicated, BigQuery snapshot as of July 11, 2021.
+    * Manifest: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20210711_Python/github_python_minus_ethpy150open_deduplicated_manifest)
+        [`gs://cubert/20210711_Python/github_python_minus_ethpy150open_deduplicated_manifest`].
+    * Vocabulary: [[UI]](https://storage.cloud.google.com/cubert/20210711_Python/github_python_minus_ethpy150open_deduplicated_vocabulary.txt)
+        [`gs://cubert/20210711_Python/github_python_minus_ethpy150open_deduplicated_vocabulary.txt`].
+    * Model checkpoint for length 512, 2 epochs: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20210711_Python/pre_trained_model_epochs_2__length_512)
+        [`gs://cubert/20210711_Python/pre_trained_model_epochs_2__length_512`].
+    * Model checkpoint for length 1024, 2 epochs: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20210711_Python/pre_trained_model_epochs_2__length_1024)
+        [`gs://cubert/20210711_Python/pre_trained_model_epochs_2__length_1024`].
+    * Model checkpoint for length 2048, 2 epochs: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20210711_Python/pre_trained_model_epochs_2__length_2048)
+        [`gs://cubert/20210711_Python/pre_trained_model_epochs_2__length_2048`].
+
+
 ## Update 2021/03/04: Clarifications
 
 ### Errata in Pre-training Corpus
@@ -207,7 +224,7 @@ where contents.id = files.id and
 
 At this time, we release the following pre-trained model and pre-training corpus. Look in the updates, below, for other releases.
 
-* Python, deduplicated after files similar to [ETH Py150 Open](https://github.com/google-research-datasets/eth_py150_open) were removed. BigQuery snapshot as of June 21, 2020.
+* Python, deduplicated after files similar to [ETH Py150 Open](https://github.com/google-research-datasets/eth_py150_open) were removed. BigQuery snapshot as of June 21, 2020. These are the models and manifests involved in the published paper.
     * Manifest: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20200621_Python/github_python_minus_ethpy150open_deduplicated_manifest)
         [`gs://cubert/20200621_Python/github_python_minus_ethpy150open_deduplicated_manifest`].
     * Vocabulary: [[UI]](https://console.cloud.google.com/storage/browser/_details/cubert/20200621_Python/github_python_minus_ethpy150open_deduplicated_vocabulary.txt)

@@ -350,7 +350,8 @@ def ConvHierPriorPost(images=None,
         #bijectors.append(tfb.Reshape([num_flat_dims], tf.shape(q_mean)[1:]))
         # Do the shift/scale explicitly, so that we can use bijector to map the
         # distribution to the standard normal, which is helpful for HMC.
-        bijectors.append(tfb.AffineScalar(shift=q_mean, scale=tf.nn.softplus(q_raw_scale)))
+        bijectors.append(tfb.Shift(shift=q_mean))
+        bijectors.append(tfb.Scale(scale=tf.nn.softplus(q_raw_scale)))
 
         bijector = tfb.Chain(bijectors)
 
@@ -651,7 +652,7 @@ def IndependentDiscreteLogistic3D(locations,
                                   scales):
   dist = tfd.TransformedDistribution(
       distribution=tfd.Logistic(loc=locations, scale=scales),
-      bijector=tfb.AffineScalar(scale=255.0))
+      bijector=tfb.Scale(scale=255.0))
 
   dist = tfd.QuantizedDistribution(distribution=dist, low=0., high=255.0)
 
@@ -712,7 +713,7 @@ def DenseRecognition(images, encoder, z=None, sigma_activation="exp"
   elif sigma_activation == "softplus":
     sigma = tf.nn.softplus(encoding_parts[1])
 
-  bijector = tfb.Affine(shift=mu, scale_diag=sigma)
+  bijector = tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma))
 
   mvn = tfd.MultivariateNormalDiag(
       loc=tf.zeros_like(mu), scale_diag=tf.ones_like(sigma))
@@ -735,7 +736,7 @@ def DenseRecognitionAffine(images, encoder, z=None,
   tril_raw = tfp.math.fill_triangular(encoding[:, z_dims:])
   sigma = tf.nn.softplus(tf.matrix_diag_part(tril_raw))
   tril = tf.linalg.set_diag(tril_raw, sigma)
-  bijector = tfb.Affine(shift=mu, scale_tril=tril)
+  bijector = tfb.Shift(shift=mu)(tfb.ScaleMatvecTriL(tril))
 
   mvn = tfd.MultivariateNormalDiag(
       loc=tf.zeros_like(mu), scale_diag=tf.ones_like(sigma))
@@ -759,8 +760,10 @@ def DenseRecognitionAffineLR(images, encoder, z=None,
   perturb = tf.reshape(perturb, [-1, z_dims, rank])
 
   sigma = tf.nn.softplus(sigma)
-  bijector = tfb.Affine(shift=mu, scale_diag=sigma,
-                        scale_perturb_factor=perturb)
+  op = tf.linalg.LinearOperatorLowRankUpdate(
+      tf.linalg.LinearOperatorDiag(sigma),
+      u=perturb)
+  bijector = tfb.Shift(shift=mu)(tfb.ScaleMatvecLinearOperator(op))
 
   mvn = tfd.MultivariateNormalDiag(
       loc=tf.zeros_like(mu), scale_diag=tf.ones_like(sigma))
@@ -830,7 +833,7 @@ def DenseRecognitionRNVP(
   elif sigma_activation == "softplus":
     sigma = tf.nn.softplus(encoding_parts[1])
 
-  bijectors.append(tfb.Affine(shift=mu, scale_diag=sigma))
+  bijectors.append(tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma)))
   bijector = tfb.Chain(bijectors)
 
   mvn = tfd.MultivariateNormalDiag(
@@ -904,7 +907,7 @@ def DenseRecognitionIAF(
   elif sigma_activation == "softplus":
     sigma = tf.nn.softplus(encoding_parts[1])
 
-  bijectors.append(tfb.Affine(shift=mu, scale_diag=sigma))
+  bijectors.append(tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma)))
   bijector = tfb.Chain(bijectors)
 
   mvn = tfd.MultivariateNormalDiag(
@@ -1016,7 +1019,8 @@ def ConvIAF(
   elif sigma_activation == "softplus":
     sigma = tf.nn.softplus(encoding_parts[1])
 
-  bijectors.append(tfb.AffineScalar(shift=mu, scale=sigma))
+  bijectors.append(tfb.Shift(shift=mu))
+  bijectors.append(tfb.Scale(scale=sigma))
   bijector = tfb.Chain(bijectors)
 
   mvn = tfd.Independent(
@@ -1055,7 +1059,7 @@ def ConvShiftScale(
   elif sigma_activation == "softplus":
     sigma = tf.nn.softplus(encoding_parts[1])
 
-  bijector = tfb.AffineScalar(shift=mu, scale=sigma)
+  bijector = tfb.Chain([tfb.Shift(shift=mu), tfb.Scale(scale=sigma)])
 
   mvn = tfd.Independent(
       tfd.Normal(loc=tf.zeros_like(mu), scale=tf.ones_like(sigma)),

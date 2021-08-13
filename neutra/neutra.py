@@ -50,11 +50,11 @@ def MakeAffineBijectorFn(num_dims, train=False, use_tril=False):
     tril_raw = tfp.math.fill_triangular(tril_flat)
     sigma = tf.nn.softplus(tf.matrix_diag_part(tril_raw))
     tril = tf.linalg.set_diag(tril_raw, sigma)
-    return tfb.Affine(shift=mu, scale_tril=tril)
+    return tfb.Shift(shift=mu)(tfb.ScaleMatvecTriL(scale_tril=tril))
   else:
     sigma = tf.nn.softplus(
         tf.get_variable("invpsigma", initializer=tf.zeros([num_dims])))
-    return tfb.Affine(shift=mu, scale_diag=sigma)
+    return tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma))
 
 
 @gin.configurable("rnvp_bijector")
@@ -93,7 +93,7 @@ def MakeRNVPBijectorFn(num_dims,
     scale = tf.nn.softplus(
         tf.get_variable(
             "isp_global_scale", initializer=tfp.math.softplus_inverse(scale)))
-  bijectors.append(tfb.Affine(scale_identity_multiplier=scale))
+  bijectors.append(tfb.Scale(scale=scale))
 
   bijector = tfb.Chain(bijectors)
 
@@ -141,7 +141,7 @@ def MakeIAFBijectorFn(
     scale = tf.nn.softplus(
         tf.get_variable(
             "isp_global_scale", initializer=tfp.math.softplus_inverse(scale)))
-  bijectors.append(tfb.Affine(scale_identity_multiplier=scale))
+  bijectors.append(tfb.Scale(scale=scale))
 
   bijector = tfb.Chain(bijectors)
 

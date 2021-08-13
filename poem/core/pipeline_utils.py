@@ -446,3 +446,63 @@ def stack_embeddings(model_outputs, embedding_keys, common_module=common):
     else:
       raise ValueError('Unsupported embedding key: `%s`.' % str(key))
   return tf.concat(embeddings_to_stack, axis=-2)
+
+
+def get_sigmoid_parameters(name,
+                           raw_a_initial_value=0.0,
+                           b_initial_value=0.0,
+                           a_range=(None, None),
+                           b_range=(None, None),
+                           reuse=tf.AUTO_REUSE):
+  """Gets sigmoid parameter variables.
+
+  Args:
+    name: A string for the variable scope name.
+    raw_a_initial_value: A float for initial value of the raw `a` parameter.
+    b_initial_value: A float for initial value of the `b` parameter.
+    a_range: A tuple of (min, max) range of `a` parameter. Uses None or
+      non-positive value to indicate unspecified boundaries.
+    b_range: A tuple of (min, max) range of `b` parameter. Uses None to indicate
+      unspecified boundaries. Does NOT use non-positive value to indicate
+      unspecified boundaries.
+    reuse: Type of variable reuse.
+
+  Returns:
+    raw_a: A variable for `raw_a` parameter.
+    a: A tensor for `a` parameter.
+    b: A tensor for `b` parameter.
+
+  Raises:
+    ValueError: If `a_range` or `b_range` is invalid.
+  """
+
+  def maybe_clamp(x, x_range, ignored_if_non_positive):
+    """Clamps `x` to `x_range`."""
+    x_min, x_max = x_range
+    if x_min is not None and x_max is not None and x_min > x_max:
+      raise ValueError('Invalid range: %s.' % str(x_range))
+    if (x_min is not None) and (not ignored_if_non_positive or x_min > 0.0):
+      x = tf.math.maximum(x_min, x)
+    if (x_max is not None) and (not ignored_if_non_positive or x_max > 0.0):
+      x = tf.math.minimum(x_max, x)
+    return x
+
+  with tf.variable_scope(name, reuse=reuse):
+    # TODO(liuti): Currently the variable for `raw_a` is named `a` in
+    # checkpoints for historic reasons. Consolidate the naming.
+    raw_a = tf.get_variable(
+        'a',
+        shape=[],
+        dtype=tf.float32,
+        initializer=tf.initializers.constant(raw_a_initial_value))
+    a = tf.nn.elu(raw_a) + 1.0
+    a = maybe_clamp(a, a_range, ignored_if_non_positive=True)
+
+    b = tf.get_variable(
+        'b',
+        shape=[],
+        dtype=tf.float32,
+        initializer=tf.initializers.constant(b_initial_value))
+    b = maybe_clamp(b, b_range, ignored_if_non_positive=False)
+
+  return raw_a, a, b

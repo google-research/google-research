@@ -20,6 +20,7 @@ cc_library(
     srcs = ["parallel-affinity.cc"],
     hdrs = ["parallel-affinity.h"],
     deps = [
+        ":affinity-weight-threshold",
         ":parallel-affinity-internal",
         "//clustering:config_cc_proto",
         "//clustering:gbbs-graph",
@@ -84,6 +85,21 @@ cc_library(
         "@gbbs//pbbslib:utilities",
     ],
 )
+
+cc_library(
+    name = "affinity-weight-threshold",
+    srcs = ["affinity-weight-threshold.cc"],
+    hdrs = ["affinity-weight-threshold.h"],
+    deps = [
+        "//clustering/util:dynamic_weight_threshold",
+        "//clustering/util:dynamic_weight_threshold_cc_proto",
+        "//clustering:config_cc_proto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 
 cc_library(
     name = "parallel-correlation-clusterer-internal",

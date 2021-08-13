@@ -107,7 +107,23 @@ def get_base_config(imagenet_type, quant_target):
       "activation_bound_start_step": -1,
       "prec": None,
       "quant_type": "fake_quant",
-      "weight_quant_granularity": "per_channel"
+      "weight_quant_granularity": "per_channel",
+      "act_function": "relu",
+      "shortcut_ch_shrink_method": "none",
+      "shortcut_ch_expand_method": "none",
+      "shortcut_spatial_method": "none",
+      "lr_scheduler": {
+          "warmup_epochs": 5,
+          "cooldown_epochs": 50,
+          "scheduler": "cosine",
+          "num_epochs": 250,
+      },
+      "optimizer": "sgd",
+      "adam": {
+          "beta1": 0.9,
+          "beta2": 0.999
+      },
+      "early_stop_steps": -1,  # -1 means no early stop
   })
 
   proj_layers = [sum(resnet_layers[:x]) for x in range(len(resnet_layers))]
@@ -118,6 +134,7 @@ def get_base_config(imagenet_type, quant_target):
           idx].conv_1.quant_act.input_distribution = "positive"
 
   config.model_hparams.filter_multiplier = 1.
+  config.half_shift = False
 
   return config
 
@@ -127,7 +144,7 @@ def get_auto_acts_config(imagenet_type):
   config = get_base_config(
       imagenet_type=imagenet_type,
       quant_target=QuantTarget.weights_and_auto_acts)
-  config.quant_act.bounds.update({
+  config.quant_act.bounds.update({  # update default values for auto acts
       "initial_bound": -1.0,
       "stddev_coeff": 3.0,
       "absdev_coeff": 3.0,
@@ -138,6 +155,7 @@ def get_auto_acts_config(imagenet_type):
       "use_cams": False,
       "exclude_zeros": True,
       "use_mean_of_max": True,
+      "use_old_code": True,
   })
   config.activation_bound_start_step = 7500
   config.activation_bound_update_freq = -1

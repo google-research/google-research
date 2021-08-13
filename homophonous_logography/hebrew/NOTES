@@ -1,0 +1,40 @@
+
+Handling of VAV signs: With dagesh it should sometimes map to a simple vowel *or* a /v/ followed by a vowel. Example with an error:
+v_x_o_ʃ_e_x  <-  וחשך ("and darkness"): Here this should read "v_e_x_o_ʃ_e_x"
+v_r_u_x_a <- ורוח ("and wind"): Here it should be "v_e_r_u_a_h"
+v_l_a_x_o_ʃ_e_x <- ולחשך ("and to darkness"): Here is should be "v_e_l_a_x_o_ʃ_e_x"
+
+
+Handling of YOD signs: These often overtrigger in your translation.
+k_i_j <- כי ("because"): Should be "k_i" (here yod signifies a vowel).
+e_l_o_h_i_j_m <- אלהים ("G-d"): Should be "e_l_o_h_i_m"
+v_a_j_h_i_j <- ויהי ("and so will be"): Should be "v_a_i_h_i" or "v_a_i_h_j_i"
+l_m_i_j_n_o <- למינו ("for its kind"): Should be "l_e_m_i_n_o"
+l_m_i_j_n_e_h_u <- למינהו: Should be: "l_m_i_n_e_h_u"
+ʃ_l_i_j_ʃ_i_j <- שלישי ("third"): Should be "ʃ_l_i_ʃ_i"
+
+
+Vowels:
+z_a_r_o <- זרעו : Should be "z_r_a_o" (in fact the Biblical/Sephardic/Yemenite pron is also wrong. Should be "z_r_a_ʕ_o"
+l_h_a_v_d_i_j_l <- להבדיל ("in contrast"): Should be "l_e_h_a_v_d_i_l "
+b_ts'_e_l_e_m <- בצלם ("in shadow"): Should be "b_e_ts'_e_l_e_m"
+
+
+Another bad one:
+
+"f_r_i_j" <- פרי : ("fruit") Wrong. Should be "p_r_i".
+
+
+There are two issues here:
+
+  (1) The pron with dagesh clearly states that "וְ" should be "v_e" and all these instances should be changed. And this is correct also in modern Hebrew.
+
+  (2) I don't understand the "חַ" business: You read it as "x_a" (which is right), but the overall word doesn't make sense in Modern Hebrew. Dagesh may be misplaced/wrong or it may be indeed an ancient spelling. Regardless, leave as is.
+
+
+I think you overtrigger on YODs. Here's an example from a random Hebrew sentence: 
+
+תפסתי רוח רפאים ענקית
+
+"I caught a huge ghost". This will be pronounced "t_a_f_a_s_t_i   r_u_a_x   r_a_f_a_j_i_m a_n_a_k_i_t". Note, there is one /j/ in here, but even in this case it is (very often) not pronounced by Hebrew speakers.
+

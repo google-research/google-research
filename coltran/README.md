@@ -7,9 +7,26 @@ Work by Manoj Kumar, Dirk Weissenborn and Nal Kalchbrenner.
 
 <img src="coltran_images.png" alt="Model images" width="1000"/>
 
-### Update: 23 March 2021
+### Updates:
+* 18 July 2021 - [Notebook](https://tinyurl.com/coltranfewclicks) to colorize images using pretrained ColTran models with a few clicks.
+                 Credits: [Minh-Hoang DANG](https://github.com/mhoangvslev)
+* 11 July 2021 - Support for finetuneing on custom datasets. Set
+                 `FLAGS.pretrain_dir` - Pretrained Imagenet ckpt path.
+                 `FLAGS.dataset=custom` and
+                 `FLAGS.data_dir`- Path to custom RGB images.
+* 10 July 2021 - Support for training on custom datasets. Set
+                 `FLAGS.dataset=custom` and
+                 `FLAGS.data_dir`- Path to custom RGB images.
+* 23 March 2021 - Custom colorization script over [here](https://github.com/google-research/google-research/blob/master/coltran/custom_colorize.py)
 
-* Custom colorization script over [here](https://github.com/google-research/google-research/blob/master/coltran/custom_colorize.py)
+
+### Important: Note on Evaluation:
+
+Colorization is a multi-modal problem, where a given object can have multiple plausible colors.
+On recolorizing a RGB image, a single random sample represents another plausible colorization. It
+is unlikely to have the same colors as the ground-truth RGB image. So while evaluating the Colorization Transformer,
+one should use distribution-level metrics such as the FID and NOT per-image metrics such as LPIPS or SSIM.
+
 
 ## Paper summary
 
@@ -50,11 +67,26 @@ On colorizing images from ImageNet, we recommend to use the [sampling script](ht
 Run the following command to train the colorizer
 
 ```
-python -m coltran.run --config=coltran/configs/colorizer.py --mode=train --logdir=/colorizer_ckpt_dir
+python -m coltran.run --config=coltran/configs/colorizer.py --mode=train --logdir=$LOGDIR
 ```
 To train the color and spatial upsampler, replace `configs/colorizer.py` with
 `configs/color_upsampler.py` and `configs/spatial_upsampler.py` respectively
 
+For custom datasets:
+
+Training:
+
+```
+python -m coltran.run --config=coltran/configs/colorizer.py --mode=train --logdir=$LOGDIR --dataset=custom --data_dir=$DATA_DIR
+```
+
+Finetuneing:
+
+```
+python -m coltran.run --config=coltran/configs/colorizer.py --mode=train --logdir=$LOGDIR --dataset=custom --data_dir=$DATA_DIR --pretrain_dir=$PRETRAIN_DIR
+```
+where $DATA_DIR is set to a directory containing ground-truth RGB images.
+and $PRETRAIN_DIR is path to a pretrained colorizer/upsampler checkpoint on ImageNet.
 
 ## Evaluation
 

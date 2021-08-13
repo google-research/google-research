@@ -124,11 +124,11 @@ class ConvModelTest(tf.test.TestCase):
       def _representative_dataset_gen():
         for i in range(len(calibration_input_data)):
           yield [
-              calibration_input_data[i].astype(np.float32),  # input audio
               calibration_states[i]
               [model.flatten.get_core_layer().name].numpy().astype(np.float32),
               calibration_states[i][
                   model.conv2.get_core_layer().name].numpy().astype(np.float32),
+              calibration_input_data[i].astype(np.float32),  # input audio
           ]
       return _representative_dataset_gen
 

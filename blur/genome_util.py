@@ -15,13 +15,14 @@
 
 """Utilities for genome handling."""
 
+import dataclasses as dc
 import functools as ft
 from typing import Any, Callable, Optional, Union
 
-import dataclasses as dc
 import numpy as np
 import tensorflow.compat.v1 as tf
 
+from blur import blur_env
 
 
 
@@ -218,7 +219,6 @@ def get_genome(g, layer_index, per_layer_genome=False):
     return g
 
 
-NP_FLOATING_TYPE = np.float32
 # Neuron transformation matrix \mu before being fed to synapse
 # Rows describe contribution of corresponding state to all outputs
 # Columns describe of all inputs to a corresponding output
@@ -228,18 +228,18 @@ NP_FLOATING_TYPE = np.float32
 # row 2: sensory(j) ('post')
 # row 3: feedback(j)
 _grad_neuron_genome = np.array(
-    [[[0, 0, 1, 0],
+    [[[0, 0, 1, 1],
       [0, 0, 0, 0],
       [1, 0, 0, 0],
-      [0, 1, 0, 0]]], dtype=NP_FLOATING_TYPE)  # pyformat: disable
+      [0, 1, 0, 0]]], dtype=blur_env.NP_FLOATING_TYPE)  # pyformat: disable
 
 # ΔW(i, j, o) = Σ_{k, l} n(i, k) @ pre(i, o) @ post(o, l) @ n(j, l)
 # where n(i, k) is concatenation of input and output activations.
 _grad_hebbian_genome = HebbianTransform(
     pre=np.array([[[1, 0],
-                   [0, 1]]], dtype=NP_FLOATING_TYPE),
+                   [0, 1]]], dtype=blur_env.NP_FLOATING_TYPE),
     post=np.array([[[0, 1],
-                    [1, 0]]], dtype=NP_FLOATING_TYPE))  # pyformat: disable
+                    [1, 0]]], dtype=blur_env.NP_FLOATING_TYPE))
 
 GRADIENT_GENOME = Genome(
     neuron=NeuronGenome(
