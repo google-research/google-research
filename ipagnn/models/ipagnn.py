@@ -53,6 +53,35 @@ class IPAGNN(nn.Module):
   """IPAGNN model with batch dimension (not graph batching)."""
 
   def apply(self, inputs, info, config, train=False, cache=None):
+    """Apply the full IPAGNN model to a batch of input programs.
+
+    Args:
+      inputs: A dictionary with the following fields, each with a leading batch
+        dimension.
+        - true_indexes: For each node in the statement-level control flow graph,
+            the index of the node that would be reached if the true branch were
+            followed. If not a branch node, this is simply the index of the next
+            node and matches the index given by false_indexes.
+        - false_indexes: For each node in the statement-level control flow
+            graph, the index of the node that would be reached if the false
+            branch were followed. If not a branch node, this is simply the index
+            of the next node and matches the index given by true_indexes.
+        - start_indexes: The node index where the function starts.
+        - exit_indexes: The node index of the exit-node. Both the true- and
+            false- index of the exit node are the exit node itself.
+        - step_limit: The maximum number of model steps to take for a particular
+            program.
+        - data: Has shape (4, number of nodes). Each 4-tuple represents a single
+            statement in the program. The meaning of each entry in a 4-tuple is
+            described in Figure 1 of the paper.
+      info: Information about the dataset.
+      config: The experimental config.
+      train: (bool) Whether the model is being trained.
+      cache: Unused.
+
+    Returns:
+      The logits predicted from each program in the batch's output nodes.
+    """
     # Inputs
     true_indexes = inputs['true_branch_nodes']
     false_indexes = inputs['false_branch_nodes']
