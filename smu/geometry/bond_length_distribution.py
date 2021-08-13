@@ -26,7 +26,7 @@ Data for all atom pairs is collected in AllAtomPairLengthDistributions
 
 import abc
 import itertools
-from typing import Dict, Optional, Sequence
+from typing import Dict, Optional
 from absl import logging
 import numpy as np
 import pandas as pd
@@ -47,9 +47,7 @@ class LengthDistribution(abc.ABC):
 
     Args:
       length: length to query
-
-    Return:
-      pdf value
+    Return: pdf value
     """
     raise NotImplementedError
 
@@ -161,8 +159,7 @@ class EmpiricalLengthDistribution(LengthDistribution):
     self._right_tail_dist = None
     if self.right_tail_mass:
       self._df['pdf'] *= (1.0 - self.right_tail_mass)
-      last_density = (
-          float(self._df['pdf'].tail(1)))
+      last_density = (float(self._df['pdf'].tail(1)))
       # The right tail is an exponential distribution. We want the pdf at
       # right side of what is given in the empirical buckets (the 0 of the
       # exponential) to be equal to the density of the last bucket.
@@ -195,8 +192,7 @@ class EmpiricalLengthDistribution(LengthDistribution):
       EmpiricalLengthDistribution
     """
     with gfile.GFile(filename) as f:
-      df = pd.read_csv(
-          f, header=None, names=['length', 'count'], dtype=float)
+      df = pd.read_csv(f, header=None, names=['length', 'count'], dtype=float)
 
     return EmpiricalLengthDistribution(df, right_tail_mass)
 
@@ -206,48 +202,46 @@ class EmpiricalLengthDistribution(LengthDistribution):
 
     "sparse" means that not every bucket is listed explictly. The main work
     in this function to to fill in the implicit values expected in the
-    contructor.
+    constructor.
 
     Args:
-    * df_input: pd.DataFrame with columns ['length_str', 'count']
-    * right_tail_mass: probability mass added past the right side of the buckets
+      df_input: pd.DataFrame with columns ['length_str', 'count']
+      right_tail_mass: probability mass added past the right side of the buckets
         (see class documentation)
-    * sig_digits: number of significant digits after the decimal point
+      sig_digits: number of significant digits after the decimal point
 
     Returns:
       EmpiricalLengthDistribution
     """
     bucket_size = np.float_power(10, -sig_digits)
     input_lengths = df_input['length_str'].astype(np.double)
-    lengths = np.arange(np.min(input_lengths),
-                        # bucket_size / 2 avoids numerical imprecision to make
-                        # sure that the max is the last bucket
-                        np.max(input_lengths) + bucket_size / 2,
-                        bucket_size)
+    lengths = np.arange(
+        np.min(input_lengths),
+        # bucket_size / 2 avoids numerical imprecision to make
+        # sure that the max is the last bucket
+        np.max(input_lengths) + bucket_size / 2,
+        bucket_size)
     df_lengths = pd.DataFrame.from_dict({'length': lengths})
 
     format_str = '{:.%df}' % sig_digits
-    df_lengths['length_str'] = df_lengths['length'].apply(
-      lambda x: format_str.format(x))
+    df_lengths['length_str'] = df_lengths['length'].apply(format_str.format)
 
     df = df_lengths.merge(df_input, how='outer', on='length_str')
     if len(df) != len(df_lengths):
       raise ValueError('Unexpected length_str values in input: {}'.format(
-        set(df_input['length_str']).difference(df_lengths['length_str'])))
+          set(df_input['length_str']).difference(df_lengths['length_str'])))
 
     df['count'].fillna(0, inplace=True)
 
     return EmpiricalLengthDistribution(df, right_tail_mass=right_tail_mass)
 
   @classmethod
-  def from_arrays(cls, lengths, counts,
-                  right_tail_mass):
+  def from_arrays(cls, lengths, counts, right_tail_mass):
     """Creates EmpiricalLengthDistribution from arrays.
 
     Args:
-      lengths: sequence of values of the left edges of the buckets
-        (same length as counts)
-      sequence of left edge of length buckets
+      lengths: sequence of values of the left edges of the buckets (same length
+        as counts) sequence of left edge of length buckets
       counts: sequence of counts observed in each bucket
       right_tail_mass: probability mass added past the right side of the buckets
         (see class documentation)
@@ -415,8 +409,8 @@ class AllAtomPairLengthDistributions:
       self.add(atom_a, atom_b, bond_type,
                EmpiricalLengthDistribution.from_file(fname, right_tail_mass))
 
-  def add_from_sparse_dataframe(self, df_input,
-                                unbonded_right_tail_mass, sig_digits):
+  def add_from_sparse_dataframe(self, df_input, unbonded_right_tail_mass,
+                                sig_digits):
     """Adds distributions from a sparse dataframe.
 
     See sparse_dataframe_from_records for a description of the expected input
@@ -428,23 +422,25 @@ class AllAtomPairLengthDistributions:
         EmpiricalLengthDistribution) for the unbonded cases.
       sig_digits: number of significant digits after the decimal point
     """
-    avail_pairs = set(df_input.apply(
-      lambda row: (row['atom_char_0'], row['atom_char_1'], row['bond_type']),
-      axis=1))
+    avail_pairs = set(
+        df_input.apply(
+            lambda r: (r['atom_char_0'], r['atom_char_1'], r['bond_type']),
+            axis=1))
     for atom_char_0, atom_char_1, bond_type in avail_pairs:
       atom_0 = smu_utils_lib.ATOM_CHAR_TO_TYPE[atom_char_0]
       atom_1 = smu_utils_lib.ATOM_CHAR_TO_TYPE[atom_char_1]
-      df = df_input[(df_input['atom_char_0'] == atom_char_0) &
-                    (df_input['atom_char_1'] == atom_char_1) &
+      df = df_input[(df_input['atom_char_0'] == atom_char_0)
+                    & (df_input['atom_char_1'] == atom_char_1) &
                     (df_input['bond_type'] == bond_type)]
 
       right_tail_mass = None
       if bond_type == dataset_pb2.BondTopology.BOND_UNDEFINED:
         right_tail_mass = unbonded_right_tail_mass
 
-      self.add(atom_0, atom_1, bond_type,
-               EmpiricalLengthDistribution.from_sparse_dataframe(
-                 df, right_tail_mass, sig_digits))
+      self.add(
+          atom_0, atom_1, bond_type,
+          EmpiricalLengthDistribution.from_sparse_dataframe(
+              df, right_tail_mass, sig_digits))
     pass
 
   def pdf_length_given_type(self, atom_a,
@@ -484,9 +480,9 @@ def sparse_dataframe_from_records(records):
   pipeline easily.
 
   Args:
-  * records: iterables of [(atom char 0, atom char 1, bond type, length), count]
-    where atom char is one of 'cnofh', bond type is an int in [0, 3], length
-    is a string, count is an integer
+    records: iterables of [(atom char 0, atom char 1, bond type, length), count]
+      where atom char is one of 'cnofh', bond type is an int in [0, 3], length
+      is a string, count is an integer
 
   Returns:
     pd.DataFrame with columns:
@@ -496,5 +492,9 @@ def sparse_dataframe_from_records(records):
   for (a0, a1, bt, length), count in records:
     reformatted.append((a0, a1, bt, length, count))
   df = pd.DataFrame.from_records(
-    reformatted, columns=['atom_char_0', 'atom_char_1', 'bond_type', 'length_str', 'count'])
-  return df.sort_values(['atom_char_0', 'atom_char_1', 'bond_type', 'length_str'])
+      reformatted,
+      columns=[
+          'atom_char_0', 'atom_char_1', 'bond_type', 'length_str', 'count'
+      ])
+  return df.sort_values(
+      ['atom_char_0', 'atom_char_1', 'bond_type', 'length_str'])
