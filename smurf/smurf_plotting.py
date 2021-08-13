@@ -29,6 +29,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
+from smurf import smurf_utils
+
 # How much to scale motion magnitude in visualization.
 _FLOW_SCALING_FACTOR = 50.0
 
@@ -114,19 +116,15 @@ def complete_paper_plot(plot_dir,
                         image1,
                         image2,
                         flow_uv,
-                        ground_truth_flow_uv,
-                        flow_valid_occ,
-                        predicted_occlusion,
-                        ground_truth_occlusion,
+                        ground_truth_flow_uv=None,
+                        flow_valid_occ=None,
+                        predicted_occlusion=None,
+                        ground_truth_occlusion=None,
                         frame_skip=None):
 
   def post_imshow(name, plot_dir):
     plt.xticks([])
     plt.yticks([])
-    copy_to = None
-    if 'cns' in plot_dir:
-      copy_to = plot_dir
-      plot_dir = '/tmp'
     if frame_skip is not None:
       filename = str(index) + '_' + str(frame_skip) + '_' + name
       plt.savefig(os.path.join(plot_dir, filename), bbox_inches='tight')
@@ -134,16 +132,24 @@ def complete_paper_plot(plot_dir,
       filepath = str(index) + '_' + name
       plt.savefig(os.path.join(plot_dir, filepath), bbox_inches='tight')
     plt.clf()
-    if copy_to is not None:
-      tf.io.gfile.copy(
-          os.path.join(plot_dir, filepath) + '.png',
-          os.path.join(copy_to, filepath),
-          overwrite=True)
 
+  warp = smurf_utils.flow_to_warp(tf.convert_to_tensor(flow_uv))
+  image1_reconstruction = smurf_utils.resample(tf.expand_dims(image2, axis=0),
+                                               tf.expand_dims(warp, axis=0))[0]
   flow_uv = -flow_uv[:, :, ::-1]
-  ground_truth_flow_uv = -ground_truth_flow_uv[:, :, ::-1]
+  if ground_truth_flow_uv is not None:
+    ground_truth_flow_uv = -ground_truth_flow_uv[:, :, ::-1]
   plt.figure()
   plt.clf()
+
+  plt.imshow(image1)
+  post_imshow('image1_rgb', plot_dir)
+
+  plt.imshow(image1_reconstruction)
+  post_imshow('image1_reconstruction_rgb', plot_dir)
+
+  plt.imshow(image1_reconstruction * predicted_occlusion)
+  post_imshow('image1_reconstruction_occlusions_rgb', plot_dir)
 
   plt.imshow((image1 + image2) / 2.)
   post_imshow('image_rgb', plot_dir)
@@ -151,25 +157,24 @@ def complete_paper_plot(plot_dir,
   plt.imshow(flow_to_rgb(flow_uv))
   post_imshow('predicted_flow', plot_dir)
 
-  plt.imshow(flow_to_rgb(ground_truth_flow_uv * flow_valid_occ))
-  post_imshow('ground_truth_flow', plot_dir)
+  if ground_truth_flow_uv is not None and flow_valid_occ is not None:
+    plt.imshow(flow_to_rgb(ground_truth_flow_uv * flow_valid_occ))
+    post_imshow('ground_truth_flow', plot_dir)
+    endpoint_error = np.sum(
+        (ground_truth_flow_uv - flow_uv)**2, axis=-1, keepdims=True)**0.5
+    plt.imshow(
+        (endpoint_error * flow_valid_occ)[:, :, 0],
+        cmap='viridis',
+        vmin=0,
+        vmax=40)
+    post_imshow('flow_error', plot_dir)
 
-  endpoint_error = np.sum(
-      (ground_truth_flow_uv - flow_uv)**2, axis=-1, keepdims=True)**0.5
-  plt.imshow(
-      (endpoint_error * flow_valid_occ)[:, :, 0],
-      cmap='viridis',
-      vmin=0,
-      vmax=40)
-  post_imshow('flow_error', plot_dir)
+  if predicted_occlusion is not None:
+    plt.imshow((predicted_occlusion[:, :, 0]) * 255, cmap='Greys')
+    post_imshow('predicted_occlusion', plot_dir)
 
-  plt.imshow((predicted_occlusion[:, :, 0]) * 255, cmap='Greys')
-  post_imshow('predicted_occlusion', plot_dir)
+  if ground_truth_occlusion is not None:
+    plt.imshow((ground_truth_occlusion[:, :, 0]) * 255, cmap='Greys')
+    post_imshow('ground_truth_occlusion', plot_dir)
 
-  plt.imshow((ground_truth_occlusion[:, :, 0]) * 255, cmap='Greys')
-  post_imshow('ground_truth_occlusion', plot_dir)
-
-  # Should be some way in matplotlib to do this?
-  os.system('for f in $(ls ' + plot_dir +
-            '/*png*); do convert $f -fuzz 1% -trim +repage $f; done')
   plt.close('all')

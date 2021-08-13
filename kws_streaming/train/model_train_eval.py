@@ -340,6 +340,7 @@ if __name__ == '__main__':
   parser_mobilenet_v2 = subparsers.add_parser('mobilenet_v2')
   mobilenet_v2.model_parameters(parser_mobilenet_v2)
 
+
   # xception model settings
   parser_xception = subparsers.add_parser('xception')
   xception.model_parameters(parser_xception)

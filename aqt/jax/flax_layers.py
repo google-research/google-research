@@ -75,6 +75,8 @@ class DenseAqt(nn.Module):
     bias_init: initializer function for the bias. Should follow the template
       `def init(key, shape, dtype=dtype): -> array`. See flax.nn.initializers
         and jax.nn.initializers for more details.
+    precision: numerical precision of the computation see `jax.lax.Precision`
+      for details. Defaults to jax.lax.Precision.DEFAULT.
   """
 
   @dataclass
@@ -83,6 +85,8 @@ class DenseAqt(nn.Module):
     # Target integer precision of weights in bits.
     # If None, no weight quantization will be applied.
     weight_prec: Union[None, int, QuantOps.FloatQuant]
+    # half_shift flag for weights
+    weight_half_shift: bool
     # QuantOps hyperparameter to quantize inputs. If None, no activation
     # quantization will be applied.
     quant_act: Optional[QuantOps.ActHParams]
@@ -99,6 +103,7 @@ class DenseAqt(nn.Module):
   use_bias: bool = True
   kernel_init: InitializerType = default_kernel_init
   bias_init: InitializerType = nn.initializers.zeros
+  precision: Optional[lax.Precision] = jax.lax.Precision.DEFAULT
 
   # TODO(shivaniagrawal): Changed the strategy to AQT if quant_type is aqt.
 
@@ -124,7 +129,7 @@ class DenseAqt(nn.Module):
     Returns:
       The transformed input.
     """
-    batch_size, channel_size = inputs.shape  # pylint: disable=unused-variable
+    batch_size = inputs.shape[0]
     if padding_mask is not None:
       shape_utils.assert_shapes_equal(padding_mask.shape, (batch_size, 1))
     # TODO(wanglisa): Replace fake quant with AQT.
@@ -142,7 +147,6 @@ class DenseAqt(nn.Module):
           'jax.lax.Precision.DEFAULT to determine whether it is still sufficient.'
       )
 
-    jax_precision = jax.lax.Precision.DEFAULT
     kernel = self.param('kernel', self.kernel_init,
                         (inputs.shape[-1], self.features))
 
@@ -173,20 +177,25 @@ class DenseAqt(nn.Module):
 
     weight_params = QuantOps.WeightParams(
         prec=hparams.weight_prec,
+        half_shift=hparams.weight_half_shift,
         axis=weight_quant_axis,
         expected_scale_shape=expected_scale_shape)
 
     # TODO(wanglisa): add option to control when scale is being recomputed
 
     # matmul
-    y = quantization.quantized_dot(
+    contracting_dims = ((inputs.ndim - 1,), (0,))
+    # `((lhs_contracting_dims, rhs_contracting_dims),
+    batch_dims = ((), ())  # (lhs_batch_dims, rhs_batch_dims))`
+    y = quantization.quantized_dot_general(
         act=inputs,
         w=kernel,
         quant_type=hparams.quant_type,
         weight_params=weight_params,
         act_hparams=hparams.quant_act,
         get_bounds_params=get_bounds_params,
-        dot_precision=jax_precision,
+        dimension_numbers=(contracting_dims, batch_dims),
+        dot_precision=self.precision,
         prefer_int8_to_int32_dot=self.quant_context.prefer_int8_to_int32_dot)
 
     # bias
@@ -194,7 +203,6 @@ class DenseAqt(nn.Module):
       bias = self.param('bias', self.bias_init, (self.features,))
       # (batch_size, features)
       y = y + bias[jnp.newaxis, :]
-    shape_utils.assert_shapes_equal(y.shape, (batch_size, self.features))
     return y
 
 
@@ -236,6 +244,8 @@ class ConvAqt(nn.Module):
     # Target integer precision of weights in bits.
     # If None, no weight quantization will be applied.
     weight_prec: Union[None, int, QuantOps.FloatQuant]
+    # half_shift flag for weights
+    weight_half_shift: bool
     # QuantOps hyperparameter to quantize inputs. If None, no activation
     # quantization will be applied.
     quant_act: Optional[QuantOps.ActHParams]
@@ -311,6 +321,7 @@ class ConvAqt(nn.Module):
           kernel,
           weight_params=QuantOps.WeightParams(
               prec=hparams.weight_prec,
+              half_shift=hparams.weight_half_shift,
               axis=kernel_reduction_axis,
               expected_scale_shape=expected_scale_shape),
           quantized_type=quantized_type)
@@ -376,10 +387,12 @@ class EmbedAqt(nn.Module):
   """
 
   @dataclass
-  class HParams:
+  class HParams:  # pylint: disable=missing-docstring
     # Target integer precision of weights in bits.
     # If None, no quantization will be applied.
     weight_prec: Union[None, int, QuantOps.FloatQuant]
+    # half_shift flag for weights
+    weight_half_shift: bool
     # QuantOps hyperparameter to quantize inputs for logits. If None, no
     # activation quantization will be applied.
     quant_act: Optional[QuantOps.ActHParams]
@@ -413,7 +426,8 @@ class EmbedAqt(nn.Module):
         weight_params=QuantOps.WeightParams(
             prec=hparams.weight_prec,
             axis=(0,),
-            expected_scale_shape=(1, self.embedding.shape[0])))
+            expected_scale_shape=(1, self.embedding.shape[0]),
+            half_shift=hparams.weight_half_shift))
 
   def __call__(
       self,
@@ -447,6 +461,7 @@ class EmbedAqt(nn.Module):
       )
 
     weight_prec = hparams.weight_prec
+    weight_half_shift = hparams.weight_half_shift
     if weight_prec is not None:
       quantized_type = hparams.quant_type.to_jax_type()
       # In contrast to all other scale factor calculations in this module, we
@@ -459,7 +474,8 @@ class EmbedAqt(nn.Module):
       # weight matrix in the logits layer, which is what we need for AQT.
       embedding_quant_ops = QuantOps.create_weights_ops(
           embedding,
-          weight_params=QuantOps.WeightParams(prec=weight_prec, axis=(1,)))
+          weight_params=QuantOps.WeightParams(
+              prec=weight_prec, axis=(1,), half_shift=weight_half_shift))
       embedding_quant_ops.assert_scale_shape_is(shape=(self.num_embeddings, 1))
 
       quantized_embedding = embedding_quant_ops.to_quantized(
@@ -505,7 +521,7 @@ class EmbedAqt(nn.Module):
     """
     del unused_kwargs
 
-    batch_size, channel_size = query.shape  # pylint: disable=unused-variable
+    batch_size = query.shape[0]
 
     if padding_mask is not None:
       shape_utils.assert_shapes_equal(padding_mask.shape, (batch_size, 1))

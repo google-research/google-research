@@ -21,7 +21,6 @@ The function create_model() can accept an hparam file as input, which will
   determine the model's size, training parameters, quantization precisions, etc.
 """
 
-import enum
 import functools
 import json
 import os
@@ -58,36 +57,27 @@ from aqt.utils import summary_utils
 FLAGS = flags.FLAGS
 
 
-class LRScheduler(enum.Enum):
-  """Specifies the learning rate scheduler and decay."""
-  STEP = enum.auto()
-  COSINE = enum.auto()
-
-
 flags.DEFINE_string(
     'model_dir', default=None, help=('Directory to store model data.'))
 
+flags.DEFINE_string(
+    'data_dir', default=None, help=('Directory where imagenet data is stored.'))
+
 config_flags.DEFINE_config_file('hparams_config_dict', None,
                                 'Path to file defining a config dict.')
+
+flags.DEFINE_integer(
+    'config_idx',
+    default=None,
+    help=(
+        'Identifies which config within the sweep this training run should use.'
+    ))
 
 flags.DEFINE_integer(
     'batch_size', default=128, help=('Batch size for training.'))
 
 flags.DEFINE_bool('cache', default=False, help=('If True, cache the dataset.'))
 
-flags.DEFINE_integer(
-    'num_epochs', default=250, help=('Number of training epochs.'))
-
-
-flags.DEFINE_enum_class(
-    'lr_scheduler',
-    default=LRScheduler.COSINE,
-    enum_class=LRScheduler,
-    help=('Learning rate scheduler. Can be set to COSINE or STEP. '
-          'COSINE: Cosine decay, tuned to achieve target eval acc quickly. '
-          'STEP: Piecewise step decay, uses constant lr at every interval,'
-          ' allowing loss to flatten out at each lr, and exponential'
-          ' decay of lr throughout the intervals.'))
 
 flags.DEFINE_bool(
     'half_precision',
@@ -135,19 +125,21 @@ def step_decay(lr, step, interval):
   return lr
 
 
-def create_learning_rate_fn(base_learning_rate, steps_per_epoch, num_epochs):
+def create_learning_rate_fn(base_learning_rate, steps_per_epoch, lr_scheduler):
   """Create learning rate scheduler function."""
-  warmup_epochs = 5
-  warmup_steps = warmup_epochs * steps_per_epoch
-  cooldown_epochs = 50
-  cooldown_steps = cooldown_epochs * steps_per_epoch
+  num_epochs = lr_scheduler.num_epochs
+  warmup_steps = lr_scheduler.warmup_epochs * steps_per_epoch
+  cooldown_steps = lr_scheduler.cooldown_epochs * steps_per_epoch
   total_steps = num_epochs * steps_per_epoch
 
   def step_fn(step):
-    if FLAGS.lr_scheduler == LRScheduler.COSINE:
+    if lr_scheduler.scheduler == 'linear':
+      epochs_left = num_epochs - step / steps_per_epoch
+      lr = epochs_left / num_epochs * base_learning_rate
+    elif lr_scheduler.scheduler == 'cosine':
       lr = cosine_decay(base_learning_rate, step - warmup_steps,
                         total_steps - warmup_steps - cooldown_steps)
-    elif FLAGS.lr_scheduler == LRScheduler.STEP:
+    elif lr_scheduler.scheduler == 'step':
       epoch = step / steps_per_epoch
       lr = step_decay(base_learning_rate, epoch,
                       num_epochs // FLAGS.step_lr_intervals)
@@ -250,26 +242,43 @@ def main(argv):
     input_dtype = tf.float32
 
   train_iter = imagenet_train_utils.create_input_iter(
-      local_batch_size, image_size, input_dtype, train=True, cache=FLAGS.cache)
+      local_batch_size,
+      FLAGS.data_dir,
+      image_size,
+      input_dtype,
+      train=True,
+      cache=FLAGS.cache)
   eval_iter = imagenet_train_utils.create_input_iter(
-      local_batch_size, image_size, input_dtype, train=False, cache=FLAGS.cache)
-
-  num_epochs = FLAGS.num_epochs
-  steps_per_epoch = input_pipeline.TRAIN_IMAGES // batch_size
-  steps_per_eval = input_pipeline.EVAL_IMAGES // batch_size
-  steps_per_checkpoint = steps_per_epoch * 10
-  num_steps = steps_per_epoch * num_epochs
+      local_batch_size,
+      FLAGS.data_dir,
+      image_size,
+      input_dtype,
+      train=False,
+      cache=FLAGS.cache)
 
   # Create the hyperparameter object
-  if FLAGS.hparams_config_dict is not None:
+  if FLAGS.hparams_config_dict:
+    # In this case, there are multiple training configs defined in the config
+    # dict, so we pull out the one this training run should use.
+    if 'configs' in FLAGS.hparams_config_dict:
+      hparams_config_dict = FLAGS.hparams_config_dict.configs[FLAGS.config_idx]
+    else:
+      hparams_config_dict = FLAGS.hparams_config_dict
     hparams = os_hparams_utils.load_hparams_from_config_dict(
         hparams_config.TrainingHParams, models.ResNet.HParams,
-        FLAGS.hparams_config_dict)
+        hparams_config_dict)
   else:
     raise ValueError('Please provide a base config dict.')
 
   os_hparams_utils.write_hparams_to_file_with_host_id_check(
       hparams, FLAGS.model_dir)
+
+  # get num_epochs from hparam instead of FLAGS
+  num_epochs = hparams.lr_scheduler.num_epochs
+  steps_per_epoch = input_pipeline.TRAIN_IMAGES // batch_size
+  steps_per_eval = input_pipeline.EVAL_IMAGES // batch_size
+  steps_per_checkpoint = steps_per_epoch * 10
+  num_steps = steps_per_epoch * num_epochs
 
   # Estimate compute / memory costs
   if jax.host_id() == 0:
@@ -285,8 +294,14 @@ def main(argv):
       hparams=hparams.model_hparams,
       train=True)
   model_state, params = variables.pop('params')
-  optimizer = optim.Momentum(
-      beta=hparams.momentum, nesterov=True).create(params)
+  if hparams.optimizer == 'sgd':
+    optimizer = optim.Momentum(
+        beta=hparams.momentum, nesterov=True).create(params)
+  elif hparams.optimizer == 'adam':
+    optimizer = optim.Adam(
+        beta1=hparams.adam.beta1, beta2=hparams.adam.beta2).create(params)
+  else:
+    raise ValueError('Optimizer type is not supported.')
   state = imagenet_train_utils.TrainState(
       step=0,
       optimizer=optimizer,
@@ -300,7 +315,8 @@ def main(argv):
 
   base_learning_rate = hparams.base_learning_rate * batch_size / 256.
   learning_rate_fn = create_learning_rate_fn(base_learning_rate,
-                                             steps_per_epoch, num_epochs)
+                                             steps_per_epoch,
+                                             hparams.lr_scheduler)
 
   p_train_step = jax.pmap(
       functools.partial(
@@ -318,6 +334,8 @@ def main(argv):
   state_dict_keys = _get_state_dict_keys_from_flags()
   t_loop_start = time.time()
   for step, batch in zip(range(step_offset, num_steps), train_iter):
+    if hparams.early_stop_steps >= 0 and step > hparams.early_stop_steps:
+      break
     update_bounds = train_utils.should_update_bounds(
         hparams.activation_bound_update_freq,
         hparams.activation_bound_start_step, step)

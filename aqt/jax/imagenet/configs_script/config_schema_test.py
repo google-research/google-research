@@ -29,9 +29,14 @@ class BaseConfigTest(parameterized.TestCase):
 
     # Set the global precision to 4 bits.
     config.prec = 4
+    # Set the global half_shift flag to False
+    config.half_shift = False
     # Test that this sets the weight and activation to 4 as well.
     self.assertEqual(config.weight_prec, 4)
     self.assertEqual(config.quant_act.prec, 4)
+    # Test that this sets the weight_half_shift and act half_shift to False
+    self.assertEqual(config.weight_half_shift, False)
+    self.assertEqual(config.quant_act.half_shift, False)
     # Test that propagates all the way down to the weight precision of layer
     # types and individual layers. As an example of an individual layer, we take
     # the dense1 matmul of the second block of the decoder.
@@ -41,12 +46,23 @@ class BaseConfigTest(parameterized.TestCase):
     conv1 = config.residual.conv_1
     self.assertEqual(conv1.weight_prec, 4)
     self.assertEqual(conv1_block3.weight_prec, 4)
+    self.assertEqual(conv1.weight_half_shift, False)
+    self.assertEqual(conv1.quant_act.half_shift, False)
+    self.assertEqual(conv1_block3.weight_half_shift, False)
+    self.assertEqual(conv1_block3.quant_act.half_shift, False)
 
     # Test if we take the same config instance and alter the global precision to
     # 8, it automatically propagates to individual layers.
     config.prec = 8
     self.assertEqual(conv1.weight_prec, 8)
     self.assertEqual(conv1_block3.weight_prec, 8)
+    # Test if we take the same config instance and alter the global half_shift
+    # to True, it automatically propagates to individual layers.
+    config.half_shift = True
+    self.assertEqual(conv1.weight_half_shift, True)
+    self.assertEqual(conv1.quant_act.half_shift, True)
+    self.assertEqual(conv1_block3.weight_half_shift, True)
+    self.assertEqual(conv1_block3.quant_act.half_shift, True)
 
     # Test that the precision can be overridden for a specific layer type. We
     # want to verify that the change doesn't back-propagate back to the global
@@ -106,10 +122,16 @@ class BaseConfigTest(parameterized.TestCase):
             'use_cams': None,
             'exclude_zeros': None,
             'use_mean_of_max': None,
-            'granularity': None
+            'granularity': None,
+            'fixed_bound': None,
+            'cams_coeff': None,
+            'cams_stddev_coeff': None,
+            'mean_of_max_coeff': None,
+            'use_old_code': None,
         },
         'input_distribution': None,
         'prec': None,
+        'half_shift': None,
     }
 
     dense_schema = {
@@ -117,6 +139,7 @@ class BaseConfigTest(parameterized.TestCase):
         'weight_quant_granularity': None,
         'quant_type': None,
         'quant_act': quant_act_schema,
+        'weight_half_shift': None,
     }
 
     conv_schema = {
@@ -124,6 +147,7 @@ class BaseConfigTest(parameterized.TestCase):
         'weight_quant_granularity': None,
         'quant_type': None,
         'quant_act': quant_act_schema,
+        'weight_half_shift': None,
     }
 
     residual_block_schema = {
@@ -131,6 +155,10 @@ class BaseConfigTest(parameterized.TestCase):
         'conv_1': conv_schema,
         'conv_2': conv_schema,
         'conv_3': conv_schema,
+        'act_function': None,
+        'shortcut_ch_expand_method': None,
+        'shortcut_ch_shrink_method': None,
+        'shortcut_spatial_method': None,
     }
 
     expected_top_level_schema = {
@@ -144,10 +172,28 @@ class BaseConfigTest(parameterized.TestCase):
         'activation_bound_update_freq': None,
         'activation_bound_start_step': None,
         'prec': None,
+        'half_shift': None,
         'weight_prec': None,
+        'weight_half_shift': None,
         'quant_type': None,
         'quant_act': quant_act_schema,
         'weight_quant_granularity': None,
+        'early_stop_steps': None,
+        'act_function': None,
+        'shortcut_ch_shrink_method': None,
+        'shortcut_ch_expand_method': None,
+        'shortcut_spatial_method': None,
+        'lr_scheduler': {
+            'warmup_epochs': None,
+            'cooldown_epochs': None,
+            'scheduler': None,
+            'num_epochs': None,
+        },
+        'optimizer': None,
+        'adam': {
+            'beta1': None,
+            'beta2': None,
+        },
         'dense_layer': dense_schema,
         'conv': conv_schema,
         'residual': residual_block_schema,
@@ -156,6 +202,7 @@ class BaseConfigTest(parameterized.TestCase):
             'conv_init': conv_schema,
             'residual_blocks': [residual_block_schema] * num_blocks,
             'filter_multiplier': None,
+            'act_function': None,
         },
     }
 

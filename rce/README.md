@@ -41,7 +41,7 @@ echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:$HOME/.mujoco/mujoco200/bin" >> ~
 ```
 wget https://repo.anaconda.com/miniconda/Miniconda2-latest-Linux-x86_64.sh
 chmod +x Miniconda2-latest-Linux-x86_64.sh
-chmod +x ./Miniconda2-latest-Linux-x86_64.sh
+./Miniconda2-latest-Linux-x86_64.sh
 ```
 Restart your terminal so the changes take effect.
 
@@ -69,19 +69,19 @@ The following lines replicate the RCE experiments on the Sawyer tasks and Adept 
 
 
 ```
-python train_eval.py --root_dir=~/c_learning/sawyer_drawer_open --gin_bindings='train_eval.env_name="sawyer_drawer_open"'
+python train_eval.py --root_dir=~/rce/sawyer_drawer_open --gin_bindings='train_eval.env_name="sawyer_drawer_open"'
 
-python train_eval.py --root_dir=~/c_learning/sawyer_push --gin_bindings='train_eval.env_name="sawyer_push"'
+python train_eval.py --root_dir=~/rce/sawyer_push --gin_bindings='train_eval.env_name="sawyer_push"'
 
-python train_eval.py --root_dir=~/c_learning/sawyer_lift --gin_bindings='train_eval.env_name="sawyer_lift"'
+python train_eval.py --root_dir=~/rce/sawyer_lift --gin_bindings='train_eval.env_name="sawyer_lift"'
 
-python train_eval.py --root_dir=~/c_learning/door --gin_bindings='train_eval.env_name="door-human-v0"'
+python train_eval.py --root_dir=~/rce/door --gin_bindings='train_eval.env_name="door-human-v0"'
 
-python train_eval.py --root_dir=~/c_learning/sawyer_box_close --gin_bindings='train_eval.env_name="sawyer_box_close"'
+python train_eval.py --root_dir=~/rce/sawyer_box_close --gin_bindings='train_eval.env_name="sawyer_box_close"'
 
-python train_eval.py --root_dir=~/c_learning/sawyer_bin_picking --gin_bindings='train_eval.env_name="sawyer_bin_picking"' --gin_bindings='critic_loss.q_combinator="max"' --gin_bindings='actor_loss.q_combinator="max"'
+python train_eval.py --root_dir=~/rce/sawyer_bin_picking --gin_bindings='train_eval.env_name="sawyer_bin_picking"' --gin_bindings='critic_loss.q_combinator="max"' --gin_bindings='actor_loss.q_combinator="max"'
 
-python train_eval.py --root_dir=~/c_learning/hammer --gin_bindings='train_eval.env_name="hammer-human-v0"'
+python train_eval.py --root_dir=~/rce/hammer --gin_bindings='train_eval.env_name="hammer-human-v0"'
 ```
 
 To run SQIL, add the additional arguments:

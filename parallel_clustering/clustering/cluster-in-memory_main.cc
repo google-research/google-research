@@ -22,7 +22,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-
 #include "clustering/clusterers/parallel-affinity.h"
 #include "clustering/clusterers/parallel-correlation-clusterer.h"
 #include "clustering/config.pb.h"

@@ -14,7 +14,8 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Trains on embeddings using Keras."""
+"""Trains on embeddings using Keras.
+"""
 
 from absl import app
 from absl import flags
@@ -37,18 +38,13 @@ flags.DEFINE_string('file_pattern', None, 'Dataset location.')
 flags.DEFINE_integer('output_dimension', None, 'Dimension of targets.')
 
 flags.DEFINE_boolean(
-    'precomputed_frontend_and_targets', False,
-    'Flag to enable training with precomputed frontend and targets. '
-    'If True, `file_pattern` must point to tf_records of tf.Examples. '
-    'See get_data.get_precomputed_data for details about tf.Example formatting. '
-    'If True, `teacher_model_hub`, `output_key`, `samples_key` '
-    'and `min_length` flags are ignored.')
-flags.DEFINE_string(
-    'frontend_key', None, 'Frontend feature key in precomputed tf.Examples. '
-    'This flag is ignored if `precomputed_frontend_and_targets` is False.')
+    'precomputed_targets', False,
+    'Flag to enable training with precomputed targets. '
+    'If True, `file_pattern` must point to precomputed targets, and '
+    '`target_key` must be supplied.')
 flags.DEFINE_string(
     'target_key', None, 'Teacher embedding key in precomputed tf.Examples. '
-    'This flag is ignored if `precomputed_frontend_and_targets` is False.')
+    'This flag is ignored if `precomputed_targets` is False.')
 
 flags.DEFINE_string('teacher_model_hub', None, 'Hub teacher model.')
 flags.DEFINE_string('output_key', None, 'Teacher model output_key.')
@@ -62,10 +58,9 @@ flags.DEFINE_integer(
     'If 0, bottleneck layer is excluded.')
 flags.DEFINE_float('alpha', 1.0, 'Alpha controlling MobileNet width.')
 flags.DEFINE_boolean('average_pool', False, 'Average pool MobileNet output.')
-flags.DEFINE_string(
-    'mobilenet_size', 'small',
-    'Size specification for MobileNet in student model. '
-    'valid entries are `tiny`, `small`, and `large`.')
+flags.DEFINE_enum(
+    'mobilenet_size', 'small', ['small', 'large', 'debug'],
+    'Size specification for MobileNet in student model.')
 flags.DEFINE_alias('bd', 'bottleneck_dimension')
 flags.DEFINE_alias('al', 'alpha')
 flags.DEFINE_alias('ap', 'average_pool')
@@ -121,35 +116,33 @@ def train_and_report(debug=False):
   logging.info('Batch size: %s', FLAGS.train_batch_size)
 
   reader = tf.data.TFRecordDataset
-  if FLAGS.precomputed_frontend_and_targets:
-    ds = get_data.get_precomputed_data(
-        file_pattern=FLAGS.file_pattern,
-        output_dimension=FLAGS.output_dimension,
-        frontend_key=FLAGS.frontend_key,
-        target_key=FLAGS.target_key,
-        batch_size=FLAGS.train_batch_size,
-        num_epochs=FLAGS.num_epochs,
-        shuffle_buffer_size=FLAGS.shuffle_buffer_size)
-    ds.element_spec[0].shape.assert_has_rank(3)  # log Mel spectrograms
-    ds.element_spec[1].shape.assert_has_rank(2)  # teacher embeddings
+  target_key = FLAGS.target_key
+  if FLAGS.precomputed_targets:
+    teacher_fn = None
+    assert target_key is not None
+    assert FLAGS.output_key is None
   else:
-    ds = get_data.get_data(
-        file_pattern=FLAGS.file_pattern,
-        teacher_fn=get_data.savedmodel_to_func(
-            hub.load(FLAGS.teacher_model_hub), FLAGS.output_key),
-        output_dimension=FLAGS.output_dimension,
-        reader=reader,
-        samples_key=FLAGS.samples_key,
-        min_length=FLAGS.min_length,
-        batch_size=FLAGS.train_batch_size,
-        loop_forever=True,
-        shuffle=True,
-        shuffle_buffer_size=FLAGS.shuffle_buffer_size)
-    assert len(ds.element_spec) == 2, ds.element_spec
-    ds.element_spec[0].shape.assert_has_rank(2)  # audio samples
-    ds.element_spec[1].shape.assert_has_rank(2)  # teacher embeddings
+    teacher_fn = get_data.savedmodel_to_func(
+        hub.load(FLAGS.teacher_model_hub), FLAGS.output_key)
+    assert target_key is None
+  ds = get_data.get_data(
+      file_pattern=FLAGS.file_pattern,
+      output_dimension=FLAGS.output_dimension,
+      reader=reader,
+      samples_key=FLAGS.samples_key,
+      min_length=FLAGS.min_length,
+      batch_size=FLAGS.train_batch_size,
+      loop_forever=True,
+      shuffle=True,
+      teacher_fn=teacher_fn,
+      target_key=target_key,
+      shuffle_buffer_size=FLAGS.shuffle_buffer_size)
+  assert len(ds.element_spec) == 2, ds.element_spec
+  ds.element_spec[0].shape.assert_has_rank(2)  # audio samples
+  ds.element_spec[1].shape.assert_has_rank(2)  # teacher embeddings
   output_dimension = ds.element_spec[1].shape[1]
   assert output_dimension == FLAGS.output_dimension
+
   # Define loss and optimizer hyparameters.
   loss_obj = tf.keras.losses.MeanSquaredError(name='mse_loss')
   opt = tf.keras.optimizers.Adam(
@@ -171,12 +164,10 @@ def train_and_report(debug=False):
     compressor = compression_wrapper.get_apply_compression(
         compression_params, global_step=global_step)
   model = models.get_keras_model(
+      f'mobilenet_{FLAGS.mobilenet_size}_{FLAGS.alpha}_{FLAGS.average_pool}',
       bottleneck_dimension=FLAGS.bottleneck_dimension,
       output_dimension=output_dimension,
-      alpha=FLAGS.alpha,
-      mobilenet_size=FLAGS.mobilenet_size,
-      frontend=not FLAGS.precomputed_frontend_and_targets,
-      avg_pool=FLAGS.average_pool,
+      frontend=True,
       compressor=compressor,
       quantize_aware_training=FLAGS.quantize_aware_training)
   model.summary()
@@ -194,13 +185,10 @@ def train_and_report(debug=False):
 
   if debug: return
   for inputs, targets in ds:
-    if FLAGS.precomputed_frontend_and_targets:  # inputs are spectrograms
-      inputs.shape.assert_has_rank(3)
-      inputs.shape.assert_is_compatible_with([FLAGS.train_batch_size, 96, 64])
-    else:  # inputs are audio vectors
-      inputs.shape.assert_has_rank(2)
-      inputs.shape.assert_is_compatible_with(
-          [FLAGS.train_batch_size, FLAGS.min_length])
+    # Inputs are audio vectors.
+    inputs.shape.assert_has_rank(2)
+    inputs.shape.assert_is_compatible_with(
+        [FLAGS.train_batch_size, FLAGS.min_length])
     targets.shape.assert_has_rank(2)
     targets.shape.assert_is_compatible_with(
         [FLAGS.train_batch_size, FLAGS.output_dimension])
@@ -246,16 +234,18 @@ def main(unused_argv):
   assert FLAGS.bottleneck_dimension >= 0
   assert FLAGS.shuffle_buffer_size
   assert FLAGS.logdir
+  assert FLAGS.samples_key
 
-  if FLAGS.precomputed_frontend_and_targets:
-    assert FLAGS.frontend_key
+  if FLAGS.precomputed_targets:
+    assert FLAGS.teacher_model_hub is None
+    assert FLAGS.output_key is None
     assert FLAGS.target_key
   else:
     assert FLAGS.teacher_model_hub
     assert FLAGS.output_key
-    assert FLAGS.samples_key
+    assert FLAGS.target_key is None
 
-  # incompatible tools
+  # Incompatible tools.
   assert not (FLAGS.quantize_aware_training and FLAGS.compression_op)
 
   tf.enable_v2_behavior()

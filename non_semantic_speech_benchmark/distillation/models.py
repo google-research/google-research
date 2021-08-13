@@ -14,86 +14,112 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Models for distillation."""
+"""Models for distillation.
 
+"""
+
+import os
+from absl import logging
 import tensorflow as tf
+import tensorflow_hub as hub
 import tensorflow_model_optimization as tfmot
+from non_semantic_speech_benchmark.distillation import frontend_lib
 from non_semantic_speech_benchmark.distillation.layers import CompressedDense
-from non_semantic_speech_benchmark.export_model import tf_frontend
-# pylint: disable=g-direct-tensorflow-import
-from tensorflow.python.keras.applications import mobilenet_v3 as v3_util
-# pylint: enable=g-direct-tensorflow-import
 
 
-@tf.function
-def _sample_to_features(x, tflite):
-  return tf_frontend.compute_frontend_features(
-      x, 16000, overlap_seconds=79, tflite=tflite)
+
+def _map_mobilenet_func(mnet_size):
+  return {
+      'small': tf.keras.applications.MobileNetV3Small,
+      'large': tf.keras.applications.MobileNetV3Large,
+      'debug': _debug_net,
+  }[mnet_size.lower()]
 
 
-def _get_feats_map_fn(tflite):
-  """Returns a function mapping audio to features, suitable for keras Lambda."""
-  if tflite:
-    def feats_map_fn(x):
-      return _sample_to_features(x, tflite=True)
-  else:
-    def feats_map_fn(x):
-      return tf.map_fn(
-          lambda y: _sample_to_features(y, tflite=False), x, dtype=tf.float64)
-  return feats_map_fn
+def _debug_net(pooling, *args, **kwargs):
+  """Small net for debugging."""
+  del args, kwargs
+  final_shape = [-1, 1] if pooling else [-1, 1, 1, 1]
+  layers = [
+      tf.keras.layers.Lambda(lambda x: tf.reshape(  # pylint: disable=g-long-lambda
+          tf.reduce_mean(x, axis=[1, 2, 3]), final_shape)),
+  ]
+  return tf.keras.Sequential(layers)
 
 
-def get_keras_model(bottleneck_dimension,
+def get_keras_model(model_type,
+                    bottleneck_dimension,
                     output_dimension,
-                    alpha=1.0,
-                    mobilenet_size='small',
                     frontend=True,
-                    avg_pool=False,
                     compressor=None,
                     quantize_aware_training=False,
                     tflite=False):
   """Make a Keras student model."""
-  output_dict = {}  # Dictionary of model outputs.
+  # For debugging, log hyperparameter values.
+  logging.info('model name: %s', model_type)
+  logging.info('bottleneck_dimension: %i', bottleneck_dimension)
+  logging.info('output_dimension: %i', output_dimension)
+  logging.info('frontend: %s', frontend)
+  logging.info('compressor: %s', compressor)
+  logging.info('quantize_aware_training: %s', quantize_aware_training)
+  logging.info('tflite: %s', tflite)
 
-  def _map_mobilenet_func(mnet_size):
-    mnet_size_map = {
-        'tiny': mobilenetv3_tiny,
-        'small': tf.keras.applications.MobileNetV3Small,
-        'large': tf.keras.applications.MobileNetV3Large,
-    }
-    if mnet_size.lower() not in mnet_size_map:
-      raise ValueError('Unknown MobileNet size %s.' % mnet_size)
-    return mnet_size_map[mnet_size.lower()]
+  output_dict = {}  # Dictionary of model outputs.
 
   # TFLite use-cases usually use non-batched inference, and this also enables
   # hardware acceleration.
   num_batches = 1 if tflite else None
+  frontend_args = frontend_lib.frontend_args_from_flags()
+  feats_inner_dim = frontend_lib.get_frontend_output_shape()[0]
   if frontend:
-    model_in = tf.keras.Input((None,), name='audio_samples',
+    logging.info('frontend_args: %s', frontend_args)
+    model_in = tf.keras.Input((None,),
+                              name='audio_samples',
                               batch_size=num_batches)
-    feats = tf.keras.layers.Lambda(_get_feats_map_fn(tflite))(model_in)
-    feats.shape.assert_is_compatible_with([None, None, 96, 64])
-    feats = tf.transpose(feats, [0, 2, 1, 3])
-    feats = tf.reshape(feats, [-1, 96, 64, 1])
+    frontend_fn = frontend_lib.get_feats_map_fn(tflite, frontend_args)
+    feats = tf.keras.layers.Lambda(frontend_fn)(model_in)
+    feats.shape.assert_is_compatible_with(
+        [num_batches, feats_inner_dim, frontend_args['frame_width'],
+         frontend_args['num_mel_bins']])
+    feats = tf.reshape(
+        feats, [-1, feats_inner_dim * frontend_args['frame_width'],
+                frontend_args['num_mel_bins'], 1])
   else:
-    model_in = tf.keras.Input((96, 64, 1),
-                              name='log_mel_spectrogram')
+    model_in = tf.keras.Input(
+        (feats_inner_dim * frontend_args['frame_width'],
+         frontend_args['num_mel_bins'], 1),
+        batch_size=num_batches,
+        name='log_mel_spectrogram')
     feats = model_in
   inputs = [model_in]
 
-  model = _map_mobilenet_func(mobilenet_size)(
-      input_shape=[96, 64, 1],
-      alpha=alpha,
-      minimalistic=False,
-      include_top=False,
-      weights=None,
-      pooling='avg' if avg_pool else None,
-      dropout_rate=0.0)
-  model_out = model(feats)
-  if avg_pool:
-    model_out.shape.assert_is_compatible_with([None, None])
+  # Build network.
+  if model_type.startswith('mobilenet_'):
+    # Format is "mobilenet_{size}_{alpha}_{avg_pool}"
+    _, mobilenet_size, alpha, avg_pool = model_type.split('_')
+    alpha = float(alpha)
+    avg_pool = bool(avg_pool)
+    logging.info('mobilenet_size: %s', mobilenet_size)
+    logging.info('alpha: %f', alpha)
+    logging.info('avg_pool: %s', avg_pool)
+    model = _map_mobilenet_func(mobilenet_size)(
+        input_shape=(feats_inner_dim * frontend_args['frame_width'],
+                     frontend_args['num_mel_bins'], 1),
+        alpha=alpha,
+        minimalistic=False,
+        include_top=False,
+        weights=None,
+        pooling='avg' if avg_pool else None,
+        dropout_rate=0.0)
+    expected_output_shape = [None, None] if avg_pool else [None, 1, 1, None]
   else:
-    model_out.shape.assert_is_compatible_with([None, 1, 1, None])
+    raise ValueError(f'`model_type` not recognized: {model_type}')
+
+  # TODO(joelshor): Consider checking that there are trainable weights in
+  # `model`.
+  model_out = model(feats)
+  model_out.shape.assert_is_compatible_with(expected_output_shape)
+
   if bottleneck_dimension:
     if compressor is not None:
       bottleneck = CompressedDense(
@@ -129,49 +155,3 @@ def get_keras_model(bottleneck_dimension,
           'distilled_output').compression_op.a_matrix_tfvar = None
 
   return output_model
-
-
-def mobilenetv3_tiny(input_shape=None,
-                     alpha=1.0,
-                     minimalistic=False,
-                     include_top=True,
-                     weights='imagenet',
-                     input_tensor=None,
-                     classes=1000,
-                     pooling=None,
-                     dropout_rate=0.2,
-                     classifier_activation='softmax'):
-  """Makes MobileNetV3 model."""
-
-  def stack_fn(x, kernel, activation, se_ratio):
-
-    # Using blocks from MobileNetV3 saves a lot of code duplication.
-    # pylint: disable=protected-access
-    def depth(d):
-      return v3_util._depth(d * alpha)
-
-    x = v3_util._inverted_res_block(x, 1, depth(16), 3, 2, se_ratio,
-                                    v3_util.relu, 0)
-    x = v3_util._inverted_res_block(x, 72. / 16, depth(24), 3, 2, None,
-                                    v3_util.relu, 1)
-    x = v3_util._inverted_res_block(x, 88. / 24, depth(24), 3, 1, None,
-                                    v3_util.relu, 2)
-    x = v3_util._inverted_res_block(x, 4, depth(40), kernel, 2, se_ratio,
-                                    activation, 3)
-    x = v3_util._inverted_res_block(x, 6, depth(40), kernel, 1, se_ratio,
-                                    activation, 4)
-    x = v3_util._inverted_res_block(x, 6, depth(40), kernel, 1, se_ratio,
-                                    activation, 5)
-    x = v3_util._inverted_res_block(x, 3, depth(48), kernel, 1, se_ratio,
-                                    activation, 6)
-    x = v3_util._inverted_res_block(x, 6, depth(96), kernel, 2, se_ratio,
-                                    activation, 8)
-    x = v3_util._inverted_res_block(x, 6, depth(96), kernel, 1, se_ratio,
-                                    activation, 9)
-    # pylint: enable=protected-access
-    return x
-
-  return v3_util.MobileNetV3(stack_fn, 512, input_shape, alpha, 'tiny',
-                             minimalistic, include_top, weights, input_tensor,
-                             classes, pooling, dropout_rate,
-                             classifier_activation)

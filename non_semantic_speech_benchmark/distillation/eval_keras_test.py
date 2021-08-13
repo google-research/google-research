@@ -18,6 +18,7 @@
 
 from absl import flags
 from absl.testing import absltest
+import tensorflow as tf
 from non_semantic_speech_benchmark.distillation import eval_keras
 
 
@@ -34,4 +35,6 @@ class EvalKerasTest(absltest.TestCase):
 
 
 if __name__ == '__main__':
+  tf.compat.v2.enable_v2_behavior()
+  assert tf.executing_eagerly()
   absltest.main()

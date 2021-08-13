@@ -51,7 +51,8 @@ def load(domain_name,
          visualize_reward=False,
          render_kwargs=None,
          pixels_only=True,
-         pixels_observation_key="pixels"):
+         pixels_observation_key="pixels",
+         env_state_wrappers=None):
   """Returns an environment from a domain name, task name and optional settings.
 
   ```python
@@ -66,10 +67,9 @@ def load(domain_name,
   Args:
     domain_name: A string containing the name of a domain.
     task_name: A string containing the name of a task.
-    task_kwargs: Optional `dict` of keyword arguments for the task.
     difficulty: Difficulty for the suite. One of 'easy', 'medium', 'hard'.
     dynamic: Boolean controlling whether distractions are dynamic or static.
-    backgound_dataset_path: String to the davis directory that contains the
+    background_dataset_path: String to the davis directory that contains the
       video directories.
     background_dataset_videos: String ('train'/'val') or list of strings of the
       DAVIS videos to be used for backgrounds.
@@ -84,6 +84,7 @@ def load(domain_name,
     render_kwargs: Dict, render kwargs for pixel wrapper.
     pixels_only: Boolean controlling the exclusion of states in the observation.
     pixels_observation_key: Key in the observation used for the rendered image.
+    env_state_wrappers: Env state wrappers to be called before the PixelWrapper.
 
   Returns:
     The requested environment.
@@ -155,6 +156,9 @@ def load(domain_name,
       final_color_kwargs.update(color_kwargs)
     env = color.DistractingColorEnv(env, **final_color_kwargs)
 
+  if env_state_wrappers is not None:
+    for wrapper in env_state_wrappers:
+      env = wrapper(env)
   # Apply Pixel wrapper after distractions. This is needed to ensure the
   # changes from the distraction wrapper are applied to the MuJoCo environment
   # before the rendering occurs.

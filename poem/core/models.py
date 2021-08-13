@@ -67,6 +67,9 @@ def fully_connected(input_features, is_training, name, **kwargs):
 
   Returns:
     net: A tensor for output features. Shape = [..., output_dims].
+
+  Raises:
+    ValueError: If activation function is not supported.
   """
   net = linear(
       input_features,
@@ -85,7 +88,13 @@ def fully_connected(input_features, is_training, name, **kwargs):
         name=name + '/BatchNorm',
         reuse=tf.AUTO_REUSE)
 
-  net = tf.nn.relu(net, name=name + '/Relu')
+  activation_fn_name = kwargs.get('activation_fn', common.ACTIVATION_FN_RELU)
+  if activation_fn_name == common.ACTIVATION_FN_RELU:
+    net = tf.nn.relu(net, name=name + '/Relu')
+  elif (activation_fn_name is not None and
+        activation_fn_name != common.ACTIVATION_FN_NONE):
+    raise ValueError('Unsupported activation function: `%s`.' %
+                     str(activation_fn_name))
 
   dropout_rate = kwargs.get('dropout_rate', 0.0)
   if is_training and dropout_rate > 0.0:

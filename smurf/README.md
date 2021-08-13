@@ -134,3 +134,6 @@ You can then restore the checkpoints by passing
 ```
 --checkpoint_dir=/tmp/smurf/kitti
 ```
+
+There is a file called `apply_smurf.py` which can be used for simply running
+smurf on a directory of images. See `apply_smurf.py` for more details.

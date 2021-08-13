@@ -22,7 +22,6 @@ import tensorflow.compat.v1 as tf
 import tf_slim
 
 from poem.core import data_utils
-from poem.core import distance_utils
 from poem.core import keypoint_utils
 from poem.core import loss_utils
 from poem.core import pipeline_utils
@@ -239,19 +238,25 @@ flags.DEFINE_list(
     'random_projection_azimuth_range', ['-180.0', '180.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random azimuth rotations on 3D poses before projection for '
-    'camera augmentation.')
+    'camera augmentation. For sequential inputs, also supports CSV of 4-tuple '
+    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
+    'delta_upper_limit).')
 
 flags.DEFINE_list(
     'random_projection_elevation_range', ['-30.0', '30.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random elevation rotations on 3D poses before projection for '
-    'camera augmentation.')
+    'camera augmentation. For sequential inputs, also supports CSV of 4-tuple '
+    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
+    'delta_upper_limit).')
 
 flags.DEFINE_list(
     'random_projection_roll_range', ['-30.0', '30.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random roll rotations on 3D poses before projection for camera '
-    'augmentation.')
+    'augmentation. For sequential inputs, also supports CSV of 4-tuple '
+    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
+    'delta_upper_limit).')
 
 flags.DEFINE_list(
     'random_projection_camera_depth_range', [],
@@ -417,52 +422,10 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
               FLAGS.triplet_distance_type,
               replace_samples_with_means=True,
               common_module=common_module),
-      'triplet_embedding_sample_distance_fn':
-          loss_utils.create_sample_distance_fn(
-              pair_type=common_module.DISTANCE_PAIR_TYPE_ALL_PAIRS,
-              distance_kernel=FLAGS.triplet_distance_kernel,
-              pairwise_reduction=FLAGS.triplet_pairwise_reduction,
-              componentwise_reduction=FLAGS.triplet_componentwise_reduction,
-              # We initialize the sigmoid parameters to avoid model being stuck
-              # in a `dead zone` at the beginning of training.
-              L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
-                  tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
-              L2_SIGMOID_MATCHING_PROB_b_initializer=(tf.initializers.constant(
-                  FLAGS.sigmoid_b_initial)),
-              L2_SIGMOID_MATCHING_PROB_a_range=(None, FLAGS.sigmoid_a_max),
-              SQUARED_L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
-                  tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
-              SQUARED_L2_SIGMOID_MATCHING_PROB_b_initializer=(
-                  tf.initializers.constant(FLAGS.sigmoid_b_initial)),
-              SQUARED_L2_SIGMOID_MATCHING_PROB_a_range=(None,
-                                                        FLAGS.sigmoid_a_max),
-              EXPECTED_LIKELIHOOD_min_stddev=0.1,
-              EXPECTED_LIKELIHOOD_max_squared_mahalanobis_distance=100.0),
       'positive_pairwise_embedding_keys':
           pipeline_utils.get_embedding_keys(
               FLAGS.positive_pairwise_distance_type,
               common_module=common_module),
-      'positive_pairwise_embedding_sample_distance_fn':
-          loss_utils.create_sample_distance_fn(
-              pair_type=common_module.DISTANCE_PAIR_TYPE_ALL_PAIRS,
-              distance_kernel=FLAGS.positive_pairwise_distance_kernel,
-              pairwise_reduction=FLAGS.positive_pairwise_pairwise_reduction,
-              componentwise_reduction=(
-                  FLAGS.positive_pairwise_componentwise_reduction),
-              # We initialize the sigmoid parameters to avoid model being stuck
-              # in a `dead zone` at the beginning of training.
-              L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
-                  tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
-              L2_SIGMOID_MATCHING_PROB_b_initializer=(tf.initializers.constant(
-                  FLAGS.sigmoid_b_initial)),
-              SQUARED_L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
-                  tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
-              SQUARED_L2_SIGMOID_MATCHING_PROB_b_initializer=(
-                  tf.initializers.constant(FLAGS.sigmoid_b_initial)),
-              SQUARED_L2_SIGMOID_MATCHING_PROB_a_range=(None,
-                                                        FLAGS.sigmoid_a_max),
-              EXPECTED_LIKELIHOOD_min_stddev=0.1,
-              EXPECTED_LIKELIHOOD_max_squared_mahalanobis_distance=100.0),
       'summarize_matching_sigmoid_vars':
           FLAGS.triplet_distance_kernel in [
               common_module.DISTANCE_KERNEL_L2_SIGMOID_MATCHING_PROB,
@@ -483,6 +446,53 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
           float(x) for x in FLAGS.random_projection_camera_depth_range
       ],
   }
+
+  embedding_sample_distance_fn_kwargs = {
+      'EXPECTED_LIKELIHOOD_min_stddev': 0.1,
+      'EXPECTED_LIKELIHOOD_max_squared_mahalanobis_distance': 100.0,
+  }
+  if FLAGS.triplet_distance_kernel in [
+      common_module.DISTANCE_KERNEL_L2_SIGMOID_MATCHING_PROB,
+      common_module.DISTANCE_KERNEL_SQUARED_L2_SIGMOID_MATCHING_PROB
+  ] or FLAGS.positive_pairwise_distance_kernel in [
+      common_module.DISTANCE_KERNEL_L2_SIGMOID_MATCHING_PROB,
+      common_module.DISTANCE_KERNEL_SQUARED_L2_SIGMOID_MATCHING_PROB
+  ]:
+    # We only need sigmoid parameters when a related distance kernel is used.
+    sigmoid_raw_a, sigmoid_a, sigmoid_b = pipeline_utils.get_sigmoid_parameters(
+        name='MatchingSigmoid',
+        raw_a_initial_value=FLAGS.sigmoid_raw_a_initial,
+        b_initial_value=FLAGS.sigmoid_b_initial,
+        a_range=(None, FLAGS.sigmoid_a_max))
+    embedding_sample_distance_fn_kwargs.update({
+        'L2_SIGMOID_MATCHING_PROB_a': sigmoid_a,
+        'L2_SIGMOID_MATCHING_PROB_b': sigmoid_b,
+        'SQUARED_L2_SIGMOID_MATCHING_PROB_a': sigmoid_a,
+        'SQUARED_L2_SIGMOID_MATCHING_PROB_b': sigmoid_b,
+    })
+    configs.update({
+        'sigmoid_raw_a': sigmoid_raw_a,
+        'sigmoid_a': sigmoid_a,
+        'sigmoid_b': sigmoid_b,
+    })
+
+  configs.update({
+      'triplet_embedding_sample_distance_fn':
+          loss_utils.create_sample_distance_fn(
+              pair_type=common_module.DISTANCE_PAIR_TYPE_ALL_PAIRS,
+              distance_kernel=FLAGS.triplet_distance_kernel,
+              pairwise_reduction=FLAGS.triplet_pairwise_reduction,
+              componentwise_reduction=FLAGS.triplet_componentwise_reduction,
+              **embedding_sample_distance_fn_kwargs),
+      'positive_pairwise_embedding_sample_distance_fn':
+          loss_utils.create_sample_distance_fn(
+              pair_type=common_module.DISTANCE_PAIR_TYPE_ALL_PAIRS,
+              distance_kernel=FLAGS.positive_pairwise_distance_kernel,
+              pairwise_reduction=FLAGS.positive_pairwise_pairwise_reduction,
+              componentwise_reduction=(
+                  FLAGS.positive_pairwise_componentwise_reduction),
+              **embedding_sample_distance_fn_kwargs),
+  })
 
   if FLAGS.keypoint_distance_type == common_module.KEYPOINT_DISTANCE_TYPE_MPJPE:
     configs.update({
@@ -533,15 +543,15 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
     embedder_fn_kwargs: A dictionary of additional kwargs for creating the
       embedder function.
   """
-  configs = _validate_and_setup(
-      common_module=common_module,
-      keypoint_profiles_module=keypoint_profiles_module,
-      models_module=models_module,
-      keypoint_distance_config_override=keypoint_distance_config_override,
-      embedder_fn_kwargs=embedder_fn_kwargs)
-
   g = tf.Graph()
   with g.as_default():
+    configs = _validate_and_setup(
+        common_module=common_module,
+        keypoint_profiles_module=keypoint_profiles_module,
+        models_module=models_module,
+        keypoint_distance_config_override=keypoint_distance_config_override,
+        embedder_fn_kwargs=embedder_fn_kwargs)
+
     with tf.device(tf.train.replica_device_setter(FLAGS.num_ps_tasks)):
 
       def create_inputs():
@@ -709,17 +719,13 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
 
       if configs['summarize_matching_sigmoid_vars']:
         # Summarize variables used in matching sigmoid.
-        raw_a, a, b = distance_utils.get_sigmoid_parameters(
-            name='MatchingSigmoid',
-            reuse=True,
-            a_range=(None, FLAGS.sigmoid_a_max))
         # TODO(liuti): Currently the variable for `raw_a` is named `a` in
         # checkpoints, and true `a` may be referred to as `a_plus` for historic
         # reasons. Consolidate the naming.
         summaries.update({
-            'train/MatchingSigmoid/a': raw_a,
-            'train/MatchingSigmoid/a_plus': a,
-            'train/MatchingSigmoid/b': b,
+            'train/MatchingSigmoid/a': configs['sigmoid_raw_a'],
+            'train/MatchingSigmoid/a_plus': configs['sigmoid_a'],
+            'train/MatchingSigmoid/b': configs['sigmoid_b'],
         })
 
       if FLAGS.use_moving_average:

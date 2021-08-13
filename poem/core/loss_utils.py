@@ -72,12 +72,8 @@ def create_sample_distance_fn(
         inner_distances = l2_distance_computer(lhs, rhs, squared=False)
         return distance_utils.compute_sigmoid_matching_probabilities(
             inner_distances,
-            raw_a_initializer=distance_kernel_kwargs.get(
-                (distance_kernel + '_raw_a_initializer'), None),
-            b_initializer=distance_kernel_kwargs.get(
-                (distance_kernel + '_b_initializer'), None),
-            name=distance_kernel_kwargs.get((distance_kernel + '_name'),
-                                            'MatchingSigmoid'))
+            a=distance_kernel_kwargs.get(distance_kernel + '_a', None),
+            b=distance_kernel_kwargs.get(distance_kernel + '_b', None))
 
       return compute_l2_sigmoid_matching_distances
 
@@ -89,12 +85,8 @@ def create_sample_distance_fn(
         inner_distances = l2_distance_computer(lhs, rhs, squared=True)
         return distance_utils.compute_sigmoid_matching_probabilities(
             inner_distances,
-            raw_a_initializer=distance_kernel_kwargs.get(
-                (distance_kernel + '_raw_a_initializer'), None),
-            b_initializer=distance_kernel_kwargs.get(
-                (distance_kernel + '_b_initializer'), None),
-            name=distance_kernel_kwargs.get((distance_kernel + '_name'),
-                                            'MatchingSigmoid'))
+            a=distance_kernel_kwargs.get(distance_kernel + '_a', None),
+            b=distance_kernel_kwargs.get(distance_kernel + '_b', None))
 
       return compute_squared_l2_sigmoid_matching_distances
 

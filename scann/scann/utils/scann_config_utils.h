@@ -49,8 +49,6 @@ StatusOr<DimensionIndex> DetectInMemoryDimensionFromGfv(
   return dp.dimensionality();
 }
 
-Normalization NormalizationRequired(string_view distance_measure_name);
-
 Status EnsureCorrectNormalizationForDistanceMeasure(ScannConfig* config);
 
 std::string GetPossiblyPartitionedWildcard(const ScannConfig& config);

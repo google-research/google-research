@@ -21,6 +21,7 @@ from absl import logging
 from absl.testing import absltest
 from absl.testing import flagsaver
 import apache_beam as beam
+import tensorflow as tf
 from tensorflow.io import gfile
 import tensorflow as tf
 
@@ -28,8 +29,8 @@ from smu import dataset_pb2
 from smu import pipeline
 
 
-TESTDATA_PATH =  os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                              'testdata')
+TESTDATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             'testdata')
 
 
 class FunctionalTest(absltest.TestCase):
@@ -253,16 +254,13 @@ class IntegrationTest(absltest.TestCase):
     self.assertCountEqual([c.conformer_id for c in complete_output],
                           [618451001, 618451123, 620517002, 79593005])
     # Check that fields are filtered the way we expect
-    # The DirectRunner randomizes the order of output so we need to make sure
-    # that we get a full record.
-    complete_entry = [c for c in complete_output
-                      if c.conformer_id == 618451001][0]
-    self.assertFalse(complete_entry.properties.HasField(
+    self.assertFalse(complete_output[0].properties.HasField(
         'compute_cluster_info'))
-    self.assertTrue(complete_entry.properties.HasField(
+    self.assertTrue(complete_output[0].properties.HasField(
         'homo_pbe0_aug_pc_1'))
-    self.assertTrue(complete_entry.properties.HasField(
+    self.assertTrue(complete_output[0].properties.HasField(
         'rotational_constants'))
+
 
 
 if __name__ == '__main__':

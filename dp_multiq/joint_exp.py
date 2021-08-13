@@ -63,7 +63,7 @@ def compute_log_phi(data_intervals, qs, eps, swap):
     if len(qs) == 1:
       sensitivity = 2.0 * (1 - min(qs[0], 1 - qs[0]))
     else:
-      sensitivity = 2.0 * (1 - np.min(qs[1:] - qs[:-1]))
+      sensitivity = 2.0 * (1 - min(qs[0], np.min(qs[1:] - qs[:-1]), 1 - qs[-1]))
   eps_term = -(eps / (2.0 * sensitivity))
   gaps = np.arange(num_data_intervals)
   target_ns = (np.block([qs, 1]) - np.block([0, qs])) * original_data_size

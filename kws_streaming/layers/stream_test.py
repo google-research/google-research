@@ -24,8 +24,7 @@ from kws_streaming.layers import test_utils
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 from kws_streaming.models import utils
-from kws_streaming.train import test
-tf1.disable_eager_execution()
+from kws_streaming.train import inference
 
 
 # Toy example which require signal processing in time
@@ -417,7 +416,7 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
     # run inference
     non_stream_out = model.predict(inp_audio)
     native_out = model_native.predict(inp_audio)
-    stream_out = test.run_stream_inference(params, model_stream, inp_audio)
+    stream_out = inference.run_stream_inference(params, model_stream, inp_audio)
 
     # normalize output data and compare them
     channel = 0
@@ -440,4 +439,5 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
 
 
 if __name__ == '__main__':
+  tf1.disable_eager_execution()
   tf.test.main()

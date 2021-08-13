@@ -552,8 +552,8 @@ message Properties {
   optional bool symmetry_used_in_calculation = 94
       [(availability) = INTERNAL_ONLY];
 
-  // Energies and and overall gradient norm at the end of the intial geometry
-  // optimization and at the end of the final geometry optimization.
+  // Energies and overall gradient norm at the end of the intial geometry optimization
+  // and at the end of the final geometry optimization.
   // TODO(pfr): document source
   // TODO(pfr): units?
   ScalarMolecularProperty initial_geometry_energy = 95

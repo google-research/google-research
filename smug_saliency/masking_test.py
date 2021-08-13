@@ -123,7 +123,7 @@ def _create_temporary_tf_graph_text_cnn(test_model_path):
   # Name of the tensors in the graph:
   # input - input_1:0
   # embedding - embedding/embedding_lookup/Identity_1:0
-  # weights_first_layer - conv1d/conv1d/ExpandDims_1:0
+  # weights_first_layer - conv1d/Conv1D/ExpandDims_1:0
   # biases_first_layer - conv1d/BiasAdd/ReadVariableOp:0
   # first_layer_input - conv1d/BiasAdd:0
   # first_layer_relu_output - conv1d/Relu:0
@@ -255,7 +255,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
         'first_layer_relu': 'conv1d/Relu:0',
         'logits': 'dense/BiasAdd:0',
         'softmax': 'dense/Sigmoid:0',
-        'weights_layer_1': 'conv1d/conv1d/ExpandDims_1:0',
+        'weights_layer_1': 'conv1d/Conv1D/ExpandDims_1:0',
         'biases_layer_1': 'conv1d/BiasAdd/ReadVariableOp:0'}
     session = utils.restore_model(self.test_model_path)
     cnn_predictions = session.run(
@@ -453,7 +453,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
                     'first_layer_relu': 'conv1d/Relu:0',
                     'logits': 'dense/BiasAdd:0',
                     'softmax': 'dense/Sigmoid:0',
-                    'weights_layer_1': 'conv1d/conv1d/ExpandDims_1:0',
+                    'weights_layer_1': 'conv1d/Conv1D/ExpandDims_1:0',
                     'biases_layer_1': 'conv1d/BiasAdd/ReadVariableOp:0',
                 },
                 'image_placeholder_shape': (1, 5),

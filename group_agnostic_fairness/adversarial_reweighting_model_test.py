@@ -101,30 +101,6 @@ class AdversarialReweightingModelTest(tf.test.TestCase, absltest.TestCase):
     self.assertIn('tp', eval_results)
     self.assertIn('tn', eval_results)
 
-  def test_global_steps_adversarial_reweighting_model(self):
-    config = tf.estimator.RunConfig(model_dir=self.model_dir,
-                                    save_checkpoints_steps=2)
-    feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=True)  # pylint: disable=line-too-long
-    estimator = adversarial_reweighting_model.get_estimator(
-        feature_columns=feature_columns,
-        label_column_name=label_column_name,
-        config=config,
-        model_dir=self.model_dir,
-        primary_hidden_units=self.primary_hidden_units,
-        batch_size=self.batch_size,
-        pretrain_steps=self.pretrain_steps)
-    self.assertIsInstance(estimator, tf.estimator.Estimator)
-    train_input_fn, test_input_fn = self._get_train_test_input_fn()
-    estimator.train(input_fn=train_input_fn, steps=self.train_steps)
-    eval_results = estimator.evaluate(input_fn=test_input_fn,
-                                      steps=self.test_steps)
-    # Checks if global step has reached specified number of train_steps
-    # # As a artifact of the way train_ops is defined in
-    # _AdversarialReweightingEstimator.
-    # # Training stops two steps after the specified number of train_steps.
-    self.assertIn('global_step', eval_results)
-    self.assertEqual(eval_results['global_step'], self.train_steps+2)
-
   def test_create_adversarial_reweighting_estimator_with_demographics(self):
     config = tf.estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=2)

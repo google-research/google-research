@@ -19,7 +19,11 @@ Another option is keras functional API, it has [advantages](https://www.tensorfl
 
 So we demonstrated streaming aware model with subclassing API in [folder](https://github.com/google-research/google-research/tree/master/kws_streaming/models_sub). In this case developer will have to specify model behavior for both [non streaming](https://github.com/google-research/google-research/blob/master/kws_streaming/models_sub/conv_model.py#L81) and [streaming inference](https://github.com/google-research/google-research/blob/master/kws_streaming/models_sub/conv_model.py#L95). States (which are used for streaming) will have to be propagated manually, as shown in [example](https://github.com/google-research/google-research/blob/master/kws_streaming/models_sub/conv_model.py#L107). This approach works well in eager mode.
 
-Models based on functional API are shown in [folder](https://github.com/google-research/google-research/tree/master/kws_streaming/models). In this case developer will have to specify model once and then cloning utility function will automatically convert it to streaming mode and will help to propagate states (which are used for streaming). The limitation of this approach: it works with session/graph mode only.
+Models based on functional API are shown in [folder](https://github.com/google-research/google-research/tree/master/kws_streaming/models). In this case developer will have to specify model once and then cloning utility function will automatically convert it to streaming mode and will help to propagate states (which are used for streaming). We support two streaming modes:
+1. With external state. All buffers required for streaming will be added as additional inputs and outputs in the model, so user will have to manage these buffers during streaming inference. The limitation of this approach: it works with session/graph mode only.
+2. With internal state. All buffers required for streaming will be added as additional weights in the model, so it simplifies model deployment and user will not have to manage these buffers during streaming inference. This his approach works with both session/graph and eager modes.
+With functional API, after model is designed, user can run this model in streaming mode with external or internal state: just need to specify a flag during conversion of non streaming model to streaming one (no need to rewrite the model).
+
 
 We applied this lib for keyword spotting (KWS) problem
 and implemented most popular KWS models:
@@ -157,10 +161,10 @@ output = tf.keras.layers.Dense(...)(output)
 
 ### Limitation:
 * Models which require access to the whole input sequence are not streamable, such as bidirectional RNN or attention computed over the whole sequence.
-* Any causal models including models with pooling and striding in time dimension can be supported in streaming mode: for example [test_stream_strided_convolution](https://github.com/google-research/google-research/blob/master/kws_streaming/layers/stream_test.py). For causal models we set padding='causal'. If the model is not causal, then the delay layer has to be inserted manually, as it is shown in [residual_model](https://github.com/google-research/google-research/blob/master/kws_streaming/layers/delay_test.py).
 
 ### Edge cases:
-* Input data length has to be aligned with striding/pooling, for example if total striding=4, input data length has to be 4. It allows us to run convs efficiently.
+* Any causal models including models with pooling and striding in time dimension can be supported in streaming mode: for example [test_stream_strided_convolution](https://github.com/google-research/google-research/blob/master/kws_streaming/layers/stream_test.py). For causal models we set padding='causal'. If the model is not causal, then the delay layer has to be inserted manually, as it is shown in [residual_model](https://github.com/google-research/google-research/blob/master/kws_streaming/layers/delay_test.py).
+* Input data length in streaming mode has to be aligned with striding/pooling, for example if total striding=4, input data length has to be 4. It allows us to run convs efficiently.
 * pool_size and strides in time dim has to be the same. If they are different it is still streamable but needs to be implemented.
 * Conv() in streaming mode can return a sequence, so it can be applied on any aligned sequence, for example if total striding=4, input data length can be 4, 8, etc
 * Flatten(), GlobalMaxPooling2D(), GlobalAveragePooling2D() can return only one output, so they can not be applied on any aligned sequence, for example if total striding=4, input data length has to be 4.

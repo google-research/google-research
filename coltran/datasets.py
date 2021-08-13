@@ -42,14 +42,22 @@ def resize_to_square(image, resolution=32, train=True):
 
 
 def preprocess(example, train=True, resolution=256):
-  image = example['image']
+  """Apply random crop (or) central crop to the image."""
+  image = example
+
+  is_label = False
+  if isinstance(example, dict):
+    image = example['image']
+    is_label = 'label' in example.keys()
+
   image = resize_to_square(image, train=train, resolution=resolution)
 
   # keepng 'file_name' key creates some undebuggable TPU Error.
   example_copy = dict()
   example_copy['image'] = image
   example_copy['targets'] = image
-  example_copy['label'] = example['label']
+  if is_label:
+    example_copy['label'] = example['label']
   return example_copy
 
 
@@ -85,11 +93,43 @@ def get_gen_dataset(data_dir, batch_size):
   return tf_dataset
 
 
+def create_gen_dataset_from_images(image_dir):
+  """Creates a dataset from the provided directory."""
+  def load_image(path):
+    image_str = tf.io.read_file(path)
+    return tf.image.decode_image(image_str, channels=3)
+
+  child_files = tf.io.gfile.listdir(image_dir)
+  files = [os.path.join(image_dir, file) for file in child_files]
+  files = tf.convert_to_tensor(files, dtype=tf.string)
+  dataset = tf.data.Dataset.from_tensor_slices((files))
+  return dataset.map(load_image, num_parallel_calls=100)
+
+
+def get_imagenet(subset, read_config):
+  """Gets imagenet dataset."""
+  train = subset == 'train'
+  num_val_examples = 0 if subset == 'eval_train' else 10000
+  if subset == 'test':
+    ds = tfds.load('imagenet2012', split='validation', shuffle_files=False)
+  else:
+    # split 10000 samples from the imagenet dataset for validation.
+    ds, info = tfds.load('imagenet2012', split='train', with_info=True,
+                         shuffle_files=train, read_config=read_config)
+    num_train = info.splits['train'].num_examples - num_val_examples
+    if train:
+      ds = ds.take(num_train)
+    elif subset == 'valid':
+      ds = ds.skip(num_train)
+  return ds
+
+
 def get_dataset(name,
                 config,
                 batch_size,
                 subset,
-                read_config=None):
+                read_config=None,
+                data_dir=None):
   """Wrapper around TF-Datasets.
 
   * Setting `config.random_channel to be True` adds
@@ -106,35 +146,29 @@ def get_dataset(name,
     subset: 'train', 'eval_train', 'valid' or 'test'.
     read_config: optional, tfds.ReadConfg instance. This is used for sharding
                  across multiple workers.
+    data_dir: Data Directory, Used for Custom dataset.
   Returns:
    dataset: TF Dataset.
   """
-
   downsample = config.get('downsample', False)
   random_channel = config.get('random_channel', False)
   downsample_res = config.get('downsample_res', 64)
   downsample_method = config.get('downsample_method', 'area')
   num_epochs = config.get('num_epochs', -1)
-
-  train = subset == 'train'
-  num_val_examples = 0 if subset == 'eval_train' else 10000
-  assert name == 'imagenet'
+  data_dir = config.get('data_dir') or data_dir
   auto = tf.data.AUTOTUNE
+  train = subset == 'train'
 
-  if subset == 'test':
-    ds = tfds.load('imagenet2012', split='validation', shuffle_files=False)
+  if name == 'imagenet':
+    ds = get_imagenet(subset, read_config)
+  elif name == 'custom':
+    assert data_dir is not None
+    ds = create_gen_dataset_from_images(data_dir)
   else:
-    # split 10000 samples from the imagenet dataset for validation.
-    ds, info = tfds.load('imagenet2012', split='train', with_info=True,
-                         shuffle_files=train, read_config=read_config)
-    num_train = info.splits['train'].num_examples - num_val_examples
-    if train:
-      ds = ds.take(num_train)
-    elif subset == 'valid':
-      ds = ds.skip(num_train)
+    raise ValueError(f'Expected dataset in [imagenet, custom]. Got {name}')
+
   ds = ds.map(
       lambda x: preprocess(x, train=train), num_parallel_calls=100)
-
   if train and random_channel:
     ds = ds.map(datasets_utils.random_channel_slice)
   if downsample:
