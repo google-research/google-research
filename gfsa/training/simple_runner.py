@@ -313,8 +313,8 @@ def training_loop(
     exit_stack.enter_context(
         train_util.catch_interrupts_once(graceful_shutdown_handler))
     if log_dir is not None:
-      exit_stack.enter_context(contextlib.closing(train_metrics_file))
-      exit_stack.enter_context(contextlib.closing(valid_metrics_file))
+      exit_stack.enter_context(contextlib.closing(train_metrics_file))  # pytype: disable=wrong-arg-types
+      exit_stack.enter_context(contextlib.closing(valid_metrics_file))  # pytype: disable=wrong-arg-types
 
     for step in range(1, max_iterations + 1):
 
