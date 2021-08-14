@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Train an RL policy on x-magical."""
+"""Launch script for training RL policies on x-MAGICAL."""
 
 from absl import app
 from absl import flags
