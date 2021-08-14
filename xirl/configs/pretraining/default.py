@@ -46,7 +46,7 @@ def get_config():
   config.DATA = ml_collections.ConfigDict()
 
   # Absolute path to the dataset root.
-  config.DATA.ROOT = "/tmp/xirl/datasets/divergent_env/processed/"
+  config.DATA.ROOT = "/home/kevin/datasets/xirl_corl/"  #"/tmp/xirl/datasets/divergent_env/processed/"
   # The mini-batch size. Note this only specifies the number of videos to
   # load frames from in a single batch. The effective batch size is actually
   # larger since we sample multiple frame sequences per video.

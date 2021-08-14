@@ -71,6 +71,7 @@ class DistanceToGoalVisualReward(gym.Wrapper):
       goal_emb,
       res_hw = None,
       distance_func = None,
+      distance_scale: float = 1.0,
   ):
     """Constructor.
 
@@ -82,6 +83,7 @@ class DistanceToGoalVisualReward(gym.Wrapper):
       res_hw: Optional (H, W) to resize the environment image before feeding it
         to the model.
       distance_func: Optional function to apply on the embedding distance.
+      distance_scale: Multiplier to be applied on the embedding distance.
     """
     super().__init__(env)
 
@@ -90,6 +92,7 @@ class DistanceToGoalVisualReward(gym.Wrapper):
     self._goal_emb = goal_emb
     self._res_hw = res_hw
     self._distance_func = distance_func
+    self._distance_scale = distance_scale
 
   def _to_tensor(self, x):
     x = torch.from_numpy(x).permute(2, 0, 1).float()[None, None, Ellipsis]
@@ -114,6 +117,7 @@ class DistanceToGoalVisualReward(gym.Wrapper):
     image_tensor = self._to_tensor(image)
     emb = self._model.infer(image_tensor).numpy().embs
     dist = np.linalg.norm(emb - self._goal_emb)
+    dist *= self._distance_scale
     if self._distance_func is not None:
       dist = self._distance_func(dist)
     else:
@@ -277,6 +281,7 @@ def wrapper_from_config(config, env,
     }
     if config.reward_wrapper.type == "distance_to_goal":
       kwargs["goal_emb"] = model.goal_emb
+      kwargs["distance_scale"] = config.reward_wrapper.distance_scale
       if config.reward_wrapper.distance_func == "sigmoid":
         kwargs["distance_func"] = functools.partial(
             sigmoid,

@@ -24,9 +24,9 @@ def get_config():
   config = _get_config()
 
   config.ALGORITHM = "tcn"
-  config.OPTIM.TRAIN_MAX_ITERS = 3_000
+  config.OPTIM.TRAIN_MAX_ITERS = 4_000
   config.FRAME_SAMPLER.STRATEGY = "window"
-  config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE = 20
+  config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE = 40
   config.MODEL.MODEL_TYPE = "resnet18_linear"
   config.MODEL.NORMALIZE_EMBEDDINGS = False
   config.MODEL.LEARNABLE_TEMP = False
