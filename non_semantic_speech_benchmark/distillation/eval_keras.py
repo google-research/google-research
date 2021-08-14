@@ -52,14 +52,10 @@ flags.DEFINE_string('output_key', None, 'Teacher model output_key.')
 flags.DEFINE_integer('output_dimension', None, 'Dimension of targets.')
 flags.DEFINE_integer('bd', None, 'Dimension of bottleneck.')
 flags.DEFINE_alias('bottleneck_dimension', 'bd')
-flags.DEFINE_float('al', 1.0, 'Alpha controlling model size.')
-flags.DEFINE_alias('alpha', 'al')
-flags.DEFINE_boolean('average_pool', False, 'Average pool MobileNet output.')
-flags.DEFINE_alias('ap', 'average_pool')
-flags.DEFINE_enum(
-    'mobilenet_size', 'small', ['small', 'large', 'debug'],
-    'Size specification for MobileNet in student model.')
-flags.DEFINE_alias('ms', 'mobilenet_size')
+flags.DEFINE_string(
+    'model_type', 'mobilenet_debug_1.0_False',
+    'Specification for student model. For mobilenet, includes')
+flags.DEFINE_alias('mt', 'model_type')
 
 flags.DEFINE_integer('batch_size', None, 'The number of images in each batch.')
 flags.DEFINE_integer('tbs', None, 'not used')
@@ -92,7 +88,7 @@ def eval_and_report():
 
   writer = tf.summary.create_file_writer(FLAGS.eval_dir)
   model = models.get_keras_model(
-      f'mobilenet_{FLAGS.mobilenet_size}_{FLAGS.alpha}_{FLAGS.average_pool}',
+      model_type=FLAGS.model_type,
       bottleneck_dimension=FLAGS.bottleneck_dimension,
       output_dimension=FLAGS.output_dimension,
       frontend=True)
