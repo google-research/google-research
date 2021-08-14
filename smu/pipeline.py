@@ -22,37 +22,34 @@ checking to produce the final outputs.
 
 import copy
 import functools
+import itertools
 import logging as stdlogging
 
 from absl import app
 from absl import flags
 from absl import logging
 import apache_beam as beam
+import numpy as np
 from tensorflow.io import gfile
 
 from google.protobuf import json_format
 from smu import dataset_pb2
+from smu.geometry import bond_length_distribution
 from smu.parser import smu_parser_lib
 from smu.parser import smu_utils_lib
 from smu.parser import smu_writer_lib
 
-
-flags.DEFINE_string(
-    'input_stage1_dat_glob', None,
-    'Glob of stage1 dat files to read')
-flags.DEFINE_string(
-    'input_stage2_dat_glob', None,
-    'Glob of stage2 dat files to read')
-flags.DEFINE_string(
-    'input_bond_topology_csv', None,
-    'CSV file of bond topologies (see merge_bond_topologies)')
+flags.DEFINE_string('input_stage1_dat_glob', None,
+                    'Glob of stage1 dat files to read')
+flags.DEFINE_string('input_stage2_dat_glob', None,
+                    'Glob of stage2 dat files to read')
+flags.DEFINE_string('input_bond_topology_csv', None,
+                    'CSV file of bond topologies (see merge_bond_topologies)')
 flags.DEFINE_string(
     'input_equivalent_glob', None,
     'Glob of files containing list of equivalent structure (usually '
     'list.equivalent_isomers.dat and list.equivalent_confomers.dat)')
-flags.DEFINE_string(
-    'output_stem', None,
-    'Filestem for output files')
+flags.DEFINE_string('output_stem', None, 'Filestem for output files')
 flags.DEFINE_integer('output_shards', 10,
                      'Number of output shards for our primary outputs')
 
@@ -228,7 +225,7 @@ class MergeConformersFn(beam.DoFn):
 
     Args:
       args: tuple of conformer_id(should match the id in all conformers) and
-            conformers(iterable of dataset_pb2.Conformer)
+        conformers(iterable of dataset_pb2.Conformer)
 
     Yields:
       dataset_pb2.Conformer and tagged output (OUTPUT_TAG_MERGE_CONFLICT) with
@@ -264,12 +261,86 @@ class MergeConformersFn(beam.DoFn):
     # right to modify either input so it's simplest to just copy it once right
     # off the bat.
     yield functools.reduce(_merge_two_conformers,
-                           copy.deepcopy(list(conformers)),
-                           sentinel)
+                           copy.deepcopy(list(conformers)), sentinel)
 
     for c in conflicts:
       yield beam.pvalue.TaggedOutput(
           MergeConformersFn.OUTPUT_TAG_MERGE_CONFLICT, c)
+
+
+def extract_bond_lengths(conformer, dist_sig_digits, unbonded_max):
+  """Yields quantized bond lengths.
+
+  Args:
+    conformer: dataset_pb2.Conformer
+    dist_sig_digits: number of digits after decimal point to keep
+    unbonded_max: maximum distance to report for unbonded pairs  output atom
+      types are single charecters, sorted lexographically. bond_type is
+      dataset_pb2.BondTopology.BondType dist_sig_digits is a string (to avoid
+      vagaries of floating point compares)
+
+  Yields:
+    (atom type 1, atom type 2, bond type, quantized dist)
+  """
+  bt = conformer.bond_topologies[0]
+  format_str = '{:.%df}' % dist_sig_digits
+
+  for atom_idx0, atom_idx1 in itertools.combinations(range(len(bt.atoms)), r=2):
+
+    if (bt.atoms[atom_idx0] == dataset_pb2.BondTopology.ATOM_H or
+        bt.atoms[atom_idx1] == dataset_pb2.BondTopology.ATOM_H):
+      continue
+
+    bond_type = dataset_pb2.BondTopology.BOND_UNDEFINED
+    for bond in bt.bonds:
+      if ((bond.atom_a == atom_idx0 and bond.atom_b == atom_idx1) or
+          (bond.atom_a == atom_idx1 and bond.atom_b == atom_idx0)):
+        bond_type = bond.bond_type
+        break
+
+    geom = conformer.optimized_geometry
+    atom_pos0 = np.array([
+        geom.atom_positions[atom_idx0].x, geom.atom_positions[atom_idx0].y,
+        geom.atom_positions[atom_idx0].z
+    ],
+                         dtype=np.double)
+    atom_pos1 = np.array([
+        geom.atom_positions[atom_idx1].x, geom.atom_positions[atom_idx1].y,
+        geom.atom_positions[atom_idx1].z
+    ],
+                         dtype=np.double)
+    # The intention is the buckets are the left edge of an empricial CDF.
+    dist = (
+        np.floor(
+            smu_utils_lib.bohr_to_angstroms(
+                np.linalg.norm(atom_pos0 - atom_pos1)) * 10**dist_sig_digits) /
+        10**dist_sig_digits)
+    if (bond_type == dataset_pb2.BondTopology.BOND_UNDEFINED and
+        dist > unbonded_max):
+      continue
+
+    atom_char0 = smu_utils_lib.ATOM_TYPE_TO_CHAR[bt.atoms[atom_idx0]]
+    atom_char1 = smu_utils_lib.ATOM_TYPE_TO_CHAR[bt.atoms[atom_idx1]]
+    if atom_char0 > atom_char1:
+      atom_char0, atom_char1 = atom_char1, atom_char0
+
+    yield atom_char0, atom_char1, bond_type, format_str.format(dist)
+
+
+def write_bond_lengths(records, filename):
+  """DoFn for writing the bond lengths.
+
+  We write directly to filename because the entire pcollection
+  should have been combined to a single entry.
+
+  Args:
+    records: records as expected by
+      bond_length_distribution.sparse_dataframe_from_records
+    filename: file to write to
+  """
+  with gfile.GFile(filename, 'w') as f:
+    df = bond_length_distribution.sparse_dataframe_from_records(records)
+    df.to_csv(f, index=False)
 
 
 class UpdateConformerFn(beam.DoFn):
@@ -301,11 +372,8 @@ class UpdateConformerFn(beam.DoFn):
     if result != smu_utils_lib.SmilesCompareResult.MATCH:
       yield beam.pvalue.TaggedOutput(
           UpdateConformerFn.OUTPUT_TAG_SMILES_MISMATCH,
-          (conformer.conformer_id,
-           result,
-           conformer.bond_topologies[0].smiles,
-           smiles_with_h,
-           smiles_without_h))
+          (conformer.conformer_id, result, conformer.bond_topologies[0].smiles,
+           smiles_with_h, smiles_without_h))
       conformer.bond_topologies[0].smiles = smiles_without_h
 
   def process(self, conformer):
@@ -355,8 +423,9 @@ def merge_duplicate_information(conformer_id, conformers):
   Returns:
     dataset_pb2.Conformer
   """
-  matching_conformers = [c for c in conformers
-                         if c.conformer_id == conformer_id]
+  matching_conformers = [
+      c for c in conformers if c.conformer_id == conformer_id
+  ]
   if len(matching_conformers) != 1:
     raise ValueError('Expected 1 conformers with id {}, got {}'.format(
         conformer_id, len(matching_conformers)))
@@ -446,8 +515,7 @@ def csv_format_bond_topology_summary(summary, field_names):
     BondTopologySummary
   """
   return ','.join([str(summary.bond_topology.bond_topology_id)] +
-                  [str(getattr(summary, name))
-                   for name in field_names])
+                  [str(getattr(summary, name)) for name in field_names])
 
 
 class CombineAndWriteBondTopologySummary(beam.PTransform):
@@ -557,8 +625,7 @@ def dat_input_and_parsing_pipeline(root, stage):
       root
       | 'CreateInputs' + label >> beam.Create(input_files)
       | 'ReshuffleInput' + label >> beam.Reshuffle()
-      | 'ParseDat' + label >> beam.FlatMap(parse_dat_file, stage)
-      )
+      | 'ParseDat' + label >> beam.FlatMap(parse_dat_file, stage))
   parsed_success, parsed_known_error, parsed_unknown_error = (
       parsed_inputs
       | 'PartitionParseError' + label >> beam.Partition(partition_parse_success,
@@ -572,7 +639,7 @@ def dat_input_and_parsing_pipeline(root, stage):
       | 'ExtractOriginalKnown' + label >>
       beam.MapTuple(lambda orig_dat, _: orig_dat)
       | 'WriteOriginalKnown' + label >> beam.io.WriteToText(
-          FLAGS.output_stem + '_' + stage +'_original_known_error',
+          FLAGS.output_stem + '_' + stage + '_original_known_error',
           num_shards=1,
           file_name_suffix='.dat'))
   _ = (
@@ -631,8 +698,7 @@ def pipeline(root):
   equivalent_conformers = (
       root
       | 'CreateEquivInputs' >> beam.Create(equivalent_files)
-      | 'ParseEquiv' >> beam.FlatMap(parse_equivalent_file)
-      )
+      | 'ParseEquiv' >> beam.FlatMap(parse_equivalent_file))
 
   # Merge by bond_topology_id
   merged_results = (
@@ -655,6 +721,18 @@ def pipeline(root):
           num_shards=1,
           file_name_suffix='.csv'))
 
+  # Get the bond length distributions
+  unused_bond_length_dists_pcoll = (
+      merged_conformers
+      | 'FilterForBondLengths' >> beam.Filter(
+          smu_utils_lib.should_include_in_standard)
+      | 'ExtractBondLengths' >> beam.FlatMap(
+          extract_bond_lengths, dist_sig_digits=3, unbonded_max=2.0)
+      | 'CountBondLengths' >> beam.combiners.Count.PerElement()
+      | 'ToListBondLengths' >> beam.combiners.ToList()
+      | 'WriteBondLengths' >> beam.ParDo(
+          write_bond_lengths, filename=f'{FLAGS.output_stem}_bond_lengths.csv'))
+
   # Various per conformer processing
   update_results = (
       merged_conformers
@@ -666,8 +744,7 @@ def pipeline(root):
   _ = (
       update_results[UpdateConformerFn.OUTPUT_TAG_SMILES_MISMATCH]
       | 'ReshuffleSmilesOutput' >> beam.Reshuffle()
-      |
-      'SmilesCSVFormat' >> beam.Map(csv_format)
+      | 'SmilesCSVFormat' >> beam.Map(csv_format)
       | 'WriteSmilesCSV' >> beam.io.WriteToText(
           FLAGS.output_stem + '_smiles_compare',
           header='conformer_id,compare,smiles_given,smiles_with_h,smiles_without_h',
@@ -717,9 +794,8 @@ def pipeline(root):
       | 'MakeStandard' >> beam.FlatMap(make_standard_conformer))
 
   # Write the complete and standard conformers as binary protobuf in TFRecord.
-  for id_str, collection in [
-      ['complete', complete_conformers],
-      ['standard', standard_conformers]]:
+  for id_str, collection in [['complete', complete_conformers],
+                             ['standard', standard_conformers]]:
     _ = (
         collection
         | ('TFRecordReshuffle_' + id_str) >> beam.Reshuffle()
@@ -733,9 +809,9 @@ def pipeline(root):
   # Bit of a hack here: the slowest part of the whole pipeline is writing out
   # the JSON for the complete conformers. So we just hard code a tripling of the
   # shards to get more parallelism.
-  for id_str, collection, num_shards in [
-      ['complete', complete_conformers, FLAGS.output_shards * 3],
-      ['standard', standard_conformers, FLAGS.output_shards]]:
+  for id_str, collection, num_shards in [[
+      'complete', complete_conformers, FLAGS.output_shards * 3
+  ], ['standard', standard_conformers, FLAGS.output_shards]]:
     _ = (
         collection
         | ('JSONReshuffle_' + id_str) >> beam.Reshuffle()

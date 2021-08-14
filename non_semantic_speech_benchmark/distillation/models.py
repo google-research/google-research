@@ -18,53 +18,14 @@
 
 """
 
+import os
 from absl import logging
 import tensorflow as tf
+import tensorflow_hub as hub
 import tensorflow_model_optimization as tfmot
+from non_semantic_speech_benchmark.distillation import frontend_lib
 from non_semantic_speech_benchmark.distillation.layers import CompressedDense
-from non_semantic_speech_benchmark.export_model import tf_frontend
 
-
-# TODO(joelshor): Tracing might not work when passing a python dictionary as an
-# arg.
-@tf.function
-def _sample_to_features(x, frontend_args, tflite):
-  if frontend_args is None:
-    frontend_args = {}
-  return tf_frontend.compute_frontend_features(
-      x, 16000, tflite=tflite, **frontend_args)
-
-
-def get_frontend_output_shape():
-  frontend_args = tf_frontend.frontend_args_from_flags()
-  x = tf.zeros([frontend_args['n_required']], dtype=tf.float32)
-  return _sample_to_features(x, frontend_args, tflite=False).shape
-
-
-def _get_feats_map_fn(tflite, frontend_args):
-  """Returns a function mapping audio to features, suitable for keras Lambda.
-
-  Args:
-    tflite: A boolean whether the frontend should be suitable for tflite.
-    frontend_args: A dictionary of key-value pairs for the frontend. Keys
-      should be arguments to `tf_frontend.compute_frontend_features`.
-
-  Returns:
-    A python function mapping samples to features.
-  """
-  if tflite:
-    def feats_map_fn(x):
-      # Keras Input needs a batch (which we statically fix to 1), but that
-      # causes unexpected shapes in the frontend graph. So we squeeze out that
-      # dim here.
-      x = tf.squeeze(x)
-      return _sample_to_features(x, frontend_args, tflite=True)
-  else:
-    def feats_map_fn(x):
-      map_fn = lambda y: _sample_to_features(y, frontend_args, tflite=False)
-      return tf.map_fn(map_fn, x, dtype=tf.float64)
-
-  return feats_map_fn
 
 
 def _map_mobilenet_func(mnet_size):
@@ -108,14 +69,14 @@ def get_keras_model(model_type,
   # TFLite use-cases usually use non-batched inference, and this also enables
   # hardware acceleration.
   num_batches = 1 if tflite else None
-  frontend_args = tf_frontend.frontend_args_from_flags()
-  feats_inner_dim = get_frontend_output_shape()[0]
+  frontend_args = frontend_lib.frontend_args_from_flags()
+  feats_inner_dim = frontend_lib.get_frontend_output_shape()[0]
   if frontend:
     logging.info('frontend_args: %s', frontend_args)
     model_in = tf.keras.Input((None,),
                               name='audio_samples',
                               batch_size=num_batches)
-    frontend_fn = _get_feats_map_fn(tflite, frontend_args)
+    frontend_fn = frontend_lib.get_feats_map_fn(tflite, frontend_args)
     feats = tf.keras.layers.Lambda(frontend_fn)(model_in)
     feats.shape.assert_is_compatible_with(
         [num_batches, feats_inner_dim, frontend_args['frame_width'],
@@ -154,6 +115,8 @@ def get_keras_model(model_type,
   else:
     raise ValueError(f'`model_type` not recognized: {model_type}')
 
+  # TODO(joelshor): Consider checking that there are trainable weights in
+  # `model`.
   model_out = model(feats)
   model_out.shape.assert_is_compatible_with(expected_output_shape)
 
