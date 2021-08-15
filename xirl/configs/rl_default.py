@@ -13,17 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Default SAC hyperparameters, taken from [1].
-
-References:
-  [1]: https://github.com/denisyarats/pytorch_sac/blob/master/config/
-"""
+"""Default SAC config values."""
 
 import ml_collections
 
 
 def get_config():
-  """SAC config."""
   config = ml_collections.ConfigDict()
 
   # ================================================= #
@@ -58,8 +53,8 @@ def get_config():
 
   config.reward_wrapper = ml_collections.ConfigDict()
   # Can be one of ['none', 'distance_to_goal', 'goal_classifier'].
-  config.reward_wrapper.type = "distance_to_goal"
-  config.reward_wrapper.pretrained_path = "/tmp/xirl/tcc_final"
+  config.reward_wrapper.type = "none"
+  config.reward_wrapper.pretrained_path = ""
   config.reward_wrapper.distance_func = "none"
   config.reward_wrapper.distance_func_temperature = 1.0
   config.reward_wrapper.distance_scale = 1.0

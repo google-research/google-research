@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Section V.B: Learning from Cross-Embodiment Demonstrations, Fig 5."""
+"""Section V.A: Learning from Same-Embodiment Demonstrations."""
 
 import os.path as osp
 import random
@@ -27,13 +27,13 @@ ALGORITHMS = ["xirl", "tcn", "lifs", "goal_classifier", "raw_imagenet"]
 EMBODIMENTS = ["longstick", "mediumstick", "shortstick", "gripper"]
 # Mapping from pretraining algorithm to config file.
 ALGO_TO_CONFIG = {
-    "xirl": "configs/pretraining/tcc.py",
-    "lifs": "configs/pretraining/lifs.py",
-    "tcn": "configs/pretraining/tcn.py",
-    "goal_classifier": "configs/pretraining/classifier.py",
-    "raw_imagenet": "configs/pretraining/imagenet.py",
+    "xirl": "experiments/xmagical/pretraining/tcc.py",
+    "lifs": "experiments/xmagical/pretraining/lifs.py",
+    "tcn": "experiments/xmagical/pretraining/tcn.py",
+    "goal_classifier": "experiments/xmagical/pretraining/classifier.py",
+    "raw_imagenet": "experiments/xmagical/pretraining/imagenet.py",
 }
-# We want to pretrain on the entire 1k demonstrations.
+# We want to pretrain on the entire demonstrations.
 MAX_DEMONSTRATIONS = -1
 
 FLAGS = flags.FLAGS
@@ -44,12 +44,9 @@ flags.mark_flag_as_required("algo")
 def main(_):
   for embodiment in EMBODIMENTS:
     # Generate a unique experiment name.
-    experiment_name = "exp2_algo={}_embodiment={}_maxdemos={}_uid={}".format(
+    experiment_name = "exp1_algo={}_trainon={}_maxdemosperemb={}_uid={}".format(
         FLAGS.algo, embodiment, MAX_DEMONSTRATIONS, int(random.random() * 1e9))
     print(f"Experiment name: {experiment_name}")
-
-    # Train on all classes but the given embodiment.
-    trainable_embs = tuple(set(EMBODIMENTS) - set([embodiment]))
 
     subprocess.call([
         "python",
@@ -60,9 +57,9 @@ def main(_):
         "--config",
         f"{ALGO_TO_CONFIG[FLAGS.algo]}",
         "--config.DATA.PRETRAIN_ACTION_CLASS",
-        f"{repr(trainable_embs)}",
+        f"({repr(embodiment)},)",
         "--config.DATA.DOWNSTREAM_ACTION_CLASS",
-        f"{repr(trainable_embs)}",
+        f"({repr(embodiment)},)",
         "--config.DATA.MAX_VIDS_PER_CLASS",
         f"{MAX_DEMONSTRATIONS}",
     ])

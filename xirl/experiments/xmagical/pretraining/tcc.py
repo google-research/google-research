@@ -13,27 +13,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""TCN config."""
+"""TCC config."""
 
-from configs.pretraining.default import get_config as _get_config
+from configs.pretrain_default import get_config as _get_config
 
 
 def get_config():
-  """TCN config."""
+  """TCC config."""
 
   config = _get_config()
 
-  config.ALGORITHM = "tcn"
+  config.ALGORITHM = "tcc"
   config.OPTIM.TRAIN_MAX_ITERS = 4_000
-  config.FRAME_SAMPLER.STRATEGY = "window"
+  config.FRAME_SAMPLER.STRATEGY = "uniform"
+  config.FRAME_SAMPLER.UNIFORM_SAMPLER.OFFSET = 0
   config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE = 40
   config.MODEL.MODEL_TYPE = "resnet18_linear"
+  config.MODEL.EMBEDDING_SIZE = 32
   config.MODEL.NORMALIZE_EMBEDDINGS = False
   config.MODEL.LEARNABLE_TEMP = False
-  config.LOSS.TCN.POS_RADIUS = 1
-  config.LOSS.TCN.NEG_RADIUS = 4
-  config.LOSS.TCN.NUM_PAIRS = 2
-  config.LOSS.TCN.MARGIN = 1.0
-  config.LOSS.TCN.TEMPERATURE = 0.1
+  config.LOSS.TCC.STOCHASTIC_MATCHING = False
+  config.LOSS.TCC.LOSS_TYPE = "regression_mse"
+  config.LOSS.TCC.SIMILARITY_TYPE = "l2"
+  config.LOSS.TCC.SOFTMAX_TEMPERATURE = 1.0
 
   return config

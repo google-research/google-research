@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2021 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,21 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-set -e
-set -x
+from configs.rl_default import get_config as _get_config
 
-virtualenv -p python3 .
-source ./bin/activate
 
-pip install --upgrade pip
+def get_config():
 
-pip install -r xirl/requirements.txt
+  config = _get_config()
 
-python -m xirl.pretrain --alsologtostderr \
-    --experiment_name="test" \
-    --config="xirl/configs/pretrain_default.py" \
-    --config.DATA.ROOT="xirl/tests/data/processed/" \
-    --config.OPTIM.TRAIN_MAX_ITERS=5 \
-    --config.EVAL.EVAL_FREQUENCY=3 \
-    --config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE=3
+  config.reward_wrapper.type = "none"
+  config.reward_wrapper.distance_func = "none"
+  config.reward_wrapper.distance_func_temperature = 1.0
+  config.reward_wrapper.distance_scale = 1.0
+
+  return config

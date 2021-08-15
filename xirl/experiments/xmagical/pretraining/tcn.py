@@ -13,22 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Goal classifier config."""
+"""TCN config."""
 
-from configs.pretraining.default import get_config as _get_config
+from configs.pretrain_default import get_config as _get_config
 
 
 def get_config():
-  """Goal classifier config."""
+  """TCN config."""
 
   config = _get_config()
 
-  config.ALGORITHM = "goal_classifier"
-  config.OPTIM.TRAIN_MAX_ITERS = 6_000
-  config.FRAME_SAMPLER.STRATEGY = "last_and_randoms"
-  config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE = 15
-  config.MODEL.MODEL_TYPE = "resnet18_classifier"
+  config.ALGORITHM = "tcn"
+  config.OPTIM.TRAIN_MAX_ITERS = 4_000
+  config.FRAME_SAMPLER.STRATEGY = "window"
+  config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE = 40
+  config.MODEL.MODEL_TYPE = "resnet18_linear"
   config.MODEL.NORMALIZE_EMBEDDINGS = False
   config.MODEL.LEARNABLE_TEMP = False
+  config.LOSS.TCN.POS_RADIUS = 1
+  config.LOSS.TCN.NEG_RADIUS = 4
+  config.LOSS.TCN.NUM_PAIRS = 2
+  config.LOSS.TCN.MARGIN = 1.0
+  config.LOSS.TCN.TEMPERATURE = 0.1
 
   return config

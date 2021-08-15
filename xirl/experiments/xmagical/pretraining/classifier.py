@@ -13,28 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""TCC config."""
+"""Goal classifier config."""
 
-from configs.pretraining.default import get_config as _get_config
+from configs.pretrain_default import get_config as _get_config
 
 
 def get_config():
-  """TCC config."""
+  """Goal classifier config."""
 
   config = _get_config()
 
-  config.ALGORITHM = "tcc"
-  config.OPTIM.TRAIN_MAX_ITERS = 4_000
-  config.FRAME_SAMPLER.STRATEGY = "uniform"
-  config.FRAME_SAMPLER.UNIFORM_SAMPLER.OFFSET = 0
-  config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE = 40
-  config.MODEL.MODEL_TYPE = "resnet18_linear"
-  config.MODEL.EMBEDDING_SIZE = 32
+  config.ALGORITHM = "goal_classifier"
+  config.OPTIM.TRAIN_MAX_ITERS = 6_000
+  config.FRAME_SAMPLER.STRATEGY = "last_and_randoms"
+  config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE = 15
+  config.MODEL.MODEL_TYPE = "resnet18_classifier"
   config.MODEL.NORMALIZE_EMBEDDINGS = False
   config.MODEL.LEARNABLE_TEMP = False
-  config.LOSS.TCC.STOCHASTIC_MATCHING = False
-  config.LOSS.TCC.LOSS_TYPE = "regression_mse"
-  config.LOSS.TCC.SIMILARITY_TYPE = "l2"
-  config.LOSS.TCC.SOFTMAX_TEMPERATURE = 1.0
 
   return config

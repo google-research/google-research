@@ -13,21 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Default config variables."""
+"""Default pretraining config values."""
 
 import ml_collections
 
 
 def get_config():
-  """Return a ConfigDict with sensible default values."""
-
   config = ml_collections.ConfigDict()
 
   # ============================================== #
   # General experiment params.
   # ============================================== #
   # The root directory where experiments will be saved.
-  config.ROOT_DIR = "/tmp/xirl/"
+  config.ROOT_DIR = "/tmp/xirl/pretrain_runs/"
   # RNG seed. Set this to `None` to disable seeding.
   config.SEED = 1
   # CUDNN-related parameters that affect reproducibility.
@@ -46,7 +44,7 @@ def get_config():
   config.DATA = ml_collections.ConfigDict()
 
   # Absolute path to the dataset root.
-  config.DATA.ROOT = "/home/kevin/datasets/xirl_corl/"  #"/tmp/xirl/datasets/divergent_env/processed/"
+  config.DATA.ROOT = "/tmp/xirl/datasets/xmagical/"
   # The mini-batch size. Note this only specifies the number of videos to
   # load frames from in a single batch. The effective batch size is actually
   # larger since we sample multiple frame sequences per video.

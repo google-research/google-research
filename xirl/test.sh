@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright 2021 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from configs.rl.default import get_config as _get_config
+#!/bin/bash
+set -e
+set -x
 
-
-def get_config():
-
-  config = _get_config()
-
-  config.reward_wrapper.type = "none"
-  config.reward_wrapper.distance_func = "none"
-  config.reward_wrapper.distance_func_temperature = 1.0
-  config.reward_wrapper.distance_scale = 1.0
-
-  return config
+python pretrain.py \
+    --experiment_name='testingtcc' \
+    --config=experiments/xmagical/pretraining/tcc.py \
+    --config.OPTIM.TRAIN_MAX_ITERS=25 \
+    --config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE=3

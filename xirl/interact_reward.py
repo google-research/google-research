@@ -15,41 +15,32 @@
 
 """Teleop the agent and visualize the learned reward."""
 
+import torch
 from absl import app
 from absl import flags
-import gym
 import matplotlib.pyplot as plt
 from ml_collections.config_flags import config_flags
-import torch
-from wrappers import wrapper_from_config
-import xmagical
 from xmagical.utils import KeyboardEnvInteractor
+
+from utils import make_xmagical_env, wrap_env
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("embodiment", None, "The agent embodiment.")
+flags.DEFINE_string("embodiment", "longstick", "The agent embodiment.")
 
 config_flags.DEFINE_config_file(
     "config",
-    "configs/rl/default.py",
+    "configs/rl_default.py",
     "File path to the training hyperparameter configuration.",
-    lock_config=True,
 )
-
-flags.mark_flag_as_required("embodiment")
-
-
-def make_env():
-  xmagical.register_envs()
-  embodiment_name = FLAGS.embodiment.capitalize()
-  env = gym.make(f"SweepToTop-{embodiment_name}-State-Allo-TestLayout-v0")
-  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  env = wrapper_from_config(FLAGS.config, env, device)
-  return env
 
 
 def main(_):
-  env = make_env()
+  # Load and wrap env.
+  device = torch.device(FLAGS.config.device)
+  env = make_xmagical_env(FLAGS.embodiment)
+  env = wrap_env(env, FLAGS.config, device)
+
   viewer = KeyboardEnvInteractor(action_dim=env.action_space.shape[0])
 
   env.reset()

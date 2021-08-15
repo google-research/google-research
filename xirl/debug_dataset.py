@@ -30,9 +30,8 @@ flags.DEFINE_boolean("debug", False, "Debug mode.")
 
 config_flags.DEFINE_config_file(
     "config",
-    "configs/pretraining/default.py",
+    "configs/pretrain_default.py",
     "File path to the training hyperparameter configuration.",
-    lock_config=True,
 )
 
 

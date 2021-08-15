@@ -18,17 +18,16 @@
 import logging
 import os
 import os.path as osp
-import random
 
 from absl import app
 from absl import flags
 from ml_collections import config_flags
 from ml_collections import ConfigDict
-import numpy as np
 import torch
 from torchkit import checkpoint
 from torchkit import Logger
 from torchkit.utils.py_utils import Stopwatch
+from utils import seed_rngs
 from xirl import common
 import yaml
 
@@ -40,21 +39,11 @@ flags.DEFINE_boolean("raw_imagenet", False, "")
 
 config_flags.DEFINE_config_file(
     "config",
-    "configs/pretraining/default.py",
+    "configs/pretrain_default.py",
     "File path to the training hyperparameter configuration.",
-    lock_config=True,
 )
 
 flags.mark_flag_as_required("experiment_name")
-
-
-def seed_rng(seed):
-  """Seeds python, numpy, and torch RNGs."""
-  random.seed(seed)
-  np.random.seed(seed)
-  torch.manual_seed(seed)
-  torch.backends.cudnn.deterministic = FLAGS.config.CUDNN_DETERMINISTIC
-  torch.backends.cudnn.benchmark = FLAGS.config.CUDNN_BENCHMARK
 
 
 def setup_experiment(exp_dir):
@@ -83,8 +72,12 @@ def main(_):
 
   # Set RNG seeds.
   if FLAGS.config.SEED is not None:
-    logging.info(f"Experiment seed: {FLAGS.config.SEED}.")  # pylint: disable=logging-format-interpolation
-    seed_rng(FLAGS.config.SEED)
+    logging.info(f"Experiment seed: {FLAGS.config.SEED}")  # pylint: disable=logging-format-interpolation
+    seed_rngs(
+        FLAGS.config.SEED,
+        FLAGS.config.CUDNN_DETERMINISTIC,
+        FLAGS.config.CUDNN_BENCHMARK,
+    )
   else:
     logging.info("No RNG seed has been set for this experiment.")
 

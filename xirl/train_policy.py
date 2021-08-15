@@ -16,8 +16,6 @@
 """Launch script for training RL policies with pretrained reward models."""
 
 import collections
-import functools
-import math
 import os
 import random
 import typing
@@ -26,14 +24,12 @@ import gym
 import numpy as np
 import torch
 import tqdm
-import xmagical
 import yaml
 from absl import app, flags
 from ml_collections import ConfigDict, config_flags
 from torch.utils.tensorboard import SummaryWriter
 
-from sac import agent, replay_buffer, video, wrappers
-from xirl import common
+from sac import agent, replay_buffer, video
 
 FLAGS = flags.FLAGS
 
@@ -43,60 +39,12 @@ flags.DEFINE_boolean("resume", False, "Resume experiment from latest checkpoint.
 
 config_flags.DEFINE_config_file(
     "config",
-    "configs/rl/default.py",
+    "configs/rl_default.py",
     "File path to the training hyperparameter configuration.",
-    lock_config=True,
 )
 
 flags.mark_flag_as_required("experiment_name")
 flags.mark_flag_as_required("embodiment")
-
-
-def wrap_env(env: gym.Env, config: ConfigDict, device: torch.Device) -> gym.Env:
-  """Wrap the environment based on values in the config."""
-  if config.action_repeat > 1:
-    env = wrappers.ActionRepeat(env, config.action_repeat)
-  if config.frame_stack > 1:
-    env = wrappers.FrameStack(env, config.frame_stack)
-  if config.reward_wrapper.type != "none":
-    model_config, model = common.load_model_checkpoint(
-        config.reward_wrapper.pretrained_path,
-        # The goal classifier does not use a goal embedding.
-        config.reward_wrapper.type != "goal_classifier",
-        device,
-    )
-    kwargs = {
-        "env": env,
-        "model": model,
-        "device": device,
-        "res_hw": model_config.DATA_AUGMENTATION.IMAGE_SIZE,
-    }
-    if config.reward_wrapper.type == "distance_to_goal":
-      kwargs["goal_emb"] = model.goal_emb
-      kwargs["distance_scale"] = config.reward_wrapper.distance_scale
-      if config.reward_wrapper.distance_func == "sigmoid":
-        def sigmoid(x, t = 1.0):
-          return 1 / (1 + math.exp(-x / t))
-
-        kwargs["distance_func"] = functools.partial(
-            sigmoid,
-            config.reward_wrapper.distance_func_temperature,
-        )
-      env = wrappers.DistanceToGoalVisualReward(**kwargs)
-    elif config.reward_wrapper.type == "goal_classifier":
-      env = wrappers.GoalClassifierVisualReward(**kwargs)
-    else:
-      raise ValueError(
-          f"{config.reward_wrapper.type} is not a supported reward wrapper.")
-  env = wrappers.EpisodeMonitor(env)
-  return env
-
-
-def make_env() -> gym.Env:
-  xmagical.register_envs()
-  embodiment_name = FLAGS.embodiment.capitalize()
-  env = gym.make(f"SweepToTop-{embodiment_name}-State-Allo-TestLayout-v0")
-  return env
 
 
 def evaluate(
