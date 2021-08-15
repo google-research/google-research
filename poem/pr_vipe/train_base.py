@@ -545,14 +545,13 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
   """
   g = tf.Graph()
   with g.as_default():
-    configs = _validate_and_setup(
-        common_module=common_module,
-        keypoint_profiles_module=keypoint_profiles_module,
-        models_module=models_module,
-        keypoint_distance_config_override=keypoint_distance_config_override,
-        embedder_fn_kwargs=embedder_fn_kwargs)
-
     with tf.device(tf.train.replica_device_setter(FLAGS.num_ps_tasks)):
+      configs = _validate_and_setup(
+          common_module=common_module,
+          keypoint_profiles_module=keypoint_profiles_module,
+          models_module=models_module,
+          keypoint_distance_config_override=keypoint_distance_config_override,
+          embedder_fn_kwargs=embedder_fn_kwargs)
 
       def create_inputs():
         """Creates pipeline and model inputs."""
