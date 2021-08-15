@@ -23,6 +23,9 @@ import torch
 from xirl import factory
 import yaml
 
+import pickle
+from torchkit import checkpoint
+
 DataLoadersDict = Dict[str, torch.utils.data.DataLoader]
 
 
@@ -132,3 +135,24 @@ def load_config_from_dir(exp_dir):
     return ConfigDict(cfg)
   except FileNotFoundError as e:
     raise e
+
+
+def load_model_checkpoint(
+    pretrained_path: str,
+    load_goal_emb: bool,
+    device: torch.device,
+):
+  """Load a pretrained model and optionally a precomputed goal embedding."""
+  config = load_config_from_dir(pretrained_path)
+  model = get_model(config)
+  checkpoint_dir = os.path.join(pretrained_path, "checkpoints")
+  checkpoint_manager = checkpoint.CheckpointManager(
+      checkpoint.Checkpoint(model=model), checkpoint_dir, device)
+  global_step = checkpoint_manager.restore_or_initialize()
+  if load_goal_emb:
+    print("Loading goal embedding.")
+    with open(os.path.join(pretrained_path, "goal_emb.pkl"), "rb") as fp:
+      goal_emb = pickle.load(fp)
+    model.goal_emb = goal_emb
+  print(f"Restored model from checkpoint @{global_step}.")
+  return config, model

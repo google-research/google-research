@@ -16,48 +16,87 @@
 """Environment wrappers."""
 
 import collections
-import functools
-import math
-import os
-import pickle
+import time
 import typing
 
 import cv2
 import gym
-from ml_collections import ConfigDict
 import numpy as np
 import torch
-from torchkit import checkpoint
-from xirl import common
 
 TimeStep = typing.Tuple[np.ndarray, float, bool, dict]
 ModelType = torch.nn.Module
 DistanceFuncType = typing.Callable[[float], float]
+InfoMetric = typing.Mapping[str, typing.Mapping[str, typing.Any]]
 
 
-def sigmoid(x, t = 1.0):
-  return 1 / (1 + math.exp(-x / t))
+class FrameStack(gym.Wrapper):
+  """Stack the last k frames of the env into a flat array.
+
+  This is useful for allowing the RL policy to infer temporal information.
+  """
+
+  def __init__(self, env: gym.Env, k: int) -> None:
+    """Constructor.
+
+    Args:
+      env: A gym env.
+      k: The number of frames to stack.
+    """
+    super().__init__(env)
+
+    assert isinstance(k, int), "k must be an integer."
+
+    self._k = k
+    self._frames = collections.deque([], maxlen=k)
+
+    shp = env.observation_space.shape
+    self.observation_space = gym.spaces.Box(
+        low=env.observation_space.low.min(),
+        high=env.observation_space.high.max(),
+        shape=((shp[0] * k,) + shp[1:]),
+        dtype=env.observation_space.dtype,
+    )
+
+  def reset(self) -> np.ndarray:
+    obs = self.env.reset()
+    for _ in range(self._k):
+      self._frames.append(obs)
+    return self._get_obs()
+
+  def step(self, action: np.ndarray) -> TimeStep:
+    obs, reward, done, info = self.env.step(action)
+    self._frames.append(obs)
+    return self._get_obs(), reward, done, info
+
+  def _get_obs(self) -> np.ndarray:
+    assert len(self._frames) == self._k
+    return np.concatenate(list(self._frames), axis=0)
 
 
-def load_model(
-    pretrained_path,
-    load_goal_emb,
-    device,
-):
-  """Load a pretrained model and optionally a precomputed goal embedding."""
-  config = common.load_config_from_dir(pretrained_path)
-  model = common.get_model(config)
-  checkpoint_dir = os.path.join(pretrained_path, "checkpoints")
-  checkpoint_manager = checkpoint.CheckpointManager(
-      checkpoint.Checkpoint(model=model), checkpoint_dir, device)
-  global_step = checkpoint_manager.restore_or_initialize()
-  if load_goal_emb:
-    print("Loading goal embedding.")
-    with open(os.path.join(pretrained_path, "goal_emb.pkl"), "rb") as fp:
-      goal_emb = pickle.load(fp)
-    model.goal_emb = goal_emb
-  print(f"Restored model from checkpoint @{global_step}.")
-  return config, model
+class ActionRepeat(gym.Wrapper):
+  """Repeat the agent's action N times in the environment."""
+
+  def __init__(self, env: gym.Env, repeat: int) -> None:
+    """Constructor.
+
+    Args:
+      env: A gym env.
+      repeat: The number of times to repeat the action per single underlying env step.
+    """
+    super().__init__(env)
+
+    assert repeat > 1, "repeat should be greater than 1."
+    self._repeat = repeat
+
+  def step(self, action: np.ndarray) -> TimeStep:
+    total_reward = 0.0
+    for _ in range(self._repeat):
+      obs, rew, done, info = self.env.step(action)
+      total_reward += rew
+      if done:
+        break
+    return obs, total_reward, done, info
 
 
 class DistanceToGoalVisualReward(gym.Wrapper):
@@ -189,108 +228,59 @@ class GoalClassifierVisualReward(gym.Wrapper):
     return obs, learned_reward, done, info
 
 
-class FrameStack(gym.Wrapper):
-  """Stack the last k frames of the env into a flat array.
+class EpisodeMonitor(gym.ActionWrapper):
+  """A class that computes episode metrics.
 
-  This is useful for allowing the RL policy to infer temporal information.
+  At minimum, episode return, length and duration are computed. Additional
+  metrics that are logged in the environment's info dict can be monitored by
+  specifying them via `info_metrics`.
+
+  Adapted from https://github.com/ikostrikov/jax-sac/blob/main/wrappers.py.
   """
 
-  def __init__(self, env, k):
-    """Constructor.
+  def __init__(self, env: gym.Env, info_metrics: InfoMetric = {}) -> None:
+      """Constructor.
 
-    Args:
-      env: A gym env.
-      k: The number of frames to stack.
-    """
-    super().__init__(env)
+      Args:
+        env: A gym env.
+        info_metrics: Additional keys to monitor from the info dict returned
+            by the env. This should be a mapping from the metric's str key
+            in the info dict to an initial value.
+      """
+      super().__init__(env)
 
-    assert isinstance(k, int), "k must be an integer."
+      self._info_metrics = info_metrics
 
-    self._k = k
-    self._frames = collections.deque([], maxlen=k)
+      self._reset_stats()
 
-    shp = env.observation_space.shape
-    self.observation_space = gym.spaces.Box(
-        low=env.observation_space.low.min(),
-        high=env.observation_space.high.max(),
-        shape=((shp[0] * k,) + shp[1:]),
-        dtype=env.observation_space.dtype,
-    )
+  def _reset_stats(self) -> None:
+    self.reward_sum = 0.0
+    self.episode_length = 0
+    self.start_time = time.time()
+    self.extra_metrics = {}
 
-  def reset(self):
-    obs = self.env.reset()
-    for _ in range(self._k):
-      self._frames.append(obs)
-    return self._get_obs()
+  def step(self, action: np.ndarray) -> TimeStep:
+    obs, rew, done, info = self.env.step(action)
 
-  def step(self, action):
-    obs, reward, done, info = self.env.step(action)
-    self._frames.append(obs)
-    return self._get_obs(), reward, done, info
+    self.reward_sum += rew
+    self.episode_length += 1
+    for k in self._info_metrics.keys():
+      self.extra_metrics[k] = info[k]
 
-  def _get_obs(self):
-    assert len(self._frames) == self._k
-    return np.concatenate(list(self._frames), axis=0)
-
-
-class ActionRepeat(gym.Wrapper):
-  """Repeat the agent's action N times in the environment."""
-
-  def __init__(self, env, repeat):
-    """Constructor.
-
-    Args:
-      env: A gym env.
-      repeat: The number of times to repeat the action per single underlying env
-        step.
-    """
-    super().__init__(env)
-
-    assert repeat > 1, "repeat should be greater than 1."
-    self._repeat = repeat
-
-  def step(self, action):
-    total_reward = 0.0
-    for _ in range(self._repeat):
-      obs, rew, done, info = self.env.step(action)
-      total_reward += rew
-      if done:
-        break
-    return obs, total_reward, done, info
-
-
-def wrapper_from_config(config, env,
-                        device):
-  """Wrap the environment based on values in the config."""
-  if config.action_repeat > 1:
-    env = ActionRepeat(env, config.action_repeat)
-  if config.frame_stack > 1:
-    env = FrameStack(env, config.frame_stack)
-  if config.reward_wrapper.type != "none":
-    model_config, model = load_model(
-        config.reward_wrapper.pretrained_path,
-        # The goal classifier does not use a goal embedding.
-        config.reward_wrapper.type != "goal_classifier",
-        device,
-    )
-    kwargs = {
-        "env": env,
-        "model": model,
-        "device": device,
-        "res_hw": model_config.DATA_AUGMENTATION.IMAGE_SIZE,
+    info["metrics"] = {
+        "episode_return": self.reward_sum,
+        "episode_length": self.episode_length,
+        "episode_duration": time.time() - self.start_time,
     }
-    if config.reward_wrapper.type == "distance_to_goal":
-      kwargs["goal_emb"] = model.goal_emb
-      kwargs["distance_scale"] = config.reward_wrapper.distance_scale
-      if config.reward_wrapper.distance_func == "sigmoid":
-        kwargs["distance_func"] = functools.partial(
-            sigmoid,
-            config.reward_wrapper.distance_func_temperature,
-        )
-      env = DistanceToGoalVisualReward(**kwargs)
-    elif config.reward_wrapper.type == "goal_classifier":
-      env = GoalClassifierVisualReward(**kwargs)
-    else:
-      raise ValueError(
-          f"{config.reward_wrapper.type} is not a supported reward wrapper.")
-  return env
+    for k, v in self.extra_metrics.items():
+      if "alias" in self._info_metrics[k]:
+        key = self._info_metrics[k]["alias"]
+      else:
+        key = k
+      info["metrics"][key] = v
+
+    return obs, rew, done, info
+
+  def reset(self) -> np.ndarray:
+    self._reset_stats()
+    return self.env.reset()

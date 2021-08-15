@@ -3,8 +3,12 @@ torchvision==0.8.2
 ml-collections==0.1.0
 albumentations==0.5.2
 scikit-learn==0.24.1
-# We need to install tensorflow because without it, we get weird "module 'tensorflow'
-# has no attribute 'io'" errors. We'll install the cpu version so we don't get cudnn
-# warnings in case it's not installed.
 tensorflow-cpu==2.6.0
+imageio
+imageio-ffmpeg
+tqdm
+gym==0.17.*
+absl-py
+numpy
+scipy
 git+https://github.com/kevinzakka/torchkit.git
