@@ -53,7 +53,6 @@ def seed_rng(seed):
   random.seed(seed)
   np.random.seed(seed)
   torch.manual_seed(seed)
-  torch.cuda.manual_seed(seed)
   torch.backends.cudnn.deterministic = FLAGS.config.CUDNN_DETERMINISTIC
   torch.backends.cudnn.benchmark = FLAGS.config.CUDNN_BENCHMARK
 

@@ -134,8 +134,6 @@ def seed_rng(envs: typing.Sequence[gym.Env]) -> None:
   np.random.seed(FLAGS.config.seed)
   random.seed(FLAGS.config.seed)
   torch.manual_seed(FLAGS.config.seed)
-  if torch.cuda.is_available():
-    torch.cuda.manual_seed_all(FLAGS.config.seed)
   torch.backends.cudnn.deterministic = FLAGS.config.cudnn_deterministic
   torch.backends.cudnn.benchmark = FLAGS.config.cudnn_benchmark
 
