@@ -63,6 +63,16 @@ def tfexample_audio_to_npfloat32(ex, audio_key, normalize_to_pm_one):
 def samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
   """Run inference to map a single audio sample to an embedding."""
   logging.info('Module input shape: %s', model_input.shape)
+  # Some modules have signatures. If they do, they should only have one valid
+  # signature, and we should use that one. Otherwise, raise an error.
+  if hasattr(mod, 'signatures'):
+    valid_sigs = [s for s in mod.signatures if not s.startswith('_')]
+    if len(valid_sigs) != 1:
+      raise ValueError(f'Didn\t find exactly one valid signature: {valid_sigs}')
+    sig = valid_sigs[0]
+    logging.info('Using signatures, and found: %s', sig)
+  else:
+    sig = None
   # Models either take 2 args (input, sample_rate) or 1 arg (input).
   # The first argument is either 1 dimensional (samples) or 2 dimensional
   # (batch, samples).
@@ -74,8 +84,11 @@ def samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
     func_args = ((cur_model_input,) if num_args == 1 else
                  (cur_model_input, sample_rate))
     try:
-      tf_out = mod(*func_args)
-    except ValueError:
+      if sig:
+        tf_out = mod.signatures[sig](*func_args)
+      else:
+        tf_out = mod(*func_args)
+    except (ValueError, TypeError):
       continue
     logging.info('Succeeded with num args %i, add_batch_dim %s', num_args,
                  add_batch_dim)
