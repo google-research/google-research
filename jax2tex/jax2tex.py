@@ -719,8 +719,8 @@ op2tex[lax.convert_element_type_p] = noop2tex
 op2ind[lax.convert_element_type_p] = noop2ind
 op2tex[xla.device_put_p] = noop2tex
 op2ind[xla.device_put_p] = noop2ind
-op2tex[jax.ad_util.stop_gradient_p] = noop2tex
-op2ind[jax.ad_util.stop_gradient_p] = noop2ind
+op2tex[lax.stop_gradient_p] = noop2tex
+op2ind[lax.stop_gradient_p] = noop2ind
 
 op2tex[lax.sqrt_p] = lambda x: '\\sqrt{' + str(x) + '}'
 op2ind[lax.sqrt_p] = noop2ind

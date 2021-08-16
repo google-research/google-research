@@ -1,0 +1,59 @@
+# Bazel configuration file.
+# -------------------------
+# Based on TensorFlow options in:
+#   https://github.com/tensorflow/tensorflow/blob/master/.bazelrc
+#
+# Compiler options:
+#     c++17:                  Build with C++17 options (links with libc++)
+#     c++1z:                  Build with C++17 options (links with libc++)
+#     c++17_gcc:              Build with C++17 options (links with stdlibc++)
+#     c++1z_gcc:              Build with C++17 options (links with stdlibc++)
+#
+# Other build options:
+#     short_logs:       Only log errors during build, skip warnings.
+#     verbose_logs:     Show all compiler warnings during build.
+#     libc++:           Link against libc++ instead of stdlibc++
+
+# Suppress all warning messages.
+build:short_logs --output_filter=DONT_MATCH_ANYTHING
+build:verbose_logs --output_filter=
+build --config=short_logs
+
+# Allow builds using libc++ as a linker library. This is mostly for
+# OSSFuzz, so we also pass in the flags from environment to clean
+# build file.
+build:libc++ --action_env=CC
+build:libc++ --action_env=CXX
+build:libc++ --action_env=CXXFLAGS=-stdlib=libc++
+build:libc++ --action_env=PATH
+build:libc++ --define force_libcpp=enabled
+build:libc++ --linkopt -fuse-ld=lld
+
+# Build with C++ 17 features.
+build:c++17 --cxxopt=-std=c++1z
+build:c++17 --cxxopt=-stdlib=libc++
+build:c++1z --config=c++17
+build:c++17_gcc --cxxopt=-std=c++1z
+build:c++1z_gcc --config=c++17_gcc
+
+# Enable using platform specific build settings, except when cross-compiling for
+# mobile platforms.
+build --enable_platform_specific_config
+build:android --noenable_platform_specific_config
+build:ios --noenable_platform_specific_config
+
+# By default, build in C++ 17 mode.
+build:android --cxxopt=-std=c++17
+build:android --host_cxxopt=-std=c++17
+build:ios --cxxopt=-std=c++17
+build:ios --host_cxxopt=-std=c++17
+build:linux --cxxopt=-std=c++17
+build:linux --host_cxxopt=-std=c++17
+build:macos --cxxopt=-std=c++17
+build:macos --host_cxxopt=-std=c++17
+build:windows --cxxopt=/std:c++17
+build:windows --host_cxxopt=/std:c++17
+
+# Fix for thread_identity issues in absl:: on macOS.
+# See: https://github.com/abseil/abseil-cpp/issues/848
+build:macos --features=-supports_dynamic_linker

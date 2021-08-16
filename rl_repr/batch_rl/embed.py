@@ -2736,7 +2736,7 @@ class SuperModelLearner(tf.keras.Model):
           forward_pred_mean, forward_pred_logvar = tf.split(forward_pred_raw, 2, axis=-1)
           forward_pred_dist = tfp.distributions.MultivariateNormalDiag(
               forward_pred_mean, tf.exp(0.5 * forward_pred_logvar))
-          forward_loss = forward_pred_dist.log_prob(true_sample)
+          forward_loss = -forward_pred_dist.log_prob(true_sample)
       else:
         energies = self.compute_energy(forward_pred_sample, true_sample)
         positive_loss = tf.linalg.diag_part(energies)

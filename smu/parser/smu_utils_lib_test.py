@@ -32,8 +32,8 @@ from smu.parser import smu_utils_lib
 
 MAIN_DAT_FILE = 'x07_sample.dat'
 STAGE1_DAT_FILE = 'x07_stage1.dat'
-TESTDATA_PATH =  os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                              'testdata')
+TESTDATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             'testdata')
 
 
 def str_to_bond_topology(s):
@@ -787,7 +787,7 @@ class FilterConformerByAvailabilityTest(absltest.TestCase):
     # A COMPLETE field
     properties.zpe_unscaled.value = 1.23
     # An INTERNAL_ONLY field
-    properties.compute_cluster_info = "some value"
+    properties.compute_cluster_info = 'not set'
 
   def test_standard(self):
     smu_utils_lib.filter_conformer_by_availability(self.conformer,

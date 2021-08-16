@@ -13,7 +13,7 @@ A detailed method description and evaluation can be found in our EMNLP2020 findi
 [https://www.aclweb.org/anthology/2020.findings-emnlp.111/](https://www.aclweb.org/anthology/2020.findings-emnlp.111/)
 
 Felix is built on Python 3, Tensorflow 2 and
-[BERT](https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/3). It works with CPU, GPU, and
+[BERT](https://github.com/tensorflow/models/tree/master/official/nlp/bert). It works with CPU, GPU, and
 Cloud TPU.
 
 ## Usage Instructions
@@ -55,22 +55,22 @@ python phrase_vocabulary_constructor_main \
 ### 2. Converting data for insertion/tagging model
 
 Download a pretrained BERT model from the
-[official repository](https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/3).
-We've used the 12-layer ''BERT-Base'' model for all of our experiments,
-unless otherwise stated. Then convert the original TSV datasets into
-TFRecord format. The discofuse dataset can be found here(https://github.com/google-research-datasets/discofuse)
+[official repository](https://github.com/tensorflow/models/tree/master/official/nlp/bert#access-to-pretrained-checkpoints).
+We've used the 12-layer (NOT Pretrained hub modules) [''BERT-Base'' model](https://storage.googleapis.com/cloud-tpu-checkpoints/bert/keras_bert/uncased_L-12_H-768_A-12.tar.gz) for all
+of our experiments,unless otherwise stated. Then convert the original TSV
+datasets into TFRecord format. The discofuse dataset can be found here(https://github.com/google-research-datasets/discofuse)
 
 ```
 # Preprocess
-export BERT_BASE_DIR=/path/to/cased_L-12_H-768_A-12
+export BERT_BASE_DIR=/path/to/uncased_L-12_H-768_A-12
 export DISCOFUSE_DIR=/path/to/discofuse
 
 python preprocess_main \
   --input_file="${DISCOFUSE_DIR}/train.tsv" \
-  --input_format="wikisplit" \
+  --input_format="discofuse" \
   --output_file="${OUTPUT_DIR}/train.tfrecord" \
   --label_map_file="${OUTPUT_DIR}/label_map.json" \
-  --vocab_file="${BERT_BASE_DIR}/assets/vocab.txt" \
+  --vocab_file="${BERT_BASE_DIR}/vocab.txt" \
   --do_lower_case="True" \
   --use_open_vocab="True" \
   --max_seq_length="128" \
@@ -79,10 +79,10 @@ python preprocess_main \
 
 python preprocess_main.py \
   --input_file="${DISCOFUSE_DIR}/tune.tsv" \
-  --input_format="wikisplit" \
+  --input_format="discofuse" \
   --output_file="${OUTPUT_DIR}/tune.tfrecord" \
   --label_map_file="${OUTPUT_DIR}/label_map.json" \
-  --vocab_file="${BERT_BASE_DIR}/assets/vocab.txt" \
+  --vocab_file="${BERT_BASE_DIR}/vocab.txt" \
   --do_lower_case="True" \
   --use_open_vocab="True" \
   --max_seq_length="128" \
@@ -116,7 +116,8 @@ python run_felix \
     --steps_per_loop="100" \
     --train_insertion="False" \
     --use_pointing="${USE_POINTING}" \
-    --learning_rate="0.0005" \
+    --init_checkpoint="${BERT_DIR}/bert_model.ckpt" \
+    --learning_rate="0.00003" \
     --pointing_weight="1" \
     --input_format="recordio" \
     --use_weighted_labels="True"
@@ -136,9 +137,9 @@ python run_felix \
     --eval_batch_size="32" \
     --log_steps="100" \
     --steps_per_loop="100" \
-    --train_insertion="False" \
+    --init_checkpoint="${BERT_DIR}/bert_model.ckpt" \
     --use_pointing="${USE_POINTING}" \
-    --learning_rate="0.0005" \
+    --learning_rate="0.00003" \
     --pointing_weight="1" \
     --input_format="recordio" \
     --train_insertion="True"
@@ -163,11 +164,11 @@ for how to use Cloud TPUs.
 export PREDICTION_FILE=${OUTPUT_DIR}/pred.tsv
 
 python predict_main \
---input_format="wikisplit" \
+--input_format="discofuse" \
 --predict_input_file="${DISCOFUSE_DIR}/test.tsv" \
 --predict_output_file="${PREDICTION_FILE}"\
 --label_map_file="${OUTPUT_DIR}/label_map.json" \
---vocab_file="${BERT_BASE_DIR}/assets/vocab.txt" \
+--vocab_file="${BERT_BASE_DIR}/vocab.txt" \
 --max_seq_length=128 \
 --predict_batch_size=32 \
 --do_lower_case="True" \
@@ -176,7 +177,7 @@ python predict_main \
 --bert_config_insertion="${DISCOFUSE_DIR}/felix_config.json" \
 --model_tagging_filepath="${OUTPUT_DIR}/model_tagging" \
 --model_insertion_filepath="${OUTPUT_DIR}/model_insertion" \
---use_pointing="${USE_POINTING}" 
+--use_pointing="${USE_POINTING}"
 ```
 
 To predict on Cloud TPU, you should additionally set:

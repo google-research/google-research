@@ -1,0 +1,20 @@
+# proto-file: third_party/google_research/google_research/zebraix/base/zebraix_graph.proto
+# proto-message: ZebraixGraph
+
+nodes {
+  prime_rank: 0
+  obverse_rank: 0
+  label_text: "Four legs"
+}
+
+nodes {
+  prime_rank: 1
+  obverse_rank: 1
+  label_text: "Two legs"
+}
+
+nodes {
+  prime_rank: 2
+  obverse_rank: 2
+  label_text: "Three legs"
+}

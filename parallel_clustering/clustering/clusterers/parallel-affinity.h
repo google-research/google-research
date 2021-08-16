@@ -38,6 +38,9 @@ class ParallelAffinityClusterer : public InMemoryClusterer {
   absl::StatusOr<Clustering> Cluster(
       const ClustererConfig& config) const override;
 
+  absl::StatusOr<std::vector<Clustering>> HierarchicalCluster(
+      const ClustererConfig& config) const override;
+
  private:
   GbbsGraph graph_;
 };

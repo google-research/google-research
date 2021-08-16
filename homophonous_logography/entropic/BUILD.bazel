@@ -1,0 +1,68 @@
+# Bazel build file for entropic tools.
+
+licenses(["notice"])
+
+py_binary(
+    name = "split_corpus_main",
+    srcs = ["split_corpus_main.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        "@io_abseil_py//absl:app",
+        "@io_abseil_py//absl/flags",
+        "@io_abseil_py//absl/logging",
+    ],
+)
+
+py_binary(
+    name = "entropy_difference_main",
+    srcs = ["entropy_difference_main.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        "@io_abseil_py//absl:app",
+        "@io_abseil_py//absl/flags",
+    ],
+)
+
+# Aliases for OpenFst and OpenGrm N-Gram tools.
+
+alias(
+    name = "farcompilestrings",
+    actual = "@org_openfst//:farcompilestrings",
+)
+
+alias(
+    name = "ngramsymbols",
+    actual = "@org_opengrm_ngram//:ngramsymbols",
+)
+
+alias(
+    name = "ngramcount",
+    actual = "@org_opengrm_ngram//:ngramcount",
+)
+
+alias(
+    name = "ngrammake",
+    actual = "@org_opengrm_ngram//:ngrammake",
+)
+
+alias(
+    name = "ngramperplexity",
+    actual = "@org_opengrm_ngram//:ngramperplexity",
+)
+
+alias(
+    name = "ngramprint",
+    actual = "@org_opengrm_ngram//:ngramprint",
+)
+
+cc_binary(
+    name = "ngramcrossentropy",
+    srcs = ["ngramcrossentropy-main.cc"],
+    deps = [
+        "@io_abseil_cpp//absl/memory",
+        "@io_abseil_cpp//absl/strings",
+        "@org_opengrm_ngram//:opengrm-ngram-lib",
+    ],
+)

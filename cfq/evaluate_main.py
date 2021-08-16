@@ -23,7 +23,7 @@ import os
 from absl import app
 from absl import flags
 
-import evaluate as evaluator
+from cfq import evaluate as evaluator
 
 FLAGS = flags.FLAGS
 

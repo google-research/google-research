@@ -1,0 +1,67 @@
+<!--
+   Copyright 2021 The Google Research Authors.
+  
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+  
+       http://www.apache.org/licenses/LICENSE-2.0
+  
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<!--
+This is a web app that loads a translation quality evaluation data file from a
+Multidimensional Quality Metrics (MQM) evaluation and provides various computed
+scores from the data. The interface allows the user to slice and dice the data
+by applying various filters. A data file can be loaded by using the
+"Choose file" button.
+
+To use this, you need to serve the files mqm-viewer.{html,js,css} (either from
+a web server, or just locally using file:// URLs).
+
+The data file should have tab-separated UTF-8-encoded data with the following
+nine columns, one line per marked error:
+
+  system: Name of the translation system.
+  doc: Name of the document.
+  doc_id: Id of segment (sentence or group of sentences) within the document.
+  seg_id: Id of segment across all documents.
+  rater: Rater who evaluated segment.
+  source: Source text for segment.
+  target: Translated text for segment.
+  category: MQM error category (or "no-error").
+  severity: MQM error severity (or "no-error").
+
+Optionally, some rows may have a tenth entry, which is a note left by the rater.
+  note: Note left by rater, typically in 'Other' category.
+
+An optional header line in the data file will be ignored (identified by the
+presence of the text "system\tdoc").
+
+Example data files and details on score computations can be found here:
+https://github.com/google/wmt-mqm-human-evaluation
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>MQM Viewer</title>
+
+<link rel="stylesheet" type="text/css" href="mqm-viewer.css"/>
+<script src="mqm-viewer.js"></script>
+
+<body>
+
+  <div id="mqm">
+  </div>
+  <script>
+    createMQMViewer(document.getElementById('mqm'));
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,14 @@
+absl-py>=0.10.0
+clu>=0.0.2
+flax>=0.3.0
+jax>=0.2.4
+ml_collections>=0.1.0
+numpy>=1.18.5
+scipy>=1.6.3
+sentencepiece>=0.1.91
+tensorflow-cpu>=2.5.0  # Using tensorflow-cpu to have all GPU memory for JAX.
+tensorflow-datasets>=4.0.0
+tensorflow_text>=2.4.1
+typing>=3.6.6
+
+

@@ -107,7 +107,8 @@ def load_shapenet(dict_dir, object_class='car'):
   tfrecord_fname = os.path.join(dict_dir, '{:04d}.tfrecord')
   class_id = ['chair', 'car'].index(object_class)
   test_rec_num, max_latitude = [[47, 1.3], [182, 0.5]][class_id]
-  dataset = tf.data.TFRecordDataset(tfrecord_fname.format(test_rec_num))
+  dataset = tf.data.TFRecordDataset([tfrecord_fname.format(test_rec_num),
+                                     tfrecord_fname.format(test_rec_num+1)])
 
   dataset = dataset.map(
       lambda example: tf.io.parse_example(example, features_dict))
@@ -205,7 +206,7 @@ def main(_):
   object_class = FLAGS.object_class
 
   # Load the accompanying txt file with the test images and annotations
-  test_fname = f'pose_estimation/{object_class}_test.txt'
+  test_fname = f'isolating_factors/pose_estimation/{object_class}_test.txt'
   with open(test_fname, 'r') as f:
     data = f.readlines()
 
@@ -222,8 +223,8 @@ def main(_):
 
     dict_embeddings, dict_rotation_matrices = [[], []]
     chunk_size = 64  # To chunk up the process of embedding the dict
-    for images, rotation_matrices in dataset_dict.batch(chunk_size).take(
-        1 + dict_size // chunk_size):
+    for images, rotation_matrices in dataset_dict.shuffle(4000).batch(
+        chunk_size).take(1 + dict_size // chunk_size):
       embeddings = model(images, training=False)
       dict_embeddings.append(embeddings)
       dict_rotation_matrices.append(rotation_matrices)
@@ -255,9 +256,13 @@ def main(_):
 
   errors = geodesic_dist_rotmats(test_rotation_matrices,
                                  predicted_rotation_matrices)
+  errors = np.rad2deg(errors)
   median_angular_error = np.median(errors)
-  print('Median angular error: {:.3f} deg.'.format(
-      np.rad2deg(median_angular_error)))
+  accuracy15 = np.average(errors < 15)
+  accuracy30 = np.average(errors < 30)
+  print('Median angular error: {:.3f} deg.'.format(median_angular_error))
+  print('Accuracy at 15 deg: {:.3f}.'.format(accuracy15))
+  print('Accuracy at 30 deg: {:.3f}.'.format(accuracy30))
 
 
 if __name__ == '__main__':

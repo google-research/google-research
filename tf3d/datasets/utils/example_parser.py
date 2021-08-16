@@ -29,10 +29,7 @@ def decode_serialized_example(serialized_example, features):
   Returns:
     Decoded tf.Tensor or dictionary of tf.Tensor, stored in the Example proto.
   """
-  example_specs = features.get_serialized_info()
-  parser = tfds.core.example_parser.ExampleParser(example_specs)
-  tfexample_data = parser.parse_example(serialized_example)
-  return features.decode_example(tfexample_data)
+  return features.deserialize_example(serialized_example)
 
 
 def decode_serialized_example_as_numpy(serialized_example, features):
@@ -79,7 +76,4 @@ def encode_serialized_example(example_data, features):
     Serialized Example proto storing encoded example_data as per specification
     provided by features.
   """
-  encoded = features.encode_example(example_data)
-  example_specs = features.get_serialized_info()
-  serializer = tfds.core.example_serializer.ExampleSerializer(example_specs)
-  return serializer.serialize_example(encoded)
+  return features.serialize_example(example_data)

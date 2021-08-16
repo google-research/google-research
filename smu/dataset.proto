@@ -307,13 +307,13 @@ message Properties {
   // Single point energy PBE0D3/6-311Gd computed with ORCA.
   ScalarMolecularProperty single_point_energy_pbe0_6_311gd_orca = 9
       [(availability) = COMPLETE];
-  // Single point energy PBE0/6-311Gd(CAT).
+  // Single point cation energy PBE0/6-311Gd(CAT) computed with Turbomole.
   ScalarMolecularProperty single_point_energy_pbe0_6_311gd_cat = 10
       [(availability) = COMPLETE];
-  // Single point energy PBE0/6-311Gd(CAT) computed with MRCC.
+  // Single point cation energy PBE0/6-311Gd(CAT) computed with MRCC.
   ScalarMolecularProperty single_point_energy_pbe0_6_311gd_cat_mrcc = 11
       [(availability) = COMPLETE];
-  // Single point energy PBE0/6-311Gd(CAT) computed with ORCA.
+  // Single point cation energy PBE0/6-311Gd(CAT) computed with ORCA.
   ScalarMolecularProperty single_point_energy_pbe0_6_311gd_cat_orca = 12
       [(availability) = COMPLETE];
   // Single point energy PBE0/aug-pc-1.
@@ -552,9 +552,9 @@ message Properties {
   optional bool symmetry_used_in_calculation = 94
       [(availability) = INTERNAL_ONLY];
 
-  // Energies and and overall gradient norm at the end of the intial geometry
-  // optimization and at the end of the final geometry optimization.
-  // TODO(pfr): document source 
+  // Energies and overall gradient norm at the end of the intial geometry optimization
+  // and at the end of the final geometry optimization.
+  // TODO(pfr): document source
   // TODO(pfr): units?
   ScalarMolecularProperty initial_geometry_energy = 95
       [(availability) = STANDARD];
@@ -699,10 +699,10 @@ message Properties {
 
   // TODO(pfr): document
   // Number of imaginary frequencies.
-  optional int32 number_imaginary_frequencies = 110 
+  optional int32 number_imaginary_frequencies = 110
       [(availability) = INTERNAL_ONLY];
   // Number of times the optimization was run.
-  optional int32 number_of_optimization_runs = 111 
+  optional int32 number_of_optimization_runs = 111
       [(availability) = INTERNAL_ONLY];
 
   // For the optimized geoemtry, energy just for the nuclei.

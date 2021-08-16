@@ -54,6 +54,24 @@ def fully_connected(x, units, use_bias=True, scope="linear"):
     return x
 
 
+def half_size(image):
+  """Halve the size of an image or batch of images, averaging each four pixels.
+
+  This is like using tf.image.resize_area to halve the size, with the addition
+  that we can take the gradient.
+
+  Args:
+    image: [..., H, W, C], where H and W must be even.
+
+  Returns:
+    [..., H/2, W/2, C] image scaled down.
+  """
+  return tf.add_n([
+      image[Ellipsis, 0::2, 0::2, :], image[Ellipsis, 0::2, 1::2, :],
+      image[Ellipsis, 1::2, 0::2, :], image[Ellipsis, 1::2, 1::2, :]
+  ]) / 4
+
+
 def double_size(image):
   """Double the size of an image or batch of images.
 

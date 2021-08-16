@@ -49,10 +49,9 @@ class TrainKerasTest(parameterized.TestCase):
     targets = tf.ones([3, output_dimension])
 
     model = train_keras.models.get_keras_model(
+        f'mobilenet_debug_{alpha}_False',
         bottleneck_dimension=bottleneck_dimension,
-        output_dimension=output_dimension,
-        alpha=alpha,
-        mobilenet_size='tiny')
+        output_dimension=output_dimension)
 
     loss_obj = tf.keras.losses.MeanSquaredError()
     opt = tf.keras.optimizers.Adam()

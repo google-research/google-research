@@ -247,6 +247,7 @@ class SplitLongTest(parameterized.TestCase):
 class SplitAgnosticTest(parameterized.TestCase):
 
   _COMMENT = unified_tokenizer.TokenKind.COMMENT
+  _ERROR = unified_tokenizer.TokenKind.ERROR
   _IDENTIFIER = unified_tokenizer.TokenKind.IDENTIFIER
   _NUMBER = unified_tokenizer.TokenKind.NUMBER
   _STRING = unified_tokenizer.TokenKind.STRING
@@ -293,6 +294,7 @@ class SplitAgnosticTest(parameterized.TestCase):
               ('b b', _COMMENT),
               ('zc', _STRING),
               ('bb', _COMMENT),
+              ('b b', _ERROR),
           ],
           10,
           [
@@ -300,12 +302,14 @@ class SplitAgnosticTest(parameterized.TestCase):
               (['b', ' ', 'b'], _COMMENT),
               (['zc'], _STRING),
               (['bb'], _COMMENT),
+              (['b', ' ', 'b'], _ERROR),
           ],
       ),
       (
           'size_splittable_subtokens',
           [
               ('a123_b2', _IDENTIFIER),
+              ('abcdef', _ERROR),
               ('bbcd', _IDENTIFIER),
               ('zzx12', _STRING),
               ('b b', _COMMENT),
@@ -317,6 +321,7 @@ class SplitAgnosticTest(parameterized.TestCase):
           2,
           [
               (['a1', '23', '_', 'b2'], _IDENTIFIER),
+              (['ab', 'cd', 'ef'], _ERROR),
               (['bb', 'cd'], _IDENTIFIER),
               (['zz', 'x', '12'], _STRING),
               (['b', ' ', 'b'], _COMMENT),
@@ -333,7 +338,6 @@ class SplitAgnosticTest(parameterized.TestCase):
               ('keyworddddd', unified_tokenizer.TokenKind.KEYWORD),
               ('newlineeeee', unified_tokenizer.TokenKind.NEWLINE),
               ('eosssssssss', unified_tokenizer.TokenKind.EOS),
-              ('errrrorrrrr', unified_tokenizer.TokenKind.ERROR),
           ],
           2,
           [
@@ -341,7 +345,6 @@ class SplitAgnosticTest(parameterized.TestCase):
               (['keyworddddd'], unified_tokenizer.TokenKind.KEYWORD),
               (['newlineeeee'], unified_tokenizer.TokenKind.NEWLINE),
               (['eosssssssss'], unified_tokenizer.TokenKind.EOS),
-              (['errrrorrrrr'], unified_tokenizer.TokenKind.ERROR),
           ],
       ),
   )

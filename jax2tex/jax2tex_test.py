@@ -91,8 +91,8 @@ EXAMPLES = [
     Jax2TexExample(grad(lambda a, b: a * (a - b) / (a + b) + b),
                    (Scalar, Scalar),
                    ('f &= -1.0{\\left(a + b\\right)}^{-2}a\\left(a - b\\right) '
-                    '+ a{1.0 \\over a + b} + '
-                    '{1.0 \\over a + b}\\left(a - b\\right)')),
+                    '+ {1.0 \\over a + b}\\left(a - b\\right) + '
+                    'a{1.0 \\over a + b}')),
     # EX 6
     Jax2TexExample(lambda W, x: W @ x,
                    (S((3, 2)), S((2,))),

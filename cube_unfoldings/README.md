@@ -17,6 +17,9 @@ Piperno to generate the trees and their automorphism group.
 The code is used to calculate the terms [A091159](https://oeis.org/A091159) up
 to dimension 10, see below for the results.
 
+Check out a [video by Matt Parker on unfolding the 4d-cube](https://www.youtube.com/watch?v=Yq3P-LhlcQo).
+
+
 # Compiling
 Use `./compile.sh` to compile the source code. You can then use `./test.sh` to
 run tests, or `./compute.sh N` to run the computation for a given value of `N`.

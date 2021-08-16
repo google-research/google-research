@@ -1,0 +1,42 @@
+// Copyright 2021 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package research_graph;
+
+// Config to employ dynamically changing weight threshold in each round of
+// affinity clustering.
+// Next available id: 4
+message DynamicWeightThresholdConfig {
+  enum WeightDecayFunction {
+    UNKNOWN_FUNCTION = 0;
+    // Changes the weight threshold linearly each iteration.
+    LINEAR_DECAY = 1;
+    // Changes the weight threshold exponentially each iteration. Each
+    // iteration, a new weight threshold is computed by the following formula:
+    // upper_bound*((lower_bound/upper_bound)^(round/compression_rounds))
+    EXPONENTIAL_DECAY = 2;
+  }
+  // Specifies how the weight threshold changes each round.
+  // NOTE: originally this only supported decreasing edge weights in each step
+  // (hence the 'decay' in the name, and the threshold in the first step is
+  // 'upper_bound'). However, *increasing* weights in each round is also
+  // supported and can be achieved by setting lower_bound > upper_bound.
+  optional WeightDecayFunction weight_decay_function = 1;
+  // Upper bound is the weight threshold that will be used in the first round.
+  optional double upper_bound = 2;
+  // Lower bound is the weight threshold that will be used in the last round.
+  optional double lower_bound = 3;
+}

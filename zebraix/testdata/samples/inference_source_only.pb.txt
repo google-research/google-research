@@ -1,0 +1,70 @@
+# proto-file: third_party/google_research/google_research/zebraix/base/zebraix_graph.proto
+# proto-message: ZebraixGraph
+
+layout {
+  sep_points: 20
+  base_margin: 84
+  source_display: GHOST
+  sink_display: GHOST
+}
+
+base_node {
+  label_text: ""
+  label_radius: 14.5
+}
+
+nodes {
+  prime_rank: 109
+  obverse_rank: 202
+}
+nodes {
+  prime_rank: 112
+  obverse_rank: 212
+}
+nodes {
+  prime_rank: 104
+  obverse_rank: 204
+}
+nodes {
+  prime_rank: 110
+  obverse_rank: 210
+}
+nodes {
+  prime_rank: 102
+  obverse_rank: 211
+}
+nodes {
+  prime_rank: 103
+  obverse_rank: 201
+}
+nodes {
+  prime_rank: 101
+  obverse_rank: 207
+}
+nodes {
+  prime_rank: 106
+  obverse_rank: 206
+  label_text: "W"
+  display: WAYPOINT
+  label_radius: 10.5
+}
+nodes {
+  prime_rank: 105
+  obverse_rank: 208
+}
+nodes {
+  prime_rank: 107
+  obverse_rank: 209
+}
+nodes {
+  prime_rank: 108
+  obverse_rank: 205
+  label_text: "W"
+  display: WAYPOINT
+  label_radius: 10.5
+}
+nodes {
+  prime_rank: 111
+  obverse_rank: 203
+}
+
