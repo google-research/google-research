@@ -23,7 +23,6 @@ from absl.testing import flagsaver
 import apache_beam as beam
 import tensorflow as tf
 from tensorflow.io import gfile
-import tensorflow as tf
 
 from smu import dataset_pb2
 from smu import pipeline
@@ -269,6 +268,7 @@ class IntegrationTest(absltest.TestCase):
         complete_output[0].properties.HasField('homo_pbe0_aug_pc_1'))
     self.assertTrue(
         complete_output[0].properties.HasField('rotational_constants'))
+
 
 
 if __name__ == '__main__':
