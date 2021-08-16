@@ -33,15 +33,16 @@ class ModelExportUtilsTest(absltest.TestCase):
     dirs = model_export_utils.get_experiment_dirs(self.exp_dir)
     self.assertEqual(
         dirs,
-        ['1-al=0.005,ap=True,bd=5,cop=True,lr=0.0001,ms=debug,qat=False,tbs=2'])
+        ['1-bd=5,cop=True,lr=0.0001,mt=mobilenet_debug_1.0_True,qat=False,'
+         'tbs=2'])
 
   def test_get_params(self):
     params = model_export_utils.get_params(
-        '1-al=0.005,ap=True,bd=5,cop=True,lr=0.0001,ms=debug,qat=False,tbs=2')
+        '1-mt=mobilenet_debug_1.0_True,bd=5,cop=True,lr=0.0001,qat=False,tbs=2')
     self.assertEqual(
         params,
-        {'al': 0.005, 'ap': True, 'bd': 5, 'cop': True, 'lr': 0.0001,
-         'ms': 'debug', 'qat': False, 'tbs': 2})
+        {'mt': 'mobilenet_debug_1.0_True', 'bd': 5, 'cop': True, 'lr': 0.0001,
+         'qat': False, 'tbs': 2})
 
   def test_get_default_compressor(self):
     compressor = model_export_utils.get_default_compressor()

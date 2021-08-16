@@ -101,7 +101,7 @@ def get_model(checkpoint_folder_path,
       setattr(flags.FLAGS, flag_name, params[flag_name])
 
   static_model = models.get_keras_model(
-      f'mobilenet_{params["ms"]}_{params["al"]}_{params["ap"]}',
+      params['mt'],
       bottleneck_dimension=params['bd'],
       output_dimension=0,  # Don't include the unnecessary final layer.
       frontend=include_frontend,
