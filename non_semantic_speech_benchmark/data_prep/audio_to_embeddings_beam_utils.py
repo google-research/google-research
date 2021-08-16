@@ -78,6 +78,8 @@ def samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
   # (batch, samples).
   # Try all. Order here matters. We must try "2 args" before "1 arg", otherwise
   # models that use sample rate might ignore it.
+  errors = []  # Track errors. Display if none of them work.
+  tf_out = None
   for num_args, add_batch_dim in [(2, False), (1, False), (2, True), (1, True)]:
     cur_model_input = (np.expand_dims(model_input, 0) if add_batch_dim
                        else model_input)
@@ -88,11 +90,16 @@ def samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
         tf_out = mod.signatures[sig](*func_args)
       else:
         tf_out = mod(*func_args)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as e:
+      # Track errors and print them only if none of the expected signatures
+      # work.
+      errors.append(e)
       continue
     logging.info('Succeeded with num args %i, add_batch_dim %s', num_args,
                  add_batch_dim)
     break
+  if tf_out is None:
+    raise ValueError(f'None of the signatures worked: {errors}')
   ret = tf_out[output_key] if isinstance(tf_out, dict) else tf_out
   ret = np.array(ret)
   if ret.ndim > 2:
