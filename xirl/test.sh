@@ -17,7 +17,7 @@ set -e
 set -x
 
 python pretrain.py \
-    --experiment_name='testingtcc' \
+    --experiment_name='testingtcc2' \
     --config=experiments/xmagical/pretraining/tcc.py \
     --config.OPTIM.TRAIN_MAX_ITERS=25 \
     --config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE=3

@@ -1,7 +1,6 @@
-""""""
-
 import collections
 import typing
+from matplotlib import image
 
 import numpy as np
 
@@ -88,19 +87,66 @@ class ReplayBuffer:
 
 
 class ReplayBufferLearnedReward(ReplayBuffer):
-    """Buffer that replaces the underlying environment reward with a learned one."""
+    """Buffer that replaces the environment reward with a learned one."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(
+        self,
+        model,
+        goal_emb,
+        res_hw,
+        distance_func,
+        batch_size,
+        **base_kwargs,
+    ) -> None:
+        super().__init__(**base_kwargs)
+
+        self.model = model
+        self.goal_emb = goal_emb
+        self.res_hw = res_hw
+        self.distance_func = distance_func
+        self.batch_size = batch_size
+
+        self._reset_staging()
 
     def _reset_staging(self):
-        pass
+        self.obses_staging = []
+        self.next_obses_staging = []
+        self.actions_staging = []
+        self.rewards_staging = []
+        self.masks_staging = []
 
     def _to_tensor(self, x):
         pass
 
     def _replace_rew(self, x):
-        pass
+        image_tensors = [self._to_tensor(i) for i in self.obses_staging]
+        image_tensors = torch.cat(image_tensors, dim=0)
+        emb = self.model.infer(image_tensors).numpy().embs
+        dists = np.linalg.norm(emb - self.goal_emb, axis=-1)
+        dists *= -1.0
+        return dists
 
-    def insert(self):
-        pass
+    def insert(
+        self,
+        obs: np.ndarray,
+        action: np.ndarray,
+        reward: float,
+        next_obs: np.ndarray,
+        mask: float,
+    ) -> None:
+        if len(self.obses_staging) < self.batch_size:
+            self.obses_staging.append(obs)
+            self.next_obses_staging.append(next_obs)
+            self.actions_staging.append(action)
+            self.rewards_staging.append(reward)
+            self.masks_staging.append(mask)
+        else:
+            del reward
+            for obs, action, reward, next_obs, mask in zip(
+                self.obses_staging,
+                self.actions_staging,
+                self._replace_rew(),
+                self.next_obses_staging,
+                self.masks_staging,
+            ):
+                super().insert(obs, action, reward, next_obs, mask)

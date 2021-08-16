@@ -27,8 +27,8 @@ import torch
 from torchkit import checkpoint
 from torchkit import Logger
 from torchkit.utils.py_utils import Stopwatch
-from utils import seed_rngs
 from xirl import common
+import utils
 import yaml
 
 FLAGS = flags.FLAGS
@@ -59,6 +59,8 @@ def setup_experiment(exp_dir):
     os.makedirs(exp_dir)
     with open(os.path.join(exp_dir, "config.yaml"), "w") as fp:
       yaml.dump(ConfigDict.to_dict(FLAGS.config), fp)
+    with open(os.path.join(exp_dir, "git_hash.txt"), "w") as fp:
+      fp.write(utils.git_revision_hash())
 
 
 def main(_):
@@ -73,11 +75,8 @@ def main(_):
   # Set RNG seeds.
   if FLAGS.config.SEED is not None:
     logging.info(f"Experiment seed: {FLAGS.config.SEED}")  # pylint: disable=logging-format-interpolation
-    seed_rngs(
-        FLAGS.config.SEED,
-        FLAGS.config.CUDNN_DETERMINISTIC,
-        FLAGS.config.CUDNN_BENCHMARK,
-    )
+    utils.seed_rngs(FLAGS.config.SEED)
+    utils.set_cudnn(FLAGS.config.CUDNN_DETERMINISTIC, FLAGS.config.CUDNN_BENCHMARK)
   else:
     logging.info("No RNG seed has been set for this experiment.")
 

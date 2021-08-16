@@ -99,6 +99,26 @@ class ActionRepeat(gym.Wrapper):
     return obs, total_reward, done, info
 
 
+class RewardScale(gym.Wrapper):
+  """Scale the environment reward."""
+
+  def __init__(self, env: gym.Env, scale: float) -> None:
+    """Constructor.
+
+    Args:
+      env: A gym env.
+      scale: How much to scale the reward by.
+    """
+    super().__init__(env)
+
+    self._scale = scale
+
+  def step(self, action: np.ndarray) -> TimeStep:
+    obs, reward, done, info = self.env.step(action)
+    reward *= self._scale
+    return obs, reward, done, info
+
+
 class DistanceToGoalVisualReward(gym.Wrapper):
   """Replace the environment reward with distances in embedding space."""
 
@@ -110,7 +130,6 @@ class DistanceToGoalVisualReward(gym.Wrapper):
       goal_emb,
       res_hw = None,
       distance_func = None,
-      distance_scale: float = 1.0,
   ):
     """Constructor.
 
@@ -122,7 +141,6 @@ class DistanceToGoalVisualReward(gym.Wrapper):
       res_hw: Optional (H, W) to resize the environment image before feeding it
         to the model.
       distance_func: Optional function to apply on the embedding distance.
-      distance_scale: Multiplier to be applied on the embedding distance.
     """
     super().__init__(env)
 
@@ -131,7 +149,6 @@ class DistanceToGoalVisualReward(gym.Wrapper):
     self._goal_emb = goal_emb
     self._res_hw = res_hw
     self._distance_func = distance_func
-    self._distance_scale = distance_scale
 
   def _to_tensor(self, x):
     x = torch.from_numpy(x).permute(2, 0, 1).float()[None, None, Ellipsis]
@@ -156,7 +173,6 @@ class DistanceToGoalVisualReward(gym.Wrapper):
     image_tensor = self._to_tensor(image)
     emb = self._model.infer(image_tensor).numpy().embs
     dist = np.linalg.norm(emb - self._goal_emb)
-    dist *= self._distance_scale
     if self._distance_func is not None:
       dist = self._distance_func(dist)
     else:
@@ -235,7 +251,7 @@ class EpisodeMonitor(gym.ActionWrapper):
   metrics that are logged in the environment's info dict can be monitored by
   specifying them via `info_metrics`.
 
-  Adapted from https://github.com/ikostrikov/jax-sac/blob/main/wrappers.py.
+  Adapted from https://github.com/ikostrikov/jaxrl/
   """
 
   def __init__(self, env: gym.Env, info_metrics: InfoMetric = {}) -> None:

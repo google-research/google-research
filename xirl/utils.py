@@ -17,6 +17,7 @@ import functools
 import math
 import random
 import numpy as np
+import subprocess
 
 import gym
 import torch
@@ -26,17 +27,25 @@ from sac import wrappers
 from xirl import common
 
 
-def seed_rngs(
-    seed: int,
-    cudnn_deterministic: bool = False,
-    cudnn_benchmark: bool = True
-):
+def git_revision_hash() -> str:
+  """Return git hash as a string.
+  
+  Reference: https://stackoverflow.com/a/21901260
+  """
+  return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+
+
+def seed_rngs(seed: int):
   """Seeds python, numpy, and torch RNGs."""
   random.seed(seed)
   np.random.seed(seed)
   torch.manual_seed(seed)
-  torch.backends.cudnn.deterministic = cudnn_deterministic
-  torch.backends.cudnn.benchmark = cudnn_benchmark
+
+
+def set_cudnn(deterministic: bool = False, benchmark: bool = True):
+  """Set PyTorch-related CUDNN settings."""
+  torch.backends.cudnn.deterministic = deterministic
+  torch.backends.cudnn.benchmark = benchmark
 
 
 def wrap_env(env: gym.Env, config: ConfigDict, device: torch.device) -> gym.Env:

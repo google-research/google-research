@@ -29,7 +29,12 @@ from xirl import common
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("experiment_path", None, "Path to model checkpoint.")
-flags.DEFINE_boolean("restore_checkpoint", True, "Restore model checkpoint.")
+flags.DEFINE_boolean(
+    "restore_checkpoint",
+    True,
+    "Restore model checkpoint. You might disable loading a checkpoint if you want to "
+    "measure performance at random initialization."
+)
 
 flags.mark_flag_as_required("experiment_path")
 
@@ -38,10 +43,10 @@ DataLoaderType = typing.Dict[str, torch.utils.data.DataLoader]
 
 
 def embed(
-    model,
-    downstream_loader,
-    device,
-):
+    model: ModelType,
+    downstream_loader: DataLoaderType,
+    device: torch.device,
+) -> np.ndarray:
   """Embed the stored trajectories and compute mean goal embedding."""
   goal_embs = []
   for class_name, class_loader in downstream_loader.items():
@@ -56,7 +61,7 @@ def embed(
   return goal_emb
 
 
-def setup(device):
+def setup(device: torch.device) -> typing.Tuple[ModelType, DataLoaderType]:
   """Load the latest embedder checkpoint and dataloaders."""
   config = common.load_config_from_dir(FLAGS.experiment_path)
   model = common.get_model(config)

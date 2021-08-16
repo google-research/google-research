@@ -27,6 +27,7 @@ from utils import make_xmagical_env, wrap_env
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("embodiment", "longstick", "The agent embodiment.")
+flags.DEFINE_string("pretrained_path", None, "")
 
 config_flags.DEFINE_config_file(
     "config",
