@@ -66,12 +66,14 @@ def samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key, name):
   # Some modules have signatures. If they do, they should only have one valid
   # signature, and we should use that one. Otherwise, raise an error.
   if callable(mod):
+    logging.info('[%s] is callable.', name)
     sig = None
   else:
+    logging.info('[%s] has signatures.', name)
     if not hasattr(mod, 'signatures'):
       raise ValueError(f'[{name}] Not callable and no signatures.')
     if not mod.signatures:
-      raise ValueError(f'[{name}] Expected signaturs, but they were empty.')
+      raise ValueError(f'[{name}] Expected signatures, but they were empty.')
     all_sigs = [s for s in mod.signatures if not s.startswith('_')]
     valid_sigs = [s for s in all_sigs if not s.startswith('_')]
     if len(valid_sigs) != 1:
@@ -138,7 +140,7 @@ def _default_feature_fn(samples, sample_rate):
 
 
 def samples_to_embedding_tflite(model_input, sample_rate, interpreter,
-                                output_key):
+                                output_key, name):
   """Run TFLite inference to map audio samples to an embedding."""
   input_details = interpreter.get_input_details()
   output_details = interpreter.get_output_details()
@@ -146,7 +148,7 @@ def samples_to_embedding_tflite(model_input, sample_rate, interpreter,
   # Ideally, we should explore if we can use fixed-size input here, and
   # tile the sample to meet TFLite input size.
   if not np.array_equal(model_input.shape, input_details[0]['shape']):
-    logging.info('TFLite input, actual vs expected: %s vs %s',
+    logging.info('[%s] TFLite input, actual vs expected: %s vs %s', name,
                  model_input.shape, input_details[0]['shape'])
   interpreter.resize_tensor_input(input_details[0]['index'], model_input.shape)
   interpreter.allocate_tensors()
@@ -291,7 +293,8 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     # Calculate the 2D embedding.
     if self._use_tflite:
       embedding_2d = samples_to_embedding_tflite(
-          model_input, sample_rate, self.interpreter, self._output_key)
+          model_input, sample_rate, self.interpreter, self._output_key,
+          self._name)
     else:
       # A custom call function with the same input and output signature as
       # _sample_to_embedding_tfhub can be used
@@ -301,6 +304,8 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     assert isinstance(embedding_2d, np.ndarray)
     assert embedding_2d.ndim == 2
     assert embedding_2d.dtype == np.float32
+    logging.info('[%s] `embedding_2d` shape: %s', self._name,
+                 embedding_2d.shape)
     beam.metrics.Metrics.counter('computed-embedding', self._name).inc()
     beam.metrics.Metrics.distribution(f'computed-embedding-{self._name}',
                                       'length').update(embedding_2d.shape[0])
