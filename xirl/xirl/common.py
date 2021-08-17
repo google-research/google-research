@@ -16,17 +16,21 @@
 """Functionality common to pretraining and evaluation."""
 
 import os
-from typing import Dict
+import numpy as np
+from typing import Dict, Tuple, Optional
 
 from ml_collections import ConfigDict
 import torch
 from xirl import factory
 import yaml
 
+from torch import nn
+
 import pickle
 from torchkit import checkpoint
 
 DataLoadersDict = Dict[str, torch.utils.data.DataLoader]
+ModelType = nn.Module
 
 
 def get_pretraining_dataloaders(
@@ -139,9 +143,8 @@ def load_config_from_dir(exp_dir):
 
 def load_model_checkpoint(
     pretrained_path: str,
-    load_goal_emb: bool,
     device: torch.device,
-):
+) -> Tuple[ConfigDict, ModelType]:
   """Load a pretrained model and optionally a precomputed goal embedding."""
   config = load_config_from_dir(pretrained_path)
   model = get_model(config)
@@ -149,10 +152,16 @@ def load_model_checkpoint(
   checkpoint_manager = checkpoint.CheckpointManager(
       checkpoint.Checkpoint(model=model), checkpoint_dir, device)
   global_step = checkpoint_manager.restore_or_initialize()
-  if load_goal_emb:
-    print("Loading goal embedding.")
-    with open(os.path.join(pretrained_path, "goal_emb.pkl"), "rb") as fp:
-      goal_emb = pickle.load(fp)
-    model.goal_emb = goal_emb
   print(f"Restored model from checkpoint @{global_step}.")
   return config, model
+
+
+def load_goal_embedding(pretrained_path: str) -> Optional[np.ndarray]:
+  """Load a goal embedding. Should be computed via `compute_goal_embedding.py`."""
+  try:
+    with open(os.path.join(pretrained_path, "goal_emb.pkl"), "rb") as fp:
+      goal_emb = pickle.load(fp)
+    print("Successfully loaded goal embedding.")
+    return goal_emb
+  except FileNotFoundError as e:
+    raise e

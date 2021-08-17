@@ -73,19 +73,6 @@ def evaluate(
     logger.add_scalar(f"evaluation/{k}s", np.mean(v), step)
 
 
-def seed_rng(envs: typing.Sequence[gym.Env]) -> None:
-  """Seed the RNGs across all modules."""
-  for env in envs:
-    env.seed(FLAGS.config.seed)
-    env.action_space.seed(FLAGS.config.seed)
-    env.observation_space.seed(FLAGS.config.seed)
-  np.random.seed(FLAGS.config.seed)
-  random.seed(FLAGS.config.seed)
-  torch.manual_seed(FLAGS.config.seed)
-  torch.backends.cudnn.deterministic = FLAGS.config.cudnn_deterministic
-  torch.backends.cudnn.benchmark = FLAGS.config.cudnn_benchmark
-
-
 def start_or_resume(exp_dir: str, policy: agent.SAC) -> int:
   """Load a checkpoint if it exists, else start training from scratch."""
   model_dir = os.path.join(exp_dir, "weights")
@@ -127,8 +114,6 @@ def main(_):
   # Load env.
   env = wrap_env(make_env(), FLAGS.config, device)
   eval_env = wrap_env(make_env(), FLAGS.config, device)
-
-  seed_rng([eval_env, env])
 
   # Dynamically set observation and action space values.
   FLAGS.config.sac.obs_dim = env.observation_space.shape[0]

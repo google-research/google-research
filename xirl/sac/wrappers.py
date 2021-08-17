@@ -15,17 +15,24 @@
 
 """Environment wrappers."""
 
+import abc
 import collections
+
 import time
 import typing
+import os
 
+import imageio
 import cv2
 import gym
 import numpy as np
 import torch
 
+from xirl.models import SelfSupervisedModel
+
 TimeStep = typing.Tuple[np.ndarray, float, bool, dict]
-ModelType = torch.nn.Module
+ModelType = SelfSupervisedModel
+TensorType = torch.Tensor
 DistanceFuncType = typing.Callable[[float], float]
 InfoMetric = typing.Mapping[str, typing.Mapping[str, typing.Any]]
 
@@ -34,6 +41,8 @@ class FrameStack(gym.Wrapper):
   """Stack the last k frames of the env into a flat array.
 
   This is useful for allowing the RL policy to infer temporal information.
+
+  Reference: https://github.com/ikostrikov/jaxrl/
   """
 
   def __init__(self, env: gym.Env, k: int) -> None:
@@ -75,7 +84,10 @@ class FrameStack(gym.Wrapper):
 
 
 class ActionRepeat(gym.Wrapper):
-  """Repeat the agent's action N times in the environment."""
+  """Repeat the agent's action N times in the environment.
+  
+  Reference: https://github.com/ikostrikov/jaxrl/
+  """
 
   def __init__(self, env: gym.Env, repeat: int) -> None:
     """Constructor.
@@ -119,44 +131,42 @@ class RewardScale(gym.Wrapper):
     return obs, reward, done, info
 
 
-class DistanceToGoalVisualReward(gym.Wrapper):
-  """Replace the environment reward with distances in embedding space."""
+class VisualRewardWrapper(abc.ABC, gym.Wrapper):
+  """Base wrapper class that replaces the env reward with a learned one.
+  
+  Subclasses should implement the `_get_reward_from_image` method.
+  """
 
   def __init__(
       self,
-      env,
-      model,
-      device,
-      goal_emb,
-      res_hw = None,
-      distance_func = None,
+      env: gym.Env,
+      model: ModelType,
+      device: torch.device,
+      res_hw: typing.Optional[typing.Tuple[int, int]] = None,
   ):
     """Constructor.
 
     Args:
       env: A gym env.
-      model: A model that ingests RGB frames and returns embeddings.
+      model: A model that ingests RGB frames and returns embeddings. Should be a
+        subclass of `xirl.models.SelfSupervisedModel`.
       device: Compute device.
-      goal_emb: The goal embedding of shape (D,).
       res_hw: Optional (H, W) to resize the environment image before feeding it
         to the model.
-      distance_func: Optional function to apply on the embedding distance.
     """
     super().__init__(env)
 
     self._device = device
     self._model = model.to(device).eval()
-    self._goal_emb = goal_emb
     self._res_hw = res_hw
-    self._distance_func = distance_func
 
-  def _to_tensor(self, x):
+  def _to_tensor(self, x: np.ndarray) -> TensorType:
     x = torch.from_numpy(x).permute(2, 0, 1).float()[None, None, Ellipsis]
     x = x / 255.0
     x = x.to(self._device)
     return x
 
-  def _render_obs(self):
+  def _render_obs(self) -> np.ndarray:
     """Render the pixels at the desired resolution."""
     pixels = self.env.render(mode="rgb_array")
     if self._res_hw is not None:
@@ -168,7 +178,33 @@ class DistanceToGoalVisualReward(gym.Wrapper):
       )
     return pixels
 
-  def _get_reward_from_image(self, image):
+  @abc.abstractmethod
+  def _get_reward_from_image(self, image: np.ndarray) -> float:
+    """Forward the pixels through the model and compute the reward."""
+
+  def step(self, action: np.ndarray) -> TimeStep:
+    obs, env_reward, done, info = self.env.step(action)
+    info["env_reward"] = env_reward
+    pixels = self._render_obs()
+    learned_reward = self._get_reward_from_image(pixels)
+    return obs, learned_reward, done, info
+
+
+class DistanceToGoalVisualReward(VisualRewardWrapper):
+  """Replace the environment reward with distances in embedding space."""
+
+  def __init__(
+      self,
+      goal_emb: np.ndarray,
+      distance_func: DistanceFuncType = None,
+      **base_kwargs,
+  ):
+    super().__init__(**base_kwargs)
+
+    self._goal_emb = goal_emb
+    self._distance_func = distance_func
+
+  def _get_reward_from_image(self, image: np.ndarray) -> float:
     """Forward the pixels through the model and compute the reward."""
     image_tensor = self._to_tensor(image)
     emb = self._model.infer(image_tensor).numpy().embs
@@ -179,69 +215,15 @@ class DistanceToGoalVisualReward(gym.Wrapper):
       dist = -1.0 * dist
     return dist
 
-  def step(self, action):
-    obs, env_reward, done, info = self.env.step(action)
-    info["env_reward"] = env_reward
-    pixels = self._render_obs()
-    learned_reward = self._get_reward_from_image(pixels)
-    return obs, learned_reward, done, info
 
-
-class GoalClassifierVisualReward(gym.Wrapper):
+class GoalClassifierVisualReward(VisualRewardWrapper):
   """Replace the environment reward with the output of a goal classifier."""
 
-  def __init__(
-      self,
-      env,
-      model,
-      device,
-      res_hw = None,
-  ):
-    """Constructor.
-
-    Args:
-      env: A gym env.
-      model: A model that ingests RGB frames and returns embeddings.
-      device: Compute device.
-      res_hw: Optional (H, W) to resize the environment image before feeding it
-        to the model.
-    """
-    super().__init__(env)
-
-    self._device = device
-    self._model = model.to(device).eval()
-    self._res_hw = res_hw
-
-  def _to_tensor(self, x):
-    x = torch.from_numpy(x).permute(2, 0, 1).float()[None, None, Ellipsis]
-    x = x / 255.0
-    x = x.to(self._device)
-    return x
-
-  def _render_obs(self):
-    """Render the pixels at the desired resolution."""
-    pixels = self.env.render(mode="rgb_array")
-    if self._res_hw is not None:
-      h, w = self._res_hw
-      pixels = cv2.resize(
-          pixels,
-          dsize=(w, h),
-          interpolation=cv2.INTER_CUBIC,
-      )
-    return pixels
-
-  def _get_reward_from_image(self, image):
+  def _get_reward_from_image(self, image: np.ndarray) -> float:
     """Forward the pixels through the model and compute the reward."""
     image_tensor = self._to_tensor(image)
     prob = torch.sigmoid(self._model.infer(image_tensor).embs)
     return prob.item()
-
-  def step(self, action):
-    obs, env_reward, done, info = self.env.step(action)
-    info["env_reward"] = env_reward
-    pixels = self._render_obs()
-    learned_reward = self._get_reward_from_image(pixels)
-    return obs, learned_reward, done, info
 
 
 class EpisodeMonitor(gym.ActionWrapper):
@@ -251,7 +233,7 @@ class EpisodeMonitor(gym.ActionWrapper):
   metrics that are logged in the environment's info dict can be monitored by
   specifying them via `info_metrics`.
 
-  Adapted from https://github.com/ikostrikov/jaxrl/
+  Reference: https://github.com/ikostrikov/jaxrl/
   """
 
   def __init__(self, env: gym.Env, info_metrics: InfoMetric = {}) -> None:
@@ -300,3 +282,45 @@ class EpisodeMonitor(gym.ActionWrapper):
   def reset(self) -> np.ndarray:
     self._reset_stats()
     return self.env.reset()
+
+
+class VideoRecorder(gym.Wrapper):
+  """Wrapper for rendering and saving rollouts to disk.
+  
+  Reference: https://github.com/ikostrikov/jaxrl/
+  """
+
+  def __init__(
+      self,
+      env: gym.Env,
+      save_dir: str,
+      resolution: typing.Tuple[int, int] = (128, 128),
+      fps: float = 30,
+  ):
+    super().__init__(env)
+
+    self.save_dir = save_dir
+    os.makedirs(save_dir, exist_ok=True)
+
+    self.height, self.width = resolution
+    self.fps = fps
+    self.enabled = True
+    self.current_episode = 0
+    self.frames = []
+
+  def step(self, action: np.ndarray) -> TimeStep:
+    frame = self.env.render(mode="rgb_array")
+    if frame.shape[:2] != (self.height, self.width):
+      frame = cv2.resize(
+          frame,
+          dsize=(self.width, self.height),
+          interpolation=cv2.INTER_CUBIC,
+      )
+    self.frames.append(frame)
+    observation, reward, done, info = self.env.step(action)
+    if done:
+      filename = os.path.join(self.save_dir, f"{self.current_episode}.mp4")
+      imageio.mimsave(filename, self.frames, fps=self.fps)
+      self.frames = []
+      self.current_episode += 1
+    return observation, reward, done, info

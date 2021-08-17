@@ -18,6 +18,8 @@ import math
 import random
 import numpy as np
 import subprocess
+import typing
+import os
 
 import gym
 import torch
@@ -25,10 +27,17 @@ from ml_collections import ConfigDict
 
 from sac import wrappers
 from xirl import common
+import xmagical
+
+from gym.wrappers import RescaleAction
+
+# ========================================= #
+# General utils.
+# ========================================= #
 
 
 def git_revision_hash() -> str:
-  """Return git hash as a string.
+  """Return git revision hash as a string.
   
   Reference: https://stackoverflow.com/a/21901260
   """
@@ -48,55 +57,104 @@ def set_cudnn(deterministic: bool = False, benchmark: bool = True):
   torch.backends.cudnn.benchmark = benchmark
 
 
-def wrap_env(env: gym.Env, config: ConfigDict, device: torch.device) -> gym.Env:
-  """Wrap the environment based on values in the config."""
-  if config.action_repeat > 1:
-    env = wrappers.ActionRepeat(env, config.action_repeat)
+# ========================================= #
+# RL utils.
+# ========================================= #
 
-  if config.frame_stack > 1:
-    env = wrappers.FrameStack(env, config.frame_stack)
+def xmagical_embodiment_to_env_name(embodiment: str) -> str:
+  VALID_EMBS = ["shortstick", "mediumstick", "longstick", "gripper"]
+  if embodiment not in VALID_EMBS:
+    raise ValueError(f"Valid embodiments are: {VALID_EMBS}")
+  # We used the TestLayout variant for the paper.
+  return f"SweepToTop-{embodiment.capitalize()}-State-Allo-TestLayout-v0"
 
-  if config.reward_wrapper.type != "none":
-    model_config, model = common.load_model_checkpoint(
-        config.reward_wrapper.pretrained_path,
-        # The goal classifier does not use a goal embedding.
-        config.reward_wrapper.type != "goal_classifier",
-        device,
-    )
-    kwargs = {
-        "env": env,
-        "model": model,
-        "device": device,
-        "res_hw": model_config.DATA_AUGMENTATION.IMAGE_SIZE,
-    }
-    if config.reward_wrapper.type == "distance_to_goal":
-      kwargs["goal_emb"] = model.goal_emb
-      kwargs["distance_scale"] = config.reward_wrapper.distance_scale
-      if config.reward_wrapper.distance_func == "sigmoid":
-        def sigmoid(x, t = 1.0):
-          return 1 / (1 + math.exp(-x / t))
 
-        kwargs["distance_func"] = functools.partial(
-            sigmoid,
-            config.reward_wrapper.distance_func_temperature,
-        )
-      env = wrappers.DistanceToGoalVisualReward(**kwargs)
-    elif config.reward_wrapper.type == "goal_classifier":
-      env = wrappers.GoalClassifierVisualReward(**kwargs)
-    else:
-      raise ValueError(
-          f"{config.reward_wrapper.type} is not a supported reward wrapper.")
+def make_env(
+  env_name: str,
+  seed: int,
+  save_dir: typing.Optional[str] = None,
+  add_episode_monitor: bool = True,
+  action_repeat: int = 1,
+  frame_stack: int = 1,
+) -> gym.Env:
+  """Env factory with wrapping.
+  
+  Args:
+    env_name:
+    seed:
+    save_dir:
+    add_episode_monitor:
+    action_repeat:
+    frame_stack:
+  """
+  # Check if the env is in x-magical.
+  xmagical.register_envs()
+  if env_name in xmagical.ALL_REGISTERED_ENVS:
+    env = gym.make(env_name)
+  else:  # Check the RLV envs.
+    raise ValueError("RLV env not yet supported.")
 
-  env = wrappers.EpisodeMonitor(env)
+  if add_episode_monitor:
+    env = wrappers.EpisodeMonitor(env)
+  if action_repeat > 1:
+    env = wrappers.ActionRepeat(env, action_repeat)
+  env = RescaleAction(env, -1.0, 1.0)
+  if save_dir is not None:
+    env = wrappers.VideoRecorder(env, save_dir=save_dir)
+  if frame_stack > 1:
+    env = wrappers.FrameStack(env, frame_stack)
+
+  # Seed.
+  env.seed(seed)
+  env.action_space.seed(seed)
+  env.observation_space.seed(seed)
 
   return env
 
 
-def make_xmagical_env(embodiment: str) -> gym.Env:
-  import xmagical
-  xmagical.register_envs()
-  return gym.make(f"SweepToTop-{embodiment.capitalize()}-State-Allo-TestLayout-v0")
+def wrap_learned_reward(
+  env: gym.Env,
+  pretrained_path: str,
+  rl_config: ConfigDict,
+  device: torch.device,
+) -> gym.Env:
+  """Learned reward wrapper.
+  
+  Args:
+    env:
+    pretrained_path:
+    rl_config:
+    device:
+  """
+  model_config, model = common.load_model_checkpoint(
+    pretrained_path,
+    device=device,
+  )
 
+  kwargs = {
+      "env": env,
+      "model": model,
+      "device": device,
+      "res_hw": model_config.DATA_AUGMENTATION.IMAGE_SIZE,
+  }
 
-def make_rlv_env() -> gym.Env:
-  raise NotImplementedError
+  if rl_config.reward_wrapper.type == "goal_classifier":
+    env = wrappers.GoalClassifierVisualReward(**kwargs)
+
+  elif rl_config.reward_wrapper.type == "distance_to_goal":
+    kwargs["goal_emb"] = common.load_goal_embedding(pretrained_path)
+    kwargs["distance_scale"] = rl_config.reward_wrapper.distance_scale
+    if rl_config.reward_wrapper.distance_func == "sigmoid":
+      def sigmoid(x, t = 1.0):
+        return 1 / (1 + math.exp(-x / t))
+
+      kwargs["distance_func"] = functools.partial(
+          sigmoid,
+          rl_config.reward_wrapper.distance_func_temperature,
+      )
+    env = wrappers.DistanceToGoalVisualReward(**kwargs)
+
+  else:
+    raise ValueError(f"{rl_config.reward_wrapper.type} is not a valid reward wrapper.")
+
+  return env

@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 from ml_collections.config_flags import config_flags
 from xmagical.utils import KeyboardEnvInteractor
 
-from utils import make_xmagical_env, wrap_env
+import utils
 
 FLAGS = flags.FLAGS
 
@@ -37,10 +37,12 @@ config_flags.DEFINE_config_file(
 
 
 def main(_):
-  # Load and wrap env.
-  device = torch.device(FLAGS.config.device)
-  env = make_xmagical_env(FLAGS.embodiment)
-  env = wrap_env(env, FLAGS.config, device)
+  env_name = utils.xmagical_embodiment_to_env_name(FLAGS.embodiment)
+  env = utils.make_env(env_name, seed=0)
+
+  if FLAGS.pretrained_path is not None:
+    device = torch.device(FLAGS.config.device)
+    env = utils.wrap_learned_reward(env, FLAGS.config, device)
 
   viewer = KeyboardEnvInteractor(action_dim=env.action_space.shape[0])
 
