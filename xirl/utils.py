@@ -19,7 +19,6 @@ import random
 import numpy as np
 import subprocess
 import typing
-import os
 
 import gym
 import torch
@@ -80,12 +79,12 @@ def make_env(
   """Env factory with wrapping.
   
   Args:
-    env_name:
-    seed:
-    save_dir:
-    add_episode_monitor:
-    action_repeat:
-    frame_stack:
+    env_name: The name of the environment.
+    seed: The RNG seed.
+    save_dir: Specifiy a save directory to wrap with `VideoRecorder`.
+    add_episode_monitor: Set to True to wrap with `EpisodeMonitor`.
+    action_repeat: A value > 1 will wrap with `ActionRepeat`.
+    frame_stack: A value > 1 will wrap with `FrameStack`.
   """
   # Check if the env is in x-magical.
   xmagical.register_envs()
@@ -116,20 +115,16 @@ def wrap_learned_reward(
     env: gym.Env,
     pretrained_path: str,
     rl_config: ConfigDict,
-    device: torch.device,
 ) -> gym.Env:
-  """Learned reward wrapper.
-  
+  """Wrap the environment with a learned reward wrapper.
+
   Args:
-    env:
-    pretrained_path:
+    env: A `gym.Env` to wrap with a `VisualRewardWrapper` wrapper.
+    pretrained_path: Path to a pretrained `xirl.models.SelfSupervisedModel`.
     rl_config:
-    device:
   """
-  model_config, model = common.load_model_checkpoint(
-      pretrained_path,
-      device=device,
-  )
+  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  model_config, model = common.load_model_checkpoint(pretrained_path, device)
 
   kwargs = {
       "env": env,

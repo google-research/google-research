@@ -51,7 +51,6 @@ flags.mark_flag_as_required("embodiment")
 def evaluate(
     env: gym.Env,
     policy: agent.SAC,
-    video_recorder: video.VideoRecorder,
     logger: SummaryWriter,
     step: int,
 ) -> None:
@@ -60,16 +59,13 @@ def evaluate(
   eval_stats = collections.defaultdict(list)
   for episode in range(FLAGS.config.num_eval_episodes):
     observation = env.reset()
-    video_recorder.reset(enabled=(episode == 0))
     while True:
       action = policy.act(observation, sample=False)
       observation, _, done, info = env.step(action)
-      video_recorder.record(env)
       if done:
         for k, v in info["metrics"].items():
           eval_stats[k].append(v)
         break
-    video_recorder.save(f"{step}.mp4")
   for k, v in eval_stats.items():
     logger.add_scalar(f"evaluation/{k}s", np.mean(v), step)
 
@@ -112,8 +108,8 @@ def main(_):
   device = torch.device(FLAGS.config.device)
 
   # Load env.
-  env = wrap_env(make_env(), FLAGS.config, device)
-  eval_env = wrap_env(make_env(), FLAGS.config, device)
+  env = None
+  eval_env = None
 
   # Dynamically set observation and action space values.
   FLAGS.config.sac.obs_dim = env.observation_space.shape[0]
@@ -132,9 +128,6 @@ def main(_):
       FLAGS.config.replay_buffer_capacity,
       device,
   )
-
-  video_recorder = video.VideoRecorder(
-      exp_dir if FLAGS.config.save_video else None)
 
   logger = SummaryWriter(os.path.join(exp_dir, "tb"))
 
@@ -175,7 +168,7 @@ def main(_):
         logger.flush()
 
       if (i + 1) % FLAGS.config.eval_frequency == 0:
-        evaluate(eval_env, policy, video_recorder, logger, i)
+        evaluate(eval_env, policy, logger, i)
 
       if (i + 1) % FLAGS.config.checkpoint_frequency == 0:
         policy.save(os.path.join(exp_dir, "weights"), i)

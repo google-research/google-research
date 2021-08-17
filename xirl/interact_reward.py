@@ -41,8 +41,7 @@ def main(_):
   env = utils.make_env(env_name, seed=0)
 
   if FLAGS.pretrained_path is not None:
-    device = torch.device(FLAGS.config.device)
-    env = utils.wrap_learned_reward(env, FLAGS.config, device)
+    env = utils.wrap_learned_reward(env, FLAGS.pretrained_path, FLAGS.config)
 
   viewer = KeyboardEnvInteractor(action_dim=env.action_space.shape[0])
 
