@@ -31,10 +31,10 @@ class FrameSampler(abc.ABC):
   def __init__(
       self,
       num_frames,
-      num_ctx_frames = 1,
-      ctx_stride = 1,
-      pattern = "*.png",
-      seed = None,
+      num_ctx_frames=1,
+      ctx_stride=1,
+      pattern="*.png",
+      seed=None,
   ):
     """Constructor.
 
@@ -155,7 +155,7 @@ class StridedSampler(SingleVideoFrameSampler):
   def __init__(  # pylint: disable=keyword-arg-before-vararg
       self,
       stride,
-      offset = True,
+      offset=True,
       *args,
       **kwargs,
   ):
@@ -205,7 +205,7 @@ class AllSampler(StridedSampler):
   ones, dramatically increases compute and memory requirements.
   """
 
-  def __init__(self, stride = 1, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
+  def __init__(self, stride=1, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
     """Constructor.
 
     Args:
@@ -289,3 +289,29 @@ class WindowSampler(SingleVideoFrameSampler):
       range_max = range_min + self._num_frames
       return list(range(range_min, range_max))
     return list(range(0, self._num_frames))
+
+
+class UniformWithPositivesSampler(SingleVideoFrameSampler):
+  """Uniformly sample random frames along with positives within a radius."""
+
+  def __init__(self, pos_window, *args, **kwargs):
+    """Constructor.
+
+    Args:
+      pos_window: The radius for positive frames.
+      *args: Args.
+      **kwargs: Keyword args.
+    """
+    super().__init__(*args, **kwargs)
+
+    assert isinstance(pos_window, int), "`pos_window` must be an integer."
+    self._pos_window = pos_window
+
+  def _sample(self, frames):
+    vid_len = len(frames)
+    cc_idxs = list(range(vid_len))
+    random.shuffle(cc_idxs)
+    cc_idxs = cc_idxs[:self._num_frames]
+    pos_steps = np.asarray(
+        [np.random.randint(step - self._pos_window, step) for step in cc_idxs])
+    return np.concatenate([sorted(pos_steps), sorted(cc_idxs)])

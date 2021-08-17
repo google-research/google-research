@@ -77,6 +77,7 @@ FRAME_SAMPLERS = {
     "strided": frame_samplers.StridedSampler,
     "variable_strided": frame_samplers.VariableStridedSampler,
     "uniform": frame_samplers.UniformSampler,
+    "uniform_with_positives": frame_samplers.UniformWithPositivesSampler,
     "last_and_randoms": frame_samplers.LastFrameAndRandomFrames,
     "window": frame_samplers.WindowSampler,
 }
