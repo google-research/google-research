@@ -5,6 +5,20 @@
 Zebraix is an entirely personal project. It is not endorsed, or in any other way
 given approval, by any organization or person.
 
+## Running tests and updating goldens
+
+To run tests do something like:
+```
+bazel test -c dbg ${ZERBRAIX_DIR}/testdata/samples:all \
+   --test_arg=--diff_lines=10000 --nocache_test_results
+```
+
+To update goldens do something like:
+```
+bazel test --use_sponge=no -c dbg ${ZERBRAIX_DIR}/testdata/samples:all \
+   --test_arg="--update_dir=$(PWD_CMD_HERE)" --test_strategy=local
+```
+
 ## Overview
 
 Zebraix is a set of utilities for handling graphs that can be described as
