@@ -60,19 +60,25 @@ def tfexample_audio_to_npfloat32(ex, audio_key, normalize_to_pm_one):
   return audio
 
 
-def samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
+def samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key, name):
   """Run inference to map a single audio sample to an embedding."""
-  logging.info('Module input shape: %s', model_input.shape)
+  logging.info('[%s] Module input shape: %s', name, model_input.shape)
   # Some modules have signatures. If they do, they should only have one valid
   # signature, and we should use that one. Otherwise, raise an error.
-  if hasattr(mod, 'signatures'):
-    valid_sigs = [s for s in mod.signatures if not s.startswith('_')]
-    if len(valid_sigs) != 1:
-      raise ValueError(f'Didn\t find exactly one valid signature: {valid_sigs}')
-    sig = valid_sigs[0]
-    logging.info('Using signatures, and found: %s', sig)
-  else:
+  if callable(mod):
     sig = None
+  else:
+    if not hasattr(mod, 'signatures'):
+      raise ValueError(f'[{name}] Not callable and no signatures.')
+    if not mod.signatures:
+      raise ValueError(f'[{name}] Expected signaturs, but they were empty.')
+    all_sigs = [s for s in mod.signatures if not s.startswith('_')]
+    valid_sigs = [s for s in all_sigs if not s.startswith('_')]
+    if len(valid_sigs) != 1:
+      raise ValueError(
+          f'[{name}] Didn\'t find exactly one valid signature: {all_sigs}')
+    sig = valid_sigs[0]
+    logging.info('[%s] Using signatures, and found: %s', name, sig)
   # Models either take 2 args (input, sample_rate) or 1 arg (input).
   # The first argument is either 1 dimensional (samples) or 2 dimensional
   # (batch, samples).
@@ -81,7 +87,7 @@ def samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
   errors = []  # Track errors. Display if none of them work.
   tf_out = None
   for num_args, add_batch_dim in [(2, False), (1, False), (2, True), (1, True)]:
-    cur_model_input = (np.expand_dims(model_input, 0) if add_batch_dim
+    cur_model_input = (tf.expand_dims(model_input, 0) if add_batch_dim
                        else model_input)
     func_args = ((cur_model_input,) if num_args == 1 else
                  (cur_model_input, sample_rate))
@@ -90,17 +96,24 @@ def samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
         tf_out = mod.signatures[sig](*func_args)
       else:
         tf_out = mod(*func_args)
-    except (ValueError, TypeError) as e:
+    except (ValueError, TypeError,
+            tf.errors.InvalidArgumentError) as e:
       # Track errors and print them only if none of the expected signatures
       # work.
       errors.append(e)
       continue
-    logging.info('Succeeded with num args %i, add_batch_dim %s', num_args,
-                 add_batch_dim)
+    logging.info('[%s] Succeeded with num args %i, add_batch_dim %s', name,
+                 num_args, add_batch_dim)
     break
   if tf_out is None:
-    raise ValueError(f'None of the signatures worked: {errors}')
-  ret = tf_out[output_key] if isinstance(tf_out, dict) else tf_out
+    raise ValueError(f'[{name}] None of the signatures worked: {errors}')
+  if isinstance(tf_out, dict):
+    if output_key not in tf_out:
+      raise ValueError(
+          f'[{name}] Key not recognized: "{output_key}" vs {tf_out.keys()}')
+    ret = tf_out[output_key]
+  else:
+    ret = tf_out
   ret = np.array(ret)
   if ret.ndim > 2:
     # Batch-flatten in numpy.
@@ -284,7 +297,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
       # _sample_to_embedding_tfhub can be used
       # (_sample_to_embedding_tfhub is default).
       embedding_2d = self._mod_call_fn(model_input, sample_rate, self.module,
-                                       self._output_key)
+                                       self._output_key, self._name)
     assert isinstance(embedding_2d, np.ndarray)
     assert embedding_2d.ndim == 2
     assert embedding_2d.dtype == np.float32
