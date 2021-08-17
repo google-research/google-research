@@ -53,7 +53,7 @@ class MockLSTMCell(object):
     self._private_theta = {}
     self.vars = MockLSTMVars()
 
-  def CreateVariable(self, name, var_params, theta_fn=None, trainable=False):
+  def CreateVariable(self, name, var_params, trainable=False):
     dtype = var_params["dtype"]
     shape = var_params["shape"]
     scale = var_params["init"]["scale"]
@@ -62,8 +62,6 @@ class MockLSTMCell(object):
     with tf.variable_scope("MockLSTMCell"):
       var = tf.get_variable(name, shape, dtype, v_init, trainable=trainable)
     value = var
-    if theta_fn is not None:
-      value = theta_fn(value)
     self._private_vars[name] = var
     self._private_theta[name] = value
 

@@ -161,9 +161,8 @@ def apply_customized_matrix_compression(matrix_compression_obj,  # pylint:disabl
                                  weight_dtype)
       threshold_pc = weight_params_fn([], weight_init_obj.Constant(0.0),
                                       tf.float32)
-      layer_obj.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
-      layer_obj.CreateVariable(
-          'threshold', threshold_pc, theta_fn=None, trainable=False)
+      layer_obj.CreateVariable('mask', mask_pc, trainable=False)
+      layer_obj.CreateVariable('threshold', threshold_pc, trainable=False)
       if layer_obj.vars.mask not in tf.get_collection(pruning.MASK_COLLECTION):
         tf.add_to_collection(pruning.WEIGHT_COLLECTION,
                              getattr(layer_obj.vars, weight_name))
@@ -173,12 +172,9 @@ def apply_customized_matrix_compression(matrix_compression_obj,  # pylint:disabl
       if prune_option in ['first_order_gradient', 'second_order_gradient']:
         grad_pc = weight_params_fn(weight_shape, weight_init_obj.Constant(0.0),
                                    weight_dtype)
-        layer_obj.CreateVariable(
-            'gradient', grad_pc, theta_fn=None, trainable=False)
-        layer_obj.CreateVariable(
-            'old_weight', grad_pc, theta_fn=None, trainable=False)
-        layer_obj.CreateVariable(
-            'old_old_weight', grad_pc, theta_fn=None, trainable=False)
+        layer_obj.CreateVariable('gradient', grad_pc, trainable=False)
+        layer_obj.CreateVariable('old_weight', grad_pc, trainable=False)
+        layer_obj.CreateVariable('old_old_weight', grad_pc, trainable=False)
         tf.add_to_collection(pruning.WEIGHT_GRADIENT_COLLECTION,
                              layer_obj.vars.gradient)
         tf.add_to_collection(pruning.OLD_WEIGHT_COLLECTION,
@@ -220,9 +216,8 @@ def apply_pruning(pruning_obj,  # pylint:disable=invalid-name
                                dtype)
     threshold_pc = weight_params_fn([], weight_init_obj.Constant(0.0),
                                     tf.float32)
-    layerobj.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
-    layerobj.CreateVariable(
-        'threshold', threshold_pc, theta_fn=None, trainable=False)
+    layerobj.CreateVariable('mask', mask_pc, trainable=False)
+    layerobj.CreateVariable('threshold', threshold_pc, trainable=False)
     if layerobj.vars.mask not in tf.get_collection(pruning.MASK_COLLECTION):
       tf.add_to_collection(pruning.WEIGHT_COLLECTION, layerobj.vars.wm)
       tf.add_to_collection(pruning.MASK_COLLECTION, layerobj.vars.mask)
