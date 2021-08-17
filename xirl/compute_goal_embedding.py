@@ -30,10 +30,9 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("experiment_path", None, "Path to model checkpoint.")
 flags.DEFINE_boolean(
-    "restore_checkpoint",
-    True,
-    "Restore model checkpoint. You might disable loading a checkpoint if you want to "
-    "measure performance at random initialization."
+    "restore_checkpoint", True,
+    "Restore model checkpoint. Disabling loading a checkpoint is useful if you want to "
+    "measure performance at random initialization or for ImageNet-only pretraining."
 )
 
 flags.mark_flag_as_required("experiment_path")

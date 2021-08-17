@@ -38,13 +38,18 @@ MAX_DEMONSTRATIONS = -1
 
 FLAGS = flags.FLAGS
 flags.DEFINE_enum("algo", None, ALGORITHMS, "The pretraining algorithm to use.")
+flags.DEFINE_enum(
+    "embodiment", None, EMBODIMENTS,
+    "Which embodiment to train. Will train all sequentially if not specified.")
 flags.mark_flag_as_required("algo")
 
 
 def main(_):
-  for embodiment in EMBODIMENTS:
+  embodiments = EMBODIMENTS if FLAGS.embodiment is None else [FLAGS.embodiment]
+
+  for embodiment in embodiments:
     # Generate a unique experiment name.
-    experiment_name = "exp1_algo={}_trainon={}_maxdemosperemb={}_uid={}".format(
+    experiment_name = "xmagical_same_algo={}_trainon={}_maxdemosperemb={}_uid={}".format(
         FLAGS.algo, embodiment, MAX_DEMONSTRATIONS, int(random.random() * 1e9))
     print(f"Experiment name: {experiment_name}")
 
@@ -71,8 +76,8 @@ def main(_):
           "compute_goal_embedding.py",
           "--experiment_path",
           # Note: This assumes that the config.ROOT_DIR value has not been
-          # changed to its default value of 'tmp/xirl'.
-          osp.join("/tmp/xirl", experiment_name),
+          # changed to its default value of 'tmp/xirl/pretrain_runs/'.
+          osp.join("/tmp/xirl/pretrain_runs/", experiment_name),
       ])
 
 

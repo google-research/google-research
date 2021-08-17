@@ -36,12 +36,11 @@ from gym.wrappers import RescaleAction
 # ========================================= #
 
 
+# Reference: https://stackoverflow.com/a/21901260
 def git_revision_hash() -> str:
-  """Return git revision hash as a string.
-  
-  Reference: https://stackoverflow.com/a/21901260
-  """
-  return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+  """Return git revision hash as a string."""
+  return subprocess.check_output(['git', 'rev-parse',
+                                  'HEAD']).decode('ascii').strip()
 
 
 def seed_rngs(seed: int):
@@ -61,6 +60,7 @@ def set_cudnn(deterministic: bool = False, benchmark: bool = True):
 # RL utils.
 # ========================================= #
 
+
 def xmagical_embodiment_to_env_name(embodiment: str) -> str:
   VALID_EMBS = ["shortstick", "mediumstick", "longstick", "gripper"]
   if embodiment not in VALID_EMBS:
@@ -70,12 +70,12 @@ def xmagical_embodiment_to_env_name(embodiment: str) -> str:
 
 
 def make_env(
-  env_name: str,
-  seed: int,
-  save_dir: typing.Optional[str] = None,
-  add_episode_monitor: bool = True,
-  action_repeat: int = 1,
-  frame_stack: int = 1,
+    env_name: str,
+    seed: int,
+    save_dir: typing.Optional[str] = None,
+    add_episode_monitor: bool = True,
+    action_repeat: int = 1,
+    frame_stack: int = 1,
 ) -> gym.Env:
   """Env factory with wrapping.
   
@@ -113,10 +113,10 @@ def make_env(
 
 
 def wrap_learned_reward(
-  env: gym.Env,
-  pretrained_path: str,
-  rl_config: ConfigDict,
-  device: torch.device,
+    env: gym.Env,
+    pretrained_path: str,
+    rl_config: ConfigDict,
+    device: torch.device,
 ) -> gym.Env:
   """Learned reward wrapper.
   
@@ -127,8 +127,8 @@ def wrap_learned_reward(
     device:
   """
   model_config, model = common.load_model_checkpoint(
-    pretrained_path,
-    device=device,
+      pretrained_path,
+      device=device,
   )
 
   kwargs = {
@@ -145,7 +145,8 @@ def wrap_learned_reward(
     kwargs["goal_emb"] = common.load_goal_embedding(pretrained_path)
     kwargs["distance_scale"] = rl_config.reward_wrapper.distance_scale
     if rl_config.reward_wrapper.distance_func == "sigmoid":
-      def sigmoid(x, t = 1.0):
+
+      def sigmoid(x, t=1.0):
         return 1 / (1 + math.exp(-x / t))
 
       kwargs["distance_func"] = functools.partial(
@@ -155,6 +156,7 @@ def wrap_learned_reward(
     env = wrappers.DistanceToGoalVisualReward(**kwargs)
 
   else:
-    raise ValueError(f"{rl_config.reward_wrapper.type} is not a valid reward wrapper.")
+    raise ValueError(
+        f"{rl_config.reward_wrapper.type} is not a valid reward wrapper.")
 
   return env

@@ -11,7 +11,6 @@ gym==0.17.*
 absl-py
 numpy
 scipy
-git+https://github.com/kevinzakka/torchkit.git
-
-# dev
 gdown
+git+https://github.com/kevinzakka/torchkit.git
+git+https://github.com/kevinzakka/x-magical.git

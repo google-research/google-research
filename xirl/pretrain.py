@@ -76,7 +76,8 @@ def main(_):
   if FLAGS.config.SEED is not None:
     logging.info(f"Experiment seed: {FLAGS.config.SEED}")  # pylint: disable=logging-format-interpolation
     utils.seed_rngs(FLAGS.config.SEED)
-    utils.set_cudnn(FLAGS.config.CUDNN_DETERMINISTIC, FLAGS.config.CUDNN_BENCHMARK)
+    utils.set_cudnn(FLAGS.config.CUDNN_DETERMINISTIC,
+                    FLAGS.config.CUDNN_BENCHMARK)
   else:
     logging.info("No RNG seed has been set for this experiment.")
 

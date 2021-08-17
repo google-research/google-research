@@ -35,7 +35,8 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("experiment_name", None, "Experiment name.")
 flags.DEFINE_string("embodiment", None, "The agent embodiment.")
-flags.DEFINE_boolean("resume", False, "Resume experiment from latest checkpoint.")
+flags.DEFINE_boolean("resume", False,
+                     "Resume experiment from latest checkpoint.")
 
 config_flags.DEFINE_config_file(
     "config",
@@ -97,8 +98,7 @@ def setup_experiment(exp_dir: str) -> None:
   else:
     if not FLAGS.resume:
       raise ValueError(
-          "Experiment already exists. Run with --resume to continue."
-      )
+          "Experiment already exists. Run with --resume to continue.")
     with open(os.path.join(exp_dir, "config.yaml"), "r") as fp:
       cfg = yaml.load(fp, Loader=yaml.FullLoader)
     FLAGS.config.update(cfg)
@@ -134,15 +134,15 @@ def main(_):
   )
 
   video_recorder = video.VideoRecorder(
-      exp_dir if FLAGS.config.save_video else None
-  )
+      exp_dir if FLAGS.config.save_video else None)
 
   logger = SummaryWriter(os.path.join(exp_dir, "tb"))
 
   try:
     start = start_or_resume(exp_dir, policy)
     done, info, observation = True, {"metrics": {}}, np.empty(())
-    for i in tqdm.tqdm(range(start, FLAGS.config.num_train_steps), initial=start):
+    for i in tqdm.tqdm(
+        range(start, FLAGS.config.num_train_steps), initial=start):
       if done:
         observation = env.reset()
         done = False
@@ -188,4 +188,4 @@ def main(_):
 
 
 if __name__ == "__main__":
-    app.run(main)
+  app.run(main)
