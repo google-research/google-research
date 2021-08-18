@@ -297,7 +297,7 @@ class SAC(nn.Module):
     critic_loss.backward()
     self.critic_optimizer.step()
 
-    return {"train_critic/loss": critic_loss}
+    return {"critic_loss": critic_loss}
 
   def update_actor_and_alpha(
       self,
@@ -311,9 +311,8 @@ class SAC(nn.Module):
     actor_Q = torch.min(actor_Q1, actor_Q2)
     actor_loss = (self.alpha.detach() * log_prob - actor_Q).mean()
     actor_info = {
-        "train_actor/loss": actor_loss,
-        "train_actor/target_entropy": self.target_entropy,
-        "train_actor/entropy": -log_prob.mean(),
+        "actor_loss": actor_loss,
+        "entropy": -log_prob.mean(),
     }
 
     # Optimize the actor.
@@ -327,8 +326,8 @@ class SAC(nn.Module):
       alpha_loss = (self.alpha *
                     (-log_prob - self.target_entropy).detach()).mean()
       alpha_loss.backward()
-      alpha_info["train_alpha/loss"] = alpha_loss
-      alpha_info["train_alpha/value"] = self.alpha
+      alpha_info["temperature_loss"] = alpha_loss
+      alpha_info["temperature"] = self.alpha
       self.log_alpha_optimizer.step()
 
     return actor_info, alpha_info
@@ -339,7 +338,7 @@ class SAC(nn.Module):
       step: int,
   ) -> InfoType:
     obs, action, reward, next_obs, mask = replay_buffer.sample(self.batch_size)
-    batch_info = {"training/batch_reward": reward.mean()}
+    batch_info = {"batch_reward": reward.mean()}
 
     critic_info = self.update_critic(obs, action, reward, next_obs, mask)
 

@@ -27,7 +27,6 @@ import torch
 from tqdm import tqdm
 from absl import app, flags
 from ml_collections import config_flags
-from torch.utils.tensorboard import SummaryWriter
 
 from sac import agent, replay_buffer
 
@@ -35,7 +34,6 @@ import utils
 from torchkit import checkpoint
 from torchkit import Logger
 from torchkit.experiment import seed_rngs, set_cudnn
-from torchkit.utils.py_utils import Stopwatch
 
 FLAGS = flags.FLAGS
 
@@ -73,7 +71,6 @@ def evaluate(
       stats[k].append(v)
     if "eval_score" in info:
       stats["eval_score"].append(info["eval_score"])
-  # Average out stat values.
   for k, v in stats.items():
     stats[k] = np.mean(v)
   return stats
@@ -176,7 +173,7 @@ def main(_):
 
         if (i + 1) % FLAGS.config.log_frequency == 0:
           for k, v in train_info.items():
-            logger.log_scalar(v, info["total"]["timesteps"], k)
+            logger.log_scalar(v, info["total"]["timesteps"], k, "training")
           logger.flush()
 
       if (i + 1) % FLAGS.config.eval_frequency == 0:
