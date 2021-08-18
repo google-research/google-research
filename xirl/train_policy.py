@@ -84,14 +84,16 @@ def main(_):
   # Setup compute device.
   if torch.cuda.is_available():
     device = torch.device(FLAGS.device)
-    logging.info(f"Using GPU {torch.cuda.get_device_name(device)}.")  # pylint: disable=logging-format-interpolation
+    logging.info(
+        f"Using GPU {torch.cuda.get_device_name(device)} #{torch.cuda.current_device()}"
+    )
   else:
     logging.info("No GPU found. Falling back to CPU.")
     device = torch.device("cpu")
 
   # Set RNG seeds.
   if FLAGS.seed is not None:
-    logging.info(f"RL experiment seed: {FLAGS.seed}")  # pylint: disable=logging-format-interpolation
+    logging.info(f"RL experiment seed: {FLAGS.seed}")
     seed_rngs(FLAGS.seed)
     set_cudnn(FLAGS.config.cudnn_deterministic, FLAGS.config.cudnn_benchmark)
   else:
