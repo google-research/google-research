@@ -84,12 +84,10 @@ def main(_):
   # Setup compute device.
   if torch.cuda.is_available():
     device = torch.device(FLAGS.device)
-    logging.info(
-        f"Using GPU {torch.cuda.get_device_name(device)} #{torch.cuda.current_device()}"
-    )
   else:
-    logging.info("No GPU found. Falling back to CPU.")
+    logging.info("No GPU device found. Falling back to CPU.")
     device = torch.device("cpu")
+  logging.info(f"Using device: {FLAGS.device}")
 
   # Set RNG seeds.
   if FLAGS.seed is not None:
