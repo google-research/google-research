@@ -102,6 +102,19 @@ message BondTopology {
 
   // A unique 1 indexed dense id for this topology.
   int32 bond_topology_id = 4;
+
+  // If this has been discerned from geometry, the associated score.
+  float score = 5;
+
+  // If this has been discerned from geometry, is it the same as the
+  // starting BondTopology.
+  bool is_starting_topology = 6;
+}
+
+// When doing topology from geometry matching, the results are returned
+// as a set of individual BondTopology's.
+message TopologyMatches {
+  repeated BondTopology bond_topology = 1;
 }
 
 // Geometry captures the 3D locations of the atoms. The atom types are left
