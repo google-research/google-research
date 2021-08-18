@@ -26,6 +26,7 @@ from non_semantic_speech_benchmark.export_model import trill_and_sklearn_to_one_
 class SklearnToSavedmodelTest(absltest.TestCase):
 
   def test_sklearn_logistic_regression_to_keras(self):
+    np.random.seed(9521)
     for i in range(10):
       m = linear_model.LogisticRegression()
       n_samples, n_features = 10, 2048

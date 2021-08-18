@@ -9,6 +9,8 @@ Work by Manoj Kumar, Dirk Weissenborn and Nal Kalchbrenner.
 
 ### Updates:
 
+* 18 July 2021 - [Notebook](https://tinyurl.com/coltranfewclicks) to colorize images using pretrained ColTran models with a few clicks.
+                 Credits: [Minh-Hoang DANG](https://github.com/mhoangvslev)
 * 11 July 2021 - Support for finetuneing on custom datasets. Set
                  `FLAGS.pretrain_dir` - Pretrained Imagenet ckpt path.
                  `FLAGS.dataset=custom` and

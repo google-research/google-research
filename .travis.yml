@@ -52,6 +52,7 @@ env:
     - PROJECT="graph_embedding/watch_your_step"
     - PROJECT="hmc_swindles"
     - PROJECT="igt_optimizer"
+    - PROJECT="implicit_constrained_optimization"
     - PROJECT="implicit_pdf"
     - PROJECT="jax_dft"
     - PROJECT="large_margin"

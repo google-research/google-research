@@ -17,11 +17,10 @@
 
 import functools
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 from poem.core import common
 from poem.core import loss_utils
-tf.disable_v2_behavior()
 
 
 class LossUtilsTest(tf.test.TestCase):
@@ -33,10 +32,13 @@ class LossUtilsTest(tf.test.TestCase):
     self.assertCountEqual(result.keys(), expected_result.keys())
     for key, ev in expected_result.items():
       if isinstance(ev, int):
-        self.assertEqual(result[key], ev, msg='Key = `%s`.' % key)
+        self.assertEqual(result[key].numpy(), ev, msg='Key = `%s`.' % key)
       elif isinstance(ev, float):
         self.assertAlmostEqual(
-            result[key], ev, places=float_equal_places, msg='Key = `%s`.' % key)
+            result[key].numpy(),
+            ev,
+            places=float_equal_places,
+            msg='Key = `%s`.' % key)
       elif isinstance(ev, (list, tuple)):
         if ev:
           if isinstance(ev[0], int):
@@ -48,7 +50,7 @@ class LossUtilsTest(tf.test.TestCase):
                 'Unsupported expected value type for key `%s`: list/tuple of %s.'
                 % (key, type(ev[0])))
         else:
-          self.assertEqual(result[key], ev, msg='Key = `%s`.' % key)
+          self.assertEqual(result[key].numpy(), ev, msg='Key = `%s`.' % key)
       else:
         raise ValueError('Unsupported expected value type for key `%s`: %s.' %
                          (key, type(ev)))
@@ -60,13 +62,13 @@ class LossUtilsTest(tf.test.TestCase):
     # Shape = [2, 4, 2].
     rhs = tf.constant([[[16.0, 15.0], [14.0, 13.0], [12.0, 11.0], [10.0, 9.0]],
                        [[8.0, 7.0], [6.0, 5.0], [4.0, 3.0], [2.0, 1.0]]])
-    self.assertAllClose(
-        loss_utils.create_sample_distance_fn(
-            pair_type=common.DISTANCE_PAIR_TYPE_ALL_PAIRS,
-            distance_kernel=common.DISTANCE_KERNEL_SQUARED_L2,
-            pairwise_reduction=functools.partial(
-                tf.math.reduce_min, axis=[-2, -1]),
-            componentwise_reduction=tf.identity)(lhs, rhs), [34.0, 2.0])
+    distances = loss_utils.create_sample_distance_fn(
+        pair_type=common.DISTANCE_PAIR_TYPE_ALL_PAIRS,
+        distance_kernel=common.DISTANCE_KERNEL_SQUARED_L2,
+        pairwise_reduction=functools.partial(tf.math.reduce_min, axis=[-2, -1]),
+        componentwise_reduction=tf.identity)(lhs, rhs)
+
+    self.assertAllClose(distances, [34.0, 2.0])
 
   def test_create_sample_distance_fn_case_2(self):
     # Shape = [1, 2, 2].
@@ -79,11 +81,7 @@ class LossUtilsTest(tf.test.TestCase):
         pairwise_reduction=common.DISTANCE_REDUCTION_MEAN,
         componentwise_reduction=tf.identity)(lhs, rhs)
 
-    with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
-      distances_result = sess.run(distances)
-
-    self.assertAllClose(distances_result, [56.0 / 6.0])
+    self.assertAllClose(distances, [56.0 / 6.0])
 
   def test_compute_negative_indicator_matrix(self):
     anchors = tf.constant([[1.0, 2.0], [3.0, 4.0]])
@@ -190,22 +188,12 @@ class LossUtilsTest(tf.test.TestCase):
              margin=20.0,
              use_semi_hard=True))
 
-    with self.session() as sess:
-      (loss_result, num_active_triplets_result,
-       anchor_negative_distances_result, mining_loss_result,
-       num_active_mining_triplets_result,
-       anchor_negative_mining_distances_result) = sess.run([
-           loss, num_active_triplets, anchor_negative_distances, mining_loss,
-           num_active_mining_triplets, anchor_negative_mining_distances
-       ])
-
-    self.assertAlmostEqual(loss_result, 22.0 / 3.0, places=4)
-    self.assertEqual(num_active_triplets_result, 2)
-    self.assertAllClose(anchor_negative_distances_result, [2.0, 32.0, 18.0])
-    self.assertAlmostEqual(mining_loss_result, 22.0 / 3.0, places=4)
-    self.assertEqual(num_active_mining_triplets_result, 2)
-    self.assertAllClose(anchor_negative_mining_distances_result,
-                        [2.0, 32.0, 18.0])
+    self.assertAlmostEqual(loss, 22.0 / 3.0, places=4)
+    self.assertEqual(num_active_triplets, 2)
+    self.assertAllClose(anchor_negative_distances, [2.0, 32.0, 18.0])
+    self.assertAlmostEqual(mining_loss, 22.0 / 3.0, places=4)
+    self.assertEqual(num_active_mining_triplets, 2)
+    self.assertAllClose(anchor_negative_mining_distances, [2.0, 32.0, 18.0])
 
   def test_compute_semi_hard_negative_triplet_loss_with_mining_distances(self):
     anchor_positive_distances = tf.constant([1.0, 2.0, 3.0])
@@ -237,22 +225,12 @@ class LossUtilsTest(tf.test.TestCase):
              anchor_match_mining_distance_matrix=(
                  anchor_match_mining_distance_matrix)))
 
-    with self.session() as sess:
-      (loss_result, num_active_triplets_result,
-       anchor_negative_distances_result, mining_loss_result,
-       num_active_mining_triplets_result,
-       anchor_negative_mining_distances_result) = sess.run([
-           loss, num_active_triplets, anchor_negative_distances, mining_loss,
-           num_active_mining_triplets, anchor_negative_mining_distances
-       ])
-
-    self.assertAlmostEqual(loss_result, 4.0 / 3.0, places=4)
-    self.assertEqual(num_active_triplets_result, 2)
-    self.assertAllClose(anchor_negative_distances_result, [4.0, 5.0, 12.0])
-    self.assertAlmostEqual(mining_loss_result, 1.0, places=4)
-    self.assertEqual(num_active_mining_triplets_result, 1)
-    self.assertAllClose(anchor_negative_mining_distances_result,
-                        [2.0, 32.0, 18.0])
+    self.assertAlmostEqual(loss, 4.0 / 3.0, places=4)
+    self.assertEqual(num_active_triplets, 2)
+    self.assertAllClose(anchor_negative_distances, [4.0, 5.0, 12.0])
+    self.assertAlmostEqual(mining_loss, 1.0, places=4)
+    self.assertEqual(num_active_mining_triplets, 1)
+    self.assertAllClose(anchor_negative_mining_distances, [2.0, 32.0, 18.0])
 
   def test_compute_keypoint_triplet_losses(self):
     # Shape = [3, 1, 1, 2].
@@ -296,12 +274,9 @@ class LossUtilsTest(tf.test.TestCase):
         exclude_inactive_triplet_loss=True,
         keypoint_distance_fn=mock_keypoint_distance_fn)
 
-    with self.session() as sess:
-      loss_result, summaries_result = sess.run([loss, summaries])
+    self.assertAlmostEqual(loss, 11.0)
 
-    self.assertAlmostEqual(loss_result, 11.0)
-
-    expected_summaries_result = {
+    expected_summaries = {
         'triplet_loss/Margin': 20.0,
         'triplet_loss/Anchor/Positive/Distance/Mean': 10.0 / 3,
         'triplet_loss/Anchor/Positive/Distance/Median': 2.0,
@@ -332,8 +307,7 @@ class LossUtilsTest(tf.test.TestCase):
         'triplet_mining/SemiHardNegative/ActiveTripletNum': 2,
         'triplet_mining/SemiHardNegative/ActiveTripletRatio': 2.0 / 3,
     }
-    self._assert_dict_equal_or_almost_equal(summaries_result,
-                                            expected_summaries_result)
+    self._assert_dict_equal_or_almost_equal(summaries, expected_summaries)
 
   def test_compute_sample_keypoint_triplet_losses(self):
     # Shape = [3, 3, 2, 2].
@@ -391,12 +365,9 @@ class LossUtilsTest(tf.test.TestCase):
                 tf.math.reduce_sum, axis=[-1])),
         keypoint_distance_fn=mock_keypoint_distance_fn)
 
-    with self.session() as sess:
-      loss_result, summaries_result = sess.run([loss, summaries])
+    self.assertAlmostEqual(loss, 132.0)
 
-    self.assertAlmostEqual(loss_result, 132.0)
-
-    expected_summaries_result = {
+    expected_summaries = {
         'triplet_loss/Margin': 240.0,
         'triplet_loss/Anchor/Positive/Distance/Mean': 120.0 / 3,
         'triplet_loss/Anchor/Positive/Distance/Median': 24.0,
@@ -427,8 +398,7 @@ class LossUtilsTest(tf.test.TestCase):
         'triplet_mining/SemiHardNegative/ActiveTripletNum': 2,
         'triplet_mining/SemiHardNegative/ActiveTripletRatio': 2.0 / 3,
     }
-    self._assert_dict_equal_or_almost_equal(summaries_result,
-                                            expected_summaries_result)
+    self._assert_dict_equal_or_almost_equal(summaries, expected_summaries)
 
   def test_compute_keypoint_triplet_losses_with_sample_mining_embeddings(self):
     # Shape = [3, 3, 1, 2].
@@ -503,12 +473,9 @@ class LossUtilsTest(tf.test.TestCase):
         positive_mining_embeddings=positive_mining_embeddings,
         match_mining_embeddings=match_mining_embeddings)
 
-    with self.session() as sess:
-      loss_result, summaries_result = sess.run([loss, summaries])
+    self.assertAlmostEqual(loss, 57.0)
 
-    self.assertAlmostEqual(loss_result, 57.0)
-
-    expected_summaries_result = {
+    expected_summaries = {
         'triplet_loss/Margin': 120.0,
         'triplet_loss/Anchor/Positive/Distance/Mean': 48.0 / 3,
         'triplet_loss/Anchor/Positive/Distance/Median': 12.0,
@@ -539,8 +506,7 @@ class LossUtilsTest(tf.test.TestCase):
         'triplet_mining/SemiHardNegative/ActiveTripletNum': 3,
         'triplet_mining/SemiHardNegative/ActiveTripletRatio': 1.0,
     }
-    self._assert_dict_equal_or_almost_equal(summaries_result,
-                                            expected_summaries_result)
+    self._assert_dict_equal_or_almost_equal(summaries, expected_summaries)
 
   def test_compute_kl_regularization_loss(self):
     means = tf.constant([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
@@ -548,21 +514,16 @@ class LossUtilsTest(tf.test.TestCase):
     weighted_loss, summaries = loss_utils.compute_kl_regularization_loss(
         means, stddevs, loss_weight=3.0)
 
-    with self.session() as sess:
-      weighted_loss_result, summaries_result = sess.run(
-          [weighted_loss, summaries])
+    self.assertAlmostEqual(weighted_loss.numpy(), 122.131123182, places=4)
 
-    self.assertAlmostEqual(weighted_loss_result, 122.131123182, places=4)
-
-    expected_summaries_result = {
+    expected_summaries = {
         'regularization_loss/KL/PriorMean/Mean': 0.0,
         'regularization_loss/KL/PriorVar/Mean': 1.0,
         'regularization_loss/KL/Loss/Original': 40.710374394,
         'regularization_loss/KL/Loss/Weighted': 122.131123182,
         'regularization_loss/KL/Loss/Weight': 3.0,
     }
-    self._assert_dict_equal_or_almost_equal(summaries_result,
-                                            expected_summaries_result)
+    self._assert_dict_equal_or_almost_equal(summaries, expected_summaries)
 
   def test_compute_positive_pairwise_loss(self):
     anchor_embeddings = tf.constant([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]],
@@ -572,19 +533,14 @@ class LossUtilsTest(tf.test.TestCase):
     weighted_loss, summaries = loss_utils.compute_positive_pairwise_loss(
         anchor_embeddings, positive_embeddings, loss_weight=6.0)
 
-    with self.session() as sess:
-      weighted_loss_result, summaries_result = sess.run(
-          [weighted_loss, summaries])
+    self.assertAlmostEqual(weighted_loss, 572.0)
 
-    self.assertAlmostEqual(weighted_loss_result, 572.0)
-
-    expected_summaries_result = {
+    expected_summaries = {
         'pairwise_loss/PositivePair/Loss/Original': 95.333333333,
         'pairwise_loss/PositivePair/Loss/Weighted': 572.0,
         'pairwise_loss/PositivePair/Loss/Weight': 6.0,
     }
-    self._assert_dict_equal_or_almost_equal(summaries_result,
-                                            expected_summaries_result)
+    self._assert_dict_equal_or_almost_equal(summaries, expected_summaries)
 
 
 if __name__ == '__main__':

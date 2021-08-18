@@ -67,11 +67,11 @@ ATOM_TYPE_TO_CHAR = {
     dataset_pb2.BondTopology.AtomType.ATOM_H: 'h'
 }
 ATOM_CHAR_TO_TYPE = {
-  'c': dataset_pb2.BondTopology.AtomType.ATOM_C,
-  'n': dataset_pb2.BondTopology.AtomType.ATOM_N,
-  'o': dataset_pb2.BondTopology.AtomType.ATOM_O,
-  'f': dataset_pb2.BondTopology.AtomType.ATOM_F,
-  'h': dataset_pb2.BondTopology.AtomType.ATOM_H,
+    'c': dataset_pb2.BondTopology.AtomType.ATOM_C,
+    'n': dataset_pb2.BondTopology.AtomType.ATOM_N,
+    'o': dataset_pb2.BondTopology.AtomType.ATOM_O,
+    'f': dataset_pb2.BondTopology.AtomType.ATOM_F,
+    'h': dataset_pb2.BondTopology.AtomType.ATOM_H,
 }
 ATOM_TYPE_TO_ATOMIC_NUMBER = {
     dataset_pb2.BondTopology.AtomType.ATOM_C: 6,
@@ -991,13 +991,14 @@ def should_include_in_standard(conformer):
   Returns:
     boolean
   """
-  # TODO(pfr): this logic needs to be rewritten on the next verison of the
+  # TODO(pfr): this logic needs to be rewritten on the next version of the
   # dataset
   if conformer_has_calculation_errors(conformer):
     return False
   if conformer.duplicated_by > 0:
     return False
   return True
+
 
 def conformer_to_standard(conformer):
   """Converts a Conformer from internal to 'Standard' form.

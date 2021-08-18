@@ -262,12 +262,10 @@ class SimhashCompressionOp(compression_op.CompressionOp):
                                      weight_init_obj.Constant(1.0), p.dtype)
       alpha_pc = weight_params_fn([], weight_init_obj.Constant(1.0), tf.float32)
 
-      layer_obj.CreateVariable(
-          'alpha', alpha_pc, theta_fn=None, trainable=False)
+      layer_obj.CreateVariable('alpha', alpha_pc, trainable=False)
       layer_obj.CreateVariable(
           'b_matrix_tfvar',
           b_matrix_pc,
-          theta_fn=None,
           trainable=self.matrix_compressor.get_spec().is_b_matrix_trainable)
 
     self.b_matrix_tfvar = layer_obj.vars.b_matrix_tfvar
@@ -647,17 +645,14 @@ class KMeansCompressionOp(compression_op.CompressionOp):
                                      c_matrix_tfvar_dtype)
       alpha_pc = weight_params_fn([], weight_init_obj.Constant(1.0), tf.float32)
 
-      layer_obj.CreateVariable(
-          'alpha', alpha_pc, theta_fn=None, trainable=False)
+      layer_obj.CreateVariable('alpha', alpha_pc, trainable=False)
       layer_obj.CreateVariable(
           'b_matrix_tfvar',
           b_matrix_pc,
-          theta_fn=None,
           trainable=self.matrix_compressor.get_spec().is_b_matrix_trainable)
       layer_obj.CreateVariable(
           'c_matrix_tfvar',
           c_matrix_pc,
-          theta_fn=None,
           trainable=self.matrix_compressor.get_spec().is_c_matrix_trainable)
 
       self.b_matrix_tfvar = layer_obj.vars.b_matrix_tfvar
@@ -946,11 +941,9 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
                              layer_obj,
                              var_name,
                              var_pc,
-                             var_theta_fn=None,
                              trainable=False):
     if not hasattr(layer_obj.vars, var_name):
-      layer_obj.CreateVariable(
-          var_name, var_pc, theta_fn=var_theta_fn, trainable=trainable)
+      layer_obj.CreateVariable(var_name, var_pc, trainable=trainable)
 
   def get_customized_apply_compression_op(self,
                                           a_matrix_tfvar,
@@ -991,9 +984,8 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
                                  p.dtype)
       threshold_pc = weight_params_fn([], weight_init_obj.Constant(0.0),
                                       tf.float32)
-      self._create_layer_variable(layer_obj, 'mask', mask_pc, None, False)
-      self._create_layer_variable(layer_obj, 'threshold', threshold_pc, None,
-                                  False)
+      self._create_layer_variable(layer_obj, 'mask', mask_pc, False)
+      self._create_layer_variable(layer_obj, 'threshold', threshold_pc, False)
       if layer_obj.vars.mask not in tf.get_collection(pruning.MASK_COLLECTION):
         tf.add_to_collection(pruning.WEIGHT_COLLECTION, layer_obj.vars.wm)
         tf.add_to_collection(pruning.MASK_COLLECTION, layer_obj.vars.mask)
@@ -1004,11 +996,9 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
       ]:
         grad_pc = weight_params_fn(a_matrix.shape,
                                    weight_init_obj.Constant(0.0), p.dtype)
-        self._create_layer_variable(layer_obj, 'gradient', grad_pc, None, False)
-        self._create_layer_variable(layer_obj, 'old_weight', grad_pc, None,
-                                    False)
-        self._create_layer_variable(layer_obj, 'old_old_weight', grad_pc, None,
-                                    False)
+        self._create_layer_variable(layer_obj, 'gradient', grad_pc, False)
+        self._create_layer_variable(layer_obj, 'old_weight', grad_pc, False)
+        self._create_layer_variable(layer_obj, 'old_old_weight', grad_pc, False)
         tf.add_to_collection(pruning.WEIGHT_GRADIENT_COLLECTION,
                              layer_obj.vars.gradient)
         tf.add_to_collection(pruning.OLD_WEIGHT_COLLECTION,
@@ -1022,18 +1012,16 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
                                      weight_init_obj.Constant(1), tf.int32)
       alpha_pc = weight_params_fn([], weight_init_obj.Constant(1.0), tf.float32)
 
-      self._create_layer_variable(layer_obj, 'alpha', alpha_pc, None, False)
+      self._create_layer_variable(layer_obj, 'alpha', alpha_pc, False)
       self._create_layer_variable(
           layer_obj,
           'b_matrix_tfvar',
           b_matrix_pc,
-          None,
           trainable=self.matrix_compressor.get_spec().is_b_matrix_trainable)
       self._create_layer_variable(
           layer_obj,
           'c_matrix_tfvar',
           c_matrix_pc,
-          None,
           trainable=self.matrix_compressor.get_spec().is_c_matrix_trainable)
 
       self.b_matrix_tfvar = layer_obj.vars.b_matrix_tfvar

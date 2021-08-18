@@ -135,16 +135,16 @@ def update_metric_to_predictions(
       predicted future values in the forecasting window, starting with
       train_end_of_window. Therefore, we will compare values with
     gt_data[train_end_of_window:train_end_of_window + num_forecast_steps]
-    time_horizon_offset: Optional integer offset to be subtracted from
-      the time horizon value of the prediction. It can be used to ensure the
-      first prediction data point starts from time_horizon=1 when training
-      window is also in values.
+    time_horizon_offset: Optional integer offset to be subtracted from the time
+      horizon value of the prediction. It can be used to ensure the first
+      prediction data point starts from time_horizon=1 when training window is
+      also in values.
     quantiles: Defines quantile values used in the quantile forecast. None if
       quantile forecast is not used.
     quantiles_output: If defined, only export quantile values in this list.
     metric_string_format: Defines an optional metric string pattern in returned
-    dict. It will be formatted with metric (and quantile if quantile forecast is
-      used).
+      dict. It will be formatted with metric (and quantile if quantile forecast
+      is used).
 
   Returns:
     The updated dictionary mapping metrics to model predictions.
@@ -185,7 +185,7 @@ def inv_sig(x, lb=0, ub=1):
   """Inverse of sigmoid function given the bounds."""
 
   assert x > lb
-  return np.log((x-lb)/np.max([ub-x, 1e-6]))
+  return np.log((x - lb) / np.max([ub - x, 1e-6]))
 
 
 def inv_softplus(x):

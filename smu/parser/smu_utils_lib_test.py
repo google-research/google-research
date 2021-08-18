@@ -787,7 +787,7 @@ class FilterConformerByAvailabilityTest(absltest.TestCase):
     # A COMPLETE field
     properties.zpe_unscaled.value = 1.23
     # An INTERNAL_ONLY field
-    properties.compute_cluster_info = "some value"
+    properties.compute_cluster_info = 'not set'
 
   def test_standard(self):
     smu_utils_lib.filter_conformer_by_availability(self.conformer,

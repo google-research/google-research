@@ -85,6 +85,15 @@ class InMemoryClusterer {
   virtual absl::StatusOr<Clustering> Cluster(
       const ClustererConfig& config) const = 0;
 
+  // Same as above, except that it returns a sequence of clusterings. The last
+  // element of the sequence is the final clustering. This is primarily used for
+  // hierarchical clusterings, but callers should NOT assume that there is a
+  // strict hierarchy structure (i.e. that clusters in clustering i are obtained
+  // by merging clusters from clustering i-1). The default implementation
+  // returns a single-element vector with the result of Cluster().
+  virtual absl::StatusOr<std::vector<Clustering>> HierarchicalCluster(
+      const ClustererConfig& config) const;
+
   // Refines a list of clusters and redirects the given pointer to new clusters.
   // This function is useful for methods that can refine / operate on an
   // existing clustering. It does not take ownership of clustering. The default

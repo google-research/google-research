@@ -267,9 +267,12 @@ def to_streaming_inference(model_non_stream, flags, mode):
   """
   tf.keras.backend.set_learning_phase(0)
   input_data_shape = modes.get_input_data_shape(flags, mode)
+
+  # get input data type and use it for input streaming type
+  dtype = model_non_stream.input.dtype
   input_tensors = [
       tf.keras.layers.Input(
-          shape=input_data_shape, batch_size=1, name='input_audio')
+          shape=input_data_shape, batch_size=1, dtype=dtype, name='input_audio')
   ]
   quantize_stream_scope = quantize.quantize_scope()
   with quantize_stream_scope:

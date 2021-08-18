@@ -33,7 +33,9 @@ for a quick overview.
   [RAG](https://ai.facebook.com/blog/retrieval-augmented-generation-streamlining-the-creation-of-intelligent-natural-language-processing-models/),
   [T5](https://arxiv.org/abs/1910.10683)/[Mesh TF](https://arxiv.org/abs/1811.02084)
   , e.g. **+4.11, +5.78, +9.14 Rouge-L improvement** over T5/Mesh TF, BART + DPR
-  and RAG respectively.
+  and RAG respectively. Check out the source code and pre-trained model weights
+  at Kalpesh's Github [repository](https://github.com/martiansideofthemoon/hurdles-longform-qa).
+
 
 ## Pre-trained PG-19 Checkpoint <a name="pg19"></a>
 

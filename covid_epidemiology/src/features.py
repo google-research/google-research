@@ -121,11 +121,11 @@ def splice_data(from_df, to_df,
 
   # checks
   from_df_features = from_df[constants.FEATURE_NAME_COLUMN].unique().tolist()
-  assert all(e in [f for f in from_df_features] for e in feature_map.keys()), (
+  assert all(e in from_df_features for e in feature_map.keys()), (
       "All {} source features not in {} ".format(feature_map.keys(),
                                                  from_df_features))
   to_df_features = to_df[constants.FEATURE_NAME_COLUMN].unique().tolist()
-  assert all(e in [f for f in to_df_features] for e in feature_map.values()), (
+  assert all(e in to_df_features for e in feature_map.values()), (
       "All {} target features not in {} ".format(feature_map.values(),
                                                  to_df_features))
 

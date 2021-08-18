@@ -40,40 +40,83 @@ from non_semantic_speech_benchmark import file_utils
 from non_semantic_speech_benchmark.export_model import tf_frontend
 
 
-def _tfexample_audio_to_npfloat32(ex, audio_key):
+def tfexample_audio_to_npfloat32(ex, audio_key, normalize_to_pm_one):
   """Extract audio from tf.Example and convert it to np.float32."""
   audio_feats = ex.features.feature[audio_key]
+  iinfo = np.iinfo(np.int16)
   if audio_feats.int64_list.value:
     audio = np.array(audio_feats.int64_list.value)
     # Even though the data is in an int64 container, the data is actually int16.
-    iinfo = np.iinfo(np.int16)
     assert np.logical_and(audio >= iinfo.min, audio <= iinfo.max).all(),\
         (np.min(audio), np.max(audio), iinfo.min, iinfo.max)
-    audio = audio.astype(np.float32) / iinfo.max
+    audio = audio.astype(np.float32)
+    if normalize_to_pm_one:
+      audio /= iinfo.max
   else:
     assert audio_feats.float_list.value
     audio = np.array(audio_feats.float_list.value, dtype=np.float32)
+    if not normalize_to_pm_one:
+      audio *= iinfo.max
   return audio
 
 
-def _samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
+def samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key, name):
   """Run inference to map a single audio sample to an embedding."""
+  logging.info('[%s] Module input shape: %s', name, model_input.shape)
+  # Some modules have signatures. If they do, they should only have one valid
+  # signature, and we should use that one. Otherwise, raise an error.
+  if callable(mod):
+    logging.info('[%s] is callable.', name)
+    sig = None
+  else:
+    logging.info('[%s] has signatures.', name)
+    if not hasattr(mod, 'signatures'):
+      raise ValueError(f'[{name}] Not callable and no signatures.')
+    if not mod.signatures:
+      raise ValueError(f'[{name}] Expected signatures, but they were empty.')
+    all_sigs = [s for s in mod.signatures if not s.startswith('_')]
+    valid_sigs = [s for s in all_sigs if not s.startswith('_')]
+    if len(valid_sigs) != 1:
+      raise ValueError(
+          f'[{name}] Didn\'t find exactly one valid signature: {all_sigs}')
+    sig = valid_sigs[0]
+    logging.info('[%s] Using signatures, and found: %s', name, sig)
   # Models either take 2 args (input, sample_rate) or 1 arg (input).
   # The first argument is either 1 dimensional (samples) or 2 dimensional
   # (batch, samples).
   # Try all. Order here matters. We must try "2 args" before "1 arg", otherwise
   # models that use sample rate might ignore it.
+  errors = []  # Track errors. Display if none of them work.
+  tf_out = None
   for num_args, add_batch_dim in [(2, False), (1, False), (2, True), (1, True)]:
-    cur_model_input = (np.expand_dims(model_input, 0) if add_batch_dim
+    cur_model_input = (tf.expand_dims(model_input, 0) if add_batch_dim
                        else model_input)
     func_args = ((cur_model_input,) if num_args == 1 else
                  (cur_model_input, sample_rate))
     try:
-      tf_out = mod(*func_args)
-    except ValueError:
+      if sig:
+        tf_out = mod.signatures[sig](*func_args)
+      else:
+        tf_out = mod(*func_args)
+    except (ValueError, TypeError,
+            tf.errors.InvalidArgumentError) as e:
+      # Track errors and print them only if none of the expected signatures
+      # work.
+      errors.append(e)
       continue
+    logging.info('[%s] Succeeded with num args %i, add_batch_dim %s', name,
+                 num_args, add_batch_dim)
     break
-  ret = np.array(tf_out[output_key])
+  if tf_out is None:
+    raise ValueError(f'[{name}] None of the signatures worked: {errors}')
+  if isinstance(tf_out, dict):
+    if output_key not in tf_out:
+      raise ValueError(
+          f'[{name}] Key not recognized: "{output_key}" vs {tf_out.keys()}')
+    ret = tf_out[output_key]
+  else:
+    ret = tf_out
+  ret = np.array(ret)
   if ret.ndim > 2:
     # Batch-flatten in numpy.
     ret = np.reshape(ret, [ret.shape[0], -1])
@@ -97,7 +140,7 @@ def _default_feature_fn(samples, sample_rate):
 
 
 def samples_to_embedding_tflite(model_input, sample_rate, interpreter,
-                                output_key):
+                                output_key, name):
   """Run TFLite inference to map audio samples to an embedding."""
   input_details = interpreter.get_input_details()
   output_details = interpreter.get_output_details()
@@ -105,7 +148,7 @@ def samples_to_embedding_tflite(model_input, sample_rate, interpreter,
   # Ideally, we should explore if we can use fixed-size input here, and
   # tile the sample to meet TFLite input size.
   if not np.array_equal(model_input.shape, input_details[0]['shape']):
-    logging.info('TFLite input, actual vs expected: %s vs %s',
+    logging.info('[%s] TFLite input, actual vs expected: %s vs %s', name,
                  model_input.shape, input_details[0]['shape'])
   interpreter.resize_tensor_input(input_details[0]['index'], model_input.shape)
   interpreter.allocate_tensors()
@@ -135,7 +178,9 @@ class ComputeEmbeddingMapFn(beam.DoFn):
                sample_rate,
                average_over_time,
                feature_fn=None,
-               model_input_min_length=None):
+               model_input_min_length=None,
+               target_sample_rate=16000,
+               module_call_fn=samples_to_embedding_tfhub):
     self._name = name
     # If TFLite should be used, `module` should point to a flatbuffer model.
     self._module = module
@@ -149,6 +194,8 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     self._average_over_time = average_over_time
     self._feature_fn = feature_fn
     self._model_input_min_length = model_input_min_length
+    self._target_sample_rate = target_sample_rate
+    self._mod_call_fn = module_call_fn
 
     # Only one of `sample_rate_key` and `sample_rate` should be not None.
     assert (self._sample_rate_key is None) ^ (self._sample_rate is None),\
@@ -160,21 +207,23 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     else:
       self.module = hub.load(self._module)
 
-  def process(self, k_v):
-    k, ex = k_v
-
-    # Read the input example audio and assert input format sanity.
+  def read_audio_from_tfexample(self, ex, k, normalize_to_pm_one=True):
+    """Reads the audio samples from a tf.Example, and assert input sanity."""
     if self._audio_key not in ex.features.feature:
       raise ValueError(f'Audio key `{self._audio_key}` not found: '
                        f'{list(ex.features.feature.keys())}')
-    audio = _tfexample_audio_to_npfloat32(ex, self._audio_key)
+    audio = tfexample_audio_to_npfloat32(ex, self._audio_key,
+                                         normalize_to_pm_one)
     assert audio.ndim == 1, audio.ndim
     if audio.size == 0:
       raise ValueError(f'No audio found: {self._audio_key}, {audio.size} {k}')
     beam.metrics.Metrics.distribution(
         'computed-embedding-audio', 'length').update(audio.size)
 
-    # Read the sample rate, if a key to do so has been provided.
+    return audio
+
+  def read_sample_rate_from_tfexample(self, ex):
+    """Reads the sample rate from a tf.Example."""
     if self._sample_rate_key:
       if self._sample_rate_key not in ex.features.feature:
         raise ValueError(f'Sample rate key not found: {self._sample_rate_key}')
@@ -193,16 +242,16 @@ class ComputeEmbeddingMapFn(beam.DoFn):
         raise ValueError('If `sample_rate_key` not provided, must provide '
                          '`sample_rate`.')
       sample_rate = self._sample_rate
-    logging.info(
-        'len(audio): %s / %s / %s', len(audio), sample_rate, self._name)
 
-    # Resample, if necessary.
-    if sample_rate != 16000:
-      audio = librosa.core.resample(
-          audio, orig_sr=sample_rate, target_sr=16000, res_type='kaiser_best')
-      sample_rate = 16000
+    return sample_rate
 
-    # Convert audio to features, if required.
+  def resample(self, audio, sample_rate, target_sr):
+    """Resample audio to target."""
+    return librosa.core.resample(
+        audio, orig_sr=sample_rate, target_sr=target_sr, res_type='kaiser_best')
+
+  def audio_to_features(self, audio, sample_rate):
+    """Convert audio to features, if required."""
     if self._feature_fn:
       model_input = self._feature_fn(audio, sample_rate)
       if not isinstance(model_input, np.ndarray):
@@ -218,16 +267,45 @@ class ComputeEmbeddingMapFn(beam.DoFn):
         model_input = np.expand_dims(model_input, axis=0)
     logging.info('`model_input` shape is: %s', model_input.shape)
 
+    return model_input
+
+  def process(self, k_v):
+    k, ex = k_v
+
+    # Read the input example audio and assert input format sanity.
+    audio = self.read_audio_from_tfexample(ex, k)
+
+    # Read the sample rate, if a key to do so has been provided.
+    sample_rate = self.read_sample_rate_from_tfexample(ex)
+
+    logging.info('len(audio): %s / %s / %s', len(audio), sample_rate,
+                 self._name)
+
+    # Resample, if necessary.
+    if sample_rate != self._target_sample_rate:
+      audio = self.resample(
+          audio, sample_rate, target_sr=self._target_sample_rate)
+      sample_rate = self._target_sample_rate
+
+    # Convert audio to features, if required.
+    model_input = self.audio_to_features(audio, sample_rate)
+
     # Calculate the 2D embedding.
     if self._use_tflite:
       embedding_2d = samples_to_embedding_tflite(
-          model_input, sample_rate, self.interpreter, self._output_key)
+          model_input, sample_rate, self.interpreter, self._output_key,
+          self._name)
     else:
-      embedding_2d = _samples_to_embedding_tfhub(
-          model_input, sample_rate, self.module, self._output_key)
+      # A custom call function with the same input and output signature as
+      # _sample_to_embedding_tfhub can be used
+      # (_sample_to_embedding_tfhub is default).
+      embedding_2d = self._mod_call_fn(model_input, sample_rate, self.module,
+                                       self._output_key, self._name)
     assert isinstance(embedding_2d, np.ndarray)
     assert embedding_2d.ndim == 2
     assert embedding_2d.dtype == np.float32
+    logging.info('[%s] `embedding_2d` shape: %s', self._name,
+                 embedding_2d.shape)
     beam.metrics.Metrics.counter('computed-embedding', self._name).inc()
     beam.metrics.Metrics.distribution(f'computed-embedding-{self._name}',
                                       'length').update(embedding_2d.shape[0])

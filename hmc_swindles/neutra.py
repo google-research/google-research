@@ -147,11 +147,11 @@ def MakeAffineBijectorFn(num_dims, train=False, use_tril=False):
     tril_raw = tfp.math.fill_triangular(tril_flat)
     sigma = tf.nn.softplus(tf.linalg.diag_part(tril_raw))
     tril = tf.linalg.set_diag(tril_raw, sigma)
-    return tfb.Affine(shift=mu, scale_tril=tril)
+    return tfb.Shift(shift=mu)(tfb.ScaleMatvecTriL(scale_tril=tril))
   else:
     sigma = tf.nn.softplus(
         tf.Variable(tf.zeros([num_dims]), name="invpsigma", trainable=train))
-    return tfb.Affine(shift=mu, scale_diag=sigma)
+    return tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma))
 
 
 @gin.configurable("rnvp_bijector")
@@ -189,7 +189,7 @@ def MakeRNVPBijectorFn(num_dims,
   if learn_scale:
     scale = tf.Variable(tfp.math.softplus_inverse(scale),
                         name="isp_global_scale")
-  bijectors.append(tfb.Affine(scale_identity_multiplier=scale))
+  bijectors.append(tfb.Scale(scale=scale))
 
   bijector = tfb.Chain(bijectors)
 

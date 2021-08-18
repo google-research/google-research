@@ -16,6 +16,7 @@
 """This module contains utilities for source code tokenization."""
 
 import abc
+import dataclasses
 import tokenize
 from typing import Collection
 from typing import Dict
@@ -24,8 +25,6 @@ from typing import Mapping
 from typing import Sequence
 from typing import Text
 from typing import Union
-
-import dataclasses
 
 from cubert import unified_tokenizer
 

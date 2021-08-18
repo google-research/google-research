@@ -115,6 +115,10 @@ class _ShampooHyperParams:
   # https://arxiv.org/pdf/2002.11803.pdf
   graft_type: int
 
+  # Avoids preconditioning large layers to reduce overall memory usage if any
+  # of the dimensions are greater than this value.
+  no_preconditioning_for_layers_with_dim_gt: int
+
   # Nesterov momentum
   nesterov: bool
   # Exponent override (if > 0):
@@ -464,6 +468,7 @@ class Shampoo(OptimizerDef):
                block_size=128,
                best_effort_shape_interpretation=True,
                graft_type=LayerwiseGrafting.SGD,
+               no_preconditioning_for_layers_with_dim_gt=8192,
                nesterov=True,
                exponent_override=0,
                batch_axis_name=None):
@@ -493,6 +498,8 @@ class Shampoo(OptimizerDef):
         this value. Use 128 as default (increase if you have compute budget).
       best_effort_shape_interpretation:
       graft_type: Options are: LayerwiseGrafting.SGD, LayerwiseGrafting.ADAGRAD
+      no_preconditioning_for_layers_with_dim_gt: Avoids preconditioning large
+        layers to reduce overall memory usage.
       nesterov: Nesterov momentum.
       exponent_override: Override the exponent used in matrix inverse.
       batch_axis_name: labeled axis over pmap for dataparallel training the
@@ -511,6 +518,7 @@ class Shampoo(OptimizerDef):
         block_size,
         best_effort_shape_interpretation,
         graft_type=graft_type,
+        no_preconditioning_for_layers_with_dim_gt=no_preconditioning_for_layers_with_dim_gt,
         nesterov=nesterov,
         exponent_override=exponent_override,
         batch_axis_name=batch_axis_name)
@@ -519,12 +527,11 @@ class Shampoo(OptimizerDef):
 
   def init_param_state(self, param):
     """Initialize parameter state."""
-    rank = len(param.shape)
     hps = self.hyper_params
-    preconditioner = Preconditioner(param, hps)
     statistics = []
     preconditioners = []
-    if rank >= 1:
+    if not self._skip_preconditioning(param, hps):
+      preconditioner = Preconditioner(param, hps)
       shapes = preconditioner.shapes_for_preconditioners()
       statistics = [
           self.hyper_params.matrix_eps * jnp.eye(s[0]) for s in shapes
@@ -540,7 +547,9 @@ class Shampoo(OptimizerDef):
                                      jnp.zeros_like(param))
 
   def _skip_preconditioning(self, param, hps):
-    return len(param.shape) < 1
+    return (len(param.shape) < 1 or any([
+        s > hps.no_preconditioning_for_layers_with_dim_gt for s in param.shape
+    ]))
 
   def fast_cond(self, predicate, compute_fn, init_state, *args, **kwargs):
     """Avoids wasteful buffer allocation with XLA."""

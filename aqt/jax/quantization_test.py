@@ -148,6 +148,87 @@ class QuantOpsTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
       dict(
+          testcase_name='fp_act_symmetric',
+          act_distribution='symmetric',
+          use_hparams_bounds=False,
+      ),
+      # TODO(b/193561347): FP quantization with positive input distribution is
+      # not supported yet
+      dict(
+          testcase_name='fp_act_positive',
+          act_distribution='positive',
+          use_hparams_bounds=False,
+      ),
+      dict(
+          testcase_name='fp_act_symmetric_hyper_bounds',
+          act_distribution='symmetric',
+          use_hparams_bounds=True,
+      ),
+      dict(
+          testcase_name='fp_act_positive_hyper_bounds',
+          act_distribution='positive',
+          use_hparams_bounds=True,
+      ),
+  )
+  def test_attributes_create_acts_op_fp(
+      self,
+      act_distribution,
+      use_hparams_bounds,
+  ):
+    inputs = jnp.array(fp32(2.0 * onp.random.uniform(0, 1.0, size=(10, 4))))
+    fp_quant = QuantOps.FloatQuant(
+        is_scaled=True,
+        fp_spec=QuantOps.FloatQuant.FloatPrec(
+            exp_min=-15,
+            exp_max=15,
+            sig_bits=2,
+        ),
+    )
+    if use_hparams_bounds:
+      bounds = get_bounds.GetBounds.Hyper(
+          initial_bound=6.0,
+          stddev_coeff=1,
+          absdev_coeff=0,
+          mix_coeff=1,
+          reset_stats=True,
+          ema_coeff=None,
+          use_cams=False,
+          granularity=quant_config.QuantGranularity.per_tensor)
+    else:
+      bounds = 6.0
+
+    hparams = QuantOps.ActHParams(
+        input_distribution=act_distribution, bounds=bounds, prec=fp_quant,
+        half_shift=False)
+
+    class TestModule(nn.Module):
+      hparams: QuantOps.ActHParams
+
+      @nn.compact
+      def __call__(self, inputs):
+        return QuantOps.create_input_ops(
+            inputs,
+            hparams=hparams,
+            get_bounds_params=GetBounds.Params(
+                update_stats=False,
+                update_bounds=False))
+
+    test_module = TestModule(hparams=hparams)
+    state = test_module.init(jax.random.PRNGKey(0), inputs=inputs)
+    act_quant_op = test_module.apply(state, inputs=inputs)
+
+    act_scaled = (inputs * act_quant_op._scale).astype(inputs.dtype)
+    act_quant_expected = fp_cast.downcast_sat_ftz(
+        act_scaled,
+        fp_quant.fp_spec.exp_min,
+        fp_quant.fp_spec.exp_max,
+        fp_quant.fp_spec.sig_bits,
+    )
+    act_quant_calculated = act_quant_op.to_quantized(inputs, dtype=SCALE_DTYPE)
+    onp.testing.assert_array_equal(act_quant_expected, act_quant_calculated)
+
+  @parameterized.named_parameters(
+      dict(
           testcase_name='pos_weight_prec_2',
           weight_range=[2.0, 10.0],
           weight_shape=(10, 1),
@@ -453,7 +534,35 @@ class QuantOpsTest(parameterized.TestCase):
 
     onp.testing.assert_array_equal(weights * weight_scale, scaled_weights)
 
-  def test_no_quantization(self):
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='fp_prec_scaled',
+          prec=QuantOps.FloatQuant(
+              is_scaled=True,
+              fp_spec=QuantOps.FloatQuant.FloatPrec(
+                  exp_min=-11,
+                  exp_max=4,
+                  sig_bits=3,
+              ),
+          ),
+      ),
+      dict(
+          testcase_name='fp_prec_unscaled',
+          prec=QuantOps.FloatQuant(
+              is_scaled=False,
+              fp_spec=QuantOps.FloatQuant.FloatPrec(
+                  exp_min=-11,
+                  exp_max=4,
+                  sig_bits=3,
+              ),
+          ),
+      ),
+      dict(
+          testcase_name='int_prec',
+          prec=4.0,
+      ),
+  )
+  def test_no_quantization(self, prec):
     # If initial_bound==-1 when using GetBounds, then create_inputs_fake_quant
     # should be a no-op.
     inputs = jnp.array([[.3, 1.4], [-5.2, 4.0]])
@@ -467,7 +576,10 @@ class QuantOpsTest(parameterized.TestCase):
         use_cams=False,
         granularity=quant_config.QuantGranularity.per_tensor)
     hparams = quantization.QuantOps.ActHParams(
-        input_distribution='symmetric', bounds=bounds, prec=4, half_shift=False)
+        input_distribution='symmetric',
+        bounds=bounds,
+        prec=prec,
+        half_shift=False)
 
     # The call to create_inputs_fake_quant has to occur from within a Flax
     # module since it calls GetBounds, which is itself a Flax module.
@@ -570,6 +682,89 @@ class AQTTest(parameterized.TestCase):
           prefer_int8_to_int32_dot=True)
 
     aqt_result = quantized_matmul(QuantType.aqt)
+    fakequant_result = quantized_matmul(QuantType.fake_quant)
+    onp.testing.assert_allclose(
+        aqt_result,
+        fakequant_result,
+        rtol=1e-2,
+        err_msg='AQT and fakequant significantly disagree')
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='per_layer_act_per_column_weight',
+          act_bounds=4.0,
+          weight_prec=16,
+          weight_axis=(0,),
+      ),
+      dict(
+          testcase_name='per_column_act_per_column_weight',
+          act_bounds=[[[3.0, 4.0]]],
+          weight_prec=16,
+          weight_axis=(0,)),
+      dict(
+          testcase_name='per_layer_act_per_layer_weight',
+          act_bounds=4.0,
+          weight_prec=16,
+          weight_axis=None),
+      dict(
+          testcase_name='per_column_act_per_layer_weight',
+          act_bounds=[[[3.0, 4.0]]],
+          weight_prec=16,
+          weight_axis=None),
+      dict(
+          testcase_name='per_layer_act_no_weight_quant',
+          act_bounds=4.0,
+          weight_prec=None,
+          weight_axis=None),
+      dict(
+          testcase_name='per_column_act_no_weight_quant',
+          act_bounds=[[[3.0, 4.0]]],
+          weight_prec=None,
+          weight_axis=None),
+      dict(
+          testcase_name='no_act_quant_per_column_weight',
+          act_bounds=None,
+          weight_prec=16,
+          weight_axis=(0,)),
+      dict(
+          testcase_name='no_act_quant_no_weight_quant',
+          act_bounds=None,
+          weight_prec=None,
+          weight_axis=None),
+  )
+  def test_quantized_dot_general_aqt(self, act_bounds, weight_prec,
+                                     weight_axis):
+    # With a high enough precision, we expect results from fakequant and AQT to
+    # be very similar.
+    weight_params = QuantOps.WeightParams(
+        prec=weight_prec, axis=weight_axis, half_shift=False)
+
+    if act_bounds is None:
+      act_params = None
+    else:
+      act_params = QuantOps.ActHParams(
+          input_distribution='symmetric',
+          bounds=jnp.array(act_bounds),
+          prec=16,
+          half_shift=False)
+
+    lhs_ndims_3 = jnp.array(
+        fp32(2.0 * onp.random.uniform(0, 1.0, size=(4, 3, 2))))
+
+    def quantized_matmul(quant_type):
+      return quantization.quantized_dot_general(
+          w=self.rhs,
+          act=lhs_ndims_3,
+          weight_params=weight_params,
+          act_hparams=act_params,
+          get_bounds_params=None,
+          quant_type=quant_type,
+          dimension_numbers=(((lhs_ndims_3.ndim - 1,), (0,)), ((), ())),
+          prefer_int8_to_int32_dot=True)
+
+    aqt_result = quantized_matmul(QuantType.aqt)
+    self.assertEqual(aqt_result.shape, (4, 3, 4))
+
     fakequant_result = quantized_matmul(QuantType.fake_quant)
     onp.testing.assert_allclose(
         aqt_result,

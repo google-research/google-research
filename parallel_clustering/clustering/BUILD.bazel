@@ -36,6 +36,9 @@ proto_library(
     srcs = [
         "config.proto",
     ],
+    deps = [
+        "//clustering/util:dynamic_weight_threshold_proto",
+    ],
 )
 
 cc_proto_library(
@@ -57,6 +60,7 @@ cc_library(
     hdrs = ["in-memory-clusterer.h"],
     deps = [
         ":config_cc_proto",
+        ":status_macros",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
