@@ -87,7 +87,7 @@ def main(_):
   else:
     logging.info("No GPU device found. Falling back to CPU.")
     device = torch.device("cpu")
-  logging.info(f"Using device: {FLAGS.device}")
+  logging.info(f"Using device: {FLAGS.device}")  # pylint: disable=logging-format-interpolation
 
   # Set RNG seeds.
   if FLAGS.seed is not None:

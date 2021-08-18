@@ -34,6 +34,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("experiment_name", None, "Experiment name.")
 flags.DEFINE_boolean("resume", False, "Whether to resume training.")
 flags.DEFINE_boolean("raw_imagenet", False, "")
+flags.DEFINE_string("device", "cuda:0", "The compute device.")
 
 config_flags.DEFINE_config_file(
     "config",
@@ -53,6 +54,14 @@ def main(_):
   if FLAGS.raw_imagenet:
     return
 
+  # Setup compute device.
+  if torch.cuda.is_available():
+    device = torch.device(FLAGS.device)
+  else:
+    logging.info("No GPU device found. Falling back to CPU.")
+    device = torch.device("cpu")
+  logging.info(f"Using device: {FLAGS.device}")  # pylint: disable=logging-format-interpolation
+
   # Set RNG seeds.
   if FLAGS.config.SEED is not None:
     logging.info(f"Pretraining experiment seed: {FLAGS.config.SEED}")  # pylint: disable=logging-format-interpolation
@@ -60,14 +69,6 @@ def main(_):
     set_cudnn(FLAGS.config.CUDNN_DETERMINISTIC, FLAGS.config.CUDNN_BENCHMARK)
   else:
     logging.info("No RNG seed has been set for this pretraining experiment.")
-
-  # Setup compute device.
-  if torch.cuda.is_available():
-    device = torch.device("cuda")
-    logging.info(f"Using GPU {torch.cuda.get_device_name(device)}.")  # pylint: disable=logging-format-interpolation
-  else:
-    logging.info("No GPU found. Falling back to CPU.")
-    device = torch.device("cpu")
 
   logger = Logger(osp.join(exp_dir, "tb"), FLAGS.resume)
 
