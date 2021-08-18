@@ -16,7 +16,7 @@
 set -e
 set -x
 
-EMBODIMENT="longstick"
+EMBODIMENT="mediumstick"
 NAME="env_reward_$EMBODIMENT"
 
 for seed in {0..2}
@@ -26,6 +26,7 @@ do
         --embodiment=$EMBODIMENT \
         --seed=$seed \
         --device="cuda:0" \
+        --config.num_train_steps=250000 \
         &
 done
 
@@ -36,5 +37,6 @@ do
         --embodiment=$EMBODIMENT \
         --seed=$seed \
         --device="cuda:1" \
+        --config.num_train_steps=250000 \
         &
 done

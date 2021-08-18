@@ -168,12 +168,12 @@ def wrap_learned_reward(
   """Wrap the environment with a learned reward wrapper.
 
   Args:
-    env: A `gym.Env` to wrap with a `VisualRewardWrapper` wrapper.
+    env: A `gym.Env` to wrap with a `LearnedVisualRewardWrapper` wrapper.
     pretrained_path: Path to a pretrained `xirl.models.SelfSupervisedModel`.
     rl_config:
   """
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  model_config, model = common.load_model_checkpoint(pretrained_path, device)
+  model_config, model = load_model_checkpoint(pretrained_path, device)
 
   kwargs = {
       "env": env,
@@ -183,10 +183,10 @@ def wrap_learned_reward(
   }
 
   if rl_config.reward_wrapper.type == "goal_classifier":
-    env = wrappers.GoalClassifierVisualReward(**kwargs)
+    env = wrappers.GoalClassifierLearnedVisualReward(**kwargs)
 
   elif rl_config.reward_wrapper.type == "distance_to_goal":
-    kwargs["goal_emb"] = common.load_goal_embedding(pretrained_path)
+    kwargs["goal_emb"] = load_goal_embedding(pretrained_path)
     if rl_config.reward_wrapper.distance_func == "sigmoid":
 
       def sigmoid(x, t=1.0):
@@ -196,7 +196,7 @@ def wrap_learned_reward(
           sigmoid,
           rl_config.reward_wrapper.distance_func_temperature,
       )
-    env = wrappers.DistanceToGoalVisualReward(**kwargs)
+    env = wrappers.DistanceToGoalLearnedVisualReward(**kwargs)
 
   else:
     raise ValueError(

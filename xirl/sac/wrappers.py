@@ -131,101 +131,6 @@ class RewardScale(gym.Wrapper):
     return obs, reward, done, info
 
 
-class VisualRewardWrapper(abc.ABC, gym.Wrapper):
-  """Base wrapper class that replaces the env reward with a learned one.
-  
-  Subclasses should implement the `_get_reward_from_image` method.
-  """
-
-  def __init__(
-      self,
-      env: gym.Env,
-      model: ModelType,
-      device: torch.device,
-      res_hw: typing.Optional[typing.Tuple[int, int]] = None,
-  ):
-    """Constructor.
-
-    Args:
-      env: A gym env.
-      model: A model that ingests RGB frames and returns embeddings. Should be a
-        subclass of `xirl.models.SelfSupervisedModel`.
-      device: Compute device.
-      res_hw: Optional (H, W) to resize the environment image before feeding it
-        to the model.
-    """
-    super().__init__(env)
-
-    self._device = device
-    self._model = model.to(device).eval()
-    self._res_hw = res_hw
-
-  def _to_tensor(self, x: np.ndarray) -> TensorType:
-    x = torch.from_numpy(x).permute(2, 0, 1).float()[None, None, Ellipsis]
-    x = x / 255.0
-    x = x.to(self._device)
-    return x
-
-  def _render_obs(self) -> np.ndarray:
-    """Render the pixels at the desired resolution."""
-    pixels = self.env.render(mode="rgb_array")
-    if self._res_hw is not None:
-      h, w = self._res_hw
-      pixels = cv2.resize(
-          pixels,
-          dsize=(w, h),
-          interpolation=cv2.INTER_CUBIC,
-      )
-    return pixels
-
-  @abc.abstractmethod
-  def _get_reward_from_image(self, image: np.ndarray) -> float:
-    """Forward the pixels through the model and compute the reward."""
-
-  def step(self, action: np.ndarray) -> TimeStep:
-    obs, env_reward, done, info = self.env.step(action)
-    info["env_reward"] = env_reward
-    pixels = self._render_obs()
-    learned_reward = self._get_reward_from_image(pixels)
-    return obs, learned_reward, done, info
-
-
-class DistanceToGoalVisualReward(VisualRewardWrapper):
-  """Replace the environment reward with distances in embedding space."""
-
-  def __init__(
-      self,
-      goal_emb: np.ndarray,
-      distance_func: DistanceFuncType = None,
-      **base_kwargs,
-  ):
-    super().__init__(**base_kwargs)
-
-    self._goal_emb = goal_emb
-    self._distance_func = distance_func
-
-  def _get_reward_from_image(self, image: np.ndarray) -> float:
-    """Forward the pixels through the model and compute the reward."""
-    image_tensor = self._to_tensor(image)
-    emb = self._model.infer(image_tensor).numpy().embs
-    dist = np.linalg.norm(emb - self._goal_emb)
-    if self._distance_func is not None:
-      dist = self._distance_func(dist)
-    else:
-      dist = -1.0 * dist
-    return dist
-
-
-class GoalClassifierVisualReward(VisualRewardWrapper):
-  """Replace the environment reward with the output of a goal classifier."""
-
-  def _get_reward_from_image(self, image: np.ndarray) -> float:
-    """Forward the pixels through the model and compute the reward."""
-    image_tensor = self._to_tensor(image)
-    prob = torch.sigmoid(self._model.infer(image_tensor).embs)
-    return prob.item()
-
-
 class EpisodeMonitor(gym.ActionWrapper):
   """A class that computes episode metrics.
 
@@ -308,3 +213,110 @@ class VideoRecorder(gym.Wrapper):
       self.frames = []
       self.current_episode += 1
     return observation, reward, done, info
+
+
+# ========================================= #
+# Learned reward wrappers.
+# ========================================= #
+
+# Note: While the below classes provide a nice wrapper API, they are not efficient
+# for training RL policies as rewards are computed individually at every `env.step()`
+# and so cannot take advantage of batching on the GPU.
+# For actually training policies, it is better to use the learned replay buffer
+# implementations in `sac.replay_buffer.py`. These store transitions in a staging
+# buffer which is forwarded as a batch through the GPU.
+
+
+class LearnedVisualReward(abc.ABC, gym.Wrapper):
+  """Base wrapper class that replaces the env reward with a learned one.
+  
+  Subclasses should implement the `_get_reward_from_image` method.
+  """
+
+  def __init__(
+      self,
+      env: gym.Env,
+      model: ModelType,
+      device: torch.device,
+      res_hw: typing.Optional[typing.Tuple[int, int]] = None,
+  ):
+    """Constructor.
+
+    Args:
+      env: A gym env.
+      model: A model that ingests RGB frames and returns embeddings. Should be a
+        subclass of `xirl.models.SelfSupervisedModel`.
+      device: Compute device.
+      res_hw: Optional (H, W) to resize the environment image before feeding it
+        to the model.
+    """
+    super().__init__(env)
+
+    self._device = device
+    self._model = model.to(device).eval()
+    self._res_hw = res_hw
+
+  def _to_tensor(self, x: np.ndarray) -> TensorType:
+    x = torch.from_numpy(x).permute(2, 0, 1).float()[None, None, Ellipsis]
+    x = x / 255.0
+    x = x.to(self._device)
+    return x
+
+  def _render_obs(self) -> np.ndarray:
+    """Render the pixels at the desired resolution."""
+    pixels = self.env.render(mode="rgb_array")
+    if self._res_hw is not None:
+      h, w = self._res_hw
+      pixels = cv2.resize(
+          pixels,
+          dsize=(w, h),
+          interpolation=cv2.INTER_CUBIC,
+      )
+    return pixels
+
+  @abc.abstractmethod
+  def _get_reward_from_image(self, image: np.ndarray) -> float:
+    """Forward the pixels through the model and compute the reward."""
+
+  def step(self, action: np.ndarray) -> TimeStep:
+    obs, env_reward, done, info = self.env.step(action)
+    info["env_reward"] = env_reward
+    pixels = self._render_obs()
+    learned_reward = self._get_reward_from_image(pixels)
+    return obs, learned_reward, done, info
+
+
+class DistanceToGoalLearnedVisualReward(LearnedVisualReward):
+  """Replace the environment reward with distances in embedding space."""
+
+  def __init__(
+      self,
+      goal_emb: np.ndarray,
+      distance_func: DistanceFuncType = None,
+      **base_kwargs,
+  ):
+    super().__init__(**base_kwargs)
+
+    self._goal_emb = goal_emb
+    self._distance_func = distance_func
+
+  def _get_reward_from_image(self, image: np.ndarray) -> float:
+    """Forward the pixels through the model and compute the reward."""
+    image_tensor = self._to_tensor(image)
+    emb = self._model.infer(image_tensor).numpy().embs
+    dist = np.linalg.norm(emb - self._goal_emb)
+    if self._distance_func is not None:
+      dist = self._distance_func(dist)
+    else:
+      dist = -1.0 * dist
+    return dist
+
+
+class GoalClassifierLearnedVisualReward(LearnedVisualReward):
+  """Replace the environment reward with the output of a goal classifier."""
+
+  def _get_reward_from_image(self, image: np.ndarray) -> float:
+    """Forward the pixels through the model and compute the reward."""
+    image_tensor = self._to_tensor(image)
+    prob = torch.sigmoid(self._model.infer(image_tensor).embs)
+    return prob.item()
