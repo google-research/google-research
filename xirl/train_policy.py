@@ -72,7 +72,7 @@ def evaluate(
     for k, v in info['episode'].items():
       stats[k].append(v)
     if "eval_score" in info:
-      stats[k].append(info["eval_score"])
+      stats["eval_score"].append(info["eval_score"])
   # Average out stat values.
   for k, v in stats.items():
     stats[k] = np.mean(v)
