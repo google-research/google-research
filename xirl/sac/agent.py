@@ -16,7 +16,6 @@ import ml_collections
 import torch
 import torch.nn.functional as F
 from torch import distributions as pyd
-from torch.distributions.utils import _standard_normal
 from torch import nn
 
 from .replay_buffer import ReplayBuffer
@@ -142,29 +141,6 @@ class SquashedNormal(pyd.transformed_distribution.TransformedDistribution):
     return mu
 
 
-class TruncatedNormal(pyd.Normal):
-
-  def __init__(self, loc, scale, low=-1.0, high=1.0, eps=1e-6):
-    super().__init__(loc, scale, validate_args=False)
-    self.low = low
-    self.high = high
-    self.eps = eps
-
-  def _clamp(self, x):
-    clamped_x = torch.clamp(x, self.low + self.eps, self.high - self.eps)
-    x = x - x.detach() + clamped_x.detach()
-    return x
-
-  def sample(self, clip=None, sample_shape=torch.Size()):
-    shape = self._extended_shape(sample_shape)
-    eps = _standard_normal(shape, dtype=self.loc.dtype, device=self.loc.device)
-    eps *= self.scale
-    if clip is not None:
-      eps = torch.clamp(eps, -clip, clip)
-    x = self.loc + eps
-    return self._clamp(x)
-
-
 class DiagGaussianActor(nn.Module):
   """A torch.distributions implementation of a diagonal Gaussian policy."""
 
@@ -194,7 +170,6 @@ class DiagGaussianActor(nn.Module):
 
     std = log_std.exp()
     return SquashedNormal(mu, std)
-    # return TruncatedNormal(mu, std)
 
 
 def soft_update_params(
