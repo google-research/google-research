@@ -104,6 +104,7 @@ def main(_):
         if not global_step % FLAGS.config.LOGGING_FREQUENCY:
           for k, v in train_loss.items():
             logger.log_scalar(v, global_step, k, "pretrain")
+          logger.flush()
 
         if not global_step % FLAGS.config.EVAL.EVAL_FREQUENCY:
           # Evaluate the model on the pretraining validation dataset.

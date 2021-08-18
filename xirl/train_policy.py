@@ -180,8 +180,12 @@ def main(_):
       if (i + 1) % FLAGS.config.eval_frequency == 0:
         eval_stats = evaluate(policy, eval_env, FLAGS.config.num_eval_episodes)
         for k, v in eval_stats.items():
-          logger.log_scalar(v, info['total']['timesteps'], f"average_{k}s",
-                            "evaluation")
+          logger.log_scalar(
+              v,
+              info['total']['timesteps'],
+              f"average_{k}s",
+              "evaluation",
+          )
         logger.flush()
 
       if (i + 1) % FLAGS.config.checkpoint_frequency == 0:
