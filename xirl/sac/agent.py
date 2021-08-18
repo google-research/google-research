@@ -22,6 +22,7 @@ from .replay_buffer import ReplayBuffer
 
 TensorType = torch.Tensor
 InfoType = typing.Dict[str, TensorType]
+TrainableType = typing.Union[nn.Parameter, nn.Module]
 
 
 def orthogonal_init(m: nn.Module) -> None:
@@ -352,7 +353,7 @@ class SAC(nn.Module):
 
     return {**batch_info, **critic_info, **actor_info, **alpha_info}
 
-  def trainable_dict(self):
+  def trainable_dict(self) -> typing.Dict[str, TrainableType]:
     return {
         "actor": self.actor,
         "log_alpha": self.log_alpha,
@@ -360,7 +361,7 @@ class SAC(nn.Module):
         "critic_target": self.critic_target,
     }
 
-  def optim_dict(self):
+  def optim_dict(self) -> typing.Dict[str, torch.optim.Optimizer]:
     return {
         "actor_optimizer": self.actor_optimizer,
         "log_alpha_optimizer": self.log_alpha_optimizer,
