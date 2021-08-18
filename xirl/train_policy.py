@@ -77,7 +77,8 @@ def evaluate(
 
 
 def main(_):
-  exp_dir = osp.join(FLAGS.config.save_dir, FLAGS.experiment_name)
+  exp_dir = osp.join(FLAGS.config.save_dir, FLAGS.experiment_name,
+                     str(FLAGS.seed))
   utils.setup_experiment(exp_dir, FLAGS.config, FLAGS.resume)
 
   # Setup compute device.
@@ -109,7 +110,7 @@ def main(_):
       FLAGS.seed + 42,
       action_repeat=FLAGS.config.action_repeat,
       frame_stack=FLAGS.config.frame_stack,
-      save_dir=osp.join(exp_dir, "video", "eval", str(FLAGS.seed)),
+      save_dir=osp.join(exp_dir, "video", "eval"),
   )
 
   # Dynamically set observation and action space values.
@@ -131,7 +132,7 @@ def main(_):
   )
 
   # Create checkpoint manager.
-  checkpoint_dir = osp.join(exp_dir, "checkpoints", str(FLAGS.seed))
+  checkpoint_dir = osp.join(exp_dir, "checkpoints")
   checkpoint_manager = checkpoint.CheckpointManager(
       checkpoint.Checkpoint(
           **policy.trainable_dict(),
@@ -141,7 +142,7 @@ def main(_):
       device,
   )
 
-  logger = Logger(osp.join(exp_dir, "tb", str(FLAGS.seed)), FLAGS.resume)
+  logger = Logger(osp.join(exp_dir, "tb"), FLAGS.resume)
 
   try:
     start = checkpoint_manager.restore_or_initialize()
