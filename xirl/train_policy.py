@@ -15,6 +15,8 @@
 
 """Launch script for training RL policies with pretrained reward models."""
 
+from typing import Dict
+
 import collections
 import os.path as osp
 import logging
@@ -22,7 +24,7 @@ import logging
 import gym
 import numpy as np
 import torch
-import tqdm
+from tqdm import tqdm
 from absl import app, flags
 from ml_collections import config_flags
 from torch.utils.tensorboard import SummaryWriter
@@ -55,25 +57,26 @@ flags.mark_flag_as_required("embodiment")
 
 
 def evaluate(
-    env: gym.Env,
     policy: agent.SAC,
-    logger: SummaryWriter,
-    step: int,
-) -> None:
+    env: gym.Env,
+    num_episodes: int,
+) -> Dict[str, float]:
   """Evaluate the policy and dump rollout videos to disk."""
   policy.eval()
-  eval_stats = collections.defaultdict(list)
-  for episode in range(FLAGS.config.num_eval_episodes):
-    observation = env.reset()
-    while True:
+  stats = collections.defaultdict(list)
+  for _ in range(num_episodes):
+    observation, done = env.reset(), False
+    while not done:
       action = policy.act(observation, sample=False)
       observation, _, done, info = env.step(action)
-      if done:
-        for k, v in info["metrics"].items():
-          eval_stats[k].append(v)
-        break
-  for k, v in eval_stats.items():
-    logger.add_scalar(f"evaluation/{k}s", np.mean(v), step)
+    for k, v in info['episode'].items():
+      stats[k].append(v)
+    if "eval_score" in info:
+      stats.append(info["eval_score"])
+  # Average out stat values.
+  for k, v in stats.items():
+    stats[k] = np.mean(v)
+  return stats
 
 
 def main(_):
@@ -89,10 +92,10 @@ def main(_):
     device = torch.device("cpu")
 
   # Set RNG seeds.
-  if FLAGS.SEED is not None:
-    logging.info(f"RL experiment seed: {FLAGS.config.SEED}")  # pylint: disable=logging-format-interpolation
-    seed_rngs(FLAGS.config.SEED)
-    set_cudnn(FLAGS.config.CUDNN_DETERMINISTIC, FLAGS.config.CUDNN_BENCHMARK)
+  if FLAGS.seed is not None:
+    logging.info(f"RL experiment seed: {FLAGS.seed}")  # pylint: disable=logging-format-interpolation
+    seed_rngs(FLAGS.seed)
+    set_cudnn(FLAGS.config.cudnn_deterministic, FLAGS.config.cudnn_benchmark)
   else:
     logging.info("No RNG seed has been set for this RL experiment.")
 
@@ -133,7 +136,10 @@ def main(_):
   # Create checkpoint manager.
   checkpoint_dir = osp.join(exp_dir, "checkpoints")
   checkpoint_manager = checkpoint.CheckpointManager(
-      checkpoint.Checkpoint(model=policy, optimizer=optimizer),
+      checkpoint.Checkpoint(
+          **policy.trainable_dict(),
+          **policy.optim_dict(),
+      ),
       checkpoint_dir,
       device,
   )
@@ -142,15 +148,8 @@ def main(_):
 
   try:
     start = checkpoint_manager.restore_or_initialize()
-    done, info, observation = True, {"metrics": {}}, np.empty(())
-    for i in tqdm.tqdm(
-        range(start, FLAGS.config.num_train_steps), initial=start):
-      if done:
-        observation = env.reset()
-        done = False
-        for k, v in info["metrics"].items():
-          logger.add_scalar(f"training/{k}", v, i)
-
+    observation, done = env.reset(), False
+    for i in tqdm(range(start, FLAGS.config.num_train_steps), initial=start):
       if i < FLAGS.config.num_seed_steps:
         action = env.action_space.sample()
       else:
@@ -166,18 +165,24 @@ def main(_):
       buffer.insert(observation, action, reward, next_observation, mask)
       observation = next_observation
 
+      if done:
+        observation, done = env.reset(), False
+        for k, v in info["episode"].items():
+          logger.log_scalar(v, info["total"]["timesteps"], k, "training")
+
       if i >= FLAGS.config.num_seed_steps:
         policy.train()
         train_info = policy.update(buffer, i)
 
         if (i + 1) % FLAGS.config.log_frequency == 0:
           for k, v in train_info.items():
-            logger.add_scalar(k, v, i)
-
-        # logger.flush()
+            logger.log_scalar(v, info["total"]["timesteps"], k)
 
       if (i + 1) % FLAGS.config.eval_frequency == 0:
-        evaluate(eval_env, policy, logger, i)
+        eval_stats = evaluate(policy, eval_env, FLAGS.config.num_eval_episodes)
+        for k, v in eval_stats.items():
+          logger.log_scalar(v, info['total']['timesteps'], f"average_{k}s",
+                            "evaluation")
 
       if (i + 1) % FLAGS.config.checkpoint_frequency == 0:
         checkpoint_manager.save(i)
