@@ -136,6 +136,7 @@ def _default_feature_fn(samples, sample_rate):
   frontend_args = tf_frontend.frontend_args_from_flags()
   feats = tf_frontend.compute_frontend_features(
       samples, sample_rate, **frontend_args)
+  logging.info('Feats shape: %s', feats.shape)
   return tf.expand_dims(feats, axis=-1).numpy().astype(np.float32)
 
 
