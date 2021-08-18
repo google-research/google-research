@@ -25,6 +25,7 @@ import numpy as np
 import torch
 from torchkit import checkpoint
 from xirl import common
+from utils import load_config_from_dir
 
 FLAGS = flags.FLAGS
 
@@ -62,7 +63,7 @@ def embed(
 
 def setup(device: torch.device) -> typing.Tuple[ModelType, DataLoaderType]:
   """Load the latest embedder checkpoint and dataloaders."""
-  config = common.load_config_from_dir(FLAGS.experiment_path)
+  config = load_config_from_dir(FLAGS.experiment_path)
   model = common.get_model(config)
   downstream_loaders = common.get_downstream_dataloaders(config, False)["train"]
   checkpoint_dir = os.path.join(FLAGS.experiment_path, "checkpoints")
