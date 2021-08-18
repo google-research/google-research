@@ -17,13 +17,24 @@ set -e
 set -x
 
 EMBODIMENT="longstick"
+NAME="env_reward_$EMBODIMENT"
 
-for seed in {0..5}
+for seed in {0..2}
 do
     python train_policy.py \
-        --experiment_name testing_longstick \
+        --experiment_name $NAME \
         --embodiment=$EMBODIMENT \
         --seed=$seed \
         --device="cuda:0" \
+        &
+done
+
+for seed in {3..4}
+do
+    python train_policy.py \
+        --experiment_name $NAME \
+        --embodiment=$EMBODIMENT \
+        --seed=$seed \
+        --device="cuda:1" \
         &
 done
