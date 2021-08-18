@@ -8,7 +8,6 @@ References:
 """
 
 import math
-import os
 import typing
 
 import numpy as np
@@ -17,7 +16,6 @@ import ml_collections
 import torch
 import torch.nn.functional as F
 from torch import distributions as pyd
-from torch.distributions.utils import _standard_normal
 from torch import nn
 
 from .replay_buffer import ReplayBuffer
@@ -91,39 +89,6 @@ class DoubleCritic(nn.Module):
 
   def forward(self, *args) -> typing.Tuple[TensorType, TensorType]:
     return self.critic1(*args), self.critic2(*args)
-
-
-# # Reference: https://github.com/facebookresearch/drqv2/
-# class TruncatedNormal(pyd.Normal):
-#   """Truncated normal distribution."""
-
-#   def __init__(
-#       self,
-#       loc: float,
-#       scale: float,
-#       low: float = -1.0,
-#       high: float = 1.0,
-#       eps: float = 1e-6,
-#   ):
-#     super().__init__(loc, scale, validate_args=False)
-
-#     self.low = low
-#     self.high = high
-#     self.eps = eps
-
-#   def _clamp(self, x: TensorType) -> TensorType:
-#     clamped_x = torch.clamp(x, self.low + self.eps, self.high - self.eps)
-#     x = x - x.detach() + clamped_x.detach()
-#     return x
-
-#   def sample(self, clip=None, sample_shape=torch.Size()):
-#     shape = self._extended_shape(sample_shape)
-#     eps = _standard_normal(shape, dtype=self.loc.dtype, device=self.loc.device)
-#     eps *= self.scale
-#     if clip is not None:
-#       eps = torch.clamp(eps, -clip, clip)
-#     x = self.loc + eps
-#     return self._clamp(x)
 
 
 class TanhTransform(pyd.transforms.Transform):
@@ -205,7 +170,6 @@ class DiagGaussianActor(nn.Module):
 
     std = log_std.exp()
     return SquashedNormal(mu, std)
-    # return TruncatedNormal(mu, std)
 
 
 def soft_update_params(
@@ -299,7 +263,7 @@ class SAC(nn.Module):
   def alpha(self) -> TensorType:
     return self.log_alpha.exp()
 
-  # @torch.no_grad()
+  @torch.no_grad()
   def act(self, obs: np.ndarray, sample: bool = False) -> np.ndarray:
     obs = torch.as_tensor(obs, device=self.device)
     dist = self.actor(obs.unsqueeze(0))
@@ -315,14 +279,14 @@ class SAC(nn.Module):
       next_obs: np.ndarray,
       mask: float,
   ) -> InfoType:
-    with torch.no_grad():
-      dist = self.actor(next_obs)
-      next_action = dist.rsample()
-      log_prob = dist.log_prob(next_action).sum(-1, keepdim=True)
-      target_Q1, target_Q2 = self.critic_target(next_obs, next_action)
-      target_V = (
-          torch.min(target_Q1, target_Q2) - self.alpha.detach() * log_prob)
-      target_Q = reward + (mask * self.discount * target_V)
+    dist = self.actor(next_obs)
+    next_action = dist.rsample()
+    log_prob = dist.log_prob(next_action).sum(-1, keepdim=True)
+    target_Q1, target_Q2 = self.critic_target(next_obs, next_action)
+    target_V = (
+        torch.min(target_Q1, target_Q2) - self.alpha.detach() * log_prob)
+    target_Q = reward + (mask * self.discount * target_V)
+    target_Q = target_Q.detach()
 
     # Get current Q estimates.
     current_Q1, current_Q2 = self.critic(obs, action)
