@@ -45,15 +45,17 @@ def get_config():
   config.cudnn_deterministic = False
 
   # ================================================= #
-  # Env wrappers.
+  # Wrappers.
   # ================================================= #
-  # Set the value of action_repeat and frame_stack to 1 to disable them.
   config.action_repeat = 1
   config.frame_stack = 3
 
+  # ================================================= #
+  # Visual reward wrappers.
+  # ================================================= #
+
   config.reward_wrapper = ml_collections.ConfigDict()
-  # Can be one of ['none', 'distance_to_goal', 'goal_classifier'].
-  config.reward_wrapper.type = "none"
+  config.reward_wrapper.type = "distance_to_goal"
   config.reward_wrapper.pretrained_path = ""
   config.reward_wrapper.distance_func = "none"
   config.reward_wrapper.distance_func_temperature = 1.0

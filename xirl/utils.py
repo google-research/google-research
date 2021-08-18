@@ -15,6 +15,7 @@
 
 import functools
 import math
+import matplotlib.pyplot as plt
 import random
 import numpy as np
 import subprocess
@@ -138,7 +139,6 @@ def wrap_learned_reward(
 
   elif rl_config.reward_wrapper.type == "distance_to_goal":
     kwargs["goal_emb"] = common.load_goal_embedding(pretrained_path)
-    kwargs["distance_scale"] = rl_config.reward_wrapper.distance_scale
     if rl_config.reward_wrapper.distance_func == "sigmoid":
 
       def sigmoid(x, t=1.0):
@@ -155,3 +155,24 @@ def wrap_learned_reward(
         f"{rl_config.reward_wrapper.type} is not a valid reward wrapper.")
 
   return env
+
+
+# ========================================= #
+# Plot utils.
+# ========================================= #
+
+
+def plot_reward(rews: typing.Sequence[float]):
+  """Plot raw and cumulative rewards over an episode."""
+  fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharex=True)
+  axes[0].plot(rews)
+  axes[0].set_xlabel("Timestep")
+  axes[0].set_ylabel("Reward")
+  axes[1].plot(np.cumsum(rews))
+  axes[1].set_xlabel("Timestep")
+  axes[1].set_ylabel("Cumulative Reward")
+  for ax in axes:
+    ax.grid(b=True, which='major', linestyle='-')
+    ax.grid(b=True, which='minor', linestyle='-', alpha=0.2)
+  plt.minorticks_on()
+  plt.show()

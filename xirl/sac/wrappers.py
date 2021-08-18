@@ -236,46 +236,30 @@ class EpisodeMonitor(gym.ActionWrapper):
   Reference: https://github.com/ikostrikov/jaxrl/
   """
 
-  def __init__(self, env: gym.Env, info_metrics: InfoMetric = {}) -> None:
-      """Constructor.
+  def __init__(self, env: gym.Env):
+    super().__init__(env)
 
-      Args:
-        env: A gym env.
-        info_metrics: Additional keys to monitor from the info dict returned
-            by the env. This should be a mapping from the metric's str key
-            in the info dict to an initial value.
-      """
-      super().__init__(env)
-
-      self._info_metrics = info_metrics
-
-      self._reset_stats()
+    self._reset_stats()
+    self.total_timesteps: int = 0
 
   def _reset_stats(self) -> None:
-    self.reward_sum = 0.0
-    self.episode_length = 0
+    self.reward_sum: float = 0.0
+    self.episode_length: int = 0
     self.start_time = time.time()
-    self.extra_metrics = {}
 
   def step(self, action: np.ndarray) -> TimeStep:
     obs, rew, done, info = self.env.step(action)
 
     self.reward_sum += rew
     self.episode_length += 1
-    for k in self._info_metrics.keys():
-      self.extra_metrics[k] = info[k]
+    self.total_timesteps += 1
+    info["total"] = {"timesteps": self.total_timesteps}
 
-    info["metrics"] = {
-        "episode_return": self.reward_sum,
-        "episode_length": self.episode_length,
-        "episode_duration": time.time() - self.start_time,
-    }
-    for k, v in self.extra_metrics.items():
-      if "alias" in self._info_metrics[k]:
-        key = self._info_metrics[k]["alias"]
-      else:
-        key = k
-      info["metrics"][key] = v
+    if done:
+      info["episode"] = dict()
+      info["episode"]["return"] = self.reward_sum
+      info["episode"]["length"] = self.episode_length
+      info["episode"]["duration"] = time.time() - self.start_time
 
     return obs, rew, done, info
 
