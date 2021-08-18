@@ -658,18 +658,6 @@ class MergeConformersTest(absltest.TestCase):
     # This stage2 values should be returned
     self.assertEqual(got_conf.properties.initial_geometry_energy.value, -1.23)
 
-  def test_stage2_stage1_conflict_error_codes(self):
-    self.stage2_conformer.properties.errors.error_nstat1 = 999
-    got_conf, got_conflict = smu_utils_lib.merge_conformer(
-        self.stage2_conformer, self.stage1_conformer)
-    self.assertEqual(got_conflict, [
-        618451001,
-        1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True, True,
-        999, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True, True
-    ])
-    # Just check a random field that is in stage2 but not stage1
-    self.assertNotEmpty(got_conf.properties.normal_modes)
-
   def test_stage2_stage1_conflict_missing_geometry(self):
     self.stage2_conformer.ClearField('optimized_geometry')
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
@@ -747,33 +735,49 @@ class ConformerErrorTest(absltest.TestCase):
 
   def test_stage1_no_error(self):
     conformer = get_stage1_conformer()
-    self.assertFalse(smu_utils_lib.conformer_has_calculation_errors(conformer))
+    self.assertEqual(0,
+                     smu_utils_lib.conformer_calculation_error_level(conformer))
 
   def test_stage1_error(self):
-    conformer = get_stage2_conformer()
+    conformer = get_stage1_conformer()
     conformer.properties.errors.error_frequencies = 123
-    self.assertTrue(smu_utils_lib.conformer_has_calculation_errors(conformer))
+    self.assertEqual(5,
+                     smu_utils_lib.conformer_calculation_error_level(conformer))
 
   def test_stage2_no_error(self):
     conformer = get_stage2_conformer()
-    self.assertFalse(smu_utils_lib.conformer_has_calculation_errors(conformer))
+    self.assertEqual(0,
+                     smu_utils_lib.conformer_calculation_error_level(conformer))
 
-  def test_stage2_error_in_1_expected_field(self):
+  def test_stage2_error_status_5(self):
     conformer = get_stage2_conformer()
-    conformer.properties.errors.error_rotational_modes = 123
-    self.assertTrue(smu_utils_lib.conformer_has_calculation_errors(conformer))
+    conformer.properties.errors.status = 256
+    self.assertTrue(5,
+                    smu_utils_lib.conformer_calculation_error_level(conformer))
 
-  def test_stage2_error_in_0_expected_field(self):
+  def test_stage2_error_status_4(self):
     conformer = get_stage2_conformer()
-    # This field is 0 to indicate no error. Why the discrepancy? Who knows!
-    conformer.properties.errors.error_nsvg09 = 1
-    self.assertTrue(smu_utils_lib.conformer_has_calculation_errors(conformer))
+    conformer.properties.errors.status = 50
+    self.assertTrue(4,
+                    smu_utils_lib.conformer_calculation_error_level(conformer))
 
-  def test_stage2_nstat1_is_3(self):
-    # This is the other bizaare case. nstat1 of 3 is still considered success.
+  def test_stage2_error_status_3(self):
     conformer = get_stage2_conformer()
-    conformer.properties.errors.error_nstat1 = 3
-    self.assertFalse(smu_utils_lib.conformer_has_calculation_errors(conformer))
+    conformer.properties.errors.status = 4
+    self.assertTrue(3,
+                    smu_utils_lib.conformer_calculation_error_level(conformer))
+
+  def test_stage2_error_level_2(self):
+    conformer = get_stage2_conformer()
+    conformer.properties.errors.warn_t1_excess = 3
+    self.assertEqual(2,
+                     smu_utils_lib.conformer_calculation_error_level(conformer))
+
+  def test_stage2_error_level_1(self):
+    conformer = get_stage2_conformer()
+    conformer.properties.errors.warn_vib_linearity = 1
+    self.assertEqual(1,
+                     smu_utils_lib.conformer_calculation_error_level(conformer))
 
 
 class FilterConformerByAvailabilityTest(absltest.TestCase):
@@ -831,7 +835,7 @@ class ConformerToStandardTest(absltest.TestCase):
         got.properties.HasField('zpe_unscaled'))
 
   def test_remove_error_conformer(self):
-    self.conformer.properties.errors.error_frequencies = 123
+    self.conformer.properties.errors.status = 256
 
     self.assertIsNone(smu_utils_lib.conformer_to_standard(self.conformer))
 
@@ -872,12 +876,29 @@ class DetermineFateTest(parameterized.TestCase):
     self.assertEqual(dataset_pb2.Conformer.FATE_NO_CALCULATION_RESULTS,
                      smu_utils_lib.determine_fate(conformer))
 
-  def test_calculation_errors(self):
+  @parameterized.parameters(
+      (256, dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR),
+      (50, dataset_pb2.Conformer.FATE_CALCULATION_WITH_MAJOR_ERROR),
+      (4, dataset_pb2.Conformer.FATE_CALCULATION_WITH_MODERATE_ERROR))
+  def test_calculation_errors(self, status, expected):
     conformer = get_stage2_conformer()
-    # This is a random choice of an error to set. I just need some error.
-    conformer.properties.errors.error_atomic_analysis = 999
-    self.assertEqual(dataset_pb2.Conformer.FATE_CALCULATION_WITH_ERROR,
+    conformer.properties.errors.status = status
+    self.assertEqual(expected,
                      smu_utils_lib.determine_fate(conformer))
+
+  def test_calculation_warnings_serious(self):
+    conformer = get_stage2_conformer()
+    conformer.properties.errors.warn_t1_excess = 1234
+    self.assertEqual(
+      dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS,
+      smu_utils_lib.determine_fate(conformer))
+
+  def test_calculation_warnings_vibrational(self):
+    conformer = get_stage2_conformer()
+    conformer.properties.errors.warn_vib_linearity = 1234
+    self.assertEqual(
+      dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL,
+      smu_utils_lib.determine_fate(conformer))
 
   def test_success(self):
     conformer = get_stage2_conformer()
@@ -928,7 +949,8 @@ class ToBondTopologySummaryTest(absltest.TestCase):
     self.assertEqual(got[0].count_missing_calculation, 1)
 
   def test_calculation_with_error(self):
-    self.conformer.fate = dataset_pb2.Conformer.FATE_CALCULATION_WITH_ERROR
+    self.conformer.fate = (
+      dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR)
     self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
     self.conformer.bond_topologies[-1].bond_topology_id = 123
     got = list(

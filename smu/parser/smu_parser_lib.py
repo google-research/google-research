@@ -441,21 +441,65 @@ class SmuParser:
       self._conformer.original_conformer_index = int(conformer_index)
     return int(num_atoms)
 
-  def parse_error_codes(self):
-    """Converts 6-character error codes into a single error code.
+  def parse_database(self):
+    """Parse the line indicating what database the conformer should go to.
 
-    A SMU file contains a selection of error codes, each with a binary value. We
-    combine the bits into a single error code.
+    This line looks like:
+    Database   standard
     """
-    labels, values = self.parse(ParseModes.ALTERNATING, num_lines=8)
-    assert set(labels) == set(
-        smu_utils_lib.ERROR_CODES.keys()), 'Invalid set of error labels.'
-    assert len(labels) == len(
-        values), 'Expected %d labels and values, but got %d and %d.' % (len(
-            set(smu_utils_lib.ERROR_CODES)), len(labels), len(values))
-    properties = self._conformer.properties
-    for label, value in zip(labels, values):
-      setattr(properties.errors, smu_utils_lib.ERROR_CODES[label], int(value))
+    line = str(self.parse(ParseModes.RAW, num_lines=1)[0])
+    parts = line.split()
+    if len(parts) != 2:
+      raise ValueError('Expected database line, got: {}'.format(line))
+    if parts[0] != 'Database':
+      raise ValueError('Bad keyword on database line, got: {}'.format(
+        parts[0]))
+    if parts[1] == 'standard':
+      self._conformer.which_database = dataset_pb2.STANDARD
+    elif parts[1] == 'complete':
+      self._conformer.which_database = dataset_pb2.COMPLETE
+    else:
+      raise ValueError('Expected database indicator, got: {}'.format(parts[1]))
+
+  def parse_error_codes(self):
+    """Parses the error section with the warning flags."""
+    lines = iter(self.parse(ParseModes.RAW, num_lines=6))
+    errors = self._conformer.properties.errors
+
+    parts = next(lines).split()
+    assert(len(parts) == 2 and parts[0] == 'Status'), (
+      'Expected Status line, got {}'.format(parts))
+    errors.status = int(parts[1])
+
+    parts = next(lines).split()
+    assert(len(parts) == 3 and parts[0] == 'Warn_T1'), (
+      'Expected Status line, got {}'.format(parts))
+    errors.warn_t1 = int(parts[1])
+    errors.warn_t1_excess = int(parts[2])
+
+    parts = next(lines).split()
+    assert(len(parts) == 3 and parts[0] == 'Warn_BSE'), (
+      'Expected Status line, got {}'.format(parts))
+    errors.warn_bse_b5_b6 = int(parts[1])
+    errors.warn_bse_cccsd_b5 = int(parts[2])
+
+    parts = next(lines).split()
+    assert(len(parts) == 4 and parts[0] == 'Warn_EXC'), (
+      'Expected Status line, got {}'.format(parts))
+    errors.warn_exc_lowest_excitation = int(parts[1])
+    errors.warn_exc_smallest_oscillator = int(parts[2])
+    errors.warn_exc_largest_oscillator = int(parts[3])
+
+    parts = next(lines).split()
+    assert(len(parts) == 3 and parts[0] == 'Warn_VIB'), (
+      'Expected Status line, got {}'.format(parts))
+    errors.warn_vib_linearity = int(parts[1])
+    errors.warn_vib_imaginary = int(parts[2])
+
+    parts = next(lines).split()
+    assert(len(parts) == 2 and parts[0] == 'Warn_NEG'), (
+      'Expected Status line, got {}'.format(parts))
+    errors.warn_num_neg = int(parts[1])
 
   def parse_bond_topology(self):
     """Parse region with adjancy matrix, hydrogen count, smiles, and atom types."""
@@ -621,6 +665,8 @@ class SmuParser:
 
   def parse_rotational_constants(self):
     """Parses rotational constants vector (MHz)."""
+    if not self._next_line_startswith('Rotational constants'):
+      return
     constants = self.parse(ParseModes.RAW, num_lines=1)[0]
     values = str(constants).strip().split()[-3:]
     rotational_constants = self._conformer.properties.rotational_constants
@@ -630,6 +676,8 @@ class SmuParser:
 
   def parse_symmetry_used(self):
     """Parses whether or not symmetry was used in the computation."""
+    if not self._next_line_startswith('Symmetry used in calculation'):
+      return
     symmetry = self.parse(ParseModes.RAW, num_lines=1)[0]
     self._conformer.properties.symmetry_used_in_calculation = str(
         symmetry).strip().split()[-1] != 'no'
@@ -751,8 +799,6 @@ class SmuParser:
       line = self.parse(ParseModes.RAW, num_lines=1)[0]
       items = str(line).strip().split()
       properties.diagnostics_d1_ccsd_2sp.value = float(items[2])
-      properties.diagnostics_d1_ccsd_2sd.value = float(items[4])
-      properties.diagnostics_d1_ccsd_3psd.value = float(items[6])
 
     if self._next_line_startswith('T1DIAG'):
       line = self.parse(ParseModes.RAW, num_lines=1)[0]
@@ -1014,7 +1060,8 @@ class SmuParser:
       self._conformer = dataset_pb2.Conformer()
       self.parse(ParseModes.SKIP, num_lines=1)  # Separator.
       num_atoms = self.parse_stage2_header()
-      self.parse_error_codes()  # Error codes.
+      self.parse_database()
+      self.parse_error_codes()
       self.parse_bond_topology()
       self.parse_identifier()
       self.parse_cluster_info(num_lines=8)
@@ -1042,6 +1089,7 @@ class SmuParser:
       # debugging), we add an extra blank line. We'll just skip it here and
       # ignore blank lines at the end.
       self.parse(ParseModes.SKIP_BLANK_LINES)
+
     except (SmuKnownError, ValueError, IndexError, KeyError,
             AssertionError) as exc:
       exc.conformer_id = self._conformer.conformer_id

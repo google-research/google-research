@@ -889,9 +889,10 @@ def merge_conformer(conf1, conf2):
       has_conflict = True
 
     for field in STAGE1_ERROR_FIELDS:
-      if (getattr(conf1.properties.errors, field) !=
-          getattr(conf2.properties.errors, field)):
-        has_conflict = True
+      # Only stage1 uses these old style error fields, so we just copy them
+      # over
+      setattr(conf2.properties.errors, field,
+              getattr(conf1.properties.errors, field))
 
     for field, atol in [
         ('initial_geometry_energy', 2e-6),
@@ -936,41 +937,61 @@ def merge_conformer(conf1, conf2):
   return conf2, conflict_info
 
 
-def conformer_has_calculation_errors(conformer):
-  """Checks whether error codes indicate that this conformer had errors.
+def conformer_calculation_error_level(conformer):
+  """Returns whether status codes indicate this conformer had serious errors.
 
   Args:
     conformer: dataset_pb2.Conformer
 
   Returns:
-    bool
+    integer, higher values are more srious errors
+      5: serious problems
+      4: major problems
+      3: moderate problems
+      2: minor problems, serious warning
+      1: minor problems, vibrational analysis warning
+      0: minor or no problem
   """
   source = _conformer_source(conformer)
   errors = conformer.properties.errors
-  for field_descriptor in errors.DESCRIPTOR.fields:
-    if field_descriptor.name == 'error_during_merging':
-      # This is an internal field that will eventually go away.
-      continue
-    if (source == _ConformerSource.STAGE1 and
-        field_descriptor.name not in STAGE1_ERROR_FIELDS):
-      # Stage1 files only set a couple of error fields, so we just ignore the
-      # others.
-      continue
-    value = getattr(errors, field_descriptor.name)
-    if field_descriptor.name == 'error_nsvg09':
-      # This field is backwards in that 0 is the success value.
-      if value != 0:
-        return True
-    elif field_descriptor.name == 'error_nstat1':
-      # Another odd case: this one value can be either 1 or 3 and still be
-      # success.
-      if value != 1 and value != 3:
-        return True
-    else:
-      if value != 1:
-        return True
 
-  return False
+  # The levels aren't very well defined for STAGE1.
+  # We'll call all errors serious
+  if source == _ConformerSource.STAGE1:
+    if errors.error_nstat1 != 1 and errors.error_nstat1 != 3:
+      return 5
+
+    if (errors.error_nstatc != 1 or
+        errors.error_nstatt != 1 or
+        errors.error_frequencies != 1):
+      return 5
+
+    return 0
+
+  # Now logic for stage2 files.
+  if errors.status >= 64:
+    return 5
+  elif errors.status >= 8:
+    return 4
+  elif errors.status >= 4:
+    return 3
+
+  # This is warning level 'C' from Bazel documentation.
+  if (errors.warn_t1 > 2 or
+      errors.warn_t1_excess > 2 or
+      errors.warn_bse_b5_b6 > 2 or
+      errors.warn_bse_cccsd_b5 > 2 or
+      errors.warn_exc_lowest_excitation > 2 or
+      errors.warn_exc_smallest_oscillator > 0 or
+      errors.warn_exc_largest_oscillator > 0):
+    return 2
+
+  # This is warning level 'B" from Bazel documentation.
+  if (errors.warn_vib_linearity > 0 or
+      errors.warn_vib_imaginary > 1):
+    return 1
+
+  return 0
 
 
 def filter_conformer_by_availability(conformer, allowed):
@@ -1001,9 +1022,7 @@ def should_include_in_standard(conformer):
   Returns:
     boolean
   """
-  # TODO(pfr): this logic needs to be rewritten on the next version of the
-  # dataset
-  if conformer_has_calculation_errors(conformer):
+  if conformer_calculation_error_level(conformer) > 0:
     return False
   if conformer.duplicated_by > 0:
     return False
@@ -1075,10 +1094,21 @@ def determine_fate(conformer):
       return dataset_pb2.Conformer.FATE_NO_CALCULATION_RESULTS
 
   elif source == _ConformerSource.STAGE2:
-    if conformer_has_calculation_errors(conformer):
-      return dataset_pb2.Conformer.FATE_CALCULATION_WITH_ERROR
-    else:
+    error_level = conformer_calculation_error_level(conformer)
+    if error_level == 5:
+      return dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR
+    elif error_level == 4:
+      return dataset_pb2.Conformer.FATE_CALCULATION_WITH_MAJOR_ERROR
+    elif error_level == 3:
+      return dataset_pb2.Conformer.FATE_CALCULATION_WITH_MODERATE_ERROR
+    elif error_level == 2:
+      return dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS
+    elif error_level == 1:
+      return dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL
+    elif error_level == 0:
       return dataset_pb2.Conformer.FATE_SUCCESS
+    else:
+      raise ValueError(f'Bad error_level {error_level}')
 
   else:
     raise ValueError(f'Got an unknown source {source}')
@@ -1120,7 +1150,11 @@ def conformer_to_bond_topology_summaries(conformer):
   elif fate == dataset_pb2.Conformer.FATE_NO_CALCULATION_RESULTS:
     summary.count_kept_geometry = 1
     summary.count_missing_calculation = 1
-  elif fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_ERROR:
+  elif (fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR or
+        fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MAJOR_ERROR or
+        fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MODERATE_ERROR or
+        fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS or
+        fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_error = 1
     for bt in conformer.bond_topologies[1:]:
