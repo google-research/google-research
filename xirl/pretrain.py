@@ -16,20 +16,18 @@
 """Launch script for pre-training representations."""
 
 import logging
-import os
 import os.path as osp
 
 from absl import app
 from absl import flags
 from ml_collections import config_flags
-from ml_collections import ConfigDict
 import torch
+from xirl import common
+from utils import setup_experiment
 from torchkit import checkpoint
 from torchkit import Logger
+from torchkit.experiment import seed_rngs, set_cudnn
 from torchkit.utils.py_utils import Stopwatch
-from xirl import common
-import utils
-import yaml
 
 FLAGS = flags.FLAGS
 
@@ -46,26 +44,9 @@ config_flags.DEFINE_config_file(
 flags.mark_flag_as_required("experiment_name")
 
 
-def setup_experiment(exp_dir):
-  """Initializes a training experiment."""
-  if os.path.exists(exp_dir):
-    if not FLAGS.resume:
-      raise ValueError(
-          "Experiment already exists. Run with --resume to continue.")
-    with open(os.path.join(exp_dir, "config.yaml"), "r") as fp:
-      cfg = yaml.load(fp, Loader=yaml.FullLoader)
-    FLAGS.config.update(cfg)
-  else:
-    os.makedirs(exp_dir)
-    with open(os.path.join(exp_dir, "config.yaml"), "w") as fp:
-      yaml.dump(ConfigDict.to_dict(FLAGS.config), fp)
-    with open(os.path.join(exp_dir, "git_hash.txt"), "w") as fp:
-      fp.write(utils.git_revision_hash())
-
-
 def main(_):
   exp_dir = osp.join(FLAGS.config.ROOT_DIR, FLAGS.experiment_name)
-  setup_experiment(exp_dir)
+  setup_experiment(exp_dir, FLAGS.config, FLAGS.resume)
 
   # No need to do any pretraining if we're loading the raw pretrained
   # ImageNet baseline.
@@ -74,12 +55,11 @@ def main(_):
 
   # Set RNG seeds.
   if FLAGS.config.SEED is not None:
-    logging.info(f"Experiment seed: {FLAGS.config.SEED}")  # pylint: disable=logging-format-interpolation
-    utils.seed_rngs(FLAGS.config.SEED)
-    utils.set_cudnn(FLAGS.config.CUDNN_DETERMINISTIC,
-                    FLAGS.config.CUDNN_BENCHMARK)
+    logging.info(f"Pretraining experiment seed: {FLAGS.config.SEED}")  # pylint: disable=logging-format-interpolation
+    seed_rngs(FLAGS.config.SEED)
+    set_cudnn(FLAGS.config.CUDNN_DETERMINISTIC, FLAGS.config.CUDNN_BENCHMARK)
   else:
-    logging.info("No RNG seed has been set for this experiment.")
+    logging.info("No RNG seed has been set for this pretraining experiment.")
 
   # Setup compute device.
   if torch.cuda.is_available():
@@ -89,7 +69,7 @@ def main(_):
     logging.info("No GPU found. Falling back to CPU.")
     device = torch.device("cpu")
 
-  logger = Logger(exp_dir, FLAGS.resume)
+  logger = Logger(osp.join(exp_dir, "tb"), FLAGS.resume)
 
   # Load factories.
   (

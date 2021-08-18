@@ -13,13 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Optional
+
+import os
 import functools
 import math
 import matplotlib.pyplot as plt
-import random
+import yaml
 import numpy as np
-import subprocess
 import typing
+import pickle
+from torchkit import checkpoint
+from torchkit.experiment import git_revision_hash
 
 import gym
 import torch
@@ -32,28 +37,71 @@ import xmagical
 from gym.wrappers import RescaleAction
 
 # ========================================= #
-# General utils.
+# Experiment utils.
 # ========================================= #
 
 
-# Reference: https://stackoverflow.com/a/21901260
-def git_revision_hash() -> str:
-  """Return git revision hash as a string."""
-  return subprocess.check_output(['git', 'rev-parse',
-                                  'HEAD']).decode('ascii').strip()
+def setup_experiment(exp_dir: str, config: ConfigDict, resume: bool = False):
+  """Initializes a pretraining or RL experiment.
+  
+  If the experiment directory doesn't exist yet, creates it and dumps the config dict
+  as a yaml file and git hash as a text file. If it exists already, raises a ValueError
+  to prevent overwriting unless resume is set to True.
+  """
+  if os.path.exists(exp_dir):
+    if not resume:
+      raise ValueError(
+          "Experiment already exists. Run with --resume to continue.")
+    load_config_from_dir(exp_dir, config)
+  else:
+    os.makedirs(exp_dir)
+    with open(os.path.join(exp_dir, "config.yaml"), "w") as fp:
+      yaml.dump(ConfigDict.to_dict(config), fp)
+    with open(os.path.join(exp_dir, "git_hash.txt"), "w") as fp:
+      fp.write(git_revision_hash())
 
 
-def seed_rngs(seed: int):
-  """Seeds python, numpy, and torch RNGs."""
-  random.seed(seed)
-  np.random.seed(seed)
-  torch.manual_seed(seed)
+def load_config_from_dir(
+    exp_dir: str,
+    config: Optional[ConfigDict] = None,
+) -> Optional[ConfigDict]:
+  """Load experiment config."""
+  try:
+    with open(os.path.join(exp_dir, "config.yaml"), "r") as fp:
+      cfg = yaml.load(fp, Loader=yaml.FullLoader)
+    # Inplace update the config if one is provided.
+    if config is not None:
+      config.update(cfg)
+      return
+    return ConfigDict(cfg)
+  except FileNotFoundError as e:
+    raise e
 
 
-def set_cudnn(deterministic: bool = False, benchmark: bool = True):
-  """Set PyTorch-related CUDNN settings."""
-  torch.backends.cudnn.deterministic = deterministic
-  torch.backends.cudnn.benchmark = benchmark
+def load_model_checkpoint(
+    pretrained_path: str,
+    device: torch.device,
+):
+  """Load a pretrained model and optionally a precomputed goal embedding."""
+  config = load_config_from_dir(pretrained_path)
+  model = common.get_model(config)
+  checkpoint_dir = os.path.join(pretrained_path, "checkpoints")
+  checkpoint_manager = checkpoint.CheckpointManager(
+      checkpoint.Checkpoint(model=model), checkpoint_dir, device)
+  global_step = checkpoint_manager.restore_or_initialize()
+  print(f"Restored model from checkpoint @{global_step}.")
+  return config, model
+
+
+def load_goal_embedding(pretrained_path: str) -> Optional[np.ndarray]:
+  """Load a goal embedding. Should be computed via `compute_goal_embedding.py`."""
+  try:
+    with open(os.path.join(pretrained_path, "goal_emb.pkl"), "rb") as fp:
+      goal_emb = pickle.load(fp)
+    print("Successfully loaded goal embedding.")
+    return goal_emb
+  except FileNotFoundError as e:
+    raise e
 
 
 # ========================================= #

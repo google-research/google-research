@@ -16,25 +16,31 @@
 """Launch script for training RL policies with pretrained reward models."""
 
 import collections
-import os
-import random
-import typing
+import os.path as osp
+import logging
 
 import gym
 import numpy as np
 import torch
 import tqdm
-import yaml
 from absl import app, flags
-from ml_collections import ConfigDict, config_flags
+from ml_collections import config_flags
 from torch.utils.tensorboard import SummaryWriter
 
-from sac import agent, replay_buffer, video
+from sac import agent, replay_buffer
+
+import utils
+from torchkit import checkpoint
+from torchkit import Logger
+from torchkit.experiment import seed_rngs, set_cudnn
+from torchkit.utils.py_utils import Stopwatch
 
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("experiment_name", None, "Experiment name.")
 flags.DEFINE_string("embodiment", None, "The agent embodiment.")
+flags.DEFINE_integer("seed", 0, "RNG seed.")
+flags.DEFINE_string("device", "cuda:0", "The compute device.")
 flags.DEFINE_boolean("resume", False,
                      "Resume experiment from latest checkpoint.")
 
@@ -70,46 +76,41 @@ def evaluate(
     logger.add_scalar(f"evaluation/{k}s", np.mean(v), step)
 
 
-def start_or_resume(exp_dir: str, policy: agent.SAC) -> int:
-  """Load a checkpoint if it exists, else start training from scratch."""
-  model_dir = os.path.join(exp_dir, "weights")
-  ckpts = []
-  if os.path.exists(model_dir):
-    ckpts = os.listdir(model_dir)
-  if ckpts:
-    last_ckpt = ckpts[-1]
-    step = int(os.path.splitext(last_ckpt)[0].split("_")[-1])
-    policy.load(os.path.join(model_dir, last_ckpt))
-    return step
-  return 0
-
-
-def setup_experiment(exp_dir: str) -> None:
-  """Setup the experiment."""
-  exp_dir = os.path.join(FLAGS.config.save_dir, FLAGS.experiment_name)
-  if not os.path.exists(exp_dir):
-    os.makedirs(exp_dir)
-    with open(os.path.join(exp_dir, "config.yaml"), "w") as fp:
-      yaml.dump(ConfigDict.to_dict(FLAGS.config), fp)
-  else:
-    if not FLAGS.resume:
-      raise ValueError(
-          "Experiment already exists. Run with --resume to continue.")
-    with open(os.path.join(exp_dir, "config.yaml"), "r") as fp:
-      cfg = yaml.load(fp, Loader=yaml.FullLoader)
-    FLAGS.config.update(cfg)
-  if not os.path.exists(os.path.join(exp_dir, "weights")):
-    os.makedirs(os.path.join(exp_dir, "weights"))
-
-
 def main(_):
-  exp_dir = os.path.join(FLAGS.config.save_dir, FLAGS.experiment_name)
-  setup_experiment(exp_dir)
-  device = torch.device(FLAGS.config.device)
+  exp_dir = osp.join(FLAGS.config.save_dir, FLAGS.experiment_name)
+  utils.setup_experiment(exp_dir, FLAGS.config, FLAGS.resume)
+
+  # Setup compute device.
+  if torch.cuda.is_available():
+    device = torch.device(FLAGS.device)
+    logging.info(f"Using GPU {torch.cuda.get_device_name(device)}.")  # pylint: disable=logging-format-interpolation
+  else:
+    logging.info("No GPU found. Falling back to CPU.")
+    device = torch.device("cpu")
+
+  # Set RNG seeds.
+  if FLAGS.SEED is not None:
+    logging.info(f"RL experiment seed: {FLAGS.config.SEED}")  # pylint: disable=logging-format-interpolation
+    seed_rngs(FLAGS.config.SEED)
+    set_cudnn(FLAGS.config.CUDNN_DETERMINISTIC, FLAGS.config.CUDNN_BENCHMARK)
+  else:
+    logging.info("No RNG seed has been set for this RL experiment.")
 
   # Load env.
-  env = None
-  eval_env = None
+  env_name = utils.xmagical_embodiment_to_env_name(FLAGS.embodiment)
+  env = utils.make_env(
+      env_name,
+      FLAGS.seed,
+      action_repeat=FLAGS.config.action_repeat,
+      frame_stack=FLAGS.config.frame_stack,
+  )
+  eval_env = utils.make_env(
+      env_name,
+      FLAGS.seed + 42,
+      action_repeat=FLAGS.config.action_repeat,
+      frame_stack=FLAGS.config.frame_stack,
+      save_dir=osp.join(exp_dir, "video", "eval"),
+  )
 
   # Dynamically set observation and action space values.
   FLAGS.config.sac.obs_dim = env.observation_space.shape[0]
@@ -129,10 +130,18 @@ def main(_):
       device,
   )
 
-  logger = SummaryWriter(os.path.join(exp_dir, "tb"))
+  # Create checkpoint manager.
+  checkpoint_dir = osp.join(exp_dir, "checkpoints")
+  checkpoint_manager = checkpoint.CheckpointManager(
+      checkpoint.Checkpoint(model=policy, optimizer=optimizer),
+      checkpoint_dir,
+      device,
+  )
+
+  logger = Logger(osp.join(exp_dir, "tb", str(FLAGS.seed)), FLAGS.resume)
 
   try:
-    start = start_or_resume(exp_dir, policy)
+    start = checkpoint_manager.restore_or_initialize()
     done, info, observation = True, {"metrics": {}}, np.empty(())
     for i in tqdm.tqdm(
         range(start, FLAGS.config.num_train_steps), initial=start):
@@ -165,19 +174,20 @@ def main(_):
           for k, v in train_info.items():
             logger.add_scalar(k, v, i)
 
-        logger.flush()
+        # logger.flush()
 
       if (i + 1) % FLAGS.config.eval_frequency == 0:
         evaluate(eval_env, policy, logger, i)
 
       if (i + 1) % FLAGS.config.checkpoint_frequency == 0:
-        policy.save(os.path.join(exp_dir, "weights"), i)
+        checkpoint_manager.save(i)
 
   except KeyboardInterrupt:
     print("Caught keyboard interrupt. Saving before quitting.")
 
   finally:
-    policy.save(os.path.join(exp_dir, "weights"), i)
+    checkpoint_manager.save(i)
+    logger.close()
 
 
 if __name__ == "__main__":

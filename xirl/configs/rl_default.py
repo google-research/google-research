@@ -33,8 +33,6 @@ def get_config():
   # Main parameters.
   # ================================================= #
   config.save_dir = "/tmp/xirl/rl_runs/"
-  config.seed = 1
-  config.device = "cuda"
 
   # Set this to True to allow CUDA to find the best convolutional algorithm to
   # use for the given parameters. When False, cuDNN will deterministically
@@ -49,10 +47,6 @@ def get_config():
   # ================================================= #
   config.action_repeat = 1
   config.frame_stack = 3
-
-  # ================================================= #
-  # Visual reward wrappers.
-  # ================================================= #
 
   config.reward_wrapper = ml_collections.ConfigDict()
   config.reward_wrapper.type = "distance_to_goal"

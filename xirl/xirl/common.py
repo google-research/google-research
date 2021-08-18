@@ -15,28 +15,21 @@
 
 """Functionality common to pretraining and evaluation."""
 
-import os
-import numpy as np
-from typing import Dict, Tuple, Optional
-
+from typing import Dict
 from ml_collections import ConfigDict
+
 import torch
 from xirl import factory
-import yaml
-
-from torch import nn
-
-import pickle
-from torchkit import checkpoint
+from xirl.models import SelfSupervisedModel
 
 DataLoadersDict = Dict[str, torch.utils.data.DataLoader]
-ModelType = nn.Module
+ModelType = SelfSupervisedModel
 
 
 def get_pretraining_dataloaders(
-    config,
-    debug = False,
-):
+    config: ConfigDict,
+    debug: bool = False,
+) -> DataLoadersDict:
   """Construct a train/valid pair of pretraining dataloaders.
 
   Args:
@@ -68,9 +61,9 @@ def get_pretraining_dataloaders(
 
 
 def get_downstream_dataloaders(
-    config,
-    debug,
-):
+    config: ConfigDict,
+    debug: bool = False,
+) -> DataLoadersDict:
   """Construct a train/valid pair of downstream dataloaders.
 
   Args:
@@ -105,9 +98,9 @@ def get_downstream_dataloaders(
 
 
 def get_factories(
-    config,
-    device,
-    debug = False,
+    config: ConfigDict,
+    device: torch.device,
+    debug: bool = False,
 ):
   """Feed config to factories and return objects."""
   pretrain_loaders = get_pretraining_dataloaders(config, debug)
@@ -126,42 +119,6 @@ def get_factories(
   )
 
 
-def get_model(config):
+def get_model(config: ConfigDict) -> ModelType:
   """Construct a model from a config."""
   return factory.model_from_config(config)
-
-
-def load_config_from_dir(exp_dir):
-  """Load experiment config."""
-  try:
-    with open(os.path.join(exp_dir, "config.yaml"), "r") as fp:
-      cfg = yaml.load(fp, Loader=yaml.FullLoader)
-    return ConfigDict(cfg)
-  except FileNotFoundError as e:
-    raise e
-
-
-def load_model_checkpoint(
-    pretrained_path: str,
-    device: torch.device,
-) -> Tuple[ConfigDict, ModelType]:
-  """Load a pretrained model and optionally a precomputed goal embedding."""
-  config = load_config_from_dir(pretrained_path)
-  model = get_model(config)
-  checkpoint_dir = os.path.join(pretrained_path, "checkpoints")
-  checkpoint_manager = checkpoint.CheckpointManager(
-      checkpoint.Checkpoint(model=model), checkpoint_dir, device)
-  global_step = checkpoint_manager.restore_or_initialize()
-  print(f"Restored model from checkpoint @{global_step}.")
-  return config, model
-
-
-def load_goal_embedding(pretrained_path: str) -> Optional[np.ndarray]:
-  """Load a goal embedding. Should be computed via `compute_goal_embedding.py`."""
-  try:
-    with open(os.path.join(pretrained_path, "goal_emb.pkl"), "rb") as fp:
-      goal_emb = pickle.load(fp)
-    print("Successfully loaded goal embedding.")
-    return goal_emb
-  except FileNotFoundError as e:
-    raise e
