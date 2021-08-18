@@ -93,37 +93,87 @@ class DoubleCritic(nn.Module):
     return self.critic1(*args), self.critic2(*args)
 
 
-# Reference: https://github.com/facebookresearch/drqv2/
-class TruncatedNormal(pyd.Normal):
-  """Truncated normal distribution."""
+# # Reference: https://github.com/facebookresearch/drqv2/
+# class TruncatedNormal(pyd.Normal):
+#   """Truncated normal distribution."""
 
-  def __init__(
-      self,
-      loc: float,
-      scale: float,
-      low: float = -1.0,
-      high: float = 1.0,
-      eps: float = 1e-6,
-  ):
-    super().__init__(loc, scale, validate_args=False)
+#   def __init__(
+#       self,
+#       loc: float,
+#       scale: float,
+#       low: float = -1.0,
+#       high: float = 1.0,
+#       eps: float = 1e-6,
+#   ):
+#     super().__init__(loc, scale, validate_args=False)
 
-    self.low = low
-    self.high = high
-    self.eps = eps
+#     self.low = low
+#     self.high = high
+#     self.eps = eps
 
-  def _clamp(self, x: TensorType) -> TensorType:
-    clamped_x = torch.clamp(x, self.low + self.eps, self.high - self.eps)
-    x = x - x.detach() + clamped_x.detach()
-    return x
+#   def _clamp(self, x: TensorType) -> TensorType:
+#     clamped_x = torch.clamp(x, self.low + self.eps, self.high - self.eps)
+#     x = x - x.detach() + clamped_x.detach()
+#     return x
 
-  def sample(self, clip=None, sample_shape=torch.Size()):
-    shape = self._extended_shape(sample_shape)
-    eps = _standard_normal(shape, dtype=self.loc.dtype, device=self.loc.device)
-    eps *= self.scale
-    if clip is not None:
-      eps = torch.clamp(eps, -clip, clip)
-    x = self.loc + eps
-    return self._clamp(x)
+#   def sample(self, clip=None, sample_shape=torch.Size()):
+#     shape = self._extended_shape(sample_shape)
+#     eps = _standard_normal(shape, dtype=self.loc.dtype, device=self.loc.device)
+#     eps *= self.scale
+#     if clip is not None:
+#       eps = torch.clamp(eps, -clip, clip)
+#     x = self.loc + eps
+#     return self._clamp(x)
+
+
+class TanhTransform(pyd.transforms.Transform):
+  domain = pyd.constraints.real
+  codomain = pyd.constraints.interval(-1.0, 1.0)
+  bijective = True
+  sign = +1
+
+  def __init__(self, cache_size: int = 1) -> None:
+    super().__init__(cache_size=cache_size)
+
+  @staticmethod
+  def atanh(x: TensorType) -> TensorType:
+    return 0.5 * (x.log1p() - (-x).log1p())
+
+  @staticmethod
+  def log_abs_det_jacobian(x: TensorType, y: TensorType) -> TensorType:
+    # We use a formula that is more numerically stable, see details in the
+    # following link https://github.com/tensorflow/probability/commit/ef6bb176e0ebd1cf6e25c6b5cecdd2428c22963f#diff-e120f70e92e6741bca649f04fcd907b7
+    del y
+    return 2.0 * (math.log(2.0) - x - F.softplus(-2.0 * x))
+
+  def __eq__(self, other):
+    return isinstance(other, TanhTransform)
+
+  def _call(self, x: TensorType) -> TensorType:
+    return x.tanh()
+
+  def _inverse(self, y: TensorType) -> TensorType:
+    # We do not clamp to the boundary here as it may degrade the performance
+    # of certain algorithms. One should use `cache_size=1` instead.
+    return self.atanh(y)
+
+
+class SquashedNormal(pyd.transformed_distribution.TransformedDistribution):
+
+  def __init__(self, loc: TensorType, scale: TensorType) -> None:
+    self.loc = loc
+    self.scale = scale
+
+    self.base_dist = pyd.Normal(loc, scale)
+    transforms = [TanhTransform()]
+    super().__init__(self.base_dist, transforms)
+
+  @property
+  def mean(self) -> TensorType:
+    mu = self.loc
+    for tr in self.transforms:
+      mu = tr(mu)
+    return mu
 
 
 class DiagGaussianActor(nn.Module):
@@ -154,7 +204,8 @@ class DiagGaussianActor(nn.Module):
     log_std = log_std_min + 0.5 * log_std_range * (log_std + 1)
 
     std = log_std.exp()
-    return TruncatedNormal(mu, std)
+    return SquashedNormal(mu, std)
+    # return TruncatedNormal(mu, std)
 
 
 def soft_update_params(
@@ -248,7 +299,7 @@ class SAC(nn.Module):
   def alpha(self) -> TensorType:
     return self.log_alpha.exp()
 
-  @torch.no_grad()
+  # @torch.no_grad()
   def act(self, obs: np.ndarray, sample: bool = False) -> np.ndarray:
     obs = torch.as_tensor(obs, device=self.device)
     dist = self.actor(obs.unsqueeze(0))
