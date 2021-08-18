@@ -72,7 +72,7 @@ def evaluate(
     for k, v in info['episode'].items():
       stats[k].append(v)
     if "eval_score" in info:
-      stats.append(info["eval_score"])
+      stats[k].append(info["eval_score"])
   # Average out stat values.
   for k, v in stats.items():
     stats[k] = np.mean(v)
@@ -177,12 +177,14 @@ def main(_):
         if (i + 1) % FLAGS.config.log_frequency == 0:
           for k, v in train_info.items():
             logger.log_scalar(v, info["total"]["timesteps"], k)
+          logger.flush()
 
       if (i + 1) % FLAGS.config.eval_frequency == 0:
         eval_stats = evaluate(policy, eval_env, FLAGS.config.num_eval_episodes)
         for k, v in eval_stats.items():
           logger.log_scalar(v, info['total']['timesteps'], f"average_{k}s",
                             "evaluation")
+        logger.flush()
 
       if (i + 1) % FLAGS.config.checkpoint_frequency == 0:
         checkpoint_manager.save(i)
