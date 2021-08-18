@@ -17,6 +17,7 @@ import ml_collections
 import torch
 import torch.nn.functional as F
 from torch import distributions as pyd
+from torch.distributions.utils import _standard_normal
 from torch import nn
 
 from .replay_buffer import ReplayBuffer
@@ -92,54 +93,37 @@ class DoubleCritic(nn.Module):
     return self.critic1(*args), self.critic2(*args)
 
 
-class TanhTransform(pyd.transforms.Transform):
-  domain = pyd.constraints.real
-  codomain = pyd.constraints.interval(-1.0, 1.0)
-  bijective = True
-  sign = +1
+# Reference: https://github.com/facebookresearch/drqv2/
+class TruncatedNormal(pyd.Normal):
+  """Truncated normal distribution."""
 
-  def __init__(self, cache_size: int = 1) -> None:
-    super().__init__(cache_size=cache_size)
+  def __init__(
+      self,
+      loc: float,
+      scale: float,
+      low: float = -1.0,
+      high: float = 1.0,
+      eps: float = 1e-6,
+  ):
+    super().__init__(loc, scale, validate_args=False)
 
-  @staticmethod
-  def atanh(x: TensorType) -> TensorType:
-    return 0.5 * (x.log1p() - (-x).log1p())
+    self.low = low
+    self.high = high
+    self.eps = eps
 
-  @staticmethod
-  def log_abs_det_jacobian(x: TensorType, y: TensorType) -> TensorType:
-    # We use a formula that is more numerically stable, see details in the
-    # following link https://github.com/tensorflow/probability/commit/ef6bb176e0ebd1cf6e25c6b5cecdd2428c22963f#diff-e120f70e92e6741bca649f04fcd907b7
-    del y
-    return 2.0 * (math.log(2.0) - x - F.softplus(-2.0 * x))
+  def _clamp(self, x: TensorType) -> TensorType:
+    clamped_x = torch.clamp(x, self.low + self.eps, self.high - self.eps)
+    x = x - x.detach() + clamped_x.detach()
+    return x
 
-  def __eq__(self, other):
-    return isinstance(other, TanhTransform)
-
-  def _call(self, x: TensorType) -> TensorType:
-    return x.tanh()
-
-  def _inverse(self, y: TensorType) -> TensorType:
-    # We do not clamp to the boundary here as it may degrade the performance
-    # of certain algorithms. One should use `cache_size=1` instead.
-    return self.atanh(y)
-
-
-class SquashedNormal(pyd.transformed_distribution.TransformedDistribution):
-
-  def __init__(self, loc: TensorType, scale: TensorType) -> None:
-    self.loc = loc
-    self.scale = scale
-
-    self.base_dist = pyd.Normal(loc, scale)
-    transforms = [TanhTransform()]
-    super().__init__(self.base_dist, transforms)
-
-  @property
-  def mean(self) -> TensorType:
-    mu = self.loc
-    for tr in self.transforms:
-      mu = tr(mu)
-    return mu
+  def sample(self, clip=None, sample_shape=torch.Size()):
+    shape = self._extended_shape(sample_shape)
+    eps = _standard_normal(shape, dtype=self.loc.dtype, device=self.loc.device)
+    eps *= self.scale
+    if clip is not None:
+      eps = torch.clamp(eps, -clip, clip)
+    x = self.loc + eps
+    return self._clamp(x)
 
 
 class DiagGaussianActor(nn.Module):
@@ -170,7 +154,7 @@ class DiagGaussianActor(nn.Module):
     log_std = log_std_min + 0.5 * log_std_range * (log_std + 1)
 
     std = log_std.exp()
-    return SquashedNormal(mu, std)
+    return TruncatedNormal(mu, std)
 
 
 def soft_update_params(
@@ -186,8 +170,11 @@ def soft_update_params(
 class SAC(nn.Module):
   """Soft-Actor-Critic."""
 
-  def __init__(self, device: torch.device,
-               config: ml_collections.ConfigDict) -> None:
+  def __init__(
+      self,
+      device: torch.device,
+      config: ml_collections.ConfigDict,
+  ):
     super().__init__()
 
     self.device = device
@@ -261,14 +248,13 @@ class SAC(nn.Module):
   def alpha(self) -> TensorType:
     return self.log_alpha.exp()
 
+  @torch.no_grad()
   def act(self, obs: np.ndarray, sample: bool = False) -> np.ndarray:
-    obs = torch.FloatTensor(obs).to(self.device)
-    obs = obs.unsqueeze(0)
-    dist = self.actor(obs)
+    obs = torch.as_tensor(obs, device=self.device)
+    dist = self.actor(obs.unsqueeze(0))
     action = dist.sample() if sample else dist.mean
     action = action.clamp(*self.action_range)
-    assert action.ndim == 2 and action.shape[0] == 1
-    return action[0].cpu().detach().numpy()
+    return action.cpu().numpy()[0]
 
   def update_critic(
       self,
@@ -278,14 +264,14 @@ class SAC(nn.Module):
       next_obs: np.ndarray,
       mask: float,
   ) -> InfoType:
-    dist = self.actor(next_obs)
-    next_action = dist.rsample()
-    log_prob = dist.log_prob(next_action).sum(-1, keepdim=True)
-    target_Q1, target_Q2 = self.critic_target(next_obs, next_action)
-    target_V = (
-        torch.min(target_Q1, target_Q2) - self.alpha.detach() * log_prob)
-    target_Q = reward + (mask * self.discount * target_V)
-    target_Q = target_Q.detach()
+    with torch.no_grad():
+      dist = self.actor(next_obs)
+      next_action = dist.rsample()
+      log_prob = dist.log_prob(next_action).sum(-1, keepdim=True)
+      target_Q1, target_Q2 = self.critic_target(next_obs, next_action)
+      target_V = (
+          torch.min(target_Q1, target_Q2) - self.alpha.detach() * log_prob)
+      target_Q = reward + (mask * self.discount * target_V)
 
     # Get current Q estimates.
     current_Q1, current_Q2 = self.critic(obs, action)
@@ -320,15 +306,16 @@ class SAC(nn.Module):
     actor_loss.backward()
     self.actor_optimizer.step()
 
+    # Optimize the temperature.
     alpha_info = {}
     if self.learnable_temperature:
       self.log_alpha_optimizer.zero_grad()
       alpha_loss = (self.alpha *
                     (-log_prob - self.target_entropy).detach()).mean()
       alpha_loss.backward()
+      self.log_alpha_optimizer.step()
       alpha_info["temperature_loss"] = alpha_loss
       alpha_info["temperature"] = self.alpha
-      self.log_alpha_optimizer.step()
 
     return actor_info, alpha_info
 
