@@ -109,7 +109,7 @@ def main(_):
       FLAGS.seed + 42,
       action_repeat=FLAGS.config.action_repeat,
       frame_stack=FLAGS.config.frame_stack,
-      save_dir=osp.join(exp_dir, "video", "eval"),
+      save_dir=osp.join(exp_dir, "video", "eval", str(FLAGS.seed)),
   )
 
   # Dynamically set observation and action space values.
@@ -131,7 +131,7 @@ def main(_):
   )
 
   # Create checkpoint manager.
-  checkpoint_dir = osp.join(exp_dir, "checkpoints")
+  checkpoint_dir = osp.join(exp_dir, "checkpoints", str(FLAGS.seed))
   checkpoint_manager = checkpoint.CheckpointManager(
       checkpoint.Checkpoint(
           **policy.trainable_dict(),
