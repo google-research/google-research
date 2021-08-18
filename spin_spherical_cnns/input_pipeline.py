@@ -118,6 +118,10 @@ def _create_train_dataset(config,
       num_epochs=config.num_epochs,
       shuffle=True,
   )
+  options = tf.data.Options()
+  options.experimental_external_state_policy = (
+      tf.data.experimental.ExternalStatePolicy.WARN)
+  train_dataset = train_dataset.with_options(options)
 
   return train_dataset
 
