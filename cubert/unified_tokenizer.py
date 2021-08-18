@@ -15,6 +15,7 @@
 
 # Lint as: python3
 """Cross-language tokenization library."""
+import dataclasses
 import enum
 import token as python_token
 import tokenize
@@ -26,9 +27,7 @@ from typing import Sequence
 from typing import Text
 from typing import Tuple
 
-
 from absl import logging
-import dataclasses
 import regex  # Using instead of `re` because it handles Unicode classes.
 import six
 
@@ -164,11 +163,20 @@ def fill_range_with_whitespace(start,
             end=Position(line=current_line, column=end.column)))
 
 
-_KINDS_TO_SPLIT_LIKE_WHITESPACE = (TokenKind.COMMENT, TokenKind.STRING,
-                                   TokenKind.WHITESPACE)
-_KINDS_TO_SPLIT_BY_LENGTH = (TokenKind.COMMENT, TokenKind.STRING,
-                             TokenKind.NUMBER, TokenKind.IDENTIFIER,
-                             TokenKind.WHITESPACE)
+_KINDS_TO_SPLIT_LIKE_WHITESPACE = (
+    TokenKind.COMMENT,
+    TokenKind.STRING,
+    TokenKind.WHITESPACE,
+    TokenKind.ERROR,
+)
+_KINDS_TO_SPLIT_BY_LENGTH = (
+    TokenKind.COMMENT,
+    TokenKind.STRING,
+    TokenKind.NUMBER,
+    TokenKind.IDENTIFIER,
+    TokenKind.WHITESPACE,
+    TokenKind.ERROR,
+)
 
 _UPPERCASE = r'\p{Lu}'
 _TITLECASE = r'\p{Lt}'

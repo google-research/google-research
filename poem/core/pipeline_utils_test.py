@@ -234,6 +234,22 @@ class PipelineUtilsTest(tf.test.TestCase):
         {key: var.name for key, var in variables_to_restore.items()},
         expected_variable_to_restore_names)
 
+  def test_get_sigmoid_parameters(self):
+    raw_a, a, b = pipeline_utils.get_sigmoid_parameters(
+        name='test',
+        raw_a_initial_value=1.0,
+        b_initial_value=2.0,
+        a_range=(-0.5, 1.2),
+        b_range=(3.0, 5.0))
+
+    with self.session() as sess:
+      sess.run(tf.global_variables_initializer())
+      raw_a_result, a_result, b_result = sess.run([raw_a, a, b])
+
+    self.assertAlmostEqual(raw_a_result, 1.0)
+    self.assertAlmostEqual(a_result, 1.2)
+    self.assertAlmostEqual(b_result, 3.0)
+
 
 if __name__ == '__main__':
   tf.test.main()

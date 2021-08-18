@@ -250,7 +250,14 @@ def SimulateSbm(sbm_data,
       group, if they are not already so.
   Returns: (none)
   """
-  if np.sum(pi) != 1.0:
+  # Equivalent to assertAlmostEqual(np.sum(pi), 1.0, places=12)
+  # https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertNotAlmostEqual
+  #
+  # Some leniency is required here because some theoretically-valid ways to
+  # programmatically compute a simplex vector suffer from precision errors. One
+  # example of this is in the simulate_sbm_community_sizes_seven_groups test
+  # from sbm_simulator_test.py. Places>=12 covers known similar cases (to date).
+  if round(abs(np.sum(pi) - 1.0), 12) != 0:
     raise ValueError("entries of pi must sum to 1.0")
   if prop_mat.shape[0] != len(pi) or prop_mat.shape[1] != len(pi):
     raise ValueError("prop_mat must be k x k where k = len(pi)")

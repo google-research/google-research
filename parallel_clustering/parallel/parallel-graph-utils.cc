@@ -71,7 +71,9 @@ std::vector<std::tuple<gbbs::uintE, gbbs::uintE, float>>
 RetrieveInterClusterEdges(
     gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, float>& original_graph,
     const std::vector<gbbs::uintE>& cluster_ids,
-    const std::function<bool(gbbs::uintE, gbbs::uintE)>& is_valid_func) {
+    const std::function<bool(gbbs::uintE, gbbs::uintE)>& is_valid_func,
+    const std::function<float(std::tuple<gbbs::uintE, gbbs::uintE, float>)>&
+        scale_func) {
   // First, compute offsets on the original graph
   std::vector<gbbs::uintE> all_offsets(original_graph.n + 1, gbbs::uintE{0});
   pbbs::parallel_for(0, original_graph.n, [&](std::size_t i) {
@@ -94,7 +96,8 @@ RetrieveInterClusterEdges(
             cluster_ids[v] != UINT_E_MAX &&
             (v <= u || cluster_ids[v] != cluster_ids[u]))
           all_edges[all_offsets_scan.first[j] + i] =
-              std::make_tuple(cluster_ids[u], cluster_ids[v], weight);
+              std::make_tuple(cluster_ids[u], cluster_ids[v],
+                              scale_func(std::make_tuple(u, v, weight)));
         i++;
       };
       vtx.mapOutNgh(j, map_f, false);
@@ -120,10 +123,12 @@ OffsetsEdges ComputeInterClusterEdgesSort(
     const std::vector<gbbs::uintE>& cluster_ids,
     std::size_t num_compressed_vertices,
     const std::function<float(float, float)>& aggregate_func,
-    const std::function<bool(gbbs::uintE, gbbs::uintE)>& is_valid_func) {
+    const std::function<bool(gbbs::uintE, gbbs::uintE)>& is_valid_func,
+    const std::function<float(std::tuple<gbbs::uintE, gbbs::uintE, float>)>&
+        scale_func) {
   // Retrieve all valid edges, mapped to cluster_ids
-  auto inter_cluster_edges =
-      RetrieveInterClusterEdges(original_graph, cluster_ids, is_valid_func);
+  auto inter_cluster_edges = RetrieveInterClusterEdges(
+      original_graph, cluster_ids, is_valid_func, scale_func);
 
   // Sort inter-cluster edges and obtain boundary indices where edges differ
   // (in any vertex). These indices are stored in filtered_mark_edges.

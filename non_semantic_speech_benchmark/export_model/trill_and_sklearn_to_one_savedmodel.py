@@ -27,8 +27,6 @@ from sklearn import linear_model  # pylint:disable=unused-import
 import tensorflow as tf
 import tensorflow_hub as hub
 
-from non_semantic_speech_benchmark import file_utils
-
 flags.DEFINE_string('trill_location', None, 'Location of the SavedModel.')
 flags.DEFINE_string('sklearn_location', None, 'Location of the sklearn model.')
 flags.DEFINE_string('output_filepath', None, 'Output filepath.')
@@ -94,7 +92,7 @@ def main(unused_argv):
       output_key='embedding',
       output_shape=[None, 2048]
   )
-  with file_utils.Open(FLAGS.sklearn_location, 'rb') as f:
+  with tf.io.gfile.GFile(FLAGS.sklearn_location, 'rb') as f:
     sklearn_model = pickle.load(f)
   combined_model = combine_models(trill_layer, sklearn_model)
 

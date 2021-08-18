@@ -15,10 +15,10 @@
 
 """Utilities for synapse handling."""
 
+import dataclasses as dc
 import enum
 import functools as ft
 from typing import Callable, List, Sequence, Text, Union, Optional
-import dataclasses as dc
 
 import jax.numpy as jp
 import numpy as np
@@ -55,10 +55,14 @@ def random_uniform_symmetric(shape, seed):
   return (tf.random.uniform(shape, seed=seed) - 0.5) * 2
 
 
-def random_initializer(start_seed=0, scale_by_channels=False,
-                       scale=1, bias=0, random_fn=random_uniform_symmetric):
+def random_initializer(start_seed=0,
+                       scale_by_channels=False,
+                       scale=1,
+                       bias=0,
+                       random_fn=random_uniform_symmetric):
   """Returns initializer that generates random sequence."""
   seed = [hash(str(start_seed))]
+
   def impl(params):
     if len(params.shape) >= 3:
       # shape: species x (in+out) x (in+out) x states
@@ -68,15 +72,16 @@ def random_initializer(start_seed=0, scale_by_channels=False,
     apply_scale = scale(params) if callable(scale) else scale
     r = v * apply_scale + bias
     if scale_by_channels:
-      r = r / (num_channels ** 0.5)
+      r = r / (num_channels**0.5)
     return r
+
   return impl
 
 
 def _random_uniform_fn(start_seed):
   rng = np.random.RandomState(start_seed)
-  return lambda shape: tf.constant(rng.uniform(  # pylint: disable=g-long-lambda
-      low=-1, high=1, size=shape), dtype=np.float32)
+  return lambda shape: tf.constant(  # pylint: disable=g-long-lambda
+      rng.uniform(low=-1, high=1, size=shape), dtype=np.float32)
 
 
 def fixed_random_initializer(start_seed=0,
@@ -98,6 +103,7 @@ def fixed_random_initializer(start_seed=0,
     scale: target scale (default: 1)
     bias: mean of the resulting distribution.
     random_fn: random generator if none will use use _random_uniform_fn
+
   Returns:
     callable that accepts shape and returns tensorflow constant tensor.
   """
@@ -112,7 +118,7 @@ def fixed_random_initializer(start_seed=0,
     apply_scale = scale(params) if callable(scale) else scale
     r = v * apply_scale + bias
     if scale_by_channels:
-      r = r / (num_channels ** 0.5)
+      r = r / (num_channels**0.5)
     return r
 
   return impl
@@ -191,12 +197,15 @@ def combine_in_out_synapses(in_out_synapse, out_in_synapse,
       env.concat([
           env.zeros((*batch_dims, out_channels, out_channels, num_states)),
           in_out_synapse
-      ], axis=-2),
+      ],
+                 axis=-2),
       env.concat([
           out_in_synapse,
           env.zeros((*batch_dims, in_channels, in_channels, num_states))
-      ], axis=-2)
-  ], axis=-3)
+      ],
+                 axis=-2)
+  ],
+                       axis=-3)
   return synapse
 
 
@@ -210,6 +219,7 @@ def sync_all_synapses(synapses, layers, env):
     synapses: list of synapses in the network.
     layers: list of layers in the network.
     env: Environment
+
   Returns:
     Synchronized synapses.
   """
@@ -225,17 +235,15 @@ def sync_in_and_out_synapse(synapse, in_channels, env):
       in_channels=in_channels,
       update_type=UpdateType.FORWARD,
       include_bias=True)
-  return combine_in_out_synapses(
-      in_out_synapse,
-      transpose_synapse(in_out_synapse, env),
-      env)
+  return combine_in_out_synapses(in_out_synapse,
+                                 transpose_synapse(in_out_synapse, env), env)
 
 
 def sync_states_synapse(synapse, env, num_states=None):
   """Sync synapse's first state across all the other states."""
   if num_states is None:
     num_states = synapse.shape[-1]
-  return env.stack(num_states*[synapse[Ellipsis, 0]], axis=-1)
+  return env.stack(num_states * [synapse[Ellipsis, 0]], axis=-1)
 
 
 def normalize_synapses(synapses,
@@ -245,7 +253,7 @@ def normalize_synapses(synapses,
   """Normalizes synapses across a particular axis (across input by def.)."""
   # Default value axis=-3 corresponds to normalizing across the input neuron
   # dimension.
-  squared = env.sum(synapses ** 2, axis=axis, keepdims=True)
+  squared = env.sum(synapses**2, axis=axis, keepdims=True)
   synapses /= env.sqrt(squared + 1e-9)
   if rescale_to is not None:
     synapses *= rescale_to

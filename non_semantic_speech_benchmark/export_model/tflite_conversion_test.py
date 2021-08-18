@@ -25,7 +25,7 @@ import tensorflow as tf
 
 from non_semantic_speech_benchmark.export_model import tflite_conversion
 
-TESTDIR = 'non_semantic_speech_benchmark/export_model/testdata'
+TESTDIR = 'non_semantic_speech_benchmark/export_model/testdata/12321'
 
 
 class TfliteConversionTest(parameterized.TestCase):
@@ -45,7 +45,7 @@ class TfliteConversionTest(parameterized.TestCase):
 
     tflite_conversion.main(None)
 
-    tflite_model = os.path.join(flags.FLAGS.output_dir, 'model_1.tflite')
+    tflite_model = os.path.join(flags.FLAGS.output_dir, 'model_0.tflite')
     self.assertTrue(tf.io.gfile.exists(tflite_model))
 
     # Check that input signature is as expected.

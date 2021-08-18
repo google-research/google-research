@@ -56,16 +56,11 @@ flags.DEFINE_alias('ml', 'min_length')
 flags.DEFINE_integer(
     'bottleneck_dimension', None, 'Dimension of bottleneck. '
     'If 0, bottleneck layer is excluded.')
-flags.DEFINE_float('alpha', 1.0, 'Alpha controlling MobileNet width.')
-flags.DEFINE_boolean('average_pool', False, 'Average pool MobileNet output.')
-flags.DEFINE_string(
-    'mobilenet_size', 'small',
-    'Size specification for MobileNet in student model. '
-    'valid entries are `tiny`, `small`, and `large`.')
 flags.DEFINE_alias('bd', 'bottleneck_dimension')
-flags.DEFINE_alias('al', 'alpha')
-flags.DEFINE_alias('ap', 'average_pool')
-flags.DEFINE_alias('ms', 'mobilenet_size')
+flags.DEFINE_string(
+    'model_type', 'mobilenet_debug_1.0_False',
+    'Specification for student model.')
+flags.DEFINE_alias('mt', 'model_type')
 
 # Training config flags.
 flags.DEFINE_integer('train_batch_size', 1, 'Hyperparameter: batch size.')
@@ -165,12 +160,10 @@ def train_and_report(debug=False):
     compressor = compression_wrapper.get_apply_compression(
         compression_params, global_step=global_step)
   model = models.get_keras_model(
+      model_type=FLAGS.model_type,
       bottleneck_dimension=FLAGS.bottleneck_dimension,
       output_dimension=output_dimension,
-      alpha=FLAGS.alpha,
-      mobilenet_size=FLAGS.mobilenet_size,
       frontend=True,
-      avg_pool=FLAGS.average_pool,
       compressor=compressor,
       quantize_aware_training=FLAGS.quantize_aware_training)
   model.summary()

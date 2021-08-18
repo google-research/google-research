@@ -20,8 +20,10 @@ import functools
 import logging
 import sys
 from typing import Dict, List, Optional
+
 import numpy as np
 import tensorflow as tf
+
 from covid_epidemiology.src import constants
 from covid_epidemiology.src.models.encoders import covariates as covariate_lib
 from covid_epidemiology.src.models.encoders import variable_encoders

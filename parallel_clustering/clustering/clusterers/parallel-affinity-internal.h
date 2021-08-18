@@ -30,6 +30,7 @@
 #include "external/gbbs/pbbslib/sequence_ops.h"
 #include "external/gbbs/pbbslib/utilities.h"
 #include "parallel/parallel-sequence-ops.h"
+#include "parallel/parallel-graph-utils.h"
 
 namespace research_graph {
 namespace in_memory {
@@ -56,22 +57,24 @@ absl::StatusOr<std::vector<gbbs::uintE>> NearestNeighborLinkage(
 // are aggregated according to affinity_config. A cluster id of UINT_E_MAX
 // means that the corresponding vertex has already been clustered into
 // a final cluster, by virtue of end conditions given by affinity_config.
-absl::StatusOr<
-    std::unique_ptr<gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, float>>>
-CompressGraph(
+// TODO(b/189478197): Switch original_graph to a const reference (which requires
+// GBBS to support const get_vertex() calls)
+absl::StatusOr<GraphWithWeights> CompressGraph(
     gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, float>& original_graph,
-    std::vector<gbbs::uintE>& cluster_ids,
+    const std::vector<double>& original_node_weights,
+    const std::vector<gbbs::uintE>& cluster_ids,
     const AffinityClustererConfig& affinity_config);
 
 // Determine which clusters, as given by cluster_ids, are "finished", where
 // "finished" is defined by AffinityClustererConfig (e.g., a cluster of
 // sufficient density or conductance). These clusters are aggregated and
-// returned, and the cluster ids for the corresponding vertices are updated
-// to be invalid.
+// returned, and the cluster ids and compressed cluster ids for the
+// corresponding vertices are updated to be invalid.
 InMemoryClusterer::Clustering FindFinishedClusters(
     gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, float>& G,
     const AffinityClustererConfig& affinity_config,
-    std::vector<gbbs::uintE>& cluster_ids);
+    std::vector<gbbs::uintE>& cluster_ids,
+    std::vector<gbbs::uintE>& compressed_cluster_ids);
 
 namespace internal {
 

@@ -1,0 +1,26 @@
+licenses(["notice"])
+
+package(default_visibility = ["//visibility:public"])
+
+
+proto_library(
+    name = "dynamic_weight_threshold_proto",
+    srcs = ["dynamic_weight_threshold.proto"],
+)
+
+cc_proto_library(
+    name = "dynamic_weight_threshold_cc_proto",
+    deps = [":dynamic_weight_threshold_proto"],
+)
+
+
+cc_library(
+    name = "dynamic_weight_threshold",
+    srcs = ["dynamic_weight_threshold.cc"],
+    hdrs = ["dynamic_weight_threshold.h"],
+    deps = [
+        ":dynamic_weight_threshold_cc_proto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+    ],
+)

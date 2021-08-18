@@ -597,17 +597,14 @@ class CompressionOp(CompressionOpInterface):
                                      weight_init_obj.Constant(1.0), p.dtype)
       alpha_pc = weight_params_fn([], weight_init_obj.Constant(1.0), tf.float32)
 
-      layer_obj.CreateVariable(
-          'alpha', alpha_pc, theta_fn=None, trainable=False)
+      layer_obj.CreateVariable('alpha', alpha_pc, trainable=False)
       layer_obj.CreateVariable(
           'b_matrix_tfvar',
           b_matrix_pc,
-          theta_fn=layer_obj.AddGlobalVN,
           trainable=self.matrix_compressor.get_spec().is_b_matrix_trainable)
       layer_obj.CreateVariable(
           'c_matrix_tfvar',
           c_matrix_pc,
-          theta_fn=layer_obj.AddGlobalVN,
           trainable=self.matrix_compressor.get_spec().is_c_matrix_trainable)
 
       self.b_matrix_tfvar = layer_obj.vars.b_matrix_tfvar
@@ -1085,18 +1082,15 @@ class InputOutputCompressionOp(CompressionOp):
         layer_obj.CreateVariable(
             'b_matrix_tfvar',
             b_matrix_pc,
-            theta_fn=None,
             trainable=self.matrix_compressor.get_spec().is_b_matrix_trainable)
       if self._spec.compress_output:
         layer_obj.CreateVariable(
             'd_matrix_tfvar',
             d_matrix_pc,
-            theta_fn=None,
             trainable=self.matrix_compressor.get_spec().is_d_matrix_trainable)
       layer_obj.CreateVariable(
           'c_matrix_tfvar',
           c_matrix_pc,
-          theta_fn=None,
           trainable=self.matrix_compressor.get_spec().is_c_matrix_trainable)
 
       if self._spec.compress_input:
@@ -1645,11 +1639,9 @@ class BlockCompressionOp(CompressionOp):
       layer_obj.CreateVariable(
           'c_matrix_tfvar',
           c_matrix_pc,
-          theta_fn=None,
           trainable=self.matrix_compressor.get_spec().is_c_matrix_trainable)
       if self._spec.block_method == 'mask':
-        layer_obj.CreateVariable(
-            'c_mask_tfvar', c_mask_pc, theta_fn=None, trainable=False)
+        layer_obj.CreateVariable('c_mask_tfvar', c_mask_pc, trainable=False)
 
       self.c_matrix_tfvar = layer_obj.vars.c_matrix_tfvar
       self.a_matrix_tfvar = a_matrix_tfvar
