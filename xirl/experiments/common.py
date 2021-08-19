@@ -13,20 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from configs.rl_default import get_config as _get_config
-from experiments.common import XMAGICALTrainingIterations
-from ml_collections import ConfigDict
-from utils import copy_config_and_replace
+from ml_collections import FrozenConfigDict
 
+# A mapping from x-MAGICAL embodiments to RL training iterations.
+XMAGICALTrainingIterations = FrozenConfigDict({
+    "longstick": 75_000,
+    "mediumstick": 250_000,
+    "shortstick": 500_000,
+    "gripper": 500_000,
+})
 
-def get_config(embodiment: str) -> ConfigDict:
-  config = _get_config()
-
-  possible_configs = dict()
-  for emb, iters in XMAGICALTrainingIterations.iteritems():
-    possible_configs[emb] = copy_config_and_replace(
-        config,
-        {"num_train_steps": iters},
-    )
-
-  return possible_configs[embodiment]
+# A mapping from RLV environment to RL training iterations.
+RLVTrainingIterations = FrozenConfigDict({
+    "state_pusher": 500_000,
+})

@@ -13,11 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import os
-import functools
-import math
 import matplotlib.pyplot as plt
 import yaml
 import numpy as np
@@ -28,7 +26,7 @@ from torchkit.experiment import git_revision_hash
 
 import gym
 import torch
-from ml_collections import ConfigDict
+from ml_collections import ConfigDict, FrozenConfigDict
 
 from sac import wrappers
 from xirl import common
@@ -84,6 +82,21 @@ def dump_config(exp_dir: str, config: ConfigDict):
   # the file if it already exists.
   with open(os.path.join(exp_dir, "config.yaml"), "w") as fp:
     yaml.dump(ConfigDict.to_dict(config), fp)
+
+
+def copy_config_and_replace(
+    config: ConfigDict,
+    update_dict: Optional[Dict[str, Any]] = None,
+    freeze: bool = False,
+) -> ConfigDict:
+  """Makes a copy of a config and optionally updates its values."""
+  # Using the ConfigDict constructor leaves the placeholder values untouched.
+  new_config = ConfigDict(config)
+  if update_dict is not None:
+    new_config.update(update_dict)
+  if freeze:
+    return FrozenConfigDict(new_config)
+  return new_config
 
 
 def load_model_checkpoint(

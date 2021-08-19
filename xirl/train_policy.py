@@ -22,6 +22,7 @@ import os.path as osp
 import logging
 
 import gym
+from ml_collections import FrozenConfigDict
 import numpy as np
 import torch
 from tqdm import tqdm
@@ -124,8 +125,10 @@ def main(_):
       float(env.action_space.high.max()),
   ]
 
-  # Resave the config since the dynamic values have been updated at this point.
+  # Resave the config since the dynamic values have been updated at this point and
+  # make it immutable.
   utils.dump_config(exp_dir, FLAGS.config)
+  FLAGS.config = FrozenConfigDict(FLAGS.config)
 
   policy = agent.SAC(device, FLAGS.config.sac)
 

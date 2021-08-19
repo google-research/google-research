@@ -108,8 +108,10 @@ def main(_):
 
         if not global_step % FLAGS.config.EVAL.EVAL_FREQUENCY:
           # Evaluate the model on the pretraining validation dataset.
-          valid_loss = trainer.eval_num_iters(pretrain_loaders["valid"],
-                                              FLAGS.config.EVAL.VAL_ITERS)
+          valid_loss = trainer.eval_num_iters(
+              pretrain_loaders["valid"],
+              FLAGS.config.EVAL.VAL_ITERS,
+          )
           for k, v in valid_loss.items():
             logger.log_scalar(v, global_step, k, "pretrain")
 
