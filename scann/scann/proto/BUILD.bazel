@@ -184,6 +184,7 @@ proto_library(
     srcs = ["results.proto"],
     tags = ["local"],
     deps = [
+        "//scann/data_format:features_proto",
     ],
 )
 

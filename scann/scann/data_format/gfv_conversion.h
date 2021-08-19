@@ -23,6 +23,7 @@
 
 #include "scann/data_format/features.pb.h"
 #include "scann/data_format/gfv_properties.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
@@ -79,31 +80,33 @@ enable_if_t<IsUint8<T>(), Status> AppendGfvValuesToVectorBitPacked(
 
   const size_t old_size = result->size();
   uint8_t shift = 0;
-  static const uint8_t bits_per_int = sizeof(T) * 8;
+  static constexpr uint8_t kBitsPerInt = sizeof(T) * 8;
+  const size_t ints_required =
+      DivRoundUp(gfv.feature_value_int64_size(), kBitsPerInt);
+  result->resize(result->size() + ints_required);
+  auto dest = result->begin() + old_size;
 
-  result->push_back(0);
-  auto end_ptr = &result->back();
+  T cur_int = 0;
   for (const int64_t elem : gfv.feature_value_int64()) {
-    if (shift == bits_per_int) {
+    if (ABSL_PREDICT_FALSE(shift == kBitsPerInt)) {
       shift = 0;
-      result->push_back(0);
-      end_ptr = &result->back();
+      *dest++ = cur_int;
+      cur_int = 0;
     }
 
-    switch (elem) {
-      case 0:
-        break;
-      case 1:
-        *end_ptr |= static_cast<T>(1) << shift;
-        break;
-      default:
-        result->resize(old_size);
-        return InvalidArgumentError(
-            "Can only append 0 or 1 to a binary vector, not %d.", elem);
+    if (ABSL_PREDICT_FALSE(elem != 0 && elem != 1)) {
+      result->resize(old_size);
+      return InvalidArgumentError(
+          "Can only append 0 or 1 to a binary vector, not %d.", elem);
     }
+    cur_int |= static_cast<T>(elem) << shift;
     ++shift;
   }
 
+  DCHECK(dest == result->end() || dest == result->end() - 1);
+  if (dest < result->end()) {
+    *dest = cur_int;
+  }
   return OkStatus();
 }
 

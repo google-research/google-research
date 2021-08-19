@@ -384,6 +384,15 @@ T NonFpTagErrorOrCrash(uint8_t tag) {
     }                                                                  \
   }()
 
+template <typename T>
+size_t SizeOf() {
+  return sizeof(T);
+}
+
+inline size_t SizeFromTag(InputOutputConfig::InMemoryTypes tag) {
+  return SCANN_CALL_FUNCTION_BY_TAG(tag, SizeOf);
+}
+
 #define SCANN_INSTANTIATE_TYPED_CLASS(EXTERN_KEYWORD, ClassName) \
   EXTERN_KEYWORD template class ClassName<int8_t>;               \
   EXTERN_KEYWORD template class ClassName<uint8_t>;              \

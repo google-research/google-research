@@ -15,6 +15,7 @@
 
 
 #include "scann/distance_measures/many_to_many/many_to_many.h"
+#include "scann/distance_measures/many_to_many/many_to_many_common.h"
 #include "scann/distance_measures/many_to_many/many_to_many_templates.h"
 
 namespace research_scann {
@@ -23,7 +24,7 @@ namespace mm_internal {
 template void DenseDistanceManyToManyImpl(
     const DistanceMeasure &dist, const DenseDataset<double> &queries,
     const DenseDataset<double> &database, ThreadPool *pool,
-    ManyToManyTop1Callback<double> callback);
+    EpsilonFilteringCallback<double> callback);
 
 }
 }  // namespace research_scann

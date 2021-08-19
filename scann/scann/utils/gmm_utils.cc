@@ -24,6 +24,7 @@
 #include "Eigen/StdVector"
 #include "absl/base/internal/endian.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/numeric/bits.h"
 #include "absl/random/distributions.h"
 #include "absl/time/time.h"
 #include "scann/base/restrict_allowlist.h"
@@ -34,7 +35,6 @@
 #include "scann/distance_measures/many_to_many/many_to_many.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
-#include "scann/oss_wrappers/scann_bits.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/utils/common.h"
@@ -1085,9 +1085,8 @@ Status GmmUtils::PCAKmeansReinitialization(
   uint32_t min_partition_idx = sorted_partition_sizes.size();
   for (const auto& i : Seq(covariances.size())) {
     const uint32_t multiple_of_avg = (sorted_partition_sizes[i] - 1) / avg_size;
-    const uint32_t num_split_directions =
-        std::min(opts_.max_power_of_2_split,
-                 32 - bits::CountLeadingZeros32(multiple_of_avg));
+    const uint32_t num_split_directions = std::min(
+        opts_.max_power_of_2_split, 32 - absl::countl_zero(multiple_of_avg));
 
     covariances[i] /= sorted_partition_sizes[i];
 

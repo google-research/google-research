@@ -305,7 +305,7 @@ Status AsymmetricQueryer<T>::FindApproximateNeighbors(
           static_cast<int>(lookup_table.int8_lookup_table.empty()) !=
       2) {
     return InvalidArgumentError(
-        "Exactly one of float/int8_t/int16 lookup table must be populated.");
+        "Exactly one of float/int8/int16 lookup table must be populated.");
   }
 
   if (!querying_options.hashed_dataset &&
@@ -465,7 +465,7 @@ Status AsymmetricQueryer<T>::FindApproximateTopNeighborsTopNDispatch(
 
   if (!lookup_table.can_use_int16_accumulator)
     return InvalidArgumentError(
-        "FastTopNeighbors+AsymmetricQueryer fast path only supports int16_t "
+        "FastTopNeighbors+AsymmetricQueryer fast path only supports int16 "
         "accumulators.");
 
   const auto& packed_dataset = *querying_options.lut16_packed_dataset;
@@ -669,13 +669,13 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsNoLUT16(
       num_hashes > kMaxInt8Blocks) {
     return InvalidArgumentError(absl::StrCat(
         "Number of AH blocks (", num_hashes,
-        ") may produce overflow.  (Max blocks for int8_t lookup table = ",
+        ") may produce overflow.  (Max blocks for int8 lookup table = ",
         kMaxInt8Blocks, ")."));
   } else if (std::is_same<LookupElement, int16_t>::value &&
              num_hashes > kMaxInt16Blocks) {
     return InvalidArgumentError(absl::StrCat(
         "Number of AH blocks (", num_hashes,
-        ") may produce overflow.  (Max blocks for int16_t lookup table = ",
+        ") may produce overflow.  (Max blocks for int16 lookup table = ",
         kMaxInt16Blocks, ")."));
   }
 
@@ -837,7 +837,7 @@ Status AsymmetricQueryer<T>::PopulateDistances(
           static_cast<int>(lookup_table.int8_lookup_table.empty()) !=
       2) {
     return InvalidArgumentError(
-        "Exactly one of float/int8_t/int16 lookup table must be populated.");
+        "Exactly one of float/int8/int16 lookup table must be populated.");
   }
 
   auto impl_ptr =
@@ -876,13 +876,13 @@ Status AsymmetricQueryer<T>::PopulateDistancesImpl(
   if (IsSame<LookupElement, uint8_t>() && num_hashes > kMaxInt8Blocks) {
     return InvalidArgumentError(absl::StrCat(
         "Number of AH blocks (", num_hashes,
-        ") may produce overflow.  (Max blocks for int8_t lookup table = ",
+        ") may produce overflow.  (Max blocks for int8 lookup table = ",
         kMaxInt8Blocks, ")."));
   } else if (IsSame<LookupElement, uint16_t>() &&
              num_hashes > kMaxInt16Blocks) {
     return InvalidArgumentError(absl::StrCat(
         "Number of AH blocks (", num_hashes,
-        ") may produce overflow.  (Max blocks for int16_t lookup table = ",
+        ") may produce overflow.  (Max blocks for int16 lookup table = ",
         kMaxInt16Blocks, ")."));
   }
 

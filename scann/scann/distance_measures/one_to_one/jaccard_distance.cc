@@ -16,7 +16,7 @@
 
 #include <cstdint>
 
-#include "scann/oss_wrappers/scann_bits.h"
+#include "absl/numeric/bits.h"
 
 namespace research_scann {
 
@@ -34,31 +34,31 @@ double BinaryJaccardDistance::GetDistanceDense(
   for (; i + 8 <= a.nonzero_entries(); i += 8) {
     const uint64_t aval = ABSL_INTERNAL_UNALIGNED_LOAD64(a.values() + i);
     const uint64_t bval = ABSL_INTERNAL_UNALIGNED_LOAD64(b.values() + i);
-    xor_sum += bits::CountOnes64(aval ^ bval);
-    or_sum += bits::CountOnes64(aval | bval);
+    xor_sum += absl::popcount(aval ^ bval);
+    or_sum += absl::popcount(aval | bval);
   }
 
   if (i + 4 <= a.nonzero_entries()) {
     const uint32_t aval = ABSL_INTERNAL_UNALIGNED_LOAD32(a.values() + i);
     const uint32_t bval = ABSL_INTERNAL_UNALIGNED_LOAD32(b.values() + i);
-    xor_sum += bits::CountOnes64(aval ^ bval);
-    or_sum += bits::CountOnes64(aval | bval);
+    xor_sum += absl::popcount(aval ^ bval);
+    or_sum += absl::popcount(aval | bval);
     i += 4;
   }
 
   if (i + 2 <= a.nonzero_entries()) {
     const uint32_t aval = ABSL_INTERNAL_UNALIGNED_LOAD16(a.values() + i);
     const uint32_t bval = ABSL_INTERNAL_UNALIGNED_LOAD16(b.values() + i);
-    xor_sum += bits::CountOnes64(aval ^ bval);
-    or_sum += bits::CountOnes64(aval | bval);
+    xor_sum += absl::popcount(aval ^ bval);
+    or_sum += absl::popcount(aval | bval);
     i += 2;
   }
 
   if (i < a.nonzero_entries()) {
     const uint32_t aval = a.values()[i];
     const uint32_t bval = b.values()[i];
-    xor_sum += bits::CountOnes64(aval ^ bval);
-    or_sum += bits::CountOnes64(aval | bval);
+    xor_sum += absl::popcount(aval ^ bval);
+    or_sum += absl::popcount(aval | bval);
   }
 
   return (ABSL_PREDICT_FALSE(or_sum == 0))
