@@ -280,6 +280,8 @@ class LearnedVisualReward(abc.ABC, gym.Wrapper):
 
   def step(self, action: np.ndarray) -> TimeStep:
     obs, env_reward, done, info = self.env.step(action)
+    # We'll keep the original env reward in the info dict in case the user would like
+    # to use it in conjunction with the learned reward.
     info["env_reward"] = env_reward
     pixels = self._render_obs()
     learned_reward = self._get_reward_from_image(pixels)
@@ -292,23 +294,27 @@ class DistanceToGoalLearnedVisualReward(LearnedVisualReward):
   def __init__(
       self,
       goal_emb: np.ndarray,
-      distance_func: DistanceFuncType = None,
+      distance_scale: typing.Optional[float] = 1.0,
       **base_kwargs,
   ):
+    """Constructor.
+
+    Args:
+      goal_emb: The goal embedding.
+      distance_scale: Scales the distance from the current state embedding to that of
+        the goal state. Set to 1.0 by default.
+    """
     super().__init__(**base_kwargs)
 
-    self._goal_emb = goal_emb
-    self._distance_func = distance_func
+    self._goal_emb = np.atleast_2d(goal_emb)
+    self._distance_scale = distance_scale
 
   def _get_reward_from_image(self, image: np.ndarray) -> float:
     """Forward the pixels through the model and compute the reward."""
     image_tensor = self._to_tensor(image)
     emb = self._model.infer(image_tensor).numpy().embs
-    dist = np.linalg.norm(emb - self._goal_emb)
-    if self._distance_func is not None:
-      dist = self._distance_func(dist)
-    else:
-      dist = -1.0 * dist
+    dist = -1.0 * np.linalg.norm(emb - self._goal_emb)
+    dist *= self._distance_scale
     return dist
 
 

@@ -187,15 +187,7 @@ def wrap_learned_reward(
 
   elif rl_config.reward_wrapper.type == "distance_to_goal":
     kwargs["goal_emb"] = load_goal_embedding(pretrained_path)
-    if rl_config.reward_wrapper.distance_func == "sigmoid":
-
-      def sigmoid(x, t=1.0):
-        return 1 / (1 + math.exp(-x / t))
-
-      kwargs["distance_func"] = functools.partial(
-          sigmoid,
-          rl_config.reward_wrapper.distance_func_temperature,
-      )
+    kwargs["distance_scale"] = rl_config.reward_wrapper.distance_scale
     env = wrappers.DistanceToGoalLearnedVisualReward(**kwargs)
 
   else:

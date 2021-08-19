@@ -16,6 +16,7 @@
 """Default SAC config values."""
 
 import ml_collections
+from ml_collections.config_dict import config_dict
 
 
 def get_config():
@@ -49,10 +50,9 @@ def get_config():
   config.frame_stack = 3
 
   config.reward_wrapper = ml_collections.ConfigDict()
+  config.reward_wrapper.pretrained_path = config_dict.placeholder(str)
+  # Can be one of ['distance_to_goal', 'goal_classifier'].
   config.reward_wrapper.type = "distance_to_goal"
-  config.reward_wrapper.pretrained_path = ""
-  config.reward_wrapper.distance_func = "none"
-  config.reward_wrapper.distance_func_temperature = 1.0
   config.reward_wrapper.distance_scale = 1.0
 
   # ================================================= #

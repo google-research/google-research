@@ -13,7 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Teleop the agent and visualize the learned reward."""
+"""Teleop the agent and visualize the learned reward.
+
+python interact_reward.py \
+  --config.reward_wrapper.pretrained_path=/tmp/xirl/pretrain_runs/test \
+  --config.reward_wrapper.distance_scale=0.0111111111
+"""
 
 from absl import app
 from absl import flags
@@ -25,8 +30,6 @@ import utils
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("embodiment", "longstick", "The agent embodiment.")
-flags.DEFINE_string("pretrained_path", None,
-                    "Path to a pretrained visual reward dir.")
 flags.DEFINE_boolean(
     "exit_on_done", True,
     "By default, env will terminate if done is True. Set to False to interact for as "
@@ -43,8 +46,10 @@ def main(_):
   env_name = utils.xmagical_embodiment_to_env_name(FLAGS.embodiment)
   env = utils.make_env(env_name, seed=0)
 
-  if FLAGS.pretrained_path is not None:
-    env = utils.wrap_learned_reward(env, FLAGS.pretrained_path, FLAGS.config)
+  # Reward learning wrapper.
+  path = FLAGS.config.reward_wrapper.pretrained_path
+  if path is not None:
+    env = utils.wrap_learned_reward(env, path, FLAGS.config)
 
   viewer = KeyboardEnvInteractor(action_dim=env.action_space.shape[0])
 
