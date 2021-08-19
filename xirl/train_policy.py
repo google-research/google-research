@@ -77,8 +77,11 @@ def evaluate(
 
 
 def main(_):
-  exp_dir = osp.join(FLAGS.config.save_dir, FLAGS.experiment_name,
-                     str(FLAGS.seed))
+  exp_dir = osp.join(
+      FLAGS.config.save_dir,
+      FLAGS.experiment_name,
+      str(FLAGS.seed),
+  )
   utils.setup_experiment(exp_dir, FLAGS.config, FLAGS.resume)
 
   # Setup compute device.
@@ -120,6 +123,9 @@ def main(_):
       float(env.action_space.low.min()),
       float(env.action_space.high.max()),
   ]
+
+  # Resave the config since the dynamic values have been updated at this point.
+  utils.dump_config(exp_dir, FLAGS.config)
 
   policy = agent.SAC(device, FLAGS.config.sac)
 

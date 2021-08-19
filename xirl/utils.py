@@ -78,6 +78,14 @@ def load_config_from_dir(
     raise e
 
 
+def dump_config(exp_dir: str, config: ConfigDict):
+  """Dump config to disk."""
+  # Note: No need to explicitly delete the previous config file as "w" will overwrite
+  # the file if it already exists.
+  with open(os.path.join(exp_dir, "config.yaml"), "w") as fp:
+    yaml.dump(ConfigDict.to_dict(config), fp)
+
+
 def load_model_checkpoint(
     pretrained_path: str,
     device: torch.device,
