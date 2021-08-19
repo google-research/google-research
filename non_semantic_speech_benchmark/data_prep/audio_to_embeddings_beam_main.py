@@ -157,7 +157,7 @@ def no_min_input_length_with_frontend_fn(flags_dict):
 if __name__ == '__main__':
   flags.mark_flags_as_required([
       'output_filename', 'embedding_names', 'embedding_modules',
-      'module_output_keys', 'audio_key', 'label_key',
+      'module_output_keys', 'audio_key',
   ])
   flags.mark_flags_as_mutual_exclusive(['input_glob', 'tfds_dataset'],
                                        required=True)

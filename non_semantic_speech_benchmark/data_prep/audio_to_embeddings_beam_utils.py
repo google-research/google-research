@@ -359,12 +359,14 @@ def _add_embedding_column_map_fn(k_v, original_example_key,
     ex.features.feature.pop(audio_key, None)
 
   # Assert that the label is present. If it's a integer, convert it to bytes.
-  assert label_key in ex.features.feature
-  lbl_feat = ex.features.feature[label_key]
-  if lbl_feat.int64_list.value:
-    lbl_val_as_bytes = str(lbl_feat.int64_list.value[0]).encode('utf-8')
-    ex.features.feature.pop(label_key, None)
-    ex.features.feature[label_key].bytes_list.value.append(lbl_val_as_bytes)
+  if label_key:
+    if label_key not in ex.features.feature:
+      raise ValueError(f'Label not found: {label_key} vs {ex.features.feature}')
+    lbl_feat = ex.features.feature[label_key]
+    if lbl_feat.int64_list.value:
+      lbl_val_as_bytes = str(lbl_feat.int64_list.value[0]).encode('utf-8')
+      ex.features.feature.pop(label_key, None)
+      ex.features.feature[label_key].bytes_list.value.append(lbl_val_as_bytes)
 
   # If provided, assert that the speaker_id field is present, and of type
   # `bytes`.
