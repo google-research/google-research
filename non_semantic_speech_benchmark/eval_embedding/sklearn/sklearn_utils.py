@@ -16,13 +16,19 @@
 # Lint as: python3
 """Utilities for evaluating on sklearn models."""
 
+from typing import Any, List, Optional, Tuple
 import numpy as np
 import tensorflow.compat.v1 as tf
 from non_semantic_speech_benchmark import file_utils
 
 
-def tfexamples_to_nps(path, embedding_name, label_name, label_list,
-                      l2_normalization, speaker_name=None):
+def tfexamples_to_nps(
+    path,
+    embedding_name,
+    label_name,
+    label_list,
+    l2_normalization,
+    speaker_name = None):
   """Reads tf.Examples to numpy arrays.
 
   Args:
@@ -38,21 +44,6 @@ def tfexamples_to_nps(path, embedding_name, label_name, label_list,
   Returns:
     (numpy array of embeddings, numpy array of labels)
   """
-
-  # Sanity check inputs.
-  if not isinstance(embedding_name, str):
-    raise ValueError(
-        f'embedding_name should be string, not {type(embedding_name)}')
-  if not isinstance(label_name, str):
-    raise ValueError(f'label_name should be string, not {type(label_name)}')
-  if not isinstance(label_list, list):
-    raise ValueError(f'label_list should be list, not {type(label_list)}')
-  for lbl in label_list:
-    if not isinstance(lbl, str):
-      raise ValueError(f'label_list should be a list of strs, not {type(lbl)}')
-  if speaker_name and not isinstance(speaker_name, str):
-    raise ValueError(f'speaker_name should be string, not {type(speaker_name)}')
-
   # Read data from disk.
   itervalues_fn = get_itervalues_fn(path)
   embeddings, labels, speaker_ids = [], [], []
@@ -92,7 +83,8 @@ def tfexamples_to_nps(path, embedding_name, label_name, label_list,
   return embeddings, labels
 
 
-def _speaker_normalization(embeddings, speaker_ids):
+def _speaker_normalization(embeddings,
+                           speaker_ids):
   """Normalize embedding features by per-speaker statistics."""
   all_speaker_ids = np.unique(speaker_ids)
   for speaker in all_speaker_ids:
@@ -111,6 +103,8 @@ def _speaker_normalization(embeddings, speaker_ids):
 
 
 
+# TODO(joelshor): Add typing when you figure out how to type yields and
+# generators.
 def get_tfrecord_iterator(glob, proto=tf.train.Example):
   def itervalues():
     for path in file_utils.Glob(glob):
@@ -121,5 +115,7 @@ def get_tfrecord_iterator(glob, proto=tf.train.Example):
   return itervalues
 
 
+# TODO(joelshor): Add typing when you figure out how to type yields and
+# generators.
 def get_itervalues_fn(path):
   return get_tfrecord_iterator(path)
