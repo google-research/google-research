@@ -18,13 +18,13 @@
 import os
 import pickle
 import typing
-
 from absl import app
 from absl import flags
 import numpy as np
 import torch
 from torchkit import checkpoint
 from xirl import common
+from xirl.models import SelfSupervisedModel
 from utils import load_config_from_dir
 
 FLAGS = flags.FLAGS
@@ -36,9 +36,7 @@ flags.DEFINE_boolean(
     "measure performance at random initialization or for ImageNet-only pretraining."
 )
 
-flags.mark_flag_as_required("experiment_path")
-
-ModelType = torch.nn.Module
+ModelType = SelfSupervisedModel
 DataLoaderType = typing.Dict[str, torch.utils.data.DataLoader]
 
 
@@ -87,4 +85,5 @@ def main(_):
 
 
 if __name__ == "__main__":
+  flags.mark_flag_as_required("experiment_path")
   app.run(main)

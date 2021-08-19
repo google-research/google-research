@@ -23,16 +23,16 @@ import typing
 import pickle
 from torchkit import checkpoint
 from torchkit.experiment import git_revision_hash
-
 import gym
 import torch
-from ml_collections import ConfigDict, FrozenConfigDict
-
+from ml_collections import config_dict
 from sac import wrappers
 from xirl import common
 import xmagical
-
 from gym.wrappers import RescaleAction
+
+ConfigDict = config_dict.ConfigDict
+FrozenConfigDict = config_dict.FrozenConfigDict
 
 # ========================================= #
 # Experiment utils.
@@ -90,7 +90,8 @@ def copy_config_and_replace(
     freeze: bool = False,
 ) -> ConfigDict:
   """Makes a copy of a config and optionally updates its values."""
-  # Using the ConfigDict constructor leaves the placeholder values untouched.
+  # Using the ConfigDict constructor leaves the `FieldReferences` untouched unlike
+  # `ConfigDict.copy_and_resolve_references`.
   new_config = ConfigDict(config)
   if update_dict is not None:
     new_config.update(update_dict)

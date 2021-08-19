@@ -19,22 +19,22 @@ from typing import Dict
 
 import collections
 import os.path as osp
-import logging
-
 import gym
-from ml_collections import FrozenConfigDict
 import numpy as np
 import torch
 from tqdm import tqdm
-from absl import app, flags
+from absl import flags
+from absl import logging
+from absl import app
 from ml_collections import config_flags
-
-from sac import agent, replay_buffer
-
-import utils
+from ml_collections import config_dict
+from sac import agent
+from sac import replay_buffer
 from torchkit import checkpoint
+from torchkit import experiment
 from torchkit import Logger
-from torchkit.experiment import seed_rngs, set_cudnn
+import utils
+# pylint: disable=logging-format-interpolation
 
 FLAGS = flags.FLAGS
 
@@ -50,9 +50,6 @@ config_flags.DEFINE_config_file(
     "configs/rl_default.py",
     "File path to the training hyperparameter configuration.",
 )
-
-flags.mark_flag_as_required("experiment_name")
-flags.mark_flag_as_required("embodiment")
 
 
 def evaluate(
@@ -77,13 +74,15 @@ def evaluate(
   return stats
 
 
+@experiment.pdb_fallback
 def main(_):
+  config = FLAGS.config
   exp_dir = osp.join(
-      FLAGS.config.save_dir,
+      config.save_dir,
       FLAGS.experiment_name,
       str(FLAGS.seed),
   )
-  utils.setup_experiment(exp_dir, FLAGS.config, FLAGS.resume)
+  utils.setup_experiment(exp_dir, config, FLAGS.resume)
 
   # Setup compute device.
   if torch.cuda.is_available():
@@ -91,13 +90,13 @@ def main(_):
   else:
     logging.info("No GPU device found. Falling back to CPU.")
     device = torch.device("cpu")
-  logging.info(f"Using device: {FLAGS.device}")  # pylint: disable=logging-format-interpolation
+  logging.info(f"Using device: {FLAGS.device}")
 
   # Set RNG seeds.
   if FLAGS.seed is not None:
     logging.info(f"RL experiment seed: {FLAGS.seed}")
-    seed_rngs(FLAGS.seed)
-    set_cudnn(FLAGS.config.cudnn_deterministic, FLAGS.config.cudnn_benchmark)
+    experiment.seed_rngs(FLAGS.seed)
+    experiment.set_cudnn(config.cudnn_deterministic, config.cudnn_benchmark)
   else:
     logging.info("No RNG seed has been set for this RL experiment.")
 
@@ -106,37 +105,37 @@ def main(_):
   env = utils.make_env(
       env_name,
       FLAGS.seed,
-      action_repeat=FLAGS.config.action_repeat,
-      frame_stack=FLAGS.config.frame_stack,
+      action_repeat=config.action_repeat,
+      frame_stack=config.frame_stack,
   )
   eval_env = utils.make_env(
       env_name,
       FLAGS.seed + 42,
-      action_repeat=FLAGS.config.action_repeat,
-      frame_stack=FLAGS.config.frame_stack,
+      action_repeat=config.action_repeat,
+      frame_stack=config.frame_stack,
       save_dir=osp.join(exp_dir, "video", "eval"),
   )
 
   # Dynamically set observation and action space values.
-  FLAGS.config.sac.obs_dim = env.observation_space.shape[0]
-  FLAGS.config.sac.action_dim = env.action_space.shape[0]
-  FLAGS.config.sac.action_range = [
+  config.sac.obs_dim = env.observation_space.shape[0]
+  config.sac.action_dim = env.action_space.shape[0]
+  config.sac.action_range = [
       float(env.action_space.low.min()),
       float(env.action_space.high.max()),
   ]
 
   # Resave the config since the dynamic values have been updated at this point and
-  # make it immutable.
-  utils.dump_config(exp_dir, FLAGS.config)
-  FLAGS.config = FrozenConfigDict(FLAGS.config)
+  # make it immutable for safety :)
+  utils.dump_config(exp_dir, config)
+  config = config_dict.FrozenConfigDict(config)
 
-  policy = agent.SAC(device, FLAGS.config.sac)
+  policy = agent.SAC(device, config.sac)
 
   # TODO(kevin): Load the learned replay buffer if we are using learned rewards.
   buffer = replay_buffer.ReplayBuffer(
       env.observation_space.shape,
       env.action_space.shape,
-      FLAGS.config.replay_buffer_capacity,
+      config.replay_buffer_capacity,
       device,
   )
 
@@ -156,8 +155,8 @@ def main(_):
   try:
     start = checkpoint_manager.restore_or_initialize()
     observation, done = env.reset(), False
-    for i in tqdm(range(start, FLAGS.config.num_train_steps), initial=start):
-      if i < FLAGS.config.num_seed_steps:
+    for i in tqdm(range(start, config.num_train_steps), initial=start):
+      if i < config.num_seed_steps:
         action = env.action_space.sample()
       else:
         policy.eval()
@@ -177,17 +176,17 @@ def main(_):
         for k, v in info["episode"].items():
           logger.log_scalar(v, info["total"]["timesteps"], k, "training")
 
-      if i >= FLAGS.config.num_seed_steps:
+      if i >= config.num_seed_steps:
         policy.train()
         train_info = policy.update(buffer, i)
 
-        if (i + 1) % FLAGS.config.log_frequency == 0:
+        if (i + 1) % config.log_frequency == 0:
           for k, v in train_info.items():
             logger.log_scalar(v, info["total"]["timesteps"], k, "training")
           logger.flush()
 
-      if (i + 1) % FLAGS.config.eval_frequency == 0:
-        eval_stats = evaluate(policy, eval_env, FLAGS.config.num_eval_episodes)
+      if (i + 1) % config.eval_frequency == 0:
+        eval_stats = evaluate(policy, eval_env, config.num_eval_episodes)
         for k, v in eval_stats.items():
           logger.log_scalar(
               v,
@@ -197,7 +196,7 @@ def main(_):
           )
         logger.flush()
 
-      if (i + 1) % FLAGS.config.checkpoint_frequency == 0:
+      if (i + 1) % config.checkpoint_frequency == 0:
         checkpoint_manager.save(i)
 
   except KeyboardInterrupt:
@@ -209,4 +208,6 @@ def main(_):
 
 
 if __name__ == "__main__":
+  flags.mark_flag_as_required("experiment_name")
+  flags.mark_flag_as_required("embodiment")
   app.run(main)

@@ -19,10 +19,12 @@ import sys
 
 from absl import app
 from absl import flags
+from absl import logging
 import matplotlib.pyplot as plt
 from ml_collections import config_flags
 import torchvision
 from xirl.common import get_pretraining_dataloaders
+# pylint: disable=logging-format-interpolation
 
 FLAGS = flags.FLAGS
 
@@ -41,14 +43,14 @@ def main(_):
   pretrain_loaders = get_pretraining_dataloaders(FLAGS.config, FLAGS.debug)
   try:
     loader = pretrain_loaders["train"]
-    print("Total videos: ", loader.dataset.total_vids)
+    logging.info(f"Total videos: {loader.dataset.total_vids}")
     for batch_idx, batch in enumerate(loader):
-      print(f"Batch #{batch_idx}")
+      logging.info(f"Batch #{batch_idx}")
       frames = batch["frames"]
       b, _, c, h, w = frames.shape
       frames = frames.view(b, num_frames, num_ctx_frames, c, h, w)
       for b in range(frames.shape[0]):
-        print(f"\tBatch Item {b}")
+        logging.info(f"\tBatch Item {b}")
         grid_img = torchvision.utils.make_grid(frames[b, :, -1], nrow=5)
         plt.imshow(grid_img.permute(1, 2, 0))
         plt.show()

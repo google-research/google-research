@@ -15,19 +15,19 @@
 
 """Launch script for pre-training representations."""
 
-import logging
 import os.path as osp
-
 from absl import app
 from absl import flags
+from absl import logging
 from ml_collections import config_flags
 import torch
 from xirl import common
 from utils import setup_experiment
 from torchkit import checkpoint
+from torchkit import experiment
 from torchkit import Logger
-from torchkit.experiment import seed_rngs, set_cudnn
 from torchkit.utils.py_utils import Stopwatch
+# pylint: disable=logging-format-interpolation
 
 FLAGS = flags.FLAGS
 
@@ -42,12 +42,12 @@ config_flags.DEFINE_config_file(
     "File path to the training hyperparameter configuration.",
 )
 
-flags.mark_flag_as_required("experiment_name")
 
-
+@experiment.pdb_fallback
 def main(_):
-  exp_dir = osp.join(FLAGS.config.ROOT_DIR, FLAGS.experiment_name)
-  setup_experiment(exp_dir, FLAGS.config, FLAGS.resume)
+  config = FLAGS.config
+  exp_dir = osp.join(config.ROOT_DIR, FLAGS.experiment_name)
+  setup_experiment(exp_dir, config, FLAGS.resume)
 
   # No need to do any pretraining if we're loading the raw pretrained
   # ImageNet baseline.
@@ -63,10 +63,10 @@ def main(_):
   logging.info(f"Using device: {FLAGS.device}")  # pylint: disable=logging-format-interpolation
 
   # Set RNG seeds.
-  if FLAGS.config.SEED is not None:
-    logging.info(f"Pretraining experiment seed: {FLAGS.config.SEED}")  # pylint: disable=logging-format-interpolation
-    seed_rngs(FLAGS.config.SEED)
-    set_cudnn(FLAGS.config.CUDNN_DETERMINISTIC, FLAGS.config.CUDNN_BENCHMARK)
+  if config.SEED is not None:
+    logging.info(f"Pretraining experiment seed: {config.SEED}")  # pylint: disable=logging-format-interpolation
+    experiment.seed_rngs(config.SEED)
+    experiment.set_cudnn(config.CUDNN_DETERMINISTIC, config.CUDNN_BENCHMARK)
   else:
     logging.info("No RNG seed has been set for this pretraining experiment.")
 
@@ -80,7 +80,7 @@ def main(_):
       downstream_loaders,
       trainer,
       eval_manager,
-  ) = common.get_factories(FLAGS.config, device)
+  ) = common.get_factories(config, device)
 
   # Create checkpoint manager.
   checkpoint_dir = osp.join(exp_dir, "checkpoints")
@@ -101,16 +101,16 @@ def main(_):
       for batch in pretrain_loaders["train"]:
         train_loss = trainer.train_one_iter(batch)
 
-        if not global_step % FLAGS.config.LOGGING_FREQUENCY:
+        if not global_step % config.LOGGING_FREQUENCY:
           for k, v in train_loss.items():
             logger.log_scalar(v, global_step, k, "pretrain")
           logger.flush()
 
-        if not global_step % FLAGS.config.EVAL.EVAL_FREQUENCY:
+        if not global_step % config.EVAL.EVAL_FREQUENCY:
           # Evaluate the model on the pretraining validation dataset.
           valid_loss = trainer.eval_num_iters(
               pretrain_loaders["valid"],
-              FLAGS.config.EVAL.VAL_ITERS,
+              config.EVAL.VAL_ITERS,
           )
           for k, v in valid_loss.items():
             logger.log_scalar(v, global_step, k, "pretrain")
@@ -121,7 +121,7 @@ def main(_):
                 model,
                 downstream_loader,
                 device,
-                FLAGS.config.EVAL.VAL_ITERS,
+                config.EVAL.VAL_ITERS,
             )
             for eval_name, eval_out in eval_to_metric.items():
               eval_out.log(
@@ -132,12 +132,12 @@ def main(_):
               )
 
         # Save model checkpoint.
-        if not global_step % FLAGS.config.CHECKPOINTING_FREQUENCY:
+        if not global_step % config.CHECKPOINTING_FREQUENCY:
           checkpoint_manager.save(global_step)
 
         # Exit if complete.
         global_step += 1
-        if global_step > FLAGS.config.OPTIM.TRAIN_MAX_ITERS:
+        if global_step > config.OPTIM.TRAIN_MAX_ITERS:
           complete = True
           break
 
@@ -145,7 +145,7 @@ def main(_):
         logging.info(
             "Iter[{}/{}] (Epoch {}), {:.1f}s/iter, Loss: {:.3f}".format(
                 global_step,
-                FLAGS.config.OPTIM.TRAIN_MAX_ITERS,
+                config.OPTIM.TRAIN_MAX_ITERS,
                 epoch,
                 time_per_iter,
                 train_loss["train/total_loss"].item(),
@@ -162,4 +162,5 @@ def main(_):
 
 
 if __name__ == "__main__":
+  flags.mark_flag_as_required("experiment_name")
   app.run(main)

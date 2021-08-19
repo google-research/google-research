@@ -13,16 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Teleop the agent and visualize the learned reward.
-
-python interact_reward.py \
-  --config.reward_wrapper.pretrained_path=/tmp/xirl/pretrain_runs/test \
-  --config.reward_wrapper.distance_scale=0.0111111111
-"""
+"""Teleop the agent and visualize the learned reward."""
 
 from absl import app
 from absl import flags
-from ml_collections.config_flags import config_flags
+from ml_collections import config_flags
 from xmagical.utils import KeyboardEnvInteractor
 
 import utils

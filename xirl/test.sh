@@ -21,3 +21,7 @@ python pretrain.py \
     --config=experiments/xmagical/pretraining/tcc.py \
     --config.OPTIM.TRAIN_MAX_ITERS=25 \
     --config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE=3
+
+python interact_reward.py \
+  --config.reward_wrapper.pretrained_path=/tmp/xirl/pretrain_runs/test \
+  --config.reward_wrapper.distance_scale=0.01
