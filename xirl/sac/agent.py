@@ -107,8 +107,10 @@ class TanhTransform(pyd.transforms.Transform):
 
   @staticmethod
   def log_abs_det_jacobian(x: TensorType, y: TensorType) -> TensorType:
+    # pylint: disable=line-too-long
     # We use a formula that is more numerically stable, see details in the
-    # following link https://github.com/tensorflow/probability/commit/ef6bb176e0ebd1cf6e25c6b5cecdd2428c22963f#diff-e120f70e92e6741bca649f04fcd907b7
+    # following link: https://github.com/tensorflow/probability/commit/ef6bb176e0ebd1cf6e25c6b5cecdd2428c22963f#diff-e120f70e92e6741bca649f04fcd907b7
+    # pylint: enable=line-too-long
     del y
     return 2.0 * (math.log(2.0) - x - F.softplus(-2.0 * x))
 
@@ -228,7 +230,7 @@ class SAC(nn.Module):
     ).to(self.device)
 
     self.log_alpha = nn.Parameter(
-        torch.tensor(np.log(config.init_temperature)).to(self.device),
+        torch.as_tensor(np.log(config.init_temperature), device=self.device),
         requires_grad=True,
     )
 
@@ -255,10 +257,10 @@ class SAC(nn.Module):
     self.train()
     self.critic_target.train()
 
-  def train(self, training: bool = True) -> None:
-    self.training = training
-    self.actor.train(training)
-    self.critic.train(training)
+  def train(self, mode: bool = True) -> None:
+    self.training = mode
+    self.actor.train(mode)
+    self.critic.train(mode)
 
   @property
   def alpha(self) -> TensorType:
@@ -284,15 +286,15 @@ class SAC(nn.Module):
       dist = self.actor(next_obs)
       next_action = dist.rsample()
       log_prob = dist.log_prob(next_action).sum(-1, keepdim=True)
-      target_Q1, target_Q2 = self.critic_target(next_obs, next_action)
-      target_V = (
-          torch.min(target_Q1, target_Q2) - self.alpha.detach() * log_prob)
-      target_Q = reward + (mask * self.discount * target_V)
+      target_q1, target_q2 = self.critic_target(next_obs, next_action)
+      target_v = (
+          torch.min(target_q1, target_q2) - self.alpha.detach() * log_prob)
+      target_q = reward + (mask * self.discount * target_v)
 
     # Get current Q estimates.
-    current_Q1, current_Q2 = self.critic(obs, action)
-    critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(
-        current_Q2, target_Q)
+    current_q1, current_q2 = self.critic(obs, action)
+    critic_loss = F.mse_loss(current_q1, target_q) + F.mse_loss(
+        current_q2, target_q)
 
     # Optimize the critic.
     self.critic_optimizer.zero_grad()
@@ -308,10 +310,10 @@ class SAC(nn.Module):
     dist = self.actor(obs)
     action = dist.rsample()
     log_prob = dist.log_prob(action).sum(-1, keepdim=True)
-    actor_Q1, actor_Q2 = self.critic(obs, action)
+    actor_q1, actor_q2 = self.critic(obs, action)
 
-    actor_Q = torch.min(actor_Q1, actor_Q2)
-    actor_loss = (self.alpha.detach() * log_prob - actor_Q).mean()
+    actor_q = torch.min(actor_q1, actor_q2)
+    actor_loss = (self.alpha.detach() * log_prob - actor_q).mean()
     actor_info = {
         "actor_loss": actor_loss,
         "entropy": -log_prob.mean(),
