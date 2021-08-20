@@ -1,4 +1,6 @@
-# protoc generated file
+# protoc generated files
 dataset_pb2.py
+dataset_pb2.pyi
+
 **/*~
 venv/**
