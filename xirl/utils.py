@@ -236,6 +236,10 @@ def plot_reward(rews: typing.Sequence[float]):
 
 
 def string_from_kwargs(**kwargs) -> str:
+  """Concatenate kwargs into an underscore-separated string.
+
+  For example, string_from_kwargs(foo=1, bar='baz') returns 'foo=1_bar=baz'.
+  """
   return "_".join([f"{k}={v}" for k, v in kwargs.items()])
 
 

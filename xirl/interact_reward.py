@@ -19,12 +19,14 @@ from absl import app
 from absl import flags
 from ml_collections import config_flags
 from xmagical.utils import KeyboardEnvInteractor
-
+from experiments.constants import EMBODIMENTS
+from experiments.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
 import utils
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("embodiment", "longstick", "The agent embodiment.")
+flags.DEFINE_enum("embodiment", "longstick", EMBODIMENTS,
+                  "The agent embodiment.")
 flags.DEFINE_boolean(
     "exit_on_done", True,
     "By default, env will terminate if done is True. Set to False to interact "
@@ -38,7 +40,7 @@ config_flags.DEFINE_config_file(
 
 
 def main(_):
-  env_name = utils.xmagical_embodiment_to_env_name(FLAGS.embodiment)
+  env_name = XMAGICAL_EMBODIMENT_TO_ENV_NAME[FLAGS.embodiment]
   env = utils.make_env(env_name, seed=0)
 
   # Reward learning wrapper.

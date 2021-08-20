@@ -61,32 +61,38 @@ def main(_):
     # Train on all classes but the given embodiment.
     trainable_embs = tuple(EMBODIMENTS - set([embodiment]))
 
-    subprocess.run([
-        "python",
-        "pretrain.py",
-        "--experiment_name",
-        experiment_name,
-        "--raw_imagenet" if FLAGS.algo == "raw_imagenet" else "",
-        "--config",
-        f"{ALGO_TO_CONFIG[FLAGS.algo]}",
-        "--config.DATA.PRETRAIN_ACTION_CLASS",
-        f"{repr(trainable_embs)}",
-        "--config.DATA.DOWNSTREAM_ACTION_CLASS",
-        f"{repr(trainable_embs)}",
-        "--config.DATA.MAX_VIDS_PER_CLASS",
-        f"{MAX_DEMONSTRATIONS}",
-    ])
+    subprocess.run(
+        [
+            "python",
+            "pretrain.py",
+            "--experiment_name",
+            experiment_name,
+            "--raw_imagenet" if FLAGS.algo == "raw_imagenet" else "",
+            "--config",
+            f"{ALGO_TO_CONFIG[FLAGS.algo]}",
+            "--config.DATA.PRETRAIN_ACTION_CLASS",
+            f"{repr(trainable_embs)}",
+            "--config.DATA.DOWNSTREAM_ACTION_CLASS",
+            f"{repr(trainable_embs)}",
+            "--config.DATA.MAX_VIDS_PER_CLASS",
+            f"{MAX_DEMONSTRATIONS}",
+        ],
+        check=True,
+    )
 
     # The 'goal_classifier' baseline does not need to compute a goal embedding.
     if FLAGS.algo != "goal_classifier":
-      subprocess.run([
-          "python",
-          "compute_goal_embedding.py",
-          "--experiment_path",
-          # Note: This assumes that the config.ROOT_DIR value has not been
-          # changed to its default value of 'tmp/xirl/pretrain_runs/'.
-          osp.join("/tmp/xirl/pretrain_runs/", experiment_name),
-      ])
+      subprocess.run(
+          [
+              "python",
+              "compute_goal_embedding.py",
+              "--experiment_path",
+              # Note: This assumes that the config.ROOT_DIR value has not been
+              # changed to its default value of 'tmp/xirl/pretrain_runs/'.
+              osp.join("/tmp/xirl/pretrain_runs/", experiment_name),
+          ],
+          check=True,
+      )
 
 
 if __name__ == "__main__":
