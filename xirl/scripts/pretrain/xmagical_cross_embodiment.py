@@ -16,10 +16,13 @@
 """Section V.B: Learning from Cross-Embodiment Demonstrations, Fig 5."""
 
 import os.path as osp
-import random
 import subprocess
+from utils import string_from_kwargs
+from utils import unique_id
 from absl import app
 from absl import flags
+from absl import logging
+# pylint: disable=logging-format-interpolation
 
 # The supported pretraining algorithms.
 ALGORITHMS = ["xirl", "tcn", "lifs", "goal_classifier", "raw_imagenet"]
@@ -41,7 +44,6 @@ flags.DEFINE_enum("algo", None, ALGORITHMS, "The pretraining algorithm to use.")
 flags.DEFINE_enum(
     "embodiment", None, EMBODIMENTS,
     "Which embodiment to train. Will train all sequentially if not specified.")
-flags.mark_flag_as_required("algo")
 
 
 def main(_):
@@ -49,9 +51,14 @@ def main(_):
 
   for embodiment in embodiments:
     # Generate a unique experiment name.
-    experiment_name = "xmagical_cross_algo={}_embodiment={}_maxdemos={}_uid={}".format(
-        FLAGS.algo, embodiment, MAX_DEMONSTRATIONS, int(random.random() * 1e9))
-    print(f"Experiment name: {experiment_name}")
+    experiment_name = string_from_kwargs(
+        dataset="xmagical",
+        mode="cross",
+        algo=FLAGS.algo,
+        embodiment=embodiment,
+        uid=unique_id(),
+    )
+    logging.info(f"Experiment name: {experiment_name}")
 
     # Train on all classes but the given embodiment.
     trainable_embs = tuple(set(EMBODIMENTS) - set([embodiment]))
@@ -85,4 +92,5 @@ def main(_):
 
 
 if __name__ == "__main__":
+  flags.mark_flag_as_required("algo")
   app.run(main)

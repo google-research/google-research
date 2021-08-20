@@ -18,6 +18,7 @@ from typing import Any, Dict, Optional
 import os
 import matplotlib.pyplot as plt
 import yaml
+import uuid
 import numpy as np
 import typing
 import pickle
@@ -220,7 +221,7 @@ def wrap_learned_reward(
 
 
 # ========================================= #
-# Plot utils.
+# Misc. utils.
 # ========================================= #
 
 
@@ -238,3 +239,13 @@ def plot_reward(rews: typing.Sequence[float]):
     ax.grid(b=True, which='minor', linestyle='-', alpha=0.2)
   plt.minorticks_on()
   plt.show()
+
+
+def string_from_kwargs(**kwargs) -> str:
+  return "_".join([f"{k}={v}" for k, v in kwargs.items()])
+
+
+def unique_id() -> str:
+  """Generate a unique ID as specified in RFC 4122."""
+  # See https://docs.python.org/3/library/uuid.html
+  return str(uuid.uuid4())
