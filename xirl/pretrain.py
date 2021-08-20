@@ -46,7 +46,7 @@ config_flags.DEFINE_config_file(
 @experiment.pdb_fallback
 def main(_):
   config = FLAGS.config
-  exp_dir = osp.join(config.ROOT_DIR, FLAGS.experiment_name)
+  exp_dir = osp.join(config.root_dir, FLAGS.experiment_name)
   setup_experiment(exp_dir, config, FLAGS.resume)
 
   # No need to do any pretraining if we're loading the raw pretrained

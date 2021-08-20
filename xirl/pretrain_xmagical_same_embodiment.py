@@ -84,7 +84,7 @@ def main(_):
               "python",
               "compute_goal_embedding.py",
               "--experiment_path",
-              # Note: This assumes that the config.ROOT_DIR value has not been
+              # Note: This assumes that the config.root_dir value has not been
               # changed to its default value of 'tmp/xirl/pretrain_runs/'.
               osp.join("/tmp/xirl/pretrain_runs/", experiment_name),
           ],
