@@ -1,3 +1,3 @@
-# Experiment Configuration
+# CoRL 2021 Hyperparameters & Experiment Configurations
 
-This directory contains the values of the hyperparameters and config values we used for our CoRL 2021 submission.
+This directory stores constants and config dicts used in the CoRL 2021 submission.

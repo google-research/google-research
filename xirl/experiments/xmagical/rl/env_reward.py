@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from configs.rl_default import get_config as _get_config
-from experiments.common import XMAGICALTrainingIterations
+from experiments.constants import XMAGICALTrainingIterations
 from ml_collections import ConfigDict
 from utils import copy_config_and_replace
 
