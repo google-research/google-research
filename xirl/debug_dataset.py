@@ -38,9 +38,10 @@ config_flags.DEFINE_config_file(
 
 
 def main(_):
-  num_ctx_frames = FLAGS.config.FRAME_SAMPLER.NUM_CONTEXT_FRAMES
-  num_frames = FLAGS.config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE
-  pretrain_loaders = get_pretraining_dataloaders(FLAGS.config, FLAGS.debug)
+  config = FLAGS.config
+  num_ctx_frames = config.frame_sampler.num_context_frames
+  num_frames = config.frame_sampler.num_frames_per_sequence
+  pretrain_loaders = get_pretraining_dataloaders(config, FLAGS.debug)
   try:
     loader = pretrain_loaders["train"]
     logging.info(f"Total videos: {loader.dataset.total_vids}")

@@ -23,17 +23,17 @@ def get_config():
 
   config = _get_config()
 
-  config.ALGORITHM = "tcn"
-  config.OPTIM.TRAIN_MAX_ITERS = 4_000
-  config.FRAME_SAMPLER.STRATEGY = "window"
-  config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE = 40
-  config.MODEL.MODEL_TYPE = "resnet18_linear"
-  config.MODEL.NORMALIZE_EMBEDDINGS = False
-  config.MODEL.LEARNABLE_TEMP = False
-  config.LOSS.TCN.POS_RADIUS = 1
-  config.LOSS.TCN.NEG_RADIUS = 4
-  config.LOSS.TCN.NUM_PAIRS = 2
-  config.LOSS.TCN.MARGIN = 1.0
-  config.LOSS.TCN.TEMPERATURE = 0.1
+  config.algorithm = "tcn"
+  config.optim.train_max_iters = 4_000
+  config.frame_sampler.strategy = "window"
+  config.frame_sampler.num_frames_per_sequence = 40
+  config.model.model_type = "resnet18_linear"
+  config.model.normalize_embeddigs = False
+  config.model.learnable_temp = False
+  config.loss.tcn.pos_radius = 1
+  config.loss.tcn.neg_radius = 4
+  config.loss.tcn.num_pairs = 2
+  config.loss.tcn.margin = 1.0
+  config.loss.tcn.temperature = 0.1
 
   return config

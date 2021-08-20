@@ -23,12 +23,12 @@ def get_config():
 
   config = _get_config()
 
-  config.ALGORITHM = "goal_classifier"
-  config.OPTIM.TRAIN_MAX_ITERS = 6_000
-  config.FRAME_SAMPLER.STRATEGY = "last_and_randoms"
-  config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE = 15
-  config.MODEL.MODEL_TYPE = "resnet18_classifier"
-  config.MODEL.NORMALIZE_EMBEDDINGS = False
-  config.MODEL.LEARNABLE_TEMP = False
+  config.algorithm = "goal_classifier"
+  config.optim.train_max_iters = 6_000
+  config.frame_sampler.strategy = "last_and_randoms"
+  config.frame_sampler.num_frames_per_sequence = 15
+  config.model.model_type = "resnet18_classifier"
+  config.model.normalize_embeddings = False
+  config.model.learnable_temp = False
 
   return config

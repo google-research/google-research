@@ -43,10 +43,10 @@ class TCNTrainer(Trainer):
   ):
     super().__init__(model, optimizer, device, config)
 
-    self.temperature = config.LOSS.TCN.TEMPERATURE
-    self.num_pairs = config.LOSS.TCN.NUM_PAIRS
-    self.pos_radius = config.LOSS.TCN.POS_RADIUS
-    self.neg_radius = config.LOSS.TCN.NEG_RADIUS
+    self.temperature = config.loss.tcn.temperature
+    self.num_pairs = config.loss.tcn.num_pairs
+    self.pos_radius = config.loss.tcn.pos_radius
+    self.neg_radius = config.loss.tcn.neg_radius
 
   def compute_loss(
       self,
@@ -121,7 +121,7 @@ class TCNCrossEntropyTrainer(Trainer):
   ):
     super().__init__(model, optimizer, device, config)
 
-    self.temperature = config.LOSS.TCN.TEMPERATURE
+    self.temperature = config.loss.tcn.temperature
 
   def compute_loss(
       self,

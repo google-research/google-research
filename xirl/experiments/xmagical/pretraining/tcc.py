@@ -23,18 +23,18 @@ def get_config():
 
   config = _get_config()
 
-  config.ALGORITHM = "tcc"
-  config.OPTIM.TRAIN_MAX_ITERS = 4_000
-  config.FRAME_SAMPLER.STRATEGY = "uniform"
-  config.FRAME_SAMPLER.UNIFORM_SAMPLER.OFFSET = 0
-  config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE = 40
-  config.MODEL.MODEL_TYPE = "resnet18_linear"
-  config.MODEL.EMBEDDING_SIZE = 32
-  config.MODEL.NORMALIZE_EMBEDDINGS = False
-  config.MODEL.LEARNABLE_TEMP = False
-  config.LOSS.TCC.STOCHASTIC_MATCHING = False
-  config.LOSS.TCC.LOSS_TYPE = "regression_mse"
-  config.LOSS.TCC.SIMILARITY_TYPE = "l2"
-  config.LOSS.TCC.SOFTMAX_TEMPERATURE = 1.0
+  config.algorithm = "tcc"
+  config.optim.train_max_iters = 4_000
+  config.frame_sampler.strategy = "uniform"
+  config.frame_sampler.uniform_sampler.offset = 0
+  config.frame_sampler.num_frames_per_sequence = 40
+  config.model.model_type = "resnet18_linear"
+  config.model.embedding_size = 32
+  config.model.normalize_embeddings = False
+  config.model.learnable_temp = False
+  config.loss.tcc.stochastic_matching = False
+  config.loss.tcc.loss_type = "regression_mse"
+  config.loss.tcc.similarity_type = "l2"
+  config.loss.tcc.softmax_temperature = 1.0
 
   return config

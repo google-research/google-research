@@ -23,6 +23,6 @@ def get_config():
 
   config = _get_config()
 
-  config.MODEL.MODEL_TYPE = "resnet18_features"
+  config.model.model_type = "resnet18_features"
 
   return config

@@ -196,7 +196,7 @@ def wrap_learned_reward(
       "env": env,
       "model": model,
       "device": device,
-      "res_hw": model_config.DATA_AUGMENTATION.IMAGE_SIZE,
+      "res_hw": model_config.data_augmentation.image_size,
   }
 
   if rl_config.reward_wrapper.type == "goal_classifier":

@@ -26,7 +26,7 @@ pip install -r xirl/requirements.txt
 python -m xirl.pretrain --alsologtostderr \
     --experiment_name="test" \
     --config="xirl/configs/pretrain_default.py" \
-    --config.DATA.ROOT="xirl/tests/data/processed/" \
-    --config.OPTIM.TRAIN_MAX_ITERS=5 \
-    --config.EVAL.EVAL_FREQUENCY=3 \
-    --config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE=3
+    --config.data.root="xirl/tests/data/processed/" \
+    --config.optim.train_max_iters=5 \
+    --config.eval.eval_frequency=3 \
+    --config.frame_sampler.num_frames_per_sequence=3

@@ -51,7 +51,7 @@ class LIFSTrainer(Trainer):
   ):
     super().__init__(model, optimizer, device, config)
 
-    self.temperature = config.LOSS.LIFS.TEMPERATURE
+    self.temperature = config.loss.lifs.temperature
 
   def compute_auxiliary_loss(
       self,

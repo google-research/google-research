@@ -23,15 +23,15 @@ def get_config():
 
   config = _get_config()
 
-  config.ALGORITHM = "lifs"
-  config.OPTIM.TRAIN_MAX_ITERS = 8_000
-  config.FRAME_SAMPLER.STRATEGY = "variable_strided"
-  config.MODEL.MODEL_TYPE = "resnet18_linear_ae"
-  config.MODEL.EMBEDDING_SIZE = 32
-  config.MODEL.NORMALIZE_EMBEDDINGS = False
-  config.MODEL.LEARNABLE_TEMP = False
-  config.LOSS.LIFS.TEMPERATURE = 0.1
-  config.EVAL.DOWNSTREAM_TASK_EVALUATORS = [
+  config.algorithm = "lifs"
+  config.optim.train_max_iters = 8_000
+  config.frame_sampler.strategy = "variable_strided"
+  config.model.model_type = "resnet18_linear_ae"
+  config.model.embedding_size = 32
+  config.model.normalize_embeddings = False
+  config.model.learnable_temp = False
+  config.loss.lifs.temperature = 0.1
+  config.eval.downstream_task_evaluators = [
       "reward_visualizer",
       "kendalls_tau",
       "reconstruction_visualizer",

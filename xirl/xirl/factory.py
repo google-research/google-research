@@ -112,47 +112,47 @@ EVALUATORS = {
 def evaluator_from_config(config):
   """Create evaluators from a config."""
   eval_dict = {}
-  for eval_name in config.EVAL.DOWNSTREAM_TASK_EVALUATORS:
-    kwargs = {"distance": config.EVAL.DISTANCE}
+  for eval_name in config.eval.downstream_task_evaluators:
+    kwargs = {"distance": config.eval.distance}
     if eval_name == "kendalls_tau":
-      kwargs["stride"] = config.EVAL.KENDALLS_TAU.STRIDE
+      kwargs["stride"] = config.eval.kendalls_tau.stride
     elif "cycle_consistency" in eval_name:
-      kwargs["stride"] = config.EVAL.CYCLE_CONSISTENCY.STRIDE
+      kwargs["stride"] = config.eval.cycle_consistency.stride
     elif eval_name == "nn_visualizer":
-      kwargs["num_ctx_frames"] = config.FRAME_SAMPLER.NUM_CONTEXT_FRAMES
-      kwargs["num_videos"] = config.EVAL.NEAREST_NEIGHBOUR_VISUALIZER.NUM_VIDEOS
+      kwargs["num_ctx_frames"] = config.frame_sampler.num_context_frames
+      kwargs["num_videos"] = config.eval.nearest_neighbour_visualizer.num_videos
     elif eval_name == "embedding_visualizer":
       kwargs.pop("distance")
-      kwargs["num_seqs"] = config.EVAL.EMBEDDING_VISUALIZER.NUM_SEQS
+      kwargs["num_seqs"] = config.eval.embedding_visualizer.num_seqs
     elif eval_name == "reconstruction_visualizer":
       kwargs.pop("distance")
-      kwargs["num_frames"] = config.EVAL.RECONSTRUCTION_VISUALIZER.NUM_FRAMES
-      kwargs["num_ctx_frames"] = config.FRAME_SAMPLER.NUM_CONTEXT_FRAMES
+      kwargs["num_frames"] = config.eval.reconstruction_visualizer.num_frames
+      kwargs["num_ctx_frames"] = config.frame_sampler.num_context_frames
     elif eval_name == "reward_visualizer":
-      kwargs["num_plots"] = config.EVAL.REWARD_VISUALIZER.NUM_PLOTS
+      kwargs["num_plots"] = config.eval.reward_visualizer.num_plots
     elif eval_name == "reconstruction_visualizer":
       kwargs.pop("distance")
-      kwargs["num_frames"] = config.EVAL.RECONSTRUCTION_VISUALIZER.NUM_FRAMES
+      kwargs["num_frames"] = config.eval.reconstruction_visualizer.num_frames
     eval_dict[eval_name] = EVALUATORS[eval_name](**kwargs)
   return evaluators.EvalManager(eval_dict)
 
 
 def trainer_from_config(config, model, optimizer, device):
-  return TRAINERS[config.ALGORITHM](model, optimizer, device, config)
+  return TRAINERS[config.algorithm](model, optimizer, device, config)
 
 
 def model_from_config(config):
   """Create a model from a config."""
   kwargs = {
-      "num_ctx_frames": config.FRAME_SAMPLER.NUM_CONTEXT_FRAMES,
-      "normalize_embeddings": config.MODEL.NORMALIZE_EMBEDDINGS,
-      "learnable_temp": config.MODEL.LEARNABLE_TEMP,
+      "num_ctx_frames": config.frame_sampler.num_context_frames,
+      "normalize_embeddings": config.model.normalize_embeddings,
+      "learnable_temp": config.model.learnable_temp,
   }
-  if config.MODEL.MODEL_TYPE == "resnet18_linear":
-    kwargs["embedding_size"] = config.MODEL.EMBEDDING_SIZE
-  elif config.MODEL.MODEL_TYPE == "resnet18_linear_ae":
-    kwargs["embedding_size"] = config.MODEL.EMBEDDING_SIZE
-  return MODELS[config.MODEL.MODEL_TYPE](**kwargs)
+  if config.model.model_type == "resnet18_linear":
+    kwargs["embedding_size"] = config.model.embedding_size
+  elif config.model.model_type == "resnet18_linear_ae":
+    kwargs["embedding_size"] = config.model.embedding_size
+  return MODELS[config.model.model_type](**kwargs)
 
 
 def optim_from_config(config, model):
@@ -160,8 +160,8 @@ def optim_from_config(config, model):
   # TODO(kevin): Add SGD and AdamW support.
   return torch.optim.Adam(
       model.parameters(),
-      lr=config.OPTIM.LR,
-      weight_decay=config.OPTIM.WEIGHT_DECAY,
+      lr=config.optim.lr,
+      weight_decay=config.optim.weight_decay,
   )
 
 
@@ -181,45 +181,45 @@ def create_transform(name, *args, **kwargs):
 def frame_sampler_from_config(config, downstream):
   """Create a frame sampler from a config."""
   kwargs = {
-      "num_frames": config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE,
-      "num_ctx_frames": config.FRAME_SAMPLER.NUM_CONTEXT_FRAMES,
-      "ctx_stride": config.FRAME_SAMPLER.CONTEXT_STRIDE,
-      "pattern": config.FRAME_SAMPLER.IMAGE_EXT,
-      "seed": config.SEED,
+      "num_frames": config.frame_sampler.num_frames_per_sequence,
+      "num_ctx_frames": config.frame_sampler.num_context_frames,
+      "ctx_stride": config.frame_sampler.context_stride,
+      "pattern": config.frame_sampler.image_ext,
+      "seed": config.seed,
   }
 
   if downstream:
     kwargs.pop("num_frames")
-    kwargs["stride"] = config.FRAME_SAMPLER.ALL_SAMPLER.STRIDE
+    kwargs["stride"] = config.frame_sampler.all_sampler.stride
     return FRAME_SAMPLERS["all"](**kwargs)
 
-  if config.FRAME_SAMPLER.STRATEGY == "strided":
-    kwargs["stride"] = config.FRAME_SAMPLER.STRIDED_SAMPLER.STRIDE
-    kwargs["offset"] = config.FRAME_SAMPLER.STRIDED_SAMPLER.OFFSET
-  elif config.FRAME_SAMPLER.STRATEGY == "uniform":
-    kwargs["offset"] = config.FRAME_SAMPLER.UNIFORM_SAMPLER.OFFSET
+  if config.frame_sampler.strategy == "strided":
+    kwargs["stride"] = config.frame_sampler.strided_sampler.stride
+    kwargs["offset"] = config.frame_sampler.strided_sampler.offset
+  elif config.frame_sampler.strategy == "uniform":
+    kwargs["offset"] = config.frame_sampler.uniform_sampler.offset
 
-  return FRAME_SAMPLERS[config.FRAME_SAMPLER.STRATEGY](**kwargs)
+  return FRAME_SAMPLERS[config.frame_sampler.strategy](**kwargs)
 
 
 def video_sampler_from_config(config, dir_tree, downstream, sequential):
   """Create a video sampler from a config."""
   kwargs = {
       "dir_tree": dir_tree,
-      "batch_size": config.DATA.BATCH_SIZE,
+      "batch_size": config.data.batch_size,
       "sequential": sequential,
   }
   if downstream:
     kwargs.pop("batch_size")
     return VIDEO_SAMPLERS["downstream"](**kwargs)
-  return VIDEO_SAMPLERS[config.DATA.PRETRAINING_VIDEO_SAMPLER](**kwargs)
+  return VIDEO_SAMPLERS[config.data.pretraining_video_sampler](**kwargs)
 
 
 def dataset_from_config(config, downstream, split, debug):
   """Create a video dataset from a config."""
-  dataset_path = osp.join(config.DATA.ROOT, split)
+  dataset_path = osp.join(config.data.root, split)
 
-  image_size = config.DATA_AUGMENTATION.IMAGE_SIZE
+  image_size = config.data_augmentation.image_size
   if isinstance(image_size, int):
     image_size = (image_size, image_size)
   image_size = tuple(image_size)
@@ -230,9 +230,9 @@ def dataset_from_config(config, downstream, split, debug):
     aug_names = ["global_resize"]
   else:
     if split == "train":
-      aug_names = config.DATA_AUGMENTATION.TRAIN_TRANSFORMS
+      aug_names = config.data_augmentation.train_transforms
     else:
-      aug_names = config.DATA_AUGMENTATION.EVAL_TRANSFORMS
+      aug_names = config.data_augmentation.eval_transforms
 
   # Create a list of data augmentation callables.
   aug_funcs = []
@@ -247,8 +247,8 @@ def dataset_from_config(config, downstream, split, debug):
   # Restrict action classes if they have been provided. Else, load all
   # from the data directory.
   c_action_class = (
-      config.DATA.DOWNSTREAM_ACTION_CLASS
-      if downstream else config.DATA.PRETRAIN_ACTION_CLASS)
+      config.data.downstream_action_class
+      if downstream else config.data.pretrain_action_class)
   if c_action_class:
     action_classes = c_action_class
   else:
@@ -268,9 +268,9 @@ def dataset_from_config(config, downstream, split, debug):
       single_class_dataset = VideoDataset(
           dataset_path,
           frame_sampler,
-          seed=config.SEED,
+          seed=config.seed,
           augmentor=augmentor,
-          max_vids_per_class=config.DATA.MAX_VIDS_PER_CLASS,
+          max_vids_per_class=config.data.max_vids_per_class,
       )
       single_class_dataset.restrict_subdirs(action_class)
       dataset[action_class] = single_class_dataset
@@ -279,9 +279,9 @@ def dataset_from_config(config, downstream, split, debug):
     dataset = VideoDataset(
         dataset_path,
         frame_sampler,
-        seed=config.SEED,
+        seed=config.seed,
         augmentor=augmentor,
-        max_vids_per_class=config.DATA.MAX_VIDS_PER_CLASS,
+        max_vids_per_class=config.data.max_vids_per_class,
     )
     dataset.restrict_subdirs(action_classes)
 
