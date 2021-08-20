@@ -16,17 +16,18 @@
 set -e
 set -x
 
-EMBODIMENT="mediumstick"
+EMBODIMENT="longstick"
+ENV_NAME="SweepToTop-"${EMBODIMENT^}"-State-Allo-TestLayout-v0"
 NAME="env_reward_$EMBODIMENT"
 
 for seed in {0..2}
 do
     python train_policy.py \
         --experiment_name $NAME \
-        --embodiment=$EMBODIMENT \
+        --env_name $ENV_NAME \
         --seed=$seed \
         --device="cuda:0" \
-        --config.num_train_steps=250000 \
+        --config.num_train_steps=75000 \
         &
 done
 
@@ -34,9 +35,9 @@ for seed in {3..4}
 do
     python train_policy.py \
         --experiment_name $NAME \
-        --embodiment=$EMBODIMENT \
+        --env_name $ENV_NAME \
         --seed=$seed \
         --device="cuda:1" \
-        --config.num_train_steps=250000 \
+        --config.num_train_steps=75000 \
         &
 done

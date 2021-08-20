@@ -61,7 +61,7 @@ def main(_):
     # Train on all classes but the given embodiment.
     trainable_embs = tuple(EMBODIMENTS - set([embodiment]))
 
-    subprocess.call([
+    subprocess.run([
         "python",
         "pretrain.py",
         "--experiment_name",
@@ -79,7 +79,7 @@ def main(_):
 
     # The 'goal_classifier' baseline does not need to compute a goal embedding.
     if FLAGS.algo != "goal_classifier":
-      subprocess.call([
+      subprocess.run([
           "python",
           "compute_goal_embedding.py",
           "--experiment_path",
