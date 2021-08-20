@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Section V.A: Learning from Same-Embodiment Demonstrations."""
+"""x-MAGICAL cross-embodiment pretraining script."""
 
 import os.path as osp
 import subprocess
@@ -22,12 +22,10 @@ from utils import unique_id
 from absl import app
 from absl import flags
 from absl import logging
-# pylint: disable=logging-format-interpolation
+from experiments.constants import ALGORITHMS
+from experiments.constants import EMBODIMENTS
+# pylint: disable=logging-fstring-interpolation
 
-# The supported pretraining algorithms.
-ALGORITHMS = ["xirl", "tcn", "lifs", "goal_classifier", "raw_imagenet"]
-# The embodiment classes in the dataset.
-EMBODIMENTS = ["longstick", "mediumstick", "shortstick", "gripper"]
 # Mapping from pretraining algorithm to config file.
 ALGO_TO_CONFIG = {
     "xirl": "experiments/xmagical/pretraining/tcc.py",
@@ -36,10 +34,10 @@ ALGO_TO_CONFIG = {
     "goal_classifier": "experiments/xmagical/pretraining/classifier.py",
     "raw_imagenet": "experiments/xmagical/pretraining/imagenet.py",
 }
-# We want to pretrain on the entire demonstrations.
+# We want to pretrain on the entire 1k demonstrations.
 MAX_DEMONSTRATIONS = -1
-FLAGS = flags.FLAGS
 
+FLAGS = flags.FLAGS
 flags.DEFINE_enum("algo", None, ALGORITHMS, "The pretraining algorithm to use.")
 flags.DEFINE_enum(
     "embodiment", None, EMBODIMENTS,
@@ -53,25 +51,28 @@ def main(_):
     # Generate a unique experiment name.
     experiment_name = string_from_kwargs(
         dataset="xmagical",
-        mode="same",
+        mode="cross",
         algo=FLAGS.algo,
         embodiment=embodiment,
         uid=unique_id(),
     )
     logging.info(f"Experiment name: {experiment_name}")
 
+    # Train on all classes but the given embodiment.
+    trainable_embs = tuple(EMBODIMENTS - set([embodiment]))
+
     subprocess.call([
         "python",
         "pretrain.py",
         "--experiment_name",
         experiment_name,
-        "--raw_imagenet" if FLAGS.algo == "raw_imagenet" else '',
+        "--raw_imagenet" if FLAGS.algo == "raw_imagenet" else "",
         "--config",
         f"{ALGO_TO_CONFIG[FLAGS.algo]}",
         "--config.DATA.PRETRAIN_ACTION_CLASS",
-        f"({repr(embodiment)},)",
+        f"{repr(trainable_embs)}",
         "--config.DATA.DOWNSTREAM_ACTION_CLASS",
-        f"({repr(embodiment)},)",
+        f"{repr(trainable_embs)}",
         "--config.DATA.MAX_VIDS_PER_CLASS",
         f"{MAX_DEMONSTRATIONS}",
     ])

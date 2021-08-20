@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 from ml_collections import config_flags
 import torchvision
 from xirl.common import get_pretraining_dataloaders
-# pylint: disable=logging-format-interpolation
+# pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS
 

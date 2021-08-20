@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Useful methods shared by all scripts."""
+
 from typing import Any, Dict, Optional
 
 import os
@@ -42,10 +44,10 @@ FrozenConfigDict = config_dict.FrozenConfigDict
 
 def setup_experiment(exp_dir: str, config: ConfigDict, resume: bool = False):
   """Initializes a pretraining or RL experiment.
-  
-  If the experiment directory doesn't exist yet, creates it and dumps the config dict
-  as a yaml file and git hash as a text file. If it exists already, raises a ValueError
-  to prevent overwriting unless resume is set to True.
+
+  If the experiment directory doesn't exist yet, creates it and dumps the config
+  dict as a yaml file and git hash as a text file. If it exists already, raises
+  a ValueError to prevent overwriting unless resume is set to True.
   """
   if os.path.exists(exp_dir):
     if not resume:
@@ -79,8 +81,8 @@ def load_config_from_dir(
 
 def dump_config(exp_dir: str, config: ConfigDict):
   """Dump config to disk."""
-  # Note: No need to explicitly delete the previous config file as "w" will overwrite
-  # the file if it already exists.
+  # Note: No need to explicitly delete the previous config file as "w" will
+  # overwrite the file if it already exists.
   with open(os.path.join(exp_dir, "config.yaml"), "w") as fp:
     yaml.dump(ConfigDict.to_dict(config), fp)
 
@@ -91,8 +93,8 @@ def copy_config_and_replace(
     freeze: bool = False,
 ) -> ConfigDict:
   """Makes a copy of a config and optionally updates its values."""
-  # Using the ConfigDict constructor leaves the `FieldReferences` untouched unlike
-  # `ConfigDict.copy_and_resolve_references`.
+  # Using the ConfigDict constructor leaves the `FieldReferences` untouched
+  # unlike `ConfigDict.copy_and_resolve_references`.
   new_config = ConfigDict(config)
   if update_dict is not None:
     new_config.update(update_dict)
@@ -117,7 +119,7 @@ def load_model_checkpoint(
 
 
 def load_goal_embedding(pretrained_path: str) -> Optional[np.ndarray]:
-  """Load a goal embedding. Should be computed via `compute_goal_embedding.py`."""
+  """Load a pickled goal embedding."""
   try:
     with open(os.path.join(pretrained_path, "goal_emb.pkl"), "rb") as fp:
       goal_emb = pickle.load(fp)
@@ -132,14 +134,6 @@ def load_goal_embedding(pretrained_path: str) -> Optional[np.ndarray]:
 # ========================================= #
 
 
-def xmagical_embodiment_to_env_name(embodiment: str) -> str:
-  VALID_EMBS = ["shortstick", "mediumstick", "longstick", "gripper"]
-  if embodiment not in VALID_EMBS:
-    raise ValueError(f"Valid embodiments are: {VALID_EMBS}")
-  # We used the TestLayout variant for the paper.
-  return f"SweepToTop-{embodiment.capitalize()}-State-Allo-TestLayout-v0"
-
-
 def make_env(
     env_name: str,
     seed: int,
@@ -149,7 +143,7 @@ def make_env(
     frame_stack: int = 1,
 ) -> gym.Env:
   """Env factory with wrapping.
-  
+
   Args:
     env_name: The name of the environment.
     seed: The RNG seed.
@@ -227,7 +221,7 @@ def wrap_learned_reward(
 
 def plot_reward(rews: typing.Sequence[float]):
   """Plot raw and cumulative rewards over an episode."""
-  fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharex=True)
+  _, axes = plt.subplots(1, 2, figsize=(12, 4), sharex=True)
   axes[0].plot(rews)
   axes[0].set_xlabel("Timestep")
   axes[0].set_ylabel("Reward")
@@ -235,8 +229,8 @@ def plot_reward(rews: typing.Sequence[float]):
   axes[1].set_xlabel("Timestep")
   axes[1].set_ylabel("Cumulative Reward")
   for ax in axes:
-    ax.grid(b=True, which='major', linestyle='-')
-    ax.grid(b=True, which='minor', linestyle='-', alpha=0.2)
+    ax.grid(b=True, which="major", linestyle="-")
+    ax.grid(b=True, which="minor", linestyle="-", alpha=0.2)
   plt.minorticks_on()
   plt.show()
 

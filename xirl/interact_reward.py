@@ -27,8 +27,8 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("embodiment", "longstick", "The agent embodiment.")
 flags.DEFINE_boolean(
     "exit_on_done", True,
-    "By default, env will terminate if done is True. Set to False to interact for as "
-    "long as you want and press esc key to exit.")
+    "By default, env will terminate if done is True. Set to False to interact "
+    "for as long as you want and press esc key to exit.")
 
 config_flags.DEFINE_config_file(
     "config",

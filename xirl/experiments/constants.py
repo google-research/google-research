@@ -13,9 +13,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Settings we used for the CoRL 2021 experiments."""
+
 from ml_collections import FrozenConfigDict
 
-# A mapping from x-MAGICAL embodiments to RL training iterations.
+# The embodiments we used in the x-MAGICAL experiments.
+EMBODIMENTS = frozenset([
+    "shortstick",
+    "mediumstick",
+    "longstick",
+    "gripper",
+])
+
+# All baseline pretraining strategies we ran for the CoRL experiments.
+ALGORITHMS = frozenset([
+    "xirl",
+    "tcn",
+    "lifs",
+    "goal_classifier",
+    "raw_imagenet",
+])
+
+# A mapping from x-MAGICAL embodiment to RL training iterations.
 XMAGICALTrainingIterations = FrozenConfigDict({
     "longstick": 75_000,
     "mediumstick": 250_000,
@@ -27,3 +46,9 @@ XMAGICALTrainingIterations = FrozenConfigDict({
 RLVTrainingIterations = FrozenConfigDict({
     "state_pusher": 500_000,
 })
+
+# A mapping from x-MAGICAL embodiment to Gym environment name.
+XMAGICAL_EMBODIMENT_TO_ENV_NAME = {
+    k: f"SweepToTop-{k.capitalize()}-State-Allo-TestLayout-v0"
+    for k in EMBODIMENTS
+}

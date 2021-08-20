@@ -27,7 +27,7 @@ from torchkit import checkpoint
 from torchkit import experiment
 from torchkit import Logger
 from torchkit.utils.py_utils import Stopwatch
-# pylint: disable=logging-format-interpolation
+# pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS
 
@@ -60,7 +60,7 @@ def main(_):
   else:
     logging.info("No GPU device found. Falling back to CPU.")
     device = torch.device("cpu")
-  logging.info(f"Using device: {FLAGS.device}")  # pylint: disable=logging-format-interpolation
+  logging.info(f"Using device: {device}")  # pylint: disable=logging-format-interpolation
 
   # Set RNG seeds.
   if config.SEED is not None:

@@ -22,7 +22,7 @@ import os.path as osp
 import gym
 import numpy as np
 import torch
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from absl import flags
 from absl import logging
 from absl import app
@@ -34,16 +34,15 @@ from torchkit import checkpoint
 from torchkit import experiment
 from torchkit import Logger
 import utils
-# pylint: disable=logging-format-interpolation
+# pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("experiment_name", None, "Experiment name.")
-flags.DEFINE_string("embodiment", None, "The agent embodiment.")
+flags.DEFINE_string("env_name", None, "The environment name.")
 flags.DEFINE_integer("seed", 0, "RNG seed.")
 flags.DEFINE_string("device", "cuda:0", "The compute device.")
-flags.DEFINE_boolean("resume", False,
-                     "Resume experiment from latest checkpoint.")
+flags.DEFINE_boolean("resume", False, "Resume experiment from last checkpoint.")
 
 config_flags.DEFINE_config_file(
     "config",
@@ -65,7 +64,7 @@ def evaluate(
     while not done:
       action = policy.act(observation, sample=False)
       observation, _, done, info = env.step(action)
-    for k, v in info['episode'].items():
+    for k, v in info["episode"].items():
       stats[k].append(v)
     if "eval_score" in info:
       stats["eval_score"].append(info["eval_score"])
@@ -90,7 +89,7 @@ def main(_):
   else:
     logging.info("No GPU device found. Falling back to CPU.")
     device = torch.device("cpu")
-  logging.info(f"Using device: {FLAGS.device}")
+  logging.info(f"Using device: {device}")
 
   # Set RNG seeds.
   if FLAGS.seed is not None:
@@ -101,15 +100,14 @@ def main(_):
     logging.info("No RNG seed has been set for this RL experiment.")
 
   # Load env.
-  env_name = utils.xmagical_embodiment_to_env_name(FLAGS.embodiment)
   env = utils.make_env(
-      env_name,
+      FLAGS.env_name,
       FLAGS.seed,
       action_repeat=config.action_repeat,
       frame_stack=config.frame_stack,
   )
   eval_env = utils.make_env(
-      env_name,
+      FLAGS.env_name,
       FLAGS.seed + 42,
       action_repeat=config.action_repeat,
       frame_stack=config.frame_stack,
@@ -124,8 +122,8 @@ def main(_):
       float(env.action_space.high.max()),
   ]
 
-  # Resave the config since the dynamic values have been updated at this point and
-  # make it immutable for safety :)
+  # Resave the config since the dynamic values have been updated at this point
+  # and make it immutable for safety :)
   utils.dump_config(exp_dir, config)
   config = config_dict.FrozenConfigDict(config)
 
@@ -190,7 +188,7 @@ def main(_):
         for k, v in eval_stats.items():
           logger.log_scalar(
               v,
-              info['total']['timesteps'],
+              info["total"]["timesteps"],
               f"average_{k}s",
               "evaluation",
           )
@@ -203,11 +201,11 @@ def main(_):
     print("Caught keyboard interrupt. Saving before quitting.")
 
   finally:
-    checkpoint_manager.save(i)
+    checkpoint_manager.save(i)  # pylint: disable=undefined-loop-variable
     logger.close()
 
 
 if __name__ == "__main__":
   flags.mark_flag_as_required("experiment_name")
-  flags.mark_flag_as_required("embodiment")
+  flags.mark_flag_as_required("env_name")
   app.run(main)
