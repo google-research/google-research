@@ -60,11 +60,11 @@ def main(_):
   else:
     logging.info("No GPU device found. Falling back to CPU.")
     device = torch.device("cpu")
-  logging.info(f"Using device: {device}")  # pylint: disable=logging-format-interpolation
+  logging.info(f"Using device: {device}")
 
   # Set RNG seeds.
   if config.SEED is not None:
-    logging.info(f"Pretraining experiment seed: {config.SEED}")  # pylint: disable=logging-format-interpolation
+    logging.info(f"Pretraining experiment seed: {config.SEED}")
     experiment.seed_rngs(config.SEED)
     experiment.set_cudnn(config.CUDNN_DETERMINISTIC, config.CUDNN_BENCHMARK)
   else:
