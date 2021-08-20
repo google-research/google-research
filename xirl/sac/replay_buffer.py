@@ -1,3 +1,8 @@
+"""Lightweight in-memory replay buffer.
+
+Adapted from https://github.com/ikostrikov/jaxrl.
+"""
+
 import abc
 import collections
 from sac.wrappers import TensorType
@@ -90,7 +95,7 @@ class ReplayBuffer:
 
 class ReplayBufferLearnedVisualReward(abc.ABC, ReplayBuffer):
   """Buffer that replaces the environment reward with a learned one.
-  
+
   Subclasses should implement the `_get_reward_from_image` method.
   """
 

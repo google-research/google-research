@@ -85,7 +85,7 @@ class FrameStack(gym.Wrapper):
 
 class ActionRepeat(gym.Wrapper):
   """Repeat the agent's action N times in the environment.
-  
+
   Reference: https://github.com/ikostrikov/jaxrl/
   """
 
@@ -94,7 +94,8 @@ class ActionRepeat(gym.Wrapper):
 
     Args:
       env: A gym env.
-      repeat: The number of times to repeat the action per single underlying env step.
+      repeat: The number of times to repeat the action per single underlying env
+        step.
     """
     super().__init__(env)
 
@@ -175,7 +176,7 @@ class EpisodeMonitor(gym.ActionWrapper):
 
 class VideoRecorder(gym.Wrapper):
   """Wrapper for rendering and saving rollouts to disk.
-  
+
   Reference: https://github.com/ikostrikov/jaxrl/
   """
 
@@ -219,17 +220,17 @@ class VideoRecorder(gym.Wrapper):
 # Learned reward wrappers.
 # ========================================= #
 
-# Note: While the below classes provide a nice wrapper API, they are not efficient
-# for training RL policies as rewards are computed individually at every `env.step()`
-# and so cannot take advantage of batching on the GPU.
+# Note: While the below classes provide a nice wrapper API, they are not
+# efficient for training RL policies as rewards are computed individually at
+# every `env.step()` and so cannot take advantage of batching on the GPU.
 # For actually training policies, it is better to use the learned replay buffer
-# implementations in `sac.replay_buffer.py`. These store transitions in a staging
-# buffer which is forwarded as a batch through the GPU.
+# implementations in `sac.replay_buffer.py`. These store transitions in a
+# staging buffer which is forwarded as a batch through the GPU.
 
 
 class LearnedVisualReward(abc.ABC, gym.Wrapper):
   """Base wrapper class that replaces the env reward with a learned one.
-  
+
   Subclasses should implement the `_get_reward_from_image` method.
   """
 
@@ -280,8 +281,8 @@ class LearnedVisualReward(abc.ABC, gym.Wrapper):
 
   def step(self, action: np.ndarray) -> TimeStep:
     obs, env_reward, done, info = self.env.step(action)
-    # We'll keep the original env reward in the info dict in case the user would like
-    # to use it in conjunction with the learned reward.
+    # We'll keep the original env reward in the info dict in case the user would
+    # like to use it in conjunction with the learned reward.
     info["env_reward"] = env_reward
     pixels = self._render_obs()
     learned_reward = self._get_reward_from_image(pixels)
@@ -301,8 +302,8 @@ class DistanceToGoalLearnedVisualReward(LearnedVisualReward):
 
     Args:
       goal_emb: The goal embedding.
-      distance_scale: Scales the distance from the current state embedding to that of
-        the goal state. Set to 1.0 by default.
+      distance_scale: Scales the distance from the current state embedding to
+        that of the goal state. Set to `1.0` by default.
     """
     super().__init__(**base_kwargs)
 
