@@ -33,8 +33,8 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("experiment_name", None, "Experiment name.")
 flags.DEFINE_boolean("resume", False, "Whether to resume training.")
-flags.DEFINE_boolean("raw_imagenet", False, "")
 flags.DEFINE_string("device", "cuda:0", "The compute device.")
+flags.DEFINE_boolean("raw_imagenet", False, "")
 
 config_flags.DEFINE_config_file(
     "config",
@@ -63,10 +63,10 @@ def main(_):
   logging.info(f"Using device: {device}")
 
   # Set RNG seeds.
-  if config.SEED is not None:
-    logging.info(f"Pretraining experiment seed: {config.SEED}")
-    experiment.seed_rngs(config.SEED)
-    experiment.set_cudnn(config.CUDNN_DETERMINISTIC, config.CUDNN_BENCHMARK)
+  if config.seed is not None:
+    logging.info(f"Pretraining experiment seed: {config.seed}")
+    experiment.seed_rngs(config.seed)
+    experiment.set_cudnn(config.cudnn_deterministic, config.cudnn_benchmark)
   else:
     logging.info("No RNG seed has been set for this pretraining experiment.")
 
@@ -101,16 +101,16 @@ def main(_):
       for batch in pretrain_loaders["train"]:
         train_loss = trainer.train_one_iter(batch)
 
-        if not global_step % config.LOGGING_FREQUENCY:
+        if not global_step % config.logging_frequency:
           for k, v in train_loss.items():
             logger.log_scalar(v, global_step, k, "pretrain")
           logger.flush()
 
-        if not global_step % config.EVAL.EVAL_FREQUENCY:
+        if not global_step % config.eval.eval_frequency:
           # Evaluate the model on the pretraining validation dataset.
           valid_loss = trainer.eval_num_iters(
               pretrain_loaders["valid"],
-              config.EVAL.VAL_ITERS,
+              config.eval.val_iters,
           )
           for k, v in valid_loss.items():
             logger.log_scalar(v, global_step, k, "pretrain")
@@ -121,7 +121,7 @@ def main(_):
                 model,
                 downstream_loader,
                 device,
-                config.EVAL.VAL_ITERS,
+                config.eval.val_iters,
             )
             for eval_name, eval_out in eval_to_metric.items():
               eval_out.log(
@@ -132,12 +132,12 @@ def main(_):
               )
 
         # Save model checkpoint.
-        if not global_step % config.CHECKPOINTING_FREQUENCY:
+        if not global_step % config.checkpointing_frequency:
           checkpoint_manager.save(global_step)
 
         # Exit if complete.
         global_step += 1
-        if global_step > config.OPTIM.TRAIN_MAX_ITERS:
+        if global_step > config.optim.train_max_iters:
           complete = True
           break
 
@@ -145,7 +145,7 @@ def main(_):
         logging.info(
             "Iter[{}/{}] (Epoch {}), {:.1f}s/iter, Loss: {:.3f}".format(
                 global_step,
-                config.OPTIM.TRAIN_MAX_ITERS,
+                config.optim.train_max_iters,
                 epoch,
                 time_per_iter,
                 train_loss["train/total_loss"].item(),
