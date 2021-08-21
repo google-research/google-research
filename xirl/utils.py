@@ -67,16 +67,13 @@ def load_config_from_dir(
     config: Optional[ConfigDict] = None,
 ) -> Optional[ConfigDict]:
   """Load experiment config."""
-  try:
-    with open(os.path.join(exp_dir, "config.yaml"), "r") as fp:
-      cfg = yaml.load(fp, Loader=yaml.FullLoader)
-    # Inplace update the config if one is provided.
-    if config is not None:
-      config.update(cfg)
-      return
-    return ConfigDict(cfg)
-  except FileNotFoundError as e:
-    raise e
+  with open(os.path.join(exp_dir, "config.yaml"), "r") as fp:
+    cfg = yaml.load(fp, Loader=yaml.FullLoader)
+  # Inplace update the config if one is provided.
+  if config is not None:
+    config.update(cfg)
+    return
+  return ConfigDict(cfg)
 
 
 def dump_config(exp_dir: str, config: ConfigDict):
@@ -115,15 +112,12 @@ def load_model_checkpoint(pretrained_path: str, device: torch.device):
   return config, model
 
 
-def load_goal_embedding(pretrained_path: str) -> Optional[np.ndarray]:
+def load_goal_embedding(pretrained_path: str) -> np.ndarray:
   """Load a pickled goal embedding."""
-  try:
-    with open(os.path.join(pretrained_path, "goal_emb.pkl"), "rb") as fp:
-      goal_emb = pickle.load(fp)
-    print("Successfully loaded goal embedding.")
-    return goal_emb
-  except FileNotFoundError as e:
-    raise e
+  with open(os.path.join(pretrained_path, "goal_emb.pkl"), "rb") as fp:
+    goal_emb = pickle.load(fp)
+  print("Successfully loaded goal embedding.")
+  return goal_emb
 
 
 # ========================================= #
