@@ -355,14 +355,6 @@ class SAC(nn.Module):
 
     return {**batch_info, **critic_info, **actor_info, **alpha_info}
 
-  def trainable_dict(self) -> typing.Dict[str, TrainableType]:
-    return {
-        "actor": self.actor,
-        "log_alpha": self.log_alpha,
-        "critic": self.critic,
-        "critic_target": self.critic_target,
-    }
-
   def optim_dict(self) -> typing.Dict[str, torch.optim.Optimizer]:
     return {
         "actor_optimizer": self.actor_optimizer,

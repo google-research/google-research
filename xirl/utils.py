@@ -103,16 +103,13 @@ def copy_config_and_replace(
   return new_config
 
 
-def load_model_checkpoint(
-    pretrained_path: str,
-    device: torch.device,
-):
+def load_model_checkpoint(pretrained_path: str, device: torch.device):
   """Load a pretrained model and optionally a precomputed goal embedding."""
   config = load_config_from_dir(pretrained_path)
   model = common.get_model(config)
+  model.to(device).eval()
   checkpoint_dir = os.path.join(pretrained_path, "checkpoints")
-  checkpoint_manager = checkpoint.CheckpointManager(
-      checkpoint.Checkpoint(model=model), checkpoint_dir, device)
+  checkpoint_manager = checkpoint.CheckpointManager(checkpoint_dir, model=model)
   global_step = checkpoint_manager.restore_or_initialize()
   print(f"Restored model from checkpoint @{global_step}.")
   return config, model

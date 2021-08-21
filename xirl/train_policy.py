@@ -30,7 +30,7 @@ from ml_collections import config_flags
 from ml_collections import config_dict
 from sac import agent
 from sac import replay_buffer
-from torchkit import checkpoint
+from torchkit.checkpoint import CheckpointManager
 from torchkit import experiment
 from torchkit import Logger
 import utils
@@ -139,13 +139,10 @@ def main(_):
 
   # Create checkpoint manager.
   checkpoint_dir = osp.join(exp_dir, "checkpoints")
-  checkpoint_manager = checkpoint.CheckpointManager(
-      checkpoint.Checkpoint(
-          **policy.trainable_dict(),
-          **policy.optim_dict(),
-      ),
+  checkpoint_manager = CheckpointManager(
       checkpoint_dir,
-      device,
+      policy=policy,
+      **policy.optim_dict(),
   )
 
   logger = Logger(osp.join(exp_dir, "tb"), FLAGS.resume)

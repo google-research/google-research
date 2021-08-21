@@ -23,7 +23,7 @@ from absl import flags
 from absl import logging
 import numpy as np
 import torch
-from torchkit import checkpoint
+from torchkit.checkpoint import CheckpointManager
 from xirl import common
 from xirl.models import SelfSupervisedModel
 from utils import load_config_from_dir
@@ -60,15 +60,14 @@ def embed(
   return goal_emb
 
 
-def setup(device: torch.device) -> typing.Tuple[ModelType, DataLoaderType]:
+def setup() -> typing.Tuple[ModelType, DataLoaderType]:
   """Load the latest embedder checkpoint and dataloaders."""
   config = load_config_from_dir(FLAGS.experiment_path)
   model = common.get_model(config)
   downstream_loaders = common.get_downstream_dataloaders(config, False)["train"]
   checkpoint_dir = os.path.join(FLAGS.experiment_path, "checkpoints")
   if FLAGS.restore_checkpoint:
-    checkpoint_manager = checkpoint.CheckpointManager(
-        checkpoint.Checkpoint(model=model), checkpoint_dir, device)
+    checkpoint_manager = CheckpointManager(checkpoint_dir, model=model)
     global_step = checkpoint_manager.restore_or_initialize()
     logging.info(f"Restored model from checkpoint {global_step}.")
   else:
@@ -78,7 +77,7 @@ def setup(device: torch.device) -> typing.Tuple[ModelType, DataLoaderType]:
 
 def main(_):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  model, downstream_loader = setup(device)
+  model, downstream_loader = setup()
   model.to(device).eval()
   goal_emb = embed(model, downstream_loader, device)
   with open(os.path.join(FLAGS.experiment_path, "goal_emb.pkl"), "wb") as fp:

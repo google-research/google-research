@@ -85,9 +85,9 @@ def main(_):
   # Create checkpoint manager.
   checkpoint_dir = osp.join(exp_dir, "checkpoints")
   checkpoint_manager = checkpoint.CheckpointManager(
-      checkpoint.Checkpoint(model=model, optimizer=optimizer),
       checkpoint_dir,
-      device,
+      model=model,
+      optimizer=optimizer,
   )
 
   global_step = checkpoint_manager.restore_or_initialize()
