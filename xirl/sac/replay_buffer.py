@@ -169,6 +169,7 @@ class ReplayBufferLearnedReward(abc.ABC, ReplayBuffer):
           self.masks_staging,
       ):
         super().insert(obs_s, action_s, reward_s, next_obs_s, mask_s)
+      self._reset_staging()
 
 
 class ReplayBufferDistanceToGoal(ReplayBufferLearnedReward):
