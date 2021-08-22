@@ -18,6 +18,7 @@
 
 #include "scann/utils/internal/avx2_funcs.h"
 #include "scann/utils/internal/avx_funcs.h"
+#include "scann/utils/intrinsics/horizontal_sum.h"
 #include "scann/utils/intrinsics/simd.h"
 
 namespace research_scann {

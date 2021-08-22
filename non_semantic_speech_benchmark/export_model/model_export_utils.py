@@ -101,7 +101,7 @@ def get_model(checkpoint_folder_path,
       setattr(flags.FLAGS, flag_name, params[flag_name])
 
   static_model = models.get_keras_model(
-      f'mobilenet_{params["ms"]}_{params["al"]}_{params["ap"]}',
+      params['mt'],
       bottleneck_dimension=params['bd'],
       output_dimension=0,  # Don't include the unnecessary final layer.
       frontend=include_frontend,
@@ -181,7 +181,8 @@ def sanity_check(
         model_path)
     logging.info('Running inference...')
     output = audio_to_embeddings_beam_utils.samples_to_embedding_tflite(
-        model_input, sample_rate=16000, interpreter=interpreter, output_key='0')
+        model_input, sample_rate=16000, interpreter=interpreter, output_key='0',
+        name='sanity_check')
   else:
     logging.info('Loading and running inference with SavedModel...')
     model = tf.saved_model.load(model_path)

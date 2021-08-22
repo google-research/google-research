@@ -28,15 +28,23 @@ from non_semantic_speech_benchmark.export_model import tf_frontend
 BASE_SHAPE_ = (15, 5)
 
 
-def _s2e(audio_samples, sample_rate, module_location, output_key):
+def _s2e(audio_samples, sample_rate, module_location, output_key, name):
   """Mock waveform-to-embedding computation."""
-  del audio_samples, sample_rate, module_location, output_key
+  del audio_samples, sample_rate, module_location, output_key, name
   return np.zeros(BASE_SHAPE_, dtype=np.float32)
 
 
 def build_tflite_interpreter_dummy(tflite_model_path):
   del tflite_model_path
   return None
+
+
+class FakeMod(object):
+
+  def __call__(self, *args, **kwargs):
+    del args, kwargs
+    return {'output_key':
+                np.zeros([BASE_SHAPE_[0], 1, BASE_SHAPE_[1]], np.float32)}
 
 
 class AudioToEmbeddingsTests(parameterized.TestCase):
@@ -46,12 +54,9 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
       {'average_over_time': False, 'sample_rate_key': 's', 'sample_rate': None},
       {'average_over_time': False, 'sample_rate_key': None, 'sample_rate': 5},
   )
-  @mock.patch.object(
-      audio_to_embeddings_beam_utils,
-      'samples_to_embedding_tfhub',
-      new=_s2e)
+  # TODO(joelshor): Add test for signatures.
   @mock.patch.object(audio_to_embeddings_beam_utils.hub, 'load',
-                     new=lambda _: None)
+                     new=lambda _: FakeMod())
   def test_compute_embedding_map_fn(self, average_over_time, sample_rate_key,
                                     sample_rate):
     # Establish required key names.
@@ -69,13 +74,11 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
     do_fn = audio_to_embeddings_beam_utils.ComputeEmbeddingMapFn(
         name='module_name',
         module='@loc',
-        output_key='unnecessary',
+        output_key='output_key',
         audio_key=audio_key,
         sample_rate_key=sample_rate_key,
         sample_rate=sample_rate,
-        average_over_time=average_over_time,
-        module_call_fn=audio_to_embeddings_beam_utils
-        .samples_to_embedding_tfhub)
+        average_over_time=average_over_time)
     do_fn.setup()
     new_k, new_v = next(do_fn.process((old_k, ex)))
 
@@ -96,9 +99,10 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
     custom_call_shape = (5, 25)
 
     # Custom call function for embedding generation.
-    def test_call_fn(audio_samples, sample_rate, module_location, output_key):
+    def test_call_fn(audio_samples, sample_rate, module_location, output_key,
+                     name):
       """Mock waveform-to-embedding computation."""
-      del audio_samples, sample_rate, module_location, output_key
+      del audio_samples, sample_rate, module_location, output_key, name
       return np.zeros(custom_call_shape, dtype=np.float32)
 
     # Construct the tf.train.Example test data.
@@ -199,7 +203,7 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
       model_input = np.expand_dims(model_input, axis=0)
 
     audio_to_embeddings_beam_utils.samples_to_embedding_tflite(
-        model_input, sample_rate, interpreter, output_key)
+        model_input, sample_rate, interpreter, output_key, 'name')
 
   @parameterized.parameters(
       {'dataset_name': 'crema_d'},

@@ -179,6 +179,15 @@ def _calc_eval_scores(eval_metric, d, npx_eval,
       return class_scores
     eval_score = np.mean(_class_scores(npx_eval, npy_eval))
     test_score = np.mean(_class_scores(npx_test, npy_test))
+  elif eval_metric == 'auc':
+    # Eval.
+    regression_output = d.predict_proba(npx_eval)[:, 1]  # Prob of class 1.
+    eval_score = metrics.calculate_auc(
+        labels=npy_eval, predictions=regression_output)
+    # Test.
+    regression_output = d.predict_proba(npx_test)[:, 1]  # Prob of class 1.
+    test_score = metrics.calculate_auc(
+        labels=npy_test, predictions=regression_output)
   else:
     raise ValueError(f'`eval_metric` not recognized: {eval_metric}')
   return eval_score, test_score

@@ -56,6 +56,7 @@ cc_library(
         "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:datapoint_utils",
         "//scann/utils:types",
+        "@com_google_absl//absl/memory",
         "@com_google_absl//absl/random",
     ],
 )

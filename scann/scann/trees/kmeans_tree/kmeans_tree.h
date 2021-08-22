@@ -304,21 +304,16 @@ Status KMeansTree::Tokenize(const DatapointPtr<T>& query,
                             std::vector<KMeansTreeSearchResult>* result) const {
   SCANN_RETURN_IF_ERROR(root_.CheckDimensionality(query.dimensionality()));
 
-  Status status;
-
   Datapoint<float> converted_values;
   const DatapointPtr<float> query_float = ToFloat(query, &converted_values);
   if (opts.tokenization_type == FLOAT) {
-    status = TokenizeImpl<float>(query_float, dist, opts, result);
+    return TokenizeImpl<float>(query_float, dist, opts, result);
   } else if (opts.tokenization_type == FIXED_POINT_INT8) {
-    status = TokenizeImpl<int8_t>(query_float, dist, opts, result);
+    return TokenizeImpl<int8_t>(query_float, dist, opts, result);
   } else {
     return InternalError(
         absl::StrCat("Invalid tokenization type:  ", opts.tokenization_type));
   }
-
-  if (status.ok()) ZipSortBranchOptimized(result->begin(), result->end());
-  return status;
 }
 
 template <typename CentersType>

@@ -24,6 +24,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_map.h"
 #include "absl/memory/memory.h"
+#include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -137,10 +138,10 @@ Status ValidateDatapointsByToken(
 
     for (DatapointIndex dp_index : dp_list) {
       if (dp_index >= num_datapoints) {
-        return OutOfRangeError(absl::StrCat(
+        return OutOfRangeError(
             "Datapoint index in datapoints_by_token is >= number of "
-            "datapoints in database (",
-            dp_index, " vs. ", num_datapoints, ")."));
+            "datapoints in database (%d vs. %d).",
+            dp_index, num_datapoints);
       }
 
       if (global_bitmap[dp_index]) {

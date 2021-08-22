@@ -22,7 +22,7 @@ cc_library(
     deps = [
         ":common",
         "//scann/distance_measures:distance_measure_base",
-        "//scann/oss_wrappers:scann_bits",
+        "@com_google_absl//absl/numeric:bits",
     ],
 )
 
@@ -39,6 +39,7 @@ cc_library(
         "//scann/distance_measures:distance_measure_base",
         "//scann/oss_wrappers:scann_bits",
         "//scann/utils:types",
+        "@com_google_absl//absl/numeric:bits",
     ],
     alwayslink = 1,
 )
@@ -180,9 +181,9 @@ cc_library(
         ":binary_distance_measure_base",
         ":common",
         "//scann/distance_measures:distance_measure_base",
-        "//scann/oss_wrappers:scann_bits",
         "//scann/utils:reduction",
         "//scann/utils:types",
+        "@com_google_absl//absl/numeric:bits",
     ],
     alwayslink = 1,
 )

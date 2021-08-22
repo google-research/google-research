@@ -186,8 +186,10 @@ class ScannSearchBatchedOp : public OpKernel {
                          queries, res_span, final_nn, pre_reorder_nn, leaves)));
     Tensor *index_t, *distance_t;
 
-    int64_t num_queries = static_cast<int64_t>(res.size()),
-            num_neighbors = res.empty() ? 0 : res.front().size();
+    int64_t num_queries = static_cast<int64_t>(res.size());
+    int64_t num_neighbors = 0;
+    for (const auto& nn_res : res)
+      num_neighbors = std::max<int64_t>(num_neighbors, nn_res.size());
     OP_REQUIRES_OK(
         context,
         context->allocate_output(
@@ -198,7 +200,7 @@ class ScannSearchBatchedOp : public OpKernel {
                        &distance_t));
     scann_resource->scann_->ReshapeBatchedNNResult(
         res_span, index_t->flat<int32_t>().data(),
-        distance_t->flat<float>().data());
+        distance_t->flat<float>().data(), num_neighbors);
   }
 };
 

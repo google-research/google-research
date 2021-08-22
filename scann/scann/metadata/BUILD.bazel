@@ -19,8 +19,8 @@ cc_library(
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/data_format:features_cc_proto",
-        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:types",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/synchronization",
     ],
 )

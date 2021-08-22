@@ -15,9 +15,11 @@
 #ifndef SCANN_UTILS_FAST_TOP_NEIGHBORS_H_
 #define SCANN_UTILS_FAST_TOP_NEIGHBORS_H_
 
+#include <atomic>
 #include <cstdint>
 #include <string>
 
+#include "absl/numeric/bits.h"
 #include "absl/numeric/int128.h"
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/common.h"
@@ -37,10 +39,26 @@ class FastTopNeighbors {
     Init(max_results, epsilon);
   }
 
+  FastTopNeighbors(FastTopNeighbors&& rhs) { *this = std::move(rhs); }
+
+  FastTopNeighbors& operator=(FastTopNeighbors&& rhs) {
+    indices_ = std::move(rhs.indices_);
+    distances_ = std::move(rhs.distances_);
+    masks_ = std::move(rhs.masks_);
+    sz_ = rhs.sz_;
+    max_results_ = rhs.max_results_;
+    capacity_ = rhs.capacity_;
+    max_capacity_ = rhs.max_capacity_;
+    epsilon_ = rhs.epsilon_.load(std::memory_order_relaxed);
+    tiebreaker_idx_ = rhs.tiebreaker_idx_;
+    mutator_held_ = rhs.mutator_held_;
+    return *this;
+  }
+
   void Init(size_t max_results, DistT epsilon = MaxOrInfinity<DistT>()) {
     CHECK(!mutator_held_);
     sz_ = 0;
-    epsilon_ = epsilon;
+    epsilon_.store(epsilon, std::memory_order_relaxed);
     if (max_results_ == max_results && indices_) {
       return;
     }
@@ -68,12 +86,14 @@ class FastTopNeighbors {
 
   void InitWithCapacity(size_t capacity) {
     CHECK(!mutator_held_);
-    epsilon_ = MaxOrInfinity<DistT>();
+    epsilon_.store(MaxOrInfinity<DistT>(), std::memory_order_relaxed);
     capacity_ = max_capacity_ = capacity;
     AllocateArrays(capacity_);
   }
 
-  SCANN_INLINE DistT epsilon() const { return epsilon_; }
+  SCANN_INLINE DistT epsilon() const {
+    return epsilon_.load(std::memory_order_relaxed);
+  }
 
   size_t max_results() const { return max_results_; }
 
@@ -167,8 +187,8 @@ class FastTopNeighbors {
 
   size_t max_capacity_ = 0;
 
-  DistT epsilon_;
-  DatapointIndexT tiebreaker_idx_;
+  std::atomic<DistT> epsilon_ = MaxOrInfinity<DistT>();
+  DatapointIndexT tiebreaker_idx_ = kInvalidDatapointIndex;
 
   bool mutator_held_ = false;
 
@@ -207,7 +227,9 @@ class FastTopNeighbors<DistT, DatapointIndexT>::Mutator {
   SCANN_OUTLINE void PushBlock(ConstSpan<DistT> distances,
                                DatapointIndexT base_dp_idx);
 
-  SCANN_INLINE DistT epsilon() const { return parent_->epsilon_; }
+  SCANN_INLINE DistT epsilon() const {
+    return parent_->epsilon_.load(std::memory_order_relaxed);
+  }
 
   SCANN_INLINE void GarbageCollect() {
     parent_->sz_ = parent_->capacity_ + pushes_remaining_negated_;

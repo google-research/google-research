@@ -130,6 +130,20 @@ SCANN_AVX1_INLINE void HorizontalSum2X(Avx1<float> a, Avx1<float> b,
   *resultb = sum[4];
 }
 
+SCANN_AVX1_INLINE void HorizontalSum3X(Avx1<float> a, Avx1<float> b,
+                                       Avx1<float> c, float* resulta,
+                                       float* resultb, float* resultc) {
+  Avx1<float> ac = Sum128BitLanes(a, c);
+  Avx1<float> bg = b + Avx1<float>(_mm256_permute2f128_ps(*b, *b, 1));
+  auto abcg = *Sum64BitLanes(ac, bg);
+
+  abcg += _mm256_shuffle_ps(abcg, abcg, 0b11'11'01'01);
+
+  *resulta = abcg[0];
+  *resultb = abcg[2];
+  *resultc = abcg[4];
+}
+
 SCANN_AVX1_INLINE void HorizontalSum4X(Avx1<float> a, Avx1<float> b,
                                        Avx1<float> c, Avx1<float> d,
                                        float* resulta, float* resultb,
@@ -170,6 +184,7 @@ namespace avx2 {
 
 using ::research_scann::avx1::HorizontalSum;
 using ::research_scann::avx1::HorizontalSum2X;
+using ::research_scann::avx1::HorizontalSum3X;
 using ::research_scann::avx1::HorizontalSum4X;
 
 }  // namespace avx2

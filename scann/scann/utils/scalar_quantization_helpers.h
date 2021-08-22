@@ -78,7 +78,7 @@ DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
     vector<int8_t>* quantized_storage);
 
 unique_ptr<float[]> PrepareForAsymmetricScalarQuantizedDotProduct(
-    const DatapointPtr<float>& dptr,
+    const DatapointPtr<float>& query,
     ConstSpan<float> inverse_multiplier_by_dimension);
 
 }  // namespace research_scann

@@ -68,6 +68,7 @@ class ModelsTest(parameterized.TestCase):
   @parameterized.parameters(
       {'model_type': 'mobilenet_small_1.0_False'},
       {'model_type': 'mobilenet_debug_1.0_False'},
+      {'model_type': 'efficientnetb0'},
   )
   def test_valid_model_type(self, model_type):
     input_tensor = tf.zeros([2, 32000], dtype=tf.float32)

@@ -680,7 +680,8 @@ function mqmShow() {
   let currSegStats = [];
   let currSegStatsBySys = [];
   let currSegStatsByRater = [];
-  for (let parts of mqmData) {
+  for (let rowId = 0; rowId < mqmData.length; rowId++) {
+    const parts = mqmData[rowId];
     let match = true;
     for (let i = 0; i < 9; i++) {
       if (filterREs[i] && !filterREs[i].test(parts[i])) {
@@ -748,7 +749,9 @@ function mqmShow() {
       }
       rowHTML += `<td ${cls} id="mqm-val-${shown}-${i}">` + val + '</td>\n';
     }
-    tbody.insertAdjacentHTML('beforeend', `<tr>${rowHTML}</tr>\n`);
+    tbody.insertAdjacentHTML(
+        'beforeend',
+        `<tr class="mqm-row" id="mqm-row-${rowId}">${rowHTML}</tr>\n`);
     for (let i = 0; i < 9; i++) {
       if (i == 4 || i == 5) continue;
       const v = document.getElementById(`mqm-val-${shown}-${i}`);
@@ -979,7 +982,7 @@ function createMQMViewer(elt, tsvData=null) {
   const header = mqmTSVData ? `
   <div class="mqm-header">
     <span class="mqm-title">MQM Scores</span>
-    <span class="mqm-open">
+    <span class="mqm-header-right">
       <button id="mqm-save-file" onclick="mqmSaveData()">
       Save MQM data to file "mqm-data.tsv"
       </button>
@@ -987,7 +990,7 @@ function createMQMViewer(elt, tsvData=null) {
   </div>` : `
   <div class="mqm-header">
     <span class="mqm-title">MQM Scores</span>
-    <span class="mqm-open">
+    <span class="mqm-header-right">
       <b>Open MQM data file (9-column TSV format):</b>
       <input id="mqm-file" accept=".tsv" onchange="mqmOpenFile()"
           type="file"></input>
@@ -1033,7 +1036,8 @@ function createMQMViewer(elt, tsvData=null) {
         <tr>
           <th title="Error category"><b>Category</b></th>
           <th> </th>
-          <th class="mqm-cat-stats-th" title="Total errors count"><b>Count</b></th>
+          <th class="mqm-cat-stats-th"
+              title="Total errors count"><b>Count</b></th>
           <th> </th>
           <th class="mqm-cat-stats-th"
               title="Major errors count"><b>Major count</b></th>
@@ -1053,7 +1057,8 @@ function createMQMViewer(elt, tsvData=null) {
     <summary title="Click to see advanced filtering options and documentation">
       <span class="mqm-section">
         Filters
-        <button title="Clear all column filters and JavaScript filter expression"
+        <button
+            title="Clear all column filters and JavaScript filter expression"
             onclick="mqmClearFiltersAndShow()">Clear all filters</button>
       </span>
     </summary>
@@ -1066,7 +1071,8 @@ function createMQMViewer(elt, tsvData=null) {
       </li>
       <li>
         You can provide <b>column filter</b> regular expressions for filtering
-        one or more columns, in the input fields provided under the column names.
+        one or more columns, in the input fields provided under the column
+        names.
       </li>
       <li>
         You can create sophisticated filters (involving multiple columns, for
@@ -1135,7 +1141,7 @@ function createMQMViewer(elt, tsvData=null) {
       </li>
       <li title="Limit this to at most a few thousand to avoid OOMs!">
         <b>Limit</b> the number of rows shown to:
-        <input size="6" maxlength="6" type="text" id="mqm-limit" value="1000"
+        <input size="6" maxlength="6" type="text" id="mqm-limit" value="2000"
             onchange="setMqmLimit()">
         </input>
       </li>
@@ -1147,7 +1153,7 @@ function createMQMViewer(elt, tsvData=null) {
   <span class="mqm-section">Rated Segments</span>
   <table class="mqm-table" id="mqm-table">
     <thead id="mqm-thead">
-      <tr>
+      <tr id="mqm-head-row">
         <th id="mqm-th-system" title="System name">
           System
           <br>

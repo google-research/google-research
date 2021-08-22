@@ -72,6 +72,7 @@ env:
     - PROJECT="nigt_optimizer"
     - PROJECT="non_semantic_speech_benchmark"
     - PROJECT="norml"
+    - PROJECT="numbert"
     - PROJECT="opt_list"
     - PROJECT="poem"
     - PROJECT="protein_lm"

@@ -17,8 +17,7 @@
 """Get data."""
 
 import functools
-import tensorflow.compat.v2 as tf
-from non_semantic_speech_benchmark import file_utils
+import tensorflow as tf
 
 
 def get_data(
@@ -51,7 +50,7 @@ def get_data(
   Returns:
     A tf.data.Dataset of (embeddings, onehot labels).
   """
-  assert file_utils.Glob(file_pattern), file_pattern
+  assert tf.io.gfile.glob(file_pattern), file_pattern
   assert isinstance(bucket_boundaries, (tuple, list))
   if isinstance(bucket_boundaries[0], str):
     bucket_boundaries = [int(x) for x in bucket_boundaries]

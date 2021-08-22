@@ -28,6 +28,7 @@ cc_library(
         ":common",
         "//scann/proto:input_output_cc_proto",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/status",
     ],
 )
 
@@ -68,6 +69,7 @@ cc_library(
         "//scann/utils/intrinsics:sse4",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/numeric:bits",
         "@com_google_absl//absl/numeric:int128",
         "@com_google_absl//absl/strings",
     ],
@@ -96,7 +98,6 @@ cc_library(
         "//scann/distance_measures/one_to_many",
         "//scann/distance_measures/one_to_one:l2_distance",
         "//scann/oss_wrappers:scann_aligned_malloc",
-        "//scann/oss_wrappers:scann_bits",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:scann_random",
@@ -109,6 +110,7 @@ cc_library(
         "@com_google_absl//absl/base:endian",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/numeric:bits",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/random:distributions",
         "@com_google_absl//absl/time",
@@ -128,7 +130,7 @@ cc_library(
     tags = ["local"],
     deps = [
         ":types",
-        "//scann/oss_wrappers:scann_bits",
+        "@com_google_absl//absl/numeric:bits",
     ],
 )
 
@@ -277,6 +279,7 @@ cc_library(
         "//scann/utils/fixed_point:pre_quantized_fixed_point",
         "//scann/utils/internal:avx2_funcs",
         "//scann/utils/internal:avx_funcs",
+        "//scann/utils/intrinsics:horizontal_sum",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",

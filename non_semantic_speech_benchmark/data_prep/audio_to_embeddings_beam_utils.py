@@ -60,24 +60,62 @@ def tfexample_audio_to_npfloat32(ex, audio_key, normalize_to_pm_one):
   return audio
 
 
-def samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key):
+def samples_to_embedding_tfhub(model_input, sample_rate, mod, output_key, name):
   """Run inference to map a single audio sample to an embedding."""
+  logging.info('[%s] Module input shape: %s', name, model_input.shape)
+  # Some modules have signatures. If they do, they should only have one valid
+  # signature, and we should use that one. Otherwise, raise an error.
+  if callable(mod):
+    logging.info('[%s] is callable.', name)
+    sig = None
+  else:
+    logging.info('[%s] has signatures.', name)
+    if not hasattr(mod, 'signatures'):
+      raise ValueError(f'[{name}] Not callable and no signatures.')
+    if not mod.signatures:
+      raise ValueError(f'[{name}] Expected signatures, but they were empty.')
+    all_sigs = [s for s in mod.signatures if not s.startswith('_')]
+    valid_sigs = [s for s in all_sigs if not s.startswith('_')]
+    if len(valid_sigs) != 1:
+      raise ValueError(
+          f'[{name}] Didn\'t find exactly one valid signature: {all_sigs}')
+    sig = valid_sigs[0]
+    logging.info('[%s] Using signatures, and found: %s', name, sig)
   # Models either take 2 args (input, sample_rate) or 1 arg (input).
   # The first argument is either 1 dimensional (samples) or 2 dimensional
   # (batch, samples).
   # Try all. Order here matters. We must try "2 args" before "1 arg", otherwise
   # models that use sample rate might ignore it.
+  errors = []  # Track errors. Display if none of them work.
+  tf_out = None
   for num_args, add_batch_dim in [(2, False), (1, False), (2, True), (1, True)]:
-    cur_model_input = (np.expand_dims(model_input, 0) if add_batch_dim
+    cur_model_input = (tf.expand_dims(model_input, 0) if add_batch_dim
                        else model_input)
     func_args = ((cur_model_input,) if num_args == 1 else
                  (cur_model_input, sample_rate))
     try:
-      tf_out = mod(*func_args)
-    except ValueError:
+      if sig:
+        tf_out = mod.signatures[sig](*func_args)
+      else:
+        tf_out = mod(*func_args)
+    except (ValueError, TypeError,
+            tf.errors.InvalidArgumentError) as e:
+      # Track errors and print them only if none of the expected signatures
+      # work.
+      errors.append(e)
       continue
+    logging.info('[%s] Succeeded with num args %i, add_batch_dim %s', name,
+                 num_args, add_batch_dim)
     break
-  ret = tf_out[output_key] if isinstance(tf_out, dict) else tf_out
+  if tf_out is None:
+    raise ValueError(f'[{name}] None of the signatures worked: {errors}')
+  if isinstance(tf_out, dict):
+    if output_key not in tf_out:
+      raise ValueError(
+          f'[{name}] Key not recognized: "{output_key}" vs {tf_out.keys()}')
+    ret = tf_out[output_key]
+  else:
+    ret = tf_out
   ret = np.array(ret)
   if ret.ndim > 2:
     # Batch-flatten in numpy.
@@ -98,11 +136,12 @@ def _default_feature_fn(samples, sample_rate):
   frontend_args = tf_frontend.frontend_args_from_flags()
   feats = tf_frontend.compute_frontend_features(
       samples, sample_rate, **frontend_args)
+  logging.info('Feats shape: %s', feats.shape)
   return tf.expand_dims(feats, axis=-1).numpy().astype(np.float32)
 
 
 def samples_to_embedding_tflite(model_input, sample_rate, interpreter,
-                                output_key):
+                                output_key, name):
   """Run TFLite inference to map audio samples to an embedding."""
   input_details = interpreter.get_input_details()
   output_details = interpreter.get_output_details()
@@ -110,7 +149,7 @@ def samples_to_embedding_tflite(model_input, sample_rate, interpreter,
   # Ideally, we should explore if we can use fixed-size input here, and
   # tile the sample to meet TFLite input size.
   if not np.array_equal(model_input.shape, input_details[0]['shape']):
-    logging.info('TFLite input, actual vs expected: %s vs %s',
+    logging.info('[%s] TFLite input, actual vs expected: %s vs %s', name,
                  model_input.shape, input_details[0]['shape'])
   interpreter.resize_tensor_input(input_details[0]['index'], model_input.shape)
   interpreter.allocate_tensors()
@@ -255,16 +294,19 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     # Calculate the 2D embedding.
     if self._use_tflite:
       embedding_2d = samples_to_embedding_tflite(
-          model_input, sample_rate, self.interpreter, self._output_key)
+          model_input, sample_rate, self.interpreter, self._output_key,
+          self._name)
     else:
       # A custom call function with the same input and output signature as
       # _sample_to_embedding_tfhub can be used
       # (_sample_to_embedding_tfhub is default).
       embedding_2d = self._mod_call_fn(model_input, sample_rate, self.module,
-                                       self._output_key)
+                                       self._output_key, self._name)
     assert isinstance(embedding_2d, np.ndarray)
     assert embedding_2d.ndim == 2
     assert embedding_2d.dtype == np.float32
+    logging.info('[%s] `embedding_2d` shape: %s', self._name,
+                 embedding_2d.shape)
     beam.metrics.Metrics.counter('computed-embedding', self._name).inc()
     beam.metrics.Metrics.distribution(f'computed-embedding-{self._name}',
                                       'length').update(embedding_2d.shape[0])
@@ -317,12 +359,14 @@ def _add_embedding_column_map_fn(k_v, original_example_key,
     ex.features.feature.pop(audio_key, None)
 
   # Assert that the label is present. If it's a integer, convert it to bytes.
-  assert label_key in ex.features.feature
-  lbl_feat = ex.features.feature[label_key]
-  if lbl_feat.int64_list.value:
-    lbl_val_as_bytes = str(lbl_feat.int64_list.value[0]).encode('utf-8')
-    ex.features.feature.pop(label_key, None)
-    ex.features.feature[label_key].bytes_list.value.append(lbl_val_as_bytes)
+  if label_key:
+    if label_key not in ex.features.feature:
+      raise ValueError(f'Label not found: {label_key} vs {ex.features.feature}')
+    lbl_feat = ex.features.feature[label_key]
+    if lbl_feat.int64_list.value:
+      lbl_val_as_bytes = str(lbl_feat.int64_list.value[0]).encode('utf-8')
+      ex.features.feature.pop(label_key, None)
+      ex.features.feature[label_key].bytes_list.value.append(lbl_val_as_bytes)
 
   # If provided, assert that the speaker_id field is present, and of type
   # `bytes`.

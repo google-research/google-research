@@ -364,7 +364,7 @@ class Avx2<T, kNumRegistersInferred> {
 
     static_assert(!IsSameAny<T, uint8_t, uint16_t, uint32_t, uint64_t>(),
                   "Not Implemented. Unsigned multiplication is limited to "
-                  "_mm256_mul_epu32, which expands from uint32_t=>uint64_t.");
+                  "_mm256_mul_epu32, which expands from uint32=>uint64.");
   }
 
   template <size_t kOther>
