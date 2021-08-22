@@ -30,6 +30,7 @@ from torchkit.experiment import git_revision_hash
 import gym
 import torch
 from ml_collections import config_dict
+from sac import replay_buffer
 from sac import wrappers
 from xirl import common
 import xmagical
@@ -179,18 +180,15 @@ def make_env(
   return env
 
 
-def wrap_learned_reward(
-    env: gym.Env,
-    pretrained_path: str,
-    rl_config: ConfigDict,
-) -> gym.Env:
+def wrap_learned_reward(env: gym.Env, config: ConfigDict) -> gym.Env:
   """Wrap the environment with a learned reward wrapper.
 
   Args:
     env: A `gym.Env` to wrap with a `LearnedVisualRewardWrapper` wrapper.
-    pretrained_path: Path to a pretrained `xirl.models.SelfSupervisedModel`.
-    rl_config:
+    config: RL config dict, must inherit from base config defined in
+      `configs/rl_default.py`.
   """
+  pretrained_path = config.reward_wrapper.pretrained_path
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   model_config, model = load_model_checkpoint(pretrained_path, device)
 
@@ -201,19 +199,55 @@ def wrap_learned_reward(
       "res_hw": model_config.data_augmentation.image_size,
   }
 
-  if rl_config.reward_wrapper.type == "goal_classifier":
+  if config.reward_wrapper.type == "goal_classifier":
     env = wrappers.GoalClassifierLearnedVisualReward(**kwargs)
 
-  elif rl_config.reward_wrapper.type == "distance_to_goal":
+  elif config.reward_wrapper.type == "distance_to_goal":
     kwargs["goal_emb"] = load_goal_embedding(pretrained_path)
-    kwargs["distance_scale"] = rl_config.reward_wrapper.distance_scale
+    kwargs["distance_scale"] = config.reward_wrapper.distance_scale
     env = wrappers.DistanceToGoalLearnedVisualReward(**kwargs)
 
   else:
     raise ValueError(
-        f"{rl_config.reward_wrapper.type} is not a valid reward wrapper.")
+        f"{config.reward_wrapper.type} is not a valid reward wrapper.")
 
   return env
+
+
+def make_buffer(
+    env: gym.Env,
+    device: torch.device,
+    config: ConfigDict,
+) -> replay_buffer.ReplayBuffer:
+
+  kwargs = {
+      "obs_shape": env.observation_space.shape,
+      "action_shape": env.action_space.shape,
+      "capacity": config.replay_buffer_capacity,
+      "device": device,
+  }
+
+  pretrained_path = config.reward_wrapper.pretrained_path
+  if not pretrained_path:
+    return replay_buffer.ReplayBuffer(**kwargs)
+
+  model_config, model = load_model_checkpoint(pretrained_path, device)
+  kwargs["model"] = model
+  kwargs["res_hw"] = model_config.data_augmentation.image_size
+
+  if config.reward_wrapper.type == "goal_classifier":
+    buffer = replay_buffer.ReplayBufferGoalClassifier(**kwargs)
+
+  elif config.reward_wrapper.type == "distance_to_goal":
+    kwargs["goal_emb"] = load_goal_embedding(pretrained_path)
+    kwargs["distance_scale"] = config.reward_wrapper.distance_scale
+    buffer = replay_buffer.ReplayBufferDistanceToGoal(**kwargs)
+
+  else:
+    raise ValueError(
+        f"{config.reward_wrapper.type} is not a valid reward wrapper.")
+
+  return buffer
 
 
 # ========================================= #

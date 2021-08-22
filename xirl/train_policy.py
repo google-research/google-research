@@ -129,13 +129,7 @@ def main(_):
 
   policy = agent.SAC(device, config.sac)
 
-  # TODO(kevin): Load the learned replay buffer if we are using learned rewards.
-  buffer = replay_buffer.ReplayBuffer(
-      env.observation_space.shape,
-      env.action_space.shape,
-      config.replay_buffer_capacity,
-      device,
-  )
+  buffer = utils.make_buffer(env, device, config)
 
   # Create checkpoint manager.
   checkpoint_dir = osp.join(exp_dir, "checkpoints")
@@ -163,7 +157,17 @@ def main(_):
       else:
         mask = 0.0
 
-      buffer.insert(observation, action, reward, next_observation, mask)
+      if not config.reward_wrapper.pretrained_path:
+        buffer.insert(observation, action, reward, next_observation, mask)
+      else:
+        buffer.insert(
+            observation,
+            action,
+            reward,
+            next_observation,
+            mask,
+            env.render(mode="rgb_array"),
+        )
       observation = next_observation
 
       if done:

@@ -5,15 +5,18 @@ Adapted from https://github.com/ikostrikov/jaxrl.
 
 import abc
 import collections
-from sac.wrappers import TensorType
-import typing
+from typing import Tuple, Optional
 
+import cv2
 import numpy as np
 
 import torch
+from xirl.models import SelfSupervisedModel
 
 Batch = collections.namedtuple(
     "Batch", ["obses", "actions", "rewards", "next_obses", "masks"])
+TensorType = torch.Tensor
+ModelType = SelfSupervisedModel
 
 
 class ReplayBuffer:
@@ -21,11 +24,11 @@ class ReplayBuffer:
 
   def __init__(
       self,
-      obs_shape: typing.Tuple[int, ...],
-      action_shape: typing.Tuple[int, ...],
+      obs_shape: Tuple[int, ...],
+      action_shape: Tuple[int, ...],
       capacity: int,
       device: torch.device,
-  ) -> None:
+  ):
     """Constructor.
 
         Args:
@@ -47,11 +50,7 @@ class ReplayBuffer:
     self.idx = 0
     self.size = 0
 
-  def _empty_arr(
-      self,
-      shape: typing.Tuple[int],
-      dtype: np.dtype,
-  ) -> np.ndarray:
+  def _empty_arr(self, shape: Tuple[int], dtype: np.dtype) -> np.ndarray:
     """Creates an empty array of specified shape and type."""
     return np.empty((self.capacity, *shape), dtype=dtype)
 
@@ -66,7 +65,7 @@ class ReplayBuffer:
       reward: float,
       next_obs: np.ndarray,
       mask: float,
-  ) -> None:
+  ):
     """Insert an episode transition into the buffer."""
     np.copyto(self.obses[self.idx], obs)
     np.copyto(self.actions[self.idx], action)
@@ -93,7 +92,7 @@ class ReplayBuffer:
     return self.size
 
 
-class ReplayBufferLearnedVisualReward(abc.ABC, ReplayBuffer):
+class ReplayBufferLearnedReward(abc.ABC, ReplayBuffer):
   """Buffer that replaces the environment reward with a learned one.
 
   Subclasses should implement the `_get_reward_from_image` method.
@@ -101,19 +100,25 @@ class ReplayBufferLearnedVisualReward(abc.ABC, ReplayBuffer):
 
   def __init__(
       self,
-      model,
-      goal_emb,
-      res_hw,
-      distance_func,
-      batch_size,
+      model: ModelType,
+      res_hw: Optional[Tuple[int, int]] = None,
+      batch_size: int = 64,
       **base_kwargs,
   ) -> None:
+    """Constructor.
+
+    Args:
+      model: A model that ingests RGB frames and returns embeddings. Should be a
+        subclass of `xirl.models.SelfSupervisedModel`.
+      res_hw: Optional (H, W) to resize the environment image before feeding it
+        to the model.
+      batch_size: How many samples to forward through the model to compute the
+        learned reward. Controls the size of the staging lists.
+    """
     super().__init__(**base_kwargs)
 
     self.model = model
-    self.goal_emb = goal_emb
     self.res_hw = res_hw
-    self.distance_func = distance_func
     self.batch_size = batch_size
 
     self._reset_staging()
@@ -124,12 +129,13 @@ class ReplayBufferLearnedVisualReward(abc.ABC, ReplayBuffer):
     self.actions_staging = []
     self.rewards_staging = []
     self.masks_staging = []
+    self.pixels_staging = []
 
-  def _to_tensor(self, x: np.ndarray) -> TensorType:
-    x = torch.from_numpy(x).permute(2, 0, 1).float()[None, None, Ellipsis]
-    x = x / 255.0
-    x = x.to(self._device)
-    return x
+  def _to_tensor(self, arr: np.ndarray) -> TensorType:
+    arr = torch.from_numpy(arr).permute(2, 0, 1).float()[None, None, Ellipsis]
+    arr = arr / 255.0
+    arr = arr.to(self.device)
+    return arr
 
   @abc.abstractmethod
   def _get_reward_from_image(self) -> float:
@@ -142,42 +148,59 @@ class ReplayBufferLearnedVisualReward(abc.ABC, ReplayBuffer):
       reward: float,
       next_obs: np.ndarray,
       mask: float,
-  ) -> None:
+      pixels: np.ndarray,
+  ):
     if len(self.obses_staging) < self.batch_size:
       self.obses_staging.append(obs)
       self.next_obses_staging.append(next_obs)
       self.actions_staging.append(action)
       self.rewards_staging.append(reward)
       self.masks_staging.append(mask)
+      if self.res_hw is not None:
+        h, w = self.res_hw
+        pixels = cv2.resize(pixels, dsize=(w, h), interpolation=cv2.INTER_CUBIC)
+      self.pixels_staging.append(pixels)
     else:
-      del reward
-      for obs, action, reward, next_obs, mask in zip(
+      for obs_s, action_s, reward_s, next_obs_s, mask_s in zip(
           self.obses_staging,
           self.actions_staging,
-          self._replace_rew(),
+          self._get_reward_from_image(),
           self.next_obses_staging,
           self.masks_staging,
       ):
-        super().insert(obs, action, reward, next_obs, mask)
+        super().insert(obs_s, action_s, reward_s, next_obs_s, mask_s)
 
 
-class ReplayBufferDistanceToGoalLearnedVisualReward(
-    ReplayBufferLearnedVisualReward):
+class ReplayBufferDistanceToGoal(ReplayBufferLearnedReward):
+  """Replace the environment reward with distances in embedding space."""
+
+  def __init__(
+      self,
+      goal_emb: np.ndarray,
+      distance_scale: Optional[float] = 1.0,
+      **base_kwargs,
+  ):
+    super().__init__(**base_kwargs)
+
+    self.goal_emb = goal_emb
+    self.distance_scale = distance_scale
 
   def _get_reward_from_image(self) -> float:
-    image_tensors = [self._to_tensor(i) for i in self.obses_staging]
-    image_tensors = torch.cat(image_tensors, dim=0)
-    emb = self.model.infer(image_tensors).numpy().embs
-    dists = np.linalg.norm(emb - self.goal_emb, axis=-1)
-    dists *= -1.0
+    image_tensors = [self._to_tensor(i) for i in self.pixels_staging]
+    image_tensors = torch.cat(image_tensors, dim=1)
+    embs = self.model.infer(image_tensors).numpy().embs
+    dists = -1.0 * np.linalg.norm(embs - self.goal_emb, axis=-1)
+    dists *= self.distance_scale
     return dists
 
 
-class ReplayBufferGoalClassifierLearnedVisualReward(
-    ReplayBufferLearnedVisualReward):
+class ReplayBufferGoalClassifier(ReplayBufferLearnedReward):
+  """Replace the environment reward with the output of a goal classifier."""
 
   def _get_reward_from_image(self) -> float:
-    image_tensors = [self._to_tensor(i) for i in self.obses_staging]
-    image_tensors = torch.cat(image_tensors, dim=0)
-    prob = torch.sigmoid(self._model.infer(image_tensors).embs)
+    image_tensors = [self._to_tensor(i) for i in self.pixels_staging]
+    image_tensors = torch.cat(image_tensors, dim=1)
+    prob = torch.sigmoid(self.model.infer(image_tensors).embs)
+    from ipdb import set_trace
+    set_trace()
     return prob.item()
