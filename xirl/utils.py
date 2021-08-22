@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional
 import os
 import matplotlib.pyplot as plt
 import yaml
-import uuid
 import numpy as np
 import typing
 import pickle
@@ -269,17 +268,3 @@ def plot_reward(rews: typing.Sequence[float]):
     ax.grid(b=True, which="minor", linestyle="-", alpha=0.2)
   plt.minorticks_on()
   plt.show()
-
-
-def string_from_kwargs(**kwargs) -> str:
-  """Concatenate kwargs into an underscore-separated string.
-
-  For example, string_from_kwargs(foo=1, bar='baz') returns 'foo=1_bar=baz'.
-  """
-  return "_".join([f"{k}={v}" for k, v in kwargs.items()])
-
-
-def unique_id() -> str:
-  """Generate a unique ID as specified in RFC 4122."""
-  # See https://docs.python.org/3/library/uuid.html
-  return str(uuid.uuid4())

@@ -17,8 +17,8 @@
 
 import os.path as osp
 import subprocess
-from utils import string_from_kwargs
-from utils import unique_id
+from torchkit.experiment import string_from_kwargs
+from torchkit.experiment import unique_id
 from absl import app
 from absl import flags
 from absl import logging

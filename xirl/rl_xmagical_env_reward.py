@@ -19,8 +19,8 @@ import subprocess
 from absl import app
 from absl import flags
 from absl import logging
-from utils import string_from_kwargs
-from utils import unique_id
+from torchkit.experiment import string_from_kwargs
+from torchkit.experiment import unique_id
 from configs.constants import EMBODIMENTS
 from configs.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
 from configs.constants import XMAGICALTrainingIterations
