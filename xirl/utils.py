@@ -24,6 +24,7 @@ import uuid
 import numpy as np
 import typing
 import pickle
+from absl import logging
 from torchkit import checkpoint
 from torchkit.experiment import git_revision_hash
 import gym
@@ -33,6 +34,7 @@ from sac import wrappers
 from xirl import common
 import xmagical
 from gym.wrappers import RescaleAction
+# pylint: disable=logging-fstring-interpolation
 
 ConfigDict = config_dict.ConfigDict
 FrozenConfigDict = config_dict.FrozenConfigDict
@@ -108,16 +110,25 @@ def load_model_checkpoint(pretrained_path: str, device: torch.device):
   checkpoint_dir = os.path.join(pretrained_path, "checkpoints")
   checkpoint_manager = checkpoint.CheckpointManager(checkpoint_dir, model=model)
   global_step = checkpoint_manager.restore_or_initialize()
-  print(f"Restored model from checkpoint @{global_step}.")
+  logging.info(f"Restored model from checkpoint @{global_step}.")
   return config, model
 
 
 def load_goal_embedding(pretrained_path: str) -> np.ndarray:
   """Load a pickled goal embedding."""
-  with open(os.path.join(pretrained_path, "goal_emb.pkl"), "rb") as fp:
+  filename = os.path.join(pretrained_path, "goal_emb.pkl")
+  with open(filename, "rb") as fp:
     goal_emb = pickle.load(fp)
-  print("Successfully loaded goal embedding.")
+  logging.info(f"Successfully loaded goal embedding from {filename}")
   return goal_emb
+
+
+def save_goal_embedding(experiment_path: str, goal_emb: np.ndarray):
+  """Load a pickled goal embedding."""
+  filename = os.path.join(experiment_path, "goal_emb.pkl")
+  with open(filename, "wb") as fp:
+    pickle.dump(goal_emb, fp)
+  logging.info(f"Saved goal embedding to {filename}")
 
 
 # ========================================= #

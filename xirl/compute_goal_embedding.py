@@ -16,7 +16,6 @@
 """Compute and store the mean goal embedding using a trained model."""
 
 import os
-import pickle
 import typing
 from absl import app
 from absl import flags
@@ -26,7 +25,7 @@ import torch
 from torchkit.checkpoint import CheckpointManager
 from xirl import common
 from xirl.models import SelfSupervisedModel
-from utils import load_config_from_dir
+import utils
 # pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS
@@ -62,7 +61,7 @@ def embed(
 
 def setup() -> typing.Tuple[ModelType, DataLoaderType]:
   """Load the latest embedder checkpoint and dataloaders."""
-  config = load_config_from_dir(FLAGS.experiment_path)
+  config = utils.load_config_from_dir(FLAGS.experiment_path)
   model = common.get_model(config)
   downstream_loaders = common.get_downstream_dataloaders(config, False)["train"]
   checkpoint_dir = os.path.join(FLAGS.experiment_path, "checkpoints")
@@ -80,8 +79,7 @@ def main(_):
   model, downstream_loader = setup()
   model.to(device).eval()
   goal_emb = embed(model, downstream_loader, device)
-  with open(os.path.join(FLAGS.experiment_path, "goal_emb.pkl"), "wb") as fp:
-    pickle.dump(goal_emb, fp)
+  utils.save_goal_embedding(FLAGS.experiment_path, goal_emb)
 
 
 if __name__ == "__main__":
