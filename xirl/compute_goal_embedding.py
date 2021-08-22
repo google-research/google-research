@@ -22,7 +22,7 @@ from absl import flags
 from absl import logging
 import numpy as np
 import torch
-from torchkit.checkpoint import CheckpointManager
+from torchkit import CheckpointManager
 from xirl import common
 from xirl.models import SelfSupervisedModel
 import utils

@@ -25,7 +25,7 @@ import numpy as np
 import typing
 import pickle
 from absl import logging
-from torchkit import checkpoint
+from torchkit import CheckpointManager
 from torchkit.experiment import git_revision_hash
 import gym
 import torch
@@ -109,7 +109,7 @@ def load_model_checkpoint(pretrained_path: str, device: torch.device):
   model = common.get_model(config)
   model.to(device).eval()
   checkpoint_dir = os.path.join(pretrained_path, "checkpoints")
-  checkpoint_manager = checkpoint.CheckpointManager(checkpoint_dir, model=model)
+  checkpoint_manager = CheckpointManager(checkpoint_dir, model=model)
   global_step = checkpoint_manager.restore_or_initialize()
   logging.info(f"Restored model from checkpoint @{global_step}.")
   return config, model

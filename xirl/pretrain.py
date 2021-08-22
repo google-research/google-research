@@ -23,7 +23,7 @@ from ml_collections import config_flags
 import torch
 from xirl import common
 from utils import setup_experiment
-from torchkit import checkpoint
+from torchkit import CheckpointManager
 from torchkit import experiment
 from torchkit import Logger
 from torchkit.utils.py_utils import Stopwatch
@@ -84,7 +84,7 @@ def main(_):
 
   # Create checkpoint manager.
   checkpoint_dir = osp.join(exp_dir, "checkpoints")
-  checkpoint_manager = checkpoint.CheckpointManager(
+  checkpoint_manager = CheckpointManager(
       checkpoint_dir,
       model=model,
       optimizer=optimizer,

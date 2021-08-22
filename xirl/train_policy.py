@@ -29,7 +29,7 @@ from absl import app
 from ml_collections import config_flags
 from ml_collections import config_dict
 from sac import agent
-from torchkit.checkpoint import CheckpointManager
+from torchkit import CheckpointManager
 from torchkit import experiment
 from torchkit import Logger
 import utils
