@@ -32,7 +32,7 @@ flags.DEFINE_boolean("debug", False, "Debug mode.")
 
 config_flags.DEFINE_config_file(
     "config",
-    "configs/pretrain_default.py",
+    "base_configs/pretrain.py",
     "File path to the training hyperparameter configuration.",
 )
 

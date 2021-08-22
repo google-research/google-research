@@ -22,8 +22,8 @@ from utils import unique_id
 from absl import app
 from absl import flags
 from absl import logging
-from experiments.constants import ALGORITHMS
-from experiments.constants import EMBODIMENTS
+from configs.constants import ALGORITHMS
+from configs.constants import EMBODIMENTS
 # pylint: disable=logging-fstring-interpolation
 
 # Mapping from pretraining algorithm to config file.

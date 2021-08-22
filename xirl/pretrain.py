@@ -22,6 +22,7 @@ from absl import logging
 from ml_collections import config_flags
 import torch
 from xirl import common
+from base_configs import validate_config
 from utils import setup_experiment
 from torchkit import CheckpointManager
 from torchkit import experiment
@@ -38,13 +39,17 @@ flags.DEFINE_boolean("raw_imagenet", False, "")
 
 config_flags.DEFINE_config_file(
     "config",
-    "configs/pretrain_default.py",
+    "base_configs/pretrain.py",
     "File path to the training hyperparameter configuration.",
 )
 
 
 @experiment.pdb_fallback
 def main(_):
+  # Make sure we have a valid config that inherits all the keys defined in the
+  # base config.
+  validate_config(FLAGS.config, mode="pretrain")
+
   config = FLAGS.config
   exp_dir = osp.join(config.root_dir, FLAGS.experiment_name)
   setup_experiment(exp_dir, config, FLAGS.resume)

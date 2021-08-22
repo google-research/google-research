@@ -19,8 +19,8 @@ from absl import app
 from absl import flags
 from ml_collections import config_flags
 from xmagical.utils import KeyboardEnvInteractor
-from experiments.constants import EMBODIMENTS
-from experiments.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
+from configs.constants import EMBODIMENTS
+from configs.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
 import utils
 
 FLAGS = flags.FLAGS
@@ -34,7 +34,7 @@ flags.DEFINE_boolean(
 
 config_flags.DEFINE_config_file(
     "config",
-    "configs/rl_default.py",
+    "base_configs/rl.py",
     "File path to the training hyperparameter configuration.",
 )
 

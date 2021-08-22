@@ -32,6 +32,7 @@ from sac import agent
 from torchkit import CheckpointManager
 from torchkit import experiment
 from torchkit import Logger
+from base_configs import validate_config
 import utils
 # pylint: disable=logging-fstring-interpolation
 
@@ -45,7 +46,7 @@ flags.DEFINE_boolean("resume", False, "Resume experiment from last checkpoint.")
 
 config_flags.DEFINE_config_file(
     "config",
-    "configs/rl_default.py",
+    "base_configs/rl.py",
     "File path to the training hyperparameter configuration.",
 )
 
@@ -74,6 +75,10 @@ def evaluate(
 
 @experiment.pdb_fallback
 def main(_):
+  # Make sure we have a valid config that inherits all the keys defined in the
+  # base config.
+  validate_config(FLAGS.config, mode="rl")
+
   config = FLAGS.config
   exp_dir = osp.join(
       config.save_dir,

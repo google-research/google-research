@@ -21,9 +21,9 @@ from absl import flags
 from absl import logging
 from utils import string_from_kwargs
 from utils import unique_id
-from experiments.constants import EMBODIMENTS
-from experiments.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
-from experiments.constants import XMAGICALTrainingIterations
+from configs.constants import EMBODIMENTS
+from configs.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
+from configs.constants import XMAGICALTrainingIterations
 # pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS

@@ -16,17 +16,15 @@
 set -e
 set -x
 
-virtualenv -p python3 .
-source ./bin/activate
+EMBODIMENT="longstick"
+ENV_NAME="SweepToTop-"${EMBODIMENT^}"-State-Allo-TestLayout-v0"
+NAME="debug_$EMBODIMENT"
+SEED=0
 
-pip install --upgrade pip
-
-pip install -r xirl/requirements.txt
-
-python -m xirl.pretrain --alsologtostderr \
-    --experiment_name="test" \
-    --config="xirl/base_configs/pretrain.py" \
-    --config.data.root="xirl/tests/data/processed/" \
-    --config.optim.train_max_iters=5 \
-    --config.eval.eval_frequency=3 \
-    --config.frame_sampler.num_frames_per_sequence=3
+python train_policy.py \
+    --experiment_name $NAME \
+    --env_name $ENV_NAME \
+    --seed=$SEED \
+    --device="cuda:0" \
+    --config=base_configs/test.py \
+    --config.num_train_steps=75000
