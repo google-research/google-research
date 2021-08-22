@@ -131,7 +131,7 @@ class ReplayBufferLearnedReward(abc.ABC, ReplayBuffer):
     self.masks_staging = []
     self.pixels_staging = []
 
-  def _to_tensor(self, arr: np.ndarray) -> TensorType:
+  def _pixel_to_tensor(self, arr: np.ndarray) -> TensorType:
     arr = torch.from_numpy(arr).permute(2, 0, 1).float()[None, None, Ellipsis]
     arr = arr / 255.0
     arr = arr.to(self.device)
@@ -186,7 +186,7 @@ class ReplayBufferDistanceToGoal(ReplayBufferLearnedReward):
     self.distance_scale = distance_scale
 
   def _get_reward_from_image(self) -> float:
-    image_tensors = [self._to_tensor(i) for i in self.pixels_staging]
+    image_tensors = [self._pixel_to_tensor(i) for i in self.pixels_staging]
     image_tensors = torch.cat(image_tensors, dim=1)
     embs = self.model.infer(image_tensors).numpy().embs
     dists = -1.0 * np.linalg.norm(embs - self.goal_emb, axis=-1)
@@ -198,9 +198,7 @@ class ReplayBufferGoalClassifier(ReplayBufferLearnedReward):
   """Replace the environment reward with the output of a goal classifier."""
 
   def _get_reward_from_image(self) -> float:
-    image_tensors = [self._to_tensor(i) for i in self.pixels_staging]
+    image_tensors = [self._pixel_to_tensor(i) for i in self.pixels_staging]
     image_tensors = torch.cat(image_tensors, dim=1)
     prob = torch.sigmoid(self.model.infer(image_tensors).embs)
-    from ipdb import set_trace
-    set_trace()
     return prob.item()

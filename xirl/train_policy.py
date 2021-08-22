@@ -29,7 +29,6 @@ from absl import app
 from ml_collections import config_flags
 from ml_collections import config_dict
 from sac import agent
-from sac import replay_buffer
 from torchkit.checkpoint import CheckpointManager
 from torchkit import experiment
 from torchkit import Logger
