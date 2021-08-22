@@ -259,20 +259,18 @@ class LearnedVisualReward(abc.ABC, gym.Wrapper):
 
   def _to_tensor(self, x: np.ndarray) -> TensorType:
     x = torch.from_numpy(x).permute(2, 0, 1).float()[None, None, Ellipsis]
+    # TODO(kevin): Make this more generic for other preprocessing.
     x = x / 255.0
     x = x.to(self._device)
     return x
 
   def _render_obs(self) -> np.ndarray:
     """Render the pixels at the desired resolution."""
+    # TODO(kevin): Make sure this works for mujoco envs.
     pixels = self.env.render(mode="rgb_array")
     if self._res_hw is not None:
       h, w = self._res_hw
-      pixels = cv2.resize(
-          pixels,
-          dsize=(w, h),
-          interpolation=cv2.INTER_CUBIC,
-      )
+      pixels = cv2.resize(pixels, dsize=(w, h), interpolation=cv2.INTER_CUBIC)
     return pixels
 
   @abc.abstractmethod
