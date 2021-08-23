@@ -21,13 +21,13 @@ from absl import flags
 from absl import logging
 from ml_collections import config_flags
 import torch
+from tqdm.auto import tqdm
 from xirl import common
 from base_configs import validate_config
 from utils import setup_experiment
 from torchkit import CheckpointManager
 from torchkit import experiment
 from torchkit import Logger
-from torchkit.utils.py_utils import Stopwatch
 # pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS
@@ -95,30 +95,26 @@ def main(_):
       optimizer=optimizer,
   )
 
-  global_step = checkpoint_manager.restore_or_initialize()
-  total_batches = max(1, len(pretrain_loaders["train"]))
-  epoch = int(global_step / total_batches)
-  complete = False
-  stopwatch = Stopwatch()
   try:
-    while not complete:
-      logger.log_learning_rate(optimizer, global_step, "pretrain")
+    start = checkpoint_manager.restore_or_initialize()
+    for i in tqdm(range(start, config.optim.train_max_iters), initial=start):
+      logger.log_learning_rate(optimizer, i, "pretrain")
       for batch in pretrain_loaders["train"]:
         train_loss = trainer.train_one_iter(batch)
 
-        if not global_step % config.logging_frequency:
+        if not i % config.logging_frequency:
           for k, v in train_loss.items():
-            logger.log_scalar(v, global_step, k, "pretrain")
+            logger.log_scalar(v, i, k, "pretrain")
           logger.flush()
 
-        if not global_step % config.eval.eval_frequency:
+        if not i % config.eval.eval_frequency:
           # Evaluate the model on the pretraining validation dataset.
           valid_loss = trainer.eval_num_iters(
               pretrain_loaders["valid"],
               config.eval.val_iters,
           )
           for k, v in valid_loss.items():
-            logger.log_scalar(v, global_step, k, "pretrain")
+            logger.log_scalar(v, i, k, "pretrain")
 
           # Evaluate the model on the downstream datasets.
           for split, downstream_loader in downstream_loaders.items():
@@ -131,38 +127,20 @@ def main(_):
             for eval_name, eval_out in eval_to_metric.items():
               eval_out.log(
                   logger,
-                  global_step,
+                  i,
                   eval_name,
                   f"downstream/{split}",
               )
 
         # Save model checkpoint.
-        if not global_step % config.checkpointing_frequency:
-          checkpoint_manager.save(global_step)
-
-        # Exit if complete.
-        global_step += 1
-        if global_step > config.optim.train_max_iters:
-          complete = True
-          break
-
-        time_per_iter = stopwatch.elapsed()
-        logging.info(
-            "Iter[{}/{}] (Epoch {}), {:.1f}s/iter, Loss: {:.3f}".format(
-                global_step,
-                config.optim.train_max_iters,
-                epoch,
-                time_per_iter,
-                train_loss["train/total_loss"].item(),
-            ))
-        stopwatch.reset()
-      epoch += 1
+        if not i % config.checkpointing_frequency:
+          checkpoint_manager.save(i)
 
   except KeyboardInterrupt:
     logging.info("Caught keyboard interrupt. Saving model before quitting.")
 
   finally:
-    checkpoint_manager.save(global_step)
+    checkpoint_manager.save(i)  # pylint: disable=undefined-loop-variable
     logger.close()
 
 

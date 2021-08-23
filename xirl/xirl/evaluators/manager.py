@@ -17,11 +17,13 @@
 
 from typing import Dict, List, Mapping, Optional
 
+from absl import logging
 from .base import Evaluator
 from .base import EvaluatorOutput
 import torch
 import torch.nn as nn
 from xirl.models import SelfSupervisedOutput
+# pylint: disable=logging-fstring-interpolation
 
 
 class EvalManager:
@@ -81,12 +83,12 @@ class EvalManager:
       A dict mapping from evaluator name to EvaluatorOutput.
     """
     model.eval()
-    print("Embedding downstream dataset...")
+    logging.debug("Embedding downstream dataset...")
     downstream_outputs = EvalManager.embed(model, downstream_loader, device,
                                            eval_iters)
     eval_to_metric = {}
     for evaluator_name, evaluator in self._evaluators.items():
-      print(f"\tRunning {evaluator_name} evaluator...")
+      logging.debug(f"\tRunning {evaluator_name} evaluator...")
       if evaluator.inter_class:
         # Merge all downstream classes into a single list and do one
         # eval computation.
