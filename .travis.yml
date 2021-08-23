@@ -56,6 +56,7 @@ env:
     - PROJECT="implicit_pdf"
     - PROJECT="jax_dft"
     - PROJECT="large_margin"
+    - PROJECT="latent_programmer"
     - PROJECT="learn_to_infer"
     - PROJECT="keypose"
     - PROJECT="learnreg"
