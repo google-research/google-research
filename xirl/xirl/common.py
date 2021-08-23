@@ -15,7 +15,6 @@
 
 """Functionality common to pretraining and evaluation."""
 
-from random import shuffle
 from typing import Dict
 from ml_collections import ConfigDict
 
