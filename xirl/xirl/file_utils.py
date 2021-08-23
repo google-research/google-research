@@ -19,7 +19,7 @@ import os
 from typing import List, Union
 
 import numpy as np
-import cv2
+from PIL import Image
 from pathlib import Path
 
 
@@ -94,4 +94,4 @@ def load_image(filename: Union[str, Path]) -> np.ndarray:
   Returns:
     A numpy uint8 array.
   """
-  return cv2.cvtColor(cv2.imread(str(filename)), cv2.COLOR_BGR2RGB)
+  return np.asarray(Image.open(filename))

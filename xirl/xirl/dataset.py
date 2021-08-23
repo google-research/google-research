@@ -166,7 +166,7 @@ class VideoDataset(Dataset):
     frame_paths = np.take(frame_paths, sample["ctx_idxs"], axis=0)
     frame_paths = frame_paths.flatten()
 
-    frames = [None for _ in range(frame_paths.shape[0])]
+    frames = [None for _ in range(len(frame_paths))]
 
     def get_image(image_index: int, image_path: str) -> None:
       frames[image_index] = load_image(image_path)
