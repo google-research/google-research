@@ -28,11 +28,11 @@ from configs.constants import EMBODIMENTS
 
 # Mapping from pretraining algorithm to config file.
 ALGO_TO_CONFIG = {
-    "xirl": "experiments/xmagical/pretraining/tcc.py",
-    "lifs": "experiments/xmagical/pretraining/lifs.py",
-    "tcn": "experiments/xmagical/pretraining/tcn.py",
-    "goal_classifier": "experiments/xmagical/pretraining/classifier.py",
-    "raw_imagenet": "experiments/xmagical/pretraining/imagenet.py",
+    "xirl": "configs/xmagical/pretraining/tcc.py",
+    "lifs": "configs/xmagical/pretraining/lifs.py",
+    "tcn": "configs/xmagical/pretraining/tcn.py",
+    "goal_classifier": "configs/xmagical/pretraining/classifier.py",
+    "raw_imagenet": "configs/xmagical/pretraining/imagenet.py",
 }
 # We want to pretrain on the entire 1k demonstrations.
 MAX_DEMONSTRATIONS = -1

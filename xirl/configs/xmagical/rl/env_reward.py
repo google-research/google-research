@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from configs.rl_default import get_config as _get_config
-from experiments.constants import XMAGICALTrainingIterations
+from base_configs.rl import get_config as _get_config
+from configs.constants import XMAGICALTrainingIterations
 from ml_collections import ConfigDict
 from utils import copy_config_and_replace
 

@@ -15,7 +15,7 @@
 
 """TCN config."""
 
-from configs.pretrain_default import get_config as _get_config
+from base_configs.pretrain import get_config as _get_config
 
 
 def get_config():
