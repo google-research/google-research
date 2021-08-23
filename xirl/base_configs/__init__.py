@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Validate user-defined pretraining and rl configs inherit from base configs.
-"""
+"""Ensure user-defined pretraining & rl configs inherit from base configs."""
 
 from ml_collections import ConfigDict
 
