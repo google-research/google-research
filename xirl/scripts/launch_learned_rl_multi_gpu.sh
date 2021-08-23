@@ -15,11 +15,12 @@
 #!/bin/bash
 set -e
 
-while getopts e:p: flag
+while getopts e:p:i: flag
 do
     case "${flag}" in
         e) embodiment=${OPTARG};;
         p) pretrained_path=${OPTARG};;
+        i) iters=${OPTARG};;
     esac
 done
 
@@ -34,7 +35,7 @@ do
         --env_name $ENV_NAME \
         --seed=$seed \
         --device="cuda:0" \
-        --config.num_train_steps=75000 \
+        --config.num_train_steps=$iters \
         --config.reward_wrapper.pretrained_path=$pretrained_path \
         --config.reward_wrapper.type=$REWARD_TYPE \
         &
@@ -47,7 +48,7 @@ do
         --env_name $ENV_NAME \
         --seed=$seed \
         --device="cuda:1" \
-        --config.num_train_steps=75000 \
+        --config.num_train_steps=$iters \
         --config.reward_wrapper.pretrained_path=$pretrained_path \
         --config.reward_wrapper.type=$REWARD_TYPE \
         &
