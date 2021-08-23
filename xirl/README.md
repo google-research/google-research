@@ -1,5 +1,31 @@
 # xirl
 
+- [Overview](#overview)
+- [Setup](#setup)
+- [Datasets](#datasets)
+- [Experiments: Reproducing Paper Results](#experiments-reproducing-paper-results)
+- [Acknowledgments](#acknowledgments)
+
+## Todos
+
+1. x-MAGICAL
+  * [x] Env reward
+  * [ ] XIRL
+  * [ ] TCN
+  * [ ] Goal classifier
+  * [ ] Imagenet
+  * [ ] LIFS
+  * [ ] SimCLR / Moco
+2. RLV
+  * State pusher
+    * [ ] Env reward
+    * [ ] XIRL
+  * Pixel drawer opening
+    * [ ] Env reward
+    * [ ] XIRL
+
+## Overview
+
 This code accompanies the paper [XIRL: Cross-embodiment Inverse Reinforcement Learning](https://x-irl.github.io/).
 
 If you find this code useful, consider citing our work:
@@ -13,73 +39,15 @@ If you find this code useful, consider citing our work:
 }
 ```
 
-## Table of Contents
+## Setup
 
-* [Setup]()
-* [Datasets]()
-* [Experiments]()
-    * [Pretraining]()
-    * [Policy learning]()
-* [Extending XIRL]()
+## Datasets
 
 ## Experiments: Reproducing Paper Results
 
-### Representation Learning
-
-#### x-MAGICAL
-
-1. Same-embodiment setting
-
-```bash
-ALGO="tcn"
-
-# Will train each embodiment sequentially.
-python scripts/xmagical_same_embodiment.py --algo=$ALGO
-```
-
-1. Cross-embodiment setting
-
-```bash
-ALGO="goal_classifier"
-
-# Will train each embodiment sequentially.
-python scripts/xmagical_cross_embodiment.py --algo=$ALGO
-```
-
-### RLV
-
-WIP
-
-### Policy Learning
-
-#### x-MAGICAL
-
-1. Environment reward
-
-```bash
-EMBODIMENT="longstick"
-NAME="env_reward_${EMBODIMENT}"
-
-python train_policy.py \
-    --experiment_name=$NAME \
-    --embodiment=$EMBODIMENT
-```
-
-2. Learned reward
-
-```bash
-EMBODIMENT="longstick"
-ALGO="xirl"
-NAME="learned_reward_${EMBODIMENT}_${ALGO}"
-MODEL="/tmp/xirl/pretrain_runs/longstick_cross"
-
-python train_policy.py \
-    --experiment_name=$NAME \
-    --embodiment=$EMBODIMENT \
-```
-
-#### RLV
-
-WIP
+|           | Representation Learning | Reinforcement Learning |
+| --------- | ----------------------- | ---------------------- |
+| x-MAGICAL |                         |                        |
+| RLV       |                         |                        |
 
 ## Acknowledgments
