@@ -68,6 +68,9 @@ def tfexamples_to_nps(
       assert cur_spkr
       speaker_ids.append(cur_spkr)
 
+  if not embeddings:
+    raise ValueError(f'No embeddings found in {path}')
+
   embeddings = np.array(embeddings, np.float32)
   labels = np.array(labels, np.int16)
 

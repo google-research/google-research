@@ -33,16 +33,22 @@ class GetDataTest(parameterized.TestCase):
     # Generate fake data.
     self.samples_key = 'samples'
     self.target_key = 'target'
+    self.label_key = 'labels'
     self.output_dim = 5
     self.min_len = 6
+    # Create tf.Example for audio-only case.
     ex = tf.train.Example()
     ex.features.feature[self.samples_key].float_list.value.extend(
         [1.0] * (self.min_len * 2))
+    ex.features.feature[self.label_key].bytes_list.value.append(b'0')
+    # Create tf.Example for precomputed case.
     precomputed_ex = tf.train.Example()
     precomputed_ex.features.feature[self.samples_key].float_list.value.extend(
         [1.0] * self.min_len)
     precomputed_ex.features.feature[self.target_key].float_list.value.extend(
         [0.0] * self.output_dim)
+    precomputed_ex.features.feature[self.label_key].bytes_list.value.append(
+        b'0')
 
     # Write to audio-only location.
     self.file_pattern = os.path.join(
@@ -58,10 +64,12 @@ class GetDataTest(parameterized.TestCase):
         file_writer.write(precomputed_ex.SerializeToString())
 
   @parameterized.parameters(
-      {'precomputed': True},
-      {'precomputed': False},
+      {'precomputed': True, 'read_labels': True},
+      {'precomputed': False, 'read_labels': True},
+      {'precomputed': True, 'read_labels': False},
+      {'precomputed': False, 'read_labels': False},
   )
-  def test_get_data(self, precomputed):
+  def test_get_data(self, precomputed, read_labels):
     if precomputed:
       file_pattern = self.precomputed_file_pattern
       teacher_fn = None
@@ -84,18 +92,25 @@ class GetDataTest(parameterized.TestCase):
         shuffle=True,
         teacher_fn=teacher_fn,
         target_key=target_key,
+        label_key=self.label_key if read_labels else None,
         shuffle_buffer_size=2)
     # Test that one element of the input pipeline can be successfully read.
-    for wav_samples, targets in ds:
-      self.assertEqual(wav_samples.shape, [bs, self.min_len])
-      self.assertEqual(targets.shape, [bs, self.output_dim])
-      break
+    if read_labels:
+      for wav_samples, targets, labels in ds:
+        self.assertEqual(wav_samples.shape, [bs, self.min_len])
+        self.assertEqual(targets.shape, [bs, self.output_dim])
+        self.assertEqual(labels.shape, [bs])
+        break
+    else:
+      for wav_samples, targets in ds:
+        self.assertEqual(wav_samples.shape, [bs, self.min_len])
+        self.assertEqual(targets.shape, [bs, self.output_dim])
+        break
 
   def test_savedmodel_to_func(self):
     get_data.savedmodel_to_func(hub.load(HUB_HANDLE_), output_key='embedding')
 
 
 if __name__ == '__main__':
-  tf.compat.v2.enable_v2_behavior()
   assert tf.executing_eagerly()
   absltest.main()

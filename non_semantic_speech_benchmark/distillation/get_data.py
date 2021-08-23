@@ -16,12 +16,15 @@
 # Lint as: python3
 """Get data."""
 
-import tensorflow as tf
-from non_semantic_speech_benchmark import file_utils
+from typing import Callable, Dict, Optional, List
 
+import tensorflow as tf
 
 SAMPLES_ = 'samples_'
 TARGETS_ = 'targets_'
+LABELS_ = 'labels_'
+
+AUTO_ = tf.data.experimental.AUTOTUNE
 
 
 def get_data(file_pattern,
@@ -32,9 +35,10 @@ def get_data(file_pattern,
              batch_size,
              loop_forever,
              shuffle,
-             teacher_fn=None,
-             target_key=None,
-             shuffle_buffer_size=10000):
+             teacher_fn = None,
+             target_key = None,
+             label_key = None,
+             shuffle_buffer_size = 10000):
   """Gets data for TRILL distillation from a teacher or precomputed values.
 
   Args:
@@ -55,11 +59,13 @@ def get_data(file_pattern,
       `target_key` must be not None.
     target_key: Required if reading precomputed features. Location of the target
       embeddings.
+    label_key: Optional name of label key in tf.Examples.
     shuffle_buffer_size: Size of shuffle buffer.
   Returns:
     A tf.data.Dataset of (audio samples, regression targets).
   """
-  assert file_utils.Glob(file_pattern), file_pattern
+  if not tf.io.gfile.glob(file_pattern):
+    raise ValueError(f'Files not found: {file_pattern}')
 
   if teacher_fn is None:
     assert target_key
@@ -70,16 +76,22 @@ def get_data(file_pattern,
         target_key: tf.io.FixedLenFeature([output_dimension], tf.float32),
     }
     cur_batch_size = batch_size
-    def _rename_dict(kv):
-      return {SAMPLES_: kv[samples_key], TARGETS_: kv[target_key]}
+    rename_dict = {SAMPLES_: samples_key, TARGETS_: target_key}
   else:
     assert target_key is None
     features = {
         samples_key: tf.io.VarLenFeature(dtype=tf.float32),
     }
     cur_batch_size = 1
-    def _rename_dict(kv):
-      return {SAMPLES_: kv[samples_key]}
+    rename_dict = {SAMPLES_: samples_key}
+
+  # Read the label if required.
+  if label_key:
+    features[label_key] = tf.io.FixedLenFeature(shape=(), dtype=tf.string)
+    rename_dict[LABELS_] = label_key
+
+  def _rename_dict(kv):
+    return {k: kv[v] for k, v in rename_dict.items()}
 
   # Load data into a dataset of batch size 1, then preprocess if necessary.
   ds = (
@@ -87,15 +99,14 @@ def get_data(file_pattern,
           file_pattern=file_pattern,
           batch_size=cur_batch_size,
           num_epochs=None if loop_forever else 1,
-          reader_num_threads=tf.data.experimental.AUTOTUNE,
-          parser_num_threads=tf.data.experimental.AUTOTUNE,
+          reader_num_threads=AUTO_,
+          parser_num_threads=AUTO_,
           features=features,
           reader=reader,
           shuffle=shuffle,
           shuffle_buffer_size=shuffle_buffer_size,
-          prefetch_buffer_size=tf.data.experimental.AUTOTUNE,
-          sloppy_ordering=True)
-      .map(_rename_dict, num_parallel_calls=tf.data.experimental.AUTOTUNE))
+          prefetch_buffer_size=AUTO_,
+          sloppy_ordering=True).map(_rename_dict, num_parallel_calls=AUTO_))
 
   if teacher_fn is not None:
     # Create target embeddings from `teacher_fn`.
@@ -103,25 +114,35 @@ def get_data(file_pattern,
     @tf.function
     def _audio_to_embeddings(samples):
       return _audio_to_embeddings_fn(samples, teacher_fn, output_dimension)
-    ds = (ds
-          .filter(lambda kv: _filter_fn(kv, min_length))
-          .map(lambda kv: _crop_fn(kv, min_length),
-               num_parallel_calls=tf.data.experimental.AUTOTUNE)
-          .batch(batch_size)
-          .map(_audio_to_embeddings,
-               num_parallel_calls=tf.data.experimental.AUTOTUNE))
+
+    ds = (
+        ds.filter(lambda kv: _filter_fn(kv, min_length)).map(
+            lambda kv: _crop_fn(kv, min_length),
+            num_parallel_calls=AUTO_).batch(batch_size).map(
+                _audio_to_embeddings, num_parallel_calls=AUTO_))
+    if label_key:
+      def _sqz_lbls(kv):
+        lbls_wout_bd = tf.squeeze(kv[LABELS_], axis=1)
+        # Copy.
+        ret = {k: v for k, v in kv.items()}
+        ret[LABELS_] = lbls_wout_bd
+        return ret
+      ds = ds.map(_sqz_lbls, num_parallel_calls=AUTO_)
 
   # Convert results to tuple.
-  ds = (ds
-        .map(lambda kv: (kv[SAMPLES_], kv[TARGETS_]),
-             num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        .prefetch(2))
+  def _to_tup(kv):
+    return ((kv[SAMPLES_], kv[TARGETS_], kv[LABELS_]) if label_key else
+            (kv[SAMPLES_], kv[TARGETS_]))
 
-  assert len(ds.element_spec) == 2, ds.element_spec
+  ds = (ds.map(_to_tup, num_parallel_calls=AUTO_).prefetch(2))
+
+  assert len(ds.element_spec) == 3 if label_key else 2, ds.element_spec
   ds.element_spec[0].shape.assert_is_compatible_with(
       [None, min_length])  # audio samples
   ds.element_spec[1].shape.assert_is_compatible_with(
       [None, output_dimension])  # teacher embeddings
+  if label_key:
+    ds.element_spec[2].shape.assert_is_compatible_with([None])  # labels
 
   return ds
 
@@ -142,19 +163,51 @@ def _crop_fn(kv, min_length):
   samples = tf.squeeze(samples, axis=0)
   samples = tf.image.random_crop(samples, [min_length], seed=123, name='crop')
   samples.set_shape([min_length])
-  return {SAMPLES_: samples}
+
+  # Deepcopy outputs.
+  ret = {k: v for k, v in kv.items()}
+  ret[SAMPLES_] = samples
+  return ret
 
 
-def _audio_to_embeddings_fn(kv, teacher_fn, output_dimension):
+def _audio_to_embeddings_fn(kv,
+                            teacher_fn,
+                            output_dimension):
   """Map audio to teacher labels."""
   samples = kv[SAMPLES_]
   teacher_embeddings = teacher_fn(samples)
   teacher_embeddings.shape.assert_has_rank(2)
   teacher_embeddings.set_shape([None, output_dimension])
-  return {SAMPLES_: samples, TARGETS_: teacher_embeddings}
+
+  # Deepcopy outputs.
+  ret = {k: v for k, v in kv.items()}
+  ret[TARGETS_] = teacher_embeddings
+  return ret
 
 
-def savedmodel_to_func(saved_model, output_key, sample_rate=16000):
+def _lbls_to_onehot(kv,
+                    label_list):
+  """Map label to int."""
+  lbls = kv[LABELS_]
+  lbls.shape.assert_has_rank(1)
+
+  # Let's do some y remapping trickery.
+  y_in = tf.expand_dims(lbls, axis=1)
+  y_out = tf.where(tf.math.equal(label_list, y_in))[:, 1]
+  y_out = tf.one_hot(y_out, len(label_list))
+
+  # Deepcopy outputs.
+  ret = {k: v for k, v in kv.items()}
+  ret[LABELS_] = y_out
+  return ret
+
+
+def savedmodel_to_func(
+    saved_model,
+    output_key,
+    sample_rate = 16000):
+  """Makes a savedmodel fn."""
+
   def _saved_model_fn(audio):
     out = saved_model(audio, sample_rate)[output_key]
     if out.shape.rank != 2:
