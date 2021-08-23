@@ -97,44 +97,44 @@ def main(_):
 
   try:
     start = checkpoint_manager.restore_or_initialize()
+    inf_pretrain_loader = experiment.infinite_dataset(pretrain_loaders["train"])
     for i in tqdm(range(start, config.optim.train_max_iters), initial=start):
-      logger.log_learning_rate(optimizer, i, "pretrain")
-      for batch in pretrain_loaders["train"]:
-        train_loss = trainer.train_one_iter(batch)
+      batch = next(inf_pretrain_loader)
+      train_loss = trainer.train_one_iter(batch)
 
-        if not i % config.logging_frequency:
-          for k, v in train_loss.items():
-            logger.log_scalar(v, i, k, "pretrain")
-          logger.flush()
+      if not i % config.logging_frequency:
+        for k, v in train_loss.items():
+          logger.log_scalar(v, i, k, "pretrain")
+        logger.flush()
 
-        if not i % config.eval.eval_frequency:
-          # Evaluate the model on the pretraining validation dataset.
-          valid_loss = trainer.eval_num_iters(
-              pretrain_loaders["valid"],
+      if not i % config.eval.eval_frequency:
+        # Evaluate the model on the pretraining validation dataset.
+        valid_loss = trainer.eval_num_iters(
+            pretrain_loaders["valid"],
+            config.eval.val_iters,
+        )
+        for k, v in valid_loss.items():
+          logger.log_scalar(v, i, k, "pretrain")
+
+        # Evaluate the model on the downstream datasets.
+        for split, downstream_loader in downstream_loaders.items():
+          eval_to_metric = eval_manager.evaluate(
+              model,
+              downstream_loader,
+              device,
               config.eval.val_iters,
           )
-          for k, v in valid_loss.items():
-            logger.log_scalar(v, i, k, "pretrain")
-
-          # Evaluate the model on the downstream datasets.
-          for split, downstream_loader in downstream_loaders.items():
-            eval_to_metric = eval_manager.evaluate(
-                model,
-                downstream_loader,
-                device,
-                config.eval.val_iters,
+          for eval_name, eval_out in eval_to_metric.items():
+            eval_out.log(
+                logger,
+                i,
+                eval_name,
+                f"downstream/{split}",
             )
-            for eval_name, eval_out in eval_to_metric.items():
-              eval_out.log(
-                  logger,
-                  i,
-                  eval_name,
-                  f"downstream/{split}",
-              )
 
-        # Save model checkpoint.
-        if not i % config.checkpointing_frequency:
-          checkpoint_manager.save(i)
+      # Save model checkpoint.
+      if not i % config.checkpointing_frequency:
+        checkpoint_manager.save(i)
 
   except KeyboardInterrupt:
     logging.info("Caught keyboard interrupt. Saving model before quitting.")
