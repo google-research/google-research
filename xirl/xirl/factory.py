@@ -256,7 +256,7 @@ def dataset_from_config(config, downstream, split, debug):
         dataset_path,
         basename=True,
         nonempty=True,
-        sort=False,
+        sort_lexicographical=True,
     )
 
   # We need to separate out the dataclasses for each action class when

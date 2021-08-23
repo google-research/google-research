@@ -39,6 +39,8 @@ config_flags.DEFINE_config_file(
 
 def main(_):
   config = FLAGS.config
+  if FLAGS.debug:
+    config.data.pretraining_video_sampler = "same_class"
   num_ctx_frames = config.frame_sampler.num_context_frames
   num_frames = config.frame_sampler.num_frames_per_sequence
   pretrain_loaders = get_pretraining_dataloaders(config, FLAGS.debug)

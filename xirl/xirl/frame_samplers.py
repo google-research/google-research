@@ -19,10 +19,12 @@ import abc
 import os
 import random
 from typing import Any, Dict, List, Optional, Sequence, Union
+from absl import logging
 
 import numpy as np
 
 from xirl.file_utils import get_files
+# pylint: disable=logging-fstring-interpolation
 
 
 class FrameSampler(abc.ABC):
@@ -62,6 +64,7 @@ class FrameSampler(abc.ABC):
   def seed_rng(self):
     """Reseed the RNG."""
     if self._seed is not None:
+      logging.debug(f"{self.__class__.__name__} seed: {self._seed}")
       random.seed(self._seed)
 
   def _get_context_steps(
@@ -141,12 +144,7 @@ class SingleVideoFrameSampler(FrameSampler):
   """
 
   def _load_frames(self, vid_dir):
-    return get_files(
-        vid_dir,
-        self._pattern,
-        sort=True,
-        sortfunc=lambda x: int(os.path.splitext(os.path.basename(x))[0]),
-    )
+    return get_files(vid_dir, self._pattern, sort_numerical=True)
 
 
 class StridedSampler(SingleVideoFrameSampler):

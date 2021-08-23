@@ -40,8 +40,6 @@
     * [ ] Env reward
     * [ ] XIRL
 
-* [ ] Investigate `shuffle` and `drop_last` in pretrain dataloaders.
-
 ## Overview
 
 This code accompanies the paper [XIRL: Cross-embodiment Inverse Reinforcement Learning](https://x-irl.github.io/).
