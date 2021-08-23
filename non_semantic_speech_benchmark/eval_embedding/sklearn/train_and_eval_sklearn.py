@@ -19,7 +19,7 @@
 import os
 import pickle
 import time
-from typing import Tuple, Any
+from typing import Any, List, Optional, Tuple
 from absl import logging
 
 import numpy as np
@@ -38,10 +38,10 @@ def train_and_get_score(embedding_name,
                         test_glob,
                         model_name,
                         l2_normalization,
-                        speaker_id_name=None,
-                        save_model_dir=None,
-                        save_predictions_dir=None,
-                        eval_metric='accuracy'):
+                        speaker_id_name = None,
+                        save_model_dir = None,
+                        save_predictions_dir = None,
+                        eval_metric = 'accuracy'):
   """Train and eval sklearn models on data.
 
   Args:
