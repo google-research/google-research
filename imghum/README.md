@@ -3,12 +3,14 @@
 <p align="center">Thiemo Alldieck*, &nbsp&nbsp&nbsp Hongyi Xu*,&nbsp&nbsp&nbsp Cristian Sminchisescu </p>
 <p align="center"> <strong>Google Research</strong> </p>
 
+<sup>*The first two authors contributed equally.</sup>
 <p align="left">
-  <a href="https://twitter.com/CSminchisescu"><img src='FollowTwitter.svg' width="120"/></a>
+  <a href="https://twitter.com/CSminchisescu"><img src='figures/FollowTwitter.svg' width="120"/></a>
 </p>
 
+
 ## Introduction
-<img src='figures/imGHUM_sdf.png' width="600" align="right"/><p align="justify"> We present **imGHUM**, the first holistic generative model of 3D  human shape and articulated pose, represented as a signed distance function. In contrast to prior work, we model the full human body implicitly as a function zero-level-set and without the use of an explicit template mesh. We propose a novel network architecture and a learning paradigm, which make it possible to learn a detailed implicit generative model of human pose, shape, and semantics, on par with state-of-the-art mesh-based models. Our model features desired detail for human models, such as articulated pose including hand motion and facial expressions, a broad spectrum of shape variations, and can be queried at arbitrary resolutions and spatial locations. Additionally, our model has attached spatial semantics making it straightforward to establish correspondences between different shape instances, thus enabling applications that are difficult to tackle using classical implicit representations. In extensive experiments, we demonstrate the model accuracy and its applicability to current research problems.
+<img src='figures/imGHUM_sdf.png' width="600" align="right"/><p align="justify"> We present **imGHUM**, the first holistic generative model of 3D  human shape and articulated pose, represented as a signed distance function. In contrast to prior work, we model the full human body implicitly as a function zero-level-set and without the use of an explicit template mesh. We propose a novel network architecture and a learning paradigm, which make it possible to learn a detailed implicit generative model of human pose, shape, and semantics, on par with state-of-the-art mesh-based models ([GHUM](https://github.com/google-research/google-research/tree/master/ghum)). Our model features desired detail for human models, such as articulated pose including hand motion and facial expressions, a broad spectrum of shape variations, and can be queried at arbitrary resolutions and spatial locations. Additionally, our model has attached spatial semantics making it straightforward to establish correspondences between different shape instances, thus enabling applications that are difficult to tackle using classical implicit representations. In extensive experiments, we demonstrate the model accuracy and its applicability to current research problems.
   
 <p align="center">
   <img src='figures/imGHUM_pipeline.png' width="1000"/>
@@ -27,11 +29,18 @@ imGHUM enables differential and fast signed distance query for arbitrary spatial
   <img src='figures/imGHUM_fits.png' width="1000"/>
 </p>
 
-### Dressed and Inclusive Human Modeling
+### imGHUM supports Inclusive Modeling as well as Clothing
 imGHUM is topology free which allows us to leverage it as an inner layer for building personalized and animatable human models.  
 <p align="center">
   <img src='figures/imGHUM_topology_free.png' width="1000"/>
 </p>
+
+### imGHUM-based Differential Rendering for 3D Human Pose and Shape Reconstruction
+The signed distance values and the spatial semantics returned from imGHUM support image reconstruction based on differentiable silhouette and landmark losses.
+<p align="center">
+  <img src='figures/imGHUM_image_fitting.png' width="1000"/>
+</p>
+
 
 ## Paper
 [Paper and supplementary material](https://drive.google.com/file/d/1p5LQ6jg4Flu8MF122TQe2ASigjxnWq_Q/view?usp=sharing)
