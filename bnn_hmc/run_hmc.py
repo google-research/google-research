@@ -34,12 +34,12 @@ import os
 import jax
 from jax import numpy as jnp
 
-from utils import checkpoint_utils
-from utils import cmd_args_utils
-from utils import logging_utils
-from utils import script_utils
-from utils import train_utils
-from utils import tree_utils
+from utils import checkpoint_utils  # pytype: disable=import-error
+from utils import cmd_args_utils  # pytype: disable=import-error
+from utils import logging_utils  # pytype: disable=import-error
+from utils import script_utils  # pytype: disable=import-error
+from utils import train_utils  # pytype: disable=import-error
+from utils import tree_utils  # pytype: disable=import-error
 
 parser = argparse.ArgumentParser(description="Run an HMC chain on a cloud TPU")
 cmd_args_utils.add_common_flags(parser)
