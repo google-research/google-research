@@ -59,6 +59,9 @@ def tfexamples_to_nps(
     assert label_name in feats, (label_name, feats.keys())
     cur_lbl = feats[label_name].bytes_list.value[0]
     assert isinstance(cur_lbl, bytes)
+    if cur_lbl.decode('utf-8') not in label_list:
+      raise ValueError(
+          f'Current label not found in label list: {cur_lbl} vs {label_list}')
     labels.append(label_list.index(cur_lbl.decode('utf-8')))
 
     # Read speaker ID, if necessary.
