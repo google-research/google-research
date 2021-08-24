@@ -389,8 +389,11 @@ def train_step(optimizer,
 def eval_step(params, inputs, outputs, programs, num_partial_programs,
               eos_token, config, use_expanding_layer):
   """Evaluate on batch of program tasks."""
-  weights = jnp.where(jnp.logical_and(programs > 0, programs != eos_token),
-                      1, 0).astype(jnp.float32)
+  weights = jnp.where(
+      jnp.logical_and(programs > 0,
+                      jnp.logical_and(programs != config.bos_token,
+                                      programs != eos_token)),
+      1, 0).astype(jnp.float32)
 
   m = models.DecomposeExpandingLayerTransformer(
       config=config, num_partial_programs=num_partial_programs,

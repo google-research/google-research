@@ -246,9 +246,11 @@ def train_step(optimizer,
   return new_optimizer, metrics, new_train_rng
 
 
-def eval_step(params, inputs, outputs, programs, config):
+def eval_step(params, inputs, outputs, programs, eos_token, config):
   weights = jnp.where(
-      jnp.logical_and(programs > 0, programs != config.bos_token),
+      jnp.logical_and(programs > 0,
+                      jnp.logical_and(programs != config.bos_token,
+                                      programs != eos_token)),
       1, 0).astype(jnp.float32)
   logits = models.DecomposeAttentionTransformer(config).apply(
       {'params': params}, inputs, outputs, programs)
@@ -545,7 +547,9 @@ def main(_):
           config=train_config),
       axis_name='batch')
   p_eval_step = jax.pmap(
-      functools.partial(eval_step, config=eval_config),
+      functools.partial(eval_step,
+                        eos_token=eos_token,
+                        config=eval_config),
       axis_name='batch')
   p_init_cache = jax.pmap(
       functools.partial(
@@ -576,10 +580,10 @@ def main(_):
     optimizer, metrics, train_rngs = p_train_step(
         optimizer, inputs, outputs, programs, train_rng=train_rngs)
     metrics_all.append(metrics)
+    is_last_step = step == FLAGS.num_train_steps - 1
 
     # Save a Checkpoint
-    if ((step % FLAGS.checkpoint_freq == 0 and step > 0) or
-        step == FLAGS.num_train_steps - 1):
+    if (step % FLAGS.checkpoint_freq == 0 and step > 0) or is_last_step:
       if jax.host_id() == 0:
         # Save unreplicated optimizer + model state.
         checkpoints.save_checkpoint(
@@ -588,7 +592,7 @@ def main(_):
             step)
 
     # Periodic metric handling.
-    if not step or step % FLAGS.log_freq != 0:
+    if not step or (step % FLAGS.log_freq != 0 and not is_last_step):
       continue
 
     logging.info('Gathering training metrics.')
