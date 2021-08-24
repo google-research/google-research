@@ -251,6 +251,7 @@ class SplitAgnosticTest(parameterized.TestCase):
   _IDENTIFIER = unified_tokenizer.TokenKind.IDENTIFIER
   _NUMBER = unified_tokenizer.TokenKind.NUMBER
   _STRING = unified_tokenizer.TokenKind.STRING
+  _KEYWORD = unified_tokenizer.TokenKind.KEYWORD
 
   @parameterized.named_parameters(
       (
@@ -317,6 +318,7 @@ class SplitAgnosticTest(parameterized.TestCase):
               ('1234', _NUMBER),
               ('bb', _COMMENT),
               ('11', _NUMBER),
+              ('___INDENT___   ', _KEYWORD),
           ],
           2,
           [
@@ -329,20 +331,19 @@ class SplitAgnosticTest(parameterized.TestCase):
               (['12', '34'], _NUMBER),
               (['bb'], _COMMENT),
               (['11'], _NUMBER),
+              (['__', '_I', 'ND', 'EN', 'T_', '__', '  ', ' '], _KEYWORD),
           ],
       ),
       (
           'language_strings_unaffected',
           [
               ('punctuation', unified_tokenizer.TokenKind.PUNCTUATION),
-              ('keyworddddd', unified_tokenizer.TokenKind.KEYWORD),
               ('newlineeeee', unified_tokenizer.TokenKind.NEWLINE),
               ('eosssssssss', unified_tokenizer.TokenKind.EOS),
           ],
           2,
           [
               (['punctuation'], unified_tokenizer.TokenKind.PUNCTUATION),
-              (['keyworddddd'], unified_tokenizer.TokenKind.KEYWORD),
               (['newlineeeee'], unified_tokenizer.TokenKind.NEWLINE),
               (['eosssssssss'], unified_tokenizer.TokenKind.EOS),
           ],
