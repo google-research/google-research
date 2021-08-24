@@ -8,8 +8,12 @@
 
 ## Todos
 
-1. x-MAGICAL same-embodiment
-  * [x] Env reward
+1. x-MAGICAL env reward.
+  * [x] longstick
+  * [x] mediumstick
+  * [x] shortstick
+  * [x] gripper
+2. x-MAGICAL same-embodiment
   * [ ] XIRL
     * [x] longstick
     * [x] mediumstick
@@ -20,19 +24,14 @@
   * [ ] Imagenet
   * [ ] LIFS
   * [ ] SimCLR
-2. x-MAGICAL cross-embodiment
-  * [x] Env reward
+3. x-MAGICAL cross-embodiment
   * [ ] XIRL
-    * [ ] longstick
-    * [ ] mediumstick
-    * [ ] shortstick
-    * [ ] gripper
   * [ ] TCN
   * [ ] Goal classifier
   * [ ] Imagenet
   * [ ] LIFS
-  * [ ] SimCLR / Moco
-3. RLV
+  * [ ] SimCLR
+4. RLV
   * State pusher
     * [ ] Env reward
     * [ ] XIRL
