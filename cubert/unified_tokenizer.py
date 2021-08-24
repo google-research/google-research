@@ -176,7 +176,6 @@ _KINDS_TO_SPLIT_BY_LENGTH = (
     TokenKind.IDENTIFIER,
     TokenKind.WHITESPACE,
     TokenKind.ERROR,
-    TokenKind.KEYWORD,
 )
 
 _UPPERCASE = r'\p{Lu}'
@@ -599,10 +598,8 @@ def _shorten_subtokens(
   """Further subtokenizes any subtokens that are too long.
 
   At this point, we're done with all heuristic splitting. Now split what's left
-  by length if need be. We do allow keyword splitting by length, because in
-  some cases (e.g., Python indentation), what we tag as a keyword can have
-  arbitrary length. We don't split punctuation, but that might also be revised
-  in the future.
+  by length if need be. We don't do anything about keywords or other
+  punctuation.
 
   Args:
     token_lists: List of subtoken lists, of which only those of kinds
