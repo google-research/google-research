@@ -309,6 +309,7 @@ class UniformWithPositivesSampler(SingleVideoFrameSampler):
     cc_idxs = list(range(vid_len))
     random.shuffle(cc_idxs)
     cc_idxs = cc_idxs[:self._num_frames]
-    pos_steps = np.asarray(
-        [np.random.randint(step - self._pos_window, step) for step in cc_idxs])
+    pos_steps = np.asarray([
+        np.random.randint(step - self._pos_window, step + 1) for step in cc_idxs
+    ])
     return np.concatenate([sorted(pos_steps), sorted(cc_idxs)])
