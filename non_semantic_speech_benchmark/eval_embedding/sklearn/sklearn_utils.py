@@ -51,6 +51,8 @@ def tfexamples_to_nps(
     feats = ex.features.feature
 
     # Read embeddings.
+    if embedding_name.startswith('embedding/'):
+      raise ValueError(f'Don\'t prepend embedding name: {embedding_name}')
     cur_emb = feats[f'embedding/{embedding_name}'].float_list.value
     assert cur_emb, (f'embedding/{embedding_name}', path)
     embeddings.append(cur_emb)
