@@ -43,7 +43,7 @@ The signed distance values and the spatial semantics returned from imGHUM suppor
 
 
 ## Paper
-[Paper and supplementary material](https://drive.google.com/file/d/1p5LQ6jg4Flu8MF122TQe2ASigjxnWq_Q/view?usp=sharing)
+[Paper and supplementary material](https://arxiv.org/abs/2108.10842)
 
 [Video](https://drive.google.com/file/d/1FOnjVMYc6abPg39BR7tM6hf3Z4JtgWhn/view?usp=sharing)
 
@@ -52,7 +52,7 @@ The signed distance values and the spatial semantics returned from imGHUM suppor
 [imGHUM request form](https://docs.google.com/forms/d/e/1FAIpQLSduGNoQUQxaIwna944hdgsX7m9bSM4aqh2YDXD02V2VfNnP9g/viewform).
 
 ## Citations
-If you use this model or code for your publication, please cite the following papers [1](https://drive.google.com/file/d/1p5LQ6jg4Flu8MF122TQe2ASigjxnWq_Q/view?usp=sharing)
+If you use this model or code for your publication, please cite the following papers [1](https://arxiv.org/abs/2108.10842)
 , [2](http://openaccess.thecvf.com/content_CVPR_2020/papers/Xu_GHUM__GHUML_Generative_3D_Human_Shape_and_Articulated_Pose_CVPR_2020_paper.pdf):
 ```
 @inproceedings{alldieck2021imghum,
