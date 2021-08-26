@@ -69,6 +69,7 @@ def train_and_get_score(embedding_name,
 
   # Read and validate data.
   def _read_glob(glob, name):
+    logging.info('Starting to read %s: %s', name, glob)
     s = time.time()
     npx, npy = sklearn_utils.tfexamples_to_nps(
         glob,
@@ -111,7 +112,7 @@ def train_and_get_score(embedding_name,
   eval_score, test_score = _calc_eval_scores(eval_metric, d, npx_eval, npy_eval,
                                              npx_test, npy_test)
   logging.info('Finished eval: %s: %.3f', model_name, eval_score)
-  logging.info('Finished eval: %s: %.3f', model_name, test_score)
+  logging.info('Finished test: %s: %.3f', model_name, test_score)
 
   # If `save_model_dir` is present, write model to this directory.
   # To load the model after saving, use:
