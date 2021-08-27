@@ -36,7 +36,6 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
 import tensorflow_hub as hub
-from non_semantic_speech_benchmark import file_utils
 from non_semantic_speech_benchmark.export_model import tf_frontend
 
 
@@ -47,8 +46,9 @@ def tfexample_audio_to_npfloat32(ex, audio_key, normalize_to_pm_one):
   if audio_feats.int64_list.value:
     audio = np.array(audio_feats.int64_list.value)
     # Even though the data is in an int64 container, the data is actually int16.
-    assert np.logical_and(audio >= iinfo.min, audio <= iinfo.max).all(),\
-        (np.min(audio), np.max(audio), iinfo.min, iinfo.max)
+    if np.logical_or(audio < iinfo.min, audio > iinfo.max).all():
+      raise ValueError(
+          f'Audio doesn\'t conform to int16: {np.min(audio)}, {np.max(audio)}')
     audio = audio.astype(np.float32)
     if normalize_to_pm_one:
       audio /= iinfo.max
@@ -199,8 +199,9 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     self._mod_call_fn = module_call_fn
 
     # Only one of `sample_rate_key` and `sample_rate` should be not None.
-    assert (self._sample_rate_key is None) ^ (self._sample_rate is None),\
-        (self._sample_rate_key, self._sample_rate)
+    if not (self._sample_rate_key is None) ^ (self._sample_rate is None):
+      raise ValueError('Must have exactly one sample_rate_key or sample_rate: '
+                       f'{self._sample_rate_key} vs {self._sample_rate}')
 
   def setup(self):
     if self._use_tflite:
@@ -408,9 +409,12 @@ def read_input_glob_and_sample_rate_from_flags(
     list of the same length.
   """
   if input_glob_flag:
-    assert file_utils.Glob(input_glob_flag), input_glob_flag
-    assert not tfds_data_dir_flag
-    input_filenames = [file_utils.Glob(input_glob_flag)]
+    if not tf.io.gfile.glob(input_glob_flag):
+      raise ValueError(f'Files not found: {input_glob_flag}')
+    if tfds_data_dir_flag:
+      raise ValueError(
+          f'`tfds_data_dir_flag` should be None: {tfds_data_dir_flag}')
+    input_filenames = [tf.io.gfile.glob(input_glob_flag)]
     output_filenames = [output_filename_flag]
     sample_rate = sample_rate_flag
   else:
@@ -419,7 +423,8 @@ def read_input_glob_and_sample_rate_from_flags(
     # Download dataset, if necessary.
     tfds.load(dataset_name, data_dir=tfds_data_dir_flag)
     sample_rate = _tfds_sample_rate(dataset_name, tfds_data_dir_flag)
-    assert sample_rate, sample_rate
+    if not sample_rate:
+      raise ValueError(f'Must have sample rate: {sample_rate}')
 
     input_filenames = []
     output_filenames = []
@@ -431,13 +436,15 @@ def read_input_glob_and_sample_rate_from_flags(
     logging.info('TFDS input filenames: %s', input_filenames)
     logging.info('sample rate: %s', sample_rate)
 
-  if sample_rate:
-    assert isinstance(sample_rate, numbers.Number)
+  if sample_rate and not isinstance(sample_rate, numbers.Number):
+    raise ValueError(f'Sample rate must be number: {type(sample_rate)}')
 
   for filename_list in input_filenames:
     for filename in filename_list:
-      assert tf.io.gfile.exists(filename), filename
-  assert len(input_filenames) == len(output_filenames)
+      if not tf.io.gfile.exists(filename):
+        raise ValueError(f'File doesn\'t exist: {filename}')
+  if len(input_filenames) != len(output_filenames):
+    raise ValueError('Lengths not equal.')
 
   return input_filenames, output_filenames, sample_rate
 
@@ -448,25 +455,33 @@ def validate_inputs(
   """Validate inputs and input flags."""
   for filename_list in input_filenames_list:
     for filename in filename_list:
-      assert tf.io.gfile.exists(filename), filename
-  assert len(input_filenames_list) == len(output_filenames)
+      if not tf.io.gfile.exists(filename):
+        raise ValueError(f'Files not found: {filename}')
+  if len(input_filenames_list) != len(output_filenames):
+    raise ValueError('Input/output filename lengths don\'t match: '
+                     f'{input_filenames_list} vs {output_filenames}')
 
   # Make sure output files don't already exist.
   for output_filename in output_filenames:
-    assert not file_utils.Glob(f'{output_filename}*'), output_filename
+    if tf.io.gfile.glob(f'{output_filename}*'):
+      raise ValueError(f'Output file already exists: {output_filename}')
 
   # Lengths of flag lists must be the same.
-  assert len(embedding_names) == len(embedding_modules),\
-         (embedding_names, embedding_modules)
-  assert len(embedding_modules) == len(module_output_keys),\
-         (len(embedding_modules), len(module_output_keys))
+  if len(embedding_names) != len(embedding_modules):
+    raise ValueError(
+        f'Lengths don\'t match: {embedding_names} vs {embedding_modules}')
+  if len(embedding_modules) != len(module_output_keys):
+    raise ValueError(
+        f'Lengths don\'t match: {embedding_modules} vs {module_output_keys}')
   # Shortnames must be unique.
-  assert len(set(embedding_names)) == len(embedding_names), embedding_names
+  if len(set(embedding_names)) != len(embedding_names):
+    raise ValueError(f'Shortnames must be unique: {embedding_names}')
 
   # Create output directory if it doesn't already exist.
   for output_filename in output_filenames:
     output_dir = output_filename.rsplit('/', 1)[0]
-    file_utils.MaybeMakeDirs(output_dir)
+    if not tf.io.gfile.exists(output_dir):
+      tf.io.gfile.makedirs(output_dir)
 
 
 def _read_from_tfrecord(root, input_filenames, suffix):
