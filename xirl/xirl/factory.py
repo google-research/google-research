@@ -224,7 +224,9 @@ def dataset_from_config(config, downstream, split, debug):
     image_size = (image_size, image_size)
   image_size = tuple(image_size)
 
-  if debug or downstream:
+  # Note(kevin): We used to disable data augmentation on all downstream
+  # dataloaders. I've decided to keep them for train downstream loaders.
+  if debug:
     # The minimum data augmentation we want to keep is resizing when
     # debugging.
     aug_names = ["global_resize"]
