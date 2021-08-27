@@ -21,6 +21,7 @@ import scipy.special
 import tensorflow as tf
 
 from spin_spherical_cnns import np_spin_spherical_harmonics
+from spin_spherical_cnns import sphere_utils
 
 
 class NpSpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
@@ -33,25 +34,6 @@ class NpSpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
     indices[np_spin_spherical_harmonics._get_swsft_coeff_index(ell, m)] = False
     self.assertAllClose(coeffs[indices], np.zeros_like(coeffs[indices]))
     self.assertNotAllClose(coeffs[~indices], np.zeros_like(coeffs[~indices]))
-
-  def _make_equiangular_grid(self, n):
-    """Make (n, n) equiangular grid on the sphere.
-
-    This is the grid used by Huffenberger and Wandelt, which includes both
-    poles.
-
-    longitude = 2*pi/n * j for 0 <= j < n
-    colatitude = pi/(n-1) * j for 0 <= j < n
-
-    Args:
-      n: grid resolution (int).
-
-    Returns:
-      Two float64 (n, n) matrices corresponding to longitude and colatitude.
-    """
-    longitude = np.linspace(0, 2*np.pi, n+1)[:n]
-    colatitude = np.linspace(0, np.pi, n)
-    return np.meshgrid(longitude, colatitude)
 
   @parameterized.parameters(4, 8)
   def test_constant_function_forward(self, width):
@@ -67,7 +49,7 @@ class NpSpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
                             (8, 3, 2))
   def test_spherical_harmonics_forward(self, width, ell, m):
     r"""SWSFT of Y_m^\ell has only one nonzero coefficient, at (ell, m)."""
-    longitude_g, colatitude_g = self._make_equiangular_grid(width)
+    longitude_g, colatitude_g = sphere_utils.make_equiangular_grid(width)
     sphere = scipy.special.sph_harm(m, ell, longitude_g, colatitude_g)
     coeffs = np_spin_spherical_harmonics.swsft_forward_naive(sphere, 0)
     self._check_nonzero_harmonic_coeffs(coeffs, ell, m)
@@ -75,7 +57,7 @@ class NpSpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
   @parameterized.parameters(4, 8)
   def test_spin_weighted_spherical_harmonics_forward(self, width):
     r"""SWSFT of sY_m^\ell has only one nonzero coefficient, at (ell, m)."""
-    longitude_g, colatitude_g = self._make_equiangular_grid(width)
+    longitude_g, colatitude_g = sphere_utils.make_equiangular_grid(width)
 
     # We use some known expressions for spin-weighted spherical harmonics.
 
@@ -106,7 +88,7 @@ class NpSpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
     coeffs[np_spin_spherical_harmonics._get_swsft_coeff_index(ell, m)] = 1
     sphere = np_spin_spherical_harmonics.swsft_backward_naive(coeffs, 0)
 
-    phi_g, theta_g = self._make_equiangular_grid(width)
+    phi_g, theta_g = sphere_utils.make_equiangular_grid(width)
     sphere_gt = scipy.special.sph_harm(m, ell, phi_g, theta_g)
 
     self.assertAllClose(sphere, sphere_gt)

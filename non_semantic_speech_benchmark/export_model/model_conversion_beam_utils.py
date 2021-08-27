@@ -26,8 +26,13 @@ import tensorflow as tf
 from non_semantic_speech_benchmark.export_model import model_export_utils
 
 Metadata = collections.namedtuple('Metadata', [
-    'xid', 'model_num', 'experiment_dir', 'output_filename', 'params',
+    'xid',
+    'model_num',
+    'experiment_dir',
+    'output_filename',
+    'params',
     'conversion_type',
+    'experiment_name',
 ])
 # Valid conversion types.
 TFLITE_ = 'tflite'
@@ -48,8 +53,7 @@ def get_pipeline_metadata(base_experiment_dir, xids,
     # Get experiment dirs names, params, and output location.
     exp_names = model_export_utils.get_experiment_dirs(cur_experiment_dir)
     for i, exp_name in enumerate(exp_names):
-      output_filename = os.path.join(output_dir, f'frillsson_{xid}',
-                                     f'model_{i}')
+      output_filename = os.path.join(output_dir, f'frillsson_{xid}', exp_name)
       for conversion_type in conversion_types:
         suffix = '.tflite' if conversion_type == TFLITE_ else '_savedmodel'
         cur_metadata = Metadata(
@@ -59,6 +63,7 @@ def get_pipeline_metadata(base_experiment_dir, xids,
             output_filename=output_filename + suffix,
             params=model_export_utils.get_params(exp_name),
             conversion_type=conversion_type,
+            experiment_name=exp_name,
         )
         metadata.append(cur_metadata)
   return metadata

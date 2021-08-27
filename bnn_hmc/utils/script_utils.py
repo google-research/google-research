@@ -38,14 +38,14 @@ import tensorflow.compat.v2 as tf
 
 from collections import OrderedDict
 
-from utils import checkpoint_utils
-from utils import cmd_args_utils
-from utils import data_utils
-from utils import losses
-from utils import models
-from utils import precision_utils
-from utils import train_utils
-from utils import tree_utils
+from utils import checkpoint_utils  # pytype: disable=import-error
+from utils import cmd_args_utils  # pytype: disable=import-error
+from utils import data_utils  # pytype: disable=import-error
+from utils import losses  # pytype: disable=import-error
+from utils import models  # pytype: disable=import-error
+from utils import precision_utils  # pytype: disable=import-error
+from utils import train_utils  # pytype: disable=import-error
+from utils import tree_utils  # pytype: disable=import-error
 
 
 def print_visible_devices():

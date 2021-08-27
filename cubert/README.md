@@ -1,9 +1,11 @@
 # CuBERT
 
 
-## Update 2021/7/11: Fresh Pre-trained Python Models
+## Update 2021/7/11: Fresh Pre-trained Python and Java Models
 
-We are releasing a fresh set of Python pre-training corpus and models, drawn from the BigQuery version of GitHub as of July 11, 2021. This pre-training corpus was deduplicated with the updated process described in [Collection Query](https://github.com/google-research/google-research/tree/master/cubert#collection-query) below. The pre-trained models were BERT Large, and trained for 2 epochs.
+We are releasing a fresh set of Python and Java pre-training corpus and models, drawn from the BigQuery version of GitHub as of July 11, 2021. These pre-training corpora were deduplicated with the updated process described in [Collection Query](https://github.com/google-research/google-research/tree/master/cubert#collection-query) below. Note that for the Python corpus, files similar to ETH Py150 Open are also extracted from pre-training. The Java corpus is just internally deduplicated.
+
+The pre-trained models were BERT Large, and trained for 2 epochs.
 
 * Python, deduplicated, BigQuery snapshot as of July 11, 2021.
     * Manifest: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20210711_Python/github_python_minus_ethpy150open_deduplicated_manifest)
@@ -16,6 +18,18 @@ We are releasing a fresh set of Python pre-training corpus and models, drawn fro
         [`gs://cubert/20210711_Python/pre_trained_model_epochs_2__length_1024`].
     * Model checkpoint for length 2048, 2 epochs: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20210711_Python/pre_trained_model_epochs_2__length_2048)
         [`gs://cubert/20210711_Python/pre_trained_model_epochs_2__length_2048`].
+
+* Java, deduplicated, BigQuery snapshot as of July 11, 2021.
+    * Manifest: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20210711_Java/github_java_deduplicated_manifest)
+        [`gs://cubert/20210711_Java/github_java_deduplicated_manifest`].
+    * Vocabulary: [[UI]](https://storage.cloud.google.com/cubert/20210711_Java/github_java_deduplicated_vocabulary.txt)
+        [`gs://cubert/20210711_Java/github_java_deduplicated_vocabulary.txt`].
+    * Model checkpoint for length 512, 2 epochs: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20210711_Java/pre_trained_model_epochs_2__length_512)
+        [`gs://cubert/20210711_Java/pre_trained_model_epochs_2__length_512`].
+    * Model checkpoint for length 1024, 2 epochs: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20210711_Java/pre_trained_model_epochs_2__length_1024)
+        [`gs://cubert/20210711_Java/pre_trained_model_epochs_2__length_1024`].
+    * Model checkpoint for length 2048, 2 epochs: [[UI]](https://console.cloud.google.com/storage/browser/cubert/20210711_Java/pre_trained_model_epochs_2__length_2048)
+        [`gs://cubert/20210711_Java/pre_trained_model_epochs_2__length_2048`].
 
 
 ## Update 2021/03/04: Clarifications
