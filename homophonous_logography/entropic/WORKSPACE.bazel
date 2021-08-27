@@ -2,7 +2,6 @@
 
 workspace(name = "com_google_entropic")
 
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # -------------------------------------------------------------------------
@@ -35,26 +34,26 @@ http_archive(
 
 # -------------------------------------------------------------------------
 # OpenFst: See
-#   http://www.openfst.org/twiki/pub/FST/FstDownload/README
+#   http://www.openfst.org/twiki/bin/view/FST/WebHome
 # -------------------------------------------------------------------------
-openfst_version = "1.8.2-rc1"
+openfst_version = "1.8.1"
 
 http_archive(
     name = "org_openfst",
-    urls = ["https://github.com/agutkin/finite_state/raw/main/openfst-%s.tar.gz" % openfst_version],
-    sha256 = "8d5c5b02174254807980fd01b1f4e0ff3b406234bb083df7c8d2c9a709061bea",
+    urls = ["http://www.openfst.org/twiki/pub/FST/FstDownload/openfst-%s.tar.gz" % openfst_version],
+    sha256 = "24fb53b72bb687e3fa8ee96c72a31ff2920d99b980a0a8f61dda426fca6713f0",
     strip_prefix = "openfst-%s" % openfst_version,
 )
 
 # -------------------------------------------------------------------------
 # OpenGrm N-Gram: See
-#   http://www.openfst.org/twiki/bin/view/GRM/NGramLibrary
+#   http://www.opengrm.org/twiki/bin/view/GRM/NGramLibrary
 # -------------------------------------------------------------------------
-opengrm_ngram_version = "1.3.14-rc1"
+opengrm_ngram_version = "1.3.13"
 
 http_archive(
     name = "org_opengrm_ngram",
-    urls = ["https://github.com/agutkin/finite_state/raw/main/ngram-%s.tar.gz" % opengrm_ngram_version],
-    sha256 = "2faa4f1e456e2adfbc736d072d402453eabc7fb54ba67a0da476951f18d73aca",
+    urls = ["http://www.openfst.org/twiki/pub/GRM/NGramDownload/ngram-%s.tar.gz" % opengrm_ngram_version],
+    sha256 = "e425dfe8e5ecee8c27cb7c9942b59803aca123237476003607c4d20c45131754",
     strip_prefix = "ngram-%s" % opengrm_ngram_version,
 )
