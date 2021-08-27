@@ -246,14 +246,6 @@ def l2_score(validation_state,
   return -tf.reduce_mean(diff, axis=axis)
 
 
-def get_backprop_network_spec():
-  state = blur.NetworkSpec()
-  state.backward_update = 'multiplicative_second_state'
-  state.symmetric_in_out_synapses = True
-  state.symmetric_states_synapses = True
-  return state
-
-
 def compute_weight_by_frequency(labels):
   """Computes weights to keep positive/negative labels in balance.
 
