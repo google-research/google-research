@@ -110,6 +110,11 @@ flags.DEFINE_bool(
         ' The bounds appear as scalar and will be named as "GetBounds_0/bounds"'
         ' prefixed with the all the parents module name.'))
 
+flags.DEFINE_bool(
+    'estimate_compute_and_memory_cost',
+    default=False,
+    help='Whether to estimate compute and memory cost.')
+
 
 def cosine_decay(base_learning_rate, step, decay_steps, alpha=0.001):
   ratio = jnp.minimum(jnp.maximum(0., step / decay_steps), 1.)
@@ -281,7 +286,7 @@ def main(argv):
   num_steps = steps_per_epoch * num_epochs
 
   # Estimate compute / memory costs
-  if jax.host_id() == 0:
+  if jax.host_id() == 0 and FLAGS.estimate_compute_and_memory_cost:
     estimate_compute_and_memory_cost(
         image_size=image_size, model_dir=FLAGS.model_dir, hparams=hparams)
     logging.info('Writing training HLO and estimating compute/memory costs.')
