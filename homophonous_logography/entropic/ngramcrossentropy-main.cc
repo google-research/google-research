@@ -47,6 +47,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -592,9 +593,9 @@ void JointToMarginalLabelMapping(
     const SymbolTable &joint_symbols, const SymbolTable &marginal_symbols,
     int side_id,
     std::map<StdArc::Label, StdArc::Label> *joint2marginal) {
-  const int64 num_joint_symbols = joint_symbols.NumSymbols();
-  for (int64 pos = 0; pos < num_joint_symbols; ++pos) {
-    const int64 key = joint_symbols.GetNthKey(pos);
+  const int64_t num_joint_symbols = joint_symbols.NumSymbols();
+  for (int64_t pos = 0; pos < num_joint_symbols; ++pos) {
+    const int64_t key = joint_symbols.GetNthKey(pos);
     if (key == fst::kNoSymbol) {
       LOG(FATAL) << "Invalid position: " << pos;
     }
@@ -610,7 +611,7 @@ void JointToMarginalLabelMapping(
       }
       part_symbol = toks[side_id];
     }
-    const int64 marginal_key = marginal_symbols.Find(part_symbol);
+    const int64_t marginal_key = marginal_symbols.Find(part_symbol);
     if (marginal_key == fst::kNoSymbol) {
       LOG(FATAL) << "Failed to find: " << part_symbol;
     }
@@ -652,7 +653,7 @@ void ModelConditionalEntropy(const NGramOutputHelper &model_joint,
   // and Q is the destination distribution.
   double ce_logprob_source = 0.0, ce_logprob_dest = 0.0;
   double source_prob, dest_prob;
-  for (uint64 joint_state_id = 0; joint_state_id < joint_state_probs.size();
+  for (uint64_t joint_state_id = 0; joint_state_id < joint_state_probs.size();
        ++joint_state_id) {
     const double joint_prob = joint_state_probs[joint_state_id];
     const auto &joint_state_labels = model_joint.StateNGram(joint_state_id);
@@ -661,10 +662,10 @@ void ModelConditionalEntropy(const NGramOutputHelper &model_joint,
       const StdArc::Label joint_lab = joint_state_labels[0];
       const std::vector<StdArc::Label> source_labs = {
         joint2source[joint_lab] };
-      const int64 source_state_id = model_source.NGramState(source_labs);
+      const int64_t source_state_id = model_source.NGramState(source_labs);
       source_prob = source_state_probs[source_state_id];
       const std::vector<StdArc::Label> dest_labs = { joint2dest[joint_lab] };
-      const int64 dest_state_id = model_dest.NGramState(dest_labs);
+      const int64_t dest_state_id = model_dest.NGramState(dest_labs);
       dest_prob = dest_state_probs[dest_state_id];
     } else {
       source_prob = source_state_probs[0];

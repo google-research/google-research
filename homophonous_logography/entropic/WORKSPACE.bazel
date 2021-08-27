@@ -27,12 +27,6 @@ http_archive(
     urls = ["https://github.com/abseil/abseil-cpp/archive/master.zip"],
 )
 
-git_repository(
-    name = "io_abseil_cpp",
-    commit = "078b89b3c046d230ef3ad39494e5852184eb528b",  # 24th October, 2019.
-    remote = "https://github.com/abseil/abseil-cpp.git",
-)
-
 http_archive(
     name = "io_abseil_py",
     strip_prefix = "abseil-py-master",
