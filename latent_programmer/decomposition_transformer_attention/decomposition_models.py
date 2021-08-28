@@ -22,9 +22,17 @@
 
 from typing import Any
 from flax import linen as nn
+from flax import struct
 import jax.numpy as jnp
 
 from latent_programmer.models import base_models
+
+
+@struct.dataclass
+class DecomposeAttentionTransformerConfig:
+  """Global hyperparameters used to minimize obnoxious kwarg plumbing."""
+  base_config: base_models.TransformerConfig
+  bos_full_attention: bool = False
 
 
 def make_partial_program_mask(programs,
@@ -42,15 +50,16 @@ def make_partial_program_mask(programs,
 class DecomposeAttentionTransformer(nn.Module):
   """Transformer model for program synthesis with i/o examples."""
 
-  config: base_models.TransformerConfig
+  config: DecomposeAttentionTransformerConfig
 
   def setup(self):
-    cfg = self.config
+    base_config = self.config.base_config
 
-    self.encoder = base_models.TransformerIOEncoder(config=cfg, name='encoder')
+    self.encoder = base_models.TransformerIOEncoder(config=base_config,
+                                                    name='encoder')
     # Shifting is done before call to decoder in order to compute masks.
     self.decoder = base_models.TransformerDecoder(
-        config=cfg.replace(shift=False), name='decoder')
+        config=base_config.replace(shift=False), name='decoder')
 
   def encode(self,
              inputs,
@@ -68,7 +77,7 @@ class DecomposeAttentionTransformer(nn.Module):
              encoded,
              encoded_padding_mask):
     """Applies decoder on programs and encoded specification."""
-    cfg = self.config
+    cfg = self.config.base_config
 
     assert programs.ndim == 2, ('Number of program dimensions should be 2,'
                                 ' but it is: %d' % programs.ndim)
@@ -97,7 +106,8 @@ class DecomposeAttentionTransformer(nn.Module):
       decoder_bos_mask = nn.combine_masks(
           nn.make_attention_mask(
               programs == cfg.bos_token,
-              programs == cfg.bos_token,
+              programs > 0 if self.config.bos_full_attention
+              else programs == cfg.bos_token,
               dtype=cfg.dtype),
           nn.make_causal_mask(programs, dtype=cfg.dtype))
       # Program tokens attend to all previous tokens in partial program.
