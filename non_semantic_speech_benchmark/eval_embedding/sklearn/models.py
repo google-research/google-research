@@ -25,7 +25,7 @@ LinearDiscriminantAnalysis = discriminant_analysis.LinearDiscriminantAnalysis
 RandomForestClassifier = ensemble.RandomForestClassifier
 
 
-# pylint:disable=line-too-long,unused-variable, g-no-space-after-comment
+# pylint:disable=line-too-long,unused-variable, g-no-space-after-comment, g-long-lambda
 def get_sklearn_models():
   return {
       'LogisticRegression':
@@ -40,4 +40,4 @@ def get_sklearn_models():
       'LDA_LSQR_AUTO':
           lambda: LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto'),
   }
-# pylint:enable=line-too-long,unused-variable, g-no-space-after-comment
+# pylint:enable=line-too-long,unused-variable, g-no-space-after-comment, g-long-lambda
