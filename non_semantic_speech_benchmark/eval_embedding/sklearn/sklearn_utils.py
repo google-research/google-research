@@ -20,7 +20,6 @@ from typing import Any, List, Optional, Tuple
 from absl import logging
 import numpy as np
 import tensorflow.compat.v1 as tf
-from non_semantic_speech_benchmark import file_utils
 
 
 def tfexamples_to_nps(
@@ -124,7 +123,7 @@ def _speaker_normalization(embeddings,
 # generators.
 def get_tfrecord_iterator(glob, proto=tf.train.Example):
   def itervalues():
-    for path in file_utils.Glob(glob):
+    for path in tf.io.gfile.glob(glob):
       for raw_str in tf.python_io.tf_record_iterator(path):
         example = proto()
         example.ParseFromString(raw_str)
