@@ -352,8 +352,11 @@ def _add_embedding_to_tfexample(ex, embedding,
 
 def _add_embedding_column_map_fn(
     k_v,
-    original_example_key, delete_audio_from_output, audio_key,
-    label_key, speaker_id_key):
+    original_example_key,
+    delete_audio_from_output,
+    audio_key,
+    label_key,
+    speaker_id_key):
   """Combine a dictionary of named embeddings with a tf.train.Example."""
   k, v_dict = k_v
 

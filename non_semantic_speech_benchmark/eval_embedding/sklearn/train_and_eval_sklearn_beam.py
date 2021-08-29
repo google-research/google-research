@@ -22,7 +22,7 @@ r"""Beam job to try a bunch of hparams.
 
 import itertools
 import os
-from typing import Dict, List, Tuple
+from typing import Any, List, Tuple
 from absl import app
 from absl import flags
 from absl import logging
@@ -52,6 +52,12 @@ flags.DEFINE_enum('eval_metric', 'accuracy',
                   ['accuracy', 'balanced_accuracy', 'equal_error_rate',
                    'unweighted_average_recall', 'auc'],
                   'Which metric to compute and report.')
+flags.DEFINE_string(
+    'comma_escape_char', '?',
+    'Sometimes we want commas to appear in `embedding_modules`, '
+    '`embedding_names`, or `module_output_key`. However, commas get split out '
+    'in Googles Python `DEFINE_list`. We compromise by introducing a special '
+    'character, which we replace with commas.')
 
 FLAGS = flags.FLAGS
 
