@@ -84,8 +84,14 @@ def tfexamples_to_nps(
   if not embeddings:
     raise ValueError(f'No embeddings found in {path}')
 
-  embeddings = np.array(embeddings, np.float32)
-  labels = np.array(labels, np.int16)
+  try:
+    embeddings = np.array(embeddings, np.float32)
+    labels = np.array(labels, np.int16)
+  except ValueError:
+    logging.warning(
+        '`tfexamples_to_nps` failed with the following inputs: %s, %s, %s, %s',
+        path, embedding_name, label_name, speaker_name)
+    raise
 
   # Perform L2 normalization.
   if l2_normalization:
