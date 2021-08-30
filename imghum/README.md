@@ -18,7 +18,7 @@
 
 ## Features and Applications
 ### Implicit Generative 3D Human Shape, Facial Expression and Articulated Pose
-imGHUM generalizes well to novel shapes and poses, sharing the generative latent space with GHUM for 3D human shape, facial expression, articulated body and hand pose. We provide gender-neutral, male and female imGHUM models of the full body, head, left and right hand. The implicit semantics returned by imGHUM allows e.g. for surface coloring or texturing. 
+imGHUM generalizes well to novel shapes and poses, sharing the generative latent space with GHUM for 3D human shape, facial expression, articulated body and hand pose. We provide gender-neutral and gender-specific imGHUM models of the full body, head, left and right hand. The implicit semantics returned by imGHUM allows e.g. for surface coloring or texturing. 
 <p align="center">
   <img src='figures/imGHUM_generative.png' width="1000"/>
 </p>
