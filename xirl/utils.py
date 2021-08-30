@@ -158,8 +158,8 @@ def make_env(
   xmagical.register_envs()
   if env_name in xmagical.ALL_REGISTERED_ENVS:
     env = gym.make(env_name)
-  else:  # Check the RLV envs.
-    raise ValueError("RLV env not yet supported.")
+  else:
+    raise ValueError(f"{env_name} is not a valid environment name.")
 
   if add_episode_monitor:
     env = wrappers.EpisodeMonitor(env)
@@ -218,6 +218,14 @@ def make_buffer(
     device: torch.device,
     config: ConfigDict,
 ) -> replay_buffer.ReplayBuffer:
+  """Replay buffer factory.
+
+  Args:
+    env: A `gym.Env`.
+    device: A `torch.device` object.
+    config: RL config dict, must inherit from base config defined in
+      `configs/rl_default.py`.
+  """
 
   kwargs = {
       "obs_shape": env.observation_space.shape,

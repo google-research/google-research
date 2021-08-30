@@ -4,40 +4,8 @@
 - [Setup](#setup)
 - [Datasets](#datasets)
 - [Experiments: Reproducing Paper Results](#experiments-reproducing-paper-results)
+- [Extending XIRL](#extending-xirl)
 - [Acknowledgments](#acknowledgments)
-
-## Todos
-
-1. x-MAGICAL env reward.
-  * [x] longstick
-  * [x] mediumstick
-  * [x] shortstick
-  * [x] gripper
-2. x-MAGICAL same-embodiment
-  * [ ] XIRL
-    * [x] longstick
-    * [x] mediumstick
-    * [ ] shortstick
-    * [ ] gripper
-  * [ ] TCN
-  * [ ] Goal classifier
-  * [ ] Imagenet
-  * [ ] LIFS
-  * [ ] SimCLR
-3. x-MAGICAL cross-embodiment
-  * [ ] XIRL
-  * [ ] TCN
-  * [ ] Goal classifier
-  * [ ] Imagenet
-  * [ ] LIFS
-  * [ ] SimCLR
-4. RLV
-  * State pusher
-    * [ ] Env reward
-    * [ ] XIRL
-  * Pixel drawer opening
-    * [ ] Env reward
-    * [ ] XIRL
 
 ## Overview
 
@@ -60,9 +28,6 @@ If you find this code useful, consider citing our work:
 
 ## Experiments: Reproducing Paper Results
 
-|           | Representation Learning | Reinforcement Learning |
-| --------- | ----------------------- | ---------------------- |
-| x-MAGICAL |                         |                        |
-| RLV       |                         |                        |
+## Extending XIRL
 
 ## Acknowledgments
