@@ -396,7 +396,6 @@ def main(argv):
       state = imagenet_train_utils.sync_batch_stats(state)
       save_checkpoint(state)
 
-
   # Wait until computations are done before exiting
   jax.random.normal(jax.random.PRNGKey(0), ()).block_until_ready()
 
