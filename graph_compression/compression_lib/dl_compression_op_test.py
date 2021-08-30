@@ -23,6 +23,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow.compat.v1 as tf
 from graph_compression.compression_lib import compression_op
+from graph_compression.compression_lib import compression_op_utils
 from graph_compression.compression_lib import dl_compression_op
 
 
@@ -62,13 +63,17 @@ class DlCompressionOpTest(tf.test.TestCase):
                            "begin_compression_step=1000," +
                            "end_compression_step=120000," +
                            "compression_frequency=100," +
-                           "compression_option=3," + "rank=200," +
-                           "update_option=1")
-    update_style = 1
+                           "rank=200,")
+    update_style = compression_op_utils.UpdateOptions.PYTHON_UPDATE
     global_step = tf.get_variable("global_step", initializer=30)
     compression_op_spec = compression_op.CompressionOp.get_default_hparams(
     ).parse(compression_hparams)
     compression_op_spec.set_hparam("use_tpu", False)
+    compression_op_spec.set_hparam(
+        "compression_option",
+        compression_op_utils.CompressionOptions.DL_MATRIX_COMPRESSION)
+    compression_op_spec.set_hparam(
+        "update_option", compression_op_utils.UpdateOptions.PYTHON_UPDATE)
     if use_dl_op:
       CompOp = dl_compression_op.DLCompressionOp  # pylint: disable = invalid-name
     else:
@@ -108,7 +113,7 @@ class DlCompressionOpTest(tf.test.TestCase):
     tf.assign(global_step, 1001).eval()
     print("global_step.eval is ", global_step.eval())
 
-    if update_style == 0:
+    if update_style == compression_op_utils.UpdateOptions.TF_UPDATE:
       A_update_op.eval()
     else:
       c.run_update_step(session)
@@ -143,7 +148,7 @@ class DlCompressionOpTest(tf.test.TestCase):
 
     tf.assign(global_step, 1001).eval()
 
-    if update_style == 0:
+    if update_style == compression_op_utils.UpdateOptions.TF_UPDATE:
       A_update_op.eval()
     else:
       c.run_update_step(session)
@@ -157,7 +162,7 @@ class DlCompressionOpTest(tf.test.TestCase):
 
     tf.assign(global_step, 2000).eval()
 
-    if update_style == 0:
+    if update_style == compression_op_utils.UpdateOptions.TF_UPDATE:
       A_update_op.eval()
     else:
       c.run_update_step(session)
@@ -174,13 +179,17 @@ class DlCompressionOpTest(tf.test.TestCase):
                            "begin_compression_step=1000," +
                            "end_compression_step=120000," +
                            "compression_frequency=100," +
-                           "compression_option=3," + "rank=200," +
-                           "update_option=1")
-    update_style = 1
+                           "rank=200,")
+    update_style = compression_op_utils.UpdateOptions.PYTHON_UPDATE
     global_step = tf.get_variable("global_step", initializer=30)
     compression_op_spec = compression_op.CompressionOp.get_default_hparams(
     ).parse(compression_hparams)
     compression_op_spec.set_hparam("use_tpu", False)
+    compression_op_spec.set_hparam(
+        "compression_option",
+        compression_op_utils.CompressionOptions.DL_MATRIX_COMPRESSION)
+    compression_op_spec.set_hparam(
+        "update_option", compression_op_utils.UpdateOptions.PYTHON_UPDATE)
     if use_dl_op:
       CompOp = dl_compression_op.DLCompressionOp  # pylint: disable = invalid-name
     else:
@@ -216,7 +225,7 @@ class DlCompressionOpTest(tf.test.TestCase):
     tf.assign(global_step, 1001).eval()
     print("global_step.eval is ", global_step.eval())
 
-    if update_style == 0:
+    if update_style == compression_op_utils.UpdateOptions.TF_UPDATE:
       A_update_op.eval()
     else:
       c.run_update_step(session)
@@ -252,7 +261,7 @@ class DlCompressionOpTest(tf.test.TestCase):
 
     tf.assign(global_step, 1001).eval()
 
-    if update_style == 0:
+    if update_style == compression_op_utils.UpdateOptions.TF_UPDATE:
       A_update_op.eval()
     else:
       c.run_update_step(session)
@@ -266,7 +275,7 @@ class DlCompressionOpTest(tf.test.TestCase):
 
     tf.assign(global_step, 2000).eval()
 
-    if update_style == 0:
+    if update_style == compression_op_utils.UpdateOptions.TF_UPDATE:
       A_update_op.eval()
     else:
       c.run_update_step(session)

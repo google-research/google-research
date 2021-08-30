@@ -22,6 +22,8 @@ import numpy as np
 import tensorflow.compat.v1 as tf
 
 from graph_compression.compression_lib import compression_op
+from graph_compression.compression_lib import compression_op_utils
+from graph_compression.compression_lib import compression_wrapper
 from graph_compression.compression_lib import simhash_compression_op as simhash
 
 
@@ -32,9 +34,11 @@ class SimhashCompressionOpTest(tf.test.TestCase):
       hparams = ("name=cifar10_compression,"
                  "begin_compression_step=1000,"
                  "end_compression_step=2001,"
-                 "compression_frequency=100,"
-                 "compression_option=2")
+                 "compression_frequency=100,")
       spec = simhash.SimhashCompressionOp.get_default_hparams().parse(hparams)
+      spec.set_hparam(
+          "compression_option",
+          compression_op_utils.CompressionOptions.SIMHASH_MATRIX_COMPRESSION)
 
       matrix_compressor = simhash.SimhashMatrixCompressor(
           spec=compression_op.LowRankDecompMatrixCompressor.get_default_hparams(
@@ -42,7 +46,7 @@ class SimhashCompressionOpTest(tf.test.TestCase):
 
       global_step = tf.compat.v1.get_variable("global_step", initializer=30)
 
-      apply_comp = simhash.SimhashApplyCompression(
+      apply_comp = compression_wrapper.ApplyCompression(
           scope="default_scope",
           compression_spec=spec,
           compressor=matrix_compressor,
@@ -123,10 +127,13 @@ class SimhashCompressionOpTest(tf.test.TestCase):
       hparams = ("name=cifar10_compression,"
                  "begin_compression_step=1000,"
                  "end_compression_step=2001,"
-                 "compression_frequency=100,"
-                 "compression_option=4,"
-                 "update_option=1")
+                 "compression_frequency=100,")
       spec = simhash.SimhashCompressionOp.get_default_hparams().parse(hparams)
+      spec.set_hparam(
+          "compression_option",
+          compression_op_utils.CompressionOptions.KMEANS_MATRIX_COMPRESSION)
+      spec.set_hparam("update_option",
+                      compression_op_utils.UpdateOptions.PYTHON_UPDATE)
 
       matrix_compressor = simhash.KmeansMatrixCompressor(
           spec=compression_op.LowRankDecompMatrixCompressor.get_default_hparams(
@@ -134,7 +141,7 @@ class SimhashCompressionOpTest(tf.test.TestCase):
 
       global_step = tf.get_variable("global_step", initializer=30)
 
-      apply_comp = simhash.SimhashApplyCompression(
+      apply_comp = compression_wrapper.ApplyCompression(
           scope="default_scope",
           compression_spec=spec,
           compressor=matrix_compressor,

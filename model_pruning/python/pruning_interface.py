@@ -58,6 +58,8 @@ from model_pruning.python import pruning
 
 
 UPDATE_OP_COLLECTION = 'update_op'
+CompressionOptions = compression_wrapper.CompressionOptions
+UpdateOptions = compression_wrapper.UpdateOptions
 
 
 def get_matrix_compression_object(hparams,  # pylint:disable=invalid-name
@@ -279,12 +281,14 @@ def get_matrix_compression_update_op(matrix_compression_obj):  # pylint:disable=
   if hparams.prune_option in [
       'weight', 'first_order_gradient', 'second_order_gradient']:
     return matrix_compression_obj.conditional_mask_update_op()
-  elif hparams.update_option == 0 or hparams.update_option == 2:
-    # 'update_option' == 0 means matrix compression, for which we can
-    # return an update op here. 'update_option' == 1 means dictionary learning,
-    # for which we cannot return an update op here, and need to explicitly call
-    # run_update_step(), see graph_compression/compression_lib/compression_op.py
-    # for more details.
+  elif (hparams.update_option == UpdateOptions.TF_UPDATE or
+        hparams.update_option
+        == UpdateOptions.TF_AND_PYTHON_UPDATE):
+    # 'update_option' == TF_UPDATE means matrix compression, for which we can
+    # return an update op here. 'update_option' == PYTHON_UPDATE means
+    # dictionary learning, for which we cannot return an update op here, and
+    # need to explicitly call run_update_step(),
+    # see graph_compression/compression_lib/compression_op.py for more details.
     if hparams.use_collection:
       # If use_collection is True, then update_ops are retrieved from
       # UPDATE_OP_COLLECTION, to ensure the same behavior as pruning.
@@ -302,7 +306,7 @@ def run_update_step(matrix_compression_obj, session, step_number=None):  # pylin
   hparams = matrix_compression_obj.get_spec()
   if (hparams.prune_option in [
       'weight', 'first_order_gradient', 'second_order_gradient'] or
-      hparams.update_option == 0):
+      hparams.update_option == UpdateOptions.TF_UPDATE):
     update_op = get_matrix_compression_update_op(matrix_compression_obj)
     session.run(update_op)
   else:
@@ -616,14 +620,19 @@ class PruningOp(object):
     hparams = cls._pruning_obj.get_spec()
     return (hparams.prune_option in [
         'weight', 'first_order_gradient', 'second_order_gradient'
-    ] or hparams.update_option == 0 or hparams.update_option == 2)
+    ] or hparams.update_option == UpdateOptions.TF_UPDATE or
+            hparams.update_option
+            == UpdateOptions.TF_AND_PYTHON_UPDATE)
 
   @classmethod
   def ApplyPythonUpdate(cls):  # pylint:disable=invalid-name
     if not cls._pruning_obj:
       return False
     hparams = cls._pruning_obj.get_spec()
-    return hparams.update_option == 1 or hparams.update_option == 2
+    return (hparams.update_option
+            == UpdateOptions.PYTHON_UPDATE or
+            hparams.update_option
+            == UpdateOptions.TF_AND_PYTHON_UPDATE)
 
   @classmethod
   def ApplyTensorflowAndPythonUpdate(cls):  # pylint:disable=invalid-name
@@ -631,7 +640,8 @@ class PruningOp(object):
     if not cls._pruning_obj:
       return False
     hparams = cls._pruning_obj.get_spec()
-    return hparams.update_option == 2
+    return (hparams.update_option ==
+            UpdateOptions.TF_AND_PYTHON_UPDATE)
 
   @classmethod
   def RunPythonUpdate(cls, session, global_step):  # pylint:disable=invalid-name

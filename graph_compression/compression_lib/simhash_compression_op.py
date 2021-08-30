@@ -216,7 +216,7 @@ class SimhashCompressionOp(compression_op.CompressionOp):
     self.final_op = self.alpha * self.a_matrix_tfvar + (
         1 - self.alpha) * self.b_matrix_tfvar
 
-    if self._spec.update_option == 0:
+    if self._spec.update_option == compression_op_utils.UpdateOptions.TF_UPDATE:
       self.update_op = self._create_update_op()
     else:
       self.setup_update_explicit()
@@ -275,7 +275,7 @@ class SimhashCompressionOp(compression_op.CompressionOp):
     self.final_op = self.alpha * self.a_matrix_tfvar + (
         1 - self.alpha) * self.b_matrix_tfvar
 
-    if self._spec.update_option == 0:
+    if self._spec.update_option == compression_op_utils.UpdateOptions.TF_UPDATE:
       self.update_op = self._create_update_op()
     else:
       self.setup_update_explicit()
@@ -299,155 +299,6 @@ class SimhashCompressionOp(compression_op.CompressionOp):
     """
     return tf.matmul(concat, (theta.alpha * theta.wm +
                               (1 - theta.alpha) * theta.b_matrix_tfvar))
-
-
-class SimhashApplyCompression(compression_op.ApplyCompression):
-  """Wrapper class for Simhash.
-
-  This is to repeatedly invoke above compression operator to different
-  layers in a model.
-
-  Intialized by specifying the compressor and compression_spec.
-
-  After that apply_compression can be called several times for different
-  matrices in the model.
-
-  Finally all_update_op returns the combined update OP from all these
-  compressions.
-
-  Adds random_shift's to the begin_compression_step to stagger the
-  compression of the different matrices being compressed.
-  """
-
-  def __init__(self, scope, compression_spec, compressor, global_step=None):
-    """Initializer.
-
-    Args:
-      scope: TF scope used for creating new TF variables.
-      compression_spec: compression hyper parameters.
-      compressor: matrix compressor object of class MatrixCompressorInferface.
-      global_step: tf variable that has the global step.
-    """
-    super(SimhashApplyCompression, self).__init__(
-        scope=scope,
-        compression_spec=compression_spec,
-        compressor=compressor,
-        global_step=global_step)
-    self._compression_op_spec_orig = copy.deepcopy(self._compression_op_spec)
-
-  def apply_compression(self,
-                        a_matrix_tfvar,
-                        scope='default_scope',
-                        spec=None):
-    """Applies matrix compression OP on a_matrix_tfvar as specified in spec.
-
-    Args:
-      a_matrix_tfvar: TF variable representing a tensor variable in a model.
-      scope: TF scope used for creating new TF variables.
-      spec: spec to be used for the compression op. this is optional.
-            if not provided, self._compression_op_spec is used.
-
-    Returns:
-      A TF node that represents the compressed version of a_matrix_tfvar.
-    """
-    logging.info('New and old begin_compression_step are: %s, %s',
-                 self._compression_op_spec.begin_compression_step,
-                 self._compression_op_spec_orig.begin_compression_step)
-    compression_op_spec = spec if spec else self._compression_op_spec
-
-    if compression_op_spec.compression_option == 4:
-      c = KMeansCompressionOp(
-          spec=compression_op_spec, global_step=self._global_step)
-    elif compression_op_spec.compression_option == 8:
-      c = KMeansPruningCompressionOp(
-          spec=self._compression_op_spec, global_step=self._global_step)
-    else:
-      c = SimhashCompressionOp(
-          spec=compression_op_spec, global_step=self._global_step)
-
-    self._compression_ops.append(c)
-    [a_matrix_compressed, a_matrix_update_op] = c.get_apply_compression_op(
-        a_matrix_tfvar, self._matrix_compressor, scope=scope)
-    self._update_ops.append(a_matrix_update_op)
-
-    self.uncompressed_size = self.uncompressed_size + c.uncompressed_size
-    self.compressed_size = self.compressed_size + c.compressed_size
-
-    return a_matrix_compressed
-
-  def customized_apply_compression(self,
-                                   a_matrix_tfvar,
-                                   layer_obj,
-                                   weight_params_fn,
-                                   weight_init_obj,
-                                   scope='default_scope',
-                                   spec=None):
-    """Applies matrix compression OP on a_matrix_tfvar as specified in spec.
-
-    Args:
-      a_matrix_tfvar: TF variable representing a tensor variable in a model.
-      layer_obj: a customeried layer object that handles variable creation.
-      weight_params_fn: functional handle to create model parameters.
-      weight_init_obj: a weight initialization object.
-      scope: TF scope used for creating new TF variables.
-      spec: spec to be used for the compression op. this is optional.
-            if not provided, self._compression_op_spec is used.
-
-    Returns:
-      A TF node that represents the compressed version of a_matrix_tfvar.
-    """
-    compression_op_spec = spec if spec else self._compression_op_spec
-    if compression_op_spec.compression_option == 4:
-      c = KMeansCompressionOp(
-          spec=compression_op_spec, global_step=self._global_step)
-    elif compression_op_spec.compression_option == 8:
-      c = KMeansPruningCompressionOp(
-          spec=compression_op_spec, global_step=self._global_step)
-    else:
-      c = SimhashCompressionOp(
-          spec=compression_op_spec, global_step=self._global_step)
-
-    self._compression_ops.append(c)
-    [a_matrix_compressed,
-     a_matrix_update_op] = c.get_customized_apply_compression_op(
-         a_matrix_tfvar,
-         self._matrix_compressor,
-         layer_obj,
-         weight_params_fn,
-         weight_init_obj,
-         scope=scope)
-    self._update_ops.append(a_matrix_update_op)
-
-    self.uncompressed_size += c.uncompressed_size
-    self.compressed_size += c.compressed_size
-
-    return a_matrix_compressed
-
-  def get_mix_operator(self, theta, concat):
-    """Return mixed operator.
-
-    See KmeansPruningCompressionOp.get_mix_operator for details.
-
-    Args:
-      theta: object in customized layer that contains weight tensors, etc.
-      concat: the left operand of the matmul operation.
-
-    Returns:
-      A TensorFlow node that has compressed version of
-      tf.matmul(concat, theta.wm).
-    """
-    return self._compression_ops[-1].get_mix_operator(theta, concat)
-
-  def get_update_ops(self):
-    for c in self._compression_ops:
-      self._update_ops.append(c.get_update_op())
-    return self._update_ops
-
-  def all_update_op(self):
-    _ = self.get_update_ops()
-    self._all_update_op = compression_op.CompressionOp.all_update_op(
-        self._update_ops, self._scope)
-    return self._all_update_op
 
 
 class KmeansMatrixCompressor(compression_op.LowRankDecompMatrixCompressor):
@@ -583,7 +434,7 @@ class KMeansCompressionOp(compression_op.CompressionOp):
 
       self.a_matrix_tfvar = a_matrix_tfvar
 
-      if self._spec.update_option == 0:
+      if self._spec.update_option == compression_op_utils.UpdateOptions.TF_UPDATE:
         self.update_op = self._create_update_op()
       else:
         self.update_op = self.setup_update_explicit()
@@ -660,7 +511,7 @@ class KMeansCompressionOp(compression_op.CompressionOp):
       self.alpha = layer_obj.vars.alpha
       self.a_matrix_tfvar = a_matrix_tfvar
 
-      if self._spec.update_option == 0:
+      if self._spec.update_option == compression_op_utils.UpdateOptions.TF_UPDATE:
         self.update_op = self._create_update_op()
       else:
         self.update_op = tf.no_op()
@@ -775,9 +626,12 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
         indicates what type of factorization (if any) is used.
       update_option: integer
         indicates how the update logic is being run. More specifically:
-        0 - run the update logic in TF; needed when using GPU/TPU.
-        1 - run the update logic in regular python as opposed to TF.
-        2 - run the update logic in TF and in regular python.
+        0: TF_UPDATE - run the update logic in TF; needed when using GPU/TPU
+        1: PYTHON_UPDATE - run the update logic in regular python as opposed
+                           to TF.
+        2: TF_AND_PYTHON_UPDATE - run the update logic in TF and in regular
+                                  python.
+        3: NO_UPDATE - no alpha update; not required for some compression ops.
       TODO(wanxin): add doc strings for pruning hparams.
 
     Returns:
@@ -791,9 +645,10 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
         end_compression_step=-1,
         compression_frequency=10,
         use_tpu=False,
-        compression_option=0,
+        compression_option=compression_op_utils.CompressionOptions
+        .KMEANS_AND_PRUNING_MATRIX_COMPRESSION,
         rank=7,
-        update_option=2,
+        update_option=compression_op_utils.UpdateOptions.TF_AND_PYTHON_UPDATE,
         run_update_interval_check=1,
         block_size=1,
         pruning_fraction=0.0,

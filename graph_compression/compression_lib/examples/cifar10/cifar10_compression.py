@@ -43,6 +43,7 @@ from six.moves import urllib
 import tensorflow.compat.v1 as tf
 
 from graph_compression.compression_lib import compression_op as compression
+from graph_compression.compression_lib import compression_op_utils as comp_op_utils
 from graph_compression.compression_lib import compression_wrapper
 from graph_compression.compression_lib.examples.cifar10 import cifar10_input
 
@@ -396,11 +397,12 @@ def train(total_loss, global_step, compression_obj):
   all_update_op = [apply_gradient_op, variables_averages_op]
   # If using tensorflow operations for the update step, append compression
   # updates to the list of all updates.
-  if compression_obj.get_operator_hparam('update_option') == 0:
+  if compression_obj.get_operator_hparam(
+      'update_option') == comp_op_utils.UpdateOptions.TF_UPDATE:
     all_update_op.append(compression_obj.all_update_op())
   else:
-    # TODO(loganesian): Once update_option=1 is fully supported, add the python
-    # update operation here.
+    # TODO(loganesian): Once update_option=PYTHON_UPDATE is fully supported,
+    # add the python update operation here.
     pass
 
   with tf.control_dependencies(all_update_op):
