@@ -33,7 +33,8 @@ def _take_subset_of_axes(x,
   if not isinstance(axis, Iterable):
     axis = (axis,)
   for ax in axis:  # exclude batch dimension 0
-    x = x.take(indices=range(min(num_indices_per_ax, x.shape[ax])), axis=ax)
+    x = x.take(
+        indices=jnp.arange(min(num_indices_per_ax, x.shape[ax])), axis=ax)
   return x
 
 
