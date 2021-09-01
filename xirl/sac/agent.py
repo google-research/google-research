@@ -22,7 +22,6 @@ References:
     [2]: https://arxiv.org/abs/1801.01290
 """
 
-import math
 import typing
 
 import numpy as np
@@ -107,48 +106,15 @@ class DoubleCritic(nn.Module):
     return self.critic1(*args), self.critic2(*args)
 
 
-class TanhTransform(pyd.transforms.Transform):
-  domain = pyd.constraints.real
-  codomain = pyd.constraints.interval(-1.0, 1.0)
-  bijective = True
-  sign = +1
-
-  def __init__(self, cache_size: int = 1) -> None:
-    super().__init__(cache_size=cache_size)
-
-  @staticmethod
-  def atanh(x: TensorType) -> TensorType:
-    return 0.5 * (x.log1p() - (-x).log1p())
-
-  @staticmethod
-  def log_abs_det_jacobian(x: TensorType, y: TensorType) -> TensorType:
-    # pylint: disable=line-too-long
-    # We use a formula that is more numerically stable, see details in the
-    # following link: https://github.com/tensorflow/probability/commit/ef6bb176e0ebd1cf6e25c6b5cecdd2428c22963f#diff-e120f70e92e6741bca649f04fcd907b7
-    # pylint: enable=line-too-long
-    del y
-    return 2.0 * (math.log(2.0) - x - F.softplus(-2.0 * x))
-
-  def __eq__(self, other):
-    return isinstance(other, TanhTransform)
-
-  def _call(self, x: TensorType) -> TensorType:
-    return x.tanh()
-
-  def _inverse(self, y: TensorType) -> TensorType:
-    # We do not clamp to the boundary here as it may degrade the performance
-    # of certain algorithms. One should use `cache_size=1` instead.
-    return self.atanh(y)
-
-
 class SquashedNormal(pyd.transformed_distribution.TransformedDistribution):
+  """A tanh-squashed Normal distribution."""
 
   def __init__(self, loc: TensorType, scale: TensorType) -> None:
     self.loc = loc
     self.scale = scale
 
     self.base_dist = pyd.Normal(loc, scale)
-    transforms = [TanhTransform()]
+    transforms = [pyd.TanhTransform(cache_size=1)]
     super().__init__(self.base_dist, transforms)
 
   @property
@@ -272,10 +238,10 @@ class SAC(nn.Module):
     self.train()
     self.critic_target.train()
 
-  def train(self, mode: bool = True) -> None:
-    self.training = mode
-    self.actor.train(mode)
-    self.critic.train(mode)
+  def train(self, training: bool = True) -> None:
+    self.training = training
+    self.actor.train(training)
+    self.critic.train(training)
 
   @property
   def alpha(self) -> TensorType:
