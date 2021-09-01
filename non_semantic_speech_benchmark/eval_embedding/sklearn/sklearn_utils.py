@@ -20,7 +20,6 @@ from typing import Any, List, Optional, Tuple
 from absl import logging
 import numpy as np
 import tensorflow.compat.v1 as tf
-from non_semantic_speech_benchmark import file_utils
 
 
 def tfexamples_to_nps(
@@ -57,7 +56,7 @@ def tfexamples_to_nps(
     if embedding_name.startswith('embedding/'):
       raise ValueError(f'Don\'t prepend embedding name: {embedding_name}')
     cur_emb = feats[f'embedding/{embedding_name}'].float_list.value
-    if not cur_emb:
+    if not bool(cur_emb):
       raise ValueError(f'Embeddings empty: embedding/{embedding_name} {path}')
     embeddings.append(cur_emb)
 
@@ -85,8 +84,14 @@ def tfexamples_to_nps(
   if not embeddings:
     raise ValueError(f'No embeddings found in {path}')
 
-  embeddings = np.array(embeddings, np.float32)
-  labels = np.array(labels, np.int16)
+  try:
+    embeddings = np.array(embeddings, np.float32)
+    labels = np.array(labels, np.int16)
+  except ValueError:
+    logging.warning(
+        '`tfexamples_to_nps` failed with the following inputs: %s, %s, %s, %s',
+        path, embedding_name, label_name, speaker_name)
+    raise
 
   # Perform L2 normalization.
   if l2_normalization:
@@ -124,7 +129,7 @@ def _speaker_normalization(embeddings,
 # generators.
 def get_tfrecord_iterator(glob, proto=tf.train.Example):
   def itervalues():
-    for path in file_utils.Glob(glob):
+    for path in tf.io.gfile.glob(glob):
       for raw_str in tf.python_io.tf_record_iterator(path):
         example = proto()
         example.ParseFromString(raw_str)

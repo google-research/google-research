@@ -69,7 +69,7 @@ def get_blur_state(env, inp, out, ow):
   synapse = synapse_util.sync_states_synapse(synapse, env, num_states=2)
 
   genome = genome_util.convert_genome_to_tf_variables(
-      genome_util.GRADIENT_GENOME)
+      genome_util.create_backprop_genome(num_species=1))
 
   network_spec = blur.NetworkSpec()
   network_spec.symmetric_synapses = True
@@ -159,21 +159,23 @@ class BlurTest(tf.test.TestCase):
     tf.reset_default_graph()
     tf.disable_v2_behavior()
     inp, out, ow = random_dense(num_in, num_out)
-    env = blur.tf_env
+    env = blur_env.tf_env
     pre, post, synapse, _, network_spec = get_blur_state(env, inp, out, ow)
+
+    genome = genome_util.create_backprop_genome(num_species=1)
 
     update1, update2 = blur.get_synaptic_update(
         pre,
         post,
         synapse=synapse,
-        input_transform_gn=genome_util.GRADIENT_GENOME.neuron.transform,
+        input_transform_gn=genome.neuron.transform,
         update_type=synapse_util.UpdateType.BOTH,
         env=env)
 
     hebbian_update = blur.get_hebbian_update(
         pre,
         post,
-        genome_util.GRADIENT_GENOME.synapse.transform,
+        genome.synapse.transform,
         global_spec=network_spec,
         env=env)
 
@@ -192,21 +194,23 @@ class BlurTest(tf.test.TestCase):
     num_in = 10
     num_out = 15
     inp, out, ow = random_dense(num_in, num_out)
-    env = blur.jp_env
+    env = blur_env.jp_env
     pre, post, synapse, _, network_spec = get_blur_state(env, inp, out, ow)
+
+    genome = genome_util.create_backprop_genome(num_species=1)
 
     update1, update2 = blur.get_synaptic_update(
         pre,
         post,
         synapse=synapse,
-        input_transform_gn=genome_util.GRADIENT_GENOME.neuron.transform,
+        input_transform_gn=genome.neuron.transform,
         update_type=synapse_util.UpdateType.BOTH,
         env=env)
 
     hebbian_update = blur.get_hebbian_update(
         pre,
         post,
-        genome_util.GRADIENT_GENOME.synapse.transform,
+        genome.synapse.transform,
         global_spec=network_spec,
         env=env)
     grad_weights, grad_image, y = tf_gradients(inp, out, ow)
@@ -220,7 +224,7 @@ class BlurTest(tf.test.TestCase):
   def test_get_synaptic_update_forward(self):
     tf.reset_default_graph()
     inp, out, w = random_dense()
-    env = blur.tf_env
+    env = blur_env.tf_env
     pre, post, synapse, genome, _, = get_blur_state(env, inp, out, w)
 
     _, update_fwd = blur.get_synaptic_update(
@@ -243,7 +247,8 @@ class BlurTest(tf.test.TestCase):
 
   def test_network_step_mix_forward(self):
     spec = blur.NetworkSpec(use_forward_activations_for_synapse_update=True)
-    genome = genome_util.GRADIENT_GENOME
+    genome = genome_util.convert_genome_to_tf_variables(
+        genome_util.create_backprop_genome(num_species=1))
     initializer = lambda params: 2 * tf.ones(params.shape, dtype=tf.float32)
     data = random_dataset()
     state = blur_meta.init_first_state(
@@ -269,7 +274,8 @@ class BlurTest(tf.test.TestCase):
 
   def test_network_step_no_mix_forward(self):
     spec = blur.NetworkSpec(use_forward_activations_for_synapse_update=False)
-    genome = genome_util.GRADIENT_GENOME
+    genome = genome_util.convert_genome_to_tf_variables(
+        genome_util.create_backprop_genome(num_species=1))
     initializer = lambda params: 2 * tf.ones(params.shape, dtype=tf.float32)
     data = random_dataset()
     state = blur_meta.init_first_state(
@@ -302,7 +308,7 @@ class BlurTest(tf.test.TestCase):
     tf.disable_v2_behavior()
     n_in, n_out = 10, 5
     inp, out, w = random_dense(n_in, n_out)
-    env = blur.tf_env
+    env = blur_env.tf_env
     pre, post, synapse, genome, _ = get_blur_state(env, inp, out, w)
 
     update_bwd, _ = blur.get_synaptic_update(
@@ -327,7 +333,7 @@ class BlurTest(tf.test.TestCase):
     tf.disable_v2_behavior()
     n_in, n_out = 10, 5
     inp, out, w = random_dense(n_in, n_out)
-    env = blur.tf_env
+    env = blur_env.tf_env
     pre, post, synapse, genome, network_spec = get_blur_state(env, inp, out, w)
     pre_fwd, post_fwd = blur.dense_neuron_update(
         pre,
@@ -357,7 +363,7 @@ class BlurTest(tf.test.TestCase):
     tf.disable_v2_behavior()
     n_in, n_out = 10, 5
     inp, out, w = random_dense(n_in, n_out)
-    env = blur.tf_env
+    env = blur_env.tf_env
     pre, post, synapse, genome, network_spec = get_blur_state(env, inp, out, w)
 
     inp_act_fn = lambda x: x
@@ -401,7 +407,7 @@ class BlurTest(tf.test.TestCase):
     tf.disable_v2_behavior()
     n_in, n_out = 10, 5
     inp, out, w = random_dense(n_in, n_out)
-    env = blur.tf_env
+    env = blur_env.tf_env
     pre, post, _, genome, network_spec = get_blur_state(env, inp, out, w)
 
     hebbian_update = blur.get_hebbian_update(pre, post,
@@ -425,7 +431,7 @@ class BlurTest(tf.test.TestCase):
     n_in, n_out = 10, 5
     inp, out, w = random_dense(n_in, n_out)
 
-    env = blur.tf_env
+    env = blur_env.tf_env
     pre, post, synapse, genome, network_spec = get_blur_state(env, inp, out, w)
     post = np.concatenate(
         2 * [np.zeros_like(out)], axis=-1).astype(blur_env.NP_FLOATING_TYPE)

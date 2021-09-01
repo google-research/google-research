@@ -88,7 +88,7 @@ class Env:
     num_dims = self.ndims(to) - self.ndims(inp)
     assert num_dims >= 0
     extra_dims = (None,) * num_dims
-    return self.to_tensor(inp)[(Ellipsis, *extra_dims)]
+    return self.to_tensor(inp, dtype=to.dtype)[(Ellipsis, *extra_dims)]
 
 
 @contextlib.contextmanager

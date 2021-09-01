@@ -112,8 +112,13 @@ def get_keras_model(model_type,
         pooling='avg' if avg_pool else None,
         dropout_rate=0.0)
     expected_output_shape = [None, None] if avg_pool else [None, 1, 1, None]
-  elif model_type == 'efficientnetb0':
-    model = tf.keras.applications.EfficientNetB0(
+  elif 'efficientnet' in model_type:
+    model_fn = {
+        'efficientnetb0': tf.keras.applications.EfficientNetB0,
+        'efficientnetb1': tf.keras.applications.EfficientNetB1,
+        'efficientnetb2': tf.keras.applications.EfficientNetB2,
+    }[model_type]
+    model = model_fn(
         include_top=False,
         weights=None,  # could be pretrained from imagenet.
         input_shape=(feats_inner_dim * frontend_args['frame_width'],
