@@ -22,6 +22,8 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import sys
+sys.path.append('../../../../')
 import random
 from typing import Dict, Any
 from absl import app
@@ -54,6 +56,9 @@ flags.DEFINE_integer('max_characters', 100,
 
 flags.DEFINE_string('save_dir', None, 'Directory to save results to.')
 
+flags.DEFINE_boolean('split_program', False, 'Whether to split program by parial program.')
+flags.DEFINE_boolean('split_outputs', False, 'Whether to split outputs by partial program.')
+
 
 def _bytes_feature(value):
   """Returns a bytes_list from a string / byte."""
@@ -66,18 +71,26 @@ def serialize_example(task,
   # Create a dictionary mapping the feature name to the tf.Example-compatible
   # data type.
   io_string = ''
-  for inp in task.inputs:
-    io_string += inp + '<'
-    for expr in task.program.expressions:
-      io_string += expr(inp) + '|'
-    io_string = io_string[:-1] + '>'
-  io_string = io_string[:-1]
+  if FLAGS.split_outputs:
+    for inp in task.inputs:
+      io_string += inp + '<'
+      for expr in task.program.expressions:
+        io_string += expr(inp) + '|'
+      io_string = io_string[:-1] + '>'
+    io_string = io_string[:-1]
+  else:
+    for inp, out in zip(task.inputs, task.outputs):
+      io_string += inp + '<' + out + '>'
+    io_string = io_string[:-1]
 
   program_string = ''
-  for expr in task.program.expressions:
-    program_string += ' '.join(map(str, expr.encode(token_id_table)))
-    program_string += '|'
-  program_string = program_string[:-1]
+  if FLAGS.split_program:
+    for expr in task.program.expressions:
+      program_string += ' '.join(map(str, expr.encode(token_id_table)))
+      program_string += '|'
+    program_string = program_string[:-1]
+  else:
+    program_string = ' '.join(map(str, task.program.encode(token_id_table)[:-1]))
 
   feature = {
       'i/o': _bytes_feature(str.encode(io_string)),
