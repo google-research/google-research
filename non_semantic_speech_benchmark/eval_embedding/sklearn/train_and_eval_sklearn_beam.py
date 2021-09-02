@@ -22,13 +22,14 @@ r"""Beam job to try a bunch of hparams.
 
 import itertools
 import os
+from typing import Any, List, Tuple
 from absl import app
 from absl import flags
 from absl import logging
 import apache_beam as beam
 
+import tensorflow as tf
 
-from non_semantic_speech_benchmark import file_utils
 
 from non_semantic_speech_benchmark.eval_embedding.sklearn import models
 from non_semantic_speech_benchmark.eval_embedding.sklearn import train_and_eval_sklearn
@@ -51,6 +52,12 @@ flags.DEFINE_enum('eval_metric', 'accuracy',
                   ['accuracy', 'balanced_accuracy', 'equal_error_rate',
                    'unweighted_average_recall', 'auc'],
                   'Which metric to compute and report.')
+flags.DEFINE_string(
+    'comma_escape_char', '?',
+    'Sometimes we want commas to appear in `embedding_modules`, '
+    '`embedding_names`, or `module_output_key`. However, commas get split out '
+    'in Googles Python `DEFINE_list`. We compromise by introducing a special '
+    'character, which we replace with commas.')
 
 FLAGS = flags.FLAGS
 
@@ -72,19 +79,33 @@ def format_text_line(k_v):
   return cur_elem
 
 
+def _maybe_add_commas(list_obj):
+  return [x.replace(FLAGS.comma_escape_char, ',') for x in list_obj]
+
+
 def main(unused_argv):
-  assert file_utils.Glob(FLAGS.train_glob), FLAGS.train_glob
-  assert file_utils.Glob(FLAGS.eval_glob), FLAGS.eval_glob
-  assert file_utils.Glob(FLAGS.test_glob), FLAGS.test_glob
+  if not tf.io.gfile.glob(FLAGS.train_glob):
+    raise ValueError(f'Files not found: {FLAGS.train_glob}')
+  if not tf.io.gfile.glob(FLAGS.eval_glob):
+    raise ValueError(f'Files not found: {FLAGS.eval_glob}')
+  if not tf.io.gfile.glob(FLAGS.test_glob):
+    raise ValueError(f'Files not found: {FLAGS.test_glob}')
 
   # Create output directory if it doesn't already exist.
   outdir = os.path.dirname(FLAGS.output_file)
-  file_utils.MaybeMakeDirs(outdir)
+  tf.io.gfile.makedirs(outdir)
+
+  # Sometimes we want commas to appear in `embedding_modules`,
+  # `embedding_names`, or `module_output_key`. However, commas get split out in
+  # Google's Python `DEFINE_list`. We compromise by introducing a special
+  # character, which we replace with commas here.
+  embedding_list = _maybe_add_commas(FLAGS.embedding_list)
 
   # Enumerate the configurations we want to run.
   exp_params = []
   model_names = models.get_sklearn_models().keys()
-  for elem in itertools.product(*[FLAGS.embedding_list, model_names]):
+  for elem in itertools.product(*[embedding_list, model_names]):
+
     def _params_dict(
         l2_normalization, speaker_id_name=FLAGS.speaker_id_name, elem=elem):
       return {

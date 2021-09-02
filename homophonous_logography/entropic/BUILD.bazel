@@ -61,8 +61,8 @@ cc_binary(
     name = "ngramcrossentropy",
     srcs = ["ngramcrossentropy-main.cc"],
     deps = [
-        "@io_abseil_cpp//absl/memory",
-        "@io_abseil_cpp//absl/strings",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/strings",
         "@org_opengrm_ngram//:opengrm-ngram-lib",
     ],
 )

@@ -24,8 +24,8 @@ from absl.testing import absltest
 
 import mock
 
-from graph_compression.compression_lib import compression_op as comp_op
-from graph_compression.compression_lib import compression_wrapper
+from non_semantic_speech_benchmark.distillation.compression_lib import compression_op as comp_op
+from non_semantic_speech_benchmark.distillation.compression_lib import compression_wrapper
 
 # Default global step value.
 _GLOBAL_STEP = 10

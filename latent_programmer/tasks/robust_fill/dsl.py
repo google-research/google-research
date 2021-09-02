@@ -256,7 +256,7 @@ class GetSpan(Substring):
     p1 = GetSpan._index(self.regex1, self.index1, self.bound1, value)
     p2 = GetSpan._index(self.regex2, self.index2, self.bound2, value)
 
-    if min(p1, p2) < 0:
+    if min(p1, p2) < 0:  # pytype: disable=unsupported-operands
       return ''
     return value[p1:p2]
 

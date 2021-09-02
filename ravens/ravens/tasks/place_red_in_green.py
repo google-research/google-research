@@ -69,7 +69,7 @@ class PlaceRedInGreen(Task):
       size = block_size if is_block else bowl_size
       colors = block_colors if is_block else bowl_colors
       pose = self.get_random_pose(env, size)
-      if not pose:
+      if not pose[0] or not pose[1]:
         continue
       obj_id = env.add_object(urdf, pose)
       color = colors[n_distractors % len(colors)]

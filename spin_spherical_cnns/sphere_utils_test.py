@@ -34,6 +34,15 @@ def _get_transformer():
 
 class SphereUtilsTest(tf.test.TestCase, parameterized.TestCase):
 
+  @parameterized.parameters(4, 8)
+  def test_make_equiangular_grid_contains_both_poles(self, resolution):
+    """Equiangular grid must contain both poles."""
+    _, colatitude = sphere_utils.make_equiangular_grid(resolution)
+    with self.subTest("North pole"):
+      self.assertAllClose(colatitude[0], np.zeros_like(colatitude[0]))
+    with self.subTest("South pole"):
+      self.assertAllClose(colatitude[-1], np.full_like(colatitude[-1], np.pi))
+
   @parameterized.parameters(4, 8, 16, 32)
   def test_spherical_cell_area_sum(self, resolution):
     """Sum of spherical cell areas must match spherical surface area."""

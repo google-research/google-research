@@ -17,9 +17,9 @@
 """Utilities for evaluating on sklearn models."""
 
 from typing import Any, List, Optional, Tuple
+from absl import logging
 import numpy as np
 import tensorflow.compat.v1 as tf
-from non_semantic_speech_benchmark import file_utils
 
 
 def tfexamples_to_nps(
@@ -45,34 +45,53 @@ def tfexamples_to_nps(
     (numpy array of embeddings, numpy array of labels)
   """
   # Read data from disk.
+  logging.info('About to read from "%s"...', path)
   itervalues_fn = get_itervalues_fn(path)
+  logging.info('Successfully created iterator.')
   embeddings, labels, speaker_ids = [], [], []
   for ex in itervalues_fn():
     feats = ex.features.feature
 
     # Read embeddings.
+    if embedding_name.startswith('embedding/'):
+      raise ValueError(f'Don\'t prepend embedding name: {embedding_name}')
     cur_emb = feats[f'embedding/{embedding_name}'].float_list.value
-    assert cur_emb, (f'embedding/{embedding_name}', path)
+    if not bool(cur_emb):
+      raise ValueError(f'Embeddings empty: embedding/{embedding_name} {path}')
     embeddings.append(cur_emb)
 
     # Read labels.
-    assert label_name in feats, (label_name, feats.keys())
+    if label_name not in feats:
+      raise ValueError(
+          f'`label_name` not in feats: {label_name} vs {feats.keys()}')
     cur_lbl = feats[label_name].bytes_list.value[0]
     assert isinstance(cur_lbl, bytes)
+    if cur_lbl.decode('utf-8') not in label_list:
+      raise ValueError(
+          f'Current label not found in label list: {cur_lbl} vs {label_list}')
     labels.append(label_list.index(cur_lbl.decode('utf-8')))
 
     # Read speaker ID, if necessary.
     if speaker_name:
-      assert speaker_name in feats
+      if speaker_name not in feats:
+        raise ValueError(
+            f'`speaker_name` not in feats: {speaker_name} vs {feats.keys()}')
       cur_spkr = feats[speaker_name].bytes_list.value[0]
-      assert cur_spkr
+      if not cur_spkr:
+        raise ValueError('speaker_name is empty')
       speaker_ids.append(cur_spkr)
 
   if not embeddings:
     raise ValueError(f'No embeddings found in {path}')
 
-  embeddings = np.array(embeddings, np.float32)
-  labels = np.array(labels, np.int16)
+  try:
+    embeddings = np.array(embeddings, np.float32)
+    labels = np.array(labels, np.int16)
+  except ValueError:
+    logging.warning(
+        '`tfexamples_to_nps` failed with the following inputs: %s, %s, %s, %s',
+        path, embedding_name, label_name, speaker_name)
+    raise
 
   # Perform L2 normalization.
   if l2_normalization:
@@ -110,7 +129,7 @@ def _speaker_normalization(embeddings,
 # generators.
 def get_tfrecord_iterator(glob, proto=tf.train.Example):
   def itervalues():
-    for path in file_utils.Glob(glob):
+    for path in tf.io.gfile.glob(glob):
       for raw_str in tf.python_io.tf_record_iterator(path):
         example = proto()
         example.ParseFromString(raw_str)

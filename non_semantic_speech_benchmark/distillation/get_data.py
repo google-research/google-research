@@ -23,6 +23,7 @@ import tensorflow as tf
 SAMPLES_ = 'samples_'
 TARGETS_ = 'targets_'
 LABELS_ = 'labels_'
+SPEAKER_IDS_ = 'speaker_ids_'
 
 AUTO_ = tf.data.experimental.AUTOTUNE
 
@@ -38,6 +39,7 @@ def get_data(file_pattern,
              teacher_fn = None,
              target_key = None,
              label_key = None,
+             speaker_id_key = None,
              shuffle_buffer_size = 10000):
   """Gets data for TRILL distillation from a teacher or precomputed values.
 
@@ -60,6 +62,7 @@ def get_data(file_pattern,
     target_key: Required if reading precomputed features. Location of the target
       embeddings.
     label_key: Optional name of label key in tf.Examples.
+    speaker_id_key: Location of speaker ID.
     shuffle_buffer_size: Size of shuffle buffer.
   Returns:
     A tf.data.Dataset of (audio samples, regression targets).
@@ -89,6 +92,13 @@ def get_data(file_pattern,
   if label_key:
     features[label_key] = tf.io.FixedLenFeature(shape=(), dtype=tf.string)
     rename_dict[LABELS_] = label_key
+
+  # Read the speaker ID if required.
+  if speaker_id_key:
+    if not label_key:
+      raise ValueError('Must use label_key if using speaker_id_key')
+    features[speaker_id_key] = tf.io.FixedLenFeature(shape=(), dtype=tf.string)
+    rename_dict[SPEAKER_IDS_] = speaker_id_key
 
   def _rename_dict(kv):
     return {k: kv[v] for k, v in rename_dict.items()}
@@ -131,18 +141,30 @@ def get_data(file_pattern,
 
   # Convert results to tuple.
   def _to_tup(kv):
-    return ((kv[SAMPLES_], kv[TARGETS_], kv[LABELS_]) if label_key else
-            (kv[SAMPLES_], kv[TARGETS_]))
+    if speaker_id_key:
+      assert label_key
+      return (kv[SAMPLES_], kv[TARGETS_], kv[LABELS_], kv[SPEAKER_IDS_])
+    elif label_key:
+      return (kv[SAMPLES_], kv[TARGETS_], kv[LABELS_])
+    else:
+      return (kv[SAMPLES_], kv[TARGETS_])
 
   ds = (ds.map(_to_tup, num_parallel_calls=AUTO_).prefetch(2))
-
-  assert len(ds.element_spec) == 3 if label_key else 2, ds.element_spec
+  if speaker_id_key:
+    expected_len = 4
+  elif label_key:
+    expected_len = 3
+  else:
+    expected_len = 2
+  assert len(ds.element_spec) == expected_len, ds.element_spec
   ds.element_spec[0].shape.assert_is_compatible_with(
       [None, min_length])  # audio samples
   ds.element_spec[1].shape.assert_is_compatible_with(
       [None, output_dimension])  # teacher embeddings
   if label_key:
     ds.element_spec[2].shape.assert_is_compatible_with([None])  # labels
+  if speaker_id_key:
+    ds.element_spec[3].shape.assert_is_compatible_with([None])  # speaker_id
 
   return ds
 

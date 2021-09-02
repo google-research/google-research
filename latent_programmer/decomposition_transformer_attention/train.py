@@ -67,8 +67,6 @@ flags.DEFINE_integer('per_device_batch_size', 16,
                      'Number of program tasks in a batch.')
 flags.DEFINE_integer('num_strings_per_task', 4,
                      'Number of input/output strings per task.')
-flags.DEFINE_integer('max_expressions', 10,
-                     'Maximum number of expressions in program.')
 flags.DEFINE_integer('max_program_length', 50,
                      'Maximum number of tokens in program.')
 flags.DEFINE_integer('max_characters', 100,
@@ -82,6 +80,10 @@ flags.DEFINE_integer('checkpoint_freq', 1000,
                      'Number of steps between checkpoint saves.')
 flags.DEFINE_bool('restore_checkpoints', True,
                   'Whether to restore from existing model checkpoints.')
+
+flags.DEFINE_boolean('bos_full_attention', False,
+                     'Whether to have BOS attend to all previous tokens '
+                     '(True), instead of just other BOS tokens (False).')
 
 
 def create_learning_rate_scheduler(
@@ -246,9 +248,11 @@ def train_step(optimizer,
   return new_optimizer, metrics, new_train_rng
 
 
-def eval_step(params, inputs, outputs, programs, config):
+def eval_step(params, inputs, outputs, programs, eos_token, config):
   weights = jnp.where(
-      jnp.logical_and(programs > 0, programs != config.bos_token),
+      jnp.logical_and(programs > 0,
+                      jnp.logical_and(programs != config.base_config.bos_token,
+                                      programs != eos_token)),
       1, 0).astype(jnp.float32)
   logits = models.DecomposeAttentionTransformer(config).apply(
       {'params': params}, inputs, outputs, programs)
@@ -259,11 +263,12 @@ def eval_step(params, inputs, outputs, programs, config):
 def initialize_cache(inputs, outputs, programs, max_decode_len, config):
   """Initialize a cache for a given input shape and max decode length."""
   target_shape = (programs.shape[0], max_decode_len)
+  dtype = config.base_config.dtype
   initial_variables = models.DecomposeAttentionTransformer(config).init(
       jax.random.PRNGKey(0),
-      jnp.ones(inputs.shape, config.dtype),
-      jnp.ones(outputs.shape, config.dtype),
-      jnp.ones(target_shape, config.dtype))
+      jnp.ones(inputs.shape, dtype),
+      jnp.ones(outputs.shape, dtype),
+      jnp.ones(target_shape, dtype))
   return initial_variables['cache']
 
 
@@ -330,7 +335,7 @@ def predict_step(params,
       tokens_ids_to_logits,
       beam_size=beam_size,
       alpha=0.6,
-      bos_token=config.bos_token,
+      bos_token=config.base_config.bos_token,
       eos_token=eos_token,
       max_decode_len=max_decode_len,
       slow_decode=slow_decode)
@@ -391,6 +396,11 @@ def eval_predicted(predicted, inputs, outputs, parse_beam_fn):
   return best_p, best_score
 
 
+def shorten(key):
+  splits = key.split('_')
+  return ''.join(s[0] for s in splits)
+
+
 def main(_):
   tf.enable_v2_behavior()
 
@@ -408,8 +418,8 @@ def main(_):
       if key not in hparam_str_dict:
         hparam_str_dict[key] = value
 
-  hparam_str = ','.join(['%s=%s' % (k, str(hparam_str_dict[k])) for k in
-                         sorted(hparam_str_dict.keys())])
+  hparam_str = ','.join(['%s=%s' % (shorten(k), str(hparam_str_dict[k]))
+                         for k in sorted(hparam_str_dict.keys())])
 
   # Number of local devices for this host.
   n_devices = jax.local_device_count()
@@ -484,7 +494,7 @@ def main(_):
 
   # Build Model and Optimizer
   # ---------------------------------------------------------------------------
-  train_config = base_models.TransformerConfig(
+  base_config = base_models.TransformerConfig(
       vocab_size=io_vocab_size,
       output_vocab_size=program_vocab_size,
       shift=True,
@@ -497,9 +507,16 @@ def main(_):
       deterministic=False,
       decode=False,
       bos_token=bos_token)
-  eval_config = train_config.replace(deterministic=True)
-  predict_config = train_config.replace(
-      shift=False, deterministic=True, decode=not FLAGS.slow_decode)
+  train_config = models.DecomposeAttentionTransformerConfig(
+      base_config=base_config,
+      bos_full_attention=FLAGS.bos_full_attention)
+  eval_config = models.DecomposeAttentionTransformerConfig(
+      base_config=base_config.replace(deterministic=True),
+      bos_full_attention=FLAGS.bos_full_attention)
+  predict_config = models.DecomposeAttentionTransformerConfig(
+      base_config=base_config.replace(
+          shift=False, deterministic=True, decode=not FLAGS.slow_decode),
+      bos_full_attention=FLAGS.bos_full_attention)
 
   rng = jax.random.PRNGKey(FLAGS.seed)
   rng = jax.random.fold_in(rng, jax.host_id())
@@ -545,7 +562,9 @@ def main(_):
           config=train_config),
       axis_name='batch')
   p_eval_step = jax.pmap(
-      functools.partial(eval_step, config=eval_config),
+      functools.partial(eval_step,
+                        eos_token=eos_token,
+                        config=eval_config),
       axis_name='batch')
   p_init_cache = jax.pmap(
       functools.partial(
@@ -576,10 +595,10 @@ def main(_):
     optimizer, metrics, train_rngs = p_train_step(
         optimizer, inputs, outputs, programs, train_rng=train_rngs)
     metrics_all.append(metrics)
+    is_last_step = step == FLAGS.num_train_steps - 1
 
     # Save a Checkpoint
-    if ((step % FLAGS.checkpoint_freq == 0 and step > 0) or
-        step == FLAGS.num_train_steps - 1):
+    if (step % FLAGS.checkpoint_freq == 0 and step > 0) or is_last_step:
       if jax.host_id() == 0:
         # Save unreplicated optimizer + model state.
         checkpoints.save_checkpoint(
@@ -588,7 +607,7 @@ def main(_):
             step)
 
     # Periodic metric handling.
-    if not step or step % FLAGS.log_freq != 0:
+    if not step or (step % FLAGS.log_freq != 0 and not is_last_step):
       continue
 
     logging.info('Gathering training metrics.')

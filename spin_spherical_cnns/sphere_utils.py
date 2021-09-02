@@ -24,6 +24,27 @@ import sympy.physics.wigner
 Array = Union[np.ndarray, jnp.ndarray]
 
 
+def make_equiangular_grid(resolution):
+  """Make equiangular grid on the sphere.
+
+  This is the grid used by Huffenberger and Wandelt, which includes both
+  poles. For resolution n:
+
+  longitude = 2*pi/n * j for 0 <= j < n
+  colatitude = pi/(n-1) * j for 0 <= j < n
+
+  Args:
+    resolution: grid resolution.
+
+  Returns:
+    Two float64 (resolution, resolution) matrices with longitude and
+    colatitude values.
+  """
+  longitude = np.linspace(0, 2*np.pi, resolution, endpoint=False)
+  colatitude = np.linspace(0, np.pi, resolution)
+  return np.meshgrid(longitude, colatitude)
+
+
 def sphere_quadrature_weights(resolution):
   """Returns spherical quadrature weights per latitude.
 

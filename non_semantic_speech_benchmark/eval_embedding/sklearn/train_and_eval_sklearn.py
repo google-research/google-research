@@ -19,12 +19,12 @@
 import os
 import pickle
 import time
-from typing import Tuple, Any
+from typing import Any, List, Optional, Tuple
 from absl import logging
 
 import numpy as np
+import tensorflow as tf
 
-from non_semantic_speech_benchmark import file_utils
 from non_semantic_speech_benchmark.eval_embedding import metrics
 from non_semantic_speech_benchmark.eval_embedding.sklearn import models
 from non_semantic_speech_benchmark.eval_embedding.sklearn import sklearn_utils
@@ -38,10 +38,10 @@ def train_and_get_score(embedding_name,
                         test_glob,
                         model_name,
                         l2_normalization,
-                        speaker_id_name=None,
-                        save_model_dir=None,
-                        save_predictions_dir=None,
-                        eval_metric='accuracy'):
+                        speaker_id_name = None,
+                        save_model_dir = None,
+                        save_predictions_dir = None,
+                        eval_metric = 'accuracy'):
   """Train and eval sklearn models on data.
 
   Args:
@@ -69,6 +69,7 @@ def train_and_get_score(embedding_name,
 
   # Read and validate data.
   def _read_glob(glob, name):
+    logging.info('Starting to read %s: %s', name, glob)
     s = time.time()
     npx, npy = sklearn_utils.tfexamples_to_nps(
         glob,
@@ -111,35 +112,35 @@ def train_and_get_score(embedding_name,
   eval_score, test_score = _calc_eval_scores(eval_metric, d, npx_eval, npy_eval,
                                              npx_test, npy_test)
   logging.info('Finished eval: %s: %.3f', model_name, eval_score)
-  logging.info('Finished eval: %s: %.3f', model_name, test_score)
+  logging.info('Finished test: %s: %.3f', model_name, test_score)
 
   # If `save_model_dir` is present, write model to this directory.
   # To load the model after saving, use:
   # ```python
-  # with file_utils.Open(model_filename, 'rb') as f:
+  # with tf.io.gfile.GFile(model_filename, 'rb') as f:
   #   m = pickle.load(f)
   # ```
   if save_model_dir:
     cur_models_dir = os.path.join(save_model_dir, embedding_name)
-    file_utils.MaybeMakeDirs(cur_models_dir)
+    tf.io.gfile.makedirs(cur_models_dir)
     model_filename = os.path.join(cur_models_dir, f'{model_name}.pickle')
-    with file_utils.Open(model_filename, 'wb') as f:
+    with tf.io.gfile.GFile(model_filename, 'wb') as f:
       pickle.dump(d, f)
 
   if save_predictions_dir:
     cur_preds_dir = os.path.join(save_predictions_dir, embedding_name)
-    file_utils.MaybeMakeDirs(cur_preds_dir)
+    tf.io.gfile.makedirs(cur_preds_dir)
     for dat_name, dat_x, dat_y in [('train', npx_train, npy_train),
                                    ('eval', npx_eval, npy_eval),
                                    ('test', npx_test, npy_test)]:
       pred_filename = os.path.join(cur_preds_dir,
                                    f'{model_name}_{dat_name}_pred.npz')
       pred_y = d.predict(dat_x)
-      with file_utils.Open(pred_filename, 'wb') as f:
+      with tf.io.gfile.GFile(pred_filename, 'wb') as f:
         np.save(f, pred_y)
       y_filename = os.path.join(cur_preds_dir,
                                 f'{model_name}_{dat_name}_y.npz')
-      with file_utils.Open(y_filename, 'wb') as f:
+      with tf.io.gfile.GFile(y_filename, 'wb') as f:
         np.save(f, dat_y)
 
   return (eval_score, test_score)
