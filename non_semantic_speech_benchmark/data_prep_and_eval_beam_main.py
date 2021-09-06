@@ -42,6 +42,7 @@ from non_semantic_speech_benchmark.eval_embedding.sklearn import train_and_eval_
 flags.DEFINE_string('train_input_glob', None, 'Glob for training data.')
 flags.DEFINE_string('validation_input_glob', None, 'Glob for validation data.')
 flags.DEFINE_string('test_input_glob', None, 'Glob for test data.')
+flags.DEFINE_bool('skip_existing_error', False, 'Skip existing errors.')
 
 # Flags needed for sklearn eval.
 flags.DEFINE_string('results_output_file', None, 'Output filename.')
@@ -57,6 +58,7 @@ FLAGS = flags.FLAGS
 def main(unused_argv):
 
   # Data prep setup.
+  run_data_prep = True
   if FLAGS.train_input_glob:
     assert FLAGS.validation_input_glob
     assert FLAGS.test_input_glob
@@ -73,6 +75,20 @@ def main(unused_argv):
   else:
     input_filenames_list, output_filenames, beam_params = data_prep.get_beam_params_from_flags(
     )
+  assert input_filenames_list, input_filenames_list
+  assert output_filenames, output_filenames
+  try:
+    # Check that inputs and flags are formatted correctly.
+    data_prep_utils.validate_inputs(
+        input_filenames_list, output_filenames,
+        beam_params['embedding_modules'], beam_params['embedding_names'],
+        beam_params['module_output_keys'])
+  except ValueError:
+    if FLAGS.skip_existing_error:
+      run_data_prep = False
+    else:
+      raise
+  logging.info('beam_params: %s', beam_params)
 
   # Generate sklearn eval experiment parameters based on data prep flags.
   if len(output_filenames) != 3:
@@ -81,32 +97,34 @@ def main(unused_argv):
   train_glob, eval_glob, test_glob = [f'{x}*' for x in output_filenames]
   sklearn_results_output_file = FLAGS.results_output_file
   exp_params = sklearn_utils.experiment_params(
-      FLAGS.embedding_names,
-      FLAGS.speaker_id_key,
-      FLAGS.label_key,
-      FLAGS.label_list,
-      train_glob,
-      eval_glob,
-      test_glob,
+      embedding_list=beam_params['embedding_names'],
+      speaker_id_name=FLAGS.speaker_id_key,
+      label_name=FLAGS.label_key,
+      label_list=FLAGS.label_list,
+      train_glob=train_glob,
+      eval_glob=eval_glob,
+      test_glob=test_glob,
       save_model_dir=None,
       save_predictions_dir=None,
       eval_metric=FLAGS.eval_metric,
   )
+  logging.info('exp_params: %s', exp_params)
 
   # Make and run beam pipeline.
   beam_options = None
 
-  logging.info('Data prep on: %s, %s...', input_filenames_list,
-               output_filenames)
-  with beam.Pipeline(beam_options) as root:
-    for i, (input_filenames_or_glob, output_filename) in enumerate(
-        zip(input_filenames_list, output_filenames)):
-      data_prep_utils.make_beam_pipeline(
-          root,
-          input_filenames=input_filenames_or_glob,
-          output_filename=output_filename,
-          suffix=str(i),
-          **beam_params)
+  if run_data_prep:
+    logging.info('Data prep on: %s, %s...', input_filenames_list,
+                 output_filenames)
+    with beam.Pipeline(beam_options) as root:
+      for i, (input_filenames_or_glob, output_filename) in enumerate(
+          zip(input_filenames_list, output_filenames)):
+        data_prep_utils.make_beam_pipeline(
+            root,
+            input_filenames=input_filenames_or_glob,
+            output_filename=output_filename,
+            suffix=str(i),
+            **beam_params)
 
   # Check that previous beam pipeline wrote outputs.
   sklearn_utils.validate_flags(train_glob, eval_glob, test_glob,

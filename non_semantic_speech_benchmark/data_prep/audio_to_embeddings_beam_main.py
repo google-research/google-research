@@ -131,10 +131,6 @@ def get_beam_params_from_flags():
   module_output_keys = _maybe_add_commas(FLAGS.module_output_keys,
                                          FLAGS.comma_escape_char)
 
-  # Check that inputs and flags are formatted correctly.
-  utils.validate_inputs(input_filenames_list, output_filenames,
-                        embedding_modules, embedding_names, module_output_keys)
-
   input_format = 'tfrecord'
   output_format = 'tfrecord'
 
@@ -166,6 +162,13 @@ def main(_):
 
   input_filenames_list, output_filenames, beam_params = get_beam_params_from_flags(
   )
+  # Check that inputs and flags are formatted correctly.
+  utils.validate_inputs(
+      input_filenames_list=input_filenames_list,
+      output_filenames=output_filenames,
+      embedding_modules=beam_params['embedding_modules'],
+      embedding_names=beam_params['embedding_names'],
+      module_output_keys=beam_params['module_output_keys'])
 
   # If you have custom beam options, add them here.
   beam_options = None
