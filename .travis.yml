@@ -80,6 +80,7 @@ env:
     - PROJECT="probabilistic_vqvae"
     - PROJECT="property_linking"
     - PROJECT="protoattend"
+    - PROJECT="proxy_rewards"
     - PROJECT="psycholab"
     - PROJECT="quantum_sample_learning"
     - PROJECT="rl4circopt"
