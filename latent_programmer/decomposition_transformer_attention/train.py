@@ -81,9 +81,9 @@ flags.DEFINE_integer('checkpoint_freq', 1000,
 flags.DEFINE_bool('restore_checkpoints', True,
                   'Whether to restore from existing model checkpoints.')
 
-flags.DEFINE_boolean('bos_full_attention', False,
-                     'Whether to have BOS attend to all previous tokens '
-                     '(True), instead of just other BOS tokens (False).')
+flags.DEFINE_string('attention_mask_type', 'bos_full_attention',
+                    'The kind of attention mask to use. Options are: baseline, '
+                    'bos_to_bos, bos_full_attention')
 
 
 def create_learning_rate_scheduler(
@@ -509,14 +509,14 @@ def main(_):
       bos_token=bos_token)
   train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
-      bos_full_attention=FLAGS.bos_full_attention)
+      attention_mask_type=FLAGS.attention_mask_type)
   eval_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config.replace(deterministic=True),
-      bos_full_attention=FLAGS.bos_full_attention)
+      attention_mask_type=FLAGS.attention_mask_type)
   predict_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config.replace(
           shift=False, deterministic=True, decode=not FLAGS.slow_decode),
-      bos_full_attention=FLAGS.bos_full_attention)
+      attention_mask_type=FLAGS.attention_mask_type)
 
   rng = jax.random.PRNGKey(FLAGS.seed)
   rng = jax.random.fold_in(rng, jax.host_id())
