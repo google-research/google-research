@@ -198,7 +198,7 @@ def model(flags):
   # [batch, time, feature]
   net = tf.keras.layers.Activation(flags.activation)(net)
   net = tf.keras.layers.MaxPool1D(
-      3, strides=blocks_pool[0], padding='valid')(
+      blocks_pool[0], strides=blocks_pool[0], padding='valid')(
           net)
 
   # second residual block
@@ -236,7 +236,7 @@ def model(flags):
   net = tf.keras.layers.Activation(flags.activation)(net)
   # [batch, time, feature]
   net = tf.keras.layers.MaxPool1D(
-      3, strides=blocks_pool[1], padding='valid')(
+      blocks_pool[1], strides=blocks_pool[1], padding='valid')(
           net)
 
   # third residual block
@@ -272,7 +272,7 @@ def model(flags):
   net = tf.keras.layers.Add()([net, residual])
   net = tf.keras.layers.Activation(flags.activation)(net)
   net = tf.keras.layers.MaxPool1D(
-      3, strides=blocks_pool[2], padding='valid')(
+      blocks_pool[2], strides=blocks_pool[2], padding='valid')(
           net)
   # [batch, time, feature]
 

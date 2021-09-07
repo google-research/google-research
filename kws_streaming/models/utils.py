@@ -190,6 +190,16 @@ def _get_state_shapes(model_states):
   return [state.shape for state in _flatten_nested_sequence(model_states)]
 
 
+def get_stride(model):
+  """Computes total stride of a model."""
+  stride = 1
+  for i in range(len(model.layers)):
+    layer = model.layers[i]
+    if hasattr(layer, 'stride'):
+      stride = stride * layer.stride()
+  return stride
+
+
 def convert_to_inference_model(model, input_tensors, mode):
   """Convert functional `Model` instance to a streaming inference.
 
