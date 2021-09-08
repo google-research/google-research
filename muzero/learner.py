@@ -26,84 +26,17 @@ import copy
 import os
 import time
 
-from absl import flags
 from absl import logging
 import numpy as np
 from seed_rl import grpc
-from seed_rl.common import common_flags  # pylint: disable=unused-import
 from seed_rl.common import utils
 from seed_rl.common.parametric_distribution import get_parametric_distribution_for_action_space
 import tensorflow as tf
 
 from muzero import core
+from muzero import learner_config
 from muzero import network
 
-
-SAVE_CHECKPOINT_SECS = flags.DEFINE_integer(
-    'save_checkpoint_secs', 1800, 'Checkpoint save period in seconds.')
-TOTAL_ITERATIONS = flags.DEFINE_integer('total_iterations', int(1e6),
-                                        'Total iterations to train for.')
-BATCH_SIZE = flags.DEFINE_integer('batch_size', 64, 'Batch size for training.')
-REPLAY_QUEUE_BLOCK = flags.DEFINE_integer(
-    'replay_queue_block', 0, 'Whether actors block when enqueueing.')
-RECURRENT_INFERENCE_BATCH_SIZE = flags.DEFINE_integer(
-    'recurrent_inference_batch_size', 32,
-    'Batch size for the recurrent inference.')
-INITIAL_INFERENCE_BATCH_SIZE = flags.DEFINE_integer(
-    'initial_inference_batch_size', 4, 'Batch size for initial inference.')
-NUM_TRAINING_TPUS = flags.DEFINE_integer('num_training_tpus', 1,
-                                         'Number of TPUs for training.')
-INIT_CHECKPOINT = flags.DEFINE_string(
-    'init_checkpoint', None,
-    'Path to the checkpoint used to initialize the agent.')
-NUM_ACTORS = flags.DEFINE_integer('num_actors', 10, 'Number of actors.')
-
-REPLAY_BUFFER_SIZE = flags.DEFINE_integer('replay_buffer_size', 1000,
-                                          'Size of the replay buffer.')
-REPLAY_QUEUE_SIZE = flags.DEFINE_integer('replay_queue_size', 100,
-                                         'Size of the replay queue.')
-REPLAY_BUFFER_UPDATE_PRIORITY_AFTER_SAMPLING_VALUE = flags.DEFINE_float(
-    'replay_buffer_update_priority_after_sampling_value', 1e-6,
-    'After sampling an episode from the replay buffer, the corresponding '
-    'priority is set to this value. For a value < 1, no priority update will '
-    'be done.')
-FLUSH_LEARNER_LOG_EVERY_N_S = flags.DEFINE_integer(
-    'flush_learner_log_every_n_s', 60,
-    'Size of the replay buffer (in number of batches stored).')
-ENABLE_LEARNER_LOGGING = flags.DEFINE_integer(
-    'enable_learner_logging', 1,
-    'If true (1), logs are written to tensorboard.')
-
-IMPORTANCE_SAMPLING_EXPONENT = flags.DEFINE_float(
-    'importance_sampling_exponent', 0.0,
-    'Exponent used when computing the importance sampling '
-    'correction. 0 means no importance sampling correction. '
-    '1 means full importance sampling correction.')
-PRIORITY_SAMPLING_EXPONENT = flags.DEFINE_float(
-    'priority_sampling_exponent', 0.0,
-    'For sampling from priority queue. 0 for uniform. The higher this value '
-    'the more likely it is to sample an instance for which the model predicts '
-    'a wrong value.'
-)
-LEARNER_SKIP = flags.DEFINE_integer('learner_skip', 0,
-                                    'How many batches the learner skips.')
-EXPORT_AGENT = flags.DEFINE_integer('export_agent', 0,
-                                    'Save the agent in ExportAgent format.')
-
-WEIGHT_DECAY = flags.DEFINE_float('weight_decay', 1e-5, 'l2 penalty')
-POLICY_LOSS_SCALING = flags.DEFINE_float('policy_loss_scaling', 1.0,
-                                         'Scaling for the policy loss term.')
-REWARD_LOSS_SCALING = flags.DEFINE_float('reward_loss_scaling', 1.0,
-                                         'Scaling for the policy loss term.')
-POLICY_LOSS_SCALING = flags.DEFINE_float(
-    'policy_loss_entropy_regularizer', 0.0,
-    'Entropy loss for the policy loss term.')
-GRADIENT_NORM_CLIP = flags.DEFINE_float('gradient_norm_clip', 0.0,
-                                        'Gradient norm clip (0 for no clip).')
-
-DEBUG = flags.DEFINE_boolean('debug', False, '')
-
-FLAGS = flags.FLAGS
 
 log_keys = []  # array of strings with names of values logged by compute_loss
 
@@ -120,10 +53,11 @@ def noop_decorator(func):
   return func
 
 
-def compute_pretrain_loss(parametric_action_distribution, agent,
+def compute_pretrain_loss(config: learner_config.LearnerConfig,
+                          parametric_action_distribution, agent,
                           importance_weights, *sample):
 
-  if FLAGS.debug and np.random.rand() < 1 / 50:
+  if config.debug and np.random.rand() < 1 / 50:
     logging.info('-------------------')
     logging.info('pretrain sample:')
     logging.info(sample)
@@ -134,8 +68,8 @@ def compute_pretrain_loss(parametric_action_distribution, agent,
   mean_loss = tf.math.divide_no_nan(
       tf.reduce_sum(loss), tf.reduce_sum(importance_weights))
 
-  if FLAGS.weight_decay > 0.:
-    l2_loss = FLAGS.weight_decay * sum(
+  if config.weight_decay > 0.:
+    l2_loss = config.weight_decay * sum(
         tf.nn.l2_loss(v)
         for v in agent.get_trainable_variables(pretraining=True))
   else:
@@ -164,7 +98,8 @@ def compute_pretrain_loss(parametric_action_distribution, agent,
   return total_loss, log_values
 
 
-def compute_loss(parametric_action_distribution, agent, importance_weights,
+def compute_loss(config: learner_config.LearnerConfig,
+                 parametric_action_distribution, agent, importance_weights,
                  observation, history, target_value_mask, target_reward_mask,
                  target_policy_mask, target_value, target_reward,
                  target_policy):
@@ -249,7 +184,7 @@ def compute_loss(parametric_action_distribution, agent, importance_weights,
     policy_loss = tf.nn.softmax_cross_entropy_with_logits(
         logits=prediction.policy_logits, labels=target_policy[:, tstep])
     entropy_loss = -parametric_action_distribution.entropy(
-        prediction.policy_logits) * FLAGS.policy_loss_entropy_regularizer
+        prediction.policy_logits) * config.policy_loss_entropy_regularizer
     accs['policy_loss'].append(
         scale_gradient(policy_loss + entropy_loss,
                        gradient_scales['policy'][tstep]))
@@ -275,7 +210,7 @@ def compute_loss(parametric_action_distribution, agent, importance_weights,
 
   accs = {k: tf.stack(v, -1) * masks[name_to_mask(k)] for k, v in accs.items()}
 
-  if FLAGS.debug and np.random.rand() < 1 / 50:
+  if config.debug and np.random.rand() < 1 / 50:
     logging.info('-------------------')
     logging.info(observation)
     for k, v in accs.items():
@@ -287,15 +222,15 @@ def compute_loss(parametric_action_distribution, agent, importance_weights,
     logging.info('importance_weights:\n{}'.format(importance_weights))
     logging.info('-------------------')
 
-  loss = accs['value_loss'] + FLAGS.reward_loss_scaling * accs[
-      'reward_loss'] + FLAGS.policy_loss_scaling * accs['policy_loss']
+  loss = accs['value_loss'] + config.reward_loss_scaling * accs[
+      'reward_loss'] + config.policy_loss_scaling * accs['policy_loss']
   loss = tf.reduce_sum(loss, -1)  # aggregating over time
   loss = loss * importance_weights  # importance sampling correction
   mean_loss = tf.math.divide_no_nan(
       tf.reduce_sum(loss), tf.reduce_sum(importance_weights))
 
-  if FLAGS.weight_decay > 0.:
-    l2_loss = FLAGS.weight_decay * sum(
+  if config.weight_decay > 0.:
+    l2_loss = config.weight_decay * sum(
         tf.nn.l2_loss(v)
         for v in agent.get_trainable_variables(pretraining=False))
   else:
@@ -362,6 +297,7 @@ def make_spec_from_gym_space(space, name):
 def learner_loop(env_descriptor,
                  create_agent_fn,
                  create_optimizer_fn,
+                 config: learner_config.LearnerConfig,
                  mzconfig,
                  pretraining=False):
   """Main learner loop.
@@ -376,14 +312,15 @@ def learner_loop(env_descriptor,
     create_optimizer_fn: Function that takes the final iteration as argument and
       must return a tf.keras.optimizers.Optimizer and a
       tf.keras.optimizers.schedules.LearningRateSchedule.
+    config: A LearnerConfig object.
     mzconfig: A MuZeroConfig object.
     pretraining: Do pretraining.
   """
   logging.info('Starting learner loop')
   validate_config()
-  settings = utils.init_learner(FLAGS.num_training_tpus)
+  settings = utils.init_learner(config.num_training_tpus)
   strategy, inference_devices, training_strategy, encode, decode = settings
-  tf_function = noop_decorator if FLAGS.debug else tf.function
+  tf_function = noop_decorator if config.debug else tf.function
   parametric_action_distribution = get_parametric_distribution_for_action_space(
       env_descriptor.action_space)
 
@@ -401,7 +338,7 @@ def learner_loop(env_descriptor,
   with strategy.scope():
     agent = create_agent_fn(env_descriptor, parametric_action_distribution)
   initial_agent_state = agent.initial_state(1)
-  if FLAGS.debug:
+  if config.debug:
     logging.info('initial state:\n{}'.format(initial_agent_state))
 
   agent_state_specs = tf.nest.map_structure(
@@ -414,7 +351,7 @@ def learner_loop(env_descriptor,
 
   zero_initial_args = [encode(zero_observation)]
   zero_recurrent_args = [encode(initial_agent_state), encode(zero_action)]
-  if FLAGS.debug:
+  if config.debug:
     logging.info('zero initial args:\n{}'.format(zero_initial_args))
     logging.info('zero recurrent args:\n{}'.format(zero_recurrent_args))
 
@@ -440,7 +377,7 @@ def learner_loop(env_descriptor,
 
   with strategy.scope():
     # Create optimizer.
-    optimizer, learning_rate_fn = create_optimizer_fn(FLAGS.total_iterations)
+    optimizer, learning_rate_fn = create_optimizer_fn(config.total_iterations)
 
     # pylint: disable=protected-access
     iterations = optimizer.iterations
@@ -470,9 +407,9 @@ def learner_loop(env_descriptor,
   @tf_function
   def _compute_loss(*args, **kwargs):
     if pretraining:
-      return compute_pretrain_loss(*args, **kwargs)
+      return compute_pretrain_loss(config, *args, **kwargs)
     else:
-      return compute_loss(*args, **kwargs)
+      return compute_loss(config, *args, **kwargs)
 
   @tf_function
   def minimize(iterator):
@@ -497,8 +434,8 @@ def learner_loop(env_descriptor,
     @tf_function
     def apply_gradients(_):
       grads = temp_grads
-      if FLAGS.gradient_norm_clip > 0.:
-        grads, _ = tf.clip_by_global_norm(grads, FLAGS.gradient_norm_clip)
+      if config.gradient_norm_clip > 0.:
+        grads, _ = tf.clip_by_global_norm(grads, config.gradient_norm_clip)
       optimizer.apply_gradients(
           zip(grads, agent.get_trainable_variables(pretraining=pretraining)))
 
@@ -507,10 +444,10 @@ def learner_loop(env_descriptor,
     return logs
 
   # Logging.
-  logdir = os.path.join(FLAGS.logdir, 'learner')
+  logdir = os.path.join(config.logdir, 'learner')
   summary_writer = tf.summary.create_file_writer(
       logdir,
-      flush_millis=FLAGS.flush_learner_log_every_n_s * 1000,
+      flush_millis=config.flush_learner_log_every_n_s * 1000,
       max_queue=int(1E6))
 
   # Setup checkpointing and restore checkpoint.
@@ -532,9 +469,9 @@ def learner_loop(env_descriptor,
     # If there is a checkpoint from pre-training specified, load it now.
     # Note that we only need to do this if we are not already restoring a
     # checkpoint from the actual training.
-    if INIT_CHECKPOINT.value is not None:
+    if config.init_checkpoint is not None:
       logging.info('Loading initial checkpoint from %s ...',
-                   INIT_CHECKPOINT.value)
+                   config.init_checkpoint)
       # We don't want to restore the optimizer from pretraining
       ckpt_without_optimizer = tf.train.Checkpoint(agent=agent)
       # Loading checkpoints from independent pre-training might miss, for
@@ -544,10 +481,10 @@ def learner_loop(env_descriptor,
       # We still want to catch cases where nothing at all matches, but can not
       # do anything stricter here.
       ckpt_without_optimizer.restore(
-          INIT_CHECKPOINT.value).assert_nontrivial_match()
+          config.init_checkpoint).assert_nontrivial_match()
       logging.info('Finished loading the initial checkpoint.')
 
-  server = grpc.Server([FLAGS.server_address])
+  server = grpc.Server([config.server_address])
 
   num_target_steps = mzconfig.num_unroll_steps + 1
   target_specs = (
@@ -584,18 +521,18 @@ def learner_loop(env_descriptor,
         tf.TensorSpec([], stat[1], stat[0])
         for stat in env_descriptor.extras.get('learner_stats', []))
 
-  replay_buffer_size = FLAGS.replay_buffer_size
+  replay_buffer_size = config.replay_buffer_size
   replay_buffer = utils.PrioritizedReplay(
       replay_buffer_size,
       replay_buffer_specs,
-      FLAGS.importance_sampling_exponent,
+      config.importance_sampling_exponent,
   )
 
   replay_queue_specs = (
       tf.TensorSpec([], tf.float32, 'priority'),
       *replay_buffer_specs,
   )
-  replay_queue_size = FLAGS.replay_queue_size
+  replay_queue_size = config.replay_queue_size
   replay_buffer_queue = utils.StructuredFIFOQueue(replay_queue_size,
                                                   replay_queue_specs)
 
@@ -629,7 +566,7 @@ def learner_loop(env_descriptor,
 
     @tf.function(
         input_signature=tf.nest.map_structure(
-            get_add_batch_size(FLAGS.initial_inference_batch_size),
+            get_add_batch_size(config.initial_inference_batch_size),
             initial_inference_specs))
     def initial_inference(observation):
       return make_inference_fn(inference_device, agent.initial_inference,
@@ -646,7 +583,7 @@ def learner_loop(env_descriptor,
 
     @tf.function(
         input_signature=tf.nest.map_structure(
-            get_add_batch_size(FLAGS.recurrent_inference_batch_size),
+            get_add_batch_size(config.recurrent_inference_batch_size),
             recurrent_inference_specs))
     def recurrent_inference(hidden_state, action):
       return make_inference_fn(inference_device, agent.recurrent_inference,
@@ -656,12 +593,12 @@ def learner_loop(env_descriptor,
 
   @tf.function(
       input_signature=tf.nest.map_structure(
-          get_add_batch_size(FLAGS.batch_size), replay_queue_specs))
+          get_add_batch_size(config.batch_size), replay_queue_specs))
   def add_to_replay_buffer(*batch):
     queue_size = replay_buffer_queue.size()
     num_free = replay_queue_size - queue_size
-    if not FLAGS.replay_queue_block and num_free < FLAGS.recurrent_inference_batch_size:
-      replay_buffer_queue.dequeue_many(FLAGS.recurrent_inference_batch_size)
+    if not config.replay_queue_block and num_free < config.recurrent_inference_batch_size:
+      replay_buffer_queue.dequeue_many(config.recurrent_inference_batch_size)
     replay_buffer_queue.enqueue_many(batch)
 
   @tf.function(input_signature=episode_stat_specs)
@@ -685,13 +622,13 @@ def learner_loop(env_descriptor,
 
     while tf.constant(True):
 
-      num_dequeues = FLAGS.learner_skip + 1
+      num_dequeues = config.learner_skip + 1
       if num_dequeues < 1:
         queue_size = replay_buffer_queue.size()
-        num_dequeues = tf.maximum(queue_size // FLAGS.batch_size - 1,
+        num_dequeues = tf.maximum(queue_size // config.batch_size - 1,
                                   tf.ones_like(queue_size))
       for _ in tf.range(num_dequeues):
-        batch = replay_buffer_queue.dequeue_many(FLAGS.batch_size)
+        batch = replay_buffer_queue.dequeue_many(config.batch_size)
         priorities, *samples = batch
         replay_buffer.insert(tuple(samples), priorities)
 
@@ -706,14 +643,14 @@ def learner_loop(env_descriptor,
       )
 
     indices, weights, replays = replay_buffer.sample(
-        ctx.get_per_replica_batch_size(FLAGS.batch_size),
-        FLAGS.priority_sampling_exponent)
-    if REPLAY_BUFFER_UPDATE_PRIORITY_AFTER_SAMPLING_VALUE.value >= 0.:
+        ctx.get_per_replica_batch_size(config.batch_size),
+        config.priority_sampling_exponent)
+    if config.replay_buffer_update_priority_after_sampling_value >= 0.:
       replay_buffer.update_priorities(
           indices,
           tf.convert_to_tensor(
               np.ones(indices.shape) *
-              REPLAY_BUFFER_UPDATE_PRIORITY_AFTER_SAMPLING_VALUE.value,
+              config.replay_buffer_update_priority_after_sampling_value,
               dtype=tf.float32))
 
     data = (weights, *replays)
@@ -739,14 +676,14 @@ def learner_loop(env_descriptor,
     last_iterations = iterations
     last_log_time = time.time()
     values_to_log = collections.defaultdict(lambda: [])
-    while iterations < FLAGS.total_iterations:
+    while iterations < config.total_iterations:
       tf.summary.experimental.set_step(iterations)
 
       # Save checkpoint.
       current_time = time.time()
-      if current_time - last_ckpt_time >= FLAGS.save_checkpoint_secs:
+      if current_time - last_ckpt_time >= config.save_checkpoint_secs:
         manager.save()
-        if FLAGS.export_agent:
+        if config.export_agent:
           # We also export the agent as a SavedModel to be used for inference.
           saved_model_dir = os.path.join(logdir, 'saved_model')
           network.export_agent_for_initial_inference(
@@ -796,8 +733,8 @@ def learner_loop(env_descriptor,
 
       logs = minimize(it)
 
-      if (FLAGS.enable_learner_logging == 1
-          and iterations % FLAGS.log_frequency == 0):
+      if (config.enable_learner_logging == 1 and
+          iterations % config.log_frequency == 0):
         for per_replica_logs in logs:
           assert len(log_keys) == len(per_replica_logs)
           for key, value in zip(log_keys, per_replica_logs):
