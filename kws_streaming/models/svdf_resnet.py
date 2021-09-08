@@ -16,6 +16,7 @@
 """SVDF model with Mel spectrum and fully connected layers + residual."""
 from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
+from kws_streaming.layers import stream
 from kws_streaming.layers import svdf
 from kws_streaming.layers.compat import tf
 import kws_streaming.models.model_utils as utils
@@ -278,9 +279,16 @@ def model(flags):
 
   # convert all feature to one vector
   if flags.flatten:
-    net = tf.keras.layers.Flatten()(net)
+    net = stream.Stream(use_one_step=False, cell=tf.keras.layers.Flatten())(net)
   else:
-    net = tf.keras.layers.GlobalAveragePooling1D()(net)
+    net = tf.keras.backend.expand_dims(net, axis=2)
+    net = stream.Stream(
+        use_one_step=False,
+        cell=tf.keras.layers.AveragePooling2D(
+            pool_size=(int(net.shape[1]), int(net.shape[2]))))(
+                net)
+
+  net = tf.keras.layers.Flatten()(net)
 
   # [batch, feature]
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)
