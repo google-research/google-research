@@ -1,31 +1,15 @@
 # coding=utf-8
-# Copyright 2019 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Baseline Learning-to-Reweight method."""
 
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_function
 
 from absl import flags
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 from ieg.models import networks
 from ieg.models.basemodel import BaseModel
-
-import numpy as np
-import tensorflow.compat.v1 as tf
-from tqdm import tqdm
 
 FLAGS = flags.FLAGS
 
@@ -38,7 +22,6 @@ class L2R(BaseModel):
 
   def __init__(self, sess, strategy, dataset):
     super(L2R, self).__init__(sess, strategy, dataset)
-    tf.logging.info('Init L2R model')
     self.strategy = strategy
 
     if FLAGS.use_ema:
@@ -46,29 +29,27 @@ class L2R(BaseModel):
 
   def set_input(self):
     train_ds = self.dataset.train_dataflow.shuffle(
-        buffer_size=self.batch_size*10).repeat().batch(
+        buffer_size=self.batch_size * 10).repeat().batch(
             self.batch_size, drop_remainder=True).prefetch(
                 buffer_size=tf.data.experimental.AUTOTUNE)
     probe_ds = self.dataset.probe_dataflow.repeat().batch(
-        self.batch_size, drop_remainder=True).prefetch(
-            buffer_size=tf.data.experimental.AUTOTUNE)
+        self.batch_size,
+        drop_remainder=True).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
     val_ds = self.dataset.val_dataflow.batch(
-        FLAGS.val_batch_size, drop_remainder=True).prefetch(
-            buffer_size=tf.data.experimental.AUTOTUNE)
+        FLAGS.val_batch_size,
+        drop_remainder=True).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     joint_ds = tf.data.Dataset.zip((train_ds, probe_ds))
     self.train_input_iterator = self.strategy.make_dataset_iterator(joint_ds)
     self.eval_input_iterator = self.strategy.make_dataset_iterator(val_ds)
 
-  def set_dataset(self, dataset):
-    with self.strategy.scope():
-      self.dataset = dataset.create_loader()
+  def get_lookhead_variables(self, variables):
+    """Extract intersting variables to lookahead."""
+    all_vars = self.net.get_partial_variables(level=FLAGS.meta_partial_level)
+    tf.logging.info('Get {} lookahead variables from {} totally \n {}'.format(
+        len(all_vars), len(variables), all_vars))
 
-  def create_graph(self):
-    # splitted two graph with no connection
-    with self.strategy.scope():
-      self.train_op = self.train_step()
-      self.eval_op = self.eval_step()
+    return all_vars
 
   def meta_optimize(self, net_cost):
     """Meta optimization step."""
@@ -89,7 +70,8 @@ class L2R(BaseModel):
     lookahead_loss = lookahead_loss + net.regularization_loss
 
     with tf.control_dependencies([lookahead_loss]):
-      train_vars = net.trainable_variables
+      # train_vars = net.trainable_variables
+      train_vars = self.get_lookhead_variables(net.trainable_variables)
       var_grads = tf.gradients(
           lookahead_loss, train_vars, gate_gradients=gate_gradients)
 
@@ -148,36 +130,30 @@ class L2R(BaseModel):
       self.sess.run([self.eval_input_iterator.initializer])
       iter_epoch = self.iter_epoch
 
-      self.saver = tf.train.Saver(max_to_keep=4)
-      if FLAGS.restore_step != 0:
-        self.load_model()
-        FLAGS.restore_step = self.global_step.eval()
-
-      pbar = tqdm(total=(FLAGS.max_iteration - FLAGS.restore_step))
-      tf.logging.info('Starts to train')
-      for iteration in range(FLAGS.restore_step + 1, FLAGS.max_iteration + 1):
+      self.saver = tf.train.Saver(max_to_keep=3)
+      self.load_model()
+      restore_step = self.global_step.eval()
+      for iteration in range(restore_step + 1, FLAGS.max_iteration + 1):
         self.update_learning_rate(iteration)
-        lr, net_loss, meta_loss, acc, meta_acc,\
-                          merged_summary, weights =\
-                          self.sess.run([self.learning_rate]+self.train_op)
-        pbar.update(1)
+        (lr, net_loss, meta_loss, acc, meta_acc, merged_summary,
+         weights) = self.sess.run([self.learning_rate] + self.train_op)
         message = ('Epoch {}[{}/{}] lr{:.3f} meta_loss:{:.2f} loss:{:.2f} '
                    'weight{:.2f}({:.2f}) acc:{:.2f} mata_acc{:.2f}').format(
                        iteration // iter_epoch, iteration % iter_epoch,
                        iter_epoch, lr, float(meta_loss), float(net_loss),
                        float(np.mean(weights)), float(np.std(weights)),
                        float(acc), float(meta_acc))
-        pbar.set_description(message)
-        self.summary_writer.add_summary(merged_summary, iteration)
+        if iteration % 10 == 0 or iteration == 1:
+          self.write_to_summary(self.summary_writer, merged_summary, iteration)
 
         # checkpoint
         if self.time_for_evaluation(iteration, lr):
           tf.logging.info(message)
           self.evaluate(iteration, lr)
           self.save_model(iteration)
-          self.summary_writer.flush()
-      # end of iterations
-      pbar.close()
+          self.write_to_summary(
+              self.summary_writer, merged_summary, iteration, flush=True)
+      # End of iterations
 
   def train_step(self):
 
@@ -210,13 +186,13 @@ class L2R(BaseModel):
       acc_op, acc_update_op = self.acc_func(labels, tf.argmax(logits, axis=1))
 
       with tf.control_dependencies([optimizer_op, acc_update_op]):
-        return tf.identity(net_loss), tf.identity(meta_loss),\
-               tf.identity(meta_acc), tf.identity(acc_op),\
-               tf.identity(weight), tf.identity(labels)
+        return (tf.identity(net_loss), tf.identity(meta_loss),
+                tf.identity(meta_acc), tf.identity(acc_op), tf.identity(weight),
+                tf.identity(labels))
 
     # end of parallel
-    (pr_net_loss, pr_metaloss, pr_metaacc, pr_acc,
-     pr_weight, pr_labels) = self.strategy.run(
+    (pr_net_loss, pr_metaloss, pr_metaacc, pr_acc, pr_weight,
+     pr_labels) = self.strategy.run(
          step_fn, args=(next(self.train_input_iterator),))
 
     # collect device variables
@@ -245,15 +221,17 @@ class L2R(BaseModel):
                 tf.cast(tf.size(zw_inds), tf.float32),
                 tf.cast(tf.size(weights), tf.float32))))
 
-    self.epoch_var = tf.cast(
-        self.global_step / self.iter_epoch, tf.float32, name='epoch')
+    self.epoch_var = tf.cast(self.global_step / self.iter_epoch, tf.float32)
     merges.append(tf.summary.scalar('epoch', self.epoch_var))
     merges.append(tf.summary.scalar('learningrate', self.learning_rate))
-    merges.append(
-        tf.summary.scalar('acc/eval_on_train', self.eval_acc_on_train[0]))
-    merges.append(
-        tf.summary.scalar('acc/eval_on_train_top5', self.eval_acc_on_train[1]))
-    merges.append(tf.summary.scalar('acc/num_eval', self.eval_acc_on_train[2]))
+    if hasattr(self, 'eval_acc_on_train'):
+      merges.append(
+          tf.summary.scalar('acc/eval_on_train', self.eval_acc_on_train[0]))
+      merges.append(
+          tf.summary.scalar('acc/eval_on_train_top5',
+                            self.eval_acc_on_train[1]))
+      merges.append(
+          tf.summary.scalar('acc/num_eval', self.eval_acc_on_train[2]))
     summary = tf.summary.merge(merges)
 
     return [net_loss, meta_loss, mean_acc, mean_metaacc, summary, weights]

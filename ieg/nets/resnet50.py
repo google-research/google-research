@@ -1,4 +1,5 @@
 # coding=utf-8
+# coding=utf-8
 """Contains definitions for Residual Networks.
 
 Residual networks ('v1' ResNets) were originally proposed in:
@@ -16,12 +17,12 @@ rather than after.
 
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_function
 
 from absl import flags
+import tensorflow.compat.v1 as tf
+
 from ieg import utils
 from ieg.models.networks import StrategyNetBase
-import tensorflow.compat.v1 as tf
 
 FLAGS = flags.FLAGS
 
@@ -520,8 +521,7 @@ class Model(object):
       var = getter(name, shape, tf.float32, *args, **kwargs)
       return tf.cast(var, dtype=dtype, name=name + '_cast')
     else:
-      return getter(name, shape, dtype,
-                    *args, **kwargs)
+      return getter(name, shape, dtype, *args, **kwargs)
       # pylint: disable=keyword-arg-before-vararg
 
   def _model_variable_scope(self):
@@ -683,7 +683,7 @@ class ImagenetModelv2(Model, StrategyNetBase):
 
     self.weight = weight
     self.wd = weight_decay_rate
-
+    StrategyNetBase.__init__(self)
     super(ImagenetModelv2, self).__init__(
         resnet_size=resnet_size,
         bottleneck=bottleneck,
@@ -718,13 +718,11 @@ class ImagenetModelv2(Model, StrategyNetBase):
     """Forward pass."""
 
     self.name = name
-    # name = 'resnet_model'
     with tf.variable_scope(
         name, reuse=reuse, custom_getter=custom_getter, dtype=tf.float32):
 
       logits = super(ImagenetModelv2, self).__call__(inputs, training)
 
-      # if reuse is not True:
       if not isinstance(reuse, bool) or not reuse:
         # when use AUTO_REUSE, the model is copied at different deivces.
         # we still want to initialize the following variables.

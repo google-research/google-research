@@ -1,9 +1,10 @@
-tensorflow==2.3.0
+tensorflow==2.5.0
 tqdm
 absl-py
 numpy
 sklearn
-gast==0.2.2
+gast==0.4.0
 tensorflow_datasets==2.1.0
 tensorflow_addons
 Pillow
+tenacity
