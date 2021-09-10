@@ -86,7 +86,7 @@ class FeedForwardLayer(nn.Module):
 class FourierTransform(nn.Module):
   """Fourier Transform layer.
 
-  Applies 2D Fourier transform over final two dimensions of inputs - typically
+  Applies 2D Fourier Transform over final two dimensions of inputs - typically
   the sequence and hidden dimensions.
 
   Attributes:
@@ -108,7 +108,7 @@ class FourierTransform(nn.Module):
       deterministic: Ignored. Whether or not to apply dropout to input.
 
     Returns:
-      Real part of discrete Fourier transform of inputs with shape
+      Real part of discrete Fourier Transform of inputs with shape
         <float>[BATCH_SIZE, MAX_SEQ_LENGTH, HIDDEN_DIM].
     """
     del padding_mask  # Only used by self-attention sublayer.

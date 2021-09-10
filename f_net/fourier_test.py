@@ -55,19 +55,6 @@ class FourierTest(absltest.TestCase):
         self.assertSequenceAlmostEqual(
             actual_output[i], expected_output[i], delta=delta)
 
-  def test_loop_fftn(self):
-    inputs = jnp.array(
-        [[1, 1, 0, 1, 0, -2, 8, -1], [0, -11, 11, 12, 0, -22, 348, -1],
-         [1, 15, 4, 4, 0, 0, -8, 1]],
-        dtype=jnp.float32)
-    actual_output = fourier.fftn(inputs)
-    expected_output = np.fft.fftn(inputs)
-
-    for i in range(3):
-      # Compare results row by row.
-      self.assertSequenceAlmostEqual(
-          actual_output[i], expected_output[i], delta=1e-4)
-
 
 if __name__ == "__main__":
   absltest.main()

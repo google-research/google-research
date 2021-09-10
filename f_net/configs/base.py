@@ -16,28 +16,40 @@
 """Base template config for pre-training and fine-tuning."""
 
 import enum
-
 import ml_collections
 
 
 class ModelArchitecture(enum.Enum):
   """Determines model architecture - in particular, the mixing layer."""
   BERT = 'bert'
-  F_NET = 'f_net'
+  F_NET = 'f_net'  # Fourier Transform mixing
   FF_ONLY = 'ff_only'  # Feed forward sublayers only; no token mixing
   LINEAR = 'linear'  # Matrix multiplications with learnable weights
   RANDOM = 'random'  # Constant, random matrix multiplications
 
 
-class TrainingMode(enum.Enum):
+class TrainingMode(str, enum.Enum):
   """Determines type of training."""
   PRETRAINING = 'pretraining'
   CLASSIFICATION = 'classification'
 
 
+class HybridAttentionLayout(str, enum.Enum):
+  """Where, in hybrid models, attention sublayers replace mixing sublayers."""
+  BOTTOM = 'bottom'  # First mixing sublayers.
+  MIDDLE = 'middle'  # Middle mixing sublayers.
+  MIXED = 'mixed'  # Interspersed throughout model.
+  TOP = 'top'  # Final mixing sublayers.
+
+
 def get_config():
   """Base config for training models."""
   config = ml_collections.ConfigDict()
+
+  # Determines which model to use.
+  # Specific mixing sublayers may be replaced with attention using
+  # config.attention_layout and config.num_attention_layers.
+  config.model_arch: ModelArchitecture = ModelArchitecture.F_NET
 
   # How often to save the model checkpoint.
   config.save_checkpoints_steps: int = 1000
@@ -52,7 +64,7 @@ def get_config():
   # The base learning rate for Adam.
   config.learning_rate: float = 1e-4
 
-  # Initial checkpoint directory (usually from a pre-trained model).
+  # Initial checkpoint directory or filepath (usually from a pre-trained model).
   config.init_checkpoint_dir: str = ''
 
   # Whether to lower case the input text. Should be True for uncased models and
@@ -82,12 +94,18 @@ def get_config():
   # Dropout rate used in mixing module, e.g. self-attention sublayer.
   config.mixing_dropout_rate: float = 0.1
 
-  # Determines how discrete Fourier Transforms are computed. Only used for FNet
-  # models. Set to true if running on TPU hardware, in which case matrix
-  # multiplications will be favored for relatively shorter input sequences. Set
-  # to false for GPU/CPU hardware, in which case FFTs are used for all input
-  # sequence lengths.
-  config.use_tpu_fourier_optimizations: bool = False
+  # Determines whether or not the FFT is used in lieu of matrix multiplications.
+  # Only relevant for FNet: If true, favor FFT over matrix multiplications to
+  # compute the DFT.
+  config.use_fft: bool = True
+
+  # For hybrid models, attention layers replace a subset of the mixing
+  # sublayers.
+  config.attention_layout: HybridAttentionLayout = HybridAttentionLayout.TOP
+  config.num_attention_layers: int = 0
+
+  # Random number generator seed.
+  config.seed: int = 0
 
   # Dummy parameter for repeated runs.
   config.trial: int = 0

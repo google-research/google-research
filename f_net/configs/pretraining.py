@@ -32,9 +32,9 @@ def get_config():
   config.mode: TrainingMode = TrainingMode.PRETRAINING
 
   # Total batch size for training.
-  config.train_batch_size: int = 256
+  config.train_batch_size: int = 64
   # Total batch size for eval.
-  config.eval_batch_size: int = 256
+  config.eval_batch_size: int = 64
 
   # The base learning rate for Adam.
   config.learning_rate: float = 1e-4
@@ -53,7 +53,7 @@ def get_config():
   config.eval_frequency: int = 2000
 
   # Maximum number of eval steps.
-  config.max_num_eval_steps: int = 1000
+  config.max_num_eval_steps: int = 100
 
   # Do not start from a pre-trained checkpoint.
   config.init_checkpoint_dir: str = ''

@@ -17,7 +17,6 @@
 
 import functools
 import os
-import time
 from typing import Any, Dict, Mapping, Tuple
 
 from absl import logging
@@ -103,8 +102,8 @@ def _create_adam_optimizer(learning_rate,
 
 def _compute_loss_and_metrics(
     params, batch, rng,
-    model
-):
+    model,
+    pad_id):
   """Computes cross-entropy loss and metrics for MLM and NSP tasks.
 
   Args:
@@ -112,13 +111,15 @@ def _compute_loss_and_metrics(
     batch: Current batch of examples.
     rng: Random number generator key.
     model: The model itself. Flax separates model state and architecture.
+    pad_id: Token ID representing padding. A mask is used to distinguish padding
+      from actual inputs.
 
   Returns:
     Model loss and raw metrics (predictions and example labels).
   """
   inputs = {
       "input_ids": batch["input_ids"],
-      "input_mask": (batch["input_ids"] > 0).astype(np.int32),
+      "input_mask": (batch["input_ids"] != pad_id).astype(np.int32),
       "type_ids": batch["type_ids"],
       "masked_lm_positions": batch["masked_lm_positions"],
       "masked_lm_labels": batch["masked_lm_ids"],
@@ -130,21 +131,24 @@ def _compute_loss_and_metrics(
   return metrics["loss"], metrics
 
 
-def _compute_eval_metrics(params, batch,
-                          model):
-  """Computes pre-training task predictions and metrics.
+def _compute_eval_stats(params, batch,
+                        model,
+                        pad_id):
+  """Computes pre-training task predictions and stats.
 
   Args:
     params: Model state (parameters).
     batch: Current batch of examples.
     model: The model itself. Flax separates model state and architecture.
+    pad_id: Token ID representing padding. A mask is used to distinguish padding
+      from actual inputs.
 
   Returns:
     Model predictions and metrics.
   """
   inputs = {
       "input_ids": batch["input_ids"],
-      "input_mask": (batch["input_ids"] > 0).astype(np.int32),
+      "input_mask": (batch["input_ids"] != pad_id).astype(np.int32),
       "type_ids": batch["type_ids"],
       "masked_lm_positions": batch["masked_lm_positions"],
       "masked_lm_labels": batch["masked_lm_ids"],
@@ -185,10 +189,8 @@ def _compute_loss_and_accuracy_metrics(
   return metrics
 
 
-def train_and_evaluate(config,
-                       workdir,
-                       vocab_filepath,
-                       random_seed = 0):
+def train_and_evaluate(config, workdir,
+                       vocab_filepath):
   """Runs a training and evaluation loop.
 
   Args:
@@ -197,7 +199,6 @@ def train_and_evaluate(config,
       this contains a checkpoint, training will be resumed from the latest
       checkpoint.
     vocab_filepath: Absolute path to SentencePiece vocab model.
-    random_seed: Random number generator seed.
 
   Raises:
     ValueError: If training or eval batch sizes won't fit number of processes
@@ -234,7 +235,7 @@ def train_and_evaluate(config,
     train_summary_writer = None
     eval_summary_writer = None
 
-  rng = random.PRNGKey(random_seed)
+  rng = random.PRNGKey(config.seed)
   rng, init_rng = random.split(rng)
 
   tokenizer = spm.SentencePieceProcessor()
@@ -245,7 +246,7 @@ def train_and_evaluate(config,
   with config.unlocked():
     config.vocab_size = tokenizer.GetPieceSize()
   frozen_config = ml_collections.FrozenConfigDict(config)
-  model = models.PreTrainingModel(config=frozen_config, random_seed=random_seed)
+  model = models.PreTrainingModel(config=frozen_config, random_seed=config.seed)
 
   params = _init_params(model, init_rng, frozen_config)
 
@@ -280,15 +281,16 @@ def train_and_evaluate(config,
       masking_rate=config.masking_rate,
       mask_token_proportion=config.mask_token_proportion,
       random_token_proportion=config.random_token_proportion)
-  train_iter = c4_masked_lm_inputs(batch_size=per_process_train_batch_size)
-  eval_iter = c4_masked_lm_inputs(batch_size=per_process_eval_batch_size)
+  train_ds = c4_masked_lm_inputs(batch_size=per_process_train_batch_size)
+  train_iter = iter(train_ds)
+  eval_ds = c4_masked_lm_inputs(batch_size=per_process_eval_batch_size)
 
   # We init the first set of dropout PRNG keys, but update it afterwards inside
   # the main pmap'd training update for performance.
   rngs = random.split(rng, n_devices)
 
   loss_and_metrics_fn = functools.partial(
-      _compute_loss_and_metrics, model=model)
+      _compute_loss_and_metrics, model=model, pad_id=tokenizer.pad_id())
   p_train_step = jax.pmap(
       functools.partial(
           train_utils.train_step,
@@ -297,24 +299,24 @@ def train_and_evaluate(config,
           clipped_grad_norm=config.clipped_grad_norm),
       axis_name="batch")
 
-  metric_fn = functools.partial(_compute_eval_metrics, model=model)
+  metric_fn = functools.partial(
+      _compute_eval_stats, model=model, pad_id=tokenizer.pad_id())
   p_eval_step = jax.pmap(
       functools.partial(train_utils.eval_step, metric_fn=metric_fn),
       axis_name="batch")
 
   train_metrics = []
-  seconds = 0.0
   logging.info("Starting training loop.")
   logging.info("====================")
 
-  for step, train_batch in zip(
-      range(start_step, config.num_train_steps), train_iter):
-    train_batch = common_utils.shard(train_batch)
-    curr_time = time.time()
-    optimizer, train_step_metrics, rngs = p_train_step(
-        optimizer, train_batch, rng=rngs)
-    seconds += time.time() - curr_time
-    train_metrics.append(train_step_metrics)
+  for step in range(start_step, config.num_train_steps):
+    with jax.profiler.StepTraceContext("train", step_num=step):
+      train_batch = next(train_iter)
+      train_batch = common_utils.shard(train_batch)
+
+      optimizer, train_step_metrics, rngs = p_train_step(
+          optimizer, train_batch, rng=rngs)
+      train_metrics.append(train_step_metrics)
 
     if (step > 0 and config.save_checkpoints_steps and
         step % config.save_checkpoints_steps == 0 and jax.process_index() == 0):
@@ -338,28 +340,25 @@ def train_and_evaluate(config,
 
     if jax.process_index() == 0:
       assert train_summary_writer
-
-      steps_per_sec = (step - start_step + 1) / seconds
-      train_summary_writer.scalar("steps per second", steps_per_sec, step)
-
       for key, val in train_summary.items():
         train_summary_writer.scalar(key, val, step)
       train_summary_writer.flush()
-    # Reset metric accumulation for next evaluation cycle.
+    # Reset metric accumulation for next training evaluation cycle.
     train_metrics = []
 
     logging.info("Gathering evaluation metrics at step: %d", step)
-    eval_metrics = []
-    for _, eval_batch in zip(range(config.max_num_eval_steps), eval_iter):
+
+    all_stats = []
+    for _, eval_batch in zip(range(config.max_num_eval_steps), eval_ds):
       eval_batch = common_utils.shard(eval_batch)
-      metrics = p_eval_step(optimizer.target, eval_batch)
-      eval_metrics.append(metrics)
-    eval_metrics = common_utils.get_metrics(eval_metrics)
-    eval_metrics = _compute_loss_and_accuracy_metrics(eval_metrics)
+      all_stats.append(p_eval_step(optimizer.target, eval_batch))
+    flat_stats = {}
+    for k in all_stats[0]:
+      flat_stats[k] = np.concatenate([stats[k] for stats in all_stats], axis=0)
+    eval_summary = _compute_loss_and_accuracy_metrics(flat_stats)
 
     if jax.process_index() == 0:
       assert eval_summary_writer
-
-      for key, val in eval_metrics.items():
+      for key, val in eval_summary.items():
         eval_summary_writer.scalar(key, val, step)
       eval_summary_writer.flush()

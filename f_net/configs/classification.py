@@ -57,7 +57,7 @@ def get_config():
   # be less for small eval datasets.
   config.max_num_eval_steps: int = int(1e5)
 
-  # Initial checkpoint directory (usually from a pre-trained model).
+  # Initial checkpoint directory or filepath (usually from a pre-trained model).
   config.init_checkpoint_dir: str = ""
 
   # Dummy attribute for repeated runs.
