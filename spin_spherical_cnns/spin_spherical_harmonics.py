@@ -39,6 +39,7 @@ resolutions and spins, as required by a SWSCNN model, and also encapsulates the
 forward and inverse transforms.
 """
 
+import functools
 from typing import Collection, Optional, Union
 import jax
 import jax.numpy as jnp
@@ -302,7 +303,7 @@ class SpinSphericalFourierTransformer:
     # Return the top half.
     return _ifft2(ft)[:2*(ell_max+1)] * ft.size
 
-  @jax.partial(jax.vmap, in_axes=(None, -1, None), out_axes=-1)
+  @functools.partial(jax.vmap, in_axes=(None, -1, None), out_axes=-1)
   def swsft_forward_spins_channels(self,
                                    sphere_set,
                                    spins):
@@ -319,7 +320,7 @@ class SpinSphericalFourierTransformer:
     return jnp.stack([self.swsft_forward(sphere_set[Ellipsis, i], spin)
                       for i, spin in enumerate(spins)], axis=-1)
 
-  @jax.partial(jax.vmap, in_axes=(None, -1, None), out_axes=-1)
+  @functools.partial(jax.vmap, in_axes=(None, -1, None), out_axes=-1)
   def swsft_backward_spins_channels(self,
                                     coeffs_set,
                                     spins):
