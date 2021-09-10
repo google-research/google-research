@@ -83,6 +83,7 @@ env:
     - PROJECT="proxy_rewards"
     - PROJECT="psycholab"
     - PROJECT="quantum_sample_learning"
+    - PROJECT="realformer"
     - PROJECT="rl4circopt"
     - PROJECT="rllim"
     - PROJECT="robust_loss"
