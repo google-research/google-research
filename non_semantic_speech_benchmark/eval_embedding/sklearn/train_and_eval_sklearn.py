@@ -276,6 +276,10 @@ def validate_flags(train_glob, eval_glob, test_glob,
   if not tf.io.gfile.glob(test_glob):
     raise ValueError(f'Files not found: {test_glob}')
 
+  outputs = tf.io.gfile.glob(f'{output_file}*')
+  if outputs:
+    raise ValueError(f'Output file already exists: {outputs}')
+
   # Create output directory if it doesn't already exist.
   outdir = os.path.dirname(output_file)
   tf.io.gfile.makedirs(outdir)
