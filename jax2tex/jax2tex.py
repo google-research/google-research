@@ -43,7 +43,7 @@ from jax import tree_util
 from jax import util
 
 from jax.abstract_arrays import ShapedArray
-from jax.api import make_jaxpr
+from jax import make_jaxpr
 from jax.core import Primitive
 from jax.interpreters import ad
 from jax.interpreters import batching
