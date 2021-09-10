@@ -85,18 +85,16 @@ def get_data(
              num_parallel_calls=tf.data.experimental.AUTOTUNE)
         .map(_remove_batchdim_one,
              num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        .apply(
-            tf.data.experimental.bucket_by_sequence_length(
-                element_length_func=lambda emb, lbl: tf.shape(emb)[0],
-                bucket_boundaries=bucket_boundaries,
-                bucket_batch_sizes=bucket_batch_sizes,
-                padded_shapes=None,
-                padding_values=None,
-                pad_to_bucket_boundary=False,
-                no_padding=False,
-                drop_remainder=False)
-            )
         )
+  ds = ds.bucket_by_sequence_length(
+      element_length_func=lambda emb, lbl: tf.shape(emb)[0],
+      bucket_boundaries=bucket_boundaries,
+      bucket_batch_sizes=bucket_batch_sizes,
+      padded_shapes=None,
+      padding_values=None,
+      pad_to_bucket_boundary=False,
+      no_padding=False,
+      drop_remainder=False)
 
   return ds
 
