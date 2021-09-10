@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+scann/trees/kmeans_tree/kmeans_tree_node.cc// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,10 +21,15 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <hash_set>
 #include <string>
 #include <utility>
 
+#if defined __GNUC__ || defined __APPLE__
+  #include <ext/hash_set>
+#else
+  #include <hash_set>
+#endif
+#include <cstdint>
 #include "absl/container/flat_hash_set.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"

@@ -66,7 +66,10 @@ def get_input(question):
 def generate_shared_lib_name(namespec):
   """Converts the linkflag namespec to the full shared library name."""
   # Assume Linux for now
-  return namespec[1][3:]
+  if sys.platform in ["linux", "linux2"]:
+      return namespec[1][3:]
+  elif sys.platform == "darwin":
+      return 'libtensorflow_framework.2.dylib'
 
 
 def create_build_configuration():
