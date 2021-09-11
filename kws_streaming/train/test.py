@@ -259,7 +259,7 @@ def tf_stream_state_external_model_accuracy(
 
     if flags.preprocess == 'raw':
       start = 0
-      end = flags.window_stride_samples
+      end = flags.data_shape[0]
       # iterate over time samples with stride = window_stride_samples
       while end <= test_fingerprints.shape[1]:
         # get new frame from stream of data
@@ -267,7 +267,7 @@ def tf_stream_state_external_model_accuracy(
 
         # update indexes of streamed updates
         start = end
-        end = start + flags.window_stride_samples
+        end = start + flags.data_shape[0]
 
         # set input audio data (by default input data at index 0)
         inputs[0] = stream_update

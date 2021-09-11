@@ -15,7 +15,6 @@
 
 """Tests f_net.layers."""
 
-import functools
 from typing import Any, Dict, Mapping
 
 from absl.testing import absltest
@@ -73,8 +72,7 @@ class LayersTest(absltest.TestCase):
     hidden_dim = 8
     rng = jax.random.PRNGKey(0)
 
-    identity = functools.partial(jnp.matmul, b=jnp.identity(hidden_dim))
-    fourier_layer = layers.FourierTransform(fourier_transform=identity)
+    fourier_layer = layers.FourierTransform(fourier_transform=jnp.fft.fftn)
     init_batch = {
         "inputs": jnp.ones((1, max_seq_length, hidden_dim), jnp.float32)
     }
@@ -85,7 +83,9 @@ class LayersTest(absltest.TestCase):
         init_rng, (batch_size, max_seq_length, hidden_dim), minval=0, maxval=10)
     # FourierTransform layer has no learnable params.
     outputs = fourier_layer.apply({"params": {}}, inputs=inputs)
-    self.assertEqual(outputs.shape, (batch_size, max_seq_length, hidden_dim))
+
+    expected_fourier_outputs = jax.vmap(jnp.fft.fft2)(inputs).real
+    np.testing.assert_allclose(outputs, expected_fourier_outputs)
 
   def test_identity_transform(self):
     batch_size = 8
@@ -104,7 +104,9 @@ class LayersTest(absltest.TestCase):
         init_rng, (batch_size, max_seq_length, hidden_dim), minval=0, maxval=10)
     # IdentityTransform layer has no learnable params.
     outputs = identity_layer.apply({"params": {}}, inputs=inputs)
-    self.assertEqual(outputs.shape, (batch_size, max_seq_length, hidden_dim))
+
+    # Inputs are unchanged by IdentityTransform layer.
+    np.testing.assert_allclose(outputs, inputs)
 
   def test_linear_transform(self):
     batch_size = 8

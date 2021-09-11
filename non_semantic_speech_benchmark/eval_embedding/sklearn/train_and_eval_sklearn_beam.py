@@ -20,19 +20,13 @@ r"""Beam job to try a bunch of hparams.
 """
 # pylint:enable=line-too-long
 
-import itertools
-import os
-from typing import Any, List, Tuple
 from absl import app
 from absl import flags
 from absl import logging
 import apache_beam as beam
 
-import tensorflow as tf
 
-
-from non_semantic_speech_benchmark.eval_embedding.sklearn import models
-from non_semantic_speech_benchmark.eval_embedding.sklearn import train_and_eval_sklearn
+from non_semantic_speech_benchmark.eval_embedding.sklearn import train_and_eval_sklearn as utils
 
 flags.DEFINE_string('train_glob', None, 'Glob for train data.')
 flags.DEFINE_string('eval_glob', None, 'Glob for eval data.')
@@ -62,88 +56,38 @@ flags.DEFINE_string(
 FLAGS = flags.FLAGS
 
 
-def format_text_line(k_v):
-  """Convert params and score to human-readable format."""
-  p, (eval_score, test_score) = k_v
-  cur_elem = ', '.join([
-      f'Eval score: {eval_score}',
-      f'Test score: {test_score}',
-      f'Embed: {p["embedding_name"]}',
-      f'Label: {p["label_name"]}',
-      f'Model: {p["model_name"]}',
-      f'L2 normalization: {p["l2_normalization"]}',
-      f'Speaker normalization: {p["speaker_id_name"] is not None}',
-      '\n'
-  ])
-  logging.info('Finished formatting: %s', cur_elem)
-  return cur_elem
-
-
-def _maybe_add_commas(list_obj):
-  return [x.replace(FLAGS.comma_escape_char, ',') for x in list_obj]
-
-
 def main(unused_argv):
-  if not tf.io.gfile.glob(FLAGS.train_glob):
-    raise ValueError(f'Files not found: {FLAGS.train_glob}')
-  if not tf.io.gfile.glob(FLAGS.eval_glob):
-    raise ValueError(f'Files not found: {FLAGS.eval_glob}')
-  if not tf.io.gfile.glob(FLAGS.test_glob):
-    raise ValueError(f'Files not found: {FLAGS.test_glob}')
+  # Validate flags and setup directories.
+  utils.validate_flags(FLAGS.train_glob, FLAGS.eval_glob, FLAGS.test_glob,
+                       FLAGS.output_file)
 
-  # Create output directory if it doesn't already exist.
-  outdir = os.path.dirname(FLAGS.output_file)
-  tf.io.gfile.makedirs(outdir)
-
-  # Sometimes we want commas to appear in `embedding_modules`,
-  # `embedding_names`, or `module_output_key`. However, commas get split out in
-  # Google's Python `DEFINE_list`. We compromise by introducing a special
-  # character, which we replace with commas here.
-  embedding_list = _maybe_add_commas(FLAGS.embedding_list)
-
-  # Enumerate the configurations we want to run.
-  exp_params = []
-  model_names = models.get_sklearn_models().keys()
-  for elem in itertools.product(*[embedding_list, model_names]):
-
-    def _params_dict(
-        l2_normalization, speaker_id_name=FLAGS.speaker_id_name, elem=elem):
-      return {
-          'embedding_name': elem[0],
-          'model_name': elem[1],
-          'label_name': FLAGS.label_name,
-          'label_list': FLAGS.label_list,
-          'train_glob': FLAGS.train_glob,
-          'eval_glob': FLAGS.eval_glob,
-          'test_glob': FLAGS.test_glob,
-          'l2_normalization': l2_normalization,
-          'speaker_id_name': speaker_id_name,
-          'save_model_dir': FLAGS.save_model_dir,
-          'save_predictions_dir': FLAGS.save_predictions_dir,
-          'eval_metric': FLAGS.eval_metric,
-      }
-    exp_params.append(_params_dict(l2_normalization=True))
-    exp_params.append(_params_dict(l2_normalization=False))
-    if FLAGS.speaker_id_name is not None:
-      exp_params.append(
-          _params_dict(l2_normalization=True, speaker_id_name=None))
-      exp_params.append(
-          _params_dict(l2_normalization=False, speaker_id_name=None))
+  # Generate experiment parameters based on flags.
+  exp_params = utils.experiment_params(
+      FLAGS.embedding_list,
+      FLAGS.speaker_id_name,
+      FLAGS.label_name,
+      FLAGS.label_list,
+      FLAGS.train_glob,
+      FLAGS.eval_glob,
+      FLAGS.test_glob,
+      FLAGS.save_model_dir,
+      FLAGS.save_predictions_dir,
+      FLAGS.eval_metric,
+  )
 
   # Make and run beam pipeline.
   beam_options = None
 
   logging.info('Starting to create flume pipeline...')
   with beam.Pipeline(beam_options) as root:
-    _ = (root
-         | 'MakeCollection' >> beam.Create(exp_params)
-         | 'CalcScores' >> beam.Map(
-             lambda d: (d, train_and_eval_sklearn.train_and_get_score(**d)))
-         | 'FormatText' >> beam.Map(format_text_line)
-         | 'Reshuffle' >> beam.Reshuffle()
-         | 'WriteOutput' >> beam.io.WriteToText(
-             FLAGS.output_file, num_shards=1)
-        )
+    _ = (
+        root
+        | 'MakeCollection' >> beam.Create(exp_params)
+        |
+        'CalcScores' >> beam.Map(lambda d: (d, utils.train_and_get_score(**d)))
+        | 'FormatText' >> beam.Map(utils.format_text_line)
+        | 'Reshuffle' >> beam.Reshuffle()
+        | 'WriteOutput' >> beam.io.WriteToText(FLAGS.output_file, num_shards=1))
 
 
 if __name__ == '__main__':

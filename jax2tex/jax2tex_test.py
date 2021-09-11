@@ -36,8 +36,8 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 from jax import lax
-from jax.api import grad
-from jax.api import jvp
+from jax import grad
+from jax import jvp
 from jax.config import config
 from jax.experimental import stax
 import jax.numpy as np
@@ -217,8 +217,8 @@ EXAMPLES += [
                    ('z^1_{i} &= \\sum_{j}W_{ij}x_{j}\\\\\nz^2_{i} &= '
                     '\\sum_{j}W_{ij}z^1_{j}\\\\\n\\delta z^2_{i} &= 1.0z^2_{i}'
                     ' + 1.0z^2_{i}\\\\\n\\delta z^1_{i} &= \\sum_{j}\\delta '
-                    'z^2_{j}W_{ji}\\\\\nq_{ij} &= \\delta z^1_{i}x_{j}'
-                    ' + \\delta z^2_{i}z^1_{j}'))
+                    'z^2_{j}W_{ji}\\\\\nq_{ij} &= \\delta z^2_{i}z^1_{j} + '
+                    '\\delta z^1_{i}x_{j}'))
 ]
 
 

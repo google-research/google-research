@@ -80,7 +80,7 @@ class MinatarDQNNetwork(nn.Module):
   def __call__(self, x):
     initializer = nn.initializers.xavier_uniform()
     x = x.astype(jnp.float32)
-    x = nn.Conv(features=16, kernel_size=(3, 3, 3), strides=(1, 1, 1),
+    x = nn.Conv(features=16, kernel_size=(3, 3), strides=(1, 1),
                 kernel_init=initializer)(x)
     x = nn.relu(x)
     x = x.reshape(-1)  # flatten
@@ -98,7 +98,7 @@ class MinatarRainbowNetwork(nn.Module):
   def __call__(self, x, support):
     initializer = nn.initializers.xavier_uniform()
     x = x.astype(jnp.float32)
-    x = nn.Conv(features=16, kernel_size=(3, 3, 3), strides=(1, 1, 1),
+    x = nn.Conv(features=16, kernel_size=(3, 3), strides=(1, 1),
                 kernel_init=initializer)(x)
     x = nn.relu(x)
     x = x.reshape(-1)  # flatten
@@ -123,7 +123,7 @@ class MinatarQuantileNetwork(nn.Module):
         mode='fan_in',
         distribution='uniform')
     x = x.astype(jnp.float32)
-    x = nn.Conv(features=16, kernel_size=(3, 3, 3), strides=(1, 1, 1),
+    x = nn.Conv(features=16, kernel_size=(3, 3), strides=(1, 1),
                 kernel_init=initializer)(x)
     x = nn.relu(x)
     x = x.reshape(-1)  # flatten

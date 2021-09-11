@@ -29,6 +29,7 @@ from scipy import linalg
 
 from f_net import fourier
 from f_net import layers
+from f_net.configs.base import HybridAttentionLayout
 from f_net.configs.base import ModelArchitecture
 
 # Type Stubs
@@ -65,7 +66,9 @@ class EncoderModel(nn.Module):
     encoder_blocks = []  # Attributes are immutable so use temporary list
     for layer in range(self.config.num_layers):
       key, mixing_key = random.split(key)
-      mixing_layer = self._init_mixing_sublayer(layer, mixing_key)
+      mixing_arch = ModelArchitecture.BERT if self._is_attention_layer(
+          layer) else self.config.model_arch
+      mixing_layer = self._init_mixing_sublayer(layer, mixing_arch, mixing_key)
       feed_forward_layer = layers.FeedForwardLayer(
           d_ff=self.config.d_ff,
           dropout_rate=self.config.dropout_rate,
@@ -98,8 +101,8 @@ class EncoderModel(nn.Module):
       deterministic: Whether or not to apply dropout in each layer.
 
     Returns:
-      Hidden states of shape <float>[BATCH_SIZE, MAX_SEQ_LENGTH], and pooled
-        output <float>[BATCH_SIZE] scaled to (-1, 1).
+      Hidden states of shape <float>[BATCH_SIZE, MAX_SEQ_LENGTH, HIDDEN_DIM],
+        and pooled output <float>[BATCH_SIZE, HIDDEN_DIM] scaled to (-1, 1).
     """
     hidden_states = self.embedder(
         input_ids, type_ids, deterministic=deterministic)
@@ -129,9 +132,18 @@ class EncoderModel(nn.Module):
     For longer sequences, the FFT is faster, provided the MAX_SEQ_LENGTH is a
     power of 2.
     """
-    if not self.config.use_tpu_fourier_optimizations:
+    if self.config.use_fft:
+      if (self.config.max_seq_length > 4096 and
+          not math.log2(self.config.max_seq_length).is_integer()):
+        raise ValueError(
+            "For large input sequence lengths (>4096), the maximum input "
+            "sequence length must be a power of 2 to take advantage of FFT "
+            "optimizations. We encourage the same for the model hidden "
+            "dimension. config.max_seq_length: %d. config.d_model: $d" %
+            self.config.max_seq_length, self.config.d_model)
+
       self.fourier_transform = jnp.fft.fftn
-    elif self.config.max_seq_length <= 4096:
+    else:
       dft_mat_hidden = linalg.dft(self.config.d_model)
       dft_mat_seq = linalg.dft(self.config.max_seq_length)
 
@@ -140,23 +152,28 @@ class EncoderModel(nn.Module):
           matrix_dim_one=jnp.asarray(dft_mat_seq),
           matrix_dim_two=jnp.asarray(dft_mat_hidden),
           precision=lax.Precision.DEFAULT)
-    elif not math.log2(self.config.max_seq_length).is_integer():
-      raise ValueError(
-          "For large input sequence lengths (>4096), the maximum input "
-          "sequence length must be a power of 2 to take advantage of FFT "
-          "optimizations. We encourage the same for the model hidden "
-          "dimension. config.max_seq_length: %d. config.d_model: $d" %
-          self.config.max_seq_length, self.config.d_model)
-    else:
-      # TODO(b/181607810): If d_model is short, we can use a mix of DFT matrix
-      #  for hidden dimension and FFT for sequence dimension.
-      # Use customized FFT on TPUs; see also fourier.fftn docstring.
-      self.fourier_transform = fourier.fftn
 
-  def _init_mixing_sublayer(self, layer,
+  def _is_attention_layer(self, layer):
+    """Returns true if the current layer should be an attention layer."""
+    num_attention_layers = self.config.num_attention_layers
+    num_layers = self.config.num_layers
+
+    if self.config.attention_layout == HybridAttentionLayout.BOTTOM:
+      return layer < num_attention_layers
+    elif self.config.attention_layout == HybridAttentionLayout.MIDDLE:
+      return (num_layers - num_attention_layers <= 2 * layer <
+              num_layers + num_attention_layers)
+    elif self.config.attention_layout == HybridAttentionLayout.MIXED:
+      return layer % (num_layers // num_attention_layers) == 0
+    elif self.config.attention_layout == HybridAttentionLayout.TOP:
+      return layer >= num_layers - num_attention_layers
+    else:
+      return False
+
+  def _init_mixing_sublayer(self, layer, model_arch,
                             mixing_key):
     """Initializes config-dependent mixing sublayer."""
-    if self.config.model_arch == ModelArchitecture.BERT:
+    if model_arch == ModelArchitecture.BERT:
       mixing_sublayer = nn.SelfAttention(
           num_heads=self.config.num_heads,
           qkv_features=self.config.d_model,
@@ -166,17 +183,17 @@ class EncoderModel(nn.Module):
           dropout_rate=self.config.mixing_dropout_rate,
           use_bias=True,
           name=f"self_attention_{layer}")
-    elif self.config.model_arch == ModelArchitecture.F_NET:
+    elif model_arch == ModelArchitecture.F_NET:
       mixing_sublayer = layers.FourierTransform(
           fourier_transform=self.fourier_transform,
           name=f"fourier_transform_{layer}")
-    elif self.config.model_arch == ModelArchitecture.FF_ONLY:
+    elif model_arch == ModelArchitecture.FF_ONLY:
       mixing_sublayer = layers.IdentityTransform(
           name=f"identity_transform_{layer}")
-    elif self.config.model_arch == ModelArchitecture.LINEAR:
+    elif model_arch == ModelArchitecture.LINEAR:
       mixing_sublayer = layers.LinearTransform(
           precision=lax.Precision.DEFAULT, name=f"linear_transform_{layer}")
-    elif self.config.model_arch == ModelArchitecture.RANDOM:
+    elif model_arch == ModelArchitecture.RANDOM:
       mixing_sublayer = layers.RandomTransform(
           max_seq_length=self.config.max_seq_length,
           d_model=self.config.d_model,
@@ -184,8 +201,7 @@ class EncoderModel(nn.Module):
           precision=lax.Precision.DEFAULT,
           name=f"random_transform_{layer}")
     else:
-      raise ValueError("Unexpected model architecture: %s" %
-                       self.config.model_arch.name)
+      raise ValueError("Unexpected model architecture: %s" % model_arch.name)
 
     return mixing_sublayer
 

@@ -83,6 +83,8 @@ class Params(object):
     self.wav = 1
     self.data_stride = 1
     self.quantize = 0
+    self.use_one_step = True
+    self.data_stride = 1
 
     # will be updated by update_flags()
     self.window_stride_samples = None

@@ -1,4 +1,5 @@
 # coding=utf-8
+# coding=utf-8
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +17,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_function
 
 import numpy as np
 import tensorflow.compat.v1 as tf

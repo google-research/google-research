@@ -16,10 +16,11 @@
 # Lint as: python3
 """Train and eval a sklearn model."""
 
+import itertools
 import os
 import pickle
 import time
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 from absl import logging
 
 import numpy as np
@@ -192,3 +193,93 @@ def _calc_eval_scores(eval_metric, d, npx_eval,
   else:
     raise ValueError(f'`eval_metric` not recognized: {eval_metric}')
   return eval_score, test_score
+
+
+def experiment_params(
+    embedding_list,
+    speaker_id_name,
+    label_name,
+    label_list,
+    train_glob,
+    eval_glob,
+    test_glob,
+    save_model_dir,
+    save_predictions_dir,
+    eval_metric,
+    comma_escape_char = '?',
+):
+  """Get experiment params."""
+  # Sometimes we want commas to appear in `embedding_modules`,
+  # `embedding_names`, or `module_output_key`. However, commas get split out in
+  # Google's Python `DEFINE_list`. We compromise by introducing a special
+  # character, which we replace with commas here.
+  embedding_list = _maybe_add_commas(embedding_list, comma_escape_char)
+
+  # Enumerate the configurations we want to run.
+  exp_params = []
+  model_names = models.get_sklearn_models().keys()
+  for elem in itertools.product(*[embedding_list, model_names]):
+
+    def _params_dict(l2_normalization,
+                     speaker_id_name=speaker_id_name,
+                     elem=elem):
+      return {
+          'embedding_name': elem[0],
+          'model_name': elem[1],
+          'label_name': label_name,
+          'label_list': label_list,
+          'train_glob': train_glob,
+          'eval_glob': eval_glob,
+          'test_glob': test_glob,
+          'l2_normalization': l2_normalization,
+          'speaker_id_name': speaker_id_name,
+          'save_model_dir': save_model_dir,
+          'save_predictions_dir': save_predictions_dir,
+          'eval_metric': eval_metric,
+      }
+
+    exp_params.append(_params_dict(l2_normalization=True))
+    exp_params.append(_params_dict(l2_normalization=False))
+    if speaker_id_name is not None:
+      exp_params.append(
+          _params_dict(l2_normalization=True, speaker_id_name=None))
+      exp_params.append(
+          _params_dict(l2_normalization=False, speaker_id_name=None))
+
+  return exp_params
+
+
+def format_text_line(k_v):
+  """Convert params and score to human-readable format."""
+  p, (eval_score, test_score) = k_v
+  cur_elem = ', '.join([
+      f'Eval score: {eval_score}', f'Test score: {test_score}',
+      f'Embed: {p["embedding_name"]}', f'Label: {p["label_name"]}',
+      f'Model: {p["model_name"]}', f'L2 normalization: {p["l2_normalization"]}',
+      f'Speaker normalization: {p["speaker_id_name"] is not None}', '\n'
+  ])
+  logging.info('Finished formatting: %s', cur_elem)
+  return cur_elem
+
+
+def _maybe_add_commas(list_obj, comma_escape_char):
+  return [x.replace(comma_escape_char, ',') for x in list_obj]
+
+
+def validate_flags(train_glob, eval_glob, test_glob,
+                   output_file):
+  """Validate flags."""
+  if not tf.io.gfile.glob(train_glob):
+    raise ValueError(f'Files not found: {train_glob}')
+  if not tf.io.gfile.glob(eval_glob):
+    raise ValueError(f'Files not found: {eval_glob}')
+  if not tf.io.gfile.glob(test_glob):
+    raise ValueError(f'Files not found: {test_glob}')
+
+  outputs = tf.io.gfile.glob(f'{output_file}*')
+  if outputs:
+    raise ValueError(f'Output file already exists: {outputs}')
+
+  # Create output directory if it doesn't already exist.
+  outdir = os.path.dirname(output_file)
+  tf.io.gfile.makedirs(outdir)

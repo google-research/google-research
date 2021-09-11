@@ -28,8 +28,7 @@ def get_config():
   config = ml_collections.ConfigDict()
   config.exp_name = 'experiment'
   config.model_name = 'vdvae'
-  config.seed = 42
-  config.precision = 'highest'
+  config.seed = 48
 
   config.optimizer = d(
       name='adamw',
@@ -50,7 +49,7 @@ def get_config():
       # downsampling_rates is a list of tuples of the form
       # (block_index, downsampling_rates).
       downsampling_rates=[(11, 2), (18, 2), (25, 2), (29, 4)],
-      precision=config.get_oneway_ref('precision'),
+      precision='highest',
   )
   config.decoder = d(
       num_blocks=43,
@@ -61,19 +60,19 @@ def get_config():
       # (block_index, upsampling_rates).
       upsampling_rates=[(1, 4), (4, 2), (10, 2), (21, 2)],
       output_image_resolution=32,
-      precision=config.get_oneway_ref('precision'),
+      precision='highest',
   )
   config.sampler = d(
       num_mixtures=10,
       low=0,
       high=255,
       num_output_channels=3,
-      precision=config.get_oneway_ref('precision'),
+      precision='highest',
   )
   config.training = d(
       batch_size=128,  # training batch size
       warmup_iters=25,  # lr warmup
-      num_train_steps=500_000,
+      num_train_steps=1000_000,
       substeps=100,
   )
   config.data = d(task='cifar10',)
@@ -81,11 +80,9 @@ def get_config():
       subset='test',
       ema_rate=0.9996,
       batch_size=128,
-      num_data=10_000,
   )
   config.logs = d(
       log_loss_every_steps=500,
-      eval_batch_every_steps=1000,
       eval_full_every_steps=5000,
       checkpoint_every_steps=5000,
   )
@@ -96,5 +93,5 @@ def get_config():
 
 def get_hyper(h):
   return h.product([
-      h.sweep('trial', [0]),
-  ], name='config')
+      h.sweep('config.trial', [0]),
+  ])
