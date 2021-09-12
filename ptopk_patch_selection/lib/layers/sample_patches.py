@@ -521,7 +521,7 @@ def extract_patches_from_indices(x,
                       (0, 0)])
 
   @jax.vmap
-  @jax.partial(jax.vmap, in_axes=(None, 0, 0))
+  @functools.partial(jax.vmap, in_axes=(None, 0, 0))
   def patch(image, i, j):
     # Equivalent to image[i:i+patch_size, j:j+patch_size, :]
     return jax.lax.dynamic_slice(image,
@@ -592,8 +592,8 @@ def batch_gather(x, indices):
   return x[indices, Ellipsis]
 
 
-@jax.partial(jax.vmap, in_axes=[0, None])
-@jax.partial(jax.vmap, in_axes=[0, None], out_axes=1)
+@functools.partial(jax.vmap, in_axes=[0, None])
+@functools.partial(jax.vmap, in_axes=[0, None], out_axes=1)
 def make_indicators(indices, num_classes):
   """Create one hot associated to indices.
 

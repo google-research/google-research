@@ -116,9 +116,21 @@ class SpeechFeatures(tf.keras.layers.Layer):
     else:
       self.preemphasis = tf.keras.layers.Lambda(lambda x: x)
 
-    if self.params['window_type'] is not None:
+    # if True it will replace direct DFT, DCT and hann window by tf functions
+    # it is useful for model quantization,
+    # because these functions will not be quantized
+    use_tf_function = self.params['use_tf_fft']
+    mel_non_zero_only = self.params['mel_non_zero_only']
+    window_type = self.params['window_type']
+
+    # set mel and window type for tf function compatibility
+    if use_tf_function:
+      mel_non_zero_only = False
+      window_type = 'hann_tf'
+
+    if window_type is not None:
       self.windowing = windowing.Windowing(
-          window_size=self.frame_size, window_type=self.params['window_type'])
+          window_size=self.frame_size, window_type=window_type)
     else:
       self.windowing = tf.keras.layers.Lambda(lambda x: x)
 
@@ -130,13 +142,13 @@ class SpeechFeatures(tf.keras.layers.Layer):
     # If use_tf_fft is True, then we use TF RFFT which require
     # signal length alignment, so we disable mel_non_zero_only.
     self.mag_rdft_mel = magnitude_rdft_mel.MagnitudeRDFTmel(
-        use_tf_fft=self.params['use_tf_fft'],
+        use_tf_fft=use_tf_function,
         magnitude_squared=self.params['fft_magnitude_squared'],
         num_mel_bins=self.params['mel_num_bins'],
         lower_edge_hertz=self.params['mel_lower_edge_hertz'],
         upper_edge_hertz=self.params['mel_upper_edge_hertz'],
         sample_rate=self.params['sample_rate'],
-        mel_non_zero_only=self.params['mel_non_zero_only'])
+        mel_non_zero_only=mel_non_zero_only)
 
     self.log_max = tf.keras.layers.Lambda(
         lambda x: tf.math.log(tf.math.maximum(x, self.params['log_epsilon'])))

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Specfies the behaviour of a single state."""
+"""Functions the behaviour of a inner training loop."""
 import dataclasses as dc
 import functools as ft
 from typing import Any, Callable, List, Optional, Text, Tuple, Union

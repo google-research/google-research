@@ -83,7 +83,7 @@ def train_and_report(debug=False):
 
   # Create model, loss, and other objects.
   y_onehot_spec = ds.element_spec[1]
-  assert len(y_onehot_spec.shape) == 2
+  assert len(y_onehot_spec.shape) == 2, y_onehot_spec.shape
   num_classes = y_onehot_spec.shape[1]
   model = models.get_keras_model(
       num_classes, FLAGS.use_batch_normalization,

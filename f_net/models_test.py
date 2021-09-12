@@ -15,45 +15,40 @@
 
 """Tests for f_net.models."""
 
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Mapping, Sequence
 
 from absl.testing import absltest
+from absl.testing import parameterized
 import jax
 from jax import numpy as jnp
 import ml_collections
 
 from f_net import models
 from f_net.configs import base as base_config
+from f_net.configs.base import HybridAttentionLayout
+from f_net.configs.base import ModelArchitecture
 
 # Type Stubs
 PRNGKey = Any
 Model = Any
 
 
-def dummy_frozen_config(
-    model_arch,
-    max_seq_length = 16,
-    use_tpu_fourier_optimizations = False,
-    dataset_name = "dummy/data"):
+def dummy_config(model_arch):
   """Creates a dummy model config that can be used by all tests."""
   config = base_config.get_config()
   config.model_arch = model_arch
-  config.use_tpu_fourier_optimizations = use_tpu_fourier_optimizations
   config.d_emb = 8
   config.d_model = 8
   config.d_ff = 8
-  config.max_seq_length = max_seq_length
+  config.max_seq_length = 16
   config.num_heads = 1
   config.num_layers = 2
-  config.vocab_size = 28000
+  config.vocab_size = 280
   config.train_batch_size = 3
   config.eval_batch_size = 2
-  config.dataset_name = dataset_name
+  config.use_fft = True
 
-  # Pre-training only.
-  config.max_predictions_per_seq = 7
-
-  return ml_collections.FrozenConfigDict(config)
+  return config
 
 
 def dummy_inputs(
@@ -99,16 +94,21 @@ def init_model_params(
   return initial_variables["params"]
 
 
-class ModelsTest(absltest.TestCase):
+class ModelsTest(parameterized.TestCase):
 
-  def test_f_net_encoder_short_seq(self):
-    config = dummy_frozen_config(
-        model_arch=base_config.ModelArchitecture.F_NET, max_seq_length=16)
-    encoder = models.EncoderModel(config=config)
+  @parameterized.parameters(ModelArchitecture.F_NET, ModelArchitecture.FF_ONLY,
+                            ModelArchitecture.RANDOM)
+  def test_unparametrized_mixing_encoder(self, model_arch):
+    config = dummy_config(model_arch=model_arch)
+    frozen_config = ml_collections.FrozenConfigDict(config)
+
+    encoder = models.EncoderModel(config=frozen_config)
+
     rng = jax.random.PRNGKey(0)
     init_batch = init_encoder_batch(config)
     params = init_model_params(rng, encoder, init_batch)
-    # Fourier sublayers have no parameters so do not show up in params.
+    # Unparameterized mixing encoders do not have any parameters in their mixing
+    # layers, so their mixing layer names do not show up in params.
     expected_keys = {
         "embedder", "encoder_0", "encoder_1", "feed_forward_0",
         "feed_forward_1", "pooler"
@@ -126,11 +126,13 @@ class ModelsTest(absltest.TestCase):
     self.assertEqual(pooled_output.shape, expected_pooled_output_shape)
 
   def test_f_net_encoder_bad_long_seq(self):
-    config = dummy_frozen_config(
-        model_arch=base_config.ModelArchitecture.F_NET,
-        use_tpu_fourier_optimizations=True,
-        max_seq_length=8194)
-    encoder = models.EncoderModel(config=config)
+    config = dummy_config(model_arch=ModelArchitecture.F_NET)
+    with config.unlocked():
+      config.max_seq_length = 8194
+    frozen_config = ml_collections.FrozenConfigDict(config)
+
+    encoder = models.EncoderModel(config=frozen_config)
+
     rng = jax.random.PRNGKey(0)
     init_batch = init_encoder_batch(config)
 
@@ -139,15 +141,27 @@ class ModelsTest(absltest.TestCase):
         "must be a power of 2 to take advantage of FFT optimizations"):
       _ = init_model_params(rng, encoder, init_batch)
 
-  def test_bert_encoder(self):
-    config = dummy_frozen_config(model_arch=base_config.ModelArchitecture.BERT)
-    encoder = models.EncoderModel(config=config)
+  @parameterized.parameters(
+      dict(
+          model_arch=ModelArchitecture.BERT,
+          mixing_layer_name="self_attention"),
+      dict(
+          model_arch=ModelArchitecture.LINEAR,
+          mixing_layer_name="linear_transform"))
+  def test_parameterized_mixing_encoder(self, model_arch,
+                                        mixing_layer_name):
+    config = dummy_config(model_arch=model_arch)
+    frozen_config = ml_collections.FrozenConfigDict(config)
+
+    encoder = models.EncoderModel(config=frozen_config)
+
     rng = jax.random.PRNGKey(0)
     init_batch = init_encoder_batch(config)
     params = init_model_params(rng, encoder, init_batch)
     expected_keys = {
         "embedder", "encoder_0", "encoder_1", "feed_forward_0",
-        "feed_forward_1", "self_attention_0", "self_attention_1", "pooler"
+        "feed_forward_1", f"{mixing_layer_name}_0", f"{mixing_layer_name}_1",
+        "pooler"
     }
     self.assertEqual(params.keys(), expected_keys)
 
@@ -161,65 +175,47 @@ class ModelsTest(absltest.TestCase):
     expected_pooled_output_shape = (config.train_batch_size, config.d_model)
     self.assertEqual(pooled_output.shape, expected_pooled_output_shape)
 
-  def test_linear_encoder(self):
-    config = dummy_frozen_config(
-        model_arch=base_config.ModelArchitecture.LINEAR)
-    encoder = models.EncoderModel(config=config)
+  @parameterized.parameters(
+      dict(
+          attention_layout=HybridAttentionLayout.BOTTOM,
+          num_attention_layers=0,
+          expected_attention_layers=[]),
+      dict(
+          attention_layout=HybridAttentionLayout.MIDDLE,
+          num_attention_layers=2,
+          expected_attention_layers=[1, 2]),
+      dict(
+          attention_layout=HybridAttentionLayout.MIXED,
+          num_attention_layers=2,
+          expected_attention_layers=[0, 2]),
+      dict(
+          attention_layout=HybridAttentionLayout.TOP,
+          num_attention_layers=1,
+          expected_attention_layers=[3]))
+  def test_hybrid_encoder(self, attention_layout,
+                          num_attention_layers,
+                          expected_attention_layers):
+    config = dummy_config(model_arch=ModelArchitecture.F_NET)
+    with config.unlocked():
+      config.num_layers = 4
+      config.attention_layout = attention_layout
+      config.num_attention_layers = num_attention_layers
+    frozen_config = ml_collections.FrozenConfigDict(config)
+
+    encoder = models.EncoderModel(config=frozen_config)
+
     rng = jax.random.PRNGKey(0)
     init_batch = init_encoder_batch(config)
     params = init_model_params(rng, encoder, init_batch)
+
     expected_keys = {
-        "embedder", "encoder_0", "encoder_1", "feed_forward_0",
-        "feed_forward_1", "linear_transform_0", "linear_transform_1", "pooler"
+        "embedder", "encoder_0", "encoder_1", "encoder_2", "encoder_3",
+        "feed_forward_0", "feed_forward_1", "feed_forward_2", "feed_forward_3",
+        "pooler"
     }
-    self.assertEqual(params.keys(), expected_keys)
+    for expected_attention_layer in expected_attention_layers:
+      expected_keys.add(f"self_attention_{expected_attention_layer}")
 
-    inputs = dummy_inputs(rng, config)
-    hidden_states, pooled_output = encoder.apply({"params": params},
-                                                 rngs={"dropout": rng},
-                                                 **inputs)
-    expected_hidden_states_shape = (config.train_batch_size,
-                                    config.max_seq_length, config.d_model)
-    self.assertEqual(hidden_states.shape, expected_hidden_states_shape)
-    expected_pooled_output_shape = (config.train_batch_size, config.d_model)
-    self.assertEqual(pooled_output.shape, expected_pooled_output_shape)
-
-  def test_ff_only_encoder(self):
-    config = dummy_frozen_config(
-        model_arch=base_config.ModelArchitecture.FF_ONLY)
-    encoder = models.EncoderModel(config=config)
-    rng = jax.random.PRNGKey(0)
-    init_batch = init_encoder_batch(config)
-    params = init_model_params(rng, encoder, init_batch)
-    # Identity sublayers (for FF-only architecture) have no parameters so do not
-    # show up in params.
-    expected_keys = {
-        "embedder", "encoder_0", "encoder_1", "feed_forward_0",
-        "feed_forward_1", "pooler"
-    }
-    self.assertEqual(params.keys(), expected_keys)
-
-    inputs = dummy_inputs(rng, config)
-    hidden_states, pooled_output = encoder.apply({"params": params},
-                                                 rngs={"dropout": rng},
-                                                 **inputs)
-    expected_hidden_states_shape = (config.train_batch_size,
-                                    config.max_seq_length, config.d_model)
-    self.assertEqual(hidden_states.shape, expected_hidden_states_shape)
-    expected_pooled_output_shape = (config.train_batch_size, config.d_model)
-    self.assertEqual(pooled_output.shape, expected_pooled_output_shape)
-
-  def test_random_encoder(self):
-    config = dummy_frozen_config(
-        model_arch=base_config.ModelArchitecture.RANDOM)
-    encoder = models.EncoderModel(config=config, random_seed=123)
-    init_batch = init_encoder_batch(config)
-    rng = jax.random.PRNGKey(0)
-    params = init_model_params(rng, encoder, init_batch)
-    expected_keys = {
-        "embedder", "encoder_0", "encoder_1", "feed_forward_0",
-        "feed_forward_1", "pooler"
-    }
     self.assertEqual(params.keys(), expected_keys)
 
     inputs = dummy_inputs(rng, config)
@@ -233,8 +229,12 @@ class ModelsTest(absltest.TestCase):
     self.assertEqual(pooled_output.shape, expected_pooled_output_shape)
 
   def test_pretraining_model(self):
-    config = dummy_frozen_config(model_arch=base_config.ModelArchitecture.F_NET)
-    model = models.PreTrainingModel(config=config)
+    config = dummy_config(model_arch=ModelArchitecture.F_NET)
+    with config.unlocked():
+      config.max_predictions_per_seq = 7
+    frozen_config = ml_collections.FrozenConfigDict(config)
+
+    model = models.PreTrainingModel(config=frozen_config)
 
     rng = jax.random.PRNGKey(0)
     init_batch = init_encoder_batch(config)
@@ -298,9 +298,13 @@ class ModelsTest(absltest.TestCase):
   def test_classification_model(self):
     n_classes = 2
 
-    config = dummy_frozen_config(model_arch=base_config.ModelArchitecture.BERT)
+    config = dummy_config(model_arch=ModelArchitecture.BERT)
+    with config.unlocked():
+      config.dataset_name = "dummy/classification_dataset"
+    frozen_config = ml_collections.FrozenConfigDict(config)
+
     model = models.SequenceClassificationModel(
-        config=config, n_classes=n_classes)
+        config=frozen_config, n_classes=n_classes)
 
     rng = jax.random.PRNGKey(0)
     init_batch = init_encoder_batch(config)
@@ -326,12 +330,13 @@ class ModelsTest(absltest.TestCase):
   def test_regression_model(self):
     n_classes = 1  # Only one label for regression
 
-    # "glue/stsb" is a regression task dataset.
-    config = dummy_frozen_config(
-        model_arch=base_config.ModelArchitecture.F_NET,
-        dataset_name="glue/stsb")
+    config = dummy_config(model_arch=ModelArchitecture.F_NET)
+    with config.unlocked():
+      config.dataset_name = "glue/stsb"  # regression task dataset
+    frozen_config = ml_collections.FrozenConfigDict(config)
+
     model = models.SequenceClassificationModel(
-        config=config, n_classes=n_classes)
+        config=frozen_config, n_classes=n_classes)
 
     rng = jax.random.PRNGKey(0)
     init_batch = init_encoder_batch(config)

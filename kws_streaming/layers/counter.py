@@ -99,24 +99,26 @@ class Counter(tf.keras.layers.Layer):
                        f'not `{self.mode}`.')
 
   def _streaming_internal_state(self, inputs):
-
-    new_state = tf.cond(self.state[0][0][0] <= self.max_counter,
-                        lambda: self.state + 1, lambda: self.state)
+    new_state = self.state + 1.0
+    new_state = tf.math.minimum(new_state, self.max_counter + 1)
 
     assign_state = self.state.assign(new_state)
 
     with tf.control_dependencies([assign_state]):
-      outputs = tf.cond(self.state[0][0][0] > self.max_counter, lambda: inputs,
-                        lambda: tf.zeros_like(inputs))
+      multiplier = tf.keras.activations.relu(
+          new_state[0][0][0], max_value=1.0, threshold=self.max_counter)
+      outputs = tf.multiply(inputs, multiplier)
       return outputs
 
   def _streaming_external_state(self, inputs, state):
+    state_one = state + 1.0
 
-    state_one = state + 1
-    new_state = tf.cond(state[0][0][0] <= self.max_counter,
-                        lambda: state_one, lambda: state)
+    # overflow protection
+    new_state = tf.math.minimum(state_one, self.max_counter + 1)
 
-    with tf.control_dependencies([new_state]):
-      outputs = tf.cond(new_state[0][0][0] > self.max_counter, lambda: inputs,
-                        lambda: tf.zeros_like(inputs))
-      return outputs, new_state
+    # create multiplier which will return zeros for all input values < threshold
+    # otherwise it will return one
+    multiplier = tf.keras.activations.relu(
+        new_state[0][0][0], max_value=1.0, threshold=self.max_counter)
+    outputs = tf.multiply(inputs, multiplier)
+    return outputs, new_state

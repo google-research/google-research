@@ -70,6 +70,13 @@ def train(flags):
   model = models.MODELS[flags.model_name](flags)
   logging.info(model.summary())
 
+  # fix for InvalidArgumentError:
+  # Node 'Adam/gradients/gradients/gru/cell/while_grad/gru/cell/while_grad':
+  # Connecting to invalid output 51 of source node
+  # gru/cell/while which has 51 outputs.
+  if flags.model_name in ['crnn', 'gru', 'lstm']:
+    tf.compat.v1.experimental.output_all_intermediates(True)
+
   # save model summary
   utils.save_model_summary(model, flags.train_dir)
 

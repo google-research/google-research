@@ -466,5 +466,15 @@ def base_parser():
       default=0,
       help='Apply quantization aware training',
   )
+  parser.add_argument(
+      '--data_stride',
+      type=int,
+      default=1,
+      help='Total data stride, reqired for model streaming. '
+      'In streaming mode, by default model receives audio data enough '
+      'for one frame so that it can return one output. But if model '
+      'has striding or pooling then data_stride should be equal to '
+      'product of all pools and strides to produce several frames per call.',
+  )
 
   return parser

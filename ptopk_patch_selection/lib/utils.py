@@ -17,6 +17,7 @@
 
 import collections
 import contextlib
+import functools
 import re
 import time
 from typing import Any, Callable, Dict, List, Sequence, Tuple
@@ -433,7 +434,7 @@ def extract_windows(inputs, window_size):
   return windows
 
 
-@jax.partial(jax.jit, static_argnums=(0, 1))
+@functools.partial(jax.jit, static_argnums=(0, 1))
 def position_offsets(height, width):
   """Generates a (height, width, 2) tensor containing pixel indices."""
   position_offset = jnp.indices((height, width))

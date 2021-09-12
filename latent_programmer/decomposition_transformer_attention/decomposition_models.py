@@ -32,7 +32,7 @@ from latent_programmer.models import base_models
 class DecomposeAttentionTransformerConfig:
   """Global hyperparameters used to minimize obnoxious kwarg plumbing."""
   base_config: base_models.TransformerConfig
-  bos_full_attention: bool = False
+  attention_mask_type: str  # Options: baseline, bos_to_bos, bos_full_attention
 
 
 def make_partial_program_mask(programs,
@@ -94,31 +94,48 @@ class DecomposeAttentionTransformer(nn.Module):
       programs = base_models.shift_right(programs, cfg.bos_token)
 
     # Make attention masks.
+    decoder_mask = None
     if cfg.decode:
       # For fast decode with caching, programs shape == [batch_size, 1] and
       # cfg.shift = False, cfg.decode = True.
       # TODO(jxihong): Fast decoding currently does not work with new attention.
-      decoder_mask = None
       encoder_decoder_mask = nn.make_attention_mask(
           jnp.ones_like(programs), flat_encoded_padding_mask, dtype=cfg.dtype)
     else:
-      # BOS tokens attend to all previous BOS tokens.
-      decoder_bos_mask = nn.combine_masks(
-          nn.make_attention_mask(
-              programs == cfg.bos_token,
-              programs > 0 if self.config.bos_full_attention
-              else programs == cfg.bos_token,
-              dtype=cfg.dtype),
-          nn.make_causal_mask(programs, dtype=cfg.dtype))
-      # Program tokens attend to all previous tokens in partial program.
-      decoder_partial_mask = nn.combine_masks(
-          make_partial_program_mask(
-              programs, bos_token=cfg.bos_token, dtype=cfg.dtype),
-          nn.make_causal_mask(programs, dtype=cfg.dtype))
-      decoder_mask = nn.combine_masks(
-          nn.make_attention_mask(
-              preshift_programs > 0, preshift_programs > 0, dtype=cfg.dtype),
-          jnp.logical_or(decoder_bos_mask, decoder_partial_mask))
+      attention_mask_type = self.config.attention_mask_type
+      if attention_mask_type == 'baseline':
+        decoder_mask = nn.combine_masks(
+            nn.make_attention_mask(programs > 0, programs > 0, dtype=cfg.dtype),
+            nn.make_causal_mask(programs, dtype=cfg.dtype))
+      else:
+        if attention_mask_type == 'bos_to_bos':
+          # BOS tokens attend to all previous BOS tokens.
+          decoder_bos_mask = nn.combine_masks(
+              nn.make_attention_mask(
+                  programs == cfg.bos_token,
+                  programs == cfg.bos_token,
+                  dtype=cfg.dtype),
+              nn.make_causal_mask(programs, dtype=cfg.dtype))
+        elif attention_mask_type == 'bos_full_attention':
+          # BOS tokens attend to all previous tokens, including program tokens.
+          decoder_bos_mask = nn.combine_masks(
+              nn.make_attention_mask(
+                  programs == cfg.bos_token,
+                  programs > 0,
+                  dtype=cfg.dtype),
+              nn.make_causal_mask(programs, dtype=cfg.dtype))
+        else:
+          raise ValueError('Unhandled attention_mask_type: {}'.format(
+              attention_mask_type))
+        # Program tokens attend to all previous tokens in partial program.
+        decoder_partial_mask = nn.combine_masks(
+            make_partial_program_mask(
+                programs, bos_token=cfg.bos_token, dtype=cfg.dtype),
+            nn.make_causal_mask(programs, dtype=cfg.dtype))
+        decoder_mask = nn.combine_masks(
+            nn.make_attention_mask(
+                preshift_programs > 0, preshift_programs > 0, dtype=cfg.dtype),
+            jnp.logical_or(decoder_bos_mask, decoder_partial_mask))
       encoder_decoder_mask = nn.make_attention_mask(
           programs > 0, flat_encoded_padding_mask, dtype=cfg.dtype)
 

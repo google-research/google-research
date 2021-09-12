@@ -15,11 +15,8 @@
 
 """Utils for building VDVAEs."""
 
-import queue
-import threading
 from typing import Optional, Tuple, TypeVar
 
-from absl import logging
 import chex
 import distrax
 import flax
@@ -31,57 +28,40 @@ import numpy as np
 from vdvae_flax import blocks as blocks_lib
 
 
-def py_prefetch(iterable_function, buffer_size = 5):
-  """Performs prefetching of elements from an iterable in a separate thread.
+def generate_image_grids(images):
+  """Simple helper to generate a single image from a mini batch."""
 
-  Args:
-    iterable_function: A python function that when called with no arguments
-      returns an iterable. This is used to build a fresh iterable for each
-      thread (crucial if working with tensorflow datasets because tf.graph
-      objects are thread local).
-    buffer_size (int): Number of elements to keep in the prefetch buffer.
+  def image_grid(nrow, ncol, imagevecs, imshape):
+    """Reshape a stack of image vectors into an image grid for plotting.
 
-  Yields:
-    Prefetched elements from the original iterable.
-  Raises:
-    ValueError if the buffer_size <= 1.
-    Any error thrown by the iterable_function. Note this is not raised inside
-      the producer, but after it finishes executing.
-  """
+    Args:
+      nrow: number of desired rows.
+      ncol: number of desired columns.
+      imagevecs: array of images.
+      imshape: shape of image, [W, H, C]
 
-  if buffer_size <= 1:
-    raise ValueError('the buffer_size should be > 1')
+    Returns:
+      A single, non batched jnp.array of for the image grid.
 
-  buffer = queue.Queue(maxsize=(buffer_size - 1))
-  producer_error = []
-  end = object()
+    """
+    images = iter(imagevecs.reshape((-1,) + imshape))
+    return jnp.squeeze(
+        jnp.vstack([
+            jnp.hstack([next(images)
+                        for _ in range(ncol)][::-1])
+            for _ in range(nrow)
+        ]))
 
-  def producer():
-    """Enques items from iterable on a given thread."""
-    try:
-      # Build a new iterable for each thread. This is crucial if working with
-      # tensorflow datasets because tf.graph objects are thread local.
-      iterable = iterable_function()
-      for item in iterable:
-        buffer.put(item)
-    except Exception as e:  # pylint: disable=broad-except
-      logging.exception('Error in producer thread for %s',
-                        iterable_function.__name__)
-      producer_error.append(e)
-    finally:
-      buffer.put(end)
+  batch_size = images.shape[0]
+  grid_size = int(np.floor(np.sqrt(batch_size)))
 
-  threading.Thread(target=producer, daemon=True).start()
-
-  # Consumer.
-  while True:
-    value = buffer.get()
-    if value is end:
-      break
-    yield value
-
-  if producer_error:
-    raise producer_error[0]
+  image_shape = images.shape[1:]
+  return image_grid(
+      nrow=grid_size,
+      ncol=grid_size,
+      imagevecs=images[0:grid_size**2],
+      imshape=image_shape,
+  )
 
 
 def allgather_and_reshape(x, axis_name='batch'):

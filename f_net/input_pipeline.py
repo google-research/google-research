@@ -20,7 +20,8 @@ from typing import Callable, Dict, Iterable, Optional
 import jax
 import numpy as np
 import tensorflow_datasets as tfds
-import tensorflow_text as tf_text
+
+import sentencepiece as spm
 
 
 def _tfds_stream(dataset_name,
@@ -96,13 +97,16 @@ def glue_inputs(dataset_name,
 
   cls_id = tokenizer.PieceToId("[CLS]")
   sep_id = tokenizer.PieceToId("[SEP]")
+  pad_id = tokenizer.pad_id()
 
   def preprocess(batch):
     """Tokenize and convert text to model inputs."""
     idx = batch["idx"]
     input_batch_size = idx.shape[0]
 
-    input_ids = np.zeros((input_batch_size, max_seq_length), dtype=np.int32)
+    input_ids = np.full((input_batch_size, max_seq_length),
+                        pad_id,
+                        dtype=np.int32)
     type_ids = np.zeros((input_batch_size, max_seq_length), dtype=np.int32)
 
     for i in range(input_batch_size):
@@ -153,7 +157,7 @@ def _c4_data_unbatched(tokenizer,
   ds = ds.batch(16)  # Batch documents to potentially speed up input pipeline
 
   input_ids_buf = np.full((1024, max_seq_length), pad_id, dtype=np.int32)
-  type_ids_buf = np.full((1024, max_seq_length), pad_id, dtype=np.int32)
+  type_ids_buf = np.zeros((1024, max_seq_length), dtype=np.int32)
   next_sentence_labels_buf = np.full(1024, -1, dtype=np.int32)
 
   for batch in tfds.as_numpy(ds):
@@ -214,8 +218,8 @@ def _c4_data_unbatched(tokenizer,
 
 
 def c4_masked_lm_inputs(
-    batch_size, tokenizer,
-    max_seq_length, max_predictions_per_seq, masking_rate,
+    batch_size, tokenizer, max_seq_length,
+    max_predictions_per_seq, masking_rate,
     mask_token_proportion,
     random_token_proportion):
   """"Generates a batch of masked examples from the C4 corpus.

@@ -18,7 +18,7 @@
 import functools
 import gin
 import jax
-from jax.api import custom_jvp
+from jax import custom_jvp
 import jax.numpy as jnp
 
 

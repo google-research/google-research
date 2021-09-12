@@ -38,17 +38,18 @@ class MagnitudeRDFTmel(magnitude_rdft.MagnitudeRDFT):
 
   Attributes:
     use_tf_fft: if True we will use TF FFT otherwise use direct DFT
-    which is implemented using matrix matrix multiplications and supported by
-    any inference engine.
+      which is implemented using matrix matrix multiplications and supported by
+      any inference engine.
     magnitude_squared: if True magnitude spectrum will be squared otherwise sqrt
     num_mel_bins: How many bands in the resulting mel spectrum.
-    lower_edge_hertz: Lower bound on the frequencies to be included in the mel
-    spectrum. This corresponds to the lower edge of the lowest triangular band.
+    lower_edge_hertz: Lower bound on the frequencies to be included
+      in the mel spectrum. This corresponds to the lower edge
+      of the lowest triangular band.
     upper_edge_hertz: The desired top edge of the highest frequency band.
     sample_rate: Samples per second of the input signal used to
-    create the spectrogram.
+      create the spectrogram.
     mel_non_zero_only: if True we will calculate the non zero area of
-    Mel spectrum and use it for DFT calculation to reduce its computations.
+      Mel spectrum and use it for DFT calculation to reduce its computations.
   """
 
   def __init__(self,
@@ -77,30 +78,43 @@ class MagnitudeRDFTmel(magnitude_rdft.MagnitudeRDFT):
 
     # output size of DFT
     feature_size = self._compute_fft_size(int(input_shape[-1])) // 2 + 1
-
-    # precompute mel matrix using np
-    self.mel_weight_matrix = mel_table.SpectrogramToMelMatrix(
-        num_mel_bins=self.num_mel_bins,
-        num_spectrogram_bins=feature_size,
-        audio_sample_rate=self.sample_rate,
-        lower_edge_hertz=self.lower_edge_hertz,
-        upper_edge_hertz=self.upper_edge_hertz)
-
+    self.feature_size = feature_size
     fft_mel_size = None
-    if self.mel_non_zero_only:
-      fft_mel_size = self._get_non_zero_mel_size()
-      self.mel_weight_matrix = self.mel_weight_matrix[:fft_mel_size, :]
 
-    self.mel_weight_matrix = tf.constant(
-        self.mel_weight_matrix, dtype=tf.float32)
+    if not self.use_tf_fft:
+      # precompute mel matrix using np
+      self.mel_weight_matrix = mel_table.SpectrogramToMelMatrix(
+          num_mel_bins=self.num_mel_bins,
+          num_spectrogram_bins=feature_size,
+          audio_sample_rate=self.sample_rate,
+          lower_edge_hertz=self.lower_edge_hertz,
+          upper_edge_hertz=self.upper_edge_hertz)
+
+      if self.mel_non_zero_only:
+        fft_mel_size = self._get_non_zero_mel_size()
+        self.mel_weight_matrix = self.mel_weight_matrix[:fft_mel_size, :]
+
+      self.mel_weight_matrix = tf.constant(
+          self.mel_weight_matrix, dtype=tf.float32)
 
     super(MagnitudeRDFTmel, self).build(input_shape, fft_mel_size)
 
   def call(self, inputs):
     # compute magnitude of fourier spectrum
     fft_mag = super(MagnitudeRDFTmel, self).call(inputs)
+
     # apply mel spectrum
-    return tf.matmul(fft_mag, self.mel_weight_matrix)
+    if self.use_tf_fft:
+      mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
+          num_mel_bins=self.num_mel_bins,
+          num_spectrogram_bins=self.feature_size,
+          sample_rate=self.sample_rate,
+          lower_edge_hertz=self.lower_edge_hertz,
+          upper_edge_hertz=self.upper_edge_hertz,
+          dtype=tf.float32)
+    else:
+      mel_weight_matrix = self.mel_weight_matrix
+    return tf.matmul(fft_mag, mel_weight_matrix)
 
   def get_config(self):
     config = {
