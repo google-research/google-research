@@ -1,0 +1,5 @@
+# 36M parameter Primer.
+#
+# This is used for LM1B.
+include 'models/medium_primer.gin'
+include 'models/small_defaults.gin'

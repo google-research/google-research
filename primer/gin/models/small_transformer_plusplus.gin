@@ -1,0 +1,9 @@
+# 35M parameter Transformer++.
+#
+# This is used for LM1B.
+include 'models/medium_transformer_plusplus.gin'
+include 'models/small_defaults.gin'
+
+# Transformer++ uses GLU for Feed Forward layers and so the upwards projection
+# size needs to be readjusted to control the number of parameters.
+d_ff = 1364

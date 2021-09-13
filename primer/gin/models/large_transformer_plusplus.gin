@@ -1,0 +1,5 @@
+# 537M parameter Transformer++ for full scale training on C4.
+include 'models/medium_transformer_plusplus.gin'
+include 'models/large_defaults.gin'
+
+d_ff = 5462

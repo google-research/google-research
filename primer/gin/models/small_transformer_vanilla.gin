@@ -1,0 +1,5 @@
+# 35M parameter vanilla Transformer.
+#
+# This is used for LM1B.
+include 'models/medium_transformer_vanilla.gin'
+include 'models/small_defaults.gin'

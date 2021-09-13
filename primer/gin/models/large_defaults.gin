@@ -1,0 +1,5 @@
+d_model = 1024
+num_layers = 24
+num_heads = 16
+utils.tpu_mesh_shape.model_parallelism = 2
+d_ff = 8192
