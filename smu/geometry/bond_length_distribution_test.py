@@ -221,7 +221,6 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
     self.assertAlmostEqual(got[dataset_pb2.BondTopology.BOND_SINGLE], 0.25)
     self.assertAlmostEqual(got[dataset_pb2.BondTopology.BOND_DOUBLE], 0.75)
 
-  @absltest.skip('API was changed, but need to go back and decide right way')
   def test_missing_types(self):
     all_dists = bond_length_distribution.AllAtomPairLengthDistributions()
     all_dists.add(

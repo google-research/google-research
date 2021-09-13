@@ -468,12 +468,6 @@ class AllAtomPairLengthDistributions:
                             bond_type,
                             length):
     """p(length | atom_a, atom_b, bond_type)."""
-    if (atom_a, atom_b) not in self._atom_pair_dict.keys():
-      return 0.0
-
-    if not self._atom_pair_dict[(atom_a, atom_b)].has_key(bond_type):
-      return 0.0
-
     return self._atom_pair_dict[(atom_a, atom_b)][bond_type].pdf(length)
 
   def probability_of_bond_types(
