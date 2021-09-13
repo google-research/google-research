@@ -1,4 +1,5 @@
 # coding=utf-8
+# coding=utf-8
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +17,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_function
 
 import random
 
@@ -28,12 +28,12 @@ from PIL import ImageOps, ImageEnhance, ImageFilter, Image
 
 PARAMETER_MAX = 10  # What is the max 'level' a transform could be predicted
 
-RANDOM_POLICY_OPS = (
-    'Identity', 'AutoContrast', 'Equalize', 'Rotate',
-    'Solarize', 'Color', 'Contrast', 'Brightness',
-    'Sharpness', 'ShearX', 'TranslateX', 'TranslateY',
-    'Posterize', 'ShearY'
-)
+RANDOM_POLICY_OPS = ('Identity', 'AutoContrast', 'Equalize', 'Rotate',
+                     'Solarize', 'Color', 'Contrast', 'Brightness', 'Sharpness',
+                     'ShearX', 'TranslateX', 'TranslateY', 'Posterize',
+                     'ShearY')
+
+BLUR_OPS = ('Blur', 'Smooth')
 
 
 def random_flip(x):
@@ -171,8 +171,8 @@ def apply_policy(policy, img):
   Args:
     policy: A list of tuples with the form (name, probability, level) where
       `name` is the name of the augmentation operation to apply, `probability`
-      is the probability of applying the operation and `level` is what
-      strength the operation to apply.
+      is the probability of applying the operation and `level` is what strength
+      the operation to apply.
     img: Numpy image that will have `policy` applied to it.
 
   Returns:

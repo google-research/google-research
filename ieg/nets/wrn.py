@@ -1,32 +1,16 @@
 # coding=utf-8
-# Copyright 2018 The TensorFlow Authors All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-
 """Builds the Wide-ResNet Model."""
 
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_function
+
+import numpy as np
+import tensorflow.compat.v1 as tf
 
 from ieg import utils
 from ieg.models import custom_ops as ops
 from ieg.models.custom_ops import decay_weights
 from ieg.models.networks import StrategyNetBase
-
-import numpy as np
-import tensorflow.compat.v1 as tf
 
 
 def residual_block(x,
@@ -116,6 +100,20 @@ class WRN(StrategyNetBase):
     self.wrn_size = wrn_size
     self.wd = weight_decay_rate
 
+  def get_partial_variables(self, level=-1):
+    vs = []
+    if level == 0:
+      # only get last fc layer
+      for v in self.trainable_variables:
+        if 'FC' in v.name:
+          vs.append(v)
+    elif level < 0:
+      vs = self.trainable_variables
+    else:
+      raise ValueError
+    assert vs, 'Length of obtained partial variable is 0'
+    return vs
+
   def __call__(self,
                images,
                name,
@@ -189,8 +187,7 @@ class WRN(StrategyNetBase):
 
       if not isinstance(reuse, bool) or not reuse:
         self.regularization_loss = decay_weights(
-            self.wd,
-            utils.get_var(tf.trainable_variables(), name))
+            self.wd, utils.get_var(tf.trainable_variables(), name))
         self.init(name, with_name='moving', outputs=logits)
         self.count_parameters(name)
     return logits

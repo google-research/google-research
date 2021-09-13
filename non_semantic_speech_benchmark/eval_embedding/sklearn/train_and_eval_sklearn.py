@@ -16,15 +16,16 @@
 # Lint as: python3
 """Train and eval a sklearn model."""
 
+import itertools
 import os
 import pickle
 import time
-from typing import Tuple, Any
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 from absl import logging
 
 import numpy as np
+import tensorflow as tf
 
-from non_semantic_speech_benchmark import file_utils
 from non_semantic_speech_benchmark.eval_embedding import metrics
 from non_semantic_speech_benchmark.eval_embedding.sklearn import models
 from non_semantic_speech_benchmark.eval_embedding.sklearn import sklearn_utils
@@ -38,10 +39,10 @@ def train_and_get_score(embedding_name,
                         test_glob,
                         model_name,
                         l2_normalization,
-                        speaker_id_name=None,
-                        save_model_dir=None,
-                        save_predictions_dir=None,
-                        eval_metric='accuracy'):
+                        speaker_id_name = None,
+                        save_model_dir = None,
+                        save_predictions_dir = None,
+                        eval_metric = 'accuracy'):
   """Train and eval sklearn models on data.
 
   Args:
@@ -69,6 +70,7 @@ def train_and_get_score(embedding_name,
 
   # Read and validate data.
   def _read_glob(glob, name):
+    logging.info('Starting to read %s: %s', name, glob)
     s = time.time()
     npx, npy = sklearn_utils.tfexamples_to_nps(
         glob,
@@ -111,35 +113,35 @@ def train_and_get_score(embedding_name,
   eval_score, test_score = _calc_eval_scores(eval_metric, d, npx_eval, npy_eval,
                                              npx_test, npy_test)
   logging.info('Finished eval: %s: %.3f', model_name, eval_score)
-  logging.info('Finished eval: %s: %.3f', model_name, test_score)
+  logging.info('Finished test: %s: %.3f', model_name, test_score)
 
   # If `save_model_dir` is present, write model to this directory.
   # To load the model after saving, use:
   # ```python
-  # with file_utils.Open(model_filename, 'rb') as f:
+  # with tf.io.gfile.GFile(model_filename, 'rb') as f:
   #   m = pickle.load(f)
   # ```
   if save_model_dir:
     cur_models_dir = os.path.join(save_model_dir, embedding_name)
-    file_utils.MaybeMakeDirs(cur_models_dir)
+    tf.io.gfile.makedirs(cur_models_dir)
     model_filename = os.path.join(cur_models_dir, f'{model_name}.pickle')
-    with file_utils.Open(model_filename, 'wb') as f:
+    with tf.io.gfile.GFile(model_filename, 'wb') as f:
       pickle.dump(d, f)
 
   if save_predictions_dir:
     cur_preds_dir = os.path.join(save_predictions_dir, embedding_name)
-    file_utils.MaybeMakeDirs(cur_preds_dir)
+    tf.io.gfile.makedirs(cur_preds_dir)
     for dat_name, dat_x, dat_y in [('train', npx_train, npy_train),
                                    ('eval', npx_eval, npy_eval),
                                    ('test', npx_test, npy_test)]:
       pred_filename = os.path.join(cur_preds_dir,
                                    f'{model_name}_{dat_name}_pred.npz')
       pred_y = d.predict(dat_x)
-      with file_utils.Open(pred_filename, 'wb') as f:
+      with tf.io.gfile.GFile(pred_filename, 'wb') as f:
         np.save(f, pred_y)
       y_filename = os.path.join(cur_preds_dir,
                                 f'{model_name}_{dat_name}_y.npz')
-      with file_utils.Open(y_filename, 'wb') as f:
+      with tf.io.gfile.GFile(y_filename, 'wb') as f:
         np.save(f, dat_y)
 
   return (eval_score, test_score)
@@ -179,6 +181,105 @@ def _calc_eval_scores(eval_metric, d, npx_eval,
       return class_scores
     eval_score = np.mean(_class_scores(npx_eval, npy_eval))
     test_score = np.mean(_class_scores(npx_test, npy_test))
+  elif eval_metric == 'auc':
+    # Eval.
+    regression_output = d.predict_proba(npx_eval)[:, 1]  # Prob of class 1.
+    eval_score = metrics.calculate_auc(
+        labels=npy_eval, predictions=regression_output)
+    # Test.
+    regression_output = d.predict_proba(npx_test)[:, 1]  # Prob of class 1.
+    test_score = metrics.calculate_auc(
+        labels=npy_test, predictions=regression_output)
   else:
     raise ValueError(f'`eval_metric` not recognized: {eval_metric}')
   return eval_score, test_score
+
+
+def experiment_params(
+    embedding_list,
+    speaker_id_name,
+    label_name,
+    label_list,
+    train_glob,
+    eval_glob,
+    test_glob,
+    save_model_dir,
+    save_predictions_dir,
+    eval_metric,
+    comma_escape_char = '?',
+):
+  """Get experiment params."""
+  # Sometimes we want commas to appear in `embedding_modules`,
+  # `embedding_names`, or `module_output_key`. However, commas get split out in
+  # Google's Python `DEFINE_list`. We compromise by introducing a special
+  # character, which we replace with commas here.
+  embedding_list = _maybe_add_commas(embedding_list, comma_escape_char)
+
+  # Enumerate the configurations we want to run.
+  exp_params = []
+  model_names = models.get_sklearn_models().keys()
+  for elem in itertools.product(*[embedding_list, model_names]):
+
+    def _params_dict(l2_normalization,
+                     speaker_id_name=speaker_id_name,
+                     elem=elem):
+      return {
+          'embedding_name': elem[0],
+          'model_name': elem[1],
+          'label_name': label_name,
+          'label_list': label_list,
+          'train_glob': train_glob,
+          'eval_glob': eval_glob,
+          'test_glob': test_glob,
+          'l2_normalization': l2_normalization,
+          'speaker_id_name': speaker_id_name,
+          'save_model_dir': save_model_dir,
+          'save_predictions_dir': save_predictions_dir,
+          'eval_metric': eval_metric,
+      }
+
+    exp_params.append(_params_dict(l2_normalization=True))
+    exp_params.append(_params_dict(l2_normalization=False))
+    if speaker_id_name is not None:
+      exp_params.append(
+          _params_dict(l2_normalization=True, speaker_id_name=None))
+      exp_params.append(
+          _params_dict(l2_normalization=False, speaker_id_name=None))
+
+  return exp_params
+
+
+def format_text_line(k_v):
+  """Convert params and score to human-readable format."""
+  p, (eval_score, test_score) = k_v
+  cur_elem = ', '.join([
+      f'Eval score: {eval_score}', f'Test score: {test_score}',
+      f'Embed: {p["embedding_name"]}', f'Label: {p["label_name"]}',
+      f'Model: {p["model_name"]}', f'L2 normalization: {p["l2_normalization"]}',
+      f'Speaker normalization: {p["speaker_id_name"] is not None}', '\n'
+  ])
+  logging.info('Finished formatting: %s', cur_elem)
+  return cur_elem
+
+
+def _maybe_add_commas(list_obj, comma_escape_char):
+  return [x.replace(comma_escape_char, ',') for x in list_obj]
+
+
+def validate_flags(train_glob, eval_glob, test_glob,
+                   output_file):
+  """Validate flags."""
+  if not tf.io.gfile.glob(train_glob):
+    raise ValueError(f'Files not found: {train_glob}')
+  if not tf.io.gfile.glob(eval_glob):
+    raise ValueError(f'Files not found: {eval_glob}')
+  if not tf.io.gfile.glob(test_glob):
+    raise ValueError(f'Files not found: {test_glob}')
+
+  outputs = tf.io.gfile.glob(f'{output_file}*')
+  if outputs:
+    raise ValueError(f'Output file already exists: {outputs}')
+
+  # Create output directory if it doesn't already exist.
+  outdir = os.path.dirname(output_file)
+  tf.io.gfile.makedirs(outdir)

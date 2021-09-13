@@ -18,7 +18,6 @@
 import functools
 import math
 import os
-import time
 from typing import Any, Callable, Dict, Mapping, Tuple
 
 from absl import logging
@@ -127,8 +126,11 @@ def _create_adam_optimizer(learning_rate,
 
 
 def _compute_loss_and_metrics(
-    params, batch, rng,
-    model
+    params,
+    batch,
+    rng,
+    model,
+    pad_id,
 ):
   """Computes cross-entropy loss and metrics for classification tasks.
 
@@ -137,13 +139,15 @@ def _compute_loss_and_metrics(
     batch: Current batch of examples.
     rng: Random number generator key.
     model: The model itself. Flax separates model state and architecture.
+    pad_id: Token ID representing padding. A mask is used to distinguish padding
+      from actual inputs.
 
   Returns:
     Model loss and metrics.
   """
   inputs = {
       "input_ids": batch["input_ids"],
-      "input_mask": (batch["input_ids"] > 0).astype(np.int32),
+      "input_mask": (batch["input_ids"] != pad_id).astype(np.int32),
       "type_ids": batch["type_ids"],
       "labels": batch["label"]
   }
@@ -152,22 +156,24 @@ def _compute_loss_and_metrics(
   return metrics["loss"], metrics
 
 
-def _compute_classification_stats(
-    params, batch,
-    model):
+def _compute_classification_stats(params, batch,
+                                  model,
+                                  pad_id):
   """Computes classification predictions.
 
   Args:
     params: Model state (parameters).
     batch: Current batch of examples.
     model: The model itself. Flax separates model state and architecture.
+    pad_id: Token ID representing padding. A mask is used to distinguish padding
+      from actual inputs.
 
   Returns:
     Model predictions along with example labels.
   """
   inputs = {
       "input_ids": batch["input_ids"],
-      "input_mask": (batch["input_ids"] > 0).astype(np.int32),
+      "input_mask": (batch["input_ids"] != pad_id).astype(np.int32),
       "type_ids": batch["type_ids"],
       "deterministic": True
   }
@@ -180,22 +186,24 @@ def _compute_classification_stats(
   }
 
 
-def _compute_regression_stats(
-    params, batch,
-    model):
+def _compute_regression_stats(params, batch,
+                              model,
+                              pad_id):
   """Computes regression predictions.
 
   Args:
     params: Model state (parameters).
     batch: Current batch of examples.
     model: The model itself. Flax separates model state and architecture.
+    pad_id: Token ID representing padding. A mask is used to distinguish padding
+      from actual inputs.
 
   Returns:
     Model predictions along with example labels.
   """
   inputs = {
       "input_ids": batch["input_ids"],
-      "input_mask": (batch["input_ids"] > 0).astype(np.int32),
+      "input_mask": (batch["input_ids"] != pad_id).astype(np.int32),
       "type_ids": batch["type_ids"],
       "deterministic": True
   }
@@ -268,13 +276,13 @@ def _create_eval_metrics_fn(
   return metrics_fn
 
 
-def _compute_eval_metrics(p_eval_step, model,
-                          eval_batch,
-                          n_devices):
+def _evaluate(p_eval_step, model,
+              eval_batch,
+              n_devices):
   """Computes evaluation metrics.
 
   Args:
-    p_eval_step: Parallelized evaluation setp computation.
+    p_eval_step: Parallelized evaluation step computation.
     model: Model architecture.
     eval_batch: Batch of evaluation examples.
     n_devices: Number of local devices.
@@ -304,10 +312,8 @@ def _compute_eval_metrics(p_eval_step, model,
   return metrics
 
 
-def train_and_evaluate(config,
-                       workdir,
-                       vocab_filepath,
-                       random_seed = 0):
+def train_and_evaluate(config, workdir,
+                       vocab_filepath):
   """Runs a training and evaluation loop.
 
   Args:
@@ -316,7 +322,6 @@ def train_and_evaluate(config,
       this contains a checkpoint, training will be resumed from the latest
       checkpoint.
     vocab_filepath: Absolute path to SentencePiece vocab model.
-    random_seed: Random number generator seed.
 
   Raises:
     ValueError: If training or eval batch sizes won't fit number of processes
@@ -353,11 +358,8 @@ def train_and_evaluate(config,
     train_summary_writer = None
     eval_summary_writer = None
 
-  rng = random.PRNGKey(random_seed)
+  rng = random.PRNGKey(config.seed)
   rng, init_rng = random.split(rng)
-
-  tokenizer = spm.SentencePieceProcessor()
-  tokenizer.Load(vocab_filepath)
 
   ds_info = tfds.builder(config.dataset_name).info
   num_train_examples = ds_info.splits[tfds.Split.TRAIN].num_examples
@@ -374,6 +376,8 @@ def train_and_evaluate(config,
   num_classes = (1 if is_regression_task else
                  ds_info.features["label"].num_classes)
 
+  tokenizer = spm.SentencePieceProcessor()
+  tokenizer.Load(vocab_filepath)
   with config.unlocked():
     config.vocab_size = tokenizer.GetPieceSize()
 
@@ -401,10 +405,11 @@ def train_and_evaluate(config,
   optimizer = jax_utils.replicate(optimizer)
 
   if is_regression_task:
-    compute_stats = functools.partial(_compute_regression_stats, model=model)
+    compute_stats = functools.partial(
+        _compute_regression_stats, model=model, pad_id=tokenizer.pad_id())
   else:
     compute_stats = functools.partial(
-        _compute_classification_stats, model=model)
+        _compute_classification_stats, model=model, pad_id=tokenizer.pad_id())
 
   learning_rate_fn = train_utils.create_learning_rate_scheduler(
       factors="constant * linear_warmup * linear_decay",
@@ -418,10 +423,11 @@ def train_and_evaluate(config,
       dataset_name=config.dataset_name,
       max_seq_length=config.max_seq_length,
       tokenizer=tokenizer)
-  train_iter = glue_inputs(
+  train_ds = glue_inputs(
       split=tfds.Split.TRAIN,
       batch_size=per_process_train_batch_size,
       training=True)
+  train_iter = iter(train_ds)
 
   if config.dataset_name == "glue/mnli":
     # MNLI contains two validation and test datasets.
@@ -434,7 +440,7 @@ def train_and_evaluate(config,
   rngs = random.split(rng, n_devices)
 
   loss_and_metrics_fn = functools.partial(
-      _compute_loss_and_metrics, model=model)
+      _compute_loss_and_metrics, model=model, pad_id=tokenizer.pad_id())
   p_train_step = jax.pmap(
       functools.partial(
           train_utils.train_step,
@@ -448,18 +454,18 @@ def train_and_evaluate(config,
                                             is_regression_task)
 
   train_metrics = []
-  seconds = 0.0
 
   logging.info("Starting training loop.")
   logging.info("====================")
 
-  for step, train_batch in zip(range(start_step, num_train_steps), train_iter):
-    train_batch = common_utils.shard(train_batch)
-    curr_time = time.time()
-    optimizer, train_step_metrics, rngs = p_train_step(
-        optimizer, train_batch, rng=rngs)
-    seconds += time.time() - curr_time
-    train_metrics.append(train_step_metrics)
+  for step in range(start_step, num_train_steps):
+    with jax.profiler.StepTraceContext("train", step_num=step):
+      train_batch = next(train_iter)
+      train_batch = common_utils.shard(train_batch)
+
+      optimizer, train_step_metrics, rngs = p_train_step(
+          optimizer, train_batch, rng=rngs)
+      train_metrics.append(train_step_metrics)
 
     if ((step > 0 and config.save_checkpoints_steps and
          step % config.save_checkpoints_steps == 0) or
@@ -489,9 +495,6 @@ def train_and_evaluate(config,
 
     if jax.process_index() == 0:
       assert train_summary_writer
-      steps_per_sec = (step - start_step + 1) / seconds
-      train_summary_writer.scalar("steps per second", steps_per_sec, step)
-
       for key, val in train_summary.items():
         train_summary_writer.scalar(key, val, step)
       train_summary_writer.flush()
@@ -501,26 +504,22 @@ def train_and_evaluate(config,
     logging.info("Gathering validation metrics at step: %d", step)
 
     for split_suffix in split_suffixes:
-      eval_iter = glue_inputs(
+      eval_ds = glue_inputs(
           split=tfds.Split.VALIDATION + split_suffix,
           batch_size=per_process_eval_batch_size,
           training=False)
 
-      eval_metrics = []
-      for _, eval_batch in zip(range(config.max_num_eval_steps), eval_iter):
-        eval_metrics.append(
-            _compute_eval_metrics(p_eval_step, optimizer.target, eval_batch,
-                                  n_devices))
+      all_stats = []
+      for _, eval_batch in zip(range(config.max_num_eval_steps), eval_ds):
+        all_stats.append(
+            _evaluate(p_eval_step, optimizer.target, eval_batch, n_devices))
+      flat_stats = {}
+      for k in all_stats[0]:  # All batches of output stats are the same size
+        flat_stats[k] = np.concatenate([stat[k] for stat in all_stats], axis=0)
+      eval_summary = eval_metrics_fn(flat_stats)
 
-      if eval_metrics:
-        eval_metrics = common_utils.get_metrics(eval_metrics)
-        eval_summary = eval_metrics_fn(eval_metrics)
-
-        if jax.process_index() == 0:
-          assert eval_summary_writer
-          for key, val in eval_summary.items():
-            eval_summary_writer.scalar(f"{key}{split_suffix}", val, step)
-          eval_summary_writer.flush()
-
-      else:
-        logging.warning("Error gathering eval_metrics at step: %d", step)
+      if jax.process_index() == 0:
+        assert eval_summary_writer
+        for key, val in eval_summary.items():
+          eval_summary_writer.scalar(f"{key}{split_suffix}", val, step)
+        eval_summary_writer.flush()

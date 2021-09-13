@@ -28,6 +28,7 @@ import tensorflow as tf
 from muzero import actor
 from muzero import core as mzcore
 from muzero import learner
+from muzero import learner_flags
 from muzero.atari import env
 from muzero.atari import network
 
@@ -59,7 +60,6 @@ flags.DEFINE_float('root_exploration_fraction', .25,
 flags.DEFINE_integer('pb_c_base', 19652, 'PB C Base.')
 flags.DEFINE_float('pb_c_init', 1.25, 'PB C Init.')
 
-flags.DEFINE_integer('log_frequency', 100, 'in number of training steps')
 flags.DEFINE_float('temperature', 1., 'for softmax sampling of actions')
 
 flags.DEFINE_integer('value_encoder_steps', 0, 'If 0, take 1 step per integer')
@@ -181,6 +181,7 @@ def main(argv):
         env_descriptor,
         create_agent,
         create_optimizer,
+        learner_flags.learner_config_from_flags(),
         mzconfig,
         pretraining=(FLAGS.pretraining == 1))
   else:

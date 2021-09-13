@@ -62,15 +62,15 @@ StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
       }
     }
     if (leaf_opts[i].ah_codebook != nullptr) codebook_ct++;
-    auto int8_t = leaf_opts[i].pre_quantized_fixed_point;
-    if (int8_t != nullptr) {
-      auto dataset = int8_t->fixed_point_dataset;
+    auto int8 = leaf_opts[i].pre_quantized_fixed_point;
+    if (int8 != nullptr) {
+      auto dataset = int8->fixed_point_dataset;
       if (dataset) {
         int8_ct++;
         total_int8 += dataset->size();
         int8_dim = dataset->dimensionality();
       }
-      auto l2_norms = int8_t->squared_l2_norm_by_datapoint;
+      auto l2_norms = int8->squared_l2_norm_by_datapoint;
       if (l2_norms && !l2_norms->empty()) {
         if (!dataset || dataset->size() != l2_norms->size())
           return FailedPreconditionError(
@@ -125,7 +125,7 @@ StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
     if (int8_ct != n_leaves)
       return FailedPreconditionError(absl::StrFormat(
           "Detected tree-scalar quantization hybrid but not all (%d/%d) leaf "
-          "searchers have int8_t-quantized datasets",
+          "searchers have int8-quantized datasets",
           hash_ct, n_leaves));
     if (total_int8 != expected_size)
       return FailedPreconditionError(
@@ -138,17 +138,17 @@ StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
       opts.pre_quantized_fixed_point->squared_l2_norm_by_datapoint =
           make_shared<vector<float>>(expected_size);
     for (int i = 0; i < n_leaves; i++) {
-      auto int8_t = leaf_opts[i].pre_quantized_fixed_point;
-      for (size_t inner_idx : Seq(int8_t->fixed_point_dataset->size())) {
+      auto int8 = leaf_opts[i].pre_quantized_fixed_point;
+      for (size_t inner_idx : Seq(int8->fixed_point_dataset->size())) {
         const uint64_t global_idx = datapoints_by_token[i][inner_idx];
 
-        auto dptr = (*int8_t->fixed_point_dataset)[inner_idx];
+        auto dptr = (*int8->fixed_point_dataset)[inner_idx];
         std::copy(dptr.values(), dptr.values() + int8_dim,
                   storage.begin() + global_idx * int8_dim);
 
         if (int8_has_norms)
           opts.pre_quantized_fixed_point->squared_l2_norm_by_datapoint->at(
-              global_idx) = int8_t->squared_l2_norm_by_datapoint->at(inner_idx);
+              global_idx) = int8->squared_l2_norm_by_datapoint->at(inner_idx);
       }
     }
     opts.pre_quantized_fixed_point->fixed_point_dataset =

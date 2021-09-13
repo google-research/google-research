@@ -1,0 +1,12 @@
+import mesh_tensorflow.transformer.transformer_layers
+
+# Based off of the T5 "base" model.
+include 'models/t5.1.0.base.gin'
+
+transformer_layers.Synthesizer.synthesize_mode="random_plus"
+transformer_layers.Synthesizer.relative_attention_type = "bias_shared"
+
+transformer.make_layer_stack.layers = [
+    @mesh_tensorflow.transformer.transformer_layers.Synthesizer,
+    @transformer_layers.DenseReluDense,
+]

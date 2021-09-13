@@ -1,13 +1,19 @@
 # MQM Viewer
 
-This repository contains a web app (`mqm-viewer.html`) that can be used to
-analyze
+This repository contains a web app  that can be used to analyze
 [Multidimensional Quality Metrics (MQM)](http://www.qt21.eu/mqm-definition/definition-2015-06-16.html) data from a translation quality
 evaluation.
 
-To use it, simply open the `mqm-viewer.html` file in a web browser, and use
+To use it, download the files `mqm-viewer.html`, `mqm-viewer.js`, and
+`mqm-viewer.css` to your computer:
+
+```
+wget https://raw.githubusercontent.com/google-research/google-research/master/mqm_viewer/mqm-viewer.{html,js,css}
+```
+
+Then, simply open the `mqm-viewer.html` file in a web browser, and use
 the "Choose file" button to pick an MQM data file. MQM data spans several
-columns, so it's best to use a desktop or laptop computer.
+columns, so it's best to use a desktop or laptop computer with a wide screen.
 
 This is not an officially supported Google product.
 

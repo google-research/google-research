@@ -389,11 +389,11 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
 
     if conv_cell == tf.keras.layers.SeparableConv1D:
       kwargs = dict(
-          depthwise_initializer=tf.keras.initializers.GlorotUniform(seed=123),
-          pointwise_initializer=tf.keras.initializers.GlorotUniform(seed=456))
+          depthwise_initializer=FixedRandomInitializer(seed=123),
+          pointwise_initializer=FixedRandomInitializer(seed=456))
     else:
       kwargs = dict(
-          kernel_initializer=tf.keras.initializers.GlorotUniform(seed=123))
+          kernel_initializer=FixedRandomInitializer(seed=123))
 
     # Prepare Keras native model.
     model_native = conv_model_keras_native(params, conv_cell, cnn_filters,
@@ -436,6 +436,25 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
 
     with self.subTest(name='non_stream_vs_native'):
       self.assertAllClose(non_stream_out, native_out)
+
+
+@tf.keras.utils.register_keras_serializable()
+class FixedRandomInitializer(tf.keras.initializers.Initializer):
+
+  def __init__(self, seed, mean=0., stddev=1.):
+    self.mean = mean
+    self.stddev = stddev
+    self.seed = seed
+
+  def __call__(self, shape, dtype=None):
+    return tf.random.stateless_normal(
+        shape, mean=self.mean, stddev=self.stddev, dtype=dtype,
+        seed=[self.seed, 0])
+
+  def get_config(self):
+    return {'seed': self.seed,
+            'mean': self.mean,
+            'stddev': self.stddev}
 
 
 if __name__ == '__main__':

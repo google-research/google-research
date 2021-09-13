@@ -1,15 +1,14 @@
 ================================================================================
 # From original_conformer_index, topology, bond_topology_id, conformer_id
     1    4     x02_c2h2.000020.001
+Database   standard
 # From errors
-   nstat1   nstatc   nstatv   nstatt   nsvato   nsvnsb   nsvnlb   nsvele
-        1        1        1        1        1        1        1        1
-   nsvego   nsveh3   nsveh4   nsvec3   nsvexc   nsveca   nsvmr1   nsvmr2
-        1        1        1        1        1        1        1        1
-   nsvvib   nsvor1   nsvor2   nsvrot   nsvnsp   nsvnlp   nsvg09   nsvho1
-        1        1        1        1        1        1        1        1
-   nsvho2   nsvho3   nsvneg
-        3        5        1
+Status        0
+Warn_T1       0   0
+Warn_BSE      0   0
+Warn_EXC      0   0   0
+Warn_VIB      0   0
+Warn_NEG      0
 # From topology
      3
      11
@@ -21,11 +20,11 @@ x02_c2h2
 ID      20       1
 # From compute_cluster_info
 Stage 1  Host IP:   XXX.YYY.200.108
-Stage 1  Cluster:   alchemy      
+Stage 1  Cluster:   alchemy
 Stage 1  Cores:        24
 Stage 1  CPU type:     23
 Stage 2  Host IP:   XXX.YYY.200.108
-Stage 2  Cluster:   alchemy      
+Stage 2  Cluster:   alchemy
 Stage 2  Cores:        24
 Stage 2  CPU type:     23
 # From calculation_statistics
@@ -60,23 +59,6 @@ Frequencies and intensities
 # From harmonic_intensities
     0.0    0.0    0.0    0.0    0.0    0.0    0.0  102.9  102.9    0.0
    72.7    0.0
-Gaussian sanity check for FREQ/ELSTAT calculation
-# From energy_pbe0_6_311gd_diff
-Dev. Energy PBE0/6-311G*            0.000020
-# From max_force
-Max. Force                          0.000010
-# From max_frequencies_diff,mean_frequencies_diff
-Max. and Avg Dev. Frequencies       0.463700      0.144060
-# From max_intensities_diff,mean_intensities_diff
-Max. and Avg Dev. Intensities       0.031650      0.009350
-# From energy_hf_6_31gd_diff
-Dev. Energy HF/6-31G*               0.000000
-# From max_dipole_components_diff
-Max. Dev. Dipole Components         0.000000
-# From max_quadropole_components_diff
-Max. Dev. Quadrup. Components       0.000020
-# From max_octopole_components_diff
-Max. Dev. Octupole Components       0.000000
 Normal modes
 # From normal_modes
 Mode   1
@@ -193,8 +175,8 @@ NUM_OPT                  1
 NIMAG                    0
 # From zpe_unscaled
 ZPE_unscaled            16.78
-# From diagnostics_d1_ccsd_2sp, diagnostics_d1_ccsd_2sd, diagnostics_d1_ccsd_3psd
-D1DIAG    D1(CCSD/2sp)   0.024900  D1(CCSD/2sd)  -1.000000  D1(CCSD/3Psd) -1.000000
+# From diagnostics_d1_ccsd_2sp
+D1DIAG    D1(CCSD/2sp)   0.024900
 # From diagnostics_t1_ccsd_2sp, diagnostics_t1_ccsd_2sd, diagnostics_t1_ccsd_3psd
 T1DIAG    T1(CCSD/2sp)   0.012300  T1(CCSD/2sd)   0.012200  T1(CCSD/3Psd)  0.012900
 # From bond_separation_reaction_left
@@ -361,9 +343,9 @@ Polarizability (au):    PBE0/aug-pc-1
     xx      19.22399
     yy      19.22399
     zz      30.93730
-    xy      -0.10019
-    xz       0.60725
-    yz       0.37824
+    xy      -0.00000
+    xz       0.00000
+    yz       0.00000
 Dipole moment (au):     PBE0/aug-pc-1
 # From dipole_moment_pbe0_aug_pc_1
      x       0.00000

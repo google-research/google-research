@@ -21,6 +21,7 @@ from __future__ import division
 import numpy as np
 import tensorflow.compat.v1 as tf
 from graph_compression.compression_lib import compression_op
+from graph_compression.compression_lib import compression_op_utils
 from graph_compression.compression_lib import compression_wrapper
 from graph_compression.compression_lib.keras_layers import layers as compression_layers
 
@@ -45,13 +46,18 @@ class CompressionOpInterfaceTest(tf.test.TestCase):
         compression_hparams = ("name=cifar10_compression,"
                                "begin_compression_step=1000,"
                                "end_compression_step=120000,"
-                               "compression_frequency=10,"
-                               "compression_option=1,"
-                               "update_option=0")
+                               "compression_frequency=10,")
         global_step = tf.compat.v1.get_variable("global_step", initializer=30)
+        compression_op_spec = compression_op.CompressionOp.get_default_hparams(
+            ).parse(compression_hparams)
+        compression_op_spec.set_hparam(
+            "compression_option",
+            compression_op_utils.CompressionOptions.LOWRANK_MATRIX_COMPRESSION)
+        compression_op_spec.set_hparam(
+            "update_option",
+            compression_op_utils.UpdateOptions.TF_UPDATE)
         c = compression_op.CompressionOp(
-            spec=compression_op.CompressionOp.get_default_hparams().parse(
-                compression_hparams),
+            spec=compression_op_spec,
             global_step=global_step)
         # Need to add initial value for a_matrix so that we would know what
         # to expect back.
@@ -150,11 +156,13 @@ class CompressionOpInterfaceTest(tf.test.TestCase):
         compression_hparams = ("name=cifar10_compression,"
                                "begin_compression_step=1000,"
                                "end_compression_step=120000,"
-                               "compression_frequency=100,"
-                               "compression_option=1")
+                               "compression_frequency=100,")
         compression_op_spec = (
             compression_op.CompressionOp.get_default_hparams().parse(
                 compression_hparams))
+        compression_op_spec.set_hparam(
+            "compression_option",
+            compression_op_utils.CompressionOptions.LOWRANK_MATRIX_COMPRESSION)
         compressor_spec = (
             compression_op.LowRankDecompMatrixCompressor.get_default_hparams()
             .parse("num_rows=5,num_cols=5,rank=200"))
@@ -163,7 +171,7 @@ class CompressionOpInterfaceTest(tf.test.TestCase):
 
         global_step = tf.compat.v1.get_variable("global_step", initializer=30)
 
-        apply_comp = compression_op.ApplyCompression(
+        apply_comp = compression_wrapper.ApplyCompression(
             scope="default_scope",
             compression_spec=compression_op_spec,
             compressor=matrix_compressor,
@@ -280,7 +288,6 @@ class InputOutputCompressionOpTest(tf.test.TestCase):
     with tf.Graph().as_default():
       with self.cached_session():
         hparams = ("name=input_output_compression,"
-                   "compression_option=9,"
                    "begin_compression_step=1000,"
                    "end_compression_step=120000,"
                    "compression_frequency=100,"
@@ -293,6 +300,7 @@ class InputOutputCompressionOpTest(tf.test.TestCase):
         compression_op_spec = (
             compression_op.InputOutputCompressionOp.get_default_hparams().parse(
                 hparams))
+        print(compression_op_spec.compression_option)
 
         compressor_spec = (
             compression_op.LowRankDecompMatrixCompressor.get_default_hparams())
@@ -300,7 +308,7 @@ class InputOutputCompressionOpTest(tf.test.TestCase):
             spec=compressor_spec)
 
         global_step = tf.compat.v1.get_variable("global_step", initializer=100)
-        apply_comp = compression_op.ApplyCompression(
+        apply_comp = compression_wrapper.ApplyCompression(
             scope="default_scope",
             compression_spec=compression_op_spec,
             compressor=matrix_compressor,
@@ -341,7 +349,6 @@ class BlockCompressionOpTest(tf.test.TestCase):
     with tf.Graph().as_default():
       with self.cached_session():
         hparams = ("name=block_compression,"
-                   "compression_option=10,"
                    "begin_compression_step=1000,"
                    "end_compression_step=120000,"
                    "compression_frequency=100,"
@@ -350,14 +357,13 @@ class BlockCompressionOpTest(tf.test.TestCase):
         compression_op_spec = (
             compression_op.BlockCompressionOp.get_default_hparams().parse(
                 hparams))
-
         compressor_spec = (
             compression_op.LowRankDecompMatrixCompressor.get_default_hparams())
         matrix_compressor = compression_op.LowRankDecompMatrixCompressor(
             spec=compressor_spec)
 
         global_step = tf.compat.v1.get_variable("global_step", initializer=100)
-        apply_comp = compression_op.ApplyCompression(
+        apply_comp = compression_wrapper.ApplyCompression(
             scope="default_scope",
             compression_spec=compression_op_spec,
             compressor=matrix_compressor,
@@ -398,12 +404,10 @@ class CompressionLayersTest(tf.test.TestCase):
     hparams = ("name=mnist_compression,"
                "compress_input=True,"
                "input_block_size=16,"
-               "input_compression_factor=4,"
-               "compression_option=9")
+               "input_compression_factor=4,")
 
     compression_hparams = compression_op.InputOutputCompressionOp.get_default_hparams(
     ).parse(hparams)
-    # compression_hparams = pruning.get_pruning_hparams().parse(hparams)
     # Create a compression object using the compression hyperparameters
     compression_obj = compression_wrapper.get_apply_compression(
         compression_hparams, global_step=0)
@@ -420,8 +424,7 @@ class CompressionLayersTest(tf.test.TestCase):
     hparams = ("name=mnist_compression,"
                "compress_input=True,"
                "input_block_size=16,"
-               "input_compression_factor=2,"
-               "compression_option=9")
+               "input_compression_factor=2,")
 
     compression_hparams = compression_op.InputOutputCompressionOp.get_default_hparams(
     ).parse(hparams)

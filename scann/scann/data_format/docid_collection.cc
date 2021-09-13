@@ -18,6 +18,7 @@
 
 #include <cstdint>
 
+#include "absl/status/status.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "scann/oss_wrappers/scann_down_cast.h"

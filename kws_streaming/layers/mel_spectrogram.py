@@ -47,8 +47,7 @@ class MelSpectrogram(tf.keras.layers.Layer):
     super(MelSpectrogram, self).build(input_shape)
     feature_size = int(input_shape[-1])
 
-    if self.use_tf and self.mode in (modes.Modes.TRAINING,
-                                     modes.Modes.NON_STREAM_INFERENCE):
+    if self.use_tf:
       # precompute mel matrix using tf
       self.mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
           num_mel_bins=self.num_mel_bins,

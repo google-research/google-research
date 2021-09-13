@@ -1,0 +1,35 @@
+# 110M parameter Primer.
+#
+# This is used for C4 and PG19.
+
+# Based off of the T5 "base" model.
+include 'models/t5.1.0.base.gin'
+
+import mesh_tensorflow.transformer.transformer
+import mesh_tensorflow.transformer.transformer_layers
+import t5_models
+
+DenseReluDense.activation = ["squared_relu"]
+
+t5_models.MDHA.share_qk_rep = True
+
+transformer.Unitransformer.layer_stack = @t5_models.PrePostNormLayerStack
+
+transformer.make_layer_stack.layers = [
+    @t5_models.MDHA,
+    @transformer_layers.DenseReluDense,
+]
+
+transformer.LayerStack.sublayers_per_layer = [
+    @t5_models.sublayer_prime_norm,
+    @transformer.sublayer_mask_padding,
+    @transformer.sublayer_call_layer,
+    @transformer.sublayer_dropout,
+    @transformer.sublayer_residual,
+]
+
+transformer.LayerStack.sublayers_final = [
+    @t5_models.sublayer_prime_norm,
+    @transformer.sublayer_dropout,
+    @transformer.sublayer_mask_padding,
+]

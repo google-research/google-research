@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Specfies the behaviour of a single state."""
+"""Functions the behaviour of a inner training loop."""
 import dataclasses as dc
 import functools as ft
 from typing import Any, Callable, List, Optional, Text, Tuple, Union
@@ -26,10 +26,6 @@ import typing_extensions
 from blur import blur_env
 from blur import genome_util
 from blur import synapse_util
-
-
-jp_env = blur_env.jp_env
-tf_env = blur_env.tf_env
 
 
 @dc.dataclass
@@ -193,6 +189,14 @@ def default_network_spec(env):
   return NetworkSpec(forward_activation_fn=env.relu_tanh,
                      backward_activation_fn=env.relu_tanh,
                      last_layer_activation_fn=env.tanh)
+
+
+def backprop_network_spec(env):
+  del env  # Unused.
+  return NetworkSpec(
+      backward_update='multiplicative_second_state',
+      symmetric_in_out_synapses=True,
+      symmetric_states_synapses=True)
 
 
 def network_step(state,
@@ -561,13 +565,13 @@ def compute_neuron_state(old_neuron_state, synaptic_update,
     # TODO(sandler): Add inverse activation of old_state if needed.
   if synaptic_update is None:
     return old_neuron_state
-  num_states = old_neuron_state.shape[-1]
   if update_type == 'multiplicative_second_state':
-    assert num_states == 2
-    new_neuron_state = env.stack([
-        old_neuron_state[Ellipsis, 0],
-        old_neuron_state[Ellipsis, 1] * synaptic_update[Ellipsis, 1]
-    ], axis=-1) * env.right_pad_shape(g.keep, to=old_neuron_state)
+    # TODO(mxv): possibly rename this update_type, since technically it should
+    # be called skip_first_state or something like this.
+    second_state_update = old_neuron_state[Ellipsis, 1:] * synaptic_update[Ellipsis, 1:]
+    new_neuron_state = env.concat(
+        [old_neuron_state[Ellipsis, 0:1], second_state_update], axis=-1
+        ) * env.right_pad_shape(g.keep, to=old_neuron_state)
   elif update_type == 'multiplicative':
     new_neuron_state = (
         old_neuron_state * synaptic_update *

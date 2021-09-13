@@ -30,6 +30,7 @@
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/internal/avx2_funcs.h"
 #include "scann/utils/internal/avx_funcs.h"
+#include "scann/utils/intrinsics/horizontal_sum.h"
 #include "scann/utils/scalar_quantization_helpers.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -422,8 +423,8 @@ Status FixedPointFloatDenseDotProductReorderingHelper::Reconstruct(
     DatapointIndex i, MutableSpan<float> output) const {
   if (i >= fixed_point_dataset_.size())
     return InvalidArgumentError(
-        absl::StrFormat("The datapoint index %d is >= the dataset size %d", i,
-                        fixed_point_dataset_.size()));
+        "The datapoint index %d is >= the dataset size %d", i,
+        fixed_point_dataset_.size());
 
   const auto* dp_start = fixed_point_dataset_[i].values();
   std::transform(dp_start, dp_start + dimensionality(),

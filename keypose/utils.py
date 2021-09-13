@@ -300,18 +300,18 @@ def get_params(param_file=None,
   cam = None
   if cam_file:
     print('Model camera params file name is: %s' % cam_file)
-    resx, resy, _, cam = read_data_params(cam_file)
+    resx, resy, num_kp, cam = read_data_params(cam_file)
 
     mparams.resx = resx
     mparams.resy = resy
+    mparams.num_kp = num_kp
     mparams.modelx = resx
     mparams.modely = resy
+    mparams.disp_default /= mparams.resx  # Convert to fraction of image.
 
   if mparams.crop:
     mparams.modelx = int(mparams.crop[0])
     mparams.modely = int(mparams.crop[1])
-
-  mparams.disp_default /= mparams.resx  # Convert to fraction of image.
 
   cam_image = None
   if cam_image_file:

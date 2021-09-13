@@ -16,6 +16,7 @@
 
 #include <cstdint>
 
+#include "absl/numeric/bits.h"
 #include "scann/oss_wrappers/scann_bits.h"
 
 namespace research_scann {
@@ -26,9 +27,10 @@ double BinaryCosineDistance::GetDistanceDense(
   DimensionIndex num_intersect = 0;
   DimensionIndex a_num_ones = 0, b_num_ones = 0;
   for (size_t i = 0; i < a.nonzero_entries(); ++i) {
-    a_num_ones += bits::CountOnesInByte(a.values()[i]);
-    b_num_ones += bits::CountOnesInByte(b.values()[i]);
-    num_intersect += bits::CountOnesInByte(a.values()[i] & b.values()[i]);
+    a_num_ones += absl::popcount(a.values()[i]);
+    b_num_ones += absl::popcount(b.values()[i]);
+    num_intersect += absl::popcount(
+        static_cast<unsigned char>(a.values()[i] & b.values()[i]));
   }
 
   return 1.0 - (num_intersect / sqrt(static_cast<uint64_t>(a_num_ones) *

@@ -22,12 +22,12 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import numpy as np
 import tensorflow_datasets as tfds
-import tensorflow_text as tf_text
 
 from f_net import input_pipeline
+import sentencepiece as spm
 
 
-class MockTokenizer(tf_text.TokenizerWithOffsets):
+class MockTokenizer(spm.SentencePieceProcessor):
   """Mock tokenizer returning pre-specified tokens."""
 
   def EncodeAsIds(self, text):

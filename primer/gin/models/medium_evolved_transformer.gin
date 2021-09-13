@@ -1,0 +1,28 @@
+# 110M parameter Evolved Transformer.
+#
+# This is used for C4 and PG19.
+import mesh_tensorflow.transformer.evolved_transformer
+
+# Based off of the T5 "base" model.
+include 'models/t5.1.0.base.gin'
+
+# One Evolved Transformer layer is roughly equivalent to two Transformer layers.
+# Evolved Transformer also has less parameters, so we give it an additional
+# layer to equalize parameters, as was done by So et al.
+num_layers = 7
+
+DenseReluDense.activation = ["swish"]
+
+transformer.make_layer_stack.layers = [
+    @t5_models.DoubleHeadsAttentionLayer,
+    @evolved_transformer.DecoderConvolutionalLayer,
+    @transformer_layers.SelfAttention,
+    @transformer_layers.DenseReluDense,
+]
+
+DoubleHeadsAttentionLayer.base_num_heads = %num_heads
+DoubleHeadsAttentionLayer.key_value_size = %d_kv
+DoubleHeadsAttentionLayer.dropout_rate = %dropout_rate
+
+evolved_transformer.DecoderConvolutionalLayer.d_model = %d_model
+evolved_transformer.DecoderConvolutionalLayer.dropout_rate = %dropout_rate

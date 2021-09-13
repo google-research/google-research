@@ -120,8 +120,9 @@ def main(argv):
           print(e)
 
       outcome_counts[outcome] += 1
-      output_files[outcome][0].write('\n'.join(orig_contents_list) + '\n')
-      output_files[outcome][1].write(regen_contents)
+      if outcome != Outcome.SUCCESS:
+        output_files[outcome][0].write('\n'.join(orig_contents_list) + '\n')
+        output_files[outcome][1].write(regen_contents)
 
   for file_orig, file_regen in output_files.values():
     file_orig.close()

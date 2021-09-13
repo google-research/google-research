@@ -87,9 +87,9 @@ class VariableLengthDocidCollection final : public DocidCollectionInterface {
     ~Mutator() final {}
     Status AddDatapoint(string_view docid) final;
     bool LookupDatapointIndex(string_view docid,
-                              DatapointIndex* idx) const final;
+                              DatapointIndex* index) const final;
     Status RemoveDatapoint(string_view docid) final;
-    Status RemoveDatapoint(DatapointIndex idx) final;
+    Status RemoveDatapoint(DatapointIndex index) final;
     void Reserve(size_t size) final;
 
    private:
@@ -175,9 +175,9 @@ class FixedLengthDocidCollection final : public DocidCollectionInterface {
     ~Mutator() final {}
     Status AddDatapoint(string_view docid) final;
     bool LookupDatapointIndex(string_view docid,
-                              DatapointIndex* idx) const final;
+                              DatapointIndex* index) const final;
     Status RemoveDatapoint(string_view docid) final;
-    Status RemoveDatapoint(DatapointIndex idx) final;
+    Status RemoveDatapoint(DatapointIndex index) final;
     void Reserve(size_t size) final;
 
    private:

@@ -574,7 +574,7 @@ void SparsePointProduct(const DatapointPtr<T>& a, const DatapointPtr<T>& b,
   if (a.nonzero_entries() > 0 && b.nonzero_entries() > 0) {
     DimensionIndex index_a = *index_a_ptr;
     DimensionIndex index_b = *index_b_ptr;
-    while (1) {
+    while (true) {
       if (index_a == index_b) {
         result->mutable_indices()->push_back(index_a);
         result->mutable_values()->push_back(*values_a_ptr++ * *values_b_ptr++);

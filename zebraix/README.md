@@ -15,7 +15,7 @@ bazel test -c dbg ${ZERBRAIX_DIR}/testdata/samples:all \
 
 To update goldens do something like:
 ```
-bazel test --use_sponge=no -c dbg ${ZERBRAIX_DIR}/testdata/samples:all \
+bazel test -c dbg ${ZERBRAIX_DIR}/testdata/samples:all \
    --test_arg="--update_dir=$(PWD_CMD_HERE)" --test_strategy=local
 ```
 

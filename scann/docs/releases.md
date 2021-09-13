@@ -1,5 +1,8 @@
 # ScaNN Release Notes
 
+### 1.2.3
+Updated to compile against TensorFlow 2.6.0; **not** backwards-compatible with earlier versions of TensorFlow.
+
 ### 1.2.2
 Added support for Python 3.9. Wheels and code now depend on TensorFlow 2.5.0. **Code no longer compiles against TensorFlow 2.4.x or earlier due to a change in TensorFlow's Abseil C++ dependency.**
 

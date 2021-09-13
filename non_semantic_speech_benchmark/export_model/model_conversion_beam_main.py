@@ -58,16 +58,17 @@ def main(unused_argv):
     utils.sanity_check_output_filename(m.output_filename)
 
   logging.info('Starting to create flume pipeline...')
-  # Make and run beam pipeline.
+
   def _convert_and_write_model(m):
     utils.convert_and_write_model(m, include_frontend=FLAGS.include_frontend,
                                   sanity_check=FLAGS.sanity_check)
     return m
 
+  # Make and run beam pipeline.
   with beam.Pipeline(beam_options) as root:
     _ = (
         root
-        | 'MakeCollection' >> beam.Create(metadata)
+        | 'MakeMetadataCollection' >> beam.Create(metadata)
         | 'ConvertAndWriteModelsToDisk' >> beam.Map(_convert_and_write_model))
 
 

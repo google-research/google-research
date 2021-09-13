@@ -102,9 +102,11 @@ SCANN_SIMD_INLINE void DenseDotProductDistanceOneToManyInt8FloatImpl(
       j += 4;
     }
 
-    float result0 = AvxFuncs::Sum8(a0);
-    float result1 = AvxFuncs::Sum8(a1);
-    float result2 = AvxFuncs::Sum8(a2);
+    float result0;
+    float result1;
+    float result2;
+    ::research_scann::avx1::HorizontalSum3X({a0}, {a1}, {a2}, &result0,
+                                            &result1, &result2);
     for (; j < dims; ++j) {
       result0 -= query[j] * i0[j];
       result1 -= query[j] * i1[j];

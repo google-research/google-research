@@ -26,6 +26,7 @@ import tensorflow as tf
 from muzero import actor
 from muzero import core as mzcore
 from muzero import learner
+from muzero import learner_flags
 from muzero.tictactoe import env
 from muzero.tictactoe import network
 
@@ -59,7 +60,6 @@ flags.DEFINE_float('root_exploration_fraction', .25,
 flags.DEFINE_integer('pb_c_base', 19652, 'PB C Base.')
 flags.DEFINE_float('pb_c_init', 2.5, 'PB C Init.')
 
-flags.DEFINE_integer('log_frequency', 100, 'in number of training steps')
 flags.DEFINE_float('temperature', .1, 'for softmax sampling of actions')
 
 flags.DEFINE_integer('value_encoder_steps', 8, 'If 0, take 1 step per integer')
@@ -167,7 +167,7 @@ def main(argv):
     actor.actor_loop(env.create_environment, mzconfig)
   elif FLAGS.run_mode == 'learner':
     learner.learner_loop(env_descriptor, create_agent, create_optimizer,
-                         mzconfig)
+                         learner_flags.learner_config_from_flags(), mzconfig)
   else:
     raise ValueError('Unsupported run mode {}'.format(FLAGS.run_mode))
 
