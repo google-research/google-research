@@ -26,19 +26,16 @@ from tensorflow.io import gfile
 from smu.parser import smu_parser_lib
 from smu.parser import smu_writer_lib
 
-
 flags.DEFINE_string(
-    'input_glob', None,
-    'Glob of .dat files to read. '
+    'input_glob', None, 'Glob of .dat files to read. '
     'These files are expected to be in the SMU file format provided by Uni Basel.'
 )
 flags.DEFINE_string(
     'atomic_input_dir', None,
     'Directory containing .inp files named like x07_c2n2f3h3.253852.001.inp  '
     'These are the desired outputs')
-flags.DEFINE_string(
-    'output_dir', None,
-    'If given, given to write files with mismatches')
+flags.DEFINE_string('output_dir', None,
+                    'If given, given to write files with mismatches')
 
 flags.mark_flag_as_required('input_glob')
 flags.mark_flag_as_required('atomic_input_dir')
@@ -66,8 +63,8 @@ def main(argv):
       actual_contents = atomic_writer.process(conformer)
 
       expected_fn = atomic_writer.get_filename_for_atomic_input(conformer)
-      with gfile.GFile(
-          os.path.join(FLAGS.atomic_input_dir, expected_fn)) as expected_f:
+      with gfile.GFile(os.path.join(FLAGS.atomic_input_dir,
+                                    expected_fn)) as expected_f:
         expected_contents = expected_f.readlines()
 
       try:
@@ -77,10 +74,11 @@ def main(argv):
         mismatches += 1
         print(e)
         if FLAGS.output_dir:
-          with gfile.GFile(os.path.join(
-              FLAGS.output_dir,
-              atomic_writer.get_filename_for_atomic_input(conformer)),
-                           'w') as f:
+          with gfile.GFile(
+              os.path.join(
+                  FLAGS.output_dir,
+                  atomic_writer.get_filename_for_atomic_input(conformer)),
+              'w') as f:
             f.write(actual_contents)
 
   status_str = ('COMPLETE: Read %d files, %d conformers, %d mismatches\n' %

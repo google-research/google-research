@@ -1,21 +1,35 @@
+# coding=utf-8
+# Copyright 2021 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Tester for SMU utilities functions.
 
 import unittest
 
-from parameterized import parameterized, parameterized_class
-
-from rdkit import Chem
-
 from google.protobuf import text_format
-
+from parameterized import parameterized
+from rdkit import Chem
 import utilities
+
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
 
 
-def zero2() -> dataset_pb2.Geometry:
+def zero2():
   """Return a Geometry with two points at the origin."""
-  return text_format.Parse("""
+  return text_format.Parse(
+      """
         atom_positions: {
           x:0.0,
           y:0.0,
@@ -28,6 +42,7 @@ def zero2() -> dataset_pb2.Geometry:
         }
 
 """, dataset_pb2.Geometry())
+
 
 class TestUtilities(unittest.TestCase):
 
@@ -52,6 +67,7 @@ class TestUtilities(unittest.TestCase):
 
   def test_connected(self):
     pass
+
 
 #  @parameterized.expand(
 #  [
@@ -83,7 +99,8 @@ class TestUtilities(unittest.TestCase):
 #    self.assertEqual(len(bt.atoms), mol.GetNumAtoms())
 
   def test_canonical(self):
-    bt = text_format.Parse("""
+    bt = text_format.Parse(
+        """
     atoms: ATOM_C
     atoms: ATOM_C
     atoms: ATOM_C
@@ -100,7 +117,7 @@ class TestUtilities(unittest.TestCase):
 """, dataset_pb2.BondTopology())
 
     expected = text_format.Parse(
-""" atoms: ATOM_C
+        """ atoms: ATOM_C
     atoms: ATOM_C
     atoms: ATOM_C
     bonds {
@@ -116,10 +133,12 @@ class TestUtilities(unittest.TestCase):
 """, dataset_pb2.BondTopology())
 
     utilities.canonical_bond_topology(bt)
-    self.assertEqual(text_format.MessageToString(bt), text_format.MessageToString(expected))
+    self.assertEqual(
+        text_format.MessageToString(bt), text_format.MessageToString(expected))
 
   def test_equality(self):
-    bt1 = text_format.Parse("""
+    bt1 = text_format.Parse(
+        """
     atoms: ATOM_C
     atoms: ATOM_C
     atoms: ATOM_C
@@ -136,7 +155,7 @@ class TestUtilities(unittest.TestCase):
 """, dataset_pb2.BondTopology())
 
     bt2 = text_format.Parse(
-""" atoms: ATOM_C
+        """ atoms: ATOM_C
     atoms: ATOM_C
     atoms: ATOM_C
     bonds {
@@ -156,21 +175,19 @@ class TestUtilities(unittest.TestCase):
     self.assertTrue(utilities.same_bond_topology(bt1, bt2))
 
   def test_single_fragment_single_atom(self):
-    bt = text_format.Parse(
-""" atoms: ATOM_C
+    bt = text_format.Parse(""" atoms: ATOM_C
 """, dataset_pb2.BondTopology())
     self.assertTrue(utilities.is_single_fragment(bt))
 
   def test_single_fragment_two_disconnected_atoms(self):
-    bt = text_format.Parse(
-""" atoms: ATOM_C
+    bt = text_format.Parse(""" atoms: ATOM_C
     atoms: ATOM_C
 """, dataset_pb2.BondTopology())
     self.assertFalse(utilities.is_single_fragment(bt))
 
   def test_single_fragment_two_connected_atoms(self):
     bt = text_format.Parse(
-""" atoms: ATOM_C
+        """ atoms: ATOM_C
     atoms: ATOM_C
     bonds {
       atom_a: 0
@@ -182,7 +199,7 @@ class TestUtilities(unittest.TestCase):
 
   def test_single_fragment_3_atoms_0_bonds(self):
     bt = text_format.Parse(
-""" atoms: ATOM_C
+        """ atoms: ATOM_C
     atoms: ATOM_C
     atoms: ATOM_C
 """, dataset_pb2.BondTopology())
@@ -190,7 +207,7 @@ class TestUtilities(unittest.TestCase):
 
   def test_single_fragment_3_atoms_1_bonds(self):
     bt = text_format.Parse(
-""" atoms: ATOM_C
+        """ atoms: ATOM_C
     atoms: ATOM_C
     atoms: ATOM_C
     bonds {
@@ -203,7 +220,7 @@ class TestUtilities(unittest.TestCase):
 
   def test_single_fragment_3_atoms_2_bonds(self):
     bt = text_format.Parse(
-""" atoms: ATOM_C
+        """ atoms: ATOM_C
     atoms: ATOM_C
     atoms: ATOM_C
     bonds {
@@ -221,7 +238,7 @@ class TestUtilities(unittest.TestCase):
 
   def test_single_fragment_4_atoms_0_bonds(self):
     bt = text_format.Parse(
-""" atoms: ATOM_C
+        """ atoms: ATOM_C
     atoms: ATOM_C
     atoms: ATOM_C
     atoms: ATOM_C
@@ -230,7 +247,7 @@ class TestUtilities(unittest.TestCase):
 
   def test_single_fragment_4_atoms_3_bonds_ring(self):
     bt = text_format.Parse(
-""" atoms: ATOM_C
+        """ atoms: ATOM_C
     atoms: ATOM_C
     atoms: ATOM_C
     atoms: ATOM_C
@@ -254,7 +271,7 @@ class TestUtilities(unittest.TestCase):
 
   def test_single_fragment_4_atoms_3_bonds_no_ring(self):
     bt = text_format.Parse(
-""" atoms: ATOM_C
+        """ atoms: ATOM_C
     atoms: ATOM_C
     atoms: ATOM_C
     atoms: ATOM_C
@@ -276,25 +293,23 @@ class TestUtilities(unittest.TestCase):
 """, dataset_pb2.BondTopology())
     self.assertTrue(utilities.is_single_fragment(bt))
 
-  @parameterized.expand(
-  [
-    ["CC", True],
-    ["C=C", True],
-    ["C#C", True],
-    ["C.C", False],
-    ["CCCC", True],
-    ["C1CCC1", True],
-    ["CCC.C", False],
-    ["CCC.CCC", False],
-    ["c1ccccc1.CCC", False],
-    ["C.c1ccccc1", False],
-    ["C.C.C.C.F.N.O", False],
-    ["C=N.O", False],
-    ["CC1CC1.C", False],
-    ["C12CC2C1.C", False],
-  ]
-  )
-  @unittest.skip('Broken for unknown reasons. Will debug')
+  @parameterized.expand([
+      ["CC", True],
+      ["C=C", True],
+      ["C#C", True],
+      ["C.C", False],
+      ["CCCC", True],
+      ["C1CCC1", True],
+      ["CCC.C", False],
+      ["CCC.CCC", False],
+      ["c1ccccc1.CCC", False],
+      ["C.c1ccccc1", False],
+      ["C.C.C.C.F.N.O", False],
+      ["C=N.O", False],
+      ["CC1CC1.C", False],
+      ["C12CC2C1.C", False],
+  ])
+  @unittest.skip("Broken for unknown reasons. Will debug")
   def test_with_smiles(self, smiles, expected):
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
     bt = utilities.molecule_to_bond_topology(mol)

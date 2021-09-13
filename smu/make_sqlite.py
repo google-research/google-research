@@ -15,9 +15,6 @@
 
 """Generate the SQLite DB from TFRecord files."""
 
-import os
-import sys
-
 from absl import app
 from absl import flags
 from absl import logging
@@ -27,15 +24,11 @@ from tensorflow.io import gfile
 from smu import dataset_pb2
 from smu import smu_sqlite
 
-
-flags.DEFINE_string(
-    'input_tfrecord', None,
-    'Glob of tfrecord files to read')
-flags.DEFINE_string(
-    'output_sqlite', None,
-    'Path of sqlite file to generate')
+flags.DEFINE_string('input_tfrecord', None, 'Glob of tfrecord files to read')
+flags.DEFINE_string('output_sqlite', None, 'Path of sqlite file to generate')
 
 FLAGS = flags.FLAGS
+
 
 def main(argv):
   if len(argv) > 1:
@@ -45,8 +38,9 @@ def main(argv):
   db = smu_sqlite.SMUSQLite(FLAGS.output_sqlite, 'c')
 
   dataset = tf.data.TFRecordDataset(gfile.glob(FLAGS.input_tfrecord))
-  db.bulk_insert(dataset_pb2.Conformer.FromString(raw.numpy())
-                 for raw in dataset)
+  db.bulk_insert(
+      dataset_pb2.Conformer.FromString(raw.numpy()) for raw in dataset)
+
 
 if __name__ == '__main__':
   app.run(main)

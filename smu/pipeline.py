@@ -24,7 +24,6 @@ import copy
 import functools
 import itertools
 import logging as stdlogging
-import numpy as np
 
 from absl import app
 from absl import flags
@@ -811,6 +810,7 @@ def pipeline(root):
             f'{FLAGS.output_stem}_{id_str}_tfrecord',
             coder=beam.coders.ProtoCoder(dataset_pb2.Conformer),
             num_shards=FLAGS.output_shards))
+
 
   # Write the complete and standard conformers as JSON.
   # Bit of a hack here: the slowest part of the whole pipeline is writing out

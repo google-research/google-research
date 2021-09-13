@@ -144,7 +144,7 @@ class SmuWriter:
     """Returns the line indicating which database this conformer goes to.
 
     Args:
-      properties: A Properties protocol buffer message.
+      conformer: A Conformer protocol buffer message.
 
     Returns:
       String
@@ -169,19 +169,17 @@ class SmuWriter:
       result += '# From errors\n'
 
     result += 'Status     {:4d}\n'.format(properties.errors.status)
-    result += 'Warn_T1    {:4d}{:4d}\n'.format(
-      properties.errors.warn_t1,
-      properties.errors.warn_t1_excess)
+    result += 'Warn_T1    {:4d}{:4d}\n'.format(properties.errors.warn_t1,
+                                               properties.errors.warn_t1_excess)
     result += 'Warn_BSE   {:4d}{:4d}\n'.format(
-      properties.errors.warn_bse_b5_b6,
-      properties.errors.warn_bse_cccsd_b5)
+        properties.errors.warn_bse_b5_b6, properties.errors.warn_bse_cccsd_b5)
     result += 'Warn_EXC   {:4d}{:4d}{:4d}\n'.format(
-      properties.errors.warn_exc_lowest_excitation,
-      properties.errors.warn_exc_smallest_oscillator,
-      properties.errors.warn_exc_largest_oscillator)
+        properties.errors.warn_exc_lowest_excitation,
+        properties.errors.warn_exc_smallest_oscillator,
+        properties.errors.warn_exc_largest_oscillator)
     result += 'Warn_VIB   {:4d}{:4d}\n'.format(
-      properties.errors.warn_vib_linearity,
-      properties.errors.warn_vib_imaginary)
+        properties.errors.warn_vib_linearity,
+        properties.errors.warn_vib_imaginary)
     result += 'Warn_NEG   {:4d}\n'.format(properties.errors.warn_num_neg)
 
     return result
@@ -366,11 +364,15 @@ class SmuWriter:
     result += ''.join(bonds)
     return result
 
-  _GRADIENT_NORMS_LABEL_FIELDS = [
-      ['E_ini/G_norm',
-       'initial_geometry_energy', 'initial_geometry_gradient_norm'],
-      ['E_opt/G_norm',
-       'optimized_geometry_energy', 'optimized_geometry_gradient_norm']]
+  _GRADIENT_NORMS_LABEL_FIELDS = [[
+      'E_ini/G_norm', 'initial_geometry_energy',
+      'initial_geometry_gradient_norm'
+  ],
+                                  [
+                                      'E_opt/G_norm',
+                                      'optimized_geometry_energy',
+                                      'optimized_geometry_gradient_norm'
+                                  ]]
 
   def get_gradient_norms(self, properties, spacer):
     """Returns initial and optimized geometry energies and gradient norms.
@@ -586,7 +588,6 @@ class SmuWriter:
 
     return result
 
-
   _T1_DIAGNOSTICS_FIELDS = [
       'diagnostics_t1_ccsd_2sp', 'diagnostics_t1_ccsd_2sd',
       'diagnostics_t1_ccsd_3psd'
@@ -606,9 +607,8 @@ class SmuWriter:
     if properties.HasField('diagnostics_d1_ccsd_2sp'):
       if self.annotate:
         result += '# From diagnostics_d1_ccsd_2sp\n'
-      result += (
-          'D1DIAG    D1(CCSD/2sp) {:10.6f}\n'.format(
-            properties.diagnostics_d1_ccsd_2sp.value))
+      result += ('D1DIAG    D1(CCSD/2sp) {:10.6f}\n'.format(
+          properties.diagnostics_d1_ccsd_2sp.value))
 
     if properties.HasField(self._T1_DIAGNOSTICS_FIELDS[0]):
       if self.annotate:
@@ -700,7 +700,9 @@ class SmuWriter:
     return result
 
   def get_excitation_energies_and_oscillations(self, properties):
-    """Returns excitation energies and length rep. osc. strengths at CC2/TZVP.
+    """Returns excitation energies and length rep. osc.
+
+    strengths at CC2/TZVP.
 
     Args:
       properties: A Properties protocol buffer message.
@@ -948,7 +950,6 @@ class SmuWriter:
     return ''.join(contents)
 
 
-
 class AtomicInputWriter:
   """From conformer, produces the input file for the (fortran) atomic2 code."""
 
@@ -958,9 +959,8 @@ class AtomicInputWriter:
   def get_filename_for_atomic_input(self, conformer):
     """Returns the expected filename for an atomic input."""
     return '{}.{:06d}.{:03d}.inp'.format(
-      smu_utils_lib.get_composition(conformer.bond_topologies[0]),
-      conformer.conformer_id // 1000,
-      conformer.conformer_id % 1000)
+        smu_utils_lib.get_composition(conformer.bond_topologies[0]),
+        conformer.conformer_id // 1000, conformer.conformer_id % 1000)
 
   def get_mol_block(self, conformer):
     """Returns the MOL file block with atoms and bonds.
@@ -974,19 +974,21 @@ class AtomicInputWriter:
     contents = []
     contents.append('\n')
     contents.append('{:3d}{:3d}  0  0  0  0  0  0  0  0999 V2000\n'.format(
-      len(conformer.bond_topologies[0].atoms),
-      len(conformer.bond_topologies[0].bonds)))
+        len(conformer.bond_topologies[0].atoms),
+        len(conformer.bond_topologies[0].bonds)))
     for atom_type, coords in zip(conformer.bond_topologies[0].atoms,
                                  conformer.optimized_geometry.atom_positions):
       contents.append(
-        '{:10.4f}{:10.4f}{:10.4f} {:s}   0  0  0  0  0  0  0  0  0  0  0  0\n'
-        .format(smu_utils_lib.bohr_to_angstroms(coords.x),
-                smu_utils_lib.bohr_to_angstroms(coords.y),
-                smu_utils_lib.bohr_to_angstroms(coords.z),
-                smu_utils_lib.ATOM_TYPE_TO_RDKIT[atom_type][0]))
+          '{:10.4f}{:10.4f}{:10.4f} {:s}   0  0  0  0  0  0  0  0  0  0  0  0\n'
+          .format(
+              smu_utils_lib.bohr_to_angstroms(coords.x),
+              smu_utils_lib.bohr_to_angstroms(coords.y),
+              smu_utils_lib.bohr_to_angstroms(coords.z),
+              smu_utils_lib.ATOM_TYPE_TO_RDKIT[atom_type][0]))
     for bond in conformer.bond_topologies[0].bonds:
-      contents.append('{:3d}{:3d}{:3d}  0\n'.format(
-        bond.atom_a + 1, bond.atom_b + 1, bond.bond_type))
+      contents.append('{:3d}{:3d}{:3d}  0\n'.format(bond.atom_a + 1,
+                                                    bond.atom_b + 1,
+                                                    bond.bond_type))
 
     return contents
 
@@ -1009,38 +1011,31 @@ class AtomicInputWriter:
 
     contents.append('{:7s}'.format('3') +
                     format_field('single_point_energy_hf_3') +
-                    format_field('single_point_energy_mp2_3') +
-                    '\n')
+                    format_field('single_point_energy_mp2_3') + '\n')
     contents.append('{:7s}'.format('4') +
                     format_field('single_point_energy_hf_4') +
-                    format_field('single_point_energy_mp2_4') +
-                    '\n')
+                    format_field('single_point_energy_mp2_4') + '\n')
     contents.append('{:7s}'.format('2sp') +
                     format_field('single_point_energy_hf_2sp') +
                     format_field('single_point_energy_mp2_2sp') +
                     format_field('single_point_energy_ccsd_2sp') +
-                    format_field('single_point_energy_ccsd_t_2sp') +
-                    '\n')
+                    format_field('single_point_energy_ccsd_t_2sp') + '\n')
     contents.append('{:7s}'.format('2sd') +
                     format_field('single_point_energy_hf_2sd') +
                     format_field('single_point_energy_mp2_2sd') +
                     format_field('single_point_energy_ccsd_2sd') +
                     format_field('single_point_energy_ccsd_t_2sd') +
-                    format_field('diagnostics_t1_ccsd_2sd') +
-                    '\n')
+                    format_field('diagnostics_t1_ccsd_2sd') + '\n')
     contents.append('{:7s}'.format('3Psd') +
                     format_field('single_point_energy_hf_3psd') +
                     format_field('single_point_energy_mp2_3psd') +
-                    format_field('single_point_energy_ccsd_3psd') +
-                    '\n')
+                    format_field('single_point_energy_ccsd_3psd') + '\n')
     contents.append('{:7s}'.format('C3') +
                     format_field('single_point_energy_hf_cvtz') +
-                    format_field('single_point_energy_mp2ful_cvtz') +
-                    '\n')
+                    format_field('single_point_energy_mp2ful_cvtz') + '\n')
     contents.append('{:7s}'.format('(34)') +
                     format_field('single_point_energy_hf_34') +
-                    format_field('single_point_energy_mp2_34') +
-                    '\n')
+                    format_field('single_point_energy_mp2_34') + '\n')
 
     return contents
 
@@ -1063,11 +1058,11 @@ class AtomicInputWriter:
     contents = []
 
     trimmed_frequencies = [
-      v for v in conformer.properties.harmonic_frequencies.value
-      if v != 0.0]
+        v for v in conformer.properties.harmonic_frequencies.value if v != 0.0
+    ]
 
     contents.append('$frequencies{:5d}{:5d}{:5d}\n'.format(
-      len(trimmed_frequencies), 0, 0))
+        len(trimmed_frequencies), 0, 0))
     line = ''
     for i, freq in enumerate(trimmed_frequencies):
       line += '{:8.2f}'.format(freq)
@@ -1083,9 +1078,8 @@ class AtomicInputWriter:
     contents = []
     contents.append(conformer.bond_topologies[0].smiles + '\n')
     contents.append('{}.{:06d}.{:03d}\n'.format(
-      smu_utils_lib.get_composition(conformer.bond_topologies[0]),
-      conformer.conformer_id // 1000,
-      conformer.conformer_id % 1000))
+        smu_utils_lib.get_composition(conformer.bond_topologies[0]),
+        conformer.conformer_id // 1000, conformer.conformer_id % 1000))
 
     contents.extend(self.get_mol_block(conformer))
     contents.extend(self.get_energies(conformer))

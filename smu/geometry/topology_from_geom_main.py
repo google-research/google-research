@@ -1,26 +1,42 @@
+# coding=utf-8
+# Copyright 2021 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Topology from Geometry."""
 from absl import app
 from absl import flags
-from absl import logging
-
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
-from apache_beam.io.tfrecordio import ReadFromTFRecord
+import topology_from_geom
 
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
 
-import topology_from_geom
-
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("input", None, "TFDataRecord file containg Conformer protos")
-flags.DEFINE_string("bonds", None, "File name stem for bond length distributions")
+flags.DEFINE_string("input", None,
+                    "TFDataRecord file containg Conformer protos")
+flags.DEFINE_string("bonds", None,
+                    "File name stem for bond length distributions")
 flags.DEFINE_string("output", None, "Output file")
 flags.DEFINE_boolean("xnonbond", False, "Exclude non bonded interactions")
 
+
 class SummaryData(beam.DoFn):
-  """Given BondTopologies as input, yield summary data"""
-  def process(self, topology_matches:dataset_pb2.TopologyMatches):
+  """Given BondTopologies as input, yield summary data."""
+
+  def process(self, topology_matches):
     result = f"{len(topology_matches.bond_topology)}"
 
     for bt in topology_matches.bond_topology:
@@ -35,29 +51,36 @@ class SummaryData(beam.DoFn):
     yield result
 
 
-def ReadConFormer(bond_lengths: bond_length_distribution.AllAtomPairLengthDistributions, input: str,
-                  output: str):
-  """
+def ReadConFormer(
+    bond_lengths,
+    input_string, output):
+  """Reads conformer.
+
   Args:
+    bond_lengths:
+    input_string:
+    output:
+
   Returns:
   """
 
-  class GetAtoms(beam.DoFn):
+  #   class GetAtoms(beam.DoFn):
 
-    def process(self, item):
-      yield item.optimized_geometry.atom_positions[0].x
+  #     def process(self, item):
+  #       yield item.optimized_geometry.atom_positions[0].x
 
   with beam.Pipeline(options=PipelineOptions()) as p:
-    protos = (p | beam.io.tfrecordio.ReadFromTFRecord(
-        input, coder=beam.coders.ProtoCoder(dataset_pb2.Conformer().__class__)) |
-              beam.ParDo(topology_from_geom.TopologyFromGeom(bond_lengths)) |
-              beam.ParDo(SummaryData()) |
-              beam.io.textio.WriteToText(output))
+    protos = (
+        p | beam.io.tfrecordio.ReadFromTFRecord(
+            input_string,
+            coder=beam.coders.ProtoCoder(dataset_pb2.Conformer().__class__))
+        | beam.ParDo(topology_from_geom.TopologyFromGeom(bond_lengths))
+        | beam.ParDo(SummaryData()) | beam.io.textio.WriteToText(output))
 
     return protos
 
 
-def topology_from_geometry_main(unused_argv):
+def TopologyFromGeometryMain(unused_argv):
   del unused_argv
 
   bond_lengths = bond_length_distribution.AllAtomPairLengthDistributions()
@@ -70,4 +93,4 @@ if __name__ == "__main__":
   flags.mark_flag_as_required("input")
   flags.mark_flag_as_required("bonds")
   flags.mark_flag_as_required("output")
-  app.run(topology_from_geometry_main)
+  app.run(TopologyFromGeometryMain)

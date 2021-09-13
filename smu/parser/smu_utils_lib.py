@@ -90,10 +90,10 @@ BOND_TYPE_TO_RDKIT = {
 }
 
 INTEGER_TO_BOND_TYPE = [
-  dataset_pb2.BondTopology.BondType.BOND_UNDEFINED,
-  dataset_pb2.BondTopology.BondType.BOND_SINGLE,
-  dataset_pb2.BondTopology.BondType.BOND_DOUBLE,
-  dataset_pb2.BondTopology.BondType.BOND_TRIPLE,
+    dataset_pb2.BondTopology.BondType.BOND_UNDEFINED,
+    dataset_pb2.BondTopology.BondType.BOND_SINGLE,
+    dataset_pb2.BondTopology.BondType.BOND_DOUBLE,
+    dataset_pb2.BondTopology.BondType.BOND_TRIPLE,
 ]
 
 ERROR_CODES = collections.OrderedDict([
@@ -140,6 +140,7 @@ SPECIAL_ID_CASES = [
 
 # Conversion constant from Bohr to Angstroms
 BOHR_TO_ANGSTROMS = 0.529177249
+
 
 def special_case_bt_id_from_dat_id(dat_id, smiles):
   """Determines if dat_id is a special case.
@@ -233,10 +234,10 @@ def get_composition(topology):
   return 'x{:02d}_{}'.format(heavy_atom_count, ''.join(components))
 
 
-_STOICHIOMETRY_WITH_HYDROGENS_COMPONENTS = ['c', 'ch', 'ch2', 'ch3', 'ch4',
-                                            'n', 'nh', 'nh2', 'nh3',
-                                            'o', 'oh', 'oh2',
-                                            'f', 'fh']
+_STOICHIOMETRY_WITH_HYDROGENS_COMPONENTS = [
+    'c', 'ch', 'ch2', 'ch3', 'ch4', 'n', 'nh', 'nh2', 'nh3', 'o', 'oh', 'oh2',
+    'f', 'fh'
+]
 
 
 def get_canonical_stoichiometry_with_hydrogens(topology):
@@ -462,13 +463,11 @@ def parse_bond_topology_line(line):
   """
   line = line.rstrip()
   num_atoms = int(line[0:2])
-  atoms_end = 4 + 2*num_atoms
+  atoms_end = 4 + 2 * num_atoms
   connectivity_end = atoms_end + 2 + num_atoms * (num_atoms - 1) // 2
   if len(line) != connectivity_end + 2 + num_atoms:
     raise ValueError('Wrong line length: "{}"'.format(line))
-  return (num_atoms,
-          line[4:atoms_end],
-          line[atoms_end + 2:connectivity_end],
+  return (num_atoms, line[4:atoms_end], line[atoms_end + 2:connectivity_end],
           line[connectivity_end + 2:connectivity_end + 2 + num_atoms])
 
 
@@ -632,8 +631,7 @@ def conformer_to_molecules(conformer,
         conf.SetAtomPosition(
             atom_idx,
             Geometry.Point3D(
-                bohr_to_angstroms(pos.x),
-                bohr_to_angstroms(pos.y),
+                bohr_to_angstroms(pos.x), bohr_to_angstroms(pos.y),
                 bohr_to_angstroms(pos.z)))
       mol.AddConformer(conf)
 
@@ -642,7 +640,9 @@ def conformer_to_molecules(conformer,
       yield mol
 
 
-def compute_smiles_for_bond_topology(bond_topology, include_hs, labeled_atoms=False):
+def compute_smiles_for_bond_topology(bond_topology,
+                                     include_hs,
+                                     labeled_atoms=False):
   """Calculate a canonical smiles for the given bond_topology.
 
   The bond topology may have the smiles field filled in but this method ignores
@@ -657,7 +657,9 @@ def compute_smiles_for_bond_topology(bond_topology, include_hs, labeled_atoms=Fa
     string
   """
   return compute_smiles_for_molecule(
-      bond_topology_to_molecule(bond_topology), include_hs, labeled_atoms=labeled_atoms)
+      bond_topology_to_molecule(bond_topology),
+      include_hs,
+      labeled_atoms=labeled_atoms)
 
 
 def compute_smiles_for_molecule(mol, include_hs, labeled_atoms = False):
@@ -757,8 +759,7 @@ def _conformer_source(conf):
   if not conf.HasField('properties'):
     if conf.duplicated_by == 0 and not conf.duplicate_of:
       raise ValueError(
-          'Unknown conformer source, no properties or duplicates: ' +
-          str(conf))
+          'Unknown conformer source, no properties or duplicates: ' + str(conf))
     return _ConformerSource.DUPLICATE
   # Kind of a dumb hack, but the easiest thing to look for to distinguish stage1
   # and stage 2 is that stage 1 only has timings for two computation steps.
@@ -961,8 +962,7 @@ def conformer_calculation_error_level(conformer):
     if errors.error_nstat1 != 1 and errors.error_nstat1 != 3:
       return 5
 
-    if (errors.error_nstatc != 1 or
-        errors.error_nstatt != 1 or
+    if (errors.error_nstatc != 1 or errors.error_nstatt != 1 or
         errors.error_frequencies != 1):
       return 5
 
@@ -977,18 +977,15 @@ def conformer_calculation_error_level(conformer):
     return 3
 
   # This is warning level 'C' from Bazel documentation.
-  if (errors.warn_t1 > 2 or
-      errors.warn_t1_excess > 2 or
-      errors.warn_bse_b5_b6 > 2 or
-      errors.warn_bse_cccsd_b5 > 2 or
+  if (errors.warn_t1 > 2 or errors.warn_t1_excess > 2 or
+      errors.warn_bse_b5_b6 > 2 or errors.warn_bse_cccsd_b5 > 2 or
       errors.warn_exc_lowest_excitation > 2 or
       errors.warn_exc_smallest_oscillator > 0 or
       errors.warn_exc_largest_oscillator > 0):
     return 2
 
   # This is warning level 'B" from Bazel documentation.
-  if (errors.warn_vib_linearity > 0 or
-      errors.warn_vib_imaginary > 1):
+  if (errors.warn_vib_linearity > 0 or errors.warn_vib_imaginary > 1):
     return 1
 
   return 0
@@ -1150,11 +1147,12 @@ def conformer_to_bond_topology_summaries(conformer):
   elif fate == dataset_pb2.Conformer.FATE_NO_CALCULATION_RESULTS:
     summary.count_kept_geometry = 1
     summary.count_missing_calculation = 1
-  elif (fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR or
-        fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MAJOR_ERROR or
-        fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MODERATE_ERROR or
-        fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS or
-        fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
+  elif (
+      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR or
+      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MAJOR_ERROR or
+      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MODERATE_ERROR or
+      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS or
+      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_error = 1
     for bt in conformer.bond_topologies[1:]:

@@ -1,35 +1,49 @@
+# coding=utf-8
+# Copyright 2021 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Tester for topology_from_geometry
 
-from parameterized import parameterized, parameterized_class
 from typing import Tuple
 import unittest
 
+from google.protobuf import text_format
 import numpy as np
 import pandas as pd
 
-from google.protobuf import text_format
-
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
+from smu.geometry import smu_molecule
+from smu.geometry import topology_from_geom
 from smu.parser import smu_utils_lib
 
 # Only needed so we can alter the default bond matching
-from smu.geometry import smu_molecule
-from smu.geometry import topology_from_geom
 
 # For the empirical bond length distributions, the resolution used.
 # Which is not necessarily the same as what is used in the production system.
 RESOLUTION = 1000
 
 
-def triangular_distribution(min_dist: float, dist_max_value: float,
-                            max_dist: float) -> Tuple[np.array, np.array]:
+def triangular_distribution(min_dist, dist_max_value,
+                            max_dist):
   """Generate a triangular distribution.
 
   Args:
     min_dist: minimum X value
     dist_max_value: X value of the triangle peak
     max_dist: maximum X value
+
   Returns:
     Tuple of the X and Y coordinates that represent the distribution.
   """
@@ -60,16 +74,17 @@ class TestTopoFromGeom(unittest.TestCase):
     # For testing, turn off the need for complete matching.
     smu_molecule.default_must_match_all_bonds = False
 
-    all_distributions = bond_length_distribution.AllAtomPairLengthDistributions()
+    all_distributions = bond_length_distribution.AllAtomPairLengthDistributions(
+    )
     x, y = triangular_distribution(1.0, 1.4, 2.0)
     df = pd.DataFrame({"length": x, "count": y})
-    bldC1C = bond_length_distribution.EmpiricalLengthDistribution(df, 0.0)
-    all_distributions.add(carbon, carbon, single_bond, bldC1C)
+    bldc1c = bond_length_distribution.EmpiricalLengthDistribution(df, 0.0)
+    all_distributions.add(carbon, carbon, single_bond, bldc1c)
 
     x, y = triangular_distribution(1.0, 1.5, 2.0)
     df = pd.DataFrame({"length": x, "count": y})
-    bldC2C = bond_length_distribution.EmpiricalLengthDistribution(df, 0.0)
-    all_distributions.add(carbon, carbon, double_bond, bldC2C)
+    bldc2c = bond_length_distribution.EmpiricalLengthDistribution(df, 0.0)
+    all_distributions.add(carbon, carbon, double_bond, bldc2c)
 
     bond_topology = text_format.Parse(
         """
@@ -99,13 +114,14 @@ atom_positions {
 
     matching_parameters = smu_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
-    result = topology_from_geom.bond_topologies_from_geom(all_distributions, bond_topology,
-                                                          geometry, matching_parameters)
+    result = topology_from_geom.bond_topologies_from_geom(
+        all_distributions, bond_topology, geometry, matching_parameters)
     self.assertIsNotNone(result)
     self.assertEqual(len(result.bond_topology), 2)
     self.assertEqual(len(result.bond_topology[0].bonds), 1)
     self.assertEqual(len(result.bond_topology[1].bonds), 1)
-    self.assertGreater(result.bond_topology[0].score, result.bond_topology[1].score)
+    self.assertGreater(result.bond_topology[0].score,
+                       result.bond_topology[1].score)
     self.assertEqual(result.bond_topology[0].bonds[0].bond_type, single_bond)
     self.assertEqual(result.bond_topology[1].bonds[0].bond_type, double_bond)
 

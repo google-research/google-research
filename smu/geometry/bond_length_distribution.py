@@ -301,12 +301,14 @@ class AtomPairLengthDistributions:
     """Gets the Distribution for the bond_type."""
     return self._bond_type_map[bond_type]
 
-  def has_key(self, key:int) -> bool:
+  def has_key(self, key):
     """Returns True if `key` is in self._bond_type_map.
-      Args:
-        key: a bond type
-      Returns:
-        Boolean
+
+    Args:
+      key: a bond type
+
+    Returns:
+      Boolean
     """
     return key in self._bond_type_map.keys()
 
@@ -368,7 +370,8 @@ class AllAtomPairLengthDistributions:
                                                                      atom_b)]
     self._atom_pair_dict[(atom_a, atom_b)].add(bond_type, dist)
 
-  def add_from_files(self, filestem,
+  def add_from_files(self,
+                     filestem,
                      unbonded_right_tail_mass,
                      include_nonbonded=True):
     """Adds distributions from a set of files.
@@ -465,7 +468,7 @@ class AllAtomPairLengthDistributions:
                             bond_type,
                             length):
     """p(length | atom_a, atom_b, bond_type)."""
-    if not (atom_a, atom_b) in self._atom_pair_dict.keys():
+    if (atom_a, atom_b) not in self._atom_pair_dict.keys():
       return 0.0
 
     if not self._atom_pair_dict[(atom_a, atom_b)].has_key(bond_type):

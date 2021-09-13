@@ -452,8 +452,7 @@ class SmuParser:
     if len(parts) != 2:
       raise ValueError('Expected database line, got: {}'.format(line))
     if parts[0] != 'Database':
-      raise ValueError('Bad keyword on database line, got: {}'.format(
-        parts[0]))
+      raise ValueError('Bad keyword on database line, got: {}'.format(parts[0]))
     if parts[1] == 'standard':
       self._conformer.which_database = dataset_pb2.STANDARD
     elif parts[1] == 'complete':
@@ -466,39 +465,39 @@ class SmuParser:
     lines = iter(self.parse(ParseModes.RAW, num_lines=6))
     errors = self._conformer.properties.errors
 
-    parts = next(lines).split()
-    assert(len(parts) == 2 and parts[0] == 'Status'), (
-      'Expected Status line, got {}'.format(parts))
+    parts = str(next(lines)).split()
+    assert (len(parts) == 2 and parts[0]
+            == 'Status'), ('Expected Status line, got {}'.format(parts))
     errors.status = int(parts[1])
 
-    parts = next(lines).split()
-    assert(len(parts) == 3 and parts[0] == 'Warn_T1'), (
-      'Expected Status line, got {}'.format(parts))
+    parts = str(next(lines)).split()
+    assert (len(parts) == 3 and parts[0]
+            == 'Warn_T1'), ('Expected Status line, got {}'.format(parts))
     errors.warn_t1 = int(parts[1])
     errors.warn_t1_excess = int(parts[2])
 
-    parts = next(lines).split()
-    assert(len(parts) == 3 and parts[0] == 'Warn_BSE'), (
-      'Expected Status line, got {}'.format(parts))
+    parts = str(next(lines)).split()
+    assert (len(parts) == 3 and parts[0]
+            == 'Warn_BSE'), ('Expected Status line, got {}'.format(parts))
     errors.warn_bse_b5_b6 = int(parts[1])
     errors.warn_bse_cccsd_b5 = int(parts[2])
 
-    parts = next(lines).split()
-    assert(len(parts) == 4 and parts[0] == 'Warn_EXC'), (
-      'Expected Status line, got {}'.format(parts))
+    parts = str(next(lines)).split()
+    assert (len(parts) == 4 and parts[0]
+            == 'Warn_EXC'), ('Expected Status line, got {}'.format(parts))
     errors.warn_exc_lowest_excitation = int(parts[1])
     errors.warn_exc_smallest_oscillator = int(parts[2])
     errors.warn_exc_largest_oscillator = int(parts[3])
 
-    parts = next(lines).split()
-    assert(len(parts) == 3 and parts[0] == 'Warn_VIB'), (
-      'Expected Status line, got {}'.format(parts))
+    parts = str(next(lines)).split()
+    assert (len(parts) == 3 and parts[0]
+            == 'Warn_VIB'), ('Expected Status line, got {}'.format(parts))
     errors.warn_vib_linearity = int(parts[1])
     errors.warn_vib_imaginary = int(parts[2])
 
-    parts = next(lines).split()
-    assert(len(parts) == 2 and parts[0] == 'Warn_NEG'), (
-      'Expected Status line, got {}'.format(parts))
+    parts = str(next(lines)).split()
+    assert (len(parts) == 2 and parts[0]
+            == 'Warn_NEG'), ('Expected Status line, got {}'.format(parts))
     errors.warn_num_neg = int(parts[1])
 
   def parse_bond_topology(self):

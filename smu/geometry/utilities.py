@@ -1,7 +1,23 @@
-# Utility functions for SMU
+# coding=utf-8
+# Copyright 2021 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Utility functions for SMU."""
 
 import math
 
+from typing import Any
 from typing import List
 
 import numpy as np
@@ -16,12 +32,15 @@ BOHR2ANSTROM = 0.529177
 DISTANCE_BINS = 10000
 
 
-def distance_between_atoms(geom: dataset_pb2.Geometry, a1: int, a2: int) -> float:
+def distance_between_atoms(geom, a1,
+                           a2):
   """Return the distance between atoms `a1` and `a2` in `geom`.
+
   Args:
     geom:
     a1:
     a2:
+
   Returns:
     Distance in Angstroms.
   """
@@ -34,9 +53,12 @@ def distance_between_atoms(geom: dataset_pb2.Geometry, a1: int, a2: int) -> floa
                 (geom.atom_positions[a1].z - geom.atom_positions[a2].z)))
 
 
-def bonded(bond_topology: dataset_pb2.BondTopology) -> np.array:
+def bonded(bond_topology):
   """Return an int array of the bonded atoms in `bond_topology`.
+
   Args:
+    bond_topology:
+
   Returns:
     a numpy array of BondType's
   """
@@ -49,10 +71,12 @@ def bonded(bond_topology: dataset_pb2.BondTopology) -> np.array:
   return connected
 
 
-def distances(geometry: dataset_pb2.Geometry) -> np.array:
+def distances(geometry):
   """Return a float array of the interatomic distances in `geometry`.
+
   Args:
     geometry:
+
   Returns:
     a numpy array of distances
   """
@@ -64,12 +88,15 @@ def distances(geometry: dataset_pb2.Geometry) -> np.array:
   return result
 
 
-def rdkit_atom_to_atom_type(atom: Chem.Atom) -> dataset_pb2.BondTopology.AtomType:
-  """
-    Args:
-      atom:
-    Returns:
-      AtpmType
+def rdkit_atom_to_atom_type(
+    atom):
+  """Atom to atom type.
+
+  Args:
+    atom:
+
+  Returns:
+    AtomType
   """
   if atom.GetAtomicNum() == 1:
     return dataset_pb2.BondTopology.ATOM_H
@@ -91,10 +118,14 @@ def rdkit_atom_to_atom_type(atom: Chem.Atom) -> dataset_pb2.BondTopology.AtomTyp
   raise ValueError(f"Unrecognized atom type {atom.GetAtomicNum()}")
 
 
-def rdkit_bond_type_to_btype(bond_type: Chem.BondType) -> dataset_pb2.BondTopology.BondType:
-  """
-    Args:
-    Returns:
+def rdkit_bond_type_to_btype(
+    bond_type):
+  """Converts bond type.
+
+  Args:
+    bond_type:
+
+  Returns:
   """
   if bond_type == Chem.rdchem.BondType.SINGLE:
     return dataset_pb2.BondTopology.BondType.BOND_SINGLE
@@ -106,8 +137,14 @@ def rdkit_bond_type_to_btype(bond_type: Chem.BondType) -> dataset_pb2.BondTopolo
   raise ValueError(f"Unrecognized bond type #{bond_type}")
 
 
-def molecule_to_bond_topology(mol: Chem.RWMol) -> dataset_pb2.BondTopology:
-  """
+def molecule_to_bond_topology(mol):
+  """Molecule to bond topology.
+
+  Args:
+    mol:
+
+  Returns:
+    Bond topology.
   """
   bond_topology = dataset_pb2.BondTopology()
   for atom in mol.GetAtoms():
@@ -124,11 +161,12 @@ def molecule_to_bond_topology(mol: Chem.RWMol) -> dataset_pb2.BondTopology:
   return bond_topology
 
 
-def canonical_bond_topology(bond_topology: dataset_pb2.BondTopology) -> None:
+def canonical_bond_topology(bond_topology):
   """Transform the bonds attribute of `bond_topology` to a canonical form.
 
   Args:
     bond_topology:
+
   Returns:
     BondTopology
   """
@@ -142,11 +180,17 @@ def canonical_bond_topology(bond_topology: dataset_pb2.BondTopology) -> None:
   bond_topology.bonds.sort(key=lambda b: (b.atom_a, b.atom_b))
 
 
-def same_bond_topology(bt1: dataset_pb2.BondTopology, bt2: dataset_pb2.BondTopology) -> bool:
+def same_bond_topology(bt1,
+                       bt2):
   """Return True if bt1 == bt2.
+
   Note that there is no attempt to canonialise the protos.
   Args:
+    bt1:
+    bt2:
+
   Returns:
+    Bool.
   """
   natoms = len(bt1.atoms)
   if len(bt2.atoms) != natoms:
@@ -169,17 +213,19 @@ def same_bond_topology(bt1: dataset_pb2.BondTopology, bt2: dataset_pb2.BondTopol
   return True
 
 
-def visit(nbrs: List, atom: int, visited: np.array) -> int:
+def visit(nbrs, atom, visited):
   """Recusrively visit nodes in the graph defined by `nbrs`.
+
   Args:
     nbrs:
     atom:
     visited:
+
   Returns:
     The number of nodes visited - including `atom`.
   """
   visited[atom] = 1
-  result = 1    # To be returned.
+  result = 1  # To be returned.
   for nbr in nbrs[atom]:
     if visited[nbr] > 0:
       continue
@@ -188,10 +234,12 @@ def visit(nbrs: List, atom: int, visited: np.array) -> int:
   return result
 
 
-def is_single_fragment(bond_topology: dataset_pb2.BondTopology) -> bool:
+def is_single_fragment(bond_topology):
   """Return True if `bond_topology` is a single fragment.
+
   Args:
     bond_topology:
+
   Returns:
     True if `bond_topology` is a single fragment.
   """
@@ -215,7 +263,7 @@ def is_single_fragment(bond_topology: dataset_pb2.BondTopology) -> bool:
     return False
 
   # For each atom, the neighbours.
-  attached: List = []
+  attached: List[Any] = []
   for i in range(0, natoms):
     attached.append(np.ravel(np.argwhere(connection_matrix[i,])))
 
@@ -239,8 +287,9 @@ def is_single_fragment(bond_topology: dataset_pb2.BondTopology) -> bool:
     if len(attached[attached[i][0]]) > 1:
       visited[i] = 1
 
-  if a_multiply_connected_atom < 0:    # Cannot happen
+  if a_multiply_connected_atom < 0:  # Cannot happen
     return False
 
-  number_visited = np.count_nonzero(visited) + visit(attached, a_multiply_connected_atom, visited)
+  number_visited = np.count_nonzero(visited) + visit(
+      attached, a_multiply_connected_atom, visited)
   return number_visited == natoms

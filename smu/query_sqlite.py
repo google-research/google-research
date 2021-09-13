@@ -136,18 +136,20 @@ class AtomicInputOutputter:
     """
     self.output_path = output_path
     if output_path and not gfile.isdir(self.output_path):
-      raise ValueError('Atomic input requires directory as output path, got {}'
-                       .format(self.output_path))
+      raise ValueError(
+          'Atomic input requires directory as output path, got {}'.format(
+              self.output_path))
     self.atomic_writer = smu_writer_lib.AtomicInputWriter()
 
   def write(self, conformer):
     if self.output_path is None:
       sys.stdout.write(self.atomic_writer.process(conformer))
     else:
-      with gfile.GFile(os.path.join(
-          self.output_path,
-          self.atomic_writer.get_filename_for_atomic_input(conformer)),
-                       'w') as f:
+      with gfile.GFile(
+          os.path.join(
+              self.output_path,
+              self.atomic_writer.get_filename_for_atomic_input(conformer)),
+          'w') as f:
         f.write(self.atomic_writer.process(conformer))
 
   def close(self):
@@ -194,7 +196,8 @@ def main(argv):
         outputter.write(c)
     if FLAGS.random_fraction:
       for conformer in db:
-        if conformer.fate == dataset_pb2.Conformer.FATE_SUCCESS and random.random() < FLAGS.random_fraction:
+        if conformer.fate == dataset_pb2.Conformer.FATE_SUCCESS and random.random(
+        ) < FLAGS.random_fraction:
           outputter.write(conformer)
 
 

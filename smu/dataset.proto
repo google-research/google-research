@@ -203,8 +203,8 @@ message Properties {
     // All errors below here are deprecated and were only used in
     // earlier versions of the dataset.
 
-    // ATOMIC analysis of the
-    // molecule.  Original error code: nsvato
+    // ATOMIC analysis of the molecule.
+    // Original error code: nsvato
     int32 error_atomic_analysis = 3;
     // Failed to compute NMR values with B3LYP small basis set (6-31++G**).
     // Original error code: nsvnsb
@@ -986,3 +986,4 @@ message BondTopologySummary {
   int32 count_detected_match_with_error = 10;
   int32 count_detected_match_success = 11;
 }
+

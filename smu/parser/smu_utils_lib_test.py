@@ -32,8 +32,8 @@ from smu.parser import smu_utils_lib
 
 MAIN_DAT_FILE = 'x07_sample.dat'
 STAGE1_DAT_FILE = 'x07_stage1.dat'
-TESTDATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                             'testdata')
+TESTDATA_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'testdata')
 
 
 def str_to_bond_topology(s):
@@ -60,10 +60,10 @@ class SpecialIDTest(absltest.TestCase):
   def test_from_dat_id(self):
     self.assertIsNone(
         smu_utils_lib.special_case_bt_id_from_dat_id(123456, 'CC'))
-    self.assertEqual(smu_utils_lib.special_case_bt_id_from_dat_id(999998, 'O'),
-                     899650)
-    self.assertEqual(smu_utils_lib.special_case_bt_id_from_dat_id(0, 'O'),
-                     899650)
+    self.assertEqual(
+        smu_utils_lib.special_case_bt_id_from_dat_id(999998, 'O'), 899650)
+    self.assertEqual(
+        smu_utils_lib.special_case_bt_id_from_dat_id(0, 'O'), 899650)
     with self.assertRaises(ValueError):
       smu_utils_lib.special_case_bt_id_from_dat_id(0, 'NotASpecialCaseSmiles')
 
@@ -77,12 +77,11 @@ class GetCompositionTest(absltest.TestCase):
 
   def test_simple(self):
     bt = dataset_pb2.BondTopology()
-    bt.atoms.extend([dataset_pb2.BondTopology.ATOM_C,
-                     dataset_pb2.BondTopology.ATOM_C,
-                     dataset_pb2.BondTopology.ATOM_N,
-                     dataset_pb2.BondTopology.ATOM_H,
-                     dataset_pb2.BondTopology.ATOM_H,
-                     dataset_pb2.BondTopology.ATOM_H])
+    bt.atoms.extend([
+        dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_C,
+        dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_H,
+        dataset_pb2.BondTopology.ATOM_H, dataset_pb2.BondTopology.ATOM_H
+    ])
     self.assertEqual('x03_c2nh3', smu_utils_lib.get_composition(bt))
 
 
@@ -153,7 +152,7 @@ class CreateBondTopologyTest(absltest.TestCase):
 
   def test_no_charged(self):
     got = smu_utils_lib.create_bond_topology('CNFF', '111000', '1200')
-    expected_str = '''
+    expected_str = """
 atoms: ATOM_C
 atoms: ATOM_N
 atoms: ATOM_F
@@ -187,14 +186,14 @@ bonds {
   atom_b: 6
   bond_type: BOND_SINGLE
 }
-'''
+"""
     expected = str_to_bond_topology(expected_str)
     self.assertEqual(str(expected), str(got))
 
   def test_charged(self):
     # This is actually C N N+O-
     got = smu_utils_lib.create_bond_topology('CNNO', '200101', '2020')
-    expected_str = '''
+    expected_str = """
 atoms: ATOM_C
 atoms: ATOM_N
 atoms: ATOM_NPOS
@@ -235,13 +234,13 @@ bonds {
   atom_b: 7
   bond_type: BOND_SINGLE
 }
-'''
+"""
     expected = str_to_bond_topology(expected_str)
     self.assertEqual(str(expected), str(got))
 
   def test_one_heavy(self):
     got = smu_utils_lib.create_bond_topology('C', '', '4')
-    expected_str = '''
+    expected_str = """
 atoms: ATOM_C
 atoms: ATOM_H
 atoms: ATOM_H
@@ -263,7 +262,7 @@ bonds {
   atom_b: 4
   bond_type: BOND_SINGLE
 }
-'''
+"""
     expected = str_to_bond_topology(expected_str)
     self.assertEqual(str(expected), str(got))
 
@@ -298,17 +297,21 @@ class ParseDuplicatesFileTest(absltest.TestCase):
         os.path.join(TESTDATA_PATH, 'small.equivalent_isomers.dat'))
     pd.testing.assert_frame_equal(
         pd.DataFrame(
-            columns=['name1', 'stoich1', 'btid1', 'shortconfid1', 'confid1',
-                     'name2', 'stoich2', 'btid2', 'shortconfid2', 'confid2'],
+            columns=[
+                'name1', 'stoich1', 'btid1', 'shortconfid1', 'confid1', 'name2',
+                'stoich2', 'btid2', 'shortconfid2', 'confid2'
+            ],
             data=[
-                ['x07_c2n2o2fh3.224227.004',
-                 'c2n2o2fh3', 224227, 4, 224227004,
-                 'x07_c2n2o2fh3.224176.005',
-                 'c2n2o2fh3', 224176, 5, 224176005],
-                ['x07_c2n2o2fh3.260543.005',
-                 'c2n2o2fh3', 260543, 5, 260543005,
-                 'x07_c2n2o2fh3.224050.001',
-                 'c2n2o2fh3', 224050, 1, 224050001],
+                [
+                    'x07_c2n2o2fh3.224227.004', 'c2n2o2fh3', 224227, 4,
+                    224227004, 'x07_c2n2o2fh3.224176.005', 'c2n2o2fh3', 224176,
+                    5, 224176005
+                ],
+                [
+                    'x07_c2n2o2fh3.260543.005', 'c2n2o2fh3', 260543, 5,
+                    260543005, 'x07_c2n2o2fh3.224050.001', 'c2n2o2fh3', 224050,
+                    1, 224050001
+                ],
             ]),
         df,
         check_like=True)
@@ -317,19 +320,19 @@ class ParseDuplicatesFileTest(absltest.TestCase):
 class BondTopologyToMoleculeTest(absltest.TestCase):
 
   def test_o2(self):
-    bond_topology = str_to_bond_topology('''
+    bond_topology = str_to_bond_topology("""
 atoms: ATOM_O
 atoms: ATOM_O
 bonds {
   atom_b: 1
   bond_type: BOND_DOUBLE
 }
-''')
+""")
     got = smu_utils_lib.bond_topology_to_molecule(bond_topology)
     self.assertEqual('O=O', Chem.MolToSmiles(got))
 
   def test_methane(self):
-    bond_topology = str_to_bond_topology('''
+    bond_topology = str_to_bond_topology("""
 atoms: ATOM_C
 atoms: ATOM_H
 atoms: ATOM_H
@@ -351,13 +354,13 @@ bonds {
   atom_b: 4
   bond_type: BOND_SINGLE
 }
-''')
+""")
     got = smu_utils_lib.bond_topology_to_molecule(bond_topology)
     self.assertEqual('[H]C([H])([H])[H]', Chem.MolToSmiles(got))
 
   # This molecule is an N+ central atom, bonded to C (triply), O-, and F
   def test_charged_molecule(self):
-    bond_topology = str_to_bond_topology('''
+    bond_topology = str_to_bond_topology("""
 atoms: ATOM_C
 atoms: ATOM_NPOS
 atoms: ATOM_ONEG
@@ -376,7 +379,7 @@ bonds {
   atom_b: 3
   bond_type: BOND_SINGLE
 }
-''')
+""")
     got = smu_utils_lib.bond_topology_to_molecule(bond_topology)
     self.assertEqual('C#[N+]([O-])F', Chem.MolToSmiles(got))
 
@@ -483,14 +486,14 @@ class SmilesCompareTest(absltest.TestCase):
     self.assertEqual('MATCH', str(smu_utils_lib.SmilesCompareResult.MATCH))
 
   def test_missing(self):
-    bond_topology = str_to_bond_topology('''
+    bond_topology = str_to_bond_topology("""
 atoms: ATOM_O
 atoms: ATOM_O
 bonds {
   atom_b: 1
   bond_type: BOND_DOUBLE
 }
-''')
+""")
     result, with_h, without_h = smu_utils_lib.bond_topology_smiles_comparison(
         bond_topology)
     self.assertEqual(smu_utils_lib.SmilesCompareResult.MISSING, result)
@@ -504,7 +507,7 @@ bonds {
             bond_topology, include_hs=True))
 
   def test_mismatch(self):
-    bond_topology = str_to_bond_topology('''
+    bond_topology = str_to_bond_topology("""
 atoms: ATOM_O
 atoms: ATOM_O
 bonds {
@@ -512,7 +515,7 @@ bonds {
   bond_type: BOND_DOUBLE
 }
 smiles: "BlahBlahBlah"
-''')
+""")
     result, with_h, without_h = smu_utils_lib.bond_topology_smiles_comparison(
         bond_topology)
     self.assertEqual(smu_utils_lib.SmilesCompareResult.MISMATCH, result)
@@ -520,7 +523,7 @@ smiles: "BlahBlahBlah"
     self.assertEqual('O=O', without_h)
 
   def test_matched_and_h_stripping(self):
-    bond_topology = str_to_bond_topology('''
+    bond_topology = str_to_bond_topology("""
 atoms: ATOM_O
 atoms: ATOM_H
 atoms: ATOM_H
@@ -533,7 +536,7 @@ bonds {
   bond_type: BOND_SINGLE
 }
 smiles: "O"
-''')
+""")
     result, with_h, without_h = smu_utils_lib.bond_topology_smiles_comparison(
         bond_topology)
     self.assertEqual(smu_utils_lib.SmilesCompareResult.MATCH, result)
@@ -649,9 +652,8 @@ class MergeConformersTest(absltest.TestCase):
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conflict, [
-        618451001,
-        1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True, True,
-        1, 1, 1, 1, -1.23, 0.052254, -406.522079, 2.5e-05, True, True
+        618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
+        True, 1, 1, 1, 1, -1.23, 0.052254, -406.522079, 2.5e-05, True, True
     ])
     # Just check a random field that is in stage2 but not stage1
     self.assertNotEmpty(got_conf.properties.normal_modes)
@@ -663,9 +665,9 @@ class MergeConformersTest(absltest.TestCase):
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conflict, [
-        618451001,
-        1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True, True,
-        1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True, False
+        618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
+        True, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
+        False
     ])
     # Just check a random field that is in stage2 but not stage1
     self.assertNotEmpty(got_conf.properties.normal_modes)
@@ -752,20 +754,20 @@ class ConformerErrorTest(absltest.TestCase):
   def test_stage2_error_status_5(self):
     conformer = get_stage2_conformer()
     conformer.properties.errors.status = 256
-    self.assertTrue(5,
-                    smu_utils_lib.conformer_calculation_error_level(conformer))
+    self.assertEqual(5,
+                     smu_utils_lib.conformer_calculation_error_level(conformer))
 
   def test_stage2_error_status_4(self):
     conformer = get_stage2_conformer()
     conformer.properties.errors.status = 50
-    self.assertTrue(4,
-                    smu_utils_lib.conformer_calculation_error_level(conformer))
+    self.assertEqual(4,
+                     smu_utils_lib.conformer_calculation_error_level(conformer))
 
   def test_stage2_error_status_3(self):
     conformer = get_stage2_conformer()
     conformer.properties.errors.status = 4
-    self.assertTrue(3,
-                    smu_utils_lib.conformer_calculation_error_level(conformer))
+    self.assertEqual(3,
+                     smu_utils_lib.conformer_calculation_error_level(conformer))
 
   def test_stage2_error_level_2(self):
     conformer = get_stage2_conformer()
@@ -797,21 +799,17 @@ class FilterConformerByAvailabilityTest(absltest.TestCase):
     smu_utils_lib.filter_conformer_by_availability(self.conformer,
                                                    [dataset_pb2.STANDARD])
     self.assertTrue(
-        self.conformer.properties.HasField(
-            'initial_geometry_energy'))
+        self.conformer.properties.HasField('initial_geometry_energy'))
     self.assertFalse(self.conformer.properties.HasField('zpe_unscaled'))
-    self.assertFalse(
-        self.conformer.properties.HasField('compute_cluster_info'))
+    self.assertFalse(self.conformer.properties.HasField('compute_cluster_info'))
 
   def test_complete_and_internal_only(self):
     smu_utils_lib.filter_conformer_by_availability(
         self.conformer, [dataset_pb2.COMPLETE, dataset_pb2.INTERNAL_ONLY])
     self.assertFalse(
-        self.conformer.properties.HasField(
-            'initial_geometry_energy'))
+        self.conformer.properties.HasField('initial_geometry_energy'))
     self.assertTrue(self.conformer.properties.HasField('zpe_unscaled'))
-    self.assertTrue(
-        self.conformer.properties.HasField('compute_cluster_info'))
+    self.assertTrue(self.conformer.properties.HasField('compute_cluster_info'))
 
 
 class ConformerToStandardTest(absltest.TestCase):
@@ -823,16 +821,14 @@ class ConformerToStandardTest(absltest.TestCase):
 
   def test_field_filtering(self):
     # Check that the field which should be filtered starts out set
-    self.assertTrue(self.conformer.properties.HasField(
-        'optimized_geometry_energy'))
+    self.assertTrue(
+        self.conformer.properties.HasField('optimized_geometry_energy'))
 
     got = smu_utils_lib.conformer_to_standard(self.conformer)
     # Check for a field that was originally in self.conformer and should be
     # filtered and a field which should still be present.
-    self.assertTrue(got.properties.HasField(
-        'optimized_geometry_energy'))
-    self.assertFalse(
-        got.properties.HasField('zpe_unscaled'))
+    self.assertTrue(got.properties.HasField('optimized_geometry_energy'))
+    self.assertFalse(got.properties.HasField('zpe_unscaled'))
 
   def test_remove_error_conformer(self):
     self.conformer.properties.errors.status = 256
@@ -883,22 +879,21 @@ class DetermineFateTest(parameterized.TestCase):
   def test_calculation_errors(self, status, expected):
     conformer = get_stage2_conformer()
     conformer.properties.errors.status = status
-    self.assertEqual(expected,
-                     smu_utils_lib.determine_fate(conformer))
+    self.assertEqual(expected, smu_utils_lib.determine_fate(conformer))
 
   def test_calculation_warnings_serious(self):
     conformer = get_stage2_conformer()
     conformer.properties.errors.warn_t1_excess = 1234
     self.assertEqual(
-      dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS,
-      smu_utils_lib.determine_fate(conformer))
+        dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS,
+        smu_utils_lib.determine_fate(conformer))
 
   def test_calculation_warnings_vibrational(self):
     conformer = get_stage2_conformer()
     conformer.properties.errors.warn_vib_linearity = 1234
     self.assertEqual(
-      dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL,
-      smu_utils_lib.determine_fate(conformer))
+        dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL,
+        smu_utils_lib.determine_fate(conformer))
 
   def test_success(self):
     conformer = get_stage2_conformer()
@@ -950,7 +945,7 @@ class ToBondTopologySummaryTest(absltest.TestCase):
 
   def test_calculation_with_error(self):
     self.conformer.fate = (
-      dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR)
+        dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR)
     self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
     self.conformer.bond_topologies[-1].bond_topology_id = 123
     got = list(

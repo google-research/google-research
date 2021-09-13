@@ -17,14 +17,17 @@
 """Tests for parsing and writing code."""
 import os
 
+from absl import logging
 from absl.testing import absltest
 from absl.testing import parameterized
-from tensorflow.io import gfile
 from google.protobuf import text_format
+from tensorflow.io import gfile
+
 
 from smu import dataset_pb2
 from smu.parser import smu_parser_lib
 from smu.parser import smu_writer_lib
+
 
 MAIN_DAT_FILE = 'x07_sample.dat'
 SMU1_DAT_FILE = 'x01_sample.dat'
@@ -34,8 +37,16 @@ SMU1_STAGE1_DAT_FILE = 'x01_stage1.dat'
 MINIMAL_DAT_FILE = 'x07_minimal.dat'
 GOLDEN_PROTO_FILE = 'x07_sample.pbtxt'
 ATOMIC_INPUT = 'x07_first_atomic_input.inp'
-TESTDATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                             'testdata')
+TESTDATA_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'testdata')
+
+
+# Helper function to handle file access.
+def get_file_contents(file_path):
+  if not gfile.exists(file_path):
+    raise FileNotFoundError
+  with gfile.GFile(file_path) as f:
+    return f.readlines()
 
 
 class SmuParserTest(absltest.TestCase):
@@ -62,8 +73,7 @@ class RoundtripTest(absltest.TestCase):
   """Test roundtrip of several files."""
 
   def try_roundtrip(self, filename, stage):
-    parser = smu_parser_lib.SmuParser(
-        os.path.join(TESTDATA_PATH, filename))
+    parser = smu_parser_lib.SmuParser(os.path.join(TESTDATA_PATH, filename))
     writer = smu_writer_lib.SmuWriter(annotate=False)
 
     if stage == 'stage1':
@@ -78,8 +88,7 @@ class RoundtripTest(absltest.TestCase):
     for maybe_conformer, orig_contents in process_fn():
       if isinstance(maybe_conformer, Exception):
         raise maybe_conformer
-      self.assertGreater(maybe_conformer.bond_topologies[0].bond_topology_id,
-                         0)
+      self.assertGreater(maybe_conformer.bond_topologies[0].bond_topology_id, 0)
       smu_writer_lib.check_dat_formats_match(
           orig_contents,
           writer_fn(maybe_conformer).splitlines())
@@ -102,11 +111,21 @@ class RoundtripTest(absltest.TestCase):
 
 class GoldenTest(parameterized.TestCase):
 
+  def compare_list_items(self, list1, list2):
+    self.assertLen(list1, len(list2))
+    for i in range(len(list1)):
+      line1 = list1[i]
+      line2 = list2[i]
+      if len(line2) > len(line1):
+        line1 = line1[:-1]
+        line2 = line2[:len(line1)]
+      self.assertEqual(line1, line2)
+
   @parameterized.parameters(
-    (SMU1_DAT_FILE, 'x01_sample.pbtxt'),
-    (SMU2_DAT_FILE, 'x02_sample.pbtxt'),
-    (MAIN_DAT_FILE, 'x07_sample.pbtxt'),
-    )
+      (SMU1_DAT_FILE, 'x01_sample.pbtxt'),
+      (SMU2_DAT_FILE, 'x02_sample.pbtxt'),
+      (MAIN_DAT_FILE, 'x07_sample.pbtxt'),
+  )
   def test_dat_to_pbtxt(self, input_fn, expected_fn):
     # Note that this is partially a copy and paste from smu_parser (which is
     # what is used to regenerate the golden)
@@ -120,25 +139,25 @@ class GoldenTest(parameterized.TestCase):
         raise e
       multiple_conformers.conformers.append(e)
 
-    got = ('# proto-file: third_party/google_research/google_research/smu/dataset.proto\n'
-           '# proto-message: MultipleConformers\n')
+    got = ('# proto-file: '
+           'third_party/google_research/google_research/smu/dataset.proto\n# '
+           'proto-message: MultipleConformers\n')
     got += text_format.MessageToString(multiple_conformers)
 
-    with gfile.GFile(full_expected_fn) as f:
-      expected = f.readlines()
+    expected = get_file_contents(full_expected_fn)
 
     print('Command line to regenerate:\npython3 parser/smu_parser.py '
-          '--input_file {} --output_file {}'.format(
-            full_input_fn, full_expected_fn))
+          '--input_file {} --output_file {}'.format(full_input_fn,
+                                                    full_expected_fn))
 
-    self.assertEqual([l.rstrip('\n') for l in expected],
-                     got.splitlines())
+    self.compare_list_items([l.rstrip('\n') for l in expected],
+                            got.splitlines())
 
   @parameterized.parameters(
-    ('x01_sample.pbtxt', 'x01_sample_annotated.dat'),
-    ('x02_sample.pbtxt', 'x02_sample_annotated.dat'),
-    ('x07_sample.pbtxt', 'x07_sample_annotated.dat'),
-    )
+      ('x01_sample.pbtxt', 'x01_sample_annotated.dat'),
+      ('x02_sample.pbtxt', 'x02_sample_annotated.dat'),
+      ('x07_sample.pbtxt', 'x07_sample_annotated.dat'),
+  )
   def test_pbtxt_to_annotated_dat(self, input_fn, expected_fn):
     # Note that this is partially a copy and paste from smu_writer (which is
     # what is used to regenerate the golden)
@@ -146,21 +165,18 @@ class GoldenTest(parameterized.TestCase):
     full_expected_fn = os.path.join(TESTDATA_PATH, expected_fn)
 
     smu_proto = dataset_pb2.MultipleConformers()
-    with gfile.GFile(full_input_fn) as f:
-      raw_proto = f.read()
-      text_format.Parse(raw_proto, smu_proto)
-      smu_writer = smu_writer_lib.SmuWriter(True)
-      got = ''.join(
+    raw_proto = '\n'.join(get_file_contents(full_input_fn))
+    text_format.Parse(raw_proto, smu_proto)
+    smu_writer = smu_writer_lib.SmuWriter(True)
+    got = ''.join(
         smu_writer.process_stage2_proto(conformer)
-        for conformer in smu_proto.conformers
-      )
+        for conformer in smu_proto.conformers)
 
-    with gfile.GFile(full_expected_fn) as f:
-      expected = f.readlines()
+    expected = get_file_contents(full_expected_fn)
 
     print('Command line to regenerate:\npython3 parser/smu_writer.py '
           '--input_file {} --output_file {} --annotate True'.format(
-            full_input_fn, full_expected_fn))
+              full_input_fn, full_expected_fn))
 
     self.assertEqual([l.rstrip('\n') for l in expected],
                      got.splitlines())
@@ -196,14 +212,12 @@ class AtomicInputTest(absltest.TestCase):
     parser = smu_parser_lib.SmuParser(
         os.path.join(TESTDATA_PATH, MAIN_DAT_FILE))
     conformer, _ = next(parser.process_stage2())
-
-    with gfile.GFile(os.path.join(TESTDATA_PATH, ATOMIC_INPUT)) as f:
-      expected = f.readlines()
+    expected = get_file_contents(os.path.join(TESTDATA_PATH, ATOMIC_INPUT))
     writer = smu_writer_lib.AtomicInputWriter()
 
     smu_writer_lib.check_dat_formats_match(
-      expected,
-      writer.process(conformer).splitlines())
+        expected,
+        writer.process(conformer).splitlines())
 
 
 if __name__ == '__main__':
