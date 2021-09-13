@@ -1,13 +1,12 @@
 ================================================================================
-    1   14     x07_c4o2fh7.618451.001
-   nstat1   nstatc   nstatv   nstatt   nsvato   nsvnsb   nsvnlb   nsvele
-        1        1        1        1        1        1        1        1
-   nsvego   nsveh3   nsveh4   nsvec3   nsvexc   nsveca   nsvmr1   nsvmr2
-        1        1        1        1        1        1        1        1
-   nsvvib   nsvor1   nsvor2   nsvrot   nsvnsp   nsvnlp   nsvg09   nsvho1
-        1        1        1        1        1        1        0        1
-   nsvho2   nsvho3   nsvneg
-        1        1        1
+    3   14     x07_c4o2fh7.618451.001
+Database   standard
+Status        0
+Warn_T1       0   0
+Warn_BSE      0   0
+Warn_EXC      0   0   0
+Warn_VIB      0   0
+Warn_NEG      0
      000010001002001110000
      3310000
 COC(=CF)OC
@@ -371,7 +370,7 @@ NUCREP                 324.344177
 NUM_OPT                  1
 NIMAG                    0
 ZPE_unscaled            69.83
-D1DIAG    D1(CCSD/2sp)   0.048600  D1(CCSD/2sd)  -1.000000  D1(CCSD/3Psd) -1.000000
+D1DIAG    D1(CCSD/2sp)   0.048600
 T1DIAG    T1(CCSD/2sp)   0.012100  T1(CCSD/2sd)   0.012400  T1(CCSD/3Psd)  0.013000
 AT2_BSR_LEFT         molecule +  3 CH4 +  2 H2O
 AT2_BSR_RIGHT        4 H3C-OH +  1 H2C=CH2 +  1 H3C-F
@@ -675,15 +674,14 @@ Octopole moment (au):   HF/6-31Gd
    yzz      80.41479
    xyz      -3.30141
 ================================================================================
-    9   14     x07_c4o2fh7.618451.123
-   nstat1   nstatc   nstatv   nstatt   nsvato   nsvnsb   nsvnlb   nsvele
-        1        1        1        1        1        1        1        1
-   nsvego   nsveh3   nsveh4   nsvec3   nsvexc   nsveca   nsvmr1   nsvmr2
-        1        1        1        1        1        1        1        1
-   nsvvib   nsvor1   nsvor2   nsvrot   nsvnsp   nsvnlp   nsvg09   nsvho1
-        1        1        1        1        1        1        0        1
-   nsvho2   nsvho3   nsvneg
-        1        1        1
+    4   14     x07_c4o2fh7.618451.123
+Database   standard
+Status        0
+Warn_T1       0   0
+Warn_BSE      0   0
+Warn_EXC      0   0   0
+Warn_VIB      0   0
+Warn_NEG      0
      000010001002001110000
      3310000
 COC(=CF)OC
@@ -1047,7 +1045,7 @@ NUCREP                 322.821625
 NUM_OPT                  1
 NIMAG                    0
 ZPE_unscaled            69.95
-D1DIAG    D1(CCSD/2sp)   0.048200  D1(CCSD/2sd)  -1.000000  D1(CCSD/3Psd) -1.000000
+D1DIAG    D1(CCSD/2sp)   0.048200
 T1DIAG    T1(CCSD/2sp)   0.012000  T1(CCSD/2sd)   0.012300  T1(CCSD/3Psd)  0.012900
 AT2_BSR_LEFT         molecule +  3 CH4 +  2 H2O
 AT2_BSR_RIGHT        4 H3C-OH +  1 H2C=CH2 +  1 H3C-F
@@ -1352,14 +1350,13 @@ Octopole moment (au):   HF/6-31Gd
    xyz      22.93362
 ================================================================================
    60    8     x07_c4o2fh.620517.002
-   nstat1   nstatc   nstatv   nstatt   nsvato   nsvnsb   nsvnlb   nsvele
-        1        1        1        1        1        1        1        1
-   nsvego   nsveh3   nsveh4   nsvec3   nsvexc   nsveca   nsvmr1   nsvmr2
-        1        1        1        1        1      213        1      308
-   nsvvib   nsvor1   nsvor2   nsvrot   nsvnsp   nsvnlp   nsvg09   nsvho1
-        1        1      358        1        1        1        0        1
-   nsvho2   nsvho3   nsvneg
-        1        1        1
+Database   complete
+Status      123
+Warn_T1       0   0
+Warn_BSE      0   0
+Warn_EXC      0   0   0
+Warn_VIB      0   0
+Warn_NEG      0
      002010200111100100000
      1000000
 NotAValidSmilesString
@@ -1375,15 +1372,6 @@ Stage 2  Cores:         8
 Stage 2  CPU type:      2
           Geo  Force   MP2   CC   Polar  Elec  NMRs  NMRl  Exci  IP
 TIMINGS    79    28    75   150    47     4    29    91    51   167
-BOND    1    4     TYPE  662220
-BOND    1    6     TYPE  681310
-BOND    2    3     TYPE  662220
-BOND    2    6     TYPE  681310
-BOND    2    7     TYPE  691300
-BOND    3    4     TYPE  661330
-BOND    3    5     TYPE  681310
-BOND    4    5     TYPE  681310
-BOND    1    8     TYPE  611300
 E_ini/G_norm         -402.682069    0.207803
 E_opt/G_norm         -402.739706    0.000086
 Initial Coords       6   -2.383134   -0.070676    0.168564
@@ -1544,7 +1532,7 @@ NUCREP                 281.161865
 NUM_OPT                  1
 NIMAG                    0
 ZPE_unscaled            26.10
-D1DIAG    D1(CCSD/2sp)   0.060600  D1(CCSD/2sd)  -1.000000  D1(CCSD/3Psd) -1.000000
+D1DIAG    D1(CCSD/2sp)   0.060600
 T1DIAG    T1(CCSD/2sp)   0.015200  T1(CCSD/2sd)   0.015800  T1(CCSD/3Psd)  0.015900
 AT2_BSR_LEFT         molecule +  7 CH4 +  2 H2O
 AT2_BSR_RIGHT        2 H2C=CH2 +  4 H3C-OH +  1 H3C-F +  1 H3C-CH3
@@ -1716,7 +1704,7 @@ Polarizability (au):    PBE0/aug-pc-1
     xx      58.33903
     yy      58.39021
     zz      33.51026
-    xy       0.70733
+    xy       0.07073
     xz      -0.83056
     yz      -2.10479
 Dipole moment (au):     PBE0/aug-pc-1

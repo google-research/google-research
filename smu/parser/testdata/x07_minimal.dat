@@ -1,13 +1,12 @@
 ================================================================================
- 5733   14     x07_c4o2fh7.619740.003
-   nstat1   nstatc   nstatv   nstatt   nsvato   nsvnsb   nsvnlb   nsvele
-        1        1        1        1        1        1        1        1
-   nsvego   nsveh3   nsveh4   nsvec3   nsvexc   nsveca   nsvmr1   nsvmr2
-        1        1        1        1        1        1      306        1
-   nsvvib   nsvor1   nsvor2   nsvrot   nsvnsp   nsvnlp   nsvg09   nsvho1
-        1        1        1        1        1        1        0        1
-   nsvho2   nsvho3   nsvneg
-        1        1        1
+    1   14     x07_c4o2fh7.619740.003
+Database   complete
+Status      256
+Warn_T1       0   0
+Warn_BSE      0   0
+Warn_EXC      0   0   0
+Warn_VIB      0   0
+Warn_NEG      0
      001010200000010100010
      2212000
 FOCCOC=C
@@ -23,19 +22,6 @@ Stage 2  Cores:         2
 Stage 2  CPU type:      2
           Geo  Force   MP2   CC   Polar  Elec  NMRs  NMRl  Exci  IP
 TIMINGS    54    62   232   421    97     5    50   175   125    87
-BOND    1    4     TYPE  661330
-BOND    1    6     TYPE  681310
-BOND    2    3     TYPE  662220
-BOND    3    6     TYPE  681310
-BOND    4    5     TYPE  681310
-BOND    5    7     TYPE  891100
-BOND    1    8     TYPE  611300
-BOND    1    9     TYPE  611300
-BOND    2   10     TYPE  611300
-BOND    2   11     TYPE  611300
-BOND    3   12     TYPE  611300
-BOND    4   13     TYPE  611300
-BOND    4   14     TYPE  611300
 E_ini/G_norm         -406.415341    0.041677
 E_opt/G_norm         -406.419423    0.000074
 Initial Coords       6    2.851786   -0.925777   -0.766473
@@ -66,18 +52,26 @@ Optimized Coords     1    4.989419   -2.615900    3.331586
 Optimized Coords     1   -0.819756   -3.363783    3.601386
 Optimized Coords     1    3.715149    0.472653   -4.455369
 Optimized Coords     1    0.726320   -1.114231   -4.233861
-Rotational constants (MHz)              1001.032            1035.908           10303.612
-Symmetry used in calculation    no
+Frequencies and intensities
+    0.0    0.0    0.0    0.0    0.0    0.0   67.1   82.5  119.8  233.2
+  238.6  314.5  348.2  530.0  635.4  720.3  830.0  888.2  904.4  977.1
+  999.7 1011.7 1094.9 1129.5 1166.6 1258.5 1271.3 1322.7 1366.1 1394.6
+ 1438.8 1462.1 1513.6 1523.8 1715.6 3029.8 3060.6 3077.4 3122.0 3187.9
+ 3216.3 3276.9
+    0.0    0.0    0.0    0.0    0.0    0.0    0.5    0.1    2.0    5.0
+    1.2    1.6    2.8   12.0    7.0    1.8   72.2   12.3   20.0   41.4
+   21.5   20.6   18.4   12.6    4.1  110.0   88.1    7.3   69.7    5.6
+   10.2    2.1   19.0    9.8  172.6   14.0   16.7   35.8   29.6    3.8
+    9.4   11.5
 ================================================================================
- 5734   14     x07_c4o2fh7.619740.013
-   nstat1   nstatc   nstatv   nstatt   nsvato   nsvnsb   nsvnlb   nsvele
-        1        1        1        1        1        1        1        1
-   nsvego   nsveh3   nsveh4   nsvec3   nsvexc   nsveca   nsvmr1   nsvmr2
-        1        1        1        1        1        1      306        1
-   nsvvib   nsvor1   nsvor2   nsvrot   nsvnsp   nsvnlp   nsvg09   nsvho1
-        1        1        1        1        1        1        0        1
-   nsvho2   nsvho3   nsvneg
-        1        1        1
+    2   14     x07_c4o2fh7.619740.013
+Database   complete
+Status      256
+Warn_T1       0   0
+Warn_BSE      0   0
+Warn_EXC      0   0   0
+Warn_VIB      0   0
+Warn_NEG      0
      001010200000010100010
      2212000
 FOCCOC=C
@@ -93,19 +87,6 @@ Stage 2  Cores:         2
 Stage 2  CPU type:      2
           Geo  Force   MP2   CC   Polar  Elec  NMRs  NMRl  Exci  IP
 TIMINGS    49    53   196   342    83     5    43   162   101    56
-BOND    1    4     TYPE  661330
-BOND    1    6     TYPE  681310
-BOND    2    3     TYPE  662220
-BOND    3    6     TYPE  681310
-BOND    4    5     TYPE  681310
-BOND    5    7     TYPE  891100
-BOND    1    8     TYPE  611300
-BOND    1    9     TYPE  611300
-BOND    2   10     TYPE  611300
-BOND    2   11     TYPE  611300
-BOND    3   12     TYPE  611300
-BOND    4   13     TYPE  611300
-BOND    4   14     TYPE  611300
 E_ini/G_norm         -406.410834    0.046291
 E_opt/G_norm         -406.415003    0.000058
 Initial Coords       6    1.041428   -1.888025   -1.556567
@@ -136,5 +117,14 @@ Optimized Coords     1    1.680599   -1.459027    5.909794
 Optimized Coords     1    3.553980   -4.479376    1.287999
 Optimized Coords     1   -0.851467   -0.177369   -4.787878
 Optimized Coords     1   -1.455032    1.402337   -1.848268
-Rotational constants (MHz)               956.625            1011.304            8893.669
-Symmetry used in calculation    no
+Frequencies and intensities
+    0.0    0.0    0.0    0.0    0.0    0.0   45.7   54.8   85.1  139.1
+  226.6  289.3  360.8  500.9  578.3  716.5  847.2  879.8  882.5  977.7
+  978.6 1006.3 1111.1 1157.4 1170.6 1244.7 1269.8 1321.7 1353.0 1395.2
+ 1427.1 1453.2 1513.1 1522.9 1741.5 3023.5 3059.2 3071.8 3123.4 3145.7
+ 3185.3 3282.3
+    0.0    0.0    0.0    0.0    0.0    0.0    1.6    2.2    1.5    2.7
+    1.1    0.3    2.2    1.6   18.3    6.8   57.7    5.6   19.3   29.9
+   29.1   12.4   14.8    7.5   65.8  300.7   11.5    6.5    7.0   26.7
+   39.2    8.9   22.7    9.9  163.1   39.2    7.1   55.4   29.9   22.5
+    0.2    6.5

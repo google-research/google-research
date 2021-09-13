@@ -18,7 +18,11 @@
 import os
 
 from absl.testing import absltest
+from absl.testing import parameterized
+from tensorflow.io import gfile
+from google.protobuf import text_format
 
+from smu import dataset_pb2
 from smu.parser import smu_parser_lib
 from smu.parser import smu_writer_lib
 
@@ -29,6 +33,7 @@ STAGE1_DAT_FILE = 'x07_stage1.dat'
 SMU1_STAGE1_DAT_FILE = 'x01_stage1.dat'
 MINIMAL_DAT_FILE = 'x07_minimal.dat'
 GOLDEN_PROTO_FILE = 'x07_sample.pbtxt'
+ATOMIC_INPUT = 'x07_first_atomic_input.inp'
 TESTDATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              'testdata')
 
@@ -95,6 +100,72 @@ class RoundtripTest(absltest.TestCase):
     self.try_roundtrip(SMU1_STAGE1_DAT_FILE, 'stage1')
 
 
+class GoldenTest(parameterized.TestCase):
+
+  @parameterized.parameters(
+    (SMU1_DAT_FILE, 'x01_sample.pbtxt'),
+    (SMU2_DAT_FILE, 'x02_sample.pbtxt'),
+    (MAIN_DAT_FILE, 'x07_sample.pbtxt'),
+    )
+  def test_dat_to_pbtxt(self, input_fn, expected_fn):
+    # Note that this is partially a copy and paste from smu_parser (which is
+    # what is used to regenerate the golden)
+    full_input_fn = os.path.join(TESTDATA_PATH, input_fn)
+    full_expected_fn = os.path.join(TESTDATA_PATH, expected_fn)
+
+    multiple_conformers = dataset_pb2.MultipleConformers()
+    parser = smu_parser_lib.SmuParser(full_input_fn)
+    for e, orig_contents in parser.process_stage2():
+      if isinstance(e, Exception):
+        raise e
+      multiple_conformers.conformers.append(e)
+
+    got = ('# proto-file: third_party/google_research/google_research/smu/dataset.proto\n'
+           '# proto-message: MultipleConformers\n')
+    got += text_format.MessageToString(multiple_conformers)
+
+    with gfile.GFile(full_expected_fn) as f:
+      expected = f.readlines()
+
+    print('Command line to regenerate:\npython3 parser/smu_parser.py '
+          '--input_file {} --output_file {}'.format(
+            full_input_fn, full_expected_fn))
+
+    self.assertEqual([l.rstrip('\n') for l in expected],
+                     got.splitlines())
+
+  @parameterized.parameters(
+    ('x01_sample.pbtxt', 'x01_sample_annotated.dat'),
+    ('x02_sample.pbtxt', 'x02_sample_annotated.dat'),
+    ('x07_sample.pbtxt', 'x07_sample_annotated.dat'),
+    )
+  def test_pbtxt_to_annotated_dat(self, input_fn, expected_fn):
+    # Note that this is partially a copy and paste from smu_writer (which is
+    # what is used to regenerate the golden)
+    full_input_fn = os.path.join(TESTDATA_PATH, input_fn)
+    full_expected_fn = os.path.join(TESTDATA_PATH, expected_fn)
+
+    smu_proto = dataset_pb2.MultipleConformers()
+    with gfile.GFile(full_input_fn) as f:
+      raw_proto = f.read()
+      text_format.Parse(raw_proto, smu_proto)
+      smu_writer = smu_writer_lib.SmuWriter(True)
+      got = ''.join(
+        smu_writer.process_stage2_proto(conformer)
+        for conformer in smu_proto.conformers
+      )
+
+    with gfile.GFile(full_expected_fn) as f:
+      expected = f.readlines()
+
+    print('Command line to regenerate:\npython3 parser/smu_writer.py '
+          '--input_file {} --output_file {} --annotate True'.format(
+            full_input_fn, full_expected_fn))
+
+    self.assertEqual([l.rstrip('\n') for l in expected],
+                     got.splitlines())
+
+
 class ParseLongIdentifierTest(absltest.TestCase):
 
   def test_success_smu7(self):
@@ -117,6 +188,22 @@ class ParseLongIdentifierTest(absltest.TestCase):
     with self.assertRaises(ValueError):
       smu_parser_lib.parse_long_identifier(
           'Im a little teapot, short and stout')
+
+
+class AtomicInputTest(absltest.TestCase):
+
+  def test_simple(self):
+    parser = smu_parser_lib.SmuParser(
+        os.path.join(TESTDATA_PATH, MAIN_DAT_FILE))
+    conformer, _ = next(parser.process_stage2())
+
+    with gfile.GFile(os.path.join(TESTDATA_PATH, ATOMIC_INPUT)) as f:
+      expected = f.readlines()
+    writer = smu_writer_lib.AtomicInputWriter()
+
+    smu_writer_lib.check_dat_formats_match(
+      expected,
+      writer.process(conformer).splitlines())
 
 
 if __name__ == '__main__':

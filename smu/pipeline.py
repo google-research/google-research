@@ -24,6 +24,7 @@ import copy
 import functools
 import itertools
 import logging as stdlogging
+import numpy as np
 
 from absl import app
 from absl import flags
@@ -179,16 +180,23 @@ def conformer_to_stat_values(conformer):
   Yields:
     primary_key, secondary_key
   """
-  # Yield the values for all the error codes
-  # We don't want to use ListFields here because we want 0 error values to
-  # come out here (fields with default values are skipped in ListFields).
-  for field_descriptor in conformer.properties.errors.DESCRIPTOR.fields:
-    value = getattr(conformer.properties.errors, field_descriptor.name)
-    # Force everything to int to simplify later processing
-    if field_descriptor.name == 'error_during_merging':
-      yield field_descriptor.name, len(value)
-    else:
-      yield field_descriptor.name, int(value)
+  # Yield the values for all the relevant error fields.
+  for field in ['status',
+                'warn_t1',
+                'warn_t1_excess',
+                'warn_bse_b5_b6',
+                'warn_bse_cccsd_b5',
+                'warn_exc_lowest_excitation',
+                'warn_exc_smallest_oscillator',
+                'warn_exc_largest_oscillator',
+                'warn_vib_linearity',
+                'warn_vib_imaginary',
+                'warn_num_neg',
+                'error_nstat1',
+                'error_nstatc',
+                'error_nstatt',
+                'error_frequencies']:
+    yield 'errors.' + field, getattr(conformer.properties.errors, field)
 
   yield 'fate', dataset_pb2.Conformer.FateCategory.Name(conformer.fate)
 
@@ -804,7 +812,6 @@ def pipeline(root):
             coder=beam.coders.ProtoCoder(dataset_pb2.Conformer),
             num_shards=FLAGS.output_shards))
 
-
   # Write the complete and standard conformers as JSON.
   # Bit of a hack here: the slowest part of the whole pipeline is writing out
   # the JSON for the complete conformers. So we just hard code a tripling of the
@@ -818,6 +825,7 @@ def pipeline(root):
         | ('ToJSON_' + id_str) >> beam.Map(conformer_to_json)
         | ('WriteJSON_' + id_str) >> beam.io.WriteToText(
             f'{FLAGS.output_stem}_{id_str}_json',
+            compression_type='gzip',
             num_shards=num_shards,
             file_name_suffix='.json.gz'))
 

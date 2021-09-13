@@ -23,6 +23,7 @@ from absl.testing import flagsaver
 import apache_beam as beam
 import tensorflow as tf
 from tensorflow.io import gfile
+import tensorflow as tf
 
 from smu import dataset_pb2
 from smu import pipeline
@@ -186,7 +187,8 @@ class IntegrationTest(absltest.TestCase):
     # Check a couple of the stats.
     with gfile.GFile(output_stem + '_stats-00000-of-00001.csv') as f:
       stats_lines = f.readlines()
-      self.assertIn('error_nsvg09,0,4\n', stats_lines)
+      self.assertIn('errors.status,0,3\n', stats_lines)
+      self.assertIn('errors.warn_t1,0,4\n', stats_lines)
       self.assertIn('fate,FATE_SUCCESS,2\n', stats_lines)
       self.assertIn('fate,FATE_DUPLICATE_DIFFERENT_TOPOLOGY,1\n', stats_lines)
       self.assertIn('num_initial_geometries,1,4\n', stats_lines)
@@ -262,12 +264,16 @@ class IntegrationTest(absltest.TestCase):
     self.assertCountEqual([c.conformer_id for c in complete_output],
                           [618451001, 618451123, 620517002, 79593005])
     # Check that fields are filtered the way we expect
+    # The DirectRunner randomizes the order of output so we need to make sure
+    # that we get a full record.
+    complete_entry = [c for c in complete_output
+                      if c.conformer_id == 618451001][0]
     self.assertFalse(
-        complete_output[0].properties.HasField('compute_cluster_info'))
+        complete_entry.properties.HasField('compute_cluster_info'))
     self.assertTrue(
-        complete_output[0].properties.HasField('homo_pbe0_aug_pc_1'))
+        complete_entry.properties.HasField('homo_pbe0_aug_pc_1'))
     self.assertTrue(
-        complete_output[0].properties.HasField('rotational_constants'))
+        complete_entry.properties.HasField('rotational_constants'))
 
 
 

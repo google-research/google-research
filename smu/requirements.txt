@@ -2,8 +2,8 @@ absl-py>=0.12.0
 apache-beam>=2.29.0
 numpy>=1.19.5
 pandas>=1.2.4
+parameterized>=0.8.1
 protobuf>=3.15.8
 rdkit-pypi>=2021.3.1.4
 scipy>=1.6.3
 tensorflow>=2.5.0rc3
-

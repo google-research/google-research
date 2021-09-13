@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2021 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,8 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-#!/bin/bash
 
 set -e
 
@@ -29,7 +28,7 @@ export PYTHONPATH=${PYTHONPATH}:${ROOTDIR}
 
 set -u
 
-for TESTFN in $(find $SMUDIR -name *_test.py)
+for TESTFN in $(find $SMUDIR -name '*_test.py')
 do
     if [[ $TESTFN == *"$VENV"* ]]; then
         continue

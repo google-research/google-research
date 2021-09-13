@@ -41,33 +41,6 @@ conformers {
   }
   properties {
     errors {
-      error_frequencies: 1
-      error_atomic_analysis: 1
-      error_nmr_analysis_b3lyp_small_basis: 1
-      error_nmr_analysis_b3lyp_large_basis: 1
-      error_nmr_analysis_pbe0_small_basis: 1
-      error_nmr_analysis_pbe0_large_basis: 1
-      error_charge_analysis: 1
-      error_energies_orbitals_pvtz: 1
-      error_energies_orbitals_pvqz: 1
-      error_energies_orbitals_pcvtz: 1
-      error_excitation_energies: 1
-      error_single_point_energies: 1
-      error_inconsistent_molecule_energy_turbomole_mrcc: 1
-      error_inconsistent_cation_energy_turbomole_mrcc: 1
-      error_inconsistent_molecule_energy_turbomole_orca: 1
-      error_inconsistent_cation_energy_turbomole_orca: 1
-      error_normal_modes: 1
-      error_rotational_modes: 1
-      error_nsvho1: 1
-      error_nsvho2: 3
-      error_nsvho3: 5
-      error_nsvneg: 1
-      error_nstat1: 1
-      error_nstatc: 1
-      error_nstatt: 1
-      error_nsvego: 1
-      error_nsvg09: 1
     }
     harmonic_intensities {
       value: 0.0
@@ -421,9 +394,9 @@ conformers {
       matrix_values: 19.22399
       matrix_values: 19.22399
       matrix_values: 30.9373
-      matrix_values: -0.10019
-      matrix_values: 0.60725
-      matrix_values: 0.37824
+      matrix_values: -0.0
+      matrix_values: 0.0
+      matrix_values: 0.0
     }
     dipole_moment_pbe0_aug_pc_1 {
     }
@@ -469,7 +442,7 @@ conformers {
       tensor_values: -0.0
       tensor_values: 0.0
     }
-    compute_cluster_info: "Stage 1  Host IP:   XXX.YYY.200.108\nStage 1  Cluster:   alchemy      \nStage 1  Cores:        24\nStage 1  CPU type:     23\nStage 2  Host IP:   XXX.YYY.200.108\nStage 2  Cluster:   alchemy      \nStage 2  Cores:        24\nStage 2  CPU type:     23\n"
+    compute_cluster_info: "Stage 1  Host IP:   XXX.YYY.200.108\nStage 1  Cluster:   alchemy\nStage 1  Cores:        24\nStage 1  CPU type:     23\nStage 2  Host IP:   XXX.YYY.200.108\nStage 2  Cluster:   alchemy\nStage 2  Cores:        24\nStage 2  CPU type:     23\n"
     symmetry_used_in_calculation: true
     initial_geometry_energy {
       value: -77.240567
@@ -493,12 +466,6 @@ conformers {
     }
     diagnostics_d1_ccsd_2sp {
       value: 0.0249
-    }
-    diagnostics_d1_ccsd_2sd {
-      value: -1.0
-    }
-    diagnostics_d1_ccsd_3psd {
-      value: -1.0
     }
     diagnostics_t1_ccsd_2sp {
       value: 0.0123
@@ -698,15 +665,6 @@ conformers {
     }
     zpe_atomic_um_ci {
       value: 0.13
-    }
-    gaussian_sanity_check {
-      energy_pbe0_6_311gd_diff: 2e-05
-      max_force: 1e-05
-      max_frequencies_diff: 0.4637
-      mean_frequencies_diff: 0.14406
-      max_intensities_diff: 0.03165
-      mean_intensities_diff: 0.00935
-      max_quadropole_components_diff: 2e-05
     }
     harmonic_frequencies {
       value: 0.0
@@ -921,4 +879,5 @@ conformers {
     smiles: "C#C"
     bond_topology_id: 20
   }
+  which_database: STANDARD
 }
