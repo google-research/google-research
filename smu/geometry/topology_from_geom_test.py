@@ -16,7 +16,8 @@
 # Tester for topology_from_geometry
 
 from typing import Tuple
-import unittest
+
+from absl.testing import absltest
 
 from google.protobuf import text_format
 import numpy as np
@@ -64,7 +65,7 @@ def triangular_distribution(min_dist, dist_max_value,
   return distances, population
 
 
-class TestTopoFromGeom(unittest.TestCase):
+class TestTopoFromGeom(absltest.TestCase):
 
   def test_scores(self):
     carbon = dataset_pb2.BondTopology.AtomType.ATOM_C
@@ -127,4 +128,4 @@ atom_positions {
 
 
 if __name__ == "__main__":
-  unittest.main()
+  absltest.main()
