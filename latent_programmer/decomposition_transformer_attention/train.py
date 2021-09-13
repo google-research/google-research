@@ -85,6 +85,11 @@ flags.DEFINE_string('attention_mask_type', 'bos_full_attention',
                     'The kind of attention mask to use. Options are: baseline, '
                     'bos_to_bos, bos_full_attention')
 
+flags.DEFINE_bool('use_relative_attention', True,
+                  'Whether to use relative positonal embeddings.')
+flags.DEFINE_integer('num_relative_position_buckets', 32,
+                     'Number of buckets when computing relative positions.')
+
 
 def create_learning_rate_scheduler(
     base_learning_rate=0.5,
@@ -504,6 +509,8 @@ def main(_):
       qkv_dim=FLAGS.embedding_dim,
       mlp_dim=FLAGS.hidden_dim,
       max_len=max(FLAGS.max_characters, FLAGS.max_program_length),
+      use_relative_attention=FLAGS.use_relative_attention,
+      num_relative_position_buckets=FLAGS.num_relative_position_buckets,
       deterministic=False,
       decode=False,
       bos_token=bos_token)

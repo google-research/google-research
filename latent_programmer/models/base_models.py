@@ -1,4 +1,4 @@
-# coding=utf-8
+# codingA=utf-8
 # Copyright 2021 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@ Adapts transformer code from: flax/examples
 # pytype: disable=wrong-keyword-args
 # pytype: disable=attribute-error
 
+from functools import partial
 from typing import Optional, Any, Callable
 
 from flax import linen as nn
@@ -30,6 +31,10 @@ from flax import struct
 from jax import lax
 import jax.numpy as jnp
 import numpy as np
+
+from latent_programmer.models.relative_attention import RelativeMultiHeadDotProductAttention, RelativeSelfAttention
+
+Array = Any
 
 
 @struct.dataclass
@@ -47,6 +52,8 @@ class TransformerConfig:
   max_len: int = 2048
   dropout_rate: float = 0.1
   attention_dropout_rate: float = 0.1
+  use_relative_attention: bool = False
+  num_relative_position_buckets: int = 32
   deterministic: bool = False
   decode: bool = False
   bos_token: int = 1
@@ -204,7 +211,8 @@ class EncoderBlock(nn.Module):
   """Transformer encoder block."""
 
   config: TransformerConfig
-
+  self_attention_fn: Callable[[Array, Array, Array], Array] = nn.SelfAttention
+  
   @nn.compact
   def __call__(self,
                inputs,
@@ -222,7 +230,7 @@ class EncoderBlock(nn.Module):
 
     # Attention block.
     x = nn.LayerNorm(dtype=cfg.dtype)(inputs)
-    x = nn.SelfAttention(
+    x = self.self_attention_fn(
         num_heads=cfg.num_heads,
         dtype=cfg.dtype,
         qkv_features=cfg.qkv_dim,
@@ -247,6 +255,8 @@ class EncoderDecoderBlock(nn.Module):
   """Transformer encoder-decoder block."""
 
   config: TransformerConfig
+  dot_product_attention_fn: Callable[[Array, Array, Array], Array] = nn.MultiHeadDotProductAttention
+  self_attention_fn: Callable[[Array, Array], Array] = nn.SelfAttention
 
   @nn.compact
   def __call__(self,
@@ -269,7 +279,7 @@ class EncoderDecoderBlock(nn.Module):
 
     # Decoder block.
     x = nn.LayerNorm(dtype=cfg.dtype)(targets)
-    x = nn.SelfAttention(
+    x = self.self_attention_fn(
         num_heads=cfg.num_heads,
         dtype=cfg.dtype,
         qkv_features=cfg.qkv_dim,
@@ -286,7 +296,7 @@ class EncoderDecoderBlock(nn.Module):
 
     # Encoder-Decoder block.
     y = nn.LayerNorm(dtype=cfg.dtype)(x)
-    y = nn.MultiHeadDotProductAttention(
+    y = self.dot_product_attention_fn(
         num_heads=cfg.num_heads,
         dtype=cfg.dtype,
         qkv_features=cfg.qkv_dim,
@@ -341,6 +351,19 @@ class TransformerDecoder(nn.Module):
         features=cfg.emb_dim,
         embedding_init=nn.initializers.normal(stddev=1.0),
         name='embed_output')
+    
+    if cfg.use_relative_attention:
+      attention_fn = partial(
+        RelativeMultiHeadDotProductAttention,
+        num_relative_position_buckets=cfg.num_relative_position_buckets,
+        causal=True)
+      self_attention_fn = partial(
+        RelativeSelfAttention,
+        num_relative_position_buckets=cfg.num_relative_position_buckets,
+        causal=True)
+    else:
+      attention_fn = nn.MultiHeadDotProductAttention
+      self_attention_fn = nn.SelfAttention
 
     heads = dict()
     y = targets.astype('int32')
@@ -348,15 +371,19 @@ class TransformerDecoder(nn.Module):
       y = shift_right(y, cfg.bos_token)
 
     y = output_embed(y)
-    y = AddPositionEmbs(config=cfg, cache=cfg.decode, name='posembed_output')(y)
+    if not cfg.use_relative_attention:
+      y = AddPositionEmbs(config=cfg, cache=cfg.decode, name='posembed_output')(y)
     y = nn.Dropout(rate=cfg.dropout_rate)(
-        y, deterministic=cfg.deterministic)
+      y, deterministic=cfg.deterministic)
 
     y = y.astype(cfg.dtype)
     # Target-Input Decoder
     for lyr in range(cfg.num_layers):
       y = EncoderDecoderBlock(
-          config=cfg, name=f'encoderdecoderblock_{lyr}')(
+          config=cfg,
+          dot_product_attention_fn=attention_fn,
+          self_attention_fn=self_attention_fn,
+          name=f'encoderdecoderblock_{lyr}')(
               y, encoded, decoder_mask, encoder_decoder_mask)
     y = nn.LayerNorm(dtype=cfg.dtype, name='encoderdecoder_norm')(y)
 
@@ -404,7 +431,20 @@ class TransformerIOEncoder(nn.Module):
         features=cfg.emb_dim,
         embedding_init=nn.initializers.normal(stddev=1.0),
         name='embed')
-    pos_emb = AddPositionEmbs(config=cfg, cache=False, name='posembed_io')
+
+    if cfg.use_relative_attention:
+      attention_fn = partial(
+        RelativeMultiHeadDotProductAttention,
+        num_relative_position_buckets=cfg.num_relative_position_buckets,
+        causal=True)
+      self_attention_fn = partial(
+        RelativeSelfAttention,
+        num_relative_position_buckets=cfg.num_relative_position_buckets,
+        causal=True)
+    else:
+      attention_fn = nn.MultiHeadDotProductAttention
+      self_attention_fn = nn.SelfAttention
+      pos_emb = AddPositionEmbs(config=cfg, cache=False, name='posembed_io')
 
     x = inputs.astype('int32')
     y = outputs.astype('int32')
@@ -419,26 +459,33 @@ class TransformerIOEncoder(nn.Module):
 
     # Embed inputs.
     x = embed(x)
-    x = pos_emb(x)
+    if not cfg.use_relative_attention:
+      x = pos_emb(x)
     x = nn.Dropout(rate=cfg.dropout_rate)(
-        x, deterministic=cfg.deterministic)
+      x, deterministic=cfg.deterministic)
 
     x = x.astype(cfg.dtype)
     for lyr in range(cfg.num_layers):
       x = EncoderBlock(   # Attend to inputs.
-          config=cfg, name=f'encoderblock_{lyr}')(x, inputs_encoder_mask)
+          config=cfg,
+          self_attention_fn=self_attention_fn,
+          name=f'encoderblock_{lyr}')(x, inputs_encoder_mask)
     x = nn.LayerNorm(dtype=cfg.dtype, name='encoder_norm')(x)
 
     # Embed outputs.
     y = embed(y)
-    y = pos_emb(y)
+    if not cfg.use_relative_attention:
+      y = pos_emb(y)
     y = nn.Dropout(rate=cfg.dropout_rate)(
-        y, deterministic=cfg.deterministic)
+      y, deterministic=cfg.deterministic)
 
     encode_decoder_cfg = cfg.replace(decode=False)
     for lyr in range(cfg.num_layers):
       y = EncoderDecoderBlock(   # Double attend to inputs and outputs.
-          config=encode_decoder_cfg, name=f'encoderdecoderblock_{lyr}')(
+          config=encode_decoder_cfg,
+          dot_product_attention_fn=attention_fn,
+          self_attention_fn=self_attention_fn,
+          name=f'encoderdecoderblock_{lyr}')(
               y, x, outputs_encoder_mask, encoder_decoder_mask)
     y = nn.LayerNorm(dtype=cfg.dtype, name='encoderdecoder_norm')(y)
 
