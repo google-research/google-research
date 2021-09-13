@@ -147,8 +147,11 @@ def bond_topologies_from_geom(
       continue
     btypes = np.zeros(4, np.float32)
     for btype in range(0, 4):
-      btypes[btype] = bond_lengths.pdf_length_given_type(
+      try:
+        btypes[btype] = bond_lengths.pdf_length_given_type(
           bond_topology.atoms[i], bond_topology.atoms[j], btype, dist)
+      except KeyError:
+        btypes[btype] = 0.0
 
     if np.count_nonzero(btypes) > 0:
       bonds_to_scores[(i, j)] = btypes
