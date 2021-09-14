@@ -9,7 +9,7 @@
 - [Datasets](#datasets)
 - [Code Navigation](#code-navigation)
 - [Experiments: Reproducing Paper Results](#experiments-reproducing-paper-results)
-- [FAQ](#faq)
+- [Extending XIRL](#extending-xirl)
 - [Acknowledgments](#acknowledgments)
 
 <p align="center">
@@ -115,7 +115,7 @@ The other directories should be straightforward to parse:
     - [x] With environment reward: `bash scripts/launch_rl_multi_gpu.sh`
     - [x] With learned reward: `bash scripts/launch_learned_rl_multi_gpu.sh`
 
-## FAQ
+## Extending XIRL
 
 > How can I implement my own self-supervised pretraining algorithm?
 
