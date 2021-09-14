@@ -31,11 +31,13 @@ our dependencies are added via the flag
 ```
 export TASK=c4_v220_autoregressive_language_modeling
 export MODEL_NAME="medium_primer"
-export MODEL_DIR="${BUCKET}${MODEL_NAME}"
+export MODEL_DIR="${BUCKET}/${MODEL_NAME}_${TASK}"
+export DATA_DIR="${BUCKET}/data"
 
 # Run training job.
 t5_mesh_transformer   --tpu="${TPU_NAME}"   --gcp_project="${PROJECT}" \
   --tpu_zone="${ZONE}"   --model_dir="${MODEL_DIR}"  --gin_file="dataset.gin" \
+  --t5_tfds_data_dir="${DATA_DIR}" \
   --gin_file="models/defaults.gin"   --gin_file="models/${MODEL_NAME}.gin" \
   --gin_param="utils.tpu_mesh_shape.model_parallelism = 1" \
   --gin_param="utils.tpu_mesh_shape.tpu_topology = \"2x2\"" \
@@ -47,12 +49,14 @@ t5_mesh_transformer   --tpu="${TPU_NAME}"   --gcp_project="${PROJECT}" \
   --gin_param="run.sequence_length = {'inputs': 1, 'targets': 512}" \
   --gin_file="learning_rate_schedules/rsqrt_no_ramp_down.gin" \
   --gin_file="objectives/lm.gin" \
+  --gin_param="run.model_type = 'lm'" \
   --gin_param="utils.run.save_checkpoints_steps = 2400" \
   --gin_param="utils.serialize_num_microbatches.tokens_per_microbatch_per_replica = 8192"
 
 # Run evaluation job.
 t5_mesh_transformer   --tpu="${TPU_NAME}"   --gcp_project="${PROJECT}" \
   --tpu_zone="${ZONE}"   --model_dir="${MODEL_DIR}"  --gin_file="dataset.gin" \
+  --t5_tfds_data_dir="${DATA_DIR}" \
   --gin_file="models/defaults.gin"   --gin_file="models/${MODEL_NAME}.gin" \
   --gin_param="utils.tpu_mesh_shape.model_parallelism = 1" \
   --gin_param="utils.tpu_mesh_shape.tpu_topology = \"2x2\"" \
@@ -60,7 +64,8 @@ t5_mesh_transformer   --tpu="${TPU_NAME}"   --gcp_project="${PROJECT}" \
   --module_import="t5_imports" \
   --gin_location_prefix="gin/" \
   --gin_param="run.sequence_length = {'inputs': 1, 'targets': 512}" \
-   --gin_file="perplexity_eval.gin" \
+  --gin_param="run.model_type = 'lm'" \
+  --gin_file="perplexity_eval.gin" \
   --gin_param="utils.run.save_checkpoints_steps = 2400" \
   --gin_param="utils.serialize_num_microbatches.tokens_per_microbatch_per_replica = 8192" \
   --gin_param="utils.run.mode = \"perplexity_eval\"" \
