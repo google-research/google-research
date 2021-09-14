@@ -61,9 +61,9 @@ def mlp(
     mods = [nn.Linear(input_dim, hidden_dim), nn.ReLU(inplace=True)]
     for _ in range(hidden_depth - 1):
       mods += [nn.Linear(hidden_dim, hidden_dim), nn.ReLU(inplace=True)]
-    mods.append(nn.Linear(hidden_dim, output_dim))
+    mods += [nn.Linear(hidden_dim, output_dim)]
   if output_mod is not None:
-    mods.append(output_mod)
+    mods += [output_mod]
   trunk = nn.Sequential(*mods)
   return trunk
 

@@ -216,14 +216,6 @@ class VideoRecorder(gym.Wrapper):
     return observation, reward, done, info
 
 
-# TODO(kevin): Complete this when doing RLV experiments.
-class PolyRender(gym.Wrapper):
-  """Wrapper for rendering from mujoco-gym-dmc envs."""
-
-  def __init__(self, env: gym.Env):
-    super().__init__(env)
-
-
 # ========================================= #
 # Learned reward wrappers.
 # ========================================= #
