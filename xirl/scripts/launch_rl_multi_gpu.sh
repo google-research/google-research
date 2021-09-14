@@ -14,11 +14,17 @@
 
 #!/bin/bash
 set -e
-set -x
 
-EMBODIMENT="longstick"
-ENV_NAME="SweepToTop-"${EMBODIMENT^}"-State-Allo-TestLayout-v0"
-NAME="env_reward_$EMBODIMENT"
+while getopts e:p:i: flag
+do
+    case "${flag}" in
+        e) embodiment=${OPTARG};;
+        i) iters=${OPTARG};;
+    esac
+done
+
+ENV_NAME="SweepToTop-"${embodiment^}"-State-Allo-TestLayout-v0"
+NAME="env_reward_$embodiment"
 
 for seed in {0..2}
 do
@@ -27,7 +33,7 @@ do
         --env_name $ENV_NAME \
         --seed=$seed \
         --device="cuda:0" \
-        --config.num_train_steps=75000 \
+        --config.num_train_steps=$iters \
         &
 done
 
@@ -38,6 +44,6 @@ do
         --env_name $ENV_NAME \
         --seed=$seed \
         --device="cuda:1" \
-        --config.num_train_steps=75000 \
+        --config.num_train_steps=$iters \
         &
 done
