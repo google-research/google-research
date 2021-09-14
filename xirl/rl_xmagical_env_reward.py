@@ -23,10 +23,10 @@ from torchkit.experiment import string_from_kwargs
 from torchkit.experiment import unique_id
 from configs.constants import EMBODIMENTS
 from configs.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
-from configs.constants import XMAGICALTrainingIterations
 # pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS
+CONFIG_PATH = "configs/xmagical/rl/env_reward.py"
 
 flags.DEFINE_integer("seeds", 5, "The number of seeds to run in parallel.")
 flags.DEFINE_enum("embodiment", None, EMBODIMENTS, "Which embodiment to train.")
@@ -55,8 +55,8 @@ def main(_):
             experiment_name,
             "--env_name",
             f"{env_name}",
-            "--config.num_train_steps",
-            f"{XMAGICALTrainingIterations[FLAGS.embodiment]}",
+            "--config",
+            f"{CONFIG_PATH}:{FLAGS.embodiment}",
             "--seed",
             f"{seed}",
         ]))
