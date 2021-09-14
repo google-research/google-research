@@ -1,13 +1,13 @@
-torch==1.7.1
-torchvision==0.8.2
-ml-collections==0.1.0
 albumentations==0.5.2
+gym==0.17.*
+ml-collections==0.1.0
 scikit-learn==0.24.1
 tensorflow-cpu==2.6.0
+torch==1.7.1
 imageio
 imageio-ffmpeg
 tqdm
-gym==0.17.*
+torchvision==0.8.2
 absl-py
 numpy
 scipy
