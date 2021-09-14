@@ -1,4 +1,4 @@
-# codingA=utf-8
+# coding=utf-8
 # Copyright 2021 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -356,7 +356,7 @@ class TransformerDecoder(nn.Module):
       attention_fn = partial(
         RelativeMultiHeadDotProductAttention,
         num_relative_position_buckets=cfg.num_relative_position_buckets,
-        causal=True)
+        causal=False)
       self_attention_fn = partial(
         RelativeSelfAttention,
         num_relative_position_buckets=cfg.num_relative_position_buckets,
@@ -436,11 +436,11 @@ class TransformerIOEncoder(nn.Module):
       attention_fn = partial(
         RelativeMultiHeadDotProductAttention,
         num_relative_position_buckets=cfg.num_relative_position_buckets,
-        causal=True)
+        causal=False)
       self_attention_fn = partial(
         RelativeSelfAttention,
         num_relative_position_buckets=cfg.num_relative_position_buckets,
-        causal=True)
+        causal=False)
     else:
       attention_fn = nn.MultiHeadDotProductAttention
       self_attention_fn = nn.SelfAttention

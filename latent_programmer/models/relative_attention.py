@@ -21,7 +21,7 @@
 # pytype: disable=attribute-error
 
 from functools import partial
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, Optional, Iterable
 
 from flax.linen.linear import default_kernel_init
 from flax.linen.linear import DenseGeneral, Embed
@@ -33,7 +33,7 @@ import jax.numpy as jnp
 import numpy as np
 
 PRNGKey = Any
-Shape = Tuple[int]
+Shape = Iterable[int]
 Dtype = Any
 Array = Any
 
@@ -205,9 +205,9 @@ class RelativeMultiHeadDotProductAttention(Module):
             jnp.broadcast_to(jnp.arange(max_length) <= cur_index,
                              tuple(batch_dims) + (1, 1, max_length)))
 
-        position_bias = lax.dynamic_slice(
-                position_bias,
-                (0, 0, causal_attention_mask_shift, 0),
+        bias = lax.dynamic_slice(
+                bias,
+                (0, 0, cur_index, 0),
                 (1, self.num_heads, cur_index, max_length))
 
     # Convert the boolean attention mask to an attention bias.
