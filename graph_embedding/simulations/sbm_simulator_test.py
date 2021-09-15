@@ -37,9 +37,10 @@ class SbmSimulatorTestSbm(absltest.TestCase):
 
   def test_simulate_sbm(self):
     self.assertEqual(self.simulation_with_graph.graph.num_vertices(), 50)
-    self.assertEqual(
-        np.sum([k == 0 for k in self.simulation_with_graph.graph_memberships]),
-        25)
+    self.assertEqual(np.sum(
+        [k == 0 for k in self.simulation_with_graph.graph_memberships]),
+                     25)
+    self.assertEqual(self.simulation_with_graph.type1_clusters, [0, 1])
 
   def test_simulate_sbm_community_sizes(self):
     simulation = sbm_simulator.StochasticBlockModel()
@@ -56,6 +57,7 @@ class SbmSimulatorTestSbm(absltest.TestCase):
       group_counts[cluster_id] += 1
     actual_sizes = [count for cluster_id, count in sorted(group_counts.items())]
     self.assertSameStructure(expected_sizes, actual_sizes)
+    self.assertEqual(simulation.type1_clusters, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 
   # This test fails if the precision at sbm_simulator.SimulateSbm is >= 16. It
   # is currently hard-coded at 12 to cover all conceivable realistic ways to
@@ -78,6 +80,7 @@ class SbmSimulatorTestSbm(absltest.TestCase):
     group_counts = collections.Counter(simulation.graph_memberships)
     actual_sizes = [count for cluster_id, count in sorted(group_counts.items())]
     self.assertEqual(expected_sizes, actual_sizes)
+    self.assertEqual(simulation.type1_clusters, [0, 1, 2, 3, 4, 5, 6])
 
 
 class SbmSimulatorTestFeatures(SbmSimulatorTestSbm):
