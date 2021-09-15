@@ -17,11 +17,10 @@
 set -e
 set -x
 
+ID="1VdMRYu0Y-ep_vq28hW2n0UZaow2iaW1i"
 mkdir -p /tmp/xirl/datasets/
 cd /tmp/xirl/datasets/
-ID="1f_8FdWtUqc-_heAOUSN-KdGgeJK6AjOW"
 gdown https://drive.google.com/uc?id=$ID
-unzip xirl_corl.zip
-rm xirl_corl.zip
-mv xirl_corl xmagical
+unzip xmagical.zip
+rm xmagical.zip
 # Final location: /tmp/xirl/datasets/xmagical
