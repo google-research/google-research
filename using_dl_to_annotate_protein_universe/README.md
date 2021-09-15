@@ -9,7 +9,7 @@ embedding for a domain.
 
 Code in the following directories is intended for documentation purposes, and is
 not necessarily runnable. More information on these files is in a README.md in
-each folder.
+each folder. We used tensorflow-gpu v1.15.4 and python v3.7 in this project.
 
 evaluation/
 
