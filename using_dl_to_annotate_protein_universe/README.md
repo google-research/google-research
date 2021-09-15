@@ -49,3 +49,6 @@ https://www.kaggle.com/googleai/pfam-seed-random-split
 
 Data for the random and clustered splits is available in google cloud storage:
 https://console.cloud.google.com/storage/browser/brain-genomics-public/research/proteins/pfam
+
+This data is licensed by
+https://storage.cloud.google.com/brain-genomics-public/research/proteins/pfam/LICENSE
