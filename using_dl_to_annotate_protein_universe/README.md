@@ -30,7 +30,7 @@ neural_network/
 ## Availability of trained models
 
 Trained models are available in
-[Google Cloud Storage](https://storage.googleapis.com/brain-genomics-public/research/proteins/pfam/models/single_domain_per_sequence_zipped_models)
+[Google Cloud Storage](https://console.cloud.google.com/storage/browser/brain-genomics-public/research/proteins/pfam/models/single_domain_per_sequence_zipped_models)
 
 ```
 └── single_domain_per_sequence_zipped_models
