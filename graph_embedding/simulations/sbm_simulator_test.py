@@ -23,10 +23,10 @@ import numpy as np
 from graph_embedding.simulations import sbm_simulator
 
 
-class SbmSimulatorTest(absltest.TestCase):
+class SbmSimulatorTestSbm(absltest.TestCase):
 
   def setUp(self):
-    super(SbmSimulatorTest, self).setUp()
+    super(SbmSimulatorTestSbm, self).setUp()
     self.simulation_with_graph = sbm_simulator.StochasticBlockModel()
     sbm_simulator.SimulateSbm(
         self.simulation_with_graph,
@@ -78,6 +78,9 @@ class SbmSimulatorTest(absltest.TestCase):
     group_counts = collections.Counter(simulation.graph_memberships)
     actual_sizes = [count for cluster_id, count in sorted(group_counts.items())]
     self.assertEqual(expected_sizes, actual_sizes)
+
+
+class SbmSimulatorTestFeatures(SbmSimulatorTestSbm):
 
   def test_simulate_features_dimensions(self):
     sbm_simulator.SimulateFeatures(
