@@ -1019,11 +1019,18 @@ def should_include_in_standard(conformer):
   Returns:
     boolean
   """
-  if conformer_calculation_error_level(conformer) > 0:
-    return False
   if conformer.duplicated_by > 0:
     return False
-  return True
+  if conformer.which_database == dataset_pb2.COMPLETE:
+    return False
+  elif conformer.which_database == dataset_pb2.STANDARD:
+    return True
+  else:
+    # This should only happen with stage1 only files.
+    if conformer_calculation_error_level(conformer) > 0:
+      return False
+    else:
+      return True
 
 
 def conformer_to_standard(conformer):

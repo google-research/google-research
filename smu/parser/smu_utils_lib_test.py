@@ -831,12 +831,19 @@ class ConformerToStandardTest(absltest.TestCase):
     self.assertFalse(got.properties.HasField('zpe_unscaled'))
 
   def test_remove_error_conformer(self):
+    self.conformer.which_database = dataset_pb2.UNSPECIFIED
     self.conformer.properties.errors.status = 256
 
     self.assertIsNone(smu_utils_lib.conformer_to_standard(self.conformer))
 
   def test_remove_duplicate(self):
+    self.conformer.which_database = dataset_pb2.UNSPECIFIED
     self.conformer.duplicated_by = 123
+
+    self.assertIsNone(smu_utils_lib.conformer_to_standard(self.conformer))
+
+  def test_remove_complete(self):
+    self.conformer.which_database = dataset_pb2.COMPLETE
 
     self.assertIsNone(smu_utils_lib.conformer_to_standard(self.conformer))
 
