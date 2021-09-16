@@ -28,8 +28,9 @@ from configs.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
 FLAGS = flags.FLAGS
 CONFIG_PATH = "configs/xmagical/rl/env_reward.py"
 
-flags.DEFINE_integer("seeds", 5, "The number of seeds to run in parallel.")
 flags.DEFINE_enum("embodiment", None, EMBODIMENTS, "Which embodiment to train.")
+flags.DEFINE_list("seeds", [0, 5], "List specifying the range of seeds to run.")
+flags.DEFINE_string("device", "cuda:0", "The compute device.")
 
 
 def main(_):
@@ -46,7 +47,7 @@ def main(_):
 
   # Execute each seed in parallel.
   procs = []
-  for seed in range(FLAGS.seeds):
+  for seed in range(*list(map(int, FLAGS.seeds))):
     procs.append(
         subprocess.Popen([  # pylint: disable=consider-using-with
             "python",
@@ -59,6 +60,8 @@ def main(_):
             f"{CONFIG_PATH}:{FLAGS.embodiment}",
             "--seed",
             f"{seed}",
+            "--device",
+            f"{FLAGS.device}",
         ]))
 
   # Wait for each seed to terminate.

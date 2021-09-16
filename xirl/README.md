@@ -96,7 +96,7 @@ The rest of the codebase is organized as follows:
     - [x] RL: `python rl_xmagical_learned_reward.py --help`
 - [x] Cross-embodiment setting (Section 5.2)
     - [x] Pretraining: `python pretrain_xmagical_cross_embodiment.py --help`
-    - [x] RL: `python rl_xmagical_learned_reward.py --help`
+    - [ ] RL: `python rl_xmagical_learned_reward.py --help`
 - [x] RL with environment reward
     - [x] `python rl_xmagical_env_reward.py --help`
 - [x] Interactive reward visualization (Section 5.4)

@@ -14,13 +14,16 @@
 # limitations under the License.
 
 #!/bin/bash
+#
+# This script downloads the X-MAGICAL demonstration dataset and stores it in
+# /tmp/xirl/datasets/xmagical.
 set -e
 set -x
 
+# GDrive file ID.
 ID="1VdMRYu0Y-ep_vq28hW2n0UZaow2iaW1i"
+
 mkdir -p /tmp/xirl/datasets/
 cd /tmp/xirl/datasets/
 gdown https://drive.google.com/uc?id=$ID
-unzip xmagical.zip
-rm xmagical.zip
-# Final location: /tmp/xirl/datasets/xmagical
+unzip xmagical.zip && rm xmagical.zip

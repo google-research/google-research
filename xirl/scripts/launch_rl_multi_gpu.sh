@@ -13,9 +13,11 @@
 # limitations under the License.
 
 #!/bin/bash
+#
+# An example script for launching 5 RL seeds across 2 GPUs.
 set -e
 
-while getopts e:p:i: flag
+while getopts e:i: flag
 do
     case "${flag}" in
         e) embodiment=${OPTARG};;
