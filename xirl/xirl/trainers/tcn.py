@@ -108,8 +108,9 @@ class TCNTrainer(Trainer):
 
 class TCNCrossEntropyTrainer(Trainer):
   """Single-view TCN implemented with contrastive cross-entropy loss.
-  
-  Should be used in conjunction with the `UniformWithPositivesSampler` frame sampler.
+
+  Should be used in conjunction with the `UniformWithPositivesSampler` frame
+  sampler.
   """
 
   def __init__(

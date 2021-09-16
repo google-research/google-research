@@ -19,12 +19,13 @@ from .base import Trainer
 from .classification import GoalFrameClassifierTrainer
 from .lifs import LIFSTrainer
 from .tcc import TCCTrainer
-from .tcn import TCNTrainer
+from .tcn import TCNTrainer, TCNCrossEntropyTrainer
 
 __all__ = [
     "Trainer",
     "TCCTrainer",
     "TCNTrainer",
+    "TCNCrossEntropyTrainer",
     "LIFSTrainer",
     "GoalFrameClassifierTrainer",
 ]
