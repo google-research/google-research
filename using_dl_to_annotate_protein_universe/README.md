@@ -18,9 +18,9 @@ evaluation/
 -   inference confidence
 -   accuracy stratification based on sequence similarity, family size, etc.
 
-hmm_baseline/
+hmm_blast_baselines/
 
--   running hmmer and phmmer
+-   running hmmer/phmmer, blast.
 
 neural_network/
 
