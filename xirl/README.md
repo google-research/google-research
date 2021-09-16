@@ -128,7 +128,7 @@ You'll want to inherit from `xirl.evaluators.base.Evaluator` class and as you gu
 
 ## Acknowledgments
 
-Many people have contibuted one way or another in the making and shaping of this repository. In no particular order, we'd like to thank [Alex Nichol](https://aqnichol.com/), [Nick Hynes](https://www.linkedin.com/in/nhynes-), [Brent Yi](https://brentyi.com/) and [Jimmy Wu](https://www.cs.princeton.edu/~jw60/) for their fruitful back-and-forth discussions.
+Many people have contibuted one way or another in the making and shaping of this repository. In no particular order, we'd like to thank [Alex Nichol](https://aqnichol.com/), [Nick Hynes](https://www.linkedin.com/in/nhynes-), [Brent Yi](https://brentyi.com/), [Jimmy Wu](https://www.cs.princeton.edu/~jw60/) and [Sam Toyer](https://scholar.google.com.au/citations?user=J8E8GQYAAAAJ&hl=en) for their fruitful back-and-forth discussions.
 
 ## Citation
 
