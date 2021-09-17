@@ -12,6 +12,10 @@ with [Google Cloud](https://cloud.google.com/sdk/docs). See the
 for more information on how to configure Google Cloud resources to use the
 `t5_mesh_transformer` program.
 
+Note, this is built on the latest version of MeshTF:
+```
+pip install -e "git+https://github.com/tensorflow/mesh.git#egg=mesh-tensorflow"
+```
 
 Here we provide an example command for training Primer on C4. First, create
 a Google Cloud TPU to use:

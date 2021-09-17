@@ -23,6 +23,26 @@ from mesh_tensorflow.transformer import transformer_layers
 import tensorflow.compat.v1 as tf
 
 
+@gin.configurable
+def causal_depthwise_conv(x, context, kernel_size=3):
+  """Causal depthwise convolution."""
+
+  def scale_var(shift_distance):
+    return mtf.get_variable(
+        context.mesh,
+        "conv_%s" % shift_distance,
+        mtf.Shape(context.model.ensemble_dims + x.shape.dims[-1:]),
+        initializer=tf.constant_initializer(0.5 if shift_distance ==
+                                            0 else 0.5 / kernel_size),
+        dtype=context.variable_dtype)
+
+  ret = x * scale_var(0)
+  for shift_distance in range(1, kernel_size):
+    x = mtf.shift(x, 1, context.length_dim, wrap=False)
+    ret += x * scale_var(shift_distance)
+  return ret
+
+
 def primer_norm(x, dim, epsilon=1e-6, name="layer_prepostprocess"):
   """Primer normalization over dimension `dim`.
 
@@ -166,8 +186,7 @@ class MDHAParams(attention.AttentionParams):
     with tf.variable_scope("q_dconv"):
       len_dim = context.length_dim
       context.length_dim = ret.shape.dims[-2]
-      ret = transformer.sublayer_depthwise_conv_autoregressive(
-          ret, layer_stack=None, context=context, kernel_size=3)
+      ret = causal_depthwise_conv(ret, context=context, kernel_size=3)
       context.length_dim = len_dim
     if self.combine_dims:
       ret = mtf.replace_dimensions(ret, ret.shape.dims[-1], self.q_dims)
@@ -182,8 +201,7 @@ class MDHAParams(attention.AttentionParams):
     with tf.variable_scope("k_dconv"):
       len_dim = context.length_dim
       context.length_dim = ret.shape.dims[-2]
-      ret = transformer.sublayer_depthwise_conv_autoregressive(
-          ret, layer_stack=None, context=context, kernel_size=3)
+      ret = causal_depthwise_conv(ret, context=context, kernel_size=3)
       context.length_dim = len_dim
     if self.combine_dims:
       ret = mtf.replace_dimensions(ret, ret.shape.dims[-1], self.k_dims)
@@ -196,8 +214,7 @@ class MDHAParams(attention.AttentionParams):
     with tf.variable_scope("v_dconv"):
       len_dim = context.length_dim
       context.length_dim = ret.shape.dims[-2]
-      ret = transformer.sublayer_depthwise_conv_autoregressive(
-          ret, layer_stack=None, context=context, kernel_size=3)
+      ret = causal_depthwise_conv(ret, context=context, kernel_size=3)
       context.length_dim = len_dim
     if self.combine_dims:
       ret = mtf.replace_dimensions(ret, ret.shape.dims[-1], self.v_dims)
@@ -210,8 +227,7 @@ class MDHAParams(attention.AttentionParams):
     with tf.variable_scope("qk_dconv"):
       len_dim = context.length_dim
       context.length_dim = ret.shape.dims[-2]
-      ret = transformer.sublayer_depthwise_conv_autoregressive(
-          ret, None, context=context, kernel_size=3)
+      ret = causal_depthwise_conv(ret, context=context, kernel_size=3)
       context.length_dim = len_dim
 
     q = mtf.layers.dense(
