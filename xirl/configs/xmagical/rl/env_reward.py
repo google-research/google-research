@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Env reward config."""
+
 from base_configs.rl import get_config as _get_config
 from configs.constants import XMAGICALTrainingIterations
 from ml_collections import ConfigDict
@@ -20,6 +22,11 @@ from utils import copy_config_and_replace
 
 
 def get_config(embodiment: str) -> ConfigDict:
+  """Parameterize base RL config based on provided embodiment.
+
+  This simply modifies the number of training steps based on presets defined
+  in `constants.py`.
+  """
   config = _get_config()
 
   possible_configs = dict()

@@ -110,7 +110,7 @@ The rest of the codebase is organized as follows:
     - [x] `python compute_goal_embedding.py --help`
 - [x] Quick n' dirty multi-GPU RL training
     - [x] With environment reward: `bash scripts/launch_rl_multi_gpu.sh`
-    - [x] With learned reward: `bash scripts/launch_learned_rl_multi_gpu.sh`
+    - [ ] With learned reward: `bash scripts/launch_learned_rl_multi_gpu.sh`
 
 ## Extending XIRL
 

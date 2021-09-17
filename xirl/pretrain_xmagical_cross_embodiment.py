@@ -15,6 +15,7 @@
 
 """x-MAGICAL cross-embodiment pretraining script."""
 
+from enum import unique
 import os.path as osp
 import subprocess
 from torchkit.experiment import string_from_kwargs
@@ -42,6 +43,8 @@ flags.DEFINE_enum("algo", None, ALGORITHMS, "The pretraining algorithm to use.")
 flags.DEFINE_enum(
     "embodiment", None, EMBODIMENTS,
     "Which embodiment to train. Will train all sequentially if not specified.")
+flags.DEFINE_bool("unique_name", False,
+                  "Whether to append a unique ID to the experiment name.")
 
 
 def main(_):
@@ -49,13 +52,15 @@ def main(_):
 
   for embodiment in embodiments:
     # Generate a unique experiment name.
-    experiment_name = string_from_kwargs(
-        dataset="xmagical",
-        mode="cross",
-        algo=FLAGS.algo,
-        embodiment=embodiment,
-        uid=unique_id(),
-    )
+    kwargs = {
+        "dataset": "xmagical",
+        "mode": "cross",
+        "algo": FLAGS.algo,
+        "embodiment": embodiment,
+    }
+    if FLAGS.unique_name:
+      kwargs["uid"] = unique_id()
+    experiment_name = string_from_kwargs(**kwargs)
     logging.info(f"Experiment name: {experiment_name}")
 
     # Train on all classes but the given embodiment.

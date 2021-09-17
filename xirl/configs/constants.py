@@ -15,6 +15,7 @@
 
 """Settings we used for the CoRL 2021 experiments."""
 
+from typing import Dict
 from ml_collections import FrozenConfigDict
 
 # The embodiments we used in the x-MAGICAL experiments.
@@ -48,7 +49,32 @@ RLVTrainingIterations = FrozenConfigDict({
 })
 
 # A mapping from x-MAGICAL embodiment to Gym environment name.
-XMAGICAL_EMBODIMENT_TO_ENV_NAME = {
+XMAGICAL_EMBODIMENT_TO_ENV_NAME: Dict[str, str] = {
     k: f"SweepToTop-{k.capitalize()}-State-Allo-TestLayout-v0"
     for k in EMBODIMENTS
+}
+
+# A mapping from embodiment to scalar multipliers used by the XIRL algo.
+#
+# To obtain these values, we run `interact.py`, visually inspect what the
+# absolute maximum value of the raw distance in embedding space is, then
+# compute the inverse of that value.
+_XMAGICAL_EMBODIMENT_TO_XIRL_DISTANCE_SCALE: Dict[str, float] = {
+    "longstick": 1.0,
+    "mediumstick": 1.0,
+    "shortstick": 1.0,
+    "gripper": 1.0,
+}
+
+# TODO(kevin): Fill these out once we rerun all baselines.
+_XMAGICAL_EMBODIMENT_TO_TCN_DISTANCE_SCALE: Dict[str, float] = {}
+_XMAGICAL_EMBODIMENT_TO_LIFS_DISTANCE_SCALE: Dict[str, float] = {}
+_XMAGICAL_EMBODIMENT_TO_RAW_IMAGENET_DISTANCE_SCALE: Dict[str, float] = {}
+
+# A mapping from algo to distance scale dict.
+ALGO_TO_DISTANCE_SCALE_DICT: Dict[str, Dict[str, float]] = {
+    "xirl": _XMAGICAL_EMBODIMENT_TO_XIRL_DISTANCE_SCALE,
+    "tcn": _XMAGICAL_EMBODIMENT_TO_TCN_DISTANCE_SCALE,
+    "lifs": _XMAGICAL_EMBODIMENT_TO_LIFS_DISTANCE_SCALE,
+    "raw_imagenet": _XMAGICAL_EMBODIMENT_TO_RAW_IMAGENET_DISTANCE_SCALE,
 }

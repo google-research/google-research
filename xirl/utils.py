@@ -34,6 +34,7 @@ from sac import wrappers
 from xirl import common
 import xmagical
 from gym.wrappers import RescaleAction
+from pathlib import Path
 # pylint: disable=logging-fstring-interpolation
 
 ConfigDict = config_dict.ConfigDict
@@ -276,3 +277,9 @@ def plot_reward(rews: typing.Sequence[float]):
     ax.grid(b=True, which="minor", linestyle="-", alpha=0.2)
   plt.minorticks_on()
   plt.show()
+
+
+def dict_from_experiment_name(name: str) -> Dict[str, str]:
+  kwargs = Path(name).name.split("_")
+  kwargs = [k.split("=") for k in kwargs]
+  return {k[0]: k[1] for k in kwargs}
