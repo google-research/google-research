@@ -16,6 +16,7 @@
 """Estimation functions for compute costs of ML models."""
 
 import contextlib
+import functools
 import re
 from typing import Dict, Iterable, List, Optional, Tuple
 from absl import flags
@@ -96,15 +97,15 @@ class ConvMetadataMonkeyPatch(contextlib.ContextDecorator):
         shape_rule=lax._conv_general_dilated_shape_rule,
         dtype_rule=lax._conv_general_dilated_dtype_rule,
         name=self._op_name,
-        translation_rule=lax.partial(
+        translation_rule=functools.partial(
             lax._conv_general_dilated_translation_rule,
             expand_complex_convolutions=False))
     lax.xla.backend_specific_translations['cpu'][
-        lax.conv_general_dilated_p] = lax.partial(
+        lax.conv_general_dilated_p] = functools.partial(
             lax._conv_general_dilated_translation_rule,
             expand_complex_convolutions=True)
     lax.xla.backend_specific_translations['gpu'][
-        lax.conv_general_dilated_p] = lax.partial(
+        lax.conv_general_dilated_p] = functools.partial(
             lax._conv_general_dilated_translation_rule,
             expand_complex_convolutions=True)
     lax.ad.defbilinear(lax.conv_general_dilated_p,

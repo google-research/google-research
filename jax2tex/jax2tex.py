@@ -51,6 +51,8 @@ from jax.interpreters import xla
 
 import jax.numpy as np
 
+import numpy as onp
+
 # pylint: disable=redefined-builtin
 map = util.safe_map
 zip = util.safe_zip
@@ -420,7 +422,7 @@ class BoundVariable(object):
 
     if isinstance(self.val, float) or isinstance(self.val, int):
       return str(self.var) + suffix
-    elif (isinstance(self.val, np.ndarray) or
+    elif (isinstance(self.val, (onp.ndarray, np.ndarray)) or
           isinstance(self.val, ShapedArray)):
       if not self.val.shape:
         return str(self.var) + suffix
@@ -479,9 +481,7 @@ BoundASTNode = Union[BoundVariable, BoundTExpr]
 
 
 def is_array_or_float(x: Array) -> bool:
-  return (isinstance(x, np.ndarray) or
-          isinstance(x, float) or
-          isinstance(x, int))
+  return isinstance(x, (onp.ndarray, np.ndarray, float, int))
 
 
 def canonicalize_consts(literals: List[Array]) -> MaybeEmptyTuple[Variable]:

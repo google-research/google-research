@@ -140,33 +140,48 @@ class SmuWriter:
             6, '0'), str(conformer.conformer_id % 1000).rjust(3, '0')))
     return result
 
-  def get_error_codes(self, properties):
-    """Returns a section of error codes (as defined by Uni Basel).
+  def get_database(self, conformer):
+    """Returns the line indicating which database this conformer goes to.
 
-    All error codes are integers. Note that '1' means ok and a non-1 value is
-    an error specific to meaning for that code.
+    Args:
+      conformer: A Conformer protocol buffer message.
+
+    Returns:
+      String
+    """
+    if conformer.which_database == dataset_pb2.STANDARD:
+      return 'Database   standard\n'
+    elif conformer.which_database == dataset_pb2.COMPLETE:
+      return 'Database   complete\n'
+    raise ValueError('Bad which_database: {}'.format(conformer.which_database))
+
+  def get_error_codes(self, properties):
+    """Returns a section of error/warning codes (as defined by Uni Basel).
 
     Args:
       properties: A Properties protocol buffer message.
 
     Returns:
-      A multiline string representation of the labeled binary error codes.
+      A multiline string representation
     """
     result = ''
     if self.annotate:
       result += '# From errors\n'
-    items_per_line = 8
 
-    keys = list(smu_utils_lib.ERROR_CODES.keys())
-    for i in range(0, len(smu_utils_lib.ERROR_CODES), items_per_line):
-      result += ''.join([code.rjust(9) for code in keys[i:i + items_per_line]])
-      result += '\n'
-      for code in keys[i:i + items_per_line]:
-        default_value = '        0' if code == 'nsvg09' else '        1'
-        result += default_value if not smu_utils_lib.ERROR_CODES[code] else str(
-            getattr(properties.errors,
-                    smu_utils_lib.ERROR_CODES[code])).rjust(9)
-      result += '\n'
+    result += 'Status     {:4d}\n'.format(properties.errors.status)
+    result += 'Warn_T1    {:4d}{:4d}\n'.format(properties.errors.warn_t1,
+                                               properties.errors.warn_t1_excess)
+    result += 'Warn_BSE   {:4d}{:4d}\n'.format(
+        properties.errors.warn_bse_b5_b6, properties.errors.warn_bse_cccsd_b5)
+    result += 'Warn_EXC   {:4d}{:4d}{:4d}\n'.format(
+        properties.errors.warn_exc_lowest_excitation,
+        properties.errors.warn_exc_smallest_oscillator,
+        properties.errors.warn_exc_largest_oscillator)
+    result += 'Warn_VIB   {:4d}{:4d}\n'.format(
+        properties.errors.warn_vib_linearity,
+        properties.errors.warn_vib_imaginary)
+    result += 'Warn_NEG   {:4d}\n'.format(properties.errors.warn_num_neg)
+
     return result
 
   def get_adjacency_code_and_hydrogens(self, topology):
@@ -306,9 +321,7 @@ class SmuWriter:
     Returns:
       A multiline string representation of bond atom pairs and bond types.
     """
-    # The BOND section comes from the ATOMIC analysis, so if it fails, there
-    # will be no bond section.
-    if properties.errors.error_atomic_analysis != 1:
+    if properties.errors.status >= 4:
       return ''
     adjacency_matrix = smu_utils_lib.compute_adjacency_matrix(topology)
     bonds = []
@@ -351,11 +364,15 @@ class SmuWriter:
     result += ''.join(bonds)
     return result
 
-  _GRADIENT_NORMS_LABEL_FIELDS = [
-      ['E_ini/G_norm',
-       'initial_geometry_energy', 'initial_geometry_gradient_norm'],
-      ['E_opt/G_norm',
-       'optimized_geometry_energy', 'optimized_geometry_gradient_norm']]
+  _GRADIENT_NORMS_LABEL_FIELDS = [[
+      'E_ini/G_norm', 'initial_geometry_energy',
+      'initial_geometry_gradient_norm'
+  ],
+                                  [
+                                      'E_opt/G_norm',
+                                      'optimized_geometry_energy',
+                                      'optimized_geometry_gradient_norm'
+                                  ]]
 
   def get_gradient_norms(self, properties, spacer):
     """Returns initial and optimized geometry energies and gradient norms.
@@ -418,6 +435,8 @@ class SmuWriter:
     Returns:
       A string representation of the rotational constants vector.
     """
+    if not properties.HasField('rotational_constants'):
+      return ''
     result = ''
     if self.annotate:
       result += '# From rotational_constants\n'
@@ -569,10 +588,6 @@ class SmuWriter:
 
     return result
 
-  _D1_DIAGNOSTICS_FIELDS = [
-      'diagnostics_d1_ccsd_2sp', 'diagnostics_d1_ccsd_2sd',
-      'diagnostics_d1_ccsd_3psd'
-  ]
   _T1_DIAGNOSTICS_FIELDS = [
       'diagnostics_t1_ccsd_2sp', 'diagnostics_t1_ccsd_2sd',
       'diagnostics_t1_ccsd_3psd'
@@ -589,13 +604,11 @@ class SmuWriter:
     """
     result = ''
 
-    if properties.HasField(self._D1_DIAGNOSTICS_FIELDS[0]):
+    if properties.HasField('diagnostics_d1_ccsd_2sp'):
       if self.annotate:
-        result += '# From %s\n' % ', '.join(self._D1_DIAGNOSTICS_FIELDS)
-      result += (
-          'D1DIAG    D1(CCSD/2sp) %s  D1(CCSD/2sd) %s  D1(CCSD/3Psd)%s\n' %
-          tuple('{:.6f}'.format(getattr(properties, field).value).rjust(10)
-                for field in self._D1_DIAGNOSTICS_FIELDS))
+        result += '# From diagnostics_d1_ccsd_2sp\n'
+      result += ('D1DIAG    D1(CCSD/2sp) {:10.6f}\n'.format(
+          properties.diagnostics_d1_ccsd_2sp.value))
 
     if properties.HasField(self._T1_DIAGNOSTICS_FIELDS[0]):
       if self.annotate:
@@ -687,7 +700,9 @@ class SmuWriter:
     return result
 
   def get_excitation_energies_and_oscillations(self, properties):
-    """Returns excitation energies and length rep. osc. strengths at CC2/TZVP.
+    """Returns excitation energies and length rep. osc.
+
+    strengths at CC2/TZVP.
 
     Args:
       properties: A Properties protocol buffer message.
@@ -902,6 +917,7 @@ class SmuWriter:
     identifier = smu_utils_lib.get_composition(conformer.bond_topologies[0])
     properties = conformer.properties
     contents.append(self.get_stage2_header(conformer, identifier))
+    contents.append(self.get_database(conformer))
     contents.append(self.get_error_codes(properties))
     contents.append(
         self.get_adjacency_code_and_hydrogens(conformer.bond_topologies[0]))
@@ -930,6 +946,145 @@ class SmuWriter:
         self.get_partial_charges(conformer.bond_topologies[0], properties))
     contents.append(self.get_polarizability(properties))
     contents.append(self.get_multipole_moments(properties))
+
+    return ''.join(contents)
+
+
+class AtomicInputWriter:
+  """From conformer, produces the input file for the (fortran) atomic2 code."""
+
+  def __init__(self):
+    pass
+
+  def get_filename_for_atomic_input(self, conformer):
+    """Returns the expected filename for an atomic input."""
+    return '{}.{:06d}.{:03d}.inp'.format(
+        smu_utils_lib.get_composition(conformer.bond_topologies[0]),
+        conformer.conformer_id // 1000, conformer.conformer_id % 1000)
+
+  def get_mol_block(self, conformer):
+    """Returns the MOL file block with atoms and bonds.
+
+    Args:
+      conformer: dataset_pb2.Conformer
+
+    Returns:
+      list of strings
+    """
+    contents = []
+    contents.append('\n')
+    contents.append('{:3d}{:3d}  0  0  0  0  0  0  0  0999 V2000\n'.format(
+        len(conformer.bond_topologies[0].atoms),
+        len(conformer.bond_topologies[0].bonds)))
+    for atom_type, coords in zip(conformer.bond_topologies[0].atoms,
+                                 conformer.optimized_geometry.atom_positions):
+      contents.append(
+          '{:10.4f}{:10.4f}{:10.4f} {:s}   0  0  0  0  0  0  0  0  0  0  0  0\n'
+          .format(
+              smu_utils_lib.bohr_to_angstroms(coords.x),
+              smu_utils_lib.bohr_to_angstroms(coords.y),
+              smu_utils_lib.bohr_to_angstroms(coords.z),
+              smu_utils_lib.ATOM_TYPE_TO_RDKIT[atom_type][0]))
+    for bond in conformer.bond_topologies[0].bonds:
+      contents.append('{:3d}{:3d}{:3d}  0\n'.format(bond.atom_a + 1,
+                                                    bond.atom_b + 1,
+                                                    bond.bond_type))
+
+    return contents
+
+  def get_energies(self, conformer):
+    """Returns the $energies block.
+
+    Args:
+      conformer: dataset_pb2.Conformer
+
+    Returns:
+      list of strings
+    """
+    contents = []
+    contents.append('$energies\n')
+    contents.append('#              HF              MP2          '
+                    'CCSD         CCSD(T)        T1 diag\n')
+
+    def format_field(field_name):
+      return '{:15.7f}'.format(getattr(conformer.properties, field_name).value)
+
+    contents.append('{:7s}'.format('3') +
+                    format_field('single_point_energy_hf_3') +
+                    format_field('single_point_energy_mp2_3') + '\n')
+    contents.append('{:7s}'.format('4') +
+                    format_field('single_point_energy_hf_4') +
+                    format_field('single_point_energy_mp2_4') + '\n')
+    contents.append('{:7s}'.format('2sp') +
+                    format_field('single_point_energy_hf_2sp') +
+                    format_field('single_point_energy_mp2_2sp') +
+                    format_field('single_point_energy_ccsd_2sp') +
+                    format_field('single_point_energy_ccsd_t_2sp') + '\n')
+    contents.append('{:7s}'.format('2sd') +
+                    format_field('single_point_energy_hf_2sd') +
+                    format_field('single_point_energy_mp2_2sd') +
+                    format_field('single_point_energy_ccsd_2sd') +
+                    format_field('single_point_energy_ccsd_t_2sd') +
+                    format_field('diagnostics_t1_ccsd_2sd') + '\n')
+    contents.append('{:7s}'.format('3Psd') +
+                    format_field('single_point_energy_hf_3psd') +
+                    format_field('single_point_energy_mp2_3psd') +
+                    format_field('single_point_energy_ccsd_3psd') + '\n')
+    contents.append('{:7s}'.format('C3') +
+                    format_field('single_point_energy_hf_cvtz') +
+                    format_field('single_point_energy_mp2ful_cvtz') + '\n')
+    contents.append('{:7s}'.format('(34)') +
+                    format_field('single_point_energy_hf_34') +
+                    format_field('single_point_energy_mp2_34') + '\n')
+
+    return contents
+
+  def get_frequencies(self, conformer):
+    """Returns the $frequencies block.
+
+    Note that the only non-zero frequencies are shown. Generally, each
+    conformer will have 6 zero frequencies for the euclidean degrees of freedom
+    but some will only have 5. Any other number is considered an error.
+
+    Args:
+      conformer: dataset_pb2.Conformer
+
+    Returns:
+      list of strings
+
+    Raises:
+      ValueError: if number of zero frequencies is other than 5 or 6
+    """
+    contents = []
+
+    trimmed_frequencies = [
+        v for v in conformer.properties.harmonic_frequencies.value if v != 0.0
+    ]
+
+    contents.append('$frequencies{:5d}{:5d}{:5d}\n'.format(
+        len(trimmed_frequencies), 0, 0))
+    line = ''
+    for i, freq in enumerate(trimmed_frequencies):
+      line += '{:8.2f}'.format(freq)
+      if i % 10 == 9:
+        contents.append(line + '\n')
+        line = ''
+    if line:
+      contents.append(line + '\n')
+    return contents
+
+  def process(self, conformer):
+    """Creates the atomic input file for conformer."""
+    contents = []
+    contents.append(conformer.bond_topologies[0].smiles + '\n')
+    contents.append('{}.{:06d}.{:03d}\n'.format(
+        smu_utils_lib.get_composition(conformer.bond_topologies[0]),
+        conformer.conformer_id // 1000, conformer.conformer_id % 1000))
+
+    contents.extend(self.get_mol_block(conformer))
+    contents.extend(self.get_energies(conformer))
+    contents.extend(self.get_frequencies(conformer))
+    contents.append('$end\n')
 
     return ''.join(contents)
 

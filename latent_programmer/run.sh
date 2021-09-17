@@ -23,3 +23,4 @@ pip install tensorflow
 pip install -r latent_programmer/requirements.txt
 # Do some test here
 python -m latent_programmer.tasks.robust_fill.dsl_test
+python -m latent_programmer.train_test

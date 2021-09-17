@@ -20,15 +20,19 @@ functions used by GenerateStochasticBlockModel in simulations.py. You can call
 these separately to generate various parts of an SBM with features.
 """
 import collections
+import dataclasses
 import enum
 import math
 import random
 from typing import Dict, List, Optional, Sequence, Tuple
 
-import dataclasses
 from graph_tool.src import graph_tool
 from graph_tool import generation
 import numpy as np
+
+from graph_embedding.simulations import heterogeneous_sbm_utils as hsu
+
+# pylint: disable=g-explicit-length-test
 
 
 class MatchType(enum.Enum):
@@ -49,21 +53,45 @@ class MatchType(enum.Enum):
 
 @dataclasses.dataclass
 class StochasticBlockModel:
-  """Stores data for stochastic block model graphs with features.
+  """Stores data for stochastic block model (SBM) graphs with features.
+
+  This class supports heterogeneous SBMs, in which each node is assumed to be
+  exactly one of two types. In this model, the following extra fields are used:
+    * type1_clusters: list of cluster indices for type 1 nodes. (For single-type
+        graphs, this contains the list of all cluster indices.)
+    * type2_clusters: list of cluster indices for type 2 nodes.
+    * cross_links: tuples of cluster indices that are linked cross-type.
+    * node_features2: features for type 2 nodes. (node_features1 is used as the
+        sole feature field for single-type SBM.)
 
   Attributes:
     graph: graph-tool Graph object.
     graph_memberships: list of integer node classes.
-    node_features: numpy array of node features.
+    node_features1: numpy array of node features for nodes of type 1. Features
+      for node with index i is in row i.
+    node_features2: numpy array of node features for nodes of type 2. Features
+      for node with index i is in row i - (# of nodes of type 1).
     feature_memberships: list of integer node feature classes.
     edge_features: map from edge tuple to numpy array. Only stores undirected
       edges, i.e. (0, 1) will be in the map, but (1, 0) will not be.
+    cross_links: list of 2-tuples, each tuple a pair of cluster indices which
+      are cross-correlated between the types. (i, j) included in this list means
+      the i-th cluster from type 1 is correlated with the j-th cluster from type
+      2.
+    type1_clusters: list of the indices of type 1 clusters.
+    type2_clusters: list of the indices of type 2 clusters.
+    cross_links: list of cluster index pairs, each pair coding that the clusters
+      are linked across types.
   """
   graph: graph_tool.Graph = Ellipsis
   graph_memberships: np.ndarray = Ellipsis
-  node_features: np.ndarray = Ellipsis
+  node_features1: np.ndarray = Ellipsis
+  node_features2: Optional[np.ndarray] = Ellipsis
   feature_memberships: np.ndarray = Ellipsis
   edge_features: Dict[Tuple[int, int], np.ndarray] = Ellipsis
+  type1_clusters: Optional[List[int]] = Ellipsis
+  type2_clusters: Optional[List[int]] = Ellipsis
+  cross_links: Optional[List[Tuple[int, int]]] = Ellipsis
 
 
 def _GetNestingMap(large_k, small_k):
@@ -233,11 +261,19 @@ def SimulateSbm(sbm_data,
                 num_edges,
                 pi,
                 prop_mat,
-                out_degs = None):
+                out_degs = None,
+                num_vertices2 = 0,
+                pi2 = None):
   """Generates a stochastic block model, storing data in sbm_data.graph.
 
   This function uses graph_tool.generate_sbm. Refer to that
   documentation for more information on the model and parameters.
+
+  This function can generate a heterogeneous SBM graph, meaning each node is
+  exactly one of two types (and both types are present). To generate a
+  heteroteneous SBM graph, both `num_vertices2` and `pi2` must be non-zero and
+  supplied (respectively). When this happens, additional fields of `sbm_data`
+  are filled. See the StochasticBlockModel dataclass for full details.
 
   Args:
     sbm_data: StochasticBlockModel dataclass to store result data.
@@ -248,8 +284,18 @@ def SimulateSbm(sbm_data,
     out_degs: Out-degree propensity for each node. If not provided, a constant
       value will be used. Note that the values will be normalized inside each
       group, if they are not already so.
+    num_vertices2: If simulating a heterogeneous SBM, this is the number of
+      vertices of type 2.
+    pi2: If simulating a heterogeneous SBM, this is the pi vector for the
+      vertices of type 2. Must sum to 1.0.
   Returns: (none)
   """
+  if ((num_vertices2 == 0 and pi2 is not None) or
+      (num_vertices2 > 0 and pi2 is None)):
+    raise ValueError(
+        "num_vertices2 and pi2 must be either both supplied or both None")
+  if num_vertices2 == 0:
+    pi2 = []
   # Equivalent to assertAlmostEqual(np.sum(pi), 1.0, places=12)
   # https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertNotAlmostEqual
   #
@@ -258,12 +304,23 @@ def SimulateSbm(sbm_data,
   # example of this is in the simulate_sbm_community_sizes_seven_groups test
   # from sbm_simulator_test.py. Places>=12 covers known similar cases (to date).
   if round(abs(np.sum(pi) - 1.0), 12) != 0:
-    raise ValueError("entries of pi must sum to 1.0")
+    raise ValueError("entries of pi ( must sum to 1.0")
+  if len(pi2) > 0 and round(abs(np.sum(pi2) - 1.0), 12) != 0:
+    raise ValueError("entries of pi2 ( must sum to 1.0")
+  pi = np.array(list(pi) + list(pi2))
+  pi /= np.sum(pi)
   if prop_mat.shape[0] != len(pi) or prop_mat.shape[1] != len(pi):
-    raise ValueError("prop_mat must be k x k where k = len(pi)")
-  sbm_data.graph_memberships = _GenerateNodeMemberships(num_vertices, pi)
-  edge_counts = _ComputeExpectedEdgeCounts(num_edges, num_vertices, pi,
-                                           prop_mat)
+    raise ValueError("prop_mat must be k x k where k = len(pi1 + pi2)")
+  sbm_data.graph_memberships = _GenerateNodeMemberships(
+      num_vertices + num_vertices2, pi)
+  sbm_data.type1_clusters = sorted(list(set(sbm_data.graph_memberships)))
+  if num_vertices2 > 0:
+    sbm_data.cross_links = hsu.GetCrossLinks(len(pi), len(pi2))
+    type1_clusters, type2_clusters = zip(*sbm_data.cross_links)
+    sbm_data.type1_clusters = sorted(list(set(type1_clusters)))
+    sbm_data.type2_clusters = sorted(list(set(type2_clusters)))
+  edge_counts = _ComputeExpectedEdgeCounts(
+      num_edges, num_vertices + num_vertices2, pi, prop_mat)
   sbm_data.graph = generation.generate_sbm(sbm_data.graph_memberships,
                                            edge_counts, out_degs)
   graph_tool.stats.remove_self_loops(sbm_data.graph)

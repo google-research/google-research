@@ -170,7 +170,7 @@ def samples_to_embedding_tflite(model_input, sample_rate,
 
 
 @beam.typehints.with_input_types(Tuple[str, Any])
-@beam.typehints.with_output_types(Tuple[str, Any])
+@beam.typehints.with_output_types(Tuple[str, np.ndarray])
 class ComputeEmbeddingMapFn(beam.DoFn):
   """Computes an embedding (key, tf.Example) from audio (key, tf.Example)."""
 
@@ -276,7 +276,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
       model_input = audio
       if self._model_input_min_length and model_input.size < self._model_input_min_length:
         delta = self._model_input_min_length - model_input.size
-        model_input = np.pad(model_input, [0, delta], mode='constant')
+        model_input = np.pad(model_input, [0, delta], mode='symmetric')
       if self._use_tflite:
         model_input = np.expand_dims(model_input, axis=0)
     logging.info('`model_input` shape is: %s', model_input.shape)

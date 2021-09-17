@@ -13,7 +13,6 @@
 # limitations under the License.
 
 #!/bin/bash
-
 set -e
 
 SMUDIR=$(dirname $0)
@@ -29,7 +28,7 @@ export PYTHONPATH=${PYTHONPATH}:${ROOTDIR}
 
 set -u
 
-for TESTFN in $(find $SMUDIR -name *_test.py)
+for TESTFN in $(find $SMUDIR -name '*_test.py')
 do
     if [[ $TESTFN == *"$VENV"* ]]; then
         continue
