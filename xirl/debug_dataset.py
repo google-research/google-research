@@ -23,12 +23,13 @@ from absl import logging
 import matplotlib.pyplot as plt
 from ml_collections import config_flags
 import torchvision
+from base_configs import validate_config
 from xirl.common import get_pretraining_dataloaders
 # pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_boolean("debug", False, "Debug mode.")
+flags.DEFINE_boolean("debug", False, "Turn off shuffling and data aug.")
 
 config_flags.DEFINE_config_file(
     "config",
@@ -38,6 +39,7 @@ config_flags.DEFINE_config_file(
 
 
 def main(_):
+  validate_config(FLAGS.config, mode="pretrain")
   config = FLAGS.config
   if FLAGS.debug:
     config.data.pretraining_video_sampler = "same_class"

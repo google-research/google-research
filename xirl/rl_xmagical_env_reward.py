@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""x-MAGICAL: Train a policy with the sparse environment reward."""
+"""X-MAGICAL: Train a policy with the sparse environment reward."""
 
 import subprocess
 from absl import app

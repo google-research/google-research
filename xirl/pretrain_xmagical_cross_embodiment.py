@@ -13,9 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""x-MAGICAL cross-embodiment pretraining script."""
+"""X-MAGICAL cross-embodiment pretraining script."""
 
-from enum import unique
 import os.path as osp
 import subprocess
 from torchkit.experiment import string_from_kwargs
