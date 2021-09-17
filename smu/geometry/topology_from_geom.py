@@ -20,12 +20,11 @@ from typing import Dict, List, Optional, Tuple
 
 import apache_beam as beam
 import numpy as np
-import smu_molecule
-
-import utilities
 
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
+from smu.geometry import smu_molecule
+from smu.geometry import utilities
 from smu.parser import smu_utils_lib
 
 # The longest distance considered.
@@ -173,7 +172,8 @@ def bond_topologies_from_geom(
     if utilities.same_bond_topology(bond_topology, bt):
       bt.is_starting_topology = True
     bt.smiles = smu_utils_lib.compute_smiles_for_bond_topology(
-        bt, include_hs=True, labeled_atoms=True)
+      bt, include_hs=matching_parameters.smiles_with_h,
+       labeled_atoms=matching_parameters.smiles_with_labels)
     result.bond_topology.append(bt)
 
   if len(result.bond_topology) > 1:
