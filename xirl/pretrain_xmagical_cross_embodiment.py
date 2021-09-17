@@ -17,6 +17,7 @@
 
 import os.path as osp
 import subprocess
+import yaml
 from torchkit.experiment import string_from_kwargs
 from torchkit.experiment import unique_id
 from absl import app
@@ -84,6 +85,10 @@ def main(_):
         check=True,
     )
 
+    # Note: This assumes that the config.root_dir value has not been
+    # changed to its default value of 'tmp/xirl/pretrain_runs/'.
+    exp_path = osp.join("/tmp/xirl/pretrain_runs/", experiment_name)
+
     # The 'goal_classifier' baseline does not need to compute a goal embedding.
     if FLAGS.algo != "goal_classifier":
       subprocess.run(
@@ -91,12 +96,14 @@ def main(_):
               "python",
               "compute_goal_embedding.py",
               "--experiment_path",
-              # Note: This assumes that the config.root_dir value has not been
-              # changed to its default value of 'tmp/xirl/pretrain_runs/'.
-              osp.join("/tmp/xirl/pretrain_runs/", experiment_name),
+              exp_path,
           ],
           check=True,
       )
+
+    # Dump experiment metadata as yaml file.
+    with open(osp.join(exp_path, "metadata.yaml"), "w") as fp:
+      yaml.dump(kwargs, fp)
 
 
 if __name__ == "__main__":

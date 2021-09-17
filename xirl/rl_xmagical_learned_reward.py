@@ -17,15 +17,13 @@
 
 import os
 import subprocess
+import yaml
 from absl import app
 from absl import flags
 from absl import logging
 from torchkit.experiment import string_from_kwargs
 from torchkit.experiment import unique_id
-from configs.constants import EMBODIMENTS
-from configs.constants import ALGORITHMS
 from configs.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
-from utils import dict_from_experiment_name
 # pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS
@@ -35,26 +33,16 @@ flags.DEFINE_string("device", "cuda:0", "The compute device.")
 
 
 def main(_):
-  if not os.path.exists(FLAGS.pretrained_path):
-    raise ValueError(f"{FLAGS.pretrained_path} does not exist.")
+  with open(os.path.join(FLAGS.pretrained_path, "metadata.yaml"), "r") as fp:
+    kwargs = yaml.load(fp, Loader=yaml.FullLoader)
 
-  # Parse some experiment args from the name of the pretrained_path. This is
-  # hacky and I don't like it, but right now I'm trying to make it as easy as
-  # possible to regenerate all the results we had in the paper with as little
-  # manual input as possible.
-  kwargs = dict_from_experiment_name(FLAGS.pretrained_path)
-  embodiment = kwargs.pop("embodiment")
-  algo = kwargs.pop("algo")
-  assert embodiment in EMBODIMENTS
-  assert algo in ALGORITHMS
-
-  if algo == "goal_classifier":
+  if kwargs["algo"] == "goal_classifier":
     reward_type = "goal_classifier"
   else:
     reward_type = "distance_to_goal"
 
   # Map the embodiment to the x-MAGICAL env name.
-  env_name = XMAGICAL_EMBODIMENT_TO_ENV_NAME[embodiment]
+  env_name = XMAGICAL_EMBODIMENT_TO_ENV_NAME[kwargs["embodiment"]]
 
   # Generate a unique experiment name.
   experiment_name = string_from_kwargs(
@@ -62,7 +50,7 @@ def main(_):
       reward="learned",
       reward_type=reward_type,
       mode=kwargs["mode"],
-      algo=algo,
+      algo=kwargs["algo"],
       uid=unique_id(),
   )
   logging.info(f"Experiment name: {experiment_name}")
@@ -79,7 +67,7 @@ def main(_):
             "--env_name",
             f"{env_name}",
             "--config",
-            f"configs/xmagical/rl/env_reward.py:{embodiment}",
+            f"configs/xmagical/rl/env_reward.py:{kwargs['embodiment']}",
             "--config.reward_wrapper.pretrained_path",
             f"{FLAGS.pretrained_path}",
             "--config.reward_wrapper.type",
