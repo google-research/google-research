@@ -36,6 +36,8 @@ from tensorflow.io import gfile
 from google.protobuf import json_format
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
+from smu.geometry import topology_from_geom
+from smu.geometry import smu_molecule
 from smu.parser import smu_parser_lib
 from smu.parser import smu_utils_lib
 from smu.parser import smu_writer_lib
@@ -57,6 +59,9 @@ flags.DEFINE_integer('output_shards', 10,
 FLAGS = flags.FLAGS
 
 _METRICS_NAMESPACE = 'SMU'
+_BOND_LENGTHS_SIG_DIGITS = 3
+_BOND_LENGTHS_UNBONDED_MAX = 2.0
+_BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS = 0.9
 
 
 def parse_equivalent_file(filename):
@@ -356,7 +361,7 @@ class UpdateConformerFn(beam.DoFn):
 
   * Updates the smiles string (with a tagged output to record the mismatches.
   * Adds Fate field
-  * TODO(ianwatson, pfr): add in the geometry sensing part here
+  * Adds additional bond topologies that match the geometry
 
   main output is dataset_pb2.Conformer
   smiles output is a tuple of
@@ -384,12 +389,56 @@ class UpdateConformerFn(beam.DoFn):
            smiles_with_h, smiles_without_h))
       conformer.bond_topologies[0].smiles = smiles_without_h
 
-  def process(self, conformer):
+  def setup(self):
+    self._cached_bond_lengths = None
+
+  def _add_alternative_bond_topologies(self, conformer):
+    matching_parameters = smu_molecule.MatchingParameters()
+    matching_parameters.must_match_all_bonds = False
+    matching_parameters.smiles_with_h = False
+    matching_parameters.smiles_with_labels = False
+
+    matches = topology_from_geom.bond_topologies_from_geom(
+      self._cached_bond_lengths,
+      conformer.bond_topologies[0],
+      conformer.optimized_geometry,
+      matching_parameters)
+
+    if not matches.bond_topology:
+      beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
+                                   'no_topology_matches').inc()
+      return
+
+    # TODO(pfr): Need to add the bond topology id! This is a stupid hack
+    # right note
+    btid = conformer.bond_topologies[0].bond_topology_id
+
+    del conformer.bond_topologies[:]
+    conformer.bond_topologies.extend(matches.bond_topology)
+    # HACK HACK HACK
+    for bt in conformer.bond_topologies:
+      bt.bond_topology_id = btid
+
+
+  def process(self, conformer, bond_length_records):
+    # There is probably a better way to do this.
+    # We get the side input with each call to process. We'll assume that it's
+    # always the same input, so we set our cache value and never update it.
+    if not self._cached_bond_lengths:
+      self._cached_bond_lengths = (
+        bond_length_distribution.AllAtomPairLengthDistributions())
+      self._cached_bond_lengths.add_from_sparse_dataframe(
+        bond_length_distribution.sparse_dataframe_from_records(
+          bond_length_records), _BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS,
+          _BOND_LENGTHS_SIG_DIGITS)
+
     conformer = copy.deepcopy(conformer)
 
     conformer.fate = smu_utils_lib.determine_fate(conformer)
 
     yield from self._compare_smiles(conformer)
+
+    self._add_alternative_bond_topologies(conformer)
 
     yield conformer
 
@@ -730,21 +779,28 @@ def pipeline(root):
           file_name_suffix='.csv'))
 
   # Get the bond length distributions
-  unused_bond_length_dists_pcoll = (
+  bond_length_dists_pcoll = (
       merged_conformers
       | 'FilterForBondLengths' >> beam.Filter(
           smu_utils_lib.should_include_in_standard)
       | 'ExtractBondLengths' >> beam.FlatMap(
-          extract_bond_lengths, dist_sig_digits=3, unbonded_max=2.0)
+          extract_bond_lengths,
+        dist_sig_digits=_BOND_LENGTHS_SIG_DIGITS,
+        unbonded_max=_BOND_LENGTHS_UNBONDED_MAX)
       | 'CountBondLengths' >> beam.combiners.Count.PerElement()
       | 'ToListBondLengths' >> beam.combiners.ToList()
-      | 'WriteBondLengths' >> beam.ParDo(
-          write_bond_lengths, filename=f'{FLAGS.output_stem}_bond_lengths.csv'))
+  )
+  _ = (
+    bond_length_dists_pcoll
+    | 'WriteBondLengths' >> beam.ParDo(
+      write_bond_lengths, filename=f'{FLAGS.output_stem}_bond_lengths.csv'))
 
   # Various per conformer processing
   update_results = (
       merged_conformers
-      | 'UpdateConformers' >> beam.ParDo(UpdateConformerFn()).with_outputs(
+      | 'UpdateConformers'
+      >> beam.ParDo(UpdateConformerFn(),
+                    beam.pvalue.AsSingleton(bond_length_dists_pcoll)).with_outputs(
           UpdateConformerFn.OUTPUT_TAG_SMILES_MISMATCH, main='conformers'))
   updated_conformers = update_results['conformers']
 
