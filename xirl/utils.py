@@ -115,21 +115,21 @@ def load_model_checkpoint(pretrained_path: str, device: torch.device):
   return config, model
 
 
-def load_goal_embedding(pretrained_path: str) -> np.ndarray:
-  """Load a pickled goal embedding."""
-  filename = os.path.join(pretrained_path, "goal_emb.pkl")
-  with open(filename, "rb") as fp:
-    goal_emb = pickle.load(fp)
-  logging.info(f"Successfully loaded goal embedding from {filename}")
-  return goal_emb
-
-
-def save_goal_embedding(experiment_path: str, goal_emb: np.ndarray):
-  """Load a pickled goal embedding."""
-  filename = os.path.join(experiment_path, "goal_emb.pkl")
+def save_pickle(experiment_path: str, arr: np.ndarray, name: str):
+  """Save an array as a pickle file."""
+  filename = os.path.join(experiment_path, name)
   with open(filename, "wb") as fp:
-    pickle.dump(goal_emb, fp)
-  logging.info(f"Saved goal embedding to {filename}")
+    pickle.dump(arr, fp)
+  logging.info(f"Saved {name} to {filename}")
+
+
+def load_pickle(pretrained_path: str, name: str) -> np.ndarray:
+  """Load a pickled array."""
+  filename = os.path.join(pretrained_path, name)
+  with open(filename, "rb") as fp:
+    arr = pickle.load(fp)
+  logging.info(f"Successfully loaded {name} from {filename}")
+  return arr
 
 
 # ========================================= #
@@ -203,8 +203,9 @@ def wrap_learned_reward(env: gym.Env, config: ConfigDict) -> gym.Env:
     env = wrappers.GoalClassifierLearnedVisualReward(**kwargs)
 
   elif config.reward_wrapper.type == "distance_to_goal":
-    kwargs["goal_emb"] = load_goal_embedding(pretrained_path)
-    kwargs["distance_scale"] = config.reward_wrapper.distance_scale
+    kwargs["goal_emb"] = load_pickle(pretrained_path, "goal_emb.pkl")
+    kwargs["distance_scale"] = load_pickle(pretrained_path,
+                                           "distance_scale.pkl")
     env = wrappers.DistanceToGoalLearnedVisualReward(**kwargs)
 
   else:
@@ -247,8 +248,9 @@ def make_buffer(
     buffer = replay_buffer.ReplayBufferGoalClassifier(**kwargs)
 
   elif config.reward_wrapper.type == "distance_to_goal":
-    kwargs["goal_emb"] = load_goal_embedding(pretrained_path)
-    kwargs["distance_scale"] = config.reward_wrapper.distance_scale
+    kwargs["goal_emb"] = load_pickle(pretrained_path, "goal_emb.pkl")
+    kwargs["distance_scale"] = load_pickle(pretrained_path,
+                                           "distance_scale.pkl")
     buffer = replay_buffer.ReplayBufferDistanceToGoal(**kwargs)
 
   else:

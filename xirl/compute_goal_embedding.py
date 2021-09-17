@@ -44,9 +44,10 @@ def embed(
     model: ModelType,
     downstream_loader: DataLoaderType,
     device: torch.device,
-) -> np.ndarray:
+) -> typing.Tuple[np.ndarray, float]:
   """Embed the stored trajectories and compute mean goal embedding."""
   goal_embs = []
+  init_embs = []
   for class_name, class_loader in downstream_loader.items():
     logging.debug(f"Embedding {class_name}.")
     for batch_idx, batch in enumerate(class_loader):
@@ -54,9 +55,13 @@ def embed(
         logging.debug(f"\tEmbedding batch: {batch_idx}...")
       out = model.infer(batch["frames"].to(device))
       emb = out.numpy().embs
+      init_embs.append(emb[0, :])
       goal_embs.append(emb[-1, :])
   goal_emb = np.mean(np.stack(goal_embs, axis=0), axis=0, keepdims=True)
-  return goal_emb
+  dist_to_goal = np.linalg.norm(
+      np.stack(init_embs, axis=0) - goal_emb, axis=-1).mean()
+  distance_scale = 1.0 / dist_to_goal
+  return goal_emb, distance_scale
 
 
 def setup() -> typing.Tuple[ModelType, DataLoaderType]:
@@ -78,8 +83,9 @@ def main(_):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   model, downstream_loader = setup()
   model.to(device).eval()
-  goal_emb = embed(model, downstream_loader, device)
-  utils.save_goal_embedding(FLAGS.experiment_path, goal_emb)
+  goal_emb, distance_scale = embed(model, downstream_loader, device)
+  utils.save_pickle(FLAGS.experiment_path, goal_emb, "goal_emb.pkl")
+  utils.save_pickle(FLAGS.experiment_path, distance_scale, "distance_scale.pkl")
 
 
 if __name__ == "__main__":

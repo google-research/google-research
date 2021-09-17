@@ -52,7 +52,6 @@ def get_config():
   config.reward_wrapper.pretrained_path = ""
   # Can be one of ['distance_to_goal', 'goal_classifier'].
   config.reward_wrapper.type = "distance_to_goal"
-  config.reward_wrapper.distance_scale = 1.0
 
   # ================================================= #
   # Training parameters.

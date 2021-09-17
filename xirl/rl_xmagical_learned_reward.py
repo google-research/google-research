@@ -25,7 +25,6 @@ from torchkit.experiment import unique_id
 from configs.constants import EMBODIMENTS
 from configs.constants import ALGORITHMS
 from configs.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
-from configs.constants import ALGO_TO_DISTANCE_SCALE_DICT
 from utils import dict_from_experiment_name
 # pylint: disable=logging-fstring-interpolation
 
@@ -51,11 +50,8 @@ def main(_):
 
   if algo == "goal_classifier":
     reward_type = "goal_classifier"
-    distance_scale = 1.0  # This will be ignored.
   else:
     reward_type = "distance_to_goal"
-    distance_scale = getattr(ALGO_TO_DISTANCE_SCALE_DICT[algo][embodiment],
-                             kwargs["mode"])
 
   # Map the embodiment to the x-MAGICAL env name.
   env_name = XMAGICAL_EMBODIMENT_TO_ENV_NAME[embodiment]
@@ -65,7 +61,6 @@ def main(_):
       env_name=env_name,
       reward="learned",
       reward_type=reward_type,
-      distance_scale=distance_scale,
       algo=algo,
       uid=unique_id(),
   )
@@ -88,8 +83,6 @@ def main(_):
             f"{FLAGS.pretrained_path}",
             "--config.reward_wrapper.type",
             f"{reward_type}",
-            "--config.reward_wrapper.distance_scale",
-            f"{distance_scale}",
             "--seed",
             f"{seed}",
             "--device",
