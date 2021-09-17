@@ -21,6 +21,7 @@ from absl import app
 from absl import flags
 from absl import logging
 import numpy as np
+from tqdm.auto import tqdm
 import torch
 from torchkit import CheckpointManager
 from xirl import common
@@ -49,10 +50,8 @@ def embed(
   goal_embs = []
   init_embs = []
   for class_name, class_loader in downstream_loader.items():
-    logging.debug(f"Embedding {class_name}.")
-    for batch_idx, batch in enumerate(class_loader):
-      if batch_idx % 100 == 0:
-        logging.debug(f"\tEmbedding batch: {batch_idx}...")
+    logging.info(f"Embedding {class_name}.")
+    for batch in tqdm(iter(class_loader), leave=False):
       out = model.infer(batch["frames"].to(device))
       emb = out.numpy().embs
       init_embs.append(emb[0, :])

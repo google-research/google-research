@@ -30,7 +30,7 @@ from utils import dict_from_experiment_name
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("pretrained_path", None, "Path to pretraining experiment.")
-flags.DEFINE_list("seeds", [0, 1], "List specifying the range of seeds to run.")
+flags.DEFINE_list("seeds", [0, 5], "List specifying the range of seeds to run.")
 flags.DEFINE_string("device", "cuda:0", "The compute device.")
 
 
@@ -61,6 +61,7 @@ def main(_):
       env_name=env_name,
       reward="learned",
       reward_type=reward_type,
+      mode=kwargs["mode"],
       algo=algo,
       uid=unique_id(),
   )
