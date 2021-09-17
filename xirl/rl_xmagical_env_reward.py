@@ -40,7 +40,7 @@ def main(_):
   # Generate a unique experiment name.
   experiment_name = string_from_kwargs(
       env_name=env_name,
-      reward="env_reward",
+      reward="sparse_env",
       uid=unique_id(),
   )
   logging.info(f"Experiment name: {experiment_name}")

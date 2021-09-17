@@ -54,7 +54,8 @@ def main(_):
     distance_scale = 1.0  # This will be ignored.
   else:
     reward_type = "distance_to_goal"
-    distance_scale = ALGO_TO_DISTANCE_SCALE_DICT[algo][embodiment]
+    distance_scale = getattr(ALGO_TO_DISTANCE_SCALE_DICT[algo][embodiment],
+                             kwargs["mode"])
 
   # Map the embodiment to the x-MAGICAL env name.
   env_name = XMAGICAL_EMBODIMENT_TO_ENV_NAME[embodiment]
@@ -62,7 +63,9 @@ def main(_):
   # Generate a unique experiment name.
   experiment_name = string_from_kwargs(
       env_name=env_name,
-      reward="learned_reward",
+      reward="learned",
+      reward_type=reward_type,
+      distance_scale=distance_scale,
       algo=algo,
       uid=unique_id(),
   )

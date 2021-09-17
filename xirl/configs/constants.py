@@ -15,6 +15,7 @@
 
 """Settings we used for the CoRL 2021 experiments."""
 
+import dataclasses
 from typing import Dict
 from ml_collections import FrozenConfigDict
 
@@ -54,27 +55,31 @@ XMAGICAL_EMBODIMENT_TO_ENV_NAME: Dict[str, str] = {
     for k in EMBODIMENTS
 }
 
+# ========================================== #
+# Reward scaling related variables.
+# ========================================== #
+
+
+@dataclasses.dataclass(frozen=True)
+class DistanceScale:
+  same: float = 1.0
+  cross: float = 1.0
+
+
 # A mapping from embodiment to scalar multipliers used by the XIRL algo.
 #
 # To obtain these values, we run `interact.py`, visually inspect what the
 # absolute maximum value of the raw distance in embedding space is, then
 # compute the inverse of that value.
-_XMAGICAL_EMBODIMENT_TO_XIRL_DISTANCE_SCALE: Dict[str, float] = {
-    "longstick": 1.0,
-    "mediumstick": 1.0,
-    "shortstick": 1.0,
-    "gripper": 1.0,
+_XMAGICAL_EMBODIMENT_TO_XIRL_DISTANCE_SCALE: Dict[str, DistanceScale] = {
+    "longstick": DistanceScale(1 / 70.0, 1 / 88.0),
+    "mediumstick": DistanceScale(1 / 85.0, 1 / 96.0),
+    "shortstick": DistanceScale(1 / 105.0, 1 / 90.0),
+    "gripper": DistanceScale(1 / 70.0, 1 / 84.0),
 }
 
-# TODO(kevin): Fill these out once we rerun all baselines.
-_XMAGICAL_EMBODIMENT_TO_TCN_DISTANCE_SCALE: Dict[str, float] = {}
-_XMAGICAL_EMBODIMENT_TO_LIFS_DISTANCE_SCALE: Dict[str, float] = {}
-_XMAGICAL_EMBODIMENT_TO_RAW_IMAGENET_DISTANCE_SCALE: Dict[str, float] = {}
-
 # A mapping from algo to distance scale dict.
-ALGO_TO_DISTANCE_SCALE_DICT: Dict[str, Dict[str, float]] = {
+# TODO(kevin): Add the rest of the baselines once we rerun everything.
+ALGO_TO_DISTANCE_SCALE_DICT: Dict[str, Dict[str, DistanceScale]] = {
     "xirl": _XMAGICAL_EMBODIMENT_TO_XIRL_DISTANCE_SCALE,
-    "tcn": _XMAGICAL_EMBODIMENT_TO_TCN_DISTANCE_SCALE,
-    "lifs": _XMAGICAL_EMBODIMENT_TO_LIFS_DISTANCE_SCALE,
-    "raw_imagenet": _XMAGICAL_EMBODIMENT_TO_RAW_IMAGENET_DISTANCE_SCALE,
 }
