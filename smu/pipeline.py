@@ -21,6 +21,7 @@ checking to produce the final outputs.
 """
 
 import copy
+import csv
 import functools
 import itertools
 import logging as stdlogging
@@ -356,6 +357,27 @@ def write_bond_lengths(records, filename):
     df.to_csv(f, index=False)
 
 
+def smiles_to_id(bond_topology_filename):
+  """DoFn for creating the smiles to id mapping.
+
+  Reads the same merged_bond_topology file as bond_topology_summaries_from_csv
+  and output. We could of course produce them both at the same time, but this
+  is simpler.
+
+  Args:
+    bond_topology_filename: see FLAGS.input_bond_topology_csv
+
+  Yields:
+    smiles, bond_topology_id
+  """
+  with gfile.GFile(bond_topology_filename, 'r') as infile:
+    reader = csv.reader(iter(infile))
+    next(reader)  # skip the header line
+    for row in reader:
+      bt_id, _, _, _, _, smiles = row
+      yield smiles, int(bt_id)
+
+
 class UpdateConformerFn(beam.DoFn):
   """DoFn that performs several updates to fields in Conformer.
 
@@ -392,7 +414,7 @@ class UpdateConformerFn(beam.DoFn):
   def setup(self):
     self._cached_bond_lengths = None
 
-  def _add_alternative_bond_topologies(self, conformer):
+  def _add_alternative_bond_topologies(self, conformer, smiles_id_dict):
     matching_parameters = smu_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
     matching_parameters.smiles_with_h = False
@@ -409,21 +431,26 @@ class UpdateConformerFn(beam.DoFn):
                                    'no_topology_matches').inc()
       return
 
-    # TODO(pfr): Need to add the bond topology id! This is a stupid hack
-    # right note
-    btid = conformer.bond_topologies[0].bond_topology_id
-
     del conformer.bond_topologies[:]
     conformer.bond_topologies.extend(matches.bond_topology)
-    # HACK HACK HACK
     for bt in conformer.bond_topologies:
-      bt.bond_topology_id = btid
+      bt.bond_topology_id = smiles_id_dict[bt.smiles]
 
 
-  def process(self, conformer, bond_length_records):
+  def process(self, conformer, bond_length_records, smiles_id_dict):
+    """Per conformer updates.
+
+    Args:
+      conformer: dataset_pb2.Conformer
+      bond_length_records: tuples to go to bond_length_distribution.AllAtomPairLengthDistributions
+      smiles_id_dict: dict from SMILES to bond topology id
+    """
     # There is probably a better way to do this.
     # We get the side input with each call to process. We'll assume that it's
     # always the same input, so we set our cache value and never update it.
+    # We only do this with bond_length_records because there is a reasonable
+    # amount of processing in creating AllAtomPairLengthDistributions.
+    # The smiles_id_dict is used directly.
     if not self._cached_bond_lengths:
       self._cached_bond_lengths = (
         bond_length_distribution.AllAtomPairLengthDistributions())
@@ -438,7 +465,7 @@ class UpdateConformerFn(beam.DoFn):
 
     yield from self._compare_smiles(conformer)
 
-    self._add_alternative_bond_topologies(conformer)
+    self._add_alternative_bond_topologies(conformer, smiles_id_dict)
 
     yield conformer
 
@@ -795,12 +822,20 @@ def pipeline(root):
     | 'WriteBondLengths' >> beam.ParDo(
       write_bond_lengths, filename=f'{FLAGS.output_stem}_bond_lengths.csv'))
 
+  # Get the SMILES to id mapping needed for UpdateConformerFn
+  smiles_id_pcoll = (
+    root
+    | 'BTInputForSmiles' >> beam.Create([FLAGS.input_bond_topology_csv])
+    | 'GenerateSmilesToID' >> beam.FlatMap(smiles_to_id))
+  smiles_id_dict = beam.pvalue.AsDict(smiles_id_pcoll)
+
   # Various per conformer processing
   update_results = (
       merged_conformers
       | 'UpdateConformers'
       >> beam.ParDo(UpdateConformerFn(),
-                    beam.pvalue.AsSingleton(bond_length_dists_pcoll)).with_outputs(
+                    beam.pvalue.AsSingleton(bond_length_dists_pcoll),
+                    smiles_id_dict).with_outputs(
           UpdateConformerFn.OUTPUT_TAG_SMILES_MISMATCH, main='conformers'))
   updated_conformers = update_results['conformers']
 
