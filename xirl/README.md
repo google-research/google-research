@@ -13,9 +13,7 @@
 - [Acknowledgments](#acknowledgments)
 
 <p align="center">
-  <img src="./images/gripper_neg.gif" width="49%"/>
-  <img src="./images/gripper_pos.gif" width="49%"/>
-  <em>Interactive XIRL reward visualization on negative (left) and positive (right) demonstrations.</em>
+  <img src="./images/teaser.gif" width="75%"/>
 </p>
 
 ## Overview
