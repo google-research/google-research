@@ -132,10 +132,10 @@ Many people have contibuted one way or another in the making and shaping of this
 If you find this code useful, consider citing our work:
 
 ```bibtex
-@article{zakka2021xirl,
-    title = {XIRL: Cross-embodiment Inverse Reinforcement Learning},
-    author = {Zakka, Kevin and Zeng, Andy and Florence, Pete and Tompson, Jonathan and Bohg, Jeannette and Dwibedi, Debidatta},
-    journal = {Conference on Robot Learning (CoRL)},
-    year = {2021}
+@inproceedings{zakka2021xirl,
+  author    = {Zakka, Kevin and Zeng, Andy and Florence, Pete and Tompson, Jonathan and Bohg, Jeannette and Dwibedi, Debidatta},
+  title     = {XIRL: Cross-embodiment Inverse Reinforcement Learning},
+  booktitle = {Proceedings of the 5th Conference on Robot Learning (CoRL)},
+  year      = {2021},
 }
 ```
