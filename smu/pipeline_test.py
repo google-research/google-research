@@ -159,6 +159,10 @@ class IntegrationTest(absltest.TestCase):
       with beam.Pipeline(beam_options) as root:
         pipeline.pipeline(root)
 
+    # TODO(pfr): Check the counters with something like
+    # metrics = root.result.metrics().query()
+    # counters_dict = {m.key.metric.name: m.committed for m in metrics}
+
     logging.info('Files in output: %s',
                  '\n'.join(gfile.glob(os.path.join(test_subdirectory, '*'))))
     for stage in ['stage1', 'stage2']:
