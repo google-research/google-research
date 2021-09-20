@@ -23,6 +23,7 @@ from flax import linen as nn
 import gin
 import jax
 import jax.numpy as jnp
+import optax
 import tensorflow as tf
 
 from mico.atari import metric_utils
@@ -56,11 +57,11 @@ class AtariDQNNetwork(nn.Module):
     return NetworkType(q_values, representation)
 
 
-@functools.partial(jax.jit, static_argnums=(0, 8, 9, 10))
-def train(network_def, target_params, optimizer, states, actions, next_states,
-          rewards, terminals, cumulative_gamma, mico_weight, distance_fn):
+@functools.partial(jax.jit, static_argnums=(0, 3, 10, 11, 12))
+def train(network_def, online_params, target_params, optimizer, optimizer_state,
+          states, actions, next_states, rewards, terminals, cumulative_gamma,
+          mico_weight, distance_fn):
   """Run the training step."""
-  online_params = optimizer.target
   def loss_fn(params, bellman_target, target_r, target_next_r):
     def q_online(state):
       return network_def.apply(params, state)
@@ -92,8 +93,9 @@ def train(network_def, target_params, optimizer, states, actions, next_states,
   (loss, component_losses), grad = grad_fn(online_params, bellman_target,
                                            target_r, target_next_r)
   bellman_loss, metric_loss = component_losses
-  optimizer = optimizer.apply_gradient(grad)
-  return optimizer, loss, bellman_loss, metric_loss
+  updates, optimizer_state = optimizer.update(grad, optimizer_state)
+  online_params = optax.apply_updates(online_params, updates)
+  return optimizer_state, online_params, loss, bellman_loss, metric_loss
 
 
 def target_outputs(target_network, states, next_states, rewards, terminals,
@@ -132,18 +134,21 @@ class MetricDQNAgent(dqn_agent.JaxDQNAgent):
     if self._replay.add_count > self.min_replay_history:
       if self.training_steps % self.update_period == 0:
         self._sample_from_replay_buffer()
-        self.optimizer, loss, bellman_loss, metric_loss = train(
-            self.network_def,
-            self.target_network_params,
-            self.optimizer,
-            self.replay_elements['state'],
-            self.replay_elements['action'],
-            self.replay_elements['next_state'],
-            self.replay_elements['reward'],
-            self.replay_elements['terminal'],
-            self.cumulative_gamma,
-            self._mico_weight,
-            self._distance_fn)
+        (self.optimizer_state, self.online_params,
+         loss, bellman_loss, metric_loss) = train(
+             self.network_def,
+             self.online_params,
+             self.target_network_params,
+             self.optimizer,
+             self.optimizer_state,
+             self.replay_elements['state'],
+             self.replay_elements['action'],
+             self.replay_elements['next_state'],
+             self.replay_elements['reward'],
+             self.replay_elements['terminal'],
+             self.cumulative_gamma,
+             self._mico_weight,
+             self._distance_fn)
         if (self.summary_writer is not None and
             self.training_steps > 0 and
             self.training_steps % self.summary_writing_frequency == 0):

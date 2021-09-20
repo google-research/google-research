@@ -24,6 +24,7 @@ from flax import linen as nn
 import gin
 import jax
 import jax.numpy as jnp
+import optax
 import tensorflow as tf
 
 from mico.atari import metric_utils
@@ -65,12 +66,11 @@ class AtariRainbowNetwork(nn.Module):
     return NetworkType(q_values, logits, probabilities, representation)
 
 
-@functools.partial(jax.jit, static_argnums=(0, 10, 11, 12))
-def train(network_def, target_params, optimizer, states, actions, next_states,
-          rewards, terminals, loss_weights, support, cumulative_gamma,
-          mico_weight, distance_fn):
+@functools.partial(jax.jit, static_argnums=(0, 3, 12, 13, 14))
+def train(network_def, online_params, target_params, optimizer, optimizer_state,
+          states, actions, next_states, rewards, terminals, loss_weights,
+          support, cumulative_gamma, mico_weight, distance_fn):
   """Run a training step."""
-  online_params = optimizer.target
   def loss_fn(params, bellman_target, loss_multipliers, target_r,
               target_next_r):
     def q_online(state):
@@ -122,8 +122,9 @@ def train(network_def, target_params, optimizer, states, actions, next_states,
       cumulative_gamma)
   (_, aux_losses), grad = grad_fn(online_params, bellman_target,
                                   loss_weights, target_r, target_next_r)
-  optimizer = optimizer.apply_gradient(grad)
-  return optimizer, aux_losses
+  updates, optimizer_state = optimizer.update(grad, optimizer_state)
+  online_params = optax.apply_updates(online_params, updates)
+  return optimizer_state, online_params, aux_losses
 
 
 @functools.partial(jax.vmap, in_axes=(None, 0, 0, 0, 0, None, None))
@@ -180,10 +181,12 @@ class MetricRainbowAgent(rainbow_agent.JaxRainbowAgent):
         else:
           loss_weights = jnp.ones(self.replay_elements['state'].shape[0])
 
-        self.optimizer, aux_losses = train(
+        self.optimizer_state, self.online_params, aux_losses = train(
             self.network_def,
+            self.online_params,
             self.target_network_params,
             self.optimizer,
+            self.optimizer_state,
             self.replay_elements['state'],
             self.replay_elements['action'],
             self.replay_elements['next_state'],

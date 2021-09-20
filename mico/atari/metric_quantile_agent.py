@@ -24,6 +24,7 @@ from flax import linen as nn
 import gin
 import jax
 import jax.numpy as jnp
+import optax
 import tensorflow as tf
 
 from mico.atari import metric_rainbow_agent
@@ -89,12 +90,11 @@ def target_distribution(target_network, states, next_states, rewards, terminals,
       jax.lax.stop_gradient(next_state_representation))
 
 
-@functools.partial(jax.jit, static_argnums=(0, 8, 9, 10, 11, 12))
-def train(network_def, target_params, optimizer, states, actions, next_states,
-          rewards, terminals, kappa, num_atoms, cumulative_gamma, mico_weight,
-          distance_fn):
+@functools.partial(jax.jit, static_argnums=(0, 3, 10, 11, 12, 13, 14))
+def train(network_def, online_params, target_params, optimizer, optimizer_state,
+          states, actions, next_states, rewards, terminals, kappa, num_atoms,
+          cumulative_gamma, mico_weight, distance_fn):
   """Run a training step."""
-  online_params = optimizer.target
   def loss_fn(params, bellman_target, target_r, target_next_r):
     def q_online(state):
       return network_def.apply(params, state)
@@ -144,8 +144,10 @@ def train(network_def, target_params, optimizer, states, actions, next_states,
                              target_next_r)
   mean_loss, component_losses = all_losses
   loss, quantile_loss, metric_loss = component_losses
-  optimizer = optimizer.apply_gradient(grad)
-  return optimizer, loss, mean_loss, quantile_loss, metric_loss
+  updates, optimizer_state = optimizer.update(grad, optimizer_state)
+  online_params = optax.apply_updates(online_params, updates)
+  return (optimizer_state, online_params, loss, mean_loss, quantile_loss,
+          metric_loss)
 
 
 @gin.configurable
@@ -165,20 +167,23 @@ class MetricQuantileAgent(quantile_agent.JaxQuantileAgent):
     if self._replay.add_count > self.min_replay_history:
       if self.training_steps % self.update_period == 0:
         self._sample_from_replay_buffer()
-        self.optimizer, loss, mean_loss, quantile_loss, metric_loss = train(
-            self.network_def,
-            self.target_network_params,
-            self.optimizer,
-            self.replay_elements['state'],
-            self.replay_elements['action'],
-            self.replay_elements['next_state'],
-            self.replay_elements['reward'],
-            self.replay_elements['terminal'],
-            self._kappa,
-            self._num_atoms,
-            self.cumulative_gamma,
-            self._mico_weight,
-            self._distance_fn)
+        (self.optimizer_state, self.online_params,
+         loss, mean_loss, quantile_loss, metric_loss) = train(
+             self.network_def,
+             self.online_params,
+             self.target_network_params,
+             self.optimizer,
+             self.optimizer_state,
+             self.replay_elements['state'],
+             self.replay_elements['action'],
+             self.replay_elements['next_state'],
+             self.replay_elements['reward'],
+             self.replay_elements['terminal'],
+             self._kappa,
+             self._num_atoms,
+             self.cumulative_gamma,
+             self._mico_weight,
+             self._distance_fn)
         if self._replay_scheme == 'prioritized':
           probs = self.replay_elements['sampling_probabilities']
           loss_weights = 1.0 / jnp.sqrt(probs + 1e-10)

@@ -25,6 +25,7 @@ import gin
 import jax
 import jax.numpy as jnp
 import numpy as onp
+import optax
 import tensorflow as tf
 
 from mico.atari import metric_utils
@@ -210,12 +211,13 @@ def target_quantile_values(online_network, target_network, states,
       jax.lax.stop_gradient(next_state_representation))
 
 
-@functools.partial(jax.jit, static_argnums=(7, 8, 9, 10, 11, 12, 14, 15, 16,
-                                            17, 18))
-def train(target_network, optimizer, states, actions, next_states, rewards,
-          terminals, num_tau_samples, num_tau_prime_samples,
-          num_quantile_samples, cumulative_gamma, double_dqn, kappa, rng,
-          mico_weight, distance_fn, tau, alpha, clip_value_min):
+@functools.partial(jax.jit, static_argnums=(0, 2, 9, 10, 11, 12, 13, 14, 16, 17,
+                                            18, 19, 20))
+def train(target_network, online_params, optimizer, optimizer_state, states,
+          actions, next_states, rewards, terminals, num_tau_samples,
+          num_tau_prime_samples, num_quantile_samples, cumulative_gamma,
+          double_dqn, kappa, rng, mico_weight, distance_fn, tau, alpha,
+          clip_value_min):
   """Run a training step."""
   def loss_fn(model, rng_input, target_quantile_vals, target_r, target_next_r):
     model_output = jax.vmap(
@@ -268,7 +270,7 @@ def train(target_network, optimizer, states, actions, next_states, rewards,
 
   if tau is None:
     rng, target_quantile_vals, target_r, target_next_r = target_quantile_values(
-        optimizer.target,
+        online_params,
         target_network,
         states,
         next_states,
@@ -297,12 +299,13 @@ def train(target_network, optimizer, states, actions, next_states, rewards,
             clip_value_min))
   grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
   rng, rng_input = jax.random.split(rng)
-  all_losses, grad = grad_fn(optimizer.target, rng_input, target_quantile_vals,
+  all_losses, grad = grad_fn(online_params, rng_input, target_quantile_vals,
                              target_r, target_next_r)
   loss, component_losses = all_losses
   quantile_loss, metric_loss = component_losses
-  optimizer = optimizer.apply_gradient(grad)
-  return rng, optimizer, loss, quantile_loss, metric_loss
+  updates, optimizer_state = optimizer.update(grad, optimizer_state)
+  online_params = optax.apply_updates(online_params, updates)
+  return rng, optimizer_state, online_params, loss, quantile_loss, metric_loss
 
 
 @gin.configurable
@@ -326,26 +329,29 @@ class MetricImplicitQuantileAgent(
     if self._replay.add_count > self.min_replay_history:
       if self.training_steps % self.update_period == 0:
         self._sample_from_replay_buffer()
-        self._rng, self.optimizer, loss, quantile_loss, metric_loss = train(
-            self.target_network,
-            self.optimizer,
-            self.replay_elements['state'],
-            self.replay_elements['action'],
-            self.replay_elements['next_state'],
-            self.replay_elements['reward'],
-            self.replay_elements['terminal'],
-            self.num_tau_samples,
-            self.num_tau_prime_samples,
-            self.num_quantile_samples,
-            self.cumulative_gamma,
-            self.double_dqn,
-            self.kappa,
-            self._rng,
-            self._mico_weight,
-            self._distance_fn,
-            self._tau,
-            self._alpha,
-            self._clip_value_min)
+        (self._rng, self.optimizer_state, self.online_params,
+         loss, quantile_loss, metric_loss) = train(
+             self.target_network,
+             self.online_params,
+             self.optimizer,
+             self.optimizer_state,
+             self.replay_elements['state'],
+             self.replay_elements['action'],
+             self.replay_elements['next_state'],
+             self.replay_elements['reward'],
+             self.replay_elements['terminal'],
+             self.num_tau_samples,
+             self.num_tau_prime_samples,
+             self.num_quantile_samples,
+             self.cumulative_gamma,
+             self.double_dqn,
+             self.kappa,
+             self._rng,
+             self._mico_weight,
+             self._distance_fn,
+             self._tau,
+             self._alpha,
+             self._clip_value_min)
         if (self.summary_writer is not None and
             self.training_steps > 0 and
             self.training_steps % self.summary_writing_frequency == 0):
