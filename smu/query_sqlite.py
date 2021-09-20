@@ -20,6 +20,8 @@ Command line interface to extract molecules from thq SMU database.
 
 import contextlib
 import enum
+import os
+import random
 import sys
 from typing import Sequence
 
@@ -29,8 +31,10 @@ from absl import logging
 from rdkit import Chem
 
 from tensorflow.io import gfile
+from smu import dataset_pb2
 from smu import smu_sqlite
 from smu.parser import smu_utils_lib
+from smu.parser import smu_writer_lib
 
 
 class OutputFormat(enum.Enum):
@@ -38,6 +42,7 @@ class OutputFormat(enum.Enum):
   sdf_opt = 2
   sdf_init = 3
   sdf_init_opt = 4
+  atomic_input = 5
 
 
 flags.DEFINE_string(
@@ -49,6 +54,8 @@ flags.DEFINE_string(
 flags.DEFINE_list('btids', [], 'List of bond topology ids to query')
 flags.DEFINE_list('cids', [], 'List of conformer ids to query')
 flags.DEFINE_list('smiles', [], 'List of smiles to query')
+flags.DEFINE_float('random_fraction', 0.0,
+                   'Randomly return this fraction of DB.')
 flags.DEFINE_enum_class('output_format', OutputFormat.pbtxt, OutputFormat,
                         'Format for the found SMU entries')
 
@@ -118,6 +125,37 @@ class SDFOutputter:
     self.writer.close()
 
 
+class AtomicInputOutputter:
+  """Internal class to write output as the inputs to atomic code."""
+
+  def __init__(self, output_path):
+    """Creates AtomicInputOutputter.
+
+    Args:
+      output_path: directory to write output files to
+    """
+    self.output_path = output_path
+    if output_path and not gfile.isdir(self.output_path):
+      raise ValueError(
+          'Atomic input requires directory as output path, got {}'.format(
+              self.output_path))
+    self.atomic_writer = smu_writer_lib.AtomicInputWriter()
+
+  def write(self, conformer):
+    if self.output_path is None:
+      sys.stdout.write(self.atomic_writer.process(conformer))
+    else:
+      with gfile.GFile(
+          os.path.join(
+              self.output_path,
+              self.atomic_writer.get_filename_for_atomic_input(conformer)),
+          'w') as f:
+        f.write(self.atomic_writer.process(conformer))
+
+  def close(self):
+    pass
+
+
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
@@ -135,6 +173,8 @@ def main(argv):
   elif FLAGS.output_format == OutputFormat.sdf_init_opt:
     outputter = SDFOutputter(
         FLAGS.output_path, init_geometry=True, opt_geometry=True)
+  elif FLAGS.output_format == OutputFormat.atomic_input:
+    outputter = AtomicInputOutputter(FLAGS.output_path)
   else:
     raise ValueError(f'Bad output format {FLAGS.output_format}')
 
@@ -154,6 +194,11 @@ def main(argv):
         raise KeyError(f'SMILES {smiles} not found')
       for c in conformers:
         outputter.write(c)
+    if FLAGS.random_fraction:
+      for conformer in db:
+        if conformer.fate == dataset_pb2.Conformer.FATE_SUCCESS and random.random(
+        ) < FLAGS.random_fraction:
+          outputter.write(conformer)
 
 
 if __name__ == '__main__':

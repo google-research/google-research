@@ -19,20 +19,19 @@
 # pytype: disable=wrong-arg-count
 # pytype: disable=attribute-error
 
-import collections
 import functools
 import json
 import os
 import sys
 sys.path.append('..')
 import random
+import sys
 import time
 
 from absl import app
 from absl import flags
 from absl import logging
 from flax import jax_utils
-from flax import linen as nn
 from flax import optim
 from flax.metrics import tensorboard
 from flax.training import checkpoints
@@ -42,7 +41,6 @@ import jax.numpy as jnp
 import numpy as np
 import tensorflow.compat.v2 as tf
 
-from latent_programmer import decode
 from latent_programmer import models
 from latent_programmer import train_lib
 from latent_programmer.tasks.robust_fill import dsl
@@ -50,6 +48,7 @@ from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
 from latent_programmer.tasks.robust_fill.dataset import input_pipeline
 
 gfile = tf.io.gfile
+sys.path.append('..')
 
 FLAGS = flags.FLAGS
 
@@ -84,12 +83,17 @@ flags.DEFINE_integer('checkpoint_freq', 1000,
 flags.DEFINE_bool('restore_checkpoints', True,
                   'Whether to restore from existing model checkpoints.')
 
+<<<<<<< HEAD
 flags.DEFINE_bool('use_relative_attention', False,
                   'Whether to use relative positonal embeddings.')
 flags.DEFINE_integer('num_relative_position_buckets', 32,
                      'Number of buckets when computing relative positions.')
 
 flags.DEFINE_string('xm_parameters', None, 'String specifying hyperparamter search.')
+=======
+flags.DEFINE_string('xm_parameters', None,
+                    'String specifying hyperparamter search.')
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
 
 
 def main(_):
@@ -237,7 +241,12 @@ def main(_):
   # Replicate optimizer.
   optimizer = jax_utils.replicate(optimizer)
 
+<<<<<<< HEAD
   learning_rate_fn = train_lib.create_learning_rate_scheduler(base_learning_rate=FLAGS.lr)
+=======
+  learning_rate_fn = train_lib.create_learning_rate_scheduler(
+      base_learning_rate=FLAGS.lr)
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
   p_train_step = jax.pmap(
       functools.partial(
           train_lib.train_step,

@@ -9,7 +9,7 @@ embedding for a domain.
 
 Code in the following directories is intended for documentation purposes, and is
 not necessarily runnable. More information on these files is in a README.md in
-each folder.
+each folder. We used tensorflow-gpu v1.15.4 and python v3.7 in this project.
 
 evaluation/
 
@@ -18,9 +18,9 @@ evaluation/
 -   inference confidence
 -   accuracy stratification based on sequence similarity, family size, etc.
 
-hmm_baseline/
+hmm_blast_baselines/
 
--   running hmmer and phmmer
+-   running hmmer/phmmer, blast.
 
 neural_network/
 
@@ -30,7 +30,7 @@ neural_network/
 ## Availability of trained models
 
 Trained models are available in
-[Google Cloud Storage](https://storage.googleapis.com/brain-genomics-public/research/proteins/pfam/models/single_domain_per_sequence_zipped_models)
+[Google Cloud Storage](https://console.cloud.google.com/storage/browser/brain-genomics-public/research/proteins/pfam/models/single_domain_per_sequence_zipped_models)
 
 ```
 └── single_domain_per_sequence_zipped_models
@@ -49,3 +49,6 @@ https://www.kaggle.com/googleai/pfam-seed-random-split
 
 Data for the random and clustered splits is available in google cloud storage:
 https://console.cloud.google.com/storage/browser/brain-genomics-public/research/proteins/pfam
+
+This data is licensed by
+https://storage.cloud.google.com/brain-genomics-public/research/proteins/pfam/LICENSE

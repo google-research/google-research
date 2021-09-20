@@ -20,6 +20,7 @@
 # pytype: disable=attribute-error
 
 import collections
+<<<<<<< HEAD
 import functools
 import os
 import random
@@ -29,16 +30,26 @@ from flax import linen as nn
 from flax import optim
 from flax.metrics import tensorboard
 from flax.training import checkpoints
+=======
+
+from flax import linen as nn
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
 from flax.training import common_utils
 import jax
 import jax.numpy as jnp
 import numpy as np
+<<<<<<< HEAD
 import tensorflow.compat.v2 as tf
 
 from latent_programmer import decode
 from latent_programmer import models
 from latent_programmer.tasks.robust_fill import dsl
 from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
+=======
+
+from latent_programmer import decode
+from latent_programmer import models
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
 
 
 def create_learning_rate_scheduler(

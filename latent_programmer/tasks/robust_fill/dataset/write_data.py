@@ -25,18 +25,18 @@ import os
 import sys
 sys.path.append('../../../../')
 import random
-from typing import Dict, Any
+import sys
 from absl import app
 from absl import flags
 
 import numpy as np
 import tensorflow.compat.v2 as tf
 
-from latent_programmer.tasks.robust_fill import dsl
 from latent_programmer.tasks.robust_fill import sample_random
 from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
 
 
+sys.path.append('../../../../')
 gfile = tf.io.gfile
 
 FLAGS = flags.FLAGS
@@ -56,8 +56,15 @@ flags.DEFINE_integer('max_characters', 100,
 
 flags.DEFINE_string('save_dir', None, 'Directory to save results to.')
 
+<<<<<<< HEAD
 flags.DEFINE_boolean('split_program', False, 'Whether to split program by parial program.')
 flags.DEFINE_boolean('split_outputs', False, 'Whether to split outputs by partial program.')
+=======
+flags.DEFINE_boolean('split_program', False,
+                     'Whether to split program by parial program.')
+flags.DEFINE_boolean('split_outputs', False,
+                     'Whether to split outputs by partial program.')
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
 
 
 def _bytes_feature(value):
@@ -90,7 +97,12 @@ def serialize_example(task,
       program_string += '|'
     program_string = program_string[:-1]
   else:
+<<<<<<< HEAD
     program_string = ' '.join(map(str, task.program.encode(token_id_table)[:-1]))
+=======
+    program_string = ' '.join(
+        map(str, task.program.encode(token_id_table)[:-1]))
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
 
   feature = {
       'i/o': _bytes_feature(str.encode(io_string)),

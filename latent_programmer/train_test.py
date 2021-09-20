@@ -19,6 +19,7 @@
 # pytype: disable=wrong-arg-count
 # pytype: disable=attribute-error
 
+<<<<<<< HEAD
 import collections
 import functools
 import json
@@ -27,11 +28,20 @@ import sys
 sys.path.append('..')
 import random
 import time
+=======
+import functools
+import os
+import random
+import sys
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
 
 from absl.testing import absltest
 
 from flax import jax_utils
+<<<<<<< HEAD
 from flax import linen as nn
+=======
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
 from flax import optim
 from flax.training import common_utils
 import jax
@@ -39,7 +49,10 @@ import jax.numpy as jnp
 import numpy as np
 import tensorflow.compat.v2 as tf
 
+<<<<<<< HEAD
 from latent_programmer import decode
+=======
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
 from latent_programmer import models
 from latent_programmer import train_lib
 from latent_programmer.tasks.robust_fill import dsl
@@ -47,6 +60,11 @@ from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
 from latent_programmer.tasks.robust_fill.dataset import input_pipeline
 
 gfile = tf.io.gfile
+<<<<<<< HEAD
+=======
+sys.path.append('..')
+
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
 
 class TrainTest(absltest.TestCase):
 
@@ -57,7 +75,15 @@ class TrainTest(absltest.TestCase):
     np.random.seed(0)
     random.seed(0)
 
+<<<<<<< HEAD
     dataset_filepattern = 'tasks/robust_fill/dataset/test_dataset/program_tasks.tf_records-*'
+=======
+    dataset_filepattern = os.path.join(
+        os.path.dirname(__file__),
+        'tasks/robust_fill/dataset/test_dataset/program_tasks.tf_records-*')
+
+    print('dataset_filepattern = {}'.format(dataset_filepattern))
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
 
     batch_size = 4
     num_strings_per_task = 4
@@ -67,11 +93,16 @@ class TrainTest(absltest.TestCase):
     # Build token tables.
     id_char_table = {i+1: char for (i, char) in enumerate(dsl.CHARACTER)}
     char_id_table = {char: id for id, char in id_char_table.items()}
+<<<<<<< HEAD
     id_token_table, token_id_table = dsl_tokens.build_token_tables()
+=======
+    _, token_id_table = dsl_tokens.build_token_tables()
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
     io_vocab_size = len(char_id_table) + 1  # For padding.
     program_vocab_size = len(token_id_table) + 1
 
     bos_token = token_id_table[dsl.BOS]
+<<<<<<< HEAD
     eos_token = token_id_table[dsl.EOS]
 
     def decode_io(inputs, outputs):
@@ -124,12 +155,41 @@ class TrainTest(absltest.TestCase):
     eval_config = train_config.replace(deterministic=True)
     predict_config = train_config.replace(
       shift=False, deterministic=True, decode=True)
+=======
+
+    # Load dataset.
+    dataset = input_pipeline.create_dataset_from_tf_record(
+        dataset_filepattern, token_id_table, char_id_table)
+    dataset = dataset.padded_batch(
+        batch_size,
+        padded_shapes=((num_strings_per_task, max_characters),
+                       (num_strings_per_task, max_characters),
+                       (max_program_length,)),
+        drop_remainder=True)
+    dataset_iter = dataset.repeat().as_numpy_iterator()
+
+    train_config = models.TransformerConfig(
+        vocab_size=io_vocab_size,
+        output_vocab_size=program_vocab_size,
+        shift=True,
+        emb_dim=32,
+        num_heads=4,
+        num_layers=2,
+        qkv_dim=32,
+        mlp_dim=32,
+        max_len=max(max_characters, max_program_length),
+        deterministic=False,
+        decode=False,
+        bos_token=bos_token)
+    eval_config = train_config.replace(deterministic=True)
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
 
     rng = jax.random.PRNGKey(0)
     rng, init_rng = jax.random.split(rng)
 
     m = models.ProgramTransformer(eval_config)
     initial_variables = jax.jit(m.init)(
+<<<<<<< HEAD
       init_rng,
       jnp.ones((batch_size, num_strings_per_task, max_characters), jnp.float32),
       jnp.ones((batch_size, num_strings_per_task, max_characters), jnp.float32),
@@ -143,10 +203,28 @@ class TrainTest(absltest.TestCase):
       weight_decay=0.1)
     optimizer = optimizer_def.create(initial_variables['params'])
   
+=======
+        init_rng,
+        jnp.ones((batch_size, num_strings_per_task, max_characters),
+                 jnp.float32),
+        jnp.ones((batch_size, num_strings_per_task, max_characters),
+                 jnp.float32),
+        jnp.ones((batch_size, max_program_length), jnp.float32))
+
+    optimizer_def = optim.Adam(
+        1e-2,
+        beta1=0.9,
+        beta2=0.98,
+        eps=1e-9,
+        weight_decay=0.1)
+    optimizer = optimizer_def.create(initial_variables['params'])
+
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
     del initial_variables  # Don't keep a copy of the initial model.
 
     optimizer = jax_utils.replicate(optimizer)
 
+<<<<<<< HEAD
     learning_rate_fn = train_lib.create_learning_rate_scheduler(base_learning_rate=1e-2)
     p_train_step = jax.pmap(
       functools.partial(
@@ -157,16 +235,36 @@ class TrainTest(absltest.TestCase):
     p_eval_step = jax.pmap(
       functools.partial(train_lib.eval_step, config=eval_config),
       axis_name='batch')
+=======
+    learning_rate_fn = train_lib.create_learning_rate_scheduler(
+        base_learning_rate=1e-2)
+    p_train_step = jax.pmap(
+        functools.partial(
+            train_lib.train_step,
+            learning_rate_fn=learning_rate_fn,
+            config=train_config),
+        axis_name='batch')
+    p_eval_step = jax.pmap(
+        functools.partial(train_lib.eval_step, config=eval_config),
+        axis_name='batch')
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
 
     # Training loop.
     start_step = 0
     rngs = jax.random.split(rng, jax.local_device_count())
     del rng
 
+<<<<<<< HEAD
     for step in range(start_step, 1000):
       inputs, outputs, programs = common_utils.shard(next(dataset_iter))
       optimizer, _, rngs = p_train_step(
         optimizer, inputs, outputs, programs, train_rng=rngs)
+=======
+    for _ in range(start_step, 1000):
+      inputs, outputs, programs = common_utils.shard(next(dataset_iter))
+      optimizer, _, rngs = p_train_step(
+          optimizer, inputs, outputs, programs, train_rng=rngs)
+>>>>>>> 86d4a37bc7a7be83388e5ac15d19e8b5d7c20641
 
     # Evaluation.
     eval_metrics = []

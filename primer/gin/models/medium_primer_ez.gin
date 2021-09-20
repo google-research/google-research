@@ -1,0 +1,19 @@
+# 110M parameter Primer-EZ.
+#
+# This is used for C4 and PG19.
+
+# Based off of the T5 "base" model.
+include 'models/t5.1.0.base.gin'
+
+import mesh_tensorflow.transformer.transformer
+import mesh_tensorflow.transformer.transformer_layers
+import t5_models
+
+DenseReluDense.activation = ["squared_relu"]
+
+t5_models.MDHA.share_qk_rep = False
+
+transformer.make_layer_stack.layers = [
+    @t5_models.MDHA,
+    @transformer_layers.DenseReluDense,
+]

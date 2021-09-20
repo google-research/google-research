@@ -2,7 +2,7 @@
 # proto-message: MultipleConformers
 conformers {
   conformer_id: 618451001
-  original_conformer_index: 1
+  original_conformer_index: 3
   initial_geometries {
     atom_positions {
       x: -0.599232
@@ -149,32 +149,6 @@ conformers {
   }
   properties {
     errors {
-      error_frequencies: 1
-      error_atomic_analysis: 1
-      error_nmr_analysis_b3lyp_small_basis: 1
-      error_nmr_analysis_b3lyp_large_basis: 1
-      error_nmr_analysis_pbe0_small_basis: 1
-      error_nmr_analysis_pbe0_large_basis: 1
-      error_charge_analysis: 1
-      error_energies_orbitals_pvtz: 1
-      error_energies_orbitals_pvqz: 1
-      error_energies_orbitals_pcvtz: 1
-      error_excitation_energies: 1
-      error_single_point_energies: 1
-      error_inconsistent_molecule_energy_turbomole_mrcc: 1
-      error_inconsistent_cation_energy_turbomole_mrcc: 1
-      error_inconsistent_molecule_energy_turbomole_orca: 1
-      error_inconsistent_cation_energy_turbomole_orca: 1
-      error_normal_modes: 1
-      error_rotational_modes: 1
-      error_nsvho1: 1
-      error_nsvho2: 1
-      error_nsvho3: 1
-      error_nsvneg: 1
-      error_nstat1: 1
-      error_nstatc: 1
-      error_nstatt: 1
-      error_nsvego: 1
     }
     harmonic_intensities {
       value: 0.0
@@ -918,12 +892,6 @@ conformers {
     }
     diagnostics_d1_ccsd_2sp {
       value: 0.0486
-    }
-    diagnostics_d1_ccsd_2sd {
-      value: -1.0
-    }
-    diagnostics_d1_ccsd_3psd {
-      value: -1.0
     }
     diagnostics_t1_ccsd_2sp {
       value: 0.0121
@@ -4253,10 +4221,11 @@ conformers {
     smiles: "COC(=CF)OC"
     bond_topology_id: 618451
   }
+  which_database: STANDARD
 }
 conformers {
   conformer_id: 618451123
-  original_conformer_index: 9
+  original_conformer_index: 4
   initial_geometries {
     atom_positions {
       x: 0.32182
@@ -4403,32 +4372,6 @@ conformers {
   }
   properties {
     errors {
-      error_frequencies: 1
-      error_atomic_analysis: 1
-      error_nmr_analysis_b3lyp_small_basis: 1
-      error_nmr_analysis_b3lyp_large_basis: 1
-      error_nmr_analysis_pbe0_small_basis: 1
-      error_nmr_analysis_pbe0_large_basis: 1
-      error_charge_analysis: 1
-      error_energies_orbitals_pvtz: 1
-      error_energies_orbitals_pvqz: 1
-      error_energies_orbitals_pcvtz: 1
-      error_excitation_energies: 1
-      error_single_point_energies: 1
-      error_inconsistent_molecule_energy_turbomole_mrcc: 1
-      error_inconsistent_cation_energy_turbomole_mrcc: 1
-      error_inconsistent_molecule_energy_turbomole_orca: 1
-      error_inconsistent_cation_energy_turbomole_orca: 1
-      error_normal_modes: 1
-      error_rotational_modes: 1
-      error_nsvho1: 1
-      error_nsvho2: 1
-      error_nsvho3: 1
-      error_nsvneg: 1
-      error_nstat1: 1
-      error_nstatc: 1
-      error_nstatt: 1
-      error_nsvego: 1
     }
     harmonic_intensities {
       value: 0.0
@@ -5172,12 +5115,6 @@ conformers {
     }
     diagnostics_d1_ccsd_2sp {
       value: 0.0482
-    }
-    diagnostics_d1_ccsd_2sd {
-      value: -1.0
-    }
-    diagnostics_d1_ccsd_3psd {
-      value: -1.0
     }
     diagnostics_t1_ccsd_2sp {
       value: 0.012
@@ -8504,4 +8441,5 @@ conformers {
     smiles: "COC(=CF)OC"
     bond_topology_id: 618451
   }
+  which_database: STANDARD
 }

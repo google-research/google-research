@@ -102,6 +102,19 @@ message BondTopology {
 
   // A unique 1 indexed dense id for this topology.
   int32 bond_topology_id = 4;
+
+  // If this has been discerned from geometry, the associated score.
+  float score = 5;
+
+  // If this has been discerned from geometry, is it the same as the
+  // starting BondTopology.
+  bool is_starting_topology = 6;
+}
+
+// When doing topology from geometry matching, the results are returned
+// as a set of individual BondTopology's.
+message TopologyMatches {
+  repeated BondTopology bond_topology = 1;
 }
 
 // Geometry captures the 3D locations of the atoms. The atom types are left
@@ -116,17 +129,80 @@ message Geometry {
   repeated AtomPos atom_positions = 1;
 }
 
-// TODO(pfr): document units for all fields
-
 // All the properties that are computed for a molecule.
 message Properties {
   // These values capture all of the possible error states during computations.
   // TODO(pfr): this proto will undergo a major revision with next round of
   // data.
   message Errors {
+    // status is a summary of all the error conditions encountered.
+    // 0 indicates no errors and larger values indicate increasingly serious
+    // errors.
+    int32 status = 29;
+
+    // All of the warn_ fields are categories of errors encountered.
+    // 0 means no errors and larger values are increasingly serious.
+
+    // T1(2sd) diagnostics 1: > 0.02, 2: > 0.04, 3: > 0.06, 4: > 0.08
+    int32 warn_t1 = 30;
+    // Excess T1(2sd) diagnostics 1: > 0.015, 2: > 0.03, 3: > 0.05, 4: > 0.07
+    int32 warn_t1_excess = 31;
+    // Ratio between
+    // a) usigned difference in B6 and B5 BSEs
+    // b) given uncertainty of B6 BSEs
+    // 1: > 0.5, 2: > 1, 3: > 1.5, 4: > 2.0
+    int32 warn_bse_b5_b6 = 32;
+    // Ratio between
+    // a) unsigned difference in E_CCSD and B5 BSEs
+    // b) given uncertainty of E_CCSD BSEs
+    // 1: > 0.5, 2: > 1,
+    int32 warn_bse_cccsd_b5 = 33;
+    // Lowest excitation energy 1: < 1.0, 2: < 0.5, 3: < 0.0, 4: < -0.5 (eV)
+    int32 warn_exc_lowest_excitation = 34;
+    // Smallest oscillator strength 1: < -0.001
+    // (i.e. negative value, certain to be not due to numerical inaccuracy)
+    int32 warn_exc_smallest_oscillator = 35;
+    // Largest unsigned oscillator strength 1: > 1.0, 2: > 2.0
+    int32 warn_exc_largest_oscillator = 36;
+    // Disagreement between geometry analysis and QM program claim about
+    // linearity of the molecule.
+    // 1: QM claims non-linear, molecule seems to be linear
+    // 2: QM claims linear, molecule seems to be non-linear
+    // (note: value of 2 apparently not found for SMU1-7)
+    // Warning indicates that computed heats of formation for 298.15 K
+    // may be wrong)
+    int32 warn_vib_linearity = 37;
+    // Imaginary frequencies found.
+    // 1: At least one imaginary frequency found, all imaginary
+    // frequencies are between 0 and 30i cm-1. In this case any
+    // imaginary frequency is assumed to be due to numerical
+    // imprecision, and we set it to a small real value (1 cm-1) for
+    // thermochemical analysis.
+    // 2: At least one imaginary frequency found, at least one of
+    // which is larger than 30i cm-1. In this case we assume that the
+    // geometry really corresponds to a transition state or
+    // higher-order saddle point. Imaginary frequencies are skipped in
+    // the calculation of ZPEs and enthalpies of formation for 298 K
+    // are left out.
+    int32 warn_vib_imaginary = 38;
+    // This is simply information about how many of the bonds are
+    // classified as those that need an empirical correction in the
+    // thermochemical analysis to correct for the occurrence of
+    // negatively charged BSR prototype molecules.
+    int32 warn_num_neg = 39;
+
+    // These four errors (nstat1, nstatc, nstatt, frequencies) are only from
+    // the stage1 files and are only useful for internal debugging.
+    int32 error_nstat1 = 24;
+    int32 error_nstatc = 25;
+    int32 error_nstatt = 26;
     // Computation error for frequencies.
     // Original error code: nstatv
     int32 error_frequencies = 2;
+
+    // All errors below here are deprecated and were only used in
+    // earlier versions of the dataset.
+
     // ATOMIC analysis of the molecule.
     // Original error code: nsvato
     int32 error_atomic_analysis = 3;
@@ -184,9 +260,6 @@ message Properties {
     int32 error_nsvho2 = 21;
     int32 error_nsvho3 = 22;
     int32 error_nsvneg = 23;
-    int32 error_nstat1 = 24;
-    int32 error_nstatc = 25;
-    int32 error_nstatt = 26;
     int32 error_nsvego = 27;
     int32 error_nsvg09 = 28;
 
@@ -231,19 +304,7 @@ message Properties {
     double y = 2;
     double z = 3;
   }
-  // A frequency property.
-  // TODO(pfr): document better!
-  // TODO(pfr): units
-  message VectorFrequentialProperty {
-    double magnitude = 1;
-    double harmonic_intensity = 2;
-    double normal_mode = 3;
-  }
-  // One VectorFrequentialProperty for each atom. frequencies should be exactly
-  // the same length as atoms in the BondTopology.
-  message AtomicVectorFrequentialProperty {
-    repeated VectorFrequentialProperty frequencies = 1;
-  }
+
   // A rank 2 tensor property.
   message Rank2MolecularProperty {
     // TODO(pfr): Document the encoding order.
@@ -252,10 +313,12 @@ message Properties {
   // A rank 3 tensor property
   message Rank3MolecularProperty {
     // TODO(pfr): Document the encoding order.
+
     repeated double tensor_values = 1;
   }
   // Normal modes with atomic displacements.
   message NormalMode {
+    // Units: unitless, vector norm is scaled to 1.
     message AtomicDisplacement {
       double x = 1;
       double y = 2;
@@ -278,15 +341,13 @@ message Properties {
   // * atomic = ATOMIC2/B5,B6
 
   // 3 * num_atoms.
-  // TODO(pfr): units
-  // TODO(pfr): should this be a different type than MultiScalar?
-  // km/mol
+  // Units: km/mol
   MultiScalarMolecularProperty harmonic_intensities = 4
       [(availability) = STANDARD];
 
-  // TODO(pfr): document better
   // Values that are negative are imaginary. Frequencies should be exactly
   // the same length as atoms in the BondTopology.
+  // Units: wave numbers, cm^-1
   MultiScalarMolecularProperty harmonic_frequencies = 173
       [(availability) = STANDARD];
   // TODO(pfr): document better
@@ -294,7 +355,7 @@ message Properties {
   // each. Each normal mode corresponds to a particular harmonic_intensity.
   repeated NormalMode normal_modes = 174 [(availability) = COMPLETE];
 
-  // TODO(pfr): document units for all single_point_* properties
+  // Single point energies are all in atomic units (Hartrees).
   // Single point energy PBE0D3/6-311Gd.
   ScalarMolecularProperty single_point_energy_pbe0d3_6_311gd = 6
       [(availability) = COMPLETE];
@@ -400,21 +461,23 @@ message Properties {
   // Single point energy CCSD/3Psd.
   ScalarMolecularProperty single_point_energy_ccsd_3psd = 40
       [(availability) = COMPLETE];
-  // Single point energy ATOMIC/B5, in Hartrees.
+  // Single point energy ATOMIC/B5.
   ScalarMolecularProperty single_point_energy_atomic_b5 = 41
       [(availability) = STANDARD];
-  // Single point energy ATOMIC/B6, in Hartrees.
+  // Single point energy ATOMIC/B6.
   ScalarMolecularProperty single_point_energy_atomic_b6 = 42
       [(availability) = COMPLETE];
-  // Single point energy for E_{CCSD}, in Hartrees.
+  // Single point energy for E_{CCSD}.
   ScalarMolecularProperty single_point_energy_eccsd = 120
       [(availability) = COMPLETE];
+  // TODO(pfr, dirk): double check that atomic_b5 is still reported even when
+  // other thermochemistry fails.
 
-  // TODO(pfr): units
   // Zero point energy, unscaled.
+  // Units: kcal/mol
   ScalarMolecularProperty zpe_unscaled = 43 [(availability) = COMPLETE];
 
-  // TODO(pfr): units for all of homo/lumo
+  // Units: atomic units (Hartrees)
   // HOMO PBE0/6-311Gd.
   ScalarMolecularProperty homo_pbe0_6_311gd = 47 [(availability) = STANDARD];
   // LUMO PBE0/6-311Gd.
@@ -461,13 +524,13 @@ message Properties {
   ScalarMolecularProperty lumo_hf_cvtz = 68 [(availability) = COMPLETE];
 
   // The 5 smallest excitation energies and oscillator strengths.
-  // TODO(pfr): units
+  // Units: atomic units
   MultiScalarMolecularProperty excitation_energies_cc2 = 69
       [(availability) = STANDARD];
   MultiScalarMolecularProperty excitation_oscillator_strengths_cc2 = 70
       [(availability) = STANDARD];
 
-  // TODO(pfr): document better; units?
+  // NMR isotropic shielding are in ppm
   // NMR isotropic shielding PBE0/6-31++Gdp.
   AtomicMolecularProperty nmr_isotropic_shielding_pbe0_6_31ppgdp = 71
       [(availability) = COMPLETE];
@@ -481,6 +544,7 @@ message Properties {
   AtomicMolecularProperty nmr_isotropic_shielding_b3lyp_aug_pcs_1 = 74
       [(availability) = COMPLETE];
 
+  // All partial charges are in electron units
   // Partial charges MUL-PBE0/aug-pc-1.
   AtomicMolecularProperty partial_charges_mulliken_pbe0_aug_pc_1 = 75
       [(availability) = STANDARD];
@@ -512,24 +576,26 @@ message Properties {
   AtomicMolecularProperty partial_charges_esp_fit_hf_6_31gd = 84
       [(availability) = COMPLETE];
 
-  // TODO(pfr): units
   // Dipole-dipole polarizability PBE0/aug-pc-1.
+  // Units: atomic units
   Rank2MolecularProperty dipole_dipole_polarizability_pbe0_aug_pc_1 = 85
       [(availability) = STANDARD];
   // Dipole-dipole polarizability HF/6-31Gd.
+  // Units: atomic units
   // TODO(pfr): is this actually available in the dataset?
   Rank2MolecularProperty dipole_dipole_polarizability_hf_6_31gd = 86
       [(availability) = STANDARD];
 
-  // TODO(pfr): units
   // Dipole moment PBE0/aug-pc-1.
+  // Units: Debye
   Vector3DMolecularProperty dipole_moment_pbe0_aug_pc_1 = 87
       [(availability) = STANDARD];
   // Dipole moment HF/6-31Gd.
+  // Units: Debye
   Vector3DMolecularProperty dipole_moment_hf_6_31gd = 88
       [(availability) = COMPLETE];
 
-  // TODO(pfr): units
+  // Units: atomic units (bohr^2 * electron)
   // Quadrupole moment PBE0/aug-pc-1.
   Rank2MolecularProperty quadrupole_moment_pbe0_aug_pc_1 = 89
       [(availability) = STANDARD];
@@ -537,7 +603,7 @@ message Properties {
   Rank2MolecularProperty quadrupole_moment_hf_6_31gd = 90
       [(availability) = COMPLETE];
 
-  // TODO(pfr): units
+  // Units: atomic units (bohr^3 * electron)
   // Octopole moment PBE0/aug-pc-1.
   Rank3MolecularProperty octopole_moment_pbe0_aug_pc_1 = 91
       [(availability) = STANDARD];
@@ -552,22 +618,23 @@ message Properties {
   optional bool symmetry_used_in_calculation = 94
       [(availability) = INTERNAL_ONLY];
 
-  // Energies and overall gradient norm at the end of the intial geometry optimization
-  // and at the end of the final geometry optimization.
-  // TODO(pfr): document source
-  // TODO(pfr): units?
+  // Energies and and overall gradient norm at the end of the intial geometry
+  // optimization and at the end of the final geometry optimization.
+  // Units: atomic units (Hartrees)
+  // TODO(pfr): shoudl match single_point_energy_pbe0d3_6_311gd
   ScalarMolecularProperty initial_geometry_energy = 95
       [(availability) = STANDARD];
   ScalarMolecularProperty initial_geometry_gradient_norm = 96
       [(availability) = STANDARD];
   // The energy is computed by Turbomole with PBE0-D3/6-311G(d)
-  // TODO(pfr): units
+  // Units: atomic units (Hartrees)
   ScalarMolecularProperty optimized_geometry_energy = 97
       [(availability) = STANDARD];
   ScalarMolecularProperty optimized_geometry_gradient_norm = 98
       [(availability) = STANDARD];
 
-  // TODO(pfr): document
+  // The eigenvalues of the moment of inertia tensor.
+  // Units: Mhz
   Vector3DMolecularProperty rotational_constants = 99
       [(availability) = STANDARD];
 
@@ -648,8 +715,8 @@ message Properties {
   ScalarMolecularProperty atomization_energy_including_zpe_eccsd_um_ci = 150
       [(availability) = COMPLETE];
 
-  // Enthalpy of formation for T = 0K.
-  // TODO(pfr): units
+  // Enthalpy of formation for T = 0K
+  // Units: kcal/mol
   ScalarMolecularProperty enthalpy_of_formation_0k_atomic_b5 = 151
       [(availability) = STANDARD];
   ScalarMolecularProperty enthalpy_of_formation_0k_atomic_b5_um = 152
@@ -670,7 +737,7 @@ message Properties {
       [(availability) = COMPLETE];
 
   // Enthalpy of formation for T = 298.15K.
-  // TODO(pfr): units
+  // Units: kcal/mol
   ScalarMolecularProperty enthalpy_of_formation_298k_atomic_b5 = 160
       [(availability) = STANDARD];
   ScalarMolecularProperty enthalpy_of_formation_298k_atomic_b5_um = 161
@@ -690,14 +757,12 @@ message Properties {
   ScalarMolecularProperty enthalpy_of_formation_298k_eccsd_um_ci = 168
       [(availability) = COMPLETE];
 
-  // TODO(pfr): document better
   // Zero point energy, scaled.
-  // TODO(pfr): units
+  // Units: kcal/mol
   ScalarMolecularProperty zpe_atomic = 169 [(availability) = STANDARD];
   ScalarMolecularProperty zpe_atomic_um = 170 [(availability) = STANDARD];
   ScalarMolecularProperty zpe_atomic_um_ci = 171 [(availability) = STANDARD];
 
-  // TODO(pfr): document
   // Number of imaginary frequencies.
   optional int32 number_imaginary_frequencies = 110
       [(availability) = INTERNAL_ONLY];
@@ -706,17 +771,18 @@ message Properties {
       [(availability) = INTERNAL_ONLY];
 
   // For the optimized geoemtry, energy just for the nuclei.
-  // TODO(pfr): units
+  // Units: atomic units (Hartree)
   ScalarMolecularProperty nuclear_repulsion_energy = 112
       [(availability) = COMPLETE];
 
-  // TODO(pfr): Review diagnostics availability
   // Diagnostics D1(CCSD/2sp).
   ScalarMolecularProperty diagnostics_d1_ccsd_2sp = 113
       [(availability) = COMPLETE];
+  // DEPRECATED
   // Diagnostics D1(CCSD/2sd).
   ScalarMolecularProperty diagnostics_d1_ccsd_2sd = 114
       [(availability) = INTERNAL_ONLY];
+  // DEPRECATED
   // Diagnostics D1(CCSD/3Psd).
   ScalarMolecularProperty diagnostics_d1_ccsd_3psd = 115
       [(availability) = INTERNAL_ONLY];
@@ -730,7 +796,6 @@ message Properties {
   ScalarMolecularProperty diagnostics_t1_ccsd_3psd = 118
       [(availability) = COMPLETE];
   // Diagnostics T1(CCSD/2sp) excess.
-  // TODO(pfr): Document better
   ScalarMolecularProperty diagnostics_t1_ccsd_2sp_excess = 121
       [(availability) = STANDARD];
 
@@ -783,15 +848,15 @@ message Conformer {
   // perfect production of the .dat file.
   int32 original_conformer_index = 2 [(availability) = INTERNAL_ONLY];
 
-  // Geometry produced by minimization by MMFF. This is repeated because
-  // Conformers are deduplicated by their optimized_geometry and multiple
-  // initial_geometry can converge to the same optimized_geometry.
-  // Although duplicates can be found across bond topologies, *only* the
-  // duplicates produced with two different geometry optimizations starting from
-  // the same bond topology are included. This is to avoid the complex and
+  // Geometry produced by minimization by with an empirical force
+  // field. This is repeated because Conformers are deduplicated by
+  // their optimized_geometry and multiple initial_geometry can
+  // converge to the same optimized_geometry.  Although duplicates can
+  // be found across bond topologies, *only* the duplicates produced
+  // with two different geometry optimizations starting from the same
+  // bond topology are included. This is to avoid the complex and
   // potentially ambiguous matching of corresponding atoms across bond
   // topologies.
-  // TODO(pfr): double check the MMFF part
   repeated Geometry initial_geometries = 3;
   // Geometry produced by PBE0D3 minimization from the initial_geometry. Some
   // entries in the COMPLETE dataset will be missing optimized_geometry if the
@@ -848,13 +913,21 @@ message Conformer {
     FATE_DISCARDED_OTHER = 6;
     // Calculation results are missing. Should not be present in final dataset.
     FATE_NO_CALCULATION_RESULTS = 7;
-    // Some calculation results had serious errors.
-    // TODO(pfr): comment using the new error fields
-    FATE_CALCULATION_WITH_ERROR = 8;
-    // Calculations were successful with only minor errors.
+    // Some calculation results had serious/major/moderate errors.
+    FATE_CALCULATION_WITH_SERIOUS_ERROR = 8;
+    FATE_CALCULATION_WITH_MAJOR_ERROR = 10;
+    FATE_CALCULATION_WITH_MODERATE_ERROR = 11;
+    // Some calculations had only minor errors with some warnings.
+    FATE_CALCULATION_WITH_WARNING_SERIOUS = 12;
+    FATE_CALCULATION_WITH_WARNING_VIBRATIONAL = 13;
+    // Calculations were successful with only minor errors/warnings
     FATE_SUCCESS = 9;
   }
   FateCategory fate = 9;
+
+  // Specifies which database (STANDARD or COMPLETE) this Conformer
+  // will be in. Note that everything in STANDARD is also included in COMPLETE.
+  AvailabilityEnum which_database = 10;
 }
 
 ///////////// MultipleConformers

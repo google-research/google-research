@@ -1,15 +1,14 @@
 ================================================================================
 # From original_conformer_index, topology, bond_topology_id, conformer_id
     1    4     x01_nh3.000000.001
+Database   standard
 # From errors
-   nstat1   nstatc   nstatv   nstatt   nsvato   nsvnsb   nsvnlb   nsvele
-        1        1        1        1        1        1        1        1
-   nsvego   nsveh3   nsveh4   nsvec3   nsvexc   nsveca   nsvmr1   nsvmr2
-        1        1        1        1        1        1        1        1
-   nsvvib   nsvor1   nsvor2   nsvrot   nsvnsp   nsvnlp   nsvg09   nsvho1
-        1        1        1        1        1        1        1        5
-   nsvho2   nsvho3   nsvneg
-        5        5        1
+Status        0
+Warn_T1       0   0
+Warn_BSE      0   0
+Warn_EXC      0   0   0
+Warn_VIB      0   0
+Warn_NEG      0
 # From topology
      
      3
@@ -60,23 +59,6 @@ Frequencies and intensities
 # From harmonic_intensities
     0.0    0.0    0.0    0.0    0.0    0.0  211.8   29.4   29.4    0.5
     0.2    0.2
-Gaussian sanity check for FREQ/ELSTAT calculation
-# From energy_pbe0_6_311gd_diff
-Dev. Energy PBE0/6-311G*            0.000010
-# From max_force
-Max. Force                          0.000010
-# From max_frequencies_diff,mean_frequencies_diff
-Max. and Avg Dev. Frequencies       0.390800      0.231800
-# From max_intensities_diff,mean_intensities_diff
-Max. and Avg Dev. Intensities       0.045960      0.010800
-# From energy_hf_6_31gd_diff
-Dev. Energy HF/6-31G*               0.000000
-# From max_dipole_components_diff
-Max. Dev. Dipole Components         0.000010
-# From max_quadropole_components_diff
-Max. Dev. Quadrup. Components       0.000030
-# From max_octopole_components_diff
-Max. Dev. Octupole Components       0.000070
 Normal modes
 # From normal_modes
 Mode   1
@@ -193,8 +175,8 @@ NUM_OPT                  1
 NIMAG                    0
 # From zpe_unscaled
 ZPE_unscaled            22.05
-# From diagnostics_d1_ccsd_2sp, diagnostics_d1_ccsd_2sd, diagnostics_d1_ccsd_3psd
-D1DIAG    D1(CCSD/2sp)   0.010100  D1(CCSD/2sd)  -1.000000  D1(CCSD/3Psd) -1.000000
+# From diagnostics_d1_ccsd_2sp
+D1DIAG    D1(CCSD/2sp)   0.010100
 # From diagnostics_t1_ccsd_2sp, diagnostics_t1_ccsd_2sd, diagnostics_t1_ccsd_3psd
 T1DIAG    T1(CCSD/2sp)   0.006000  T1(CCSD/2sd)   0.006000  T1(CCSD/3Psd)  0.007400
 # From bond_separation_reaction_left
@@ -204,7 +186,7 @@ AT2_BSR_RIGHT        1 NH3
 # From diagnostics_t1_ccsd_2sd
 AT2_T1mol                0.0060
 # From diagnostics_t1_ccsd_2sp_excess
-AT2_T1exc                   NaN
+AT2_T1exc                0.0000
 # From zpe_atomic{,_um,_um_ci}
 AT2_ZPE                 21.59       21.57        0.30
 # From single_point_energy_atomic_b5
@@ -362,8 +344,8 @@ Polarizability (au):    PBE0/aug-pc-1
     yy      15.21574
     zz      13.59549
     xy      -0.57441
-    xz      -0.26387
-    yz       0.74564
+    xz      -0.02639
+    yz       0.07456
 Dipole moment (au):     PBE0/aug-pc-1
 # From dipole_moment_pbe0_aug_pc_1
      x       0.19879
