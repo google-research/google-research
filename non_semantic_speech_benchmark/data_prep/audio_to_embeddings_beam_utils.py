@@ -169,7 +169,7 @@ def samples_to_embedding_tflite(model_input, sample_rate,
   return np.array(embedding_2d, dtype=np.float32)
 
 
-@beam.typehints.with_input_types(Tuple[str, Any])
+@beam.typehints.with_input_types(Tuple[str, tf.train.Example])
 @beam.typehints.with_output_types(Tuple[str, np.ndarray])
 class ComputeEmbeddingMapFn(beam.DoFn):
   """Computes an embedding (key, tf.Example) from audio (key, tf.Example)."""
