@@ -17,39 +17,36 @@
 
 from absl import app
 from absl import flags
-import gym
-import matplotlib.pyplot as plt
-from ml_collections.config_flags import config_flags
-import torch
-from wrappers import wrapper_from_config
-import xmagical
+from ml_collections import config_flags
 from xmagical.utils import KeyboardEnvInteractor
+from configs.constants import EMBODIMENTS
+from configs.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
+import utils
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("embodiment", None, "The agent embodiment.")
+flags.DEFINE_enum("embodiment", "longstick", EMBODIMENTS,
+                  "The agent embodiment.")
+flags.DEFINE_boolean(
+    "exit_on_done", True,
+    "By default, env will terminate if done is True. Set to False to interact "
+    "for as long as you want and press esc key to exit.")
 
 config_flags.DEFINE_config_file(
     "config",
-    "configs/rl/default.py",
+    "base_configs/rl.py",
     "File path to the training hyperparameter configuration.",
-    lock_config=True,
 )
-
-flags.mark_flag_as_required("embodiment")
-
-
-def make_env():
-  xmagical.register_envs()
-  embodiment_name = FLAGS.embodiment.capitalize()
-  env = gym.make(f"SweepToTop-{embodiment_name}-State-Allo-TestLayout-v0")
-  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  env = wrapper_from_config(FLAGS.config, env, device)
-  return env
 
 
 def main(_):
-  env = make_env()
+  env_name = XMAGICAL_EMBODIMENT_TO_ENV_NAME[FLAGS.embodiment]
+  env = utils.make_env(env_name, seed=0)
+
+  # Reward learning wrapper.
+  if FLAGS.config.reward_wrapper.pretrained_path is not None:
+    env = utils.wrap_learned_reward(env, FLAGS.config)
+
   viewer = KeyboardEnvInteractor(action_dim=env.action_space.shape[0])
 
   env.reset()
@@ -64,18 +61,19 @@ def main(_):
     rews.append(rew)
     if obs.ndim != 3:
       obs = env.render("rgb_array")
-    if done and i[0] % 100 == 0:
+    if done:
       print(f"Done, score {info['eval_score']:.2f}/1.00")
+      print("Episode metrics: ")
+      for k, v in info["episode"].items():
+        print(f"\t{k}: {v}")
+      if FLAGS.exit_on_done:
+        return
     i[0] += 1
     return obs
 
   viewer.run_loop(step)
 
-  # Plot the rewards over the episode.
-  plt.plot(rews)
-  plt.xlabel("Timestep")
-  plt.ylabel("Reward")
-  plt.show()
+  utils.plot_reward(rews)
 
 
 if __name__ == "__main__":

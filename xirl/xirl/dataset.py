@@ -15,7 +15,7 @@
 
 """Video dataset abstraction."""
 
-import logging
+from absl import logging
 import os.path as osp
 import random
 from typing import Dict, List, Optional, Sequence, Tuple, Union
@@ -23,6 +23,8 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from collections import OrderedDict
+from pathlib import Path
 
 from xirl import frame_samplers
 from xirl import transforms
@@ -30,6 +32,8 @@ from xirl.file_utils import get_subdirs
 from xirl.file_utils import load_image
 from xirl.tensorizers import ToTensor
 from xirl.types import SequenceType
+from torchkit.utils.py_utils import threaded_func
+# pylint: disable=logging-fstring-interpolation
 
 DataArrayPacket = Dict[SequenceType, Union[np.ndarray, str, int]]
 DataTensorPacket = Dict[SequenceType, Union[torch.Tensor, str]]
@@ -42,9 +46,9 @@ class VideoDataset(Dataset):
       self,
       root_dir,
       frame_sampler,
-      augmentor = None,
-      max_vids_per_class = -1,
-      seed = None,
+      augmentor=None,
+      max_vids_per_class=-1,
+      seed=None,
   ):
     """Constructor.
 
@@ -71,33 +75,29 @@ class VideoDataset(Dataset):
     self._totensor = ToTensor()
 
     # Get list of available dirs and ensure that it is not empty.
-    self._available_dirs = get_subdirs(
-        self._root_dir,
-        nonempty=True,
-        sort=False,
-    )
-    if len(self._available_dirs) == 0:  # pylint: disable=g-explicit-length-test
+    dirs = get_subdirs(self._root_dir, nonempty=True, sort_lexicographical=True)
+    if not dirs:
       raise ValueError("{} is an empty directory.".format(root_dir))
-    self._allowed_dirs = self._available_dirs
+    self._allowed_dirs = dirs
 
     self.seed_rng()
     self._build_dir_tree()
 
   def seed_rng(self):
     if self._seed:
+      logging.debug(f"{self.__class__.__name__} seed: {self._seed}")
       random.seed(self._seed)
 
   def _build_dir_tree(self):
     """Build a dict of indices for iterating over the dataset."""
-    self._dir_tree = {}
+    self._dir_tree = OrderedDict()
     for path in self._allowed_dirs:
       vids = get_subdirs(
           path,
           nonempty=False,
-          sort=True,
-          sortfunc=lambda x: int(osp.splitext(osp.basename(x))[0]),
+          sort_numerical=True,
       )
-      if len(vids) > 0:  # pylint: disable=g-explicit-length-test
+      if vids:
         self._dir_tree[path] = vids
     self._restrict_dataset_size()
 
@@ -108,9 +108,7 @@ class VideoDataset(Dataset):
         self._dir_tree[vid_class] = vid_dirs[:self._max_vids_per_class]
 
   def restrict_subdirs(self, subdirs):
-    """Restrict the set of available subdirectories, i.e.
-
-    classes.
+    """Restrict the set of available subdirectories, i.e. video classes.
 
     If using a batch sampler in conjunction with a dataloader, ensure this
     method is called before instantiating the sampler.
@@ -121,21 +119,15 @@ class VideoDataset(Dataset):
     Raises:
       ValueError: If the restriction leads to an empty directory.
     """
-    if not isinstance(subdirs, (tuple, list)):
+    if not isinstance(subdirs, (list, tuple)):
       subdirs = [subdirs]
-    if subdirs:
-      len_init = len(self._available_dirs)
-      self._allowed_dirs = self._available_dirs
-      subdirs = [osp.join(self._root_dir, x) for x in subdirs]
-      self._allowed_dirs = list(set(self._allowed_dirs) & set(subdirs))
-      if len(self._allowed_dirs) == 0:  # pylint: disable=g-explicit-length-test
-        raise ValueError(f"Filtering with {subdirs} returns an empty dataset.")
-      len_final = len(self._allowed_dirs)
-      logging.debug(  # pylint: disable=logging-format-interpolation
-          f"Restricted dataset from {len_init} to {len_final} actions.")
-      self._build_dir_tree()
-    else:
+    if not subdirs:
       logging.debug("Passed in an empty list. No action taken.")
+      return
+    to_remove = set(self.class_names) - set(subdirs)
+    for key in to_remove:
+      self._dir_tree.pop(osp.join(self._root_dir, key))
+    logging.debug(f"Video classes reduced to {self.num_classes}.")
 
   def _get_video_path(self, class_idx, vid_idx):
     """Return video paths given class and video indices.
@@ -170,11 +162,17 @@ class VideoDataset(Dataset):
     # Load each frame along with its context frames into an array of shape
     # (S, X, H, W, C), where S is the number of sampled frames and X is the
     # number of context frames.
-    frames = np.stack([load_image(f) for f in sample["frames"]])
-    frames = np.take(frames, sample["ctx_idxs"], axis=0)
+    frame_paths = np.array([str(f) for f in sample["frames"]])
+    frame_paths = np.take(frame_paths, sample["ctx_idxs"], axis=0)
+    frame_paths = frame_paths.flatten()
 
-    # Reshape frames into a 4D array of shape (S * X, H, W, C).
-    frames = np.reshape(frames, (-1, *frames.shape[2:]))
+    frames = [None for _ in range(len(frame_paths))]
+
+    def get_image(image_index: int, image_path: str) -> None:
+      frames[image_index] = load_image(image_path)
+
+    threaded_func(get_image, enumerate(frame_paths), True)
+    frames = np.stack(frames)  # Shape: (S * X, H, W, C)
 
     frame_idxs = np.asarray(sample["frame_idxs"], dtype=np.int64)
 
@@ -199,7 +197,12 @@ class VideoDataset(Dataset):
   @property
   def num_classes(self):
     """The number of subdirs, i.e. allowed video classes."""
-    return len(self._allowed_dirs)
+    return len(self._dir_tree)
+
+  @property
+  def class_names(self):
+    """The stems of the allowed video class subdirs."""
+    return [str(Path(f).stem) for f in self._allowed_dirs]
 
   @property
   def total_vids(self):

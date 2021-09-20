@@ -66,7 +66,7 @@ class UnNormalize:
 
 
 def augment_video(
-    frames,
+    frames: np.ndarray,
     pipeline,  # pylint: disable=g-bare-generic
 ):
   """Apply the same augmentation pipeline to all frames in a video.

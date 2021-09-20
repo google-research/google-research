@@ -34,7 +34,7 @@ class VideoBatchSampler(abc.ABC, Sampler):
       self,
       dir_tree,
       batch_size,
-      sequential = False,
+      sequential=False,
   ):
     """Constructor.
 
@@ -138,6 +138,6 @@ class SameClassBatchSamplerDownstream(SameClassBatchSampler):
   def __init__(
       self,
       dir_tree,
-      sequential = False,
+      sequential=False,
   ):
     super().__init__(dir_tree, batch_size=1, sequential=sequential)

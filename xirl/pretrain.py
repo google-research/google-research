@@ -13,85 +13,69 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Launch script for training."""
+"""Launch script for pre-training representations."""
 
-import logging
-import os
 import os.path as osp
-import random
-
 from absl import app
 from absl import flags
+from absl import logging
 from ml_collections import config_flags
-from ml_collections import ConfigDict
-import numpy as np
 import torch
-from torchkit import checkpoint
+from xirl import common
+from base_configs import validate_config
+from utils import setup_experiment
+from torchkit import CheckpointManager
+from torchkit import experiment
 from torchkit import Logger
 from torchkit.utils.py_utils import Stopwatch
-from xirl import common
-import yaml
+# pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("experiment_name", None, "Experiment name.")
 flags.DEFINE_boolean("resume", False, "Whether to resume training.")
+flags.DEFINE_string("device", "cuda:0", "The compute device.")
+flags.DEFINE_boolean("raw_imagenet", False, "")
 
 config_flags.DEFINE_config_file(
     "config",
-    "configs/pretraining.py",
+    "base_configs/pretrain.py",
     "File path to the training hyperparameter configuration.",
-    lock_config=True,
 )
 
-flags.mark_flag_as_required("experiment_name")
 
-
-def seed_rng(seed):
-  """Seeds python, numpy, and torch RNGs."""
-  random.seed(seed)
-  np.random.seed(seed)
-  torch.manual_seed(seed)
-  torch.cuda.manual_seed(seed)
-  torch.backends.cudnn.deterministic = FLAGS.config.CUDNN_DETERMINISTIC
-  torch.backends.cudnn.benchmark = FLAGS.config.CUDNN_BENCHMARK
-
-
-def setup_experiment(exp_dir):
-  """Initializes a training experiment."""
-  if os.path.exists(exp_dir):
-    if not FLAGS.resume:
-      raise ValueError(
-          "Experiment already exists. Run with --resume to continue.")
-    with open(os.path.join(exp_dir, "config.yaml"), "r") as fp:
-      cfg = yaml.load(fp, Loader=yaml.FullLoader)
-    FLAGS.config.update(cfg)
-  else:
-    os.makedirs(exp_dir)
-    with open(os.path.join(exp_dir, "config.yaml"), "w") as fp:
-      yaml.dump(ConfigDict.to_dict(FLAGS.config), fp)
-
-
+@experiment.pdb_fallback
 def main(_):
-  exp_dir = osp.join(FLAGS.config.ROOT_DIR, FLAGS.experiment_name)
-  setup_experiment(exp_dir)
+  # Make sure we have a valid config that inherits all the keys defined in the
+  # base config.
+  validate_config(FLAGS.config, mode="pretrain")
 
-  # Set RNG seeds.
-  if FLAGS.config.SEED is not None:
-    logging.info(f"Experiment seed: {FLAGS.config.SEED}.")  # pylint: disable=logging-format-interpolation
-    seed_rng(FLAGS.config.SEED)
-  else:
-    logging.info("No RNG seed has been set for this experiment.")
+  config = FLAGS.config
+  exp_dir = osp.join(config.root_dir, FLAGS.experiment_name)
+  setup_experiment(exp_dir, config, FLAGS.resume)
+
+  # No need to do any pretraining if we're loading the raw pretrained
+  # ImageNet baseline.
+  if FLAGS.raw_imagenet:
+    return
 
   # Setup compute device.
   if torch.cuda.is_available():
-    device = torch.device("cuda")
-    logging.info(f"Using GPU {torch.cuda.get_device_name(device)}.")  # pylint: disable=logging-format-interpolation
+    device = torch.device(FLAGS.device)
   else:
-    logging.info("No GPU found. Falling back to CPU.")
+    logging.info("No GPU device found. Falling back to CPU.")
     device = torch.device("cpu")
+  logging.info(f"Using device: {device}")
 
-  logger = Logger(exp_dir, FLAGS.resume)
+  # Set RNG seeds.
+  if config.seed is not None:
+    logging.info(f"Pretraining experiment seed: {config.seed}")
+    experiment.seed_rngs(config.seed)
+    experiment.set_cudnn(config.cudnn_deterministic, config.cudnn_benchmark)
+  else:
+    logging.info("No RNG seed has been set for this pretraining experiment.")
+
+  logger = Logger(osp.join(exp_dir, "tb"), FLAGS.resume)
 
   # Load factories.
   (
@@ -101,14 +85,14 @@ def main(_):
       downstream_loaders,
       trainer,
       eval_manager,
-  ) = common.get_factories(FLAGS.config, device)
+  ) = common.get_factories(config, device)
 
   # Create checkpoint manager.
   checkpoint_dir = osp.join(exp_dir, "checkpoints")
-  checkpoint_manager = checkpoint.CheckpointManager(
-      checkpoint.Checkpoint(model=model, optimizer=optimizer),
+  checkpoint_manager = CheckpointManager(
       checkpoint_dir,
-      device,
+      model=model,
+      optimizer=optimizer,
   )
 
   global_step = checkpoint_manager.restore_or_initialize()
@@ -118,18 +102,20 @@ def main(_):
   stopwatch = Stopwatch()
   try:
     while not complete:
-      logger.log_learning_rate(optimizer, global_step, "pretrain")
       for batch in pretrain_loaders["train"]:
         train_loss = trainer.train_one_iter(batch)
 
-        if not global_step % FLAGS.config.LOGGING_FREQUENCY:
+        if not global_step % config.logging_frequency:
           for k, v in train_loss.items():
             logger.log_scalar(v, global_step, k, "pretrain")
+          logger.flush()
 
-        if not global_step % FLAGS.config.EVAL.EVAL_FREQUENCY:
+        if not global_step % config.eval.eval_frequency:
           # Evaluate the model on the pretraining validation dataset.
-          valid_loss = trainer.eval_num_iters(pretrain_loaders["valid"],
-                                              FLAGS.config.EVAL.VAL_ITERS)
+          valid_loss = trainer.eval_num_iters(
+              pretrain_loaders["valid"],
+              config.eval.val_iters,
+          )
           for k, v in valid_loss.items():
             logger.log_scalar(v, global_step, k, "pretrain")
 
@@ -139,7 +125,7 @@ def main(_):
                 model,
                 downstream_loader,
                 device,
-                FLAGS.config.EVAL.VAL_ITERS,
+                config.eval.val_iters,
             )
             for eval_name, eval_out in eval_to_metric.items():
               eval_out.log(
@@ -150,20 +136,20 @@ def main(_):
               )
 
         # Save model checkpoint.
-        if not global_step % FLAGS.config.CHECKPOINTING_FREQUENCY:
+        if not global_step % config.checkpointing_frequency:
           checkpoint_manager.save(global_step)
 
         # Exit if complete.
         global_step += 1
-        if global_step > FLAGS.config.OPTIM.TRAIN_MAX_ITERS:
+        if global_step > config.optim.train_max_iters:
           complete = True
           break
 
         time_per_iter = stopwatch.elapsed()
         logging.info(
-            "Iter[{}/{}] (Epoch {}), {:.1f}s/iter, Loss: {:.3f}".format(
+            "Iter[{}/{}] (Epoch {}), {:.6f}s/iter, Loss: {:.3f}".format(
                 global_step,
-                FLAGS.config.OPTIM.TRAIN_MAX_ITERS,
+                config.optim.train_max_iters,
                 epoch,
                 time_per_iter,
                 train_loss["train/total_loss"].item(),
@@ -180,4 +166,5 @@ def main(_):
 
 
 if __name__ == "__main__":
+  flags.mark_flag_as_required("experiment_name")
   app.run(main)

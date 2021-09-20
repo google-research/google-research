@@ -16,13 +16,14 @@
 """Video frame samplers."""
 
 import abc
-import os
 import random
 from typing import Any, Dict, List, Optional, Sequence, Union
+from absl import logging
 
 import numpy as np
 
 from xirl.file_utils import get_files
+# pylint: disable=logging-fstring-interpolation
 
 
 class FrameSampler(abc.ABC):
@@ -31,10 +32,10 @@ class FrameSampler(abc.ABC):
   def __init__(
       self,
       num_frames,
-      num_ctx_frames = 1,
-      ctx_stride = 1,
-      pattern = "*.png",
-      seed = None,
+      num_ctx_frames=1,
+      ctx_stride=1,
+      pattern="*.png",
+      seed=None,
   ):
     """Constructor.
 
@@ -62,6 +63,7 @@ class FrameSampler(abc.ABC):
   def seed_rng(self):
     """Reseed the RNG."""
     if self._seed is not None:
+      logging.debug(f"{self.__class__.__name__} seed: {self._seed}")
       random.seed(self._seed)
 
   def _get_context_steps(
@@ -141,12 +143,7 @@ class SingleVideoFrameSampler(FrameSampler):
   """
 
   def _load_frames(self, vid_dir):
-    return get_files(
-        vid_dir,
-        self._pattern,
-        sort=True,
-        sortfunc=lambda x: int(os.path.splitext(os.path.basename(x))[0]),
-    )
+    return get_files(vid_dir, self._pattern, sort_numerical=True)
 
 
 class StridedSampler(SingleVideoFrameSampler):
@@ -155,7 +152,7 @@ class StridedSampler(SingleVideoFrameSampler):
   def __init__(  # pylint: disable=keyword-arg-before-vararg
       self,
       stride,
-      offset = True,
+      offset=True,
       *args,
       **kwargs,
   ):
@@ -205,7 +202,7 @@ class AllSampler(StridedSampler):
   ones, dramatically increases compute and memory requirements.
   """
 
-  def __init__(self, stride = 1, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
+  def __init__(self, stride=1, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
     """Constructor.
 
     Args:
@@ -288,4 +285,31 @@ class WindowSampler(SingleVideoFrameSampler):
       range_min = random.randrange(vid_len - self._num_frames)
       range_max = range_min + self._num_frames
       return list(range(range_min, range_max))
-    return list(range(vid_len))
+    return list(range(0, self._num_frames))
+
+
+class UniformWithPositivesSampler(SingleVideoFrameSampler):
+  """Uniformly sample random frames along with positives within a radius."""
+
+  def __init__(self, pos_window, *args, **kwargs):
+    """Constructor.
+
+    Args:
+      pos_window: The radius for positive frames.
+      *args: Args.
+      **kwargs: Keyword args.
+    """
+    super().__init__(*args, **kwargs)
+
+    assert isinstance(pos_window, int), "`pos_window` must be an integer."
+    self._pos_window = pos_window
+
+  def _sample(self, frames):
+    vid_len = len(frames)
+    cc_idxs = list(range(vid_len))
+    random.shuffle(cc_idxs)
+    cc_idxs = cc_idxs[:self._num_frames]
+    pos_steps = np.asarray([
+        np.random.randint(step - self._pos_window, step + 1) for step in cc_idxs
+    ])
+    return np.concatenate([sorted(pos_steps), sorted(cc_idxs)])
