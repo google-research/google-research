@@ -17,11 +17,8 @@
 
 from typing import Dict, List, Union
 
-from ml_collections import ConfigDict
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-from xirl.models import SelfSupervisedReconOutput
 from xirl.trainers.base import Trainer
 
 BatchType = Dict[str, Union[torch.Tensor, List[str]]]

@@ -17,7 +17,6 @@
 
 from typing import Dict, List, Union
 
-from ml_collections import ConfigDict
 import torch
 from xirl.losses import compute_tcc_loss
 from xirl.trainers.base import Trainer

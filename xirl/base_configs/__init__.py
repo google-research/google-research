@@ -23,10 +23,11 @@ from .rl import get_config as get_rl_config
 
 # Ref: https://github.com/deepmind/jaxline/blob/master/jaxline/base_config.py
 def __validate_keys(  # pylint: disable=invalid-name
-    base_config: ConfigDict,
-    config: ConfigDict,
-    base_filename: str,
+    base_config,
+    config,
+    base_filename,
 ):
+  """Validate keys."""
   for key in base_config.keys():
     if key not in config:
       raise ValueError(
@@ -37,7 +38,7 @@ def __validate_keys(  # pylint: disable=invalid-name
       __validate_keys(base_config[key], config[key], base_filename)
 
 
-def validate_config(config: ConfigDict, mode: str):
+def validate_config(config, mode):
   """Ensures a config inherits from a base config.
 
   Args:

@@ -15,14 +15,9 @@
 
 """An evaluator manager."""
 
-from typing import Dict, List, Mapping, Optional
-
 from absl import logging
-from .base import Evaluator
 from .base import EvaluatorOutput
 import torch
-import torch.nn as nn
-from xirl.models import SelfSupervisedOutput
 # pylint: disable=logging-fstring-interpolation
 
 
@@ -88,7 +83,7 @@ class EvalManager:
                                            eval_iters)
     eval_to_metric = {}
     for evaluator_name, evaluator in self._evaluators.items():
-      logging.debug(f"\tRunning {evaluator_name} evaluator...")
+      logging.debug("\tRunning %s evaluator...", evaluator_name)
       if evaluator.inter_class:
         # Merge all downstream classes into a single list and do one
         # eval computation.

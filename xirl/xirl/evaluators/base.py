@@ -16,12 +16,10 @@
 """Base evaluator."""
 
 import abc
+import dataclasses
 from typing import List, Optional, Union
 
-import dataclasses
 import numpy as np
-from torchkit import Logger
-from xirl.models import SelfSupervisedOutput
 
 
 @dataclasses.dataclass

@@ -17,14 +17,16 @@
 
 import os.path as osp
 import subprocess
-import yaml
-from torchkit.experiment import string_from_kwargs
-from torchkit.experiment import unique_id
+
 from absl import app
 from absl import flags
 from absl import logging
 from configs.constants import ALGORITHMS
 from configs.constants import EMBODIMENTS
+from torchkit.experiment import string_from_kwargs
+from torchkit.experiment import unique_id
+import yaml
+
 # pylint: disable=logging-fstring-interpolation
 
 # Mapping from pretraining algorithm to config file.
@@ -61,7 +63,7 @@ def main(_):
     if FLAGS.unique_name:
       kwargs["uid"] = unique_id()
     experiment_name = string_from_kwargs(**kwargs)
-    logging.info(f"Experiment name: {experiment_name}")
+    logging.info("Experiment name: %s", experiment_name)
 
     # Train on all classes but the given embodiment.
     trainable_embs = tuple(EMBODIMENTS - set([embodiment]))

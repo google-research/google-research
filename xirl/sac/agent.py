@@ -24,22 +24,20 @@ References:
 
 import typing
 
-import numpy as np
-
 import ml_collections
+import numpy as np
+from .replay_buffer import ReplayBuffer
 import torch
-import torch.nn.functional as F
 from torch import distributions as pyd
 from torch import nn
-
-from .replay_buffer import ReplayBuffer
+import torch.nn.functional as F
 
 TensorType = torch.Tensor
 InfoType = typing.Dict[str, TensorType]
 TrainableType = typing.Union[nn.Parameter, nn.Module]
 
 
-def orthogonal_init(m: nn.Module) -> None:
+def orthogonal_init(m):
   """Orthogonal init for Conv2D and Linear layers."""
   if isinstance(m, nn.Linear):
     nn.init.orthogonal_(m.weight.data)
@@ -48,12 +46,12 @@ def orthogonal_init(m: nn.Module) -> None:
 
 
 def mlp(
-    input_dim: int,
-    hidden_dim: int,
-    output_dim: int,
-    hidden_depth: int,
-    output_mod: typing.Optional[nn.Module] = None,
-) -> nn.Sequential:
+    input_dim,
+    hidden_dim,
+    output_dim,
+    hidden_depth,
+    output_mod = None,
+):
   """Construct an MLP module."""
   if hidden_depth == 0:
     mods = [nn.Linear(input_dim, output_dim)]
@@ -69,47 +67,49 @@ def mlp(
 
 
 class Critic(nn.Module):
+  """Critic module."""
 
   def __init__(
       self,
-      obs_dim: int,
-      action_dim: int,
-      hidden_dim: int,
-      hidden_depth: int,
-  ) -> None:
+      obs_dim,
+      action_dim,
+      hidden_dim,
+      hidden_depth,
+  ):
     super().__init__()
 
     self.model = mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
     self.apply(orthogonal_init)
 
-  def forward(self, obs: TensorType, action: TensorType) -> TensorType:
+  def forward(self, obs, action):
     assert obs.size(0) == action.size(0)
     obs_action = torch.cat([obs, action], dim=-1)
     return self.model(obs_action)
 
 
 class DoubleCritic(nn.Module):
+  """DocubleCritic module."""
 
   def __init__(
       self,
-      obs_dim: int,
-      action_dim: int,
-      hidden_dim: int,
-      hidden_depth: int,
-  ) -> None:
+      obs_dim,
+      action_dim,
+      hidden_dim,
+      hidden_depth,
+  ):
     super().__init__()
 
     self.critic1 = Critic(obs_dim, action_dim, hidden_dim, hidden_depth)
     self.critic2 = Critic(obs_dim, action_dim, hidden_dim, hidden_depth)
 
-  def forward(self, *args) -> typing.Tuple[TensorType, TensorType]:
+  def forward(self, *args):
     return self.critic1(*args), self.critic2(*args)
 
 
 class SquashedNormal(pyd.transformed_distribution.TransformedDistribution):
   """A tanh-squashed Normal distribution."""
 
-  def __init__(self, loc: TensorType, scale: TensorType) -> None:
+  def __init__(self, loc, scale):
     self.loc = loc
     self.scale = scale
 
@@ -118,7 +118,7 @@ class SquashedNormal(pyd.transformed_distribution.TransformedDistribution):
     super().__init__(self.base_dist, transforms)
 
   @property
-  def mean(self) -> TensorType:
+  def mean(self):
     mu = self.loc
     for tr in self.transforms:
       mu = tr(mu)
@@ -130,12 +130,12 @@ class DiagGaussianActor(nn.Module):
 
   def __init__(
       self,
-      obs_dim: int,
-      action_dim: int,
-      hidden_dim: int,
-      hidden_depth: int,
-      log_std_bounds: typing.Tuple[float, float],
-  ) -> None:
+      obs_dim,
+      action_dim,
+      hidden_dim,
+      hidden_depth,
+      log_std_bounds,
+  ):
     super().__init__()
 
     self.log_std_bounds = log_std_bounds
@@ -143,7 +143,7 @@ class DiagGaussianActor(nn.Module):
 
     self.apply(orthogonal_init)
 
-  def forward(self, obs: TensorType) -> TensorType:
+  def forward(self, obs):
     mu, log_std = self.trunk(obs).chunk(2, dim=-1)
 
     # Constrain log_std inside [log_std_min, log_std_max].
@@ -157,10 +157,10 @@ class DiagGaussianActor(nn.Module):
 
 
 def soft_update_params(
-    net: nn.Module,
-    target_net: nn.Module,
-    tau: float,
-) -> None:
+    net,
+    target_net,
+    tau,
+):
   for param, target_param in zip(net.parameters(), target_net.parameters()):
     val = tau * param.data + (1 - tau) * target_param.data
     target_param.data.copy_(val)
@@ -171,8 +171,8 @@ class SAC(nn.Module):
 
   def __init__(
       self,
-      device: torch.device,
-      config: ml_collections.ConfigDict,
+      device,
+      config,
   ):
     super().__init__()
 
@@ -238,17 +238,17 @@ class SAC(nn.Module):
     self.train()
     self.critic_target.train()
 
-  def train(self, training: bool = True) -> None:
+  def train(self, training = True):
     self.training = training
     self.actor.train(training)
     self.critic.train(training)
 
   @property
-  def alpha(self) -> TensorType:
+  def alpha(self):
     return self.log_alpha.exp()
 
   @torch.no_grad()
-  def act(self, obs: np.ndarray, sample: bool = False) -> np.ndarray:
+  def act(self, obs, sample = False):
     obs = torch.as_tensor(obs, device=self.device)
     dist = self.actor(obs.unsqueeze(0))
     action = dist.sample() if sample else dist.mean
@@ -257,12 +257,12 @@ class SAC(nn.Module):
 
   def update_critic(
       self,
-      obs: np.ndarray,
-      action: np.ndarray,
-      reward: float,
-      next_obs: np.ndarray,
-      mask: float,
-  ) -> InfoType:
+      obs,
+      action,
+      reward,
+      next_obs,
+      mask,
+  ):
     with torch.no_grad():
       dist = self.actor(next_obs)
       next_action = dist.rsample()
@@ -286,8 +286,8 @@ class SAC(nn.Module):
 
   def update_actor_and_alpha(
       self,
-      obs: np.ndarray,
-  ) -> typing.Tuple[InfoType, InfoType]:
+      obs,
+  ):
     dist = self.actor(obs)
     action = dist.rsample()
     log_prob = dist.log_prob(action).sum(-1, keepdim=True)
@@ -320,9 +320,9 @@ class SAC(nn.Module):
 
   def update(
       self,
-      replay_buffer: ReplayBuffer,
-      step: int,
-  ) -> InfoType:
+      replay_buffer,
+      step,
+  ):
     obs, action, reward, next_obs, mask = replay_buffer.sample(self.batch_size)
     batch_info = {"batch_reward": reward.mean()}
 
@@ -336,7 +336,7 @@ class SAC(nn.Module):
 
     return {**batch_info, **critic_info, **actor_info, **alpha_info}
 
-  def optim_dict(self) -> typing.Dict[str, torch.optim.Optimizer]:
+  def optim_dict(self):
     return {
         "actor_optimizer": self.actor_optimizer,
         "log_alpha_optimizer": self.log_alpha_optimizer,

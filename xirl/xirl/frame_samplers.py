@@ -17,7 +17,6 @@
 
 import abc
 import random
-from typing import Any, Dict, List, Optional, Sequence, Union
 from absl import logging
 
 import numpy as np
@@ -63,7 +62,7 @@ class FrameSampler(abc.ABC):
   def seed_rng(self):
     """Reseed the RNG."""
     if self._seed is not None:
-      logging.debug(f"{self.__class__.__name__} seed: {self._seed}")
+      logging.debug("%s seed: %d", self.__class__.__name__, self._seed)
       random.seed(self._seed)
 
   def _get_context_steps(

@@ -19,6 +19,7 @@ import ml_collections
 
 
 def get_config():
+  """Returns default config."""
   config = ml_collections.ConfigDict()
 
   # ================================================= #

@@ -27,9 +27,9 @@ ModelType = SelfSupervisedModel
 
 
 def get_pretraining_dataloaders(
-    config: ConfigDict,
-    debug: bool = False,
-) -> DataLoadersDict:
+    config,
+    debug = False,
+):
   """Construct a train/valid pair of pretraining dataloaders.
 
   Args:
@@ -61,9 +61,9 @@ def get_pretraining_dataloaders(
 
 
 def get_downstream_dataloaders(
-    config: ConfigDict,
-    debug: bool = False,
-) -> DataLoadersDict:
+    config,
+    debug = False,
+):
   """Construct a train/valid pair of downstream dataloaders.
 
   Args:
@@ -98,9 +98,9 @@ def get_downstream_dataloaders(
 
 
 def get_factories(
-    config: ConfigDict,
-    device: torch.device,
-    debug: bool = False,
+    config,
+    device,
+    debug = False,
 ):
   """Feed config to factories and return objects."""
   pretrain_loaders = get_pretraining_dataloaders(config, debug)
@@ -119,6 +119,6 @@ def get_factories(
   )
 
 
-def get_model(config: ConfigDict) -> ModelType:
+def get_model(config):
   """Construct a model from a config."""
   return factory.model_from_config(config)

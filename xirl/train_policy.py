@@ -15,25 +15,26 @@
 
 """Launch script for training RL policies with pretrained reward models."""
 
-from typing import Dict
-
 import collections
 import os.path as osp
-import gym
-import numpy as np
-import torch
-from tqdm.auto import tqdm
+from typing import Dict
+
+from absl import app
 from absl import flags
 from absl import logging
-from absl import app
-from ml_collections import config_flags
+from base_configs import validate_config
+import gym
 from ml_collections import config_dict
+from ml_collections import config_flags
+import numpy as np
 from sac import agent
+import torch
 from torchkit import CheckpointManager
 from torchkit import experiment
 from torchkit import Logger
-from base_configs import validate_config
+from tqdm.auto import tqdm
 import utils
+
 # pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS
@@ -52,10 +53,10 @@ config_flags.DEFINE_config_file(
 
 
 def evaluate(
-    policy: agent.SAC,
-    env: gym.Env,
-    num_episodes: int,
-) -> Dict[str, float]:
+    policy,
+    env,
+    num_episodes,
+):
   """Evaluate the policy and dump rollout videos to disk."""
   policy.eval()
   stats = collections.defaultdict(list)
@@ -93,11 +94,11 @@ def main(_):
   else:
     logging.info("No GPU device found. Falling back to CPU.")
     device = torch.device("cpu")
-  logging.info(f"Using device: {device}")
+  logging.info("Using device: %s", device)
 
   # Set RNG seeds.
   if FLAGS.seed is not None:
-    logging.info(f"RL experiment seed: {FLAGS.seed}")
+    logging.info("RL experiment seed: %d", FLAGS.seed)
     experiment.seed_rngs(FLAGS.seed)
     experiment.set_cudnn(config.cudnn_deterministic, config.cudnn_benchmark)
   else:

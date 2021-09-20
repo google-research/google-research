@@ -13,7 +13,9 @@
 - [Acknowledgments](#acknowledgments)
 
 <p align="center">
-  <img src="./images/teaser.gif" width="75%"/>
+  <img src="./images/gripper_neg.gif" width="49%"/>
+  <img src="./images/gripper_pos.gif" width="49%"/>
+  <em>Interactive XIRL reward visualization on negative (left) and positive (right) demonstrations.</em>
 </p>
 
 ## Overview
@@ -132,10 +134,10 @@ Many people have contibuted one way or another in the making and shaping of this
 If you find this code useful, consider citing our work:
 
 ```bibtex
-@inproceedings{zakka2021xirl,
-  author    = {Zakka, Kevin and Zeng, Andy and Florence, Pete and Tompson, Jonathan and Bohg, Jeannette and Dwibedi, Debidatta},
-  title     = {XIRL: Cross-embodiment Inverse Reinforcement Learning},
-  booktitle = {Proceedings of the 5th Conference on Robot Learning (CoRL)},
-  year      = {2021},
+@article{zakka2021xirl,
+    title = {XIRL: Cross-embodiment Inverse Reinforcement Learning},
+    author = {Zakka, Kevin and Zeng, Andy and Florence, Pete and Tompson, Jonathan and Bohg, Jeannette and Dwibedi, Debidatta},
+    journal = {Conference on Robot Learning (CoRL)},
+    year = {2021}
 }
 ```

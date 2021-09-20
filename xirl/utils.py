@@ -15,26 +15,26 @@
 
 """Useful methods shared by all scripts."""
 
+import os
+import pickle
+import typing
 from typing import Any, Dict, Optional
 
-import os
-import matplotlib.pyplot as plt
-import yaml
-import numpy as np
-import typing
-import pickle
 from absl import logging
-from torchkit import CheckpointManager
-from torchkit.experiment import git_revision_hash
 import gym
-import torch
+from gym.wrappers import RescaleAction
+import matplotlib.pyplot as plt
 from ml_collections import config_dict
+import numpy as np
 from sac import replay_buffer
 from sac import wrappers
+import torch
+from torchkit import CheckpointManager
+from torchkit.experiment import git_revision_hash
 from xirl import common
 import xmagical
-from gym.wrappers import RescaleAction
-from pathlib import Path
+import yaml
+
 # pylint: disable=logging-fstring-interpolation
 
 ConfigDict = config_dict.ConfigDict
@@ -45,13 +45,12 @@ FrozenConfigDict = config_dict.FrozenConfigDict
 # ========================================= #
 
 
-def setup_experiment(exp_dir: str, config: ConfigDict, resume: bool = False):
-  """Initializes a pretraining or RL experiment.
-
-  If the experiment directory doesn't exist yet, creates it and dumps the config
-  dict as a yaml file and git hash as a text file. If it exists already, raises
-  a ValueError to prevent overwriting unless resume is set to True.
-  """
+def setup_experiment(exp_dir, config, resume = False):
+  """Initializes a pretraining or RL experiment."""
+  #  If the experiment directory doesn't exist yet, creates it and dumps the
+  # config dict as a yaml file and git hash as a text file.
+  # If it exists already, raises a ValueError to prevent overwriting
+  # unless resume is set to True.
   if os.path.exists(exp_dir):
     if not resume:
       raise ValueError(
@@ -66,9 +65,9 @@ def setup_experiment(exp_dir: str, config: ConfigDict, resume: bool = False):
 
 
 def load_config_from_dir(
-    exp_dir: str,
-    config: Optional[ConfigDict] = None,
-) -> Optional[ConfigDict]:
+    exp_dir,
+    config = None,
+):
   """Load experiment config."""
   with open(os.path.join(exp_dir, "config.yaml"), "r") as fp:
     cfg = yaml.load(fp, Loader=yaml.FullLoader)
@@ -79,7 +78,7 @@ def load_config_from_dir(
   return ConfigDict(cfg)
 
 
-def dump_config(exp_dir: str, config: ConfigDict):
+def dump_config(exp_dir, config):
   """Dump config to disk."""
   # Note: No need to explicitly delete the previous config file as "w" will
   # overwrite the file if it already exists.
@@ -88,10 +87,10 @@ def dump_config(exp_dir: str, config: ConfigDict):
 
 
 def copy_config_and_replace(
-    config: ConfigDict,
-    update_dict: Optional[Dict[str, Any]] = None,
-    freeze: bool = False,
-) -> ConfigDict:
+    config,
+    update_dict = None,
+    freeze = False,
+):
   """Makes a copy of a config and optionally updates its values."""
   # Using the ConfigDict constructor leaves the `FieldReferences` untouched
   # unlike `ConfigDict.copy_and_resolve_references`.
@@ -103,7 +102,7 @@ def copy_config_and_replace(
   return new_config
 
 
-def load_model_checkpoint(pretrained_path: str, device: torch.device):
+def load_model_checkpoint(pretrained_path, device):
   """Load a pretrained model and optionally a precomputed goal embedding."""
   config = load_config_from_dir(pretrained_path)
   model = common.get_model(config)
@@ -111,24 +110,24 @@ def load_model_checkpoint(pretrained_path: str, device: torch.device):
   checkpoint_dir = os.path.join(pretrained_path, "checkpoints")
   checkpoint_manager = CheckpointManager(checkpoint_dir, model=model)
   global_step = checkpoint_manager.restore_or_initialize()
-  logging.info(f"Restored model from checkpoint @{global_step}.")
+  logging.info("Restored model from checkpoint %d.", global_step)
   return config, model
 
 
-def save_pickle(experiment_path: str, arr: np.ndarray, name: str):
+def save_pickle(experiment_path, arr, name):
   """Save an array as a pickle file."""
   filename = os.path.join(experiment_path, name)
   with open(filename, "wb") as fp:
     pickle.dump(arr, fp)
-  logging.info(f"Saved {name} to {filename}")
+  logging.info("Saved %s to %s", name, filename)
 
 
-def load_pickle(pretrained_path: str, name: str) -> np.ndarray:
+def load_pickle(pretrained_path, name):
   """Load a pickled array."""
   filename = os.path.join(pretrained_path, name)
   with open(filename, "rb") as fp:
     arr = pickle.load(fp)
-  logging.info(f"Successfully loaded {name} from {filename}")
+  logging.info("Successfully loaded %s from %s", name, filename)
   return arr
 
 
@@ -138,13 +137,13 @@ def load_pickle(pretrained_path: str, name: str) -> np.ndarray:
 
 
 def make_env(
-    env_name: str,
-    seed: int,
-    save_dir: typing.Optional[str] = None,
-    add_episode_monitor: bool = True,
-    action_repeat: int = 1,
-    frame_stack: int = 1,
-) -> gym.Env:
+    env_name,
+    seed,
+    save_dir = None,
+    add_episode_monitor = True,
+    action_repeat = 1,
+    frame_stack = 1,
+):
   """Env factory with wrapping.
 
   Args:
@@ -154,6 +153,9 @@ def make_env(
     add_episode_monitor: Set to True to wrap with `EpisodeMonitor`.
     action_repeat: A value > 1 will wrap with `ActionRepeat`.
     frame_stack: A value > 1 will wrap with `FrameStack`.
+
+  Returns:
+    gym.Env object.
   """
   # Check if the env is in x-magical.
   xmagical.register_envs()
@@ -180,13 +182,16 @@ def make_env(
   return env
 
 
-def wrap_learned_reward(env: gym.Env, config: ConfigDict) -> gym.Env:
+def wrap_learned_reward(env, config):
   """Wrap the environment with a learned reward wrapper.
 
   Args:
     env: A `gym.Env` to wrap with a `LearnedVisualRewardWrapper` wrapper.
     config: RL config dict, must inherit from base config defined in
       `configs/rl_default.py`.
+
+  Returns:
+    gym.Env object.
   """
   pretrained_path = config.reward_wrapper.pretrained_path
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -216,10 +221,10 @@ def wrap_learned_reward(env: gym.Env, config: ConfigDict) -> gym.Env:
 
 
 def make_buffer(
-    env: gym.Env,
-    device: torch.device,
-    config: ConfigDict,
-) -> replay_buffer.ReplayBuffer:
+    env,
+    device,
+    config,
+):
   """Replay buffer factory.
 
   Args:
@@ -227,6 +232,9 @@ def make_buffer(
     device: A `torch.device` object.
     config: RL config dict, must inherit from base config defined in
       `configs/rl_default.py`.
+
+  Returns:
+    ReplayBuffer.
   """
 
   kwargs = {
@@ -265,7 +273,7 @@ def make_buffer(
 # ========================================= #
 
 
-def plot_reward(rews: typing.Sequence[float]):
+def plot_reward(rews):
   """Plot raw and cumulative rewards over an episode."""
   _, axes = plt.subplots(1, 2, figsize=(12, 4), sharex=True)
   axes[0].plot(rews)

@@ -17,16 +17,18 @@
 
 import os
 import typing
+
 from absl import app
 from absl import flags
 from absl import logging
 import numpy as np
-from tqdm.auto import tqdm
 import torch
 from torchkit import CheckpointManager
+from tqdm.auto import tqdm
+import utils
 from xirl import common
 from xirl.models import SelfSupervisedModel
-import utils
+
 # pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS
@@ -42,15 +44,15 @@ DataLoaderType = typing.Dict[str, torch.utils.data.DataLoader]
 
 
 def embed(
-    model: ModelType,
-    downstream_loader: DataLoaderType,
-    device: torch.device,
-) -> typing.Tuple[np.ndarray, float]:
+    model,
+    downstream_loader,
+    device,
+):
   """Embed the stored trajectories and compute mean goal embedding."""
   goal_embs = []
   init_embs = []
   for class_name, class_loader in downstream_loader.items():
-    logging.info(f"Embedding {class_name}.")
+    logging.info("Embedding %s.", class_name)
     for batch in tqdm(iter(class_loader), leave=False):
       out = model.infer(batch["frames"].to(device))
       emb = out.numpy().embs
@@ -63,7 +65,7 @@ def embed(
   return goal_emb, distance_scale
 
 
-def setup() -> typing.Tuple[ModelType, DataLoaderType]:
+def setup():
   """Load the latest embedder checkpoint and dataloaders."""
   config = utils.load_config_from_dir(FLAGS.experiment_path)
   model = common.get_model(config)
@@ -72,7 +74,7 @@ def setup() -> typing.Tuple[ModelType, DataLoaderType]:
   if FLAGS.restore_checkpoint:
     checkpoint_manager = CheckpointManager(checkpoint_dir, model=model)
     global_step = checkpoint_manager.restore_or_initialize()
-    logging.info(f"Restored model from checkpoint {global_step}.")
+    logging.info("Restored model from checkpoint %d.", global_step)
   else:
     logging.info("Skipping checkpoint restore.")
   return model, downstream_loaders

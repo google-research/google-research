@@ -17,13 +17,15 @@
 
 import os
 import subprocess
-import yaml
+
 from absl import app
 from absl import flags
 from absl import logging
+from configs.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
 from torchkit.experiment import string_from_kwargs
 from torchkit.experiment import unique_id
-from configs.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
+import yaml
+
 # pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS
@@ -53,7 +55,7 @@ def main(_):
       algo=kwargs["algo"],
       uid=unique_id(),
   )
-  logging.info(f"Experiment name: {experiment_name}")
+  logging.info("Experiment name: %s", experiment_name)
 
   # Execute each seed in parallel.
   procs = []

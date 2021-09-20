@@ -15,24 +15,22 @@
 
 """Video dataset abstraction."""
 
-from absl import logging
+import collections
 import os.path as osp
+import pathlib
 import random
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict, Union
 
+from absl import logging
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from collections import OrderedDict
-from pathlib import Path
-
-from xirl import frame_samplers
-from xirl import transforms
+from torchkit.utils.py_utils import threaded_func
 from xirl.file_utils import get_subdirs
 from xirl.file_utils import load_image
 from xirl.tensorizers import ToTensor
 from xirl.types import SequenceType
-from torchkit.utils.py_utils import threaded_func
+
 # pylint: disable=logging-fstring-interpolation
 
 DataArrayPacket = Dict[SequenceType, Union[np.ndarray, str, int]]
@@ -85,12 +83,12 @@ class VideoDataset(Dataset):
 
   def seed_rng(self):
     if self._seed:
-      logging.debug(f"{self.__class__.__name__} seed: {self._seed}")
+      logging.debug("%s seed: %d", self.__class__.__name__, self._seed)
       random.seed(self._seed)
 
   def _build_dir_tree(self):
     """Build a dict of indices for iterating over the dataset."""
-    self._dir_tree = OrderedDict()
+    self._dir_tree = collections.OrderedDict()
     for path in self._allowed_dirs:
       vids = get_subdirs(
           path,
@@ -127,7 +125,7 @@ class VideoDataset(Dataset):
     to_remove = set(self.class_names) - set(subdirs)
     for key in to_remove:
       self._dir_tree.pop(osp.join(self._root_dir, key))
-    logging.debug(f"Video classes reduced to {self.num_classes}.")
+    logging.debug("Video classes reduced to %d.", self.num_classes)
 
   def _get_video_path(self, class_idx, vid_idx):
     """Return video paths given class and video indices.
@@ -168,7 +166,7 @@ class VideoDataset(Dataset):
 
     frames = [None for _ in range(len(frame_paths))]
 
-    def get_image(image_index: int, image_path: str) -> None:
+    def get_image(image_index, image_path):
       frames[image_index] = load_image(image_path)
 
     threaded_func(get_image, enumerate(frame_paths), True)
@@ -202,7 +200,7 @@ class VideoDataset(Dataset):
   @property
   def class_names(self):
     """The stems of the allowed video class subdirs."""
-    return [str(Path(f).stem) for f in self._allowed_dirs]
+    return [str(pathlib.Path(f).stem) for f in self._allowed_dirs]
 
   @property
   def total_vids(self):

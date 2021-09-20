@@ -20,13 +20,13 @@ Adapted from https://github.com/ikostrikov/jaxrl.
 
 import abc
 import collections
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
-import cv2
 import numpy as np
-
 import torch
 from xirl.models import SelfSupervisedModel
+
+import cv2
 
 Batch = collections.namedtuple(
     "Batch", ["obses", "actions", "rewards", "next_obses", "masks"])
@@ -39,19 +39,19 @@ class ReplayBuffer:
 
   def __init__(
       self,
-      obs_shape: Tuple[int, ...],
-      action_shape: Tuple[int, ...],
-      capacity: int,
-      device: torch.device,
+      obs_shape,
+      action_shape,
+      capacity,
+      device,
   ):
     """Constructor.
 
-        Args:
-            obs_shape: The dimensions of the observation space.
-            action_shape: The dimensions of the action space.
-            capacity: The maximum length of the replay buffer.
-            device: The torch device wherein to return sampled transitions.
-        """
+    Args:
+      obs_shape: The dimensions of the observation space.
+      action_shape: The dimensions of the action space
+      capacity: The maximum length of the replay buffer.
+      device: The torch device wherein to return sampled transitions.
+    """
     self.capacity = capacity
     self.device = device
 
@@ -65,21 +65,21 @@ class ReplayBuffer:
     self.idx = 0
     self.size = 0
 
-  def _empty_arr(self, shape: Tuple[int], dtype: np.dtype) -> np.ndarray:
+  def _empty_arr(self, shape, dtype):
     """Creates an empty array of specified shape and type."""
     return np.empty((self.capacity, *shape), dtype=dtype)
 
-  def _to_tensor(self, arr: np.ndarray) -> torch.Tensor:
+  def _to_tensor(self, arr):
     """Convert an ndarray to a torch Tensor and move it to the device."""
     return torch.as_tensor(arr, device=self.device, dtype=torch.float32)
 
   def insert(
       self,
-      obs: np.ndarray,
-      action: np.ndarray,
-      reward: float,
-      next_obs: np.ndarray,
-      mask: float,
+      obs,
+      action,
+      reward,
+      next_obs,
+      mask,
   ):
     """Insert an episode transition into the buffer."""
     np.copyto(self.obses[self.idx], obs)
@@ -91,7 +91,7 @@ class ReplayBuffer:
     self.idx = (self.idx + 1) % self.capacity
     self.size = min(self.size + 1, self.capacity)
 
-  def sample(self, batch_size: int) -> Batch:
+  def sample(self, batch_size):
     """Sample an episode transition from the buffer."""
     idxs = np.random.randint(low=0, high=self.size, size=(batch_size,))
 
@@ -103,7 +103,7 @@ class ReplayBuffer:
         masks=self._to_tensor(self.masks[idxs]),
     )
 
-  def __len__(self) -> int:
+  def __len__(self):
     return self.size
 
 
@@ -115,11 +115,11 @@ class ReplayBufferLearnedReward(abc.ABC, ReplayBuffer):
 
   def __init__(
       self,
-      model: ModelType,
-      res_hw: Optional[Tuple[int, int]] = None,
-      batch_size: int = 64,
+      model,
+      res_hw = None,
+      batch_size = 64,
       **base_kwargs,
-  ) -> None:
+  ):
     """Constructor.
 
     Args:
@@ -129,6 +129,7 @@ class ReplayBufferLearnedReward(abc.ABC, ReplayBuffer):
         to the model.
       batch_size: How many samples to forward through the model to compute the
         learned reward. Controls the size of the staging lists.
+      **base_kwargs: Base keyword arguments.
     """
     super().__init__(**base_kwargs)
 
@@ -146,24 +147,24 @@ class ReplayBufferLearnedReward(abc.ABC, ReplayBuffer):
     self.masks_staging = []
     self.pixels_staging = []
 
-  def _pixel_to_tensor(self, arr: np.ndarray) -> TensorType:
+  def _pixel_to_tensor(self, arr):
     arr = torch.from_numpy(arr).permute(2, 0, 1).float()[None, None, Ellipsis]
     arr = arr / 255.0
     arr = arr.to(self.device)
     return arr
 
   @abc.abstractmethod
-  def _get_reward_from_image(self) -> float:
+  def _get_reward_from_image(self):
     """Forward the pixels through the model and compute the reward."""
 
   def insert(
       self,
-      obs: np.ndarray,
-      action: np.ndarray,
-      reward: float,
-      next_obs: np.ndarray,
-      mask: float,
-      pixels: np.ndarray,
+      obs,
+      action,
+      reward,
+      next_obs,
+      mask,
+      pixels,
   ):
     if len(self.obses_staging) < self.batch_size:
       self.obses_staging.append(obs)
@@ -192,8 +193,8 @@ class ReplayBufferDistanceToGoal(ReplayBufferLearnedReward):
 
   def __init__(
       self,
-      goal_emb: np.ndarray,
-      distance_scale: Optional[float] = 1.0,
+      goal_emb,
+      distance_scale = 1.0,
       **base_kwargs,
   ):
     super().__init__(**base_kwargs)
@@ -201,7 +202,7 @@ class ReplayBufferDistanceToGoal(ReplayBufferLearnedReward):
     self.goal_emb = goal_emb
     self.distance_scale = distance_scale
 
-  def _get_reward_from_image(self) -> float:
+  def _get_reward_from_image(self):
     image_tensors = [self._pixel_to_tensor(i) for i in self.pixels_staging]
     image_tensors = torch.cat(image_tensors, dim=1)
     embs = self.model.infer(image_tensors).numpy().embs
@@ -213,7 +214,7 @@ class ReplayBufferDistanceToGoal(ReplayBufferLearnedReward):
 class ReplayBufferGoalClassifier(ReplayBufferLearnedReward):
   """Replace the environment reward with the output of a goal classifier."""
 
-  def _get_reward_from_image(self) -> float:
+  def _get_reward_from_image(self):
     image_tensors = [self._pixel_to_tensor(i) for i in self.pixels_staging]
     image_tensors = torch.cat(image_tensors, dim=1)
     prob = torch.sigmoid(self.model.infer(image_tensors).embs)

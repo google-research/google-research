@@ -15,14 +15,11 @@
 
 """Reward visualizer."""
 
-from typing import List
-
 from .base import Evaluator
 from .base import EvaluatorOutput
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial.distance import cdist
-from xirl.models import SelfSupervisedOutput
 
 
 class RewardVisualizer(Evaluator):
@@ -44,8 +41,8 @@ class RewardVisualizer(Evaluator):
       raise ValueError(
           "{} is not a supported distance metric.".format(distance))
 
-    # For plotting, we don't want to display squared euclidean distances so we'll
-    # override to `euclidean` if it was selected.
+    # For plotting, we don't want to display squared euclidean distances so we
+    # will override to `euclidean` if it was selected.
     if distance == "sqeuclidean":
       distance = "euclidean"
 

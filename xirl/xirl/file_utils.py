@@ -16,19 +16,19 @@
 """File utilities."""
 
 import os
+import pathlib
 from typing import List, Union
 
 import numpy as np
 from PIL import Image
-from pathlib import Path
 
 
 def get_subdirs(
-    d: str,
-    nonempty: bool = False,
-    basename: bool = False,
-    sort_lexicographical: bool = False,
-    sort_numerical: bool = False,
+    d,
+    nonempty = False,
+    basename = False,
+    sort_lexicographical = False,
+    sort_numerical = False,
 ):
   """Return a list of subdirectories in a given directory.
 
@@ -43,7 +43,7 @@ def get_subdirs(
     The list of subdirectories.
   """
   # Note: `iterdir()` does not yield special entries '.' and '..'.
-  subdirs = [f for f in Path(d).iterdir() if f.is_dir()]
+  subdirs = [f for f in pathlib.Path(d).iterdir() if f.is_dir()]
   if nonempty:
     # Eliminate empty directories.
     subdirs = [f for f in subdirs if not check_dir_empty(f)]
@@ -58,11 +58,11 @@ def get_subdirs(
 
 
 def get_files(
-    d: str,
-    pattern: str,
-    sort_lexicographical: bool = False,
-    sort_numerical: bool = False,
-) -> List[Path]:
+    d,
+    pattern,
+    sort_lexicographical = False,
+    sort_numerical = False,
+):
   """Return a list of files in a given directory.
 
   Args:
@@ -70,8 +70,11 @@ def get_files(
     pattern: The wildcard to filter files with.
     sort_lexicographical: Lexicographical sort.
     sort_numerical: Numerical sort.
+
+  Returns:
+    List of files.
   """
-  files = Path(d).glob(pattern)
+  files = pathlib.Path(d).glob(pattern)
   if sort_lexicographical:
     return sorted(files, key=lambda x: x.stem)
   if sort_numerical:
@@ -79,13 +82,13 @@ def get_files(
   return list(files)
 
 
-def check_dir_empty(path: Union[str, Path]) -> bool:
+def check_dir_empty(path):
   """Return True if a directory is empty."""
   with os.scandir(path) as it:
     return not any(it)
 
 
-def load_image(filename: Union[str, Path]) -> np.ndarray:
+def load_image(filename):
   """Loads an image as a numpy array.
 
   Args:

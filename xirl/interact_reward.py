@@ -17,11 +17,11 @@
 
 from absl import app
 from absl import flags
-from ml_collections import config_flags
-from xmagical.utils import KeyboardEnvInteractor
 from configs.constants import EMBODIMENTS
 from configs.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
+from ml_collections import config_flags
 import utils
+from xmagical.utils import KeyboardEnvInteractor
 
 FLAGS = flags.FLAGS
 

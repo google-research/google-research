@@ -16,7 +16,6 @@
 """Transformations for video data."""
 
 import enum
-from typing import Callable, Dict, Mapping, Sequence, Tuple
 import warnings
 
 import albumentations as alb
@@ -66,7 +65,7 @@ class UnNormalize:
 
 
 def augment_video(
-    frames: np.ndarray,
+    frames,
     pipeline,  # pylint: disable=g-bare-generic
 ):
   """Apply the same augmentation pipeline to all frames in a video.

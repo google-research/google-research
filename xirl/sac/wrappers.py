@@ -17,18 +17,17 @@
 
 import abc
 import collections
-
+import os
 import time
 import typing
-import os
 
-import imageio
-import cv2
 import gym
+import imageio
 import numpy as np
 import torch
-
 from xirl.models import SelfSupervisedModel
+
+import cv2
 
 TimeStep = typing.Tuple[np.ndarray, float, bool, dict]
 ModelType = SelfSupervisedModel
@@ -45,7 +44,7 @@ class FrameStack(gym.Wrapper):
   Reference: https://github.com/ikostrikov/jaxrl/
   """
 
-  def __init__(self, env: gym.Env, k: int) -> None:
+  def __init__(self, env, k):
     """Constructor.
 
     Args:
@@ -67,18 +66,18 @@ class FrameStack(gym.Wrapper):
         dtype=env.observation_space.dtype,
     )
 
-  def reset(self) -> np.ndarray:
+  def reset(self):
     obs = self.env.reset()
     for _ in range(self._k):
       self._frames.append(obs)
     return self._get_obs()
 
-  def step(self, action: np.ndarray) -> TimeStep:
+  def step(self, action):
     obs, reward, done, info = self.env.step(action)
     self._frames.append(obs)
     return self._get_obs(), reward, done, info
 
-  def _get_obs(self) -> np.ndarray:
+  def _get_obs(self):
     assert len(self._frames) == self._k
     return np.concatenate(list(self._frames), axis=0)
 
@@ -89,7 +88,7 @@ class ActionRepeat(gym.Wrapper):
   Reference: https://github.com/ikostrikov/jaxrl/
   """
 
-  def __init__(self, env: gym.Env, repeat: int) -> None:
+  def __init__(self, env, repeat):
     """Constructor.
 
     Args:
@@ -102,7 +101,7 @@ class ActionRepeat(gym.Wrapper):
     assert repeat > 1, "repeat should be greater than 1."
     self._repeat = repeat
 
-  def step(self, action: np.ndarray) -> TimeStep:
+  def step(self, action):
     total_reward = 0.0
     for _ in range(self._repeat):
       obs, rew, done, info = self.env.step(action)
@@ -115,7 +114,7 @@ class ActionRepeat(gym.Wrapper):
 class RewardScale(gym.Wrapper):
   """Scale the environment reward."""
 
-  def __init__(self, env: gym.Env, scale: float) -> None:
+  def __init__(self, env, scale):
     """Constructor.
 
     Args:
@@ -126,7 +125,7 @@ class RewardScale(gym.Wrapper):
 
     self._scale = scale
 
-  def step(self, action: np.ndarray) -> TimeStep:
+  def step(self, action):
     obs, reward, done, info = self.env.step(action)
     reward *= self._scale
     return obs, reward, done, info
@@ -142,18 +141,18 @@ class EpisodeMonitor(gym.ActionWrapper):
   Reference: https://github.com/ikostrikov/jaxrl/
   """
 
-  def __init__(self, env: gym.Env):
+  def __init__(self, env):
     super().__init__(env)
 
     self._reset_stats()
     self.total_timesteps: int = 0
 
-  def _reset_stats(self) -> None:
+  def _reset_stats(self):
     self.reward_sum: float = 0.0
     self.episode_length: int = 0
     self.start_time = time.time()
 
-  def step(self, action: np.ndarray) -> TimeStep:
+  def step(self, action):
     obs, rew, done, info = self.env.step(action)
 
     self.reward_sum += rew
@@ -169,7 +168,7 @@ class EpisodeMonitor(gym.ActionWrapper):
 
     return obs, rew, done, info
 
-  def reset(self) -> np.ndarray:
+  def reset(self):
     self._reset_stats()
     return self.env.reset()
 
@@ -182,10 +181,10 @@ class VideoRecorder(gym.Wrapper):
 
   def __init__(
       self,
-      env: gym.Env,
-      save_dir: str,
-      resolution: typing.Tuple[int, int] = (128, 128),
-      fps: float = 30,
+      env,
+      save_dir,
+      resolution = (128, 128),
+      fps = 30,
   ):
     super().__init__(env)
 
@@ -198,7 +197,7 @@ class VideoRecorder(gym.Wrapper):
     self.current_episode = 0
     self.frames = []
 
-  def step(self, action: np.ndarray) -> TimeStep:
+  def step(self, action):
     frame = self.env.render(mode="rgb_array")
     if frame.shape[:2] != (self.height, self.width):
       frame = cv2.resize(
@@ -236,10 +235,10 @@ class LearnedVisualReward(abc.ABC, gym.Wrapper):
 
   def __init__(
       self,
-      env: gym.Env,
-      model: ModelType,
-      device: torch.device,
-      res_hw: typing.Optional[typing.Tuple[int, int]] = None,
+      env,
+      model,
+      device,
+      res_hw = None,
   ):
     """Constructor.
 
@@ -257,14 +256,14 @@ class LearnedVisualReward(abc.ABC, gym.Wrapper):
     self._model = model.to(device).eval()
     self._res_hw = res_hw
 
-  def _to_tensor(self, x: np.ndarray) -> TensorType:
+  def _to_tensor(self, x):
     x = torch.from_numpy(x).permute(2, 0, 1).float()[None, None, Ellipsis]
     # TODO(kevin): Make this more generic for other preprocessing.
     x = x / 255.0
     x = x.to(self._device)
     return x
 
-  def _render_obs(self) -> np.ndarray:
+  def _render_obs(self):
     """Render the pixels at the desired resolution."""
     # TODO(kevin): Make sure this works for mujoco envs.
     pixels = self.env.render(mode="rgb_array")
@@ -274,10 +273,10 @@ class LearnedVisualReward(abc.ABC, gym.Wrapper):
     return pixels
 
   @abc.abstractmethod
-  def _get_reward_from_image(self, image: np.ndarray) -> float:
+  def _get_reward_from_image(self, image):
     """Forward the pixels through the model and compute the reward."""
 
-  def step(self, action: np.ndarray) -> TimeStep:
+  def step(self, action):
     obs, env_reward, done, info = self.env.step(action)
     # We'll keep the original env reward in the info dict in case the user would
     # like to use it in conjunction with the learned reward.
@@ -292,8 +291,8 @@ class DistanceToGoalLearnedVisualReward(LearnedVisualReward):
 
   def __init__(
       self,
-      goal_emb: np.ndarray,
-      distance_scale: typing.Optional[float] = 1.0,
+      goal_emb,
+      distance_scale = 1.0,
       **base_kwargs,
   ):
     """Constructor.
@@ -302,13 +301,14 @@ class DistanceToGoalLearnedVisualReward(LearnedVisualReward):
       goal_emb: The goal embedding.
       distance_scale: Scales the distance from the current state embedding to
         that of the goal state. Set to `1.0` by default.
+      **base_kwargs: Base keyword arguments.
     """
     super().__init__(**base_kwargs)
 
     self._goal_emb = np.atleast_2d(goal_emb)
     self._distance_scale = distance_scale
 
-  def _get_reward_from_image(self, image: np.ndarray) -> float:
+  def _get_reward_from_image(self, image):
     """Forward the pixels through the model and compute the reward."""
     image_tensor = self._to_tensor(image)
     emb = self._model.infer(image_tensor).numpy().embs
@@ -320,7 +320,7 @@ class DistanceToGoalLearnedVisualReward(LearnedVisualReward):
 class GoalClassifierLearnedVisualReward(LearnedVisualReward):
   """Replace the environment reward with the output of a goal classifier."""
 
-  def _get_reward_from_image(self, image: np.ndarray) -> float:
+  def _get_reward_from_image(self, image):
     """Forward the pixels through the model and compute the reward."""
     image_tensor = self._to_tensor(image)
     prob = torch.sigmoid(self._model.infer(image_tensor).embs)

@@ -16,7 +16,7 @@
 """Video samplers for mini-batch creation."""
 
 import abc
-from typing import Dict, Iterator, List, Tuple
+from typing import Iterator, List, Tuple
 
 import numpy as np
 import torch

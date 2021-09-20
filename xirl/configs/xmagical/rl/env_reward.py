@@ -21,11 +21,17 @@ from ml_collections import ConfigDict
 from utils import copy_config_and_replace
 
 
-def get_config(embodiment: str) -> ConfigDict:
+def get_config(embodiment):
   """Parameterize base RL config based on provided embodiment.
 
   This simply modifies the number of training steps based on presets defined
   in `constants.py`.
+
+  Args:
+    embodiment (str): String denoting embodiment name.
+
+  Returns:
+    ConfigDict corresponding to given embodiment string.
   """
   config = _get_config()
 

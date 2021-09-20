@@ -16,13 +16,15 @@
 """X-MAGICAL: Train a policy with the sparse environment reward."""
 
 import subprocess
+
 from absl import app
 from absl import flags
 from absl import logging
-from torchkit.experiment import string_from_kwargs
-from torchkit.experiment import unique_id
 from configs.constants import EMBODIMENTS
 from configs.constants import XMAGICAL_EMBODIMENT_TO_ENV_NAME
+from torchkit.experiment import string_from_kwargs
+from torchkit.experiment import unique_id
+
 # pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS
@@ -43,7 +45,7 @@ def main(_):
       reward="sparse_env",
       uid=unique_id(),
   )
-  logging.info(f"Experiment name: {experiment_name}")
+  logging.info("Experiment name: %s", experiment_name)
 
   # Execute each seed in parallel.
   procs = []

@@ -16,18 +16,20 @@
 """Launch script for pre-training representations."""
 
 import os.path as osp
+
 from absl import app
 from absl import flags
 from absl import logging
+from base_configs import validate_config
 from ml_collections import config_flags
 import torch
-from xirl import common
-from base_configs import validate_config
-from utils import setup_experiment
 from torchkit import CheckpointManager
 from torchkit import experiment
 from torchkit import Logger
 from torchkit.utils.py_utils import Stopwatch
+from utils import setup_experiment
+from xirl import common
+
 # pylint: disable=logging-fstring-interpolation
 
 FLAGS = flags.FLAGS
@@ -65,11 +67,11 @@ def main(_):
   else:
     logging.info("No GPU device found. Falling back to CPU.")
     device = torch.device("cpu")
-  logging.info(f"Using device: {device}")
+  logging.info("Using device: %s", device)
 
   # Set RNG seeds.
   if config.seed is not None:
-    logging.info(f"Pretraining experiment seed: {config.seed}")
+    logging.info("Pretraining experiment seed: %d", config.seed)
     experiment.seed_rngs(config.seed)
     experiment.set_cudnn(config.cudnn_deterministic, config.cudnn_benchmark)
   else:
