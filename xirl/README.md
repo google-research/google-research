@@ -92,7 +92,7 @@ The rest of the codebase is organized as follows:
 **Core Scripts**
 
 - [x] Same-embodiment setting (Section 5.1)
-    - [x] Pretraining: `python pretrain_xmagical_cross_embodiment.py --help`
+    - [x] Pretraining: `python pretrain_xmagical_same_embodiment.py --help`
     - [x] RL: `python rl_xmagical_learned_reward.py --help`
 - [x] Cross-embodiment setting (Section 5.2)
     - [x] Pretraining: `python pretrain_xmagical_cross_embodiment.py --help`
