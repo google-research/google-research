@@ -29,7 +29,7 @@ FLAGS = flags.FLAGS
 
 def _produce_target_phrase(phrases):
   """Randomly selects one phrase as the target phrase for training."""
-  with tf.variable_scope('produce_output'):
+  with tf.compat.v1.variable_scope('produce_output'):
     # Find indices for valid phrases with meaningful tokens.
     valid_phrase_indices = tf.reshape(
         tf.where(tf.reduce_any(tf.greater(phrases, EOS), -1)), [-1])
@@ -54,7 +54,7 @@ def _produce_target_phrase(phrases):
 
 def _select_phrases(dense_features):
   """Selects phrases from the workers."""
-  with tf.variable_scope('select_phrases'):
+  with tf.compat.v1.variable_scope('select_phrases'):
     # Sample one phrase for each node.
     output_phrase = tf.map_fn(_produce_target_phrase,
                               dense_features['caption_token_id'])
@@ -64,27 +64,24 @@ def _select_phrases(dense_features):
     return output_phrase
 
 
-def _extract_image(dense_features, num_ui_objects, target_node=None):
+def _extract_image(dense_features, num_ui_objects):
   """Extracts image features."""
-  with tf.variable_scope('extract_image'):
+  with tf.compat.v1.variable_scope('extract_image'):
     visible = dense_features['visibility_seq'] * dense_features[
         'visibility_to_user_seq']
     obj_pixels = tf.reshape(dense_features['obj_img_mat'],
                             [num_ui_objects, 64, 64, 3])
-    if target_node is not None:
-      obj_pixels = tf.image.rgb_to_grayscale(tf.gather(obj_pixels, target_node))
-    else:
-      obj_pixels = tf.image.rgb_to_grayscale(obj_pixels)
-      w = (
-          dense_features['cord_x_seq'][:, 1] -
-          dense_features['cord_x_seq'][:, 0])
-      h = (
-          dense_features['cord_y_seq'][:, 1] -
-          dense_features['cord_y_seq'][:, 0])
-      obj_visible = tf.logical_and(
-          tf.equal(visible, 1),
-          tf.logical_or(tf.greater(w, 0.005), tf.greater(h, 0.005)))
-      obj_pixels = tf.where(obj_visible, obj_pixels, tf.zeros_like(obj_pixels))
+    obj_pixels = tf.image.rgb_to_grayscale(obj_pixels)
+    w = dense_features['cord_x_seq'][:, 1] - dense_features['cord_x_seq'][:, 0]
+    h = dense_features['cord_y_seq'][:, 1] - dense_features['cord_y_seq'][:, 0]
+    obj_visible = tf.logical_and(
+        tf.equal(visible, 1),
+        tf.logical_or(tf.greater(w, 0.005), tf.greater(h, 0.005)))
+    # Shape needs to be broadcastable in TF2 for tf.where().
+    obj_visible = tf.reshape(obj_visible, [num_ui_objects, 1, 1, 1])
+    obj_pixels = tf.where(obj_visible, obj_pixels, tf.zeros_like(obj_pixels))
+    obj_visible = tf.reshape(obj_visible, [num_ui_objects])
+
     return tf.cast(obj_pixels, tf.float32) / 255.0, obj_visible
 
 
@@ -109,40 +106,35 @@ def filter_empty_mturk():
 def parse_tf_example(serialized_example):
   """Parses a single tf example."""
   keys_to_features = {
-      'developer_token_id': tf.VarLenFeature(tf.int64),
-      'resource_token_id': tf.VarLenFeature(tf.int64),
-      'caption_token_id': tf.VarLenFeature(tf.int64),
-      'caption_phrase_id': tf.VarLenFeature(tf.int64),
-      'gold_caption': tf.VarLenFeature(tf.string),
-      'clickable_seq': tf.VarLenFeature(tf.int64),
-      'v_distance_seq': tf.VarLenFeature(tf.float32),
-      'h_distance_seq': tf.VarLenFeature(tf.float32),
-      'type_id_seq': tf.VarLenFeature(tf.int64),
-      'cord_x_seq': tf.VarLenFeature(tf.float32),
-      'cord_y_seq': tf.VarLenFeature(tf.float32),
-      'visibility_to_user_seq': tf.VarLenFeature(tf.int64),
-      'visibility_seq': tf.VarLenFeature(tf.int64),
-      'label_flag': tf.VarLenFeature(tf.int64),  # 0: worker 1: developer
-      'parent_child_seq': tf.VarLenFeature(tf.int64),
-      'obj_img_mat': tf.VarLenFeature(tf.int64),
-      'obj_dom_pos': tf.VarLenFeature(tf.int64),
-      'is_leaf': tf.VarLenFeature(tf.int64),
+      'developer_token_id': tf.io.VarLenFeature(tf.int64),
+      'resource_token_id': tf.io.VarLenFeature(tf.int64),
+      'caption_token_id': tf.io.VarLenFeature(tf.int64),
+      'caption_phrase_id': tf.io.VarLenFeature(tf.int64),
+      'gold_caption': tf.io.VarLenFeature(tf.string),
+      'clickable_seq': tf.io.VarLenFeature(tf.int64),
+      'type_id_seq': tf.io.VarLenFeature(tf.int64),
+      'cord_x_seq': tf.io.VarLenFeature(tf.float32),
+      'cord_y_seq': tf.io.VarLenFeature(tf.float32),
+      'visibility_to_user_seq': tf.io.VarLenFeature(tf.int64),
+      'visibility_seq': tf.io.VarLenFeature(tf.int64),
+      'label_flag': tf.io.VarLenFeature(tf.int64),  # 0: worker 1: developer
+      'obj_img_mat': tf.io.VarLenFeature(tf.int64),
+      'obj_dom_pos': tf.io.VarLenFeature(tf.int64),
   }
-  parsed = tf.parse_single_example(serialized_example, keys_to_features)
+  parsed = tf.io.parse_single_example(serialized_example, keys_to_features)
   dense_features = {}
   for key in keys_to_features:
     if key in ['gold_caption']:
       default_value = ''
     else:
       default_value = 0
-    dense_features[key] = tf.sparse_tensor_to_dense(
+    dense_features[key] = tf.sparse.to_dense(
         parsed[key], default_value=default_value)
 
   return dense_features
 
 
 def create_parser(word_vocab_size,
-                  phrase_vocab_size,
                   max_pixel_pos=100,
                   max_dom_pos=500,
                   is_inference=False):
@@ -181,26 +173,10 @@ def create_parser(word_vocab_size,
             tf.fill(tf.shape(dense_features['resource_token_id']), UKN),
             dtype=tf.int64), dense_features['resource_token_id'])
 
-    dense_features['caption_phrase_id'] = tf.where(
-        tf.greater_equal(dense_features['caption_phrase_id'],
-                         phrase_vocab_size),
-        tf.cast(
-            tf.fill(tf.shape(dense_features['caption_phrase_id']), UKN),
-            dtype=tf.int64), dense_features['caption_phrase_id'])
-
-    dense_features['v_distance_seq'] = tf.reshape(
-        dense_features['v_distance_seq'], [num_ui_objects, num_ui_objects],
-        name='v_distance_seq')
-    dense_features['h_distance_seq'] = tf.reshape(
-        dense_features['h_distance_seq'], [num_ui_objects, num_ui_objects],
-        name='h_distance_seq')
     dense_features['cord_x_seq'] = tf.reshape(
         dense_features['cord_x_seq'], [num_ui_objects, 2], name='cord_x_seq')
     dense_features['cord_y_seq'] = tf.reshape(
         dense_features['cord_y_seq'], [num_ui_objects, 2], name='cord_y_seq')
-    dense_features['parent_child_seq'] = tf.reshape(
-        tf.to_int32(dense_features['parent_child_seq']), [-1, num_ui_objects],
-        name='parent_child_seq')
 
     dense_features['obj_dom_pos'] = tf.where(
         tf.greater_equal(dense_features['obj_dom_pos'], max_dom_pos),
@@ -212,54 +188,33 @@ def create_parser(word_vocab_size,
     if not is_inference:
       output_phrase = _select_phrases(dense_features)
       feature_dict['caption_token_id'] = output_phrase
-      feature_dict['caption_phrase_id'] = dense_features['caption_phrase_id']
 
     feature_dict['developer_token_id'] = dense_features['developer_token_id']
     feature_dict['resource_token_id'] = dense_features['resource_token_id']
     feature_dict['reference'] = dense_features['gold_caption']
-    # feature_dict['obj_str_seq'] = dense_features['obj_str_seq']
 
     feature_dict['label_flag'] = dense_features['label_flag']
-    feature_dict['obj_is_leaf'] = dense_features['is_leaf']
     obj_pixels, obj_visible = _extract_image(dense_features, num_ui_objects)
     feature_dict['obj_pixels'] = obj_pixels
     feature_dict['obj_visible'] = obj_visible
     feature_dict['obj_screen_pos'] = tf.concat(
         [dense_features['cord_x_seq'], dense_features['cord_y_seq']], -1)
-    feature_dict['obj_screen_pos'] = tf.to_int32(
+    feature_dict['obj_screen_pos'] = tf.compat.v1.to_int32(
         feature_dict['obj_screen_pos'] * (max_pixel_pos - 1))
     feature_dict['obj_clickable'] = dense_features['clickable_seq']
     feature_dict['obj_type'] = dense_features['type_id_seq']
-    feature_dict['obj_adjacency'] = dense_features['parent_child_seq']
     feature_dict['obj_dom_pos'] = tf.reshape(dense_features['obj_dom_pos'],
                                              [num_ui_objects, 3])
-    feature_dict['obj_is_padding'] = tf.zeros(tf.shape(num_ui_objects))
-    for key in [
-        'obj_adjacency',
-        'obj_type',
-        'obj_clickable',
-        'obj_screen_pos',
-        'obj_dom_pos',
-        'developer_token_id',
-        'resource_token_id',
-    ]:
-      # Add the auxiliary step dimension.
-      feature_dict[key] = tf.expand_dims(feature_dict[key], 0)
 
     for key in [
         'caption_token_id',
-        'caption_phrase_id',
         'developer_token_id',
         'resource_token_id',
         'label_flag',
-        'obj_adjacency',
         'obj_type',
         'obj_clickable',
         'obj_visible',
-        'obj_is_leaf',
-        'icon_label',
         'obj_dom_pos',
-        'obj_is_padding',
     ]:
       if key in feature_dict:
         feature_dict[key] = tf.cast(feature_dict[key], tf.int32)
@@ -272,46 +227,34 @@ def create_parser(word_vocab_size,
 def input_fn(pattern,
              batch_size,
              word_vocab_size,
-             phrase_vocab_size,
              max_pixel_pos=100,
              max_dom_pos=500,
              epoches=1,
              buffer_size=1):
   """Retrieves batches of data for training."""
-  # files = tf.data.Dataset.list_files(pattern)
   filepaths = tf.io.gfile.glob(pattern)
   dataset = tf.data.TFRecordDataset([filepaths])
   dataset = dataset.map(
       parse_tf_example, num_parallel_calls=tf.data.experimental.AUTOTUNE)
   dataset = dataset.filter(filter_empty_mturk())
   dataset = dataset.map(
-      create_parser(word_vocab_size, phrase_vocab_size, max_pixel_pos,
-                    max_dom_pos),
+      create_parser(word_vocab_size, max_pixel_pos, max_dom_pos),
       num_parallel_calls=tf.data.experimental.AUTOTUNE)
   dataset = dataset.shuffle(buffer_size=buffer_size)
 
   dataset = dataset.repeat(count=epoches)
-
-  padding_value_int = tf.cast(0, tf.int32)
-  anchor_padding_value_int = tf.cast(-1, tf.int32)
   padding_info = [
-      ('caption_token_id', [None, 11], padding_value_int),
-      ('caption_phrase_id', [None], padding_value_int),
-      ('developer_token_id', [1, None, 10], padding_value_int),
-      ('resource_token_id', [1, None, 10], padding_value_int),
+      ('caption_token_id', [None, 11], 0),
+      ('developer_token_id', [None, 10], 0),
+      ('resource_token_id', [None, 10], 0),
       ('reference', [None], tf.cast('', tf.string)),
-      ('label_flag', [None], anchor_padding_value_int),
-      ('icon_label', [None], padding_value_int),
-      ('icon_iou', [None], 0.0),
-      ('obj_pixels', [None, 64, 64, 1], tf.cast(0, tf.float32)),
-      ('obj_adjacency', [1, None, None], padding_value_int),
-      ('obj_type', [1, None], anchor_padding_value_int),
-      ('obj_clickable', [1, None], padding_value_int),
-      ('obj_screen_pos', [1, None, 4], padding_value_int),
-      ('obj_dom_pos', [1, None, 3], padding_value_int),
-      ('obj_visible', [None], padding_value_int),
-      ('obj_is_leaf', [None], padding_value_int),
-      ('obj_is_padding', [None], 1),
+      ('label_flag', [None], -1),
+      ('obj_pixels', [None, 64, 64, 1], 0.0),
+      ('obj_type', [None], -1),
+      ('obj_clickable', [None], 0),
+      ('obj_screen_pos', [None, 4], 0),
+      ('obj_dom_pos', [None, 3], 0),
+      ('obj_visible', [None], 0),
   ]
   padded_shapes = {}
   padded_values = {}
