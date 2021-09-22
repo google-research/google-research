@@ -83,18 +83,32 @@ def conv_model(flags, conv_cell, cnn_filters, cnn_kernel_size, cnn_act,
        use_bias) in zip(cnn_filters, cnn_kernel_size, cnn_act,
                         cnn_dilation_rate, cnn_strides, cnn_use_bias):
 
-    net = stream.Stream(
-        cell=conv_cell(
-            filters=filters,
-            kernel_size=kernel_size,
-            activation=activation,
-            dilation_rate=dilation_rate,
-            strides=strides,
-            use_bias=use_bias,
-            padding='valid',
-            **kwargs),
-        use_one_step=False,
-        pad_time_dim='causal')(net)
+    if conv_cell == tf.keras.layers.DepthwiseConv1D:
+      # DepthwiseConv has no filters arg
+      net = stream.Stream(
+          cell=conv_cell(
+              kernel_size=kernel_size,
+              activation=activation,
+              dilation_rate=dilation_rate,
+              strides=strides,
+              use_bias=use_bias,
+              padding='valid',
+              **kwargs),
+          use_one_step=False,
+          pad_time_dim='causal')(net)
+    else:
+      net = stream.Stream(
+          cell=conv_cell(
+              filters=filters,
+              kernel_size=kernel_size,
+              activation=activation,
+              dilation_rate=dilation_rate,
+              strides=strides,
+              use_bias=use_bias,
+              padding='valid',
+              **kwargs),
+          use_one_step=False,
+          pad_time_dim='causal')(net)
 
   return tf.keras.Model(input_audio, net)
 
@@ -151,15 +165,26 @@ def conv_model_no_stream_wrapper(flags, conv_cell, cnn_filters, cnn_kernel_size,
         padding='causal', padding_size=padding_size)(
             net)
 
-    net = conv_cell(
-        filters=filters,
-        kernel_size=kernel_size,
-        activation=activation,
-        dilation_rate=dilation_rate,
-        strides=strides,
-        use_bias=use_bias,
-        padding='valid',  # padding has to be valid!
-        **kwargs)(net)
+    if conv_cell == tf.keras.layers.DepthwiseConv1D:
+      # DepthwiseConv has no filters arg
+      net = conv_cell(
+          kernel_size=kernel_size,
+          activation=activation,
+          dilation_rate=dilation_rate,
+          strides=strides,
+          use_bias=use_bias,
+          padding='valid',  # padding has to be valid!
+          **kwargs)(net)
+    else:
+      net = conv_cell(
+          filters=filters,
+          kernel_size=kernel_size,
+          activation=activation,
+          dilation_rate=dilation_rate,
+          strides=strides,
+          use_bias=use_bias,
+          padding='valid',  # padding has to be valid!
+          **kwargs)(net)
 
   return tf.keras.Model(input_audio, net)
 
@@ -211,15 +236,26 @@ def conv_model_keras_native(flags, conv_cell, cnn_filters, cnn_kernel_size,
     net = tf.keras.layers.ZeroPadding1D(
         [max(dilation_rate * (kernel_size - 1) - (strides - 1), 0), 0])(
             net)
-    net = conv_cell(
-        filters=filters,
-        kernel_size=kernel_size,
-        activation=activation,
-        dilation_rate=dilation_rate,
-        strides=strides,
-        use_bias=use_bias,
-        padding='valid',
-        **kwargs)(net)
+    if conv_cell == tf.keras.layers.DepthwiseConv1D:
+      # DepthwiseConv has no filters arg
+      net = conv_cell(
+          kernel_size=kernel_size,
+          activation=activation,
+          dilation_rate=dilation_rate,
+          strides=strides,
+          use_bias=use_bias,
+          padding='valid',
+          **kwargs)(net)
+    else:
+      net = conv_cell(
+          filters=filters,
+          kernel_size=kernel_size,
+          activation=activation,
+          dilation_rate=dilation_rate,
+          strides=strides,
+          use_bias=use_bias,
+          padding='valid',
+          **kwargs)(net)
 
   return tf.keras.Model(input_audio, net)
 
@@ -367,6 +403,10 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
           'get_model': conv_model,
           'conv_cell': tf.keras.layers.SeparableConv1D
       }, {
+          'testcase_name': 'model with stream wrapper on DepthwiseConv1D',
+          'get_model': conv_model,
+          'conv_cell': tf.keras.layers.DepthwiseConv1D
+      }, {
           'testcase_name': 'model without stream wrapper on Conv1D',
           'get_model': conv_model_no_stream_wrapper,
           'conv_cell': tf.keras.layers.Conv1D
@@ -391,6 +431,9 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
       kwargs = dict(
           depthwise_initializer=FixedRandomInitializer(seed=123),
           pointwise_initializer=FixedRandomInitializer(seed=456))
+    elif conv_cell == tf.keras.layers.DepthwiseConv1D:
+      kwargs = dict(
+          depthwise_initializer=FixedRandomInitializer(seed=123))
     else:
       kwargs = dict(
           kernel_initializer=FixedRandomInitializer(seed=123))
