@@ -18,7 +18,7 @@
 import numpy as np
 import torch
 
-import performer.models.pytorch.slim_performer.numerator_and_denominator as num_and_den
+import performer.models.slim_performer.pytorch.numerator_and_denominator as num_and_den
 
 
 def valid_feature_type(feature_type):
