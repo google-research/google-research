@@ -20,7 +20,6 @@
 # pytype: disable=wrong-keyword-args
 # pytype: disable=attribute-error
 
-from typing import Any
 from flax import linen as nn
 from flax import struct
 import jax.numpy as jnp
@@ -45,6 +44,28 @@ def make_partial_program_mask(programs,
                    jnp.expand_dims(num_partials, axis=-2))
   mask = jnp.expand_dims(mask, axis=-3)
   return mask.astype(dtype)
+
+
+def make_relative_position(programs,
+                           dtype = jnp.int32):
+  program_position = jnp.arange(programs.shape[-1], dtype=jnp.int32)
+
+  relative_position = program_position[None, :] - program_position[:, None]
+  relative_position = jnp.broadcast_to(
+    relative_position, programs.shape[:-1] + relative_position.shape)
+  return relative_position.astype(dtype)
+
+
+def make_partial_program_relative_position(programs,
+                                           bos_token = 1,
+                                           dtype = jnp.int32):
+  """Make relative positions for bos tokens of partial programs."""
+  program_partial_position = jnp.cumsum(
+    jnp.where(programs == bos_token, 1, 0), axis=-1)
+
+  bos_relative_position = (program_partial_position[..., None, :] -
+                           program_partial_position[..., None])
+  return bos_relative_position.astype(dtype)
 
 
 class DecomposeAttentionTransformer(nn.Module):
@@ -95,6 +116,7 @@ class DecomposeAttentionTransformer(nn.Module):
 
     # Make attention masks.
     decoder_mask = None
+    decoder_relative_position = None  # Relative positions.
     if cfg.decode:
       # For fast decode with caching, programs shape == [batch_size, 1] and
       # cfg.shift = False, cfg.decode = True.
@@ -136,11 +158,24 @@ class DecomposeAttentionTransformer(nn.Module):
             nn.make_attention_mask(
                 preshift_programs > 0, preshift_programs > 0, dtype=cfg.dtype),
             jnp.logical_or(decoder_bos_mask, decoder_partial_mask))
+
+        # Make custom relative positions where BOS are separately indexed.
+        decoder_relative_position = make_relative_position(programs)
+        decoder_partial_relative_position = (
+          make_partial_program_relative_position(programs,
+                                                 bos_token=cfg.bos_token)
+        )
+        decoder_relative_position = jnp.where(
+          (programs == cfg.bos_token)[..., None],
+          decoder_partial_relative_position,
+          decoder_relative_position)
+
       encoder_decoder_mask = nn.make_attention_mask(
           programs > 0, flat_encoded_padding_mask, dtype=cfg.dtype)
 
     return self.decoder(
-        programs, flat_encoded, decoder_mask, encoder_decoder_mask)
+        programs, flat_encoded, decoder_mask, encoder_decoder_mask,
+        decoder_relative_position)
 
   def __call__(self,
                inputs,

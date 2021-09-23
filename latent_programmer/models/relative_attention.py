@@ -30,7 +30,6 @@ from flax.linen.module import Module, compact, merge_param
 from flax.linen.initializers import normal, zeros
 from jax import lax
 import jax.numpy as jnp
-import numpy as np
 
 PRNGKey = Any
 Shape = Iterable[int]
@@ -38,32 +37,34 @@ Dtype = Any
 Array = Any
 
 
-def make_relative_position_bucket(relative_position, causal=False, num_buckets=32, max_distance=128):
-    """
-    Adapted from Mesh Tensorflow:
-    https://github.com/tensorflow/mesh/blob/0cb87fe07da627bf0b7e60475d59f95ed6b5be3d/mesh_tensorflow/transformer/transformer_layers.py
+def make_relative_position_bucket(relative_position, causal=False, num_buckets=32,
+                                  max_distance=128):
+  """
+  Adapted from Mesh Tensorflow:
+  https://github.com/tensorflow/mesh/blob/0cb87fe07da627bf0b7e60475d59f95ed6b5be3d/mesh_tensorflow/transformer/transformer_layers.py
 
-    Translate relative position to a bucket number for relative attention.
-    """
-    relative_buckets = 0
-    if causal:
-        num_buckets //= 2
-        relative_buckets += (relative_position > 0) * num_buckets
-        relative_position = jnp.abs(relative_position)
-    else:
-        relative_position = -jnp.clip(relative_position, a_max=0)
+  Translate relative position to a bucket number for relative attention.
+  """
+  relative_buckets = 0
+  if causal:
+    num_buckets //= 2
+    relative_buckets += (relative_position > 0) * num_buckets
+    relative_position = jnp.abs(relative_position)
+  else:
+    relative_position = -jnp.clip(relative_position, a_max=0)
 
-    max_exact = num_buckets // 2
-    is_small = relative_position < max_exact
+  max_exact = num_buckets // 2
+  is_small = relative_position < max_exact
 
-    relative_position_if_large = max_exact + (
-        jnp.log(relative_position / max_exact) / jnp.log(max_distance / max_exact) * (num_buckets - max_exact)
-    )
-    relative_position_if_large = jnp.clip(relative_position_if_large, a_max=num_buckets - 1)
-    
-    relative_buckets += jnp.where(is_small, relative_position, relative_position_if_large)
-        
-    return relative_buckets.astype(jnp.int32)
+  relative_position_if_large = max_exact + (
+    jnp.log(relative_position / max_exact) / jnp.log(max_distance / max_exact)
+      * (num_buckets - max_exact)
+  )
+  relative_position_if_large = jnp.clip(relative_position_if_large, a_max=num_buckets - 1)
+
+  relative_buckets += jnp.where(is_small, relative_position, relative_position_if_large)
+
+  return relative_buckets.astype(jnp.int32)
 
 
 class RelativeMultiHeadDotProductAttention(Module):
@@ -108,6 +109,7 @@ class RelativeMultiHeadDotProductAttention(Module):
                inputs_q: Array,
                inputs_kv: Array,
                mask: Optional[Array] = None,
+               custom_relative_position: Optional[Array] = None,
                deterministic: Optional[bool] = None):
     """Applies multi-head dot product attention on the input data.
     Projects the inputs into multi-headed query, key, and value vectors,
@@ -121,6 +123,8 @@ class RelativeMultiHeadDotProductAttention(Module):
         `[batch_sizes..., num_heads, query_length, key/value_length]`.
         Attention weights are masked out if their corresponding mask value
         is `False`.
+      custom_relative_position: relative positions tensor
+        `[batch_sizes..., query_length, key/value_length]'
       deterministic: if false, the attention weight is masked randomly
         using dropout, whereas if true, the attention weights
         are deterministic.
@@ -154,19 +158,35 @@ class RelativeMultiHeadDotProductAttention(Module):
                          dense(dtype=self.dtype, name='key')(inputs_kv),
                          dense(dtype=self.dtype, name='value')(inputs_kv))
 
-    query_length = inputs_q.shape[-2]
-    key_length = inputs_kv.shape[-2]
-    context_position = jnp.arange(query_length, dtype=jnp.int32)[:, None]
-    memory_position = jnp.arange(key_length, dtype=jnp.int32)[None, :]
+    if custom_relative_position is None:
+      query_length = inputs_q.shape[-2]
+      key_length = inputs_kv.shape[-2]
+      context_position = jnp.arange(query_length, dtype=jnp.int32)[:, None]
+      memory_position = jnp.arange(key_length, dtype=jnp.int32)[None, :]
 
-    relative_position = memory_position - context_position
-    relative_position_bucket = make_relative_position_bucket(
-        relative_position,
-        causal=self.causal,
-        num_buckets=self.num_relative_position_buckets)
-    
-    bias = relative_attention_embed(relative_position_bucket)
-    bias = bias.transpose((2, 0, 1))[None, :, :, :]
+      relative_position = memory_position - context_position
+      relative_position_bucket = make_relative_position_bucket(
+          relative_position,
+          causal=self.causal,
+          num_buckets=self.num_relative_position_buckets)
+
+      bias = relative_attention_embed(relative_position_bucket)
+      bias = bias.transpose((2, 0, 1))
+      # Expand batch dimensions.
+      bias = jnp.broadcast_to(
+          bias, (1,) * len(inputs_q.shape[:-2]) + bias.shape)
+
+    else:
+      relative_position = custom_relative_position
+      relative_position_bucket = make_relative_position_bucket(
+          relative_position,
+          causal=self.causal,
+          num_buckets=self.num_relative_position_buckets)
+
+      bias = relative_attention_embed(relative_position_bucket)
+      permute = tuple(map(lambda i: len(inputs_q.shape) + 1 + i, (-1, -3, -2)))
+      bias = bias.transpose(
+          tuple(range(len(inputs_q.shape[:-2]))) + permute)
 
     # During fast autoregressive decoding, we feed one position at a time,
     # and cache the keys and values step by step.
@@ -207,8 +227,8 @@ class RelativeMultiHeadDotProductAttention(Module):
 
         bias = lax.dynamic_slice(
                 bias,
-                (0, 0, cur_index, 0),
-                (1, self.num_heads, cur_index, max_length))
+                (0,) * len(batch_dims) + (0, cur_index, 0),
+                (1,) * len(batch_dims) + (self.num_heads, 1, max_length))
 
     # Convert the boolean attention mask to an attention bias.
     if mask is not None:
@@ -250,6 +270,12 @@ class RelativeSelfAttention(RelativeMultiHeadDotProductAttention):
   """Self-attention special case."""
 
   @compact
-  def __call__(self, inputs_q: Array, mask: Optional[Array] = None,
+  def __call__(self,
+               inputs_q: Array,
+               mask: Optional[Array] = None,
+               custom_relative_position: Optional[Array] = None,
                deterministic: Optional[bool] = None):
-    return super().__call__(inputs_q, inputs_q, mask, deterministic=deterministic)
+    return super().__call__(inputs_q, inputs_q,
+                            mask=mask,
+                            custom_relative_position=custom_relative_position,
+                            deterministic=deterministic)
