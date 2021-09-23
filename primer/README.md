@@ -1,7 +1,7 @@
 # Primer: Searching for Efficient Transformers for Language Modeling
 
 This repository contains the open sourced code for the T5 experiments in
-"Primer: Searching for Efficient Transformers for Language Modeling."
+"[Primer: Searching for Efficient Transformers for Language Modeling](https://arxiv.org/abs/2109.08668)."
 
 ## Launching Experiments
 
