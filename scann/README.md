@@ -70,6 +70,30 @@ CC=clang-8 bazel build -c opt --features=thin_lto --copt=-mavx2 --copt=-mfma --c
 A .whl file should appear in the root of the repository upon successful
 completion of these commands. This .whl can be installed via pip.
 
+
+### Build on MacOS
+
+There are couple of changes made to enable build on MacOS (Big Sur 11.6) successful
+
+1. Correct tensorflow dylib for MacOS
+2. hash_set header check
+3. Pybind11 Python Enviroment vars
+
+
+* **Make sure you have newer version of clang (greater than 11.0)**
+
+* **Bazel version < 5.x is recommended** (there's issues with protobuf)
+
+* **Export following flag to have g++ flavored toolchain**
+```bash
+export BAZEL_USE_CPP_ONLY_TOOLCHAIN=1
+
+CC=clang bazel build -c opt --macos_sdk_version=<Your sdk version> --features=thin_lto --copt=-mavx2 --copt=-mfma --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" --cxxopt=-std=c++17 --copt=-fsized-deallocation --copt=-w :build_pip_pkg
+
+./bazel-bin/build_pip_pkg
+
+```
+
 ## Usage
 
 See the example in [docs/example.ipynb](docs/example.ipynb). For a more in-depth
