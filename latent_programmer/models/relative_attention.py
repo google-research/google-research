@@ -20,17 +20,15 @@
 # pytype: disable=wrong-keyword-args
 # pytype: disable=attribute-error
 
-from functools import partial
-from typing import Any, Callable, Optional, Iterable
+import functools
+from typing import Any, Callable, Iterable, Optional
 
-from flax.linen.linear import default_kernel_init
-from flax.linen.linear import DenseGeneral, Embed
-from flax.linen.attention import dot_product_attention, combine_masks
-from flax.linen.module import Module, compact, merge_param
-from flax.linen.initializers import normal, zeros
+from flax.linen import attention
+from flax.linen import initializers
+from flax.linen import linear
+from flax.linen import module
 from jax import lax
 import jax.numpy as jnp
-import numpy as np
 
 PRNGKey = Any
 Shape = Iterable[int]
@@ -38,36 +36,38 @@ Dtype = Any
 Array = Any
 
 
-def make_relative_position_bucket(relative_position, causal=False, num_buckets=32, max_distance=128):
-    """
-    Adapted from Mesh Tensorflow:
-    https://github.com/tensorflow/mesh/blob/0cb87fe07da627bf0b7e60475d59f95ed6b5be3d/mesh_tensorflow/transformer/transformer_layers.py
+def make_relative_position_bucket(relative_position, causal=False,
+                                  num_buckets=32, max_distance=128):
+  """Translate relative position to a bucket number for relative attention."""
+  # Adapted from Mesh Tensorflow:
+  # https://github.com/tensorflow/mesh/blob/0cb87fe07da627bf0b7e60475d59f95ed6b5be3d/mesh_tensorflow/transformer/transformer_layers.py
+  relative_buckets = 0
+  if causal:
+    num_buckets //= 2
+    relative_buckets += (relative_position > 0) * num_buckets
+    relative_position = jnp.abs(relative_position)
+  else:
+    relative_position = -jnp.clip(relative_position, a_max=0)
 
-    Translate relative position to a bucket number for relative attention.
-    """
-    relative_buckets = 0
-    if causal:
-        num_buckets //= 2
-        relative_buckets += (relative_position > 0) * num_buckets
-        relative_position = jnp.abs(relative_position)
-    else:
-        relative_position = -jnp.clip(relative_position, a_max=0)
+  max_exact = num_buckets // 2
+  is_small = relative_position < max_exact
 
-    max_exact = num_buckets // 2
-    is_small = relative_position < max_exact
+  relative_position_if_large = max_exact + (
+      jnp.log(relative_position / max_exact) / jnp.log(max_distance / max_exact)
+      * (num_buckets - max_exact)
+  )
+  relative_position_if_large = jnp.clip(relative_position_if_large,
+                                        a_max=num_buckets - 1)
 
-    relative_position_if_large = max_exact + (
-        jnp.log(relative_position / max_exact) / jnp.log(max_distance / max_exact) * (num_buckets - max_exact)
-    )
-    relative_position_if_large = jnp.clip(relative_position_if_large, a_max=num_buckets - 1)
-    
-    relative_buckets += jnp.where(is_small, relative_position, relative_position_if_large)
-        
-    return relative_buckets.astype(jnp.int32)
+  relative_buckets += jnp.where(is_small, relative_position,
+                                relative_position_if_large)
+
+  return relative_buckets.astype(jnp.int32)
 
 
-class RelativeMultiHeadDotProductAttention(Module):
+class RelativeMultiHeadDotProductAttention(module.Module):
   """Dot-product attention with relative positional encodings.
+
     Attributes:
       num_heads: number of attention heads. Features (i.e. inputs_q.shape[-1])
         should be divisible by the number of heads.
@@ -86,7 +86,8 @@ class RelativeMultiHeadDotProductAttention(Module):
       use_bias: bool: whether pointwise QKVO dense transforms use bias.
       decode: whether to prepare and use an autoregressive cache.
       causal: whether to only attend to past tokens.
-      num_relative_position_buckets: number of buckets for relative positions for attention.
+      num_relative_position_buckets: number of buckets for relative positions
+        for attention.
   """
   num_heads: int
   dtype: Dtype = jnp.float32
@@ -96,20 +97,22 @@ class RelativeMultiHeadDotProductAttention(Module):
   dropout_rate: float = 0.
   deterministic: Optional[bool] = None
   precision: Any = None
-  kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
-  bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
+  kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = (
+      linear.default_kernel_init)
+  bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = initializers.zeros
   use_bias: bool = True
   decode: bool = False
   num_relative_position_buckets: int = 32
   causal: bool = False
 
-  @compact
+  @module.compact
   def __call__(self,
-               inputs_q: Array,
-               inputs_kv: Array,
-               mask: Optional[Array] = None,
-               deterministic: Optional[bool] = None):
+               inputs_q,
+               inputs_kv,
+               mask = None,
+               deterministic = None):
     """Applies multi-head dot product attention on the input data.
+
     Projects the inputs into multi-headed query, key, and value vectors,
     applies dot-product attention and project the results to an output vector.
     Args:
@@ -128,24 +131,25 @@ class RelativeMultiHeadDotProductAttention(Module):
       output of shape `[batch_sizes..., length, features]`.
     """
     if self.dropout_rate > 0.:  # Require `deterministic` only if using dropout.
-      deterministic = merge_param('deterministic', self.deterministic, deterministic)
+      deterministic = module.merge_param('deterministic', self.deterministic,
+                                         deterministic)
     features = self.out_features or inputs_q.shape[-1]
     qkv_features = self.qkv_features or inputs_q.shape[-1]
     assert qkv_features % self.num_heads == 0, (
         'Memory dimension must be divisible by number of heads.')
     head_dim = qkv_features // self.num_heads
 
-    dense = partial(DenseGeneral,
-                    axis=-1,
-                    features=(self.num_heads, head_dim),
-                    kernel_init=self.kernel_init,
-                    bias_init=self.bias_init,
-                    use_bias=self.use_bias,
-                    precision=self.precision)
-    relative_attention_embed = Embed(
+    dense = functools.partial(linear.DenseGeneral,
+                              axis=-1,
+                              features=(self.num_heads, head_dim),
+                              kernel_init=self.kernel_init,
+                              bias_init=self.bias_init,
+                              use_bias=self.use_bias,
+                              precision=self.precision)
+    relative_attention_embed = linear.Embed(
         num_embeddings=self.num_relative_position_buckets,
         features=self.num_heads,
-        embedding_init=normal(stddev=1.0),
+        embedding_init=initializers.normal(stddev=1.0),
         dtype=self.dtype)
 
     # project inputs_q to multi-headed q/k/v
@@ -164,7 +168,7 @@ class RelativeMultiHeadDotProductAttention(Module):
         relative_position,
         causal=self.causal,
         num_buckets=self.num_relative_position_buckets)
-    
+
     bias = relative_attention_embed(relative_position_bucket)
     bias = bias.transpose((2, 0, 1))[None, :, :, :]
 
@@ -200,15 +204,15 @@ class RelativeMultiHeadDotProductAttention(Module):
         # our single query position should only attend to those key
         # positions that have already been generated and cached,
         # not the remaining zero elements.
-        mask = combine_masks(
+        mask = attention.combine_masks(
             mask,
             jnp.broadcast_to(jnp.arange(max_length) <= cur_index,
                              tuple(batch_dims) + (1, 1, max_length)))
 
         bias = lax.dynamic_slice(
-                bias,
-                (0, 0, cur_index, 0),
-                (1, self.num_heads, cur_index, max_length))
+            bias,
+            (0, 0, cur_index, 0),
+            (1, self.num_heads, 1, max_length))
 
     # Convert the boolean attention mask to an attention bias.
     if mask is not None:
@@ -223,7 +227,7 @@ class RelativeMultiHeadDotProductAttention(Module):
       dropout_rng = self.make_rng('dropout')
 
     # apply attention
-    x = dot_product_attention(
+    x = attention.dot_product_attention(
         query,
         key,
         value,
@@ -235,21 +239,22 @@ class RelativeMultiHeadDotProductAttention(Module):
         dtype=self.dtype,
         precision=self.precision)  # pytype: disable=wrong-keyword-args
     # back to the original inputs dimensions
-    out = DenseGeneral(features=features,
-                       axis=(-2, -1),
-                       kernel_init=self.kernel_init,
-                       bias_init=self.bias_init,
-                       use_bias=self.use_bias,
-                       dtype=self.dtype,
-                       precision=self.precision,
-                       name='out')(x)
+    out = linear.DenseGeneral(features=features,
+                              axis=(-2, -1),
+                              kernel_init=self.kernel_init,
+                              bias_init=self.bias_init,
+                              use_bias=self.use_bias,
+                              dtype=self.dtype,
+                              precision=self.precision,
+                              name='out')(x)
     return out
 
 
 class RelativeSelfAttention(RelativeMultiHeadDotProductAttention):
   """Self-attention special case."""
 
-  @compact
-  def __call__(self, inputs_q: Array, mask: Optional[Array] = None,
-               deterministic: Optional[bool] = None):
-    return super().__call__(inputs_q, inputs_q, mask, deterministic=deterministic)
+  @module.compact
+  def __call__(self, inputs_q, mask = None,
+               deterministic = None):
+    return super().__call__(inputs_q, inputs_q, mask,
+                            deterministic=deterministic)

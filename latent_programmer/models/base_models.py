@@ -13,7 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# coding=utf-8
 """Baseline language models for program synthesis using jax/flax.
+
 Adapts transformer code from: flax/examples
 """
 
@@ -22,7 +24,7 @@ Adapts transformer code from: flax/examples
 # pytype: disable=wrong-keyword-args
 # pytype: disable=attribute-error
 
-from functools import partial
+import functools
 from typing import Optional, Any, Callable
 
 from flax import linen as nn
@@ -31,7 +33,7 @@ from jax import lax
 import jax.numpy as jnp
 import numpy as np
 
-from latent_programmer.models.relative_attention import RelativeMultiHeadDotProductAttention, RelativeSelfAttention
+from latent_programmer.models import relative_attention
 
 Array = Any
 
@@ -96,8 +98,10 @@ def shift_right(x, bos_token=0):
 
 def sinusoidal_init(max_len=2048):
   """1D Sinusoidal Position Embedding Initializer.
+
   Args:
       max_len: maximum possible length for the input
+
   Returns:
       Init function returning `[1, max_len, d_feature]`
   """
@@ -120,6 +124,7 @@ def sinusoidal_init(max_len=2048):
 
 class AddPositionEmbs(nn.Module):
   """Adds learned positional embeddings to the inputs.
+
   Attributes:
     config: TransformerConfig containing hyperparameters.
     cache: whether to use cache for fast single-position decoding.
@@ -132,8 +137,10 @@ class AddPositionEmbs(nn.Module):
   def __call__(self,
                inputs):
     """Applies AddPositionEmbs module.
+
     Args:
       inputs: input data `[batch_size, ..., length, dim]`
+
     Returns:
       New embedding `[batch_size, ..., length, dim]`
     """
@@ -171,6 +178,7 @@ class AddPositionEmbs(nn.Module):
 
 class MLPBlock(nn.Module):
   """MLP block.
+
   Attributes:
     config: TransformerConfig containing hyperparameters.
     out_dim: output dimension.
@@ -205,15 +213,17 @@ class EncoderBlock(nn.Module):
 
   config: TransformerConfig
   self_attention_fn: Callable[[Array, Array, Array], Array] = nn.SelfAttention
-  
+
   @nn.compact
   def __call__(self,
                inputs,
-               encoder_mask = None):
+               encoder_mask=None):
     """Applies Transformer block.
+
     Args:
       inputs: input data `[batch_size, ..., length, dim]`
       encoder_mask: encoder self-attention mask
+
     Returns:
       Encoded input data `[batch_size, ..., length, mlp_dim]`
     """
@@ -246,21 +256,24 @@ class EncoderDecoderBlock(nn.Module):
   """Transformer encoder-decoder block."""
 
   config: TransformerConfig
-  dot_product_attention_fn: Callable[[Array, Array, Array], Array] = nn.MultiHeadDotProductAttention
+  dot_product_attention_fn: Callable[[Array, Array, Array], Array] = (
+      nn.MultiHeadDotProductAttention)
   self_attention_fn: Callable[[Array, Array], Array] = nn.SelfAttention
 
   @nn.compact
   def __call__(self,
                targets,
                encoded,
-               decoder_mask = None,
-               encoder_decoder_mask = None):
+               decoder_mask=None,
+               encoder_decoder_mask=None):
     """Applies Transformer block.
+
     Args:
       targets: input data for decoder `[batch_size, ..., length, dim]`
       encoded: input data from encoder `[batch_size, ..., length2, dim2]`
       decoder_mask: decoder self-attention mask
       encoder_decoder_mask: encoder-decoder attention mask
+
     Returns:
       Decoded data `[batch_size, ..., length, mlp_dim]`
     """
@@ -318,14 +331,16 @@ class TransformerDecoder(nn.Module):
   def __call__(self,
                targets,
                encoded,
-               decoder_mask = None,
-               encoder_decoder_mask = None):
+               decoder_mask=None,
+               encoder_decoder_mask=None):
     """Applies Transformer to decode the targets.
+
     Args:
       targets: target outputs.
       encoded: encoded input data from encoder [batch, ..., length, mlp_dim].
       decoder_mask: decoder self-attention mask
       encoder_decoder_mask: encoder-decoder attention mask
+
     Returns:
       output of a transformer decoder.
     """
@@ -338,16 +353,16 @@ class TransformerDecoder(nn.Module):
         features=cfg.emb_dim,
         embedding_init=nn.initializers.normal(stddev=1.0),
         name='embed_output')
-    
+
     if cfg.use_relative_attention:
-      attention_fn = partial(
-        RelativeMultiHeadDotProductAttention,
-        num_relative_position_buckets=cfg.num_relative_position_buckets,
-        causal=False)
-      self_attention_fn = partial(
-        RelativeSelfAttention,
-        num_relative_position_buckets=cfg.num_relative_position_buckets,
-        causal=True)
+      attention_fn = functools.partial(
+          relative_attention.RelativeMultiHeadDotProductAttention,
+          num_relative_position_buckets=cfg.num_relative_position_buckets,
+          causal=False)
+      self_attention_fn = functools.partial(
+          relative_attention.RelativeSelfAttention,
+          num_relative_position_buckets=cfg.num_relative_position_buckets,
+          causal=True)
     else:
       attention_fn = nn.MultiHeadDotProductAttention
       self_attention_fn = nn.SelfAttention
@@ -359,9 +374,10 @@ class TransformerDecoder(nn.Module):
 
     y = output_embed(y)
     if not cfg.use_relative_attention:
-      y = AddPositionEmbs(config=cfg, cache=cfg.decode, name='posembed_output')(y)
+      y = AddPositionEmbs(config=cfg, cache=cfg.decode,
+                          name='posembed_output')(y)
     y = nn.Dropout(rate=cfg.dropout_rate)(
-      y, deterministic=cfg.deterministic)
+        y, deterministic=cfg.deterministic)
 
     y = y.astype(cfg.dtype)
     # Target-Input Decoder
@@ -402,9 +418,11 @@ class TransformerIOEncoder(nn.Module):
                inputs,
                outputs):
     """Applies Transformer model to encode the IO specification.
+
     Args:
       inputs: input data [batch_size, num_io, length]
       outputs: output data [batch_size, num_io, length2]
+
     Returns:
       Encoded IO data `[batch_size, num_io, length2, dim]`
     """
@@ -418,14 +436,14 @@ class TransformerIOEncoder(nn.Module):
         name='embed')
 
     if cfg.use_relative_attention:
-      attention_fn = partial(
-        RelativeMultiHeadDotProductAttention,
-        num_relative_position_buckets=cfg.num_relative_position_buckets,
-        causal=False)
-      self_attention_fn = partial(
-        RelativeSelfAttention,
-        num_relative_position_buckets=cfg.num_relative_position_buckets,
-        causal=False)
+      attention_fn = functools.partial(
+          relative_attention.RelativeMultiHeadDotProductAttention,
+          num_relative_position_buckets=cfg.num_relative_position_buckets,
+          causal=False)
+      self_attention_fn = functools.partial(
+          relative_attention.RelativeSelfAttention,
+          num_relative_position_buckets=cfg.num_relative_position_buckets,
+          causal=False)
     else:
       attention_fn = nn.MultiHeadDotProductAttention
       self_attention_fn = nn.SelfAttention
@@ -447,7 +465,7 @@ class TransformerIOEncoder(nn.Module):
     if not cfg.use_relative_attention:
       x = pos_emb(x)
     x = nn.Dropout(rate=cfg.dropout_rate)(
-      x, deterministic=cfg.deterministic)
+        x, deterministic=cfg.deterministic)
 
     x = x.astype(cfg.dtype)
     for lyr in range(cfg.num_layers):
@@ -462,7 +480,7 @@ class TransformerIOEncoder(nn.Module):
     if not cfg.use_relative_attention:
       y = pos_emb(y)
     y = nn.Dropout(rate=cfg.dropout_rate)(
-      y, deterministic=cfg.deterministic)
+        y, deterministic=cfg.deterministic)
 
     encode_decoder_cfg = cfg.replace(decode=False)
     for lyr in range(cfg.num_layers):
