@@ -113,14 +113,12 @@ def create_learning_rate_scheduler(
     steps_per_decay=50000,
     steps_per_cycle=100000):
   """Creates learning rate schedule.
-
   Interprets factors in the factors string which can consist of:
   * constant: interpreted as the constant value,
   * linear_warmup: interpreted as linear warmup until warmup_steps,
   * rsqrt_decay: divide by square root of max(step, warmup_steps)
   * decay_every: Every k steps decay the learning rate by decay_factor.
   * cosine_decay: Cyclic cosine decay, uses steps_per_cycle parameter.
-
   Args:
     base_learning_rate: float, the starting constant for the lr schedule.
     factors: a string with factors separated by '*' that defines the schedule.
@@ -128,7 +126,6 @@ def create_learning_rate_scheduler(
     decay_factor: The amount to decay the learning rate by.
     steps_per_decay: How often to decay the learning rate.
     steps_per_cycle: Steps per cycle when using cosine decay.
-
   Returns:
     A function learning_rate(step): float -> {'learning_rate': float}, the
     step-dependent lr.
@@ -164,12 +161,10 @@ def create_learning_rate_scheduler(
 
 def compute_weighted_cross_entropy(logits, targets, weights=None):
   """Compute weighted cross entropy and entropy for log probs and targets.
-
   Args:
    logits: `[batch, length, num_classes]` float array.
    targets: categorical targets `[batch, length]` int array.
    weights: None or array of shape [batch, length, 1]
-
   Returns:
     Tuple of scalar loss and batch normalizing factor.
   """
@@ -191,12 +186,10 @@ def compute_weighted_cross_entropy(logits, targets, weights=None):
 
 def compute_weighted_accuracy(logits, targets, weights=None):
   """Compute weighted accuracy for log probs and targets.
-
   Args:
    logits: `[batch, length, num_classes]` float array.
    targets: categorical targets `[batch, length]` int array.
    weights: None or array of shape [batch, length, 1]
-
   Returns:
     Tuple of scalar accuracy and batch normalizing factor.
   """
@@ -723,10 +716,9 @@ def main(_):
 
   # Build Model and Optimizer
   # ---------------------------------------------------------------------------
-  train_config = models.LatentTransformerConfig(
+  base_train_config = models.TransformerConfig(
       vocab_size=io_vocab_size,
       output_vocab_size=program_vocab_size,
-      latent_vocab_size=FLAGS.latent_vocab_size,
       shift=True,
       emb_dim=FLAGS.embedding_dim,
       num_heads=FLAGS.num_heads,
@@ -736,14 +728,29 @@ def main(_):
       max_len=max(FLAGS.max_characters, FLAGS.max_program_length),
       deterministic=False,
       decode=False,
+      bos_token=bos_token)
+  base_eval_config = base_train_config.replace(deterministic=True, train_vq=False)
+  base_predict_config = base_train_config.replace(
+      shift=False, deterministic=True, train_vq=False, decode=True)
+  train_config = models.LatentTransformerConfig(
+      base_cfg=base_train_config,
+      latent_vocab_size=FLAGS.latent_vocab_size,
       c=FLAGS.c,
       train_vq=True,
-      commitment_cost_vq=FLAGS.commitment_cost_vq,
-      bos_token=bos_token)
-  eval_config = train_config.replace(deterministic=True, train_vq=False)
-  predict_config = train_config.replace(
-      shift=False, deterministic=True, train_vq=False, decode=True)
-
+      commitment_cost_vq=FLAGS.commitment_cost_vq)
+  eval_config = models.LatentTransformerConfig(
+      base_cfg=base_eval_config,
+      latent_vocab_size=FLAGS.latent_vocab_size,
+      c=FLAGS.c,
+      train_vq=True,
+      commitment_cost_vq=FLAGS.commitment_cost_vq)
+  predict_config = models.LatentTransformerConfig(
+      base_cfg=base_predict_config,
+      latent_vocab_size=FLAGS.latent_vocab_size,
+      c=FLAGS.c,
+      train_vq=True,
+      commitment_cost_vq=FLAGS.commitment_cost_vq)
+    
   # Latent Predictor.
   lp_train_config = models.TransformerConfig(
       vocab_size=io_vocab_size,
