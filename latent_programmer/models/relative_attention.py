@@ -65,7 +65,7 @@ def make_relative_position_bucket(relative_position, causal=False,
   return relative_buckets.astype(jnp.int32)
 
 
-class RelativeMultiHeadDotProductAttention(Module):
+class RelativeMultiHeadDotProductAttention(module.Module):
   """Dot-product attention with relative positional encodings.
   Attributes:
     num_heads: number of attention heads. Features (i.e. inputs_q.shape[-1])
@@ -104,7 +104,7 @@ class RelativeMultiHeadDotProductAttention(Module):
   num_relative_position_buckets: int = 32
   causal: bool = False
 
-  @compact
+  @module.compact
   def __call__(self,
                inputs_q: Array,
                inputs_kv: Array,
@@ -270,7 +270,7 @@ class RelativeMultiHeadDotProductAttention(Module):
 class RelativeSelfAttention(RelativeMultiHeadDotProductAttention):
   """Self-attention special case."""
 
-  @compact
+  @module.compact
   def __call__(self,
                inputs_q: Array,
                mask: Optional[Array] = None,

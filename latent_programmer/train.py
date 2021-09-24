@@ -89,11 +89,6 @@ flags.DEFINE_integer('num_relative_position_buckets', 32,
 flags.DEFINE_string('xm_parameters', None,
                     'String specifying hyperparamter search.')
 
-flags.DEFINE_bool('use_relative_attention', True,
-                  'Whether to use relative positonal embeddings.')
-flags.DEFINE_integer('num_relative_position_buckets', 32,
-                     'Number of buckets when computing relative positions.')
-
 
 def main(_):
   tf.enable_v2_behavior()
