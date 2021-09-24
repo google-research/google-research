@@ -824,8 +824,6 @@ def pipeline(root):
   # Get the bond length distributions
   bond_length_dists_pcoll = (
       merged_conformers
-      | 'FilterForBondLengths' >> beam.Filter(
-          smu_utils_lib.should_include_in_standard)
       | 'ExtractBondLengths' >> beam.FlatMap(
           extract_bond_lengths,
         dist_sig_digits=_BOND_LENGTHS_SIG_DIGITS,
