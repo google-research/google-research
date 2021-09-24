@@ -199,6 +199,7 @@ class IntegrationTest(absltest.TestCase):
     # Conformer 620517 will not match because bond lengths are not extracted
     # from conformers with serious errors like this.
     self.assertEqual(counters_dict['no_topology_matches'], 1)
+    self.assertNotIn('topology_match_smiles_failure', counters_dict)
 
     logging.info('Files in output: %s',
                  '\n'.join(gfile.glob(os.path.join(test_subdirectory, '*'))))
