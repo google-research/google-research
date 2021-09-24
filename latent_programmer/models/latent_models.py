@@ -19,7 +19,6 @@
 # pytype: disable=wrong-arg-count
 # pytype: disable=wrong-keyword-args
 # pytype: disable=attribute-error
-from typing import Any, Callable, Optional
 
 from flax import linen as nn
 from flax import struct
@@ -48,7 +47,7 @@ class Autoencoder(nn.Module):
   @nn.compact
   def __call__(self,
                targets,
-               targets_mask = None):
+               targets_mask=None):
     """Autoencodes program task.
     Args:
       targets: target data `[batch_size, length]`
@@ -99,8 +98,10 @@ class LatentProgramTransformer(nn.Module):
   def setup(self):
     cfg = self.config
 
-    self.encoder = models.TransformerIOEncoder(config=cfg.base_cfg, name='encoder')
-    self.decoder = models.TransformerDecoder(config=cfg.base_cfg, name='decoder')
+    self.encoder = models.TransformerIOEncoder(config=cfg.base_cfg,
+                                               name='encoder')
+    self.decoder = models.TransformerDecoder(config=cfg.base_cfg,
+                                             name='decoder')
 
     self.ae = Autoencoder(config=cfg.base_cfg, c=cfg.c, name='ae')
     self.vq = vqvae.VectorQuantizerEMA(
@@ -185,8 +186,8 @@ class LatentProgramTransformer(nn.Module):
                inputs,
                outputs,
                programs,
-               emb_mask = None,
-               pretrain = False):
+               emb_mask=None,
+               pretrain=False):
     """Applies Transformer autoencoder on the inputs."""
     cfg = self.config
 

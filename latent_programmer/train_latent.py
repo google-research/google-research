@@ -729,7 +729,8 @@ def main(_):
       deterministic=False,
       decode=False,
       bos_token=bos_token)
-  base_eval_config = base_train_config.replace(deterministic=True, train_vq=False)
+  base_eval_config = base_train_config.replace(deterministic=True,
+                                               train_vq=False)
   base_predict_config = base_train_config.replace(
       shift=False, deterministic=True, train_vq=False, decode=True)
   train_config = models.LatentTransformerConfig(
@@ -750,7 +751,7 @@ def main(_):
       c=FLAGS.c,
       train_vq=True,
       commitment_cost_vq=FLAGS.commitment_cost_vq)
-    
+
   # Latent Predictor.
   lp_train_config = models.TransformerConfig(
       vocab_size=io_vocab_size,

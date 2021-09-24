@@ -28,7 +28,9 @@ def tfexamples_to_nps(
     label_name,
     label_list,
     l2_normalization,
-    speaker_name = None):
+    speaker_name = None,
+    key_field = None,
+):
   """Reads tf.Examples to numpy arrays.
 
   Args:
@@ -40,21 +42,24 @@ def tfexamples_to_nps(
     l2_normalization: Python bool. If `True`, normalize embeddings by L2 norm.
     speaker_name: Python string or None. If present, the tf.Example field with
       the speaker ID.
+    key_field: Optional field to return. This should be a unique per-example
+      identifier.
 
   Returns:
-    (numpy array of embeddings, numpy array of labels)
+    (numpy array of embeddings, numpy array of labels, Optional array of keys)
   """
+  if embedding_name.startswith('embedding/'):
+    raise ValueError(f'Don\'t prepend embedding name: {embedding_name}')
+
   # Read data from disk.
   logging.info('About to read from "%s"...', path)
   itervalues_fn = get_itervalues_fn(path)
   logging.info('Successfully created iterator.')
-  embeddings, labels, speaker_ids = [], [], []
+  embeddings, labels, speaker_ids, keys = [], [], [], []
   for ex in itervalues_fn():
     feats = ex.features.feature
 
     # Read embeddings.
-    if embedding_name.startswith('embedding/'):
-      raise ValueError(f'Don\'t prepend embedding name: {embedding_name}')
     cur_emb = feats[f'embedding/{embedding_name}'].float_list.value
     if not bool(cur_emb):
       raise ValueError(f'Embeddings empty: embedding/{embedding_name} {path}')
@@ -81,16 +86,28 @@ def tfexamples_to_nps(
         raise ValueError('speaker_name is empty')
       speaker_ids.append(cur_spkr)
 
+    # Read key, if necessary.
+    if key_field:
+      if key_field not in feats:
+        raise ValueError(
+            f'`key_field` not in feats: {key_field} vs {feats.keys()}')
+      cur_key = feats[key_field].bytes_list.value[0]
+      if not bool(cur_key):
+        raise ValueError('`key_field` is empty.')
+      keys.append(cur_key)
+
   if not embeddings:
     raise ValueError(f'No embeddings found in {path}')
 
   try:
     embeddings = np.array(embeddings, np.float32)
     labels = np.array(labels, np.int16)
+    keys = np.array(keys, np.str)
+    # TODO(joelshor): Consider adding a uniqueness check.
   except ValueError:
     logging.warning(
-        '`tfexamples_to_nps` failed with the following inputs: %s, %s, %s, %s',
-        path, embedding_name, label_name, speaker_name)
+        '`tfexamples_to_nps` failed with the following inputs: %s, %s, %s, %s %s',
+        path, embedding_name, label_name, speaker_name, key_field)
     raise
 
   # Perform L2 normalization.
@@ -102,7 +119,11 @@ def tfexamples_to_nps(
     speaker_ids = np.array(speaker_ids, np.str)
     embeddings = _speaker_normalization(embeddings, speaker_ids)
 
-  return embeddings, labels
+  if not key_field:
+    assert not bool(keys)
+    keys = None
+
+  return embeddings, labels, keys
 
 
 def _speaker_normalization(embeddings,

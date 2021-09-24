@@ -5,7 +5,8 @@ Annotate the Protein Universe". [preprint link](https://doi.org/10.1101/626507)
 
 A colab demonstrating usage of the available neural networks is in [Using_Deep_Learning_to_Annotate_the_Protein_Universe.ipynb](https://colab.research.google.com/github/google-research/google-research/blob/master/using_dl_to_annotate_protein_universe/Using_Deep_Learning_to_Annotate_the_Protein_Universe.ipynb).
 This shows both prediction of Pfam families as well as how to produce an
-embedding for a domain.
+embedding for a domain. A colab computing single-neural-network accuracy
+on the random split of Pfam seed is in [Neural_network_accuracy_on_random_seed_split.ipynb](https://colab.research.google.com/github/google-research/google-research/blob/master/using_dl_to_annotate_protein_universe/neural_network/Neural_network_accuracy_on_random_seed_split.ipynb)
 
 Code in the following directories is intended for documentation purposes, and is
 not necessarily runnable. More information on these files is in a README.md in

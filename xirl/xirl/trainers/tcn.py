@@ -19,6 +19,7 @@ from typing import Dict, List, Union
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from xirl.trainers.base import Trainer
 
 BatchType = Dict[str, Union[torch.Tensor, List[str]]]
@@ -27,7 +28,7 @@ BatchType = Dict[str, Union[torch.Tensor, List[str]]]
 class TCNTrainer(Trainer):
   """A trainer that implements a single-view Time Contrastive Network [1].
 
-  This should be used in conjunction with the WindowSampler frame sampler.
+  Should be used in conjunction with the WindowSampler frame sampler.
 
   References:
     [1]: https://arxiv.org/abs/1704.06888
@@ -42,10 +43,10 @@ class TCNTrainer(Trainer):
   ):
     super().__init__(model, optimizer, device, config)
 
-    self.temperature = config.LOSS.TCN.TEMPERATURE
-    self.num_pairs = config.LOSS.TCN.NUM_PAIRS
-    self.pos_radius = config.LOSS.TCN.POS_RADIUS
-    self.neg_radius = config.LOSS.TCN.NEG_RADIUS
+    self.temperature = config.loss.tcn.temperature
+    self.num_pairs = config.loss.tcn.num_pairs
+    self.pos_radius = config.loss.tcn.pos_radius
+    self.neg_radius = config.loss.tcn.neg_radius
 
   def compute_loss(
       self,
@@ -103,3 +104,39 @@ class TCNTrainer(Trainer):
 
     total_loss = (pos_losses + neg_losses) / (batch_size * num_cc_frames)
     return total_loss
+
+
+class TCNCrossEntropyTrainer(Trainer):
+  """Single-view TCN implemented with contrastive cross-entropy loss.
+
+  Should be used in conjunction with the `UniformWithPositivesSampler` frame
+  sampler.
+  """
+
+  def __init__(
+      self,
+      model,
+      optimizer,
+      device,
+      config,
+  ):
+    super().__init__(model, optimizer, device, config)
+
+    self.temperature = config.loss.tcn.temperature
+
+  def compute_loss(
+      self,
+      embs,
+      batch,
+  ):
+    del batch
+
+    batch_size, num_cc_frames, _ = embs.shape
+    pos_embs, curr_embs = torch.chunk(embs, 2, 1)
+    loss = []
+    for i in range(batch_size):
+      curr_pos_sim = -1.0 * torch.cdist(pos_embs[i], curr_embs[i]).pow(2)
+      curr_pos_sim = curr_pos_sim / self.temperature
+      pos_labels = torch.arange(num_cc_frames // 2).to(embs.device)
+      loss.append(F.cross_entropy(curr_pos_sim, pos_labels, reduction='none'))
+    return torch.cat(loss, dim=0).mean()

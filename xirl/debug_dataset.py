@@ -19,37 +19,44 @@ import sys
 
 from absl import app
 from absl import flags
+from absl import logging
+from base_configs import validate_config
 import matplotlib.pyplot as plt
 from ml_collections import config_flags
 import torchvision
 from xirl.common import get_pretraining_dataloaders
 
+# pylint: disable=logging-fstring-interpolation
+
 FLAGS = flags.FLAGS
 
-flags.DEFINE_boolean("debug", False, "Debug mode.")
+flags.DEFINE_boolean("debug", False, "Turn off shuffling and data aug.")
 
 config_flags.DEFINE_config_file(
     "config",
-    "xirl/config.py",
+    "base_configs/pretrain.py",
     "File path to the training hyperparameter configuration.",
-    lock_config=True,
 )
 
 
 def main(_):
-  num_ctx_frames = FLAGS.config.FRAME_SAMPLER.NUM_CONTEXT_FRAMES
-  num_frames = FLAGS.config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE
-  pretrain_loaders = get_pretraining_dataloaders(FLAGS.config, FLAGS.debug)
+  validate_config(FLAGS.config, mode="pretrain")
+  config = FLAGS.config
+  if FLAGS.debug:
+    config.data.pretraining_video_sampler = "same_class"
+  num_ctx_frames = config.frame_sampler.num_context_frames
+  num_frames = config.frame_sampler.num_frames_per_sequence
+  pretrain_loaders = get_pretraining_dataloaders(config, FLAGS.debug)
   try:
     loader = pretrain_loaders["train"]
-    print("Total videos: ", loader.dataset.total_vids)
+    logging.info("Total videos: %d", loader.dataset.total_vids)
     for batch_idx, batch in enumerate(loader):
-      print(f"Batch #{batch_idx}")
+      logging.info("Batch #%d", batch_idx)
       frames = batch["frames"]
       b, _, c, h, w = frames.shape
       frames = frames.view(b, num_frames, num_ctx_frames, c, h, w)
       for b in range(frames.shape[0]):
-        print(f"\tBatch Item {b}")
+        logging.info("\tBatch Item %s", str(b))
         grid_img = torchvision.utils.make_grid(frames[b, :, -1], nrow=5)
         plt.imshow(grid_img.permute(1, 2, 0))
         plt.show()

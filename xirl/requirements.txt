@@ -1,6 +1,18 @@
-torch==1.7.1
-torchvision==0.8.2
-ml-collections==0.1.0
 albumentations==0.5.2
+gym==0.17.*
+pymunk==5.6.0
+ml-collections==0.1.0
 scikit-learn==0.24.1
+tensorflow-cpu==2.6.0
+torch==1.7.1
+imageio
+imageio-ffmpeg
+tqdm
+torchvision==0.8.2
+absl-py
+numpy
+scipy
+gdown==3.13.1
+# TODO(kevin): Add commit hash for below libraries.
 git+https://github.com/kevinzakka/torchkit.git
+git+https://github.com/kevinzakka/x-magical.git
