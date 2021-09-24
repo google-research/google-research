@@ -977,9 +977,9 @@ def conformer_calculation_error_level(conformer):
     return 3
 
   # This is warning level 'C' from Bazel documentation.
-  if (errors.warn_t1 > 2 or errors.warn_t1_excess > 2 or
-      errors.warn_bse_b5_b6 > 2 or errors.warn_bse_cccsd_b5 > 2 or
-      errors.warn_exc_lowest_excitation > 2 or
+  if (errors.warn_t1 > 1 or errors.warn_t1_excess > 1 or
+      errors.warn_bse_b5_b6 > 1 or errors.warn_bse_cccsd_b5 > 1 or
+      errors.warn_exc_lowest_excitation > 1 or
       errors.warn_exc_smallest_oscillator > 0 or
       errors.warn_exc_largest_oscillator > 0):
     return 2

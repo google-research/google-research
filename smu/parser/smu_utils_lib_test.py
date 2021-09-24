@@ -771,7 +771,7 @@ class ConformerErrorTest(absltest.TestCase):
 
   def test_stage2_error_level_2(self):
     conformer = get_stage2_conformer()
-    conformer.properties.errors.warn_t1_excess = 3
+    conformer.properties.errors.warn_t1_excess = 2
     self.assertEqual(2,
                      smu_utils_lib.conformer_calculation_error_level(conformer))
 
