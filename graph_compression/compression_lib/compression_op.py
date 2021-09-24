@@ -1032,8 +1032,10 @@ class InputOutputCompressionOp(CompressionOpInterface):
         a_matrix_tfvar.shape[0] // self._spec.input_compression_factor,
         a_matrix_tfvar.shape[1] // self._spec.output_compression_factor
     ]
-    c_limit = np.sqrt(
-        3.0 * (1 / np.max([1., (c_matrix_shape[0] + c_matrix_shape[1]) / 2.])))
+    c_limit = np.sqrt(3.0 * (1 / np.max([
+        1., (c_matrix_shape[0] + c_matrix_shape[1]) /
+        (2. * self._spec.input_compression_factor)
+    ])))
     c_matrix = np.random.uniform(-c_limit, c_limit, size=c_matrix_shape)
 
     # convert b,c,d from numpy arrays to tf tensors
@@ -1600,13 +1602,14 @@ class BlockCompressionOp(CompressionOpInterface):
     """
     self.matrix_compressor = matrix_compressor
     if self._spec.block_method == 'mask':
-      # create c_matrix
-      c_limit = np.sqrt(3.0 * (1 / np.max(
-          [1., (a_matrix_tfvar.shape[0] + a_matrix_tfvar.shape[1]) / 2.])))
-      c_matrix = np.random.uniform(-c_limit, c_limit, size=a_matrix_tfvar.shape)
-
-      # create block diagonal mask for c_matrix
       num_blocks = self._spec.block_compression_factor
+      # create c_matrix
+      c_limit = np.sqrt(3.0 * (1 / np.max([
+          1., (a_matrix_tfvar.shape[0] + a_matrix_tfvar.shape[1]) /
+          (2. * num_blocks)
+      ])))
+      c_matrix = np.random.uniform(-c_limit, c_limit, size=a_matrix_tfvar.shape)
+      # create block diagonal mask for c_matrix
       num_rows, num_cols = a_matrix_tfvar.shape.as_list()
       r_block, c_block = num_rows // num_blocks, num_cols // num_blocks
       c_mask = np.array([[
@@ -1614,11 +1617,14 @@ class BlockCompressionOp(CompressionOpInterface):
       ] for i in range(num_rows)])
     elif self._spec.block_method == 'loop':
       # create c_matrix, which is a rank 3 tensor
-      c_limit = np.sqrt(3.0 * (1 / np.max(
-          [1., (a_matrix_tfvar.shape[0] + a_matrix_tfvar.shape[1]) / 2.])))
+      c_limit = np.sqrt(3.0 * (1 / np.max([
+          1., (a_matrix_tfvar.shape[0] + a_matrix_tfvar.shape[1]) /
+          (2. * num_blocks)
+      ])))
       num_blocks = self._spec.block_compression_factor
       c_matrix_shape = [
-          num_blocks, a_matrix_tfvar.shape[0] // 2, a_matrix_tfvar.shape[1] // 2
+          num_blocks, a_matrix_tfvar.shape[0] // num_blocks,
+          a_matrix_tfvar.shape[1] // num_blocks
       ]
       c_matrix = np.random.uniform(-c_limit, c_limit, size=c_matrix_shape)
     # convert c_matrix and c_mask from numpy arrays to tf tensors
