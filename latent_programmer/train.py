@@ -81,6 +81,11 @@ flags.DEFINE_integer('checkpoint_freq', 1000,
 flags.DEFINE_bool('restore_checkpoints', True,
                   'Whether to restore from existing model checkpoints.')
 
+flags.DEFINE_bool('use_relative_attention', False,
+                  'Whether to use relative positonal embeddings.')
+flags.DEFINE_integer('num_relative_position_buckets', 32,
+                     'Number of buckets when computing relative positions.')
+
 flags.DEFINE_string('xm_parameters', None,
                     'String specifying hyperparamter search.')
 

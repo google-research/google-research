@@ -15,15 +15,15 @@
 
 """Functionality common to pretraining and evaluation."""
 
-import os
 from typing import Dict
-
 from ml_collections import ConfigDict
+
 import torch
 from xirl import factory
-import yaml
+from xirl.models import SelfSupervisedModel
 
 DataLoadersDict = Dict[str, torch.utils.data.DataLoader]
+ModelType = SelfSupervisedModel
 
 
 def get_pretraining_dataloaders(
@@ -62,7 +62,7 @@ def get_pretraining_dataloaders(
 
 def get_downstream_dataloaders(
     config,
-    debug,
+    debug = False,
 ):
   """Construct a train/valid pair of downstream dataloaders.
 
@@ -122,13 +122,3 @@ def get_factories(
 def get_model(config):
   """Construct a model from a config."""
   return factory.model_from_config(config)
-
-
-def load_config_from_dir(exp_dir):
-  """Load experiment config."""
-  try:
-    with open(os.path.join(exp_dir, "config.yaml"), "r") as fp:
-      cfg = yaml.load(fp, Loader=yaml.FullLoader)
-    return ConfigDict(cfg)
-  except FileNotFoundError as e:
-    raise e

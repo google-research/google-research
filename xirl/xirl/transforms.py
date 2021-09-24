@@ -16,7 +16,6 @@
 """Transformations for video data."""
 
 import enum
-from typing import Callable, Dict, Mapping, Sequence, Tuple
 import warnings
 
 import albumentations as alb

@@ -60,8 +60,9 @@ class SklearnUtilsTest(tf.test.TestCase, parameterized.TestCase):
         writer.write(ex.SerializeToString())
 
     # Convert them back.
-    npx, npy = sklearn_utils.tfexamples_to_nps(
-        path, embedding_name, label_name, label_list, l2_normalization)
+    npx, npy, _ = sklearn_utils.tfexamples_to_nps(path, embedding_name,
+                                                  label_name, label_list,
+                                                  l2_normalization)
 
     # Check that output is correct.
     expected_embs = np.array([d[0] for d in fake_data], np.float32)

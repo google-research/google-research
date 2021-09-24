@@ -106,8 +106,9 @@ class Stream(tf.keras.layers.Layer):
     elif isinstance(
         wrappped_cell,
         (tf.keras.layers.Conv1D, tf.keras.layers.Conv2D,
-         tf.keras.layers.DepthwiseConv2D, tf.keras.layers.SeparableConv2D,
-         tf.keras.layers.SeparableConv1D, average_pooling2d.AveragePooling2D)):
+         tf.keras.layers.DepthwiseConv1D, tf.keras.layers.DepthwiseConv2D,
+         tf.keras.layers.SeparableConv1D, tf.keras.layers.SeparableConv2D,
+         average_pooling2d.AveragePooling2D)):
       padding = wrappped_cell.get_config()['padding']
       strides = wrappped_cell.get_config()['strides']
       self.stride = strides[0]
@@ -184,8 +185,9 @@ class Stream(tf.keras.layers.Layer):
     if isinstance(
         wrappped_cell,
         (tf.keras.layers.Conv1D, tf.keras.layers.Conv2D,
-         tf.keras.layers.DepthwiseConv2D, tf.keras.layers.AveragePooling2D,
-         tf.keras.layers.SeparableConv2D, tf.keras.layers.SeparableConv1D)):
+         tf.keras.layers.DepthwiseConv1D, tf.keras.layers.DepthwiseConv2D,
+         tf.keras.layers.SeparableConv1D, tf.keras.layers.SeparableConv2D,
+         tf.keras.layers.AveragePooling2D)):
 
       self.state_shape = [
           self.inference_batch_size, self.ring_buffer_size_in_time_dim
