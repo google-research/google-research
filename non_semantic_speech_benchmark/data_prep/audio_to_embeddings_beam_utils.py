@@ -39,6 +39,9 @@ import tensorflow_hub as hub
 from non_semantic_speech_benchmark.export_model import tf_frontend
 
 
+HASHKEY_FIELD = 'hashkey'
+
+
 def tfexample_audio_to_npfloat32(ex, audio_key,
                                  normalize_to_pm_one):
   """Extract audio from tf.Example and convert it to np.float32."""
@@ -350,6 +353,17 @@ def _add_embedding_to_tfexample(ex, embedding,
   return ex
 
 
+def add_hashkey_of_audio(ex, audio_key,
+                         hash_key = HASHKEY_FIELD):
+  """Add hash of audio to tf.Example."""
+  audio = tfexample_audio_to_npfloat32(ex, audio_key, normalize_to_pm_one=True)
+  key = hash(audio.tobytes())
+  if hash_key in ex.features.feature:
+    raise ValueError(f'`{hash_key}` is protected, can\'t be in tf.Train.')
+  ex.features.feature[hash_key].float_list.value.append(key)
+  return ex
+
+
 def _add_embedding_column_map_fn(
     k_v,
     original_example_key,
@@ -379,6 +393,9 @@ def _add_embedding_column_map_fn(
     # Store the embedding 2D shape and store the 1D embedding. The original
     # embedding can be recovered with `emb.reshape(feature['shape'])`.
     ex = _add_embedding_to_tfexample(ex, embedding, f'embedding/{name}')
+
+  # Add the hash of the audio as a key.
+  ex = add_hashkey_of_audio(ex, audio_key)
 
   if delete_audio_from_output:
     ex.features.feature.pop(audio_key, None)
