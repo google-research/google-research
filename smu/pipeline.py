@@ -296,6 +296,11 @@ def extract_bond_lengths(conformer, dist_sig_digits, unbonded_max):
   Yields:
     (atom type 1, atom type 2, bond type, quantized dist)
   """
+  # These are considered "major" or worse errors
+  if (conformer.properties.errors.status >= 8 or
+      conformer.duplicated_by > 0):
+    return
+
   bt = conformer.bond_topologies[0]
   format_str = '{:.%df}' % dist_sig_digits
 
