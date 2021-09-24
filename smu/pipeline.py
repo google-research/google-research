@@ -442,8 +442,11 @@ class UpdateConformerFn(beam.DoFn):
     del conformer.bond_topologies[:]
     conformer.bond_topologies.extend(matches.bond_topology)
     for bt in conformer.bond_topologies:
-      bt.bond_topology_id = smiles_id_dict[bt.smiles]
-
+      try:
+        bt.bond_topology_id = smiles_id_dict[bt.smiles]
+      except KeyError:
+        beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
+                                     'topology_match_smiles_failure').inc()
 
   def process(self, conformer, bond_length_records, smiles_id_dict):
     """Per conformer updates.
