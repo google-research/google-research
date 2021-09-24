@@ -67,6 +67,7 @@ def make_relative_position_bucket(relative_position, causal=False,
 
 class RelativeMultiHeadDotProductAttention(module.Module):
   """Dot-product attention with relative positional encodings.
+
   Attributes:
     num_heads: number of attention heads. Features (i.e. inputs_q.shape[-1])
       should be divisible by the number of heads.
@@ -114,6 +115,7 @@ class RelativeMultiHeadDotProductAttention(module.Module):
     """Applies multi-head dot product attention on the input data.
     Projects the inputs into multi-headed query, key, and value vectors,
     applies dot-product attention and project the results to an output vector.
+
     Args:
       inputs_q: input queries of shape
         `[batch_sizes..., length, features]`.
@@ -128,6 +130,7 @@ class RelativeMultiHeadDotProductAttention(module.Module):
       deterministic: if false, the attention weight is masked randomly
         using dropout, whereas if true, the attention weights
         are deterministic.
+
     Returns:
       output of shape `[batch_sizes..., length, features]`.
     """

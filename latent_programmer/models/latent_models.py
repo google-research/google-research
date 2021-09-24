@@ -49,9 +49,11 @@ class Autoencoder(nn.Module):
                targets,
                targets_mask=None):
     """Autoencodes program task.
+
     Args:
       targets: target data `[batch_size, length]`
       targets_mask: padding mask for targets.
+
     Returns:
       embedding sequence.
     """

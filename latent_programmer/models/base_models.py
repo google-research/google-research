@@ -97,8 +97,10 @@ def shift_right(x, bos_token=0):
 
 def sinusoidal_init(max_len=2048):
   """1D Sinusoidal Position Embedding Initializer.
+
   Args:
       max_len: maximum possible length for the input
+
   Returns:
       Init function returning `[1, max_len, d_feature]`
   """
@@ -121,6 +123,7 @@ def sinusoidal_init(max_len=2048):
 
 class AddPositionEmbs(nn.Module):
   """Adds learned positional embeddings to the inputs.
+
   Attributes:
     config: TransformerConfig containing hyperparameters.
     cache: whether to use cache for fast single-position decoding.
@@ -133,8 +136,10 @@ class AddPositionEmbs(nn.Module):
   def __call__(self,
                inputs):
     """Applies AddPositionEmbs module.
+
     Args:
       inputs: input data `[batch_size, ..., length, dim]`
+
     Returns:
       New embedding `[batch_size, ..., length, dim]`
     """
@@ -172,6 +177,7 @@ class AddPositionEmbs(nn.Module):
 
 class MLPBlock(nn.Module):
   """MLP block.
+
   Attributes:
     config: TransformerConfig containing hyperparameters.
     out_dim: output dimension.
@@ -213,11 +219,13 @@ class EncoderBlock(nn.Module):
                encoder_mask: Optional[Array] = None,
                encoder_relative_position: Optional[Array] = None):
     """Applies Transformer block.
+
     Args:
       inputs: input data `[batch_size, ..., length, dim]`
       encoder_mask: encoder self-attention mask
       encoder_relative_position: encoder relative positions tensor
           `[batch_sizes..., length, length]'
+
     Returns:
       Encoded input data `[batch_size, ..., length, mlp_dim]`
     """
@@ -278,6 +286,7 @@ class EncoderDecoderBlock(nn.Module):
                decoder_relative_position: Optional[Array] = None,
                encoder_decoder_relative_position: Optional[Array] = None):
     """Applies Transformer block.
+
     Args:
       targets: input data for decoder `[batch_size, ..., length, dim]`
       encoded: input data from encoder `[batch_size, ..., length2, dim2]`
@@ -287,6 +296,7 @@ class EncoderDecoderBlock(nn.Module):
          `[batch_sizes..., length2, length2]'
       encoder_decoder_relative_position: encoder-decoder relative tensor
          `[batch_sizes..., length2, length]'
+
     Returns:
       Decoded data `[batch_size, ..., length2, mlp_dim]`
     """
@@ -379,6 +389,7 @@ class TransformerDecoder(nn.Module):
                decoder_relative_position: Optional[Array] = None,
                encoder_decoder_relative_position: Optional[Array] = None):
     """Applies Transformer to decode the targets.
+
     Args:
       targets: target outputs.
       encoded: encoded input data from encoder [batch, ..., length, mlp_dim].
@@ -388,6 +399,7 @@ class TransformerDecoder(nn.Module):
          `[batch_sizes..., length2, length2]'
       encoder_decoder_relative_position: encoder-decoder relative tensor
          `[batch_sizes..., length2, length]'
+
     Returns:
       output of a transformer decoder.
     """
@@ -464,9 +476,11 @@ class TransformerIOEncoder(nn.Module):
                inputs: Array,
                outputs: Array):
     """Applies Transformer model to encode the IO specification.
+
     Args:
       inputs: input data [batch_size, num_io, length]
       outputs: output data [batch_size, num_io, length2]
+
     Returns:
       Encoded IO data `[batch_size, num_io, length2, dim]`
     """

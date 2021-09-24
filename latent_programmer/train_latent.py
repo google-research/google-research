@@ -113,12 +113,14 @@ def create_learning_rate_scheduler(
     steps_per_decay=50000,
     steps_per_cycle=100000):
   """Creates learning rate schedule.
+
   Interprets factors in the factors string which can consist of:
   * constant: interpreted as the constant value,
   * linear_warmup: interpreted as linear warmup until warmup_steps,
   * rsqrt_decay: divide by square root of max(step, warmup_steps)
   * decay_every: Every k steps decay the learning rate by decay_factor.
   * cosine_decay: Cyclic cosine decay, uses steps_per_cycle parameter.
+
   Args:
     base_learning_rate: float, the starting constant for the lr schedule.
     factors: a string with factors separated by '*' that defines the schedule.
@@ -126,6 +128,7 @@ def create_learning_rate_scheduler(
     decay_factor: The amount to decay the learning rate by.
     steps_per_decay: How often to decay the learning rate.
     steps_per_cycle: Steps per cycle when using cosine decay.
+
   Returns:
     A function learning_rate(step): float -> {'learning_rate': float}, the
     step-dependent lr.
@@ -161,10 +164,12 @@ def create_learning_rate_scheduler(
 
 def compute_weighted_cross_entropy(logits, targets, weights=None):
   """Compute weighted cross entropy and entropy for log probs and targets.
+
   Args:
    logits: `[batch, length, num_classes]` float array.
    targets: categorical targets `[batch, length]` int array.
    weights: None or array of shape [batch, length, 1]
+
   Returns:
     Tuple of scalar loss and batch normalizing factor.
   """
