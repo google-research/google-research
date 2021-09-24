@@ -357,10 +357,10 @@ def add_hashkey_of_audio(ex, audio_key,
                          hash_key = HASHKEY_FIELD):
   """Add hash of audio to tf.Example."""
   audio = tfexample_audio_to_npfloat32(ex, audio_key, normalize_to_pm_one=True)
-  key = hash(audio.tobytes())
+  key = str(hash(audio.tobytes())).encode('utf-8')
   if hash_key in ex.features.feature:
     raise ValueError(f'`{hash_key}` is protected, can\'t be in tf.Train.')
-  ex.features.feature[hash_key].float_list.value.append(key)
+  ex.features.feature[hash_key].bytes_list.value.append(key)
   return ex
 
 

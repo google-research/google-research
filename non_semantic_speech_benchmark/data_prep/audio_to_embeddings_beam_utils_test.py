@@ -16,6 +16,7 @@
 # Lint as: python3
 """Tests for NOSS data prep."""
 
+import copy
 import os
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -221,6 +222,23 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
         dataset_name, 'validation'))
     self.assertTrue(audio_to_embeddings_beam_utils._tfds_filenames(
         dataset_name, 'test'))
+
+  def test_add_hashkey_of_audio_repeatable(self):
+    """Make sure that repeated hashes of the same samples are the same."""
+    # TODO(joelshor): This step shouldn't depend on the random audio samples,
+    # but set a seed if it does.
+    audio_samples = np.random.random([64000]) * 2.0 - 1  # [-1, 1)
+    ex = tf.train.Example()
+    ex.features.feature['aud'].float_list.value.extend(audio_samples)
+    # Use deepcopy to run the test with different objects that have the same
+    # samples. In practice, this is more likely to be the way we expect this
+    # function to behave.
+    ex1 = audio_to_embeddings_beam_utils.add_hashkey_of_audio(
+        copy.deepcopy(ex), 'aud', 'k')
+    ex2 = audio_to_embeddings_beam_utils.add_hashkey_of_audio(
+        copy.deepcopy(ex), 'aud', 'k')
+    self.assertEqual(ex1.features.feature['k'].bytes_list.value[0],
+                     ex2.features.feature['k'].bytes_list.value[0],)
 
 
 if __name__ == '__main__':
