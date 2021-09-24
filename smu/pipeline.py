@@ -420,6 +420,9 @@ class UpdateConformerFn(beam.DoFn):
     self._cached_bond_lengths = None
 
   def _add_alternative_bond_topologies(self, conformer, smiles_id_dict):
+    beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
+                                 'attempted_topology_matches').inc()
+
     matching_parameters = smu_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
     matching_parameters.smiles_with_h = False
@@ -470,7 +473,12 @@ class UpdateConformerFn(beam.DoFn):
 
     yield from self._compare_smiles(conformer)
 
-    self._add_alternative_bond_topologies(conformer, smiles_id_dict)
+    if (conformer.duplicated_by == 0 and
+        conformer.properties.errors.status < 512):
+      # The duplicate records do not need topology extraction and anything
+      # with this high an error is pretty messed so, do we won't bother trying
+      # to match the topolgy.
+      self._add_alternative_bond_topologies(conformer, smiles_id_dict)
 
     yield conformer
 

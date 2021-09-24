@@ -191,9 +191,14 @@ class IntegrationTest(absltest.TestCase):
       with beam.Pipeline(beam_options) as root:
         pipeline.pipeline(root)
 
-    # TODO(pfr): Check the counters with something like
-    # metrics = root.result.metrics().query()
-    # counters_dict = {m.key.metric.name: m.committed for m in metrics}
+    metrics = root.result.metrics().query()
+    counters_dict = {m.key.metric.name: m.committed
+                     for m in metrics['counters']}
+
+    self.assertEqual(counters_dict['attempted_topology_matches'], 3)
+    # Conformer 620517 will not match because bond lengths are not extracted
+    # from conformers with serious errors like this.
+    self.assertEqual(counters_dict['no_topology_matches'], 1)
 
     logging.info('Files in output: %s',
                  '\n'.join(gfile.glob(os.path.join(test_subdirectory, '*'))))
