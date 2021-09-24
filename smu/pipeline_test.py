@@ -71,6 +71,7 @@ class FunctionalTest(absltest.TestCase):
   def test_extract_bond_lengths(self):
     # This conformer does not obey valence rules, but it's fine for this test.
     conf = dataset_pb2.Conformer(conformer_id=123000)
+    conf.properties.errors.status = 4
     bt = conf.bond_topologies.add()
     bt.atoms.extend([
         dataset_pb2.BondTopology.ATOM_ONEG, dataset_pb2.BondTopology.ATOM_NPOS,
@@ -105,6 +106,7 @@ class FunctionalTest(absltest.TestCase):
   def test_extract_bond_lengths_max_unbonded(self):
     # This conformer does not obery valence rules, but it's fine for this test.
     conf = dataset_pb2.Conformer(conformer_id=123000)
+    conf.properties.errors.status = 4
     bt = conf.bond_topologies.add()
     bt.atoms.extend([
         dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
@@ -132,6 +134,36 @@ class FunctionalTest(absltest.TestCase):
             ('c', 'o', dataset_pb2.BondTopology.BOND_SINGLE, '52.92')
         ])
     # Note that the N-O distance is not reported while the C-O is.
+
+  def _create_dummy_conformer(self):
+    conf = dataset_pb2.Conformer(conformer_id=123000)
+    bt = conf.bond_topologies.add()
+    bt.atoms.extend([
+      dataset_pb2.BondTopology.ATOM_C,
+      dataset_pb2.BondTopology.ATOM_C
+    ])
+    bt.bonds.add(
+        atom_a=0, atom_b=1, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
+    conf.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
+    conf.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
+    return conf
+
+  def test_extract_bond_lengths_has_errors(self):
+    conf = self._create_dummy_conformer()
+    conf.properties.errors.status = 8
+    got = list(
+        pipeline.extract_bond_lengths(
+            conf, dist_sig_digits=2, unbonded_max=2.0))
+    self.assertEqual([], got)
+
+  def test_extract_bond_lengths_is_dup(self):
+    conf = self._create_dummy_conformer()
+    conf.properties.errors.status = 0
+    conf.duplicated_by = 456000
+    got = list(
+        pipeline.extract_bond_lengths(
+            conf, dist_sig_digits=2, unbonded_max=2.0))
+    self.assertEqual([], got)
 
 
 class IntegrationTest(absltest.TestCase):
