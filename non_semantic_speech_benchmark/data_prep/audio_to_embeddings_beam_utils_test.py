@@ -223,8 +223,8 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
     self.assertTrue(audio_to_embeddings_beam_utils._tfds_filenames(
         dataset_name, 'test'))
 
-  def test_add_hashkey_of_audio_repeatable(self):
-    """Make sure that repeated hashes of the same samples are the same."""
+  def test_add_key_to_audio_repeatable(self):
+    """Make sure that repeated keys of the same samples are the same."""
     # TODO(joelshor): This step shouldn't depend on the random audio samples,
     # but set a seed if it does.
     audio_samples = np.random.random([64000]) * 2.0 - 1  # [-1, 1)
@@ -233,9 +233,9 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
     # Use deepcopy to run the test with different objects that have the same
     # samples. In practice, this is more likely to be the way we expect this
     # function to behave.
-    ex1 = audio_to_embeddings_beam_utils.add_hashkey_of_audio(
+    ex1 = audio_to_embeddings_beam_utils.add_key_to_audio(
         copy.deepcopy(ex), 'aud', 'k')
-    ex2 = audio_to_embeddings_beam_utils.add_hashkey_of_audio(
+    ex2 = audio_to_embeddings_beam_utils.add_key_to_audio(
         copy.deepcopy(ex), 'aud', 'k')
     self.assertEqual(ex1.features.feature['k'].bytes_list.value[0],
                      ex2.features.feature['k'].bytes_list.value[0],)

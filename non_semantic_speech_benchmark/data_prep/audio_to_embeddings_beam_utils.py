@@ -39,7 +39,7 @@ import tensorflow_hub as hub
 from non_semantic_speech_benchmark.export_model import tf_frontend
 
 
-HASHKEY_FIELD = 'hashkey'
+KEY_FIELD = 'key_adhoc'
 
 
 def tfexample_audio_to_npfloat32(ex, audio_key,
@@ -353,14 +353,24 @@ def _add_embedding_to_tfexample(ex, embedding,
   return ex
 
 
-def add_hashkey_of_audio(ex, audio_key,
-                         hash_key = HASHKEY_FIELD):
+def add_key_to_audio(ex,
+                     audio_key,
+                     key_field = KEY_FIELD):
   """Add hash of audio to tf.Example."""
-  audio = tfexample_audio_to_npfloat32(ex, audio_key, normalize_to_pm_one=True)
-  key = str(hash(audio.tobytes())).encode('utf-8')
-  if hash_key in ex.features.feature:
-    raise ValueError(f'`{hash_key}` is protected, can\'t be in tf.Train.')
-  ex.features.feature[hash_key].bytes_list.value.append(key)
+  if key_field in ex.features.feature:
+    raise ValueError(f'`{key_field}` is protected, can\'t be in tf.Train.')
+
+  # Compute the key.
+  # Note: Computing the key from the audio means keys won't be preserved when
+  # chunking audio.
+  samples = tfexample_audio_to_npfloat32(
+      ex, audio_key, normalize_to_pm_one=True)
+  samples = samples[:16000]
+  key = round(np.mean(samples), 5)  # Round so it's stable.
+  key = str(key).encode('utf-8')
+
+  # Add the key to the tf.Example.
+  ex.features.feature[key_field].bytes_list.value.append(key)
   return ex
 
 
@@ -395,7 +405,7 @@ def _add_embedding_column_map_fn(
     ex = _add_embedding_to_tfexample(ex, embedding, f'embedding/{name}')
 
   # Add the hash of the audio as a key.
-  ex = add_hashkey_of_audio(ex, audio_key)
+  ex = add_key_to_audio(ex, audio_key)
 
   if delete_audio_from_output:
     ex.features.feature.pop(audio_key, None)
