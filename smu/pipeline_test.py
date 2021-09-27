@@ -223,8 +223,8 @@ class IntegrationTest(absltest.TestCase):
       self.assertIn('conformer_id,', conflicts_lines[0])
       self.assertEqual(
           conflicts_lines[1], '618451001,'
-          '1,1,1,1,-406.51179,9.999999,-406.522079,9.999999,True,True,'
-          '1,1,1,1,-406.51179,0.052254,-406.522079,2.5e-05,True,True\n')
+          '1,-406.51179,9.999999,-406.522079,9.999999,True,True,'
+          '1,-406.51179,0.052254,-406.522079,2.5e-05,True,True\n')
 
     # Check a couple of the stats.
     with gfile.GFile(output_stem + '_stats-00000-of-00001.csv') as f:
