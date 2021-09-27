@@ -653,12 +653,13 @@ class MergeConformersTest(absltest.TestCase):
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conflict, [
         618451001, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
-        True, 1, -1.23, 0.052254, -406.522079, 2.5e-05, True, True
+        True, 0, -1.23, 0.052254, -406.522079, 2.5e-05, True, True
     ])
     # Just check a random field that is in stage2 but not stage1
     self.assertNotEmpty(got_conf.properties.normal_modes)
-    # This stage2 values should be returned
-    self.assertEqual(got_conf.properties.initial_geometry_energy.value, -1.23)
+    # This stage1 value should be returned
+    self.assertEqual(got_conf.properties.initial_geometry_energy.value,
+                     -406.51179)
 
   def test_stage2_stage1_conflict_missing_geometry(self):
     self.stage2_conformer.ClearField('optimized_geometry')
@@ -666,7 +667,7 @@ class MergeConformersTest(absltest.TestCase):
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conflict, [
         618451001, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
-        True, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
+        True, 0, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
         False
     ])
     # Just check a random field that is in stage2 but not stage1
@@ -678,7 +679,9 @@ class MergeConformersTest(absltest.TestCase):
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage2_conformer, self.stage1_conformer)
     self.assertIsNone(got_conflict)
-    self.assertEqual(got_conf.properties.initial_geometry_energy.value, -1.0)
+    # This stage1 value should be returned
+    self.assertEqual(got_conf.properties.initial_geometry_energy.value,
+                     -406.51179)
 
   def test_stage2_stage1_no_conflict_approx_equal(self):
     self.stage2_conformer.properties.initial_geometry_energy.value += 1e-7

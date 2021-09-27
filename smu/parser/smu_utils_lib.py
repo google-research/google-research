@@ -868,6 +868,18 @@ def merge_conformer(conf1, conf2):
               conf1.bond_topologies[0].bond_topology_id,
               conf2.bond_topologies[0].bond_topology_id))
 
+  # We set the conflict info here because we'll be messing around with fields
+  # below. We may not need this if we don't actually find a conflict.
+  conflict_info = [conf1.conformer_id]
+  for c in [conf1, conf2]:
+    conflict_info.append(c.properties.errors.error_frequencies)
+    conflict_info.append(c.properties.initial_geometry_energy.value)
+    conflict_info.append(c.properties.initial_geometry_gradient_norm.value)
+    conflict_info.append(c.properties.optimized_geometry_energy.value)
+    conflict_info.append(c.properties.optimized_geometry_gradient_norm.value)
+    conflict_info.append(bool(c.initial_geometries))
+    conflict_info.append(c.HasField('optimized_geometry'))
+
   # The stage1 (in source1) and stage2 (in source2) is the only non-trivial
   # merge. We look for conflicts between them and then a few special cases.
   has_conflict = False
@@ -903,6 +915,14 @@ def merge_conformer(conf1, conf2):
         if not np.isclose(val1, val2, atol=atol, rtol=0):
           has_conflict = True
 
+    # After all of that, we always take the stage1 initial energy,
+    # gradient norm, and positions.
+    conf2.properties.initial_geometry_energy.value = (
+      conf1.properties.initial_geometry_energy.value)
+    conf2.properties.initial_geometry_gradient_norm.value = (
+      conf1.properties.initial_geometry_gradient_norm.value)
+    conf2.initial_geometries[0].CopyFrom(conf1.initial_geometries[0])
+
     # The 800 and 700 are special cases where we want to take the
     if (conf2.properties.errors.status == 800 or
         conf2.properties.errors.status == 700):
@@ -929,16 +949,6 @@ def merge_conformer(conf1, conf2):
 
   if not has_conflict:
     return conf2, None
-
-  conflict_info = [conf1.conformer_id]
-  for c in [conf1, conf2]:
-    conflict_info.append(c.properties.errors.error_frequencies)
-    conflict_info.append(c.properties.initial_geometry_energy.value)
-    conflict_info.append(c.properties.initial_geometry_gradient_norm.value)
-    conflict_info.append(c.properties.optimized_geometry_energy.value)
-    conflict_info.append(c.properties.optimized_geometry_gradient_norm.value)
-    conflict_info.append(bool(c.initial_geometries))
-    conflict_info.append(c.HasField('optimized_geometry'))
 
   return conf2, conflict_info
 
