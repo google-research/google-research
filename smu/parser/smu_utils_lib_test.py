@@ -652,8 +652,8 @@ class MergeConformersTest(absltest.TestCase):
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conflict, [
-        618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
-        True, 1, 1, 1, 1, -1.23, 0.052254, -406.522079, 2.5e-05, True, True
+        618451001, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
+        True, 1, -1.23, 0.052254, -406.522079, 2.5e-05, True, True
     ])
     # Just check a random field that is in stage2 but not stage1
     self.assertNotEmpty(got_conf.properties.normal_modes)
@@ -665,8 +665,8 @@ class MergeConformersTest(absltest.TestCase):
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conflict, [
-        618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
-        True, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
+        618451001, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
+        True, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
         False
     ])
     # Just check a random field that is in stage2 but not stage1
@@ -687,6 +687,50 @@ class MergeConformersTest(absltest.TestCase):
     self.assertIsNone(got_conflict)
     # Just check a random field from stage2
     self.assertNotEmpty(got_conf.properties.normal_modes)
+
+  def test_status_800(self):
+    self.stage2_conformer.properties.errors.status = 800
+    # Set a value so that we make sure we use the stage1 data
+    self.stage2_conformer.properties.initial_geometry_energy.value += 12345
+    expected_init_energy = (
+      self.stage1_conformer.properties.initial_geometry_energy.value)
+    got_conf, _ = smu_utils_lib.merge_conformer(
+        self.stage2_conformer, self.stage1_conformer)
+    self.assertEqual(got_conf.properties.errors.status, 580)
+    self.assertEqual(got_conf.properties.initial_geometry_energy.value,
+                     expected_init_energy)
+    self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 0)
+
+  def test_status_700(self):
+    self.stage2_conformer.properties.errors.status = 700
+    # Set a value so that we make sure we use the stage1 data
+    self.stage2_conformer.properties.initial_geometry_energy.value += 12345
+    expected_init_energy = (
+      self.stage1_conformer.properties.initial_geometry_energy.value)
+    got_conf, _ = smu_utils_lib.merge_conformer(
+        self.stage2_conformer, self.stage1_conformer)
+    self.assertEqual(got_conf.properties.errors.status, 570)
+    self.assertEqual(got_conf.properties.initial_geometry_energy.value,
+                     expected_init_energy)
+    self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 0)
+
+  def test_status_800_warn_vib_2(self):
+    self.stage2_conformer.properties.errors.status = 800
+    # We set two values because 1 is any neative and 2 is for a large negative
+    self.stage1_conformer.properties.harmonic_frequencies.value[3] = -123
+    self.stage1_conformer.properties.harmonic_frequencies.value[4] = -1
+    got_conf, _ = smu_utils_lib.merge_conformer(
+        self.stage2_conformer, self.stage1_conformer)
+    self.assertEqual(got_conf.properties.errors.status, 580)
+    self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 2)
+
+  def test_status_800_warn_vib_1(self):
+    self.stage2_conformer.properties.errors.status = 800
+    self.stage1_conformer.properties.harmonic_frequencies.value[4] = -1
+    got_conf, _ = smu_utils_lib.merge_conformer(
+        self.stage2_conformer, self.stage1_conformer)
+    self.assertEqual(got_conf.properties.errors.status, 580)
+    self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 1)
 
   def test_stage2_duplicate(self):
     got_conf, got_conflict = smu_utils_lib.merge_conformer(

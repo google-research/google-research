@@ -773,9 +773,6 @@ def _conformer_source(conf):
 # conformer.
 MERGE_CONFLICT_FIELDS = [
     'conformer_id',
-    'error_nstat1_1',
-    'error_nstatc_1',
-    'error_nstatt_1',
     'error_frequencies_1',
     'initial_geometry_energy_1',
     'initial_geometry_gradient_norm_1',
@@ -783,9 +780,6 @@ MERGE_CONFLICT_FIELDS = [
     'optimized_geometry_gradient_norm_1',
     'has_initial_geometry_1',
     'has_optimized_geometry_1',
-    'error_nstat1_2',
-    'error_nstatc_2',
-    'error_nstatt_2',
     'error_frequencies_2',
     'initial_geometry_energy_2',
     'initial_geometry_gradient_norm_2',
@@ -874,10 +868,8 @@ def merge_conformer(conf1, conf2):
               conf1.bond_topologies[0].bond_topology_id,
               conf2.bond_topologies[0].bond_topology_id))
 
-  # All the remaining cases are just moving duplicate information from
-  # source1 to source2. The only non trivial version of this is merging
-  # STAGE1 into STAGE2. In some cases, the value will differ and we want to
-  # note that here.
+  # The stage1 (in source1) and stage2 (in source2) is the only non-trivial
+  # merge. We look for conflicts between them and then a few special cases.
   has_conflict = False
   if source1 == _ConformerSource.STAGE1 and source2 == _ConformerSource.STAGE2:
     if len(conf1.bond_topologies) != 1 or len(conf2.bond_topologies) != 1:
@@ -911,6 +903,22 @@ def merge_conformer(conf1, conf2):
         if not np.isclose(val1, val2, atol=atol, rtol=0):
           has_conflict = True
 
+    # The 800 and 700 are special cases where we want to take the
+    if (conf2.properties.errors.status == 800 or
+        conf2.properties.errors.status == 700):
+      # Flip back because we will base everything on the stage1 file
+      conf1, conf2 = conf2, conf1
+      source1, source2 = source2, source1
+
+      conf2.properties.errors.status = (
+        500 + conf1.properties.errors.status // 10)
+      conf2.which_database = dataset_pb2.COMPLETE
+      if np.any(np.asarray(conf2.properties.harmonic_frequencies.value) < -30):
+        conf2.properties.errors.warn_vib_imaginary = 2
+      elif np.any(np.asarray(conf2.properties.harmonic_frequencies.value) < 0):
+        conf2.properties.errors.warn_vib_imaginary = 1
+
+  # Move over all duplicate info.
   if (conf1.duplicated_by != 0 and conf2.duplicated_by != 0 and
       conf1.duplicated_by != conf2.duplicated_by):
     raise ValueError('Incompatible duplicated_by {} {}'.format(
@@ -924,9 +932,6 @@ def merge_conformer(conf1, conf2):
 
   conflict_info = [conf1.conformer_id]
   for c in [conf1, conf2]:
-    conflict_info.append(c.properties.errors.error_nstat1)
-    conflict_info.append(c.properties.errors.error_nstatc)
-    conflict_info.append(c.properties.errors.error_nstatt)
     conflict_info.append(c.properties.errors.error_frequencies)
     conflict_info.append(c.properties.initial_geometry_energy.value)
     conflict_info.append(c.properties.initial_geometry_gradient_norm.value)
