@@ -112,7 +112,8 @@ def _maybe_add_commas(list_obj, comma_escape_char):
   return [x.replace(comma_escape_char, ',') for x in list_obj]
 
 
-def get_beam_params_from_flags():
+def get_beam_params_from_flags(
+):
   """Parses flags and returns arguments for beam job."""
   # Get input data location from flags. If we're reading a TFDS dataset, get
   # train, validation, and test.
@@ -154,6 +155,9 @@ def get_beam_params_from_flags():
       input_format=input_format,
       output_format=output_format,
   )
+
+  logging.info('input_filenames_list: %s', input_filenames_list)
+  logging.info('output_filenames: %s', output_filenames)
 
   return input_filenames_list, output_filenames, beam_params
 

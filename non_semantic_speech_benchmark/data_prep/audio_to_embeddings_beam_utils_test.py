@@ -28,6 +28,8 @@ from non_semantic_speech_benchmark.export_model import tf_frontend
 
 BASE_SHAPE_ = (15, 5)
 
+TEST_DIR = 'non_semantic_speech_benchmark/data_prep/testdata'
+
 
 def _s2e(audio_samples, sample_rate, module_location, output_key, name):
   """Mock waveform-to-embedding computation."""
@@ -184,13 +186,12 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
       {'feature_inputs': False},
   )
   def test_tflite_inference(self, feature_inputs):
-    test_dir = 'non_semantic_speech_benchmark/data_prep/testdata'
     if feature_inputs:
       test_file = 'model1_woutfrontend.tflite'
     else:
       test_file = 'model1_wfrontend.tflite'
-    tflite_model_path = os.path.join(
-        absltest.get_default_test_srcdir(), test_dir, test_file)
+    tflite_model_path = os.path.join(absltest.get_default_test_srcdir(),
+                                     TEST_DIR, test_file)
     output_key = '0'
     interpreter = audio_to_embeddings_beam_utils.build_tflite_interpreter(
         tflite_model_path=tflite_model_path)
@@ -239,6 +240,30 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
         copy.deepcopy(ex), 'aud', 'k')
     self.assertEqual(ex1.features.feature['k'].bytes_list.value[0],
                      ex2.features.feature['k'].bytes_list.value[0],)
+
+  @parameterized.parameters(
+      {'input_glob': True},
+      {'input_glob': False},
+  )
+  def test_validate_inputs(self, input_glob):
+    file_glob = os.path.join(absltest.get_default_test_srcdir(), TEST_DIR, '*')
+    if input_glob:
+      input_filenames_list = [[file_glob]]
+    else:
+      filenames = tf.io.gfile.glob(file_glob)
+      input_filenames_list = [filenames]
+    output_filenames = [
+        os.path.join(absltest.get_default_test_tmpdir(), 'fake1')]
+    embedding_modules = ['m1', 'm2']
+    embedding_names = ['n1', 'n2']
+    module_output_keys = ['k1', 'k2']
+    # Check that inputs and flags are formatted correctly.
+    audio_to_embeddings_beam_utils.validate_inputs(
+        input_filenames_list=input_filenames_list,
+        output_filenames=output_filenames,
+        embedding_modules=embedding_modules,
+        embedding_names=embedding_names,
+        module_output_keys=module_output_keys)
 
 
 if __name__ == '__main__':

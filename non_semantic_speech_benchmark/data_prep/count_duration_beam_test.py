@@ -39,7 +39,7 @@ class CountDurationBeamTest(absltest.TestCase):
     dummy_fn = os.path.join(
         absltest.get_default_test_srcdir(), TESTDIR, 'test.tfrecord')
     mock_ds_dict.return_value = {
-        'dummy': ([[dummy_fn]], 'tfrecord')
+        'dummy': ([[dummy_fn]], 'tfrecord'),
     }
 
     # Run the beam pipeline, which writes to the output.

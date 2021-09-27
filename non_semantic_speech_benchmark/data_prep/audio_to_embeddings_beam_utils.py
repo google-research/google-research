@@ -500,6 +500,9 @@ def read_input_glob_and_sample_rate_from_flags(
   if len(input_filenames) != len(output_filenames):
     raise ValueError('Lengths not equal.')
 
+  logging.info('input_filenames: %s', input_filenames)
+  logging.info('output_filenames: %s', output_filenames)
+
   return input_filenames, output_filenames, sample_rate
 
 
@@ -509,8 +512,14 @@ def validate_inputs(input_filenames_list,
   """Validate inputs and input flags."""
   for filename_list in input_filenames_list:
     for filename in filename_list:
-      if not tf.io.gfile.exists(filename):
-        raise ValueError(f'Files not found: {filename}')
+      # It's either a filename or a glob. Try both.
+      try:
+        if not tf.io.gfile.exists(filename):
+          raise ValueError(f'Files not found: {filename}')
+      except (tf.errors.InvalidArgumentError, ValueError):  # was a glob.
+        if not tf.io.gfile.glob(filename):
+          raise ValueError(f'Files not found: {filename}')
+
   if len(input_filenames_list) != len(output_filenames):
     raise ValueError('Input/output filename lengths don\'t match: '
                      f'{input_filenames_list} vs {output_filenames}')
@@ -541,14 +550,14 @@ def validate_inputs(input_filenames_list,
 def _read_from_tfrecord(root, input_filenames,
                         suffix):
   """Reads from a Python list of TFRecord files."""
-  assert isinstance(input_filenames, list), input_filenames
+  if not isinstance(input_filenames, list):
+    raise ValueError(f'Expected list: {type(input_filenames)}')
   return (root
           | f'MakeFilenames{suffix}' >> beam.Create(input_filenames)
           | f'ReadTFRecords{suffix}' >> beam.io.tfrecordio.ReadAllFromTFRecord(
               coder=beam.coders.ProtoCoder(tf.train.Example))
           | f'AddKeys{suffix}' >> beam.Map(
               lambda x: (str(random.getrandbits(128)), x)))
-
 
 
 
