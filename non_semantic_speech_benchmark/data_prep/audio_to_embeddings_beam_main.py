@@ -24,7 +24,7 @@ This file has two modes:
 """
 # pylint:enable=line-too-long
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 from absl import app
 from absl import flags
@@ -105,66 +105,10 @@ flags.DEFINE_integer(
     'length logic, unless the model is in TFLite format. Do not use if '
     '`use_frontend_fn` is `True`.')
 
-FLAGS = flags.FLAGS
-
-
-def _maybe_add_commas(list_obj, comma_escape_char):
-  return [x.replace(comma_escape_char, ',') for x in list_obj]
-
-
-def get_beam_params_from_flags(
-):
-  """Parses flags and returns arguments for beam job."""
-  # Get input data location from flags. If we're reading a TFDS dataset, get
-  # train, validation, and test.
-  input_filenames_list, output_filenames, sample_rate = utils.read_input_glob_and_sample_rate_from_flags(
-      FLAGS.input_glob, FLAGS.sample_rate, FLAGS.tfds_dataset,
-      FLAGS.output_filename, FLAGS.tfds_data_dir)
-
-  # Sometimes we want commas to appear in `embedding_modules`,
-  # `embedding_names`, or `module_output_key`. However, commas get split out in
-  # Google's Python `DEFINE_list`. We compromise by introducing a special
-  # character, which we replace with commas here.
-  embedding_modules = _maybe_add_commas(FLAGS.embedding_modules,
-                                        FLAGS.comma_escape_char)
-  embedding_names = _maybe_add_commas(FLAGS.embedding_names,
-                                      FLAGS.comma_escape_char)
-  module_output_keys = _maybe_add_commas(FLAGS.module_output_keys,
-                                         FLAGS.comma_escape_char)
-
-  input_format = 'tfrecord'
-  output_format = 'tfrecord'
-
-  beam_params = dict(
-      sample_rate=sample_rate,
-      debug=FLAGS.debug,
-      embedding_names=embedding_names,
-      embedding_modules=embedding_modules,
-      module_output_keys=module_output_keys,
-      audio_key=FLAGS.audio_key,
-      sample_rate_key=FLAGS.sample_rate_key,
-      label_key=FLAGS.label_key,
-      speaker_id_key=FLAGS.speaker_id_key,
-      average_over_time=FLAGS.average_over_time,
-      delete_audio_from_output=FLAGS.delete_audio_from_output,
-      split_embeddings_into_separate_tables=FLAGS
-      .split_embeddings_into_separate_tables,
-      use_frontend_fn=FLAGS.use_frontend_fn,
-      normalize_to_pm_one=FLAGS.normalize_to_pm_one,
-      model_input_min_length=FLAGS.model_input_min_length,
-      input_format=input_format,
-      output_format=output_format,
-  )
-
-  logging.info('input_filenames_list: %s', input_filenames_list)
-  logging.info('output_filenames: %s', output_filenames)
-
-  return input_filenames_list, output_filenames, beam_params
-
 
 def main(_):
 
-  input_filenames_list, output_filenames, beam_params = get_beam_params_from_flags(
+  input_filenames_list, output_filenames, beam_params = utils.get_beam_params_from_flags(
   )
   # Check that inputs and flags are formatted correctly.
   utils.validate_inputs(

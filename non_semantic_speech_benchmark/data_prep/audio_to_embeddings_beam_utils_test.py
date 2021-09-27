@@ -20,7 +20,6 @@ import copy
 import os
 from absl.testing import absltest
 from absl.testing import parameterized
-import mock
 import numpy as np
 import tensorflow.compat.v2 as tf
 from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_utils
@@ -58,8 +57,6 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
       {'average_over_time': False, 'sample_rate_key': None, 'sample_rate': 5},
   )
   # TODO(joelshor): Add test for signatures.
-  @mock.patch.object(audio_to_embeddings_beam_utils.hub, 'load',
-                     new=lambda _: FakeMod())
   def test_compute_embedding_map_fn(self, average_over_time, sample_rate_key,
                                     sample_rate):
     # Establish required key names.
@@ -81,7 +78,8 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
         audio_key=audio_key,
         sample_rate_key=sample_rate_key,
         sample_rate=sample_rate,
-        average_over_time=average_over_time)
+        average_over_time=average_over_time,
+        setup_fn=lambda _: FakeMod())
     do_fn.setup()
     new_k, new_v = next(do_fn.process((old_k, ex)))
 
@@ -93,8 +91,6 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
       {'average_over_time': True, 'sample_rate_key': 's', 'sample_rate': None},
       {'average_over_time': False, 'sample_rate_key': 's', 'sample_rate': None},
   )
-  @mock.patch.object(audio_to_embeddings_beam_utils.hub, 'load',
-                     new=lambda _: None)
   def test_compute_embedding_map_fn_custom_call(self, average_over_time,
                                                 sample_rate_key, sample_rate):
     # Establish required key names.
@@ -125,7 +121,8 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
         sample_rate_key=sample_rate_key,
         sample_rate=sample_rate,
         average_over_time=average_over_time,
-        module_call_fn=test_call_fn)
+        module_call_fn=test_call_fn,
+        setup_fn=lambda _: None)
     do_fn.setup()
     new_k, new_v = next(do_fn.process((old_k, ex)))
 
@@ -139,14 +136,6 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
       {'average_over_time': False, 'sample_rate_key': 's', 'sample_rate': None},
       {'average_over_time': False, 'sample_rate_key': None, 'sample_rate': 5},
   )
-  @mock.patch.object(
-      audio_to_embeddings_beam_utils,
-      'build_tflite_interpreter',
-      new=build_tflite_interpreter_dummy)
-  @mock.patch.object(
-      audio_to_embeddings_beam_utils,
-      'samples_to_embedding_tflite',
-      new=_s2e)
   def test_compute_embedding_map_fn_tflite(
       self, average_over_time, sample_rate_key, sample_rate):
     # Establish required key names.
@@ -173,7 +162,9 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
         sample_rate_key=sample_rate_key,
         sample_rate=sample_rate,
         average_over_time=average_over_time,
-        feature_fn=_feature_fn)
+        feature_fn=_feature_fn,
+        module_call_fn=_s2e,
+        setup_fn=build_tflite_interpreter_dummy)
     do_fn.setup()
     new_k, new_v = next(do_fn.process((old_k, ex)))
 
