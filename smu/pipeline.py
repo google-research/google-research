@@ -208,6 +208,8 @@ def conformer_to_stat_values(conformer):
 
   yield 'num_initial_geometries', len(conformer.initial_geometries)
   yield 'num_duplicates', len(conformer.duplicate_of)
+  if not conformer.duplicated_by:
+    yield 'num_topologies', len(conformer.bond_topologies)
 
 
 def bond_topology_summaries_from_csv(filename):
