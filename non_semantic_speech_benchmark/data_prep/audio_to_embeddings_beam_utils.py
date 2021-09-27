@@ -679,7 +679,8 @@ def make_beam_pipeline(
     input_format = 'tfrecord',
     output_format = 'tfrecord',
     suffix = 'Main',
-    module_call_fn = samples_to_embedding_tfhub):
+    module_call_fn = samples_to_embedding_tfhub,
+    setup_fn = hub.load):
   """Construct beam pipeline for mapping from audio to embeddings.
 
   Args:
@@ -715,6 +716,7 @@ def make_beam_pipeline(
       `writer_functions`.
     suffix: Python string. Suffix to stage names to make them unique.
     module_call_fn: Function for inference on audio.
+    setup_fn: Function for creating audio inference model.
   """
   tf_examples_key_ = 'tf_examples'
   assert tf_examples_key_ not in embedding_names
@@ -748,7 +750,8 @@ def make_beam_pipeline(
             feature_fn=_default_feature_fn if use_frontend_fn else None,
             normalize_to_pm_one=normalize_to_pm_one,
             model_input_min_length=model_input_min_length,
-            module_call_fn=module_call_fn))
+            module_call_fn=module_call_fn,
+            setup_fn=setup_fn))
     embedding_tables[name] = tbl
   assert tf_examples_key_ not in embedding_tables
   embedding_tables[tf_examples_key_] = input_examples
