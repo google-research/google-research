@@ -161,10 +161,11 @@ def main(argv):
       dirichlet_alpha=FLAGS.dirichlet_alpha,
       root_exploration_fraction=FLAGS.root_exploration_fraction,
       num_simulations=FLAGS.num_simulations,
-      initial_inference_batch_size=learner.INITIAL_INFERENCE_BATCH_SIZE.value,
-      recurrent_inference_batch_size=learner.RECURRENT_INFERENCE_BATCH_SIZE
-      .value,
-      train_batch_size=learner.BATCH_SIZE.value,
+      initial_inference_batch_size=(
+          learner_flags.INITIAL_INFERENCE_BATCH_SIZE.value),
+      recurrent_inference_batch_size=(
+          learner_flags.RECURRENT_INFERENCE_BATCH_SIZE.value),
+      train_batch_size=learner_flags.BATCH_SIZE.value,
       td_steps=FLAGS.td_steps,
       num_unroll_steps=FLAGS.num_unroll_steps,
       pb_c_base=FLAGS.pb_c_base,
