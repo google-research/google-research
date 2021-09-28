@@ -64,6 +64,12 @@ Step by step demo is shown in [colabs](https://github.com/google-research/google
 2. Train toy svdf or ds_tc_resnet models [01_train.ipynb](https://github.com/google-research/google-research/blob/master/kws_streaming/colab/01_train.ipynb)
 3. Run inference in streaming and non streaming modes [02_inference.ipynb](https://github.com/google-research/google-research/blob/master/kws_streaming/colab/02_inference.ipynb)
 
+### Good practice of filing an issues at [google-research](https://github.com/google-research/google-research):
+[google-research](https://github.com/google-research/google-research) is a research repository with a lot of different projects/owners.
+When you create an issue for a particular project it is better to mention the owner of the project (e.g. in case of kws_streaming @rybakov),
+so that the owner will be notified and address the issue, otherwise the owner is not notified and can miss it.
+
+
 ## Experimentation steps
 NN model conversion from non streaming mode (which is frequently
 used during training) to streaming can require manual model rewriting.

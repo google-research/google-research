@@ -147,8 +147,15 @@ class CNNTest(tf.test.TestCase):
 
       return _representative_dataset_gen
 
-    # convert streaming quantization aware model to tflite
-    # and apply post training quantization
+    # Convert streaming quantization aware model to tflite
+    # and apply post training quantization.
+    # With below seetings, all inputs and outputs will be float.
+    # They will be quantized and de-quantized inside of the model,
+    # all conv ops will use quantized versions.
+    # For full model quantization we need to set:
+    # inference_input_type=tf.int8
+    # inference_output_type=tf.int8
+    # in this case all inputs and outputs including states will be quantized
     with quantize.quantize_scope():
       tflite_streaming_model = utils.model_to_tflite(
           sess, model, params,
