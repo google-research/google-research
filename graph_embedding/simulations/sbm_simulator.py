@@ -307,15 +307,16 @@ def SimulateSbm(sbm_data,
     raise ValueError("entries of pi ( must sum to 1.0")
   if len(pi2) > 0 and round(abs(np.sum(pi2) - 1.0), 12) != 0:
     raise ValueError("entries of pi2 ( must sum to 1.0")
+  k1, k2 = len(pi), len(pi2)
   pi = np.array(list(pi) + list(pi2))
   pi /= np.sum(pi)
   if prop_mat.shape[0] != len(pi) or prop_mat.shape[1] != len(pi):
-    raise ValueError("prop_mat must be k x k where k = len(pi1 + pi2)")
+    raise ValueError("prop_mat must be k x k; k = len(pi1) + len(pi2)")
   sbm_data.graph_memberships = _GenerateNodeMemberships(
       num_vertices + num_vertices2, pi)
   sbm_data.type1_clusters = sorted(list(set(sbm_data.graph_memberships)))
   if num_vertices2 > 0:
-    sbm_data.cross_links = hsu.GetCrossLinks(len(pi), len(pi2))
+    sbm_data.cross_links = hsu.GetCrossLinks(k1, k2)
     type1_clusters, type2_clusters = zip(*sbm_data.cross_links)
     sbm_data.type1_clusters = sorted(list(set(type1_clusters)))
     sbm_data.type2_clusters = sorted(list(set(type2_clusters)))
