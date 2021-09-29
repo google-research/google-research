@@ -409,7 +409,8 @@ def SimulateFeatures(sbm_data,
       is shared with other clusters linked across types. Not needed if sbm_data
       is not heterogeneous (see above).
     type_center_var: (float) center_var for center vectors that are shared with
-      clusters linked across types. Not used if num_groups2 is 0.
+      clusters linked across types. Not used if input sbm_data is not
+      heterogeneous.
 
   Raises:
     RuntimeWarning:

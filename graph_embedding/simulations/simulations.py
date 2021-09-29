@@ -25,9 +25,19 @@ under-the-hood, but has an interface with a more standard set of parameters. The
 implementation of the package simulator is optimized, but still can be slow for
 graphs with a large number of edges.
 
-This class also includes functionality to generate node features with varying
-correlation to the blocks, which is useful for benchmarking graph convolutional
-neural networks (see https://arxiv.org/abs/2006.16904).
+This function can generate node features with varying correlation to the blocks,
+which is useful for benchmarking graph convolutional neural networks (see
+https://arxiv.org/abs/2006.16904).
+
+This function can also generate a heterogeneous SBM with two types. Specify the
+number of nodes of type 2 via num_vertices2, as well as other parameters that
+are analogous to the parameter for type 1 nodes. Cross-type graph clusters can
+be induced in the model via the prop_mat parameter, or more easily with the
+edge_probability_profile input. Cross-type feature clusters can be induced by
+setting feature_type_correlation above 0.0 (up to 1.0). This does not control
+the actual Pearson correlation of features across types, but does interpolate
+between entirely intra-type feature correlation (0.0) and entirely inter-type
+feature correlation (1.0). See the methods in sbm_simulator.py for details.
 """
 
 import typing
@@ -61,8 +71,8 @@ def GenerateStochasticBlockModelWithFeatures(
     pi2 = None,
     feature_center_distance2 = 0.0,
     feature_dim2 = 0,
-    feature_type_correlation = 0,
-    feature_type_center_distance = 0,
+    feature_type_correlation = 0.0,
+    feature_type_center_distance = 0.0,
     edge_probability_profile = None
 ):
   """Generates stochastic block model (SBM) with node features.
@@ -99,10 +109,14 @@ def GenerateStochasticBlockModelWithFeatures(
       vertices of type 2.
     pi2: If simulating a heterogeneous SBM, this is the pi vector for the
       vertices of type 2. Must sum to 1.0.
-    feature_center_distance2:
-    feature_dim2:
-    feature_type_correlation:
-    feature_type_center_distance:
+    feature_center_distance2: feature_center_distance for type 2 nodes. Not used
+      if len(pi2) = 0.
+    feature_dim2: feature_dim for nodes of type 2. Not used if len(pi2) = 0.
+    feature_type_correlation: proportion of each cluster's center vector that
+      is shared with other clusters linked across types. Not used if len(pi2) =
+      0.
+    feature_type_center_distance: the variance of the generated centers for
+      feature vectors that are shared across types. Not used if len(pi2) = 0.
     edge_probability_profile: This can be provided instead of prop_mat. If
       provided, prop_mat will be built according to the input p-to-q ratios. If
       prop_mat is provided, it will be preferred over this input.
