@@ -895,12 +895,53 @@ class ConformerToStandardTest(absltest.TestCase):
     self.assertIsNone(smu_utils_lib.conformer_to_standard(self.conformer))
 
 
+class CleanUpErrorCodesTest(parameterized.TestCase):
+  def test_stage2(self):
+    conformer = get_stage2_conformer()
+    conformer.properties.errors.error_nstat1 = 123
+    smu_utils_lib.clean_up_error_codes(conformer)
+    self.assertEqual(conformer.properties.errors.error_nstat1, 0)
+
+  def test_stage1_dup(self):
+    conformer = get_stage1_conformer()
+    conformer.duplicated_by = 123
+    smu_utils_lib.clean_up_error_codes(conformer)
+    self.assertEqual(conformer.properties.errors.status, -1)
+    self.assertEqual(conformer.properties.errors.error_nstat1, 0)
+
+  def test_stage1_dup_with_no_record(self):
+    conformer = get_stage1_conformer()
+    smu_utils_lib.clean_up_error_codes(conformer)
+    self.assertEqual(conformer.properties.errors.status, 0)
+    self.assertEqual(conformer.properties.errors.error_nstat1, 0)
+
+  def test_stage1_590(self):
+    conformer = get_stage1_conformer()
+    conformer.properties.errors.error_nstat1 = 5
+    smu_utils_lib.clean_up_error_codes(conformer)
+    self.assertEqual(conformer.properties.errors.status, 590)
+    self.assertEqual(conformer.properties.errors.error_nstat1, 0)
+
+  def test_stage1_600(self):
+    conformer = get_stage1_conformer()
+    conformer.properties.errors.error_nstat1 = 2
+    smu_utils_lib.clean_up_error_codes(conformer)
+    self.assertEqual(conformer.properties.errors.status, 600)
+    self.assertEqual(conformer.properties.errors.error_nstat1, 0)
+    self.assertFalse(conformer.properties.HasField(
+      'initial_geometry_energy'))
+    self.assertFalse(conformer.properties.HasField(
+      'optimized_geometry_energy'))
+    self.assertFalse(conformer.HasField('optimized_geometry'))
+
+
 class DetermineFateTest(parameterized.TestCase):
 
   def test_duplicate_same_topology(self):
     conformer = get_stage1_conformer()
     # bond topology is conformer_id // 1000
     conformer.duplicated_by = conformer.conformer_id + 1
+    smu_utils_lib.clean_up_error_codes(conformer)
     self.assertEqual(dataset_pb2.Conformer.FATE_DUPLICATE_SAME_TOPOLOGY,
                      smu_utils_lib.determine_fate(conformer))
 
@@ -908,22 +949,32 @@ class DetermineFateTest(parameterized.TestCase):
     conformer = get_stage1_conformer()
     # bond topology is conformer_id // 1000
     conformer.duplicated_by = conformer.conformer_id + 1000
+    smu_utils_lib.clean_up_error_codes(conformer)
     self.assertEqual(dataset_pb2.Conformer.FATE_DUPLICATE_DIFFERENT_TOPOLOGY,
                      smu_utils_lib.determine_fate(conformer))
 
   @parameterized.parameters(
       (2, dataset_pb2.Conformer.FATE_GEOMETRY_OPTIMIZATION_PROBLEM),
       (5, dataset_pb2.Conformer.FATE_DISASSOCIATED),
-      (4, dataset_pb2.Conformer.FATE_FORCE_CONSTANT_FAILURE),
-      (6, dataset_pb2.Conformer.FATE_DISCARDED_OTHER))
+      (6, dataset_pb2.Conformer.FATE_NO_CALCULATION_RESULTS))
   def test_geometry_failures(self, nstat1, expected_fate):
     conformer = get_stage1_conformer()
     conformer.properties.errors.error_nstat1 = nstat1
+    smu_utils_lib.clean_up_error_codes(conformer)
     self.assertEqual(expected_fate, smu_utils_lib.determine_fate(conformer))
 
   def test_no_result(self):
     conformer = get_stage1_conformer()
+    smu_utils_lib.clean_up_error_codes(conformer)
     self.assertEqual(dataset_pb2.Conformer.FATE_NO_CALCULATION_RESULTS,
+                     smu_utils_lib.determine_fate(conformer))
+
+  @parameterized.parameters(570, 580)
+  def test_discarded_other(self, status):
+    conformer = get_stage1_conformer()
+    conformer.properties.errors.status = status
+    smu_utils_lib.clean_up_error_codes(conformer)
+    self.assertEqual(dataset_pb2.Conformer.FATE_DISCARDED_OTHER,
                      smu_utils_lib.determine_fate(conformer))
 
   @parameterized.parameters(
