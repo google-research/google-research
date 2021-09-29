@@ -33,8 +33,8 @@ class SimulationsTest(absltest.TestCase):
 
     self.assertEqual(result.graph.num_vertices(), 50)
     self.assertEqual(np.sum([k == 0 for k in result.graph_memberships]), 25)
-    self.assertEqual(result.node_features.shape[0], 50)
-    self.assertEqual(result.node_features.shape[1], 16)
+    self.assertEqual(result.node_features1.shape[0], 50)
+    self.assertEqual(result.node_features1.shape[1], 16)
     self.assertSameStructure(list(result.graph_memberships),
                              list(result.feature_memberships))
     self.assertLen(result.edge_features, result.graph.num_edges())
