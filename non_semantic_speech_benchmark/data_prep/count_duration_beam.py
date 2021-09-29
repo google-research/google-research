@@ -36,7 +36,8 @@ from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_uti
 flags.DEFINE_string('output_file', None, 'Output file.')
 flags.DEFINE_boolean('debug', False, 'Whether to debug.')
 flags.DEFINE_list(
-    'audio_keys', ['audio', 'processed/audio_samples', 'audio_waveform'],
+    'audio_keys', ['audio', 'processed/audio_samples', 'audio_waveform',
+                   'WAVEFORM/feature/floats'],
     'Possible audio keys in tf.Examples.')
 flags.DEFINE_list(
     'sr_keys', [], 'Possible sample rate keys in tf.Examples.')
