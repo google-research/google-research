@@ -472,7 +472,7 @@ class BasisConv2D(tf.keras.layers.Layer):
         'kernel_initializer':
             tf.keras.initializers.serialize(self.kernel_initializer),
     }
-    base_config = super(tf.keras.layers.Layer, self).get_config()
+    base_config = super(tf.keras.layers.Layer, self).get_config()  # pytype: disable=attribute-error  # typed-keras
     return dict(list(base_config.items()) + list(config.items()))
 
 
