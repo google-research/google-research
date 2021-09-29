@@ -773,14 +773,16 @@ def _conformer_source(conf):
 # conformer.
 MERGE_CONFLICT_FIELDS = [
     'conformer_id',
-    'error_frequencies_1',
+    'error_nstat1',
+    'error_nstatc',
+    'error_nstatv',
+    'error_nstatt'
     'initial_geometry_energy_1',
     'initial_geometry_gradient_norm_1',
     'optimized_geometry_energy_1',
     'optimized_geometry_gradient_norm_1',
     'has_initial_geometry_1',
     'has_optimized_geometry_1',
-    'error_frequencies_2',
     'initial_geometry_energy_2',
     'initial_geometry_gradient_norm_2',
     'optimized_geometry_energy_2',
@@ -871,8 +873,11 @@ def merge_conformer(conf1, conf2):
   # We set the conflict info here because we'll be messing around with fields
   # below. We may not need this if we don't actually find a conflict.
   conflict_info = [conf1.conformer_id]
+  conflict_info.append(conf1.properties.errors.error_nstat1)
+  conflict_info.append(conf1.properties.errors.error_nstatc)
+  conflict_info.append(conf1.properties.errors.error_frequencies)  # nstatv
+  conflict_info.append(conf1.properties.errors.error_nstatt)
   for c in [conf1, conf2]:
-    conflict_info.append(c.properties.errors.error_frequencies)
     conflict_info.append(c.properties.initial_geometry_energy.value)
     conflict_info.append(c.properties.initial_geometry_gradient_norm.value)
     conflict_info.append(c.properties.optimized_geometry_energy.value)
@@ -915,6 +920,24 @@ def merge_conformer(conf1, conf2):
         if not np.isclose(val1, val2, atol=atol, rtol=0):
           has_conflict = True
 
+    # This isn't actually a conflict per-se, but we want to find anything that
+    # is not an allowed set of combinations of error values.
+    error_codes = (conf1.properties.errors.error_nstat1,
+                   conf1.properties.errors.error_nstatc,
+                   conf1.properties.errors.error_frequencies,
+                   conf1.properties.errors.error_nstatt)
+    if conf1.properties.errors.error_frequencies == 101:
+        # This happens for exactly one molecule. If anything else shows up
+        # here we will mark it as a conflict so it comes out in that output
+        if conf2.conformer_id != 795795001:
+          has_conflict = True
+    elif error_codes not in [(1, 1, 1, 1),
+                             (3, 1, 1, 1),
+                             (2, 3, 2, 1),
+                             (5, 1, 3, 1),
+                             (1, 1, 101, 1)]:
+      has_conflict = True
+
     # After all of that, we always take the stage1 initial energy,
     # gradient norm, and positions.
     conf2.properties.initial_geometry_energy.value = (
@@ -923,7 +946,7 @@ def merge_conformer(conf1, conf2):
       conf1.properties.initial_geometry_gradient_norm.value)
     conf2.initial_geometries[0].CopyFrom(conf1.initial_geometries[0])
 
-    # The 800 and 700 are special cases where we want to take the
+    # The 800 and 700 are special cases where we want to take the stage1 data
     if (conf2.properties.errors.status == 800 or
         conf2.properties.errors.status == 700):
       # Flip back because we will base everything on the stage1 file
