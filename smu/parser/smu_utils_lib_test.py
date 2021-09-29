@@ -652,8 +652,9 @@ class MergeConformersTest(absltest.TestCase):
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conflict, [
-        618451001, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
-        True, 0, -1.23, 0.052254, -406.522079, 2.5e-05, True, True
+        618451001, 1, 1, 1, 1,
+        -406.51179, 0.052254, -406.522079, 2.5e-05, True, True,
+        -1.23, 0.052254, -406.522079, 2.5e-05, True, True
     ])
     # Just check a random field that is in stage2 but not stage1
     self.assertNotEmpty(got_conf.properties.normal_modes)
@@ -666,9 +667,9 @@ class MergeConformersTest(absltest.TestCase):
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conflict, [
-        618451001, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
-        True, 0, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
-        False
+        618451001, 1, 1, 1, 1,
+        -406.51179, 0.052254, -406.522079, 2.5e-05, True, True,
+        -406.51179, 0.052254, -406.522079, 2.5e-05, True, False
     ])
     # Just check a random field that is in stage2 but not stage1
     self.assertNotEmpty(got_conf.properties.normal_modes)
@@ -734,6 +735,29 @@ class MergeConformersTest(absltest.TestCase):
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conf.properties.errors.status, 580)
     self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 1)
+
+  def test_error_frequencies_101(self):
+    self.stage1_conformer.properties.errors.error_frequencies = 101
+    got_conf, got_conflict = smu_utils_lib.merge_conformer(
+        self.stage1_conformer, self.stage2_conformer)
+    self.assertIsNotNone(got_conflict)
+
+  def test_error_frequencies_101_for_allowed_mol(self):
+    self.stage1_conformer.conformer_id = 795795001
+    self.stage2_conformer.conformer_id = 795795001
+    self.stage1_conformer.properties.errors.error_frequencies = 101
+    got_conf, got_conflict = smu_utils_lib.merge_conformer(
+        self.stage1_conformer, self.stage2_conformer)
+    self.assertIsNone(got_conflict)
+
+  def test_disallowed_error_flags(self):
+    # each of these is allowed separately, but not together
+    self.stage1_conformer.properties.errors.error_nstat1 = 3
+    self.stage1_conformer.properties.errors.error_nstatc = 3
+    self.stage1_conformer.properties.errors.error_frequencies = 3
+    got_conf, got_conflict = smu_utils_lib.merge_conformer(
+        self.stage1_conformer, self.stage2_conformer)
+    self.assertIsNotNone(got_conflict)
 
   def test_stage2_duplicate(self):
     got_conf, got_conflict = smu_utils_lib.merge_conformer(

@@ -582,9 +582,9 @@ message Properties {
       [(availability) = STANDARD];
   // Dipole-dipole polarizability HF/6-31Gd.
   // Units: atomic units
-  // TODO(pfr): is this actually available in the dataset?
+  // DEPRECATED
   Rank2MolecularProperty dipole_dipole_polarizability_hf_6_31gd = 86
-      [(availability) = STANDARD];
+      [(availability) = INTERNAL_ONLY];
 
   // Dipole moment PBE0/aug-pc-1.
   // Units: Debye
