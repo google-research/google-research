@@ -328,6 +328,22 @@ def SimulateSbm(sbm_data,
   sbm_data.graph.reindex_edges()
 
 
+def _GetFeatureCenters(num_groups, center_var, feature_dim):
+  """Helper function to generate multivariate Normal feature centers.
+
+  Args:
+    num_groups: number of centers to generate.
+    center_var: diagonal element of the covariance matrix (off-diagonals = 0).
+    feature_dim: the dimension of each center.
+  Returns:
+    centers: numpy array with feature group centers as rows.
+  """
+  centers = np.random.multivariate_normal(
+      np.zeros(feature_dim), np.identity(feature_dim) * center_var,
+      num_groups)
+  return centers
+
+
 def SimulateFeatures(sbm_data,
                      center_var,
                      feature_dim,
@@ -364,15 +380,10 @@ def SimulateFeatures(sbm_data,
       num_groups=num_groups,
       match_type=match_type)
 
-  # Get centers
-  centers = []
-  center_cov = np.identity(feature_dim) * center_var
-  cluster_cov = np.identity(feature_dim) * cluster_var
-  for _ in range(num_groups):
-    center = np.random.multivariate_normal(
-        np.zeros(feature_dim), center_cov, 1)[0]
-    centers.append(center)
+  # Get centers and features.
+  centers = _GetFeatureCenters(num_groups, center_var, feature_dim)
   features = []
+  cluster_cov = np.identity(feature_dim) * cluster_var
   for cluster_index in sbm_data.feature_memberships:
     feature = np.random.multivariate_normal(centers[cluster_index], cluster_cov,
                                             1)[0]
