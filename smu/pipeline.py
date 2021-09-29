@@ -474,6 +474,8 @@ class UpdateConformerFn(beam.DoFn):
 
     conformer = copy.deepcopy(conformer)
 
+    smu_utils_lib.clean_up_error_codes(conformer)
+
     conformer.fate = smu_utils_lib.determine_fate(conformer)
 
     yield from self._compare_smiles(conformer)
