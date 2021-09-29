@@ -2940,11 +2940,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "she's pretty",
         "share_photo": false,
         "user_id": 1
@@ -11408,11 +11403,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "ok I will",
         "share_photo": false,
         "user_id": 1
@@ -13049,26 +13039,6 @@
       {
         "message": "Can you see it?",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {
@@ -20184,6 +20154,11 @@
         "message": "Pretty cool",
         "share_photo": false,
         "user_id": 0
+      },
+      {
+        "message": "",
+        "share_photo": true,
+        "user_id": 0
       }
     ],
     "dialogue_id": 5267,
@@ -26291,11 +26266,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "yeah really it is very fun",
         "share_photo": false,
         "user_id": 1
@@ -26859,11 +26829,6 @@
       {
         "message": "Great. Hang on, let me see if I can figure out how to show you!",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {
@@ -32171,6 +32136,11 @@
         "message": "I did love that it was outside, that was nice.",
         "share_photo": false,
         "user_id": 0
+      },
+      {
+        "message": "",
+        "share_photo": true,
+        "user_id": 0
       }
     ],
     "dialogue_id": 5423,
@@ -33353,11 +33323,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "oh wow which one is she?",
         "share_photo": false,
         "user_id": 1
@@ -33490,6 +33455,11 @@
         "message": "Nice where are you going?",
         "share_photo": false,
         "user_id": 1
+      },
+      {
+        "message": "",
+        "share_photo": true,
+        "user_id": 0
       }
     ],
     "dialogue_id": 5440,
@@ -34333,11 +34303,6 @@
       {
         "message": "And left early.",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {
@@ -35316,11 +35281,6 @@
         "message": "sure",
         "share_photo": false,
         "user_id": 1
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       },
       {
         "message": "",

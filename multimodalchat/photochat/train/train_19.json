@@ -14445,11 +14445,6 @@
         "message": "Wow! looks beautiful there",
         "share_photo": false,
         "user_id": 1
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       }
     ],
     "dialogue_id": 9680,
@@ -21626,6 +21621,11 @@
         "message": "I don't see a picture :(",
         "share_photo": false,
         "user_id": 1
+      },
+      {
+        "message": "",
+        "share_photo": true,
+        "user_id": 0
       }
     ],
     "dialogue_id": 9778,
@@ -27372,11 +27372,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "Oh wow... they're throwing you right into the thick of things, aren't they!",
         "share_photo": false,
         "user_id": 1
@@ -28197,6 +28192,11 @@
         "message": "it's shark??",
         "share_photo": false,
         "user_id": 1
+      },
+      {
+        "message": "",
+        "share_photo": true,
+        "user_id": 0
       }
     ],
     "dialogue_id": 9866,

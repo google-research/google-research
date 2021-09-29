@@ -2364,11 +2364,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "Here's a photo of her practice show.",
         "share_photo": false,
         "user_id": 0
@@ -6394,11 +6389,6 @@
       {
         "message": "Maybe if I send the pic you'll remember",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {
@@ -19450,11 +19440,6 @@
       {
         "message": "cool",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {
