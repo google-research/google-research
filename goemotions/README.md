@@ -96,6 +96,12 @@ Run `python -m bert_classifier` to perform fine-tuning on top of
 BERT, with added regularization. See the script and the paper for detailed
 description of the flags and parameters.
 
+### Tutorial
+We released a [detailed tutorial](https://github.com/tensorflow/models/blob/master/research/seq_flow_lite/demo/colab/emotion_colab.ipynb)
+for training a neural emotion prediction model. In it, we work through training
+a model architecture available on TensorFlow Model Garden using GoEmotions and
+applying it for the task of suggesting emojis based on conversational text.
+
 ## Citation
 
 If you use this code for your publication, please cite the original paper:
