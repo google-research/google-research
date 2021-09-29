@@ -53,6 +53,24 @@ class MatchType(enum.Enum):
 
 
 @dataclasses.dataclass
+class EdgeProbabilityProfile:
+  """Stores p-to-q ratios for Stochastic Block Model.
+
+  Attributes:
+    p_to_q_ratio1: Probability of in-cluster edges divided by probability of
+      out-cluster edges, for type 1 nodes. If the SBM is homogeneous, this
+      is the global p_to_q_ratio.
+    p_to_q_ratio2: Probability of in-cluster edges divided by probability of
+      out-cluster edges, for type 2 nodes.
+    p_to_q_ratio_cross: Probability of in-cluster edges divided by probability
+      of out-cluster edges, for node clusters that are linked across-type.
+  """
+  p_to_q_ratio1: float = Ellipsis
+  p_to_q_ratio2: Optional[float] = 0.0
+  p_to_q_ratio_cross: Optional[float] = 0.0
+
+
+@dataclasses.dataclass
 class StochasticBlockModel:
   """Stores data for stochastic block model (SBM) graphs with features.
 
