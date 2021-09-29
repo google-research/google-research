@@ -38,7 +38,7 @@ Array = Union[np.ndarray, jnp.ndarray]
 
 # All classifiers used for spherical MNIST in the original SWSCNN paper [1] have
 # the same resolution per layer.
-_SMALL_CLASSIFIER_RESOLUTIONS = [64, 64, 64, 32, 32, 16, 16]
+_SMALL_CLASSIFIER_RESOLUTIONS = (64, 64, 64, 32, 32, 16, 16)
 
 
 class SpinSphericalBlock(nn.Module):
@@ -264,9 +264,9 @@ class CNNClassifier(nn.Module):
 def tiny_classifier(num_classes, axis_name=None, input_transformer=None):
   """Wrapper around SpinSphericalClassifier; builds tiny model for testing."""
   return SpinSphericalClassifier(num_classes,
-                                 resolutions=[8, 4],
-                                 spins=[[0], [0, 1]],
-                                 widths=[1, 3],
+                                 resolutions=(8, 4),
+                                 spins=((0,), (0, 1)),
+                                 widths=(1, 3),
                                  axis_name=axis_name,
                                  input_transformer=input_transformer)
 
@@ -277,9 +277,9 @@ def spin_classifier_6_layers(num_classes, axis_name):
   """Returns the SpinSphericalClassifier used for spherical MNIST."""
   # Input layer has only spin zero. All others have spins zero and one.
   num_layers = len(_SMALL_CLASSIFIER_RESOLUTIONS)
-  spins = [[0]] + [[0, 1]] * (num_layers - 1)
-  widths = [1, 16, 16, 20, 24, 28, 32]
-  num_filter_params_per_layer = [1, 6, 6, 4, 4, 3, 3]
+  spins = tuple([(0,)] + [(0, 1)] * (num_layers - 1))
+  widths = (1, 16, 16, 20, 24, 28, 32)
+  num_filter_params_per_layer = (1, 6, 6, 4, 4, 3, 3)
   return SpinSphericalClassifier(num_classes,
                                  resolutions=_SMALL_CLASSIFIER_RESOLUTIONS,
                                  spins=spins,
@@ -291,11 +291,11 @@ def spin_classifier_6_layers(num_classes, axis_name):
 def spherical_classifier_6_layers(num_classes, axis_name):
   """Returns the Spherical CNN baseline used for spherical MNIST."""
   num_layers = len(_SMALL_CLASSIFIER_RESOLUTIONS)
-  widths = [1, 16, 16, 32, 32, 58, 58]
-  num_filter_params_per_layer = [8] * num_layers
+  widths = (1, 16, 16, 32, 32, 58, 58)
+  num_filter_params_per_layer = tuple([8] * num_layers)
   # The difference between spherical and spin-weighted models is that spins are
   # zero in every layer for the spherical.
-  spins = [[0]] * num_layers
+  spins = tuple([(0,)] * num_layers)
   return SpinSphericalClassifier(num_classes,
                                  resolutions=_SMALL_CLASSIFIER_RESOLUTIONS,
                                  spins=spins,
@@ -306,7 +306,7 @@ def spherical_classifier_6_layers(num_classes, axis_name):
 
 def cnn_classifier_6_layers(num_classes, axis_name):
   """Returns the conventional CNN baseline used for spherical MNIST."""
-  widths = [1, 16, 16, 32, 32, 54, 54]
+  widths = (1, 16, 16, 32, 32, 54, 54)
   return CNNClassifier(num_classes,
                        resolutions=_SMALL_CLASSIFIER_RESOLUTIONS,
                        widths=widths,

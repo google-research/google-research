@@ -15,7 +15,9 @@
 
 """Linear eval using L-BFGS."""
 import functools
+
 from absl import logging
+import frozendict
 import jax
 from jax import numpy as jnp
 import numpy as onp
@@ -181,7 +183,8 @@ def train(embeddings, labels, mask, l2_regularization=0.0,
       initial_weights, initial_biases)
 
   res = _lbfgs_minimize(
-      embeddings, labels, mask, initial_position, loss, lbfgs_args)
+      embeddings, labels, mask, initial_position, loss,
+      frozendict.frozendict(lbfgs_args))
   res = jax.tree_util.tree_map(lambda x: x[0], res)
   weights, biases = params_to_weights_and_biases(res.position, embed_dim)
   return weights, biases, res

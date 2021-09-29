@@ -1,4 +1,5 @@
 absl-py
+frozendict
 jax>=0.2
 numpy>=1.7
 tensorflow_probability>=0.12
