@@ -1830,3 +1830,427 @@ class BlockCompressionOp(CompressionOpInterface):
       for i, input_i in enumerate(input_splitted):
         output_splitted.append(tf.matmul(input_i, self.c_matrix_tfvar[i, :, :]))
       return tf.concat(output_splitted, axis=-1)
+
+
+class MixedBlockCompressionOp(CompressionOp):
+  """Implements a mixed block compression OP.
+
+  Replaces the weight matrix with a block-diagonal matrix and outputs a linear
+  combination of the outputs of the different blocks.
+
+
+  compression_factor: integer.
+    Factor by which number of (non-zero) parameters in weight matrix is reduced
+    by.
+  num_bases: integer.
+    Numer of bases to use for computing the linear combination of the block
+    outputs.
+  """
+
+  @staticmethod
+  def get_default_hparams():
+    """Get a tf.HParams object with the default values for the hyperparameters.
+
+      name: string
+        name of the compression specification. Used for adding summaries and ops
+        under a common tensorflow name_scope.
+      use_tpu: False
+        indicates whether to use TPU.
+      compression_option: integer
+        indicates what type of factorization (if any) is used.
+      rank: integer
+        indicates what type of factorization (if any) is used.
+      update_option: integer
+        indicates how the update logic is being run. More specifically:
+        0 - run the update logic in TF; needed when using GPU/TPU.
+        1 - run the update logic in regular python as opposed to TF.
+        2 - run the update logic in TF and in regular python.
+      TODO(wanxin): add doc strings for pruning hparams.
+
+    Returns:
+      tf.HParams object initialized to default values.
+
+    """
+    return contrib_hparam.HParams(
+        name='mixed_block_compression',
+        compression_frequency=10,
+        use_tpu=False,
+        compression_option=comp_op_utils.CompressionOptions
+        .MIXED_BLOCK_COMPRESSION,
+        begin_compression_step=1000,
+        end_compression_step=2000,
+        is_c_matrix_trainable=True,
+        compression_factor=1,
+        num_bases=1,
+        add_summary=True,
+        use_collection=False)
+
+  def add_compression_summaries(self):
+    """Adds summaries."""
+    with tf.name_scope(self._spec.name + '_summaries'):
+      logging.info('add_compression_summaries scope name is %s',
+                   self._spec.name)
+      tf.compat.v2.summary.scalar(
+          self.block_matrices.op.name + '/block_matrices_norm',
+          tf.norm(self.block_matrices))
+      tf.compat.v2.summary.scalar(
+          self.linear_mixer.op.name + '/linear_mixer_norm',
+          tf.norm(self.linear_mixer))
+
+  def get_apply_compression_op(self,
+                               a_matrix_tfvar,
+                               matrix_compressor,
+                               scope='default_scope'):
+    """Returns tensorflow operator for mixed block diagonal compression.
+
+    Args:
+      a_matrix_tfvar: TF variable representihg a tensor variable in a model
+      matrix_compressor: MatrixCompressorInferface object to specify the
+        compression algorithm. Must return two matrices b_matrix,c_matrix in its
+        compression.
+      scope: TF scope used for creating new TF variables
+
+    Returns:
+      A TF node that has the compressed version of a_matrix_tfvar.
+    """
+    self.matrix_compressor = matrix_compressor
+
+    # create block_matrices np array of shape [m, n, num_blocks]
+    bm_limit = np.sqrt(3.0 * (1 / np.max(
+        [1., (a_matrix_tfvar.shape[0] + a_matrix_tfvar.shape[1]) / 2.])))
+    num_blocks = self._spec.compression_factor
+    num_bases = self._spec.num_bases
+    block_matrices_shape = [
+        a_matrix_tfvar.shape[0] // num_blocks,
+        a_matrix_tfvar.shape[1] // num_blocks,
+        num_blocks
+    ]
+    block_matrices = np.random.uniform(
+        -bm_limit, bm_limit, size=block_matrices_shape)
+
+    # create linear_mixer np array of shape [num_blocks, num_blocks, num_bases]
+    linear_mixer_shape = [num_blocks, num_blocks, num_bases]
+    lm_limit = np.sqrt(3.0 * (1 / num_blocks))
+    linear_mixer = np.random.uniform(
+        -lm_limit, lm_limit, size=linear_mixer_shape)
+
+    # convert block_matrices and linear_mixer from numpy arrays to tf tensors
+    with tf.compat.v1.variable_scope(scope, use_resource=True):
+      self.block_matrices = tf.compat.v1.get_variable(
+          'block_matrices',
+          dtype=tf.float32,
+          initializer=block_matrices.astype(np.float32))
+      self.a_matrix_tfvar = a_matrix_tfvar
+      self.linear_mixer = tf.compat.v1.get_variable(
+          'linear_mixer',
+          dtype=tf.float32,
+          initializer=linear_mixer.astype(np.float32))
+
+    # update_op and final_op not necessary for MixedBlockCompressionOp.
+    self.update_op = tf.no_op()
+    self.final_op = tf.no_op()
+
+    if self._spec.add_summary:
+      self.add_compression_summaries()
+    return [self.final_op, self.update_op]
+
+  def get_customized_apply_compression_op(self,
+                                          a_matrix_tfvar,
+                                          matrix_compressor,
+                                          layer_obj,
+                                          weight_params_fn,
+                                          weight_init_obj,
+                                          scope='default_scope',
+                                          a_matrix_tfvar_shape=None):
+    """Returns compressed operator for block diagonal compression.
+
+    Args:
+      a_matrix_tfvar: TF variable representing a tensor variable in a model.
+      matrix_compressor: MatrixCompressorInferface object to specify the
+        compression algorithm. Must return two matrices b_matrix,c_matrix in its
+        compression.
+      layer_obj: a customized layer object that handles variable creation.
+      weight_params_fn: functional handle to create model parameters.
+      weight_init_obj: a weight initialization object.
+      scope: TF scope used for creating new TF variables.
+      a_matrix_tfvar_shape: A list specifying the shape of the tensor to
+        compress. In some cases when a_matrix_tfvar is set to None,
+        this field is used to pass in the shape of the matrix to compress.
+
+    Returns:
+      A TF node that has the compressed version of a_matrix_tfvar.
+    """
+    shape = a_matrix_tfvar_shape if a_matrix_tfvar_shape else a_matrix_tfvar.shape
+    self.matrix_compressor = matrix_compressor
+    with tf.variable_scope(scope) as scope:
+      # block_matrices is a rank 3 tensor of shape [m, n, num_blocks]
+      num_blocks = self._spec.qrn_compression_factor
+      num_bases = self._spec.qrn_num_bases
+      block_matrices_pc = weight_params_fn([
+          shape[0] // num_blocks,
+          shape[1] // num_blocks,
+          num_blocks
+      ], weight_init_obj.Xavier(1.0), layer_obj.params.dtype)
+
+      # linear_mixer is a rank 3 tensor of
+      # shape [num_blocks, num_blocks, num_bases]
+      linear_mixer_pc = weight_params_fn([num_blocks, num_blocks, num_bases],
+                                         weight_init_obj.Xavier(1.0),
+                                         layer_obj.params.dtype)
+
+      # create block_matrices and linear_mixer variables
+      layer_obj.CreateVariable(
+          'block_matrices',
+          block_matrices_pc,
+          theta_fn=None,
+          trainable=True)
+      layer_obj.CreateVariable(
+          'linear_mixer',
+          linear_mixer_pc,
+          theta_fn=None,
+          trainable=True)
+
+      self.block_matrices = layer_obj.vars.block_matrices
+      self.linear_mixer = layer_obj.vars.linear_mixer
+      if a_matrix_tfvar is not None:  # will not exist if using no_original_w
+        self.a_matrix_tfvar = a_matrix_tfvar
+
+    if self._spec.add_summary:
+      self.add_compression_summaries()
+
+    # Do not need final_op and update_op for MixedBlockCompressionOp.
+    self.final_op = tf.no_op()
+    self.update_op = None
+    return [self.final_op, self.update_op]
+
+  def get_apply_matmul(self, left_operand):
+    """Returns mixed block diagonal compressed TensorFlow node for matmul.
+
+    This method performs matmul according to the compression
+    procedure.
+
+    Args:
+      left_operand: a Tensor that is the left operand in matmul.
+
+    Returns:
+      matmul_op: a TensorFlow node that performs matmul of left_operand with the
+      compressed a_matrix_tfvar.
+    """
+    # The linear mixer tensor is small one, typically of shape [2,2,1].
+    # Performing einsum or a matmul with such a small tensor on TPUs
+    # turned out to be worse for latency than writing out the matmul/einsum
+    # using a loop. Hence we implement the latter strategy here.
+    num_blocks = self._spec.compression_factor
+    num_bases = self._spec.num_bases
+
+    # block the left_operand tensor into num_blocks
+    blocked_input = tf.reshape(left_operand, [
+        tf.shape(left_operand)[0],
+        num_blocks,
+        tf.shape(left_operand)[1] // num_blocks,
+    ])
+
+    # compute the matmul of each block with corresponding block_matrix
+    intermediate_splitted = []
+    for i in range(num_blocks):
+      intermediate_splitted.append(
+          tf.matmul(blocked_input[:, i, :], self.block_matrices[:, :, i]))
+
+    # compute the linear combinations of the above intermediate outputs
+    output_splitted = []
+    for k in range(num_bases):
+      output_splitted.append([])
+      for i in range(num_blocks):
+        output_splitted[-1].append(intermediate_splitted[0] *
+                                   self.linear_mixer[i, 0, k])
+        for j in range(1, num_blocks):
+          output_splitted[-1][-1] = output_splitted[
+              -1][-1] + intermediate_splitted[j] * self.linear_mixer[i, j, k]
+
+    reduced_output_splitted = []
+    for i in range(num_blocks):
+      reduced = output_splitted[0][i]
+      for k in range(1, num_bases):
+        reduced += output_splitted[k][i]
+      reduced_output_splitted.append(reduced)
+
+    output = tf.concat(reduced_output_splitted, axis=-1)
+    return output
+
+  def get_mix_operator(self, theta, concat):
+    """Performs matrix multiplication on customized LSTM layers.
+
+    This performs the block diagonal compressed equivalent of
+    tf.matmul(concat, theta.wm).
+
+    Args:
+      theta: object in customized layer that contains weight tensors, etc.
+      concat: the left operand of the matmul operation. a rank 2 tensor.
+
+    Returns:
+      A TensorFlow node that has compressed version of
+      tf.matmul(concat, theta.wm).
+    """
+    # The linear mixer tensor is small one, typically of shape [2,2,1].
+    # Performing einsum or a matmul with such a small tensor on TPUs
+    # turned out to be worse for latency than writing out the matmul/einsum
+    # using a loop. Hence we implement the latter strategy here.
+
+    num_blocks = self._spec.qrn_compression_factor
+    num_bases = self._spec.qrn_num_bases
+
+    # block the concat tensor into num_blocks
+    blocked_input = tf.reshape(concat, [
+        tf.shape(concat)[0],
+        num_blocks,
+        tf.shape(concat)[1] // num_blocks,
+    ])
+
+    # compute the matmul of each block with corresponding block_matrix
+    intermediate_splitted = []
+    for i in range(num_blocks):
+      intermediate_splitted.append(
+          tf.matmul(blocked_input[:, i, :], theta.block_matrices[:, :, i]))
+
+    # compute the linear combinations of the above intermediate outputs
+    output_splitted = []
+    for k in range(num_bases):
+      output_splitted.append([])
+      for i in range(num_blocks):
+        output_splitted[-1].append(intermediate_splitted[0] *
+                                   theta.linear_mixer[i, 0, k])
+        for j in range(1, num_blocks):
+          output_splitted[-1][-1] = output_splitted[
+              -1][-1] + intermediate_splitted[j] * theta.linear_mixer[i, j, k]
+
+    reduced_output_splitted = []
+    for i in range(num_blocks):
+      reduced = output_splitted[0][i]
+      for k in range(1, num_bases):
+        reduced += output_splitted[k][i]
+      reduced_output_splitted.append(reduced)
+
+    output = tf.concat(reduced_output_splitted, axis=-1)
+    return output
+
+  def get_matmul_operator(self,
+                          inputs,
+                          wm,
+                          transpose_a=False,
+                          transpose_b=False):
+    """Performs matrix multiplication for customized Softmax layers.
+
+    This performs the block diagonal compressed equivalent of
+    tf.matmul(inputs, wm).
+
+    Args:
+      inputs: the left operand of the matmul operation. a rank 2 tensor.
+      wm: the right operand of the matmul operator. a rank 2 tensor.
+      transpose_a: whether inputs tensor needs to be transposed before matmul.
+      transpose_b: whether wm tensor needs to be transposed before matmul.
+
+    Returns:
+      A TensorFlow node that has compressed version of
+      tf.matmul(inputs, wm).
+    """
+    # MixedBlockCompressionOp does not need to use the wm, transpose_a
+    # and transpose_b arguments to the function.
+    del wm, transpose_a, transpose_b
+
+    # The linear mixer tensor is small one, typically of shape [2,2,1].
+    # Performing einsum or a matmul with such a small tensor on TPUs
+    # turned out to be worse for latency than writing out the matmul/einsum
+    # using a loop. Hence we implement the latter strategy here.
+    num_blocks = self._spec.qrn_compression_factor
+    num_bases = self._spec.qrn_num_bases
+
+    # block the inputs tensor into num_blocks
+    blocked_input = tf.reshape(inputs, [
+        tf.shape(inputs)[0],
+        num_blocks,
+        tf.shape(inputs)[1] // num_blocks,
+    ])
+
+    # compute the matmul of each block with corresponding block_matrix
+    intermediate_splitted = []
+    for i in range(num_blocks):
+      intermediate_splitted.append(
+          tf.matmul(blocked_input[:, i, :], self.block_matrices[:, :, i]))
+
+    # compute the linear combinations of the above intermediate outputs
+    output_splitted = []
+    for k in range(num_bases):
+      output_splitted.append([])
+      for i in range(num_blocks):
+        output_splitted[-1].append(intermediate_splitted[0] *
+                                   self.linear_mixer[i, 0, k])
+        for j in range(1, num_blocks):
+          output_splitted[-1][-1] = output_splitted[
+              -1][-1] + intermediate_splitted[j] * self.linear_mixer[i, j, k]
+
+    reduced_output_splitted = []
+    for i in range(num_blocks):
+      reduced = output_splitted[0][i]
+      for k in range(1, num_bases):
+        reduced += output_splitted[k][i]
+      reduced_output_splitted.append(reduced)
+
+    output = tf.concat(reduced_output_splitted, axis=-1)
+    return output
+
+  def get_einsum_operator(self, inputs, layerobj):
+    """Performs compressed matrix multiplication for customized ProjectionLayer.
+
+    This performs the block diagonal compressed equivalent of
+    tf.matmul(inputs, weight).
+
+    Args:
+      inputs: the left operand of the matmul operation.
+      layerobj: the ProjectionLayer object from where get_einsum_operator is
+        called.
+
+    Returns:
+      A TensorFlow node that has compressed version of
+      tf.matmul(inputs, wm).
+    """
+    # The linear mixer tensor is small one, typically of shape [2,2,1].
+    # Performing einsum or a matmul with such a small tensor on TPUs
+    # turned out to be worse for latency than writing out the matmul/einsum
+    # using a loop. Hence we implement the latter strategy here.
+    theta = layerobj.theta
+    num_blocks = self._spec.qrn_compression_factor
+    num_bases = self._spec.qrn_num_bases
+
+    # block the inputs tensor into num_blocks
+    blocked_input = tf.reshape(inputs, [
+        tf.shape(inputs)[0],
+        num_blocks,
+        tf.shape(inputs)[1] // num_blocks,
+    ])
+
+    # compute the matmul of each block with corresponding block_matrix
+    intermediate_splitted = []
+    for i in range(num_blocks):
+      intermediate_splitted.append(
+          tf.matmul(blocked_input[:, i, :], theta.block_matrices[:, :, i]))
+
+    # compute the linear combinations of the above intermediate outputs
+    output_splitted = []
+    for k in range(num_bases):
+      output_splitted.append([])
+      for i in range(num_blocks):
+        output_splitted[-1].append(intermediate_splitted[0] *
+                                   theta.linear_mixer[i, 0, k])
+        for j in range(1, num_blocks):
+          output_splitted[-1][-1] = output_splitted[
+              -1][-1] + intermediate_splitted[j] * theta.linear_mixer[i, j, k]
+
+    reduced_output_splitted = []
+    for i in range(num_blocks):
+      reduced = output_splitted[0][i]
+      for k in range(1, num_bases):
+        reduced += output_splitted[k][i]
+      reduced_output_splitted.append(reduced)
+
+    output = tf.concat(reduced_output_splitted, axis=-1)
+    return output

@@ -441,6 +441,8 @@ def get_pruning_hparams():
                               (nonzero entries in) compressed matrix for block
                               compression. Equivalently, number of blocks on
                               diagonal.
+    compression_factor: Compression factor to use for MixedBlockCompressionOp.
+    num_bases: Number of basis matrices to use for MixedBlockCompressionOp.
     group_pruning: perform group pruning if True. Default is False.
     group_sparsity_map: list of strings
       comma separated list of {group_name:target sparsity} or
@@ -514,6 +516,8 @@ def get_pruning_hparams():
       output_block_size=1,
       block_method='loop',
       block_compression_factor=1,
+      compression_factor=1,
+      num_bases=1,
       add_summary=True,
       group_pruning=False,
       intra_block_sparsity=False)
