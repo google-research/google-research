@@ -26,7 +26,7 @@ import math
 import random
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from graph_tool.src import graph_tool
+import graph_tool
 from graph_tool import generation
 import networkx as nx
 import numpy as np
