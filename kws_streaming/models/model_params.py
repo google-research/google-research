@@ -205,6 +205,7 @@ def tc_resnet_params():
   params.bn_scale = 1
   params.bn_renorm = 0
   params.dropout = 0.2
+  params.use_layer_norm = 0
   return params
 
 
