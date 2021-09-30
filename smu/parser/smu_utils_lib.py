@@ -1144,6 +1144,27 @@ def clean_up_error_codes(conformer):
     conformer.properties.errors.ClearField(field)
 
 
+_SENTINEL_VALUE_FIELDS = [
+  'initial_geometry_energy',
+  'initial_geometry_gradient_norm',
+  'optimized_geometry_energy',
+  'optimized_geometry_gradient_norm',
+]
+
+
+def clean_up_sentinel_values(conformer):
+  """Removes some snetinel values, relying on empty protobuf fields to indicate absence.
+
+  Modifies the conformer
+
+  Args:
+    conformer: dataset_pb2.Conformer
+  """
+  for field in _SENTINEL_VALUE_FIELDS:
+    if getattr(conformer.properties, field).value == -1.0:
+      conformer.properties.ClearField(field)
+
+
 def determine_fate(conformer):
   """Determines the cateogrical FateCategory for conformer.
 

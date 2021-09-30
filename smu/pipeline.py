@@ -391,6 +391,7 @@ class UpdateConformerFn(beam.DoFn):
   * Updates the smiles string (with a tagged output to record the mismatches.
   * Adds Fate field
   * Adds additional bond topologies that match the geometry
+  * various cleanup steps
 
   main output is dataset_pb2.Conformer
   smiles output is a tuple of
@@ -401,6 +402,9 @@ class UpdateConformerFn(beam.DoFn):
     smiles_without_h
   """
   OUTPUT_TAG_SMILES_MISMATCH = 'tag_smiles'
+
+  def setup(self):
+    self._cached_bond_lengths = None
 
   def _compare_smiles(self, conformer):
     if len(conformer.bond_topologies) != 1:
@@ -417,9 +421,6 @@ class UpdateConformerFn(beam.DoFn):
           (conformer.conformer_id, result, conformer.bond_topologies[0].smiles,
            smiles_with_h, smiles_without_h))
       conformer.bond_topologies[0].smiles = smiles_without_h
-
-  def setup(self):
-    self._cached_bond_lengths = None
 
   def _add_alternative_bond_topologies(self, conformer, smiles_id_dict):
     beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
@@ -475,6 +476,7 @@ class UpdateConformerFn(beam.DoFn):
     conformer = copy.deepcopy(conformer)
 
     smu_utils_lib.clean_up_error_codes(conformer)
+    smu_utils_lib.clean_up_sentinel_values(conformer)
 
     conformer.fate = smu_utils_lib.determine_fate(conformer)
 

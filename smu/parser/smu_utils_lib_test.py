@@ -959,6 +959,31 @@ class CleanUpErrorCodesTest(parameterized.TestCase):
     self.assertFalse(conformer.HasField('optimized_geometry'))
 
 
+
+class CleanUpSentinelValuestest(parameterized.TestCase):
+
+  def test_no_change(self):
+    conformer = get_stage2_conformer()
+    smu_utils_lib.clean_up_sentinel_values(conformer)
+    self.assertTrue(conformer.properties.HasField('initial_geometry_energy'))
+    self.assertTrue(conformer.properties.HasField('initial_geometry_gradient_norm'))
+    self.assertTrue(conformer.properties.HasField('optimized_geometry_energy'))
+    self.assertTrue(conformer.properties.HasField('optimized_geometry_gradient_norm'))
+
+
+  @parameterized.parameters(
+    'initial_geometry_energy',
+    'initial_geometry_gradient_norm',
+    'optimized_geometry_energy',
+    'optimized_geometry_gradient_norm',
+    )
+  def test_one_field(self, field):
+    conformer = get_stage2_conformer()
+    getattr(conformer.properties, field).value = -1.0
+    smu_utils_lib.clean_up_sentinel_values(conformer)
+    self.assertFalse(conformer.properties.HasField(field))
+
+
 class DetermineFateTest(parameterized.TestCase):
 
   def test_duplicate_same_topology(self):
