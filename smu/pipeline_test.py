@@ -317,6 +317,11 @@ class IntegrationTest(absltest.TestCase):
     self.assertTrue(
         complete_entry.properties.HasField('rotational_constants'))
 
+    complete_entry_for_smiles = [c for c in complete_output
+                                 if c.conformer_id == 620517002][0]
+    self.assertEqual(
+        complete_entry_for_smiles.properties.smiles_openbabel,
+      'NotAValidSmilesString')
 
 
 if __name__ == '__main__':
