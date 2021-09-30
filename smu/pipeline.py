@@ -420,6 +420,8 @@ class UpdateConformerFn(beam.DoFn):
           UpdateConformerFn.OUTPUT_TAG_SMILES_MISMATCH,
           (conformer.conformer_id, result, conformer.bond_topologies[0].smiles,
            smiles_with_h, smiles_without_h))
+      conformer.properties.smiles_openbabel = (
+        conformer.bond_topologies[0].smiles)
       conformer.bond_topologies[0].smiles = smiles_without_h
 
   def _add_alternative_bond_topologies(self, conformer, smiles_id_dict):

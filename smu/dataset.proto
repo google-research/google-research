@@ -331,6 +331,13 @@ message Properties {
   // Record of errors encountered during the computations.
   Errors errors = 1 [(availability) = COMPLETE];
 
+  // The original pipeline used SMILES from OpenBabel which were sometimes
+  // unintnetionally aromatic SMILES. or simplified lookup in the database
+  // we are using RDKit canonical SMILES. If these differ from the original
+  // OpenBabel smiles, then we put the original OpenBabel SMILES here.
+  // If they are the same, we leave everything as is.
+  optional string smiles_openbabel = 175 [(availability) = COMPLETE];
+
   // We use suffixes on the properties to indicate the level of theory and, in
   // many cases, the basis set.
   // * hf = Hartree-Fock
