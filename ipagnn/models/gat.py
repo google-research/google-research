@@ -141,9 +141,9 @@ def segment_max(data, segment_ids, num_segments):
   full_zeros = jnp.zeros((num_segments,) + data.shape[1:], dtype=data.dtype)
   full_ones = jnp.ones((num_segments,) + data.shape[1:], dtype=data.dtype)
 
-  valid_updates = jax.ops.index_update(full_zeros, segment_ids,
-                                       jnp.ones_like(data, dtype=data.dtype))
-  updated = jax.ops.index_max(full_ones * -jnp.inf, segment_ids, data)
+  valid_updates = full_zeros.at[segment_ids].set(
+      jnp.ones_like(data, dtype=data.dtype))
+  updated = full_ones * -jnp.inf.at[segment_ids].max(data)
 
   return jnp.where(valid_updates, updated, full_zeros)
 

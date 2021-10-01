@@ -348,7 +348,7 @@ class Decoder(nn.Module):
           encoder_outputs=encoder_outputs,
           temperature=temperature)
 
-      kl = jax.ops.index_update(kl, block_index, block_output.kl)
+      kl = kl.at[block_index].set(block_output.kl)
 
       inputs = block_output.outputs
 

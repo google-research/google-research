@@ -205,9 +205,7 @@ class SpinSphericalFourierTransformer:
     # Jnm only contains positive n.
     Jnm = Inm[:ell_max + 1]  # pylint: disable=invalid-name
     # Make n = -n rowwise.
-    return jax.ops.index_add(Jnm,
-                             jax.ops.index[1:],
-                             signs * Inm[-ell_max:][::-1])
+    return Jnm.at[1:].add(signs * Inm[-ell_max:][::-1])
 
   def swsft_forward(self, sphere, spin):
     """Spin-weighted spherical harmonics transform (fast JAX version).

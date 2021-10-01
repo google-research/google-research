@@ -33,9 +33,9 @@ def sample_spaced_means(key, num_means, min_distance, data_dim):
             jnp.zeros([data_dim]) + jnp.ones([data_dim])*(bounds_length/2))
 
   means = jnp.zeros([num_means, data_dim])
-  means = jax.ops.index_update(
-      means, 0, jax.random.uniform(key, shape=[data_dim],
-                                   minval=bounds[0], maxval=bounds[1]))
+  means = means.at[0].set(
+      jax.random.uniform(
+          key, shape=[data_dim], minval=bounds[0], maxval=bounds[1]))
 
   def add_mean(i, means):
     mask = jnp.arange(num_means) < i
@@ -55,7 +55,7 @@ def sample_spaced_means(key, num_means, min_distance, data_dim):
 
     _, _, _, new_mean = jax.lax.while_loop(spaced_mean_cond, spaced_mean_body,
                                            (key, means, mask, means[0]))
-    means = jax.ops.index_update(means, i, new_mean)
+    means = means.at[i].set(new_mean)
     return means
 
   means = jax.lax.fori_loop(0, num_means, add_mean, means)
