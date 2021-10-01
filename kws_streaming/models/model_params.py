@@ -206,6 +206,16 @@ def tc_resnet_params():
   params.bn_renorm = 0
   params.dropout = 0.2
   params.use_layer_norm = 0
+
+  # if ln_axis=(-1) then both ln_center and ln_scale has to be = 0, else
+  # model does not converge
+  params.ln_center = 0
+  params.ln_scale = 0
+
+  # For compatibility with streaming and non streaming modes axis has to be -1.
+  # For compatibility with non streaming mode only it can be (1, 3) - it can be
+  # more stable during training.
+  params.ln_axis = '(-1)'
   return params
 
 
