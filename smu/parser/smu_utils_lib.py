@@ -19,6 +19,7 @@
 import collections
 import csv
 import enum
+import itertools
 import numpy as np
 import pandas as pd
 from rdkit import Chem
@@ -1362,6 +1363,30 @@ def determine_fate(conformer):
     raise ValueError(f'Got an unknown source {source}')
 
 
+def get_starting_bond_topology_index(conformer):
+  """Gets the index of the bond topology which generated this calculation.
+
+  If there is only a single geometry, it's that one.
+  Otherwise, one of the geometries should be marked with is_starting_topology
+
+  Args:
+    conformer: dataset_pb2.Conformer
+
+  Returns:
+    integer
+
+  Raises:
+    ValueError: if no starting topology can be found
+  """
+  if len(conformer.bond_topologies) == 1:
+    return 0
+  for i in range(len(conformer.bond_topologies)):
+    if conformer.bond_topologies[i].is_starting_topology:
+      return i
+
+  raise ValueError(
+    f'For conformer {conformer.conformer_id}, no starting topology')
+
 def conformer_to_bond_topology_summaries(conformer):
   """Produces BondTopologySummary protos from Conformer.
 
@@ -1375,11 +1400,9 @@ def conformer_to_bond_topology_summaries(conformer):
     dataset_pb2.BondTopologySummary
   """
   summary = dataset_pb2.BondTopologySummary()
-  if (conformer.conformer_id // 1000 !=
-      conformer.bond_topologies[0].bond_topology_id):
-    raise ValueError('conformers_to_bond_topology_summaries assumes the '
-                     'first bond topology is the one that generated this.')
-  summary.bond_topology.CopyFrom(conformer.bond_topologies[0])
+  starting_idx = get_starting_bond_topology_index(conformer)
+
+  summary.bond_topology.CopyFrom(conformer.bond_topologies[starting_idx])
   summary.count_attempted_conformers = 1
 
   fate = conformer.fate
@@ -1406,7 +1429,8 @@ def conformer_to_bond_topology_summaries(conformer):
       fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_error = 1
-    for bt in conformer.bond_topologies[1:]:
+    for bt in itertools.chain(conformer.bond_topologies[:starting_idx],
+                              conformer.bond_topologies[(starting_idx+1):]):
       other_summary = dataset_pb2.BondTopologySummary()
       other_summary.bond_topology.CopyFrom(bt)
       other_summary.count_detected_match_with_error = 1
@@ -1414,7 +1438,8 @@ def conformer_to_bond_topology_summaries(conformer):
   elif fate == dataset_pb2.Conformer.FATE_SUCCESS:
     summary.count_kept_geometry = 1
     summary.count_calculation_success = 1
-    for bt in conformer.bond_topologies[1:]:
+    for bt in itertools.chain(conformer.bond_topologies[:starting_idx],
+                              conformer.bond_topologies[(starting_idx+1):]):
       other_summary = dataset_pb2.BondTopologySummary()
       other_summary.bond_topology.CopyFrom(bt)
       other_summary.count_detected_match_success = 1
