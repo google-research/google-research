@@ -211,6 +211,8 @@ def conformer_to_stat_values(conformer):
   if not conformer.duplicated_by:
     yield 'num_topologies', len(conformer.bond_topologies)
 
+  for field in smu_utils_lib.find_zero_values(conformer):
+    yield 'zero_field', field
 
 def bond_topology_summaries_from_csv(filename):
   """Beam DoFn for generating bare BondTopologySummary.

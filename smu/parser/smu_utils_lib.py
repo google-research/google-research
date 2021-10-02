@@ -1165,6 +1165,146 @@ def clean_up_sentinel_values(conformer):
       conformer.properties.ClearField(field)
 
 
+_ZERO_FIELD_CHECK_SCALAR = [
+  'single_point_energy_atomic_b5',
+  'single_point_energy_atomic_b6',
+  'single_point_energy_b3lyp_6_31ppgdp',
+  'single_point_energy_b3lyp_aug_pcs_1',
+  'single_point_energy_cc2_tzvp',
+  'single_point_energy_ccsd_2sd',
+  'single_point_energy_ccsd_2sp',
+  'single_point_energy_ccsd_3psd',
+  'single_point_energy_ccsd_t_2sd',
+  'single_point_energy_ccsd_t_2sp',
+  'single_point_energy_eccsd',
+  'single_point_energy_hf_2sd',
+  'single_point_energy_hf_2sp',
+  'single_point_energy_hf_3',
+  'single_point_energy_hf_34',
+  'single_point_energy_hf_3psd',
+  'single_point_energy_hf_4',
+  'single_point_energy_hf_6_31gd',
+  'single_point_energy_hf_cvtz',
+  'single_point_energy_hf_tzvp',
+  'single_point_energy_mp2_2sd',
+  'single_point_energy_mp2_2sp',
+  'single_point_energy_mp2_3',
+  'single_point_energy_mp2_34',
+  'single_point_energy_mp2_3psd',
+  'single_point_energy_mp2_4',
+  'single_point_energy_mp2_tzvp',
+  'single_point_energy_mp2ful_cvtz',
+  'single_point_energy_pbe0_6_311gd',
+  'single_point_energy_pbe0_6_311gd_cat',
+  'single_point_energy_pbe0_6_311gd_cat_mrcc',
+  'single_point_energy_pbe0_6_311gd_cat_orca',
+  'single_point_energy_pbe0_6_311gd_mrcc',
+  'single_point_energy_pbe0_6_311gd_orca',
+  'single_point_energy_pbe0_6_31ppgdp',
+  'single_point_energy_pbe0_aug_pc_1',
+  'single_point_energy_pbe0_aug_pcs_1',
+  'single_point_energy_pbe0d3_6_311gd',
+
+  'homo_b3lyp_6_31ppgdp',
+  'homo_b3lyp_aug_pcs_1',
+  'homo_hf_3',
+  'homo_hf_4',
+  'homo_hf_6_31gd',
+  'homo_hf_cvtz',
+  'homo_hf_tzvp',
+  'homo_pbe0_6_311gd',
+  'homo_pbe0_6_31ppgdp',
+  'homo_pbe0_aug_pc_1',
+  'homo_pbe0_aug_pcs_1',
+
+  'lumo_b3lyp_6_31ppgdp',
+  'lumo_b3lyp_aug_pcs_1',
+  'lumo_hf_3',
+  'lumo_hf_4',
+  'lumo_hf_6_31gd',
+  'lumo_hf_cvtz',
+  'lumo_hf_tzvp',
+  'lumo_pbe0_6_311gd',
+  'lumo_pbe0_6_31ppgdp',
+  'lumo_pbe0_aug_pc_1',
+  'lumo_pbe0_aug_pcs_1',
+
+  'atomization_energy_excluding_zpe_atomic_b5',
+  'atomization_energy_excluding_zpe_atomic_b5_um',
+  'atomization_energy_excluding_zpe_atomic_b6',
+  'atomization_energy_excluding_zpe_atomic_b6_um',
+  'atomization_energy_excluding_zpe_eccsd',
+  'atomization_energy_excluding_zpe_eccsd_um',
+  'atomization_energy_including_zpe_atomic_b5',
+  'atomization_energy_including_zpe_atomic_b5_um',
+  'atomization_energy_including_zpe_atomic_b6',
+  'atomization_energy_including_zpe_atomic_b6_um',
+  'atomization_energy_including_zpe_eccsd',
+  'atomization_energy_including_zpe_eccsd_um',
+
+  'enthalpy_of_formation_0k_atomic_b5',
+  'enthalpy_of_formation_0k_atomic_b5_um',
+  'enthalpy_of_formation_0k_atomic_b6',
+  'enthalpy_of_formation_0k_atomic_b6_um',
+  'enthalpy_of_formation_0k_eccsd',
+  'enthalpy_of_formation_0k_eccsd_um',
+  'enthalpy_of_formation_298k_atomic_b5',
+  'enthalpy_of_formation_298k_atomic_b5_um',
+  'enthalpy_of_formation_298k_atomic_b6',
+  'enthalpy_of_formation_298k_atomic_b6_um',
+  'enthalpy_of_formation_298k_eccsd',
+  'enthalpy_of_formation_298k_eccsd_um',
+]
+
+_ZERO_FIELD_CHECK_ATOMIC = [
+  'nmr_isotropic_shielding_b3lyp_6_31ppgdp',
+  'nmr_isotropic_shielding_b3lyp_aug_pcs_1',
+  'nmr_isotropic_shielding_pbe0_6_31ppgdp',
+  'nmr_isotropic_shielding_pbe0_aug_pcs_1',
+
+  'partial_charges_esp_fit_hf_6_31gd',
+  'partial_charges_esp_fit_pbe0_aug_pc_1',
+  'partial_charges_loewdin_hf_6_31gd',
+  'partial_charges_loewdin_pbe0_aug_pc_1',
+  'partial_charges_mulliken_hf_6_31gd',
+  'partial_charges_mulliken_pbe0_aug_pc_1',
+  'partial_charges_natural_nbo_hf_6_31gd',
+  'partial_charges_natural_nbo_pbe0_aug_pc_1',
+  'partial_charges_paboon_hf_6_31gd',
+  'partial_charges_paboon_pbe0_aug_pc_1',
+]
+
+def find_zero_values(conformer):
+  """Finds fields whose values are exactly 0.
+
+  Fields that are exactly zero are likely to be problematic in some way so we look for
+  a handful of these.
+
+  Args:
+    conformer: dataset_pb2.Conformer
+
+  Yields:
+    string of field name
+  """
+  properties = conformer.properties
+
+  # excitation is different because it's a MultiScalar
+  if properties.HasField('excitation_energies_cc2'):
+    for value in properties.excitation_energies_cc2.value:
+      if value == 0.0:
+        yield 'excitation_energies_cc2'
+
+  for field in _ZERO_FIELD_CHECK_SCALAR:
+    if properties.HasField(field) and getattr(properties, field).value == 0.0:
+      yield field
+
+  for field in _ZERO_FIELD_CHECK_ATOMIC:
+    if properties.HasField(field):
+      for value in getattr(properties, field).values:
+        if value == 0.0:
+          yield field
+
+
 def determine_fate(conformer):
   """Determines the cateogrical FateCategory for conformer.
 
