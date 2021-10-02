@@ -984,6 +984,31 @@ class CleanUpSentinelValuestest(parameterized.TestCase):
     self.assertFalse(conformer.properties.HasField(field))
 
 
+class FindZeroValuesTest(parameterized.TestCase):
+
+  def test_no_zeroes(self):
+    conformer = get_stage2_conformer()
+    got = list(smu_utils_lib.find_zero_values(conformer))
+    self.assertEqual(got, [])
+
+  def test_scalar(self):
+    conformer = get_stage2_conformer()
+    conformer.properties.lumo_b3lyp_6_31ppgdp.value = 0.0
+    got = list(smu_utils_lib.find_zero_values(conformer))
+    self.assertEqual(got, ['lumo_b3lyp_6_31ppgdp'])
+
+  def test_excitation(self):
+    conformer = get_stage2_conformer()
+    conformer.properties.excitation_energies_cc2.value[2] = 0.0
+    got = list(smu_utils_lib.find_zero_values(conformer))
+    self.assertEqual(got, ['excitation_energies_cc2'])
+
+  def test_atomic(self):
+    conformer = get_stage2_conformer()
+    conformer.properties.partial_charges_esp_fit_hf_6_31gd.values[3] = 0.0
+    got = list(smu_utils_lib.find_zero_values(conformer))
+    self.assertEqual(got, ['partial_charges_esp_fit_hf_6_31gd'])
+
 class DetermineFateTest(parameterized.TestCase):
 
   def test_duplicate_same_topology(self):

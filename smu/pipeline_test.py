@@ -235,6 +235,8 @@ class IntegrationTest(absltest.TestCase):
       self.assertIn('fate,FATE_DUPLICATE_DIFFERENT_TOPOLOGY,1\n', stats_lines)
       self.assertIn('num_initial_geometries,1,4\n', stats_lines)
       self.assertIn('num_duplicates,1,1\n', stats_lines)
+      self.assertIn('zero_field,single_point_energy_pbe0d3_6_311gd,1\n',
+                    stats_lines)
 
     # Check the smiles comparison output
     with gfile.GFile(output_stem + '_smiles_compare-00000-of-00001.csv') as f:
