@@ -21,6 +21,7 @@ SQLite database.
 The majority of the data is stored as a blob, with just the bond topology id and
 smiles string pulled out as fields.
 """
+import datetime
 import os
 
 from absl import logging
@@ -103,16 +104,19 @@ class SMUSQLite:
                        '(smiles TEXT, btid INTEGER)')
     self._conn.execute(f'CREATE UNIQUE INDEX IF NOT EXISTS '
                        f'idx_smiles ON {_SMILES_TABLE_NAME} (smiles)')
+    self._conn.execute('PRAGMA synchronous = OFF')
+    self._conn.execute('PRAGMA journal_mode = MEMORY')
     self._conn.commit()
 
-  def bulk_insert(self, conformers, batch_size=10000):
+  def bulk_insert(self, encoded_conformers, batch_size=10000, limit=None):
     """Inserts conformers into the database.
 
     Args:
-      conformers: iterable for dataset_pb2.Conformer
+      encoded_conformers: iterable for encoded dataset_pb2.Conformer
       batch_size: insert performance is greatly improved by putting multiple
         insert into one transaction. 10k was a reasonable default from some
         early exploration.
+      limit: maximum number of records to insert
 
     Raises:
       ReadOnlyError: if mode is 'r'
@@ -127,9 +131,12 @@ class SMUSQLite:
 
     cur = self._conn.cursor()
 
-    for idx, conformer in enumerate(conformers, 1):
+    start_time = datetime.datetime.now()
+
+    for idx, encoded_conformer in enumerate(encoded_conformers, 1):
+      conformer = dataset_pb2.Conformer.FromString(encoded_conformer)
       cur.execute(insert_conformer,
-                  (conformer.conformer_id, conformer.SerializeToString()))
+                  (conformer.conformer_id, encoded_conformer))
       for bond_topology in conformer.bond_topologies:
         cur.execute(insert_btid, (bond_topology.bond_topology_id,
                                   conformer.conformer_id))
@@ -137,9 +144,25 @@ class SMUSQLite:
                     (bond_topology.smiles,
                      bond_topology.bond_topology_id))
       if batch_size and idx % batch_size == 0:
-        logging.info('bulk_insert: committing at index %d', idx)
         self._conn.commit()
+        elapsed = datetime.datetime.now() - start_time
+        logging.info(
+          'bulk_insert: committed at index %d, %f s total, %.6f s/record',
+          idx,
+          elapsed.total_seconds(),
+          elapsed.total_seconds() / idx)
+
+      if limit and idx >= limit:
+        break
+
+    # Commit a final time
     self._conn.commit()
+    elapsed = datetime.datetime.now() - start_time
+    logging.info(
+      'bulk_insert: Total records %d, %f s, %.6f s/record',
+      idx,
+      elapsed.total_seconds(),
+      elapsed.total_seconds() / idx)
 
   def find_by_conformer_id(self, cid):
     """Finds the conformer associated with a conformer id.

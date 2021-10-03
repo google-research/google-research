@@ -50,11 +50,14 @@ class SmuSqliteTest(absltest.TestCase):
     self.add_bond_topology_to_conformer(conformer, cid // 1000)
     return conformer
 
+  def encode_conformers(self, conformers):
+    return [c.SerializeToString() for c in conformers]
+
   def create_db(self):
     db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
-    db.bulk_insert([
+    db.bulk_insert(self.encode_conformers([
         self.make_fake_conformer(cid) for cid in range(2001, 10001, 2000)
-    ])
+    ]))
     return db
 
   def create_db_with_multiple_bond_topology(self):
@@ -70,7 +73,7 @@ class SmuSqliteTest(absltest.TestCase):
     self.add_bond_topology_to_conformer(conf3, 2)
 
     db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
-    db.bulk_insert([conf1, conf2, conf3])
+    db.bulk_insert(self.encode_conformers([conf1, conf2, conf3]))
 
     return db
 
@@ -95,8 +98,8 @@ class SmuSqliteTest(absltest.TestCase):
     # The create_db makes conformer ids ending in 001. We'll add conformer ids
     # ending in 005 as the extra written ones to make it clear that they are
     # different.
-    db.bulk_insert(
-        [self.make_fake_conformer(cid) for cid in range(50005, 60005, 2000)])
+    db.bulk_insert(self.encode_conformers(
+        [self.make_fake_conformer(cid) for cid in range(50005, 60005, 2000)]))
     # Check an id that was already there
     self.assertEqual(db.find_by_conformer_id(4001).conformer_id, 4001)
     # Check an id that we added
@@ -108,7 +111,7 @@ class SmuSqliteTest(absltest.TestCase):
 
     db = smu_sqlite.SMUSQLite(self.db_filename, 'r')
     with self.assertRaises(smu_sqlite.ReadOnlyError):
-      db.bulk_insert([self.make_fake_conformer(9999)])
+      db.bulk_insert(self.encode_conformers([self.make_fake_conformer(9999)]))
 
     with self.assertRaises(KeyError):
       db.find_by_conformer_id(9999)

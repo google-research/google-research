@@ -39,7 +39,8 @@ def main(argv):
 
   dataset = tf.data.TFRecordDataset(gfile.glob(FLAGS.input_tfrecord))
   db.bulk_insert(
-      dataset_pb2.Conformer.FromString(raw.numpy()) for raw in dataset)
+      (raw.numpy() for raw in dataset),
+      limit=100000)
 
 
 if __name__ == '__main__':
