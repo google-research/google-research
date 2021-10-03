@@ -134,18 +134,30 @@ class SMUSQLite:
 
     start_time = datetime.datetime.now()
 
+    pending_conformer_args = []
+    pending_btid_args = []
+    pending_smiles_args = []
+
+    def commit_pending():
+      cur.executemany(insert_conformer, pending_conformer_args)
+      cur.executemany(insert_btid, pending_btid_args)
+      cur.executemany(insert_smiles, pending_smiles_args)
+      pending_conformer_args.clear()
+      pending_btid_args.clear()
+      pending_smiles_args.clear()
+      self._conn.commit()
+
     for idx, encoded_conformer in enumerate(encoded_conformers, 1):
       conformer = dataset_pb2.Conformer.FromString(encoded_conformer)
-      cur.execute(insert_conformer,
-                  (conformer.conformer_id, snappy.compress(encoded_conformer)))
+      pending_conformer_args.append(
+        (conformer.conformer_id, snappy.compress(encoded_conformer)))
       for bond_topology in conformer.bond_topologies:
-        cur.execute(insert_btid, (bond_topology.bond_topology_id,
-                                  conformer.conformer_id))
-        cur.execute(insert_smiles,
-                    (bond_topology.smiles,
-                     bond_topology.bond_topology_id))
+        pending_btid_args.append(
+          (bond_topology.bond_topology_id, conformer.conformer_id))
+        pending_smiles_args.append(
+                    (bond_topology.smiles, bond_topology.bond_topology_id))
       if batch_size and idx % batch_size == 0:
-        self._conn.commit()
+        commit_pending()
         elapsed = datetime.datetime.now() - start_time
         logging.info(
           'bulk_insert: committed at index %d, %f s total, %.6f s/record',
@@ -157,7 +169,7 @@ class SMUSQLite:
         break
 
     # Commit a final time
-    self._conn.commit()
+    commit_pending()
     elapsed = datetime.datetime.now() - start_time
     logging.info(
       'bulk_insert: Total records %d, %f s, %.6f s/record',
