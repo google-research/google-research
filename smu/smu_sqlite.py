@@ -23,6 +23,7 @@ smiles string pulled out as fields.
 """
 import datetime
 import os
+import snappy
 
 from absl import logging
 import sqlite3
@@ -136,7 +137,7 @@ class SMUSQLite:
     for idx, encoded_conformer in enumerate(encoded_conformers, 1):
       conformer = dataset_pb2.Conformer.FromString(encoded_conformer)
       cur.execute(insert_conformer,
-                  (conformer.conformer_id, encoded_conformer))
+                  (conformer.conformer_id, snappy.compress(encoded_conformer)))
       for bond_topology in conformer.bond_topologies:
         cur.execute(insert_btid, (bond_topology.bond_topology_id,
                                   conformer.conformer_id))
@@ -188,7 +189,7 @@ class SMUSQLite:
     # tuple with one value.
     assert len(result) == 1
     assert len(result[0]) == 1
-    return dataset_pb2.Conformer().FromString(result[0][0])
+    return dataset_pb2.Conformer().FromString(snappy.uncompress(result[0][0]))
 
   def find_by_bond_topology_id(self, btid):
     """Finds all the conformer associated with a bond topology id.
@@ -205,7 +206,8 @@ class SMUSQLite:
               f'INNER JOIN {_BTID_TABLE_NAME} USING(cid) '
               f'WHERE {_BTID_TABLE_NAME}.btid = ?')
     cur.execute(select, (btid,))
-    return (dataset_pb2.Conformer().FromString(result[1]) for result in cur)
+    return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[1]))
+            for result in cur)
 
   def find_by_smiles(self, smiles):
     """Finds all conformer associated with a given smiles string.
@@ -236,4 +238,5 @@ class SMUSQLite:
     select = f'SELECT conformer FROM {_CONFORMER_TABLE_NAME} ORDER BY rowid'
     cur = self._conn.cursor()
     cur.execute(select)
-    return (dataset_pb2.Conformer().FromString(result[0]) for result in cur)
+    return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[0]))
+            for result in cur)
