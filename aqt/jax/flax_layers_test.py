@@ -1187,7 +1187,7 @@ class LayerNormTest(parameterized.TestCase):
     y_quantized = quantized_layer_norm.apply(initial_params, x)
     unquantized_layer_norm = nn.LayerNorm()
     y_unquantized = unquantized_layer_norm.apply(initial_params, x)
-    onp.testing.assert_allclose(y_quantized, y_unquantized, rtol=1e-6)
+    onp.testing.assert_allclose(y_quantized, y_unquantized, rtol=2e-6)
 
   def test_epsilon_rounding(self):
     # We give LayerNorm a constant input. Since that input has a variance of
