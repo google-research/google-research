@@ -13,6 +13,5 @@ absl-py
 numpy
 scipy
 gdown==3.13.1
-# TODO(kevin): Add commit hash for below libraries.
-git+https://github.com/kevinzakka/torchkit.git
-git+https://github.com/kevinzakka/x-magical.git
+git+https://github.com/kevinzakka/torchkit.git@v0.0.2
+git+https://github.com/kevinzakka/x-magical.git@v0.0.2
