@@ -1984,8 +1984,8 @@ class MixedBlockCompressionOp(CompressionOp):
     self.matrix_compressor = matrix_compressor
     with tf.variable_scope(scope) as scope:
       # block_matrices is a rank 3 tensor of shape [m, n, num_blocks]
-      num_blocks = self._spec.qrn_compression_factor
-      num_bases = self._spec.qrn_num_bases
+      num_blocks = self._spec.compression_factor
+      num_bases = self._spec.num_bases
       block_matrices_pc = weight_params_fn([
           shape[0] // num_blocks,
           shape[1] // num_blocks,
@@ -2002,12 +2002,10 @@ class MixedBlockCompressionOp(CompressionOp):
       layer_obj.CreateVariable(
           'block_matrices',
           block_matrices_pc,
-          theta_fn=None,
           trainable=True)
       layer_obj.CreateVariable(
           'linear_mixer',
           linear_mixer_pc,
-          theta_fn=None,
           trainable=True)
 
       self.block_matrices = layer_obj.vars.block_matrices
@@ -2096,8 +2094,8 @@ class MixedBlockCompressionOp(CompressionOp):
     # turned out to be worse for latency than writing out the matmul/einsum
     # using a loop. Hence we implement the latter strategy here.
 
-    num_blocks = self._spec.qrn_compression_factor
-    num_bases = self._spec.qrn_num_bases
+    num_blocks = self._spec.compression_factor
+    num_bases = self._spec.num_bases
 
     # block the concat tensor into num_blocks
     blocked_input = tf.reshape(concat, [
@@ -2161,8 +2159,8 @@ class MixedBlockCompressionOp(CompressionOp):
     # Performing einsum or a matmul with such a small tensor on TPUs
     # turned out to be worse for latency than writing out the matmul/einsum
     # using a loop. Hence we implement the latter strategy here.
-    num_blocks = self._spec.qrn_compression_factor
-    num_bases = self._spec.qrn_num_bases
+    num_blocks = self._spec.compression_factor
+    num_bases = self._spec.num_bases
 
     # block the inputs tensor into num_blocks
     blocked_input = tf.reshape(inputs, [
@@ -2218,8 +2216,8 @@ class MixedBlockCompressionOp(CompressionOp):
     # turned out to be worse for latency than writing out the matmul/einsum
     # using a loop. Hence we implement the latter strategy here.
     theta = layerobj.theta
-    num_blocks = self._spec.qrn_compression_factor
-    num_bases = self._spec.qrn_num_bases
+    num_blocks = self._spec.compression_factor
+    num_bases = self._spec.num_bases
 
     # block the inputs tensor into num_blocks
     blocked_input = tf.reshape(inputs, [
