@@ -236,9 +236,8 @@ def add_eos_token(indices, eos_token):
 
   indices = jnp.pad(
       indices, pad_width=[(0, 0), (0, 1)], mode='constant')
-  indices = jax.ops.index_update(   # Add EOS token.
-      indices,
-      jax.ops.index[jnp.arange(batch_size), lengths], eos_token)
+  # Add EOS token.
+  indices = indices.at[jnp.arange(batch_size), lengths].set(eos_token)
   return indices.astype(jnp.int32)
 
 
@@ -266,9 +265,8 @@ def train_step(state,
   weights = jnp.where(programs > 0, 1, 0).astype(jnp.float32)
 
   # Embedding mask for autoencoding.
-  emb_mask = jax.ops.index_update(
-      jnp.ones((1, FLAGS.latent_vocab_size), jnp.float32),
-      jax.ops.index[:, [0, bos_token, eos_token]], 0)
+  emb_mask = jnp.ones((1, FLAGS.latent_vocab_size),
+                      jnp.float32).at[:, [0, bos_token, eos_token]].set(0)
 
   def ae_loss_fn(params):
     """Loss function used for training autoencoder."""
@@ -386,9 +384,8 @@ def eval_step(state,
 
   weights = jnp.where(programs > 0, 1, 0).astype(jnp.float32)
   # Embedding mask for autoencoding.
-  emb_mask = jax.ops.index_update(
-      jnp.ones((1, FLAGS.latent_vocab_size), jnp.float32),
-      jax.ops.index[:, [0, bos_token, eos_token]], 0)
+  emb_mask = jnp.ones((1, FLAGS.latent_vocab_size),
+                      jnp.float32).at[:, [0, bos_token, eos_token]].set(0)
 
   ae_logits, vq = models.LatentProgramTransformer(config).apply(
       {'params': params, 'vqvae': state.model_state},
@@ -723,10 +720,9 @@ def main(_):
 
   # Build Model and Optimizer
   # ---------------------------------------------------------------------------
-  train_config = models.LatentTransformerConfig(
+  base_train_config = models.TransformerConfig(
       vocab_size=io_vocab_size,
       output_vocab_size=program_vocab_size,
-      latent_vocab_size=FLAGS.latent_vocab_size,
       shift=True,
       emb_dim=FLAGS.embedding_dim,
       num_heads=FLAGS.num_heads,
@@ -736,13 +732,29 @@ def main(_):
       max_len=max(FLAGS.max_characters, FLAGS.max_program_length),
       deterministic=False,
       decode=False,
+      bos_token=bos_token)
+  base_eval_config = base_train_config.replace(deterministic=True,
+                                               train_vq=False)
+  base_predict_config = base_train_config.replace(
+      shift=False, deterministic=True, train_vq=False, decode=True)
+  train_config = models.LatentTransformerConfig(
+      base_cfg=base_train_config,
+      latent_vocab_size=FLAGS.latent_vocab_size,
       c=FLAGS.c,
       train_vq=True,
-      commitment_cost_vq=FLAGS.commitment_cost_vq,
-      bos_token=bos_token)
-  eval_config = train_config.replace(deterministic=True, train_vq=False)
-  predict_config = train_config.replace(
-      shift=False, deterministic=True, train_vq=False, decode=True)
+      commitment_cost_vq=FLAGS.commitment_cost_vq)
+  eval_config = models.LatentTransformerConfig(
+      base_cfg=base_eval_config,
+      latent_vocab_size=FLAGS.latent_vocab_size,
+      c=FLAGS.c,
+      train_vq=True,
+      commitment_cost_vq=FLAGS.commitment_cost_vq)
+  predict_config = models.LatentTransformerConfig(
+      base_cfg=base_predict_config,
+      latent_vocab_size=FLAGS.latent_vocab_size,
+      c=FLAGS.c,
+      train_vq=True,
+      commitment_cost_vq=FLAGS.commitment_cost_vq)
 
   # Latent Predictor.
   lp_train_config = models.TransformerConfig(

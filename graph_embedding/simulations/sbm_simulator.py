@@ -20,15 +20,20 @@ functions used by GenerateStochasticBlockModel in simulations.py. You can call
 these separately to generate various parts of an SBM with features.
 """
 import collections
+import dataclasses
 import enum
 import math
 import random
 from typing import Dict, List, Optional, Sequence, Tuple
 
-import dataclasses
-from graph_tool.src import graph_tool
+import graph_tool
 from graph_tool import generation
+import networkx as nx
 import numpy as np
+
+from graph_embedding.simulations import heterogeneous_sbm_utils as hsu
+
+# pylint: disable=g-explicit-length-test
 
 
 class MatchType(enum.Enum):
@@ -48,22 +53,64 @@ class MatchType(enum.Enum):
 
 
 @dataclasses.dataclass
+class EdgeProbabilityProfile:
+  """Stores p-to-q ratios for Stochastic Block Model.
+
+  Attributes:
+    p_to_q_ratio1: Probability of in-cluster edges divided by probability of
+      out-cluster edges, for type 1 nodes. If the SBM is homogeneous, this
+      is the global p_to_q_ratio.
+    p_to_q_ratio2: Probability of in-cluster edges divided by probability of
+      out-cluster edges, for type 2 nodes.
+    p_to_q_ratio_cross: Probability of in-cluster edges divided by probability
+      of out-cluster edges, for node clusters that are linked across-type.
+  """
+  p_to_q_ratio1: float = Ellipsis
+  p_to_q_ratio2: Optional[float] = 0.0
+  p_to_q_ratio_cross: Optional[float] = 0.0
+
+
+@dataclasses.dataclass
 class StochasticBlockModel:
-  """Stores data for stochastic block model graphs with features.
+  """Stores data for stochastic block model (SBM) graphs with features.
+
+  This class supports heterogeneous SBMs, in which each node is assumed to be
+  exactly one of two types. In this model, the following extra fields are used:
+    * type1_clusters: list of cluster indices for type 1 nodes. (For single-type
+        graphs, this contains the list of all cluster indices.)
+    * type2_clusters: list of cluster indices for type 2 nodes.
+    * cross_links: tuples of cluster indices that are linked cross-type.
+    * node_features2: features for type 2 nodes. (node_features1 is used as the
+        sole feature field for single-type SBM.)
 
   Attributes:
     graph: graph-tool Graph object.
     graph_memberships: list of integer node classes.
-    node_features: numpy array of node features.
+    node_features1: numpy array of node features for nodes of type 1. Features
+      for node with index i is in row i.
+    node_features2: numpy array of node features for nodes of type 2. Features
+      for node with index i is in row i - (# of nodes of type 1).
     feature_memberships: list of integer node feature classes.
     edge_features: map from edge tuple to numpy array. Only stores undirected
       edges, i.e. (0, 1) will be in the map, but (1, 0) will not be.
+    cross_links: list of 2-tuples, each tuple a pair of cluster indices which
+      are cross-correlated between the types. (i, j) included in this list means
+      the i-th cluster from type 1 is correlated with the j-th cluster from type
+      2.
+    type1_clusters: list of the indices of type 1 clusters.
+    type2_clusters: list of the indices of type 2 clusters.
+    cross_links: list of cluster index pairs, each pair coding that the clusters
+      are linked across types.
   """
   graph: graph_tool.Graph = Ellipsis
   graph_memberships: np.ndarray = Ellipsis
-  node_features: np.ndarray = Ellipsis
+  node_features1: np.ndarray = Ellipsis
+  node_features2: Optional[np.ndarray] = Ellipsis
   feature_memberships: np.ndarray = Ellipsis
   edge_features: Dict[Tuple[int, int], np.ndarray] = Ellipsis
+  type1_clusters: Optional[List[int]] = Ellipsis
+  type2_clusters: Optional[List[int]] = Ellipsis
+  cross_links: Optional[List[Tuple[int, int]]] = Ellipsis
 
 
 def _GetNestingMap(large_k, small_k):
@@ -233,11 +280,19 @@ def SimulateSbm(sbm_data,
                 num_edges,
                 pi,
                 prop_mat,
-                out_degs = None):
+                out_degs = None,
+                num_vertices2 = 0,
+                pi2 = None):
   """Generates a stochastic block model, storing data in sbm_data.graph.
 
   This function uses graph_tool.generate_sbm. Refer to that
   documentation for more information on the model and parameters.
+
+  This function can generate a heterogeneous SBM graph, meaning each node is
+  exactly one of two types (and both types are present). To generate a
+  heteroteneous SBM graph, both `num_vertices2` and `pi2` must be non-zero and
+  supplied (respectively). When this happens, additional fields of `sbm_data`
+  are filled. See the StochasticBlockModel dataclass for full details.
 
   Args:
     sbm_data: StochasticBlockModel dataclass to store result data.
@@ -248,8 +303,18 @@ def SimulateSbm(sbm_data,
     out_degs: Out-degree propensity for each node. If not provided, a constant
       value will be used. Note that the values will be normalized inside each
       group, if they are not already so.
+    num_vertices2: If simulating a heterogeneous SBM, this is the number of
+      vertices of type 2.
+    pi2: If simulating a heterogeneous SBM, this is the pi vector for the
+      vertices of type 2. Must sum to 1.0.
   Returns: (none)
   """
+  if ((num_vertices2 == 0 and pi2 is not None) or
+      (num_vertices2 > 0 and pi2 is None)):
+    raise ValueError(
+        "num_vertices2 and pi2 must be either both supplied or both None")
+  if num_vertices2 == 0:
+    pi2 = []
   # Equivalent to assertAlmostEqual(np.sum(pi), 1.0, places=12)
   # https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertNotAlmostEqual
   #
@@ -258,12 +323,24 @@ def SimulateSbm(sbm_data,
   # example of this is in the simulate_sbm_community_sizes_seven_groups test
   # from sbm_simulator_test.py. Places>=12 covers known similar cases (to date).
   if round(abs(np.sum(pi) - 1.0), 12) != 0:
-    raise ValueError("entries of pi must sum to 1.0")
+    raise ValueError("entries of pi ( must sum to 1.0")
+  if len(pi2) > 0 and round(abs(np.sum(pi2) - 1.0), 12) != 0:
+    raise ValueError("entries of pi2 ( must sum to 1.0")
+  k1, k2 = len(pi), len(pi2)
+  pi = np.array(list(pi) + list(pi2))
+  pi /= np.sum(pi)
   if prop_mat.shape[0] != len(pi) or prop_mat.shape[1] != len(pi):
-    raise ValueError("prop_mat must be k x k where k = len(pi)")
-  sbm_data.graph_memberships = _GenerateNodeMemberships(num_vertices, pi)
-  edge_counts = _ComputeExpectedEdgeCounts(num_edges, num_vertices, pi,
-                                           prop_mat)
+    raise ValueError("prop_mat must be k x k; k = len(pi1) + len(pi2)")
+  sbm_data.graph_memberships = _GenerateNodeMemberships(
+      num_vertices + num_vertices2, pi)
+  sbm_data.type1_clusters = sorted(list(set(sbm_data.graph_memberships)))
+  if num_vertices2 > 0:
+    sbm_data.cross_links = hsu.GetCrossLinks(k1, k2)
+    type1_clusters, type2_clusters = zip(*sbm_data.cross_links)
+    sbm_data.type1_clusters = sorted(list(set(type1_clusters)))
+    sbm_data.type2_clusters = sorted(list(set(type2_clusters)))
+  edge_counts = _ComputeExpectedEdgeCounts(
+      num_edges, num_vertices + num_vertices2, pi, prop_mat)
   sbm_data.graph = generation.generate_sbm(sbm_data.graph_memberships,
                                            edge_counts, out_degs)
   graph_tool.stats.remove_self_loops(sbm_data.graph)
@@ -271,56 +348,140 @@ def SimulateSbm(sbm_data,
   sbm_data.graph.reindex_edges()
 
 
+def _GetFeatureCenters(num_groups, center_var, feature_dim):
+  """Helper function to generate multivariate Normal feature centers.
+
+  Args:
+    num_groups: number of centers to generate.
+    center_var: diagonal element of the covariance matrix (off-diagonals = 0).
+    feature_dim: the dimension of each center.
+  Returns:
+    centers: numpy array with feature group centers as rows.
+  """
+  centers = np.random.multivariate_normal(
+      np.zeros(feature_dim), np.identity(feature_dim) * center_var,
+      num_groups)
+  return centers
+
+
 def SimulateFeatures(sbm_data,
                      center_var,
                      feature_dim,
-                     num_groups,
+                     num_groups = None,
                      match_type = MatchType.RANDOM,
-                     cluster_var = 1.0):
+                     cluster_var = 1.0,
+                     center_var2 = 0.0,
+                     feature_dim2 = 0,
+                     type_correlation = 0.0,
+                     type_center_var = 0.0):
   """Generates node features using multivate normal mixture model.
 
   This function does nothing and throws a warning if
   sbm_data.graph_memberships is empty. Run SimulateSbm to fill that field.
 
-  Feature data is stored as an attribute of sbm_data named 'node_features'.
+  Feature data is stored as an attribute of sbm_data named 'node_features1'.
+
+  If the `type2_clusters` field in the input `sbm_data` is filled, this function
+  produces node features for a heterogeneous SBM. Specifically:
+   * Handling differing # graph clusters and # feature clusters is not
+     implemented for heterogeneous SBMs. `num_groups` and must equal the
+     length of sbm_data.type1_clusters (raises RuntimeWarning if not).
+   * The node_features{1,2} fields of the input sbm_data will store the features
+     generated for type {1,2} nodes.
 
   Args:
     sbm_data: StochasticBlockModel dataclass to store result data.
     center_var: (float) variance of feature cluster centers. When this is 0.0,
       the signal-to-noise ratio is 0.0. When equal to cluster_var, SNR is 1.0.
     feature_dim: (int) dimension of the multivariate normal.
-   num_groups: (int) number of centers. Generated by a multivariate normal with
-     mean zero and covariance matrix cluster_var * I_{feature_dim}.
+    num_groups: (int) number of centers. Generated by a multivariate normal with
+      mean zero and covariance matrix cluster_var * I_{feature_dim}. This is
+      ignored if the input sbm_data is heterogeneous. Feature cluster counts
+      will be set equal to the graph cluster counts. If left as default (None),
+      and input sbm_data is homogeneous, set to len(sbm_data.type1_clusters).
     match_type: (MatchType) see sbm_simulator.MatchType for details.
     cluster_var: (float) variance of feature clusters around their centers.
+    center_var2: (float) center_var for nodes of type 2. Not needed if sbm_data
+      is not heterogeneous (see above).
+    feature_dim2: (int) feature_dim for nodes of type 2. Not needed if sbm_data
+      is not heterogeneous (see above).
+    type_correlation: (float) proportion of each cluster's center vector that
+      is shared with other clusters linked across types. Not needed if sbm_data
+      is not heterogeneous (see above).
+    type_center_var: (float) center_var for center vectors that are shared with
+      clusters linked across types. Not used if input sbm_data is not
+      heterogeneous.
 
   Raises:
-    RuntimeWarning: if simulator has no graph or a graph with no nodes.
+    RuntimeWarning:
+      * if sbm_data no graph, no graph_memberships, or type1_clusters fields.
+      * if len(sbm_data.type2_clusters) > 0 and sbm_data.cross_links is not a
+        list.
   """
-  if sbm_data.graph_memberships is None:
+  if sbm_data.graph is None or sbm_data.graph is Ellipsis:
+    raise RuntimeWarning("No graph found: no features generated. "
+                         "Run SimulateSbm to generate a graph.")
+  if sbm_data.graph_memberships is None or sbm_data.graph_memberships is Ellipsis:
     raise RuntimeWarning("No graph_memberships found: no features generated. "
                          "Run SimulateSbm to generate graph_memberships.")
+  if sbm_data.type1_clusters is None or sbm_data.type1_clusters is Ellipsis:
+    raise RuntimeWarning("No type1_clusters found: no features generated. "
+                         "Run SimulateSbm to generate type1_clusters.")
+  if num_groups is None:
+    num_groups = len(sbm_data.type1_clusters)
+  centers = list(_GetFeatureCenters(num_groups, center_var, feature_dim))
+  num_groups2 = (0 if sbm_data.type2_clusters is Ellipsis
+                 else len(sbm_data.type2_clusters))
+  if num_groups2 > 0:
+    # The SBM is heterogeneous. Check input and adjust variables.
+    if not isinstance(sbm_data.cross_links, list):
+      raise RuntimeWarning(
+          ("len(sbm_data.type2_clusters) > 0, implying heterogeneous SBM, but "
+           "heterogeneous data `cross_links` is unfilled."))
+
+    # Generate heterogeneous feature centers.
+    centers += list(_GetFeatureCenters(num_groups2, center_var2, feature_dim2))
+    correspondence_graph = nx.Graph()
+    correspondence_graph.add_edges_from(sbm_data.cross_links)
+    connected_components = list(
+        nx.algorithms.connected_components(correspondence_graph))
+    cross_type_feature_dim = min(feature_dim, feature_dim2)
+    component_center_cov = np.identity(cross_type_feature_dim) * type_center_var
+    for component in connected_components:
+      component_center = np.random.multivariate_normal(
+          np.zeros(cross_type_feature_dim), component_center_cov, 1)[0]
+      for cluster_index in component:
+        centers[cluster_index][:cross_type_feature_dim] = (
+            component_center * type_correlation
+            + centers[cluster_index][:cross_type_feature_dim] *
+            (1 - type_correlation))
 
   # Get memberships
   sbm_data.feature_memberships = _GenerateFeatureMemberships(
       graph_memberships=sbm_data.graph_memberships,
       num_groups=num_groups,
       match_type=match_type)
+  cluster_indices = sbm_data.feature_memberships
+  if num_groups2 > 0:
+    cluster_indices = sbm_data.graph_memberships
 
-  # Get centers
-  centers = []
-  center_cov = np.identity(feature_dim) * center_var
-  cluster_cov = np.identity(feature_dim) * cluster_var
-  for _ in range(num_groups):
-    center = np.random.multivariate_normal(
-        np.zeros(feature_dim), center_cov, 1)[0]
-    centers.append(center)
-  features = []
-  for cluster_index in sbm_data.feature_memberships:
+  features1 = []
+  features2 = []
+  cluster_cov1 = np.identity(feature_dim) * cluster_var
+  cluster_cov2 = np.identity(feature_dim2) * cluster_var
+  for cluster_index in cluster_indices:
+    cluster_cov = cluster_cov1
+    if num_groups2 > 0 and cluster_index in sbm_data.type2_clusters:
+      cluster_cov = cluster_cov2
     feature = np.random.multivariate_normal(centers[cluster_index], cluster_cov,
                                             1)[0]
-    features.append(feature)
-  sbm_data.node_features = np.array(features)
+    if cluster_index in sbm_data.type1_clusters:
+      features1.append(feature)
+    else:
+      features2.append(feature)
+  sbm_data.node_features1 = np.array(features1)
+  if num_groups2 > 0:
+    sbm_data.node_features2 = np.array(features2)
 
 
 def SimulateEdgeFeatures(sbm_data,

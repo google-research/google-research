@@ -441,6 +441,8 @@ def get_pruning_hparams():
                               (nonzero entries in) compressed matrix for block
                               compression. Equivalently, number of blocks on
                               diagonal.
+    compression_factor: Compression factor to use for MixedBlockCompressionOp.
+    num_bases: Number of basis matrices to use for MixedBlockCompressionOp.
     group_pruning: perform group pruning if True. Default is False.
     group_sparsity_map: list of strings
       comma separated list of {group_name:target sparsity} or
@@ -514,6 +516,8 @@ def get_pruning_hparams():
       output_block_size=1,
       block_method='loop',
       block_compression_factor=1,
+      compression_factor=1,
+      num_bases=1,
       add_summary=True,
       group_pruning=False,
       intra_block_sparsity=False)
@@ -986,13 +990,26 @@ class Pruning(object):
       num_blocks = tf.size(abs_weights_pad) // block_size
       reshaped_weights_into_blocks = tf.reshape(abs_weights_pad,
                                                 [num_blocks, block_size])
+
+      # Generate the indices ordered by the abs values of the weight
       _, top_k_indices = tf.math.top_k(
-          reshaped_weights_into_blocks, k=num_non_zeros, sorted=False)
+          reshaped_weights_into_blocks, k=block_size)
       ind_i, _ = tf.meshgrid(
-          tf.range(num_blocks), tf.range(num_non_zeros), indexing='ij')
+          tf.range(num_blocks), tf.range(block_size), indexing='ij')
       ind_ij = tf.stack([ind_i, top_k_indices], axis=-1)
-      sparsity_mask_pad = tf.scatter_nd(ind_ij,
-                                        tf.ones([num_blocks, num_non_zeros]),
+
+      # Generate a mask array that has size equals to num_blocks * block_size
+      # The first num_blocks * num_non_zeros of elements of this mask array is
+      # set to 1, the rest is set to 0.
+      mask_staging = tf.range(num_blocks * block_size)
+      mask_staging = tf.cast(
+          tf.less(mask_staging, num_blocks * num_non_zeros), tf.float32)
+
+      # Reshape the mask array to num_blocks * block_size. The first
+      # num_non_zeros elements of each row in the mask matrix is 1.0 while the
+      # rest is 0.
+      mask_staging = tf.transpose(tf.reshape(mask_staging, [-1, num_blocks]))
+      sparsity_mask_pad = tf.scatter_nd(ind_ij, mask_staging,
                                         [num_blocks, block_size])
       reshaped_sparsity_mask_pad = tf.reshape(sparsity_mask_pad,
                                               tf.shape(abs_weights_pad))

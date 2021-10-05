@@ -1,7 +1,0 @@
-flax>=0.2.2
-jax>=0.2.0
-jaxlib>=0.1.55
-ml_collections
-sentencepiece
-tensorflow
-tensorflow_datasets

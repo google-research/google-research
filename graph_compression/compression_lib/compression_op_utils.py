@@ -33,6 +33,7 @@ class CompressionOptions(enum.IntEnum):
   KMEANS_AND_PRUNING_MATRIX_COMPRESSION = 8
   INPUTOUTPUT_COMPRESSION = 9
   BLOCK_COMPRESSION = 10
+  MIXED_BLOCK_COMPRESSION = 12
 
 
 class UpdateOptions(enum.IntEnum):

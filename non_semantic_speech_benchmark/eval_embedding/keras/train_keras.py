@@ -58,6 +58,7 @@ flags.DEFINE_integer('training_steps', 1000,
 flags.DEFINE_integer('measurement_store_interval', 10,
                      'The number of steps between storing objective value in '
                      'measurements.')
+flags.DEFINE_boolean('preaverage', False, 'Whether to preaverage.')
 
 
 def train_and_report(debug=False):
@@ -79,7 +80,8 @@ def train_and_report(debug=False):
       bucket_batch_sizes=[FLAGS.train_batch_size] * (len(FLAGS.bucket_boundaries) + 1),  # pylint:disable=line-too-long
       loop_forever=True,
       shuffle=True,
-      shuffle_buffer_size=FLAGS.shuffle_buffer_size)
+      shuffle_buffer_size=FLAGS.shuffle_buffer_size,
+      preaverage=FLAGS.preaverage)
 
   # Create model, loss, and other objects.
   y_onehot_spec = ds.element_spec[1]

@@ -271,6 +271,9 @@ class QuantOpsTest(parameterized.TestCase):
     self.assertEqual(weights_quant._symmetric, True)
     self.assertEqual(weights_quant._prec, prec)
 
+
+class WeightQuantizationTest(parameterized.TestCase):
+
   @parameterized.named_parameters(
       dict(testcase_name='per_layer_quant', axis=None),
       dict(testcase_name='per_channel_quant', axis=(0,)))
@@ -290,6 +293,91 @@ class QuantOpsTest(parameterized.TestCase):
             axis=axis,
             expected_scale_shape=expected_scale_shape,
             half_shift=False))
+
+  @parameterized.named_parameters(
+      dict(testcase_name='prec_4', prec=4),
+      dict(testcase_name='prec_8', prec=8))
+  def test_float_weights_quantization(self, prec):
+    # Tests that quantized and rescaled float weights are close to original
+    # weights.
+    weights = jnp.array(fp32(2.0 * onp.random.uniform(0, 1.0, size=(10, 1))))
+    rescaled_weights = QuantOps.create_weights_fake_quant(
+        w=weights,
+        weight_params=QuantOps.WeightParams(
+            prec=prec, axis=None, half_shift=False))
+    test_utils.assert_all_close_prec(weights, rescaled_weights, prec=prec)
+
+  @parameterized.named_parameters(
+      dict(testcase_name='prec_2', prec=2),
+      dict(testcase_name='prec_4', prec=4),
+      dict(testcase_name='prec_8', prec=8)
+  )
+  def test_full_range_int_weight_quantization(self, prec):
+    # Integer weights in full range [-maxmin_signed_int, maxmin_signed_int]
+    # quantizes correctly.
+    minval = -2**(prec - 1) + 1
+    maxval = 2**(prec - 1) - 1
+    weights = random.randint(random.PRNGKey(0), (10, 1), minval, maxval + 1)
+    weights = weights.at[0, :].set(maxval)
+    weight_quant = QuantOps.create_weights_ops(
+        w=weights,
+        weight_params=QuantOps.WeightParams(
+            prec=prec, axis=None, half_shift=False))
+    quantized_weights = weight_quant.to_quantized(weights, dtype=SCALE_DTYPE)
+    onp.testing.assert_array_equal(quantized_weights[0],
+                                   (2**(prec - 1.0) - 1.0))
+    rescaled_weights = weight_quant.from_quantized(
+        quantized_weights, dtype=jnp.float32)
+    onp.testing.assert_array_equal(weights, rescaled_weights)
+
+  @parameterized.named_parameters(
+      dict(testcase_name='prec_2', prec=2),
+      dict(testcase_name='prec_4', prec=4),
+      dict(testcase_name='prec_8', prec=8))
+  def test_scale_invariance_weight_quantization(self, prec):
+    # Scaling weights by power of 2, should scale the output by the same scale.
+    weights = random.uniform(random.PRNGKey(0), (10, 1))
+    weight_scale = 16
+    scaled_weights = weights * weight_scale
+
+    weights = QuantOps.create_weights_fake_quant(
+        w=weights,
+        weight_params=QuantOps.WeightParams(
+            prec=prec, axis=None, half_shift=False))
+
+    scaled_weights = QuantOps.create_weights_fake_quant(
+        w=scaled_weights,
+        weight_params=QuantOps.WeightParams(
+            prec=prec, axis=None, half_shift=False))
+
+    onp.testing.assert_array_equal(weights * weight_scale, scaled_weights)
+
+  @parameterized.named_parameters(
+      dict(testcase_name='prec_2', prec=2),
+      dict(testcase_name='prec_4', prec=4),
+      dict(testcase_name='prec_8', prec=8)
+  )
+  def test_per_feature_dim_scale_invariance_weight_quantization(self, prec):
+    # Scaling each channel of weights by a different power of 2, should scale
+    # the respective channel of output by the same scale.
+    weights = random.uniform(random.PRNGKey(0), (3, 4))
+    weight_scale = 2**jnp.arange(4)[jnp.newaxis, :]
+    scaled_weights = weights * weight_scale
+
+    weights = quantization.QuantOps.create_weights_fake_quant(
+        w=weights,
+        weight_params=QuantOps.WeightParams(
+            prec=prec, axis=0, half_shift=False))
+
+    scaled_weights = quantization.QuantOps.create_weights_fake_quant(
+        w=scaled_weights,
+        weight_params=QuantOps.WeightParams(
+            prec=prec, axis=0, half_shift=False))
+
+    onp.testing.assert_array_equal(weights * weight_scale, scaled_weights)
+
+
+class ActQuantizationTest(parameterized.TestCase):
 
   def test_inputs_scale_shape_is_expected(self):
     # Inputs quantization
@@ -451,88 +539,6 @@ class QuantOpsTest(parameterized.TestCase):
             half_shift=False))
 
     onp.testing.assert_array_equal(activations, rescaled_activations)
-
-  @parameterized.named_parameters(
-      dict(testcase_name='prec_4', prec=4),
-      dict(testcase_name='prec_8', prec=8))
-  def test_float_weights_quantization(self, prec):
-    # Tests that quantized and rescaled float weights are close to original
-    # weights.
-    weights = jnp.array(fp32(2.0 * onp.random.uniform(0, 1.0, size=(10, 1))))
-    rescaled_weights = QuantOps.create_weights_fake_quant(
-        w=weights,
-        weight_params=QuantOps.WeightParams(
-            prec=prec, axis=None, half_shift=False))
-    test_utils.assert_all_close_prec(weights, rescaled_weights, prec=prec)
-
-  @parameterized.named_parameters(
-      dict(testcase_name='prec_2', prec=2),
-      dict(testcase_name='prec_4', prec=4),
-      dict(testcase_name='prec_8', prec=8)
-  )
-  def test_full_range_int_weight_quantization(self, prec):
-    # Integer weights in full range [-maxmin_signed_int, maxmin_signed_int]
-    # quantizes correctly.
-    minval = -2**(prec - 1) + 1
-    maxval = 2**(prec - 1) - 1
-    weights = random.randint(random.PRNGKey(0), (10, 1), minval, maxval + 1)
-    weights = jax.ops.index_update(weights, jax.ops.index[0, :], maxval)
-    weight_quant = QuantOps.create_weights_ops(
-        w=weights,
-        weight_params=QuantOps.WeightParams(
-            prec=prec, axis=None, half_shift=False))
-    quantized_weights = weight_quant.to_quantized(weights, dtype=SCALE_DTYPE)
-    onp.testing.assert_array_equal(quantized_weights[0],
-                                   (2**(prec - 1.0) - 1.0))
-    rescaled_weights = weight_quant.from_quantized(
-        quantized_weights, dtype=jnp.float32)
-    onp.testing.assert_array_equal(weights, rescaled_weights)
-
-  @parameterized.named_parameters(
-      dict(testcase_name='prec_2', prec=2),
-      dict(testcase_name='prec_4', prec=4),
-      dict(testcase_name='prec_8', prec=8))
-  def test_scale_invariance_weight_quantization(self, prec):
-    # Scaling weights by power of 2, should scale the output by the same scale.
-    weights = random.uniform(random.PRNGKey(0), (10, 1))
-    weight_scale = 16
-    scaled_weights = weights * weight_scale
-
-    weights = QuantOps.create_weights_fake_quant(
-        w=weights,
-        weight_params=QuantOps.WeightParams(
-            prec=prec, axis=None, half_shift=False))
-
-    scaled_weights = QuantOps.create_weights_fake_quant(
-        w=scaled_weights,
-        weight_params=QuantOps.WeightParams(
-            prec=prec, axis=None, half_shift=False))
-
-    onp.testing.assert_array_equal(weights * weight_scale, scaled_weights)
-
-  @parameterized.named_parameters(
-      dict(testcase_name='prec_2', prec=2),
-      dict(testcase_name='prec_4', prec=4),
-      dict(testcase_name='prec_8', prec=8)
-  )
-  def test_per_feature_dim_scale_invariance_weight_quantization(self, prec):
-    # Scaling each channel of weights by a different power of 2, should scale
-    # the respective channel of output by the same scale.
-    weights = random.uniform(random.PRNGKey(0), (3, 4))
-    weight_scale = 2**jnp.arange(4)[jnp.newaxis, :]
-    scaled_weights = weights * weight_scale
-
-    weights = quantization.QuantOps.create_weights_fake_quant(
-        w=weights,
-        weight_params=QuantOps.WeightParams(
-            prec=prec, axis=0, half_shift=False))
-
-    scaled_weights = quantization.QuantOps.create_weights_fake_quant(
-        w=scaled_weights,
-        weight_params=QuantOps.WeightParams(
-            prec=prec, axis=0, half_shift=False))
-
-    onp.testing.assert_array_equal(weights * weight_scale, scaled_weights)
 
   @parameterized.named_parameters(
       dict(

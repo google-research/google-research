@@ -18031,11 +18031,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "Okay Sending.",
         "share_photo": false,
         "user_id": 0
@@ -31864,6 +31859,11 @@
         "message": "lol ok",
         "share_photo": false,
         "user_id": 1
+      },
+      {
+        "message": "",
+        "share_photo": true,
+        "user_id": 0
       }
     ],
     "dialogue_id": 427,
@@ -33189,11 +33189,6 @@
       {
         "message": "That's funny! Here it is.",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {
@@ -35313,11 +35308,6 @@
       {
         "message": "Weather was good.",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {

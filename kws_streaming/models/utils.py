@@ -299,7 +299,9 @@ def model_to_tflite(sess,
                     optimizations=None,
                     inference_type=tf1.lite.constants.FLOAT,
                     experimental_new_quantizer=True,
-                    representative_dataset=None):
+                    representative_dataset=None,
+                    inference_input_type=tf.float32,
+                    inference_output_type=tf.float32):
   """Convert non streaming model to tflite inference model.
 
   If mode==modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE then inference graph
@@ -322,6 +324,8 @@ def model_to_tflite(sess,
     experimental_new_quantizer: enable new quantizer
     representative_dataset: function generating representative data sets
       for calibation post training quantizer
+    inference_input_type: it can be used to quantize input data e.g. tf.int8
+    inference_output_type: it can be used to quantize output data e.g. tf.int8
 
   Returns:
     tflite model
@@ -362,6 +366,9 @@ def model_to_tflite(sess,
       tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS
   ]
   converter.allow_custom_ops = True
+
+  converter.inference_input_type = inference_input_type
+  converter.inference_output_type = inference_output_type
   if optimizations:
     converter.optimizations = optimizations
   tflite_model = converter.convert()

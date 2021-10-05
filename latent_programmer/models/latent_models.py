@@ -20,8 +20,6 @@
 # pytype: disable=wrong-keyword-args
 # pytype: disable=attribute-error
 
-from typing import Any, Callable, Optional
-
 from flax import linen as nn
 from flax import struct
 import jax.numpy as jnp
@@ -33,29 +31,11 @@ from latent_programmer.models import vqvae
 @struct.dataclass
 class LatentTransformerConfig:
   """Global hyperparameters for latent transformer."""
-  vocab_size: int
-  output_vocab_size: int
+  base_cfg: models.TransformerConfig
   latent_vocab_size: int
-  shift: bool = True  # Whether to shift input or not (for fast decoding)
-  dtype: Any = jnp.float32
-  emb_dim: int = 128
-  num_heads: int = 4
-  num_layers: int = 3
-  qkv_dim: int = 128
-  mlp_dim: int = 512
-  max_len: int = 2048
-  dropout_rate: float = 0.1
-  attention_dropout_rate: float = 0.1
-  deterministic: bool = False
-  decode: bool = False
   c: int = 2
   train_vq: bool = True
   commitment_cost_vq: float = 0.25
-  bos_token: int = 1
-  output_head: Optional[str] = 'logits'
-  kernel_init: Callable = nn.initializers.xavier_uniform()
-  bias_init: Callable = nn.initializers.normal(stddev=1e-6)
-  posemb_init: Optional[Callable] = None
 
 
 class Autoencoder(nn.Module):
@@ -67,7 +47,7 @@ class Autoencoder(nn.Module):
   @nn.compact
   def __call__(self,
                targets,
-               targets_mask = None):
+               targets_mask=None):
     """Autoencodes program task.
 
     Args:
@@ -120,37 +100,19 @@ class LatentProgramTransformer(nn.Module):
   def setup(self):
     cfg = self.config
 
-    base_cfg = models.TransformerConfig(
-        vocab_size=cfg.vocab_size,
-        output_vocab_size=cfg.output_vocab_size,
-        shift=cfg.shift,
-        dtype=cfg.dtype,
-        emb_dim=cfg.emb_dim,
-        num_heads=cfg.num_heads,
-        num_layers=cfg.num_layers,
-        qkv_dim=cfg.qkv_dim,
-        mlp_dim=cfg.mlp_dim,
-        max_len=cfg.max_len,
-        dropout_rate=cfg.dropout_rate,
-        attention_dropout_rate=cfg.attention_dropout_rate,
-        deterministic=cfg.deterministic,
-        decode=cfg.decode,
-        bos_token=cfg.bos_token,
-        output_head=cfg.output_head,
-        kernel_init=cfg.kernel_init,
-        bias_init=cfg.bias_init,
-        posemb_init=cfg.posemb_init)
-    self.encoder = models.TransformerIOEncoder(config=base_cfg, name='encoder')
-    self.decoder = models.TransformerDecoder(config=base_cfg, name='decoder')
+    self.encoder = models.TransformerIOEncoder(config=cfg.base_cfg,
+                                               name='encoder')
+    self.decoder = models.TransformerDecoder(config=cfg.base_cfg,
+                                             name='decoder')
 
-    self.ae = Autoencoder(config=base_cfg, c=cfg.c, name='ae')
+    self.ae = Autoencoder(config=cfg.base_cfg, c=cfg.c, name='ae')
     self.vq = vqvae.VectorQuantizerEMA(
-        config=base_cfg,
+        config=cfg.base_cfg,
         num_embeddings=cfg.latent_vocab_size,
         commitment_cost=cfg.commitment_cost_vq,
         name='vq')
     self.latent_pos_emb = models.AddPositionEmbs(
-        config=base_cfg, cache=False, name='posembed_latent')
+        config=cfg.base_cfg, cache=False, name='posembed_latent')
 
   def encode(self,
              inputs,
@@ -226,8 +188,8 @@ class LatentProgramTransformer(nn.Module):
                inputs,
                outputs,
                programs,
-               emb_mask = None,
-               pretrain = False):
+               emb_mask=None,
+               pretrain=False):
     """Applies Transformer autoencoder on the inputs."""
     cfg = self.config
 

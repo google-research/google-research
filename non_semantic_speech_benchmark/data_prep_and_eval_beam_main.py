@@ -31,8 +31,8 @@ import apache_beam as beam
 import tensorflow as tf
 
 
-# Gets flags.
-from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_main as data_prep
+# Gets flags from data_prep's main.
+from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_main as data_prep  # pylint:disable=unused-import
 from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_utils as data_prep_utils
 from non_semantic_speech_benchmark.eval_embedding.sklearn import train_and_eval_sklearn as sklearn_utils
 
@@ -65,15 +65,15 @@ def main(unused_argv):
     input_filenames_list, output_filenames = [], []
     for input_glob in [
         FLAGS.train_input_glob, FLAGS.validation_input_glob,
-        FLAGS.test_input_glob
+        FLAGS.test_input_glob,
     ]:
       FLAGS.input_glob = input_glob
-      cur_inputs, cur_outputs, beam_params = data_prep.get_beam_params_from_flags(
+      cur_inputs, cur_outputs, beam_params = data_prep_utils.get_beam_params_from_flags(
       )
       input_filenames_list.extend(cur_inputs)
       output_filenames.extend(cur_outputs)
   else:
-    input_filenames_list, output_filenames, beam_params = data_prep.get_beam_params_from_flags(
+    input_filenames_list, output_filenames, beam_params = data_prep_utils.get_beam_params_from_flags(
     )
   assert input_filenames_list, input_filenames_list
   assert output_filenames, output_filenames

@@ -1319,11 +1319,6 @@
         "message": "",
         "share_photo": true,
         "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       }
     ],
     "dialogue_id": 2517,
@@ -1381,6 +1376,11 @@
         "message": "Can you share the picture?",
         "share_photo": false,
         "user_id": 1
+      },
+      {
+        "message": "",
+        "share_photo": true,
+        "user_id": 0
       }
     ],
     "dialogue_id": 2518,
@@ -5743,11 +5743,6 @@
       {
         "message": "My jacket was straight out of the 80's!",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {
@@ -10722,11 +10717,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "I'm still trying to practice photography",
         "share_photo": false,
         "user_id": 0
@@ -13359,11 +13349,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "You're right, they do look pretty serious",
         "share_photo": false,
         "user_id": 1
@@ -14460,11 +14445,6 @@
       {
         "message": "yes",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {
@@ -15843,11 +15823,6 @@
       {
         "message": "Sure I\u2019ll do that right now",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {
@@ -22355,6 +22330,11 @@
         "message": "no, i think they are indoors",
         "share_photo": false,
         "user_id": 0
+      },
+      {
+        "message": "",
+        "share_photo": true,
+        "user_id": 0
       }
     ],
     "dialogue_id": 2800,
@@ -23491,11 +23471,6 @@
       {
         "message": "Gotta Run!",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {

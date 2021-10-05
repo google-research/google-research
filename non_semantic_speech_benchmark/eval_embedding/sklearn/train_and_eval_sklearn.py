@@ -72,13 +72,10 @@ def train_and_get_score(embedding_name,
   def _read_glob(glob, name):
     logging.info('Starting to read %s: %s', name, glob)
     s = time.time()
-    npx, npy = sklearn_utils.tfexamples_to_nps(
-        glob,
-        embedding_name,
-        label_name,
-        label_list,
-        l2_normalization,
-        speaker_id_name)
+    npx, npy, _ = sklearn_utils.tfexamples_to_nps(glob, embedding_name,
+                                                  label_name, label_list,
+                                                  l2_normalization,
+                                                  speaker_id_name)
     logging.info('Finished reading %s %s data: %.2f sec.', embedding_name, name,
                  _cur_s(s))
     return npx, npy

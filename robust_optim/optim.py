@@ -254,7 +254,7 @@ def coordinate_descent_topk_step(data, loss_f, model_param, options, k=2):
   grad = dloss_dw(model_param, inputs, labels)
   _, coords = jax.lax.top_k(jnp.abs(grad.T), k)
   grad_max = 0 * grad
-  grad_max = jax.ops.index_update(grad_max, coords, grad[coords])
+  grad_max = grad_max.at[coords].set(grad[coords])
 
   # Handle deep nets
   grad_max, unravel_fn = ravel_pytree(grad_max)

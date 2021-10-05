@@ -328,11 +328,10 @@ class IPAGNNInterpolant(nn.Module):
     if config.model.interpolant.init_with_code_embeddings:
       hidden_states = jax.vmap(execute)(hidden_states, node_embeddings)
     # leaves(hidden_states).shape: batch_size, num_nodes, hidden_size
-    instruction_pointer = jax.ops.index_add(
-        jnp.zeros((batch_size, num_nodes,)),
-        jax.ops.index[:, 0],  # TODO(dbieber): Use "start_index" instead of 0.
-        1
-    )
+    instruction_pointer = jnp.zeros((
+        batch_size,
+        num_nodes,
+    )).at[:, 0].add(1)  # TODO(dbieber): Use "start_index" instead of 0.
     # instruction_pointer.shape: batch_size, num_nodes,
 
     logits, to_tag = compute_logits(

@@ -95,10 +95,8 @@ def prolongation(r):
         lhs, rhs, window_strides=(1,) * r.ndim, padding='VALID')
     squeezed = np.squeeze(result1, axis=(0, 1))
     answer = np.zeros(n * 2 - 1)
-    answer = jax.ops.index_update(answer, np.arange(1, stop=n * 2 - 2, step=2),
-                                  squeezed)
-    answer = jax.ops.index_update(answer, np.arange(0, stop=n * 2 - 1, step=2),
-                                  r)
+    answer = answer.at[np.arange(1, stop=n * 2 - 2, step=2)].set(squeezed)
+    answer = answer.at[np.arange(0, stop=n * 2 - 1, step=2)].set(r)
   if r.ndim == 2:
     kernel1 = np.array([[1 / 2, 1 / 2]])
     kernel2 = np.array([[1 / 2], [1 / 2]])
@@ -117,10 +115,10 @@ def prolongation(r):
     squeezed2 = np.squeeze(result2, axis=(0, 1))
     squeezed3 = np.squeeze(result3, axis=(0, 1))
     answer = np.zeros((n * 2 - 1, n * 2 - 1))
-    answer = jax.ops.index_update(answer, jax.ops.index[::2, 1::2], squeezed1)
-    answer = jax.ops.index_update(answer, jax.ops.index[1::2, ::2], squeezed2)
-    answer = jax.ops.index_update(answer, jax.ops.index[1::2, 1::2], squeezed3)
-    answer = jax.ops.index_update(answer, jax.ops.index[::2, ::2], r)
+    answer = answer.at[::2, 1::2].set(squeezed1)
+    answer = answer.at[1::2, ::2].set(squeezed2)
+    answer = answer.at[1::2, 1::2].set(squeezed3)
+    answer = answer.at[::2, ::2].set(r)
   return answer[1:-1, 1:-1]
 
 

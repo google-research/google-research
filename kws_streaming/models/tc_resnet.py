@@ -97,6 +97,36 @@ def model_parameters(parser_nn):
       default=0.2,
       help='Percentage of data dropped',
   )
+  parser_nn.add_argument(
+      '--use_layer_norm',
+      type=int,
+      default=0,
+      help='If 1 it will use LayerNormalization, else BatchNormalization',
+  )
+  parser_nn.add_argument(
+      '--ln_center',
+      type=int,
+      default=1,
+      help='LayerNormalization parameter: if True, add offset of beta to '
+      ' normalized tensor. If False, beta is ignored',
+  )
+  parser_nn.add_argument(
+      '--ln_scale',
+      type=int,
+      default=1,
+      help='LayerNormalization parameter: if True, multiply by gamma. '
+      'If False, gamma is not used. When the next layer is linear '
+      '(also e.g. nn.relu), this can be disabled '
+      'since the scaling will be done by the next layer.',
+  )
+  parser_nn.add_argument(
+      '--ln_axis',
+      type=str,
+      default='(-1)',
+      help='LayerNormalization parameter: by default LayerNormalization '
+      'applied on last axis. It can be useful in streaming mode. '
+      'For non streaming mode it can be applied on (1, 3). ',
+  )
 
 
 def model(flags):
@@ -125,6 +155,7 @@ def model(flags):
   time_size, feature_size = net.shape[1:3]
 
   channels = utils.parse(flags.channels)
+  ln_axis = utils.parse(flags.ln_axis)
 
   net = tf.keras.backend.expand_dims(net)
 
@@ -143,12 +174,18 @@ def model(flags):
       padding='same',
       activation='linear')(
           net)
-  net = tf.keras.layers.BatchNormalization(
-      momentum=flags.bn_momentum,
-      center=flags.bn_center,
-      scale=flags.bn_scale,
-      renorm=flags.bn_renorm)(
-          net)
+
+  if flags.use_layer_norm:
+    net = tf.keras.layers.LayerNormalization(
+        center=flags.ln_center, scale=flags.ln_scale, axis=ln_axis)(
+            net)
+  else:
+    net = tf.keras.layers.BatchNormalization(
+        momentum=flags.bn_momentum,
+        center=flags.bn_center,
+        scale=flags.bn_scale,
+        renorm=flags.bn_renorm)(
+            net)
   net = tf.keras.layers.Activation('relu')(net)
 
   if utils.parse(flags.pool_size):
@@ -169,12 +206,17 @@ def model(flags):
           padding='same',
           activation='linear')(
               net)
-      layer_in = tf.keras.layers.BatchNormalization(
-          momentum=flags.bn_momentum,
-          center=flags.bn_center,
-          scale=flags.bn_scale,
-          renorm=flags.bn_renorm)(
-              layer_in)
+      if flags.use_layer_norm:
+        layer_in = tf.keras.layers.LayerNormalization(
+            center=flags.ln_center, scale=flags.ln_scale, axis=ln_axis)(
+                layer_in)
+      else:
+        layer_in = tf.keras.layers.BatchNormalization(
+            momentum=flags.bn_momentum,
+            center=flags.bn_center,
+            scale=flags.bn_scale,
+            renorm=flags.bn_renorm)(
+                layer_in)
       layer_in = tf.keras.layers.Activation('relu')(layer_in)
     else:
       layer_in = net
@@ -187,12 +229,17 @@ def model(flags):
         padding='same',
         activation='linear')(
             net)
-    net = tf.keras.layers.BatchNormalization(
-        momentum=flags.bn_momentum,
-        center=flags.bn_center,
-        scale=flags.bn_scale,
-        renorm=flags.bn_renorm)(
-            net)
+    if flags.use_layer_norm:
+      net = tf.keras.layers.LayerNormalization(
+          center=flags.ln_center, scale=flags.ln_scale, axis=ln_axis)(
+              net)
+    else:
+      net = tf.keras.layers.BatchNormalization(
+          momentum=flags.bn_momentum,
+          center=flags.bn_center,
+          scale=flags.bn_scale,
+          renorm=flags.bn_renorm)(
+              net)
     net = tf.keras.layers.Activation('relu')(net)
 
     net = tf.keras.layers.Conv2D(
@@ -202,12 +249,17 @@ def model(flags):
         padding='same',
         activation='linear')(
             net)
-    net = tf.keras.layers.BatchNormalization(
-        momentum=flags.bn_momentum,
-        center=flags.bn_center,
-        scale=flags.bn_scale,
-        renorm=flags.bn_renorm)(
-            net)
+    if flags.use_layer_norm:
+      net = tf.keras.layers.LayerNormalization(
+          center=flags.ln_center, scale=flags.ln_scale, axis=ln_axis)(
+              net)
+    else:
+      net = tf.keras.layers.BatchNormalization(
+          momentum=flags.bn_momentum,
+          center=flags.bn_center,
+          scale=flags.bn_scale,
+          renorm=flags.bn_renorm)(
+              net)
 
     # residual connection
     net = tf.keras.layers.Add()([net, layer_in])

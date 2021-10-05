@@ -7345,11 +7345,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "those are some great lemons",
         "share_photo": false,
         "user_id": 1
@@ -16496,11 +16491,6 @@
         "message": "",
         "share_photo": true,
         "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       }
     ],
     "dialogue_id": 8223,
@@ -20017,6 +20007,11 @@
       {
         "message": "Cool",
         "share_photo": false,
+        "user_id": 0
+      },
+      {
+        "message": "",
+        "share_photo": true,
         "user_id": 0
       }
     ],
@@ -30231,11 +30226,6 @@
         "message": "",
         "share_photo": true,
         "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       }
     ],
     "dialogue_id": 8403,
@@ -34042,11 +34032,6 @@
         "message": "",
         "share_photo": true,
         "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       }
     ],
     "dialogue_id": 8456,
@@ -36081,11 +36066,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "Yes! It is nice making some extra money.",
         "share_photo": false,
         "user_id": 1
@@ -37095,11 +37075,6 @@
         "message": "Sure!",
         "share_photo": false,
         "user_id": 1
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       },
       {
         "message": "",
