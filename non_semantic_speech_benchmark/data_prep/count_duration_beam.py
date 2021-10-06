@@ -21,7 +21,7 @@ r"""Counts average audio length.
 # pylint:enable=line-too-long
 
 import os
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, Optional, List, Tuple
 
 from absl import app
 from absl import flags
@@ -34,7 +34,7 @@ import tensorflow as tf
 from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_utils
 
 flags.DEFINE_string('output_file', None, 'Output file.')
-flags.DEFINE_boolean('debug', False, 'Whether to debug.')
+flags.DEFINE_string('debug', None, 'If present, only count this dataset.')
 flags.DEFINE_list(
     'audio_keys', ['audio', 'processed/audio_samples', 'audio_waveform',
                    'WAVEFORM/feature/floats'],
@@ -104,7 +104,8 @@ def duration_and_num_examples(
           | f'Stats-{ds_name}' >> beam.Map(_mean_and_count))
 
 
-def get_dataset_info_dict(debug):
+def get_dataset_info_dict(
+    debug):
   """Get dictionary of dataset info."""
   def _tfds_fns(ds_name):
     fns = [
@@ -114,15 +115,18 @@ def get_dataset_info_dict(debug):
     fns = [fns]  # TFRecords require a list.
     return (fns, 'tfrecord')
 
+  dss = {
+      'crema_d':
+          _tfds_fns('crema_d'),
+      'savee':
+          _tfds_fns('savee'),
+      'speech_commands':
+          _tfds_fns('speech_commands'),
+      'voxceleb':
+          _tfds_fns('voxceleb'),
+  }
   if debug:
-    dss = {'savee': _tfds_fns('savee')}
-  else:
-    dss = {
-        'crema_d': _tfds_fns('crema_d'),
-        'savee': _tfds_fns('savee'),
-        'speech_commands': _tfds_fns('speech_commands'),
-        'voxceleb': _tfds_fns('voxceleb'),
-    }
+    dss = {debug: dss[debug]}
 
   return dss
 
