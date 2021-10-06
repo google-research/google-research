@@ -19,7 +19,8 @@ import os
 
 from absl import flags
 import numpy as np
-from skimage.measure import compare_ssim
+
+from skimage import metrics
 
 import tensorflow.compat.v1.io.gfile as gfile
 
@@ -86,11 +87,13 @@ def ssim(img_true, img_pred, y_channel=True):
   else:
     y_true = to_uint8(img_true, 0, 255)
     y_pred = to_uint8(img_pred, 0, 255)
-  return compare_ssim(
+
+  ssim_val = metrics.structural_similarity(
       y_true,
       y_pred,
       data_range=y_pred.max() - y_pred.min(),
       multichannel=not y_channel)
+  return ssim_val
 
 
 def crop_8x8(img):

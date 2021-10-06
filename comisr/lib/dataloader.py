@@ -18,7 +18,8 @@
 import collections
 import os
 
-from cvx2 import latest as cv
+import cv2 as cv
+
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow.compat.v1.io.gfile as gfile

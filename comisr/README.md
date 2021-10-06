@@ -1,22 +1,32 @@
 # COMISR:Compression-Informed Video Super-Resolution
 
 This repo contains the testing code for the paper in the ICCV 2021.
-["COMISR:Compression-Informed Video Super-Resolution"](https://arxiv.org/abs/2105.01237)
+["COMISR: Compression-Informed Video Super-Resolution"](https://arxiv.org/abs/2105.01237)
 
 *Disclaimer: This is not an official Google product.*
 
-## Pre-requisite
-Besides those listed in `requirements.txt`, you will need to create input frames (e.g. compressed vid4 sequence)
-The folder path should be similar to:
-.../testdata/lr_crf25/calendar
-.../testdata/lr_crf25/city
-.../testdata/lr_crf25/foliage
-.../testdata/lr_crf25/walk
+![COMISR sample](resources/comisr.png)
 
-.../testdata/hr/calendar
-.../testdata/hr/city
-.../testdata/hr/foliage
-.../testdata/hr/walk
+## Pre-requisite
+
+Install dependencies:
+```
+pip3 install -r requirements.txt
+```
+
+The vid4 testing data can be downloaded from: gs://gresearch/comisr/data/
+[gcloud sdk](https://cloud.google.com/sdk/docs/install)
+
+The folder path should be similar to:
+.../testdata/lr_crf25/calendar\
+.../testdata/lr_crf25/city\
+.../testdata/lr_crf25/foliage\
+.../testdata/lr_crf25/walk\
+
+.../testdata/hr/calendar\
+.../testdata/hr/city\
+.../testdata/hr/foliage\
+.../testdata/hr/walk\
 
 ## Creating compressed frames
 We use [ffmpeg](https://www.ffmpeg.org/) to compress video frames. Below is one sample CLI usage.
@@ -27,14 +37,13 @@ ffmpeg -framerate 10 -i im%2d.png -c:v libx264 -crf 0 lossless.mp4 \
 && ffmpeg -i lossless.mp4 -vcodec libx264 -crf 25 crf25.mp4 \
 && ffmpeg -ss 00:00:00 -t 00:00:10 -i crf25.mp4 -r 10 crf25_%2d.png
 
-The VID4 testing data can be downloaded from: gs://gresearch/comisr/data/
 
 ## Pre-trained Model
 The pre-trained model can be downloaded from gs://gresearch/comisr/model/
 
 
 ## Usage
-python inference_and_eval.py
+python inference_and_eval.py --checkpoint_path=/xxx/model.ckpt --input_lr_dir=/xxx/lr_4x_crf25 --targets=/xxx/hr --output_dir=/xxx/output_dir
 
 
 ## Citation

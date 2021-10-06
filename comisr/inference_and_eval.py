@@ -24,7 +24,7 @@ import re
 import time
 
 from absl import flags
-from cvx2 import latest as cv2
+import cv2
 import numpy as np
 import pandas as pd
 import tensorflow.compat.v1 as tf
@@ -36,6 +36,7 @@ from comisr.lib.model import fnet
 from comisr.lib.model import generator_f
 import comisr.lib.ops as ops
 import comisr.metrics as metrics
+
 
 flags.DEFINE_string('input_lr_dir', None,
                     'The directory of the input low-resolution data.')
@@ -65,6 +66,7 @@ flags.DEFINE_boolean('use_ema', True, 'use ema')
 flags.DEFINE_boolean('is_vid4_eval', True, 'True is vid4, and false is reds4.')
 
 FLAGS = flags.FLAGS
+tf.compat.v1.disable_eager_execution()
 
 
 def _get_ema_vars():
@@ -254,6 +256,7 @@ def compute_metrics(input_flags):
   target_list = [
       os.path.join(input_flags.targets, dir_name) for dir_name in target_list
   ]
+  target_list.sort()
   folder_n = len(result_list)
 
   cutfr = 2
