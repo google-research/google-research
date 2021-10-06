@@ -1,0 +1,8 @@
+absl-py>=0.12.0
+numpy>=1.14.3
+scipy>=1.0.1
+pandas>=0.23.1
+Keras>=2.1.2
+opencv-python>=2.4.11
+tensorflow>=1.4
+scikit-image>=0.13.0
