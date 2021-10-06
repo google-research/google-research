@@ -19,7 +19,7 @@ These compartmental models can be extended to share compartmental dynamics
 across multiple models.
 """
 import abc
-from typing import Any, Dict, List, Tuple
+# from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -27,7 +27,7 @@ import tensorflow as tf
 from covid_epidemiology.src import constants
 from covid_epidemiology.src.models.definitions import base_model_definition
 from covid_epidemiology.src.models.shared import model_utils
-from covid_epidemiology.src.models.shared import typedefs
+# from covid_epidemiology.src.models.shared import typedefs
 
 
 # noinspection PyMethodMayBeStatic

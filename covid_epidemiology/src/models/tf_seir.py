@@ -19,8 +19,8 @@
 import logging
 import pickle
 import string
-import traceback
-from typing import Dict, Tuple
+# import traceback
+# from typing import Dict, Tuple
 
 from google.cloud import storage
 import numpy as np
@@ -29,12 +29,12 @@ import tensorflow as tf
 
 from covid_epidemiology.src import constants
 from covid_epidemiology.src.models import tf_model
-from covid_epidemiology.src.models.definitions import base_model_definition
-from covid_epidemiology.src.models.encoders import variable_encoders
+# from covid_epidemiology.src.models.definitions import base_model_definition
+# from covid_epidemiology.src.models.encoders import variable_encoders
 from covid_epidemiology.src.models.shared import context_timer
 from covid_epidemiology.src.models.shared import feature_utils
 from covid_epidemiology.src.models.shared import output_utils
-from covid_epidemiology.src.models.shared import typedefs
+# from covid_epidemiology.src.models.shared import typedefs
 
 
 class TfSeir(tf_model.TfSeir):

@@ -23,7 +23,7 @@ import collections
 import hashlib
 import itertools
 import os
-from typing import Any, Dict, List, Optional, Text
+# from typing import Any, Dict, List, Optional, Text
 
 from absl import logging
 import blast_utils

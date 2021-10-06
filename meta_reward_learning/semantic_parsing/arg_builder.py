@@ -100,7 +100,7 @@ def build_train_args(dataset, data_dir, experiment_name=None):
     maxlen = 28
     trigger_words_file = None
   else:
-    raise (ValueError, '{} doesn\'t refer to any dataset'.format(dataset))
+    raise ValueError(f'{dataset} doesn\'t refer to any dataset')
 
   # If meta learning is set to be False, don't remove any training data.
   if FLAGS.use_validation_for_meta_train or (not FLAGS.meta_learn):

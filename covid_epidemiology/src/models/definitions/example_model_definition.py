@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """A model definition for US States without ICU or Ventilator."""
-from typing import Dict, Set, Tuple
+# from typing import Dict, Set, Tuple
 import warnings
 
 import numpy as np
@@ -25,7 +25,7 @@ from covid_epidemiology.src.models import generic_seir_county_model_constructor
 from covid_epidemiology.src.models.definitions import compartmental_model_definitions
 from covid_epidemiology.src.models.shared import model_spec as model_spec_lib
 from covid_epidemiology.src.models.shared import model_utils
-from covid_epidemiology.src.models.shared import typedefs
+# from covid_epidemiology.src.models.shared import typedefs
 
 
 class ExampleModelDefinition(

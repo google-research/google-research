@@ -311,7 +311,7 @@ def gait_library_policy(gaits,
       phase = 1
       last_phase = 1
     else:
-      ValueError('Tau must lie between 0 and ' + str(cycle_time))
+      raise ValueError('Tau must lie between 0 and ' + str(cycle_time))
 
     action = []
     action_vel = []
@@ -428,7 +428,7 @@ def hzd_policy(vircons=None,
       tau = normalize(t_in_cycle, cycle_time, float(phasevars[0]))
       phase = 1
     else:
-      ValueError('Tau must lie between 0 and ' + str(cycle_time))
+      raise ValueError('Tau must lie between 0 and ' + str(cycle_time))
 
     action = []
     action_vel = []
