@@ -78,7 +78,7 @@ def get_apply_compression(compression_op_spec, global_step):
   logging.info('Compressor spec %s', compressor_spec.to_json())
   logging.info('Compression operator spec %s', compression_op_spec.to_json())
 
-  if compression_op_spec.compression_option not in CompressionOptions:
+  if compression_op_spec.compression_option not in list(CompressionOptions):
     # if unknown compression_option is given, default to low rank compression.
     logging.info(
         'Compression_option %s not in expected options: %s. '
