@@ -15,7 +15,6 @@
 
 """Ops overwritten."""
 
-from cvx2 import latest as cv
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow.compat.v2 as tf2
@@ -212,9 +211,3 @@ def bicubic_four(inputs, scope='bicubic_four'):
     hi_res = tf.reshape(hi_res, (b, h * 4, w * 4, c))
 
   return hi_res
-
-
-def save_img(out_path, img):
-  """Save an image to disk."""
-  img = np.clip(img * 255.0, 0, 255).astype(np.uint8)
-  cv.imwrite(out_path, img[:, :, ::-1])

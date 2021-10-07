@@ -18,7 +18,7 @@
 import collections
 import os
 
-import cv2 as cv
+import cv2
 
 import numpy as np
 import tensorflow.compat.v1 as tf
@@ -56,10 +56,10 @@ def inference_data_loader(
 
     with tf.gfile.Open(name, 'rb') as fid:
       raw_im = np.asarray(bytearray(fid.read()), dtype=np.uint8)
-      im = cv.imdecode(raw_im, cv.IMREAD_COLOR).astype(np.float32)[:, :, ::-1]
+      im = cv2.imdecode(raw_im, cv2.IMREAD_COLOR).astype(np.float32)[:, :, ::-1]
 
     if down_sp:
-      icol_blur = cv.GaussianBlur(im, (0, 0), sigmaX=1.5)
+      icol_blur = cv2.GaussianBlur(im, (0, 0), sigmaX=1.5)
       im = icol_blur[::4, ::4, ::]
     im = im / 255.0
     return im
