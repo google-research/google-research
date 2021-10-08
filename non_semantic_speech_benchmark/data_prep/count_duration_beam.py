@@ -40,7 +40,8 @@ flags.DEFINE_list(
                    'WAVEFORM/feature/floats'],
     'Possible audio keys in tf.Examples.')
 flags.DEFINE_list(
-    'sr_keys', [], 'Possible sample rate keys in tf.Examples.')
+    'sr_keys', ['audio_sample_rate'],
+    'Possible sample rate keys in tf.Examples.')
 
 FLAGS = flags.FLAGS
 
