@@ -104,7 +104,7 @@ def get_beam_params_from_flags(
                       else samples_to_embedding_tfhub),
       setup_fn=build_tflite_interpreter if is_tflite else hub.load,
   )
-   # pylint:enable=line-too-long
+  # pylint:enable=line-too-long
 
   logging.info('input_filenames_list: %s', input_filenames_list)
   logging.info('output_filenames: %s', output_filenames)
@@ -517,8 +517,8 @@ def _tfds_sample_rate(dataset_name, data_dir = None):
 
 def read_input_glob_and_sample_rate_from_flags(
     input_glob_flag, sample_rate_flag, tfds_dataset_flag,
-    output_filename_flag,
-    tfds_data_dir_flag):
+    output_filename_flag, tfds_data_dir_flag
+):
   """Read flags for input data and sample rate.
 
   Args:
@@ -541,7 +541,7 @@ def read_input_glob_and_sample_rate_from_flags(
           f'`tfds_data_dir_flag` should be None: {tfds_data_dir_flag}')
     input_filenames = [tf.io.gfile.glob(input_glob_flag)]
     output_filenames = [output_filename_flag]
-    sample_rate = int(sample_rate_flag)
+    sample_rate = int(sample_rate_flag) if sample_rate_flag else None
   else:
     assert tfds_dataset_flag
     dataset_name = tfds_dataset_flag
