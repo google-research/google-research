@@ -25,7 +25,6 @@ import json
 import os
 import random
 import sys
-sys.path.append('../../')
 import time
 
 from absl import app
@@ -49,6 +48,7 @@ from latent_programmer.decomposition_transformer_attention import input_pipeline
 from latent_programmer.tasks.robust_fill import dsl
 from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
 
+sys.path.append('../../')
 gfile = tf.io.gfile
 
 FLAGS = flags.FLAGS
@@ -87,13 +87,19 @@ flags.DEFINE_string('attention_mask_type', 'bos_full_attention',
                     'The kind of attention mask to use. Options are: baseline, '
                     'bos_to_bos, bos_full_attention')
 
-flags.DEFINE_string('xm_parameters', None,
-                    'String specifying hyperparamter search.')
-
 flags.DEFINE_bool('use_relative_attention', True,
                   'Whether to use relative positonal embeddings.')
 flags.DEFINE_integer('num_relative_position_buckets', 32,
                      'Number of buckets when computing relative positions.')
+flags.DEFINE_bool('bos_special_attention', False,
+                  'Whether to use special relative attention computation for '
+                  'BOS tokens.')
+
+
+_internal = False
+if not _internal:
+  flags.DEFINE_string('xm_parameters', None,
+                      'String specifying hyperparamter search.')
 
 
 def create_learning_rate_scheduler(
@@ -418,6 +424,15 @@ def main(_):
   np.random.seed(FLAGS.seed)
   random.seed(FLAGS.seed)
 
+  # BOS special attention only makes sense if we are using relative attention
+  # and it's not the baseline.
+  if FLAGS.bos_special_attention and (not FLAGS.use_relative_attention or
+                                      FLAGS.attention_mask_type == 'baseline'):
+    raise ValueError(
+        "bos_special_attention doesn't work when use_relative_attention={} and "
+        'attention_mask_type={}'.format(FLAGS.use_relative_attention,
+                                        FLAGS.attention_mask_type))
+
   if not gfile.isdir(FLAGS.save_dir):
     gfile.mkdir(FLAGS.save_dir)
 
@@ -521,14 +536,17 @@ def main(_):
       bos_token=bos_token)
   train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
-      attention_mask_type=FLAGS.attention_mask_type)
+      attention_mask_type=FLAGS.attention_mask_type,
+      bos_special_attention=FLAGS.bos_special_attention)
   eval_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config.replace(deterministic=True),
-      attention_mask_type=FLAGS.attention_mask_type)
+      attention_mask_type=FLAGS.attention_mask_type,
+      bos_special_attention=FLAGS.bos_special_attention)
   predict_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config.replace(
           shift=False, deterministic=True, decode=not FLAGS.slow_decode),
-      attention_mask_type=FLAGS.attention_mask_type)
+      attention_mask_type=FLAGS.attention_mask_type,
+      bos_special_attention=FLAGS.bos_special_attention)
 
   rng = jax.random.PRNGKey(FLAGS.seed)
   rng = jax.random.fold_in(rng, jax.host_id())

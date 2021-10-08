@@ -107,12 +107,13 @@ class RelativeMultiHeadDotProductAttention(module.Module):
 
   @module.compact
   def __call__(self,
-               inputs_q: Array,
-               inputs_kv: Array,
-               mask: Optional[Array] = None,
-               custom_relative_position: Optional[Array] = None,
-               deterministic: Optional[bool] = None):
+               inputs_q,
+               inputs_kv,
+               mask = None,
+               custom_relative_position = None,
+               deterministic = None):
     """Applies multi-head dot product attention on the input data.
+
     Projects the inputs into multi-headed query, key, and value vectors,
     applies dot-product attention and project the results to an output vector.
 
@@ -225,9 +226,9 @@ class RelativeMultiHeadDotProductAttention(module.Module):
         # positions that have already been generated and cached,
         # not the remaining zero elements.
         mask = attention.combine_masks(
-          mask,
-          jnp.broadcast_to(jnp.arange(max_length) <= cur_index,
-                           tuple(batch_dims) + (1, 1, max_length)))
+            mask,
+            jnp.broadcast_to(jnp.arange(max_length) <= cur_index,
+                             tuple(batch_dims) + (1, 1, max_length)))
 
         bias = lax.dynamic_slice(
             bias,
@@ -275,10 +276,10 @@ class RelativeSelfAttention(RelativeMultiHeadDotProductAttention):
 
   @module.compact
   def __call__(self,
-               inputs_q: Array,
-               mask: Optional[Array] = None,
-               custom_relative_position: Optional[Array] = None,
-               deterministic: Optional[bool] = None):
+               inputs_q,
+               mask = None,
+               custom_relative_position = None,
+               deterministic = None):
     return super().__call__(inputs_q, inputs_q,
                             mask=mask,
                             custom_relative_position=custom_relative_position,

@@ -191,10 +191,12 @@ def compute_weighted_cross_entropy(logits, targets, weights=None):
 
 def compute_weighted_accuracy(logits, targets, weights=None):
   """Compute weighted accuracy for log probs and targets.
+
   Args:
    logits: `[batch, length, num_classes]` float array.
    targets: categorical targets `[batch, length]` int array.
    weights: None or array of shape [batch, length, 1]
+
   Returns:
     Tuple of scalar accuracy and batch normalizing factor.
   """
