@@ -40,7 +40,6 @@ try:
 except:  # pylint:disable=bare-except
   print('Missing cv2 dependency. Please install opencv-python.')
 
-from cvx2 import latest as cv2  # pylint:disable=g-import-not-at-top
 
 
 flags.DEFINE_string('data_dir', '', 'Directory with images to run on. Images '
