@@ -24,6 +24,7 @@ import json
 import os
 import random
 import sys
+sys.path.append('..')
 import time
 
 from absl import app
@@ -46,7 +47,6 @@ from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
 from latent_programmer.tasks.robust_fill.dataset import input_pipeline
 
 gfile = tf.io.gfile
-sys.path.append('..')
 
 FLAGS = flags.FLAGS
 

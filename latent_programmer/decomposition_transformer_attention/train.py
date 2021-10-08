@@ -24,6 +24,8 @@ import functools
 import json
 import os
 import random
+import sys
+sys.path.append('../../')
 import time
 
 from absl import app
@@ -84,6 +86,9 @@ flags.DEFINE_bool('restore_checkpoints', True,
 flags.DEFINE_string('attention_mask_type', 'bos_full_attention',
                     'The kind of attention mask to use. Options are: baseline, '
                     'bos_to_bos, bos_full_attention')
+
+flags.DEFINE_string('xm_parameters', None,
+                    'String specifying hyperparamter search.')
 
 flags.DEFINE_bool('use_relative_attention', True,
                   'Whether to use relative positonal embeddings.')

@@ -68,26 +68,26 @@ def make_relative_position_bucket(relative_position, causal=False,
 class RelativeMultiHeadDotProductAttention(module.Module):
   """Dot-product attention with relative positional encodings.
 
-    Attributes:
-      num_heads: number of attention heads. Features (i.e. inputs_q.shape[-1])
-        should be divisible by the number of heads.
-      dtype: the dtype of the computation (default: float32)
-      qkv_features: dimension of the key, query, and value.
-      out_features: dimension of the last projection
-      broadcast_dropout: bool: use a broadcasted dropout along batch dims.
-      dropout_rate: dropout rate
-      deterministic: if false, the attention weight is masked randomly
-        using dropout, whereas if true, the attention weights
-        are deterministic.
-      precision: numerical precision of the computation see `jax.lax.Precision`
-        for details.
-      kernel_init: initializer for the kernel of the Dense layers.
-      bias_init: initializer for the bias of the Dense layers.
-      use_bias: bool: whether pointwise QKVO dense transforms use bias.
-      decode: whether to prepare and use an autoregressive cache.
-      causal: whether to only attend to past tokens.
-      num_relative_position_buckets: number of buckets for relative positions
-        for attention.
+  Attributes:
+    num_heads: number of attention heads. Features (i.e. inputs_q.shape[-1])
+      should be divisible by the number of heads.
+    dtype: the dtype of the computation (default: float32)
+    qkv_features: dimension of the key, query, and value.
+    out_features: dimension of the last projection
+    broadcast_dropout: bool: use a broadcasted dropout along batch dims.
+    dropout_rate: dropout rate
+    deterministic: if false, the attention weight is masked randomly
+      using dropout, whereas if true, the attention weights
+      are deterministic.
+    precision: numerical precision of the computation see `jax.lax.Precision`
+      for details.
+    kernel_init: initializer for the kernel of the Dense layers.
+    bias_init: initializer for the bias of the Dense layers.
+    use_bias: bool: whether pointwise QKVO dense transforms use bias.
+    decode: whether to prepare and use an autoregressive cache.
+    causal: whether to only attend to past tokens.
+    num_relative_position_buckets: number of buckets for relative positions
+      for attention.
   """
   num_heads: int
   dtype: Dtype = jnp.float32
@@ -107,14 +107,15 @@ class RelativeMultiHeadDotProductAttention(module.Module):
 
   @module.compact
   def __call__(self,
-               inputs_q,
-               inputs_kv,
-               mask = None,
-               deterministic = None):
+               inputs_q: Array,
+               inputs_kv: Array,
+               mask: Optional[Array] = None,
+               custom_relative_position: Optional[Array] = None,
+               deterministic: Optional[bool] = None):
     """Applies multi-head dot product attention on the input data.
-
     Projects the inputs into multi-headed query, key, and value vectors,
     applies dot-product attention and project the results to an output vector.
+
     Args:
       inputs_q: input queries of shape
         `[batch_sizes..., length, features]`.
@@ -124,9 +125,12 @@ class RelativeMultiHeadDotProductAttention(module.Module):
         `[batch_sizes..., num_heads, query_length, key/value_length]`.
         Attention weights are masked out if their corresponding mask value
         is `False`.
+      custom_relative_position: relative positions tensor
+        `[batch_sizes..., query_length, key/value_length]'
       deterministic: if false, the attention weight is masked randomly
         using dropout, whereas if true, the attention weights
         are deterministic.
+
     Returns:
       output of shape `[batch_sizes..., length, features]`.
     """
@@ -158,19 +162,35 @@ class RelativeMultiHeadDotProductAttention(module.Module):
                          dense(dtype=self.dtype, name='key')(inputs_kv),
                          dense(dtype=self.dtype, name='value')(inputs_kv))
 
-    query_length = inputs_q.shape[-2]
-    key_length = inputs_kv.shape[-2]
-    context_position = jnp.arange(query_length, dtype=jnp.int32)[:, None]
-    memory_position = jnp.arange(key_length, dtype=jnp.int32)[None, :]
+    if custom_relative_position is None:
+      query_length = inputs_q.shape[-2]
+      key_length = inputs_kv.shape[-2]
+      context_position = jnp.arange(query_length, dtype=jnp.int32)[:, None]
+      memory_position = jnp.arange(key_length, dtype=jnp.int32)[None, :]
 
-    relative_position = memory_position - context_position
-    relative_position_bucket = make_relative_position_bucket(
-        relative_position,
-        causal=self.causal,
-        num_buckets=self.num_relative_position_buckets)
+      relative_position = memory_position - context_position
+      relative_position_bucket = make_relative_position_bucket(
+          relative_position,
+          causal=self.causal,
+          num_buckets=self.num_relative_position_buckets)
 
-    bias = relative_attention_embed(relative_position_bucket)
-    bias = bias.transpose((2, 0, 1))[None, :, :, :]
+      bias = relative_attention_embed(relative_position_bucket)
+      bias = bias.transpose((2, 0, 1))
+      # Expand batch dimensions.
+      bias = jnp.broadcast_to(
+          bias, (1,) * len(inputs_q.shape[:-2]) + bias.shape)
+
+    else:
+      relative_position = custom_relative_position
+      relative_position_bucket = make_relative_position_bucket(
+          relative_position,
+          causal=self.causal,
+          num_buckets=self.num_relative_position_buckets)
+
+      bias = relative_attention_embed(relative_position_bucket)
+      permute = tuple(map(lambda i: len(inputs_q.shape) + 1 + i, (-1, -3, -2)))
+      bias = bias.transpose(
+          tuple(range(len(inputs_q.shape[:-2]))) + permute)
 
     # During fast autoregressive decoding, we feed one position at a time,
     # and cache the keys and values step by step.
@@ -205,9 +225,9 @@ class RelativeMultiHeadDotProductAttention(module.Module):
         # positions that have already been generated and cached,
         # not the remaining zero elements.
         mask = attention.combine_masks(
-            mask,
-            jnp.broadcast_to(jnp.arange(max_length) <= cur_index,
-                             tuple(batch_dims) + (1, 1, max_length)))
+          mask,
+          jnp.broadcast_to(jnp.arange(max_length) <= cur_index,
+                           tuple(batch_dims) + (1, 1, max_length)))
 
         bias = lax.dynamic_slice(
             bias,
@@ -254,7 +274,12 @@ class RelativeSelfAttention(RelativeMultiHeadDotProductAttention):
   """Self-attention special case."""
 
   @module.compact
-  def __call__(self, inputs_q, mask = None,
-               deterministic = None):
-    return super().__call__(inputs_q, inputs_q, mask,
+  def __call__(self,
+               inputs_q: Array,
+               mask: Optional[Array] = None,
+               custom_relative_position: Optional[Array] = None,
+               deterministic: Optional[bool] = None):
+    return super().__call__(inputs_q, inputs_q,
+                            mask=mask,
+                            custom_relative_position=custom_relative_position,
                             deterministic=deterministic)
