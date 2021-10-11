@@ -34,6 +34,15 @@ class DecomposeAttentionTransformerConfig:
   attention_mask_type: str  # Options: baseline, bos_to_bos, bos_full_attention
 
 
+def shift_left(x):
+  """Shift the input to the left."""
+  pad_widths = [(0, 0)] * len(x.shape)
+  pad_widths[-1] = (0, 1)  # Padding on axis=-1
+  padded = jnp.pad(
+      x, pad_widths, mode='constant', constant_values=x.dtype.type(0))
+  return padded[Ellipsis, 1:]
+
+
 def make_partial_program_mask(programs,
                               bos_token = 1,
                               dtype = jnp.float32):
@@ -131,13 +140,16 @@ class DecomposeAttentionTransformer(nn.Module):
             nn.make_causal_mask(programs, dtype=cfg.dtype))
       else:
         if attention_mask_type == 'bos_to_bos':
-          # BOS tokens attend to all previous BOS tokens.
-          decoder_bos_mask = nn.combine_masks(
+          # BOS tokens attend to all previous BOS + last partial program tokens.
+          bos_mask = nn.combine_masks(
               nn.make_attention_mask(
                   programs == cfg.bos_token,
                   programs == cfg.bos_token,
                   dtype=cfg.dtype),
               nn.make_causal_mask(programs, dtype=cfg.dtype))
+          # Shift bos mask to left to get all previous last partial program tokens.
+          decoder_bos_mask = bos_mask + shift_left(bos_mask)
+
         elif attention_mask_type == 'bos_full_attention':
           # BOS tokens attend to all previous tokens, including program tokens.
           decoder_bos_mask = nn.combine_masks(
