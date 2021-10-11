@@ -30,6 +30,95 @@ from tensorflow_addons import image as tfa_image
 _FlowKey = Tuple[int, int, str]
 _FlowKeyDict = Dict[_FlowKey, List[tf.Tensor]]
 
+# TFA is significantly faster on GPU but can cause compatibility problems.
+USE_TFA = False
+
+
+def resampler_flat_gather(data, warp, name='flat_resampler'):
+  """Resampler that avoids gather_nd which can be expensive on TPU.
+
+  Computing gradients of gather_nd requires calling scatter_nd
+  which is very slow on TPU and causes a large memory blowup.
+  Empirically, this resampler produces a much lower memory footprint
+  and faster inference time on the TPU by avoding gather_nd and instead
+  using a flat gather. See tfa.image.resampler for more documentation.
+
+  Args:
+    data: float tf Tensor of shape b H W c, The source to differentiably
+      resample from.
+    warp: float tf Tensor of shape b h w 2, The set of coordinates to sample
+      from data.
+    name: str scope to put operations under.
+  Returns:
+    resampled_data: float tf Tensor of shape b h w c, The result of sampling
+      data with warp.
+  """
+  with tf.name_scope(name):
+    b, data_h, data_w, c = tf.unstack(tf.shape(data))
+    _, warp_h, warp_w, _ = tf.unstack(tf.shape(warp))
+    warp_x, warp_y = tf.unstack(warp, axis=-1)
+
+    warp_shape = tf.shape(warp_x)
+    warp_batch = tf.range(warp_shape[0], dtype=tf.int32)
+    warp_batch = tf.reshape(warp_batch, (warp_shape[0], 1, 1))
+    warp_batch = tf.broadcast_to(warp_batch, (b, warp_h, warp_w))
+    warp_batch = tf.reshape(warp_batch, [-1])
+    warp_x = tf.reshape(warp_x, [-1])
+    warp_y = tf.reshape(warp_y, [-1])
+    warp_floor_x = tf.math.floor(warp_x)
+    warp_floor_y = tf.math.floor(warp_y)
+
+    right_warp_weight = warp_x - warp_floor_x
+    down_warp_weight = warp_y - warp_floor_y
+    left_warp_weight = tf.subtract(
+        tf.convert_to_tensor(1.0, right_warp_weight.dtype), right_warp_weight)
+    up_warp_weight = tf.subtract(
+        tf.convert_to_tensor(1.0, down_warp_weight.dtype), down_warp_weight)
+
+    warp_floor_x = tf.cast(warp_floor_x, tf.int32)
+    warp_floor_y = tf.cast(warp_floor_y, tf.int32)
+    warp_ceil_x = tf.cast(tf.math.ceil(warp_x), tf.int32)
+    warp_ceil_y = tf.cast(tf.math.ceil(warp_y), tf.int32)
+
+    left_warp_weight = tf.expand_dims(left_warp_weight, -1)
+    right_warp_weight = tf.expand_dims(right_warp_weight, -1)
+    up_warp_weight = tf.expand_dims(up_warp_weight, -1)
+    down_warp_weight = tf.expand_dims(down_warp_weight, -1)
+
+    def flatten_warp(warp_y, warp_x):
+      """Converts the warps from a 2D index to a 1D index."""
+      output = tf.reshape(
+          warp_batch * data_w * data_h + warp_y * data_w + warp_x, [-1])
+      # Get a mask of the coordinates which go out of bounds.
+      mask_y = tf.cast(
+          tf.logical_and(warp_y >= 0, warp_y <= data_h - 1), dtype=data.dtype)
+      mask_x = tf.cast(
+          tf.logical_and(warp_x >= 0, warp_x <= data_w - 1), dtype=data.dtype)
+      output = tf.clip_by_value(output, 0, b * data_h * data_w - 1)
+      return output, tf.expand_dims(mask_y * mask_x, -1)
+
+    up_left_warp, mask_up_left = flatten_warp(warp_floor_y, warp_floor_x)
+    up_right_warp, mask_up_right = flatten_warp(warp_floor_y, warp_ceil_x)
+    down_left_warp, mask_down_left = flatten_warp(warp_ceil_y, warp_floor_x)
+    down_right_warp, mask_down_right = flatten_warp(warp_ceil_y, warp_ceil_x)
+    flat_data = tf.reshape(data, (-1, c))
+
+    up_left = tf.gather(flat_data, up_left_warp, axis=0) * mask_up_left
+    up_right = tf.gather(flat_data, up_right_warp, axis=0) * mask_up_right
+    down_left = tf.gather(flat_data, down_left_warp, axis=0) * mask_down_left
+    down_right = tf.gather(flat_data, down_right_warp, axis=0) * mask_down_right
+    result = (up_left * left_warp_weight + up_right * right_warp_weight
+             ) * up_warp_weight + (down_left * left_warp_weight + down_right *
+                                   right_warp_weight) * down_warp_weight
+    return tf.reshape(result, (b, warp_h, warp_w, c))
+
+
+def resampler(source, coords):
+  if USE_TFA:
+    return tfa_image.resampler(source, coords)
+  else:
+    return resampler_flat_gather(source, coords)
+
 
 def flow_to_warp(flow):
   """Compute the warp from the flow field.
@@ -111,7 +200,7 @@ def resample(source, coords):
     coords = tf.cast(coords, tf.float32)
   coords_rank = len(coords.shape)
   if coords_rank == 4:
-    output = tfa_image.resampler(source, coords[:, :, :, ::-1])
+    output = resampler(source, coords[:, :, :, ::-1])
     if orig_source_dtype != source.dtype:
       return tf.cast(output, orig_source_dtype)
     return output
