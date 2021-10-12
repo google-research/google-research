@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """Model based on combination of n by 1 convolutions with residual blocks."""
+from kws_streaming.layers import layer_norm_abs
 from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
 from kws_streaming.layers.compat import tf
@@ -101,7 +102,13 @@ def model_parameters(parser_nn):
       '--use_layer_norm',
       type=int,
       default=0,
-      help='If 1 it will use LayerNormalization, else BatchNormalization',
+      help='If 0 it will use BatchNormalization '
+      'with parameters: bn_momentum, bn_center, bn_scale, bn_renorm. '
+      'If 1 it will use LayerNormalization '
+      'with parameters ln_center, ln_scale, ln_axis. '
+      'Else it will use LayerNormalizationAbs. '
+      'LayerNormalizationAbs will be applied on last dim only '
+      'and ln_center, ln_scale, ln_axis will be ignored.'
   )
   parser_nn.add_argument(
       '--ln_center',
@@ -175,17 +182,20 @@ def model(flags):
       activation='linear')(
           net)
 
-  if flags.use_layer_norm:
-    net = tf.keras.layers.LayerNormalization(
-        center=flags.ln_center, scale=flags.ln_scale, axis=ln_axis)(
-            net)
-  else:
+  if flags.use_layer_norm == 0:
     net = tf.keras.layers.BatchNormalization(
         momentum=flags.bn_momentum,
         center=flags.bn_center,
         scale=flags.bn_scale,
         renorm=flags.bn_renorm)(
             net)
+  elif flags.use_layer_norm == 1:
+    net = tf.keras.layers.LayerNormalization(
+        center=flags.ln_center, scale=flags.ln_scale, axis=ln_axis)(
+            net)
+  else:
+    net = layer_norm_abs.LayerNormalizationAbs()(net)
+
   net = tf.keras.layers.Activation('relu')(net)
 
   if utils.parse(flags.pool_size):
@@ -206,17 +216,20 @@ def model(flags):
           padding='same',
           activation='linear')(
               net)
-      if flags.use_layer_norm:
-        layer_in = tf.keras.layers.LayerNormalization(
-            center=flags.ln_center, scale=flags.ln_scale, axis=ln_axis)(
-                layer_in)
-      else:
+      if flags.use_layer_norm == 0:
         layer_in = tf.keras.layers.BatchNormalization(
             momentum=flags.bn_momentum,
             center=flags.bn_center,
             scale=flags.bn_scale,
             renorm=flags.bn_renorm)(
                 layer_in)
+      elif flags.use_layer_norm == 1:
+        layer_in = tf.keras.layers.LayerNormalization(
+            center=flags.ln_center, scale=flags.ln_scale, axis=ln_axis)(
+                layer_in)
+      else:
+        net = layer_norm_abs.LayerNormalizationAbs()(net)
+
       layer_in = tf.keras.layers.Activation('relu')(layer_in)
     else:
       layer_in = net
@@ -229,17 +242,21 @@ def model(flags):
         padding='same',
         activation='linear')(
             net)
-    if flags.use_layer_norm:
-      net = tf.keras.layers.LayerNormalization(
-          center=flags.ln_center, scale=flags.ln_scale, axis=ln_axis)(
-              net)
-    else:
+
+    if flags.use_layer_norm == 0:
       net = tf.keras.layers.BatchNormalization(
           momentum=flags.bn_momentum,
           center=flags.bn_center,
           scale=flags.bn_scale,
           renorm=flags.bn_renorm)(
               net)
+    elif flags.use_layer_norm == 1:
+      net = tf.keras.layers.LayerNormalization(
+          center=flags.ln_center, scale=flags.ln_scale, axis=ln_axis)(
+              net)
+    else:
+      net = layer_norm_abs.LayerNormalizationAbs()(net)
+
     net = tf.keras.layers.Activation('relu')(net)
 
     net = tf.keras.layers.Conv2D(
@@ -249,17 +266,19 @@ def model(flags):
         padding='same',
         activation='linear')(
             net)
-    if flags.use_layer_norm:
-      net = tf.keras.layers.LayerNormalization(
-          center=flags.ln_center, scale=flags.ln_scale, axis=ln_axis)(
-              net)
-    else:
+    if flags.use_layer_norm == 0:
       net = tf.keras.layers.BatchNormalization(
           momentum=flags.bn_momentum,
           center=flags.bn_center,
           scale=flags.bn_scale,
           renorm=flags.bn_renorm)(
               net)
+    elif flags.use_layer_norm == 1:
+      net = tf.keras.layers.LayerNormalization(
+          center=flags.ln_center, scale=flags.ln_scale, axis=ln_axis)(
+              net)
+    else:
+      net = layer_norm_abs.LayerNormalizationAbs()(net)
 
     # residual connection
     net = tf.keras.layers.Add()([net, layer_in])
