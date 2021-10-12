@@ -13,20 +13,16 @@
 # limitations under the License.
 
 #!/bin/bash
-set -e
-set -x
-
-virtualenv -p python3 .
-source ./bin/activate
-
-pip install -r ./rl_repr/requirements.txt
 
 python3 -m rl_repr.batch_rl.train_eval_offline \
-  --task_name hopper-medium-expert-v0 \
-  --num_updates 100 \
-  --eval_interval 50 \
+  --downstream_mode offline \
+  --algo_name=bc \
+  --task_name ant-medium-v0 \
+  --downstream_task_name ant-expert-v0 \
+  --downstream_data_size 10000 \
+  --proportion_downstream_data 0.1  
   --embed_learner acl \
-  --state_embed_dim 64
-  --embed_pretraining_steps 100 \
-  --bc_pretraining_steps 100 \
+  --state_embed_dim 256 \
+  --embed_training_window 8 \
+  --embed_pretraining_steps 200_000 \
   --alsologtostderr
