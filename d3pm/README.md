@@ -3,11 +3,11 @@ Code to accompany the NeurIPS paper
 "Structured Denoising Diffusion Models in Discrete State-Spaces".
 
 ```
-@inproceedings{lorberbom2021generalized,
+@inproceedings{austin2021structured,
 author    = {Jacob Austin and
              Daniel D. Johnson and
-             Daniel Tarlow and
              Jonathan Ho and
+             Daniel Tarlow and
              Rianne van den Berg},
 title     = {Structured Denoising Diffusion Models in Discrete State-Spaces},
 booktitle = {Advances in Neural Information Processing Systems},

@@ -15,5 +15,4 @@ Files that set up the model and data:
 - `datasets.py` gives access to the CIFAR 10 dataset.
 
 Utilities:
-- `checkpoints.py` helps with managing training checkpoints.
 - `utils.py` defines various other helper functions.
