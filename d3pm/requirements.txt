@@ -1,0 +1,10 @@
+Pillow
+absl-py
+clu
+flax
+jax
+ml_collections
+numpy
+scipy
+tensorflow
+tensorflow-datasets
