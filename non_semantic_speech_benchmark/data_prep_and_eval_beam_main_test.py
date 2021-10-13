@@ -51,11 +51,16 @@ def _train_and_get_score(*args, **kwargs):
 class DataPrepAndEvalBeamMainTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      {'tfds': True},
-      {'tfds': False},
+      {'tfds': True, 'data_prep_behavior': 'many_models'},
+      {'tfds': False, 'data_prep_behavior': 'many_models'},
+      {'tfds': True, 'data_prep_behavior': 'many_embeddings_single_model'},
+      {'tfds': False, 'data_prep_behavior': 'many_embeddings_single_model'},
+      {'tfds': True, 'data_prep_behavior': 'chunked_audio'},
+      {'tfds': False, 'data_prep_behavior': 'chunked_audio'},
   )
+  # Main validation mocks.
   @mock.patch.object(
-      data_prep_and_eval_beam_main.data_prep.utils,
+      data_prep_and_eval_beam_main.old_prep_utils,
       'validate_inputs',
       new=_validate)
   @mock.patch.object(
@@ -63,25 +68,37 @@ class DataPrepAndEvalBeamMainTest(parameterized.TestCase):
       'validate_flags',
       new=_validate)
   @mock.patch.object(
-      data_prep_and_eval_beam_main.data_prep_utils,
+      data_prep_and_eval_beam_main.old_prep_utils,
       'read_input_glob_and_sample_rate_from_flags',
       new=_read_glob)
+  # Data prep pipeline creation mocks.
   @mock.patch.object(
-      data_prep_and_eval_beam_main.data_prep_utils,
+      data_prep_and_eval_beam_main.old_prep_utils,
       'make_beam_pipeline',
       new=_none)
+  @mock.patch.object(
+      data_prep_and_eval_beam_main.new_prep_utils,
+      'multiple_embeddings_from_single_model_pipeline',
+      new=_none)
+  @mock.patch.object(
+      data_prep_and_eval_beam_main.new_prep_utils,
+      'precompute_chunked_audio_pipeline',
+      new=_none)
+  # Embedding eval pipeline creation mocks.
   @mock.patch.object(
       data_prep_and_eval_beam_main.sklearn_utils,
       'train_and_get_score',
       new=_train_and_get_score)
   @flagsaver.flagsaver
-  def test_full_flow(self, tfds):
+  def test_full_flow(self, tfds, data_prep_behavior):
     if tfds:
       flags.FLAGS.tfds_dataset = 'speech_commands'
     else:
       flags.FLAGS.train_input_glob = 'fn1'
       flags.FLAGS.validation_input_glob = 'fn2'
       flags.FLAGS.test_input_glob = 'fn3'
+    flags.FLAGS.data_prep_behavior = data_prep_behavior
+    flags.FLAGS.chunk_len = 10  # Ignored if "many_models".
     flags.FLAGS.audio_key = 'audio'
     flags.FLAGS.label_key = 'label'
     flags.FLAGS.output_filename = os.path.join(
@@ -89,7 +106,10 @@ class DataPrepAndEvalBeamMainTest(parameterized.TestCase):
     flags.FLAGS.results_output_file = os.path.join(
         absltest.get_default_test_tmpdir(), 'sklearn_output')
     flags.FLAGS.embedding_names = ['emb1', 'emb2']
-    flags.FLAGS.embedding_modules = ['mod1', 'mod2']
+    if data_prep_behavior == 'many_models':
+      flags.FLAGS.embedding_modules = ['mod1', 'mod2']
+    else:
+      flags.FLAGS.embedding_modules = ['mod1']
     flags.FLAGS.module_output_keys = ['k1', 'k2']
     flags.FLAGS.debug = True
 

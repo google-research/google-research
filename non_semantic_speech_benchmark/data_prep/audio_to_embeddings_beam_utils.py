@@ -657,6 +657,27 @@ writer_functions = {
 }
 
 
+def common_pipeline_beginning(
+    root,
+    input_format,
+    input_filenames,
+    s,
+    debug):
+  """Common input reading for beam pipelines."""
+  # Read from input.
+  input_examples = reader_functions[input_format](root, input_filenames, s)
+
+  # In debug mode, take one input example.
+  if debug:
+    input_examples = (
+        input_examples
+        | f'TakeOne{s}' >> beam.transforms.combiners.Sample.FixedSizeGlobally(1)
+        # Sampling generates lists, so flatten back into one collection.
+        | f'DebugFlatten{s}' >> beam.FlatMap(lambda x: x))
+
+  return input_examples
+
+
 def make_beam_pipeline(
     root,
     input_filenames,
@@ -719,19 +740,14 @@ def make_beam_pipeline(
     setup_fn: Function for creating audio inference model.
   """
   tf_examples_key_ = 'tf_examples'
-  assert tf_examples_key_ not in embedding_names
+  if tf_examples_key_ in embedding_names:
+    raise ValueError(
+        f'"{tf_examples_key_}" is reserved, cannot be embedding name.')
   s = suffix  # for code brevity.
 
   # Read from input.
-  input_examples = reader_functions[input_format](root, input_filenames, s)
-
-  # In debug mode, take one input example.
-  if debug:
-    input_examples = (
-        input_examples
-        | f'TakeOne{s}' >> beam.transforms.combiners.Sample.FixedSizeGlobally(1)
-        # Sampling generates lists, so flatten back into one collection.
-        | f'DebugFlatten{s}' >> beam.FlatMap(lambda x: x))
+  input_examples = common_pipeline_beginning(
+      root, input_format, input_filenames, s, debug)
 
   # Compute all the embeddings simultaneously.
   embedding_tables = {}

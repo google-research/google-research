@@ -357,28 +357,6 @@ def common_sanity_checks(
                      f'{len(module_output_keys)}')
 
 
-def common_pipeline_beginning(
-    root,
-    input_format,
-    input_filenames,
-    s,
-    debug):
-  """Common input reading for beam pipelines."""
-  # Read from input.
-  input_examples = old_utils.reader_functions[input_format](
-      root, input_filenames, s)
-
-  # In debug mode, take one input example.
-  if debug:
-    input_examples = (
-        input_examples
-        | f'TakeOne{s}' >> beam.transforms.combiners.Sample.FixedSizeGlobally(1)
-        # Sampling generates lists, so flatten back into one collection.
-        | f'DebugFlatten{s}' >> beam.FlatMap(lambda x: x))
-
-  return input_examples
-
-
 def multiple_embeddings_from_single_model_pipeline(
     root,
     input_filenames,
@@ -431,7 +409,7 @@ def multiple_embeddings_from_single_model_pipeline(
   """
   # Common sanity checks and preprocessing.
   common_sanity_checks(embedding_modules, embedding_names, module_output_keys)
-  input_examples = common_pipeline_beginning(
+  input_examples = old_utils.common_pipeline_beginning(
       root, input_format, input_filenames, suffix, debug)
   s = suffix
   embedding_module = embedding_modules[0]
@@ -521,7 +499,7 @@ def precompute_chunked_audio_pipeline(
   """
   # Common sanity checks and preprocessing.
   common_sanity_checks(embedding_modules, embedding_names, module_output_keys)
-  input_examples = common_pipeline_beginning(
+  input_examples = old_utils.common_pipeline_beginning(
       root, input_format, input_filenames, suffix, debug)
   s = suffix
   embedding_module = embedding_modules[0]
