@@ -58,6 +58,11 @@ flags.DEFINE_integer(
 
 # Flags needed for sklearn eval.
 flags.DEFINE_string('results_output_file', None, 'Output filename.')
+flags.DEFINE_string('save_model_dir', None,
+                    'If not `None`, write sklearn models to this directory.')
+flags.DEFINE_string('save_predictions_dir', None,
+                    'If not `None`, write numpy array of predictions on '
+                    'train, eval, and test into this directory.')
 flags.DEFINE_list('label_list', None, 'Python list of possible label values.')
 flags.DEFINE_enum('eval_metric', 'accuracy', [
     'accuracy', 'balanced_accuracy', 'equal_error_rate',
@@ -116,8 +121,8 @@ def main(unused_argv):
       train_glob=train_glob,
       eval_glob=eval_glob,
       test_glob=test_glob,
-      save_model_dir=None,
-      save_predictions_dir=None,
+      save_model_dir=FLAGS.save_model_dir,
+      save_predictions_dir=FLAGS.save_predictions_dir,
       eval_metric=FLAGS.eval_metric,
   )
   logging.info('exp_params: %s', exp_params)
