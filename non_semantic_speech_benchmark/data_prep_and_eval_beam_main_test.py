@@ -25,6 +25,9 @@ import mock
 from non_semantic_speech_benchmark import data_prep_and_eval_beam_main
 
 
+TESTDIR = 'non_semantic_speech_benchmark/data_prep/testdata'
+
+
 def _validate(*args, **kwargs):
   del args, kwargs
   return None
@@ -115,6 +118,40 @@ class DataPrepAndEvalBeamMainTest(parameterized.TestCase):
 
     data_prep_and_eval_beam_main.main(None)
 
+  @parameterized.parameters(
+      {'tfds': True, 'input_format': 'tfrecord'},
+      {'tfds': False, 'input_format': 'tfrecord'},
+  )
+  @flagsaver.flagsaver
+  def test_data_prep_beam_params(self, tfds, input_format):
+    if tfds:
+      flags.FLAGS.tfds_dataset = 'savee'
+    else:
+      flags.FLAGS.train_input_glob = os.path.join(
+          absltest.get_default_test_srcdir(), TESTDIR, 'test.tfrecord*')
+      flags.FLAGS.validation_input_glob = os.path.join(
+          absltest.get_default_test_srcdir(), TESTDIR, 'test.tfrecord*')
+      flags.FLAGS.test_input_glob = os.path.join(
+          absltest.get_default_test_srcdir(), TESTDIR, 'test.tfrecord*')
+    flags.FLAGS.skip_existing_error = False
+    flags.FLAGS.output_filename = os.path.join(
+        absltest.get_default_test_tmpdir(), f'data_prep_test_{tfds}')
+
+    flags.FLAGS.embedding_modules = ['mod1', 'mod2']
+    flags.FLAGS.embedding_names = ['emb1', 'emb2']
+    flags.FLAGS.module_output_keys = ['k1', 'k2']
+    prep_params, input_filenames_list, output_filenames, run_data_prep = data_prep_and_eval_beam_main._get_data_prep_params_from_flags(
+    )
+    self.assertTrue(run_data_prep)
+    self.assertLen(input_filenames_list, 3)
+    self.assertLen(output_filenames, 3)
+    self.assertTrue(output_filenames[0].endswith(
+        f'{flags.FLAGS.output_filename}.train'), output_filenames[0])
+    self.assertTrue(output_filenames[1].endswith(
+        f'{flags.FLAGS.output_filename}.validation'), output_filenames[1])
+    self.assertTrue(output_filenames[2].endswith(
+        f'{flags.FLAGS.output_filename}.test'), output_filenames[2])
+    self.assertIsInstance(prep_params, dict)
 
 if __name__ == '__main__':
   absltest.main()

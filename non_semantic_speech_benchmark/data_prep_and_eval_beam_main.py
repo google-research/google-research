@@ -23,7 +23,7 @@ This file has two modes:
 """
 # pylint:enable=line-too-long
 
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, Sequence, Tuple
 from absl import app
 from absl import flags
 from absl import logging
@@ -72,28 +72,42 @@ flags.DEFINE_enum('eval_metric', 'accuracy', [
 FLAGS = flags.FLAGS
 
 
-def main(unused_argv):
+def _get_data_prep_params_from_flags(
+):
+  """Get parameters for data prep pipeline from flags."""
+  if not FLAGS.output_filename:
+    raise ValueError('Must provide output filename.')
+  if not FLAGS.comma_escape_char:
+    raise ValueError('`FLAGS.comma_escape_char` must be provided.')
 
-  # Data prep setup.
   run_data_prep = True
   if FLAGS.train_input_glob:  # Explicitly pass globs.
-    assert FLAGS.validation_input_glob
-    assert FLAGS.test_input_glob
+    if not FLAGS.validation_input_glob:
+      raise ValueError('If using globs, must supply `validation_input_glob.`')
+    if not FLAGS.test_input_glob:
+      raise ValueError('If using globs, must supply `test_input_glob.`')
     input_filenames_list, output_filenames = [], []
-    for input_glob in [
-        FLAGS.train_input_glob, FLAGS.validation_input_glob,
-        FLAGS.test_input_glob]:
+    for input_glob, name in [
+        (FLAGS.train_input_glob, 'train'),
+        (FLAGS.validation_input_glob, 'validation'),
+        (FLAGS.test_input_glob, 'test')]:
       FLAGS.input_glob = input_glob
       cur_inputs, cur_outputs, prep_params = old_prep_utils.get_beam_params_from_flags(
       )
+      if len(cur_outputs) != 1:
+        raise ValueError(f'`cur_outputs` too long: {cur_outputs}')
+      cur_outputs = f'{cur_outputs[0]}.{name}'
+
       input_filenames_list.extend(cur_inputs)
-      output_filenames.extend(cur_outputs)
+      output_filenames.append(cur_outputs)
   else:  # Get params from a TFDS dataset.
-    assert FLAGS.tfds_dataset
+    if not FLAGS.tfds_dataset:
+      raise ValueError('Must supply TFDS dataset name if not globs provided.')
     input_filenames_list, output_filenames, prep_params = old_prep_utils.get_beam_params_from_flags(
     )
-  assert input_filenames_list, input_filenames_list
-  assert output_filenames, output_filenames
+  if len(output_filenames) != 3:
+    raise ValueError(f'Data prep output must be 3 files: {output_filenames}')
+
   try:
     # Check that inputs and flags are formatted correctly.
     old_prep_utils.validate_inputs(
@@ -105,22 +119,29 @@ def main(unused_argv):
       run_data_prep = False
     else:
       raise
+
+  return prep_params, input_filenames_list, output_filenames, run_data_prep
+
+
+def main(unused_argv):
+
+  # Data prep setup.
+  prep_params, input_filenames_list, output_filenames, run_data_prep = _get_data_prep_params_from_flags(
+  )
   logging.info('beam_params: %s', prep_params)
 
   # Generate sklearn eval experiment parameters based on data prep flags.
-  if len(output_filenames) != 3:
-    raise ValueError(f'Data prep output must be 3 files: {output_filenames}')
-  # Make them globs.
+  # Make (data_prep outputs / eval input filenames) globs.
   train_glob, eval_glob, test_glob = [f'{x}*' for x in output_filenames]
   sklearn_results_output_file = FLAGS.results_output_file
   exp_params = sklearn_utils.experiment_params(
+      train_glob=train_glob,
+      eval_glob=eval_glob,
+      test_glob=test_glob,
       embedding_list=prep_params['embedding_names'],
       speaker_id_name=FLAGS.speaker_id_key,
       label_name=FLAGS.label_key,
       label_list=FLAGS.label_list,
-      train_glob=train_glob,
-      eval_glob=eval_glob,
-      test_glob=test_glob,
       save_model_dir=FLAGS.save_model_dir,
       save_predictions_dir=FLAGS.save_predictions_dir,
       eval_metric=FLAGS.eval_metric,

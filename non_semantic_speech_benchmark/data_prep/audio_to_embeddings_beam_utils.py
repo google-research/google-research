@@ -600,6 +600,10 @@ def validate_inputs(input_filenames_list,
     if tf.io.gfile.glob(f'{output_filename}*'):
       raise ValueError(f'Output file already exists: {output_filename}')
 
+  # Make sure output file names are unique.
+  if len(output_filenames) != len(set(output_filenames)):
+    raise ValueError(f'Some output files are repeated: {output_filenames}')
+
   # Lengths of flag lists must be the same.
   if len(embedding_names) != len(embedding_modules):
     raise ValueError(
