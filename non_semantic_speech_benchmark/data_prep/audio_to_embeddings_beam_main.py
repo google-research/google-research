@@ -45,7 +45,6 @@ flags.DEFINE_string(
     'An optional directory for the locally downloaded TFDS data. Should only '
     'be non-None when `tfds_dataset` is used. This is essential for data that '
     'needs to be manually downloaded.')
-
 flags.DEFINE_string('output_filename', None, 'Output filename.')
 flags.DEFINE_list(
     'embedding_names', None,
@@ -59,6 +58,10 @@ flags.DEFINE_list(
     'module_output_keys', None,
     'List of module output key. Must be the same length as '
     '`embedding_modules`.')
+flags.DEFINE_enum('data_prep_behavior', 'many_models', [
+    'many_models', 'many_embeddings_single_model', 'chunked_audio'],
+                  'Which metric to compute and report.')
+
 flags.DEFINE_string(
     'comma_escape_char', '?',
     'Sometimes we want commas to appear in `embedding_modules`, '
@@ -106,6 +109,9 @@ flags.DEFINE_integer(
     '`use_frontend_fn` is `True`.')
 
 
+FLAGS = flags.FLAGS
+
+
 def main(_):
 
   input_filenames_list, output_filenames, beam_params = utils.get_beam_params_from_flags(
@@ -125,12 +131,13 @@ def main(_):
   with beam.Pipeline(beam_options) as root:
     for i, (input_filenames_or_glob, output_filename) in enumerate(
         zip(input_filenames_list, output_filenames)):
-      utils.make_beam_pipeline(
-          root,
-          input_filenames=input_filenames_or_glob,
+      utils.data_prep_pipeline(
+          root=root,
+          input_filenames_or_glob=input_filenames_or_glob,
           output_filename=output_filename,
-          suffix=str(i),
-          **beam_params)
+          data_prep_behavior=FLAGS.data_prep_behavior,
+          beam_params=beam_params,
+          suffix=str(i))
 
 
 @flags.multi_flags_validator(

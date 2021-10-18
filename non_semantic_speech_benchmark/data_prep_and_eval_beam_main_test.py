@@ -63,7 +63,7 @@ class DataPrepAndEvalBeamMainTest(parameterized.TestCase):
   )
   # Main validation mocks.
   @mock.patch.object(
-      data_prep_and_eval_beam_main.old_prep_utils,
+      data_prep_and_eval_beam_main.utils,
       'validate_inputs',
       new=_validate)
   @mock.patch.object(
@@ -71,20 +71,20 @@ class DataPrepAndEvalBeamMainTest(parameterized.TestCase):
       'validate_flags',
       new=_validate)
   @mock.patch.object(
-      data_prep_and_eval_beam_main.old_prep_utils,
+      data_prep_and_eval_beam_main.utils.utils,
       'read_input_glob_and_sample_rate_from_flags',
       new=_read_glob)
   # Data prep pipeline creation mocks.
   @mock.patch.object(
-      data_prep_and_eval_beam_main.old_prep_utils,
-      'make_beam_pipeline',
+      data_prep_and_eval_beam_main.utils,
+      'data_prep_pipeline',
       new=_none)
   @mock.patch.object(
-      data_prep_and_eval_beam_main.new_prep_utils,
+      data_prep_and_eval_beam_main.utils,
       'multiple_embeddings_from_single_model_pipeline',
       new=_none)
   @mock.patch.object(
-      data_prep_and_eval_beam_main.new_prep_utils,
+      data_prep_and_eval_beam_main.utils,
       'precompute_chunked_audio_pipeline',
       new=_none)
   # Embedding eval pipeline creation mocks.

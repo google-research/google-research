@@ -31,7 +31,7 @@ import apache_beam as beam
 import numpy as np
 import tensorflow as tf
 
-from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_utils
+from non_semantic_speech_benchmark.data_prep import data_prep_utils as utils
 
 flags.DEFINE_string('output_file', None, 'Output file.')
 flags.DEFINE_string('debug', None, 'If present, only count this dataset.')
@@ -83,7 +83,7 @@ def durations(root, ds_file, ds_name,
               reader_type, suffix):
   """Beam pipeline for durations from a particular file or glob."""
   logging.info('Reading from %s: (%s, %s)', reader_type, ds_name, ds_file)
-  input_examples = audio_to_embeddings_beam_utils.reader_functions[reader_type](
+  input_examples = utils.reader_functions[reader_type](
       root, ds_file, f'Read-{suffix}')
   return input_examples | f'Lens-{suffix}' >> beam.Map(duration_from_tfex)
 
@@ -112,7 +112,7 @@ def get_dataset_info_dict(
     fns = [
         x  # pylint:disable=g-complex-comprehension
         for s in ('train', 'validation', 'test')
-        for x in audio_to_embeddings_beam_utils._tfds_filenames(ds_name, s)]  # pylint:disable=protected-access
+        for x in utils.tfds_filenames(ds_name, s)]  # pylint:disable=protected-access
     fns = [fns]  # TFRecords require a list.
     return (fns, 'tfrecord')
 

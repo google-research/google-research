@@ -15,13 +15,17 @@
 
 """Tests for data_prep_utils."""
 
+import copy
 import os
 from absl.testing import absltest
 from absl.testing import parameterized
-import apache_beam as beam
+import numpy as np
 
 import tensorflow as tf
 from non_semantic_speech_benchmark.data_prep import data_prep_utils
+
+
+TEST_DIR = 'non_semantic_speech_benchmark/data_prep/testdata'
 
 
 class MockModule(object):
@@ -37,188 +41,79 @@ class MockModule(object):
     return {k: tf.zeros([bs, 5, 10]) for k in self.output_keys}
 
 
-def make_tfexample(l):
-  ex = tf.train.Example()
-  ex.features.feature['audio'].float_list.value.extend([0.0] * l)
-  ex.features.feature['label'].bytes_list.value.append(b'dummy_lbl')
-  ex.features.feature['speaker_id'].bytes_list.value.append(b'dummy_spkr')
-  return ex
-
-
 class DataPrepUtilsTest(parameterized.TestCase):
 
   def test_samples_to_embedding_tfhub_sanity(self):
-    data_prep_utils._samples_to_embedding_tfhub(
+    data_prep_utils.samples_to_embedding_tfhub(
+        model_input=tf.zeros([16000], tf.float32),
+        sample_rate=16000,
+        mod=MockModule(['okey1']),
+        output_key='okey1',
+        name='name')
+
+  def test_samples_to_embedding_tfhub_w2v2_sanity(self):
+    data_prep_utils.samples_to_embedding_tfhub_w2v2(
         tf.zeros([16000], tf.float32), MockModule(['okey1']))
 
   @parameterized.parameters(
-      [{'chunk_len': 0, 'average_over_time': True},
-       {'chunk_len': 8000, 'average_over_time': True},
-       {'chunk_len': 0, 'average_over_time': False},
-       {'chunk_len': 8000, 'average_over_time': False},
-      ])
-  def test_chunk_audio(self, chunk_len, average_over_time):
-    dofn = data_prep_utils.ChunkAudioAndComputeEmbeddings(
-        name='all',
-        module='dummy_name',
-        output_key=['okey1', 'okey2'],
-        embedding_names=['em1', 'em2'],
-        audio_key='audio',
-        label_key='label',
-        speaker_id_key='speaker_id',
-        sample_rate_key=None,
-        sample_rate=16000,
-        average_over_time=average_over_time,
-        chunk_len=chunk_len,
-        setup_fn=lambda _: MockModule(['okey1', 'okey2']))
-    dofn.setup()
-    for l in [8000, 16000, 32000]:
-      k = f'key_{l}'
-      ex = make_tfexample(l)
+      {'feature_inputs': True},
+      {'feature_inputs': False},
+  )
+  def test_tflite_inference(self, feature_inputs):
+    if feature_inputs:
+      test_file = 'model1_woutfrontend.tflite'
+    else:
+      test_file = 'model1_wfrontend.tflite'
+    tflite_model_path = os.path.join(absltest.get_default_test_srcdir(),
+                                     TEST_DIR, test_file)
+    output_key = '0'
+    interpreter = data_prep_utils.build_tflite_interpreter(
+        tflite_model_path=tflite_model_path)
 
-      for i, (kn, aud, lbl, spkr, embs_d) in enumerate(dofn.process((k, ex))):
-        self.assertEqual(f'{k}_{i}', kn)
-        if chunk_len:
-          expected_chunk_len = chunk_len if l > chunk_len else l
-        else:
-          expected_chunk_len = l
-        self.assertLen(aud, expected_chunk_len)
-        self.assertEqual(lbl, b'dummy_lbl')
-        self.assertEqual(spkr, b'dummy_spkr')
-        for _, emb in embs_d.items():
-          self.assertEqual(emb.shape, (1 if average_over_time else 5, 10))
+    model_input = np.zeros([32000], dtype=np.float32)
+    sample_rate = 16000
+    if feature_inputs:
+      model_input = data_prep_utils.default_feature_fn(
+          model_input, sample_rate)
+    else:
+      model_input = np.expand_dims(model_input, axis=0)
 
-        # Now run the next stage of the pipeline on it.
-        # TODO(joelshor): Add correctness checks on the output.
-        data_prep_utils.chunked_audio_to_tfex(
-            (kn, aud, lbl, spkr, embs_d),
-            delete_audio_from_output=True,
-            chunk_len=chunk_len, embedding_dimension=10)
+    data_prep_utils.samples_to_embedding_tflite(
+        model_input, sample_rate, interpreter, output_key, 'name')
+
+  def test_add_key_to_audio_repeatable(self):
+    """Make sure that repeated keys of the same samples are the same."""
+    # TODO(joelshor): This step shouldn't depend on the random audio samples,
+    # but set a seed if it does.
+    audio_samples = np.random.random([64000]) * 2.0 - 1  # [-1, 1)
+    ex = tf.train.Example()
+    ex.features.feature['aud'].float_list.value.extend(audio_samples)
+    # Use deepcopy to run the test with different objects that have the same
+    # samples. In practice, this is more likely to be the way we expect this
+    # function to behave.
+    ex1 = data_prep_utils.add_key_to_audio(
+        copy.deepcopy(ex), 'aud', 'k')
+    ex2 = data_prep_utils.add_key_to_audio(
+        copy.deepcopy(ex), 'aud', 'k')
+    self.assertEqual(ex1.features.feature['k'].bytes_list.value[0],
+                     ex2.features.feature['k'].bytes_list.value[0],)
 
   @parameterized.parameters(
-      [{'chunk_len': 0, 'average_over_time': True},
-       {'chunk_len': 8000, 'average_over_time': True},
-       {'chunk_len': 0, 'average_over_time': False},
-       {'chunk_len': 8000, 'average_over_time': False},
-      ])
-  def test_multiple_embeddings(self, chunk_len, average_over_time):
-    dofn = data_prep_utils.ComputeMultipleEmbeddingsFromSingleModel(
-        name='all',
-        module='dummy_name',
-        output_key=['k1', 'k2'],  # Sneak the list in.
-        audio_key='audio',
-        sample_rate_key=None,
-        sample_rate=16000,
-        average_over_time=average_over_time,
-        feature_fn=None,
-        embedding_names=['em1', 'em2'],
-        embedding_length=10,
-        chunk_len=chunk_len,
-        setup_fn=lambda _: MockModule(['k1', 'k2'])
-    )
-    dofn.setup()
-    for l in [8000, 16000, 32000]:
-      k = f'key_{l}'
-      ex = make_tfexample(l)
-      kn, exn, emb_dict = list(dofn.process((k, ex)))[0]
-      self.assertEqual(k, kn)
-      self.assertLen(emb_dict, 2)
-      self.assertSetEqual(set(emb_dict.keys()), set(['em1', 'em2']))
-
-      # Now run the next stage of the pipeline on it.
-      # TODO(joelshor): Add correctness checks on the output.
-      data_prep_utils.add_embedding_fn((kn, exn, emb_dict),
-                                       delete_audio_from_output=True,
-                                       audio_key='audio',
-                                       label_key='label',
-                                       speaker_id_key='speaker_id')
-
-  def test_mini_beam_pipeline(self):
-    with beam.Pipeline() as root:
-      _ = (root
-           | beam.Create([('k1', make_tfexample(5)), ('k2', make_tfexample(5))])
-           | beam.ParDo(
-               data_prep_utils.ComputeMultipleEmbeddingsFromSingleModel(
-                   name='all',
-                   module='dummy_mod_loc',
-                   output_key=['k1', 'k2'],
-                   audio_key='audio',
-                   sample_rate_key=None,
-                   sample_rate=5,
-                   average_over_time=True,
-                   feature_fn=None,
-                   embedding_names=['em1', 'em2'],
-                   embedding_length=10,
-                   chunk_len=0,
-                   setup_fn=lambda _: MockModule(['k1', 'k2'])))
-           | beam.Map(
-               data_prep_utils.add_embedding_fn,
-               delete_audio_from_output=True,
-               audio_key='audio',
-               label_key='label',
-               speaker_id_key='speaker_id'))
-
-  def test_multiple_embeddings_from_single_model_pipeline(self):
-    # Write some examples to dummy location.
-    tmp_input = os.path.join(absltest.get_default_test_tmpdir(),
-                             'input.tfrecord')
-    with tf.io.TFRecordWriter(tmp_input) as writer:
-      for _ in range(3):
-        ex = make_tfexample(5)
-        writer.write(ex.SerializeToString())
-
-    with beam.Pipeline() as root:
-      data_prep_utils.multiple_embeddings_from_single_model_pipeline(
-          root,
-          input_filenames=[tmp_input],
-          sample_rate=5,
-          debug=True,
-          embedding_names=['em1', 'em2'],
-          embedding_modules=['dummy_mod_loc'],
-          module_output_keys=['k1', 'k2'],
-          audio_key='audio',
-          sample_rate_key=None,
-          label_key='label',
-          speaker_id_key='speaker_id',
-          average_over_time=True,
-          delete_audio_from_output=False,
-          output_filename=os.path.join(absltest.get_default_test_tmpdir(),
-                                       'output.tfrecord'),
-          chunk_len=0,
-          embedding_length=10,
-          input_format='tfrecord',
-          output_format='tfrecord',
-          setup_fn=lambda _: MockModule(['k1', 'k2']))
-
-  def test_precompute_chunked_audio_pipeline(self):
-    # Write some examples to dummy location.
-    tmp_input = os.path.join(absltest.get_default_test_tmpdir(),
-                             'input.tfrecord')
-    with tf.io.TFRecordWriter(tmp_input) as writer:
-      for _ in range(3):
-        ex = make_tfexample(5)
-        writer.write(ex.SerializeToString())
-
-    with beam.Pipeline() as root:
-      data_prep_utils.precompute_chunked_audio_pipeline(
-          root,
-          input_filenames=[tmp_input],
-          sample_rate=5,
-          debug=False,
-          embedding_names=['em1', 'em2'],
-          embedding_modules=['dummy_mod_loc'],
-          module_output_keys=['k1', 'k2'],
-          audio_key='audio',
-          sample_rate_key=None,
-          output_filename=os.path.join(absltest.get_default_test_tmpdir(),
-                                       'output.tfrecord'),
-          label_key='label',
-          speaker_id_key='speaker_id',
-          chunk_len=0,
-          embedding_length=10,
-          input_format='tfrecord',
-          output_format='tfrecord',
-          setup_fn=lambda _: MockModule(['k1', 'k2']))
+      {'dataset_name': 'crema_d'},
+      {'dataset_name': 'speech_commands'},
+      {'dataset_name': 'savee'},
+      {'dataset_name': 'dementiabank'},
+      {'dataset_name': 'voxceleb'},
+  )
+  def test_tfds_info(self, dataset_name):
+    self.assertTrue(data_prep_utils._tfds_sample_rate(
+        dataset_name))
+    self.assertTrue(data_prep_utils.tfds_filenames(
+        dataset_name, 'train'))
+    self.assertTrue(data_prep_utils.tfds_filenames(
+        dataset_name, 'validation'))
+    self.assertTrue(data_prep_utils.tfds_filenames(
+        dataset_name, 'test'))
 
 if __name__ == '__main__':
   absltest.main()

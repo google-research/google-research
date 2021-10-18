@@ -25,7 +25,7 @@ from absl import logging
 import numpy as np
 import tensorflow as tf
 
-from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_utils
+from non_semantic_speech_benchmark.data_prep import data_prep_utils
 from non_semantic_speech_benchmark.distillation import frontend_lib
 from non_semantic_speech_benchmark.distillation import models
 from non_semantic_speech_benchmark.distillation.compression_lib import compression_op as compression
@@ -177,10 +177,10 @@ def sanity_check(
 
   if tflite:
     logging.info('Building tflite interpreter...')
-    interpreter = audio_to_embeddings_beam_utils.build_tflite_interpreter(
+    interpreter = data_prep_utils.build_tflite_interpreter(
         model_path)
     logging.info('Running inference...')
-    output = audio_to_embeddings_beam_utils.samples_to_embedding_tflite(
+    output = data_prep_utils.samples_to_embedding_tflite(
         model_input, sample_rate=16000, interpreter=interpreter, output_key='0',
         name='sanity_check')
   else:
