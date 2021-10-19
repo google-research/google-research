@@ -26,6 +26,7 @@ from typing import Any, Callable, Dict, Iterable, Sequence, Tuple, TypeVar
 from absl import logging
 
 import jax
+import jax.numpy as jnp
 import numpy as np
 
 from gfsa import jax_util
@@ -304,7 +305,7 @@ def batch_and_pad_to_prototype(
       element = np.asarray(element)
       dest_slice = (
           np.unravel_index(i, batch_dim_sizes) +
-          tuple(jax.ops.index[:n] for n in element.shape))
+          tuple(jnp.s_[:n] for n in element.shape))
       result[dest_slice] = element
     return result
 

@@ -382,14 +382,12 @@ class CategoricalDiffusion:
     # # Option 1:
     # # Assign cdf over range (-\inf, x + 0.5] to pmf for pixel with
     # # value x = 0.
-    # logits = jax.ops.index_update(logits, jax.ops.index[..., 0],
-    #                               log_cdf_plus[..., 0])
+    # logits = logits.at[..., 0].set(log_cdf_plus[..., 0])
     # # Assign cdf over range (x - 0.5, \inf) to pmf for pixel with
     # # value x = 255.
     # log_one_minus_cdf_min = - jax.nn.softplus(
     #     inv_scale * (bin_centers - 0.5 * bin_width))
-    # logits = jax.ops.index_update(logits, jax.ops.index[..., -1],
-    #                               log_one_minus_cdf_min[..., -1])
+    # logits = logits.at[..., -1].set(log_one_minus_cdf_min[..., -1])
     # # Option 2:
     # # Alternatively normalize by reweighting all terms. This avoids
     # # sharp peaks at 0 and 255.
