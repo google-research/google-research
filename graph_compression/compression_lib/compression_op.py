@@ -1570,7 +1570,8 @@ class BlockCompressionOp(CompressionOpInterface):
         output_compression_factor=1,
         block_compression_factor=1,
         block_method='loop',
-        add_summary=True)
+        add_summary=True,
+        use_collection=False,)
 
   def add_compression_summaries(self):
     """Adds summaries."""
@@ -1877,6 +1878,7 @@ class MixedBlockCompressionOp(CompressionOp):
         use_tpu=False,
         compression_option=comp_op_utils.CompressionOptions
         .MIXED_BLOCK_COMPRESSION,
+        update_option=comp_op_utils.UpdateOptions.NO_UPDATE,
         begin_compression_step=1000,
         end_compression_step=2000,
         is_c_matrix_trainable=True,

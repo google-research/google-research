@@ -90,6 +90,7 @@ from __future__ import print_function
 import re
 import tensorflow.compat.v1 as tf
 
+from graph_compression.compression_lib import compression_op_utils as comp_op_utils
 from model_pruning.python import hparam
 from model_pruning.python import pruning_utils
 from tensorflow.python.ops import variables  # pylint: disable=g-direct-tensorflow-import
@@ -500,13 +501,13 @@ def get_pruning_hparams():
       begin_compression_step=0,
       end_compression_step=-1,
       compression_frequency=10,
-      compression_option=0,
+      compression_option=comp_op_utils.CompressionOptions.NO_MATRIX_COMPRESSION,
       rank=7,
       block_size=1,
-      update_option=0,
+      update_option=comp_op_utils.UpdateOptions.NO_UPDATE,
       run_update_interval_check=1,
       pruning_fraction=0.4,
-      use_collection=True,
+      use_collection=False,
       do_transpose=False,
       compress_input=True,
       input_compression_factor=1,

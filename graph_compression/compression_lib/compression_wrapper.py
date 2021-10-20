@@ -223,7 +223,10 @@ class ApplyCompression(object):
     self._compression_ops.append(c)
     [a_matrix_compressed, a_matrix_update_op] = c.get_apply_compression_op(
         a_matrix_tfvar, matrix_compressor, scope=scope)
-    self._update_ops.append(a_matrix_update_op)
+    if compression_op_spec.update_option in [
+        UpdateOptions.TF_UPDATE, UpdateOptions.TF_AND_PYTHON_UPDATE
+    ]:
+      self._update_ops.append(a_matrix_update_op)
 
     self.uncompressed_size += c.uncompressed_size
     self.compressed_size += c.compressed_size
@@ -262,7 +265,6 @@ class ApplyCompression(object):
     else:
       c = None
 
-    self._compression_ops.append(c)
     self._compression_ops.append(c)
     [a_matrix_compressed,
      a_matrix_update_op] = c.get_customized_apply_compression_op(
