@@ -61,6 +61,13 @@ flags.DEFINE_list(
 flags.DEFINE_enum('data_prep_behavior', 'many_models', [
     'many_models', 'many_embeddings_single_model', 'chunked_audio'],
                   'Which metric to compute and report.')
+# Extra data prep flags, needed for `many_embeddings_single_model` and
+# `chunked_audio`.
+flags.DEFINE_integer('chunk_len', None, 'Optional chunk len')
+# Extra data prep flags, needed just for `many_embeddings_single_model`.
+flags.DEFINE_integer(
+    'embedding_length', None,
+    'Expected length of the embedding. If present, must be this length.')
 
 flags.DEFINE_string(
     'comma_escape_char', '?',

@@ -43,13 +43,6 @@ flags.DEFINE_string('train_input_glob', None, 'Glob for training data.')
 flags.DEFINE_string('validation_input_glob', None, 'Glob for validation data.')
 flags.DEFINE_string('test_input_glob', None, 'Glob for test data.')
 flags.DEFINE_bool('skip_existing_error', False, 'Skip existing errors.')
-# Extra data prep flags, needed for `many_embeddings_single_model` and
-# `chunked_audio`.
-flags.DEFINE_integer('chunk_len', None, 'Optional chunk len')
-# Extra data prep flags, needed just for `many_embeddings_single_model`.
-flags.DEFINE_integer(
-    'embedding_length', None,
-    'Expected length of the embedding. If present, must be this length.')
 
 # Flags needed for sklearn eval.
 flags.DEFINE_string('results_output_file', None, 'Output filename.')

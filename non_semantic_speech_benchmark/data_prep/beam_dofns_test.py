@@ -52,6 +52,7 @@ def make_tfexample(l):
   ex.features.feature['audio'].float_list.value.extend([0.0] * l)
   ex.features.feature['label'].bytes_list.value.append(b'dummy_lbl')
   ex.features.feature['speaker_id'].bytes_list.value.append(b'dummy_spkr')
+  ex.features.feature['sample_rate'].int64_list.value.append(32000)
   return ex
 
 
@@ -229,10 +230,10 @@ class BeamDofnsTest(parameterized.TestCase):
 
         # Now run the next stage of the pipeline on it.
         # TODO(joelshor): Add correctness checks on the output.
-        data_prep_utils.chunked_audio_to_tfex(
-            (kn, aud, lbl, spkr, embs_d),
-            delete_audio_from_output=True,
-            chunk_len=chunk_len, embedding_dimension=10)
+        data_prep_utils.chunked_audio_to_tfex((kn, aud, lbl, spkr, embs_d),
+                                              delete_audio_from_output=True,
+                                              chunk_len=chunk_len,
+                                              embedding_length=10)
 
   @parameterized.parameters(
       [{'chunk_len': 0, 'average_over_time': True},
@@ -273,30 +274,94 @@ class BeamDofnsTest(parameterized.TestCase):
           label_key='label',
           speaker_id_key='speaker_id')
 
+  @parameterized.parameters([
+      {
+          'process_fn': 'ComputeEmbeddingMapFn',
+          'chunk_len': 0
+      },
+      {
+          'process_fn': 'ComputeMultipleEmbeddings',
+          'chunk_len': 0
+      },
+      {
+          'process_fn': 'ComputeMultipleEmbeddings',
+          'chunk_len': 200
+      },
+      {
+          'process_fn': 'ChunkAudioAndComputeEmbeddings',
+          'chunk_len': 0
+      },
+      {
+          'process_fn': 'ChunkAudioAndComputeEmbeddings',
+          'chunk_len': 200
+      },
+  ])
+  def test_pipeline_padding(self, process_fn, chunk_len):
+    """Check that the model input is of sufficient length."""
+    k, ex = 'key', make_tfexample(100)
+    common_args = dict(
+        name='name',
+        module=None,
+        output_key=['output_key'],
+        audio_key='audio',
+        sample_rate_key='sample_rate',
+        sample_rate=None,
+        average_over_time=True,
+        model_input_min_length=400,
+        setup_fn=lambda _: FakeMod())
+    if process_fn == 'ComputeEmbeddingMapFn':
+      beam_dofn = beam_dofns.ComputeEmbeddingMapFn(**common_args)
+    elif process_fn == 'ComputeMultipleEmbeddings':
+      beam_dofn = beam_dofns.ComputeMultipleEmbeddingsFromSingleModel(
+          embedding_names=['em1'], chunk_len=chunk_len, **common_args)
+    else:
+      assert process_fn == 'ChunkAudioAndComputeEmbeddings'
+      beam_dofn = beam_dofns.ChunkAudioAndComputeEmbeddings(
+          embedding_names=['em1'], chunk_len=chunk_len, **common_args)
+
+    # Run preprocessing step.
+    beam_dofn.setup()
+    if process_fn == 'ComputeEmbeddingMapFn':
+      model_input, sample_rate = beam_dofn.read_and_preprocess_audio(k, ex)
+      expected_output_shape = (400,)
+    else:
+      model_input, sample_rate = beam_dofn.tfex_to_chunked_audio(k, ex)
+      expected_output_shape = (2, chunk_len) if chunk_len else (400,)
+
+    # Original audio is too short, so it should be padded to
+    # `model_input_min_length`.
+
+    self.assertEqual(model_input.shape, expected_output_shape)
+
+    # Having a non-standard sample rate should trigger resampling and cause the
+    # output to be 16kHz.
+    self.assertEqual(sample_rate, 16000)
+
   def test_mini_beam_pipeline(self):
     with beam.Pipeline() as root:
-      _ = (root
-           | beam.Create([('k1', make_tfexample(5)), ('k2', make_tfexample(5))])
-           | beam.ParDo(
-               beam_dofns.ComputeMultipleEmbeddingsFromSingleModel(
-                   name='all',
-                   module='dummy_mod_loc',
-                   output_key=['k1', 'k2'],
-                   audio_key='audio',
-                   sample_rate_key=None,
-                   sample_rate=5,
-                   average_over_time=True,
-                   feature_fn=None,
-                   embedding_names=['em1', 'em2'],
-                   embedding_length=10,
-                   chunk_len=0,
-                   setup_fn=lambda _: MockModule(['k1', 'k2'])))
-           | beam.Map(
-               data_prep_utils.combine_multiple_embeddings_to_tfex,
-               delete_audio_from_output=True,
-               audio_key='audio',
-               label_key='label',
-               speaker_id_key='speaker_id'))
+      _ = (
+          root
+          | beam.Create([('k1', make_tfexample(5)), ('k2', make_tfexample(5))])
+          | beam.ParDo(
+              beam_dofns.ComputeMultipleEmbeddingsFromSingleModel(
+                  name='all',
+                  module='dummy_mod_loc',
+                  output_key=['k1', 'k2'],
+                  audio_key='audio',
+                  sample_rate_key='sample_rate',
+                  sample_rate=None,
+                  average_over_time=True,
+                  feature_fn=None,
+                  embedding_names=['em1', 'em2'],
+                  embedding_length=10,
+                  chunk_len=0,
+                  setup_fn=lambda _: MockModule(['k1', 'k2'])))
+          | beam.Map(
+              data_prep_utils.combine_multiple_embeddings_to_tfex,
+              delete_audio_from_output=True,
+              audio_key='audio',
+              label_key='label',
+              speaker_id_key='speaker_id'))
 
 
 if __name__ == '__main__':

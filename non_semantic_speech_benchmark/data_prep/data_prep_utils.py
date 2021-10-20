@@ -348,7 +348,7 @@ def chunked_audio_to_tfex(
     audio_key = 'audio',
     label_key = 'label',
     speaker_id_key = 'speaker_id',
-    embedding_dimension = 1024):
+    embedding_length = 1024):
   """Combine a dictionary of named embeddings with a tf.train.Example."""
   k, audio, lbl, speaker_id, embs_dict = k_v
 
@@ -358,9 +358,9 @@ def chunked_audio_to_tfex(
   for emb in embs_dict.values():
     if emb.ndim != 2:
       raise ValueError(f'Embedding dims wrong: {emb.ndim}')
-    if emb.shape[1] != embedding_dimension:
+    if embedding_length and emb.shape[1] != embedding_length:
       raise ValueError(
-          f'Feature dim wrong: {emb.shape[1]} vs {embedding_dimension}')
+          f'Feature dim wrong: {emb.shape[1]} vs {embedding_length}')
   if audio.ndim != 1:
     raise ValueError(f'Audio wrong shape: {audio.shape}')
   if chunk_len and audio.shape != (chunk_len,):

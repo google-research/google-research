@@ -73,10 +73,11 @@ class ComputeEmbeddingMapFn(beam.DoFn):
   def setup(self):
     self.post_setup_module = self._setup_fn(self._module)
 
-  def read_audio_from_tfexample(self,
-                                ex,
-                                k,
-                                normalize_to_pm_one = True):
+  def _read_audio_from_tfexample(
+      self,
+      ex,
+      k,
+      normalize_to_pm_one = True):
     """Reads the audio samples from a tf.Example, and assert input sanity."""
     if self._audio_key not in ex.features.feature:
       raise ValueError(f'Audio key `{self._audio_key}` not found: '
@@ -91,7 +92,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
 
     return audio
 
-  def read_sample_rate_from_tfexample(self, ex):
+  def _read_sample_rate_from_tfexample(self, ex):
     """Reads the sample rate from a tf.Example."""
     if self._sample_rate_key:
       if self._sample_rate_key not in ex.features.feature:
@@ -120,8 +121,31 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     return librosa.core.resample(
         audio, orig_sr=sample_rate, target_sr=target_sr, res_type='kaiser_best')
 
-  def audio_to_features(self, audio,
-                        sample_rate):
+  def read_and_preprocess_audio(self, k,
+                                ex):
+    # Read the input example audio and assert input format sanity.
+    audio = self._read_audio_from_tfexample(
+        ex, k, normalize_to_pm_one=self._normalize_to_pm_one)
+
+    # Read the sample rate, if a key to do so has been provided.
+    sample_rate = self._read_sample_rate_from_tfexample(ex)
+
+    # Resample, if necessary.
+    if sample_rate != self._target_sample_rate:
+      audio = self.resample(
+          audio, sample_rate, target_sr=self._target_sample_rate)
+      sample_rate = self._target_sample_rate
+
+    # Convert audio to features, if required.
+    model_input = self._audio_to_features(audio, sample_rate)
+
+    logging.info('read_and_preprocess_audio: %s/ %s / %s / %s',
+                 model_input.shape, len(audio), sample_rate, self._name)
+
+    return model_input, sample_rate
+
+  def _audio_to_features(self, audio,
+                         sample_rate):
     """Convert audio to features, if required."""
     if self._feature_fn:
       model_input = self._feature_fn(audio, sample_rate)
@@ -142,24 +166,9 @@ class ComputeEmbeddingMapFn(beam.DoFn):
       self, k_v):
     k, ex = k_v
 
-    # Read the input example audio and assert input format sanity.
-    audio = self.read_audio_from_tfexample(
-        ex, k, normalize_to_pm_one=self._normalize_to_pm_one)
-
-    # Read the sample rate, if a key to do so has been provided.
-    sample_rate = self.read_sample_rate_from_tfexample(ex)
-
-    logging.info('len(audio): %s / %s / %s', len(audio), sample_rate,
-                 self._name)
-
-    # Resample, if necessary.
-    if sample_rate != self._target_sample_rate:
-      audio = self.resample(
-          audio, sample_rate, target_sr=self._target_sample_rate)
-      sample_rate = self._target_sample_rate
-
-    # Convert audio to features, if required.
-    model_input = self.audio_to_features(audio, sample_rate)
+    # Read audio from tf.Example, get the sample rate, resample if necessary,
+    # and convert to model inputs (if necessary).
+    model_input, sample_rate = self.read_and_preprocess_audio(k, ex)
 
     # Calculate the 2D embedding.
     embedding_2d = self._module_call_fn(
@@ -206,26 +215,13 @@ class ComputeMultipleEmbeddingsFromSingleModel(ComputeEmbeddingMapFn):
     self._embedding_len = embedding_length
     assert isinstance(self._output_keys, (tuple, list))
 
-  def tfex_to_emb_from_chunked_audio(
+  def tfex_to_chunked_audio(
       self, k,
       ex):
-    # Read the input example audio and assert input format sanity.
-    audio = self.read_audio_from_tfexample(ex, k, normalize_to_pm_one=False)
 
-    # Read the sample rate, if a key to do so has been provided.
-    sample_rate = self.read_sample_rate_from_tfexample(ex)
-
-    logging.info(
-        'len(audio): %s / %s / %s', len(audio), sample_rate, self._name)
-
-    # Resample, if necessary.
-    if sample_rate != 16000:
-      audio = self.resample(audio, sample_rate, target_sr=16000)
-      sample_rate = 16000
-
-    # Convert audio to features, if required.
-    model_input = audio
-    logging.info('`model_input` shape is: %s', model_input.shape)
+    # Read audio from tf.Example, get the sample rate, resample if necessary,
+    # and convert to model inputs (if necessary).
+    model_input, sample_rate = self.read_and_preprocess_audio(k, ex)
 
     # Do some chunking.
     if self._chunk_len:
@@ -235,21 +231,19 @@ class ComputeMultipleEmbeddingsFromSingleModel(ComputeEmbeddingMapFn):
           utils.get_chunked_audio_fn(model_input, self._chunk_len),
           lambda: model_input)
 
-    # Calculate the 3D embedding.
-    if model_input.ndim == 1:
-      model_input = np.expand_dims(model_input, axis=0)
-    tf_out = utils.samples_to_embedding_tfhub_w2v2(
-        model_input, self.post_setup_module)
-
-    return tf_out, model_input
+    return model_input, sample_rate
 
   def process(self, k_v):
     k, ex = k_v
-    if not isinstance(k, str):
-      raise ValueError(f'Expected str: {type(k)}')
 
-    # Get dictionary of 3D embeddings.
-    tf_out, _ = self.tfex_to_emb_from_chunked_audio(k, ex)
+    # Get dictionary of chunked audio.
+    model_input, _ = self.tfex_to_chunked_audio(k, ex)
+
+    # Calculate the 3D embeddings.
+    if model_input.ndim == 1:
+      model_input = np.expand_dims(model_input, axis=0)
+    tf_out = utils.samples_to_embedding_tfhub_w2v2(model_input,
+                                                   self.post_setup_module)
 
     out_dict = {}
     for name, output_key in zip(self._embedding_names, self._output_keys):
@@ -302,21 +296,21 @@ class ChunkAudioAndComputeEmbeddings(ComputeMultipleEmbeddingsFromSingleModel):
       self, k_v):
     k, ex = k_v
 
-    if not isinstance(k, str):
-      raise ValueError(f'Wrong type: {type(k)}')
+    # Get dictionary of chunked audio.
+    model_input, _ = self.tfex_to_chunked_audio(k, ex)
 
-    # Get dictionary of 3D embeddings.
-    tf_out, model_input = self.tfex_to_emb_from_chunked_audio(k, ex)
-    assert model_input.ndim == 2
+    # Calculate the 3D embeddings.
+    if model_input.ndim == 1:
+      model_input = np.expand_dims(model_input, axis=0)
+    tf_out = utils.samples_to_embedding_tfhub_w2v2(model_input,
+                                                   self.post_setup_module)
 
     cur_embs = [np.array(tf_out[okey]) for okey in self._output_key]
     for emb in cur_embs:
       if emb.ndim != 3:  # (chunk, time, emb dim)
         raise ValueError(f'Wrong output dims: {emb.shape}')
     if self._average_over_time:
-      embedding_3ds = [
-          np.mean(x, axis=1, keepdims=True) for x in cur_embs
-      ]
+      embedding_3ds = [np.mean(x, axis=1, keepdims=True) for x in cur_embs]
     else:
       embedding_3ds = cur_embs
 
@@ -376,5 +370,3 @@ def _get_speaker_id(speaker_id_key, ex):
   speaker_id = ex.features.feature[speaker_id_key].bytes_list.value[0]
   assert speaker_id
   return speaker_id
-
-

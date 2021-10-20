@@ -323,27 +323,26 @@ def multiple_embeddings_from_single_model_pipeline(
   writer_function(tbl, cur_output_filename, s)
 
 
-def precompute_chunked_audio_pipeline(
-    root,
-    input_filenames,
-    sample_rate,
-    debug,
-    embedding_names,
-    embedding_modules,
-    module_output_keys,
-    audio_key,
-    sample_rate_key,
-    output_filename,
-    average_over_time = True,
-    delete_audio_from_output = True,
-    label_key = None,
-    speaker_id_key = None,
-    chunk_len = None,
-    embedding_length = 1024,
-    input_format = 'tfrecord',
-    output_format = 'tfrecord',
-    suffix = 'Main',
-    setup_fn = hub.load):
+def precompute_chunked_audio_pipeline(root,
+                                      input_filenames,
+                                      sample_rate,
+                                      debug,
+                                      embedding_names,
+                                      embedding_modules,
+                                      module_output_keys,
+                                      audio_key,
+                                      sample_rate_key,
+                                      output_filename,
+                                      average_over_time = True,
+                                      delete_audio_from_output = True,
+                                      label_key = None,
+                                      speaker_id_key = None,
+                                      chunk_len = None,
+                                      embedding_length = 1024,
+                                      input_format = 'tfrecord',
+                                      output_format = 'tfrecord',
+                                      suffix = 'Main',
+                                      setup_fn = hub.load):
   """Construct beam pipeline for mapping from audio to embeddings.
 
   Args:
@@ -405,7 +404,7 @@ def precompute_chunked_audio_pipeline(
           delete_audio_from_output=delete_audio_from_output,
           chunk_len=chunk_len,
           speaker_id_key=speaker_id_key,
-          embedding_dimension=embedding_length)
+          embedding_length=embedding_length)
       | f'Reshuffle3-{s}' >> beam.Reshuffle())
   # Write embeddings to disk.
   writer_function = utils.writer_functions[output_format]
