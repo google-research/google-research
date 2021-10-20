@@ -19,9 +19,9 @@ from absl import app
 from absl import flags
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
-import bond_lengths
 
 from smu import dataset_pb2
+from smu.geometry import bond_lengths
 
 FLAGS = flags.FLAGS
 
@@ -57,7 +57,9 @@ def get_bond_length_distribution_inner(input_fname, output_fname):
       post-processing to generate bond length distribution files.
   """
   print("Reading from {input_fname} output to {output_fname}")
-  with beam.Pipeline(options=PipelineOptions()) as p:
+# options = PipelineOptions(direct_num_workers=6, direct_running_mode='multi_processing')
+  options = PipelineOptions()
+  with beam.Pipeline(options=options) as p:
     protos = (
         p
         | beam.io.tfrecordio.ReadFromTFRecord(

@@ -37,7 +37,6 @@ from tensorflow.io import gfile
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
 
-
 class LengthDistribution(abc.ABC):
   """Abstract class for representing a distribution over bond lengths."""
 
@@ -415,9 +414,9 @@ class AllAtomPairLengthDistributions:
 
     for (atom_a, atom_b), bond_type in itertools.product(
         itertools.combinations_with_replacement(atom_types, 2), bond_types):
-      fname = '{}.{}.{}.{}'.format(
-          filestem, smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a],
-          int(bond_type), smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b])
+      atom_a = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
+      atom_b = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
+      fname = '{}.{}.{}.{}'.format(filestem, atom_a, int(bond_type), atom_b)
 
       if not gfile.exists(fname):
         logging.info('Skipping non existent file %s', fname)
@@ -448,8 +447,8 @@ class AllAtomPairLengthDistributions:
             lambda r: (r['atom_char_0'], r['atom_char_1'], r['bond_type']),
             axis=1))
     for atom_char_0, atom_char_1, bond_type in avail_pairs:
-      atom_0 = smu_utils_lib.ATOM_CHAR_TO_TYPE[atom_char_0]
-      atom_1 = smu_utils_lib.ATOM_CHAR_TO_TYPE[atom_char_1]
+      atom_0 = smu_utils_lib.ATOM_CHAR_TO_ATOMIC_NUMBER[atom_char_0]
+      atom_1 = smu_utils_lib.ATOM_CHAR_TO_ATOMIC_NUMBER[atom_char_1]
       df = df_input[(df_input['atom_char_0'] == atom_char_0)
                     & (df_input['atom_char_1'] == atom_char_1) &
                     (df_input['bond_type'] == bond_type)]
@@ -468,6 +467,15 @@ class AllAtomPairLengthDistributions:
                             bond_type,
                             length):
     """p(length | atom_a, atom_b, bond_type)."""
+    atom_a = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
+    atom_b = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
+#   Tests expect an exception to be raised
+#   if (atom_a, atom_b) not in self._atom_pair_dict.keys():
+#     return 0.0
+
+#   if not self._atom_pair_dict[(atom_a, atom_b)].has_key(bond_type):
+#     return 0.0
+
     return self._atom_pair_dict[(atom_a, atom_b)][bond_type].pdf(length)
 
   def probability_of_bond_types(
@@ -486,6 +494,8 @@ class AllAtomPairLengthDistributions:
     Returns:
       dictionary of bond type to probability
     """
+    atom_a = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
+    atom_b = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
     return self._atom_pair_dict[(atom_a,
                                  atom_b)].probability_of_bond_types(length)
 

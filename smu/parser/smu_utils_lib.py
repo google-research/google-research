@@ -74,6 +74,14 @@ ATOM_CHAR_TO_TYPE = {
     'f': dataset_pb2.BondTopology.AtomType.ATOM_F,
     'h': dataset_pb2.BondTopology.AtomType.ATOM_H,
 }
+ATOM_CHAR_TO_ATOMIC_NUMBER = {
+    'c': 6,
+    'n': 7,
+    'o': 8,
+    'f': 9,
+    'h': 1,
+}
+
 ATOM_TYPE_TO_ATOMIC_NUMBER = {
     dataset_pb2.BondTopology.AtomType.ATOM_C: 6,
     dataset_pb2.BondTopology.AtomType.ATOM_N: 7,

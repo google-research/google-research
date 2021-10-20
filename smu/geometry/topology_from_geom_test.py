@@ -68,7 +68,7 @@ def triangular_distribution(min_dist, dist_max_value,
 class TestTopoFromGeom(absltest.TestCase):
 
   def test_scores(self):
-    carbon = dataset_pb2.BondTopology.AtomType.ATOM_C
+    carbon = 6
     single_bond = dataset_pb2.BondTopology.BondType.BOND_SINGLE
     double_bond = dataset_pb2.BondTopology.BondType.BOND_DOUBLE
 

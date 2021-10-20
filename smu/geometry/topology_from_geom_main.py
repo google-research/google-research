@@ -18,10 +18,10 @@ from absl import app
 from absl import flags
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
-import topology_from_geom
 
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
+from smu.geometry import topology_from_geom
 
 FLAGS = flags.FLAGS
 
@@ -37,7 +37,9 @@ class SummaryData(beam.DoFn):
   """Given BondTopologies as input, yield summary data."""
 
   def process(self, topology_matches):
-    result = f"{len(topology_matches.bond_topology)}"
+    if len(topology_matches.bond_topology) == 0:
+      return ""
+    result = f"{topology_matches.bond_topology[0].bond_topology_id},{len(topology_matches.bond_topology)}"
 
     for bt in topology_matches.bond_topology:
       result += f",{bt.score:.3f},{bt.smiles}"
@@ -69,7 +71,9 @@ def ReadConFormer(
   #     def process(self, item):
   #       yield item.optimized_geometry.atom_positions[0].x
 
-  with beam.Pipeline(options=PipelineOptions()) as p:
+  options = PipelineOptions(direct_num_workers=6, direct_running_mode='multi_processing')
+# options = PipelineOptions()
+  with beam.Pipeline(options=options) as p:
     protos = (
         p | beam.io.tfrecordio.ReadFromTFRecord(
             input_string,

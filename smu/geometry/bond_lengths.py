@@ -17,9 +17,8 @@
 
 import apache_beam as beam
 
-import utilities
-
 from smu import dataset_pb2
+from smu.geometry import utilities
 from smu.parser import smu_utils_lib
 
 MAX_DIST = 2.0
@@ -35,6 +34,11 @@ class GetBondLengthDistribution(beam.DoFn):
     bonded = utilities.bonded(bt)
 
     natoms = len(bt.atoms)
+    if len(geom.atom_positions) != natoms:
+      return
+
+    if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
+      return
 
     for a1 in range(0, natoms):
       atomic_number1 = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[bt.atoms[a1]]

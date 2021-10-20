@@ -32,10 +32,33 @@ class MatchingParameters:
   """A class to specify optional matching parameters for SmuMolecule.place_bonds."""
 
   def __init__(self):
-    self.must_match_all_bonds: bool = True
-    self.smiles_with_h: bool = True
-    self.smiles_with_labels: bool = True
+    self._must_match_all_bonds: bool = True
+    self._smiles_with_h: bool = False
+    self._smiles_with_labels: bool = True
 
+  @property
+  def must_match_all_bonds(self):
+    return self._must_match_all_bonds
+
+  @must_match_all_bonds.setter
+  def must_match_all_bonds(self, value):
+    self._must_match_all_bonds = value
+
+  @property
+  def smiles_with_h(self):
+    return self._smiles_with_h
+
+  @smiles_with_h.setter
+  def smiles_with_h(self, value):
+    self._smiles_with_h = value
+
+  @property
+  def smiles_with_labels(self):
+    return self._smiles_with_labels
+
+  @smiles_with_labels.setter
+  def smiles_with_labels(self, value):
+    self._smiles_with_labels = value
 
 def add_bond(a1, a2, btype,
              destination):

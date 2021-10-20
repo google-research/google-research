@@ -39,7 +39,7 @@ def hydrogen_to_nearest_atom(
       heavy atom.
   Args:
     bond_topology:
-    distances:
+    distances: matrix of interatomic distances.
 
   Returns:
   """
@@ -113,12 +113,12 @@ def bond_topologies_from_geom(
     TopologyMatches
   """
   result = dataset_pb2.TopologyMatches()  # To be returned.
-  if len(bond_topology.atoms) == 1:
+  natoms = len(bond_topology.atoms)
+  if natoms == 1:
     return result  # empty.
 
-  # Will be used when comparing perceived BondTopology's.
-  # serialized_starting_form = bond_topology.SerializeToString()
-
+  if len(geometry.atom_positions) != natoms:
+    return result  # empty
   utilities.canonical_bond_topology(bond_topology)
   distances = utilities.distances(geometry)
 
@@ -138,9 +138,7 @@ def bond_topologies_from_geom(
   # with the score for each bond type.
 
   bonds_to_scores: Dict[Tuple[int, int], np.array] = {}
-  for c in itertools.combinations(heavy_atom_indices, 2):  # All pairs.
-    i = c[0]
-    j = c[1]
+  for (i, j) in itertools.combinations(heavy_atom_indices, 2):  # All pairs.
     dist = distances[i, j]
     if dist > THRESHOLD:
       continue
@@ -158,8 +156,9 @@ def bond_topologies_from_geom(
   if not bonds_to_scores:  # Seems unlikely.
     return result
 
+  # Guard against BondTopology's that differ only in the atom ordering.
+  starting_smiles = smu_utils_lib.compute_smiles_for_bond_topology(bond_topology, True)
 
-# print(f"Mol with {len(bond_topology.atoms)} has {bonds_to_scores}")
   mol = smu_molecule.SmuMolecule(starting_bond_topology, bonds_to_scores,
                                  matching_parameters)
 
@@ -168,12 +167,16 @@ def bond_topologies_from_geom(
     bt = mol.place_bonds(list(s))
     if not bt:
       continue
+    # Check for different atom order only.
     utilities.canonical_bond_topology(bt)
     if utilities.same_bond_topology(bond_topology, bt):
       bt.is_starting_topology = True
+    elif smu_utils_lib.compute_smiles_for_bond_topology(bt, True) == starting_smiles:
+      continue
     bt.smiles = smu_utils_lib.compute_smiles_for_bond_topology(
       bt, include_hs=matching_parameters.smiles_with_h,
        labeled_atoms=matching_parameters.smiles_with_labels)
+    bt.bond_topology_id = bond_topology.bond_topology_id
     result.bond_topology.append(bt)
 
   if len(result.bond_topology) > 1:
