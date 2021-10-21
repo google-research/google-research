@@ -32,9 +32,20 @@ from latent_programmer.models import base_models
 class DecomposeAttentionTransformerConfig:
   """Global hyperparameters used to minimize obnoxious kwarg plumbing."""
   base_config: base_models.TransformerConfig
-  attention_mask_type: str  # Options: baseline, bos_to_bos, bos_full_attention
+  # Options: baseline, bos_to_bos, bos_to_last, bos_to_bos_and_last,
+  # bos_full_attention
+  attention_mask_type: str
   # Whether to use special relative attention computation for BOS tokens
   bos_special_attention: bool
+
+
+def shift_left(x):
+  """Shift the input to the left."""
+  pad_widths = [(0, 0)] * len(x.shape)
+  pad_widths[-1] = (0, 1)  # Padding on axis=-1
+  padded = jnp.pad(
+      x, pad_widths, mode='constant', constant_values=x.dtype.type(0))
+  return padded[Ellipsis, 1:]
 
 
 def make_partial_program_mask(programs,
@@ -141,6 +152,28 @@ class DecomposeAttentionTransformer(nn.Module):
                   programs == cfg.bos_token,
                   dtype=cfg.dtype),
               nn.make_causal_mask(programs, dtype=cfg.dtype))
+        elif attention_mask_type == 'bos_to_last':
+          # BOS tokens attend to all last partial program tokens.
+          bos_mask = nn.combine_masks(
+              nn.make_attention_mask(
+                  programs == cfg.bos_token,
+                  programs == cfg.bos_token,
+                  dtype=cfg.dtype),
+              nn.make_causal_mask(programs, dtype=cfg.dtype))
+          # Shift bos mask to left to get all previous last partial program
+          # tokens.
+          decoder_bos_mask = shift_left(bos_mask)
+        elif attention_mask_type == 'bos_to_bos_and_last':
+          # BOS tokens attend to all previous BOS + last partial program tokens.
+          bos_mask = nn.combine_masks(
+              nn.make_attention_mask(
+                  programs == cfg.bos_token,
+                  programs == cfg.bos_token,
+                  dtype=cfg.dtype),
+              nn.make_causal_mask(programs, dtype=cfg.dtype))
+          # Shift bos mask to left to get all previous last partial program
+          # tokens.
+          decoder_bos_mask = jnp.logical_or(bos_mask, shift_left(bos_mask))
         elif attention_mask_type == 'bos_full_attention':
           # BOS tokens attend to all previous tokens, including program tokens.
           decoder_bos_mask = nn.combine_masks(
