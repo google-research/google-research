@@ -93,6 +93,7 @@ def indices_of_heavy_atoms(
 
 def bond_topologies_from_geom(
     bond_lengths,
+    conformer_id,
     bond_topology, geometry,
     matching_parameters
 ):
@@ -105,6 +106,7 @@ def bond_topologies_from_geom(
 
   Args:
     bond_lengths:
+    conformer_id:
     bond_topology:
     geometry:
     matching_parameters:
@@ -113,6 +115,9 @@ def bond_topologies_from_geom(
     TopologyMatches
   """
   result = dataset_pb2.TopologyMatches()  # To be returned.
+  result.starting_smiles = bond_topology.smiles
+  result.conformer_id =  conformer_id
+
   natoms = len(bond_topology.atoms)
   if natoms == 1:
     return result  # empty.
@@ -205,7 +210,10 @@ class TopologyFromGeom(beam.DoFn):
       dataset_pb2.TopologyMatches
     """
     matching_parameters = smu_molecule.MatchingParameters()
+    if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
+      return
     yield bond_topologies_from_geom(self._bond_lengths,
+                                    conformer.conformer_id,
                                     conformer.bond_topologies[0],
                                     conformer.optimized_geometry,
                                     matching_parameters)

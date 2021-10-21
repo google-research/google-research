@@ -437,6 +437,7 @@ class UpdateConformerFn(beam.DoFn):
 
     matches = topology_from_geom.bond_topologies_from_geom(
       self._cached_bond_lengths,
+      conformer.conformer_id,
       conformer.bond_topologies[0],
       conformer.optimized_geometry,
       matching_parameters)

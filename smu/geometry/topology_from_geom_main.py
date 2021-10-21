@@ -39,16 +39,17 @@ class SummaryData(beam.DoFn):
   def process(self, topology_matches):
     if len(topology_matches.bond_topology) == 0:
       return ""
-    result = f"{topology_matches.bond_topology[0].bond_topology_id},{len(topology_matches.bond_topology)}"
+    result = f"{topology_matches.conformer_id},{len(topology_matches.bond_topology)}" \
+             f",{topology_matches.starting_smiles}"
 
     for bt in topology_matches.bond_topology:
       result += f",{bt.score:.3f},{bt.smiles}"
-      if len(topology_matches.bond_topology) == 1:
-        break
       if bt.is_starting_topology:
         result += ",T"
       else:
         result += ",F"
+      if len(topology_matches.bond_topology) == 1:
+        break
 
     yield result
 

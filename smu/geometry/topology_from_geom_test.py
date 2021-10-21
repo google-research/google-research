@@ -115,8 +115,9 @@ atom_positions {
 
     matching_parameters = smu_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
+    conformer_id = 1001
     result = topology_from_geom.bond_topologies_from_geom(
-        all_distributions, bond_topology, geometry, matching_parameters)
+        all_distributions, conformer_id, bond_topology, geometry, matching_parameters)
     self.assertIsNotNone(result)
     self.assertEqual(len(result.bond_topology), 2)
     self.assertEqual(len(result.bond_topology[0].bonds), 1)
