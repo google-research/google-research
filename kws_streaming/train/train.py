@@ -107,8 +107,6 @@ def train(flags):
                                        sess.graph)
   validation_writer = tf.summary.FileWriter(flags.summaries_dir + '/validation')
 
-  sess.run(tf.global_variables_initializer())
-
   start_step = 1
 
   logging.info('Training from step: %d ', start_step)
@@ -126,6 +124,15 @@ def train(flags):
   training_steps_max = np.sum(training_steps_list)
   lr_init = learning_rates_list[0]
   exp_rate = -np.log(learning_rates_list[-1] / lr_init)/training_steps_max
+
+  # configure checkpointer
+  checkpoint_directory = os.path.join(flags.train_dir, 'train/')
+  checkpoint_prefix = os.path.join(checkpoint_directory, 'ckpt')
+  checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
+  status = checkpoint.restore(tf.train.latest_checkpoint(checkpoint_directory))
+
+  sess.run(tf.global_variables_initializer())
+  status.initialize_or_restore(sess)
 
   # Training loop.
   for training_step in range(start_step, training_steps_max + 1):
@@ -199,6 +206,12 @@ def train(flags):
         best_accuracy = total_accuracy
         # overwrite the best model weights
         model.save_weights(flags.train_dir + 'best_weights')
+
+        # save checkpoint
+        with sess.as_default():
+          with tf.get_default_graph().as_default():
+            checkpoint.save(file_prefix=checkpoint_prefix)
+
       logging.info('So far the best validation accuracy is %.2f%%',
                    (best_accuracy * 100))
 

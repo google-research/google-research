@@ -476,5 +476,16 @@ def base_parser():
       'has striding or pooling then data_stride should be equal to '
       'product of all pools and strides to produce several frames per call.',
   )
+  parser.add_argument(
+      '--restore_checkpoint',
+      type=int,
+      default=0,
+      help='If 1 it will restore a checkpoint and resume the training '
+      'by initializing model weights and optimizer with checkpoint values. '
+      'It will use learning rate and number of training iterations from '
+      '--learning_rate and --how_many_training_steps accordinlgy. '
+      'This option is useful in cases when training was interrupted. '
+      'With it you should adjust learning_rate and how_many_training_steps.',
+  )
 
   return parser

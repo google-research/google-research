@@ -140,8 +140,14 @@ def main(_):
 
   if flags.train:
     # Create model folders where logs and model will be stored
-    os.makedirs(flags.train_dir)
-    os.mkdir(flags.summaries_dir)
+    try:
+      os.makedirs(flags.train_dir)
+      os.mkdir(flags.summaries_dir)
+    except (OSError) as e:
+      if flags.restore_checkpoint:
+        pass
+      else:
+        raise ValueError('model already exists in folder %s' % flags.train_dir)
 
     # Model training
     train.train(flags)
