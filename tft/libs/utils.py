@@ -171,8 +171,8 @@ def save(tf_session, model_folder, cp_name, scope=None):
   if scope is None:
     saver = tf.train.Saver()
   else:
-    var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope)
-    saver = tf.train.Saver(var_list=var_list, max_to_keep=100000)
+    var_list = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=scope)
+    saver = tf.compat.v1.train.Saver(var_list=var_list, max_to_keep=100000)
 
   save_path = saver.save(tf_session,
                          os.path.join(model_folder, '{0}.ckpt'.format(cp_name)))
