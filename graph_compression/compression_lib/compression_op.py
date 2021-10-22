@@ -1352,6 +1352,7 @@ class InputOutputCompressionOp(CompressionOpInterface):
   def get_matmul_operator(self,
                           inputs,
                           wm,
+                          layer_obj,
                           transpose_a=False,
                           transpose_b=False):
     """Performs matrix multiplication on compressed input for customized Softmax layers.
@@ -1362,6 +1363,7 @@ class InputOutputCompressionOp(CompressionOpInterface):
     Args:
       inputs: the left operand of the matmul operation. a rank 2 tensor.
       wm: the right operand of the matmul operator. a rank 2 tensor.
+      layer_obj: a lingvo layer object that handles variable creation.
       transpose_a: whether inputs tensor needs to be transposed before matmul.
       transpose_b: whether wm tensor needs to be transposed before matmul.
 
@@ -1369,6 +1371,7 @@ class InputOutputCompressionOp(CompressionOpInterface):
       A TensorFlow node that has compressed version of
       tf.matmul(inputs, wm).
     """
+    theta = layer_obj.theta
     if transpose_a:
       inputs = tf.transpose(inputs)
     if transpose_b:
@@ -1381,7 +1384,7 @@ class InputOutputCompressionOp(CompressionOpInterface):
           self._spec.input_block_size
       ])
       # project blocked_inputs down using b.
-      projected_blocked_inputs = tf.matmul(blocked_inputs, self.b_matrix_tfvar)
+      projected_blocked_inputs = tf.matmul(blocked_inputs, theta.b_matrix_tfvar)
       # flatten the block dimension in projected_blocked_inputs.
       compressed_inputs = tf.reshape(
           projected_blocked_inputs,
@@ -1390,7 +1393,7 @@ class InputOutputCompressionOp(CompressionOpInterface):
       compressed_inputs = inputs
 
     # multiply compressed inputs with c.
-    intermediate_result = tf.matmul(compressed_inputs, self.c_matrix_tfvar)
+    intermediate_result = tf.matmul(compressed_inputs, theta.c_matrix_tfvar)
 
     if self._spec.compress_output:
       # block intermediate_result into blocks
@@ -1400,7 +1403,7 @@ class InputOutputCompressionOp(CompressionOpInterface):
           [tf.shape(intermediate_result)[0], -1, block_size])
       # project blocked_intermediate_result up using d.
       projected_intermediate_result = tf.matmul(blocked_intermediate_result,
-                                                self.d_matrix_tfvar)
+                                                theta.d_matrix_tfvar)
       # flatten the block dimension
       compressed_result = tf.reshape(
           projected_intermediate_result,
@@ -1771,6 +1774,7 @@ class BlockCompressionOp(CompressionOpInterface):
   def get_matmul_operator(self,
                           inputs,
                           wm,
+                          layer_obj,
                           transpose_a=False,
                           transpose_b=False):
     """Performs matrix multiplication for customized Softmax layers.
@@ -1781,6 +1785,7 @@ class BlockCompressionOp(CompressionOpInterface):
     Args:
       inputs: the left operand of the matmul operation. a rank 2 tensor.
       wm: the right operand of the matmul operator. a rank 2 tensor.
+      layer_obj: a lingvo layer object that handles variable creation.
       transpose_a: whether inputs tensor needs to be transposed before matmul.
       transpose_b: whether wm tensor needs to be transposed before matmul.
 
@@ -1788,6 +1793,7 @@ class BlockCompressionOp(CompressionOpInterface):
       A TensorFlow node that has compressed version of
       tf.matmul(inputs, wm).
     """
+    theta = layer_obj.theta
     if transpose_a:
       inputs = tf.transpose(inputs)
     if transpose_b:
@@ -1795,14 +1801,14 @@ class BlockCompressionOp(CompressionOpInterface):
 
     if self._spec.block_method == 'mask':
       return tf.matmul(inputs,
-                       tf.multiply(self.c_matrix_tfvar, self.c_mask_tfvar))
+                       tf.multiply(theta.c_matrix_tfvar, theta.c_mask_tfvar))
     elif self._spec.block_method == 'loop':
       num_blocks = self._spec.block_compression_factor
       input_splitted = tf.split(inputs, num_blocks, axis=-1)
       output_splitted = []
       for i, input_i in enumerate(input_splitted):
         output_splitted.append(
-            tf.matmul(input_i, self.c_matrix_tfvar[i, :, :]))
+            tf.matmul(input_i, theta.c_matrix_tfvar[i, :, :]))
       return tf.concat(output_splitted, axis=-1)
 
   def get_einsum_operator(self, inputs, layerobj):
@@ -1829,7 +1835,8 @@ class BlockCompressionOp(CompressionOpInterface):
       input_splitted = tf.split(inputs, num_blocks, axis=-1)
       output_splitted = []
       for i, input_i in enumerate(input_splitted):
-        output_splitted.append(tf.matmul(input_i, self.c_matrix_tfvar[i, :, :]))
+        output_splitted.append(
+            tf.matmul(input_i, theta.c_matrix_tfvar[i, :, :]))
       return tf.concat(output_splitted, axis=-1)
 
 
@@ -2136,6 +2143,7 @@ class MixedBlockCompressionOp(CompressionOp):
   def get_matmul_operator(self,
                           inputs,
                           wm,
+                          layer_obj,
                           transpose_a=False,
                           transpose_b=False):
     """Performs matrix multiplication for customized Softmax layers.
@@ -2146,6 +2154,7 @@ class MixedBlockCompressionOp(CompressionOp):
     Args:
       inputs: the left operand of the matmul operation. a rank 2 tensor.
       wm: the right operand of the matmul operator. a rank 2 tensor.
+      layer_obj: a lingvo layer object that handles variable creation.
       transpose_a: whether inputs tensor needs to be transposed before matmul.
       transpose_b: whether wm tensor needs to be transposed before matmul.
 
@@ -2157,6 +2166,7 @@ class MixedBlockCompressionOp(CompressionOp):
     # and transpose_b arguments to the function.
     del wm, transpose_a, transpose_b
 
+    theta = layer_obj.theta
     # The linear mixer tensor is small one, typically of shape [2,2,1].
     # Performing einsum or a matmul with such a small tensor on TPUs
     # turned out to be worse for latency than writing out the matmul/einsum
@@ -2175,7 +2185,7 @@ class MixedBlockCompressionOp(CompressionOp):
     intermediate_splitted = []
     for i in range(num_blocks):
       intermediate_splitted.append(
-          tf.matmul(blocked_input[:, i, :], self.block_matrices[:, :, i]))
+          tf.matmul(blocked_input[:, i, :], theta.block_matrices[:, :, i]))
 
     # compute the linear combinations of the above intermediate outputs
     output_splitted = []
@@ -2183,10 +2193,10 @@ class MixedBlockCompressionOp(CompressionOp):
       output_splitted.append([])
       for i in range(num_blocks):
         output_splitted[-1].append(intermediate_splitted[0] *
-                                   self.linear_mixer[i, 0, k])
+                                   theta.linear_mixer[i, 0, k])
         for j in range(1, num_blocks):
           output_splitted[-1][-1] = output_splitted[
-              -1][-1] + intermediate_splitted[j] * self.linear_mixer[i, j, k]
+              -1][-1] + intermediate_splitted[j] * theta.linear_mixer[i, j, k]
 
     reduced_output_splitted = []
     for i in range(num_blocks):
