@@ -141,7 +141,7 @@ def get_default_tensorflow_config(tf_device='gpu', gpu_id=0):
 
   if tf_device == 'cpu':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # for training on cpu
-    tf_config = tf.ConfigProto(
+    tf_config = tf.compat.v1.ConfigProto(
         log_device_placement=False, device_count={'GPU': 0})
 
   else:
@@ -150,7 +150,7 @@ def get_default_tensorflow_config(tf_device='gpu', gpu_id=0):
 
     print('Selecting GPU ID={}'.format(gpu_id))
 
-    tf_config = tf.ConfigProto(log_device_placement=False)
+    tf_config = tf.compat.v1.ConfigProto(log_device_placement=False)
     tf_config.gpu_options.allow_growth = True
 
   return tf_config
