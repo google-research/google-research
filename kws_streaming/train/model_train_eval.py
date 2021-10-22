@@ -143,11 +143,12 @@ def main(_):
     try:
       os.makedirs(flags.train_dir)
       os.mkdir(flags.summaries_dir)
-    except (OSError) as e:
+    except OSError as e:
       if flags.restore_checkpoint:
         pass
       else:
-        raise ValueError('model already exists in folder %s' % flags.train_dir)
+        raise ValueError('model already exists in folder %s' %
+                         flags.train_dir) from None
 
     # Model training
     train.train(flags)
