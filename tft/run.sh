@@ -34,7 +34,7 @@ set -e
 pip3 install virtualenv # Assumes pip3 is installed!
 python3 -m virtualenv $OUTPUT_FOLDER/venv
 source $OUTPUT_FOLDER/venv/bin/activate
-pip3 install --pre "tensorflow==1.15.*"
+pip3 install --pre "tensorflow"
 pip3 install -r requirements.txt
 
 # Step 2: Downloads data if not present.
