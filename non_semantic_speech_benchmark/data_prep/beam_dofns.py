@@ -139,7 +139,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     # Convert audio to features, if required.
     model_input = self._audio_to_features(audio, sample_rate)
 
-    logging.info('read_and_preprocess_audio: %s/ %s / %s / %s',
+    logging.info('read_and_preprocess_audio: %s / %s / %s / %s',
                  model_input.shape, len(audio), sample_rate, self._name)
 
     return model_input, sample_rate
@@ -158,7 +158,8 @@ class ComputeEmbeddingMapFn(beam.DoFn):
       if self._model_input_min_length and model_input.size < self._model_input_min_length:
         delta = self._model_input_min_length - model_input.size
         model_input = np.pad(model_input, [0, delta], mode='symmetric')
-    logging.info('`model_input` shape is: %s', model_input.shape)
+    logging.info('`model_input` shape is: %s, %s', model_input.shape,
+                 self._model_input_min_length)
 
     return model_input
 
@@ -206,6 +207,8 @@ class ComputeMultipleEmbeddingsFromSingleModel(ComputeEmbeddingMapFn):
                embedding_names,
                chunk_len = None,
                embedding_length = None,
+               # Change the default `module_call_fn`.
+               module_call_fn = utils.samples_to_embedding_tfhub_w2v2,
                **kwargs):
     super(ComputeMultipleEmbeddingsFromSingleModel, self).__init__(
         *args, **kwargs)
@@ -213,11 +216,11 @@ class ComputeMultipleEmbeddingsFromSingleModel(ComputeEmbeddingMapFn):
     self._output_keys = self._output_key
     self._embedding_names = embedding_names
     self._embedding_len = embedding_length
+    self._module_call_fn = module_call_fn
     assert isinstance(self._output_keys, (tuple, list))
 
-  def tfex_to_chunked_audio(
-      self, k,
-      ex):
+  def tfex_to_chunked_audio(self, k,
+                            ex):
 
     # Read audio from tf.Example, get the sample rate, resample if necessary,
     # and convert to model inputs (if necessary).
@@ -226,10 +229,9 @@ class ComputeMultipleEmbeddingsFromSingleModel(ComputeEmbeddingMapFn):
     # Do some chunking.
     if self._chunk_len:
       logging.info('Chunk len: %s', self._chunk_len)
-      model_input = tf.cond(
-          tf.shape(model_input)[0] >= self._chunk_len,
-          utils.get_chunked_audio_fn(model_input, self._chunk_len),
-          lambda: model_input)
+      if model_input.shape[0] >= self._chunk_len:
+        model_input = utils.get_chunked_audio_fn(model_input, self._chunk_len)
+      logging.info('model_input after chunking: ')
 
     return model_input, sample_rate
 
@@ -242,8 +244,7 @@ class ComputeMultipleEmbeddingsFromSingleModel(ComputeEmbeddingMapFn):
     # Calculate the 3D embeddings.
     if model_input.ndim == 1:
       model_input = np.expand_dims(model_input, axis=0)
-    tf_out = utils.samples_to_embedding_tfhub_w2v2(model_input,
-                                                   self.post_setup_module)
+    tf_out = self._module_call_fn(model_input, self.post_setup_module)
 
     out_dict = {}
     for name, output_key in zip(self._embedding_names, self._output_keys):
@@ -267,9 +268,6 @@ class ComputeMultipleEmbeddingsFromSingleModel(ComputeEmbeddingMapFn):
       if self._embedding_len and embedding_2d.shape[1] != self._embedding_len:
         raise ValueError(f'Wrong output dim: {embedding_2d.shape[1]}')
       out_dict[name] = embedding_2d
-    print(f'Out k: {type(k)}')
-    print(f'Out ex: {type(ex)}')
-    print(f'Out out_dict: {type(out_dict)}')
     yield (k, ex, out_dict)
 
 
@@ -284,10 +282,13 @@ class ChunkAudioAndComputeEmbeddings(ComputeMultipleEmbeddingsFromSingleModel):
                *args,
                label_key=None,
                speaker_id_key=None,
+               # Change the default `module_call_fn`.
+               module_call_fn = utils.samples_to_embedding_tfhub_w2v2,
                **kwargs):
     super(ChunkAudioAndComputeEmbeddings, self).__init__(*args, **kwargs)
     self._label_key = label_key
     self._speaker_id_key = speaker_id_key
+    self._module_call_fn = module_call_fn
     logging.info('chunk_len: %s', self._chunk_len)
     logging.info('label_key: %s', self._label_key)
     logging.info('speaker_id_key: %s', self._speaker_id_key)
@@ -302,8 +303,7 @@ class ChunkAudioAndComputeEmbeddings(ComputeMultipleEmbeddingsFromSingleModel):
     # Calculate the 3D embeddings.
     if model_input.ndim == 1:
       model_input = np.expand_dims(model_input, axis=0)
-    tf_out = utils.samples_to_embedding_tfhub_w2v2(model_input,
-                                                   self.post_setup_module)
+    tf_out = self._module_call_fn(model_input, self.post_setup_module)
 
     cur_embs = [np.array(tf_out[okey]) for okey in self._output_key]
     for emb in cur_embs:

@@ -59,44 +59,22 @@ def data_prep_pipeline(
     multiple_embeddings_from_single_model_pipeline(
         root,
         input_filenames=input_filenames_or_glob,
-        sample_rate=beam_params['sample_rate'],
-        debug=FLAGS.debug,
-        embedding_names=beam_params['embedding_names'],
-        embedding_modules=beam_params['embedding_modules'],
-        module_output_keys=beam_params['module_output_keys'],
-        sample_rate_key=beam_params['sample_rate_key'],
-        audio_key=beam_params['audio_key'],
-        label_key=beam_params['label_key'],
-        speaker_id_key=beam_params['speaker_id_key'],
-        average_over_time=beam_params['average_over_time'],
-        delete_audio_from_output=beam_params['delete_audio_from_output'],
         output_filename=output_filename,
+        suffix=suffix,
+        # Specific args.
         chunk_len=FLAGS.chunk_len,
         embedding_length=FLAGS.embedding_length,
-        input_format=beam_params['input_format'],
-        output_format=beam_params['output_format'],
-        suffix=suffix)
+        **beam_params)
   elif data_prep_behavior == 'chunked_audio':
     precompute_chunked_audio_pipeline(
         root,
         input_filenames=input_filenames_or_glob,
-        sample_rate=beam_params['sample_rate'],
-        debug=FLAGS.debug,
-        embedding_names=beam_params['embedding_names'],
-        embedding_modules=beam_params['embedding_modules'],
-        module_output_keys=beam_params['module_output_keys'],
-        audio_key=beam_params['audio_key'],
-        sample_rate_key=beam_params['sample_rate_key'],
-        label_key=beam_params['label_key'],
-        speaker_id_key=beam_params['speaker_id_key'],
-        average_over_time=beam_params['average_over_time'],
-        delete_audio_from_output=beam_params['delete_audio_from_output'],
         output_filename=output_filename,
+        suffix=suffix,
+        # Specific args.
         chunk_len=FLAGS.chunk_len,
         embedding_length=FLAGS.embedding_length,
-        input_format=beam_params['input_format'],
-        output_format=beam_params['output_format'],
-        suffix=suffix)
+        **beam_params)
   else:
     raise ValueError(
         f'data_prep_behavior not recognized: {data_prep_behavior}')
@@ -105,6 +83,7 @@ def data_prep_pipeline(
 def make_many_models_beam_pipeline(
     root,
     input_filenames,
+    output_filename,
     sample_rate,
     debug,
     embedding_names,
@@ -116,7 +95,6 @@ def make_many_models_beam_pipeline(
     speaker_id_key,
     average_over_time,
     delete_audio_from_output,
-    output_filename,
     split_embeddings_into_separate_tables = False,
     use_frontend_fn = False,
     normalize_to_pm_one = True,
@@ -124,13 +102,14 @@ def make_many_models_beam_pipeline(
     input_format = 'tfrecord',
     output_format = 'tfrecord',
     suffix = 'Main',
-    module_call_fn = utils.samples_to_embedding_tfhub,
+    module_call_fn = utils.samples_to_embedding_tfhub_w2v2,
     setup_fn = hub.load):
   """Construct beam pipeline for mapping from audio to embeddings.
 
   Args:
     root: The beam root node.
     input_filenames: Python list. List of input files.
+    output_filename: Python string. Output filename.
     sample_rate: Python int, or `None`. The sample rate for all embeddings, or
       `None` if this is a TFDS dataset, or if each example has its own sample
       rate.
@@ -145,7 +124,6 @@ def make_many_models_beam_pipeline(
     average_over_time: Python bool. If `True`, average over the time axis.
     delete_audio_from_output: Python bool. Whether to remove audio fromm
       outputs.
-    output_filename: Python string. Output filename.
     split_embeddings_into_separate_tables: Python bool. If true, write each
       embedding to a separate table.
     use_frontend_fn: If `true`, call frontend fn on audio before passing to the
@@ -234,6 +212,7 @@ def make_many_models_beam_pipeline(
 def multiple_embeddings_from_single_model_pipeline(
     root,
     input_filenames,
+    output_filename,
     sample_rate,
     debug,
     embedding_names,
@@ -245,18 +224,23 @@ def multiple_embeddings_from_single_model_pipeline(
     speaker_id_key,
     average_over_time,
     delete_audio_from_output,
-    output_filename,
+    split_embeddings_into_separate_tables = False,
+    use_frontend_fn = False,
+    normalize_to_pm_one = True,
+    model_input_min_length = None,
     embedding_length = None,
     chunk_len = None,
     input_format = 'tfrecord',
     output_format = 'tfrecord',
     suffix = 'Main',
+    module_call_fn = utils.samples_to_embedding_tfhub_w2v2,
     setup_fn = hub.load):
   """Construct beam pipeline for mapping from audio to embeddings.
 
   Args:
     root: The beam root node.
     input_filenames: Python list. List of input files.
+    output_filename: Python string. Output filename.
     sample_rate: Python int, or `None`. The sample rate for all embeddings, or
       `None` if this is a TFDS dataset, or if each example has its own sample
       rate.
@@ -271,7 +255,10 @@ def multiple_embeddings_from_single_model_pipeline(
     average_over_time: Python bool. If `True`, average over the time axis.
     delete_audio_from_output: Python bool. Whether to remove audio fromm
       outputs.
-    output_filename: Python string. Output filename.
+    split_embeddings_into_separate_tables: stuff
+    use_frontend_fn: stuff
+    normalize_to_pm_one: stuff
+    model_input_min_length: stuff
     embedding_length: None.
     chunk_len: Stuff
     input_format: Python string. Must correspond to a function in
@@ -279,8 +266,11 @@ def multiple_embeddings_from_single_model_pipeline(
     output_format: Python string. Must correspond to a function in
       `writer_functions`.
     suffix: Python string. Suffix to stage names to make them unique.
+    module_call_fn: Function for inference on audio.
     setup_fn: Stuff.
   """
+  del split_embeddings_into_separate_tables, use_frontend_fn
+
   # Common sanity checks and preprocessing.
   _common_pipeline_sanity_checks(
       embedding_modules, embedding_names, module_output_keys)
@@ -304,9 +294,12 @@ def multiple_embeddings_from_single_model_pipeline(
               sample_rate=sample_rate,
               average_over_time=average_over_time,
               feature_fn=None,
+              normalize_to_pm_one=normalize_to_pm_one,
+              model_input_min_length=model_input_min_length,
               embedding_names=embedding_names,
               embedding_length=embedding_length,
               chunk_len=chunk_len,
+              module_call_fn=module_call_fn,
               setup_fn=setup_fn))
       | f'Reshuffle2-{s}' >> beam.Reshuffle()
       | f'ToTFExample-{s}' >> beam.Map(
@@ -316,38 +309,43 @@ def multiple_embeddings_from_single_model_pipeline(
           label_key=label_key,
           speaker_id_key=speaker_id_key)
       | f'Reshuffle3-{s}' >> beam.Reshuffle())
-  # Write embeddings to disk.
-  writer_function = utils.writer_functions[output_format]
-  cur_output_filename = f'{output_filename}@*'
-  logging.info('Writing to %s', cur_output_filename)
-  writer_function(tbl, cur_output_filename, s)
+
+  # Output sanity checks and write embeddings to disk.
+  _common_pipeline_ending(tbl, output_filename, output_format, s)
 
 
-def precompute_chunked_audio_pipeline(root,
-                                      input_filenames,
-                                      sample_rate,
-                                      debug,
-                                      embedding_names,
-                                      embedding_modules,
-                                      module_output_keys,
-                                      audio_key,
-                                      sample_rate_key,
-                                      output_filename,
-                                      average_over_time = True,
-                                      delete_audio_from_output = True,
-                                      label_key = None,
-                                      speaker_id_key = None,
-                                      chunk_len = None,
-                                      embedding_length = 1024,
-                                      input_format = 'tfrecord',
-                                      output_format = 'tfrecord',
-                                      suffix = 'Main',
-                                      setup_fn = hub.load):
+def precompute_chunked_audio_pipeline(
+    root,
+    input_filenames,
+    output_filename,
+    sample_rate,
+    debug,
+    embedding_names,
+    embedding_modules,
+    module_output_keys,
+    audio_key,
+    sample_rate_key,
+    label_key = None,
+    speaker_id_key = None,
+    average_over_time = True,
+    delete_audio_from_output = True,
+    split_embeddings_into_separate_tables = False,
+    use_frontend_fn = False,
+    normalize_to_pm_one = True,
+    model_input_min_length = None,
+    embedding_length = 1024,
+    chunk_len = None,
+    input_format = 'tfrecord',
+    output_format = 'tfrecord',
+    suffix = 'Main',
+    module_call_fn = utils.samples_to_embedding_tfhub_w2v2,
+    setup_fn = hub.load):
   """Construct beam pipeline for mapping from audio to embeddings.
 
   Args:
     root: The beam root node.
     input_filenames: Python list. List of input files.
+    output_filename: Python string. Output filename.
     sample_rate: Python int, or `None`. The sample rate for all embeddings, or
       `None` if this is a TFDS dataset, or if each example has its own sample
       rate.
@@ -357,20 +355,26 @@ def precompute_chunked_audio_pipeline(root,
     module_output_keys: Python list of strings, names of output modules.
     audio_key: Python string, the key of the audio.
     sample_rate_key: Python string or `None`, the key for.
-    output_filename: Python string. Output filename.
-    average_over_time: Whether to average over time.
-    delete_audio_from_output: Whether to remove audio.
     label_key: Python string. Field for label.
     speaker_id_key: Python string. Field for speaker id.
-    chunk_len: stuff
+    average_over_time: Whether to average over time.
+    delete_audio_from_output: Whether to remove audio.
+    split_embeddings_into_separate_tables: stuff
+    use_frontend_fn: stuff
+    normalize_to_pm_one: stuff
+    model_input_min_length: stuff
     embedding_length: Length of embedding.
+    chunk_len: stuff
     input_format: Python string. Must correspond to a function in
       `reader_functions`.
     output_format: Python string. Must correspond to a function
       `writer_functions`.
     suffix: Python string. Suffix to stage names to make them unique.
-    setup_fn: Stuff.
+    module_call_fn: Function for inference on audio.
+    setup_fn: Function for creating audio inference model.
   """
+  del split_embeddings_into_separate_tables, use_frontend_fn
+
   # Common sanity checks and preprocessing.
   _common_pipeline_sanity_checks(
       embedding_modules, embedding_names, module_output_keys)
@@ -378,6 +382,10 @@ def precompute_chunked_audio_pipeline(root,
       root, input_format, input_filenames, suffix, debug)
   s = suffix
   embedding_module = embedding_modules[0]
+
+  # Chunk-specific logic: we need to pad inputs to at least the chunk length.
+  if chunk_len:
+    model_input_min_length = max(model_input_min_length or 0, chunk_len)
 
   # Compute all the embeddings simultaneously.
   logging.info('Adding all signals: %s', module_output_keys)
@@ -396,7 +404,10 @@ def precompute_chunked_audio_pipeline(root,
               sample_rate_key=sample_rate_key,
               sample_rate=sample_rate,
               average_over_time=average_over_time,
+              normalize_to_pm_one=normalize_to_pm_one,
+              model_input_min_length=model_input_min_length,
               chunk_len=chunk_len,
+              module_call_fn=module_call_fn,
               setup_fn=setup_fn))
       | f'Reshuffle2-{s}' >> beam.Reshuffle()
       | f'ToTFExample-{s}' >> beam.Map(
@@ -406,11 +417,8 @@ def precompute_chunked_audio_pipeline(root,
           speaker_id_key=speaker_id_key,
           embedding_length=embedding_length)
       | f'Reshuffle3-{s}' >> beam.Reshuffle())
-  # Write embeddings to disk.
-  writer_function = utils.writer_functions[output_format]
-  cur_output_filename = f'{output_filename}@*'
-  logging.info('Writing to %s', cur_output_filename)
-  writer_function(tbl, cur_output_filename, s)
+  # Output sanity checks and write embeddings to disk.
+  _common_pipeline_ending(tbl, output_filename, output_format, s)
 
 
 def _common_pipeline_sanity_checks(
@@ -446,6 +454,22 @@ def _common_pipeline_beginning(
         | f'DebugFlatten{s}' >> beam.FlatMap(lambda x: x))
 
   return input_examples
+
+
+def _common_pipeline_ending(
+    tbl,
+    output_filename,
+    output_format,
+    s):
+  """Common pipeline sanity checks and writing functions."""
+  if not tf.io.gfile.exists(os.path.dirname(output_filename)):
+    raise ValueError(f'Dir doesn\'nt exist: {output_filename}')
+  if tf.io.gfile.glob(f'{output_filename}*'):
+    raise ValueError(f'Output already exists: {output_filename}')
+  writer_function = utils.writer_functions[output_format]
+  cur_output_filename = output_filename
+  logging.info('Writing format %s to: %s', output_format, cur_output_filename)
+  writer_function(tbl, cur_output_filename, s)
 
 
 def get_beam_params_from_flags(
@@ -498,11 +522,13 @@ def get_beam_params_from_flags(
       model_input_min_length=FLAGS.model_input_min_length,
       input_format=input_format,
       output_format=output_format,
-      module_call_fn=(utils.samples_to_embedding_tflite if is_tflite
-                      else utils.samples_to_embedding_tfhub),
-      setup_fn=utils.build_tflite_interpreter if is_tflite else hub.load,
   )
   # pylint:enable=line-too-long
+
+  # Override if using tflite, else use defaults.
+  if is_tflite:
+    beam_params['module_call_fn'] = utils.samples_to_embedding_tflite
+    beam_params['setup_fn'] = utils.build_tflite_interpreter
 
   logging.info('input_filenames_list: %s', input_filenames_list)
   logging.info('output_filenames: %s', output_filenames)

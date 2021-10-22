@@ -17,15 +17,21 @@
 """Tests for NOSS data prep."""
 
 import os
+from absl import flags
 from absl.testing import absltest
+from absl.testing import flagsaver
 from absl.testing import parameterized
 import apache_beam as beam
 import tensorflow as tf
+# Import `main` for the flags.
+from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_main  # pylint:disable=unused-import
 from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_utils
 
 BASE_SHAPE_ = (15, 5)
 
 TEST_DIR = 'non_semantic_speech_benchmark/data_prep/testdata'
+
+FLAGS = flags.FLAGS
 
 
 def make_tfexample(l):
@@ -79,6 +85,8 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
     # Write some examples to dummy location.
     tmp_input = os.path.join(absltest.get_default_test_tmpdir(),
                              'input.tfrecord')
+    tmp_output = os.path.join(absltest.get_default_test_tmpdir(),
+                              'multiple_embs.tfrecord')
     with tf.io.TFRecordWriter(tmp_input) as writer:
       for _ in range(3):
         ex = make_tfexample(5)
@@ -88,6 +96,7 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
       audio_to_embeddings_beam_utils.multiple_embeddings_from_single_model_pipeline(
           root,
           input_filenames=[tmp_input],
+          output_filename=tmp_output,
           sample_rate=5,
           debug=True,
           embedding_names=['em1', 'em2'],
@@ -99,8 +108,6 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
           speaker_id_key='speaker_id',
           average_over_time=True,
           delete_audio_from_output=False,
-          output_filename=os.path.join(absltest.get_default_test_tmpdir(),
-                                       'output.tfrecord'),
           chunk_len=0,
           embedding_length=10,
           input_format='tfrecord',
@@ -111,6 +118,8 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
     # Write some examples to dummy location.
     tmp_input = os.path.join(absltest.get_default_test_tmpdir(),
                              'input.tfrecord')
+    tmp_output = os.path.join(absltest.get_default_test_tmpdir(),
+                              'chunked.tfrecord')
     with tf.io.TFRecordWriter(tmp_input) as writer:
       for _ in range(3):
         ex = make_tfexample(5)
@@ -127,8 +136,7 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
           module_output_keys=['k1', 'k2'],
           audio_key='audio',
           sample_rate_key=None,
-          output_filename=os.path.join(absltest.get_default_test_tmpdir(),
-                                       'output.tfrecord'),
+          output_filename=tmp_output,
           label_key='label',
           speaker_id_key='speaker_id',
           chunk_len=0,
@@ -136,6 +144,40 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
           input_format='tfrecord',
           output_format='tfrecord',
           setup_fn=lambda _: MockModule(['k1', 'k2']))
+
+  @parameterized.parameters(
+      {'data_prep_behavior': 'many_models'},
+      {'data_prep_behavior': 'many_embeddings_single_model'},
+      {'data_prep_behavior': 'chunked_audio'},
+  )
+  @flagsaver.flagsaver
+  def test_read_flags_and_create_pipeline(self, data_prep_behavior):
+    """Test that the read-from-flags and pipeline creation are synced."""
+    FLAGS.input_glob = os.path.join(
+        absltest.get_default_test_srcdir(), TEST_DIR, '*')
+    FLAGS.output_filename = os.path.join(absltest.get_default_test_tmpdir(),
+                                         f'{data_prep_behavior}.tfrecord')
+    FLAGS.data_prep_behavior = data_prep_behavior
+    FLAGS.embedding_names = ['em1', 'em2']
+    FLAGS.embedding_modules = ['dummy_mod_loc']
+    FLAGS.module_output_keys = ['k1', 'k2']
+    FLAGS.sample_rate = 5
+    FLAGS.audio_key = 'audio_key'
+    FLAGS.label_key = 'label_key'
+    input_filenames_list, output_filenames, beam_params = audio_to_embeddings_beam_utils.get_beam_params_from_flags(
+    )
+    # Use the defaults, unless we are using TFLite models.
+    self.assertNotIn('module_call_fn', beam_params)
+    self.assertNotIn('setup_fn', beam_params)
+
+    # Check that the arguments run through.
+    audio_to_embeddings_beam_utils.data_prep_pipeline(
+        root=beam.Pipeline(),
+        input_filenames_or_glob=input_filenames_list[0],
+        output_filename=output_filenames[0],
+        data_prep_behavior=FLAGS.data_prep_behavior,
+        beam_params=beam_params,
+        suffix='s')
 
 
 if __name__ == '__main__':

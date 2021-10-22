@@ -275,26 +275,11 @@ class BeamDofnsTest(parameterized.TestCase):
           speaker_id_key='speaker_id')
 
   @parameterized.parameters([
-      {
-          'process_fn': 'ComputeEmbeddingMapFn',
-          'chunk_len': 0
-      },
-      {
-          'process_fn': 'ComputeMultipleEmbeddings',
-          'chunk_len': 0
-      },
-      {
-          'process_fn': 'ComputeMultipleEmbeddings',
-          'chunk_len': 200
-      },
-      {
-          'process_fn': 'ChunkAudioAndComputeEmbeddings',
-          'chunk_len': 0
-      },
-      {
-          'process_fn': 'ChunkAudioAndComputeEmbeddings',
-          'chunk_len': 200
-      },
+      {'process_fn': 'ComputeEmbeddingMapFn', 'chunk_len': 0},
+      {'process_fn': 'ComputeMultipleEmbeddings', 'chunk_len': 0},
+      {'process_fn': 'ComputeMultipleEmbeddings', 'chunk_len': 200},
+      {'process_fn': 'ChunkAudioAndComputeEmbeddings', 'chunk_len': 0},
+      {'process_fn': 'ChunkAudioAndComputeEmbeddings', 'chunk_len': 200},
   ])
   def test_pipeline_padding(self, process_fn, chunk_len):
     """Check that the model input is of sufficient length."""

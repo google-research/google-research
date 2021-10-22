@@ -192,15 +192,12 @@ def tfexample_audio_to_npfloat32(ex, audio_key,
   return audio
 
 
-def get_chunked_audio_fn(model_input, chunk_len):  # pylint:disable=g-bare-generic
-  """Do some chunking in a tf.cond."""
-  def chunked_audio():
-    assert model_input.ndim == 1, model_input.ndim
-    audio_size = (
-        tf.shape(model_input)[0] // chunk_len) * chunk_len
-    usable_audio = model_input[:audio_size]
-    chunked_audio = tf.reshape(usable_audio, [-1, chunk_len])
-    return chunked_audio
+def get_chunked_audio_fn(model_input, chunk_len):
+  """Do some chunking."""
+  assert model_input.ndim == 1, model_input.ndim
+  audio_size = (model_input.shape[0] // chunk_len) * chunk_len
+  usable_audio = model_input[:audio_size]
+  chunked_audio = np.reshape(usable_audio, [-1, chunk_len])
   return chunked_audio
 
 
