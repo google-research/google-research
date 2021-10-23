@@ -51,7 +51,7 @@ def create_vision_model(image_dims=(224, 224, 3), weights='imagenet'):
   Returns:
     The vision model and the length of the visual description vector.
   """
-  base_model = tf.keras.applications.ResNet101V2(
+  base_model = tf.keras.applications.ResNet50V2(
       weights=weights, include_top=False, input_shape=image_dims)
   inp = tf.keras.layers.Input(shape=image_dims)
   x = base_model(inp)

@@ -55,6 +55,9 @@ flags.DEFINE_integer('downsample_continuous_gt', 0,
 flags.DEFINE_integer('number_training_iterations',
                      10_000,
                      'The number of iterations to train.')
+flags.DEFINE_integer('number_eval_iterations', None,
+                     'The number of iterations to eval.')
+
 flags.DEFINE_float('learning_rate', 1e-4, 'The learning rate.')
 flags.DEFINE_integer('batch_size', 32, 'The batch size.')
 flags.DEFINE_integer('test_batch_size', 32, 'The batch size for evaluation, '
@@ -184,7 +187,17 @@ def main(_):
                                cosine_decay(step_num))
     images, rotations_gt = batch_data
     loss = train_step(vision_model, model_head, optimizer, images, rotations_gt)
+
     train_loss(loss)
+
+    if (step_num) % 100 == 0:
+      avg_loss = train_loss.result()
+      train_loss.reset_states()
+      with train_summary_writer.as_default():
+        tf.summary.scalar('loss', avg_loss, step=step_num)
+        tf.summary.scalar(
+            'learning_rate', optimizer.learning_rate, step=step_num)
+      logging.info('Step %d, training loss=%.2f', step_num, avg_loss)
 
     if (step_num+1) % eval_every == 0:
       measurements = eval_step(
@@ -193,16 +206,12 @@ def main(_):
           dset_val_list,
           dset_val_tags)
 
-      avg_loss = train_loss.result()
       with train_summary_writer.as_default():
         logline = f'Step {step_num}: '
         for k, v in measurements.items():
           tf.summary.scalar(k, v, step=step_num)
           logline += f'{k}={v:.2f} '
         logging.info(logline)
-        tf.summary.scalar('loss', avg_loss, step=step_num)
-        tf.summary.scalar(
-            'learning_rate', optimizer.learning_rate, step=step_num)
         logging.info('Started visualize_so3.')
         distribution_images = evaluation.visualize_model_output(
             vision_model, model_head, visualization_images,
@@ -210,7 +219,6 @@ def main(_):
         tf.summary.image('output_distribution', distribution_images,
                          step=step_num)
 
-      train_loss.reset_states()
       logging.info('Saving checkpoint.')
       checkpoint_manager.save()
 
@@ -251,7 +259,8 @@ def eval_step(vision_model, model_head, dataset_list,
         model_head,
         dataset,
         batch_size=FLAGS.test_batch_size,
-        skip_spread_evaluation=FLAGS.skip_spread_evaluation)
+        skip_spread_evaluation=FLAGS.skip_spread_evaluation,
+        number_eval_iterations=FLAGS.number_eval_iterations)
     measurements[f'gt_log_likelihood_{tag}'] = avg_log_likelihood
     measurements[f'spread_{tag}'] = spread
 
