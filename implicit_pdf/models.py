@@ -186,7 +186,7 @@ class ImplicitSO3(tfkl.Layer):
 
     probabilities = tf.nn.softmax(logits, axis=-1)
     # Scale by the volume per grid point.
-    probabilities *= np.pi**2 / query_rotations.shape[1]
+    probabilities *= query_rotations.shape[1] / np.pi**2
     # The final query rotation is the rotation we care about.
     return probabilities[:, -1]
 
