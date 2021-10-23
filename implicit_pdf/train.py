@@ -23,13 +23,11 @@ import os
 from absl import app
 from absl import flags
 from absl import logging
+import numpy as np
+import tensorflow as tf
 from implicit_pdf import data
 from implicit_pdf import evaluation
 from implicit_pdf import models
-import numpy as np
-import tensorflow as tf
-
-
 
 tfkl = tf.keras.layers
 FLAGS = flags.FLAGS
