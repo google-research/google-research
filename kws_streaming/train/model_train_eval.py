@@ -111,6 +111,7 @@ from kws_streaming.models import model_flags
 from kws_streaming.models import model_utils
 import kws_streaming.models.att_mh_rnn as att_mh_rnn
 import kws_streaming.models.att_rnn as att_rnn
+import kws_streaming.models.bc_resnet as bc_resnet
 import kws_streaming.models.cnn as cnn
 import kws_streaming.models.crnn as crnn
 import kws_streaming.models.dnn as dnn
@@ -368,6 +369,10 @@ if __name__ == '__main__':
   # ds_tc_resnet model settings
   parser_ds_tc_resnet = subparsers.add_parser('ds_tc_resnet')
   ds_tc_resnet.model_parameters(parser_ds_tc_resnet)
+
+  # bc_resnet model settings
+  parser_bc_resnet = subparsers.add_parser('bc_resnet')
+  bc_resnet.model_parameters(parser_bc_resnet)
 
   FLAGS, unparsed = parser.parse_known_args()
   if unparsed and tuple(unparsed) != ('--alsologtostderr',):

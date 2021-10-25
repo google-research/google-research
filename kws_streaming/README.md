@@ -40,8 +40,9 @@ and implemented most popular KWS models:
 | [svdf](https://arxiv.org/pdf/1812.02802.pdf) | singular value decomposition filter neural network (sequence of 1d depthwise conv and 1x1 conv)  |   yes     |
 | svdf_resnet | [svdf](https://arxiv.org/pdf/1812.02802.pdf) neural network with residual connections  |   yes     |
 | ds_tc_resnet | combination of 1d depthwise convolution in time with residual blocks, based on [MatchboxNet](https://arxiv.org/abs/2004.08531)  |   yes     |
+| [bc_resnet](https://arxiv.org/pdf/2106.04140.pdf) | combination of 1d depthwise convolution in time with broadcasted residual blocks, based on [BC-ResNet](https://arxiv.org/pdf/2106.04140.pdf)  |   yes     |
 | [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) | combination of cnn, RNN(bi directional LSTM) and attention  |   no     |
-| att_mh_rnn | extended version of [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) with multihead attention |   no     |
+| [att_mh_rnn](https://arxiv.org/pdf/2005.06720.pdf) | extended version of [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) with multihead attention |   no     |
 | [tc_resnet](https://arxiv.org/pdf/1904.03814.pdf) | temporal convolution with sequence of residual blocks  |   not converted     |
 | [mobilenet](https://arxiv.org/abs/1704.04861) | reduced version of mobilenet vision/imagenet model, but with 1d temporal conv |   not converted     |
 | [mobilenet_v2](https://arxiv.org/abs/1801.04381) | reduced version of mobilenet_v2 vision/imagenet model, but with 1d temporal conv |   not converted     |

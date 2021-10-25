@@ -33,7 +33,7 @@ class Params(object):
     self.train = 0
     self.split_data = 1
     self.sample_rate = 16000
-    self.clip_duration_ms = 1000
+    self.clip_duration_ms = 400  # default is 1000
     self.window_size_ms = 40.0
     self.window_stride_ms = 20.0
     self.preprocess = 'raw'
@@ -70,7 +70,7 @@ class Params(object):
     self.how_many_training_steps = '10000,10000,10000'
     self.eval_step_interval = 400
     self.learning_rate = '0.0005,0.0001,0.00002'
-    self.batch_size = 100
+    self.batch_size = 1  # default is 100
     self.optimizer_epsilon = 1e-08
     self.resample = 0.15
     self.volume_resample = 0.0
@@ -420,6 +420,22 @@ def ds_tc_resnet_params():
   return params
 
 
+def bc_resnet_params():
+  """Parameters for bc_resnet model."""
+  params = Params()
+  params.model_name = 'bc_resnet'
+  params.dropouts = '0.5, 0.5'
+  params.filters = '2, 2'
+  params.blocks_n = '1, 1'
+  params.strides = '(1,1), (1,1)'
+  params.dilations = '(1,1), (1,1)'
+  params.paddings = 'same'
+  params.first_filters = 2
+  params.last_filters = 2
+  params.sub_groups = 1
+  return params
+
+
 # these are toy hotword model parameters
 # with reduced dims for unit test only
 HOTWORD_MODEL_PARAMS = {
@@ -441,4 +457,5 @@ HOTWORD_MODEL_PARAMS = {
     'inception': inception_params(),
     'inception_resnet': inception_resnet_params(),
     'ds_tc_resnet': ds_tc_resnet_params(),
+    'bc_resnet': bc_resnet_params(),
 }
