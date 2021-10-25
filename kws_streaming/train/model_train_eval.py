@@ -142,6 +142,7 @@ def main(_):
     # Create model folders where logs and model will be stored
     try:
       os.makedirs(flags.train_dir)
+      os.makedirs(os.path.join(flags.train_dir, 'restore'))
       os.mkdir(flags.summaries_dir)
     except OSError as e:
       if flags.restore_checkpoint:

@@ -103,9 +103,10 @@ def train(flags):
 
   model.compile(optimizer=optimizer, loss=loss, metrics=['accuracy'])
 
-  train_writer = tf.summary.FileWriter(flags.summaries_dir + '/train',
-                                       sess.graph)
-  validation_writer = tf.summary.FileWriter(flags.summaries_dir + '/validation')
+  train_writer = tf.summary.FileWriter(
+      os.path.join(flags.summaries_dir, 'train'), sess.graph)
+  validation_writer = tf.summary.FileWriter(
+      os.path.join(flags.summaries_dir, 'validation'))
 
   start_step = 1
 
@@ -126,7 +127,7 @@ def train(flags):
   exp_rate = -np.log(learning_rates_list[-1] / lr_init)/training_steps_max
 
   # configure checkpointer
-  checkpoint_directory = os.path.join(flags.train_dir, 'train/')
+  checkpoint_directory = os.path.join(flags.train_dir, 'restore/')
   checkpoint_prefix = os.path.join(checkpoint_directory, 'ckpt')
   checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
   status = checkpoint.restore(tf.train.latest_checkpoint(checkpoint_directory))
@@ -197,20 +198,20 @@ def train(flags):
       logging.info('Step %d: Validation accuracy = %.2f%% (N=%d)',
                    *(training_step, total_accuracy * 100, set_size))
 
-      model.save_weights(flags.train_dir + 'train/' +
-                         str(int(best_accuracy * 10000)) + 'weights_' +
-                         str(training_step))
+      model.save_weights(
+          os.path.join(
+              flags.train_dir, 'train/',
+              str(int(best_accuracy * 10000)) + 'weights_' +
+              str(training_step)))
 
       # Save the model checkpoint when validation accuracy improves
       if total_accuracy >= best_accuracy:
         best_accuracy = total_accuracy
         # overwrite the best model weights
-        model.save_weights(flags.train_dir + 'best_weights')
+        model.save_weights(os.path.join(flags.train_dir, 'best_weights'))
 
         # save checkpoint
-        with sess.as_default():
-          with tf.get_default_graph().as_default():
-            checkpoint.save(file_prefix=checkpoint_prefix)
+        checkpoint.save(file_prefix=checkpoint_prefix, session=sess)
 
       logging.info('So far the best validation accuracy is %.2f%%',
                    (best_accuracy * 100))
@@ -236,4 +237,4 @@ def train(flags):
                *(total_accuracy * 100, set_size))
   with open(os.path.join(flags.train_dir, 'accuracy_last.txt'), 'wt') as fd:
     fd.write(str(total_accuracy * 100))
-  model.save_weights(flags.train_dir + 'last_weights')
+  model.save_weights(os.path.join(flags.train_dir, 'last_weights'))
