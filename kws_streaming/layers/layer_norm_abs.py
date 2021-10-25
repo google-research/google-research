@@ -25,20 +25,22 @@ class LayerNormalizationAbs(tf.keras.layers.Layer):
   It is a basic LayerNormalization layer which is applied on last dim only.
   """
 
-  def __init__(self, epsilon=0.001, **kwargs):
+  def __init__(self, epsilon=0.001, axis=-1, **kwargs):
     super(LayerNormalizationAbs, self).__init__(**kwargs)
     self.epsilon = epsilon
+    self.axis = axis
 
   def call(self, inputs):
 
-    mean = tf.math.reduce_mean(inputs, axis=-1, keepdims=True)
+    mean = tf.math.reduce_mean(inputs, axis=self.axis, keepdims=True)
     deviation_abs = tf.math.reduce_mean(
-        tf.abs(inputs - mean), axis=-1, keepdims=True)
+        tf.abs(inputs - mean), axis=self.axis, keepdims=True)
     return (inputs - mean) / (deviation_abs + self.epsilon)
 
   def get_config(self):
     config = {
         'epsilon': self.epsilon,
+        'axis': self.axis,
     }
     base_config = super(LayerNormalizationAbs, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))

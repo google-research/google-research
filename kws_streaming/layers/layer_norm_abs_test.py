@@ -24,16 +24,28 @@ tf1.disable_eager_execution()
 
 class LayerNormalizationAbsTest(tf.test.TestCase):
 
-  def test(self):
+  def test_on_feature_axis(self):
 
     inputs = tf.keras.Input(
         shape=(2, 2), batch_size=1)
-    outputs = layer_norm_abs.LayerNormalizationAbs(epsilon=1)(inputs)
+    outputs = layer_norm_abs.LayerNormalizationAbs(epsilon=1, axis=-1)(inputs)
     model = tf.keras.Model(inputs, outputs)
     input_np = np.array([[[1.0, -1.0], [2.0, 4.0]]])
     output = model.predict(input_np)
     self.assertAllClose(
         output, np.array([[[0.5, -0.5], [-0.5, 0.5]]], dtype=np.float32))
+
+  def test_on_feature_and_time_axis(self):
+
+    inputs = tf.keras.Input(shape=(2, 2), batch_size=1)
+    outputs = layer_norm_abs.LayerNormalizationAbs(
+        epsilon=1, axis=[1, 2])(
+            inputs)
+    model = tf.keras.Model(inputs, outputs)
+    input_np = np.array([[[1.0, -1.0], [2.0, 4.0]]])
+    output = model.predict(input_np)
+    self.assertAllClose(
+        output, np.array([[[-0.2, -1.0], [0.2, 1.0]]], dtype=np.float32))
 
 
 if __name__ == "__main__":
