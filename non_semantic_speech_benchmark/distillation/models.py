@@ -112,11 +112,12 @@ def get_keras_model(model_type,
         pooling='avg' if avg_pool else None,
         dropout_rate=0.0)
     expected_output_shape = [None, None] if avg_pool else [None, 1, 1, None]
-  elif 'efficientnet' in model_type:
-    model_fn = {
-        'efficientnetb0': tf.keras.applications.EfficientNetB0,
-        'efficientnetb1': tf.keras.applications.EfficientNetB1,
-        'efficientnetb2': tf.keras.applications.EfficientNetB2,
+  elif model_type.startswith('efficientnet'):
+    model_fn, final_dim = {
+        'efficientnetb0': (tf.keras.applications.EfficientNetB0, 1280),
+        'efficientnetb1': (tf.keras.applications.EfficientNetB1, 1280),
+        'efficientnetb2': (tf.keras.applications.EfficientNetB2, 1408),
+        'efficientnetb3': (tf.keras.applications.EfficientNetB3, 1536),
     }[model_type]
     model = model_fn(
         include_top=False,
@@ -125,7 +126,7 @@ def get_keras_model(model_type,
                      frontend_args['num_mel_bins'], 1),
         pooling='avg',
     )
-    expected_output_shape = [None, 1280]
+    expected_output_shape = [None, final_dim]
   else:
     raise ValueError(f'`model_type` not recognized: {model_type}')
 

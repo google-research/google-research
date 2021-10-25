@@ -69,6 +69,9 @@ class ModelsTest(parameterized.TestCase):
       {'model_type': 'mobilenet_small_1.0_False'},
       {'model_type': 'mobilenet_debug_1.0_False'},
       {'model_type': 'efficientnetb0'},
+      {'model_type': 'efficientnetb1'},
+      {'model_type': 'efficientnetb2'},
+      {'model_type': 'efficientnetb3'},
   )
   def test_valid_model_type(self, model_type):
     input_tensor = tf.zeros([2, 32000], dtype=tf.float32)
@@ -117,6 +120,5 @@ class ModelsTest(parameterized.TestCase):
 
 
 if __name__ == '__main__':
-  tf.compat.v2.enable_v2_behavior()
   assert tf.executing_eagerly()
   absltest.main()
