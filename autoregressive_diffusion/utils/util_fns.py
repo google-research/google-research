@@ -114,8 +114,8 @@ def compute_batch_inverse_permute(permutation):
   #   inv_permute[jnp.arange(batch_size)[:, None], permutation] = arange
   # and it essentially inverts the permutation operation by writing the original
   # index to the permutation destinations.
-  inv_permute = jax.ops.index_update(
-      temp, (jnp.arange(batch_size)[:, None], permutation), arange)
+  inv_permute = temp.at[jnp.arange(batch_size)[:, None], permutation].set(
+      arange)
   return inv_permute
 
 
