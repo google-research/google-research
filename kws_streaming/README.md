@@ -30,25 +30,25 @@ and implemented most popular KWS models:
 
 |  Model name      | Description  | Streamable |
 | ---------------- | --------------------- | --------------------- |
-|[dnn](https://arxiv.org/pdf/1711.07128.pdf) | deep neural network based on combination of fully connected layers      | yes      |
-| dnn_raw | an example of [dnn](https://arxiv.org/pdf/1711.07128.pdf) model on raw audio features  |   yes     |
-| [gru](https://arxiv.org/pdf/1711.07128.pdf) | gated recurrent unit model  |   yes     |
-| [lstm](https://arxiv.org/pdf/1711.07128.pdf) | long short term memory model  |   yes     |
-| [cnn](https://arxiv.org/pdf/1711.07128.pdf) | basic convolutional neural network  |   yes     |
-| [crnn](https://arxiv.org/pdf/1711.07128.pdf) | combination of convolutional layers with RNNs(GRU or LSTM)  |   yes     |
-| [ds_cnn](https://arxiv.org/pdf/1711.07128.pdf) | depth wise convolutional neural network  |   yes     |
-| [svdf](https://arxiv.org/pdf/1812.02802.pdf) | singular value decomposition filter neural network (sequence of 1d depthwise conv and 1x1 conv)  |   yes     |
-| svdf_resnet | [svdf](https://arxiv.org/pdf/1812.02802.pdf) neural network with residual connections  |   yes     |
-| ds_tc_resnet | combination of 1d depthwise convolution in time with residual blocks, based on [MatchboxNet](https://arxiv.org/abs/2004.08531)  |   yes     |
-| [bc_resnet](https://arxiv.org/pdf/2106.04140.pdf) | combination of 1d depthwise convolution in time with broadcasted residual blocks, based on [BC-ResNet](https://arxiv.org/pdf/2106.04140.pdf)  |   yes     |
-| [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) | combination of cnn, RNN(bi directional LSTM) and attention  |   no     |
-| [att_mh_rnn](https://arxiv.org/pdf/2005.06720.pdf) | extended version of [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) with multihead attention |   no     |
-| [tc_resnet](https://arxiv.org/pdf/1904.03814.pdf) | temporal convolution with sequence of residual blocks  |   not converted     |
-| [mobilenet](https://arxiv.org/abs/1704.04861) | reduced version of mobilenet vision/imagenet model, but with 1d temporal conv |   not converted     |
-| [mobilenet_v2](https://arxiv.org/abs/1801.04381) | reduced version of mobilenet_v2 vision/imagenet model, but with 1d temporal conv |   not converted     |
-| [xception](https://arxiv.org/abs/1610.02357) | reduced version of xception vision/imagenet model |   not converted     |
-| [inception](http://arxiv.org/abs/1512.00567) | reduced version of inception vision/imagenet model |   not converted     |
-| [inception_resnet](https://arxiv.org/abs/1602.07261) | reduced version of inception_resnet vision/imagenet model |   not converted     |
+|[dnn](https://github.com/google-research/google-research/blob/master/kws_streaming/models/dnn.py) | deep neural network based on combination of fully connected layers, based on [dnn](https://arxiv.org/pdf/1711.07128.pdf)      | yes      |
+| [dnn_raw](https://github.com/google-research/google-research/blob/master/kws_streaming/models/dnn_raw.py) | an example of [dnn](https://arxiv.org/pdf/1711.07128.pdf) model on raw audio features  |   yes     |
+| [gru](https://github.com/google-research/google-research/blob/master/kws_streaming/models/gru.py) | gated recurrent unit model, based on [gru](https://arxiv.org/pdf/1711.07128.pdf)  |   yes     |
+| [lstm](https://github.com/google-research/google-research/blob/master/kws_streaming/models/lstm.py) | long short term memory model, based on [lstm](https://arxiv.org/pdf/1711.07128.pdf)  |   yes     |
+| [cnn](https://github.com/google-research/google-research/blob/master/kws_streaming/models/cnn.py) | basic convolutional neural network, based on [cnn](https://arxiv.org/pdf/1711.07128.pdf)  |   yes     |
+| [crnn](https://github.com/google-research/google-research/blob/master/kws_streaming/models/crnn.py) | combination of convolutional layers with RNNs(GRU or LSTM), based on [crnn](https://arxiv.org/pdf/1711.07128.pdf)  |   yes     |
+| [ds_cnn](https://github.com/google-research/google-research/blob/master/kws_streaming/models/ds_cnn.py) | depth wise convolutional neural network, based on [ds_cnn](https://arxiv.org/pdf/1711.07128.pdf)  |   yes     |
+| [svdf](https://github.com/google-research/google-research/blob/master/kws_streaming/models/svdf.py) | singular value decomposition filter neural network (sequence of 1d depthwise conv and 1x1 conv), based on [svdf](https://arxiv.org/pdf/1812.02802.pdf)  |   yes     |
+| [svdf_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/models/svdf_resnet.py) | [svdf](https://arxiv.org/pdf/1812.02802.pdf) neural network with residual connections  |   yes     |
+| [ds_tc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/models/ds_tc_resnet.py) | combination of 1d depthwise convolution in time with residual blocks, based on [MatchboxNet](https://arxiv.org/abs/2004.08531)  |   yes     |
+| [bc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/models/bc_resnet.py) | combination of 1d depthwise convolution in time with broadcasted residual blocks, based on [BC-ResNet](https://arxiv.org/pdf/2106.04140.pdf)  |   yes     |
+| [att_rnn](https://github.com/google-research/google-research/blob/master/kws_streaming/models/att_rnn.py) | combination of cnn, RNN(bi directional LSTM) and attention based on [att_rnn](https://arxiv.org/pdf/1808.08929.pdf)  |   no     |
+| [att_mh_rnn](https://github.com/google-research/google-research/blob/master/kws_streaming/models/att_mh_rnn.py) | combination of cnn, RNN(bi directional LSTM) and multihead attention: [att_mh_rnn](https://arxiv.org/pdf/2005.06720.pdf) |   no     |
+| [tc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/models/tc_resnet.py) | temporal convolution with sequence of residual blocks based on [tc_resnet](https://arxiv.org/pdf/1904.03814.pdf)  |   not converted     |
+| [mobilenet](https://github.com/google-research/google-research/blob/master/kws_streaming/models/mobilenet.py) | reduced version of [mobilenet](https://arxiv.org/abs/1704.04861) vision/imagenet model, but with 1d temporal conv |   not converted     |
+| [mobilenet_v2](https://github.com/google-research/google-research/blob/master/kws_streaming/models/mobilenet_v2.py) | reduced version of [mobilenet_v2](https://arxiv.org/abs/1801.04381) vision/imagenet model, but with 1d temporal conv |   not converted     |
+| [xception](https://github.com/google-research/google-research/blob/master/kws_streaming/models/xception.py) | reduced version of [xception](https://arxiv.org/abs/1610.02357) vision/imagenet model |   not converted     |
+| [inception](https://github.com/google-research/google-research/blob/master/kws_streaming/models/inception.py) | reduced version of [inception](http://arxiv.org/abs/1512.00567) vision/imagenet model |   not converted     |
+| [inception_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/models/inception_resnet.py) | reduced version of [inception_resnet](https://arxiv.org/abs/1602.07261) vision/imagenet model |   not converted     |
 
 
 They all use speech feature extractor, which is easy to configure as MFCC, LFBE
