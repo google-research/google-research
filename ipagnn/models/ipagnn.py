@@ -21,7 +21,7 @@ and GGNN ablation versions of the model, see ipagnn_interpolants.py.
 """
 
 from absl import logging  # pylint: disable=unused-import
-from flax import nn
+from flax.deprecated import nn
 import jax
 from jax import lax
 import jax.numpy as jnp

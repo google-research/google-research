@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """Normalization modules for Flax."""
-from flax import nn
+from flax.deprecated import nn
 import jax.numpy as jnp
 
 

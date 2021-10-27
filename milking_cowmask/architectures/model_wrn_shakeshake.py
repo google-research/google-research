@@ -15,7 +15,7 @@
 
 """Wide Resnet Model with shake-shake regularization."""
 from . import shake
-from flax import nn
+from flax.deprecated import nn
 import jax
 
 
