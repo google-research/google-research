@@ -26,9 +26,11 @@ import os
 import snappy
 
 from absl import logging
+from rdkit import Chem
 import sqlite3
 
 from smu import dataset_pb2
+from smu.parser import smu_utils_lib
 
 _CONFORMER_TABLE_NAME = 'conformer'
 _BTID_TABLE_NAME = 'btid'
@@ -230,10 +232,11 @@ class SMUSQLite:
     Returns:
       iterable for dataset_pb2.Conformer
     """
-    # TODO(pfr): add canonicalization here
+    canon_smiles = smu_utils_lib.compute_smiles_for_molecule(
+      Chem.MolFromSmiles(smiles, sanitize=False), include_hs=False)
     cur = self._conn.cursor()
     select = f'SELECT btid FROM {_SMILES_TABLE_NAME} WHERE smiles = ?'
-    cur.execute(select, (smiles,))
+    cur.execute(select, (canon_smiles,))
     result = cur.fetchall()
 
     if not result:
