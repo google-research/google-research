@@ -24,7 +24,7 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 from absl import logging
 from clu import parameter_overview
-from flax import nn
+from flax.deprecated import nn
 import jax
 from jax import numpy as jnp
 import ml_collections

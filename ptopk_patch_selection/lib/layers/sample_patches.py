@@ -21,7 +21,7 @@ from typing import Any, Dict, Optional, Tuple
 
 import chex
 import einops
-import flax.nn as nn
+import flax.deprecated.nn as nn
 import jax
 import jax.numpy as jnp
 from lib import utils

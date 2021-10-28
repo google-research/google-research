@@ -36,9 +36,8 @@ from .data_sources import small_image_data_source
 
 from flax import jax_utils
 from flax import optim
+import flax.deprecated.nn
 from flax.metrics import tensorboard
-import flax.nn
-
 import jax
 
 import jax.nn
@@ -128,8 +127,8 @@ def create_model(key, arch, batch_size, image_size, n_classes):
     model_def = model_resnet.ResNext152_32x4d.partial(num_outputs=n_classes)
   else:
     raise ValueError('Unknown architecture \'{}\''.format(arch))
-  with flax.nn.stateful() as init_state:
-    with flax.nn.stochastic(jax.random.PRNGKey(0)):
+  with flax.deprecated.nn.stateful() as init_state:
+    with flax.deprecated.nn.stochastic(jax.random.PRNGKey(0)):
       _, model = model_def.create_by_shape(
           key, [(input_shape, jnp.float32)])
   return model, init_state
@@ -357,8 +356,8 @@ def train_step(optimizer_stu, state_stu, model_tea, state_tea,
      model_rng_unsup_tea, mix_rng, model_rng_mix_stu,
      model_rng_mix_tea) = jax.random.split(rng_key, num=7)
 
-    with flax.nn.stateful(state_stu) as new_state_stu:
-      with flax.nn.stochastic(model_rng_sup):
+    with flax.deprecated.nn.stateful(state_stu) as new_state_stu:
+      with flax.deprecated.nn.stochastic(model_rng_sup):
         sup_logits = model_stu(sup_x, train=True)
     sup_loss = cross_entropy_loss(sup_logits, batch['sup_label'])
     loss = sup_loss
@@ -376,12 +375,12 @@ def train_step(optimizer_stu, state_stu, model_tea, state_tea,
       # Apply unsupervised reg
       unsup_x1 = unsup_reg.perturb_sample(unsup_x1, unsup_reg_stu_rng)
 
-      with flax.nn.stateful(new_state_tea):
-        with flax.nn.stochastic(model_rng_unsup_tea):
+      with flax.deprecated.nn.stateful(new_state_tea):
+        with flax.deprecated.nn.stochastic(model_rng_unsup_tea):
           unsup_logits_tea = model_tea(unsup_x0, train=False)
       unsup_logits_tea = jax.lax.stop_gradient(unsup_logits_tea)
-      with flax.nn.stateful(new_state_stu) as new_state_stu:
-        with flax.nn.stochastic(model_rng_unsup_stu):
+      with flax.deprecated.nn.stateful(new_state_stu) as new_state_stu:
+        with flax.deprecated.nn.stochastic(model_rng_unsup_stu):
           unsup_logits_stu = model_stu(unsup_x1, train=True)
 
       # Logits -> probs
@@ -429,8 +428,8 @@ def train_step(optimizer_stu, state_stu, model_tea, state_tea,
       else:
         # unsup_logits_tea is the result of applying the teacher model to a
         # perturbed sample, so re-compute
-        with flax.nn.stateful(new_state_tea):
-          with flax.nn.stochastic(model_rng_mix_tea):
+        with flax.deprecated.nn.stateful(new_state_tea):
+          with flax.deprecated.nn.stochastic(model_rng_mix_tea):
             logits0_mix_tea = model_tea(x0_mix_tea, train=False)
         logits0_mix_tea = jax.lax.stop_gradient(logits0_mix_tea)
 
@@ -457,8 +456,8 @@ def train_step(optimizer_stu, state_stu, model_tea, state_tea,
         prob_mix_tea_conf = prob0_mix_tea_conf + \
             (prob1_mix_tea_conf - prob0_mix_tea_conf) * mix_blend_facs[:, None]
 
-      with flax.nn.stateful(new_state_stu) as new_state_stu_mix:
-        with flax.nn.stochastic(model_rng_mix_stu):
+      with flax.deprecated.nn.stateful(new_state_stu) as new_state_stu_mix:
+        with flax.deprecated.nn.stochastic(model_rng_mix_stu):
           logits_mix_stu = model_stu(x_mix, train=True)
       prob_mix_stu = jax.nn.softmax(logits_mix_stu)
 
@@ -540,7 +539,7 @@ def train_step(optimizer_stu, state_stu, model_tea, state_tea,
 
 def eval_step(model, state, batch, eval_top_5=False):
   state = util.pmean(state)
-  with flax.nn.stateful(state, mutable=False):
+  with flax.deprecated.nn.stateful(state, mutable=False):
     logits = model(batch['image'], train=False)
   return compute_eval_metrics(logits, batch['label'], eval_top_5=eval_top_5)
 
@@ -1053,4 +1052,3 @@ def experiment(model_dir='.',  # pylint: disable=dangerous-default-value
     if jax.host_id() == 0:
       if tf.io.gfile.exists(checkpoint_path):
         tf.io.gfile.remove(checkpoint_path)
-

@@ -24,8 +24,8 @@ import time
 
 from absl import logging
 from flax import jax_utils
-from flax import nn
 from flax import optim
+from flax.deprecated import nn
 from flax.training import common_utils
 import gin
 import jax
