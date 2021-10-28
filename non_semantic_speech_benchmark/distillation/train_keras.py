@@ -45,6 +45,7 @@ flags.DEFINE_boolean(
 flags.DEFINE_string(
     'target_key', None, 'Teacher embedding key in precomputed tf.Examples. '
     'This flag is ignored if `precomputed_targets` is False.')
+flags.DEFINE_boolean('normalize_to_pm_one', False, 'Normalize input.')
 
 flags.DEFINE_string('teacher_model_hub', None, 'Hub teacher model.')
 flags.DEFINE_string('output_key', None, 'Teacher model output_key.')
@@ -132,6 +133,7 @@ def train_and_report(debug=False):
       shuffle=True,
       teacher_fn=teacher_fn,
       target_key=target_key,
+      normalize_to_pm_one=FLAGS.normalize_to_pm_one,
       shuffle_buffer_size=FLAGS.shuffle_buffer_size)
   assert len(ds.element_spec) == 2, ds.element_spec
   ds.element_spec[0].shape.assert_has_rank(2)  # audio samples

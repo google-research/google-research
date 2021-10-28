@@ -17,8 +17,9 @@
 """Models for distillation.
 
 """
-
 import os
+from typing import Optional
+
 from absl import logging
 import tensorflow as tf
 import tensorflow_hub as hub
@@ -50,10 +51,10 @@ def _debug_net(pooling, *args, **kwargs):
 def get_keras_model(model_type,
                     bottleneck_dimension,
                     output_dimension,
-                    frontend=True,
-                    compressor=None,
-                    quantize_aware_training=False,
-                    tflite=False):
+                    frontend = True,
+                    compressor = None,
+                    quantize_aware_training = False,
+                    tflite = False):
   """Make a Keras student model."""
   # For debugging, log hyperparameter values.
   logging.info('model name: %s', model_type)
@@ -159,7 +160,6 @@ def get_keras_model(model_type,
         output_dimension, name='embedding_to_target')(embeddings)
     output_dict['embedding_to_target'] = output
   output_model = tf.keras.Model(inputs=inputs, outputs=output_dict)
-
   # Optional modifications to the model for TFLite.
   if tflite:
     if compressor is not None:

@@ -93,7 +93,8 @@ class GetDataTest(parameterized.TestCase):
         teacher_fn=teacher_fn,
         target_key=target_key,
         label_key=self.label_key if read_labels else None,
-        shuffle_buffer_size=2)
+        shuffle_buffer_size=2,
+        normalize_to_pm_one=True)
     # Test that one element of the input pipeline can be successfully read.
     if read_labels:
       for wav_samples, targets, labels in ds:

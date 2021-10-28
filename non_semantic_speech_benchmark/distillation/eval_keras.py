@@ -45,6 +45,8 @@ flags.DEFINE_string(
     'target_key', None, 'Teacher embedding key in precomputed tf.Examples. '
     'This flag is ignored if `precomputed_targets` is False.')
 
+flags.DEFINE_boolean('normalize_to_pm_one', False, 'Normalize input.')
+
 
 # Teacher / student network flags.
 flags.DEFINE_string('teacher_model_hub', None, 'Hub teacher model.')
@@ -123,7 +125,8 @@ def eval_and_report():
         loop_forever=False,
         shuffle=False,
         teacher_fn=teacher_fn,
-        target_key=target_key)
+        target_key=target_key,
+        normalize_to_pm_one=FLAGS.normalize_to_pm_one)
     logging.info('Got dataset for eval step: %s.', step)
     if FLAGS.take_fixed_data:
       ds = ds.take(FLAGS.take_fixed_data)
