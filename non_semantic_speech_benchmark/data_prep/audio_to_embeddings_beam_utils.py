@@ -102,7 +102,7 @@ def make_many_models_beam_pipeline(
     input_format = 'tfrecord',
     output_format = 'tfrecord',
     suffix = 'Main',
-    module_call_fn = utils.samples_to_embedding_tfhub_w2v2,
+    module_call_fn = utils.samples_to_embedding_tfhub,
     setup_fn = hub.load):
   """Construct beam pipeline for mapping from audio to embeddings.
 
