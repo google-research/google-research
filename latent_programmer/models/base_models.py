@@ -51,7 +51,7 @@ class TransformerConfig:
   mlp_dim: int = 512
   max_len: int = 2048
   dropout_rate: float = 0.1
-  attention_dropout_rate: float = 0.1
+  attention_dropout_rate: float = 0.0
   use_relative_attention: bool = False
   num_relative_position_buckets: int = 32
   deterministic: bool = False
