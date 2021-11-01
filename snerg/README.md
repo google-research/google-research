@@ -164,13 +164,14 @@ summarizes the resulting quality (in terms of PSNR).
 If you use this software package, please cite our paper:
 
 ```
-@misc{hedman2021baking,
-      title={Baking Neural Radiance Fields for Real-Time View Synthesis},
-      author={Peter Hedman and Pratul P. Srinivasan and Ben Mildenhall and Jonathan T. Barron and Paul Debevec},
-      year={2021},
-      eprint={2103.14645},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
+@article{hedman2021snerg,
+    title={Baking Neural Radiance Fields for
+           Real-Time View Synthesis},
+    author={Peter Hedman and Pratul P. Srinivasan and
+            Ben Mildenhall and Jonathan T. Barron and
+            Paul Debevec},
+    journal={ICCV},
+    year={2021}
 }
 ```
 
