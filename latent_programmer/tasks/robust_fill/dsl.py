@@ -454,6 +454,118 @@ class GetAll(Nesting):
     return [token_id_table[self.__class__], token_id_table[self.regex_type]]
 
 
+# New Functions
+# ---------------------------------------------------------------------------
+
+  
+class Substitute(Nesting):
+  """Replace i-th occurence of regex match with constant."""
+
+  def __init__(self, regex_type, index, char):
+    self.regex_type = regex_type
+    self.index = index
+    self.char = char
+
+  def __call__(self, value):
+    matches = match_regex_substr(self.regex_type, value)
+
+    # Positive indices start at 1.
+    index = self.index - 1 if self.index > 0 else len(matches) + self.index
+    if not matches:
+      return value
+    if index >= len(matches) or index < 0:  # Handle edge cases.
+      return value
+    return value.replace(matches[index], self.char, 1)
+
+  def to_string(self):
+    return 'Substitute_' + str(self.regex_type) + '_' + str(self.index) + '_' + self.char
+
+  def encode(self, token_id_table):
+    return [
+        token_id_table[self.__class__],
+        token_id_table[self.regex_type],
+        token_id_table[self.index],
+        token_id_table[self.char],
+    ]
+
+
+class SubstituteAll(Nesting):
+  """Replace all occurences of regex match with constant."""
+
+  def __init__(self, regex_type, char):
+    self.regex_type = regex_type
+    self.char = char
+
+  def __call__(self, value):
+    matches = match_regex_substr(self.regex_type, value)
+
+    for match in matches:
+      value = value.replace(match, self.char, 1)
+    return value
+
+  def to_string(self):
+    return 'SubstituteAll_' + str(self.regex_type) + '_' + self.char
+
+  def encode(self, token_id_table):
+    return [
+        token_id_table[self.__class__],
+        token_id_table[self.regex_type],
+        token_id_table[self.char],
+    ]
+
+
+class Remove(Nesting):
+  """Remove i-th occurence of regex match."""
+
+  def __init__(self, regex_type, index):
+    self.regex_type = regex_type
+    self.index = index
+
+  def __call__(self, value):
+    matches = match_regex_substr(self.regex_type, value)
+
+    # Positive indices start at 1.
+    index = self.index - 1 if self.index > 0 else len(matches) + self.index
+    if not matches:
+      return value
+    if index >= len(matches) or index < 0:  # Handle edge cases.
+      return value    
+    return value.replace(matches[index], '', 1)
+
+  def to_string(self):
+    return 'Remove_' + str(self.regex_type) + '_' + str(self.index)
+
+  def encode(self, token_id_table):
+    return [
+        token_id_table[self.__class__],
+        token_id_table[self.regex_type],
+        token_id_table[self.index],
+    ]
+
+
+class RemoveAll(Nesting):
+  """Remove all occurences of regex match."""
+
+  def __init__(self, regex_type):
+    self.regex_type = regex_type
+
+  def __call__(self, value):
+    matches = match_regex_substr(self.regex_type, value)
+
+    for match in matches:
+      value = value.replace(match, '', 1)
+    return value
+
+  def to_string(self):
+    return 'RemoveAll_' + str(self.regex_type)
+
+  def encode(self, token_id_table):
+    return [
+        token_id_table[self.__class__],
+        token_id_table[self.regex_type],
+    ]
+
+
 def decode_expression(encoding,
                       id_token_table):
   """Decode sequence of token ids to expression (excluding Compose)."""

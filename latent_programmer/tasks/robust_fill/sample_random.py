@@ -170,6 +170,7 @@ def random_task(max_expressions,
                 num_examples,
                 min_expressions = 1,
                 n_expressions = None,
+                sampler_pool=None,
                ):
   """Returns a sampled program and IO examples satisfying the given constraints.
 
@@ -183,6 +184,8 @@ def random_task(max_expressions,
     num_examples: Number of input-output examples to generate.
     min_expressions: Minimum number of concatenated expressions in the program.
     n_expressions: Fixed number of concatenated expressions (if provided)
+    sampler_pool: Pool of expression to sampled from (if None, all expressions are 
+        allowed).
   Returns:
     Input strings, output strings, and a program expression.
   """
@@ -196,7 +199,7 @@ def random_task(max_expressions,
     n_expressions = random.randint(min_expressions, max_expressions)
   while True:
     program = dsl.Concat(
-        *[random_expression(inputs, delimiter_dict, type_dict)
+        *[random_expression(inputs, delimiter_dict, type_dict, sampler_pool=sampler_pool)]
           for _ in range(n_expressions)])
 
     outputs = [program(inp) for inp in inputs]
@@ -206,13 +209,15 @@ def random_task(max_expressions,
       return dsl.ProgramTask(program, inputs, outputs)
 
 
-def random_expression(inputs, delimiter_dict, type_dict):
-  sampler = random.choice([
+def random_expression(inputs, delimiter_dict, type_dict, sampler_pool=None):
+  if sampler_pool is None:
+    sampler_pool = [
       random_substring,
       random_nesting,
       random_compose,
-      random_const_str,
-  ])
+      random_const_str
+    ]
+  sampler = random.choice(sampler_pool)
   return sampler(inputs, delimiter_dict, type_dict)
 
 
@@ -237,6 +242,20 @@ def random_nesting(inputs, delimiter_dict, type_dict):
       random_get_all,
   ])
   return sampler(inputs, delimiter_dict, type_dict)
+
+
+def random_compose_nesting(inputs, delimiter_dict, type_dict):
+  """Samples random Compose expression using only nesting."""
+  while True:
+    expr = dsl.Compose(random_nesting(inputs, delimiter_dict, type_dict),
+                       random_nesting(inputs, delimiter_dict, type_dict))
+    # Make sure outputs are non-empty.
+    try:
+      if min(len(expr(input_value)) for input_value in inputs) == 0:
+        continue
+    except:  # pylint: disable=[bare-except]
+      continue
+    return expr
 
 
 def random_compose(inputs, delimiter_dict, type_dict):
@@ -428,6 +447,76 @@ def random_get_all(inputs, delimiter_dict, type_dict):
     t = random_type(type_dict)
 
     expr = dsl.GetAll(t)
+    # Make sure outputs are non-empty.
+    try:
+      if min(len(expr(input_value)) for input_value in inputs) == 0:
+        continue
+    except:  # pylint: disable=[bare-except]
+      continue
+    return expr
+
+
+def random_substitute(inputs, delimiter_dict, type_dict):
+  """Samples random Substitute expression."""
+  del delimiter_dict
+  while True:
+    t = random_type(type_dict)
+    indices = [i for i in dsl.INDEX if abs(i) <= type_dict[t]]
+    i = random.choice(indices)
+    char = random.choice(dsl.CHARACTER)
+
+    expr = dsl.Substitute(t, i, char)
+    # Make sure outputs are non-empty.
+    try:
+      if min(len(expr(input_value)) for input_value in inputs) == 0:
+        continue
+    except:  # pylint: disable=[bare-except]
+      continue
+    return expr
+
+
+def random_substitute_all(inputs, delimiter_dict, type_dict):
+  """Samples random SubstituteAll expression."""
+  del delimiter_dict
+  while True:
+    t = random_type(type_dict)
+    char = random.choice(dsl.CHARACTER)
+
+    expr = dsl.SubstituteAll(t, char)
+    # Make sure outputs are non-empty.
+    try:
+      if min(len(expr(input_value)) for input_value in inputs) == 0:
+        continue
+    except:  # pylint: disable=[bare-except]
+      continue
+    return expr
+
+
+def random_remove(inputs, delimiter_dict, type_dict):
+  """Samples random Remove expression."""
+  del delimiter_dict
+  while True:
+    t = random_type(type_dict)
+    indices = [i for i in dsl.INDEX if abs(i) <= type_dict[t]]
+    i = random.choice(indices)
+
+    expr = dsl.Remove(t, i)
+    # Make sure outputs are non-empty.
+    try:
+      if min(len(expr(input_value)) for input_value in inputs) == 0:
+        continue
+    except:  # pylint: disable=[bare-except]
+      continue
+    return expr
+
+
+def random_remove_all(inputs, delimiter_dict, type_dict):
+  """Samples random RemoveAll expression."""
+  del delimiter_dict
+  while True:
+    t = random_type(type_dict)
+
+    expr = dsl.RemoveAll(t)
     # Make sure outputs are non-empty.
     try:
       if min(len(expr(input_value)) for input_value in inputs) == 0:

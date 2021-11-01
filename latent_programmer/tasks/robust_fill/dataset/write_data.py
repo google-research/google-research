@@ -59,6 +59,9 @@ flags.DEFINE_boolean('split_program', False,
 flags.DEFINE_boolean('split_outputs', False,
                      'Whether to split outputs by partial program.')
 
+flags.DEFINE_integer('experiment', None,
+                     'Index of experiment (see document for descriptions).')
+
 
 def _bytes_feature(value):
   """Returns a bytes_list from a string / byte."""
@@ -117,6 +120,26 @@ def main(_):
 
   worker_fname = os.path.join(FLAGS.save_dir,
                               'program_tasks.tf_records-00000-of-00001')
+
+  sampler_pool_substr = [
+    random_sub_str,
+    random_get_span,
+    random_get_token,
+    random_get_upto,
+    random_get_from,
+    random_get_first,
+  ]
+  sampler_pool_mutate = [
+    random_const_str
+    random_to_case,
+    random_replace,
+    random_trim,
+    random_get_all,
+    random_substitute,
+    random_substitute_all,
+    random_remove,
+    random_remove_all,
+  ]
 
   # Write the `tf.Example` observations to the file.
   with tf.io.TFRecordWriter(worker_fname) as writer:
