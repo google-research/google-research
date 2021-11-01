@@ -27,7 +27,7 @@ def crop_alpha_grid(render_params,
                     atlas_params,
                     scene_params,
                     culling_grid_alpha,
-                    percentile_threshold=0.5,
+                    percentile_threshold=0.4,
                     dilation_factor=1.1):
   """Crops the grid to the smallest 3D bounding box which contains the scene.
 

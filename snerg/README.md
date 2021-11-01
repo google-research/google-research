@@ -92,8 +92,7 @@ the test set:
 python -m snerg.eval \
   --data_dir=/PATH/TO/YOUR/SCENE/DATA \
   --train_dir=/PATH/TO/THE/PLACE/YOU/SAVED/CHECKPOINTS \
-  --config=configs/CONFIG_YOU_LIKE \
-  --chunk=4096
+  --config=configs/CONFIG_YOU_LIKE
 ```
 
 Finally, to bake a trained deferred NeRF network into a SNeRG you can run:
@@ -104,11 +103,6 @@ python -m snerg.bake \
   --train_dir=/PATH/TO/THE/PLACE/YOU/SAVED/CHECKPOINTS \
   --config=configs/CONFIG_YOU_LIKE
 ```
-
-The `chunk` parameter defines how many rays are feed to the model in one go.
-We recommend you to use the largest value that fits to your device's memory but
-small values are fine, only a bit slow.
-
 
 You can also define your own configurations by passing command line flags.
 Please refer to the `define_flags` function in `nerf/utils.py` for all the flags
@@ -132,6 +126,37 @@ snerg_dtype: float16
 You can run this viewer code by uploading it to your own web-server and pointing
 it to a SNeRG output directory, e.g.
 http://my.web.server.com/snerg/index.html?dir=scene_dir_on_server/baked/png
+
+## Quality evaluation
+
+We re-ran the quality evaluation from the paper, using the code published in
+this reposority on both TPUs and GPUs (8x NVIDIA V100). The table below
+summarizes the resulting quality (in terms of PSNR).
+
+
+
+### Blender
+
+| Scene                   |   Chair   |   Drums   |   Ficus   |   Hotdog  |    Lego   | Materials |    Mic    |    Ship   |    Mean   |
+|-------------------------|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|
+| JaxNeRF+ (on TPUs)      |   36.22   |   25.78   |   33.94   |   37.83   |   37.23   |   30.81   |   37.65   |   31.59   |   33.89   |
+| Deferred NeRF (on TPUs) |   34.96   |   24.05   |   28.93   |   35.69   |   36.35   |   29.63   |   34.02   |   30.54   |   31.77   |
+| Deferred NeRF (on GPUs) |   34.82   |   24.19   |   28.61   |   35.96   |   36.32   |   29.58   |   34.11   |   30.51   |   31.76   |
+| SNeRG  (on TPUs)        |   34.25   |   24.47   |   29.30   |   34.91   |   34.66   |   28.44   |   32.79   |   29.19   |   31.00   |
+| SNeRG  (on GPUs)        |   34.10   |   24.56   |   28.53   |   35.11   |   34.64   |   28.50   |   32.50   |   28.90   |   30.85   |
+
+
+
+### LLFF
+
+| Scene                   |    Room    |    Fern   |   Leaves   |  Fortress |  Orchids  |   Flower  |   T-Rex   |   Horns   |    Mean   |
+|-------------------------|:----------:|:---------:|:----------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|
+| JaxNeRF+ (on TPUs)      |   33.85    |   23.98   |   20.61    |   31.12   |   19.83   |   28.42   |   27.31   |   29.07   |   26.77   |
+| Deferred NeRF (on TPUs) |   32.36    |   24.69   |   20.50    |   31.41   |   19.66   |   27.56   |   27.92   |   28.44   |   26.57   |
+| Deferred NeRF (on GPUs) |   32.85    |   24.80   |   20.94    |   31.67   |   19.39   |   27.73   |   28.17   |   28.43   |   26.75   |
+| SNeRG  (on TPUs)        |   29.75    |   24.93   |   20.59    |   31.11   |   19.48   |   27.21   |   26.49   |   27.09   |   25.83   |
+| SNeRG  (on GPUs)        |   30.07    |   24.63   |   20.76    |   30.92   |   19.26   |   27.47   |   26.72   |   27.09   |   25.87   |
+
 
 
 ## Citation
