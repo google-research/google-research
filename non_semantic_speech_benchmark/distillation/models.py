@@ -93,6 +93,7 @@ def get_keras_model(model_type,
         name='log_mel_spectrogram')
     feats = model_in
   inputs = [model_in]
+  logging.info('Features shape: %s', feats.shape)
 
   # Build network.
   if model_type.startswith('mobilenet_'):
