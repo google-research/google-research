@@ -318,7 +318,7 @@ class WeightQuantizationTest(parameterized.TestCase):
     minval = -2**(prec - 1) + 1
     maxval = 2**(prec - 1) - 1
     weights = random.randint(random.PRNGKey(0), (10, 1), minval, maxval + 1)
-    weights = jax.ops.index_update(weights, jax.ops.index[0, :], maxval)
+    weights = weights.at[0, :].set(maxval)
     weight_quant = QuantOps.create_weights_ops(
         w=weights,
         weight_params=QuantOps.WeightParams(

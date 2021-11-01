@@ -18,8 +18,8 @@
 Liu, H., Brock, A., Simonyan, K., & Le, Q. V. (2020, April 6). Evolving
 Normalization-Activation Layers. arXiv [cs.LG]. http://arxiv.org/abs/2004.02967
 """
-from flax import nn
-from flax.nn import initializers
+from flax.deprecated import nn
+from flax.deprecated.nn import initializers
 from jax import lax
 import jax.numpy as jnp
 import jax.scipy.stats

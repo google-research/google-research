@@ -100,14 +100,18 @@ class ConvMetadataMonkeyPatch(contextlib.ContextDecorator):
         translation_rule=functools.partial(
             lax._conv_general_dilated_translation_rule,
             expand_complex_convolutions=False))
-    lax.xla.backend_specific_translations['cpu'][
-        lax.conv_general_dilated_p] = functools.partial(
+    lax.xla.register_translation(
+        lax.conv_general_dilated_p,
+        functools.partial(
             lax._conv_general_dilated_translation_rule,
-            expand_complex_convolutions=True)
-    lax.xla.backend_specific_translations['gpu'][
-        lax.conv_general_dilated_p] = functools.partial(
+            expand_complex_convolutions=True),
+        platform='cpu')
+    lax.xla.register_translation(
+        lax.conv_general_dilated_p,
+        functools.partial(
             lax._conv_general_dilated_translation_rule,
-            expand_complex_convolutions=True)
+            expand_complex_convolutions=True),
+        platform='gpu')
     lax.ad.defbilinear(lax.conv_general_dilated_p,
                        lax._conv_general_dilated_transpose_lhs,
                        lax._conv_general_dilated_transpose_rhs)

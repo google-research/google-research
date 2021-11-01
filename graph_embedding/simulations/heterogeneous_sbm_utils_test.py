@@ -14,8 +14,8 @@
 # limitations under the License.
 
 """Tests for simulation functions library."""
-
 from absl.testing import absltest
+import numpy as np
 
 from graph_embedding.simulations import heterogeneous_sbm_utils as hsu
 
@@ -30,6 +30,25 @@ class GetCrossLinksTest(absltest.TestCase):
 
   def test_second_greater_than_first(self):
     self.assertEqual(hsu.GetCrossLinks(1, 2), [(0, 1), (0, 2)])
+
+
+class GetPropMatTest(absltest.TestCase):
+
+  def test_homogeneous_inptus(self):
+    np.testing.assert_array_almost_equal(
+        hsu.GetPropMat(3, 4.0),
+        np.array([[4.0, 1.0, 1.0],
+                  [1.0, 4.0, 1.0],
+                  [1.0, 1.0, 4.0]]))
+
+  def test_heterogeneous_inputs(self):
+    np.testing.assert_array_almost_equal(
+        hsu.GetPropMat(3, 3.0, 2, 2.0, 4.0),
+        np.array([[3.0, 1.0, 1.0, 4.0, 1.0],
+                  [1.0, 3.0, 1.0, 1.0, 4.0],
+                  [1.0, 1.0, 3.0, 4.0, 1.0],
+                  [4.0, 1.0, 4.0, 2.0, 1.0],
+                  [1.0, 4.0, 1.0, 1.0, 2.0]]))
 
 
 if __name__ == '__main__':

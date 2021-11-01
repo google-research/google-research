@@ -211,16 +211,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "Wow, that's awesome. I see why you are so proud!",
         "share_photo": false,
         "user_id": 1
@@ -8656,11 +8646,6 @@
         "message": "wow adts a nice shot",
         "share_photo": false,
         "user_id": 1
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       }
     ],
     "dialogue_id": 3618,
@@ -11500,11 +11485,6 @@
       {
         "message": "What FIsh did you catch?",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {

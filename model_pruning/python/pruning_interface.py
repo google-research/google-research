@@ -436,7 +436,7 @@ class PruningOp(object):
   def GetMatmulResult(cls,
                       a,
                       b,
-                      softmaxlayerobj,
+                      softmax_layer_obj,
                       transpose_a=False,
                       transpose_b=False):  # pylint:disable=invalid-name
     """Compute the compressed result of matmul(a,b).
@@ -444,7 +444,7 @@ class PruningOp(object):
     Args:
       a: a tensor of rank 2;
       b: a tensor of rank 2;
-      softmaxlayerobj: a SimpleFullSoftmax layer object;
+      softmax_layer_obj: a SimpleFullSoftmax layer object;
       transpose_a: whether to transpose a before matmul;
       transpose_b: whether to transpose b before matmul.
 
@@ -458,8 +458,8 @@ class PruningOp(object):
     """
     if cls._pruning_obj:
       # current implementation works for num_shards = 1 in SimpleFullSoftmax.
-      return softmaxlayerobj.compression_ops[-1].get_matmul_operator(
-          a, b, transpose_a, transpose_b)
+      return softmax_layer_obj.compression_ops[-1].get_matmul_operator(
+          a, b, softmax_layer_obj, transpose_a, transpose_b)
     else:
       raise NotImplementedError()
 

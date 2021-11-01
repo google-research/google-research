@@ -20,7 +20,7 @@ from absl import app
 from absl import flags
 from absl import logging
 from clu import platform
-from flax import nn
+from flax.deprecated import nn
 import jax
 import jax.numpy as jnp
 from lib import data

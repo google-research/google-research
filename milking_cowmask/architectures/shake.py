@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """Shake-shake and ShakeDrop utility functions."""
-import flax.nn
+import flax.deprecated.nn
 import jax
 import jax.numpy as jnp
 
@@ -35,7 +35,7 @@ def shake_shake_train(xa, xb, rng=None):
     Mix of input branches
   """
   if rng is None:
-    rng = flax.nn.make_rng()
+    rng = flax.deprecated.nn.make_rng()
   gate_forward_key, gate_backward_key = jax.random.split(rng, num=2)
   gate_shape = (len(xa), 1, 1, 1)
 
@@ -84,7 +84,7 @@ def shake_drop_train(x, mask_prob, alpha_min, alpha_max, beta_min, beta_max,
   Returns:
   """
   if rng is None:
-    rng = flax.nn.make_rng()
+    rng = flax.deprecated.nn.make_rng()
   bern_key, alpha_key, beta_key = jax.random.split(rng, num=3)
   rnd_shape = (len(x), 1, 1, 1)
   # Bernoulli variable b_l in Eqn 6, https://arxiv.org/abs/1802.02375

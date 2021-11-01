@@ -1417,11 +1417,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "know you can see the image",
         "share_photo": false,
         "user_id": 0
@@ -16596,11 +16591,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "Bro is that jared leto",
         "share_photo": false,
         "user_id": 1
@@ -25720,11 +25710,6 @@
         "message": "",
         "share_photo": true,
         "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       }
     ],
     "dialogue_id": 840,
@@ -28802,11 +28787,6 @@
         "message": "That's good to hear",
         "share_photo": false,
         "user_id": 1
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       }
     ],
     "dialogue_id": 881,
@@ -37712,11 +37692,6 @@
         "message": "Okay, I'll wait for it... I really want to see it.",
         "share_photo": false,
         "user_id": 1
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       },
       {
         "message": "",

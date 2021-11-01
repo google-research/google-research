@@ -23367,11 +23367,6 @@
         "message": "",
         "share_photo": true,
         "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       }
     ],
     "dialogue_id": 1306,
@@ -30193,11 +30188,6 @@
       {
         "message": "Here's what I can do",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {

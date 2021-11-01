@@ -20,6 +20,7 @@ import collections
 from absl.testing import absltest
 import numpy as np
 
+from graph_embedding.simulations import heterogeneous_sbm_utils as hsu
 from graph_embedding.simulations import sbm_simulator
 
 
@@ -37,9 +38,9 @@ class SbmSimulatorTestSbm(absltest.TestCase):
 
   def test_simulate_sbm(self):
     self.assertEqual(self.simulation_with_graph.graph.num_vertices(), 50)
-    self.assertEqual(np.sum(
-        [k == 0 for k in self.simulation_with_graph.graph_memberships]),
-                     25)
+    self.assertEqual(
+        np.sum([k == 0 for k in self.simulation_with_graph.graph_memberships]),
+        25)
     self.assertEqual(self.simulation_with_graph.type1_clusters, [0, 1])
 
   def test_simulate_sbm_community_sizes(self):
@@ -91,9 +92,9 @@ class SbmSimulatorTestFeatures(SbmSimulatorTestSbm):
         center_var=1.0,
         feature_dim=16,
         num_groups=2)
-    self.assertIsInstance(self.simulation_with_graph.node_features, np.ndarray)
-    self.assertEqual(self.simulation_with_graph.node_features.shape[0], 50)
-    self.assertEqual(self.simulation_with_graph.node_features.shape[1], 16)
+    self.assertIsInstance(self.simulation_with_graph.node_features1, np.ndarray)
+    self.assertEqual(self.simulation_with_graph.node_features1.shape[0], 50)
+    self.assertEqual(self.simulation_with_graph.node_features1.shape[1], 16)
 
   def test_simulate_features_equal_memberships(self):
     sbm_simulator.SimulateFeatures(
@@ -145,5 +146,57 @@ class SbmSimulatorTestFeatures(SbmSimulatorTestSbm):
         ]))
 
 
-if __name__ == '__main__':
+class SbmSimulatorTestHeterogeneousSbm(absltest.TestCase):
+
+  def setUp(self):
+    super(SbmSimulatorTestHeterogeneousSbm, self).setUp()
+    self.simulation_with_graph = sbm_simulator.StochasticBlockModel()
+    prop_mat = hsu.GetPropMat(2, 5.0, 2, 5.0, 5.0)
+    sbm_simulator.SimulateSbm(self.simulation_with_graph,
+                              num_vertices=200,
+                              num_edges=16000,
+                              pi=np.array([0.5, 0.5]),
+                              prop_mat=prop_mat,
+                              num_vertices2=200,
+                              pi2=np.array([0.5, 0.5]))
+    sbm_simulator.SimulateFeatures(self.simulation_with_graph,
+                                   center_var=1.0,
+                                   feature_dim=32,
+                                   center_var2=1.0,
+                                   feature_dim2=48,
+                                   type_center_var=1.0,
+                                   type_correlation=0.5)
+
+  def test_input_presence(self):
+    self.simulation_with_graph.cross_links = Ellipsis
+    with self.assertRaisesRegex(RuntimeWarning, "cross_links"):
+      sbm_simulator.SimulateFeatures(
+          self.simulation_with_graph,
+          center_var=1.0,
+          feature_dim=4,
+          num_groups=2,
+          match_type=sbm_simulator.MatchType.NESTED)
+
+  def test_simulate_sbm(self):
+    self.assertEqual(self.simulation_with_graph.graph.num_vertices(), 400)
+    membership_counts = collections.Counter(
+        self.simulation_with_graph.graph_memberships)
+    self.assertEqual(membership_counts[0], 100)
+    self.assertEqual(membership_counts[1], 100)
+    self.assertEqual(membership_counts[2], 100)
+    self.assertEqual(membership_counts[3], 100)
+    self.assertEqual(self.simulation_with_graph.type1_clusters, [0, 1])
+    self.assertEqual(self.simulation_with_graph.type2_clusters, [2, 3])
+    self.assertEqual(self.simulation_with_graph.cross_links, [(0, 2), (1, 3)])
+
+  def test_simulate_features_dimensions(self):
+    self.assertIsInstance(self.simulation_with_graph.node_features1, np.ndarray)
+    self.assertEqual(self.simulation_with_graph.node_features1.shape[0], 200)
+    self.assertEqual(self.simulation_with_graph.node_features1.shape[1], 32)
+    self.assertIsInstance(self.simulation_with_graph.node_features2, np.ndarray)
+    self.assertEqual(self.simulation_with_graph.node_features2.shape[0], 200)
+    self.assertEqual(self.simulation_with_graph.node_features2.shape[1], 48)
+
+
+if __name__ == "__main__":
   absltest.main()

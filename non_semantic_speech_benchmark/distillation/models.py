@@ -17,8 +17,9 @@
 """Models for distillation.
 
 """
-
 import os
+from typing import Optional
+
 from absl import logging
 import tensorflow as tf
 import tensorflow_hub as hub
@@ -50,10 +51,10 @@ def _debug_net(pooling, *args, **kwargs):
 def get_keras_model(model_type,
                     bottleneck_dimension,
                     output_dimension,
-                    frontend=True,
-                    compressor=None,
-                    quantize_aware_training=False,
-                    tflite=False):
+                    frontend = True,
+                    compressor = None,
+                    quantize_aware_training = False,
+                    tflite = False):
   """Make a Keras student model."""
   # For debugging, log hyperparameter values.
   logging.info('model name: %s', model_type)
@@ -92,6 +93,7 @@ def get_keras_model(model_type,
         name='log_mel_spectrogram')
     feats = model_in
   inputs = [model_in]
+  logging.info('Features shape: %s', feats.shape)
 
   # Build network.
   if model_type.startswith('mobilenet_'):
@@ -112,11 +114,12 @@ def get_keras_model(model_type,
         pooling='avg' if avg_pool else None,
         dropout_rate=0.0)
     expected_output_shape = [None, None] if avg_pool else [None, 1, 1, None]
-  elif 'efficientnet' in model_type:
-    model_fn = {
-        'efficientnetb0': tf.keras.applications.EfficientNetB0,
-        'efficientnetb1': tf.keras.applications.EfficientNetB1,
-        'efficientnetb2': tf.keras.applications.EfficientNetB2,
+  elif model_type.startswith('efficientnet'):
+    model_fn, final_dim = {
+        'efficientnetb0': (tf.keras.applications.EfficientNetB0, 1280),
+        'efficientnetb1': (tf.keras.applications.EfficientNetB1, 1280),
+        'efficientnetb2': (tf.keras.applications.EfficientNetB2, 1408),
+        'efficientnetb3': (tf.keras.applications.EfficientNetB3, 1536),
     }[model_type]
     model = model_fn(
         include_top=False,
@@ -125,7 +128,7 @@ def get_keras_model(model_type,
                      frontend_args['num_mel_bins'], 1),
         pooling='avg',
     )
-    expected_output_shape = [None, 1280]
+    expected_output_shape = [None, final_dim]
   else:
     raise ValueError(f'`model_type` not recognized: {model_type}')
 
@@ -158,7 +161,6 @@ def get_keras_model(model_type,
         output_dimension, name='embedding_to_target')(embeddings)
     output_dict['embedding_to_target'] = output
   output_model = tf.keras.Model(inputs=inputs, outputs=output_dict)
-
   # Optional modifications to the model for TFLite.
   if tflite:
     if compressor is not None:

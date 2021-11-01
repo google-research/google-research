@@ -1,3 +1,36 @@
+Skip to content
+Search or jump to…
+Pull requests
+Issues
+Marketplace
+Explore
+ 
+@jxihong 
+google-research
+/
+google-research
+Public
+685
+20.1k
+4.6k
+Code
+Issues
+414
+Pull requests
+95
+Actions
+Security
+Insights
+google-research/latent_programmer/decomposition_transformer_attention/decomposition_models.py /
+@kensens
+kensens Implement attention to the last partial programs.
+…
+Latest commit fe4d2df 12 days ago
+ History
+ 2 contributors
+@kensens@jxihong
+226 lines (192 sloc)  9.08 KB
+   
 # coding=utf-8
 # Copyright 2021 The Google Research Authors.
 #
@@ -20,6 +53,7 @@
 # pytype: disable=wrong-keyword-args
 # pytype: disable=attribute-error
 
+from typing import Any
 from flax import linen as nn
 from flax import struct
 import jax.numpy as jnp
@@ -31,7 +65,20 @@ from latent_programmer.models import base_models
 class DecomposeAttentionTransformerConfig:
   """Global hyperparameters used to minimize obnoxious kwarg plumbing."""
   base_config: base_models.TransformerConfig
-  attention_mask_type: str  # Options: baseline, bos_to_bos, bos_full_attention
+  # Options: baseline, bos_to_bos, bos_to_last, bos_to_bos_and_last,
+  # bos_full_attention
+  attention_mask_type: str
+  # Whether to use special relative attention computation for BOS tokens
+  bos_special_attention: bool
+
+
+def shift_left(x):
+  """Shift the input to the left."""
+  pad_widths = [(0, 0)] * len(x.shape)
+  pad_widths[-1] = (0, 1)  # Padding on axis=-1
+  padded = jnp.pad(
+      x, pad_widths, mode='constant', constant_values=x.dtype.type(0))
+  return padded[Ellipsis, 1:]
 
 
 def make_partial_program_mask(programs,
@@ -47,24 +94,24 @@ def make_partial_program_mask(programs,
 
 
 def make_relative_position(programs,
-                           dtype = jnp.int32):
+                           dtype=jnp.int32):
   program_position = jnp.arange(programs.shape[-1], dtype=jnp.int32)
 
   relative_position = program_position[None, :] - program_position[:, None]
   relative_position = jnp.broadcast_to(
-    relative_position, programs.shape[:-1] + relative_position.shape)
+      relative_position, programs.shape[:-1] + relative_position.shape)
   return relative_position.astype(dtype)
 
 
 def make_partial_program_relative_position(programs,
-                                           bos_token = 1,
-                                           dtype = jnp.int32):
+                                           bos_token=1,
+                                           dtype=jnp.int32):
   """Make relative positions for bos tokens of partial programs."""
   program_partial_position = jnp.cumsum(
-    jnp.where(programs == bos_token, 1, 0), axis=-1)
+      jnp.where(programs == bos_token, 1, 0), axis=-1)
 
-  bos_relative_position = (program_partial_position[..., None, :] -
-                           program_partial_position[..., None])
+  bos_relative_position = (program_partial_position[Ellipsis, None, :] -
+                           program_partial_position[Ellipsis, None])
   return bos_relative_position.astype(dtype)
 
 
@@ -138,6 +185,28 @@ class DecomposeAttentionTransformer(nn.Module):
                   programs == cfg.bos_token,
                   dtype=cfg.dtype),
               nn.make_causal_mask(programs, dtype=cfg.dtype))
+        elif attention_mask_type == 'bos_to_last':
+          # BOS tokens attend to all last partial program tokens.
+          bos_mask = nn.combine_masks(
+              nn.make_attention_mask(
+                  programs == cfg.bos_token,
+                  programs == cfg.bos_token,
+                  dtype=cfg.dtype),
+              nn.make_causal_mask(programs, dtype=cfg.dtype))
+          # Shift bos mask to left to get all previous last partial program
+          # tokens.
+          decoder_bos_mask = shift_left(bos_mask)
+        elif attention_mask_type == 'bos_to_bos_and_last':
+          # BOS tokens attend to all previous BOS + last partial program tokens.
+          bos_mask = nn.combine_masks(
+              nn.make_attention_mask(
+                  programs == cfg.bos_token,
+                  programs == cfg.bos_token,
+                  dtype=cfg.dtype),
+              nn.make_causal_mask(programs, dtype=cfg.dtype))
+          # Shift bos mask to left to get all previous last partial program
+          # tokens.
+          decoder_bos_mask = jnp.logical_or(bos_mask, shift_left(bos_mask))
         elif attention_mask_type == 'bos_full_attention':
           # BOS tokens attend to all previous tokens, including program tokens.
           decoder_bos_mask = nn.combine_masks(
@@ -159,16 +228,18 @@ class DecomposeAttentionTransformer(nn.Module):
                 preshift_programs > 0, preshift_programs > 0, dtype=cfg.dtype),
             jnp.logical_or(decoder_bos_mask, decoder_partial_mask))
 
-        # Make custom relative positions where BOS are separately indexed.
-        decoder_relative_position = make_relative_position(programs)
-        decoder_partial_relative_position = (
-          make_partial_program_relative_position(programs,
-                                                 bos_token=cfg.bos_token)
-        )
-        decoder_relative_position = jnp.where(
-          (programs == cfg.bos_token)[..., None],
-          decoder_partial_relative_position,
-          decoder_relative_position)
+        if self.config.bos_special_attention:
+          # Make custom relative positions where BOS are separately indexed.
+          decoder_relative_position = make_relative_position(programs)
+          decoder_partial_relative_position = (
+              make_partial_program_relative_position(programs,
+                                                     bos_token=cfg.bos_token))
+          decoder_relative_position = jnp.where(
+              (programs == cfg.bos_token)[Ellipsis, None],
+              decoder_partial_relative_position,
+              decoder_relative_position)
+        else:
+          decoder_relative_position = None
 
       encoder_decoder_mask = nn.make_attention_mask(
           programs > 0, flat_encoded_padding_mask, dtype=cfg.dtype)

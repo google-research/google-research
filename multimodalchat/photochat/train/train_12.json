@@ -4191,11 +4191,6 @@
         "message": "",
         "share_photo": true,
         "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       }
     ],
     "dialogue_id": 6058,
@@ -5870,11 +5865,6 @@
         "message": "who did I come with?",
         "share_photo": false,
         "user_id": 1
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       },
       {
         "message": "",
@@ -22123,11 +22113,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "I am Asian.",
         "share_photo": false,
         "user_id": 1
@@ -23265,11 +23250,6 @@
       {
         "message": "Yes, there were a lot of people. I was there with a few of my friends.",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {
@@ -26075,11 +26055,6 @@
       {
         "message": "i did not know",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {
@@ -29560,11 +29535,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "Interesting photo. Is he in it?",
         "share_photo": false,
         "user_id": 1
@@ -29818,11 +29788,6 @@
       {
         "message": "He's handsome with a great smile",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {

@@ -392,8 +392,8 @@ def linear_interpolation_transpose():
       # scale by 0.5 so downsampling preserves the average activation
       output = 0.5 * vjp_fun(x)[0]
       # need to add back in the edges to account for boundary conditions.
-      output = jax.ops.index_add(output, jax.ops.index[:1], 0.25 * x[:1])
-      output = jax.ops.index_add(output, jax.ops.index[-1:], 0.25 * x[-1:])
+      output = output.at[:1].add(0.25 * x[:1])
+      output = output.at[-1:].add(0.25 * x[-1:])
       return output
 
     return jax.vmap(jax.vmap(downsample, 0, 0), 2, 2)(inputs)

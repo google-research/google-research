@@ -49,8 +49,8 @@ flags.DEFINE_integer('max_expressions', 10,
                      'Maximum number of expressions in program.')
 flags.DEFINE_integer('min_expressions', 1,
                      'Maximum number of expressions in program.')
-flags.DEFINE_integer('max_characters', 100,
-                     'Maximum number of characters in input/output strings.')
+flags.DEFINE_integer('max_input_length', 20,
+                     'Maximum number of characters in input strings.')
 
 flags.DEFINE_string('save_dir', None, 'Directory to save results to.')
 
@@ -124,10 +124,10 @@ def main(_):
       task = sample_random.random_task(
           max_expressions=FLAGS.max_expressions,
           min_expressions=FLAGS.min_expressions,
-          max_k=5,
-          max_input_tokens=10,
-          max_input_length=FLAGS.max_characters,
-          max_output_length=FLAGS.max_characters,
+          max_k=3,
+          max_input_tokens=5,
+          max_input_length=FLAGS.max_input_length,
+          max_output_length=FLAGS.max_input_length * FLAGS.max_expressions,
           num_examples=FLAGS.num_strings_per_task,
       )
       example = serialize_example(task, token_id_table)

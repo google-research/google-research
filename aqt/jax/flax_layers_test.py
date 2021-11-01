@@ -194,8 +194,8 @@ class ConvAqtTest(parameterized.TestCase):
         maxval + 1)
 
     # manually set one value in each output dim of weights to be exactly maxval
-    full_range_integer_weights = jax.ops.index_update(
-        full_range_integer_weights, jax.ops.index[0, 0, :], maxval)
+    full_range_integer_weights = (
+        full_range_integer_weights.at[0, 0, :].set(maxval))
     state = state.unfreeze()
     state['params']['kernel'] = full_range_integer_weights
     state = flax.core.freeze(state)
@@ -238,8 +238,8 @@ class ConvAqtTest(parameterized.TestCase):
         self.rng_key, kernel_size + (input_dim, num_features), minval,
         maxval + 1)
     # manually set one value in each output dim of weights to be exactly maxval
-    full_range_integer_weights = jax.ops.index_update(
-        full_range_integer_weights, jax.ops.index[0, 0, :], maxval)
+    full_range_integer_weights = (
+        full_range_integer_weights.at[0, 0, :].set(maxval))
 
     # (batch_size, spatial_dim, spatial_dim, num_features)
     float_scale = jax.random.uniform(self.rng_key, (1, 1, 1, num_features))
@@ -584,8 +584,7 @@ class DenseAqtTest(parameterized.TestCase):
                                                 minval, maxval + 1)
 
     # manually set one value in each output dim of weights to be exactly maxval
-    full_range_integer_weights = jax.ops.index_update(
-        full_range_integer_weights, jax.ops.index[0, :], maxval)
+    full_range_integer_weights = full_range_integer_weights.at[0, :].set(maxval)
     state = state.unfreeze()
     state['params']['kernel'] = full_range_integer_weights
     state = flax.core.freeze(state)
@@ -623,8 +622,7 @@ class DenseAqtTest(parameterized.TestCase):
                                                 minval, maxval + 1)
 
     # manually set one value in each output dim of weights to be exactly maxval
-    full_range_integer_weights = jax.ops.index_update(
-        full_range_integer_weights, jax.ops.index[0, :], maxval)
+    full_range_integer_weights = full_range_integer_weights.at[0, :].set(maxval)
 
     float_scale = jax.random.uniform(self.rng_key, (1, num_features))
     state = state.unfreeze()
@@ -1189,7 +1187,7 @@ class LayerNormTest(parameterized.TestCase):
     y_quantized = quantized_layer_norm.apply(initial_params, x)
     unquantized_layer_norm = nn.LayerNorm()
     y_unquantized = unquantized_layer_norm.apply(initial_params, x)
-    onp.testing.assert_allclose(y_quantized, y_unquantized, rtol=1e-6)
+    onp.testing.assert_allclose(y_quantized, y_unquantized, rtol=2e-6)
 
   def test_epsilon_rounding(self):
     # We give LayerNorm a constant input. Since that input has a variance of

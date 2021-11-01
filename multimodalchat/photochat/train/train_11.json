@@ -17805,11 +17805,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "I see it. He does look a bit worried.",
         "share_photo": false,
         "user_id": 1
@@ -20589,11 +20584,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "I hope you got it.",
         "share_photo": false,
         "user_id": 0
@@ -21353,11 +21343,6 @@
       {
         "message": "I'll share the photo with you.",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {
@@ -24895,11 +24880,6 @@
         "message": "Yes!",
         "share_photo": false,
         "user_id": 1
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       },
       {
         "message": "",
@@ -35940,11 +35920,6 @@
         "message": "",
         "share_photo": true,
         "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       }
     ],
     "dialogue_id": 5970,
@@ -37043,6 +37018,11 @@
         "message": "Well I enjoyed talking to you, hope he enjoys his truck.",
         "share_photo": false,
         "user_id": 1
+      },
+      {
+        "message": "",
+        "share_photo": true,
+        "user_id": 0
       }
     ],
     "dialogue_id": 5984,

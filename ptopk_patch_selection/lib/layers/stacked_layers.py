@@ -22,7 +22,7 @@ stacking the PyTrees with a new leading dimension for the layers.
 
 from typing import Tuple, Union
 
-import flax.nn as nn
+import flax.deprecated.nn as nn
 from lib import utils
 from lib.typing import AuxOutput
 from lib.typing import LayerInput

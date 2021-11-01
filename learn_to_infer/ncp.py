@@ -61,7 +61,7 @@ class NCP(object):
     us = vmap(jax_nn.nn_fwd, in_axes=(0, None))(xs, u_params)
     U = np.sum(us[1:], axis=0)
     Hs = np.zeros([num_data_points, h_dim])
-    Hs = jax.ops.index_update(Hs, 0, hs[0])
+    Hs = Hs.at[0].set(hs[0])
     G = jax_nn.nn_fwd(Hs[0], g_params)
     K = 1
 
@@ -87,7 +87,7 @@ class NCP(object):
       K = jax.lax.cond(np.equal(cs[i], K), lambda x: x + 1, lambda x: x, K)
       G = G - jax_nn.nn_fwd(Hs[cs[i]], g_params) + jax_nn.nn_fwd(
           Hs[cs[i]] + hs[i], g_params)
-      Hs = jax.ops.index_update(Hs, cs[i], Hs[cs[i]] + hs[i])
+      Hs = Hs.at[cs[i]].set(Hs[cs[i]] + hs[i])
       return (U, K, G, Hs, ll), None
 
     out = jax.lax.scan(
@@ -116,7 +116,7 @@ class NCP(object):
     us = vmap(jax_nn.nn_fwd, in_axes=(0, None))(xs, u_params)
     U = np.sum(us[1:], axis=0)
     Hs = np.zeros([num_data_points, h_dim])
-    Hs = jax.ops.index_update(Hs, 0, hs[0])
+    Hs = Hs.at[0].set(hs[0])
     G = jax_nn.nn_fwd(Hs[0], g_params)
     cs = np.zeros([num_data_points], dtype=np.int32)
     K = 1
@@ -144,8 +144,8 @@ class NCP(object):
       K = jax.lax.cond(np.equal(c, K), lambda x: x + 1, lambda x: x, K)
       G = G - jax_nn.nn_fwd(Hs[c], g_params) + jax_nn.nn_fwd(
           Hs[c] + hs[i], g_params)
-      Hs = jax.ops.index_update(Hs, c, Hs[c] + hs[i])
-      cs = jax.ops.index_update(cs, i, c)
+      Hs = Hs.at[c].set(Hs[c] + hs[i])
+      cs = cs.at[i].set(c)
       return (U, K, G, Hs, cs, key)
 
     out = jax.lax.fori_loop(1, num_data_points,

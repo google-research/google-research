@@ -11884,11 +11884,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "That is a very moving photo.",
         "share_photo": false,
         "user_id": 1
@@ -12222,6 +12217,11 @@
         "message": "I hope it works out for you.",
         "share_photo": false,
         "user_id": 1
+      },
+      {
+        "message": "",
+        "share_photo": true,
+        "user_id": 0
       }
     ],
     "dialogue_id": 161,
@@ -13582,6 +13582,11 @@
       {
         "message": "yeah me too",
         "share_photo": false,
+        "user_id": 0
+      },
+      {
+        "message": "",
+        "share_photo": true,
         "user_id": 0
       }
     ],
@@ -15491,11 +15496,6 @@
         "message": "Yeah, that would be great!",
         "share_photo": false,
         "user_id": 1
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       },
       {
         "message": "",
@@ -24616,16 +24616,6 @@
         "message": "",
         "share_photo": true,
         "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       }
     ],
     "dialogue_id": 323,
@@ -26471,11 +26461,6 @@
       {
         "message": "She's about to pat him on the back, maybe telling him to hurry up",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {
@@ -38031,11 +38016,6 @@
       {
         "message": "look at the picture",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {

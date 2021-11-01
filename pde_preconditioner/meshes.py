@@ -124,9 +124,8 @@ class Mesh:
     poly = random.normal(rng, shape=(self.shape))
     for xj in range(j + 1):
       for yk in range(k + 1):
-        poly = jax.ops.index_add(
-            poly, jax.ops.index[:, :],
-            self.x_mesh**xj @ self.y_mesh**yk * coeffs[xj, yk])
+        poly = poly.at[:, :].add(self.x_mesh**xj @ self.y_mesh**yk *
+                                 coeffs[xj, yk])
     return poly
 
   def V_cycle_prec(self, x, k=0, aspect_ratio=1.0, shapebc='R'):

@@ -18,7 +18,7 @@
 """
 from . import layers
 from . import up_or_down_sampling
-import flax.nn as nn
+import flax.deprecated.nn as nn
 import jax
 import jax.numpy as jnp
 import numpy as np

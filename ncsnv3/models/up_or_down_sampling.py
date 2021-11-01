@@ -19,7 +19,7 @@
 Many functions are ported from https://github.com/NVlabs/stylegan2.
 """
 
-import flax.nn as nn
+import flax.deprecated.nn as nn
 import jax
 import jax.nn as jnn
 import jax.numpy as jnp

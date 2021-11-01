@@ -22,7 +22,7 @@ import functools
 import time
 from absl import logging
 from absl.testing import absltest
-from flax.nn import attention
+from flax.deprecated.nn import attention
 import jax
 from jax import random
 import jax.numpy as jnp

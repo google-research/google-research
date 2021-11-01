@@ -23,7 +23,6 @@ Adapts transformer code from: flax/examples
 # pytype: disable=wrong-keyword-args
 # pytype: disable=attribute-error
 
-import functools
 from typing import Optional, Any, Callable
 
 from flax import linen as nn
@@ -51,7 +50,7 @@ class TransformerConfig:
   mlp_dim: int = 512
   max_len: int = 2048
   dropout_rate: float = 0.1
-  attention_dropout_rate: float = 0.1
+  attention_dropout_rate: float = 0.0
   use_relative_attention: bool = False
   num_relative_position_buckets: int = 32
   deterministic: bool = False
@@ -319,6 +318,7 @@ class EncoderDecoderBlock(nn.Module):
         dropout_rate=cfg.attention_dropout_rate,
         deterministic=cfg.deterministic)(x, decoder_mask)
 
+
     x = nn.Dropout(rate=cfg.dropout_rate)(
         x, deterministic=cfg.deterministic)
     x = x + targets
@@ -400,19 +400,6 @@ class TransformerDecoder(nn.Module):
         features=cfg.emb_dim,
         embedding_init=nn.initializers.normal(stddev=1.0),
         name='embed_output')
-
-    if cfg.use_relative_attention:
-      attention_fn = functools.partial(
-          relative_attention.RelativeMultiHeadDotProductAttention,
-          num_relative_position_buckets=cfg.num_relative_position_buckets,
-          causal=False)
-      self_attention_fn = functools.partial(
-          relative_attention.RelativeSelfAttention,
-          num_relative_position_buckets=cfg.num_relative_position_buckets,
-          causal=True)
-    else:
-      attention_fn = nn.MultiHeadDotProductAttention
-      self_attention_fn = nn.SelfAttention
 
     heads = dict()
     y = targets.astype('int32')

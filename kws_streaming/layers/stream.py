@@ -22,6 +22,42 @@ from kws_streaming.layers.compat import tf
 from tensorflow_model_optimization.python.core.quantization.keras import quantize_wrapper
 
 
+def frequeny_pad(inputs, dilation, stride, kernel_size):
+  """Pads input tensor in frequency domain.
+
+  Args:
+    inputs: input tensor
+    dilation: dilation in frequency dim
+    stride: stride in frequency dim
+    kernel_size: kernel_size in frequency dim
+
+  Returns:
+    padded tensor
+
+  Raises:
+    ValueError: if any of input rank is < 3
+  """
+
+  # expected input: [N, Time, Frequency, ...]
+  if inputs.shape.rank < 3:
+    raise ValueError('input_shape.rank:%d must be at least 3' %
+                     inputs.shape.rank)
+
+  size = inputs.shape.as_list()[2]  # dim 2 is frequency domain
+  kernel_size = kernel_size * (dilation)
+  if size % stride == 0:
+    total_pad = max(kernel_size - stride, 0)
+  else:
+    total_pad = max(kernel_size - (size % stride), 0)
+
+  pad_left = total_pad // 2
+  pad_right = total_pad - pad_left
+
+  pad = [[0, 0]] * inputs.shape.rank
+  pad[2] = [pad_left, pad_right]
+  return tf.pad(inputs, pad, 'constant')
+
+
 class Stream(tf.keras.layers.Layer):
   """Streaming wrapper - it is not a standalone layer.
 
@@ -50,12 +86,14 @@ class Stream(tf.keras.layers.Layer):
     cell: keras layer which has to be streamed or tf.identity
     inference_batch_size: batch size in inference mode
     mode: inference or training mode
-    pad_time_dim: padding in time
+    pad_time_dim: padding in time: None, causal or same
     state_shape:
     ring_buffer_size_in_time_dim: size of ring buffer in time dim
     use_one_step: True - model will run one sample per one inference step;
       False - model will run multiple per one inference step.
       It is useful for strided streaming
+    state_name_tag: name tag for streaming state
+    pad_freq_dim: type of padding in frequency dim: None or same
     **kwargs: additional layer arguments
 
   Raises:
@@ -73,8 +111,13 @@ class Stream(tf.keras.layers.Layer):
                ring_buffer_size_in_time_dim=None,
                use_one_step=True,
                state_name_tag='ExternalState',
+               pad_freq_dim=None,
                **kwargs):
     super(Stream, self).__init__(**kwargs)
+
+    if pad_freq_dim not in ['same', 'valid', None]:
+      raise ValueError(f'Unsupported padding in frequency, `{pad_freq_dim}`.')
+
     self.cell = cell
     self.inference_batch_size = inference_batch_size
     self.mode = mode
@@ -84,6 +127,11 @@ class Stream(tf.keras.layers.Layer):
     self.use_one_step = use_one_step
     self.state_name_tag = state_name_tag
     self.stride = 1
+    self.pad_freq_dim = pad_freq_dim
+
+    self.stride_freq = 1
+    self.dilation_freq = 1
+    self.kernel_size_freq = 1
 
     wrappped_cell = self.get_core_layer()
 
@@ -127,6 +175,20 @@ class Stream(tf.keras.layers.Layer):
 
       dilation_rate = wrappped_cell.get_config()['dilation_rate']
       kernel_size = wrappped_cell.get_config()['kernel_size']
+
+      # set parameters in frequency domain
+      self.stride_freq = strides[1] if len(strides) > 1 else strides
+      self.dilation_freq = dilation_rate[1] if len(
+          dilation_rate) > 1 else dilation_rate
+      self.kernel_size_freq = kernel_size[1] if len(
+          kernel_size) > 1 else kernel_size
+
+      if padding == 'same' and self.pad_freq_dim == 'same':
+        raise ValueError('Cell padding and additional padding in frequency dim,'
+                         'can not be the same. In this case conv cell will '
+                         'pad both time and frequency dims and in additional '
+                         'frquency padding will be applied due to pad_freq_dim')
+
       if self.use_one_step:
         # effective kernel size in time dimension
         self.ring_buffer_size_in_time_dim = dilation_rate[0] * (kernel_size[0] -
@@ -238,6 +300,20 @@ class Stream(tf.keras.layers.Layer):
       self.output_state = None
 
   def call(self, inputs):
+
+    # For streaming mode we may need different paddings in time
+    # and frequency dimensions. When we train streaming aware model it should
+    # have causal padding in time, and during streaming inference no padding
+    # in time applied. So conv kernel always uses 'valid' padding and we add
+    # causal padding in time during training. It is controlled
+    # by self.pad_time_dim. In addition we may need 'same' or
+    # 'valid' padding in frequency domain. For this case it has to be applied
+    # in both training and inference modes. That is why we introduced
+    # self.pad_freq_dim.
+    if self.pad_freq_dim == 'same':
+      inputs = frequeny_pad(inputs, self.dilation_freq, self.stride_freq,
+                            self.kernel_size_freq)
+
     if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
       return self._streaming_internal_state(inputs)
 
@@ -269,6 +345,7 @@ class Stream(tf.keras.layers.Layer):
         'use_one_step': self.use_one_step,
         'state_name_tag': self.state_name_tag,
         'cell': self.cell,
+        'pad_freq_dim': self.pad_freq_dim,
     })
     return config
 

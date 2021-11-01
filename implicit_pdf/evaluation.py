@@ -21,6 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import io
+from absl import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,9 +29,20 @@ import tensorflow as tf
 import tensorflow_graphics.geometry.transformation as tfg
 
 
+@tf.function
+def _get_probabilities(vision_model, model_head, images, so3_grid):
+  vision_description = vision_model(images, training=False)
+  query_rotations = tf.reshape(so3_grid, [-1, model_head.len_rotation])
+  query_rotations = model_head.positional_encoding(query_rotations)
+  logits = model_head.implicit_model(
+      [vision_description, query_rotations], training=False)[Ellipsis, 0]
+  return tf.nn.softmax(logits, axis=-1)
+
+
 def eval_spread_and_loglikelihood(vision_model, model_head, dataset,
                                   batch_size=32, eval_grid_size=None,
-                                  skip_spread_evaluation=False):
+                                  skip_spread_evaluation=False,
+                                  number_eval_iterations=None):
   """Distribution-based evaluation functions for pose estimation.
 
   Args:
@@ -44,6 +56,7 @@ def eval_spread_and_loglikelihood(vision_model, model_head, dataset,
     skip_spread_evaluation: Whether to skip the spread calculation, which can
       take a while and is uninformative for the three shapes (tetX, cylO,
       sphereX) without the full set of ground truth annotations.
+    number_eval_iterations: stop evaluation after this number of steps.
 
   Returns:
     Average log likelihood and average spread (in degrees)
@@ -51,30 +64,29 @@ def eval_spread_and_loglikelihood(vision_model, model_head, dataset,
   spreads_all = []
   loglikelihoods_all = []
   so3_grid = model_head.get_closest_available_grid(eval_grid_size)
-  so3_grid_quats = tfg.quaternion.from_rotation_matrix(so3_grid)
 
-  for images, rotation_matrices_gt in dataset.batch(batch_size):
-    vision_description = vision_model(images, training=False)
-    query_rotations = tf.reshape(so3_grid, [-1, model_head.len_rotation])
-    query_rotations = model_head.positional_encoding(query_rotations)
-    logits = model_head.implicit_model(
-        [vision_description, query_rotations], training=False)[Ellipsis, 0]
-    probabilities = np.float32(tf.nn.softmax(logits, axis=-1))
-    max_inds = find_closest_rot_inds(
-        so3_grid_quats,
-        tfg.quaternion.from_rotation_matrix(rotation_matrices_gt))
+  for step, (images, rotation_matrices_gt) in enumerate(
+      dataset.batch(batch_size)):
+    if step % 100 == 0:
+      logging.info('Eval step %d', step)
+    if number_eval_iterations is not None and step >= number_eval_iterations:
+      break
+    tf_probabilities = _get_probabilities(
+        vision_model, model_head, images, so3_grid)
+    np_probabilities = np.float32(tf_probabilities)
+    max_inds = find_closest_rot_inds_rotmat(
+        so3_grid, rotation_matrices_gt)
+    max_inds = np.array(max_inds)
     probabilities_gt = np.float32(
-        [probabilities[i][max_inds[i]] for i in range(max_inds.shape[0])])
+        [np_probabilities[i][max_inds[i]] for i in range(max_inds.shape[0])])
     # Divide by the volume of each cell, pi**2/N, to get probability density.
     loglikelihood = np.log(probabilities_gt * so3_grid.shape[0] / np.pi**2)
     loglikelihoods_all.append(loglikelihood)
     if skip_spread_evaluation:
       spread = [0]
     else:
-      spread = [
-          compute_spread(so3_grid, probabilities[i], rotation_matrices_gt[i])
-          for i in range(probabilities.shape[0])
-      ]
+      spread = [compute_spread_tf(
+          so3_grid, tf_probabilities, rotation_matrices_gt)]
     spreads_all.append(np.float32(spread))
   loglikelihoods_all = np.concatenate(loglikelihoods_all, 0)
   spreads_all = np.concatenate(spreads_all, 0)
@@ -101,6 +113,14 @@ def compute_spread(rotations, probabilities, rotations_gt):
   dists = geodesic_distance_rotmats_pairwise_np(rotations, rotations_gt)
   min_distance_to_gt = np.min(dists, axis=1)
   return (probabilities * min_distance_to_gt).sum()
+
+
+@tf.function
+def compute_spread_tf(rotations, probabilities, rotations_gt):
+  """TensorFlow version of compute_spread."""
+  min_distance_to_gt = min_geodesic_distance_rotmats_pairwise_tf(
+      rotations, rotations_gt)
+  return tf.reduce_sum(probabilities * min_distance_to_gt, axis=-1)
 
 
 def eval_single_estimate_accuracy(vision_model,
@@ -177,6 +197,23 @@ def geodesic_distance_rotmats_pairwise_np(r1s, r2s):
   return np.arccos(np.clip((tr - 1.0) / 2.0, -1.0, 1.0))
 
 
+def geodesic_distance_rotmats_pairwise_tf(r1s, r2s):
+  """TensorFlow version of `geodesic_distance_rotmats_pairwise_np`."""
+  # These are the traces of R1^T R2
+  trace = tf.einsum('aij,bij->ab', r1s, r2s)
+  return tf.acos(tf.clip_by_value((trace - 1.0) / 2.0, -1.0, 1.0))
+
+
+def min_geodesic_distance_rotmats_pairwise_tf(r1s, r2s):
+  """Compute min geodesic distance for each R1 wrt R2."""
+  # These are the traces of R1^T R2
+  trace = tf.einsum('...aij,...bij->...ab', r1s, r2s)
+  # closest rotation has max trace
+  max_trace = tf.reduce_max(trace, axis=-1)
+  return tf.acos(tf.clip_by_value((max_trace - 1.0) / 2.0, -1.0, 1.0))
+
+
+@tf.function
 def find_closest_rot_inds(grid_quats, gt_quats):
   """Dot the sets of quaternions, and take the absolute value because -q=+q.
 
@@ -187,18 +224,29 @@ def find_closest_rot_inds(grid_quats, gt_quats):
   Returns:
     [bs, M] indices, one for each of the gt_quats
   """
-  if np.ndim(gt_quats) == 2:
-    gt_quats = gt_quats[np.newaxis]
-  dotps = np.abs(np.einsum('ij,lkj->ilk', grid_quats, gt_quats))
+  if tf.rank(gt_quats) == 2:
+    gt_quats = gt_quats[None]
+  dotps = tf.abs(tf.einsum('ij,lkj->ilk', grid_quats, gt_quats))
   # shape is [N, bs, M]
-  max_inds = np.argmax(dotps, axis=0)
+  max_inds = tf.argmax(dotps, axis=0)
+  return max_inds
+
+
+@tf.function
+def find_closest_rot_inds_rotmat(grid_rot, gt_rot):
+  """Same as find_closest_rot_inds, but with rotation matrices."""
+  if tf.rank(gt_rot) == 2:
+    gt_rot = gt_rot[None]
+  # These are traces of R1^T R2
+  traces = tf.einsum('gij,lkij->glk', grid_rot, gt_rot)
+  max_inds = tf.argmax(traces, axis=0)
   return max_inds
 
 
 def plot_to_image(figure):
   """Converts matplotlib fig to a png for logging with tf.summary.image."""
   buffer = io.BytesIO()
-  plt.savefig(buffer, format='png')
+  plt.savefig(buffer, format='png', dpi=100)
   plt.close(figure)
   buffer.seek(0)
   image = tf.image.decode_png(buffer.getvalue(), channels=4)
@@ -224,15 +272,21 @@ def visualize_model_output(vision_model,
   return_images = []
   num_to_display = 5
 
-  vision_description = vision_model(tf.stack(images, 0), training=False)
+  query_rotations = model_head.get_closest_available_grid(
+      model_head.number_eval_queries)
+  probabilities = []
+  for image in images:
+    probabilities.append(_get_probabilities(vision_model,
+                                            model_head,
+                                            image[None],
+                                            query_rotations))
+  probabilities = tf.concat(probabilities, 0)
 
-  query_rotations, probabilities = model_head.output_pdf(vision_description)
-  print(query_rotations.shape)
-  print(probabilities.shape)
   inches_per_subplot = 4
   canonical_rotation = np.float32(tfg.rotation_matrix_3d.from_euler([0.2]*3))
   for image_index in range(num_to_display):
-    fig = plt.figure(figsize=(3*inches_per_subplot, inches_per_subplot))
+    fig = plt.figure(figsize=(3*inches_per_subplot, inches_per_subplot),
+                     dpi=100)
     gs = fig.add_gridspec(1, 3)
     fig.add_subplot(gs[0, 0])
     plt.imshow(images[image_index])
@@ -297,7 +351,7 @@ def visualize_so3_probabilities(rotations,
                linewidth=4)
 
   if ax is None:
-    fig = plt.figure()
+    fig = plt.figure(figsize=(8, 4), dpi=100)
     ax = fig.add_subplot(111, projection='mollweide')
   if rotations_gt is not None and len(tf.shape(rotations_gt)) == 2:
     rotations_gt = rotations_gt[tf.newaxis]
@@ -359,5 +413,3 @@ def visualize_so3_probabilities(rotations,
     return plot_to_image(fig)
   else:
     return fig
-
-

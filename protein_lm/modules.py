@@ -15,7 +15,7 @@
 
 # Lint as: python3
 """Flax Modules."""
-from flax import nn
+from flax.deprecated import nn
 from jax import lax
 import jax.numpy as jnp
 import jax.random as jrandom

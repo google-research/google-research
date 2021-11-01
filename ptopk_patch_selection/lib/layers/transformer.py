@@ -23,7 +23,7 @@ and the dropout.
 import enum
 from typing import Callable, Optional, Tuple
 
-import flax.nn as nn
+import flax.deprecated.nn as nn
 import jax
 import jax.numpy as jnp
 from lib.layers import stacked_layers

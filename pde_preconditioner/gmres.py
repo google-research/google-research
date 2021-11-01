@@ -45,14 +45,14 @@ def _outer(carray, k):
   v = A(M(q))
   v, h_col = lax.scan(_inner, v, Q.T)
   v_norm = np.linalg.norm(v)
-  Q = jax.ops.index_update(Q, jax.ops.index[:, k+1], v / v_norm)
-  h_col = jax.ops.index_update(h_col, jax.ops.index[k+1], v_norm)
+  Q = Q.at[:, k + 1].set(v / v_norm)
+  h_col = h_col.at[k + 1].set(v_norm)
   h1, cs1, sn1 = apply_givens_rotation(h_col, cs, sn, k)
-  h_col = jax.ops.index_update(h_col, jax.ops.index[::], h1)
-  cs = jax.ops.index_update(cs, jax.ops.index[k], cs1)
-  sn = jax.ops.index_update(sn, jax.ops.index[k], sn1)
-  beta = jax.ops.index_update(beta, k+1,  -sn1*beta[k])
-  beta = jax.ops.index_update(beta, k, cs1*beta[k])
+  h_col = h_col.at[:].set(h1)
+  cs = cs.at[k].set(cs1)
+  sn = sn.at[k].set(sn1)
+  beta = beta.at[k + 1].set(-sn1 * beta[k])
+  beta = beta.at[k].set(cs1 * beta[k])
   error  = abs(beta[k+1])
   return (Q, beta, (A, M, cs, sn)), (h_col,  error)
 
@@ -76,8 +76,8 @@ def lstsq(a, b):
 def _givens(carry, i):
   h, cs, sn  = carry
   temp   =  cs[i]*h[i] + sn[i]*h[i+1]
-  h = jax.ops.index_update(h, i+1, -sn[i]*h[i] + cs[i]*h[i+1])
-  h  = jax.ops.index_update(h, i, temp)
+  h = h.at[i + 1].set(-sn[i] * h[i] + cs[i] * h[i + 1])
+  h = h.at[i].set(temp)
   return (h, cs, sn), 0
 
 @jax.jit
@@ -88,8 +88,8 @@ def apply_givens_rotation(h, cs, sn, k):
   # need to only run _givens on 0,...,k-1
   (h, cs, sn), _ = lax.scan(_givens, (h, cs, sn), np.arange(len(h)-1))
   cs_k, sn_k = givens_rotation(h[k], h[k+1])
-  h = jax.ops.index_update(h, k, cs_k*h[k] + sn_k*h[k+1])
-  h = jax.ops.index_update(h, k+1, 0.0)
+  h = h.at[k].set(cs_k * h[k] + sn_k * h[k + 1])
+  h = h.at[k + 1].set(0.0)
   return h, cs_k, sn_k
 
 @jax.jit
@@ -119,4 +119,3 @@ def gmres(A, b, x0=None, n=5, M=identity, record=False):
   if x0 is None:
     x0 = np.zeros_like(b)
   return _gmres(A, b, x0, n, M, record)
-

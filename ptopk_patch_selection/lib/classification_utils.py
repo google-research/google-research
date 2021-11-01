@@ -26,7 +26,7 @@ from clu import metric_writers
 from clu import parameter_overview
 from clu import periodic_actions
 import flax
-from flax import nn
+from flax.deprecated import nn
 import jax
 import jax.numpy as jnp
 from lib import utils  # pytype: disable=import-error
