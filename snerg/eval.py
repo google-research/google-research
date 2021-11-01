@@ -147,8 +147,6 @@ def main(unused_argv):
         f.write(" ".join([str(v) for v in psnr_values]))
       with utils.open_file(path.join(out_dir, f"ssims_{step}.txt"), "w") as f:
         f.write(" ".join([str(v) for v in ssim_values]))
-      with utils.open_file(path.join(out_dir, f"lpips_{step}.txt"), "w") as f:
-        f.write(" ".join([str(v) for v in lpips_values]))
       with utils.open_file(path.join(out_dir, "psnr.txt"), "w") as f:
         f.write("{}".format(np.mean(np.array(psnr_values))))
       with utils.open_file(path.join(out_dir, "ssim.txt"), "w") as f:
